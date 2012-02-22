@@ -1,0 +1,296 @@
+#=================================================================================================================================================
+#=================================================================================================================================================
+#	cgmConstrainttools - a part of rigger
+#=================================================================================================================================================
+#=================================================================================================================================================
+# 
+# DESCRIPTION:
+#	Series of tools for constraint stuff
+# 
+# REQUIRES:
+# 	rigging
+# 
+# AUTHOR:
+# 	Josh Burton (under the supervision of python guru David Bokser) - jjburton@gmail.com
+#	http://www.joshburton.com
+# 	Copyright 2011 Josh Burton - All Rights Reserved.
+# 
+# CHANGELOG:
+#	0.1 - 02/09/2011 - added documenation
+#=================================================================================================================================================
+
+import maya.cmds as mc
+
+from cgm.lib import lists
+from cgm.lib import rigging
+from cgm.lib import distance
+from cgm.lib import autoname 
+from cgm.lib import cgmMath
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Point/Aim
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def doPointAimConstraintObjectGroup(targets,object,mode=0): 
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ACKNOWLEDGEMENT:
+    Idea for this stype of constraint setup is from http://td-matt.blogspot.com/2011/01/spine-control-rig.html
+    
+    DESCRIPTION:
+    Groups an object and constrains that group to the other objects
+    
+    REQUIRES:
+    targets(list) - should be in format of from to back with the last one being the aim object
+    object(string)
+    mode(int) - 0 - equal influence
+                1 - distance spread
+    
+    RETURNS:
+    group(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    returnList = []
+    """ figure out which is the aim direction  """
+    aimVector = distance.returnLocalAimDirection(object,targets[-1])
+    upVector = distance.returnLocalUp(aimVector)
+    
+    """ create locators """
+    locs = []
+    toMake = ['point','aim','up']
+    for type in toMake:
+        locBuffer = locators.locMeObject(object)
+        attributes.storeInfo(locBuffer,'cgmName',object)
+        attributes.storeInfo(locBuffer,'cgmTypeModifier',type)
+        locs.append(autoname.doNameObject(locBuffer))
+    
+    pointLoc = locs[0]
+    aimLoc = locs[1]
+    upLoc = locs[2]
+
+    """ move the locators """
+    mc.xform(aimLoc,t=aimVector,r=True,os=True)
+    mc.xform(upLoc,t=upVector,r=True,os=True)
+    
+    """group constraint"""
+    objGroup = rigging.groupMeObject(object,True)
+    attributes.storeInfo(objGroup,'cgmName',object)
+    attributes.storeInfo(objGroup,'cgmTypeModifier','follow')
+    objGroup = autoname.doNameObject(objGroup)
+    
+    pointConstraintBuffer = mc.pointConstraint (pointLoc,objGroup, maintainOffset=False)
+    aimConstraintBuffer = mc.aimConstraint(aimLoc,objGroup,maintainOffset = False, weight = 1, aimVector = aimVector, upVector = upVector, worldUpObject = upLoc, worldUpType = 'object' )
+
+    """loc constraints"""
+    locConstraints = []
+    for loc in locs:
+        parentConstraintBuffer = mc.parentConstraint (targets,loc, maintainOffset=True)
+        locConstraints.append(parentConstraintBuffer[0])
+    
+    if mode == 1:
+        distances = []
+        for target in targets:
+            distances.append(distance.returnDistanceBetweenObjects(target,objGroup))
+        normalizedDistances = cgmMath.normList(distances)
+        for constraint in locConstraints:
+            targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True)      
+            cnt=1
+            for value in normalizedDistances:
+                mc.setAttr(('%s%s%s' % (constraint,'.',targetWeights[cnt])),value )
+                cnt-=1
+
+    returnList.append(objGroup)
+    returnList.append(locs)
+    return returnList
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def doSegmentAimPointConstraint(objList):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Processes a list of items to make a contstraint array
+    
+    REQUIRES:
+    objList(list) - list of items to connect
+    
+    RETURNS:
+    constraintGroups(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """       
+    constraintGroups = []   
+    
+    if len(objList) < 3:
+        return 'Not enough items to make this tool worthwhile'
+    # check to see if we have at least 3 items
+    if len(objList) == 3:
+        print 'Three!'
+        constraintGroups.append(doPointAimConstraintObjectGroup([objList[0],objList[2]],objList[1],mode=0))
+    elif len(objList) == 4:
+        constraintGroups.append(doPointAimConstraintObjectGroup([objList[0],objList[3]],objList[1],mode=1))
+        constraintGroups.append(doPointAimConstraintObjectGroup([objList[0],objList[3]],objList[2],mode=1))
+    else:
+        #first get  our main sets
+        mainSet = lists.returnFirstMidLastList(objList)
+        constraintGroups.append(doPointAimConstraintObjectGroup([mainSet[0],mainSet[2]],mainSet[1],mode=0))
+        setsToConstrain = lists.returnFactoredList(objList, 3)
+        for set in setsToConstrain:
+            if len(set) == 3:
+                constraintGroups.append(doPointAimConstraintObjectGroup([set[0],set[2]],set[1],mode=0))
+            else:
+                constraintGroups.append(doPointAimConstraintObjectGroup([set[0],set[3]],set[1],mode=1))
+                constraintGroups.append(doPointAimConstraintObjectGroup([set[1],set[3]],set[2],mode=1))
+                
+
+    return constraintGroups
+    
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Parent Constraints
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def doParentConstraintObjectGroup(targets,object,mode=0): 
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Groups an object and constrains that group to the other objects
+    
+    REQUIRES:
+    targets(list)
+    object(string
+    mode(int) - 0 - equal influence
+                1 - distance spread
+    
+    RETURNS:
+    group(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """    
+    objGroup = rigging.groupMeObject(object,True)
+    constraint = mc.parentConstraint (targets,objGroup, maintainOffset=True)
+    if mode == 1:
+        distances = []
+        for target in targets:
+            distances.append(distance.returnDistanceBetweenObjects(target,objGroup))
+        normalizedDistances = cgmMath.normList(distances)
+        targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True)
+        
+        cnt=1
+        for value in normalizedDistances:
+            mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )
+            cnt-=1
+    return objGroup
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def doLimbSegmentListParentConstraint(objList):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Processes a list of items to make a contstraint array
+    
+    REQUIRES:
+    objList(list) - list of items to connect
+    
+    RETURNS:
+    constraintGroups(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """       
+    constraintGroups = []   
+    
+    if len(objList) < 3:
+        return 'Not enough items to make this tool worthwhile'
+    # check to see if we have at least 3 items
+    if len(objList) == 3:        
+        constraintGroups.append(doParentConstraintObjectGroup([objList[0],objList[2]],objList[1],mode=0))
+    if len(objList) == 4:
+        constraintGroups.append(doParentConstraintObjectGroup([objList[0],objList[3]],objList[1],mode=1))
+        constraintGroups.append(doParentConstraintObjectGroup([objList[0],objList[3]],objList[2],mode=1))
+    else:
+        #first get  our main sets
+        mainSet = lists.returnFirstMidLastList(objList)
+        constraintGroups.append(doParentConstraintObjectGroup([mainSet[0],mainSet[2]],mainSet[1],mode=0))
+        setsToConstrain = lists.returnFactoredList(objList, 3)
+        for set in setsToConstrain:
+            if len(set) == 3:
+                constraintGroups.append(doParentConstraintObjectGroup([set[0],set[2]],set[1],mode=0))
+            else:
+                constraintGroups.append(doParentConstraintObjectGroup([set[0],set[3]],set[1],mode=1))
+                constraintGroups.append(doParentConstraintObjectGroup([set[1],set[3]],set[2],mode=1))
+                
+
+    return constraintGroups
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Point Constrains
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def doPointConstraintObjectGroup(targets,object,mode=0): 
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Groups an object and constrains that group to the other objects
+    
+    REQUIRES:
+    targets(list)
+    object(string
+    mode(int) - 0 - equal influence
+                1 - distance spread
+    
+    RETURNS:
+    group(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """    
+    objGroup = rigging.groupMeObject(object,True)
+    constraint = mc.pointConstraint (targets,objGroup, maintainOffset=True)
+    if mode == 1:
+        distances = []
+        for target in targets:
+            distances.append(distance.returnDistanceBetweenObjects(target,objGroup))
+        normalizedDistances = cgmMath.normList(distances)
+        targetWeights = mc.pointConstraint(constraint,q=True, weightAliasList=True)
+        
+        cnt=1
+        for value in normalizedDistances:
+            mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )
+            cnt-=1
+    return objGroup
+
+
+
+def doLimbSegmentListPointConstraint(objList):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Processes a list of items to make a contstraint array
+    
+    REQUIRES:
+    objList(list) - list of items to connect
+    
+    RETURNS:
+    constraintGroups(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """       
+    constraintGroups = []   
+    
+    if len(objList) < 3:
+        return 'Not enough items to make this tool worthwhile'
+    # check to see if we have at least 3 items
+    if len(objList) == 3:        
+        constraintGroups.append(doPointConstraintObjectGroup([objList[0],objList[2]],objList[1],mode=0))
+    if len(objList) == 4:
+        constraintGroups.append(doPointConstraintObjectGroup([objList[0],objList[3]],objList[1],mode=1))
+        constraintGroups.append(doPointConstraintObjectGroup([objList[0],objList[3]],objList[2],mode=1))
+    else:
+        #first get  our main sets
+        mainSet = lists.returnFirstMidLastList(objList)
+        constraintGroups.append(doPointConstraintObjectGroup([mainSet[0],mainSet[2]],mainSet[1],mode=0))
+        setsToConstrain = lists.returnFactoredList(objList, 3)
+        for set in setsToConstrain:
+            if len(set) == 3:
+                constraintGroups.append(doPointConstraintObjectGroup([set[0],set[2]],set[1],mode=0))
+            else:
+                constraintGroups.append(doPointConstraintObjectGroup([set[0],set[3]],set[1],mode=1))
+                constraintGroups.append(doPointConstraintObjectGroup([set[1],set[3]],set[2],mode=1))
+                
+
+    return constraintGroups
+
+    
+
