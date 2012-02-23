@@ -152,17 +152,11 @@ def parseListToPairs(dataList):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
     """    
     nestedPairList = []
-    firstTerm = 0
-    secondTerm = 1
-    cnt = (len(dataList)-1)
-    while cnt > 0 :
-        pairBuffer = []
-        pairBuffer.append (dataList[firstTerm])
-        pairBuffer.append (dataList[secondTerm])
-        nestedPairList.append (pairBuffer)
-        firstTerm+=1
-        secondTerm+=1
-        cnt-=1
+    dataListIter = iter(dataList)
+    for itemA in dataListIter:
+        itemB = dataListIter.next()
+        nestedPairList.append([itemA, itemB])
+
     return nestedPairList
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
