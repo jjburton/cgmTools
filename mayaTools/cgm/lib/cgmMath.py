@@ -78,17 +78,7 @@ def multiplyList(listToMultiply):
     number(float)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    if len(listToMultiply) > 2:
-        returnValue = listToMultiply[0]
-        for n in listToMultiply[1:]:
-            returnValue = returnValue * n
-        return returnValue
-    elif len(listToMultiply) == 2:
-        return (listToMultiply[0] * listToMultiply[1])
-    elif len(listToMultiply) == 1:
-        return listToMultiply[0]
-    else:
-        return False
+    return reduce(lambda x,y: x*y, listToMultiply)
 # ====================================================================================================================
 # FUNCTION - 1
 # From - http://code.activestate.com/recipes/278258-list-tools/
