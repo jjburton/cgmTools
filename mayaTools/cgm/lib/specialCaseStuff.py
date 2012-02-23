@@ -3,19 +3,19 @@
 #	rigging - a part of rigger
 #=================================================================================================================================================
 #=================================================================================================================================================
-# 
+#
 # DESCRIPTION:
 #	Series of tools for the widgety magic of rigging
-# 
+#
 # REQUIRES:
 # 	Maya
 #   distance
-# 
+#
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #	http://www.joshburton.com
 # 	Copyright 2011 Josh Burton - All Rights Reserved.
-# 
+#
 # CHANGELOG:
 #	0.1 - 02/09/2011 - added documenation
 #
@@ -27,7 +27,7 @@
 #       True/False for visible in channel box, and which channels you want locked in ('tx','ty',etc) form
 #   5) groupMe() - Pass selection into it and return locators placed at the pivots of each object - matching translation, rotation and rotation order
 #   6) groupMeObject(obj) - Pass object into it and return locators placed at the pivots of each object - matching translation, rotation and rotation order
-#   
+#
 # 3/4/2011 - added point, orient, parent snap functions as well as the list to heirarchy one
 #=================================================================================================================================================
 import maya.cmds as mc
@@ -36,27 +36,27 @@ import maya.mel as mel
 from cgm.lib import guiFactory
 from cgm.lib import distance
 from cgm.lib import attributes
-from cgm.lib import autoname 
+from cgm.lib import autoname
 
 
 
 # Maya version check
-mayaVersion = int(mc.about(file=True))
+mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special case tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Created for N project. It will constrain one skeleton to the other
     by looking for the closest joint in a qss set of bind joints
-    
+
     REQUIRES:
     qssSet(set) - must exist in scene. Set of the rig joints
-    rigStartJoint - the first joint of a unifed  deformation skeleton 
-    
+    rigStartJoint - the first joint of a unifed  deformation skeleton
+
     RETURNS:
     Nothing
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

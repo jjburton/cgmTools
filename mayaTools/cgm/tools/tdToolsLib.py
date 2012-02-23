@@ -3,19 +3,19 @@
 #	cgmRiggingToolsLib - a part of cgmRigger
 #=================================================================================================================================================
 #=================================================================================================================================================
-# 
+#
 # DESCRIPTION:
 #   Library of functions for the cgmRiggingTools tool
-# 
+#
 # REQUIRES:
 #   Maya
-#   
-# 
+#
+#
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #	http://www.joshburton.com
 # 	Copyright 2011 Josh Burton - All Rights Reserved.
-# 
+#
 # CHANGELOG:
 #	0.1.12072011 - First version
 #	0.1.12132011 - master control maker implemented, snap move tools added
@@ -43,32 +43,32 @@ from cgm.tools import locinatorLib
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # SDK
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doSelectDrivenJoints(ui):
     selected = mc.ls(sl=True)
     mc.select(cl=True)
     channelBoxName = search.returnMainChannelBoxName()
-    
+
     # Get the attrs
     selectedAttrs = mc.channelBox(channelBoxName,q=True, sma=True)
-    
+
     fullAttrs = []
     if selectedAttrs:
-	for attr in selectedAttrs:
-	    fullAttrs.append(selected[0]+'.'+attr)
-	for fullAttr in fullAttrs:
-	    drivenJoints = sdk.returnDrivenJoints(fullAttr)
-	    if drivenJoints:
-		mc.select(drivenJoints)
-	    else:
-		guiFactory.warning('No driven joints found')
+        for attr in selectedAttrs:
+            fullAttrs.append(selected[0]+'.'+attr)
+        for fullAttr in fullAttrs:
+            drivenJoints = sdk.returnDrivenJoints(fullAttr)
+            if drivenJoints:
+                mc.select(drivenJoints)
+            else:
+                guiFactory.warning('No driven joints found')
     else:
-	guiFactory.warning('No selected attributes found')
-	
-    
+        guiFactory.warning('No selected attributes found')
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Attribute Tools
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doDeformerKeyableAttributesConnect(ui):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -76,38 +76,38 @@ def doDeformerKeyableAttributesConnect(ui):
     Function for connecting the animateable attributes of a deformer to another object
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     NA
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     sourceObject = ui.SourceObjectField(q=True, text = True)
     if not search.returnObjectType(sourceObject) in ['nonLinear']:
-	return (guiFactory.warning('No deformer object loaded loaded'))
-    
+        return (guiFactory.warning('No deformer object loaded loaded'))
+
     targetObjects = mc.ls(sl=True, flatten = True)
     if not targetObjects:
-	targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
-	if ';' in targetObjectsBuffer:
-	    targetObjects = targetObjectsBuffer.split(';')
-	else:
-	    targetObjects = targetObjectsBuffer
-	
+        targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        if ';' in targetObjectsBuffer:
+            targetObjects = targetObjectsBuffer.split(';')
+        else:
+            targetObjects = targetObjectsBuffer
+
     baseName = ui.BaseNameField(query=True, text =True)
-    
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Make the attributes and connect em
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     attributes.copyKeyableAttrs(sourceObject,targetObjects[0],connectAttrs=True)
-    
-    
-    
+
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Deformer Utility Tools
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doLoadPolyUnite(ui):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -116,54 +116,54 @@ def doLoadPolyUnite(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     NA
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>       
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     selectBuffer = mc.ls(sl=True, flatten = True)
     if selectBuffer:
-	if search.returnObjectType(selectBuffer[0]) is 'polyUnite':
-	    ui.SourceObjectField(edit = True, text = selectBuffer[0])
-	    uniteNode = selectBuffer[0]
-	else:
-	    buffer = deformers.returnPolyUniteNodeFromResultGeo(selectBuffer[0])
-	    if buffer:
-		ui.SourceObjectField(edit = True, text = buffer)
-		uniteNode = buffer
-	    else:
-		return (guiFactory.warning('No poly unite node found')) 
+        if search.returnObjectType(selectBuffer[0]) is 'polyUnite':
+            ui.SourceObjectField(edit = True, text = selectBuffer[0])
+            uniteNode = selectBuffer[0]
+        else:
+            buffer = deformers.returnPolyUniteNodeFromResultGeo(selectBuffer[0])
+            if buffer:
+                ui.SourceObjectField(edit = True, text = buffer)
+                uniteNode = buffer
+            else:
+                return (guiFactory.warning('No poly unite node found'))
     else:
-	return (guiFactory.warning('Please select a polyUnite Node or a polyUnite resulting geo')) 
-    
-    
+        return (guiFactory.warning('Please select a polyUnite Node or a polyUnite resulting geo'))
+
+
     if uniteNode:
-	sourceShapesBuffer = deformers.returnPolyUniteSourceShapes(uniteNode)
-	print sourceShapesBuffer
-	selectList = []
-	
-	uniteGeoBuffer = mc.listRelatives( (deformers.returnPolyUniteResultGeoShape(uniteNode)), parent = True)
-	uniteGeo = uniteGeoBuffer[0]
-	print uniteGeo
-	
-	for obj in sourceShapesBuffer:
-	    if search.returnObjectType(obj) in ['blendShape','wrap','skinCluster']:
-		objects = deformers.returnBaseObjectsFromDeformer(obj)
-		for o in objects:
-		    if o != uniteGeo:
-			selectList.append(o)
-	    else:
-		selectList.append(obj)
-		
-	mc.select(cl=True)
-	print selectList
-	mc.select (selectList)
+        sourceShapesBuffer = deformers.returnPolyUniteSourceShapes(uniteNode)
+        print sourceShapesBuffer
+        selectList = []
+
+        uniteGeoBuffer = mc.listRelatives( (deformers.returnPolyUniteResultGeoShape(uniteNode)), parent = True)
+        uniteGeo = uniteGeoBuffer[0]
+        print uniteGeo
+
+        for obj in sourceShapesBuffer:
+            if search.returnObjectType(obj) in ['blendShape','wrap','skinCluster']:
+                objects = deformers.returnBaseObjectsFromDeformer(obj)
+                for o in objects:
+                    if o != uniteGeo:
+                        selectList.append(o)
+            else:
+                selectList.append(obj)
+
+        mc.select(cl=True)
+        print selectList
+        mc.select (selectList)
     else:
-	return (guiFactory.warning('No polyUnite found'))
-    
+        return (guiFactory.warning('No polyUnite found'))
+
 def doDeletePolyUniteNode(ui):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -172,22 +172,22 @@ def doDeletePolyUniteNode(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     sourceObject = ui.SourceObjectField(q=True, text = True)
     print sourceObject
     if search.returnObjectType(sourceObject) == 'polyUnite':
-	deformers.removePolyUniteNode(sourceObject)
+        deformers.removePolyUniteNode(sourceObject)
     else:
-	return (guiFactory.warning('No polyUnite loaded'))
-    
-    
+        return (guiFactory.warning('No polyUnite loaded'))
+
+
 def doBuildPolyUnite(ui):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -196,50 +196,50 @@ def doBuildPolyUnite(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
     targetObjects = mc.ls(sl=True, flatten = True)
     if not targetObjects:
-	targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
-	if ';' in targetObjectsBuffer:
-	    targetObjects = targetObjectsBuffer.split(';')
-	else:
-	    targetObjects = targetObjectsBuffer
-	
+        targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        if ';' in targetObjectsBuffer:
+            targetObjects = targetObjectsBuffer.split(';')
+        else:
+            targetObjects = targetObjectsBuffer
+
     baseName = ui.BaseNameField(query=True, text =True)
-    
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Variable data checks
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #Do we have targets
     if not targetObjects:
-	return guiFactory.warning('Either selected meshes or target objects required')
+        return guiFactory.warning('Either selected meshes or target objects required')
 
     #Check for mesh object types
     for obj in targetObjects:
-	if not search.returnObjectType(obj) == 'mesh':
-	    return (guiFactory.warning('%s is not a mesh object' %obj))
+        if not search.returnObjectType(obj) == 'mesh':
+            return (guiFactory.warning('%s is not a mesh object' %obj))
 
-    
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Function
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     if not baseName:
-	baseName = 'UnifiedGeo'
+        baseName = 'UnifiedGeo'
     buffer = deformers.polyUniteGeo(targetObjects,name=baseName)
-    
+
     ui.SourceObjectField(edit = True, text = buffer[1])
-	
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Tools
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doLoadBlendShapePoseBuffer(ui):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -248,28 +248,28 @@ def doLoadBlendShapePoseBuffer(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     NA
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>       
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     selectBuffer = mc.ls(sl=True, flatten = True)
     if selectBuffer:
-	poseBufferCandidate = selectBuffer[0]
-	ui.SourceObjectField(edit = True, text = poseBufferCandidate)
-	
-	#Check for a connected blendshape node
-	blendShapeSearchBuffer = deformers.returnBlendShapeNodeFromPoseBuffer(poseBufferCandidate)
-	if blendShapeSearchBuffer:
-	    guiFactory.doLoadMultipleObjectsToTextField(ui.TargetObjectField,blendShapeSearchBuffer,'cgmVarTargetObjects')
-	else:
-	    return (guiFactory.warning('No connected blendShape node found')) 
+        poseBufferCandidate = selectBuffer[0]
+        ui.SourceObjectField(edit = True, text = poseBufferCandidate)
+
+        #Check for a connected blendshape node
+        blendShapeSearchBuffer = deformers.returnBlendShapeNodeFromPoseBuffer(poseBufferCandidate)
+        if blendShapeSearchBuffer:
+            guiFactory.doLoadMultipleObjectsToTextField(ui.TargetObjectField,blendShapeSearchBuffer,'cgmVarTargetObjects')
+        else:
+            return (guiFactory.warning('No connected blendShape node found'))
     else:
-	return (guiFactory.warning('Please select a poseBuffer')) 
-    
+        return (guiFactory.warning('Please select a poseBuffer'))
+
 
 
 def doCreatePoseBufferNOTWORKINGYET(ui):
@@ -280,45 +280,45 @@ def doCreatePoseBufferNOTWORKINGYET(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
     targetObjects = mc.ls(sl=True, flatten = True)
     if not targetObjects:
-	targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
-	if ';' in targetObjectsBuffer:
-	    targetObjects = targetObjectsBuffer.split(';')
-	else:
-	    targetObjects = targetObjectsBuffer
-	
+        targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        if ';' in targetObjectsBuffer:
+            targetObjects = targetObjectsBuffer.split(';')
+        else:
+            targetObjects = targetObjectsBuffer
+
     baseName = ui.BaseNameField(query=True, text =True)
-    
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Variable data checks
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #Do we have targets
     if not targetObjects:
-	return guiFactory.warning('Either selected meshes or target objects required')
+        return guiFactory.warning('Either selected meshes or target objects required')
 
     #Check for mesh object types
     for obj in targetObjects:
-	if not search.returnObjectType(obj) == 'mesh':
-	    return (guiFactory.warning('%s is not a mesh object' %obj))
+        if not search.returnObjectType(obj) == 'mesh':
+            return (guiFactory.warning('%s is not a mesh object' %obj))
 
-    
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Function
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     if not baseName:
-	baseName = 'UnifiedGeo'
+        baseName = 'UnifiedGeo'
     buffer = deformers.polyUniteGeo(targetObjects,name=baseName)
-    
+
     ui.SourceObjectField(edit = True, text = buffer[1])
 
 def doUpdatePoseBuffer(ui):
@@ -329,42 +329,42 @@ def doUpdatePoseBuffer(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     sourceObject = ui.SourceObjectField(q=True, text = True)
 
     targetObjects = mc.ls(sl=True, flatten = True)
     if not targetObjects:
-	targetObjectsBuffer = ui.TargetObjectField(q=True,text=True)
-	#targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
-	if ';' in targetObjectsBuffer:
-	    targetObjects = targetObjectsBuffer.split(';')
-	else:
-	    targetObjects = [targetObjectsBuffer]
-	
+        targetObjectsBuffer = ui.TargetObjectField(q=True,text=True)
+        #targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        if ';' in targetObjectsBuffer:
+            targetObjects = targetObjectsBuffer.split(';')
+        else:
+            targetObjects = [targetObjectsBuffer]
+
     RemoveMissingCase = mc.optionVar(q='cgmVarPoseBufferDoRemoveMissing')
-    DoConnectCase = mc.optionVar(q='cgmVarPoseBufferDoConnect') 
-    TransferConnectionsCase = mc.optionVar(q='cgmVarPoseBufferTransferConnections') 
-    
-    
+    DoConnectCase = mc.optionVar(q='cgmVarPoseBufferDoConnect')
+    TransferConnectionsCase = mc.optionVar(q='cgmVarPoseBufferTransferConnections')
+
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Variable data checks
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #Do we have targets
     if not targetObjects:
-	return guiFactory.warning('We need a blendshape node')
+        return guiFactory.warning('We need a blendshape node')
 
     #Check for blendShape object types
     for obj in targetObjects:
-	if not search.returnObjectType(obj) == 'blendShape':
-	    return (guiFactory.warning('%s is not a blendShape node' %obj))
-    
+        if not search.returnObjectType(obj) == 'blendShape':
+            return (guiFactory.warning('%s is not a blendShape node' %obj))
+
     poseBuffer = sourceObject
     """
     print sourceObject
@@ -377,9 +377,9 @@ def doUpdatePoseBuffer(ui):
     # Function
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     buffer = deformers.updateBlendShapeNodeToPoseBuffer(poseBuffer,targetObjects[0],DoConnectCase,TransferConnectionsCase,RemoveMissingCase)
-    
+
     if DoConnectCase:
-	deformers.connectBlendShapeNodeToPoseBuffer(targetObjects[0],poseBuffer)
+        deformers.connectBlendShapeNodeToPoseBuffer(targetObjects[0],poseBuffer)
 def doBakeBlendShapeTargetsToTargetsFromSource(ui):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -388,7 +388,7 @@ def doBakeBlendShapeTargetsToTargetsFromSource(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -396,83 +396,83 @@ def doBakeBlendShapeTargetsToTargetsFromSource(ui):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    
+
     # Check for selection, defaults to using that for targets
     sourceObject = mc.optionVar(q='cgmVarSourceObject')
     #targetObjectsBuffer = ui.TargetObjectField(query = True, text=True)
     targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
     if ';' in targetObjectsBuffer:
-	targetObjects = targetObjectsBuffer.split(';')
+        targetObjects = targetObjectsBuffer.split(';')
     else:
-	targetObjects = targetObjectsBuffer
+        targetObjects = targetObjectsBuffer
 
     bakeInbetweensCase = mc.optionVar(q='cgmVarBSBakeInbetweens')
-    transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections') 
-    bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine') 
+    transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections')
+    bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine')
     combineTermsString = ui.BlendShapeCombineTermsField(query=True,text=True)
-    
+
     baseName = ui.BaseNameField(query=True, text =True)
-    
+
     blendShapeNodes = deformers.returnObjectDeformers(sourceObject,'blendShape')
     blendShapeNode = blendShapeNodes[0]
-    
-    
+
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Function
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     if sourceObject:
-	if len(blendShapeNodes) >= 1:
-	    if not baseName:
-		baseName = False
-	    #>>> If we have target objects
-	    if targetObjects:
-		#>>> if we're combining sides
-		if bakeCombineCase:
-		    if combineTermsString:
-			combineTerms = combineTermsString.split(';')
-			print combineTerms
-			#>>> Check for combineTerms length
-			if len(combineTerms)==2:
-			    for targetObj in targetObjects:
-				deformers.bakeCombinedBlendShapeNodeToTargetObject(targetObj,sourceObject, blendShapeNode, 
-				                                                       baseName, directions=combineTerms)
-			else:
-			    guiFactory.warning("Not enough combine terms")
-		    else:
-			guiFactory.warning("Need a combine string. For example 'left,right'")
-		
-		else:
-		    """
+        if len(blendShapeNodes) >= 1:
+            if not baseName:
+                baseName = False
+            #>>> If we have target objects
+            if targetObjects:
+                #>>> if we're combining sides
+                if bakeCombineCase:
+                    if combineTermsString:
+                        combineTerms = combineTermsString.split(';')
+                        print combineTerms
+                        #>>> Check for combineTerms length
+                        if len(combineTerms)==2:
+                            for targetObj in targetObjects:
+                                deformers.bakeCombinedBlendShapeNodeToTargetObject(targetObj,sourceObject, blendShapeNode,
+                                                                                   baseName, directions=combineTerms)
+                        else:
+                            guiFactory.warning("Not enough combine terms")
+                    else:
+                        guiFactory.warning("Need a combine string. For example 'left,right'")
+
+                else:
+                    """
 		    bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, baseNameToUse = False, stripPrefix = False,ignoreInbetweens = False, ignoreTargets = False, transferConnections = True)
 		    """
-		    for targetObj in targetObjects:
-			print 'source...'
-			print sourceObject
-			print 'target objects...'
-			print targetObjects
-			print 'bakeCase...'
-			print bakeInbetweensCase
-			print 'transfer...'
-			print transferConnectionsCase
-			print 'combineCase'
-			print bakeCombineCase
-			print 'combineTerms'
-			print combineTermsString
-			print 'bsNodes...'
-			print blendShapeNode
-			print 'basename...'
-			print baseName
-			deformers.bakeBlendShapeNodeToTargetObject(targetObj,sourceObject, blendShapeNode, baseNameToUse = baseName,
-			                                               stripPrefix = False, ignoreInbetweens = (not bakeInbetweensCase),
-			                                               ignoreTargets = False,transferConnections = transferConnectionsCase)
-	    else:
-		guiFactory.warning('Need at least one target object')
-	else:
-	    guiFactory.warning('Source object needs a blendShape node')
+                    for targetObj in targetObjects:
+                        print 'source...'
+                        print sourceObject
+                        print 'target objects...'
+                        print targetObjects
+                        print 'bakeCase...'
+                        print bakeInbetweensCase
+                        print 'transfer...'
+                        print transferConnectionsCase
+                        print 'combineCase'
+                        print bakeCombineCase
+                        print 'combineTerms'
+                        print combineTermsString
+                        print 'bsNodes...'
+                        print blendShapeNode
+                        print 'basename...'
+                        print baseName
+                        deformers.bakeBlendShapeNodeToTargetObject(targetObj,sourceObject, blendShapeNode, baseNameToUse = baseName,
+                                                                   stripPrefix = False, ignoreInbetweens = (not bakeInbetweensCase),
+                                                                   ignoreTargets = False,transferConnections = transferConnectionsCase)
+            else:
+                guiFactory.warning('Need at least one target object')
+        else:
+            guiFactory.warning('Source object needs a blendShape node')
     else:
-	guiFactory.warning('Need a source object')
-    
-	
+        guiFactory.warning('Need a source object')
+
+
 def doBakeBlendShapeTargetsFromSource(ui):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -481,20 +481,20 @@ def doBakeBlendShapeTargetsFromSource(ui):
 
     REQUIRES:
     ui(string) - ui window name under which our variables are stored.
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     # Check for selection, defaults to using that for targets
-    sourceObject = mc.optionVar(q='cgmVarSourceObject') 
+    sourceObject = mc.optionVar(q='cgmVarSourceObject')
     bakeInbetweensCase = mc.optionVar(q='cgmVarBSBakeInbetweens')
-    transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections') 
-    bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine') 
+    transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections')
+    bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine')
     combineTermsString = ui.BlendShapeCombineTermsField(query=True,text=True)
-    
+
     baseName = ui.BaseNameField(query=True, text =True)
-    
+
     blendShapeNodes = deformers.returnObjectDeformers(sourceObject,'blendShape')
     blendShapeNode = blendShapeNodes[0]
     print sourceObject
@@ -504,33 +504,33 @@ def doBakeBlendShapeTargetsFromSource(ui):
     print combineTermsString
     print blendShapeNodes
     print baseName
-    
+
     if sourceObject:
-	if len(blendShapeNodes) >= 1:
-	    if not baseName:
-		baseName = False
-	    #>>> if we're combining sides
-	    if bakeCombineCase:
-		if combineTermsString:
-		    combineTerms = combineTermsString.split(',')
-		    #>>> Check for combineTerms length
-		    if len(combineTerms)==2:
-			deformers.bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, 
-			                                         baseNameToUse = baseName, directions=combineTerms)
-		    else:
-			guiFactory.warning("Not enough combine terms")
-		else:
-		    guiFactory.warning("Need a combine string. For example 'left,right'")
-	    
-	    else:
-		deformers.bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = baseName,
-		                                 stripPrefix = False, ignoreInbetweens = (not bakeInbetweensCase),
-		                                 ignoreTargets = [])
-	    
-	else:
-	    guiFactory.warning('Source object needs a blendShape node')
+        if len(blendShapeNodes) >= 1:
+            if not baseName:
+                baseName = False
+            #>>> if we're combining sides
+            if bakeCombineCase:
+                if combineTermsString:
+                    combineTerms = combineTermsString.split(',')
+                    #>>> Check for combineTerms length
+                    if len(combineTerms)==2:
+                        deformers.bakeCombinedBlendShapeNode(sourceObject, blendShapeNode,
+                                                             baseNameToUse = baseName, directions=combineTerms)
+                    else:
+                        guiFactory.warning("Not enough combine terms")
+                else:
+                    guiFactory.warning("Need a combine string. For example 'left,right'")
+
+            else:
+                deformers.bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = baseName,
+                                             stripPrefix = False, ignoreInbetweens = (not bakeInbetweensCase),
+                                             ignoreTargets = [])
+
+        else:
+            guiFactory.warning('Source object needs a blendShape node')
     else:
-	guiFactory.warning('Need a source object')
+        guiFactory.warning('Need a source object')
 
 
 def doShrinkWrapToSource():
@@ -541,110 +541,110 @@ def doShrinkWrapToSource():
 
     REQUIRES:
     A selection or a set cgmVarSourceObject
-    
+
     RETURNS:
     NA
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     # Check for selection, defaults to using that for targets
     selected = mc.ls(sl=True,flatten=True)
 
-    sourceObject = mc.optionVar(q='cgmVarSourceObject') 
-    
+    sourceObject = mc.optionVar(q='cgmVarSourceObject')
+
     #see if we have selected stuff to work on
     if selected:
-	# if the source object isn't loaded in the field, it tries to grab the last object selected
-	if not sourceObject:
-	    sourceObject = selected[-1]
-	    targetObjects = selected[:-1]
-	else:
-	    targetObjects = selected
+        # if the source object isn't loaded in the field, it tries to grab the last object selected
+        if not sourceObject:
+            sourceObject = selected[-1]
+            targetObjects = selected[:-1]
+        else:
+            targetObjects = selected
 
     else:
         targetObjects = mc.optionVar(q='cgmVarTargetObjects')
 
 
     if len(selected) >=1:
-    
-	if sourceObject: 
-	    sourceType = search.returnObjectType(sourceObject)
-	    
-	    if targetObjects:
-		guiFactory.doProgressWindow()
-		itemCnt = 0
-		
-		for obj in targetObjects:
-		    if guiFactory.doUpdateProgressWindow('On ',itemCnt,(len(targetObjects))) == 'break':
-			break
-		    
-		    targetType = search.returnObjectType(obj)
-	
-		    # Type check to get our Components to move
-		    if targetType == 'mesh':
-			componentsToMove = (mc.ls ([obj+'.vtx[*]'],flatten=True))
-			
-		    elif targetType == 'polyVertex':
-			componentsToMove = [obj]
-			
-		    elif targetType in ['polyEdge','polyFace']:
-			mc.select(cl=True)
-			mc.select(obj)
-			
-			mel.eval("PolySelectConvert 3")
-			componentsToMove = mc.ls(sl=True,fl=True)
-			
-		    elif targetType in ['nurbsCurve','nurbsSurface']:
-			componentsToMove = []
-			shapes = mc.listRelatives(obj,shapes=True,fullPath=True)
-			if shapes:
-			    for shape in shapes:
-				componentsToMove.extend(mc.ls ([shape+'.cv[*]'],flatten=True))
-			else:
-			    componentsToMove = (mc.ls ([obj+'.cv[*]'],flatten=True))
-	
-			    
-		    elif targetType == 'shape':
-			componentsToMove = (mc.ls ([obj+'.cv[*]'],flatten=True))
-			
-		    elif targetType == 'surfaceCV':
-			componentsToMove = [obj]
-			
-		    else:
-			componentsToMove = [obj]
-			    
-			
-		    # Let's move it
-		    for c in componentsToMove:
-			if sourceType in ['mesh','nurbsSurface','nurbsCurve']:
-			    pos = distance.returnWorldSpacePosition(c)
-			    targetLoc = mc.spaceLocator()
-			    mc.move (pos[0],pos[1],pos[2], targetLoc[0])
-			    
-			    closestLoc = locators.locClosest([targetLoc[0],sourceObject])
-			    position.movePointSnap(c,closestLoc)
-			    mc.delete([targetLoc[0],closestLoc])
-			    
-			else:
-			    guiFactory.warning('The source object must be a poly,nurbs curve or nurbs surface')
-			    
-			    
-		    itemCnt += 1    
-			    
-		guiFactory.doCloseProgressWindow() 
-	
-	    else:
-		guiFactory.warning('You need target objects selected or loaded to the target field')
-	else:
-	    guiFactory.warning('You need a source object')
+
+        if sourceObject:
+            sourceType = search.returnObjectType(sourceObject)
+
+            if targetObjects:
+                guiFactory.doProgressWindow()
+                itemCnt = 0
+
+                for obj in targetObjects:
+                    if guiFactory.doUpdateProgressWindow('On ',itemCnt,(len(targetObjects))) == 'break':
+                        break
+
+                    targetType = search.returnObjectType(obj)
+
+                    # Type check to get our Components to move
+                    if targetType == 'mesh':
+                        componentsToMove = (mc.ls ([obj+'.vtx[*]'],flatten=True))
+
+                    elif targetType == 'polyVertex':
+                        componentsToMove = [obj]
+
+                    elif targetType in ['polyEdge','polyFace']:
+                        mc.select(cl=True)
+                        mc.select(obj)
+
+                        mel.eval("PolySelectConvert 3")
+                        componentsToMove = mc.ls(sl=True,fl=True)
+
+                    elif targetType in ['nurbsCurve','nurbsSurface']:
+                        componentsToMove = []
+                        shapes = mc.listRelatives(obj,shapes=True,fullPath=True)
+                        if shapes:
+                            for shape in shapes:
+                                componentsToMove.extend(mc.ls ([shape+'.cv[*]'],flatten=True))
+                        else:
+                            componentsToMove = (mc.ls ([obj+'.cv[*]'],flatten=True))
+
+
+                    elif targetType == 'shape':
+                        componentsToMove = (mc.ls ([obj+'.cv[*]'],flatten=True))
+
+                    elif targetType == 'surfaceCV':
+                        componentsToMove = [obj]
+
+                    else:
+                        componentsToMove = [obj]
+
+
+                    # Let's move it
+                    for c in componentsToMove:
+                        if sourceType in ['mesh','nurbsSurface','nurbsCurve']:
+                            pos = distance.returnWorldSpacePosition(c)
+                            targetLoc = mc.spaceLocator()
+                            mc.move (pos[0],pos[1],pos[2], targetLoc[0])
+
+                            closestLoc = locators.locClosest([targetLoc[0],sourceObject])
+                            position.movePointSnap(c,closestLoc)
+                            mc.delete([targetLoc[0],closestLoc])
+
+                        else:
+                            guiFactory.warning('The source object must be a poly,nurbs curve or nurbs surface')
+
+
+                    itemCnt += 1
+
+                guiFactory.doCloseProgressWindow()
+
+            else:
+                guiFactory.warning('You need target objects selected or loaded to the target field')
+        else:
+            guiFactory.warning('You need a source object')
     else:
-	guiFactory.warning('You need at least two objects')  
-        
+        guiFactory.warning('You need at least two objects')
+
     """
     selected = mc.ls(sl=True,flatten=True)
     if skinning.querySkinCluster(selected[0]):
         badVertices = skinning.returnExcessInfluenceVerts(selected[0],maxInfluences)
         returnProc(badVertices)
-    
+
     elif sourceObject:
         badVertices = skinning.returnExcessInfluenceVerts(sourceObject,maxInfluences)
         returnProc(badVertices)
@@ -652,10 +652,10 @@ def doShrinkWrapToSource():
     else:
         guiFactory.warning('You need a source object or an object with a skin cluster selected.')
     """
-        
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Skin Cluster Tools 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+# Skin Cluster Tools
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doTransferSkinning():
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -664,11 +664,11 @@ def doTransferSkinning():
 
     REQUIRES:
     A selection or a set cgmVarSourceObject
-    
+
     RETURNS:
     Nothing
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     # Check for selection, defaults to using that for targets
     selected = mc.ls(sl=True,flatten=True)
 
@@ -677,19 +677,19 @@ def doTransferSkinning():
     else:
         targetObjects = mc.optionVar(q='cgmVarTargetObjects')
 
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')    
-    
-    if sourceObject: 
-	if targetObjects:  
-	    for obj in targetObjects:
-		
-		skinWeights.transferSkinning( sourceObject, obj )
+    sourceObject = mc.optionVar(q='cgmVarSourceObject')
 
-	else:
-	    guiFactory.warning('You need target objects selected or loaded to the target field')
+    if sourceObject:
+        if targetObjects:
+            for obj in targetObjects:
+
+                skinWeights.transferSkinning( sourceObject, obj )
+
+        else:
+            guiFactory.warning('You need target objects selected or loaded to the target field')
     else:
-	guiFactory.warning('You need a source object')
-	
+        guiFactory.warning('You need a source object')
+
 def doCopyWeightsFromFirstToOthers():
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -698,39 +698,39 @@ def doCopyWeightsFromFirstToOthers():
 
     REQUIRES:
     A selection of vertices
-    
+
     RETURNS:
     Nothing
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     # Check for selection, defaults to using that for targets
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')  
-    
+    sourceObject = mc.optionVar(q='cgmVarSourceObject')
+
     if search.returnObjectType(sourceObject) == 'polyVertex':
-	buffer = mc.ls(sl=True,flatten=True)
-	targetObjects = buffer
+        buffer = mc.ls(sl=True,flatten=True)
+        targetObjects = buffer
     else:
-	buffer = mc.ls(sl=True,flatten=True)
-	sourceObject = buffer[0]
-	targetObjects = buffer[1:]
+        buffer = mc.ls(sl=True,flatten=True)
+        sourceObject = buffer[0]
+        targetObjects = buffer[1:]
 
 
-  
-    
-    if sourceObject: 
-	if targetObjects:  
-	    for obj in targetObjects:
-		if search.returnObjectType(obj)=='polyVertex':
-		    skinning.copySkinWeightBetweenVertices( sourceObject, obj )
-		else:
-		    guiFactory.warning("%s isn't a transferable component" %obj)
 
-	else:
-	    guiFactory.warning('You need target objects selected')
+
+    if sourceObject:
+        if targetObjects:
+            for obj in targetObjects:
+                if search.returnObjectType(obj)=='polyVertex':
+                    skinning.copySkinWeightBetweenVertices( sourceObject, obj )
+                else:
+                    guiFactory.warning("%s isn't a transferable component" %obj)
+
+        else:
+            guiFactory.warning('You need target objects selected')
     else:
-	guiFactory.warning('You need a source object selected or loaded')
-    
-    
+        guiFactory.warning('You need a source object selected or loaded')
+
+
 
 
 def doSelectInfluenceJoints():
@@ -741,30 +741,30 @@ def doSelectInfluenceJoints():
 
     REQUIRES:
     A selection or a set cgmVarSourceObject
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    """
     # Check for selection, defaults to using that for targets
     selected = mc.ls(sl=True,flatten=True)
-    
+
     if selected:
-	influenceList = []
-	for obj in selected:
-	    skinCluster = skinning.querySkinCluster(obj)
-	    if skinCluster:
-		influenceList.extend(skinning.queryInfluences(skinCluster))
-	    else:
-		guiFactory.warning('%s has no skinCluster' %obj)
-	mc.select(cl=True)	
-	if influenceList:
-	    mc.select(influenceList)
-	else:
-	    guiFactory.warning('No Influences found')
+        influenceList = []
+        for obj in selected:
+            skinCluster = skinning.querySkinCluster(obj)
+            if skinCluster:
+                influenceList.extend(skinning.queryInfluences(skinCluster))
+            else:
+                guiFactory.warning('%s has no skinCluster' %obj)
+        mc.select(cl=True)
+        if influenceList:
+            mc.select(influenceList)
+        else:
+            guiFactory.warning('No Influences found')
     else:
-	guiFactory.warning('Must have something selected')
-    
+        guiFactory.warning('Must have something selected')
+
 
 def doReturnExcessInfluenceVerts():
     """
@@ -774,7 +774,7 @@ def doReturnExcessInfluenceVerts():
 
     REQUIRES:
     A selection or a set cgmVarSourceObject
-    
+
     RETURNS:
     badVertices(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -783,38 +783,38 @@ def doReturnExcessInfluenceVerts():
         if len(badVertices)>0:
             mc.select(badVertices[0], replace=True)
             print (guiFactory.doPrintReportStart())
-            print ('%s%i%s%i%s' % ('There are ',(len(badVertices)),' verts are over the max influence (',maxInfluences,'):'))    
+            print ('%s%i%s%i%s' % ('There are ',(len(badVertices)),' verts are over the max influence (',maxInfluences,'):'))
             print badVertices
             print (guiFactory.doPrintReportEnd())
         else:
             guiFactory.warning('No verts over max influence')
-            
+
     sourceObject = mc.optionVar(q='cgmVarSourceObject')
     maxInfluences = mc.optionVar(q='cgmVarMaxInfluenceVerts')
-    
-    
+
+
     selected = mc.ls(sl=True,flatten=True)
     if skinning.querySkinCluster(selected[0]):
         badVertices = skinning.returnExcessInfluenceVerts(selected[0],maxInfluences)
         returnProc(badVertices)
-    
+
     elif sourceObject:
         badVertices = skinning.returnExcessInfluenceVerts(sourceObject,maxInfluences)
         returnProc(badVertices)
 
     else:
         guiFactory.warning('You need a source object or an object with a skin cluster selected.')
-        
-
-    
 
 
 
-    
+
+
+
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tool Commands
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>> moveSnap
 def doParentSnap():
     batch.doObjToTargetFunctionOnSelected(position.moveParentSnap)
@@ -880,10 +880,10 @@ def doAimSnapOneToNext():
         return bufferList
     else:
         guiFactory.warning('You must have at least two objects selected')
-        
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Position
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doSnapClosestPointToSurface(aim=True):
     #mode 0 - normal, 1 - where it was
     aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectAimAxis'))
@@ -935,14 +935,14 @@ def doSnapClosestPointToSurface(aim=True):
                 mc.delete(nurbsCurveAimLoc)
 
 
-        guiFactory.doCloseProgressWindow() 
+        guiFactory.doCloseProgressWindow()
         return bufferList
     else:
         guiFactory.warning('You must have at least two objects selected')
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Curve Tools
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #['Object','Average','Input Size','First Object']
 def returnObjectSizesForCreation(objList,ui):
@@ -996,7 +996,7 @@ def doCreateTextCurveObject(ui):
                 ui.textCurrentObject = curves.createTextCurveObject(word,ui.textObjectSize,None, font = ui.textObjectFont)
                 mc.textField(ui.textCurrentObjectField,edit=True,text = ui.textCurrentObject )
                 curves.setCurveColorByIndex(ui.textCurrentObject,colorChoice)
-        else:		
+        else:
             ui.textCurrentObject = curves.createTextCurveObject(ui.textObjectText,ui.textObjectSize,None, font = ui.textObjectFont)
             mc.textField(ui.textCurrentObjectField,edit=True,text = ui.textCurrentObject )
             curves.setCurveColorByIndex(ui.textCurrentObject,colorChoice)
@@ -1058,7 +1058,7 @@ def doUpdateTexCurveObject(ui):
                 attributes.storeInfo(textCurveObject,'cgmName',ui.textObjectText)
                 textCurveObject = autoname.doNameObject(textCurveObject)
 
-            # Put our updated object info 
+            # Put our updated object info
             mc.textField(ui.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
 
             doUpdateTexCurveObjectUI(ui)
@@ -1131,7 +1131,7 @@ def doCreateCurveControl(ui):
 
 
 def doCreateCurveFromObjects():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Creates a curve from a selection of objects
@@ -1158,7 +1158,7 @@ def doCreateCurveFromObjects():
         guiFactory.warning('Houston, we have a problem')
 
 def doShapeParent():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
@@ -1186,7 +1186,7 @@ def doShapeParent():
             guiFactory.warning(obj + ' failed')
 
 def doShapeParentInPlace():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
@@ -1212,7 +1212,7 @@ def doShapeParentInPlace():
 
 
 def doCurveToPython():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
@@ -1238,7 +1238,7 @@ def doCurveToPython():
         guiFactory.warning('You must select something.')
 
 def doCombineCurves():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Combines curves on the first curves transform
@@ -1269,7 +1269,7 @@ def doCombineCurves():
         guiFactory.warning('You must select something.')
 
 def doReportObjectType():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
@@ -1290,7 +1290,7 @@ def doReportObjectType():
     print 'done'
 
 def doReportSelectionCount():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Reports the number of selected items
@@ -1307,7 +1307,7 @@ def doReportSelectionCount():
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Group stuff
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def zeroGroupMe():
     selected = []
@@ -1332,7 +1332,7 @@ def makeTransformHere():
         guiFactory.warning('You must select something.')
 
 def doCopyPivot():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Copies the pivot from the first object to all other objects

@@ -3,19 +3,19 @@
 #	rigging - a part of rigger
 #=================================================================================================================================================
 #=================================================================================================================================================
-# 
+#
 # DESCRIPTION:
 #	Series of tools for the widgety magic of rigging
-# 
+#
 # REQUIRES:
 # 	Maya
 #   distance
-# 
+#
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #	http://www.joshburton.com
 # 	Copyright 2011 Josh Burton - All Rights Reserved.
-# 
+#
 # CHANGELOG:
 #	0.1 - 02/09/2011 - added documenation
 #
@@ -27,7 +27,7 @@
 #       True/False for visible in channel box, and which channels you want locked in ('tx','ty',etc) form
 #   5) groupMe() - Pass selection into it and return locators placed at the pivots of each object - matching translation, rotation and rotation order
 #   6) groupMeObject(obj) - Pass object into it and return locators placed at the pivots of each object - matching translation, rotation and rotation order
-#   
+#
 # 3/4/2011 - added point, orient, parent snap functions as well as the list to heirarchy one
 #=================================================================================================================================================
 import maya.cmds as mc
@@ -35,25 +35,25 @@ import maya.mel as mel
 
 from cgm.lib import search
 from cgm.lib import attributes
-from cgm.lib import autoname 
+from cgm.lib import autoname
 from cgm.lib import lists
 
 # Maya version check
-mayaVersion = int(mc.about(file=True))
+mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Geo stuff
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import maya.cmds as mc
 
 
-    
-        
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Pivot Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def copyPivot(obj,sourceObject):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Basic Pivot copy
@@ -61,7 +61,7 @@ def copyPivot(obj,sourceObject):
     REQUIRES:
     obj(string) - object to affect
     sourceObject(string) - the object to copy the pivot from
-    
+
     RETURNS:
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -74,15 +74,15 @@ def copyPivot(obj,sourceObject):
 # Locator Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeObjectStandAlone(obj):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Pass  an object into it and return locator placed at the pivots - 
+    Pass  an object into it and return locator placed at the pivots -
     matching translation, rotation and rotation order
-    
+
     REQUIRES:
     obj(string)
-    
+
     RETURNS:
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -93,7 +93,7 @@ def locMeObjectStandAlone(obj):
     objTrans = mc.xform (obj, q=True, ws=True, sp=True)
     objRot = mc.xform (obj, q=True, ws=True, ro=True)
     objRoo = mc.xform (obj, q=True, roo=True )
-    """get rotation order"""    	
+    """get rotation order"""
     correctRo = rotationOrderDictionary[objRoo]
     wantedName = (obj + '_loc')
     cnt = 1
@@ -101,18 +101,18 @@ def locMeObjectStandAlone(obj):
         wantedName = ('%s%s%s%i' % (obj,'_','loc_',cnt))
         cnt +=1
     actualName = mc.spaceLocator (n= wantedName)
-    
+
     """ account for multipleNamed things """
     if '|' in list(obj):
         locatorName = ('|'+actualName[0])
     else:
         locatorName = actualName[0]
-    
-    
+
+
     mc.move (objTrans[0],objTrans[1],objTrans[2], locatorName)
     mc.setAttr ((locatorName+'.rotateOrder'), correctRo)
     mc.rotate (objRot[0], objRot[1], objRot[2], locatorName, ws=True)
-    
+
     return locatorName
 
 
@@ -122,14 +122,14 @@ def locMeObjectStandAlone(obj):
 # Parent Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doParentToWorld(obj):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Parents an object to the world
-    
+
     REQUIRES:
     objList(list)
-    
+
     RETURNS:
     obj(string) - new name if parented to world
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -140,19 +140,19 @@ def doParentToWorld(obj):
         returnBuffer = mc.parent(obj,world = True)
         return returnBuffer[0]
     else:
-        return obj  
+        return obj
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def doParentReturnName(obj,parentObj):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Parents the items in a list to eachother heirarchally where list[0] is the root
-    
+
     REQUIRES:
     objList(list)
-    
+
     RETURNS:
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -166,17 +166,17 @@ def doParentReturnName(obj,parentObj):
             return returnBuffer[0]
     else:
         returnBuffer = mc.parent(obj,parentObj)
-        return returnBuffer[0]    
+        return returnBuffer[0]
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def parentListToHeirarchy(objList):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Parents the items in a list to eachother heirarchally where list[0] is the root
-    
+
     REQUIRES:
     objList(list)
-    
+
     RETURNS:
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -199,15 +199,15 @@ def parentListToHeirarchy(objList):
 # Mirror Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def moveMirrorPosObj(obj,targetObj):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Attempts to mirror an objects position and rotation
-    
+
     REQUIRES:
     obj(string)
     targetObj(string)
-    
+
     RETURNS:
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -226,16 +226,16 @@ def moveMirrorPosObj(obj,targetObj):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def moveMirrorPosObjNow ():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Attempts to mirror an objects position and rotation from a first to
     a second object position
-    
+
     REQUIRES:
     obj(string)
     targetObj(string)
-    
+
     RETURNS:
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -256,16 +256,16 @@ def moveMirrorPosObjNow ():
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def groupMe():
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Pass selection into it and return groups placed at the pivots of each
     object - matching translation, rotation and rotation order and grouping
     the object to them
-    
+
     REQUIRES:
     Selection
-    
+
     RETURNS:
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -282,17 +282,17 @@ def groupMe():
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def groupMeObject(obj,parent=True,maintainParent=False):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Pass  an object into it and return group placed at the pivots - 
-    matching translation, rotation and rotation order and grouping 
+    Pass  an object into it and return group placed at the pivots -
+    matching translation, rotation and rotation order and grouping
     it under the grp
-    
+
     REQUIRES:
     obj(string)
-    parent(bool) - Whether to parent the object to the group 
-   
+    parent(bool) - Whether to parent the object to the group
+
     RETURNS:
     groupName(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -304,8 +304,8 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     """return stuff to transfer"""
     objTrans = mc.xform (obj, q=True, ws=True, sp=True)
     objRot = mc.xform (obj, q=True, ws=True, ro=True)
-    objRoo = mc.xform (obj, q=True, roo=True )	
-    """return rotation order"""    	
+    objRoo = mc.xform (obj, q=True, roo=True )
+    """return rotation order"""
     correctRo = rotationOrderDictionary[objRoo]
     createBuffer = mc.group (w=True, empty=True)
     newName = autoname.doNameObject(createBuffer)
@@ -313,26 +313,26 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     mc.move (objTrans[0],objTrans[1],objTrans[2], [newName])
     mc.rotate (objRot[0], objRot[1], objRot[2], [newName], ws=True)
     mc.xform (newName, cp=True)
-    
+
     if maintainParent == True:
         newName = doParentReturnName(newName,oldParent)
     if parent == True:
         obj = doParentReturnName(obj,newName)
-        
+
     newName = autoname.doNameObject(newName)
 
-    
+
     return newName
-    
+
 def zeroTransformMeObject(obj):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Makes sure an object is zeroed out, parents the zero group back to the original objects parent
-    
+
     REQUIRES:
     obj(string)
-   
+
     RETURNS:
     groupName(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

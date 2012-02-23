@@ -1,1 +1,3 @@
 *.pyc
+*.wpu
+userSetup.py

@@ -3,18 +3,18 @@
 #	guiFactory - a part of rigger
 #=================================================================================================================================================
 #=================================================================================================================================================
-# 
+#
 # DESCRIPTION:
 #   Tool to make standard guis for our tools
-# 
+#
 # REQUIRES:
 #   Maya
-# 
+#
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #	http://www.joshburton.com
 # 	Copyright 2011 Josh Burton - All Rights Reserved.
-# 
+#
 # CHANGELOG:
 #	0.1.12042011 - First version
 #	0.1.12072011 - Added progress tracking
@@ -25,7 +25,7 @@ import maya.mel as mel
 
 from cgmBaseMelUI import *
 
-mayaVersion = int(mc.about(file=True))
+mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 
 # Maya version check
 if mayaVersion >= 2011:
@@ -89,13 +89,13 @@ def initializeTemplates():
     mc.uiTemplate('cgmUIInstructionsTemplate')
     mc.text(dt = 'cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
 
-    # Define our Reserved 
+    # Define our Reserved
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
         mc.deleteUI( 'cgmUIReservedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUIReservedTemplate')
     mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiHelpBackgroundReservedColor)
 
-    # Define our Locked 
+    # Define our Locked
     if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
         mc.deleteUI( 'cgmUILockedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUILockedTemplate')
@@ -149,7 +149,7 @@ def doRadioButtonMenuList(optionList,defaultItemIndex = 0):
     fontMenuItems = guiFactory.doRadioButtonMenuList(fontList)
     for item in fontMenuItems:
     cnt = fontMenuItems.index(item)
-    mc.menuItem(item, edit=True, command=('%s%s%s' %("cgmRiggingToolsWin.textObjectFont = '",fontList[cnt],"'")) ) 
+    mc.menuItem(item, edit=True, command=('%s%s%s' %("cgmRiggingToolsWin.textObjectFont = '",fontList[cnt],"'")) )
 
 
     REQUIRES:
@@ -158,13 +158,13 @@ def doRadioButtonMenuList(optionList,defaultItemIndex = 0):
 
     RETURNS:
     menuList(list)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     returnList = []
     cnt = 0
     for item in optionList:
         if cnt == defaultItemIndex:
-            returnList.append( mc.menuItem( label=item, rb=True) ) 
+            returnList.append( mc.menuItem( label=item, rb=True) )
         else:
             returnList.append( mc.menuItem( label=item, rb=False) )
         cnt += 1
@@ -178,9 +178,9 @@ def warning(message):
         mc.warning(message)
     except:
         if "'" in list(message):
-            mel.eval('%s%s%s' %("$messageVar =  '", message,"'")) 
+            mel.eval('%s%s%s' %("$messageVar =  '", message,"'"))
         else:
-            mel.eval('%s%s%s' %('$messageVar =  "', message,'"')) 
+            mel.eval('%s%s%s' %('$messageVar =  "', message,'"'))
         mel.eval('warning $messageVar')
 
 def doWindow(winName,toolName,menuBarOption = True, toolBoxOption = False, sizeableOption = True, widthHeightOption = (255,400), minimizeButtonOption = False, maximizeButtonOption = False, iconNameOption = 'shortName'):
@@ -189,7 +189,7 @@ def doWindow(winName,toolName,menuBarOption = True, toolBoxOption = False, sizea
     else:
         return mc.window(winName, title= toolName, menuBar = menuBarOption, toolbox = toolBoxOption, sizeable = sizeableOption, widthHeight = widthHeightOption, minimizeButton = minimizeButtonOption, maximizeButton = maximizeButtonOption, iconName=iconNameOption)
 
-def resetUI(uiModule, uiWindow):    
+def resetUI(uiModule, uiWindow):
     mc.deleteUI(uiWindow, window=True)
     import uiModule
     uiModule.run()
@@ -211,7 +211,7 @@ def showAbout(uiWin):
     mc.showWindow( window )
 
 def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Toggle for turning off and on the visbility of a list of containers
@@ -237,10 +237,10 @@ def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers):
             setUIObjectVisibility(Container,False)
         cnt+=1
 
-        
-        
+
+
 def toggleMenuShowState(stateToggle, listOfItems):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Toggle for turning off and on the visibility of a menu section
@@ -261,7 +261,7 @@ def toggleMenuShowState(stateToggle, listOfItems):
     for item in listOfItems:
         uiType = mc.objectTypeUI(item)
         if uiType == 'staticText':
-            mc.text(item, edit = True, visible = newState)	    
+            mc.text(item, edit = True, visible = newState)
         elif uiType == 'separator':
             mc.separator(item, edit = True, visible = newState)
         elif uiType == 'rowLayout':
@@ -274,13 +274,13 @@ def toggleMenuShowState(stateToggle, listOfItems):
             mc.formLayout(item, edit = True, visible = newState)
             #print ('%s%s%s%s%s%s%s' % ('"python(mc.',uiType,"('",item,"', edit = True, visible = ",newState,'))"'))
             #mel.eval(('%s%s%s%s%s%s%s' % ('"python(mc.',uiType,"('",item,"', edit = True, visible = ",newState,'))"')))
-            #mc.separator(item, edit = True, visible = newState)    
+            #mc.separator(item, edit = True, visible = newState)
         else:
             warning('%s%s%s' %('No idea what ', item, ' is'))
     return newState
 
 def setUIObjectVisibility(item, visState):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Toggle for turning off and on the visibility of a menu section
@@ -294,9 +294,9 @@ def setUIObjectVisibility(item, visState):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     uiType = mc.objectTypeUI(item)
-    
+
     if uiType == 'staticText':
-        mc.text(item, edit = True, visible = visState)	    
+        mc.text(item, edit = True, visible = visState)
     elif uiType == 'separator':
         mc.separator(item, edit = True, visible = visState)
     elif uiType == 'rowLayout':
@@ -309,13 +309,13 @@ def setUIObjectVisibility(item, visState):
         mc.formLayout(item, edit = True, visible = visState)
         #print ('%s%s%s%s%s%s%s' % ('"python(mc.',uiType,"('",item,"', edit = True, visible = ",visState,'))"'))
         #mel.eval(('%s%s%s%s%s%s%s' % ('"python(mc.',uiType,"('",item,"', edit = True, visible = ",visState,'))"')))
-        #mc.separator(item, edit = True, visible = visState)    
+        #mc.separator(item, edit = True, visible = visState)
     else:
         warning('%s%s%s' %('No idea what ', item, ' is'))
-        
+
 
 def toggleMenuState(stateToggle):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Toggle for a menu item
@@ -333,7 +333,7 @@ def toggleMenuState(stateToggle):
     else:
         newState = True
 
-    return newState	
+    return newState
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -360,7 +360,7 @@ def doLoadSingleObjectToTextField(textFieldObject,variableToSet = False):
 def doLoadMultipleObjectsToTextField(textFieldObject,objectsToLoad = False, variableToSet = False):
     if not objectsToLoad:
         objectsToLoad = (mc.ls (sl=True,flatten=True))
-        
+
     if objectsToLoad:
         textFieldObject(edit=True,ut = 'cgmUILockedTemplate', text = ';'.join(objectsToLoad),editable = False )
         if variableToSet:
@@ -418,11 +418,11 @@ def doLoadToTextField(label = False, commandText = 'guiFactory.warning("Fix this
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doButton2(parent, labelText, commandText = 'guiFactory.warning("Fix this")',annotationText = '',*a,**kw):
     if currentGenUI:
-        return 	MelButton(parent,l=labelText,ut = 'cgmUITemplate', 
+        return 	MelButton(parent,l=labelText,ut = 'cgmUITemplate',
                                  c= commandText,
                                  annotation = annotationText,*a,**kw)
     else:
-        return MelButton(parent,l=labelText, backgroundColor = [.75,.75,.75], 
+        return MelButton(parent,l=labelText, backgroundColor = [.75,.75,.75],
                          c= commandText,
                          annotation = annotationText,*a,**kw)
 
@@ -449,7 +449,7 @@ def doReturnFontFromDialog(currentFont):
 
 def doToggleIntOptionVariable(variable):
     varState = mc.optionVar( q= variable )
-    mc.optionVar( iv=(variable, not varState))	
+    mc.optionVar( iv=(variable, not varState))
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Text and line breaks
@@ -484,7 +484,7 @@ def sectionBreak():
     if currentGenUI:
         return mc.separator(ut='cgmUISubTemplate')
     else:
-        return mc.separator(style='single')		
+        return mc.separator(style='single')
 
 def instructions(text, align = 'center', vis = False, maxLineLength = 35):
     # yay, accounting for word wrap...
@@ -539,10 +539,10 @@ def doProgressWindow(winName='Progress Window',statusMessage = 'Progress...',sta
                              isInterruptable=interruptableState )
 
 def doUpdateProgressWindow(statusMessage,stepInterval,stepRange,reportItem=False):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Tools to do a maya progress window. This function and doEndMayaProgressBar are a part of a set. 
+    Tools to do a maya progress window. This function and doEndMayaProgressBar are a part of a set.
 
     REQUIRES:
     statusMessage(string) - starting status message
@@ -579,13 +579,13 @@ def doUpdateProgressWindow(statusMessage,stepInterval,stepRange,reportItem=False
 
 def doCloseProgressWindow():
     mc.progressWindow(endProgress=1)
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Tools to do a maya progress bar. This function and doEndMayaProgressBar are a part of a set. Example 
+    Tools to do a maya progress bar. This function and doEndMayaProgressBar are a part of a set. Example
     usage:
 
     mayaMainProgressBar = guiFactory.doStartMayaProgressBar(int(number))
@@ -617,7 +617,7 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
 def doEndMayaProgressBar(mayaMainProgressBar):
     mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doProgressBar(winName,trackedList,statusMessage):
     mc.progressBar()
 
@@ -712,7 +712,7 @@ def doEvenRowOfColumns2(useTemplate = False):
         else:
             return mc.rowColumnLayout(numberOfRows=1, columnOffset= [(1,'both',3),(2,'right',3)])
     else:
-        return mc.rowColumnLayout(numberOfRows=1)	
+        return mc.rowColumnLayout(numberOfRows=1)
 
 def doTabs(toolName):
     mc.tabLayout((toolName + 'cgmRiggingToolsTabs'),innerMarginWidth=5, innerMarginHeight=5)

@@ -3,19 +3,19 @@
 #       deformers - a part of rigger
 #=================================================================================================================================================
 #=================================================================================================================================================
-# 
+#
 # DESCRIPTION:
 #       Series of tools for the widgety magic of deformers
-# 
+#
 # REQUIRES:
 #       Maya
 #   distance
-# 
+#
 # AUTHOR:
 #       Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #       http://www.joshburton.com
 #       Copyright 2011 Josh Burton - All Rights Reserved.
-# 
+#
 # CHANGELOG:
 #       0.1 - 02/09/2011 - added documenation
 #
@@ -24,7 +24,7 @@ import maya.cmds as mc
 import maya.mel as mel
 
 from maya.OpenMayaAnim import MFnBlendShapeDeformer
-import apiExtensions
+from zooPyMaya import apiExtensions
 
 from cgm.lib import distance
 from cgm.lib import dictionary
@@ -32,7 +32,7 @@ from cgm.lib import guiFactory
 from cgm.lib import settings
 from cgm.lib import search
 from cgm.lib import attributes
-from cgm.lib import autoname 
+from cgm.lib import autoname
 from cgm.lib import lists
 from cgm.lib import nodes
 from cgm.lib import rigging
@@ -45,69 +45,69 @@ settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
 
 def polyUniteGeo(objList,name='unitedGeo'):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Unites polys with the poly unite command. Every piece of geo must have 
+    Unites polys with the poly unite command. Every piece of geo must have
     a deformer node with an .outputGeometry
 
     REQUIRES:
     objList(string)
     name(string) - base name for the geo and node created
-    
+
     RETURNS:
     returnList = [unifedGeoName,polyUniteNode]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     geoOutNodes = []
-    
+
     """ get all of the outMesh possibilities"""
     for obj in objList:
         outGeoNode = False
         deformers = returnObjectDeformers(obj)
-	if deformers:
-	    for i in range(len(deformers)):
-		if mc.objExists(deformers[i]+'.outputGeometry') == True:
-		    outGeoNode = (deformers[i]+'.outputGeometry')
-		geoOutNodes.append(outGeoNode)
-		if outGeoNode != False:
-		    break
-	else:
-	    geoShapes = mc.listRelatives(obj,shapes=True)
-	    if mc.objExists(geoShapes[0]+'.outMesh') == True:
-		outGeoNode = (geoShapes[0]+'.outMesh')
+        if deformers:
+            for i in range(len(deformers)):
+                if mc.objExists(deformers[i]+'.outputGeometry') == True:
+                    outGeoNode = (deformers[i]+'.outputGeometry')
+                geoOutNodes.append(outGeoNode)
+                if outGeoNode != False:
+                    break
+        else:
+            geoShapes = mc.listRelatives(obj,shapes=True)
+            if mc.objExists(geoShapes[0]+'.outMesh') == True:
+                outGeoNode = (geoShapes[0]+'.outMesh')
                 geoOutNodes.append(geoShapes[0])
-		
+
     if len(geoOutNodes) != len(objList):
         print "Don't have connections for all geo pieces"
         return False
-    
+
     """ check for a dup list"""
     #geoOutNodes = lists.returnListNoDuplicates(geoOutNodes)
-    
+
     """ make the node """
     uniteNode = mc.createNode('polyUnite')
     uniteNode = mc.rename(uniteNode,(name+'_polyUniteNode'))
-    
+
     print geoOutNodes
-    
+
     """ connect our stuff """
     nodeTracker = []
     for obj in objList:
-	print ('on %s' %obj)
+        print ('on %s' %obj)
         index = objList.index(obj)
-	if search.returnObjectType( (geoOutNodes[index]) ) is 'shape':
-	    mc.connectAttr(('%s%s'% (geoOutNodes[index],'.outMesh')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
-	    mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
-	else:
-	    # Check if we've already used this connection, if so we need to iterate
-	    if geoOutNodes[index] in nodeTracker:
-		mc.connectAttr(('%s%s%i%s'% (geoOutNodes[index],'[', (nodeTracker.count(geoOutNodes[index]) ) ,']')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
-	    else:
-		mc.connectAttr(('%s%s'% (geoOutNodes[index],'[0]')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
-	    mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
-	    nodeTracker.append(geoOutNodes[index])
-	
+        if search.returnObjectType( (geoOutNodes[index]) ) is 'shape':
+            mc.connectAttr(('%s%s'% (geoOutNodes[index],'.outMesh')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
+            mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
+        else:
+            # Check if we've already used this connection, if so we need to iterate
+            if geoOutNodes[index] in nodeTracker:
+                mc.connectAttr(('%s%s%i%s'% (geoOutNodes[index],'[', (nodeTracker.count(geoOutNodes[index]) ) ,']')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
+            else:
+                mc.connectAttr(('%s%s'% (geoOutNodes[index],'[0]')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
+            mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
+            nodeTracker.append(geoOutNodes[index])
+
     """ Create our outPut mesh"""
     unitedGeoShape = mc.createNode('mesh')
     unitedGeo = mc.listRelatives(unitedGeoShape,parent=True,type='transform')
@@ -115,11 +115,11 @@ def polyUniteGeo(objList,name='unitedGeo'):
     # and the group parts node
     groupPartsNode = mc.createNode('groupParts')
     groupPartsNode = mc.rename(groupPartsNode,(name+'_groupParts'))
-    
+
     """ Connect it up """
     mc.connectAttr((uniteNode+'.output'),(groupPartsNode+'.inputGeometry'))
     mc.connectAttr((groupPartsNode+'.outputGeometry'),(unitedGeoShape+'.inMesh'))
-    
+
     """Store and return"""
     attributes.storeInfo(unitedGeo[0],'cgmName',name)
     attributes.storeInfo(unitedGeo[0],'cgmType','polyUniteGeo')
@@ -127,7 +127,7 @@ def polyUniteGeo(objList,name='unitedGeo'):
 
     attributes.storeInfo(uniteNode,'cgmSourceObjects',(';'.join(objList)))
     attributes.storeInfo(uniteNode,'cgmResultGeo',(unitedGeo))
-    
+
     return [unitedGeo,uniteNode,groupPartsNode]
 
 
@@ -138,22 +138,22 @@ def returnBaseObjectsFromDeformer(deformer):
     #input inputPoly
     returnList = []
     transforms = mc.ls(type='transform')
-    
+
     for obj in transforms:
         deformerList = returnObjectDeformers(obj)
         if deformerList:
             if deformer in deformerList:
                 returnList.append(obj)
-                
+
     if returnList:
         return returnList
     else:
         return False
-    
+
     """
     keepGoing = 1
     while keepGoing:
-        if 
+        if
         shapes = mc.listRelatives(geo,shapes=True)
         bufferObject =  attributes.returnDriverObject('%s%s' % (shapes[0],'.inMesh'))
         return attributes.returnDriverObject('%s%s' % (bufferObject,'.inputGeometry'))
@@ -161,7 +161,7 @@ def returnBaseObjectsFromDeformer(deformer):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Poly Unite
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnPolyUniteSourceShapes(polyUniteNode):
     i = 0
     rawDrivers = []
@@ -182,7 +182,7 @@ def returnPolyUniteNodeFromResultGeo(geo):
     if shapes:
         if mc.objExists('%s%s' % (shapes[0],'.inMesh')):
             bufferObject =  attributes.returnDriverObject('%s%s' % (shapes[0],'.inMesh'))
-            if mc.objExists('%s%s' % (bufferObject,'.inputGeometry')): 
+            if mc.objExists('%s%s' % (bufferObject,'.inputGeometry')):
                 return attributes.returnDriverObject('%s%s' % (bufferObject,'.inputGeometry'))
             else:
                 return False
@@ -193,9 +193,9 @@ def returnPolyUniteNodeFromResultGeo(geo):
 
 def removePolyUniteNode(polyUniteNode):
     rawDrivers = returnPolyUniteSourceShapes(polyUniteNode)
-    
+
     if not mc.objExists(polyUniteNode):
-	return guiFactory.warning('%s does not exist' %polyUniteNode)
+        return guiFactory.warning('%s does not exist' %polyUniteNode)
     mc.delete(polyUniteNode)
     for obj in rawDrivers:
         if search.returnObjectType(obj) is 'shape':
@@ -203,11 +203,11 @@ def removePolyUniteNode(polyUniteNode):
             nameBuffer = mc.listRelatives (obj,parent=True, type ='transform')
             mc.setAttr((transform[0]+'.visibility'),1)
             mc.setAttr((obj+'.intermediateObject'),0)
-            
+
             buffer = rigging.doParentToWorld(transform[0])
             #mc.delete(nameBuffer[0])
             mc.rename(buffer,nameBuffer[0])
-            
+
 
 
 
@@ -219,7 +219,7 @@ def removePolyUniteNode(polyUniteNode):
 
 
 def returnObjectDeformers(obj, deformerTypes = 'all'):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     ACKNOWLEDGEMENT
     Pythonized from - http://www.scriptswell.net/2010/09/mel-list-all-deformers-on-mesh.html
@@ -233,11 +233,11 @@ def returnObjectDeformers(obj, deformerTypes = 'all'):
     RETURNS:
     deformers(list)/False
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """  
+    """
     objHistory = mc.listHistory(obj,pruneDagObjects=True)
     deformers = []
     if objHistory:
-        for node in objHistory: 
+        for node in objHistory:
             typeBuffer = mc.nodeType(node, inherited=True)
             if 'geometryFilter' in typeBuffer:
                 deformers.append(node)
@@ -254,13 +254,13 @@ def returnObjectDeformers(obj, deformerTypes = 'all'):
                 return foundDeformers
             else:
                 return False
-                    
+
     else:
         return False
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def reorderDeformersByType(obj, deformerOrder = ['skinCluster','blendShape','tweak']):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     ACKNOWLEDGEMENT
     Reorders deformers on an object by deformer type
@@ -276,7 +276,7 @@ def reorderDeformersByType(obj, deformerOrder = ['skinCluster','blendShape','twe
     RETURNS:
     Success(bool)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """  
+    """
     deformers = returnObjectDeformers(obj)
     orderedDeformers = []
     if deformers:
@@ -285,7 +285,7 @@ def reorderDeformersByType(obj, deformerOrder = ['skinCluster','blendShape','twe
                 if search.returnObjectType(deformer) == deformerType:
                     orderedDeformers.append(deformer)
                     deformers.remove(deformer)
-                    
+
         for deformer in deformers:
             orderedDeformers.append(deformer)
         # pair up the list
@@ -297,9 +297,9 @@ def reorderDeformersByType(obj, deformerOrder = ['skinCluster','blendShape','twe
         print ('No deformers on ' + obj)
         return False
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def reorderDeformersByOrderedList(obj, deformerOrder):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Reorders deformers on an object by a list of deformers
@@ -311,7 +311,7 @@ def reorderDeformersByOrderedList(obj, deformerOrder):
     RETURNS:
     Success(bool)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """  
+    """
     deformers = returnObjectDeformers(obj)
     orderedDeformers = []
     existsCheck = True
@@ -324,13 +324,13 @@ def reorderDeformersByOrderedList(obj, deformerOrder):
     else:
         print ('No deformers on ' + obj)
         return False
-        
-        
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Pose Buffer stuff
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferConnections = True):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Takes the attributes of a blendshape, adds them as attributes, connects them and transfers
@@ -346,7 +346,7 @@ def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferCon
     RETURNS:
     returnList(list) - [poseBuffer(string),newAttrs(list)]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """    
+    """
     """ first get the blendshape attrs """
     blendShapeAttrs = search.returnBlendShapeAttributes(blendShapeNode)
 
@@ -364,10 +364,10 @@ def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferCon
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def updateBlendShapeNodeToPoseBuffer(poseBuffer,blendShapeNode,doConnect = True, transferConnections = True, removeMissingShapes = True):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Updates a blendshape to posebuffer connection with new attrs (need to 
+    Updates a blendshape to posebuffer connection with new attrs (need to
     make it remove non existing ones, maybe make the creation one tag it's parent blendshape node)
 
     REQUIRES:
@@ -380,24 +380,24 @@ def updateBlendShapeNodeToPoseBuffer(poseBuffer,blendShapeNode,doConnect = True,
     RETURNS:
     returnList(list) - [poseBuffer(string),newAttrs(list)]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """    
+    """
     """ first get the blendshape attrs """
     blendShapeAttrs = search.returnBlendShapeAttributes(blendShapeNode)
     initialPoseBufferAttrs = attributes.returnUserAttributes(poseBuffer)
-    
+
     removeAttrsBuffer = lists.returnMissingList(blendShapeAttrs,initialPoseBufferAttrs)
     newAttrs = lists.returnMissingList(initialPoseBufferAttrs,blendShapeAttrs)
-    
+
     newAttrs = attributes.addFloatAttrsToObj(poseBuffer, newAttrs,default = 0)
     poseBufferAttrs = attributes.returnUserAttributes(poseBuffer)
-    
+
     if doConnect:
         for attr in newAttrs:
             try:
                 attributes.doConnectAttr((poseBuffer+'.'+attr),(blendShapeNode+'.'+attr),False,transferConnections)
             except:
                 guiFactory.warning('%s%s%s%s' % ((poseBuffer+'.'+attr),' to ',(blendShapeNode+'.'+attr),' failed!' ))
-    
+
     removeAttrs = []
     if removeMissingShapes:
         for attr in removeAttrsBuffer:
@@ -435,9 +435,9 @@ def returnBlendShapeNodeFromPoseBuffer(poseBuffer):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Wrap Deformers
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another
@@ -451,13 +451,13 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
     returnList(list) - [wrapDeformer,wrappedTargetObject]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    
+
     """ make a dup to bake """
     if duplicateObject == True:
         wrappedTargetObject = mc.duplicate(targetObject)
         wrappedTargetObject = rigging.doParentToWorld(wrappedTargetObject)
         wrappedTargetObject = mc.rename(wrappedTargetObject,(targetObject+'_baked'))
-    
+
         """ Freeze """
         mc.makeIdentity(wrappedTargetObject,apply=True, t=True,r=True,s=True)
         mc.delete(wrappedTargetObject,ch=True)
@@ -473,15 +473,15 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
     mc.select(sourceObject,tgl=True)
     mel.eval('AddWrapInfluence')
     mc.select(cl=True)
-    
+
     return ([wrapDeformer,wrappedTargetObject])
-    
-    
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Baking
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, baseNameToUse = False, stripPrefix = False,ignoreInbetweens = False, ignoreTargets = False, transferConnections = True):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another
@@ -529,10 +529,10 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
     # Meat of it
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     blendShapeNodeChannels = returnBlendShapeAttributes(blendShapeNode)
-        
+
     blendShapeShortNames = []
     """ first loop stores and sets everything to 0 """
-    
+
     for shape in blendShapeNodeChannels:
         keepGoing = True
         if ignoreTargets != False:
@@ -540,11 +540,11 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
                 keepGoing = False
             else:
                 keepGoing = True
-                    
+
         blendShapeBuffer = (blendShapeNode + '.' + shape)
         """ get the connection """
         blendShapeConnections.append(attributes.returnDriverAttribute(blendShapeBuffer))
-        
+
         if keepGoing == True:
             print ('breaking....' + blendShapeBuffer)
             """break it """
@@ -553,9 +553,9 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
 
     # Bake it
     bakedGeo = bakeBlendShapes(sourceObject, targetObjectBaked, blendShapeNode, baseNameToUse, stripPrefix, ignoreInbetweens, ignoreTargets)
-    
 
-    """ restore connections """    
+
+    """ restore connections """
     for shape in blendShapeNodeChannels:
         keepGoing = True
         if ignoreTargets != False:
@@ -563,7 +563,7 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
                 keepGoing = False
             else:
                 keepGoing = True
-                    
+
         currentIndex = blendShapeNodeChannels.index(shape)
         blendShapeBuffer = (blendShapeNode+'.'+shape)
         """ Restore the connection """
@@ -572,15 +572,15 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
             print blendShapeConnections[currentIndex]
             if blendShapeConnections[currentIndex] != False:
                 attributes.doConnectAttr(blendShapeConnections[currentIndex],blendShapeBuffer)
-                
-                
+
+
     # Need to build a new blendshape node?
     if transferConnections == True:
         # Build it
         newBlendShapeNode = buildBlendShapeNode(targetObject, bakedGeo, baseNameToUse)
-        
+
         newBlendShapeChannels = returnBlendShapeAttributes(newBlendShapeNode)
-        
+
         for shape in newBlendShapeChannels:
             blendShapeBuffer = (newBlendShapeNode+'.'+shape)
             currentIndex = newBlendShapeChannels.index(shape)
@@ -596,7 +596,7 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
     """ group for geo """
     meshGroup = mc.group( em=True)
     if baseNameToUse != False:
-        attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)    
+        attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
     attributes.storeInfo(meshGroup,'cgmTypeModifier', 'blendShapeGeo')
     meshGroup = autoname.doNameObject(meshGroup)
 
@@ -611,7 +611,7 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, baseName = False, directions=['left','right']):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another when you have a left/right variant
@@ -732,7 +732,7 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
         pair +=1
         t+=1
 
-    """ restore connections """    
+    """ restore connections """
     for shape in blendShapeNodeChannels:
         currentIndex = blendShapeNodeChannels.index(shape)
         blendShapeBuffer = (blendShapeNode+'.'+shape)
@@ -763,7 +763,7 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, directions=['left','right']):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for baking a series of blendshapes out from one object that have a split type
@@ -832,7 +832,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
             blendShapeShortNames.append('_'.join(newNameBuffer))
         else:
             blendShapeShortNames.append(pairBaseName)
-            
+
     t=1
     pair = 0
     for i in range (len(blendshapePairs)):
@@ -849,7 +849,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
         attributes.doSetAttr(blendShape2Buffer,1)
         dupBuffer = mc.duplicate(sourceObject)
 
-        
+
         splitBuffer = blendShapeShortNames[pair].split('_')
         if len(splitBuffer)>1:
             nameBuffer = splitBuffer[:-1]
@@ -860,7 +860,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
         dupBuffer = mc.rename (dupBuffer,(baseName+shortName))
         """ Unlock it """
         attributes.doSetLockHideKeyableAttr(dupBuffer,False,True,True)
-        
+
         mc.xform(dupBuffer,r=True,t=[((sizeX*(t+1.2))*1.5),(sizeY*row*-1.5),0])
         bakedGeo.append(dupBuffer)
 
@@ -869,7 +869,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
         pair +=1
         t+=1
 
-    """ restore connections """    
+    """ restore connections """
     for shape in blendShapeNodeChannels:
         currentIndex = blendShapeNodeChannels.index(shape)
         blendShapeBuffer = (blendShapeNode+'.'+shape)
@@ -897,7 +897,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stripPrefix = False, ignoreInbetweens = False, ignoreTargets = False):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for exporting an object's blendshapes
@@ -937,16 +937,16 @@ def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stri
     targetDict = returnBlendShapeTargetsAndWeights(sourceObject,blendShapeNode)
     targetSets = []
     blendShapeNodeChannels = []
-    
+
     for key in targetDict.keys():
         targetSetBuffer = targetDict.get(key)
         targetSets.append(targetSetBuffer)
-        
+
         baseSet = targetSetBuffer[-1]
-        blendShapeNodeChannels.append(baseSet[0])                   
-                        
+        blendShapeNodeChannels.append(baseSet[0])
+
     blendShapeShortNames = []
-    
+
     """ first loop gets connections, breaks them and sets everything to 0 """
     for shape in blendShapeNodeChannels:
         blendShapeBuffer = (blendShapeNode+'.'+shape)
@@ -956,23 +956,23 @@ def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stri
         """break it """
         attributes.breakConnection(blendShapeBuffer)
         attributes.doSetAttr(blendShapeBuffer,0)
-        
-    
+
+
     # Bake it
     bakedGeo = bakeBlendShapes(sourceObject, sourceObject, blendShapeNode, baseNameToUse, stripPrefix, ignoreInbetweens, ignoreTargets)
-    
+
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Finish out
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """ restore connections """    
+    """ restore connections """
     for shape in blendShapeNodeChannels:
         currentIndex = blendShapeNodeChannels.index(shape)
         blendShapeBuffer = (blendShapeNode+'.'+shape)
         """ Restore the connection """
         if blendShapeConnections[currentIndex] != False:
             attributes.doConnectAttr(blendShapeConnections[currentIndex],blendShapeBuffer)
-    
+
     """ group for geo """
     meshGroup = mc.group( em=True)
     if baseNameToUse != False:
@@ -990,16 +990,16 @@ def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stri
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Utilities
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Builds a blendshape node, while looking for in between shapes and connecting them accordingly
 
     REQUIRES:
     targetObject(string)
-    blendShapeTargets(list) - 
+    blendShapeTargets(list) -
     nameBlendShape(bool/string) - if it's False, it uses the target Object name, else, it uses what is supplied
 
     RETURNS:
@@ -1011,7 +1011,7 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
         blendShapeNodeName = (nameBlendShape + '_bsNode')
     else:
         blendShapeNodeName = (targetObject + '_bsNode')
-    
+
     #First look through the targetObjects for inbetween shapes
     baseTargets = []
     inbetweenTargets = []
@@ -1020,29 +1020,29 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
             inbetweenTargets.append(object)
         else:
             baseTargets.append(object)
-    
+
     # Make the blendshape node
     blendShapeNode = mc.blendShape(baseTargets,targetObject, n = blendShapeNodeName)
-    
+
     blendShapeChannels = returnBlendShapeAttributes(blendShapeNode[0])
-    
+
     # Handle the inbetweens
     for object in inbetweenTargets:
         objAttrs = attributes.returnUserAttrsToDict(object)
-        
+
         targetParent = objAttrs.get('cgmBlendShapeTargetParent')
         targetValue = float(objAttrs.get('cgmBlendShapeInbetweenWeight'))
         bsIndice = blendShapeChannels.index(targetParent)
-        
+
         mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetObject,bsIndice,object,targetValue])
-        
+
     return blendShapeNode[0]
 
-    
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def bakeBlendShapes(sourceObject, targetObject, blendShapeNode, baseNameToUse = False, stripPrefix = False, ignoreInbetweens = False, ignoreTargets = False):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for exporting an objects blendshapes
@@ -1061,12 +1061,12 @@ def bakeBlendShapes(sourceObject, targetObject, blendShapeNode, baseNameToUse = 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     targetDict = returnBlendShapeTargetsAndWeights(sourceObject,blendShapeNode)
-    
+
     """ size """
     sizeBuffer = distance.returnBoundingBoxSize(targetObject)
     sizeX = sizeBuffer[0]
     sizeY = sizeBuffer[1]
-    
+
     #  base name
     if baseNameToUse == False:
         baseName = ''
@@ -1077,36 +1077,36 @@ def bakeBlendShapes(sourceObject, targetObject, blendShapeNode, baseNameToUse = 
     i=0
     bakedGeo = []
     for key in targetDict.keys():
-        
+
         targetSetBuffer = targetDict.get(key)
-        
+
         if ignoreInbetweens == False:
             targetSetProcessSet = targetSetBuffer
         else:
             targetSetProcessSet = targetSetBuffer[-1:]
-        
+
         if len(targetSetProcessSet) > 1:
             isInbetween = True
             targetSetProcessSet.reverse()
         else:
             isInbetween = False
-        
+
         cnt = 0
         for targetSet in targetSetProcessSet:
             row = i//5
             if t>5:
                 t=1
-            
-            # Check for it being an ignore target 
+
+            # Check for it being an ignore target
             nameBuffer = targetSet[0]
             keepGoing = True
-            
+
             if ignoreTargets != False:
                 if nameBuffer in ignoreTargets:
                     keepGoing = False
                 else:
                     keepGoing = True
-                    
+
             if keepGoing:
                 #process the name
                 if '_' in list(nameBuffer) and stripPrefix == True:
@@ -1115,13 +1115,13 @@ def bakeBlendShapes(sourceObject, targetObject, blendShapeNode, baseNameToUse = 
                     newName = ('_'.join(newNameBuffer))
                 else:
                     newName = nameBuffer
-                
+
                 #>>> Start extracting
                 #set our values
                 mc.blendShape(blendShapeNode, edit = True, weight = [key,targetSet[1]])
                 dupBuffer = mc.duplicate(targetObject)
                 dupBuffer = mc.rename (dupBuffer,(baseName+newName))
-                
+
                 # Take care of inbetween tagging
                 if isInbetween == True:
                     if cnt == 0:
@@ -1129,34 +1129,34 @@ def bakeBlendShapes(sourceObject, targetObject, blendShapeNode, baseNameToUse = 
                     else:
                         attributes.storeInfo(dupBuffer,'cgmBlendShapeTargetParent',rootTarget)
                         attributes.storeInfo(dupBuffer,'cgmBlendShapeInbetweenWeight',targetSet[1])
-                    
+
                 # Unlock it
                 attributes.doSetLockHideKeyableAttr(dupBuffer,False,True,True)
                 mc.xform(dupBuffer,r=True,t=[((sizeX*(t+1.2))*1.5),(sizeY*row*-1.5),0])
                 bakedGeo.append(dupBuffer)
-                
+
                 # Iterate
                 i+=1
                 t+=1
                 cnt+=1
-                
+
         if keepGoing == True:
             mc.blendShape(blendShapeNode, edit = True, weight = [key,0])
-        
+
     return bakedGeo
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Info
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnBlendShapeAttributes(blendshapeNode):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns cv coordinates from a surface CV
-    
+
     REQUIRES:
     surfaceCV(string)
-    
+
     RETURNS:
     coordinates(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1164,7 +1164,7 @@ def returnBlendShapeAttributes(blendshapeNode):
     return (mc.listAttr((blendshapeNode+'.weight'),m=True))
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnBlendShapeBaseObjects(blendShapeNode):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns the base objects of a blendshape node
@@ -1179,22 +1179,22 @@ def returnBlendShapeBaseObjects(blendShapeNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Prep
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    
+
     #Declare the blendshape node as an MObject
     blendShapeNode = apiExtensions.asMObject( blendShapeNode )
     #Attach the functions set
     bsFn = MFnBlendShapeDeformer (blendShapeNode)
     baseObjectsObjArray = apiExtensions.MObjectArray()
     bsFn.getBaseObjects(baseObjectsObjArray)
-    
+
     baseObjects = []
     for i in range( baseObjectsObjArray.length() ):
-        baseObjects.append( str( apiExtensions.asMObject(baseObjectsObjArray[i]) )  )  
+        baseObjects.append( str( apiExtensions.asMObject(baseObjectsObjArray[i]) )  )
     return baseObjects
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnBlendShapeIndexList(blendShapeNode):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another when you have a left/right variant
@@ -1213,25 +1213,25 @@ def returnBlendShapeIndexList(blendShapeNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Prep
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    
+
     #Declare the blendshape node as an MObject
     blendShapeNode = apiExtensions.asMObject( blendShapeNode )
     #Attach the functions set
     bsFn = MFnBlendShapeDeformer (blendShapeNode)
     weightListIntArray = apiExtensions.MIntArray()
-    
+
     bsFn.weightIndexList(weightListIntArray)
-    
+
     return weightListIntArray
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Inbetweening
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnBlendShapeTargetsAndWeights(sourceObject, blendShapeNodeName):
-    """ 
+    """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Function for returning the targets per blendshape index, including inbetween shapes 
+    Function for returning the targets per blendshape index, including inbetween shapes
 
     REQUIRES:
     sourceObject(string)
@@ -1244,36 +1244,36 @@ def returnBlendShapeTargetsAndWeights(sourceObject, blendShapeNodeName):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Prep
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    
+
     targetIndices = returnBlendShapeIndexList(blendShapeNodeName)
     sourceObjectShapes = mc.listRelatives(sourceObject, shapes = True)
     print sourceObjectShapes
-    
+
     #Declare the blendshape node as an MObject
     blendShapeNode = apiExtensions.asMObject( blendShapeNodeName )
     #Attach the functions set
     bsFn = MFnBlendShapeDeformer (blendShapeNode)
-    
-    #Declare variables  
+
+    #Declare variables
     baseObjects = apiExtensions.MObjectArray()
     #>>>>May need better logic for detecting the base
     bsFn.getBaseObjects(baseObjects)
-    
+
     baseObjectBuffer = returnBlendShapeBaseObjects(blendShapeNodeName)
     #base = apiExtensions.asMObject( baseObjectBuffer[0])
     #base = apiExtensions.asMObject( sourceObjectShapes[0] )
     base =  apiExtensions.asMObject( (baseObjects[0]) )
 
-    targetDict = {}  
-    
+    targetDict = {}
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Meat
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     for i in targetIndices:
         targetsReturnBuffer = []
-        targetsObjArray = apiExtensions.MObjectArray()  
+        targetsObjArray = apiExtensions.MObjectArray()
         bsFn.getTargets(base,i,targetsObjArray)
-        
+
         for t in range( targetsObjArray.length() ):
             targetReturnBuffer = []
             shapeNameBuffer = ( str(apiExtensions.asMObject(targetsObjArray[t])) )
@@ -1287,12 +1287,11 @@ def returnBlendShapeTargetsAndWeights(sourceObject, blendShapeNodeName):
             rawIndex = int(indexTwoBuffer[0])
             # Calculate inbetween weight using Maya's index = weight * 1000 + 5000 formula
             inbetweenWeight = float( (rawIndex-5000) * .001 )
-            
+
             #Prep data
             targetReturnBuffer.append(inbetweenWeight)
             targetsReturnBuffer.append(targetReturnBuffer)
         targetDict[i] = targetsReturnBuffer
-        
+
     return targetDict
-            
-            
+
