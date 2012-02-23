@@ -53,12 +53,8 @@ class tdToolsClass(BaseMelWindow):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
-    guiFactory.initializeTemplates()
-
     def __init__( self):
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Options
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        guiFactory.initializeTemplates()
         # Maya version check
         if mayaVer >= 2011:
             self.currentGen = True
