@@ -41,7 +41,7 @@ from cgm.tools import (tdToolsLib,
 
 
 def run():
-    mel.eval('python("import maya.cmds as mc;from cgm.tools import tdToolsLib;cgmTDToolsWin = tdTools.tdToolsClass()")')
+    tdToolsClass()
 
 class tdToolsClass(BaseMelWindow):
     WINDOW_NAME = 'TDTools'
