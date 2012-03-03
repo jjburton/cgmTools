@@ -30,7 +30,7 @@ setupCgmPaths()
 def devPaths():
         mayaSysPaths = sys.path
 
-        devPaths = ['D:/bbRigger/bbrigger/cgm']
+        devPaths = ['D:/repos/cgmTools/mayaTools']
 
         for dirPath in devPaths:
                 if dirPath not in mayaSysPaths:
