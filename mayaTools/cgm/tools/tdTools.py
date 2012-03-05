@@ -43,8 +43,24 @@ reload(tdToolsLib)
 
 
 def run():
-	tdToolsClass()
+	mel.eval('python("import maya.cmds as mc;from cgm.tools import tdToolsLib;cgmTDToolsWin = tdTools.tdToolsClass()")')
 
+	"""
+	Hammish, the reason I did this was a few reasons
+	
+	1) because I need to know what the name of my ui window is which
+	I'm declaring in this mel.eval do you know a better way to do this?
+	
+	2) I get an mc error otherwise
+	
+	3) issue with the gui templates note initializing otherwise. Also it looks like your revision to zooPy's baseMelUI
+	borked the template initialize stuff. Took me a bit to realized you'd removed all of that. Can we do a code compare to see what I changed to
+	see if we can roll that into your code so everything works again or tell me another way to get them working together?
+	
+	
+	your code:
+	tdToolsClass()
+	"""
 
 class tdToolsClass(BaseMelWindow):
 	WINDOW_NAME = 'TDTools'
@@ -55,9 +71,19 @@ class tdToolsClass(BaseMelWindow):
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-
+	
 	def __init__( self):
 		guiFactory.initializeTemplates()
+
+		import maya.mel as mel
+		import maya.cmds as mc
+				
+		from cgm.lib import (guiFactory,
+				             search)
+		from cgm.tools import (tdToolsLib,
+				               locinatorLib)
+		
+		
 		# Maya version check
 		if mayaVer >= 2011:
 			self.currentGen = True
