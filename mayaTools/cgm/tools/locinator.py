@@ -230,12 +230,14 @@ class locinatorClass(BaseMelWindow):
         UpdateOptionRow.setStretchWidget( MelSpacer(UpdateOptionRow) )
         everyFrameButton = UpdateOptionRadioCollection.createButton(UpdateOptionRow,l='Bake',
                                                                     onCommand=lambda *a: self.do_showTimeSubMenuToggleOff())
-        # Select our button
+
+        UpdateOptionRow.layout()
+        
+        # Select our time button
         if not EveryFrameOption:
             everyFrameButton.select()
         else:
             currentFrameButton.select()
-        UpdateOptionRow.layout()
 
         # Time Submenu
         mc.setParent(parent)
@@ -244,7 +246,7 @@ class locinatorClass(BaseMelWindow):
         timelineInfo = search.returnTimelineInfo()
 
         # TimeInput Row
-        TimeInputRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',vis=EveryFrameOption)
+        TimeInputRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',vis= not EveryFrameOption)
         self.timeSubMenu.append( TimeInputRow(q=True, fpn=True) )
         MelSpacer(TimeInputRow)
         MelLabel(TimeInputRow,l='start')
@@ -263,11 +265,11 @@ class locinatorClass(BaseMelWindow):
         TimeInputRow.layout()
 
         mc.setParent(parent)
-        self.timeSubMenu.append(mc.separator(ut = 'cgmUISubTemplate',style='none',height = 5,vis=EveryFrameOption))
+        self.timeSubMenu.append(mc.separator(ut = 'cgmUISubTemplate',style='none',height = 5,vis= not EveryFrameOption))
 
 
         # Button Row
-        TimeButtonRow = MelHLayout(parent,padding = 5, ut='cgmUISubTemplate',vis=EveryFrameOption)
+        TimeButtonRow = MelHLayout(parent,padding = 5, ut='cgmUISubTemplate',vis= not EveryFrameOption)
         self.timeSubMenu.append( TimeButtonRow(q=True, fpn=True) )
         currentRangeButton = guiFactory.doButton2(TimeButtonRow,'Current Range',
                                                   'from cgm.lib import search;timelineInfo = search.returnTimelineInfo();cgmLocWin.startFrameField(edit=True,value=(timelineInfo["rangeStart"]));cgmLocWin.endFrameField(edit=True,value=(timelineInfo["rangeEnd"]))',
@@ -286,7 +288,7 @@ class locinatorClass(BaseMelWindow):
 		"""
 
         mc.setParent(parent)
-        self.timeSubMenu.append(mc.separator(ut = 'cgmUISubTemplate',style='none',height = 5,vis=EveryFrameOption))
+        self.timeSubMenu.append(mc.separator(ut = 'cgmUISubTemplate',style='none',height = 5,vis=not EveryFrameOption))
 
 
         guiFactory.doButton2(parent,'Do it!',
@@ -294,6 +296,8 @@ class locinatorClass(BaseMelWindow):
                              'Update a locator at a particular frame or through a timeline')
 
         guiFactory.lineSubBreak()
+        
+        
 
         #>>>  Loc Me Section
         guiFactory.lineBreak()
