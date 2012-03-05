@@ -422,7 +422,6 @@ def parentPivotLocMeObject(obj):
 		return locBuffer
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
->>>>>>> Stashed changes
 def centerPivotLocMeObject(obj):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
