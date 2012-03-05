@@ -28,6 +28,7 @@
 import maya.cmds as mc
 
 from cgm.lib import search
+from cgm.lib import locators
 from cgm.lib import distance
 from cgm.lib import position
 from cgm.lib import names
@@ -353,7 +354,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
         """ move it """
         mc.setAttr((control+'.ty'),distanceFactor)
         """ loc it and rotate to get our control position"""
-        locBuffer = rigging.parentPivotLocMeObject(control)
+        locBuffer = locators.parentPivotLocMeObject(control)
         mc.setAttr((locBuffer+'.rz'),runningRotation)
         runningRotation = runningRotation + rotateFactor
         

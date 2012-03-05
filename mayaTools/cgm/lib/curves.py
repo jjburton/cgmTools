@@ -25,6 +25,8 @@ import maya.cmds as mc
 import maya.mel as mel
 
 from cgm.lib import (distance,
+                     dictionary,
+                     cgmMath,
                      attributes,
                      search,
                      rigging,

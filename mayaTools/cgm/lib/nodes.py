@@ -27,7 +27,42 @@ import maya.cmds as mc
 
 from cgm.lib import search
 from cgm.lib import attributes
+from cgm.lib import autoname
 
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Blendshapes
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def insertMulitiplyDivideBridge(drivenAttribute,newDriver):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Inserts a multiplyDivide bridge node for help taking care of compound scales
+    
+    1) get the driver
+    2) create node
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    #>>> Get variables
+    driverAttribute = attributes.returnDriverAttribute(drivenAttribute)
+    print driverAttribute
+    
+    driverBuffer = driverAttribute.split('.')
+    drivenBuffer = drivenAttribute.split('.')
+    
+    #>>> Create
+    bridgeMDNode = createNamedNode ((driverBuffer[0]+'_to_'+newDriver),'multiplyDivide')
+    
+    #>>> Connect
+    attributes.doConnectAttr(driverAttribute,(bridgeMDNode+'.input1'))
+    attributes.doConnectAttr(newDriver,(bridgeMDNode+'.input2'))
+    
+    attributes.doConnectAttr((bridgeMDNode+'.output'),drivenAttribute)
+    """
+    mc.connectAttr(('time1.outTime'),(speedMDNode+'.input1X'))
+    mc.connectAttr(speedAttr,(speedMDNode+'.input2.input2X'))
+    mc.connectAttr((speedMDNode+'.outputX'),(waveDeformer+'_offset.input'))
+    """
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshapes

@@ -485,11 +485,11 @@ def doToggleTemplateDisplayMode(obj):
 
         if shapes > 0:
                 for shape in shapes:
-                        currentState = doGetAttr((shape+'.template'))
+                        currentState = doGetAttr(shape,'template')
                         doSetAttr((shape+'.template'), not currentState)
 
         else:
-                currentState = doGetAttr((obj+'.template'))
+                currentState = doGetAttr(obj,'template')
                 doSetAttr((obj+'.template'), not currentState)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
