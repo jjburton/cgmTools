@@ -3,18 +3,18 @@
 #	cgmTDTools - a part of rigger
 #=================================================================================================================================================
 #=================================================================================================================================================
-# 
+#
 # DESCRIPTION:
 #   Large collection of rigging tools
-# 
+#
 # REQUIRES:
 #   Maya
-# 
+#
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #	http://www.joshburton.com
 # 	Copyright 2011 Josh Burton - All Rights Reserved.
-# 
+#
 # CHANGELOG:
 #	0.1.12072011 - First version
 #	0.1.12132011 - master control maker implemented, snap move tools added
@@ -41,7 +41,7 @@ from cgm.tools import (tdToolsLib,
 
 
 def run():
-    mel.eval('python("import maya.cmds as mc;from cgm.tools import tdToolsLib;cgmTDToolsWin = tdTools.tdToolsClass()")')
+    tdToolsClass()
 
 class tdToolsClass(BaseMelWindow):
     WINDOW_NAME = 'TDTools'
@@ -53,19 +53,14 @@ class tdToolsClass(BaseMelWindow):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
-    guiFactory.initializeTemplates()
-
-    def __init__( self):	
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Options
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def __init__( self):
+        guiFactory.initializeTemplates()
         # Maya version check
-        mayaVersion = int(mc.about(file=True))
-        if mayaVersion >= 2011:
+        if mayaVer >= 2011:
             self.currentGen = True
         else:
             self.currentGen = False
-        # Basic variables		
+        # Basic variables
         self.window = ''
         self.activeTab = ''
         self.toolName = 'cgmTDTools'
@@ -187,7 +182,7 @@ class tdToolsClass(BaseMelWindow):
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Menus
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def buildOptionsMenu( self, *a ):
         self.UI_OptionsMenu.clear()
 
@@ -230,7 +225,7 @@ class tdToolsClass(BaseMelWindow):
                 sizeModeState = False
             SizeMenuCollection.createButton(SizeMenu,l=item,
                                             c= ("mc.optionVar( iv=('cgmVarSizeMode',%i))" % cnt),
-                                            rb = sizeModeState)	
+                                            rb = sizeModeState)
 
 
         # Placement Menu
@@ -288,8 +283,8 @@ class tdToolsClass(BaseMelWindow):
             mc.optionVar( sv=('cgmVarObjectAimAxis', 'x+') )
         if not mc.optionVar( ex='cgmVarWorldUpAxis' ):
             mc.optionVar( sv=('cgmVarWorldUpAxis', 'y+') )
-        
-        
+
+
         self.UI_AxisMenu.clear()
 
         # Object Aim Menu
@@ -380,7 +375,7 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Tab Layouts
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildCurvesTab(self,parent): 
+    def buildCurvesTab(self,parent):
         ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
 
         #>>>Main Form
@@ -390,8 +385,8 @@ class tdToolsClass(BaseMelWindow):
         curvesLeftColumn = self.buildBasicLeftColumn(curvesMainFormLayout)
         curvesRightColumn = MelColumnLayout(curvesMainFormLayout)
 
-        self.buildCurveCreator(curvesRightColumn)	
-        self.buildTextObjectCreator(curvesRightColumn)	
+        self.buildCurveCreator(curvesRightColumn)
+        self.buildTextObjectCreator(curvesRightColumn)
         self.buildCurveUtilities(curvesRightColumn)
         self.buildSnapMoveTool(curvesRightColumn)
 
@@ -407,7 +402,7 @@ class tdToolsClass(BaseMelWindow):
 
                              )
 
-    def buildPositionTab(self,parent): 		
+    def buildPositionTab(self,parent):
         #>>>Main Form
         positionMainFormLayout = MelFormLayout(parent)
 
@@ -433,7 +428,7 @@ class tdToolsClass(BaseMelWindow):
 
                                )
 
-    def buildInfoTab(self,parent): 
+    def buildInfoTab(self,parent):
         ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
 
         #>>>Main Form
@@ -443,7 +438,7 @@ class tdToolsClass(BaseMelWindow):
         InfoLeftColumn = self.buildBasicLeftColumn(InfoMainFormLayout)
         InfoRightColumn = MelColumnLayout(InfoMainFormLayout)
 
-        self.buildBasicInfoTools(InfoRightColumn)	
+        self.buildBasicInfoTools(InfoRightColumn)
 
         #>> Defining Main Form Layout
         InfoMainFormLayout(edit = True,
@@ -456,7 +451,7 @@ class tdToolsClass(BaseMelWindow):
 
                            )
 
-    def buildAttributeTab(self,parent): 
+    def buildAttributeTab(self,parent):
         ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
 
         #>>>Main Form
@@ -466,7 +461,7 @@ class tdToolsClass(BaseMelWindow):
         AttributeLeftColumn = self.buildBasicLeftColumn(AttributeMaAttributermLayout)
         AttributeRightColumn = MelColumnLayout(AttributeMaAttributermLayout)
 
-        self.buildAttributeUtilityTools(AttributeRightColumn)	
+        self.buildAttributeUtilityTools(AttributeRightColumn)
 
         #>> Defining Main Form Layout
         AttributeMaAttributermLayout(edit = True,
@@ -479,56 +474,56 @@ class tdToolsClass(BaseMelWindow):
 
                                      )
 
-    def buildDeformerTab(self,parent): 
+    def buildDeformerTab(self,parent):
         #Options
         OptionList = ['skinCluster','blendshape','utilities']
         cgmVarName = 'cgmVarDeformerMode'
         RadioCollectionName ='DeformerMode'
         RadioOptionList = 'DeformerModeSelectionChoicesList'
         ModeSetRow = 'DeformerModeSetRow'
-        
+
         ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
         if not mc.optionVar( ex=cgmVarName ):
             mc.optionVar( sv=(cgmVarName, OptionList[0]) )
-        
+
 
         #self.buildModeSetUtilityRow(parent,'DeformerMode','DeformerModeChoices', SectionLayoutCommands, 'cgmVarDeformerMode',modesToToggle, labelText = 'Choose Mode: ')
-        
+
         #Start layout
         mc.setParent(parent)
         guiFactory.header('What are we workin with?')
         guiFactory.lineSubBreak()
-        
+
         ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
         MelLabel(ModeSetRow, label = 'Choose Mode: ',align='right')
-        self.RadioCollectionName = MelRadioCollection()		
+        self.RadioCollectionName = MelRadioCollection()
         self.RadioOptionList = []
-               
-        #Start actual layout    
-        self.buildLoadObjectTargetTool(parent)	 
-        
+
+        #Start actual layout
+        self.buildLoadObjectTargetTool(parent)
+
         #build our sub sesctions
         self.ContainerList = []
-        
+
         self.ContainerList.append( self.buildSkinClusterTool(parent,vis=False) )
         self.ContainerList.append( self.buildBlendshapeTool( parent,vis=False) )
         self.ContainerList.append( self.buildUtilitiesTool( parent,vis=False) )
-        
+
         for item in OptionList:
             self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
                                                                               onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVarName,self.ContainerList)))
         ModeSetRow.layout()
-        
+
 
         mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVarName))])
-        
- 
+
+
 
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Sections of gui stuff
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildBasicLeftColumn(self,parent): 
+    def buildBasicLeftColumn(self,parent):
         ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
         LeftColumn = MelColumnLayout(parent, cw = 100)
         guiFactory.header('Set Color')
@@ -551,32 +546,32 @@ class tdToolsClass(BaseMelWindow):
         guiFactory.header('Transforms')
 
         guiFactory.lineSubBreak()
-        guiFactory.doButton2(LeftColumn,'Group Me', 
+        guiFactory.doButton2(LeftColumn,'Group Me',
                                'from cgm.lib import rigging;rigging.groupMe()',
                                "Groups selected under a tranform at their current position")
 
         guiFactory.lineSubBreak()
-        guiFactory.doButton2(LeftColumn,'Zero Me', 
+        guiFactory.doButton2(LeftColumn,'Zero Me',
                                'tdToolsLib.zeroGroupMe()',
                                'Zeros out object under group')
 
         guiFactory.lineSubBreak()
-        guiFactory.doButton2(LeftColumn,'Transform Here', 
+        guiFactory.doButton2(LeftColumn,'Transform Here',
                                'tdToolsLib.makeTransformHere()',
                                'Create transform matching object')
 
         guiFactory.lineSubBreak()
-        guiFactory.doButton2(LeftColumn,'Copy Pivot', 
+        guiFactory.doButton2(LeftColumn,'Copy Pivot',
                                'tdToolsLib.doCopyPivot()',
                                'Copy pivot from first selection to all other objects')
 
         guiFactory.lineSubBreak()
-        guiFactory.doButton2(LeftColumn,'Loc Me', 
+        guiFactory.doButton2(LeftColumn,'Loc Me',
                                'from cgm.tools import locinatorLib;locinatorLib.doLocMe(cgmTDToolsWin)',
                                'Creates loc at object, matching trans,rot and rotOrd')
 
         guiFactory.lineSubBreak()
-        guiFactory.doButton2(LeftColumn,'updateLoc', 
+        guiFactory.doButton2(LeftColumn,'updateLoc',
                                'from cgm.tools import locinatorLib;locinatorLib.doUpdateLoc(cgmTDToolsWin,True)',
                                'Updates loc or object connected to loc base don selection. See cgmLocinator for more options')
         return LeftColumn
@@ -584,7 +579,7 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Curve Stuff
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildCurveCreator(self,parent): 	
+    def buildCurveCreator(self,parent):
         makeCurvesContainer = MelColumnLayout(parent, ut='cgmUISubTemplate')
         guiFactory.header('Curve Creation')
         guiFactory.lineSubBreak()
@@ -634,7 +629,7 @@ class tdToolsClass(BaseMelWindow):
         guiFactory.lineSubBreak()
 
 
-    def buildTextObjectCreator(self,parent): 
+    def buildTextObjectCreator(self,parent):
         guiFactory.header('Text Objects')
         textObjectColumn = MelColumnLayout(parent, ut='cgmUISubTemplate', cw = 100)
         guiFactory.lineSubBreak()
@@ -692,20 +687,20 @@ class tdToolsClass(BaseMelWindow):
         guiFactory.lineSubBreak()
 
 
-    def buildCurveUtilities(self,parent): 
+    def buildCurveUtilities(self,parent):
         mc.setParent(parent)
         guiFactory.header('Curve Utilities')
         guiFactory.lineSubBreak()
 
         curveUtilitiesRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(curveUtilitiesRow1,'Objects to Crv', 
+        guiFactory.doButton2(curveUtilitiesRow1,'Objects to Crv',
                                'tdToolsLib.doCreateCurveFromObjects()',
                                'Creates a curve through the pivots of objects')
-        guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt', 
+        guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt',
                                'tdToolsLib.doShapeParent()',
                                "Maya's standard shape parent")
-        guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt in Place', 
+        guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt in Place',
                                'tdToolsLib.doShapeParentInPlace()',
                                'shapeParents a curve in place')
 
@@ -717,13 +712,13 @@ class tdToolsClass(BaseMelWindow):
 
 
         curveUtilitiesRow2 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
-        guiFactory.doButton2(curveUtilitiesRow2,'What am I', 
+        guiFactory.doButton2(curveUtilitiesRow2,'What am I',
                                'tdToolsLib.doReportObjectType()',
                                'Reports what cgmThinga thinks the object is')
-        guiFactory.doButton2(curveUtilitiesRow2,'Crv to Python', 
+        guiFactory.doButton2(curveUtilitiesRow2,'Crv to Python',
                                'tdToolsLib.doCurveToPython()',
                                'Creates a python command to recreate a curve')
-        guiFactory.doButton2(curveUtilitiesRow2,'Combine Curves', 
+        guiFactory.doButton2(curveUtilitiesRow2,'Combine Curves',
                                'tdToolsLib.doCombineCurves()',
                                'Combines curves')
 
@@ -750,7 +745,7 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Position Tools
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildSnapMoveTool(self,parent): 
+    def buildSnapMoveTool(self,parent):
         mc.setParent(parent)
         guiFactory.header('Snap Move')
         guiFactory.lineSubBreak()
@@ -772,7 +767,7 @@ class tdToolsClass(BaseMelWindow):
 
         snapMoveRow1.layout()
 
-    def buildSnapAimTool(self,parent): 
+    def buildSnapAimTool(self,parent):
         mc.setParent(parent)
         guiFactory.header('Snap Aim')
         guiFactory.lineSubBreak()
@@ -781,10 +776,10 @@ class tdToolsClass(BaseMelWindow):
         snapAimButton = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 
-        MelButton(snapAimButton,l='One to Next',ut = 'cgmUITemplate', 
+        MelButton(snapAimButton,l='One to Next',ut = 'cgmUITemplate',
                   c='tdToolsLib.doAimSnapOneToNext()',
                   annotation = 'Aims a list of objects one to the /n next in a parsed list of pairs')
-        MelButton(snapAimButton,l='All to Last',ut = 'cgmUITemplate', 
+        MelButton(snapAimButton,l='All to Last',ut = 'cgmUITemplate',
                   c='tdToolsLib.doAimSnapToOne()',
                   annotation = "Aims all of the objects in a selection set/n to the last object")
 
@@ -795,7 +790,7 @@ class tdToolsClass(BaseMelWindow):
         snapAimButton.layout()
 
 
-    def buildSnapToSurfaceTool(self,parent): 
+    def buildSnapToSurfaceTool(self,parent):
         mc.setParent(parent)
         guiFactory.header('Snap To Surface')
         guiFactory.lineSubBreak()
@@ -804,10 +799,10 @@ class tdToolsClass(BaseMelWindow):
 
         snapToSurfaceButton = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(snapToSurfaceButton,'Just Snap', 
+        guiFactory.doButton2(snapToSurfaceButton,'Just Snap',
                                'tdToolsLib.doSnapClosestPointToSurface(False)',
                                'Aims a list of objects one to the /n next in a parsed list of pairs')
-        guiFactory.doButton2(snapToSurfaceButton,'Snap and Aim', 
+        guiFactory.doButton2(snapToSurfaceButton,'Snap and Aim',
                                'tdToolsLib.doSnapClosestPointToSurface()',
                                'Aims a list of objects one to the /n next in a parsed list of pairs')
 
@@ -817,41 +812,41 @@ class tdToolsClass(BaseMelWindow):
 
         snapToSurfaceButton.layout()
 
-    def buildGridLayoutTool(self,parent): 
+    def buildGridLayoutTool(self,parent):
         mc.setParent(parent)
         guiFactory.header('Grid Layout')
         guiFactory.lineSubBreak()
 
         self.buildRowColumnUIRow(parent)
-        
+
         mc.setParent(parent)
         guiFactory.lineSubBreak()
-        
+
         GridLayoutButtonRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(GridLayoutButtonRow,'Do it!', 
+        guiFactory.doButton2(GridLayoutButtonRow,'Do it!',
                                ("tdToolsLib.doLayoutByRowsAndColumns(cgmTDToolsWin)"),
                                'Lays out the selected in a grid format /n by the number of columns input')
 
 
         GridLayoutButtonRow.layout()
-        
-        
-        
+
+
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Info Tools
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildBasicInfoTools(self,parent): 
+    def buildBasicInfoTools(self,parent):
         mc.setParent(parent)
         guiFactory.header('Basic Info')
         guiFactory.lineSubBreak()
 
         BasicInfoRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(BasicInfoRow1,'What am I', 
+        guiFactory.doButton2(BasicInfoRow1,'What am I',
                                'tdToolsLib.doReportObjectType()',
                                'Reports what cgmThinga thinks the object is')
-        guiFactory.doButton2(BasicInfoRow1,'Count Selected', 
+        guiFactory.doButton2(BasicInfoRow1,'Count Selected',
                                'tdToolsLib.doReportSelectionCount()',
                                'Reports what cgmThinga thinks the object is')
 
@@ -863,14 +858,14 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Attribute Tools
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildAttributeUtilityTools(self,parent): 
+    def buildAttributeUtilityTools(self,parent):
         mc.setParent(parent)
         guiFactory.header('Attribute Utilities')
         guiFactory.lineSubBreak()
 
         AttributeUtilityRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(AttributeUtilityRow1,'cgmName to Float', 
+        guiFactory.doButton2(AttributeUtilityRow1,'cgmName to Float',
                                'tdToolsLib.docgmNameToFloat()',
                                'Makes an animatalbe float attribute using the cgmName tag')
 
@@ -879,32 +874,32 @@ class tdToolsClass(BaseMelWindow):
         guiFactory.lineSubBreak()
 
         AttributeUtilityRow1.layout()
-        
+
         #>>> SDK tools
         mc.setParent(parent)
         guiFactory.lineBreak()
         guiFactory.header('SDK Tools')
         guiFactory.lineSubBreak()
-        
-        
+
+
         sdkRow = MelHLayout(parent ,ut='cgmUISubTemplate',padding = 2)
-        guiFactory.doButton2(sdkRow,'Select Driven Joints', 
+        guiFactory.doButton2(sdkRow,'Select Driven Joints',
                                'tdToolsLib.doSelectDrivenJoints(cgmTDToolsWin)',
                                "Selects driven joints from an sdk attribute")
-        
-        
+
+
         sdkRow.layout()
         mc.setParent(parent)
         guiFactory.lineSubBreak()
-        
+
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Deformer Tools
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildSkinClusterTool(self,parent, vis=True): 
+    def buildSkinClusterTool(self,parent, vis=True):
         containerName = 'SkinClusterContainer'
         self.containerName = MelColumn(parent,vis=vis)
-        
+
         mc.setParent(self.containerName)
         guiFactory.header('Query')
         guiFactory.lineSubBreak()
@@ -913,18 +908,18 @@ class tdToolsClass(BaseMelWindow):
         #>>> Find excess weights Tool
         if not mc.optionVar( ex='cgmVarMaxInfluenceVerts' ):
             mc.optionVar( iv=('cgmVarMaxInfluenceVerts', 3) )
-            
+
         FindExcessVertsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
         MelSpacer(FindExcessVertsRow,w=10)
         MelLabel(FindExcessVertsRow,l='Find verts with excess influence',align='left')
-        
+
         FindExcessVertsRow.setStretchWidget(MelLabel(FindExcessVertsRow,l='>>>'))
-        
+
         MelLabel(FindExcessVertsRow,l='Max Verts:')
 
         self.MaxVertsField = MelIntField(FindExcessVertsRow, w= 50, v=mc.optionVar(q='cgmVarMaxInfluenceVerts'))
 
-        guiFactory.doButton2(FindExcessVertsRow,'Find em!', 
+        guiFactory.doButton2(FindExcessVertsRow,'Find em!',
                                'mc.optionVar(iv=("cgmVarMaxInfluenceVerts",cgmTDToolsWin.MaxVertsField(q=True,v=True)));tdToolsLib.doReturnExcessInfluenceVerts()',
                                'Prioritizes a loaded source object. If none is loaded. Attempts to use selected')
         MelSpacer(FindExcessVertsRow,w=10)
@@ -935,42 +930,42 @@ class tdToolsClass(BaseMelWindow):
 
         #>>> Influence tools
         InfluencesRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-        guiFactory.doButton2(InfluencesRow,'Select Influences', 
+        guiFactory.doButton2(InfluencesRow,'Select Influences',
                                'tdToolsLib.doSelectInfluenceJoints()',
                                "Selects the influences of selected objects with skin clusters.")
         InfluencesRow.layout()
         mc.setParent(self.containerName)
         guiFactory.lineSubBreak()
-        
+
         #>>> Weight Copying tools
         mc.setParent(self.containerName)
         guiFactory.header('Copy')
         guiFactory.lineSubBreak()
-        
-        
+
+
         SkinWeightsCopyRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-        guiFactory.doButton2(SkinWeightsCopyRow,'First component to others', 
+        guiFactory.doButton2(SkinWeightsCopyRow,'First component to others',
                                'tdToolsLib.doCopyWeightsFromFirstToOthers()',
                                "Copies the weights from one vert to another.")
-        guiFactory.doButton2(SkinWeightsCopyRow,'Object to objects', 
+        guiFactory.doButton2(SkinWeightsCopyRow,'Object to objects',
                                'tdToolsLib.doTransferSkinning()',
                                "Copies the weights from one object to others.")
-        
-        
+
+
         SkinWeightsCopyRow.layout()
         mc.setParent(self.containerName)
         guiFactory.lineSubBreak()
 
 
-  
-        
+
+
         return self.containerName
-    
-    def buildBlendshapeTool(self,parent, vis=True): 
+
+    def buildBlendshapeTool(self,parent, vis=True):
         containerName = 'BlendShapeContainer'
         self.containerName = MelColumn(parent,vis=vis)
-        
-        #clear our variables        
+
+        #clear our variables
         if not mc.optionVar( ex='cgmVarBSBakeInbetweens' ):
             mc.optionVar( iv=('cgmVarBSBakeInbetweens', 0) )
         if not mc.optionVar( ex='cgmVarBSBakeTransferConnections' ):
@@ -982,28 +977,28 @@ class tdToolsClass(BaseMelWindow):
         mc.setParent(self.containerName)
         guiFactory.header('Baker')
         guiFactory.lineSubBreak()
-        
+
         #>>> Baker Option Row
         BakerSettingsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
         MelSpacer(BakerSettingsRow,w=5)
-        
+
         self.uiBlendShapeBakeInbetweensOptionCB = MelCheckBox(BakerSettingsRow,l='Inbetweens',
                                                               onCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeInbetweens',1)),
                                                               offCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeInbetweens',0)),
                                                               annotation = "Do inbetween targets as well",
                                                               v = (mc.optionVar(query='cgmVarBSBakeInbetweens')))
-        
+
         self.uiBlendShapeBakeTransferConnectionsCB = MelCheckBox(BakerSettingsRow,l='Transfer Connections',
                                                                  onCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeTransferConnections',1)),
                                                                  offCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeTransferConnections',0)),
                                                                  annotation = "Creates a blendShape node on the target object(s)\n Attempts to transfer the connections for\n the bake blendshape node to the new one",
-                                                                  v = (mc.optionVar(query='cgmVarBSBakeTransferConnections')))    
+                                                                  v = (mc.optionVar(query='cgmVarBSBakeTransferConnections')))
         self.uiBlendShapeBakeCombineOptionCB = MelCheckBox(BakerSettingsRow,l='Combine',
                                                            onCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeCombine',1)),
                                                            offCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeCombine',0)),
                                                            v = (mc.optionVar(query='cgmVarBSBakeCombine')),
-                                                           enable = True) 
-        
+                                                           enable = True)
+
         MelLabel(BakerSettingsRow,l='Search Terms:')
         self.BlendShapeCombineTermsField = MelTextField(BakerSettingsRow,backgroundColor = [1,1,1],w=60,
                                                         annotation = "Terms to search for to combine\n For example: 'left,right'",
@@ -1011,47 +1006,47 @@ class tdToolsClass(BaseMelWindow):
         BakerSettingsRow.setStretchWidget(self.BlendShapeCombineTermsField )
         MelSpacer(BakerSettingsRow,w=5)
         BakerSettingsRow.layout()
-        
+
         #>>> Baking Buttons Row
         mc.setParent(self.containerName)
         guiFactory.lineSubBreak()
-        
+
         BakerButtonsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-        guiFactory.doButton2(BakerButtonsRow,'Bake shapes from Source', 
+        guiFactory.doButton2(BakerButtonsRow,'Bake shapes from Source',
                                'tdToolsLib.doBakeBlendShapeTargetsFromSource(cgmTDToolsWin)',
                                "Bakes out the targets of an object's blendshape node.")
-        guiFactory.doButton2(BakerButtonsRow,'Bake to Target(s)', 
+        guiFactory.doButton2(BakerButtonsRow,'Bake to Target(s)',
                                'tdToolsLib.doBakeBlendShapeTargetsToTargetsFromSource(cgmTDToolsWin)',
                                "Bakes the targets of a a source object's \n blendshape node to target object(s)")
-        
-        
+
+
         BakerButtonsRow.layout()
-        
+
 
         mc.setParent(self.containerName)
         guiFactory.lineSubBreak()
         guiFactory.lineBreak()
-        
-        
 
-        
+
+
+
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Pose Buffer
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         mc.setParent(self.containerName)
         guiFactory.header('Pose Buffer')
         guiFactory.lineSubBreak()
-        
-        #clear our variables        
+
+        #clear our variables
         if not mc.optionVar( ex='cgmVarPoseBufferTransferConnections' ):
             mc.optionVar( iv=('cgmVarPoseBufferTransferConnections', 1) )
         if not mc.optionVar( ex='cgmVarPoseBufferDoConnect' ):
             mc.optionVar( iv=('cgmVarPoseBufferDoConnect', 1) )
         if not mc.optionVar( ex='cgmVarPoseBufferDoRemoveMissing' ):
-            mc.optionVar( iv=('cgmVarPoseBufferDoRemoveMissing', 1) ) 
-            
+            mc.optionVar( iv=('cgmVarPoseBufferDoRemoveMissing', 1) )
+
         #>>> Option Row
-        PoseBufferSettingsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5) 
+        PoseBufferSettingsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
         MelSpacer(PoseBufferSettingsRow,w='5')
         MelLabel(PoseBufferSettingsRow,l='Options: ', align = 'right')
         PoseBufferSettingsRow.setStretchWidget(MelSpacer(PoseBufferSettingsRow))
@@ -1060,12 +1055,12 @@ class tdToolsClass(BaseMelWindow):
                                                          offCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferDoConnect',0)),
                                                          annotation = 'Connects blendShape channels to corresponding \n buffer channels',
                                                          v = (mc.optionVar(query='cgmVarPoseBufferDoConnect')) )
-        
+
         self.uiPoseBufferTransferConnectionsCB = MelCheckBox(PoseBufferSettingsRow,l='Transfer Connections',
                                                                  onCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferTransferConnections',1)),
                                                                  offCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferTransferConnections',0)),
                                                                  annotation = "Transfers sdk or expression \n connections driving the blendshape \nchannels to the buffer",
-                                                                  v = (mc.optionVar(query='cgmVarPoseBufferTransferConnections')))    
+                                                                  v = (mc.optionVar(query='cgmVarPoseBufferTransferConnections')))
 
         self.uiPoseBufferDoRemoveMissing = MelCheckBox(PoseBufferSettingsRow,l='Remove Missing',
                                                            onCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferDoRemoveMissing',1)),
@@ -1073,42 +1068,42 @@ class tdToolsClass(BaseMelWindow):
                                                            annotation = "Removes bs channels that have been deleted from the buffer",
                                                            v = (mc.optionVar(query='cgmVarPoseBufferDoRemoveMissing')) )
 
-        PoseBufferSettingsRow.layout()   
-    
+        PoseBufferSettingsRow.layout()
+
         mc.setParent(self.containerName)
         guiFactory.lineSubBreak()
-        
+
         #>>> Pose Buffer Buttons Row
         mc.setParent(self.containerName)
         guiFactory.lineSubBreak()
-        
+
         PoseBufferButtonsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-        guiFactory.doButton2(PoseBufferButtonsRow,'Load', 
+        guiFactory.doButton2(PoseBufferButtonsRow,'Load',
                                'tdToolsLib.doLoadBlendShapePoseBuffer(cgmTDToolsWin)',
                                "Bakes out the targets of an object's blendshape node.",
                                enable = True)
-        guiFactory.doButton2(PoseBufferButtonsRow,'Create', 
+        guiFactory.doButton2(PoseBufferButtonsRow,'Create',
                                'print "yes"',
                                "Bakes out the targets of an object's blendshape node.",
                                enable = False)
-        guiFactory.doButton2(PoseBufferButtonsRow,'Update', 
+        guiFactory.doButton2(PoseBufferButtonsRow,'Update',
                                'tdToolsLib.doUpdatePoseBuffer(cgmTDToolsWin)',
                                "Updates a blendshape poseBuffer if you've added or removed blendshapeChannels")
-        
-        
+
+
         PoseBufferButtonsRow.layout()
-        
+
 
         mc.setParent(self.containerName)
         guiFactory.lineSubBreak()
         guiFactory.lineBreak()
-        
-        
-        
+
+
+
         return self.containerName
 
-    
-    def buildUtilitiesTool(self,parent, vis=True): 
+
+    def buildUtilitiesTool(self,parent, vis=True):
         containerName = 'DeformerUtilitiesContainer'
 
         self.containerName = MelColumn(parent,vis=vis)
@@ -1118,7 +1113,7 @@ class tdToolsClass(BaseMelWindow):
 
         ShrinkWrapRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(ShrinkWrapRow,'Shrink wrap to source', 
+        guiFactory.doButton2(ShrinkWrapRow,'Shrink wrap to source',
                                'tdToolsLib.doShrinkWrapToSource()',
                                'Snaps vertices of a target object to the closest point on the source')
 
@@ -1126,8 +1121,8 @@ class tdToolsClass(BaseMelWindow):
         mc.setParent(self.containerName )
         guiFactory.lineSubBreak()
         guiFactory.lineBreak()
-        
-        
+
+
         #>>> PolyUnite
         mc.setParent(self.containerName )
         guiFactory.header('Poly Unite')
@@ -1135,16 +1130,16 @@ class tdToolsClass(BaseMelWindow):
 
         PolyUniteRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(PolyUniteRow,'Load to Source', 
+        guiFactory.doButton2(PolyUniteRow,'Load to Source',
                                'tdToolsLib.doLoadPolyUnite(cgmTDToolsWin)',
                                "Attempts to load polyUnite and select the source shapes")
-        guiFactory.doButton2(PolyUniteRow,'Build polyUnite', 
+        guiFactory.doButton2(PolyUniteRow,'Build polyUnite',
                                'tdToolsLib.doBuildPolyUnite(cgmTDToolsWin)',
                                "Builds a poly unite geo node from target or \n selected objects (checks for mesh types_")
-        guiFactory.doButton2(PolyUniteRow,'Remove polyUnite', 
+        guiFactory.doButton2(PolyUniteRow,'Remove polyUnite',
                                'tdToolsLib.doDeletePolyUniteNode(cgmTDToolsWin)',
                                "Builds a poly unite geo node from target or \n selected objects (checks for mesh types_")
-        
+
         PolyUniteRow.layout()
         mc.setParent(self.containerName )
         guiFactory.lineSubBreak()
@@ -1158,7 +1153,7 @@ class tdToolsClass(BaseMelWindow):
 
         GeneralUtilitiesRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 
-        guiFactory.doButton2(GeneralUtilitiesRow,'Deformer Keyable Attr Connect', 
+        guiFactory.doButton2(GeneralUtilitiesRow,'Deformer Keyable Attr Connect',
                                'tdToolsLib.doDeformerKeyableAttributesConnect(cgmTDToolsWin)',
                                "Copies the keyable attribues from a \n deformer to another control and connects them")
         GeneralUtilitiesRow.layout()
@@ -1168,7 +1163,7 @@ class tdToolsClass(BaseMelWindow):
 
 
         return self.containerName
-        
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Components
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1178,7 +1173,7 @@ class tdToolsClass(BaseMelWindow):
             mc.optionVar( sv=('cgmVarSourceObject', '') )
         if not mc.optionVar( ex='cgmVarTargetObjects' ):
             mc.optionVar( sv=('cgmVarTargetObjects', '') )
-        
+
 
         LoadObjectTargetUtilityRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
@@ -1202,9 +1197,9 @@ class tdToolsClass(BaseMelWindow):
 
         MelLabel(LoadObjectTargetUtilityRow,l='Target:',align='right')
         self.TargetObjectField = MelTextField(LoadObjectTargetUtilityRow, w=125, ut = 'cgmUIReservedTemplate', editable = False)
-        
+
         LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
-        
+
         guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
                                "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVarTargetObjects')",
                                'Load to field')
@@ -1218,31 +1213,31 @@ class tdToolsClass(BaseMelWindow):
         guiFactory.lineSubBreak()
 
 
-    def buildModeSetUtilityRow(self,parent,RadioCollectionName,ModeSelectionChoicesList, SectionLayoutCommands, cgmVarName,OptionList,labelText = 'Choose: '): 
+    def buildModeSetUtilityRow(self,parent,RadioCollectionName,ModeSelectionChoicesList, SectionLayoutCommands, cgmVarName,OptionList,labelText = 'Choose: '):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # General purpose mode setter
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if not mc.optionVar( ex=cgmVarName ):
             mc.optionVar( sv=(cgmVarName, OptionList[0]) )
-        
+
         ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
         MelLabel(ModeSetRow, label = labelText,align='right')
-        self.RadioCollectionName = MelRadioCollection()		
+        self.RadioCollectionName = MelRadioCollection()
         self.ModeSelectionChoicesList = []
-        
+
         #build our sub sesctions
         ContainersListName = (RadioCollectionName+'Containers')
         self.ContainersListName = []
         for LayoutCommand in SectionLayoutCommands:
             print LayoutCommand
             self.ContainersListName.append( [self.LayoutCommand(parent,vis=True) ])
-        
-        
+
+
         for item in OptionList:
             self.ModeSelectionChoicesList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
                                                                                  onCommand = lambda *a: guiFactory.toggleModeState(item,OptionList,cgmVarName,ContainerList)))
 
-        """        
+        """
         for item in OptionList:
             self.ModeSelectionChoicesList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
                                                                                  onCommand = ('%s%s%s%s%s' %("mc.optionVar( sv=('",cgmVarName,"','",item,"'))"))))
@@ -1250,12 +1245,12 @@ class tdToolsClass(BaseMelWindow):
 
         mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.ModeSelectionChoicesList[OptionList.index(mc.optionVar(q=cgmVarName))])
         ModeSetRow.layout()
-        
-        
+
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Position Components
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildRowColumnUIRow(self,parent): 
+    def buildRowColumnUIRow(self,parent):
         if not mc.optionVar( ex='cgmVarRowColumnCount' ):
             mc.optionVar( iv=('cgmVarRowColumnCount', 3) )
         if not mc.optionVar( ex='cgmVarOrderByName' ):
@@ -1280,7 +1275,7 @@ class tdToolsClass(BaseMelWindow):
 
 
 
-    def buildSurfaceSnapAimRow(self,parent): 
+    def buildSurfaceSnapAimRow(self,parent):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # World Up Axis
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1291,7 +1286,7 @@ class tdToolsClass(BaseMelWindow):
 
         surfaceSnapAimModeRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
         MelLabel(surfaceSnapAimModeRow, label = 'Orient to: ')
-        self.uiSurfaceSnapAimModeOptionGroup = MelRadioCollection()		
+        self.uiSurfaceSnapAimModeOptionGroup = MelRadioCollection()
         self.surfaceSnapAimModeCollectionChoices = []
         for item in self.surfaceSnapAimModes:
             cnt = self.surfaceSnapAimModes.index(item)
@@ -1306,13 +1301,13 @@ class tdToolsClass(BaseMelWindow):
         surfaceSnapAimModeRow.layout()
 
 
-    def buildObjectUpRow(self,parent): 
+    def buildObjectUpRow(self,parent):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Object Up Axis
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         objectUpRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
         MelLabel(objectUpRow, label = 'Object Up: ')
-        self.uiObjectUpAxisOptionGroup = MelRadioCollection()		
+        self.uiObjectUpAxisOptionGroup = MelRadioCollection()
         self.objectUpAxisCollectionChoices = []
         for item in self.axisOptions:
             self.objectUpAxisCollectionChoices.append(self.uiObjectUpAxisOptionGroup.createButton(objectUpRow,label=item,
@@ -1321,13 +1316,13 @@ class tdToolsClass(BaseMelWindow):
         mc.radioCollection(self.uiObjectUpAxisOptionGroup ,edit=True,sl= (self.objectUpAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVarObjectUpAxis')) ]))
         objectUpRow.layout()
 
-    def buildObjectAimRow(self,parent): 
+    def buildObjectAimRow(self,parent):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Object Aim Axis
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         objectAimRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
         MelLabel(objectAimRow, label = 'Object Aim: ')
-        self.uiObjectAimAxisOptionGroup = MelRadioCollection()		
+        self.uiObjectAimAxisOptionGroup = MelRadioCollection()
         self.objectAimAxisCollectionChoices = []
         for item in self.axisOptions:
             self.objectAimAxisCollectionChoices.append(self.uiObjectAimAxisOptionGroup.createButton(objectAimRow,label=item,
@@ -1336,13 +1331,13 @@ class tdToolsClass(BaseMelWindow):
         mc.radioCollection(self.uiObjectAimAxisOptionGroup ,edit=True,sl= (self.objectAimAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVarObjectAimAxis')) ]))
         objectAimRow.layout()
 
-    def buildWorldUpRow(self,parent): 
+    def buildWorldUpRow(self,parent):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # World Up Axis
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         worldUpRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
         MelLabel(worldUpRow, label = 'World Up: ')
-        self.uiWorldUpAxisOptionGroup = MelRadioCollection()		
+        self.uiWorldUpAxisOptionGroup = MelRadioCollection()
         self.worldUpAxisCollectionChoices = []
         for item in self.axisOptions:
             self.worldUpAxisCollectionChoices.append(self.uiWorldUpAxisOptionGroup.createButton(worldUpRow,label=item,

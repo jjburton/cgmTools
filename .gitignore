@@ -1,0 +1,4 @@
+*.pyc
+*.wpu
+*.bak
+userSetup.py
