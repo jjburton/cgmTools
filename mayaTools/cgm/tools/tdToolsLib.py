@@ -762,6 +762,11 @@ def doCopyWeightsFromFirstToOthers():
 			for obj in targetObjects:
 				if search.returnObjectType(obj)=='polyVertex':
 					skinning.copySkinWeightBetweenVertices( sourceObject, obj )
+				elif search.returnObjectType(obj)=='polyEdge':
+						mel.eval("PolySelectConvert 3")
+						edgeVerts = mc.ls(sl=True,fl=True)
+						for v in edgeVerts:
+							skinning.copySkinWeightBetweenVertices( sourceObject, v )
 				else:
 					guiFactory.warning("%s isn't a transferable component" %obj)
 
