@@ -34,8 +34,8 @@ import maya.cmds as mc
 
 from cgm.lib.cgmBaseMelUI import *
 
-from cgm.lib import (guiFactory,
-                     search)
+from cgm.lib import (guiFactory, search)
+
 from cgm.tools import (tdToolsLib,
                        locinatorLib)
 
@@ -46,7 +46,7 @@ def run():
 	mel.eval('python("import maya.cmds as mc;from cgm.tools import tdToolsLib;cgmTDToolsWin = tdTools.tdToolsClass()")')
 
 	"""
-	Hammish, the reason I did this was a few reasons
+	Hamish, the reason I did this was a few reasons
 	
 	1) because I need to know what the name of my ui window is which
 	I'm declaring in this mel.eval do you know a better way to do this?
@@ -73,6 +73,9 @@ class tdToolsClass(BaseMelWindow):
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 	
 	def __init__( self):
+		""" Hamish, why is this import necessary? It errors out if it isn't here....
+		I guess I had it it in the mel.eval call before which is what locinator id doing"""
+		from cgm.lib import guiFactory
 		guiFactory.initializeTemplates()
 
 		import maya.mel as mel
