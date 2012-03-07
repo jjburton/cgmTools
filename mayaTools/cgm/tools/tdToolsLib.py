@@ -687,8 +687,13 @@ def doCopySkinningToVertFromSource():
 
 	if sourceObject: 
 		if targetObjects:  
+			guiFactory.doProgressWindow(winName='Vert Weight Copying')
+			stepInterval = 1
 			for obj in targetObjects:
+				guiFactory.doUpdateProgressWindow(('On %s' %obj),stepInterval,len(targetObjects),True)
 				skinning.copyWeightsByClosestVerticeFromVert(sourceObject, obj)
+				stepInterval +=1
+			guiFactory.doCloseProgressWindow()
 
 		else:
 			guiFactory.warning('You need target objects selected or loaded to the target field')
@@ -759,16 +764,35 @@ def doCopyWeightsFromFirstToOthers():
 
 	if sourceObject:
 		if targetObjects:
+			guiFactory.doProgressWindow(winName='Vert Weight Copying')
+			stepInterval = 1
+			
 			for obj in targetObjects:
 				if search.returnObjectType(obj)=='polyVertex':
+					#progress
+					guiFactory.doUpdateProgressWindow(('On %s' %obj),stepInterval,len(targetObjects),True)
+					
+					#function
 					skinning.copySkinWeightBetweenVertices( sourceObject, obj )
+					
+					stepInterval += 1
+					
 				elif search.returnObjectType(obj)=='polyEdge':
-						mel.eval("PolySelectConvert 3")
-						edgeVerts = mc.ls(sl=True,fl=True)
-						for v in edgeVerts:
-							skinning.copySkinWeightBetweenVertices( sourceObject, v )
+					#progress
+					guiFactory.doUpdateProgressWindow(('On %s' %obj),stepInterval,len(targetObjects),True)
+					
+					#function
+					mel.eval("PolySelectConvert 3")
+					edgeVerts = mc.ls(sl=True,fl=True)
+					edgeVerts = lists.returnListNoDuplicates(edgeVerts)
+					for v in edgeVerts:
+						skinning.copySkinWeightBetweenVertices( sourceObject, v )
+					
+					stepInterval += 1
 				else:
 					guiFactory.warning("%s isn't a transferable component" %obj)
+					
+			guiFactory.doCloseProgressWindow()
 
 		else:
 			guiFactory.warning('You need target objects selected')
