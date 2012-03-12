@@ -184,6 +184,7 @@ class tdToolsClass(BaseMelWindow):
 		self.buildInfoTab(TabInfo)
 		self.buildAttributeTab(TabAttribute)
 		self.buildDeformerTab(TabDeformer)
+		self.buildNamingTab(TabNaming)
 
 		self.show()
 
@@ -549,6 +550,41 @@ class tdToolsClass(BaseMelWindow):
 
 		mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVarName))])
 
+
+	def buildNamingTab(self,parent):
+		#Options
+		OptionList = ['autoname','standard']
+		cgmVarName = 'cgmVarNamingMode'
+		RadioCollectionName ='NamingMode'
+		RadioOptionList = 'NamingModeSelectionChoicesList'
+		ModeSetRow = 'DeformerModeSetRow'
+
+		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+		if not mc.optionVar( ex=cgmVarName ):
+			mc.optionVar( sv=(cgmVarName, OptionList[0]) )
+
+
+		#Start layout
+		ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
+		MelLabel(ModeSetRow, label = 'Choose Mode: ',align='right')
+		self.RadioCollectionName = MelRadioCollection()
+		self.RadioOptionList = []
+
+		#Start actual layout
+		self.buildLoadObjectTargetTool(parent)
+
+		#build our sub sesctions
+		self.ContainerList = []
+
+		self.ContainerList.append( self.buildAutoNameTool(parent,vis=False) )
+		self.ContainerList.append( self.buildUtilitiesTool(parent,vis=False) )
+
+		for item in OptionList:
+			self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
+						                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVarName,self.ContainerList)))
+		ModeSetRow.layout()
+
+		mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVarName))])
 
 
 
@@ -1202,7 +1238,34 @@ class tdToolsClass(BaseMelWindow):
 
 
 		return self.containerName
+	
+	def buildAutoNameTool(self,parent, vis=True):
+		containerName = 'AutoNameContainer'
 
+		self.containerName = MelColumn(parent,vis=vis)
+
+		#>>> Basic
+		mc.setParent(self.containerName )
+		guiFactory.header('Basic')
+		guiFactory.lineSubBreak()
+
+		BasicRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+
+		guiFactory.doButton2(BasicRow,'Update name',
+				             'tdToolsLib.doUpdateObjectName(cgmTDToolsWin)',
+				             "Attempts to name an object")
+		guiFactory.doButton2(BasicRow,'Name Heirarchy',
+				             'tdToolsLib.doNameHeirarchy(cgmTDToolsWin)',
+				             "Attempts to intelligently name a  \n heirarchy of objects")
+
+		BasicRow.layout()
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
+		guiFactory.lineBreak()
+
+
+
+		return self.containerName
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Components
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

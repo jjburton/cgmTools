@@ -40,7 +40,28 @@ from cgm.tools import locinatorLib
 
 """
 
-
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Naming
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def doUpdateObjectName(ui):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	for obj in selected:
+		try:
+			autoname.doUpdateName(obj)
+		except:
+			pass
+			
+def doNameHeirarchy(ui):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	for obj in selected:
+		try:
+			autoname.doRenameHeir(obj)
+		except:
+			pass
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # SDK
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
