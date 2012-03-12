@@ -425,7 +425,7 @@ def doUpdateName(obj):
         mc.setAttr(attrName,obj, type='string')
         mc.setAttr(attrName,lock=True)
     else:
-        storeInfo(obj,'cgmName',obj,True)
+        attributes.storeInfo(obj,'cgmName',obj,True)
     return doNameObject(obj)
     
 
