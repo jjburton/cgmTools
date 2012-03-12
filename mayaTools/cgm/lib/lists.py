@@ -152,10 +152,12 @@ def parseListToPairs(dataList):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
     """    
     nestedPairList = []
-    dataListIter = iter(dataList)
-    for itemA in dataListIter:
-        itemB = dataListIter.next()
+    dataAListIter = iter(dataList)
+    cnt = 1
+    for itemA in dataList[:-1]:
+        itemB = dataList[cnt]
         nestedPairList.append([itemA, itemB])
+        cnt +=1
 
     return nestedPairList
     
