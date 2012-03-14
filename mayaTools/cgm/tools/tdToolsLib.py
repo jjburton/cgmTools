@@ -33,6 +33,8 @@ from zooPyMaya import skinWeights
 
 from cgm.lib import *
 from cgm.lib import (guiFactory,
+                     dictionary,
+                     autoname,
                      search,
                      skinning)
 from cgm.tools import locinatorLib
@@ -43,6 +45,127 @@ from cgm.tools import locinatorLib
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Naming
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiNameLoadedAutoNameObject(ui):
+	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		newName = autoname.doNameObject(autoNameObject)
+		mc.textField(ui.AutoNameObjectField,e = True,text = newName)
+	else:
+		guiFactory.warning('No current autoname object loaded!')
+		
+def uiNameLoadedAutoNameObjectChildren(ui):
+	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		autoname.doRenameHeir(autoNameObject)
+	else:
+		guiFactory.warning('No current autoname object loaded!')
+
+
+def uiLoadAutoNameObject(ui):
+	selected = []
+	bufferList = []
+	selected = (mc.ls (sl=True,flatten=True))
+	if selected:
+		if len(selected) >= 2:
+			guiFactory.warning('Only one object can be loaded')
+		else:
+			# Put the object in the field
+			mc.textField(ui.AutoNameObjectField,edit=True,text = selected[0])
+			# Set our optionVar
+			mc.optionVar( sv=('cgmVarAutoNameObject', selected[0]) )
+			
+			#Get the tag info for the object
+			tagsDict = autoname.returnObjectGeneratedNameDict(selected[0])
+			userAttrs = attributes.returnUserAttributes(selected[0])
+			print userAttrs
+			tagAttrs = tagsDict.keys()
+			print tagAttrs
+
+			fieldToKeyDict = {'cgmName':ui.NameTagField,
+			                  'cgmType':ui.ObjectTypeTagField,
+			                  'cgmNameModifier':ui.NameModifierTagField,
+			                  'cgmTypeModifier':ui.ObjectTypeModifierTagField,
+			                  'cgmDirectionModifier':ui.DirectionModifierTagField,
+			                  'cgmDirection':ui.DirectionTagField,
+			                  'cgmPosition':ui.PositionTagField}
+			#Enable the tag fields
+			for key in fieldToKeyDict.keys():
+				mc.textField(fieldToKeyDict.get(key),edit=True,enable=True)
+			
+			for key in tagsDict.keys():
+				currentField = fieldToKeyDict.get(key)
+				mc.textField(currentField,edit=True,text = tagsDict.get(key),
+				             bgc = dictionary.returnStateColor('keyed'))
+				
+				# Set special color cases, if it's guessed or gotten upstream....
+				if userAttrs:
+					if key not in userAttrs:
+						mc.textField(currentField,edit = True, bgc = dictionary.returnStateColor('reserved'))
+					# if it's connected	
+					elif (mc.connectionInfo ((selected[0]+'.'+key),isDestination=True)):
+						driverAttr = attributes.returnDriverAttribute(selected[0]+'.'+key)
+						mc.textField(currentField,edit = True,
+						             text = (driverAttr),
+						             bgc = dictionary.returnStateColor('connected'))
+				else:
+					#Got it from a parent 
+					parentNameObject = search.returnTagUp(selected[0],key)
+					if parentNameObject:
+						mc.textField(currentField,edit = True,
+							        text = parentNameObject[1],
+							         bgc = dictionary.returnStateColor('semiLocked'))
+					else:
+						mc.textField(currentField,edit = True,
+						             bgc = dictionary.returnStateColor('reserved'))
+				# if it's connected
+					
+			
+	else:
+		guiFactory.warning('You must select something.')
+
+def uiUpdateAutoNameTag(ui,tag):
+	fieldToKeyDict = {'cgmName':ui.NameTagField,
+                      'cgmType':ui.ObjectTypeTagField,
+                      'cgmNameModifier':ui.NameModifierTagField,
+                      'cgmTypeModifier':ui.ObjectTypeModifierTagField,
+                      'cgmDirectionModifier':ui.DirectionModifierTagField,
+                      'cgmDirection':ui.DirectionTagField,
+                      'cgmPosition':ui.PositionTagField}
+	
+	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+	tagField = fieldToKeyDict.get(tag)
+	if autoNameObject:
+		infoToStore = mc.textField(tagField, q = True, text = True)
+		if infoToStore:
+			attributes.storeInfo(autoNameObject,tag, infoToStore,True)
+			guiFactory.setBGColorState(tagField,'keyed')
+						
+			guiFactory.warning('Stored %s to object' %infoToStore)
+			
+			
+		else:
+			attributes.deleteAttr(autoNameObject,tag)
+			guiFactory.setBGColorState(tagField,'normal')
+			guiFactory.warning('%s purged' %tag)
+			
+			#refresh load to guess
+			mc.select(autoNameObject)
+			uiLoadAutoNameObject(ui)
+			
+	else:
+		guiFactory.setBGColorState(tagField,'normal')
+		guiFactory.warning('You must select something.')
+
+def uiNameObject(ui):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	for obj in selected:
+		try:
+			autoname.doNameObject(obj)
+		except:
+			pass
+
 def doUpdateObjectName(ui):
 	selected = mc.ls(sl=True)
 	mc.select(cl=True)
@@ -979,11 +1102,9 @@ def doSnapClosestPointToSurface(aim=True):
 	aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectAimAxis'))
 	upVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectUpAxis'))
 	worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarWorldUpAxis'))
-	print aimVector
-	print upVector
-	print worldUpVector
+
 	aimMode = mc.optionVar(q='cgmVarSurfaceSnapAimMode')
-	print aimMode
+	
 	selected = []
 	bufferList = []
 	selected = (mc.ls (sl=True,flatten=True))
@@ -1063,8 +1184,6 @@ def returnObjectSizesForCreation(objList,ui):
 			return sizeList[0]
 		else:
 			return sizeList
-
-
 
 
 #>>> Text Curve Objects Stuff

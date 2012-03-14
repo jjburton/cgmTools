@@ -34,7 +34,9 @@ import maya.cmds as mc
 
 from cgm.lib.cgmBaseMelUI import *
 
-from cgm.lib import (guiFactory, search)
+from cgm.lib import (guiFactory,
+                     dictionary,
+                     search)
 
 from cgm.tools import (tdToolsLib,
                        locinatorLib)
@@ -571,9 +573,6 @@ class tdToolsClass(BaseMelWindow):
 		MelLabel(ModeSetRow, label = 'Choose Mode: ',align='right')
 		self.RadioCollectionName = MelRadioCollection()
 		self.RadioOptionList = []
-
-		#Start actual layout
-		self.buildLoadObjectTargetTool(parent)
 
 		#build our sub sesctions
 		self.ContainerList = []
@@ -1245,17 +1244,123 @@ class tdToolsClass(BaseMelWindow):
 		containerName = 'AutoNameContainer'
 
 		self.containerName = MelColumn(parent,vis=vis)
+		
+		#>>> Begin the section
+		mc.setParent(self.containerName )
+		guiFactory.header('Tag and Release')
+		guiFactory.lineSubBreak()
+		
+		#>>> Load To Field
+		#clear our variables
+		if not mc.optionVar( ex='cgmVarAutoNameObject' ):
+			mc.optionVar( sv=('cgmVarAutoNameObject', '') )
 
+		LoadAutoNameObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
+
+		MelSpacer(LoadAutoNameObjectRow,w=5)
+
+		MelLabel(LoadAutoNameObjectRow,l='Object:',align='right')
+
+		self.AutoNameObjectField = MelTextField(LoadAutoNameObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
+		if mc.optionVar( q = 'cgmVarAutoNameObject'):
+			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
+
+		guiFactory.doButton2(LoadAutoNameObjectRow,'<<',
+		                    'tdToolsLib.uiLoadAutoNameObject(cgmTDToolsWin)',
+				             'Load to field')
+
+		LoadAutoNameObjectRow.setStretchWidget(self.AutoNameObjectField  )
+
+		guiFactory.doButton2(LoadAutoNameObjectRow,'Name it',
+				             lambda *a:tdToolsLib.uiNameLoadedAutoNameObject(self),
+				             'Load to field')
+		guiFactory.doButton2(LoadAutoNameObjectRow,'Name Children',
+				             lambda *a:tdToolsLib.uiNameLoadedAutoNameObjectChildren(self),
+				             'Load to field')
+
+		MelSpacer(LoadAutoNameObjectRow,w=5)
+
+		LoadAutoNameObjectRow.layout()
+
+
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
+		
+		#>>> Tag Labels
+		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		MelLabel(TagLabelsRow,label = 'Position')
+		MelLabel(TagLabelsRow,label = 'Direction')
+		MelLabel(TagLabelsRow,label = 'Name')
+		MelLabel(TagLabelsRow,label = 'Type')
+
+		TagLabelsRow.layout()
+		
+		#>>> Tags
+		mc.setParent(self.containerName )
+		TagsRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 3)
+		self.PositionTagField = MelTextField(TagsRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                                 w = 75)
+		self.DirectionTagField = MelTextField(TagsRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
+		                                 w = 75)
+		self.NameTagField = MelTextField(TagsRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
+		                                 w = 75)
+		self.ObjectTypeTagField = MelTextField(TagsRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmType'),
+		                                 w = 75)
+		
+		TagsRow.layout()
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
+		
+		#>>> ModifierTags
+		mc.setParent(self.containerName )
+		TagModifiersRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 3)
+		MelLabel(TagModifiersRow,align = 'right', label = 'Modifiers:',w = 75)
+		self.DirectionModifierTagField = MelTextField(TagModifiersRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirectionModifier'),
+		                                 w = 75)
+		self.NameModifierTagField = MelTextField(TagModifiersRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmNameModifier'),
+		                                 w = 75)
+		self.ObjectTypeModifierTagField = MelTextField(TagModifiersRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmTypeModifier'),
+		                                 w = 75)
+		
+		TagModifiersRow.layout()
+		
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
+		guiFactory.lineBreak()
+		
 		#>>> Basic
 		mc.setParent(self.containerName )
-		guiFactory.header('Basic')
+		guiFactory.header('On Selection')
 		guiFactory.lineSubBreak()
 
 		BasicRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-
-		guiFactory.doButton2(BasicRow,'Update name',
-				             'tdToolsLib.doUpdateObjectName(cgmTDToolsWin)',
+		guiFactory.doButton2(BasicRow,'Name Object',
+				             'tdToolsLib.uiNameObject(cgmTDToolsWin)',
 				             "Attempts to name an object")
+		guiFactory.doButton2(BasicRow,'Update Name',
+				             'tdToolsLib.doUpdateObjectName(cgmTDToolsWin)',
+				             "Takes the name you've manually changed the object to, \n stores that to the cgmName tag then \n renames the object")
 		guiFactory.doButton2(BasicRow,'Name Heirarchy',
 				             'tdToolsLib.doNameHeirarchy(cgmTDToolsWin)',
 				             "Attempts to intelligently name a  \n heirarchy of objects")
@@ -1271,6 +1376,44 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Components
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	def buildLoadObjectField(self,parent, optionVar):
+		#clear our variables
+		if not mc.optionVar( ex=optionVar ):
+			mc.optionVar( sv=(optionVar, '') )
+
+		LoadObjectTargetUtilityRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+		MelSpacer(LoadObjectTargetUtilityRow,w=5)
+
+
+		MelLabel(LoadObjectTargetUtilityRow,l='Object:',align='right')
+
+		self.SourceObjectField = MelTextField(LoadObjectTargetUtilityRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
+		if mc.optionVar( q = optionVar):
+			self.SourceObjectField(edit=True,text = mc.optionVar( q = optionVar))
+
+		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
+				             "guiFactory.doLoadSingleObjectToTextField(cgmTDToolsWin.SourceObjectField,'cgmVarSourceObject')",
+				             'Load to field')
+
+
+		MelLabel(LoadObjectTargetUtilityRow,l='Target:',align='right')
+		self.TargetObjectField = MelTextField(LoadObjectTargetUtilityRow, w=125, ut = 'cgmUIReservedTemplate', editable = False)
+
+		LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
+
+		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
+				             "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVarTargetObjects')",
+				             'Load to field')
+
+		MelSpacer(LoadObjectTargetUtilityRow,w=5)
+
+		LoadObjectTargetUtilityRow.layout()
+
+
+		mc.setParent(parent)
+		guiFactory.lineSubBreak()
+	
 	def buildLoadObjectTargetTool(self,parent,baseNameField=True):
 		#clear our variables
 		if not mc.optionVar( ex='cgmVarSourceObject' ):

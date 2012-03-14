@@ -88,7 +88,8 @@ def returnStateColor(newState):
                    'reserved':[0.411765 , 0.411765 , 0.411765],
                    'semiLocked':[ 0.89, 0.89, 0.89],
                    'warning':[0.837, 0.399528, 0.01674],
-                   'error':[1, 0.0470588, 0.0677366]}
+                   'error':[1, 0.0470588, 0.0677366],
+                   'black':[0,0,0]}
     if newState in stateColors.keys():
         return stateColors.get(newState)
     else:

@@ -24,6 +24,7 @@ import maya.cmds as mc
 import maya.mel as mel
 
 from cgmBaseMelUI import *
+from cgm.lib import dictionary
 
 mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 
@@ -36,7 +37,8 @@ else:
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Define our Colors
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+def setBGColorState(textFieldToChange, newState):
+    mc.textField(textFieldToChange,edit = True, bgc = dictionary.returnStateColor(newState))
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Define our Templates
@@ -103,74 +105,6 @@ def initializeTemplates():
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Menu and sub menu functions
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnWindowLayout(win):
-    controls = mc.lsUI(l=True,controlLayouts=True)
-    winControls = []
-    if controls:
-        for control in controls:
-            if win in control:
-                winControls.append(control)
-    return winControls
-
-def doOptionMenuList(optionList):
-    optionMenuItem = mc.optionMenu( ut ='cgmUITemplate' )
-    returnList = []
-    for item in optionList:
-        returnList.append( mc.menuItem(label=item) )
-    return [optionMenuItem,returnList]
-
-
-def doOptionMenuGroupList(label,optionList, extraLabel = False):
-    if extraLabel:
-        optionMenuItem = mc.optionMenuGrp(label = label, ut ='cgmUITemplate', extraLabel = extraLabel )
-    else:
-        optionMenuItem = mc.optionMenuGrp(label = label, ut ='cgmUITemplate' )
-    returnList = []
-    for item in optionList:
-        returnList.append( mc.menuItem(label=item) )
-    return [optionMenuItem,returnList]
-
-def doCheckGrp(label = 'Text here',checked = False):
-    columnWidth = (len(list(label)) * 10)
-    buffer = mc.checkBoxGrp( label=label, cw=[1,columnWidth], adjustableColumn = 2, columnAttach2 = ['left','right'], width = 100)
-    if defaultText:
-        mc.checkBoxGrp(buffer, edit=True, text=defaultText)
-    return buffer
-
-def doRadioButtonMenuList(optionList,defaultItemIndex = 0):
-    """
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    makes a menu list from an option list. Example usage:
-
-    fontList = ['Arial','Times']
-    fontMenuItems = guiFactory.doRadioButtonMenuList(fontList)
-    for item in fontMenuItems:
-    cnt = fontMenuItems.index(item)
-    mc.menuItem(item, edit=True, command=('%s%s%s' %("cgmRiggingToolsWin.textObjectFont = '",fontList[cnt],"'")) )
-
-
-    REQUIRES:
-    optionList(list) - list of options
-    defaultItemIndex(int) - what you want the default option to be (defaults to 0)
-
-    RETURNS:
-    menuList(list)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    returnList = []
-    cnt = 0
-    for item in optionList:
-        if cnt == defaultItemIndex:
-            returnList.append( mc.menuItem( label=item, rb=True) )
-        else:
-            returnList.append( mc.menuItem( label=item, rb=False) )
-        cnt += 1
-    return returnList
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Standard functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def warning(message):
@@ -182,19 +116,6 @@ def warning(message):
         else:
             mel.eval('%s%s%s' %('$messageVar =  "', message,'"'))
         mel.eval('warning $messageVar')
-
-def doWindow(winName,toolName,menuBarOption = True, toolBoxOption = False, sizeableOption = True, widthHeightOption = (255,400), minimizeButtonOption = False, maximizeButtonOption = False, iconNameOption = 'shortName'):
-    if currentGenUI:
-        return mc.window(winName, title= toolName, menuBar = menuBarOption, toolbox = toolBoxOption, sizeable = sizeableOption,widthHeight = widthHeightOption, minimizeButton = minimizeButtonOption, maximizeButton = maximizeButtonOption, iconName=iconNameOption, backgroundColor = [.45,.45,.45],resizeToFitChildren=True)
-    else:
-        return mc.window(winName, title= toolName, menuBar = menuBarOption, toolbox = toolBoxOption, sizeable = sizeableOption, widthHeight = widthHeightOption, minimizeButton = minimizeButtonOption, maximizeButton = maximizeButtonOption, iconName=iconNameOption)
-
-def resetUI(uiModule, uiWindow):
-    mc.deleteUI(uiWindow, window=True)
-    import uiModule
-    uiModule.run()
-    #print ('%s%s%s%s%s%s%s' %("'python(","'",uiWin,' = ',uiModule,".toolUI()')","'"))
-    #mel.eval('%s%s%s%s%s%s%s' %("'python(","'",uiWin,' = ',uiModule,".toolUI()')","'"))
 
 def showAbout(uiWin):
     window = mc.window( title="About", iconName='About', widthHeight=(200, 55),backgroundColor = guiBackgroundColor )
@@ -236,7 +157,6 @@ def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers):
             #Container(e=True,vis=False)
             setUIObjectVisibility(Container,False)
         cnt+=1
-
 
 
 def toggleMenuShowState(stateToggle, listOfItems):
@@ -314,27 +234,6 @@ def setUIObjectVisibility(item, visState):
         warning('%s%s%s' %('No idea what ', item, ' is'))
 
 
-def toggleMenuState(stateToggle):
-    """
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Toggle for a menu item
-
-    REQUIRES:
-    stateToggle(string) - this should point to the variable holding a (bool) value
-    listOfItems(list) - list of menu item names to change
-
-    RETURNS:
-    locatorName(string)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    if stateToggle:
-        newState = False
-    else:
-        newState = True
-
-    return newState
-
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Load to fields
@@ -395,24 +294,7 @@ def lineSplitter(text, size):
     return lineList
 
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Text Fields
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doTextFieldGrp(label = 'Text here',defaultText = False):
-    columnWidth = (len(list(label)) * 10)
-    buffer = mc.textFieldGrp( label=label, cw=[1,columnWidth], adjustableColumn = 2, columnAttach2 = ['left','right'], width = 100)
-    if defaultText:
-        mc.textFieldGrp(buffer, edit=True, text=defaultText)
-    return buffer
-
-def doTextFieldButtonGrp():
-    return mc.textFieldButtonGrp( label='Label', text='Text', buttonLabel='Button' )
-
-def doLoadToTextField(label = False, commandText = 'guiFactory.warning("Fix this")'):
-    if label:
-        return mc.textFieldButtonGrp(label = label, buttonLabel='<<<', ut = 'cgmUITemplate', width = 50, recomputeSize = False, command=commandText )
-    else:
-        return mc.textFieldButtonGrp(buttonLabel='<<<', ut = 'cgmUITemplate', width = 50, recomputeSize = False, command=commandText )
+#
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Buttons
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -622,8 +504,6 @@ def doProgressBar(winName,trackedList,statusMessage):
     mc.progressBar()
 
 
-
-
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Reporting
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -633,92 +513,3 @@ def doPrintReportStart():
 def doPrintReportEnd():
     return '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
 
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Rows and columns
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Tabs And Forms
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doEvenRowOfColumns(numberOfColumns = 3,useTemplateOption = False):
-    form = mc.formLayout(numberOfDivisions=100,backgroundColor = [0,.5,2])
-    columnOffsetOptions = {2:[(1,'both',3),(2,'right',3)],
-                           3:[(1,'left',3),(2,'both',5),(3,'right',3)],
-                           4:[(1,'left',3),(2,'both',5),(3,'both',5),(4,'right',3)],
-                           5:[(1,'left',3),(2,'both',5),(3,'both',5),(4,'both',5),(5,'right',3)],
-                           6:[(1,'left',3),(2,'both',5),(3,'both',5),(4,'both',5),(5,'both',5),(6,'right',3)]
-                           }
-    """
-    if currentGenUI:
-	if useTemplateOption:
-	    bufferRowColumnLayout =  mc.rowColumnLayout(numberOfRows=1, ut = useTemplateOption, columnOffset=columnOffsetOptions[numberOfColumns] )
-
-	else:
-	    bufferRowColumnLayout = mc.rowColumnLayout(numberOfRows=1, columnOffset=columnOffsetOptions[numberOfColumns] )
-    else:
-	bufferRowColumnLayout = mc.rowColumnLayout(numberOfRows=1, columnOffset=columnOffsetOptions[numberOfColumns] )
-    """
-    bufferRowColumnLayout = mc.rowColumnLayout(backgroundColor = [0.8,.5,5], numberOfRows=1, columnOffset=columnOffsetOptions[numberOfColumns] )
-    mc.formLayout(form, edit = True,
-                  attachForm = [(bufferRowColumnLayout,'left',0),
-                                (bufferRowColumnLayout,'top',0),
-                                (bufferRowColumnLayout,'right',0)])
-    return bufferRowColumnLayout
-
-
-def doEvenRowOfColumns6():
-    if currentGenUI:
-        return mc.rowColumnLayout(numberOfRows=1, columnOffset= [(1,'left',3),(2,'both',5),(3,'both',5),(4,'both',5),(5,'both',5),(6,'right',3)])
-    else:
-        return mc.rowColumnLayout(numberOfRows=1)
-def doEvenRowOfColumns3():
-    if currentGenUI:
-        return mc.rowColumnLayout(numberOfRows=1, columnOffset= [(1,'left',3),(2,'both',5),(3,'right',3)])
-    else:
-        return mc.rowColumnLayout(numberOfRows=1)
-def doEvenRowOfColumns2(useTemplate = False):
-    if currentGenUI:
-        if useTemplate:
-            return mc.rowColumnLayout(ut = useTemplate, numberOfRows=1, columnOffset= [(1,'both',3),(2,'right',3)])
-        else:
-            return mc.rowColumnLayout(numberOfRows=1, columnOffset= [(1,'both',3),(2,'right',3)])
-    else:
-        return mc.rowColumnLayout(numberOfRows=1)
-
-def doTabs(toolName):
-    mc.tabLayout((toolName + 'cgmRiggingToolsTabs'),innerMarginWidth=5, innerMarginHeight=5)
-
-def doFormLayout():
-    if currentGenUI:
-        return mc.formLayout(numberOfDivisions=100, ut = 'cgmUISubTemplate')
-    else:
-        return mc.formLayout(numberOfDivisions=100 )
