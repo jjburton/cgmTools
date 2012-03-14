@@ -393,10 +393,10 @@ def doRenameHeir(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     #children = mc.listRelatives(obj,allDescendents=True,type='transform')
-    children = mc.listRelatives(obj,allDescendents=True)
     newNames = []
     newNames.append(doNameObject(obj))
     childrenList = []
+    children = mc.listRelatives(newNames[0],allDescendents=True,fullPath=True)
     for c in children:
         childrenList.append(doNameObject(c))
     newNames.append(childrenList)
