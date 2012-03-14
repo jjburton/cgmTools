@@ -203,7 +203,7 @@ def doLocClosest():
         guiFactory.warning('You must have at least two objects selected')
         return False
     else:
-        return locators.locClosest(selected)
+        return locators.locClosest(selected[:-1],selected[-1])
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateLoc(ui, forceCurrentFrameOnly = False ):
     """

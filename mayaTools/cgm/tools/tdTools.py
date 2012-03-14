@@ -43,21 +43,21 @@ reload(tdToolsLib)
 
 
 def run():
-	mel.eval('python("import maya.cmds as mc;from cgm.tools import tdToolsLib;cgmTDToolsWin = tdTools.tdToolsClass()")')
+	mel.eval('python("import maya.cmds as mc;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
 
 	"""
 	Hamish, the reason I did this was a few reasons
-	
+
 	1) because I need to know what the name of my ui window is which
 	I'm declaring in this mel.eval do you know a better way to do this?
-	
+
 	2) I get an mc error otherwise
-	
+
 	3) issue with the gui templates note initializing otherwise. Also it looks like your revision to zooPy's baseMelUI
 	borked the template initialize stuff. Took me a bit to realized you'd removed all of that. Can we do a code compare to see what I changed to
 	see if we can roll that into your code so everything works again or tell me another way to get them working together?
-	
-	
+
+
 	your code:
 	tdToolsClass()
 	"""
@@ -71,22 +71,24 @@ class tdToolsClass(BaseMelWindow):
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-	
+	guiFactory.initializeTemplates()
+
 	def __init__( self):
 		""" Hamish, why is this import necessary? It errors out if it isn't here....
-		I guess I had it it in the mel.eval call before which is what locinator id doing"""
+		I guess I had it it in the mel.eval call before which is what locinator id doing
 		from cgm.lib import guiFactory
 		guiFactory.initializeTemplates()
+		"""
 
 		import maya.mel as mel
 		import maya.cmds as mc
-				
+
 		from cgm.lib import (guiFactory,
 				             search)
 		from cgm.tools import (tdToolsLib,
 				               locinatorLib)
-		
-		
+
+
 		# Maya version check
 		if mayaVer >= 2011:
 			self.currentGen = True
@@ -729,7 +731,7 @@ class tdToolsClass(BaseMelWindow):
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		currentObjectRow = MelHSingleStretchLayout(textObjectColumn,padding = 5)
 		MelSpacer(currentObjectRow)
-		self.textCurrentObjectField = mc.textField(currentObjectRow, ut = 'cgmUIReservedTemplate', editable = False)
+		self.textCurrentObjectField = MelTextField(currentObjectRow, ut = 'cgmUIReservedTemplate', editable = False)
 		guiTextObjLoadButton = guiFactory.doButton2(currentObjectRow,'<<<',
 				                                    'tdToolsLib.doLoadTexCurveObject(cgmTDToolsWin)',
 				                                    'Load to field')
@@ -1238,7 +1240,7 @@ class tdToolsClass(BaseMelWindow):
 
 
 		return self.containerName
-	
+
 	def buildAutoNameTool(self,parent, vis=True):
 		containerName = 'AutoNameContainer'
 

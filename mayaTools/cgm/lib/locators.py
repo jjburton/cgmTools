@@ -161,7 +161,7 @@ def doPositionLocator(locatorName,locInfo):
 		return False
 
 
-def locClosest(objectList):
+def locClosest(objectList,targetObject):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -177,22 +177,28 @@ def locClosest(objectList):
 	"""
 	bufferList = []
 
-	lastObjectType = search.returnObjectType(objectList[-1])
+	lastObjectType = search.returnObjectType(targetObject)
+	
+	#Get our source objects locators as sometimes the pivot has no correlation to the objects pivot - like a cv
+	fromObjects = []
+	for item in objectList:
+		fromObjects.append(locMeObject(item))
+	
 
 	if lastObjectType == 'mesh':
 		if mayaVersion >=2011:
-			for item in objectList[:-1]:
-				bufferList.append( locMeClosestPointOnMesh(item, objectList[-1]) )
+			for item in fromObjects:
+				bufferList.append( locMeClosestPointOnMesh(item, targetObject) )
 		else:
 			guiFactory.warning('Apologies, but in maya 2010 and below this only supports nurbsSurface target objects')
 			return False
 	elif lastObjectType == 'nurbsSurface':
-		for item in objectList[:-1]:
-			bufferList.append( locMeClosestUVOnSurface(item, objectList[-1]) )
+		for item in fromObjects:
+			bufferList.append( locMeClosestUVOnSurface(item, targetObject) )
 	elif lastObjectType == 'nurbsCurve':
 		if mayaVersion >=2011:
-			for item in objectList[:-1]:
-				bufferList.append( locMeClosestPointOnCurve(item, objectList[-1]) )
+			for item in fromObjects:
+				bufferList.append( locMeClosestPointOnCurve(item, targetObject) )
 		else:
 			guiFactory.warning('Apologies, but in maya 2010 and below this only supports nurbsSurface target objects')
 			return False
@@ -201,8 +207,14 @@ def locClosest(objectList):
 		guiFactory.warning('Your target object must be a mesh, nurbsSurface, or nurbsCurve')
 		return False
 
+	for loc in fromObjects:
+		mc.delete(loc)
+		
 	for loc in bufferList:
-		attributes.storeInfo(loc,'cgmSource',(','.join(objectList)),False)
+		storeList = []
+		storeList = objectList
+		storeList.append(targetObject)
+		attributes.storeInfo(loc,'cgmSource',(','.join(storeList)),False)
 		attributes.storeInfo(loc,'cgmLocMode','closestPoint',False)
 
 
@@ -240,7 +252,7 @@ def doUpdateLocator(locatorName,forceBBCenter = False):
 
 			if locatorMode == 'closestPoint':
 				print targetObjects
-				locBuffer = locClosest(targetObjects)
+				locBuffer = locClosest(targetObjects[:-1],targetObjects[-1])
 				print locBuffer
 				position.moveParentSnap(locatorName,locBuffer)
 				mc.delete(locBuffer)
@@ -699,7 +711,8 @@ def locMeCVsOnCurve(curve):
 		for shape in shapes:
 			cvList = (mc.ls ([shape+'.cv[*]'],flatten=True))
 			for cv in cvList:
-				locList.append(locClosest([cv,curve]))
+				print cv
+				locList.append(locClosest([cv],curve))
 		return locList
 	else:
 		print ('Curve does not exist')

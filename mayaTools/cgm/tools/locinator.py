@@ -56,9 +56,10 @@ class locinatorClass(BaseMelWindow):
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
+	guiFactory.initializeTemplates()
 
 	def __init__( self):
-		guiFactory.initializeTemplates()
+		#guiFactory.initializeTemplates()
 
 		self.toolName = 'Locinator'
 		self.description = 'This tool makes locators based on selection types and provides ways to update those locators over time'

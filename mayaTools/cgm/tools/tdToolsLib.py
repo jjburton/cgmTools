@@ -640,7 +640,7 @@ def doShrinkWrapToSource():
 							targetLoc = mc.spaceLocator()
 							mc.move (pos[0],pos[1],pos[2], targetLoc[0])
 
-							closestLoc = locators.locClosest([targetLoc[0],sourceObject])
+							closestLoc = locators.locClosest([targetLoc[0]],sourceObject)
 							position.movePointSnap(c,closestLoc)
 							mc.delete([targetLoc[0],closestLoc])
 
@@ -1003,7 +1003,7 @@ def doSnapClosestPointToSurface(aim=True):
 				break
 			### Counter Break ###
 			aimLoc = locators.locMeObject(item)
-			bufferLoc = locators.locClosest([item,selected[-1]])
+			bufferLoc = locators.locClosest([item],selected[-1])
 			position.movePointSnap(item,bufferLoc)
 			if aim:
 				if aimMode:
