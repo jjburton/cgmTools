@@ -79,6 +79,20 @@ def returnColorDict():
     colorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,'blueDark':5,'blueBright':6,'greenDark':7,'violetDark':8,'violetBright':9,'brownReg':10,'brownDark':11,'orangeDark':12,'redBright':13,'greenBright':14,'blueDull':15,'white':16,'yellowBright':17,'blueSky':18,'teal':19,'pink':20,'peach':21,'yellow':22,'greenBlue':23,'tan':24,'olive':25,'greenYellow':26,'greenBlue':27,'blueGray':28,'blueGrayDark':29,'purple':30,'purpleBrown':31}
     return colorDict
 
+
+def returnStateColor(newState):
+    stateColors = {'normal':[1,1,1],
+                   'keyed':[0.870588, 0.447059, 0.478431],
+                   'locked':[0.360784, 0.407843, 0.454902],
+                   'connected':[0.945098, 0.945098, 0.647059],
+                   'reserved':[0.411765 , 0.411765 , 0.411765],
+                   'semiLocked':[ 0.89, 0.89, 0.89],
+                   'warning':[0.837, 0.399528, 0.01674],
+                   'error':[1, 0.0470588, 0.0677366]}
+    if newState in stateColors.keys():
+        return stateColors.get(newState)
+    else:
+        return False
 """
 Rotate Order
 """
