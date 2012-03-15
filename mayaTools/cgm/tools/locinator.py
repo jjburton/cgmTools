@@ -39,7 +39,7 @@ from cgm.lib import (search,guiFactory)
 
 def run():
 	# real one
-	mel.eval('python("from cgm.lib import guiFactory;from cgm.tools import locinatorLib;import maya.cmds as mc;cgmLocWin = locinator.locinatorClass()")')
+	mel.eval('python("from cgm.lib import guiFactory;from cgm.tools import locinator;from cgm.tools import locinatorLib;import maya.cmds as mc;cgmLocWin = locinator.locinatorClass()")')
 	"""
 	See note on tdTools
 	
@@ -48,7 +48,7 @@ def run():
 
 class locinatorClass(BaseMelWindow):
 	WINDOW_NAME = 'cgmLocinatorWindow'
-	WINDOW_TITLE = 'Locinator'
+	WINDOW_TITLE = 'Locinator >>> cg{monks}'
 	DEFAULT_SIZE = 175, 250
 	DEFAULT_MENU = None
 	RETAIN = True

@@ -45,7 +45,7 @@ reload(tdToolsLib)
 
 
 def run():
-	mel.eval('python("import maya.cmds as mc;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
+	mel.eval('python("import maya.cmds as mc;from cgm.tools import tdTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
 
 	"""
 	Hamish, the reason I did this was a few reasons
@@ -66,7 +66,7 @@ def run():
 
 class tdToolsClass(BaseMelWindow):
 	WINDOW_NAME = 'TDTools'
-	WINDOW_TITLE = 'TDTools'
+	WINDOW_TITLE = 'TDTools >>> cg{monks}'
 	DEFAULT_SIZE = 550, 400
 	DEFAULT_MENU = None
 	RETAIN = True

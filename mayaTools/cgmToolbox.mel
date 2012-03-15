@@ -1,0 +1,8 @@
+
+
+global proc cgmToolbox() {
+	python( "import cgmToolbox;cgmToolbox.ToolboxWindow()" );
+	}
+
+
+//zoo.end
