@@ -45,6 +45,13 @@ from cgm.tools import locinatorLib
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Naming
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiUpdateAutnamePreview(ui):
+	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		newName = autoname.returnUniqueGeneratedName(autoNameObject)
+		ui.GeneratedNameField(e = True,label = ("Preview : '" + newName + "'"))
+
+
 def uiNameLoadedAutoNameObject(ui):
 	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
@@ -56,7 +63,9 @@ def uiNameLoadedAutoNameObject(ui):
 def uiNameLoadedAutoNameObjectChildren(ui):
 	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
-		autoname.doRenameHeir(autoNameObject)
+		newNameList = autoname.doRenameHeir(autoNameObject)
+		mc.textField(ui.AutoNameObjectField,e = True,text = newNameList[0])
+
 	else:
 		guiFactory.warning('No current autoname object loaded!')
 
@@ -90,7 +99,9 @@ def uiLoadAutoNameObject(ui):
 			                  'cgmPosition':ui.PositionTagField}
 			#Enable the tag fields
 			for key in fieldToKeyDict.keys():
-				mc.textField(fieldToKeyDict.get(key),edit=True,enable=True)
+				mc.textField(fieldToKeyDict.get(key),edit=True,enable=True,
+				             text = '',
+				              bgc = dictionary.returnStateColor('ready'))
 			
 			for key in tagsDict.keys():
 				currentField = fieldToKeyDict.get(key)
@@ -117,8 +128,8 @@ def uiLoadAutoNameObject(ui):
 					else:
 						mc.textField(currentField,edit = True,
 						             bgc = dictionary.returnStateColor('reserved'))
-				# if it's connected
-					
+			# if it's connected
+			uiUpdateAutnamePreview(ui)
 			
 	else:
 		guiFactory.warning('You must select something.')
@@ -155,6 +166,8 @@ def uiUpdateAutoNameTag(ui,tag):
 	else:
 		guiFactory.setBGColorState(tagField,'normal')
 		guiFactory.warning('You must select something.')
+	
+	uiUpdateAutnamePreview(ui)
 
 def uiNameObject(ui):
 	selected = mc.ls(sl=True)

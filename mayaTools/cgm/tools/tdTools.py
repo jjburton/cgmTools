@@ -1250,6 +1250,18 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.header('Tag and Release')
 		guiFactory.lineSubBreak()
 		
+		#>>> Guessed Name
+		GenratedNameRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate')
+		self.GeneratedNameField = MelLabel(GenratedNameRow,
+		                                   bgc = dictionary.returnStateColor('help'),
+		                                   align = 'center',
+		                                   label = 'Name will preview here...')
+		
+		GenratedNameRow.layout()
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
+		guiFactory.lineSubBreak()
+
 		#>>> Load To Field
 		#clear our variables
 		if not mc.optionVar( ex='cgmVarAutoNameObject' ):
@@ -1345,6 +1357,8 @@ class tdToolsClass(BaseMelWindow):
 		
 		TagModifiersRow.layout()
 		
+		
+		
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
 		guiFactory.lineBreak()
@@ -1366,6 +1380,8 @@ class tdToolsClass(BaseMelWindow):
 				             "Attempts to intelligently name a  \n heirarchy of objects")
 
 		BasicRow.layout()
+		
+		
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
 		guiFactory.lineBreak()
