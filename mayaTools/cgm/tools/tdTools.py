@@ -1283,6 +1283,14 @@ class tdToolsClass(BaseMelWindow):
 
 		LoadAutoNameObjectRow.setStretchWidget(self.AutoNameObjectField  )
 
+		guiFactory.doButton2(LoadAutoNameObjectRow,'Up',
+				             lambda *a:tdToolsLib.uiAutoNameWalkUp(self),
+				             'Load to field')
+		
+		guiFactory.doButton2(LoadAutoNameObjectRow,'Down',
+				             lambda *a:tdToolsLib.uiAutoNameWalkDown(self),
+				             'Load to field')
+
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Name it',
 				             lambda *a:tdToolsLib.uiNameLoadedAutoNameObject(self),
 				             'Load to field')
@@ -1325,6 +1333,12 @@ class tdToolsClass(BaseMelWindow):
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
 		                                 w = 75)
+		"""
+		self.NameTagFieldPopUp = MelPopupMenu(self.NameTagField,button = 3)
+		self.NameTagLoadParentPopUp = MelMenuItem(self.NameTagFieldPopUp ,
+		                                          label = 'Select parent name object',
+		                                          enable = False)
+		"""
 		self.ObjectTypeTagField = MelTextField(TagsRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
