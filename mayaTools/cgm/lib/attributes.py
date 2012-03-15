@@ -268,6 +268,7 @@ def doSetStringAttr(attribute,value,forceLock = False):
                         mc.setAttr(attribute,lock=False)
                         mc.setAttr(attribute,value, type='string')
                 else:
+                        breakConnection(attribute)
                         mc.setAttr(attribute,value, type='string')
 
         if wasLocked == True or forceLock == True:
