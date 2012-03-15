@@ -176,7 +176,45 @@ def returnType(obj):
         return returnTagInfo(obj,'cgmType')
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def findTagInfo(obj,tag):
+def findRawTagInfo(obj,tag):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns tag info from the object if it exists. If not, it looks upstream
+    before calling it quits. Also, it checks the types and names dictionaries for
+    short versions
+
+    REQUIRES:
+    obj(string) - the object we're starting from
+    tag(string)
+
+    RETURNS:
+    Success - name(string)
+    Failure - False
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    """ first check the object for the tags """
+    selfTagInfo = returnTagInfo(obj,tag)
+    if selfTagInfo:
+        return selfTagInfo
+    else:
+        """if it doesn't have one, we're gonna go find em """
+        if tag == 'cgmType':
+            """ get the type info and see if there's a short hand name for it """
+            return returnType(obj)
+
+        else:
+            """ check up stream """
+            upCheck = returnTagUp(obj,tag)
+            if upCheck == False:
+                return False
+            else:
+                tagInfo =  upCheck[0]
+                return tagInfo
+
+
+
+def returnTagInfoShortName(info,tagType):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -195,40 +233,18 @@ def findTagInfo(obj,tag):
     """
     typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
     namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
-    """ first check the object for the tags """
-    selfTagInfo = returnTagInfo(obj,tag)
-    if selfTagInfo != False:
-        if tag == 'cgmType':
-            if selfTagInfo in typesDictionary:
-                return typesDictionary.get(selfTagInfo)
-            else:
-                return selfTagInfo
+
+    if tagType == 'cgmType':
+        if info in typesDictionary:
+            return typesDictionary.get(info)
         else:
-            if selfTagInfo in namesDictionary:
-                return namesDictionary.get(selfTagInfo)
-            else:
-                return selfTagInfo
+            return info
     else:
-        """if it doesn't have one, we're gonna go find em """
-        if tag == 'cgmType':
-            """ get the type info and see if there's a short hand name for it """
-            tagInfo = returnType(obj)
-            if tagInfo in typesDictionary:
-                return typesDictionary.get(tagInfo)
-            else:
-                return tagInfo
+        if info in namesDictionary:
+            return namesDictionary.get(info)
         else:
-            """ check up stream """
-            upCheck = returnTagUp(obj,tag)
-            if upCheck == False:
-                return False
-            else:
-                """ if we find something, get the nice name """
-                tagInfo =  upCheck[0]
-                if tagInfo in namesDictionary:
-                    return namesDictionary.get(tagInfo)
-                else:
-                    return tagInfo
+            return info
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnTagUp(obj,tag):
@@ -315,7 +331,7 @@ def returnMatchedTagsFromObjectList(objList,tagToMatch,infoToMatch):
     """
     returnList = []
     for obj in objList:
-        tagInfo = findTagInfo(obj,tagToMatch)
+        tagInfo = findRawTagInfoTagInfo(obj,tagToMatch)
         if tagInfo == infoToMatch:
             returnList.append(obj)
     return returnList

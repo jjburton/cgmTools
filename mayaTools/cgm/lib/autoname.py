@@ -160,6 +160,8 @@ def returnUniqueGeneratedName(obj,ignore='none'):
         nameBuilder=[]
         for item in order:
             buffer = rawNamesDict.get(item)
+            # Check for short name
+            buffer = search.returnTagInfoShortName(buffer,item)
             if buffer > 0 and buffer != 'ignore':
                 nameBuilder.append(buffer)
                
@@ -277,7 +279,7 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
     
     #>>> Geting our data
     for tag in order:
-        tagInfo = search.findTagInfo(obj,tag)
+        tagInfo = search.findRawTagInfo(obj,tag)
         if tagInfo is not False:
             namesDict[tag] = (tagInfo)
     

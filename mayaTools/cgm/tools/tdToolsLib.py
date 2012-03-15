@@ -127,7 +127,7 @@ def uiLoadAutoNameObject(self):
 			for key in fieldToKeyDict.keys():
 				mc.textField(fieldToKeyDict.get(key),edit=True,enable=True,
 				             text = '',
-				              bgc = dictionary.returnStateColor('ready'))
+				              bgc = dictionary.returnStateColor('normal'))
 			
 			for key in tagsDict.keys():
 				currentField = fieldToKeyDict.get(key)

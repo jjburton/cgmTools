@@ -1352,7 +1352,7 @@ class tdToolsClass(BaseMelWindow):
 		#>>> ModifierTags
 		mc.setParent(self.containerName )
 		TagModifiersRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 3)
-		MelLabel(TagModifiersRow,align = 'right', label = 'Modifiers:',w = 75)
+		MelLabel(TagModifiersRow,align = 'right', label = 'Modifiers ------->',w = 75)
 		self.DirectionModifierTagField = MelTextField(TagModifiersRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
