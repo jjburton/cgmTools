@@ -211,7 +211,11 @@ def loadLocinator( *a ):
 	reload(locinatorLib)
 	locinator.run()
 
-
+def loadNamingTools( *a ):
+	import cgm
+	from cgm.tools import namingTools
+	reload(namingTools)
+	namingTools.run()
 
 
 class ToolCB(object):
@@ -225,18 +229,22 @@ class ToolCB(object):
 #in the UI, and a tuple containing the annotation string and the button press callback to invoke when that
 #tool's toolbox button is pressed.
 #NOTE: the press callback should take *a as its args
-TOOL_CATS = ( ('animation', (('Locinator - Locator tools', "Tool for creating, updating, locators",
+TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locators",
                             loadLocinator),
                              
                              )),
-
-              ('rigging', (('Locinator - Locator tools', "Tool for creating, updating, locators",
+              
+              ('rigging', (('Locinator', "Tool for creating, updating, locators",
                             loadLocinator),
 
 						   ('TD Tools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
-                            loadTDTools)
+                            loadTDTools),
                            
                            )),
+
+              ('dev', (('Naming Tools', " Autoname and Standard naming tools",
+                        loadNamingTools),
+                       )),
 
               )
 
@@ -273,6 +281,7 @@ class ToolboxWindow(BaseMelWindow):
 	guiFactory.initializeTemplates()
 
 	def __init__( self ):
+		guiFactory.initializeTemplates()
 		self.UI_menu = MelMenu( l='Setup', pmc=self.buildSetupMenu )
 		ToolboxTabs( self )
 		self.show()

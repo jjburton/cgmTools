@@ -89,12 +89,10 @@ def polyUniteGeo(objList,name='unitedGeo'):
     uniteNode = mc.createNode('polyUnite')
     uniteNode = mc.rename(uniteNode,(name+'_polyUniteNode'))
 
-    print geoOutNodes
 
     """ connect our stuff """
     nodeTracker = []
     for obj in objList:
-        print ('on %s' %obj)
         index = objList.index(obj)
         if search.returnObjectType( (geoOutNodes[index]) ) is 'shape':
             mc.connectAttr(('%s%s'% (geoOutNodes[index],'.outMesh')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)

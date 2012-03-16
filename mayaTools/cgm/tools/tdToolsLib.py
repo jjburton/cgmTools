@@ -45,11 +45,13 @@ from cgm.tools import locinatorLib
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Auto Naming
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def uiUpdateAutoNamePreview(ui):
-	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+def uiUpdateAutoNamePreview(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
 		newName = autoname.returnUniqueGeneratedName(autoNameObject)
-		ui.GeneratedNameField(e = True,label = ("Preview : '" + newName + "'"))
+		self.GeneratedNameField(e = True,label = ("Preview : '" + newName + "'"))
+	else:
+		self.GeneratedNameField(e = True,label = ('Name will preview here...'))
 		
 def uiAutoNameWalkUp(self):
 	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
@@ -80,49 +82,48 @@ def uiAutoNameWalkDown(self):
 	else:
 		guiFactory.warning('No current autoname object loaded!')
 
-def uiNameLoadedAutoNameObject(ui):
-	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+def uiNameLoadedAutoNameObject(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
 		newName = autoname.doNameObject(autoNameObject)
-		mc.textField(ui.AutoNameObjectField,e = True,text = newName)
+		mc.textField(self.AutoNameObjectField,e = True,text = newName)
 	else:
-		guiFactory.warning('No current autoname object loaded!')
+		gselfFactory.warning('No current autoname object loaded!')
 		
-def uiNameLoadedAutoNameObjectChildren(ui):
-	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+def uiNameLoadedAutoNameObjectChildren(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
 		newNameList = autoname.doRenameHeir(autoNameObject)
-		mc.textField(ui.AutoNameObjectField,e = True,text = newNameList[0])
+		mc.textField(self.AutoNameObjectField,e = True,text = newNameList[0])
 
 	else:
-		guiFactory.warning('No current autoname object loaded!')
+		gselfFactory.warning('No current autoname object loaded!')
 
 
 def uiLoadAutoNameObject(self):
 	selected = []
 	bufferList = []
 	selected = (mc.ls (sl=True,flatten=True))
+	
+	fieldToKeyDict = {'cgmName':self.NameTagField,
+                      'cgmType':self.ObjectTypeTagField,
+                      'cgmNameModifier':self.NameModifierTagField,
+                      'cgmTypeModifier':self.ObjectTypeModifierTagField,
+                      'cgmDirectionModifier':self.DirectionModifierTagField,
+                      'cgmDirection':self.DirectionTagField,
+                      'cgmPosition':self.PositionTagField}
+	
 	if selected:
 		if len(selected) >= 2:
 			guiFactory.warning('Only one object can be loaded')
 		else:
 			# Put the object in the field
-			mc.textField(self.AutoNameObjectField,edit=True,text = selected[0])
-			# Set our optionVar
-			mc.optionVar( sv=('cgmVarAutoNameObject', selected[0]) )
-			
+			guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVarAutoNameObject')
+
 			#Get the tag info for the object
 			tagsDict = autoname.returnObjectGeneratedNameDict(selected[0])
 			userAttrs = attributes.returnUserAttributes(selected[0])
 			tagAttrs = tagsDict.keys()
-
-			fieldToKeyDict = {'cgmName':self.NameTagField,
-			                  'cgmType':self.ObjectTypeTagField,
-			                  'cgmNameModifier':self.NameModifierTagField,
-			                  'cgmTypeModifier':self.ObjectTypeModifierTagField,
-			                  'cgmDirectionModifier':self.DirectionModifierTagField,
-			                  'cgmDirection':self.DirectionTagField,
-			                  'cgmPosition':self.PositionTagField}
 			#Enable the tag fields
 			for key in fieldToKeyDict.keys():
 				mc.textField(fieldToKeyDict.get(key),edit=True,enable=True,
@@ -189,44 +190,54 @@ def uiLoadAutoNameObject(self):
 			uiUpdateAutoNamePreview(self)
 			
 	else:
-		guiFactory.warning('You must select something.')
+		#clear the field
+		guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVarAutoNameObject')
+		# update the fields
+		for key in fieldToKeyDict.keys():
+			mc.textField(fieldToKeyDict.get(key),edit=True,enable=False,
+		                 text = '',
+		                  bgc = dictionary.returnStateColor('normal'))
+			
+		# Fix previewer
+		uiUpdateAutoNamePreview(self)
 
-def uiUpdateAutoNameTag(ui,tag):
-	fieldToKeyDict = {'cgmName':ui.NameTagField,
-                      'cgmType':ui.ObjectTypeTagField,
-                      'cgmNameModifier':ui.NameModifierTagField,
-                      'cgmTypeModifier':ui.ObjectTypeModifierTagField,
-                      'cgmDirectionModifier':ui.DirectionModifierTagField,
-                      'cgmDirection':ui.DirectionTagField,
-                      'cgmPosition':ui.PositionTagField}
+		
+def uiUpdateAutoNameTag(self,tag):
+	fieldToKeyDict = {'cgmName':self.NameTagField,
+                      'cgmType':self.ObjectTypeTagField,
+                      'cgmNameModifier':self.NameModifierTagField,
+                      'cgmTypeModifier':self.ObjectTypeModifierTagField,
+                      'cgmDirectionModifier':self.DirectionModifierTagField,
+                      'cgmDirection':self.DirectionTagField,
+                      'cgmPosition':self.PositionTagField}
 	
-	autoNameObject = mc.textField(ui.AutoNameObjectField,q=True,text = True)
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	tagField = fieldToKeyDict.get(tag)
 	if autoNameObject:
 		infoToStore = mc.textField(tagField, q = True, text = True)
 		if infoToStore:
 			attributes.storeInfo(autoNameObject,tag, infoToStore,True)
-			guiFactory.setBGColorState(tagField,'keyed')
+			gselfFactory.setBGColorState(tagField,'keyed')
 						
-			guiFactory.warning('Stored %s to object' %infoToStore)
+			gselfFactory.warning('Stored %s to object' %infoToStore)
 			
 			
 		else:
 			attributes.deleteAttr(autoNameObject,tag)
-			guiFactory.setBGColorState(tagField,'normal')
-			guiFactory.warning('%s purged' %tag)
+			gselfFactory.setBGColorState(tagField,'normal')
+			gselfFactory.warning('%s purged' %tag)
 			
 			#refresh load to guess
 			mc.select(autoNameObject)
-			uiLoadAutoNameObject(ui)
+			selfLoadAutoNameObject(self)
 			
 	else:
-		guiFactory.setBGColorState(tagField,'normal')
-		guiFactory.warning('You must select something.')
+		gselfFactory.setBGColorState(tagField,'normal')
+		gselfFactory.warning('You must select something.')
 	
-	uiUpdateAutoNamePreview(ui)
+	selfUpdateAutoNamePreview(self)
 
-def uiNameObject(ui):
+def uiNameObject(self):
 	selected = mc.ls(sl=True)
 	mc.select(cl=True)
 	
@@ -236,7 +247,7 @@ def uiNameObject(ui):
 		except:
 			pass
 
-def doUpdateObjectName(ui):
+def doUpdateObjectName(self):
 	selected = mc.ls(sl=True)
 	mc.select(cl=True)
 	
@@ -246,7 +257,7 @@ def doUpdateObjectName(ui):
 		except:
 			pass
 			
-def doNameHeirarchy(ui):
+def doNameHeirarchy(self):
 	selected = mc.ls(sl=True)
 	mc.select(cl=True)
 	

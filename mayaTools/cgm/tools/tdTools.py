@@ -1333,12 +1333,7 @@ class tdToolsClass(BaseMelWindow):
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
 		                                 w = 75)
-		"""
-		self.NameTagFieldPopUp = MelPopupMenu(self.NameTagField,button = 3)
-		self.NameTagLoadParentPopUp = MelMenuItem(self.NameTagFieldPopUp ,
-		                                          label = 'Select parent name object',
-		                                          enable = False)
-		"""
+
 		self.ObjectTypeTagField = MelTextField(TagsRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
@@ -1376,6 +1371,43 @@ class tdToolsClass(BaseMelWindow):
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
 		guiFactory.lineBreak()
+		
+		#>>> Multitag
+		mc.setParent(self.containerName )
+		guiFactory.header('Multi tag')
+		guiFactory.lineSubBreak()
+
+		multiTagRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		
+		MelSpacer(multiTagRow,w=5)
+
+		self.multiTagField = MelTextField(multiTagRow,
+		                                  enable = True,
+		                                  bgc = dictionary.returnStateColor('normal'),
+		                                  w = 75)
+		
+
+		self.cgmMultiTagOptions = MelOptionMenu(multiTagRow,l = 'Pick a tag:')
+		
+		for tag in 'Name','Type','Direction','Posiiton','NameModifier','TypeModifier','DirectionModifier':
+			self.cgmMultiTagOptions.append(tag)
+			
+		self.cgmMultiTagOptions(edit = True, select = 1)
+
+		MelSpacer(multiTagRow,w=5)
+
+		"""
+		ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirectionModifier'),
+
+		"""
+
+		multiTagRow.layout()
+		
+		
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
+		guiFactory.lineBreak()
+		
 		
 		#>>> Basic
 		mc.setParent(self.containerName )
