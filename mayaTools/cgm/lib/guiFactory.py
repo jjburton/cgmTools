@@ -245,6 +245,7 @@ def doLoadSingleObjectToTextField(textFieldObject,variableToSet = False):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
+    buffer = textFieldObject(q=True,text = True )
     if selected:
         if len(selected) >= 2:
             warning('Only one object can be loaded')
@@ -253,10 +254,13 @@ def doLoadSingleObjectToTextField(textFieldObject,variableToSet = False):
             if variableToSet:
                 mc.optionVar(sv=(variableToSet,selected[0]))
     else:
-        textFieldObject(edit=True,text = '')
-        if variableToSet:
-            mc.optionVar(remove = variableToSet)
-        warning('You must select something.')
+        if buffer:
+            textFieldObject(edit=True,text = '')
+            if variableToSet:
+                mc.optionVar(remove = variableToSet)
+            warning('Object removed!')
+        else:
+            warning('You must select something.')
 
 
 def doLoadMultipleObjectsToTextField(textFieldObject,objectsToLoad = False, variableToSet = False):
