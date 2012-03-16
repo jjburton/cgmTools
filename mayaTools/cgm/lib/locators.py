@@ -89,6 +89,8 @@ def createLocFromObject(obj):
 
 	#store info
 	attributes.storeInfo(nameBuffer[0],'cgmName',obj,False)
+	attributes.storeInfo(nameBuffer[0],'cgmLocMode','fromObject',False)
+
 	return ( autoname.doNameObject(nameBuffer[0]) )
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeCenter(objList,forceBBCenter = False):
@@ -236,7 +238,18 @@ def doUpdateLocator(locatorName,forceBBCenter = False):
 	"""
 	if search.returnObjectType(locatorName) == 'locator':
 		locatorMode = search.returnTagInfo(locatorName,'cgmLocMode')
-		if locatorMode:
+		if locatorMode == 'fromObject':
+			obj = search.returnTagInfo(locatorName,'cgmName')
+			if mc.objExists(obj) == True:
+				"""get stuff to transfer"""
+				locInfo = returnInfoForLoc(obj,forceBBCenter)
+				doPositionLocator(locatorName,locInfo)
+				return True
+			else:
+				print "The stored object doesn't exist"
+				return False
+			
+		else:
 			sourceObjects = search.returnTagInfo(locatorName,'cgmSource')
 			targetObjectsBuffer = sourceObjects.split(',')
 			targetObjects = []
@@ -256,16 +269,8 @@ def doUpdateLocator(locatorName,forceBBCenter = False):
 				print locBuffer
 				position.moveParentSnap(locatorName,locBuffer)
 				mc.delete(locBuffer)
-		else:
-			obj = search.returnTagInfo(locatorName,'cgmName')
-			if mc.objExists(obj) == True:
-				"""get stuff to transfer"""
-				locInfo = returnInfoForLoc(obj,forceBBCenter)
-				doPositionLocator(locatorName,locInfo)
-				return True
-			else:
-				print "The stored object doesn't exist"
-				return False
+				
+
 
 	else:
 		return False
