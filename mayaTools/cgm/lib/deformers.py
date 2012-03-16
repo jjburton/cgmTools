@@ -197,16 +197,18 @@ def removePolyUniteNode(polyUniteNode):
     if not mc.objExists(polyUniteNode):
         return guiFactory.warning('%s does not exist' %polyUniteNode)
     mc.delete(polyUniteNode)
+    
     for obj in rawDrivers:
         if search.returnObjectType(obj) is 'shape':
             transform = mc.listRelatives (obj,parent=True, type ='transform')
             nameBuffer = mc.listRelatives (obj,parent=True, type ='transform')
             mc.setAttr((transform[0]+'.visibility'),1)
             mc.setAttr((obj+'.intermediateObject'),0)
-
-            buffer = rigging.doParentToWorld(transform[0])
-            #mc.delete(nameBuffer[0])
-            mc.rename(buffer,nameBuffer[0])
+            
+            
+            if not mc.referenceQuery(obj, isNodeReferenced=True):
+                buffer = rigging.doParentToWorld(transform[0])
+                mc.rename(buffer,nameBuffer[0])
 
 
 
