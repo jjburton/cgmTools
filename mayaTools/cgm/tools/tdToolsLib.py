@@ -201,7 +201,43 @@ def uiLoadAutoNameObject(self):
 		# Fix previewer
 		uiUpdateAutoNamePreview(self)
 
-		
+def uiMultiTagObjects(self):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	
+	tagToKeyDict = {'Name':'cgmName',
+                      'Type':'cgmType',
+                      'NameModifer':'cgmNameModifier',
+                      'TypeModifier':'cgmTypeModifier',
+                      'DirectionModifier':'cgmDirectionModifier',
+                      'Direction':'cgmDirection',
+                      'Position':'cgmPosition'}
+	
+	tagShortHand = self.cgmMultiTagOptions(q=True,value = True)
+	tagToUse = tagToKeyDict.get(tagShortHand)
+	infoToStore = self.multiTagInfoField (q=True, text = True)
+	if tagToUse:
+		if infoToStore:
+			success = []
+			for obj in selected:
+				try:
+					attributes.storeInfo(obj,tagToUse, infoToStore,True)
+					success.append(obj)
+					print obj
+					print success
+				except:
+					guiFactory.warning('%s failed to recieve info!' %obj)
+			if success:		
+				guiFactory.warning('%s%s%s%s' %("Stored '", infoToStore, "' to ", ','.join(success)))
+
+		else:
+			guiFactory.warning('No info found to store')
+	else:
+		guiFactory.warning('No tag info found to store')
+	
+
+	
 def uiUpdateAutoNameTag(self,tag):
 	fieldToKeyDict = {'cgmName':self.NameTagField,
                       'cgmType':self.ObjectTypeTagField,
@@ -217,25 +253,25 @@ def uiUpdateAutoNameTag(self,tag):
 		infoToStore = mc.textField(tagField, q = True, text = True)
 		if infoToStore:
 			attributes.storeInfo(autoNameObject,tag, infoToStore,True)
-			gselfFactory.setBGColorState(tagField,'keyed')
+			guiFactory.setBGColorState(tagField,'keyed')
 						
-			gselfFactory.warning('Stored %s to object' %infoToStore)
+			guiFactory.warning("Stored '%s' to object" %infoToStore)
 			
 			
 		else:
 			attributes.deleteAttr(autoNameObject,tag)
-			gselfFactory.setBGColorState(tagField,'normal')
-			gselfFactory.warning('%s purged' %tag)
+			guiFactory.setBGColorState(tagField,'normal')
+			guiFactory.warning('%s purged' %tag)
 			
 			#refresh load to guess
 			mc.select(autoNameObject)
-			selfLoadAutoNameObject(self)
+			uiLoadAutoNameObject(self)
 			
 	else:
-		gselfFactory.setBGColorState(tagField,'normal')
-		gselfFactory.warning('You must select something.')
+		guiFactory.setBGColorState(tagField,'normal')
+		guiFactory.warning('You must select something.')
 	
-	selfUpdateAutoNamePreview(self)
+	uiUpdateAutoNamePreview(self)
 
 def uiNameObject(self):
 	selected = mc.ls(sl=True)

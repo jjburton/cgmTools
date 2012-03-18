@@ -1374,22 +1374,24 @@ class tdToolsClass(BaseMelWindow):
 		
 		#>>> Multitag
 		mc.setParent(self.containerName )
-		guiFactory.header('Multi tag')
+		guiFactory.header('Selection based tools')
 		guiFactory.lineSubBreak()
 
 		multiTagRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		
 		MelSpacer(multiTagRow,w=5)
+		MelLabel(multiTagRow,label = 'Multi tag>>>>')
 
-		self.multiTagField = MelTextField(multiTagRow,
-		                                  enable = True,
-		                                  bgc = dictionary.returnStateColor('normal'),
-		                                  w = 75)
+		self.multiTagInfoField = MelTextField(multiTagRow,
+		                                      enable = True,
+		                                      bgc = dictionary.returnStateColor('normal'),
+		                                      ec = lambda *a: tdToolsLib.uiMultiTagObjects(self),
+		                                      w = 75)
 		
 
 		self.cgmMultiTagOptions = MelOptionMenu(multiTagRow,l = 'Pick a tag:')
 		
-		for tag in 'Name','Type','Direction','Posiiton','NameModifier','TypeModifier','DirectionModifier':
+		for tag in 'Name','Type','Direction','Position','NameModifier','TypeModifier','DirectionModifier':
 			self.cgmMultiTagOptions.append(tag)
 			
 		self.cgmMultiTagOptions(edit = True, select = 1)
@@ -1402,17 +1404,14 @@ class tdToolsClass(BaseMelWindow):
 		"""
 
 		multiTagRow.layout()
-		
-		
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
-		guiFactory.lineBreak()
+
+		
 		
 		
 		#>>> Basic
 		mc.setParent(self.containerName )
-		guiFactory.header('On Selection')
-		guiFactory.lineSubBreak()
 
 		BasicRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(BasicRow,'Name Object',
