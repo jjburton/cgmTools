@@ -39,7 +39,8 @@ from cgm.lib import (guiFactory,
                      search)
 
 from cgm.tools import (tdToolsLib,
-                       locinatorLib)
+                       locinatorLib,
+                       namingToolsLib)
 
 reload(tdToolsLib)
 
@@ -1278,24 +1279,24 @@ class tdToolsClass(BaseMelWindow):
 			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'<<',
-		                    'tdToolsLib.uiLoadAutoNameObject(cgmTDToolsWin)',
+		                    'namingToolsLib.uiLoadAutoNameObject(cgmTDToolsWin)',
 				             'Load to field')
 
 		LoadAutoNameObjectRow.setStretchWidget(self.AutoNameObjectField  )
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Up',
-				             lambda *a:tdToolsLib.uiAutoNameWalkUp(self),
+				             lambda *a:namingToolsLib.uiAutoNameWalkUp(self),
 				             'Load to field')
 		
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Down',
-				             lambda *a:tdToolsLib.uiAutoNameWalkDown(self),
+				             lambda *a:namingToolsLib.uiAutoNameWalkDown(self),
 				             'Load to field')
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Name it',
-				             lambda *a:tdToolsLib.uiNameLoadedAutoNameObject(self),
+				             lambda *a:namingToolsLib.uiNameLoadedAutoNameObject(self),
 				             'Load to field')
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Name Children',
-				             lambda *a:tdToolsLib.uiNameLoadedAutoNameObjectChildren(self),
+				             lambda *a:namingToolsLib.uiNameLoadedAutoNameObjectChildren(self),
 				             'Load to field')
 
 		MelSpacer(LoadAutoNameObjectRow,w=5)
@@ -1321,23 +1322,23 @@ class tdToolsClass(BaseMelWindow):
 		self.PositionTagField = MelTextField(TagsRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
 		                                 w = 75)
 		self.DirectionTagField = MelTextField(TagsRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
 		                                 w = 75)
 		self.NameTagField = MelTextField(TagsRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
 		                                 w = 75)
 
 		self.ObjectTypeTagField = MelTextField(TagsRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmType'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmType'),
 		                                 w = 75)
 		
 		TagsRow.layout()
@@ -1351,17 +1352,17 @@ class tdToolsClass(BaseMelWindow):
 		self.DirectionModifierTagField = MelTextField(TagModifiersRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirectionModifier'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmDirectionModifier'),
 		                                 w = 75)
 		self.NameModifierTagField = MelTextField(TagModifiersRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmNameModifier'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmNameModifier'),
 		                                 w = 75)
 		self.ObjectTypeModifierTagField = MelTextField(TagModifiersRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmTypeModifier'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmTypeModifier'),
 		                                 w = 75)
 		
 		TagModifiersRow.layout()
@@ -1385,7 +1386,7 @@ class tdToolsClass(BaseMelWindow):
 		self.multiTagInfoField = MelTextField(multiTagRow,
 		                                      enable = True,
 		                                      bgc = dictionary.returnStateColor('normal'),
-		                                      ec = lambda *a: tdToolsLib.uiMultiTagObjects(self),
+		                                      ec = lambda *a: namingToolsLib.uiMultiTagObjects(self),
 		                                      w = 75)
 		
 
@@ -1398,30 +1399,40 @@ class tdToolsClass(BaseMelWindow):
 
 		MelSpacer(multiTagRow,w=5)
 
-		"""
-		ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirectionModifier'),
-
-		"""
 
 		multiTagRow.layout()
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
 
+		#>>> Copy/Swap
+		mc.setParent(self.containerName )
+
+		SwapRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		guiFactory.doButton2(SwapRow,'Copy Tags',
+				             'print "copy!"',
+				             "Copies the tags from the first object to all other objects in selection set")
+		guiFactory.doButton2(SwapRow,'Swap Tags',
+				             'print "swap!"',
+				             "Swaps the tags between two objects")
+
+		SwapRow.layout()
 		
 		
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
 		
 		#>>> Basic
 		mc.setParent(self.containerName )
 
 		BasicRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(BasicRow,'Name Object',
-				             'tdToolsLib.uiNameObject(cgmTDToolsWin)',
+				             'namingToolsLib.uiNameObject(cgmTDToolsWin)',
 				             "Attempts to name an object")
 		guiFactory.doButton2(BasicRow,'Update Name',
-				             'tdToolsLib.doUpdateObjectName(cgmTDToolsWin)',
+				             'namingToolsLib.doUpdateObjectName(cgmTDToolsWin)',
 				             "Takes the name you've manually changed the object to, \n stores that to the cgmName tag then \n renames the object")
 		guiFactory.doButton2(BasicRow,'Name Heirarchy',
-				             'tdToolsLib.doNameHeirarchy(cgmTDToolsWin)',
+				             'namingToolsLib.doNameHeirarchy(cgmTDToolsWin)',
 				             "Attempts to intelligently name a  \n heirarchy of objects")
 
 		BasicRow.layout()

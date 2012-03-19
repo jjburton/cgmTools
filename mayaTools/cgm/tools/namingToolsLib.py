@@ -1,0 +1,320 @@
+#=================================================================================================================================================
+#=================================================================================================================================================
+#	namingToolsLib - a part of cgmRigger
+#=================================================================================================================================================
+#=================================================================================================================================================
+#
+# DESCRIPTION:
+#   Library of functions for the cgmRiggingTools tool
+#
+# REQUIRES:
+#   Maya
+#
+#
+# AUTHOR:
+# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
+#	http://www.joshburton.com
+# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#
+# CHANGELOG:
+#	0.1.12072011 - First version
+#	0.1.12132011 - master control maker implemented, snap move tools added
+#	0.1.12272011 - split out library from tool
+#
+#=================================================================================================================================================
+__version__ = '0.1.03182012'
+
+import maya.cmds as mc
+import maya.mel as mel
+
+from cgm.lib.cgmBaseMelUI import *
+
+from cgm.lib import *
+from cgm.lib import (guiFactory,
+                     dictionary,
+                     autoname,
+                     search)
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# UI Stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiUpdateAutoNamePreview(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		newName = autoname.returnUniqueGeneratedName(autoNameObject)
+		self.GeneratedNameField(e = True,label = ("Preview : '" + newName + "'"))
+	else:
+		self.GeneratedNameField(e = True,label = ('Name will preview here...'))
+		
+
+def uiNameLoadedAutoNameObject(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		newName = autoname.doNameObject(autoNameObject)
+		mc.textField(self.AutoNameObjectField,e = True,text = newName)
+	else:
+		gselfFactory.warning('No current autoname object loaded!')
+		
+def uiNameLoadedAutoNameObjectChildren(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		newNameList = autoname.doRenameHeir(autoNameObject)
+		mc.textField(self.AutoNameObjectField,e = True,text = newNameList[0])
+
+	else:
+		gselfFactory.warning('No current autoname object loaded!')
+
+
+def uiLoadAutoNameObject(self):
+	selected = []
+	bufferList = []
+	selected = (mc.ls (sl=True,flatten=True))
+	
+	fieldToKeyDict = {'cgmName':self.NameTagField,
+                      'cgmType':self.ObjectTypeTagField,
+                      'cgmNameModifier':self.NameModifierTagField,
+                      'cgmTypeModifier':self.ObjectTypeModifierTagField,
+                      'cgmDirectionModifier':self.DirectionModifierTagField,
+                      'cgmDirection':self.DirectionTagField,
+                      'cgmPosition':self.PositionTagField}
+	
+	if selected:
+		if len(selected) >= 2:
+			guiFactory.warning('Only one object can be loaded')
+		else:
+			# Put the object in the field
+			guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVarAutoNameObject')
+
+			#Get the tag info for the object
+			tagsDict = autoname.returnObjectGeneratedNameDict(selected[0])
+			userAttrs = attributes.returnUserAttributes(selected[0])
+			tagAttrs = tagsDict.keys()
+			#Enable the tag fields
+			for key in fieldToKeyDict.keys():
+				mc.textField(fieldToKeyDict.get(key),edit=True,enable=True,
+				             text = '',
+				              bgc = dictionary.returnStateColor('normal'))
+			
+			for key in tagsDict.keys():
+				currentField = fieldToKeyDict.get(key)
+
+				
+				buildPopUp = {}
+				#purge popup
+				popUpBuffer =  currentField(q=True, popupMenuArray = True)
+				if popUpBuffer:
+					for item in popUpBuffer:
+						mc.deleteUI (item)
+				
+				mc.textField(currentField,edit=True,text = tagsDict.get(key),
+				             bgc = dictionary.returnStateColor('keyed'))
+				
+				# Set special color cases, if it's guessed or gotten upstream....
+				if userAttrs:
+					if key not in userAttrs:
+						mc.textField(currentField,edit = True, bgc = dictionary.returnStateColor('reserved'))
+					# if it's connected	
+					elif (mc.connectionInfo ((selected[0]+'.'+key),isDestination=True)):
+						driverObject = attributes.returnDriverObject(selected[0]+'.'+key)
+						driverAttr = attributes.returnDriverAttribute(selected[0]+'.'+key)
+						mc.textField(currentField,edit = True,
+						             text = (driverAttr),
+						             bgc = dictionary.returnStateColor('connected'))
+						buildPopUp['Select driver object'] = (driverObject)
+
+
+				else:
+					#Got it from a parent 
+					parentNameObjectRaw = search.returnTagUp(selected[0],key)
+					if parentNameObjectRaw:
+						if '|' in parentNameObjectRaw[1]:
+							parentNameBuffer = parentNameObjectRaw[1].split('|')
+							parentNameObject = parentNameBuffer[-1]
+						else:
+							parentNameObject = parentNameObjectRaw[1]
+						mc.textField(currentField,edit = True,
+						             text = parentNameObject,
+						             bgc = dictionary.returnStateColor('semiLocked'))
+						# enable right click menu
+						buildPopUp['Select parent name object'] = (parentNameObjectRaw[1])
+						
+					else:
+						mc.textField(currentField,edit = True,
+						             bgc = dictionary.returnStateColor('reserved'))
+						
+				
+				if buildPopUp:		
+					buffer = MelPopupMenu(currentField,button = 3)
+					for key in buildPopUp.keys():
+						MelMenuItem(buffer ,
+							        label = key,
+							        c = ('%s%s%s' %("mc.select('",buildPopUp.get(key),"')")))
+						
+						
+			# if it's connected
+			uiUpdateAutoNamePreview(self)
+			
+	else:
+		#clear the field
+		guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVarAutoNameObject')
+		# update the fields
+		for key in fieldToKeyDict.keys():
+			mc.textField(fieldToKeyDict.get(key),edit=True,enable=False,
+		                 text = '',
+		                  bgc = dictionary.returnStateColor('normal'))
+			
+		# Fix previewer
+		uiUpdateAutoNamePreview(self)
+		
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Tagging Functions
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiCopytags(self):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	if len(selected) == 2:
+		
+		pass
+	else:
+		guiFactory.warning('Two and only two objects selected please.')
+	
+	
+	
+
+def uiMultiTagObjects(self):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	
+	tagToKeyDict = {'Name':'cgmName',
+                      'Type':'cgmType',
+                      'NameModifer':'cgmNameModifier',
+                      'TypeModifier':'cgmTypeModifier',
+                      'DirectionModifier':'cgmDirectionModifier',
+                      'Direction':'cgmDirection',
+                      'Position':'cgmPosition'}
+	
+	tagShortHand = self.cgmMultiTagOptions(q=True,value = True)
+	tagToUse = tagToKeyDict.get(tagShortHand)
+	infoToStore = self.multiTagInfoField (q=True, text = True)
+	if tagToUse:
+		if infoToStore:
+			success = []
+			for obj in selected:
+				try:
+					attributes.storeInfo(obj,tagToUse, infoToStore,True)
+					success.append(obj)
+				except:
+					guiFactory.warning('%s failed to recieve info!' %obj)
+			if success:		
+				guiFactory.warning('%s%s%s%s' %("Stored '", infoToStore, "' to ", ','.join(success)))
+
+		else:
+			guiFactory.warning('No info found to store')
+	else:
+		guiFactory.warning('No tag info found to store')
+	
+
+	
+def uiUpdateAutoNameTag(self,tag):
+	fieldToKeyDict = {'cgmName':self.NameTagField,
+                      'cgmType':self.ObjectTypeTagField,
+                      'cgmNameModifier':self.NameModifierTagField,
+                      'cgmTypeModifier':self.ObjectTypeModifierTagField,
+                      'cgmDirectionModifier':self.DirectionModifierTagField,
+                      'cgmDirection':self.DirectionTagField,
+                      'cgmPosition':self.PositionTagField}
+	
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
+	tagField = fieldToKeyDict.get(tag)
+	if autoNameObject:
+		infoToStore = mc.textField(tagField, q = True, text = True)
+		if infoToStore:
+			attributes.storeInfo(autoNameObject,tag, infoToStore,True)
+			guiFactory.setBGColorState(tagField,'keyed')
+						
+			guiFactory.warning("Stored '%s' to object" %infoToStore)
+			
+			
+		else:
+			attributes.deleteAttr(autoNameObject,tag)
+			guiFactory.setBGColorState(tagField,'normal')
+			guiFactory.warning('%s purged' %tag)
+			
+			#refresh load to guess
+			mc.select(autoNameObject)
+			uiLoadAutoNameObject(self)
+			
+	else:
+		guiFactory.setBGColorState(tagField,'normal')
+		guiFactory.warning('You must select something.')
+	
+	uiUpdateAutoNamePreview(self)
+	
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Naming functions
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiNameObject(self):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	for obj in selected:
+		try:
+			autoname.doNameObject(obj)
+		except:
+			pass
+
+def doUpdateObjectName(self):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	for obj in selected:
+		try:
+			autoname.doUpdateName(obj)
+		except:
+			pass
+			
+def doNameHeirarchy(self):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	for obj in selected:
+		try:
+			autoname.doRenameHeir(obj)
+		except:
+			pass
+
+
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Hame Heirarchy Nav
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiAutoNameWalkUp(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		parent = search.returnParentObject(autoNameObject,False)
+		if parent:
+			mc.textField(self.AutoNameObjectField,e=True,text = parent)
+			mc.select(parent)
+			uiUpdateAutoNamePreview(self)
+			uiLoadAutoNameObject(self)
+		else:
+			guiFactory.warning('No parent found!')
+	else:
+		guiFactory.warning('No current autoname object loaded!')
+		
+def uiAutoNameWalkDown(self):
+	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
+	if autoNameObject:
+		children = search.returnChildrenObjects(autoNameObject)
+		print children
+		if children:
+			mc.textField(self.AutoNameObjectField,e=True,text = children[0])
+			mc.select(children[0])
+			uiUpdateAutoNamePreview(self)
+			uiLoadAutoNameObject(self)
+		else:
+			guiFactory.warning('No children found!')
+	else:
+		guiFactory.warning('No current autoname object loaded!')
