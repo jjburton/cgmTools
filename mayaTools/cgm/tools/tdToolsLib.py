@@ -30,12 +30,12 @@ import subprocess
 
 from zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
-
 from cgm.lib import *
 from cgm.lib import (guiFactory,
                      dictionary,
                      autoname,
                      search,
+                     deformers,
                      skinning)
 from cgm.tools import locinatorLib
 """
@@ -224,8 +224,6 @@ def uiMultiTagObjects(self):
 				try:
 					attributes.storeInfo(obj,tagToUse, infoToStore,True)
 					success.append(obj)
-					print obj
-					print success
 				except:
 					guiFactory.warning('%s failed to recieve info!' %obj)
 			if success:		
@@ -369,7 +367,7 @@ def doDeformerKeyableAttributesConnect(ui):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Deformer Utility Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doLoadPolyUnite(ui):
+def doLoadPolyUnite(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -388,12 +386,12 @@ def doLoadPolyUnite(ui):
 	selectBuffer = mc.ls(sl=True, flatten = True)
 	if selectBuffer:
 		if search.returnObjectType(selectBuffer[0]) is 'polyUnite':
-			ui.SourceObjectField(edit = True, text = selectBuffer[0])
+			self.SourceObjectField(edit = True, text = selectBuffer[0])
 			uniteNode = selectBuffer[0]
 		else:
 			buffer = deformers.returnPolyUniteNodeFromResultGeo(selectBuffer[0])
 			if buffer:
-				ui.SourceObjectField(edit = True, text = buffer)
+				self.SourceObjectField(edit = True, text = buffer)
 				uniteNode = buffer
 			else:
 				return (guiFactory.warning('No poly unite node found'))
@@ -425,7 +423,7 @@ def doLoadPolyUnite(ui):
 	else:
 		return (guiFactory.warning('No polyUnite found'))
 
-def doDeletePolyUniteNode(ui):
+def doDeletePolyUniteNode(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -441,7 +439,7 @@ def doDeletePolyUniteNode(ui):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Get our variables from the ui and optionVars
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	sourceObject = ui.SourceObjectField(q=True, text = True)
+	sourceObject = self.SourceObjectField(q=True, text = True)
 	print sourceObject
 	if search.returnObjectType(sourceObject) == 'polyUnite':
 		deformers.removePolyUniteNode(sourceObject)
@@ -449,7 +447,7 @@ def doDeletePolyUniteNode(ui):
 		return (guiFactory.warning('No polyUnite loaded'))
 
 
-def doBuildPolyUnite(ui):
+def doBuildPolyUnite(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -474,7 +472,8 @@ def doBuildPolyUnite(ui):
 		else:
 			targetObjects = targetObjectsBuffer
 
-	baseName = ui.BaseNameField(query=True, text =True)
+	baseName = self.BaseNameField(query=True, text = True)
+	print baseName
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Variable data checks
@@ -496,7 +495,7 @@ def doBuildPolyUnite(ui):
 		baseName = 'UnifiedGeo'
 	buffer = deformers.polyUniteGeo(targetObjects,name=baseName)
 
-	ui.SourceObjectField(edit = True, text = buffer[1])
+	self.SourceObjectField(edit = True, text = buffer[1])
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Tools

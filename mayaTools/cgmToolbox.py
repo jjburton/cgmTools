@@ -216,7 +216,12 @@ def loadNamingTools( *a ):
 	from cgm.tools import namingTools
 	reload(namingTools)
 	namingTools.run()
-
+	
+def loadPolyUniteTool( *a ):
+	import cgm
+	from cgm.tools import polyUniteTool
+	reload(polyUniteTool)
+	polyUniteTool.run()
 
 class ToolCB(object):
 	def __init__( self, melStr ):
@@ -244,6 +249,9 @@ TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locator
 
               ('dev', (('Naming Tools', " Autoname and Standard naming tools",
                         loadNamingTools),
+                       ('PolyUnite Tool', "Stand alone poly unite tool for Plastic",
+                        loadPolyUniteTool),
+                       
                        )),
 
               )
