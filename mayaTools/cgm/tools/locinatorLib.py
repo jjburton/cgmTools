@@ -56,7 +56,7 @@ reload(locators)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tool Commands
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doLocMe(ui):
+def doLocMe(self):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -74,10 +74,10 @@ def doLocMe(ui):
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
-    ui.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
+    self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
 
     for item in selected:
-	locBuffer = locators.locMeObject(item, ui.forceBoundingBoxState)
+	locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
 	if '.' not in list(item):
 	    attributes.storeInfo(item,'cgmMatchObject',locBuffer)
 	bufferList.append(locBuffer)
@@ -87,7 +87,7 @@ def doLocMe(ui):
     else:
 	return (mc.spaceLocator(name = 'worldCenter_loc'))
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doPurgecgmAttrs(ui):
+def doPurgecgmAttrs(self):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -112,7 +112,7 @@ def doPurgecgmAttrs(ui):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doLocCenter(ui):
+def doLocCenter(self):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -128,16 +128,16 @@ def doLocCenter(ui):
     selected = []
     selected = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
-    ui.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
+    self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
 
     if len(selected) >=2:
-	return (locators.locMeCenter(selected,ui.forceBoundingBoxState))
+	return (locators.locMeCenter(selected,self.forceBoundingBoxState))
     if len(selected) == 1:
 	return (locators.locMeCenter(selected,True))
     else:
 	return (mc.spaceLocator(name = 'worldCenter_loc'))
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doTagObjects(ui):
+def doTagObjects(self):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -197,11 +197,13 @@ def queryCanUpdate(objectToUpdate):
 	if search.returnTagInfo(objectToUpdate,'cgmLocMode'):
 	    return True
 	else:
-	    matchObject = search.returnTagInfo(objectToUpdate,'cgmMatchObject')
-	    if mc.objExists(matchObject):
-		return True
-	    else:
-		return False
+	    return False
+    else:
+	matchObject = search.returnTagInfo(objectToUpdate,'cgmMatchObject')
+	if mc.objExists(matchObject):
+	    return True
+	else:
+	    return False
 
 
 def doLocClosest():
@@ -229,7 +231,7 @@ def doLocClosest():
     else:
 	return locators.locClosest(selected[:-1],selected[-1])
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doUpdateLoc(ui, forceCurrentFrameOnly = False ):
+def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -246,9 +248,9 @@ def doUpdateLoc(ui, forceCurrentFrameOnly = False ):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
-    ui.currentFrameOnly = mc.optionVar( q='cgmCurrentFrameOnly' )
-    ui.forceEveryFrame = mc.optionVar( q='cgmVarForceEveryFrame' )
-    ui.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
+    self.currentFrameOnly = mc.optionVar( q='cgmCurrentFrameOnly' )
+    self.forceEveryFrame = mc.optionVar( q='cgmVarForceEveryFrame' )
+    self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
 
     if not len(selected):
 	guiFactory.warning('Nothing Selected')
@@ -262,10 +264,10 @@ def doUpdateLoc(ui, forceCurrentFrameOnly = False ):
 
 
     if len(toUpdate) >= 1:
-	if ui.currentFrameOnly or forceCurrentFrameOnly:
+	if self.currentFrameOnly or forceCurrentFrameOnly:
 	    for item in toUpdate:
 		if search.returnObjectType(item) == 'locator':
-		    if locators.doUpdateLocator(item,ui.forceBoundingBoxState):
+		    if locators.doUpdateLocator(item,self.forceBoundingBoxState):
 			guiFactory.warning('%s%s' % (item, " updated..."))
 		    else:
 			guiFactory.warning('%s%s' % (item, " could not be updated..."))
@@ -277,29 +279,29 @@ def doUpdateLoc(ui, forceCurrentFrameOnly = False ):
 		    else:
 			guiFactory.warning('%s%s' % (item, " has no match object"))
 	else:
-	    ui.startFrame = ui.startFrameField(q=True,value=True)
-	    ui.endFrame = ui.endFrameField(q=True,value=True)
+	    self.startFrame = self.startFrameField(q=True,value=True)
+	    self.endFrame = self.endFrameField(q=True,value=True)
 	    initialFramePosition = mc.currentTime(q=True)
 
 
-	    if ui.forceEveryFrame== True:
+	    if self.forceEveryFrame== True:
 
 		for item in toUpdate:
 		    #Then delete the key clear any key frames in the region to be able to cleanly put new ones on keys only mode
-		    mc.cutKey(item,animation = 'objects', time=(ui.startFrame,ui.endFrame + 1))
+		    mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1))
 
 
 		guiFactory.doProgressWindow()
-		maxRange = ui.endFrame + 1
+		maxRange = self.endFrame + 1
 
-		for f in range(ui.startFrame,ui.endFrame + 1):
+		for f in range(self.startFrame,self.endFrame + 1):
 		    if guiFactory.doUpdateProgressWindow('On f',f,maxRange,f) == 'break':
 			break
 		    mc.currentTime(f)
 		    for item in toUpdate:
 
 			if search.returnObjectType(item) == 'locator':
-			    locators.doUpdateLocator(item,ui.forceBoundingBoxState)
+			    locators.doUpdateLocator(item,self.forceBoundingBoxState)
 			else:
 			    if queryCanUpdate(item):
 				position.moveParentSnap(item,matchObject)
@@ -333,11 +335,11 @@ def doUpdateLoc(ui, forceCurrentFrameOnly = False ):
 		    mayaMainProgressBar = guiFactory.doStartMayaProgressBar(maxRange)
 
 		    #first clear any key frames in the region to be able to cleanly put new ones on keys only mode
-		    mc.cutKey(item,animation = 'objects', time=(ui.startFrame,ui.endFrame + 1))
+		    mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1))
 
 		    maxRange = len(keyFrames)
 		    for f in keyFrames:
-			if f >= ui.startFrame and f <= ui.endFrame:
+			if f >= self.startFrame and f <= self.endFrame:
 			    #Update our progress bar
 			    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 				break
@@ -345,7 +347,7 @@ def doUpdateLoc(ui, forceCurrentFrameOnly = False ):
 
 			    mc.currentTime(f)
 			    if search.returnObjectType(item) == 'locator':
-				locators.doUpdateLocator(item,ui.forceBoundingBoxState)
+				locators.doUpdateLocator(item,self.forceBoundingBoxState)
 			    else:
 				if mc.objExists(matchObject):
 				    position.moveParentSnap(item,matchObject)

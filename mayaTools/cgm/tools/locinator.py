@@ -300,7 +300,7 @@ class locinatorClass(BaseMelWindow):
 
 
 		guiFactory.doButton2(parent,'Do it!',
-				             'locinatorLib.doUpdateLoc(cgmLocWin)',
+		                     lambda *a: locinatorLib.doUpdateLoc(self),
 				             'Update a locator at a particular frame or through a timeline')
 
 		guiFactory.lineSubBreak()
@@ -312,7 +312,7 @@ class locinatorClass(BaseMelWindow):
 		guiFactory.lineSubBreak()
 		self.helpBlurbs.extend(guiFactory.instructions(" Find the center point from a selection set",vis = ShowHelpOption))
 		guiFactory.doButton2(parent,'Just Loc Selected',
-				             'locinatorLib.doLocMe(cgmLocWin)',
+		                     lambda *a: locinatorLib.doLocMe(self),
 				             'Create an updateable locator based off the selection and options')
 
 
@@ -325,14 +325,14 @@ class locinatorClass(BaseMelWindow):
 		#>>>  Center Section
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SpecialColumn,'Locate Center',
-				             'locinatorLib.doLocCenter(cgmLocWin)',
+		                     lambda *a: locinatorLib.doLocCenter(self),
 				             'Find the center point from a selection set')
 
 
 		#>>>  Closest Point Section
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SpecialColumn,'Locate Closest Point',
-				             'locinatorLib.doLocClosest()',
+		                     lambda *a: locinatorLib.doLocClosest(),
 				             'Select the proximity object(s), then the object to find point on. Accepted target object types are - nurbsCurves and surfaces and poly objects')
 
 
@@ -340,12 +340,12 @@ class locinatorClass(BaseMelWindow):
 		#>>>  Curves Section
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SpecialColumn,'Loc CVs of curve',
-				             'locinatorLib.doLocCVsOfObject()',
+		                     lambda *a: locinatorLib.doLocCVsOfObject(),
 				             "Locs the cv's at the cv coordinates")
 
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SpecialColumn,'Loc CVs on the curve',
-				             'locinatorLib.doLocCVsOnObject()',
+		                     lambda *a: locinatorLib.doLocCVsOnObject(),
 				             "Locs cv's at closest point on the curve")
 
 		guiFactory.lineBreak()
@@ -353,7 +353,7 @@ class locinatorClass(BaseMelWindow):
 		#>>> Update Section
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SpecialColumn,'Update Selected',
-				             'locinatorLib.doUpdateLoc(cgmLocWin)',
+		                     lambda *a: locinatorLib.doUpdateLoc(self),
 				             "Only works with locators created with this tool")
 
 
@@ -365,7 +365,7 @@ class locinatorClass(BaseMelWindow):
 		#>>>  Tag Section
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(MatchColumn,'Tag it',
-				             'locinatorLib.doTagObjects(cgmLocWin)',
+		                     lambda *a: locinatorLib.doTagObjects(self),
 				             "Tag the selected objects to the first locator in the selection set. After this relationship is set up, you can match objects to that locator.")
 
 
@@ -373,7 +373,7 @@ class locinatorClass(BaseMelWindow):
 		guiFactory.lineSubBreak()
 		self.helpBlurbs.extend(guiFactory.instructions("  Purge all traces of cgmThinga tools from the object",vis = ShowHelpOption))
 		guiFactory.doButton2(MatchColumn,'Purge it',
-				             'locinatorLib.doPurgecgmAttrs(cgmLocWin)',
+		                     lambda *a: locinatorLib.doPurgecgmAttrs(self),
 				             "Clean it")
 
 		guiFactory.lineBreak()
@@ -381,5 +381,5 @@ class locinatorClass(BaseMelWindow):
 		#>>> Update Section
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(MatchColumn,'Update Selected',
-				             'locinatorLib.doUpdateLoc(cgmLocWin)',
+		                     lambda *a: locinatorLib.doUpdateLoc(self),
 				             "Only works with locators created with this tool")
