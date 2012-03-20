@@ -519,12 +519,12 @@ def doLoadBlendShapePoseBuffer(self):
 	selectBuffer = mc.ls(sl=True, flatten = True)
 	if selectBuffer:
 		poseBufferCandidate = selectBuffer[0]
-		ui.SourceObjectField(edit = True, text = poseBufferCandidate)
+		self.SourceObjectField(edit = True, text = poseBufferCandidate)
 
 		#Check for a connected blendshape node
 		blendShapeSearchBuffer = deformers.returnBlendShapeNodeFromPoseBuffer(poseBufferCandidate)
 		if blendShapeSearchBuffer:
-			guiFactory.doLoadMultipleObjectsToTextField(ui.TargetObjectField,blendShapeSearchBuffer,'cgmVarTargetObjects')
+			guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,blendShapeSearchBuffer,'cgmVarTargetObjects')
 		else:
 			return (guiFactory.warning('No connected blendShape node found'))
 	else:
@@ -577,7 +577,7 @@ def doCreatePoseBuffer(self):
 		deformers.connectBlendShapeNodeToPoseBuffer(sourceObject,buffer[0])
 
 
-	ui.TargetObjectField(edit = True, text = buffer[0])
+	self.TargetObjectField(edit = True, text = buffer[0])
 
 def doUpdatePoseBuffer(self):
 	"""
@@ -1274,7 +1274,7 @@ def doSnapClosestPointToSurface(aim=True):
 #['Object','Average','Input Size','First Object']
 def returnObjectSizesForCreation(objList,ui):
 	if self.sizeMode == 2:
-		return ( mc.floatField(ui.textObjectSizeField,q=True,value=True) )
+		return ( mc.floatField(self.textObjectSizeField,q=True,value=True) )
 	else:
 		sizeList = []
 		for item in objList:
@@ -1304,13 +1304,13 @@ def returnObjectSizesForCreation(objList,ui):
 
 #>>> Text Curve Objects Stuff
 def doCreateTextCurveObject(self):
-	textCheck = mc.textField(ui.textObjectTextField,q=True,text=True)
-	ui.textObjectFont = mc.optionVar( q='cgmVarFontOption' )
+	textCheck = mc.textField(self.textObjectTextField,q=True,text=True)
+	self.textObjectFont = mc.optionVar( q='cgmVarFontOption' )
 	colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
 
 	if textCheck:
-		ui.textObjectText = self.textObjectTextField(q=True,text=True)
-		ui.textObjectSize = mc.floatField(ui.textObjectSizeField,q=True,value=True)
+		self.textObjectText = self.textObjectTextField(q=True,text=True)
+		self.textObjectSize = mc.floatField(self.textObjectSizeField,q=True,value=True)
 		textObjectsToMake = []
 		print self.textObjectText
 		if ';' in self.textObjectText:
@@ -1318,13 +1318,13 @@ def doCreateTextCurveObject(self):
 		print textObjectsToMake
 		if len(textObjectsToMake):
 			for word in textObjectsToMake:
-				ui.textCurrentObject = curves.createTextCurveObject(word,self.textObjectSize,None, font = self.textObjectFont)
-				mc.textField(ui.textCurrentObjectField,edit=True,text = self.textCurrentObject )
-				curves.setCurveColorByIndex(ui.textCurrentObject,colorChoice)
+				self.textCurrentObject = curves.createTextCurveObject(word,self.textObjectSize,None, font = self.textObjectFont)
+				mc.textField(self.textCurrentObjectField,edit=True,text = self.textCurrentObject )
+				curves.setCurveColorByIndex(self.textCurrentObject,colorChoice)
 		else:
-			ui.textCurrentObject = curves.createTextCurveObject(ui.textObjectText,self.textObjectSize,None, font = self.textObjectFont)
-			mc.textField(ui.textCurrentObjectField,edit=True,text = self.textCurrentObject )
-			curves.setCurveColorByIndex(ui.textCurrentObject,colorChoice)
+			self.textCurrentObject = curves.createTextCurveObject(self.textObjectText,self.textObjectSize,None, font = self.textObjectFont)
+			mc.textField(self.textCurrentObjectField,edit=True,text = self.textCurrentObject )
+			curves.setCurveColorByIndex(self.textCurrentObject,colorChoice)
 
 
 def doSetCurveColorByIndex(colorIndex):
@@ -1350,26 +1350,26 @@ def doLoadTexCurveObject(self):
 			if search.returnTagInfo(selected[0],'cgmObjectType') != 'textCurve':
 				guiFactory.warning('Selected object is not a cgmTextCurve object')
 			else:
-				mc.textField(ui.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = selected[0],editable = False )
+				mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = selected[0],editable = False )
 				doUpdateTexCurveObjectUI(self)
 	else:
 		guiFactory.warning('You must select something.')
 
 
 def doUpdateTexCurveObjectUI(self):
-	textCurveObject = mc.textField(ui.textCurrentObjectField ,q=True,text=True)
+	textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
 	objAttrs = attributes.returnUserAttrsToDict(textCurveObject)
-	mc.textField(ui.textObjectTextField,e=True,text=(objAttrs['cgmObjectText']))
-	mc.floatField(ui.textObjectSizeField,e=True,value=(float(objAttrs['cgmObjectSize'])))
+	mc.textField(self.textObjectTextField,e=True,text=(objAttrs['cgmObjectText']))
+	mc.floatField(self.textObjectSizeField,e=True,value=(float(objAttrs['cgmObjectSize'])))
 
 
 def doUpdateTexCurveObject(self):
-	textCurveObject = mc.textField(ui.textCurrentObjectField ,q=True,text=True)
+	textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
 	if textCurveObject:
 		if mc.objExists(textCurveObject) and search.returnTagInfo(textCurveObject,'cgmObjectType') == 'textCurve':
 			# Get our variables
-			ui.textObjectText = mc.textField(ui.textObjectTextField,q=True,text=True)
-			ui.textObjectSize = mc.floatField(ui.textObjectSizeField,q=True,value=True)
+			self.textObjectText = mc.textField(self.textObjectTextField,q=True,text=True)
+			self.textObjectSize = mc.floatField(self.textObjectSizeField,q=True,value=True)
 
 			# Store the data on on the object
 			attributes.storeInfo(textCurveObject,'cgmObjectText',self.textObjectText)
@@ -1384,7 +1384,7 @@ def doUpdateTexCurveObject(self):
 				textCurveObject = autoname.doNameObject(textCurveObject)
 
 			# Put our updated object info
-			mc.textField(ui.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
+			mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
 
 			doUpdateTexCurveObjectUI(self)
 
@@ -1401,18 +1401,18 @@ def doCreateCurveControl(self):
 	colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
 
 	#Info
-	ui.uiCurveName = self.uiCurveNameField(q=True,text=True)
+	self.uiCurveName = self.uiCurveNameField(q=True,text=True)
 	curveChoice = self.shapeOptions(q=True,sl=True)
-	#curveChoice = (mc.optionMenuGrp(ui.uiCurveSelector,q=True,sl=True))
+	#curveChoice = (mc.optionMenuGrp(self.uiCurveSelector,q=True,sl=True))
 	shapeOption =  self.curveOptionList[curveChoice-1]
-	ui.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
-	ui.sizeMode = mc.optionVar( q='cgmVarSizeMode' )
+	self.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
+	self.sizeMode = mc.optionVar( q='cgmVarSizeMode' )
 
 	if self.makeMasterControl:
 		if selected:
 			size = max(distance.returnBoundingBoxSize(selected))
 			if self.uiCurveName:
-				controlBuilder.createMasterControl(ui.uiCurveName,size,self.textObjectFont,self.makeMasterControlSettings,self.makeMasterControlVis)
+				controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,self.makeMasterControlSettings,self.makeMasterControlVis)
 			else:
 				controlBuilder.createMasterControl('char',size,self.textObjectFont,self.makeMasterControlSettings,self.makeMasterControlVis)
 

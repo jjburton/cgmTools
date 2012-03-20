@@ -169,17 +169,21 @@ def uiLoadAutoNameObject(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tagging Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def uiCopytags(self):
+def uiCopyTags(self):
 	selected = mc.ls(sl=True)
-	mc.select(cl=True)
-	
-	if len(selected) == 2:
-		
-		pass
+	if len(selected) >= 2:
+		for obj in selected[1:]:
+			print obj
+			attributes.copyNameTagAttrs(selected[0],obj)
 	else:
-		guiFactory.warning('Two and only two objects selected please.')
+		guiFactory.warning('Need at least two objects.')
 	
-	
+def uiSwapTags(self):
+	selected = mc.ls(sl=True)
+	if len(selected) == 2:
+		attributes.swapNameTagAttrs(selected[0],selected[1])
+	else:
+		guiFactory.warning('Two and only two objects selected please.')	
 	
 
 def uiMultiTagObjects(self):
@@ -227,6 +231,11 @@ def uiUpdateAutoNameTag(self,tag):
                       'cgmPosition':self.PositionTagField}
 	
 	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
+	#>>> See if our object exists
+	if not mc.objExists(autoNameObject):
+		guiFactory.warning("'%s' doesn't seem to exist. It may have been renamed or delete. Load a new object please" %autoNameObject)
+		return
+	
 	tagField = fieldToKeyDict.get(tag)
 	if autoNameObject:
 		infoToStore = mc.textField(tagField, q = True, text = True)
@@ -257,7 +266,6 @@ def uiUpdateAutoNameTag(self,tag):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def uiNameObject(self):
 	selected = mc.ls(sl=True)
-	mc.select(cl=True)
 	
 	for obj in selected:
 		try:
@@ -267,7 +275,6 @@ def uiNameObject(self):
 
 def doUpdateObjectName(self):
 	selected = mc.ls(sl=True)
-	mc.select(cl=True)
 	
 	for obj in selected:
 		try:
@@ -277,7 +284,6 @@ def doUpdateObjectName(self):
 			
 def doNameHeirarchy(self):
 	selected = mc.ls(sl=True)
-	mc.select(cl=True)
 	
 	for obj in selected:
 		try:

@@ -106,7 +106,7 @@ def doPurgecgmAttrs(self):
 
     if len(selected) >=1:
 	for item in selected:
-	    modules.purgecgmAttrsFromObject(item)
+	    modules.purgeCGMAttrsFromObject(item)
     else:
 	guiFactory.warning('Something must be selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

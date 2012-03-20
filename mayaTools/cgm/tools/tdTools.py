@@ -43,6 +43,7 @@ from cgm.tools import (tdToolsLib,
                        namingToolsLib)
 
 reload(tdToolsLib)
+reload(namingToolsLib)
 
 
 def run():
@@ -1349,7 +1350,7 @@ class tdToolsClass(BaseMelWindow):
 		#>>> ModifierTags
 		mc.setParent(self.containerName )
 		TagModifiersRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 3)
-		MelLabel(TagModifiersRow,align = 'right', label = 'Modifiers ------->',w = 75)
+		MelLabel(TagModifiersRow,align = 'right', label = 'Modifiers >>>',w = 75)
 		self.DirectionModifierTagField = MelTextField(TagModifiersRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
@@ -1382,7 +1383,7 @@ class tdToolsClass(BaseMelWindow):
 		multiTagRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		
 		MelSpacer(multiTagRow,w=5)
-		MelLabel(multiTagRow,label = 'Multi tag>>>>')
+		MelLabel(multiTagRow,label = 'Multi tag >>>')
 
 		self.multiTagInfoField = MelTextField(multiTagRow,
 		                                      enable = True,
@@ -1410,10 +1411,10 @@ class tdToolsClass(BaseMelWindow):
 
 		SwapRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(SwapRow,'Copy Tags',
-				             'print "copy!"',
+				             lambda *a: namingToolsLib.uiCopyTags(self),
 				             "Copies the tags from the first object to all other objects in selection set")
 		guiFactory.doButton2(SwapRow,'Swap Tags',
-				             'print "swap!"',
+		                     lambda *a: namingToolsLib.uiSwapTags(self),
 				             "Swaps the tags between two objects")
 
 		SwapRow.layout()

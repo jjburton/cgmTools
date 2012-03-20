@@ -22,7 +22,7 @@
 #=================================================================================================================================================
 
 import maya.cmds as mc
-from cgm.lib import guiFactory,dictionary,settings
+from cgm.lib import guiFactory,dictionary,settings,autoname
 
 
 namesDictionaryFile = settings.getNamesDictionaryFile()
@@ -423,7 +423,113 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
         else:
                 print ('Sorry, no matched attrs found.')
                 return False
+            
+def copyNameTagAttrs(fromObject,toObject):
+        """                                     
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        DESCRIPTION:
+        Copy cgmTag attrs from one object to another. 
 
+        REQUIRES:
+        fromObject(string) - obj with attrs
+        toObject(string) - obj to copy to
+
+        RETURNS:
+        success(bool)
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """
+        lockAttrs = {}
+        attrsToCopy = ['cgmName','cgmType','cgmDirection','cgmPosition','cgmNameModifier','cgmTypeModifier','cgmDirectionModifier']
+        tagsDict = returnUserAttrsToDict(fromObject)
+
+        #>>> The creation of attributes part
+        if len(tagsDict.keys())>0:
+                for attr in tagsDict.keys():
+
+                        """if it doesn't exist, store  it"""
+                        if mc.objExists(fromObject+'.'+attr) and attr in attrsToCopy:
+                            """ see if it was locked, unlock it and store that it was locked """  
+                            if mc.getAttr((fromObject+'.'+attr),lock=True) == True:
+                                lockAttrs[attr] = True
+                            
+                            storeInfo(toObject,attr,tagsDict.get(attr))
+
+
+                """ relock """
+                for attr in lockAttrs.keys():
+                        mc.setAttr((fromObject+'.'+attr),lock=True)
+                        mc.setAttr((toObject+'.'+attr),lock=True)
+                return True
+        else:
+                print ('Sorry, no matched attrs found.')
+                return False
+            
+def swapNameTagAttrs(object1,object2):
+        """                                     
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        DESCRIPTION:
+        Swap cgmNameTag attrs from one object to another. 
+
+        REQUIRES:
+        fromObject(string) - 
+        toObject(string) - 
+
+        RETURNS:
+        None
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """
+        object1LockAttrs = {}
+        object2LockAttrs = {}
+
+        attrsToCopy = ['cgmName','cgmType','cgmDirection','cgmPosition','cgmNameModifier','cgmTypeModifier','cgmDirectionModifier']
+        object1TagsDict = returnUserAttrsToDict(object1)
+        object2TagsDict = returnUserAttrsToDict(object2)
+        
+        object1TagTypesDict = returnObjectsUserAttributeTypes(object1)
+        object2TagTypesDict = returnObjectsUserAttributeTypes(object2)
+
+        #>>> execution stuff
+        if object1TagsDict and object2TagsDict:
+            #>>> Object 1
+            for attr in object1TagsDict.keys():
+                    """if it doesn't exist, store  it"""
+                    if mc.objExists(object1+'.'+attr) and attr in attrsToCopy:
+                        """ see if it was locked, unlock it and store that it was locked """  
+                        if mc.getAttr((object1+'.'+attr),lock=True) == True:
+                            object1LockAttrs[attr] = True
+                            
+                        deleteAttr(object1,attr) 
+            #Copy object 2's tags to object 1            
+            for attr in object2TagsDict.keys():
+                if object2TagTypesDict.get(attr) == 'message':
+                    storeInfo(object1,attr,object2TagsDict.get(attr))
+                else:
+                    storeInfo(object1,attr,object2TagsDict.get(attr),True)
+            
+            #>>> Object 2
+            for attr in object2TagsDict.keys():
+                    """if it doesn't exist, store  it"""
+                    if mc.objExists(object2+'.'+attr) and attr in attrsToCopy:
+                        """ see if it was locked, unlock it and store that it was locked """  
+                        if mc.getAttr((object2+'.'+attr),lock=True) == True:
+                            object2LockAttrs[attr] = True
+                            
+                        deleteAttr(object2,attr) 
+                        
+            #Copy object 1's tags to object 2                      
+            for attr in object1TagsDict.keys():
+                if object1TagTypesDict.get(attr) == 'message':
+                    storeInfo(object2,attr,object1TagsDict.get(attr))
+                else:
+                    storeInfo(object2,attr,object1TagsDict.get(attr),True)
+                        
+        else:
+            guiFactory.warning("Selected objects don't have cgmTags to swap")
+                        
+        
+
+
+            
 def doSetOverrideSettings(obj,enabled=True,displayType=1,levelOfDetail = 0,overrideShading=1,overrideTexturing=1,overridePlayback=1,overrideVisible=1):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
