@@ -303,7 +303,7 @@ def doNameHeirarchy(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # SDK
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doSelectDrivenJoints(ui):
+def doSelectDrivenJoints(self):
 	selected = mc.ls(sl=True)
 	mc.select(cl=True)
 	channelBoxName = search.returnMainChannelBoxName()
@@ -328,7 +328,7 @@ def doSelectDrivenJoints(ui):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Attribute Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doDeformerKeyableAttributesConnect(ui):
+def doDeformerKeyableAttributesConnect(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -343,7 +343,7 @@ def doDeformerKeyableAttributesConnect(ui):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Get our variables from the ui and optionVars
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	sourceObject = ui.SourceObjectField(q=True, text = True)
+	sourceObject = self.SourceObjectField(q=True, text = True)
 	if not search.returnObjectType(sourceObject) in ['nonLinear']:
 		return (guiFactory.warning('No deformer object loaded loaded'))
 
@@ -355,7 +355,7 @@ def doDeformerKeyableAttributesConnect(ui):
 		else:
 			targetObjects = targetObjectsBuffer
 
-	baseName = ui.BaseNameField(query=True, text =True)
+	baseName = self.BaseNameField(query=True, text =True)
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Make the attributes and connect em
@@ -500,7 +500,7 @@ def doBuildPolyUnite(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doLoadBlendShapePoseBuffer(ui):
+def doLoadBlendShapePoseBuffer(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -532,7 +532,7 @@ def doLoadBlendShapePoseBuffer(ui):
 
 
 
-def doCreatePoseBuffer(ui):
+def doCreatePoseBuffer(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -549,10 +549,10 @@ def doCreatePoseBuffer(ui):
 	# Get our variables from the ui and optionVars
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-	sourceObject = ui.SourceObjectField(q=True, text = True)
+	sourceObject = self.SourceObjectField(q=True, text = True)
 
 
-	baseName = ui.BaseNameField(query=True, text =True)
+	baseName = self.BaseNameField(query=True, text =True)
 
 	DoConnectCase = mc.optionVar(q='cgmVarPoseBufferDoConnect') 
 	TransferConnectionsCase = mc.optionVar(q='cgmVarPoseBufferTransferConnections') 
@@ -579,7 +579,7 @@ def doCreatePoseBuffer(ui):
 
 	ui.TargetObjectField(edit = True, text = buffer[0])
 
-def doUpdatePoseBuffer(ui):
+def doUpdatePoseBuffer(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -595,11 +595,11 @@ def doUpdatePoseBuffer(ui):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Get our variables from the ui and optionVars
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	sourceObject = ui.SourceObjectField(q=True, text = True)
+	sourceObject = self.SourceObjectField(q=True, text = True)
 
 	targetObjects = mc.ls(sl=True, flatten = True)
 	if not targetObjects:
-		targetObjectsBuffer = ui.TargetObjectField(q=True,text=True)
+		targetObjectsBuffer = self.TargetObjectField(q=True,text=True)
 		#targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
 		if ';' in targetObjectsBuffer:
 			targetObjects = targetObjectsBuffer.split(';')
@@ -639,7 +639,7 @@ def doUpdatePoseBuffer(ui):
 	if DoConnectCase:
 		deformers.connectBlendShapeNodeToPoseBuffer(targetObjects[0],poseBuffer)
 
-def doBakeBlendShapeTargetsToTargetsFromSource(ui):
+def doBakeBlendShapeTargetsToTargetsFromSource(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -658,7 +658,7 @@ def doBakeBlendShapeTargetsToTargetsFromSource(ui):
 
 	# Check for selection, defaults to using that for targets
 	sourceObject = mc.optionVar(q='cgmVarSourceObject')
-	#targetObjectsBuffer = ui.TargetObjectField(query = True, text=True)
+	#targetObjectsBuffer = self.TargetObjectField(query = True, text=True)
 	targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
 	if ';' in targetObjectsBuffer:
 		targetObjects = targetObjectsBuffer.split(';')
@@ -668,9 +668,9 @@ def doBakeBlendShapeTargetsToTargetsFromSource(ui):
 	bakeInbetweensCase = mc.optionVar(q='cgmVarBSBakeInbetweens')
 	transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections')
 	bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine')
-	combineTermsString = ui.BlendShapeCombineTermsField(query=True,text=True)
+	combineTermsString = self.BlendShapeCombineTermsField(query=True,text=True)
 
-	baseName = ui.BaseNameField(query=True, text =True)
+	baseName = self.BaseNameField(query=True, text =True)
 
 	blendShapeNodes = deformers.returnObjectDeformers(sourceObject,'blendShape')
 	blendShapeNode = blendShapeNodes[0]
@@ -732,7 +732,7 @@ def doBakeBlendShapeTargetsToTargetsFromSource(ui):
 		guiFactory.warning('Need a source object')
 
 
-def doBakeBlendShapeTargetsFromSource(ui):
+def doBakeBlendShapeTargetsFromSource(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -750,9 +750,9 @@ def doBakeBlendShapeTargetsFromSource(ui):
 	bakeInbetweensCase = mc.optionVar(q='cgmVarBSBakeInbetweens')
 	transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections')
 	bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine')
-	combineTermsString = ui.BlendShapeCombineTermsField(query=True,text=True)
+	combineTermsString = self.BlendShapeCombineTermsField(query=True,text=True)
 
-	baseName = ui.BaseNameField(query=True, text =True)
+	baseName = self.BaseNameField(query=True, text =True)
 
 	blendShapeNodes = deformers.returnObjectDeformers(sourceObject,'blendShape')
 	blendShapeNode = blendShapeNodes[0]
@@ -1152,8 +1152,8 @@ def doPointSnap():
 def doOrientSnap():
 	batch.doObjToTargetFunctionOnSelected(position.moveOrientSnap)
 
-def doLayoutByRowsAndColumns(ui):
-	mc.optionVar(iv=('cgmVarRowColumnCount',ui.RowColumnIntField(q=True,v=True)))
+def doLayoutByRowsAndColumns(self):
+	mc.optionVar(iv=('cgmVarRowColumnCount',self.RowColumnIntField(q=True,v=True)))
 	sortByName = mc.optionVar(q='cgmVarOrderByName')
 	columnNumber = mc.optionVar(q='cgmVarRowColumnCount')
 	selected = []
@@ -1273,7 +1273,7 @@ def doSnapClosestPointToSurface(aim=True):
 
 #['Object','Average','Input Size','First Object']
 def returnObjectSizesForCreation(objList,ui):
-	if ui.sizeMode == 2:
+	if self.sizeMode == 2:
 		return ( mc.floatField(ui.textObjectSizeField,q=True,value=True) )
 	else:
 		sizeList = []
@@ -1294,36 +1294,36 @@ def returnObjectSizesForCreation(objList,ui):
 					sizeList.append( (distance.returnDistanceBetweenObjects(parent,item))/2 )
 				else:
 					sizeList.append( sizeAverage )
-		if ui.sizeMode == 1:
+		if self.sizeMode == 1:
 			return ( sum(sizeList)/len(sizeList) )
-		elif ui.sizeMode == 3:
+		elif self.sizeMode == 3:
 			return sizeList[0]
 		else:
 			return sizeList
 
 
 #>>> Text Curve Objects Stuff
-def doCreateTextCurveObject(ui):
+def doCreateTextCurveObject(self):
 	textCheck = mc.textField(ui.textObjectTextField,q=True,text=True)
 	ui.textObjectFont = mc.optionVar( q='cgmVarFontOption' )
 	colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
 
 	if textCheck:
-		ui.textObjectText = ui.textObjectTextField(q=True,text=True)
+		ui.textObjectText = self.textObjectTextField(q=True,text=True)
 		ui.textObjectSize = mc.floatField(ui.textObjectSizeField,q=True,value=True)
 		textObjectsToMake = []
-		print ui.textObjectText
-		if ';' in ui.textObjectText:
-			textObjectsToMake = ui.textObjectText.split(';')
+		print self.textObjectText
+		if ';' in self.textObjectText:
+			textObjectsToMake = self.textObjectText.split(';')
 		print textObjectsToMake
 		if len(textObjectsToMake):
 			for word in textObjectsToMake:
-				ui.textCurrentObject = curves.createTextCurveObject(word,ui.textObjectSize,None, font = ui.textObjectFont)
-				mc.textField(ui.textCurrentObjectField,edit=True,text = ui.textCurrentObject )
+				ui.textCurrentObject = curves.createTextCurveObject(word,self.textObjectSize,None, font = self.textObjectFont)
+				mc.textField(ui.textCurrentObjectField,edit=True,text = self.textCurrentObject )
 				curves.setCurveColorByIndex(ui.textCurrentObject,colorChoice)
 		else:
-			ui.textCurrentObject = curves.createTextCurveObject(ui.textObjectText,ui.textObjectSize,None, font = ui.textObjectFont)
-			mc.textField(ui.textCurrentObjectField,edit=True,text = ui.textCurrentObject )
+			ui.textCurrentObject = curves.createTextCurveObject(ui.textObjectText,self.textObjectSize,None, font = self.textObjectFont)
+			mc.textField(ui.textCurrentObjectField,edit=True,text = self.textCurrentObject )
 			curves.setCurveColorByIndex(ui.textCurrentObject,colorChoice)
 
 
@@ -1339,7 +1339,7 @@ def doSetCurveColorByIndex(colorIndex):
 		guiFactory.warning('You must select something.')
 
 
-def doLoadTexCurveObject(ui):
+def doLoadTexCurveObject(self):
 	selected = []
 	bufferList = []
 	selected = (mc.ls (sl=True,flatten=True))
@@ -1351,19 +1351,19 @@ def doLoadTexCurveObject(ui):
 				guiFactory.warning('Selected object is not a cgmTextCurve object')
 			else:
 				mc.textField(ui.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = selected[0],editable = False )
-				doUpdateTexCurveObjectUI(ui)
+				doUpdateTexCurveObjectUI(self)
 	else:
 		guiFactory.warning('You must select something.')
 
 
-def doUpdateTexCurveObjectUI(ui):
+def doUpdateTexCurveObjectUI(self):
 	textCurveObject = mc.textField(ui.textCurrentObjectField ,q=True,text=True)
 	objAttrs = attributes.returnUserAttrsToDict(textCurveObject)
 	mc.textField(ui.textObjectTextField,e=True,text=(objAttrs['cgmObjectText']))
 	mc.floatField(ui.textObjectSizeField,e=True,value=(float(objAttrs['cgmObjectSize'])))
 
 
-def doUpdateTexCurveObject(ui):
+def doUpdateTexCurveObject(self):
 	textCurveObject = mc.textField(ui.textCurrentObjectField ,q=True,text=True)
 	if textCurveObject:
 		if mc.objExists(textCurveObject) and search.returnTagInfo(textCurveObject,'cgmObjectType') == 'textCurve':
@@ -1372,28 +1372,28 @@ def doUpdateTexCurveObject(ui):
 			ui.textObjectSize = mc.floatField(ui.textObjectSizeField,q=True,value=True)
 
 			# Store the data on on the object
-			attributes.storeInfo(textCurveObject,'cgmObjectText',ui.textObjectText)
+			attributes.storeInfo(textCurveObject,'cgmObjectText',self.textObjectText)
 
-			attributes.storeInfo(textCurveObject,'cgmObjectSize',ui.textObjectSize)
-			attributes.storeInfo(textCurveObject,'cgmObjectFont',ui.textObjectFont)
+			attributes.storeInfo(textCurveObject,'cgmObjectSize',self.textObjectSize)
+			attributes.storeInfo(textCurveObject,'cgmObjectFont',self.textObjectFont)
 
 			textCurveObject = curves.updateTextCurveObject(textCurveObject)
 
-			if ui.renameObjectOnUpdate:
-				attributes.storeInfo(textCurveObject,'cgmName',ui.textObjectText)
+			if self.renameObjectOnUpdate:
+				attributes.storeInfo(textCurveObject,'cgmName',self.textObjectText)
 				textCurveObject = autoname.doNameObject(textCurveObject)
 
 			# Put our updated object info
 			mc.textField(ui.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
 
-			doUpdateTexCurveObjectUI(ui)
+			doUpdateTexCurveObjectUI(self)
 
 	else:
 		guiFactory.warning('No textCurveObject loaded')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>Curve Utilities
 
-def doCreateCurveControl(ui):
+def doCreateCurveControl(self):
 	selected = []
 	bufferList = []
 	selected = (mc.ls (sl=True,flatten=True))
@@ -1401,20 +1401,20 @@ def doCreateCurveControl(ui):
 	colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
 
 	#Info
-	ui.uiCurveName = ui.uiCurveNameField(q=True,text=True)
-	curveChoice = ui.shapeOptions(q=True,sl=True)
+	ui.uiCurveName = self.uiCurveNameField(q=True,text=True)
+	curveChoice = self.shapeOptions(q=True,sl=True)
 	#curveChoice = (mc.optionMenuGrp(ui.uiCurveSelector,q=True,sl=True))
-	shapeOption =  ui.curveOptionList[curveChoice-1]
+	shapeOption =  self.curveOptionList[curveChoice-1]
 	ui.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
 	ui.sizeMode = mc.optionVar( q='cgmVarSizeMode' )
 
-	if ui.makeMasterControl:
+	if self.makeMasterControl:
 		if selected:
 			size = max(distance.returnBoundingBoxSize(selected))
-			if ui.uiCurveName:
-				controlBuilder.createMasterControl(ui.uiCurveName,size,ui.textObjectFont,ui.makeMasterControlSettings,ui.makeMasterControlVis)
+			if self.uiCurveName:
+				controlBuilder.createMasterControl(ui.uiCurveName,size,self.textObjectFont,self.makeMasterControlSettings,self.makeMasterControlVis)
 			else:
-				controlBuilder.createMasterControl('char',size,ui.textObjectFont,ui.makeMasterControlSettings,ui.makeMasterControlVis)
+				controlBuilder.createMasterControl('char',size,self.textObjectFont,self.makeMasterControlSettings,self.makeMasterControlVis)
 
 		else:
 			guiFactory.warning('Pick something for size reference')
@@ -1423,16 +1423,16 @@ def doCreateCurveControl(ui):
 			sizeReturn = returnObjectSizesForCreation(selected,ui)
 			#['Object','Average','Input Size','First Object']
 			for item in selected:
-				if ui.sizeMode == 0:
+				if self.sizeMode == 0:
 					creationSize = sizeReturn[selected.index(item)]
 				else:
 					creationSize = sizeReturn
-				buffer = curves.createControlCurve(shapeOption,creationSize,ui.uiCurveAxis )
+				buffer = curves.createControlCurve(shapeOption,creationSize,self.uiCurveAxis )
 				attributes.storeInfo(buffer,'cgmName',item)
 				buffer = autoname.doNameObject(buffer)
 
-				if ui.forceBoundingBoxState == True:
-					locBuffer = locators.locMeObject(item, ui.forceBoundingBoxState)
+				if self.forceBoundingBoxState == True:
+					locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
 					position.moveParentSnap(buffer,locBuffer)
 					mc.delete(locBuffer)
 				else:
@@ -1443,12 +1443,12 @@ def doCreateCurveControl(ui):
 
 		else:
 			print shapeOption
-			print ui.uiCurveAxis
-			buffer = curves.createControlCurve(shapeOption,1,ui.uiCurveAxis )
+			print self.uiCurveAxis
+			buffer = curves.createControlCurve(shapeOption,1,self.uiCurveAxis )
 			print buffer
-			print ui.uiCurveName
-			if ui.uiCurveName:
-				attributes.storeInfo(buffer,'cgmName',ui.uiCurveName)
+			print self.uiCurveName
+			if self.uiCurveName:
+				attributes.storeInfo(buffer,'cgmName',self.uiCurveName)
 			else:
 				attributes.storeInfo(buffer,'cgmName',shapeOption)
 			buffer = autoname.doNameObject(buffer)

@@ -642,12 +642,12 @@ class tdToolsClass(BaseMelWindow):
 
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(LeftColumn,'Loc Me',
-				             'from cgm.tools import locinatorLib;locinatorLib.doLocMe(cgmTDToolsWin)',
+		                     lambda *a:locinatorLib.doLocMe(self),
 				             'Creates loc at object, matching trans,rot and rotOrd')
 
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(LeftColumn,'updateLoc',
-				             'from cgm.tools import locinatorLib;locinatorLib.doUpdateLoc(cgmTDToolsWin,True)',
+		                     lambda *a:locinatorLib.doUpdateLoc(self,True),
 				             'Updates loc or object connected to loc base don selection. See cgmLocinator for more options')
 		return LeftColumn
 
@@ -695,7 +695,7 @@ class tdToolsClass(BaseMelWindow):
 
 		buttonRow = MelHLayout(makeCurvesContainer,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(buttonRow,'Create',
-				             'tdToolsLib.doCreateCurveControl(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doCreateCurveControl(self),
 				             'Create Curve Object with Settings',w=50)
 
 		buttonRow.layout()
@@ -734,7 +734,7 @@ class tdToolsClass(BaseMelWindow):
 		MelSpacer(currentObjectRow)
 		self.textCurrentObjectField = MelTextField(currentObjectRow, ut = 'cgmUIReservedTemplate', editable = False)
 		guiTextObjLoadButton = guiFactory.doButton2(currentObjectRow,'<<<',
-				                                    'tdToolsLib.doLoadTexCurveObject(cgmTDToolsWin)',
+		                                            lambda *a:tdToolsLib.doLoadTexCurveObject(self),
 				                                    'Load to field')
 
 		MelSpacer(currentObjectRow)
@@ -751,10 +751,10 @@ class tdToolsClass(BaseMelWindow):
 
 		buttonRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Update Current',
-				                                      'tdToolsLib.doUpdateTexCurveObject(cgmTDToolsWin)',
+		                                              lambda *a:tdToolsLib.doUpdateTexCurveObject(self),
 				                                      'Updates a current text object')
 		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Create',
-				                                      'tdToolsLib.doCreateTextCurveObject(cgmTDToolsWin)',
+		                                              lambda *a:tdToolsLib.doCreateTextCurveObject(self),
 				                                      'Create a text object with the provided settings')
 		buttonRow.layout()
 
@@ -875,7 +875,7 @@ class tdToolsClass(BaseMelWindow):
 		snapToSurfaceButton = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(snapToSurfaceButton,'Just Snap',
-				             'tdToolsLib.doSnapClosestPointToSurface(False)',
+		                     lambda *a:tdToolsLib.doSnapClosestPointToSurface(False),
 				             'Aims a list of objects one to the /n next in a parsed list of pairs')
 		guiFactory.doButton2(snapToSurfaceButton,'Snap and Aim',
 				             'tdToolsLib.doSnapClosestPointToSurface()',
@@ -900,7 +900,7 @@ class tdToolsClass(BaseMelWindow):
 		GridLayoutButtonRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(GridLayoutButtonRow,'Do it!',
-				             ("tdToolsLib.doLayoutByRowsAndColumns(cgmTDToolsWin)"),
+		                     lambda *a:tdToolsLib.doLayoutByRowsAndColumns(self),
 				             'Lays out the selected in a grid format /n by the number of columns input')
 
 
@@ -959,7 +959,7 @@ class tdToolsClass(BaseMelWindow):
 
 		sdkRow = MelHLayout(parent ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(sdkRow,'Select Driven Joints',
-				             'tdToolsLib.doSelectDrivenJoints(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doSelectDrivenJoints(self),
 				             "Selects driven joints from an sdk attribute")
 
 
@@ -1090,10 +1090,10 @@ class tdToolsClass(BaseMelWindow):
 
 		BakerButtonsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(BakerButtonsRow,'Bake shapes from Source',
-				             'tdToolsLib.doBakeBlendShapeTargetsFromSource(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doBakeBlendShapeTargetsFromSource(self),
 				             "Bakes out the targets of an object's blendshape node.")
 		guiFactory.doButton2(BakerButtonsRow,'Bake to Target(s)',
-				             'tdToolsLib.doBakeBlendShapeTargetsToTargetsFromSource(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doBakeBlendShapeTargetsToTargetsFromSource(self),
 				             "Bakes the targets of a a source object's \n blendshape node to target object(s)")
 
 
@@ -1156,16 +1156,16 @@ class tdToolsClass(BaseMelWindow):
 
 		PoseBufferButtonsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(PoseBufferButtonsRow,'Load',
-				             'tdToolsLib.doLoadBlendShapePoseBuffer(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doLoadBlendShapePoseBuffer(self),
 				             "Loads blendshape information from an object",
 				             enable = True)
 
 		guiFactory.doButton2(PoseBufferButtonsRow,'Create', 
-				             'tdToolsLib.doCreatePoseBuffer(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doCreatePoseBuffer(self),
 				             "Creates a pose buffer",
 				             enable = True)
 		guiFactory.doButton2(PoseBufferButtonsRow,'Update', 
-				             'tdToolsLib.doUpdatePoseBuffer(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doUpdatePoseBuffer(self),
 				             "Updates a blendshape poseBuffer if you've added or removed blendshapeChannels")
 
 
@@ -1209,14 +1209,14 @@ class tdToolsClass(BaseMelWindow):
 		PolyUniteRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(PolyUniteRow,'Load to Source',
-				             'tdToolsLib.doLoadPolyUnite(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doLoadPolyUnite(self),
 				             "Attempts to load polyUnite and select the source shapes")
 		guiFactory.doButton2(PolyUniteRow,'Build polyUnite',
-				             'tdToolsLib.doBuildPolyUnite(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doBuildPolyUnite(self),
 				             "Builds a poly unite geo node from target or \n selected objects (checks for mesh types_")
-		guiFactory.doButton2(PolyUniteRow,'Remove polyUnite',
-				             'tdToolsLib.doDeletePolyUniteNode(cgmTDToolsWin)',
-				             "Builds a poly unite geo node from target or \n selected objects (checks for mesh types_")
+		guiFactory.doButton2(PolyUniteRow,'Remove polyUnite node',
+		                     lambda *a:tdToolsLib.doDeletePolyUniteNode(self),
+				             "Removes a polyUnite node and connections \n as cleanly as possible")
 
 		PolyUniteRow.layout()
 		mc.setParent(self.containerName )
@@ -1232,7 +1232,7 @@ class tdToolsClass(BaseMelWindow):
 		GeneralUtilitiesRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(GeneralUtilitiesRow,'Deformer Keyable Attr Connect',
-				             'tdToolsLib.doDeformerKeyableAttributesConnect(cgmTDToolsWin)',
+		                     lambda *a:tdToolsLib.doDeformerKeyableAttributesConnect(self),
 				             "Copies the keyable attribues from a \n deformer to another control and connects them")
 		GeneralUtilitiesRow.layout()
 		mc.setParent(self.containerName )
@@ -1280,7 +1280,7 @@ class tdToolsClass(BaseMelWindow):
 			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'<<',
-		                    'namingToolsLib.uiLoadAutoNameObject(cgmTDToolsWin)',
+		                     lambda *a:namingToolsLib.uiLoadAutoNameObject(self),
 				             'Load to field')
 
 		LoadAutoNameObjectRow.setStretchWidget(self.AutoNameObjectField  )
@@ -1427,13 +1427,13 @@ class tdToolsClass(BaseMelWindow):
 
 		BasicRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(BasicRow,'Name Object',
-				             'namingToolsLib.uiNameObject(cgmTDToolsWin)',
+		                     lambda *a:namingToolsLib.uiNameObject(self),
 				             "Attempts to name an object")
 		guiFactory.doButton2(BasicRow,'Update Name',
-				             'namingToolsLib.doUpdateObjectName(cgmTDToolsWin)',
+		                     lambda *a:namingToolsLib.doUpdateObjectName(self),
 				             "Takes the name you've manually changed the object to, \n stores that to the cgmName tag then \n renames the object")
 		guiFactory.doButton2(BasicRow,'Name Heirarchy',
-				             'namingToolsLib.doNameHeirarchy(cgmTDToolsWin)',
+		                     lambda *a:namingToolsLib.doNameHeirarchy(self),
 				             "Attempts to intelligently name a  \n heirarchy of objects")
 
 		BasicRow.layout()
@@ -1466,7 +1466,7 @@ class tdToolsClass(BaseMelWindow):
 			self.SourceObjectField(edit=True,text = mc.optionVar( q = optionVar))
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadSingleObjectToTextField(cgmTDToolsWin.SourceObjectField,'cgmVarSourceObject')",
+		                     lambda *a:guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarSourceObject'),
 				             'Load to field')
 
 
@@ -1476,7 +1476,7 @@ class tdToolsClass(BaseMelWindow):
 		LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVarTargetObjects')",
+		                     lambda *a:guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,False,'cgmVarTargetObjects'),
 				             'Load to field')
 
 		MelSpacer(LoadObjectTargetUtilityRow,w=5)
@@ -1511,7 +1511,7 @@ class tdToolsClass(BaseMelWindow):
 			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarSourceObject'))
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadSingleObjectToTextField(cgmTDToolsWin.SourceObjectField,'cgmVarSourceObject')",
+		                     lambda *a:guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarSourceObject'),
 				             'Load to field')
 
 
@@ -1521,7 +1521,7 @@ class tdToolsClass(BaseMelWindow):
 		LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVarTargetObjects')",
+		                     lambda *a:guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,False,'cgmVarTargetObjects'),
 				             'Load to field')
 
 		MelSpacer(LoadObjectTargetUtilityRow,w=5)
