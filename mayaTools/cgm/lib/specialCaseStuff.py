@@ -46,6 +46,38 @@ mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special case tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def troubleShootingClientPathStuff():
+    import inspect
+    import os
+    import sys
+    import maya
+    maya.mel.eval( 'getenv PYTHONPATH' )
+    maya.mel.eval( 'getenv MAYA_MODULE_PATH' )
+    maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' )
+    maya.mel.eval( 'getenv SYS' )
+
+
+
+def doConnectScaleToCGMTagOnObject(objectList, cgmTag, storageObject):
+    attributeList = []
+    
+    for obj in objectList:
+	userAttrsData = attributes.returnUserAttrsToDict(obj)
+	success = False
+	for key in userAttrsData.keys():
+	    if key == cgmTag:
+		success = True
+		buffer = attributes.addFloatAttributeToObject (storageObject, userAttrsData.get(key), default = 1 )
+		
+	if success:
+	    attributes.doConnectAttr(buffer,(obj+'.scaleX'))
+	    attributes.doConnectAttr(buffer,(obj+'.scaleY'))
+	    attributes.doConnectAttr(buffer,(obj+'.scaleZ'))
+	
+	attributeList.append(buffer)
+	
+
+
 def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -69,21 +101,21 @@ def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
     rigHeirarchy = mc.ls(sl=True)
     constraintsList = []
     for obj in rigHeirarchy:
-        print ('On '+obj)
-        attachJoint = distance.returnClosestObject(obj,skinnedHeirarchy)
-        pntConstBuffer = mc.pointConstraint(obj,attachJoint,maintainOffset=True,weight=1)
-        orConstBuffer = mc.orientConstraint(obj,attachJoint,maintainOffset=True,weight=1)
-        pntConst = mc.rename(pntConstBuffer,(obj+('_pntConst')))
-        orConst = mc.rename(orConstBuffer,(obj+('_orConst')))
-        constraintsList.append(pntConst)
-        constraintsList.append(orConst)
+	print ('On '+obj)
+	attachJoint = distance.returnClosestObject(obj,skinnedHeirarchy)
+	pntConstBuffer = mc.pointConstraint(obj,attachJoint,maintainOffset=True,weight=1)
+	orConstBuffer = mc.orientConstraint(obj,attachJoint,maintainOffset=True,weight=1)
+	pntConst = mc.rename(pntConstBuffer,(obj+('_pntConst')))
+	orConst = mc.rename(orConstBuffer,(obj+('_orConst')))
+	constraintsList.append(pntConst)
+	constraintsList.append(orConst)
     #make our attribute Holder object
     """ need to make our master scale connector"""
     dataHolderGrp= ('rigJointsConstraintHolder_grp')
     if mc.objExists (dataHolderGrp):
-        pass
+	pass
     else:
-        mc.group (n= dataHolderGrp, w=True, empty=True)
+	mc.group (n= dataHolderGrp, w=True, empty=True)
     #stores the constraints
     attributes.storeObjListNameToMessage (constraintsList, dataHolderGrp)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

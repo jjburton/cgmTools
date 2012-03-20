@@ -132,6 +132,8 @@ class polyUniteClass(BaseMelWindow):
 		self.BaseNameField = MelTextField(LoadObjectUtilityRow,backgroundColor = [1,1,1],w=60,
 	                                      annotation = "Base name for our various tools to use")
 		LoadObjectUtilityRow.setStretchWidget(self.BaseNameField )
+		MelSpacer(LoadObjectUtilityRow,w=5)
+
 		LoadObjectUtilityRow.layout()
 		
 		mc.setParent(PolyUniteColumn)
@@ -146,13 +148,6 @@ class polyUniteClass(BaseMelWindow):
 		MelLabel(LoadObjectTargetUtilityRow,l='Source:',align='right')
 
 		self.SourceObjectField = MelTextField(LoadObjectTargetUtilityRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-		if mc.optionVar( q = 'cgmVarSourceObject'):
-			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarSourceObject'))
-
-		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             lambda *a:guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarSourceObject'),
-				             'Load to field')
-
 
 		MelSpacer(LoadObjectTargetUtilityRow,w=5)
 
@@ -169,10 +164,10 @@ class polyUniteClass(BaseMelWindow):
 				             "Attempts to load polyUnite and select the source shapes")
 		guiFactory.doButton2(PolyUniteColumn,'Build polyUnite',
 		                     lambda *a:tdToolsLib.doBuildPolyUnite(self),
-				             "Builds a poly unite geo node from target or \n selected objects (checks for mesh types_")
-		guiFactory.doButton2(PolyUniteColumn,'Remove polyUnite',
+				             "Builds a poly unite geo node from or \n selected objects (checks for mesh types)")
+		guiFactory.doButton2(PolyUniteColumn,'Remove polyUnite node',
 		                     lambda *a:tdToolsLib.doDeletePolyUniteNode(self),
-				             "Builds a poly unite geo node from target or \n selected objects (checks for mesh types_")
+				             "If a polyUnite node is loaded \n removes the polyUnite node but leaves \n the united geo")
 
 
 

@@ -245,12 +245,12 @@ TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locator
 						   ('TD Tools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
                             loadTDTools),
                            
+                           ('PolyUnite Tool', "Stand alone poly unite tool for Plastic",
+                            loadPolyUniteTool),
                            )),
 
               ('dev', (('Naming Tools', " Autoname and Standard naming tools",
                         loadNamingTools),
-                       ('PolyUnite Tool', "Stand alone poly unite tool for Plastic",
-                        loadPolyUniteTool),
                        
                        )),
 

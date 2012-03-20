@@ -46,7 +46,7 @@ reload(tdToolsLib)
 
 
 def run():
-	mel.eval('python("import maya.cmds as mc;from cgm.tools import tdTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
+	mel.eval('python("import maya.cmds as mc;from cgm.tools import namingToolsLib;from cgm.tools import tdTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
 
 	"""
 	Hamish, the reason I did this was a few reasons
@@ -89,6 +89,7 @@ class tdToolsClass(BaseMelWindow):
 		from cgm.lib import (guiFactory,
 				             search)
 		from cgm.tools import (tdToolsLib,
+		                       namingToolsLib,
 				               locinatorLib)
 
 
