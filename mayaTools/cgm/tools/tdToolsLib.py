@@ -1010,16 +1010,17 @@ def doCopyWeightsFromFirstToOthers():
 	"""
 	# Check for selection, defaults to using that for targets
 	sourceObject = mc.optionVar(q='cgmVarSourceObject')
+	sourceObjectCheck = False
+	if mc.objExists(sourceObject):
+		if search.returnObjectType(sourceObject) == 'polyVertex':
+			buffer = mc.ls(sl=True,flatten=True)
+			targetObjects = buffer
+			sourceObjectCheck = True
 
-	if search.returnObjectType(sourceObject) == 'polyVertex':
-		buffer = mc.ls(sl=True,flatten=True)
-		targetObjects = buffer
-	else:
+	if not sourceObjectCheck:
 		buffer = mc.ls(sl=True,flatten=True)
 		sourceObject = buffer[0]
 		targetObjects = buffer[1:]
-
-
 
 
 	if sourceObject:

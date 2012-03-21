@@ -22,7 +22,7 @@
 #=================================================================================================================================================
 
 import maya.cmds as mc
-from cgm.lib import guiFactory,dictionary,settings,autoname
+from cgm.lib import guiFactory,dictionary,settings
 
 
 namesDictionaryFile = settings.getNamesDictionaryFile()

@@ -65,15 +65,60 @@ def createTempUniqueNames(objList):
 # Search stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnIterateNumber(obj):
-    parents = search.returnAllParents(obj)
-    parentGeneratedNames = []
-    objGeneratedName = returnObjectGeneratedNameDict(obj)
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Check through a scene to figure out what iterative number an obj
+    
+    REQUIRES:
+    obj(string) LONG NAME
+    
+    RETURNS:
+    order(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    objGeneratedNameDict = returnObjectGeneratedNameDict(obj)
     cnt = 0
-    """ first iterate through the heirarchy """
-    for p in parents:
-        pGeneratedName = returnObjectGeneratedNameDict(p)
-        if pGeneratedName == objGeneratedName:
-            cnt+=1
+    
+    print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+    print ('On %s' %obj)
+    
+    #>>> First look through the scene for all objects
+    sceneTransformObjects =  mc.ls(transforms=True, long = True)
+    
+    #>>>Then look through for any object with that name
+    oGeneratedName = returnCombinedNameFromDict(objGeneratedNameDict)
+    matchNameList = mc.ls(oGeneratedName)
+    for item in matchNameList:
+        if oGeneratedName is item:
+            print ('Matched %s' %item)
+            cnt +=1
+    print ('Count in world is %i' %cnt)
+
+    #>>> Iterate through the parent tree to iterate
+    parents = search.returnAllParents(obj)
+    if parents:
+        print ('Parents are %s' %parents)
+        parentGeneratedNames = []
+        #>>> first iterate through the heirarchy
+        for p in parents:
+            pGeneratedName = returnObjectGeneratedNameDict(p)
+            if pGeneratedName == objGeneratedNameDict:
+                cnt+=1
+                
+    #>>> Check children for the name dict
+    children = mc.listRelatives (obj, allDescendents=True,type='transform',fullPath=True)
+    if children:
+        print ('Children are %s' %children)
+        for c in children:
+            cGeneratedName = returnObjectGeneratedNameDict(c)
+            if cGeneratedName == objGeneratedNameDict:
+                cnt+=1
+                print ('Found child match at %s!' %c)
+                break
+
+    print ('Count after heirarchy count is %i' %cnt)            
+
     return cnt
 
 def returnCGMOrder():
@@ -244,6 +289,33 @@ def returnRawGeneratedName(obj,ignore='none'):
             nameBuilder.append(buffer)
     return divider.join(nameBuilder)
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnCombinedNameFromDict(nameDict):
+    """  
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns a generated name
+    
+    REQUIRES:
+    obj(string) - object
+    ignore(string) - default is 'none', only culls out cgmtags that are 
+                     generated via returnCGMOrder() function
+    
+    RETURNS:
+    name(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    divider = returnCGMDivider()
+    order = returnCGMOrder()
+
+    nameBuilder=[]
+    #>>> Dictionary driven order
+    for item in order:
+        buffer = nameDict.get(item)
+        buffer = search.returnTagInfoShortName(buffer,item)
+        if buffer > 0 and buffer != 'ignore':
+            nameBuilder.append(buffer)
+    return divider.join(nameBuilder)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnObjectGeneratedNameDict(obj,ignore='none'):
