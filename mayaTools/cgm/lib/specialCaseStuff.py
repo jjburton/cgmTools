@@ -37,7 +37,8 @@ from cgm.lib import guiFactory
 from cgm.lib import distance
 from cgm.lib import attributes
 from cgm.lib import autoname
-
+from cgm.lib import constraints
+from cgm.lib import rigging
 
 
 # Maya version check
@@ -46,6 +47,31 @@ mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special case tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def plasticConstraintsAndScaleFromObjectToTransform():
+    selection = mc.ls(sl=True, flatten=True)
+    for obj in selection:
+	#Make a transform
+	group = rigging.groupMeObject(obj,maintainParent = True)
+
+	#Get scale connections
+	objScaleConnections = []
+	for s in 'sx','sy','sz':
+	    buffer =  attributes.returnDriverAttribute(obj+'.'+s)
+	    attributes.breakConnection(obj+'.'+s)
+	    attributes.doConnectAttr(buffer,(group+'.'+s))
+
+	# Get constraint info from obj
+	objConstraints = constraints.returnObjectConstraints(obj)
+
+	for const in objConstraints:
+	    constraintTargets = constraints.returnConstraintTargets(const)
+	    mc.delete(const)
+
+	    mc.parentConstraint(constraintTargets,group, maintainOffset = True)
+	    
+
+
+
 def troubleShootingClientPathStuff():
     import inspect
     import os
@@ -60,7 +86,7 @@ def troubleShootingClientPathStuff():
 
 def doConnectScaleToCGMTagOnObject(objectList, cgmTag, storageObject):
     attributeList = []
-    
+
     for obj in objectList:
 	userAttrsData = attributes.returnUserAttrsToDict(obj)
 	success = False
@@ -68,14 +94,14 @@ def doConnectScaleToCGMTagOnObject(objectList, cgmTag, storageObject):
 	    if key == cgmTag:
 		success = True
 		buffer = attributes.addFloatAttributeToObject (storageObject, userAttrsData.get(key), default = 1 )
-		
+
 	if success:
 	    attributes.doConnectAttr(buffer,(obj+'.scaleX'))
 	    attributes.doConnectAttr(buffer,(obj+'.scaleY'))
 	    attributes.doConnectAttr(buffer,(obj+'.scaleZ'))
-	
+
 	attributeList.append(buffer)
-	
+
 
 
 def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
