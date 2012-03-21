@@ -26,6 +26,66 @@ from cgm.lib import rigging
 from cgm.lib import distance
 from cgm.lib import autoname 
 from cgm.lib import cgmMath
+from cgm.lib import search
+from cgm.lib import guiFactory
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Constraint Info
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnObjectConstraints(object):
+    buffer = mc.listRelatives(object,type='constraint')
+    if buffer:
+        return buffer
+    else:
+        guiFactory.warning('%s has no constraints' %object)
+
+def returnConstraintTargets(constraint):
+    objType = search.returnObjectType(constraint)
+    targetsDict = {}
+    targetList = []
+    constaintCmdDict = {'parentConstraint':mc.parentConstraint,
+                        'orientConstraint':mc.orientConstraint,
+                        'pointConstraint':mc.pointConstraint,
+                        'aimConstraint':mc.aimConstraint}
+    
+    if objType in constaintCmdDict.keys():
+        cmd = constaintCmdDict.get(objType)
+        #>>> Get targets
+        targetList = cmd(constraint,q=True,targetList=True)
+
+    if not targetList:
+        guiFactory.warning('%s has no targets' %constraint)
+        return False
+    else:
+        return targetList
+
+def returnConstraintTargetWeights(constraint):
+    objType = search.returnObjectType(constraint)
+    targetsDict = {}
+    targetList = []
+    constaintCmdDict = {'parentConstraint':mc.parentConstraint,
+                        'orientConstraint':mc.orientConstraint,
+                        'pointConstraint':mc.pointConstraint,
+                        'aimConstraint':mc.aimConstraint}
+    
+    if objType in constaintCmdDict.keys():
+        cmd = constaintCmdDict.get(objType)
+        aliasList = mc.parentConstraint(constraint,q=True, weightAliasList=True)
+        if aliasList:
+            for o in aliasList:
+                targetsDict[o] = mc.getAttr(constraint+'.'+o)
+
+
+    if not targetsDict:
+        guiFactory.warning('%s has no targets' %constraint)
+        return False
+    else:
+        return targetsDict
+
+
+    
+    
+    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Point/Aim
