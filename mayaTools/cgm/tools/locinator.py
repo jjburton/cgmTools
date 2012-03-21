@@ -200,7 +200,7 @@ class locinatorClass(BaseMelWindow):
 		guiFactory.lineBreak()
 		mc.text(label='Version: %s' % self.version)
 		mc.text(label='')
-		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.joshburton.com")')
+		guiFactory.doButton('Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonks.com/tools/maya-tools/locinator/")')
 		guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
 		mc.setParent( '..' )
 		mc.showWindow( window )
@@ -373,7 +373,7 @@ class locinatorClass(BaseMelWindow):
 		guiFactory.lineSubBreak()
 		self.helpBlurbs.extend(guiFactory.instructions("  Purge all traces of cgmThinga tools from the object",vis = ShowHelpOption))
 		guiFactory.doButton2(MatchColumn,'Purge it',
-		                     lambda *a: locinatorLib.doPurgecgmAttrs(self),
+		                     lambda *a: locinatorLib.doPurgeCGMAttrs(self),
 				             "Clean it")
 
 		guiFactory.lineBreak()

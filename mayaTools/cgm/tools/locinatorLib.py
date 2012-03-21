@@ -81,13 +81,16 @@ def doLocMe(self):
 	if '.' not in list(item):
 	    attributes.storeInfo(item,'cgmMatchObject',locBuffer)
 	bufferList.append(locBuffer)
+    
+    if bufferList:
+	mc.select(bufferList)
 
     if len(bufferList) > 0:
 	print ('%s%s' % (" The following locators have been created - ", bufferList))
     else:
 	return (mc.spaceLocator(name = 'worldCenter_loc'))
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doPurgecgmAttrs(self):
+def doPurgeCGMAttrs(self):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -129,13 +132,19 @@ def doLocCenter(self):
     selected = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
     self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
-
+    
+    print selected 
+    
     if len(selected) >=2:
-	return (locators.locMeCenter(selected,self.forceBoundingBoxState))
-    if len(selected) == 1:
-	return (locators.locMeCenter(selected,True))
+	buffer = (locators.locMeCenter(selected,self.forceBoundingBoxState))
+    elif len(selected) == 1:
+	buffer =(locators.locMeCenter(selected,True))
     else:
 	return (mc.spaceLocator(name = 'worldCenter_loc'))
+    
+    if buffer:
+	mc.select(buffer)
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doTagObjects(self):
     """
@@ -229,7 +238,8 @@ def doLocClosest():
 	guiFactory.warning('You must have at least two objects selected')
 	return False
     else:
-	return locators.locClosest(selected[:-1],selected[-1])
+	buffer = locators.locClosest(selected[:-1],selected[-1])
+	mc.select(buffer)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
@@ -382,12 +392,16 @@ def doLocCVsOfObject():
     selected = lists.returnSelectedToList()
     selected = (mc.ls (sl=True,flatten=True))
     badObjects = []
+    returnList = []
     if len(selected)<=1:
 	for item in selected:
 	    if search.returnObjectType(item) == 'nurbsCurve':
-		locators.locMeCVsOfCurve(item)
+		returnList.extend( locators.locMeCVsOfCurve(item) )
 	    else:
 		badObjects.append(item)
+	if returnList:
+	    mc.select(returnList)
+	    
 	if badObjects:
 	    mc.warning ('%s%s' % (" The following objects aren't curves - ", badObjects))
 	    return False
@@ -412,12 +426,17 @@ def doLocCVsOnObject():
     selected = lists.returnSelectedToList()
     selected = (mc.ls (sl=True,flatten=True))
     badObjects = []
+    returnList = []
+
     if len(selected)<=1:
 	for item in selected:
 	    if search.returnObjectType(item) == 'nurbsCurve':
-		locators.locMeCVsOnCurve(item)
+		returnList.extend( locators.locMeCVsOnCurve(item) )
 	    else:
 		badObjects.append(item)
+	
+	if returnList:
+	    mc.select(returnList)
 
 	if badObjects:
 	    mc.warning ('%s%s' % (" The following objects aren't curves - ", badObjects))

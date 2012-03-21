@@ -99,7 +99,7 @@ def doPurgeNull(null):
     for attr in attrsToPurge:
         attributes.deleteAttr(null,attr[0]) 
 
-def purgecgmAttrsFromObject(obj):
+def purgeCGMAttrsFromObject(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
