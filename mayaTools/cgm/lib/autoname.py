@@ -83,7 +83,7 @@ def returnIterateNumber(obj):
     print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
     print ('On %s' %obj)
     
-    #>>> First look through the scene for all objects
+    #>>> First get a list of all objects with transforms in the scene
     sceneTransformObjects =  mc.ls(transforms=True, long = True)
     
     #>>>Then look through for any object with that name
@@ -98,14 +98,24 @@ def returnIterateNumber(obj):
     #>>> Iterate through the parent tree to iterate
     parents = search.returnAllParents(obj)
     if parents:
+        matchParentCnt = 0
         print ('Parents are %s' %parents)
         parentGeneratedNames = []
         #>>> first iterate through the heirarchy
+        print objGeneratedNameDict
+        print '>>>'
         for p in parents:
             pGeneratedName = returnObjectGeneratedNameDict(p)
+            print pGeneratedName
             if pGeneratedName == objGeneratedNameDict:
-                cnt+=1
-                
+                print ('Found parent match at %s!' %p)
+                matchParentCnt+=1
+                if p in sceneTransformObjects:
+                    sceneTransformObjects.remove(p)
+        if matchParentCnt:
+            cnt += matchParentCnt
+        print '>>>'
+        
     #>>> Check children for the name dict
     children = mc.listRelatives (obj, allDescendents=True,type='transform',fullPath=True)
     if children:
@@ -115,9 +125,20 @@ def returnIterateNumber(obj):
             if cGeneratedName == objGeneratedNameDict:
                 cnt+=1
                 print ('Found child match at %s!' %c)
+                if c in sceneTransformObjects:
+                    sceneTransformObjects.remove(c)
                 break
 
-    print ('Count after heirarchy count is %i' %cnt)            
+    print ('Count after heirarchy count is %i' %cnt)  
+    
+    #>>> Lastly look through the remaining objects in the scene
+    sceneWideMatches = []
+    for o in sceneTransformObjects:
+        if oGeneratedName in o and o != obj:
+            sceneWideMatches.append(o)
+            cnt +=1
+    print ('Scene Matches are after heirarchy count is %s' %sceneWideMatches)  
+    print ('Count after scene count is %i' %cnt)  
 
     return cnt
 
