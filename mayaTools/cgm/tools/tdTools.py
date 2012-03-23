@@ -36,7 +36,8 @@ from cgm.lib.cgmBaseMelUI import *
 
 from cgm.lib import (guiFactory,
                      dictionary,
-                     search)
+                     search
+                     )
 
 from cgm.tools import (tdToolsLib,
                        locinatorLib,
@@ -1311,10 +1312,10 @@ class tdToolsClass(BaseMelWindow):
 		
 		#>>> Tag Labels
 		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-		MelLabel(TagLabelsRow,label = 'Position')
-		MelLabel(TagLabelsRow,label = 'Direction')
-		MelLabel(TagLabelsRow,label = 'Name')
-		MelLabel(TagLabelsRow,label = 'Type')
+		MelLabel(TagLabelsRow,label = 'Position/Iterator')
+		MelLabel(TagLabelsRow,label = 'Direction/Modifier')
+		MelLabel(TagLabelsRow,label = 'Name/Modifier')
+		MelLabel(TagLabelsRow,label = 'Type/Modifier')
 
 		TagLabelsRow.layout()
 		
@@ -1350,7 +1351,11 @@ class tdToolsClass(BaseMelWindow):
 		#>>> ModifierTags
 		mc.setParent(self.containerName )
 		TagModifiersRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 3)
-		MelLabel(TagModifiersRow,align = 'right', label = 'Modifiers >>>',w = 75)
+		self.IteratorTagField = MelTextField(TagModifiersRow,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: namingToolsLib.uiUpdateAutoNameTag(self,'cgmIterator'),
+		                                 w = 75)
 		self.DirectionModifierTagField = MelTextField(TagModifiersRow,
 		                                 enable = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
@@ -1416,6 +1421,9 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.doButton2(SwapRow,'Swap Tags',
 		                     lambda *a: namingToolsLib.uiSwapTags(self),
 				             "Swaps the tags between two objects")
+		guiFactory.doButton2(SwapRow,'Clear Tags',
+		                     lambda *a: namingToolsLib.uiClearTags(self),
+				             "Removes the selected tags from the selected objects")
 
 		SwapRow.layout()
 		
@@ -1436,7 +1444,9 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.doButton2(BasicRow,'Name Heirarchy',
 		                     lambda *a:namingToolsLib.doNameHeirarchy(self),
 				             "Attempts to intelligently name a  \n heirarchy of objects")
-
+		guiFactory.doButton2(BasicRow,'Return Iterator',
+		                     lambda *a:namingToolsLib.uiReturnIterator(self),
+				             "Attempts to intelligently name a  \n heirarchy of objects")
 		BasicRow.layout()
 		
 		

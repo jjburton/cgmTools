@@ -77,23 +77,64 @@ def returnIterateNumber(obj):
     order(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    buffer = mc.ls(obj,long=True)
+    sceneTransformObjects =  mc.ls(transforms=True, long = True)
+    obj = buffer[0]
     objGeneratedNameDict = returnObjectGeneratedNameDict(obj)
     cnt = 0
     
     print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
     print ('On %s' %obj)
     
+    ### Get our base iterator first
+    #>Start by looking through for any object with that name
+    oGeneratedName = returnCombinedNameFromDict(objGeneratedNameDict)
+    print ('GeneratedName is  %s' %oGeneratedName)
+    matchNameList = mc.ls(oGeneratedName,long=True)
+    print ('MatchList is  %s' %matchNameList)
+    for item in matchNameList:
+        #See if our object is the matched item
+        if not obj == item:
+            #If the generated name exists
+            if oGeneratedName == item:
+                print ('Matched %s' %item)
+                cnt +=1
+            #If the generated name exists anywhere else
+            elif '|' in item:
+                buffer = item.split('|')
+                if oGeneratedName == buffer[-1]:
+                    print ('Matched %s' %item)
+                    cnt +=1
+            
+    print ('Count with name is %i' %cnt)
+    
+    ### Finding a range of children objects we need available
+    childNameCnt = 0
+    children = mc.listRelatives (obj, allDescendents=True,type='transform',fullPath=True)
+    #>>> Count our matched name children range
+    if children:
+        children.reverse()
+        for c in children :
+            cGeneratedName = returnObjectGeneratedNameDict(c)
+            if cGeneratedName == objGeneratedNameDict:
+                childNameCnt +=1
+                
+    print ('Child match number is %i!' %childNameCnt)
+    
+    #>>> If our count is 0 and we have any children, we're gonna start with 1
+    if childNameCnt and cnt == 0:
+        cnt +=1
+            
+    print ('Count after heirarchy count is %i' %cnt)  
+ 
+    ### Now need to check for available ranges
+    
+    """
+    
     #>>> First get a list of all objects with transforms in the scene
     sceneTransformObjects =  mc.ls(transforms=True, long = True)
     
-    #>>>Then look through for any object with that name
-    oGeneratedName = returnCombinedNameFromDict(objGeneratedNameDict)
-    matchNameList = mc.ls(oGeneratedName)
-    for item in matchNameList:
-        if oGeneratedName is item:
-            print ('Matched %s' %item)
-            cnt +=1
-    print ('Count in world is %i' %cnt)
+
 
     #>>> Iterate through the parent tree to iterate
     parents = search.returnAllParents(obj)
@@ -139,7 +180,7 @@ def returnIterateNumber(obj):
             cnt +=1
     print ('Scene Matches are after heirarchy count is %s' %sceneWideMatches)  
     print ('Count after scene count is %i' %cnt)  
-
+    """
     return cnt
 
 def returnCGMOrder():

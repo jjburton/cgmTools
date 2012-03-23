@@ -34,6 +34,9 @@ from cgm.lib import (guiFactory,
                      dictionary,
                      autoname,
                      search)
+reload(autoname)
+reload(search)
+reload(dictionary)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # UI Stuff
@@ -76,7 +79,8 @@ def uiLoadAutoNameObject(self):
                       'cgmTypeModifier':self.ObjectTypeModifierTagField,
                       'cgmDirectionModifier':self.DirectionModifierTagField,
                       'cgmDirection':self.DirectionTagField,
-                      'cgmPosition':self.PositionTagField}
+                      'cgmPosition':self.PositionTagField,
+	                  'cgmIterator':self.IteratorTagField}
 	
 	if selected:
 		if len(selected) >= 2:
@@ -169,6 +173,37 @@ def uiLoadAutoNameObject(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tagging Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiClearTags(self):
+	selected = mc.ls(sl=True)
+	mc.select(cl=True)
+	
+	tagToKeyDict = {'Name':'cgmName',
+                      'Type':'cgmType',
+                      'NameModifer':'cgmNameModifier',
+                      'TypeModifier':'cgmTypeModifier',
+                      'DirectionModifier':'cgmDirectionModifier',
+                      'Direction':'cgmDirection',
+                      'Position':'cgmPosition',
+	                  'Iterator':'cgmIterator'}
+	
+	tagShortHand = self.cgmMultiTagOptions(q=True,value = True)
+	tagToUse = tagToKeyDict.get(tagShortHand)
+	if tagToUse:
+		success = []
+		for obj in selected:
+			try:
+				attributes.deleteAttr(obj,tagToUse)
+				success.append(obj)
+			except:
+				guiFactory.warning('%s failed to recieve info!' %obj)
+		if success:		
+			guiFactory.warning('%s%s%s%s' %("purged '", tagToUse, "' from ", ','.join(success)))
+
+		else:
+			guiFactory.warning('No info found to purge')
+	else:
+		guiFactory.warning('No tag info found to purge')
+
 def uiCopyTags(self):
 	selected = mc.ls(sl=True)
 	if len(selected) >= 2:
@@ -197,7 +232,8 @@ def uiMultiTagObjects(self):
                       'TypeModifier':'cgmTypeModifier',
                       'DirectionModifier':'cgmDirectionModifier',
                       'Direction':'cgmDirection',
-                      'Position':'cgmPosition'}
+                      'Position':'cgmPosition',
+	                  'Iterator':'cgmIterator'}
 	
 	tagShortHand = self.cgmMultiTagOptions(q=True,value = True)
 	tagToUse = tagToKeyDict.get(tagShortHand)
@@ -228,7 +264,8 @@ def uiUpdateAutoNameTag(self,tag):
                       'cgmTypeModifier':self.ObjectTypeModifierTagField,
                       'cgmDirectionModifier':self.DirectionModifierTagField,
                       'cgmDirection':self.DirectionTagField,
-                      'cgmPosition':self.PositionTagField}
+                      'cgmPosition':self.PositionTagField,
+	                  'cgmIterator':self.IteratorTagField}
 	
 	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	#>>> See if our object exists
@@ -264,6 +301,15 @@ def uiUpdateAutoNameTag(self,tag):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Naming functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiReturnIterator(self):
+	selected = mc.ls(sl=True,long=True)
+	
+	for obj in selected:
+		try:
+			autoname.returnIterateNumber(obj)
+		except:
+			pass
+		
 def uiNameObject(self):
 	selected = mc.ls(sl=True)
 	
