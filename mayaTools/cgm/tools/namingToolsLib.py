@@ -71,7 +71,7 @@ def uiNameLoadedAutoNameObjectChildren(self):
 def uiLoadAutoNameObject(self):
 	selected = []
 	bufferList = []
-	selected = (mc.ls (sl=True,flatten=True))
+	selected = (mc.ls (sl=True,flatten=True,long=True))
 	
 	fieldToKeyDict = {'cgmName':self.NameTagField,
                       'cgmType':self.ObjectTypeTagField,

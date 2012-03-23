@@ -1279,7 +1279,7 @@ class tdToolsClass(BaseMelWindow):
 
 		self.AutoNameObjectField = MelTextField(LoadAutoNameObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
 		if mc.optionVar( q = 'cgmVarAutoNameObject'):
-			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
+			self.AutoNameObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'<<',
 		                     lambda *a:namingToolsLib.uiLoadAutoNameObject(self),
@@ -1399,7 +1399,7 @@ class tdToolsClass(BaseMelWindow):
 
 		self.cgmMultiTagOptions = MelOptionMenu(multiTagRow,l = 'Pick a tag:')
 		
-		for tag in 'Name','Type','Direction','Position','NameModifier','TypeModifier','DirectionModifier':
+		for tag in 'Name','Type','Direction','Position','Iterator','NameModifier','TypeModifier','DirectionModifier':
 			self.cgmMultiTagOptions.append(tag)
 			
 		self.cgmMultiTagOptions(edit = True, select = 1)

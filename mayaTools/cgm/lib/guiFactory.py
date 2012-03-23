@@ -244,7 +244,7 @@ def setUIObjectVisibility(item, visState):
 def doLoadSingleObjectToTextField(textFieldObject,variableToSet = False):
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True,long=True))
     buffer = textFieldObject(q=True,text = True )
     if selected:
         if len(selected) >= 2:
@@ -265,7 +265,7 @@ def doLoadSingleObjectToTextField(textFieldObject,variableToSet = False):
 
 def doLoadMultipleObjectsToTextField(textFieldObject,objectsToLoad = False, variableToSet = False):
     if not objectsToLoad:
-        objectsToLoad = (mc.ls (sl=True,flatten=True))
+        objectsToLoad = (mc.ls (sl=True,flatten=True,long=True))
 
     if objectsToLoad:
         textFieldObject(edit=True,ut = 'cgmUILockedTemplate', text = ';'.join(objectsToLoad),editable = False )
