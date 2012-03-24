@@ -41,6 +41,94 @@ namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
+class Factory():
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    Assertions to verify:
+    1) An object knows what it is
+
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    def __init__(self,obj):
+        ### input check
+        assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+        
+        self.storeNameStrings(obj)
+        self.objGeneratedNameDict = returnObjectGeneratedNameDict(obj)
+
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Base Functions
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
+    def storeNameStrings(self,obj):
+        buffer = mc.ls(obj,long=True)
+        self.nameLong = buffer[0]
+        buffer = mc.ls(obj,shortNames=True)        
+        self.nameShort = buffer[0]
+
+    def amIMe(self,nameCandidate):
+        if name == self.nameShort:
+            return True
+        return False
+    
+    def getBaseIterator(self):
+        self.cnt = 0
+        #If we have an assigned iterator, start with that
+        if self.objGeneratedNameDict.get('cgmIterator'):
+            self.cnt = int(objGeneratedNameDict.get('cgmIterator'))
+    
+    def getMatchedParents(self):
+        self.matchedParents = []
+        if self.objGeneratedNameDict:
+            parents = search.returnAllParents(self.nameLong)
+            self.matchedParents = []
+            if parents:
+                parents.reverse()
+                for p in parents :
+                    pGeneratedName = returnObjectGeneratedNameDict(p)
+                    if pGeneratedName == self.objGeneratedNameDict:
+                        self.matchedParents.append(p)
+          
+        self.parentNameCnt = len(self.matchedParents)
+        print ('Parent match number is %i!' %self.parentNameCnt)
+   
+
+    def getMatchedChildren(self):
+        self.matchedChildren = []
+        #>>> Count our matched name children range
+        if self.objGeneratedNameDict:
+            children = mc.listRelatives (self.nameLong, allDescendents=True,type='transform',fullPath=True)
+            if children:
+                children.reverse()
+                for c in children :
+                    cGeneratedName = returnObjectGeneratedNameDict(c)
+                    if cGeneratedName == self.objGeneratedNameDict:
+                        self.matchedChildren.append(c)
+
+        ### Get our children number to know how many open name slots we need
+        self.childNameCnt = len(self.matchedChildren)
+        print ('Child match number is %i!' %self.childNameCnt)
+
+        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Meta Functions
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+    def returnIterator(self):
+        # Base iterator
+        self.storeBaseIterator()
+        
+        # Get Parents info
+        print ('Base iterator is %i' %self.cnt)
+        self.storeMatchedParents()
+        
+        if self.matchedParents:
+            self.parentNameCnt = len(matchedParents)
+            self.cnt += self.parentNameCnt
+            print ('Parent match number is %i!' %self.parentNameCnt)
+        else:
+            print 'no parents'
+            self.parentNameCnt = 0        
+    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Unique Name s
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -66,19 +154,19 @@ def createTempUniqueNames(objList):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnSceneObjectsNameDictMap(**a):   
     sceneTransformObjects =  mc.ls(long = True,**a)
-    
+
     SceneObjectNameDict = {}
-    
+
     for obj in sceneTransformObjects:
         dictBuffer = returnObjectGeneratedNameDict(obj)
         if dictBuffer:
             SceneObjectNameDict[obj] = dictBuffer
-            
+
     if not SceneObjectNameDict:
         return False
     return SceneObjectNameDict
 
-            
+
 def returnMatchedNameParents(obj):
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
@@ -101,7 +189,7 @@ def returnMatchedNameParents(obj):
             return []
     else:
         return []
- 
+
 def returnMatchedNameChildren(obj):
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
@@ -142,7 +230,7 @@ def returnIterateNumber(obj):
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
 
     #>>> Start function
-    
+
     ### Get long name of obj and generate it's name dict
     buffer = mc.ls(obj,long=True)
     obj = buffer[0]
@@ -154,15 +242,6 @@ def returnIterateNumber(obj):
 
     print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
     print ('On %s' %obj)
-    
-    ### Simple check to see if we need to go further
-    buffer = returnCombinedNameFromDict(objGeneratedNameDict)
-    print buffer
-    if mc.objExists(buffer):
-        print ('No conflicts, good to go' %obj)
-        return cnt
-    else:
-        print 'no'
 
     ### Iterate through the parent tree to iterate
     matchedParents = []
@@ -174,7 +253,7 @@ def returnIterateNumber(obj):
     else:
         print 'no parents'
         parentNameCnt = 0
-    
+
     ### Get our children number to know how many open name slots we need
     matchedChildren = returnMatchedNameChildren(obj)
     childNameCnt = len(matchedChildren)
@@ -185,13 +264,13 @@ def returnIterateNumber(obj):
     if not matchedChildren:
         print 'no kiddos'
         childNameCnt = 0
-        
+
     print ('Count after heirarchy count is %i' %cnt)  
 
     ### Gonna check through the scene for other information
     sceneObjectsNameDictMap = returnSceneObjectsNameDictMap(transforms = True)
     # Check our potential range of numbers needed for availablity by named object and claimed iterators
-    
+
     ### Check trhough scene objects for any thing else with it's name dict, if so, cnt cannot be 0
     matchList = []
     sceneObjectsNameDictMap.pop(obj)
@@ -200,12 +279,12 @@ def returnIterateNumber(obj):
     if objGeneratedNameDict in matchList and cnt == 0:
         print ("Another object has this nameDict, cnt increased")
         cnt +=1
-    
+
     #Inital scene look through
     objGeneratedNameCandidateDict = returnObjectGeneratedNameDict(obj)
     if cnt >= 1:
         objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-    
+
     ### Scene search for our first open number
     print ("Initial candidate is %s" %objGeneratedNameCandidateDict)
     loopBreak = 0
@@ -246,9 +325,10 @@ def returnIterateNumber(obj):
                 else:
                     foundStartNumber = True 
         loopBreak +=1
-        
-    print ('Starting available number: %i' %cnt)  
-    
+
+    print ('Starting available number: %i' %cnt) 
+
+
     if cnt >= 1:
         objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
 
@@ -294,13 +374,13 @@ def returnIterateNumber(obj):
         objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
         print ("candidate is now %s" %objGeneratedNameCandidateDict)     
         loopBreak+=1
-    
+
     if cnt >=0 and parentNameCnt:
         cnt += parentNameCnt
-        
+
     print ('Count after heirarchy flow count is %i' %cnt)  
 
-            
+
     """
     for i in range(cnt,(childNameCnt+cnt+1)):
         print i
@@ -320,7 +400,7 @@ def returnIterateNumber(obj):
         loopBreak+=1
     cnt+=i
     """
-            
+
     print ('Count after range count is %i' %cnt)  
 
     return cnt
@@ -426,8 +506,8 @@ def returnUniqueGeneratedName(obj,ignore='none'):
         buffer.remove(':')
         buffer.insert(cnt,'to')
         objNameCandidate = ''.join(buffer)
-    
-            
+
+
     return objNameCandidate
 
 
@@ -621,7 +701,7 @@ def doNameObject(obj,forceOverride = True):
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-    
+
     name = returnUniqueGeneratedName(obj)
     objLong = mc.ls(obj,long=True)
     conflictList = mc.ls(name,long = True)
@@ -631,18 +711,18 @@ def doNameObject(obj,forceOverride = True):
             matchedList.append(o)
             if forceOverride:
                 mc.rename(o,'Name_Conflict')
-    
+
     if forceOverride:        
         renameBuffer = mc.rename(obj,name)
-    
+
         shapes = mc.listRelatives(renameBuffer,shapes=True,fullPath=True)
         if shapes != None:
             for shape in shapes:
                 name = returnUniqueGeneratedName(shape)
                 mc.rename(shape,name)
-    
+
         return renameBuffer
-    
+
     else:
         mc.select(matchedList)
         guiFactory.warning("The following have conficting names : %s" %matchedList)
@@ -663,7 +743,7 @@ def doRenameHeir(obj):
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-    
+
     #children = mc.listRelatives(obj,allDescendents=True,type='transform')
     newNames = []
     newNames.append(doNameObject(obj))
@@ -691,7 +771,7 @@ def doUpdateName(obj):
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-    
+
     typeDictionary = dictionary.initializeDictionary(typesDictionaryFile)
     attrName = ('%s%s' % (obj,'.cgmName'))
     # Look for cgmName tag
@@ -703,5 +783,3 @@ def doUpdateName(obj):
     else:
         attributes.storeInfo(obj,'cgmName',obj,True)
     return doNameObject(obj)
-
-
