@@ -41,7 +41,7 @@ namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
-class Factory():
+class factory():
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     Assertions to verify:
@@ -52,9 +52,19 @@ class Factory():
     def __init__(self,obj):
         ### input check
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        
+        self.matchedParents = []
+        self.matchedChildren = []
+        self.matchObjectList = []
+        self.matchDictionaryList = []
+
         self.storeNameStrings(obj)
+        print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        print ('Base Name >>> %s!' %self.nameBase) 
+        print ('Short Name >>> %s!' %self.nameShort) 
+        print ('Long Name >>> %s!' %self.nameLong) 
         self.objGeneratedNameDict = returnObjectGeneratedNameDict(obj)
+        self.sceneObjectsNameDictMap = returnSceneObjectsNameDictMap(transforms = True)  
+        self.nameCandidateDict = {}      
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
@@ -64,70 +74,297 @@ class Factory():
         self.nameLong = buffer[0]
         buffer = mc.ls(obj,shortNames=True)        
         self.nameShort = buffer[0]
+        if '|' in buffer[0]:
+            splitBuffer = buffer[0].split('|')
+            self.nameBase = splitBuffer[-1]
+        else:
+            self.nameBase = self.nameShort
+
 
     def amIMe(self,nameCandidate):
-        if name == self.nameShort:
+        if nameCandidate == self.nameBase:
             return True
         return False
-    
+
     def getBaseIterator(self):
-        self.cnt = 0
+        self.getMatchedParents()
+        self.getMatchedChildren()   
+        self.baseIterator = 0
         #If we have an assigned iterator, start with that
         if self.objGeneratedNameDict.get('cgmIterator'):
-            self.cnt = int(objGeneratedNameDict.get('cgmIterator'))
-    
+            self.baseIterator = int(self.objGeneratedNameDict.get('cgmIterator'))
+        #If our obect has name parents, add those in    
+        elif self.parentNameCnt:
+            self.baseIterator = self.parentNameCnt + 1
+
+        print ('Base iteraror is %i!' %self.baseIterator)
+
+    def getMatchedNameObjects(self):       
+        #Get a list of objects in the scene that match the name object
+        for k in self.sceneObjectsNameDictMap.keys():
+            if k not in (self.nameLong,self.nameShort): 
+                if self.sceneObjectsNameDictMap.get(k) == self.objGeneratedNameDict:
+                    self.matchObjectList.append(k)
+                    self.matchDictionaryList.append(self.sceneObjectsNameDictMap.get(k))
+        if not self.matchObjectList:
+            print ('No matches')
+
+
     def getMatchedParents(self):
-        self.matchedParents = []
         if self.objGeneratedNameDict:
             parents = search.returnAllParents(self.nameLong)
-            self.matchedParents = []
             if parents:
                 parents.reverse()
                 for p in parents :
+                    buffer = mc.ls(p,shortNames=True)
                     pGeneratedName = returnObjectGeneratedNameDict(p)
                     if pGeneratedName == self.objGeneratedNameDict:
-                        self.matchedParents.append(p)
-          
+                        self.matchedParents.append(buffer[0])
+
         self.parentNameCnt = len(self.matchedParents)
-        print ('Parent match number is %i!' %self.parentNameCnt)
-   
+        if self.parentNameCnt:
+            print ('Parent match number is %i!' %self.parentNameCnt)
+        else:
+            print ('No parents')
+
 
     def getMatchedChildren(self):
-        self.matchedChildren = []
         #>>> Count our matched name children range
         if self.objGeneratedNameDict:
             children = mc.listRelatives (self.nameLong, allDescendents=True,type='transform',fullPath=True)
             if children:
                 children.reverse()
                 for c in children :
+                    buffer = mc.ls(c,shortNames=True)
                     cGeneratedName = returnObjectGeneratedNameDict(c)
                     if cGeneratedName == self.objGeneratedNameDict:
-                        self.matchedChildren.append(c)
+                        self.matchedChildren.append(buffer[0])
 
         ### Get our children number to know how many open name slots we need
         self.childNameCnt = len(self.matchedChildren)
-        print ('Child match number is %i!' %self.childNameCnt)
+        if self.childNameCnt:
+            print ('Child match number is %i!' %self.childNameCnt)
+        else:
+            print ('No children')
 
-        
+
+    def getFirstRangeIterator(self):
+        #Find an available range of numbers available if we need to
+        rangeTargetNumber = (self.parentNameCnt+self.childNameCnt+1)
+        if rangeTargetNumber > 1:
+            topParentDict = objGeneratedNameCandidateDict.copy()
+            objGeneratedNameCandidateDict['cgmIterator'] = '1'
+            topParentNameBuffer = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
+
+            loopBreak = 0
+            foundAvailableRange= False
+            while not foundAvailableRange and loopBreak <=50:
+                for i in range(cnt,(cnt+rangeTargetNumber)):
+                    objGeneratedNameCandidateDict['cgmIterator'] = str(i)
+                    bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
+                    print ('Checking %s' %bufferName)
+                    print ('Cnt is %i' %cnt)
+                    if mc.objExists(bufferName):
+                        matchNameList = mc.ls(bufferName,shortNames=True)
+                        for item in matchNameList:
+                            if item not in self.matchedChildren:
+                                if item not in self.matchedParents: 
+                                    #See if our object is the matched item
+                                    if not self.amIMe(item):
+                                        print ('Top parent is not a parent')
+                                        #If the generated name exists
+                                        if bufferName == item:
+                                            cnt +=1
+
+                                        #If the generated name exists anywhere else
+                                        elif '|' in item:
+                                            buffer = item.split('|')
+                                            if bufferName == buffer[-1]:
+                                                cnt +=1                              
+
+                    else:
+                        print ('here')
+                        #next look through the named dictionaries
+                        for o in sceneObjectsNameDictMap.keys():
+                            if o not in self.matchedChildren:
+                                if o not in self.matchedParents: 
+                                    if objGeneratedNameCandidateDict == sceneObjectsNameDictMap.get(o):
+                                        if not self.amIMe(o):
+                                            print ("%s has conflicting dictionary to %s" %(o,self.nameShort))
+                                            cnt+=1
+                                            print('upped!')
+                    loopBreak +=1
+                    if cnt == (cnt+self.parentNameCnt+self.childNameCnt+1):
+                        foundAvailableRange = True
+
+            print ('Starting number with a range of %i names is : %i' %(rangeTargetNumber,cnt))   
+
+        else:
+            ### Scene search for our first open number
+            loopBreak = 0
+            foundAvailableNumber = False
+            looped = False
+            while not foundAvailableNumber and loopBreak <= 100:     
+                bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
+                if mc.objExists(bufferName):
+                    matchNameList = mc.ls(bufferName,shortNames=True)
+                    for item in matchNameList:
+                        if item not in self.matchedChildren:    
+                            #See if our object is the matched item
+                            if not self.amIMe(item):
+                                #If the generated name exists
+                                if bufferName == item:
+                                    cnt +=1
+                                    looped = True
+                                    objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+
+                                #If the generated name exists anywhere else
+                                elif '|' in item:
+                                    buffer = item.split('|')
+                                    if bufferName == buffer[-1]:
+                                        cnt +=1
+                                        looped = True
+                                        objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+
+                            else:
+                                foundAvailableNumber = True
+                else:
+                    #next look through the named dictionaries
+                    for o in sceneObjectsNameDictMap.keys():
+                        if objGeneratedNameCandidateDict == sceneObjectsNameDictMap.get(o):
+                            if not self.amIMe(o):
+                                print ("%s has conflicting dictionary to %s" %(o,self.nameShort))
+                                cnt+=1
+                            else:
+                                foundAvailableNumber = True 
+                loopBreak +=1
+
+        self.nameCandidateDict = objGeneratedNameCandidateDict.copy()
+        if cnt >= 1:
+            self.nameCandidateDict['cgmIterator'] = str(cnt)
+        print ('Starting available number: %i' %cnt) 
+
+        return cnt        
+
+    def getFirstOpenIterator(self):
+        self.getBaseIterator()
+        self.getMatchedNameObjects() 
+        self.selfCheck = False
+
+        cnt = self.baseIterator
+
+        ### Before we do anything, we'll see if our top most barent objects has claimed '1'
+        ### if it has, we don't need to do much
+        #Generate a name candidate
+        if self.parentNameCnt:
+            objGeneratedNameCandidateDict = returnObjectGeneratedNameDict(self.nameLong)
+            parentTestDict = objGeneratedNameCandidateDict.copy()
+            parentTestDict['cgmIterator'] = '1'
+            parentTestBuffer = returnCombinedNameFromDict(parentTestDict)
+            print ('matched parent is %s' %self.matchedParents[0])
+            print ('parent buffer is %s' %parentTestBuffer)
+            if parentTestBuffer == self.matchedParents[0]:
+                objGeneratedNameCandidateDictBuffer = objGeneratedNameCandidateDict.copy()
+                objGeneratedNameCandidateDictBuffer['cgmIterator'] = str(self.parentNameCnt +1)
+                print ('name buffer is %s' %returnCombinedNameFromDict(objGeneratedNameCandidateDictBuffer))               
+                if self.amIMe(returnCombinedNameFromDict(objGeneratedNameCandidateDictBuffer)):
+                    cnt = self.parentNameCnt +1
+                    self.selfCheck = True
+                    print ("Object's parent has '1' and child is named right")
+                    return cnt
+
+        ### Gonna check through the scene for other information
+        sceneObjectsNameDictMap = returnSceneObjectsNameDictMap(transforms = True)
+        self.sceneObjectsNameDictMap = sceneObjectsNameDictMap.copy()
+
+        #Remove our objected from the scene name dictionary map       
+        # If any other objects in the scene, it cannot have a 0 cnt    
+        if self.objGeneratedNameDict in self.matchDictionaryList and cnt == 0:
+            print ("Another object has this nameDict")
+            cnt +=1
+
+        print ('Starting iterator is %i!' %cnt)
+
+        #Generate a name candidate
+        objGeneratedNameCandidateDict = returnObjectGeneratedNameDict(self.nameLong)            
+
+        # If there's more than one object with this dict, we have some checking to do
+        if cnt:
+            objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+        print ("Initial candidate is %s" %objGeneratedNameCandidateDict)
+
+        if self.amIMe(returnCombinedNameFromDict(objGeneratedNameCandidateDict)) and not self.parentNameCnt:
+            print ('named itself, count is %i!' %cnt)
+            self.selfCheck = True
+            return cnt
+
+        ### First try by processing the top name parent
+
+        ### Scene search for our first open number
+        loopBreak = 0
+        foundAvailableNumber = False
+        looped = False
+        while not foundAvailableNumber and loopBreak <= 100: 
+            bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
+            if mc.objExists(bufferName):
+                matchNameList = mc.ls(bufferName,shortNames=True)
+                for item in matchNameList:
+                    if item not in self.matchedChildren:    
+                        #See if our object is the matched item
+                        if not self.amIMe(item):
+                            #If the generated name exists
+                            if bufferName == item:
+                                cnt +=1
+                                looped = True
+                                objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+
+                            #If the generated name exists anywhere else
+                            elif '|' in item:
+                                buffer = item.split('|')
+                                if bufferName == buffer[-1]:
+                                    cnt +=1
+                                    looped = True
+                                    objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+
+                        else:
+                            foundAvailableNumber = True
+            else:
+                #next look through the named dictionaries
+                for o in sceneObjectsNameDictMap.keys():
+                    if objGeneratedNameCandidateDict == sceneObjectsNameDictMap.get(o):
+                        if not self.amIMe(o):
+                            print ("%s has conflicting dictionary to %s" %(o,self.nameShort))
+                            cnt+=1
+                        else:
+                            foundAvailableNumber = True 
+            loopBreak +=1
+
+        self.nameCandidateDict = objGeneratedNameCandidateDict.copy()
+        if cnt >= 1:
+            self.nameCandidateDict['cgmIterator'] = str(cnt)
+        print ('First open iterator is : %i' %cnt) 
+
+        return cnt    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Meta Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
     def returnIterator(self):
-        # Base iterator
-        self.storeBaseIterator()
-        
-        # Get Parents info
-        print ('Base iterator is %i' %self.cnt)
-        self.storeMatchedParents()
-        
-        if self.matchedParents:
-            self.parentNameCnt = len(matchedParents)
-            self.cnt += self.parentNameCnt
-            print ('Parent match number is %i!' %self.parentNameCnt)
-        else:
-            print 'no parents'
-            self.parentNameCnt = 0        
-    
+        cnt = self.getFirstOpenIterator()
+        firstOpenIterator = cnt
+
+        ###If we got this far and we're ourselves, let's bounce....
+        if self.selfCheck or self.amIMe(returnCombinedNameFromDict(self.nameCandidateDict)):
+            print ('named itself, count is %i!' %cnt)            
+            return cnt
+
+
+        if cnt < self.parentNameCnt + firstOpenIterator:
+            cnt = self.parentNameCnt + firstOpenIterator
+
+        print ('%i !' %cnt)
+        return cnt
+
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Unique Name s
@@ -153,7 +390,7 @@ def createTempUniqueNames(objList):
 # Search stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnSceneObjectsNameDictMap(**a):   
-    sceneTransformObjects =  mc.ls(long = True,**a)
+    sceneTransformObjects =  mc.ls(shortNames = True,**a)
 
     SceneObjectNameDict = {}
 
@@ -228,182 +465,25 @@ def returnIterateNumber(obj):
     """
     #>>> input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-
-    #>>> Start function
-
-    ### Get long name of obj and generate it's name dict
-    buffer = mc.ls(obj,long=True)
-    obj = buffer[0]
-    objGeneratedNameDict = returnObjectGeneratedNameDict(obj)
-    cnt = 0
-    #If we have an assigned iterator, start with that
-    if objGeneratedNameDict.get('cgmIterator'):
-        cnt = int(objGeneratedNameDict.get('cgmIterator'))
-
-    print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-    print ('On %s' %obj)
-
-    ### Iterate through the parent tree to iterate
-    matchedParents = []
-    if mc.listRelatives (obj, parent=True,type='transform'):
-        matchedParents = returnMatchedNameParents(obj)
-        parentNameCnt = len(matchedParents)
-        cnt += parentNameCnt
-        print ('Parent match number is %i!' %parentNameCnt)
+    
+    print 'here'
+    objToQuery = factory(obj)
+    objToQuery.getBaseIterator()
+    
+    if objToQuery.parentNameCnt:
+        parentToQuery = factory(objToQuery.matchedParents[0])
+        cnt =  parentToQuery.returnIterator()
+        cnt =  cnt + objToQuery.parentNameCnt
+        print ("Count after checking name parent is %i" %cnt)
+        return cnt
     else:
-        print 'no parents'
-        parentNameCnt = 0
+        cnt = objToQuery.returnIterator()
+        print ("Count is %i" %cnt)
+        return cnt
+        
+        
+    
 
-    ### Get our children number to know how many open name slots we need
-    matchedChildren = returnMatchedNameChildren(obj)
-    childNameCnt = len(matchedChildren)
-    #If our count is 0 and we have any children, we're gonna start with 1
-    if childNameCnt and cnt == 0:
-        cnt +=1
-    print ('Child match number is %i!' %childNameCnt)
-    if not matchedChildren:
-        print 'no kiddos'
-        childNameCnt = 0
-
-    print ('Count after heirarchy count is %i' %cnt)  
-
-    ### Gonna check through the scene for other information
-    sceneObjectsNameDictMap = returnSceneObjectsNameDictMap(transforms = True)
-    # Check our potential range of numbers needed for availablity by named object and claimed iterators
-
-    ### Check trhough scene objects for any thing else with it's name dict, if so, cnt cannot be 0
-    matchList = []
-    sceneObjectsNameDictMap.pop(obj)
-    for k in sceneObjectsNameDictMap.keys():
-        matchList.append(sceneObjectsNameDictMap.get(k))
-    if objGeneratedNameDict in matchList and cnt == 0:
-        print ("Another object has this nameDict, cnt increased")
-        cnt +=1
-
-    #Inital scene look through
-    objGeneratedNameCandidateDict = returnObjectGeneratedNameDict(obj)
-    if cnt >= 1:
-        objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-
-    ### Scene search for our first open number
-    print ("Initial candidate is %s" %objGeneratedNameCandidateDict)
-    loopBreak = 0
-    foundStartNumber = False
-    looped = False
-    while not foundStartNumber and loopBreak <= 100:     
-        bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
-        if mc.objExists(bufferName):
-            matchNameList = mc.ls(bufferName,long=True)
-            for item in matchNameList:
-                print ('checking %s' %item)
-                if item not in matchedChildren or matchedParents:    
-                    #See if our object is the matched item
-                    if not obj == item:
-                        #If the generated name exists
-                        if bufferName == item:
-                            cnt +=1
-                            looped = True
-                            objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-
-                        #If the generated name exists anywhere else
-                        elif '|' in item:
-                            buffer = item.split('|')
-                            if bufferName == buffer[-1]:
-                                cnt +=1
-                                looped = True
-                                objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-
-                    else:
-                        foundStartNumber = True
-        else:
-            print ("%s doesn't exist,checking name dictionaries" %bufferName)
-            #next look through the named dictionaries
-            for o in sceneObjectsNameDictMap.keys():
-                if objGeneratedNameCandidateDict == sceneObjectsNameDictMap.get(o):
-                    print ("%s conflicts" %o)
-                    cnt+=1
-                else:
-                    foundStartNumber = True 
-        loopBreak +=1
-
-    print ('Starting available number: %i' %cnt) 
-
-
-    if cnt >= 1:
-        objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-
-    ### Heirarchy
-
-    loopBreak = 0       
-    candidateSuccess = False   
-    print ('Counting through')  
-    while not candidateSuccess and loopBreak <= 100:
-        bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
-        # see if the name exists in scene
-        if mc.objExists(bufferName):
-            matchNameList = mc.ls(bufferName,long=True)
-            for item in matchNameList:
-                print ('checking %s' %item)
-                if item in matchedChildren or matchedParents:
-                    print ('%s matched children or parents' %item)
-                    candidateSuccess = True
-                else:
-                    #See if our object is the matched item
-                    if not obj == item:
-                        #If the generated name exists
-                        if bufferName == item:
-                            cnt +=1
-                        #If the generated name exists anywhere else
-                        elif '|' in item:
-                            buffer = item.split('|')
-                            if bufferName == buffer[-1]:
-                                cnt +=1
-                    else:
-                        candidateSuccess = True
-
-        else:
-            print ("%s doesn't exist,checking name dictionaries" %bufferName)
-            #next look through the named dictionaries
-            for o in sceneObjectsNameDictMap.keys():
-                if objGeneratedNameCandidateDict == sceneObjectsNameDictMap.get(o):
-                    print ("%s has a name conflicts" %o)
-                    cnt+=1
-                else:
-                    candidateSuccess = True 
-        print cnt                
-        objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-        print ("candidate is now %s" %objGeneratedNameCandidateDict)     
-        loopBreak+=1
-
-    if cnt >=0 and parentNameCnt:
-        cnt += parentNameCnt
-
-    print ('Count after heirarchy flow count is %i' %cnt)  
-
-
-    """
-    for i in range(cnt,(childNameCnt+cnt+1)):
-        print i
-        objGeneratedNameCandidateDict['cgmIterator'] = str(i)
-        print ("candidate is now %s" %objGeneratedNameCandidateDict)
-        bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
-        # see if the name exists in cene
-        if not mc.objExists(bufferName):
-            print ("%s doesn't exist" %bufferName)
-            #next look through the named dictionaries
-            for o in sceneObjectsNameDictMap.keys():
-                if objGeneratedNameCandidateDict == sceneObjectsNameDictMap.get(o):
-                    print ("%s conflicts" %o)
-                    break
-        else:
-            print ("%s exists" %bufferName)
-        loopBreak+=1
-    cnt+=i
-    """
-
-    print ('Count after range count is %i' %cnt)  
-
-    return cnt
 
 def returnCGMOrder():
     """ 
@@ -685,7 +765,7 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions that do stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doNameObject(obj,forceOverride = True):
+def doNameObject(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -705,27 +785,19 @@ def doNameObject(obj,forceOverride = True):
     name = returnUniqueGeneratedName(obj)
     objLong = mc.ls(obj,long=True)
     conflictList = mc.ls(name,long = True)
-    matchedList = []
-    for o in conflictList:
-        if o != objLong[0]:
-            matchedList.append(o)
-            if forceOverride:
-                mc.rename(o,'Name_Conflict')
 
-    if forceOverride:        
-        renameBuffer = mc.rename(obj,name)
+    renameBuffer = mc.rename(objLong,name)
 
-        shapes = mc.listRelatives(renameBuffer,shapes=True,fullPath=True)
-        if shapes != None:
-            for shape in shapes:
-                name = returnUniqueGeneratedName(shape)
-                mc.rename(shape,name)
+    shapes = mc.listRelatives(renameBuffer,shapes=True,fullPath=True)
+    if shapes:
+        for shape in shapes:
+            name = returnUniqueGeneratedName(shape)
+            mc.rename(shape,name)
 
-        return renameBuffer
+    if conflictList:
+        guiFactory.warning("The following have conficting names : %s" %conflictList)
+    return renameBuffer
 
-    else:
-        mc.select(matchedList)
-        guiFactory.warning("The following have conficting names : %s" %matchedList)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def doRenameHeir(obj):
@@ -746,13 +818,27 @@ def doRenameHeir(obj):
 
     #children = mc.listRelatives(obj,allDescendents=True,type='transform')
     newNames = []
-    newNames.append(doNameObject(obj))
     childrenList = []
-    children = mc.listRelatives(newNames[0],allDescendents=True,fullPath=True)
-
+    children = mc.listRelatives(obj,allDescendents=True)
+    children.reverse()
+    # Create a tmp group to store out objects to so that we can get them back even if heirarchal names change
+    tmpGroup = mc.group(em=True)
+    attributes.storeInfo(tmpGroup,('name'+str(0)),obj)
+    cnt = 1
     for c in children:
-        childrenList.append(doNameObject(c))
-    newNames.append(childrenList)
+        attributes.storeInfo(tmpGroup,('name'+str(cnt)),c)
+        cnt += 1
+        print cnt
+    toNameAttrs = attributes.returnUserAttributes(tmpGroup)
+    print toNameAttrs
+    for attr in toNameAttrs:
+        print attr
+        buffer =  doNameObject( (attributes.returnMessageObject(tmpGroup,attr)) )
+        print buffer
+        if buffer:
+            newNames.append(buffer)
+
+    mc.delete(tmpGroup)
     return newNames
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

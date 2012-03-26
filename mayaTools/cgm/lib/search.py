@@ -734,7 +734,7 @@ def returnParentObject(obj,fullPath=True):
         return parentBuffer[0]
     return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnAllParents(obj):
+def returnAllParents(obj,shortNames=False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -753,7 +753,11 @@ def returnAllParents(obj):
     while noParent == False:
         tmpParent = mc.listRelatives(tmpObj,allParents=True,fullPath=True)
         if tmpParent > 0:
-            parentList.append(tmpParent[0])
+            if shortNames:
+                buffer = mc.ls(tmpParent[0],shortNames=True)
+                parentList.append(buffer[0])
+            else:
+                parentList.append(tmpParent[0])
             tmpObj = tmpParent[0]
             tmpParent = mc.listRelatives(tmpObj,allParents=True,fullPath=True)
         else:

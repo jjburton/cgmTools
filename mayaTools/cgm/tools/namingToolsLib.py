@@ -303,21 +303,38 @@ def uiUpdateAutoNameTag(self,tag):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def uiReturnIterator(self):
 	selected = mc.ls(sl=True,long=True)
+	from cgm.lib import autoname
+	reload(autoname)
 	
 	for obj in selected:
 		try:
+			"""
+			obj = autoname.factory(obj)
+			obj.returnIterator()
+			"""
 			autoname.returnIterateNumber(obj)
 		except:
 			pass
 		
 def uiNameObject(self):
-	selected = mc.ls(sl=True)
+	selected = mc.ls(sl=True,flatten=True,long=True)
+	newNames = []
+	tmpGroup = mc.group(em=True)
+	cnt = 1
+	for o in selected:
+		attributes.storeInfo(tmpGroup,('name'+str(cnt)),o)
+		cnt += 1
+	toNameAttrs = attributes.returnUserAttributes(tmpGroup)
+	for attr in toNameAttrs:
+		buffer =  autoname.doNameObject( (attributes.returnMessageObject(tmpGroup,attr)) )
+		if buffer:
+			newNames.append(buffer)
 	
-	for obj in selected:
-		try:
-			autoname.doNameObject(obj)
-		except:
-			pass
+	if newNames:
+		print ("The following were named: %s" %','.join(newNames))
+		
+	mc.delete(tmpGroup)
+	
 
 def doUpdateObjectName(self):
 	selected = mc.ls(sl=True)
@@ -326,7 +343,7 @@ def doUpdateObjectName(self):
 		try:
 			autoname.doUpdateName(obj)
 		except:
-			pass
+			guiFactory.warning('Error on naming attempt')
 			
 def doNameHeirarchy(self):
 	selected = mc.ls(sl=True)
