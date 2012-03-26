@@ -71,7 +71,7 @@ def uiNameLoadedAutoNameObjectChildren(self):
 def uiLoadAutoNameObject(self):
 	selected = []
 	bufferList = []
-	selected = (mc.ls (sl=True,flatten=True,long=True))
+	selected = (mc.ls (sl=True,flatten=True,shortNames=True))
 	
 	fieldToKeyDict = {'cgmName':self.NameTagField,
                       'cgmType':self.ObjectTypeTagField,
@@ -92,6 +92,8 @@ def uiLoadAutoNameObject(self):
 			#Get the tag info for the object
 			tagsDict = autoname.returnObjectGeneratedNameDict(selected[0])
 			userAttrs = attributes.returnUserAttributes(selected[0])
+			cgmAttrs = autoname.returnCGMOrder()
+			usedAttrs = lists.returnMatchList(userAttrs,cgmAttrs)
 			tagAttrs = tagsDict.keys()
 			#Enable the tag fields
 			for key in fieldToKeyDict.keys():
@@ -114,8 +116,8 @@ def uiLoadAutoNameObject(self):
 				             bgc = dictionary.returnStateColor('keyed'))
 				
 				# Set special color cases, if it's guessed or gotten upstream....
-				if userAttrs:
-					if key not in userAttrs:
+				if usedAttrs:
+					if key not in usedAttrs:
 						mc.textField(currentField,edit = True, bgc = dictionary.returnStateColor('reserved'))
 					# if it's connected	
 					elif (mc.connectionInfo ((selected[0]+'.'+key),isDestination=True)):
@@ -128,7 +130,7 @@ def uiLoadAutoNameObject(self):
 
 
 				else:
-					#Got it from a parent 
+					#Got it from a parent
 					parentNameObjectRaw = search.returnTagUp(selected[0],key)
 					if parentNameObjectRaw:
 						if '|' in parentNameObjectRaw[1]:
@@ -137,16 +139,16 @@ def uiLoadAutoNameObject(self):
 						else:
 							parentNameObject = parentNameObjectRaw[1]
 						mc.textField(currentField,edit = True,
-						             text = parentNameObject,
-						             bgc = dictionary.returnStateColor('semiLocked'))
-						# enable right click menu
+					                 enable=True,
+					                 text = parentNameObject,
+					                 bgc = dictionary.returnStateColor('semiLocked'))
 						buildPopUp['Select parent name object'] = (parentNameObjectRaw[1])
 						
 					else:
 						mc.textField(currentField,edit = True,
-						             bgc = dictionary.returnStateColor('reserved'))
-						
-				
+					                 bgc = dictionary.returnStateColor('reserved'))
+							
+					
 				if buildPopUp:		
 					buffer = MelPopupMenu(currentField,button = 3)
 					for key in buildPopUp.keys():
@@ -165,7 +167,7 @@ def uiLoadAutoNameObject(self):
 		for key in fieldToKeyDict.keys():
 			mc.textField(fieldToKeyDict.get(key),edit=True,enable=False,
 		                 text = '',
-		                  bgc = dictionary.returnStateColor('normal'))
+			             bgc = dictionary.returnStateColor('normal'))
 			
 		# Fix previewer
 		uiUpdateAutoNamePreview(self)
@@ -301,6 +303,16 @@ def uiUpdateAutoNameTag(self,tag):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Naming functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiGetObjectInfo(self):
+	selected = mc.ls(sl=True,long=True)
+	from cgm.lib import autoname
+	reload(autoname)
+	
+	for obj in selected:
+		obj = autoname.factory(obj)
+		obj.reportInfo()
+			
+		
 def uiReturnIterator(self):
 	selected = mc.ls(sl=True,long=True)
 	from cgm.lib import autoname
@@ -319,21 +331,42 @@ def uiReturnIterator(self):
 def uiNameObject(self):
 	selected = mc.ls(sl=True,flatten=True,long=True)
 	newNames = []
-	tmpGroup = mc.group(em=True)
-	cnt = 1
-	for o in selected:
-		attributes.storeInfo(tmpGroup,('name'+str(cnt)),o)
-		cnt += 1
-	toNameAttrs = attributes.returnUserAttributes(tmpGroup)
-	for attr in toNameAttrs:
-		buffer =  autoname.doNameObject( (attributes.returnMessageObject(tmpGroup,attr)) )
-		if buffer:
-			newNames.append(buffer)
+	
+	if not selected:
+		guiFactory.warning('Must have something selected')
+		return
+		
+	elif len(selected) > 1:
+		tmpGroup = mc.group(em=True)
+		cnt = 1
+		
+		for o in selected:
+			attributes.storeInfo(tmpGroup,('name'+str(cnt)),o)
+			cnt += 1
+		toNameAttrs = attributes.returnUserAttributes(tmpGroup)
+		
+		mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(toNameAttrs),'Naming...')
+		for attr in toNameAttrs:
+			if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+				break
+			
+			objectToName = (attributes.returnMessageObject(tmpGroup,attr))
+			buffer =  autoname.doNameObject( objectToName )
+			mc.progressBar(mayaMainProgressBar, edit=True, status = ("Naming '%s'"%objectToName), step=1)
+
+			if buffer:
+				newNames.append(buffer)
+				
+		guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+		mc.delete(tmpGroup)
+		
+		
+	else:
+		autoname.doNameObject(selected[0])
 	
 	if newNames:
 		print ("The following were named: %s" %','.join(newNames))
 		
-	mc.delete(tmpGroup)
 	
 
 def doUpdateObjectName(self):
@@ -348,11 +381,16 @@ def doUpdateObjectName(self):
 def doNameHeirarchy(self):
 	selected = mc.ls(sl=True)
 	
+	if not selected:
+		guiFactory.warning('Must have something selected')
+		return
+	
 	for obj in selected:
 		try:
 			autoname.doRenameHeir(obj)
 		except:
-			pass
+			guiFactory.warning('Error on naming attempt')		
+		
 
 
 

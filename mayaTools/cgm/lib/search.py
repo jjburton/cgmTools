@@ -123,11 +123,12 @@ def returnTagInfo(obj,tag):
     Failure - false
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    assert mc.objExists(obj) is True, "%s doesn't exist" %obj
+    
     if (mc.objExists('%s%s%s' %(obj,'.',tag))) == True:
         messageQuery = (mc.attributeQuery (tag,node=obj,msg=True))
         if messageQuery == True:
-            buffer = (mc.listConnections(obj+'.'+tag))
-            return buffer[0]
+            return attributes.returnMessageObject(obj,tag)
         else:
             infoBuffer = mc.getAttr('%s%s%s' % (obj,'.',tag))
             if len(list(infoBuffer)) > 0:

@@ -244,7 +244,7 @@ def setUIObjectVisibility(item, visState):
 def doLoadSingleObjectToTextField(textFieldObject,variableToSet = False):
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True,long=True))
+    selected = (mc.ls (sl=True,flatten=True,shortNames=True))
     buffer = textFieldObject(q=True,text = True )
     if selected:
         if len(selected) >= 2:
@@ -265,7 +265,7 @@ def doLoadSingleObjectToTextField(textFieldObject,variableToSet = False):
 
 def doLoadMultipleObjectsToTextField(textFieldObject,objectsToLoad = False, variableToSet = False):
     if not objectsToLoad:
-        objectsToLoad = (mc.ls (sl=True,flatten=True,long=True))
+        objectsToLoad = (mc.ls (sl=True,flatten=True,shortNames=True))
 
     if objectsToLoad:
         textFieldObject(edit=True,ut = 'cgmUILockedTemplate', text = ';'.join(objectsToLoad),editable = False )
@@ -422,10 +422,10 @@ def textBlock(text, align = 'center'):
 # Progress Tracking
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doProgressWindow(winName='Progress Window',statusMessage = 'Progress...',startingProgress = 0, interruptableState = True):
-    return mc.progressWindow(title= winName,
-                             progress=startingProgress,
-                             status= statusMessage,
-                             isInterruptable=interruptableState )
+    return  mc.progressWindow(title= winName,
+                              progress=startingProgress,
+                              status= statusMessage,
+                              isInterruptable=interruptableState )
 
 def doUpdateProgressWindow(statusMessage,stepInterval,stepRange,reportItem=False):
     """
@@ -516,6 +516,9 @@ def doProgressBar(winName,trackedList,statusMessage):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doPrintReportStart():
     return '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+
+def doPrintReportBreak():
+    return '#---------------------------------------------------------------------------'
 
 def doPrintReportEnd():
     return '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'

@@ -1444,9 +1444,9 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.doButton2(BasicRow,'Name Heirarchy',
 		                     lambda *a:namingToolsLib.doNameHeirarchy(self),
 				             "Attempts to intelligently name a  \n heirarchy of objects")
-		guiFactory.doButton2(BasicRow,'Return Iterator',
-		                     lambda *a:namingToolsLib.uiReturnIterator(self),
-				             "Attempts to intelligently name a  \n heirarchy of objects")
+		guiFactory.doButton2(BasicRow,'Report object info',
+		                     lambda *a:namingToolsLib.uiGetObjectInfo(self),
+				             "Get's object's naming factory info ")
 		BasicRow.layout()
 		
 		
