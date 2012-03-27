@@ -128,9 +128,6 @@ class factory():
         print ('First open iterator is %i' %self.firstOpenIterator)
         print ("Final iterator is %i" %self.iterator )
         
-        
-
-        
 
         print (guiFactory.doPrintReportEnd())
             

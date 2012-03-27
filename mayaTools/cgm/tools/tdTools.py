@@ -1289,15 +1289,15 @@ class tdToolsClass(BaseMelWindow):
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Up',
 				             lambda *a:namingToolsLib.uiAutoNameWalkUp(self),
-				             'Load to field')
+				             'Load parent')
 		
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Down',
 				             lambda *a:namingToolsLib.uiAutoNameWalkDown(self),
-				             'Load to field')
+				             'Load child')
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Name it',
 				             lambda *a:namingToolsLib.uiNameLoadedAutoNameObject(self),
-				             'Load to field')
+				             'Name the loaded object')
 		guiFactory.doButton2(LoadAutoNameObjectRow,'Name Children',
 				             lambda *a:namingToolsLib.uiNameLoadedAutoNameObjectChildren(self),
 				             'Load to field')

@@ -351,7 +351,10 @@ def uiNameObject(self):
 				break
 			
 			objectToName = (attributes.returnMessageObject(tmpGroup,attr))
-			buffer =  autoname.doNameObject( objectToName )
+			try:
+				buffer =  autoname.doNameObject( objectToName )
+			except:
+				guiFactory.warning("'%s' failed"%objectToName)
 			mc.progressBar(mayaMainProgressBar, edit=True, status = ("Naming '%s'"%objectToName), step=1)
 
 			if buffer:
