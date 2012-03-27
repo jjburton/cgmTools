@@ -66,7 +66,11 @@ def uiNameLoadedAutoNameObjectChildren(self):
 
 	else:
 		gselfFactory.warning('No current autoname object loaded!')
-
+def uiLoadParentNameObject(self,parentNameObject):
+	assert mc.objExists(parentNameObject) is True,"'%s' doesn't exist" % parentNameObject
+	mc.select(cl=True)
+	mc.select(parentNameObject)
+	uiLoadAutoNameObject(self)
 
 def uiLoadAutoNameObject(self):
 	selected = []
@@ -105,7 +109,8 @@ def uiLoadAutoNameObject(self):
 				currentField = fieldToKeyDict.get(key)
 
 				
-				buildPopUp = {}
+				buildSelectPopUp = {}
+				buildLoadPopUp = {}
 				#purge popup
 				popUpBuffer =  currentField(q=True, popupMenuArray = True)
 				if popUpBuffer:
@@ -126,7 +131,8 @@ def uiLoadAutoNameObject(self):
 						mc.textField(currentField,edit = True,
 						             text = (driverAttr),
 						             bgc = dictionary.returnStateColor('connected'))
-						buildPopUp['Select driver object'] = (driverObject)
+						buildSelectPopUp['Select driver object'] = (driverObject)
+						buildLoadPopUp['Load driver object'] = (driverObject)
 
 
 				else:
@@ -142,19 +148,24 @@ def uiLoadAutoNameObject(self):
 					                 enable=True,
 					                 text = parentNameObject,
 					                 bgc = dictionary.returnStateColor('semiLocked'))
-						buildPopUp['Select parent name object'] = (parentNameObjectRaw[1])
-						
+						buildSelectPopUp['Select parent name object'] = (parentNameObjectRaw[1])
+						buildLoadPopUp['Load parent name object'] = (parentNameObjectRaw[1])
 					else:
 						mc.textField(currentField,edit = True,
 					                 bgc = dictionary.returnStateColor('reserved'))
 							
-					
-				if buildPopUp:		
+				if buildSelectPopUp or buildLoadPopUp:
 					buffer = MelPopupMenu(currentField,button = 3)
-					for key in buildPopUp.keys():
+				if buildSelectPopUp:		
+					for key in buildSelectPopUp.keys():
 						MelMenuItem(buffer ,
 							        label = key,
-							        c = ('%s%s%s' %("mc.select('",buildPopUp.get(key),"')")))
+							        c = ('%s%s%s' %("mc.select('",buildSelectPopUp.get(key),"')")))
+				if buildLoadPopUp:		
+					for key in buildLoadPopUp.keys():
+						MelMenuItem(buffer ,
+					                label = key,
+					                c = lambda *a:uiLoadParentNameObject(self,buildLoadPopUp.get(key)))
 						
 						
 			# if it's connected
