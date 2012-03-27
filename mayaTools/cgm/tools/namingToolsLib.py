@@ -360,13 +360,15 @@ def uiNameObject(self):
 		for attr in toNameAttrs:
 			if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 				break
-			
+
 			objectToName = (attributes.returnMessageObject(tmpGroup,attr))
+			mc.progressBar(mayaMainProgressBar, edit=True, status = ("Naming '%s'"%objectToName), step=1)
+
 			try:
 				buffer =  autoname.doNameObject( objectToName )
 			except:
 				guiFactory.warning("'%s' failed"%objectToName)
-			mc.progressBar(mayaMainProgressBar, edit=True, status = ("Naming '%s'"%objectToName), step=1)
+
 
 			if buffer:
 				newNames.append(buffer)

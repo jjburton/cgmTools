@@ -391,6 +391,9 @@ def copyWeightsByClosestVertice(sourceMesh, targetMesh):
     None
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    assert mc.objExists(sourceMesh) is True,"'%s' doesn't exist" %sourceMesh
+    assert mc.objExists(targetMesh) is True,"'%s' doesn't exist" %targetMesh
+
     targetSkinCluster = querySkinCluster(targetMesh)
 
     influenceData = returnVerticeJointWeightDataToDict(sourceMesh)
@@ -420,6 +423,9 @@ def copyWeightsByClosestVerticeFromVert(sourceMesh, targetVert):
     New
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    assert mc.objExists(sourceMesh) is True,"'%s' doesn't exist" %sourceMesh
+    assert mc.objExists(targetVert) is True,"'%s' doesn't exist" %targetVert
+    
     targetMeshBuffer = targetVert.split('.')
     print targetMeshBuffer
     targetSkinCluster = querySkinCluster(targetMeshBuffer[0])

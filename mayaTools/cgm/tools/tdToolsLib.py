@@ -829,13 +829,9 @@ def doShrinkWrapToSource():
 			sourceType = search.returnObjectType(sourceObject)
 
 			if targetObjects:
-				guiFactory.doProgressWindow()
 				itemCnt = 0
 
 				for obj in targetObjects:
-					if guiFactory.doUpdateProgressWindow('On ',itemCnt,(len(targetObjects))) == 'break':
-						break
-
 					targetType = search.returnObjectType(obj)
 
 					# Type check to get our Components to move
@@ -871,9 +867,13 @@ def doShrinkWrapToSource():
 					else:
 						componentsToMove = [obj]
 
-
+					mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(componentsToMove),'Shrinkwraping...')
 					# Let's move it
 					for c in componentsToMove:
+						if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+							break
+						mc.progressBar(mayaMainProgressBar, edit=True, status = ("wrapping '%s'"%c), step=1)
+
 						if sourceType in ['mesh','nurbsSurface','nurbsCurve']:
 							pos = distance.returnWorldSpacePosition(c)
 							targetLoc = mc.spaceLocator()
@@ -886,10 +886,8 @@ def doShrinkWrapToSource():
 						else:
 							guiFactory.warning('The source object must be a poly,nurbs curve or nurbs surface')
 
-
 					itemCnt += 1
-
-				guiFactory.doCloseProgressWindow()
+					guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
 			else:
 				guiFactory.warning('You need target objects selected or loaded to the target field')
@@ -947,13 +945,17 @@ def doCopySkinningToVertFromSource():
 
 	if sourceObject: 
 		if targetObjects:  
-			guiFactory.doProgressWindow(winName='Vert Weight Copying')
+			mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(targetObjects),'Vert Weight Copying...')
 			stepInterval = 1
 			for obj in targetObjects:
-				guiFactory.doUpdateProgressWindow(('On %s' %obj),stepInterval,len(targetObjects),True)
+				if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+					break
 				skinning.copyWeightsByClosestVerticeFromVert(sourceObject, obj)
 				stepInterval +=1
-			guiFactory.doCloseProgressWindow()
+				
+				mc.progressBar(mayaMainProgressBar, edit=True, status = ("Copying '%s'"%obj), step=1)
+
+			guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
 		else:
 			guiFactory.warning('You need target objects selected or loaded to the target field')
@@ -1025,10 +1027,15 @@ def doCopyWeightsFromFirstToOthers():
 
 	if sourceObject:
 		if targetObjects:
-			guiFactory.doProgressWindow(winName='Vert Weight Copying')
+			mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(targetObjects),'Vert Weight Copying...')
+
 			stepInterval = 1
 			
 			for obj in targetObjects:
+				if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+					break
+				mc.progressBar(mayaMainProgressBar, edit=True, status = ("copying '%s'"%obj), step=1)
+
 				if search.returnObjectType(obj)=='polyVertex':
 					#progress
 					guiFactory.doUpdateProgressWindow(('On %s' %obj),stepInterval,len(targetObjects),True)
@@ -1040,7 +1047,6 @@ def doCopyWeightsFromFirstToOthers():
 					
 				elif search.returnObjectType(obj)=='polyEdge':
 					#progress
-					guiFactory.doUpdateProgressWindow(('On %s' %obj),stepInterval,len(targetObjects),True)
 					
 					#function
 					mel.eval("PolySelectConvert 3")
@@ -1053,7 +1059,7 @@ def doCopyWeightsFromFirstToOthers():
 				else:
 					guiFactory.warning("%s isn't a transferable component" %obj)
 					
-			guiFactory.doCloseProgressWindow()
+			guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
 		else:
 			guiFactory.warning('You need target objects selected')
@@ -1228,7 +1234,7 @@ def doSnapClosestPointToSurface(aim=True):
 	mc.select(cl=True)
 	if len(selected) >=2:
 		### Counter start ###
-		guiFactory.doProgressWindow()
+		mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected),'Snapping...')
 		itemCnt = 0
 		### Counter start ###
 		nurbsCurveCase = False
@@ -1237,8 +1243,10 @@ def doSnapClosestPointToSurface(aim=True):
 			nurbsCurveAimLoc = locators.locMeObject(selected[-1],True)
 		for item in selected[:-1]:
 			### Counter Break ###
-			if guiFactory.doUpdateProgressWindow('On ',itemCnt,(len(selected)),item) == 'break':
+			if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 				break
+			mc.progressBar(mayaMainProgressBar, edit=True, status = ("Snapping '%s'"%item), step=1)
+
 			### Counter Break ###
 			aimLoc = locators.locMeObject(item)
 			bufferLoc = locators.locClosest([item],selected[-1])
@@ -1263,7 +1271,7 @@ def doSnapClosestPointToSurface(aim=True):
 				mc.delete(nurbsCurveAimLoc)
 
 
-		guiFactory.doCloseProgressWindow()
+		guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 		return bufferList
 	else:
 		guiFactory.warning('You must have at least two objects selected')

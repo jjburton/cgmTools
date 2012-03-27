@@ -1278,8 +1278,6 @@ class tdToolsClass(BaseMelWindow):
 		MelLabel(LoadAutoNameObjectRow,l='Object:',align='right')
 
 		self.AutoNameObjectField = MelTextField(LoadAutoNameObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-		if mc.optionVar( q = 'cgmVarAutoNameObject'):
-			self.AutoNameObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
 
 		guiFactory.doButton2(LoadAutoNameObjectRow,'<<',
 		                     lambda *a:namingToolsLib.uiLoadAutoNameObject(self),
