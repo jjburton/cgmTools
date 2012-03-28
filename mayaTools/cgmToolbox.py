@@ -1,6 +1,8 @@
 
 from __future__ import with_statement
 
+import maya.cmds as mc
+
 import os
 import re
 import sys
@@ -203,10 +205,17 @@ def loadTDTools( *a ):
 	reload(tdTools)
 	tdTools.run()
 
-
+def loadAttributeTools( *a ):
+	import cgm
+	from cgm.lib import guiFactory
+	from cgm.tools import attributeTools
+	reload(attributeTools)
+	attributeTools.run()
+	
 def loadLocinator( *a ):
 	import cgm
-	from cgm.tools import locinator,locinatorLib
+	from cgm.tools import locinator
+	from cgm.tools.lib import locinatorLib
 	reload(locinator)
 	reload(locinatorLib)
 	locinator.run()
@@ -251,6 +260,9 @@ TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locator
 
               ('dev', (('Naming Tools', " Autoname and Standard naming tools",
                         loadNamingTools),
+                       
+                       ('Attribute Tools', " Attribute tools",
+                        loadAttributeTools),                       
                        
                        )),
 

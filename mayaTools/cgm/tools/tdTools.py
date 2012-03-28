@@ -12,8 +12,8 @@
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.joshburton.com
-# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
 #	0.1.12072011 - First version
@@ -39,17 +39,17 @@ from cgm.lib import (guiFactory,
                      search
                      )
 
-from cgm.tools import (tdToolsLib,
-                       locinatorLib,
-                       namingToolsLib)
+from cgm.tools.lib import  (tdToolsLib,
+                            locinatorLib,
+                            namingToolsLib)
 
 reload(tdToolsLib)
 reload(namingToolsLib)
 
 
 def run():
-	mel.eval('python("import maya.cmds as mc;from cgm.tools import namingToolsLib;from cgm.tools import tdTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
-
+	#mel.eval('python("import maya.cmds as mc;from cgm.tools import namingToolsLib;from cgm.tools import tdTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
+	tdToolsClass()
 	"""
 	Hamish, the reason I did this was a few reasons
 
@@ -69,7 +69,7 @@ def run():
 
 class tdToolsClass(BaseMelWindow):
 	WINDOW_NAME = 'TDTools'
-	WINDOW_TITLE = 'TDTools >>> cg{monks}'
+	WINDOW_TITLE = 'cgm.tdTools'
 	DEFAULT_SIZE = 550, 400
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -90,9 +90,9 @@ class tdToolsClass(BaseMelWindow):
 
 		from cgm.lib import (guiFactory,
 				             search)
-		from cgm.tools import (tdToolsLib,
-		                       namingToolsLib,
-				               locinatorLib)
+		from cgm.tools.lib import (tdToolsLib,
+		                           namingToolsLib,
+		                           locinatorLib)
 
 
 		# Maya version check
@@ -118,7 +118,7 @@ class tdToolsClass(BaseMelWindow):
 		self.description = 'A large series of tools for general rigging purposes including: Curves, Naming, Positioning,Deformers'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
-		self.website = 'www.joshburton.com'
+		self.website = 'www.cgmonks.com'
 		self.version = __version__
 
 		# About Window
@@ -392,7 +392,7 @@ class tdToolsClass(BaseMelWindow):
 		window = mc.window( title="About", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True )
 		mc.columnLayout( adjustableColumn=True )
 		guiFactory.header(self.toolName,overrideUpper = True)
-		mc.text(label='>>>A Part of the cgmThingamarig Collection<<<', ut = 'cgmUIInstructionsTemplate')
+		mc.text(label='>>>A Part of the cgmTools Collection<<<', ut = 'cgmUIInstructionsTemplate')
 		guiFactory.headerBreak()
 		guiFactory.lineBreak()
 		descriptionBlock = guiFactory.textBlock(self.description)
@@ -403,7 +403,7 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.lineBreak()
 		mc.text(label='Version: %s' % self.version)
 		mc.text(label='')
-		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.joshburton.com")')
+		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.cgmonks.com")')
 		guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
 		mc.setParent( '..' )
 		mc.showWindow( window )

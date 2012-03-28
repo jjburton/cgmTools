@@ -13,8 +13,8 @@
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.joshburton.com
-# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
 #	0.1.11292011 - First version
@@ -33,13 +33,13 @@ from cgm.lib.cgmBaseMelUI import *
 import maya.mel as mel
 import maya.cmds as mc
 
-from cgm.tools import locinatorLib
+from cgm.tools.lib import locinatorLib
 from cgm.lib import (search,guiFactory)
 
 
 def run():
 	# real one
-	mel.eval('python("from cgm.lib import guiFactory;from cgm.tools import locinator;from cgm.tools import locinatorLib;import maya.cmds as mc;cgmLocWin = locinator.locinatorClass()")')
+	mel.eval('python("from cgm.lib import guiFactory;from cgm.tools import locinator;from cgm.tools.lib import locinatorLib;import maya.cmds as mc;cgmLocWin = locinator.locinatorClass()")')
 	"""
 	See note on tdTools
 	
@@ -48,7 +48,7 @@ def run():
 
 class locinatorClass(BaseMelWindow):
 	WINDOW_NAME = 'cgmLocinatorWindow'
-	WINDOW_TITLE = 'Locinator >>> cg{monks}'
+	WINDOW_TITLE = 'cgm.locinator'
 	DEFAULT_SIZE = 175, 250
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -65,7 +65,7 @@ class locinatorClass(BaseMelWindow):
 		self.description = 'This tool makes locators based on selection types and provides ways to update those locators over time'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
-		self.website = 'www.joshburton.com'
+		self.website = 'www.cgmonks.com'
 		self.version = '0.1.12112011'
 
 		self.currentFrameOnly = True
@@ -189,7 +189,7 @@ class locinatorClass(BaseMelWindow):
 		window = mc.window( title="About", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True )
 		mc.columnLayout( adjustableColumn=True )
 		guiFactory.header(self.toolName,overrideUpper = True)
-		mc.text(label='>>>A Part of the cgmThingamarig Collection<<<', ut = 'cgmUIInstructionsTemplate')
+		mc.text(label='>>>A Part of the cgmTools Collection<<<', ut = 'cgmUIInstructionsTemplate')
 		guiFactory.headerBreak()
 		guiFactory.lineBreak()
 		descriptionBlock = guiFactory.textBlock(self.description)

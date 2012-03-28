@@ -12,8 +12,8 @@
 # 
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.joshburton.com
-# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
 # 
 # CHANGELOG:
 #	0.1 - 02/09/2011 - added documenation
@@ -485,8 +485,8 @@ def swapNameTagAttrs(object1,object2):
     object1TagsDict = returnUserAttrsToDict(object1)
     object2TagsDict = returnUserAttrsToDict(object2)
 
-    object1TagTypesDict = returnObjectsUserAttributeTypes(object1)
-    object2TagTypesDict = returnObjectsUserAttributeTypes(object2)
+    object1TagTypesDict = returnObjectsAttributeTypes(object1,userDefined = True)
+    object2TagTypesDict = returnObjectsAttributeTypes(object2,userDefined = True)
 
     #>>> execution stuff
     if object1TagsDict and object2TagsDict:
@@ -811,7 +811,7 @@ def returnDrivenObject(attribute):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Search Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnObjectsAttributeTypes(obj):
+def returnObjectsAttributeTypes(obj,*a, **kw ):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -819,12 +819,14 @@ def returnObjectsAttributeTypes(obj):
 
     REQUIRES:
     obj(string) - obj with attrs
+    any arguments for the mc.listAttr command
 
     RETURNS:
     attrDict(Dictionary) - dictionary in terms of {[attrName : type],[etc][etc]}
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    attrs =(mc.listAttr (obj))
+    assert mc.objExists(obj) is True, "'%s' doesn't exist"%obj
+    attrs =(mc.listAttr (obj,*a, **kw ))
     attrDict = {}
     if not attrs == None:   
         for attr in attrs:
@@ -834,31 +836,9 @@ def returnObjectsAttributeTypes(obj):
                 guiFactory.warning("%s didn't query" %attr)
         return attrDict
     else:
-        print ('Sorry, no attributes found.')
+        print ('Sorry, no atributes of this type  found.')
         return False
 
-def returnObjectsUserAttributeTypes(obj):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Pass an object into it with user attributes and it will return a dictionary attribute's data types
-
-    REQUIRES:
-    obj(string) - obj with attrs
-
-    RETURNS:
-    attrDict(Dictionary) - dictionary in terms of {[attrName : type],[etc][etc]}
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    attrs =(mc.listAttr (obj, userDefined=True))
-    attrDict = {}
-    if attrs :   
-        for attr in attrs:
-            attrDict[attr] = (mc.getAttr((obj+'.'+attr),type=True))
-        return attrDict
-    else:
-        print ('Sorry, no user attributes found.')
-        return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def returnUserAttributes(obj):
@@ -1006,7 +986,7 @@ def returnUserAttrsToDict(obj):
     """
     attrDict = {}
     objAttributes =(mc.listAttr (obj, userDefined=True))
-    attrTypes = returnObjectsUserAttributeTypes(obj)
+    attrTypes = returnObjectsAttributeTypes(obj,userDefined = True)
     if not objAttributes == None:
         for attr in objAttributes:                    
             messageBuffer = []
@@ -1049,8 +1029,9 @@ def returnUserAttrsToList(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrsList = []
-    objAttributes =(mc.listAttr (obj, userDefined=True))
     attrTypes = returnObjectsUserAttributeTypes(obj)
+    objAttributes = attrTypes.keys()
+    
     if not objAttributes == None:
         for attr in objAttributes:                    
             messageBuffer = []

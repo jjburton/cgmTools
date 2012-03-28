@@ -13,8 +13,8 @@
 # 
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.joshburton.com
-# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
 # 
 # CHANGELOG:
 #	0.1 - 02/09/2011 - added documenation

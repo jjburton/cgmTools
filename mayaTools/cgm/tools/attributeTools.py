@@ -12,8 +12,8 @@
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.joshburton.com
-# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
 #	0.1.12072011 - First version
@@ -41,11 +41,14 @@ from cgm.lib import (guiFactory,
 from cgm.tools import (tdToolsLib,
                        locinatorLib)
 
-reload(tdToolsLib)
+from cgm.tools.lib import (attributeToolsLib)
 
+reload(tdToolsLib)
+reload(attributeToolsLib)
 
 def run():
-	mel.eval('python("import maya.cmds as mc;from cgm.tools import namingTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmNamingToolsWin = namingTools.namingToolsClass()")')
+	attributeToolsClass()
+	#mel.eval('python("import maya.cmds as mc;from cgm.tools import namingTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;attributeTools = attributeTools.attributeToolsClass()")')
 
 	"""
 	Hamish, the reason I did this was a few reasons
@@ -64,10 +67,10 @@ def run():
 	tdToolsClass()
 	"""
 
-class namingToolsClass(BaseMelWindow):
-	WINDOW_NAME = 'namingTools'
-	WINDOW_TITLE = 'namingTools >>> cg{monks}'
-	DEFAULT_SIZE = 550, 400
+class attributeToolsClass(BaseMelWindow):
+	WINDOW_NAME = 'attributeTools'
+	WINDOW_TITLE = 'cgm.attributeTools'
+	DEFAULT_SIZE = 300, 400
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -76,12 +79,6 @@ class namingToolsClass(BaseMelWindow):
 	guiFactory.initializeTemplates()
 
 	def __init__( self):
-		""" Hamish, why is this import necessary? It errors out if it isn't here....
-		I guess I had it it in the mel.eval call before which is what locinator id doing
-		from cgm.lib import guiFactory
-		guiFactory.initializeTemplates()
-		"""
-
 		import maya.mel as mel
 		import maya.cmds as mc
 
@@ -99,9 +96,9 @@ class namingToolsClass(BaseMelWindow):
 		# Basic variables
 		self.window = ''
 		self.activeTab = ''
-		self.toolName = 'namingTools'
+		self.toolName = 'attributeTools'
 		self.module = 'tdTools'
-		self.winName = 'NamingToolsWin'
+		self.winName = 'attributeToolsWin'
 
 		self.showHelp = False
 		self.helpBlurbs = []
@@ -111,17 +108,13 @@ class namingToolsClass(BaseMelWindow):
 		self.timeSubMenu = []
 
 		# About Window
-		self.description = 'A large series of tools for general rigging purposes including: Curves, Naming, Positioning,Deformers'
+		self.description = 'Tools for working with attributes'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
-		self.website = 'www.joshburton.com'
+		self.website = 'www.cgmonks.com'
 		self.version = __version__
 
 		# About Window
-		self.sizeOptions = ['Object','Average','Input Size','First Object']
-		self.sizeMode = 0
-		self.forceBoundingBoxState = False
-
 
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		# Build
@@ -130,24 +123,9 @@ class namingToolsClass(BaseMelWindow):
 		#Menu
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 
-		#Tabs
-		tabs = MelTabLayout( self )
+		MainColumn = MelColumnLayout(self)
 
-		TabAuto = MelColumnLayout(tabs)
-		TabStandard = MelColumnLayout(tabs)
-
-
-		#tabs.setCB(lambda *a:self.updateCurrentTab(tabs,'cgmTDToolsWinActiveTab'))
-		#tabs.setCB(self.updateCurrentTab(tabs,'cgmTDToolsWinActiveTab'))
-
-		n = 0
-		for tab in 'Auto','Standard':
-			tabs.setLabel(n,tab)
-			n+=1
-
-		self.buildAutoNameTool(TabAuto)
-		self.buildAutoNameTool(TabStandard)
-		
+		self.buildAttributeTool(MainColumn)
 		
 		self.show()
 
@@ -180,7 +158,7 @@ class namingToolsClass(BaseMelWindow):
 		window = mc.window( title="About", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True )
 		mc.columnLayout( adjustableColumn=True )
 		guiFactory.header(self.toolName,overrideUpper = True)
-		mc.text(label='>>>A Part of the cgmThingamarig Collection<<<', ut = 'cgmUIInstructionsTemplate')
+		mc.text(label='>>>A Part of the cgmTools Collection<<<', ut = 'cgmUIInstructionsTemplate')
 		guiFactory.headerBreak()
 		guiFactory.lineBreak()
 		descriptionBlock = guiFactory.textBlock(self.description)
@@ -191,7 +169,7 @@ class namingToolsClass(BaseMelWindow):
 		guiFactory.lineBreak()
 		mc.text(label='Version: %s' % self.version)
 		mc.text(label='')
-		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.joshburton.com")')
+		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.cgmonks.com")')
 		guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
 		mc.setParent( '..' )
 		mc.showWindow( window )
@@ -204,71 +182,79 @@ class namingToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Tools
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	def buildAutoNameTool(self,parent, vis=True):
-		containerName = 'AutoNameContainer'
-		self.containerName = MelColumn(parent,vis=vis)
+	def buildAttributeTool(self,parent,vis=True):
+		OptionList = ['Create/Edit/Delete','Manager']
+		cgmVarName = 'cgmAttributeMode'
+		RadioCollectionName ='AttributeMode'
+		RadioOptionList = 'AttributeModeSelectionChoicesList'
+
+		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
 		
-		#>>> Begin the section
-		mc.setParent(self.containerName )
-		guiFactory.header('Tag and Release')
+		if not mc.optionVar( ex=cgmVarName ):
+			mc.optionVar( sv=(cgmVarName, OptionList[0]) )
+		
+		
+		mc.setParent(parent)
+		guiFactory.header('Load your Object')
 		guiFactory.lineSubBreak()
 		
-		#>>> Guessed Name
-		GenratedNameRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate')
-		self.GeneratedNameField = MelLabel(GenratedNameRow,
-	                                       bgc = dictionary.returnStateColor('help'),
-	                                       align = 'center',
-	                                       label = 'Name will preview here...')
-		
-		GenratedNameRow.layout()
-		mc.setParent(self.containerName )
-		guiFactory.lineSubBreak()
-		guiFactory.lineSubBreak()
-	
 		#>>> Load To Field
 		#clear our variables
-		if not mc.optionVar( ex='cgmVarAutoNameObject' ):
-			mc.optionVar( sv=('cgmVarAutoNameObject', '') )
+		if not mc.optionVar( ex='cgmVarAttributeSourceObject' ):
+			mc.optionVar( sv=('cgmVarAttributeSourceObject', '') )
 	
-		LoadAutoNameObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
+		LoadAttributeObjectRow = MelHSingleStretchLayout(parent ,ut='cgmUISubTemplate',padding = 5)
 	
-		MelSpacer(LoadAutoNameObjectRow,w=5)
-	
-		MelLabel(LoadAutoNameObjectRow,l='Object:',align='right')
-	
-		self.AutoNameObjectField = MelTextField(LoadAutoNameObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-		if mc.optionVar( q = 'cgmVarAutoNameObject'):
-			self.AutoNameObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
-	
-		guiFactory.doButton2(LoadAutoNameObjectRow,'<<',
-	                        'tdToolsLib.uiLoadAutoNameObject(cgmTDToolsWin)',
-	                         'Load to field')
-	
-		LoadAutoNameObjectRow.setStretchWidget(self.AutoNameObjectField  )
-	
-		guiFactory.doButton2(LoadAutoNameObjectRow,'Up',
-	                         lambda *a:tdToolsLib.uiAutoNameWalkUp(self),
-	                         'Load to field')
+		MelSpacer(LoadAttributeObjectRow,w=5)
 		
-		guiFactory.doButton2(LoadAutoNameObjectRow,'Down',
-	                         lambda *a:tdToolsLib.uiAutoNameWalkDown(self),
+		self.SourceObjectField = MelTextField(LoadAttributeObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
+
+	
+		guiFactory.doButton2(LoadAttributeObjectRow,'<<',
+	                        lambda *a:attributeToolsLib.uiLoadSourceObject(self),
 	                         'Load to field')
 	
-		guiFactory.doButton2(LoadAutoNameObjectRow,'Name it',
-	                         lambda *a:tdToolsLib.uiNameLoadedAutoNameObject(self),
-	                         'Load to field')
-		guiFactory.doButton2(LoadAutoNameObjectRow,'Name Children',
-	                         lambda *a:tdToolsLib.uiNameLoadedAutoNameObjectChildren(self),
-	                         'Load to field')
+		LoadAttributeObjectRow.setStretchWidget(self.SourceObjectField  )
+		
+		MelLabel(LoadAttributeObjectRow, l=' . ')
+		self.ObjectAttributesOptionMenu = MelOptionMenu(LoadAttributeObjectRow)
 	
-		MelSpacer(LoadAutoNameObjectRow,w=5)
+
 	
-		LoadAutoNameObjectRow.layout()
+		MelSpacer(LoadAttributeObjectRow,w=5)
+	
+		LoadAttributeObjectRow.layout()
 	
 	
-		mc.setParent(self.containerName )
+		mc.setParent(parent)
 		guiFactory.lineSubBreak()
 		
+		#Mode Change row 
+		ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
+		MelLabel(ModeSetRow, label = 'Choose Mode: ',align='right')
+		self.RadioCollectionName = MelRadioCollection()
+		self.RadioOptionList = []		
+
+		#build our sub section options
+		self.ContainerList = []
+
+		self.ContainerList.append( self.buildAttributeEditingTool(parent,vis=False) )
+		self.ContainerList.append( self.buildAttributeManagerTool( parent,vis=False) )
+
+		for item in OptionList:
+			self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
+						                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVarName,self.ContainerList)))
+		ModeSetRow.layout()
+
+
+		mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVarName))])
+
+		
+		
+	def buildAttributeEditingTool(self,parent, vis=True):
+		containerName = 'Attributes Constainer'
+		self.containerName = MelColumn(parent,vis=vis)
+
 		#>>> Tag Labels
 		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		MelLabel(TagLabelsRow,label = 'Position')
@@ -364,4 +350,25 @@ class namingToolsClass(BaseMelWindow):
 		guiFactory.lineBreak()
 	
 	
+		if mc.optionVar( q = 'cgmVarAttributeSourceObject'):
+			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAttributeSourceObject'))
+			attributeToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
+			
+		return self.containerName
+	
+	
+		
+	def buildAttributeManagerTool(self,parent, vis=True):
+		containerName = 'Attributes Constainer'
+		self.containerName = MelColumn(parent,vis=vis)
+
+		#>>> Tag Labels
+		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		MelLabel(TagLabelsRow,label = 'Not done yet...')
+		TagLabelsRow.layout()
+		
+		if mc.optionVar( q = 'cgmVarAttributeSourceObject'):
+			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAttributeSourceObject'))
+			attributeToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
+
 		return self.containerName

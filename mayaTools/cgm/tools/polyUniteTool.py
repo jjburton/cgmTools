@@ -12,8 +12,8 @@
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.joshburton.com
-# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
 #	0.1.12072011 - First version
@@ -38,20 +38,20 @@ from cgm.lib import (guiFactory,
                      dictionary,
                      search)
 
-from cgm.tools import (tdToolsLib,
-                       locinatorLib,
-                       namingToolsLib)
+from cgm.tools.lib import  (tdToolsLib,
+                            locinatorLib,
+                            namingToolsLib)
 
 reload(tdToolsLib)
 
 
 def run():
-	mel.eval('python("import maya.cmds as mc;from cgm.tools import polyUniteTool;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmPolyUniteWin = polyUniteTool.polyUniteClass()")')
+	mel.eval('python("import maya.cmds as mc;from cgm.tools import polyUniteTool;from cgm.tools.lib import tdToolsLib;from cgm.lib import guiFactory;cgmPolyUniteWin = polyUniteTool.polyUniteClass()")')
 
 
 class polyUniteClass(BaseMelWindow):
 	WINDOW_NAME = 'PolyUniteTool'
-	WINDOW_TITLE = 'PolyUniteTool >>> cg{monks}'
+	WINDOW_TITLE = 'cgm.polyUniteTool'
 	DEFAULT_SIZE = 250, 150
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -68,8 +68,8 @@ class polyUniteClass(BaseMelWindow):
 
 		from cgm.lib import (guiFactory,
 				             search)
-		from cgm.tools import (tdToolsLib,
-				               locinatorLib)
+		from cgm.tools.lib import  (tdToolsLib,
+		                            locinatorLib)
 
 
 		# Maya version check
@@ -95,7 +95,7 @@ class polyUniteClass(BaseMelWindow):
 		self.description = 'Standalone PolyUnite tool'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
-		self.website = 'www.joshburton.com'
+		self.website = 'www.cgmonks.com'
 		self.version = __version__
 
 

@@ -1,7 +1,7 @@
 """
 cgmLimb
 Josh Burton (under the supervision of David Bokser:)
-www.joshburton.com
+www.cgmonks.com
 1/12/2011
 
 Key:

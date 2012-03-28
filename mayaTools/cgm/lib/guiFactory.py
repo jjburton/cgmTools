@@ -12,8 +12,8 @@
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.joshburton.com
-# 	Copyright 2011 Josh Burton - All Rights Reserved.
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
 #	0.1.12042011 - First version
@@ -129,7 +129,7 @@ def showAbout(uiWin):
     mc.separator(ut='cgmUITemplate')
     mc.separator(ut='cgmUITemplate')
     mc.text(label='')
-    mc.button(label='Visit Website', ut = 'cgmUITemplate', command=('import webbrowser;webbrowser.open("http://www.joshburton.com")') )
+    mc.button(label='Visit Website', ut = 'cgmUITemplate', command=('import webbrowser;webbrowser.open("http://www.cgmonks.com")') )
     mc.button(label='Close', ut = 'cgmUITemplate', command=('mc.deleteUI(\"' + window + '\", window=True)') )
     mc.setParent( '..' )
     mc.showWindow( window )
