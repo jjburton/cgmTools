@@ -183,7 +183,7 @@ class attributeToolsClass(BaseMelWindow):
 	# Tools
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildAttributeTool(self,parent,vis=True):
-		OptionList = ['Create/Edit/Delete','Manager']
+		OptionList = ['Tools','Manager']
 		cgmVarName = 'cgmAttributeMode'
 		RadioCollectionName ='AttributeMode'
 		RadioOptionList = 'AttributeModeSelectionChoicesList'
@@ -193,41 +193,6 @@ class attributeToolsClass(BaseMelWindow):
 		if not mc.optionVar( ex=cgmVarName ):
 			mc.optionVar( sv=(cgmVarName, OptionList[0]) )
 		
-		
-		mc.setParent(parent)
-		guiFactory.header('Load your Object')
-		guiFactory.lineSubBreak()
-		
-		#>>> Load To Field
-		#clear our variables
-		if not mc.optionVar( ex='cgmVarAttributeSourceObject' ):
-			mc.optionVar( sv=('cgmVarAttributeSourceObject', '') )
-	
-		LoadAttributeObjectRow = MelHSingleStretchLayout(parent ,ut='cgmUISubTemplate',padding = 5)
-	
-		MelSpacer(LoadAttributeObjectRow,w=5)
-		
-		self.SourceObjectField = MelTextField(LoadAttributeObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-
-	
-		guiFactory.doButton2(LoadAttributeObjectRow,'<<',
-	                        lambda *a:attributeToolsLib.uiLoadSourceObject(self),
-	                         'Load to field')
-	
-		LoadAttributeObjectRow.setStretchWidget(self.SourceObjectField  )
-		
-		MelLabel(LoadAttributeObjectRow, l=' . ')
-		self.ObjectAttributesOptionMenu = MelOptionMenu(LoadAttributeObjectRow)
-	
-
-	
-		MelSpacer(LoadAttributeObjectRow,w=5)
-	
-		LoadAttributeObjectRow.layout()
-	
-	
-		mc.setParent(parent)
-		guiFactory.lineSubBreak()
 		
 		#Mode Change row 
 		ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
@@ -252,8 +217,88 @@ class attributeToolsClass(BaseMelWindow):
 		
 		
 	def buildAttributeEditingTool(self,parent, vis=True):
+		#Container
 		containerName = 'Attributes Constainer'
 		self.containerName = MelColumn(parent,vis=vis)
+		
+		###Create
+		mc.setParent(self.containerName)
+		guiFactory.header('Create')
+		guiFactory.lineSubBreak()
+		
+		#>>>Create Row
+		attrCreateRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		MelSpacer(attrCreateRow)
+
+		MelLabel(attrCreateRow,l='Names:',align='right')
+		self.AttrNamesTextField = MelTextField(attrCreateRow,backgroundColor = [1,1,1],
+		                                       annotation = "Text for the text object. Create multiple with a ';'. \n For example: 'Test1;Test2;Test3'")
+		guiFactory.doButton2(attrCreateRow,'Create',
+		                     "print 'yes'",
+		                     "Create")
+
+		attrCreateRow.setStretchWidget(self.AttrNamesTextField)
+		attrCreateRow.layout()
+		
+		
+		#>>> asf
+		attrTypes = ['string','vector','int','bool','enum','message']
+		self.CreateAttrTypeRadioCollection = MelRadioCollection()
+		self.CreateAttrTypeRadioOptionList = []		
+		
+		#build our sub section options
+		AttrTypeRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding =15)
+		for item in attrTypes:
+			self.CreateAttrTypeRadioCollection.createButton(AttrTypeRow,label='')
+
+		#mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[attrTypes.index(mc.optionVar(q=cgmVarName))])
+
+		AttrTypeRow.layout()
+		
+		
+		AttrLabelRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		for item in attrTypes:
+			MelLabel(AttrLabelRow,label=item)
+		AttrLabelRow.layout()
+		
+		
+		
+		###Modify
+		mc.setParent(self.containerName)
+		guiFactory.header('Modify')
+		guiFactory.lineSubBreak()
+		
+		#>>> Load To Field
+		#clear our variables
+		if not mc.optionVar( ex='cgmVarAttributeSourceObject' ):
+			mc.optionVar( sv=('cgmVarAttributeSourceObject', '') )
+	
+		LoadAttributeObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
+	
+		MelSpacer(LoadAttributeObjectRow,w=5)
+		
+		self.SourceObjectField = MelTextField(LoadAttributeObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
+
+	
+		guiFactory.doButton2(LoadAttributeObjectRow,'<<',
+	                        lambda *a:attributeToolsLib.uiLoadSourceObject(self),
+	                         'Load to field')
+	
+		LoadAttributeObjectRow.setStretchWidget(self.SourceObjectField  )
+		
+		MelLabel(LoadAttributeObjectRow, l=' . ')
+		self.ObjectAttributesOptionMenu = MelOptionMenu(LoadAttributeObjectRow)
+	
+
+	
+		MelSpacer(LoadAttributeObjectRow,w=5)
+	
+		LoadAttributeObjectRow.layout()
+	
+	
+		mc.setParent(self.containerName)
+		guiFactory.lineSubBreak()
+
 
 		#>>> Tag Labels
 		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
@@ -328,31 +373,9 @@ class attributeToolsClass(BaseMelWindow):
 		
 		#>>> Basic
 		mc.setParent(self.containerName )
-		guiFactory.header('On Selection')
+		guiFactory.header('Connect')
 		guiFactory.lineSubBreak()
-	
-		BasicRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-		guiFactory.doButton2(BasicRow,'Name Object',
-	                         'tdToolsLib.uiNameObject(cgmTDToolsWin)',
-	                         "Attempts to name an object")
-		guiFactory.doButton2(BasicRow,'Update Name',
-	                         'tdToolsLib.doUpdateObjectName(cgmTDToolsWin)',
-	                         "Takes the name you've manually changed the object to, \n stores that to the cgmName tag then \n renames the object")
-		guiFactory.doButton2(BasicRow,'Name Heirarchy',
-	                         'tdToolsLib.doNameHeirarchy(cgmTDToolsWin)',
-	                         "Attempts to intelligently name a  \n heirarchy of objects")
-	
-		BasicRow.layout()
-		
-		
-		mc.setParent(self.containerName )
-		guiFactory.lineSubBreak()
-		guiFactory.lineBreak()
-	
-	
-		if mc.optionVar( q = 'cgmVarAttributeSourceObject'):
-			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAttributeSourceObject'))
-			attributeToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
+
 			
 		return self.containerName
 	
