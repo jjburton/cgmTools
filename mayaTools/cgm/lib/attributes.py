@@ -29,7 +29,38 @@ namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
+def returnAttrListFromStringInput (stringInput1,stringInput2 = None):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Takes an list of string variables to add to an object as string
+    attributes. Skips it if it exists.
 
+    REQUIRES:
+    stringInput(string/stringList)
+
+    RETURNS:
+    [obj,attr]
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    if '.' in list(stringInput1):
+        buffer = stringInput1.split('.')
+        assert mc.objExists(buffer[0]) is True,"'%s' doesn't exsit"%buffer[0]
+        assert len(buffer) == 2, "'%s' has too many .'s"%stringInput1
+        obj = buffer [0]
+        attr = buffer[1]
+        return [obj,attr]
+    elif len(stringInput1) == 2:
+        assert mc.objExists(stringInput1[0]) is True,"'%s' doesn't exsit"%stringInput1[0]
+        obj = stringInput1 [0]
+        attr = stringInput1[1]
+        return [obj,attr]
+    elif stringInput2 !=None:
+        assert mc.objExists(stringInput1) is True,"'%s' doesn't exsit"%stringInput1
+        return [stringInput1,stringInput2]
+
+    else:
+        return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Storing fuctions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1128,26 +1159,104 @@ def addAttributesToObj (obj, attributeTypesDict):
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def addStringAttributeToObj (obj, attr):
+def addStringAttributeToObj (obj,attr,*a, **kw ):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Takes an list of string variables to add to an object as string
-    attributes. Skips it if it exists.
+    Adds a string attribute to an object, passing forward commands
+
 
     REQUIRES:
-    obj(string) - object to add attributes to
-    attrList(list) - list of attributes to add
+    obj(string)
+    attr(string)
 
     RETURNS:
-    NA
+    Success(bool)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    attrCache = (obj+'.'+attr)
-    if not mc.objExists (attrCache):
-        return (mc.addAttr (obj, ln = attr,  dt = 'string'))
-    else:
-        print ('"' + attrCache + '" exists, moving on')
+    """    
+    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
+
+    try: 
+        mc.addAttr (obj, ln = attr, dt = 'string',*a, **kw)
+        return True
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        return False
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def addIntegerAttributeToObj (obj,attr,*a, **kw ):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Adds a integer attribute to an object, passing forward commands
+
+
+    REQUIRES:
+    obj(string)
+    attr(string)
+
+    RETURNS:
+    Success(bool)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """   
+    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
+
+    try: 
+        mc.addAttr (obj, ln = attr, at = 'long',*a, **kw)
+        return True
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        return False
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def addMessageAttributeToObj (obj,attr,*a, **kw ):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Adds a integer attribute to an object, passing forward commands
+
+
+    REQUIRES:
+    obj(string)
+    attr(string)
+
+    RETURNS:
+    Success(bool)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """    
+    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
+
+    try: 
+        mc.addAttr (obj, ln = attr, at = 'message',*a, **kw )
+        return True
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        return False   
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def addVectorAttributeToObj (obj,attr,*a, **kw):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Adds a vector attribute to an object, passing forward commands
+
+    REQUIRES:
+    obj(string)
+    attr(string)
+
+    RETURNS:
+    Success(bool)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """    
+    try: 
+        mc.addAttr (obj, ln=attr, at= 'double3',*a, **kw)
+        mc.addAttr (obj, ln=(attr+'X'),p=attr , at= 'double',*a, **kw)
+        mc.addAttr (obj, ln=(attr+'Y'),p=attr , at= 'double',*a, **kw)
+        mc.addAttr (obj, ln=(attr+'Z'),p=attr , at= 'double',*a, **kw)       
+        return True
+    
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        return False
+
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1175,7 +1284,7 @@ def addStringAttributesToObj (obj, attrList):
             print ('"' + attrCache + '" exists, moving on')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def addFloatAttributeToObject (obj, attr, minValue = None, maxValue = None, default = None):
+def addFloatAttributeToObject (obj, attr,*a, **kw):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1192,32 +1301,17 @@ def addFloatAttributeToObject (obj, attr, minValue = None, maxValue = None, defa
     Attribute full name (string) - ex obj.attribute
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    """ gotta be a betterway to flag this """
-    attrCache = (obj+'.'+attr)
-    if not mc.objExists (attrCache):
-        if not minValue == None:
-            if not maxValue == None:           
-                mc.addAttr (obj, ln = attr,  at = 'float', min = minValue, max = maxValue, dv = default )
-                mc.setAttr (attrCache, edit=True, keyable = True)
-                return attrCache
-            else:
-                mc.addAttr (obj, ln = attr,  at = 'float', min = minValue, dv = default )
-                mc.setAttr (attrCache, edit=True, keyable = True)
-                return attrCache
-        else:
-            if not maxValue == None:
-                mc.addAttr (obj, ln = attr,  at = 'float', max = maxValue, dv = default )
-                mc.setAttr (attrCache, edit=True, keyable = True)
-                return attrCache
-            else:
-                mc.addAttr (obj, ln = attr,  at = 'float', dv = default )
-                mc.setAttr (attrCache, edit=True, keyable = True)
-                return attrCache   
-    else:
-        print ('"' + attrCache + '" exists, moving on')
+    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
+
+    try: 
+        mc.addAttr (obj, ln = attr, at = 'float',*a, **kw)
+        return True
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def addEnumAttrToObj (obj,attrName,optionList=['off','on'], default=None):
+def addEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1233,18 +1327,20 @@ def addEnumAttrToObj (obj,attrName,optionList=['off','on'], default=None):
     Attribute full name (string) - ex obj.attribute
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    attrCache = (obj+'.'+attrName)
-    if not mc.objExists (attrCache):
-        mc.addAttr(obj,ln = attrName, at = 'enum', en=('%s' %(':'.join(optionList))))
-        mc.setAttr ((obj+'.'+attrName),e=True,keyable=True)
+    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
 
-        return attrCache
-    else:
+    try: 
+        mc.addAttr (obj,ln = attr, at = 'enum', en=('%s' %(':'.join(optionList))),*a, **kw)
+        mc.setAttr ((obj+'.'+attr),e=True,keyable=True)
+        return True
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
+    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def addFloatAttrsToObj (obj,attrList, minValue = None, maxValue=None, default=None):
+def addFloatAttrsToObj (obj,attrList, *a, **kw):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1263,11 +1359,11 @@ def addFloatAttrsToObj (obj,attrList, minValue = None, maxValue=None, default=No
     """
     attrsCache=[]
     for attr in attrList:
-        attrCache = addFloatAttributeToObject (obj, attr, minValue, maxValue, default)
+        attrCache = addFloatAttributeToObject (obj, attr, *a, **kw)
         attrsCache.append(attrCache)
     return attrsCache
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def addBoolAttrToObject(obj, attr):
+def addBoolAttrToObject(obj, attr, *a, **kw):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1278,15 +1374,20 @@ def addBoolAttrToObject(obj, attr):
     attr(string) - name for the section break
 
     RETURNS:
-    Nothing
+    Success
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    attrCache = (obj+'.'+attr)
-    if not mc.objExists (attrCache):
-        mc.addAttr (obj, ln = attr,  at = 'bool')
-        mc.setAttr (attrCache, edit = True, channelBox = True)
-    else:
-        print ('"' + attrCache + '" exists, moving on')
+    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
+
+    try: 
+        mc.addAttr (obj, ln = attr,  at = 'bool',*a, **kw)
+        mc.setAttr ((obj+'.'+attr), edit = True, channelBox = True)
+
+        return True
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        return False
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def addSectionBreakAttrToObj(obj, attr):
@@ -1350,17 +1451,23 @@ def storeObjectToMessage (obj, storageObj, messageName):
     messageName(string) - message name to store it as
 
     RETURNS:
-    Nothing
+    Success
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrCache = (storageObj+'.'+messageName)
-    if  mc.objExists (attrCache):  
-        print (attrCache+' already exists. Adding to existing message node.')
-        breakConnection(attrCache)
-        mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-    else:
-        mc.addAttr (storageObj, ln=messageName, at= 'message')
-        mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+    try:
+        if  mc.objExists (attrCache):  
+            print (attrCache+' already exists. Adding to existing message node.')
+            breakConnection(attrCache)
+            mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+            return True
+        else:
+            mc.addAttr (storageObj, ln=messageName, at= 'message')
+            mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+            return True
+    except:
+        return False
+    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def storeObjListNameToMessage (objList, storageObj):

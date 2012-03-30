@@ -943,7 +943,7 @@ class tdToolsClass(BaseMelWindow):
 		AttributeUtilityRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(AttributeUtilityRow1,'cgmName to Float',
-				             'tdToolsLib.docgmNameToFloat()',
+				             'tdToolsLib.doCGMNameToFloat()',
 				             'Makes an animatalbe float attribute using the cgmName tag')
 
 

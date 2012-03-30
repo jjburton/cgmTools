@@ -1176,7 +1176,7 @@ def doLayoutByRowsAndColumns(self):
 		guiFactory.warning('You must have at least two objects selected')
 	mc.select(selected)
 
-def docgmNameToFloat():
+def doCGMNameToFloat():
 	returnBuffer = []
 	for obj in  mc.ls(sl=True):
 		returnBuffer.append(modules.cgmTagToFloatAttr(obj,'cgmName'))

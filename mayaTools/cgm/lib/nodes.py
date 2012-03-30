@@ -89,7 +89,7 @@ def createPoseBuffer(name,poseList):
     poseBuffer = autoname.doNameObject(poseBuffer)
     returnList.append(poseBuffer)
     
-    returnList.append(attributes.addFloatAttrsToObj(poseBuffer, poseList,default = 0))
+    returnList.append(attributes.addFloatAttrsToObj(poseBuffer, poseList,dv = 0))
     
     attributes.doSetLockHideKeyableAttr(poseBuffer,True,False,False)
     

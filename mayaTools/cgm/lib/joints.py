@@ -698,7 +698,7 @@ def addSqashStretchToSurfaceChainByAttr(attributeHolder,jointChain,jointOrient):
         sqStrchValueNodes=[]
         """ add our attributes"""
         for jnt in jointChain[0:-1]:
-                jntScaleAttribute = attributes.addFloatAttributeToObject (attributeHolder,jnt,None,None,0)
+                jntScaleAttribute = attributes.addFloatAttributeToObject (attributeHolder,jnt)
                 jointScaleAttrs.append(jntScaleAttribute)
         cnt=0
         for jnt in jointChain[0:-1]:
@@ -796,7 +796,7 @@ def addSqashStretchToSurfaceChainByAnimCrv(attributeHolder,jointChain,jointOrien
         scaleDirection2 = scale2Buffer.capitalize()
         """ make our attribute and declare some variables """
         if not mc.objExists ((attributeHolder+'.sqshStrch')):
-                sqshStrchAttribute = attributes.addFloatAttributeToObject (attributeHolder,'sqshStrch',None,None,0)
+                sqshStrchAttribute = attributes.addFloatAttributeToObject (attributeHolder,'sqshStrch')
         else:
                 sqshStrchAttribute = (attributeHolder+'.sqshStrch')
         cnt=1

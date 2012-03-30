@@ -205,12 +205,12 @@ def loadTDTools( *a ):
 	reload(tdTools)
 	tdTools.run()
 
-def loadAttributeTools( *a ):
+def loadAttrTools( *a ):
 	import cgm
 	from cgm.lib import guiFactory
-	from cgm.tools import attributeTools
-	reload(attributeTools)
-	attributeTools.run()
+	from cgm.tools import attrTools
+	reload(attrTools)
+	attrTools.run()
 	
 def loadLocinator( *a ):
 	import cgm
@@ -262,7 +262,7 @@ TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locator
                         loadNamingTools),
                        
                        ('Attribute Tools', " Attribute tools",
-                        loadAttributeTools),                       
+                        loadAttrTools),                       
                        
                        )),
 
@@ -291,7 +291,7 @@ class ToolboxTabs(MelTabLayout):
 
 class ToolboxWindow(BaseMelWindow):
 	WINDOW_NAME = 'cgmToolbox'
-	WINDOW_TITLE = 'cgmToolbox >>> cg{monks}'
+	WINDOW_TITLE = 'cgm.Toolbox'
 
 	DEFAULT_SIZE = 400, 300
 	FORCE_DEFAULT_SIZE = True

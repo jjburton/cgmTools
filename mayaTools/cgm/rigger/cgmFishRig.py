@@ -612,7 +612,7 @@ def rigSpine (crvName,tailCntrlJoints,waveControlObject,splitJoints):
     mc.reorderDeformers ("tweak2", blendshapeNode[0],controlSurface[0])
     """ add some attrs to our wave control object """
     attributes.addSectionBreakAttrToObj (waveControlObject, 'swim')
-    attributes.addFloatAttributeToObject (waveControlObject, 'auto', 0, 1, 0)
+    attributes.addFloatAttributeToObject (waveControlObject, 'auto', min = 0, max = 1, dv =0)
     attributes.addFloatAttributeToObject (waveControlObject, 'speed', -100, 100, 0)
     attributes.addFloatAttributeToObject (waveControlObject, 'wavelength', 0, 10, 5)
     attributes.addFloatAttributeToObject (waveControlObject, 'amplitude', 0, 10, 0)

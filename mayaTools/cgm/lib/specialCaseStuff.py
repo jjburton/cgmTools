@@ -93,7 +93,7 @@ def doConnectScaleToCGMTagOnObject(objectList, cgmTag, storageObject):
 	for key in userAttrsData.keys():
 	    if key == cgmTag:
 		success = True
-		buffer = attributes.addFloatAttributeToObject (storageObject, userAttrsData.get(key), default = 1 )
+		buffer = attributes.addFloatAttributeToObject (storageObject, userAttrsData.get(key), dv = 1 )
 
 	if success:
 	    attributes.doConnectAttr(buffer,(obj+'.scaleX'))

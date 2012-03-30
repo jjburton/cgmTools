@@ -1,11 +1,11 @@
 #=================================================================================================================================================
 #=================================================================================================================================================
-#	attributeTools - a part of cgmTools
+#	attrTools - a part of cgmTools
 #=================================================================================================================================================
 #=================================================================================================================================================
 #
 # DESCRIPTION:
-#   Large collection of rigging tools
+#   Gui Tool for attribute tools
 #
 # REQUIRES:
 #   Maya
@@ -15,18 +15,9 @@
 #	http://www.cgmonks.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
-# CHANGELOG:
-#	0.1.12072011 - First version
-#	0.1.12132011 - master control maker implemented, snap move tools added
-#	0.1.01092012 - Rewrote with Hamish's stuff
-#	0.1.01102012 - Added abililty to set default color, default color now carries across instances of tool. Added ability to
-#                      to create multiple text curves at once with ';' between them. Added snap to surface basic implementation
-#                      Added first pass of grid layout
-#	0.1.01112012 - Added Attribute Tab - cgmNameToFloat. Added Info Tab - countSelected. Grid layout- added ability arrange by name
-#	0.1.01113012 - Started skin cluster utilities, added find verts with excess influence
 #
 #=================================================================================================================================================
-__version__ = '0.1.01102012'
+__version__ = '0.1.03292012'
 
 
 import maya.mel as mel
@@ -41,36 +32,18 @@ from cgm.lib import (guiFactory,
 from cgm.tools import (tdToolsLib,
                        locinatorLib)
 
-from cgm.tools.lib import (attributeToolsLib)
+from cgm.tools.lib import (attrToolsLib)
 
 reload(tdToolsLib)
-reload(attributeToolsLib)
+reload(attrToolsLib)
 
 def run():
-	attributeToolsClass()
-	#mel.eval('python("import maya.cmds as mc;from cgm.tools import namingTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;attributeTools = attributeTools.attributeToolsClass()")')
+	attrToolsClass()
 
-	"""
-	Hamish, the reason I did this was a few reasons
-
-	1) because I need to know what the name of my ui window is which
-	I'm declaring in this mel.eval do you know a better way to do this?
-
-	2) I get an mc error otherwise
-
-	3) issue with the gui templates note initializing otherwise. Also it looks like your revision to zooPy's baseMelUI
-	borked the template initialize stuff. Took me a bit to realized you'd removed all of that. Can we do a code compare to see what I changed to
-	see if we can roll that into your code so everything works again or tell me another way to get them working together?
-
-
-	your code:
-	tdToolsClass()
-	"""
-
-class attributeToolsClass(BaseMelWindow):
-	WINDOW_NAME = 'attributeTools'
-	WINDOW_TITLE = 'cgm.attributeTools'
-	DEFAULT_SIZE = 300, 400
+class attrToolsClass(BaseMelWindow):
+	WINDOW_NAME = 'attrTools'
+	WINDOW_TITLE = 'cgm.attrTools'
+	DEFAULT_SIZE = 350, 400
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -96,9 +69,9 @@ class attributeToolsClass(BaseMelWindow):
 		# Basic variables
 		self.window = ''
 		self.activeTab = ''
-		self.toolName = 'attributeTools'
+		self.toolName = 'attrTools'
 		self.module = 'tdTools'
-		self.winName = 'attributeToolsWin'
+		self.winName = 'attrToolsWin'
 
 		self.showHelp = False
 		self.helpBlurbs = []
@@ -193,6 +166,7 @@ class attributeToolsClass(BaseMelWindow):
 		if not mc.optionVar( ex=cgmVarName ):
 			mc.optionVar( sv=(cgmVarName, OptionList[0]) )
 		
+		MelSeparator(parent,ut = 'cgmUIHeaderTemplate',h=5)
 		
 		#Mode Change row 
 		ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
@@ -232,36 +206,20 @@ class attributeToolsClass(BaseMelWindow):
 
 		MelLabel(attrCreateRow,l='Names:',align='right')
 		self.AttrNamesTextField = MelTextField(attrCreateRow,backgroundColor = [1,1,1],
-		                                       annotation = "Text for the text object. Create multiple with a ';'. \n For example: 'Test1;Test2;Test3'")
-		guiFactory.doButton2(attrCreateRow,'Create',
-		                     "print 'yes'",
-		                     "Create")
+		                                       annotation = "Names for the attributes. Create multiple with a ';'. \n Message nodes try to connect to the last object in a selection \n For example: 'Test1;Test2;Test3'")
+		guiFactory.doButton2(attrCreateRow,'Add',
+		                     lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+		                     "Add the attribute names from the text field")
+		MelSpacer(attrCreateRow,w=2)
 
 		attrCreateRow.setStretchWidget(self.AttrNamesTextField)
 		attrCreateRow.layout()
 		
 		
 		#>>> asf
-		attrTypes = ['string','vector','int','bool','enum','message']
-		self.CreateAttrTypeRadioCollection = MelRadioCollection()
-		self.CreateAttrTypeRadioOptionList = []		
-		
-		#build our sub section options
-		AttrTypeRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding =15)
-		for item in attrTypes:
-			self.CreateAttrTypeRadioCollection.createButton(AttrTypeRow,label='')
-
-		#mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[attrTypes.index(mc.optionVar(q=cgmVarName))])
-
-		AttrTypeRow.layout()
-		
-		
-		AttrLabelRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
-		for item in attrTypes:
-			MelLabel(AttrLabelRow,label=item)
-		AttrLabelRow.layout()
-		
-		
+		self.buildAttrTypeRow(self.containerName)
+		MelSeparator(self.containerName,ut = 'cgmUIHeaderTemplate',h=3)
+		MelSeparator(self.containerName,ut = 'cgmUITemplate',h=10)
 		
 		###Modify
 		mc.setParent(self.containerName)
@@ -277,19 +235,21 @@ class attributeToolsClass(BaseMelWindow):
 	
 		MelSpacer(LoadAttributeObjectRow,w=5)
 		
-		self.SourceObjectField = MelTextField(LoadAttributeObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-
-	
-		guiFactory.doButton2(LoadAttributeObjectRow,'<<',
-	                        lambda *a:attributeToolsLib.uiLoadSourceObject(self),
+		guiFactory.doButton2(LoadAttributeObjectRow,'>>',
+	                        lambda *a:attrToolsLib.uiLoadSourceObject(self),
 	                         'Load to field')
+		
+		self.SourceObjectField = MelTextField(LoadAttributeObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
 	
 		LoadAttributeObjectRow.setStretchWidget(self.SourceObjectField  )
 		
 		MelLabel(LoadAttributeObjectRow, l=' . ')
 		self.ObjectAttributesOptionMenu = MelOptionMenu(LoadAttributeObjectRow)
 	
-
+		guiFactory.doButton2(LoadAttributeObjectRow,'X',
+	                        lambda *a:attrToolsLib.uiDeleteAttr(self,self.ObjectAttributesOptionMenu),
+		                    'Delete attribute',
+		                    w = 25)
 	
 		MelSpacer(LoadAttributeObjectRow,w=5)
 	
@@ -300,14 +260,16 @@ class attributeToolsClass(BaseMelWindow):
 		guiFactory.lineSubBreak()
 
 
-		#>>> Tag Labels
-		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-		MelLabel(TagLabelsRow,label = 'Position')
-		MelLabel(TagLabelsRow,label = 'Direction')
-		MelLabel(TagLabelsRow,label = 'Name')
-		MelLabel(TagLabelsRow,label = 'Type')
-	
-		TagLabelsRow.layout()
+		#>>> Standard Flags
+		BasicAttrFlagsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		MelSpacer(BasicAttrFlagsRow,w=5)
+		self.KeyableAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Keyable')
+		MelSpacer(BasicAttrFlagsRow,w=5)
+		self.HiddenAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Hidden')
+		MelSpacer(BasicAttrFlagsRow,w=5)
+		self.LockedAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Locked')
+		MelSpacer(BasicAttrFlagsRow,w=5)
+		BasicAttrFlagsRow.layout()
 		
 		#>>> Tags
 		mc.setParent(self.containerName )
@@ -327,12 +289,7 @@ class attributeToolsClass(BaseMelWindow):
 	                                     bgc = dictionary.returnStateColor('normal'),
 	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
 	                                     w = 75)
-		"""
-		self.NameTagFieldPopUp = MelPopupMenu(self.NameTagField,button = 3)
-		self.NameTagLoadParentPopUp = MelMenuItem(self.NameTagFieldPopUp ,
-												  label = 'Select parent name object',
-												  enable = False)
-		"""
+
 		self.ObjectTypeTagField = MelTextField(TagsRow,
 	                                     enable = False,
 	                                     bgc = dictionary.returnStateColor('normal'),
@@ -366,20 +323,51 @@ class attributeToolsClass(BaseMelWindow):
 		TagModifiersRow.layout()
 		
 		
-		
-		mc.setParent(self.containerName )
-		guiFactory.lineSubBreak()
-		guiFactory.lineBreak()
+		MelSeparator(self.containerName,ut = 'cgmUIHeaderTemplate',h=3)
+		MelSeparator(self.containerName,ut = 'cgmUITemplate',h=10)
+
 		
 		#>>> Basic
 		mc.setParent(self.containerName )
 		guiFactory.header('Connect')
+		guiFactory.doButton2(self.containerName,'Select an attr',
+	                        lambda *a: attrToolsLib.uiSelectAttrMenu(self,'test'),
+		                    'Delete attribute')		
 		guiFactory.lineSubBreak()
 
 			
 		return self.containerName
 	
-	
+	def buildAttrTypeRow(self,parent):	
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		# Attr type row
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		attrTypes = ['string','float','int','vector','bool','enum','message']
+		attrShortTypes = ['str','float','int','[000]','bool','enum','msg']
+
+		self.CreateAttrTypeRadioCollection = MelRadioCollection()
+		self.CreateAttrTypeRadioCollectionChoices = []		
+		if not mc.optionVar( ex='cgmAttrCreateType' ):
+			mc.optionVar( sv=('cgmAttrCreateType', '') )
+			
+		#build our sub section options
+		AttrTypeRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		for item in attrTypes:
+			cnt = attrTypes.index(item)
+			self.CreateAttrTypeRadioCollectionChoices.append(self.CreateAttrTypeRadioCollection.createButton(AttrTypeRow,label=attrShortTypes[cnt],
+			                                                                                                 onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmAttrCreateType','",item,"'))"))))
+			MelSpacer(AttrTypeRow,w=2)
+
+		mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(mc.optionVar(q='cgmAttrCreateType')) ]))
+		
+		AttrTypeRow.layout()
+		"""
+		AttrLabelRow = MelHLayout(self.containerName,ut='cgmUISubTemplate')
+		for item in attrTypes:
+			MelLabel(AttrLabelRow,label=item)
+		AttrLabelRow.layout()
+		"""
+
 		
 	def buildAttributeManagerTool(self,parent, vis=True):
 		containerName = 'Attributes Constainer'
@@ -392,6 +380,6 @@ class attributeToolsClass(BaseMelWindow):
 		
 		if mc.optionVar( q = 'cgmVarAttributeSourceObject'):
 			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAttributeSourceObject'))
-			attributeToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
+			attrToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
 
 		return self.containerName

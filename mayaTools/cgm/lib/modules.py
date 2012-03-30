@@ -47,7 +47,7 @@ typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFil
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
-def cgmTagToFloatAttr(obj,cgmTag,minValue = None, maxValue = None, default = 0,**a):
+def cgmTagToFloatAttr(obj,cgmTag,*a, **kw):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -66,7 +66,7 @@ def cgmTagToFloatAttr(obj,cgmTag,minValue = None, maxValue = None, default = 0,*
     for key in userAttrsData.keys():
         if key == cgmTag:
             success = True
-            attributes.addFloatAttributeToObject (obj, userAttrsData.get(key), minValue , maxValue, default )
+            attributes.addFloatAttributeToObject (obj, userAttrsData.get(key) )
             
     return success
 

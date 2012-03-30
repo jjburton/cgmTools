@@ -388,7 +388,7 @@ def updateBlendShapeNodeToPoseBuffer(poseBuffer,blendShapeNode,doConnect = True,
     removeAttrsBuffer = lists.returnMissingList(blendShapeAttrs,initialPoseBufferAttrs)
     newAttrs = lists.returnMissingList(initialPoseBufferAttrs,blendShapeAttrs)
 
-    newAttrs = attributes.addFloatAttrsToObj(poseBuffer, newAttrs,default = 0)
+    newAttrs = attributes.addFloatAttrsToObj(poseBuffer, newAttrs,dv = 0)
     poseBufferAttrs = attributes.returnUserAttributes(poseBuffer)
 
     if doConnect:
