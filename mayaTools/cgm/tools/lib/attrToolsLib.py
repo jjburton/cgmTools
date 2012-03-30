@@ -55,15 +55,20 @@ def uiLoadSourceObject(self,selectAttr = False):
         #clear the field
         guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarAttributeSourceObject')
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
-        """
-		# update the fields
-		for key in fieldToKeyDict.keys():
-			mc.textField(fieldToKeyDict.get(key),edit=True,enable=False,
-		                 text = '',
-			             bgc = dictionary.returnStateColor('normal'))
-		"""
+
+def uiSelectActiveAttr(self,attr):  
+    #>>> Variables
+    sourceObject =  mc.optionVar( q = 'cgmVarAttributeSourceObject')
+    print mc.getAttr((sourceObject+'.'+attr),type=True)
+    
+    keyableState = mc.getAttr((sourceObject+'.'+attr),keyable=True)
+    hiddenState =  mc.getAttr((sourceObject+'.'+attr),cb=True)
+    lockedState =  mc.getAttr((sourceObject+'.'+attr), lock=True)
 
 
+
+    
+    
 
 def uiDeleteAttr(self,menu):
     #>>> Variables and assertations
@@ -91,7 +96,7 @@ def uiDeleteAttr(self,menu):
 
 def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):			
     def uiAttrUpdate(item):
-        attrType = mc.getAttr((sourceObject + '.'+item),type=True)
+        uiSelectActiveAttr(self,item)
 
     sourceObject =  mc.optionVar( q = 'cgmVarAttributeSourceObject')
     menu(edit=True,cc = uiAttrUpdate)

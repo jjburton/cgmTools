@@ -271,60 +271,82 @@ class attrToolsClass(BaseMelWindow):
 		MelSpacer(BasicAttrFlagsRow,w=5)
 		BasicAttrFlagsRow.layout()
 		
-		#>>> Tags
-		mc.setParent(self.containerName )
-		TagsRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 3)
-		self.PositionTagField = MelTextField(TagsRow,
-	                                     enable = False,
-	                                     bgc = dictionary.returnStateColor('normal'),
-	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
-	                                     w = 75)
-		self.DirectionTagField = MelTextField(TagsRow,
-	                                     enable = False,
-	                                     bgc = dictionary.returnStateColor('normal'),
-	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
-	                                     w = 75)
-		self.NameTagField = MelTextField(TagsRow,
-	                                     enable = False,
-	                                     bgc = dictionary.returnStateColor('normal'),
-	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
-	                                     w = 75)
-
-		self.ObjectTypeTagField = MelTextField(TagsRow,
-	                                     enable = False,
-	                                     bgc = dictionary.returnStateColor('normal'),
-	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmType'),
-	                                     w = 75)
+		#>>> Int Row
+		EditDigitSettingsRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		MelLabel(EditDigitSettingsRow,label = 'Settings: ')
+		self.MinIntField = MelTextField(EditDigitSettingsRow,
+		                                enable = False,
+		                                text = 'Min',
+		                                bgc = dictionary.returnStateColor('normal'),
+		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                                w = 50)
+		self.MaxIntField = MelTextField(EditDigitSettingsRow,
+		                                enable = False,
+		                                text = 'Max',
+		                                bgc = dictionary.returnStateColor('normal'),
+		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
+		                                w = 50)
+		self.DefaultIntField = MelTextField(EditDigitSettingsRow,
+		                                    enable = False,
+		                                    text = 'Default',
+		                                    bgc = dictionary.returnStateColor('normal'),
+		                                    ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
+		                                    w = 50)
+		MelSpacer(EditDigitSettingsRow,w=5)
+		EditDigitSettingsRow.layout()
 		
-		TagsRow.layout()
+		#>>> Enum
+		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
+		EditEnumRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		MelSpacer(EditEnumRow,w=10)
+		MelLabel(EditEnumRow,label = 'Enum: ')
+		self.EnumField = MelTextField(EditEnumRow,
+		                                enable = False,
+		                                bgc = dictionary.returnStateColor('normal'),
+		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                                w = 75)
+		MelSpacer(EditEnumRow,w=10)
+		EditEnumRow.setStretchWidget(self.EnumField)
+		
+		EditEnumRow.layout()
+		
+		#>>> String
+		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
+		EditStringRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		MelSpacer(EditStringRow,w=10)
+		MelLabel(EditStringRow,label = 'String: ')
+		self.StringField = MelTextField(EditStringRow,
+		                                enable = False,
+		                                bgc = dictionary.returnStateColor('normal'),
+		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                                w = 75)
+		MelSpacer(EditStringRow,w=10)
+		EditStringRow.setStretchWidget(self.StringField)
+		
+		EditStringRow.layout()
+		
+		#>>> Message
+		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
+		EditMessageRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		MelSpacer(EditMessageRow,w=10)
+		MelLabel(EditMessageRow,label = 'Message: ')
+		self.MessageField = MelTextField(EditMessageRow,
+		                                enable = False,
+		                                bgc = dictionary.returnStateColor('normal'),
+		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                                w = 75)
+		guiFactory.doButton2(EditMessageRow,'<<',
+	                        lambda *a:attrToolsLib.uiLoadSourceObject(self),
+	                         'Load to field')
+		MelSpacer(EditMessageRow,w=10)
+		EditMessageRow.setStretchWidget(self.MessageField)
+
+		EditMessageRow.layout()
+		
+		
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
-		
-		#>>> ModifierTags
-		mc.setParent(self.containerName )
-		TagModifiersRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 3)
-		MelLabel(TagModifiersRow,align = 'right', label = 'Modifiers ------->',w = 75)
-		self.DirectionModifierTagField = MelTextField(TagModifiersRow,
-	                                     enable = False,
-	                                     bgc = dictionary.returnStateColor('normal'),
-	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirectionModifier'),
-	                                     w = 75)
-		self.NameModifierTagField = MelTextField(TagModifiersRow,
-	                                     enable = False,
-	                                     bgc = dictionary.returnStateColor('normal'),
-	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmNameModifier'),
-	                                     w = 75)
-		self.ObjectTypeModifierTagField = MelTextField(TagModifiersRow,
-	                                     enable = False,
-	                                     bgc = dictionary.returnStateColor('normal'),
-	                                     ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmTypeModifier'),
-	                                     w = 75)
-		
-		TagModifiersRow.layout()
-		
-		
-		MelSeparator(self.containerName,ut = 'cgmUIHeaderTemplate',h=3)
-		MelSeparator(self.containerName,ut = 'cgmUITemplate',h=10)
+		guiFactory.lineBreak()
 
 		
 		#>>> Basic

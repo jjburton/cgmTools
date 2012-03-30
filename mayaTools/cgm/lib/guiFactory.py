@@ -80,7 +80,7 @@ def initializeTemplates():
     mc.uiTemplate('cgmUISubTemplate')
     mc.formLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.text(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-    mc.separator(dt='cgmUISubTemplate', height = 2, style = 'none', backgroundColor = guiSubMenuColor)
+    mc.separator(dt='cgmUISubTemplate', height = 3, style = 'none', backgroundColor = guiSubMenuColor)
     mc.rowLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.rowColumnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.columnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
