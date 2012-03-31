@@ -313,8 +313,8 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     mc.move (objTrans[0],objTrans[1],objTrans[2], [newName])
     mc.rotate (objRot[0], objRot[1], objRot[2], [newName], ws=True)
     mc.xform (newName, cp=True)
-
-    if maintainParent == True:
+    
+    if maintainParent == True and oldParent:
         newName = doParentReturnName(newName,oldParent)
     if parent == True:
         obj = doParentReturnName(obj,newName)
