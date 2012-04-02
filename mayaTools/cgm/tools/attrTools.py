@@ -274,24 +274,24 @@ class attrToolsClass(BaseMelWindow):
 		#>>> Int Row
 		EditDigitSettingsRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
 		MelLabel(EditDigitSettingsRow,label = 'Settings: ')
-		self.MinIntField = MelTextField(EditDigitSettingsRow,
-		                                enable = False,
-		                                text = 'Min',
-		                                bgc = dictionary.returnStateColor('normal'),
-		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
-		                                w = 50)
-		self.MaxIntField = MelTextField(EditDigitSettingsRow,
-		                                enable = False,
-		                                text = 'Max',
-		                                bgc = dictionary.returnStateColor('normal'),
-		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
-		                                w = 50)
-		self.DefaultIntField = MelTextField(EditDigitSettingsRow,
-		                                    enable = False,
-		                                    text = 'Default',
-		                                    bgc = dictionary.returnStateColor('normal'),
-		                                    ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
-		                                    w = 50)
+		self.MinField = MelTextField(EditDigitSettingsRow,
+		                             enable = False,
+		                             text = 'Min',
+		                             bgc = dictionary.returnStateColor('normal'),
+		                             ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                             w = 50)
+		self.MaxField = MelTextField(EditDigitSettingsRow,
+		                             enable = False,
+		                             text = 'Max',
+		                             bgc = dictionary.returnStateColor('normal'),
+		                             ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
+		                             w = 50)
+		self.DefaultField = MelTextField(EditDigitSettingsRow,
+		                                 enable = False,
+		                                 text = 'Default',
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
+		                                 w = 50)
 		MelSpacer(EditDigitSettingsRow,w=5)
 		EditDigitSettingsRow.layout()
 		
