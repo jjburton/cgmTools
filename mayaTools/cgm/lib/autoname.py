@@ -877,6 +877,7 @@ def doNameObject(obj):
     nameFactory = factory(obj)
     if nameFactory.amIMe(name):
         guiFactory.warning("'%s' is already named correctly."%nameFactory.nameBase)
+        return name
     else:
         objLong = mc.ls(obj,long=True)
         renameBuffer = mc.rename(objLong,name)

@@ -74,6 +74,9 @@ def parentShapeInPlace(obj,curve):
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    assert mc.objExists(obj) is True,"'%s' doesn't exist."%obj
+    assert mc.objExists(curve) is True,"'%s' doesn't exist."%curve
+    
     mc.select (cl=True)
     workingCurve = mc.duplicate(curve)
     parents = search.returnAllParents(obj)

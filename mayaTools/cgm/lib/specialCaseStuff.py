@@ -39,6 +39,8 @@ from cgm.lib import attributes
 from cgm.lib import autoname
 from cgm.lib import constraints
 from cgm.lib import rigging
+from cgm.lib import position
+from cgm.lib import sdk
 
 
 # Maya version check
@@ -102,7 +104,54 @@ def doConnectScaleToCGMTagOnObject(objectList, cgmTag, storageObject):
 
 	attributeList.append(buffer)
 
+def updatePhosphorFaceSDKs (qssJointsToProcess,refPrefix):
+    mc.select(cl=True)
+    mc.select(qssJointsToProcess)
+    objectsToFix = mc.ls(sl=True)
+    for o in objectsToFix:
+	#Find our match
+	buffer = o.strip('jOH_')
+	print buffer
+	if mc.objExists(refPrefix+':'+buffer):
+	    print True
+	    print ("'%s' matches '%s'"%(o,buffer))
+	    position.moveParentSnap(o,(refPrefix+':'+buffer))
+	    
+	    #sdk.updateSDKWithCurrentObjectInfo (o, 'rest_txtCrv.rest')
 
+def connectPhosphorJoints (qssJointsToProcess):
+    mc.select(cl=True)
+    mc.select(qssJointsToProcess)
+    objectsToFix = mc.ls(sl=True)
+    constraintsList = []
+    for o in objectsToFix:
+	#Find our match
+	buffer = 'jOH_'+o
+	print buffer
+	if mc.objExists(buffer):
+	    print True
+	    print ("'%s' matches '%s'"%(o,buffer))
+	    
+	    pntConstBuffer = mc.pointConstraint(buffer,o,maintainOffset=True,weight=1)
+	    orConstBuffer = mc.orientConstraint(buffer,o,maintainOffset=True,weight=1)
+	    pntConst = mc.rename(pntConstBuffer,(o+('_pntConst')))
+	    orConst = mc.rename(orConstBuffer,(o+('_orConst')))
+	    constraintsList.append(pntConst)
+	    constraintsList.append(orConst)
+	    
+	    
+    if constraintsList:
+	#make our attribute Holder object
+	""" need to make our master scale connector"""
+	dataHolderGrp= ('rigJointsConstraintHolder_grp')
+	if mc.objExists (dataHolderGrp):
+	    pass
+	else:
+	    mc.group (n= dataHolderGrp, w=True, empty=True)
+	#stores the constraints
+	attributes.storeObjListNameToMessage (constraintsList, dataHolderGrp)
+
+    
 
 def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
     """

@@ -41,7 +41,11 @@ from cgm.tools import locinatorLib,namingToolsLib
 """
 
 """
-
+def uiSetSelfVariable(self,variable,value):
+	print variable
+	print value
+	self.variable = value
+		
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Auto Naming
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1281,7 +1285,7 @@ def doSnapClosestPointToSurface(aim=True):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #['Object','Average','Input Size','First Object']
-def returnObjectSizesForCreation(objList,ui):
+def returnObjectSizesForCreation(self,objList):
 	if self.sizeMode == 2:
 		return ( mc.floatField(self.textObjectSizeField,q=True,value=True) )
 	else:
@@ -1416,20 +1420,22 @@ def doCreateCurveControl(self):
 	shapeOption =  self.curveOptionList[curveChoice-1]
 	self.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
 	self.sizeMode = mc.optionVar( q='cgmVarSizeMode' )
+	makeVisControl =  self.MakeVisControlCB(q=True, value=True)
+	makeSettingsControl =  self.MakeSettingsControlCB(q=True, value=True)
 
-	if self.makeMasterControl:
+	if self.MakeMasterControlCB(q=True, value=True):
 		if selected:
 			size = max(distance.returnBoundingBoxSize(selected))
 			if self.uiCurveName:
-				controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,self.makeMasterControlSettings,self.makeMasterControlVis)
+				controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl)
 			else:
-				controlBuilder.createMasterControl('char',size,self.textObjectFont,self.makeMasterControlSettings,self.makeMasterControlVis)
+				controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl)
 
 		else:
 			guiFactory.warning('Pick something for size reference')
 	else:
 		if selected:
-			sizeReturn = returnObjectSizesForCreation(selected,ui)
+			sizeReturn = returnObjectSizesForCreation(self,selected)
 			#['Object','Average','Input Size','First Object']
 			for item in selected:
 				if self.sizeMode == 0:

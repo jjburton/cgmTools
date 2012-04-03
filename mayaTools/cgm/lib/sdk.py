@@ -266,7 +266,7 @@ def returnDrivenJoints(driverAttribute):
     if attrConnections:
         for animCurve in attrConnections:
             drivenJoint = search.seekDownStream(animCurve,'joint')
-            if drivenJoint:
+            if mc.objExists(drivenJoint):
                 drivenJoints.append(drivenJoint)
         drivenJoints = lists.returnListNoDuplicates(drivenJoints)
         return drivenJoints
@@ -274,6 +274,7 @@ def returnDrivenJoints(driverAttribute):
     else:
         guiFactory.warning('No anim curves found to be connected')
         return False
+    
         """
 		for($animCurve in $attrConnections){
 			$drivenJoint = seekDownStream($animCurve,"joint",0);

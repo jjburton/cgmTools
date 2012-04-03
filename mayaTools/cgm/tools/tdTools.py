@@ -49,7 +49,7 @@ reload(namingToolsLib)
 
 def run():
 	#mel.eval('python("import maya.cmds as mc;from cgm.tools import namingToolsLib;from cgm.tools import tdTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
-	tdToolsClass()
+	tdTools = tdToolsClass()
 	"""
 	Hamish, the reason I did this was a few reasons
 
@@ -624,22 +624,22 @@ class tdToolsClass(BaseMelWindow):
 				             "Groups selected under a tranform at their current position")
 
 		guiFactory.doButton2(LeftColumn,'Group In place', 
-				             'tdToolsLib.doGroupMeInPlace()',
+				             lambda *a:tdToolsLib.doGroupMeInPlace(),
 				             "Groups an object while maintaining its parent\n if it has one")
 
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(LeftColumn,'Zero Me',
-				             'tdToolsLib.zeroGroupMe()',
+				             lambda *a:tdToolsLib.zeroGroupMe(),
 				             'Zeros out object under group')
 
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(LeftColumn,'Transform Here',
-				             'tdToolsLib.makeTransformHere()',
+				             lambda *a:tdToolsLib.makeTransformHere(),
 				             'Create transform matching object')
 
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(LeftColumn,'Copy Pivot',
-				             'tdToolsLib.doCopyPivot()',
+				             lambda *a:tdToolsLib.doCopyPivot(),
 				             'Copy pivot from first selection to all other objects')
 
 		guiFactory.lineSubBreak()
@@ -685,21 +685,18 @@ class tdToolsClass(BaseMelWindow):
 		# Line 3
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		mc.setParent(makeCurvesContainer)
-		mc.checkBoxGrp(numberOfCheckBoxes=3, label='Master Control:', labelArray3=['Master','Vis', 'Settings'],
-				       onCommand1 = ('cgmTDToolsWin.makeMasterControl = True'),
-				       onCommand2 = ('cgmTDToolsWin.makeMasterControlVis = True'),
-				       onCommand3 = ('cgmTDToolsWin.makeMasterControlSettings = True'),
-				       offCommand1 = ('cgmTDToolsWin.makeMasterControl = False'),
-				       offCommand2 = ('cgmTDToolsWin.makeMasterControlVis = False'),
-				       offCommand3 = ('cgmTDToolsWin.makeMasterControlSettings = False'))
-
-
+		MasterControlSettingsRow = MelHLayout(makeCurvesContainer,ut='cgmUISubTemplate',padding = 2)
+		
+		MelLabel(MasterControlSettingsRow,label = 'Master Control:',align='right')
+		self.MakeMasterControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Master')
+		self.MakeVisControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Vis')
+		self.MakeSettingsControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Settings')
+		MasterControlSettingsRow.layout()
 
 		buttonRow = MelHLayout(makeCurvesContainer,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(buttonRow,'Create',
 		                     lambda *a:tdToolsLib.doCreateCurveControl(self),
 				             'Create Curve Object with Settings',w=50)
-
 		buttonRow.layout()
 
 		mc.setParent(parent)
@@ -772,13 +769,13 @@ class tdToolsClass(BaseMelWindow):
 		curveUtilitiesRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(curveUtilitiesRow1,'Objects to Crv',
-				             'tdToolsLib.doCreateCurveFromObjects()',
+				             lambda *a:tdToolsLib.doCreateCurveFromObjects(),
 				             'Creates a curve through the pivots of objects')
 		guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt',
-				             'tdToolsLib.doShapeParent()',
+				             lambda *a:tdToolsLib.doShapeParent(),
 				             "Maya's standard shape parent")
 		guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt in Place',
-				             'tdToolsLib.doShapeParentInPlace()',
+				             lambda *a:tdToolsLib.doShapeParentInPlace(),
 				             'shapeParents a curve in place')
 
 
@@ -790,13 +787,13 @@ class tdToolsClass(BaseMelWindow):
 
 		curveUtilitiesRow2 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(curveUtilitiesRow2,'What am I',
-				             'tdToolsLib.doReportObjectType()',
+				             lambda *a:tdToolsLib.doReportObjectType(),
 				             'Reports what cgmThinga thinks the object is')
 		guiFactory.doButton2(curveUtilitiesRow2,'Crv to Python',
-				             'tdToolsLib.doCurveToPython()',
+				             lambda *a:tdToolsLib.doCurveToPython(),
 				             'Creates a python command to recreate a curve')
 		guiFactory.doButton2(curveUtilitiesRow2,'Combine Curves',
-				             'tdToolsLib.doCombineCurves()',
+				             lambda *a:tdToolsLib.doCombineCurves(),
 				             'Combines curves')
 
 		curveUtilitiesRow2.layout()
@@ -806,11 +803,11 @@ class tdToolsClass(BaseMelWindow):
 
 		curveUtilitiesRow3 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(curveUtilitiesRow3,'Loc CVs of curve',
-				             'cgmLocinatorLib.doLocCVsOfObject()',
+				             lambda *a:locinatorLib.doLocCVsOfObject(),
 				             "Locs the CVs at the cv coordinates")
 
 		guiFactory.doButton2(curveUtilitiesRow3,'Loc CVs on the curve',
-				             'cgmLocinatorLib.doLocCVsOnObject()',
+				             lambda *a:locinatorLib.doLocCVsOnObject(),
 				             "Locs CVs at closest point on the curve")
 
 
@@ -830,13 +827,13 @@ class tdToolsClass(BaseMelWindow):
 		snapMoveRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(snapMoveRow1,'Parent',
-				             'tdToolsLib.doParentSnap()',
+		                     lambda *a:tdToolsLib.doParentSnap(),
 				             'Parent snap one objects to a target')
 		guiFactory.doButton2(snapMoveRow1,'Point',
-				             'tdToolsLib.doPointSnap()',
+		                     lambda *a:tdToolsLib.doPointSnap(),
 				             "Point snap one objects to a target")
 		guiFactory.doButton2(snapMoveRow1,'Orient',
-				             'tdToolsLib.doOrientSnap()',
+		                     lambda *a:tdToolsLib.doOrientSnap(),
 				             'Orient snap one objects to a target')
 
 		mc.setParent(parent)
@@ -854,10 +851,10 @@ class tdToolsClass(BaseMelWindow):
 
 
 		MelButton(snapAimButton,l='One to Next',ut = 'cgmUITemplate',
-				  c='tdToolsLib.doAimSnapOneToNext()',
+		          c = lambda *a:tdToolsLib.doAimSnapOneToNext(),
 				  annotation = 'Aims a list of objects one to the /n next in a parsed list of pairs')
 		MelButton(snapAimButton,l='All to Last',ut = 'cgmUITemplate',
-				  c='tdToolsLib.doAimSnapToOne()',
+				  c=lambda *a:tdToolsLib.doAimSnapToOne(),
 				  annotation = "Aims all of the objects in a selection set/n to the last object")
 
 
@@ -880,7 +877,7 @@ class tdToolsClass(BaseMelWindow):
 		                     lambda *a:tdToolsLib.doSnapClosestPointToSurface(False),
 				             'Aims a list of objects one to the /n next in a parsed list of pairs')
 		guiFactory.doButton2(snapToSurfaceButton,'Snap and Aim',
-				             'tdToolsLib.doSnapClosestPointToSurface()',
+				             lambda *a:tdToolsLib.doSnapClosestPointToSurface(),
 				             'Aims a list of objects one to the /n next in a parsed list of pairs')
 
 
@@ -921,10 +918,10 @@ class tdToolsClass(BaseMelWindow):
 		BasicInfoRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(BasicInfoRow1,'What am I',
-				             'tdToolsLib.doReportObjectType()',
+				             lambda *a:tdToolsLib.doReportObjectType(),
 				             'Reports what cgmThinga thinks the object is')
 		guiFactory.doButton2(BasicInfoRow1,'Count Selected',
-				             'tdToolsLib.doReportSelectionCount()',
+				             lambda *a:tdToolsLib.doReportSelectionCount(),
 				             'Reports what cgmThinga thinks the object is')
 
 		mc.setParent(parent)
@@ -943,7 +940,7 @@ class tdToolsClass(BaseMelWindow):
 		AttributeUtilityRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(AttributeUtilityRow1,'cgmName to Float',
-				             'tdToolsLib.doCGMNameToFloat()',
+				             lambda *a:tdToolsLib.doCGMNameToFloat(),
 				             'Makes an animatalbe float attribute using the cgmName tag')
 
 
@@ -1008,7 +1005,7 @@ class tdToolsClass(BaseMelWindow):
 		#>>> Influence tools
 		InfluencesRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(InfluencesRow,'Select Influences',
-				             'tdToolsLib.doSelectInfluenceJoints()',
+				             lambda *a:tdToolsLib.doSelectInfluenceJoints(),
 				             "Selects the influences of selected objects with skin clusters.")
 		InfluencesRow.layout()
 		mc.setParent(self.containerName)
@@ -1022,13 +1019,13 @@ class tdToolsClass(BaseMelWindow):
 
 		SkinWeightsCopyRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(SkinWeightsCopyRow,'First component to others',
-				             'tdToolsLib.doCopyWeightsFromFirstToOthers()',
+				             lambda *a:tdToolsLib.doCopyWeightsFromFirstToOthers(),
 				             "Copies the weights from one vert to another.")
 		guiFactory.doButton2(SkinWeightsCopyRow,'Vert from closest', 
-				             'tdToolsLib.doCopySkinningToVertFromSource()',
+				             lambda *a:tdToolsLib.doCopySkinningToVertFromSource(),
 				             "Copies the weights to a vert from \n the closest vert on the source.")
 		guiFactory.doButton2(SkinWeightsCopyRow,'Object to objects', 
-				             'tdToolsLib.doTransferSkinning()',
+				             lambda *a:tdToolsLib.doTransferSkinning(),
 				             "Copies the weights from one object to others.")
 
 		SkinWeightsCopyRow.layout()
@@ -1194,7 +1191,7 @@ class tdToolsClass(BaseMelWindow):
 		ShrinkWrapRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 
 		guiFactory.doButton2(ShrinkWrapRow,'Shrink wrap to source',
-				             'tdToolsLib.doShrinkWrapToSource()',
+				             lambda *a:tdToolsLib.doShrinkWrapToSource(),
 				             'Snaps vertices of a target object to the closest point on the source')
 
 		ShrinkWrapRow.layout()

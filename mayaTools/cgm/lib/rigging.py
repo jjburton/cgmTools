@@ -321,7 +321,6 @@ def groupMeObject(obj,parent=True,maintainParent=False):
 
     newName = autoname.doNameObject(newName)
 
-
     return newName
 
 def zeroTransformMeObject(obj):
