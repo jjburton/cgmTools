@@ -156,7 +156,7 @@ class attrToolsClass(BaseMelWindow):
 	# Tools
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildAttributeTool(self,parent,vis=True):
-		OptionList = ['Tools','Manager']
+		OptionList = ['Tools','Manager','Utilities']
 		cgmVarName = 'cgmAttributeMode'
 		RadioCollectionName ='AttributeMode'
 		RadioOptionList = 'AttributeModeSelectionChoicesList'
@@ -179,7 +179,8 @@ class attrToolsClass(BaseMelWindow):
 
 		self.ContainerList.append( self.buildAttributeEditingTool(parent,vis=False) )
 		self.ContainerList.append( self.buildAttributeManagerTool( parent,vis=False) )
-
+		self.ContainerList.append( self.buildAttributeUtilitiesTool( parent,vis=False) )
+		
 		for item in OptionList:
 			self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
 						                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVarName,self.ContainerList)))
@@ -405,3 +406,48 @@ class attrToolsClass(BaseMelWindow):
 			attrToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
 
 		return self.containerName
+	
+	
+	def buildAttributeUtilitiesTool(self,parent, vis=True):
+		containerName = 'Utilities Container'
+		self.containerName = MelColumn(parent,vis=vis)
+
+		#>>> Tag Labels
+		mc.setParent(self.containerName)
+		guiFactory.header('Short cuts')
+		guiFactory.lineSubBreak()
+		
+		AttributeUtilityRow1 = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
+	
+		guiFactory.doButton2(AttributeUtilityRow1,'cgmName to Float',
+			                 lambda *a:tdToolsLib.doCGMNameToFloat(),
+			                 'Makes an animatalbe float attribute using the cgmName tag')
+	
+	
+		mc.setParent(self.containerName)
+		guiFactory.lineSubBreak()
+	
+		AttributeUtilityRow1.layout()
+	
+		#>>> SDK tools
+		mc.setParent(self.containerName)
+		guiFactory.lineBreak()
+		guiFactory.header('SDK Tools')
+		guiFactory.lineSubBreak()
+	
+	
+		sdkRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		guiFactory.doButton2(sdkRow,'Select Driven Joints',
+			                 lambda *a:tdToolsLib.doSelectDrivenJoints(self),
+			                 "Selects driven joints from an sdk attribute")
+	
+	
+		sdkRow.layout()
+		mc.setParent(self.containerName)
+		guiFactory.lineSubBreak()
+		
+
+		return self.containerName
+	
+
+
