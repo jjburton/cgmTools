@@ -661,13 +661,12 @@ def returnUniqueGeneratedName(obj,ignore='none'):
 
     """ add the iterator to the name dictionary if our object exists"""
     nameFactory = factory(obj)
-    if mc.objExists(coreName) and not nameFactory.amIMe(coreName):
-        print 'Finding iterator...'
+    if mc.objExists(coreName):
         iterator = returnIterateNumber(obj)
         if iterator > 0:
             updatedNamesDict['cgmIterator'] = str(iterator)
-
-    #>>> First we generate a name with the iterator in it
+            coreName = doBuildName()
+            
     objNameCandidate = coreName
 
     # Accounting for ':' in a name
@@ -677,7 +676,6 @@ def returnUniqueGeneratedName(obj,ignore='none'):
         buffer.remove(':')
         buffer.insert(cnt,'to')
         objNameCandidate = ''.join(buffer)
-
 
     return objNameCandidate
 
