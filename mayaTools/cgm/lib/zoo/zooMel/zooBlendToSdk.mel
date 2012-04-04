@@ -1,0 +1,47 @@
+global proc zooBlendToSdk() {
+	string $selObjs[] = `ls -sl`;
+	string $blendObj = "pSphere1";
+	string $control = "locator1";
+
+	for( $obj in $selObjs ) {
+		string $blendShapeNodes[] = `ls -type blendShape (listHistory($obj))`;
+		string $objShp = zooGetElement_str(0,`listRelatives -s $obj`);
+		int $objVerts = `getAttr -s ( $objShp +".vrts" )`;
+
+		for( $blend in $blendShapeNodes ) {
+			string $targets[] = `blendShape -q -t $blend`;
+			string $tgtAttrs[] = `listAttr -m ( $blend +".weight" )`;
+
+			delete $blend;
+			for( $n=0; $n<`size $tgtAttrs`; $n++ ) {
+				string $driverPath = $control +"."+ $targets[$n];
+				addAttr -k 1 -ln $targets[$n] -at double -min 0 -max 1 $control;
+
+				//zooSetShapeSdk $obj $driverPath $targets[$n] $objVerts;
+				zooSetShapeSdk $obj $driverPath $targets[$n] $objVerts;
+				}
+			}
+		}
+	}
+
+
+global proc zooSetShapeSdk( string $obj, string $driverPath, float $driverValue string $tgt, int $objVerts ) {
+	for( $n=0; $n<$objVerts; $n++ ) {
+		float $objPntPos[] = `xform -q -ws -t ( $obj +".vtx["+ $n +"]" )`;
+		float $tgtPntPos[] = `xform -q -ws -t ( $tgt +".vtx["+ $n +"]" )`;
+		float $vertVal[] = `getAttr ( $obj +".vtx["+ $n +"]" )`;
+
+		move -a -ws $tgtPntPos[0] $tgtPntPos[1] $tgtPntPos[2] ( $obj +".vtx["+ $n +"]" );
+		setDrivenKeyframe -cd $driverPath -dv $driverValue ( $obj +".pnts["+ $n +"].pntx" );
+		setDrivenKeyframe -cd $driverPath -dv $driverValue ( $obj +".pnts["+ $n +"].pnty" );
+		setDrivenKeyframe -cd $driverPath -dv $driverValue ( $obj +".pnts["+ $n +"].pntz" );
+
+		move -a -ws $objPntPos[0] $objPntPos[1] $objPntPos[2] ( $obj +".vtx["+ $n +"]" );
+		setDrivenKeyframe -cd $driverPath -dv 0 ( $obj +".pnts["+ $n +"].pntx" );
+		setDrivenKeyframe -cd $driverPath -dv 0 ( $obj +".pnts["+ $n +"].pnty" );
+		setDrivenKeyframe -cd $driverPath -dv 0 ( $obj +".pnts["+ $n +"].pntz" );
+		}
+	}
+
+
+//zoo.end

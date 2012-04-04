@@ -1,0 +1,294 @@
+zooArrays_float;
+zooArrays_str;
+zooCSTUtils;
+zooUtils;
+zooVectors;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildMPath( string $prefix, string $objs[], string $optionStr ) {
+	//------
+	//parse option flags
+	//------
+		string $temp[] = {};
+		int $squish = 1;
+
+		$temp = `zooGetFlagArguments $optionStr squish`; if( `size $temp` ) $squish = $temp[0];
+
+
+	//------
+	//first we need to build a curve - we build an ep curve so that it goes exactly through the joint pivots
+	//------
+		string $curveCmd = "curve -d 1 ";
+		int $numObjs = `size $objs`;
+
+		for( $n=0; $n<$numObjs; $n++ ) {
+			float $pos[] = `xform -q -ws -rp $objs[$n]`;
+			$curveCmd += "-p "+ $pos[0] +" "+ $pos[1] +" "+ $pos[2] +" ";
+			}
+		for( $n=0; $n<$numObjs; $n++ ) $curveCmd += "-k "+ $n +" ";
+		string $baseCurve = `eval $curveCmd`;
+		string $curve = zooGetElement_str(0,`fitBspline -ch 1 -tol 0.0001 $baseCurve`);
+		string $curveShape = zooGetElement_str(0,`listRelatives -s -pa $curve`);
+		string $infoNode = `createNode curveInfo`;
+		float $knots[] = {};
+
+		//setAttr ( $baseCurve +".v" ) 0;
+		connectAttr -f ( $curveShape +".worldSpace[0]" ) ( $infoNode +".inputCurve" );
+		$knots = `getAttr ( $infoNode +".knots" )`;
+		$knots = `zooIndexCrop_float $knots "2:-2"`;
+
+
+	//------
+	//now build the actual motion path nodes that keep the joints attached to the curve
+	//there is one proxy for each joint.  the original joints get constrained to
+	//the proxies, which in turn get stuck to the motion path and oriented properly
+	//then three joints get created, which are used to deform the motion path
+	//------
+		string $mpaths[] = {};
+		string $proxies[] = {};
+		string $upVectors[] = {};
+		string $aimVectors[] = {};  //holds the string versions of the aim vectors for each proxy
+		string $aims[] = {};  //holds the aim constraints
+		float $unitComp = 1.0;
+
+		if( `currentUnit -q -l` == "m" ) $unitComp = 100.0;
+		for( $n=1; $n<$numObjs; $n++ ) {
+			string $mpath = `createNode pointOnCurveInfo`;
+			string $proxy = `group -em`;
+
+			//connect axes individually so they can be broken easily if we need to...
+			connectAttr -f ( $curveShape +".worldSpace" ) ( $mpath +".inputCurve" );
+			connectAttr -f ( $mpath +".px" ) ( $proxy +".tx" );
+			connectAttr -f ( $mpath +".py" ) ( $proxy +".ty" );
+			connectAttr -f ( $mpath +".pz" ) ( $proxy +".tz" );
+			setAttr ( $mpath +".parameter" ) $knots[$n];//($n/$unitComp);//were using ($knots[$n]/$unitComp) but it seems this is buggy - invalid knot values are returned for a straight curve...  so it seems assuming $n is valid works in all test cases I've tried...
+			delete `orientConstraint $objs[$n] $proxy`;
+
+			$mpaths[$n] = $mpath;
+			$proxies[$n] = $proxy;
+			}
+
+
+	//------
+	//build a motionpath to get positions along the path - mainly useful for finding the half way mark
+	//------
+		string $halfWayPath = `createNode pointOnCurveInfo`;
+		string $halfWayPos = `group -em -n "half"`;
+		float $arcLength = `getAttr ( $curveShape +".maxValue" )`-`getAttr ( $curveShape +".minValue" )`;
+
+		connectAttr -f ( $curveShape +".worldSpace" ) ( $halfWayPath +".inputCurve" );
+		connectAttr -f ( $halfWayPath +".p" ) ( $halfWayPos +".t" );
+		setAttr ( $halfWayPath +".parameter" ) (`zooGetElement_float -1 $knots`/2.0);
+
+
+	//------
+	//now build the control stucture and place then
+	//------
+		string $deformJoints[3] = {};
+		int $half = $numObjs/2;
+
+		select -d;
+		$deformJoints[0] = `joint`; select -d;
+		$deformJoints[1] = `joint`; select -d;
+		$deformJoints[2] = `joint`; select -d;
+		delete `parentConstraint $objs[0] $deformJoints[0]`;
+		delete `parentConstraint $halfWayPos $deformJoints[1]`;
+		delete `parentConstraint $objs[$numObjs-1] $deformJoints[2]`;
+
+
+	//------
+	//orient the middle deform object - this is harder than in sounds because the object doesn't actually correspond to
+	//any of the proxies so what we do is find the closest proxies and average their orientations based on their proximity
+	//it looks pretty complicated, but thats all thats going on - proximity based orient constraint weighting
+	//------
+		string $midObjs[] = {};
+		float $distancesToObjs[] = {};
+		float $total = 0;
+		int $isOdd = $numObjs%2;
+
+		//if there is an odd number of objs in the chain, we want the surrounding three - NOTE one is almost certain to be very close, whcih is why we
+		//do the proximity based weighting - the closest one should have the greatest effect on orientation
+		if( $isOdd ) {
+			$midObjs[0] = $objs[$half-1];
+			$midObjs[1] = $objs[$half];
+			$midObjs[2] = $objs[$half+1];
+			$distancesToObjs[0] = zooVectorMag(`zooBetweenVector $midObjs[0] $deformJoints[1]`);
+			$distancesToObjs[1] = zooVectorMag(`zooBetweenVector $midObjs[1] $deformJoints[1]`);
+			$distancesToObjs[2] = zooVectorMag(`zooBetweenVector $midObjs[2] $deformJoints[1]`);
+			}
+		//but if there are an even number of objs in the chain, we only want the mid two
+		else {
+			int $n = ($numObjs-1)/2;
+			$midObjs[0] = $objs[$n];
+			$midObjs[1] = $objs[$n+1];
+			$distancesToObjs[0] = zooVectorMag(`zooBetweenVector $midObjs[0] $deformJoints[1]`);
+			$distancesToObjs[1] = zooVectorMag(`zooBetweenVector $midObjs[1] $deformJoints[1]`);
+			}
+		for( $n=0; $n<`size $midObjs`; $n++ ) $total += $distancesToObjs[$n];
+		for( $n=0; $n<`size $midObjs`; $n++ ) $distancesToObjs[$n] = $total/$distancesToObjs[$n];
+		string $tempConstraint[] = eval( "orientConstraint "+ (zooArrayToStr_str($midObjs," ")) +" "+ $deformJoints[1] +";" );
+		for( $n=0; $n<`size $midObjs`; $n++ ) orientConstraint -e -w $distancesToObjs[$n] $midObjs[$n] $tempConstraint[0];
+		delete $tempConstraint[0];
+		makeIdentity -a 1 -r 1 $deformJoints;
+
+
+	//------
+	//now weight the curve to the controls - the weighting is just based on a linear
+	//falloff from the start to mid joint, and then from the mid joint to the end
+	//------
+		string $skinCluster = zooGetElement_str(0,`skinCluster $deformJoints $baseCurve`);
+
+		//set the weights to 1 for the bottom and mid joint
+		for( $n=0; $n<$half; $n++ ) skinPercent -tv $deformJoints[0] 1 $skinCluster ( $baseCurve +".cv["+ $n +"]" );
+		for( $n=$half; $n<$numObjs; $n++ ) skinPercent -tv $deformJoints[1] 1 $skinCluster ( $baseCurve +".cv["+ $n +"]" );
+
+		//now figure out the positional mid point
+		float $midToStart = zooVectorMag(`zooBetweenVector $deformJoints[1] $deformJoints[0]`);
+		float $startPos[] = `xform -q -ws -rp $deformJoints[0]`;
+		int $halfByPos = 0;
+
+		for( $n=0; $n<$numObjs; $n++ ) {
+			float $pointPos[] = `pointPosition ( $baseCurve +".cv["+ $n +"]" )`;
+			float $relToStart[] = {$pointPos[0]-$startPos[0],$pointPos[1]-$startPos[1],$pointPos[2]-$startPos[2]};
+			float $distFromStart = `zooVectorMag $relToStart`;
+
+			if( $distFromStart>$midToStart ) {
+				$halfByPos = $n;
+				break;
+				}
+			}
+
+		//set the weights initially fully to the end deform joints - then figure out the of each point from the mid joint, and apply a weight falloff
+		float $midPos[] = `xform -q -ws -rp $deformJoints[1]`;
+		float $midToEnd = zooVectorMag(`zooBetweenVector $deformJoints[2] $deformJoints[1]`);
+
+		for( $n=0; $n<$halfByPos; $n++ ) skinPercent -tv $deformJoints[0] 1 $skinCluster ( $baseCurve +".cv["+ $n +"]" );
+		for( $n=$halfByPos; $n<$numObjs; $n++ ) skinPercent -tv $deformJoints[2] 1 $skinCluster ( $baseCurve +".cv["+ $n +"]" );
+		for( $n=1; $n<$halfByPos; $n++ ) {
+			float $pointPos[] = `pointPosition ( $baseCurve +".cv["+ $n +"]" )`;
+			float $pointToMid[] = {$pointPos[0]-$midPos[0],$pointPos[1]-$midPos[1],$pointPos[2]-$midPos[2]};
+			float $weight = 1-((zooVectorMag($pointToMid))/$midToStart);
+			print $pointPos;
+			print( "weight: "+ $weight +" distance to point: "+ (zooVectorMag($pointToMid)) +"  distance to mid: "+ $midToStart +"\n" );
+			skinPercent -tv $deformJoints[1] $weight $skinCluster ( $baseCurve +".cv["+ $n +"]" );
+			}
+		for( $n=$halfByPos; $n<$numObjs-1; $n++ ) {
+			float $pointPos[] = `pointPosition ( $baseCurve +".cv["+ $n +"]" )`;
+			float $pointToMid[] = {$pointPos[0]-$midPos[0],$pointPos[1]-$midPos[1],$pointPos[2]-$midPos[2]};
+			float $weight = 1-((zooVectorMag($pointToMid))/$midToEnd);
+			print( "weight: "+ $weight +" distance to point: "+ (zooVectorMag($pointToMid)) +"  distance to mid: "+ $midToStart +"\n" );
+			skinPercent -tv $deformJoints[1] $weight $skinCluster ( $baseCurve +".cv["+ $n +"]" );
+			}
+
+		parentConstraint $deformJoints[0] $objs[0];
+		pointConstraint $proxies[$numObjs-1] $objs[$numObjs-1];
+		orientConstraint $deformJoints[2] $objs[$numObjs-1];
+
+
+	//------
+	//build the aim constraints for the proxies
+	//------
+		int $third_1st = zooRoundFloat($numObjs/3.0);
+		int $third_2nd = zooRoundFloat(( $numObjs*2.0 )/3.0);
+
+		for( $n=1; $n<$numObjs-1; $n++ ) {
+			//we're using z as the aim axis for the proxies, and y for the up axis
+			string $upObj = $deformJoints[0];
+			float $aim_float[] = {0.,0.,1.};
+			float $up_float[] = {0.,1.,0.};
+
+			if( $n>=$third_1st && $n<$third_2nd ) $upObj = $deformJoints[1];
+			else if( $n>=$third_2nd ) $upObj = $deformJoints[2];
+			$aimVectors[$n] = `zooArrayToStr_float $aim_float " "`;
+
+			//now that we have an aim vector, build the aimconstraint, then we'll need to find the up vector - we need the
+			//proxy to be aimed at its target first however, so we can get an accurate up axis to use on the deform obj
+			//because all this is just a proxy rig that the real skeleton is constrained to, axes are all arbitrary...
+			delete `aimConstraint -aim $aim_float[0] $aim_float[1] $aim_float[2] -u $up_float[0] $up_float[1] $up_float[2] -wu $up_float[0] $up_float[1] $up_float[2] -wuo $upObj -wut objectrotation $proxies[( $n+1 )] $proxies[$n]`;
+
+			//now we have to figure out which axis on the deform obj to use as the up axis - we do this by using the x axis on
+			//the proxy (an arbitrary choice - could just as easily have been y) then seeing what axis is closest to that vector on the deform obj
+			float $proxyUpVector[] = pointMatrixMult($up_float,`xform -q -m $proxies[$n]`);  //get aim axis relative to the proxy - we need this so we can figure out which axis on the up object points in that direction
+			float $upObjUpAxis[] = `zooAxisInDirection $upObj $proxyUpVector`;
+			$upVectors[$n] = `zooArrayToStr_float $up_float " "`;
+
+			//now edit the constraint to use the up vector we've determined
+			$aims[$n] = zooGetElement_str(0,`aimConstraint -mo -aim $aim_float[0] $aim_float[1] $aim_float[2] -u $up_float[0] $up_float[1] $up_float[2] -wu $upObjUpAxis[0] $upObjUpAxis[1] $upObjUpAxis[2] -wuo $upObj -wut objectrotation $proxies[( $n+1 )] $proxies[$n]`);
+			parentConstraint -mo $proxies[$n] $objs[$n];
+			}
+
+
+	//------
+	//scaling?  create a network to dynamically scale the objects based on the length
+	//of the segment.  there are two curve segments - start to mid, mid to end.  this
+	//scaling is done via SDK so we get control over the in/out of the scaling
+	//------
+		string $squishNodes[] = {};
+		if( $squish ) {
+			string $curveInfo = `createNode curveInfo`;
+			string $scaleFac = `shadingNode -n( "squishCalculator" ) -asUtility multiplyDivide`;
+			string $adder = `shadingNode -n( "now_add_one" ) -asUtility plusMinusAverage`;
+			string $sdkScaler = `createNode -n( "squish_sdk" ) animCurveUU`;
+			float $initialLength = 0;
+			float $maxScale = 2.0;
+			float $minScale = 0.25;
+
+			addAttr -k 1 -ln length -at double -min 0 -max 1 -dv 1 $deformJoints[0];
+			addAttr -k 1 -ln squishFactor -at double -min 0 -max 1 -dv 0 $deformJoints[0];
+			setAttr -k 1 ( $deformJoints[0] +".length" );
+			setAttr -k 1 ( $deformJoints[0] +".squishFactor" );
+			connectAttr -f ( $curveShape +".worldSpace[0]" ) ( $curveInfo +".inputCurve" );
+			$initialLength = `getAttr ( $curveInfo +".arcLength" )`;
+			setAttr ( $adder +".input1D[0]" ) 1;
+			select -cl;
+			setKeyframe -f $initialLength -v 0 $sdkScaler;
+			setKeyframe -f( $initialLength/100 ) -v( $maxScale-1 ) $sdkScaler;
+			setKeyframe -f( $initialLength*2 ) -v( $minScale-1 ) $sdkScaler;
+			keyTangent -in 0 -itt flat -ott flat $sdkScaler;
+			keyTangent -in 2 -itt flat -ott flat $sdkScaler;
+			connectAttr -f ( $curveInfo +".arcLength" ) ( $sdkScaler +".input" );
+			connectAttr -f ( $scaleFac +".outputX" ) ( $adder +".input1D[1]" );
+			connectAttr -f ( $sdkScaler +".output" ) ( $scaleFac +".input1X" );
+			connectAttr -f ( $deformJoints[0] +".squishFactor" ) ( $scaleFac +".input2X" );
+			for( $n=0; $n<$numObjs; $n++ ) for( $ax in {"x","y","z"} ) connectAttr -f ( $adder +".output1D" ) ( $objs[$n] +".s"+ $ax );
+
+			string $lengthMults[] = {};
+			for( $n=1; $n<$numObjs; $n++ ) {
+				float $posOnCurve = `getAttr ( $mpaths[$n] +".parameter" )`;
+				$lengthMults[$n] = `shadingNode -n( "length_multiplier"+ $n ) -asUtility multiplyDivide`;
+				setAttr ( $lengthMults[$n] +".input1X" ) $posOnCurve;
+				connectAttr -f ( $deformJoints[0] +".length" ) ( $lengthMults[$n] +".input2X" );
+				connectAttr -f ( $lengthMults[$n] +".outputX" ) ( $mpaths[$n] +".parameter" );
+				}
+			$squishNodes = `zooAddArray_str {$curveInfo, $scaleFac, $adder, $sdkScaler} $lengthMults`;
+			}
+
+
+	//------
+	//rename the curves
+	//------
+		$baseCurve = `rename $baseCurve ( "pointCurve" )`;
+		$curve = `rename $curve ( "mPath" )`;
+
+
+	//------
+	//build the controllers array for returning
+	//------
+		string $controllers[] = $deformJoints;
+		$controllers = `zooAddArray_str $controllers {$baseCurve,$curve}`;
+		$controllers = `zooAddArray_str $controllers {$skinCluster}`;
+		$controllers = `zooAddArray_str $controllers $proxies`;
+		$controllers = `zooAddArray_str $controllers $mpaths`;
+		$controllers = `zooAddArray_str $controllers $aims`;
+		$controllers = `zooAddArray_str $controllers $squishNodes`;
+		//$controllers = `zooAddArray_str $controllers { $sdkScaler }`;
+		delete $halfWayPos;
+		select $deformJoints;
+
+	return $controllers;
+	}
+
+
+//zoo.end
+//macaroniKazoo ©2007

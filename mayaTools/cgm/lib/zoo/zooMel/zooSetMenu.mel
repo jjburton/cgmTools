@@ -1,0 +1,448 @@
+//
+// quick selection set enhanced menu
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 1 October 2001
+//
+// Description:
+// creates a marking menu listing all quick selection sets
+// in a scene.  there is an option box which brings up a
+// window for some basic set operations, such as adding
+// selected objects to the set, renaming the set, etc...
+// allows you to toggle selection mode (ie add or replace
+// the current selection)
+//
+// Usage:
+//  assign this function to a key press:
+//	zooSetMenu;
+//
+//  assign this function to the release;
+//	zooSetMenuKillUI;
+//
+// NOTE: if the hotkey you want to assign this script to contains
+// either ctrl, alt or shift, then modify the "popupMenu" line below
+// to reflect which key is used (ie if you're using alt-w then
+// change it to -alt 1).
+//
+
+
+zooUtils;
+
+
+global proc zooSetMenu () {
+	global int $zooIsClicked;
+	string $panel = `getPanel -up`;
+
+	$zooIsClicked = 0;
+
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	if( !`control -ex $panel` ) $panel = "viewPanes";
+	popupMenu -ctl 0 -alt 0 -sh 0 -mm 0 -b 1 -aob 1 -p $panel -pmc( "zooSetMenuUI tempMM" ) tempMM;
+	}
+
+
+global proc zooSetMenuUI( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	global string $zooSetMenuPreviousSet;
+	global int $zooIsClicked;
+	$zooIsClicked = 1;
+	if( `optionVar -ex zooSetMenuMarkingMode` ) optionVar -rm zooSetMenuMarkingMode;
+
+	string $charSets[] = `zoolsqss`;
+	int $zooSetMenuOption = 0;
+
+	if( `optionVar -ex zooSetMenuOption` ) $zooSetMenuOption = `optionVar -q zooSetMenuOption`;
+
+	string $clear = "select -d;";
+	if( $zooSetMenuOption ) $clear = "";
+	menuItem -l "Select All Sets" -c( "{"+$clear+"for( $set in `zoolsqss` ) select -add `sets -q $set`; }" ) -rp "E";
+
+	menuItem -l "select set parent" -c( "zooSetSelector `zooGetSetToSelect \"select parent set\"`;" ) -rp "N";
+	menuItem -l "add to selection" -c( "optionVar -iv zooSetMenuOption "+ (!$zooSetMenuOption) +"; zooSetMenuWindowFunctions MMUpdate none none;" ) -checkBox $zooSetMenuOption -rp "NW";
+	menuItem -l ( "select-->   "+ $zooSetMenuPreviousSet ) -c( "zooSetSelector "+ $zooSetMenuPreviousSet ) -rp "W";
+	menuItem -l "create new set" -c( "defineCharacter" ) -rp "S";
+
+	for( $set in $charSets ) {
+		int $isBold = $set == $zooSetMenuPreviousSet ? 1:0;
+		menuItem -l $set -c( "zooSetSelector "+ $set +"; zooSetPreviousSet "+ $set +";" ) -checkBox $isBold;
+		}
+
+	if( `menu -q -ni $parent` == 0 ) menuItem -l "No Quick Select Sets Defined";
+
+	menuItem -d 1;
+	menuItem -l "Control Window" -c "zooSetMenuWindow";
+	menuItem -d 1;
+	menuItem -l "Help..." -c "zooHelp zooSetMenu 1";
+	}
+
+
+global proc zooSetPreviousSet( string $qss ) {
+	global string $zooSetMenuPreviousSet;
+	$zooSetMenuPreviousSet = $qss;
+	}
+
+
+global proc zooSetMenuWindow() {
+	global string $zooSetMenuPreviousSet;
+	string $windowName = "zooSetMenuWindow";
+	string $windowTitle = "Control Centre v"+ `zooSetMenuToolsInfo version` +"   ::macaroniKazoo::";
+	string $sets[] = `zoolsqss`;
+	string $buttonLabel = "s->";
+	int $zooSetMenuOption = 0;
+
+	if( `optionVar -ex zooSetMenuOption` ) $zooSetMenuOption = `optionVar -q zooSetMenuOption`;
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -width 265 -height 350 $windowName;
+		scriptJob -p $windowName -e "SceneOpened" "zooSetMenuWindowFunctions updateWindow n n;";
+		menuBarLayout;
+			menu -label "File";
+				menuItem -l "Remove optionVars" -c ( "zooSetMenuRemoveOptionVars" );
+			menu -label "Help";
+				menuItem -l "Help..." -c ( "zooHelp zooSetMenu 1" );
+
+		string $master = `formLayout`;
+			int $collapseStateMisc = 0;
+			if( `optionVar -ex zooSetMenuFrameMisc` ) $collapseStateMisc = `optionVar -q zooSetMenuFrameMisc`;
+			string $opts = `frameLayout -l "Marking Menu Setup" -labelAlign "center" -collapsable 1 -collapse $collapseStateMisc -borderStyle "etchedOut" -expandCommand ( "optionVar -iv zooSetMenuFrameMisc 0" ) -collapseCommand ( "optionVar -iv zooSetMenuFrameMisc 1" ) zooSetMenuFrameMisc`;
+				columnLayout -rowSpacing 5;
+					rowLayout -numberOfColumns 2
+						-columnWidth2 129 80
+						-columnAttach 1 "both" 	1
+						-columnAttach 2 "both" 	1;
+						checkBox -label "Add To Selection" -v $zooSetMenuOption -cc ( "zooSetMenuWindowFunctions update none none" ) zooSetMenuCheckReplace;
+						button -height 20 -label "Update" -align center -c ( "zooSetMenuWindowFunctions updateWindow none none" );
+					setParent ..;
+
+					rowLayout -numberOfColumns 2
+						-columnWidth2 129 130
+						-columnAttach 1 "both" 	1
+						-columnAttach 2 "both" 	1;
+						text -l "default behaviour:";
+						optionMenu -label "" -width 200 -changeCommand ( "optionVar -sv zooSetMenuPressMode `optionMenu -q -value zooSetMenuPressCommand`" ) zooSetMenuPressCommand;
+					setParent ..;
+				setParent ..;
+			setParent ..;
+
+			string $functionNames[] = { "open control window","select previous set","select previous/current set","select parent set","nothing" };
+			string $currentDefault = ( `optionVar -ex zooSetMenuPressMode` )?`optionVar -q zooSetMenuPressMode`:"select previous/current set";
+			int $selection = 1;
+			int $n = 1;
+
+			for( $function in $functionNames ) {
+				menuItem -label $function -p zooSetMenuPressCommand;
+				if( $function == $currentDefault ) $selection = $n;
+				$n++;
+				}
+
+			optionMenu -e -select $selection zooSetMenuPressCommand;
+
+			string $labelForm = `formLayout`;
+				string $allsel = `button -height 20 -label "sel" -c ( "{string $sets[] = `zoolsqss`; for( $set in $sets ) select -add `sets -q $set`; }" )`;
+				string $alllbl = `text -label "<-for all sets->" -align center`;
+				string $alladd = `button -height 20 -label "+" -align center -c ( "{string $sets[] = `zoolsqss`; for( $set in $sets ) sets -add  $set `ls -sl`; }" )`;
+				string $allrem = `button -height 20 -label "-" -align center -c ( "{string $sets[] = `zoolsqss`; for( $set in $sets ) sets -rm  $set `ls -sl`; }" )`;
+				string $alldel = `button -height 20 -label "del" -align center -c ( "{string $sets[] = `zoolsqss`; delete $sets; deleteUI "+ $windowName +"; }" )`;
+			setParent ..;
+
+			string $list = `scrollLayout -cr 1`;
+				string $qssMaster = `formLayout`;
+					string $setList = `columnLayout -adj 1`;
+						for( $set in $sets ) {
+							string $isPrevious = ( $zooSetMenuPreviousSet == $set ) ? "boldLabelFont":"smallPlainLabelFont";
+							int $hideState = 0;
+							int $isPostCommand = 0;
+							string $hideLabel = ( $hideState ) ? ">":"h";
+							string $unhideLabel = ( $hideState ) ? "u":"<";
+							string $postLabel = ( $isPostCommand ) ? "pc>":"-o-";
+
+							if( `objExists ( $set +".zooSetMenuHidden" )` ) $hideState = `getAttr ( $set +".zooSetMenuHidden" )`;
+							else addAttr -ln zooSetMenuHidden -k 0 -h 1 -at bool $set;
+
+							if( `objExists ( $set +".postCommandString" )` ) $isPostCommand = 1;
+
+							string $rowName = `formLayout`;
+								string $sel = `button -height 20 -label $buttonLabel -c ( "{zooSetSelector `zooSetNameFromRowName "+ $rowName +"`; zooSetPreviousSet `zooSetNameFromRowName "+ $rowName +"`;}" )`;
+								string $name = `nameField -height 20 -o $set`;
+								string $add = `button -height 20 -label "+" -align center -c ( "sets -add `zooSetNameFromRowName "+ $rowName +"` `ls -sl`" )`;
+								string $rem = `button -height 20 -label "-" -align center -c ( "sets -rm `zooSetNameFromRowName "+ $rowName +"` `ls -sl`" )`;
+								string $del = `button -height 20 -label "del" -align center -c ( "{delete `zooSetNameFromRowName "+ $rowName +"`; zooSetMenuWindowFunctions delete "+ $rowName +" none;}" )`;
+								string $pc = `button -height 20 -label $postLabel -align center -c ( "zooSetMenuPostFunctions window `zooSetNameFromRowName "+ $rowName +"`;" )`;
+							setParent ..;
+
+							formLayout -e
+								-af $sel "left" 0
+
+								-ac $name "left" 0 $sel
+								-ac $name "right" 0 $add
+
+								-ac $add "right" 0 $rem
+
+								-ac $rem "right" 0 $del
+
+								-ac $del "right" 0 $pc
+
+								-af $pc "right" 0
+								$rowName;
+							}
+
+					setParent ..;
+				setParent ..;
+			setParent ..;
+
+		string $newset = `button -height 20 -label "New Set" -align center -c ( "{defineCharacter; zooSetMenuWindowFunctions updateWindow none none; }" )`;
+		string $image = `image -width 265 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+		popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+
+
+	formLayout -e
+		-af $opts "top" 0
+		-af $opts "left" 0
+		-af $opts "right" 0
+
+		-ac $labelForm "top" 0 $opts
+		-af $labelForm "left" 0
+		-af $labelForm "right" 0
+
+		-ac $list "top" 0 $labelForm
+		-af $list "left" 0
+		-af $list "right" 0
+		-ac $list "bottom" 2 $newset
+
+		-af $newset "left" 0
+		-af $newset "right" 0
+		-ac $newset "bottom" 2 $image
+
+		-af $image "left" 0
+		-af $image "right" 0
+		-af $image "bottom" 0
+		$master;
+
+	formLayout -e
+		-af $allsel "left" 0
+
+		-ac $alllbl "left" 0 $allsel
+		-ac $alllbl "right" 0 $alladd
+
+		-ac $alladd "right" 0 $allrem
+
+		-ac $allrem "right" 0 $alldel
+
+		-af $alldel "right" 42
+		$labelForm;
+
+	formLayout -e
+		-af $setList "top" 0
+		-af $setList "left" 0
+		-af $setList "right" 0
+		-af $setList "bottom" 0
+		$qssMaster;
+
+	showWindow $windowName;
+	zooSetMenuWindowFunctions update none none;
+	}
+
+
+global proc string zooSetNameFromRowName( string $rowName ) {
+	if( !`control -ex $rowName` ) return "";
+	string $formChildren[] = `formLayout -q -ca $rowName`;
+	return `nameField -q -o $formChildren[1]`;
+	}
+
+
+global proc zooSetMenuPostFunctions ( string $function, string $set ) {
+	string $windowName = "zooSetMenuPostCommandWindow";
+	string $windowTitle = "Post Command";
+	string $attrName = "postCommandString";
+	string $setCommand;
+
+	switch ( $function ) {
+		case "window":
+			if( `objExists ( $set +"."+ $attrName )` ) $setCommand = `getAttr ( $set +"."+ $attrName )`;
+			else {
+				addAttr -ln $attrName -dt "string" $set;
+				setAttr -type "string" ( $set +"."+ $attrName ) "";
+				}
+
+			if( `window -ex $windowName` ) deleteUI $windowName;
+			window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0
+				-sizeable 1 -width 400 $windowName;
+
+				columnLayout -adjustableColumn true -rowSpacing 7;
+					rowLayout -numberOfColumns 4
+						-columnWidth4 110 350 35 40
+						-columnAttach 1 "both" 	1
+						-columnAttach 2 "both" 	1
+						-columnAttach 3 "both" 	1
+						-columnAttach 4 "both" 	0;
+						text -label "Post Command String:";
+						textField -ed 1 -text $setCommand -cc ( "zooSetMenuPostFunctions update "+ $set ) ( $set +"PostCommandText" );
+						button -height 20 -label "close" -c ( "deleteUI "+ $windowName );
+						button -height 20 -label "delete" -c ( "deleteAttr "+ $set +"."+ $attrName +"; deleteUI "+ $windowName +"; zooSetMenuWindowFunctions update none none;" );
+						setParent ..;
+					setParent ..;
+
+			showWindow $windowName;
+			zooSetMenuWindowFunctions update none none;
+			break;
+
+		case "update":
+			string $commandString = `textField -q -text ( $set +"PostCommandText" )`;
+			setAttr -type "string" ( $set +"."+ $attrName ) $commandString;
+			break;
+		}
+	}
+
+
+global proc zooSetMenuWindowFunctions( string $function, string $rowName, string $newSetName ) {
+	global string $zooSetMenuPreviousSet;
+	string $set = `zooSetNameFromRowName $rowName`;
+	string $sets[] = `zoolsqss`;
+	string $windowName = "zooSetMenuWindow";
+	string $flag = "-r";
+	int $zooSetMenuOption = 0;
+
+	if( `optionVar -ex zooSetMenuOption` ) $zooSetMenuOption = `optionVar -q zooSetMenuOption`;
+	if( $zooSetMenuOption ) $flag = "-add";
+	switch ( $function ) {
+		case "MMUpdate":
+			//subfunction called by the marking menu, to update window checkbox states
+			if( `window -ex $windowName` ) checkBox -e -v `optionVar -q zooSetMenuOption` zooSetMenuCheckReplace;
+
+			zooSetMenuWindowFunctions update none none;
+			break;
+
+		case "update":
+			if( !`window -ex $windowName`) return;
+			int $replaceCheckBoxVal = `checkBox -q -v zooSetMenuCheckReplace`;
+
+			optionVar -intValue zooSetMenuOption $replaceCheckBoxVal;
+			break;
+
+		case "delete":
+			deleteUI $rowName;
+			delete $set;
+			break;
+
+		case "newPrevious":
+			zooSetPreviousSet $set;
+			if( `window -ex $windowName` ) zooSetMenuWindowFunctions update none none;
+			break;
+
+		case "updateWindow":
+			//subfunction is a hacky way of redrawing the entire UI
+			deleteUI $windowName;
+			zooSetMenuWindow;
+			break;
+		}
+	}
+
+
+global proc string zooGetObjSet( string $obj ) {
+	if( !`objExists $obj` ) return "";
+	string $objSets[] = `listConnections -s 0 -type objectSet $obj`;
+	for( $s in $objSets ) if( `zooIsValidSelectionSet $s` ) return $s;
+
+	return "";
+	}
+
+
+global proc zooSetMenuRemoveOptionVars () {
+	for( $var in `optionVar -l` ) if( `match "^zooSetMenu" $var` != "" ) optionVar -remove $var;
+	print( "all optionVars used by zooSetMenu have been removed from your system.\n" );
+	}
+
+
+global proc string zooGetSetToSelect( string $mode ) {
+	global string $zooSetMenuPreviousSet;
+	if( $mode == "" ) $mode = `optionVar -q zooSetMenuPressMode`;
+	switch( $mode ) {
+		case "select previous set":
+			return $zooSetMenuPreviousSet;
+			break;
+		default:
+			string $selObjs[] = `ls -sl`;
+			if( !`size $selObjs` ) {
+				if( `objExists $zooSetMenuPreviousSet` ) return $zooSetMenuPreviousSet;
+				return "";
+				}
+
+			string $currentSets[] = `listConnections -s 0 -type objectSet`;
+			for( $s in $currentSets ) if( `zooIsValidSelectionSet $s` ) return $s;
+			return "";
+		case "select parent set":
+			string $currentSets[] = `listConnections -s 0 -type objectSet`;
+			string $set = "";
+
+			for( $s in $currentSets ) if( `zooIsValidSelectionSet $s` ) $set = $s;
+			if( !`objExists $set` ) if( `objExists $zooSetMenuPreviousSet` ) $set = $zooSetMenuPreviousSet;
+			if( !`objExists $set` ) return "";
+
+			string $parSet = `zooGetObjSet $set`;
+			if( `objExists $parSet` ) return $parSet;
+			return $set;
+		}
+	}
+
+
+//this proc allows us to do custom tests on the set before declaring it a valid
+//set to select
+global proc int zooIsValidSelectionSet( string $set ) {
+	string $setAnn = `sets -q -t $set`;
+	if( $setAnn == "gCharacterSet" ) return 1;
+	return 0;
+	}
+
+
+//this simple function is basically used by the "select" button
+global proc zooSetSelector( string $setName ) {
+	global string $zooSetMenuPreviousSet;
+	string $function;
+	string $flag;
+	string $attrName = "postCommandString";
+
+	if( `optionVar -ex zooSetMenuOption` ) $zooSetMenuOption = `optionVar -q zooSetMenuOption`;
+	$flag = ( $zooSetMenuOption ) ? "-add" : "-r";
+
+	if( `objExists $setName` ) {
+		//now select the set objects
+		eval( "select "+ $flag +" "+ $setName );
+		$zooSetMenuPreviousSet = $setName;
+
+		//now call post command
+		if( `objExists ( $setName +"."+ $attrName )` ) {
+			string $command = `getAttr ( $setName +"."+ $attrName )`;
+			eval( $command );
+			}
+		}
+	}
+
+
+global proc zooSetMenuKillUI () {
+	global int $zooIsClicked;
+
+	if( `popupMenu -ex tempMM` ) {
+		deleteUI tempMM;
+		if( $zooIsClicked ) $zooIsClicked = 0;
+		else {
+			string $setToSelect = `zooGetSetToSelect ""`;
+			if( `objExists $setToSelect` ) zooSetSelector $setToSelect;
+			else zooSetMenuWindow;
+			}
+		}
+	}
+
+
+global proc string zooSetMenuToolsInfo ( string $function ) {
+	string $creationDate = "1 October 2001";
+	string $currentVersion = "3.06.09";
+
+	if( $function == "created" ) return $creationDate;
+	if( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+//zoo.end

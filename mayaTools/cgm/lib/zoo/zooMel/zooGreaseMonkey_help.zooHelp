@@ -1,0 +1,13 @@
+zooGreaseMonkey is a bit of a copy of the js_greasePencil tool by the famous mr Schleifer.  It is a copy not for copy's sake, but because I was never able to get his greasePencil tool to work out for me at work (worked fine at home).  Plus there were little improvements I always wanted to make - but I can never find the patience to trawl through someone else's code.
+
+Hence zooGreaseMonkey was born.  And what a cute little monkey he is.
+
+So anyway - how to use it.  First, open up the UI by running zooGreaseMonkey.  This will open up the UI.  Then start adding boards.  Boards are the frames that you draw on.  You will see a new board get added to the UI.  From here you can change the timing of the board, and even give it a name if you want.  It sometimes helps a lot when you name your boards sensibly.
+
+Now this will create a board out in space.  So now we want to attach it to a camera.  Simply select the camera you want to use and press the button labelled "use selected cam".  This should load the camera up into the UI and all the boards you've created will snap to the camera you specified.  You can change the camera around whenever you feel like it.
+
+You can also right click on either the "use selected camera" button or the area beside it to change the camera.
+
+Finally, to put the tool into drawing mode, click the button that says press to load.  When the script is loaded it will automatically make the current board active when you scrub the timeline.  When you're done drawing and want to go back to editing the scene, simply hit the button again to unload.
+
+Loading the script only makes it set the current board to be drawable.

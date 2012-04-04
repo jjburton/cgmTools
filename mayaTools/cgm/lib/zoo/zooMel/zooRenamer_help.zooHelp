@@ -1,0 +1,28 @@
+Overview:
+zooRenamer is a renaming script, made primarily to help with maintaining naming conventions for character rigs.  It makes it easy to add left and right suffixes to skeletons, and character name prefixes, as well as heirarchy name matching for things like fingers.  You can quickly copy names from one finger to another, and then search and replace to change the prefix.
+
+Search and Replace:
+You can only use regular expressions with the search and replace function as part of the search string.  For those who have never used regular expressions, have a look in the mel command documentation, for the match command.  or type this into the script editor:  help -doc match
+
+Numerate:
+The numerate function lets you add a number to a bunch of objects.  Its a bit confusing at first because of the way the tool works, but its quite powerful once you get the hang of it.  To use it you need to give the script a renaming "template".  The template tells the script how you want to rename the selected objects.  It defaults to:
+#_%
+
+The # symbol gets replaced by the object's current name, then it appends an "_" character, and then finally the % character adds the number.  The template can be just about anything you want.  For example, if you had 10 objects selected and you wanted them all to be called: obj001, obj002, etc...
+
+You would use the template:
+obj%
+
+If you didn't want to change the name, and just wanted to append a number, you could use:
+#%
+
+If you wanted to prefix the selected objects with obj_, you could use:
+obj_#_%
+
+Or if you wanted to add a suffix, you could use this:
+#_%_group
+
+So hopefully those few examples give you an idea of how to use the numerate function of the script.  Its pretty handy.  The only other two things you need to know is the "start" option - which tells the script what number to start at, and the second is the padding.  This tells the script how many zeros to put before the number to make it a certain length.  If the padding is 0, then no zeros are added.
+
+Copy/Paste:
+This function allows you to copy a heirarchie's naming convention from one heirarchy to another.  Select the source heirarchy, and then the target.  The script will attempt to match the naming convetion.  It only renames to unique names, so chances are you'll get lots of 1's and 2's in the new names, but if you don't want that, you can use the search/replace function.  Beware, this function doesn't work too well with braching heirarchies.

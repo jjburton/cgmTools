@@ -1,0 +1,462 @@
+zooArrays_str;
+zooArrays_float;
+zooBounds;
+zooBrandTools;
+zooFlags;
+zooLineOfAction;
+zooObjMenuUtils;
+zooRegister;
+zooShaders;
+zooUtils;
+zooTriggeredUtils;
+
+
+global proc zooSelectoUtils() {
+	return;
+	}
+
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// CREATION/LISTING
+//the offset is in "size units".  So of the size is 0.25, then the offset is multiples
+//of 0.25
+//this command takes the following flags:
+// -shape		what shape selecto takes:  circle, triangle, square, pentagon, hexagon, donut, pill
+// -camera		the camera that the selecto is aimed at - NOTE this can be changed at a later date using the zooSelectoCam function - defaults to the persp camera
+// -colour		this is the colour of the selecto.  for a list of available colours, see the colour procs at the end of this script - defaults to the given object's wireframe colour, or yellow if it has no colour
+// -posObj		this is the object that the selecto is positioned at - defaults to the given object
+// -size			this is the actual size of the selecto - it is a rough diameter - defaults to the given object's bounding box
+// -offset		how far to offset the selecto from the position object - defaults to one unit of the given object's bounding box
+	global proc string zooCreateSelecto( string $obj, string $optionStr ) {
+		string $temp[] = {};
+		string $shape = "circle";
+		string $colour = `zooGetOverrideColour $obj`;
+		string $posObj = $obj;
+		string $char = `zooGetNamespace $obj`;
+		float $objSize[] = `zooGetSize $obj`;
+		int $idx = `zooGetHighestValueIdx_float $objSize`;
+		float $size = $objSize[$idx];
+		float $offset = 1;
+
+		$temp = `zooGetFlagArguments $optionStr shape`; if( `size $temp` ) $shape = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr colour`; if( `size $temp` ) $colour = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr posObj`; if( `size $temp` ) if( `objExists $temp[0]` ) $posObj = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr size`; if( `size $temp` ) $size = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr offset`; if( `size $temp` ) $offset = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr char`; if( `size $temp` ) $char = $temp[0];
+
+
+		//sphere, torus, plane
+			string $selecto = "";//zooGetElement_str(0,`sphere -radius ( $size/2.5 )`);
+			switch( $shape ) {
+				default:
+					$selecto = zooGetElement_str(0,`sphere -radius ( $size/2.5 )`);
+					break;
+				case "triangle":
+					float $p1[] = { 0., 1., 0. };
+					float $p2[] = { -0.866025404, -0.5, 0. };
+					float $p3[] = { 0.866025404, -0.5, 0. };
+
+					for( $n=0; $n<3; $n++ ) $p1[$n] = ( $size/2.5 )*$p1[$n];
+					for( $n=0; $n<3; $n++ ) $p2[$n] = ( $size/2.5 )*$p2[$n];
+					for( $n=0; $n<3; $n++ ) $p3[$n] = ( $size/2.5 )*$p3[$n];
+					$selecto = zooGetElement_str(0,`polyCreateFacet -ch 0 -tx 1 -s 1 -p $p1[0] $p1[1] $p1[2] -p $p2[0] $p2[1] $p2[2] -p $p3[0] $p3[1] $p3[2]`);
+					break;
+				case "square":
+					$selecto = zooGetElement_str(0,`polyPlane -w( 1.414*$size/2.5 ) -h( 1.414*$size/2.5 ) -sx 1 -sy 1 -ax 0 0 1 -tx 1 -ch 0`);
+					break;
+				case "pentagon":
+					float $p1[] = { 0., 1., 0. };
+					float $p2[] = { -0.951056516, 0.309016994, 0. };
+					float $p3[] = { -0.587785252, -0.809016994, 0. };
+					float $p4[] = { 0.587785252, -0.809016994, 0. };
+					float $p5[] = { 0.951056516, 0.309016994, 0. };
+
+					for( $n=0; $n<3; $n++ ) $p1[$n] = ( $size/2.5 )*$p1[$n];
+					for( $n=0; $n<3; $n++ ) $p2[$n] = ( $size/2.5 )*$p2[$n];
+					for( $n=0; $n<3; $n++ ) $p3[$n] = ( $size/2.5 )*$p3[$n];
+					for( $n=0; $n<3; $n++ ) $p4[$n] = ( $size/2.5 )*$p4[$n];
+					for( $n=0; $n<3; $n++ ) $p5[$n] = ( $size/2.5 )*$p5[$n];
+					$selecto = zooGetElement_str(0,`polyCreateFacet -ch 0 -tx 1 -s 1 -p $p1[0] $p1[1] $p1[2] -p $p2[0] $p2[1] $p2[2] -p $p3[0] $p3[1] $p3[2] -p $p4[0] $p4[1] $p4[2] -p $p5[0] $p5[1] $p5[2]`);
+					break;
+				case "hexagon":
+					float $p1[] = { 0.5, 0.866025404, 0. };
+					float $p2[] = { -0.5, 0.866025404, 0. };
+					float $p3[] = { -1., 0., 0. };
+					float $p4[] = { -0.5, -0.866025404, 0. };
+					float $p5[] = { 0.5, -0.866025404, 0. };
+					float $p6[] = { 1., 0, 0. };
+
+					for( $n=0; $n<3; $n++ ) $p1[$n] = ( $size/2.5 )*$p1[$n];
+					for( $n=0; $n<3; $n++ ) $p2[$n] = ( $size/2.5 )*$p2[$n];
+					for( $n=0; $n<3; $n++ ) $p3[$n] = ( $size/2.5 )*$p3[$n];
+					for( $n=0; $n<3; $n++ ) $p4[$n] = ( $size/2.5 )*$p4[$n];
+					for( $n=0; $n<3; $n++ ) $p5[$n] = ( $size/2.5 )*$p5[$n];
+					for( $n=0; $n<3; $n++ ) $p6[$n] = ( $size/2.5 )*$p6[$n];
+					$selecto = zooGetElement_str(0,`polyCreateFacet -ch 0 -tx 1 -s 1 -p $p1[0] $p1[1] $p1[2] -p $p2[0] $p2[1] $p2[2] -p $p3[0] $p3[1] $p3[2] -p $p4[0] $p4[1] $p4[2] -p $p5[0] $p5[1] $p5[2] -p $p6[0] $p6[1] $p6[2]`);
+					break;
+				case "pill":
+					$selecto = zooGetElement_str(0,`torus -p 0 0 0 -ax 0 1 0 -r( $size/4 ) -hr 0.7 -d 3 -ut 0 -ch 0`);
+					setAttr ( $selecto +".sz" ) 0.1;
+					break;
+				case "donut":
+					$selecto = zooGetElement_str(0,`torus -p 0 0 0 -ax 0 0 1 -r( $size/4 ) -hr 0.4 -d 3 -ut 0 -ch 0`);
+					break;
+				}
+			$selecto = `rename $selecto ( $obj +"_selecto" )`;
+
+		//move the pivot backwards, set the colour
+			move -r 0 0 ( $size*$offset*-1 ) ( $selecto +".rotatePivot" );
+			move -r 0 0 0 ( $selecto +".scalePivot" );  //make sure the scale pivot is at origin - it needs to stay in the centre of the sphere for scaling
+			zooSetSelectoShader $selecto ( $colour +" 0.6" ) 1;
+
+		//constrain the selecto object to the target and make it look at the camera and
+		//make the selecto object non keyable
+			pointConstraint $posObj $selecto;
+			zooCreateSelectoLookat $selecto;
+
+		//turn it into a trigger and add menu items
+			zooMakeTrigger $selecto "select -d #;\nselect -add @;" { $obj };
+			zooObjMenuAddCmdAll $selecto "transparency 0%" "zooSetShaderTransparency # 0;";
+			zooObjMenuAddCmdAll $selecto "transparency 50%" "zooSetShaderTransparency # 0.5;";
+			zooObjMenuAddCmdAll $selecto "transparency 90%" "zooSetShaderTransparency # 0.9;";
+
+		//setup selecto scaling
+			zooSetupSelectoScaling $selecto;
+
+		//finally brand the object as a selecto object so we can find it at a later date
+		//the selecto is branded with the optionStr used to create it - so if we need to
+		//re-create it for any reason, we can do so using the same settings
+			zooBrandObject selecto $optionStr $selecto;
+
+		return $selecto;
+		}
+
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// LOOKAT/SCALE MANAGEMENT
+//sets the node the lookat is constrained to
+	global proc zooCreateSelectoLookat( string $obj ) {
+		string $lookat = `zooGetLookat 1`;
+		string $axes[] = { "x", "y", "z" };
+		for( $axis in $axes ) if( `objExists ( $obj +".r"+ $axis )`) setAttr -l 0 ( $obj +".r"+ $axis );
+
+		//delete any old constraint - this is a neat trick to delete an existing constraint
+		delete `aimConstraint -mo $lookat $obj`;
+
+		//rebuild the constraint and re lock all attribs
+		aimConstraint -aim 0 0 1 -wut objectRotation -wuo $lookat $lookat $obj;
+
+		for( $axis in $axes ) setAttr -k 0 -l 1 ( $obj +".t"+ $axis );
+		for( $axis in $axes ) setAttr -k 0 -l 1 ( $obj +".r"+ $axis );
+		for( $axis in $axes ) setAttr -k 0 ( $obj +".s"+ $axis );
+		setAttr -k 0 ( $obj +".v" );
+
+		//finally register the object as a selectoLookat
+		zooRegisterObj ( `zooGetSelectoManager 1` ) selectos $obj 1 1;
+		}
+
+
+	global proc string[] zooListSelectoLookats() {
+		string $selectoLookats[] = {};
+		zooListRegistered ( `zooGetSelectoManager 1` ) selectos {} $selectoLookats;
+		return $selectoLookats;
+		}
+
+
+	global proc zooSetupSelectoScaling( string $obj ) {
+		string $global = `zooGetSelectoManager 1`;
+		string $cons[] = `listConnections -d 0 -type multiplyDivide ( $obj +".scale" )`;
+		string $mult;
+
+		//build the multiply divide to combine local and global scale together
+		if( `objExists $cons[0]` ) $mult = $cons[0];
+		else $mult = `shadingNode -asUtility multiplyDivide`;
+
+		//setup the local scale attribute
+		if( !`objExists ( $obj +".zooSelectoScale" )` ) {
+			addAttr -at double -ln zooSelectoScale -min 0 -max 10 $obj;
+			setAttr -k 1 ( $obj +".zooSelectoScale" ) 1;
+			}
+
+		//setup the local offset attribute
+		if( !`objExists ( $obj +".zooSelectoOffset" )` ) {
+			addAttr -at double -ln zooSelectoOffset $obj;
+			setAttr -k 1 ( $obj +".zooSelectoOffset" ) `getAttr ( $obj +".rotatePivotZ" )`;
+			}
+
+		connectAttr -f ( $obj +".zooSelectoScale" ) ( $mult +".input1X" );
+		connectAttr -f ( $global +".zooGlobalSelectoScale" ) ( $mult +".input2X" );
+		connectAttr -f ( $obj +".zooSelectoOffset" ) ( $mult +".input1Y" );
+		connectAttr -f ( $global +".zooGlobalSelectoOffset" ) ( $mult +".input2Y" );
+		connectAttr -f ( $mult +".outputX" ) ( $obj +".scaleX" );
+		connectAttr -f ( $mult +".outputX" ) ( $obj +".scaleY" );
+		connectAttr -f ( $mult +".outputX" ) ( $obj +".scaleZ" );
+		connectAttr -f ( $mult +".outputY" ) ( $obj +".rotatePivotZ" );
+		}
+
+
+	global proc string zooGetSelectoManager( int $force ) {
+		string $manager = `zooGetRegister zoo $force`;
+		if( !`objExists $manager` ) return "";
+		if( !`objExists ( $manager +".zooSelectoLookat" )`) addAttr -at message -ln zooSelectoLookat $manager;
+		if( !`objExists ( $manager +".zooGlobalSelectoScale" )`) {
+			addAttr -at double -ln zooGlobalSelectoScale -min 0 $manager;
+			setAttr -k 1 ( $manager +".zooGlobalSelectoScale" ) 1;
+			}
+		if( !`objExists ( $manager +".zooGlobalSelectoOffset" )`) {
+			addAttr -at double -ln zooGlobalSelectoOffset -min 0 $manager;
+			setAttr -k 1 ( $manager +".zooGlobalSelectoOffset" ) 1;
+			}
+		if( !`objExists ( $manager +".zooActiveSelectos" )`) addAttr -at message -ln zooActiveSelectos $manager;
+
+		return $manager;
+		}
+
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// HIGHLIGHT/VISIBILITY CODE
+	global proc zooHighlightSelecto() {
+		string $sel[] = `ls -sl`;
+		zooUnhighlightAllSelectos;
+		for( $obj in $sel ) zooHighlightConnectedSelectos $obj;
+		}
+
+
+	global proc zooHighlightConnectedSelectos( string $obj ) {
+		string $triggers[] = `zooListConnectedTriggers $obj`;
+		for( $trig in $triggers ) zooSetSelectoColour $trig active 0;
+		}
+
+
+	global proc zooUnhighlightAllSelectos() {
+		string $activeTriggers[] = `zooGetActiveSelectos`;
+		for( $trig in $activeTriggers ) {
+			zooMarkSelectoInactive $trig;
+			zooSetSelectoColour $trig `getAttr ( $trig +".zooColour" )` 0;
+			}
+		}
+
+
+	global proc zooToggleSelectoVis() {
+		int $state = `zooSetSelectoVis -1`;
+		zooSetSelectoVis (!$state);
+		}
+
+
+	//sets/queries the visibility state of the selectos
+	global proc int zooSetSelectoVis( int $state ) {
+		string $selectoLookats[] = `zooListSelectoLookats`;
+
+		if( $state == -1 ) { for( $l in $selectoLookats ) if( `objExists ( $l +".v" )`) return `getAttr ( $l +".v" )`; }
+		else for( $n=0; $n<`size $selectoLookats`; $n++ ) {
+			if( !`objExists ( $selectoLookats[$n] +".v" )`) continue;
+			if( `getAttr -l ( $selectoLookats[$n] +".v" )` ) setAttr -l 0 ( $selectoLookats[$n] +".v" );
+			setAttr ( $selectoLookats[$n] +".v" ) $state;
+			}
+		print( "zooSetSelectoVis "+ $state +";\n" );
+		return $state;
+		}
+
+
+	global proc int zooSetCharacterSelectoVis( string $char, int $state ) {
+		//first get a list of all selectos to change the camera for
+		string $selectos[] = `zooListCharacterSelectos $char`;
+
+		if( $state == -1 ) return `getAttr ( $selectos[0] +".v" )`;
+		else for( $n=0; $n<`size $selectos`; $n++ ) {
+			if( `getAttr -l ( $selectos[$n] +".v" )` ) setAttr -l 0 ( $selectos[$n] +".v" );
+			setAttr ( $selectos[$n] +".v" ) $state;
+			}
+		print( "zooSetCharacterSelectoVis "+ $char +" "+ $state +"\n" );
+		return $state;
+		}
+
+
+	global proc zooSetSelectoTransparency( float $transparency ) {
+		string $selectos[] = `zooListSelectoLookats`;
+		//string $selectoShaders[] = `zooGetSelectoShaders`;
+		//for( $shader in $selectoShaders ) setAttr ( $shader +".outTransparency" ) $transparency $transparency $transparency;
+		for( $s in $selectos ) {
+			string $shader = `zooGetSelectoShader $s`;
+			setAttr ( $shader +".outTransparency" ) $transparency $transparency $transparency;
+			string $existing = `getAttr ( $s +".zooColour" )`;
+			$existing = `match "^[^ ]+" $existing`;
+			setAttr -type "string" ( $s +".zooColour" ) ( $existing +" "+ $transparency );
+			}
+		}
+
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// SHADER MANAGEMENT
+	global proc zooSetSelectoColour( string $obj, string $colour, int $storeChange ) {
+		string $shader = `zooGetSelectoShader $obj`;
+
+		if( !`objExists $shader` ) return;
+		zooSetShaderColour $shader ( $colour +" 500" );
+		if( !`objExists ( $obj +".zooColour" )` ) addAttr -ln zooColour -dt "string" $obj;
+		if( $storeChange ) setAttr -type "string" ( $obj +".zooColour" ) $colour;
+
+		//if we're setting the colour to active, then add the active flag so we can easily
+		//find the active objects later
+		if( $colour == "active" ) zooMarkSelectoActive $obj;
+		}
+
+
+	global proc zooSetShaderTransparency( string $obj, float $transparency ) {
+		string $shader = `zooGetSelectoShader $obj`;
+		setAttr ( $shader +".outTransparency" ) $transparency $transparency $transparency;
+		}
+
+
+	//returns the shader currently assigned to the given object
+	global proc string zooGetSelectoShader( string $obj ) {
+		string $shapes[] = `listRelatives -pa -s $obj`;
+		if( !`size $shapes` ) return "";
+
+		string $reg = `zooGetRegister zoo 1`;
+		string $shaders[] = {};
+		string $objShader = `zooGetObjShader $obj`;
+
+		zooListRegistered $reg selectoShaders {} $shaders;
+		int $idx = `zooGetIdxOfElement_str $shaders $objShader`;
+		if( $idx < 0 ) return "";
+
+		return $shaders[$idx];
+		}
+
+
+	//assigns a selecto shader to the given object
+	global proc zooSetSelectoShader( string $obj, string $colour, int $storeChange ) {
+		string $shader = `zooGetSelectoShader $obj`;
+
+		if( !`objExists $shader` ) {
+			$shader = `zooCreateSelectoShader $colour`;
+			zooSetObjShader $obj $shader;
+			}
+
+		zooSetShaderColour $shader ( $colour +" 500" );
+		if( !`objExists ( $obj +".zooColour" )` ) addAttr -ln zooColour -dt "string" $obj;
+		if( $storeChange ) setAttr -type "string" ( $obj +".zooColour" ) $colour;
+		}
+
+
+
+	//returns the shader name
+	global proc string zooCreateSelectoShader( string $colour ) {
+		string $shader = `shadingNode -asShader surfaceShader`;
+		string $SG = `sets -renderable 1 -noSurfaceShader 1 -empty`;
+		string $reg = `zooGetRegister zoo 1`;
+
+		connectAttr -f ( $shader +".outColor" ) ( $SG +".surfaceShader" );
+		zooSetShaderColour $shader ( $colour +" 500" );
+		zooRegisterObj $reg selectoShaders $shader 1 1;
+		$shader = `rename $shader ( "selectoShader_"+ $colour )`;
+		$SG = `rename $SG ( $shader +"SG" )`;
+		shadingConnection -e -cs 0 ( $SG +".surfaceShader" );  //makes non-renderable
+
+		return $shader;
+		}
+
+
+	global proc string[] zooGetSelectoShaders() {
+		string $shaders[] = {};
+		string $reg = `zooGetRegister zoo 1`;
+
+		zooListRegistered $reg selectoShaders {} $shaders;
+
+		return $shaders;
+		}
+
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// ACTIVE SELECTO IDENTIFICATION
+	global proc string[] zooGetActiveSelectos() {
+		string $active = `zooGetSelectoManager 0`;
+		if( !`objExists $active` ) return {};
+		string $cons[] = `listConnections -s 0 ( $active +".zooActiveSelectos" )`;
+		return $cons;
+		}
+
+
+	global proc zooMarkSelectoInactive( string $obj ) {
+		if( `objExists ( $obj +".zooActive" )` ) deleteAttr ( $obj +".zooActive" );
+		}
+
+
+	global proc zooMarkSelectoActive( string $obj ) {
+		string $active = `zooGetSelectoManager 1`;
+		if( !`objExists ( $obj +".zooActive" )` ) addAttr -ln zooActive -at message $obj;
+		catchQuiet( `connectAttr -f ( $active +".zooActiveSelectos" ) ( $obj +".zooActive" )`);
+		}
+
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// COLOUR MANAGEMENT
+
+
+	global proc string zooGetOverrideColour( string $obj ) {
+		string $shapes[] = `listRelatives -pa -s $obj`;
+		int $idx = `getAttr ( $obj +".overrideColor" )`;
+
+		if( $idx ) return `zooOverrideToColour $idx`;
+		for( $shape in $shapes ) {
+			$idx = `getAttr ( $shape +".overrideColor" )`;
+			if( $idx ) return `zooOverrideToColour $idx`;
+			}
+
+		return "blue";
+		}
+
+
+	global proc string zooOverrideToColour( int $idx ) {
+		switch( $idx ) {
+			case 1: return "black";
+			case 3: return "grey";
+			case 4: return "darkred";
+			case 5: return "darkblue";
+			case 6: return "blue";
+			case 7: return "darkgreen";
+			case 8: return "red";
+			case 9: return "purple";
+			case 10: return "darkred";
+			case 13: return "red";
+			case 14: return "green";
+			case 15: return "blue";
+			case 16: return "white";
+			case 17: return "yellow";
+			case 18: return "lightblue";
+			case 19: return "lightgreen";
+			case 20: return "lightred";
+			case 21: return "brown";
+			}
+
+		return "blue";
+		}
+
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// HIGH LEVEL QUERYING
+	global proc string[] zooListCharactersWithSelectos() {
+		string $all[] = `zooListSelectoLookats`;
+		string $namespaces[] = {};
+
+		for( $n=0; $n<`size $all`; $n++ ) {
+			string $name = `match "[^:]+$" $all[$n]`;
+			$namespaces[( `size $namespaces` )] = `substitute ( $name +"$" ) $all[$n] ""`;
+			}
+		$namespaces = `stringArrayRemoveDuplicates $namespaces`;
+		return $namespaces;
+		}
+
+
+	global proc string[] zooListCharacterSelectos( string $char ) {
+		string $all[] = `zooListSelectoLookats`;
+		string $charSelectos[] = {};
+
+		for( $s in $all ) if( `match ( "^"+ $char ) $s` != "" ) $charSelectos[( `size $charSelectos` )] = $s;
+		return $charSelectos;
+		}
+
+
+//zoo.end

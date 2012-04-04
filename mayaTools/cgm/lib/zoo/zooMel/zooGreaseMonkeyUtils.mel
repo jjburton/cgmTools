@@ -1,0 +1,466 @@
+zooArrays_str;
+zooArrays_int;
+zooEazelUtils;
+zooFlags;
+zooRegister;
+zooUtils;
+
+
+global proc zooGreaseMonkeyUtils() {
+	return;
+	}
+
+
+//------
+//this proc simply makes the current board live for drawing
+//------
+global proc zooBuildMonkeyBoards( float $time ) {
+	makeLive -n;
+	string $board = `zooGetBoardFromKey (zooFindCurrentKey($time))`;
+	if( `objExists $board` ) makeLive $board;
+	PencilCurveTool;
+	}
+
+
+//------
+//returns the key the is visible on the given time
+//------
+global proc int zooFindCurrentKey( float $time ) {
+	string $boards[] = {};
+	int $keys[] = `zooListUsedKeys $boards`;
+	int $num = `size $keys`;
+	int $times[] = {};
+	int $proximities[] = {};
+
+	for( $n=0; $n<$num; $n++ ) $times[$n] = `zooGetKeyTime $keys[$n]`;
+	for( $n=0; $n<$num; $n++ ) $proximities[( `size $proximities` )] = $times[$n] - $time;
+
+	int $temp[] = `zooCropArray_int $proximities -1000000 0`;
+	int $biggestNegative = `zooGetHighestValueIdx_int $temp`;
+	int $closest = `zooGetIdxOfElement_int $proximities $temp[$biggestNegative]`;
+
+	return $closest;
+	}
+
+
+global proc int zooDuplicateKey( int $key ) {
+	string $monkey = `zooGetGreaseMonkey 0`;
+	string $board = `zooGetBoardFromKey $key`;
+
+	if( !`objExists $board` ) return -1;
+	int $idx = `zooGetNextKeyIdx`;
+
+	if( !`objExists ( $monkey +".zooBoard"+ $idx )` ) addAttr -ln ( "zooBoard"+ $idx ) -at message $monkey;
+	string $new[] = `duplicate $board`;
+	connectAttr -f ( $new[0] +".message" ) ( $monkey +".zooBoard"+ $idx );
+	zooRebuildAllGreaseKeys "";
+	return $idx;
+	}
+
+
+//------
+//creates a new drawing board (which curves are drawn on)
+//------
+global proc int zooCreateBoard( string $optionStr ) {
+	string $temp[] = {};
+	string $name = "";
+	int $time = `currentTime -q`;
+	int $activate = 1;
+
+	$temp = `zooGetFlagArguments $optionStr time`; if( `size $temp` ) $time = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr name`; if( `size $temp` ) $name = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr activate`; if( `size $temp` ) $activate = $temp[0];
+
+	string $monkey = `zooGetGreaseMonkey 1`;
+	string $eazel = `zooGetEazel 1`;
+	string $eazelBase = `zooGetBoardBase 1`;
+	string $board = zooGetElement_str(0,`nurbsPlane -p 0 0 -1 -ax 0 0 1 -w 2 -lr 0.8 -d 3 -u 1 -v 1 -ch 0`);
+	int $idx = `zooGetNextKeyIdx`;
+
+	if( $name == "" ) $name = "zooMonkeyBoard_"+ $idx;
+	$board = `rename $board $name`;
+	parent -r $board $eazelBase;
+	if( !`objExists ( $monkey +".zooBoard"+ $idx )` ) addAttr -ln ( "zooBoard"+ $idx ) -at message $monkey;
+	connectAttr -f ( $board +".message" ) ( $monkey +".zooBoard"+ $idx );
+	if( $activate ) { makeLive -n; makeLive $board; }
+
+	setAttr ( $board +".doubleSided" ) 0;
+	setAttr ( $board +".visibleInRefractions" ) 0;
+	setAttr ( $board +".visibleInReflections" ) 0;
+	setAttr ( $board +".smoothShading" ) 0;
+	setAttr ( $board +".primaryVisibility" ) 0;
+	setAttr ( $board +".motionBlur" ) 0;
+	setAttr ( $board +".receiveShadows" ) 0;
+	setAttr ( $board +".castsShadows" ) 0;
+	setAttr ( $board +".overrideEnabled" ) 1;
+	setAttr ( $board +".overrideShading" ) 0;
+	zooSetKeyTime $idx $time;
+	zooRebuildAllGreaseKeys "";
+	return $idx;
+	}
+
+
+//------
+//rebuilds all keys on the visibility attr and template attr - this needs to happen
+//whenever the time of a board changes
+//------
+global proc zooRebuildAllGreaseKeys( string $optionStr ) {
+	string $temp[] = {};
+	int $pre = `zooGetDefaultMonkeySettings zooGreasePre`;
+	int $post = `zooGetDefaultMonkeySettings zooGreasePost`;
+
+	$temp = `zooGetFlagArguments $optionStr pre`; if( `size $temp` ) $pre = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr post`; if( `size $temp` ) $post = $temp[0];
+
+	string $boards[] = {};
+	int $times[] = {};
+	int $num;
+
+	zooGetTimeOrderedKeyData {} $boards $times;
+	if( !`size $boards` ) return;
+	$num = `size $boards`-1;
+
+	//build the template keys
+	cutKey -cl -t ":" ( $boards[0] +".ovdt" );
+	for( $n=0; $n<=$num; $n++ ) {
+		cutKey -cl -t ":" ( $boards[$n] +".ovdt " );
+		setKeyframe -t( $times[$n]-1 ) -v 1 ( $boards[$n] +".ovdt" );
+		setKeyframe -t $times[$n] -v 0 ( $boards[$n] +".ovdt" );
+		if( `objExists $boards[( $n+1 )]` ) setKeyframe -t $times[( $n+1 )] -v 2 ( $boards[$n] +".ovdt" );
+		}
+
+
+	//this is a bit brute force - it tests all possibilities for pre/post
+	//not quite sure how to make this more elegant
+	if( !$pre && !$post ) {
+		for( $n=0; $n<=$num; $n++ ) {
+			cutKey -cl -t ":" ( $boards[$n] +".v" );
+			setKeyframe -t( $times[$n]-1 ) -v 0 ( $boards[$n] +".v" );
+			setKeyframe -t $times[$n] -v 1 ( $boards[$n] +".v" );
+			if( `objExists $boards[( $n+1 )]` ) setKeyframe -t $times[( $n+1 )] -v 0 ( $boards[$n] +".v" );
+			}
+		}
+	else if( $pre && !$post ) {
+		for( $n=0; $n<=$num; $n++ ) {
+			cutKey -cl -t ":" ( $boards[$n] +".v" );
+			setKeyframe -t( $times[$n]-1 ) -v 0 ( $boards[$n] +".v" );
+			setKeyframe -t $times[$n] -v 1 ( $boards[$n] +".v" );
+			if( `objExists $boards[( $n+2 )]` ) setKeyframe -t $times[( $n+2 )] -v 0 ( $boards[$n] +".v" );
+			}
+		}
+	else if( !$pre && $post ) {
+		cutKey -cl -t ":" ( $boards[0] +".v" );
+		setKeyframe -t $times[0] -v 1 ( $boards[0] +".v" );
+		if( `objExists $boards[1]` ) setKeyframe -t $times[1] -v 0 ( $boards[0] +".v" );
+		for( $n=1; $n<=$num; $n++ ) {
+			cutKey -cl -t ":" ( $boards[$n] +".v" );
+			setKeyframe -t( $times[( $n-1 )]-1 ) -v 0 ( $boards[$n] +".v" );
+			setKeyframe -t $times[( $n-1 )] -v 1 ( $boards[$n] +".v" );
+			if( `objExists $boards[( $n+1 )]` ) setKeyframe -t $times[( $n+1 )] -v 0 ( $boards[$n] +".v" );
+			}
+		}
+	else if( $pre && $post ) {
+		cutKey -cl -t ":" ( $boards[0] +".v" );
+		setKeyframe -t $times[0] -v 1 ( $boards[0] +".v" );
+		if( `objExists $boards[2]` ) setKeyframe -t $times[2] -v 0 ( $boards[0] +".v" );
+		for( $n=1; $n<=$num; $n++ ) {
+			cutKey -cl -t ":" ( $boards[$n] +".v" );
+			setKeyframe -t( $times[( $n-1 )]-1 ) -v 0 ( $boards[$n] +".v" );
+			setKeyframe -t $times[( $n-1 )] -v 1 ( $boards[$n] +".v" );
+			if( `objExists $boards[( $n+2 )]` ) setKeyframe -t $times[( $n+2 )] -v 0 ( $boards[$n] +".v" );
+			}
+		}
+	}
+
+
+//------
+//returns the time a board is set to
+//------
+global proc int zooGetKeyTime( int $key ) {
+	if( $key < 0 ) return -1;
+	string $board = `zooGetBoardFromKey $key`;
+	int $time = `getAttr ( $board +".zooBoardTime" )`;
+	return $time;
+	}
+
+
+global proc zooSetKeyTime( int $key, int $time ) {
+	string $board = `zooGetBoardFromKey $key`;
+	if( !`objExists ( $board +".zooBoardTime" )`) addAttr -ln "zooBoardTime" -at long $board;
+
+	//build keys for the board
+	setAttr ( $board +".zooBoardTime" ) $time;
+	cutKey -cl -t ":" ( $board +".v" );
+	setKeyframe -t( $time-1 ) -v 0 ( $board +".v" );
+	setKeyframe -t $time -v 1 ( $board +".v" );
+	}
+
+
+//given a time this proc returns the temporally previous and next key
+//returns { prev, next }
+global proc int[] zooGetSurroundingKeys( int $time, int $keys[], int $times[] ) {
+	clear $keys;
+	clear $times;
+	zooGetUsedKeyData $keys {} $times;
+	int $prevKey = `zooFindCurrentKey $time`;
+	int $prevKeyTime = `zooGetKeyTime $prevKey`;
+	$keys = `zooOrderArrayUsing_int $keys $times`;
+
+	int $idx = `zooGetIdxOfElement_int $keys $prevKey`;
+	int $nextKey = -1;
+
+	if( $idx != -1 ) if( $idx ) if( $prevKeyTime == $time ) $prevKey = $keys[( $idx-1 )];
+	if( `size $keys`>$idx+1 ) $nextKey = $keys[( $idx+1 )];
+	return { $prevKey, $nextKey };
+	}
+
+
+//returns key, board and time data in a temporal order
+global proc zooGetTimeOrderedKeyData( int $keys[], string $boards[], int $times[] ) {
+	string $boards[] = {};
+	int $keys[] = {};
+	int $times[] = {};
+
+	zooGetUsedKeyData $keys $boards $times;
+	$keys = `zooOrderArrayUsing_int $keys $times`;
+	$boards = `zooOrderArrayUsing_str $boards $times`;
+	$times = `sort $times`;
+	}
+
+
+//------
+//takes an array variable - which gets filled with the board names - if this info
+//is not needed, simply pass an empty array:  zooListUsedKeys {};
+//------
+global proc zooGetUsedKeyData( int $keys[], string $boards[], int $times[] ) {
+	string $monkey = `zooGetGreaseMonkey 0`;
+	int $allKeys[] = `zooListKeys`;
+
+	clear $boards; clear $keys; clear $times;
+	for( $key in $allKeys ) {
+		string $cons[] = `listConnections -d 0 ( $monkey +".zooBoard"+ $key )`;
+		if( `size $cons` ) {
+			$keys[( `size $keys` )] = $key;
+			$boards[( `size $boards` )] = $cons[0];
+			$times[( `size $times` )] = `zooGetKeyTime $key`;
+			}
+		}
+	}
+
+
+//------
+//this proc gets the next available key value - it tries to fill holes in the key
+//list.  So if you have 4 keys: 1, 2, 4, 5, then this proc will return 3 as the
+//next available key
+//------
+global proc int zooGetNextKeyIdx() {
+	int $keys[] = `zooListUsedKeys {}`;
+	int $num = `size $keys`;
+
+	if( !$num ) return 0;
+	for( $n=1; $n<$num; $n++ ) if( $keys[( $n-1 )]+1 != $keys[$n] ) return( $keys[( $n-1 )]+1 );
+	return( $keys[( $num-1 )]+1 );
+	}
+
+
+//------
+//takes an array variable - which gets filled with the board names - if this info
+//is not needed, simply pass an empty array:  zooListUsedKeys {};
+//------
+global proc int[] zooListUsedKeys( string $boards[] ) {
+	string $monkey = `zooGetGreaseMonkey 0`;
+	int $keys[] = `zooListKeys`;
+	int $usedKeys[] = {};
+
+	clear $boards;
+	for( $key in $keys ) {
+		string $cons[] = `listConnections -d 0 ( $monkey +".zooBoard"+ $key )`;
+		if( `size $cons` ) {
+			$usedKeys[( `size $usedKeys` )] = $key;
+			$boards[( `size $boards` )] = $cons[0];
+			}
+		}
+
+	return $usedKeys;
+	}
+
+
+//------
+//each board is assigned an index - so they're easy to find and access later  This
+//proc lists all the keys currently in use
+//------
+global proc int[] zooListKeys() {
+	string $monkey = `zooGetGreaseMonkey 0`;
+	string $eazel = `zooGetEazel 0`;
+
+	if( !`objExists $monkey` ) return {};
+	if( !`objExists $eazel` ) return {};
+	string $attrs[] = `listAttr -ud $monkey`;
+	string $keyAttrs[] = {};
+	int $keys[] = {};
+
+	for( $attr in $attrs ) if( `match "^zooBoard[0-9]+$" $attr` != "" ) $keyAttrs[( `size $keyAttrs` )] = $attr;
+	for( $n=0; $n<`size $keyAttrs`; $n++ ) $keys[$n] = `match "[0-9]+$" $keyAttrs[$n]`;
+
+	return `sort $keys`;
+	}
+
+
+global proc string zooGetBoardFromKey( int $key ) {
+	if( $key == -1 ) return "";
+	string $monkey = `zooGetGreaseMonkey 1`;
+	string $cons[] = `listConnections -d 0 ( $monkey +".zooBoard"+ $key )`;
+	return $cons[0];
+	}
+
+
+//------
+//see zooPlaceOnEazel in zooEazelUtils for details
+//------
+global proc zooPlaceInCameraSpace( string $optionStr ) {
+	string $temp[] = {};
+	string $obj	= "";
+	string $eazel = `zooGetEazel 1`;
+
+	$temp = `zooGetFlagArguments $optionStr obj`; if( `size $temp` ) $obj = $temp[0];
+	zooPlaceOnEazel $eazel $obj $optionStr;
+	}
+
+
+//------
+//returns the name of the camera the eazel is constrained to
+//------
+global proc string zooQueryMonkeySee() {
+	string $eazel = `zooGetEazel 0`;
+	return zooGetEazelCamera($eazel);
+	}
+
+
+//------
+//sets up the eazel for the boards, attaches
+//------
+global proc zooMonkeySee( string $camera ) {
+	string $eazel = `zooGetEazel 1`;
+	zooSetEazelCamera $eazel $camera;
+	}
+
+
+//------
+//the board base is what the boards "rest on".  The boards are parented to the boardBase, which is
+//in turn parented to the eazel.  We do this so we can use the eazel for other things, but still have
+//a parent to control all the boards with
+//------
+global proc string zooGetBoardBase( int $force ) {
+	string $monkey = `zooGetGreaseMonkey $force`;
+	string $eazel = `zooGetEazel $force`;
+
+	if( !`objExists $eazel` ) return "";
+	string $children[] = `listRelatives -pa -type transform $eazel`;
+	for( $child in $children ) {
+		string $bases[] = {};
+		zooListRegistered $monkey boardBase {} $bases;
+		if( `size $bases` ) return `zooGetElement_str 0 $bases`;
+		}
+	string $eazelBase = `group -em`;
+	parent -r $eazelBase $eazel;
+	$eazelBase = `rename $eazelBase "zooBoardBase#"`;
+	zooRegisterObj $monkey boardBase $eazelBase 1 1;
+	setAttr ( $eazelBase +".overrideEnabled" ) 1;
+	setAttr ( $eazelBase +".overrideShading" ) 0;
+	return $eazelBase;
+	}
+
+
+//------
+//the eazel is the thing that gets constrained to the camera, and is scaled so that all its children
+//are always the same size when looking through that camera.  So that means the scale and placement
+//of the eazel is dependent on the clipping planes and the focal length of the camera
+//------
+global proc string zooGetEazel( int $force ) {
+	string $monkey = `zooGetGreaseMonkey $force`;
+	if( !`objExists $monkey` ) return "";
+	string $cons[] = `listConnections -d 0 -type transform ( $monkey +".zooEazel" )`;
+	if( `objExists $cons[0]` ) return $cons[0];
+	string $eazel = `group -em`;
+	$eazel = `rename $eazel "zooEazel"`;
+	addAttr -at message -ln zooEazel $eazel;
+	connectAttr -f ( $eazel +".message" ) ( $monkey +".zooEazel" );
+	zooMonkeySee `zooGetCurrentCamera`;
+	return $eazel;
+	}
+
+
+//------
+//gets the name of the grease monkey node lurking on the scene - if no grease monkey
+//exists, then this proc returns an empty string.  If the force variable is true, then
+//if no grease monkey exists, a new one is created
+//------
+global proc string zooGetGreaseMonkey( int $force ) {
+	string $times[] = `ls -type time`;
+	for( $t in $times ) if( !`referenceQuery -inr $t` ) if( `objExists ( $t +".zooGreaseMonkey" )`) return $t;
+	if( $force ) return `zooTrainGreaseMonkey`;
+	return "";
+	}
+
+
+//------
+//the grease monkey keeps track of all the boards and which camera they belong to
+//------
+global proc string zooTrainGreaseMonkey() {
+	string $node = `createNode time`;
+	$node = `rename $node "zooGreaseMonkey"`;
+	addAttr -at message -ln zooGreaseMonkey $node;
+	addAttr -at message -ln zooEazel $node;
+	return $node;
+	}
+
+
+global proc int zooGetDefaultMonkeySettings( string $setting ) {
+	int $exists = `optionVar -ex $setting`;
+	if( $exists ) return `optionVar -q $setting`;
+	switch( $setting ) {
+		case "zooGreasePre": return 1;
+		case "zooGreasePost": return 0;
+		}
+	}
+
+
+//------
+//returns whether the scriptJob is loaded or not
+//------
+global proc int zooMonkeyState() {
+	global int $zooGreaseMonkey;
+	if( $zooGreaseMonkey && `scriptJob -ex $zooGreaseMonkey` ) return 1;
+	return 0;
+	}
+
+
+//------
+//unloads the triggered scriptJob
+//------
+global proc zooUnloadMonkey() {
+	global int $zooGreaseMonkey;
+	if( !$zooGreaseMonkey ) return;
+	if( `scriptJob -ex $zooGreaseMonkey` ) {
+		scriptJob -k $zooGreaseMonkey;
+		$zooGreaseMonkey = 0;
+		makeLive -n;
+		setToolTo selectSuperContext;
+		}
+	}
+
+
+//------
+//loads the script job that deals with running the current selection through the trigger filter
+//command: zooTriggerSelection
+//------
+global proc zooLoadMonkey() {
+	global int $zooGreaseMonkey;
+	if( !$zooGreaseMonkey ) {
+		$zooGreaseMonkey = `scriptJob -cu 1 -e "timeChanged" ( "zooBuildMonkeyBoards `currentTime -q`;" )`;
+		zooBuildMonkeyBoards `currentTime -q`;
+		}
+	}
+
+
+//zoo.end

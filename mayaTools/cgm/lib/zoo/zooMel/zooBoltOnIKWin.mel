@@ -1,0 +1,40 @@
+global proc zooBoltOnIKWin() {
+	string $windowName = "zooBoltOnIKWin";
+	string $windowTitle = "zooBoltOnIK";
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 0 -width 200 -height 30 $windowName;
+		string $form = `formLayout`;
+			string $text = `text -l "select your FK controls, then hit the button!"`;
+			string $check = `checkBox -l "stretchy?" zooBoltOnCheck`;
+			string $button = `button -l "Bolt on IK" -c( "zooBoltOnIK `ls -sl` `checkBox -q -v zooBoltOnCheck`;" )`;
+			string $image = `image -width 100 -height 8 -backgroundColor ((float)1) ((float)0) ((float)0) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+
+	formLayout -e
+		-af $text "top" 3
+		-af $text "left" 5
+		-an $text "right"
+		-an $text "bottom"
+
+		-ac $check "top" 3 $text
+		-af $check "left" 2
+		-af $check "right" 2
+		-an $check "bottom"
+
+		-ac $button "top" 3 $check
+		-af $button "left" 2
+		-af $button "right" 2
+		-ac $button "bottom" 2 $image
+
+		-an $image "top"
+		-af $image "left" 2
+		-af $image "right" 2
+		-af $image "bottom" 2
+		$form;
+
+	showWindow $windowName;
+	}
+
+
+//zoo.end

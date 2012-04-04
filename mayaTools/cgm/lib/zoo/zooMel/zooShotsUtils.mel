@@ -1,0 +1,788 @@
+global proc zooShotsUtils() {
+	return;
+	}
+
+
+//------
+//adds shots from node2 to node1
+//------
+global proc zooMergeShotsNodes( string $node1, string $node2 ) {
+	if( !`objExists $node1` ) return;
+	if( !`objExists $node2` ) return;
+
+	string $currentNode = `zooGetShotsNode 0`;
+	string $node2Cameras[] = {};
+	string $node2InfoStrs[] = {};
+	int $node1Shots[] = {};
+	int $node2Shots[] = {};
+
+	zooMakeShotNodeCurrent $node2;
+	$node2Shots = `zooListShots`;
+	for( $n=0; $n<`size $node2Shots`; $n++ ) {
+		$node2Cameras[$n] = `zooGetShotInfo camera $node2Shots[$n]`;
+		$node2InfoStrs[$n] = `getAttr ( $node2 +".shotInfo"+ $node2Shots[$n] )`;
+		}
+
+	zooMakeShotNodeCurrent $node1;
+
+	for( $n=0; $n<`size $node2Shots`; $n++ ) {
+		int $dupeShotNum = `zooAddShot $node2Cameras[$n]`;
+		setAttr -type "string" ( $node1 +".shotInfo"+ $dupeShotNum ) $node2InfoStrs[$n];
+		}
+
+	zooReorderShots;
+	zooMakeShotNodeCurrent $currentNode;
+	}
+
+
+//------
+//deals with locking multiple cameras at once - this is ultimately a UI function,
+//but is defined in this proc because its not tied to the UI
+//------
+global proc zooBatchLocker( int $shot, string $direction, int $lockState ) {
+	int $shots[] = `zooListShots`;
+	switch( $direction ) {
+		case "before":
+			for( $n=0; $n<`size $shots`; $n++ ) { if( $shots[$n] <= $shot ) zooLockShotCamera $shots[$n] $lockState; }
+			break;
+
+		case "after":
+			for( $n=0; $n<`size $shots`; $n++ ) if( $shots[$n] >= $shot ) zooLockShotCamera $shots[$n] $lockState;
+			break;
+
+		case "all":
+			for( $n=0; $n<`size $shots`; $n++ ) zooLockShotCamera $shots[$n] $lockState;
+			break;
+		}
+	}
+
+
+//------
+//un-instances a shot camera.  If a camera is used in multiple shots, that camera
+//has been "instanced" in shots.  So un-instancing a camera makes the camera for
+//the current shot unique
+//------
+global proc zooUninstanceShot( int $shot ) {
+	string $camera = `zooGetShotCamera $shot`;
+	int $camShots[] = `zooGetShotsFromCamera $camera`;
+
+	if( `size $camShots` == 1 ) return;  //if the camera is only used once, then do nothing
+	string $newCam[] = `duplicate -rc $camera`;
+	zooSetShotInfo $shot ( "-set camera "+ $newCam[0] );
+	}
+
+
+//------
+//locks the transforms for the camera on a given shot
+//------
+global proc zooLockShotCamera( int $shot, int $lockState ) {
+	string $camera = `zooGetShotCamera $shot`;
+	string $axes[] = {"x","y","z"};
+
+	for( $axis in $axes ) catchQuiet( `setAttr -l $lockState ( $camera +".t"+ $axis )` );
+	for( $axis in $axes ) catchQuiet( `setAttr -l $lockState ( $camera +".r"+ $axis )` );
+	}
+
+
+global proc int zooIsShotLocked( int $shot ) {
+	string $camera = `zooGetShotCamera $shot`;
+	string $axes[] = {"x","y","z"};
+
+	for( $axis in $axes ) if( `getAttr -l ( $camera +".t"+ $axis )`) return 1;
+	for( $axis in $axes ) if( `getAttr -l ( $camera +".r"+ $axis )`) return 1;
+	return 0;
+	}
+
+
+//------
+//handles changing the timeline to the range of a given shot
+//------
+global proc zooShotsGoto( string $function, int $shot ) {
+	int $start = `zooGetShotInfo start $shot`;
+	int $end = `zooGetShotInfo end $shot`;
+
+	if( $function == "start" || $function == "both" ) {
+		if( `currentTime -q` < $start ) currentTime $start;
+		playbackOptions -e -min $start;
+		}
+
+	if( $function == "end" || $function == "both" ) {
+		if( `currentTime -q` > $end ) currentTime $end;
+		playbackOptions -e -max $end;
+		}
+	}
+
+
+global proc string zooGetObjsConstraintWeight( string $obj, string $constraint ) {
+	string $weightStr;
+	string $objTgts[] = {};
+
+	if( size(`connectionInfo -dfs ( $obj +".parentMatrix[0]" )`)) $objTgts = `connectionInfo -dfs ( $obj +".parentMatrix[0]" )`;  //this attr is always involved in a constraint
+	else return "";
+
+	for( $tgt in $objTgts ) if( $constraint == `match "^[^.]+" $tgt` ) {
+		string $targetNumberStr = `match "\\[[0-9]+\\]" $tgt`;
+		int $tgtNum = `match "[0-9]+" $targetNumberStr`;
+		$weightStr = `connectionInfo -sfd ( $constraint +".target["+ $tgtNum +"].targetWeight" )`;
+		$weightStr = `match "[^.]+$" $weightStr`;
+		break;
+		}
+
+	return $weightStr;
+	}
+
+
+//------
+//updates the ranges on the shotsNode, from the constraint keys on the master camera - ie if the user has shifted the keys on the master
+//camera constraint, this proc gets the new ranges from these shifted keys
+//------
+global proc zooSetRangesFromMaster() {
+	string $masterCam = `zooGetMasterShot`;
+	string $constraint[] = `listRelatives -type constraint $masterCam`;
+	string $weightAttrs[] = `listAttr -ud $constraint[0]`;
+	int $shots[] = `zooListEnabledShots`;
+	int $starts[] = {};
+	int $ends[] = {};
+
+	for( $n=0; $n<`size $weightAttrs`; $n++ ) {
+		float $keyTimes[] = `keyframe -t ":" -q ( $constraint[0] +"."+ $weightAttrs[$n] )`;
+		for( $x=1; $x<`size $keyTimes`; $x+=3 ) $starts[( `size $starts` )] = $keyTimes[$x];
+		}
+
+	$starts = `sort $starts`;
+	for( $n=0; $n<`size $shots`; $n++ ) zooSetShotInfo $shots[$n] ( "-set start "+ $starts[$n] );
+	}
+
+
+//------
+//this proc will build and animate the constraints for the master camera, so it switches properly
+//------
+global proc string zooShotsConstrainMaster() {
+	string $master = `zooGetMasterShot`;
+	if( !`objExists $master` ) return "";
+
+	int $shots[] = `zooListEnabledShots`;
+	string $cameras[] = {};
+	string $constraint[] = {};
+	string $masterCamShape = zooGetElement_str(0,`listRelatives -s -type camera $master`);
+	string $fLengthExpression = $masterCamShape +".focalLength=";
+	string $fDistanceExpression = $masterCamShape +".focusDistance=";
+	string $fStopExpression = $masterCamShape +".fStop=";
+	string $shutterExpression = $masterCamShape +".shutterAngle=";
+	string $appHExpression = $masterCamShape +".horizontalFilmAperture=";
+	string $appVExpression = $masterCamShape +".verticalFilmAperture=";
+	string $lensExpression = $masterCamShape +".lensSqueezeRatio=";
+	string $fitExpression = $masterCamShape +".filmFit=";
+	string $scanExpression = $masterCamShape +".overscan=";
+	string $clipNExpression = $masterCamShape +".nearClipPlane=";
+	string $clipFExpression = $masterCamShape +".farClipPlane=";
+	int $starts[] = {};
+	int $ends[] = {};
+
+	for( $a in $shots ) {
+		$cameras[( `size $cameras` )] = `zooGetShotInfo camera $a`;
+		$starts[( `size $starts` )] = `zooGetShotInfo start $a`;
+		$ends[( `size $ends` )] = `zooGetShotEndFrame $a`;
+		}
+
+	string $axes[] = { "x", "y", "z" };
+	int $lockedT[] = {};
+	int $lockedR[] = {};
+	for( $axis in $axes ) { $lockedT[( `size $lockedT` )] = `getAttr -l ( $master +".t"+ $axis )`; catchQuiet( `setAttr -l 0 ( $master +".t"+ $axis )`); }
+	for( $axis in $axes ) { $lockedR[( `size $lockedR` )] = `getAttr -l ( $master +".r"+ $axis )`; catchQuiet( `setAttr -l 0 ( $master +".r"+ $axis )`); }
+
+	//remove any constraints and expressions currently controlling the master camera
+	string $oldConstraints[] = `listRelatives -type parentConstraint $master`;
+	string $oldExpressoins[] = ls("-type", "expression", (listHistory($masterCamShape)));
+	if( `size $oldConstraints` ) delete $oldConstraints;
+	if( `size $oldExpressoins` ) delete $oldExpressoins;
+
+	//now build a parent constraint that links to all shot cameras, as well as the expression string that controls the focal length of the master
+	$constraint = `parentConstraint $cameras[0] $master`;
+	for( $n=0; $n<`size $cameras`; $n++ ) {
+		string $cam = $cameras[$n];
+		string $attr = `zooGetObjsConstraintWeight $cam $constraint[0]`;
+		int $camAlreadyConstrained = 0;
+
+		if( $attr != "" ) $camAlreadyConstrained = 1;
+		if( !$camAlreadyConstrained ) {  //if the $attr is empty, that means the camera isn't already participating in the constraint
+			$constraint = `parentConstraint $cam $master`;
+			$attr = `zooGetObjsConstraintWeight $cam $constraint[0]`;
+			}
+
+		//set the keys on the weight curves
+		setKeyframe -itt linear -ott step -t ( $starts[$n]-1 ) -v 0 ( $constraint[0] +"."+ $attr );
+		setKeyframe -itt linear -ott step -t $starts[$n] -v 1 ( $constraint[0] +"."+ $attr );
+		setKeyframe -itt linear -ott step -t ( $ends[$n]+1 ) -v 0 ( $constraint[0] +"."+ $attr );
+		}
+
+	//now lets write the expressions to make the camera shape attributes follow the appropriate target camera
+	string $noDupeCams[] = `stringArrayRemoveDuplicates $cameras`;
+	for( $cam in $noDupeCams ) {
+			string $camShape[] = `listRelatives -type camera $cam`;
+			string $attr = `zooGetObjsConstraintWeight $cam $constraint[0]`;
+
+			$fLengthExpression = $fLengthExpression +"("+ $camShape[0] +".focalLength*"+ $constraint[0] +"."+ $attr +")+";
+			$fDistanceExpression = $fDistanceExpression +"("+ $camShape[0] +".focusDistance*"+ $constraint[0] +"."+ $attr +")+";
+			$fStopExpression = $fStopExpression +"("+ $camShape[0] +".fStop*"+ $constraint[0] +"."+ $attr +")+";
+			$shutterExpression = $shutterExpression +"("+ $camShape[0] +".shutterAngle*"+ $constraint[0] +"."+ $attr +")+";
+			$clipNExpression = $clipNExpression +"("+ $camShape[0] +".nearClipPlane*"+ $constraint[0] +"."+ $attr +")+";
+			$clipFExpression = $clipFExpression +"("+ $camShape[0] +".farClipPlane*"+ $constraint[0] +"."+ $attr +")+";
+
+			$appHExpression = $appHExpression +"("+ $camShape[0] +".horizontalFilmAperture*"+ $constraint[0] +"."+ $attr +")+";
+			$appVExpression = $appVExpression +"("+ $camShape[0] +".verticalFilmAperture*"+ $constraint[0] +"."+ $attr +")+";
+			$lensExpression = $lensExpression +"("+ $camShape[0] +".lensSqueezeRatio*"+ $constraint[0] +"."+ $attr +")+";
+			$fitExpression = $fitExpression +"("+ $camShape[0] +".filmFit*"+ $constraint[0] +"."+ $attr +")+";
+			$scanExpression = $scanExpression +"("+ $camShape[0] +".overscan*"+ $constraint[0] +"."+ $attr +")+";
+			}
+
+	//remove the final + sign, and build the expression
+	$fLengthExpression = `substitute "[+]$" $fLengthExpression ";\r\n"`;
+	$fDistanceExpression = `substitute "[+]$" $fDistanceExpression ";\r\n"`;
+	$fStopExpression = `substitute "[+]$" $fStopExpression ";\r\n"`;
+	$shutterExpression = `substitute "[+]$" $shutterExpression ";\r\n"`;
+	$clipNExpression = `substitute "[+]$" $clipNExpression ";\r\n"`;
+	$clipFExpression = `substitute "[+]$" $clipFExpression ";\r\n"`;
+	$appHExpression = `substitute "[+]$" $appHExpression ";\r\n"`;
+	$appVExpression = `substitute "[+]$" $appVExpression ";\r\n"`;
+	$lensExpression = `substitute "[+]$" $lensExpression ";\r\n"`;
+	$fitExpression = `substitute "[+]$" $fitExpression ";\r\n"`;
+	$scanExpression = `substitute "[+]$" $scanExpression ";\r\n"`;
+
+	//figure out which expressions we actually want on the master camera
+	string $expressionStr = "";
+	if( `optionVar -ex zooShots_focal`? `optionVar -q zooShots_focal`: 1 ) $expressionStr += $fLengthExpression;
+	if( `optionVar -ex zooShots_fdist`? `optionVar -q zooShots_fdist`: 1 ) $expressionStr += $fDistanceExpression;
+	if( `optionVar -ex zooShots_fstop`? `optionVar -q zooShots_fstop`: 1 ) $expressionStr += $fStopExpression;
+	if( `optionVar -ex zooShots_shutr`? `optionVar -q zooShots_shutr`: 1 ) {
+		$expressionStr += $shutterExpression;
+		$expressionStr += $appHExpression;
+		$expressionStr += $appVExpression;
+		$expressionStr += $lensExpression;
+		$expressionStr += $fitExpression;
+		$expressionStr += $scanExpression;
+		}
+	if( `optionVar -ex zooShots_clipn`? `optionVar -q zooShots_clipn`: 1 ) $expressionStr += $clipNExpression;
+	if( `optionVar -ex zooShots_clipf`? `optionVar -q zooShots_clipf`: 1 ) $expressionStr += $clipFExpression;
+	if( $expressionStr != "" ) expression -s $expressionStr;
+
+	for( $n=0; $n < 3; $n++ ) setAttr -l $lockedT[$n] ( $master +".t"+ $axes[$n] );
+	for( $n=0; $n < 3; $n++ ) setAttr -l $lockedR[$n] ( $master +".r"+ $axes[$n] );
+
+	return $constraint[0];
+	}
+
+
+global proc zooReorderShots() {
+	int $orderedShots[] = {};
+	int $shots[] = `zooListShots`;
+	int $numShots = `size $shots`;
+	int $starts[] = {};
+	int $orderedStarts[] = {};
+	int $orderedIndicies[] = {};
+	int $highest;
+	int $highestIndex;
+
+	//build the list of all start values
+	for( $n=0; $n<`size $shots`; $n++ ) $starts[$n] = `zooGetShotInfo start $shots[$n]`;
+	$orderedShots = `zooOrderArrayUsing_int $shots $starts`;
+
+	string $node = `zooGetShotsNode 0`;
+	string $cameras[] = {};
+	string $infoStrs[] = {};
+	for( $n=0; $n<$numShots; $n++ ) {
+		$cameras[$n] = `zooGetShotCamera $orderedShots[$n]`;
+		$infoStrs[$n] = `getAttr ( $node +".shotInfo"+ $orderedShots[$n] )`;
+		zooDeleteShot $orderedShots[$n];
+		}
+
+	for( $n=0; $n<$numShots; $n++ ) {
+		int $shot = `zooAddShot $cameras[$n]`;
+		setAttr -type "string" ( $node +".shotInfo"+ $shot ) $infoStrs[$n];
+		}
+	}
+
+
+//------
+//returns info about the current shot
+//------
+global proc int zooGetCurrentShot() {
+	float $currentTime = `currentTime -q`;
+	int $shots[] = `zooListShots`;
+	int $currentShot = -1;
+
+	for( $a in $shots ) {
+		int $start = `zooGetShotInfo start $a`;
+		if( $currentTime >= $start ) {
+			int $end = `zooGetShotInfo end $a`;
+			if( $currentTime <= $end ) return $a;
+			}
+		}
+
+	return $currentShot;
+	}
+
+
+//------
+//returns a list of shots that the camera is used for
+//------
+global proc int[] zooGetShotsFromCamera( string $camera ) {
+	string $node = `zooGetShotsNode 0`;
+	if( !`objExists $node` ) return {};
+	string $connections[] = `listConnections -s 0 -p 1 -type time ( $camera +".message" )`;
+	int $shotList[] = {};
+
+	for( $c in $connections ) if( `match ( $node +".shotCamera[0-9]+$" ) $c` != "" ) {
+		int $shot = `match "[0-9]+$" $c`;
+		$shotList[( `size $shotList` )] = $shot;
+		}
+
+	$shotList = `sort $shotList`;
+	return $shotList;
+	}
+
+
+//------
+//gets the name of the camera used for a certain shot
+//------
+global proc string zooGetShotCamera( int $shot ) {
+	string $node = `zooGetShotsNode 0`;
+	string $camera = "";
+	if( !`objExists ( $node +".shotCamera"+ $shot )`) return "";
+	$camera = zooGetElement_str(0,`listConnections -s 1  ( $node +".shotCamera"+ $shot )`);
+	return $camera;
+	}
+
+
+//------
+//sets which camera is used for a given shot
+//------
+global proc zooSetShotCamera( string $camera, int $shot ) {
+	if( !`objExists $camera` ) return;
+	string $node = `zooGetShotsNode 1`;
+	if( !`objExists ( $node +".shotCamera"+ $shot )`) addAttr -ln ( "shotCamera"+ $shot ) -at bool $node;
+	connectAttr -f ( $camera +".message" ) ( $node +".shotCamera"+ $shot );
+	}
+
+
+//------
+//sets which camera is used for the master camera
+//------
+global proc zooSetMasterShot( string $camera ) {
+	if( !`objExists $camera` ) return;
+	string $node = `zooGetShotsNode 1`;
+	if( !`objExists ( $node +".masterCamera" )`) addAttr -ln masterCamera -at bool $node;
+	connectAttr -f ( $camera +".message" ) ( $node +".masterCamera" );
+	}
+
+
+//------
+//gets the name of the master camera
+//------
+global proc string zooGetMasterShot() {
+	string $node = `zooGetShotsNode 0`;
+	string $camera = "";
+	if( !`objExists ( $node +".masterCamera" )`) return "";
+	$camera = zooGetElement_str(0,`listConnections -s 1  ( $node +".masterCamera" )`);
+	return $camera;
+	}
+
+
+//------
+//figures out what the end frame of a given shot - because end frames aren't explicitly stored, the
+//end frame count must be calculated from the next shot, or the end global flag
+//------
+global proc int zooGetShotEndFrame( int $shot ) {
+	int $nextShot = `zooGetNextEnabledShot $shot`;
+
+	if( $nextShot != -1 ) $end = (int)`zooGetShotInfo start $nextShot` - 1;
+	else $end = `zooGetGlobalShotInfo end`;
+
+	return $end;
+	}
+
+
+//------
+//figures out which slot comes after the one given
+//------
+global proc int zooGetNextEnabledShot( int $shot ) {
+	int $shots[] = `zooListShots`;
+	int $numShots = `size $shots`;
+	for( $n=0; $n<$numShots; $n++ ) if( $shots[$n] > $shot ) if( `zooGetShotInfo disable $shots[$n]` == "0" ) return $shots[$n];
+	return -1;
+	}
+
+global proc int zooGetNextEnabledShotSlow( int $shot ) {  //this is the slow version of this proc... kept for the sake of god knows what
+	int $shots[] = `zooListEnabledShots`;
+	int $numShots = `size $shots`;
+	for( $n=0; $n<$numShots-1; $n++ ) if( $shots[$n] == $shot ) return $shots[++$n];
+	return -1;
+	}
+
+
+//------
+//figures out which slot comes after the one given
+//------
+global proc int zooGetNextShot( int $shot ) {
+	int $shots[] = `zooListShots`;
+	int $numShots = `size $shots`;
+	int $next = -1;
+	for( $n=0; $n<$numShots-1; $n++ ) if( $shots[$n] == $shot ) {
+		$next = $shots[++$n];
+		break;
+		}
+	return $next;
+	}
+
+
+//------
+//given a shot number, this function figures out a slot number, which is basically how many shots
+//come before this one - shot numbers and slot numbers are USUALLY the same, but not always
+//ie shot number 4 is not always the fourth shot - this proc does the conversion
+//------
+global proc int zooMapShotsToSlots( int $shot ) {
+	int $shots[] = `zooListShots`;
+	int $slot;
+	for( $n=0; $n<`size $shots`; $n++ ) if( $shots[$n] == $shot ) { $slot = $n; break; }
+	return $slot;
+	}
+
+
+//------
+//used to change the information stored in a slot
+//------
+global proc zooSetShotInfo( int $shot, string $cmdStr ) {
+	string $temp[] = {};
+	string $function = "";
+	string $newInfo = "";
+	int $rebuild = 0;
+
+	$temp = `zooGetFlagArguments $cmdStr set`; if( `size $temp` ) { $function = $temp[0]; $newInfo = zooArrayToStr_str(`zooIndexCrop_str $temp "1:"`," "); }
+	$temp = `zooGetFlagArguments $cmdStr rebuild`; if( `size $temp` ) $rebuild = $temp[0];
+	if( $function == "" ) return;
+
+	string $node = `zooGetShotsNode 1`;
+	string $start = `zooGetActualShotInfo start $shot`;
+	string $disable = `zooGetActualShotInfo disable $shot`;
+	string $colour = `zooGetActualShotInfo colour $shot`;
+	string $notes = `zooGetActualShotInfo notes $shot`;
+	string $info;
+
+	switch( $function ) {
+		case "start":
+		$start = $newInfo;
+		$reConstrain = 1;
+		break;
+
+		case "camera":
+		zooSetShotCamera $newInfo $shot;
+		zooShotsConstrainMaster;
+		return;
+		break;
+
+		case "disable":
+		$disable = $newInfo;
+		$reConstrain = 1;
+		break;
+
+		case "colour":
+		$colour = $newInfo;
+		if( $newInfo == "none" ) $colour = "";
+		break;
+
+		case "notes":
+		$notes = `substituteAllString $newInfo "-" ":"`;
+		break;
+		}
+
+	$info = ".";
+	if( $start != "" ) $info += " -start "+ $start;
+	if( $disable != "" && $disable != "0" ) $info += " -disable "+ $disable;
+	if( $colour != "" ) $info += " -colour "+ $colour;
+	if( $notes != "" ) $info += " -notes "+ $notes;
+
+	setAttr -type "string" ( $node+".shotInfo"+$shot ) $info;
+
+	int $autoUpdate = 1;
+	if( `optionVar -ex zooShotsAutoUpdate` ) $autoUpdate = `optionVar -q zooShotsAutoUpdate`;
+	if( !$autoUpdate ) $reConstrain = 0;
+	if( $reConstrain ) zooShotsConstrainMaster;
+	}
+
+
+//------
+//returns flag information stored with a slot - if the flag isn't specified in
+//the slot info attribute then this proc returns the default value for that flag
+//------
+global proc string zooGetShotInfo( string $infoToGet, int $shot ) {
+	string $info = "";
+	string $default = `zooGetDefaultShotInfo $infoToGet`;
+
+	$info = `zooGetActualShotInfo $infoToGet $shot`;
+
+	if( $info != "" ) return $info;
+	if( $info == "!" ) return "";
+	else return $default;
+	}
+
+
+//------
+//this proc returns the actual data stored with a flag contained in a slot - if
+//the flag isn't specified for the slot then this proc returns an empty string,
+//not the default value for the flag
+//------
+global proc string zooGetActualShotInfo( string $infoToGet, int $shot ) {
+	string $node = `zooGetShotsNode 0`;
+	if( !`objExists ( $node +".shotInfo"+ $shot )` ) return "!";
+
+	string $info = `getAttr ( $node +".shotInfo"+ $shot )`;
+	string $flagInfo[] = `zooGetFlagArguments $info $infoToGet`;
+	string $info = `zooArrayToStr_str $flagInfo " "`;
+
+	if( $infoToGet == "camera" ) $info = `zooGetShotCamera $shot`;
+	if( $infoToGet == "end" ) $info = `zooGetShotEndFrame $shot`;
+
+	return $info;
+	}
+
+
+//------
+//returns the default value for a flag
+//------
+global proc string zooGetDefaultShotInfo( string $flag ) {
+	string $default = "";
+	if( $flag == "camera" ) $default = "";
+	if( $flag == "start" ) $default = `playbackOptions -q -ast`;
+	if( $flag == "end" ) $default = `zooGetGlobalShotInfo end`;
+	if( $flag == "disable" ) $default = 0;
+	if( $flag == "colour" ) $default = "";
+	if( $flag == "notes" ) $default = "";
+
+	return $default;
+	}
+
+
+//------
+//used to change the information stored in a slot
+//------
+global proc zooSetGlobalShotInfo( string $function, string $newInfo ) {
+	string $node = `zooGetShotsNode 1`;
+	int $end = `zooGetGlobalShotInfo end`;
+	string $notes = `zooGetGlobalShotInfo notes`;
+	string $info;
+
+	switch( $function ) {
+		case "master":
+		zooSetMasterShot $newInfo;
+		break;
+
+		case "end":
+		$end = $newInfo;
+		break;
+
+		case "notes":
+		$notes = `substituteAllString $newInfo "-" "_"`;
+		break;
+		}
+
+	$info = ".";
+	if( $end != "" ) $info += " -end "+ $end;
+	if( $notes != "" ) $info += " -notes "+ $notes;
+
+	setAttr -type "string" ( $node+".globalInfo" ) $info;
+	}
+
+
+//------
+//returns flag information stored with a slot - if the flag isn't specified in
+//the slot info attribute then this proc returns the default value for that flag
+//------
+global proc string zooGetGlobalShotInfo( string $infoToGet ) {
+	string $node = `zooGetShotsNode 0`;
+	string $info = "";
+	string $default = `zooGetDefaultGlobalShotInfo $infoToGet`;
+	if( !`objExists $node` ) return $default;
+
+	if( $infoToGet == "master" ) { $info = `zooGetMasterShot`; return $info; }
+	if( $infoToGet == "start" ) {
+		int $shots[] = `zooListShots`;
+		if( `size $shots` ) $info = `zooGetShotInfo start $shots[0]`;
+		else $info = `playbackOptions -q -min`;
+		return $info;
+		}
+
+	string $infoStr = `getAttr ( $node +".globalInfo" )`;
+	string $flagInfo[] = `zooGetFlagArguments $infoStr $infoToGet`;
+
+	$info = `zooArrayToStr_str $flagInfo " "`;
+
+	if( $info != "" ) return $info;
+	else return $default;
+	}
+
+
+//------
+//returns the default value for a flag
+//------
+global proc string zooGetDefaultGlobalShotInfo( string $flag ) {
+	string $default = "";
+	if( $flag == "master" ) $default = "";
+	if( $flag == "end" ) $default = `playbackOptions -q -aet`;
+	if( $flag == "notes" ) $default = "";
+
+	return $default;
+	}
+
+
+//------
+//deletes a given shot, and handles all necessary clean up
+//------
+global proc zooDeleteShot( string $shot ) {
+	string $node = `zooGetShotsNode 0`;
+	if( !`objExists $node` ) return;
+	deleteAttr ( $node +".shotCamera"+ $shot );
+	deleteAttr ( $node +".shotInfo"+ $shot );
+	}
+
+
+//------
+//deals with everything needed to create a new shot - if the camera doesn't exist, -1 is returned
+//------
+global proc int zooAddShot( string $camera ) {
+	string $node = `zooGetShotsNode 1`;
+	int $shot = `zooGetNextShotNumber`;
+
+	if( !`objExists $camera` ) return -1;
+	addAttr -ln ( "shotCamera"+ $shot ) -at bool $node;
+	addAttr -ln ( "shotInfo"+ $shot ) -dt "string" $node;
+	connectAttr -f ( $camera +".message" ) ( $node +".shotCamera"+ $shot );
+	return $shot;
+	}
+
+
+//------
+//returns the next available shot number
+//------
+global proc int zooGetNextShotNumber() {
+	int $shots[] = `zooListShots`;
+	int $next = 0;
+
+	if( `size $shots` ) $next = $shots[( `size $shots`-1 )]+1;
+
+	return $next;
+	}
+
+
+//------
+//returns an ordered list of enabled shots ie ie have their -disable flag set to zero
+//------
+global proc int[] zooListEnabledShots() {
+	int $shots[] = `zooListShots`;
+	int $enabledShots[] = {};
+
+	for( $a in $shots ) if( !((int)`zooGetShotInfo disable $a`)) $enabledShots[( `size $enabledShots` )] = $a;
+	return $enabledShots;
+	}
+
+
+//------
+//returns an ordered list of all shots in the scene
+//------
+global proc int[] zooListShots() {
+	string $node = `zooGetShotsNode 0`;
+	if( !`objExists $node` ) return {};
+	string $attrs[] = `listAttr -u -ud $node`;
+	string $attrName = "shotCamera";
+	int $shots[] = {};
+
+	for( $attr in $attrs ) if( `match ( $attrName +"[0-9]+" ) $attr` != "" ) $shots[( `size $shots` )] = (int)`match "[0-9]+" $attr`;
+	$shots = `sort $shots`;
+	return $shots;
+	}
+
+
+//------
+//creates a scriptNode that auto loads the shots UI on scene load - great for auto-loading the docked shots UI
+//------
+global proc int zooShotsAutoLoader( string $optionStr ) {
+	string $scripts[] = `ls -type script`;
+	string $temp[] = {};
+	int $query = 0;
+	int $install = 1;
+
+	$temp = `zooGetFlagArguments $optionStr q`; if( `size $temp` ) $query = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr install`; if( `size $temp` ) $install = $temp[0];
+
+	if( $query ) { for( $a in $scripts ) if( `objExists ( $a +".zooShots" )` ) return 1; }
+	else if( $install ) {
+		for( $a in $scripts ) if( `objExists ( $a +".zooShots" )` ) delete $a;  //remove all auto load scripts
+		string $shotsLoader = `scriptNode -bs "zooShots" -st 1`;
+		addAttr -ln zooShots -at bool $shotsLoader;
+		return 1;
+		}
+	else { for( $a in $scripts ) if( `objExists ( $a +".zooShots" )` ) delete $a; }
+
+	return 0;
+	}
+
+
+//------
+//makes the given node the current one.  the current node has its zooShots attribute flagged true
+//------
+global proc string zooMakeShotNodeCurrent( string $node ) {
+	string $nodes[] = `zooListAllShotNodes`;
+	if( !`objExists $node` ) return "";
+	for( $a in $nodes ) {
+		if( $a == $node ) setAttr ( $a +".zooShots" ) 1;
+		else setAttr ( $a +".zooShots" ) 0;
+		}
+
+	return $node;
+	}
+
+
+//------
+//returns the current shots management node.  If the $force variable is true, a node is created if one
+//doesn't already exist - the old behaviour, this proc always created a node if one didn't already exist
+//------
+global proc string zooGetShotsNode( int $force ) {
+	string $selObjs[] = `ls -sl`;
+	string $nodes[] = `zooListAllShotNodes`;
+	string $node = $nodes[0];
+
+	for( $n in $nodes ) if( `getAttr ( $n +".zooShots" )` ) $node = $n;
+	if( !`objExists $node` && $force ) $node = `zooCreateNewShotsNode`;
+
+	select $selObjs;
+	return $node;
+	}
+
+
+global proc string zooCreateNewShotsNode() {
+	string $node = `createNode time`;
+	$node = `rename $node "shotsNode"`;
+	addAttr -ln zooShots -at bool $node;
+	addAttr -ln globalInfo -dt "string" $node;
+	addAttr -ln version -dt "string" $node;
+	setAttr -type "string" ( $node +".version" ) `zooShotsInfo version`;
+	setAttr -l 1 ( $node +".version" );
+	setAttr ( $node +".zooShots" ) 1;
+
+	return $node;
+	}
+
+
+//------
+//returns the name of all shots nodes found in the scene
+//------
+global proc string[] zooListAllShotNodes() {
+	string $timeNodes[] = `ls -type time`;
+	string $nodes[] = {};
+
+	for( $a in $timeNodes ) if( `objExists ( $a +".zooShots" )` ) if( !`reference -inr $a` ) $nodes[( `size $nodes` )] = $a;
+
+	return $nodes;
+	}
+
+
+//zoo.end

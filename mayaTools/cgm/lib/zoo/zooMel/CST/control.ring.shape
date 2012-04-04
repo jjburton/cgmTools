@@ -1,0 +1,14 @@
+{
+string $control[] = {};
+$control[0] = `createNode transform -n "zooControl"`;
+
+string $circ[] = `circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 0.5 -d 3 -ut 0 -tol 0.02 -s 6 -ch 0`;
+string $tor[] = `torus -p 0 0 0 -ax 0 1 0 -ssw 0 -esw 360 -msw 360 -r 0.5 -hr 0.15 -d 3 -ut 0 -tol 0.01 -s 8 -nsp 4 -ch 0`;
+
+for( $s in `listRelatives -f -s $circ[0]` ) parent -add -s $s $control[0];
+for( $s in `listRelatives -f -s $tor[0]` ) parent -add -s $s $control[0];
+delete $tor;
+delete $circ;
+
+select $control[0];
+}

@@ -1,0 +1,88 @@
+Overview
+------
+zooTriggered has two major functions.  Firstly, it allows you to create "trigger" objects in your scene, and secondly, it lets you add custom menus to an object's right click menu.
+
+A trigger object is an object that "does something" when selected.  What the trigger does can be absolutely anything, as it just runs a piece of mel script contained on the object.  You can think of these trigger objects as buttons, as they do something when you "press" (ie select) them.
+
+The right click menus can also be absolutely anything, and can be used to toggle the visibility of controls on a character rig, set a pose, switch between fk and ik, select all fk controls, or absolutely anything else you can script.  Its a great way to store script based information with a character, instead of using a custom shelf.
+
+By using a combination of buttons and object menus, you can build up quite sophisticated in-viewport interfaces to character rigs, or any other complex sort of system.
+
+The other very major thing zooTriggered does is to removes the reliance on hard-coded object names in the commands.  Instead it uses connections to refer to objects, which are represented by symbols in the mel commands.  Of course, you can still hardcode your node names if you wish, but naturally node names are fairly fluid things, and can change easily.  So referring to nodes by their connection number instead, allows you to remove the reliance on hardcoded node names in your mel commands, which has been the main problem with embedding mel in scenes in the past.
+
+
+Welcome to the zooTriggered Window
+------
+Version 2 of zooTriggered aims to make building triggers much easier, and faster to do.  The UI has been simplified to reflect this.  The main part of the UI consists of 3 areas.  The top left white box is the triggers pane.  This contains a list of all triggers in the scene (or zooObjMenu objects if you're viewing zooObjMenu objects).
+
+The white box to the right of this is the connects pane.  The connects pane will list all the objects that are connected to the trigger selected in the triggers pane.  From this pane you can add and remove connects easily through the right click menu.
+
+The last main area is the command pane, down the bottom of the window.  This is where zooTriggered or zooObjMenu commands can be edited and presets loaded, again through the right click menu.
+
+Other UI items to note are the load and unload buttons along the top of the window.  These buttons control whether zooTriggered is turned "on" or not.  Turning zooTriggered on simply loads the scriptJob that makes zooTriggered work, while unload kills that scriptJob.
+
+And finally the long thin button to the left of the triggers pane, will sync the triggers pane to the current scene selection, to make finding certain triggers easier.
+
+
+Creating Triggers
+------
+Triggers are easy to create.  Simply select the objects you want to be triggers, and in the window, right click the triggers pane (the big white box on the left side of the window) and then choose "add selected scene objects to list".  This makes the object an empty trigger object.  Thats it.  You now have a button.  Now at this stage the button does nothing, so to make it do something, lets first connect some objects to the trigger.
+
+
+Making Connects
+------
+Any object connected to a zooTrigger object is called a connect.  Connects are cool because we can refer to them in script using symbols instead of object names, which mean the names of the connects can change without stuffing up the trigger command.
+
+So to add connects to a trigger, simply select the objects that you want to be connects, then in the zooTriggered window, select the trigger you want to connect them to, and in the connects pane (the big white box on the right), right click and choose "add selected to connects".  They should now appear in the list of connects.  Thats it!
+
+
+Presets
+------
+To help make the script a bit easier to use for people that aren't MEL savvy (and those that are lazy), there are a bunch of presets that come with the script.  To use a preset, simply right click in the command pane and select the preset you want to use from the menu.  The code should then appear in the command window.  You're free to alter this code if you want to make improvements, or changes.
+
+
+Making the Trigger do Something
+------
+Ok so now lets make the trigger do something when we "press" it.  First make sure you have the trigger we just created selected in the UI.  Now in the command pane (the big window down the bottom of the window) right click and choose the "toggle connects preset" from the menu.  You should see a bunch of mel code appear.  Now press the load button at the top of the window, and select the trigger obejct in the viewport.
+
+You should see all the connects dissapear.  Select the trigger again and the should re-appear.  So this preset allows you to quickly setup a trigger for toggling the visibility of a bunch of objects.
+
+
+The setAttr Preset - Creating Pose Buttons
+------
+This preset lets you create a trigger command that set a bunch of objects to a certain position.  Basically its just a heap of commands that set the attributes of an object to something.  What this is really useful for, is creating pose buttons, or pose right click menu items.  For example, you could use it to create a back to bindpose button as part of a character rig.
+
+To use this preset, you must select the connects you want to set a pose for in the triggered UI.  Then select the preset from the right click list in the command window.  You should see a heap of setAttr commands get written in the command field.  If you want to tweak the pose, simply move the connect objects in the viewport to the new pose, and re-select the menu item, and triggered will re-write the command string.
+
+
+Possible Uses
+------
+Ok, so whats this really useful for?  Well, one thing I use it for is to make selecting parts of character's easier.  For example I have empty groups point constrained to my elbow and knee joints with their display handles turned on, which are triggers that select the pole vectors for that limb.  This is useful because sometimes the pole vectors become hard to find.  So by having a display handle that is always located at the elbow, its always easy to select a limb's pole vector control.
+
+Another excellent use (I personally use this all the time) are making in viewport pose buttons.  This is more useful for facial animation, but it can be used to create poses for absolutely anything.  Basically you can setup a bunch of text objects with the name of the pose.  Then the trigger command can set the attributes on a bunch of objects to hit a certain pose.  I personally use this for facial "phoneme" buttons.  So for example, I'll set up a list of text objects called things like:  mb, oo, ah, ee, etc...  When I press these buttons, it sets the attributes on various objects (blendshape nodes, or sdk sliders, or direct face controls, etc) it sets the attributes on the facial controls, and voila, instant facial pose.  This is great for facial rigs that don't use a phoneme slider system.  Animating lip sync can be made a lot faster if you can hit a base pose quickly, and tweak it using higher level controls, like raising the corner of a lip, sneering etc.
+
+Yet another use is for selecting lots of objects quickly.  For example, when I set up fingers on my characters, I have both slider controls (for bending the fingers quickly) and control objects to directly animate the finger joints.  Quite often I will want to select all the finger controls at once, so I'll add a trigger object next to the hand to select all finger controls at once.  This makes setting a key on all finger controls a breeze.  You could even have the trigger key the objects for you as well.
+
+
+Viewport Buttons
+------
+They're also useful for creating viewport "buttons".  To do this, have an object parented to your view camera that keys all objects in a selection set.  If you connect a character's selection set to a trigger, by using this command:
+setkeyframe `sets -q @`
+
+you can key an entire character easily.  Or even have simple geometry parented to your camera in the shape of the character, to provide an easy way to select different parts of the character.  There is an excellent example of this in action in the primoBoy trigger demo, which can be found here:
+
+http://www.macaronikazoo.com/download/primoBoy_triggerDemo.zip
+
+
+Symbols used by zooTriggered
+------
+To see a list of the symbols that zooTriggered uses, see the Tech help docs that come with this script.
+
+
+Examples
+------
+To select all targets, and set the current tool the move tool:
+select -d #; select -add @; setToolTo $gMove;
+
+To loop over all target objects, toggle their visibility attribute, then restore the previous selection, use the following:
+for($obj in @) setAttr ($obj+".v") (!`getAttr ($obj+".v")`); select ~;

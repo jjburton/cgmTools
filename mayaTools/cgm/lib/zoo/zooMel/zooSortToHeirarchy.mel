@@ -1,0 +1,83 @@
+//
+// Sort To Heirarchy
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 17 August 2003
+//
+// Description:
+// given a list of objects, will return an array ordered by heirarchy, from
+// highest to lowest.
+//
+
+
+zooArrays_int;
+zooArrays_str;
+
+
+//returns a list of objects sorted by heirarchy, highest to lowest
+global proc string[] zooSortToHeirarchy( string $objectList[] ) {
+	int $numParents[] = {};
+	for( $n=0; $n<`size $objectList`; $n++ ) {
+		string $parents[] = `zooGetAllParents $objectList[$n]`;
+		$numParents[$n] = `size $parents`;
+		}
+
+	string $sortedObjs[] = {};
+	int $sortedParents[] = `sort $numParents`;
+	$sortedParents = `zooRemoveDupeItems_int $sortedParents`;
+	for( $n=0; $n<`size $sortedParents`; $n++ ) for( $i=0; $i<`size $objectList`; $i++ ) {
+		if( $sortedParents[$n] == $numParents[$i] ) $sortedObjs[( `size $sortedObjs` )] = $objectList[$i];
+		}
+
+	return $sortedObjs;
+	}
+
+
+//lists root level objects.  ie objects that have no parents in the objectList
+global proc string[] zooSortToListRoots( string $objectList[] ) {
+	string $roots[] = {};
+	for( $obj in $objectList ) {
+		string $objParents[] = `zooGetAllParents $obj`;
+		int $isRootLevel = 1;
+		for( $parent in $objParents ){
+			for( $isInList in $objectList ){
+				if( `match "[^|]+$" $parent` == `match "[^|]+$" $isInList` ) $isRootLevel = 0;
+				}
+			}
+		if( $isRootLevel ) $roots[( `size $roots` )] = $obj;
+		}
+	return $roots;
+	}
+
+
+//returns a list of the heirarchy above an object - ie all an object's parents
+global proc string[] zooGetAllParents( string $obj ) {
+	string $parents[] = {};
+	string $last = $obj;
+	int $n = 0;
+
+	if( !`objExists $obj` ) return {};
+	while( true ) {
+		if( $n >100 ) break;  //just in case
+		$last = zooGetElement_str(0,`listRelatives -p -pa $last`);
+		if( $last == "" ) break;
+		$parents[$n] = $last;
+		$n++;
+		}
+
+	return $parents;
+	}
+
+
+//------
+//returns an int array containing how many parents each object in the given object array has
+//this is useful for determining which objects in a character rig are at the same level
+//------
+global proc int[] zooGetHeirarchyLevels( string $objs[] ) {
+	int $numParents[] = {};
+	for( $n=0; $n<`size $objs`; $n++ ) $numParents[$n] = size(`zooGetAllParents $objs[$n]`);
+	return $numParents;
+	}
+
+
+//zoo.end

@@ -1,0 +1,136 @@
+zooArrays_float;
+zooFlags;
+zooUtils;
+zooTangentWksUtils;
+
+
+global proc zooKeymasterWin() {
+	string $windowName = "zooKeymasterUI";
+	string $windowTitle = "Keymaster";
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -width 300 -height 165 $windowName;
+		menuBarLayout zooXferAnimMenuMain;
+			menu -label "Help";
+				menuItem -l "Report Problem" -c( "zooPollster \"-topic [issue] zooKeymaster: "+ `getenv USER` +" -question do you need help -answers yes,no -recipients hamish.mckenzie -custom 1 -customNote what is going wrong? -cmd file 'q 'sn -button submit issue\";" );
+				menuItem -l "Give Feedback" -c( "zooPollster \"-topic [feedback] zooKeymaster: "+ `getenv USER` +" -question enter feedback below -answers ! -recipients hamish.mckenzie -custom 1\";" );
+				menuItem -l "Help..." -c ( "zooHelp zooKeymaster 1;" );
+				menuItem -d 1;
+				menuItem -l "Setup Marking Menu Hotkey" -c( "zooHotkeyer keymasterMenu \"zooKeymasterMenu;\" \"zooKeymasterMenuKillUI;\" \"-ann creates the zooKeymaster marking menu -default z -enableMods 0\"" );
+				menuItem -d 1;
+				menuItem -l "About" -c ( "zooHelp zooKeymaster 2;" );
+
+		string $form = `formLayout`;
+			string $rads = `radioButtonGrp -l "pivot" -nrb 4 -cw5 40 48 45 45 45 -cl5 left left left left left -labelArray4 "zero" "min" "mid" "max" zooKeymasterUIRadioPiv`;
+			string $butForm = `formLayout`;
+				string $lfB = `button -l "nudge back" -c( "zooKeymasterUINudge left" )`;
+				string $upB = `button -l "push up" -c( "zooKeymasterUINudge up" )`;
+				string $dnB = `button -l "push down" -c( "zooKeymasterUINudge down" )`;
+				string $rtB = `button -l "nudge fwd" -c( "zooKeymasterUINudge right;" )`;
+			setParent ..;
+			string $facLbl = `text -l "factor"`;
+			string $fac = `floatField -v( zooKeymasterDefaultSettings("zooKeyFactor")) -cc( "optionVar -fv zooKeyFactor #1" ) zooKMUIFloatFactor`;
+			string $nudgLbl = `text -l "nudge frames"`;
+			string $nudg = `intField -v( zooKeymasterDefaultSettings("zooKeyNudge")) -cc( "optionVar -iv zooKeyNudge #1" ) zooKMUIIntNudge`;
+			string $absCheck = `checkBox -l "absolute" -v(optionVar("-q", "zooKeyAbs")) -cc( "optionVar -iv zooKeyAbs #1" ) zooKMUIIntAbs`;
+			string $curvePiv = `checkBox -l "curve pivot" -v(optionVar("-q", "zooKeyCurvePivot")) -cc( "optionVar -iv zooKeyCurvePivot #1" ) zooKMUIIntCurve`;
+
+	radioButtonGrp -e -sl( `zooKeymasterDefaultSettings zooKeyPivot` ) -onc( "optionVar -iv zooKeyPivot `radioButtonGrp -q -sl "+ $rads +"`;" ) $rads;
+	popupMenu -p $fac -b 3;
+		menuItem -l "set to 2%" -c( "floatField -e -v 0.02 "+ $fac +"; optionVar -fv zooKeyFactor 0.02;" );
+		menuItem -l "set to 5%" -c( "floatField -e -v 0.05 "+ $fac +"; optionVar -fv zooKeyFactor 0.05;" );
+		menuItem -l "set to 10%" -c( "floatField -e -v 0.1 "+ $fac +"; optionVar -fv zooKeyFactor 0.1;" );
+		menuItem -l "set to 25%" -c( "floatField -e -v 0.25 "+ $fac +"; optionVar -fv zooKeyFactor 0.25;" );
+		menuItem -l "set to 50%" -c( "floatField -e -v 0.5 "+ $fac +"; optionVar -fv zooKeyFactor 0.5;" );
+	popupMenu -p $nudg -b 3;
+		menuItem -l "set to 1 frame" -c( "intField -e -v 1 "+ $nudg +"; optionVar -fv zooKeyNudge 1;" );
+		menuItem -l "set to 2 frames" -c( "intField -e -v 2 "+ $nudg +"; optionVar -fv zooKeyNudge 2;" );
+		menuItem -l "set to 3 frames" -c( "intField -e -v 3 "+ $nudg +"; optionVar -fv zooKeyNudge 3;" );
+		menuItem -l "set to 4 frames" -c( "intField -e -v 4 "+ $nudg +"; optionVar -fv zooKeyNudge 4;" );
+		menuItem -l "set to 5 frames" -c( "intField -e -v 5 "+ $nudg +"; optionVar -fv zooKeyNudge 5;" );
+		menuItem -l "set to 8 frames" -c( "intField -e -v 8 "+ $nudg +"; optionVar -fv zooKeyNudge 8;" );
+		menuItem -l "set to 10 frames" -c( "intField -e -v 10 "+ $nudg +"; optionVar -fv zooKeyNudge 10;" );
+	formLayout -e
+		-ap $lfB "top" 0 25
+		-af $lfB "left" 0
+		-ap $lfB "right" 0 33
+		-ap $lfB "bottom" 0 75
+
+		-af $upB "top" 0
+		-ap $upB "left" 0 33
+		-ap $upB "right" 0 67
+		-ap $upB "bottom" 0 50
+
+		-ap $dnB "top" 0 50
+		-ap $dnB "left" 0 33
+		-ap $dnB "right" 0 67
+		-af $dnB "bottom" 0
+
+		-ap $rtB "top" 0 25
+		-ap $rtB "left" 0 67
+		-af $rtB "right" 0
+		-ap $rtB "bottom" 0 75
+		$butForm;
+
+	formLayout -e
+		-af $rads "top" 0
+		-af $rads "left" 0
+		-an $rads "right"
+		-an $rads "bottom"
+
+		-ac $butForm "top" 0 $rads
+		-af $butForm "left" 0
+		-ap $butForm "right" 0 75
+		-af $butForm "bottom" 0
+
+		-af $facLbl "top" 3
+		-ac $facLbl "left" 0 $butForm
+		-af $facLbl "right" 0
+		-an $facLbl "bottom"
+
+		-ac $fac "top" 3 $facLbl
+		-ac $fac "left" 0 $butForm
+		-af $fac "right" 0
+		-an $fac "bottom"
+
+		-ac $nudgLbl "top" 3 $fac
+		-ac $nudgLbl "left" 0 $butForm
+		-af $nudgLbl "right" 0
+		-an $nudgLbl "bottom"
+
+		-ac $nudg "top" 3 $nudgLbl
+		-ac $nudg "left" 0 $butForm
+		-af $nudg "right" 0
+		-an $nudg "bottom"
+
+		-ac $absCheck "top" 3 $nudg
+		-ac $absCheck "left" 0 $butForm
+		-an $absCheck "right"
+		-an $absCheck "bottom"
+
+		-ac $curvePiv "top" 3 $absCheck
+		-ac $curvePiv "left" 0 $butForm
+		-an $curvePiv "right"
+		-an $curvePiv "bottom"
+		$form;
+
+	showWindow $windowName;
+	}
+
+
+global proc zooKeymasterUINudge( string $dir ) {
+	string $pivot = "zero";
+	float $factor = `floatField -q -v zooKMUIFloatFactor`;
+	int $pivIdx = `radioButtonGrp -q -sl zooKeymasterUIRadioPiv`;
+	int $nudge = `intField -q -v zooKMUIIntNudge`;
+	int $abs = `checkBox -q -v zooKMUIIntAbs`;
+	int $curvePivot = `checkBox -q -v zooKMUIIntCurve`;
+
+	if( $pivIdx == 2 ) $pivot = "min";
+	if( $pivIdx == 3 ) $pivot = "mid";
+	if( $pivIdx == 4 ) $pivot = "max";
+	zooKeymaster ( "-dir "+ $dir +" -nudge "+ $nudge +" -factor "+ $factor +" -pivot "+ $pivot +" -abs "+ $abs +" -curvePivot "+ $curvePivot );
+	}
+
+
+//zoo.end

@@ -1,0 +1,75 @@
+//------------
+// zooReblender
+//
+// rebuilds all blendshapes after changes have been made to the base mesh.
+// basically this script just goes through and turns each blend target on,
+// duplicates the deformed base mesh, positions the duplicate in the same
+// spot as the target and deletes the original target.
+//
+// by doing this, any topological mesh changes done to the base (if a
+// blendshape is present) will get done to all the target shapes.  this
+// allows for any sort of modification to be done to the base shape and
+// easily be reflected in all targets without re-modelling
+//
+// Usage:
+//  simply select all base meshes (with a blendshape applied to them) and
+//  run this command:  zooReblender
+//
+//  additionally you can manually specify meshes by using the:
+//  zooReblender_recreator { "mesh1", "mesh2", "mesh3"... };
+//  command.
+//
+// macaroniKazoo
+//------------
+
+
+global proc zooReblender () {
+	zooReblender_recreator `ls -sl`;
+	}
+
+
+global proc zooReblender_recreator ( string $objs[] ) {
+	string $orgSel[] = `ls -sl`;
+	for ( $obj in $objs ) {
+		string $history[] = (ls("-type","blendShape",`listHistory $obj`));
+		string $blendNodes[] = `stringArrayRemoveDuplicates $history`;
+
+		for ( $blend in $blendNodes ) {
+			string $blendTgts[] = `blendShape -q -t $blend`;
+			string $dupeTgts[] = {};
+			int $numBlends = `blendShape -q -wc $blend`;
+
+			for ( $n=0; $n<$numBlends; $n++ ) blendShape -e -w $n 0. $blend;
+			for ( $n=0; $n<$numBlends; $n++ ) {
+				float $position[] = { 0.,0.,0. };
+				if( `objExists $blendTgts[$n]` ) $position = `xform -q -ws -rp $blendTgts[$n]`;
+				blendShape -e -w $n 1. $blend;  //set the weight on the target to full
+
+				//duplicate the object with the blendshape on it
+				string $dupe[] = `duplicate $obj`;
+				$dupeTgts[$n] = $dupe[0];
+				blendShape -e -w $n 0. $blend;  //set the weight on the target to off
+				move -a -ws -rpr $position[0] $position[1] $position[2] $dupeTgts[$n];
+				}
+
+			//now that we've duplicated the blendShapes from the original, delete the originals
+			//and rename the duplicates
+			delete $blend;
+			for ( $n=0; $n<$numBlends; $n++ ) if( `objExists $blendTgts[$n]` ) {
+				delete $blendTgts[$n];
+				rename $dupeTgts[$n] $blendTgts[$n];
+				}
+
+			//now recreate the blendShape node on the original object with the duplicated targets
+			delete -ch $obj;
+			select $blendTgts;
+			select -add $obj;
+			CreateBlendShape;
+			}
+		}
+
+	select $orgSel;
+	}
+
+
+//zoo.end

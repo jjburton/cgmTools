@@ -1,0 +1,9 @@
+Overview:
+zooSetMenu is a marking menu based script to help deal with quick selection sets.  Quick selection sets are a great way to quickly select a bunch of character controls, and quickly key them when animating, among many other things.  zooSetMenu has two parts to it, the marking menu, and its control window.  The marking menu gives really fast access to selecting any quick selection set in the scene, adding to current selections, creating sets, or keying all objects in a set.
+
+The config window then supplements this with the ability to easily rename sets, add/remove items to/from sets, delete sets, hide all set members, or create post selection commands.
+
+Marking Menu Setup:
+Add to selection, will keep whatever is currently selected when it loads the quick select set.  The update button will reload the UI for when quick select sets are created outside of this script.
+
+The "default behaviour" controls what happens when the hotkey assigned to zooSetMenu is pressed without displaying the menu.  Ie if you had zooSetMenu assigned to the "y" button, when you just press and release the "y" key, the default behaviour would be called.  Most of the options are self explanatory, except for the select "previous/current" option.  This basically finds the first quick select set that the selected object belongs to, and selects it.  If nothing is selected, it selects the previous set.  This behaviour makes it easy to select a character's controls in scenes with multiple characters.

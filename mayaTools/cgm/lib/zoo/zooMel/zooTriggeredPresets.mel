@@ -1,0 +1,265 @@
+zooArrays_str;
+zooObjMenuUtils;
+zooPresetManager;
+zooTriggeredUtils;
+zooStrUtils;
+zooUtils;
+
+
+global proc zooTriggeredPresets() {
+	return;
+	}
+
+
+//the search domain is the list of objects to search through when either the
+//guessTriggers or guessConnects flag is true.  it defaults to all transforms in
+//the scene (which makes importing slow)
+//
+//the following flags work with this proc:
+// -guessTriggers [int]		if true (default is false) this will tell the script to look for a closest matching object if the exact trigger object isn't found
+// -guessConnects [int]		like the guessTriggers flag only for the connects
+// -clear [int]				clear any existing objMenu cmds before importing a preset
+// -threshold [float]		defaults to 0.65 - this is the name matching threshold used when guessing matching objects.  it is weighted from 0-1 where 1 is an exact match only (with namespaces stripped out), while 0 is a very loose match
+// -locale [str]				which locale to search in for the preset?  global is default, local is the alternative
+global proc zooImportTriggers( string $preset, string $optionStr, string $searchDomain[] ) {
+	string $temp[] = {};
+	string $locale = "local";
+	float $threshold = 0.65;
+	int $guessTriggers = 0;
+	int $guessConnects = 0;
+	int $clear = 1;
+
+	$temp = `zooGetFlagArguments $optionStr locale`; if( `size $temp` ) $locale = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr guessTriggers`; if( `size $temp` ) $guessTriggers = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr guessConnects`; if( `size $temp` ) $guessConnects = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr clear`; if( `size $temp` ) $clear = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr threshold`; if( `size $temp` ) $threshold = $temp[0];
+
+	string $fileContents[] = zooReadPreset($locale, "zooTriggered", "trigger", $preset);
+	string $trigger = "";
+	string $trigCmd = "";
+	string $connectStr = "";
+	string $objMenus[] = {};
+	string $namespaces[] = {};
+
+	//get namespaces from the file
+	string $srcNamespaces[] = {};
+	string $tgtNamespaces[] = {};
+	if( !`size $srcNamespaces` ) $srcNamespaces = `zooGetNamespacesFromFile $preset $locale`;
+	if( !`size $tgtNamespaces` ) $tgtNamespaces = $srcNamespaces;
+	if( !`size $searchDomain` ) $searchDomain = `ls -type transform`;
+
+	if( !`size $fileContents` ) warning "either the file didn't exist, or it was empty";
+	for( $n=0; $n<`size $fileContents`; $n++ ) {
+		if( $fileContents[$n] == "<endnamespaces>" ) break;
+		$namespaces[( `size $namespaces` )] = $fileContents[$n];
+		}
+
+	for( $n; $n<`size $fileContents`; $n++ ) {
+		//if we've reached the end of the trigger definition, flush all registers
+		int $len = `size $fileContents[$n]`;
+		if( $fileContents[$n] == "<end>" ) {
+			if( !`objExists $trigger` ) if( $guessTriggers ) $trigger = zooGetElement_str(0,`zooMatchNames {$trigger} $searchDomain ("-threshold "+$threshold)`);
+			if( !`objExists $trigger` ) {
+				warning( $trigger +" cannot be found to turn into a trigger - skipping" );
+				continue;
+				}
+
+			string $toks[] = {};
+			int $connectSource[] = {};
+			int $connectsActual[] = {};
+
+			//clear all existing objMenu commands if desired
+			if( $clear ) zooRemoveAllMenus $trigger;
+
+			//create all the trigger commands, and establish all connects
+			if( `size (strip($connectStr))`) tokenize $connectStr ";" $toks;
+			for( $i=0; $i<`size $toks`; $i++ ) {
+				$connectSource[$i] = `match "^[^#]+" $toks[$i]`;
+				$connects[$i] = `match "[^#]+$" $toks[$i]`;
+
+				if( !`objExists $connects[$i]` ) if( $guessConnects ) $connects[$i] = zooGetElement_str(0,`zooMatchNames {$connects[$i]} $searchDomain ("-threshold "+$threshold)`);
+				if( !`objExists $connects[$i]` ) {
+					warning( $connects[$i] +" cannot be found to use as a connect - skipping" );
+					continue;
+					}
+				$connectsActual[$i] = `zooAddConnect $trigger $connects[$i]`;
+				$trigCmd = `zooReplaceSymbol $trigCmd $connectSource[$i] $connectsActual[$i]`;
+				for( $j=0; $j<`size $objMenus`; $j++ ) $objMenus[$j] = `zooReplaceSymbol $objMenus[$j] $connectSource[$i] $connectsActual[$i]`;
+				}
+			$trigCmd = `zooStrNewlinesToRealNewlines $trigCmd`;
+			zooTrigSetCmd $trigger $trigCmd;
+
+			//now create all objectMenus
+			for( $j=0; $j<`size $objMenus`; $j++ ) {
+				int $num = `zooObjMenuAddCmd $trigger`;
+				//this is a bit of poor form - setting the attribute value directly - as zooObjMenu changes will break this.  but I'm lazy
+				$objMenus[$j] = `zooStrNewlinesToRealNewlines $objMenus[$j]`;
+				setAttr -type "string" ( $trigger +".zooCmd"+ $num ) $objMenus[$j];
+				}
+
+			$trigger = "";
+			$trigCmd = "";
+			$connectStr = "";
+			clear $objMenus;
+			continue;
+			}
+		else if( `match "^n=" $fileContents[$n]` != "" ) $trigger = `substring $fileContents[$n] 3 $len`;
+		else if( `match "^c=" $fileContents[$n]` != "" ) $connectStr = `substring $fileContents[$n] 3 $len`;
+		else if( `match "^t=" $fileContents[$n]` != "" ) $trigCmd = `substring $fileContents[$n] 3 $len`;
+		else if( `match "^m=" $fileContents[$n]` != "" ) $objMenus[( `size $objMenus` )] = `substring $fileContents[$n] 3 $len`;
+		}
+	}
+
+
+global proc string[] zooGetNamespacesFromFile( string $preset, string $locale ) {
+	string $fileContents[] = `zooReadPreset $locale zooTriggered "trigger" $preset`;
+	string $namespaces[] = {};
+
+	for( $n=0; $n<`size $fileContents`; $n++ ) {
+		if( $fileContents[$n] == "<endnamespaces>" ) break;
+		$namespaces[( `size $namespaces` )] = $fileContents[$n];
+		}
+
+	return $namespaces;
+	}
+
+
+global proc string zooStrNewlinesToRealNewlines( string $str ) {
+	string $strArray[] = `zooStrToArray $str`;
+	string $newStrArray[] = {};
+	string $newStr = "";
+	int $size = `size $strArray`;
+	int $i = 0;
+
+	for( $n=0; $n<$size; $n++ ) {
+		if( $strArray[$n] == "\\" ) if( $strArray[++$n] == "n" ) {
+			$n++;
+			$i++;
+			}
+		$newStrArray[$i] = $newStrArray[$i] + $strArray[$n];
+		}
+
+	$newStr = `zooArrayToStr_str $newStrArray "\n"`;
+	return $newStr;
+	}
+
+
+//------
+//this proc will replace all connect slot references (symbols) in a given command string with a different
+//connect slot.  This enables preset commands to be used on triggers that already have connects attached
+//and is mainly used in the loading of presets.  This allows presets to be loaded from a file without
+//conflicting with existing trigger commands already in the scene
+//------
+global proc string zooReplaceSymbol( string $cmdStr, int $symbolToReplace, int $replaceWith ) {
+	if( $replaceWith < 0 ) return $cmdStr;
+
+	string $cmdArray[] = `zooStrToArray $cmdStr`;
+	string $cmdParts[] = {};
+	string $connectsArray[] = {};
+	string $cmdRecreation = "";
+	int $size = `size $cmdArray`;
+	int $i = 0;
+
+	for( $n=0; $n<$size; $n++ ) {
+		while( $cmdArray[$n] == "%" ) {
+			$connectsArray[$i] = "%";
+			$n++;
+			while( `match "[0-9]" $cmdArray[$n]` != "" ) {
+				$connectsArray[$i] = $connectsArray[$i] + $cmdArray[$n];
+				$n++;
+				}
+			$i++;
+			}
+		$cmdParts[$i] = $cmdParts[$i] + $cmdArray[$n];
+		}
+
+	$size = `size $connectsArray`;
+	$size = `size $cmdParts`>$size? `size $cmdParts`: $size;
+	for( $n=0; $n<$size; $n++ ) {
+		string $symbolToReplaceStr = "%"+ $symbolToReplace;
+		if( $connectsArray[$n] == $symbolToReplaceStr ) $connectsArray[$n] = "%"+ $replaceWith;
+		$cmdRecreation = $cmdRecreation + $cmdParts[$n] + $connectsArray[$n];
+		}
+
+	return $cmdRecreation;
+	}
+
+
+global proc string zooExportTriggers( string $triggers[], string $exportTo ) {
+	string $locale = "local";
+	string $base = `zooGetPresetDirectory $locale zooTriggered`;
+	string $presetFile = $base + $exportTo +".trigger";
+	if( !`filetest -d $base` ) sysFile -makeDir $base;
+
+	string $namespaces[] = `zooGetAllNamespaces $triggers`;
+	string $exportStr = `zooArrayToStr_str $namespaces "\n"` +"\n<endnamespaces>\n"+ `zooWriteTriggersExportStr $triggers 0`;
+	int $fileID = `fopen $presetFile "w"`;
+
+	fprint $fileID $exportStr;
+	fclose $fileID;
+	return $presetFile;
+	}
+
+
+global proc string[] zooGetAllNamespaces( string $triggers[] ) {
+	string $namespaces[] = {};
+	for( $n=0; $n<`size $triggers`; $n++ ) $namespaces[$n] = `zooGetNamespace $triggers[$n]`;
+	$namespaces = `zooRemoveDupeItems_str $namespaces`;
+
+	return $namespaces;
+	}
+
+
+global proc string zooWriteTriggersExportStr( string $triggers[], int $scrubNamespace ) {
+	if( !`size $triggers` ) $triggers = `zooGetAllTriggers`;
+	string $exportStr = "";
+	for( $n=0; $n<`size $triggers`; $n++ ) $exportStr += `zooWriteTriggerExportStr $triggers[$n] $scrubNamespace` +"<end>\n";
+
+	return $exportStr;
+	}
+
+
+global proc string zooWriteTriggerExportStr( string $trigger, int $scrubNamespace ) {
+	if( !`objExists $trigger` ) return "";
+	string $exportStr = "n="+ `match "[^:|]+$" $trigger` +"\n";
+
+	//export the connects list
+	int $connects[] = `zooGetAllTriggerSlots $trigger`;
+	string $c_string = "";
+
+	for( $i=0; $i<`size $connects`; $i++ ) {
+		string $ct = `zooGetConnectObject $trigger $connects[$i]`;
+		if( $scrubNamespace ) $ct = `match "[^:|]+$" $ct`;
+		$c_string += $connects[$i] +"#"+ $ct +";";
+		}
+	if( `size $c_string` ) $exportStr += "c="+ $c_string +"\n";
+
+	//export the trigger command
+	string $cmd = `zooTrigGetCmd $trigger`;
+
+	$cmd = `zooReplaceNewlines $cmd "\\n"`;
+	if( $cmd != "" ) $exportStr += "t="+ $cmd +"\n";
+
+	//export the object menu data
+	int $menus[] = `zooObjMenuListCmds $trigger`;
+
+	for( $i=0; $i<`size $menus`; $i++ ) {
+		string $info[] = `zooGetObjMenuCmdInfo $trigger $menus[$i]`;
+		$info[1] = `zooReplaceNewlines $info[1] "\\n"`;
+		$exportStr += "m="+ $info[0] +"^"+ $info[1] +"\n";
+		}
+
+	return $exportStr;
+	}
+
+
+global proc zooRemoveAllTriggers() {
+	string $triggers[] = `zooGetAllTriggers`;
+	for( $t in $triggers ) zooRemoveTrigger $t;
+	string $menus[] = `zooGetObjsWithMenus`;
+	for( $m in $menus ) zooRemoveAllMenus $m;
+	}
+
+
+//zoo.end

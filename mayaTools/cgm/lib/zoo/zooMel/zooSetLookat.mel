@@ -1,0 +1,13 @@
+global proc zooSetLookat( string $camera ) {
+	string $sel[] = `ls -sl`;
+	string $lookat = `zooGetLookat 0`;
+
+	if( !`objExists $lookat` ) return;
+	if( !`objExists $camera` ) return;
+	delete `parentConstraint $camera $lookat`;  //this is an easy way to make sure there are no other targets on the point constraint
+	parentConstraint $camera $lookat;
+	select $sel;
+	}
+
+
+//zoo.end

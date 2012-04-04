@@ -1,0 +1,544 @@
+//
+// bodgy interactive IK
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 11 August 2002
+//
+// Description:
+// this script was designed to replicate 3ds max's
+// "interactive" IK mode, for posing FK arms etc...
+//
+// Usage:
+// Select the root of the skeleton you want to trace the motion
+// of, play with whatever options you want to, and hit the go
+// button.
+//
+
+
+zooArrays_str;
+zooArrays_int;
+zooArrays_float;
+zooAttrUtils;
+zooFlags;
+zooObjMenuUtils;
+zooTriggeredUtils;
+zooUtils;
+zooVectors;
+
+
+global proc zooBodgeK() {
+	global int $zooBKDontKey;
+	string $windowName = "zooBodgeKWindow";
+	string $windowTitle = "zooBodgeK v"+ `zooBodgeKInfo version` +"   ::macaroniKazoo::";
+	string $selObjs[] = `ls -sl`;
+	if( `window -ex $windowName` ) { deleteUI $windowName; }
+
+	//enable the global variable for the ik snapping.  if this variable is on, the proc which matches the original
+	//chain to the temporary chain, won't set keys
+	$zooBKDontKey = 0;
+
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -widthHeight 213 90 $windowName;
+		//scriptJob -p $windowName -e "SelectionChanged" "zooBodgeKWindowFunctions -update";
+		menuBarLayout zooXferAnimMenuMain;
+			menu -l "Manage";
+				menuItem -l "Bake Selected Range" -c( "zooBodgeKWindowFunctions -bake" );
+				menuItem -l "Reload Handles" -ann "forces a reload of the script jobs associated with each bodgeK handle" -c( "zooCreateJobsForAll" );
+			menu -l "Help";
+				menuItem -l "Help..." -c ( "zooHelp zooBodgeK 1" );
+				setParent ..;
+
+		string $form = `formLayout`;
+			string $key = `checkBox -l "auto key chain" -v 1 -cc( "optionVar -iv zooBKAutoKey `checkBox -q -v zooBodgeKCheckKey`" ) zooBodgeKCheckKey`;
+			string $createB = `button -l "createIK" -c ( "zooBodgeKWindowFunctions -create;" ) zooBodgeKButtonCreate`;
+			string $snapIKB = `button -l "snap IK" -c ( "zooBKIKtoFKBatch {}" ) zooBodgeKButtonSnapHandle`;
+			string $snapJointB = `button -l "snap Joints" -c ( "zooBKFKtoIKBatch {} -1" ) zooBodgeKButtonSnapJoints`;
+			string $list = `rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 240
+				-columnWidth 2 30 zooBodgeKRowBKList`;
+				text -height 18 zooBodgeKTextSelectedBK;
+				palettePort -ed 0 -height 18 -dim 1 1 -rgb 0 1 0 0 zooBodgeKPaletteStatus;
+			setParent ..;
+
+			string $image = `image -width 205 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+
+	popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+	formLayout -e
+		-af $createB "top" 0
+		-af $createB "left" 0
+		-ac $createB "right" 5 $key
+		-an $createB "bottom"
+
+		-af $key "top" 3
+		-an $key "left"
+		-af $key "right" 0
+		-an $key "bottom"
+
+		-ac $snapIKB "top" 0 $createB
+		-af $snapIKB "left" 0
+		-ap $snapIKB "right" 0 50
+		-an $snapIKB "bottom"
+
+		-ac $snapJointB "top" 0 $createB
+		-ap $snapJointB "left" 0 50
+		-af $snapJointB "right" 0
+		-an $snapJointB "bottom"
+
+		-ac $list "top" 0 $snapIKB
+		-af $list "left" 0
+		-af $list "right" 0
+		-ac $list "bottom" 0 $image
+
+		-an $image "top"
+		-af $image "left" 0
+		-af $image "right" 0
+		-af $image "bottom" 0
+		$form;
+
+	showWindow $windowName;
+	zooBodgeKWindowFunctions -updateList;
+	zooBodgeKWindowFunctions -update;
+	zooBumpWindow $windowName;
+	}
+
+
+global proc zooBodgeKWindowFunctions( string $function ) {
+	string $selObjs[] = `ls -sl`;
+	string $windowName = "zooBodgeKWindow";
+
+	switch ( $function ) {
+		case "-update":
+			//update current IK field
+			string $currentIK[] = `zooBodgeKGetCurrentIK`;
+			string $handles[] = `zooBodgeKListBodgeK`;
+
+			//turn off all pallette ports, and then turn on the active ones
+			for( $handle in $handles ) palettePort -e -rgb 0 1 0 0 -redraw ( "zooBodgeKPaletteStatus_"+ $handle );
+			for( $handle in $currentIK ) {
+				if( `zooBodgeKIsBodgeKActive $handle` ) palettePort -e -rgb 0 0 1 0 -redraw ( "zooBodgeKPaletteStatus_"+ $handle );
+				else palettePort -e -rgb 0 1 0 0 -redraw ( "zooBodgeKPaletteStatus_"+ $handle );
+				}
+			break;
+
+		case "-updateList":
+			if( !`window -ex $windowName` ) break;
+
+			string $handles[] = `zooBodgeKListBodgeK`;
+			string $parent = "zooBodgeKRowBKList";
+			string $children[] = `rowColumnLayout -q -ca $parent`;
+
+			setParent $parent;
+			if( `size $children` ) deleteUI $children;
+
+			for( $handle in $handles ) {
+				string $text = `text -l $handle -height 18 ( "zooBodgeKTextSelectedBK_"+ $handle )`;
+				palettePort -ed 0 -height 18 -dim 1 1 -rgb 0 1 0 0 ( "zooBodgeKPaletteStatus_"+ $handle );
+
+				popupMenu -p $text;
+				menuItem -l "snap IK";
+				menuItem -l "snap Joints";
+				}
+			break;
+
+		case "-load":
+			string $startObj = `zooBKGetStartFromEnd $selObjs[0]`;
+			int $chainLength = `optionVar -ex zooBodgeKChainLength`? `optionVar -q zooBodgeKChainLength`: 2;
+
+			textField -e -tx $startObj zooBodgeKTextIKStartJoint;
+			textField -e -tx $selObjs[0] zooBodgeKTextIKEndJoint;
+			zooBodgeKWindowFunctions -update;
+			break;
+
+		case "-create":
+			zooCreateBodgeK `ls -sl`;
+			zooBodgeKWindowFunctions -updateList;
+			break;
+
+		case "-bake":
+			string $sel[] = `ls -sl`;
+			if( `size $sel` != 2 ) {
+				confirmDialog -m "select the ik handle, and then the target";
+				return;
+				}
+			zooBakeBKToTarget;
+			break;
+		}
+	}
+
+
+global proc zooCreateJobsForAll() {
+	string $bodgeKs[] = `zooBodgeKListBodgeK`;
+	for( $handle in $bodgeKs ) zooCreateBKJobs $handle;
+	}
+
+
+global proc zooCreateBKJobs( string $handle ) {
+	string $infoNode = `zooBKGetInfo $handle`;
+	string $poleVector = `zooBKGetPole $handle`;
+
+	int $updScriptJob = `getAttr ( $infoNode +".zooBKJob01" )`;
+	int $scriptJob02 = `getAttr ( $infoNode +".zooBKJob02" )`;
+	int $scriptJob03 = `getAttr ( $infoNode +".zooBKJob03" )`;
+	int $delScriptJob = `getAttr ( $infoNode +".zooBKDeleteJob" )`;
+	if( $updScriptJob ) if( `scriptJob -ex $updScriptJob` ) scriptJob -force -kill $updScriptJob;
+	if( $scriptJob02 ) if( `scriptJob -ex $scriptJob02` ) scriptJob -force -kill $scriptJob02;
+	if( $scriptJob03 ) if( `scriptJob -ex $scriptJob03` ) scriptJob -force -kill $scriptJob03;
+	if( $delScriptJob ) if( `scriptJob -ex $delScriptJob` ) scriptJob -force -kill $delScriptJob;
+
+	$updScriptJob = `scriptJob -kws -cu 1 -attributeChange ( $handle +".t" ) ( "zooBKFKtoIK "+ $handle +" -1" )`;
+	$scriptJob02 = `scriptJob -kws -cu 1 -attributeChange ( $handle +".r" ) ( "zooBKFKtoIK "+ $handle +" -1" )`;
+	$scriptJob03 = `scriptJob -kws -cu 1 -attributeChange ( $poleVector +".t" ) ( "zooBKFKtoIK "+ $handle +" -1" )`;
+	$delScriptJob = `scriptJob -kws -runOnce 1 -connectionChange ( $infoNode +".visibility" ) ( "zooDeleteBodgeK "+ $infoNode )`;
+	setAttr ( $infoNode +".zooBKJob01" ) $updScriptJob;
+	setAttr ( $infoNode +".zooBKJob02" ) $scriptJob02;
+	setAttr ( $infoNode +".zooBKJob03" ) $scriptJob03;
+	setAttr ( $infoNode +".zooBKDeleteJob" ) $delScriptJob;
+	}
+
+
+global proc zooDeleteBodgeK( string $infoNode ) {
+	string $pole = `connectionInfo -sfd ( $infoNode +".zooBKpole" )`;
+	lockNode -l 0 ( `match "^[^.]+" $pole` );
+
+	int $updScriptJob = `getAttr ( $infoNode +".zooBKJob01" )`;
+	int $scriptJob02 = `getAttr ( $infoNode +".zooBKJob02" )`;
+	int $scriptJob03 = `getAttr ( $infoNode +".zooBKJob03" )`;
+	int $delScriptJob = `getAttr ( $infoNode +".zooBKDeleteJob" )`;
+	if( `scriptJob -ex $updScriptJob` ) scriptJob -force -kill $updScriptJob;
+	if( `scriptJob -ex $scriptJob02` ) scriptJob -force -kill $scriptJob02;
+	if( `scriptJob -ex $scriptJob03` ) scriptJob -force -kill $scriptJob03;
+	delete $infoNode;
+	print( "Deleted the "+ $infoNode +" bodgeK network, and tidied up successfully\n" );
+	}
+
+
+global proc zooCreateBodgeK( string $pivots[] ) {
+	for( $p in $pivots ) if( !`objExists $p` ) return;
+
+	int $numPivs = `size $pivots`;
+	string $poleVector = zooGetElement_str(0,`spaceLocator`); select -cl;
+	string $infoNode = `group -em -n "bodgeK_infoNode"`;
+	string $handleName = $pivots[( $numPivs-1 )] +"_BodgeKHandle";
+	string $bkChain[] = {};
+	int $triggeredExists = `exists zooTriggeredUtils`;
+
+	for( $n=0; $n<`size $pivots`; $n++ ) {
+		select -cl;
+		string $joint = "";
+		//if the current original node is a joint, just duplicate it, to save us matching joint orient, etc...
+		if( `nodeType $pivots[$n]` == "joint" ) {
+			string $dupeChain[] = `duplicate -rc $pivots[$n]`;
+			$joint = $dupeChain[0];
+			if( size( `listRelatives -path $joint` )) delete `listRelatives -path $joint`;
+			if( size( `listRelatives -p $joint` )) parent -w $joint;
+			zooAttrState "-attrs t r -k 1 -l 0" $joint;
+			}
+		//otherwise, we'll make our own joint
+		else {
+			$joint = `joint -p 0 0 0`;
+			delete `parentConstraint $pivots[$n] $joint`;
+
+			makeIdentity -apply 1 -t 1 -r 1 -s 1 $joint;
+
+			if( `getAttr -l ( $pivots[$n] +".rx" )`) setAttr -l 1 ( $joint +".rx" );
+			if( `getAttr -l ( $pivots[$n] +".ry" )`) setAttr -l 1 ( $joint +".ry" );
+			if( `getAttr -l ( $pivots[$n] +".rz" )`) setAttr -l 1 ( $joint +".rz" );
+			}
+
+		$bkChain[( `size $bkChain` )] = $joint;
+		if( $n ) parent $joint $bkChain[( $n-1 )];
+		}
+
+	pointConstraint $pivots[0] $bkChain[0];
+	string $ikReturn[] = `ikHandle -sol ikRPsolver -dh -n $handleName -sj $bkChain[0] -ee $bkChain[( size($bkChain)-1 )]`;
+	$handleName = $ikReturn[0];
+	$effectorName = `rename $ikReturn[1] ( $handleName +"Effector" )`;
+
+	//match the rotation of the bodgeK handle to that of the end object.  The end object's rotation is
+	//taken from the rotation of the bodgeK handle
+	{
+	float $rotation[] = `xform -q -ro -ws $pivots[( size($pivots)-1 )]`;
+	rotate -a -ws $rotation[0] $rotation[1] $rotation[2] $handleName;
+	}
+
+	//position the pole vector, and parent it to the bodgeK handle
+	{
+	float $pos[] = `zooFindPolePosition ( "-start "+ $pivots[0] +" -mid "+ $pivots[( $numPivs/2 )] +" -end "+ $pivots[( $numPivs-1 )] )`;
+	move -rpr $pos[0] $pos[1] $pos[2] $poleVector;
+	parent $poleVector $infoNode;
+	parent $bkChain[0] $infoNode;
+	poleVectorConstraint $poleVector $handleName;
+	}
+
+	//connect the visibility of the ik handle to the visibility of the duplicate bones, and turn the bones to references
+	//now referemce the duplicated bones, as they are visual reference only
+	connectAttr -f ( $handleName +".visibility" ) ( $infoNode +".visibility" );
+	for( $obj in $bkChain ) {
+		connectAttr -f ( $handleName +".visibility" ) ( $obj +".visibility" );
+		setAttr ( $obj +".overrideEnabled" ) 1;
+		setAttr ( $obj +".overrideDisplayType" ) 2;
+		}
+
+	setAttr ( $poleVector +".displayHandle" ) 1;
+	setAttr ( $handleName +".displayHandle" ) 1;
+
+	//add custom attributes to the ik handle so that the script can determine which handles belongs to it
+	addAttr -ln "zooBKinfo" -at message $handleName;
+	addAttr -ln "zooBKpole" -at message $infoNode;
+
+	//now connect the objects to the custom attribs on the ik handle, so the script can find them reliably, and easily
+	connectAttr -f ( $infoNode +".message" ) ( $handleName +".zooBKinfo" );
+	connectAttr -f ( $poleVector +".message" ) ( $infoNode +".zooBKpole" );
+	for( $p in $pivots ) zooAddConnect $infoNode $p;
+
+	//if the zooTriggered script exists, set it up
+	int $handleNum = `zooAddConnect $poleVector $handleName`;
+	if( $triggeredExists ) zooTrigSetCmd $handleName "zooBKIKtoFK #;";
+	if( $triggeredExists ) zooTrigSetCmd $poleVector ( "zooBKIKtoFK %"+ $handleNum +";" );
+
+	//now setup useful right click menu stuff
+	int $cmd1 = `zooObjMenuAddCmd $handleName`;
+	int $cmd2 = `zooObjMenuAddCmd $handleName`;
+	int $cmd3 = `zooObjMenuAddCmd $handleName`;
+	int $cmd4 = `zooObjMenuAddCmd $handleName`;
+	int $cmd5 = `zooObjMenuAddCmd $handleName`;
+	zooSetObjMenuCmdName $handleName "snap to FK" $cmd1;
+	zooSetObjMenuCmdName $handleName "snap FK to IK" $cmd2;
+	zooSetObjMenuCmdName $handleName "key all FK controls" $cmd3;
+	zooSetObjMenuCmdName $handleName "select pole vector" $cmd4;
+	zooSetObjMenuCmdName $handleName "select all FK controls" $cmd5;
+	zooSetObjMenuCmdStr $handleName "zooBKIKtoFK #;" $cmd1;
+	zooSetObjMenuCmdStr $handleName "zooBKFKtoIK # 0;" $cmd2;
+	zooSetObjMenuCmdStr $handleName "setKeyframe -at t -at r `zooBKGetFK #`;" $cmd3;
+	zooSetObjMenuCmdStr $handleName "select `zooBKGetPole #`;" $cmd4;
+	zooSetObjMenuCmdStr $handleName "select `zooBKGetFK #`;" $cmd5;
+
+	//finally, create a script job that deletes the bones if the ik handle is deleted, and then snap the ik handle to the end bone
+	addAttr -ln zooBKJob01 -at long $infoNode;  //this stores the scriptJob number for the update scriptJob
+	addAttr -ln zooBKJob02 -at long $infoNode;  //stores pole vector update scriptJob
+	addAttr -ln zooBKJob03 -at long $infoNode;  //stores pole vector update scriptJob
+	addAttr -ln zooBKDeleteJob -at long $infoNode;  //this stores the scriptJob number for the delete scriptJob
+	zooCreateBKJobs $handleName;
+
+	//now setup some locks on some of the nodes - so the user only removes the ik by deleting the handle
+	lockNode -l 1 $poleVector;
+
+	//turn off keyability of attributes
+	setAttr -k 0 ( $handleName +".tx" );
+	setAttr -k 0 ( $handleName +".ty" );
+	setAttr -k 0 ( $handleName +".tz" );
+	setAttr -k 0 ( $handleName +".rx" );
+	setAttr -k 0 ( $handleName +".ry" );
+	setAttr -k 0 ( $handleName +".rz" );
+	setAttr -k 0 ( $poleVector +".tx" );
+	setAttr -k 0 ( $poleVector +".ty" );
+	setAttr -k 0 ( $poleVector +".tz" );
+
+	//zooBKIKtoFK $handleName;
+	zooBodgeKCreateReloadScript;
+	select $handleName;
+	}
+
+
+//handles all snapping of bodgeK clients
+global proc zooBKFKtoIKBatch( string $handles[], int $forceKey ) {
+	if( !`size $handles` ) $handles = `zooBodgeKGetCurrentIK`;
+	int $autoKeyState = `autoKeyframe -q -state`;
+
+	autoKeyframe -state 0;
+	for( $handle in $handles ) {
+		if( !`objExists $handle` ) continue;
+		zooBKFKtoIK $handle $forceKey;
+		}
+
+	autoKeyframe -state $autoKeyState;
+	}
+
+
+//this proc matches the rotation of the original heirarchy, to the temporary joint chain
+global proc zooBKFKtoIK( string $currentIK, int $forceKey ) {
+	global int $zooBKDontKey;
+	string $orgObjs[] = `zooBKGetFK $currentIK`;
+	string $dupeObjs[] = `zooBKGetDupeFK $currentIK`;
+	float $time = `currentTime -q`;
+	int $autoKey = $forceKey;
+	if( $forceKey == -1 ) $autoKey = `optionVar -ex zooBKAutoKey`? `optionVar -q zooBKAutoKey`: 1;
+
+	//save current state of auto-key, and make sure auto key is off, as this proc needs exclusive control over keying
+	int $autoKeyState = `autoKeyframe -q -state`;
+	autoKeyframe -state 0;
+
+	//store whether the object has a key on it before we do anything - so we can restore the keyed state of this object later
+	int $isKeyed[] = {};
+	for( $n=0; $n<`size $orgObjs`; $n++ ) $isKeyed[$n] = `keyframe -t $time -q -kc ( $orgObjs[$n] +".r" )`;
+
+	//now match the rotations of the original joints to those of the duplicate joints
+	for( $n=0; $n<`size $orgObjs`-1; $n++ ) {
+		float $rotation[] = `xform -q -ro -ws $dupeObjs[$n]`;
+		rotate -a -ws $rotation[0] $rotation[1] $rotation[2] $orgObjs[$n];
+		}
+
+	//now match the last object in the chain (the end effector type object) to the orientation of the bodgeK handle
+	float $rotation[] = `xform -q -ro -ws $currentIK`;
+	rotate -a -ws $rotation[0] $rotation[1] $rotation[2] $orgObjs[( size($orgObjs)-1 )];
+	if( $autoKey && !$zooBKDontKey ) setKeyframe -at r $orgObjs;
+
+	//finally, delete keys that were created on objects that didn't have keys to start with
+	//if( $autoKey ) for( $n=0; $n<`size $orgObjs`; $n++ ) if( !$isKeyed[$n] ) cutKey -t $time -cl ( $orgObjs[$n] +".r" );
+
+	autoKeyframe -state $autoKeyState;
+	$zooBKDontKey--;
+	if( $zooBKDontKey<0 ) $zooBKDontKey = 0;
+	}
+
+
+global proc zooBKIKtoFKBatch( string $handles[] ) {
+	if( !`size $handles` ) $handles = `zooBodgeKGetCurrentIK`;
+	int $autoKeyState = `autoKeyframe -q -state`;
+
+	autoKeyframe -state 0;
+	for( $handle in $handles ) {
+		if( !`objExists $handle` ) continue;
+		zooBKIKtoFK $handle;
+		}
+
+	autoKeyframe -state $autoKeyState;
+	}
+
+
+global proc zooBKIKtoFK( string $handle ) {
+	if( !`objExists $handle` ) return;
+
+	global int $zooBKDontKey;
+	string $orgObjs[] = `zooBKGetFK $handle`;
+	string $poleVectorObj = `zooBKGetPole $handle`;
+	int $numObjs = `size $orgObjs`;
+	float $endJointPos[] = `xform -q -ws -rp $orgObjs[( $numObjs-1 )]`;
+	float $endJointRot[] = `xform -q -ws -ro $orgObjs[( $numObjs-1 )]`;
+	float $pvPos[] = `zooFindPolePosition ( "-start "+ $orgObjs[0] +" -mid "+ $orgObjs[( $numObjs/2 )] +" -end "+ $orgObjs[( $numObjs-1 )] )`;
+	float $time = `currentTime -q`;
+	int $isKeyed[] = {};
+
+	//enable snap, so the matching proc doesn't key the original joints
+	//we set the counter to 3 because thats how many times the zooBKFKtoIK gets called
+	//after we run this script - once for the translate attribute change, one for the
+	//rotate attribute change and another for the pole vector translate change
+	$zooBKDontKey = 3;
+
+	//store current keyed state of all original objects
+	for( $n=0; $n<`size $orgObjs`; $n++ ) $isKeyed[$n] = `keyframe -t $time -q -kc ( $orgObjs[$n] +".r" )`;
+
+	//transform the bodgeK controls
+	xform -ws -t $endJointPos[0] $endJointPos[1] $endJointPos[2] $handle;
+	rotate -a -ws $endJointRot[0] $endJointRot[1] $endJointRot[2] $handle;
+	move -rpr $pvPos[0] $pvPos[1] $pvPos[2] $poleVectorObj;
+
+	//for( $n=0; $n<`size $orgObjs`; $n++ ) if( !$isKeyed[$n] ) cutKey -t $time -cl ( $orgObjs[$n] +".r" );
+	}
+
+
+//this script deals with creating the script node that rebuilds all bodgeK handles stored with a scenes
+global proc zooBodgeKCreateReloadScript() {
+	//first delete all old reload nodes, just to make sure there aren't multiple
+	string $scriptNodes[] = `ls -type script`;
+	for( $node in $scriptNodes ) if( `objExists ( $node +".bodgeK" )`) catch( `delete $node` );
+
+	//now create a reload script node
+	string $reloadScript = `scriptNode -st 1 -bs "evalDeferred( \"source zooBodgeK; zooCreateJobsForAll;\" )" -n "zooBodgeKReloadScript"`;
+	addAttr -h 0 -ln bodgeK -at long $reloadScript;
+	}
+
+
+//determines whether a selected ik handle is an active bodgeK handle or not
+global proc int zooBodgeKIsBodgeKActive( string $ikHandle ) {
+	if( $ikHandle == "" ) return 0;
+	string $infoNode = `connectionInfo -sfd ( $ikHandle +".zooBKinfo" )`;
+	$infoNode = `match "^[^.]+" $infoNode`;
+	int $jobNum = `getAttr ( $infoNode +".zooBKJob01" )`;
+	if( $jobNum != 0 && `scriptJob -ex $jobNum` ) return 1;
+	else return 0;
+	}
+
+
+global proc string[] zooBKGetDupeFK( string $ikHandle ) {
+	string $temp[] = `listConnections -s 0 ( $ikHandle +".v" )`;
+	string $objs[] = {};
+	for( $n = 0; $n < `size $temp`; $n++ ) if( `nodeType $temp[$n]` == "joint" ) $objs[( `size $objs` )] = $temp[$n];//`match "^[^.]+" $temp[$n]`;
+	return `zooSortToHeirarchy $objs`;
+	}
+
+
+global proc string[] zooBKGetFK( string $ikHandle ) {
+	string $infoNode = `zooBKGetInfo $ikHandle`;
+	return `zooGetConnects $infoNode`;
+	}
+
+
+global proc string zooBKGetPole( string $ikHandle ) {
+	string $infoNode = `zooBKGetInfo $ikHandle`;
+	string $poleVector = `connectionInfo -sfd ( $infoNode +".zooBKpole" )`;
+	$poleVector = `match "^[^.]+" $poleVector`;
+	return $poleVector;
+	}
+
+
+global proc string zooBKGetInfo( string $ikHandle ) {
+	string $infoNode = `connectionInfo -sfd ( $ikHandle +".zooBKinfo" )`;
+	$infoNode = `match "^[^.]+" $infoNode`;
+	return $infoNode;
+	}
+
+
+global proc zooBakeBKToTarget() {
+	string $sel[] = `ls -sl`;
+	string $cmd = "";
+
+	$cmd += "zooAlign \"-src "+ $sel[1] +" -tgt "+ $sel[0] +"\";\n";
+	$cmd += "zooBKFKtoIK "+ $sel[0] +" 1;";
+	zooKeyCommands "-bake 1 -frames : :" $cmd;
+	}
+
+
+//this proc "scans" the select object to see if its part of a bodgeK network, and returns the first found bodgeK chain
+//ie if the selected object is the part of the original heirarchy, then it will return the name of the bodgeK
+//handle that controls it
+global proc string[] zooBodgeKGetCurrentIK () {
+	string $selObjs[] = `ls -sl`;
+	string $handles[] = `zooBodgeKListBodgeK`;
+	string $return[] = {};
+
+	for( $obj in $selObjs ) {
+		string $selectionType = `nodeType $obj`;
+
+		//if there is a currently selected ikHandle, and it has a bodgeK attribute, return it as the current bodgeK handle
+		if( $selectionType == "ikHandle" ) for( $handle in $handles ) if( $handle == $obj ) $return[( `size $return` )] = $handle;
+		if( $selectionType == "transform" || $selectionType == "joint" ) for( $handle in $handles ) {
+			string $affected[] = `zooBKGetFK $handle`;
+			for( $piece in $affected ) if( $piece == $obj ) $return[( `size $return` )] = $handle;
+			}
+		}
+
+	return $return;
+	}
+
+
+//returns a list of all bodgeK handles in the scene
+global proc string[] zooBodgeKListBodgeK() {
+	string $handles[] = `ls -type ikHandle`;
+	string $bodgeKs[] = {};
+
+	for( $handle in $handles ) if( `objExists ( $handle +".zooBKinfo" )`) $bodgeKs[( `size $bodgeKs` )] = $handle;
+	return $bodgeKs;
+	}
+
+
+global proc string zooBodgeKInfo ( string $function ) {
+	string $creationDate = "11 August 2002";
+	string $currentVersion = "1.6.12";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+//zoo.end

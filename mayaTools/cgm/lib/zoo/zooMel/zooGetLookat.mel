@@ -1,0 +1,25 @@
+zooRegister;
+
+
+global proc string zooGetLookat( int $forceCreate ){
+	string $reg = `zooGetRegister zoo 1`;
+	string $lookats[] = {};
+	string $lookat = "";
+	int $idxs[] = {};
+
+	zooListRegistered $reg lookat $idxs $lookats;
+	for( $l in $lookats ) if( `objExists $l` ) $lookat = $l;
+	if( !`objExists $lookat` ) {
+		if( $forceCreate ) {
+			string $grp = `group -em`;
+			$grp = `rename $grp "zooLookat#"`;
+			zooRegisterObj $reg lookat $grp 1 1;
+			parentConstraint persp $grp;
+			return $grp;
+			}
+		}
+	else return $lookat;
+	}
+
+
+//zoo.end

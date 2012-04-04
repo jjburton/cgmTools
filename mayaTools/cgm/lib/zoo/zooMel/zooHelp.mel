@@ -1,0 +1,54 @@
+zooUtils;
+
+
+global proc zooHelp( string $script, int $selTab ) {
+	string $windowName = $script +"Help";
+	string $windowTitle = "About "+ $script;
+	string $helpPath = `zooGetScriptLocation $script`;
+	string $helpFiles[] = `getFileList -folder $helpPath -filespec ( $script + "*.zooHelp" )`;
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -maximizeButton 0 -sizeable 1 -widthHeight 600 350 $windowName;
+
+		string $form = `formLayout`;
+		string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5`;
+		string $image = `image -p $form -width 600 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+		formLayout -edit
+			-af $tabs "top" 0
+			-af $tabs "left" 0
+			-af $tabs "right" 0
+			-ac $tabs "bottom" 2 $image
+
+			-an $image "top"
+			-af $image "left" 0
+			-af $image "right" 0
+			-af $image "bottom" 0
+			$form;
+
+	for( $file in $helpFiles ) {
+		string $helpContents[] = `zooReadFile ( $helpPath + $file ) ""`;
+		string $tabName = `basename $file ".zooHelp"`;
+		string $helpStr = "";
+
+		for( $entry in $helpContents ) $helpStr += $entry;
+		zooAddHelpTab $tabs $tabName $helpStr;
+		}
+
+	tabLayout -e -selectTabIndex $selTab $tabs;
+	popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+	showWindow $windowName;
+	}
+
+
+global proc zooAddHelpTab( string $parent, string $tabName, string $helpStr ) {
+	setParent $parent;
+
+	paneLayout -configuration "single";
+		scrollField -ed 0 -wordWrap 1 -font plainLabelFont -text $helpStr;
+		setParent ..;
+
+	tabLayout -e -tabLabelIndex ( `tabLayout -q -numberOfChildren $parent` ) $tabName $parent;
+	}
+
+
+//zoo.end

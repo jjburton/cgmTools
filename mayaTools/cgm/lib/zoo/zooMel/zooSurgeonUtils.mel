@@ -1,0 +1,368 @@
+//
+// zooSurgeon
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 17 April 2005
+//
+// Description:
+// cuts up a skinned mesh into objects, and parents those objects to the affecting joint.  It basically
+// generates a low res proxy for a character automatically.  It cuts up geometry based on the face's
+// weighting to a joint.  It goes through each face in your mesh, adds up the weight of all verts in
+// that face to a joint, and assigns the face to the joint with the highest weighting.  By going through
+// each face, it builds up proxy objects to parent directly to the joints deforming the original mesh,
+// thus generating a low-res
+//
+// Usage:
+//  to cut up your skinned meshes, select them:  zooSurgeon;
+//  to delete a cut up mesh:  zooSurgeonDelete;
+//
+
+
+zooArrays_str;
+zooAttrUtils;
+zooFlags;
+zooShaders;
+zooUtils;
+
+
+global proc zooSurgeonUtils() {
+	return;
+	}
+
+
+global proc string[] zooSurgeonSplitMesh( string $optionStr ) {
+	//parse optionStr flags
+	string $objs[] = `ls -sl`;
+	string $prefix = "";
+	string $buildType = "parent";
+	string $temp[] = {};
+	string $colour = "";
+	float $expand = 0;
+	int $asPrim = 0;
+
+	$temp = `zooGetFlagArguments $optionStr objs`; if( `size $temp` ) $objs = $temp;
+	$temp = `zooGetFlagArguments $optionStr prefix`; if( `size $temp` ) $prefix = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr asPrim`; if( `size $temp` ) $asPrim = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr buildType`; if( `size $temp` ) $buildType = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr colour`; if( `size $temp` ) $colour = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr expand`; if( `size $temp` ) $expand = $temp[0];
+
+	if( $asPrim ) if( !`exists zooCSTPrimitives` ) {
+		warning "You don't have zooCSTPrimitives installed - reverting to non primitive mode";
+		$asPrim = 0;
+		}
+
+	string $proxies[] = {};
+	float $progress = 0;
+	float $increment = 1;
+
+	progressWindow -title "Operation in Progress" -isInterruptable 1;
+	for( $obj in $objs ) {
+		if( !`objExists $obj` ) continue;
+
+		//we don't want to disturb the original object when cutting up the mesh, so duplicate the original, and work on it
+		string $dupeOrg = zooGetElement_str(0,`duplicate -rc $obj`);
+		string $dupeShapes[] = `listRelatives -s $dupeOrg`;
+		delete -icn ( $dupeOrg +".drawOverride" );  //remove the transform from any layers
+		for( $s in $dupeShapes ) delete -icn ( $s +".drawOverride" );  //remove the shape from any layers
+		for( $s in $dupeShapes ) if( `getAttr ( $s +".io" )`) delete $s;  //delete intermediate shapes
+
+		string $proxyGrp = `group -em`;
+		string $shapes[] = `listRelatives -f -s $obj`;
+		string $shape = $shapes[0];
+
+		$proxyGrp = `rename $proxyGrp ( $obj +"_mesh_grp" )`;
+		for( $s in $shapes ) if( !`getAttr ( $s +".io" )`) $shape = $s;
+		if( !`objExists $shape` ) error "no shape node found under the transform node given";
+		setAttr ( $proxyGrp +".ove" ) 1;
+		setAttr ( $proxyGrp +".ovdt" ) 2;
+
+		string $skin = zooGetElement_str(0,`ls -type skinCluster (listHistory($shape))`); if( !`objExists $skin` ) error "no skin cluster found in the shape node's history";
+		string $js[] = `skinCluster -q -inf $skin`;
+		string $localProxies[] = {};
+		string $faceAssigns[] = {};  //stores the joint-face assignments
+		//NOTE: verts are stored in a comma separated list in this array.  each array element corresponds
+		//the same element in the $js list
+		float $t = `timerX`;
+		int $numVerts = `getAttr -s ( $shape +".vrts" )`;
+		int $numFaces = `getAttr -s ( $shape +".face" )`;
+		int $numJs = `size $js`;
+
+		progressWindow -e -t "Operation in Progress - Pass 1/2" -progress 0 -status( "Determining Cut Zones for "+ $obj );
+		$progress = 0;
+		$increment = 100/((float)$numFaces);
+		for( $n=0; $n<$numFaces; $n++ ) {
+			//update progress window
+			$progress += $increment;
+			if( `progressWindow -q -ic` ) break;
+			progressWindow -e -progress ((int)$progress);
+
+			string $faceVerts[] = `polyListComponentConversion -ff -tv ( $obj +".f["+ $n +"]" )`;
+			float $wts[] = {};clear $wts;  //if this array is not cleared manually, it somehow retains information
+
+			//flatten the vert list
+			$faceVerts = `ls -fl $faceVerts`;
+
+			//iterate over all joints, and find the total weight value for the face, for each joint
+			for( $i=0; $i<$numJs; $i++ ) for( $v in $faceVerts ) {
+				$wts[$i] += `skinPercent -t $js[$i] -q $skin $v`;
+				}
+
+			//find the joint index with the highest weight value, and add the face index to the joint-face assignment list
+			int $highest = `zooGetHighestValueIdx_float $wts`;
+			$faceAssigns[$highest] = $faceAssigns[$highest] +","+ $n;
+			}
+
+		//now cut up the mesh
+		progressWindow -e -t "Operation in Progress - Pass 2/2" -progress 0 -status( "Building Proxies for "+ $obj );
+		$progress = 0;
+		$increment = 100/((float)$numJs);
+		for( $i=0; $i<$numJs; $i++ ) {
+			//update progress window
+			$progress += $increment;
+			if( `progressWindow -q -ic` ) break;
+			progressWindow -e -progress ((int)$progress);
+
+			if( $faceAssigns[$i] == "" ) continue;
+			string $dupeMesh = zooGetElement_str(0,`duplicate -rc $dupeOrg`);  //we work with the dupeOrg because we know it has no superfluous shape nodes
+			string $faces[] = {};
+
+			tokenize $faceAssigns[$i] "," $faces;
+			if( $expand>0 ) polyMoveVertex -ch 0 -ltz $expand ( $dupeMesh +".vtx[*]" );
+			if( $colour != "" ) zooSetObjShader $dupeMesh `zooGetShader $colour 1`;
+			select -r ( $dupeMesh +".f[*] " );
+			for( $f in $faces ) select -d ( $dupeMesh +".f["+ $f +"]" );
+			delete;
+
+			//unlock all tranform attributes so the object doesn't jump when we parent it to the joint, and rename it
+			zooAttrState "-attrs t r s -k 1 -l 0" $dupeMesh;
+			string $newName = ( $js[$i] +"_meshVis" );
+			string $rename_test[] = `ls $newName`;  //this tests to see if there is more than one object with this name - if so, use the # symbol in the rename command to ensure name uniqeness
+
+			if( `size $rename_test` ) $dupeMesh = `rename $dupeMesh ( $js[$i] +"_meshVis#" )`;
+			else $dupeMesh = `rename $dupeMesh ( $js[$i] +"_meshVis" )`;
+			$localProxies[(`size $localProxies`)] = $dupeMesh;
+			$proxies[(`size $proxies`)] = $dupeMesh;
+
+			//finally, parent the mesh segment to the appropriate joint
+			if( $buildType == "parent" ) parent $dupeMesh $js[$i];
+			else if( $buildType == "constrain" ) {
+				parent $dupeMesh $proxyGrp;
+				parentConstraint -mo $js[$i] $dupeMesh;
+				}
+			}
+
+		if( $buildType != "constrain" ) delete $proxyGrp;
+		if( !$asPrim ) for( $proxy in $localProxies ) addAttr -ln zooSurgeon -at bool $proxy;
+		delete $dupeOrg;
+		print( "Time taken for "+ $obj +": "+ `timerX -st $t` +"\n" );
+		}
+
+	if( $asPrim ) {
+		//load the dependencies - these aren't loaded as global dependencies because they're onlny used in this part of the script
+		zooBrandTools;
+		zooCSTPrimitives;
+		string $primitive = `zooCSTCreatePrimRecord proxy $prefix $prefix`;
+		zooBrandObject options $optionStr $primitive;
+		for( $obj in $objs ) zooCSTRegisterInput $obj $primitive;
+		zooCSTPrimOutputs $proxies $primitive;
+		}
+
+	progressWindow -ep;
+	return $proxies;
+	}
+
+
+//this script determines what geometry a given joint or list of joints affects, and extracts that geometry
+//to a separate object.  its useful for creating character shaped controls for your rig.  the script can be
+//controlled via the following flags:
+//
+//-joints [obj]			this is a list of joints - the verts that the joints affect get converted to faces, and extracted as the resulting mesh
+//-expand [float]			defaults to zero - setting to non-zero applies a surface offset, resulting in a mesh that is offset by some amount from the original skinned mesh
+//-colour [str]			the colour to apply to the resulting mesh - this is a zooShaders colour string, eg: red 0.5
+//-tol [float]				any vert over this tolerance gets converted to a face when calculating the faces to extract - defaults to 0.4
+global proc string[] zooExtractJointMesh( string $optionStr ) {
+	string $temp[] = {};
+	string $joints[] = `ls -type joint -sl`;
+	string $colour = "";
+	string $objs[] = {};
+	float $expand = 0;
+	float $tol = 0.4;
+
+	$temp = `zooGetFlagArguments $optionStr joints`; if( `size $temp` ) for( $t in $temp ) if( `objExists $t` ) $joints[( `size $joints` )] = $t;
+	$temp = `zooGetFlagArguments $optionStr colour`; if( `size $temp` ) $colour = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr expand`; if( `size $temp` ) $expand = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr tol`; if( `size $temp` ) $tol = $temp[0];
+
+	//get the faces
+	string $allFaces[] = {};
+	zooGetJointFaces $joints $tol $allFaces {};
+
+	//now create a dupe so we can extract the faces into a separate object
+	string $obj = `group -em -n ( $joints[0] +"_cutup" )`;
+	string $tempObj = `group -em -n ( $joints[0] +"_temp" )`;
+	string $uniqueMeshes[] = {};
+	string $meshes[] = {};
+	int $faces[] = {};
+
+	zooGetIdxFromComponent $allFaces $meshes $faces;
+	$uniqueMeshes = `stringArrayRemoveDuplicates $meshes`;
+	int $numFaces = `size $allFaces`;
+	for( $mesh in $uniqueMeshes ) {
+		string $dupeMesh = zooGetElement_str(0,`duplicate -rc $mesh`);
+
+		//before doing anything - remove any shape nodes that have been marked as intermediate objects
+		for( $s in `listRelatives -pa -s $dupeMesh` ) if( `getAttr ( $s +".io" )` ) delete $s;
+
+		//now do the expansion if desired
+		if( $expand>0 ) polyMoveFacet -ch 0 -ltz $expand ( $dupeMesh +".vtx[*]" );
+
+		//now select everything and de-select the faces we want to keep, and delete the others
+		string $dupeFaces[] = {};
+		for( $n=0; $n<$numFaces; $n++ ) if( $meshes[$n] == $mesh ) $dupeFaces[`size $dupeFaces`] = ( $dupeMesh +".f["+ $faces[$n] +"]" );
+		select -r ( $dupeMesh +".f[*] " );
+		for( $f in $dupeFaces ) select -d $f;
+		zooAttrState "-attrs t r s -k 1 -l 0" $dupeMesh;
+		delete;
+
+		for( $s in `listRelatives -f -s $dupeMesh` ) {
+			parent -add -s $s $tempObj;
+			//remove the shape nodes from any layer
+			delete -icn ( $s +".drawOverride" );
+			}
+		delete $dupeMesh;
+		}
+
+	zooAlign ( "-pivot 1 -src "+ $joints[0] +" -tgt "+ $tempObj );
+	zooAlign ( "-src "+ $joints[0] +" -tgt "+ $obj );
+	parent $tempObj $obj;
+	makeIdentity -a 1 -t 1 -r 1 -s 1 $tempObj;
+	for( $s in `listRelatives -f -s $tempObj` ) parent -add -s $s $obj;
+	delete $tempObj;
+	if( $colour != "" ) zooSetObjShader $obj `zooGetShader $colour 1`;
+	$objs[`size $objs`] = $obj;
+
+	return $objs;
+	}
+
+
+//strips the component data off a component path name and populates the meshes and idxs array with the two
+//pieces of data - mesh pathname and component type and idx
+global proc int[] zooGetIdxFromComponent( string $componentList[], string $meshes[], int $idxs[] ) {
+	clear $meshes;
+	clear $idxs;
+
+	int $numComponents = `size $componentList`;
+	for( $n=0; $n<$numComponents; $n++ ) {
+		string $temp = `match "[^\[]+$" $componentList[$n]`;
+		$idxs[$n] = `match "^[0-9]+" $temp`;
+		$meshes[$n] = `match "^[^.]+" $componentList[$n]`;
+		}
+
+	return $idxs;
+	}
+
+
+global proc int[] zooGetJointVerts( string $joint, float $tol, string $meshes[], string $skinClusters[], string $verts[], int $vertIdxs[], float $weights[] ) {
+	clear $meshes;
+	clear $skinClusters;
+	clear $verts;
+	clear $vertIdxs;
+	clear $weights;
+
+	string $skins[] = `listConnections -s 0 -type skinCluster $joint`;
+	string $newObjs[] = {};
+	int $i = 0;
+
+	$skins = `stringArrayRemoveDuplicates $skins`;
+	for( $skin in $skins ) {
+		string $skinMeshes[] = ls("-type","mesh",`listHistory -f 1 $skin`);
+		string $mesh = $skinMeshes[0];
+		int $numVerts = size(`ls -fl ( $mesh +".vtx[*]" )`);
+
+		for( $n=0; $n<$numVerts; $n++ ) {
+			float $weight = `skinPercent -t $joint -q $skin ( $mesh +".vtx["+ $n +"]" )`;
+			if( $weight<$tol ) continue;
+			$meshes[$i] = $mesh;
+			$skinClusters[$i] = $skin;
+			$verts[$i] = $mesh +".vtx["+ $n +"]";
+			$vertIdxs[$i] = $n;
+			$weights[$i] = $weight;
+			$i++;
+			}
+		}
+
+	return $vertIdxs;
+	}
+
+
+global proc string[] zooGetJointFaces( string $objs[], float $tol, string $faces[], int $faceIdxs[] ) {
+	string $verts[] = {};
+
+	for( $s in $objs ) {
+		string $temp[] = {};
+		zooGetJointVerts $s $tol {} {} $temp {} {};
+		$verts = `zooAddArray_str $verts $temp`;
+		}
+
+	float $bbox[] = `exactWorldBoundingBox $verts`;
+	string $allFaces[] = `polyListComponentConversion -fv -tf $verts`;
+
+	$allFaces = `ls -fl $allFaces`;
+	int $num = `size $allFaces`;
+	for( $n=0; $n<$num; $n++ ) {
+		if( `zooIsFaceWithinBounds $allFaces[$n] $bbox` ) {
+			$faces[`size $faces`] = $allFaces[$n];
+			string $index = `match "[0-9]+\]$" $allFaces[$n]`;
+			$index = `match "^[0-9]+" $index`;
+			$faceIdxs[`size $faceIdxs`] = $index;
+			}
+		}
+
+	return $faces;
+	}
+
+
+global proc int zooIsFaceWithinBounds( string $face, float $bbox[] ) {
+	string $faceVerts[] = `polyListComponentConversion -ff -tv $face`;
+	int $num = `size $faceVerts`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		float $vertPos[] = `xform -q -ws -t $faceVerts[$n]`;
+		for( $i=0; $i<3; $i++ ) {
+			if( $vertPos[$i] >= $bbox[$i] && $vertPos[$i] <= $bbox[$i+3] ) continue;
+			else return 0;
+			}
+		}
+
+	return 1;
+	}
+
+
+global proc zooSurgeonDelete() {
+	string $proxies[] = `zooSurgeonListProxies`;
+	if( `size $proxies` ) delete $proxies;
+	}
+
+
+global proc string[] zooSurgeonListProxies() {
+	string $objs[] = `ls -type transform`;
+	string $proxies[] = {};
+
+	for( $o in $objs ) if( `objExists ( $o +".zooSurgeon" )` ) $proxies[( `size $proxies` )] = $o;
+	return $proxies;
+	}
+
+
+global proc string[] zooCSTRebuildPrimProxy( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+	string $inputStr = `zooArrayToStr $inputs " "`;
+
+	zooCSTDeletePrimitive $primitive;
+	return `zooSurgeonSplitMesh ( "-objs "+ $inputStr +" -prefix "+ $prefix + " -asPrim 1" )`;
+	}
+
+
+//zoo.end

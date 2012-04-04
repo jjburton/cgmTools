@@ -1,0 +1,148 @@
+zooArrays_str;
+zooFlags;
+zooRegister;
+zooTriggeredUtils;
+zooVectors;
+
+
+global proc zooSketchyUtils() {
+	return;
+	}
+
+
+global proc string[] zooGetSketchyObjs() {
+	string $objs[] = {};
+	string $board = `zooBuildSkethcyBoard "" 1`;
+	int $slots[] = `zooGetUsedTriggerSlots $board`;
+
+	for( $slot in $slots ) $objs[`size $objs`] = `zooGetConnectObject $board $slot`;
+
+	return $objs;
+	}
+
+
+global proc zooSetSketchyObjs( string $objs[] ) {
+	string $board = `zooBuildSkethcyBoard "" 1`;
+	int $slots[] = `zooGetAllTriggerSlots $board`;
+	for( $slot in $slots ) zooRemoveTriggerSlots $board $slot;
+	for( $obj in $objs ) if( `objExists $obj` ) zooAddConnect $board $obj;
+	}
+
+
+global proc zooDistributeAlongSketch( string $objs[] ) {
+	string $curve = `zooGetSketchyCurve`;
+	string $lookat = `zooGetLookat 1`;
+	string $grp = `group -em`;
+	string $grps[] = {};
+	string $pathInfo = `pathAnimation -fractionMode 1 -follow 1 $curve $grp`;
+	int $num = `size $objs`;
+	float $max = `currentUnit -q -linear`=="m"? 0.01: 1.0;
+	float $inc = $max/($num-1);
+	float $count = 0;
+
+	zooSetSketchBase "";
+	delete `listConnections ( $pathInfo +".uValue" )`;
+	for( $n=0; $n<$num; $n++ ) {
+		setAttr ( $pathInfo +".uValue" ) $count;
+		zooAlign ( "-src "+ $grp +" -tgt "+ $objs[$n] );
+		$grps[$n] = `group -em`;
+		zooAlignSimple $grp $grps[$n];
+		if( $n ) parent $grps[$n] $grps[$n-1];
+		$count += $inc;
+		}
+
+	float $moveTo[] = `zooBetweenVector $objs[0] $grps[0]`;
+	move -r (-1*$moveTo[0]) (-1*$moveTo[1]) (-1*$moveTo[2]) $grps[0];
+	//delete $grp;
+	//now deal with aims
+	for( $n=0; $n<$num-1; $n++ ) {
+		float $aim[] = `zooAxisInDirection $objs[$n] (zooBetweenVector($grps[$n],$grps[$n+1]))`;
+		float $up[] = `zooAxisInDirection $objs[$n] (zooBetweenVector($grps[$n],$lookat))`;
+
+		eval("aimConstraint -aim "+ $aim[0] +" "+ $aim[1] +" "+ $aim[2] +" -u "+ $up[0] +" "+ $up[1] +" "+ $up[2] +" -wut object -wuo "+ $lookat +" "+ $grps[$n+1] +" "+ $grps[$n]);
+		}
+
+	delete `listRelatives -pa -p $curve`;
+	zooSetSketchBase $objs[0];
+	}
+
+
+global proc string zooGetSketchyCurve() {
+	string $sketchy[] = {};
+	string $reg = `zooGetRegister zoo 1`;
+
+	zooListRegistered $reg sketchy {} $sketchy;
+	if( !`objExists $sketchy[0]` ) return "";
+
+	string $board = $sketchy[0];
+	string $boardShape[] = `listRelatives -pa -s $board`;
+	string $curveTransform[] = `listRelatives -pa $boardShape`;
+	string $curveShape[] = `listRelatives -pa $curveTransform`;
+
+	return $curveShape[0];
+	}
+
+
+global proc string zooBuildSkethcyBoard( string $base, int $force ) {
+	string $sketchy[] = {};
+	string $lookat = `zooGetLookat 1`;
+	string $reg = `zooGetRegister zoo 1`;
+
+	zooListRegistered $reg sketchy {} $sketchy;
+	if( !`objExists $sketchy[0]` && !$force ) return "";
+	if( `objExists $sketchy[0]` ) return $sketchy[0];
+
+	string $grp = `group -em`;
+	string $len = `group -em`;
+	string $board = zooGetElement_str(0,`nurbsPlane -p 0 0 0 -ax 0 0 1 -w 2 -lr 0.8 -d 3 -u 1 -v 1 -ch 0`);
+
+	parent $board $len $grp;
+	$grp = `rename $grp "sketchy_group#"`;
+	$len = `rename $len "sketchy_distance_to_camera#"`;
+	$board = `rename $board "sketchy_board#"`;
+
+	aimConstraint -aim 0 0 1 -u 0 1 0 -wut objectRotation -wuo $lookat $lookat $grp;
+	pointConstraint -sk x -sk y $lookat $len;
+	connectAttr -f ( $len +".tz" ) ( $board +".sx" );
+	connectAttr -f ( $len +".tz" ) ( $board +".sy" );
+	setAttr ( $board +".doubleSided" ) 0;
+	setAttr ( $board +".visibleInRefractions" ) 0;
+	setAttr ( $board +".visibleInReflections" ) 0;
+	setAttr ( $board +".smoothShading" ) 0;
+	setAttr ( $board +".primaryVisibility" ) 0;
+	setAttr ( $board +".motionBlur" ) 0;
+	setAttr ( $board +".receiveShadows" ) 0;
+	setAttr ( $board +".castsShadows" ) 0;
+	setAttr ( $board +".overrideEnabled" ) 1;
+	setAttr ( $board +".overrideShading" ) 0;
+
+	//we register the board because the group doesn't directly hold any interesting
+	//data, and it easily queried using a listRelatives on the board
+	zooRegisterObj $reg sketchy $board 1 1;
+	zooSetSketchBase $base;
+
+	makeLive $board;
+	PencilCurveTool;
+
+	return $board;
+	}
+
+
+global proc zooSetSketchBase( string $base ) {
+	string $sketchy[] = {};
+	string $reg = `zooGetRegister zoo 1`;
+	string $grp = "";
+
+	zooListRegistered $reg sketchy {} $sketchy;
+	if( !`objExists $sketchy[0]` ) return;
+	$grp = zooGetElement_str(0,`listRelatives -pa -p $sketchy[0]`);
+	if( !`objExists $base` ) {
+		delete `pointConstraint -mo persp $grp`;
+		return;
+		}
+	delete `pointConstraint -mo persp $grp`;
+	pointConstraint $base $grp;
+	}
+
+
+//zoo.end

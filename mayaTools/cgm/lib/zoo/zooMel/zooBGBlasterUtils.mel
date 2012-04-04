@@ -1,0 +1,289 @@
+zooArrays_str;
+zooAttrUtils;
+zooFlags;
+zooGreaseMonkeyUtils;
+zooPresetManager;
+zooRegister;
+zooShaders;
+zooUtils;
+
+
+global proc zooBGBlasterUtils() {
+	return;
+	}
+
+
+//------
+//actually does the blast, imports it and applies it to a geometry based image plane
+// -name [str]			the name of the blast
+// -layer [str]		you can use a layer for the blast - however its only a single layer at this stage
+// -qss [str]        if you use a qss for the object list, it is exclusive
+// -objs [str]			use this to specify a space separated list of objects to blast
+// -qual [int]			0-100 jpeg quality for the blast images.  defaults to 80
+// -res [int]			the resolution for the blast - NOTE blasts are square, so only one number is required
+// -start [int]		start frame for the blast
+// -end [int]			end frame for the blast
+//------
+global proc zooBuildBlast( string $optionStr ) {
+	string $panel = `getPanel -wf`;
+	if( `getPanel -to $panel` != "modelPanel" ) error "can't blast that viewport - its not a model viewport!";
+
+	//parse cmd flags
+		string $blastLocation = `zooGetPresetDirectory "local" zooBGBlaster`;
+		string $temp[] = {};
+		string $name = "zooBlast";
+		string $layer = "bgBlaster_layer";
+		string $set = "bgBlaster_set";
+		string $blastObjs[] = {};
+		int $qual = 80;
+		int $res = 600;
+		int $start = `playbackOptions -q -min`;
+		int $end = `playbackOptions -q -max`;
+
+		$temp = `zooGetFlagArguments $optionStr name`; if( `size $temp` ) $name = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr layer`; if( `objExists $temp[0]` ) $layer = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr qss`; if( `objExists $temp[0]` ) $set = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr objs`; if( `size $temp` ) $blastObjs = $temp;
+		$temp = `zooGetFlagArguments $optionStr qual`; if( `size $temp` ) $qual = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr res`; if( `size $temp` ) $res = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr start`; if( `size $temp` ) $start = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr end`; if( `size $temp` ) $end = $temp[0];
+
+		if( !`filetest -d ( $blastLocation + $name +"/" )`) sysFile -makeDir ( $blastLocation + $name +"/" );
+		if( `objExists $layer` ) $blastObjs = `listConnections -s 0 ( $layer +".drawInfo" )`;
+		else if( `objExists $set` ) $blastObjs = `sets -q $set`;
+		if( !`size $blastObjs` ) {
+			warning "no objects found to blast - using ALL objects.  if you want to blast specific objects, select them and add them to the bgBlaster_set quick selection set";
+			$blastObjs = `ls -sl`;
+			if( !`size $blastObjs` ) $blastObjs = `ls -as`;
+			}
+
+	//find any existing bg blast boards, and hide them
+		string $master = `zooQueryMonkeySee`;
+		string $existingBG = "";
+		string $nodes[] = {};
+		int $idxs[] = {};
+
+		zooListRegistered $master bgBlaster $idxs $nodes;
+		$existingBG = $nodes[0];
+		int $initVis[] = {};
+		for( $n=0; $n<`size $nodes`; $n++ ) {
+			$initVis[$n] = 1;
+			if( `objExists ( $nodes[$n] +".v" )` ) {
+				$initVis[$n] = `getAttr ( $nodes[$n] +".v" )`;
+				setAttr ( $nodes[$n] +".v" ) 0;
+				}
+			}
+
+	//add the eazel to the isolate objects
+		string $eazel = `zooGetEazel 0`;
+		if( `objExists $eazel` ) $blastObjs[`size $blastObjs`] = $eazel;
+
+	//setup the viewport for blasting
+		isolateSelect -state 0 $panel;
+		isolateSelect -state 1 $panel;
+		for( $o in $blastObjs ) if( `objExists $o` ) select -add $o;
+		isolateSelect -addSelected $panel;
+		isolateSelect -u $panel;
+		select -cl;
+
+	//turn off unwanted viewport settings - the grid, hud settings etc...
+		string $editor = `modelPanel -q -me $panel`;
+		string $flags[] = {"-gr","-nc","-ns","-lt","-ca","-j","-ikh","-df","-lc","-dim","-ha","-pv"};
+		int $num = `size $flags`;
+		int $states[] = {};
+
+		setFrameRateVisibility 0;
+		for( $n=0; $n<$num; $n++ ) $states[$n] = eval("modelEditor -q "+ $flags[$n] +" "+ $editor +";" );
+		for( $n=0; $n<$num; $n++ ) eval("modelEditor -e "+ $flags[$n] +" 0 "+ $editor +";" );
+
+	//do the playblast and revert the viewport settings
+		int $fmts[] = {7,8,19};
+		string $exts[] = {"iff","jpg","tga"};
+		int $use = 1;
+
+		putenv AW_JPEG_Q_FACTOR ((string)$qual);
+		setAttr "defaultRenderGlobals.imageFormat" $fmts[$use]; // 7 is iff 8 is jpg 19 is tga
+		playblast -v 0 -st $start -et $end -p 100 -f( $blastLocation + $name +"/bgBlast" ) -cc 1 -fmt image -wh $res $res;
+		isolateSelect -state 0 $panel;
+
+	//restore original view settings and import the blast
+		for( $n=0; $n<`size $nodes`; $n++ ) if( `objExists ( $nodes[$n] +".v" )` ) setAttr ( $nodes[$n] +".v" ) $initVis[$n];
+		for( $n=0; $n<$num; $n++ ) eval("modelEditor -e "+ $flags[$n] +" "+ $states[$n] +" "+ $editor +";" );
+		zooImportBlast $optionStr;
+
+	print( "zooBuildBlast \""+ $optionStr +"\";\n" );
+	}
+
+
+//------
+//this proc does the actual import.  use it to import an existing blast into your scene
+// -name [str]			the name of the blast
+// -start [int]		start frame for the blast
+// -end [int]			end frame for the blast
+// -reload [int]		automatically reloads the image sequence after import.  defaults to true
+// -reuse [int]		reuses the first existing blast board found in the scene.  defaults to true.  if you want to force creation of a new blast board, set this to false
+//------
+global proc zooImportBlast( string $optionStr ) {
+	//parse cmd flags
+		string $temp[] = {};
+		string $locale = "local";
+		string $name = "zooBlast";
+		string $blastBoard = "";
+		string $ext = "jpg";
+		int $start = `playbackOptions -q -min`;
+		int $end = `playbackOptions -q -max`;
+		int $unitFactor = 1;
+		int $reload = 1;
+		int $reuse = 1;
+		int $loadfix = 1;
+
+		if( `currentUnit -q -l` == "m" ) $unitFactor = 100;
+		$temp = `zooGetFlagArguments $optionStr locale`; if( `size $temp` ) $locale = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr name`; if( `size $temp` ) $name = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr board`; if( `objExists $temp[0]` ) $blastBoard = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr start`; if( `size $temp` ) $start = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr end`; if( `size $temp` ) $end = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr reload`; if( `size $temp` ) $reload = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr reuse`; if( `size $temp` ) $reuse = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr loadfix`; if( `size $temp` ) $loadfix = $temp[0];
+
+		string $blastLocation = `zooGetPresetDirectory $locale zooBGBlaster`;
+		if( !`filetest -d ( $blastLocation + $name +"/" )`) error( "can't find blast location! "+ $blastLocation + $name +"/" );
+
+	//find any existing bg blast boards, and delete them
+		string $eazel = `zooGetEazel 1`;
+		string $master = `zooQueryMonkeySee`;
+		string $cameraShape = zooGetElement_str(0,`listRelatives -s $master`);
+		string $existingBG = "";
+		string $nodes[] = {};
+		int $idxs[] = {};
+
+		zooListRegistered $master bgBlaster $idxs $nodes;
+		$existingBG = $nodes[0];
+		if( `objExists $blastBoard` ) $existingBG = $blastBoard;
+
+	//now build the bgBlaster image plane and attach it to the master camera in the scene
+		if( !$reuse ) $existingBG = "";
+		if( !`objExists $existingBG` ) {
+			float $defaultDepth = `getAttr ( $cameraShape +".farClipPlane" )`;
+			$existingBG = zooGetElement_str(0,`polyPlane -w(2.0/$unitFactor) -h(2.0/$unitFactor) -sx 5 -sy 5 -ax 0 0 1 -tx 1 -ch 0`);
+			parent -r $existingBG $eazel;
+			setAttr ( $existingBG +".rpz" ) 2;
+			setAttr ( $existingBG +".spz" ) 2;
+			setAttr ( $existingBG +".s" ) 100 100 100;
+			addAttr -ln depth -at double -min 1 -dv 1 $existingBG;
+			setAttr -k 1 ( $existingBG +".depth" );
+			connectAttr -f ( $cameraShape +".farClipPlane" ) ( $existingBG +".depth" );
+			zooRegisterObj $master bgBlaster $existingBG 1 1;
+			}
+
+		zooAttrState "-attrs r s -l 0" $existingBG;
+		string $existing[] = `listConnections -d 0 ( $existingBG +".sx" ) ( $existingBG +".sy" ) ( $existingBG +".sz" )`;
+		if( !`size $existing` ) expression -s( $existingBG +".sx = 0.5*"+ $existingBG +".depth/(1.1*"+ $eazel +".sz);\n"+ $existingBG +".sy = "+ $existingBG +".sx;\n"+ $existingBG +".sz = "+ $existingBG +".sx;" ) -o $existingBG -ae 0 -uc all;
+		zooAttrState "-attrs r s -k 0 -l 1" $existingBG;
+
+		zooRemoveAllMenus $existingBG;
+		zooObjMenuAddCmdAll $existingBG "re-load sequence" ( "zooReloadTextureSequence \"-name "+ $name +" -board #\";" );
+		zooObjMenuAddCmdAll $existingBG "re-blast sequence" ( "string $ans = `promptDialog -m \"name:\" -tx "+ $name +" -b OK -b Cancel -db OK`;\nstring $name = `promptDialog -q -tx`;\nif( $ans == \"OK\" ) zooBuildBlast ( \"-name \"+ $name +\" -board #\" );" );
+		zooObjMenuAddCmdAll $existingBG "open bgBlaster UI" ( "zooBGBlaster;" );
+
+	//assign the material with the image based movie to the image plane
+		string $existingFiles[] = `zooGetFiles ( $blastLocation + $name ) ( "*."+ $ext )`;
+		string $bgShader = `zooGetBlastShader $name 1`;
+		string $cons[] = `listConnections -type "file" -d 0 ( $bgShader +".outColor" )`;
+		string $blastNode = $cons[0];
+
+		zooSetObjShader $existingBG $bgShader;
+		if( !`objExists $blastNode` ) {
+			$blastNode = `createNode file`;
+			connectAttr -f ( $blastNode +".outColor" ) ( $bgShader +".outColor" );
+			}
+		setAttr -type "string" ( $blastNode +".fileTextureName" ) ( $blastLocation + $name +"/"+ $existingFiles[0] );
+		setAttr ( $blastNode +".useHardwareTextureCycling" ) 1;
+		setAttr ( $blastNode +".startCycleExtension" ) $start;
+		setAttr ( $blastNode +".endCycleExtension" ) $end;
+		setAttr ( $blastNode +".useFrameExtension" ) 1;
+		if( $loadfix ) {
+			select $blastNode;
+			if(`isAttributeEditorVisible`) setChannelBoxVisible(1);
+			else openAEWindow;
+			}
+
+	if( $reload ) zooReloadTextureSequence ( "-start "+ $start +" -end "+ $end );
+	print( "zooImportBlast \""+ $optionStr +"\";\n" );
+	}
+
+
+//------
+//forces reload of a texture sequence.  without any args, it will actually force reload of
+//ALL texture sequences in your scene
+// -node [str]			if you only want to reload a specific filenode, then specify it here
+// -start [int]		start frame for the blast
+// -end [int]			end frame for the blast
+//------
+global proc zooReloadTextureSequence( string $optionStr ) {
+	string $temp[] = {};
+	string $node = "";
+	float $rangeData[] = `zooGetSelectedRange`;
+	int $start = `playbackOptions -q -min`;
+	int $end = `playbackOptions -q -max`;
+
+	if( $rangeData[2] ) {
+		$start = $rangeData[0];
+		$end = $rangeData[1];
+		}
+	$temp = `zooGetFlagArguments $optionStr node`; if( `objExists $temp[0]` ) $node = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr start`; if( `size $temp` ) $start = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr end`; if( `size $temp` ) $end = $temp[0];
+
+	string $ftns[] = {};
+	string $textures[] = {};
+	int $num = 1;
+
+	if( !`objExists $node` ) {
+		$ftns = `ls -r 1 "*.ftn"`;
+		$num = `size $ftns`;
+		for( $n=0; $n<$num; $n++ ) $textures[`size $textures`] = `getAttr $ftns[$n]`;
+		$textures = `stringArrayRemoveDuplicates $textures`;
+		}
+	else {
+		$ftns[0] = ( $node +".ftn" );
+		$textures[0] = `getAttr ( $node +".ftn" )`;
+		}
+
+	for( $n=$start; $n<=$end; $n++ ) {
+		currentTime -e $n;
+		for( $i=0; $i<$num; $i++ ) setAttr -type "string" $ftns[$i] $textures[$i];
+		}
+
+	print( "zooReloadTextureSequence \""+ $optionStr +"\";\n" );
+	}
+
+
+//------
+//builds a shader for the blast.  the name of the blast gets written into the
+//shader so that shaders are easily re-useable, and multiple are allowed in any
+//scene
+//------
+global proc string zooGetBlastShader( string $name, int $forceCreate ) {
+	string $master = `zooQueryMonkeySee`;
+	string $blasts[] = {};
+	string $shaders[] = {};
+	int $idxs[] = {};
+
+	zooListRegistered $master bgBlaster $idxs $blasts;
+	for( $b in $blasts ) $shaders[`size $shaders`] = `zooGetObjShader $b`;
+	for( $s in $shaders ) if( `objExists ( $s +".zooBlastName" )`) if( `getAttr ( $s +".zooBlastName" )` == $name ) return $s;
+	if( $forceCreate ) {
+		string $shader = `zooCreateShader "0 0 0 -1"`;
+		addAttr -ln "zooBlastName" -dt "string" $shader;
+		setAttr -type "string" ( $shader +".zooBlastName" ) $name;
+		return $shader;
+		}
+
+	return "";
+	}
+
+
+//zoo.end

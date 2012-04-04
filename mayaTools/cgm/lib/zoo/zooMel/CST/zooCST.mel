@@ -1,0 +1,937 @@
+//
+// Character Setup Toolkit
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 08 March 2003
+//
+// Usage:
+//  simply run the command:
+//	zooCST;
+//
+
+zooArrays_str;
+zooBrandTools;
+zooCSTPrimitives;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooShelveIt;
+zooRenamerUtils;
+zooTriggeredUtils;
+zooStrUtils;
+zooUtils;
+
+
+global proc zooCST() {
+	//because the UI code was getting so large, its been offloaded into a different file,
+	//and is now sourced.  This means that the UI code is no longer stored in a global proc,
+	//which means the zooCST UI memory overhead is heaps less
+	eval( "source zooCSTWin" );
+	}
+
+
+global proc zooCSTWindowFunctions( string $function, string $variable01 ) {
+	string $UINames[10] = { "Root", "Spine", "Waist", "Head", "EyeL", "EyeR", "ArmL", "ArmR", "LegL", "LegR" };
+	string $UIPrefix = "zooCSTText";
+	float $scale = `floatField -q -v zooCSTFloatScale`;
+	int $buildCurves = `checkBox -q -v zooCSTCheckCurveControls`;
+
+	string $prefix = $variable01;
+	if( $variable01 == "*" ) $prefix = `textField -q -tx zooCSTTextPrefix`;
+
+	switch ( $function ) {
+		case "update":
+			string $selJoints[] = `ls -sl -type joint`;
+			string $childUIs[] = {};
+			string $prefix = `textField -q -tx zooCSTTextPrefix`;
+
+			string $world = zooGetElement_str( 0,`zooGetBrandedWithList { "name","world" } { $prefix,$prefix }` );
+			if( `objExists $world` ) {
+				text -e -l ( "World: "+ $world ) zooCSTTextHeadWorld;
+				text -e -l ( "World: "+ $world ) zooCSTTextArmWorld;
+				text -e -l ( "World: "+ $world ) zooCSTTextLegWorld;
+				}
+
+			string $root = zooGetElement_str( 0,`zooGetBrandedWithList { "name","root" } { $prefix,$prefix }` );
+			if( `objExists $root` ) {
+				text -e -l ( "Root: "+ $root ) zooCSTTextHeadRoot;
+				text -e -l ( "Root: "+ $root ) zooCSTTextArmRoot;
+				text -e -l ( "Root: "+ $root ) zooCSTTextLegRoot;
+				}
+
+			string $chest = zooGetElement_str( 0,`zooGetBrandedWithList { "name","chest" } { $prefix,$prefix }` );
+			if( `objExists $chest` ) {
+				text -e -l ( "Chest: "+ $chest ) zooCSTTextHeadChest;
+				text -e -l ( "Chest: "+ $chest ) zooCSTTextArmChest;
+				}
+
+			string $head = zooGetElement_str( 0,`zooGetBrandedWithList { "name","head" } { $prefix,$prefix }` );
+			if( `objExists $head` ) {
+				text -e -l ( "Head: "+ $head ) zooCSTTextArmHead;
+				}
+
+			string $armL = zooGetElement_str( 0,`zooGetBrandedWithList { "name","arm" } { $prefix,"_L" }` );
+			if( `objExists $armL` ) text -e -l ( "ArmL: "+ $armL ) zooCSTTextPredHandL;
+
+			string $armR = zooGetElement_str( 0,`zooGetBrandedWithList { "name","arm" } { $prefix,"_R" }` );
+			if( `objExists $armR` ) text -e -l ( "ArmR: "+ $armR ) zooCSTTextPredHandR;
+
+			if( `checkBox -q -v zooCSTCheckRootHips` ) {
+				control -e -en 1 zooCSTTextWaist;
+				control -e -en 1 zooCSTButtWaist;
+				}
+			else {
+				control -e -en 0 zooCSTTextWaist;
+				control -e -en 0 zooCSTButtWaist;
+				}
+
+			if( `checkBox -q -v zooCSTCheckHeadNeck` ) {
+				control -e -en 1 zooCSTTextNeck;
+				control -e -en 1 zooCSTButtNeck;
+				}
+			else {
+				control -e -en 0 zooCSTTextNeck;
+				control -e -en 0 zooCSTButtNeck;
+				}
+
+			clear $childUIs; $childUIs = `formLayout -q -ca zooCSTFormArm`;
+			if( `checkBox -q -v zooCSTCheckArmL` ) for( $n=4; $n<10; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=4; $n<10; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			if( `checkBox -q -v zooCSTCheckArmR` ) for( $n=10; $n<16; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=10; $n<16; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			clear $childUIs; $childUIs = `formLayout -q -ca zooCSTFormLeg`;
+			if( `checkBox -q -v zooCSTCheckLegL` ) for( $n=0; $n<12; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=4; $n<12; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			if( `checkBox -q -v zooCSTCheckLegR` ) for( $n=12; $n<20; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=12; $n<20; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			int $legType = `optionMenu -q -sl zooCSTOptionLegType`;
+			if( $legType == 2 ) {
+				if( `checkBox -q -v zooCSTCheckLegL` ) {
+					control -e -enable 1 $childUIs[10];
+					control -e -enable 1 $childUIs[11];
+					}
+				if( `checkBox -q -v zooCSTCheckLegR` ) {
+					control -e -enable 1 $childUIs[18];
+					control -e -enable 1 $childUIs[19];
+					}
+				}
+			else {
+				control -e -enable 0 $childUIs[10];
+				control -e -enable 0 $childUIs[11];
+				control -e -enable 0 $childUIs[18];
+				control -e -enable 0 $childUIs[19];
+				}
+
+			clear $childUIs; $childUIs = `formLayout -q -ca zooCSTFormHand`;
+			if( `checkBox -q -v zooCSTCheckHandL` ) for( $n=4; $n<19; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=4; $n<19; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			if( `checkBox -q -v zooCSTCheckHandR` ) for( $n=19; $n<34; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=19; $n<34; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			clear $childUIs; $childUIs = `formLayout -q -ca zooCSTFormSubPrimIKFK`;
+			if( `checkBox -q -v zooCSTCheckSubPrimL` ) for( $n=2; $n<8; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=2; $n<8; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			if( `checkBox -q -v zooCSTCheckSubPrimR` ) for( $n=8; $n<14; $n++ ) control -e -enable 1 $childUIs[$n];
+			else for( $n=8; $n<14; $n++ ) control -e -enable 0 $childUIs[$n];
+
+			if( objExists(`textField -q -tx zooCSTTextRoot`)) control -e -enable 1 zooCSTButtonGuessSize;
+			else control -e -enable 0 zooCSTButtonGuessSize;
+			break;
+
+		case "refreshTab":
+			string $selTab = `tabLayout -q -st zooCSTSetupTabs`;
+			break;
+
+		case "addClient":
+			//the variable this sub function takes contains the UI suffix that it is to send the guessed name to
+			string $suffix = $variable01;
+			string $selObjs[] = `ls -sl`;
+			string $tmp[] = {};
+
+			tokenize $suffix "^" $tmp;
+			textField -e -tx $selObjs[0] ( "zooCSTText"+ $tmp[0] );
+			if( `size $tmp`>1 ) zooCSTWindowFunctions guessOpposing $tmp[1];
+			zooCSTWindowFunctions update 0;
+			break;
+
+		case "validate":
+			string $flagStr = `textField -q -tx $variable01`;
+			string $errors[] = `zooCSTValidateFlags $flagStr`;
+			if( `size $errors` && `size $flagStr` ) confirmDialog -m ( "the following flags are bad:\n"+ `zooArrayToStr_str $errors "\n"` +"\n\ncheck the \"Additional Flags\" docs for details\nmake sure you check spelling, and the flag type\nof data the flag takes\n\nNOTE: This warning may not be correct..." );
+			else confirmDialog -m "flag string looks good!";
+			break;
+
+		case "addHead":
+			string $selObjs[] = `ls -sl`;
+			string $tmp[] = {};
+			string $head = $selObjs[0];
+			int $mode = ( $variable01 == "head" )?0:1;
+
+			if( $mode ) {
+				$tmp = `listRelatives -parent -path $selObjs[0]`;
+				$head = $tmp[0];
+				}
+
+			textField -e -tx $head zooCSTTextHead;
+			zooCSTWindowFunctions update 0;
+			break;
+
+		case "guessAll":
+			string $allJoints[] = `ls -r 1 -type joint`;
+			string $roots[] = `zooMatchNames {"COG","root"} $allJoints "-strip 1 -parity 1 -threshold 0.5"`;
+			string $matches[] = {};
+
+			if( $prefix == "" ) {
+				$prefix = `match "[^:]+$" $matches[0]`;
+				$prefix = `match "^[^_]+" $prefix`;
+				textField -e -tx $prefix zooCSTTextPrefix;
+				}
+
+			if( `objExists $roots[0]` ) textField -e -tx $roots[0] zooCSTTextRoot;
+			else if( `objExists $roots[1]` ) textField -e -tx $roots[1] zooCSTTextRoot;
+			if( objExists(`textField -q -tx zooCSTTextRoot`)) zooCSTWindowFunctions guessSize "";
+
+			$matches = `zooMatchNames { "hips","spine_base","chest","head","neck","eye_L","eye_R" } $allJoints "-strip 1 -parity 1 -threshold 1"`;
+			textField -e -tx $matches[0] zooCSTTextWaist;
+			textField -e -tx $matches[1] zooCSTTextSpineBase;
+			textField -e -tx $matches[2] zooCSTTextSpineEnd;
+			textField -e -tx $matches[3] zooCSTTextHead;
+			textField -e -tx $matches[4] zooCSTTextNeck;
+			textField -e -tx $matches[5] zooCSTTextEyeL;
+			textField -e -tx $matches[6] zooCSTTextEyeR;
+			if( objExists(`textField -q -tx zooCSTTextWaist`)) checkBox -e -v 1 zooCSTCheckRootHips;
+			else checkBox -e -v 0 zooCSTCheckRootHips;
+			if( objExists(`textField -q -tx zooCSTTextNeck`)) checkBox -e -v 1 zooCSTCheckHeadNeck;
+			else checkBox -e -v 0 zooCSTCheckHeadNeck;
+
+			$matches = `zooMatchNames { "bicep_L","bicep_R","elbow_L","elbow_R","wrist_L","wrist_R" } $allJoints "-strip 1 -parity 1 -threshold 1"`;
+			textField -e -tx $matches[0] zooCSTTextBicepL;
+			textField -e -tx $matches[1] zooCSTTextBicepR;
+			textField -e -tx $matches[2] zooCSTTextElbowL;
+			textField -e -tx $matches[3] zooCSTTextElbowR;
+			textField -e -tx $matches[4] zooCSTTextWristL;
+			textField -e -tx $matches[5] zooCSTTextWristR;
+
+			textField -e -tx $matches[0] zooCSTTextIkfkObjLUpper;
+			textField -e -tx $matches[1] zooCSTTextIkfkObjRUpper;
+			textField -e -tx $matches[2] zooCSTTextIkfkObjLMid;
+			textField -e -tx $matches[3] zooCSTTextIkfkObjRMid;
+			textField -e -tx $matches[4] zooCSTTextIkfkObjLLower;
+			textField -e -tx $matches[5] zooCSTTextIkfkObjRLower;
+
+			$matches = `zooMatchNames { "thigh_L","thigh_R","knee_L","knee_R","ankle_L","ankle_R","toe_L","toe_R" } $allJoints "-strip 1 -parity 1 -threshold 1"`;
+			textField -e -tx $matches[0] zooCSTTextThighL;
+			textField -e -tx $matches[1] zooCSTTextThighR;
+			textField -e -tx $matches[2] zooCSTTextKneeL;
+			textField -e -tx $matches[3] zooCSTTextKneeR;
+			textField -e -tx $matches[4] zooCSTTextAnkleL;
+			textField -e -tx $matches[5] zooCSTTextAnkleR;
+			textField -e -tx $matches[6] zooCSTTextToeL;
+			textField -e -tx $matches[7] zooCSTTextToeR;
+
+			$matches = `zooMatchNames { "index_base_L","mid_base_L","ring_base_L","pinky_base_L","thumb_base_L" } $allJoints "-strip 1 -parity 1 -threshold 1"`;
+			textField -e -tx $matches[0] zooCSTTextIndexObjL;
+			textField -e -tx $matches[1] zooCSTTextMidObjL;
+			textField -e -tx $matches[2] zooCSTTextRingObjL;
+			textField -e -tx $matches[3] zooCSTTextPinkyObjL;
+			textField -e -tx $matches[4] zooCSTTextThumbObjL;
+
+			$matches = `zooMatchNames { "index_base_R","mid_base_R","ring_base_R","pinky_base_R","thumb_base_R" } $allJoints "-strip 1 -parity 1 -threshold 1"`;
+			textField -e -tx $matches[0] zooCSTTextIndexObjR;
+			textField -e -tx $matches[1] zooCSTTextMidObjR;
+			textField -e -tx $matches[2] zooCSTTextRingObjR;
+			textField -e -tx $matches[3] zooCSTTextPinkyObjR;
+			textField -e -tx $matches[4] zooCSTTextThumbObjR;
+
+			zooCSTWindowFunctions update "*";
+			break;
+
+		case "guessSize":
+			string $root = `textField -q -tx zooCSTTextRoot`;
+			if( `objExists $root` ) {
+				float $temp[] = `zooGetHeirarchyBounds $root`;
+				float $height = $temp[4]-$temp[1];
+				floatField -e -v ( $height/20 ) zooCSTFloatScale;  //divide by 20 just because that seems to be a good number - scale is rather arbitrary
+				}
+			break;
+
+		case "guessOpposing":
+			string $suffix = $variable01;
+			string $selObjs[] = `ls -sl`;
+			int $parity = `zooMatchHasParity $selObjs[0]`;
+			string $guessedName = `zooGetOppositePath $selObjs[0]`;
+
+			if( $parity == 1 && `objExists $guessedName` ) textField -e -tx $guessedName ( "zooCSTText"+ $suffix );
+			if( $parity == 2 && `objExists $guessedName` ) textField -e -tx $guessedName ( "zooCSTText"+ $suffix );
+			break;
+
+		case "addMPath":
+			string $tsl = $variable01;
+			string $sel[] = `ls -sl`;
+			for( $s in $sel ) textScrollList -e -a $s $tsl;
+			break;
+
+		case "remMPath":
+			string $tsl = $variable01;
+			int $selIdxs[] = `textScrollList -q -sii $tsl`;
+			$selIdxs = `sort $selIdxs`;
+			$selIdxs = `zooReverseArray_int $selIdxs`;
+			for( $idx in $selIdxs ) textScrollList -e -rii $idx $tsl;
+			break;
+
+		case "createProxy":
+			if( $prefix == "" ) error "You must specify a prefix";
+			zooSurgeonUtils;
+			zooSurgeonSplitMesh ( "-asPrim 1 -prefix "+ $prefix );
+			break;
+
+		case "createSpine":
+			string $root = `textField -q -tx zooCSTTextRoot`;
+			string $hips = `textField -q -tx zooCSTTextWaist`;
+			string $spineBase = `textField -q -tx zooCSTTextSpineBase`;
+			string $spineEnd = `textField -q -tx zooCSTTextSpineEnd`;
+			string $options = `textField -q -tx zooCSTTextOptsRoot`;
+			int $buildhips = `checkBox -q -v zooCSTCheckRootHips`;
+			int $spineType = `optionMenu -q -sl zooCSTOptionSpineType`;
+			int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			if( !`objExists $root` ) error "You haven't specified the root joint - or the object name you have entered is invalid";
+			if( $buildhips && !`objExists $hips` ) error "You have the build hips option checked, but either haven't specified the hips joint, or the joint you have specified is invalid";
+			if( !`objExists $spineBase` || !`objExists $spineEnd` ) error "You haven't specified either the spinebase or the chest, or the joints you have entered are invalid";
+
+			//create the controls
+			string $spineControls[] = {};
+			if( $spineType == 1 ) $spineControls = `zooCSTBuildPrimBasicSpine $prefix $root $spineBase $spineEnd ( $options +" -buildhips "+ $buildhips +" -hips "+ $hips +" -scale "+ $scale )`;
+			//if( $spineType == 2 ) $spineControls = `zooCSTBuildPrimFKSpine $prefix $root $spineBase $spineEnd ( $options +" -buildhips "+ $buildhips +" -hips "+ $hips +" -scale "+ $scale )`;
+			if( $spineType == 2 ) $spineControls = `zooCSTBuildPrimReverseSpine $prefix $root $spineBase $spineEnd ( $options +" -buildhips "+ $buildhips +" -hips "+ $hips +" -scale "+ $scale )`;
+			//if( $spineType == 4 ) $spineControls = `zooCSTBuildPrimIKSpine $prefix $root $spineBase $spineEnd ( $options +" -buildhips "+ $buildhips +" -hips "+ $hips +" -scale "+ $scale )`;
+			if( $spineType == 3 ) $spineControls = `zooCSTBuildPrimIKFKSpine $prefix $root $spineBase $spineEnd ( $options +" -buildhips "+ $buildhips +" -hips "+ $hips +" -scale "+ $scale )`;
+			if( $spineType == 4 ) $spineControls = `zooCSTBuildPrimRootSpine $prefix $root $spineBase $spineEnd ( $options +" -buildhips "+ $buildhips +" -hips "+ $hips +" -scale "+ $scale )`;
+			print( "zooCSTBuildPrimSpine "+ $prefix +" "+ $root +" "+ $spineBase +" "+ $spineEnd +" \""+ $options +" -buildhips "+ $buildhips +" -hips "+ $hips +" -scale "+ $scale +"\";\n" );
+			break;
+
+		case "createHead":
+			string $head = `textField -q -tx zooCSTTextHead`;
+			string $neck = `textField -q -tx zooCSTTextNeck`;
+			string $options = `textField -q -tx zooCSTTextOptsHead`;
+			int $headType = `optionMenu -q -sl zooCSTOptionHeadType`;
+			int $buildneck = `checkBox -q -v zooCSTCheckHeadNeck`;
+			int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			if( !`objExists $head` ) error "You need to specify the head joint";
+
+			//create the controls
+			string $headControls[] = {};
+			if( $headType == 1 ) $headControls = `zooCSTBuildPrimHead $prefix $head ( $options +" -buildneck "+ $buildneck +" -neck "+ $neck +" -scale "+ $scale )`;
+			print( "zooCSTBuildPrimHead "+ $prefix +" "+ $head +" \""+ $options +" -buildneck "+ $buildneck +" -neck "+ $neck +" -scale "+ $scale +"\";\n" );
+			break;
+
+		case "createEyes":
+			string $eyeL = `textField -q -tx zooCSTTextEyeL`;
+			string $eyeR = `textField -q -tx zooCSTTextEyeR`;
+			string $options = `textField -q -tx zooCSTTextOptsHead`;
+			int $eyeType = `optionMenu -q -sl zooCSTOptionEyeType`;
+			int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			if( !`objExists $eyeL` || !`objExists $eyeR` ) error "You need to specify both eye joints";
+
+			//create the controls:
+			string $eyeControls[] = {};
+			if( $eyeType == 1 ) $eyeControls = `zooCSTBuildPrimEyes $prefix $eyeL $eyeR ( $options +" -scale "+ $scale )`;
+			if( $eyeType == 2 ) $eyeControls = `zooCSTBuildPrimMoveableEyes $prefix $eyeL $eyeR ( $options +" -scale "+ $scale )`;
+			break;
+
+		case "createArm":
+			string $leftArmControls[] = {};
+			string $rightArmControls[] = {};
+			string $bicepL = `textField -q -tx zooCSTTextBicepL`;
+			string $bicepR = `textField -q -tx zooCSTTextBicepR`;
+			string $elbowL = `textField -q -tx zooCSTTextElbowL`;
+			string $elbowR = `textField -q -tx zooCSTTextElbowR`;
+			string $wristL = `textField -q -tx zooCSTTextWristL`;
+			string $wristR = `textField -q -tx zooCSTTextWristR`;
+			string $options = `textField -q -tx zooCSTTextOptsArms`;
+			int $armType = `optionMenu -q -sl zooCSTOptionArmType`;
+			int $stretchL = `checkBox -q -v zooCSTCheckArmStretchL`;
+			int $stretchR = `checkBox -q -v zooCSTCheckArmStretchR`;
+			int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			if( `checkBox -q -v zooCSTCheckArmL` && `objExists $bicepL` && `objExists $elbowL` && `objExists $wristL` ) {
+				if( $armType == 1 ) $leftArmControls = `zooCSTBuildPrimArm $prefix l $bicepL $elbowL $wristL ( $options +" -scale "+ $scale +" -stretch "+ $stretchL )`;
+				}
+			if( `checkBox -q -v zooCSTCheckArmR` && `objExists $bicepR` && `objExists $elbowR` && `objExists $wristR` ) {
+				if( $armType == 1 ) $rightArmControls = `zooCSTBuildPrimArm $prefix r $bicepR $elbowR $wristR ( $options +" -scale "+ $scale +" -stretch "+ $stretchR )`;
+				}
+			break;
+
+		case "createLeg":
+			string $leftLegControls[] = {};
+			string $rightLegControls[] = {};
+			string $thighL = `textField -q -tx zooCSTTextThighL`;
+			string $thighR = `textField -q -tx zooCSTTextThighR`;
+			string $kneeL = `textField -q -tx zooCSTTextKneeL`;
+			string $kneeR = `textField -q -tx zooCSTTextKneeR`;
+			string $ankleL = `textField -q -tx zooCSTTextAnkleL`;
+			string $ankleR = `textField -q -tx zooCSTTextAnkleR`;
+			string $toeL = `textField -q -tx zooCSTTextToeL`;
+			string $toeR = `textField -q -tx zooCSTTextToeR`;
+			string $options = `textField -q -tx zooCSTTextOptsLegs`;
+			int $legType = `optionMenu -q -sl zooCSTOptionLegType`;
+			int $stretchL = `checkBox -q -v zooCSTCheckLegStretchL`;
+			int $stretchR = `checkBox -q -v zooCSTCheckLegStretchR`;
+			int $kneeModeL = `checkBox -q -v zooCSTCheckLegParentKneeL`;
+			int $kneeModeR = `checkBox -q -v zooCSTCheckLegParentKneeR`;
+			int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+
+			//create foot controls:
+			if( `checkBox -q -v zooCSTCheckLegL` && `objExists $thighL` && `objExists $kneeL` && `objExists $ankleL` ) {
+				if( $legType == 1 ) $leftLegControls = `zooCSTBuildPrimLeg $prefix l $thighL $kneeL $ankleL ( $options +" -scale "+ $scale +" -stretch "+ $stretchL +" -kneeMode "+ $kneeModeL )`;
+				if( $legType == 2 ) $leftLegControls = `zooCSTBuildPrimHaunch $prefix l $thighL $kneeL $ankleL $toeL ( $options +" -scale "+ $scale )`;
+				}
+			if( `checkBox -q -v zooCSTCheckLegR` && `objExists $thighR` && `objExists $kneeR` && `objExists $ankleR` ) {
+				if( $legType == 1 ) $rightLegControls = `zooCSTBuildPrimLeg $prefix r $thighR $kneeR $ankleR ( $options +" -scale "+ $scale +" -stretch "+ $stretchR +" -kneeMode "+ $kneeModeR )`;
+				if( $legType == 2 ) $rightLegControls = `zooCSTBuildPrimHaunch $prefix r $thighR $kneeR $ankleR $toeR ( $options +" -scale "+ $scale )`;
+				}
+			break;
+
+		case "createHands":
+			string $controlL = zooGetElement_str( 0,`zooGetBrandedWithList { "name","arm" } { $prefix,"_L" }` );
+			string $controlR = zooGetElement_str( 0,`zooGetBrandedWithList { "name","arm" } { $prefix,"_R" }` );
+			string $baseIndexL = `textField -q -tx zooCSTTextIndexObjL`;
+			string $baseMidL = `textField -q -tx zooCSTTextMidObjL`;
+			string $baseRingL = `textField -q -tx zooCSTTextRingObjL`;
+			string $basePinkyL = `textField -q -tx zooCSTTextPinkyObjL`;
+			string $baseThumbL = `textField -q -tx zooCSTTextThumbObjL`;
+			string $baseIndexR = `textField -q -tx zooCSTTextIndexObjR`;
+			string $baseMidR = `textField -q -tx zooCSTTextMidObjR`;
+			string $baseRingR = `textField -q -tx zooCSTTextRingObjR`;
+			string $basePinkyR = `textField -q -tx zooCSTTextPinkyObjR`;
+			string $baseThumbR = `textField -q -tx zooCSTTextThumbObjR`;
+			string $options = `textField -q -tx zooCSTTextOptsHand`;
+			int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			if( `checkBox -q -v zooCSTCheckHandL` ) {
+				string $wrist[] = `listRelatives -pa -p $baseIndexL`;
+				string $buildOpts = " -names ";
+				string $existing[] = {};
+				if( `objExists $baseIndexL` ) {
+					$buildOpts += " index";
+					$existing[( `size $existing` )] = $baseIndexL;
+					}
+				if( `objExists $baseMidL` ) {
+					$buildOpts += " mid";
+					$existing[( `size $existing` )] = $baseMidL;
+					}
+				if( `objExists $baseRingL` ) {
+					$buildOpts += " ring";
+					$existing[( `size $existing` )] = $baseRingL;
+					}
+				if( `objExists $basePinkyL` ) {
+					$buildOpts += " pinky";
+					$existing[( `size $existing` )] = $basePinkyL;
+					}
+				if( `objExists $baseThumbL` ) {
+					$buildOpts += " thumb";
+					$existing[( `size $existing` )] = $baseThumbL;
+					}
+				zooCSTBuildPrimHand $prefix l $wrist[0] $existing ( $options + $buildOpts +" -scale "+ $scale +" -sliders "+ `checkBox -q -v zooCSTCheckHandSlidersL` );
+				}
+
+			if( `checkBox -q -v zooCSTCheckHandR` ) {
+				string $wrist[] = `listRelatives -pa -p $baseIndexR`;
+				string $buildOpts = " -names ";
+				string $existing[] = {};
+				if( `objExists $baseIndexR` ) {
+					$buildOpts += " index";
+					$existing[( `size $existing` )] = $baseIndexR;
+					}
+				if( `objExists $baseMidR` ) {
+					$buildOpts += " mid";
+					$existing[( `size $existing` )] = $baseMidR;
+					}
+				if( `objExists $baseRingR` ) {
+					$buildOpts += " ring";
+					$existing[( `size $existing` )] = $baseRingR;
+					}
+				if( `objExists $basePinkyR` ) {
+					$buildOpts += " pinky";
+					$existing[( `size $existing` )] = $basePinkyR;
+					}
+				if( `objExists $baseThumbR` ) {
+					$buildOpts += " thumb";
+					$existing[( `size $existing` )] = $baseThumbR;
+					}
+				zooCSTBuildPrimHand $prefix r $wrist[0] $existing ( $options + $buildOpts +" -scale "+ $scale +" -sliders "+ `checkBox -q -v zooCSTCheckHandSlidersR` );
+				}
+			break;
+
+		case "createSubPrimIKFK":
+			string $upperL = `textField -q -tx zooCSTTextIkfkObjLUpper`;
+			string $midL = `textField -q -tx zooCSTTextIkfkObjLMid`;
+			string $lowerL = `textField -q -tx zooCSTTextIkfkObjLLower`;
+			string $upperR = `textField -q -tx zooCSTTextIkfkObjRUpper`;
+			string $midR = `textField -q -tx zooCSTTextIkfkObjRMid`;
+			string $lowerR = `textField -q -tx zooCSTTextIkfkObjRLower`;
+			string $options = `textField -q -tx zooCSTTextOptsSubPrimIKFK`;
+			int $asPrimL = `checkBox -q -v zooCSTCheckSubPrimAsPrimL`;
+			int $asPrimR = `checkBox -q -v zooCSTCheckSubPrimAsPrimR`;
+			//int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			if( `checkBox -q -v zooCSTCheckSubPrimL` && `objExists $upperL` && `objExists $midL` && `objExists $lowerL` ) {
+				$cmd = "zooCSTBuildIKFK "+ $prefix +" l "+ $upperL +" "+ $midL +" "+ $lowerL +" \""+ $options +" -scale "+ $scale +"\"";
+				eval($cmd);
+				echoRigElementCreationCommand $cmd;
+				}
+			if( `checkBox -q -v zooCSTCheckSubPrimR` && `objExists $upperR` && `objExists $midR` && `objExists $lowerR` ) {
+				$cmd = "zooCSTBuildIKFK "+ $prefix +" r "+ $upperR +" "+ $midR +" "+ $lowerR +" \""+ $options +" -scale "+ $scale +"\"";
+				eval($cmd);
+				echoRigElementCreationCommand $cmd;
+				}
+			break;
+
+		case "createSubPrimSplineIK":
+			string $start = `textField -q -tx zooCSTTextSplineIKStart`;
+			string $end = `textField -q -tx zooCSTTextSplineIKEnd`;
+			string $options = `textField -q -tx zooCSTTextOptsSubPrimSplineIK`;
+			int $stretch = `checkBox -q -v zooCSTCheckSubPrimSplineIKStretch`;
+			//int $colour = `colorIndexSliderGrp -q -v zooCSTColourSlider`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			string $cmd = "zooCSTBuildSplineIK "+ $prefix +" "+ $start +" "+ $end +" \""+ $options +" -stretch "+ $stretch +" -scale "+ $scale +"\"";
+			eval($cmd);
+			echoRigElementCreationCommand $cmd;
+			break;
+
+		case "createSubPrimPole":
+			string $start = `textField -q -tx zooCSTTextPoleStart`;
+			string $mid = `textField -q -tx zooCSTTextPoleMid`;
+			string $end = `textField -q -tx zooCSTTextPoleEnd`;
+			string $type = `textField -q -tx zooCSTTextCtrlType`;
+			string $options = `textField -q -tx zooCSTTextOptsSubPrimPole`;
+
+			if( $prefix == "" ) error "You must specify a prefix";
+			string $cmd = "{float $pos[] = `zooFindPolePosition \""+ $options +" -start "+ $start +" -mid "+ $mid +" -end "+ $end +" -scale "+ $scale +"\"`;\n";
+			$cmd += "string $control = `zooBuildControl \""+ $prefix +"_"+ $mid +"_pole\" \"-type "+ $type +" -scale "+ $scale +"\";\n";
+			$cmd += "move $pos[0] $pos[1] $pos[2] $control;}";
+			eval($cmd);
+			echoRigElementCreationCommand $cmd;
+			break;
+
+		case "createSubPrimMPath":
+			string $tsl = $variable01;
+			string $objs[] = `textScrollList -q -ai $tsl`;
+
+			$prefix = `textField -q -tx zooCSTTextPrefix`;
+			if( $prefix == "" ) error "You must specify a prefix";
+			string $controls[] = `zooCSTBuildMPath $prefix $objs ""`;
+			select $controls[3] $controls[4];
+			for( $n=7; $n<`size $controls`; $n++ ) {
+				if( !`objExists $controls[$n]` ) continue;
+				if( `nodeType $controls[$n]` == "motionPath" ) break;
+				select -add $controls[$n];
+				}
+			group -n "misc";
+			setAttr .v 0;
+			select -d;
+			break;
+		}
+	}
+
+
+global proc zooBuildFlagPopup( string $textFieldName, string $flags[] ) {
+	menu -e -dai ( $textFieldName +"Popup" );
+	setParent -m ( $textFieldName +"Popup" );
+
+	string $text = `textField -q -tx $textFieldName`;
+	$flags = `sort $flags`;
+	for( $f in $flags ) menuItem -l( `match "^[^ ]+" $f` ) -c( "textField -e -tx \""+ $text +" -"+ $f +"\" "+ $textFieldName );
+	menuItem -d 1;
+	menuItem -l "clear all" -c( "textField -e -tx \"\" "+ $textFieldName );
+	}
+
+global proc string getShortName( string $name ) {
+	if( $name != "" ) return zooGetElement_str(0, ls($name));
+	return "";
+	}
+
+
+global proc string queryNameField( string $nameField ) {
+	string $val = `nameField -q -o $nameField`;
+	if( $val != "" ) return zooGetElement_str(0, ls($val));
+	return "";
+	}
+
+
+global proc zooCSTSpaceUIFunctions( string $function ) {
+	zooCSTUtils;
+	zooSpaceSwitching;
+	string $dir = "up";
+	switch( $function ) {
+		case "-u":
+		case "-update":
+			string $selName[] = `textScrollList -q -si zooCSTScrollNames`;
+			if( `size $selName` ) textField -e -tx $selName[0] zooCSTTextName;
+			else textField -e -tx "" zooCSTTextName;
+			break;
+
+		case "-a":
+		case "-add":
+			string $sel[] = `ls -sl`;
+			for( $a in $sel ) {
+				string $name = `match "[^:]*$" $a`;
+				textScrollList -e -a $a zooCSTScrollSpaces;
+				textScrollList -e -a $name zooCSTScrollNames;
+				}
+			break;
+
+		case "-rma":
+			textScrollList -e -da zooCSTScrollSpaces;
+			textScrollList -e -da zooCSTScrollNames;
+		case "-rm":
+		case "-remove":
+			int $indicies[] = `textScrollList -q -sii zooCSTScrollSpaces`;
+			if( !`size $indicies` ) if( `confirmDialog -t "Are you sure?" -message "Do you want to remove all items?" -button "Yes" -button "No" -defaultButton "Yes"` == "Yes" ) {
+				textScrollList -e -ra zooCSTScrollSpaces;
+				textScrollList -e -ra zooCSTScrollNames;
+				}
+			for( $n in $indicies ) {
+				textScrollList -e -rii $n zooCSTScrollSpaces;
+				textScrollList -e -rii $n zooCSTScrollNames;
+				}
+			zooCSTSpaceUIFunctions -u;
+			break;
+
+		//deliberate fallthrough here - to allow the -up and -down options share code
+		case "-down":
+			$dir = "down";
+		case "-up":
+			string $objs[] = `textScrollList -q -ai zooCSTScrollSpaces`;
+			string $names[] = `textScrollList -q -ai zooCSTScrollNames`;
+			string $selNames[] = `textScrollList -q -si zooCSTScrollSpaces`;
+			int $selIdxs[] = `textScrollList -q -sii zooCSTScrollSpaces`;
+
+			//make the indicies 0-based
+			for( $n=0; $n<`size $selIdxs`; $n++ ) $selIdxs[$n] -= 1;
+			$objs = `zooReorderArray_str $objs $selIdxs $dir`;
+			$names = `zooReorderArray_str $names $selIdxs $dir`;
+			textScrollList -e -ra zooCSTScrollSpaces;
+			textScrollList -e -ra zooCSTScrollNames;
+			for( $o in $objs ) textScrollList -e -a $o zooCSTScrollSpaces;
+			for( $o in $names ) textScrollList -e -a $o zooCSTScrollNames;
+
+			//reselect what was initially selected
+			for( $o in $selNames ) textScrollList -e -si $o zooCSTScrollSpaces;
+			zooCSTSpaceUIFunctions -sel;
+			break;
+
+		case "-sel":
+		case "-select":
+			int $selSpace[] = `textScrollList -q -sii zooCSTScrollSpaces`;
+			textScrollList -e -sii $selSpace[0] zooCSTScrollNames;
+			zooCSTSpaceUIFunctions -u;
+			break;
+
+		case "-load":
+			string $obj = zooGetElement_str(0,`ls -sl -type transform`);
+			string $spaces[] = {};
+			string $names[] = {};
+			int $clear = `checkBox -q -v zooCSTCheckSpcClear`;
+
+			if( !`objExists $obj` ) break;
+			string $parent = zooGetElement_str(0,`listRelatives -f -p $obj`);
+
+			zooGetSpaceTargetsNames $obj $spaces $names;
+			if( $clear && !`size $spaces` ) {
+				textScrollList -e -ra zooCSTScrollSpaces;
+				textScrollList -e -ra zooCSTScrollNames;
+				}
+
+			if( `size $spaces` ) {
+				$parent = `zooFindSpace $obj`;
+				button -e -en 0 zooCSTWinSSButtUp;
+				button -e -en 0 zooCSTWinSSButtDn;
+				for( $n=0; $n<`size $spaces`; $n++ ) {
+					textScrollList -e -a $spaces[$n] zooCSTScrollSpaces;
+					textScrollList -e -a $names[$n] zooCSTScrollNames;
+					}
+				}
+			else {
+				button -e -en 1 zooCSTWinSSButtUp;
+				button -e -en 1 zooCSTWinSSButtDn;
+				}
+
+			nameField -e -o $obj zooCSTNameSpc;
+			nameField -e -o $parent zooCSTNameParent;
+			button -e -en 1 zooCSTButtSpcGrp;
+			break;
+
+		case "-loadParent":
+			string $obj = zooGetElement_str(0,`ls -sl -type transform`);
+			if( !`objExists $obj` ) break;
+			nameField -e -o $obj zooCSTNameParent;
+			break;
+
+		case "-c":
+		case "-change":
+			string $newName = `textField -q -tx zooCSTTextName`;
+			int $selSpace[] = `textScrollList -q -sii zooCSTScrollNames`;
+			textScrollList -e -rii $selSpace[0] zooCSTScrollNames;
+			textScrollList -e -ap $selSpace[0] $newName zooCSTScrollNames;
+			textScrollList -e -sii $selSpace[0] zooCSTScrollNames;
+			break;
+
+		case "-build":
+			string $obj = `nameField -q -o zooCSTNameSpc`;
+			if( !`objExists $obj` ) error "you haven't specified a target object to add space switching to";
+			string $existingSpace[] = {};
+			string $spaces[] = `textScrollList -q -ai zooCSTScrollSpaces`;
+			string $names[] = `textScrollList -q -ai zooCSTScrollNames`;
+			string $parent = `nameField -q -o zooCSTNameParent`;
+
+			if( !`objExists $parent` ) $parent = zooGetElement_str(0,`listRelatives -f -p $obj`);
+			if( !`objExists $parent` ) error "the target object has no parent";
+			zooGetSpaceTargetsNames $obj $existingSpace {};
+			$spaces = `zooSubtractArray_str $spaces $existingSpace`;
+			$names = `zooIndexCrop_str $names ( "-"+ (size($spaces)) +":" )`;
+			for( $n=0; $n<`size $spaces`; $n++ ) {
+				string $cmd = "zooAddSpaceSwitch \""+ getShortName($obj) +"\" \""+ getShortName($parent) +"\" \""+ getShortName($spaces[$n]) +"\" \""+ $names[$n] +"\" \"-mo\"";
+				eval($cmd);
+				echoRigElementCreationCommand $cmd;
+				}
+			break;
+		}
+	}
+
+
+global proc zooCSTBuildNamesMenu( string $popup ) {
+	menu -e -dai $popup;
+	setParent -m $popup;
+
+	string $withName[] = `zooListAllWithBrand name`;
+	string $names[] = {};
+	for( $o in $withName ) {
+		$names[ `size $names` ] = `zooQueryBrand $o name`;
+		}
+	$names = stringArrayRemoveDuplicates( $names );
+
+	for( $n in $names ) {
+		menuItem -l $n -c( "textField -e -tx \""+ $n +"\" zooCSTTextPrefix;" );
+		}
+	}
+
+
+global proc zooCSTCtrlUIFunctions( string $function ) {
+	string $tgts[] = {};
+	int $useSelected = 0;
+
+	switch( $function ) {
+		case "-u":
+		case "-update":
+			string $selName[] = `textScrollList -q -si zooCSTScrollNames`;
+			if( `size $selName` ) textField -e -tx $selName[0] zooCSTTextName;
+			break;
+
+		case "-load":
+			string $sel[] = `ls -sl -type transform -type joint`;
+			if( `objExists $sel[0]` ) {
+				nameField -e -o $sel[0] zooCSTNamePlaceCtrl;
+				nameField -e -o $sel[0] zooCSTNameAlignCtrl;
+				button -e -en 1 zooCSTButtSpcGrp;
+				}
+			break;
+
+		case "-loadpiv":
+			string $sel[] = `ls -sl -type transform -type joint`;
+			if( `objExists $sel[0]` ) nameField -e -o $sel[0] zooCSTNamePivotCtrl;
+			break;
+		case "-loadpar":
+			string $sel[] = `ls -sl -type transform -type joint`;
+			if( `objExists $sel[0]` ) nameField -e -o $sel[0] zooCSTNameParentCtrl;
+			break;
+		case "-loadali":
+			string $sel[] = `ls -sl -type transform -type joint`;
+			if( `objExists $sel[0]` ) nameField -e -o $sel[0] zooCSTNameAlignCtrl;
+			break;
+
+		case "-buildOnSelected":
+			$useSelected = 1;
+		case "-build":
+			string $prefix = `textField -q -tx zooCSTTextPrefix`;
+			string $qss = zooGetElement_str( 0, `zooGetBrandedWith "qss" $prefix` );
+			if( $prefix == "" ) error "You must specify a prefix";
+
+			string $tgt = `queryNameField zooCSTNamePlaceCtrl`;
+			string $piv = `queryNameField zooCSTNamePivotCtrl`;
+			string $ali = `queryNameField zooCSTNameAlignCtrl`;
+			string $par = `queryNameField zooCSTNameParentCtrl`;
+			string $type = `textField -q -tx zooCSTTextCtrlType`;
+			string $axis = `radioCollection -q -sl zooCSTCtrlAxis`;
+			string $name = `match "[^|]+$" $tgt`;
+			string $colour = `textField -q -tx zooCSTTextCtrlColour`;
+			string $attrs[] = {"T","R","S","V"};
+			float $scale = `floatField -q -v zooCSTFloatScale`;
+			float $offsetUp = `floatField -q -v zooCSTFloatOffUp`;
+			float $offsetSide = `floatField -q -v zooCSTFloatOffSide`;
+			float $offsetFwd = `floatField -q -v zooCSTFloatOffFwd`;
+			float $sizeX = `floatField -q -v zooCSTFloatSizeX`;
+			float $sizeY = `floatField -q -v zooCSTFloatSizeY`;
+			float $sizeZ = `floatField -q -v zooCSTFloatSizeZ`;
+			int $curve = `checkBox -q -v zooCSTCheckCurve`;
+			int $surface = `checkBox -q -v zooCSTCheckSurface`;
+			int $constrain = `checkBox -q -v zooCSTCheckConstrain`;
+			int $orient = `checkBox -q -v zooCSTCheckOriented`;
+			int $joint = `checkBox -q -v zooCSTCheckJoint`;
+			int $basePivot = `checkBox -q -v zooCSTCheckBasePivot`;
+
+			if( $name != "" ) $name = zooStripAllNamespaces( $name ) +"_ctrl";
+			if( $colour == "none" ) $colour = "";
+			if( `checkBox -q -v zooCSTCheckNeg` ) $axis = "_"+ $axis;
+			if( $useSelected ) $tgts = `ls -sl`;
+			else $tgts = {$tgt};
+			for( $obj in $tgts ) {
+				if( $name == "" ) $name = zooStripAllNamespaces( $obj ) +"_ctrl";
+				string $cmd = "zooBuildControl \""+ $name +"\" \"-type "+ $type +" -axis "+ $axis +" -size "+ $sizeX +" "+ $sizeY +" "+ $sizeZ +" -surface "+ $surface +" -orient "+ $orient +" -joint "+ $joint +" -qss "+ $qss +" -scale "+ $scale;
+
+				if( $basePivot ) $cmd += " -pivot base ";
+				if( `objExists $obj` ) $cmd += " -place "+ $obj;
+				if( `objExists $piv` ) $cmd += " -placepivot "+ $piv;
+				if( `objExists $ali` || $useSelected ) $cmd += " -align "+ ($useSelected? "%p": $ali);
+				if( `objExists $par` ) $cmd += " -parent "+ $par;
+				if( $colour != "" ) $cmd += " -colour "+ $colour;
+				if( $offsetUp != 0 || $offsetSide != 0 || $offsetFwd != 0 ) {
+					$cmd += " -offset ";
+					if( $offsetUp != 0 ) $cmd += $offsetUp +"up ";
+					if( $offsetSide != 0 ) $cmd += $offsetSide +"side ";
+					if( $offsetFwd != 0 ) $cmd += $offsetFwd +"fwd ";
+					}
+
+				//get the attributes to lock and hide
+				string $hideStr = "";
+				string $lockStr = "";
+				for( $attr in $attrs ) {
+					int $hideVal = `checkBox -q -v ( "zooCSTCheckHide"+ $attr )`;
+					int $lockVal = `checkBox -q -v ( "zooCSTCheckLock"+ $attr )`;
+					if( $hideVal ) $hideStr += " "+ (tolower($attr));
+					if( $lockVal ) $lockStr += " "+ (tolower($attr));
+					}
+				if( $hideStr != "" ) $cmd += " -hide"+ $hideStr;
+				if( $lockStr != "" ) $cmd += " -lock"+ $lockStr;
+				if( $constrain ) $cmd += " -constrain 1";
+				$cmd += "\"";
+
+				//run the cmd
+				string $ctrl = eval($cmd);
+				echoRigElementCreationCommand $cmd;
+				}
+			break;
+		}
+	}
+
+
+//installs a shelf button to the current shelf
+global proc zooCSTShelfButton( string $function ) {
+	switch( $function ) {
+		case "install":
+			string $button = `zooInstallShelfButton zooCST`;
+			string $label = "zooCST - Character Setup Toolkit - a complete suite of character rigging tools";
+			string $image = `internalVar -userBitmapsDir` +"zooCST.bmp";
+
+			shelfButton -e -l $label -image1 $image -c( "source zooCST; zooCST;" ) $button;
+			zooCSTBuildShelfPopups;
+			break;
+
+		case "remove":
+			string $button = `zooShelveItGetShelfButton zooCST`;
+			deleteUI $button;
+			break;
+		}
+	}
+
+
+global proc zooCSTBuildShelfPopups() {
+	string $buttons[] = `zooGetShelfButtonAll zooCST`;
+	for( $button in $buttons ) {
+		if( `shelfButton -q -npm $button` ) continue;
+		string $pup = `popupMenu -p $button -b 3`;
+		popupMenu -e -pmc( "zooCSTBuildPopup "+ $pup ) $pup;
+		}
+	}
+
+
+global proc zooCSTBuildPopup( string $parent ) {
+	menu -e -dai $parent;
+	setParent -m $parent;
+
+	string $sel[] = `ls -sl`;
+	string $pfx = `size $sel`? "(*for selected*) ": "";
+
+	menuItem -l( $pfx +"group to self" ) -c ( "{zooCSTUtils; for( $a in `ls -sl` ) zooGrpToSelf \"\" $a;}" );
+	menuItem -l( $pfx +"group to self, no freeze" ) -c ( "{zooCSTUtils; for( $a in `ls -sl` ) zooGrpToSelf \"-freeze 0\" $a;}" );
+	menuItem -l( $pfx +"parent to child" ) -c ( "{for( $a in `ls -sl` ) zooParentToChild $a;}" );
+	}
+
+
+global proc zooCSTPrimitiveListWindow() {
+	string $windowName = "zooCSTPrimitivesList";
+	string $windowTitle = "Primitives";
+	string $primitives[] = `zooCSTListPrimitives`;
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+
+	window -title $windowTitle -maximizeButton 0 -sizeable 1 -width 255 $windowName;
+	scrollLayout -cr 1;
+		columnLayout -adj 1;
+		for( $p in $primitives ) {
+			string $controls[] = `zooCSTListRegistered control $p`;
+			string $inputs[] = `zooCSTListRegistered input $p`;
+			string $outputs[] = `zooCSTListPrimOutputs $p`;
+
+			string $form = `formLayout`;
+				string $name = `nameField -o $p -width 200`;
+				string $butt = `button -l "actions" -width 50`;
+				setParent ..;
+
+		formLayout -e
+			-af $name "top" 2
+			-af $name "left" 2
+			-ac $name "right" 2 $butt
+			-af $name "bottom" 2
+
+			-af $butt "top" 2
+			-an $butt "left"
+			-af $butt "right" 2
+			-af $butt "bottom" 2
+			$form;
+
+		popupMenu -p $butt -b 1;
+		if( `size $controls` ) menuItem -l "select controls" -c( "select (zooCSTListRegistered(\"control\",`nameField -q -o "+ $name +"`))" );
+		if( `size $inputs` ) menuItem -l "select inputs" -c( "select (zooCSTListRegistered(\"input\",`nameField -q -o "+ $name +"`))" );
+		if( `size $outputs` ) menuItem -l "select outputs" -c( "select (zooCSTListPrimOutputs(`nameField -q -o "+ $name +"`))" );
+		menuItem -d 1;
+		menuItem -l "select primitive node" -c( "select (`nameField -q -o "+ $name +"`)" );
+		menuItem -d 1;
+		menuItem -l "rebuild" -c( "{ string $q=`confirmDialog -title \"Rebuild Primitive?\" -m \"Really rebuild this primitive?\" -b Yes -b No -db No -cb No -ds No`; if($q!=\"No\"){zooCSTRebuildPrimitive (`nameField -q -o "+ $name +"`); deleteUI "+ $form +";}}" );
+		menuItem -l "delete" -c( "{ string $q=`confirmDialog -title \"Delete Primitive?\" -m \"Really delete this primitive?\" -b Yes -b No -db No -cb No -ds No`; if($q!=\"No\") zooCSTDeletePrimitive (`nameField -q -o "+ $name +"`); }" );
+		}
+	button -l "update" -c( "zooCSTPrimitiveListWindow;" );
+
+	showWindow $windowName;
+	zooBumpWindow $windowName;
+	}
+
+
+//zoo.end

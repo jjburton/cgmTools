@@ -1,0 +1,280 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooTriggeredUtils;
+zooCSTPrimitives;
+zooCSTUtils;
+zooSpaceSwitching;
+zooRenamerUtils;
+zooVectors;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildPrimHaunch( string $prefix, string $parity, string $thigh, string $knee, string $ankle, string $toeBase, string $optionStr ) {
+	echoRigElementCreationCommand ( "zooCSTBuildPrimHaunch \""+ $prefix +"\" "+ $parity +" "+ $thigh +" "+ $knee +" "+ $ankle +" "+ $toeBase +" \""+ $optionStr +"\";" );
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $parents[] = {};
+		string $type = "cube";
+		string $colour = $parity=="r"? "red 0.65": "green 0.65";
+		float $scale = 1;
+		int $spaceswitching = 1;
+		int $pickwalking = 1;
+
+		$optionTemp = `zooGetFlagArguments $optionStr type`; if( `size $optionTemp` ) $type = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr spaceswitching`; if( `size $optionTemp` ) $spaceswitching = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr pickwalking`; if( `size $optionTemp` ) $pickwalking = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr parents`; if( `size $optionTemp` ) $parents = $optionTemp;
+
+
+	//------
+	//always build the world first - the world creation proc only builds the world once for any given prefix, so a world control is never created more than once
+	//------
+		string $suffix = ( $parity == "r" )?"_R":"_L";
+		string $id = `zooCSTGetPrimId haunch $parity $prefix`;
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+		string $masterqss = $worldParts[2];
+		string $qss = $worldParts[3];
+		string $rootControl = zooGetElement_str( 0,`zooGetBrandedWith rootGimbal $prefix` );
+
+
+	//------
+	//build the controls
+	//------
+		string $anklePos = `zooBuildControl ( "ankle_null"+ $suffix ) ( "-type null -place "+ $ankle )`;
+		string $legSpace = `zooBuildControl ( "legSpace"+ $suffix ) ( "-type null -place "+ $toeBase )`;
+		string $legControl = `zooBuildControl ( "legControl"+ $suffix ) ( "-type "+ $type +" -place "+ $toeBase +"-scale "+ $scale +" -colour "+ $colour )`;
+		string $toeAimer = `zooBuildControl ( "toe_aim"+ $suffix ) ( "-type null -place "+ $toeBase )`;
+		string $toeNeutral = `zooBuildControl ( "toe_neutral"+ $suffix ) ( "-type null -place "+ $toeBase )`;
+		string $toeSuperSpace = `zooBuildControl ( "toe_autoSpace"+ $suffix ) ( "-type null -place "+ $toeBase )`;
+		string $toeSpace = `zooBuildControl ( "toeSpace"+ $suffix ) ( "-type null -place "+ $toeBase +"-orient 1 -joint 1 -scale 1" )`;
+		string $toeSubSpace = `zooBuildControl ( "toe_sdk"+ $suffix ) ( "-type null -place "+ $toeBase )`;
+		string $toeControl = `zooBuildControl ( "toeControl"+ $suffix ) ( "-type sphere -place "+ $toeBase +" -scale "+ $scale +" -colour "+ $colour )`;
+		string $kneeSpace = `zooBuildControl ( "kneeControl"+ $suffix ) ( "-type null -place "+ $knee )`;
+		string $kneeControl = `zooBuildControl ( "kneeControl"+ $suffix ) ( "-type cone -place "+ $knee +" -scale "+ $scale +" -colour "+ $colour )`;
+		float $kneePos[] = `zooFindPolePosition ( "-start "+ $thigh +" -mid "+ $knee +" -end "+ $ankle )`;
+
+		move -rpr -ws $kneePos[0] $kneePos[1] $kneePos[2] $kneeSpace;
+		move -rpr -ws $kneePos[0] $kneePos[1] $kneePos[2] $kneeControl;
+		parent $legControl $legSpace;
+		parent $kneeControl $kneeSpace;
+		parent $kneeSpace $legControl;
+		parent $toeAimer $legControl;
+		parent $toeNeutral $legControl;
+		parent $toeSpace $toeSuperSpace;
+		parent $toeSuperSpace $legControl;
+		parent $toeSubSpace $toeSpace;
+		parent $toeControl $toeSubSpace;
+		parent $anklePos $toeControl;
+		makeIdentity -a 1 -t 1 -r 1 -s 1 $kneeSpace $kneeControl;
+		delete `orientConstraint $ankle $toeSubSpace`;
+		delete `orientConstraint $ankle $toeControl`;
+		pointConstraint -mo $thigh $anklePos $kneeSpace;
+		orientConstraint -mo $legControl $toeBase;
+
+
+	//------
+	//add convenience sliders to the leg control
+	//------
+		string $squashAxis = zooCSTVectorAsName(`zooCSTUpVector $toeSubSpace {1.,0.,0.}`);
+		string $mult = `shadingNode -asUtility multiplyDivide`;
+
+		setAttr ( $mult +".input2X" ) 9;
+		addAttr -ln "ankle" -at "double" -min -10 -max 10 -dv 0 $legControl;
+		addAttr -ln "autoAnkle" -at "double" -min 0 -max 1 -dv 1 $legControl;
+		setAttr -k 1 ( $legControl +".ankle" );
+		setAttr -k 1 ( $legControl +".autoAnkle" ) 1;
+		connectAttr -f ( $legControl +".ankle" ) ( $mult +".input1X" );
+		connectAttr -f ( $mult +".outputX" ) ( $toeSubSpace +".r"+ $squashAxis );
+		orientConstraint -mo $toeControl $ankle;
+
+
+	//------
+	//build the IK
+	//------
+		string $ikHandle = zooGetElement_str(0,`ikHandle -sj $thigh -ee $ankle`);
+
+		setAttr ( $ikHandle +".v" ) 0;
+		parent $ikHandle $toeControl;
+		poleVectorConstraint $kneeControl $ikHandle;
+
+
+	//------
+	//build the auto ankle network
+	//------
+		string $aimGrp = `group -em`;
+		string $lenGrp = `group -em`;
+
+		parent $lenGrp $aimGrp;
+		parent $aimGrp $legControl;
+		delete `pointConstraint $toeBase $aimGrp`;
+		aimConstraint -aim 0 1 0 -u 0 0 1 -worldUpType objectrotation -worldUpObject $legControl $thigh $aimGrp;
+		pointConstraint $thigh $lenGrp;
+
+		//string $autoMult = `shadingNode -asUtility multiplyDivide`;
+		float $toeToAnkle[] = `zooBetweenVector $toeBase $ankle`;
+		float $initialLength = `getAttr( $lenGrp +".ty" )`;
+		float $minLength = $initialLength/10;
+		float $maxLength = `zooCSTDistBetween $thigh $knee` + `zooCSTDistBetween $knee $ankle` + `zooCSTDistBetween $ankle $toeBase`;
+		float $maxAngle = (atan($toeToAnkle[2]/$toeToAnkle[1])/3.141592654)*180;
+		float $minAngle = 90-abs($maxAngle);
+
+		$squashAxis = zooCSTVectorAsName(`zooCSTUpVector $toeSpace {1.,0.,0.}`);
+		setDrivenKeyframe -at "input1Y" -cd( $lenGrp +".ty" ) -dv $initialLength -v 0 $mult;
+		setDrivenKeyframe -at "input1Y" -cd( $lenGrp +".ty" ) -dv $minLength -v $minAngle $mult;
+		setDrivenKeyframe -at "input1Y" -cd( $lenGrp +".ty" ) -dv $maxLength -v $maxAngle $mult;
+		connectAttr -f ( $mult +".outputY" ) ( $toeSpace +".r"+ $squashAxis );
+		connectAttr -f ( $legControl +".autoAnkle" ) ( $mult +".input2Y" );
+
+
+	//------
+	//aim the toe control super space at the thigh
+	//------
+		string $reverse = `shadingNode -asUtility reverse`;
+		float $toeToThighVec[] = `zooBetweenVector $toeAimer $thigh`;
+		float $toeToKneeVec[] = `zooBetweenVector $toeAimer $kneeControl`;
+		float $toeAim[] = `zooAxisInDirection $toeAimer $toeToThighVec`;
+		float $toeUp[] = `zooAxisInDirection $toeAimer $toeToKneeVec`;
+
+		aimConstraint -mo -aim $toeAim[0] $toeAim[1] $toeAim[2] -u $toeUp[0] $toeUp[1] $toeUp[2] -worldUpType object -worldUpObject $kneeControl $thigh $toeAimer;
+		string $orient = zooGetElement_str(0,`orientConstraint -mo $toeAimer $toeNeutral $toeSuperSpace`);
+		connectAttr -f ( $legControl +".autoAnkle" ) ( $reverse +".inputX" );
+		connectAttr -f ( $legControl +".autoAnkle" ) ( $orient +".target[0].targetWeight" );
+		connectAttr -f ( $reverse +".outputX" ) ( $orient +".target[1].targetWeight" );
+
+
+	//------
+	//build space switching expressions
+	//------
+		string $legParents[] = { $worldControl, $rootControl };
+		string $spaceNodes[] = {};
+
+		if( `size $parents` ) $legParents = `zooAddArray_str $legParents $parents`;
+		if( $spaceswitching ) $spaceNodes = `zooBuildSpaceSwitch $legControl $legSpace $legParents { "world","root" } "-mo"`;
+
+
+	//------
+	//build pickwalking if required
+	//------
+		if( $pickwalking ) {
+			zooPickwalk "-load";
+			zooSetPickwalkObj $legControl $kneeControl "-dir up -reciprocal 1";
+			zooSetPickwalkObj $legControl $kneeControl "-dir down -reciprocal 1";
+			}
+
+
+	//------
+	//add the zooObjMenu commands to the object for easy switching to FK mode
+	//------
+		int $cmd1Num = `zooObjMenuAddCmd $legControl`;
+		string $cmd1Str = "zooBrandTools;\nzooCSTPrimitives;\nzooLineOfAction;\nstring $prim = `zooGetPrimFromRegistered #`;\nstring $inputs[] = `zooCSTListRegistered input $prim`;\nzooLineOfAction_multi $inputs \"\";";
+
+		zooSetObjMenuCmdName $legControl "draw line of action" $cmd1Num;
+		zooSetObjMenuCmdStr $legControl $cmd1Str $cmd1Num;
+
+
+	//------
+	//now cleanup the top level
+	//------
+		parent $legSpace $worldControl;
+
+
+	//------
+	//turn unwanted transforms off, so that they are locked, and no longer keyable
+	//------
+		string $controllers[] = { $legControl, $toeControl, $kneeControl };
+		for( $obj in $controllers ) zooAttrState "-attrs s -k 0 -l 1" $obj;
+		for( $obj in $controllers ) zooAttrState "-attrs v -k 0" $obj;
+		zooAttrState "-attrs t r s v -k 0 -l 1" $toeSpace;
+		zooAttrState "-attrs t r s v pv off rol twi -k 0 -l 1" $ikHandle;
+
+
+	//------
+	//add the controls to the qss
+	//------
+		for( $obj in $controllers ) sets -add $qss $obj;
+
+
+	//------
+	//build the primitive record
+	//------
+		string $primitive = `zooCSTCreatePrimRecord haunch $id $prefix`;
+		zooCSTRegisterInput $thigh $primitive;
+		zooCSTRegisterInput $knee $primitive;
+		zooCSTRegisterInput $ankle $primitive;
+		zooCSTRegisterInput $toeBase $primitive;
+		zooCSTPrimOutputs { $legSpace, $kneeSpace, $toeSpace, $toeSubSpace, $ikHandle, $aimGrp, $lenGrp } $primitive;
+		zooCSTPrimOutputs $spaceNodes $primitive;
+		zooBrandObject options $optionStr $primitive;
+		zooBrandObject version "1" $primitive;
+		zooBrandObject leg $suffix $legControl;
+		for( $obj in $controllers ) zooCSTRegisterControl $obj $primitive;
+
+		zooCSTUtilsRigVis -h;
+		for( $n=0; $n<`size $controllers`; $n++ ) $controllers[$n] = `zooRenamerFunctions replace "[0-9]+$" "" $controllers[$n]`;
+		select $controllers[0];
+
+	return $controllers;
+	}
+
+
+//------
+//this proc deals with rebuilding the head primitive
+//------
+global proc string[] zooCSTRebuildPrimHaunch( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $parity = "l";
+	string $version = `zooQueryBrand version $primitive`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+	string $controls[] = `zooCSTListRegistered control $primitive`;
+	string $temp[] = {};
+	int $useExisting = 1;
+
+	string $dupes[] = {};
+	if( `size $controls` ) {
+		$dupes = `duplicate -rc $controls`;  //duplicate the control objects so we can grab the original control shape nodes, to parent under the new controls created
+		parent -w $dupes;
+		}
+
+	$temp = `zooGetFlagArguments $optionStr parity`; if( `size $temp` ) $parity = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr useExisting`; if( `size $temp` ) $useExisting = $temp[0];
+
+	zooCSTDeletePrimitive $primitive;
+	string $newControls[] = `zooCSTBuildPrimHaunch $prefix $parity $inputs[0] $inputs[1] $inputs[2] $inputs[3] $optionStr`;
+
+	//parent the shape nodes of the original controls to the transforms of the new controls
+	if( $useExisting ) for( $n=0; $n<`size $newControls`; $n++ ) zooReplaceShape $dupes[$n] $newControls[$n] 0;
+
+	delete $dupes;
+	return $newControls;
+	}
+
+
+/*
+builds a spline IK rig primitive
+------
+
+$prefix - the character prefix used to identify the character
+$spineBase - this is where you want the spine to start - the base
+$spineEnd - this is where you want the spine to terminate - the end
+$optionStr - standard option string
+
+option flags
+-------
+-root [string]			use this flag to explicitly set which object to use as the root - ie the parent of this primitive
+
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

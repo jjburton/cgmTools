@@ -1,0 +1,8 @@
+//simply resets all keyable attributes on a given object to its default value
+//great for running on a large selection such as all character controls...
+global proc zooResetAttrs( string $obj ) {
+	python( "from zooPyMaya import resetAttrs; resetAttrs.resetAttrs( '"+ $obj +"' );" );
+	}
+
+
+//zoo.end

@@ -1,0 +1,33 @@
+global proc zooDynChain( string $optionStr ) {
+	string $sel[] = `ls -sl`;
+  string $temp[] = {};
+	string $start = $sel[0];
+	string $end = $sel[1];
+	int $reverse = 0;
+
+	$temp = `zooGetFlagArguments $optionStr start`; if( `size $temp` ) $start = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr end`; if( `size $temp` ) $end = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr reverse`; if( `size $temp` ) $reverse = $temp[0];
+
+	string $a[] = `zooCSTBuildSplineIK "" $start $end "-stretch 0"`;
+	string $ikHandle = $a[0];
+	string $curve = $a[1];
+
+	string $joints[] = { $start };
+	float $chainLength = 0;
+
+	$joints = zooAddArray_str($joints, `zooGetInBTweenJoints $start $end` );
+	$joints = `zooAddArray_str $joints { $start }`;
+
+	for( $n=1; $n<`size $joints`; $n++ ) $chainLength += `zooCSTDistBetween $joints[( $n-1 )] $joints[$n]`;
+
+	string $particles = zooGetElement_str(0,`soft -c -d -g 1 $curve`);
+	int $numParticles = `getAttr ( $particles +".count" )`;print $numParticles;
+
+	setAttr ( $particles +".goalSmoothness" ) 1;
+	for( $n=1; $n<$numParticles; $n++ ) particle -e -or $n -at goalPP -fv (1-(($n/(float)$numParticles)*0.95)) $particles;
+	select $sel;
+  }
+
+
+//zoo.end

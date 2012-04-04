@@ -1,0 +1,165 @@
+zooArrays_str;
+zooFlags;
+zooUtils;
+
+
+//does a basic Pickwalk in the direction given - using the currently selected
+//objects.  This proc returns whether the selected objects have Pickwalking.  So
+//it can be used in conjunction with maya Pickwalking
+//example
+//if( !`zooPickwalk up` ) Pickwalk -up;
+//
+//so if the objects selected have no Pickwalking data, maya will simply perform a
+//default Pickwalk
+global proc int zooPickwalk( string $dir ) {
+	if( $dir == "load" ) return 0;
+	string $sel[] = `ls -sl`;
+	for( $obj in $sel ) {
+		string $tgt = `zooGetPickwalkObj $obj $dir`;
+		if( !`objExists $tgt` ) return 0;
+		select -add $tgt;
+		select -d $obj;
+		}
+	return 1;
+	}
+
+
+//like the zooPickwalk proc, only this proc does an additive Pickwalk.  So anything
+//currently selected remains selected and any objects in the Pickwalk direction will
+//be added to the selection instead of replaced.
+//example
+//if( !`zooPickwalkAdd up` ) Pickwalk -up;
+global proc int zooPickwalkAdd( string $dir ) {
+	string $sel[] = `ls -sl`;
+	string $add[] = {};
+
+	for( $obj in $sel ) {
+		string $walkObj = `zooGetPickwalkObj $obj $dir`;
+		if( `objExists $walkObj` ) $add[( `size $add` )] = $walkObj;
+		}
+	if( `size $add` ) select -add $add;
+	return 1;
+	}
+
+
+global proc zooSimpleAuthorPickwalk( string $objs[] ) {
+	for( $n=1; $n<`size $objs`; $n++ ) zooSetPickwalkObj $objs[$n] $objs[( $n-1 )] "-dir up -reciprocal 1";
+	}
+
+
+//returns the name of the object in a given Pickwalk direction
+global proc string zooGetPickwalkObj( string $obj, string $dir ) {
+	string $attrName = ( $obj +".zooWalk"+ $dir );
+	string $obj = "";
+
+	if( `objExists $attrName` ) $obj = zooGetElement_str(0,`listConnections -d 0 $attrName`);
+	if( `objExists $obj` ) return $obj;
+	return "";
+	}
+
+
+//removes Pickwalking in a specific direction on a given object
+global proc zooRemPickwalking( string $obj, string $optionStr ) {
+	string $temp[] = {};
+	string $dirs[] = { "up", "left", "right", "down" };
+	string $dir = "";
+	int $reciprocal = 1;
+
+	$temp = `zooGetFlagArguments $optionStr dir`; if( `size $temp` ) $dir = `tolower $temp[0]`;
+	$temp = `zooGetFlagArguments $optionStr reciprocal`; if( `size $temp` ) $reciprocal = $temp[0];
+	if( $dir == "" ) return;
+	else if( $dir == "all" ) {
+		for( $d in $dirs ) zooRemPickwalking $obj ( "-dir "+ $d +" -reciprocal "+ $reciprocal );
+		return;
+		}
+
+	string $attrPrefix = "zooWalk";
+	string $attrName = $attrPrefix + $dir;
+	string $tgt = `zooGetPickwalkObj $obj $dir`;
+
+	if( `objExists ( $obj +"."+ $attrName )` ) deleteAttr ( $obj +"."+ $attrName );
+	if( $reciprocal ) {
+		string $opposite = "";
+		if( $dir == "up" ) $opposite = "down";
+		else if( $dir == "left" ) $opposite = "right";
+		else if( $dir == "right" ) $opposite = "left";
+		else if( $dir == "down" ) $opposite = "up";
+
+		$attrName = $attrPrefix + $opposite;
+		if( `objExists ( $tgt +"."+ $attrName )` ) deleteAttr ( $tgt +"."+ $attrName );
+		}
+	}
+
+
+//returns success
+//if reciprocal is set to true, then the target object automatically gets the source
+//object added as a Pickwalk target in the opposite direction.
+//
+//for example - if you have objectA and objectB, you set objectB as the up Pickwalk
+//for objectA, then objectA automatically gets added as the down Pickwalk object
+//for objectB
+global proc int zooSetPickwalkObj( string $src, string $tgt, string $optionStr ) {
+	string $temp[] = {};
+	string $dirs[] = { "up", "left", "right", "down" };
+	string $dir = "";
+	int $reciprocal = 1;
+
+	$temp = `zooGetFlagArguments $optionStr dir`; if( `size $temp` ) $dir = `tolower $temp[0]`;
+	$temp = `zooGetFlagArguments $optionStr reciprocal`; if( `size $temp` ) $reciprocal = $temp[0];
+
+	//is it a valid direction?  are the objects given valid?
+	if( !`stringArrayCount $dir $dirs` ) return 0;
+	if( $src == $tgt ) return 0;
+	if( !`objExists $src` ) return 0;
+	if( !`objExists $tgt` ) return 0;
+
+	//now build the attributes and connect them
+	string $attrPrefix = "zooWalk";
+	string $attrName = $attrPrefix + $dir;
+	string $objPath = $src +"."+ $attrName;
+
+	if( !`objExists $objPath` ) addAttr -ln $attrName -at message $src;
+	if( !`isConnected ( $tgt +".message" ) $objPath` ) connectAttr -f ( $tgt +".message" ) $objPath;
+	if( $reciprocal ) {
+		string $opposite = "";
+		if( $dir == "up" ) $opp = "down";
+		else if( $dir == "left" ) $opp = "right";
+		else if( $dir == "right" ) $opp = "left";
+		else if( $dir == "down" ) $opp = "up";
+
+		$attrName = $attrPrefix + $opp;
+		$objPath = $tgt +"."+ $attrName;
+
+		if( !`objExists $objPath` ) addAttr -ln $attrName -at message $tgt;
+		connectAttr -f ( $src +".message" ) $objPath;
+		}
+
+	return 1;
+	}
+
+
+//blows away all Pickwalking on all objects in the scene
+global proc zooBlowAwayAllPickwalking() {
+	string $walks[] = `zooListAllPickwalking`;
+	for( $w in $walks ) zooRemPickwalking $w "-dir all";
+	}
+
+
+//lists all objects in the scene which have Pickwalking applied to them
+global proc string[] zooListAllPickwalking() {
+	string $up[] = `ls -r 1 "*.zooWalkup"`;
+	string $left[] = `ls -r 1 "*.zooWalkleft"`;
+	string $right[] = `ls -r 1 "*.zooWalkright"`;
+	string $down[] = `ls -r 1 "*.zooWalkdown"`;
+	string $all[] = {};
+
+	$all = `zooAddArray_str $up $left`;
+	$all = `zooAddArray_str $all $right`;
+	$all = `zooAddArray_str $all $down`;
+	for( $n=0; $n<`size $all`; $n++ ) $all[$n] = `match "^[^.]+" $all[$n]`;
+
+	return $all;
+	}
+
+
+//zoo.end

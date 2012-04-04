@@ -1,0 +1,25 @@
+//
+// xfer animation
+//
+// Created by Hamish McKenzie mel@macaronikazoo.com
+// Created : 10 May 2003
+//
+// Description:
+// This script will transfer animation from one group ob objects to another.  It takes a
+// bunch of source objects, and tries to match them with a list of target objects.  The
+// object mapping may be changed, if the script either gets it wrong, or you just want
+// it done in a different order.
+//
+// Usage:
+//  simply run the command:
+//	zooXferAnim;
+//
+// macaroniKazoo
+
+
+global proc zooXferAnim() {
+	python( "from zooPyMaya import xferAnimUI; xferAnimUI.load()" );
+	}
+
+
+//zoo.end

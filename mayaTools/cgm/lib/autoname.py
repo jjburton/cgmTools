@@ -635,24 +635,6 @@ def returnUniqueGeneratedName(obj,ignore='none'):
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    rawNamesDict = returnObjectGeneratedNameDict(obj,ignore)
-    iterator = returnIterateNumber(obj)
-    divider = returnCGMDivider()
-    updatedNamesDict = returnObjectGeneratedNameDict(obj,ignore)
-    order = returnCGMOrder()
-    
-    if 'cgmName' not in updatedNamesDict.keys():
-        buffer = mc.ls(obj,shortNames = True)
-        attributes.storeInfo(obj,'cgmName',buffer[0],True)
-        updatedNamesDict = returnObjectGeneratedNameDict(obj,ignore)
-
-
-    """ add the iterator to the name dictionary """
-    if iterator > 0:
-        updatedNamesDict['cgmIterator'] = str(iterator)
-
-    #>>> First we generate a name with the iterator in it
-
     #>>> Dictionary driven order first build
     def doBuildName():
         nameBuilder=[]
@@ -664,8 +646,28 @@ def returnUniqueGeneratedName(obj,ignore='none'):
                 nameBuilder.append(buffer)
 
         return divider.join(nameBuilder)
+    
+    rawNamesDict = returnObjectGeneratedNameDict(obj,ignore)
+    divider = returnCGMDivider()
+    updatedNamesDict = returnObjectGeneratedNameDict(obj,ignore)
+    order = returnCGMOrder()
+    
+    if 'cgmName' not in updatedNamesDict.keys():
+        buffer = mc.ls(obj,shortNames = True)
+        attributes.storeInfo(obj,'cgmName',buffer[0],True)
+        updatedNamesDict = returnObjectGeneratedNameDict(obj,ignore)
 
     coreName = doBuildName()
+
+    """ add the iterator to the name dictionary if our object exists"""
+    nameFactory = factory(obj)
+    if mc.objExists(coreName) and not nameFactory.amIMe(coreName):
+        print 'Finding iterator...'
+        iterator = returnIterateNumber(obj)
+        if iterator > 0:
+            updatedNamesDict['cgmIterator'] = str(iterator)
+
+    #>>> First we generate a name with the iterator in it
     objNameCandidate = coreName
 
     # Accounting for ':' in a name
@@ -872,9 +874,9 @@ def doNameObject(obj):
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-
     name = returnUniqueGeneratedName(obj)
     nameFactory = factory(obj)
+    
     if nameFactory.amIMe(name):
         guiFactory.warning("'%s' is already named correctly."%nameFactory.nameBase)
         return name

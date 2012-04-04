@@ -1,0 +1,39 @@
+zooObjMenu
+------------
+This script allows you to add custom commands to an object's RMB menu.  It requires minor modification of the alias script, dagProcMenu.mel to do, but it is a single line modification, and this script handles the rest.  See the installation section below, for more information.
+
+
+
+*Using Object Specific Commands
+------
+Commands are stored in string attributes on the object.  A command attribute is called zooCmdx, where x is a number.  Ie zooCmd4 would be the fourth command on the object.  An object can have any number of commands.  The attribute itself contains both the command name (as is seen in the RMB menu), and the actual command string.  The script will manage writing the information to and from the attribute, but if you wish to do it yourself, then you need to know the format of the info.
+
+command name^command string
+
+the "^" symbol is used as a separator, because it is not a symbol mel recognises.  so anything before the ^ symbol is used as the command name on the RMB menu, and the rest is executed as a command.  The script doesn't bother syntax checking, so making sure your code is correct is entirely up to you.
+
+
+
+*Self Referential Code
+------
+If you need to reference the object the command is attached to, you can use the # symbol.  For example, if you have the command:
+
+print #;
+
+then when you select that command in the menu, the name of the object would be printed.  This means you don't have to hardcode the object name into your commands.  However, referring to other objects in the scene must be hardcoded for now.  In future, a zooTriggered style command engine may be added.
+
+
+
+*Installation
+------
+This script only adds menuItems to a given menu.  It will add the items to any menu, but most usefully, they can be added to the standard maya RMB popupMenu.  To do this requires minor changes to the dagProcMenu.mel script that comes with maya.  The zip this script came in contains a modified version of this script for maya v5.01, but for other versions of maya, you should alter the file relevant to your version yourself.
+
+Basically, you just need to add the line:
+
+zooObjMenu $parent $object;
+
+to line 1023 of the script.  This is just above the line:
+
+optionalDagMenuProc( $parent, $object );
+
+already in the script.  Just remember, you only have to do this if you're not using maya version 5.01, otherwise, just use the dagProcMenu.mel script that comes with this script.  Just copy the file into your normal scripts directory, and maya will use the modified version instead of the alias version.  If you wish to revert to the original, just delete the version in your script directory.

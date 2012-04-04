@@ -1,0 +1,47 @@
+{
+string $control[] = {};
+$control[0] = `createNode transform -n "zooControl"`;
+$control[1] = `createNode nurbsCurve -n "zooControlShape" -p $control[0]`;
+	setAttr -k 0 ".v";
+	setAttr ".cc" -type "nurbsCurve"
+		1 11 0 no 3
+		12 0 1 2 3 4 5 6 7 8 9 10 11
+		12
+		-0.5 -0.5 0
+		0.5 -0.5 0
+		0.5 -0.225 0
+		0.105 -0.225 0
+		0.105 -0.064 0
+		0.325 -0.064 0
+		0 0.5 0
+		-0.325 -0.064 0
+		-0.105 -0.064 0
+		-0.105 -0.225 0
+		-0.5 -0.225 0
+		-0.5 -0.5 0
+		;
+$control[2] = `createNode nurbsCurve -n "zooControlShape1" -p $control[0]`;
+	setAttr -k off ".v";
+	setAttr ".cc" -type "nurbsCurve"
+		1 6 0 no 3
+		7 0 1 2 3 4 5 6
+		7
+		0 -0.49 0
+		0.489399 -0.49 0.489399
+		0.489399 -0.235 0.489399
+		0.0908579 -0.235 0.0908579
+		0.0908579 -0.054 0.0908579
+		0.307929 -0.054 0.307929
+		0 0.48 0
+		;
+select -r ( $control[2] +".cv[*]" );
+scale -r 0.99 1 1;
+string $rot[] = `revolve -ch 0 -po 0 -rn 0 -ssw 0 -esw 360 -ut 0 -tol 0.01 -degree 1 -s 4 -ulp 1 -ax 0 1 0 $control[2]`;
+scale -r 1 1 0.3 $rot[0];
+makeIdentity -a 1 -s 1 $rot[0];
+delete $control[2];
+for( $s in `listRelatives -f -s $rot[0]` ) parent -add -s $s $control[0];
+delete $rot;
+
+select $control[0];
+}

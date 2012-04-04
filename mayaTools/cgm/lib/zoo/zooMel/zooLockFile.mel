@@ -1,0 +1,150 @@
+//this script creates a .lock file for a user, and everytime they open a file, it creates an entry
+//in this file indicating that its open by them.  When a user loads a file, maya automatically
+//checks through all these .lock files to see if the file in question is already opened by another
+//user.  If so it warns them that the file is already open by someone else.
+
+
+//set up the global variables used by this script
+//this path must be a commonly available network path - the script checks lock files to see if someone else
+//has a file open already
+global string $zooLockFileDir = "//network/shared/file_locks/";
+
+
+//deals with creating the file lock - the "*" keyword locks the currently opened file
+global proc zooLockFile( string $file ){
+	int $maxFilesInList = 3;  //this will be the maximum numer of files listed in the lock file - set it to -1 to have no limit
+	if( $file == "*" ) $file = `file -q -loc`;
+	$file = `tolower $file`;
+
+	global string $zooLockFileDir;
+	string $user = `getenv USER`;
+	string $userLock = ( $zooLockFileDir + $user +".lock" );
+	string $existingLock = `zooCheckIfLocked $file`;
+
+	if( !`filetest -r $file` ) { warning "the specified file doesn't exist - aborting..."; return; }
+	if( $existingLock == "" ) {
+		string $fileContents[] = {};
+		string $newFileContents = $file +"\n";
+		if( `filetest -w $userLock` ) $fileContents = `zooReadFile $userLock "-strip 1"`;
+		int $fileID = `fopen $userLock "w"`;
+
+		if( $maxFilesInList < 1 ) $maxFilesInList = `size $fileContents` + 1;
+		for( $n=0; $n<$maxFilesInList-1; $n++ ) $newFileContents += $fileContents[$n] +"\n";
+
+		//now write the currently opened file, and the previous two files that were already in the list
+		//i've assumed that no one really works on more than $maxFilesInList files at a time, so anymore than three files
+		//in this list is probably due to older files not being removed properly
+		fprint $fileID $newFileContents;
+		fclose $fileID;
+		}
+	else confirmDialog -m( "this file is probably already open by: "+ $existingLock +"\n\nplease talk to them before making any changes" ) -t( $existingLock +" has this file open" );
+	zooCreateUnlockNode;
+	}
+
+
+//deals with unlocking a file - ie removing it from the list of locked files in the user's .lock file
+global proc zooUnlockFile( string $file ){
+	if( $file == "*" ) $file = `file -q -loc`;
+	$file = `tolower $file`;
+
+	global string $zooLockFileDir;
+	string $user = `getenv USER`;
+	string $userLock = ( $zooLockFileDir + $user +".lock" );
+	string $existingLock = `zooCheckIfLocked $file`;
+	string $fileContents[] = `zooReadFile $userLock "-strip 1"`;
+	string $newFile = "";
+
+	if( $existingLock == "" ) return;
+	for( $lock in $fileContents ) {
+		if( $lock != $file ) $newFile += $lock +"\n";
+		}
+
+	if( $newFile == "\n" ) sysFile -delete $userLock;
+	else {
+		int $fileID = `fopen $userLock "w"`;
+		fprint $fileID $newFile;
+		fclose $fileID;
+		}
+	}
+
+
+//returns whether a file is locked by another user or not - the "*" keyword checks the current open file
+global proc string zooCheckIfLocked( string $file ) {
+	global string $zooLockFileDir;
+	string $userLocks[] = `getFileList -folder $zooLockFileDir -fs "*.lock"`;
+	string $lockedBy = "";
+
+	for( $user in $userLocks ) {
+		string $fileContents[] = `zooReadFile ( $zooLockFileDir + $user ) "-strip 1"`;
+		for( $lock in $fileContents ) {
+			if( $lock == $file ) $lockedBy = `match "^[^.]+" $user`;
+			}
+		}
+
+	return $lockedBy;
+	}
+
+
+//loads the script job that deals with warning about locked files
+global proc zooLockFileLoadJob() {
+	global int $zooLockFileJob;
+
+	scriptJob -e quitApplication ( "zooUnlockFile \"*\"" );
+	if( !$zooLockFileJob ) $zooLockFileJob = `scriptJob -e SceneOpened ( "zooLockFile \"*\"" )`;
+	else warning "already loaded";
+	}
+
+
+//loads the script job that deals with warning about locked files
+global proc zooLockFileUnloadJob() {
+	global int $zooLockFileJob;
+	if( `scriptJob -ex $zooLockFileJob` ) {
+		scriptJob -k $zooLockFileJob;
+		$zooLockFileJob = 0;
+		}
+
+	else warning "zooLockFile isn't loaded";
+	}
+
+
+//this proc builds a scriptNode that unlocks the file when it is closed - this node is locked so that it can't be accidentally deleted
+global proc int zooCreateUnlockNode() {
+	string $nodes[] = `ls -type script`;
+	string $closeScripts[] = {};
+	string $closeScript = "";
+
+	for( $node in $nodes ) if( `objExists ( $node +".zoolock" )` ) $closeScripts[( `size $closeScripts` )] = $node;
+	$closeScript = $closeScripts[0];
+	for( $n=1; $n<`size $closeScripts`; $n++ ) {
+		lockNode -l 0 $closeScripts[$n];
+		delete $closeScripts[$n];
+		}
+	if( $closeScript == "" ) {
+		$closeScript = `scriptNode -scriptType 2 -as( "zooUnlockFile \"*\"" ) -n unlockScript`;
+		addAttr -ln zoolock -at bool $closeScript;
+		lockNode $closeScript;
+		}
+
+	return 1;
+	}
+
+
+//------
+//returns a list of all dependencies - ie other scripts this one relies on
+//------
+global proc string[] zooLockFileDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

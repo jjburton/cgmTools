@@ -1,0 +1,214 @@
+zooGreaseMonkeyUtils;
+
+
+global proc zooGreaseMonkey() {
+	string $windowName = "zooGreaseMonkeyWindow";
+	string $windowTitle = "zooGreaseMonkey!";
+	string $board = `zooGetBoardBase 0`;
+	int $unload = `optionVar -ex zooGreaseMonkeyUnload`? `optionVar -q zooGreaseMonkeyUnload`: 1;
+	int $hideState = `objExists $board`? !`getAttr ( $board +".v" )`: 0;
+
+	if ( `window -ex $windowName` ) deleteUI $windowName;
+	window -t $windowTitle -resizeToFitChildren 0 -maximizeButton 1 -sizeable 1 -width 300 -height 250 $windowName;
+		scriptJob -p $windowName -uid $windowName "zooGreaseMonkeyWindowFunctions -windowClose";
+		menuBarLayout;
+			menu -l "Manage";
+				menuItem -l "ghost pre boards" -cb( `zooGetDefaultMonkeySettings zooGreasePre` ) -c( "optionVar -iv zooGreasePre #1; zooRebuildAllGreaseKeys \"\";" );
+				menuItem -l "ghost post boards" -cb( `zooGetDefaultMonkeySettings zooGreasePost` ) -c( "optionVar -iv zooGreasePost #1; zooRebuildAllGreaseKeys \"\";" );
+				menuItem -d 1;
+				menuItem -l "Remove All" -c ( "{ string $boards[] = {}; zooListUsedKeys $boards; for( $b in $boards ) delete $b; }" );
+			menu -l "Prefs";
+				menuItem -l "unload on window close" -cb $unload -c( "optionVar -iv zooGreaseMonkeyUnload #1" );
+			menu -l "Help";
+				menuItem -l "Donate Now" -c( "showHelp -a \"http://www.macaronikazoo.com/donate.html\";" );
+				menuItem -l "Help..." -c ( "zooHelp zooGreaseMonkey 1" );
+
+		string $form = `formLayout`;
+			string $load = `button -l "" -c( "zooGreaseMonkeyWindowFunctions -toggleLoad" ) zooGreaseStateButton`;
+			string $loadState = `textField -ed 0 -tx "" zooGreaseStateInfo`;
+			string $hide = `checkBox -l "hide" -v $hideState -cc( "zooGreaseMonkeyWindowFunctions -toggleHide" ) zooGreaseStateHide`;
+			string $camBut = `button -l "use selected cam ->" -c( "zooGreaseMonkeyWindowFunctions -setCamera" )`;
+			string $cam = `nameField -o( zooQueryMonkeySee()) zooGreaseMonkeyUICamera`;
+			string $listScroll = `scrollLayout -cr 1 -hst 0`;
+				string $list = `columnLayout -adj 1 zooGreaseMonkeyKeyList`;
+				setParent ..;
+			setParent ..;
+			string $add = `button -l "new board" -c( "zooAddGreaseBoard `zooCreateBoard \"\"`; if( !`zooMonkeyState` ) zooLoadMonkey; zooGreaseMonkeyWindowFunctions -updateLoad;" )`;
+			string $image = `image -w 270 -h 8 -bgc ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+		setParent ..;
+
+	popupMenu -p $camBut -b 3 -pmc( "zooGreaseListCams zooGreaseCamListA" ) zooGreaseCamListA;
+	popupMenu -p $cam -b 3 -pmc( "zooGreaseListCams zooGreaseCamListB" ) zooGreaseCamListB;
+	formLayout -e
+		-af $load "top" 0
+		-af $load "left" 0
+
+		-af $loadState "top" 0
+		-ac $loadState "left" 0 $load
+		-ac $loadState "right" 5 $hide
+
+		-af $hide "top" 3
+		-af $hide "right" 0
+
+		-ac $camBut "top" 0 $load
+		-af $camBut "left" 0
+
+		-ac $cam "top" 0 $loadState
+		-ac $cam "left" 0 $camBut
+		-af $cam "right" 0
+
+		-ac $listScroll "top" 0 $cam
+		-af $listScroll "left" 0
+		-af $listScroll "right" 0
+		-ac $listScroll "bottom" 0 $add
+
+		-af $add "left" 0
+		-af $add "right" 0
+		-ac $add "bottom" 0 $image
+
+		-af $image "left" 0
+		-af $image "right" 0
+		-af $image "bottom" 0
+		$form;
+
+	zooGreaseMonkeyWindowFunctions -rebuildKeys;
+	evalDeferred "zooGreaseMonkeyWindowFunctions -windowOpen";
+	zooGreaseMonkeyWindowFunctions -updateLoad;
+	showWindow $windowName;
+	}
+
+
+global proc zooGreaseListCams( string $parent ) {
+	menu -e -dai $parent;
+	setParent -m $parent;
+
+	string $cameraShapes[] = `ls -type camera`;
+	string $cameraTransforms[] = {};
+	string $current = `zooQueryMonkeySee`;
+
+	for( $cam in $cameraShapes ) {
+		string $parent[] = `listRelatives -p $cam`;
+		$cameraTransforms[( `size $cameraTransforms` )] = $parent[0];
+		}
+
+	for( $cam in $cameraTransforms ) menuItem -l $cam -cb( $cam==$current ) -c( "nameField -e -o "+ $cam +" zooGreaseMonkeyUICamera; zooMonkeySee "+ $cam +";" );
+	if( `size $cam` ) menuItem -d 1;
+	menuItem -l "detach from camera" -cb( !`objExists $current` ) -c( "zooMonkeySee \"\";" );
+	}
+
+
+global proc zooGreaseMonkeyWindowFunctions( string $function ) {
+	switch( $function ) {
+		case "-updateLoad":
+			if( `zooMonkeyState` ) {
+				textField -e -tx "<- press button to unload" zooGreaseStateInfo;
+				button -e -l "LOADED" zooGreaseStateButton;
+				}
+			else {
+				textField -e -tx "<- press button to load" zooGreaseStateInfo;
+				button -e -l "unloaded" zooGreaseStateButton;
+				}
+			break;
+
+		case "-toggleLoad":
+			if( `zooMonkeyState` ) zooUnloadMonkey;
+			else zooLoadMonkey;
+			zooGreaseMonkeyWindowFunctions -updateLoad;
+			break;
+
+		case "-toggleHide":
+			int $state = !`checkBox -q -v zooGreaseStateHide`;
+			string $base = `zooGetBoardBase 0`;
+
+			setAttr ( $base +".v" ) $state;
+			break;
+
+		case "-rebuildKeys":
+			string $boards[] = {};
+			string $oldUIs[] = `columnLayout -q -ca zooGreaseMonkeyKeyList`;
+			int $keys[] = {};
+			int $times[] = {};
+
+			zooGetUsedKeyData $keys $boards $times;
+			$keys = `zooOrderArrayUsing_int $keys $times`;  //reorder the list of keys based on the times - so the list is always in chronological order
+			for( $ui in $oldUIs ) if( `control -ex $ui` ) deleteUI $ui;
+			for( $key in $keys ) zooAddGreaseBoard $key;
+			break;
+
+		case "-setCamera":
+			string $sel[] = `ls -sl -type transform`;
+			string $camera = "";
+
+			for( $obj in $sel ) {
+				string $shape = zooGetElement_str(0,`listRelatives -s $obj`);
+				if( `nodeType $shape` == "camera" ) $camera = $obj;
+				}
+
+			if( !`objExists $camera` ) return;
+			nameField -e -o $camera zooGreaseMonkeyUICamera;
+			zooMonkeySee $camera;
+			break;
+
+		case "-windowOpen":
+			int $keys[] = {};
+			zooGetUsedKeyData $keys {} {};
+			if( `size $keys` ) if( !`zooMonkeyState` ) zooLoadMonkey;
+			break;
+
+		case "-windowClose":
+			int $unload = `optionVar -ex zooGreaseMonkeyUnload`? `optionVar -q zooGreaseMonkeyUnload`: 1;
+			if( $unload ) zooUnloadMonkey;
+			break;
+		}
+	}
+
+
+global proc zooAddGreaseBoard( int $key ) {
+	if( $key == -1 ) return;
+
+	string $board = `zooGetBoardFromKey $key`;
+	int $time = `zooGetKeyTime $key`;
+
+	setParent zooGreaseMonkeyKeyList;
+	string $form = `formLayout`;
+		string $timeUI = `intField -v $time -cc( "zooSetKeyTime "+ $key +" #1; zooRebuildAllGreaseKeys \"\";" )`;
+		string $nameUI = `nameField -o $board`;
+		string $removeUI = `button -l "delete" -c( "deleteUI "+ $form +"; delete `zooGetBoardFromKey "+ $key +"`; zooRebuildAllGreaseKeys \"\"; window -e -w(`window -q -w zooGreaseMonkeyWindow`-1 ) zooGreaseMonkeyWindow; window -e -w(`window -q -w zooGreaseMonkeyWindow`+1 ) zooGreaseMonkeyWindow;" )`;
+
+	string $menu = `popupMenu -p $nameUI -b 3`;
+	popupMenu -e -pmc( "zooGreaseMenu "+ $key +" "+ $menu ) $menu;
+	formLayout -e
+		-an $timeUI "top"
+		-af $timeUI "left" 0
+		-an $timeUI "right"
+		-an $timeUI "bottom"
+
+		-an $nameUI "top"
+		-ac $nameUI "left" 0 $timeUI
+		-ac $nameUI "right" 0 $removeUI
+		-an $nameUI "bottom"
+
+		-an $removeUI "top"
+		-an $removeUI "left"
+		-af $removeUI "right" 0
+		-an $removeUI "bottom"
+		$form;
+	int $w = `window -q -w zooGreaseMonkeyWindow`;
+	window -e -w( $w+1 ) zooGreaseMonkeyWindow;
+	window -e -w $w zooGreaseMonkeyWindow;
+	}
+
+
+global proc zooGreaseMenu( int $key, string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+	menuItem -l "select board" -c( "select `zooGetBoardFromKey "+ $key +"`;" );
+	menuItem -l "duplicate board" -c( "zooAddGreaseBoard `zooDuplicateKey "+ $key +"`;" );
+	menuItem -d 1;
+	menuItem -en 0 -l "copy curves from";
+	menuItem -en 0 -l "copy curves to";
+	}
+
+
+//zoo.end

@@ -1,0 +1,180 @@
+//
+// reorder attributes
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 24 April 2003
+//
+// Description:
+// one of the most annoying things when setting up a character, is to
+// find that a control object for the right side of a character, has
+// had its attributes created in a different order to its
+// corresponding control on the right side.  this script enables one
+// to reorder attributes easily, while maintaining all connections to
+// and from the attribute.  it also allows one to easily rename and
+// delete attributes, without disrupting the current order.
+//
+// Usage:
+//  simply run the command:
+//	zooReorderAttribs;
+//
+
+
+global proc zooReorderAttribs () {
+	string $windowName = "zooReorderAttribsWindow";
+	string $windowTitle = "Reorder Attributes v" + `zooReorderAttribsInfo version` + "   ::macaroniKazoo::";
+	int $ifAttribCreatorExists = `exists zzAttribCreator`;
+
+	if ( `window -exists $windowName` ) deleteUI $windowName;
+
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0
+		-sizeable 1 -width 210 $windowName;
+
+		scriptJob -p $windowName -e "SelectionChanged" "zooReorderAttribsWindowFunctions update";
+
+		menuBarLayout;
+			menu -label "Help";
+				menuItem -l "Help..." -c ( "zooReorderAttribsHelp help" );
+				menuItem -divider 1;
+				menuItem -l "About" -c ( "zooReorderAttribsHelp about" );
+
+			columnLayout -adjustableColumn 1 -rowSpacing 5;
+				rowLayout -numberOfColumns 2
+					-columnWidth2 130 90
+					-columnAttach 1 "both" 	1
+					-columnAttach 2 "both" 	1;
+					textScrollList -numberOfRows 20 -allowMultiSelection 1 zooReorderAttribsScrollAttribs;
+					columnLayout -adjustableColumn 1 -rowSpacing 5;
+						button -l "attribs up" -height 18 -c ( "zooReorderAttribsWindowFunctions attribUp" ) zooReorderAttribsButtonUp;
+						button -l "attribs down" -height 18 -c ( "zooReorderAttribsWindowFunctions attribDown" ) zooReorderAttribsButtonDown;
+						checkBox -l "keyable only" -v 1 -cc ( "zooReorderAttribsWindowFunctions update" ) zooReorderAttribsCheckKeyable;
+						checkBox -l "lock selection" -v 0 -offCommand ( "zooReorderAttribsWindowFunctions update" ) zooReorderAttribsCheckLock;
+						text -l "";
+
+						button -l "attrib creator" -height 18 -enable $ifAttribCreatorExists -c ( "zzAttribCreator" );
+						text -l "";
+
+						button -l "delete attribs" -height 18 -c ( "zooReorderAttribsWindowFunctions deleteAttr" );
+						textField -ed 0 -text "" zzAttribCreatorTextObj;
+						setParent ..;
+					setParent ..;
+				button -l "reorder" -height 18 -c ( "zooReorderAttribsWindowFunctions reorder" ) zooReorderAttribsButtonReorder;
+				string $image = `image -width 210 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" ) zooTimeSetsImageSig`;
+				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+				setParent ..;
+
+	showWindow $windowName;
+	zooReorderAttribsWindowFunctions update;
+	}
+
+
+global proc zooReorderAttribsWindowFunctions ( string $function ) {
+	switch ( $function ) {
+		//this is the generic window update function
+		case "update":
+		string $selObjs[] = `ls -sl`;
+
+		if ( !`checkBox -q -v zooReorderAttribsCheckLock` ) {  //first check to see that the user wants the window to be updated
+			textScrollList -e -removeAll zooReorderAttribsScrollAttribs;
+			textScrollList -e -docTag $selObjs[0] zooReorderAttribsScrollAttribs;
+			textField -e -text $selObjs[0] zzAttribCreatorTextObj;
+
+			if ( `size $selObjs` > 0 ) {
+				string $customAttribs[] = `listAttr -u -userDefined $selObjs[0]`;
+				if ( `checkBox -q -v zooReorderAttribsCheckKeyable` ) {
+					clear $customAttribs;
+					$customAttribs = `listAttr -k -u -userDefined $selObjs[0]`;
+					}
+
+				for ( $attrib in $customAttribs ) {
+					textScrollList -e -append $attrib zooReorderAttribsScrollAttribs;
+					}
+				}
+			}
+		break;
+
+
+		//this is the routine called when the "attrib up" button is pressed
+		case "attribUp":
+		string $selAttribName[] = `textScrollList -q -selectItem zooReorderAttribsScrollAttribs`;
+		int $selAttribNum[] = `textScrollList -q -selectIndexedItem zooReorderAttribsScrollAttribs`;
+		int $n = 0;
+
+		for ( $n = 0; $n < `size $selAttribNum`; $n++ ) {
+			int $prevPos = ( $selAttribNum[$n] == 1 )?$selAttribNum[$n]:($selAttribNum[$n] - 1);
+
+			textScrollList -e -removeIndexedItem $selAttribNum[$n] zooReorderAttribsScrollAttribs;
+			textScrollList -e -appendPosition $prevPos $selAttribName[$n] zooReorderAttribsScrollAttribs;
+			textScrollList -e -selectItem $selAttribName[$n] zooReorderAttribsScrollAttribs;
+			}
+		break;
+
+
+		//this is the routine called when the "attrib down" button is pressed
+		case "attribDown":
+		string $selAttribName[] = `textScrollList -q -selectItem zooReorderAttribsScrollAttribs`;
+		int $numAttribs = `textScrollList -q -numberOfItems zooReorderAttribsScrollAttribs`;
+		int $selAttribNum[] = `textScrollList -q -selectIndexedItem zooReorderAttribsScrollAttribs`;
+		int $n = 0;
+
+		for ( $n = (`size $selAttribNum` - 1); $n >= 0; $n-- ) {
+			int $nextPos = ( $selAttribNum[$n] == $numAttribs )?$selAttribNum[$n]:($selAttribNum[$n] + 1);
+
+			textScrollList -e -removeIndexedItem $selAttribNum[$n] zooReorderAttribsScrollAttribs;
+			textScrollList -e -appendPosition $nextPos $selAttribName[$n] zooReorderAttribsScrollAttribs;
+			textScrollList -e -selectItem $selAttribName[$n] zooReorderAttribsScrollAttribs;
+			}
+		break;
+
+
+		case "reorder":
+		string $obj = `textScrollList -q -docTag zooReorderAttribsScrollAttribs`;
+		string $newAttribOrder[] = `textScrollList -q -allItems zooReorderAttribsScrollAttribs`;
+		int $numAttribs = `textScrollList -q -numberOfItems zooReorderAttribsScrollAttribs`;
+
+		zooReorderAttribsReorder $obj $newAttribOrder;
+		break;
+
+
+		case "deleteAttr":
+		string $obj = `textScrollList -q -docTag zooReorderAttribsScrollAttribs`;
+		string $selAttribName[] = `textScrollList -q -selectItem zooReorderAttribsScrollAttribs`;
+
+		for ( $attr in $selAttribName ) {
+			//deleteAttr ( $obj + "." + $attr );
+			deleteAttr -at $attr $obj;
+			textScrollList -e -removeItem $attr zooReorderAttribsScrollAttribs;
+			}
+		break;
+		}
+	}
+
+
+global proc zooReorderAttribsReorder ( string $obj, string $newAttribOrder[] ) {
+	zooReorderAttrs $obj $newAttribOrder;
+	}
+
+
+global proc string zooReorderAttribsInfo ( string $function ) {
+	string $creationDate = "24 April 2003";
+	string $currentVersion = "1.03";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+global proc string[] zooReorderAttribsDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

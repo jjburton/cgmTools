@@ -1,0 +1,37 @@
+global proc zooFitTimeline() {
+	string $currentEditor = `getPanel -up`;
+	if( $currentEditor == "graphEditor1" || $currentEditor == "dopeSheetPanel1" ) zooTimeSetsFrameTime;
+	else zooTimeSetsGoToSelectedTime;
+	}
+
+
+global proc zooTimeSetsFrameTime() {
+	string $currentEditor = `getPanel -wf`;
+	if( $currentEditor == "dopeSheetPanel1" ) {
+		$currentEditor = "dopeSheetPanel1DopeSheetEd";
+		animView -startTime ( `playbackOptions -q -minTime` - 1 ) -endTime ( `playbackOptions -q -maxTime` + 1 ) $currentEditor;
+		}
+	else if( $currentEditor == "graphEditor1" ) {
+		$currentEditor = "graphEditor1GraphEd";
+		//determine min max key values in time range
+		string $objs[] = `selectionConnection -q -obj graphEditor1FromOutliner`;
+		float $start = `playbackOptions -q -minTime` - 1;
+		float $end = `playbackOptions -q -maxTime` + 1;
+		float $keys[] = sort(`keyframe -t( $start +":"+ $end ) -q -vc $objs`);
+		float $minVal = $keys[0];
+		float $maxVal = $keys[(`size $keys`-1)];
+		float $range = $maxVal - $minVal;
+
+		$range *= 0.15;
+		$minVal -= $range;
+		$maxVal += $range;
+		animView -startTime $start -endTime $end -min $minVal -max $maxVal $currentEditor;
+		}
+	}
+
+
+global proc zooTimeSetsGoToSelectedTime() {
+	float $selectedTimeRange[] = `zooGetSelectedRange`;
+	if( $selectedTimeRange[2] ) playbackOptions -min $selectedTimeRange[0] -max $selectedTimeRange[1];
+	else playbackOptions -min `playbackOptions -q -ast` -max `playbackOptions -q -aet`;
+	}

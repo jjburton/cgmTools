@@ -1,0 +1,108 @@
+//
+// graph-dope toggle
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 15 October 2001
+//
+// Description:
+// really quick way to toggle between any number of panels
+//
+// Usage:
+//  zooPanelCycler { "graph", "dope", "render" };
+//  to get a list of alias' to use in the list, type:
+//  zooListAlias;
+//
+//  Example:
+//	zooPanelCycler { "graph", "dope", "render" };  will toggle the graph and dope sheets.
+//
+
+
+zooArrays_str;
+
+
+global proc zooPanelCycler( string $panels[] ) {
+	string $panelNames[] = {};
+	string $currentPanel = `getPanel -up`;
+	string $next = "";
+	string $nextAlias = $currentPanel;
+	string $alias[] = {};
+	string $names[] = {};
+	int $cycleSize = `size $panels`;
+
+	if( !`size $panels` ) { zooListAlias; return; }
+	zooGetAllAlias $alias $names;
+
+	//this holds an array with the actual panel names of the user specified alias'
+	for( $p in $panels ) {
+		int $idx = `zooGetIdxOfElement_str $alias $p`;
+		$panelNames[( `size $panelNames` )] = $names[$idx];
+		}
+
+	//now figure out where in the user specified list the current panel exists
+	int $pos = `zooGetIdxOfElement_str $panelNames $currentPanel`;
+
+	//if the result is -1, then the current panel isn't in the list - so default to the first panel in the list
+	if( $pos == -1 ) {
+		scriptedPanel -e -rp $currentPanel `zooPanelCyclerGetAlias $panels[0]`;
+		return;
+		}
+
+	//if the pos is less than the size of the user list, then go to the next in the list - otherwise go back to the start
+	if( $pos < $cycleSize-1 ) $next = $panels[( $pos+1 )];
+	else $next = $panels[0];
+
+	$nextAlias = `zooPanelCyclerGetAlias $next`;
+	scriptedPanel -e -rp $currentPanel $nextAlias;
+	}
+
+
+//this is a convenience proc - to list to the user the names of the available panels to cycle between
+global proc string[] zooListAlias() {
+	string $alias[] = {};
+	zooGetAllAlias $alias {};
+	print $alias;
+	return $alias;
+	}
+
+
+global proc string zooPanelCyclerGetAlias( string $alias ) {
+	string $names[] = {};
+	string $aliai[] = {};
+
+	zooGetAllAlias $aliai $names;
+	int $pos = `zooGetIdxOfElement_str $aliai $alias`;
+	if( $pos != -1 ) return $names[$pos];
+	return "";
+	}
+
+
+global proc zooGetAllAlias( string $alias[], string $names[] ) {
+	clear $alias;
+	clear $names;
+	$alias[`size $alias`] = "graph";
+	$alias[`size $alias`] = "dope";
+	$alias[`size $alias`] = "trax";
+	$alias[`size $alias`] = "hypershade";
+	$alias[`size $alias`] = "hypergraph";
+	$alias[`size $alias`] = "map";
+	$alias[`size $alias`] = "outliner";
+	$alias[`size $alias`] = "render";
+	$alias[`size $alias`] = "component";
+	$alias[`size $alias`] = "blendshape";
+	$alias[`size $alias`] = "script";
+
+	$names[`size $names`] = "graphEditor1";
+	$names[`size $names`] = "dopeSheetPanel1";
+	$names[`size $names`] = "clipEditorPanel1";
+	$names[`size $names`] = "hyperShadePanel1";
+	$names[`size $names`] = "hyperGraphPanel1";
+	$names[`size $names`] = "polyTexturePlacementPanel1";
+	$names[`size $names`] = "outlinerPanel1";
+	$names[`size $names`] = "renderView";
+	$names[`size $names`] = "componentEditorPanel1";
+	$names[`size $names`] = "blendShapePanel1";
+	$names[`size $names`] = "scriptEditorPanel1";
+	}
+
+
+//zoo.end

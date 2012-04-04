@@ -1,0 +1,198 @@
+global proc string[] zooCSTMakeStretchy( string $control, string $ikHandle, string $optionStr ) {
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+	string $optionTemp[] = {};
+	string $axis = "";
+	string $startObj = "";
+	string $endObj = "";
+	float $scale = 1;
+	int $invert = 0;
+
+	$optionTemp = `zooGetFlagArguments $optionStr axis`; if( `size $optionTemp` ) $axis = $optionTemp[0];
+	$optionTemp = `zooGetFlagArguments $optionStr startObj`; if( `size $optionTemp` ) $startObj = $optionTemp[0];
+	$optionTemp = `zooGetFlagArguments $optionStr endObj`; if( `size $optionTemp` ) $endObj = $optionTemp[0];
+	$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+	$optionTemp = `zooGetFlagArguments $optionStr invert`; if( `size $optionTemp` ) $invert = $optionTemp[0];
+
+
+	//------
+	//build the nodes responsible for the stretch distribution
+	//------
+	string $plusNodes[] = {};
+	string $initialNodes[] = {};
+	string $fractionNodes[] = {};
+	string $clients[] = {};
+	string $allNodes[] = {};
+
+	$clients = `ikHandle -q -jl $ikHandle`;
+	if( $axis == "" ) $axis = `zooCSTJointDirection $clients[1]`;  //if no axis is specified, assume the second joint in the chain has the correct axis set
+	$clients[( `size $clients` )] = zooNameFromAttrPath(connectionInfo("-sfd", ( `ikHandle -q -ee $ikHandle`+".t"+$axis )));
+
+	for( $obj in $clients ) $fractionNodes[( `size $fractionNodes` )] = `shadingNode -asUtility -name ( $obj +"_fraction_pos" ) multiplyDivide`;
+	$allNodes = $fractionNodes;
+
+
+	//------
+	//setup some current unit variables, and take parity into account
+	//------
+	string $currentUnit = `currentUnit -q -linear`;
+	int $unitFactor = ( $currentUnit == "m" )?100:1;
+	int $parityFactor = 1;
+
+	//if ( $parity == "r" ) $parityFactor = -1;
+	if ( `getAttr ( $clients[1] +".t"+ $axis )` < 0 ) $parityFactor = -1;
+	if( $invert ) $invert = -1;
+	else $invert = 1;
+	$parityFactor *= $invert;
+
+	string $stretchAuto = "autoStretch";
+	string $stretchName = "stretch";
+	addAttr -ln $stretchAuto -at bool $control;
+	addAttr -ln $stretchName -at double -min 0 -max 10 $control;
+	setAttr -k 1 ( $control +"."+ $stretchAuto );
+	setAttr -k 1 ( $control +"."+ $stretchName );
+
+
+	//------
+	//setup the minimum limits for each joint in the chain
+	//------
+	string $clientAxes[] = {};  //not really used
+	float $clientLengths[] = {};
+
+	$clientAxes[0] = `zooCSTJointDirection $clients[0]`;
+	$clientLengths[0] = `getAttr ( $clients[0] +".t"+ $axis )`;
+	for( $n=1; $n<`size $clients`; $n++ ) {
+		string $clientAxis = `zooCSTJointDirection $clients[$n]`;
+		float $length = `getAttr ( $clients[$n] +".t"+ $axis )`;
+		float $min = 0; int $minOn = 1;
+		float $max = 0; int $maxOn = 0;
+
+		$clientAxes[$n] = $clientAxis;
+		$clientLengths[$n] = $length;
+		if( $length > 0 ) { $min = $length; $max = 2*$min; $maxOn = 0; $minOn = 1; }
+		if( $length < 0 ) { $max = $length; $min = 2*$max; $maxOn = 1; $minOn = 0; }
+		eval( "transformLimits -t"+$axis+" "+$min+" "+$max+" -et"+$axis+" "+$minOn+" "+$maxOn+" "+$clients[$n] );
+		}
+
+
+	//------
+	//build the measure node
+	//------
+	string $measure = `distanceDimension -sp -5 -5 -5 -ep 5 5 5`;
+	string $measureTransform[] = `listRelatives -p $measure`;
+	string $startLoc = zooNameFromAttrPath(`connectionInfo -sfd ( $measure +".startPoint" )`);
+	string $endLoc = zooNameFromAttrPath(`connectionInfo -sfd ( $measure +".endPoint" )`);
+	string $measureUnitConvert = `shadingNode -asUtility -name ( $obj +"_length_unit_conversizooCheckIfLockedon" ) multiplyDivide`;
+
+	$startLoc = zooGetElement_str(0,`listRelatives -p $startLoc`);
+	$endLoc = zooGetElement_str(0,`listRelatives -p $endLoc`);
+
+	if( `objExists $startObj` ) pointConstraint $startObj $startLoc;
+	else pointConstraint $clients[0] $startLoc;
+	if( `objExists $endObj` ) pointConstraint $endObj $endLoc;
+	else pointConstraint $ikHandle $endLoc;
+
+	$allNodes = `zooAddArray_str $allNodes { $measure, $startLoc, $endLoc, $measureUnitConvert }`;
+
+
+	//------
+	//create the stretch network
+	//------
+	string $autoCondition = `shadingNode -asUtility condition`;
+	string $lengthAdder = `shadingNode -asUtility -name ( $ikHandle +"_limb_length" ) plusMinusAverage`;
+	float $totalLength = 0;
+
+	for( $x in $clientLengths ) $totalLength += abs($x);  //if any of the lengths are negative, the stretch will still be wrong, but will be easier to fix manually if this number is correct
+
+	setAttr ( $measureUnitConvert +".operation" ) 2;
+	setAttr ( $measureUnitConvert +".input2X" ) $unitFactor;
+	setAttr ( $autoCondition +".secondTerm" ) 1;
+	setAttr ( $autoCondition +".colorIfFalseR" ) $totalLength;  //if auto stretch is off, output the original length
+	connectAttr -f ( $control +"."+ $stretchAuto ) ( $autoCondition +".firstTerm" );
+	connectAttr -f ( $measure +".distance" ) ( $measureUnitConvert +".input1X" );
+	connectAttr -f ( $measureUnitConvert +".outputX" ) ( $autoCondition +".colorIfTrueR" );
+
+	connectAttr -f ( $control +"."+ $stretchName ) ( $lengthAdder +".input1D[1]" );
+	connectAttr -f ( $autoCondition +".outColorR" ) ( $lengthAdder +".input1D[2]" );
+
+	$allNodes = `zooAddArray_str $allNodes { $autoCondition, $lengthAdder }`;
+
+
+	//------
+	//connect the stretch distribution network up - NOTE this loop starts at 1 because we don't need to connect the
+	// start of the limb chain (ie the bicep or the thigh) as it doesn't move
+	//------
+	for( $n=1; $n<`size $clients`; $n++ ) {
+		setAttr ( $fractionNodes[$n] +".input2X" ) ($clientLengths[$n]/$totalLength*$parityFactor);
+
+		//now connect the inital coords to the plus node - then connect the
+		connectAttr -f ( $lengthAdder +".output1D" ) ( $fractionNodes[$n] +".input1X" );
+
+		//then connect the result of the plus node to the t(axis) pos of the limb joints
+		if( `getAttr -l ( $clients[$n] +".t"+ $axis )` ) setAttr -l 0 ( $clients[$n] +".t"+ $axis );
+		connectAttr -f ( $fractionNodes[$n] +".outputX" ) ( $clients[$n] +".t"+ $axis );
+		}
+
+
+	//------
+	//finally, rename the objects and tidy up the outliner
+	//------
+	parent $measureTransform[0] $control;
+	parent { $startLoc, $endLoc } $control;
+
+	rename $startLoc ( $ikHandle +"_lockthis_extension_start" );
+	rename $endLoc ( $ikHandle +"_lockthis_extension_end" );
+	rename $measureTransform[0] ( $ikHandle +"_lockthis_extension" );
+
+	return $allNodes;
+	}
+
+
+/*
+creates stretch attribs on the $control object, and makes all joints controlled by the ikHandle stretchy
+-------
+
+$control - the character prefix used to identify the character
+$parity - which side is the arm on?  l (left) or r (right)
+$ikHandle - the bicep, upper arm, or humerous
+$optionStr - standard option string - see technical docs for info on option strings
+
+option flags
+-------
+-axis [string]			the stretch axis used by the joints in the limb.  default: x
+-scale [float]			scale factor to apply to the control (purely a visual thing - scale is frozen).  default: 1
+-startObj [string]	the beginning of the measure node is attached to the start object.  if its not specified, then the script assumes the start object is the start of the ik chain (usally the case)
+-endObj [string]		this is the object the end of the measure is attached to - by default its the
+-invert [int]				use this flag if the script inverts the limb when adding stretch
+
+It is reccommended that this proc has a "root" control, a "chest" control and a "head" control already
+built (and branded with these names) as it uses them as dynamic parents for the actual arm control.
+
+For example:
+zooCSTMakeStretchy primoBoy_arm_ctrl_L l primoBoy_arm_ctrl_L "-axis x -scale 0.5";
+*/
+
+
+//returns the real length of the limb that an ik handle controls
+global proc float[] zooCSTGetIKLength( string $ikHandle ) {
+	string $clients[] = `ikHandle -q -jl $ikHandle`;
+	float $lengthList[] = {};
+	float $length = 0;
+
+	$clients[( `size $clients` )] = `ikHandle -q -ee $ikHandle`;
+	for( $n=0; $n<`size $clients`-1; $n++ ) {
+		float $posA[] = `xform -q -ws -rp $clients[$n]`;
+		float $posB[] = `xform -q -ws -rp $clients[( $n+1 )]`;
+		float $sqd = `pow ($posA[0]-$posB[0]) 2` + `pow ($posA[1]-$posB[1]) 2` + `pow ($posA[2]-$posB[2]) 2`;
+
+		$lengthList[( `size $lengthList` )] = `sqrt $sqd`;
+		$length += `sqrt $sqd`;
+		}
+
+	return $lengthList;
+	}
+
+
+//zoo.end
+//macaroniKazoo ©2007

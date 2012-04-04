@@ -1,0 +1,42 @@
+
+//create alias'
+alias h help -doc;
+alias w whatIs;
+alias d procDef;
+alias l listProcs;
+
+/*
+//re-create the scripts environment variable to include all sub-directories of all the paths listed in the existing search paths
+{
+	string $toAdd[] = {};  //add any additional paths you want added to your script search path here
+	string $paths[] = `zooListEnv MAYA_SCRIPT_PATH`;
+	string $allOriginalPaths[] = `zooAddArray_str $paths $toAdd`;
+	string $allPaths[] = {};
+	int $num = `size $allOriginalPaths`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		string $subs[] = `zooGetRecursedSubDirs $allOriginalPaths[$n]`;
+		$allPaths = `zooAddArray_str $allPaths $subs`;
+		}
+
+	string $newPath = `zooArrayToStr_str $allPaths ";"`;
+	putenv MAYA_SCRIPT_PATH $newPath;
+	eval( "rehash" );  //I've put this in an eval simply because its one of those weird mel directives - if the rehash doesn't work like this perhaps an evalDeferred at the end of the script might help
+	print "// ******************* added all subdirs to SCRIPT_PATH\n";
+
+	//now add all mel paths to python sys module
+	python( "import sys" );
+	for( $p in $paths ) {
+		python( "sys.path.append( '"+ $p +"' )" );
+		print( "sys.path.append( '"+ $p +"' )" );
+		}
+}
+
+
+//load zooTriggered
+zooTriggeredUtils;
+zooTriggeredLoad;
+zooTrigUpdateUIState;
+
+//load auto save
+zooAutoSave;*/

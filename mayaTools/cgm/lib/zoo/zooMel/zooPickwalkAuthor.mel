@@ -1,0 +1,451 @@
+zooPresetManager;
+zooPickwalk "load";
+
+
+//builds the Pickwalk authoring window
+global proc zooPickwalkAuthor() {
+	string $windowName = "zooPickwalkAuthorWindow";
+	string $windowTitle = "Pickwalk Author";
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -width 200 -sizeable 1 $windowName;
+		scriptJob -p $windowName -cu 1 -e "SelectionChanged" "zooPickwalkAuthorFunctions -updateEnable";
+		menuBarLayout;
+			menu -l "Presets";
+				menuItem -l "Import Local Preset" -sm 1 -pmc( "zooPickwalkPresets; zooBuildPickwalkPresetsMenu \"local\" authorPWMenuLocal" ) authorPWMenuLocal;  setParent -m ..;
+				menuItem -l "Import Global Preset" -sm 1 -pmc( "zooPickwalkPresets; zooBuildPickwalkPresetsMenu \"global\" authorPWMenuGlobal" ) authorPWMenuGlobal;  setParent -m ..;
+				menuItem -d 1;
+				menuItem -l "Export Pickwalk Preset" -c( "zooPickwalkPresets; zooPickwalkAuthorFunctions -export;" );
+			menu -l "Authoring";
+				menuItem -l "simple author" -c( "zooSimpleAuthorPickwalk `ls -sl`" ) -ann "pick the objects you want to add Pickwalking on, and in the order you picked them, this will add up/down Pickwalking between them all";
+				menuItem -d 1;
+				menuItem -l "remove walking from selected" -c( "zooPickwalkAuthorFunctions -removeSelected;" );
+				menuItem -l "remove all walking" -c( "zooPickwalkAuthorFunctions -removeAll;" );
+			menu -l "Help";
+				menuItem -l "Report Problem" -c( "zooPollster \"-topic [issue] authorPickwalk: "+ `getenv USER` +" -question do you need help -answers yes,no -recipients hmckenzie -custom 1 -customNote what is going wrong?\";" );
+				menuItem -l "Give Feedback" -c( "zooPollster \"-topic [feedback] authorPickwalk: "+ `getenv USER` +" -question enter feedback below -answers ! -recipients hmckenzie -custom 1\";" );
+				menuItem -l "Help..." -c( "zooHelp zooPickwalk 1;" );
+				menuItem -d 1;
+				menuItem -l "About" -c( "zooHelp zooPickwalk 2;" );
+				menuItem -d 1;
+				menuItem -l "Setup Hotkeys..." -c( "zooPickwalkHotkeys;" );
+				menuItem -l "Pro Hotkeys" -cb( `zooPWTurnOnProHotkeys -1` ) -c( "zooPWTurnOnProHotkeys (!`zooPWTurnOnProHotkeys -1`);" );
+
+		string $masterForm = `formLayout`;
+			string $loadedLbl = `text -l "loaded object:"`;
+			string $loadedObj = `textField -ed 0 zooPWUITextObj`;
+			string $form = `formLayout`;
+				string $up = `button -l "up" -c( "zooPickwalkAuthorFunctions -setUp" ) zooPWUIButtonUp`;
+				string $left = `button -l "left" -c( "zooPickwalkAuthorFunctions -setLeft" ) zooPWUIButtonLeft`;
+				string $load = `button -l "load" -c( "zooPickwalkAuthorFunctions -load" ) zooPWUIButtonLoad`;
+				string $right = `button -l "right" -c( "zooPickwalkAuthorFunctions -setRight" ) zooPWUIButtonRight`;
+				string $down = `button -l "down" -c( "zooPickwalkAuthorFunctions -setDown" ) zooPWUIButtonDown`;
+			setParent ..;
+			string $recip = `checkBox -l "make reciprocal" -v 1 zooPWUICheckRecip`;
+
+	popupMenu -p $load -pmc( "zooPWUILoadPopup" ) zooPWUILoadPopup;
+	popupMenu -p $up -pmc( "zooPWUIDirectionPopup up" ) zooPWUIDirPopup_up;
+	popupMenu -p $left -pmc( "zooPWUIDirectionPopup left" ) zooPWUIDirPopup_left;
+	popupMenu -p $right -pmc( "zooPWUIDirectionPopup right" ) zooPWUIDirPopup_right;
+	popupMenu -p $down -pmc( "zooPWUIDirectionPopup down" ) zooPWUIDirPopup_down;
+
+	formLayout -e
+		-af $loadedLbl "top" 7
+		-af $loadedLbl "left" 5
+		-an $loadedLbl "right"
+		-an $loadedLbl "bottom"
+
+		-af $loadedObj "top" 5
+		-ac $loadedObj "left" 5 $loadedLbl
+		-af $loadedObj "right" 5
+		-an $loadedObj "bottom"
+
+		-ac $form "top" 0 $loadedObj
+		-af $form "left" 0
+		-af $form "right" 0
+		-ac $form "bottom" 0 $recip
+
+		-an $recip "top"
+		-af $recip "left" 0
+		-an $recip "right"
+		-af $recip "bottom" 0
+		$masterForm;
+
+	formLayout -e
+		-af $up "top" 5
+		-ap $up "left" 0 33
+		-ap $up "right" 0 67
+		-ap $up "bottom" 0 33
+
+		-ap $left "top" 0 33
+		-af $left "left" 5
+		-ap $left "right" 0 33
+		-ap $left "bottom" 0 67
+
+		-ap $load "top" 0 33
+		-ap $load "left" 0 33
+		-ap $load "right" 0 67
+		-ap $load "bottom" 0 67
+
+		-ap $right "top" 0 33
+		-ap $right "left" 0 67
+		-af $right "right" 5
+		-ap $right "bottom" 0 67
+
+		-ap $down "top" 0 67
+		-ap $down "left" 0 33
+		-ap $down "right" 0 67
+		-af $down "bottom" 5
+		$form;
+
+	showWindow $windowName;
+	}
+
+
+global proc zooBuildPickwalkPresetsMenu( string $locale, string $parent ) {
+	menu -e -dai $parent;
+	setParent -m $parent;
+
+	string $presets[] = `zooListPresets $locale zooPickwalk "preset"`;
+	for( $preset in $presets ) menuItem -l $preset -c( "zooImportPickwalk \""+ $locale +"\" "+ $preset +";" );
+	if( `size $presets` ) menuItem -d 1;
+	menuItem -l( "manage "+ $locale +" presets" ) -c( "zooPresetManagerWin \""+ $locale +"\" zooPickwalk \"preset\";" );
+	}
+
+
+//builds the popup menu for the load button in the authoring UI
+global proc zooPWUILoadPopup() {
+	menu -e -dai zooPWUILoadPopup;
+	setParent -m zooPWUILoadPopup;
+
+	string $loadedObj = `textField -q -tx zooPWUITextObj`;
+	string $upObj = `zooGetPickwalkObj $loadedObj up`;
+	string $leftObj = `zooGetPickwalkObj $loadedObj left`;
+	string $rightObj = `zooGetPickwalkObj $loadedObj right`;
+	string $downObj = `zooGetPickwalkObj $loadedObj down`;
+	int $anyPickwalking = 0;
+
+	if( `objExists $upObj` || `objExists $leftObj` || `objExists $rightObj` || `objExists $downObj` ) $anyPickwalking = 1;
+	menuItem -en( `objExists $loadedObj` ) -l "select loaded" -c( "select "+ $loadedObj );
+	if( `objExists $upObj` ) menuItem -l "remove UP Pickwalk" -c( "zooRemPickwalking "+ $loadedObj +" \"-dir up\"; zooPickwalkAuthorFunctions -updateDirections;" );
+	if( `objExists $leftObj` ) menuItem -l "remove LEFT Pickwalk" -c( "zooRemPickwalking "+ $loadedObj +" \"-dir left\"; zooPickwalkAuthorFunctions -updateDirections;" );
+	if( `objExists $rightObj` ) menuItem -l "remove RIGHT Pickwalk" -c( "zooRemPickwalking "+ $loadedObj +" \"-dir right\"; zooPickwalkAuthorFunctions -updateDirections;" );
+	if( `objExists $downObj` ) menuItem -l "remove DOWN Pickwalk" -c( "zooRemPickwalking "+ $loadedObj +" \"-dir down\"; zooPickwalkAuthorFunctions -updateDirections;" );
+	if( $anyPickwalking ) menuItem -d 1;
+	if( $anyPickwalking ) menuItem -l "remove ALL Pickwalks" -c( "zooRemPickwalking "+ $loadedObj +" \"-dir all\"; zooPickwalkAuthorFunctions -updateDirections;" );
+	}
+
+
+//builds the popup menu for the directional buttons in the authoring UI
+global proc zooPWUIDirectionPopup( string $dir ) {
+	string $parent = "zooPWUIDirPopup_"+ $dir;
+	string $loadedObj = `textField -q -tx zooPWUITextObj`;
+	string $obj = `zooGetPickwalkObj $loadedObj $dir`;
+	int $enable = `objExists $obj`;
+
+	menu -e -dai $parent;
+	setParent -m $parent;
+
+	menuItem -en $enable -l( "author "+ $dir +" object" ) -c( "select "+ $obj +"; zooPickwalkAuthorFunctions -load; zooPickwalkAuthorFunctions -updateDirections;" );
+	menuItem -d 1;
+	menuItem -en $enable -l( "select "+ $dir +" object" ) -c( "select "+ $obj );
+	menuItem -en $enable -l( "remove "+ $dir +" object" ) -c( "zooRemPickwalking "+ $loadedObj +" \"-dir "+ $dir +"\"; zooPickwalkAuthorFunctions -updateDirections;" );
+	}
+
+
+global proc zooPickwalkAuthorFunctions( string $function ) {
+	string $objUI = "zooPWUITextObj";
+	string $recipUI = "zooPWUICheckRecip";
+	string $buttonPrefix = "zooPWUIButton";
+	string $loadedObj = "";
+	int $recip = 0;
+
+	//the UI isn't always open - so check first
+	if( `control -ex $objUI` ) $loadedObj = `textField -q -tx $objUI`;
+	if( `control -ex $recipUI` ) $recip = `checkBox -q -v $recipUI`;
+	switch( $function ) {
+		case "-updateEnable":
+			string $sel[] = `ls -sl`;
+			if( $sel[0] == $loadedObj ) {
+				button -e -en 1 ( $buttonPrefix +"Up" );
+				button -e -en 1 ( $buttonPrefix +"Left" );
+				button -e -en 1 ( $buttonPrefix +"Right" );
+				button -e -en 1 ( $buttonPrefix +"Down" );
+				}
+			else {
+				button -e -en 1 ( $buttonPrefix +"Up" );
+				button -e -en 1 ( $buttonPrefix +"Left" );
+				button -e -en 1 ( $buttonPrefix +"Right" );
+				button -e -en 1 ( $buttonPrefix +"Down" );
+				}
+			break;
+
+		case "-updateDirections":
+			string $upDir = `zooGetPickwalkObj $loadedObj up`;
+			string $leftDir = `zooGetPickwalkObj $loadedObj left`;
+			string $rightDir = `zooGetPickwalkObj $loadedObj right`;
+			string $downDir = `zooGetPickwalkObj $loadedObj down`;
+
+			if( `objExists $upDir` ) button -e -l "UP" ( $buttonPrefix +"Up" );
+			else button -e -l "up" ( $buttonPrefix +"Up" );
+
+			if( `objExists $leftDir` ) button -e -l "LEFT" ( $buttonPrefix +"Left" );
+			else button -e -l "left" ( $buttonPrefix +"Left" );
+
+			if( `objExists $rightDir` ) button -e -l "RIGHT" ( $buttonPrefix +"Right" );
+			else button -e -l "right" ( $buttonPrefix +"Right" );
+
+			if( `objExists $downDir` ) button -e -l "DOWN" ( $buttonPrefix +"Down" );
+			else button -e -l "down" ( $buttonPrefix +"Down" );
+			break;
+
+		case "-removeSelected":
+			for( $a in `ls -sl` ) zooRemPickwalking $a ( "-dir all -reciprocal "+ $recip );
+			break;
+
+		case "-removeAll":
+			string $confirm = `confirmDialog -t "are you sure?" -m "This will remove ALL Pickwalking\nfrom ALL objects in your scene\n\nAre you sure you want to do that?" -b "You're damn right I do!" -b "Oh, ok no then"`;
+			if( $confirm == "Oh, ok no then" ) return;
+			zooBlowAwayAllPickwalking;
+			break;
+
+		case "-transfer":
+			global string $triggerCharacter;
+			if( !`objExists $triggerCharacter` ) { warning "no trigger character set"; return; }
+
+			string $confirm = `confirmDialog -t "Trigger Walk Transfer" -m( "This will transfer all Pickwalking from "+ $triggerCharacter +"'s triggers to the MOVERS" ) -b "Make it so" -b "Cancel"`;
+			if( $confirm == "Cancel" ) return;
+			zooApplyPickwalkingFromTriggers $triggerCharacter;
+			break;
+
+		case "-load":
+			string $sel[] = `ls -sl`;
+			if( `objExists $sel[0]` ) {
+				textField -e -tx $sel[0] $objUI;
+				button -e -l "LOAD" ( $buttonPrefix +"Load" );
+				}
+			else {
+				textField -e -tx "" $objUI;
+				button -e -l "load" ( $buttonPrefix +"Load" );
+				}
+			zooPickwalkAuthorFunctions -updateDirections;
+			zooPickwalkAuthorFunctions -updateEnable;
+			break;
+
+		case "-setUp":
+			string $sel[] = `ls -sl`;
+			if( `objExists $sel[0]` ) zooSetPickwalkObj $loadedObj $sel[0] ( "-dir up -reciprocal "+ $recip );
+			zooPickwalkAuthorFunctions -updateDirections;
+			break;
+
+		case "-setLeft":
+			string $sel[] = `ls -sl`;
+			if( `objExists $sel[0]` ) zooSetPickwalkObj $loadedObj $sel[0] ( "-dir left -reciprocal "+ $recip );
+			zooPickwalkAuthorFunctions -updateDirections;
+			break;
+
+		case "-setRight":
+			string $sel[] = `ls -sl`;
+			if( `objExists $sel[0]` ) zooSetPickwalkObj $loadedObj $sel[0] ( "-dir right -reciprocal "+ $recip );
+			zooPickwalkAuthorFunctions -updateDirections;
+			break;
+
+		case "-setDown":
+			string $sel[] = `ls -sl`;
+			if( `objExists $sel[0]` ) zooSetPickwalkObj $loadedObj $sel[0] ( "-dir down -reciprocal "+ $recip );
+			zooPickwalkAuthorFunctions -updateDirections;
+			break;
+
+		case "-export":
+			string $sel[] = `ls -sl`;
+			if( !`size $sel` ) { confirmDialog -m "you must select part of the character whose Pickwalking you want to export"; return; }
+			string $getName = `promptDialog -t "Pickwalk preset name" -m "Give the Preset a name" -b "OK" -b "Cancel" -db "OK"`;
+
+			if( $getName != "OK" ) return;
+			string $name = `promptDialog -q -tx`;
+			zooExportPickwalk "local" $name;
+			break;
+
+		case "-hotkeySetup":
+			string $dirs[] = { "Up", "Left", "Right", "Down" };
+			string $labels[] = { "UP", "LF", "RT", "DN" };
+			string $normCmds[] = {};
+			string $addCmds[] = {};
+
+			for( $n=0; $n<4; $n++ ) {
+				string $normUIs[] = `formLayout -q -ca ( "zooPWUIHotkeyForm"+ $dirs[$n] )`;
+				string $addUIs[] = `formLayout -q -ca ( "zooPWUIHotkeyFormADD"+ $dirs[$n] )`;
+				string $normHotkey = `textField -q -tx $normUIs[1]`;
+				string $addHotkey = `textField -q -tx $addUIs[0]`;
+				int $normCtrl = `checkBox -q -v $normUIs[2]`;
+				int $addCtrl = `checkBox -q -v $addUIs[2]`;
+				int $normAlt = `checkBox -q -v $normUIs[3]`;
+				int $addAlt = `checkBox -q -v $addUIs[3]`;
+
+				//create runtime commands - these are essentially the entries seen in the hotkey editor
+				if( !`runTimeCommand -q -ex ( "zooPickwalk"+ $labels[$n] )` ) runTimeCommand -cat User -c( "zooPickwalk "+ `tolower $dirs[$n]` +";" ) ( "zooPickwalk"+ $labels[$n] );
+				if( !`runTimeCommand -q -ex ( "zooPickwalkAdd"+ $labels[$n] )` ) runTimeCommand -cat User -c( "zooPickwalkAdd "+ `tolower $dirs[$n]` +";" ) ( "zooPickwalkAdd"+ $labels[$n] );
+
+				//now create the nameCommands - no idea why hotkeys are this complicated...
+				nameCommand -ann( "hotkey for doing Pickwalks "+ $dirs[$n] ) -c( "zooPickwalk"+ $labels[$n] ) ( "zooPickwalk"+ $labels[$n] +"NameCommand" );
+				nameCommand -ann( "hotkey for doing additive Pickwalks "+ $dirs[$n] ) -c( "zooPickwalkAdd"+ $labels[$n] ) ( "zooPickwalkAdd"+ $labels[$n] +"NameCommand" );
+
+				//now setup the actual hotkeys...  CRIKEY!
+				string $normEval = "hotkey -keyShortcut "+ $normHotkey;
+				string $addEval = "hotkey -keyShortcut "+ $addHotkey;
+
+				if( $normCtrl ) $normEval += " -ctl";
+				if( $addCtrl ) $addEval += " -ctl";
+				if( $normAlt ) $normEval += " -alt";
+				if( $addAlt ) $addEval += " -alt";
+				$normEval = $normEval +" -name "+ "zooPickwalk"+ $labels[$n] +"NameCommand;";
+				$addEval = $addEval +" -name "+ "zooPickwalkAdd"+ $labels[$n] +"NameCommand;";
+				$normCmds[( `size $normCmds` )] = $normEval;
+				$addCmds[( `size $addCmds` )] = $addEval;
+				}
+
+			for( $cmd in $normCmds ) eval $cmd;
+			for( $cmd in $addCmds ) eval $cmd;
+			break;
+		}
+	}
+
+
+//used to turn on or off the "pro" Pickwalking hotkeys.  When the pro hotkeys are
+//turned on, if the object selected has no Pickwalking data, then a normal maya
+//Pickwalk is performed.  This proc can also be used to query whether the current
+//hotkeys are setup to be "pro" hotkeys or not
+//
+//To query the current state, use:   zooPWTurnOnProHotkeys -1;
+//otherwise:   zooPWTurnOnProHotkeys 1;  to turn pro keys on
+//zooPWTurnOnProHotkeys 0;  to turn pro hotkeys off
+global proc int zooPWTurnOnProHotkeys( int $state ) {
+	string $dirs[] = { "Up", "Left", "Right", "Down" };
+	string $labels[] = { "UP", "LF", "RT", "DN" };
+	string $upCmd = "";
+	string $lfCmd = "";
+	string $rtCmd = "";
+	string $dnCmd = "";
+	string $curState = 0;
+	string $onCmd = "if( !`zooPickwalk up` ) pickWalk -d Up;";
+
+	if( `runTimeCommand -q -ex zooPickwalkUP` ) $upCmd = `runTimeCommand -q -c zooPickwalkUP`;
+	if( `runTimeCommand -q -ex zooPickwalkUP` ) $lfCmd = `runTimeCommand -q -c zooPickwalkLF`;
+	if( `runTimeCommand -q -ex zooPickwalkUP` ) $rtCmd = `runTimeCommand -q -c zooPickwalkRT`;
+	if( `runTimeCommand -q -ex zooPickwalkUP` ) $dnCmd = `runTimeCommand -q -c zooPickwalkDN`;
+	if( $upCmd == "" || $lfCmd == "" || $rtCmd == "" || $dnCmd == "" ) return -1;
+
+	if( $upCmd == $onCmd ) $curState = 1;
+	if( $state == -1 ) return $curState;
+
+	if( $state ) for( $n=0; $n<4; $n++ ) runTimeCommand -e -c( "if( !`zooPickwalk "+ `tolower $dirs[$n]` +"` ) pickWalk -d "+ $dirs[$n] +";" ) ( "zooPickwalk"+ $labels[$n] );
+	else for( $n=0; $n<4; $n++ ) runTimeCommand -e -c( "zooPickwalk "+ `tolower $dirs[$n]` +";" ) ( "zooPickwalk"+ $labels[$n] );
+
+	return $curState;
+	}
+
+
+global proc zooPickwalkHotkeys() {
+	string $windowName = "zooPickwalkHotkeysWindow";
+	string $windowTitle = "Pickwalk Hotkey Setup";
+	string $dirs[] = { "Up", "Left", "Right", "Down" };
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -width 300 -height 200 -sizeable 1 $windowName;
+		string $form = `formLayout`;
+			string $colA = `columnLayout -adj 1`;
+
+			//build the normal hotkey UIs
+			text -l "normal Pickwalking";
+			for( $n=0; $n<4; $n++ ) {
+				string $a = `formLayout ( "zooPWUIHotkeyForm"+ $dirs[$n] )`;
+					string $lbl = `text -width 70 -align right -l(tolower($dirs[$n]) +"->")`;
+					string $key = `textField -tx $dirs[$n]`;
+					string $ctrl = `checkBox -l "ctrl" -v 0`;
+					string $alt = `checkBox -l "alt" -v 0`;
+				setParent ..;
+
+				formLayout -e
+					-af $lbl "top" 3
+					-af $lbl "left" 0
+					-an $lbl "right"
+					-an $lbl "bottom"
+
+					-af $key "top" 0
+					-ac $key "left" 0 $lbl
+					-af $key "right" 0
+					-an $key "bottom"
+
+					-ac $ctrl "top" 0 $key
+					-af $ctrl "left" 5
+					-an $ctrl "right"
+					-an $ctrl "bottom"
+
+					-ac $alt "top" 0 $key
+					-ac $alt "left" 5 $ctrl
+					-an $alt "right"
+					-an $alt "bottom"
+					$a;
+				}
+
+			setParent ..;
+			string $colB = `columnLayout -adj 1`;
+			text -l "additive Pickwalking";
+			//build the normal hotkey UIs
+			for( $n=0; $n<4; $n++ ) {
+				string $a = `formLayout ( "zooPWUIHotkeyFormADD"+ $dirs[$n] )`;
+					string $key = `textField -tx $dirs[$n]`;
+					string $lbl = `text -width 70 -align "left" -l( "<-add "+ tolower($dirs[$n]))`;
+					string $ctrl = `checkBox -l "ctrl" -v 1`;
+					string $alt = `checkBox -l "alt" -v 0`;
+				setParent ..;
+
+				formLayout -e
+					-af $key "top" 0
+					-af $key "left" 0
+					-ac $key "right" 0 $lbl
+					-an $key "bottom"
+
+					-af $lbl "top" 3
+					-an $lbl "left"
+					-af $lbl "right" 0
+					-an $lbl "bottom"
+
+					-ac $ctrl "top" 0 $key
+					-an $ctrl "left"
+					-ac $ctrl "right" 5 $alt
+					-an $ctrl "bottom"
+
+					-ac $alt "top" 0 $key
+					-an $alt "left"
+					-af $alt "right" 5
+					-an $alt "bottom"
+					$a;
+				}
+
+			setParent ..;
+			string $go = `button -l "setup hotkeys" -c( "zooPickwalkAuthorFunctions -hotkeySetup; deleteUI "+ $windowName )`;
+		setParent ..;
+
+	formLayout -e
+		-af $colA "top" 3
+		-af $colA "left" 0
+		-ap $colA "right" 0 50
+		-ac $colA "bottom" 0 $go
+
+		-af $colB "top" 3
+		-ap $colB "left" 0 50
+		-af $colB "right" 0
+		-ac $colB "bottom" 0 $go
+
+		-an $go "top"
+		-af $go "left" 0
+		-af $go "right" 0
+		-af $go "bottom" 0
+		$form;
+
+	showWindow $windowName;
+	}
+
+
+//zoo.end

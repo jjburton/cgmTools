@@ -1,0 +1,125 @@
+zooTriggeredUtils;
+zooUtils;
+
+
+global proc zooObjMenuUtils() {
+	return;
+	}
+
+
+global proc int zooObjMenuAddCmdAll( string $obj, string $cmdName, string $cmdStr ) {
+	int $idx = `zooObjMenuAddCmd $obj`;
+	zooSetObjMenuCmdName $obj $cmdName $idx;
+	zooSetObjMenuCmdStr $obj $cmdStr $idx;
+	return $idx;
+	}
+
+
+//set a slot's command name
+global proc zooSetObjMenuCmdName( string $obj, string $cmdName, int $cmdNum ) {
+	string $cmdAttr = "zooCmd"+ $cmdNum;
+	if( !`objExists $obj` ) return;
+	if( !`objExists ( $obj +"."+ $cmdAttr )` ) return;
+	string $existingCmd = `zooGetObjMenuCmdStr $obj $cmdNum`;
+	setAttr -type "string" ( $obj +"."+ $cmdAttr ) ( $cmdName +"^"+ $existingCmd );
+	}
+
+
+//set a slot's command string
+global proc zooSetObjMenuCmdStr( string $obj, string $cmdStr, int $cmdNum ) {
+	string $cmdName = `zooGetObjMenuCmdName $obj $cmdNum`;
+	string $cmdAttr = "zooCmd"+ $cmdNum;
+	if( $cmdName == "" ) $cmdName = "untitled";
+	setAttr -type "string" ( $obj +"."+ $cmdAttr ) ( $cmdName +"^"+ $cmdStr );
+	}
+
+
+//gets an object's command slot's command name
+global proc string zooGetObjMenuCmdName( string $obj, string $cmdNum ) {
+	string $cmdInfo[] = `zooGetObjMenuCmdInfo $obj $cmdNum`;
+	return $cmdInfo[0];
+	}
+
+
+//gets the value of an object's command slot's command string
+global proc string zooGetObjMenuCmdStr( string $obj, string $cmdNum ) {
+	string $cmdInfo[] = `zooGetObjMenuCmdInfo $obj $cmdNum`;
+	return $cmdInfo[1];
+	}
+
+
+global proc string[] zooGetObjMenuCmdInfo( string $obj, string $cmdNum ) {
+	string $cmdAttr = "zooCmd"+ $cmdNum;
+	if( !`objExists ( $obj +"."+ $cmdAttr )` ) return {};
+	string $cmdInfo = `getAttr ( $obj +"."+ $cmdAttr )`;
+	string $buffer[] = {};
+	tokenize $cmdInfo "^" $buffer;
+	return $buffer;
+	}
+
+
+//------
+//returns a list of the cmd slots used by an object
+//------
+global proc int[] zooObjMenuListCmds( string $obj ) {
+	if( !`objExists $obj` ) return {};
+	string $attrs[] = `listAttr -ud $obj`;
+	int $cmdAttrs[] = {};
+
+	for( $attr in $attrs ) if( `match "^zooCmd[0-9]+$" $attr` != "" ) $cmdAttrs[( `size $cmdAttrs` )] = `match "[0-9]+$" $attr`;
+	$cmdAttrs = `sort $cmdAttrs`;
+
+	return $cmdAttrs;
+	}
+
+
+//------
+//creates a new cmd attribute on the object, and return its index
+//------
+global proc int zooObjMenuAddCmd( string $obj ) {
+	if( !`objExists $obj` ) return -1;
+	int $cmdAttrs[] = `zooObjMenuListCmds $obj`;
+	int $numCmds = `size $cmdAttrs`;
+	int $nextNum = ( $numCmds )? $cmdAttrs[( $numCmds-1 )]+1: 0;
+	for( $n=1; $n<`size $cmdAttrs`; $n++ ) if( $cmdAttrs[$n]-1 != $cmdAttrs[( $n-1 )] ) $nextNum = $cmdAttrs[$n]-1;
+
+	addAttr -ln ( "zooCmd"+ $nextNum ) -dt "string" $obj;
+	return $nextNum;
+	}
+
+
+global proc string[] zooGetObjsWithMenus() {
+	string $allObjects[] = `ls -type transform`;
+	string $objMenus[] = {};
+
+	for( $obj in $allObjects ) {
+		string $attrs[] = `listAttr -ud $obj`;
+		for( $attr in $attrs ) if( `match "^zooCmd[0-9]+$" $attr` != "" ) {
+			$objMenus[( `size $objMenus` )] = $obj;
+			break;
+			}
+		}
+
+	return $objMenus;
+	}
+
+
+global proc zooRemoveMenu( string $obj, int $slot ) {
+	if( `objExists ( $obj + ".zooCmd"+ $slot )` ) deleteAttr ( $obj + ".zooCmd"+ $slot );
+	}
+
+
+global proc zooRemoveAllMenus( string $obj ) {
+	int $slots[] = `zooObjMenuListCmds $obj`;
+	for( $slot in $slots ) zooRemoveMenu $obj $slot;
+	}
+
+
+global proc setObjMenuKillState( string $obj, int $state ) {
+	if( !$state ) if( `objExists ( $obj +".zooObjMenuDie" )` ) deleteAttr ( $obj +".zooObjMenuDie" );
+	if( !`objExists ( $obj +".zooObjMenuDie" )` ) addAttr -at "bool" -ln zooObjMenuDie $obj;
+	setAttr ( $obj +".zooObjMenuDie" ) 1;
+	}
+
+
+//zoo.end

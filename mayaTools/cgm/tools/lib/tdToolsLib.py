@@ -28,7 +28,7 @@ import maya.cmds as mc
 import maya.mel as mel
 import subprocess
 
-from zooPyMaya import skinWeights
+from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib import *
 from cgm.lib import (guiFactory,
@@ -1106,7 +1106,7 @@ def doSelectInfluenceJoints():
 		guiFactory.warning('Must have something selected')
 
 
-def doReturnExcessInfluenceVerts():
+def doReturnExcessInfluenceVerts(self):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	DESCRIPTION:
@@ -1129,8 +1129,9 @@ def doReturnExcessInfluenceVerts():
 		else:
 			guiFactory.warning('No verts over max influence')
 
+
 	sourceObject = mc.optionVar(q='cgmVarSourceObject')
-	maxInfluences = mc.optionVar(q='cgmVarMaxInfluenceVerts')
+	maxInfluences = self.MaxVertsField(q=True,v=True)
 
 
 	selected = mc.ls(sl=True,flatten=True)

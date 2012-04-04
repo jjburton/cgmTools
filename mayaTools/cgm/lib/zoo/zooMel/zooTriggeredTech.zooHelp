@@ -1,0 +1,50 @@
+What zooTriggered is Doing
+------
+zooTriggered comprises of two fairly separate parts.  The scriptJob that gets fired when the selection changes, and the command engine that deals with firing off commands.  The scriptJob itself is farily simple, and is really only controlled using one of two commands:  zooTriggeredLoad, and zooTriggeredUnload.  The first loads the scriptJob, the second unloads it.
+
+The command engine however deals with taking the quasi MEL commands used by zooTriggered (ie ones that contain symbols), and turning them into real mel commands.  It uses symbols to refer to objects (which solves the problem with hardcoding object names into a mel command).  These symbols get replaced with real object names before the command is executed.  So this is how it works:
+
+The zooTriggered scriptJob is loaded.  When a selection is made, the scriptJob fires off the zooTriggerSelection command which checks for a zooTriggered command attribute (zooTrigCmd0) on each of the selected objects.  If this attribute exists, its value is read, and is then given to the zooPopulateCmdStr command.  This command takes the current object, reads its command attribute, and the looks for zooTriggered symbols.  , and replaces them with the appropriate names (see below for symbol definitions)
+
+
+Symbol Definitions:
+ #
+ This symbol refers to the trigger object itself
+
+ @
+ This gets replaced with an array containing all connects
+
+ @x,y
+ This is a more flexible connects array call.  x and y are both integers, and this symbol gets replaced with the connects starting at x, ending at y.  so @3,5 becomes: {"connect3","connect4","connect5"}.  NOTE y can be a negative number.  Negative numbers allow you to specify units from the end of the connects array.  So @0,-1 is actually ALL connects INCLUDING the trigger itself, which is connect zero.
+
+ %x
+ This refers to a particular connect by number - NOTE while this is a 0-based list, object 0 in the list is ALWAYS the trigger itself.  So the first connect is always at index 1.  So the first object is %1, the second %2 etc...  And %0 is exactly the same as using the # symbol
+
+ ~
+ NO LONGER SUPPORTED!  If you want to use a previous selection, store it at the beginning of your trigger command, and re-select it at the end
+
+
+Useful Commands:
+If you want to use zooTriggered from within your own scripts, you'll probably fine the following commands useful.  All of the "core" functions used by zooTriggered are contained in the zooTriggeredUtils script.  The zooTriggered.mel script contains only UI based procedures.
+
+ zooPopulateCmdStr [string (object)] [string (command)];
+ This command takes an object (the trigger, or any object that you want to be the "current" object - ie its this object that is used to determine the # symbol), and a command string.  It parses the command string, and replaces all zooTriggered symbols with approprate information.  For example, this is how to extract the command to execute for a standard triggered command:
+ zooPopulateCmdStr objectName `zooTrigGetCmd objectName`;
+
+ zooTriggerObject [string (object)];
+ This command will trigger the zooTrigCmd0 on the given object.  If the object given doesn't have a zooTrigCmd0 attribute, then nothing will happen
+
+ zooTriggerSelection;
+ Calls zooTriggerObject on each object in the current selection.  So for example if you had zooTriggered unloaded and you wanted to trigger the currently selected objects from another script, you could simply run this command
+
+ zooTriggeredLoad; / zooTriggeredUnload;
+ These two commands respectively load and unload the zooTriggered scriptJob, and deal with updating any UI elements that should be updated (ie shelfButtons and the palettePort in the zooTriggered window)
+
+ zooTrigSetCmd [string (object)] [string (command)];
+ This command is used to set the actual command strings for a trigger object
+
+ zooTrigGetCmd [string (object)];
+ Likewise this command is used to retrieve the command string of the trigger
+
+ zooAddConnect [string (trigger)] [string (connect)];
+ This command will add a single object as a connect to the given trigger.  Likewise, to remove an object as a trigger, use zooRemoveConnect with the same syntax

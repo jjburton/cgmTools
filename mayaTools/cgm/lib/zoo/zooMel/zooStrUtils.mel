@@ -1,0 +1,187 @@
+global proc zooStrUtils() {
+	return;
+	}
+
+
+global proc string zooMatchCase( string $srcStr, string $tgtStr ) {
+	$tgtStr = `tolower $tgtStr`;
+	string $srcArray[] = `zooStrToArray $srcStr`;
+	string $tgtArray[] = `zooStrToArray $tgtStr`;
+	int $num = `size $srcArray`;
+
+	if( `size $tgtArray` < $num ) $num = `size $tgtArray`;
+	for( $n=0; $n<$num; $n++ ) {
+		int $isUpper = `toupper $srcArray[$n]` == $srcArray[$n]? 1: 0;
+		if( $isUpper ) $tgtArray[$n] = `toupper $tgtArray[$n]`;
+		}
+
+	$tgtStr = `zooArrayToStr_str $tgtArray ""`;
+
+	return $tgtStr;
+	}
+
+
+//removes each character listed in the charsToRemove variable
+global proc string zooRemoveChars( string $str, string $charsToRemove ) {
+	string $validate = `zooReplaceChars $str $charsToRemove ""`;
+	return $validate;
+	}
+
+
+//removes each character listed in the charsToRemove variable
+global proc string zooReplaceChars( string $str, string $charsToRemove, string $replace ) {
+	string $validate = $str;
+	if( $charsToRemove == "" ) $charsToRemove = "`~!@#$%^&*()-+=[]\\{}|;':\"/?><., ";
+	int $num = `size $charsToRemove`;
+	for( $n=1; $n<=$num; $n++ ) $validate = `substituteAllString $validate (substring($charsToRemove,$n,$n)) $replace`;
+	return $validate;
+	}
+
+
+/*given a string, and a character to remove from that string, this proc returns the string with the characters removed
+------------
+
+example: zooReplaceInString "10/02/04" "/" "";
+returns the string "100204"
+example: zooReplaceInString "10Feb04" "[A-Za-z]+" "!";
+returns the string "10!04"
+*/
+global proc string zooReplaceInString( string $string, string $searchStr, string $replaceStr ){
+	string $messageString = $string;
+	string $temp = $messageString;
+	int $stillChanging = 1;
+
+	while( $stillChanging ) {
+		$temp = `substitute $searchStr $messageString $replaceStr`;
+		if( $messageString == $temp ) $stillChanging = 0;
+		$messageString = $temp;
+		}
+
+	return $messageString;
+	}
+
+
+//newlines aren't super easy to replace with a simple search and replace proc
+global proc string zooReplaceNewlines( string $str, string $toReplace ) {
+	string $buffer[] = {};
+	string $newStr = "";
+
+	tokenize $str "\r\n" $buffer;
+	for( $l in $buffer ) $newStr += $l + $toReplace;
+	return $newStr;
+	}
+
+
+global proc string zooGetNamespace( string $name ) {
+	string $temp[] = {};
+	string $namespace = "";
+
+	tokenize $name ":" $temp;
+	for( $n=0; $n<`size $temp`-1; $n++ ) $namespace = $namespace + $temp[$n] +":";
+
+	return $namespace;
+	}
+
+
+global proc string zooStripAllNamespaces( string $name ) {
+	string $temp[] = {};
+	string $namespace = "";
+
+	tokenize $name ":" $temp;
+	for( $n=0; $n<`size $temp`-1; $n++ ) $namespace = $namespace + $temp[$n] +":";
+
+	catch( $name = $temp[ `size $temp`-1 ] );
+
+	return $name;
+	}
+
+
+//------
+//wraps (ie adds a carriage return) a string at the given number of letters
+//------
+global proc string zooWrapString( string $str, int $length ) {
+	string $lines[] = `zooTokenize $str "\n"`;
+	string $allWords[] = {};
+	string $wrapped = "";
+	int $longestWord = 5;
+
+	tokenize $str " \n" $allWords;
+	for( $w in $allWords ) if( `size $w`>$length ) $length = `size $w`;  //make sure the length is no shorter than the longest word
+	for( $i=0; $i<`size $lines`; $i++ ) {
+		string $words[] = `zooTokenize $lines[$i] " "`;
+		string $wrapped = $words[0];
+		int $currentLength = `size $words[0]`;
+
+		for( $n=1; $n<`size $words`; $n++ ) {
+			if( $currentLength + `size $words[$n]` <= $length ) {
+				$wrapped += " "+ $words[$n];
+				$currentLength += `size $words[$n]` + 1;  //add one for the added space
+				}
+			else {
+				$wrapped += "\n"+ $words[$n];
+				$currentLength = `size $words[$n]`;
+				}
+			}
+		$lines[$i] = $wrapped;
+		}
+
+	$wrapped = `zooArrayToStr_str $lines "\n"`;
+	return $wrapped;
+	}
+
+
+//takes a full path name for an object, and returns an array containing the path, and then the object name
+global proc string[] zooUtilsObjFromPath( string $objPath ) {
+	return `zooSplitPath $objPath "|"`;
+	}
+
+
+global proc string[] zooSplitPath( string $path, string $separator ) {
+	if( $separator == "" ) $separator = "/";
+	string $basePath = "";
+	string $name = "";
+	string $buffer[] = {};
+	int $numToks = `tokenize $path $separator $buffer`;
+
+	for( $n=0; $n<$numToks-1; $n++ ) $basePath = $basePath + $buffer[$n] + $separator;
+	$name = $buffer[( $numToks-1 )];
+
+	return { $basePath, $name };
+	}
+
+
+//returns word tokens for a camel case word
+//example:
+//zooSplitCamelCase thisIsACamelCaseWord
+//returns the array: { "this", "Is", "A", "Camel", "Case", "Word" };
+global proc string[] zooSplitCamelCase( string $name ) {
+	string $words[] = {};
+	string $letters[] = `zooStrToArray $name`;
+	int $len = `size $name`;
+	int $word = 0;
+
+	for( $n=0; $n<$len; $n++ ) {
+		if( $n ) if( `match "[A-Z]" $letters[$n]` != "" ) $word++;
+		if( `match "[_0-9]" $letters[$n]` != "" ) {
+			$word++;
+			while( `match "[_0-9]" $letters[$n]` != "" ) {
+				$words[$word] = $words[$word] + $letters[$n];
+				$n++;
+				}
+			$word++;
+			}
+		$words[$word] = $words[$word] + $letters[$n];
+		}
+
+	return $words;
+	}
+
+
+global proc int isStringNumeric( string $theString ) {
+	//for( $n=0; $n<`size $theString`; $n++ ) {
+	if( int($theString) == int(string(int($theString))) ) return 1;
+	return 0;
+	}
+
+
+//zoo.end

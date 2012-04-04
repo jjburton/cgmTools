@@ -1,0 +1,21 @@
+global proc zooReorderAttrs( string $obj, string $newAttribOrder[] ) {
+	string $selObjs[] = `ls -sl`;
+	for ( $attrib in $newAttribOrder ) {
+		//if the attribute is locked, we'll need to unlock it to rename it
+		int $isAttrLocked = `getAttr -l ( $obj + "." + $attrib )`;
+		if( $isAttrLocked ) setAttr -l 0 ( $obj + "." + $attrib );
+
+		//rename the attribute to a temporary name.  You can't rename it to its own name, so we need to rename it to a proxy name, and then back again
+		string $tempAttrib = `renameAttr ( $obj + "." + $attrib ) "temp"`;
+		renameAttr ( $obj + "." + $tempAttrib ) $attrib;
+
+		//if the attribute WAS locked, lock it again, in order to maximise transparency
+		if( $isAttrLocked ) setAttr -l 1 ( $obj + "." + $attrib );
+		}
+
+	select -r $selObjs;
+	select $selObjs;
+	}
+
+
+//zoo.end

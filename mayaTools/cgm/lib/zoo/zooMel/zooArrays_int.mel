@@ -1,0 +1,287 @@
+global proc zooArrays_int() {
+	return;
+	}
+
+
+//------
+//pads a given number with a given character to a given length
+//------
+global proc string zooPadBefore_int( int $number, int $length, string $with ) {
+	string $numberStr = $number;
+	if( `size $numberStr` >= $length ) return `substring $numberStr 1 $length`;
+	while( `size $numberStr` < $length ) $numberStr = $with + $numberStr;
+	return $numberStr;
+	}
+
+
+global proc string zooPadAfter_int( int $number, int $length, string $with ) {
+	string $numberStr = $number;
+	if( `size $numberStr` >= $length ) return `substring $numberStr 1 $length`;
+	while( `size $numberStr` < $length ) $numberStr = $numberStr + $with;
+	return $numberStr;
+	}
+
+
+global proc string zooArrayToStr_int( int $array[], string $separator ) {
+	string $arrayStr = "";
+	int $num = `size $array`;
+
+	if( $num<2 ) return $array[0];
+	for( $n=0; $n<$num-1; $n++ ) $arrayStr += $array[$n] + $separator;
+	$arrayStr += $array[( $num-1 )];
+
+	return $arrayStr;
+	}
+
+
+global proc int zooAreArraysEqual_int( int $array1[], int $array2[] ) {
+	int $size1 = `size $array1`;
+	int $size2 = `size $array2`;
+
+	if( $size1 != $size2 ) return 0;
+	for( $n=0; $n<$size1; $n++ ) if( $array1[$n] != $array2[$n] ) return 0;
+	return 1;
+	}
+
+
+//------
+//removes the array element at the given index - returns the resulting array
+//------
+global proc int[] zooRemoveArrayIdx_int( int $array[], int $index ) {
+	int $removed[] = {};
+	for( $n=0; $n<`size $array`; $n++ ) {
+		if( $n == $index ) continue;
+		$removed[( `size $removed` )] = $array[$n];
+		}
+
+	return $removed;
+	}
+
+
+global proc int[] zooAddArrayAt_int( int $array1[], int $array2[], int $idx ) {
+	int $newArray[] = {};
+	int $size = `size $array1`;
+	int $n = 0;
+
+	for( $n=0; $n<$size; $n++ ) {
+		if( $n >= $idx ) break;
+		$newArray[$n] = $array1[$n];
+		}
+
+	for( $a in $array2 ) $newArray[( `size $newArray` )] = $a;
+	for( $n; $n<$size; $n++ ) $newArray[( `size $newArray` )] = $array1[$n];
+
+	return $newArray;
+	}
+
+
+//------
+//returns the given element of an array - use negative numbers to get elements
+//starting from the end of the array
+//
+//example:
+//zooGetElement_int { 1, 2, 3, 4, 5 } -2;
+//returns 4 as it is the second element from the end
+//------
+global proc int zooGetElement_int( int $entry, int $array[] ) {
+	int $size = `size $array`;
+	if( $entry<0 ) $entry = $size + $entry;
+	if( $entry>0 && $entry<$size ) return $array[$entry];
+	else return $array[0];
+	}
+
+
+global proc int zooGetIdxOfElement_int( int $array[], int $entry ) {
+	for( $n=0; $n<`size $array`; $n++ ) if( $array[$n] == $entry ) return $n;
+	return -1;
+	}
+
+
+//removes all adjacent duplicate entries from an array
+global proc int[] zooRemoveAdjacentDupeItems_int( int $array[] ) {
+	int $returnArray[] = {};
+	int $prevVal = $array[0];
+
+	$returnArray[0] = $array[0];
+	for( $n = 1; $n < `size $array`; $n++ ) {
+		if( $prevVal != $array[$n] ) $returnArray[( `size $returnArray` )] = $array[$n];
+		$prevVal = $array[$n];
+		}
+
+	return $returnArray;
+	}
+
+
+global proc int[] zooRemoveDupeItems_int( int $array[] ) {
+	int $unique[] = { $array[0] };
+	int $arraySZ = `size $array`;
+
+	for( $n=1; $n<$arraySZ; $n++ ) {
+		int $uniqueSZ = `size $unique`;
+		int $dupe = 0;
+
+		for( $i=0; $i<$uniqueSZ; $i++ ) if( $array[$n] == $unique[$i] ) {
+			$dupe = 1;
+			break;
+			}
+		if( !$dupe ) $unique[$uniqueSZ] = $array[$n];
+		}
+
+	return $unique;
+	}
+
+
+//adds array2 to the end of array1
+global proc int[] zooAddArray_int( int $array1[], int $array2[] ) {
+	for( $entry in $array2 ) $array1[( `size $array1` )] = $entry;
+	return $array1;
+	}
+
+
+//subtracts array 2 from array 1
+global proc int[] zooSubtractArray_int( int $array1[], int $array2[] ) {
+	int $returnArray[] = {};
+	for( $entry1 in $array1 ){
+		int $isInArray = 0;
+		for( $entry2 in $array2 ) if( $entry1 == $entry2 ) $isInArray = 1;
+		if( !$isInArray ) $returnArray[( `size $returnArray` )] = $entry1;
+		}
+
+	return $returnArray;
+	}
+
+
+//reverses the order of an array
+global proc int[] zooReverseArray_int( int $array[] ){
+	int $reversedArray[] = {};
+	int $arraySize = `size $array`;
+
+	for( $n=0; $n<$arraySize; $n++ ) $reversedArray[( $arraySize-1-$n )] = $array[$n];
+	return $reversedArray;
+	}
+
+
+//------
+//crops a string array based on a given pair of indicies.
+//The indicies take the form: "start:end"
+
+//Neither numbers have to be specified, you can leave them blank instead.  Leaving them blank
+//causes the script to use defaults.  the start default is zero, and the end default is the final
+//index in the given array.  so zooIndexCrop_string { "a", "b", "c", "d" } "";  will return the
+//original array.
+//
+//You can also specify negative numbers for the end index.  Negative numbers specify the index
+//"backwards" from the final index.
+//example:
+//zooIndexCrop_int { 1, 2, 3, 4 } ":-2";
+//{ 1, 2 };
+//
+//zooIndexCrop_string { 1, 2, 3, 4 } "1:-1";
+//{ 2, 3 };
+//------
+global proc int[] zooIndexCrop_int( int $array[], string $startEndStr ) {
+	int $cropped[] = {};
+	string $startStr = `match "^[^:]+" $startEndStr`;
+	string $endStr = `match "[^:]+$" $startEndStr`;
+	int $size = `size $array`;
+	int $start = 0;
+	int $end = $size;
+
+	$startStr = `match "[-0-9]+" $startStr`;
+	$endStr = `match "[-0-9]+" $endStr`;
+	if( `size $startStr` ) $start = $startStr;
+	if( `size $endStr` ) $end = $endStr;
+	if( $start<0 ) $start = $size+$start;
+	if( $end<0 ) $end = $size+$end;
+	for( $n=$start; $n<$end; $n++ ) $cropped[( `size $cropped` )] = $array[$n];
+
+	return $cropped;
+	}
+
+
+//------
+//orders the given string array based on an int array
+//example:
+//zooOrderArrayUsing { "a", "b", "c", "d" } { 3, 0, 1, 2 };
+//returns the result:
+// { "b", "c", "d", "a" };
+//------
+global proc int[] zooOrderArrayUsing_int( int $array[], int $orders[] ) {
+	if( `size $array` != `size $orders` ) warning "the given string array is a different size to the orders array - unwanted results may occur";
+	int $ordered[] = {};
+	int $arrayM[] = $array;  //this is a copy of the given string array that will get modified - arrays are referenced so this is nessecary
+	int $ordersM[] = $orders;
+
+	while( `size $arrayM` && `size $ordersM` ) {
+		int $lowest = `zooGetLowestValueIdx_int $ordersM`;
+		$ordered[( `size $ordered` )] = $arrayM[$lowest];
+		$arrayM = `zooRemoveArrayIdx_int $arrayM $lowest`;
+		$ordersM = `zooRemoveArrayIdx_int $ordersM $lowest`;
+		}
+
+	return $ordered;
+	}
+
+
+//takes an array, and a max and min value and returns a cropped array - ie all values in the returned array lie inclusively between the max and min values
+global proc int[] zooCropArray_int( int $array[], int $min, int $max ) {
+	int $cropped[] = {};
+	for( $entry in $array ) if( $entry >= $min && $entry <= $max ) $cropped[( `size $cropped` )] = $entry;
+	return $cropped;
+	}
+
+
+//------
+//returns the index of the lowest value in an array
+//------
+global proc int zooGetLowestValueIdx_int( int $array[] ) {
+	if( !`size $array` ) return 0;
+	int $sorted[] = `sort $array`;
+	int $lowest = $sorted[0];
+
+	for( $n=0; $n<`size $array`; $n++ ) if( $array[$n] == $lowest ) return $n;
+	}
+
+
+//------
+//returns the index of the highest value in an array
+//------
+global proc int zooGetHighestValueIdx_int( int $array[] ) {
+	if( !`size $array` ) return 0;
+	int $sorted[] = `sort $array`;
+	int $highest = $sorted[(`size $sorted`-1)];
+
+	for( $n=0; $n<`size $array`; $n++ ) if( $array[$n] == $highest ) return $n;
+	}
+
+
+global proc int[] zooAddArrayAfter_int( int $array1[], int $array2[], int $idx ) {
+	int $newArray[] = {};
+	int $size = `size $array1`;
+	int $n = 0;
+
+	for( $n=0; $n<$size; $n++ ) {
+		if( $n > $idx ) break;
+		$newArray[$n] = $array1[$n];
+		}
+
+	for( $a in $array2 ) $newArray[( `size $newArray` )] = $a;
+	for( $n; $n<$size; $n++ ) $newArray[( `size $newArray` )] = $array1[$n];
+
+	return $newArray;
+	}
+
+
+global proc float zooAverageArray_int( int $array[] ) {
+	float $average = 0;
+	int $total = 0;
+	int $num = `size $array`;
+
+	if( !$num ) return 0.;
+	for( $n=0; $n<$num; $n++ ) $total += $array[$n];
+	$average = (float)$total/(float)$num;
+	return $average;
+	}
+
+
+//zoo.end

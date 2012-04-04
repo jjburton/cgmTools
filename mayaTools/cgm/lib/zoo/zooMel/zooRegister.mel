@@ -1,0 +1,200 @@
+//registers are nodes that keep an ordered list of other nodes.  It is similar to
+//a set, but the list is ordered.  This script provides ways to quickly and easily
+//build registers of objects, add/remove objects to/from the register, and make
+//queries about the register itself and the nodes it keeps track of.  A single
+//register can keep track of multiple different registries.  Every time you add
+//ad object to a register, you must give it a registry name.  Each register can
+//have as many registries as are needed
+
+
+zooArrays_str;
+
+
+global proc zooRegister() {
+	return;
+	}
+
+
+global proc zooDeleteRegistry( string $register, string $registryName ) {
+	string $items[] = {};
+	zooListRegistered $register $registryName {} $items;
+	for( $i in $items ) zooUnregisterObj $register $registryName $i 1 1;
+	}
+
+
+//------
+//removes an object from a given register..  If the removeAttr variable is true then
+//the proc will delete the attribute from the register.  If the deleteIfEmpty var
+//is true, then if there are no more items in the registry, then the register will
+//be deleted
+//------
+global proc zooUnregisterObj( string $register, string $registryName, string $node, int $removeAttr, int $deleteIfEmpty ) {
+	int $idx = `zooGetObjIdx $register $registryName $node`;
+	if( $removeAttr ) deleteAttr ( $register +".zooReg"+ $registryName + $idx );
+	//if( $deleteIfEmpty ) if( `size()`) delete $register;
+	}
+
+
+//------
+//returns the register index of the node given
+//------
+global proc int zooGetObjIdx( string $register, string $registryName, string $node ) {
+	string $nodes[] = {};
+	int $indicies[] = {};
+
+	zooListRegistered $register $registryName $indicies $nodes;
+	int $idx = `zooGetIdxOfElement_str $nodes $node`;
+	if( $idx == -1 ) return -1;
+	return $indicies[$idx];
+	}
+
+
+//------
+//adds an object to a register under a given registry name.  The reuse variable
+//indicates whether you want already created, but unconnected, register indicies
+//to be reused or not
+//------
+global proc int zooRegisterObj( string $register, string $registryName, string $node, int $reuse, int $unique ) {
+	int $nextIdx = `zooNextRegisterIdx $register $registryName $reuse`;
+	int $nodeIdx = `zooGetObjIdx $register $registryName $node`;
+
+	$registryName = `tolower $registryName`;
+	$registryName = "zooReg"+ $registryName;
+
+	if( $unique && $nodeIdx != -1 ) return $nodeIdx;
+	if( !`objExists ( $register +"."+ $registryName + $nextIdx )`) addAttr -ln ( $registryName + $nextIdx ) -at message $register;
+	connectAttr -f ( $node +".message" ) ( $register +"."+ $registryName + $nextIdx );
+
+	return $nextIdx;
+	}
+
+
+//------
+//returns the next available registry index, based on whether the user has specified
+//the re-use of indicies or not
+//------
+global proc int zooNextRegisterIdx( string $register, string $registryName, int $reuse ) {
+	int $indicies[] = {};
+
+	zooListRegistered $register $registryName $indicies {};
+	if( $reuse ) {
+		int $used[] = `zooListUsedRegistered $register $registryName`;
+		int $available[] = `zooSubtractArray_int $indicies $used`;
+
+		if( `size $available` ) return $available[0];
+		}
+	if( `size $indicies` ) return $indicies[( `size $indicies`-1 )]+1;
+	return 0;
+	}
+
+
+//------
+//returns a list of indicies that have been created
+//------
+global proc int[] zooListUsedRegistered( string $register, string $registryName ) {
+	string $nodes[] = {};
+	int $indicies[] = {};
+	int $usedIdx[] = {};
+
+	zooListRegistered $register $registryName $indicies $nodes;
+	$registryName = `tolower $registryName`;
+	$registryName = "zooReg"+ $registryName;
+
+	int $num = `size $indicies`;
+	for( $n=0; $n<$num; $n++ ) if( `objExists $nodes[$n]` ) $usedIdx[( `size $usedIdx` )] = $indicies[$n];
+
+	return $usedIdx;
+	}
+
+
+//------
+//puts a list of all indicies and all node names (if any) into the arrays given
+//------
+global proc zooListRegistered( string $register, string $registryName, int $indicies[], string $nodes[] ) {
+	if( !`objExists $register` ) return;
+
+	string $attrs[] = `listAttr -ud $register`;
+	clear $indicies;
+	clear $nodes;
+
+	$registryName = `tolower $registryName`;
+	$registryName = "zooReg"+ $registryName;
+	for( $a in $attrs ) if( `match ( $registryName +"[0-9]+$" ) $a` != "" ) $indicies[( `size $indicies` )] = `match "[0-9]+$" $a`;
+	int $num = `size $indicies`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		string $node = `connectionInfo -sfd ( $register +"."+ $registryName + $indicies[$n] )`;
+		if( !`objExists $node` ) {
+			$nodes[$n] = "";
+			continue;
+			}
+		$node = `match "^[^.]+" $node`;
+		$nodes[$n] = $node;
+		}
+
+	$nodes = `zooOrderArrayUsing_str $nodes $indicies`;
+	$indicies = `sort $indicies`;
+	}
+
+
+//------
+//returns a list of all registries on a given register
+//------
+global proc string[] zooListRegistries( string $register ) {
+	if( !`objExists $register` ) return {};
+
+	string $attrs[] = `listAttr -ud $register`;
+	string $registries[] = {};
+
+	for( $a in $attrs ) if( `match "^zooReg[a-z][a-z0-9]+$" $a` != "" ) $registries[( `size $registries` )] = `match "^[^0-9]+" $a`;
+	$registries = `stringArrayRemoveDuplicates $registries`;
+	for( $n=0; $n<`size $registries`; $n++ ) $registries[$n] = `substitute "^zooReg" $registries[$n] ""`;
+
+	return $registries;
+	}
+
+
+//------
+//returns a list of all register nodes
+//------
+global proc string[] zooListRegisters() {
+	string $times[] = `ls -type time`;
+	string $registers[] = {};
+
+	for( $t in $times ) {
+		string $attrs[] = `listAttr -ud -s $t`;
+		for( $a in $attrs ) if( `match "^zooRegister_" $a` != "" ){
+			$registers[( `size $registers` )] = $t;
+			break;
+			}
+		}
+
+	$registers = `stringArrayRemoveDuplicates $registers`;
+	return $registers;
+	}
+
+
+//------
+//returns the name of a register.  Registers are given an id, which is simply
+//a name for the register.  This name is added to the register as an identifier.
+//------
+global proc string zooGetRegister( string $id, int $forceCreate ) {
+	string $times[] = `ls -type time`;
+	for( $t in $times ) if( `objExists ( $t +".zooRegister_"+ $id )`) return $t;
+	if( $forceCreate ) return `zooCreateRegister $id`;
+	return "";
+	}
+
+
+//------
+//creates a register
+//------
+global proc string zooCreateRegister( string $id ) {
+	string $register = `createNode time`;
+	$register = `rename $register ( "zooRegister_"+ $id )`;
+	addAttr -ln( "zooRegister_"+ $id ) -at bool $register;
+	return $register;
+	}
+
+
+//zoo.end

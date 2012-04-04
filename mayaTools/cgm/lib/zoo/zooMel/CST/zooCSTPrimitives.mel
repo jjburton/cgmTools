@@ -1,0 +1,360 @@
+//NOTE: see the end of the file for information about how to register a primitive properly
+
+
+zooArrays_str;
+zooBrandTools;
+zooFlags;
+
+
+global proc zooCSTPrimitives() {
+	return;
+	}
+
+
+global proc string zooGetPrimFromRegistered( string $obj ) {
+	string $cons[] = `listConnections -s 0 -type time ( $obj +".message" )`;
+	for( $c in $cons ) {
+		string $prim = `zooQueryBrand $c primitive`;
+		if( $prim != "" ) return $c;
+		}
+
+	return "";
+	}
+
+
+//------
+//creates a primitive record
+//------
+global proc string zooCSTCreatePrimRecord( string $type, string $id, string $charID ) {
+	string $primitive = `createNode time -n( $charID +"_"+ $type +"_prim" )`;
+	zooBrandObject primitive $type $primitive;
+	zooBrandObject id $id $primitive;
+	zooBrandObject char $charID $primitive;
+	return $primitive;
+	}
+
+
+//------
+//connects an object to a rig primitive, as a given name
+//
+//example:
+//zooCSTPrimAttachToPrimAs char_bicep_joint_L bicep arm_L char;
+//connects the object char_bicep_joint_L to the rig primitve arm_L belonging to "char"
+//------
+global proc zooCSTPrimAttachToPrimAs( string $obj, string $attachAs, string $primitive ){
+	if( !`objExists ( $primitive +".zooCSTInput_"+ $attachAs )` ) addAttr -ln ( "zooCSTInput_"+ $attachAs ) -at bool $primitive;
+	connectAttr -f ( $obj +".message" ) ( $primitive +".zooCSTInput_"+ $attachAs );
+	}
+
+
+//------
+//this proc merely registers an object as a "input"  ie: the type is input
+//------
+global proc zooCSTRegisterInput( string $obj, string $primitive ){
+	zooCSTRegisterObj $obj "input" $primitive;
+	}
+
+
+//------
+//this proc merely registers an object as a "control"  ie: the type is control
+//------
+global proc zooCSTRegisterControl( string $obj, string $primitive ) {
+	zooCSTRegisterObj $obj "control" $primitive;
+	}
+
+
+global proc string[] zooCSTListRegistered( string $type, string $primitive ) {
+	$type = `tolower $type`;
+	string $registerAttrs[] = {};
+	string $registeredObjs[] = {};
+	string $attrs[] = `listAttr $primitive`;
+	string $registerName = "zooCST"+ $type;
+
+	for( $a in $attrs ) if( `match ( "^"+ $registerName +"[0-9]+" ) $a` != "" ) $registerAttrs[( `size $registerAttrs` )] = $a;
+	for( $a in $registerAttrs ) $registeredObjs[( `size $registeredObjs` )] = `connectionInfo -sfd ( $primitive +"."+ $a )`;
+	for( $n=0; $n<`size $registeredObjs`; $n++ ) $registeredObjs[$n] = `match "^[^.]+" $registeredObjs[$n]`;
+
+	return $registeredObjs;
+	}
+
+
+//------
+//registering an object basically connects it to a primitive as a certain thing - the attachment has a type
+//this type is basically just some sort of name that is given to the registered object.  You can have as many
+//registered objects of the same type as you want.  Registered objects are queryable later on using the
+//ListRegistered proc.  Registering objects is a convenient way to have common controls that are part of a
+//primitive easily findable using the primitive, instead of branding
+//------
+global proc zooCSTRegisterObj( string $obj, string $type, string $primitive ) {
+	if( !`objExists $obj` ) return;
+	$type = `tolower $type`;
+	string $attrs[] = `listAttr $primitive`;
+	string $registerName = "zooCST"+ $type;
+	int $controls[] = {};
+	int $nextControl = 0;
+
+	for( $a in $attrs ) if( `match ( $registerName +"[0-9]+" ) $a` != "" ) $controls[( `size $controls` )] = `match "[0-9]+$" $a`;
+	$controls = `sort $controls`;
+	if( `size $controls` ) $nextControl = $controls[( `size $controls`-1 )]+1;
+	addAttr -ln ( $registerName + $nextControl ) -at bool $primitive;
+
+	if( !`objExists ( $obj +".zooPrimOut" )` ) addAttr -ln zooPrimOut -at bool $obj;
+	connectAttr -f ( $obj +".message" ) ( $primitive +"."+ $registerName + $nextControl );
+	}
+
+
+//------
+//connects a rig primitve to all objects involved in the rig primitive
+//------
+global proc zooCSTPrimOutputs( string $outputs[], string $primitive ) {
+	for( $obj in $outputs ) {
+		if( !`objExists $obj` ) continue;
+		if( !`objExists ( $obj +".zooPrimOut" )` ) addAttr -ln zooPrimOut -at bool $obj;
+		string $existing = `connectionInfo -sfd ( $obj +".zooPrimOut" )`;
+		if( $existing != ( $primitive +".message" )) connectAttr -f ( $primitive +".message" ) ( $obj +".zooPrimOut" );
+		}
+	}
+
+
+//------
+//given a primitive record name (ie arm_L) and a charID (the same as prefix used to create the rig)
+//list all outputs of a rig primitive
+//------
+global proc string[] zooCSTListPrimOutputs( string $primitive ){
+	string $outputs[] = {};
+	if( size(`connectionInfo -dfs ( $primitive +".message" )`)) $outputs = `connectionInfo -dfs ( $primitive +".message" )`;
+	for( $n=0; $n<`size $outputs`; $n++ ) if( `match "zooPrimOut$" $outputs[$n]` == "zooPrimOut" ) $outputs[$n] = `match "^[^.]+" $outputs[$n]`;
+	return $outputs;
+	}
+
+
+//------
+//returns a list of all primitive input objects - note this is usually different from the inputs require to create the primitive
+//as it includes twist joints etc - this list is essential for cleaning up a primitive properly
+//------
+global proc string[] zooCSTListAllPrimInputs( string $primitive ){
+	string $type = `zooQueryBrand $primitive primitive`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+
+	if( $type == "arm" || $type == "leg" ) {
+		string $upperTwists[] = `zooGetInBTweenJoints $inputs[0] $inputs[1]`;
+		string $lowerTwists[] = `zooGetInBTweenJoints $inputs[1] $inputs[2]`;
+		$inputs = `zooAddArray_str $inputs $upperTwists`;
+		$inputs = `zooAddArray_str $inputs $lowerTwists`;
+		}
+
+	return $inputs;
+	}
+
+
+//------
+//returns a list of all the input objects that were used to create the primitive in the first place
+//------
+global proc string[] zooCSTListPrimInputs( string $primitive ){
+	string $inputNames[] = `zooCSTGetAllPrimInputNames $primitive`;
+	string $inputs[] = {};
+
+	for( $a in $inputNames ) $inputs[( `size $inputs` )] = `zooCSTListPrimInput $primitive $a`;
+
+	return $inputs;
+	}
+
+
+global proc string zooCSTListPrimInput( string $primitive, string $inputName ){
+	string $input = `connectionInfo -sfd ( $primitive +".zooCSTInput"+ $inputName )`;
+	return `match "^[^.]+" $input`;
+	}
+
+
+global proc string[] zooCSTGetAllPrimInputNames( string $primitive ){
+	string $attrs[] = `listAttr -ud $primitive`;
+	string $inputs[] = {};
+
+	for( $a in $attrs ) if( `match "^zooCSTInput" $a` == "zooCSTInput" ) {
+		string $name = `match "^_.*" $a`;
+		$inputs[( `size $inputs` )] = `substring $name 2 (size($name))`;
+		}
+
+	return $inputs;
+	}
+
+
+//returns the name of a primitive with a given type and charID
+global proc string zooCSTGetPrimitive( string $type, string $id, string $charID ) {
+	string $primitives[] = `zooCSTListPrimitives`;
+	for( $prim in $primitives ) if( `zooIsBrandedWith $prim primitive $type` ) if( `zooIsBrandedWith $prim char $charID` ) if( `zooIsBrandedWith $prim id $id` ) return $prim;
+	return "";
+	}
+
+
+global proc string[] zooCSTGetPrimitivesOfType( string $type, string $charID ) {
+	string $primitives[] = `zooCSTListPrimitives`;
+	string $primitivesOfType[] = {};
+	for( $prim in $primitives ) if( `zooIsBrandedWith $prim primitive $type` ) $primitivesOfType[( `size $primitivesOfType` )] = $prim;
+	return $primitivesOfType;
+	}
+
+
+//lists all rig primitives in a scene
+global proc string[] zooCSTListPrimitives() {
+	string $times[] = `ls -type time`;
+	string $primitives[] = {};
+
+	for( $obj in $times ) if( `objExists ( $obj +".zooBrand_primitive" )`) $primitives[( `size $primitives` )] = $obj;
+	return $primitives;
+	}
+
+
+//deals with deleting a primitive, and cleaning up all the extraneous shit involved in making that primitive work
+global proc zooCSTDeletePrimitive( string $primitive ) {
+	//first thing we want to do is set all keyable attributes to zero - this should get the primitive back to "rig pose"
+	string $controls[] = `zooCSTListRegistered control $primitive`;
+	for( $c in $controls ) {
+		string $attrs[] = `listAttr -k -s $c`;
+		for( $a in $attrs ) {
+			float $default[] = `attributeQuery -ld -n $c $a`;  //set the attr values to their default value (which is zero by default) but can be set to other values
+			if( !`getAttr -se ( $c +"."+ $a )`) setAttr -l 0 ( $c +"."+ $a );
+			if( `getAttr -se ( $c +"."+ $a )`) setAttr ( $c +"."+ $a ) $default[0];
+			}
+		}
+
+	string $primaryInputs[] = `zooCSTListAllPrimInputs $primitive`;print $primaryInputs;
+	for( $obj in $primaryInputs ) zooCSTDisconnectObj $obj "-inputs 1";  //this deletes all connections to input objects -
+	//which are user created objects by deleting these input connections to base objects, we're making sure they
+	//don't get disturbed after we go deleting rig nodes
+
+	string $outputs[] = `zooCSTListPrimOutputs $primitive`;
+	for( $obj in $outputs ) zooCSTDisconnectObj $obj "-inputs 1 -outputs 1";
+	for( $obj in $outputs ) if( `objExists $obj` ) delete $obj;
+	for( $obj in $controls ) if( `objExists $obj` ) delete $obj;
+
+	zooCSTDisconnectObj $primitive "-inputs 1 -outputs 1";
+	if( `exists deleteUnusedExpressions` ) deleteUnusedExpressions;  //this is an alias proc used when doing an optimize scene
+	delete $primitive;
+	}
+
+
+//------
+//this proc cleanly disconnects all things from a given object - either inputs or outputs
+//usage:  zooCSTDisconnectObj objName "-inputs 1";
+//by default disconnects nothing, either -inputs or -outputs must be specified
+//------
+global proc zooCSTDisconnectObj( string $obj, string $optionStr ) {
+	string $temp[] = {};
+	int $doInputs = 0;
+	int $doOutputs = 0;
+
+	$temp = `zooGetFlagArguments $optionStr inputs`; if( `size $temp` ) $doInputs = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr outputs`; if( `size $temp` ) $doOutputs = $temp[0];
+
+	string $inputs[] = `listConnections -s 1 -d 0 -c 1 -p 1 $obj`;
+	if( $doInputs ) for( $n=0; $n<`size $inputs`; $n+=2 ) {
+		string $objSrc = `match "^[^.]+" $inputs[($n+1)]`;
+		string $attrSrc = `match "[^.]+$" $inputs[($n+1)]`;
+
+		if( !`objExists $inputs[$n]` ) continue;  //this is done because sometimes attributes are deleted when disconnected by maya - such as constraint weight attributes
+		if( `getAttr -l $inputs[$n]` ) setAttr -l 0 $inputs[$n];
+		if( !`objExists $inputs[( $n+1 )]` ) continue;
+		if( `getAttr -l $inputs[( $n+1 )]` ) setAttr -l 0 $inputs[( $n+1 )];
+
+		disconnectAttr $inputs[( $n+1 )] $inputs[$n];
+		if( `objExists $objSrc` ) if( `nodeType $objSrc` == "unitConversion" ) delete $objSrc;
+		}
+
+	string $outputs[] = `listConnections -scn 1 -s 0 -d 1 -c 1 -p 1 $obj`;
+	if( $doOutputs ) for( $n=0; $n<`size $outputs`; $n+=2 ) {
+		string $objTgt = `match "^[^.]+" $inputs[$n]`;
+		string $attrTgt = `match "[^.]+$" $inputs[$n]`;
+		string $objSrc = `match "^[^.]+" $inputs[($n+1)]`;
+		string $attrSrc = `match "[^.]+$" $inputs[($n+1)]`;
+
+		if( !`objExists $outputs[$n]` ) continue;
+		if( `getAttr -l $outputs[$n]` ) setAttr -l 0 $outputs[$n];
+		if( !`objExists $outputs[( $n+1 )]` ) continue;
+		if( `getAttr -l $outputs[( $n+1 )]` ) setAttr -l 0 $outputs[( $n+1 )];
+		disconnectAttr $outputs[$n] $outputs[( $n+1 )];
+
+		if( `objExists $objSrc` ) if( `nodeType $objSrc` == "unitConversion" ) delete $objSrc;
+		}
+	}
+
+
+//------
+//returns the next unique id number for a primitive - unique ids are essential for characters with multiple, similar limbs - ie multiple arms
+//------
+global proc string zooCSTGetPrimId( string $type, string $idPrefix, string $charID ) {
+	string $typePrims[] = `zooCSTGetPrimitivesOfType $type $charID`;
+	int $ids[] = {};
+	int $id = 0;
+
+	for( $a in $typePrims ) if( `objExists ( $a +".zooBrand_id" )` ) {
+		string $attr = `getAttr( $a +".zooBrand_id" )`;
+		$ids[( `size $ids` )] = `match "[0-9]+$" $attr`;
+		}
+
+	int $num = `size $ids`;
+	if( $num ) $id = $ids[( $num-1 )]+1;
+	else $id = 0;
+
+	return ( $idPrefix + $id );
+	}
+
+
+global proc zooCSTRebuildPrimitive( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $type = `zooQueryBrand $primitive primitive`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListPrimInputs $primitive`;
+	string $outputs[] = `zooCSTListPrimOutputs $primitive`;
+	string $capitalisedType = toupper(`substring $type 1 1`);
+
+	$capitalisedType += `substring $type 2 (size($type))`;
+	eval( "zooCSTRebuildPrim"+ $capitalisedType +" "+ $primitive );
+	}
+
+
+/*
+All About Primitives
+------
+
+the idea of the primitive, is to contain all the necessary creation data required to build that part of the rig.  So in the case of an arm for example, the primtive would "know" the prefix, the parity, the bicep, elbow and wrist, along with all the additional options set when that arm primitive was built.
+
+So thats what this script is all about.  It contains all the functions used to set and retrieve primitive information.
+
+If you want to write your own primitive, and have it compatible with all the primitive functions, then these are the steps you must take.
+
+First, you must have a type for the primitive.  The type is generally just a word for the basic function of the primitive.  For example if you were writing a primitive to build a schliefer spine primitive, you might call it schlieferSpine.  Basically every primtive needs a category.  In your creation proc (the proc that creates the primitive) you need to get a unique ID for the primitive you're about to build.  This is done with the getPrimId proc:
+
+	string $id = `zooCSTGetPrimId schlieferSpine $suffix $prefix`;
+
+This proc basically just makes sure if the character has multiple primitives of the same type on it, they're identifiable in some way.  So characters with multiple sets of arms for example, having a unique id on each arm primitive, allows zooCST to deal with 3 different left arms.
+
+Second, you must build the actual primitive node.  This simply creates the node that will store all out information.  We still need to set the values, and connect the objects.
+
+	string $primitive = `zooCSTCreatePrimRecord arm $id $prefix`;
+
+Thirdly we must attach the inputs.  This connects each joint in our skeleton that wasa used to create the rig primitive to the primtive node.  So no matter what happens in the scene, the primitive node always "knows" what was used to generate it.  Each input is given a name so you can refer to it later.  This information can be easily used to create a rebuild primitive script.   This is called registering the inputs.
+
+	zooCSTAttachToPrimAs $bicep bicep $primitive;
+	zooCSTAttachToPrimAs $elbow elbow $primitive;
+	zooCSTAttachToPrimAs $wrist wrist $primitive;
+
+Fourth you must connect the primitive to all nodes involved in making the rig work (basically everything built by the creation proc).  This is called registering the outputs.
+
+	zooCSTPrimOutputs $controls $primitive;
+	zooCSTPrimOutputs { $clavControl, $spaceXpr2 } $primitive;
+
+Fifth you must connect the primtive specifically to the controls that the animator interacts with.  So for a spine, the controls are simply the single control used to rotate and move the spine around.  But for an arm, it would be the elbow, ik arm, fk controls, and the clavicle.
+
+	zooCSTRegisterControl $spineControl $primitive;
+
+Lastly you must add the option string that the creation proc was called with to the primitive.  This option string stores any switches or flags that were set before the primitive was created.  Storing these on the primitive as well allows the zooCST rebuild proc to re-create the primitive with exactly the same settings.
+
+	zooBrandObject options ( $optionStr +" -parity "+ $parity ) $primitive;
+
+So thats is.  Its sounds like quite a lot of extra work, but it doesn't take long to do, and it can really save you heaps of time if you'll be re-rigging the character in future.
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

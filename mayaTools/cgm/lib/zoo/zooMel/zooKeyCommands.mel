@@ -1,0 +1,213 @@
+//
+// zooKeyCommands
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 10 May 2003
+//
+// Description:
+// Runs a given command on the selected objects for every keyframe on the current
+// selection.  useful for changing rotation orders, or any other attributes that
+// require a script to set the attribute properly - space switching is a good
+// candidate
+//
+// macaroniKazoo
+
+
+zooFlags;
+zooUtils;
+zooArrays_float;
+
+
+global proc zooKeyCommands( string $optionStr, string $cmd ) {
+	string $optionTemp[] = {};
+	string $objs[] = `ls -sl`;
+	float $initialTime = `currentTime -q`;
+	float $keys[] = {};
+	int $bake = 0;
+
+	progressWindow -title "Commanding the Keys!" -progress 0 -status "initialising" -isInterruptable 1;
+	$optionTemp = `zooGetFlagArguments $optionStr objs`;
+	if( `size $optionTemp` ) $objs = $optionTemp;
+	clear $optionTemp;
+
+
+	//------
+	//get the keyframe list
+	//------
+		$keys = `keyframe -q -tc $objs`;
+		$keys = `sort $keys`;
+		$keys = `zooRemoveDupeItems_float $keys`;
+
+
+	//------
+	//get the frame range to do the changeSpace over
+	//this flag uses the following rules - by default the current frame is used, but ranges can be specified:
+	//10-20 will do a change space on all keys inclusively between frames 10 and 20
+	//the left side is the start and the right side the end.  the following symbols can also be used with this flag:
+	//. is the current frame
+	//* is either the first frame or the last frame - depending on whether its specified in the start or end side of the expression
+	//examples:
+	//  -frames . 10 does all keys from the current frame to frame 10
+	//  -frames * 50 does all keys from the first key to frame 50
+	//  -frames * * does all keys
+	//------
+		$optionTemp = `zooGetFlagArguments $optionStr bake`; if( `size $optionTemp` ) $bake = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr frames`;
+		string $startStr = "!"; if( `size $optionTemp` ) $startStr = $optionTemp[0];
+		string $endStr = "!"; if( `size $optionTemp` ) $endStr = $optionTemp[1];
+		float $selRange[] = `zooGetSelectedRange`;
+		float $start = `playbackOptions -q -min`;
+		float $end = `playbackOptions -q -max`;
+		int $n = 0;
+
+		if( $startStr == "." ) $start = `currentTime -q`;
+		else if( $startStr == "*" ) $start = $keys[0];
+		else if( $startStr == "!" ) $start = `playbackOptions -q -min`;
+		else if( $startStr == ":" ) $start = $selRange[0];
+		else if( $startStr == "$" ) $start = `playbackOptions -q -ast`;
+		else if( $startStr == "<" ) $start = `findKeyframe -w previous`;
+		else if( $startStr == ">" ) $start = `findKeyframe -w next`;
+		else if( `match "[-0-9]+" $startStr` != "" ) $start = $startStr;
+
+		if( $endStr == "." ) $end = `currentTime -q`;
+		else if( $endStr == "*" ) $end = $keys[( `size $keys`-1 )];
+		else if( $endStr == "!" ) $end = `playbackOptions -q -max`;
+		else if( $endStr == ":" ) $end = $selRange[1];
+		else if( $endStr == "$" ) $end = `playbackOptions -q -aet`;
+		else if( $endStr == "<" ) $end = `findKeyframe -w previous`;
+		else if( $endStr == ">" ) $end = `findKeyframe -w next`;
+		else if( `match "[-0-9]+" $endStr` != "" ) $end = $endStr;
+
+		//make sure the start is before the end
+		if( $start > $end ) {
+			float $temp = $start;
+			$start = $end;
+			$end = $temp;
+			}
+
+		//now crop the list of keys to the range of the start/end
+		$keys = `zooCropArray_float $keys $start $end`;
+
+		//now if we're in bake mode, clear the key array and build a new array containing each frame between start and end
+		if( $bake ) {
+			clear $keys;
+			for( $n=$start; $n<$end; $n+=$bake ) $keys[( `size $keys` )] = $n;
+			print $keys;
+			}
+
+
+	//------
+	//initialise the progress window variables
+	//------
+		float $progress = 0;
+		float $increment = `size $keys`? 100/(float)(`size $keys`): 1;
+
+
+	//------
+	//run the command
+	//------
+		zooAllViews 0;
+		int $numKeys = `size $keys`;
+		if( $cmd != "" ) for( $t in $keys ) {
+			currentTime $t;
+			string $tmpACmd = $cmd;
+			//the @ symbol is used to refer to the current frame number - so sub the value into the command
+			while( `match "@+" $tmpACmd` != "" ) $tmpACmd = `substitute "@+" $tmpACmd ((string)$t)`;
+
+			//the ^% symbol is used to refer to the current key index as a percentage of all keys, while the ^ refers to the actual key index
+			while( `match "(\\^%!)+" $tmpACmd` != "" ) $tmpACmd = `substitute "(\\^%!)+" $tmpACmd ((string)(1-($n/(float)$numKeys)))`;
+			while( `match "(\\^%)+" $tmpACmd` != "" ) $tmpACmd = `substitute "(\\^%)+" $tmpACmd ((string)($n/(float)$numKeys))`;
+			while( `match "\\^+" $tmpACmd` != "" ) $tmpACmd = `substitute "\\^+" $tmpACmd ((string)$n)`;
+			for( $obj in $objs ) if( size(`keyframe -t $t -q $obj`) || $bake ) {
+				string $tmpBCmd = $tmpACmd;
+				//the # symbol is used to refer to the trigger itself - so sub the name of the trigger into the command
+				while( `match "#+" $tmpBCmd` != "" ) $tmpBCmd = `substitute "#+" $tmpBCmd $obj`;
+				catch(eval($tmpBCmd));
+				}
+			$n++;
+
+			//update progress window
+			$progress += $increment;
+			if( `progressWindow -q -ic` ) break;
+			progressWindow -e -progress((int)$progress) -status( "working on key at time: "+ $t );
+			}
+
+		progressWindow -ep;
+		currentTime $initialTime;
+		zooAllViews 1;
+	}
+
+
+
+
+//------
+//adds the zooKeyCommands shelf button
+//------
+global proc zooKeyCommandsInstallShelf() {
+	string $button = `zooInstallShelfButton zooKeyCommands`;
+	string $image = `internalVar -userBitmapsDir` +"zooKeyCommands.xpm";
+	string $cmd = "zooKeyCommandsWin;";
+
+	shelfButton -e -image1 $image -label "zooKeyCommands shelf button" -ann "load the zooKeyCommands UI - right click for additional options" -command $cmd $button;
+	zooKeyCommandsInstallShelfPopup;
+	}
+
+
+//------
+//adds the right click popup menu to the zooShots shelf button
+//------
+global proc zooKeyCommandsInstallShelfPopup() {
+	string $buttons[] = `zooGetShelfButtonAll zooKeyCommands`;
+	for( $button in $buttons ) if( `control -exists $button` ) if ( !`shelfButton -q -numberOfPopupMenus $button` ) popupMenu -p $button -aob 1 -pmc( "zooKeyCommandsPopupMenu "+ $button +"Popup" ) ( $button +"Popup" );
+	}
+
+
+global proc zooKeyCommandsPopupMenu( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "setKeyframe (all attributes)" -c( "zooKeyCommands \"-frames ! !\" \"setKeyframe #;\"" );
+	menuItem -ob 1 -c( "zooKeyCommands \"-frames . !\" \"setKeyframe #;\"" );
+	menuItem -l "setKeyframe (transforms only)" -c( "zooKeyCommands \"-frames ! !\" \"setKeyframe -at t -at r -at s #;\"" );
+	menuItem -ob 1 -c( "zooKeyCommands \"-frames . !\" \"setKeyframe -at t -at r -at s #;\"" );
+	menuItem -l "setParent 0" -c( "zooKeyCommands \"-frames ! !\" \"zooChangeSpace \\\"-attr parent 0\\\" #\"" );
+	menuItem -ob 1 -c( "zooKeyCommands \"-frames . !\" \"zooChangeSpace \\\"-attr parent 0\\\" #\"" );
+	menuItem -l "setParent 1" -c( "zooKeyCommands \"-frames ! !\" \"zooChangeSpace \\\"-attr parent 1\\\" #\"" );
+	menuItem -ob 1 -c( "zooKeyCommands \"-frames . !\" \"zooChangeSpace \\\"-attr parent 1\\\" #\"" );
+	menuItem -l "setParent 2" -c( "zooKeyCommands \"-frames ! !\" \"zooChangeSpace \\\"-attr parent 2\\\" #\"" );
+	menuItem -ob 1 -c( "zooKeyCommands \"-frames . !\" \"zooChangeSpace \\\"-attr parent 2\\\" #\"" );
+	}
+
+
+/*
+this script runs a command string on each key of an object, or a set of keys can be specifed using the -frames flag
+
+-bake [int]  if this arg is non-zero, then the frames arg gets overridden, and the script simply runs the command
+on every nth frame.  so -bake 5 will run the key command on every fifth frame, while -bake 1 simply does every frame
+
+-obj [string]  you can specify a list of objects after this flag to act on.  by default, the script assumes the selection
+-frames [string] this flag allows you to specify a start and end frames to find keys on.  the "." symbol refers to the current
+frame.  the * symbol refers to either the first key if specified in the start, or the last key if specified in the end
+
+ie: if the current frame was 10
+-frames . 50
+this flag would mean all keys between the frames 10 and 50.
+
+-frames * 18
+would mean all keys from the start, up to and including frame 18
+
+frames flag symbols:
+. current frame
+* either first or last key found - depending on whether its used in the start frame or end frame field
+! current frame range start or end - depending on whether its used in the start frame or end frame field
+$ current scene start or end - depending on whether its used in the start frame or end frame field
+< previous key - from the current time
+> next key - from the current time
+
+If no keys lie between the frame specified, then the script does nothing.  Also, in the cmd string, the # symbol as a
+replacement for the current object.  the script loops over each object specified, and if there is a key on the current frame
+it runs the command for each object.  So the # symbol gets replaced by the object currently being looped over.
+*/
+
+
+//zoo.end

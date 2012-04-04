@@ -1,0 +1,235 @@
+zooArrays_str;
+zooArrays_int;
+zooFlags;
+zooRegister;
+zooUtils;
+
+
+global proc zooEazelUtils() {
+	return;
+	}
+
+
+//------
+//provides an easy way of placing objects in a camera view based on screen
+//space instead of coordinates.  this command takes the following flags:
+//
+// -resX [int]				the x-resolution of the camera view - this is optional, and will default to whatever is set in the render globals if not specified
+// -resY [int]				same as the -resX flag but for the y-resolution
+// -aspect [float]		if you don't care what the image resolution is, simply specify the aspect ratio.  this is useful for when you want to work to a screen space smaller than your render area
+// -x [float]				the x position to place the object at
+// -y [float]				the y position to place the object at
+// -padding [float]		the padding from the edge of the screen border
+//
+//the object is placed in the camera view that has the eazel attached to it
+//------
+global proc zooPlaceOnEazel( string $eazel, string $obj, string $optionStr ) {
+	if( !`objExists $obj` ) return;
+	if( !`objExists $eazel` ) return;
+
+	string $temp[] = {};
+	string $rGlobals = zooGetElement_str(0,`ls -type renderGlobals`);
+	string $resNode = zooGetElement_str(0,`listConnections -d 0 ( $rGlobals +".resolution" )`);
+	string $camera = `zooGetEazelCamera $eazel`;
+	float $xPercent = 0;
+	float $yPercent = 0;
+	float $padding = 0;
+	int $coordmode = 1;
+	int $resX = `getAttr ( $resNode+".width")`;
+	int $resY = `getAttr ( $resNode+".height")`;
+
+	$temp = `zooGetFlagArguments $optionStr obj`; if( `size $temp` ) $obj = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr x`; if( `size $temp` ) $xPercent = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr y`; if( `size $temp` ) $yPercent = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr resX`; if( `size $temp` ) $resX = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr resY`; if( `size $temp` ) $resY = $temp[0];
+	float $pixAspect = $resX/(float)$resY;
+	$temp = `zooGetFlagArguments $optionStr aspect`; if( `size $temp` ) $pixAspect = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr coordmode`; if( `size $temp` ) $coordmode = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr padding`; if( `size $temp` ) $padding = $temp[0];
+
+	string $tempObj = `group -em`;
+	string $camShape = $camera;
+	int $unitScale = 1;
+
+	if( `currentUnit -q -l` == "m" ) $unitScale = 100;
+	if( `nodeType $camShape` != "camera" ) $camShape = zooGetElement_str(0,`listRelatives -s $camera`);
+	if( `nodeType $camShape` != "camera" ) return;
+	parent -r $tempObj $eazel;
+	setAttr ( $tempObj +".tz" ) -2;
+	$xPercent += $padding*(($xPercent-0.5)/-0.5);
+	$yPercent += $padding*(($yPercent-0.5)/-0.5);
+	if( $coordmode == 1 ) {
+		$xPercent = ($xPercent*2)-1;
+		$yPercent = ($yPercent*2)-1;
+		}
+	$xPercent -= ( 0.5/$unitScale );
+	$yPercent -= ( 0.5/$unitScale );
+	$yPercent /= $pixAspect;
+	$yPercent *= -1;
+	setAttr ( $tempObj +".tx" ) ( $xPercent/$unitScale );
+	setAttr ( $tempObj +".ty" ) ( $yPercent/$unitScale );
+	float $pos[] = `xform -q -ws -rp $tempObj`;
+	delete $tempObj;
+	move -ws -a -rpr $pos[0] $pos[1] $pos[2] $obj;
+	}
+
+
+//------
+//returns the name of the camera the given eazel is following
+//------
+global proc string zooGetEazelCamera( string $eazel ) {
+	if( !`objExists $eazel` ) return "";
+
+	//there are a couple of ways to determine which camera is being used - the expression
+	//can be traced to a camera
+	string $expressions[] = `listConnections -d 0 -type expression ( $eazel +".sx" ) ( $eazel +".sy" ) ( $eazel +".sz" )`;
+	string $expression = $expressions[0];
+	for( $exp in $expressions ) if( `objExists $exp` ) $expression = $exp;
+	if( `objExists $expression` ) {
+		string $cameras[] = `listConnections -d 0 -type camera $expression`;
+		if( `size $cameras` ) return $cameras[0];
+		}
+
+	//ut its possible that the expression has been removed.  in this case we need to
+	//walk up the hierarchy to find any camera parents
+	string $cur = $eazel;
+	while( true ) {
+		string $parents[] = `listRelatives -pa -p $cur`;
+		if( isOfType($parents[0],"camera") ) return $parents[0];
+		}
+
+	//if we still haven't found anything, return empty - it is valid for an eazel not to
+	//be attached to a camera
+	return "";
+	}
+
+
+//------
+//sets the camera for a given eazel
+//------
+global proc zooSetEazelCamera( string $eazel, string $camera ) {
+	if( !`objExists $eazel` ) return;
+	if( !`objExists $camera` ) return;
+
+	//delete any constraints - it is assumed the connection is a constraint if there is a connection
+	//this should be a valid assumption in 99.9% of cases, but not all...  meh...
+	string $conx[] = `listConnections -d 0 ( $eazel +".tx" )`;
+	if( `size $conx` ) {
+		string $type = `nodeType $conx[0]`;
+		delete `eval ($type +" "+ $camera +" "+ $eazel +";" )`;
+		}
+
+	//delete any expressions on the scale attribute
+	clear $conx;
+	$conx = `listConnections -d 0 ( $eazel +".sx" )`;
+	for( $c in $conx ) if( `objExists $c` ) delete $c;
+
+	//parent the eazel
+	parent $eazel $camera;
+	setAttr ( $eazel +".t" ) 0 0 0;
+	setAttr ( $eazel +".r" ) 0 0 0;
+
+	//make sure it has been marked as an eazel
+	if( !`objExists ( $eazel +".zooEazel" )` ) addAttr -at message -ln zooEazel $eazel;
+
+	//if the camera is invisible - default cameras often are - unhide it, and hide the shape node instead...
+	if( `getAttr ( $camera +".v" )` == 0 ) {
+		string $cameraShape = zooGetElement_str(0,`listRelatives -pa -s $camera`);
+		setAttr( $cameraShape +".v" ) 0;
+		setAttr( $camera +".v" ) 1;
+		}
+
+	string $units = `currentUnit -q -l`;
+	float $unitFactor = 1;
+	if( $units == "m" ) $unitFactor = 100;
+
+	//the below "magic numbers" are - 2.54 to convert inches to cm (aperture is in inches) and the 10 converts the local length from mm to cm
+	string $cameraShape = zooGetElement_str(0,`listRelatives -s $camera`);
+	expression -s( "float $scaleFac = "+ $cameraShape +".cameraScale * "+ $cameraShape +".horizontalFilmAperture / "+ $cameraShape +".focalLength * "+ $cameraShape +".nearClipPlane * 2.54 * 10 * "+ $unitFactor +";\nif( "+ $cameraShape +".orthographic ) $scaleFac = "+ $cameraShape +".orthographicWidth;\n"+ $eazel +".scaleX = $scaleFac;\n"+ $eazel +".scaleY = $scaleFac;\n"+ $eazel +".scaleZ = 1.001*"+ $cameraShape +".nearClipPlane;" ) -o $eazel -ae 0 -uc all;
+	}
+
+
+//------
+//the eazel is the thing that gets constrained to the camera, and is scaled so that all its children
+//are always the same size when looking through that camera.  So that means the scale and placement
+//of the eazel is dependent on the clipping planes and the focal length of the camera
+//------
+global proc string zooCreateEazel( string $camera ) {
+	if( !`objExists $camera` ) $camera = zooGetCurrentCamera();
+
+	//is there already an eazel on the given camera?
+	string $children[] = `listRelatives -pa -ad $camera`;
+	for( $child in $children ) if( `objExists ( $child +".zooEazel" )` ) return $child;
+
+	//otherwise make a new one
+	string $eazel = `group -em`;
+	$eazel = `rename $eazel "zooEazel"`;
+	addAttr -at message -ln zooEazel $eazel;
+
+	zooSetEazelCamera $eazel $camera;
+
+	return $eazel;
+	}
+
+
+//returns the name of the current camera being used by the user - to do this we look at the panel
+//that currently has focus - if this panel is a model panel, query the camera.  if the panel with
+//focus isn't a model panel then we see if there is a panel under the pointer.  if we still haven't
+//found a model panel, then list all visible panels, find the first model panel in the list and
+//return its camera.  if there are no model panels visible, return the first perspective camera
+//found in the scene
+global proc string zooGetCurrentCamera() {
+	string $curPanel = `getPanel -wf`;
+	if( `getPanel -to $curPanel` == "modelPanel" ) {
+		string $camera = `modelPanel -q -cam $curPanel`;
+		if( `nodeType $camera` == "camera" ) $camera = zooGetElement_str(0,`listRelatives -p $camera`);
+		return $camera;
+		}
+
+	//so now see if there is a camera under the pointer
+	$curPanel = `getPanel -up`;
+	if( `getPanel -to $curPanel` == "modelPanel" ) {
+		string $camera = `modelPanel -q -cam $curPanel`;
+		if( `nodeType $camera` == "camera" ) $camera = zooGetElement_str(0,`listRelatives -p $camera`);
+		return $camera;
+		}
+
+	//iterate through all visible model panels and return the camera of the first one found
+	string $panels[] = `getPanel -vis`;
+	for( $panel in $panels ) if( `getPanel -to $panel` == "modelPanel" ) {
+		string $camera = `modelPanel -q -cam $panel`;
+		if( `nodeType $camera` == "camera" ) $camera = zooGetElement_str(0,`listRelatives -p $camera`);
+		return $camera;
+		}
+
+	//iterate through all cameras in the scene and return the first perspective camera found
+	string $cameras[] = `ls -type camera`;
+	for( $cam in $cameras ) if( `getAttr ( $cam +".orthographic" )` == 0 ) return zooGetElement_str(0,`listRelatives -pa -p $cam`);
+
+	//if we get here, then just return the persp camera...
+	return "persp";
+	}
+
+
+global proc string zooInstanceEazel( string $camera ) {
+	string $eazel = `zooGetEazel 1`;
+	string $dupe[] = `instance $eazel`;
+
+	zooSetEazelCamera $dupe[0] $camera;
+
+	return $dupe[0];
+	}
+
+
+global proc string[] zooListEazels( string $camera ) {
+	string $children[] = `listRelatives -pa -ad $camera`;
+	string $eazels[] = {};
+
+	for( $child in $children ) if( `objExists ( $child +".zooEazel" )` ) $eazels[`size $eazels`] = $child;
+
+	return $eazels;
+	}
+
+
+//zoo.end

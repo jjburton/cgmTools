@@ -1,0 +1,115 @@
+// zooChangeSpace
+//
+// this script will store an object's (or multiple objects) world space transforms,
+// execute a mel or set an attribute, and then restore those world space transforms
+// for the object/s.  This is useful for changing attributes which affect the
+// position/rotation of an object such as "parent" attributes for dynamic parenting
+// or "align" attributes which determine where an object inherits its rotation from.
+//
+// more detail on how to use zooChangeSpace can be found at the end of this script
+//
+
+
+//load dependencies
+zooArrays_str;
+zooFlags;
+zooTriggeredUtils;
+zooUtils;
+
+
+//script documentation is at the end of this file
+global proc zooChangeSpace( string $optionStr, string $obj ) {
+	string $optionTemp[] = {};
+	string $sel[] = `ls -sl -tr`;
+	float $pos[] = {};
+	float $rot[] = {};
+
+	if( !`objExists $obj` ) $obj = $sel[0];
+	if( !`objExists $obj` ) return;
+	$pos = `xform -q -ws -rp $obj`;
+	$rot = `xform -q -ws -ro $obj`;
+
+
+	//------
+	//is there a list of objects to store pre command transforms for
+	//------
+	$optionTemp = `zooGetFlagArguments $optionStr objs`;
+	string $objs[] = $optionTemp;
+	float $objsPos[] = {};
+	float $objsRot[] = {};
+	for( $n=0; $n<`size $objs`; $n++ ) $objs[$n] = `zooPopulateCmdStrRaw $obj $objs[$n] {}`;  //an object name in the object list may be a triggered symbol
+	for( $a in $objs ) if( `objExists $a` ) {
+		float $aPos[] = `xform -q -ws -rp $a`;
+		float $aRot[] = `xform -q -ws -ro $a`;
+		for( $b in $aPos ) $objsPos[( `size $objsPos` )] = $b;
+		for( $b in $aRot ) $objsRot[( `size $objsRot` )] = $b;
+		}
+
+
+	//------
+	//if any attributes are specified, set them to their specified value
+	//------
+	$optionTemp = `zooGetFlagArguments $optionStr attr`;
+	if( `size $optionTemp` ) {
+		string $attr = $optionTemp[0];
+		float $val = $optionTemp[1];
+
+		if( `objExists ( $obj+"."+$attr )`) setAttr ( $obj+"."+$attr ) $val;
+		for( $a in $objs ) if( `objExists ( $a+"."+$attr )`) setAttr ( $a+"."+$attr ) $val;
+		}
+
+
+	//------
+	//if there is a cmd flag, execute that command
+	//------
+	$optionTemp = `zooGetFlagArguments $optionStr cmd`;
+	string $cmd = `zooArrayToStr_str $optionTemp " "`;
+
+	$cmd = `zooPopulateCmdStrRaw $obj $cmd {}`;
+	if( $cmd != "" ) eval( "{"+ $cmd +"}" );
+
+
+	//------
+	//now, set the position and rotation values back to what they were
+	//------
+	move -a -ws -rpr $pos[0] $pos[1] $pos[2] $obj;
+	rotate -a -ws $rot[0] $rot[1] $rot[2] $obj;
+
+
+	//------
+	//and for the optional object list as well
+	//------
+	for( $n=0; $n<`size $objs`; $n++ ) {
+		move -a -ws -rpr $objsPos[( $n*3 )] $objsPos[( $n*3+1 )] $objsPos[( $n*3+2 )] $objs[$n];
+		rotate -a -ws $objsRot[( $n*3 )] $objsRot[( $n*3+1 )] $objsRot[( $n*3+2 )] $objs[$n];
+		}
+	}
+
+
+/*
+stores the current world space position/rotation of an object, before executing a command, then restores that position/rotation
+------
+
+this can be used to change the "space" of an object.  for example, on zooCST rigs, the parent attribute determines what
+space the object exists in.
+
+Flags:
+-attr [string] [any]		the attr string will set the listed attribute to the second value
+-cmd [string]				commands listed after the cmd flag will be executed
+-objs [string]			any objects after this flag (space separated) are also affected by this script
+
+example:
+zooChangeSpace "-attr parent 1" object;
+this will change the parent attribute to 1 - without changing the "pose" of the control
+
+example:
+zooChangeSpace "-cmd setAttr .parent 1" object;
+this does exactly the same as the previous example, but using the -cmd flag
+
+example:
+zooChangeSpace "-attr parent 1 -objs nurbsSphere1 nurbsSphere2" object;
+this does exactly the same as the previous example, but using the -cmd flag
+*/
+
+
+//zoo.end

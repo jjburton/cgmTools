@@ -1,0 +1,35 @@
+zooArrays_str;
+zooAlign "";
+
+
+global proc zooParentToChild( string $obj ) {
+	if( !`objExists $obj` ) return;
+	string $parent = zooGetElement_str(0,`listRelatives -f -p $obj`);
+	if( !`objExists $parent` ) return;
+
+	string $axes[] = { "x","y","z" };
+	float $objScale[] = `getAttr ( $obj +".s" )`;
+	float $parentScale[] = `getAttr ( $parent +".s" )`;
+
+	$parentScale[0] *= $objScale[0];
+	$parentScale[1] *= $objScale[1];
+	$parentScale[2] *= $objScale[2];
+
+	string $sel[] = `ls -sl`;
+	string $temp = `group -em`;
+
+	//delete `parentConstraint $obj $temp`;
+	zooAlignSimple $obj $temp;
+	setAttr ( $parent +".s" ) 1 1 1;  //the order the scale is applied in is very important - maya doesn't parent constrain stuff too well when scaling is involved - so don't fuck with ordering
+	zooAlignSimple $temp $parent;
+	zooAlignSimple $temp $obj;
+
+	for( $n=0; $n<3; $n++ ) if( `getAttr -se ( $parent +".s"+ $axes[$n] )` ) setAttr ( $parent +".s"+ $axes[$n] ) $parentScale[$n];
+	for( $n=0; $n<3; $n++ ) if( `getAttr -se ( $obj +".s"+ $axes[$n] )` ) setAttr ( $obj +".s"+ $axes[$n] ) 1;
+	//setAttr ( $obj +".s" ) 1 1 1;
+	delete $temp;
+	select $sel;
+	}
+
+
+//zoo.end

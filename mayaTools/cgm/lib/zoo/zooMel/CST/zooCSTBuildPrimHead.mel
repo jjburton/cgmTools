@@ -1,0 +1,328 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooCSTPrimitives;
+zooSpaceSwitching;
+zooRenamerUtils;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildPrimHead( string $prefix, string $head, string $optionStr ) {
+	echoRigElementCreationCommand ( "zooCSTBuildPrimHead \""+ $prefix +"\" "+ $head +" \""+ $optionStr +"\";" );
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $parents[] = {};
+		string $rootFlag;
+		string $chestFlag;
+		string $headType = "cube";
+		string $neck = "";
+		string $neckType = "pin";
+		string $neckAxis = "";
+		string $colour = "blue 0.92";
+		float $scale = 1;
+		int $orient = 1;
+		int $spaceswitching = 1;
+		int $pickwalking = 1;
+		int $buildNeck = 1;
+		int $neckCount = 1;
+
+		$optionTemp = `zooGetFlagArguments $optionStr root`; if( `size $optionTemp` ) $rootFlag = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr chest`; if( `size $optionTemp` ) $chestFlag = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr neck`; if( `size $optionTemp` ) $neck = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr neckCount`; if( `size $optionTemp` ) $neckCount = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr orient`; if( `size $optionTemp` ) $orient = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr headType`; if( `size $optionTemp` ) $headType = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr neckType`; if( `size $optionTemp` ) $neckType = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr neckAxis`; if( `size $optionTemp` ) $neckAxis = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr spaceswitching`; if( `size $optionTemp` ) $spaceswitching = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr pickwalking`; if( `size $optionTemp` ) $pickwalking = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr buildneck`; if( `size $optionTemp` ) $buildNeck = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr parents`; if( `size $optionTemp` ) $parents = $optionTemp;
+		if( !`objExists $neck` ) $neck = zooGetElement_str( 0,`listRelatives -parent -path $head` );
+		if( !`objExists $neck` ) $buildNeck = 0;
+
+
+	//------
+	//always build the world first - the world creation proc only builds the world once for any given prefix, so a world control is never created more than once
+	//------
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+
+
+	//------
+	//discover the other parts of the rig already built
+	//------
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+		string $masterqss = $worldParts[2];
+		string $qss = $worldParts[3];
+		string $rootControl = zooGetElement_str( 0,`zooGetBrandedWith rootGimbal $prefix` );
+		string $chestControl = zooGetElement_str( 0,`zooGetBrandedWith chest $prefix` );
+
+		if( `objExists $rootFlag` ) $rootControl = $rootFlag;
+		if( `objExists $chestFlag` ) $chestControl = $chestFlag;
+
+
+	//------
+	//build all the control objects
+	//------
+		string $constraints[] = {};
+		string $headControlSpace = `zooBuildControl ( "headSpace" ) ( "-type null -place "+ $head )`;
+		string $headGimbal = `zooBuildControl ( "head_gimbalControl" ) ( "-type starCircle -place "+ $head +" -scale "+(3*$scale)+" -surface 0 -colour "+ $colour )`;
+		string $headControl = `zooBuildControl ( "headControl" ) ( "-type "+ $headType +" -place "+ $head +" -placepivot %p -offset 0.5up -scale "+(1.5*$scale)+" -colour "+ $colour )`;
+		string $neckControlSpace = "";
+		string $neckControls[] = {};
+		string $neckControl = "";
+
+		if( $orient ) delete `orientConstraint $head $headControlSpace`;  //align the control space instead of using an oriented control so it doesn't show in the viewport
+		parent $headControlSpace $worldControl;
+		parent $headControl $headControlSpace;
+		parent $headGimbal $headControl;
+		makeIdentity -a 1 -t 1 -r 1 $headControl;
+		if( `objExists $rootControl` ) parent $headControlSpace $rootControl;
+		if( `objExists $chestControl` ) parent $headControlSpace $chestControl;
+
+		string $neckJoints[] = {};
+		if( $buildNeck ) {
+			//determine what axis to draw the neck using
+			string $axis = zooVectorAsAxis(`zooAxisInDirection $neck {0.,0.,-1.}`);
+			$axis = `substitute "-" $axis "_"`;
+			if( $neckAxis != "" ) $axis = $neckAxis;
+
+			string $neckJoints[] = { $neck };
+			for( $n=1; $n < $neckCount; $n++ ) {
+				string $parent = zooGetElement_str( 0, `listRelatives -pa -p $neckJoints[ $n-1 ]` );
+				$neckJoints[ $n ] = $parent;
+				}
+
+			$neckControl = `zooBuildControl ( "neckControl" ) ( "-axis "+ $axis +" -type "+ $neckType +" -place "+ $neck +" -orient 1 -align %p -scale "+ ($scale*1.3) +" -colour "+ $colour )`;
+			$neckControls[ 0 ] = $neckControl;
+			$neckControlSpace = zooGetElement_str( 0, `listRelatives -p $neckControl` );
+			parent $headControlSpace $neckControl;
+
+			for( $n=1; $n < $neckCount; $n++ ) {
+				string $controlName = "neck_"+ $n +"_Control";
+
+				$n_neckCtrl = `zooBuildControl $controlName ( "-axis "+ $axis +" -type "+ $neckType +" -place "+ $neckJoints[ $n ] +" -orient 1 -align %p -scale "+ ($scale*1.3) +" -colour "+ $colour )`;
+				$neckControls[ `size $neckControls` ] = $n_neckCtrl;
+				}
+
+			for( $n=0; $n < $neckCount - 1; $n++ ) {
+				$n_neckSpace = zooGetElement_str( 0, `listRelatives -p $neckControls[ $n ]` );
+				parent $n_neckSpace $neckControls[ $n + 1 ];
+				}
+
+			string $n_neckSpace = zooGetElement_str( 0, `listRelatives -p $neckControls[ size($neckControls) - 1 ]` );
+			parent $n_neckSpace $worldControl;
+			if( `objExists $rootControl` ) parent $n_neckSpace $rootControl;
+			if( `objExists $chestControl` ) parent $n_neckSpace $chestControl;
+			}
+
+
+	//------
+	//add right click menu to turn on the gimbal control
+	//------
+		string $cmdName = "toggle gimbal control";
+		int $cmd1Num = `zooObjMenuAddCmd $headControl`;
+		int $gimbalIdx = `zooAddConnect $headControl $headGimbal`;
+		string $cmd1Str =  "string $shapes[] = `listRelatives -f -s %"+ $gimbalIdx +"`;\nint $vis = `getAttr ( $shapes[0] +\".v\" )`;\nfor( $s in $shapes ) setAttr ( $s +\".v\" ) (!$vis);";
+
+		zooSetObjMenuCmdName $headControl $cmdName $cmd1Num;
+		zooSetObjMenuCmdStr $headControl $cmd1Str $cmd1Num;
+		setObjMenuKillState $headControl 1;
+		if( $buildNeck )
+			for( $ctrl in $neckControls )
+				setObjMenuKillState $ctrl 1;
+
+
+	//------
+	//create space constraints
+	//------
+		string $headParents[] = { $neckControl, $chestControl, $rootControl, $worldControl };
+		if( `size $parents` ) $headParents = `zooAddArray_str $headParents $parents`;
+		string $spaceNodes[] = {};
+		if( $spaceswitching ) $spaceNodes = `zooBuildSpaceSwitch $headControl $headControlSpace $headParents { "neck", "chest", "root", "world" } "-mo"`;;
+		if( $buildNeck && $spaceswitching ) {
+			for( $n=0; $n < $neckCount; $n++ ) {
+				string $nextNeckCtrl = "";
+				if( $n == $neckCount - 1 ) $nextNeckCtrl = $chestControl;
+				else $nextNeckCtrl = $neckControls[ $n + 1 ];
+
+				string $neckParents[] = { $nextNeckCtrl, $rootControl, $worldControl };
+				string $n_neckSpace = zooGetElement_str( 0, `listRelatives -pa -p $neckControls[ $n ]` );
+				if( `size $parents` ) $neckParents = `zooAddArray_str $neckParents $parents`;
+
+				$spaceNodes = zooAddArray_str( `zooBuildSpaceSwitch $neckControls[ $n ] $n_neckSpace $neckParents { "parent", "root", "world" } "-mo"`, $spaceNodes );
+
+				setAttr -lock false ( $n_neckSpace +".tx" );
+				setAttr -lock false ( $n_neckSpace +".ty" );
+				setAttr -lock false ( $n_neckSpace +".tz" );
+
+				delete -icn ( $n_neckSpace +".tx" );
+				delete -icn ( $n_neckSpace +".ty" );
+				delete -icn ( $n_neckSpace +".tz" );
+
+				setAttr -lock true ( $n_neckSpace +".tx" );
+				setAttr -lock true ( $n_neckSpace +".ty" );
+				setAttr -lock true ( $n_neckSpace +".tz" );
+				}
+			}
+
+		setAttr -lock false ( $headControlSpace + ".tx" );
+		setAttr -lock false ( $headControlSpace + ".ty" );
+		setAttr -lock false ( $headControlSpace + ".tz" );
+
+		delete -icn ( $headControlSpace +".tx" );
+		delete -icn ( $headControlSpace +".ty" );
+		delete -icn ( $headControlSpace +".tz" );
+
+		setAttr -lock true ( $headControlSpace +".tx" );
+		setAttr -lock true ( $headControlSpace +".ty" );
+		setAttr -lock true ( $headControlSpace +".tz" );
+	//------
+	//build pickwalking if required
+	//------
+		if( $pickwalking ) {
+			zooPickwalk "-load";
+			if( $buildNeck ) {
+				zooSetPickwalkObj $neckControl $headControl "-dir up -reciprocal 1";
+				zooSetPickwalkObj $chestControl $neckControl "-dir up -reciprocal 1";
+				}
+			else zooSetPickwalkObj $chestControl $headControl "-dir up -reciprocal 1";
+			}
+
+
+	//------
+	//constrain the skeleton to the controls
+	//------
+		zooAddArray_str $constraints `parentConstraint -mo $headGimbal $head`;
+		if( $buildNeck ) zooAddArray_str $constraints `parentConstraint -mo $neckControl $neck`;
+
+
+	//------
+	//turn unwanted transforms off, so that they are locked, and no longer keyable, and set rotation orders
+	//------
+		string $gimbalShapes[] = `listRelatives -f -s $headGimbal`;
+		setAttr ( $headControl +".ro" ) 3;
+		setAttr ( $headGimbal +".ro" ) 3;
+		for( $s in $gimbalShapes ) setAttr ( $s +".v" ) 0;
+		for( $a in {$headControl,$headGimbal}) {
+			zooAttrState "-attrs t s -k 0 -l 1" $a;
+			zooAttrState "-attrs v -k 0" $a;
+			}
+		if( $buildNeck ) {
+			for( $ctrl in $neckControls ) {
+				setAttr ( $ctrl +".rotateOrder" ) 2;
+				zooAttrState "-attrs t s -k 0 -l 1" $ctrl;
+				zooAttrState "-attrs v -k 0" $ctrl;
+				}
+			}
+
+
+	//------
+	//now brand all objects
+	//------
+		zooBrandObject head $prefix $headControl;
+		zooBrandObject headGimbal $prefix $headGimbal;
+		if( $buildNeck ) zooBrandObject neck $prefix $neckControl;
+
+
+	//------
+	//create a list of controls
+	//------
+		string $controllers[] = { $headControl, $headGimbal };
+		sets -add $qss $headControl $headGimbal;
+		if( $buildNeck ) {
+			for( $ctrl in $neckControls ) {
+				sets -add $qss $ctrl;
+				$controllers[ `size $controllers` ] = $ctrl;
+				}
+			}
+
+
+	//------
+	//build the primitive record
+	//------
+		string $id = `zooCSTGetPrimId head "" $prefix`;
+		string $primitive = `zooCSTCreatePrimRecord head $id $prefix`;
+		zooCSTRegisterInput $head $primitive;
+		zooCSTPrimOutputs { $headControl, $headControlSpace } $primitive;
+		zooCSTPrimOutputs $spaceNodes $primitive;
+		zooCSTPrimOutputs $constraints $primitive;
+		if( $buildNeck ) {
+			zooCSTPrimOutputs $neckControls $primitive;
+			for( $j in $neckJoints ) zooCSTRegisterInput $j $primitive;
+			}
+		zooBrandObject options ( $optionStr +" -buildNeck "+ $buildNeck ) $primitive;
+		zooBrandObject version "6" $primitive;
+		for( $obj in $controllers ) zooCSTRegisterControl $obj $primitive;
+
+
+		zooCSTUtilsRigVis -h;
+		for( $n=0; $n<`size $controllers`; $n++ ) $controllers[$n] = `zooRenamerFunctions replace "[0-9]+$" "" $controllers[$n]`;
+		select $controllers[0];
+
+	return $controllers;
+	}
+
+
+//------
+//this proc deals with rebuilding the head primitive
+//------
+global proc string[] zooCSTRebuildPrimHead( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $version = `zooQueryBrand version $primitive`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+	string $controls[] = `zooCSTListRegistered control $primitive`;
+	int $useExisting = 1;
+
+	string $dupes[] = {};
+	if( `size $controls` ) {
+		$dupes = `duplicate -rc $controls`;  //duplicate the control objects so we can grab the original control shape nodes, to parent under the new controls created
+		parent -w $dupes;
+		}
+
+	$temp = `zooGetFlagArguments $optionStr useExisting`; if( `size $temp` ) $useExisting = $temp[0];
+
+	zooCSTDeletePrimitive $primitive;
+	string $newControls[] = `zooCSTBuildPrimHead $prefix $inputs[0] $optionStr`;
+
+	//parent the shape nodes of the original controls to the transforms of the new controls
+	if( $useExisting ) for( $n=0; $n<`size $newControls`; $n++ ) zooReplaceShape $dupes[$n] $newControls[$n] 0;
+
+	delete $dupes;
+	return $newControls;
+	}
+
+
+/*
+builds a head rig
+-------
+it also rigs the neck if it present - ie the head joint is parented to a neck joint
+
+$prefix - the character prefix used to identify the character
+$spineBase - this is where you want the spine to start - the base
+$spineEnd - this is where you want the spine to terminate - the end
+$optionStr - standard option string
+
+option flags
+-------
+-root [string]			use this flag to explicitly set which object to use as the root - used as a dynamic parent
+-headType [string]	this flag lets you change the representation of the head control - ie circle, cylinder, cone etc...  default is cube
+-neckType [string]	this flag lets you change the representation of the neck control - ie circle, cube, cone etc...  default is cylinder
+-chest [string]			use this flag to explicitly set which object to use as the chest - the primitive is parented to this object
+-buildneck [int]		is the head joint parented to a neck joint?  If not, use -buildneck 0.  default is 1
+-parents [string]		use this to specify an additional list of parents for the dynamic parenting on all spine controls
+-scale [float]			scale factor to apply to the control (purely a visual thing - scale is frozen).  default: 1
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

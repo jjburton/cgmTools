@@ -1,0 +1,18 @@
+{
+string $control[] = {};
+$control[0] = `createNode transform -n "zooControl"`;
+
+string $curve1 = `curve -d 1 -p 0 -0.5 -0.25 -p 0.17678 -0.5 -0.17677 -p 0.25 -0.5 0 -p 0.17678 -0.5 0.17678 -p 0 -0.5 0.25 -p -0.17677 -0.5 0.17678 -p -0.25 -0.5 0 -p -0.17677 -0.5 -0.17677 -p 0 -0.5 -0.25 -p 0 0.5 -0.25 -p -0.17677 0.5 -0.17677 -p -0.25 0.5 0 -p -0.17677 0.5 0.17678 -p 0 0.5 0.25 -p 0.17678 0.5 0.17678 -p 0.25 0.5 0 -p 0.17678 0.5 -0.17677 -p 0 0.5 -0.25`;
+string $curve2 = `curve -d 1 -p -0.17677 0.5 -0.17677 -p -0.17677 -0.5 -0.17677 -p -0.25 -0.5 0 -p -0.25 0.5 0 -p -0.17677 0.5 0.17678 -p -0.17677 -0.5 0.17678 -p 0 -0.5 0.25 -p 0 0.5 0.25 -p 0.17678 0.5 0.17678 -p 0.17678 -0.5 0.17678 -p 0.25 -0.5 0 -p 0.25 0.5 0 -p 0.17678 0.5 -0.17677 -p 0.17678 -0.5 -0.17677`;
+for( $s in `listRelatives -f -s $curve1` ) parent -add -s $s $control[0];
+for( $s in `listRelatives -f -s $curve2` ) parent -add -s $s $control[0];
+delete $curve1;
+delete $curve2;
+string $rev = `curve -d 1 -p 0 -0.49 0 -p 0 -0.49 -0.24 -p 0 0.49 -0.24 -p 0 0.49 0`;
+string $rot[] = `revolve -ch 0 -po 0 -rn 0 -ssw 0 -esw 360 -ut 0 -tol 0.01 -degree 1 -s 8 -ulp 1 -ax 0 1 0 $rev`;
+delete $rev;
+for( $s in `listRelatives -f -s $rot[0]` ) parent -add -s $s $control[0];
+delete $rot;
+
+select $control[0];
+}

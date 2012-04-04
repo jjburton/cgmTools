@@ -17,9 +17,9 @@ import maya
 from maya.mel import eval as evalMel
 from cgm.lib import guiFactory
 
-from zooPy.path import Path, findFirstInEnv, findInPyPath
-from zooPyMaya.baseMelUI import *
-from zooPyMaya.melUtils import printErrorStr
+from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 
 
 def setupCGMScriptPaths():
@@ -38,7 +38,6 @@ def setupCGMScriptPaths():
 		newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
 
 		maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
-
 
 def setupCGMPlugins():
 	thisFile = Path( __file__ )
@@ -199,15 +198,13 @@ def loadCGMPlugin( pluginName ):
 # Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def loadTDTools( *a ):
-	import cgm
-	from cgm.lib import guiFactory
+	import cgm	
 	from cgm.tools import tdTools
 	reload(tdTools)
 	tdTools.run()
 
 def loadAttrTools( *a ):
 	import cgm
-	from cgm.lib import guiFactory
 	from cgm.tools import attrTools
 	reload(attrTools)
 	attrTools.run()
@@ -290,6 +287,10 @@ class ToolboxTabs(MelTabLayout):
 
 
 class ToolboxWindow(BaseMelWindow):
+	from  cgm.lib import guiFactory
+	guiFactory.initializeTemplates()
+	USE_TEMPLATE = 'cgmUITemplate'
+	
 	WINDOW_NAME = 'cgmToolbox'
 	WINDOW_TITLE = 'cgm.Toolbox'
 
@@ -297,15 +298,17 @@ class ToolboxWindow(BaseMelWindow):
 	FORCE_DEFAULT_SIZE = True
 
 	DEFAULT_MENU = None
-	
-	guiFactory.initializeTemplates()
 
 	def __init__( self ):
+		from  cgm.lib import guiFactory
 		guiFactory.initializeTemplates()
+		USE_TEMPLATE = 'cgmUITemplate'
+		
 		self.UI_menu = MelMenu( l='Setup', pmc=self.buildSetupMenu )
 		ToolboxTabs( self )
 		self.show()
 	def buildSetupMenu( self, *a ):
+		
 		self.UI_menu.clear()
 		setupMenu = cmd.optionVar( q='cgmToolboxMainMenu' )
 		MelMenuItem( self.UI_menu, l="Create cgm Tools Menu", cb=setupMenu, c=lambda *a: cmd.optionVar( iv=('cgmToolboxMainMenu', not setupMenu) ) )
@@ -317,6 +320,5 @@ class ToolboxWindow(BaseMelWindow):
 
 #always attempt to setup the toolbox on import
 setupCGMToolBox()
-
 
 #end

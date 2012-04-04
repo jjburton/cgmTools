@@ -1,0 +1,259 @@
+zooArrays_float;
+zooArrays_str;
+zooFlags;
+eval( "source dotProduct" );
+
+
+//dummy proc to auto-source this script
+global proc zooVectors() { return; }
+
+
+//find the pole position and actually does the placement, with optional keying
+global proc zooPlacePole( string $optionStr ) {
+	float $pos[] = `zooFindPolePosition $optionStr`;
+	string $temp[] = {};
+	string $obj = zooGetElement_str(0,`ls -sl`);
+	int $removeKey = 0;
+	int $key = 0;
+
+	$temp = `zooGetFlagArguments $optionStr key`; if( `size $temp` ) $key = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr obj`; if( `size $temp` ) $obj = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr removeKey`; if( `size $temp` ) $removeKey = $temp[0];
+
+	if( !`objExists $obj` ) return;
+	if( `size $pos` == 0 ) {
+		if( $removeKey ) cutKey -t (currentTime("-q")) -cl $obj;
+		return;  //if the position could not be determined, bail
+		}
+
+	move -a -ws -rpr $pos[0] $pos[1] $pos[2] $obj;
+	if( $key ) setKeyframe -at t $obj;
+	}
+
+
+//returns the position of a pole vector that won't affect the orientation of the chain once ik is applied
+//endJoint is the end (ie ankle or wrist) of the 3 joint chain you want to find the pole vector position for
+global proc float[] zooFindPolePosition( string $optionStr ){
+	string $temp[] = {};
+	string $startJoint = "";
+	string $midJoint = "";
+	string $endJoint = "";
+	float $dist = 1.0;
+	int $invalidMode = 0;
+
+	$temp = `zooGetFlagArguments $optionStr start`; if( `size $temp` ) $startJoint = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr mid`; if( `size $temp` ) $midJoint = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr end`; if( `size $temp` ) $endJoint = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr dist`; if( `size $temp` ) $dist = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr invalidMode`; if( `size $temp` ) $invalidMode = $temp[0];
+	if( !`objExists $endJoint` ) {
+		if( $invalidMode == 0 ) return { 0,0,0 };
+		if( $invalidMode == 1 ) return {};
+		}
+
+	string $joint2 = $endJoint;
+	string $joint1 = "";
+	string $joint0 = "";
+
+	if( `objExists $midJoint` ) $joint1 = $midJoint;
+	else {
+		string $parents[] = `listRelatives -pa -p $joint2`;
+		if( `size $parents` ) $joint1 = $parents[0];
+		}
+	if( `objExists $startJoint` ) $joint0 = $startJoint;
+	else {
+		string $parents[] = `listRelatives -pa -p $joint1`;
+		if( `size $parents` ) $joint0 = $parents[0];
+		}
+
+	if( !`objExists $joint0` || !`objExists $joint1` ) {
+		if( $invalidMode == 0 ) return { 0,0,0 };
+		if( $invalidMode == 1 ) return {};
+		}
+	float $pos0[] = `xform -q -ws -rp $joint0`;
+	float $pos1[] = `xform -q -ws -rp $joint1`;
+	float $pos2[] = `xform -q -ws -rp $joint2`;
+	float $midway[] = { ($pos2[0]+$pos0[0])/2, ($pos2[1]+$pos0[1])/2, ($pos2[2]+$pos0[2])/2 };
+	float $vec02[] = { $pos2[0]-$pos0[0], $pos2[1]-$pos0[1], $pos2[2]-$pos0[2] };
+	float $vec01[] = { $pos1[0]-$pos0[0], $pos1[1]-$pos0[1], $pos1[2]-$pos0[2] };
+	float $lengthFactor = sqrt( $vec02[0]*$vec02[0] + $vec02[1]*$vec02[1] + $vec02[2]*$vec02[2] );
+	float $projAB[] = `zooVectorProj $vec02 $vec01`;
+	float $multiplier = 1.0;
+	float $int[] = {};
+	float $sub[] = {};
+
+	$sub = { $pos0[0]+$projAB[0], $pos0[1]+$projAB[1], $pos0[2]+$projAB[2] };
+	$sub = { $pos1[0]-$sub[0], $pos1[1]-$sub[1], $pos1[2]-$sub[2] };
+	$dist *= $lengthFactor;  //the length factor is simply the rough length of the leg.  doing this aims to fit the distance the pole appropriately
+	float $mag = sqrt( $sub[0]*$sub[0] + $sub[1]*$sub[1] + $sub[2]*$sub[2] );
+
+	//if the magnitude is really small, this means the knee angle is really small.  In this case, the behaviour is determined by the invalidMode variable
+	if( $mag < 0.001 ) {
+		//mode 0 simply returns the position of the "mid" object
+		if( $invalidMode == 0 ) return $pos1;
+
+		//mode 1 returns an empty array to indicate the failure state of the script
+		if( $invalidMode == 1 ) return {};
+		}
+	else $multiplier = $dist/$mag;
+	$int[0] = $midway[0] + $sub[0]*$multiplier;
+	$int[1] = $midway[1] + $sub[1]*$multiplier;
+	$int[2] = $midway[2] + $sub[2]*$multiplier;
+
+	return $int;
+	}
+
+
+//returns the vector found by projecting vecB onto vecA
+global proc float[] zooVectorProj( float $vecA[], float $vecB[] ) {
+	float $a[] = $vecA;
+	float $b[] = $vecB;
+	float $magA = `zooVectorMag $a`;
+	float $dot = `dotProduct $a $b 0`;
+	$magA = `pow $magA 2`;
+	$magA = $dot/$magA;
+
+	return { $vecA[0]*$magA, $vecA[1]*$magA, $vecA[2]*$magA };
+	}
+
+
+global proc float zooVectorMag( float $vec[] ) {
+	float $mag = `pow $vec[0] 2` + `pow $vec[1] 2` + `pow $vec[2] 2`;
+	return `sqrt $mag`;
+	}
+
+
+//------
+//returns the axis vector in the object space of a given object
+//------
+global proc float[] zooAxisVector( string $obj, float $vector[] ) {
+	float $transform[] = `xform -q -m -ws $obj`;
+	float $axis[] = `pointMatrixMult $vector $transform`;
+
+	return $axis;
+	}
+
+
+//------
+//returns a vector indicating the axis of an object, closest in orientation to a compare vector.
+//------
+global proc float[] zooAxisInDirection( string $obj, float $vector[] ) {
+	float $objX[] = `zooAxisVector $obj {1.,0.,0.}`;
+	float $objY[] = `zooAxisVector $obj {0.,1.,0.}`;
+	float $objZ[] = `zooAxisVector $obj {0.,0.,1.}`;
+	float $dotX = `dotProduct $vector $objX 1`;
+	float $dotY = `dotProduct $vector $objY 1`;
+	float $dotZ = `dotProduct $vector $objZ 1`;
+	float $dotList[] = {$dotX, $dotY, $dotZ};
+
+	return `zooHighestInDirection $dotList`;
+	}
+
+
+//------
+//returns a unit vector , aiming in the direction of the biggest axis in a given vector
+//example:
+//zooHighestInDirection {8.6,4.3,1.0};
+//returns {1,0,0}  because 8.6 is the highest value
+//------
+global proc float[] zooHighestInDirection( float $vector[] ) {
+	int $highestN = `zooGetBiggestValueIdx_float $vector`;
+	float $highest = $vector[$highestN];
+
+	if ( $highestN == 0 ) if( $highest > 0 ) return {1.,0.,0.};
+		else return {-1.,0.,0.};
+	if ( $highestN == 1 ) if( $highest > 0 ) return {0.,1.,0.};
+		else return {0.,-1.,0.};
+	if ( $highestN == 2 ) if( $highest > 0 ) return {0.,0.,1.};
+		else return {0.,0.,-1.};
+	}
+
+
+//------
+//returns the vector between two objects
+//------
+global proc float[] zooBetweenVector( string $obj1, string $obj2 ) {
+	float $posA[] = `xform -q -ws -rp $obj1`;
+	float $posB[] = `xform -q -ws -rp $obj2`;
+	float $differenceVector[] = {};
+
+	$differenceVector[0] = $posB[0]-$posA[0];
+	$differenceVector[1] = $posB[1]-$posA[1];
+	$differenceVector[2] = $posB[2]-$posA[2];
+
+	return $differenceVector;
+	}
+
+
+//------
+//given a unit vector, returns its name
+//------
+global proc string zooVectorAsAxis( float $vector[] ) {
+	int $rounded[] = {(`zooRoundFloat $vector[0]`),(`zooRoundFloat $vector[1]`),(`zooRoundFloat $vector[2]`)};
+	if( `zooAreArraysEqual_int $rounded {1,0,0}` ) return "x";
+	if( `zooAreArraysEqual_int $rounded {0,1,0}` ) return "y";
+	if( `zooAreArraysEqual_int $rounded {0,0,1}` ) return "z";
+	if( `zooAreArraysEqual_int $rounded {-1,0,0}` ) return "-x";
+	if( `zooAreArraysEqual_int $rounded {0,-1,0}` ) return "-y";
+	if( `zooAreArraysEqual_int $rounded {0,0,-1}` ) return "-z";
+	return "";
+	}
+
+
+//------
+//given an axis name, returns a unit vector
+//------
+global proc float[] zooAxisAsVector( string $axis ) {
+	if( $axis == "x" ) return {1.,0.,0.};
+	if( $axis == "y" ) return {0.,1.,0.};
+	if( $axis == "z" ) return {0.,0.,1.};
+	if( $axis == "-x" ) return {-1.,0.,0.};
+	if( $axis == "-y" ) return {0.,-1.,0.};
+	if( $axis == "-z" ) return {0.,0.,-1.};
+	return {};
+	}
+
+
+//multiplies a vector by a scalar
+global proc float[] zooVectorTimesScalar( float $vector[], float $scalar ) {
+	float $newVector[] = {};
+	int $num = `size $vector`;
+
+	for( $n=0; $n<$num; $n++ ) $newVector[$n] = $vector[$n]*$scalar;
+	return $newVector;
+	}
+
+
+//adds a scalar to all vector array elements
+global proc float[] zooVectorPlusScalar( float $vector[], float $scalar ) {
+	float $newVector[] = {};
+	int $num = `size $vector`;
+
+	for( $n=0; $n<$num; $n++ ) $vector[$n] = $newVector[$n]+$scalar;
+	return $newVector;
+	}
+
+
+//adds two vectors together - deals with vectors are of different sizes too
+global proc float[] zooVectorPlusVector( float $vector1[], float $vector2[] ) {
+	float $vector[] = {};
+	int $num1 = `size $vector1`;
+	int $num2 = `size $vector2`;
+	int $num = $num1>$num2? $num2: $num1;
+
+	for( $n=0; $n<$num; $n++ ) $vector[$n] = $vector1[$n]+$vector2[$n];
+	return $vector;
+	}
+
+
+global proc float[] zooConvertSpace( float $vector[], float $basisX[], float $basisY[], float $basisZ[] ) {
+	float $newVector[] = {};
+	$newVector[0] = dot($vector,$basisX);
+	$newVector[1] = dot($vector,$basisY);
+	$newVector[2] = dot($vector,$basisZ);
+
+	return $newVector;
+	}
+
+
+//zoo.end

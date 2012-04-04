@@ -1,0 +1,564 @@
+//see the end of the script for a breif overview of the zooTriggered architecture
+
+
+zooArrays_str;
+zooArrays_int;
+zooTriggeredUtils;
+zooTriggeredPresets;
+
+
+//dummy proc used to load the utils proc into memory without using the source directive
+global proc zooTriggeredUtils() {
+	return;
+	}
+
+
+//------
+//this proc is fired off when the selection is changed - it basically just sets off the triggers for each object in the trigger list
+//------
+global proc zooTriggerSelection() {
+	string $sel[] = `ls -sl`;
+	int $highlight = `optionVar -q zooTrigHighlighting`;
+
+	for( $a in $sel ) if( `match "[.\[]+" $a` == "" ) zooTriggerObject $a;  //the if statement makes sure the current object isn't an attribute, or a component
+	if( $highlight ) if( `match "[.\[]+" $a` == "" ) {
+		zooHighlightTriggers;
+		if( `exists zooHighlightSelecto` ) zooHighlightSelecto;
+		}
+	}
+
+
+//------
+//simply gets the trigger command from a given object, runs the command string through the command
+//engine, and runs it
+//------
+global proc zooTriggerObject( string $trigger ) {
+	if( !`objExists $trigger` ) return;
+	string $slotPrefix = "zooTrig";
+	string $cmd = `zooTrigGetCmd $trigger`;
+	string $cmdStr = `zooPopulateCmdStr $trigger $cmd {}`;
+
+	catch( `eval $cmdStr` );
+	}
+
+
+global proc zooHighlightTriggers() {
+	string $sel[] = `ls -sl`;
+
+	zooUnhighlightAllTriggers;
+	for( $obj in $sel ) zooHighlightConnectedTriggers $obj;
+	}
+
+
+global proc zooHighlightConnectedTriggers( string $obj ) {
+	string $triggers[] = `zooListConnectedTriggers $obj`;
+	for( $trig in $triggers ) zooHighlightTrigger $trig;
+	}
+
+
+global proc string[] zooListConnectedTriggers( string $obj ) {
+	string $triggers[] = {};
+	string $connectedObjs[] = `listConnections -p 1 -s 0 ( $obj +".message" )`;
+
+	for( $connection in $connectedObjs ) {
+		string $prefix = `match "^[^.]+" $connection`;
+		string $suffix = `match "[^.]+$" $connection`;
+		if( `match "^zooTrig[0-9]+$" $suffix` != "" ) $triggers[( `size $triggers` )] = $prefix;
+		}
+
+	return $triggers;
+	}
+
+
+global proc zooHighlightTrigger( string $trigger ) {
+	if( !`objExists $trigger` ) return;
+	if( `getAttr -se ( $trigger +".overrideEnabled" )`) catchQuiet( `setAttr ( $trigger +".overrideEnabled" ) 1` );
+	if( `getAttr -se ( $trigger +".overrideColor" )`) catchQuiet( `setAttr ( $trigger +".overrideColor" ) 17` );
+	}
+
+
+global proc zooUnhighlightAllTriggers() {
+	string $triggers[] = `zooGetAllTriggers`;
+	for( $trig in $triggers ) if( `getAttr -se ( $trig +".overrideEnabled" )`) catchQuiet( `setAttr ( $trig +".overrideEnabled" ) 0` );
+	}
+
+
+//------
+//this simply puts the command into its own scope - the actual population of the cmd string
+//is done in the proc below
+//------
+global proc string zooPopulateCmdStr( string $trigger, string $cmdStr, string $optionalStrings[] ) {
+	//the {} brackets are added so that any variables declared by the command are local variables only
+	return( "{\n"+ `zooPopulateCmdStrRaw $trigger $cmdStr $optionalStrings` +"\n}" );
+	}
+
+
+//------
+//this is the command engine. it deals with interpreting zooTriggered command strings by populating
+//the command string with real object names. it is this proc that translates symbols into node names
+//
+//it takes an object and a command string. it will replace any symbols with appropriate node names
+//using the connects attached to the given object.
+//
+//the reason it takes a command string separately instead of getting the triggered command from the
+//object is so command strings can be taken from anywhere. as an example, zooObjMenu also uses this
+//proc to populate command strings and execute them. it is also possible to have one object in the
+//scene with connects, and another in the scene containing the commands. this can also be useful for
+//creating customised character menus as used in the zooCharMenu script
+//------
+global proc string zooPopulateCmdStrRaw( string $trigger, string $cmdStr, string $optionalStrings[] ) {
+	string $optionalAsStr = "[r'''"+ `zooArrayToStr_str $optionalStrings "''',r'''"` +"''']";
+	python( "from zooPyMaya import triggered;" );
+	$cmdStr = python( "triggered.Trigger('"+ $trigger +"').resolve('''"+ encodeString($cmdStr) +"''',"+ $optionalAsStr +")" );
+
+	return $cmdStr;
+	}
+
+
+//------
+//purely a convenience function to get connect object names from a command string
+//------
+global proc string[] zooGetConnectsUsedInCmd( string $trigger, string $cmdStr ) {
+	int $connectsUsed[] = `zooGetConnectIdxsUsedInCmd $trigger $cmdStr`;
+	return `zooGetConnectObjsFromList $trigger $connectsUsed`;
+	}
+
+
+//------
+//this proc will search through a triggered command string, and return a list of
+//all the connects used by that command.  the actual connect indicies are returned
+//------
+global proc int[] zooGetConnectIdxsUsedInCmd( string $trigger, string $cmdStr ) {
+	int $connectsUsed[] = {};
+	int $connectSlots[] = `zooGetAllTriggerSlots $trigger`;
+
+	$connectSlots = `zooAddArray_int { 0 } $connectSlots`;
+	while( `match "#+" $cmdStr` != "" ) $cmdStr = `substitute "#+" $cmdStr $trigger`;
+	while( `match "%[0-9]+" $cmdStr` != "" ) {
+		string $custom = `match "%[0-9]+" $cmdStr`;
+		int $targetNum = `substring $custom 2 (size($custom))`;
+
+		$cmdStr = `substitute "%[0-9]+" $cmdStr "_"`;
+		$connectsUsed[( `size $connectsUsed` )] = $targetNum;
+		}
+
+	$connectsUsed = `sort $connectsUsed`;
+	$connectsUsed = `zooRemoveAdjacentDupeItems_int $connectsUsed`;
+	return $connectsUsed;
+	}
+
+
+//------
+//given an int array of connects, returns an array containing the connect objects
+//------
+global proc string[] zooGetConnectObjsFromList( string $trigger, int $connects[] ) {
+	string $objectList[] = `zooGetConnects $trigger`;
+	string $usedObjs[] = {};
+	int $connectSlots[] = `zooGetAllTriggerSlots $trigger`;
+
+	for( $n=0; $n<`size $connects`; $n++ ) {
+		int $idx = `zooGetIdxOfElement_int $connectSlots $connects[$n]`;
+		if( $idx>=0 ) $usedObjs[( `size $usedObjs` )] = $objectList[$idx];
+		}
+
+	return $usedObjs;
+	}
+
+
+//------
+//this proc holds a number of preset command strings
+//------
+global proc string zooPresetTriggerCmds( string $preset ) {
+	string $cmd = "";
+	switch( $preset ) {
+		case "-selectConnected":
+			$cmd = "select -d #;\nselect -add @;";
+			break;
+		case "-keyConnected":
+			string $cmd = "select -d #;\nsetKeyframe @;";
+			break;
+		case "-toggleConnected":
+			string $cmd = "string $sel[] = `ls -sl`;\nint $vis = !`getAttr %1.v`;\nfor($obj in @) setAttr ($obj +\".v\") $vis;\nif( `size $sel` ) select $sel;";
+			break;
+		case "-toolToMove":
+			$cmd = "setToolTo $gMove;";
+			break;
+		case "-toolToRotate":
+			$cmd = "setToolTo $gRotate;";
+			break;
+		}
+
+	return $cmd;
+	}
+
+
+global proc string zooWriteSetAttrCmd( string $trigger, string $objs[] ) {
+	string $cmd = "";
+	for( $obj in $objs ) {
+		string $attrs[] = `listAttr -k -s -v -m $obj`;
+		string $objStr = $obj;
+		int $slots[] = `zooGetConnectSlots $trigger $obj`;
+		if( `size $slots` ) $objStr = "%"+ $slots[0];  //rounding???
+		for( $a in $attrs ) {
+			string $attrType = `getAttr -type ( $obj +"."+ $a )`;
+			if( `match "double" $attrType` != "" ) {
+				float $attrVal = `getAttr ( $obj +"."+ $a )`;
+				$attrVal = `zooRoundFloatTo $attrVal 5`;
+				$cmd += "setAttr "+ $objStr +"."+ $a +" "+ $attrVal +";\n";
+				}
+			else $cmd += "setAttr "+ $objStr +"."+ $a +" "+ `getAttr ( $obj +"."+ $a )` +";\n";
+			}
+		}
+
+	return $cmd;
+	}
+
+
+//------
+//removes all triggered-ness from an object
+//------
+global proc zooRemoveTrigger( string $trigger ) {
+	if( !`objExists ( $trigger +".zooTrigCmd0" )` ) return;
+	deleteAttr -at "zooTrigCmd0" $trigger;
+	int $slots[] = `zooGetUsedTriggerSlots $trigger`;
+	for( $slot in $slots ) deleteAttr -at ( "zooTrig"+ $slot ) $trigger;
+	}
+
+
+//------
+//creates a trigger
+//------
+global proc zooMakeTrigger( string $trigger, string $cmd, string $connects[] ) {
+	zooTrigSetCmd $trigger $cmd;
+	for( $obj in $connects ) zooAddConnect $trigger $obj;
+	}
+
+
+//------
+//returns the triggered command contained on an object - if it has one
+//------
+global proc string zooTrigGetCmd( string $obj ) {
+	string $cmdAttr = "zooTrigCmd0";
+	if( !`objExists ( $obj +"."+ $cmdAttr )`) return "";
+	string $cmd = `getAttr ( $obj +"."+ $cmdAttr )`;
+	return $cmd;
+	}
+
+
+//------
+//sets a trigger command string - if the triggered string attribute doesn't exist, this proc will
+//create it
+//------
+global proc zooTrigSetCmd( string $trigger, string $cmd ) {
+	if( !`objExists $trigger` ) return;
+
+	string $cmdAttr = "zooTrigCmd0";
+	if( !`objExists ( $trigger +"."+ $cmdAttr )` ) addAttr -ln $cmdAttr -dt "string" $trigger;
+	if( $cmd == "" ) {
+		deleteAttr -at $cmdAttr $trigger;
+		return;
+		}
+	setAttr -type "string" ( $trigger +"."+ $cmdAttr ) $cmd;
+	}
+
+
+//------
+//this proc connects an object ( the $connect ) to a given trigger
+//a connected object is literally connected to a connect slot ( which is just an attribute ) on the trigger
+//the slot number that the object is connected to is returned
+//NOTE: an object can only be connected once to a trigger
+//------
+global proc int zooAddConnect( string $trigger, string $connect ) {
+	int $slot = `zooAddConnectTo $trigger $connect -1`;
+	return $slot;
+	}
+
+
+//------
+//adds a new slot to the trigger.  If the forceSlot arg is -1 the next available
+//slot number is used.  Otherwise it can be used to specify a certain number slot
+//to create
+//------
+global proc int zooAddConnectTo( string $trigger, string $connect, int $forceSlot ) {
+	if( !`objExists $trigger` ) return -1;
+	if( !`objExists $connect` ) return -1;
+
+	//get the long name of the objects - this ensures when we get a long name for either, we know we're still dealing with the correct objects
+	$trigger = zooGetElement_str(0,`ls -l $trigger`);
+	$connect = zooGetElement_str(0,`ls -l $connect`);
+	if( $connect == $trigger ) return 0;  //if the user is trying to connect the trigger to itself, return zero which is the reserved slot for the trigger
+
+	//make sure the connect isn't already connected - if it is, return the slot number
+	int $existingSlots[] = `zooGetConnectSlots $trigger $connect`;
+	if( `size $existingSlots` ) return $existingSlots[0];
+
+	string $slotPrefix = "zooTrig";
+	int $slot = $forceSlot;
+
+	if( !$forceSlot ) return 0;
+	if( $forceSlot < 0 ) $slot = `zooGetNextTriggerSlot $trigger`;
+	if( !`objExists ( $trigger +"."+ $slotPrefix + $slot )` ) addAttr -ln( $slotPrefix + $slot ) -at message $trigger;
+	connectAttr -f ( $connect +".msg" ) ( $trigger +"."+ $slotPrefix + $slot );
+	zooCacheConnectName $trigger $slot;
+	return $slot;
+	}
+
+
+//------
+//goes through all connects and makes sure objects are actually connected
+//------
+global proc zooValidateConnects( string $trigger ) {
+	python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').validateConnects();");
+	}
+
+
+//------
+//so this just goes through all connects on an object and re-caches their names
+//------
+global proc zooCacheConnectNames( string $trigger ) {
+	int $slots[] = `zooGetAllTriggerSlots $trigger`;
+	for( $n in $slots ) zooCacheConnectName $trigger $n;
+	}
+
+
+//------
+//so a connect name cache stores the name of the connect
+//------
+global proc zooCacheConnectName( string $trigger, int $slot ) {
+	string $slotPrefix = "zooTrig";
+	string $cacheAttrName = $slotPrefix + $slot +"cache";
+	string $connectName = `zooGetConnectObject $trigger $slot`;
+
+	if( !`objExists ( $trigger +"."+ $cacheAttrName )`) addAttr -ln( $slotPrefix + $slot +"cache" ) -dt "string" $trigger;
+	setAttr ( $trigger +"."+ $cacheAttrName ) -type "string" $connectName;
+	}
+
+
+//------
+//removes a connected object from a trigger
+//------
+global proc zooRemoveConnect( string $trigger, string $connect ) {
+	python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').disconnect('"+ $connect +"');");
+	}
+
+
+//------
+//returns the slots an object is connected to
+//------
+global proc int[] zooGetConnectSlots( string $trigger, string $connect ) {
+	int $slots[] = {};  //this needs to be declared first because maya doesn't know how to convert an empty list to an int array...
+	catchQuiet( $slots = python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').getConnectSlots('"+ $connect +"');") );
+	return $slots;
+	}
+
+
+//------
+//returns an array of all objects connected to the specified trigger
+//------
+global proc string[] zooGetConnects( string $trigger ) {
+	if( !`objExists $trigger`) return {};
+	string $attrs[] = `listAttr -ud $trigger`;
+	string $objects[] = {};
+	string $slotPrefix = "zooTrig";
+	string $matchStr = "^"+ $slotPrefix +"[0-9]+$";
+
+	//so go through the attributes and make sure they're triggered attributes
+	for( $attr in $attrs ) if( `match $matchStr $attr` != "" ) {
+		//now that we've determined its a triggered attribute, trace the connect if it exists
+		int $connect = (int)(`match "[0-9]+$" $attr`)-1;  //because connect numbers always start at 1, we want to change the number to be 0 based - hence the -1
+		string $objPath = `connectionInfo -sfd ( $trigger +"."+ $attr )`;
+		string $cacheAttrName = $trigger +"."+ $slotPrefix + $connect +"cache";
+
+		if( `objExists $objPath` ) $objects[`size $objects`] = `match "^[^.]+" $objPath`;
+
+		//if there is no connect, then check to see if there is a name cache, and query it
+		else if( `objExists $cacheAttrName` ) {
+			string $cacheName = `getAttr $cacheAttrName`;
+			if( `objExists $cacheName` ) $objects[`size $objects`] = $cacheName;
+			}
+		}
+
+	return $objects;
+	}
+
+
+//------
+//returns the name of the object connected to a given slot
+//------
+global proc string zooGetConnectObject( string $trigger, int $connect ) {
+	if( !`objExists $trigger` ) return "";
+	if( $connect == 0 ) return $trigger;
+
+	string $slotPrefix = "zooTrig";
+	string $connectAttr = $trigger+"."+$slotPrefix+$connect;
+
+	if( !`objExists $connectAttr` ) return "";
+	string $connectionInfo = `connectionInfo -sfd ( $trigger+"."+$slotPrefix+$connect )`;
+
+	//if an object is connected, return it - thats what we want
+	if( `objExists $connectionInfo` ) return `match "^[^.]+" $connectionInfo`;
+
+	//if no object is connected, read the name cache and see if an existing node exists, re connect it and return its name
+	if( `objExists ( $trigger +"."+ $slotPrefix + $connect +"cache" )` ) {
+		string $cacheName = `getAttr ( $trigger +"."+ $slotPrefix + $connect +"cache" )`;
+		if( `objExists $cacheName` ) return $cacheName;
+		}
+
+	//obviously no connect was found - return nothing
+	return "";
+	}
+
+
+//------
+//deletes a slot from a trigger
+//------
+global proc zooRemoveTriggerSlots( string $trigger, int $slot ) {
+	python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').disconnect("+ $slot +");");
+	}
+
+
+//------
+//returns the first available connect attr slot number.  ie if a trigger has 4 objects connected to
+//it, on attr numbers 1, 2, 4, 5; then this proc will return 3 as its the first available slot
+//------
+global proc int zooGetNextTriggerSlot( string $trigger ) {
+	int $slots[] = `zooGetAllTriggerSlots $trigger`;
+	int $used[] = `zooGetUsedTriggerSlots $trigger`;
+	int $unused[] = sort(`zooSubtractArray_int $slots $used`);
+	int $next = 1;
+
+	if( `size $unused` ) $next = $unused[0];
+	else if( `size $slots` ) $next = $slots[( `size $slots`-1 )]+1;
+
+	return $next;
+	}
+
+
+//------
+//lists all used slots
+//------
+global proc int[] zooGetUsedTriggerSlots( string $obj ) {
+	string $slotPrefix = "zooTrig";
+	int $slots[] = `zooGetAllTriggerSlots $obj`;
+	int $usedSlots[] = {};
+
+	for( $slot in $slots ) if( `connectionInfo -sfd ( $obj+"."+$slotPrefix+$slot )` != "" ) $usedSlots[( `size $usedSlots` )] = $slot;
+
+	return $usedSlots;
+	}
+
+
+//------
+//lists all slots
+//------
+global proc int[] zooGetAllTriggerSlots( string $trigger ) {
+	if( !`objExists $trigger` ) return {};
+
+	string $attrs[] = `listAttr -ud $trigger`;
+	string $slotPrefix = "zooTrig";
+	string $matchStr = "^"+ $slotPrefix +"[0-9]+$";
+	int $numbers[] = {};
+	int $prefixLength = `size $slotPrefix`;
+	int $lastAttr = 0;
+
+	for( $attr in $attrs ) if( `match $matchStr $attr` != "" ) $numbers[( `size $numbers` )] = (int)`match "[0-9]+$" $attr`;
+	$numbers = `sort $numbers`;
+
+	return $numbers;
+	}
+
+
+//------
+//this proc returns a list of all trigger objects in the scene.
+//------
+global proc string[] zooGetAllTriggers() {
+	string $trigs[] = `ls -r 1 "*.zooTrigCmd0"`;
+	for( $n=0; $n<`size $trigs`; $n++ ) $trigs[$n] = `match "^[^.]+" $trigs[$n]`;
+	return $trigs;
+	}
+
+
+//------
+//loads the script job that deals with running the current selection through the trigger filter
+//command: zooTriggerSelection
+//------
+global proc zooTriggeredLoad() {
+	global int $zooTriggered;
+	if( !$zooTriggered ) {
+		$zooTriggered = `scriptJob -cu 1 -e SelectionChanged ( "zooTriggerSelection" )`;
+		zooTrigUpdateUIState;
+		}
+
+	else warning "already loaded";
+	}
+
+
+//------
+//unloads the triggered scriptJob
+//------
+global proc zooTriggeredUnload() {
+	global int $zooTriggered;
+	if( `scriptJob -ex $zooTriggered` ) {
+		scriptJob -k $zooTriggered;
+		$zooTriggered = 0;
+		zooTrigUpdateUIState;
+		}
+
+	else warning "zooTriggered isn't loaded";
+	}
+
+
+//------
+//returns whether the scriptJob is loaded or not
+//------
+global proc int zooTriggeredState() {
+	global int $zooTriggered;
+	if ( `scriptJob -exists $zooTriggered` && $zooTriggered != 0 ) return 1;
+	return 0;
+	}
+
+
+//deals with updating all UI elements that reflect the zooTriggered load state
+//NOTE - this is the only proc in this utils script that refers to the UI in any
+//way - its simply a convenience to have this proc here so when we need to load
+//zooTriggered, we can simply call zooTriggeredUtils; zooTrigUpdateState;
+global proc zooTrigUpdateUIState() {
+	zooShelveIt;
+	string $buttons[] = `zooGetShelfButtonAll zooTriggered`;
+	int $state = `zooTriggeredState`;
+
+	//update the palettePort if it exists
+	if( `control -ex zooTriggeredPaletteStatus` ) if( $state ) palettePort -e -rgb 0 0 1 0 -redraw zooTriggeredPaletteStatus;
+	else palettePort -e -rgb 0 .75 .75 .75 -redraw zooTriggeredPaletteStatus;
+
+	//update the shelf buttons
+	for( $button in $buttons ) shelfButton -e -image1 ( "zooTriggered_"+ $state +".xpm" ) $button;
+
+	//install rmb menu
+	zooTrigInstallShelfPopup;
+	}
+
+
+//adds the popupMenu to all zooTriggered shelf buttons
+global proc zooTrigInstallShelfPopup() {
+	eval "source zooShelveIt;";
+	string $buttons[] = `zooGetShelfButtonAll zooTriggered`;
+	for( $button in $buttons ) if( `control -exists $button` ) if ( !`shelfButton -q -numberOfPopupMenus $button` ) {
+		popupMenu -p $button;
+		menuItem -l "load control window" -c ( "zooTriggered" );
+		menuItem -d 1;
+		menuItem -l "Help..." -c ( "zooHelp zooTriggered 1" );
+		}
+	}
+
+
+/*
+zooTriggered works by storing mel commands in a string attribute of an object. a selection based scriptJob is loaded. the scriptJob fires of a command that checks all currently selected objects for a zooTriggered command attribute. if one is found, the command is then run through a translation script
+
+the translation script searches for predefined symbols, and replaces the symbols with node names. objects can be connected to the trigger object, and be referred to by a slot number, rather than a hardcoded node name. this removes the dependence on hardcoding node names into mel commands, which is one of the big disadvantages
+
+objects must be connected to the trigger to be referred to in the trigger command. see the technical docs that come with zooTriggered for a list of symbols that the translation proc searches for
+*/
+
+
+//zoo.end

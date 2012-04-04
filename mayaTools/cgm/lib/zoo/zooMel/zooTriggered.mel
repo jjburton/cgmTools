@@ -1,0 +1,514 @@
+//
+// zooTriggered
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 17 May 2003
+//
+// Description:
+// allows you to create "trigger" objects.  Triggers can
+// be configured to do just about anything.
+//
+// Usage:
+//  load the UI using: zooTriggered
+//  you can also install a shelf button from the UI which
+//  reflects the load status of the script
+//
+// macaroniKazoo
+
+
+zooArrays_str;
+zooFlags;
+zooObjMenuUtils;
+zooShelveIt;
+zooTriggeredUtils;
+zooUtils;
+
+
+global proc zooTriggered() {
+	eval( "source zooTriggeredWin;" );
+	}
+
+
+global proc zooBuildTriggeredPresetMenu( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	zooPresetManager;
+	string $locale = "global";
+	string $presets[] = `zooListPresets $locale zooTriggered "trigger"`;
+
+	for( $n=0; $n<`size $presets`; $n++ ) $presets[$n] = `match "^[^.]+" $presets[$n]`;
+	for( $p in $presets ) menuItem -l $p -c( "zooImportTriggers \""+ $p +"\" \"locale global -clear 1 -guessTriggers 1 -guessConnects 1\" {}; zooTriggeredWindowFunctions -updateObjects;" );
+
+	clear $presets;
+	$locale = "local";
+	$presets = `zooListPresets $locale zooTriggered "trigger"`;
+	for( $n=0; $n<`size $presets`; $n++ ) $presets[$n] = `match "^[^.]+" $presets[$n]`;
+	for( $p in $presets ) menuItem -l $p -c( "zooImportTriggers \""+ $p +"\" \"-locale local -clear 1 -guessTriggers 1 -guessConnects 1\" {}; zooTriggeredWindowFunctions -updateObjects;" );
+
+	menuItem -d 1;
+	menuItem -l "manage presets" -c( "zooPresetManagerWin \""+ $locale +"\" zooTriggered trigger;" );
+	}
+
+
+//builds the connects window popupMenu
+global proc zooBuildTrigTriggersPopup( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+	menuItem -l "add select scene objects to list" -c( "zooTriggeredWindowFunctions -addCmd" );
+	menuItem -l "remove highlighted objects" -c( "zooTriggeredWindowFunctions -removeCmd" );
+	menuItem -d 1;
+	menuItem -l "highlight selected" -c( "zooTriggeredWindowFunctions -loadSelected" );
+	menuItem -l "select highlighted" -c( "zooTriggeredWindowFunctions -selectTrigger" );
+	}
+
+
+//builds the connects window popupMenu
+global proc zooBuildTrigConnectsPopup( string $parent ) {
+	string $selObjs[] = `ls -sl`;
+	string $obj = zooGetElement_str(0,`textScrollList -q -si zooTriggeredScrollObjects`);
+	string $connects[] = `textScrollList -q -si zooTriggeredScrollTargets`;
+	string $lbl = "-no connects selected-";
+	string $msg = "";
+	int $slots[] = `zooGetConnectSlots $obj $connects[0]`;
+	int $high = `size $connects`;
+	int $sel = `size $selObjs`;
+
+	if( `size $slots` ) $msg = "\"this connect is connect number "+ $slots[0] +". Use the %"+ $slots[0] +" symbol in the trigger command to refer to this object\\n\"";
+	else $msg = "\"this connects is connected to slots: "+ `zooArrayToStr_int $slots ", "` +".\\n\"";
+
+	setParent -m $parent;
+	menu -e -dai $parent;
+	if( $high > 1 ) $lbl = "-multiple connects selected-";
+	if( $high == 1 ) {
+		if( `size $slots` == 1 ) $lbl = "slot number "+ $slots[0];
+		else $lbl = "slot numbers "+ `zooArrayToStr_int $slots ", "`;
+		}
+
+	menuItem -en $sel -l "add selected to connects" -c( "zooTriggeredWindowFunctions -addConnect;" );
+	menuItem -en $sel -l "add as specific connect..." -c( "zooTriggeredWindowFunctions -addCustomConnect;" );
+	menuItem -en( $sel==1 && $high==1 ) -l "replace connect with selected" -ann "replaces the highlighted connect with either the selected object OR a user specified string" -c( "zooTriggeredWindowFunctions -replaceConnect;" );
+	menuItem -l "replace connect and fix cmds" -ann "" -c( "zooTriggeredWindowFunctions -replaceConnect" );
+	if( `size $slots` == 1 ) menuItem -en $high -l "disconnect highlighted" -c( "zooTriggeredWindowFunctions -removeConnect;" );
+	menuItem -d 1;
+	menuItem -en $sel -l "highlight selected" -c( "zooTriggeredWindowFunctions -highlightSelConnects;" );
+	menuItem -l "highlight all" -c( "{for( $a in `textScrollList -q -ai zooTriggeredScrollTargets` ) textScrollList -e -si $a zooTriggeredScrollTargets;}" );
+	menuItem -d 1;
+	menuItem -en $high -l "select highlighted" -c( "select `textScrollList -q -si zooTriggeredScrollTargets`;" );
+	menuItem -l "select all" -c( "select `textScrollList -q -ai zooTriggeredScrollTargets`;" );
+	menuItem -d 1;
+	if( `size $slots` == 1 ) menuItem -en $high -l $lbl -c( "print "+ $msg +";" );
+	else for( $slot in $slots ) {
+		menuItem -en $high -l( "disconnect from slot "+ $slot ) -c( "zooRemoveTriggerSlots "+ $obj +" "+ $slot +";" );
+		}
+	menuItem -d 1;
+	menuItem -l "validate connects" -c( "zooValidateConnects "+ $obj +"; zooTriggeredWindowFunctions -updateConnects;" );
+	}
+
+
+//builds the command window popupMenu
+global proc zooBuildTrigPresetPopup( string $parent ) {
+	int $cmdViewMode = `optionVar -ex zooTrigViewMode`? `optionVar -q zooTrigViewMode`: 0;
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $obj = zooGetElement_str(0,`textScrollList -q -si zooTriggeredScrollObjects`);
+	int $slots[] = `zooObjMenuListCmds $obj`;
+	int $slotIdx = zooGetElement_int(0,`textScrollList -q -sii zooTriggeredScrollCmdNameList`)-1;
+	int $slot = -1;
+	int $enableMenu = 1;
+
+	if( $slotIdx >= 0 ) $slot = $slots[$slotIdx];
+
+	//determine whether to make the menu available or not
+	if( !`objExists $obj` ) $enableMenu = 0;
+	if( $cmdViewMode ) if( $slot < 0 ) $enableMenu = 0;
+
+	menuItem -en $enableMenu -l "connects setAttr preset" -c( "zooTriggeredWindowFunctions -applySetAttrCmd" );
+	menuItem -en $enableMenu -l "connects setAttr preset (all connects)" -c( "zooTriggeredWindowFunctions -applySetAttrCmdAll" );
+	menuItem -en $enableMenu -l "select targets preset" -c( "zooApplyTriggerPreset -selectConnected" );
+	menuItem -en $enableMenu -l "key targets preset" -c( "zooApplyTriggerPreset -keyConnected" );
+	menuItem -en $enableMenu -l "toggle targets preset" -c( "zooApplyTriggerPreset -toggleConnected" );
+
+	if( !$cmdViewMode ) {
+		menuItem -en $enableMenu -l "use move tool preset" -c( "zooApplyTriggerPreset -toolToMove" );
+		menuItem -en $enableMenu -l "use rotate tool preset" -c( "zooApplyTriggerPreset -toolToRotate" );
+		}
+
+	menuItem -d 1;
+	menuItem -en $enableMenu -l "highlight connects used in cmd" -c( "zooTriggeredWindowFunctions -highlightUsedConnects" );
+	menuItem -d 1;
+	menuItem -en $enableMenu -l "scrub cmd" -ann "will remove any lines that contain references to connects that don't exist" -c( "zooTriggeredWindowFunctions -scrubCmd;" );
+	menuItem -en $enableMenu -l "resolve cmd" -ann "performs a \"bake\" on the trigger command - ie converts all symbols to their resolved string.  if you just want to check how a cmd resolves, then use the \"preview command\" option" -c( "zooTriggeredWindowFunctions -resolve;" );
+	menuItem -en $enableMenu -l "unresolve cmd" -ann "tries to unresolve a resolved cmd - NOTE: this rarely works perfectly.  the unresolving can currently only unresolve single connect tokens" -c( "zooTriggeredWindowFunctions -unresolve;" );
+	}
+
+
+global proc zooBuildTrigCmdPopup( string $parent ) {
+	int $cmdViewMode = `optionVar -ex zooTrigViewMode`? `optionVar -q zooTrigViewMode`: 0;
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $obj = zooGetElement_str(0,`textScrollList -q -si zooTriggeredScrollObjects`);
+	int $selectedOnlyPref = `optionVar -q zooTriggeredPosesSelectedOnly`;
+	int $enable = 1;
+	int $slots[] = `zooObjMenuListCmds $obj`;
+	int $slotIdx = zooGetElement_int(0,`textScrollList -q -sii zooTriggeredScrollCmdNameList`)-1;
+	int $slot = -1;
+
+	if( $slotIdx >= 0 ) $slot = $slots[$slotIdx];
+	if( $slot < 0 ) $enable = 0;
+	menuItem -l "new cmd..." -c( "zooObjMenuAddCmd "+ $obj +"; zooTriggeredWindowFunctions -updateCmdList;" );
+	menuItem -en $enable -l "delete cmd" -c( "zooRemoveMenu "+ $obj +" "+ $slot +"; zooTriggeredWindowFunctions -updateCmdList;" );
+	menuItem -d 1;
+	menuItem -d 1;
+	menuItem -d 1;
+	menuItem -en $enable -l "scrub this cmd" -ann "removes all references to dead connects from the menu cmd string" -c( "python(\"from zooPyMaya import triggered; triggered.Trigger('"+ $obj +"').scrubMenuCmd("+ $slot +");\"); zooTriggeredWindowFunctions -updateCmd;" );
+	menuItem -en $enable -l "scrub all cmds" -ann "does a scrub on ALL menu items" -c( "python(\"from zooPyMaya import triggered; triggered.Trigger('"+ $obj +"').scrubMenuCmds();\"); zooTriggeredWindowFunctions -updateCmd;" );
+	menuItem -d 1;
+	menuItem -d 1;
+	menuItem -d 1;
+	menuItem -l "poses to sliders" -c( "select "+ $obj +"; zooPosesToSliders \"\";" );
+	menuItem -l "poses to sliders (preserve)" -c( "select "+ $obj +"; zooPosesToSliders \"-preserve 1\";" );
+	menuItem -l "apply pose to selected only" -cb $selectedOnlyPref -ann "only lines that contain references to the selected connects will be evaluated" -c( "optionVar -iv zooTriggeredPosesSelectedOnly #1;" );
+	}
+
+
+global proc zooTriggeredWindowFunctions( string $function ) {
+	python("from zooPyMaya import triggered");
+
+	global int $zooTriggered;
+	string $windowName = "zooTriggeredWindow";
+	string $cmdStrAttr = "zooTrigCmd0";
+	string $trigger = zooGetElement_str(0,`textScrollList -q -si zooTriggeredScrollObjects`);
+	int $slots[] = `zooObjMenuListCmds $trigger`;
+	int $slotIdx = zooGetElement_int(0,`textScrollList -q -sii zooTriggeredScrollCmdNameList`)-1;
+	int $slot = -1;
+	int $cmdViewMode = `optionVar -ex zooTrigViewMode`? `optionVar -q zooTrigViewMode`: 0;
+	int $all = 0;
+
+	if( $slotIdx >= 0 ) $slot = $slots[$slotIdx];
+	switch( $function ) {
+		case "-clear":
+			textScrollList -e -ra zooTriggeredScrollObjects;
+			textScrollList -e -ra zooTriggeredScrollTargets;
+			textScrollList -e -ra zooTriggeredScrollCmdNameList;
+			textField -e -tx "" zooTriggeredTextCmdName;
+			scrollField -e -ed 1 -tx "" zooTriggeredTextCustom;
+			zooTriggeredWindowFunctions -updateObjects;
+			break;
+		case "-updateFrame":
+			if( $cmdViewMode ) formLayout -e -ap zooTriggeredTextCustom "right" 0 70 zooTrigEditCmdForm;
+			else formLayout -e -ap zooTriggeredTextCustom "right" 0 100 zooTrigEditCmdForm;
+
+			//update the command string frame label
+			string $lbl = "zooTriggered command string:";
+			if( $cmdViewMode ) $lbl = "zooObjMenu command string:";
+			text -e -l $lbl zooTrigTextLowerCmdStrLbl;
+
+			//update the command name label
+			$lbl = "";
+			if( $cmdViewMode ) $lbl = "menu label:";
+			text -e -l $lbl zooTrigTextLowerCmdNameLbl;
+
+			//update the object list label
+			$lbl = "zooTriggered objects";
+			if( $cmdViewMode ) $lbl = "zooObjMenu objects";
+			text -e -l $lbl zooTrigObjListLbl;
+			break;
+		case "-updateObjects":
+			//update the list of zooTriggered! objects
+			string $objList[] = {};
+			if( $cmdViewMode ) $objList = `zooGetObjsWithMenus`;
+			else $objList = `zooGetAllTriggers`;
+
+			textScrollList -e -ra zooTriggeredScrollObjects;
+			for( $a in $objList ) textScrollList -e -a $a zooTriggeredScrollObjects;
+			break;
+		case "-updateConnects":
+			//update target list
+			string $targets[] = `zooGetConnects $trigger`;
+			textScrollList -e -ra zooTriggeredScrollTargets;
+			for( $a in $targets ) textScrollList -e -a $a zooTriggeredScrollTargets;
+			break;
+		case "-updateCmd":
+			string $cmdStr = "";
+			int $filtered = `checkBox -q -v zooTriggeredCheckFiltered`;
+			int $preview = `checkBox -q -v zooTriggeredCheckPreview`;
+
+			if( $cmdViewMode ) {
+				if( $slot >= 0 ) {
+					string $cmdName = `zooGetObjMenuCmdName $trigger $slot`;
+					$cmdStr = `zooGetObjMenuCmdStr $trigger $slot`;
+					textField -e -en 1 -tx $cmdName zooTriggeredTextCmdName;
+					}
+				else textField -e -en 0 -tx "" zooTriggeredTextCmdName;
+				}
+			else $cmdStr = `zooTrigGetCmd $trigger`;
+
+			if( $filtered ) {
+				string $connects[] = `textScrollList -q -si zooTriggeredScrollTargets`;
+				python("tmp = triggered.Trigger('"+ $trigger +"')");
+				$cmdStr = python("tmp.filterConnects('"+ encodeString($cmdStr) +"', tmp.getConnectIndiciesForObjects( ['"+ `zooArrayToStr_str $connects "','"` +"'] ))");
+				}
+
+			if( $preview ) $cmdStr = `zooPopulateCmdStr $trigger $cmdStr {}`;
+
+			if( $preview || $filtered ) scrollField -e -ed 0 -tx $cmdStr zooTriggeredTextCustom;
+			else scrollField -e -ed 1 -tx $cmdStr zooTriggeredTextCustom;
+			break;
+		case "-updateCmdList":
+			//updates the list of menu commands
+			if( !$cmdViewMode ) return;
+			int $cmdSlots[] = `zooObjMenuListCmds $trigger`;
+			textScrollList -e -ra zooTriggeredScrollCmdNameList;
+			if( $slot >= 0 ) {
+				textField -e -en 0 -tx "" zooTriggeredTextCmdName;
+				scrollField -e -tx "" zooTriggeredTextCustom;
+				}
+			for( $slot in $cmdSlots ) {
+				string $name = `zooGetObjMenuCmdName $trigger $slot`;
+				if( $name == "" ) $name = "<empty cmd>";
+				textScrollList -e -a $name zooTriggeredScrollCmdNameList;
+				}
+			textField -e -en 0 -tx "" zooTriggeredTextCmdName;
+			scrollField -e -tx "" zooTriggeredTextCustom;
+
+			int $killState = python("triggered.Trigger('"+ $trigger +"').getKillState()");
+			checkBox -en 1 -e -v $killState zooTriggeredKillState;
+			break;
+		case "-updateTrigger":
+			textScrollList -e -ra zooTriggeredScrollTargets;
+			zooTriggeredWindowFunctions -updateConnects;
+			zooTriggeredWindowFunctions -updateCmdList;
+			zooTriggeredWindowFunctions -updateCmd;
+			break;
+		case "-switchToTriggered":
+			optionVar -iv zooTrigViewMode 0;
+			menuItem -e -cb 1 zooTrigViewMode0;
+			menuItem -e -cb 0 zooTrigViewMode1;
+			zooTriggeredWindowFunctions -updateFrame;
+			zooTriggeredWindowFunctions -clear;
+			break;
+		case "-switchToObjMenu":
+			optionVar -iv zooTrigViewMode 1;
+			menuItem -e -cb 0 zooTrigViewMode0;
+			menuItem -e -cb 1 zooTrigViewMode1;
+			zooTriggeredWindowFunctions -updateFrame;
+			zooTriggeredWindowFunctions -clear;
+			checkBox -en 0 -e -v $killState zooTriggeredKillState;
+			break;
+		case "-loadSelected":
+			string $selObjs[] = `ls -sl`;
+			textScrollList -e -si $selObjs[0] zooTriggeredScrollObjects;
+			zooTriggeredWindowFunctions -updateTrigger;
+			break;
+		case "-highlightSelConnects":
+			string $selObjs[] = `ls -sl`;
+			string $connects[] = `zooGetConnects $trigger`;
+			string $selConnects[] = `zooIntersectArray_str $connects $selObjs`;
+
+			textScrollList -e -da zooTriggeredScrollTargets;
+			for( $obj in $selConnects ) textScrollList -e -si $obj zooTriggeredScrollTargets;
+			break;
+		case "-highlightUsedConnects":
+			string $usedObjs[] = `zooGetConnectsUsedInCmd $trigger (zooGetObjMenuCmdStr($trigger,$slot))`;
+
+			textScrollList -e -da zooTriggeredScrollTargets;
+			for( $obj in $usedObjs ) textScrollList -e -si $obj zooTriggeredScrollTargets;
+			break;
+		case "-scrubCmd":
+			if( $cmdViewMode ) python("triggered.Trigger('"+ $trigger +"').scrubMenuCmd("+ $slot +")");
+			else python("triggered.Trigger('"+ $trigger +"').scrubCmd()");
+			zooTriggeredWindowFunctions -updateCmd;
+			break;
+		case "-selectTrigger":
+			select `textScrollList -q -si zooTriggeredScrollObjects`;
+			break;
+		case "-printSetAttrCmd":
+			string $connects[] = `textScrollList -q -si zooTriggeredScrollTargets`;
+			print `zooWriteSetAttrCmd $trigger $connects`;
+			break;
+		case "-applySetAttrCmdAll":
+			$all = 1;
+		case "-applySetAttrCmd":
+			string $connects[] = `textScrollList -q -si zooTriggeredScrollTargets`;
+			if( !`size $connects` ) $connects = `zooGetConnects $trigger`;
+			if( $all ) $connects = `zooGetConnects $trigger`;
+			string $cmd = `zooWriteSetAttrCmd $trigger $connects`;
+
+			if( $cmdViewMode ) zooSetObjMenuCmdStr $trigger $cmd $slot;
+			else {
+				if( $cmd != "" ) zooTrigSetCmd $trigger $cmd;
+				else zooTrigSetCmd $trigger "//blank";
+				}
+			zooTriggeredWindowFunctions -updateCmd;
+			break;
+		case "-addCmd":
+			string $sel[] = `ls -sl`;
+			if( $cmdViewMode ) for( $a in $sel ) zooObjMenuAddCmd $a;
+			else for( $a in $sel ) zooTrigSetCmd $a "//blank";
+			zooTriggeredWindowFunctions -updateObjects;
+			break;
+		case "-removeCmd":
+			string $triggers[] = `textScrollList -q -si zooTriggeredScrollObjects`;
+			if( $cmdViewMode ) for( $a in $triggers ) zooRemoveAllMenus $a;
+			else for( $a in $triggers ) zooRemoveTrigger $a;
+			zooTriggeredWindowFunctions -updateObjects;
+			zooTriggeredWindowFunctions -updateCmd;
+			break;
+		case "-addConnect":
+			if( !`objExists $trigger` ) break;
+			string $sel[] = `ls -sl`;
+
+			for( $a in $sel ) zooAddConnect $trigger $a;
+			zooTriggeredWindowFunctions -updateConnects;
+			break;
+		case "-addCustomConnect":
+			if( !`objExists $trigger` ) break;
+			string $ans = `promptDialog -t "add connect" -m "enter slot number:\n(if the slot is already taken, this will\nreplace the object connected on that slot)" -b "OK" -b "Cancel" -db "Cancel"`;
+			string $text = `promptDialog -q -tx`;
+			string $sel[] = `ls -sl`;
+
+			$text = `match "[0-9]+" $text`;
+			if( $ans == "OK" ) if( $text != "" ) {
+				int $slot = $text;
+				zooAddConnectTo $trigger $sel[0] $slot;
+				zooTriggeredWindowFunctions -updateConnects;
+				}
+			break;
+		case "-replaceConnect":
+			if( !`objExists $trigger` ) break;
+			string $sel[] = `ls -sl`;
+			string $connects[] = `textScrollList -q -si zooTriggeredScrollTargets`;
+			int $connect = zooGetElement_int(0,`zooGetConnectSlots $trigger $connects[0]`);
+			string $ans = `promptDialog -t "replace connect with..." -m( "type an object name or arbitrary string to replace connect "+ $slot +" with" ) -tx $sel[0] -b "OK" -b "Cancel" -db "OK"`;
+
+			if( $ans != "OK" ) return;
+
+			string $obj = `promptDialog -q -tx`;
+			print( $obj +"\n" );
+			if( `objExists $obj` ) zooAddConnectTo $trigger $obj $connect;
+			else {
+				if( $cmdViewMode ) python("triggered.Trigger('"+ $trigger +"').replaceConnectInMenuCmd("+ $slot +","+ $connect +",'"+ $obj +"')");
+				else python("triggered.Trigger('"+ $trigger +"').replaceConnectInCmd("+ $connect +",'"+ $obj +"')");
+				}
+			zooTriggeredWindowFunctions -updateConnects;
+			zooTriggeredWindowFunctions -updateCmd;
+			break;
+		case "-removeConnect":
+			if( !`objExists $trigger` ) break;
+			string $connects[] = `textScrollList -q -si zooTriggeredScrollTargets`;
+			for( $a in $connects ) zooRemoveConnect $trigger $a;
+			zooTriggeredWindowFunctions -updateConnects;
+			break;
+		case "-saveName":
+			string $cmdName = `textField -q -tx zooTriggeredTextCmdName`;
+			zooSetObjMenuCmdName $trigger $cmdName $slot;
+			textScrollList -e -rii($slotIdx+1) zooTriggeredScrollCmdNameList;
+			textScrollList -e -ap($slotIdx+1) $cmdName zooTriggeredScrollCmdNameList;
+			textScrollList -e -sii($slotIdx+1) zooTriggeredScrollCmdNameList;
+			break;
+		case "-saveCmd":
+			string $newCmd = `scrollField -q -tx zooTriggeredTextCustom`;
+			if( $cmdViewMode ) zooSetObjMenuCmdStr $trigger $newCmd $slot;
+			else zooTrigSetCmd $trigger $newCmd;
+			break;
+		case "-remAll":
+			string $selectedObj[] = `textScrollList -q -si zooTriggeredScrollObjects`;
+			zooRemoveTrigger $selectedObj[0];
+			zooTriggeredWindowFunctions -updateObjects;
+			break;
+		case "-remCmd":
+			string $selectedObj[] = `textScrollList -q -si zooTriggeredScrollObjects`;
+			deleteAttr -at "zooTrigCmd0" $selectedObj[0];
+			zooTriggeredWindowFunctions -updateObjects;
+			break;
+		case "-export":
+			string $ans = `promptDialog -t "export selected triggers" -m "preset name" -tx "trigger" -b "OK" -b "Cancel" -db "OK"`;
+			if( $ans != "OK" ) return;
+			string $preset = `promptDialog -q -tx`;
+			string $sel[] = {};
+
+			if( `objExists $trigger` ) $sel = {$trigger};
+			else $sel = `ls -sl`;
+			if( !`size $sel` ) return;
+			zooExportTriggers $sel $preset;
+			break;
+		case "-executeCmd":
+			if( $cmdViewMode ) if( $slot >= 0 ) {
+				int $selectedOnlyPref = `optionVar -q zooTriggeredPosesSelectedOnly`;
+				string $cmd = `zooGetObjMenuCmdStr $trigger $slot`;
+
+				if( $selectedOnlyPref ) {
+					python("tmp = triggered.Trigger('"+ $trigger +"')");
+					$cmd = python("tmp.evalForConnectsOnly( tmp.getMenuCmd("+ $slot +"), tmp.getConnectIndiciesForObjects() )");
+					}
+				else $cmd = `zooPopulateCmdStr $trigger $cmd {}`;
+
+				eval( $cmd );
+				}
+			break;
+		case "-setKillState":
+			int $killState = `checkBox -q -v zooTriggeredKillState`;
+			python("triggered.Trigger('"+ $trigger +"').setKillState("+ $killState +")");
+			break;
+		case "-resolve":
+			python("tmp = triggered.Trigger('"+ $trigger +"')");
+			if( $cmdViewMode ) {
+				if( $slot >= 0 ) python("tmp.setMenuCmd( "+ $slot +", tmp.resolve( tmp.getMenuCmd("+ $slot +") ) )");
+				}
+			else python("tmp.setCmd( tmp.resolve( tmp.getCmd() ) )");
+			zooTriggeredWindowFunctions -updateCmd;
+			break;
+		case "-unresolve":
+			python("tmp = triggered.Trigger('"+ $trigger +"')");
+			if( $cmdViewMode ) {
+				if( $slot >= 0 ) python("tmp.setMenuCmd( "+ $slot +", tmp.unresolve( tmp.getMenuCmd("+ $slot +") ) )");
+				}
+			else python("tmp.setCmd( tmp.unresolve( tmp.getCmd() ) )");
+			zooTriggeredWindowFunctions -updateCmd;
+			break;
+		}
+	}
+
+
+//applies a preset to an object
+global proc zooApplyTriggerPreset( string $preset ) {
+	string $sel[] = `textScrollList -q -si zooTriggeredScrollObjects`;
+	string $trigger = $sel[0];
+	int $slots[] = `zooObjMenuListCmds $trigger`;
+	int $slotIdx = zooGetElement_int(0,`textScrollList -q -sii zooTriggeredScrollCmdNameList`)-1;
+	int $slot = -1;
+	int $cmdViewMode = `optionVar -ex zooTrigViewMode`? `optionVar -q zooTrigViewMode`: 0;
+
+	if( $slotIdx >= 0 ) $slot = $slots[$slotIdx];
+	if( $cmdViewMode ) zooSetObjMenuCmdStr $trigger `zooPresetTriggerCmds $preset` $slot;
+	else zooTrigSetCmd $trigger `zooPresetTriggerCmds $preset`;
+	zooTriggeredWindowFunctions -updateCmd;
+	}
+
+
+//installs a shelf buttons for zooTriggered on the current shelf
+global proc zooTriggeredSetup() {
+	eval "source zooShelveIt;";
+	string $button = `zooInstallShelfButton zooTriggered`;
+	string $image = "zooTriggered_"+ `zooTriggeredState` +".xpm";
+	string $cmd = "source zooTriggered; source zooTriggeredUtils; if (`zooTriggeredState`) zooTriggeredUnload; else zooTriggeredLoad;";
+
+	shelfButton -e -image1 $image -label "zooTriggered! shelf button" -ann "load/unload zooTriggered! - right click for additional options" -command $cmd $button;
+	zooTrigInstallShelfPopup;
+	}
+
+
+global proc string zooTriggeredInfo( string $function ) {
+	string $creationDate = "17 May 2003";
+	string $version = "4.08.05";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "version" ) return $version;
+	return "";
+	}
+
+
+//zoo.end

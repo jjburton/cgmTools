@@ -1,0 +1,98 @@
+Overview
+------
+zooShots is a camera management tool.  It allows you to have multiple free cameras in your scene, and have them drive a single, master camera, that is automatically setup to cut between shots etc.  Like most zoo tools, its fully scriptable, and can be controlled from other scripts, or easily added into other UIs.
+
+
+Starting Out
+------
+The first thing that you need to do is tell zooShots what camera you want to use as the master camera.  To do so, simply select the camera you want as the master, and right click on the word "master camera" in the zooShots window, and select the "load master camera" menu item.  This will load the camera you had selected into the UI.  Next tell shots what your last frame is - enter this value is down in the bottom right corner of the UI.
+
+Now we just have to start adding shots.  To create a new shot, select the camera you want to use, and right click on nameField next to the word "new" in the zooShots window.  Now type in the frame you want that shot to start on, and hit the "make" button.
+
+Each shot starts on the frame specified, and ends the frame before the next shot.  The final shot ends on the last frame specified in the bottom right hand corner of the shots window.
+
+After pressing the make button, you should see the camera get added to the shot list.  Each shot in your scene is represented by a row telling you which camera a shot is using, which frame that shot starts on, and which frame the shot ends on.  It also has a few buttons that allow you to quickly and easily change the timeline to the range of a shot.  You can add as many shots as you need, and use any camera as many times in the shot list as you want.  You can also quickly change the start time for any shot at any time.
+
+
+Auto Updating
+------
+when the auto update button is shaded green, auto updating is turned on.  When on, everytime you make a change to a shot, the constraints on the master camera are automatically rebuilt to reflect the latest changes.  For scenes with many shots (20 or more) this can cause a minor delay which can be frustrating.  Turning auto update off allows you to manually update when the master camera is rebuilt by using the menu item Shots->Update Master Camera
+
+
+Disabling Shots
+------
+zooShots also lets you disable a shot in your shot list.  Disabling a shot means the master camera "skips" over it.  Basically the shot stays in your list, but it gets ignored.  This is useful for when you want to see how a sequence plays without a particular shot.
+
+
+Locking Shot Cameras
+------
+Sometimes while you're animating it can be easy to forget that you're viewing your scene through one of the shot cameras, and you'll accidentally move it to get a better view of your character without thinking.  If you don't pick up on this straight away, it can cause headaches later on down the track when you realise one of your carefully placed shots has been shifted.
+
+zooShots allows you to quickly and easily lock a shot from within the UI.  The first button to the right of the end time button is the lock toggle button.  Pressing this button toggles a shot camera between locked and unlocked.  When a shot camera is locked, this button turns dark grey - the same colour as a locked channel in the channelBox.  You can also right click any of these buttons to lock/unlock multiple shots at once.
+
+
+Leaving Notes
+------
+You can also leave notes to yourself or other people using your scene.  This is useful for layout artists to leave notes to the animators, or its also useful for animators to leave notes to themselves on changes to make, alternatives to try, or even questions or alternatives to suggest to the director.  Regardless of what you use it for, zooShots lets you save shot dependant notes with your scene.
+
+When a shot has a note attached to it, the notes button turns almost white, to enable you to quickly and easily see which shots have notes attached to them.
+
+
+Changing Cameras
+------
+You can change which camera a shot uses by selecting the new camera, and right clicking on the camera name in the window, and selecting "Replace Camera".  This should load the new camera up into the UI, and rebuild the constraints and expressions to control the master camera.
+
+
+Rebuild From Master - Changing Shot Timings
+------
+For scenes with many shots, it can be tediuous having to make sweeping changes to the timing of your shots.  For example, if you had 30 shots in a scene, and you needed to extend the first shot by 30 frames, it can be tedious doing it manually in the UI.
+
+So zooShots enables you to make changes directly to the master camera.  The master camera is controlled by a both a constraint, and an expression.  Both of these things are driven by curves feeding into the constraint weight attributes to control the camera cutting.  So manipulating the timing of the shots is simply a matter of shifting the keys on those curves around.  The easiest way to do that is to select the master camera, and shift keys around in the dopesheet.
+
+zooShots has a feature that will read the timing of those curves from the master camera to get shot timings.  To do this, simply go to Shots->Get Times From Master.  This tells zooShots to go through and read the new start frames from the master, and put that new information back into shots.
+
+NOTE: this function won't work properly if your shots aren't in order.  To order your shots, simply use the Shots->Reorder Shots function discussed below.
+
+
+Reorder Shots
+------
+This function will reorder your shot list based on the start times of each shot.  This is useful if you have say 20 shots, and need to add another shot just after shot 2.  So basically you can just add a new shot, tell zooShots when it starts, and hit reorder, and zooShots will re-arrange your shots based on start time.  Now your shot should be right where you wanted it in the shot list.
+
+NOTE: if the shots start times aren't ordered, zooShots will behave erratically due to the way it determines the end time for a shot, so its important to make sure your shots are ordered based on time.
+
+
+Multiple Shots Nodes
+------
+As of version 2.6 zooShots lets you have multiple different shots nodes in your scene.  Having multiple shots nodes in your scene means you can effectively have multiple different "edits" in your scene at once.  Each different shots node is a completely separate configuration of shots.  Each node can have a different master camera, and a completely different configuration of shots, notes, etc...  Having multiple shots nodes allows you to import shots setups from other files without having to remove or rename shots nodes.
+
+To swap between different shots nodes, simply select the node you want to edit in the Shots->List Nodes menu.  Should you want to create a new shots node, use Shots->List Nodes->Create New Node.
+
+To delete a shots node, simply select the node you want to delete from the list, and go to Shots->Delete Shots Node.  This will delete the current node, and automatically switch to the next most appropriate node, if one exists.
+
+
+Merging Shots Nodes
+------
+If you have multiple shots nodes in your scene, and you want to merge them together, you can use the zooMergeShotsNodes command.  Currently this isn't supported in the UI (I'm too lazy) but its a very simple command to use.  Simply type the name of the two shots nodes you want to merge together:
+
+zooMergeShotsNodes shotsNode shotsNode1;
+
+zooShots will then put all of the shots from shotsNode1 on to shotsNode.
+
+
+Colouring the UI
+------
+zooShots also enables you to change the colour of a shot as it appears in the UI.  For scenes with lots of shots it can be useful to colour them to help you quickly distinguish between them.  For example you might group similar shots using the same colour, or have say a red shot 200 frames.  For animators working in a scene with a few shots its sometimes useful to colour completed shots a certain way.  Perhaps use blue to indicate blocking waiting for approval, and green to indicate final animation complete and approved etc...
+
+
+Configuration
+------
+zooShots can appear in both a floating window, or you can dock it to the channel box.  If you have a scene with multiple shots that you're often switching between, docking the zooShots window to the channelBox can be really useful.  It provides quick, out of the way access to all the cameras in your scene.
+
+You can also tell zooShots to load itself up with that scene automatically everytime you open it.  This is good when used in conjunction with docking.  The zooShots window gets loaded up into the channelBox as soon as the scene is opened.
+
+The constraints options in the Config menu allow you to turn off the constraints on certain channels of the master camera.  These options exist, because the constraints are handled using expressions, which can be slow to evaluate for large scenes.  So if you don't need the near and far clipping planes constrained to the shot cameras, then its a good idea to turn them off.  You can easily turn any of these on or off at anytime anyway, so don't feel constrained (no pun intended) by your choice.
+
+
+Limitations
+------
+Speed - due to the way zooShots is written - for maximum flexibility - it can be slow doing certain operations in scenes with long shot lists.

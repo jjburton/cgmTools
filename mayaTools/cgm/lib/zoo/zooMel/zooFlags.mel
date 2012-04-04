@@ -1,0 +1,171 @@
+//this is a dummy proc to load the script without having to source it
+global proc zooFlags() { return; }
+
+
+/*
+this proc returns flag arguments of a particular flag
+--------
+
+example:
+zooGetFlagArguments "-flag optA optB optC -length -3.6 -height -8.2 -twistAxis x" flag;
+will return the array:
+{ "optA", "optB", "optC" }
+
+if a flag argument has to contain hyphens, then use the ' character instead.
+for example:
+"-preCmd sphere -axis 0 1 0";
+
+if you needed to do something like that, you would use:
+"-preCmd sphere 'axis 0 1 0";
+*/
+global proc string[] zooGetFlagArguments( string $flagStr, string $flagInfoToReturn ) {
+	string $manipStr = $flagStr;
+
+	//replace any negative number signs with ? so we can tokenize the option string into individual flags
+	while( `match "-[0-9.]+" $manipStr` != "" ) {
+		string $nextNegNum = `match "-[0-9.]+" $manipStr`;
+		string $encodedNum = `substitute "-" $nextNegNum "'"`;
+
+		$manipStr = `substitute $nextNegNum $manipStr $encodedNum`;
+		}
+
+	//now tokenize the encoded flag string
+	string $flagTokens[] = {};
+	int $toks = `tokenize $manipStr "-" $flagTokens`;
+	for( $n=0; $n<$toks; $n++ ) {
+		string $buffer[] = {};
+		int $num = `tokenize $flagTokens[$n] " " $buffer`;
+		if( $buffer[0] != $flagInfoToReturn ) continue;
+
+		string $args[] = {};
+		//using the while loop instead of substituteAllString because its about 15-20% faster
+		for( $i=1; $i<$num; $i++ ) {
+			while( `match "'" $buffer[$i]` != "" ) $buffer[$i] = `substitute "'" $buffer[$i] "-"`;
+			$args[( `size $args` )] = $buffer[$i];
+			}
+		return $args;
+		}
+
+	return {};
+	}
+
+
+/*
+returns a list of all flags contained in the given string
+--------
+
+example:
+zooListFlags "-flag optA optB optC -length -3.6 -height -8.2 -twistAxis x" flag;
+will return the array:
+{ "flag", "length", "height", "twistAxis" }
+*/
+global proc string[] zooListFlags( string $flagStr ) {
+	string $manipStr = $flagStr;
+	string $flagTokens[] = {};
+	string $flagNames[] = {};
+	int $n=0;  //overflow control
+
+	//replace any negative number signs with ? so we can tokenize the option string into individual flags
+	while( `match "-[0-9.]+" $manipStr` != "" && $n<200 ) {
+		string $nextNegNum = `match "-[0-9.]+" $manipStr`;
+		string $encodedNum = `substitute "-" $nextNegNum "'"`;
+
+		$manipStr = `substitute $nextNegNum $manipStr $encodedNum`;
+		$n++;
+		}
+
+	//now tokenize the encoded flag string
+	tokenize $manipStr "-" $flagTokens;
+	for( $n=0; $n<`size $flagTokens`; $n++ ) {
+		string $buffer[] = {};
+		tokenize $flagTokens[$n] " " $buffer;
+		$flagNames[( `size $flagNames` )] = $buffer[0];
+		}
+
+	return $flagNames;
+	}
+
+
+//------
+//this proc is used to validate flag strings - it simply returns an array containing any invalid
+//flags.  flag info is passed in as:
+//flagName,type
+//the type dictates what is valid data, and what is not - see the zooValidateFlagInfo for more info
+//------
+global proc string[] zooValidateFlagStr( string $optionStr, string $validFlagInfos[] ) {
+	string $validFlags[] = {};
+	string $validTypes[] = {};
+	string $flags[] = `zooListFlags $optionStr`;
+	string $errorFlags[] = {};
+	int $valid = 1;
+	int $valids[] = {};
+	int $num = `size $validFlagInfos`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		string $buffer[] = {};
+		tokenize $validFlagInfos[$n] "," $buffer;
+		$validFlags[$n] = $buffer[0];
+		$validTypes[$n] = $buffer[1];
+		}
+
+	for( $n=0; $n<`size $flags`; $n++ ) {
+		$valids[$n] = 0;
+		for( $m=0; $m<`size $validFlags`; $m++ ) {
+			string $flagValues[] = `zooGetFlagArguments $optionStr $validFlags[$m]`;
+			if( $flags[$n] == $validFlags[$m] && `zooValidateFlagInfo $validTypes[$m] $flagValues` ) $valids[$n] = 1;
+			}
+		}
+
+	for( $n=0; $n<`size $valids`; $n++ ) if( !$valids[$n] ) $errorFlags[( `size $errorFlags` )] = $flags[$n];
+	return $errorFlags;
+	}
+
+
+//------
+//given a flag type, and the flag values array (as returned by the zooGetFlagArguments command)
+//returns whether all the values are valid.  flag types are:
+//
+// float - basically any type of number
+// int - basically any integer
+// bool - a boolean value.  ie: on, off, 0, 1, true, false in lower case
+// string - at this stage absolutely anything will be validated as a string type
+// obj - an actual scene node - the flag values must be valid nodes in the scene
+// axis - a single axis string.  ie: x, y or z or their upper case equivalents
+//------
+global proc int zooValidateFlagInfo( string $flagType, string $flagValue[] ) {
+	int $valid = 1;
+	int $num = `size $flagValue`;
+	int $valids[] = {};
+
+	switch( $flagType ) {
+		case "float":
+		for( $n=0; $n<$num; $n++ ) if( `match "[-0-9.]+" $flagValue[$n]` == $flagValue[$n] ) $valids[$n] = 1;
+		break;
+
+		case "int":
+		for( $n=0; $n<$num; $n++ ) if( `match "[-0-9]+" $flagValue[$n]` == $flagValue[$n] ) $valids[$n] = 1;
+		break;
+
+		case "bool":
+		for( $n=0; $n<$num; $n++ ) if( `match "(true){0,}(false){0,}(on){0,}(off){0,}[01]{0,}" (tolower($flagValue[$n]))` == $flagValue[$n] ) $valids[$n] = 1;
+		break;
+
+		case "string":
+		for( $n=0; $n<$num; $n++ ) $valids[$n] = 1;
+		break;
+
+		case "obj":
+		for( $n=0; $n<$num; $n++ ) if( `objExists $flagValue[$n]` ) $valids[$n] = 1;
+		break;
+
+		case "axis":
+		for( $n=0; $n<$num; $n++ ) if( `match "[-_]*[xyzXYZ]{1}" $flagValue[$n]` == $flagValue[$n] ) $valids[$n] = 1;
+		break;
+		}
+	for( $n=0; $n<$num; $n++ ) if( !$valids[$n] ) $valid = 0;
+
+	return $valid;
+	}
+
+
+//zoo.end

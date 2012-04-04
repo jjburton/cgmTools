@@ -1,0 +1,240 @@
+zooBGBlasterUtils;
+
+
+global proc zooBGBlaster() {
+	string $windowName = "zooBGBlasterUI";
+	string $windowTitle = "BG Blaster  v1.07.01  ::macaroniKazoo::";
+	int $reload = `optionVar -ex zooBGBlasterReload`? `optionVar -q zooBGBlasterReload`: 1;
+	int $loadfix = `optionVar -ex zooBGBlasterLoadFix`? `optionVar -q zooBGBlasterLoadFix`: 1;
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+	window -t $windowTitle -rtf 1 -maximizeButton 0 -sizeable 1 $windowName;
+		menuBarLayout;
+			menu -l "Blast";
+				menuItem -l "Add Selected to Blast Set" -ann "adds the selected objects to the quick selection set that is used for determining which objects to include in the blast" -c( "{string $sel[] = `ls -sl`; if( !`objExists bgBlaster_set` ) {string $set = `createNode objectSet`; sets -e -t gCharacterSet $set; rename $set bgBlaster_set; } if( `size $sel` ) sets -add bgBlaster_set $sel;}" );
+				menuItem -d 1;
+				menuItem -cb $reload -l "Always Try to Re-load Sequence" -c( "if( #1 ) optionVar -rm zooBGBlasterReload; else optionVar -iv zooBGBlasterReload 0;" );
+				menuItem -cb $loadfix -l "Use -loadfix Hack When Importing" -c( "if( #1 ) optionVar -rm zooBGBlasterLoadFix; else optionVar -iv zooBGBlasterLoadFix 0;" );
+
+		string $tabs = `tabLayout`;
+			string $importForm = `formLayout`;
+				string $lLbl = `text -l "local blasts"`;
+				string $gLbl = `text -l "global blasts"`;
+				string $tslL = `textScrollList zooBGBTSLBlastsL`;
+				string $tslG = `textScrollList zooBGBTSLBlastsG`;
+				string $createNew = `checkBox -l "create new board" -cc "zooBGBlasterWindowFunctions -updateChecks;" zooBGBCheckNew`;
+				string $useSel = `checkBox -l "use selected" -cc "zooBGBlasterWindowFunctions -updateChecks;" zooBGBCheckSelected`;
+			setParent ..;
+			string $createForm = `formLayout`;
+				string $qualLbl = `text -l "jpeg quality"`;
+				string $qual = `intField -v 80 zooBGBIntQual`;
+				string $resLbl = `text -l "blast resolution"`;
+				string $res = `intField -v 600 zooBGBIntRes`;
+				string $remLbl = `text -l( zooWrapString("NOTE: once you've created a board, you can redo it by right clicking on it, and choosing \"re-blast sequence\"",42))`;
+				string $optsLbl = `text -l "additional options:" zooBGBCheckCreateOpts`;
+				string $opts = `textField -tx "-reload 0 " zooBGBTextOpts`;
+				string $createBut = `button -l "create blast" -c( "zooBGBlasterWindowFunctions -createBlast;" )`;
+			setParent ..;
+		setParent ..;
+
+	popupMenu -p $tslL -pmc "zooBGBlasterImportPup zooBGBPupL \"local\";" zooBGBPupL;
+	popupMenu -p $tslG -pmc "zooBGBlasterImportPup zooBGBPupG \"global\";" zooBGBPupG;
+	popupMenu -p $opts;
+		menuItem -l "-layer [layer name]" -c( "textField -e -tx( `textField -q -tx zooBGBTextOpts` +\" -layer bgBlaster_layer \" ) zooBGBTextOpts;" );
+		menuItem -l "-qss [set name]" -c( "textField -e -tx( `textField -q -tx zooBGBTextOpts` +\" -qss bgBlaster_set \" ) zooBGBTextOpts;" );
+		menuItem -l "-objs [obj1 obj2]" -c( "textField -e -tx( `textField -q -tx zooBGBTextOpts` +\" -objs \" ) zooBGBTextOpts;" );
+		menuItem -l "-board [board name]" -c( "textField -e -tx( `textField -q -tx zooBGBTextOpts` +\" -board \" ) zooBGBTextOpts;" );
+		menuItem -l "-reload off" -c( "textField -e -tx( `textField -q -tx zooBGBTextOpts` +\" -reload 0 \" ) zooBGBTextOpts;" );
+		menuItem -l "-reuse off" -c( "textField -e -tx( `textField -q -tx zooBGBTextOpts` +\" -reuse 0 \" ) zooBGBTextOpts;" );
+	setParent -m ..;
+	tabLayout -e
+		-tabLabel $importForm "import blast"
+		-tabLabel $createForm "create blast"
+		$tabs;
+
+	formLayout -e
+		-af $lLbl "top" 3
+		-af $lLbl "left" 10
+
+		-af $gLbl "top" 3
+		-ap $gLbl "left" 10 50
+
+		-ac $tslL "top" 3 $lLbl
+		-af $tslL "left" 0
+		-ap $tslL "right" 1 50
+		-ac $tslL "bottom" 4 $createNew
+
+		-ac $tslG "top" 3 $gLbl
+		-ap $tslG "left" 1 50
+		-af $tslG "right" 0
+		-ac $tslG "bottom" 4 $createNew
+
+		-af $createNew "left" 2
+		-af $createNew "bottom" 2
+
+		-ap $useSel "left" 2 50
+		-af $useSel "bottom" 2
+		$importForm;
+
+	formLayout -e
+		-af $qualLbl "top" 3
+		-af $qualLbl "left" 0
+
+		-af $qual "left" 100
+		-af $qual "right" 0
+
+		-ac $resLbl "top" 3 $qual
+		-af $resLbl "left" 0
+
+		-ac $res "top" 0 $qual
+		-af $res "left" 100
+		-af $res "right" 0
+
+		-ac $remLbl "top" 10 $res
+		-af $remLbl "left" 10
+
+		-af $optsLbl "left" 0
+		-ac $optsLbl "bottom" 3 $createBut
+
+		-ac $opts "left" 2 $optsLbl
+		-af $opts "right" 0
+		-ac $opts "bottom" 0 $createBut
+
+		-af $createBut "left" 0
+		-af $createBut "right" 0
+		-af $createBut "bottom" 0
+		$createForm;
+
+	showWindow $windowName;
+	window -e -wh 300 250 $windowName;
+	zooBGBlasterWindowFunctions -updateBlasts;
+	}
+
+
+global proc zooBGBlasterWindowFunctions( string $function ) {
+	string $locale = "local";
+	string $localeTsl = "zooBGBTSLBlastsL";
+	int $reload = `optionVar -ex zooBGBlasterReload`? `optionVar -q zooBGBlasterReload`: 1;
+
+	switch( $function ) {
+		case "-updateChecks":
+			int $new = `checkBox -q -v zooBGBCheckNew`;
+			if( $new ) checkBox -e -en 0 -v 0 zooBGBCheckSelected;
+			else checkBox -e -en 1 zooBGBCheckSelected;
+
+			int $sel = `checkBox -q -v zooBGBCheckSelected`;
+			if( $sel ) checkBox -e -v 0 zooBGBCheckNew;
+			break;
+
+		case "-updateBlasts":
+			zooBGBlasterWindowFunctions -updateBlastsL;
+			zooBGBlasterWindowFunctions -updateBlastsG;
+			break;
+
+		case "-updateBlastsG":
+			$locale = "global";
+			$localeTsl = "zooBGBTSLBlastsG";
+		case "-updateBlastsL":
+			string $blasts[] = `zooListBlasts $locale`;
+			textScrollList -e -ra $localeTsl;
+			for( $b in $blasts ) textScrollList -e -a $b $localeTsl;
+			break;
+
+		case "-createBlast":
+			string $ans = `promptDialog -m "blast name:" -tx zooBlast -b "OK" -b "Cancel" -db "OK"`;
+			if( $ans != "OK" ) return;
+
+			string $name = `promptDialog -q -tx`;
+			string $userOpts = `textField -q -tx zooBGBTextOpts`;
+			int $qual = `intField -q -v zooBGBIntQual`;
+			int $res = `intField -q -v zooBGBIntRes`;
+
+			zooBuildBlast ( "-name "+ $name +" -res "+ $res +" -qual "+ $qual +" -reload "+ $reload +" "+ $userOpts );
+			zooBGBlasterWindowFunctions -updateBlastsL;
+			break;
+		}
+	}
+
+
+global proc zooBGBlasterImportPup( string $parent, string $locale ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $relocateLbl = "--> global";
+	string $str = "L";
+	string $other = "G";
+	string $tsl = "zooBGBTSLBlasts";
+	int $reload = `optionVar -ex zooBGBlasterReload`? `optionVar -q zooBGBlasterReload`: 1;
+	int $loadfix = `optionVar -ex zooBGBlasterLoadFix`? `optionVar -q zooBGBlasterLoadFix`: 1;
+
+	if( $locale == "global" ) {
+		$relocateLbl = "<-- local";
+		$str = "G";
+		$other = "L";
+		}
+
+	$tsl += $str;
+	string $name = zooGetElement_str(0,`textScrollList -q -si $tsl`);
+	string $sel[] = `ls -type transform -sl`;
+	string $optStr = "-reload "+ $reload;
+	int $makeNew = `checkBox -q -v zooBGBCheckNew`;
+	int $useSel = `checkBox -q -v zooBGBCheckSelected`;
+	int $en = `size $name`;
+	int $enImport = $en;
+
+	if( $useSel && `size $sel` ) $optStr += " -board "+ $sel[0];
+	if( $useSel && !`size $sel` ) $enImport = 0;
+	if( $makeNew ) $optStr += " -reuse 0";
+	menuItem -en $en -l( "copy to "+ $relocateLbl ) -c( "zooRelocateBlast \""+ $locale +"\" "+ $name +" 1; zooBGBlasterWindowFunctions -updateBlasts"+ $other +";" );
+	menuItem -en $en -l( "move to "+ $relocateLbl ) -c( "zooRelocateBlast \""+ $locale +"\" "+ $name +" 0; zooBGBlasterWindowFunctions -updateBlasts;" );
+	menuItem -d 1;
+	menuItem -en $en -l "rename blast" -c( "{string $ans = `promptDialog -m \"new name:\" -tx \""+ $name +"\"-b \"OK\" -b \"Cancel\" -db \"OK\"`; string $newName = `promptDialog -q -tx`; if( $ans == \"OK\" ) {zooRenameBlast \""+ $locale +"\" "+ $name +" $newName; zooBGBlasterWindowFunctions -updateBlasts"+ $str +";}}" );
+	menuItem -d 1;
+	menuItem -en $enImport -l "import blast" -c( "zooImportBlast \"-locale "+ $locale +" -name "+ $name + $optStr +" -loadfix "+ $loadfix +"\";" );
+	menuItem -d 1;
+	menuItem -en $en -l "delete blast" -c( "zooDeleteBlast \""+ $locale +"\" "+ $name +"; zooBGBlasterWindowFunctions -updateBlasts"+ $str +";" );
+	}
+
+
+global proc string zooRelocateBlast( string $locale, string $name, int $copy ) {
+	string $other = "global";
+
+	if( $locale == "global" ) $other = "local";
+	string $srcLoc = `zooGetPresetDirectory $locale zooBGBlaster` + $name +"/";
+	string $tgtLoc = `zooGetPresetDirectory $other zooBGBlaster` + $name +"/";
+
+	zooCopyDirTo $srcLoc $tgtLoc;
+	if( !$copy ) if( `about -os` == "nt" ) zooDeleteBlast $locale $name;
+
+	return $tgtLoc;
+	}
+
+
+global proc string zooRenameBlast( string $locale, string $name, string $newName ) {
+	string $srcLoc = `zooGetPresetDirectory $locale zooBGBlaster` + $name +"/";
+	string $tgtLoc = `zooGetPresetDirectory $locale zooBGBlaster` + $newName +"/";
+
+	sysFile -rename $tgtLoc $srcLoc;
+
+	return $tgtLoc;
+	}
+
+
+global proc zooDeleteBlast( string $locale, string $name ) {
+	string $loc = `zooGetPresetDirectory $locale zooBGBlaster` + $name +"/";
+	if( `about -os` == "nt" ) {
+		system( "del /f /q /s \""+ `toNativePath $loc` +"\"" );
+		system( "rd /s /q \""+ `toNativePath $loc` +"\"" );
+		}
+	}
+
+
+global proc string[] zooListBlasts( string $locale ) {
+	string $blastLocation = `zooGetPresetDirectory $locale zooBGBlaster`;
+	string $blasts[] = `zooGetSubDirs $blastLocation 0`;
+
+	return $blasts;
+	}
+
+
+//zoo.end

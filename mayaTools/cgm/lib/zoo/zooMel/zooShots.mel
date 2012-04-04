@@ -1,0 +1,873 @@
+//
+// zooShots
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 08 February 2002
+//
+// Description:
+// This script lets you create multiple cameras in your scene, and cut them together
+// into one, master camera.  The master camera gets constrained to each of the individual
+// cameras, so it updates whenever they do.  It also deals with connecting most of the
+// camera render attributes as well, such as the focal length and shutter angle
+//
+// Usage:
+//  simply run the command:
+//	zooShots;
+//
+// this script (zooShots) only contains the code to drive the UI.  The code to drive the
+// actual creation of shots, addition/removel of shots etc, is contained in the
+// zooShotsUtils script.  If you want to use zooShots functionality externally, refer to
+// zooShotsUtils
+//
+
+
+zooArrays_str;
+zooArrays_int;
+zooFlags;
+zooShelveIt;
+zooShotsUtils;
+zooUtils;
+
+
+global proc zooShots() {
+	global int $zooPrevShot = -1;
+	string $windowName = "zooShotsWindow";
+	string $windowTitle = "Shots v"+ `zooShotsInfo version`;
+	int $dockUI = `optionVar -ex zooShotsDocking`? `optionVar -q zooShotsDocking`: 0;
+	int $highlight = `optionVar -ex zooShotsHighlight`? `optionVar -q zooShotsHighlight`: 1;
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+	if( `menuBarLayout -ex zooShotsMenuMain` ) {
+		deleteUI zooShotsMenuMain;
+		eval( "showChannelsLayers \"Channel Box / Layer Editor\" 0" );
+		}
+
+	if( $dockUI ) setParent ChannelsLayersPaneLayout;
+	else window -title $windowTitle -resizeToFitChildren 0 -maximizeButton 1 -sizeable 1 -width 340 -height 400 $windowName;
+
+		menuBarLayout zooShotsMenuMain;
+			scriptJob -p zooShotsMenuMain -e timeChanged zooShotsHighlightActiveShot;
+			menu -l "Shots";
+				menuItem -l "Update Master Camera" -c( "zooShotsConstrainMaster;" );
+				menuItem -l "Reorder Shots" -c( "zooReorderShots; zooShotsWindowFunctions updateAll n; zooShotsConstrainMaster;" );
+				menuItem -l "Get Times From Master" -c( "zooSetRangesFromMaster; zooShotsWindowFunctions updateTime \"*\"" );
+				menuItem -d 1;
+				menuItem -l "List Shots Nodes..." -sm 1 -pmc "zooListShotsMenu zooShotsMenuList" zooShotsMenuList; setParent -m ..;
+				menuItem -l "Merge With..." -sm 1 -pmc "zooMergeShotsMenu zooShotsMenuMerge" zooShotsMenuMerge; setParent -m ..;
+				menuItem -d 1;
+				menuItem -l "Delete Shots Node" -c( "{ string $node = `zooGetShotsNode 0`; if( `objExists $node` ) delete $node; zooMakeShotNodeCurrent `zooGetShotsNode 0`; zooShots; }" );
+				if( $dockUI ) { menuItem -divider 1; menuItem -l "Close" -c( "deleteUI zooShotsMenuMain; showChannelsLayers \"Channel Box / Layer Editor\" 0;" ); }
+			menu -l "HUD";
+				menuItem -l "Build Widescreen Mask..." -sm 1;
+					menuItem -l "1.333  4/3" -c "zooAddCameraMask `zooGetMasterShot` 1.333";
+					menuItem -l "1.556  14/9" -c "zooAddCameraMask `zooGetMasterShot` (14.0/9)";
+					menuItem -l "1.778  16/9" -c "zooAddCameraMask `zooGetMasterShot` (16.0/9)";
+					menuItem -l "1.85  academy" -c "zooAddCameraMask `zooGetMasterShot` 1.85";
+					menuItem -l "2.35  anamorphic" -c "zooAddCameraMask `zooGetMasterShot` 2.35";
+					menuItem -d 1;
+					menuItem -l "Other" -c( "{string $a=`promptDialog -m \"enter aspect ratio\" -b Create -b Cancel`; if( $a != \"Cancel\" ) zooAddCameraMask `zooGetMasterShot` `promptDialog -q -text`;}");
+					setParent -m ..;
+				if( `exists zooHUDCtrl` ) menuItem -l "Open zooHUDCtrl" -c( "zooHUDCtrl" );
+			menu -l "Config";
+				menuItem -l "Dock to Channel Box" -checkBox $dockUI -c( "optionVar -iv zooShotsDocking `menuItem -q -checkBox zooShotsCheckDocking`" ) zooShotsCheckDocking;
+				menuItem -l "Auto Load With Scene" -cb( `zooShotsAutoLoader "-q 1"` ) -c( "{ int $state = `menuItem -q -cb zooShotsCheckAutoLoader`; zooShotsAutoLoader ( \"-install \"+ $state +\"\" ); }" ) zooShotsCheckAutoLoader;
+				menuItem -d 1;
+				menuItem -l "Enable Highlighting" -cb $highlight -c( "optionVar -iv zooShotsHighlight `menuItem -q -checkBox zooShotsCheckHighlight`" ) zooShotsCheckHighlight;
+				menuItem -l "Highlight Current Shot" -c( "zooShotsForceHighlight" );
+				menuItem -d 1;
+				menuItem -l "Constrain Focal Length" -cb( `optionVar -ex zooShots_focal`? `optionVar -q zooShots_focal`: 1 ) -c( "optionVar -iv zooShots_focal (`menuItem -q -cb zooShots_focal`); zooShotsConstrainMaster;" ) zooShots_focal;
+				menuItem -l "Constrain Focal Distance" -cb( `optionVar -ex zooShots_fdist`? `optionVar -q zooShots_fdist`: 1 ) -c( "optionVar -iv zooShots_fdist (`menuItem -q -cb zooShots_fdist`); zooShotsConstrainMaster;" ) zooShots_fdist;
+				menuItem -l "Constrain fStop" -cb( `optionVar -ex zooShots_fstop`? `optionVar -q zooShots_fstop`: 1 ) -c( "optionVar -iv zooShots_fstop (`menuItem -q -cb zooShots_fstop`); zooShotsConstrainMaster;" ) zooShots_fstop;
+				menuItem -l "Constrain Shutter" -cb( `optionVar -ex zooShots_shutr`? `optionVar -q zooShots_shutr`: 1 ) -c( "optionVar -iv zooShots_shutr (`menuItem -q -cb zooShots_shutr`); zooShotsConstrainMaster;" ) zooShots_shutr;
+				menuItem -l "Constrain Near Clip" -cb( `optionVar -ex zooShots_clipn`? `optionVar -q zooShots_clipn`: 1 ) -c( "optionVar -iv zooShots_clipn (`menuItem -q -cb zooShots_clipn`); zooShotsConstrainMaster;" ) zooShots_clipn;
+				menuItem -l "Constrain Far Clip" -cb( `optionVar -ex zooShots_clipf`? `optionVar -q zooShots_clipf`: 1 ) -c( "optionVar -iv zooShots_clipf (`menuItem -q -cb zooShots_clipf`); zooShotsConstrainMaster;" ) zooShots_clipf;
+			menu -l "Shelf";
+				menuItem -l "Install Shelf Button" -c ( "zooShotsSetup" );
+				menuItem -divider 1;
+				menuItem -l "Remove Shelf Button" -c ( "deleteUI `zooGetShelfButtonAll zooShots`" );
+			menu -l "Help";
+				menuItem -l "Donate Now" -c( "showHelp -a \"http://www.macaronikazoo.com/donate.html\";" );
+				menuItem -l "Help..." -c( "zooHelp zooShots 1;" );
+
+		string $masterForm = `formLayout`;
+		scrollLayout -p $masterForm -childResizable 1 -hst 0 -vst 1 zooShotsScrollBar;
+			columnLayout -adjustableColumn 1 -rowSpacing 5 zooShotsColumnMain;
+				scriptJob -p zooShotsColumnMain -e "SceneOpened" "zooShotsWindowFunctions update n";
+				formLayout zooShotsFormNew;
+					string $masterCamText = `text -height 20 -l "master cam:"`;
+					nameField -height 20 zooShotsTextMasterCamera;
+					string $updateButt = `iconTextCheckBox -height 20 -width 85 -l "auto update" -style textOnly -onc( "zooShotsWindowFunctions autoUpdate 1" ) -ofc( "zooShotsWindowFunctions autoUpdate 0" ) zooShotsButtonAutoUpdate`;
+
+					text -l "new shot:" zooShotsNameTextNew;
+					nameField -height 20 zooShotsNameFieldCameraName;
+					intField -width 40 -v( (int)`zooGetGlobalShotInfo start` ) -height 20 -ann "start time for the new shot - tell zooShots which frame you want the new shot to start on" zooShotsIntFieldNewStart;
+					button -height 20 -width 37 -l "make" -c( "zooShotsWindowFunctions createShot n" ) -ann "create the new shot using the camera specified" zooShotsButtonMake;
+				setParent ..;
+
+				formLayout -edit
+					-af $masterCamText "top"    0
+					-af $masterCamText "left"   4
+					-an $masterCamText "right"
+					-an $masterCamText "bottom"
+
+					-af zooShotsTextMasterCamera "top"		0
+					-ac zooShotsTextMasterCamera "left"		2 $masterCamText
+					-ac zooShotsTextMasterCamera "right"	0 $updateButt
+					-an zooShotsTextMasterCamera "bottom"
+
+					-af $updateButt "top" 0
+					-an $updateButt "left"
+					-af $updateButt "right" 0
+					-an $updateButt "bottom"
+
+					-ac zooShotsNameTextNew "top"    4 zooShotsTextMasterCamera
+					-af zooShotsNameTextNew "left"   4
+					-an zooShotsNameTextNew "right"
+					-an zooShotsNameTextNew "bottom"
+
+					-ac zooShotsNameFieldCameraName "top"		3 zooShotsTextMasterCamera
+					-ac zooShotsNameFieldCameraName "left"		2 zooShotsNameTextNew
+					-ac zooShotsNameFieldCameraName "right"		0 zooShotsIntFieldNewStart
+					-an zooShotsNameFieldCameraName "bottom"
+
+					-ac zooShotsIntFieldNewStart "top"		3 zooShotsTextMasterCamera
+					-an zooShotsIntFieldNewStart "left"
+					-ac zooShotsIntFieldNewStart "right"		0 zooShotsButtonMake
+					-an zooShotsIntFieldNewStart "bottom"
+
+					-ac zooShotsButtonMake "top"		3 zooShotsTextMasterCamera
+					-an zooShotsButtonMake "left"
+					-af zooShotsButtonMake "right"	0
+					-an zooShotsButtonMake "bottom"
+					zooShotsFormNew;
+
+				columnLayout -adjustableColumn 1 zooShotsRowList;
+				setParent ..;
+
+			setParent $masterForm;
+			string $shotsName = `nameField -height 20 zooShotNodeNamefield`;
+			string $endLbl = `text -height 20 -l "end frame"`;
+			string $endTime = `intField -width 60 -v( (int)(zooGetGlobalShotInfo("end")) ) -height 20 -cc( "zooSetGlobalShotInfo end #1; zooShotsWindowFunctions updateTime \"$\";" ) -ann "global end frame for the scene - the last camera in the shot list ends on the global end frame" zooShotsIntGlobalEnd`;
+			string $globalLbl = `text -height 20 -l "global note"`;
+			string $globalNote = `button -height 18 -width 18 -l "" -c( "zooShotNotesWindow -1" ) zooShotsButtGlobalNote`;
+			string $image = `image -width 200 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+
+	formLayout -e
+		-af zooShotsScrollBar "top" 0
+		-af zooShotsScrollBar "left" 0
+		-af zooShotsScrollBar "right" 0
+		-ac zooShotsScrollBar "bottom" 0 $endTime
+
+		-an $shotsName "top"
+		-af $shotsName "left" 0
+		-ac $shotsName "right" 7 $endLbl
+		-ac $shotsName "bottom" 0 $image
+
+		-an $endLbl "top"
+		-an $endLbl "left"
+		-ac $endLbl "right" 2 $endTime
+		-ac $endLbl "bottom" 0 $image
+
+		-an $endTime "top"
+		-an $endTime "left"
+		-ac $endTime "right" 5 $globalLbl
+		-ac $endTime "bottom" 0 $image
+
+		-an $globalLbl "top"
+		-an $globalLbl "left"
+		-ac $globalLbl "right" 2 $globalNote
+		-ac $globalLbl "bottom" 0 $image
+
+		-an $globalNote "top"
+		-an $globalNote "left"
+		-af $globalNote "right" 1
+		-ac $globalNote "bottom" 1 $image
+
+		-an $image "top"
+		-af $image "left" 0
+		-af $image "right" 0
+		-af $image "bottom" 0
+		$masterForm;
+
+	popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+	popupMenu -b 3 -p $masterCamText -pmc( "zooMasterShotMenu zooShotsMasterMMLabel" ) zooShotsMasterMMLabel;
+	popupMenu -b 3 -p zooShotsTextMasterCamera -pmc( "zooMasterShotMenu zooShotsMasterMMName" ) zooShotsMasterMMName;
+	popupMenu -b 3 -p zooShotsNameFieldCameraName -pmc( "zooNewShotMenu zooShotsNewShotMM" ) zooShotsNewShotMM;
+	popupMenu -b 3 -p $shotsName -pmc( "zooListShotsMenu zooShotsNamePopup" ) zooShotsNamePopup;
+
+	if( $dockUI ) {
+		int $sizes[] = `paneLayout -q -paneSize ChannelsLayersPaneLayout`;
+		int $new1 = $sizes[1];
+		int $new2 = $sizes[( `size $sizes`-1 )]/2;
+		int $new3 = $sizes[( `size $sizes`-1 )] - $new2;
+		paneLayout -e -cn "horizontal3" -setPane zooShotsMenuMain 3 -paneSize 1 100 $new1 -paneSize 2 100 $new2 -paneSize 3 100 $new3 ChannelsLayersPaneLayout;
+		}
+	else showWindow $windowName;
+
+	zooShotsWindowFunctions updateAll n;
+	zooShotsInstallShelfPopup;
+	}
+
+
+//------
+//most UI functions happen with this proc
+//------
+global proc zooShotsWindowFunctions( string $function, string $variable01 ) {
+	string $windowName = "zooShotsWindow";
+	string $UIParent = "zooShotsRowList";
+
+	switch ( $function ) {
+		case "updateAll":
+			zooShotsWindowFunctions update n;
+			zooShotsWindowFunctions updateDisabled "*";
+			zooShotsWindowFunctions updateNotes -1;
+			zooShotsWindowFunctions updateAuto n;
+
+			string $currentNode = `zooGetShotsNode 0`;
+			if( `objExists $currentNode` ) nameField -e -o $currentNode zooShotNodeNamefield;
+			break;
+
+		case "update":
+			if( size(`columnLayout -q -ca zooShotsRowList`)) deleteUI `columnLayout -q -ca zooShotsRowList`;
+			zooShotsWindowFunctions load n;
+
+			if( `nameField -q -o zooShotsTextMasterCamera` != "" ) button -e -enable 1 zooShotsButtonMake;
+			else button -e -enable 0 zooShotsButtonMake;
+			break;
+
+		case "updateTime":
+			int $shots[] = `zooListShots`;
+			int $shotStartIndex = 0;
+			int $shotEndIndex = `size $shots`;
+			int $startUIIndex = 3;
+			int $endUIIndex = 5;
+			int $n=0;
+
+			if( $variable01 == "$" ) $variable01 = $shots[( `size $shots`-1 )];
+			if( $variable01 != "*" ) {
+				$shotStartIndex = `zooMapShotsToSlots $variable01`;
+				$shotEndIndex = $shotStartIndex + 1;
+				}
+
+			for( $n=$shotStartIndex; $n<=$shotEndIndex; $n++ ) {
+				string $start = `zooGetShotInfo start $shots[$n]`;
+				if( !`control -ex ( "zooShot_"+ $shots[$n] )`) continue;
+				string $startUI = zooGetElement_str($startUIIndex,`formLayout -q -ca ( "zooShot_"+ $shots[$n] )`);
+				intField -e -v ((int)$start) $startUI;
+
+				if( $n-1<0 ) continue;
+				if( !`control -ex ( "zooShot_"+ $shots[( $n-1 )] )`) continue;  //if the formLayout doesn't exist, then continue
+				string $endUI = zooGetElement_str($endUIIndex,`formLayout -q -ca ( "zooShot_"+ $shots[( $n-1 )] )`);
+				int $end = `zooGetShotEndFrame $shots[( $n-1 )]`;
+				intField -e -v $end $endUI;
+				}
+			break;
+
+		case "updateInstance":
+			int $shot = $variable01;
+			string $camera = `zooGetShotCamera $shot`;
+			string $shotUIs[] = `formLayout -q -ca ( "zooShot_"+ $shot )`;
+			int $camShots[] = `zooGetShotsFromCamera $camera`;
+
+			nameField -e -o $camera ( "zooShotsNameFieldName_"+ $shot );
+			if( `size $camShots`>1 ) {
+				text -e -vis 0 -bgc 0.58 0.62 0.67 $shotUIs[0];
+				text -e -vis 1 $shotUIs[0];
+				}
+			else {
+				text -e -vis 0 -bgc 0.83 0.82 0.78 $shotUIs[0];
+				text -e -vis 1 $shotUIs[0];
+				}
+			break;
+
+		case "updateDisabled":
+			int $shots[] = {};
+			int $startIndex = 3;
+			int $endIndex = 5;
+
+			if( $variable01 == "*" ) $shots = `zooListShots`;
+			else $shots[0] = $variable01;
+
+			for( $shot in $shots ) {
+				string $UIElts[] = `formLayout -q -ca ( "zooShot_"+ $shot )`;
+				int $disable = `zooGetShotInfo disable $shot`;
+				intField -e -en (!$disable) $UIElts[$startIndex];
+				intField -e -en (!$disable) $UIElts[$endIndex];
+				intField -e -ed 0 $UIElts[$endIndex];
+				}
+			break;
+
+		case "updateLocked":
+			int $shots[] = {};
+			if( $variable01 == "*" ) $shots = `zooListShots`;
+			else $shots = { ((int)$variable01) };
+			for( $shot in $shots ) {
+				int $camShots[] = `zooGetShotsFromCamera (zooGetShotCamera($shot))`;
+				int $locked = `zooIsShotLocked $shot`;
+				for( $a in $camShots ) {
+					string $UIElts[] = `formLayout -q -ca ( "zooShot_"+ $a )`;
+					if( $locked ) {
+						button -e -vis 0 -bgc 0.58 0.62 0.67 $UIElts[7];
+						button -e -docTag 0 -vis 1 $UIElts[7];
+						}
+					else {
+						button -e -vis 0 -bgc 0.83 0.82 0.78 $UIElts[7];
+						button -e -docTag 1 -vis 1 $UIElts[7];
+						}
+					}
+				}
+			break;
+
+		case "updateNotes":
+			int $shot = $variable01;
+			if( `control -ex ( "zooShot_"+ $shot )` ) {
+				string $UIElts[] = `formLayout -q -ca ( "zooShot_"+ $shot )`;
+				string $shotNotes = `zooGetShotInfo notes $shot`;
+
+				if( `size $shotNotes` ) {
+					button -e -vis 0 -bgc 0.95 0.95 0.95 $UIElts[8];
+					button -e -vis 1 $UIElts[8];
+					}
+				else {
+					button -e -vis 0 -bgc 0.83 0.82 0.78 $UIElts[8];
+					button -e -vis 1 $UIElts[8];
+					}
+				}
+
+			string $globalNote = `zooGetGlobalShotInfo notes`;
+			if( `size $globalNote` ) {
+				button -e -vis 0 -bgc 0.95 0.95 0.95 zooShotsButtGlobalNote;
+				button -e -vis 1 zooShotsButtGlobalNote;
+				}
+			else {
+				button -e -vis 0 -bgc 0.83 0.82 0.78 zooShotsButtGlobalNote;
+				button -e -vis 1 zooShotsButtGlobalNote;
+				}
+			break;
+
+		case "updateAuto":
+			int $autoUpdate = 1;
+			if( `optionVar -ex zooShotsAutoUpdate` ) $autoUpdate = `optionVar -q zooShotsAutoUpdate`;
+			if( $autoUpdate ) {
+				iconTextCheckBox -e -vis 0 -v 1 -bgc 0.81 0.9 0.76 zooShotsButtonAutoUpdate;
+				iconTextCheckBox -e -vis 1 zooShotsButtonAutoUpdate;
+				}
+			else {
+				iconTextCheckBox -e -vis 0 -v 0 -bgc 0.83 0.82 0.78 zooShotsButtonAutoUpdate;
+				iconTextCheckBox -e -vis 1 zooShotsButtonAutoUpdate;
+				}
+			break;
+
+		case "autoUpdate":
+			int $autoUpdate = 1;
+			if( `optionVar -ex zooShotsAutoUpdate` ) $autoUpdate = `optionVar -q zooShotsAutoUpdate`;
+			optionVar -iv zooShotsAutoUpdate (!$autoUpdate);
+			zooShotsWindowFunctions updateAuto n;
+			break;
+
+		//loads the shots from the default shotNode into the UI
+		case "load":
+			string $masterCam = `zooGetMasterShot`;
+			int $shots[] = `zooListShots`;
+
+			nameField -e -o $masterCam zooShotsTextMasterCamera;
+			for( $a in $shots ) zooAddShotToUI $a;
+			break;
+
+		case "createShot":
+			string $camera = `nameField -q -o zooShotsNameFieldCameraName`;
+			if( $camera != "" ) {
+				int $shot = `zooAddShot $camera`;
+				int $start = `intField -q -v zooShotsIntFieldNewStart`;
+
+				zooSetShotInfo $shot ( "-set start "+ $start );
+
+				//because you can't remove an object from a namefield
+				deleteUI zooShotsNameFieldCameraName;
+				nameField -p zooShotsFormNew -height 20 zooShotsNameFieldCameraName;
+				popupMenu -b 3 -p zooShotsNameFieldCameraName -pmc( "zooNewShotMenu zooShotsNewShotMM" ) zooShotsNewShotMM;
+				formLayout -e
+					-ac zooShotsNameFieldCameraName "top" 3 zooShotsTextMasterCamera
+					-ac zooShotsNameFieldCameraName "left" 0 zooShotsNameTextNew
+					-ac zooShotsNameFieldCameraName "right" 0 zooShotsIntFieldNewStart
+					-an zooShotsNameFieldCameraName "bottom" zooShotsFormNew;
+
+				zooAddShotToUI $shot;
+				}
+			break;
+
+		case "loadCamera":
+			string $selObjs[] = `ls -sl -transforms`;
+			int $isCamera = 0;
+
+			if( `size $selObjs` ) {
+				if( size( `listRelatives -type camera $selObjs[0]` )) $isCamera = 1;
+
+				if( $isCamera ) {
+					if( $variable01 == "n" ) {
+						nameField -e -o $selObjs[0] zooShotsNameFieldCameraName;
+						intField -e -v( `currentTime -q` ) zooShotsIntFieldNewStart;
+						}
+					if( $variable01 == "master" ) {
+						nameField -e -object $selObjs[0] zooShotsTextMasterCamera;
+						button -e -enable 1 zooShotsButtonMake;
+						zooSetMasterShot $selObjs[0];
+						}
+					}
+				}
+			break;
+
+		case "replaceCamera":
+			int $shot = $variable01;
+			string $selObjs[] = `ls -sl -transforms`;
+			string $shotUIs[] = `formLayout -q -ca ( "zooShot_"+ $shot )`;
+
+			nameField -e -o $selObjs[0] ( "zooShotsNameFieldName_"+ $shot );
+			zooSetShotCamera $selObjs[0] $shot;
+			int $camShots[] = `zooGetShotsFromCamera $selObjs[0]`;
+
+			for( $s in $camShots ) {
+				text -e -vis 0 -bgc 0.58 0.62 0.67 $shotUIs[0];
+				text -e -vis 1 $shotUIs[0];
+				}
+
+			zooShotsConstrainMaster;
+			break;
+
+		case "toggleLocked":
+			int $shot = $variable01;
+			int $locked = `zooIsShotLocked $shot`;
+
+			if( $locked ) {
+				zooLockShotCamera $shot 0;
+				zooShotsWindowFunctions updateLocked $shot;
+				}
+			else {
+				zooLockShotCamera $shot 1;
+				zooShotsWindowFunctions updateLocked $shot;
+				}
+			break;
+
+		case "remove":
+			int $shot = $variable01;
+			string $result = `confirmDialog -title ( "Delete Shot "+ $shot ) -message( "Do you really want to delete shot "+ $shot +"?\n\nRemember if you can disable it which\njust \"turns if off\"..." ) -button "Yes" -button "No" -defaultButton "No" -cancelButton "No" -dismissString "No"`;
+
+			if( $result == "Yes" ) {
+				deleteUI ( "zooShot_"+ $shot );
+				zooDeleteShot $shot;
+				zooShotsConstrainMaster;
+				}
+			zooShotsWindowFunctions updateTime "*";
+			break;
+		}
+	}
+
+
+//------
+//deals with adding a new shot to the UI - builds all the neccesary UI elements, parents them, and adds popupMenu functionality
+//------
+global proc zooAddShotToUI( int $shot ){
+	string $windowName = "zooShotsWindow";
+	string $UIParent = "zooShotsRowList";
+	string $axes[] = {"x","y","z"};
+	string $camera = `zooGetShotCamera $shot`;
+	int $camShots[] = `zooGetShotsFromCamera $camera`;
+	int $isLocked = 0;
+
+	//a camera is considered locked if any of its t or r transforms is locked
+	for( $axis in $axes ) if( `getAttr -l ( $camera +".t"+ $axis )` ) $isLocked = 1;
+
+	setParent $UIParent;
+	string $form = `formLayout ( "zooShot_"+ $shot )`;
+		string $shotNum = `text -width 13 -l $shot`;
+		string $shotCam = `nameField -height 20 -ann "RMB here for more options" -o $camera ( "zooShotsNameFieldName_"+ $shot )`;
+		string $startGoto = `button -height 20 -width 12 -l "<" -ann "change the start time to the beginning of this shot" -c( "zooShotsGoto start "+ $shot )`;
+		string $startTime = `intField -height 20 -width 40 -ann "the start time for this shot" -cc( "zooSetShotInfo "+ $shot +" \"-set start #1\"; zooShotsWindowFunctions updateTime "+ $shot )`;
+		string $goToButton = `button -height 20 -width 19 -l "<>" -ann "change both the start and end time to that of this shot" -c( "zooShotsGoto both "+ $shot +"; zooShotsHighlightShot "+ $shot )`;
+		string $endTime = `intField -ed 0 -height 20 -width 40 -ann "the end time for this shot"`;
+		string $endGoto = `button -height 20 -width 12 -l ">" -ann "change the end time to the end of this shot" -c( "zooShotsGoto end "+ $shot )`;
+		string $lock = `button -height 20 -width 18 -l "" -ann "lock camera transforms" -c( "zooShotsWindowFunctions toggleLocked "+ $shot ) -docTag 0`;
+		string $notes = `button -height 20 -width 18 -l "" -ann "read the notes associated with this shot" -c( "zooShotNotesWindow "+ $shot )`;
+		setParent..;
+
+	//if the shot camera is used in multiple shots, then turn the shot number UI grey to indicate the shot camera is used elsewhere
+	if( `size $camShots`>1 ) {
+		text -e -vis 0 -bgc 0.58 0.62 0.67 $shotNum;
+		text -e -vis 1 $shotNum;
+		}
+
+	//if the shot camera is locked, then turn the lock button grey
+	if( $isLocked ) {
+		button -e -vis 0 -bgc 0.58 0.62 0.67 $lock;
+		button -e -vis 1 -docTag 1 $lock;
+		}
+
+	formLayout -e
+		-af $shotNum "top" 0
+		-af $shotNum "left" 2
+		-an $shotNum "right"
+		-an $shotNum "bottom"
+
+		-af $shotCam "top" 0
+		-ac $shotCam "left" 1 $shotNum
+		-ac $shotCam "right" 0 $startGoto
+		-an $shotCam "bottom"
+
+		-af $startGoto "top" 0
+		-an $startGoto "left"
+		-ac $startGoto "right" 0 $startTime
+		-an $startGoto "bottom"
+
+		-af $startTime "top" 0
+		-an $startTime "left"
+		-ac $startTime "right" 0 $goToButton
+		-an $startTime "bottom"
+
+		-af $goToButton "top" 0
+		-an $goToButton "left"
+		-ac $goToButton "right" 0 $endTime
+		-an $goToButton "bottom"
+
+		-af $endTime "top" 0
+		-an $endTime "left"
+		-ac $endTime "right" 0 $endGoto
+		-an $endTime "bottom"
+
+		-af $endGoto "top" 0
+		-an $endGoto "left"
+		-ac $endGoto "right" 0 $lock
+		-an $endGoto "bottom"
+
+		-af $lock "top" 0
+		-an $lock "left"
+		-ac $lock "right" 0 $notes
+		-an $lock "bottom"
+
+		-af $notes "top" 0
+		-an $notes "left"
+		-af $notes "right" 0
+		-an $notes "bottom"
+		$form;
+
+	popupMenu -p $shotCam -aob 1 -pmc( "zooShotMenu "+ $shot ) ( "zooShotsMMCam"+ $shot );
+	popupMenu -p $goToButton -pmc( "zooShotsColourMenu zooShotsMMCol"+ $shot +" "+ $shot ) ( "zooShotsMMCol"+ $shot );
+	popupMenu -p $lock -pmc( "zooShotLockMenu "+ $shot ) ( "zooShotsMMLock"+ $shot );
+
+	zooChangeShotColour $shot "";
+	zooShotsWindowFunctions updateNotes $shot;
+	zooShotsWindowFunctions updateTime $shot;
+	}
+
+
+global proc zooShotMenu( int $shot ) {
+	string $sel[] = `ls -tr -sl`;
+	string $parent = "zooShotsMMCam"+ $shot;
+	string $camera = `zooGetShotInfo camera $shot`;
+	int $camShots[] = `zooGetShotsFromCamera $camera`;
+	int $start = `zooGetShotInfo start $shot`;
+	int $end = `zooGetShotEndFrame $shot`;
+	int $length = $end-$start+1;
+	int $disable = `zooGetShotInfo disable $shot`;
+
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "Select Camera" -c( "select "+ $camera );
+	menuItem -l "Replace Camera" -en( `size $sel` ) -c( "zooShotsWindowFunctions replaceCamera "+ $shot );
+	menuItem -l "Disable Shot" -cb $disable -c( "zooSetShotInfo "+ $shot +" \"-set disable "+ (!$disable) +"\"; zooShotsWindowFunctions updateTime "+ $shot +"; zooShotsWindowFunctions updateDisabled \"*\";" );
+	menuItem -d 1;
+	menuItem -l "Delete Shot" -c( "zooShotsWindowFunctions remove "+ $shot );
+	menuItem -d 1;
+	menuItem -l ( $length +" frames long" ) -c( "print \"this shot is "+ $length +" frames long\\n\"" );
+	menuItem -l ( "shot number "+ $shot ) -c( "print \"this is shot number "+ $shot +"\"" );
+	if( `size $camShots` > 1 ) {
+		menuItem -d 1;
+		for( $s in $camShots ) {
+			menuItem -l ( "cam used in shot "+ $s ) -c( "zooShotsHighlightShot "+ $s );
+			menuItem -ob 1 -c( "zooShotsGoto both "+ $s );
+			}
+		menuItem -d 1;
+		menuItem -l "un-instance camera" -c( "zooUninstanceShot "+ $shot +"; zooShotsWindowFunctions updateInstance "+ $shot +";" );
+		}
+	}
+
+
+global proc zooShotsColourMenu( string $parent, int $shot ) {
+	string $colour = `zooGetShotInfo colour $shot`;
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "red" -cb( $colour=="red" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour red\"; zooChangeShotColour "+ $shot +" red" );
+	menuItem -l "orange" -cb( $colour=="orange" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour orange\"; zooChangeShotColour "+ $shot +" orange" );
+	menuItem -l "yellow" -cb( $colour=="yellow" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour yellow\"; zooChangeShotColour "+ $shot +" yellow" );
+	menuItem -l "green" -cb( $colour=="green" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour green\"; zooChangeShotColour "+ $shot +" green" );
+	menuItem -l "blue" -cb( $colour=="blue" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour blue\"; zooChangeShotColour "+ $shot +" blue" );
+	menuItem -l "purple" -cb( $colour=="purple" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour purple\"; zooChangeShotColour "+ $shot +" purple" );
+	menuItem -l "dark grey" -cb( $colour=="dark grey" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour grey\"; zooChangeShotColour "+ $shot +" grey" );
+	menuItem -divider 1;
+	menuItem -l "none" -cb( $colour=="" ) -c( "zooSetShotInfo "+ $shot +" \"-set colour none\"; zooChangeShotColour "+ $shot +" none" );
+	}
+
+
+global proc zooShotLockMenu( int $shot ) {
+	string $parent = "zooShotsMMLock"+ $shot;
+
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "Lock Above" -c( "zooBatchLocker "+ $shot +" before 1; zooShotsWindowFunctions updateLocked \"*\"" );
+	menuItem -l "Lock Below" -c( "zooBatchLocker "+ $shot +" after 1; zooShotsWindowFunctions updateLocked \"*\"" );
+	menuItem -l "Lock All" -c( "zooBatchLocker "+ $shot +" all 1; zooShotsWindowFunctions updateLocked \"*\"" );
+	menuItem -d 1;
+	menuItem -l "Unlock Above" -c( "zooBatchLocker "+ $shot +" before 0; zooShotsWindowFunctions updateLocked \"*\"" );
+	menuItem -l "Unlock Below" -c( "zooBatchLocker "+ $shot +" after 0; zooShotsWindowFunctions updateLocked \"*\"" );
+	menuItem -l "Unlock All" -c( "zooBatchLocker "+ $shot +" all 0; zooShotsWindowFunctions updateLocked \"*\"" );
+	}
+
+
+global proc zooMasterShotMenu( string $parent ) {
+	string $master = `zooGetMasterShot`;
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	if( `objExists $master` ) menuItem -l "Select Camera" -c( "select `zooGetMasterShot`" );
+	menuItem -l "Load Master Camera" -c( "zooShotsWindowFunctions loadCamera master" );
+	menuItem -d 1;
+	menuItem -l "Create New Camera" -c( "camera -n \"master_camera\" -centerOfInterest 5 -focalLength 35 -lensSqueezeRatio 1 -cameraScale 1 -horizontalFilmAperture 1.41732 -horizontalFilmOffset 0 -verticalFilmAperture 0.94488 -verticalFilmOffset 0 -filmFit Horizontal -overscan 1 -motionBlur 0 -shutterAngle 180 -nearClipPlane 0.01 -farClipPlane 1000 -orthographic 0 -orthographicWidth 30; zooShotsWindowFunctions loadCamera master" );
+	}
+
+
+global proc zooNewShotMenu( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "Load Target Camera" -c( "zooShotsWindowFunctions loadCamera n" );
+	menuItem -d 1;
+	menuItem -l "Create New Camera" -c( "camera -n \"shot\" -centerOfInterest 5 -focalLength 35 -lensSqueezeRatio 1 -cameraScale 1 -horizontalFilmAperture 1.41732 -horizontalFilmOffset 0 -verticalFilmAperture 0.94488 -verticalFilmOffset 0 -filmFit Horizontal -overscan 1 -motionBlur 0 -shutterAngle 180 -nearClipPlane 0.01 -farClipPlane 1000 -orthographic 0 -orthographicWidth 30; zooShotsWindowFunctions loadCamera n" );
+	}
+
+
+global proc zooListShotsMenu( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $nodes[] = `zooListAllShotNodes`;
+	string $currentNode = `zooGetShotsNode 0`;
+
+	for( $n in $nodes ) menuItem -l $n -cb( $n == $currentNode ) -c( "zooMakeShotNodeCurrent "+ $n +"; zooShotsConstrainMaster; zooShots;" );
+	if( !`size $nodes` ) {
+		menuItem -l "-no nodes created yet-" -en 0;
+		menuItem -d 1;
+		menuItem -l "Create zooShots Node" -c( "zooGetShotsNode 1" );
+		}
+	else {
+		menuItem -d 1;
+		menuItem -l "Create New Node" -c( "zooCreateNewShotsNode; zooShots;" );
+		}
+	}
+
+
+global proc zooMergeShotsMenu( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $nodes[] = `zooListAllShotNodes`;
+	string $currentNode = `zooGetShotsNode 0`;
+
+	//$nodes = `zooSubtraceArray $nodes {$currentNode}`;
+	for( $n in $nodes ) menuItem -l $n -en( $n != $currentNode ) -c( "zooMergeShotsNodes "+ $currentNode +" "+ $n +"; zooShotsConstrainMaster; zooShots;" );
+	if( !`size $nodes` ) {
+		menuItem -l "-no nodes created yet-" -en 0;
+		menuItem -d 1;
+		menuItem -l "Create zooShots Node" -c( "zooGetShotsNode 1" );
+		}
+	else {
+		menuItem -d 1;
+		menuItem -l "Create New Node" -c( "zooCreateNewShotsNode; zooShots;" );
+		}
+	}
+
+
+//------
+//highlights (changes the colour) the current shot in the UI.  it is usually called by a scriptJob triggered by time change
+//------
+global proc zooShotsHighlightActiveShot() {
+	int $highlightPref = 1;
+	if( `optionVar -ex zooShotsHighlight` ) $highlightPref = `optionVar -q zooShotsHighlight`;
+	if( $highlightPref ) zooShotsForceHighlight;
+	}
+
+
+//------
+//forces the current slot to highlight
+//------
+global proc zooShotsForceHighlight() {
+	global int $zooPrevShot;
+	int $currentShot = `zooGetCurrentShot`;
+
+	if( $zooPrevShot != -1 ) zooChangeShotColour $zooPrevShot "";
+	if( $currentShot != -1 ) zooChangeShotColour $currentShot active;
+	$zooPrevShot = $currentShot;
+	}
+
+
+//------
+//manual highlight function
+//------
+global proc zooShotsHighlightShot( int $shot ) {
+	global int $zooPrevShot;
+	if( $zooPrevShot != -1 ) zooChangeShotColour $zooPrevShot "";
+	if( $shot != -1 ) zooChangeShotColour $shot active;
+	$zooPrevShot = $shot;
+	}
+
+
+//------
+//this proc builds the notes editing/viewing window
+//------
+global proc zooShotNotesWindow( int $shot ) {
+	string $windowName = "zooShotNotesWindow";
+	string $windowTitle = "notes for shot "+ $shot;
+	string $noteText = `zooGetShotInfo notes $shot`;
+
+	if( $shot >= 0 ) $noteText = `zooGetShotInfo notes $shot`;
+	else {
+		$noteText = `zooGetGlobalShotInfo notes`;
+		$windowTitle = "global notes";
+		}
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 0 -maximizeButton 0 -sizeable 1 -width 200 -height 150 $windowName;
+	string $form = `formLayout`;
+		string $text = `scrollField -tx $noteText -ww 1`;
+		string $save = `button -l "save note" -c( "{ string $note = `scrollField -q -tx "+ $text +"`; zooSetShotInfo "+ $shot +" ( \"-set notes \"+ $note ); deleteUI "+ $windowName +"; zooShotsWindowFunctions updateNotes "+ $shot +";}" )`;
+		string $rem = `button -l "delete note" -c( "zooSetShotInfo "+ $shot +" \"-set notes\"; deleteUI "+ $windowName +"; zooShotsWindowFunctions updateNotes "+ $shot )`;
+		string $canc = `button -l "cancel" -c( "deleteUI "+ $windowName )`;
+
+	formLayout -e
+		-af $text "top" 0
+		-af $text "left" 0
+		-af $text "right" 0
+		-ac $text "bottom" 0 $save
+
+		-an $save "top"
+		-af $save "left" 0
+		-ap $save "right" 0 33
+		-af $save "bottom" 0
+
+		-an $rem "top"
+		-ap $rem "left" 0 33
+		-ap $rem "right" 0 67
+		-af $rem "bottom" 0
+
+		-an $canc "top"
+		-ap $canc "left" 0 67
+		-af $canc "right" 0
+		-af $canc "bottom" 0
+		$form;
+
+	if( $shot < 0 ) {
+		button -e -c( "{ string $note = `scrollField -q -tx "+ $text +"`; zooSetGlobalShotInfo notes $note; deleteUI "+ $windowName +"; zooShotsWindowFunctions updateNotes "+ $shot +";}" ) $save;
+		button -e -c( "zooSetGlobalShotInfo notes \"\"; deleteUI "+ $windowName +"; zooShotsWindowFunctions updateNotes "+ $shot ) $rem;
+		}
+
+	showWindow $windowName;
+	}
+
+
+//------
+//changes the colour of a shot in the UI - this colour change can be saved, or not.  If not saved, it will lost whenever the UI is updated
+//------
+global proc zooChangeShotColour( string $shot, string $colour ) {
+	if( !`formLayout -ex ( "zooShot_"+ $shot )`) return;
+	string $UIElts[] = `formLayout -q -ca ( "zooShot_"+ $shot )`;
+	int $buttsToChange[] = { 2, 4, 6 };
+	float $colR = 0.831;
+	float $colG = 0.816;
+	float $colB = 0.784;
+
+	if( $colour == "" ) $colour = `zooGetShotInfo colour $shot`;
+	//otherwise, set the colour attributes
+	if( $colour == "active" ) { $colR = 0.0; $colG = 1.0; $colB = 0.0; }
+	if( $colour == "red" ) { $colR = 0.784; $colG = 0.176; $colB = 0.176; }
+	if( $colour == "orange" ) { $colR = 1.0; $colG = 0.549; $colB = 0.157; }
+	if( $colour == "yellow" ) { $colR = 0.922; $colG = 0.922; $colB = 0.447; }
+	if( $colour == "green" ) { $colR = 0.518; $colG = 0.825; $colB = 0.227; }
+	if( $colour == "blue" ) { $colR = 0.376; $colG = 0.392; $colB = 0.573; }
+	if( $colour == "purple" ) { $colR = 0.537; $colG = 0.294; $colB = 0.612; }
+	if( $colour == "grey" ) { $colR = 0.55; $colG = 0.55; $colB = 0.55; }
+
+	for( $num in $buttsToChange ) {
+		control -e -bgc $colR $colG $colB -vis 0 $UIElts[$num];
+		control -e -vis 1 $UIElts[$num];
+		}
+	}
+
+
+global proc zooBuildShotPopupMenu( string $parent ) {
+	int $shots[] = `zooListShots`;
+	//int $curShot = `zooGetCurrentShot`;  //until the getCurrentShot command is made faster, enabling this makes the rmb menu painfully slow to display
+
+	setParent -m $parent;
+	menu -e -dai $parent;
+	int $dockState = `optionVar -ex zooShotsDocking`? `optionVar -q zooShotsDocking`: 0;
+
+	for( $shot in $shots ) {
+		string $note = `zooGetShotInfo notes $shot`;
+		string $label = `zooGetShotCamera $shot`;
+		if( `size $note` ) {
+			string $temp[] = {};
+			tokenize $note " " $temp;
+			$label += ": "+ zooArrayToStr_str(`zooIndexCrop_str $temp ":5"`, " ");
+			}
+		string $m = `menuItem -l $label -c( "zooShotsGoto both "+ $shot )`;
+		}
+
+	menuItem -d 1;
+	menuItem -l "dock to CB" -cb $dockState -c( "optionVar -iv zooShotsDocking "+ (!$dockState));
+	menuItem -d 1;
+	string $subMenu = `menuItem -l "shot nodes" -sm 1`;
+	setParent -m ..;
+	menuItem -d 1;
+	menuItem -l "Help..." -c ( "zooHelp zooShots 1" );
+	menuItem -l "About" -c ( "zooHelp zooShots 2" );
+	zooListShotsMenu $subMenu;
+	}
+
+
+//------
+//adds the right click popup menu to the zooShots shelf button
+//------
+global proc zooShotsInstallShelfPopup() {
+	string $buttons[] = `zooGetShelfButtonAll zooShots`;
+	for( $button in $buttons ) if( `control -ex $button` ) if ( !`shelfButton -q -numberOfPopupMenus $button` ) popupMenu -p $button -pmc( "zooBuildShotPopupMenu "+ $button +"Popup" ) ( $button +"Popup" );
+	}
+
+
+//------
+//installs a shelf buttons for zooTriggered on the current shelf
+//------
+global proc zooShotsSetup() {
+	string $button = `zooInstallShelfButton zooShots`;
+	string $image = `internalVar -userBitmapsDir` +"zooShots.xpm";
+	string $cmd = "zooShots";
+
+	shelfButton -e -image1 $image -l "zooShots shelf button" -ann "load the zooShots UI - right click for additional options" -command $cmd $button;
+	zooShotsInstallShelfPopup;
+	}
+
+
+//------
+//standard zoo info proc
+//------
+global proc string zooShotsInfo ( string $function ) {
+	string $creationDate = "08 February 2002";
+	string $currentVersion = "3.06.05";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+//zoo.end

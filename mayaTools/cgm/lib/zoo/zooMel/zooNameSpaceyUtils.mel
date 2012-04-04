@@ -1,0 +1,130 @@
+
+
+zooArrays_str;
+
+
+global proc zooNameSpaceyUtils() {
+	return;
+	}
+
+
+//this proc has to recurse through all sub spaces, rename all subspaces, as well as their contents, then remove the original space
+global proc zooNameSpaceyRename( string $space, string $newName ) {
+	if( $space == $newName ) return;
+	if( $space != "Root" && $space != ".." ) {
+		string $subSpaces[] = `zooGetRecursedNamespaces $space`;
+		string $buffer[] = {};
+		string $contents[] = `ls ( $space + ":*" )`;
+
+		namespace -set ":";
+		namespace -p ":" -add $newName;
+
+		for( $sub in $subSpaces ) {
+			string $cmd = "namespace -p " + $newName;  //setup the command to create the duplicate subspace in the new namespace
+			string $newSubSpace = $newName;  //create a variable to hold the name of the new subspace
+			int $n = 0;
+
+			$numToks = `tokenize $sub ":" $buffer`;
+			for( $n = 1; $n < `size $buffer`-1; $n++ ) $cmd = $cmd + ":" + $buffer[$n];
+			for( $n = 1; $n < `size $buffer`; $n++ ) $newSubSpace = $newSubSpace + ":" + $buffer[$n];
+			$cmd = $cmd + " -add " + $buffer[( `size $buffer`-1 )];
+			if( $sub != $space ) eval $cmd;
+
+			select -r -ne `ls -l ( ":" + $sub + ":*" )`;
+			while( size( `ls -sl` )) {
+				string $obj[] = `ls -l -sl`;
+				select -d -ne $obj[0];
+
+				clear $buffer;
+				int $numToks = `tokenize $obj[0] ":" $buffer`;
+				rename $obj[0] ( $newSubSpace + ":" + $buffer[( `size $buffer`-1 )] );
+				}
+			}
+
+		namespace -set ":";
+		zooNameSpaceyDelete $space;
+		}
+	}
+
+
+//this is where most of the work is actually done
+global proc zooNameSpaceyRemove( string $space ) {
+	string $buffer[] = {};
+	string $parentSpace = `zooNameSpaceyNavigate -up $space`;
+	string $prefixSpace = $parentSpace == ""? "": $parentSpace+":";
+	string $subSpaces[] = `zooGetRecursedNamespaces $space`;
+
+	namespace -set ( ":" + $parentSpace );
+	$subSpaces = `zooReverseArray_str $subSpaces`;
+	for( $sub in $subSpaces ) {
+		select -r -ne `ls -l ( ":" + $sub + ":*" )`;
+		while( size( `ls -sl` )) {
+			string $obj[] = `ls -l -sl`;
+			select -d -ne $obj[0];
+
+			clear $buffer;
+			int $numToks = `tokenize $obj[0] ":" $buffer`;
+			lockNode -l 0 $obj[0];
+			rename $obj[0] ( $prefixSpace + $buffer[( $numToks-1 )] );
+			}
+
+		catch( `namespace -removeNamespace ( ":" + $sub )` );
+		}
+
+	namespace -set ( ":" + $parentSpace );
+	}
+
+
+global proc zooNameSpaceyDelete( string $space ) {
+	string $subSpaces[] = zooReverseArray_str( `zooGetRecursedNamespaces $space` );
+	for( $sub in $subSpaces ) {
+		select -r -ne `ls -l ( ":" + $sub + ":*" )`;
+		string $sel[] = `ls -sl`;
+		for( $obj in $sel ) lockNode -l 0 $obj;
+		if( size(`ls ( ":" + $sub + ":*" )`)) delete ( ":" + $sub + ":*" );
+		namespace -removeNamespace ( ":" + $sub );
+		}
+
+	namespace -set ":";
+	}
+
+
+global proc string zooNameSpaceyNavigate( string $direction, string $space ) {
+	string $buffer[] = {};
+	string $recursedSpace = "";
+	int $tokens = `tokenize $space ":" $buffer`;
+	int $n = 0;
+
+	if( `size $buffer` > 1 ) for( $n = 0; $n < `size $buffer`-1; $n++ ) $recursedSpace = $recursedSpace + $buffer[$n] + ":";
+	else $recursedSpace = "";
+	if( $recursedSpace == "" ) $recursedSpace = "";
+	else $recursedSpace = `substring $recursedSpace 1 (size($recursedSpace)-1)`;
+	return $recursedSpace;
+	}
+
+
+//this proc transverses the namespace heirarchy, and returns an ordered list of namespaces.  Top most namespaces are listed first
+global proc string[] zooGetRecursedNamespaces( string $space ) {
+	string $pathsFound[] = {};
+	string $temp[] = {};
+	int $n = 0;
+
+	$pathsFound[0] = $space;
+	for( $n = 0; $n < `size $pathsFound`; $n++ ) {
+		$path = $pathsFound[$n];
+		namespace -set ( ":" + $path );
+		clear $temp;
+		$temp = `namespaceInfo -lon`;
+		if( `size $temp` ) $pathsFound = `zooAddArray_str $pathsFound $temp`;
+		if( $n>1000 ) break;
+		}
+
+	//make sure the : exists on the end of all namespaces
+	for( $n=0; $n<`size $pathsFound`; $n++ ) if( `match ":$" $pathsFound[$n]` == "" ) $pathsFound[$n] = $pathsFound[$n] + ":";
+
+	namespace -set ":";  //revert to the root namespace
+	return $pathsFound;
+	}
+
+
+//zoo.end

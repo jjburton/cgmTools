@@ -1,0 +1,1871 @@
+zooArrays_str;
+zooBrandTools;
+zooCSTPrimitives;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooShelveIt;
+zooRenamerUtils;
+zooTriggeredUtils;
+zooStrUtils;
+zooUtils;
+
+string $g_initialMacroText = "// rig build macro creating using v"+ (zooCSTInfo("version")) +"\n// authored by: \""+ `getenv USER` +"\" on: "+ `about -cd` +"\n";
+
+{
+string $windowName = "zooCSTWindow";
+string $windowTitle = "zooCharacterSetupTools v"+ `zooCSTInfo version`;
+string $cameras[] = `ls -type camera`;
+int $infoDate = 61101;  //this is actually a reversed date, with the first number being the year number
+int $latestTip = -1;
+
+for( $n=0; $n<`size $cameras`; $n++ ) $cameras[$n] = zooGetElement_str(0,`listRelatives -f -p $cameras[$n]`);
+if( $infoDate > `optionVar -q zooCSTDisplayInfo` ) {
+	$latestTip = 26;
+	}
+optionVar -iv zooCSTDisplayInfo $infoDate;  //When new tips are added, this counter in incremented.  If the number stored in the script is bigger than the one stored in the userPrefs, then the user hasn't seen the new tips
+
+if( `window -exists $windowName` ) deleteUI $windowName;
+window -mb 1 -title $windowTitle -width 520 -sizeable 1 $windowName;
+	scriptJob -p $windowName -e "SelectionChanged" "zooCSTWindowFunctions update 0";
+	menu -label "CST Tools";
+		menuItem -l "List Primitives" -c( "zooCSTPrimitiveListWindow;" );
+		menuItem -d 1;
+		menuItem -l "Brand With..." -sm 1;
+			menuItem -l "Chest" -c( "{zooBrandTools; string $name = `textField -q -tx zooCSTTextPrefix`; string $s[] = `ls -sl`; if( `size $s` ) if( $name != \"\" ) {for( $o in $s ) zooBrandObject name $name $o; for( $o in $s ) zooBrandObject chest $name $o;}}" );
+			menuItem -l "Head" -c( "{zooBrandTools; string $name = `textField -q -tx zooCSTTextPrefix`; string $s[] = `ls -sl`; if( `size $s` ) if( $name != \"\" ) {for( $o in $s ) zooBrandObject name $name $o; for( $o in $s ) zooBrandObject head $name $o;}}" );
+			menuItem -l "Hips" -c( "{zooBrandTools; string $name = `textField -q -tx zooCSTTextPrefix`; string $s[] = `ls -sl`; if( `size $s` ) if( $name != \"\" ) {for( $o in $s ) zooBrandObject name $name $o; for( $o in $s ) zooBrandObject hips $name $o;}}" );
+			menuItem -l "Neck" -c( "{zooBrandTools; string $name = `textField -q -tx zooCSTTextPrefix`; string $s[] = `ls -sl`; if( `size $s` ) if( $name != \"\" ) {for( $o in $s ) zooBrandObject name $name $o; for( $o in $s ) zooBrandObject neck $name $o;}}" );
+			menuItem -l "Root" -c( "{zooBrandTools; string $name = `textField -q -tx zooCSTTextPrefix`; string $s[] = `ls -sl`; if( `size $s` ) if( $name != \"\" ) {for( $o in $s ) zooBrandObject name $name $o; for( $o in $s ) zooBrandObject root $name $o;}}" );
+		setParent -m ..;
+		menuItem -d 1;
+		menuItem -l "Replace Brand Info" -c( "{string $brand = \"\";string $search = \"\";string $replace = \"\";string $a = `promptDialog -t \"question 1/3\" -m \"brand name:\" -b OK -b Cancel -db OK`;if( $a == \"OK\") {$brand = `promptDialog -q -tx`;string $b = `promptDialog -t \"question 2/3\" -m \"search for:\" -b OK -b Cancel -db OK`; if( $b == \"OK\" ) {$search = `promptDialog -q -tx`;string $c = `promptDialog -t \"question 3/3\" -m \"replace with:\" -b OK -b Cancel -db OK`; if( $c == \"OK\" ) {$replace = `promptDialog -q -tx`;zooBrandTools; print `zooReplaceBrandInfo $brand $search $replace`;}}}}" );
+		menuItem -l "Replace Info In Any Brand" -c( "{string $search = \"\";string $replace = \"\";string $a = `promptDialog -t \"question 1/2\" -m \"search for:\" -b OK -b Cancel -db OK`;if( $a == \"OK\") {$search = `promptDialog -q -tx`;string $b = `promptDialog -t \"question 2/2\" -m \"replace with:\" -b OK -b Cancel -db OK`; if( $b == \"OK\" ) {$replace = `promptDialog -q -tx`;zooBrandTools;print `zooReplaceAnyInfo $search $replace`;}}}" );
+	menu -label "Rigging Tools";
+		menuItem -l "Author Pickwalking" -ann "lets you setup pickwalking directions for your character's rig" -c( "zooPickwalkAuthor;" );
+		menuItem -d 1;
+		menuItem -l "Build Proxy Primitives" -ann "select all the skinned mesh objects that comprise your character" -c( "zooCSTWindowFunctions createProxy \"*\"" );
+		menuItem -l "Replace Shape" -ann "select the source object, then the target - this will replace the shape nodes on the target object with those from the source object" -c( "{zooCSTUtils; string $sel[] = `ls -sl`; zooReplaceShape $sel[0] $sel[1] 0; }" );
+		menuItem -l "Extract Mesh From Joint" -ann "select some joints, then run this - an object containing the faces that the selected joints deform gets created" -c( "{zooSurgeonUtils; zooArrays_str; string $js[] = `ls -type joint -sl`; string $jStr = `zooArrayToStr_str $js \" \"`; zooExtractJointMesh ( \"-joints \"+ $jStr +\" -expand 0.01\" ); }" );
+		menuItem -l "Open zooSurgeon (to create proxies)" -c( "zooSurgeon;" );
+		menuItem -d 1;
+		menuItem -l "Orient Chain Sensibly" -ann "" -c( "{zooOrientChainProperly `ls -sl` {};}" );
+		menuItem -d 1;
+		menuItem -l "Open zooTriggered" -c( "zooTriggered;" );
+		menuItem -l "Open zooRenamer" -c( "zooRenamer;" );
+	menu -label "Skinning Tools";
+		menuItem -l "Open zooWeightSave" -c( "zooWeightSave;" );
+	menu -label "Animation Tools";
+		menuItem -l "Draw Line of Action (LOA)" -c( "zooLineOfAction;zooLineOfAction_multi `ls -sl` \"\";" );
+		menuItem -l "Camera for LOA ->" -sm 1;
+			for( $c in $cameras ) menuItem -l( `match "[^|]+$" $c` ) -c( "zooSetLookat "+ $c +";" );
+		setParent -m ..;
+		menuItem -d 1;
+		menuItem -l "Bolt on IK" -c( "zooBoltOnIKWin;" );
+	menu -label "Setup";
+		menuItem -l "Install Shelf Button" -c( "zooCSTShelfButton install" );
+		menuItem -l "Remove Shelf Button" -c( "zooCSTShelfButton remove" );
+	menu -label "Help";
+		menuItem -l "Donate Now" -c( "showHelp -a \"http://www.macaronikazoo.com/donate.html\";" );
+		menuItem -l "Help..." -c( "zooHelp zooCST 2" );
+		menuItem -d 1;
+		menuItem -l "How It Works" -c( "zooHelp zooCST 4" );
+		menuItem -l "Technical Info" -c( "zooHelp zooCST 3" );
+		menuItem -l "Additional Flags" -c( "zooHelp zooCST 1" );
+
+	string $masterForm = `formLayout`;
+		string $topForm = `formLayout`;
+			text -width 80 -l "controller prefix:" zooCSTTextPrefixLbl;
+			textField -width 85 -cc( "zooCSTWindowFunctions update n" ) zooCSTTextPrefix;
+			button -width 105 -l "guess all joints" -c( "zooCSTWindowFunctions guessAll \"*\"" ) zooCSTButtonGuess;
+			checkBox -vis 0 -l "controls as curves ONLY" -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckCurveControls;
+
+			text -width 80 -l "global scale:" zooCSTTextScaleLbl;
+			floatField -width 85 -v 0.25 -min 0.001 -max 100 -s 0.1 zooCSTFloatScale;
+			button -width 105 -enable 0 -l "guess size" -c( "zooCSTWindowFunctions guessSize \"*\"" ) zooCSTButtonGuessSize;
+			colorIndexSliderGrp -vis 0 -cat 1 left 0 -cat 2 left 0 -cw 1 1 -cw 3 80 -label "" -min 0 -max 20 -value 0 zooCSTColourSlider;
+		setParent ..;
+
+		string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5 -sc ( "zooCSTWindowFunctions refreshTab \"*\"" ) zooCSTSetupTabs`;
+			string $spineForm = `formLayout zooCSTFormRoot`;
+				string $rootBut = `button -l "Root ->" -width 70 -c( "zooCSTWindowFunctions addClient Root" )`;
+				string $rootTex = `textField zooCSTTextRoot`;
+
+				string $rootHipsBut = `button -l "Hips ->" -width 70 -c( "zooCSTWindowFunctions addClient Waist;" ) zooCSTButtWaist`;
+				string $rootHipsTex = `textField zooCSTTextWaist`;
+				string $rootHipsCheck = `checkBox -l "build Hips" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckRootHips`;
+
+				string $baseAnn = "This is the FIRST joint that you want to be controlled by the spine, which is different from the root.  See Help for more details";
+				string $spineBut1 = `button -l "Base ->" -width 70 -ann( $baseAnn ) -c( "zooCSTWindowFunctions addClient SpineBase;" ) zooCSTButtonSpineBase`;
+				string $spineTex1 = `textField zooCSTTextSpineBase`;
+
+				string $endAnn = "This is the LAST joint that you want to be controlled by the spine";
+				string $spineBut2 = `button -l "Chest ->" -width 70 -ann( $endAnn ) -c( "zooCSTWindowFunctions addClient SpineEnd;" ) zooCSTButtonSpineEnd`;
+				string $spineTex2 = `textField zooCSTTextSpineEnd`;
+
+				string $spineOpts = `rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 70
+					-columnWidth 2 90
+					-columnAttach 1 "both" 0
+					-columnAttach 2 "both" 0`;
+					text -l "spine type -->";
+					optionMenu -l "" zooCSTOptionSpineType;
+						menuItem -l "basic FK" basicFk;
+						//menuItem -l "advanced FK" advancedFk;
+						menuItem -l "reverse spine" reverseSpine;
+						//menuItem -l "stretchy IK" ik;
+						menuItem -l "stretchy IK FK" ikFk;
+						menuItem -l "root only" rootOnly;
+				setParent ..;
+
+				string $spineCreateBut = `button -l "create spine primitive" -c( "zooCSTWindowFunctions createSpine \"*\"" )`;
+				string $rootOptsLbl = `text -l "additional options:"`;
+				string $rootOptsTex = `textField zooCSTTextOptsRoot`;
+				popupMenu -p $rootOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsRoot { \"spaceswitching 0\", \"parents\", \"orient 1\", \"axis x\" }" ) zooCSTTextOptsRootPopup;
+			setParent ..;
+
+			string $headForm = `formLayout zooCSTFormHead`;
+				string $headFramePred = `frameLayout -label "Predecessors" -collapse 1 -collapsable 1 -labelAlign top -borderStyle etchedIn`;
+					rowColumnLayout -numberOfColumns 2
+						-columnWidth 1 270
+						-columnWidth 2 120
+						-columnAttach 1 "both" 0
+						-columnAttach 2 "both" 0;
+						columnLayout;
+							text -l "World:" zooCSTTextHeadWorld;
+							text -l "Root:" zooCSTTextHeadRoot;
+							text -l "Chest:" zooCSTTextHeadChest;
+						setParent ..;
+
+						columnLayout;
+						setParent ..;
+					setParent ..;
+				setParent ..;
+
+				string $headSep1 = `separator`;
+
+				string $headBut = `button -l "Head->" -width 70 -ann( "The joint used to rotate the head" ) -c( "zooCSTWindowFunctions addClient Head" )`;
+				string $headTex = `textField zooCSTTextHead`;
+
+				string $neckBut = `button -l "Neck->" -en 0 -width 70 -ann( "The joint used to rotate the neck" ) -c( "zooCSTWindowFunctions addClient Neck" ) zooCSTButtNeck`;
+				string $neckTex = `textField -en 0 zooCSTTextNeck`;
+				string $headCheckNeck = `checkBox -l "build Neck" -v 0 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckHeadNeck`;
+
+				string $headOpts = `rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 70
+					-columnWidth 2 90
+					-columnAttach 1 "both" 0
+					-columnAttach 2 "both" 0`;
+					text -l "head type -->";
+					optionMenu -l "" zooCSTOptionHeadType;
+						menuItem -l "basic head" Head;
+				setParent ..;
+
+				string $headCreateBut = `button -l "create head primitive" -c( "zooCSTWindowFunctions createHead \"*\"" )`;
+
+				string $headSep2 = `separator`;
+				string $headEyeLbl = `text -l "Eyes" -align center`;
+				string $headSep3 = `separator`;
+
+				string $eyeButL = `button -l "Eye_L ->" -width 70 -c( "zooCSTWindowFunctions addClient \"EyeL^EyeR\";" )`;
+				string $eyeTexL = `textField zooCSTTextEyeL`;
+				string $eyeButR = `button -l "Eye_R ->" -width 70 -c( "zooCSTWindowFunctions addClient \"EyeR^EyeL\";" )`;
+				string $eyeTexR = `textField zooCSTTextEyeR`;
+
+				string $eyeOpts = `rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 70
+					-columnWidth 2 90
+					-columnAttach 1 "both" 0
+					-columnAttach 2 "both" 0`;
+					text -l "eye type -->";
+					optionMenu -l "" zooCSTOptionEyeType;
+						menuItem -l "basic eye" Eyes;
+						menuItem -l "moveable eyes" MoveableEyes;
+				setParent ..;
+
+				string $eyeCreateBut = `button -l "create eyes primitive" -c( "zooCSTWindowFunctions createEyes \"*\"" )`;
+				string $eyeOptsLbl = `text -l "additional options:"`;
+				string $eyeOptsTex = `textField zooCSTTextOptsHead`;
+				popupMenu -p $eyeOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsHead { \"orient 0\", \"spaceswitching 0\", \"parents\", \"world\", \"root\", \"chest\", \"head\", \"eyeParents\", \"neck 0\" }" ) zooCSTTextOptsHeadPopup;
+			setParent ..;
+
+			string $armForm = `formLayout zooCSTFormArm`;
+				string $armFramePred = `frameLayout -label "Predecessors" -collapse 1 -collapsable 1 -labelAlign top -borderStyle "etchedIn"`;
+					rowColumnLayout -numberOfColumns 2
+						-columnWidth 1 270
+						-columnWidth 2 120
+						-columnAttach 1 "both" 0
+						-columnAttach 2 "both" 0;
+						columnLayout;
+							text -l "World:" zooCSTTextArmWorld;
+							text -l "Root:" zooCSTTextArmRoot;
+							text -l "Chest:" zooCSTTextArmChest;
+							text -l "Head:" zooCSTTextArmHead;
+						setParent ..;
+
+						columnLayout;
+						setParent ..;
+					setParent ..;
+				setParent ..;
+
+				string $armSep = `separator`;
+
+				string $armFrameLOpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+					rowColumnLayout -numberOfColumns 2 -columnWidth 1 65 -columnWidth 2 100 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0;
+						checkBox -l "left arm" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckArmL;
+						checkBox -l "stretchy" -v 0 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckArmStretchL;
+					setParent ..;
+				setParent ..;
+
+				string $armFrameROpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+					rowColumnLayout -numberOfColumns 2 -columnWidth 1 65 -columnWidth 2 100 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0;
+						checkBox -l "right arm" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckArmR;
+						checkBox -l "stretchy" -v 0 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckArmStretchR;
+					setParent ..;
+				setParent ..;
+
+				string $armBicepButL = `button -l "Bicep ->" -width 70 -c( "zooCSTWindowFunctions addClient \"BicepL^BicepR\"" )`;
+				string $armBicepTexL = `textField zooCSTTextBicepL`;
+
+				string $armElbowButL = `button -l "Elbow ->" -width 70 -c( "zooCSTWindowFunctions addClient \"ElbowL^ElbowR\"" )`;
+				string $armElbowTexL = `textField zooCSTTextElbowL`;
+
+				string $armWristButL = `button -l "Wrist ->" -width 70 -c( "zooCSTWindowFunctions addClient \"WristL^WristR\"" )`;
+				string $armWristTexL = `textField zooCSTTextWristL`;
+
+				string $armBicepButR = `button -l "Bicep ->" -width 70 -c( "zooCSTWindowFunctions addClient \"BicepR^BicepL\"" )`;
+				string $armBicepTexR = `textField zooCSTTextBicepR`;
+
+				string $armElbowButR = `button -l "Elbow ->" -width 70 -c( "zooCSTWindowFunctions addClient \"ElbowR^ElbowL\"" )`;
+				string $armElbowTexR = `textField zooCSTTextElbowR`;
+
+				string $armWristButR = `button -l "Wrist ->" -width 70 -c( "zooCSTWindowFunctions addClient \"WristR^WristL\"" )`;
+				string $armWristTexR = `textField zooCSTTextWristR`;
+
+				string $armOpts = `rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 70
+					-columnWidth 2 90
+					-columnAttach 1 "both" 0
+					-columnAttach 2 "both" 0`;
+					text -l "arm type -->";
+					optionMenu -l "" zooCSTOptionArmType;
+						menuItem -l "basic ik/fk" Arm;
+				setParent ..;
+
+				string $armCreateBut = `button -l "create arm primitive" -c( "zooCSTWindowFunctions createArm \"*\"" )`;
+				string $armOptsLbl = `text -l "additional options:"`;
+				string $armOptsTex = `textField zooCSTTextOptsArms`;
+				popupMenu -p $armOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsArms { \"buildclav 0\", \"spaceswitching 0\", \"parents\", \"world\", \"root\", \"chest\", \"head\", \"fkType\", \"ikType\", \"poleType\", \"triggers 0\", \"invert 1\" }" ) zooCSTTextOptsArmsPopup;
+			setParent ..;
+
+			string $legForm = `formLayout zooCSTFormLeg`;
+				string $legFramePred = `frameLayout -label "Predecessors" -collapse 1 -collapsable 1 -labelAlign top -borderStyle "etchedIn"`;
+					rowColumnLayout -numberOfColumns 3
+						-columnWidth 1 270
+						-columnWidth 2 120
+						-columnAttach 1 "both" 0
+						-columnAttach 2 "both" 0;
+						columnLayout;
+							text -l "World:" zooCSTTextLegWorld;
+							text -l "Root:" zooCSTTextLegRoot;
+						setParent ..;
+
+						columnLayout;
+						setParent ..;
+					setParent ..;
+				setParent ..;
+
+				string $legSep = `separator`;
+
+				string $legFrameLOpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+					rowColumnLayout -numberOfColumns 3 -columnWidth 1 65 -columnWidth 2 75 -columnWidth 3 80 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 -columnAttach 3 "both" 0;
+						checkBox -l "left leg" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckLegL;
+						checkBox -l "stretchy" -v 0 zooCSTCheckLegStretchL;
+						checkBox -l "parent knee" -v 1 zooCSTCheckLegParentKneeL;
+					setParent ..;
+				setParent ..;
+
+				string $legFrameROpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+					rowColumnLayout -numberOfColumns 3 -columnWidth 1 65 -columnWidth 2 75 -columnWidth 3 80 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 -columnAttach 3 "both" 0;
+						checkBox -l "right leg" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckLegR;
+						checkBox -l "stretchy" -v 0 zooCSTCheckLegStretchR;
+						checkBox -l "parent knee" -v 1 zooCSTCheckLegParentKneeR;
+					setParent ..;
+				setParent ..;
+
+				string $legThighButL = `button -l "Thigh ->" -width 70 -c( "zooCSTWindowFunctions addClient \"ThighL^ThighR\"" )`;
+				string $legThighTexL = `textField zooCSTTextThighL`;
+
+				string $legKneeButL = `button -l "Knee ->" -width 70 -c( "zooCSTWindowFunctions addClient \"KneeL^KneeR\"" )`;
+				string $legKneeTexL = `textField zooCSTTextKneeL`;
+
+				string $legAnkleButL = `button -l "Ankle ->" -width 70 -c( "zooCSTWindowFunctions addClient \"AnkleL^AnkleR\"" )`;
+				string $legAnkleTexL = `textField zooCSTTextAnkleL`;
+
+				string $legToeButL = `button -l "Toe ->" -en 0 -width 70 -c( "zooCSTWindowFunctions addClient \"ToeL^ToeR\"" )`;
+				string $legToeTexL = `textField -en 0 zooCSTTextToeL`;
+
+				string $legThighButR = `button -l "Thigh ->" -width 70 -c( "zooCSTWindowFunctions addClient \"ThighR^ThighL\"" )`;
+				string $legThighTexR = `textField zooCSTTextThighR`;
+
+				string $legKneeButR = `button -l "Knee ->" -width 70 -c( "zooCSTWindowFunctions addClient \"KneeR^KneeL\"" )`;
+				string $legKneeTexR = `textField zooCSTTextKneeR`;
+
+				string $legAnkleButR = `button -l "Ankle ->" -width 70 -c( "zooCSTWindowFunctions addClient \"AnkleR^AnkleL\"" )`;
+				string $legAnkleTexR = `textField zooCSTTextAnkleR`;
+
+				string $legToeButR = `button -l "Toe ->" -en 0 -width 70 -c( "zooCSTWindowFunctions addClient \"ToeR^ToeL\"" )`;
+				string $legToeTexR = `textField -en 0 zooCSTTextToeR`;
+
+				string $legOpts = `rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 70
+					-columnWidth 2 90
+					-columnAttach 1 "both" 0
+					-columnAttach 2 "both" 0`;
+					text -l "leg type -->";
+					optionMenu -l "" -cc( "zooCSTWindowFunctions update \"*\";" ) zooCSTOptionLegType;
+						menuItem -l "basic ik/fk" Leg;
+						menuItem -l "quadruped leg" Haunch;
+				setParent ..;
+
+				string $legCreateBut = `button -l "create leg primitive" -c( "zooCSTWindowFunctions createLeg \"*\"" )`;
+				string $legOptsLbl = `text -l "additional options:"`;
+				string $legOptsTex = `textField -tx "" zooCSTTextOptsLegs`;
+				string $legInfoText = `text -l "the -fkCurve flag forces zooCST to create the fk controls as curve controls\n\nthis allows you to combine control geometry types - for more information\non other flags that work in zooCST, please read the \"Additional Flags\" help"`;
+				popupMenu -p $legOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsLegs { \"spaceswitching 0\", \"parents\", \"world\", \"root\", \"chest\", \"head\", \"fkType\", \"ikType\", \"poleType\", \"triggers 0\", \"invert 1\", \"kneeMode 0\" }" ) zooCSTTextOptsLegsPopup;
+			setParent ..;
+
+			string $handForm = `formLayout zooCSTFormHand`;
+				string $handFramePred = `frameLayout -label "Predecessors" -collapse 1 -collapsable 1 -labelAlign top -borderStyle "etchedIn"`;
+					rowColumnLayout -numberOfColumns 3
+						-columnWidth 1 270
+						-columnWidth 2 120
+						-columnAttach 1 "both" 0
+						-columnAttach 2 "both" 0;
+						columnLayout;
+							text -l "ArmL:" zooCSTTextPredHandL;
+							text -l "ArmR:" zooCSTTextPredHandR;
+						setParent ..;
+
+						columnLayout;
+						setParent ..;
+					setParent ..;
+				setParent ..;
+				string $sep = `separator`;
+
+				string $handFrameLOpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+					rowColumnLayout -numberOfColumns 2 -columnWidth 1 95 -columnWidth 2 80 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0;
+						checkBox -l "left fingers" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckHandL;
+						checkBox -l "write sliders" -v 1 zooCSTCheckHandSlidersL;
+					setParent ..;
+				setParent ..;
+
+				string $handFrameROpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+					rowColumnLayout -numberOfColumns 2 -columnWidth 1 95 -columnWidth 2 80 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0;
+						checkBox -l "right fingers" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckHandR;
+						checkBox -l "write sliders" -v 1 zooCSTCheckHandSlidersR;
+					setParent ..;
+				setParent ..;
+
+				string $handLIndexLoad = `button -width 70 -l "Index ->" -c( "zooCSTWindowFunctions addClient \"IndexObjL^IndexObjR\"" )`;
+				string $handLIndexObj = `textField zooCSTTextIndexObjL`;
+				string $handLIndexNum = `intField -vis 0 -width 1 -v 0 zooCSTIntIndexNumL`;
+
+				string $handLMidLoad = `button -width 70 -l "Mid ->" -c( "zooCSTWindowFunctions addClient \"MidObjL^MidObjR\"" )`;
+				string $handLMidObj = `textField zooCSTTextMidObjL`;
+				string $handLMidNum = `intField -vis 0 -width 1 -v 0 zooCSTIntMidNumL`;
+
+				string $handLRingLoad = `button -width 70 -l "Ring ->" -c( "zooCSTWindowFunctions addClient \"RingObjL^RingObjR\"" )`;
+				string $handLRingObj = `textField zooCSTTextRingObjL`;
+				string $handLRingNum = `intField -vis 0 -width 1 -v 0 zooCSTIntRingNumL`;
+
+				string $handLPinkyLoad = `button -width 70 -l "Pinky ->" -c( "zooCSTWindowFunctions addClient \"PinkyObjL^PinkyObjR\"" )`;
+				string $handLPinkyObj = `textField zooCSTTextPinkyObjL`;
+				string $handLPinkyNum = `intField -vis 0 -width 1 -v 0 zooCSTIntPinkyNumL`;
+
+				string $handLThumbLoad = `button -width 70 -l "Thumb ->" -c( "zooCSTWindowFunctions addClient \"ThumbObjL^ThumbObjR\"" )`;
+				string $handLThumbObj = `textField zooCSTTextThumbObjL`;
+				string $handLThumbNum = `intField -vis 0 -width 1 -v 0 zooCSTIntThumbNumL`;
+
+				string $handRIndexLoad = `button -width 70 -l "Index ->" -c( "zooCSTWindowFunctions addClient \"IndexObjR^IndexObjL\"" )`;
+				string $handRIndexObj = `textField zooCSTTextIndexObjR`;
+				string $handRIndexNum = `intField -vis 0 -width 1 -v 0 zooCSTIntIndexNumR`;
+
+				string $handRMidLoad = `button -width 70 -l "Mid ->" -c( "zooCSTWindowFunctions addClient \"MidObjR^MidObjL\"" )`;
+				string $handRMidObj = `textField zooCSTTextMidObjR`;
+				string $handRMidNum = `intField -vis 0 -width 1 -v 0 zooCSTIntMidNumR`;
+
+				string $handRRingLoad = `button -width 70 -l "Ring ->" -c( "zooCSTWindowFunctions addClient \"RingObjR^RingObjL\"" )`;
+				string $handRRingObj = `textField zooCSTTextRingObjR`;
+				string $handRRingNum = `intField -vis 0 -width 1 -v 0 zooCSTIntRingNumR`;
+
+				string $handRPinkyLoad = `button -width 70 -l "Pinky ->" -c( "zooCSTWindowFunctions addClient \"PinkyObjR^PinkyObjL\"" )`;
+				string $handRPinkyObj = `textField zooCSTTextPinkyObjR`;
+				string $handRPinkyNum = `intField -vis 0 -width 1 -v 0 zooCSTIntPinkyNumR`;
+
+				string $handRThumbLoad = `button -width 70 -l "Thumb ->" -c( "zooCSTWindowFunctions addClient \"ThumbObjR^ThumbObjL\"" )`;
+				string $handRThumbObj = `textField zooCSTTextThumbObjR`;
+				string $handRThumbNum = `intField -vis 0 -width 1 -v 0 zooCSTIntThumbNumR`;
+
+				string $handGoBut = `button -l "build fingers" -c( "zooCSTWindowFunctions createHands \"*\"" )`;
+				string $handOptsLbl = `text -l "additional options:"`;
+				string $handOptsTex = `textField -tx "" zooCSTTextOptsHand`;
+				popupMenu -p $handOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsHand { \"axis x\", \"wrist\", \"control\", \"invert 1\", \"num\", \"name\" }" ) zooCSTTextOptsHandPopup;
+			setParent ..;
+
+			string $subPrimForm = `formLayout zooCSTFormSubPrim`;
+				string $subPrimFrameIKFK = `frameLayout -label "IK/FK Sub-Primitive" -collapse 1 -collapsable 1 -labelAlign top -borderStyle "etchedIn"`;
+					string $subPrimIKFKForm = `formLayout zooCSTFormSubPrimIKFK`;
+						string $subPrimFrameLOpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+							rowColumnLayout -numberOfColumns 2 -columnWidth 1 95 -columnWidth 2 80 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0;
+								checkBox -l "build left" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckSubPrimL;
+								checkBox -vis 0 -l "as primitive" -v 1 zooCSTCheckSubPrimAsPrimL;
+							setParent ..;
+						setParent ..;
+
+						string $subPrimFrameROpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+							rowColumnLayout -numberOfColumns 2 -columnWidth 1 95 -columnWidth 2 80 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0;
+								checkBox -l "build right" -v 1 -cc( "zooCSTWindowFunctions update \"*\"" ) zooCSTCheckSubPrimR;
+								checkBox -vis 0 -l "as primitive" -v 1 zooCSTCheckSubPrimAsPrimR;
+							setParent ..;
+						setParent ..;
+
+						string $subPrimIkfkLoadLUpper = `button -width 70 -l "Upper ->" -c( "zooCSTWindowFunctions addClient \"IkfkObjLUpper^IkfkObjRUpper\"" )`;
+						string $subPrimIkfkObjLUpper = `textField zooCSTTextIkfkObjLUpper`;
+
+						string $subPrimIkfkLoadLMid = `button -width 70 -l "Mid ->" -c( "zooCSTWindowFunctions addClient \"IkfkObjLMid^IkfkObjRMid\"" )`;
+						string $subPrimIkfkObjLMid = `textField zooCSTTextIkfkObjLMid`;
+
+						string $subPrimIkfkLoadLLower = `button -width 70 -l "Lower ->" -c( "zooCSTWindowFunctions addClient \"IkfkObjLLower^IkfkObjRLower\"" )`;
+						string $subPrimIkfkObjLLower = `textField zooCSTTextIkfkObjLLower`;
+
+						string $subPrimIkfkLoadRUpper = `button -width 70 -l "Upper ->" -c( "zooCSTWindowFunctions addClient \"IkfkObjRUpper^IkfkObjLUpper\"" )`;
+						string $subPrimIkfkObjRUpper = `textField zooCSTTextIkfkObjRUpper`;
+
+						string $subPrimIkfkLoadRMid = `button -width 70 -l "Mid ->" -c( "zooCSTWindowFunctions addClient \"IkfkObjRMid^IkfkObjLMid\"" )`;
+						string $subPrimIkfkObjRMid = `textField zooCSTTextIkfkObjRMid`;
+
+						string $subPrimIkfkLoadRLower = `button -width 70 -l "Lower ->" -c( "zooCSTWindowFunctions addClient \"IkfkObjRLower^IkfkObjLLower\"" )`;
+						string $subPrimIkfkObjRLower = `textField zooCSTTextIkfkObjRLower`;
+
+						string $subPrimIkfkGoBut = `button -l "build IK/FK sub-primitive" -c( "zooCSTWindowFunctions createSubPrimIKFK \"*\"" )`;
+						string $subPrimIkfkOptsLbl = `text -l "additional options:"`;
+						string $subPrimIkfkOptsTex = `textField -tx "-cmds 1 " zooCSTTextOptsSubPrimIKFK`;
+						popupMenu -p $subPrimIkfkOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsSubPrimIKFK {\"-cmds 1\",\"asPrim 1\",\"id\",\"ikType\",\"fkType\",\"poleType\",\"triggers 0\"}" ) zooCSTTextOptsSubPrimIKFKPopup;
+					setParent ..;
+				setParent ..;
+
+				string $subPrimFrameSplineIK = `frameLayout -label "Spline IK Sub-Primitive" -collapse 1 -collapsable 1 -labelAlign top -borderStyle "etchedIn"`;
+					string $subPrimSplineIKForm = `formLayout zooCSTFormSubPrimSplineIK`;
+						string $subPrimFrameSplineIKOpts = `frameLayout -label "" -labelVisible 0 -collapse 0 -collapsable 0 -labelAlign top -borderStyle etchedOut`;
+							rowColumnLayout -numberOfColumns 2 -columnWidth 1 95 -columnWidth 2 80 -columnAttach 1 "both" 0 -columnAttach 2 "both" 0;
+								checkBox -l "stretchy" -v 1 zooCSTCheckSubPrimSplineIKStretch;
+								checkBox -vis 0;
+							setParent ..;
+						setParent ..;
+
+						string $subPrimSplineIKLoadStart = `button -width 70 -l "Start ->" -c( "zooCSTWindowFunctions addClient \"SplineIKStart\"" )`;
+						string $subPrimSplineIKObjStart = `textField zooCSTTextSplineIKStart`;
+
+						string $subPrimSplineIKLoadEnd = `button -width 70 -l "End ->" -c( "zooCSTWindowFunctions addClient \"SplineIKEnd\"" )`;
+						string $subPrimSplineIKObjEnd = `textField zooCSTTextSplineIKEnd`;
+
+						string $subPrimSplineIKGoBut = `button -l "build SplineIK sub-primitive" -c( "zooCSTWindowFunctions createSubPrimSplineIK \"*\"" )`;
+						string $subPrimSplineIKOptsLbl = `text -l "additional options:"`;
+						string $subPrimSplineIKOptsTex = `textField -tx "" zooCSTTextOptsSubPrimSplineIK`;
+						popupMenu -p $subPrimSplineIKOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsSubPrimSplineIK {\"axis x\",\"control\",\"buildcontrols 0\",\"bezier 0\"}" ) zooCSTTextOptsSubPrimSplineIKPopup;
+					setParent ..;
+				setParent ..;
+
+				string $subPrimFrameMPath = `frameLayout -label "IK/FK Curve Constraint" -collapse 1 -collapsable 1 -labelAlign top -borderStyle "etchedIn"`;
+					string $subPrimMPathForm = `formLayout zooCSTFormSubPrimMPath`;
+						string $subPrimMPathTSL = `textScrollList -ams 1 -h 100`;
+						string $subPrimMPathGoBut = `button -l "build MPath sub-primitive" -c( "zooCSTWindowFunctions createSubPrimMPath \""+ $subPrimMPathTSL +"\"" )`;
+
+						string $subPrimMPathAdd = `button -width 70 -l "Add   ->" -c( "zooCSTWindowFunctions addMPath \""+ $subPrimMPathTSL +"\";" )`;
+						string $subPrimMPathRemove = `button -width 70 -l "Remove  ->" -c( "zooCSTWindowFunctions remMPath \""+ $subPrimMPathTSL +"\";" )`;
+						string $subPrimMPathRemAll = `button -width 70 -l "Remove All!" -c( "textScrollList -e -ra \""+ $subPrimMPathTSL +"\";" )`;
+					setParent ..;
+				setParent ..;
+			setParent ..;
+
+			string $spaceForm = `formLayout`;
+				int $clear = `optionVar -ex zooCSTClearParents`? `optionVar -q zooCSTClearParents`: 1;
+				string $spcLbl0 = `text -w 65 -l "control:"`;
+				string $spcTgt = `nameField zooCSTNameSpc`;
+				string $spcClear = `checkBox -l "clear list" -v $clear -cc( "if( #1 ) optionVar -rm zooCSTClearParents; else optionVar -iv zooCSTClearParents #1;" ) zooCSTCheckSpcClear`;
+				string $spcTgtBut = `button -l "load target" -c( "zooCSTSpaceUIFunctions -load" )`;
+				string $spcGrp2Self = `button -en 0 -l "group to self" -c( "zooGrpToSelf \"\" `nameField -q -o zooCSTNameSpc`" ) zooCSTButtSpcGrp`;
+
+				string $parLbl = `text -w 65 -l "space node:"`;
+				string $parName = `nameField zooCSTNameParent`;
+				string $parLoad = `button -l "load parent" -c( "zooCSTSpaceUIFunctions -loadParent" )`;
+
+				string $spcLbl1 = `text -width 90 -l "Parents"`;
+				string $spcSpaces = `textScrollList -allowMultiSelection 0 -sc ( "zooCSTSpaceUIFunctions -sel" ) -dkc( "zooCSTSpaceUIFunctions -rm" ) -dcc( "select `textScrollList -q -si zooCSTScrollSpaces`" ) zooCSTScrollSpaces`;
+				string $spcDirForm = `formLayout`;
+					string $spcUpBut = `button -l "up" -width 20 -c( "zooCSTSpaceUIFunctions -up" ) zooCSTWinSSButtUp`;
+					string $spcDnBut = `button -l "dn" -width 20 -c( "zooCSTSpaceUIFunctions -down" ) zooCSTWinSSButtDn`;
+				setParent ..;
+				string $spcBut1 = `button -l "add space" -c( "zooCSTSpaceUIFunctions -a" )`;
+				string $spcBut2 = `button -l "remove" -c( "zooCSTSpaceUIFunctions -rm" )`;
+				string $spcBut4 = `button -l "remove all" -c( "zooCSTSpaceUIFunctions -rma" )`;
+
+				string $spcLbl2 = `text -width 90 -l "Space Names"`;
+				string $spcNames = `textScrollList -enable 0 -allowMultiSelection 0 zooCSTScrollNames`;
+				string $spcName = `textField -ec( "zooCSTSpaceUIFunctions -c" ) -cc( "zooCSTSpaceUIFunctions -c" ) zooCSTTextName`;
+				string $spcBut3 = `button -l "change name" -width 85 -c( "zooCSTSpaceUIFunctions -c" )`;
+
+				string $spcGoBut = `button -l "build space switch" -c( "zooCSTSpaceUIFunctions -build" )`;
+			setParent ..;
+
+			string $ctrlForm = `formLayout`;
+				string $shapes[] = `zooListControlShapes`;
+				string $ctrlTgtBut = `button -l "place at->" -width 70 -c( "zooCSTCtrlUIFunctions -load" )`;
+				string $ctrlTgt = `nameField zooCSTNamePlaceCtrl`;
+
+				string $ctrlAlignBut = `button -l "align to->" -width 70 -c( "zooCSTCtrlUIFunctions -loadali" )`;
+				string $ctrlAlign = `nameField zooCSTNameAlignCtrl`;
+				string $ctrlPivBut = `button -l "pivot to->" -width 70 -c( "zooCSTCtrlUIFunctions -loadpiv" )`;
+				string $ctrlPiv = `nameField zooCSTNamePivotCtrl`;
+
+				string $ctrlParentBut = `button -l "parent to->" -width 70 -c( "zooCSTCtrlUIFunctions -loadpar" )`;
+				string $ctrlParent = `nameField -width 200 zooCSTNameParentCtrl`;
+				string $ctrlHideAttrsLbl = `text -l "Hide Attrs"`;
+				string $hideT = `checkBox -l "t" zooCSTCheckHideT`;
+				string $hideR = `checkBox -l "r" zooCSTCheckHideR`;
+				string $hideS = `checkBox -l "s" -v 1 zooCSTCheckHideS`;
+				string $hideV = `checkBox -l "v" -v 1 zooCSTCheckHideV`;
+				string $ctrlLockAttrsLbl = `text -l "Lock Attrs"`;
+				string $lockT = `checkBox -l "t" zooCSTCheckLockT`;
+				string $lockR = `checkBox -l "r" zooCSTCheckLockR`;
+				string $lockS = `checkBox -l "s" -v 1 zooCSTCheckLockS`;
+				string $lockV = `checkBox -l "v" zooCSTCheckLockV`;
+
+				string $ctrlSubForm1 = `formLayout`;
+					string $ctrlLbl1 = `text -l "control type"`;
+					string $ctrlShape = `textField -ed 0 -tx "cube" zooCSTTextCtrlType`;
+					string $ctrlLbl1a = `text -l "colour"`;
+					string $ctrlColour = `textField -tx "none" zooCSTTextCtrlColour`;
+				setParent ..;
+
+				radioCollection zooCSTCtrlAxis;
+				string $ctrlAxisLbl = `text -l "facing axis"`;
+				string $ctrlAxisX = `radioButton -l "x" x`;
+				string $ctrlAxisY = `radioButton -l "y" -sl y`;
+				string $ctrlAxisZ = `radioButton -l "z" z`;
+				string $ctrlCheckNeg = `checkBox -l "neg" -v 0 zooCSTCheckNeg`;
+
+				string $ctrlConstrain = `checkBox -l "constrain" -v 1 zooCSTCheckConstrain`;
+				string $ctrlJoint = `checkBox -l "as joint" -v 0 zooCSTCheckJoint`;
+				string $ctrlOrient = `checkBox -l "oriented" -v 0 zooCSTCheckOriented`;
+				string $ctrlCurve = `checkBox -l "build curve" -v 1 zooCSTCheckCurve`;
+				string $ctrlSurface = `checkBox -l "build surface" -v 1 zooCSTCheckSurface`;
+				string $ctrlBasePivot = `checkBox -l "pivot to base" -v 0 zooCSTCheckBasePivot`;
+
+				string $ctrlLbl2 = `text -l "offset side:"`;
+				string $ctrlLbl3 = `text -l "offset up:"`;
+				string $ctrlLbl4 = `text -l "offset forward:"`;
+
+				string $ctrlOffSide = `floatField zooCSTFloatOffSide`;
+				string $ctrlOffUp = `floatField zooCSTFloatOffUp`;
+				string $ctrlOffFwd = `floatField zooCSTFloatOffFwd`;
+
+				string $ctrlLbl5 = `text -l "width (x):"`;
+				string $ctrlLbl6 = `text -l "height (y):"`;
+				string $ctrlLbl7 = `text -l "length (z):"`;
+
+				string $ctrlSizeX = `floatField -v 1 zooCSTFloatSizeX`;
+				string $ctrlSizeY = `floatField -v 1 zooCSTFloatSizeY`;
+				string $ctrlSizeZ = `floatField -v 1 zooCSTFloatSizeZ`;
+
+				string $ctrlGoBut = `button -l "build control" -c( "zooCSTCtrlUIFunctions -build" )`;
+				string $ctrlSelGoBut = `button -l "build controls on selected" -c( "zooCSTCtrlUIFunctions -buildOnSelected" )`;
+				popupMenu -p $ctrlShape zooCSTPopCtrlTypes;
+				popupMenu -p $ctrlAlignBut -pmc( "nameField -e -o \"\" zooCSTNameAlignCtrl" );
+				popupMenu -p $ctrlPivBut -pmc( "nameField -e -o \"\" zooCSTNamePivotCtrl" );
+				popupMenu -p $ctrlParentBut -pmc( "nameField -e -o \"\" zooCSTNameParentCtrl" );
+
+				string $subPrimFramePole = `frameLayout -label "Place Pole Vector" -collapse 1 -collapsable 1 -labelAlign top -borderStyle "etchedIn"`;
+					string $subPrimPoleForm = `formLayout zooCSTFormSubPrimPole`;
+						string $subPrimPoleLoadStart = `button -width 70 -l "Start ->" -c( "zooCSTWindowFunctions addClient \"PoleStart\"" )`;
+						string $subPrimPoleObjStart = `textField zooCSTTextPoleStart`;
+
+						string $subPrimPoleLoadMid = `button -width 70 -l "Mid ->" -c( "zooCSTWindowFunctions addClient \"PoleMid\"" )`;
+						string $subPrimPoleObjMid = `textField zooCSTTextPoleMid`;
+
+						string $subPrimPoleLoadEnd = `button -width 70 -l "End ->" -c( "zooCSTWindowFunctions addClient \"PoleEnd\"" )`;
+						string $subPrimPoleObjEnd = `textField zooCSTTextPoleEnd`;
+
+						string $subPrimPoleGoBut = `button -l "place pole vector" -c( "zooCSTWindowFunctions createSubPrimPole \"*\"" )`;
+						string $subPrimPoleOptsLbl = `text -l "additional options:"`;
+						string $subPrimPoleOptsTex = `textField -tx "-dist 1" zooCSTTextOptsSubPrimPole`;
+						string $subPrimPoleValidBut = `button -l "check flags" -c( "zooCSTWindowFunctions validate zooCSTTextOptsSubPrimPole" )`;
+						popupMenu -p $subPrimPoleOptsTex -pmc( "zooBuildFlagPopup zooCSTTextOptsSubPrimPole {\"dist\"}" ) zooCSTTextOptsSubPrimPolePopup;
+					setParent ..;
+				setParent ..;
+
+			setParent ..;
+		setParent ..;
+
+		string $macroEchoFrame = `frameLayout -label "Rig Build Macro" -collapse 1 -collapsable 1 -labelAlign top -borderStyle etchedIn`;
+			string $macroEchoForm = `formLayout`;
+				string $output = `scrollField -ed 0 -tx $g_initialMacroText -height 120 rigBuildMacroOutput`;
+				popupMenu -p $output -b 3 -pmc( "buildMacroEchoMenu rigBuildMacroOutputPopup;" ) rigBuildMacroOutputPopup;
+				setParent ..;
+			setParent ..;
+
+		string $image = `image -width 300 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+	setParent ..;
+
+setParent -m zooCSTPopCtrlTypes;
+for( $s in $shapes ) menuItem -c( "textField -e -tx "+ $s +" zooCSTTextCtrlType" ) -l $s;
+
+tabLayout -e
+	-tabLabel $spineForm "Create Spine"
+	-tabLabel $headForm "Create Head"
+	-tabLabel $armForm "Create Arm"
+	-tabLabel $legForm "Create Leg"
+	-tabLabel $handForm "Create Fingers"
+	-tabLabel $subPrimForm "Sub Primitives"
+	-tabLabel $spaceForm "Space Switching"
+	-tabLabel $ctrlForm "Create Control"
+	zooCSTSetupTabs;
+formLayout -e
+	-af $output "top" 0
+	-af $output "left" 0
+	-af $output "right" 0
+	-af $output "bottom" 0
+	$macroEchoForm;
+formLayout -e
+	-af $topForm "top" 0
+	-af $topForm "left" 0
+	-af $topForm "right" 0
+	-an $topForm "bottom"
+
+	-ac $tabs "top" 0 $topForm
+	-af $tabs "left" 0
+	-af $tabs "right" 0
+	-ac $tabs "bottom" 5 $macroEchoFrame
+
+	-an $macroEchoFrame "top"
+	-af $macroEchoFrame "left" 0
+	-af $macroEchoFrame "right" 0
+	-ac $macroEchoFrame "bottom" 5 $image
+
+	-an $image "top"
+	-af $image "left" 0
+	-af $image "right" 0
+	-af $image "bottom" 0
+	$masterForm;
+
+formLayout -e
+	-af zooCSTTextPrefixLbl "top" 3
+	-af zooCSTTextPrefixLbl "left" 5
+	-an zooCSTTextPrefixLbl "right"
+	-an zooCSTTextPrefixLbl "bottom"
+
+	-af zooCSTTextPrefix "top" 0
+	-ac zooCSTTextPrefix "left" 2 zooCSTTextPrefixLbl
+	-an zooCSTTextPrefix "right"
+	-an zooCSTTextPrefix "bottom"
+
+	-af zooCSTButtonGuess "top" 0
+	-ac zooCSTButtonGuess "left" 2 zooCSTTextPrefix
+	-an zooCSTButtonGuess "right"
+	-an zooCSTButtonGuess "bottom"
+
+	-af zooCSTCheckCurveControls "top" 3
+	-ac zooCSTCheckCurveControls "left" 12 zooCSTButtonGuess
+	-an zooCSTCheckCurveControls "right"
+	-an zooCSTCheckCurveControls "bottom"
+
+	-ac zooCSTTextScaleLbl "top" 3 zooCSTTextPrefix
+	-af zooCSTTextScaleLbl "left" 5
+	-an zooCSTTextScaleLbl "right"
+	-an zooCSTTextScaleLbl "bottom"
+
+	-ac zooCSTFloatScale "top" 0 zooCSTTextPrefix
+	-ac zooCSTFloatScale "left" 2 zooCSTTextScaleLbl
+	-an zooCSTFloatScale "right"
+	-an zooCSTFloatScale "bottom"
+
+	-ac zooCSTButtonGuessSize "top" 0 zooCSTTextPrefix
+	-ac zooCSTButtonGuessSize "left" 2 zooCSTFloatScale
+	-an zooCSTButtonGuessSize "right"
+	-an zooCSTButtonGuessSize "bottom"
+
+	-ac zooCSTColourSlider "top" 0 zooCSTTextPrefix
+	-ac zooCSTColourSlider "left" 2 zooCSTButtonGuessSize
+	-an zooCSTColourSlider "right"
+	-an zooCSTColourSlider "bottom"
+	$topForm;
+
+formLayout -e
+	-af $rootBut "top" 0
+	-af $rootBut "left" 0
+	-an $rootBut "right"
+	-an $rootBut "bottom"
+
+	-af $rootTex "top" 0
+	-ac $rootTex "left" 0 $rootBut
+	-af $rootTex "right" 0
+	-an $rootTex "bottom"
+
+	-ac $rootHipsBut "top" 0 $rootBut
+	-af $rootHipsBut "left" 0
+	-an $rootHipsBut "right"
+	-an $rootHipsBut "bottom"
+
+	-ac $rootHipsTex "top" 0 $rootBut
+	-ac $rootHipsTex "left" 0 $rootHipsBut
+	-ac $rootHipsTex "right" 5 $rootHipsCheck
+	-an $rootHipsTex "bottom"
+
+	-ac $rootHipsCheck "top" 4 $rootBut
+	-an $rootHipsCheck "left"
+	-af $rootHipsCheck "right" 0
+	-an $rootHipsCheck "bottom"
+
+	-ac $spineBut1 "top" 0 $rootHipsBut
+	-af $spineBut1 "left" 0
+	-an $spineBut1 "right"
+	-an $spineBut1 "bottom"
+
+	-ac $spineTex1 "top" 0 $rootHipsBut
+	-ac $spineTex1 "left" 0 $spineBut1
+	-af $spineTex1 "right" 0
+	-an $spineTex1 "bottom"
+
+	-ac $spineBut2 "top" 0 $spineBut1
+	-af $spineBut2 "left" 0
+	-an $spineBut2 "right"
+	-an $spineBut2 "bottom"
+
+	-ac $spineTex2 "top" 0 $spineBut1
+	-ac $spineTex2 "left" 0 $spineBut2
+	-af $spineTex2 "right" 0
+	-an $spineTex2 "bottom"
+
+	-ac $spineOpts "top" 0 $spineBut2
+	-af $spineOpts "left" 0
+	-an $spineOpts "right"
+	-an $spineOpts "bottom"
+
+	-ac $spineCreateBut "top" 0 $spineBut2
+	-ac $spineCreateBut "left" 0 $spineOpts
+	-af $spineCreateBut "right" 0
+	-an $spineCreateBut "bottom"
+
+	-ac $rootOptsLbl "top" 3 $spineOpts
+	-af $rootOptsLbl "left" 0
+	-an $rootOptsLbl "right"
+	-an $rootOptsLbl "bottom"
+
+	-ac $rootOptsTex "top" 0 $spineOpts
+	-ac $rootOptsTex "left" 0 $rootOptsLbl
+	-af $rootOptsTex "right" 0
+	-an $rootOptsTex "bottom"
+	$spineForm;
+
+formLayout -e
+	-af $headFramePred "top" 0
+	-af $headFramePred "left" 0
+	-af $headFramePred "right" 0
+	-an $headFramePred "bottom"
+
+	-ac $headSep1 "top" 5 $headFramePred
+	-af $headSep1 "left" 0
+	-af $headSep1 "right" 0
+	-an $headSep1 "bottom"
+
+	-ac $headBut "top" 5 $headSep1
+	-af $headBut "left" 0
+	-an $headBut "right"
+	-an $headBut "bottom"
+
+	-ac $headTex "top" 5 $headSep1
+	-ac $headTex "left" 0 $headBut
+	-af $headTex "right" 0
+	-an $headTex "bottom"
+
+	-ac $neckBut "top" 0 $headTex
+	-af $neckBut "left" 0
+	-an $neckBut "right"
+	-an $neckBut "bottom"
+
+	-ac $neckTex "top" 0 $headTex
+	-ac $neckTex "left" 0 $neckBut
+	-ac $neckTex "right" 5 $headCheckNeck
+	-an $neckTex "bottom"
+
+	-ac $headCheckNeck "top" 3 $headTex
+	-an $headCheckNeck "left"
+	-af $headCheckNeck "right" 0
+	-an $headCheckNeck "bottom"
+
+	-ac $headOpts "top" 0 $neckBut
+	-af $headOpts "left" 0
+	-an $headOpts "right"
+	-an $headOpts "bottom"
+
+	-ac $headCreateBut "top" 0 $neckBut
+	-ac $headCreateBut "left" 0 $headOpts
+	-af $headCreateBut "right" 0
+	-an $headCreateBut "bottom"
+
+	-ac $headSep2 "top" 7 $headCreateBut
+	-af $headSep2 "left" 0
+	-ap $headSep2 "right" 5 50
+	-an $headSep2 "bottom"
+
+	-ac $headEyeLbl "top" 2 $headCreateBut
+	-ap $headEyeLbl "left" 0 50
+	-an $headEyeLbl "right"
+	-an $headEyeLbl "bottom"
+
+	-ac $headSep3 "top" 7 $headCreateBut
+	-ac $headSep3 "left" 4 $headEyeLbl
+	-af $headSep3 "right" 0
+	-an $headSep3 "bottom"
+
+	-ac $eyeButL "top" 2 $headEyeLbl
+	-af $eyeButL "left" 0
+	-an $eyeButL "right"
+	-an $eyeButL "bottom"
+
+	-ac $eyeTexL "top" 2 $headEyeLbl
+	-ac $eyeTexL "left" 0 $eyeButL
+	-ap $eyeTexL "right" 0 50
+	-an $eyeTexL "bottom"
+
+	-ac $eyeButR "top" 2 $headEyeLbl
+	-ap $eyeButR "left" 0 50
+	-an $eyeButR "right"
+	-an $eyeButR "bottom"
+
+	-ac $eyeTexR "top" 2 $headEyeLbl
+	-ac $eyeTexR "left" 0 $eyeButR
+	-af $eyeTexR "right" 0
+	-an $eyeTexR "bottom"
+
+	-ac $eyeOpts "top" 0 $eyeButL
+	-af $eyeOpts "left" 0
+	-an $eyeOpts "right"
+	-an $eyeOpts "bottom"
+
+	-ac $eyeCreateBut "top" 0 $eyeButL
+	-ac $eyeCreateBut "left" 0 $eyeOpts
+	-af $eyeCreateBut "right" 0
+	-an $eyeCreateBut "bottom"
+
+	-ac $eyeOptsLbl "top" 3 $eyeOpts
+	-af $eyeOptsLbl "left" 0
+	-an $eyeOptsLbl "right"
+	-an $eyeOptsLbl "bottom"
+
+	-ac $eyeOptsTex "top" 0 $eyeOpts
+	-ac $eyeOptsTex "left" 0 $eyeOptsLbl
+	-af $eyeOptsTex "right" 0
+	-an $eyeOptsTex "bottom"
+	$headForm;
+
+formLayout -e
+	-af $armFramePred "top" 0
+	-af $armFramePred "left" 0
+	-af $armFramePred "right" 0
+	-an $armFramePred "bottom"
+
+	-ac $armSep "top" 5 $armFramePred
+	-af $armSep "left" 0
+	-af $armSep "right" 0
+	-an $armSep "bottom"
+
+	-ac $armFrameLOpts "top" 5 $armSep
+	-af $armFrameLOpts "left" 0
+	-ap $armFrameLOpts "right" 0 50
+	-an $armFrameLOpts "bottom"
+
+	-ac $armFrameROpts "top" 5 $armSep
+	-ap $armFrameROpts "left" 0 50
+	-af $armFrameROpts "right" 0
+	-an $armFrameROpts "bottom"
+
+	-ac $armBicepButL "top" 0 $armFrameROpts
+	-af $armBicepButL "left" 0
+	-an $armBicepButL "right"
+	-an $armBicepButL "bottom"
+
+	-ac $armBicepTexL "top" 0 $armFrameROpts
+	-ac $armBicepTexL "left" 0 $armBicepButL
+	-ap $armBicepTexL "right" 0 50
+	-an $armBicepTexL "bottom"
+
+	-ac $armElbowButL "top" 0 $armBicepButL
+	-af $armElbowButL "left" 0
+	-an $armElbowButL "right"
+	-an $armElbowButL "bottom"
+
+	-ac $armElbowTexL "top" 0 $armBicepButL
+	-ac $armElbowTexL "left" 0 $armElbowButL
+	-ap $armElbowTexL "right" 0 50
+	-an $armElbowTexL "bottom"
+
+	-ac $armWristButL "top" 0 $armElbowButL
+	-af $armWristButL "left" 0
+	-an $armWristButL "right"
+	-an $armWristButL "bottom"
+
+	-ac $armWristTexL "top" 0 $armElbowButL
+	-ac $armWristTexL "left" 0 $armWristButL
+	-ap $armWristTexL "right" 0 50
+	-an $armWristTexL "bottom"
+
+	-ac $armBicepButR "top" 0 $armFrameROpts
+	-ap $armBicepButR "left" 0 50
+	-an $armBicepButR "right"
+	-an $armBicepButR "bottom"
+
+	-ac $armBicepTexR "top" 0 $armFrameROpts
+	-ac $armBicepTexR "left" 0 $armBicepButR
+	-af $armBicepTexR "right" 0
+	-an $armBicepTexR "bottom"
+
+	-ac $armElbowButR "top" 0 $armBicepButL
+	-ap $armElbowButR "left" 0 50
+	-an $armElbowButR "right"
+	-an $armElbowButR "bottom"
+
+	-ac $armElbowTexR "top" 0 $armBicepButL
+	-ac $armElbowTexR "left" 0 $armElbowButR
+	-af $armElbowTexR "right" 0
+	-an $armElbowTexR "bottom"
+
+	-ac $armWristButR "top" 0 $armElbowButL
+	-ap $armWristButR "left" 0 50
+	-an $armWristButR "right"
+	-an $armWristButR "bottom"
+
+	-ac $armWristTexR "top" 0 $armElbowButL
+	-ac $armWristTexR "left" 0 $armWristButR
+	-af $armWristTexR "right" 0
+	-an $armWristTexR "bottom"
+
+	-ac $armOpts "top" 0 $armWristButL
+	-af $armOpts "left" 0
+	-an $armOpts "right"
+	-an $armOpts "bottom"
+
+	-ac $armCreateBut "top" 0 $armWristButL
+	-ac $armCreateBut "left" 0 $armOpts
+	-af $armCreateBut "right" 0
+	-an $armCreateBut "bottom"
+
+	-ac $armOptsLbl "top" 3 $armOpts
+	-af $armOptsLbl "left" 0
+	-an $armOptsLbl "right"
+	-an $armOptsLbl "bottom"
+
+	-ac $armOptsTex "top" 0 $armOpts
+	-ac $armOptsTex "left" 0 $armOptsLbl
+	-af $armOptsTex "right" 0
+	-an $armOptsTex "bottom"
+
+	// -ac $armsValidBut "top" 0 $armOpts
+	// -an $armsValidBut "left"
+	// -af $armsValidBut "right" 0
+	// -an $armsValidBut "bottom"
+	$armForm;
+
+formLayout -e
+	-af $legFramePred "top" 0
+	-af $legFramePred "left" 0
+	-af $legFramePred "right" 0
+	-an $legFramePred "bottom"
+
+	-ac $legSep "top" 5 $legFramePred
+	-af $legSep "left" 0
+	-af $legSep "right" 0
+	-an $legSep "bottom"
+
+	-ac $legFrameLOpts "top" 5 $legSep
+	-af $legFrameLOpts "left" 0
+	-ap $legFrameLOpts "right" 0 50
+	-an $legFrameLOpts "bottom"
+
+	-ac $legFrameROpts "top" 5 $legSep
+	-ap $legFrameROpts "left" 0 50
+	-af $legFrameROpts "right" 0
+	-an $legFrameROpts "bottom"
+
+	-ac $legThighButL "top" 0 $legFrameROpts
+	-af $legThighButL "left" 0
+	-an $legThighButL "right"
+	-an $legThighButL "bottom"
+
+	-ac $legThighTexL "top" 0 $legFrameROpts
+	-ac $legThighTexL "left" 0 $legThighButL
+	-ap $legThighTexL "right" 0 50
+	-an $legThighTexL "bottom"
+
+	-ac $legKneeButL "top" 0 $legThighButL
+	-af $legKneeButL "left" 0
+	-an $legKneeButL "right"
+	-an $legKneeButL "bottom"
+
+	-ac $legKneeTexL "top" 0 $legThighButL
+	-ac $legKneeTexL "left" 0 $legKneeButL
+	-ap $legKneeTexL "right" 0 50
+	-an $legKneeTexL "bottom"
+
+	-ac $legAnkleButL "top" 0 $legKneeButL
+	-af $legAnkleButL "left" 0
+	-an $legAnkleButL "right"
+	-an $legAnkleButL "bottom"
+
+	-ac $legAnkleTexL "top" 0 $legKneeButL
+	-ac $legAnkleTexL "left" 0 $legAnkleButL
+	-ap $legAnkleTexL "right" 0 50
+	-an $legAnkleTexL "bottom"
+
+	-ac $legToeButL "top" 0 $legAnkleButL
+	-af $legToeButL "left" 0
+	-an $legToeButL "right"
+	-an $legToeButL "bottom"
+
+	-ac $legToeTexL "top" 0 $legAnkleButL
+	-ac $legToeTexL "left" 0 $legToeButL
+	-ap $legToeTexL "right" 0 50
+	-an $legToeTexL "bottom"
+
+	-ac $legThighButR "top" 0 $legFrameROpts
+	-ap $legThighButR "left" 0 50
+	-an $legThighButR "right"
+	-an $legThighButR "bottom"
+
+	-ac $legThighTexR "top" 0 $legFrameROpts
+	-ac $legThighTexR "left" 0 $legThighButR
+	-af $legThighTexR "right" 0
+	-an $legThighTexR "bottom"
+
+	-ac $legKneeButR "top" 0 $legThighButL
+	-ap $legKneeButR "left" 0 50
+	-an $legKneeButR "right"
+	-an $legKneeButR "bottom"
+
+	-ac $legKneeTexR "top" 0 $legThighButL
+	-ac $legKneeTexR "left" 0 $legKneeButR
+	-af $legKneeTexR "right" 0
+	-an $legKneeTexR "bottom"
+
+	-ac $legAnkleButR "top" 0 $legKneeButL
+	-ap $legAnkleButR "left" 0 50
+	-an $legAnkleButR "right"
+	-an $legAnkleButR "bottom"
+
+	-ac $legAnkleTexR "top" 0 $legKneeButL
+	-ac $legAnkleTexR "left" 0 $legAnkleButR
+	-af $legAnkleTexR "right" 0
+	-an $legAnkleTexR "bottom"
+
+	-ac $legToeButR "top" 0 $legAnkleButR
+	-ap $legToeButR "left" 0 50
+	-an $legToeButR "right"
+	-an $legToeButR "bottom"
+
+	-ac $legToeTexR "top" 0 $legAnkleButR
+	-ac $legToeTexR "left" 0 $legToeButR
+	-af $legToeTexR "right" 0
+	-an $legToeTexR "bottom"
+
+	-ac $legOpts "top" 0 $legToeButL
+	-af $legOpts "left" 0
+	-an $legOpts "right"
+	-an $legOpts "bottom"
+
+	-ac $legCreateBut "top" 0 $legToeButL
+	-ac $legCreateBut "left" 0 $legOpts
+	-af $legCreateBut "right" 0
+	-an $legCreateBut "bottom"
+
+	-ac $legOptsLbl "top" 3 $legOpts
+	-af $legOptsLbl "left" 0
+	-an $legOptsLbl "right"
+	-an $legOptsLbl "bottom"
+
+	-ac $legOptsTex "top" 0 $legOpts
+	-ac $legOptsTex "left" 0 $legOptsLbl
+	-af $legOptsTex "right" 0
+	-an $legOptsTex "bottom"
+
+	// -ac $legsValidBut "top" 0 $legOpts
+	// -an $legsValidBut "left"
+	// -af $legsValidBut "right" 0
+	// -an $legsValidBut "bottom"
+
+	-ac $legInfoText "top" 10 $legOptsTex
+	-ac $legInfoText "left" 0 $legOptsLbl
+	-an $legInfoText "right"
+	-an $legInfoText "bottom"
+	$legForm;
+
+formLayout -e
+	-af $handFramePred "top" 0
+	-af $handFramePred "left" 0
+	-af $handFramePred "right" 0
+	-an $handFramePred "bottom"
+
+	-ac $sep "top" 5 $handFramePred
+	-af $sep "left" 0
+	-af $sep "right" 0
+	-an $sep "bottom"
+
+	-ac $handFrameLOpts "top" 5 $sep
+	-af $handFrameLOpts "left" 0
+	-ap $handFrameLOpts "right" 0 50
+	-an $handFrameLOpts "bottom"
+
+	-ac $handFrameROpts "top" 5 $sep
+	-ap $handFrameROpts "left" 0 50
+	-af $handFrameROpts "right" 0
+	-an $handFrameROpts "bottom"
+
+	-ac $handLIndexLoad "top" 0 $handFrameLOpts
+	-af $handLIndexLoad "left" 0
+	-an $handLIndexLoad "right"
+	-an $handLIndexLoad "bottom"
+
+	-ac $handLIndexObj "top" 0 $handFrameLOpts
+	-ac $handLIndexObj "left" 0 $handLIndexLoad
+	-ac $handLIndexObj "right" 0 $handLIndexNum
+	-an $handLIndexObj "bottom"
+
+	-ac $handLIndexNum "top" 0 $handFrameLOpts
+	-an $handLIndexNum "left"
+	-ap $handLIndexNum "right" 0 50
+	-an $handLIndexNum "bottom"
+
+	-ac $handLMidLoad "top" 0 $handLIndexLoad
+	-af $handLMidLoad "left" 0
+	-an $handLMidLoad "right"
+	-an $handLMidLoad "bottom"
+
+	-ac $handLMidObj "top" 0 $handLIndexLoad
+	-ac $handLMidObj "left" 0 $handLMidLoad
+	-ac $handLMidObj "right" 0 $handLMidNum
+	-an $handLMidObj "bottom"
+
+	-ac $handLMidNum "top" 0 $handLIndexLoad
+	-an $handLMidNum "left"
+	-ap $handLMidNum "right" 0 50
+	-an $handLMidNum "bottom"
+
+	-ac $handLRingLoad "top" 0 $handLMidLoad
+	-af $handLRingLoad "left" 0
+	-an $handLRingLoad "right"
+	-an $handLRingLoad "bottom"
+
+	-ac $handLRingObj "top" 0 $handLMidLoad
+	-ac $handLRingObj "left" 0 $handLRingLoad
+	-ac $handLRingObj "right" 0 $handLRingNum
+	-an $handLRingObj "bottom"
+
+	-ac $handLRingNum "top" 0 $handLMidLoad
+	-an $handLRingNum "left"
+	-ap $handLRingNum "right" 0 50
+	-an $handLRingNum "bottom"
+
+	-ac $handLPinkyLoad "top" 0 $handLRingLoad
+	-af $handLPinkyLoad "left" 0
+	-an $handLPinkyLoad "right"
+	-an $handLPinkyLoad "bottom"
+
+	-ac $handLPinkyObj "top" 0 $handLRingLoad
+	-ac $handLPinkyObj "left" 0 $handLPinkyLoad
+	-ac $handLPinkyObj "right" 0 $handLPinkyNum
+	-an $handLPinkyObj "bottom"
+
+	-ac $handLPinkyNum "top" 0 $handLRingLoad
+	-an $handLPinkyNum "left"
+	-ap $handLPinkyNum "right" 0 50
+	-an $handLPinkyNum "bottom"
+
+	-ac $handLThumbLoad "top" 0 $handLPinkyLoad
+	-af $handLThumbLoad "left" 0
+	-an $handLThumbLoad "right"
+	-an $handLThumbLoad "bottom"
+
+	-ac $handLThumbObj "top" 0 $handLPinkyLoad
+	-ac $handLThumbObj "left" 0 $handLThumbLoad
+	-ac $handLThumbObj "right" 0 $handLThumbNum
+	-an $handLThumbObj "bottom"
+
+	-ac $handLThumbNum "top" 0 $handLPinkyLoad
+	-an $handLThumbNum "left"
+	-ap $handLThumbNum "right" 0 50
+	-an $handLThumbNum "bottom"
+
+	-ac $handRIndexLoad "top" 0 $handFrameROpts
+	-ap $handRIndexLoad "left" 0 50
+	-an $handRIndexLoad "right"
+	-an $handRIndexLoad "bottom"
+
+	-ac $handRIndexObj "top" 0 $handFrameROpts
+	-ac $handRIndexObj "left" 0 $handRIndexLoad
+	-ac $handRIndexObj "right" 0 $handRIndexNum
+	-an $handRIndexObj "bottom"
+
+	-ac $handRIndexNum "top" 0 $handFrameROpts
+	-an $handRIndexNum "left"
+	-af $handRIndexNum "right" 0
+	-an $handRIndexNum "bottom"
+
+	-ac $handRMidLoad "top" 0 $handRIndexLoad
+	-ap $handRMidLoad "left" 0 50
+	-an $handRMidLoad "right"
+	-an $handRMidLoad "bottom"
+
+	-ac $handRMidObj "top" 0 $handRIndexLoad
+	-ac $handRMidObj "left" 0 $handRMidLoad
+	-ac $handRMidObj "right" 0 $handRMidNum
+	-an $handRMidObj "bottom"
+
+	-ac $handRMidNum "top" 0 $handRIndexLoad
+	-an $handRMidNum "left"
+	-af $handRMidNum "right" 0
+	-an $handRMidNum "bottom"
+
+	-ac $handRRingLoad "top" 0 $handRMidLoad
+	-ap $handRRingLoad "left" 0 50
+	-an $handRRingLoad "right"
+	-an $handRRingLoad "bottom"
+
+	-ac $handRRingObj "top" 0 $handRMidLoad
+	-ac $handRRingObj "left" 0 $handRRingLoad
+	-ac $handRRingObj "right" 0 $handRRingNum
+	-an $handRRingObj "bottom"
+
+	-ac $handRRingNum "top" 0 $handRMidLoad
+	-an $handRRingNum "left"
+	-af $handRRingNum "right" 0
+	-an $handRRingNum "bottom"
+
+	-ac $handRPinkyLoad "top" 0 $handRRingLoad
+	-ap $handRPinkyLoad "left" 0 50
+	-an $handRPinkyLoad "right"
+	-an $handRPinkyLoad "bottom"
+
+	-ac $handRPinkyObj "top" 0 $handRRingLoad
+	-ac $handRPinkyObj "left" 0 $handRPinkyLoad
+	-ac $handRPinkyObj "right" 0 $handRPinkyNum
+	-an $handRPinkyObj "bottom"
+
+	-ac $handRPinkyNum "top" 0 $handRRingLoad
+	-an $handRPinkyNum "left"
+	-af $handRPinkyNum "right" 0
+	-an $handRPinkyNum "bottom"
+
+	-ac $handRThumbLoad "top" 0 $handRPinkyLoad
+	-ap $handRThumbLoad "left" 0 50
+	-an $handRThumbLoad "right"
+	-an $handRThumbLoad "bottom"
+
+	-ac $handRThumbObj "top" 0 $handRPinkyLoad
+	-ac $handRThumbObj "left" 0 $handRThumbLoad
+	-ac $handRThumbObj "right" 0 $handRThumbNum
+	-an $handRThumbObj "bottom"
+
+	-ac $handRThumbNum "top" 0 $handRPinkyLoad
+	-an $handRThumbNum "left"
+	-af $handRThumbNum "right" 0
+	-an $handRThumbNum "bottom"
+
+	-ac $handGoBut "top" 0 $handLThumbLoad
+	-af $handGoBut "left" 0
+	-af $handGoBut "right" 0
+	-an $handGoBut "bottom"
+
+	-ac $handOptsLbl "top" 4 $handGoBut
+	-af $handOptsLbl "left" 0
+	-an $handOptsLbl "right"
+	-an $handOptsLbl "bottom"
+
+	-ac $handOptsTex "top" 0 $handGoBut
+	-ac $handOptsTex "left" 0 $handOptsLbl
+	-af $handOptsTex "right" 0
+	-an $handOptsTex "bottom"
+
+	// -ac $handValidBut "top" 0 $handGoBut
+	// -an $handValidBut "left"
+	// -af $handValidBut "right" 0
+	// -an $handValidBut "bottom"
+	$handForm;
+
+formLayout -e
+	-af $subPrimFrameIKFK "top" 0
+	-af $subPrimFrameIKFK "left" 0
+	-af $subPrimFrameIKFK "right" 0
+	-an $subPrimFrameIKFK "bottom"
+
+	-ac $subPrimFrameSplineIK "top" 10 $subPrimFrameIKFK
+	-af $subPrimFrameSplineIK "left" 0
+	-af $subPrimFrameSplineIK "right" 0
+	-an $subPrimFrameSplineIK "bottom"
+
+	-ac $subPrimFrameMPath "top" 10 $subPrimFrameSplineIK
+	-af $subPrimFrameMPath "left" 0
+	-af $subPrimFrameMPath "right" 0
+	-an $subPrimFrameMPath "bottom"
+	$subPrimForm;
+
+formLayout -e
+	-af $subPrimFrameLOpts "top" 0
+	-af $subPrimFrameLOpts "left" 0
+	-ap $subPrimFrameLOpts "right" 1 50
+	-an $subPrimFrameLOpts "bottom"
+
+	-af $subPrimFrameROpts "top" 0
+	-ap $subPrimFrameROpts "left" 1 50
+	-af $subPrimFrameROpts "right" 0
+	-an $subPrimFrameROpts "bottom"
+
+	-ac $subPrimIkfkLoadLUpper "top" 0 $subPrimFrameLOpts
+	-af $subPrimIkfkLoadLUpper "left" 0
+	-an $subPrimIkfkLoadLUpper "right"
+	-an $subPrimIkfkLoadLUpper "bottom"
+
+	-ac $subPrimIkfkObjLUpper "top" 0 $subPrimFrameLOpts
+	-ac $subPrimIkfkObjLUpper "left" 0 $subPrimIkfkLoadLUpper
+	-ap $subPrimIkfkObjLUpper "right" 1 50
+	-an $subPrimIkfkObjLUpper "bottom"
+
+	-ac $subPrimIkfkLoadLMid "top" 0 $subPrimIkfkLoadLUpper
+	-af $subPrimIkfkLoadLMid "left" 0
+	-an $subPrimIkfkLoadLMid "right"
+	-an $subPrimIkfkLoadLMid "bottom"
+
+	-ac $subPrimIkfkObjLMid "top" 0 $subPrimIkfkLoadLUpper
+	-ac $subPrimIkfkObjLMid "left" 0 $subPrimIkfkLoadLMid
+	-ap $subPrimIkfkObjLMid "right" 1 50
+	-an $subPrimIkfkObjLMid "bottom"
+
+	-ac $subPrimIkfkLoadLLower "top" 0 $subPrimIkfkLoadLMid
+	-af $subPrimIkfkLoadLLower "left" 0
+	-an $subPrimIkfkLoadLLower "right"
+	-an $subPrimIkfkLoadLLower "bottom"
+
+	-ac $subPrimIkfkObjLLower "top" 0 $subPrimIkfkLoadLMid
+	-ac $subPrimIkfkObjLLower "left" 0 $subPrimIkfkLoadLLower
+	-ap $subPrimIkfkObjLLower "right" 1 50
+	-an $subPrimIkfkObjLLower "bottom"
+
+	-ac $subPrimIkfkLoadRUpper "top" 0 $subPrimFrameLOpts
+	-ap $subPrimIkfkLoadRUpper "left" 1 50
+	-an $subPrimIkfkLoadRUpper "right"
+	-an $subPrimIkfkLoadRUpper "bottom"
+
+	-ac $subPrimIkfkObjRUpper "top" 0 $subPrimFrameLOpts
+	-ac $subPrimIkfkObjRUpper "left" 0 $subPrimIkfkLoadRUpper
+	-af $subPrimIkfkObjRUpper "right" 0
+	-an $subPrimIkfkObjRUpper "bottom"
+
+	-ac $subPrimIkfkLoadRMid "top" 0 $subPrimIkfkLoadRUpper
+	-ap $subPrimIkfkLoadRMid "left" 1 50
+	-an $subPrimIkfkLoadRMid "right"
+	-an $subPrimIkfkLoadRMid "bottom"
+
+	-ac $subPrimIkfkObjRMid "top" 0 $subPrimIkfkLoadRUpper
+	-ac $subPrimIkfkObjRMid "left" 0 $subPrimIkfkLoadRMid
+	-af $subPrimIkfkObjRMid "right" 0
+	-an $subPrimIkfkObjRMid "bottom"
+
+	-ac $subPrimIkfkLoadRLower "top" 0 $subPrimIkfkLoadRMid
+	-ap $subPrimIkfkLoadRLower "left" 1 50
+	-an $subPrimIkfkLoadRLower "right"
+	-an $subPrimIkfkLoadRLower "bottom"
+
+	-ac $subPrimIkfkObjRLower "top" 0 $subPrimIkfkLoadRMid
+	-ac $subPrimIkfkObjRLower "left" 0 $subPrimIkfkLoadRLower
+	-af $subPrimIkfkObjRLower "right" 0
+	-an $subPrimIkfkObjRLower "bottom"
+
+	-ac $subPrimIkfkGoBut "top" 0 $subPrimIkfkLoadRLower
+	-af $subPrimIkfkGoBut "left" 0
+	-af $subPrimIkfkGoBut "right" 0
+	-an $subPrimIkfkGoBut "bottom"
+
+	-ac $subPrimIkfkOptsLbl "top" 3 $subPrimIkfkGoBut
+	-af $subPrimIkfkOptsLbl "left" 0
+	-an $subPrimIkfkOptsLbl "right"
+	-an $subPrimIkfkOptsLbl "bottom"
+
+	-ac $subPrimIkfkOptsTex "top" 0 $subPrimIkfkGoBut
+	-ac $subPrimIkfkOptsTex "left" 0 $subPrimIkfkOptsLbl
+	-af $subPrimIkfkOptsTex "right" 0
+	-an $subPrimIkfkOptsTex "bottom"
+
+	// -ac $subPrimIkfkValidBut "top" 0 $subPrimIkfkGoBut
+	// -an $subPrimIkfkValidBut "left"
+	// -af $subPrimIkfkValidBut "right" 0
+	// -an $subPrimIkfkValidBut "bottom"
+	$subPrimIKFKForm;
+
+formLayout -e
+	-af $subPrimFrameSplineIKOpts "top" 0
+	-af $subPrimFrameSplineIKOpts "left" 0
+	-af $subPrimFrameSplineIKOpts "right" 0
+	-an $subPrimFrameSplineIKOpts "bottom"
+
+	-ac $subPrimSplineIKLoadStart "top" 0 $subPrimFrameSplineIKOpts
+	-af $subPrimSplineIKLoadStart "left" 0
+	-an $subPrimSplineIKLoadStart "right"
+	-an $subPrimSplineIKLoadStart "bottom"
+
+	-ac $subPrimSplineIKObjStart "top" 0 $subPrimFrameSplineIKOpts
+	-ac $subPrimSplineIKObjStart "left" 0 $subPrimSplineIKLoadStart
+	-ap $subPrimSplineIKObjStart "right" 1 50
+	-an $subPrimSplineIKObjStart "bottom"
+
+	-ac $subPrimSplineIKLoadEnd "top" 0 $subPrimFrameSplineIKOpts
+	-ap $subPrimSplineIKLoadEnd "left" 1 50
+	-an $subPrimSplineIKLoadEnd "right"
+	-an $subPrimSplineIKLoadEnd "bottom"
+
+	-ac $subPrimSplineIKObjEnd "top" 0 $subPrimFrameSplineIKOpts
+	-ac $subPrimSplineIKObjEnd "left" 0 $subPrimSplineIKLoadEnd
+	-af $subPrimSplineIKObjEnd "right" 0
+	-an $subPrimSplineIKObjEnd "bottom"
+
+	-ac $subPrimSplineIKGoBut "top" 0 $subPrimSplineIKLoadStart
+	-af $subPrimSplineIKGoBut "left" 0
+	-af $subPrimSplineIKGoBut "right" 0
+	-an $subPrimSplineIKGoBut "bottom"
+
+	-ac $subPrimSplineIKOptsLbl "top" 3 $subPrimSplineIKGoBut
+	-af $subPrimSplineIKOptsLbl "left" 0
+	-an $subPrimSplineIKOptsLbl "right"
+	-an $subPrimSplineIKOptsLbl "bottom"
+
+	-ac $subPrimSplineIKOptsTex "top" 0 $subPrimSplineIKGoBut
+	-ac $subPrimSplineIKOptsTex "left" 5 $subPrimSplineIKOptsLbl
+	-af $subPrimSplineIKOptsTex "right" 0
+	-an $subPrimSplineIKOptsTex "bottom"
+
+	// -ac $subPrimSplineIKValidBut "top" 0 $subPrimSplineIKGoBut
+	// -an $subPrimSplineIKValidBut "left"
+	// -af $subPrimSplineIKValidBut "right" 0
+	// -an $subPrimSplineIKValidBut "bottom"
+	$subPrimSplineIKForm;
+
+formLayout -e
+	-af $subPrimMPathAdd "left" 0
+
+	-ac $subPrimMPathRemove "top" 0 $subPrimMPathAdd
+	-af $subPrimMPathRemove "left" 0
+
+	-ac $subPrimMPathRemAll "top" 0 $subPrimMPathRemove
+	-af $subPrimMPathRemAll "left" 0
+
+	-af $subPrimMPathTSL "top" 0
+	-ac $subPrimMPathTSL "left" 0 $subPrimMPathAdd
+	-af $subPrimMPathTSL "right" 0
+	-ac $subPrimMPathTSL "bottom" 0 $subPrimMPathGoBut
+
+	-af $subPrimMPathGoBut "left" 0
+	-af $subPrimMPathGoBut "right" 0
+	-af $subPrimMPathGoBut "bottom" 0
+	$subPrimMPathForm;
+
+formLayout -e
+	-af $subPrimPoleLoadStart "top" 0
+	-af $subPrimPoleLoadStart "left" 0
+	-an $subPrimPoleLoadStart "right"
+	-an $subPrimPoleLoadStart "bottom"
+
+	-af $subPrimPoleObjStart "top" 0
+	-ac $subPrimPoleObjStart "left" 0 $subPrimPoleLoadStart
+	-af $subPrimPoleObjStart "right" 0
+	-an $subPrimPoleObjStart "bottom"
+
+	-ac $subPrimPoleLoadMid "top" 0 $subPrimPoleLoadStart
+	-af $subPrimPoleLoadMid "left" 0
+	-an $subPrimPoleLoadMid "right"
+	-an $subPrimPoleLoadMid "bottom"
+
+	-ac $subPrimPoleObjMid "top" 0 $subPrimPoleLoadStart
+	-ac $subPrimPoleObjMid "left" 0 $subPrimPoleLoadMid
+	-af $subPrimPoleObjMid "right" 0
+	-an $subPrimPoleObjMid "bottom"
+
+	-ac $subPrimPoleLoadEnd "top" 0 $subPrimPoleLoadMid
+	-af $subPrimPoleLoadEnd "left" 0
+	-an $subPrimPoleLoadEnd "right"
+	-an $subPrimPoleLoadEnd "bottom"
+
+	-ac $subPrimPoleObjEnd "top" 0 $subPrimPoleLoadMid
+	-ac $subPrimPoleObjEnd "left" 0 $subPrimPoleLoadEnd
+	-af $subPrimPoleObjEnd "right" 0
+	-an $subPrimPoleObjEnd "bottom"
+
+	-ac $subPrimPoleGoBut "top" 0 $subPrimPoleLoadEnd
+	-af $subPrimPoleGoBut "left" 0
+	-af $subPrimPoleGoBut "right" 0
+	-an $subPrimPoleGoBut "bottom"
+
+	-ac $subPrimPoleOptsLbl "top" 3 $subPrimPoleGoBut
+	-af $subPrimPoleOptsLbl "left" 0
+	-an $subPrimPoleOptsLbl "right"
+	-an $subPrimPoleOptsLbl "bottom"
+
+	-ac $subPrimPoleOptsTex "top" 0 $subPrimPoleGoBut
+	-ac $subPrimPoleOptsTex "left" 0 $subPrimPoleOptsLbl
+	-ac $subPrimPoleOptsTex "right" 0 $subPrimPoleValidBut
+	-an $subPrimPoleOptsTex "bottom"
+
+	-ac $subPrimPoleValidBut "top" 0 $subPrimPoleGoBut
+	-an $subPrimPoleValidBut "left"
+	-af $subPrimPoleValidBut "right" 0
+	-an $subPrimPoleValidBut "bottom"
+	$subPrimPoleForm;
+
+formLayout -e
+	-af $spcUpBut "top" 0
+	-af $spcUpBut "left" 0
+	-an $spcUpBut "right"
+	-ap $spcUpBut "bottom" 0 50
+
+	-ap $spcDnBut "top" 0 50
+	-af $spcDnBut "left" 0
+	-an $spcDnBut "right"
+	-af $spcDnBut "bottom" 0
+	$spcDirForm;
+
+formLayout -e
+	-af $spcLbl0 "top" 3
+	-af $spcLbl0 "left" 0
+	-an $spcLbl0 "right"
+	-an $spcLbl0 "bottom"
+
+	-af $spcTgt "top" 0
+	-ac $spcTgt "left" 0 $spcLbl0
+	-ac $spcTgt "right" 3 $spcClear
+	-an $spcTgt "bottom"
+
+	-af $spcClear "top" 4
+	-an $spcClear "left"
+	-ac $spcClear "right" 1 $spcTgtBut
+	-an $spcClear "bottom"
+
+	-af $spcTgtBut "top" 0
+	-an $spcTgtBut "left"
+	-ac $spcTgtBut "right" 0 $spcGrp2Self
+	-an $spcTgtBut "bottom"
+
+	-af $spcGrp2Self "top" 0
+	-an $spcGrp2Self "left"
+	-af $spcGrp2Self "right" 0
+	-an $spcGrp2Self "bottom"
+
+	-ac $parLbl "top" 3 $spcTgt
+	-af $parLbl "left" 0
+	-an $parLbl "right"
+	-an $parLbl "bottom"
+
+	-ac $parName "top" 0 $spcTgt
+	-ac $parName "left" 0 $parLbl
+	-ac $parName "right" 0 $parLoad
+	-an $parName "bottom"
+
+	-ac $parLoad "top" 0 $spcTgt
+	-an $parLoad "left"
+	-af $parLoad "right" 0
+	-an $parLoad "bottom"
+
+	-ac $spcLbl1 "top" 0 $parName
+	-af $spcLbl1 "left" 0
+	-ap $spcLbl1 "right" 0 50
+	-an $spcLbl1 "bottom"
+
+	-ac $spcSpaces "top" 0 $spcLbl1
+	-af $spcSpaces "left" 0
+	-ap $spcSpaces "right" 1 50
+	-ac $spcSpaces "bottom" 0 $spcBut1
+
+	-ac $spcDirForm "top" 0 $spcLbl1
+	-ap $spcDirForm "left" 0 50
+	-an $spcDirForm "right"
+	-ac $spcDirForm "bottom" 0 $spcBut1
+
+	-an $spcBut1 "top"
+	-af $spcBut1 "left" 0
+	-ap $spcBut1 "right" 0 17
+	-ac $spcBut1 "bottom" 0 $spcGoBut
+
+	-an $spcBut2 "top"
+	-ap $spcBut2 "left" 0 17
+	-ap $spcBut2 "right" 0 33
+	-ac $spcBut2 "bottom" 0 $spcGoBut
+
+	-an $spcBut4 "top"
+	-ap $spcBut4 "left" 0 33
+	-ap $spcBut4 "right" 1 50
+	-ac $spcBut4 "bottom" 0 $spcGoBut
+
+	-ac $spcLbl2 "top" 0 $parName
+	-ac $spcLbl2 "left" 0 $spcSpaces
+	-af $spcLbl2 "right" 0
+	-an $spcLbl2 "bottom"
+
+	-ac $spcNames "top" 0 $spcLbl2
+	-ac $spcNames "left" 2 $spcDirForm
+	-af $spcNames "right" 0
+	-ac $spcNames "bottom" 0 $spcName
+
+	-an $spcName "top"
+	-ac $spcName "left" 0 $spcSpaces
+	-ac $spcName "right" 0 $spcBut3
+	-ac $spcName "bottom" 0 $spcGoBut
+
+	-an $spcBut3 "top"
+	-an $spcBut3 "left"
+	-af $spcBut3 "right" 0
+	-ac $spcBut3 "bottom" 0 $spcGoBut
+
+	-an $spcGoBut "top"
+	-af $spcGoBut "left" 0
+	-af $spcGoBut "right" 0
+	-af $spcGoBut "bottom" 0
+	$spaceForm;
+
+formLayout -e
+	-af $ctrlTgtBut "top" 0
+	-af $ctrlTgtBut "left" 0
+	-an $ctrlTgtBut "right"
+	-an $ctrlTgtBut "bottom"
+
+	-af $ctrlTgt "top" 0
+	-ac $ctrlTgt "left" 0 $ctrlTgtBut
+	-af $ctrlTgt "right" 0
+	-an $ctrlTgt "bottom"
+
+	-ac $ctrlAlignBut "top" 0 $ctrlTgt
+	-af $ctrlAlignBut "left" 0
+	-an $ctrlAlignBut "right"
+	-an $ctrlAlignBut "bottom"
+
+	-ac $ctrlAlign "top" 0 $ctrlTgt
+	-ac $ctrlAlign "left" 0 $ctrlAlignBut
+	-ap $ctrlAlign "right" 0 50
+	-an $ctrlAlign "bottom"
+
+	-ac $ctrlPivBut "top" 0 $ctrlTgt
+	-ap $ctrlPivBut "left" 0 50
+	-an $ctrlPivBut "right"
+	-an $ctrlPivBut "bottom"
+
+	-ac $ctrlPiv "top" 0 $ctrlTgt
+	-ac $ctrlPiv "left" 0 $ctrlPivBut
+	-af $ctrlPiv "right" 0
+	-an $ctrlPiv "bottom"
+
+	-ac $ctrlParentBut "top" 0 $ctrlAlignBut
+	-af $ctrlParentBut "left" 0
+
+	-ac $ctrlParent "top" 0 $ctrlAlignBut
+	-ac $ctrlParent "left" 0 $ctrlParentBut
+	-ac $ctrlParent "right" 10 $ctrlHideAttrsLbl
+
+	-ac $ctrlHideAttrsLbl "top" 3 $ctrlAlignBut
+	-ac $ctrlHideAttrsLbl "right" 5 $hideT
+
+	-ac $hideT "top" 3 $ctrlAlignBut
+	-ac $hideT "right" 0 $hideR
+
+	-ac $hideR "top" 3 $ctrlAlignBut
+	-ac $hideR "right" 0 $hideS
+
+	-ac $hideS "top" 3 $ctrlAlignBut
+	-ac $hideS "right" 0 $hideV
+
+	-ac $hideV "top" 3 $ctrlAlignBut
+	-ac $hideV "right" 5 $ctrlLockAttrsLbl
+
+	-ac $ctrlLockAttrsLbl "top" 3 $ctrlAlignBut
+	-ac $ctrlLockAttrsLbl "right" 0 $lockT
+
+	-ac $lockT "top" 3 $ctrlAlignBut
+	-ac $lockT "right" 0 $lockR
+
+	-ac $lockR "top" 3 $ctrlAlignBut
+	-ac $lockR "right" 0 $lockS
+
+	-ac $lockS "top" 3 $ctrlAlignBut
+	-ac $lockS "right" 0 $lockV
+
+	-ac $lockV "top" 3 $ctrlAlignBut
+	-af $lockV "right" 0
+
+	-ac $ctrlSubForm1 "top" 7 $ctrlParentBut
+	-af $ctrlSubForm1 "left" 0
+	-ac $ctrlSubForm1 "right" 10 $ctrlAxisLbl
+	-an $ctrlSubForm1 "bottom"
+
+	-ac $ctrlAxisLbl "top" 10 $ctrlParentBut
+	-an $ctrlAxisLbl "left"
+	-ac $ctrlAxisLbl "right" 5 $ctrlAxisX
+	-an $ctrlAxisLbl "bottom"
+
+	-ac $ctrlAxisX "top" 10 $ctrlParentBut
+	-an $ctrlAxisX "left"
+	-ac $ctrlAxisX "right" 0 $ctrlAxisY
+	-an $ctrlAxisX "bottom"
+
+	-ac $ctrlAxisY "top" 10 $ctrlParentBut
+	-an $ctrlAxisY "left"
+	-ac $ctrlAxisY "right" 0 $ctrlAxisZ
+	-an $ctrlAxisY "bottom"
+
+	-ac $ctrlAxisZ "top" 10 $ctrlParentBut
+	-an $ctrlAxisZ "left"
+	-ac $ctrlAxisZ "right" 0 $ctrlCheckNeg
+	-an $ctrlAxisZ "bottom"
+
+	-ac $ctrlCheckNeg "top" 10 $ctrlParentBut
+	-an $ctrlCheckNeg "left"
+	-af $ctrlCheckNeg "right" 0
+	-an $ctrlCheckNeg "bottom"
+
+	-ac $ctrlJoint "top" 5 $ctrlSubForm1
+	-af $ctrlJoint "left" 5
+	-an $ctrlJoint "right"
+	-an $ctrlJoint "bottom"
+
+	-ac $ctrlConstrain "top" 5 $ctrlSubForm1
+	-ac $ctrlConstrain "left" 5 $ctrlJoint
+	-an $ctrlConstrain "right"
+	-an $ctrlConstrain "bottom"
+
+	-ac $ctrlOrient "top" 5 $ctrlSubForm1
+	-ac $ctrlOrient "left" 5 $ctrlConstrain
+	-an $ctrlOrient "right"
+	-an $ctrlOrient "bottom"
+
+	-ac $ctrlCurve "top" 5 $ctrlSubForm1
+	-ac $ctrlCurve "left" 5 $ctrlOrient
+	-an $ctrlCurve "right"
+	-an $ctrlCurve "bottom"
+
+	-ac $ctrlSurface "top" 5 $ctrlSubForm1
+	-ac $ctrlSurface "left" 5 $ctrlCurve
+	-an $ctrlSurface "right"
+	-an $ctrlSurface "bottom"
+
+	-ac $ctrlBasePivot "top" 5 $ctrlSubForm1
+	-ac $ctrlBasePivot "left" 5 $ctrlSurface
+	-an $ctrlBasePivot "right"
+	-an $ctrlBasePivot "bottom"
+
+	-ac $ctrlLbl2 "top" 2 $ctrlJoint
+	-af $ctrlLbl2 "left" 0
+	-an $ctrlLbl2 "right"
+	-an $ctrlLbl2 "bottom"
+
+	-ac $ctrlLbl3 "top" 2 $ctrlJoint
+	-ap $ctrlLbl3 "left" 0 33
+	-an $ctrlLbl3 "right"
+	-an $ctrlLbl3 "bottom"
+
+	-ac $ctrlLbl4 "top" 2 $ctrlJoint
+	-ap $ctrlLbl4 "left" 0 67
+	-an $ctrlLbl4 "right"
+	-an $ctrlLbl4 "bottom"
+
+	-ac $ctrlOffSide "top" 2 $ctrlLbl2
+	-af $ctrlOffSide "left" 0
+	-ap $ctrlOffSide "right" 0 33
+	-an $ctrlOffSide "bottom"
+
+	-ac $ctrlOffUp "top" 2 $ctrlLbl2
+	-ap $ctrlOffUp "left" 0 33
+	-ap $ctrlOffUp "right" 0 67
+	-an $ctrlOffUp "bottom"
+
+	-ac $ctrlOffFwd "top" 2 $ctrlLbl2
+	-ap $ctrlOffFwd "left" 0 67
+	-af $ctrlOffFwd "right" 0
+	-an $ctrlOffFwd "bottom"
+
+	-ac $ctrlLbl5 "top" 2 $ctrlOffSide
+	-af $ctrlLbl5 "left" 0
+	-an $ctrlLbl5 "right"
+	-an $ctrlLbl5 "bottom"
+
+	-ac $ctrlLbl6 "top" 2 $ctrlOffSide
+	-ap $ctrlLbl6 "left" 0 33
+	-an $ctrlLbl6 "right"
+	-an $ctrlLbl6 "bottom"
+
+	-ac $ctrlLbl7 "top" 2 $ctrlOffSide
+	-ap $ctrlLbl7 "left" 0 67
+	-an $ctrlLbl7 "right"
+	-an $ctrlLbl7 "bottom"
+
+	-ac $ctrlSizeX "top" 2 $ctrlLbl5
+	-af $ctrlSizeX "left" 0
+	-ap $ctrlSizeX "right" 0 33
+	-an $ctrlSizeX "bottom"
+
+	-ac $ctrlSizeY "top" 2 $ctrlLbl5
+	-ap $ctrlSizeY "left" 0 33
+	-ap $ctrlSizeY "right" 0 67
+	-an $ctrlSizeY "bottom"
+
+	-ac $ctrlSizeZ "top" 2 $ctrlLbl5
+	-ap $ctrlSizeZ "left" 0 67
+	-af $ctrlSizeZ "right" 0
+	-an $ctrlSizeZ "bottom"
+
+	-ac $ctrlGoBut "top" 0 $ctrlSizeX
+	-af $ctrlGoBut "left" 0
+	-ap $ctrlGoBut "right" 0 50
+	-an $ctrlGoBut "bottom"
+
+	-ac $ctrlSelGoBut "top" 0 $ctrlSizeX
+	-ap $ctrlSelGoBut "left" 0 50
+	-af $ctrlSelGoBut "right" 0
+	-an $ctrlSelGoBut "bottom"
+
+	-ac $subPrimFramePole "top" 10 $ctrlGoBut
+	-af $subPrimFramePole "left" 0
+	-af $subPrimFramePole "right" 0
+	-an $subPrimFramePole "bottom"
+	$ctrlForm;
+
+formLayout -e
+	-af $ctrlLbl1 "top" 2
+	-af $ctrlLbl1 "left" 0
+	-an $ctrlLbl1 "right"
+	-an $ctrlLbl1 "bottom"
+
+	-ac $ctrlShape "left" 2 $ctrlLbl1
+	-ap $ctrlShape "right" 0 50
+	-an $ctrlShape "bottom"
+
+	-af $ctrlLbl1a "top" 2
+	-ap $ctrlLbl1a "left" 10 50
+	-an $ctrlLbl1a "right"
+	-an $ctrlLbl1a "bottom"
+
+	-ac $ctrlColour "left" 2 $ctrlLbl1a
+	-af $ctrlColour "right" 0
+	-an $ctrlColour "bottom"
+	$ctrlSubForm1;
+
+showWindow $windowName;
+
+zooCSTWindowFunctions update "*";
+}
+
+
+//zoo.end
+//macaroniKazoo ©2007

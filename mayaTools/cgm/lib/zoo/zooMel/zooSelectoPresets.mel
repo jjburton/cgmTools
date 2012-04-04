@@ -1,0 +1,68 @@
+zooPresetManager;
+zooSelectoUtils;
+zooTriggeredUtils;
+zooUtils;
+
+
+global proc zooSelectoPresets() {
+	return;
+	}
+
+
+global proc zooExportSelectos( string $char, string $name, int $prompt ) {
+	string $q = "";
+	$char = `match "^[^:]+" $char`;
+	if( $prompt ) $q = `promptDialog -t( "export preset for "+ $char ) -m "name of preset" -tx $char -b "OK" -b "Cancel" -db "OK"`;
+	if( $q != "OK" ) return;
+
+	string $name = `promptDialog -q -tx`;
+	string $fileContents = "";
+	string $selectos[] = `zooListCharacterSelectos $char`;
+
+	for( $selecto in $selectos ) {
+		string $targets[] = `zooGetConnects $selecto`;
+		string $scale = `getAttr ( $selecto +".zooSelectoScale" )`;
+		string $offset = `getAttr ( $selecto +".zooSelectoOffset" )`;
+		string $manualOptions = `getAttr ( $selecto +".zooBrand_selecto" )`;
+
+		//strip namespaces
+		for( $n=0; $n<`size $targets`; $n++ ) $targets[$n] = `match "[^:]+$" $targets[$n]`;
+		if( $manualOptions == "" ) $manualOptions = "_";
+		$fileContents += `zooArrayToStr_str $targets " "` +";";
+		$fileContents += $scale +";";
+		$fileContents += $offset +";";
+		$fileContents += $manualOptions +";\n";
+		}
+
+	zooSavePreset "local" zooSelecto preset $name $fileContents;
+	}
+
+
+global proc zooImportSelectos( string $namespace, string $locale, string $preset ) {
+	string $name = `match "^[^.]+" $preset`;
+	$preset = `substitute "\.preset$" $preset ""`;
+	string $fileContents[] = `zooReadPreset $locale zooSelecto preset $preset`;
+
+	for( $line in $fileContents ) {
+		string $data[] = {};
+		string $targets[] = {};
+		string $optionStr = "";
+		float $offset;
+		float $scale;
+
+		tokenize $line ";" $data;
+		tokenize $data[0] $targets;
+
+		$scale = $data[1];
+		$offset = $data[2];
+		$optionStr = $data[3];
+
+		if( !`objExists ( $namespace + $targets[0] )`) continue;
+		string $selecto = `zooCreateSelecto ( $namespace + $targets[0] ) $optionStr`;
+		setAttr ( $selecto +".zooSelectoScale" ) $scale;
+		setAttr ( $selecto +".zooSelectoOffset" ) $offset;
+		}
+	}
+
+
+//zoo.end

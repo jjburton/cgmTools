@@ -1,0 +1,316 @@
+zooArrays_str;
+zooAttrUtils;
+zooVectors;
+
+
+global proc zooCSTUtils() { return; }
+
+
+//------
+//returns the "facing" axis of the joint - ie which axis the joint twists (ie banks) around
+//------
+global proc string zooCSTJointDirection( string $obj ) {
+	string $children[] = `listRelatives -path -c -type transform $obj`;
+	if( `size $children`==1 ) return `zooCSTUpVectorAsName $obj (zooCSTBetweenVector($obj,$children[0]))`;
+	else return `zooCSTLargestT $obj`;
+	}
+
+
+//------
+//returns the name of the translation axis with the highest value
+//------
+global proc string zooCSTLargestT( string $obj ) {
+	float $pos[] = `getAttr ( $obj + ".t" )`;
+	float $highest = abs($pos[0]);
+	int $axis = 0;
+
+	for( $n=1; $n<`size $pos`; $n++ ) if( abs($pos[$n]) > $highest ) {
+		$highest = abs($pos[$n]);
+		$axis = $n;
+		}
+
+	if( $axis == 0 ) return "x";
+	if( $axis == 1 ) return "y";
+	if( $axis == 2 ) return "z";
+	}
+
+
+//------
+//given the output of the zooCSTUpVector command, returns the name of the axis as a string (ie x, y or z)
+//------
+global proc string zooCSTUpVectorAsName( string $obj, float $compareVector[] ){
+	string $axis = `zooCSTUpVector $obj $compareVector`;
+	string $axisName = `zooCSTVectorAsName $axis`;
+	return $axisName;
+	}
+
+
+//------
+//given a unit vector, returns its name
+//------
+global proc string zooCSTVectorAsName( string $vector ){
+	string $axisName = "x";
+	if( $vector == "0 1 0" || $vector == "0 -1 0" ) $axisName = "y";
+	if( $vector == "0 0 1" || $vector == "0 0 -1" ) $axisName = "z";
+	return $axisName;
+	}
+
+
+//------
+//given an axis, returns the best rotation order for the object
+//------
+global proc string zooCSTGetRo( string $twistAxis ) {
+	//if( $twistAxis == "x" ) return "zxy"; //2,4
+	//if( $twistAxis == "y" ) return "xyz"; //0,5
+	//if( $twistAxis == "z" ) return "yzx"; //1,3
+	if( $twistAxis == "x" ) return "xzy";
+	if( $twistAxis == "y" ) return "yxz";
+	if( $twistAxis == "z" ) return "zyx";
+	}
+
+
+//------
+//returns the axis which faces in the $dir
+//$dir can be either "fwd" or "up".  +x is always the side axis
+//------
+global proc float[] zooCSTGetDir( string $dir ) {
+	string $upAxis = `upAxis -q -axis`;
+	switch( $dir ) {
+		case "up":
+			if( $upAxis == "y" ) return { (float)0, (float)1, (float)0 };
+			else return { (float)0, (float)0, (float)1 };
+			break;
+
+		case "fwd":
+			if( $upAxis == "y" ) return { (float)0, (float)0, (float)1 };
+			else return { (float)0, (float)-1, (float)0 };
+			break;
+		}
+	}
+
+
+global proc float[] zooCSTAxisStrAsFloat( string $axisStr ) {
+	float $return[] = {0,0,0};
+	if( `match "x" $axisStr` != "" ) $return[0] = 1;
+	if( `match "y" $axisStr` != "" ) $return[1] = 1;
+	if( `match "z" $axisStr` != "" ) $return[2] = 1;
+	return $return;
+	}
+
+
+//------
+//this function will return a string indicating the axis of an object, closest in orientation to a compare vector.
+//------
+global proc float[] zooCSTUpVector_float( string $obj, float $vector[] ) {
+	return `zooAxisInDirection $obj $vector`;
+	}
+
+
+//------
+//this function will return a string indicating the axis of an object, closest in orientation to a compare vector.
+//------
+global proc string zooCSTUpVector( string $obj, float $vector[] ) {
+	float $axis[] = `zooAxisInDirection $obj $vector`;
+	return `zooArrayToStr_float $axis " "`;
+	}
+
+
+//------
+//returns the distance between two objects
+//------
+global proc float zooCSTDistBetween( string $obj1, string $obj2 ) {
+	float $vector[] = `zooCSTBetweenVector $obj1 $obj2`;
+	return `zooVectorMag $vector`;
+	}
+
+
+//------
+//returns the vector between two objects
+//------
+global proc float[] zooCSTBetweenVector( string $obj1, string $obj2 ) {
+	return `zooBetweenVector $obj1 $obj2`;
+	}
+
+
+//------
+//groups an object to itself, and aligns the group to a target object
+//------
+global proc string zooCSTOrient2Obj( string $src, string $tgt ) {
+	string $grp = `group -em -name ( $tgt + "_alignSpace" )`;
+	delete `parentConstraint $src $tgt`;
+	delete `parentConstraint $src $grp`;
+
+	parent $tgt $grp;
+	makeIdentity -apply 1 -t 1 -r 1 -s 1 $tgt;
+
+	return $grp;
+	}
+
+
+//------
+//simply groups an object to itself - makes sure the group has the same pivot point as the given object
+//------
+global proc string zooGrpToSelf( string $optionStr, string $obj ) {
+	string $temp[] = {};
+	int $freeze = 1;
+
+	$temp = `zooGetFlagArguments $optionStr freeze`; if( `size $temp` ) $freeze = $temp[0];
+
+	string $grp = `group -em`;
+	string $shortName = `match "[^|:]+$" $obj`;
+	string $objParent = zooGetElement_str(0,`listRelatives -pa -p $obj`);
+
+	$grp = `rename $grp ( $shortName +"_space" )`;
+	if( `objExists $objParent` ) parent $grp $objParent;
+	delete `parentConstraint $obj $grp`;
+	if( $freeze ) makeIdentity -a 1 -t 1 -r 1 $grp;
+	parent $obj $grp;
+
+	return $grp;
+	}
+
+
+//returns a list of all joints in between the start and the end joint - this proc doesn't check input, so make sure
+//the start joint is actually higher in the heirarchy - otherwise weird results get returned
+global proc string[] zooGetInBTweenJoints( string $start, string $end ) {
+	string $current = $end;
+	string $inBTween[] = {};
+
+	if( $start == $end ) return {};
+	for( $n=1; true; $n++ ) {
+		string $parent = zooGetElement_str(0,`listRelatives -p -path $current`);
+		if( $parent == $start ) break;
+		if( $parent == "" ) break;
+		if( $n>500 ) break;
+		$inBTween[( `size $inBTween` )] = $parent;
+		$current = $parent;
+		}
+
+	zooReverseArray_str $inBTween;
+	return $inBTween;
+	}
+
+
+//NOTE - the three arg defines the three joints to define the normal.  if empty
+//the normal is calculated from the first, mid and final joint in the list
+global proc zooOrientChainProperly( string $chain[], string $three[] ) {
+	string $last = `zooGetElement_str -1 $chain`;
+	string $kids[] = {};
+	float $normal[] = {};
+	int $sizeChain = `size $chain`;
+	int $mid = $sizeChain/2;
+
+	if( $sizeChain < 3 ) return;
+	if( `size $three` != 3 ) $three = { $chain[0],$chain[$mid],$last };
+	float $aVec[] = `zooBetweenVector $three[0] $three[1]`;
+	float $bVec[] = `zooBetweenVector $three[1] $three[2]`;
+
+	$normal = `crossProduct $bVec $aVec 1 1`;
+	for( $n=0; $n<$sizeChain-1; $n++ ) {
+		string $aimCmd = "aimConstraint -aim 1 0 0 -u 0 1 0 -wu "+ $normal[0] +" "+ $normal[1] +" "+ $normal[2] +" "+ $chain[($n+1)] +" "+ $chain[$n] +";";
+		$kids = `listRelatives -pa -type transform $chain[$n]`;
+		if( `size $kids` ) parent -w $kids;
+		delete `eval $aimCmd`;
+		makeIdentity -a 1 -r 1 $chain[$n];
+		if( `size $kids` ) parent $kids $chain[$n];
+		}
+
+	//finally, deal with the last joint
+	$kids = `listRelatives -pa -type transform $last`;
+	if( `size $kids` ) $kids = `parent -w $kids`;
+	setAttr ( $last +".r" ) 0 0 0;
+	setAttr ( $last +".jo" ) 0 0 0;
+	if( `size $kids` ) parent $kids $last;
+	}
+
+
+//------
+//returns a bounding box for a heirarchy.  useful if you wanted to find the bounds of an entire skeleton
+//------
+global proc float[] zooGetHeirarchyBounds( string $obj ) {
+	string $heirarchy[] = `listRelatives -ad -type transform $obj`;
+	float $minX[] = {};
+	float $minY[] = {};
+	float $minZ[] = {};
+	float $maxX[] = {};
+	float $maxY[] = {};
+	float $maxZ[] = {};
+
+	for( $n=0; $n<`size $heirarchy`; $n++ ) {
+		float $tempMN[] = `getAttr ( $heirarchy[$n] +".bbmn" )`;
+		float $tempMX[] = `getAttr ( $heirarchy[$n] +".bbmx" )`;
+		$minX[$n] = $tempMN[0];
+		$minY[$n] = $tempMN[1];
+		$minZ[$n] = $tempMN[2];
+		$maxX[$n] = $tempMX[0];
+		$maxY[$n] = $tempMX[1];
+		$maxZ[$n] = $tempMX[2];
+		}
+
+	$minX = `sort $minX`;
+	$minY = `sort $minY`;
+	$minZ = `sort $minZ`;
+	$maxX = `sort $maxX`;
+	$maxY = `sort $maxY`;
+	$maxZ = `sort $maxZ`;
+
+	return { $minX[0], $minY[0], $minZ[0], $maxX[( `size $maxX` - 1 )], $maxY[( `size $maxY` - 1 )], $maxZ[( `size $maxZ` - 1 )] };
+	}
+
+
+//------
+//hides all rig objects - also locks their shape's visibility channel so they can't accidentally be unhidden by a showAll command
+//------
+global proc zooCSTUtilsRigVis( string $function ) {
+	string $allHideTransforms[] = `ls -r 1 -tr "*_lockthis*"`;
+	string $allRigTransforms[] = `ls -r 1 -tr "*_false*"`;
+	string $allRigShapes[] = `ls -r 1 -s "*_false*"`;
+	string $allRigJoints[] = `ls -r 1 -type joint "*_false*"`;
+	int $vis;
+
+	if( $function == "-h" || $function == "-hide" ) $vis = 0;
+	if( $function == "-u" || $function == "-unhide" ) $vis = 1;
+
+	for ( $obj in $allHideTransforms ) {
+		setAttr -l 0 ( $obj + ".v" );
+		setAttr -l 1 ( $obj + ".v" ) $vis;
+		}
+	for ( $obj in $allRigTransforms ) setAttr -l 1 ( $obj + ".v" );
+	for ( $obj in $allRigShapes ) {
+		setAttr -l 0 ( $obj + ".v" );
+		setAttr -l 1 ( $obj + ".v" ) $vis;
+		}
+	for ( $obj in $allRigJoints ) {
+		setAttr -l 0 ( $obj + ".v" );
+		setAttr -l 1 ( $obj + ".v" ) $vis;
+		}
+	}
+
+
+global proc finalizeRigBuild( string $prefix ) {
+	string $geoLayer = `createDisplayLayer -name "geo" -empty`;
+	string $ctrlsLayer = `createDisplayLayer -name "ctrls" -empty`;
+
+	editDisplayLayerMembers -noRecurse $ctrlsLayer `sets -q ( "all_ctrls" )`;
+	setAttr ( $geoLayer +".displayType" ) 2;
+	echoRigElementCreationCommand( "finalizeRigBuild \""+ $prefix +"\";" );
+	}
+
+
+//deals with echoing teh creation of a rig element to the appropriate places
+global proc echoRigElementCreationCommand( string $command ) {
+	if( `scrollField -q -ex rigBuildMacroOutput` ) {
+		string $existingText = `scrollField -q -tx rigBuildMacroOutput`;
+		//is the last character a ;?
+		$command = strip($command);
+		int $len = `size $command`;
+		if( `substring $command $len $len` != ";" ) $command += ";";
+		$existingText += $command +"\n";
+		scrollField -e -tx $existingText rigBuildMacroOutput;
+		}
+	print( $command +"\n" );
+	}
+
+
+//zoo.end
+//macaroniKazoo ©2007

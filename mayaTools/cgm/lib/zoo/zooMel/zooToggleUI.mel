@@ -1,0 +1,79 @@
+//
+// UI toggle
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 15 December 2001
+//
+// Description:
+// same functionality as the hide/restore UI options in the display menu
+// except that this script will allow a toggle.  It also saves UI state
+// info in your prefs file, so that when you quit with the UI turned off,
+// you don't lose your restored UI information.
+//
+// Usage:
+//  zooToggleUI;
+//
+
+
+global proc zooToggleUI() {
+	string $stateName = "zooToggleUIState";  //true is hidden
+	string $UICommandNameArray[] = `zooGetUINameArray`;
+	int $UIStateArray[] = `zooGetUIStateArray`;
+	int $arraySize = `size $UICommandNameArray`;
+	int $state = `optionVar -q $stateName`;
+
+	//make another array the same size as UICommandNameArray
+	for( $n=0; $n<$arraySize; $n++ ) $UIStateArray[$n] = 0;
+	if( `optionVar -exists zooToggleUI` ) $UIStateArray = `optionVar -q zooToggleUI`;
+
+	optionVar -iv $stateName (!$state);
+	if( $state ) for( $n=0; $n<$arraySize; $n++ ) eval( "set"+ $UICommandNameArray[$n] + " " + $UIStateArray[$n] );
+	else {
+		zooSetUIStateArray;
+		for( $n=0; $n<$arraySize; $n++ ) eval( "set" + $UICommandNameArray[$n] + " 0");
+		}
+	}
+
+
+global proc int[] zooSetUIStateArray() {
+	string $UICommandNameArray[] = `zooGetUINameArray`;
+	int $UIStateArray[] = {};
+
+	for( $n=0; $n<`size $UICommandNameArray`; $n++ ) $UIStateArray[$n] = eval( "is"+ $UICommandNameArray[$n] );
+	optionVar -rm zooToggleUI;
+	for( $n=0; $n<`size $UICommandNameArray`; $n++ ) optionVar -iva zooToggleUI $UIStateArray[$n];
+	return $UIStateArray;
+	}
+
+
+global proc int[] zooGetUIStateArray() {
+	string $UICommandNameArray[] = `zooGetUINameArray`;
+	int $UIStateArray[] = {};
+
+	for( $n=0; $n<`size $UICommandNameArray`; $n++ ) $UIStateArray[$n] = 1;
+	if( !`optionVar -ex zooToggleUI` ) return $UIStateArray;
+	return `optionVar -q zooToggleUI`;
+	}
+
+
+global proc string[] zooGetUINameArray() {
+	return {"StatusLineVisible",
+		"ShelfVisible",
+		"HelpLineVisible",
+		"TimeSliderVisible",
+		"PlaybackRangeVisible",
+		"CommandLineVisible",
+		"ChannelBoxVisible",
+		"ToolboxVisible",
+		"AttributeEditorVisible"};
+	}
+
+
+global proc int isToolboxVisible() {
+	//This is purely a maya4 function and can be removed if you're using this script for
+	//version 3.  I had to put it in because alias didn't implement this script themselves
+	return `isUIComponentVisible "Tool Box"`;
+	}
+
+
+//zoo.end

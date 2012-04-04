@@ -1,0 +1,26 @@
+Once a mesh has been skinned, making geometry changes can be a pain, as weights often have to be redone in some way or another.  Weight transfer scripts have traditionally relied on proximity based or vertex index based import/exporting of weights.  These methods both have big weak points.  Vertex indicies change when topology changes are made, and proximity based weight transfers are prone to error, especially when topology changes drastically.  zooWeightSave works using a different method of weight transfer.
+
+zooWeightSave stores a mesh's skin weight data into the mesh itself using blind data.  Blind data gets stored on the verticies themselves, and are thus immune to geometry modifications that alter vertex indicies.  Once blind data has been applied to a vertex, it becomes information stored with that vertex.  So if the vertex's index changes, it doesn't matter, as the information is part of the vertex itself.
+
+Additionally, the weights are saved with the mesh, instead of in a separate file, so it makes saving weights much easier than having to remember where the weights file was stored.
+
+----Usage----
+If you need to make topology changes in a mesh, run the store weights command to bake skin weight data into the mesh.  Make your mesh modifications and delete history.  Once you're comfortable with your changes, simply run the restore weights function.  zooWeightSave will then run through all verts on the mesh, and set skin weights based on the blind data.
+
+You can run the restore weights function on either the entire object, or only the selected verts.
+
+NOTE: Sometimes when restoring weights, maya will spit up errors about the weight total exceeding 1.0.  This seems to be some sort of bug, as not only are all skin weights normalised by the script when applying them, but the skin weights command is also told to normalise the weights.  The work around is to try multiple times - or to do a restore on only the offending verticies.  Often the first time you restore weights you'll get the error, but the second time round, it will work fine.  This is a painful solution, but as far as I can tell, its a maya bug, not a script bug.
+
+
+----Removing Weight Information----
+The remove stored button in the UI will remove any stored weight information from a mesh.  Its perfectly harmless to leave weight information attached to a mesh, but the information will cause a significant file size increase, as the weight data is stored primarily as text.  Once you've finished with the stored weights, its good to get in the habit of removing it.  After all, its dead easy to store it again.
+
+
+----Limitations----
+Weights are stored in the blind data using joint names.  As a result, the joint names must remain the same between storing weights, and reloading weights.  If a joint cannot be found by name, then the weight assigned to it are re-distributed across remaining joints.  If all the joints that a vertex was weighted to can't be found then the vertex will have default weighting.
+
+NOTE: this script is slow.  A progressWindow lets you break out of the script should you decide not to do it, and to assure you that it hasn't crashed.
+
+
+Hamish McKenzie ©2005...
+macaroniKazoo Productions ©2005...

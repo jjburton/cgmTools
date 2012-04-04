@@ -1,0 +1,88 @@
+zooUtils;
+zooArrays_str;
+
+
+global proc zooGraphFilterUtils() {
+	return;
+	}
+
+
+global proc zooGraphChannelTypes( string $channels[] ) {
+	string $selObjs[] = `ls -sl`;
+	if( !`size $channels` ) $channels = `zooGetHighlightedChannels`;
+
+	selectionConnection -e -clear graphEditor1FromOutliner;
+	for( $obj in $selObjs ) for( $channel in $channels ) {
+		string $channelPath = $obj +"."+ $channel;
+		if( `objExists $channelPath` ) selectionConnection -e -select $channelPath graphEditor1FromOutliner;
+		}
+	}
+
+
+global proc zooToggleSelectedAll() {
+	string $sel[] = `selectionConnection -q -obj graphEditor1FromOutliner`;
+	if( !`size $sel` ) {
+		zooGraphAllChannels;
+		return;
+		}
+
+	if( `zooAreChannelsHighlighted` ) zooGraphAllChannels;
+	else zooGraphSelectedCurves;
+	}
+
+
+global proc zooGraphAllChannels() {
+	string $selObjs[] = `ls -sl`;
+	selectionConnection -e -clear graphEditor1FromOutliner;
+	for( $obj in $selObjs ) selectionConnection -e -select $obj graphEditor1FromOutliner;
+	}
+
+
+global proc zooGraphSelectedCurves() {
+	string $curves[] = `keyframe -q -name -sl` ;
+	if( !`size $curves` ) return;
+	selectionConnection -e -clear graphEditor1FromOutliner;
+	for( $n=0; $n<`size $curves`; $n++ ) {
+		string $channel[] = `listConnections -p 1 -s 0 ( $curves[$n] +".output" )`;
+		if( `objExists $channel[0]` ) selectionConnection -e -select $channel[0] graphEditor1FromOutliner;
+		}
+	//animCurveEditor -e -lookAt all graphEditor1GraphEd;
+	}
+
+
+//returns whether the highlighted channels in the graph editor are attributes or not
+global proc int zooAreChannelsHighlighted() {
+	string $sel[] = `selectionConnection -q -obj graphEditor1FromOutliner`;
+	for( $s in $sel ) if( `gmatch $s "*.*"` ) return 1;
+	return 0;
+	}
+
+
+//returns a list of keyable, non transform attributes on the currently selected objects
+global proc string[] zooGetNonXformKeyable() {
+	string $selObjs[] = `ls -sl`;
+	string $xformList[] = { "translateX", "translateY", "translateZ", "rotateX", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ" };
+	string $returnList[] = {};
+
+	if( !`size $selObjs` ) return {};
+	$returnList = `listAttr -k`;
+	$returnList = `stringArrayRemoveDuplicates $returnList`;
+	$returnList = `zooSubtractArray_str $returnList $xformList`;
+	return $returnList;
+	}
+
+
+global proc string[] zooGetHighlightedChannels() {
+	string $highlightedChannels[] = `selectionConnection -q -obj graphEditor1FromOutliner`;
+	string $fromChannelBox[] = `channelBox -q -selectedMainAttributes mainChannelBox`;
+	string $returnList[] = {};
+
+	for( $attrib in $highlightedChannels ) $returnList[( `size $returnList` )] = `match "[^.]+$" $attrib`;
+	$returnList = `stringArrayRemoveDuplicates $returnList`;
+	//if( !`size $fromChannelBox` ) $returnList = $fromChannelBox;
+
+	return $returnList;
+	}
+
+
+//zoo.end

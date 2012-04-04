@@ -1,0 +1,301 @@
+//
+// zooRenamer
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 4 August 2002
+//
+// Description:
+// makes renaming heirarchies a little less painful...
+// the copy/paste heirarchy function, copies the names of
+// one heirarchy to another.
+//
+// Usage:
+//  assign this function to a key press:
+//	zooRenamer
+//
+
+
+zooRenamerUtils;
+zooUtils;
+
+
+global proc zooRenamer () {
+	string $selObjs[] = `ls -sl`;
+	string $windowName = "zooRenamerWindow";
+	string $windowTitle = "zooRenamer v" + `zooRenamerInfo version` + "  ::macaroniKazoo::";
+
+	if ( `window -exists $windowName` ) deleteUI $windowName;
+	window -t $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 $windowName;
+		scriptJob -p $windowName -e "SelectionChanged" "zooRenamerUIControls update";
+		menuBarLayout;
+			menu -l "Duplicate Names";
+				menuItem -l "List Duplicate Names" -ann "prints a list of nodes that have the same leaf name" -c( "print `zooListDuplicateNames`;" );
+				menuItem -l "Resolve Duplicate Names" -ann "automatically resolves duplicate names by appending a number to the clashing node's name" -c( "zooResolveDuplicateNames;" );
+				menuItem -d 1;
+				menuItem -l "Name Shapes Properly" -ann "renames all shape nodes in the scene properly" -c( "zooNameShapesProperly;" );
+			menu -l "Shelf";
+				menuItem -l "Install Shelf Button" -c( "zooRenamerInstallShelfButton;" );
+			menu -l "Help";
+				menuItem -l "Help..." -c( "zooHelp zooRenamer 1;" );
+
+		columnLayout -adjustableColumn true -rowSpacing 5 zooRenamerLeftColumn;
+			radioCollection zooRenamerRadio;
+			$form = `formLayout`;
+				radioButton -label "Heirarchy" -align "left" zooRenamerRadioHeirarchy;
+				radioButton -label "Selected" -align "left" -sl zooRenamerRadioSelected;
+
+				string $text02 = `text -align "left" -label "Prefix:"`;
+				textField -ed 1 -text "" -ec( "zooRenamerUIControls prefix;" ) -cc( "zooRenamerUIControls update;" ) zooRenamerPrefix;
+				button -label "Rename" -c( "zooRenamerUIControls prefix;" ) zooRenamerButtonPrefix;
+
+				string $text03 = `text -align "left" -label "Suffix:"`;
+				textField -ed 1 -text "" -ec( "zooRenamerUIControls suffix;" ) -cc( "zooRenamerUIControls update;" ) zooRenamerSuffix;
+				button -label "Rename" -c( "zooRenamerUIControls suffix;" ) zooRenamerButtonSuffix;
+
+				string $txSch = `text -align "left" -label "Search:"`;
+				string $txRpl = `text -align "left" -label "Replace:"`;
+
+				textField -ed 1 -text "" -cc( "zooRenamerUIControls update;" ) zooRenamerSearch;
+				string $text04 = `text -align "left" -l "->"`;
+				textField -ed 1 -text "" -ec( "zooRenamerUIControls replace;" ) -cc( "zooRenamerUIControls update;" ) zooRenamerReplace;
+				button -label "Rename" -c( "zooRenamerUIControls replace;" ) zooRenamerButtonSearch;
+
+				string $text05 = `text -align "left" -label "Numerate:"`;
+				textField -tx "#_%" -ec( "zooRenamerUIControls replace;" ) -cc( "zooRenamerUIControls update;" ) zooRenamerNumTemplate;
+				intField -v 0 -w 25 zooRenamerNumStart;
+				intField -v 3 -w 25 zooRenamerNumPad;
+				string $text05a = `text -l "start/pad:"`;
+				button -label "Rename" -c( "zooRenamerUIControls numerate;" ) zooRenamerButtonNumerate;
+
+				string $text06 = `text -align "left" -label "Copy Paste Heirarchy Names"`;
+				button -label "Copy/Paste" -c( "zooCopyPasteHeirarchyNames \"\" \"\" \"\";" ) zooRenamerButtonCopyPaste;
+
+				button -label "to UPPER case" -c( "zooRenamerUIControls toupper;" ) zooRenamerButtonToupper;
+				button -label "to lower case" -c( "zooRenamerUIControls tolower;" ) zooRenamerButtonTolower;
+
+				string $image = `image -width 225 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				setParent..;
+		setParent..;
+
+	formLayout -e
+		-af zooRenamerRadioHeirarchy "top"	0
+		-af zooRenamerRadioHeirarchy "left"	2
+
+		-af zooRenamerRadioSelected "top" 0
+		-ap zooRenamerRadioSelected "left" -20 50
+
+		-ac $text02 "top" 5 zooRenamerRadioSelected
+		-af $text02 "left" 2
+
+		-ac zooRenamerPrefix "top" 2 zooRenamerRadioSelected
+		-ac zooRenamerPrefix "left" 2 $text02
+		-ac zooRenamerPrefix "right" 2 zooRenamerButtonPrefix
+
+		-ac zooRenamerButtonPrefix "top" 2 zooRenamerRadioSelected
+		-af zooRenamerButtonPrefix "right" 2
+
+		-ac $text03 "top" 5 zooRenamerPrefix
+		-af $text03 "left" 2
+
+		-ac zooRenamerSuffix "top" 2 zooRenamerPrefix
+		-ac zooRenamerSuffix "left" 2 $text03
+		-ac zooRenamerSuffix "right" 2 zooRenamerButtonSuffix
+
+		-ac zooRenamerButtonSuffix "top" 2 zooRenamerPrefix
+		-af zooRenamerButtonSuffix "right" 2
+
+		-ac $txSch "top" 2 zooRenamerSuffix
+		-af $txSch "left" 2
+
+		-ac $txRpl "top" 2 zooRenamerSuffix
+		-ap $txRpl "left" 15 38
+		-af $txRpl "right" 2
+
+		-ac zooRenamerSearch "top" 1 $txSch
+		-af zooRenamerSearch "left" 2
+		-ap zooRenamerSearch "right" 0 38
+
+		-ac $text04 "top" 5 $txSch
+		-ac $text04 "left" 2 zooRenamerSearch
+
+		-ac zooRenamerReplace "top" 1 $txSch
+		-ac zooRenamerReplace "left" 1 $text04
+		-ac zooRenamerReplace "right"	2 zooRenamerButtonSearch
+
+		-ac zooRenamerButtonSearch "top" 1 $txSch
+		-af zooRenamerButtonSearch "right" 2
+
+		-ac $text05 "top" 5 zooRenamerSearch
+		-af $text05 "left" 2
+
+		-ac zooRenamerNumTemplate "top" 2 zooRenamerSearch
+		-ac zooRenamerNumTemplate "left" 2 $text05
+		-ac zooRenamerNumTemplate "right" 2 $text05a
+
+		-ac $text05a "top" 5 zooRenamerSearch
+		-ac $text05a "right" 2 zooRenamerNumStart
+
+		-ac zooRenamerNumStart "top" 2 zooRenamerSearch
+		-ac zooRenamerNumStart "right" 0 zooRenamerNumPad
+
+		-ac zooRenamerNumPad "top" 2 zooRenamerSearch
+		-ac zooRenamerNumPad "right" 2 zooRenamerButtonNumerate
+
+		-ac zooRenamerButtonNumerate "top" 2 zooRenamerSearch
+		-af zooRenamerButtonNumerate "right" 2
+
+		-ac $text06 "top" 5 zooRenamerButtonNumerate
+		-af $text06 "left" 2
+
+		-ac zooRenamerButtonCopyPaste "top" 3 zooRenamerButtonNumerate
+		-ac zooRenamerButtonCopyPaste "left" 2 $text06
+		-af zooRenamerButtonCopyPaste "right" 2
+
+		-ac zooRenamerButtonToupper "top" 2 zooRenamerButtonCopyPaste
+		-af zooRenamerButtonToupper "left" 2
+		-ap zooRenamerButtonToupper "right" 1 50
+		-ac zooRenamerButtonToupper "bottom" 2 $image
+
+		-ac zooRenamerButtonTolower "top" 2 zooRenamerButtonCopyPaste
+		-ac zooRenamerButtonTolower "left" 1 zooRenamerButtonToupper
+		-af zooRenamerButtonTolower "right" 2
+		-ac zooRenamerButtonTolower "bottom" 2 $image
+
+		-af $image "left" 2
+		-af $image "right" 2
+		-af $image "bottom" 2
+		$form;
+
+	popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+	showWindow $windowName;
+	if ( `size $selObjs` > 0 ) zooRenamerUIControls update;
+	zooRenamerInstallShelfPopup;
+	}
+
+
+global proc zooRenamerUIControls ( string $function ) {
+	switch ( $function ) {
+		case "update":
+			string $selObjs[] = `ls -sl`;
+			if ( `size $selObjs` != 2 ) button -e -en 0 zooRenamerButtonCopyPaste;
+			else button -e -en 1 zooRenamerButtonCopyPaste;
+			break;
+
+		//i use the selection method, because this way, maya always gives proper path names to teh objects - even if its parent's name changes, and hence, alters the object path name
+		case "prefix":
+			select -r -ne `zooRenamerGetClients`;
+
+			string $prefix = `textField -q -tx zooRenamerPrefix`;
+			zooRenamerApplyFuctions prefix $prefix n;
+			break;
+
+		case "suffix":
+			select -r -ne `zooRenamerGetClients`;
+
+			string $suffix = `textField -q -tx zooRenamerSuffix`;
+			zooRenamerApplyFuctions suffix $suffix n;
+			break;
+
+		case "replace":
+			select -r -ne `zooRenamerGetClients`;
+
+			string $search = `textField -q -tx zooRenamerSearch`;
+			string $replace = `textField -q -tx zooRenamerReplace`;
+
+			zooRenamerApplyFuctions replace $search $replace;
+			break;
+
+		case "toupper":
+			select -r -ne `zooRenamerGetClients`;
+			zooRenamerApplyFuctions toupper n n;
+			break;
+
+		case "tolower":
+			select -r -ne `zooRenamerGetClients`;
+			zooRenamerApplyFuctions tolower n n;
+			break;
+
+		case "numerate":
+			string $template = `textField -q -tx zooRenamerNumTemplate`;
+			int $start = `intField -q -v zooRenamerNumStart`;
+			int $pad = `intField -q -v zooRenamerNumPad`;
+
+			select -r -ne `zooRenamerGetClients`;
+			zooNumerateObjs `ls -sl` $template $start $pad;
+			break;
+		}
+	}
+
+
+global proc string[] zooRenamerGetClients () {
+	string $return[] = {};
+	string $mode = `radioCollection -q -sl zooRenamerRadio`;
+
+	if ( $mode == "zooRenamerRadioHeirarchy" ) {
+		string $selObjs[] = `ls -ap -sl`;
+		$return = `listRelatives -ad -pa -type transform -type joint $selObjs`;
+
+		for( $obj in $selObjs ) $return[( `size $return` )] = $obj;
+		}
+	else $return = `ls -l -sl`;
+
+	return $return;
+	}
+
+
+//installs a shelf buttons for zooTriggered on the current shelf
+global proc zooRenamerInstallShelfButton() {
+	zooShelveIt;
+	string $button = `zooInstallShelfButton zooRenamer`;
+	string $image = "zooRenamer.xpm";
+	string $cmd = "zooRenamer;";
+
+	shelfButton -e -image1 $image -label "zooRenamer - mass renaming tool" -ann "mass renaming tool - right click for additional options" -c $cmd $button;
+	zooRenamerInstallShelfPopup;
+	}
+
+
+global proc zooRenamerInstallShelfPopup() {
+	zooShelveIt;
+	string $buttons[] = `zooGetShelfButtonAll zooRenamer`;
+	for( $button in $buttons ) if( `control -ex $button` ) if ( !`shelfButton -q -numberOfPopupMenus $button` ) {
+		popupMenu -p $button;
+		menuItem -l "list duplicate node names" -c( "print `zooListDuplicateNames`;" );
+		menuItem -l "resolve duplicate node names" -c( "print `zooResolveDuplicateNames`;" );
+		menuItem -d 1;
+		menuItem -l "name shape nodes properly" -c( "print `zooNameShapesProperly`;" );
+		}
+	}
+
+
+global proc string zooRenamerInfo ( string $function ) {
+	string $creationDate = "04 August 2002";
+	string $currentVersion = "2.06.11";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+//these dependencies allow the zooZipScript to package this script easily for distribution
+global proc string[] zooRenamerDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $helpDependencies[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooRenamerUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooStrUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+	$helpDependencies[( `size $helpDependencies` )] = "zooRenamer_help";
+	$iconDependencies[( `size $iconDependencies` )] = "zoo_sig.tga";
+	$iconDependencies[( `size $iconDependencies` )] = "zooRenamer.xpm";
+
+	if( $mode == "-scripts" ) return $melDependencies;
+	if( $mode == "-icons" ) return $iconDependencies;
+	if( $mode == "-docs" ) return $helpDependencies;
+	return {};
+	}
+
+
+//zoo.end

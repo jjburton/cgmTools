@@ -27,8 +27,6 @@ __version__ = '0.1.03182012'
 import maya.cmds as mc
 import maya.mel as mel
 
-from cgm.lib.cgmBaseMelUI import *
-
 from cgm.lib import *
 from cgm.lib import (guiFactory,
                      dictionary,

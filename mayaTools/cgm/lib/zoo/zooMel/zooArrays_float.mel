@@ -1,0 +1,307 @@
+global proc zooArrays_float() {
+	return;
+	}
+
+
+//------
+//pads a given number with a given character to a given length
+//------
+global proc string zooPadBefore_float( float $number, int $length, string $with ) {
+	string $numberStr = $number;
+	if( `size $numberStr` >= $length ) return `substring $numberStr 1 $length`;
+	while( `size $numberStr` < $length ) $numberStr = $with + $numberStr;
+	return $numberStr;
+	}
+
+
+global proc string zooPadAfter_float( float $number, int $length, string $with ) {
+	string $numberStr = $number;
+	if( `size $numberStr` >= $length ) return `substring $numberStr 1 $length`;
+	while( `size $numberStr` < $length ) $numberStr = $numberStr + $with;
+	return $numberStr;
+	}
+
+
+global proc string zooArrayToStr_float( float $array[], string $separator ) {
+	string $arrayStr = "";
+	int $num = `size $array`;
+
+	if( $num<2 ) return $array[0];
+	for( $n=0; $n<$num-1; $n++ ) $arrayStr += $array[$n] + $separator;
+	$arrayStr += $array[( $num-1 )];
+
+	return $arrayStr;
+	}
+
+
+global proc int zooAreArraysEqual_float( float $array1[], float $array2[], int $precision ) {
+	int $size1 = `size $array1`;
+	int $size2 = `size $array2`;
+
+	if( $size1 != $size2 ) return 0;
+	for( $n=0; $n<$size1; $n++ ) if( `zooRoundFloatTo $array1[$n] $precision` != `zooRoundFloatTo $array2[$n] $precision` ) return 0;
+	return 1;
+	}
+
+
+//------
+//removes the array element at the given index - returns the resulting array
+//------
+global proc float[] zooRemoveArrayIdx_float( float $array[], int $index ) {
+	float $removed[] = {};
+	for( $n=0; $n<`size $array`; $n++ ) {
+		if( $n == $index ) continue;
+		$removed[( `size $removed` )] = $array[$n];
+		}
+
+	return $removed;
+	}
+
+
+global proc float[] zooAddArrayAt_float( float $array1[], float $array2[], int $idx ) {
+	float $newArray[] = {};
+	int $size = `size $array1`;
+	int $n = 0;
+
+	for( $n=0; $n<$size; $n++ ) {
+		if( $n >= $idx ) break;
+		$newArray[$n] = $array1[$n];
+		}
+
+	for( $a in $array2 ) $newArray[( `size $newArray` )] = $a;
+	for( $n; $n<$size; $n++ ) $newArray[( `size $newArray` )] = $array1[$n];
+
+	return $newArray;
+	}
+
+
+//------
+//returns the given element of an array - use negative numbers to get elements
+//starting from the end of the array
+//
+//example:
+//zooGetElement_float { 1.0, 2.0, 3.0, 4.0, 5.0 } -2;
+//returns 4.0 as it is the second element from the end
+//------
+global proc float zooGetElement_float( int $entry, float $array[] ) {
+	int $size = `size $array`;
+	if( $entry<0 ) $entry = $size + $entry;
+	if( $entry>0 && $entry<$size ) return $array[$entry];
+	else return $array[0];
+	}
+
+
+global proc int zooGetIdxOfElement_float( float $array[], float $entry ) {
+	for( $n=0; $n<`size $array`; $n++ ) if( $array[$n] == $entry ) return $n;
+	return -1;
+	}
+
+
+//removes all adjacent duplicate entries from an array
+global proc float[] zooRemoveAdjacentDupeItems_float( float $array[] ) {
+	float $returnArray[] = {};
+	float $prevVal = $array[0];
+
+	$returnArray[0] = $array[0];
+	for( $n=1; $n<`size $array`; $n++ ) {
+		if( $prevVal != $array[$n] ) $returnArray[( `size $returnArray` )] = $array[$n];
+		$prevVal = $array[$n];
+		}
+
+	return $returnArray;
+	}
+
+
+global proc float[] zooRemoveDupeItems_float( float $array[] ) {
+	float $unique[] = { $array[0] };
+	int $arraySZ = `size $array`;
+
+	for( $n=1; $n<$arraySZ; $n++ ) {
+		int $uniqueSZ = `size $unique`;
+		int $dupe = 0;
+
+		for( $i=0; $i<$uniqueSZ; $i++ ) if( $array[$n] == $unique[$i] ) {
+			$dupe = 1;
+			break;
+			}
+		if( !$dupe ) $unique[$uniqueSZ] = $array[$n];
+		}
+
+	return $unique;
+	}
+
+
+//adds array2 to the end of array1
+global proc float[] zooAddArray_float( float $array1[], float $array2[] ) {
+	for( $entry in $array2 ) $array1[( `size $array1` )] = $entry;
+	return $array1;
+	}
+
+
+//subtracts array 2 from array 1
+global proc float[] zooSubtractArray_float( float $array1[], float $array2[] ) {
+	float $returnArray[] = {};
+	for( $entry1 in $array1 ){
+		int $isInArray = 0;
+		for( $entry2 in $array2 ) if( $entry1 == $entry2 ) $isInArray = 1;
+		if( !$isInArray ) $returnArray[( `size $returnArray` )] = $entry1;
+		}
+
+	return $returnArray;
+	}
+
+
+//reverses the order of an array
+global proc float[] zooReverseArray_float( float $array[] ){
+	float $reversedArray[] = {};
+	int $arraySize = `size $array`;
+
+	for( $n=0; $n<$arraySize; $n++ ) $reversedArray[( $arraySize-1-$n )] = $array[$n];
+	return $reversedArray;
+	}
+
+
+//------
+//crops a string array based on a given pair of indicies.
+//The indicies take the form: "start:end"
+
+//Neither numbers have to be specified, you can leave them blank instead.  Leaving them blank
+//causes the script to use defaults.  the start default is zero, and the end default is the final
+//index in the given array.  so zooIndexCrop_string { "a", "b", "c", "d" } "";  will return the
+//original array.
+//
+//You can also specify negative numbers for the end index.  Negative numbers specify the index
+//"backwards" from the final index.
+//example:
+//zooIndexCrop_float { 1.0, 2.0, 3.0, 4.0 } ":-2";
+//{ 1.0, 2.0 };
+//
+//zooIndexCrop_string { 1.0, 2.0, 3.0, 4.0 } "1:-1";
+//{ 2.0, 3.0 };
+//------
+global proc float[] zooIndexCrop_float( float $array[], string $startEndStr ) {
+	float $cropped[] = {};
+	string $startStr = `match "^[^:]+" $startEndStr`;
+	string $endStr = `match "[^:]+$" $startEndStr`;
+	int $size = `size $array`;
+	int $start = 0;
+	int $end = $size;
+
+	$startStr = `match "[-0-9]+" $startStr`;
+	$endStr = `match "[-0-9]+" $endStr`;
+	if( `size $startStr` ) $start = $startStr;
+	if( `size $endStr` ) $end = $endStr;
+	if( $start<0 ) $start = $size+$start;
+	if( $end<0 ) $end = $size+$end;
+	for( $n=$start; $n<$end; $n++ ) $cropped[( `size $cropped` )] = $array[$n];
+
+	return $cropped;
+	}
+
+
+//takes an array, and a max and min value and returns a cropped array - ie all values in the returned array lie inclusively between the max and min values
+global proc float[] zooCropArray_float( float $array[], float $min, float $max ) {
+	float $cropped[] = {};
+	for( $entry in $array ) if( $entry >= $min && $entry <= $max ) $cropped[( `size $cropped` )] = $entry;
+	return $cropped;
+	}
+
+
+//------
+//returns the index of the lowest value in an int array
+//------
+global proc int zooGetLowestValueIdx_float( float $array[] ) {
+	if( !`size $array` ) return 0;
+	float $sorted[] = `sort $array`;
+	float $lowest = $sorted[0];
+
+	for( $n=0; $n<`size $array`; $n++ ) if( $array[$n] == $lowest ) return $n;
+	}
+
+
+//------
+//returns the index of the highest value in a float array
+//------
+global proc int zooGetHighestValueIdx_float( float $array[] ) {
+	if( !`size $array` ) return 0;
+	float $sorted[] = `sort $array`;
+	float $highest = $sorted[(`size $sorted`-1)];
+
+	for( $n=0; $n<`size $array`; $n++ ) if( $array[$n] == $highest ) return $n;
+	}
+
+
+//------
+//returns the index for the highest _absolute_ value in the array
+//------
+global proc int zooGetBiggestValueIdx_float( float $array[] ) {
+	if( !`size $array` ) return 0;
+	float $abs[] = {};
+	for( $n=0; $n<`size $array`; $n++ ) $abs[$n] = abs($array[$n]);
+	return `zooGetHighestValueIdx_float $abs`;
+	}
+
+
+global proc float[] zooAddArrayAfter_float( float $array1[], float $array2[], int $idx ) {
+	float $newArray[] = {};
+	int $size = `size $array1`;
+	int $n = 0;
+
+	for( $n=0; $n<$size; $n++ ) {
+		if( $n > $idx ) break;
+		$newArray[$n] = $array1[$n];
+		}
+
+	for( $a in $array2 ) $newArray[( `size $newArray` )] = $a;
+	for( $n; $n<$size; $n++ ) $newArray[( `size $newArray` )] = $array1[$n];
+
+	return $newArray;
+	}
+
+
+global proc float zooAverageArray_float( float $array[] ) {
+	float $average = 0;
+	float $total = 0;
+	int $num = `size $array`;
+
+	if( !$num ) return 0.;
+	for( $n=0; $n<$num; $n++ ) $total += $array[$n];
+	$average = (float)$total/(float)$num;
+	return $average;
+	}
+
+
+global proc float[] zooNormaliseArray( float $array[] ) {
+	int $divisorIdx = `zooGetHighestValueIdx_float $array`;
+	float $divisor = $array[$divisorIdx];
+	float $normArray[] = $array;
+	int $num = `size $array`;
+
+	if( !$num ) return $array;
+	for( $n=0; $n<$num; $n++ ) $normArray[$n] /= $divisor;
+	return $normArray;
+	}
+
+
+//------
+//given an array of floats, this proc will return an array normalised to a given number
+//example:
+//zooNormaliseArraySum { 1, 2, 3 } 1;
+//returns { 0.166667 0.333333 0.5 }
+//------
+global proc float[] zooNormaliseArraySum( float $array[], float $normaliseTo ) {
+	float $total = 0;
+	float $normFactor = 0;
+	float $normArray[] = $array;
+	int $num = `size $array`;
+
+	if( !$num ) return $array;
+	for( $n=0; $n<$num; $n++ ) $total += $array[$n];
+	if( $total == $normaliseTo ) return $array;
+	$normFactor = $normaliseTo/$total;
+	for( $n=0; $n<$num; $n++ ) $normArray[$n] *= $normFactor;
+	return $normArray;
+	}
+
+
+//zoo.end

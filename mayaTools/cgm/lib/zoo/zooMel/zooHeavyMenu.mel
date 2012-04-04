@@ -1,0 +1,72 @@
+zooHeavyUtils;
+zooUtils;
+
+
+global proc zooHeavyMenu() {
+	string $panel = `getPanel -up`;
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	if( !`control -ex $panel` ) $panel = "viewPanes";
+	popupMenu -ctl 0 -alt 0 -sh 0 -mm 1 -b 1 -aob 1 -p $panel -pmc "zooHeavyBuildUI" tempMM;
+	}
+
+
+global proc zooHeavyBuildUI() {
+	setParent -m tempMM;
+	menu -e -dai tempMM;
+
+	string $sel[] = `ls -sl -type transform`;
+	string $verts[] = zooFilterComponent(`ls -sl`,"vtx");
+	string $tslJName = "zooHeavyTSLJoints";
+	string $tslVName = "zooHeavyTSLVerts";
+	int $enableUIItems = `control -ex $tslJName`;
+
+	menuItem -en( `size $sel` ) -l "add joints" -c( "zooHeavy;{for( $a in `ls -type transform -sl`) textScrollList -e -a $a "+ $tslJName +";}" ) -rp NW;
+	menuItem -en( `size $sel` ) -l "replace joints" -c( "zooHeavy;{textScrollList -e -ra "+ $tslJName +"; for( $a in `ls -type transform -sl`) textScrollList -e -a $a "+ $tslJName +";}" ) -rp W;
+	menuItem -en( $enableUIItems && size(`textScrollList -q -ai $tslJName`)) -l "clear joints" -c( "zooHeavy;textScrollList -e -ra "+ $tslJName +";" ) -rp SW;
+
+	menuItem -en( `size $verts` ) -l "add verts" -c( "zooHeavy;{for( $a in `ls -fl -sl`) textScrollList -e -a $a "+ $tslVName +";}" ) -rp NE;
+	menuItem -en( `size $verts` ) -l "replace verts" -c( "zooHeavy;{textScrollList -e -ra "+ $tslVName +"; for( $a in `ls -fl -sl`) textScrollList -e -a $a "+ $tslVName +";}" ) -rp E;
+	menuItem -en( $enableUIItems && size(`textScrollList -q -ai $tslVName`)) -l "clear verts" -c( "zooHeavy;textScrollList -e -ra "+ $tslVName +";" ) -rp SE;
+
+	menuItem -en( `size $sel` ) -l "weights to parent" -ann "transfers weights on all selected joints to their respective parents" -c( "{string $sel[] = `ls -type transform -sl`; for( $s in $sel ) zooWeightsToOther $s \"\";}" ) -rp N;
+	menuItem -l "lerp weights" -c( "zooHeavy; zooHeavyFunctions -lerp;" ) -rp S;
+
+	menuItem -l "create temp joint" -c( "zooCreateTempJoint;" );
+	menuItem -d 1;
+	menuItem -l "weights to other" -ann "select the source joint, and then the target joint.  this will transfer all the weight from the source to the target joint" -c( "{string $sel[] = `ls -type transform -sl`; string $last = `zooGetElement_str -1 $sel`; if( `size $sel`>1 ) for( $n=0; $n<`size $sel`-1; $n++ ) zooWeightsToOther $sel[$n] (\"-other \"+ $last);}" );
+	menuItem -d 1;
+	menuItem -en( $enableUIItems && size(`textScrollList -q -ai $tslJName`)) -l "select joints" -c( "{select -cl; for( $a in `textScrollList -q -ai "+ $tslJName +"` ) if( `objExists $a` ) select -add $a;}" );
+	menuItem -en( $enableUIItems && size(`textScrollList -q -ai $tslVName`)) -l "select verts" -c( "{select -cl; for( $a in `textScrollList -q -ai "+ $tslVName +"` ) if( `objExists $a` ) select -add $a;}" );
+	menuItem -l "select verts affected by joints" -ann "selects the verticies affected by the selected joints - or the joints loaded in the heavy UI" -c( "zooSurgeonUtils; { string $verts[] = {}; string $js[] = `ls -type transform -sl`; if( "+ ( $enableUIItems && size(`textScrollList -q -ai $tslJName`)) +") $js = `textScrollList -q -ai "+ $tslJName +"`; for( $s in $js ) { string $temp[] = {}; zooGetJointVerts $s 0.0000000000001 {} {} $temp {} {}; $verts = `zooAddArray_str $verts $temp`;} select $verts; }" );
+	menuItem -d 1;
+	menuItem -l "store weights" -ann "store weights on the selected meshes/verticies using zooWeightSave" -c( "{zooHeavyUtils; string $selObjs[] = `ls -sl -tr`; for( $a in $selObjs ) zooWeightStore $a; if( size(`ls -hl`)) zooWeightStoreVerts `ls -sl`;}" );
+	menuItem -ob 1 -c( "zooWeightSave;" );
+	menuItem -l "restore weights" -ann "restores weights on the selected meshes/verticies using zooWeightSave" -c( "{zooHeavyUtils; string $selObjs[] = `ls -sl -tr`; for( $a in $selObjs ) zooWeightRestore $a; if( size(`ls -hl`)) zooWeightRestoreVerts `ls -sl`;}" );
+	menuItem -ob 1 -c( "zooWeightSave;" );
+	}
+
+
+global proc zooHeavyKillUI() {
+	deleteUI tempMM;
+	}
+
+
+global proc string zooCreateTempJoint(){
+	string $sel[] = `ls -sl -o`;
+	makeLive -n;
+	for( $n=0; $n<`size $sel`; $n++ ) makeLive $sel[$n];
+
+	select -cl;
+	string $j = `joint`;
+	float $pos[] = `autoPlace -useMouse`;
+
+	$j = `rename $j "zoo_temp_weighting_joint#"`;
+	for( $n=0; $n<3; $n++ ) $pos[$n] /= 100.0;
+	move -a -ws -rpr $pos[0] $pos[1] $pos[2] $j;
+	makeLive -n;
+
+	return $j;
+	}
+
+
+//zoo.end

@@ -1,0 +1,221 @@
+//
+// camera control menu
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 19 December 2002
+//
+// Description:
+// simply creates a camera marking menu.  a single press of the button
+// the script is assigned to will perform a look through selected on
+// a selected object, while holding it down (and clicking) brings up a
+// marking menu, allowing you to look through any previously created
+// camera.  This script also cooperates with the zooSetMenu v2.5 script
+// with updating its UI etc...
+//
+// Usage:
+//  assign this function to a key press:
+//	zooCam;
+//
+//  assign this function to the release;
+//	zooCamKillUI;
+//
+// NOTE: if the hotkey you want to assign this script to contains
+// either ctrl, alt or shift, then modify the "popupMenu" line below
+// to reflect which key is used (ie if you're using alt-w then
+// change it to -alt 1).
+//
+
+
+zooShotsUtils;
+
+
+global proc zooCam() {
+	global int $zooIsClicked;
+	string $panel = `getPanel -up`;
+
+	$zooIsClicked = 0;
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	if( !`control -ex $panel` ) $panel = "viewPanes";
+	popupMenu -ctl 0 -alt 0 -sh 0 -mm 1 -b 1 -aob 1 -p $panel -pmc zooCamUI tempMM;
+	}
+
+
+global proc zooCamUI() {
+	global int $zooIsClicked;
+	string $cameras[] = `zooListCameras`;
+
+	$zooIsClicked = 1;
+	menu -e -dai tempMM;
+	setParent -m tempMM;
+
+	//make sure there are actual shots listed in the shots node
+	int $shotsExist = size(`zooListShots`);
+	string $panel = `getPanel -up`;
+	string $curCam = `zooGetPanelCam $panel`;
+	string $curCamShapes[] = `listRelatives -s -pa $curCam`;
+	string $curCamShape = $curCamShapes[0];
+	string $defaultC[] = { "persp", "top", "front", "side" };
+	string $defaultPos[] = { "N", "W", "S", "E" };
+	int $useForEazel = `optionVar -ex zooCamSetEazel`? `optionVar -q zooCamSetEazel`: 0;
+	int $togglePref = `optionVar -ex zooCamToggleMaster`? `optionVar -q zooCamToggleMaster`: 1;
+
+	$cameras = `zooSubtractArray_str $cameras $defaultC`;
+	if( `optionVar -ex zooSetMenuCameraUserList` ) optionVar -rm zooSetMenuCameraUserList;
+
+	if( $shotsExist ) {
+		string $master = `zooGetMasterShot`;
+		int $curShot = `zooGetCurrentShot`;
+		string $curShotCamera = `zooGetShotCamera $curShot`;
+
+		menuItem -l ( "master shot: "+ $master ) -c( "lookThroughModelPanel "+ $master +" "+ $panel +"; zooDoExtraLookthru "+ $master +" "+ $panel +";" ) -rp NW;
+		menuItem -l ( "current shot: "+ $curShotCamera +" shot: "+ $curShot ) -c( "lookThroughModelPanel "+ $curShotCamera +" "+ $panel +"; zooDoExtraLookthru "+ $curShotCamera +" "+ $panel +";" ) -rp NE;
+		}
+
+	for( $n=0; $n<`size $defaultC`; $n++ ) {
+		int $isCurrent = $defaultC[$n] == $curCam ? 1:0;
+		menuItem -cb $isCurrent -l $defaultC[$n] -c( "lookThroughModelPanel "+ $defaultC[$n] +" "+ $panel +"; zooDoExtraLookthru "+ $defaultC[$n] +" "+ $panel +";" ) -rp $defaultPos[$n];
+		}
+
+	for( $cam in $cameras ) {
+		int $isCurrent = $cam == $curCam ? 1:0;
+		menuItem -cb $isCurrent -l $cam -c( "lookThroughModelPanel "+ $cam +" "+ $panel +"; zooDoExtraLookthru "+ $cam +" "+ $panel +";" );
+		}
+
+	if( `size $cameras` ) menuItem -d 1;
+	menuItem -l "create new camera" -c( "{string $cam[] = `camera`; lookThroughModelPanel $cam[0] "+ $panel +"; zooDoExtraLookthru $cam[0] "+ $panel +";}" );
+	menuItem -l "dupe current camera" -c( "{string $dupeCam[] = `duplicate -rc (zooGetPanelCam(\""+ $panel +"\"))`; lookThroughModelPanel $dupeCam[0] "+ $panel +"; zooDoExtraLookthru $dupeCam[0] "+ $panel +";}" );
+	menuItem -l "far clip x10" -c( "setAttr "+ $curCamShape +".farClipPlane (`getAttr "+ $curCamShape +".farClipPlane`*10);" );
+	menuItem -d 1;
+	menuItem -l "hide eazel" -c( "{zooGreaseMonkeyUtils; string $eazel = `zooGetEazel 0`; setAttr ( $eazel +\".v\" ) 0;}" );
+	menuItem -l "show eazel" -c( "{zooGreaseMonkeyUtils; string $eazel = `zooGetEazel 0`; setAttr ( $eazel +\".v\" ) 1;}" );
+	menuItem -d 1;
+	menuItem -l "add field chart" -c( "{zooGreaseMonkeyUtils; buildFields \"-camera "+ $curCam +"\";}" );
+	menuItem -l "build widescreen mask..." -sm 1;
+		menuItem -l "1.333  4/3" -c( "zooAddCameraMask "+ $curCam +" 1.333" );
+		menuItem -l "1.556  14/9" -c( "zooAddCameraMask "+ $curCam +" (14.0/9)" );
+		menuItem -l "1.778  16/9" -c( "zooAddCameraMask "+ $curCam +" (16.0/9)" );
+		menuItem -l "1.85  academy" -c( "zooAddCameraMask "+ $curCam +" 1.85" );
+		menuItem -l "2.35  anamorphic" -c( "zooAddCameraMask "+ $curCam +" 2.35" );
+		menuItem -d 1;
+		menuItem -l "other" -c( "{string $a=`promptDialog -m \"enter aspect ratio\" -b Create -b Cancel`; if( $a != \"Cancel\" ) zooAddCameraMask "+ $curCam +" `promptDialog -q -text`;}");
+	setParent -m ..;
+	menuItem -d 1;
+	menuItem -l "instance eazel for this camera" -c( "zooInstanceEazel "+ $curCam +";" );
+	menuItem -l "use this camera for eazel" -c( "zooGreaseMonkeyUtils; zooMonkeySee "+ $curCam +";" );
+	menuItem -cb $useForEazel -l "always use lookthru for eazel" -c( "if( #1 ) optionVar -iv zooCamSetEazel 1; else optionVar -rm zooCamSetEazel;" );
+	menuItem -d 1;
+	menuItem -cb($togglePref==1) -l "toggle between master and shot" -c( "if( "+ $togglePref +"==1 ) optionVar -iv zooCamToggleMaster 0; else optionVar -iv zooCamToggleMaster 1;" );
+	menuItem -cb($togglePref==2) -l "cycle thru perspective cameras" -c( "if( "+ $togglePref +"==2 ) optionVar -iv zooCamToggleMaster 0; else optionVar -iv zooCamToggleMaster 2;" );
+	}
+
+
+//this proc can be used to make the script do "other stuff" when a camera is looked through
+//for example, the selecto stuff, the line of action stuff, etc...  can all be simply added
+//to this simple little proc
+global proc zooDoExtraLookthru( string $camera, string $panel ) {
+	zooSetLookat $camera;
+	int $useForEazel = `optionVar -ex zooCamSetEazel`? `optionVar -q zooCamSetEazel`: 0;
+	if( $useForEazel ) {
+		zooGreaseMonkeyUtils;
+		if( objExists(`zooGetEazel 0`)) zooMonkeySee $camera;
+		}
+	}
+
+
+//returns the name of the camera the current model panel is looking through.  this always returns a transform node, unlike the lookThru -q command
+global proc string[] zooListCameras() {
+	string $cameraShapes[] = `ls -type camera`;
+	string $cameraTransforms[] = {};
+
+	for( $cam in $cameraShapes ) {
+		string $parent[] = `listRelatives -pa -p $cam`;
+		$cameraTransforms[( `size $cameraTransforms` )] = $parent[0];
+		}
+
+	return $cameraTransforms;
+	}
+
+
+//returns a list of all camera transform nodes.  unlike the listCameras command, this always returns transform nodes.
+global proc string zooGetPanelCam( string $panel ) {
+	if( `getPanel -to $panel` != "modelPanel" ) return "";
+
+	string $camera = `modelPanel -q -cam $panel`;
+	if( `nodeType $camera` == "camera" ) {
+		string $parent[] = `listRelatives -p $camera`;
+		return $parent[0];
+		}
+	else return $camera;
+	}
+
+
+//this proc should be used as the press release command
+global proc zooCamKillUI() {
+	global int $zooIsClicked;
+	int $togglePref = `optionVar -ex zooCamToggleMaster`? `optionVar -q zooCamToggleMaster`: 1;
+
+	if( `popupMenu -ex tempMM` ) {
+		deleteUI tempMM;
+		if( $zooIsClicked ) $zooIsClicked = 0;
+		else {
+			//so if the master/shot cam toggle is turned on AND we have shots in the
+			//scene, we want to toggle between the master camera and the shot camera
+			string $panel = `getPanel -up`;
+			if( $togglePref==1 && size(`zooListShots` )) {
+				string $curCam = `zooGetPanelCam $panel`;
+				int $curShot = `zooGetCurrentShot`;
+				string $shotCam = `zooGetShotCamera $curShot`;
+				string $masterCam = `zooGetMasterShot`;
+
+				if( $curCam != $masterCam ) {
+					lookThroughModelPanel $masterCam $panel;
+					zooDoExtraLookthru $masterCam $panel;
+					}
+				else {
+					lookThroughModelPanel $shotCam $panel;
+					zooDoExtraLookthru $shotCam $panel;
+					}
+				}
+			else if( $togglePref==2 ) {
+				//this will toggle between perspective cameras in the scene
+				string $defaultCams[] = { "top", "front", "side" };
+				string $cameras[] = `zooListCameras`;
+				$cameras = `zooSubtractArray_str $cameras $defaultCams`;
+
+				string $curCam = `zooGetPanelCam $panel`;
+				int $idx = `zooGetIdxOfElement_str $cameras $curCam`;
+
+				$idx++;
+				$idx = $idx%`size $cameras`;
+				lookThroughModelPanel $cameras[$idx] $panel;
+				zooDoExtraLookthru $cameras[$idx] $panel;
+				}
+
+			//otherwise we just want to look through selected
+			else lookThroughSelected 0 `getPanel -underPointer`;
+			$zooIsClicked = 0;
+			}
+		}
+	}
+
+
+global proc string[] zooCamDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooAddCameraMask";
+	$melDependencies[( `size $melDependencies` )] = "zooFlags";
+	$melDependencies[( `size $melDependencies` )] = "zooHelp";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooShaders";
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

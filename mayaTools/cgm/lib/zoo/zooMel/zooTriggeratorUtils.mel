@@ -1,0 +1,597 @@
+zooArrays_str;
+zooArrays_float;
+zooFlags;
+zooGreaseMonkeyUtils;
+zooNameSpaceyUtils;
+zooRegister;
+zooStrUtils;
+zooTriggeredPresets;
+zooTriggeredUtils;
+zooUtils;
+
+
+global proc string[] zooListTriggeratorShapes() {
+	string $shapes[] = `zooListAllPresets zooTriggerator shape {} 0`;
+	string $baseShapes[] = {};
+	string $otherShapes[] = `getFileList -fld (zooGetScriptLocation("zooTriggerator")) -fs "*.shape"`;
+
+	if( `about -nt` ) {
+		string $vistaPath = zooResolvePath("%USERPROFILE%/Documents/");
+		string $xpPath = zooResolvePath("%USERPROFILE%/My Documents/maya/presets/.zooTriggerator/");
+		string $pathToUse = $vistaPath;
+
+		if( `filetest -d $xpPath` ) $pathToUse = $xpPath;
+		$pathToUse += "maya/presets/.zooTriggerator/";
+		$baseShapes = `getFileList -fld $pathToUse -fs "*.shape"`;
+		}
+	else if( `about -linux` ) $baseShapes = `getFileList -fld (zooResolvePath("%HOME%/maya/presets/.zooTriggerator/")) -fs "*.shape"`;
+
+	$shapes = `zooAddArray_str $shapes $baseShapes`;
+	$shapes = `zooAddArray_str $shapes $otherShapes`;
+
+	return $shapes;
+	}
+
+
+global proc zooTriggeratorUtils() {
+	return;
+	}
+
+
+global proc int isOutline( string $shape ) {
+	if( `objExists ( $shape +".outline" )`) return true;
+	string $cons[] = `listConnections ( $shape +".instObjGroups[*]" )`;
+	return `size $cons` == 0;
+	}
+
+
+global proc int zooWOSForObject( string $obj, int $state ) {
+	string $sel[] = `ls -sl`;
+	switch( $state ) {
+		default:
+			string $shapes[] = `listRelatives -s -pa $obj`;
+			for( $n=0; $n<`size $shapes`; $n++ ) {
+				if( `getAttr ( $shapes[$n] +".intermediateObject" )`) continue;
+				string $cons[] = `listConnections ( $shapes[$n] +".instObjGroups[*]" )`;
+				if( !`size $cons` ) {
+					if( $state == -1 ) return 1;  //if the user is querying the state, if there is a single shape node without a shading group, this object has WOS on it
+					else if( $state == 0 ) delete $shapes[$n];
+					}
+				}
+			return 0;
+			break;
+
+		case 1:
+			string $dupe = zooGetElement_str(0,`duplicate -rc $obj`);
+			string $shapes[] = `listRelatives -s -pa $dupe`;
+
+			for( $n=0; $n<`size $shapes`; $n++ ) {
+				parent -add -s $shapes[$n] $obj;
+				if( `getAttr ( $shapes[$n] +".intermediateObject" )`) continue;
+				string $cons[] = `listConnections -p 1 -c 1 ( $shapes[$n] +".instObjGroups[*]" )`;
+				delete -icn $cons[1];
+				print( $cons[1] +"\n" );
+				}
+			delete $dupe;
+			select $sel;
+			break;
+		}
+
+	return $state;
+	}
+
+
+global proc zooExportFolder( string $folder, string $filename ){
+	zooTriggeredPresets;
+	string $exportStr = "";
+	string $eazel = `zooGetEazel 1`;
+	string $childFolders[] = {$folder};
+	string $allConnects[] = {};
+
+	for( $n=0; $n<`size $childFolders`; $n++ ) $childFolders = `zooAddArray_str $childFolders (zooListFoldersUnder($childFolders[$n]))`;
+	for( $n=0; $n<`size $childFolders`; $n++ ) {
+		string $triggers[] = `zooListTriggersUnder $childFolders[$n]`;
+		string $f_parent = zooGetElement_str(0,`listRelatives -p $childFolders[$n]`);
+
+		if( $f_parent == "" ) $f_parent = "<none>";
+		else if( $f_parent == $eazel ) $f_parent = "%EAZEL%";
+		$exportStr += "n="+ $childFolders[$n] +"\nt=folder\np="+ $f_parent +",";
+		$exportStr += `getAttr ( $childFolders[$n] +".tx" )` +","+ `getAttr ( $childFolders[$n] +".ty" )` +","+ `getAttr ( $childFolders[$n] +".rz" )` +","+ `getAttr ( $childFolders[$n] +".sx" )` +","+ `getAttr ( $childFolders[$n] +".sy" )` +","+ `getAttr ( $childFolders[$n] +".sz" )` +"\n";
+		$exportStr += "<end>\n";
+		for( $i=0; $i<`size $triggers`; $i++ ) {
+			string $baseStr = `zooWriteTriggerExportStr $triggers[$i] 1`;
+			string $shapes[] = `listRelatives -s -pa $triggers[$i]`;
+
+			$allConnects = `zooAddArray_str $allConnects (zooGetConnects($triggers[$i]))`;
+			for( $shape in $shapes ) {
+				if( isOutline($shape) ) continue;
+				string $shapeExportStr = `zooWriteShapeData $shape 0`;
+				$shapeExportStr = `zooReplaceNewlines $shapeExportStr ","`;
+				$baseStr = $baseStr + "s="+ $shapeExportStr +"\n";
+				}
+
+			//export the parent of the current trigger
+			string $parent = zooGetElement_str(0,`listRelatives -pa -p $triggers[$i]`);
+			if( $parent == "" ) $parent = "<none>";
+			else if( $parent == $eazel ) $parent = "%EAZEL%";
+			$exportStr += $baseStr;
+			$exportStr += "p="+ $parent +",";
+			$exportStr += `getAttr ( $triggers[$i] +".tx" )` +","+ `getAttr ( $triggers[$i] +".ty" )` +","+ `getAttr ( $triggers[$i] +".rz" )` +","+ `getAttr ( $triggers[$i] +".sx" )` +","+ `getAttr ( $triggers[$i] +".sy" )` +","+ `getAttr ( $triggers[$i] +".sz" )` +"\n";
+			$exportStr += "<end>\n";
+			}
+		}
+
+	string $namespaces[] = `zooGetAllNamespaces $allConnects`;
+	if( `size $namespaces` ) $exportStr = `zooArrayToStr_str $namespaces "\n"` +"\n<endnamespaces>\n"+ $exportStr;
+	int $fileID = `fopen ((zooGetPresetDirectory("local","zooTriggerator")) + $filename +".preset" ) "w"`;
+	fprint $fileID $exportStr;
+	fclose $fileID;
+	}
+
+
+global proc zooImportFolder( string $preset, string $optionStr ) {
+	string $temp[] = {};
+	string $locale = "local";
+	string $tgtNamespaces[] = {};
+
+	$temp = `zooGetFlagArguments $optionStr locale`; if( `size $temp` ) $locale = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr namespaces`; if( `size $temp` ) $tgtNamespaces = $temp;
+
+	//if the list of namespaces passed to this function is empty, grab a list from the selection
+	string $sel[] = `ls -sl`;
+	if( !`size $tgtNamespaces` ) if( `size $sel` ) {
+		for( $s in $sel ) $tgtNamespaces[`size $tgtNamespaces`] = `zooGetNamespace $s`;
+		$tgtNamespaces = `stringArrayRemoveDuplicates $tgtNamespaces`;
+		}
+
+	string $presetFile = `zooGetPresetDirectory $locale zooTriggerator` + $preset +".preset";
+	string $fileContents[] = `zooReadFile $presetFile "-strip 1"`;
+	string $trigger = "";
+	string $trigCmd = "";
+	string $connects = "";
+	string $placement = "";
+	string $shapes[] = {};
+	string $objMenus[] = {};
+	string $namespaces[] = {};
+	string $firstObjectCreated = "";
+	int $num = `size $fileContents`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		if( $fileContents[$n] == "<endnamespaces>" ) break;
+		$namespaces[( `size $namespaces` )] = $fileContents[$n];
+		}
+
+	for( $n; $n<$num; $n++ ) {
+		string $prefix = `substring $fileContents[$n] 1 2`;
+		string $data = `substring $fileContents[$n] 3 (size($fileContents[$n]))`;
+
+		//if we've reached the end of the trigger definition, flush all registers
+		if( $fileContents[$n] == "<end>" ) {
+			string $new = `zooCreateTriggerFromData $tgtNamespaces $trigger $trigCmd $connects $placement $shapes $objMenus`;
+			if( $firstObjectCreated == "" ) $firstObjectCreated = $new;
+
+			//make sure the trigger created by the zooCreateTriggerFromData command has the name it was given - otherwise other triggers may need to have their parents modified
+			if( $new != $trigger ) for( $i=$n; $i<$num; $i++ ) $fileContents[$i] = `substitute ( "^p="+ $trigger +"," ) $fileContents[$i] ( "p="+ $new +"," )`;
+
+			$trigger = "";
+			$trigCmd = "";
+			$connects = "";
+			$placement = "";
+			clear $shapes;
+			clear $objMenus;
+			continue;
+			}
+		else if( $prefix == "n=" ) $trigger = $data;
+		else if( $prefix == "t=" ) $trigCmd = $data;
+		else if( $prefix == "c=" ) $connects = $data;
+		else if( $prefix == "p=" ) $placement = $data;
+		else if( $prefix == "s=" ) $shapes[`size $shapes`] = $data;
+		else if( $prefix == "m=" ) $objMenus[`size $objMenus`] = $data;
+		}
+
+	//zooCreateOutlines $firstObjectCreated 1;
+
+	return;
+	}
+
+
+//currently there is no way to reliably have exported triggerators use other exported
+//triggerators as connects - as they may not be build till later in the read.  not
+//entirely sure what the solution to this one is...  either a storage of failed
+//connects, or the entire file will need to be read
+global proc string zooCreateTriggerFromData( string $tgtNamespaces[], string $n_data, string $t_data, string $c_data, string $p_data, string $s_data[], string $m_data[] ) {
+	//make sure the namespace - if there is one - is a top level namespace - as we recurse all child namespaces anyway
+	int $num = `size $tgtNamespaces`;
+	if( !`size $tgtNamespaces` ) $tgtNamespaces[0] = "";
+	for( $n=0; $n<$num; $n++ ) if( $tgtNamespaces[$n] != "" ) $tgtNamespaces[$n] = `match "^[^:]+" $tgtNamespaces[$n]`;
+	$tgtNamespaces = `stringArrayRemoveDuplicates $tgtNamespaces`;
+
+	//now get all recursed namespaces to look through
+	string $namespaces[] = {};
+	for( $space in $tgtNamespaces ) {
+		string $temp[] = `zooGetRecursedNamespaces $space`;
+		if( `size $temp` ) $namespaces = `zooAddArray_str $namespaces $temp`;
+		}
+
+	string $temp[] = `zooTokenize $p_data ","`;
+	string $eazel = `zooGetEazel 1`;
+	string $parent = $temp[0];
+	string $connects[] = `zooTokenize $c_data ";"`;
+	int $numConnects = `size $connects`;
+	int $connectSlots[] = {};
+	float $posX = 0;
+	float $posY = 0;
+	float $rotZ = 0;
+	float $sclX = 0;
+	float $sclY = 0;
+	float $sclZ = 0;
+
+	$n_data = `match "[^|:]+$" $n_data`;  //strip namespace/path info from the name of the trigger to be created
+	for( $n=0; $n<$numConnects; $n++ ) {
+		if( $connects[$n] == "" ) continue;
+		string $connect = `match "[^#]+$" $connects[$n]`;
+		string $cleanCon = `match "[^|:]+$" $connect`;
+		int $slot = `match "^[0-9]+" $connects[$n]`;
+
+		//if the raw object doesn't exist, see if we can find a match
+		if( !`objExists $connect` ) for( $ns in $namespaces ) {
+			$connect = $ns + $cleanCon;
+			print( "trying namespace   "+ $ns +"   "+ $connect +"\n" );
+			if( `objExists $connect` ) break;
+			}
+		if( !`objExists $connect` ) continue;
+		$connects[$n] = $connect;
+		$connectSlots[$n] = $slot;
+		}
+	if( `size $temp`>1 ) {
+		$posX = $temp[1];
+		$posY = $temp[2];
+		$rotZ = $temp[3];
+		$sclX = $temp[4];
+		$sclY = $temp[5];
+		$sclZ = $temp[6];
+		}
+	if( $t_data == "folder" ) {
+		string $folder = `zooCreateFolder`;
+		$folder = `rename $folder $n_data`;
+		if( $parent == "%EAZEL%" ) {
+			$parent = $eazel;
+			setAttr ( $folder +".tz" ) -1;
+			}
+		if( `objExists $parent` ) $folder = zooGetElement_str(0,`parent -r $folder $parent`);
+		setAttr ( $folder +".tx" ) $posX;
+		setAttr ( $folder +".ty" ) $posY;
+		setAttr ( $folder +".rz" ) $rotZ;
+		setAttr ( $folder +".s" ) $sclX $sclY $sclZ;
+		return $folder;
+		}
+
+	string $shapeData[] = {};
+	float $xyPairs[] = {};
+
+	tokenize $s_data[0] "," $shapeData;
+	for( $n=0; $n<`size $shapeData`; $n++ ) $xyPairs[$n] = $shapeData[$n];
+	string $trigger = `zooShapeFromData $xyPairs {}`;
+
+	//add right click command to edit trigger
+	zooObjMenuUtils;
+	zooObjMenuAddCmdAll $trigger "edit trigger" "zooTriggerator; tabLayout -e -sti 2 zooTriggeratorTabs; select #; zooTriggeratorFunctions -loadTrigger;";
+
+	//turn the objMenu passthrough on
+	addAttr -at "bool" -ln showMenusFromConnects $trigger;
+	setAttr ( $trigger +".showMenusFromConnects" ) 1;
+
+	for( $n=0; $n<`size $connects`; $n++ ) zooAddConnectTo $trigger $connects[$n] $connectSlots[$n];
+	zooTrigSetCmd $trigger `zooStrNewlinesToRealNewlines $t_data`;
+	if( `objExists $parent` ) catch( `parent -r $trigger $parent` );
+	setAttr ( $trigger +".tx" ) $posX;
+	setAttr ( $trigger +".ty" ) $posY;
+	setAttr ( $trigger +".rz" ) $rotZ;
+	setAttr ( $trigger +".s" ) $sclX $sclY $sclZ;
+	$trigger = `rename $trigger $n_data`;
+
+	return $trigger;
+	}
+
+
+global proc zooExportObjShapeData( string $obj, string $name ) {
+	string $presetFile = `zooGetPresetDirectory "local" zooTriggerator` + $name +".shape";
+	string $preset[] = {};
+	string $presetStr = "";
+	string $shapes[] = `listRelatives -s -pa $obj`;
+	int $numShapes = `size $shapes`;
+
+	for( $n=0; $n<$numShapes; $n++ ) $preset[( `size $preset` )] = `zooWriteShapeData $shapes[$n] 1`;
+	$presetStr = `zooArrayToStr_str $preset "endShape;\n"`;
+
+	int $fileID = `fopen $presetFile "w"`;
+	fprint $fileID $presetStr;
+	fclose $fileID;
+	}
+
+
+//normalise fits the given shape into the -1,1 x,y square.  It will preserve aspect
+//ratio, and fit to the largest of horizontal or vertical direction
+global proc string zooWriteShapeData( string $shape, int $normalise ) {
+	string $presetStr = "";
+	float $posX[] = {};
+	float $posY[] = {};
+	int $orderedVerts[] = `zooGetOrderedVerts $shape`;
+	int $numVerts = `size $orderedVerts`;
+
+	for( $n=0; $n<$numVerts; $n++ ) {
+		float $xyz[] = `xform -q -t ( $shape +".vtx["+ $orderedVerts[$n] +"]" )`;
+		$posX[$n] = $xyz[0];
+		$posY[$n] = $xyz[1];
+		}
+
+	if( $normalise ) {
+		//this section makes sure the shape fits into the -1 to 1 square
+		float $sortedX[] = `sort $posX`;
+		float $sortedY[] = `sort $posY`;
+		float $hiX = $sortedX[( $numVerts-1 )];
+		float $loX = $sortedX[0];
+		float $hiY = $sortedY[( $numVerts-1 )];
+		float $loY = $sortedY[0];
+		float $centreX = ( $hiX+$loX )/2;
+		float $centreY = ( $hiY+$loY )/2;
+
+		//which direction are we using to scale?  horizontally or vertically?  assume horizontally...
+		float $hi = $hiX;
+		float $lo = $loX;
+
+		//if the vertical length is greater than the horizontal length, we want to scale vertically
+		if( $hiY-$loY > $hiX-$loX ) {
+			$hi = $hiY;
+			$lo = $loY;
+			}
+
+		//this gives us a zero to one normalised shape
+		for( $n=0; $n<$numVerts; $n++ ) {
+			$posX[$n] -= $centreX;
+			$posY[$n] -= $centreY;
+			}
+		if(( $hi-$lo )!=0 ) for( $n=0; $n<$numVerts; $n++ ) {
+			$posX[$n] /= ( $hi-$lo );
+			$posY[$n] /= ( $hi-$lo );
+			}
+
+		//now expand to -1 to 1 in range
+		for( $n=0; $n<$numVerts; $n++ ) $posX[$n] *= 2.0;
+		for( $n=0; $n<$numVerts; $n++ ) $posY[$n] *= 2.0;
+		}
+	//finally compensate for units
+	int $scale = 1;
+	if( `currentUnit -q -l` == "m" ) $scale = 100;
+	for( $n=0; $n<$numVerts; $n++ ) $posX[$n] *= $scale;
+	for( $n=0; $n<$numVerts; $n++ ) $posY[$n] *= $scale;
+
+	//and write the export string
+	for( $n=0; $n<$numVerts; $n++ ) $presetStr += $posX[$n] +","+ $posY[$n] +"\n";
+
+	return $presetStr;
+	}
+
+
+global proc int[] zooGetOrderedVerts( string $shape ) {
+	float $pos[] = {};
+	int $numVerts = size(ls("-fl",`polyListComponentConversion -tv $shape`));
+	int $visitedVerts[] = { 0 };
+	int $nextVerts[] = `zooGetAdjecentVerts $shape 0`;
+
+	$visitedVerts[( `size $visitedVerts` )] = $nextVerts[0];
+	for( $n=2; $n<$numVerts; $n++ ) {
+		int $currentVert = $visitedVerts[( $n-1 )];
+		int $connectingVerts[] = `zooGetAdjecentVerts $shape $currentVert`;
+
+		$connectingVerts = `zooSubtractArray_int $connectingVerts $visitedVerts`;
+		$visitedVerts[$n] = $connectingVerts[0];
+		}
+
+	return $visitedVerts;
+	}
+
+
+global proc int[] zooGetAdjecentVerts( string $shape, int $vert ) {
+	string $edges[] = ls("-fl",`polyListComponentConversion -te ( $shape +".vtx["+ $vert +"]" )`);
+	string $verts[] = ls("-fl",`polyListComponentConversion -tv $edges`);
+	int $vertIdxs[] = {};
+
+	for( $v in $verts ) {
+		string $a = `match "[0-9]+]$" $v`;
+		$vertIdxs[( `size $vertIdxs` )] = `match "^[0-9]+" $a`;
+		}
+
+	$vertIdxs = `zooSubtractArray_int $vertIdxs { $vert }`;
+	return $vertIdxs;
+	}
+
+
+//------
+//creates outlines for a trigger - an outline is literally just a duplicate of the
+//shape node, without a connection to a shading group - this forces the geo to show
+//up as an wireframe outline in a viewport
+//------
+global proc zooCreateOutlines( string $folderName, int $recursive ) {
+	string $folders[] = { $folderName };
+	float $scale = 1.06;
+	int $maxRecurse = 150;
+	int $n = 0;
+
+	if( $recursive ) while( true ) {
+		string $subFolders[] = `zooListFoldersUnder $folders[$n]`;
+		$folders = `zooAddArray_str $folders $subFolders`;
+		$n++;
+		if( !`size $subFolders` ) break;
+		if( $n > $maxRecurse ) {warning "breaking - too many";break;}
+		}
+	int $num = `size $folders`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		string $triggers[] = `zooListTriggersUnder $folders[$n]`;
+		int $numTrigs = `size $triggers`;
+
+		for( $i=0; $i<$numTrigs; $i++ ) {
+			string $shapes[] = `listRelatives -pa -s $triggers[$i]`;
+			if( `size $shapes` > 1 ) continue;  //if there is more than one shape, chances are it already has an outline
+			string $dupe[] = `duplicate -rr -rc $triggers[$i]`;
+			string $shapes[] = `listRelatives -pa -s $dupe[0]`;
+			addAttr -ln outline -at message $shapes[0];
+			$shapes = `parent -add -s $shapes[0] $triggers[$i]`;
+			string $cons[] = `listConnections -s 0 -p 1 -c 1 -type shadingEngine $shapes[0]`;
+			for( $j=0; $j<`size $cons`; $j+=2 ) disconnectAttr $cons[$j] $cons[$j+1];
+			scale -cp $scale $scale $scale ( $shapes[0] +".vtx[*]" );
+			delete $dupe;
+			}
+		}
+	}
+
+
+//------
+//lists all the folders under a given folder/parent
+//------
+global proc string[] zooListFoldersUnder( string $parent ) {
+	string $folderManager = `zooGetRegister zoo 0`;
+	string $folders[] = {};
+	string $childFolders[] = {};
+
+	zooListRegistered $folderManager triggerator {} $folders;
+	for( $folder in $folders ) {
+		if( !`objExists $folder` ) continue;
+		string $curParent = zooGetElement_str(0,`listRelatives -p $folder`);
+		if( $curParent == $parent ) $childFolders[`size $childFolders`] = $folder;
+		}
+
+	return $childFolders;
+	}
+
+
+//------
+//lists all the triggers under a given folder/parent
+//------
+global proc string[] zooListTriggersUnder( string $parent ) {
+	string $manager = `zooGetRegister zoo 0`;
+	string $folders[] = {};
+	string $childs[] = `listRelatives -type transform -pa $parent`;
+	string $allTriggers[] = `zooGetAllTriggers`;
+
+	zooListRegistered $manager triggerator {} $folders;
+	$childs = `zooIntersectArray_str $childs $allTriggers`;
+	$childs = `zooSubtractArray_str $childs $folders`;
+
+	return $childs;
+	}
+
+
+global proc string zooCreateFolder() {
+	string $folder = `zooBuildShape box ""`;
+	string $plus = `zooBuildShape plus ( "-parent "+ $folder )`;
+	string $minus = `zooBuildShape minus ( "-parent "+ $folder )`;
+
+	setAttr ( $plus +".v" ) 0;
+	zooMakeTrigger $folder "select -d #;\nint $v = `getAttr %1.v`;\nsetAttr %1.v (!$v);\nsetAttr %2.v $v;\nstring $children[] = `listRelatives -pa -type transform #`;\nfor( $a in $children ) if( `getAttr -se ( $a +\".v\" )` ) setAttr ( $a +\".v\" ) $v;" { $plus, $minus };
+
+	//now register the folder
+	string $folderManager = `zooGetRegister zoo 1`;
+	zooRegisterObj $folderManager triggerator $folder 1 1;
+	$folder = `rename $folder "trigger_folder#"`;
+
+	//finally add a RMB item to create outlines for the folder
+	zooObjMenuUtils;
+	zooObjMenuAddCmdAll $folder "add outlines to immediate child triggers" "zooCreateOutlines # 0;";
+	zooObjMenuAddCmdAll $folder "add outlines to ALL child triggers" "zooCreateOutlines # 1;";
+
+	return $folder;
+	}
+
+
+//this proc loads a shape from the shape library
+global proc string zooBuildShape( string $shapeName, string $optionStr ) {
+	string $temp[] = {};
+	string $locale = "global";
+	string $parent = "";
+	string $colour = "";
+	float $translate[] = { 0,0 };
+	float $rotate = 0;
+	float $scale[] = { 1,1 };
+
+	$temp = `zooGetFlagArguments $optionStr locale`; if( `size $temp` ) $locale = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr parent`; if( `objExists $temp[0]` ) $parent = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr colour`; if( `size $temp` ) $colour = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr translate`; if( `size $temp` ) { $translate[0] = $temp[0]; $translate[1] = $temp[1]; }
+	$temp = `zooGetFlagArguments $optionStr rotate`; if( `size $temp` ) $rotate = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr scale`; if( `size $temp` ) { $scale[0] = $temp[0]; $scale[1] = $temp[1]; }
+
+	string $basePath = `zooGetPresetDirectory $locale zooTriggerator`;
+	string $shapePreset = ( $basePath + $shapeName +".shape" );
+
+	//make sure the given file exists - if not in the given locale, try the other
+	if( !`filetest -r $shapePreset` ) {
+		$locale = $locale == "local"? "global": "local";
+		$basePath = `zooGetPresetDirectory $locale zooTriggerator`;
+		$shapePreset = ( $basePath + $shapeName +".shape" );
+		if( !`filetest -r $shapePreset` ) error "shape not found!";  //if it still doesn't exist, bail
+		}
+
+	//now read the file and build the shape
+	string $contents[] = `zooReadFile $shapePreset "-strip 1"`;
+	string $objAndShape[] = {};
+	string $obj = "";
+	float $xyPairs[] = {};
+	int $curShape = 0;
+
+	for( $line in $contents ) {
+		if( $line == "endShape;" ) break;
+		string $coords[] = {};
+		tokenize $line "," $coords;
+		for( $i=0; $i<`size $coords`; $i++ ) $xyPairs[( `size $xyPairs` )] = $coords[$i];
+		}
+
+	zooShapeFromData $xyPairs $objAndShape;
+	$obj = $objAndShape[0];
+	$shape = $objAndShape[1];
+
+	//colour the shape
+	if( $colour != "" ) {
+		zooShaders;
+		zooSetObjShader $obj `zooCreateShader $colour`;
+		}
+
+	//turn the objMenu passthrough on
+	addAttr -at "bool" -ln showMenusFromConnects $obj;
+	setAttr ( $obj +".showMenusFromConnects" ) 1;
+
+	//now do trs offsets
+	setAttr ( $obj +".t" ) $translate[0] $translate[1] 0;
+	setAttr ( $obj +".rz" ) $rotate;
+	setAttr ( $obj +".s" ) $scale[0] $scale[1] 1;
+	makeIdentity -a 1 -t 1 -r 1 -s 1 $obj;
+
+	//deal with any requested parenting of the shape
+	if( `objExists $parent` ) {
+		parent -add -s $shape $parent;
+		delete $obj;
+		return $shape;
+		}
+	else return $obj;
+	}
+
+
+//this proc builds a shape from a list of x,y pairs.  The $objShape array gets filled
+//with the object name, and the shape name, while the object name is returned for
+//convenience
+global proc string zooShapeFromData( float $xyPairs[], string $objShape[] ) {
+	string $createCommand = "polyCreateFacet -ch 0 -tx 1 ";
+
+	for( $n=0; $n<`size $xyPairs`; $n+=2 ) $createCommand += "-p "+ $xyPairs[$n] +" "+ $xyPairs[( $n+1 )] +" 0 ";
+
+	string $newObj[] = `eval $createCommand`;
+	string $shape[] = `listRelatives -pa -s $newObj`;
+
+	clear $objShape;
+	$objShape = { $newObj[0], $shape[0] };
+	return $newObj[0];
+	}
+
+
+//zoo.end

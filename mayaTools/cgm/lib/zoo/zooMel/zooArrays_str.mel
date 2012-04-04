@@ -1,0 +1,411 @@
+zooArrays_int;
+zooUtils;
+
+
+global proc zooArrays_str() {
+	return;
+	}
+
+
+//------
+//pads a given string with a given character to a given length
+//------
+global proc string zooPadBefore_str( string $string, int $length, string $with ) {
+	if( `size $string` >= $length ) return `substring $string 1 $length`;
+	while( `size $string` < $length ) $string = $with + $string;
+	return $string;
+	}
+
+
+global proc string zooPadAfter_str( string $string, int $length, string $with ) {
+	if( `size $string` >= $length ) return `substring $string 1 $length`;
+	while( `size $string` < $length ) $string = $string + $with;
+	return $string;
+	}
+
+
+global proc string zooArrayToStr_str( string $array[], string $separator ) {
+	string $arrayStr = "";
+	int $num = `size $array`;
+
+	if( $num<2 ) return $array[0];
+	for( $n=0; $n<$num-1; $n++ ) $arrayStr += $array[$n] + $separator;
+	$arrayStr += $array[( $num-1 )];
+
+	return $arrayStr;
+	}
+
+
+global proc int zooAreArraysEqual_str( string $array1[], string $array2[] ) {
+	int $size1 = `size $array1`;
+	int $size2 = `size $array2`;
+
+	if( $size1 != $size2 ) return 0;
+	for( $n=0; $n<$size1; $n++ ) if( $array1[$n] != $array2[$n] ) return 0;
+	return 1;
+	}
+
+
+//------
+//removes the array element at the given index - returns the resulting array
+//------
+global proc string[] zooRemoveArrayIdx_str( string $array[], int $index ) {
+	string $removed[] = {};
+	for( $n=0; $n<`size $array`; $n++ ) {
+		if( $n == $index ) continue;
+		$removed[( `size $removed` )] = $array[$n];
+		}
+
+	return $removed;
+	}
+
+
+global proc string[] zooAddArrayAt_str( string $array1[], string $array2[], int $idx ) {
+	string $newArray[] = {};
+	int $size = `size $array1`;
+	int $n = 0;
+
+	for( $n=0; $n<$size; $n++ ) {
+		if( $n >= $idx ) break;
+		$newArray[$n] = $array1[$n];
+		}
+
+	for( $a in $array2 ) $newArray[( `size $newArray` )] = $a;
+	for( $n; $n<$size; $n++ ) $newArray[( `size $newArray` )] = $array1[$n];
+
+	return $newArray;
+	}
+
+
+//------
+//returns the given element of an array - use negative numbers to get elements
+//starting from the end of the array
+//
+//example:
+//zooGetElement_int { "a", "b", "c", "d", "e" } -2;
+//returns "d" as it is the second element from the end
+//------
+global proc string zooGetElement_str( int $entry, string $array[] ) {
+	int $size = `size $array`;
+	if( $entry<0 ) $entry = $size + $entry;
+	if( $entry>0 && $entry<$size ) return $array[$entry];
+	else return $array[0];
+	}
+
+
+global proc int zooGetIdxOfElement_str( string $array[], string $entry ) {
+	for( $n=0; $n<`size $array`; $n++ ) if( $array[$n] == $entry ) return $n;
+	return -1;
+	}
+
+
+//removes all adjacent duplicate entries from an array
+global proc string[] zooRemoveAdjacentDupeItems_str( string $array[] ) {
+	string $returnArray[] = {};
+	string $prevVal = $array[0];
+
+	$returnArray[0] = $array[0];
+	for( $n=1; $n < `size $array`; $n++ ) {
+		if( $prevVal != $array[$n] ) $returnArray[( `size $returnArray` )] = $array[$n];
+		$prevVal = $array[$n];
+		}
+
+	return $returnArray;
+	}
+
+
+global proc string[] zooRemoveDupeItems_str( string $array[] ) {
+	string $unique[] = { $array[0] };
+	int $arraySZ = `size $array`;
+
+	for( $n=1; $n<$arraySZ; $n++ ) {
+		int $uniqueSZ = `size $unique`;
+		int $dupe = 0;
+
+		for( $i=0; $i<$uniqueSZ; $i++ ) if( $array[$n] == $unique[$i] ) {
+			$dupe = 1;
+			break;
+			}
+		if( !$dupe ) $unique[$uniqueSZ] = $array[$n];
+		}
+
+	return $unique;
+	}
+
+
+//adds array2 to the end of array1
+global proc string[] zooAddArray_str( string $array1[], string $array2[] ) {
+	for( $entry in $array2 ) $array1[( `size $array1` )] = $entry;
+	return $array1;
+	}
+
+
+//subtracts array 2 from array 1
+global proc string[] zooSubtractArray_str( string $array1[], string $array2[] ) {
+	string $returnArray[] = {};
+	for( $entry1 in $array1 ){
+		int $isInArray = 0;
+		for( $entry2 in $array2 ) if( $entry1 == $entry2 ) $isInArray = 1;
+		if( !$isInArray ) $returnArray[( `size $returnArray` )] = $entry1;
+		}
+
+	return $returnArray;
+	}
+
+
+//reverses the order of an array
+global proc string[] zooReverseArray_str( string $array[] ){
+	string $reversedArray[] = {};
+	int $arraySize = `size $array`;
+
+	for( $n=0; $n<$arraySize; $n++ ) $reversedArray[( $arraySize-1-$n )] = $array[$n];
+	return $reversedArray;
+	}
+
+
+//------
+//crops a string array based on a given pair of indicies.
+//The indicies take the form: "start:end"
+
+//Neither numbers have to be specified, you can leave them blank instead.  Leaving them blank
+//causes the script to use defaults.  the start default is zero, and the end default is the final
+//index in the given array.  so zooIndexCrop_str { "a", "b", "c", "d" } "";  will return the
+//original array.
+//
+//You can also specify negative numbers for the end index.  Negative numbers specify the index
+//"backwards" from the final index.
+//example:
+//zooIndexCrop_str { "a", "b", "c", "d" } ":-2";
+//{ "a", "b" };
+//
+//zooIndexCrop_str { "a", "b", "c", "d" } "1:-1";
+//{ "b", "c" };
+//------
+global proc string[] zooIndexCrop_str( string $array[], string $startEndStr ) {
+	string $cropped[] = {};
+	string $startStr = `match "^[^:]+" $startEndStr`;
+	string $endStr = `match "[^:]+$" $startEndStr`;
+	int $size = `size $array`;
+	int $start = 0;
+	int $end = $size;
+
+	$startStr = `match "[-0-9]+" $startStr`;
+	$endStr = `match "[-0-9]+" $endStr`;
+	if( `size $startStr` ) $start = $startStr;
+	if( `size $endStr` ) $end = $endStr;
+	if( $start<0 ) $start = $size+$start;
+	if( $end<0 ) $end = $size+$end;
+	for( $n=$start; $n<$end; $n++ ) $cropped[( `size $cropped` )] = $array[$n];
+
+	return $cropped;
+	}
+
+
+//------
+//returns an int array with a list of alphabetical weights corresponding to an
+//input string array.  the int array can be passed to the re-ordering proc:
+//zooOrderArrayUsing_* (ie zooOrderArrayUsing_str)
+//------
+global proc int[] zooGetAlphabeticalIdx( string $list[] ) {
+	string $alphabet[] = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" };
+	int $weights[] = {};
+	int $num = `size $list`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		string $lower = `tolower $list[$n]`;
+		string $str1, $str2, $str3;
+		int $w1, $w2, $w3;
+
+		$str1 = `substring $lower 1 1`;
+		$str2 = `substring $lower 2 2`;
+		$str3 = `substring $lower 3 3`;
+		for( $i=0; $i<26; $i++ ) if( $str1 == $alphabet[$i] ) { $w1 = $i; break; }
+		for( $i=0; $i<26; $i++ ) if( $str2 == $alphabet[$i] ) { $w2 = $i; break; }
+		for( $i=0; $i<26; $i++ ) if( $str3 == $alphabet[$i] ) { $w3 = $i; break; }
+
+		$w1 *= (pow(26,3));
+		$w2 *= (pow(26,2));
+		$weights[$n] = $w1 + $w2 + $w3;
+		if( $lower != $list[$n] ) $weights[$n] += 1;
+		}
+
+	return $weights;
+	}
+
+
+//------
+//orders the given string array based on an int array
+//example:
+//zooOrderArrayUsing { "a", "b", "c", "d" } { 3, 0, 1, 2 };
+//returns the result:
+// { "b", "c", "d", "a" };
+//------
+global proc string[] zooOrderArrayUsing_str( string $array[], int $orders[] ) {
+	if( `size $array` != `size $orders` ) warning "the given string array is a different size to the orders array - unwanted results may occur";
+	string $orderedStr[] = {};
+	string $arrayM[] = $array;  //this is a copy of the given string array that will get modified - arrays are referenced so this is nessecary
+	int $ordersM[] = $orders;
+
+	while( `size $arrayM` && `size $ordersM` ) {
+		int $lowest = `zooGetLowestValueIdx_int $ordersM`;
+		$orderedStr[( `size $orderedStr` )] = $arrayM[$lowest];
+		$arrayM = `zooRemoveArrayIdx_str $arrayM $lowest`;
+		$ordersM = `zooRemoveArrayIdx_int $ordersM $lowest`;
+		}
+
+	return $orderedStr;
+	}
+
+
+//------
+//is essentially a wrapper for the stringArrayIntersector function in maya - however
+//this proc is easier to use and is a one line solution
+//------
+global proc string[] zooIntersectArray_str( string $array1[], string $array2[] ) {
+	string $comparator = `stringArrayIntersector`;
+
+	stringArrayIntersector -e -i $array1 $comparator;
+	stringArrayIntersector -e -i $array2 $comparator;
+
+	string $common[] = `stringArrayIntersector -q $comparator`;
+	deleteUI $comparator;
+
+	return $common;
+	}
+
+
+/*
+takes an array of entries (as in array indicies), and shifts them in the direction specified.
+------------
+
+example: zooUtilsReorderArray { "a,"b","c","d","e" } {3,4} up
+produces the resulting array:  { a,c,d,b,e }
+
+example: zooUtilsReorderArray { "a,"b","c","d","e" } {1,2,5} up
+produces the resulting array:  { b,c,e,d,a }
+*/
+global proc string[] zooReorderArray_str( string $array[], int $entries[], string $dir ) {
+	string $newArray[] = $array;
+	int $gaps[] = {};
+	int $be;
+
+	$entries = `sort $entries`;
+	$gaps[0] = $entries[0];
+	for( $n = 0; $n < `size $entries`-1; $n++ ) if( $entries[$n]+1 != $entries[( $n+1 )] ) {
+		$gaps[( `size $gaps` )] = $entries[$n];
+		$gaps[( `size $gaps` )] = $entries[( $n+1 )];
+		}
+	$gaps[( `size $gaps` )] = $entries[( `size $entries`-1 )];
+
+	for( $n = 0; $n < `size $gaps`; $n+=2 ) if( $dir == "up" ) $newArray = `zooArrayShiftUp_str $newArray $gaps[$n] $gaps[( $n+1 )]`;
+	for( $n = 0; $n < `size $gaps`; $n+=2 ) if( $dir == "down" ) $newArray = `zooArrayShiftDown_str $newArray $gaps[$n] $gaps[( $n+1 )]`;
+
+	return $newArray;
+	}
+
+
+//shifts entries inclusive from the start index, to the end index up (ie towards zero) in an array
+global proc string[] zooArrayShiftUp_str( string $array[], int $startIndex, int $endIndex ) {
+	string $newArray[];
+	int $displaced = $startIndex-1;
+	int $num = ( $endIndex-$startIndex )+1;
+
+	if( $startIndex == 0 ) return $array;
+
+	//copy the original array to the newArray variable
+	for( $n = 0; $n < `size $array`; $n++ ) $newArray[$n] = $array[$n];
+
+	int $i = $startIndex-1;
+	for( $n = 0; $n < $num; $n++, $i++) $newArray[$i] = $array[( $i+1 )];
+
+	$newArray[$endIndex] = $array[$displaced];
+	return $newArray;
+	}
+
+
+//shifts entries inclusive from the start index, to the end index down (ie away from zero) in an array
+global proc string[] zooArrayShiftDown_str( string $array[], int $startIndex, int $endIndex ) {
+	string $newArray[];
+	int $displaced = $endIndex+1;
+	int $num = ( $endIndex-$startIndex )+1;
+
+	if( $endIndex >= `size $array`-1 ) return $array;
+
+	//copy the original array to the newArray variable
+	for( $n = 0; $n < `size $array`; $n++ ) $newArray[$n] = $array[$n];
+
+	int $i = $startIndex+$num;
+	for( $n = 0; $n < $num; $i--, $n++ ) $newArray[$i] = $array[( $i-1 )];
+
+	$newArray[$startIndex] = $array[$displaced];
+	return $newArray;
+	}
+
+
+//simply returns the string as an array - one character per array element
+global proc string[] zooStrToArray( string $str ) {
+	string $stringArray[] = {};
+	int $size = `size $str`;
+
+	for( $n=0; $n<$size; $n++ ) $stringArray[$n] = `substring $str ($n+1) ($n+1)`;
+	return $stringArray;
+	}
+
+
+//normally the tokenize command will completely strip out duplicate items when
+//tokenizing - which is not always what you want.  this proc will preserve
+//duplicate tokens
+//
+//example: if you have this string "duplicate,,comma,characters"
+//the native maya tokenize command will yield this result:
+//{ "duplicate", "comma", "characters" }
+//
+//while the zooTokenize command will give this:
+//{ "duplicate", "", "comma", "characters" }
+//
+//NOTE - you can also use multi-character separators.  ie:
+//zooTokenize "some;!;thing;!;else" ";!;";
+//yeilds what you would expect:  { "some", "thing", "else" }
+global proc string[] zooTokenize( string $string, string $separator ) {
+	string $temp[] = `zooStrToArray $string`;
+	string $new[] = {};
+	int $sepSize = `size $separator`;
+	int $i=0;
+
+	for( $n=0; $n<`size $temp`; $n++ ) {
+		string $toMatch = "";
+		for( $x=0; $x<$sepSize; $x++ ) $toMatch += $temp[$n+$x];
+		if( $toMatch == $separator ) {
+			$n = $n+$x-1;
+			$i++;
+			$new[$i] = "";
+			continue;
+			}
+		$new[$i] = $new[$i] + $temp[$n];
+		}
+
+	return $new;
+	}
+
+
+//returns an array of "words" contained in a given string.  words are defined by
+//any of the delimeters: _ : | [space] or are camel case alpha strings.  numeric characters
+//are also delimeters
+//
+//for example:
+// zooStrToWords "thisIsAString";
+// returns { "this", "Is", "A", "String" }
+// zooStrToWords "another:string_this is";
+// returns { "another", "string", "this", "is" }
+global proc string[] zooStrToWords( string $string ) {
+	string $toks[] = {};
+	string $camelWords[] = {};
+	int $numToks = `tokenize $string " :|_" $toks`;
+
+	for( $n=0; $n<$numToks; $n++ ) $camelWords = zooAddArray_str($camelWords,`zooSplitCamelCase $toks[$n]`);
+
+	return $camelWords;
+	}
+
+
+//zoo.end

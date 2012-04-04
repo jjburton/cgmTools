@@ -1,0 +1,522 @@
+zooUtils;
+zooArrays_float;
+zooGraphFilterUtils;
+zooVectors;
+
+
+global proc zooTangentWksUtils() {
+	return;
+	}
+
+
+//breakdown command - increments keys toward next/previous key
+global proc zooCopycat( string $dir, string $incrementStr ) {
+	float $increment;
+	if( $incrementStr == "*" ) $increment = `optionVar -ex zooCopycatFactor`? `optionVar -q zooCopycatFactor`: 0.1;
+	else $increment = $incrementStr;
+
+	string $which = "next";
+	string $curves[] = {};
+	float $keyTimes[] = {};
+	float $keyValues[] = {};
+	int $keyIdxs[] = {};
+	float $t = `timerX`;
+	int $num = `zooGetKeySet $curves $keyTimes $keyValues $keyIdxs`;
+
+	if( $dir == "left" ) $which = "previous";
+	for( $n=0; $n<$num; $n++ ) {
+		int $tgtIdx = $keyIdxs[$n]+1;
+		int $numKeys = `keyframe -q -kc $curves[$n]`;
+
+		if( $dir == "left" ) $tgtIdx = $keyIdxs[$n]-1;
+		if( $tgtIdx<0 ) $tgtIdx = $numKeys-1;  //if the target keyindex is negative, then wrap around
+		else if( $tgtIdx>=$numKeys ) $tgtIdx = 0;
+
+		float $tgtVal = zooGetElement_float(0,`keyframe -in $tgtIdx -q -vc $curves[$n]`);
+		float $curVal = $keyValues[$n];
+
+		$curVal += ($tgtVal-$curVal)*$increment;
+		keyframe -in $keyIdxs[$n] -e -vc $curVal $curves[$n];
+		}
+	print( "zooCopycat \""+ $dir +"\" \""+ $increment +"\";\n" );
+	print( "time taken: "+ `timerX -st $t` +"\n" );
+	}
+
+
+//pushes the current value on to the next/previous keyframe
+global proc zooSetkeyPush( string $dir ) {
+	string $curves[] = `keyframe -q -name -sl`;
+	string $which = $dir == "bak"? "previous": "next";
+	float $nextKey = `findKeyframe -which $which`;
+	float $time = `currentTime -q`;
+	int $sel = size(`keyframe -q -sl`);
+
+	if( $sel ) for( $curve in $curves ) {
+		float $value = zooGetElement_float(0,`keyframe -t $time -q -ev $curve`);
+		setKeyframe -t $nextKey $curve;
+		setKeyframe -t $nextKey -v $value $curve;
+		}
+	else {
+		setKeyframe -t $nextKey;
+		currentTime $time;  //this is simply to update maya
+		}
+	}
+
+
+//if the weight is set to "*" then the weight will use the user specified weight - or the default weight
+//if no user specified weight has been set
+global proc zooTangentManip( string $function, string $weight ) {
+	float $tightWeight = ( `optionVar -ex zooTangentWksTightenWeight` )?`optionVar -q zooTangentWksTightenWeight`:0.5;
+	float $sharpWeight = ( `optionVar -ex zooTangentWksSharpenWeight` )?`optionVar -q zooTangentWksSharpenWeight`:0.15;
+
+	if( $weight != "*" ) {
+		$tightWeight = $weight;
+		$sharpWeight = $weight;
+		}
+
+	string $curves[] = {};
+	int $keyIdxs[] = {};
+	int $num = `zooGetKeySet $curves {} {} $keyIdxs`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		keyTangent -e -wt 1 $curves[$n];  //this makes sure the anim curves have weighted tangents enabled
+
+		float $tangentIX[2] = `keyTangent -in $keyIdxs[$n] -q -ix $curves[$n]`;
+		float $tangentOX[2] = `keyTangent -in $keyIdxs[$n] -q -ox $curves[$n]`;
+		float $tangentIY[2] = `keyTangent -in $keyIdxs[$n] -q -iy $curves[$n]`;
+		float $tangentOY[2] = `keyTangent -in $keyIdxs[$n] -q -oy $curves[$n]`;
+
+		if( $function == "tighten" ) keyTangent -e -a -in $keyIdxs[$n] -ix $tangentIX[0] -iy( $tangentIY[0]-($tangentIY[0]*$tightWeight)) -ox $tangentOX[0] -oy( $tangentOY[0]-($tangentOY[0]*$tightWeight)) $curves[$n];
+		else if( $function == "untighten" ) keyTangent -e -a -in $keyIdxs[$n] -ix $tangentIX[0] -iy( $tangentIY[0]+($tangentIY[0]*$tightWeight)) -ox $tangentOX[0] -oy( $tangentOY[0]+($tangentOY[0]*$tightWeight)) $curves[$n];
+		else if( $function == "sharpen" ) keyTangent -e -a -in $keyIdxs[$n] -ix( $tangentIX[0]-($tangentIX[0]*$sharpWeight)) -iy( $tangentIY[0]-($tangentIY[0]*$sharpWeight)) -ox( $tangentOX[0]-($tangentOX[0]*$sharpWeight)) -oy( $tangentOY[0]-($tangentOY[0]*$sharpWeight)) $curves[$n];
+		else if( $function == "unsharpen" ) keyTangent -e -a -in $keyIdxs[$n] -ix( $tangentIX[0]+($tangentIX[0]*$sharpWeight)) -iy( $tangentIY[0]+($tangentIY[0]*$sharpWeight)) -ox( $tangentOX[0]+($tangentOX[0]*$sharpWeight)) -oy( $tangentOY[0]+($tangentOY[0]*$sharpWeight)) $curves[$n];
+		}
+	print( "zooTangentManip \""+ $function +"\" \""+ $weight +"\";\n" );
+	}
+
+
+global proc zooTangentType( string $tangentType ) {
+	string $curves[] = {};
+	int $keyIdxs[] = {};
+	int $num = `zooGetKeySet $curves {} {} $keyIdxs`;
+
+	for( $n=0; $n<$num; $n++ ) keyTangent -in $keyIdxs[$n] -itt $tangentType -ott $tangentType $curves[$n];
+	print( "zooTangentType \""+ $tangentType +"\";\n" );
+	}
+
+
+//perform a flatten tangent on static keys - if keys are selected, it will only flatten selected static keys, otherwise it works on all keys of selected objects
+global proc zooFlatenStaticKeys() {
+	string $objs[] = `ls -l -sl`;
+	int $areAnyKeysSelected = size(`keyframe -q -sl`);
+
+	for( $obj in $objs ) {
+		string $channels[] = `listAttr -k -u $obj`;
+		for( $channel in $channels ) {
+			float $flatKeys[] = `zooGetStaticKeys $obj $channel "" "" "" {} {} {}`;
+			float $selectedKeyTimes[] = `keyframe -q -sl ( $obj +"."+ $channel )`;
+			float $keysToFlatten[] = $flatKeys;
+
+			if( $areAnyKeysSelected ) {
+				clear $keysToFlatten;
+				for( $key in $flatKeys ) for( $selKey in $selectedKeyTimes ) if( $key == $selKey ) $keysToFlatten[( `size $keysToFlatten` )] = $key;
+				}
+
+			for( $key in $keysToFlatten ) keyTangent -t $key -itt flat -ott flat ( $obj +"."+ $channel );
+			}
+		}
+	}
+
+
+global proc zooSelectStaticKeys( string $type, int $useEditor ) {
+	string $attrs[] = {};
+
+	if( `zooAreChannelsHighlighted` ) $attrs = `selectionConnection -q -obj graphEditor1FromOutliner`;
+	else {
+		string $objs[] = `ls -sl`;
+		for( $o in $objs ) {
+			string $oAttrs[] = `listAttr -keyable -visible -scalar -multi $o`;
+			for( $a in $oAttrs ) $attrs[`size $attrs`] = $o +"."+ $a;
+			}
+		}
+	selectKey -cl;
+	for( $attr in $attrs ) {
+		string $obj = `match "^[^.]+" $attr`;
+		int $idxs[] = {};
+
+		$attr = `match "[^.]+$" $attr`;
+		if( $type == "inner" ) zooGetInnerStaticKeys $obj $attr "!" "!" "" {} {} $idxs;
+		else if( $type == "outer" ) zooGetOuterStaticKeys $obj $attr "!" "!" "" {} {} $idxs;
+		else zooGetStaticKeys $obj $attr "!" "!" "" {} {} $idxs;
+
+		string $selCmd = "selectKey -add -k -in ";
+		$selCmd = $selCmd + `zooArrayToStr_int $idxs " -in "`;
+		$selCmd += " "+ ( $obj +"."+ $attr );
+		if( `size $idxs` ) eval $selCmd;
+		}
+	}
+
+
+global proc float[] zooGetInnerStaticKeys( string $obj, string $attr, string $start, string $end, string $tolStr, float $innerTimes[], float $innerValues[], int $innerIdxs[] ) {
+	clear $innerTimes;
+	clear $innerValues;
+	clear $innerIdxs;
+
+	string $attrPath = $obj +"."+ $attr;
+	float $keys[] = {};
+	float $values[] = {};
+	float $tol = 0.000001;
+	int $idxs[] = {};
+
+	if( $tolStr != "" ) $tol = $tolStr;
+	zooGetStaticKeys $obj $attr $start $end $tolStr $keys $values $idxs;
+	int $num = `size $keys`;
+	int $i = 0;
+
+	for( $n=1; $n<$num-1; $n++ ) {
+		float $nextVal = zooGetElement_float(0,`keyframe -in( $idxs[$n]+1 ) -q -vc $attrPath`);
+		float $prevVal = zooGetElement_float(0,`keyframe -in( $idxs[$n]-1 ) -q -vc $attrPath`);
+		if( `zooEqTol $values[$n] $prevVal $tol` && `zooEqTol $values[$n] $nextVal $tol` ) {
+			$innerTimes[$i] = $keys[$n];
+			$innerValues[$i] = $values[$n];
+			$innerIdxs[$i] = $idxs[$n];
+			$i++;
+			}
+		}
+
+	return $innerTimes;
+	}
+
+
+//------
+//static keys (see below) come in two basic flavours - inner and outer static keys.  outer
+//static keys are those at the "edge" of a group of static keys.  so if you have 5 keys, the
+//middle three of the same value, the outer static keys are the second key and the fourth
+//key.  the inner static key is the third key, and the first and last keys are irrelevant
+//------
+global proc float[] zooGetOuterStaticKeys( string $obj, string $attr, string $start, string $end, string $tolStr, float $outerTimes[], float $outerValues[], int $outerIdxs[] ) {
+	clear $outerTimes;
+	clear $outerValues;
+	clear $outerIdxs;
+
+	string $attrPath = $obj +"."+ $attr;
+	float $keys[] = {};
+	float $values[] = {};
+	float $tol = 0.000001;
+	int $idxs[] = {};
+
+	if( $tolStr != "" ) $tol = $tolStr;
+	zooGetStaticKeys $obj $attr $start $end $tolStr $keys $values $idxs;
+	int $num = `size $keys`-1;
+	int $i = 0;
+
+	//the first and last static keys are ALWAYS outer static keys
+	if( $num<=0 ) return $outerTimes;
+	$outerTimes[0] = $keys[0];
+	$outerValues[0] = $values[0];
+	$outerIdxs[0] = $idxs[0];
+	$i++;
+
+	//now go through all the static keys and see if either of the adjacent keyframes
+	//has a different value - if it does, its an outer static key
+	for( $n=1; $n<$num; $n++ ) {
+		float $nextVal = zooGetElement_float(0,`keyframe -in( $idxs[$n]+1 ) -q -vc $attrPath`);
+		float $prevVal = zooGetElement_float(0,`keyframe -in( $idxs[$n]-1 ) -q -vc $attrPath`);
+		if( !`zooEqTol $values[$n] $prevVal $tol` || !`zooEqTol $values[$n] $nextVal $tol` ) {
+			$outerTimes[$i] = $keys[$n];
+			$outerValues[$i] = $values[$n];
+			$outerIdxs[$i] = $idxs[$n];
+			$i++;
+			}
+		}
+
+	//remember, the last static key is ALWAYS counted as an outer static key
+	$outerTimes[$i] = $keys[$num];
+	$outerValues[$i] = $values[$num];
+	$outerIdxs[$i] = $idxs[$num];
+
+	return $outerTimes;
+	}
+
+
+//------
+//this rather ugly looking proc is terribly useful for finding static keys - that is keys who have
+//at least one adjacent key with the same value (within a very small tolerance).  static keys indicate
+//a hold of some description.  this proc populates the last three array args with key useful details,
+//and takes four args
+//------
+global proc float[] zooGetStaticKeys( string $obj, string $attr, string $start, string $end, string $tolStr, float $flatKeys[], float $keyValues[], int $keyIdxs[] ) {
+	clear $flatKeys;
+	clear $keyValues;
+	clear $keyIdxs;
+
+	if( $start == "!" ) $start = `playbackOptions -q -min`;
+	if( $end == "!" ) $end = `playbackOptions -q -max`;
+
+	string $attrPath = $obj +"."+ $attr;
+	string $timeStr = $start +":"+ $end;
+	float $allKeys[] = `keyframe -t $timeStr -q $attrPath`;
+	float $allValues[] = `keyframe -t $timeStr -q -vc $attrPath`;
+	int $allIdxs[] = `keyframe -t $timeStr -q -iv $attrPath`;
+	float $tol = 0.000001;
+	int $num = `size $allKeys`;
+	int $i = 0;
+
+	if( $tolStr != "" ) $tol = $tolStr;
+	if( `zooEqTol $allValues[0] $allValues[1] $tol` ) {
+		$flatKeys[$i] = $allKeys[0];
+		$keyValues[$i] = $allValues[0];
+		$keyIdxs[$i] = $allIdxs[0];
+		$i++;
+		}
+	for( $n=1; $n<$num-1; $n++ ) {
+		if( `zooEqTol $allValues[$n] $allValues[$n-1] $tol` || `zooEqTol $allValues[$n] $allValues[$n+1] $tol` ) {
+			$flatKeys[$i] = $allKeys[$n];
+			$keyValues[$i] = $allValues[$n];
+			$keyIdxs[$i] = $allIdxs[$n];
+			$i++;
+			}
+		}
+	if( `zooEqTol $allValues[$num-2] $allValues[$num-1] $tol` ) {
+		$flatKeys[$i] = $allKeys[$num-1];
+		$keyValues[$i] = $allValues[$num-1];
+		$keyIdxs[$i] = $allIdxs[$num-1];
+		}
+
+	return $flatKeys;
+	}
+
+
+//------
+//this proc is designed to make key tangents more appropriate for character animation.  it weights
+//tangents to somewhere between the surrounding two keys, but weights them more heavily toward
+//distant keys in order to minimise overshoot, while still maintaining some "life".  it takes a
+//"weight" string as an argument - this weight string can be either a unit float, or an * character
+//the * character tells the proc to get the weight value from the user prefs (defaults to 0.5 if
+//the relevant pref hasn't been set).  the weight determines how much to blend toward the "sensible"
+//tangent, and how much of the current tangent to retain.  so a 1 weight value sets the tangent
+//to use 100% of the computer "sensible" tangent
+//------
+global proc zooMakeSensibleTangents( string $weightStr ) {
+	float $weight;
+	if( $weightStr == "*" ) $weight = `optionVar -ex zooSensibleFactor`? `optionVar -q zooSensibleFactor`: 0.5;
+	else $weight = $weightStr;
+
+	string $curves[] = {};
+	float $keyValues[] = {};
+	float $keyTimes[] = {};
+	int $keyIdxs[] = {};
+	int $num = `zooGetKeySet $curves $keyTimes $keyValues $keyIdxs`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		float $curX = $keyTimes[$n];
+		float $curY = $keyValues[$n];
+		float $nextX = $curX+1;
+		float $nextY = $curY;
+		float $prevX = $curX-1;
+		float $prevY = $curY;
+		float $temp[] = {};
+
+		//see if there is a next/previous keyframe
+		$temp = `keyframe -in( $keyIdxs[$n]+1 ) -q $curves[$n]`;
+		if( `size $temp` ) {  //if this is non-zero, then there is a next key
+			$nextX = $temp[0];
+			$temp = `keyframe -in( $keyIdxs[$n]+1 ) -q -vc $curves[$n]`;
+			$nextY = $temp[0];
+			}
+		else { $nextX = $prevX; $nextY = $prevY; }
+		if( $keyIdxs[$n]-1 >= 0 ) {
+			$temp = `keyframe -in( $keyIdxs[$n]-1 ) -q $curves[$n]`;
+			if( `size $temp` ) {  //if this is non-zero, then there is a previous key
+				$prevX = $temp[0];
+				$temp = `keyframe -in( $keyIdxs[$n]-1 ) -q -vc $curves[$n]`;
+				$prevY = $temp[0];
+				}
+			}
+		else { $prevX = $nextX; $prevY = $nextY; }
+
+		//if not, figure out which one to aim at - previous or next
+		float $timeToPrev = abs($curX-$prevX);
+		float $timeToNext = abs($curX-$nextX);
+		float $valToPrev = abs($curY-$prevY);
+		float $valToNext = abs($curY-$nextY);
+
+		//get the val to prev as a percentage of the value distance between adjacent keys
+		if( $valToPrev < 0.001 ) $valToPrev = 0.001;
+		if( $valToNext < 0.001 ) $valToNext = 0.001;
+		float $totalVal = $valToPrev + $valToNext;
+		$valToPrev = $valToPrev/$totalVal;
+		$valToNext = $valToNext/$totalVal;
+
+		//divide the value by the temporal distance to that value - this gives us a weighted value
+		//the key with the higher weight gets more heavily aimed toward
+		if( $valToPrev<$valToNext ) $timeToPrev /= $valToPrev;
+		else $timeToNext /= $valToNext;
+
+		float $prevTimeFac = $timeToPrev/($timeToPrev+$timeToNext);
+		float $nextTimeFac = $timeToNext/($timeToPrev+$timeToNext);
+		float $prevA = atand(($prevY-$curY)/($prevX-$curX))*$prevTimeFac;
+		float $nextA = atand(($nextY-$curY)/($nextX-$curX))*$nextTimeFac;
+
+		//a note about the tangent weight calculation - tangent weights are a bit funny in maya - if there is
+		//a large numerical difference between two keys (like say 100) then tangent weights get very sensitive
+		//and as such tend to blow out a bit - so weights other than 1 will blow out tangents and the user will
+		//have to iterate toward a more sensible value - not sure how to solve this.  for now it mainly affects
+		//rotation channels, as they often have large numerical differences between keys.  anyway, currently
+		//the tangent calculation weights between the temporal difference between neighbour keys, and the
+		//vector distance between keys
+		float $newA = $prevA + $nextA;
+		float $newInW = (`zooVectorMag {($prevX-$curX),($prevY-$curY),0}`*1.0 + 15.0*abs($prevX-$curX))/16.0/3.0;
+		float $newOutW = (`zooVectorMag {($nextX-$curX),($nextY-$curY),0}`*1.0 + 15.0*abs($nextX-$curX))/16.0/3.0;
+		float $curAngle = zooGetElement_float(0,`keyTangent -in $keyIdxs[$n] -q -oa $curves[$n]`);
+		float $curInW = zooGetElement_float(0,`keyTangent -in $keyIdxs[$n] -q -iw $curves[$n]`);
+		float $curOutW = zooGetElement_float(0,`keyTangent -in $keyIdxs[$n] -q -ow $curves[$n]`);
+		float $weightedA = ($newA*$weight)+($curAngle*(1-$weight));
+
+		//adjust the weight for tangent lengths
+		float $strongerW = 1-((1-$weight)/3);
+		float $weightedIW = ($newInW*$strongerW)+($curInW*(1-$strongerW));
+		float $weightedOW = ($newOutW*$strongerW)+($curOutW*(1-$strongerW));
+
+		keyTangent -e -in $keyIdxs[$n] -itt flat -ott flat $curves[$n];
+		keyTangent -e -a -in $keyIdxs[$n] -iw $weightedIW -ow $weightedOW -ia $weightedA -oa $weightedA $curves[$n];
+		}
+	}
+
+
+//for testing the key finding proc
+proc testGK() {
+	string $curves[] = {};
+	float $keyTimes[] = {};
+	float $keyValues[] = {};
+	int $keyIdxs[] = {};
+	int $num = `zooGetKeySet $curves $keyTimes $keyValues $keyIdxs`;
+
+	print $num; print "\n";
+	for( $n=0; $n<$num; $n++ ) print( $curves[$n] +"  "+ $keyTimes[$n] +"  "+ $keyValues[$n] +"  "+ $keyIdxs[$n] +"\n" );
+	}
+
+
+//------
+//returns a string array containing all the keys to work on
+//the keys are in the following format:
+//$times[] = {"curveName,timeFloat,value,index"}
+//if keys are selected - then selected key data is returned
+//then it checks to see if a range is selected - if so, key data in that range is returned
+//then checks to see if any keys are on the current time - if so key data for them is returned
+//finally if none of the above conditions are satisfied, it looks to see what the closest key is, previous or next, and data for such keys are returned
+//------
+global proc int zooGetKeySet( string $animCurves[], float $keyTimes[], float $keyValues[], int $keyIdxs[] ) {
+	float $range[] = `zooGetSelectedRange`;
+	float $current = `currentTime -q`;
+	int $keysSelected = `keyframe -q -sl -kc`;
+	int $i = 0;
+
+	clear $animCurves;
+	clear $keyTimes;
+	clear $keyValues;
+	clear $keyIdxs;
+	if( !`isAKeyEditorVisible` ) {
+		$keysSelected = 0;
+		selectKey -cl;
+		}
+
+	//if no keys are selected, then we can get the time of the next/previous key
+	//and find the names of all the keys on that time
+	if( $keysSelected ) {
+		string $curves[] = `keyframe -q -name -sl`;
+		for( $curve in $curves ) {
+			int $keys[] = `keyframe -q -iv -sl $curve`;
+			int $numKeys = `size $keys`;
+
+			for( $n=0; $n<$numKeys; $n++ ) {
+				float $value = zooGetElement_float(0,`keyframe -in $keys[$n] -q -vc $curve`);
+				float $time = zooGetElement_float(0,`keyframe -in $keys[$n] -q $curve`);
+
+				$animCurves[$i] = $curve;
+				$keyTimes[$i] = $time;
+				$keyValues[$i] = $value;
+				$keyIdxs[$i] = $keys[$n];
+				$i++;
+				}
+			}
+		}
+	//ok so is there a timeline range selected?
+	else if( $range[2] ) {
+		string $curves[] = `keyframe -q -name`;
+		for( $curve in $curves ) {
+			int $keys[] = `keyframe -t( $range[0] +":"+ $range[1] ) -q -iv $curve`;
+			int $numKeys = `size $keys`;
+
+			for( $n=0; $n<$numKeys; $n++ ) {
+				float $time = zooGetElement_float(0,`keyframe -in $keys[$n] -q $curve`);
+				float $value = zooGetElement_float(0,`keyframe -in $keys[$n] -q -vc $curve`);
+
+				$animCurves[$i] = $curve;
+				$keyTimes[$i] = $time;
+				$keyValues[$i] = $value;
+				$keyIdxs[$i] = $keys[$n];
+				$i++;
+				}
+			}
+		}
+	//ok so are there keys on the current frame?
+	else if( `keyframe -t $current -q -kc` ) {
+		string $curves[] = `keyframe -q -name`;
+		for( $curve in $curves ) {
+			if( !`keyframe -t $current -q -kc $curve` ) continue;  //if the curve has no keys on this frame, continue looping
+			float $value = zooGetElement_float(0,`keyframe -t $current -q -vc $curve`);
+			int $idx = zooGetElement_int(0,`keyframe -t $current -q -iv $curve`);
+
+			$animCurves[$i] = $curve;
+			$keyTimes[$i] = $current;
+			$keyValues[$i] = $value;
+			$keyIdxs[$i] = $idx;
+			$i++;
+			}
+		}
+	//if nothing else gets a hit, then we need to find the closest keyframe
+	else {
+		string $curves[] = `keyframe -q -name`;
+		float $next = `findKeyframe -w next`;
+		float $prev = `findKeyframe -w previous`;
+		float $close = (abs($current-$next)<abs($current-$prev))? $next: $prev;  //figure out which key is closer
+
+		for( $curve in $curves ) {
+			if( !`keyframe -t $close -q -kc $curve` ) continue;  //if the curve has no keys on the near frame, continue looping
+			float $value = zooGetElement_float(0,`keyframe -t $close -q -vc $curve`);
+			int $idx = zooGetElement_int(0,`keyframe -t $close -q -iv $curve`);
+
+			$animCurves[$i] = $curve;
+			$keyTimes[$i] = $close;
+			$keyValues[$i] = $value;
+			$keyIdxs[$i] = $idx;
+			$i++;
+			}
+		}
+
+	return $i;
+	}
+
+
+global proc int isAKeyEditorVisible() {
+	if( `control -ex graphEditor1` && `control -ex dopeSheetPanel1` ) {
+		if( `control -q -io graphEditor1` && `control -q -io dopeSheetPanel1` ) return 0;
+		if( !`control -q -vis graphEditor1` && !`control -q -vis dopeSheetPanel1` ) return 0;
+		}
+
+	if( `control -ex graphEditor1` && !`control -ex dopeSheetPanel1` ) {
+		if( `control -q -io graphEditor1` ) return 0;
+		if( !`control -q -vis graphEditor1` ) return 0;
+		}
+
+	if( `control -ex dopeSheetPanel1` && !`control -ex graphEditor1` ) {
+		if( `control -q -io dopeSheetPanel1` ) return 0;
+		if( !`control -q -vis dopeSheetPanel1` ) return 0;
+		}
+
+	return 1;
+	}
+
+
+//zoo.end

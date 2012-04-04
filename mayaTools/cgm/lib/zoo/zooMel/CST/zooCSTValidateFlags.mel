@@ -1,0 +1,27 @@
+zooArrays_str;
+zooFlags;
+
+
+//returns whether a given option string is valid or not
+global proc string[] zooCSTValidateFlags( string $optionStr ) {
+	string $validRootFlags[] = {};
+	string $validSpineFlags[] = {};
+	string $validHeadFlags[] = {"eyeParents,obj"};
+	string $validIKFKFlags[] = {"ikType,string","fkType,string","poleType,string","colour,int","fkCurve,bool","arrow,bool"};
+	string $validLimbFlags[] = {"buildclav,bool","stretch,bool","kneeMode,int","invert,bool","startObj,obj","endObj,obj"};
+	string $validFingerFlags[] = {"sliders,bool","wrist,string","control,string","num,int","name,string"};
+	string $validOtherFlags[] = {"triggers,bool","axis,axis","orient,bool","spaceswitching,bool","scale,float","curve,bool","world,obj","root,obj","chest,obj","head,obj","parents,obj","useExisting,bool"};
+	string $validFlags[] = $validRootFlags;
+
+	$validFlags = `zooAddArray_str $validFlags $validSpineFlags`;
+	$validFlags = `zooAddArray_str $validFlags $validHeadFlags`;
+	$validFlags = `zooAddArray_str $validFlags $validIKFKFlags`;
+	$validFlags = `zooAddArray_str $validFlags $validLimbFlags`;
+	$validFlags = `zooAddArray_str $validFlags $validOtherFlags`;
+
+	return `zooValidateFlagStr $optionStr $validFlags`;
+	}
+
+
+//zoo.end
+//macaroniKazoo ©2007

@@ -1,0 +1,154 @@
+//
+// zooKeyCommands
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 10 May 2003
+//
+// Description:
+// Runs a given command on the selected objects for every keyframe on the current
+// selection.  useful for changing rotation orders, or any other attributes that
+// require a script to set the attribute properly - space switching is a good
+// candidate/
+//
+// Usage:
+//  after sourcing the script, run this command:
+//	zooKeyCommandsWin;
+//
+
+
+{
+string $windowName = "zooKeyCommandsWindow";
+string $windowTitle = "zooKeyCommands   -:macaroniKazoo:-";
+
+if( `window -exists $windowName` ) deleteUI $windowName;
+window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -width 100 -height 100 $windowName;
+	menuBarLayout zooXferAnimMenuMain;
+	menu -label "Help";
+		menuItem -l "Help..." -c( "zooHelp zooKeyCommands 1" );
+		menuItem -d 1;
+		menuItem -l "Install Shelf Button" -c zooKeyCommandsInstallShelf;
+
+	string $formA = `formLayout`;
+		string $staLbl = `text -l "start frame:"`;
+		string $staNum = `textField -tx "!" zooKeyCommandsTextStart`;
+		string $endLbl = `text -l "end frame:"`;
+		string $endNum = `textField -tx "!" zooKeyCommandsTextEnd`;
+		string $cmdLbl = `text -l "command to run:"`;
+		string $bake = `checkBox -l "bake every frame" -v 0 zooKeyCommandsCheckBake`;
+		string $cmdStr = `scrollField -tx "" zooKeyCommandsTextCmd`;
+		//print("{\nstring $a=`textField -q -tx zooKeyCommandsTextStart`;\nstring $b=`textField -q -tx zooKeyCommandsTextEnd`;\nstring $c=`scrollField -q -tx zooKeyCommandsTextCmd`;\nzooKeyCommands ( \"-frames \"+ $a +\" \"+ $b ) $c;\n}");
+		button -l "execute command" -c("{\nstring $a=`textField -q -tx zooKeyCommandsTextStart`;\nstring $b=`textField -q -tx zooKeyCommandsTextEnd`;\nstring $c=`scrollField -q -tx zooKeyCommandsTextCmd`;\nint $d=`checkBox -q -v zooKeyCommandsCheckBake`;\nzooKeyCommands ( \"-frames \"+ $a +\" \"+ $b +\" -bake \"+ $d ) $c;\n}") zooKeyCommandsWinButtExecute;  //zooKeyCommandsWinExecute
+		string $image = `image -width 100 -height 8 -backgroundColor ((float)1) ((float)0) ((float)0) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+			popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+
+formLayout -e
+	-af $staLbl "top" 3
+	-af $staLbl "left" 0
+	-an $staLbl "right"
+	-an $staLbl "bottom"
+
+	-af $staNum "top" 0
+	-ac $staNum "left" 5 $staLbl
+	-ap $staNum "right" 3 50
+	-an $staNum "bottom"
+
+	-af $endLbl "top" 3
+	-ap $endLbl "left" 2 50
+	-an $endLbl "right"
+	-an $endLbl "bottom"
+
+	-af $endNum "top" 0
+	-ac $endNum "left" 5 $endLbl
+	-af $endNum "right" 0
+	-an $endNum "bottom"
+
+	-ac $cmdLbl "top" 0 $endNum
+	-af $cmdLbl "left" 0
+	-ac $cmdLbl "right" 0 $bake
+	-an $cmdLbl "bottom"
+
+	-ac $bake "top" 0 $endNum
+	-an $bake "left"
+	-af $bake "right" 0
+	-an $bake "bottom"
+
+	-ac $cmdStr "top" 0 $cmdLbl
+	-af $cmdStr "left" 0
+	-af $cmdStr "right" 0
+	-ac $cmdStr "bottom" 0 zooKeyCommandsWinButtExecute
+
+	-an zooKeyCommandsWinButtExecute "top"
+	-af zooKeyCommandsWinButtExecute "left" 0
+	-af zooKeyCommandsWinButtExecute "right" 0
+	-ac zooKeyCommandsWinButtExecute "bottom" 2 $image
+
+	-an $image "top"
+	-af $image "left" 0
+	-af $image "right" 0
+	-af $image "bottom" 0
+	$formA;
+
+popupMenu -p $staNum;
+	menuItem -l ". - current frame" -c( "textField -e -tx \".\" "+ $staNum );
+	menuItem -l "* - first key" -c( "textField -e -tx \"*\" "+ $staNum );
+	menuItem -l "! - current range start" -c( "textField -e -tx \"!\" "+ $staNum );
+	menuItem -l ": - selected range start" -c( "textField -e -tx \":\" "+ $staNum );
+	menuItem -l "$ - current scene start" -c( "textField -e -tx \"$\" "+ $staNum );
+	menuItem -l "< - previous key" -c( "textField -e -tx \"<\" "+ $staNum );
+	menuItem -l "> - next key" -c( "textField -e -tx \">\" "+ $staNum );
+
+popupMenu -p $endNum;
+	menuItem -l ". - current frame" -c( "textField -e -tx \".\" "+ $endNum );
+	menuItem -l "* - last key" -c( "textField -e -tx \"*\" "+ $endNum );
+	menuItem -l "! - current range end" -c( "textField -e -tx \"!\" "+ $endNum );
+	menuItem -l ": - selected range end" -c( "textField -e -tx \":\" "+ $endNum );
+	menuItem -l "$ - current scene end" -c( "textField -e -tx \"$\" "+ $endNum );
+	menuItem -l "< - previous key" -c( "textField -e -tx \"<\" "+ $endNum );
+	menuItem -l "> - next key" -c( "textField -e -tx \">\" "+ $endNum );
+
+popupMenu -p $cmdStr -pmc( "zooBuildKeyCommandsPresetsPopup zooKeyCommandsPopPresets;" ) zooKeyCommandsPopPresets;
+
+showWindow $windowName;
+}
+
+
+global proc zooKeyCommandsWinExecute() {
+	string $start = `textField -q -tx zooKeyCommandsTextStart`;
+	string $end = `textField -q -tx zooKeyCommandsTextEnd`;
+	string $cmd = `scrollField -q -tx zooKeyCommandsTextCmd`;
+	int $bake = `checkBox -q -v zooKeyCommandsCheckBake`;
+
+	print( "executing command:  "+ $cmd +"\n" );
+	zooKeyCommands ( "-frames "+ $start +" "+ $end +" -bake "+ $bake ) $cmd;
+	}
+
+
+global proc zooBuildKeyCommandsPresetsPopup( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "setKeyframe (all attributes)" -c( "zooSetKeyCommandsWindowCmd \"setKeyframe;\";" );
+	menuItem -l "setKeyframe (pos and rot only)" -c( "zooSetKeyCommandsWindowCmd \"setKeyframe -at t -at r -at parent;\"" );
+	menuItem -l "zooChangeSpace" -c( "zooSetKeyCommandsWindowCmd \"zooChangeSpace \\\"-attr parent 0\\\" #;\"" );
+	menuItem -l "change rotate order" -c( "zooSetKeyCommandsWindowCmd \"xform -p 1 -roo zxy #;\\nsetKeyframe;\\nsetAttr #.rotateOrder 0;\\n//NOTE: you still need to manually change the\\n//rotation order attribute after this script\\n//finishes\\n//\\n//This script just makes sure all previously\\n//set keys are oriented correctly for the\\n//new rotation order\"" );
+	menuItem -d 1;
+
+	//now look for any and all objMenu commands on the selected objects
+	string $ls[] = `ls -sl`;
+	zooObjMenuUtils;
+	for( $s in $ls ) {
+		int $cmds[] = `zooObjMenuListCmds $s`;
+		for( $n in $cmds ) {
+			string $name = `zooGetObjMenuCmdName $s $n`;
+			menuItem -l $name -c( "zooSetKeyCommandsWindowCmd `zooGetObjMenuCmdStr "+ $s +" "+ $n +"`;" );
+			}
+		}
+	}
+
+
+global proc zooSetKeyCommandsWindowCmd( string $cmd ) {
+	scrollField -e -tx $cmd zooKeyCommandsTextCmd;
+	}
+
+
+//zoo.end

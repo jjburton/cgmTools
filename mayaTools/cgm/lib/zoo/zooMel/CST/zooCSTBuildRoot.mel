@@ -1,0 +1,117 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooCSTPrimitives;
+zooShaders;
+zooSpaceSwitching;
+zooRenamerUtils;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildRoot( string $prefix, string $root, string $optionStr ) {
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $hips = "";
+		string $colour = "darkblue 0.65";
+		float $scale = 1;
+		int $buildhips = 0;
+		int $pickwalking = 1;
+		int $isCurve = 0;
+
+		$optionTemp = `zooGetFlagArguments $optionStr hips`; if( `size $optionTemp` ) if( `objExists $optionTemp[0]` ) $hips = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr buildhips`; if( `size $optionTemp` ) $buildhips = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr pickwalking`; if( `size $optionTemp` ) $pickwalking = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr curve`; if( `size $optionTemp` ) $isCurve = $optionTemp[0];
+
+
+	//------
+	//deal with colours
+	//------
+		float $colourArray[] = `zooColourToFloat $colour`;
+		float $lightMult = 0.5;
+		float $darkMult = 0.5;
+		string $darkColour = `zooArrayToStr_float { $colourArray[0]*$darkMult, $colourArray[1]*$darkMult, $colourArray[2]*$darkMult, $colourArray[3] } " "`;
+		string $lightColour = `zooArrayToStr_float { (1-$colourArray[0])*$lightMult+$colourArray[0], (1-$colourArray[1])*$lightMult+$colourArray[1], (1-$colourArray[2])*$lightMult+$colourArray[2], $colourArray[3] } " "`;
+
+
+	//------
+	//create the controls, and parent them
+	//------
+		string $rootControl = `zooBuildControl "upperBodyControl" ( "-type band -place "+ $root +" -scale "+ (3.2*$scale) +" -colour "+ $colour )`;
+		string $rootGimbal = `zooBuildControl "gimbalControl" ( "-type ring -place "+ $root +" -placepivot %p -offset 0.2up -scale "+ (3.2*$scale) +" -colour "+ $darkColour )`;
+		string $rootSpace = `zooBuildControl "rootSpaceControl" ( "-type null -place "+ $root )`;
+		string $hipsControl = "";
+
+		parent $rootGimbal $rootControl;
+		parent $rootControl $rootSpace;
+
+		if( $buildhips ) {
+			$hipsControl = `zooBuildControl "hipsControl" ( "-type ring -place "+ $root +" -placepivot %p -offset -0.2up -scale "+ (2.9*$scale) +" -colour "+ $lightColour )`;
+			parent $hipsControl $rootGimbal;
+			zooAttrState "-attrs t s -k 0 -l 1" $hipsControl;
+			zooAttrState "-attrs v -k 0" $hipsControl;
+			}
+
+
+	//------
+	//turn unwanted transforms off, so that they are locked, and no longer keyable
+	//------
+		string $turnTranslateOff[] = { $rootGimbal };
+		string $turnScaleOff[] = { $rootControl, $rootGimbal };
+
+		for ( $obj in $turnTranslateOff ) zooAttrState "-attrs t -k 0 -l 1" $obj;
+		for ( $obj in $turnScaleOff ) zooAttrState "-attrs s -k 0 -l 1" $obj;
+		for ( $obj in $turnScaleOff ) zooAttrState "-attrs v -k 0" $obj;
+
+		for( $shape in `listRelatives -s $rootGimbal` ) setAttr ( $shape +".v" ) 0;
+		xform -p 1 -roo xzy $rootControl;
+		xform -p 1 -roo zxy $rootGimbal;
+
+
+	//------
+	//build pickwalking if required
+	//------
+		if( $pickwalking ) {
+			zooPickwalk "-load";
+			zooSetPickwalkObj $rootGimbal $rootControl "-dir up -reciprocal 0";
+			}
+
+
+	//------
+	//add right click menu to turn on the gimbal control
+	//------
+		zooObjMenuAddCmdAll $rootControl "toggle gimbal control" "{\nstring $kids[] = `listRelatives -type transform #`;\n$kids = `listRelatives -s $kids[0]`;\nint $vis = `getAttr ( $kids[0] +\".v\" )`;\nfor( $k in $kids ) setAttr ( $k +\".v\" ) (!$vis);\n}";
+		zooObjMenuAddCmdAll $rootGimbal "toggle gimbal control" "{\nstring $kids[] = `listRelatives -s #`;\nint $vis = `getAttr ( $kids[0] +\".v\" )`;\nfor( $k in $kids ) setAttr ( $k +\".v\" ) (!$vis);\nselect `listRelatives -p`;\n}";
+		zooObjMenuAddCmdAll $rootControl "mirror pose" ( "zooMirrorUtils;\nzooMirrorChar "+ $prefix +" \"\";" );
+		for( $obj in {$rootControl,$rootGimbal} ) setObjMenuKillState $obj 1;
+		if( $buildhips ) setObjMenuKillState $hipsControl 1;
+
+
+	//------
+	//now brand all objects
+	//------
+		string $controllers[] = { $rootControl, "", $rootSpace, $rootGimbal };
+		if( $buildhips ) $controllers[1] = $hipsControl;
+		for( $obj in $controllers ) zooBrandObject name $prefix $obj;
+		zooBrandObject root $prefix $rootControl;
+		zooBrandObject rootGimbal $prefix $rootGimbal;
+		if( $buildhips ) zooBrandObject hips $prefix $hipsControl;
+
+
+	//------
+	//cleanup - put all control objects where they should be in the outliner
+	//------
+		for( $n=0; $n<`size $controllers`; $n++ ) $controllers[$n] = `zooRenamerFunctions replace "[0-9]+$" "" $controllers[$n]`;
+
+	return $controllers;
+	}
+
+
+//zoo.end

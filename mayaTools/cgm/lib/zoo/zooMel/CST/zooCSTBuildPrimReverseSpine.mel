@@ -1,0 +1,335 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooCSTPrimitives;
+zooSpaceSwitching;
+zooRenamerUtils;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildPrimReverseSpine( string $prefix, string $root, string $spineBase, string $spineEnd, string $optionStr ) {
+	echoRigElementCreationCommand ( "zooCSTBuildPrimReverseSpine \""+ $prefix +"\" "+ $root +" "+ $spineBase +" "+ $spineEnd +" \""+ $optionStr +"\";" );
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $spaceNodes[] = {};
+		string $parents[] = {};
+		string $hips = "";
+		string $type = "ring";
+		string $colour = "lightblue 0.65";
+		float $scale = 1;
+		int $spaceswitching = 1;
+		int $buildhips = 1;
+		int $align = 0;
+
+		$optionTemp = `zooGetFlagArguments $optionStr hips`; if( `size $optionTemp` ) $hips = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr parents`; if( `size $optionTemp` ) for( $p in $optionTemp ) if( `objExists $p` ) $parents[( `size $parents` )] = $p;
+		$optionTemp = `zooGetFlagArguments $optionStr spaceswitching`; if( `size $optionTemp` ) $spaceswitching = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr align`; if( `size $optionTemp` ) $align = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr type`; if( `size $optionTemp` ) $type = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+
+
+	//------
+	//always build the world first - the world creation proc only builds the world once for any given prefix, so a world control is never created more than once
+	//------
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+		string $masterqss = $worldParts[2];
+		string $qss = $worldParts[3];
+		if( !`objExists $hips` || $hips == $root ) $buildhips = 0;
+
+
+	//------
+	//build a list of all spine joints - start from the bottom of the heirarchy, and work up - a joint only has one parent
+	//------
+		string $spines[] = {};
+		$spines[0] = $spineEnd;
+		$spines = zooAddArray_str( $spines, `zooGetInBTweenJoints $spineBase $spineEnd` );
+		if( $spineBase != $spineEnd ) $spines[( `size $spines` )] = $spineBase;
+		$spines = `zooReverseArray_str $spines`;
+		if( `objExists $root` ) $spines = `zooAddArray_str { $root } $spines`;
+		int $numSpines = `size $spines`;
+
+
+	//------
+	//build the forward and reverse heirarchies
+	//------
+		string $forwardSpine[] = {};
+		string $reverseSpine[] = {};
+		string $forwardSpaces[] = {};
+		string $reverseSpaces[] = {};
+		string $constraints[] = {};
+
+		for( $n=0; $n<$numSpines; $n++ ) {
+			$forwardSpine[$n] = `zooBuildControl ( "forward_spine_"+($n+1)) ( "-type "+ $type +" -place "+ $spines[$n] +" -scale "+ $scale +" -colour darkblue 0.65" )`;
+			$reverseSpine[$n] = `zooBuildControl ( "reverse_spine_"+($numSpines-$n)) ( "-type "+ $type +" -place "+ $spines[$n] +" -scale "+ $scale +" -colour darkblue 0.65" )`;
+			if( $align ) $forwardSpaces[$n] = `zooCSTOrient2Obj $spines[$n] $forwardSpine[$n]`;
+			else $forwardSpaces[$n] = $forwardSpine[$n];
+			if( $align ) $reverseSpaces[$n] = `zooCSTOrient2Obj $spines[$n] $reverseSpine[$n]`;
+			else $reverseSpaces[$n] = $reverseSpine[$n];
+			$constraints[$n] = zooGetElement_str(0,`parentConstraint -mo $forwardSpine[$n] $reverseSpine[$n] $spines[$n]`);
+			}
+
+		for( $n=$numSpines-1; $n; $n-- ) parent $forwardSpaces[$n] $forwardSpine[( $n-1 )];
+		for( $n=1; $n<$numSpines; $n++ ) parent $reverseSpaces[( $n-1 )] $reverseSpine[$n];
+		for( $ctl in $forwardSpine ) if( `objExists ( $ctl +".radius" )`) {
+			setAttr ( $ctl +".radius" ) 0;
+			zooAttrState "-attrs radius -k 0 -l 1 -v 0" $ctl;
+			}
+
+
+	//------
+	//if the root joint has been specified, build a different shape control for it
+	//------
+		if( `objExists $root` ) {
+			string $newRootShape1 = `zooBuildControl ( "forward_spine_root" ) ( "-type ring -place "+ $forwardSpine[0] +" -scale "+ (3.1*$scale) +" -colour "+ $colour )`;
+			string $newRootShape2 = `zooBuildControl ( "reverse_spine_root" ) ( "-type ring -place "+ $reverseSpine[0] +" -scale "+ (3.1*$scale) +" -colour "+ $colour )`;
+			zooReplaceShape $newRootShape1 $forwardSpine[0] 0;
+			zooReplaceShape $newRootShape2 $reverseSpine[`size $reverseSpine`-1] 0;
+			delete $newRootShape1 $newRootShape2;
+			}
+
+
+	//------
+	//are we building the hips?
+	//------
+		string $hipsControl = "";
+		if( $buildhips ) {
+			$hipsControl = `zooBuildControl ( "hipsControl" ) ( "-type "+ $type +" -place "+ $root +" -scale "+ $scale +" -offset -0.5up"+" -colour "+ $colour )`;
+			$hipsSpace = `zooBuildControl ( "hipsSpace" ) ( "-type null -place "+ $root )`;
+			parent $hipsControl $hipsSpace;
+			parent $hipsSpace $worldControl;
+			orientConstraint $hipsControl $hips;
+			pointConstraint $root $hipsControl;
+			string $hipParents[] = `zooAddArray_str { $root, $worldControl } $parents`;
+			if( $spaceswitching ) $spaceNodes = zooAddArray_str(`zooBuildSpaceSwitch $hipsControl $hipsSpace $hipParents { "root", "world" } "-mo"`,$spaceNodes);
+			else orientConstraint $root $hipsSpace;
+			zooAttrState "-attrs t s -k 0 -l 1" $hipsControl;
+			zooAttrState "-attrs v -k 0" $hipsControl;
+			}
+
+
+	//------
+	//build the network to control the reverse setting
+	//------
+		string $reverse = `shadingNode -asUtility reverse`;
+		addAttr -k 1 -ln reverse -at bool $forwardSpine[0];
+		connectAttr -f ( $forwardSpine[0] +".reverse" ) ( $reverse +".inputX" );
+		connectAttr -f ( $reverse +".outputX" ) ( $forwardSpine[0] +".v" );
+		connectAttr -f ( $forwardSpine[0] +".reverse" ) ( `zooGetElement_str -1 $reverseSpine` +".v" );
+		for( $n=0; $n<`size $constraints`; $n++ ) {
+			connectAttr -f ( $reverse +".outputX" ) ( $constraints[$n] +".w0" );
+			connectAttr -f ( $forwardSpine[0] +".reverse" ) ( $constraints[$n] +".w1" );
+			}
+
+
+	//------
+	//build the interface on the fwd spine to the reverse setting
+	//------
+		string $objMenuCmd = "{\nzooArrays_str;\nzooFlags;\nzooTriggeredUtils;\nstring $objStr = zooArrayToStr_str(`zooTriggeredGetConnectedObjects nurbsSphere1`,\" \");\nzooChangeSpace ( \"-attr parent 0 -objs \"+ $objStr ) #;\n}";
+		int $cmd1Num = `zooObjMenuAddCmd $forwardSpine[0]`;
+		int $cmd2Num = `zooObjMenuAddCmd $forwardSpine[0]`;
+		int $cmd3Num = `zooObjMenuAddCmd (zooGetElement_str(-1,$forwardSpine))`;
+		int $other = `zooAddConnect (zooGetElement_str(-1,$forwardSpine)) $forwardSpine[0]`;
+		int $fwdConnects[] = {};
+		int $revConnects[] = {};
+
+		for( $n=0; $n<`size $forwardSpine`; $n++ ) $fwdConnects[( `size $fwdConnects` )] = `zooAddConnect $forwardSpine[0] $forwardSpine[$n]`;
+		for( $n=0; $n<`size $reverseSpine`; $n++ ) $revConnects[( `size $revConnects` )] = `zooAddConnect $forwardSpine[0] $reverseSpine[$n]`;
+		zooSetObjMenuCmdName $forwardSpine[0] "switch to reverse spine" $cmd1Num;
+		zooSetObjMenuCmdName $forwardSpine[0] "snap to reverse spine" $cmd2Num;
+		zooSetObjMenuCmdName (zooGetElement_str(-1,$forwardSpine)) "switch to reverse spine" $cmd3Num;
+
+		string $toFwdScript = "";
+		string $toRevScript = "";
+
+		//$revConnects = `zooReverseArray_int $revConnects`;
+		for( $n=0; $n<$numSpines; $n++ ) {
+			int $srcConnectNum = $fwdConnects[$n];
+			int $tgtConnectNum = $revConnects[$n];
+			$toFwdScript += "zooAlign \"-tgt %"+ $srcConnectNum +" -src %"+ $tgtConnectNum +"\";\n";
+			}
+		for( $n=$numSpines-1; $n>=0; $n-- ) {
+			int $srcConnectNum = $fwdConnects[$n];
+			int $tgtConnectNum = $revConnects[$n];
+			$toRevScript += "zooAlign \"-src %"+ $srcConnectNum +" -tgt %"+ $tgtConnectNum +"\";\n";
+			}
+		$toFwdScript += "setAttr #.reverse 0;";
+		$toRevScript += "setAttr #.reverse 1;";
+		zooSetObjMenuCmdStr $forwardSpine[0] $toRevScript $cmd1Num;
+		zooSetObjMenuCmdStr $forwardSpine[0] $toFwdScript $cmd2Num;
+		zooSetObjMenuCmdStr (zooGetElement_str(-1,$forwardSpine)) ( "zooObjMenuUtils;\nstring $cmd = `zooGetObjMenuCmdStr %"+ $other +" 0`;\n$cmd = `zooPopulateCmdStr %"+ $other +" $cmd {}`;\neval $cmd;" ) $cmd3Num;
+
+
+	//------
+	//build the interface on the rev spine to the reverse setting
+	//------
+		string $revSpineInterface = `zooGetElement_str -1 $reverseSpine`;
+		int $cmd1Num = `zooObjMenuAddCmd $revSpineInterface`;
+		int $cmd2Num = `zooObjMenuAddCmd $revSpineInterface`;
+		int $cmd3Num = `zooObjMenuAddCmd $reverseSpine[0]`;
+		int $other = `zooAddConnect $reverseSpine[0] $revSpineInterface`;
+
+		clear $fwdConnects;
+		clear $revConnects;
+		for( $n=0; $n<`size $forwardSpine`; $n++ ) $fwdConnects[( `size $fwdConnects` )] = `zooAddConnect $revSpineInterface $forwardSpine[$n]`;
+		for( $n=0; $n<`size $reverseSpine`; $n++ ) $revConnects[( `size $revConnects` )] = `zooAddConnect $revSpineInterface $reverseSpine[$n]`;
+		zooSetObjMenuCmdName $revSpineInterface "switch to forward spine" $cmd1Num;
+		zooSetObjMenuCmdName $revSpineInterface "snap to forward spine" $cmd2Num;
+		zooSetObjMenuCmdName $reverseSpine[0] "switch to forward spine" $cmd3Num;
+
+		$toFwdScript = "";
+		$toRevScript = "";
+		for( $n=0; $n<$numSpines; $n++ ) {
+			int $srcConnectNum = $fwdConnects[$n];
+			int $tgtConnectNum = $revConnects[$n];
+			$toFwdScript += "zooAlign \"-tgt %"+ $srcConnectNum +" -src %"+ $tgtConnectNum +"\";\n";
+			}
+		for( $n=$numSpines-1; $n>=0; $n-- ) {
+			int $srcConnectNum = $fwdConnects[$n];
+			int $tgtConnectNum = $revConnects[$n];
+			$toRevScript += "zooAlign \"-src %"+ $srcConnectNum +" -tgt %"+ $tgtConnectNum +"\";\n";
+			}
+		$toFwdScript += "setAttr %"+ $fwdConnects[0] +".reverse 0;";
+		$toRevScript += "setAttr %"+ $fwdConnects[0] +".reverse 1;";
+		zooSetObjMenuCmdStr $revSpineInterface $toFwdScript $cmd1Num;
+		zooSetObjMenuCmdStr $revSpineInterface $toRevScript $cmd2Num;
+		zooSetObjMenuCmdStr $reverseSpine[0] ( "zooObjMenuUtils;\nstring $cmd = `zooGetObjMenuCmdStr %"+ $other +" 0`;\n$cmd = `zooPopulateCmdStr %"+ $other +" $cmd {}`;\neval $cmd;" ) $cmd3Num;
+
+
+	//------
+	//add right click menu to turn on extra spine base control
+	//------
+		int $spineAConnects[] = {};
+		int $spineBConnects[] = {};
+		int $cmdANum = `zooObjMenuAddCmd $revSpineInterface`;
+		int $cmdBNum = `zooObjMenuAddCmd $forwardSpine[0]`;
+
+		for( $n=0; $n<`size $spines`; $n++ ) $spineAConnects[$n] = `zooAddConnect $revSpineInterface $spines[$n]`;
+		for( $n=0; $n<`size $spines`; $n++ ) $spineBConnects[$n] = `zooAddConnect $forwardSpine[0] $spines[$n]`;
+		string $cmdAStr = "zooLineOfAction;\nzooLineOfAction_multi { \"%"+ `zooArrayToStr_int $spineAConnects "\", \"%"` +"\" } \"\";";
+		string $cmdBStr = "zooLineOfAction;\nzooLineOfAction_multi { \"%"+ `zooArrayToStr_int $spineBConnects "\", \"%"` +"\" } \"\";";
+		zooSetObjMenuCmdName $revSpineInterface "draw line of action" $cmdANum;
+		zooSetObjMenuCmdName $forwardSpine[0] "draw line of action" $cmdBNum;
+		zooSetObjMenuCmdStr $revSpineInterface $cmdAStr $cmdANum;
+		zooSetObjMenuCmdStr $forwardSpine[0] $cmdBStr $cmdBNum;
+
+
+
+	//------
+	//now build a stand-in chest control that other primitives can get parented to
+	//------
+		string $chest = `zooBuildControl ( "chest" ) ( "-type null -place "+ $revSpineInterface +" -scale "+ $scale )`;
+		string $chestCon = zooGetElement_str(0,`parentConstraint -mo $forwardSpine[0] $chest`);
+
+		parentConstraint -mo $revSpineInterface $chest;
+		connectAttr -f ( $reverse +".outputX" ) ( $chestCon +".w0" );
+		connectAttr -f ( $forwardSpine[0] +".reverse" ) ( $chestCon +".w1" );
+		zooBrandObject name $prefix $chest;
+		zooBrandObject chest $prefix $chest;
+
+
+	//------
+	//now build a stand-in root control that other primitives can get parented to
+	//------
+		string $rootStandIn = `zooBuildControl ( "root" ) ( "-type null -place "+ $reverseSpine[0] +" -scale "+ $scale )`;
+		string $rootControl = zooGetElement_str(0,`parentConstraint -mo (zooGetElement_str(-1,$forwardSpine)) $rootStandIn`);
+
+		parentConstraint -mo $reverseSpine[0] $rootStandIn;
+		connectAttr -f ( $reverse +".outputX" ) ( $rootControl +".w0" );
+		connectAttr -f ( $forwardSpine[0] +".reverse" ) ( $rootControl +".w1" );
+		zooBrandObject name $prefix $rootStandIn;
+		zooBrandObject root $prefix $rootStandIn;
+		zooBrandObject rootGimbal $prefix $rootStandIn;
+
+
+	//------
+	//now brand all objects and clean up
+	//------
+		for( $n=0; $n<`size $forwardSpine`; $n++ ) zooBrandObject name $prefix $forwardSpine[$n];
+		for( $n=0; $n<`size $forwardSpine`; $n++ ) zooBrandObject spine $prefix $forwardSpine[$n];
+		for( $n=0; $n<`size $reverseSpine`; $n++ ) zooBrandObject name $prefix $reverseSpine[$n];
+		for( $n=0; $n<`size $reverseSpine`; $n++ ) zooBrandObject spine $prefix $reverseSpine[$n];
+		parent $chest $rootStandIn $partsControl;
+		parent (zooGetElement_str(-1,$reverseSpaces)) $forwardSpaces[0] $worldControl;
+
+
+	//------
+	//build the primitive record
+	//------
+		string $allSpines[] = `zooAddArray_str $forwardSpine $reverseSpine`;
+		string $id = `zooCSTGetPrimId reverseSpine "" $prefix`;
+		string $primitive = `zooCSTCreatePrimRecord reverseSpine $id $prefix`;
+		zooCSTRegisterInput $spineBase $primitive;
+		zooCSTRegisterInput $spineEnd $primitive;
+		zooCSTRegisterInput $root $primitive;
+		zooCSTPrimOutputs $allSpines $primitive;
+		zooCSTPrimOutputs $forwardSpaces $primitive;
+		zooCSTPrimOutputs $reverseSpaces $primitive;
+		zooCSTPrimOutputs $constraints $primitive;
+		zooCSTPrimOutputs { $reverse, $chest, $rootStandIn } $primitive;
+		zooBrandObject options $optionStr $primitive;
+		zooBrandObject version "1" $primitive;
+		zooCSTRegisterControl $rootControl $primitive;
+		for( $obj in $allSpines ) zooCSTRegisterControl $obj $primitive;
+		if( $buildhips ) {
+			zooCSTRegisterInput $hips $primitive;
+			zooCSTPrimOutputs { $hipsControl } $primitive;
+			zooCSTRegisterControl $hipsControl $primitive;
+			}
+
+
+	//------
+	//turn unwanted transforms off, so that they are locked, and no longer keyable
+	//------
+		for( $obj in $allSpines ) zooAttrState "-attrs radius s -k 0 -l 1 -v 0" $obj;
+		for( $obj in $allSpines ) zooAttrState "-attrs v -k 0" $obj;
+
+
+	//------
+	//add the controls to the qss
+	//------
+		for( $obj in $allSpines ) sets -add $qss $obj;
+
+	return $allSpines;
+	}
+
+
+//------
+//this proc deals with rebuilding the reverseSpine primitive
+//------
+global proc string[] zooCSTRebuildPrimReverseSpine( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $version = `zooQueryBrand version $primitive`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+	string $controls[] = `zooCSTListRegistered control $primitive`;
+	int $useExisting = 1;
+
+	string $dupes[] = {};
+	if( `size $controls` ) {
+		$dupes = `duplicate -rc $controls`;  //duplicate the control objects so we can grab the original control shape nodes, to parent under the new controls created
+		parent -w $dupes;
+		}
+
+	$temp = `zooGetFlagArguments $optionStr useExisting`; if( `size $temp` ) $useExisting = $temp[0];
+
+	zooCSTDeletePrimitive $primitive;
+	string $newControls[] = `zooCSTBuildPrimBasicSpine $prefix $inputs[0] $inputs[1] $inputs[2] $optionStr`;
+
+	//parent the shape nodes of the original controls to the transforms of the new controls
+	if( $useExisting ) for( $n=0; $n<`size $newControls`; $n++ ) zooReplaceShape $dupes[$n] $newControls[$n] 0;
+
+	delete $dupes;
+	return $newControls;
+	}
+
+
+//zoo.end

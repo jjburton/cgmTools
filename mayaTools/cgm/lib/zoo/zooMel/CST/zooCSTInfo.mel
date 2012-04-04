@@ -1,0 +1,8 @@
+global proc string zooCSTInfo ( string $function ) {
+	string $creationDate = "08 March 2003";
+	string $version = "4.08.04";
+
+	if( $function == "created" ) return $creationDate;
+	if( $function == "version" ) return $version;
+	return "";
+	}

@@ -1,0 +1,44 @@
+Overview
+--------
+This script allows you to pose any fk chain using ik.  What it does, is create a temporary skeleton with an ik handle controlling it.  When the temporary skeleton is moved with the ik handle, the fk heirarchy is snapped to the temporary skeleton.  It is all done using script jobs, so no connections are made to the original fk heirarchy.  This way, you can pose practically ANY fk heirarchy (the heirarchy doesn't even have to be made of joints, nor does it have to be a simple heirarchy - split heirarchies are allowed) using ik.
+
+
+Usage
+--------
+The UI allows you to create a simple 3 joint chain - this is the most common scenario, and is used to pose fk arms and legs.  But you can use this script to control fk chains of any length.  For now, I will take you through the use of the script with simple 3 pivot fk chains.
+
+So I will assume you're working with an fk arm rig for the sake of this example.  Of course, the procedure works the same with a leg.  So to start with, select the bicep.  In the UI, press the button that says "<-start".  This will load the selected bicep control object into the UI.
+
+Do the same for the elbow control and the wrist control.  Once you're done, hit the "createIK" button and you're done.  The script creates a duplicate joint chain, an ik handle, and a locator which acts as a pole vector.  So now try moving the ik handle.  Once you finish moving it, the fk chain should snap into place.  Similarly with the pole vector.  By selecting it and moving it around, when you finish moving, the fk chain will snap into place.
+
+
+Long FK Chains
+--------
+So for longer chains, you must use the script in a different way.  This way is actually easier than using the UI.  Simply select the fk objects in heirarchical order.  So just say you want to do it for a tentacle.  You'd start with the base of the tentacle, and work your way toward the tip.  Once you've selected all the controls you want to manipulate, go to Manage->Create IK From Selected.  Voila.
+
+Now when you create the ik control, make sure the fk chain is bent, otherwise maya won't know which way to bend the fk chain, and it will most likely bend it the wrong way.
+
+Also, another thing to note.  If you want certain areas of your fk chain to bend more than others, you can bend them more before you create the ik chain.  So if you have 5 objects, 3 of them slightly bent and 2 of them strongly bent, the 2 strongly bent ones will actually do most of the bending in the ik chain.  This can be a really easy way to control where the most bending takes place in longer chains.
+
+
+Deleting bodgeK
+--------
+To delete a bodgeK chain, simply delete the ikHandle.  All the scriptJobs, and temporary objects created will automatically be deleted along with it.
+
+NOTE: if you save a scene with bodgeK in it, when the scene is loaded back up again, the bodgeK handles will no longer work.  ScriptJobs control the bodgeK, and are not saved with your scene.  So its a good idea to delete bodgeK handles before saving.
+
+
+WARNING: note that the scriptJob that bodgeK uses, runs everytime the ikHandle changes.  So if you keyframe the bodgeK ikHandle, when you scrub the timeline, the scriptJob will get fired off everyframe, and you'll have keys all over your original objects.  The simplest way to avoid this problem is to not set keys on the bodgeK handle.  Remember, you can use the snapIK button to snap the bodgeK handle to the original objects.
+
+
+Using zooTriggered
+--------
+You can make the bodgeK handle a trigger, so that when you select it, it automatically snaps to the original joint chain.  This saves you keeping the zooBodgeK window open all the time.
+
+
+Using zooObjMenu
+--------
+If you work with zooObjMenu, there are a couple of commands automatically setup on the ikHandle to help you work more effectively with zooBodgeK.  You can snap the ik handle to the fk chain, or vice versa.  This allows you to use both fk and the ik at once to pose your chain for maximum flexibility.
+
+Hamish McKenzie ©2005...
+macaroniKazoo Productions ©2005...

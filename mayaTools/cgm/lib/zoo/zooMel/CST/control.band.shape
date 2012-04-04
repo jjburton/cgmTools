@@ -1,0 +1,17 @@
+{
+string $control[] = {};
+$control[0] = `createNode transform -n "zooControl"`;
+
+string $circ1[] = `circle -c 0 0.13 0 -nr 0 1 0 -sw 360 -r 0.5 -d 3 -ut 0 -tol 0.02 -s 6 -ch 0`;
+string $circ2[] = `circle -c 0 -0.13 0 -nr 0 1 0 -sw 360 -r 0.5 -d 3 -ut 0 -tol 0.02 -s 6 -ch 0`;
+string $bandSurf[] = `cylinder -p 0 0 0 -ax 0 1 0 -ssw 0 -esw 360 -r 0.5 -hr 0.5 -d 3 -ut 0 -tol 0.01 -s 8 -nsp 1 -ch 0`;
+
+for( $s in `listRelatives -f -s $circ1[0]` ) parent -add -s $s $control[0];
+for( $s in `listRelatives -f -s $circ2[0]` ) parent -add -s $s $control[0];
+for( $s in `listRelatives -f -s $bandSurf[0]` ) parent -add -s $s $control[0];
+delete $circ1;
+delete $circ2;
+delete $bandSurf;
+
+select $control[0];
+}

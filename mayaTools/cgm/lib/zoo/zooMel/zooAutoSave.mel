@@ -1,0 +1,283 @@
+//
+// autoSave
+//
+// author: Hamish McKenzie
+// Created: 02 March 2004
+//
+// Description:
+// saves your scene incrementally after a certain number of select
+// commands have been parsed...
+//
+// Usage:
+//  zooAutoSaveConfig;
+//  this opens the config window to control zooAutoSave - remember
+//  to install the shelf button from the File menu
+//
+//  zooAutoSave;
+//  this loads the script
+//
+
+
+zooShelveIt;
+zooUtils;
+
+
+global proc zooAutoSave() {  //number is the number of object selections that happen before an autosave happens
+	//source all dependencies
+	string $deps[] = `zooAutoSaveDependencies -scripts`;
+	for( $script in $deps ) if( `exists $script` ) eval( "source "+ $script );
+
+	int $number = `zooGetDefaultThreshold`;
+	if( !`optionVar -exists zooAutoSaveThreshold` ) zooAutoSaveConfig;
+	zooAutoSaveFunctions toggle $number;
+	}
+
+
+global proc zooAutoSaveFunctions( string $function, int $number ) {
+	global int $zooAutoSaveJobNumber;
+	global int $zooAutoSaveLastSave;
+	string $sel[] = `ls -sl`;
+	string $fileType = `optionVar -q defaultFileSaveType`;
+	string $extension = "mb";
+	string $autoBakFile = `internalVar -uad` +"autobak.";
+
+	if( $zooAutoSaveLastSave == 0 ) $zooAutoSaveLastSave = `zooTimeAsMinutes ""`;
+	if( $fileType != "mayaBinary" ) $extension = "ma";
+	$autoBakFile += $extension;
+	if( $number == -1 ) $number = `zooGetDefaultThreshold`;
+
+	switch ( $function ) {
+		case "load":
+			if ( !`zooAutoSaveState` ) {
+				$zooAutoSaveJobNumber = `scriptJob -compressUndo 1 -event SelectionChanged ( "zooAutoSaveFunctions autoSave "+ $number )`;
+				print( "zooAutoSave! has been loaded!\n" );
+				}
+			else warning( "zooAutoSave! is already loaded" );
+
+			zooUpdateAutoSaveUIState;
+			break;
+
+		case "unload":
+			if ( `zooAutoSaveState` ) {
+				scriptJob -kill $zooAutoSaveJobNumber;
+				$zooAutoSaveJobNumber = 0;
+				print( "zooAutoSave! has been unloaded\n" );
+				}
+			else { warning( "zooAutoSave! wasn't loaded" ); }
+
+			zooUpdateAutoSaveUIState;
+			break;
+
+		case "toggle":
+			if ( `zooAutoSaveState` ) zooAutoSaveFunctions unload $number;
+			else zooAutoSaveFunctions load $number;
+			break;
+
+		case "autoSave":
+			float $curTime = `zooTimeAsMinutes ""`;
+			if( $curTime - $zooAutoSaveLastSave > $number ) {
+				string $currentContext = `currentCtx`;  //get the current context so we can revert to it after the save
+				string $currentFile = `file -q -sn`;
+				string $renameOnLoad = `scriptNode -n zooAutoSaveRenameOnLoad`;
+				string $renameCommand = "file -rename \""+ $currentFile +"\";\ndelete "+ $renameOnLoad +";";
+				string $savedFile = "";
+
+				setAttr -type "string" ( $renameOnLoad +".before" ) $renameCommand;
+				setAttr ( $renameOnLoad +".scriptType" ) 2;
+				file -rename $autoBakFile;
+				print "---attempting to save autoBak - please wait...\n";
+				$savedFile = `file -force -save`;
+				file -rename $currentFile;
+
+				if( $savedFile != $autoBakFile ) warning( "could not save autoBak file in "+ $autoBakFile );
+				else print( "---autoBack file saved!  "+ $autoBakFile +"---\n" );
+
+				delete $renameOnLoad;
+				$zooAutoSaveLastSave = `zooTimeAsMinutes ""`;
+				catchQuiet( `setToolTo $currentContext` );
+				select $sel;
+				}
+			break;
+		}
+	}
+
+
+global proc float zooTimeAsMinutes( string $timeStr ) {
+	if( $timeStr == "" ) $timeStr = `about -ct`;
+	string $toks[] = `zooTokenize $timeStr ":"`;
+	float $mins = 0;
+
+	$mins = (60*((int)$toks[0])) + ((int)$toks[1]) + ((int)$toks[2])/60.0;
+	return $mins;
+	}
+
+
+global proc zooUpdateAutoSaveUIState() {
+	string $shelfButtons[] = `zooGetShelfButtonAll zooAutoSave`;
+	int $state = `zooAutoSaveState`;
+
+	for( $button in $shelfButtons ) {
+		shelfButton -e -image1 ( "zooAutoSave_"+ $state +".xpm" ) $button;
+		if( `shelfButton -q -numberOfPopupMenus $button` == 0 ) zooInstallAutoSavePopup $button;
+		}
+	}
+
+
+global proc zooInstallAutoSavePopups() {
+	string $shelfButtons[] = `zooGetShelfButtonAll zooAutoSave`;
+	for( $button in $shelfButtons ) zooInstallAutoSavePopup $button;
+	}
+
+
+global proc zooInstallAutoSavePopup( string $button ) {
+	if( `shelfButton -q -numberOfPopupMenus $button` ) return;
+	popupMenu -p $button -pmc( "zooAutoSaveBuildPopup "+ $button +"_popup" ) ( $button +"_popup" );
+	}
+
+
+global proc zooAutoSaveBuildPopup( string $parent ) {
+	global int $zooAutoSaveLastSave;
+	int $threshold = `zooAutoSaveGetIncrementNumber`;
+
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "configure" -c ( "zooAutoSaveConfig" );
+	menuItem -d 1;
+	menuItem -l "force auto-save" -c( "$zooAutoSaveLastSave = "+ $threshold +"+1; zooAutoSaveFunctions autoSave 0;" );
+	menuItem -l( "reset counter:  "+ $zooAutoSaveLastSave +" / "+ $threshold ) -c( "$zooAutoSaveLastSave = `about -ct`;" );
+	menuItem -d 1;
+	menuItem -l "Help..." -c ( "zooHelp zooAutoSave 1" );
+	menuItem -l "About" -c ( "zooHelp zooAutoSave 2" );
+	}
+
+
+//returns the current state of the script - ie whether the scriptJob is loaded or not
+global proc int zooAutoSaveState () {
+	global int $zooAutoSaveJobNumber;
+	int $state = 0;
+
+	if ( `scriptJob -exists $zooAutoSaveJobNumber` && $zooAutoSaveJobNumber != 0 ) $state = 1;
+	return $state;
+	}
+
+
+//installs a shelf button to the current shelf
+global proc zooAutoSaveInstallShelfButton () {
+	string $button = `zooInstallShelfButton zooAutoSave`;
+	string $label = "zooAutoSave - is an autosave script that will save your scene to a temp file every so often";
+	string $image = "zooAutoSave_"+ `zooAutoSaveState` +".xpm";
+
+	shelfButton -e -l $label -image1 $image -c( "zooAutoSave;" ) $button;
+	}
+
+
+global proc zooAutoSaveConfig () {
+	global int $zooAutoSaveLastSave;
+	string $windowName = "zooAutoSaveConfig";
+	string $windowTitle = "zooAutoSave v"+ `zooAutoSaveInfo version`;
+	string $shelfButtons[] = `zooGetShelfButtonAll zooAutoSave`;
+
+	if( !`size $shelfButtons` ) if( !`optionVar -q zooAutoSaveShelfQuery` ){
+		string $q = `confirmDialog -title "Confirm" -message "Do you want to\ninstall a shelf button?" -b "Yes" -b "No" -defaultButton "Yes" -cancelButton "No" -dismissString "No"`;
+		if( $q != "No" ) zooAutoSaveInstallShelfButton;
+		}
+	if ( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 $windowName;
+		menuBarLayout;
+			menu -label "Shelf";
+				menuItem -l "Install Shelf Button" -c ( "zooAutoSaveInstallShelfButton" );
+				menuItem -l "Remove Shelf Button" -c ( "deleteUI `zooShelveItGetShelfButton zooAutoSave`" );
+			menu -label "Help";
+				menuItem -l "Help..." -c ( "zooHelp zooAutoSave 1" );
+				menuItem -divider 1;
+				menuItem -l "About" -c ( "zooHelp zooAutoSave 2" );
+
+		columnLayout -adjustableColumn true -rowSpacing 3;
+			rowLayout -numberOfColumns 2
+				-columnWidth2 110 90
+				-columnAttach 1 "both" 	1
+				-columnAttach 2 "both" 	1;
+				text -l "save after (mins):";
+				intField -minValue -2 -maxValue 1000 -v `zooAutoSaveGetIncrementNumber` -cc( "optionVar -iv zooAutoSaveThreshold #1" ) zooAutoSaveIntThreshold;
+			setParent ..;
+
+			checkBox -l "stop bugging me" -v( `optionVar -q zooAutoSaveShelfQuery` ) -cc( "if( #1 ) optionVar -iv zooAutoSaveShelfQuery 1; else optionVar -rm zooAutoSaveShelfQuery" );
+			rowLayout -numberOfColumns 2
+				-columnWidth2 100 100
+				-columnAttach 1 "both" 	1
+				-columnAttach 2 "both" 	1;
+				button -l "change" -c ( "zooAutoSaveFunctions unload n; zooAutoSaveFunctions load `intField -q -v zooAutoSaveIntThreshold`;deleteUI "+ $windowName );
+				button -l "cancel" -c ( "deleteUI "+ $windowName );
+			setParent ..;
+
+			string $image = `image -width 190 -height 8 -backgroundColor ((float)1) ((float)0) ((float)0) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+
+	showWindow $windowName;
+	}
+
+
+global proc int zooAutoSaveGetIncrementNumber () {
+	global int $zooAutoSaveJobNumber;
+	string $jobs[] = `scriptJob -lj`;
+	int $increment = 5;
+	int $jobNum = $zooAutoSaveJobNumber;
+
+	for( $job in $jobs ) {
+		string $buffer[] = {};
+		tokenize $job ":" $buffer;
+		if( `size $buffer` ) if( $buffer[0] == $jobNum ) {
+			string $flags[] = {};
+			string $commandWords[] = {};
+
+			tokenize $buffer[1] "\"" $flags;
+			tokenize $flags[7] " " $commandWords;
+			$increment = $commandWords[2];
+			}
+		else $increment = `zooGetDefaultThreshold`;
+		}
+
+	if( $increment < 1 ) $increment = 1;
+	return $increment;
+	}
+
+
+global proc int zooGetDefaultThreshold() {
+	int $number = 5;
+	if( `optionVar -ex zooAutoSaveThreshold` ) $number = `optionVar -q zooAutoSaveThreshold`;
+	if( $number < 1 ) $number = 1;
+	return $number;
+	}
+
+
+global proc string zooAutoSaveInfo ( string $function ) {
+	string $creationDate = "02 March 2004";
+	string $currentVersion = "2.06.07";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+global proc string[] zooAutoSaveDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooShelveIt";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+	$iconDependencies[( `size $iconDependencies` )] = "zooAutoSave_0.xpm";
+	$iconDependencies[( `size $iconDependencies` )] = "zooAutoSave_1.xpm";
+	$helpDependencies[( `size $helpDependencies` )] = "zooAutoSave_help";
+	$helpDependencies[( `size $helpDependencies` )] = "zooAutoSave_history";
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

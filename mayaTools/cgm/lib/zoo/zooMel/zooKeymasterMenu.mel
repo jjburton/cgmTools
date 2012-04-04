@@ -1,0 +1,87 @@
+global proc zooKeymasterMenu() {
+	global int $zooIsClicked;
+	string $panel = `getPanel -up`;
+
+	$zooIsClicked = 0;
+	if( `popupMenu -exists tempMM` ) deleteUI tempMM;
+	if( !`control -ex $panel` ) $panel = "viewPanes";
+	popupMenu -ctl 0 -alt 0 -sh 0 -mm 1 -b 1 -aob 1 -p $panel -pmc "zooKeymasterMenuUI tempMM" tempMM;
+	}
+
+
+global proc zooKeymasterMenuUI( string $parent ) {
+	global int $zooIsClicked;
+	float $factor = `zooKeymasterDefaultSettings zooKeyFactor`;
+	int $pivotIdx = `zooKeymasterDefaultSettings zooKeyPivot`;
+	int $abs = `optionVar -q zooKeyAbs`;
+	int $curvePiv = `optionVar -q zooKeyCurvePivot`;
+
+	$zooIsClicked = 1;
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	menuItem -l "nudge fwd 1" -c( "zooKeymaster \"-dir right -nudge 1\";" ) -rp E;
+	menuItem -l "nudge back 1" -c( "zooKeymaster \"-dir left -nudge 1\";" ) -rp W;
+	menuItem -l "nudge fwd 2" -c( "zooKeymaster \"-dir right -nudge 2\";" ) -rp NE;
+	menuItem -l "nudge back 2" -c( "zooKeymaster \"-dir left -nudge 2\";" ) -rp NW;
+
+	menuItem -l "key end to current time" -c( "zooKeysToCurrentTime 0" ) -rp SE;
+	menuItem -l "key start to current time" -c( "zooKeysToCurrentTime 1" ) -rp SW;
+
+	menuItem -l "scale value up" -c( "zooKeymaster \"-dir up\";" ) -rp N;
+	menuItem -l "scale value down" -c( "zooKeymaster \"-dir down\";" ) -rp S;
+
+	menuItem -l "use zero pivot" -cb( $pivotIdx == 1 ) -c( "optionVar -iv zooKeyPivot 1" );
+	menuItem -l "use minimum pivot" -cb( $pivotIdx == 2 ) -c( "optionVar -iv zooKeyPivot 2" );
+	menuItem -l "use mid pivot" -cb( $pivotIdx == 3 ) -c( "optionVar -iv zooKeyPivot 3" );
+	menuItem -l "use maxumum pivot" -cb( $pivotIdx == 4 ) -c( "optionVar -iv zooKeyPivot 4" );
+	menuItem -d 1;
+	menuItem -l "scale value" -sm 1;
+		menuItem -l "scale by 2%" -cb( $factor == 0.02 ) -c( "optionVar -fv zooKeyFactor 0.02" );
+		menuItem -l "scale by 5%" -cb( $factor == 0.05 ) -c( "optionVar -fv zooKeyFactor 0.05" );;
+		menuItem -l "scale by 10%" -cb( $factor == 0.1 ) -c( "optionVar -fv zooKeyFactor 0.1" );;
+		menuItem -l "scale by 25%" -cb( $factor == 0.25 ) -c( "optionVar -fv zooKeyFactor 0.25" );;
+		menuItem -l "scale by 50%" -cb( $factor == 0.5 ) -c( "optionVar -fv zooKeyFactor 0.5" );;
+	setParent -m ..;
+	menuItem -l "curve pivots" -cb $curvePiv -c( "optionVar -iv zooKeyCurvePivot #1" );
+	menuItem -d 1;
+	menuItem -l "absolute" -cb $abs -c( "optionVar -iv zooKeyAbs #1" );
+	}
+
+
+//the arg specifies whether to move the select keys beginning to the current time
+//or the end of the keys to the current time
+global proc zooKeysToCurrentTime( int $startToNow ) {
+	float $keys[] = sort(`keyframe -q -sl`);
+	int $deselect = 0;
+
+	if( !`size $keys` ) {
+		float $key = `findKeyframe -ts -w next`;
+		if( $startToNow ) $key = `findKeyframe -ts -w previous`;
+		selectKey -t $key;
+		$keys = sort(`keyframe -q -sl`);
+		$deselect = 1;
+		}
+	int $cur = `currentTime -q`;
+	int $low = $keys[0];
+	int $hi = `zooGetElement_float -1 $keys`;
+	int $dif = $cur-$low;
+
+	if( !$startToNow ) $dif = $cur-$hi;
+	$keys = `zooRemoveAdjacentDupeItems_float $keys`;
+	keyframe -r -tc $dif -o over;
+	if( $deselect ) selectKey -cl;
+	}
+
+
+global proc zooKeymasterMenuKillUI() {
+	global int $zooIsClicked;
+
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	if( !$zooIsClicked ) zooKeymaster "-dir right";
+
+	$zooIsClicked = 0;
+	}
+
+
+//zoo.end

@@ -1,0 +1,180 @@
+//------------
+// zooObjMenu
+//
+// adds and manages adding commands to the right click menu of an object
+// for more info on how to use this script, please read the help file,
+// or open the edit cmd window, and access this help file through the
+// help window
+//
+// macaroniKazoo
+//------------
+
+
+zooObjMenuUtils;
+zooSpaceSwitching;
+
+
+//------
+//build the menuItems in the dagProcMenu - it is possible to set a "kill menu" attribute
+//on an object now that will stop the dagMenu building after the objMenu items have been
+//added
+//------
+global proc int zooObjMenu( string $parent, string $obj ) {
+	python( "from zooPyMaya import triggeredUI" );
+	return python( "triggeredUI.buildMenuItems( '"+ $parent +"', '"+ $obj +"' )" );
+	}
+
+
+//------
+//builds the command editing window
+//------
+global proc zooObjMenuEditCmd( string $obj, int $cmdNum ){
+	//check to see if the proposed attribute exists, or whether the user just wants to edit the first attribute, by using the "*" symbol in the $cmdAttr variable
+	int $cmdList[] = `zooObjMenuListCmds $obj`;
+	if( $cmdNum<0 ) $cmdNum = $cmdList[0];
+
+	string $windowName = "zooObjMenuNewCmdWindow";
+	string $cmdName = `zooGetObjMenuCmdName $obj $cmdNum`;
+	string $cmdStr = `zooGetObjMenuCmdStr $obj $cmdNum`;
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title "Edit Command Window" -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -width 400 $windowName;
+		menuBarLayout;
+			menu -label "Help";
+			menuItem -label "Help" -c( "zooHelp zooObjMenu 1" );
+
+		string $form = `formLayout`;
+			string $name = `text -l "command name:"`;
+			textField -tx $cmdName -cc( "zooObjMenuSaveCmd "+ $obj +" "+ $cmdNum ) zooOMTextCmdName;
+
+			string $currentCmd = `text -l "current command:"`;
+			intField -width 80 -min 0 -step 1 -v $cmdNum -cc( "{zooObjMenuSaveCmd "+ $obj +" "+ $cmdNum + "; zooObjMenuEditCmd "+ $obj +" #1;}" ) zooOMIntCurrentCmd;
+
+			string $cmd = `text -l "command sting:"`;
+			scrollField -ed 1 -tx $cmdStr -ec( "zooObjMenuSaveCmd "+ $obj +" "+ $cmdNum ) zooOMCmdText;
+
+			// Note that it's important to call zooObjMenuSaveCmd before changing the editable state of zooOMCmdText
+			// for an explanation of why, see the definition of zooObjMenuSaveCmd
+			string $previewCheck = `checkBox -l "preview command string" -cc( "{zooObjMenuSaveCmd "+ $obj +" "+ $cmdNum + "; scrollField -e -ed(!(#1)) zooOMCmdText; string $c = `zooGetObjMenuCmdStr "+ $obj +" "+ $cmdNum +"`; if( #1 ) $c = `zooPopulateCmdStr "+ $obj +" $c {}`; scrollField -e -tx $c zooOMCmdText;}" ) zooOMCheckPreview`;
+			string $closeButt = `button -height 20 -label "close" -c( "zooObjMenuSaveCmd "+ $obj +" "+ $cmdNum +"; deleteUI "+ $windowName )`;
+			string $deleteButt = `button -height 20 -label "delete" -c( "zooRemoveMenu "+ $obj +" "+ $cmdNum +"; deleteUI "+ $windowName )`;
+
+	 formLayout -edit
+		-af $name "top"	0
+		-af $name "left"	0
+		-af $name "right"	0
+		-an $name "bottom"
+
+		-ac zooOMTextCmdName "top"		0 $name
+		-af zooOMTextCmdName "left"	0
+		-ac zooOMTextCmdName "right"	5 $currentCmd
+		-an zooOMTextCmdName "bottom"
+
+		-ac $currentCmd "top"	2 $name
+		-an $currentCmd "left"
+		-ac $currentCmd "right"	2 zooOMIntCurrentCmd
+		-an $currentCmd "bottom"
+
+		-ac zooOMIntCurrentCmd "top"		0 $name
+		-an zooOMIntCurrentCmd "left"
+		-af zooOMIntCurrentCmd "right"	2
+		-an zooOMIntCurrentCmd "bottom"
+
+		-ac $cmd "top"	0 zooOMTextCmdName
+		-af $cmd "left"	0
+		-af $cmd "right"	0
+		-an $cmd "bottom"
+
+		-ac zooOMCmdText "top"		0 $cmd
+		-af zooOMCmdText "left"		0
+		-af zooOMCmdText "right"	0
+		-ac zooOMCmdText "bottom"	0 $previewCheck
+
+		-an $previewCheck "top"
+		-af $previewCheck "left" 0
+		-af $previewCheck "right" 0
+		-ac $previewCheck "bottom" 0 $closeButt
+
+		-an $closeButt "top"
+		-af $closeButt "left"	0
+		-ap $closeButt "right"	0 50
+		-af $closeButt "bottom"	0
+
+		-an $deleteButt "top"
+		-ac $deleteButt "left"		0 $closeButt
+		-af $deleteButt "right"		0
+		-af $deleteButt "bottom"	0
+		$form;
+
+	popupMenu -p zooOMIntCurrentCmd;
+	for( $a in $cmdList ) menuItem -l ( `zooGetObjMenuCmdName $obj $a` ) -c( "{zooObjMenuSaveCmd "+ $obj +" "+ $cmdNum + "; zooObjMenuEditCmd "+ $obj +" "+ $a + ";}");
+
+	showWindow $windowName;
+	}
+
+
+//------
+//returns the attribute name of the command string created
+//------
+global proc zooObjMenuSaveCmd( string $obj, string $cmdNum ) {
+	// Check if the command field is enabled before saving what's in the text box - this way,
+	// the populated text if the "preview" box is checked
+	// Note that we don't check the state of the ACTUAL checkbox, because we wish to call this function from within the
+	// checkbox callback - at which point the state of the checkbox has been changed, but the actual text hasn't yet.  If
+	// we call zooObjMenuSaveCmd before changing the enabled state of zooOMCmdText, we avoid this problem...
+	string $cmdAttr = "zooCmd"+ $cmdNum;
+	string $cmdName = `textField -q -tx zooOMTextCmdName`;
+	string $cmdStr = "";
+
+	if(`scrollField -q -ed zooOMCmdText`) $cmdStr = `scrollField -q -tx zooOMCmdText`;
+	else $cmdStr = zooGetObjMenuCmdStr($obj, $cmdNum);
+
+	setAttr -type "string" ( $obj +"."+ $cmdAttr ) ( $cmdName +"^"+ $cmdStr );
+	}
+
+
+//------
+//create a new command, and open the command editing window
+//------
+global proc zooObjMenuNewCmd( string $obj ){
+	int $cmdNum = `zooObjMenuAddCmd $obj`;
+	zooObjMenuEditCmd $obj $cmdNum;
+	//zooTriggeredWindowFunctions -loadSelected; <-should look into making the command load up in the zooTriggered UI
+	}
+
+
+//------
+//returns info about versioning of the script
+//------
+global proc string zooObjMenuInfo( string $function ) {
+	string $creationDate = "15 May 2004";
+	string $currentVersion = "1.07.04";
+
+	if( $function == "created" ) $info = $creationDate;
+	if( $function == "version" ) $info = $currentVersion;
+	return $info;
+	}
+
+
+//------
+//returns a list of all dependencies - ie other scripts this one relies on
+//------
+global proc string[] zooObjMenuDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooHelp";
+	$melDependencies[( `size $melDependencies` )] = "zooObjMenuUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooTriggeredUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+	$helpDependencies[( `size $helpDependencies` )] = "zooObjMenu_help";
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	return $return;
+	}
+
+
+//zoo.end

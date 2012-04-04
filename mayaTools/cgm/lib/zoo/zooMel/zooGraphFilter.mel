@@ -1,0 +1,303 @@
+//
+// Graph Filter
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 08 October 2002
+//
+// Description:
+// script is a UI for managing quick filtering curves in the graph
+// editor.  it will list all keyable attributes of all selected
+// objects, as well as all xforms.  you can also select channels
+// from the graph editor itself, and propagate the selected curves
+// to all selected objects.  very useful for large numbers of
+// objects at once.
+//
+// Usage:
+//  assign this function to a key press:
+//	zooGraphFilter;
+//
+
+
+zooUtils;
+zooArrays_str;
+zooGraphFilterUtils;
+
+
+global proc zooGraphFilter() {
+	string $windowName = "zooGraphFilterWindow";
+	string $windowTitle = "Graph Filter v" + `zooGraphFilterVersion` + "   ::macaroniKazoo::";
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0
+		-sizeable 1 -width 190 -height 270 $windowName;
+
+	scriptJob -p $windowName -e "SelectionChanged" "zooGraphFilterManageUI selectionChange n";
+
+	menuBarLayout;
+		menu -label "Help";
+			menuItem -l "Help..." -c ( "zooGraphFilterHelp help" );
+			menuItem -divider 1;
+			menuItem -l "About" -c ( "zooGraphFilterHelp about" );
+
+		columnLayout -rowSpacing 2 -adjustableColumn 1;
+			button -height 20 -label "filter like channels" -c ( "zooGraphChannelTypes `zooGetHighlightedChannels`" ) zooGraphFilterButtonLike;
+			rowLayout -numberOfColumns 2
+				-columnWidth2 90 110
+				-columnAlign 2 "center"
+				-columnAttach 1 "both" 	1
+				-columnAttach 2 "both" 	1;
+				columnLayout -rowSpacing 2 -adjustableColumn 1;
+					frameLayout -label "translate" -labelAlign "center" -collapsable 0 -collapse 0 -borderStyle "etchedIn";
+						rowLayout -numberOfColumns 2
+							-columnWidth2 40 40
+							-columnAttach 1 "both" 	1
+							-columnAttach 2 "both" 	1;
+							columnLayout -rowSpacing 0 -adjustableColumn true;
+								button -label "all" -c ( "zooGraphFilterManageUI selectAllXform t" ) zooGraphFilterButtonTranslateAll;
+								button -label "none" -c ( "zooGraphFilterManageUI selectNoneXform t" ) zooGraphFilterButtonTranslateNone;
+								setParent..;
+							columnLayout -rowSpacing 0;
+								checkBox -label "X" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterChecktx;
+								checkBox -label "Y" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterCheckty;
+								checkBox -label "Z" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterChecktz;
+								setParent..;
+							setParent..;
+						setParent..;
+
+					frameLayout -label "rotate" -labelAlign "center" -collapsable 0 -collapse 0 -borderStyle "etchedIn";
+						rowLayout -numberOfColumns 2
+							-columnWidth2 40 40
+							-columnAttach 1 "both" 	1
+							-columnAttach 2 "both" 	1;
+							columnLayout -rowSpacing 0 -adjustableColumn true;
+								button -label "all" -c ( "zooGraphFilterManageUI selectAllXform r" ) zooGraphFilterButtonRotateAll;
+								button -label "none" -c ( "zooGraphFilterManageUI selectNoneXform r" ) zooGraphFilterButtonRotateNone;
+								setParent..;
+							columnLayout -rowSpacing 0;
+								checkBox -label "X" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterCheckrx;
+								checkBox -label "Y" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterCheckry;
+								checkBox -label "Z" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterCheckrz;
+								setParent..;
+							setParent..;
+						setParent..;
+
+					frameLayout -label "scale" -labelAlign "center" -collapsable 0 -collapse 0 -borderStyle "etchedIn";
+						rowLayout -numberOfColumns 2
+							-columnWidth2 40 40
+							-columnAttach 1 "both" 	1
+							-columnAttach 2 "both" 	1;
+							columnLayout -rowSpacing 0 -adjustableColumn true;
+								button -label "all" -c ( "zooGraphFilterManageUI selectAllXform s" ) zooGraphFilterButtonScaleAll;
+								button -label "none" -c ( "zooGraphFilterManageUI selectNoneXform s" ) zooGraphFilterButtonScaleNone;
+								setParent..;
+							columnLayout -rowSpacing 0;
+								checkBox -label "X" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterChecksx;
+								checkBox -label "Y" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterChecksy;
+								checkBox -label "Z" -cc ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterChecksz;
+								setParent..;
+							setParent..;
+						setParent..;
+					button -height 20 -label "select all" -c ( "{ zooGraphFilterManageUI selectAllXform t;zooGraphFilterManageUI selectAllXform r;zooGraphFilterManageUI selectAllXform s; }" ) zooGraphFilterButtonAllXform;
+					button -height 20 -label "clear xforms" -c ( "{ zooGraphFilterManageUI selectNoneXform t;zooGraphFilterManageUI selectNoneXform r;zooGraphFilterManageUI selectNoneXform s; }" ) zooGraphFilterButtonClearXform;
+					setParent..;
+
+			columnLayout -rowSpacing 2 -columnAttach "both" 1;
+				textScrollList -h 199 -allowMultiSelection 1 -selectCommand ( "zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`" ) zooGraphFilterChannelList;
+				button -height 20 -label "select all" -c ( "zooGraphFilterManageUI selectAll n" ) zooGraphFilterButtonChannelAll;
+				button -height 20 -label "clear custom" -c ( "zooGraphFilterManageUI selectNone n" ) zooGraphFilterButtonChannelNone;
+				setParent..;
+			setParent..;
+
+		string $image = `image -width 190 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+		popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+		setParent..;
+
+	showWindow $windowName;
+
+	//this can alter the selection connection object to automatically update the UI when channel selection changes.  it appears buggy though
+	//selectionConnection -e -addScript ( "zooGraphFilterManageUI filterLike" ) graphEditor1FromOutliner;
+
+	//now load defaults:
+	zooGraphFilterManageUI selectionChange n;
+	zooGraphFilterManageUI selectAllXform t;
+	zooGraphFilterManageUI selectAllXform r;
+	zooGraphFilterManageUI selectAllXform s;
+	zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`;
+	}
+
+
+global proc zooGraphFilterManageUI( string $function, string $other ) {
+	string $windowName = "zooGraphFilterWindow";
+
+	if( `window -exists $windowName` ) {
+		switch ( $function ) {
+			case "selectionChange":
+				string $channels[] = `zooGetNonXformKeyable`;
+
+				//clear the attr list, and re-build it
+				textScrollList -e -ra zooGraphFilterChannelList;
+				for( $channel in $channels ) textScrollList -e -a $channel zooGraphFilterChannelList;
+				break;
+
+			case "filterLike":
+				string $highlightedChannels[] = `zooGetHighlightedChannels`;
+				string $xFormList[] = { "translateX", "translateY", "translateZ", "rotateX", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ" };
+				string $checkBoxList[] = { "tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz" };
+				string $xForms[] = {};
+				int $n = 0;
+				int $i = 0;
+				int $j = 0;
+
+				//clear all the filters from the UI
+				zooGraphFilterManageUI selectNoneXform t;
+				zooGraphFilterManageUI selectNoneXform r;
+				zooGraphFilterManageUI selectNoneXform s;
+				zooGraphFilterManageUI selectNone n;
+
+				//get the xforms
+				for( $i = 0; $i < `size $highlightedChannels`; $i++ ) {
+					int $isXform = 0;
+
+					for( $j = 0; $j < `size $xFormList`; $j++ ) {
+						if( $highlightedChannels[$i] == $xFormList[$j] ) {
+							checkBox -e -v 1 ( "zooGraphFilterCheck" + $checkBoxList[$j] );
+							$isXform = 1;
+							$n++;
+							}
+						}
+
+					if( !$isXform ) textScrollList -e -selectItem $highlightedChannels[$i] zooGraphFilterChannelList;
+					}
+
+				zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`;
+				break;
+
+			case "selectAllXform":
+				checkBox -e -v 1 ( "zooGraphFilterCheck" + $other + "x" );
+				checkBox -e -v 1 ( "zooGraphFilterCheck" + $other + "y" );
+				checkBox -e -v 1 ( "zooGraphFilterCheck" + $other + "z" );
+				zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`;
+				break;
+
+			case "selectNoneXform":
+				checkBox -e -v 0 ( "zooGraphFilterCheck" + $other + "x" );
+				checkBox -e -v 0 ( "zooGraphFilterCheck" + $other + "y" );
+				checkBox -e -v 0 ( "zooGraphFilterCheck" + $other + "z" );
+				zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`;
+				break;
+
+			case "selectAll":
+				string $listItems[] = `textScrollList -q -allItems zooGraphFilterChannelList`;
+				for( $entry in $listItems ) textScrollList -e -selectItem $entry zooGraphFilterChannelList;
+				zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`;
+				break;
+
+			case "selectNone":
+				//textScrollList -e -deselectAll zooGraphFilterChannelList;  this deselect all command is buggy, hence this workaround
+				int $numChannels = `textScrollList -q -numberOfItems zooGraphFilterChannelList`;
+				for( $n=0; $n<$numChannels; $n++ ) {
+					//add 1 to $n as the indicies are 1 based for textScroll lists
+					textScrollList -e -deselectIndexedItem ( $n+1 ) zooGraphFilterChannelList;
+					}
+				zooGraphChannelTypes `zooGraphFilterGetSelectedChannels`;
+				break;
+			}
+		}
+	}
+
+
+global proc string[] zooGraphFilterGetSelectedChannels() {
+	string $returnList[] = {};
+	string $checkBoxSuffixList[] = { "tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz" };
+
+	//this string will contain the list of checkbox attributes that are checked
+	string $checkBoxAttr[] = {};
+	string $listAttrs[] = `textScrollList -q -si zooGraphFilterChannelList`;
+
+	for( $entry in $checkBoxSuffixList ) if( `checkBox -q -v ( "zooGraphFilterCheck" + $entry )` ) $checkBoxAttr[( `size $checkBoxAttr` )] = $entry;
+
+	//now build the return list
+	for( $entry in $checkBoxAttr ) $returnList[( `size $returnList` )] = $entry;
+	for( $entry in $listAttrs ) $returnList[( `size $returnList` )] = $entry;
+
+	return $returnList;
+	}
+
+
+global proc zooGraphFilterHelp( string $function ) {
+	string $windowName = "zooGraphFilterAbout";
+	string $windowTitle = "About Graph Filter v" + `zooGraphFilterVersion` + "   ::macaroniKazoo::";
+	string $aboutScript = "Overview:\nGraph Filter is a UI to quickly select specific channels in the graph editor.  It is similar to the \"show selected types\" in the show menu of the graph editor, but is a slightly more powerful, and a little faster.  Especially when integrated with the zzKeyMenu script, which is automatically done when both scripts are present.\n\nFilter Like Channels:\nThis function will select the currently selected channel(s) on all currently selected objects.  Similar to the \"show selected type(s)\" function in the show menu.  It saves you having to ctrl-select the same channel on every object in the graph editor.  The script will also work on attributes selected in the channel box.  Attributes selected in the channel box have precedence over those selected in the graph editor.";
+	string $aboutAuthor = "Version: " + `zooGraphFilterVersion` + "\nCreation Date: 14 October 2001\nLast Modified: 29 April 2002\n\nGraph Filter was written by Macaroni Kazoo Productions  www.macaronikazoo.com\n\nWe hope you find it to be such a useful tool, that you tell all your friends about it.";
+	int $selTab = ( $function == "about" )?2:1;
+
+	if( `window -exists $windowName` ) { deleteUI $windowName; }
+
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -widthHeight 330 300 $windowName;
+
+		 string $form = `formLayout`;
+		 string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5`;
+		 string $image = `image -p $form -width 300 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+		 formLayout -edit
+			-attachForm $tabs "top" 0
+			-attachForm $tabs "left" 0
+			-attachForm $tabs "right" 0
+			-attachControl $tabs "bottom" 2 $image
+
+			-attachNone $image "top"
+			-attachForm $image "left" 0
+			-attachForm $image "right" 0
+			-attachForm $image "bottom" 0
+			$form;
+
+			string $child1 = `paneLayout -configuration "single"`;
+				scrollField -ed 0 -wordWrap 1 -font plainLabelFont -w 300 -h 200 -numberOfLines 15 -text $aboutScript;
+				setParent ..;
+
+			string $child2 = `paneLayout -configuration "single"`;
+				scrollField -ed 0 -wordWrap 1 -font plainLabelFont -w 300 -h 200 -numberOfLines 15 -text $aboutAuthor;
+				setParent ..;
+
+			tabLayout -e -selectTabIndex $selTab -tabLabel $child1 "Graph Filter Help" -tabLabel $child2 "About Graph Filter" $tabs;
+
+	popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+	showWindow $windowName;
+	}
+
+
+global proc float zooGraphFilterVersion() {
+	float $currentVersion = 1.15;
+	return $currentVersion;
+	}
+
+
+//------
+//these dependencies allow the zooZipScript to package this script easily for distribution
+//------
+global proc string[] zooGraphFilterDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $includeFiles[] = {};
+	string $helpDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooArrays_str";
+	$melDependencies[( `size $melDependencies` )] = "zooGraphFilterUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+	$iconDependencies[( `size $iconDependencies` )] = "zoo_sig.tga";
+	$iconDependencies[( `size $iconDependencies` )] = "zooGraphFilter.xpm";
+
+	if( $mode == "-deps" ) $return = $melDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	if( $mode == "-scripts" ) {
+		$return = $melDependencies;
+		$return = `zooAddArray_str $return $includeFiles`;
+		$return = `stringArrayRemoveDuplicates $return`;
+		}
+	return $return;
+	}
+
+
+//zoo.end

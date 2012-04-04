@@ -1,0 +1,216 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooCSTPrimitives;
+zooSpaceSwitching;
+zooRenamerUtils;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildPrimEyes( string $prefix, string $eyeL, string $eyeR, string $optionStr ) {
+	echoRigElementCreationCommand ( "zooCSTBuildPrimEyes \""+ $prefix +"\" "+ $eyeL +" "+ $eyeR +" \""+ $optionStr +"\";" );
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $parents[] = {};
+		string $headFlag;
+		string $colour = "purple 0.65";
+		float $controllerScale = 1;
+		int $spaceswitching = 1;
+
+		$optionTemp = `zooGetFlagArguments $optionStr head`; if( `size $optionTemp` ) $headFlag = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr spaceswitching`; if( `size $optionTemp` ) $spaceswitching = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $controllerScale = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr parents`; if( `size $optionTemp` ) $parents = $optionTemp;
+
+
+	//------
+	//discover the other parts of the rig already built
+	//------
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+		string $masterqss = $worldParts[2];
+		string $qss = $worldParts[3];
+		string $rootControl = zooGetElement_str( 0,`zooGetBrandedWith rootGimbal $prefix` );
+		string $headControl = zooGetElement_str( 0,`zooGetBrandedWith headGimbal $prefix` );
+
+		if( `objExists $headFlag` ) $headControl = $headFlag;
+		if( !`objExists $headControl` ) $headControl = zooGetElement_str( 0,`listRelatives -parent -path $eyeL` );
+
+
+	//
+	// ------------- CREATE ALL CONTROLS -------------
+		string $headSpace = `zooBuildControl ( "false_headSpace" ) ( "-type null -place "+ $headControl )`;
+		string $eyeControl = `zooBuildControl ( "eye_aimControl" ) ( "-type target -place "+ $eyeL +" -axis z -scale "+$controllerScale+" -offset 5fwd"+" -colour "+ $colour )`;
+		string $eyeLAimSpace = `zooBuildControl ( "eye_aimSpace_L" ) ( "-type null -place "+ $eyeL )`;
+		string $eyeRAimSpace = `zooBuildControl ( "eye_aimSpace_R" ) ( "-type null -place "+ $eyeR )`;
+		string $eyeLPosControl = `zooBuildControl ( "eye_posControl_L" ) ( "-type sphere -place "+ $eyeL +" -axis z -scale "+ $controllerScale +" -offset 5fwd"+" -colour "+$colour )`;
+		string $eyeRPosControl = `zooBuildControl ( "eye_posControl_R" ) ( "-type sphere -place "+ $eyeR +" -axis z -scale "+ $controllerScale +" -offset 5fwd"+" -colour "+$colour )`;
+		string $eyeLRotControl = `zooBuildControl ( "eye_rotControl_L" ) ( "-type sphere -place "+ $eyeL +" -axis z -scale "+ $controllerScale +" -colour "+$colour )`;
+		string $eyeRRotControl = `zooBuildControl ( "eye_rotControl_R" ) ( "-type sphere -place "+ $eyeR +" -axis z -scale "+ $controllerScale +" -colour "+$colour )`;
+		string $eyeControlSpace = `zooBuildControl ( "eyeSpace" ) ( "-type null -place "+ $eyeL )`;
+
+		select -r $eyeControl;
+		move -a -ws -rpr -x 0;
+		delete `parentConstraint $eyeControl $eyeControlSpace`;
+		scale 0.5 0.5 0.5 $eyeLPosControl $eyeRPosControl;
+		makeIdentity -a 1 -s 1 $eyeLPosControl $eyeRPosControl;
+
+		parent $eyeLAimSpace $headSpace;
+		parent $eyeRAimSpace $headSpace;
+		parent $eyeLRotControl $eyeLAimSpace;
+		parent $eyeRRotControl $eyeRAimSpace;
+		parent $eyeLPosControl $eyeControl;
+		parent $eyeRPosControl $eyeControl;
+		parent $eyeControl $eyeControlSpace;
+		parent $eyeControlSpace $partsControl;
+		parent $headSpace $partsControl;
+		makeIdentity -apply 1 -t 1 -r 1 -s 1 $eyeControl;
+
+
+	//------
+	//create space constraint
+	//------
+		string $eyeCtrlAim = `zooCSTUpVector $eyeControl (zooCSTGetDir("fwd"))`; string $eyeCtrlUp = `zooCSTUpVector $eyeControl (zooCSTGetDir("up"))`;
+		string $eyeLAim = `zooCSTUpVector $eyeLAimSpace (zooCSTGetDir("fwd"))`; string $eyeLUp = `zooCSTUpVector $eyeL (zooCSTGetDir("up"))`;
+		string $eyeRAim = `zooCSTUpVector $eyeRAimSpace (zooCSTGetDir("fwd"))`; string $eyeRUp = `zooCSTUpVector $eyeR (zooCSTGetDir("up"))`;
+		string $headUp = `zooCSTUpVector $headControl (zooCSTGetDir("up"))`;
+
+		string $spaceNodes[] = {};
+		string $eyeControlParents[] = { $headControl, $rootControl, $worldControl };
+		if( `size $parents` ) $eyeControlParents = `zooAddArray_str $eyeControlParents $parents`;
+		if( $spaceswitching ) $spaceNodes = `zooBuildSpaceSwitch $eyeControl $eyeControlSpace $eyeControlParents { "head", "root", "world" } "-mo"`;
+		eval ( "aimConstraint -mo -aimVector "+ $eyeCtrlAim +" -upVector "+ $eyeCtrlUp +" -worldUpType objectrotation -worldUpObject "+ $headControl +" -worldUpVector "+ $headUp +" "+ $headControl +" "+ $eyeControl );
+		string $aim1 = zooGetElement_str(0,`eval( "aimConstraint -mo -aimVector "+ $eyeLAim +" -upVector "+ $eyeLUp +" -worldUpType objectrotation -worldUpObject "+ $headControl +" -worldUpVector "+ $headUp +" "+ $eyeLPosControl +" "+ $eyeLAimSpace )`);
+		string $aim2 = zooGetElement_str(0,`eval( "aimConstraint -mo -aimVector "+ $eyeRAim +" -upVector "+ $eyeRUp +" -worldUpType objectrotation -worldUpObject "+ $headControl +" -worldUpVector "+ $headUp +" "+ $eyeRPosControl +" "+ $eyeRAimSpace )`);
+		string $oc1 = zooGetElement_str(0,`orientConstraint -mo $eyeLRotControl $eyeL`);
+		string $oc2 = zooGetElement_str(0,`orientConstraint -mo $eyeRRotControl $eyeR`);
+		parentConstraint -mo $headControl $headSpace;
+
+
+	//------
+	//turn unwanted transforms off, so that they are locked, and no longer keyable
+	//------
+		string $turnTranslateOff[] = { $eyeLRotControl, $eyeRRotControl };
+		string $turnRotateOff[] = { $eyeControl, $eyeLPosControl, $eyeRPosControl };
+		string $turnScaleOff[] = { $eyeControl, $eyeLPosControl, $eyeRPosControl, $eyeLRotControl, $eyeRRotControl };
+
+		for( $obj in $turnTranslateOff ) zooAttrState "-attrs t -k 0 -l 1" $obj;
+		for( $obj in $turnRotateOff ) zooAttrState "-attrs r -k 0 -l 1" $obj;
+		for( $obj in $turnScaleOff ) zooAttrState "-attrs s -k 0 -l 1" $obj;
+		for( $obj in $turnScaleOff ) zooAttrState "-attrs v -k 0" $obj;
+
+
+	//------
+	//add right click menu to turn on individual controls
+	//------
+		zooObjMenuAddCmdAll $eyeControl "toggle individual controls" "string $kids[] = `listRelatives -type transform #`;\nint $vis = `getAttr ( $kids[0] +\".v\" )`;\nfor( $k in $kids ) setAttr ( $k +\".v\" ) (!$vis);";
+		zooObjMenuAddCmdAll $eyeControl "swap to look at eyes" ( "zooEyeSwapper;\nzooSwapToLookatEyes \""+ $prefix +"\";" );
+		zooObjMenuAddCmdAll $eyeControl "swap to rotate eyes" ( "zooEyeSwapper;\nzooSwapToRotateEyes \""+ $prefix +"\";" );
+		setAttr ( $eyeLPosControl +".v" ) 0;
+		setAttr ( $eyeRPosControl +".v" ) 0;
+
+
+	//------
+	//create a list of controls
+	//------
+		string $controllers[] = {};
+		$controllers = { $eyeControl, $eyeLRotControl, $eyeRRotControl, $eyeLPosControl, $eyeRPosControl };
+		for( $obj in $controllers ) sets -add $qss $obj;
+
+
+	//------
+	//now brand all objects
+	//------
+		string $allSetupObjects[] = { $eyeControl, $eyeLPosControl, $eyeRPosControl, $eyeControlSpace };
+		for( $obj in $allSetupObjects ) zooBrandObject name $prefix $obj;
+		zooBrandObject eyes $prefix $eyeControl;
+		zooBrandObject name $prefix $eyeLRotControl;
+		zooBrandObject name $prefix $eyeRRotControl;
+		zooBrandObject eyeRot "l" $eyeLRotControl;
+		zooBrandObject eyeRot "r" $eyeRRotControl;
+		zooBrandObject eyeAim "l" $eyeLPosControl;
+		zooBrandObject eyeAim "r" $eyeRPosControl;
+
+
+	//------
+	//build the primitive record
+	//------
+		string $id = `zooCSTGetPrimId eyes "" $prefix`;
+		string $primitive = `zooCSTCreatePrimRecord eyes $id $prefix`;
+		zooCSTRegisterInput $eyeL $primitive;
+		zooCSTRegisterInput $eyeR $primitive;
+		zooCSTPrimOutputs { $eyeControl, $eyeLPosControl, $eyeRPosControl, $eyeLRotControl, $eyeLAimSpace, $eyeRAimSpace, $eyeRRotControl, $eyeControlSpace } $primitive;
+		zooCSTPrimOutputs { $headSpace, $aim1, $aim2, $oc1, $oc2 } $primitive;
+		zooCSTPrimOutputs $spaceNodes $primitive;
+		zooBrandObject options $optionStr $primitive;
+		zooBrandObject version "5" $primitive;
+		for( $obj in $controllers ) zooCSTRegisterControl $obj $primitive;
+
+
+		zooCSTUtilsRigVis -h;
+		for( $n=0; $n<`size $controllers`; $n++ ) $controllers[$n] = `zooRenamerFunctions replace "[0-9]+$" "" $controllers[$n]`;
+		select $controllers[0];
+
+	return $controllers;
+	}
+
+
+//------
+//this proc deals with rebuilding the eyes primitive
+//------
+global proc string[] zooCSTRebuildPrimEyes( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $version = `zooQueryBrand version $primitive`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+	string $controls[] = `zooCSTListRegistered control $primitive`;
+	int $useExisting = 1;
+
+	string $dupes[] = {};
+	if( `size $controls` ) {
+		$dupes = `duplicate -rc $controls`;  //duplicate the control objects so we can grab the original control shape nodes, to parent under the new controls created
+		parent -w $dupes;
+		}
+
+	$temp = `zooGetFlagArguments $optionStr useExisting`; if( `size $temp` ) $useExisting = $temp[0];
+
+	zooCSTDeletePrimitive $primitive;
+	string $newControls[] = `zooCSTBuildPrimEyes $prefix $inputs[0] $inputs[1] $optionStr`;
+
+	//parent the shape nodes of the original controls to the transforms of the new controls
+	if( $useExisting ) for( $n=0; $n<`size $newControls`; $n++ ) zooReplaceShape $dupes[$n] $newControls[$n] 0;
+
+	delete $dupes;
+	return $newControls;
+	}
+
+
+/*
+builds rigging for the eyes primitive -
+-------
+this is a simple two eye rig - left and right.  Its a simple, but powerful eye rig - independant and
+unified look at control, independant rotation control, and dynamic parenting on the lookat control,
+and the eyes won't suffer from paralax problems that happen with a simple lookat setup.
+
+$prefix - the character prefix used to identify the character
+$eyeL - this is the joint controlling the left eye
+$eyeR - this is the joint controlling the right eye
+$optionStr - standard option string
+
+option flags
+-------
+-head [string]			use this to specify a custom head control - by default it looks for a zooCST head control.  Use this flag to use the eye primitive with a custom rig.
+-parents [string]		use this to specify an additional list of parents for the dynamic parenting on the eye lookat control
+-scale [float]			scale factor to apply to the control (purely a visual thing - scale is frozen).  default: 1
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

@@ -1,0 +1,52 @@
+global proc zooStickToCurve () {
+	string $selObjs[] = `ls -sl`;
+	zooStickToCurveAttach $selObjs[0] $selObjs[1];
+	}
+
+
+global proc string zooStickToCurveAttach ( string $obj, string $curve ) {
+	if ( `exists closestPointOnCurve` ) {
+		string $selObjs[] = `ls -sl`;
+
+		select -r $curve;
+		string $closestNodeName = closestPointOnCurve();
+		string $motionPath;
+		float $uValue;
+		float $curveSpans = `getAttr ( $curve + ".spans" )`;
+		int $n = 0;
+
+		//connect the target object, and store its u parameter
+		connectAttr -f ( $obj + ".t" ) ( $closestNodeName + ".inPosition" );
+		$uValue = `getAttr ( $closestNodeName + ".paramU" )`;
+
+		//now we're done with the closest point on curve node, so delete it
+		delete $closestNodeName;
+
+		//fraction mode must be false, otherwise it probably won't work...
+		$motionPath = `pathAnimation -c $curve -fractionMode 0 -follow 1 $obj`;
+		delete `listConnections -d 0 -t animCurve $motionPath`;
+		setAttr -clamp ( $motionPath + ".uValue" ) $uValue;
+
+		//restore user selection
+		select $selObjs;
+		return $motionPath;
+		}
+
+	else warning( "You don't have the closestPointOnCurve plugin installed/loaded" );
+	}
+
+
+global proc string[] zooStickToCurveDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

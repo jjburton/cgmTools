@@ -1,0 +1,37 @@
+zooUtils;
+
+
+//resources all currently sourced scripts
+global proc zooResource() {
+	string $sourced[] = sort(`zooListSourced`);
+	for( $s in $sourced ) {
+		print( "re-sourcing "+ $s +"\n" );
+		eval( "source "+ $s +";" );
+		}
+	}
+
+
+//returns a list of all scripts that have been sourced in the current maya session
+global proc string[] zooListSourced() {
+	string $paths[] = `zooListEnv ""`;
+	string $sourced[] = {};
+
+	for( $p in $paths ) {
+		string $scripts[] = `zooGetFiles $p "*.mel"`;
+		for( $s in $scripts ) {
+			$s = `match "^[^.]+" $s`;
+			string $what = `whatIs $s`;
+
+			$what = `tolower $what`;
+			$what = `match "^[^ ]+" $what`;
+			if( $what == "mel" ) $sourced[( `size $sourced` )] = $s;
+			}
+		}
+
+	$sourced = stringArrayRemoveDuplicates( $sourced );
+
+	return $sourced;
+	}
+
+
+//zoo.end

@@ -1,0 +1,244 @@
+zooStrUtils;
+
+
+//------
+//builds SDK sliders for all objMenu poses stored on a trigger object
+//takes the following flags
+// -trigger [obj]			the trigger that contains the poses - defaults to the first selected object if not specified
+// -control [obj]			the object to build the sliders on to - defaults to the object connected to the controlObject attribute if it exists, and the trigger if the attribute doesn't exist
+// -linear [int]			if linear is true (defaults to false) the sdk key tangents are set to linear
+// -optimize [int]		defaults to true which auto-optimises out static channels on the sdk curves generated.  if you are having odd problems, try turning this off - otherwise leave it on for very significant performance improvements
+// -preserve [int]		defaults to false - when true will preserve any existing sdk curves on the target objects, otherwise they get blown away first
+//the base pose is assumed to be stored in the first objMenu command
+//------
+global proc zooPosesToSliders( string $optionStr ) {
+	string $trigger = zooGetElement_str(0,`ls -sl`);
+	string $control = "*";  //* will use either the object connected to the attribute controlObject on the trigger object if it exists, OR it will use the trigger itself otherwise
+	string $temp[] = {};
+	int $linear = 0;
+	int $optimize = 1;
+	int $preserve = 0;
+
+	$temp = `zooGetFlagArguments $optionStr trigger`; if( `objExists $temp[0]` ) $trigger = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr control`; if( `objExists $temp[0]` ) $control = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr linear`; if( `size $temp` ) $linear = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr optimize`; if( `size $temp` ) $optimize = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr preserve`; if( `size $temp` ) $preserve = $temp[0];
+	if( !`objExists $trigger` ) return;
+
+	//deal with control symbols
+	if( $control == "#" ) $control = $trigger;
+	if( $control == "*" ) {
+		if( `objExists ( $trigger +".controlObject" )`) {
+			string $cons[] = `listConnections -d 0 ( $trigger +".controlObject" )`;
+			if( `size $cons` ) $control = $cons[0];
+			}
+		else $control = $trigger;
+		}
+	if( !`objExists $control` ) return;
+
+	string $allTgts[] = {};
+	string $baseCmdStr = `zooGetObjMenuCmdStr $trigger 0`;
+	string $baseEval = `zooPopulateCmdStr $trigger $baseCmdStr {}`;
+	int $maxSlider = 10;
+	int $defaultValue = 0;
+	int $cmds[] = `zooObjMenuListCmds $trigger`;
+
+	//remove the first cmd - as we assume thats the base pose, and execute the base cmd
+	$cmds = `zooIndexCrop_int $cmds "1:"`;
+	eval $baseEval;
+
+	//first get a list of all target objects, so we know what objects to build
+	//SDK curves for
+	for( $cmd in $cmds ) {
+		string $cmdStr = `zooGetObjMenuCmdStr $trigger $cmd`;
+		string $tgts[] = `zooQueryPoseConnects $trigger $cmdStr`;
+		$allTgts = `zooAddArray_str $allTgts $tgts`;
+		}
+
+	$allTgts = `stringArrayRemoveDuplicates $allTgts`;
+	//the user may want to preserve existing sdk data on the target objects...
+	if( !$preserve ) for( $tgt in $allTgts ) zooDeleteSliders $tgt;
+
+
+	//first delete any existing sliders
+	for( $cmd in $cmds ) {
+		string $sliderName = `zooGetObjMenuCmdName $trigger $cmd`;
+		$sliderName = `match "^[^_]+" $sliderName`;
+		if( `objExists ( $control +"."+ $sliderName )`) deleteAttr ( $control +"."+ $sliderName );
+		}
+
+	//now build the sliders
+	for( $cmd in $cmds ) {
+		string $sliderName = `zooGetObjMenuCmdName $trigger $cmd`;
+		string $nameExtra = `match "[^_]+$" $sliderName`;
+
+		$sliderName = `match "^[^_]+" $sliderName`;
+		$sliderName = `zooReplaceChars $sliderName "" ""`;  //validate the attribute name
+
+		//create the attribute if it doesn't already exist
+		if( !`objExists ( $control +"."+ $sliderName )`) {
+			addAttr -ln $sliderName -at double -min 0 -max 0 -dv 0 $control;
+			setAttr -k 1 ( $control +"."+ $sliderName );
+			}
+
+		float $breakdownVal = $maxSlider;
+		if( `match "^[-0-9.]+$" $nameExtra` != "" ) $breakdownVal = ((float)`match "^[-0-9.]+$" $nameExtra`);
+
+		//now that the attribute is created, see what its limits are, and whether the current limit values should push those limits further
+		float $curMin = `addAttr -q -min ( $control +"."+ $sliderName )`;
+		float $curMax = `addAttr -q -max ( $control +"."+ $sliderName )`;
+
+		if( $breakdownVal < $curMin ) addAttr -e -min $breakdownVal ( $control +"."+ $sliderName );
+		else if( $breakdownVal > $curMax ) addAttr -e -max $breakdownVal ( $control +"."+ $sliderName );
+		}
+
+	//now build the SDKs, we know the attributes exist, so we don't need to worry about them
+	eval $baseEval;
+	string $sliders[] = {};
+	int $sliderKeyCounts[] = {};
+	for( $cmd in $cmds ) {
+		string $cmdStr = `zooGetObjMenuCmdStr $trigger $cmd`;
+		string $toEval = `zooPopulateCmdStr $trigger $cmdStr {}`;
+		string $sliderName = `zooGetObjMenuCmdName $trigger $cmd`;
+		string $nameExtra = `match "[^_]+$" $sliderName`;
+
+		$sliderName = `match "^[^_]+" $sliderName`;
+
+		//parse the user pose flags if nessecary
+		float $breakdownVal = $maxSlider;
+		int $linear = 0;
+
+		if( `match "^[-0-9.]+$" $nameExtra` != "" ) $breakdownVal = ((float)`match "^[-0-9.]+$" $nameExtra`);
+
+		//return to default pose
+		setAttr ( $control +"."+ $sliderName ) $defaultValue;
+		eval $baseEval;
+		for( $tgt in $allTgts ) setDrivenKeyframe -cd( $control +"."+ $sliderName ) $tgt;
+
+		//go into the pose and set its SDK key
+		setAttr ( $control +"."+ $sliderName ) $breakdownVal;
+		eval $toEval;
+		for( $tgt in $allTgts ) setDrivenKeyframe -cd( $control +"."+ $sliderName ) $tgt;
+
+		setAttr ( $control +"."+ $sliderName ) $defaultValue;
+		int $sliderNameIdx = `zooGetIdxOfElement_str $sliders $sliderName`;
+		if( $sliderNameIdx == -1 ) {
+			$sliders[( `size $sliders` )] = $sliderName;
+			$sliderKeyCounts[( `size $sliderKeyCounts` )] = 1;
+			}
+		else $sliderKeyCounts[$sliderNameIdx] += 1;
+		}
+
+	for( $tgt in $allTgts ) {
+		zooSetCurveInfinityToLinear $tgt;  //set curve post/pre infinities to linear
+		if( $optimize ) zooDeleteStaticChannels $tgt;  //delete any static channels that were generated during the sdk frenzy
+		if( $linear ) zooSetTangentsTo $tgt linear;
+		}
+	}
+
+
+//------
+//changes the infinity states of all SDK curves to linear for a given object
+//------
+global proc zooSetCurveInfinityToLinear( string $obj ) {
+	string $attrs[] = `listAttr -k -v -s -m $obj`;
+	for( $attr in $attrs ) {
+		string $animCurves[] = `zooGetSDKCurves $obj $attr`;
+		for( $c in $animCurves ) {
+			if( size(`keyframe -q -sl`)) selectKey -clear;
+			keyTangent -f ":" -itt spline -ott spline $c;
+			selectKey -in 0 $c;
+			setInfinity -pri linear -poi linear;
+			}
+		}
+	}
+
+
+//------
+//changes the tangents to spline
+//------
+global proc zooSetTangentsTo( string $obj, string $type ) {
+	string $attrs[] = `listAttr -k -v -s -m $obj`;
+	for( $attr in $attrs ) {
+		string $animCurves[] = `zooGetSDKCurves $obj $attr`;
+		for( $c in $animCurves ) {
+			if( size(`keyframe -q -sl`)) selectKey -clear;
+			keyTangent -f ":" -itt $type -ott $type $c;
+			}
+		}
+	}
+
+
+//------
+//returns the name of the animCurve for an attribute driven by an SDK
+//------
+global proc string zooGetSDKCurve( string $obj, string $objAttr, string $driver, string $driverAttr ) {
+	string $attrs[] = `listAttr -keyable -visible -scalar -multi $obj`;
+	for( $attr in $attrs ) {
+		string $animCurves[] = `zooGetSDKCurves $obj $objAttr`;
+		for( $c in $animCurves ) if( `isConnected ( $driver +"."+ $driverAttr ) ( $c +".input" )` ) return $c;
+		}
+	return "";
+	}
+
+
+//------
+//deletes all SDK information for a given object
+//------
+global proc zooDeleteSliders( string $obj ) {
+	string $attrs[] = `listAttr -keyable -visible -scalar -multi $obj`;
+	for( $attr in $attrs ) {
+		string $animCurves[] = `zooGetSDKCurves $obj $attr`;
+		string $blends[] = `listConnections -d 0 -type blendWeighted -scn 1 ( $obj +"."+ $attr )`;
+		if( `size $animCurves` ) for( $a in $animCurves ) if( `objExists $a` ) delete $a;
+		if( `size $blends` ) for( $b in $blends ) if( `objExists $b` ) delete $b;
+		}
+	}
+
+
+//------
+//returns all the SDK animCurves for an attribute on an object
+//------
+global proc string[] zooGetSDKCurves( string $obj, string $attr ) {
+	if( !`objExists ( $obj +"."+ $attr )` ) return {};
+	string $cons[] = `listConnections -d 0 -scn 1 ( $obj +"."+ $attr )`;
+	string $blends[] = {};
+	string $sdks[] = {};
+
+	for( $c in $cons ) {
+		string $type = `nodeType $c`;
+		if( `match "^animCurve" $type` == "animCurve" ) {
+			//so we know its controlled by an animcurve, but is the animcurve driven by something?
+			if( size(`listConnections -d 0 -scn 1 ( $c +".input" )`)) $sdks[( `size $sdks` )] = $c;
+			continue;
+			}
+		else if( $type == "blendWeighted" ) {
+			$blends[( `size $blends` )] = $c;
+			continue;
+			}
+		}
+	for( $b in $blends ) $sdks = zooAddArray_str($sdks,`listConnections -d 0 -scn 1 -type animCurve $b`);
+	return $sdks;
+	}
+
+
+//------
+//returns all the connects used in a objMenu command string
+//------
+global proc string[] zooQueryPoseConnects( string $trigger, string $cmdStr ) {
+	string $usedConnects[] = {};
+
+	while( `match "#+" $cmdStr` != "" ) {
+		$cmdStr = `substitute "#+" $cmdStr $trigger`;
+		$usedConnects[( `size $usedConnects` )] = $trigger;
+		}
+
+	$usedConnects = stringArrayCatenate($usedConnects, zooGetConnectsUsedInCmd($trigger, $cmdStr));
+
+	$usedConnects = `stringArrayRemoveDuplicates $usedConnects`;
+	return $usedConnects;
+	}
+
+
+//zoo.end

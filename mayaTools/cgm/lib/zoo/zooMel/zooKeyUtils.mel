@@ -1,0 +1,119 @@
+zooArrays_str;
+zooFlags;
+
+
+//general purpose script for dealing with keys - the direct mel commands are pretty...  shit
+global proc zooKeyUtils() {
+	return;
+	}
+
+
+global proc swapChannels( string $srcAttrPath, string $tgtAttrPath, string $optionStr ) {
+	string $srcChannel[] = `copyChannel $srcAttrPath $optionStr`;
+	string $tgtChannel[] = `copyChannel $tgtAttrPath $optionStr`;
+
+	pasteChannel $srcChannel $tgtAttrPath $optionStr;
+	pasteChannel $tgtChannel $srcAttrPath $optionStr;
+	}
+
+
+global proc pasteChannel( string $channelStr[], string $attrPath, string $optionStr ) {
+	string $temp[] = {};
+	float $offset = 0;
+	int $clear = 1;
+	int $invert = 0;
+
+	$temp = `zooGetFlagArguments $optionStr start`; if( `size $temp` ) $offset = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr offset`; if( `size $temp` ) $offset = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr clear`; if( `size $temp` ) $clear = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr invert`; if( `size $temp` ) $invert = $temp[0];
+
+	int $weightedChannel = $channelStr[0];
+	int $kc = `size $channelStr`;
+
+	if( $clear ) {
+		float $start = `match "^[^,]+" $channelStr[0]`;
+		float $end = `match "^[^,]+" (zooGetElement_str(-1,$channelStr))`;
+
+		$start += $offset;
+		$end += $offset;
+		cutKey -t( $start +":"+ $end ) -cl $attrPath;
+		}
+
+	keyTangent -e -wt $weightedChannel $attrPath;
+	for( $n=1; $n<$kc; $n++ ) {  //start at 1 because the first entry is the weighted channel flag
+		string $keyData[] = {};
+		tokenize $channelStr[$n] "," $keyData;
+
+		float $time = $keyData[0];
+		float $value = $keyData[1];
+		string $itType = $keyData[2];
+		string $otType = $keyData[3];
+		float $itAngle = $keyData[4];
+		float $otAngle = $keyData[5];
+		float $itWeight = $keyData[6];
+		float $otWeight = $keyData[7];
+		int $tLock = $keyData[8];
+		int $wLock = $keyData[9];
+
+		$time += $offset;
+		if( $invert ) {
+			$value *= -1;
+			$itAngle *= -1;
+			$otAngle *= -1;
+			}
+		setKeyframe -t $time -v $value -itt $itType -ott $otType $attrPath;
+		keyTangent -e -t $time -l $tLock -ia $itAngle -oa $otAngle -iw $itWeight -ow $otWeight $attrPath;
+		}
+	}
+
+
+//returns an array of structured strings - each string contains all data nessecary
+//to re-create all keys for the curve associated with an attribute path
+global proc string[] copyChannel( string $attrPath, string $optionStr ) {
+	if( !`objExists $attrPath` ) return {};
+
+	string $temp[] = {};
+	float $start = `playbackOptions -q -min`;
+	float $end = `playbackOptions -q -max`;
+
+	$temp = `zooGetFlagArguments $optionStr start`; if( `size $temp` ) $start = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr end`; if( `size $temp` ) $end = $temp[0];
+
+	string $globalItt = zooGetElement_str(0,`keyTangent -q -global -itt`);
+	string $globalOtt = zooGetElement_str(0,`keyTangent -q -global -ott`);
+	string $tStr = $start +":"+ $end;
+	string $weightedChannel = zooGetElement_int(0,`keyTangent -q -wt $attrPath`);
+	string $channelData[] = {$weightedChannel};
+	int $kc = `keyframe -t $tStr -q -kc $attrPath`;
+	float $times[] = `keyframe -t $tStr -q $attrPath`;
+	float $values[] = `keyframe -t $tStr -q -vc $attrPath`;
+	string $itTypes[] = `keyTangent -t $tStr -q -itt $attrPath`;
+	string $otTypes[] = `keyTangent -t $tStr -q -ott $attrPath`;
+	float $itAngles[] = `keyTangent -t $tStr -q -ia $attrPath`;
+	float $otAngles[] = `keyTangent -t $tStr -q -oa $attrPath`;
+	float $itWeights[] = `keyTangent -t $tStr -q -iw $attrPath`;
+	float $otWeights[] = `keyTangent -t $tStr -q -ow $attrPath`;
+	int $tLocks[] = `keyTangent -t $tStr -q -l $attrPath`;
+	int $wLocks[] = `keyTangent -t $tStr -q -wl $attrPath`;
+
+	//now build the structured string.  the string looks like this:
+	//keyTime,keyValue,itt,ott,ia,oa,iw,ow,tangentLock,weightLock
+	for( $n=0; $n<$kc; $n++ ) {
+		if( $itTypes[$n] == "fixed" ) $itTypes[$n] = $globalItt;
+		if( $otTypes[$n] == "fixed" ) $otTypes[$n] = $globalOtt;
+		string $s = $times[$n] +",";
+		$s += $values[$n] +",";
+		$s += $itTypes[$n] +",";
+		$s += $otTypes[$n] +",";
+		$s += $itAngles[$n] +",";
+		$s += $otAngles[$n] +",";
+		$s += $itWeights[$n] +",";
+		$s += $otWeights[$n] +",";
+		$s += $tLocks[$n] +",";
+		$s += $wLocks[$n];
+		$channelData[`size $channelData`] = $s;
+		}
+
+	return $channelData;
+	}

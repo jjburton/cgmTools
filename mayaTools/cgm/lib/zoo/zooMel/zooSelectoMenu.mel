@@ -1,0 +1,78 @@
+zooSelectoUtils;
+
+
+global proc zooSelectoMenu() {
+	global int $zooIsClicked;
+	string $panel = `getPanel -up`;
+
+	$zooIsClicked = 0;
+
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	if( !`control -ex $panel` ) $panel = "viewPanes";
+	popupMenu -ctl 0 -alt 0 -sh 0 -mm 1 -b 1 -aob 1 -p $panel -pmc zooSelectoMenuUI tempMM;
+	}
+
+
+global proc zooSelectoMenuUI() {
+	global int $zooIsClicked;
+
+	$zooIsClicked = 1;
+	setParent -m tempMM;
+	menu -e -dai tempMM;
+
+	menuItem -l "toggle triggers vis" -c( "zooToggleSelectoVis;" ) -rp "W";
+	menuItem -l "use current camera" -c( "zooSetLookat `getCurrentCam`;" ) -rp "E";
+	menuItem -l "transparency" -sm 1;
+		menuItem -l "0%" -c( "zooSetSelectoTransparency 0;" );
+		menuItem -l "25%" -c( "zooSetSelectoTransparency 0.25" );
+		menuItem -l "50%" -c( "zooSetSelectoTransparency 0.5;" );
+		menuItem -l "70%" -c( "zooSetSelectoTransparency 0.7;" );
+		menuItem -l "80%" -c( "zooSetSelectoTransparency 0.8;" );
+		menuItem -l "90%" -c( "zooSetSelectoTransparency 0.9;" );
+		menuItem -l "95%" -c( "zooSetSelectoTransparency 0.95;" );
+	setParent -m ..;
+	menuItem -d 1;
+	menuItem -l "open selecto UI" -c zooSelecto;
+	menuItem -l "select global scaler" -c( "select `zooGetSelectoManager 1`;" );
+	menuItem -d 1;
+	menuItem -l "character selectos" -sm 1 -pmc "zooSelectoMenuCharVisList zooSelectoMenuCharList;" zooSelectoMenuCharList;
+	}
+
+
+global proc zooSelectoMenuCharVisList( string $parent ) {
+	string $chars[] = `zooListCharactersWithSelectos`;
+	for( $c in $chars ) {
+		//this is commented out because querying the state of each character is incredibly expensive, so there is quite a pause before the menu is displayed
+		//the disadvantage of course is that we don't have checkboxes displaying the current visibility state
+		//int $vis = `zooSetCharacterSelectoVis $c -1`;
+		//menuItem -l $c -cb $vis -c( "zooSetCharacterSelectoVis \""+ $c +"\" "+ (!$vis));
+		menuItem -l $c -c( "zooSetCharacterSelectoVis \""+ $c +"\" (!`zooSetCharacterSelectoVis \""+ $c +"\" -1`)" );
+		}
+	}
+
+
+global proc string getCurrentCam() {
+	string $panel = `getPanel -wf`;
+	string $camera = "";
+
+	if( `getPanel -to $panel` == "modelPanel" ) $camera = `modelPanel -q -cam $panel`;
+	if( `objExists $camera` ) if( `nodeType $camera` == "camera" ) {
+		string $parent[] = `listRelatives -p $camera`;
+		$camera = $parent[0];
+		}
+
+	return $camera;
+	}
+
+
+global proc zooSelectoMenuKillUI() {
+	global int $zooIsClicked;
+
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	if( !$zooIsClicked ) zooToggleSelectoVis;
+
+	$zooIsClicked = 0;
+	}
+
+
+//zoo.end

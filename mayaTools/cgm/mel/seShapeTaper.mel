@@ -1,0 +1,1010 @@
+/////////////////////////////////////////////////////////////////////////////////
+// TITLE: seShapeTaper
+// VERSION: 2.0
+// AUTHOR: Scott Englert - scott@scottenglert.com
+// DATE: Nov 14, 2008
+//
+// DESCRIPTION:
+// This script is for splitting set driven key shapes on bone based facial
+// rigs into left and right shapes. Meaning if you have a symmetrical smile
+// shape, this script will perfectly taper that shape into separately driven
+// left and right smile shapes, when combined make the original shape. The
+// tapering is calculated by a polygonal mask which you can reshape and scale
+// to change how the splitting is done.
+//
+// FEATURES:
+// # Ability to move each corner of the mask for more control over the tapering
+// # Manual adjustment on the splitting left/right values with auto balancing
+// # You can now remove a joint from the list by right clicking over it
+// # Allows you to choose the up and forward facing axes for how your character
+//   is facing
+// # You can use any attribute from the channel box as your output left/right
+//   drivers by right clicking over the text fields for that attribute
+// # Creates driver left/right attributes if they do not exist
+// # Transfers over tangency and curve information to newly created SDK's
+// # Names the new SDK and builds the proper nodes to function properly
+// 
+// HOW TO USE:
+// 1. Source this script and type: seShapeTaper; in the command line to launch
+// 2. Click your driver object and load it in by clicking the button at the top
+// 3. Select which attribute from the list that is your driving attribute
+// 4. Change the up and forward axes if needed to the direction your character
+//    is facing
+// 5. Click the button to load the shape
+// 6. Scale, move, rotate, adjust verts on the mask to get the desired tapering
+//    and then click the Recalculate Mask button to update the values
+// 7. Manually adjust any values if needed to more specific needs
+// 8. Change your output driver if needed and your left/right attributes
+// 9. Click the button at the bottom to split and create you new left and right
+//    shapes.
+//
+// HISTORY:
+// 11/14/2008	Complete recode with many added features
+//
+// 5/11/2006	First release
+//
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////
+// Main Procedure - Build GUI
+///////////////////////////////
+global proc seShapeTaper(){
+	// if the window exists already, we delete it and make a new one
+	if(`window -exists seShapeTaperGUI`) deleteUI -window seShapeTaperGUI;
+	// build our new window
+	window -t "seShapeTaper v2.0" seShapeTaperGUI;
+	// main layout
+	string $mainForm = `formLayout -nd 100`;
+		// the frame that contains all the driver controls
+		string $driverFrame = `frameLayout -l "Shape Driver" -li 5 -bs "etchedIn"`;
+			string $driverForm = `formLayout -nd 100`;
+				string $objTXT = `text -l "Driver Object:"`;
+				string $driverObjTF = `textField -ed false`;
+				string $loadDriverBTN = `button -l "Load Selected"`;
+				string $attrDriverTXT = `text -l "Select Attribute Driver:"`;
+				string $attrListTSL = `textScrollList -h 60`;
+				string $upAxisOM = `optionMenu -l "Up Axis:"`;
+					menuItem -l "+x";menuItem -l "-x";menuItem -l "+y";menuItem -l "-y";menuItem -l "+z";menuItem -l "-z";
+				string $fwdAxisOM = `optionMenu -l "Fwd Axis:"`;
+					menuItem -l "+x";menuItem -l "-x";menuItem -l "+z";menuItem -l "-z";
+				string $loadShapeBTN = `button -l "<<< Load Shape >>>" -en false -bgc .7 .85 .7`;
+		setParent $mainForm;
+		// the frame that contains all the affected joint controls
+		string $jointFrame = `frameLayout -l "Affected Joints" -li 5 -bs "etchedIn"`;
+			string $jointForm = `formLayout -nd 100`;
+				string $scroll = `scrollLayout -hst 0 -cr true`;
+					string $scrollForm = `formLayout -nd 100`;
+						string $jNameCol = `columnLayout -adj true`;
+							text -l "Joint Name:" -bgc 1 1 .7 ;
+							separator -h 2 -bgc .3 .3 .3 -st "none";
+							string $jNameColAdj = `columnLayout -adj true`;
+						setParent $scrollForm;
+						string $rightPerCol = `columnLayout -bgc .9 .7 .6`;
+							text -l "Right %" -bgc .9 .7 .6 -w 60;
+							separator -h 2 -bgc .3 .3 .3 -st "none" -w 60;
+							string $rightPerColAdj = `columnLayout -co "left" 15 -bgc .9 .7 .6`;
+						setParent $scrollForm;
+						string $leftPerCol = `columnLayout -bgc .7 .8 .9`;
+							text -l "Left %" -bgc .7 .8 .9 -w 60;
+							separator -h 2 -bgc .3 .3 .3 -st "none" -w 60;
+							string $leftPerColAdj = `columnLayout -co "left" 15 -bgc .7 .8 .9`;
+				setParent $jointForm;
+				string $recalcBTN = `button -l "<<< Recalculate Mask >>>" -en false -bgc .6 .7 .7`;
+		setParent $mainForm;
+		// the frame that contains the output options
+		string $outputFrame = `frameLayout -l "Output Options" -li 5 -bs "etchedIn"`;
+			string $outputForm = `formLayout -nd 100`;
+				string $outputDriverTXT = `text -l "Driver:"`;
+				string $outputObjTF = `textField -ed false`;
+				string $outputObjBTN = `button -l "Use Selected" -en false`;
+				string $rtSideTXT = `text -l "Right Side Attribute:"`;
+				string $rtSideAttrTF = `textField`;
+					popupMenu;
+						menuItem -l "Use Selected Attribute From Channel Box" -c ("seST_setOutputAttr(\""+$rtSideAttrTF+"\")");
+				string $ltSideTXT = `text -l "Left Side Attribute:"`;
+				string $ltSideAttrTF = `textField`;
+					popupMenu;
+						menuItem -l "Use Selected Attribute From Channel Box" -c ("seST_setOutputAttr(\""+$ltSideAttrTF+"\")");
+		setParent $mainForm;
+		// the last of the controls
+		string $deleteMaskCB = `checkBox -label "Delete Mask When Finished" -v 1`;
+		string $splitBTN = `button -l "Split The Shape!" -bgc .9 .45 .4 -en false`;
+		string $splitPB = `progressBar -h 10 -vis false`;
+				
+	// formLayout positioning - main layout
+	formLayout -e
+		-af $driverFrame "top" 5
+		-af $driverFrame "left" 3
+		-af $driverFrame "right" 3
+		-ap $driverFrame "bottom" -153 0
+		-ac $jointFrame "top" 5 $driverFrame
+		-af $jointFrame "left" 3
+		-af $jointFrame "right" 3
+		-af $jointFrame "bottom" 163
+		-ac $outputFrame "top" 5 $jointFrame
+		-af $outputFrame "left" 3
+		-af $outputFrame "right" 3
+		-af $deleteMaskCB "left" 5
+		-ac $deleteMaskCB "top" 4 $outputFrame
+		-ac $splitBTN "top" 4 $deleteMaskCB
+		-af $splitBTN "left" 3
+		-af $splitBTN "right" 3
+		-ac $splitBTN "bottom" 4 $splitPB
+		-af $splitPB "left" 4
+		-af $splitPB "right" 4
+		-af $splitPB "bottom" 4
+	$mainForm;
+		// shape driver form objects
+		formLayout -e
+			-af $objTXT "top" 6
+			-af $objTXT "left" 4
+			-af $driverObjTF "top" 4
+			-ac $driverObjTF "left" 3 $objTXT
+			-ac $driverObjTF "right" 2 $loadDriverBTN
+			-af $loadDriverBTN "top" 3
+			-af $loadDriverBTN "right" 4
+			-ac $attrDriverTXT "top" 4 $driverObjTF
+			-af $attrDriverTXT "left" 4
+			-ac $attrListTSL "top" 0 $attrDriverTXT
+			-ac $attrListTSL "right" 3 $fwdAxisOM
+			-af $attrListTSL "left" 4
+			-ac $upAxisOM "top" 0 $attrDriverTXT
+			-af $upAxisOM "right" 2
+			-ac $fwdAxisOM "top" 5 $upAxisOM
+			-af $fwdAxisOM "right" 2
+			-ac $loadShapeBTN "top" 2 $attrListTSL
+			-af $loadShapeBTN "right" 4
+			-af $loadShapeBTN "left" 4
+			-af $loadShapeBTN "bottom" 2
+		$driverForm;
+		// joint form objects
+		formLayout -e
+			-af $scroll "top" 4
+			-af $scroll "right" 0
+			-af $scroll "left" 0
+			-af $scroll "bottom" 25
+			-ac $recalcBTN "top" 0 $scroll
+			-af $recalcBTN "left" 0
+			-af $recalcBTN "right" 0
+			-af $recalcBTN "bottom" 2
+		$jointForm;
+			// columns inside joint list
+			formLayout -e
+				-af $jNameCol "left" 0
+				-af $jNameCol "right" 120
+				-ac $rightPerCol "left" 0 $jNameCol
+				-ac $leftPerCol "left" 0 $rightPerCol
+			$scrollForm;
+		// output form objects
+		formLayout -e
+			-af $outputDriverTXT "top" 6
+			-af $outputDriverTXT "left" 4
+			-af $outputObjTF "top" 4
+			-ac $outputObjTF "left" 3 $outputDriverTXT
+			-ac $outputObjTF "right" 2 $outputObjBTN
+			-af $outputObjBTN "right" 4
+			-af $outputObjBTN "top" 3
+			-ac $rtSideTXT "top" 4 $outputObjTF
+			-af $rtSideTXT "left" 4
+			-ac $rtSideAttrTF "top" 0 $rtSideTXT
+			-af $rtSideAttrTF "left" 4
+			-ap $rtSideAttrTF "right" 0 46
+			-ac $ltSideTXT "top" 4 $outputObjTF
+			-ac $ltSideTXT "left" 25 $rtSideAttrTF
+			-ac $ltSideAttrTF "top" 0 $ltSideTXT
+			-ac $ltSideAttrTF "left" 25 $rtSideAttrTF
+			-af $ltSideAttrTF "right" 4
+		$outputForm;
+	
+	// set some default values
+	optionMenu -e -v "+y" $upAxisOM;
+	optionMenu -e -v "+z" $fwdAxisOM;
+	string $selUpAxis = `optionMenu -q -v $upAxisOM`;
+	optionMenu -e -ann $selUpAxis $upAxisOM;
+	
+	// set some commands now that we created all the GUI parts
+	string $loadShapeCmd = ("seST_loadShape(\""+$upAxisOM+"\",\""+$fwdAxisOM+"\",\""+$driverObjTF+"\",\""+$attrListTSL+"\",\""+$jNameColAdj+"\",\""+$leftPerColAdj+"\",\""+$rightPerColAdj+"\");");
+		   $loadShapeCmd += ("button -e -en true "+$recalcBTN+";button -e -en true "+$outputObjBTN+";seST_setOutput(\""+$driverObjTF+"\",\""+$attrListTSL+"\",\""+$outputObjTF+"\",\""+$rtSideAttrTF+"\",\""+$ltSideAttrTF+"\");");
+		   $loadShapeCmd += ("button -e -en true "+$splitBTN+"");
+	
+	string $loadDriverCmd = ("button -e -en false "+$recalcBTN+";button -e -en false "+$outputObjBTN+";button -e -en false "+$splitBTN+";textField -e -tx \"\" "+$outputObjTF+";textField -e -tx \"\" "+$rtSideAttrTF+";textField -e -tx \"\" "+$ltSideAttrTF+";");
+		   $loadDriverCmd += ("seST_loadDriver(\""+$driverObjTF+"\",\""+$attrListTSL+"\",\""+$loadShapeBTN+"\",\""+$jNameColAdj+"\",\""+$leftPerColAdj+"\",\""+$rightPerColAdj+"\");");
+	
+	button -e -c $loadDriverCmd $loadDriverBTN;
+	textScrollList -e -sc ("button -e -en true "+$loadShapeBTN+";seST_attrListChangeChecker(\""+$attrListTSL+"\",\""+$splitBTN+"\")") $attrListTSL;
+	optionMenu -e -cc ("seST_updateFwdAxisMenu(\""+$upAxisOM+"\",\""+$fwdAxisOM+"\")") $upAxisOM;
+	button -e -c $loadShapeCmd $loadShapeBTN;
+	button -e -c ("seST_calcMask(\""+$jNameColAdj+"\",\""+$leftPerColAdj+"\",\""+$rightPerColAdj+"\",\""+$upAxisOM+"\",\""+$fwdAxisOM+"\")") $recalcBTN;
+	button -e -c ("seST_setOutputDriver(\""+$outputObjTF+"\")") $outputObjBTN;
+	button -e -c ("seST_splitShape(\""+$driverObjTF+"\",\""+$attrListTSL+"\",\""+$jNameColAdj+"\",\""+$leftPerColAdj+"\",\""+$rightPerColAdj+"\",\""+$outputObjTF+"\",\""+$rtSideAttrTF+"\",\""+$ltSideAttrTF+"\",\""+$deleteMaskCB+"\",\""+$splitPB+"\")") $splitBTN;
+	// set size and show the window
+	window -e -w 290 -h 575 seShapeTaperGUI;
+	showWindow seShapeTaperGUI;
+}
+///////////////////////////////////////////////////////////////////////////////
+// Procedure to do the actual splitting based on the left and right percentages
+// Returns: Nothing
+///////////////////////////////////////////////////////////////////////////////
+global proc seST_splitShape(string $driverObjTF,string $attrListTSL,string $jNameColAdj,string $leftPerColAdj,string $rightPerColAdj,string $outputObjTF,string $rtSideAttrTF,string $ltSideAttrTF,string $deleteMaskCB,string $splitPB){
+	// get some of the object names
+	string $destObj = `textField -q -tx $outputObjTF`;
+	string $rtSideAttr = `textField -q -tx $rtSideAttrTF`;
+	string $ltSideAttr = `textField -q -tx $ltSideAttrTF`;
+	string $sourceObj = `textField -q -tx $driverObjTF`;
+	string $sourceAttr[] = `textScrollList -q -si $attrListTSL`;
+	// get all the children of the joint, left, and right columns from the GUI
+	string $jColChildren[] = `columnLayout -q -ca $jNameColAdj`;
+	string $ltPerColChildren[] = `columnLayout -q -ca $leftPerColAdj`;
+	string $rtPerColChildren[] = `columnLayout -q -ca $rightPerColAdj`;
+	
+	// lets check if the destination object still exists before we do all this
+	if(! `objExists $destObj`) error "Output driver could not be found. Choose another object and try again.";
+	// check to see if the right and left attribute names are valid or not
+	if(! `isValidString $rtSideAttr "([a-zA-Z]+)([a-zA-Z0-9_])*"`) error "Right side attribute is not a valid name.";
+	if(! `isValidString $ltSideAttr "([a-zA-Z]+)([a-zA-Z0-9_])*"`) error "Left side attribute is not a valid name.";
+	// check if there are any joints in the list before we do any more
+	if(! `size $jColChildren`) error "There are no joints in the list to split.";
+	
+	// create, if needed, the left and right attributes
+	int $rtCreated = seST_createSideAttr($sourceObj,$sourceAttr[0],$destObj,$rtSideAttr);
+	int $ltCreated = seST_createSideAttr($sourceObj,$sourceAttr[0],$destObj,$ltSideAttr);
+	
+	// now we remove any old anim curves on the left and right attribute
+	if(! $rtCreated) seST_deleteOldAnimCurves($destObj,$rtSideAttr);
+	if(! $ltCreated) seST_deleteOldAnimCurves($destObj,$ltSideAttr);
+	
+	// get all the connected animCurves
+	string $sAnimCurves[] = `listConnections -scn 1 -s 0 -t animCurve ($sourceObj + "." + $sourceAttr[0])`;
+
+	// setup the progress bar
+	int $numCurves = `size $sAnimCurves`;
+	progressBar -e -max $numCurves $splitPB;
+	progressBar -e -vis 1 $splitPB;
+	
+	// get the rest pose value of this driver
+	int $restPose = `getAttr ($sourceObj + "." + $sourceAttr[0])`;
+	
+	// for each animCurve, we do our splitting
+	for($sCurve in $sAnimCurves){
+		// step the progress bar 1 step
+		progressBar -e -s 1 $splitPB;
+		// get the joint driven by this curve including the plug - if we didn't find one, than move on to next
+		string $drivenJoints[] = seST_seekDownstream($sCurve,"joint",1,3);
+		if(! `size $drivenJoints`) continue;
+		
+		// get some curve information (pre/post infinity, tangent, weighted tangent, curve type)
+		int $cPreInf = `getAttr ($sCurve + ".pre")`;
+		int $cPstInf = `getAttr ($sCurve + ".pst")`;
+		int $cTan = `getAttr ($sCurve + ".tan")`;
+		int $cWTan[] = `keyTangent -q -wt $sCurve`;
+		string $cType = `nodeType $sCurve`;
+
+		// get the rest pose value on the animCurve
+		float $restKeyValue[] = `keyframe -f $restPose -q -eval $sCurve`;
+		
+		// now we find the associated joints with this animCurve and get the left and right percentages
+		for($joint in $drivenJoints){
+			// get the base name without the plugs
+			string $jName = `match "^[^\.]*" $joint`;
+			// for each joint in the list on the GUI find a match
+			for($z=0;$z < size($jColChildren);$z++){
+				if(`text -q -l $jColChildren[$z]` == $jName){
+				
+					// set some strings for naming the new curves
+					string $jointAttrSN[] = `listAttr -sn $joint`;
+					$jointAttrSN[0] = capitalizeString($jointAttrSN[0]);
+					string $capDestObjName = capitalizeString($destObj);
+		
+					// create two new animCurves with the above values - first will be the right, second is left
+					string $attr = $rtSideAttr;
+					string $nCurves[];
+					for($n=0;$n < 2;$n++){
+						string $destAttrSN[] = `listAttr -sn ($destObj + "." + $attr)`;
+						$destAttrSN[0] = capitalizeString($destAttrSN[0]);
+						$nCurves[$n] = `createNode $cType -n ("ac_" + $capDestObjName + $destAttrSN[0] + "_" + $jName + $jointAttrSN[0])`;
+						setAttr ($nCurves[$n] + ".pre") $cPreInf;
+						setAttr ($nCurves[$n] + ".pst") $cPstInf;
+						setAttr ($nCurves[$n] + ".tan") $cTan;
+						$attr = $ltSideAttr;
+					}
+		
+					// get the left and right percentages
+					int $rtPercent = `intField -q -v $rtPerColChildren[$z]`;
+					int $ltPercent = `intField -q -v $ltPerColChildren[$z]`;
+						
+					// get the number of keys in this animCurve and use it go loop though each key
+					int $numKeys = `keyframe -q -kc $sCurve`;
+					for($i=0;$i < $numKeys;$i++){
+						// get the float and value at the current index (i)
+						float $kFloat[] = `keyframe -in $i -q -fc $sCurve`;
+						float $kValue[] = `keyframe -in $i -q -vc $sCurve`;
+
+						// get the in and out angles of the key
+						float $kInAngle[]= `keyTangent -in $i -q -inAngle $sCurve`;
+						float $kOutAngle[] = `keyTangent -in $i -q -outAngle $sCurve`;
+
+						// get the in and out tangents
+						string $kInTang[] = `keyTangent -in $i -q -inTangentType $sCurve`;
+						string $kOutTang[] = `keyTangent -in $i -q -outTangentType $sCurve`;
+
+						// get the in and out weights
+						float $kInWeight[] = `keyTangent -in $i -q -inWeight $sCurve`;
+						float $kOutWeight[] = `keyTangent -in $i -q -outWeight $sCurve`;
+						
+						// set the new value based on the left and right percentages
+						float $rightKValue = (($kValue[0] - $restKeyValue[0]) * ($rtPercent * 0.01));
+						float $leftKValue = (($kValue[0] - $restKeyValue[0]) * ($ltPercent * 0.01));
+				
+						// set a key with the new left and right values
+						setKeyframe -f $kFloat[0] -v $rightKValue $nCurves[0];
+						setKeyframe -f $kFloat[0] -v $leftKValue $nCurves[1];
+						
+						// set the tangency - run twice, once for each side
+						for($s=0;$s < 2;$s++){
+							if($kInTang[0] == "fixed"){
+								keyTangent -in $i -itt $kInTang[0] $nCurves[$s];
+								keyTangent -in $i -ia $kInAngle[0] $nCurves[$s];
+								
+								if($cWTan[0]){
+									keyTangent -wt 1 $nCurves[$s];
+									keyTangent -in $i -iw $kInWeight[0] $nCurves[$s];
+								}
+							} else	keyTangent -itt $kInTang[0] $nCurves[$s];
+							
+							if($kOutTang[0] == "fixed"){
+								keyTangent -in $i -ott $kOutTang[0] $nCurves[$s];
+								keyTangent -in $i -oa $kOutAngle[0] $nCurves[$s];
+								
+								if($cWTan[0]){
+									keyTangent -wt 1 $nCurves[$s];
+									keyTangent -ow $kOutWeight[0] $nCurves[$s];
+								}
+							} else keyTangent -ott $kOutTang[0] $nCurves[$s];
+						} // end for each side - tangent
+					} // end for each key
+					
+					// we are done with the splitting, now we connect the curves to the driver for each side
+					// connect to the left and right attributes
+					connectAttr -f ($destObj + "." + $rtSideAttr) ($nCurves[0] + ".input");
+					connectAttr -f ($destObj + "." + $ltSideAttr) ($nCurves[1] + ".input");
+					
+					// see if the source node of the joint is a blendWeighted cause we need one
+					string $jSourceNode[] = `listConnections -scn 1 -d 0 -p 1 $joint`;
+					string $bwNode = `match "^[^\.]*" $jSourceNode[0]`;
+					// if its not a blendWeighted we will make a new one 
+					if(`nodeType $bwNode` != "blendWeighted"){
+						$bwNode = `createNode blendWeighted -n ("bw_" + $jName + $jointAttrSN[0])`;
+						connectAttr -f $jSourceNode[0] ($bwNode + ".input[0]");
+						connectAttr -f ($bwNode + ".output") $joint;
+					}
+					// now we hook up our curves to the blendWeighted by finding the first available input
+					for($c=0;$c < 2;$c++){
+						int $p = 0;
+						// we loop through looking for an input that does not have a connections
+						while(`connectionInfo -id ($bwNode + ".input[" + $p + "]")`){
+							$p++;
+						}
+						// if we found an open input, we connect our curve to it
+						connectAttr -f ($nCurves[$c] + ".output") ($bwNode + ".input[" + $p + "]");
+					}
+					// ok we are done with this joint, lets go to the next
+					
+				} // end if name match on joint list
+			} // for each joint on the GUI
+		} // end for each driven joint
+	} // end for each animCurve
+	
+	// we are done splitting, nice job, now if the mask needs to be deleted, lets do it
+	if(`checkBox -q -v $deleteMaskCB`){
+		if(`objExists seShapeTaperMask`) delete seShapeTaperMask;
+	}
+	// hide and reset the progress bar
+	progressBar -e -vis 0 $splitPB;
+	progressBar -e -pr 0 $splitPB;
+	// select the destination object
+	select $destObj;
+	print "\/\/ Split Completed!\n";
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to delete any animCurves that are connected from the given object attribute to a joint
+// Returns: Nothing
+///////////////////////////////////////////////////////////////////////////////////////////////////
+global proc seST_deleteOldAnimCurves(string $obj,string $attr){
+	// get all the connected animCurves
+	string $animCurves[]  = `listConnections -scn 1 -s 0 -t animCurve ($obj + "." + $attr)`;
+	// for each animCurve we see if its connected to a joint, if so, delete it
+	for($curve in $animCurves){
+		string $connectedJoint[] = seST_seekDownstream($curve,"joint",0,3);
+		if(`size $connectedJoint`) delete $curve;
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to create a new attribute with the same default value and ranges as the source object attribute (if one doesn't exist)
+// Returns: 1 if new attribute created or 0 if one already exists
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc int seST_createSideAttr(string $sourceObj,string $sourceAttr,string $destObj,string $destAttr){
+	// if the attribute already exists, just return
+	if(`attributeQuery -n $destObj -ex $destAttr`) return 0;
+
+	// get the default value of the source attribute
+	float $defaultValue[] = `attributeQuery -n $sourceObj -ld $sourceAttr`;
+	
+	// now build our command based on the above info
+	string $attrCmd = "addAttr -ln "+$destAttr+" -k 1 -dv " + $defaultValue[0] + " -at double";
+	
+	// if there is a min and max value, we'll use that too
+	if(`attributeQuery -n $sourceObj -mne $sourceAttr`){
+		float $min[] = `attributeQuery -n $sourceObj -min $sourceAttr`;
+		$attrCmd += " -min " + $min[0];
+	}
+	if(`attributeQuery -n $sourceObj -mxe $sourceAttr`){
+		float $max[] = `attributeQuery -n $sourceObj -max $sourceAttr`;
+		$attrCmd += " -max " + $max[0];
+	}
+	$attrCmd += " " + $destObj;
+	// now we run our command
+	eval($attrCmd);
+	return 1;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to take the attribute selected in the channel box and enter it in the given text field
+// Returns: Nothing
+///////////////////////////////////////////////////////////////////////////////////////////////////
+global proc seST_setOutputAttr(string $outputAttrTF){
+	// get the global string to get the name of the channel box
+	global string $gChannelBoxName;
+	// query the selected channels
+	string $selAttr[] = `channelBox -q -sma $gChannelBoxName`;
+	string $selObj[] = `channelBox -q -mol $gChannelBoxName`;
+	// if they selected an attribute, put it in the text field
+	if(`size $selAttr`){
+		string $attrLongName = `attributeQuery -n $selObj[0] -ln $selAttr[0]`;
+		textField -e -tx $attrLongName $outputAttrTF;	
+	}
+}
+//////////////////////////////////////////////////////////////////////////////////////
+// Procedure to take the selected object and load it into the output driver text field
+// Returns: Nothing
+//////////////////////////////////////////////////////////////////////////////////////
+global proc seST_setOutputDriver(string $outputObjTF){
+	// get the current selection
+	string $sel[] = `ls -sl`;
+	if(!`size $sel`) error "No object was selected.";
+	// put it in the output driver text field
+	textField -e -tx $sel[0] $outputObjTF;
+}
+////////////////////////////////////////////////////////////////////////////////
+// Procedure to set the output options like the driver and right/left attributes
+// Returns: Nothing
+////////////////////////////////////////////////////////////////////////////////
+global proc seST_setOutput(string $driverObjTF,string $attrListTSL, string $outputObjTF,string $rtSideAttrTF,string $ltSideAttrTF){
+	// get the driver object as we will use it as a default output driver
+	string $driverObj = `textField -q -tx $driverObjTF`;
+	textField -e -tx $driverObj $outputObjTF;
+	// get the attribute driver, convert the first letter to uppercase, and put it in the left and right text fields with "left" and "right" in front
+	string $attrDriver[] = `textScrollList -q -si $attrListTSL`;
+	string $baseAttrName = capitalizeString($attrDriver[0]);
+	textField -e -tx ("right" + $baseAttrName) $rtSideAttrTF;
+	textField -e -tx ("left" + $baseAttrName) $ltSideAttrTF;
+}
+//////////////////////////////////////////////////////////////////////////
+// Procedure to load the joints in the list, create and calculate the mask
+// Returns: Nothing
+//////////////////////////////////////////////////////////////////////////
+global proc seST_loadShape(string $upAxisOM,string $fwdAxisOM,string $driverObjTF,string $attrListTSL,string $jNameColAdj,string $leftPerColAdj,string $rightPerColAdj){
+	// get the control names so we can use them later
+	string $driverObj = `textField -q -tx $driverObjTF`;
+	string $attrDriver[] = `textScrollList -q -si $attrListTSL`;
+	
+	// set the annotation on the text scroll list of the currently loaded shape for dummy proofing
+	textScrollList -e -ann $attrDriver[0] $attrListTSL;
+	
+	// hide the columnLayouts as we delete and build new controls for appearance sake
+	seST_showHideColLayout({$jNameColAdj,$leftPerColAdj,$rightPerColAdj},false);
+	
+	// clear out the joint list in the GUI
+	seST_deleteColChildren({$jNameColAdj,$leftPerColAdj,$rightPerColAdj});
+	
+	// get the list of driven joints
+	string $drivenJointList[] = seST_seekDownstream(($driverObj+"."+$attrDriver[0]),"joint",0,4);
+	$drivenJointList = stringArrayRemoveDuplicates($drivenJointList);
+	// if there are no driven joints then we can't do anything
+	if(! `size $drivenJointList`) error "No driven joints found. Can not load shape.";
+	
+	// set some variables needed to find the outermost joints
+	string $splitUpAxis[] = seST_splitAxisOM($upAxisOM);
+	string $splitFwdAxis[] = seST_splitAxisOM($fwdAxisOM);
+	int $axisIndexes[] = seST_getUpAndSideAxisIndexes($splitUpAxis[1],$splitFwdAxis[1]);
+	int $sideAI = $axisIndexes[1];
+	int $upAI = $axisIndexes[0];
+	// get the fwd index value based on the other two side and up indexes
+	int $fwdIndex = 3 - $sideAI - $upAI;
+	float $leftPos = 0.0;
+	float $rightPos = 0.0;
+	float $topPos = 0.0;
+	float $bottomPos = 0.0;
+	float $frontPos = 0.0;
+	// variable for sorting the joint list
+	float $unsortedRL[];
+	
+	// for each joint we will get the world position so we can sort it left to right and find the outermost joints
+	for($i=0;$i < size($drivenJointList);$i++){
+		float $jointPos[] = `xform -ws -q -t $drivenJointList[$i]`;
+
+		$unsortedRL[$i] = $jointPos[$sideAI];		
+		// if the fwd axis is negative we have to reverse the greater, less than sign
+		if($splitFwdAxis[0] == "-"){
+			if(! $rightPos || $jointPos[$sideAI] > $rightPos) $rightPos = $jointPos[$sideAI];
+			if(! $leftPos || $jointPos[$sideAI] < $leftPos) $leftPos = $jointPos[$sideAI];
+			if(! $frontPos || $jointPos[$fwdIndex] < $frontPos) $frontPos = $jointPos[$fwdIndex];
+		} else {
+			if(! $rightPos || $jointPos[$sideAI] < $rightPos) $rightPos = $jointPos[$sideAI];
+			if(! $leftPos || $jointPos[$sideAI] > $leftPos) $leftPos = $jointPos[$sideAI];
+			if(! $frontPos || $jointPos[$fwdIndex] > $frontPos) $frontPos = $jointPos[$fwdIndex];	
+		}
+		// same goes for the up axis
+		if($splitUpAxis[0] == "-"){
+			if(! $topPos || $jointPos[$upAI] < $topPos) $topPos = $jointPos[$upAI];
+			if(! $bottomPos || $jointPos[$upAI] > $bottomPos) $bottomPos = $jointPos[$upAI];
+		} else {
+			if(! $topPos || $jointPos[$upAI] > $topPos) $topPos = $jointPos[$upAI];
+			if(! $bottomPos || $jointPos[$upAI] < $bottomPos) $bottomPos = $jointPos[$upAI];
+		}		
+	}
+	// find the center of the outermost joints
+	float $midUp = (($topPos + $bottomPos) / 2);
+	float $midSide = (($rightPos + $leftPos) / 2);
+	// find the width and height for the mask to use, plus a little extra to make sure it goes around the joints
+	float $maskHeight = (abs($topPos - $bottomPos) / 2) + 0.001;
+	float $maskWidth = (abs($leftPos - $rightPos) / 2) + 0.001;
+	
+	// create the mask
+	seST_createMask($upAxisOM,$fwdAxisOM,$midUp,$midSide,$maskHeight,$maskWidth,$frontPos);
+
+	// now we do some sorting to put the joints in a nice list in the GUI
+	// we have to run the floats through some string stuff so we can match them since Maya is stupid at this
+	float $sortedRL[] = seST_removeDupAndSort($unsortedRL,1);
+	$unsortedRL = seST_removeDupAndSort($unsortedRL,0);
+	// now we compare the sorted list with the unsorted and match the indexes to the driven joint list
+	string $sortedDrivenJointList[];
+	int $leftRightKey[] = {1,2,0};
+	int $numJoints = `size $drivenJointList`;
+	int $z = 0;
+	// depending on axis combination, we may need to reverse the order
+	int $order = 1;
+	if($splitUpAxis[0] == "-") $order *= -1;
+	if($splitFwdAxis[0] == "-") $order *= -1;
+	if($leftRightKey[$upAI] == $sideAI) $order *= -1;
+	// now the sorting and ordering to make sure everytime the order goes right to left
+	for($w=0; $w < size($sortedRL);$w++){
+		for($j=0;$j < size($unsortedRL);$j++){
+			if($sortedRL[$w] == $unsortedRL[$j]){
+				if($order == 1) $sortedDrivenJointList[$z] = $drivenJointList[$j];
+				else $sortedDrivenJointList[$numJoints - $z - 1] = $drivenJointList[$j];
+				$z++;
+			}
+		}
+	}
+	// now we put the sorted joint list into the GUI
+	for($joint in $sortedDrivenJointList){
+		string $rightInt = `intField -w 30 -min 0 -max 100 -s 1 -h 25 -p $rightPerColAdj`;
+		string $leftInt = `intField -w 30 -min 0 -max 100 -s 1 -h 25 -p $leftPerColAdj`;
+		// set a chance command on the int fields so if one side is changed, it updates the other to always equal 100
+		intField -e -cc ("intField -e -v (100 - `intField -q -v "+$rightInt+"`) "+$leftInt+"") $rightInt;
+		intField -e -cc ("intField -e -v (100 - `intField -q -v "+$leftInt+"`) "+$rightInt+"") $leftInt;
+
+		string $jText = `text -l $joint -al "left" -bgc 1 1 .7 -h 25 -p $jNameColAdj`;
+		// add a popup menu to be able to remove a joint from the joint list so it won't be split
+		popupMenu;
+			menuItem -l "Remove Joint" -c ("deleteUI " + $jText + " " + $rightInt + " " + $leftInt);
+	}
+	
+	// calculate the mask
+	seST_calcMask($jNameColAdj,$leftPerColAdj,$rightPerColAdj,$upAxisOM,$fwdAxisOM);
+	
+	// show the column layouts now that we are ready to go
+	seST_showHideColLayout({$jNameColAdj,$leftPerColAdj,$rightPerColAdj},true);
+}
+///////////////////////////////////////////////////////////////////////////////////////
+// Procedure to calculate the mask to determine the left and right percentages to split
+// Returns: Nothing
+///////////////////////////////////////////////////////////////////////////////////////
+global proc seST_calcMask(string $jNameColAdj,string $leftPerColAdj,string $rightPerColAdj,string $upAxisOM,string $fwdAxisOM){
+	// if the mask doesn't exist, we can't do anything
+	if(! `objExists seShapeTaperMask`) error "Mask could not be found. Can not calculate!";
+	
+	// get the world space coordinates of the 4 corners on the mask
+	float $maskBL[] = `xform -q -ws -t seShapeTaperMask.vtx[0]`;
+	float $maskTL[] = `xform -q -ws -t seShapeTaperMask.vtx[1]`;
+	float $maskTR[] = `xform -q -ws -t seShapeTaperMask.vtx[2]`;
+	float $maskBR[] = `xform -q -ws -t seShapeTaperMask.vtx[3]`;
+	
+	// we need the get the axis info again to do the calculations
+	string $splitUpAxis[] = seST_splitAxisOM($upAxisOM);
+	string $splitFwdAxis[] = seST_splitAxisOM($fwdAxisOM);
+	int $axisIndexes[] = seST_getUpAndSideAxisIndexes($splitUpAxis[1],$splitFwdAxis[1]);
+	int $sideAI = $axisIndexes[1];
+	int $upAI = $axisIndexes[0];
+		
+	// get the distance between the left and right points for both the top and bottom edges of the mask
+	float $maskBRL = ($maskBL[$sideAI] - $maskBR[$sideAI]);
+	float $maskTRL = ($maskTL[$sideAI] - $maskTR[$sideAI]);
+	// get the slope of the top and bottom lines so we can find the distance later
+	float $maskBSlope = (($maskBL[$upAI] - $maskBR[$upAI]) / ($maskBL[$sideAI] - $maskBR[$sideAI]));
+	float $maskTSlope = (($maskTL[$upAI] - $maskTR[$upAI]) / ($maskTL[$sideAI] - $maskTR[$sideAI]));
+	// get the real mask center for joints that are outside the mask to know which sides to put them on
+	float $maskCenter = ((($maskBL[$sideAI] + $maskTL[$sideAI]) / 2) + (($maskBR[$sideAI] + $maskTR[$sideAI]) / 2)) / 2;
+	
+	// get the children of the joint and left/right percentage columns
+	string $jColChildren[] = `columnLayout -q -ca $jNameColAdj`;
+	string $ltPerColChildren[] = `columnLayout -q -ca $leftPerColAdj`;
+	string $rtPerColChildren[] = `columnLayout -q -ca $rightPerColAdj`;
+
+	// if the fwd axis is flipped we have to inverse some things
+	int $leftRightKey[] = {1,2,0};
+	int $flipRL = 0;
+	int $invTri = 1;
+	// if the fwd axis is negative we have to inverse the triangle area (below) and the left and right percentages for outside the mask
+	if($splitFwdAxis[0] == "-"){
+		$flipRL = 100 - $flipRL;
+		$invTri *= -1;
+	}
+	// if the up axis if negative we flip the left and right percentages
+	if($splitUpAxis[0] == "-") $flipRL = 100 - $flipRL;
+	// if its one of our special cases, we need to inverse the triangle area and flip the left and right percentages
+	if($leftRightKey[$upAI] == $sideAI){
+		$flipRL = 100 - $flipRL;
+		$invTri *= -1;
+	}
+	
+	// now we can begin, for each joint in the column from the GUI
+	for($i=0;$i< size($jColChildren);$i++){
+		// get the name of the joint from the joint list column
+		string $drivenJoint = `text -q -l $jColChildren[$i]`;
+		// if for some reason the joint was deleted, we need to remove it from the list and move to the next
+		if(! `objExists $drivenJoint`){
+			warning($drivenJoint + " could not be found. It will be removed from the list.");
+			deleteUI $jColChildren[$i] $ltPerColChildren[$i] $rtPerColChildren[$i];
+			continue;
+		}
+		// get the world space position of the joint
+		float $jointPos[] = `xform -q -ws -t $drivenJoint`;
+		// some math to determin if the joint is inside or outside the mask using a triangle area formula
+		// if the mask points and joint position are going in a counter clockwise, its inside, if its clockwise, its outside
+		float $tri1 = ($maskTL[$sideAI] * $jointPos[$upAI] - $maskTL[$upAI] * $jointPos[$sideAI] - $maskBL[$sideAI] * $jointPos[$upAI] + $maskBL[$upAI] * $jointPos[$sideAI] + $maskBL[$sideAI] * $maskTL[$upAI] - $maskBL[$upAI] * $maskTL[$sideAI]) / 2;
+		float $tri2 = ($maskTR[$sideAI] * $jointPos[$upAI] - $maskTR[$upAI] * $jointPos[$sideAI] - $maskTL[$sideAI] * $jointPos[$upAI] + $maskTL[$upAI] * $jointPos[$sideAI] + $maskTL[$sideAI] * $maskTR[$upAI] - $maskTL[$upAI] * $maskTR[$sideAI]) / 2;
+		float $tri3 = ($maskBR[$sideAI] * $jointPos[$upAI] - $maskBR[$upAI] * $jointPos[$sideAI] - $maskTR[$sideAI] * $jointPos[$upAI] + $maskTR[$upAI] * $jointPos[$sideAI] + $maskTR[$sideAI] * $maskBR[$upAI] - $maskTR[$upAI] * $maskBR[$sideAI]) / 2;
+		float $tri4 = ($maskBL[$sideAI] * $jointPos[$upAI] - $maskBL[$upAI] * $jointPos[$sideAI] - $maskBR[$sideAI] * $jointPos[$upAI] + $maskBR[$upAI] * $jointPos[$sideAI] + $maskBR[$sideAI] * $maskBL[$upAI] - $maskBR[$upAI] * $maskBL[$sideAI]) / 2;
+		
+		// set the left percentage to a default value
+		int $roundedLeftPercent = 0;
+		// if any of the joint are negative (clockwise) we know its outside the mask area
+		if(($invTri * $tri1) < 0 || ($invTri * $tri2) < 0 || ($invTri * $tri3) < 0 || ($invTri * $tri4) < 0){
+			if($jointPos[$sideAI] < $maskCenter) $roundedLeftPercent = $flipRL - 0;
+			else if ($jointPos[$sideAI] > $maskCenter) $roundedLeftPercent = 100 - $flipRL;
+			else $roundedLeftPercent = 50;
+		// if they are inside the mask, then we do some calculations based on position to the edges of the mask
+		} else {
+			// get the bottom left percentage for reduction
+			float $btmLeftPercent = ($jointPos[$sideAI] - $maskBR[$sideAI]) / $maskBRL;
+			// get the top left percentage for reduction
+			float $topLeftPercent = ($jointPos[$sideAI] - $maskTR[$sideAI]) / $maskTRL;
+			// using the slope for the top and bottom edges, we can find the up position along that edge
+			// at each joint along the right to left so we can find out how close that joint is vertically
+			// to the top and bottom edge so we can blend in the bottom and top left and right percentages
+			float $topPoint = ($maskTSlope * ($jointPos[$sideAI] - $maskTR[$sideAI])) + $maskTR[$upAI];
+			float $bottomPoint = ($maskBSlope * ($jointPos[$sideAI] - $maskBR[$sideAI])) + $maskBR[$upAI];
+			float $topBottomDist = $topPoint - $bottomPoint;
+			float $topEdgePercent = ($jointPos[$upAI] - $bottomPoint) / $topBottomDist;
+			// we use the top edge percent to blend the top and bottom left percents together to one main value
+			float $totalLeftPercent = $btmLeftPercent + (($topLeftPercent - $btmLeftPercent) * $topEdgePercent);
+			// now we round it so its a integer and keep it between 0 and 100 just incase it rounds oddly
+			int $rawLtRoundedPer = seST_roundOff($totalLeftPercent,2) * 100;
+			$roundedLeftPercent = clamp(0,100,$rawLtRoundedPer);
+		}
+		// put the new percent in the left and right int fields
+		intField -e -v $roundedLeftPercent $ltPerColChildren[$i];
+		intField -e -v (100 - $roundedLeftPercent) $rtPerColChildren[$i];
+	}
+	// wow thats a lot of math, but we are done, nice job
+}
+////////////////////////////////////////////////////
+// Procedure to create the mask if one doesn't exist
+// Returns: Nothing
+////////////////////////////////////////////////////
+global proc seST_createMask(string $upAxisOM,string $fwdAxisOM,float $midUp,float $midSide,float $maskHeight,float $maskWidth,float $front){
+	// get the axes and build the mask
+	if(! `objExists seShapeTaperMask`){
+		// get axes split so we can use the info
+		string $splitUpAxis[] = seST_splitAxisOM($upAxisOM);
+		string $splitFwdAxis[] = seST_splitAxisOM($fwdAxisOM);
+		// set some stuff to relate to the matrix we will build
+		int $axisIndexes[] = seST_getUpAndSideAxisIndexes($splitUpAxis[1],$splitFwdAxis[1]);
+		int $u = $axisIndexes[0];
+		int $f = $axisIndexes[1];
+		// build a new matrix that will house the point positions of our mask
+		matrix $maskMatrix[4][3];
+		// used for if the direction of the points needs reversed
+		int $matrixKey[] = {1,2,0};
+		// set the default point positions that will later change
+		float $fwdM[] = {$maskWidth,$maskWidth,-$maskWidth,-$maskWidth};
+		float $upM[] = {-$maskHeight,$maskHeight,$maskHeight,-$maskHeight};
+		// build a command to create our mask
+		string $command = "polyCreateFacet -ch false -tx 2 ";
+		// for the 4 points we do some point building and altering
+		for($n=0;$n<4;$n++){
+			// set the default up axis position
+            $maskMatrix[$n][$u] = $upM[$n];
+			// depending what fwd axis it is, we either reverse or do standard position
+			if($matrixKey[$u] == $f) $maskMatrix[$n][$f] = $fwdM[3-$n];
+            else $maskMatrix[$n][$f] = $fwdM[$n];
+			// if the up axis is negative we have to inverse both the up and fwd positions
+            if($splitUpAxis[0] == "-"){
+             	$maskMatrix[$n][$u] = $maskMatrix[$n][$u] * -1;
+                $maskMatrix[$n][$f] = $maskMatrix[$n][$f] * -1;
+            }
+			// if the fwd axis is negative we have to inverse the fwd axis
+            if($splitFwdAxis[0] == "-") $maskMatrix[$n][$f] = $maskMatrix[$n][$f] * -1;
+			// put that position in the command for the point
+            $command += (" -p "+$maskMatrix[$n][0]+" "+$maskMatrix[$n][1]+" "+$maskMatrix[$n][2]);
+		}
+		// name our new mask and evaluate it to create it. We now have a new 1x1 mask at the orgin!
+		$command += " -n seShapeTaperMask;";
+		eval($command);
+		// set the translate position of the mask so its centered around the joints and up front
+		string $sideAxes[] = {"X","Y","Z"};
+		setAttr ("seShapeTaperMask.translate" + toupper($splitUpAxis[1])) $midUp;
+		setAttr ("seShapeTaperMask.translate" + toupper($splitFwdAxis[1])) $front;
+		setAttr ("seShapeTaperMask.translate" + $sideAxes[$f]) $midSide;
+
+		// ADDING A RAMP SHADER TO MASK
+		// create the script job and attach it to the mask
+		scriptJob -ad "seShapeTaperMask.translateX" seST_deleteMaskShader;
+		// remove old shader stuff if exists
+		seST_deleteMaskShader;
+		// create the shader network
+		shadingNode -asShader lambert -n seShapeTaperMask_Shader;
+		sets -renderable true -noSurfaceShader true -empty -n seShapeTaperMask_ShaderSG;
+		defaultNavigation -connectToExisting -source seShapeTaperMask_Shader -destination seShapeTaperMask_ShaderSG;
+		// create the color ramp and attach it to the shader color input
+		shadingNode -asTexture ramp -n seShapeTaperMask_Ramp;
+		shadingNode -asUtility place2dTexture -n seShapeTaperMask_p2d;
+		connectAttr seShapeTaperMask_p2d.outUV seShapeTaperMask_Ramp.uv;
+		connectAttr seShapeTaperMask_p2d.outUvFilterSize seShapeTaperMask_Ramp.uvFilterSize;
+		defaultNavigation -force true -connectToExisting -source seShapeTaperMask_Ramp -destination seShapeTaperMask_Shader.color;
+		setAttr "seShapeTaperMask_Ramp.colorEntryList[0].color" -type double3 0 0 1 ;
+		setAttr "seShapeTaperMask_Ramp.colorEntryList[1].color" -type double3 1 0 0 ;
+		setAttr "seShapeTaperMask_Ramp.colorEntryList[1].position" 1.0;
+		setAttr "seShapeTaperMask_Shader.transparency" -type double3 0.5.5 0.5 ;
+		// apply it to our mask
+		select -r seShapeTaperMask;
+		hyperShade -assign seShapeTaperMask_ShaderSG;
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////
+// Duncan's sweet float round off script to properly round a float to a requested percision
+// Returns: Float that has been rounded
+///////////////////////////////////////////////////////////////////////////////////////////
+global proc float seST_roundOff( float $f, int $n ){
+	// we divide if n < 0 to avoid numeric precision problems
+	if( $n > 0 ){
+		float $roundScale = pow(10,$n);
+		if( $f > 0 ) return( ((float)(int)($f * $roundScale + 0.5)) /$roundScale );
+		else return( ((float)(int)($f * $roundScale - 0.5)) /$roundScale );
+	} else {
+		float $roundScale = pow(10,-$n);
+		if( $f > 0 ) return( ((float)(int)($f/$roundScale + 0.5)) *$roundScale );
+		else return( ((float)(int)($f/$roundScale - 0.5)) *$roundScale );
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to convert a float array into a string, sort, remove duplicates, and convert back to float array - Maya workaround
+// Returns: Float array of clean floats
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc float[] seST_removeDupAndSort(float $unsortedRL[],int $sort){
+	// convert the float array into a string array
+	string $stringConverted[];
+	for($i=0;$i < size($unsortedRL);$i++){
+		$stringConverted[$i] = $unsortedRL[$i];
+	}
+	// remove duplicate values if they exist
+	if($sort) $stringConverted = stringArrayRemoveDuplicates($stringConverted);
+	// convert back to float array
+	float $sortedRL[];
+	for($z=0;$z < size($stringConverted);$z++){
+		$sortedRL[$z] = $stringConverted[$z];
+	}
+	// sort the array
+	if($sort) $sortedRL = `sort $sortedRL`;
+	// return what we did
+	return $sortedRL;
+}
+///////////////////////////////////////////////
+// Procedure to show or hide the column layouts
+// Returns: Nothing
+///////////////////////////////////////////////
+global proc seST_showHideColLayout(string $colLayouts[],int $vis){
+	for($layout in $colLayouts){
+		columnLayout -e -vis $vis $layout;
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////
+// Procedure to delete any child controls and layouts under the given column layouts
+// Returns: Nothing
+////////////////////////////////////////////////////////////////////////////////////
+global proc seST_deleteColChildren(string $colLayouts[]){
+	for($layout in $colLayouts){
+		string $colChildren[] = `columnLayout -q -ca $layout`;
+		if(`size $colChildren`)	deleteUI $colChildren;
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to take the up and foward axis and return the index of the up and side axes
+// Returns: Int array of the converted up and forward axis index
+////////////////////////////////////////////////////////////////////////////////////////
+global proc int[] seST_getUpAndSideAxisIndexes(string $upAxis,string $fwdAxis){
+	int $u;
+	if($upAxis == "x") $u = 0;
+	if($upAxis == "y") $u = 1;
+	if($upAxis == "z") $u = 2;
+	int $f;
+	if($fwdAxis == "x") $f = 3 - $u;
+	if($fwdAxis == "y") $f = 2 - $u;
+	if($fwdAxis == "z") $f = 1 - $u;
+	
+	return({$u,$f});
+}
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to split the given axis option menu into two parts, positive/negative and direction
+// Returns: String array - first index is the + or -, the second is the axis letter (x,y,z)
+////////////////////////////////////////////////////////////////////////////////////////////////
+global proc string[] seST_splitAxisOM(string $axisOM){
+	string $optionMenuValue = `optionMenu -q -v $axisOM`;
+	string $splitReturn[2];
+	$splitReturn[0] = `substring $optionMenuValue 1 1`;
+	$splitReturn[1] = `substring $optionMenuValue 2 2`;
+	return $splitReturn;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to change the options in the forward axis menu based on the up axis selection
+// Returns: Nothing
+//////////////////////////////////////////////////////////////////////////////////////////
+global proc seST_updateFwdAxisMenu(string $upAxisOM,string $fwdAxisOM){
+	// get the previous and current axis
+	string $upAxis = `optionMenu -q -v $upAxisOM`;
+	string $prevAxis = `optionMenu -q -ann $upAxisOM`;
+	// if there is a complete axis change we will rebuild the menu
+	string $subUpAxis = `substring $upAxis 2 2`;
+	string $subPrevAxis = `substring $prevAxis 2 2`;
+	if($subUpAxis != $subPrevAxis){
+		// remove old axis items from the forward axis list
+		string $fwdAxisItems[] = `optionMenu -q -ill $fwdAxisOM`;
+		deleteUI $fwdAxisItems;
+		// build new items
+		string $axisList[] = {"x","y","z"};
+		for($axes in $axisList){
+			if($axes != $subUpAxis){
+				menuItem -l ("+"+$axes) -p $fwdAxisOM;
+				menuItem -l ("-"+$axes) -p $fwdAxisOM;
+			}
+		}
+		// set the annotation
+		optionMenu -e -ann $upAxis $upAxisOM;
+	}
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Procedure to load the selected object in the driver text field, reset the GUI, and show the available driver attributes
+// Returns: Nothing
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc seST_loadDriver(string $driverTF,string $attrTSL,string $loadShapeBTN,string $jNameColAdj,string $leftPerColAdj,string $rightPerColAdj){
+	// clear the joint list and left/right columns in the GUI
+	seST_deleteColChildren({$jNameColAdj,$leftPerColAdj,$rightPerColAdj});
+	
+	// get the selection
+	string $sel[] = `ls -sl`;
+	// remove all items from the list and disable the load shape button
+	textScrollList -e -ra $attrTSL;
+	textScrollList -e -ann "" $attrTSL;
+	button -e -en false $loadShapeBTN;
+	// if there was nothing selected we can't do anything
+	if(!`size $sel`){
+		textField -e -tx "" $driverTF;
+		error "No object was selected.";
+	}
+	// object selected, lets start loading it
+	textField -e -tx $sel[0] $driverTF;
+	// get a list of keyable attributes from the selected objects and find ones that are connected to animCurves
+	string $keyableAttr[] = `listAttr -k $sel[0]`;
+	for($attr in $keyableAttr){
+		if(size(`listConnections -scn true -s off -t animCurve ($sel[0] + "." + $attr)`)){
+			textScrollList -e -a $attr $attrTSL;
+		}	
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////////
+// Recursive procedure to seek down the dependency graph to find a matching object type
+// Arguments: Starting node, object type to find, return input plugs, how many seeks to look
+// Returns: String array of found objects with/without plugs
+////////////////////////////////////////////////////////////////////////////////////////////
+global proc string[] seST_seekDownstream(string $startNode,string $findObjType,int $returnPlug,int $seeks){
+	// set the return string
+	string $returnNodes[];
+	// if we ran out of seeks, return nothing
+	if(! $seeks) return $returnNodes;
+
+    int $i = 0;
+	// get the destination connections with plugs from the start node
+    string $conn[] = `listConnections -scn 1 -p 1 -s 0 $startNode`;
+	// for each connections
+    for($c in $conn){
+		// if the node type is equal to what we are looking for
+        if(startsWith(`nodeType $c`,$findObjType)){
+			// if we want the plugs or not, put what we found in the return variable
+    	    if($returnPlug){
+        	    $returnNodes[$i] = $c;
+                $i++;
+			} else {
+     	    	$returnNodes[$i] = `match "^[^\.]*" $c`;
+                $i++;
+            }	
+		}
+	}
+	// if we didn't find anything to return, we are going to move down one node and run the procedure again
+	if(!`size $returnNodes`){
+		// run through the connections we found before again
+		for($c in $conn){
+			// some names and variable to set to be used later
+			string $seekMe = "";
+			string $nodeType = `nodeType $c`;
+			string $baseName = `match "^[^\.]*" $c`;
+			string $plugName = `match "[^\.]*$" $c`;
+			// we may run into some special nodes that need specific output plugs set so they go the right path
+			switch($nodeType){
+				// if it's a pairBlend, from the input plug, remove the "in" and number at the end and insert "out"
+				case "pairBlend":
+					string $noIn = `match "[^in].*[^0-9]" $plugName`;
+					$seekMe = ($baseName + ".out" + $noIn);
+					break;
+				// if it's a multiplyDivide, get the axis from the end of the input plug and put "output" infront of it
+				case "multiplyDivide":
+					string $channel = `match "[X-Z]+$" $plugName`;
+					$seekMe = ($baseName + ".output" + $channel);
+					break;
+				// the default if it's none of the above is just use the base name of the object with no plugs
+				default:
+					$seekMe = $baseName;
+					break;
+			}
+			// now we recurse and run this process over again and return what we find or it will recurse again or until we run out of seeks
+			string $result[] = seST_seekDownstream($seekMe,$findObjType,$returnPlug,($seeks-1));
+			// we found something in our result, we add it to the the other found objects
+			if(`size $result`){
+				$returnNodes = stringArrayCatenate($returnNodes,$result);
+			}
+		}
+	}
+	// now return whatever we found back to who called it
+	return $returnNodes;
+}
+////////////////////////////////////////////////////////////////////////////////
+// Procedure to check if the selection changed in the attribute text scroll list
+// Returns: Nothing
+////////////////////////////////////////////////////////////////////////////////
+global proc seST_attrListChangeChecker(string $attrListTSL,string $splitBTN){
+	string $attrDriver[] = `textScrollList -q -si $attrListTSL`;
+	string $tslAnn = `textScrollList -q -ann $attrListTSL`;
+	// if the current selection is different than the one loaded, disable the split button, otherwise enable it
+	if($attrDriver[0] != $tslAnn) button -e -en false $splitBTN;
+	else button -e -en true $splitBTN;
+}
+///////////////////////////////////////////////////////
+// Procedure to delete the shader groups from the scene
+// Returns: Nothing
+///////////////////////////////////////////////////////
+global proc seST_deleteMaskShader(){
+	string $shaderObjs[] = {"seShapeTaperMask_Shader","seShapeTaperMask_Ramp","seShapeTaperMask_p2d","seShapeTaperMask_ShaderSG"};
+	for($obj in $shaderObjs) {
+		if(`objExists $obj`) delete $obj;
+	}
+}
+// launch the script
+seShapeTaper;

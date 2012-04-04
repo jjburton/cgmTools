@@ -1,0 +1,246 @@
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildSplineIK( string $prefix, string $start, string $end, string $optionStr ) {
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $axis = "";
+		string $colour = "";
+		string $control;  //the control to put the ik/fk switch attribute on - can be empty
+		float $scale = 1;
+		int $bezier = 1;  //bezier controls?  if true, the spline will pass through the controls
+		int $stretch = 1;  //make stretchy splineIK based on curve arcLength
+		int $buildcontrols = 1;  //build controls for a switchable splineik/fk chain
+
+		$optionTemp = `zooGetFlagArguments $optionStr axis`; if( `size $optionTemp` ) $axis = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr bezier`; if( `size $optionTemp` ) $bezier = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr stretch`; if( `size $optionTemp` ) $stretch = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr buildcontrols`; if( `size $optionTemp` ) $buildcontrols = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr control`; if( `size $optionTemp` ) $control = $optionTemp[0];
+
+
+	//------
+	//always build the world first - the world creation proc only builds the world once for any given prefix, so a world control is never created more than once
+	//------
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+		string $masterqss = $worldParts[2];
+		string $qss = $worldParts[3];
+		string $nodes[] = {};
+
+
+	//------
+	//find the names of relevant joints
+	//------
+		string $orgJoints[] = { $end };
+		$orgJoints = zooAddArray_str($orgJoints, `zooGetInBTweenJoints $start $end` );
+		$orgJoints = `zooAddArray_str $orgJoints { $start }`;
+		$orgJoints = `zooReverseArray_str $orgJoints`;
+		int $numJoints = `size $orgJoints`;
+
+
+	//------
+	//now duplicate the original joints - we set up the spline IK on the dupe chain
+	//so we can constrain the originals between the spline IK chain and an fk chain
+	//------
+		string $joints[] = {};
+		if( $buildcontrols ) {
+			for( $n=0; $n<$numJoints; $n++ ) {
+				string $dupeTemp[] = `duplicate -rc -rr $orgJoints[$n]`;
+				if( size(`listRelatives -p $dupeTemp[0]`)) parent -w $dupeTemp[0];
+				string $tempKids[] = `listRelatives -pa $dupeTemp[0]`;
+				for( $k in $tempKids ) if( `objExists $k` ) delete $k;
+				$joints[$n] = $dupeTemp[0];
+				if( $n ) parent $joints[$n] $joints[( $n-1 )];
+				}
+			$start = $joints[0];
+			$end = `zooGetElement_str -1 $joints`;
+			}
+		else $joints = $orgJoints;
+
+
+	//------
+	//build the curve and spline ik handle
+	//------
+		string $info[] = {};
+		string $baseCurve = "";
+		string $curve = "";
+
+		if( $bezier ) {
+			string $curveCmd = "curve -d 1 ";
+			for( $n=0; $n<$numJoints; $n++ ) {
+				float $pos[] = `xform -q -ws -rp $joints[$n]`;
+				$curveCmd += "-p "+ $pos[0] +" "+ $pos[1] +" "+ $pos[2] +" ";
+				}
+			$baseCurve = eval( $curveCmd );
+			$curve = zooGetElement_str(0,`fitBspline -ch 1 -tol 0.0001 $baseCurve`);
+			$info = `ikHandle -sol ikSplineSolver -ccv 0 -c $curve -sj $start -ee $end`;
+			$baseCurve = `rename $baseCurve "zooSplineIK_driverCurve#"`;
+			parent $baseCurve $partsControl;
+			}
+		else {
+			$info = `ikHandle -sol ikSplineSolver -scv 0 -sj $start -ee $end`;
+			$curve = $info[2];
+			}
+
+		$curve = `rename $curve "zooSplineIK_curve#"`;
+		string $ikHandle = $info[0];
+		$nodes = { $ikHandle, $baseCurve, $curve };
+		parent $curve $partsControl;
+		parent $ikHandle $partsControl;
+
+
+	//------
+	//are we building controls for the structure?
+	//------
+		if( $buildcontrols ) {
+			string $fkCtrls[] = {};
+			string $ikCtrls[] = {};
+			string $clusters[] = {};
+			string $ikSpace = `zooBuildControl ( "ikSpace" ) ( "-type null -place "+ $joints[0] +" align %p -freeze 0" )`;
+
+			for( $n=0; $n<$numJoints; $n++ ) {
+				string $axis = `zooCSTJointDirection $joints[$n]`;
+				$axis = `substitute "-" $axis "_"`;
+				$fkCtrls[$n] = `zooBuildControl ( "fkControl_"+ ($n+1)) ( "-type cylinder -axis "+ $axis +" -place "+ $joints[$n] +" -align %p -orient 1 -scale "+ ($scale*2) +" -colour orange 0.6" )`;
+				$ikCtrls[$n] = `zooBuildControl ( "ikControl_"+ ($n+1)) ( "-type sphere -axis "+ $axis +" -place "+ $joints[$n] +" -align %p -orient 1 -scale "+ $scale +" -colour purple 0.6" )`;
+				$clusters[$n] = zooGetElement_str(1,eval( "cluster "+ $baseCurve +".cv["+ $n +"];" ));
+				if( $n ) parent `listRelatives -p $fkCtrls[$n]` $fkCtrls[( $n-1 )];
+				$clusters[$n] = zooGetElement_str(0,`parent $clusters[$n] $ikCtrls[$n]`);
+				setAttr -l 1 ( $clusters[$n] +".v" ) 0;
+				}
+
+			string $fkSpace = zooGetElement_str(0,`listRelatives -p $fkCtrls[0]`);
+			parent `listRelatives -p $ikCtrls` $ikSpace;
+			parent $joints[0] $ikSpace;
+			if( `objExists $control` ) parent $fkSpace $ikSpace $control;
+			setAttr -l 1 ( $ikCtrls[0] +".v" ) 0;
+			setAttr -l 1 ( $joints[0] +".v" ) 0;
+			setAttr -l 1 ( $baseCurve +".v" ) 0;
+			setAttr -l 1 ( $curve +".v" ) 0;
+			setAttr -l 1 ( $ikHandle +".v" ) 0;
+
+			if( !`objExists $control` ) $control = $fkCtrls[0];
+			string $fkVisCond = `shadingNode -n( "fk_vis" ) -asUtility condition`;
+			string $ikVisCond = `shadingNode -n( "ik_vis" ) -asUtility condition`;
+			string $rev = `shadingNode -n( "ikfk_blend" ) -asUtility reverse`;
+
+			//add the ikChain attr to the control if it doesn't already exist
+			if( !`objExists ( $control +".ikChain" )`) {
+				addAttr -at double -ln ikChain -min 0 -max 1 -dv 0 $control;
+				setAttr -k 1 ( $control +".ikChain" );
+				}
+
+			//set attrs and make connections...
+			setAttr ( $fkVisCond +".secondTerm" ) 1;
+			connectAttr -f ( $control +".ikChain" ) ( $rev +".inputX" );
+			connectAttr -f ( $control +".ikChain" ) ( $fkVisCond +".firstTerm" );
+			connectAttr -f ( $control +".ikChain" ) ( $ikVisCond +".firstTerm" );
+			connectAttr -f ( $fkVisCond +".outColorR" ) ( $fkSpace +".v" );
+			connectAttr -f ( $ikVisCond +".outColorR" ) ( $ikSpace +".v" );
+
+			//constrain originals between the ik and fk chains
+			string $constraints[] = {};
+			for( $n=0; $n<$numJoints; $n++ ) $constraints[$n] = zooGetElement_str(0,`parentConstraint $joints[$n] $fkCtrls[$n] $orgJoints[$n]`);
+			for( $n=0; $n<$numJoints; $n++ ) {
+				string $attrs[] = `listAttr -ud $constraints[$n]`;
+				connectAttr -f ( $rev +".outputX" ) ( $constraints[$n] +"."+ $attrs[1] );
+				connectAttr -f ( $control +".ikChain" ) ( $constraints[$n] +"."+ $attrs[0] );
+				}
+
+			//build pickwalking
+			zooPickwalk "-load";
+			zooSetPickwalkObj $fkCtrls[0] $control "-dir up -reciprocal 1";
+			zooSetPickwalkObj $ikCtrls[1] $control "-dir up -reciprocal 0";
+			zooSetPickwalkObj $control $ikCtrls[1] "-dir left -reciprocal 0";
+			zooSetPickwalkObj $control $ikCtrls[1] "-dir right -reciprocal 0";
+			for( $n=1; $n<$numJoints; $n++ ) zooSetPickwalkObj $fkCtrls[$n] $fkCtrls[($n-1)] "-dir up -reciprocal 1";
+			for( $n=2; $n<$numJoints; $n++ ) {
+				zooSetPickwalkObj $ikCtrls[$n] $ikCtrls[($n-1)] "-dir up -reciprocal 1";
+				zooSetPickwalkObj $ikCtrls[$n] $control "-dir left -reciprocal 0";
+				zooSetPickwalkObj $ikCtrls[$n] $control "-dir right -reciprocal 0";
+				}
+
+			//build a line of action option to the ik controls - is really useful to be able to turn on LOA to see the spline path
+			for( $n=0; $n<$numJoints; $n++ ) zooAddConnect $ikCtrls[1] $ikCtrls[$n];
+			zooObjMenuAddCmdAll $ikCtrls[1] "draw line of action" ( "zooLineOfAction;\nzooArrays_str;\nstring $a[] = @;\n$a = `zooAddArrayAt_str $a {\"%0\"} 1`;\nzooLineOfAction_multi $a \"-thickness "+ ($scale*10) +" -colour purple 0.5\";" );
+
+			//finally lock non required attributes
+			for( $n=0; $n<$numJoints; $n++ ) {
+				zooAttrState "-attrs s -l 1 -k 0" $fkCtrls[$n];
+				zooAttrState "-attrs r s -l 1 -k 0" $ikCtrls[$n];
+				zooAttrState "-attrs v -k 0" $fkCtrls[$n];
+				zooAttrState "-attrs v -k 0" $ikCtrls[$n];
+				}
+			zooAttrState "-attrs t r s v -l 1" $fkSpace;
+			zooAttrState "-attrs t r s v -l 1" $ikSpace;
+			zooAttrState "-attrs t r s v -l 1" $baseCurve;
+			zooAttrState "-attrs t r s v -l 1" $curve;
+			}
+
+
+	//------
+	//build the nodes for the stretchiness
+	//------
+		string $curveInfo;
+		string $initLenMult;
+
+		if( $stretch ) {
+			$curveInfo = `arclen -ch 1 $curve`;
+			$initLenMult = `shadingNode -n( "initial_length_multiplier" ) -asUtility multiplyDivide`;
+			$nodes = `zooAddArray_str $nodes { $curveInfo, $initLenMult }`;
+			float $len = `arclen $curve`;
+
+			//add the autoStretch attr to the control if it doesn't already exist
+			if( !`objExists ( $control +".autoStretch" )`) addAttr -at double -ln autoStretch -min 0 -max 1 -dv 1 $control;
+			if( !`objExists ( $control +".stretchMultiplier" )`) addAttr -at double -ln stretchMultiplier -min 0 -dv 1 $control;
+			setAttr -k 1 ( $control +".autoStretch" );
+			setAttr -k 1 ( $control +".stretchMultiplier" );
+
+			setAttr ( $initLenMult +".input2X" ) $len;
+			setAttr ( $initLenMult +".operation" ) 2;
+
+			//yes, this is an expression...  I'm really far too lazy to bother building such
+			//a simplistic network of like 5 nodes just to do some adding and multiplication
+			//in a certain order...  I'm sure it barely slows anything down.  deal with it
+			string $exp = `expression -ae 0 -n( "stretch_expression" ) -s( $initLenMult +".input1X = (("+ $curveInfo +".arcLength - "+ $len +") * "+ $control +".autoStretch + "+ $len +") * "+ $control +".stretchMultiplier;" )`;
+			string $finalLengthOutput = $initLenMult +".outputX";
+			for( $n=0; $n<$numJoints; $n++ ) {  //you may want to change to ($numJoints-1) so the last joint can be parent constrained to an end chain control...
+				string $joint = $joints[$n];
+				string $lenFraction = `shadingNode -asUtility multiplyDivide`;
+				string $upaxis = `zooCSTJointDirection $joint`;
+
+				if( $axis != "" ) $upaxis = $axis;
+				setAttr ( $lenFraction +".input1X" ) `getAttr ( $joint +".t"+ $upaxis )`;
+				connectAttr -f $finalLengthOutput ( $lenFraction +".input2X" );
+				connectAttr -f ( $lenFraction +".outputX" ) ( $joint +".t"+ $upaxis );
+				$nodes = `zooAddArray_str $nodes { $lenFraction }`;
+				}
+			}
+
+	return $nodes;
+	}
+
+
+/*
+builds a spline IK sub primitive.  There are flags to turn on stretchiness, and also to override the stretch axis
+
+$prefix - standard character prefix (all controls built by this proc are prefixed with this string
+$start - which side of the character are the controls on?  l or r
+$end - the bicep, upper arm, or humerous
+$optionStr - standard option string - see flag docs for info on option strings
+
+option flags
+-------
+-axis [string]			which axis to apply the stretch to (usually the axis pointing along the length of the joint)
+-stretch [int]			turn this flag off if you don't want the spline control to be stretchy
+
+controller names are returned.
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

@@ -1,0 +1,393 @@
+//
+// zooWeightSave
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 25 March 2005
+//
+// Description:
+// zooWeightSave stores a mesh's skin weight data into the mesh itself using blind data.  Blind data
+// gets stored on the verticies themselves, and are thus immune to vert count changing geometry
+// modifications.  If you need to make topology changes in a mesh, run the store weights command
+// to bake skin weight data into the mesh.  Make your mesh modifications, delete history, and then
+// run the restore weights function
+//
+// Big thanks to Sean Nolan for his contributions
+// Big thanks to Matt Oursbourn for his ideas on speeding this thing up
+//
+// Usage:
+//  to load the UI:  zooWeightSave;
+//  to store weights:  zooWeightStore objectName;
+//  to restore weights:  zooWeightRestore objectName;
+//
+// NOTE: that if joint names change after storing, it can only be by
+// adding/removing a namespace, or an altered joint pathname (ie long name)
+//
+
+
+zooArrays_float;
+zooArrays_str;
+zooUtils;
+zooRegister;
+
+
+//------
+//this proc builds the window
+//------
+global proc zooWeightSave() {
+	global string $gMainProgressBar;
+	string $windowName = "zooWeightSaveWindow";
+	string $windowTitle = "zooWeightSave v"+ `zooWeightSaveInfo version`;
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -width 200 -height 30 $windowName;
+		menuBarLayout zooWeightSaveMenuMain;
+			menu -l "On Mesh Utils";
+				menuItem -l "Select Joints in Stored Weights" -c( "{string $sel[] = `ls -sl -tr`; string $toSel[] = {}; for( $a in $sel ) { string $existing[] = {}; zooGetJointsFromStored $a {} $existing {} {}; $toSel = `zooAddArray_str $toSel $existing`; } if( size(`ls -hl`)) zooGetJointsFromStoredVerts `ls -sl` {} $toSel {} {}; select $toSel; }" );
+				menuItem -l "Select Joints Used by Skin" -c( "{string $sel[] = `ls -o -sl`; select -cl; for( $s in $sel ) select -add `skinCluster -q -inf (findRelatedSkinCluster($s))`;}" );
+				menuItem -l "Select Verts Affected by Joints" -ann "selects the verticies affected by the selected joints" -c( "zooSurgeonUtils; { string $verts[] = {}; for( $s in `ls -type transform -sl` ) { string $temp[] = {}; zooGetJointVerts $s 0.0000000000001 {} {} $temp {} {}; $verts = `zooAddArray_str $verts $temp`;} select $verts; }" );
+				menuItem -l "Select Faces Affected by Joints" -ann "selects the verticies affected by the selected joints" -c( "zooSurgeonUtils; select `zooGetJointFaces (ls(\"-sl\")) 0.2 {} {}`;" );
+				menuItem -d 1;
+				menuItem -l "Weights to Other" -ann "select the source joint, and then the target joint.  this will transfer all the weight from the source to the target joint" -c( "{string $sel[] = `ls -type transform -sl`; string $last = `zooGetElement_str -1 $sel`; if( `size $sel`>1 ) for( $n=0; $n<`size $sel`-1; $n++ ) zooWeightsToOther $sel[$n] (\"-other \"+ $last);}" );
+				menuItem -d 1;
+				menuItem -l "Weights to Parent" -ann "transfer weights from all selected joints to their respective parents" -c( "{string $sel[] = `ls -type transform -sl`; for( $s in $sel ) zooWeightsToOther $s \"\";}" );
+				menuItem -l "Weights to Parent on ALL" -ann "this will transfer weight from all joints named zooWeight_holder_* to their respective parent joints" -c( "zooAllWeightsToParents;" );
+				menuItem -d 1;
+				menuItem -l "Print Joints in Stored Weights" -c( "{string $sel[] = `ls -sl -tr`; string $toSel[] = {}; for( $a in $sel ) { string $existing[] = {}; zooGetJointsFromStored $a {} $existing {} {}; $toSel = `zooAddArray_str $toSel $existing`; } if( size(`ls -hl`)) zooGetJointsFromStoredVerts `ls -sl` {} $toSel {} {}; print \"\\n======SELECTED HAVE THE FOLLOWING JOINTS STORED IN THEM======\\n\"; print $toSel; }" );
+			menu -l "File Utils";
+				menuItem -l "Print Data for Selected" -c( "python(\"from zooPyMaya import skinWeights as sw; sw.printDataFromSelection();\");" );
+			menu -l "Help";
+				menuItem -l "Help..." -c( "zooHelp zooWeightSave 1;" );
+
+		string $form = `formLayout`;
+			string $button1 = `button -l "store to mesh" -c( "{string $selObjs[] = `ls -sl -tr`; for( $a in $selObjs ) zooWeightStore $a; if( size(`ls -hl`)) zooWeightStoreVerts `ls -sl`;}" )`;
+			string $button2 = `button -l "restore from mesh" -c( "{string $selObjs[] = `ls -sl -tr`; for( $a in $selObjs ) zooWeightRestore $a; if( size(`ls -hl`)) zooWeightRestoreVerts `ls -sl`;}" )`;
+			string $button3 = `button -l "remove stored" -c( "{for( $a in `ls -sl -tr` ) zooRemoveWeightSave $a;}" )`;
+
+			string $button4 = `button -l "store to tmp file" -c( "python(\"from zooPyMaya import skinWeights as sw; sw.saveWeights(cmd.ls(sl=True));\");" )`;
+			string $button5 = `button -l "restore from tmp file" -c( "python(\"from zooPyMaya import skinWeights as sw; sw.loadWeights(cmd.ls(sl=True));\");" )`;
+			string $image = `image -width 100 -height 8 -backgroundColor ((float)1) ((float)0) ((float)0) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+
+	formLayout -e
+		-af $button1 "top" 2
+		-af $button1 "left" 2
+		-ap $button1 "right" 0 33
+
+		-af $button2 "top" 2
+		-ap $button2 "left" 0 33
+		-ap $button2 "right" 0 67
+
+		-af $button3 "top" 2
+		-ap $button3 "left" 0 67
+		-af $button3 "right" 2
+
+		-ac $button4 "top" 10 $button1
+		-af $button4 "left" 2
+		-ap $button4 "right" 1 50
+		-ac $button4 "bottom" 2 $image
+
+		-ac $button5 "top" 10 $button1
+		-ap $button5 "left" 1 50
+		-af $button5 "right" 2
+		-ac $button5 "bottom" 2 $image
+
+		-an $image "top"
+		-af $image "left" 2
+		-af $image "right" 2
+		-af $image "bottom" 2
+		$form;
+
+	showWindow $windowName;
+	}
+
+
+//------
+//stores skin weights
+//------
+global proc zooWeightStore( string $obj ) {
+	if( !`objExists $obj` ) return;
+	zooWeightStoreVerts {( $obj +".vtx[*]" )};
+	}
+
+
+//the store weights function now happens in blocks.  the lot size is 200, although
+//that can be changed by setting the $ls variable below to whatever you want.  by
+//restoring in blocks, a moderate speed increase is gained
+global proc zooWeightStoreVerts( string $verts[] ) {
+	$verts = `ls -fl $verts`;
+	progressWindow -t "Storing Skin Weights" -progress 0 -status "initialising..." -isInterruptable 1;
+
+	string $shape = `match "^[^.]+" $verts[0]`;
+	string $skin = zooGetElement_str(0,`ls -type skinCluster (listHistory($shape))`);
+	string $polyBlindDataNode[] = {};
+	float $t = `timerX`;
+	int $numVerts = `size $verts`;
+	int $lot = 0;
+	int $ls = 200;  //the lot size
+	int $id = `zooWriteWeightTemplate`;
+	int $vert = 0;
+
+	//progress window variables
+	float $progress = 0;
+	float $increment = $numVerts? 100/(float)$numVerts: 1;
+
+	//iterate over all the verts to gather weight info, and store it as blind data
+	while( $numVerts>0 ) {
+		string $skinStrDump = "";
+		string $vertDump = "";
+		float $tl = `timerX`;
+		int $x=$numVerts<$ls? $numVerts: $ls;
+
+		$numVerts -= $x;
+		$vertDump = $shape +".vtx["+ $vert +":";
+		for( $n=0; $n<$x; $n++ ) {
+			string $skinStr = "";
+			string $joints[] = `skinPercent -ignoreBelow 0.0004 -q -t $skin $verts[$vert]`;
+			float $weights[] = `skinPercent -ignoreBelow 0.0004 -q -v $skin $verts[$vert]`;
+
+			$weights = `zooNormaliseArraySum $weights 1.0`;
+			for( $i=0; $i<`size $joints`; $i++ ) $skinStr += $joints[$i] +","+ `zooRoundFloatTo $weights[$i] 4` +",";
+			$polyBlindDataNode = `polyBlindData -id $id -associationType "vertex" -ldn sd -stringData $skinStr $verts[$vert]`;
+			$progress += $increment;
+			$vert++;
+			}
+		$vertDump = $vertDump + $vert +"]";
+		if( `progressWindow -q -ic` ) break;
+		progressWindow -e -progress((int)$progress) -status( "vert clump "+ $lot );
+
+		$lot++;
+		}
+
+	print( "time to store weights: "+ `timerX -startTime $t` +" seconds\n" );
+	progressWindow -ep;
+	}
+
+
+//------
+//restores skin weights
+//------
+global proc zooWeightRestore( string $obj ) {
+	if( !`objExists $obj` ) return;
+	zooWeightRestoreVerts {( $obj +".vtx[*]" )};
+	}
+
+
+//this restore method restores the vert weights in "chunks" which seem to speed
+//up the process.  the progress window is also updated less often which may also
+//help.  this is around a 10% speed increase - not great, but not terrible
+global proc zooWeightRestoreVerts( string $verts[] ) {
+	$verts = `ls -fl $verts`;
+	progressWindow -t "initialising.." -status "initialising..." -progress 0;
+
+	string $shape = `match "^[^.]+" $verts[0]`;
+	string $skin = zooGetElement_str(0,`ls -type skinCluster (listHistory($shape))`);
+	float $t = `timerX`;
+	int $numVerts = `size $verts`;
+	int $lot = 0;
+	int $ls = 200;  //the lot size
+
+	//progress window variables
+	float $progress = 0;
+	float $increment = $numVerts? 100/(float)$numVerts: 1;
+
+	progressWindow -e -t "Preparing Data - pass 1/2" -status "reading weight data" -progress 33;
+	string $allJoints[] = {};
+	string $allExistingJoints[] = {};
+	string $jointStrs[] = {};
+	string $weightStrs[] = {};
+
+	zooGetJointsFromStoredVerts $verts $allJoints $allExistingJoints $jointStrs $weightStrs;
+
+	if( !`size $allJoints` ) {
+		progressWindow -ep;
+		error "no blind data found on target object";
+		}
+
+	string $allJointsStr = `zooArrayToStr_str $allExistingJoints " "`;
+	if( !`size $allExistingJoints` ) {
+		progressWindow -ep;
+		error "there is no useable weight data stored on this mesh - there is weighting info there, but none of it contains valid joints";
+		}
+	if( !`objExists $skin` ) $skin = zooGetElement_str(0,eval( "skinCluster -ibp -tsb "+ $allJointsStr +" "+ $shape ));
+
+	//now set vert weights
+	progressWindow -e -title "Restoring Skin Weights - pass 3/3" -progress 0;
+	$progress = 0;
+	while( $numVerts>0 ) {
+		int $x=$numVerts<$ls? $numVerts: $ls;
+
+		$numVerts -= $x;
+		for( $n=0; $n<$x; $n++ ) {
+			string $cmd = "skinPercent ";
+			string $temp[] = {};
+			string $j[] = {};
+			float $w[] = {};
+			int $vert = ($lot*$ls) + $n;
+			int $num;
+
+			clear $j; clear $temp;
+			if( `size $jointStrs[$vert]`<2 ) continue;
+			if( `size $weightStrs[$vert]`<2 ) continue;
+			$num = `tokenize $jointStrs[$vert] "," $j`;
+			$num = `tokenize $weightStrs[$vert] "," $temp`;
+			zooStripInvalidJoints $j $temp;
+			if( !`size $j` ) continue;
+
+			clear $w;  //if this array isn't cleared here, then it SOMEHOW has data included in it - this seems like some sort of maya bug
+			$num = `size $j`;
+			for( $z=0; $z<$num; $z++ ) $w[$z] = (float)$temp[$z];
+			$w = `zooNormaliseArraySum $w 1.`;
+
+			for( $z=0; $z<$num; $z++ ) $cmd += "-tv "+ $j[$z] +" "+ $w[$z] +" ";
+			$cmd += $skin +" -normalize 1 "+ $verts[$vert] +";";
+			//print( $cmd +"\n" );
+			eval $cmd;
+
+			//update progress window
+			$progress += $increment;
+			}
+		if( `progressWindow -q -ic` ) break;
+		progressWindow -e -progress ((int)$progress) -status ( "restoring vert lot "+ $lot );
+		$lot++;
+		}
+
+	print( "time to restore weights: "+ `timerX -startTime $t` +" seconds\n" );
+	progressWindow -ep;
+	}
+
+
+global proc string[] zooGetJointsFromStored( string $obj, string $actualJoints[], string $existingJoints[], string $jointStrs[], string $weightStrs[] ) {
+	if( !`objExists $obj` ) return {};
+	return `zooGetJointsFromStoredVerts {( $obj +".vtx[*]" )} $actualJoints $existingJoints $jointStrs $weightStrs`;
+	}
+
+
+global proc string[] zooGetJointsFromStoredVerts( string $verts[], string $actualJoints[], string $existingJoints[], string $jointStrs[], string $weightStrs[] ) {
+	$verts = `ls -fl $verts`;
+
+	clear $actualJoints;
+	clear $existingJoints;
+	clear $jointStrs;
+	clear $weightStrs;
+	int $numVerts = `size $verts`;
+	int $id = `zooWriteWeightTemplate`;
+	string $dataStrs[] = `polyQueryBlindData -id $id -associationType "vertex" -ldn sd $verts`;
+
+	//split the skin data array into an array of joint names, and an array of weights
+	for( $n=0; $n<$numVerts; $n++ ) {
+		string $temp[] = {};
+		int $toks = `tokenize $dataStrs[$n] "," $temp`;
+
+		for( $i=0; $i<$toks; $i++ ) {
+			int $idx = `zooGetIdxOfElement_str $actualJoints $temp[$i]`;
+			if( $idx == -1 ) $actualJoints[( `size $actualJoints` )] = $temp[$i];
+			$jointStrs[$n] = $jointStrs[$n] + $temp[$i] +","; $i++;
+			$weightStrs[$n] = $weightStrs[$n] + $temp[$i] +",";
+			}
+		}
+
+	if( !`size $actualJoints` ) error "no blind data found on target object";
+
+	//now build a list of all joints that actually exist - now this does a little
+	//bit of guessing - if the stored name is a namepath then it checks to see if
+	//the full namepath exists in the scene - if not, it looks for the leaf node
+	//and uses the first one it finds
+	for( $n=0; $n<`size $actualJoints`; $n++ ) {
+		if( `objExists $actualJoints[$n]` ) {
+			$existingJoints[( `size $existingJoints` )] = $actualJoints[$n];
+			continue;
+			}
+		string $leafName = `match "[^|:]+$" $actualJoints[$n]`;
+		string $potMatches[] = `ls -r 1 ( "*"+ $leafName )`;
+
+		if( `objExists $potMatches[0]` ) {
+			warning( $actualJoints[$n] +" was the actual joint stored in the mesh - but it was not found in the scene.  the closest match found was: "+ $potMatches[0] +" so I'm using that instead" );
+			$existingJoints[( `size $existingJoints` )] = $potMatches[0];
+			}
+		}
+
+	return $existingJoints;
+	}
+
+
+//------
+//this proc reliably gets the ID number for the blind data template used for storing weights
+//------
+global proc int zooWriteWeightTemplate() {
+	string $templates[] = `ls -exactType blindDataTemplate`;
+	string $template = "";
+	string $reg = `zooGetRegister zoo 1`;
+	int $takenIds[] = {};
+	int $id = 0;
+
+	//find the zooWeightSave time node
+	for( $t in $templates ) $takenIds[`size $takenIds`] = `getAttr ( $t +".typeId" )`;
+	$takenIds = `sort $takenIds`;
+	if( `size $takenIds` ) $id = $takenIds[`size $takenIds`] + 1;
+
+	//if the zooWeightSave time node exists, see if its connected to a blind data template
+	string $registeredTemplates[] = {};
+	string $existingTemplates[] = {};
+
+	zooListRegistered $reg weightSave {} $registeredTemplates;
+	for( $t in $registeredTemplates ) if( `objExists $t` ) $existingTemplates[`size $existingTemplates`] = $t;
+
+	if( `size $existingTemplates` ) {
+		$template = $existingTemplates[0];
+		$id = `getAttr ( $template +".typeId" )`;
+		}
+	else {
+		$template = `blindDataType -id $id -dt "string" -ldn skinData -sdn sd -dt "string" -ldn weights -sdn w -dt "string" -ldn joints -sdn j`;
+		$template = `rename $template "zooWeightSaveTemplate"`;
+		zooRegisterObj $reg weightSave $template 1 1;
+		}
+
+	return $id;
+	}
+
+
+global proc zooRemoveWeightSave( string $obj ) {
+	string $bdNodes[] = `ls -exactType polyBlindData`;
+	string $templates[] = `ls -exactType blindDataTemplate`;
+	string $zooWSNodes[] = {};
+	string $template = "";
+	int $id = `zooWriteWeightTemplate`;
+
+	for( $t in $templates ) if( `getAttr ( $t +".tid" )` == $id ) $template = $t;
+	for( $n in $bdNodes ) if( `getAttr ( $n +".tid" )` == $id ) $zooWSNodes[( `size $zooWSNodes` )] = $n;
+	if( `size $zooWSNodes` ) delete $zooWSNodes;
+	}
+
+
+//------
+//removes non existant joints from the given joint list array and its corresponding weight list array
+//NOTE: this proc works by array referencing, not a return value as it needs to work on two arrays
+//------
+global proc zooStripInvalidJoints( string $j[], string $w[] ) {
+	string $jT[] = {};
+	string $wT[] = {};
+	int $num = `size $j`;
+	int $i = 0;
+
+	for( $n=0; $n<$num; $n++ ) {
+		if( !`objExists $j[$n]` ) $j[$n] = `match "[^|:]+$" $j[$n]`;
+		if( !`objExists $j[$n]` ) continue;
+		$jT[$i] = $j[$n];
+		$wT[$i] = $w[$n];
+		$i++;
+		}
+
+	clear $j;
+	clear $w;
+	$j = $jT;
+	$w = $wT;
+	}
+
+
+global proc string zooWeightSaveInfo( string $function ) {
+	string $currentVersion = "1.07.02";
+	if( $function == "version" ) return $currentVersion;
+	}
+
+
+//zoo.end

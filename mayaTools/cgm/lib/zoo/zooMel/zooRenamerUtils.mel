@@ -1,0 +1,220 @@
+//
+// zooRenamer
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 4 August 2002
+//
+// Description:
+// makes renaming heirarchies a little less painful...
+// the copy/paste heirarchy function, copies the names of
+// one heirarchy to another.
+//
+// Usage:
+//  assign this function to a key press:
+//	zooRenamer
+//
+
+
+zooArrays_int;
+zooArrays_str;
+zooFlags;
+zooStrUtils;
+
+
+global proc zooRenamerUtils () {
+	return;
+	}
+
+
+//applies the given functions to all selected objects
+global proc zooRenamerApplyFuctions( string $function, string $variable01, string $variable02 ) {
+	string $newObjs[] = {};
+	while( size( `ls -sl` )) {
+		string $objs[] = `ls -l -sl`;
+		select -d -ne $objs[0];
+		$newObjs[( `size $newObjs` )] = `zooRenamerFunctions $function $variable01 $variable02 $objs[0]`;
+		}
+
+	select $newObjs;
+	}
+
+
+global proc string zooRenamerFunctions ( string $function, string $variable01, string $variable02, string $obj ) {
+	if( !`objExists $obj` ) return "";
+	if( `referenceQuery -inr $obj` ) return "";
+	string $objName = `match "[^|]+$" $obj`;
+	switch ( $function ) {
+		case "prefix":
+			string $prefix = $variable01;
+			return `rename $obj ( $prefix + $objName )`;
+			break;
+
+		case "suffix":
+			string $suffix = $variable01;
+			return `rename $obj ( $objName + $suffix )`;
+			break;
+
+		case "replace":
+			string $search = $variable01;
+			string $replace = $variable02;
+			string $newName;
+
+			$newName = `substitute $search $objName $replace`;
+			return `rename $obj $newName`;
+			break;
+
+		case "copyPaste":
+			zooCopyPasteHeirarchyNames "" "" "";
+			return "";
+			break;
+
+		case "toupper":
+			string $upperCaseName = `toupper $objName`;
+			return `rename $obj $upperCaseName`;
+			break;
+
+		case "tolower":
+			string $lowerCaseName = `tolower $objName`;
+			return `rename $obj $lowerCaseName`;
+			break;
+		}
+	}
+
+
+global proc string[] zooCopyPasteHeirarchyNames( string $srcRoot, string $tgtRoot, string $optionStr ) {
+	string $temp[] = {};
+	int $unique = 0;
+
+	$temp = `zooGetFlagArguments $optionStr unique`; if( `size $temp` ) $unique = $temp[0];
+
+	string $selObjs[] = `ls -sl`;
+	if( !`objExists $srcRoot` ) $srcRoot = $selObjs[0];
+	if( !`objExists $tgtRoot` ) $tgtRoot = $selObjs[1];
+	if( !`objExists $srcRoot` ) return {};
+	if( !`objExists $tgtRoot` ) return {};
+
+	//duplicate the source chain so we can capture unique names
+	string $dupeCmd = "duplicate -rr "+ ( $unique? "-rc ": "" ) +" "+ $srcRoot +";";
+	string $dupeObj = zooGetElement_str(0,eval($dupeCmd));
+	string $srcHeirarchy[] = `listRelatives -pa -ad -type transform -type joint $dupeObj`;
+	string $tgtHeirarchy[] = `listRelatives -pa -ad -type transform -type joint $tgtRoot`;
+
+	//add the root objects to the arrays
+	$srcHeirarchy[( `size $srcHeirarchy` )] = $dupeObj;
+	$tgtHeirarchy[( `size $tgtHeirarchy` )] = $tgtRoot;
+	int $srcSize = `size $srcHeirarchy`;
+	int $tgtSize = `size $tgtHeirarchy`;
+
+	//reverse the heirarchy so its top to bottom (so the top of shorter heirarchies matches that of longer ones)
+	$srcHeirarchy = `zooReverseArray_str $srcHeirarchy`;
+	$tgtHeirarchy = `zooReverseArray_str $tgtHeirarchy`;
+	delete $dupeObj;  //delete the dupe heirarchy now that we've captured the names
+
+	//now create a variable to make sure the smaller size of the two array's are used
+	int $iterateSize = ( $tgtSize < $srcSize ) ? $tgtSize:$srcSize;
+	//for ( $n=0; $n<$iterateSize; $n++ ) print( $tgtHeirarchy[$n] + "  " + $srcHeirarchy[$n] + "\n" )
+	for ( $n=0; $n<$iterateSize; $n++ ) {
+		string $baseName = `match "[^:|]+$" $srcHeirarchy[$n]`;
+		$tgtHeirarchy[$n] = `rename $tgtHeirarchy[$n] $baseName`;
+		}
+
+	//restore selection
+	select $srcRoot $tgtHeirarchy[0];
+
+	return $tgtHeirarchy;
+	}
+
+
+//renames a list of objects based on a numeric incrementor - ie puts an increasing
+//number somewhere in the node name.  the renaming of the nodes is based on a
+//renaming template.  the template uses two symbols to allow increased flexibility
+//
+//the symbols it uses are:
+// #		gets replaced by the current node name
+// %		gets replaced by the number
+//example - renaming a list: obj1 obj2 obj3:
+//using this template:  newName_%_#   results in this
+//newName_000_obj1 newName_001_obj2 newName_002_obj3
+//
+//the start arg tells the proc where to start the numbering from
+//the pad arg tells how many digits the number string should be - gets padded with
+//zeros
+global proc string[] zooNumerateObjs( string $objs[], string $template, int $start, int $pad ) {
+	string $newNames[] = {};
+	int $i = $start;
+
+	for( $n=0; $n<`size $objs`; $n++, $i++ ) {
+		if( `referenceQuery -inr $objs[$n]` ) continue;  //can't rename if node is referenced
+		string $num = $i;
+		if( $pad ) $num = `zooPadBefore_int $i $pad "0"`;
+		string $newName = `zooReplaceInString $template "%" $num`;
+		string $basename = `match "[^|]+$" $objs[$n]`;
+
+		$newName = `zooReplaceInString $newName "#" $basename`;
+		$newNames[$n] = `rename $objs[$n] $newName`;
+		}
+
+	return $newNames;
+	}
+
+
+//returns a list of duplicate node name paths
+global proc string[] zooListDuplicateNames() {
+	string $all[] = `ls`;
+	string $allLong[] = `ls -l`;
+	string $dupes[] = {};
+
+	for( $n=0; $n<`size $all`; $n++ ) if( `match "|" $all[$n]` != "" ) $dupes[( `size $dupes` )] = $allLong[$n];
+
+	return $dupes;
+	}
+
+
+//will resolve all duplicate names in a scene
+global proc string[] zooResolveDuplicateNames() {
+	string $dupes[] = `zooListDuplicateNames`;
+	string $resolved[] = {};
+
+	//need these in reverse heirarchical order - rename from bottom to top
+	$dupes = `zooSortToHeirarchy $dupes`;
+	$dupes = `zooReverseArray_str $dupes`;
+	for( $n=0; $n<`size $dupes`; $n++ ) {
+		if( !`objExists $dupes[$n]` ) continue;
+		if( `referenceQuery -inr $dupes[$n]` ) continue;  //can't rename if node is referenced
+		int $whyIsThisAnArray[] = `lockNode -q -l $dupes[$n]`;
+		if( $whyIsThisAnArray[0] ) continue;  //can't rename if node is locked
+		string $basename = `match "[^|]+$" $dupes[$n]`;
+		$resolved[$n] = `rename $dupes[$n] ( $basename +"#" )`;
+		}
+
+	return $resolved;
+	}
+
+
+//makes sure all shapes in the scene are named appropriately - ie are called:
+//xformnameShape
+global proc string[] zooNameShapesProperly() {
+	string $xforms[] = `ls -l -type transform`;
+	string $renamed[] = {};
+
+	for( $n=0; $n<`size $xforms`; $n++ ) {
+		string $shapes[] = `listRelatives -pa -s $xforms[$n]`;
+		string $basename = `match "[^|]+$" $xforms[$n]`;
+
+		for( $i=0; $i<`size $shapes`; $i++ ) {
+			if( `referenceQuery -inr $shapes[$i]` ) continue;  //can't rename if node is referenced
+			if( `nodeType $shapes[$i]` == "camera" ) if( `camera -q -sc $shapes[$i]` ) continue;  //can't rename startup camera nodes
+			int $whyIsThisAnArray[] = `lockNode -q -l $shapes[$i]`;
+			if( $whyIsThisAnArray[0] ) continue;  //can't rename if node is locked
+
+			string $shapeBasename = `match "[^|]+$" $shapes[$i]`;
+			if( $shapeBasename == ( $basename +"Shape" )) continue;  //if its already named appropriately, keep loopin
+			$renamed[( `size $renamed` )] = `rename $shapes[$i] ( $basename +"Shape" )`;
+			}
+		}
+
+	return $renamed;
+	}
+
+
+//zoo.end

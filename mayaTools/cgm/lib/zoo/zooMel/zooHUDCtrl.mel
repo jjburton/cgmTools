@@ -1,0 +1,410 @@
+global int $zooHUDLargeFont = 0;
+zooArrays_str;
+zooDates;
+zooUtils;
+
+
+global proc zooHUDCtrl() {
+	global int $zooHUDLargeFont;
+	string $windowName = "zooHUDCtrlWindow";
+	string $windowTitle = "zooHUDCtrl v"+ `zooHUDCtrlInfo version` +"  ::macaroniKazoo::";
+	string $grey = "0.831 0.816 0.784";
+	string $ports[] = `zooHUDGetPorts`;
+
+	if ( `window -exists $windowName` ) deleteUI $windowName;
+	window -t $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -width 296 -height 100 $windowName;
+		scriptJob -p $windowName -e "SceneOpened" "zooHUDState 1;";
+		menuBarLayout;
+			menu -l "Functions";
+				menuItem -l "Display All" -c( "zooHUDState 1;" );
+				menuItem -l "Remove All" -c( "zooHUDState 0;" );
+				menuItem -d 1;
+				menuItem -l "Select Node" -c( "zooGetHUDNode 0;" );
+				menuItem -d 1;
+				menuItem -l "Large Fonts" -cb $zooHUDLargeFont -c "$zooHUDLargeFont = #1; zooHUDState 1;";
+				menuItem -l "Build Widescreen Mask..." -sm 1;
+					menuItem -l "1.333  4/3" -c "zooAddCameraMask `zooGetMasterShot` 1.333;";
+					menuItem -l "1.556  14/9" -c "zooAddCameraMask `zooGetMasterShot` (14.0/9);";
+					menuItem -l "1.778  16/9" -c "zooAddCameraMask `zooGetMasterShot` (16.0/9);";
+					menuItem -l "1.85  academy" -c "zooAddCameraMask `zooGetMasterShot` 1.85;";
+					menuItem -l "2.35  anamorphic" -c "zooAddCameraMask `zooGetMasterShot` 2.35;";
+					menuItem -d 1;
+					menuItem -l "Other" -c( "{string $a=`promptDialog -m \"enter aspect ratio\" -b Create -b Cancel`; if( $a != \"Cancel\" ) zooAddCameraMask `zooGetMasterShot` `promptDialog -q -text`;}");
+					setParent -m ..;
+			menu -l "Help";
+				menuItem -l "Help..." -c ( "zooHelp zooHUDCtrl 1;" );
+				menuItem -d 1;
+				menuItem -l "About" -c ( "zooHelp zooHUDCtrl 2;" );
+
+		string $form = `formLayout`;
+			string $buttons = `rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 35
+				-columnWidth 2 35
+				-columnAttach 1 "both" 1
+				-columnAttach 2 "both" 1`;
+				for( $port in $ports ) button -height 35 -l "" -bgc 0.831 0.816 0.784 -c( "textScrollList -e -docTag \""+ $port +"\" zooHUDCtrlScrollHUDType; zooHUDCtrlWindowFunctions update" ) ( "zooHUDCtrlButton"+ $port );
+				setParent ..;
+
+			textScrollList -numberOfRows 5 -docTag $ports[0] -allowMultiSelection 0 -sc( "zooHUDCtrlWindowFunctions changeType" ) zooHUDCtrlScrollHUDType;
+			textField -text "" -cc( "zooHUDCtrlWindowFunctions changeData" ) zooHUDCtrlTextCustom;
+
+			string $image = `image -width 270 -height 8 -bgc ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+			setParent ..;
+
+	formLayout -e
+		-af $buttons "top"		0
+		-an $buttons "left"
+		-an $buttons "right"
+		-an $buttons "bottom"
+
+		-af zooHUDCtrlScrollHUDType "top"		0
+		-ac zooHUDCtrlScrollHUDType "left"	0 $buttons
+		-af zooHUDCtrlScrollHUDType "right"	0
+		-ac zooHUDCtrlScrollHUDType "bottom"	0 zooHUDCtrlTextCustom
+
+		-an zooHUDCtrlTextCustom "top"
+		-af zooHUDCtrlTextCustom "left" 0
+		-af zooHUDCtrlTextCustom "right" 0
+		-ac zooHUDCtrlTextCustom "bottom" 0 $image
+
+		-an $image "top"
+		-af $image "left"		0
+		-af $image "right"		0
+		-af $image "bottom"	0
+		$form;
+
+	popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+
+	//some of the HUD options are only enabled if certain conditions are met - establish those conditions here
+	int $enableCurrentShot = 0;
+
+	//now populate the HUD display list
+	string $types[] = {
+		"frameInfo",
+		"currentLens",
+		"customText",
+		"sceneName",
+		"attribute",
+		"datetime",
+		"melCmd",
+		"userInfo"
+		};
+	if( $enableCurrentShot ) $types[( `size $types` )] = "currentShot";
+	for( $type in $types ) textScrollList -e -a $type zooHUDCtrlScrollHUDType;
+	textScrollList -e -a "none" zooHUDCtrlScrollHUDType;
+
+	showWindow $windowName;
+	zooHUDCtrlWindowFunctions update;
+	}
+
+
+global proc string[] zooHUDGetPorts() {
+	return { "01", "41", "51", "91" };
+	}
+
+
+global proc zooHUDCtrlWindowFunctions( string $function ){
+	string $nodeName = `zooGetHUDNode 1`;
+	string $location = `textScrollList -q -docTag zooHUDCtrlScrollHUDType`;
+	int $section = `substring $location 1 1`;
+	int $block = `substring $location 2 2`;
+
+	switch( $function ){
+		case "update":
+			string $type = `zooGetBlockType $nodeName $section $block`;
+			string $dataStr = `zooGetBlockData $nodeName $section $block`;
+			string $infoPorts[] = `zooHUDGetPorts`;
+			float $off[] = {0.831, 0.816, 0.784};
+			float $on[] = {0.0, 1.0, 0.0};
+			float $used[] = {0.4, 0.5, 0.7};
+
+			//change the colour state for all ports.  grey is nothing, yellow is unselected with command, green is selected.
+			for( $port in $infoPorts ) {
+				int $sec = `substring $port 1 1`;
+				int $blk = `substring $port 2 2`;
+				string $type = `zooGetBlockType $nodeName $sec $blk`;
+
+				if( $type != "" ) button -e -height 35 -l "o" -bgc $used[0] $used[1] $used[2] ( "zooHUDCtrlButton"+ $port );
+				else button -e -height 35 -l "" -bgc $off[0] $off[1] $off[2] ( "zooHUDCtrlButton"+ $port );
+				}
+
+			//now turn the selected port button green
+			string $lbl = "<->";
+			if( $type != "" ) $lbl = "<o>";
+			button -e -height 35 -l $lbl -bgc $on[0] $on[1] $on[2] ( "zooHUDCtrlButton"+ $section + $block );
+
+			for( $port in $infoPorts ) {
+				button -e -vis 0 ( "zooHUDCtrlButton"+ $port );
+				button -e -vis 1 ( "zooHUDCtrlButton"+ $port );
+				}
+
+			if( $type == "" ) $type = "none";
+			textScrollList -e -si $type zooHUDCtrlScrollHUDType;
+			textScrollList -e -docTag ( $section +""+ $block ) zooHUDCtrlScrollHUDType;
+
+			textField -e -tx $dataStr zooHUDCtrlTextCustom;
+			break;
+
+		case "changeType":
+			string $selectedItem[] = `textScrollList -q -si zooHUDCtrlScrollHUDType`;
+			string $type = $selectedItem[0];
+
+			if( $type == "none" ) $type = "";
+			zooSetBlockType $nodeName $section $block $type;
+			zooHUDCtrlWindowFunctions update;
+			zooHUDCtrlViews $nodeName $section $block;  //update the relevant section
+			break;
+
+		case "changeData":
+			string $dataStr = `textField -q -tx zooHUDCtrlTextCustom`;
+
+			zooSetBlockData $nodeName $section $block $dataStr;
+			zooHUDCtrlViews $nodeName $section $block;
+			break;
+		}
+	}
+
+
+//used to set and query the current state of the HUD display
+//usage:
+//int $state = `zooHUDState -1`;  // <-queries the current state
+global proc int zooHUDState( int $state ) {
+	string $HUDs[] = `zooHUDGetPorts`;
+	switch( $state ) {
+		case 1:
+			string $nodeName = `zooGetHUDNode 1`;
+			for( $HUD in $HUDs ) {
+				int $b = `substring $HUD 1 1`;
+				int $s = `substring $HUD 2 2`;
+				zooHUDCtrlViews $nodeName $b $s;
+				}
+			return 1;
+
+		case 0:
+			for( $HUD in $HUDs ) if( `headsUpDisplay -ex ("zooHUDCtrl"+ $HUD)`) headsUpDisplay -rem ("zooHUDCtrl"+ $HUD);
+			return 0;
+
+		default:
+			for( $HUD in $HUDs ) if( `headsUpDisplay -ex ("zooHUDCtrl"+ $HUD)` ) return 1;
+			return 0;
+		}
+
+	return 0;
+	}
+
+
+global proc zooHUDCtrlViews( string $nodeName, int $section, int $block ){
+	global int $zooHUDLargeFont;
+	string $fontSize = "small";
+	if( $zooHUDLargeFont ) $fontSize = "large";
+	string $cmd = "headsUpDisplay -dfs "+ $fontSize +" -lfs "+ $fontSize +" -section "+ $section +" -block "+ $block +" ";
+	string $type = `zooGetBlockType $nodeName $section $block`;
+	string $dataStr = `zooGetBlockData $nodeName $section $block`;
+
+	headsUpDisplay -rp $section $block;
+	switch( $type ){
+		default:
+			return;
+
+		case "frameInfo":
+			$cmd = $cmd +"-label \"\" -c \"zooWriteHUDString frameInfo n\" -atr zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "currentLens":
+			string $buffer[] = {};
+			tokenize $dataStr "." $buffer;
+			$cmd = $cmd +"-label \"\" -c \"zooWriteHUDString currentLens n\" -atr zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "currentShot":
+			string $buffer[] = {};
+			tokenize $dataStr "." $buffer;
+			$cmd = $cmd +"-label \"\" -c \"zooWriteHUDString currentShot n\" -atr zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "customText":
+			$cmd = $cmd +"-label \"\" -c \"zooGetBlockData "+ $nodeName +" "+ $section +" "+ $block +"\" zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "sceneName":
+			string $file = `file -q -sn`;
+			if( !`filetest r $file` ) $cmd = $cmd +"-label \"*scene not saved*\" -c \"\" zooHUDCtrl"+ $section + $block;
+			else $cmd = $cmd +"-label \"\" -c \"file -q -sn\" zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "attribute":
+			$cmd = $cmd +"-l \"\" -dp 3 -c \"zooWriteHUDString attribute \\\""+ $dataStr +"\\\"\" -atr zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "datetime":
+			$cmd = $cmd +"-l \"\" -dp 3 -c \"zooWriteHUDString datetime \\\""+ $dataStr +"\\\"\" -atr zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "melCmd":
+			$cmd = $cmd +"-l \"\" -dp 3 -c \"zooWriteHUDString melCmd \\\""+ $dataStr +"\\\"\" -atr zooHUDCtrl"+ $section + $block;
+			break;
+
+		case "userInfo":
+			$cmd = $cmd +"-l \"\" -dp 3 -c \"zooWriteHUDString userInfo \\\"\\\"\" -atr zooHUDCtrl"+ $section + $block;
+			break;
+		}
+
+	eval $cmd;
+	}
+
+
+global proc string zooWriteHUDString( string $type, string $data ) {
+	switch( $type ){
+		case "null":
+			return "";
+			break;
+
+		case "frameInfo":
+			int $frameRate = `zooGetTimebaseAsInt`;
+			int $start = `playbackOptions -q -min`;
+			int $curTime = `currentTime -q`;
+			string $curFrame = `zooPadBefore_str $curTime 4 0`;
+			string $relFrame = `zooPadBefore_str ($curTime-$start) 4 0`;
+
+			return( "frame: "+ $relFrame +" ("+ $curFrame +")  timebase: "+ $frameRate );
+			break;
+
+		case "currentLens":
+			string $currentView = `modelPanel -q -cam (getPanel("-wf"))`;
+			string $buffer[] = {};
+
+			tokenize $data "." $buffer;
+			return( "lens: "+ ((int)`getAttr ( $currentView +".focalLength" )`) +"mm  shutter: "+ `getAttr ( $currentView +".shutterAngle" )` );
+			break;
+
+		case "currentShot":
+			int $shot = zooMapShotsToSlots(`zooGetCurrentShot`)+1;
+			return( "shot: "+ $shot +" cam: "+ `zooGetShotCamera (zooGetCurrentShot())` );
+			break;
+
+		case "attribute":
+			if( !`objExists $data` ) return "*no attr defined*";
+			string $val = `getAttr $data`;
+			string $buf[] = {};
+
+			tokenize $val "." $buf;
+			if( `size $buf`>1 ) $buf[1] = `zooPadAfter_str $buf[1] 3 0`;
+			else $buf[1] = "000";
+			$val = $buf[0] +"."+ $buf[1];
+			return( $data +":  "+ $val );
+			break;
+
+		case "datetime":
+			string $day = zooGetDay_str(`about -cd`);
+			string $dtStr = `about -ct` +" on "+ $day +" "+ `about -cd`;
+			return $dtStr;
+			break;
+
+		case "melCmd":
+			string $result = `eval $data`;
+			return $result;
+			break;
+
+		case "userInfo":
+			string $result = `getenv USER` +"  "+ `about -cd`;
+			return $result;
+			break;
+		}
+
+	return "";
+	}
+
+
+global proc int zooGetTimebaseAsInt() {
+	string $temp = `currentUnit -q -f -t`;
+	switch( $temp ) {
+		case "game": return 15;
+		case "film": return 24;
+		case "pal": return 25;
+		case "ntsc": return 30;
+		case "show": return 48;
+		case "palf": return 50;
+		case "ntscf": return 60;
+		}
+
+	return -1;
+	}
+
+
+global proc string zooGetBlockType( string $node, int $section, int $block ) {
+	if( !`objExists ( $node +".zooHUDType"+ $section + $block )`) return "";
+	return `getAttr ( $node +".zooHUDType"+ $section + $block )`;
+	}
+
+
+global proc zooSetBlockType( string $node, int $section, int $block, string $type ) {
+	if( !`objExists ( $node +".zooHUDType"+ $section + $block )`) addAttr -ln( "zooHUDType"+ $section + $block ) -dt "string" $node;
+	setAttr -type "string" ( $node +".zooHUDType"+ $section + $block ) $type;
+	if( $type == "" ) deleteAttr ( $node +".zooHUDType"+ $section + $block );
+	}
+
+
+global proc string zooGetBlockData( string $node, int $section, int $block ) {
+	if( !`objExists ( $node +".zooHUDData"+ $section + $block )`) return "";
+	return `getAttr ( $node +".zooHUDData"+ $section + $block )`;
+	}
+
+
+global proc zooSetBlockData( string $node, int $section, int $block, string $data ) {
+	if( !`objExists ( $node +".zooHUDData"+ $section + $block )`) addAttr -ln( "zooHUDData"+ $section + $block ) -dt "string" $node;
+	setAttr -type "string" ( $node +".zooHUDData"+ $section + $block ) $data;
+	if( $data == "" ) deleteAttr ( $node +".zooHUDData"+ $section + $block );
+	}
+
+
+global proc string zooHUDCtrlExists() {
+	string $timeNodes[] = `ls -type time`;
+	int $doesHUDCtrlExist = 0;
+	for( $node in $timeNodes ) if( `objExists ( $node +".zooHUDCtrl" )` ) return $node;
+
+	return "";
+	}
+
+
+global proc string zooGetHUDNode( int $force ) {
+	string $node = `zooHUDCtrlExists`;
+	if( `objExists $node` ) return $node;
+	if( !$force ) return "";
+
+	$node = `createNode time`;
+	$node = `rename $node "zooHUDCtrl"`;
+	addAttr -ln zooHUDCtrl -at bool $node;
+
+	return $node;
+	}
+
+
+//return versioning information
+global proc string zooHUDCtrlInfo ( string $function ) {
+	string $creationDate = "03 August 2003";
+	string $lastRevision = "25 November 2003";
+	string $version = "6.6.21";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "modified" ) return $lastRevision;
+	if ( $function == "version" ) return $version;
+	return "";
+	}
+
+
+//these dependencies allow the zooZipScript to package this script easily for distribution
+global proc string[] zooHUDCtrlDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooAddCameraMask";
+	$iconDependencies[( `size $iconDependencies` )] = "zoo_sig.tga";
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

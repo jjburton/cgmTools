@@ -1,0 +1,55 @@
+//adds a widescreen mask to a given camera - requires zooGreaseMonkeyUtils
+
+
+zooArrays_str;
+zooAttrUtils;
+zooGreaseMonkeyUtils;
+zooObjMenuUtils;
+zooShaders;
+
+
+global proc string zooAddCameraMask( string $camera, float $aspect ) {
+	string $eazel = `zooGetEazel 1`;
+	string $mask = `zooBuildWideMask $aspect`;
+
+	if( !`objExists $camera` ) $camera = "persp";
+	zooMonkeySee $camera;
+	$mask = zooGetElement_str(0,`parent -r $mask $eazel`);
+	setAttr ( $mask +".tz" ) -2;
+
+	return $mask;
+	}
+
+
+global proc string zooBuildWideMask( float $aspect ) {
+	string $createCmd = "polyCreateFacet -ch 0 -tx 1 ";
+	float $height = 1/$aspect;
+
+	$createCmd += "-p -2 2 0 ";
+	$createCmd += "-p 2 2 0 ";
+	$createCmd += "-p 2 -2 0 ";
+	$createCmd += "-p -2 -2 0 ";
+	$createCmd += "-p -2 "+ $height +" 0 ";
+	$createCmd += "-p -1 "+ $height +" 0 ";
+	$createCmd += "-p -1 -"+ $height +" 0 ";
+	$createCmd += "-p 1 -"+ $height +" 0 ";
+	$createCmd += "-p 1 "+ $height +" 0 ";
+	$createCmd += "-p -2 "+ $height +" 0 ";
+
+	string $newObj[] = `eval $createCmd`;
+	string $shape[] = `listRelatives -pa -s $newObj`;
+
+	zooAttrState "-attrs t r s v -k 0" $newObj[0];
+	zooSetObjShader $newObj[0] `zooGetShader black 1`;
+	zooObjMenuAddCmdAll $newObj[0] "build field chart" ( "zooAttrUtils;\nstring $plane[] = `polyPlane -w 0.02 -h "+ (0.02/$aspect) +" -sx 3 -sy 3 -ax 0 0 1 -tx 1 -ch 1`;\nsetAttr ( $plane[0] +\".overrideEnabled\" ) 1;\nsetAttr ( $plane[0] +\".overrideShading\" ) 0;\nparent -r $plane[0] #;\nzooAttrState \"-attrs t r s v -l 1 -k 0\" $plane[0];\nif( !`objExists #.horiz` ) addAttr -at long -dv 3 -ln horiz #;\nif( !`objExists #.vert` ) addAttr -at long -dv 3 -ln vert #;\nsetAttr -k 1 #.horiz 3;\nsetAttr -k 1 #.vert 3;\nconnectAttr -f #.horiz ( $plane[1] +\".subdivisionsWidth\" );\nconnectAttr -f #.vert ( $plane[1] +\".subdivisionsHeight\" );\nzooObjMenuAddCmdAll $plane[0] \"delete field chart\" ( \"delete \"+ $plane[0] +\";\" );\nselect #;" );
+	zooObjMenuAddCmdAll $newObj[0] "delete mask" "delete #;";
+	zooObjMenuAddCmdAll $newObj[0] "assign colour" "string $ans = `promptDialog -m \"colour string:\" -b \"OK\" -b \"Cancel\" -db \"OK\"`;\nif( $ans == \"OK\" ) {\n\tzooShaders;\n\tzooSetObjShader # (zooGetShader(`promptDialog -q -tx`,1));\n\t}";
+	string $newName = $aspect;
+	$newName = "zooWidescreenMask_"+ `substitute "[\.]+" $newName "_"`;
+	$newObj[0] = `rename $newObj[0] $newName`;
+
+	return $newObj[0];
+	}
+
+
+//zoo.end

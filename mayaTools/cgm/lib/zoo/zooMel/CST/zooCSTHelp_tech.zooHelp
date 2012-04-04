@@ -1,0 +1,150 @@
+----CST Architecture----
+The Character Setup Toolkit abstracts character rigging by defining common rig sub-structures, or "rig primitives".  Rig structures such as arms, legs, spines etc, are all considererd one "part".  Using these common "rig primitives", characters can be quickly rigged using the scripts that comprise the setup toolkit.
+
+NOTE: if you plan to use any of the zooCST commands in your own scripts (and please, feel free to), make sure all the scripts that zooCST depends on have been sourced.  The easiest way to do this is to open the zooCST window, as it sources all dependencies when it first loads.  Or you can source them manually using:
+
+source zooCST;
+string $deps[] = `zooCSTDependencies -scripts`;
+for( $script in $deps ) eval( "source "+ $script );
+
+
+----CST Rig Primitives----
+Building the rig primitives is usually done through the UI, but can also be done by calling the primitive creation commands directly.  For example, if you wanted to build an fkSpine primitive:
+
+zooCSTBuildPrimFKSpine charName spineBase spineEnd "-scale 0.25 -isCurve 1";
+
+Currently the primitives "know" how to re-build themselves.  The zooCSTPrimitives script contains all the primitive based operation commands.  Primitives offer a powerful higher level concept of rigging.  For example, as of v4 of zooCST, you can rebuild primitives.  Each primitive, when created, is given all the information needed to rebuild itself, using the primitive commands contained in the zooCSTPrimitives script.
+
+Primitives are actually time nodes (time nodes are used because they're "light", but still "known" nodes - using unknown nodes can cause problems).  Each object involved in creating a rig primitive gets registered with the primitive node, as does each object the primitive creates.  Registering an object with a primitive creates a connection to it, or vice versa, depending on what the object is registered as (see below).  Registering an object with a primitive allows the primitive to "keep track" of what objects were used to create it, and what nodes it has itself created.  It also contains a list of any user options that were set when the primitive was created.  Using this information, the primitive can be rebuilt at a later date, as all the information used to create it can be found by a script.
+
+You can register an object with a primitive in one of three different ways.  As an input, as an ouptut, or as a control.  The difference between these are discussed in the Primitives section of the "How it Works" section of the help.
+
+The primitive tools are fairly comprehensive, and reasonably well documented.  For the dirty details on primitives, please read the comments contained in the zooCSTPrimitives script.
+
+
+----Branding----
+zooCST uses branding to later identify objects.  Using a node naming convention to identify objects is sloppy, as node names are very fluid things.  So instead of relying on node names, zooCST uses branding to identify objects.  Branding an object simply attaches a string attribute of known name.  Information can then be stored in this string to further identify a node.
+
+For example, the root control gets branded with these attributes:
+zooBrand_name
+zooBrand_root
+
+The value of the attributes is set to the prefix of the character.  So now from script, we can tell that this node is a root control, belonging to a certain character.  Primitives like arms and legs are also branded with id numbers, as its usual for a character to have multiple arm or leg primitives
+
+All of the branding functions can be found in the zooBrandTools script, so feel free to look through that script yourself to find out exactly what it provides.  Here is a rough overview of some of the more useful commands:
+
+So using our example above, if you had already build a rig -for a character called georgie- that you wanted to use with zooCST, and wanted to brand the root control:
+zooBrandToolsBrandObject name georgie rootControlObject;
+zooBrandToolsBrandObject root georgie rootControlObject;
+
+The name brand records what the character's prefix is, while the root brand simply specifies that the control is a root control.  The prefix doesn't need to be added to the root brand, but there's no harm in adding it there as well.
+
+To list all branded objects in a scene:
+zooBrandToolsListBranded;
+
+And if you want to find all objects with the "root" brandname:
+zooBrandToolsGetBrandedWith root georgie;
+
+Lastly, for convenience, this procedure will return all objects branded with a list of brands
+zooBrandToolsGetBrandedWithList { "name","arm" } { "georgie","left" };
+
+So the brand tools provides a comprehensive suite of tools to discover names of primitive nodes, and branded objects.
+
+
+----Combining CST With Your Own Rigs----
+If you're trying to integrate a zooCST rig primitive into your own rig (say you want to use zooCST arms on your already made rig) you don't have to use branding.  In fact, using branding is the hard way of doing things.  You can specify objects to be used in place of branded ones through the predecessor flags.  This can be done for any rig primitive using one of the following flags:
+
+-world [string]
+-root [string]
+-chest [string]
+-head [string]
+
+replace the [string] with the object you want to be used.  For more info on the predecessor flags, check out the "Additional Flags" section of the help.
+
+
+----Option Strings----
+All primitive creation commands, and a few other zooCST scripts have an optionStr argument.  This option string is basically a string containing optional flags, which alter the way the script behaves.  The flags look exactly like flags passed to normal MEL commands.  For example:
+
+zooCSTBuildControl cube "cubeObject" "" "-scale 1 -offset 3up 5fwd -curve 1";
+
+this command will create a cube curve, offset 3 units up and 5 units forward of the origin.  These flags are optional, so the command:
+
+zooCSTBuildControl cube "cubeObject" "" "";
+
+will also create a cube object using the default creation options.  Possible flags are listed in the actual script.  Entering invalid flags simply does nothing, it will not raise an error.
+
+Option parsing is done by the zooFlags script, and can easily be used for other scripts outside zooCST.  Many other zoo scripts also use this script.
+
+
+----Space Switching----
+Creating space switching controls into a rig is a great idea and can make an animators life much easier.  A space switching allows a control's parent to be changed.  Dynamic parenting it is sometimes called.  Space switching requires that an object has a "dummy" parent object, or space object.  This object is parent constrained between multiple objects.  By constraining this space object, the child - the control - is free to be animated under its parent of choice.
+
+CST offers a quick and easy way to setup space switching using a command found in the zooCSTUtils script called: zooCSTUtilsCreateSpaceSwitch.  Its reasonably simple to use.  For example, if you had an arm controller called armCtrl_L, which was parented to the object armSpace_L, and you wanted it to have the parents: world_ctrl, root_ctrl, chest_ctrl:
+
+zooCSTUtilsCreateSpaceSwitch armCtrl_L armSpace_L { "world_ctrl", "root_ctrl", "chest_ctrl" } { "world", "root", "chest" } "-mo";
+
+The last array is the list of names that appears in the animatable attribute on the control object.  So the animator would be able to choose from the list which parent object they wanted the control to follow.
+
+It should be noted that space switching can be used on absolutely anything.  I've used it to great effect for prop animation (setting up a prop with multiple dynamic parents makes picking up and putting down props dead simple to animate), on custom rigs, or anywhere else dynamic, easily animated parenting is needed.
+
+
+----Building Controls----
+CST builds its control objects by using the script: zooCSTBuildControl.  By specifying a target object, this script will place the control object it builds at this position (and orientation if needed) and freeze its transforms.  As of v3.4 there is now an interface to the buildControl command in the UI.
+
+zooCSTBuildControl allows the creation of normal transform controls, or an oriented control, which uses a joint node for the transform.  Because joints can be oriented in space, and have their rotations frozen into the jointOrient attribute, using a joint allows the control to be oriented.  To determine what type of control the zooCSTBuildControl creates, set the -orient flag to on.
+
+To build a control using zooCSTBuildControl:
+zooCSTBuildControl cube "armControl" armJoint_L "-scale 0.5 -offset 0 0 0";
+
+This command will make the control a cube visually (other types are: sphere, cylinder, cone, locator, null), and call it armControl.  The object will be placed at the location of the armJoint_L object, and will have no offset.  For more details on the flags you can use with the zooCSTBuildControl command, see the "Additional Flags" help.
+
+The offset string in the above example is all zeros, but it can also contain keywords such as up, side, and fwd, to offset the control in one of these directions.  Keywords are used for compatability with Z-up scenes.
+
+For example:
+zooCSTBuildControl cone "elbow_L" elbow_joint_L "-scale 0.5 -offset 3up -2fwd";
+
+This offset will move the control 3 units up and 2 units backwards.  NOTE: keywords can be given in any order, but must be preceded by a number.
+
+
+----Stretchy Limbs----
+Making limbs stretchy using zooCST is reasonably straight forward.  Stretchi-ness can be added to arms or legs automatically through the UI, but you can also make limbs stretchy AFTER they've been created using the zooCSTMakeStretchy command.
+
+zooCSTMakeStretchy $armControl $ikHandle "-axis x";
+
+the armControl is the control object for the arm, and is usually called something like primoBoy_arm_ctrl_R. This is the object that the stretch control attributes will be added to.  The parity is which side of the body the control belongs to.  r for right, and l for left.  NOTE that it must be a lowercase l or r.  The ikHandle is the name of the ikHandle controlling the limb that you want to be stretchy.  This is usually the same as the armControl object if you've set your arms up using zooCST.  So for the primoBoy rig, you can make the arms strechy using the following command:
+
+zooCSTMakeStretchy primoBoy_arm_ctrl_L primoBoy_arm_ctrl_L "-axis x";
+zooCSTMakeStretchy primoBoy_arm_ctrl_R primoBoy_arm_ctrl_R "-axis x";
+
+
+----Adapting CST to your pipeline----
+CST can be adapted reasonably easily to different pipelines, because its such a modular toolset.  Writing new rig primitives is reasonably simple using the tools zooCST provides.  Discovering other parts of the rig is also easy using the zooBrandTools.
+
+Following is a list of some useful commands that you might use to write your own primitives.  The location of the command (ie which script the command can be found in) is written in brackets.  Have a look at the comments that go with the command for more detailed information on command usage:
+
+zooFindPolePosition (loc: zooCSTUtils) This command returns a position to place a pole vector at, so as to not move the joint chain.
+
+zooCSTUtilsCreateSpaceSwitch (loc: zooCSTUtils) Used to add space switching to an object.  Automatically adds zooObjMenu commands to the object as well.
+
+zooCSTHideAttr (loc: zooCSTUtils) Easy to use command for hiding and unhiding multiple channels at once.
+
+zooGetInBTweenJoints (loc: zooCSTUtils) returns all the joints that lie between the start and end joint specified.
+
+zooCSTBetweenVector (loc: zooCSTUtils) returns the vector between two objects.  This is really useful for finding which direction a joint is pointing.
+
+zooCSTUpVector (loc: zooCSTUtils) returns which axis is the closest to a direction specified.  Useful when used in conjunction with zooCSTBetweenVector.  ie: zooCSTUpVector elbow `zooCSTBetweenVector elbow wrist`;
+
+zooCSTBuildControl (loc: zooCSTBuildControl) Creates generic control objects of various shapes and types.  This proc will position (and potentially orient) the control object to another object in the scene if needed.
+
+
+----Name Matching----
+The name matching script (which is also used by zooXferAnim) is a general name matching script, and can be used easily outside zooCST.  To use it, it needs two string array arguments.  The first is the list of names to match, and the second is the list of names to choose from.  For example:
+
+zooMatchNames { "char_name_leg", "joint12", "nurbsCurve1" } `ls -type joint` "";
+
+will try to match the names in the first array, to one of the joints in the scene.  The return array is always the same size as the first input array.  If the script doesn't find a close enough match for a name, that entry will be an empty string.
+
+The name matching algorithm uses parity matching when matching names as well.  Parity is which side of the character the object is on.  ie left or right.  Parity strings must be at the end of the name, and separated with an underscore.  ie char_arm_left has parity, while left_arm_on_billy has no parity, because the left is not at the end of the name.  Valid parity strings are: L, l, left, lt, lft for the left side, and: R, r, right, rgt, rt for the right side.
+
+Hamish McKenzie ©2005...
+macaroniKazoo Productions ©2005...

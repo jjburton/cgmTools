@@ -1,0 +1,161 @@
+zooArrays_str;
+zooAttrUtils;
+zooVectors;
+zooXferAnimUtils;
+zooCSTUtils;
+
+
+global proc string zooBoltOnIK( string $pivots[], int $stretchy ) {
+	for( $p in $pivots ) if( !`objExists $p` ) return "";
+
+	int $numPivs = `size $pivots`;
+	string $poleVector = zooGetElement_str(0,`spaceLocator`); select -cl;
+	string $infoNode = `group -em -n "boltOnIK_parts"`;
+	string $lastPivot = `zooGetElement_str -1 $pivots`;
+	string $handleName = "boltOnIK_"+ $lastPivot;
+	string $dupeChain[] = {};
+	int $blendPref = `optionVar -q animBlendingOpt`;
+
+	$poleVector = `rename $poleVector ( "boltOnIK_poleVector#" )`;
+	optionVar -iv animBlendingOpt 1;  //temporarily turn the blend pref on
+	for( $n=0; $n<$numPivs; $n++ ) {
+		select -cl;
+		string $joint = `joint -p 0 0 0`;
+		float $orient[] = `getAttr ( $pivots[$n] +".r" )`;
+
+		if( `getAttr -l ( $pivots[$n] +".rx" )`) setAttr -l 1 ( $joint +".rx" );
+		if( `getAttr -l ( $pivots[$n] +".ry" )`) setAttr -l 1 ( $joint +".ry" );
+		if( `getAttr -l ( $pivots[$n] +".rz" )`) setAttr -l 1 ( $joint +".rz" );
+
+		$dupeChain[$n] = $joint;
+		if( $n ) parent $joint $dupeChain[( $n-1 )];
+
+		//if we have a preferred angle attribute, copy it too.  otherwise, assume the current rotation is the preferred angle
+		if( `objExists ( $pivots[$n] +".pa" )`) {
+			float $pa[] = `getAttr ( $pivots[$n] +".pa" )`;
+			setAttr ( $joint +".pa" ) $pa[0] $pa[1] $pa[2];
+			}
+
+		zooSameTransform $pivots[$n] $joint;
+
+		//copy viewport representation - so they look identical
+		zooReplaceShape $pivots[$n] $joint 0;
+		}
+	//if( $numPivs==3 ) zooOrientTripletJoint $dupeChain;
+	zooOrientChainProperly $dupeChain {};
+
+
+	//now position the pole vector before we alter the original chain
+	float $polePos[] = `zooFindPolePosition ( "-start "+ $pivots[0] +" -mid "+ $pivots[( $numPivs/2 )] +" -end "+ $lastPivot )`;
+	move -rpr $polePos[0] $polePos[1] $polePos[2] $poleVector;
+	parent $poleVector $infoNode;
+	parent $dupeChain[0] $infoNode;
+
+
+	//now constrain the original to the duplicate
+	pointConstraint $pivots[0] $dupeChain[0];
+	orientConstraint -mo $dupeChain[0] $pivots[0];
+	for( $n=1; $n<`size $pivots`; $n++ ) {
+		string $cmd = "parentConstraint -mo ";
+		if( !`getAttr -se ( $pivots[$n] +".tx" )`) $cmd += "-st x ";
+		if( !`getAttr -se ( $pivots[$n] +".ty" )`) $cmd += "-st y ";
+		if( !`getAttr -se ( $pivots[$n] +".tz" )`) $cmd += "-st z ";
+		$cmd += $dupeChain[$n] +" "+ $pivots[$n];
+		eval $cmd;
+		}
+
+
+	//build the ik handle
+	string $ikReturn[] = `ikHandle -sol ikRPsolver -dh -n $handleName -sj $dupeChain[0] -ee $dupeChain[( size($dupeChain)-1 )]`;
+	$handleName = $ikReturn[0];
+	$effectorName = `rename $ikReturn[1] ( $handleName +"Effector" )`;
+	poleVectorConstraint $poleVector $handleName;
+
+
+	//connect the visibility of the ik handle to the visibility of the duplicate bones
+	connectAttr -f ( $handleName +".v" ) ( $infoNode +".v" );
+	for( $obj in $dupeChain ) connectAttr -f ( $handleName +".v" ) ( $obj +".v" );
+
+
+	//we turn the handles on for the pole vector and the ik handle so they're easier to select
+	setAttr ( $poleVector +".displayHandle" ) 1;
+	setAttr ( $handleName +".displayHandle" ) 1;
+
+
+	//now add connects so we can build some right menu interface items to make working with the bolt on ik system easier
+	int $dupeConnects[] = {};
+	int $poleNum = `zooAddConnect $handleName $poleVector`;
+	for( $p in $dupeChain ) $dupeConnects[( `size $dupeConnects` )] = `zooAddConnect $handleName $p`;
+	for( $p in $pivots ) zooAddConnect $infoNode $p;
+
+
+	//connect the original pivots to the dupe pivots, and use a trigger select command on them - to make working in fk easy
+	for( $n=0; $n<`size $pivots`; $n++ ) {
+		int $connectNum = `zooAddConnect $pivots[$n] $dupeChain[$n]`;
+		zooTrigSetCmd $pivots[$n] ( "select -add %"+ $connectNum +";" );
+		}
+
+
+	//now setup useful right click menu stuff
+	zooObjMenuAddCmdAll $handleName "select all FK controls" ( "select %"+ `zooArrayToStr_int $dupeConnects " %"` +";" );
+	zooObjMenuAddCmdAll $handleName "select pole vector" ( "select %"+ $poleNum +";" );
+	zooObjMenuAddCmdAll $handleName "place pole vector sensibly" ( "float $pos[] = `zooFindPolePosition \"-start %"+ $dupeConnects[0] +" -mid %"+ $dupeConnects[( $numPivs/2 )] +" -end %"+ $dupeConnects[( `size $dupeConnects`-1 )] +"\"`;\nmove -ws -a -rpr $pos[0] $pos[1] $pos[2] %1;" );
+	zooObjMenuAddCmdAll $handleName "switch to FK" ( "zooAlign \"\";\nzooAlignFK \"-ikHandle #\";" );
+	zooObjMenuAddCmdAll $handleName "switch to IK" ( "zooAlign \"\";\nzooAlignIK \"-ikHandle # -pole %"+ $poleNum +"\";" );
+
+
+	//build pickwalking
+	zooPickwalk load;
+	zooSetPickwalkObj $handleName $poleVector "-dir up -reciprocal 1";
+	zooSetPickwalkObj $handleName $poleVector "-dir down -reciprocal 1";
+
+
+	//turn off keyability of attributes
+	zooAttrState "-attrs s offset roll pv -k 0 -l 1" $handleName;
+	zooAttrState "-attrs v -k 0" $handleName;
+	for( $n=0; $n<`size $dupeChain`; $n++ ) zooAttrState "-attrs t s v -k 0 -l 1" $dupeChain[$n];
+	group -n boltOnIKHandleSpace $handleName;
+
+
+	//are we making it stretchy?
+	string $nodes[] = {};
+	if( $stretchy ) if( `exists zooCSTMakeStretchy` ) {
+		$nodes = `zooCSTMakeStretchy $handleName $handleName ""`;
+		parent `zooGetElement_str -2 $nodes` $infoNode;
+		}
+	select $handleName;
+	optionVar -iv animBlendingOpt $blendPref;  //restore the blend pref
+
+	return $handleName;
+	}
+
+
+global proc string[] zooBoltOnIKDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooAlign";
+	$melDependencies[( `size $melDependencies` )] = "zooArrays_str";
+	$melDependencies[( `size $melDependencies` )] = "zooArrays_int";
+	$melDependencies[( `size $melDependencies` )] = "zooArrays_float";
+	$melDependencies[( `size $melDependencies` )] = "zooBoltOnIKWin";
+	$melDependencies[( `size $melDependencies` )] = "zooFlags";
+	$melDependencies[( `size $melDependencies` )] = "zooHelp";
+	$melDependencies[( `size $melDependencies` )] = "zooObjMenu";
+	$melDependencies[( `size $melDependencies` )] = "zooSortToHeirarchy";
+	$melDependencies[( `size $melDependencies` )] = "zooTriggeredUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooVectors";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+	$iconDependencies[( `size $iconDependencies` )] = "zoo_sig.tga";
+	$iconDependencies[( `size $iconDependencies` )] = "zooBoltOnIK.xpm";
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	return $return;
+	}
+
+
+//zoo.end

@@ -32,7 +32,7 @@ __version__ = '0.1.01102012'
 import maya.mel as mel
 import maya.cmds as mc
 
-from cgm.lib.cgmBaseMelUI import *
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.lib import (guiFactory,
                      dictionary,
@@ -47,24 +47,11 @@ reload(tdToolsLib)
 def run():
 	mel.eval('python("import maya.cmds as mc;from cgm.tools import namingTools;from cgm.tools.lib import tdToolsLib;from cgm.lib import guiFactory;cgmNamingToolsWin = namingTools.namingToolsClass()")')
 
-	"""
-	Hamish, the reason I did this was a few reasons
-
-	1) because I need to know what the name of my ui window is which
-	I'm declaring in this mel.eval do you know a better way to do this?
-
-	2) I get an mc error otherwise
-
-	3) issue with the gui templates note initializing otherwise. Also it looks like your revision to zooPy's baseMelUI
-	borked the template initialize stuff. Took me a bit to realized you'd removed all of that. Can we do a code compare to see what I changed to
-	see if we can roll that into your code so everything works again or tell me another way to get them working together?
-
-
-	your code:
-	tdToolsClass()
-	"""
-
 class namingToolsClass(BaseMelWindow):
+	from  cgm.lib import guiFactory
+	guiFactory.initializeTemplates()
+	USE_TEMPLATE = 'cgmUITemplate'
+	
 	WINDOW_NAME = 'namingTools'
 	WINDOW_TITLE = 'cgm.namingTools'
 	DEFAULT_SIZE = 550, 400
@@ -73,7 +60,6 @@ class namingToolsClass(BaseMelWindow):
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-	guiFactory.initializeTemplates()
 
 	def __init__( self):
 		""" Hamish, why is this import necessary? It errors out if it isn't here....

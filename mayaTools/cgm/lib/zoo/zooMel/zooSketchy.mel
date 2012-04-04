@@ -1,0 +1,95 @@
+zooSketchyUtils;
+
+
+global proc zooSketchy() {
+	string $windowName = "zooSketchyWindow";
+	string $windowTitle = "zooSketchy  v1.07.01  ::macaroniKazoo::";
+	string $board = `zooGetBoardBase 0`;
+	int $unload = `optionVar -ex zooSketchyUnload`? `optionVar -q zooSketchyUnload`: 1;
+	int $hideState = `objExists $board`? !`getAttr ( $board +".v" )`: 0;
+
+	if ( `window -ex $windowName` ) deleteUI $windowName;
+	window -t $windowTitle -rtf 0 -sizeable 1 -width 300 -height 250 $windowName;
+		scriptJob -p $windowName -uid $windowName "zooSketchyWindowFunctions -windowClose";
+		menuBarLayout;
+			menu -l "Prefs";
+				menuItem -l "unload on window close" -cb $unload -c( "optionVar -iv zooSketchyUnload #1" );
+			menu -l "Help";
+				menuItem -l "Donate Now" -c( "showHelp -a \"http://www.macaronikazoo.com/donate.html\";" );
+				menuItem -l "Help..." -c ( "zooHelp zooSketchy 1" );
+
+		string $form = `formLayout`;
+			string $load = `button -l "" -c( "zooSketchyWindowFunctions -toggleLoad" ) zooGreaseStateButton`;
+			string $loadState = `textField -ed 0 -tx "" zooGreaseStateInfo`;
+			string $hide = `checkBox -l "hide" -v $hideState -cc( "zooSketchyWindowFunctions -toggleHide" ) zooGreaseStateHide`;
+			string $camBut = `button -l "use selected cam ->" -c( "zooSketchyWindowFunctions -setCamera" )`;
+			string $cam = `nameField -o( zooQueryMonkeySee()) zooSketchyUICamera`;
+			string $listScroll = `textScrollList -ams 1 zooSketchyObjList`;
+			string $add = `button -l "add objects" -c( "" )`;
+			string $rem = `button -l "remove objects" -c( "" )`;
+			string $clr = `button -l "clear objects" -c( "" )`;
+
+			string $aply = `button -l "apply curve" -c( "" )`;
+			string $clrC = `button -l "clear curve" -c( "" )`;
+			string $image = `image -w 270 -h 8 -bgc ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+		setParent ..;
+
+	popupMenu -p $camBut -b 3 -pmc( "zooGreaseListCams zooGreaseCamListA" ) zooGreaseCamListA;
+	popupMenu -p $cam -b 3 -pmc( "zooGreaseListCams zooGreaseCamListB" ) zooGreaseCamListB;
+	formLayout -e
+		-af $load "top" 0
+		-af $load "left" 0
+
+		-af $loadState "top" 0
+		-ac $loadState "left" 0 $load
+		-ac $loadState "right" 5 $hide
+
+		-af $hide "top" 3
+		-af $hide "right" 0
+
+		-ac $camBut "top" 0 $load
+		-af $camBut "left" 0
+
+		-ac $cam "top" 0 $loadState
+		-ac $cam "left" 0 $camBut
+		-af $cam "right" 0
+
+		-ac $listScroll "top" 0 $cam
+		-af $listScroll "left" 0
+		-af $listScroll "right" 0
+		-ac $listScroll "bottom" 0 $add
+
+		-af $add "left" 0
+		-af $add "right" 0
+		-ac $add "bottom" 0 $image
+
+		-af $image "left" 0
+		-af $image "right" 0
+		-af $image "bottom" 0
+		$form;
+
+	evalDeferred "zooSketchyWindowFunctions -windowOpen";
+	zooSketchyWindowFunctions -updateObjs;
+	showWindow $windowName;
+	}
+
+
+global proc zooSketchyWindowFunctions( string $function ) {
+	switch( $function ) {
+		case "-updateObjs":
+			break;
+
+		case "-windowOpen":
+			if( !`zooSketchyState` ) zooLoadSketchy;
+			break;
+
+		case "-windowClose":
+			int $unload = `optionVar -ex zooSketchyUnload`? `optionVar -q zooSketchyUnload`: 1;
+			if( $unload ) zooUnloadSketchy;
+			break;
+		}
+	}
+
+
+//zoo.end

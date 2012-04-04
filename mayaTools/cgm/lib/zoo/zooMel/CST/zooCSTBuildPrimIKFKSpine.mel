@@ -1,0 +1,274 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooTriggeredUtils;
+zooCSTPrimitives;
+zooSpaceSwitching;
+zooRenamerUtils;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildPrimIKFKSpine( string $prefix, string $root, string $spineBase, string $spineEnd, string $optionStr ) {
+	echoRigElementCreationCommand ( "zooCSTBuildPrimIKFKSpine \""+ $prefix +"\" "+ $root +" "+ $spineBase +" "+ $spineEnd +" \""+ $optionStr +"\";" );
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $parents[] = {};
+		string $hips = "";
+		string $type = "cube";
+		string $colour = "lightblue 0.65";
+		float $scale = 1;
+		int $buildroot = 1;
+		int $buildhips = 1;
+		int $spaceswitching = 1;
+		int $pickwalking = 1;
+
+		$optionTemp = `zooGetFlagArguments $optionStr buildroot`; if( `size $optionTemp` ) $buildhips = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr hips`; if( `size $optionTemp` ) $hips = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr buildhips`; if( `size $optionTemp` ) $buildhips = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr type`; if( `size $optionTemp` ) $type = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr spaceswitching`; if( `size $optionTemp` ) $spaceswitching = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr pickwalking`; if( `size $optionTemp` ) $pickwalking = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr parents`; if( `size $optionTemp` ) $parents = $optionTemp;
+
+
+	//------
+	//always build the world first - the world creation proc only builds the world once for any given prefix, so a world control is never created more than once
+	//------
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+		string $masterqss = $worldParts[2];
+		string $qss = $worldParts[3];
+		string $controls[] = {};
+
+
+	//------
+	//create the root and hips controls
+	//------
+		string $roots[] = `zooCSTBuildRoot $prefix $root ( "-hips "+ $hips +" -buildhips "+ $buildhips +" -scale "+ $scale +" -colour "+ $colour )`;
+		string $rootControl = $roots[0];
+		string $hipsControl = $roots[1];
+		string $rootSpace = $roots[2];
+		string $rootGimbal = $roots[3];
+
+		parent $rootSpace $worldControl;
+		parentConstraint -mo $rootControl $root;
+		if( `objExists $hipsControl` ) parentConstraint -mo $hipsControl $hips;
+
+
+	//------
+	//find the names of relevant joints
+	//------
+		string $joints[] = { $spineEnd };
+		$joints = zooAddArray_str($joints, `zooGetInBTweenJoints $spineBase $spineEnd` );
+		$joints = `zooAddArray_str $joints { $spineBase }`;
+		$joints = `zooReverseArray_str $joints`;
+
+
+	//------
+	//build the sub primitive
+	//------
+		string $subPrim[] = `zooCSTBuildMPath $prefix $joints ""`;
+
+
+	//------
+	//build the controls
+	//------
+		$scale *= 1.25;  //increase the size of the spine controls - the global size is usually too small for the spine controls
+		string $axis = zooVectorAsAxis(`zooAxisInDirection $subPrim[2] {0.,0.,-1.}`);print( $axis +"\n" );
+
+		string $chestControl = `zooBuildControl ( $prefix + "_chestControl" ) ( "-type "+ $type +" -place "+ $subPrim[2] +" -align %p -orient 1 -axis "+ $axis +" -scale "+ (1.5*$scale) +" -colour "+ $colour )`;
+		string $chestSpace = zooGetElement_str(0,`listRelatives -p $chestControl`);// ( $prefix + "_chestSpace" ) ( "-type null -place "+ $subPrim[2] )`;
+		string $midControl = `zooBuildControl ( $prefix + "_spine_midControl" ) ( "-type "+ $type +" -place "+ $subPrim[1] +" -align %p -orient 1 -axis "+ $axis +" -scale "+ (1.5*$scale) +" -colour "+ $colour )`;
+		string $midSpace = zooGetElement_str(0,`listRelatives -p $midControl`);//`zooBuildControl ( $prefix + "_spine_midSpace" ) ( "-type null -place "+ $subPrim[1] )`;
+		string $baseControl = `zooBuildControl ( $prefix + "_baseControl" ) ( "-type "+ $type +" -place "+ $subPrim[0] +" -align %p -axis "+ $axis +" -scale "+ (1.5*$scale) +" -colour "+ $colour )`;
+
+		parent $baseControl $rootGimbal;
+		parent $midSpace $rootGimbal;
+		parent $chestSpace $midControl;
+		parentConstraint -mo $baseControl $subPrim[0];
+		parentConstraint -mo $midControl $subPrim[1];
+		parentConstraint -mo $chestControl $subPrim[2];
+
+		addAttr -at "float" -ln affect -min 0 -max 5 -dv 1 $rootControl;
+		addAttr -at "float" -ln affect -min 0 -max 5 -dv 1 $midControl;
+		addAttr -at "float" -ln affect -min 0 -max 5 -dv 1 $chestControl;
+
+		//setAttr -k 1 ( $rootControl +".affect" );
+		//setAttr -k 1 ( $midControl +".affect" );
+		//setAttr -k 1 ( $chestControl +".affect" );
+		//setAttr ( $baseControl +".v" ) 0;
+		connectAttr -f ( $rootControl +".affect" ) ( $subPrim[0] +".scaleX" );
+		connectAttr -f ( $rootControl +".affect" ) ( $subPrim[0] +".scaleY" );
+		connectAttr -f ( $rootControl +".affect" ) ( $subPrim[0] +".scaleZ" );
+		connectAttr -f ( $midControl +".affect" ) ( $subPrim[1] +".scaleX" );
+		connectAttr -f ( $midControl +".affect" ) ( $subPrim[1] +".scaleY" );
+		connectAttr -f ( $midControl +".affect" ) ( $subPrim[1] +".scaleZ" );
+		connectAttr -f ( $chestControl +".affect" ) ( $subPrim[2] +".scaleX" );
+		connectAttr -f ( $chestControl +".affect" ) ( $subPrim[2] +".scaleY" );
+		connectAttr -f ( $chestControl +".affect" ) ( $subPrim[2] +".scaleZ" );
+
+
+	//------
+	//add right click menu to turn on extra spine base control
+	//------
+		int $spineConnects[] = {};
+		int $cmdANum = `zooObjMenuAddCmd $rootControl`;
+		int $cmdBNum = `zooObjMenuAddCmd $rootControl`;
+		int $baseConnectIdx = `zooAddConnect $rootControl $baseControl`;
+		string $cmdAStr =  "int $vis = !`getAttr %"+ $baseConnectIdx +".v`;\nsetAttr %"+ $baseConnectIdx +".v $vis;";
+
+		for( $n=0; $n<`size $joints`; $n++ ) $spineConnects[$n] = `zooAddConnect $rootControl $joints[$n]`;
+		string $cmdBStr = "zooLineOfAction;\nzooLineOfAction_multi { \"%"+ `zooArrayToStr_int $spineConnects "\", \"%"` +"\" } \"\";";
+		zooSetObjMenuCmdName $rootControl "toggle base rotation control" $cmdANum;
+		zooSetObjMenuCmdName $rootControl "draw line of action" $cmdBNum;
+		zooSetObjMenuCmdStr $rootControl $cmdAStr $cmdANum;
+		zooSetObjMenuCmdStr $rootControl $cmdBStr $cmdBNum;
+
+
+	//------
+	//build space switching expressions
+	//------
+		string $chestParents[] = { $midControl, $baseControl, $worldControl };
+		string $midParents[] = { $baseControl, $worldControl };
+		string $spaceNodes[] = {};
+
+		if( `size $parents` ) $chestParents = `zooAddArray_str $chestParents $parents`;
+		if( `size $parents` ) $midParents = `zooAddArray_str $midParents $parents`;
+		if( $spaceswitching ) {
+			$spaceNodes = `zooBuildSpaceSwitch $chestControl $chestSpace $chestParents { "parent", "root", "world" } "-mo"`;
+			$spaceNodes = `zooBuildSpaceSwitch $midControl $midSpace $midParents { "parent", "world" } "-mo"`;
+			}
+
+
+	//------
+	//build pickwalking if required
+	//------
+		if( $pickwalking ) {
+			zooPickwalk "-load";
+			zooSetPickwalkObj $rootControl $worldControl "-dir up -reciprocal 1";
+			zooSetPickwalkObj $rootControl $midControl "-dir down -reciprocal 1";
+			zooSetPickwalkObj $baseControl $midControl "-dir down -reciprocal 0";
+			zooSetPickwalkObj $baseControl $rootControl "-dir up -reciprocal 0";
+			zooSetPickwalkObj $midControl $chestControl "-dir down -reciprocal 1";
+			}
+
+
+	//------
+	//now cleanup the top level
+	//------
+		//     deform1     deform2     deform3     basecurve   curve
+		parent $subPrim[0] $subPrim[1] $subPrim[2] $subPrim[3] $subPrim[4] $partsControl;
+		for( $n=6; $n<`size $subPrim`; $n++ ) {
+			if( !`objExists $subPrim[$n]` ) continue;
+			if( `nodeType $subPrim[$n]` != "transform" ) break;
+			parent $subPrim[$n] $partsControl;
+			}
+
+
+	//------
+	//turn unwanted transforms off, so that they are locked, and no longer keyable
+	//------
+		string $controllers[] = { $rootControl, $baseControl, $midControl, $chestControl };
+		if( $buildhips ) $controllers[( `size $controllers` )] = $hipsControl;
+		for( $obj in $controllers ) zooAttrState "-attrs s -k 0 -l 1" $obj;
+		for( $obj in $controllers ) zooAttrState "-attrs v -k 0" $obj;
+		zooAttrState "-attrs t -k 0 -l 1" $baseControl;
+
+
+	//------
+	//tidy up
+	//------
+		for( $n=0; $n<5; $n++ ) setAttr ( $subPrim[$n] +".v" ) 0;
+		for( $n=6; $n<`size $subPrim`; $n++ ) zooAttrState "-attrs t r s v -k 0 -l 1" $subPrim[$n];
+
+
+	//------
+	//add the controls to the qss
+	//------
+		for( $obj in $controllers ) sets -add $qss $obj;
+
+
+	//------
+	//build the primitive record
+	//------
+		string $id = `zooCSTGetPrimId ikSpine "" $prefix`;
+		string $primitive = `zooCSTCreatePrimRecord ikSpine $id $prefix`;
+		zooCSTRegisterInput $spineBase $primitive;
+		zooCSTRegisterInput $spineEnd $primitive;
+		zooCSTPrimOutputs { $chestSpace, $midSpace } $primitive;
+		zooCSTPrimOutputs $spaceNodes $primitive;
+		zooCSTPrimOutputs $subPrim $primitive;
+		zooBrandObject options $optionStr $primitive;
+		zooBrandObject version "5" $primitive;
+		zooBrandObject chest $prefix $chestControl;
+		for( $obj in $controllers ) zooCSTRegisterControl $obj $primitive;
+
+		zooCSTUtilsRigVis -h;
+		for( $n=0; $n<`size $controllers`; $n++ ) $controllers[$n] = `zooRenamerFunctions replace "[0-9]+$" "" $controllers[$n]`;
+		select $controllers[2];
+
+	return $controllers;
+	}
+
+
+//------
+//this proc deals with rebuilding the head primitive
+//------
+global proc string[] zooCSTRebuildPrimIKSpine( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $version = `zooQueryBrand version $primitive`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+	string $controls[] = `zooCSTListRegistered control $primitive`;
+	int $useExisting = 1;
+
+	string $dupes[] = {};
+	if( `size $controls` ) {
+		$dupes = `duplicate -rc $controls`;  //duplicate the control objects so we can grab the original control shape nodes, to parent under the new controls created
+		parent -w $dupes;
+		}
+
+	$temp = `zooGetFlagArguments $optionStr useExisting`; if( `size $temp` ) $useExisting = $temp[0];
+
+	zooCSTDeletePrimitive $primitive;
+	string $newControls[] = `zooCSTBuildPrimIKSpine $prefix $inputs[0] $inputs[1] $inputs[2] $optionStr`;
+
+	//parent the shape nodes of the original controls to the transforms of the new controls
+	if( $useExisting ) for( $n=0; $n<`size $newControls`; $n++ ) zooReplaceShape $dupes[$n] $newControls[$n] 0;
+
+	delete $dupes;
+	return $newControls;
+	}
+
+
+/*
+builds a spline IK rig primitive
+------
+
+$prefix - the character prefix used to identify the character
+$spineBase - this is where you want the spine to start - the base
+$spineEnd - this is where you want the spine to terminate - the end
+$optionStr - standard option string
+
+option flags
+-------
+-root [string]			use this flag to explicitly set which object to use as the root - ie the parent of this primitive
+-type [string]		this flag lets you change the representation of the spine controls - ie circle, cylinder, cone etc...  default is cube
+-axis [string]			which axis to apply the stretch to (usually the axis pointing along the length of the joint)
+-stretch [int]			turn this flag off if you don't want the spline control to be stretchy
+-orient [int]				do you want the chest control oriented to the chest joint ( $spineEnd )?
+-parents [string]		use this to specify an additional list of parents for the dynamic parenting on all spine controls
+-scale [float]			scale factor to apply to the control (purely a visual thing - scale is frozen).  default: 1
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

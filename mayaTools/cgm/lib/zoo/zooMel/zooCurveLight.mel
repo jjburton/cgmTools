@@ -1,0 +1,214 @@
+//
+// Curve Light
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 17 November 2002
+//
+// Description:
+// creates a string of area lights along the length of a curve.
+// it is useful for creating "ring lights" as used in traditional
+// photography.  its also great for lighting tunnels, and other
+// oddly shaped sets.  area lights are used because they have
+// better shaped specular highlights than other light types.  I
+// may improve the script to support multiple light types at a
+// later stage.  At the moment, you can control the density of
+// the lights (ie the number that are created).  Attributes are
+// created on a trasform node to allow for control over the
+// usual light parameters, as well as controls for fine tuning
+// the positioning and orientation of the lights on the curve.
+//
+// Usage:
+//  just type the command:
+//	zooCurveLight;
+//
+
+
+
+global proc zooCurveLight () {
+	string $windowName = "zooCurveLightWindow";
+	string $windowTitle = "Curve Light Creation Options";
+
+	if ( `window -exists $windowName` ) { deleteUI $windowName; }
+
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 0 $windowName;
+		columnLayout -adjustableColumn 1;
+			floatSliderGrp -label "Intensity" -field 1
+				-minValue 0 -maxValue 5
+				-value 1 zooCurveLightSliderIntensity;
+
+			colorSliderGrp -label "Colour" -rgb 1 1 1 zooCurveLightSliderColour;
+			separator -w 400;
+
+			floatSliderGrp -label "Density" -field 1
+				-minValue 0.001 -maxValue 2 -fieldMinValue 0.001 -fieldMaxValue 10
+				-value 1 zooCurveLightSliderDensity;
+
+			checkBox -label "Double Sided" -v 0 -align "right" zooCurveLightCheckDouble;
+
+			button -label "create" -c ( "zooCurveLightWindowFunctions create n" );
+
+	showWindow $windowName;
+	}
+
+
+global proc zooCurveLightWindowFunctions ( string $function, string $variable01 ) {
+	string $selObjs[] = `ls -sl`;
+	float $intensity = `floatSliderGrp -q -v zooCurveLightSliderIntensity`;
+	float $colour[] = `colorSliderGrp -q -rgb zooCurveLightSliderColour`;
+	float $density = `floatSliderGrp -q -v zooCurveLightSliderDensity`;
+	int $doubleSided = `checkBox -q -v zooCurveLightCheckDouble`;
+	string $curveLightGroup = `zooCurveLightCreateSetup $selObjs[0] $density $doubleSided`;
+
+	setAttr ( $curveLightGroup + ".colourX" ) $colour[0];
+	setAttr ( $curveLightGroup + ".colourY" ) $colour[1];
+	setAttr ( $curveLightGroup + ".colourZ" ) $colour[2];
+	setAttr ( $curveLightGroup + ".intensity" ) $intensity;
+	select $curveLightGroup;
+	}
+
+
+//returns the name of the curve light group
+global proc string zooCurveLightCreateSetup ( string $curveTransformName, float $density, int $doubleSided ) {
+	string $temp[] = `listRelatives -s`;
+	string $curveShapeName = $temp[0];
+	string $curveInfoNode = `createNode curveInfo`;
+	string $curveLightGroup = `createNode "transform" -n ( $curveShapeName + "_curveLight" )`;
+	string $upVectorTransform = `createNode "transform" -n ( $curveShapeName + "_upVector" ) -p $curveTransformName`;
+	string $upVectorShape = `createNode "locator" -n ( $curveShapeName + "_areaLight01Shape" ) -p $upVectorTransform`;
+	string $multNode = `createNode multiplyDivide`;
+	float $curveLength;
+	float $curveMinU;
+	float $curveMaxU;
+	float $uSpacing;
+	int $numLights;
+
+	//first, add orientation and scale controls
+	addAttr -ln rotation -at double  -min -180 -max 180 -dv 0 $curveLightGroup;
+	addAttr -ln width -at double  -min 0 -dv 1 $curveLightGroup;
+	addAttr -ln objectUp -at bool $curveLightGroup;
+	addAttr -ln bank -at bool $curveLightGroup;
+	addAttr -ln bankScale -at double -dv 1 $curveLightGroup;
+
+	setAttr -keyable 1 ( $curveLightGroup + ".rotation" );
+	setAttr -keyable 1 ( $curveLightGroup + ".width" );
+	setAttr -keyable 1 ( $curveLightGroup + ".objectUp" );
+	setAttr -keyable 1 ( $curveLightGroup + ".bank" );
+	setAttr -keyable 1 ( $curveLightGroup + ".bankScale" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".tx" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".ty" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".tz" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".rx" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".ry" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".rz" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".sx" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".sy" );
+	setAttr -keyable 0 -lock 1 ( $curveLightGroup + ".sz" );
+
+
+	//now add the light controls
+	addAttr -ln intensity -at double  -min 0 -dv 1 $curveLightGroup;
+	addAttr -ln colour -at double3 $curveLightGroup;
+	addAttr -ln colourX -at double -p colour $curveLightGroup;
+	addAttr -ln colourY -at double -p colour $curveLightGroup;
+	addAttr -ln colourZ -at double -p colour $curveLightGroup;
+	addAttr -ln emitSpecular -at bool -dv 1 $curveLightGroup;
+	addAttr -ln emitDiffuse -at bool -dv 1 $curveLightGroup;
+	addAttr -ln decayRate -at enum -en "none:linear:quadratic:" $curveLightGroup;
+	addAttr -ln shadows -at bool $curveLightGroup;
+	addAttr -ln shadowColour -at double3 $curveLightGroup;
+	addAttr -ln shadowColourX -at double -p shadowColour $curveLightGroup;
+	addAttr -ln shadowColourY -at double -p shadowColour $curveLightGroup;
+	addAttr -ln shadowColourZ -at double -p shadowColour $curveLightGroup;
+	addAttr -ln shadowRays -at long -min 1 -max 30 -dv 1 $curveLightGroup;
+	addAttr -ln rayDepthLimit -at long -min 1 -max 30 -dv 1 $curveLightGroup;
+
+	setAttr -e -keyable 1 ( $curveLightGroup + ".intensity" );
+	setAttr -type double3 ( $curveLightGroup + ".colour" ) ;
+	setAttr -e -keyable 1 ( $curveLightGroup + ".colour" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".colourX" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".colourY" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".colourZ" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".emitSpecular" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".emitDiffuse" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".decayRate" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".shadows" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".shadowColour" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".shadowColourX" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".shadowColourY" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".shadowColourZ" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".shadowRays" );
+	setAttr -e -keyable 1 ( $curveLightGroup + ".rayDepthLimit" );
+
+
+	//create a position constraint for the light group so that it is always easily selectable
+	string $pointConstraint = `createNode pointConstraint -p $curveLightGroup -n ( $curveShapeName + "_selectionHandleConstraint" )`;
+	connectAttr -f ( $curveTransformName + ".parentMatrix" ) ( $pointConstraint + ".target[0].targetParentMatrix" );
+	connectAttr -f ( $curveTransformName + ".rotatePivot" ) ( $pointConstraint + ".target[0].targetRotatePivot" );
+	connectAttr -f ( $curveTransformName + ".rotatePivotTranslate" ) ( $pointConstraint + ".target[0].targetRotateTranslate" );
+	connectAttr -f ( $curveTransformName + ".translate" ) ( $pointConstraint + ".target[0].targetTranslate" );
+	connectAttr -f ( $pointConstraint + ".constraintTranslate" ) ( $curveLightGroup + ".selectHandle" );
+	setAttr ( $curveLightGroup + ".displayHandle" ) 1;
+
+	$curveMinU = `getAttr ( $curveShapeName + ".minValue" )`;
+	$curveMaxU = `getAttr ( $curveShapeName + ".maxValue" )`;
+	connectAttr -f ( $curveShapeName + ".worldSpace" ) ( $curveInfoNode + ".inputCurve" );
+	$curveLength = `getAttr ( $curveInfoNode + ".arcLength" )`;
+	connectAttr -f ( $curveInfoNode + ".arcLength" ) ( $multNode + ".input1X" );
+	setAttr ( $multNode + ".input2X" ) ( $curveLength * $density );
+	setAttr ( $multNode + ".operation" ) 2;
+	//this gives us the spacing along the curve.  the factor of 2 is because area lights are 2 units wide.  area lights are scaled down by the density factor
+	$uSpacing = 2 / ( $curveLength * $density );
+	$numLights = ( 1 / $uSpacing ) - (( 1 / $uSpacing ) % 1);
+
+	int $isDoubleSided = ( $doubleSided ) ? 2:1;
+	int $rotation = 0;
+	int $n = 0;
+
+	for( $x = 0; $x < $isDoubleSided; $x++ ) {
+		for( $n = 0; $n <= $numLights; $n++ ) {
+			string $lightTransform = `createNode "transform" -n ( $curveShapeName + "_areaLight01" ) -p $curveLightGroup`;
+			string $lightShape = `shadingNode -asLight areaLight -n ( $lightTransform + "Shape" ) -p $lightTransform`;
+			string $motionPath = `pathAnimation -c $curveShapeName -fractionMode 1 -follow 1 -worldUpObject $upVectorTransform -n ( $curveShapeName + "_motionPath01" ) $lightTransform`;
+			string $animCurves[] = `listConnections -d 0 -t animCurve $motionPath`;
+			expression -n ( $lightTransform + "_expression" ) -s ( $lightShape + ".intensity = " + $curveLightGroup + ".intensity / (" + $lightTransform + ".sx * " + $lightTransform + ".sy * " + ($numLights * $isDoubleSided) + ");\n" + $motionPath + ".frontTwist = " + $curveLightGroup + ".rotation + " + $rotation + ";\n" );
+
+			delete $animCurves;
+			setAttr ( $motionPath + ".uValue" ) ( $uSpacing * $n );
+			setAttr ( $motionPath + ".worldUpType" ) 1;
+			setAttr ( $lightTransform + ".overrideEnabled" ) 1;  //turn on display overrides
+			setAttr ( $lightTransform + ".overrideDisplayType" ) 2;  //set to reference mode, so its not selectable
+			connectAttr -f ( $multNode + ".outputX" ) ( $lightTransform + ".scaleY" );  //when the curve length changes, this connection causes the lights to scale to match the length change
+			connectAttr -f ( $curveLightGroup + ".width" ) ( $lightTransform + ".scaleX" );
+			connectAttr -f ( $curveLightGroup + ".objectUp" ) ( $motionPath + ".worldUpType" );
+			connectAttr -f ( $curveLightGroup + ".bank" ) ( $motionPath + ".bank" );
+			connectAttr -f ( $curveLightGroup + ".bankScale" ) ( $motionPath + ".bankScale" );
+
+			connectAttr -f ( $curveLightGroup + ".colour" ) ( $lightShape + ".color" );
+			connectAttr -f ( $curveLightGroup + ".emitSpecular" ) ( $lightShape + ".emitSpecular" );
+			connectAttr -f ( $curveLightGroup + ".emitDiffuse" ) ( $lightShape + ".emitDiffuse" );
+			connectAttr -f ( $curveLightGroup + ".decayRate" ) ( $lightShape + ".decayRate " );
+			connectAttr -f ( $curveLightGroup + ".shadowColour" ) ( $lightShape + ".shadowColor" );
+			connectAttr -f ( $curveLightGroup + ".shadows" ) ( $lightShape + ".useRayTraceShadows" );
+			connectAttr -f ( $curveLightGroup + ".shadowRays" ) ( $lightShape + ".shadowRays" );
+			connectAttr -f ( $curveLightGroup + ".rayDepthLimit" ) ( $lightShape + ".rayDepthLimit" );
+			}
+		$rotation = 180;
+		}
+	return $curveLightGroup;
+	}
+
+
+global proc string[] zooCurveLightDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $helpDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-docs" ) $return = $helpDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

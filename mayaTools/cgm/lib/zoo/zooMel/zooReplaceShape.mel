@@ -1,0 +1,23 @@
+global proc zooReplaceShape( string $srcObj, string $tgtObj, int $world ) {
+	//source object is the source transform - ie the shape you want to use
+	//target object is the transform of the object you want the source's shape to be used for
+	string $dupeSrc = zooGetElement_str(0,`duplicate -rc $srcObj`);
+	string $srcShapes[] = `listRelatives -pa -s $dupeSrc`;
+	string $tgtShapes[] = `listRelatives -pa -s $tgtObj`;
+	string $cs[] = `listRelatives -pa -type transform $dupeSrc`;
+
+	for( $c in $cs ) if( `objExists $c` ) delete $c;
+	if( `size $tgtShapes` ) delete $tgtShapes;
+	zooAttrState "-attrs t r s -k 1 -l 0" $dupeSrc;  //make sure all transform attributes are unlocked
+
+	//if( $world ) delete `pointConstraint $tgtObj $dupeSrc`;
+	if( !$world ) delete `parentConstraint $tgtObj $dupeSrc`;
+
+	parent $dupeSrc $tgtObj;
+	makeIdentity -a 1 -t 1 -r 1 -s 1 $dupeSrc;
+	for( $shape in $srcShapes ) parent -add -s $shape $tgtObj;
+	delete $dupeSrc;
+	}
+
+
+//end

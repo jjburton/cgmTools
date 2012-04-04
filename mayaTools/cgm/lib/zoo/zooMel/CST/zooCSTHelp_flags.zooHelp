@@ -1,0 +1,109 @@
+----Flags for Additional Options----
+The additional options field provides a space for users to specify flags which are not available through the UI.  Using the additional options field helps keep the UI simple, while still providing full control over the zooCST commands.  This doc lists all the official flags for each of the primitives, and what they do.
+
+*Global Flags
+The following flags affect ALL kinds of primitives when they're present in the additional options field.
+
+-scale [float]  The scale flag tells zooCST what scale to make the control objects.  This is purely a visual thing.  If not specified in the additional options, zooCST takes the scale from the "global scale".
+
+-curve [bool]  Tells zooCST whether to build curve controls or not.  If not specified in the additional options, zooCST takes the setting from the "curve controls" check box in the UI.
+
+-spaceswitching [bool]  Allows you to control whether space switching is added to the controls built by zooCST.  Use this flag to manually add space switching yourself, or leave it off altogether for a faster rig
+
+-useExisting [bool]  By default, this flag is true.  Its used for rebuilding primitives, and if true, this will tell the rebuild command to re-use existing control objects.  So if you alter the control representations in any way, then this flag ensures that when a primitive is rebuilt, the altered representation is used.
+
+-colour [int]  By default, controls aren't assigned a colour, but if you want to colour your controls (their wireframes that is) you can use the colour flag.  This flag is an integer, and using it will turn on the "draw overrides" for the control objects.
+
+
+*Predecessor Overrides
+These flags are used to override predecessors found by zooCST.  These are useful for using zooCST primitives on your own rigs.  For example, if you have a character that you've manually rigged, but you want to use a zooCST arm primitive, then you can tell zooCST to use the controls you've already built for the dynamic parenting.
+
+-world [string]
+-root [string]
+-chest [string]
+-head [string]
+
+NOTE: if zooCST doesn't find the objects specified, it will ignore the flag
+
+
+*Root Primitive
+-buildhips [bool]  if you don't want zooCST to build a hip control, then turn it off with this flag (ie -buildhips 0)
+
+
+*Head Primitive
+-buildneck [bool]  if you don't want zooCST to create a neck control, then turn it off with this flag (ie -buildneck 0)
+
+
+*IK Spine Primitive
+-orient [bool]  If you don't want the last joint in the spine to be oriented to the chest control, then turn this flag off (ie -orient 0)
+
+-axis [string]  This will tell zooCST which axis to use as the stretch axis.  By default zooCST will try to guess which axis to use
+
+
+*Arm and Leg Primitives
+The following flags apply to both arm and leg primitives.  Arms and Legs are both based on the IK/FK sub primitive, and both share the same command to make them stretchy.
+
+-fkCurve [bool]  Setting this flag on (ie -fkCurve 1) tells zooCST to build the fk controls as curve controls.  If you turn this flag on, but have the "curve controls" checkbox un-ticked, you can combine geometry and curve controls
+
+-fkType [string]  This flag allows you to set what the fk controls look like.  By default, zooCST builds the fk controls as cubes.  You can use this flag to make them look like any of the shapes that the zooCSTBuildControl command supports (see below under the *zooCSTBuildControl command heading).  Example: "-fkType circle" this flag setting would build the fk controls as circle curves.
+
+-ikType [string]
+
+-poleType [string]
+
+-buildclav [int]  If you don't want the clavicle control build, then set this flag to false.  By default, this flag is true
+
+-kneeMode [int]  Currently there are only two knee modes, 0 and 1.  In mode zero, the knee control inherits y-axis rotation from the foot only, and is constrained between the foot control, and the root.  Mode 1 knee is simply parented to the foot control, and has dynamic parenting enabled.
+
+-triggers [bool]  If you don't want triggers (the selection handles on the elbow/knee that are selection triggers for the pole vectors) created, then turn them off using this flag (ie: -triggers 0)
+
+-invert [bool]  This is specifically for stretchy arms and legs.  When zooCST builds stretchy limbs, it assumes the right side (the character's right side) joints have negative joint translations.  If they don't, then turn invert on.  Basically if your arms twist inside out when you turn on stretch, then try turning on invert (ie: -invert 1)
+
+
+*The Finger Primitive
+The finger primitive takes the following flags:
+
+-axis [string]  By default zooCST tries to figure out which axis to rotate the fingers on, but if it gets it wrong, you can force it to use a specific axis using this flag
+
+-sliders [bool]  If you don't want the finger primitive to be controlled by sliders, then turn this flag off
+
+-wrist [string]  By default the parent of the base joint is assumed to be the wrist.  Use this flag to override the which object is the wrist
+
+-control [string]  If sliders are being written for the finger primitive, the attributes are added to this object
+
+-invert [bool]  Inverts all rotations controlled by the sliders
+
+-num [int]  Explicitly set the number of joints in the finger.  By default the script assumes all children of the base joint are finger joints.  If this is not the case, then set the number of joints using this flag.
+
+-name [string]  Set the name of the finger using this flag.  So for the pinky finger, you would use -name pinky
+
+
+*zooCSTBuildControl command
+this is the command used to build a control object in zooCST.  It builds the geometry for the control, and deals with snapping it to a target object, orienting/offsetting it if needed, and even changing its colour.
+
+-colour [int]  this is the colour "index" that the control will use.  This index is just taken from the override colours on any transform node.  To find out which number a colour is, try double clicking a layer, and count the number of colour swatches to the colour you want, starting at zero from the top left corner.  So black is 1, pre blue is 6, pure red is 13, etc...
+
+-orient [int]  turning this flag on will make the control an oriented control, which basically uses a joint node as the transform node, so it can be oriented.  When on, the control is oriented to the target object.
+
+-curve [int]  if this flag is turned on, the control will be a curve control.  Otherwise it will be geometry.
+
+-scale [float]  this is the scale of the object.  Most controls are 1 unit across at a scale of 1.  This is purely a visual flag, as the a control's transforms are always frozen when its created.
+
+These are the different control types that the zooCSTBuildControl command supports:
+
+face, cube, cone, locator, sphere, cylinder, eye, ring, hex, circle, starCircle, null
+
+
+*Make Stretchy Command
+the zooCSTMakeStretchy command takes the following flags:
+
+-axis [string]  forces zooCST to use the specified axis as the "stretch" axis for the joints
+
+-invert [bool]  inverts the "parity" of the stretch.  by default, zooCST figures out whether the joints are supposed to have negative or positive translation.  if it gets it wrong, then try inverting it manually using -invert 1
+
+-startObj [string]  this forces the strech command to use the specified object as the start object for the measure node
+
+-endObj [string]  this forces the strech command to use the specified object as the end object for the measure node
+
+Hamish McKenzie ©2005...
+macaroniKazoo Productions ©2005...

@@ -1,0 +1,45 @@
+zooKeyCommands is a simple script to run a command on all selected objects for each key the object has.  Nothing more, nothing less.  Give the script a frame number to start on, a frame number to end on, and a command to run, and hit go.
+
+However, zooKeyCommands does do basic command parsing to make commands a bit easier to write.  Commands can contain various symbols that get replaced with runtime information when the command is executed.
+
+Currently the command symbols supported are:
+
+@  refers to the current frame number
+^  refers to the key index
+#  refers to the current object
+
+NOTE: the ^ symbol, the key list depends on the -frames flag specified.  For example if you had a bunch of objects that had a key on every frame, and you used the following frames flag:  -frames 10 15   Then the list of keys would be:
+
+{ 10, 11, 12, 13, 14, 15 }
+
+Which means the first key operated on would be 10, the second, 11, etc.  Naturally the key indicies start at zero.
+
+The symbols supported for the frames flag are:
+
+. current frame
+* either first or last key found
+! current frame range start or end
+$ current scene start or end
+< previous key - from the current time
+> next key - from the current time
+
+NOTE: that some symbols work differently when used for the start and end.  For example, if you current frame range was from 10 to 20, then using this frames flag:  -frames ! !   this would be the equivalent of using:  -frames 10 20
+
+Similarly, using this frames flag:  -frames * $   would start on the frame where the first key on the selected objects is found, and would end on the scene end frame.
+
+----Example----
+just say you have an already animated object, with rotation order xyz.  You want to change its rotation order to zxy without disturbing keys already set.  You could use the following command:
+
+xform -p 1 -roo zxy #;
+setKeyframe;
+setAttr #.rotateOrder 0;
+
+Now all you have to do is set the rotation order back to zxy manually on all selected objects, and you're done.  There are many other situations in which you might want to run a command for each key frame.  For those using zooCST you can easily change the parent attribute for an entire animation easily.  First run the command:
+
+setKeyframe;
+
+over your objects.  This ensures they all have keys on their parent attribute (otherwise changingone key may affect keys down-stream).  Then run the command:
+
+zooChangeSpace "-attr parent 1" #;
+
+change the number 1 to whichever parent you want to change to.

@@ -1,0 +1,275 @@
+zooArrays_str;
+zooVectors;
+zooFlags;
+
+
+global string $g_roos[] = {"xyz","yzx","zxy","xzy","yxz","zyx"};
+
+
+//------
+//this general purpose proc aligns two objects - it uses parent constraint (on an intermediate object) so its rotation order independent
+//------
+global proc zooAlign( string $optionStr ) {
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+	string $selObjs[] = `ls -sl`;
+	string $temp[] = {};
+	string $src = $selObjs[0];
+	string $tgts[] = `zooIndexCrop_str $selObjs "1:"`;
+	int $pivot = 0;
+	int $key = 0;
+	int $runPostXfer = 0;
+
+	$temp = `zooGetFlagArguments $optionStr load`; if( `size $temp` ) if( $temp[0] == "1" ) return;
+	$temp = `zooGetFlagArguments $optionStr src`; if( `objExists $temp[0]` ) $src = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr tgt`; if( `size $temp` ) $tgts = $temp;
+	$temp = `zooGetFlagArguments $optionStr pivot`; if( `size $temp` ) $pivot = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr key`; if( `size $temp` ) $key = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr postCmds`; if( `size $temp` ) $runPostXfer = $temp[0];
+
+	string $srcPlusTgt[] = `zooAddArray_str {$src} $tgts`;
+	for( $tgt in $tgts ) {
+		zooAlignFast $src $tgt $key $pivot;
+	if( $runPostXfer ) {
+		string $cmd = `zooGetPostTraceCmd $tgt`;
+		if( $cmd != "" ) {
+				$cmd = `zooPopulateCmdStr $tgt $cmd $srcPlusTgt`;
+				if( catch(eval($cmd)) ) warning( "zooAlign::zooAlign() post align command failed on: "+ $tgt +"\n" );
+				else print( "executed post align command on "+ $tgt +"\n" );
+				}
+			}
+		}
+	}
+
+
+//------
+//this is separated into a separate proc, because its less "user friendly" ie require less syntax to work
+//its better to call zooAlign in non speed intensive operations because the syntax for this command may change
+//if the scope of the script is expanded in future - ie I add more functionality
+//------
+global proc zooAlignFast( string $src, string $tgt, int $key, int $pivotOnly ){
+	//these two lines check to make sure the objects to be aligned are both transform (or joint) nodes, otherwise, it quits
+	if( !`objExists ( $src +".t" )` || !`objExists ( $tgt +".t" )` ) return;
+
+	//
+	float $pos[] = `xform -q -ws -rp $src`;
+	float $rot[] = `xform -q -ws -ro $src`;
+
+	//create a list of all the axes to look at - we will check all these axes to make sure they're not locked
+	//creating a constraint on a locked axis will give us an error
+	string $axes[] = { "x","y","z" };
+	string $posCmd = "move -a -ws -rpr ";
+	string $rotCmd = "rotate -a -ws ";
+	string $posAxes = "";
+	string $rotAxes = "";
+
+	for( $n=0; $n<3; $n++ ) {
+		if( `getAttr -se ( $tgt +".t"+ $axes[$n] )`) $posAxes += "-"+ $axes[$n] +" "+ $pos[$n] +" ";
+		if( `getAttr -se ( $tgt +".r"+ $axes[$n] )`) $rotAxes += "-"+ $axes[$n] +" "+ $rot[$n] +" ";
+		}
+
+	if( $pivotOnly ) {
+		if( strip($posAxes) != "" ) eval( $posCmd + $posAxes + $tgt +".rp "+ $tgt +".sp" );
+		}
+	else {
+		//so if the rotation orders are different, we need to deal with that because the xform cmd doesn't
+		int $srcRo = `getAttr ( $src +".ro" )`;
+		int $tgtRo = `getAttr ( $tgt +".ro" )`;
+		if( $srcRo != $tgtRo ) setAttr ( $tgt +".ro" ) $srcRo;
+
+		//
+		if( strip($posAxes) != "" ) eval( $posCmd + $posAxes + $tgt );
+		if( strip($rotAxes) != "" ) eval( $rotCmd + $rotAxes + $tgt );
+
+		//now restore the original rotation order
+		global string $g_roos[];
+		if( $srcRo != $tgtRo ) xform -p 1 -roo $g_roos[$tgtRo] $tgt;
+		}
+
+	if( $key ) catch( setKeyframe("-at","t","-at","r",$tgt) );
+	}
+
+
+//does a simple align which basically means it doesn't take into account locked attributes
+global proc zooAlignSimple( string $src, string $tgt ){
+	global string $g_roos[];
+	//these two lines check to make sure the objects to be aligned are both transform (or joint) nodes, otherwise, it quits
+	if( !`objExists $src` || !`objExists $tgt` ) return;
+	if( !`objExists ( $src +".t" )` || !`objExists ( $tgt +".t" )` ) return;
+
+	float $pos[] = `xform -q -ws -rp $src`;
+	float $rot[] = `xform -q -ws -ro $src`;
+
+	int $srcRoo = `getAttr ( $src +".rotateOrder")`;
+	int $tgtRoo = `getAttr ( $tgt +".rotateOrder" )`;
+
+	move -rpr $pos[0] $pos[1] $pos[2] $tgt;
+
+	if( $srcRoo == $tgtRoo ) rotate -a -ws $rot[0] $rot[1] $rot[2] $tgt;
+	else {
+		setAttr ( $tgt +".rotateOrder" ) `getAttr ( $src +".rotateOrder")`;
+	rotate -a -ws $rot[0] $rot[1] $rot[2] $tgt;
+		xform -p 1 -roo $g_roos[$tgtRoo];
+		}
+	}
+
+
+//------
+//this proc will align the bones controlled by an ik chain to the fk chain
+//flags used:
+//-ikHandle  this flag specifies the name of the ikHandle to work on
+//-onCmd     this flag tells the script what command to run to turn the ik handle on - it is often left blank because its assumed we're already in ik mode
+//-offCmd    this flag holds the command to turn the ik handle off, and switch to fk mode
+//NOTE: if the offCmd isn't specified, it defaults to:  if( `getAttr -se #.ikb` ) setAttr #.ikb 0;
+//
+//symbols to use in cmd strings:
+// ^  refers to the ikHandle
+//
+//example:
+//zooAlignFK "-ikHandle ikHandle1 -onCmd setAttr ^.ikBlend 1 -offCmd setAttr ^.ikBlend 0";
+//------
+global proc zooAlignFK( string $optionStr ) {
+	string $temp[] = {};
+	string $control;
+	string $ikHandle;
+	string $onCmd;
+	string $offCmd = "if( `getAttr -se ^.ikb` ) setAttr ^.ikb 0;";
+	int $alignEnd = 1;
+
+	$temp = `zooGetFlagArguments $optionStr control`; if( `size $temp` ) $control = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr ikHandle`; if( `size $temp` ) $ikHandle = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr alignEnd`; if( `size $temp` ) $alignEnd = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr onCmd`; if( `size $temp` ) $onCmd = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr offCmd`; if( `size $temp` ) $offCmd = `zooArrayToStr_str $temp " "`;
+
+	while( `match "#+" $onCmd` != "" ) $onCmd = `substitute "#+" $onCmd $control`;
+	while( `match "#+" $offCmd` != "" ) $offCmd = `substitute "#+" $offCmd $control`;
+
+	//the ^ symbol in either the onCmd or the offCmd is used to specify the ikHandle - so we must sub it into the command strings
+	while( `match "\\^+" $onCmd` != "" ) $onCmd = `substitute "\\^+" $onCmd $ikHandle`;
+	while( `match "\\^+" $offCmd` != "" ) $offCmd = `substitute "\\^+" $offCmd $ikHandle`;
+
+	if( !`ikHandle -ex $ikHandle` ) {
+		print( "WARNING: alignFK - no ikHandle specified\n" );
+		return;
+		}
+
+	if( `size $onCmd` ) eval $onCmd;
+	string $joints[] = `ikHandle -q -jl $ikHandle`;
+	string $effector = `ikHandle -q -ee $ikHandle`;
+	string $effectorCtrl[] = `listConnections -d 0 ( $effector +".tx" )`;
+
+	float $rx[] = {};
+	float $ry[] = {};
+	float $rz[] = {};
+	for( $n=0; $n<`size $joints`; $n++ ) {
+		float $rotation[] = `getAttr ( $joints[$n] +".r" )`;
+		$rx[ $n ] = $rotation[ 0 ];
+		$ry[ $n ] = $rotation[ 1 ];
+		$rz[ $n ] = $rotation[ 2 ];
+		}
+
+	if( $alignEnd ) zooAlign ( "-key 1 -src "+ $ikHandle +" -tgt "+ $effectorCtrl[0] );
+	if( `size $offCmd` ) eval $offCmd;
+
+	for( $n=0; $n<`size $joints`; $n++ ) {
+		if( `getAttr -se ( $joints[ $n ] +".rx" )` ) setAttr ( $joints[ $n ] +".rx" ) $rx[ $n ];
+		if( `getAttr -se ( $joints[ $n ] +".ry" )` ) setAttr ( $joints[ $n ] +".ry" ) $ry[ $n ];
+		if( `getAttr -se ( $joints[ $n ] +".rz" )` ) setAttr ( $joints[ $n ] +".rz" ) $rz[ $n ];
+		}
+
+	if ( `objExists $control` ) select $control;
+	}
+
+
+//------
+//this proc will align the IK controller to its fk chain
+//flags used:
+//-control   this is the actual control being used to move the ikHandle - it is assumed to be the same object as the ikHandle, but if its different (ie if the ikHandle is constrained to a controller) use this flag
+//-pole      tells the script the name of the pole controller - if there is no pole vector control, leave this flag out
+//-ikHandle  this flag specifies the name of the ikHandle to work on
+//-onCmd     this flag tells the script what command to run to turn the ik handle on - it is often left blank because its assumed we're already in ik mode
+//-offCmd    this flag holds the command to turn the ik handle off, and switch to fk mode
+//NOTE: if the offCmd isn't specified, it defaults to:  if( `getAttr -se ^.ikb` ) setAttr ^.ikb 1;
+//
+//symbols to use in cmd strings:
+// ^  refers to the ikHandle
+// #  refers to the control object
+//
+//example:
+//zooAlignIK "-control somObj -ikHandle ikHandle1 -offCmd setAttr #.fkMode 0";
+//------
+global proc zooAlignIK( string $optionStr ) {
+	string $temp[] = {};
+	string $control;
+	string $pole;
+	string $ikHandle;
+	string $onCmd;
+	string $offCmd = "if( `getAttr -se ^.ikb` ) setAttr ^.ikb 1;";
+	int $alignEnd = 1;
+
+	$temp = `zooGetFlagArguments $optionStr control`; if( `size $temp` ) $control = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr pole`; if( `size $temp` ) $pole = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr ikHandle`; if( `size $temp` ) $ikHandle = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr alignEnd`; if( `size $temp` ) $alignEnd = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr onCmd`; if( `size $temp` ) $onCmd = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr offCmd`; if( `size $temp` ) $offCmd = `zooArrayToStr_str $temp " "`;
+	if( !`objExists $control` ) $control = $ikHandle;
+
+	//the ^ symbol in either the onCmd or the offCmd is used to specify the ikHandle - so we must sub it into the command strings
+	//likewise for the # symbol which represents the control object
+	while( `match "#+" $onCmd` != "" ) $onCmd = `substitute "#+" $onCmd $control`;
+	while( `match "#+" $offCmd` != "" ) $offCmd = `substitute "#+" $offCmd $control`;
+	while( `match "\\^+" $onCmd` != "" ) $onCmd = `substitute "\\^+" $onCmd $ikHandle`;
+	while( `match "\\^+" $offCmd` != "" ) $offCmd = `substitute "\\^+" $offCmd $ikHandle`;
+
+	if( !`ikHandle -ex $ikHandle` ) {
+		print( "WARNING: alignIK - no ikHandle specified\n" );
+		return;
+		}
+
+	if( `size $onCmd` ) eval $onCmd;
+	string $joints[] = `ikHandle -q -jl $ikHandle`;
+	string $effector = `ikHandle -q -ee $ikHandle`;
+	string $effectorCtrl[] = `listConnections -d 0 ( $effector +".tx" )`;
+
+	zooAlign ( "-src "+ $effectorCtrl[0] +" -tgt "+ $control );
+	if( `objExists $pole` ) {
+		float $pos[] = `zooFindPolePosition ( "-start "+ $joints[0] +" -mid "+ $joints[1] +" -end "+ $effectorCtrl[0] )`;
+		move -a -ws -rpr $pos[0] $pos[1] $pos[2] $pole;
+		}
+
+	if( `size $offCmd` ) eval $offCmd;
+	if( `objExists $control` ) select $control;
+	}
+
+
+//transfers the pose on a child to its parent
+global proc zooChildToParent( string $child ) {
+	string $sel[] = `ls -sl`;
+	string $parent = zooGetElement_str(0,`listRelatives -f -p $child`);
+	string $loc = zooGetElement_str(0,`spaceLocator`);
+
+	zooAlign ( "-src "+ $child +" -tgt "+ $loc );
+	zooResetAttrs $child;
+	zooAlign ( "-src "+ $loc +" -tgt "+ $parent );
+	delete $loc;
+	select $sel;
+	}
+
+
+global proc string zooGetPostTraceCmd( string $obj ) {
+	if( `objExists ( $obj +".xferPostTraceCmd" )`) return `getAttr ( $obj +".xferPostTraceCmd" )`;
+	return "";
+	}
+
+
+global proc zooSetPostTraceCmd( string $obj, string $cmd ) {
+	if( $cmd == "" ) return;
+	if( !`objExists ( $obj +".xferPostTraceCmd" )`) addAttr -dt "string" -ln xferPostTraceCmd $obj;
+	setAttr -type "string" ( $obj +".xferPostTraceCmd" ) $cmd;
+	}
+
+
+//zoo.end

@@ -32,7 +32,7 @@ __version__ = '0.1.01102012'
 import maya.mel as mel
 import maya.cmds as mc
 
-from cgm.lib.cgmBaseMelUI import *
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.lib import (guiFactory,
                      dictionary,
@@ -48,26 +48,13 @@ reload(namingToolsLib)
 
 
 def run():
-	#mel.eval('python("import maya.cmds as mc;from cgm.tools import namingToolsLib;from cgm.tools import tdTools;from cgm.tools import tdToolsLib;from cgm.lib import guiFactory;cgmTDToolsWin = tdTools.tdToolsClass()")')
 	tdTools = tdToolsClass()
-	"""
-	Hamish, the reason I did this was a few reasons
-
-	1) because I need to know what the name of my ui window is which
-	I'm declaring in this mel.eval do you know a better way to do this?
-
-	2) I get an mc error otherwise
-
-	3) issue with the gui templates note initializing otherwise. Also it looks like your revision to zooPy's baseMelUI
-	borked the template initialize stuff. Took me a bit to realized you'd removed all of that. Can we do a code compare to see what I changed to
-	see if we can roll that into your code so everything works again or tell me another way to get them working together?
-
-
-	your code:
-	tdToolsClass()
-	"""
 
 class tdToolsClass(BaseMelWindow):
+	from  cgm.lib import guiFactory
+	guiFactory.initializeTemplates()
+	USE_TEMPLATE = 'cgmUITemplate'
+	
 	WINDOW_NAME = 'TDTools'
 	WINDOW_TITLE = 'cgm.tdTools'
 	DEFAULT_SIZE = 550, 400
@@ -76,7 +63,6 @@ class tdToolsClass(BaseMelWindow):
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-	guiFactory.initializeTemplates()
 
 	def __init__( self):
 		""" Hamish, why is this import necessary? It errors out if it isn't here....
@@ -84,7 +70,7 @@ class tdToolsClass(BaseMelWindow):
 		from cgm.lib import guiFactory
 		guiFactory.initializeTemplates()
 		"""
-
+		"""
 		import maya.mel as mel
 		import maya.cmds as mc
 
@@ -94,7 +80,7 @@ class tdToolsClass(BaseMelWindow):
 		                           namingToolsLib,
 		                           locinatorLib)
 
-
+		"""
 		# Maya version check
 		if mayaVer >= 2011:
 			self.currentGen = True
@@ -960,6 +946,10 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.doButton2(sdkRow,'Select Driven Joints',
 		                     lambda *a:tdToolsLib.doSelectDrivenJoints(self),
 				             "Selects driven joints from an sdk attribute")
+		
+		guiFactory.doButton2(sdkRow,'seShapeTaper',
+		                     lambda *a: mel.eval('seShapeTaper'),
+				             "Mirror splits of joint poses for joint based facial\n by Scott Englert")
 
 
 		sdkRow.layout()
@@ -980,9 +970,6 @@ class tdToolsClass(BaseMelWindow):
 
 
 		#>>> Find excess weights Tool
-		if not mc.optionVar( ex='cgmVarMaxInfluenceVerts' ):
-			mc.optionVar( iv=('cgmVarMaxInfluenceVerts', 3) )
-
 		FindExcessVertsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
 		MelSpacer(FindExcessVertsRow,w=10)
 		MelLabel(FindExcessVertsRow,l='Find verts with excess influence',align='left')
@@ -991,11 +978,11 @@ class tdToolsClass(BaseMelWindow):
 
 		MelLabel(FindExcessVertsRow,l='Max Verts:')
 
-		self.MaxVertsField = MelIntField(FindExcessVertsRow, w= 50, v=mc.optionVar(q='cgmVarMaxInfluenceVerts'))
+		self.MaxVertsField = MelIntField(FindExcessVertsRow, w= 50, v=3)
 
 		guiFactory.doButton2(FindExcessVertsRow,'Find em!',
-				             'mc.optionVar(iv=("cgmVarMaxInfluenceVerts",cgmTDToolsWin.MaxVertsField(q=True,v=True)));tdToolsLib.doReturnExcessInfluenceVerts()',
-				             'Prioritizes a loaded source object. If none is loaded. Attempts to use selected')
+				             lambda *a: tdToolsLib.doReturnExcessInfluenceVerts(self),
+				             'Finds excess vertices')
 		MelSpacer(FindExcessVertsRow,w=10)
 		FindExcessVertsRow.layout()
 

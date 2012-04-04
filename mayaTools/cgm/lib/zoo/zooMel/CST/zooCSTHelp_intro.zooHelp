@@ -1,0 +1,66 @@
+----Introduction----
+The CST help files are broken up into 4 major parts.  This is the introduction.  It covers the basics about navigating the UI, and how to get started.
+
+There is also the "How it works" section, which covers what makes CST different from other rigging tools.  The "Technical Help" section, which is useful for those interested in integrating CST into their own pipeline, or extending it for their own needs.  And lastly, there is the flag documentation.  This goes through a list of flags you can use to alter the behaviour of zooCST primitives when you build them.
+
+
+----Welcome to CST----
+The Character Setup Toolkit is a collection of scripts designed to help create complex character rigs easily.  It does this, by considering each part of the rig as a single element.  These elements in CST are called "rig primitives".  The rig primitives available in this version of CST are:  root, fkSpine, ikSpine, head, basicEye, moveableEye, arm, leg and finger.
+
+So why does the world need another set of rigging scripts?  zooCST includes a few innovations that makes zooCST rigs easier to animate with, as well as easier to upgrade in the future, when new versions of zooCST become available.  Its also really easy to use, and highly customisable.
+
+
+----Where to Start----
+The UI is arranged in a sequence of tabs.  Because of the way CST works, its best to go through the tabs and create each rig primitive in the order the tabs are layed out.  So, we start with the Root and Spine primitives.  This is far from essential, but it gives you the most flexible rig.
+
+The reason you should create the rig primitives in the correct order is because some rig primitives can take advantage of other rig primitives if they exist.  For example, if the spine and head primitives exist, the arm primitive will be able to use them as dynamic parents.  You can still create the arm without the spine or head, but it they're built first, the arm will be that much more useful.
+
+Building a rig primitive through the interface is simple.  Each primitive requires you to tell it the names of the different parts of the rig that primitive needs to know about, in order to control.  To do this, simply select the object, and click the button with the -> arrow symbol.  If your skeletons are suffixed with _L and _R for the left and the right side respectively, you only have to enter one side, and the script will find the name of the corresponding joint on the other side.
+
+For example, if your bicep joint is called: char_bicep_L, then when you select it, and enter it into the UI, zooCST will automatically look to see whether the object char_bicep_R exists, and if so, it will add it to the right side in the UI.  This is the only case where naming of joints has an effect on zooCST.  It should be noted that this is purely an interface enhancement, and in no way does the naming of joints have an effect on the script.
+
+So to create a root primitive, select the character's root joint, and press the button labelled- "Root->".  The name of the root joint will appear in the box beside the button.  Similarly for the hips - the hips is a single joint that the legs are parented to, and is also known as the groin or pelvis.
+
+The last step before creating your primtive, is to give the character a name.  When you build a primitive in zooCST, the primitive gets branded with a name.  This name allows zooCST to find all other parts of a character based on the name, or prefix.  zooCST won't let you build a primitive without giving it a name, so make sure you enter a prefix.
+
+So, once you've entered a prefix, and both of the objects have been specified, press the "create root primitive" button, and voila!
+
+
+----Guessing----
+The "Guess All" button is a simple convenience for those who adhere to the zooCST skeleton naming convention.  Its a pretty simple convention.  Basically the names of the joints should be the same as the names of the buttons in the zooCST UI, but with an _L or _R for the left and right sides of the body.  For example, the leg joints are thigh_L, knee_L and ankle_L for the left side.  The joint names are free to have a prefix, as long as the _L or _R comes last in the joint name.  Example: char_bicep_L_side is invalid, because the _L isn't last, but char_bicep_upper_L is valid, and would be found by the script.
+
+If you don't want to use the naming convention, zooCST will still function perfectly, the script just won't be able to guess which joints to use, so you'll have to specify them manually.  No big deal really.
+
+Regardless of whether you use the naming convention or not, CST can also try to determine what size your controls should be built at by pressing the "guess size" button.  This simply finds out the size of the bounding box for the entire skeleton and uses the height from that as the size for the controls.  It simply needs the root joint to be specified to guess the size.
+
+
+----What is Space Switching?----
+Space switching is basically just animating what an object is parented to through animating weights of a parent constraint.  When zooCST sets up space switching however, it creates some additional things that make animating transitions between parents easy.  Items are added to the object's right click menu that allow you to change the parenting without affecting the object's world space position.  If you don't have the options in the object's right click menu, make sure you have renamed the appropriate dagMenuProc script - zooCST comes with 3 versions of the script, one for maya v5, v6 and v6.5.  Rename the appropriate one to simply dagMenuProc.mel and restart maya.  You should now have "parent to ..." options in the right click menu for the arm/leg controls, and any other controls that have dynamic parenting.
+
+The space switching tab provides an interface to the zooCSTUtils function: zooCSTUtilsCreateSpaceSwitch.
+
+
+----How Come There Aren't Any Options?----
+Well, there actually are heaps of options for most primitives.  Its just a lot of the options aren't plainly visible in the UI.  Most options in zooCST are implemented as flags, which can be specified in the "additional options" field at the bottom of the window in each tab.  Right clicking this field, lets you choose from a list of flags for convenience.  To get info on what each flag does, check out the "Additional Flags" section of the help.
+
+As zooCST evolves, more and more features get added, and the one thing I don't want, is the UI to become some enormous bohemoth.  UI programming takes up a huge amount of code, so using the flag system, adding functionality is super easy, and takes only seconds to add to the UI.
+
+When you want to use a flag, as a reassurance there is a "check flags" button that will make sure the flags you've added are valid, before you create the primitive.  This is not always correct, but most of the time it speaks the truth.  If you're dead sure your flags are valid, and its still not working right, chances are I've bollocksed something up.  If so, i can be berrated at:  zootoolbox@googlegroups.com
+
+
+----Quick Notes About Arm Primitives----
+All arm primitives are assumed to have a single clavicle joint which the bicep is parented to.  Creating a clavicle isn't optional in zooCST yet, but optional clavicles is a planned feature in coming versions.
+
+
+----Quick Notes About Leg Primitives----
+When you create your leg primitive, to get proper animation on the bank for each foot, you will have to manually adjust the pivot points to be on either side of the foot geometry.  Unfortunately the script is unable to do this step automatically, as there is no way for the script to know how wide a character's foot geometry is.  So it is left to the user to place the bank pivot points.
+
+The bank pivot points are controlled by the two groups, which can be found under the foot controllers:
+prefix_leg_bank_L_rig_controller_L
+prefix_leg_bank_L_rig_controller_R
+
+You will need to adjust these two objects for each leg.
+
+
+----Troubleshooting----
+While I can't guarantee detailed support, I will try my hardest to help anyone out who needs help getting zooCST to work.  If you have trouble with the script, and are getting strange errors, contact the author at: zootoolbox@googlegroups.com

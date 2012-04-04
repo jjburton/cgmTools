@@ -1,0 +1,290 @@
+zooArrays_str;
+zooFlags;
+zooVectors;
+zooShaders;
+zooUtils;
+
+
+//this proc creates complex control shapes for use in auto-rigging scripts
+//it takes the following flags:
+//
+// -type [str]				tells the script what visual type of control to create.  the options depend on what shape files are installed
+// -typecurve [str]		this explicitly sets the curve type - it defaults to whatever the "type" flag has been set to if not specified.  it allows you to override the curve representation with something different
+// -typesurface [str]	like the typecurve flag, but for the surface representation
+// -axis [str]				what axis the control points in - defaults to pointing in the "y" direction
+// -path [str]				by default the script tries to find the shape files by itself.  if the shape files are in a strange place, you can explicitly set where they are using this flag
+// -place [obj]			place the control at the pivot of this object
+// -placepivot [obj]		snap the control's pivot to the pivot of the given object - if this is set to %p the place object is used, if %a is specified, the align object is used
+// -pivot [str]			by default the pivot is in the centre - you can use -pivot base or top to put the pivot elsewhere (really its the geometry thats moving, not the pivot - as the pivot is locked to whatever object its placed at
+// -align [obj]			rotate the control to this object
+// -offset [str]			takes the form: "x y z" where each is a float, specifying units along axis.  default: 0 0 0
+// -scale [float]			scale factor to apply to the control (purely a visual thing - scale is frozen).  default: 1
+// -joint [int]			if true, the control shapes are parented to a joint instead of a normal transform node
+// -orient [int]			is the control to be oriented to the align object?  this is done by parenting the control to a group node, and aligning the group
+// -curve [int]			set to false if you don't want curve shape nodes
+// -surface [int]			set to false if you don't want nurbs surface shape nodes
+//
+//offset string also recognizes the keywords: up, fwd, side prefixed by the number of scale
+//multiples in that direction (ie -4up for down).  This is useful for when the user is unaware
+//of the scene "up axis"
+global proc string zooBuildControl( string $name, string $optionStr ) {
+	string $temp[] = {};
+	string $useJoints[] = {};
+	string $type = "cube";
+	string $typecurve = "";
+	string $typesurface = "";
+	string $axis = "y";
+	string $path = `zooGetScriptLocation zooBuildControl`;  //assume the shape files are in the same directory as this script
+	string $place = "";
+	string $align = "";
+	string $colour = "";
+	string $placepivot = "";
+	string $pivot = "";
+	string $offset = "";
+	string $hide = "";
+	string $lock = "";
+	string $parent = "";
+	float $scale = 1;
+	float $expand = 0.04;
+	int $joint = 0;
+	int $orient = 0;
+	int $freeze = 1;
+	int $curve = 1;
+	int $surface = 1;
+	int $constrain = 0;
+
+	select -cl;
+	$temp = `zooGetFlagArguments $optionStr type`; if( `size $temp` ) $type = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr typecurve`; if( `size $temp` ) $typecurve = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr typesurface`; if( `size $temp` ) $typesurface = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr axis`; if( `size $temp` ) $axis = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr scale`; if( `size $temp` ) $scale = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr colour`; if( `size $temp` ) $colour = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr curve`; if( `size $temp` ) $curve = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr surface`; if( `size $temp` ) $surface = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr joint`; if( `size $temp` ) $joint = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr orient`; if( `size $temp` ) $orient = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr freeze`; if( `size $temp` ) $freeze = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr place`; if( `size $temp` ) $place = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr align`; if( `size $temp` ) $align = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr placepivot`; if( `size $temp` ) $placepivot = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr pivot`; if( `size $temp` ) $pivot = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr offset`; if( `size $temp` ) $offset = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr hide`; if( `size $temp` ) $hide = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr lock`; if( `size $temp` ) $lock = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr parent`; if( `objExists $temp[0]` ) $parent = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr constrain`; if( `size $temp` ) $constrain = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr path`; if( `size $temp` ) {
+		string $tempPath = `zooArrayToStr_str $temp " "`;
+		if( `filetest -d $tempPath` ) $path = $tempPath;
+		}
+
+	if( $type == "skingeometry" ) {
+		$curve = 0;
+		$typesurface = $type;
+		$typecurve = "null";
+
+		$temp = `zooGetFlagArguments $optionStr expand`; if( `size $temp` ) $expand = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr useJoints`; if( `size $temp` ) $useJoints = $temp;
+
+		if( !`size $useJoints` ) $useJoints[0] = $place;
+		if( !`size $useJoints` ) error "you haven't specified any joints to use for skingeometry extraction";
+		$expand *= $scale;
+		}
+	else {
+	if( $typecurve == "" ) $typecurve = $type;
+	if( $typesurface == "" ) $typesurface = $type;
+		}
+	if( $align == "%p" ) $align = $place;
+	if( $placepivot == "%p" ) $placepivot = $place;
+	if( $placepivot == "%a" ) $placepivot = $align;
+	if( $lock == "%h" ) $lock = $hide;
+
+	//make sure there are shape files in the path directory
+	string $shapes[] = `zooGetFiles $path "control.*.shape"`;
+
+	//if no shapes are found in the directory given, search through all the script paths for one of the shapes
+	if( !`size $shapes` ) $path = `zooGetFileLocation (zooListEnv("")) "control.cube" shape`;
+	$shapes = `zooGetFiles $path "control.*.shape"`;
+
+	//if no shapes are found still, bail - we need to find the shape files to continue
+	if( !`size $shapes` ) if( $typecurve != "null" ) error "can't find shapes - please explicitly specify a path to the shape files";
+
+	//start with the curve control - find its shape build file, and build it
+	string $file = $path +"control."+ $typecurve +".shape";
+	if( !`filetest -r $file` ) $file = $path +"control.cube.shape";
+	string $contents[] = `zooReadFile $file ""`;
+	string $createCmd = `zooArrayToStr_str $contents ""`;
+
+	if( $typecurve == "null" ) select `group -em`;
+	else eval $createCmd;
+
+	string $sel[] = `ls -sl`;
+	string $obj = $sel[0];
+
+	//now to deal with the surface - if its different from the curve, then build it
+	if( $typesurface != $typecurve && $typesurface != "null" && $typesurface != "skingeometry" ) {
+		//if the typesurface is different from the typecurve, then first delete all existing surface shapes under the control
+		string $shapesTemp[] = `listRelatives -f -s $obj`;
+		for( $s in $shapesTemp ) if( `nodeType $s` == "nurbsSurface" ) delete $s;
+
+		//now build the temporary control
+		$file = $path +"control."+ $typesurface +".shape";
+		if( !`filetest -r $file` ) $file = $path +"control.cube.shape";
+		clear $contents;
+
+		$contents = `zooReadFile $file ""`;
+		$createCmd = `zooArrayToStr_str $contents ""`;
+
+		//and parent its surface shape nodes to the actual control, and then delete it
+		eval $createCmd;
+		string $tempSel[] = `ls -sl`;
+		$shapesTemp = `listRelatives -f -s $tempSel[0]`;
+		for( $s in $shapesTemp ) if( `nodeType $s` == "nurbsSurface" ) parent -add -s $s $obj;
+		delete $tempSel[0];
+		select $sel;
+		}
+
+	//if the joint flag is true, parent the object shapes under a joint instead of a transform node
+	clear $shapes;
+	$shapes = `listRelatives -f -s $obj`;
+	if( $joint ) {
+		select -cl;
+		string $j = `joint`;
+		for( $s in $shapes ) parent -add -s $s $j;
+		setAttr -cb 0 ( $j +".radius" );
+		delete $obj;
+		$obj = $j;
+		}
+
+	//move the pivot - if needed
+	setAttr ( $obj +".s" ) $scale $scale $scale;
+	makeIdentity -a 1 -s 1 $obj;
+	string $shapeStrs[] = `zooGetShapeStrs $obj`;
+	if( $pivot == "top" ) for( $s in $shapeStrs ) move -r 0 (-1*$scale/2) 0 $s;
+	else if( $pivot == "base" ) for( $s in $shapeStrs ) move -r 0 ($scale/2) 0 $s;
+
+	//rename the object, and rotate it accordingly
+	if( $name != "" ) {
+		if( `objExists $name` ) $obj = `rename $obj ( $name +"#" )`;
+		else $obj = `rename $obj $name`;
+		}
+	if( $axis == "x" ) rotate -os 0 0 -90 $obj;
+	if( $axis == "z" ) rotate -os 90 0 0 $obj;
+	if( $axis == "_x" ) rotate -os 0 0 90 $obj;
+	if( $axis == "_y" ) rotate -os 0 0 180 $obj;
+	if( $axis == "_z" ) rotate -os -90 0 0 $obj;
+	makeIdentity -a 1 -r 1 $obj;
+
+	//if the user wants the control oriented, create the orientation group and parent the control
+	string $grp = $obj;
+	if( $orient ) {
+		$grp = `group -em -n( $obj +"_space#" )`;
+		$obj = zooGetElement_str(0,`parent $obj $grp`);
+		zooAlign ( "-src "+ $align +" -tgt "+ $grp );
+		}
+
+	//determine offsets
+	string $upAxisStr = `upAxis -q -axis`;
+	float $offsetAmts[] = {};
+	int $upAxis = ($upAxisStr=="y")? 1: 2;
+	int $fwdAxis = ($upAxisStr=="y")? 2: 1;
+	int $fwdMult = ($upAxisStr=="y")? 1: -1;
+
+	if( `objExists $place` ) delete `pointConstraint $place $grp`;
+	if( `objExists $align` ) delete `orientConstraint $align $grp`;
+	if( `size $offset` ) {
+		if( `match "[0-9 .-]+" $offset` == $offset ) {
+			clear $temp;
+			tokenize $offset " " $temp;
+			if( `size $temp` > 0 ) $offsetAmts[0] = $temp[0];
+			if( `size $temp` > 1 ) $offsetAmts[1] = $temp[1];
+			if( `size $temp` > 2 ) $offsetAmts[2] = $temp[2];
+			}
+
+		else if( `match "[-0-9 .(up)(fwd)(side)]+" $offset` == $offset ) {
+			clear $temp;
+			tokenize $offset " " $temp;
+			for( $move in $temp ) {
+				string $multStr = `match "[-0-9 .]+" $move`;
+				float $mult = $multStr;
+				if( `match "(up)+" $move` == "up" ) $offsetAmts[$upAxis] += $mult*$scale;
+				if( `match "(fwd)+" $move` == "fwd" ) $offsetAmts[$fwdAxis] += $fwdMult*$mult*$scale;
+				if( `match "(side)+" $move` == "side" ) $offsetAmts[0] += $mult*$scale;
+				}
+			}
+		}
+
+	move -r $offsetAmts[0] $offsetAmts[1] $offsetAmts[2] $grp;
+	if( $freeze ) makeIdentity -a 1 -r 1 $obj;
+	makeIdentity -a 1 -t 1 $obj;  //always freeze translations
+
+	string $shapes[] = `listRelatives -f -s $obj`;
+	if( !$curve ) for( $s in $shapes ) if( `nodeType $s` == "nurbsCurve" ) delete $s;
+	if( !$surface ) for( $s in $shapes ) if( `nodeType $s` == "nurbsSurface" ) delete $s;
+
+	//if the parent exists - parent the new control to the given parent
+	if( `objExists $parent` ) parent $grp $parent;
+
+	//hide and lock attributes
+	if( $hide != "" ) zooAttrState ( "-attrs "+ $hide +" -k 0" ) $obj;
+	if( $lock != "" ) zooAttrState ( "-attrs "+ $lock +" -l 1" ) $obj;
+
+	//now snap the pivot to alignpivot object if it exists
+	if( `objExists $placepivot` ) zooAlign ( "-pivot 1 -src "+ $placepivot +" -tgt "+ $obj );
+
+	//constrain the target object to this control?
+	if( $constrain ) if( `objExists $place` ) parentConstraint -mo $obj $place;
+
+	//if the user has specified skin geometry as the representation type, then build the geo
+	//NOTE: this really needs to happen after ALL the placement has happened otherwise the extracted
+	//will be offset from the surface its supposed to be representing
+	if( $typesurface == "skingeometry" ) {
+		//extract the surface geometry
+		string $jointListStr = `zooArrayToStr_str $useJoints " "`;
+		string $geo[] = `zooExtractJointMesh ("-joints "+ $jointListStr +" -expand "+ $expand )`;
+		parent $geo[0] $obj;
+		makeIdentity -a 1 -t 1 -r 1 -s 1 $geo[0];
+		parent -w $geo[0];
+		zooReplaceShape $geo[0] $obj 1;
+		delete $geo[0];
+
+		//when selected, turn the mesh display off, and only highlight edges
+		zooTrigSetCmd $obj "for( $s in `listRelatives -s #` ) setAttr ( $s +\".displayEdges\" ) 2;";
+		}
+	if( $colour != "" ) zooSetObjShader $obj `zooGetShader $colour 1`;
+
+	return $obj;
+	}
+
+
+global proc string[] zooGetShapeStrs( string $obj ) {
+	string $geo[] = {};
+	string $shapes[] = `listRelatives -pa -s $obj`;
+
+	for( $s in $shapes ) {
+		string $nType = `nodeType $s`;
+		if( $nType == "nurbsSurface" || $nType == "nurbsCurve" ) $nType = "cv";
+		else if( $nType == "mesh" ) $nType = "vtx";
+		$geo[( `size $geo` )] = $s +"."+ $nType +"[*]";
+		}
+
+	return $geo;
+	}
+
+
+global proc string[] zooListControlShapes() {
+	string $path = `zooGetScriptLocation zooBuildControl`;  //assume the shape files are in the same directory as this script
+	string $shapes[] = `zooGetFiles $path "control.*.shape"`;
+
+	//if no shapes are found in the directory given, search through all the script paths for one of the shapes
+	if( !`size $shapes` ) $path = `zooGetFileLocation (zooListEnv("")) "control.cube" shape`;
+	$shapes = `zooGetFiles $path "control.*.shape"`;
+
+	for( $n=0; $n<`size $shapes`; $n++ ) $shapes[$n] = zooGetElement_str(1,`zooTokenize $shapes[$n] "."`);
+
+	return $shapes;
+	}
+
+
+//zoo.end

@@ -1,0 +1,81 @@
+zooArrays_str;
+zooFlags;
+
+
+global proc zooAttrUtils() {
+	return;
+	}
+
+
+//------
+//hides and locks given attributes
+//-attrs			space separated list of attributes to work on
+//-k [int]		keyability state for the attributes
+//-l [int]		lock state for the attributes
+//-v [int]		visibility state for the attributes - NOTE this is only maya 6.5 and above
+//
+//NOTE: automatically handles compound attributes (ie t for translate, r for rotate etc)
+//
+//example: to make unkeyable (hide) the visibility, translateX and rotateZ attributes
+//zooAttrState "-attrs v tx rz -k 0" nurbsSphere1;
+//------
+global proc zooAttrState( string $optionStr, string $obj ) {
+	string $temp[] = {};
+	string $channels[] = {};
+	string $about = `about -v`;
+	int $betterThan7 = 0;
+	int $keyState = -1;
+	int $lockState = -1;
+	int $visState = -1;
+
+	if( !`objExists $obj` ) return;
+	if( `match "^[789]" $about` != "" ) $betterThan7 = 1;
+	$temp = `zooGetFlagArguments $optionStr attrs`; if( `size $temp` ) $channels = $temp;
+	$temp = `zooGetFlagArguments $optionStr k`; if( `size $temp` ) $keyState = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr l`; if( `size $temp` ) $lockState = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr v`; if( `size $temp` ) $visState = $temp[0];
+
+	if( `reference -inr $obj` ) return;  //if the object is referenced, you can't change its lock state, so skip this object
+	for( $channel in $channels ) if( `objExists ( $obj + "." + $channel )` ) {
+		string $childAttrs[] = `attributeQuery -n $obj -lc $channel`;
+		if( `size $childAttrs` ) for( $child in $childAttrs ) {
+			if( $keyState != -1 ) setAttr -k $keyState ( $obj + "." + $child );
+			if( $lockState != -1 ) setAttr -l $lockState ( $obj + "." + $child );
+			if( $visState != -1 ) if( $betterThan7 ) setAttr -cb $visState ( $obj + "." + $child );
+			}
+		else {
+			if( $keyState != -1 ) setAttr -k $keyState ( $obj + "." + $channel );
+			if( $lockState != -1 ) setAttr -l $lockState ( $obj + "." + $channel );
+			if( $visState != -1 ) if( $betterThan7 ) setAttr -cb $visState ( $obj + "." + $channel );
+			}
+		}
+	}
+
+
+//makes two transforms thte same - pivot points, transform values, position etc...
+global proc zooSameTransform( string $src, string $tgt ) {
+	float $rp[] = `getAttr ( $src +".rp" )`;
+	float $sp[] = `getAttr ( $src +".sp" )`;
+
+	if( `objExists ( $src +".jo" )`) {
+		if( `objExists ( $tgt +".jo" )`) {
+			float $jo[] = `getAttr ( $src +".jo" )`;
+			if( `getAttr -se ( $tgt +".jo" )`) setAttr ( $tgt +".jo" ) $jo[0] $jo[1] $jo[2];
+			}
+		}
+	if( `getAttr -se ( $tgt +".ro" )`) setAttr ( $tgt +".ro" ) `getAttr ( $src +".ro" )`;
+
+	//the reason we have to test for a joint is - believe it or not, joints have
+	//rotation and scale pivot attributes.  don't believe me - try setting them.
+	//anyway maya lets you set the rp attributes, but it doesn't support them, and
+	//you get VERY buggy results
+	if( `nodeType $tgt` != "joint" ) {
+		if( `getAttr -se ( $tgt +".rp" )`) setAttr ( $tgt +".rp" ) $rp[0] $rp[1] $rp[2];
+		if( `getAttr -se ( $tgt +".sp" )`) setAttr ( $tgt +".sp" ) $sp[0] $sp[1] $sp[2];
+		}
+
+	zooAlign ( "-src "+ $src +" -tgt "+ $tgt );
+	}
+
+
+//zoo.end

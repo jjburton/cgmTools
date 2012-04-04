@@ -1,0 +1,414 @@
+zooArrays_float;
+zooArrays_str;
+zooAttrUtils;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooTriggeredUtils;
+zooUtils;
+zooVectors;
+
+
+global proc string[] zooCSTBuildIKFK( string $prefix, string $parity, string $bicep, string $elbow, string $wrist, string $optionStr ) {
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $axes[] = {"x","y","z"};
+		string $suffix = ( $parity == "r" )?"_R":"_L";
+		string $temp[] = {};
+		string $id = "";
+		string $ikType = "cube";
+		string $fkType = "cube";
+		string $poleType = "cone";
+		string $bicepTwists[] = `zooGetInBTweenJoints $bicep $elbow`;
+		string $wristTwists[] = `zooGetInBTweenJoints $elbow $wrist`;
+		string $twistUpObj = zooGetElement_str(0,`listRelatives -f -p $bicep`);
+		string $colour = $parity=="r"? "red 0.8": "green 0.8";
+		float $scale = 1.;
+		int $asPrim = 0;
+		int $isCurve = 0;
+		int $fkCurve = 0;
+		int $triggers = 1;
+
+		$temp = `zooGetFlagArguments $optionStr id`; if( `size $temp` ) $id = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr bicepTwists`; if( `size $temp` ) $bicepTwists = $temp;
+		$temp = `zooGetFlagArguments $optionStr wristTwists`; if( `size $temp` ) $wristTwists = $temp;
+		$temp = `zooGetFlagArguments $optionStr twistUpObj`; if( `size $temp` ) if( `objExists $temp[0]` ) $twistUpObj = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr asPrim`; if( `size $temp` ) $asPrim = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr ikType`; if( `size $temp` ) $ikType = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr fkType`; if( `size $temp` ) $fkType = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr poleType`; if( `size $temp` ) $poleType = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr colour`; if( `size $temp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$temp = `zooGetFlagArguments $optionStr scale`; if( `size $temp` ) $scale = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr curve`; if( `size $temp` ) $isCurve = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr fkCurve`; if( `size $temp` ) $fkCurve = $temp[0];
+		$temp = `zooGetFlagArguments $optionStr triggers`; if( `size $temp` ) $triggers = $temp[0];
+		if( $isCurve ) $fkCurve = 1;
+		if( $id == "" ) $id = `zooCSTGetPrimId ikfk $suffix $prefix`;
+
+
+	//------
+	//always build the world first - the world creation proc only builds the world once for any given prefix, so a world control is never created more than once
+	//------
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+		string $controls[] = {};
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+
+
+	//------
+	//build the objects
+	//------
+		string $ikArmSpace = `zooCSTBuildControl null ( "ik_limbSpace"+ $id ) $wrist "-scale 1 -curve 0"`;
+		string $fkArmSpace = `zooCSTBuildControl null ( "fk_limbSpace"+ $id ) $bicep "-scale 1 -curve 0"`;
+		string $driverUpper = `zooCSTBuildControl $fkType ( "fk_limbUpperControl"+ $id ) $bicep ( "-orient 1 -scale "+ $scale +" -curve "+ $fkCurve +" -colour "+ $colour )`;
+		string $driverMid = `zooCSTBuildControl $fkType ( "fk_limbMiddleControl"+ $id ) $elbow ( "-orient 1 -scale "+ $scale +" -curve "+ $fkCurve +" -colour "+ $colour )`;
+		string $driverLower = `zooCSTBuildControl $fkType ( "limbEndControl"+ $id ) $wrist ( "-orient 1 -scale "+ $scale +" -curve "+ $fkCurve +" -colour "+ $colour )`;
+		string $wristOrient = `zooCSTBuildControl null ( "limbEnd_orient_lockthis"+ $id ) $wrist "-orient 1 -scale 1 -curve 0"`;
+		string $wristOrientOffset = `zooCSTBuildControl null ( "limbEnd_orient_offset"+ $id ) $wrist "-scale 1 -curve 0"`;
+		string $poleControlSpace = `zooCSTBuildControl null ( "poleSpace"+ $id ) "" "-scale 1 -curve 0"`;
+		string $poleControl = `zooCSTBuildControl $poleType ( "poleControl"+ $id ) "" ( "-scale "+ $scale +" -curve "+ $isCurve +" -colour "+ $colour )`;
+
+		parent $wristOrientOffset $wristOrient;
+		delete `parentConstraint $wrist $wristOrientOffset`;
+
+
+	//------
+	//the fk and ik arm spaces are oriented using zooAlign instead of building them as oriented controls - this is because
+	//oriented controls are joints and thus can't be hidden without hiding all children
+	//------
+		zooAlign ( "-src "+ $wrist +" -tgt "+ $ikArmSpace );
+		zooAlign ( "-src "+ $bicep +" -tgt "+ $fkArmSpace );
+		parent $driverUpper $fkArmSpace;
+		parent $driverMid $driverUpper;
+		parent $driverLower $driverMid;
+
+		float $polePos[] = `zooFindPolePosition ( "-multiplier 5 -end "+ $driverLower )`;
+		move -a -ws -rpr $polePos[0] $polePos[1] $polePos[2] $poleControl;
+		move -a -ws -rpr $polePos[0] $polePos[1] $polePos[2] $poleControlSpace;
+		parent $poleControl $poleControlSpace;
+		makeIdentity -a 1 -t 1 $poleControlSpace;
+
+
+	//------
+	//build the pole control selection trigger
+	//------
+		string $lineNode = `group -em`;
+		$lineNode = `rename $lineNode ( "pole_line"+ $id )`;
+		zooAlignFast $elbow $lineNode 0;
+		pointConstraint $elbow $lineNode;
+		zooAttrState "-attrs t r s v -k 0 -l 1" $lineNode;
+
+
+	//------
+	//build the IK handle
+	//------
+		string $limbControl = zooGetElement_str(0,`ikHandle -fs 1 -sj $driverUpper -ee $driverLower -solver ikRPsolver`);
+		string $limbControlObject = `zooCSTBuildControl $ikType ( "limbControl"+ $id ) "" ( "-scale "+ $scale +" -curve "+ $isCurve +" -colour "+ $colour )`;
+		string $limbControlOrient = `zooCSTOrient2Obj $wrist $limbControl`;
+
+		$limbControl = `rename $limbControl ( "limbControl"+ $id )`;
+		parent $limbControlOrient $ikArmSpace;
+		for( $s in `listRelatives -f -s $limbControlObject` ) parent -add -s $s $limbControl;
+		delete $limbControlObject;
+
+
+	//------
+	//setup constraints to drive the original joints
+	//------
+		xform -p 1 -rotateOrder `zooCSTGetRo x` $limbControl;
+		delete `parentConstraint $wrist $wristOrientOffset`;
+		string $orgArmConstraints[] = {};
+		$orgArmConstraints = zooAddArray_str($orgArmConstraints,`parentConstraint $driverMid $elbow`);
+		$orgArmConstraints = zooAddArray_str($orgArmConstraints,`orientConstraint $wristOrientOffset $wrist`);
+		string $wristSpaceOrient = zooGetElement_str(0,`parentConstraint -mo $limbControl $wristOrient`);
+		$orgArmConstraints = zooAddArray_str($orgArmConstraints,`parentConstraint -mo $driverLower $wristOrient`);
+		$orgArmConstraints = zooAddArray_str($orgArmConstraints,`poleVectorConstraint $poleControl $limbControl`);
+
+
+	//------
+	//distribute the "bank" rotations over the bicep twist joints of the original skeleton
+	//------
+		string $bicepTwistGrps[] = {};
+		string $utils[] = {};
+		int $numBicepTwists = `size $bicepTwists`;
+
+		if( $numBicepTwists ) {
+			float $twistAxis[] = zooAxisInDirection($bicep,`zooBetweenVector $bicep $elbow`);
+			string $twistAsStr = `zooArrayToStr_float $twistAxis " "`;
+			string $twistName = `zooCSTVectorAsName $twistAsStr`;
+			string $bicepDistrib = `shadingNode -asUtility multiplyDivide -n ( "upper_twist_distributor"+ $suffix )`;
+			string $upAxisChoiceSrc = `shadingNode -asUtility condition -n ( "upper_distrib_up_src"+ $suffix )`;
+			string $upAxisChoiceTgt = `shadingNode -asUtility condition -n ( "upper_distrib_up_tgt"+ $suffix )`;
+			string $bicepElbowAim = `group -em`;//zooGetElement_str(0,`spaceLocator`);
+			string $elbowBicepAim = `group -em`;
+			string $otherAxes[] = `zooSubtractArray_str $axes { $twistName }`;
+
+			$bicepElbowAim = `rename $bicepElbowAim ( "upper_twistRoot"+ $suffix +"#" )`;
+			$elbowBicepAim = `rename $elbowBicepAim ( "upper_twistEnd"+ $suffix +"#" )`;
+			$utils[( `size $utils` )] = $bicepDistrib;
+			$utils[( `size $utils` )] = $upAxisChoiceSrc;
+			$utils[( `size $utils` )] = $upAxisChoiceTgt;
+			addAttr -ln "switchUp" -at bool $limbControl;
+			setAttr -k 1 ( $limbControl +".switchUp" );
+			parent $elbowBicepAim $bicepElbowAim;
+			parent $bicepElbowAim $fkArmSpace;
+			delete `parentConstraint $bicep $bicepElbowAim`;
+			string $bAim = zooGetElement_str(0,`aimConstraint -aim $twistAxis[0] $twistAxis[1] $twistAxis[2] -wuo $twistUpObj -wut objectrotation $driverMid $bicepElbowAim`);
+			delete `parentConstraint $elbow $elbowBicepAim`;
+			$orgArmConstraints = zooAddArray_str($orgArmConstraints,`aimConstraint -aim (-1*$twistAxis[0]) (-1*$twistAxis[1]) (-1*$twistAxis[2]) -wuo $driverMid -wut objectrotation $driverUpper $elbowBicepAim`);
+			$orgArmConstraints = `zooAddArray_str $orgArmConstraints {$bAim}`;
+			connectAttr -f ( $limbControl +".switchUp" ) ( $upAxisChoiceSrc +".firstTerm" );
+			connectAttr -f ( $limbControl +".switchUp" ) ( $upAxisChoiceTgt +".firstTerm" );
+			connectAttr -f ( $upAxisChoiceSrc +".outColor" ) ( $bAim +".upVector" );
+			connectAttr -f ( $upAxisChoiceTgt +".outColor" ) ( $bAim +".worldUpVector" );
+			connectAttr ( $elbowBicepAim +".r" ) ( $bicepDistrib +".input1" );
+			setAttr ( $bicepDistrib +".input2" ) ( $numBicepTwists+1 ) ( $numBicepTwists+1 ) ( $numBicepTwists+1 );
+			setAttr ( $bicepDistrib +".operation" ) 2;
+
+			float $upOther0Src[] = `zooAxisAsVector $otherAxes[0]`;
+			float $upOther1Src[] = `zooAxisAsVector $otherAxes[1]`;
+			float $upOther0Tgt[] = `zooAxisInDirection $twistUpObj (zooAxisVector($bicepElbowAim,$upOther0Src))`;
+			float $upOther1Tgt[] = `zooAxisInDirection $twistUpObj (zooAxisVector($bicepElbowAim,$upOther1Src))`;
+
+			setAttr ( $upAxisChoiceSrc +".colorIfTrue" ) $upOther0Src[0] $upOther0Src[1] $upOther0Src[2];
+			setAttr ( $upAxisChoiceSrc +".colorIfFalse" ) $upOther1Src[0] $upOther1Src[1] $upOther1Src[2];
+			setAttr ( $upAxisChoiceTgt +".colorIfTrue" ) $upOther0Tgt[0] $upOther0Tgt[1] $upOther0Tgt[2];
+			setAttr ( $upAxisChoiceTgt +".colorIfFalse" ) $upOther1Tgt[0] $upOther1Tgt[1] $upOther1Tgt[2];
+
+			string $locs[] = { $bicepElbowAim };
+			for( $n=0; $n<$numBicepTwists; $n++ ) {
+				string $loc = `group -em -n ( $bicepTwists[$n] +"_twist_distrib_"+ $n )`;//zooGetElement_str(0,`spaceLocator`);
+				parent $loc $locs[$n];
+				$locs[$n+1] = $loc;
+				delete `parentConstraint $bicepTwists[$n] $loc`;
+				connectAttr -f ( $bicepDistrib +".o"+ $twistName ) ( $loc +".r"+ $twistName );
+				parentConstraint $loc $bicepTwists[$n];
+				}
+
+			$bicepTwistGrps = `zooAddArray_str $locs {$elbowBicepAim}`;
+			orientConstraint $bicepElbowAim $bicep;
+			}
+		else orientConstraint $driverUpper $bicep;
+
+
+	//------
+	//now do the same for the wrist twist joints
+	//------
+		string $wristTwistGrps[] = {};
+		int $numWristTwists = `size $wristTwists`;
+
+		if( $numWristTwists ) {
+			float $twistAxis[] = zooAxisInDirection($elbow,`zooBetweenVector $elbow $wrist`);
+			string $twistAsStr = `zooArrayToStr_float $twistAxis " "`;
+			string $twistName = `zooCSTVectorAsName $twistAsStr`;
+			string $wristDistrib = `shadingNode -asUtility multiplyDivide -n ( "lower_twist_distributor"+ $suffix )`;
+			string $upAxisChoiceSrc = `shadingNode -asUtility condition -n ( "lower_distrib_up_src"+ $suffix )`;
+			string $upAxisChoiceTgt = `shadingNode -asUtility condition -n ( "lower_distrib_up_tgt"+ $suffix )`;
+			string $elbowWristAim = `group -em`;
+			string $wristElbowAim = `group -em`;
+			string $otherAxes[] = `zooSubtractArray_str $axes { $twistName }`;
+
+			$elbowWristAim = `rename $elbowWristAim ( "lower_twistRoot"+ $suffix +"#" )`;
+			$wristElbowAim = `rename $wristElbowAim ( "lower_twistEnd"+ $suffix +"#" )`;
+			$wristTwistGrps[( `size $wristTwistGrps` )] = $elbowWristAim;
+			$utils[( `size $utils` )] = $wristDistrib;
+			$utils[( `size $utils` )] = $upAxisChoiceSrc;
+			$utils[( `size $utils` )] = $upAxisChoiceTgt;
+			addAttr -ln "switchWristUp" -at bool $limbControl;
+			setAttr -k 0 ( $limbControl +".switchWristUp" );
+			parent $wristElbowAim $elbowWristAim;
+			parent $elbowWristAim $driverMid;
+			delete `parentConstraint $elbow $elbowWristAim`;
+			$orgArmConstraints = zooAddArray_str($orgArmConstraints,`aimConstraint -aim $twistAxis[0] $twistAxis[1] $twistAxis[2] -wuo $driverMid -wut objectrotation $driverLower $elbowWristAim`);
+			delete `parentConstraint $wrist $wristElbowAim`;
+			string $eAim = zooGetElement_str(0,`aimConstraint -aim (-1*$twistAxis[0]) (-1*$twistAxis[1]) (-1*$twistAxis[2]) -wuo $wristSpaceOrient -wut objectrotation $driverMid $wristElbowAim`);
+			$orgArmConstraints = `zooAddArray_str $orgArmConstraints {$eAim}`;
+			connectAttr -f ( $limbControl +".switchWristUp" ) ( $upAxisChoiceSrc +".firstTerm" );
+			connectAttr -f ( $upAxisChoiceSrc +".outColor" ) ( $eAim +".upVector" );
+			connectAttr -f ( $upAxisChoiceTgt +".outColor" ) ( $eAim +".worldUpVector" );
+			connectAttr ( $wristElbowAim +".r" ) ( $wristDistrib +".input1" );
+			setAttr ( $wristDistrib +".input2" ) ( $numWristTwists+1 ) ( $numWristTwists+1 ) ( $numWristTwists+1 );
+			setAttr ( $wristDistrib +".operation" ) 2;
+
+			float $upOther0Src[] = `zooAxisAsVector $otherAxes[0]`;
+			float $upOther1Src[] = `zooAxisAsVector $otherAxes[1]`;
+			float $upOther0Tgt[] = `zooAxisInDirection $driverMid (zooAxisVector($elbowWristAim,$upOther0Src))`;
+			float $upOther1Tgt[] = `zooAxisInDirection $driverMid (zooAxisVector($elbowWristAim,$upOther1Src))`;
+
+			setAttr ( $upAxisChoiceSrc +".colorIfTrue" ) $upOther0Src[0] $upOther0Src[1] $upOther0Src[2];
+			setAttr ( $upAxisChoiceSrc +".colorIfFalse" ) $upOther1Src[0] $upOther1Src[1] $upOther1Src[2];
+			setAttr ( $upAxisChoiceTgt +".colorIfTrue" ) $upOther0Tgt[0] $upOther0Tgt[1] $upOther0Tgt[2];
+			setAttr ( $upAxisChoiceTgt +".colorIfFalse" ) $upOther1Tgt[0] $upOther1Tgt[1] $upOther1Tgt[2];
+
+			string $locs[] = { $elbowWristAim };
+			for( $n=0; $n<$numWristTwists; $n++ ) {
+				string $loc = `group -em -n ( $wristTwists[$n] +"_twist_distrib_"+ $n )`;
+				parent $loc $locs[$n];
+				$locs[$n+1] = $loc;
+				delete `parentConstraint $wristTwists[$n] $loc`;
+				connectAttr -f ( $wristDistrib +".o"+ $twistName ) ( $loc +".r"+ $twistName );
+				parentConstraint $loc $wristTwists[$n];
+				}
+
+			$wristTwistGrps = `zooAddArray_str $locs {$wristElbowAim}`;
+			pointConstraint $wristElbowAim $wrist;
+			}
+
+
+	//------
+	//constrain the position of the twists so that if the fk objects are moved, the twists maintain their relative position
+	//------
+		string $bicepAxis = `zooCSTJointDirection $driverMid`;
+		float $bicepLength = `getAttr ( $driverMid +".t"+ $bicepAxis )`;//zooVectorMag(`zooBetweenVector $bicep $elbow`);
+
+		for( $n=1; $n<`size $bicepTwistGrps`-1; $n++ ) {
+			string $name = `match "[^|]+$" $bicepTwistGrps[$n]`;
+			string $multNode = `shadingNode -asUtility -name ( ""+ $name +"_fraction_pos" ) multiplyDivide`;
+			string $objAxis = `zooCSTJointDirection $bicepTwistGrps[$n]`;
+
+			setAttr ( $multNode +".input1X" ) ( `getAttr ( $bicepTwistGrps[$n] +".t"+ $objAxis )`/$bicepLength );
+			connectAttr -f ( $driverMid +".t"+ $bicepAxis ) ( $multNode +".input2X" );
+			connectAttr -f ( $multNode +".outputX" ) ( $bicepTwistGrps[$n] +".t"+ $objAxis );
+			$utils[( `size $utils` )] = $multNode;
+			}
+
+		string $elbowAxis = `zooCSTJointDirection $driverLower`;
+		float $elbowLength = `getAttr ( $driverLower +".t"+ $elbowAxis )`;
+
+		for( $n=1; $n<`size $wristTwistGrps`; $n++ ) {
+			string $name = `match "[^|]+$" $wristTwistGrps[$n]`;
+			string $multNode = `shadingNode -asUtility -name ( ""+ $name +"_fraction_pos" ) multiplyDivide`;
+			string $objAxis = `zooCSTJointDirection $wristTwistGrps[$n]`;
+
+			setAttr ( $multNode +".input1X" ) ( `getAttr ( $wristTwistGrps[$n] +".t"+ $objAxis )`/$elbowLength );
+			connectAttr -f ( $driverLower +".t"+ $elbowAxis ) ( $multNode +".input2X" );
+			connectAttr -f ( $multNode +".outputX" ) ( $wristTwistGrps[$n] +".t"+ $objAxis );
+			$utils[( `size $utils` )] = $multNode;
+			}
+
+
+	//------
+	//connect the ikBlend of the arm controller to the orient constraint of the fk wrist - ie turn it off when ik is off...
+	//------
+		string $attribs[] = `listAttr -ud $wristSpaceOrient`;
+		string $weightRevNode = `shadingNode -asUtility reverse`;
+		connectAttr -f ( $limbControl +".ikBlend" ) ( $weightRevNode +".inputX" );
+		connectAttr -f ( $limbControl +".ikBlend" ) ( $wristSpaceOrient +"."+ $attribs[0] );
+		connectAttr -f ( $weightRevNode +".outputX" ) ( $wristSpaceOrient +"."+ $attribs[1] );
+		setAttr ( $wristSpaceOrient +".interpType" ) 2;
+
+
+	//------
+	//build expressions for fk blending and control visibility
+	//------
+		string $fkVisCond = `shadingNode -asUtility condition`;
+		string $poleVisCond = `shadingNode -asUtility condition`;
+		connectAttr -f ( $limbControl +".ikBlend" ) ( $fkVisCond +".firstTerm" );
+		connectAttr -f ( $limbControl +".ikBlend" ) ( $poleVisCond +".firstTerm" );
+		connectAttr -f ( $fkVisCond +".outColorR" ) ( $driverUpper +".v" );
+		connectAttr -f ( $poleVisCond +".outColorG" ) ( $poleControlSpace +".v" );
+		setAttr ( $fkVisCond +".secondTerm" ) 1;
+
+
+	//------
+	//add set pole to fk pos command to pole control
+	//------
+		string $fkControls[] = { $driverUpper, $driverMid, $driverLower };
+		int $poleConnectNums[3];
+
+		for( $n=0; $n<3; $n++ ) $poleConnectNums[$n] = `zooAddConnect $poleControl $fkControls[$n]`;
+		zooObjMenuAddCmdAll $poleControl "move to FK position" ( "{\nzooVectors;\nfloat $pos[] = `zooFindPolePosition \"-start %"+ $poleConnectNums[0] +" -mid %"+ $poleConnectNums[1] +" -end %"+ $poleConnectNums[2] +"\"`;\nmove -rpr $pos[0] $pos[1] $pos[2] #;\n}" );
+
+
+	//------
+	//add select all commands to each fk control
+	//------
+		int $cmdNums[] = {};
+		for( $n=0; $n<3; $n++ ) {
+			int $c1 = `zooAddConnect $fkControls[$n] $fkControls[(($n+1)%3 )]`;
+			int $c2 = `zooAddConnect $fkControls[$n] $fkControls[(($n+2)%3 )]`;
+			$cmdNums[$n] = `zooObjMenuAddCmdAll $fkControls[$n] "select all fk controls" ( "select #;\nselect -add %"+ $c1 +" %"+ $c2 +";" )`;
+			}
+
+
+	//------
+	//add trigger commands
+	//------
+		if( $triggers ) {
+			zooMakeTrigger $lineNode `zooPresetTriggerCmds -selectConnected` {$poleControl};
+			setAttr ( $lineNode +".displayHandle" ) 1;
+		}
+
+
+	//------
+	//turn unwanted transforms off, so that they are locked, and no longer keyable
+	//------
+		string $turnROff[] = { $poleControl };
+		string $turnSOff[] = { $limbControl, $poleControl, $driverUpper, $driverMid, $driverLower };
+
+		for( $obj in $fkControls ) zooAttrState "-attrs t radi -v 0 -k 0 -l 1" $obj;
+		for( $obj in $turnROff ) zooAttrState "-attrs r -k 0 -l 1" $obj;
+		for( $obj in $turnSOff ) zooAttrState "-attrs s -k 0 -l 1" $obj;
+		for( $obj in $turnSOff ) zooAttrState "-attrs v -k 0" $obj;
+		zooAttrState "-attrs pv off rol twi -k 0 -l 1" $limbControl;
+		zooAttrState "-attrs t r s v -k 0 -l 1" $wristOrient;
+
+
+	//------
+	//clean up - set minor attribs to tweak behaviour, and parent controls under parents where possible
+	//------
+		string $controllers[] = { $limbControl, $ikArmSpace, $fkArmSpace, $driverUpper, $driverMid, $driverLower, $wristOrient, $poleControl };
+		string $allNodes[] = `zooAddArray_str $controllers { $lineNode, $limbControlOrient, $wristOrientOffset, $poleControlSpace, $fkVisCond, $poleVisCond }`;
+
+		$allNodes = `zooAddArray_str $allNodes $utils`;
+		$allNodes = `zooAddArray_str $allNodes $bicepTwistGrps`;
+		$allNodes = `zooAddArray_str $allNodes $wristTwistGrps`;
+		if( `objExists $worldControl` ) {
+			parent $ikArmSpace $worldControl;
+			parent $fkArmSpace $worldControl;
+			parent $poleControlSpace $worldControl;
+			}
+		if( `objExists $partsControl` ) parent $lineNode $partsControl;
+
+
+	//------
+	//does the user want it built as a primitive?
+	//------
+		if( $asPrim ) {
+			string $primitive = `zooCSTCreatePrimRecord ikfk $id $prefix`;
+			zooCSTRegisterInput $bicep $primitive;
+			zooCSTRegisterInput $elbow $primitive;
+			zooCSTRegisterInput $wrist $primitive;
+			zooCSTPrimOutputs $allNodes $primitive;
+			zooCSTPrimOutputs $orgArmConstraints $primitive;
+			zooBrandObject options ( $optionStr +" -parity "+ $parity ) $primitive;
+			zooBrandObject version "1" $primitive;
+			for( $obj in $controllers ) zooCSTRegisterControl $obj $primitive;
+			}
+
+	return $allNodes;
+	}
+
+
+/*
+$prefix - standard character prefix (all controls built by this proc are prefixed with this string
+$parity - which side of the character are the controls on?  l or r
+$bicep - the bicep, upper arm, or humerous
+$elbow - the elbow or forearm.  ie where the limb bends
+$wrist - the wrist/hand joint
+$optionStr - standard option string - see flag docs for info on option strings
+
+option flags
+-------
+-id [string]			requires a unique id number (usually found using the zooCSTGetPrimId command)
+-scale [float]		scale factor to apply to the control (purely a visual thing - scale is frozen).  default: 1
+-curve [int]			1 or 0 specifies whether to create the control as a curve or not.  default: 0
+-triggers [int]		turn this off if you don't want the script to build trigger selection objects for the pole vector
+
+controller names are returned.  the $controller variable is the object attribs are added to, $controlParent is the object the ikfk controls are parentConstrained to, and $limbControl is so it knows whcih ikHandle to control
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

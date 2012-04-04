@@ -1,0 +1,32 @@
+global proc zooToggle( string $what ) {
+	string $cp = `getPanel -up`;
+	if( $cp == "" ) $cp = `getPanel -wf`;
+	if( $cp != "" ) {
+		string $type = `getPanel -typeOf $cp`;
+		if( $type != "modelPanel" ) return;
+
+		switch( $what ) {
+			case "shading":
+				string $app = `modelEditor -q -displayAppearance $cp`;
+				if( $app == "wireframe" ) modelEditor -e -displayAppearance "smoothShaded" $cp;
+				else if ( $app == "smoothShaded" ) modelEditor -e -displayAppearance "wireframe" $cp;
+				break;
+
+			case "texturing":
+				int $tex = `modelEditor -q -displayTextures $cp`;
+				if( $tex ) modelEditor -e -displayTextures 0 $cp;
+				else modelEditor -e -displayTextures 1 $cp;
+				break;
+
+			case "lighting":
+				string $lit = `modelEditor -q -displayLights $cp`;
+				if( $lit == "default" ) modelEditor -e -displayLights "all" $cp;
+				else if ( $lit == "all" ) modelEditor -e -displayLights "selected" $cp;
+				else modelEditor -e -displayLights "default" $cp;
+				break;
+			}
+		}
+	}
+
+
+//zoo.end

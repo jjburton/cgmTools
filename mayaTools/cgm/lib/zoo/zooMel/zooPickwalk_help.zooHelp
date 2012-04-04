@@ -1,0 +1,44 @@
+Overview
+--------
+Pickwalking allows you to navigate a character's rig heirarchy by using simple up, down, left, right commands which can be bound to hotkeys.  Of course, no two rigs are ever created equally, so a solid pickwalking system needs to take into account broken heirarchies, highly nested heirarchies etc...
+
+dnaPickWalk creates connections between objects to define the direction of a pickwalk.  So just because object B is lower than object A in the heirarchy, doesn't mean object B has to be the down pickwalk item for object A.  Hell, it doesn't even need to be in the same heirarchy.
+
+Simple Authoring Mode
+--------
+As it says, this way of authoring is dead easy.  Basically you just select the objects you want to add pickwalking to, and go to Authoring->simple author.  This will create up/down pickwalking on the objects you selected in the order you selected them.
+
+So to add pickwalking to a spine for example, you would select the bottom most control (like the base of the spine) and select the controls in order in the direction of the chest.  Then do the simple author and you're done.  It would setup an up down pickwalk between each selected object.
+
+
+More Complex Authoring
+--------
+Well its not really complex.  Its still pretty easy, its just not quite as easy.  So why use it?  Well it allows more powerful pickwalking.  It lets you author pickwalk branching - so for example you can branch from the chest over to one of the arms for example, you'd need to use this method of pickwalk authoring.
+
+So to add pickwalking to an object using this method first select the object you want to add pickwalking to, and in the window press the "load" button.  This will load the object into the UI.  You should see the text of the button change to capital letters - which reflects the fact that an object is loaded into that button.  It will also tell you which object is loaded at the top of the window.
+
+When you load an object the UI reflects which directions have pickwalking applied to them.  Each button represents a direction up, down, left or right.  So to add a pickwalk in a direction, simply select the object in the viewport, and press the corresponding button.  When you do this, you should see the letters of the button turn to capitals to reflect that the direction is taken up.
+
+Now the power of this method comes from the itty bitty checkbox at the bottom of the window that says "reciprocal".  The reciprocal checkbox makes any pickwalk you set up happen in both directions.  It makes the walk a "reciprocal" walk.  So if you have two objects, A and B.  You load A up into the author pickwalk window, and make object B the up walk object.  If you have reciprocal turned on, then object A becomes the down walk object for B.
+
+So just because object B is the up object of A doesn't mean object A has to be the down walk object for B.
+
+This means that you can do heirarchy branching.  Just say you've setup up/down pickwalking on your spine.  Now perhaps when you get to the chest, pressing the left walk hotkey will take you to the left arm fk controls.  But when you're on the arm, you want to press up and down to navigate the arm heirarchy.  So when you get to the shoulder, the up walk takes you to the chest.
+
+So the chest has left to go to the left shoulder, but the shoulder has the up walk to go to the chest.  This is the power of non-reciprocal pickwalking.
+
+
+Iterface Niceties
+--------
+All the buttons in the UI have right click menus on them to help you navigate around.  If you're "slow" authoring some pickwalks, one nice addition is the "author up object" menu item.  Just say you've added an up pickwalk object to something and you're done adding targets to that object.  You can right click on any direction button, choose the "author left object" (or up, right, down) and the script will automatically load the object in that pickwalk direction into the UI.  Its pretty simple, but a slightly easier way to get around when authoring pickwalking.
+
+
+DNA Pipeline Usage
+--------
+So the way this script is supposed to work is like this.  Pickwalking is authored on to a character's triggers.  So pickwalking data is stored with the trigger data.  This is done for a few reasons.  First: it means people don't have to learn/remember to import yet another thing (ISO sets and triggers are already too many things in my opinion) and Second: if the rig mover names change, then we can just change that in one centralised place - on the triggers - and it gets reflected automatically in the pickwalking.
+
+I guess Third: because I'm lazy and didn't want to implement another import/export system.  Coz they're hard.
+
+So anyway, if you want to author your own pickwalks, the ideal way to do it is by doing it on the triggers for the character.  So to do this you first need to turn the triggers script off.  This is done by unchecking the "Status" checkbox in the triggers window.  This will allow you to actually pick the triggers.
+
+So then just add pickwalking to the triggers as if you would anytihng else.  Then you can export the triggers if you want - the pickwalking data automatically gets saved out as well.  Then once you're done authoring pickwalking on the triggers, go to Authoring->transfer trigger walking to MOVERS.  This will take the pickwalking data from the triggers and copy it on to the actual character rig.  And thats it.  Simple really.

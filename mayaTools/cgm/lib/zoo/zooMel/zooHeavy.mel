@@ -1,0 +1,120 @@
+zooHeavyUtils;
+zooUtils;
+zooSurgeonUtils;
+
+
+global proc zooHeavy() {
+	string $windowName = "zooHeavyUI";
+	string $windowTitle = "zooHeavy  v1.06.11  ::macaroniKazoo::";
+
+	if( `window -ex $windowName` ) return;
+	window -title $windowTitle -rtf 1 -maximizeButton 0 -sizeable 1 -wh 300 165 $windowName;
+		menuBarLayout;
+			menu -label "Utils";
+				menuItem -l "Weights to Other" -ann "select the source joint, and then the target joint.  this will transfer all the weight from the source to the target joint" -c( "{string $sel[] = `ls -type transform -sl`; string $last = `zooGetElement_str -1 $sel`; if( `size $sel`>1 ) for( $n=0; $n<`size $sel`-1; $n++ ) zooWeightsToOther $sel[$n] (\"-other \"+ $last);}" );
+				menuItem -d 1;
+				menuItem -l "Weights to Parent" -ann "transfer weights from all selected joints to their respective parents" -c( "{string $sel[] = `ls -type transform -sl`; for( $s in $sel ) zooWeightsToOther $s \"\";}" );
+				menuItem -l "Weights to Parent on ALL" -ann "this will transfer weight from all joints named zooWeight_holder_* to their respective parent joints" -c( "zooAllWeightsToParents;" );
+				menuItem -d 1;
+				menuItem -l "Select Joints in Stored Weights" -c( "{string $sel[] = `ls -sl -tr`; string $toSel[] = {}; for( $a in $sel ) { string $existing[] = {}; zooGetJointsFromStored $a {} $existing {} {}; $toSel = `zooAddArray_str $toSel $existing`; } if( size(`ls -hl`)) zooGetJointsFromStoredVerts `ls -sl` {} $toSel {} {}; select $toSel; }" );
+				menuItem -l "Select Joints Used by Skin" -c( "{string $sel[] = `ls -o -sl`; select -cl; for( $s in $sel ) select -add `skinCluster -q -inf (findRelatedSkinCluster($s))`;}" );
+				menuItem -l "Select Verts Affected by Joints" -ann "selects the verticies affected by the selected joints" -c( "zooSurgeonUtils; { string $verts[] = {}; for( $s in `ls -type transform -sl` ) { string $temp[] = {}; zooGetJointVerts $s 0.0000000000001 {} {} $temp {} {}; $verts = `zooAddArray_str $verts $temp`;} select $verts; }" );
+				menuItem -d 1;
+				menuItem -l "Turn LIW On" -c( "{string $joints[] = `ls -type joint`;for( $j in $joints ) if( `objExists ( $j +\".liw\" )`) setAttr ( $j +\".liw\" ) 1;};" );
+				menuItem -l "Turn LIW Off" -c( "{string $joints[] = `ls -type joint`;for( $j in $joints ) if( `objExists ( $j +\".liw\" )`) setAttr ( $j +\".liw\" ) 0;};" );
+			menu -label "Help";
+				menuItem -l "Help..." -c ( "zooHelp zooHeavy 1;" );
+				menuItem -d 1;
+				menuItem -l "Setup Heavy Marking Menu" -c ( "zooHotkeyer heavyMM \"zooHeavyMenu;\" \"zooHeavyKillUI;\" \"-enableMods 0 -ann the zooHeavy marking menu to make interacting with the heavy weighting tools more streamlined -default h\";" );
+
+		string $form = `formLayout`;
+			string $tslJ = `textScrollList -ams 1 zooHeavyTSLJoints`;
+			string $tslV = `textScrollList -ams 1 zooHeavyTSLVerts`;
+			string $go = `button -l "lerp" -c( "zooHeavyFunctions -lerp;" )`;
+
+	textScrollList -e -dcc( "{select -cl; for( $a in `textScrollList -q -si "+ $tslJ +"` ) if( `objExists $a` ) select -add $a;}" ) $tslJ;
+	textScrollList -e -dcc( "{select -cl; for( $a in `textScrollList -q -si "+ $tslV +"` ) if( `objExists $a` ) select -add $a;}" ) $tslV;
+
+	popupMenu -p $tslJ -pmc( "zooHeavyPopupJointTSL zooHeavyPopupTSLJPup" ) zooHeavyPopupTSLJPup;
+	popupMenu -p $tslV -pmc( "zooHeavyPopupVertTSL zooHeavyPopupTSLVPup" ) zooHeavyPopupTSLVPup;
+
+	formLayout -e
+		-af $tslJ "top" 0
+		-af $tslJ "left" 0
+		-ap $tslJ "right" 1 50
+		-ac $tslJ "bottom" 2 $go
+
+		-af $tslV "top" 0
+		-ap $tslV "left" 1 50
+		-af $tslV "right" 0
+		-ac $tslV "bottom" 2 $go
+
+		-af $go "left" 0
+		-af $go "right" 0
+		-af $go "bottom" 0
+		$form;
+
+	showWindow $windowName;
+	window -e -wh 300 165 $windowName;
+	}
+
+
+global proc zooHeavyFunctions( string $function ) {
+	string $tslJName = "zooHeavyTSLJoints";
+	string $tslVName = "zooHeavyTSLVerts";
+
+	switch( $function ) {
+		case "-lerp":
+			string $joints[] = `textScrollList -q -ai $tslJName`;
+			string $verts[] = `textScrollList -q -ai $tslVName`;
+
+			if( !`size $joints` ) $joints = `ls -type joint -sl`;
+			if( !`size $verts` ) $verts = `ls -fl -sl`;
+			zooLerpWeights $joints $verts;
+			break;
+		}
+	}
+
+
+global proc zooHeavyPopupJointTSL( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $tslName = "zooHeavyTSLJoints";
+	string $selJ[] = `ls -sl -type transform`;
+	int $en = `size $selJ`;
+
+	menuItem -en $en -l "add joints to list" -c( "{for( $a in `ls -type transform -sl`) textScrollList -e -a $a "+ $tslName +";}" );
+	menuItem -en $en -l "replace joints with selected" -c( "{textScrollList -e -ra "+ $tslName +"; for( $a in `ls -type transform -sl`) textScrollList -e -a $a "+ $tslName +";}" );
+	menuItem -l "remove highlighted" -c( "{for( $a in `textScrollList -q -si "+ $tslName +"`) textScrollList -e -ri $a "+ $tslName +";}" );
+	menuItem -d 1;
+	menuItem -l "select highlighted" -c( "{select -cl; for( $a in `textScrollList -q -si "+ $tslName +"` ) if( `objExists $a` ) select -add $a;}" );
+	menuItem -l "select all" -c( "{select -cl; for( $a in `textScrollList -q -ai "+ $tslName +"` ) if( `objExists $a` ) select -add $a;}" );
+	menuItem -l "highlight none" -c( "textScrollList -e -da "+ $tslName +";" );
+	menuItem -d 1;
+	menuItem -l "clear all" -c( "textScrollList -e -ra "+ $tslName +";" );
+	}
+
+
+global proc zooHeavyPopupVertTSL( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $tslName = "zooHeavyTSLVerts";
+	string $verts[] = zooFilterComponent(`ls -sl`,"vtx");
+	int $en = `size $verts`;
+
+	menuItem -en $en -l "add verts to list" -c( "{for( $a in zooFilterComponent(`ls -fl -sl`,\"vtx\")) textScrollList -e -a $a "+ $tslName +";}" );
+	menuItem -en $en -l "replace verts with selected" -c( "{textScrollList -e -ra "+ $tslName +"; for( $a in zooFilterComponent(`ls -fl -sl`,\"vtx\")) textScrollList -e -a $a "+ $tslName +";}" );
+	menuItem -l "remove highlighted" -c( "{for( $a in `textScrollList -q -si "+ $tslName +"`) textScrollList -e -ri $a "+ $tslName +";}" );
+	menuItem -d 1;
+	menuItem -l "select highlighted" -c( "{select -cl; for( $a in `textScrollList -q -si "+ $tslName +"` ) if( `objExists $a` ) select -add $a;}" );
+	menuItem -l "select all" -c( "{select -cl; for( $a in `textScrollList -q -ai "+ $tslName +"` ) if( `objExists $a` ) select -add $a;}" );
+	menuItem -l "highlight none" -c( "textScrollList -e -da "+ $tslName +";" );
+	menuItem -d 1;
+	menuItem -l "clear all" -c( "textScrollList -e -ra "+ $tslName +";" );
+	}
+
+
+//zoo.end
+//macaroniKazoo ©2007

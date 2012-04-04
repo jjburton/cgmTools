@@ -1,0 +1,126 @@
+zooArrays_float;
+zooArrays_str;
+zooFlags;
+zooUtils;
+zooVectors;
+zooSurgeonUtils;
+
+
+global proc zooHeavyUtils() {
+	return;
+	}
+
+
+global proc zooLerpWeights( string $joints[], string $verts[] ) {
+	string $obj = `match "^[^.]+" $verts[0]`;
+	string $cluster = `findRelatedSkinCluster $obj`;
+	float $jPosX[] = {};
+	float $jPosY[] = {};
+	float $jPosZ[] = {};
+	int $numJ = `size $joints`;
+	int $numV = `size $verts`;
+
+	if( !`objExists $obj` ) { warning "can't dermine the object to work on!"; return; }
+	if( !`objExists $cluster` ) { warning "can't find a skin cluster to work on!"; return; }
+
+	//make sure both joints are actually in the skin cluster - if not, add them
+	string $inf[] = `skinCluster -q -inf $cluster`;
+	for( $n=0; $n<`size $joints`; $n++ ) {
+		int $idx = `zooGetIdxOfElement_str $inf $joints[$n]`;
+		if( $idx == -1 ) skinCluster -e -ai $joints[$n] -wt 0 $cluster;
+		}
+
+	for( $j=0; $j<$numJ; $j++ ) {
+		float $pos[] = `xform -q -ws -rp $joints[$j]`;
+		$jPosX[$j] = $pos[0];
+		$jPosY[$j] = $pos[1];
+		$jPosZ[$j] = $pos[2];
+		}
+	for( $v=0; $v<$numV; $v++ ) {
+		float $pos[] = `pointPosition $verts[$v]`;
+		float $jDists[] = {};
+		float $jWeights[] = {};
+		float $totalDist = 0;
+
+		for( $j=0; $j<$numJ; $j++ ) $jDists[$j] = `zooVectorMag { ($pos[0]-$jPosX[$j]),($pos[1]-$jPosY[$j]),($pos[2]-$jPosZ[$j]) }`;
+		for( $j=0; $j<$numJ; $j++ ) $totalDist += $jDists[$j];
+		for( $j=0; $j<$numJ; $j++ ) {
+			if( $jDists[$j]<0.00000001 ) $jDists[$j] = 0.00000001;
+			$jWeights[$j] = $totalDist/$jDists[$j];
+			}
+		$jWeights = `zooNormaliseArraySum $jWeights 1`;
+
+		for( $j=0; $j<$numJ; $j++ ) print( ($jDists[$j]/$totalDist) +"\n");
+		string $weightStr = "skinPercent ";
+		for( $j=0; $j<$numJ; $j++ ) $weightStr += "-tv "+ $joints[$j] +" "+ $jWeights[$j] +" ";
+		$weightStr += $cluster +" "+ $verts[$v] +";";
+		eval $weightStr;
+		}
+	}
+
+
+global proc zooAllWeightsToParents() {
+	string $transferJoints[] = ls( "-type","joint",`ls -r 1 "zooWeight_holder_*"`);
+	print $transferJoints;
+	for( $j in $transferJoints ) zooWeightsToOther $j "-delete 1";
+	}
+
+
+//transfers all weighting data from a given joint to its parent
+global proc zooWeightsToOther( string $joint, string $optionStr ) {
+	string $temp[] = {};
+	string $other = zooGetElement_str(0,`listRelatives -pa -p $joint`);  //defaults to parent
+	int $deleteAfter = 0;
+
+	$temp = `zooGetFlagArguments $optionStr delete`; if( `size $temp` ) $deleteAfter = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr other`; if( `size $temp` ) $other = $temp[0];
+	if( !`objExists $other` ) { warning( $other +" doesn't exist - bailing" ); return; }
+
+	string $meshes[] = {};
+	string $skins[] = {};
+	string $verts[] = {};
+	float $weights[] = {};
+	float $tol = 0.00000001;
+	int $vertIdxs[] = {};
+
+	zooGetJointVerts $joint $tol $meshes $skins $verts $vertIdxs $weights;
+
+	//make sure the other is actually in the skin cluster for all the meshes
+	//attached to the given joint
+	for( $n=0; $n<`size $meshes`; $n++ ) {
+		string $inf[] = `skinCluster -q -inf $skins[$n]`;
+		int $idx = `zooGetIdxOfElement_str $inf $other`;
+
+		if( $idx == -1 ) skinCluster -e -ibp -ai $other $skins[$n];
+		if( $idx == -1 ) print "wasn't in skin cluster\n";
+		}
+
+	//now go through all the verts, grab their weights and add them to the other
+	for( $n=0; $n<`size $verts`; $n++ ) {
+		string $joints[] = `skinPercent -ib $tol -q -t $skins[$n] $verts[$n]`;
+		float $values[] = `skinPercent -ib $tol -q -v $skins[$n] $verts[$n]`;
+		int $otherIdx = `zooGetIdxOfElement_str $joints $other`;
+		int $jointIdx = `zooGetIdxOfElement_str $joints $joint`;
+
+		if( $otherIdx == -1 ) {
+			$otherIdx = `size $joints`;
+			$joints[$otherIdx] = $other;
+			$values[$otherIdx] = 0;
+			}
+		if( $jointIdx == -1 ) { warning( "joint not in skinCluster "+ $skins[$n] ); continue; }
+		$values[$otherIdx] += $values[$jointIdx];
+		$values[$jointIdx] = 0;
+		string $newWeightCmd = "skinPercent ";
+		for( $i=0; $i<`size $joints`; $i++ ) $newWeightCmd += "-tv "+ $joints[$i] +" "+ $values[$i] +" ";
+		$newWeightCmd += $skins[$n] +" "+ $verts[$n] +";";
+		print( $newWeightCmd +"\n" );
+		eval $newWeightCmd;
+		}
+
+	string $uniqueSkins[] = `stringArrayRemoveDuplicates $skins`;
+	for( $n=0; $n<`size $uniqueSkins`; $n++ ) skinCluster -e -ri $joint $uniqueSkins[$n];
+	if( $deleteAfter ) delete $joint;
+	}
+
+
+//zoo.end

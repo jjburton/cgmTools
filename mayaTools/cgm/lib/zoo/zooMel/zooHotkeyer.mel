@@ -1,0 +1,128 @@
+//this script creates a UI to install arbitrary hotkeys easily from a single line
+//script.  It will setup both simple hotkeys and press/release hotkeys for marking
+//menu based scripts
+//
+//the $optionStr variable takes the following flags:
+// -ann [str]				the annotation to go along with the hotkey - tihs comes up as the description in the hotkey editor
+// -enableMods [int]		a boolean to determine whether the ctrl/alt modifiers should be enabled
+// -default [str]			the default hotkey - this value is displayed when the UI is first opened
+// -locked [int]			if you don't want the user to be able to modify the default hotkey, set locked to true
+// -ctrl [int]				is the ctrl mod set by default?
+// -alt [int]				is the alt mod set by default?
+
+
+zooArrays_str;
+zooFlags;
+
+
+global proc zooHotkeyer( string $name, string $pressCmd, string $releaseCmd, string $optionStr ) {
+	string $temp[] = {};
+	string $default = "";
+	string $ann = "default";
+	int $enableMods = 1;
+	int $locked = 0;
+	int $alt = 0;
+	int $ctrl = 0;
+
+	$temp = `zooGetFlagArguments $optionStr "ann"`; if( `size $temp` ) $ann = `zooArrayToStr_str $temp " "`;
+	$temp = `zooGetFlagArguments $optionStr "default"`; if( `size $temp` ) $default = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr "enableMods"`; if( `size $temp` ) $enableMods = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr "alt"`; if( `size $temp` ) $alt = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr "ctrl"`; if( `size $temp` ) $ctrl = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr "locked"`; if( `size $temp` ) $locked = $temp[0];
+
+	string $windowName = "zooHotkeyerWindow";
+	string $windowTitle = "hotkey for "+ $name;
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -sizeable 1 $windowName;
+		string $form = `formLayout -docTag $name isoHotkeysUIForm`;
+			string $lbl = `text -l "hotkey:" -docTag $ann`;
+			string $key = `textField -en( !$locked ) -tx $default`;
+			string $ctrlUI = `checkBox -en $enableMods -l "ctrl" -v $ctrl -docTag $pressCmd`;
+			string $altUI = `checkBox -en $enableMods -l "alt" -v $alt -docTag $releaseCmd`;
+			string $go = `button -l "setup hotkeys" -c( "zooHotkeyerGO; deleteUI "+ $windowName )`;
+		setParent ..;
+
+	formLayout -e
+		-af $lbl "top" 3
+		-af $lbl "left" 0
+		-an $lbl "right"
+		-an $lbl "bottom"
+
+		-af $key "top" 0
+		-ac $key "left" 5 $lbl
+		-af $key "right" 0
+		-an $key "bottom"
+
+		-ac $ctrlUI "top" 3 $key
+		-af $ctrlUI "left" 0
+		-ap $ctrlUI "right" 0 50
+		-an $ctrlUI "bottom"
+
+		-ac $altUI "top" 3 $key
+		-ap $altUI "left" 0 50
+		-af $altUI "right" 0
+		-an $altUI "bottom"
+
+		-ac $go "top" 0 $altUI
+		-af $go "left" 0
+		-af $go "right" 0
+		-an $go "bottom"
+		$form;
+
+	window -e -width 135 -height 90 $windowName;
+	showWindow $windowName;
+	}
+
+
+//take the data from the UI, build the data for the hotkey and register it
+global proc zooHotkeyerGO() {
+	string $UIs[] = `formLayout -q -ca isoHotkeysUIForm`;
+	string $name = `formLayout -q -docTag isoHotkeysUIForm`;
+	string $ann = `text -q -docTag $UIs[0]`;
+	string $hotkey = `textField -q -tx $UIs[1]`;
+	string $pressCmd = `checkBox -q -docTag $UIs[2]`;
+	string $releaseCmd = `checkBox -q -docTag $UIs[3]`;
+	int $enableRelease = 1;
+	int $ctrl = `checkBox -q -v $UIs[2]`;
+	int $alt = `checkBox -q -v $UIs[3]`;
+
+	if( $hotkey == "" ) error "no hotkey was specified - please choose a key";
+	if( $releaseCmd == "" ) $enableRelease = 0;
+
+	//create runTimeCommand commands
+	string $rtName = $name +"_zooHotkeyPrs";
+	string $rtRelName = $name +"_zooHotkeyRel";
+	if( `runTimeCommand -q -ex $rtName` ) runTimeCommand -e -del $rtName;
+	if( `runTimeCommand -q -ex $rtRelName` ) runTimeCommand -e -del $rtRelName;
+	runTimeCommand -ann $ann -cat User -c $pressCmd $rtName;
+	if( $enableRelease ) runTimeCommand -ann( "release cmd for "+ $name ) -cat User -c $releaseCmd $rtRelName;
+
+	print "-------------hotkey setup commands-------------\n";
+	print( "runTimeCommand -ann \""+ $ann +"\" -cat User -c \""+ $pressCmd +"\" "+ $rtName +";\n" );
+	print( "runTimeCommand -ann \"release cmd for "+ $name +"\" -cat User -c \""+ $releaseCmd +"\" "+ $rtRelName +";\n" );
+
+	//now create the nameCommands
+	string $ncName = $name +"Prs";
+	string $ncRelName = $name +"Rel";
+	nameCommand -ann $ann -c $rtName $ncName;
+	if( $enableRelease ) nameCommand -ann( "release cmd for "+ $name ) -c $rtRelName $ncRelName;
+
+	print( "nameCommand -ann \""+ $ann +"\" -c \""+ $rtName +"\" "+ $ncName +";\n" );
+	print( "nameCommand -ann \"release cmd for "+ $name +"\" -c \""+ $rtRelName +"\" "+ $ncRelName +";\n" );
+
+	//lastly bind the name commands to a hotkey
+	string $eval = "hotkey -keyShortcut \""+ $hotkey +"\"";
+
+	if( $ctrl ) $eval += " -ctl";
+	if( $alt ) $eval += " -alt";
+	$eval = $eval +" -name \""+ $ncName +"\"";
+	if( $enableRelease ) $eval += " -releaseName \""+ $ncRelName +"\"";
+	$eval += ";";
+	print( $eval +"\n-------------end hotkey setup commands-------------\n" );
+	eval $eval;
+	}
+
+
+//zoo.end

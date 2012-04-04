@@ -1,0 +1,302 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooCSTPrimitives;
+zooSpaceSwitching;
+zooRenamerUtils;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildPrimFinger( string $prefix, string $parity, string $base, string $optionStr ) {
+	$optionStr = "."+ $optionStr;
+	echoRigElementCreationCommand ( "zooCSTBuildPrimFinger \""+ $prefix +"\" "+ $parity +" "+ $base +" \""+ $optionStr +"\";" );
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+		string $optionTemp[] = {};
+		string $name = "index";
+		string $control = "";
+		string $wrist = zooGetElement_str(0,`listRelatives -p $base`);
+		string $axis = "";
+		string $colour = "orange 0.65";
+		float $scale = 1;
+		int $pickwalking = 1;
+		int $num = 0;
+		int $invert = 1;
+		int $sliders = 1;
+		int $triggers = 1;
+		int $stretch = 0;
+
+		$optionTemp = `zooGetFlagArguments $optionStr name`; if( `size $optionTemp` ) $name = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr num`; if( `size $optionTemp` ) $num = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr axis`; if( `size $optionTemp` ) $axis = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr invert`; if( $optionTemp[0] == "1" ) $invert = -1;
+		$optionTemp = `zooGetFlagArguments $optionStr sliders`; if( `size $optionTemp` ) $sliders = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr triggers`; if( `size $optionTemp` ) $triggers = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr stretch`; if( `size $optionTemp` ) $stretch = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr colour`; if( `size $optionTemp` ) $colour = `zooArrayToStr_str $optionTemp " "`;
+		$optionTemp = `zooGetFlagArguments $optionStr wrist`; if( `size $optionTemp` && `objExists $optionTemp[0]` ) $wrist = $optionTemp[0];
+		$optionTemp = `zooGetFlagArguments $optionStr control`; if( `size $optionTemp` && `objExists $optionTemp[0]` ) $control = $optionTemp[0];
+		$scale *= 0.5;  //manually modify the user scale, as fingers are generally small
+
+
+	//------
+	//always build the world first - the world creation proc only builds the world once for any given prefix, so a world control is never created more than once
+	//------
+		string $suffix = ( $parity == "r" )?"_R":"_L";
+		string $id = `zooCSTGetPrimId finger $parity $prefix`;
+		string $worldParts[] = `zooCSTBuildWorld $prefix $optionStr`;
+
+		string $controlObj = zooGetElement_str(0,`zooGetBrandedWithList { "name", "arm" } { $prefix, $suffix }`);
+		string $prim = "";
+		string $wristFromPrim = "";
+		if( `objExists $controlObj` ) $prim = zooGetElement_str(0,`listConnections -d 0 -type time $controlObj`);
+		if( `objExists $prim` ) $wristFromPrim = zooGetElement_str(2,`zooCSTListAllPrimInputs $prim`);
+		if( !`objExists $control` && `objExists $controlObj` ) $control = $controlObj;
+		if( !`objExists $wrist` && `objExists $wristFromPrim` ) $wrist = $wristFromPrim;
+
+
+	//------
+	//discover the other parts of the rig already built
+	//------
+		string $worldControl = $worldParts[0];
+		string $partsControl = $worldParts[1];
+		string $masterqss = $worldParts[2];
+		string $qss = $worldParts[3];
+		string $fingerGrp = zooGetElement_str( 0,`zooGetBrandedWithList { "fingers", "parity" } { $prefix, $parity }` );
+		string $fingerTrig = zooGetElement_str( 0,`zooGetBrandedWithList { "fingersSel", "parity" } { $prefix, $parity }` );
+
+
+	//------
+	//discover the list of joint names in the finger
+	//------
+		string $joints[] = `listRelatives -ad -type transform -type joint -pa $base`;
+		$joints = `zooAddArray_str $joints { $base }`;
+		$joints = `zooReverseArray_str $joints`;
+
+		if( !$num ) $num = `size $joints`;  //if $num is zero, then its implied that all child joints of the base joint are finger joints
+
+
+	//------
+	//build the controls
+	//------
+		if( !`objExists $fingerGrp` ) {
+			$fingerGrp = `zooBuildControl ( "fingers_grp"+ $suffix ) ( "-type null -place "+ $wrist )`;
+			delete `orientConstraint $wrist $fingerGrp`;
+			zooBrandObject fingers $prefix $fingerGrp;  //the s on the fingers brand is deliberate
+			zooBrandObject parity $parity $fingerGrp;
+			}
+
+		string $jointSpaces[] = {};
+		string $jointCtrls[] = {};
+		string $jointConstraints[] = {};
+		for( $n=0; $n<$num; $n++ ) {
+			$jointCtrls[$n] = `zooBuildControl ( ""+ $name +"Control"+ $suffix ) ( "-type sphere -place "+ $joints[$n] +" -scale "+ $scale +" -colour "+ $colour )`;
+			$jointSpaces[$n] = `zooCSTOrient2Obj $joints[$n] $jointCtrls[$n]`;
+			if( $n ) parent $jointSpaces[$n] $jointCtrls[( $n-1 )];
+			$jointConstraints = zooAddArray_str( `parentConstraint $jointCtrls[$n] $joints[$n]`, $jointConstraints );
+			zooAttrState "-attrs t s -k 0 -l 1" $jointCtrls[$n];
+			zooAttrState "-attrs v -k 0" $jointCtrls[$n];
+			}
+
+		parent $jointSpaces[0] $fingerGrp;
+		if( !(size(`listRelatives -p $fingerGrp`))) parent $fingerGrp $partsControl;
+		parentConstraint -mo $wrist $fingerGrp;
+
+
+	//------
+	//discover the axis the joint rotates on - this is almost always normal to the plane that goes through the wrist and the base
+	//except on characters with really really wide hands
+	//------
+		float $baseUp[] = `zooAxisInDirection $base {0.,1.,0.}`;
+		float $palmPlane[] = `zooBetweenVector $wrist $base`;
+		float $normal[] = `crossProduct $baseUp $palmPlane 1 1`;
+		string $axisStrs[] = {};  //this array holds the axis string saying which axis the finger joint is to rotate around
+
+		for( $n=0; $n<$num; $n++ ) $axisStrs[$n] = `zooCSTUpVector $joints[$n] $normal`;
+
+
+	//------
+	//write the SDKs if required
+	//------
+		if( $sliders ) {
+			string $driverAttr = $name +"Curl";
+			if( !`objExists ( $control +"."+ $driverAttr )` ) addAttr -ln $driverAttr -k 1 -at double -min -10 -max 10 -dv 0 $control;
+			setAttr ( $control +"."+ $driverAttr ) 0;
+			for( $n=0; $n<$num; $n++ ) {
+				string $attrName = ( "r"+ `zooCSTVectorAsName $axisStrs[$n]` );
+				if( $axis != "" ) $attrName = "r"+ $axis;
+				setDrivenKeyframe -at $attrName -cd( $control +"."+ $driverAttr ) $jointSpaces[$n];
+				}
+
+			setAttr ( $control +"."+ $driverAttr ) 10;
+			for( $n=0; $n<$num; $n++ ) {
+				string $attrName = ( "r"+ `zooCSTVectorAsName $axisStrs[$n]` );
+				if( $axis != "" ) $attrName = "r"+ $axis;
+				setAttr ( $jointSpaces[$n] +"."+ $attrName ) ( 90*$invert );
+				setDrivenKeyframe -at $attrName -cd( $control +"."+ $driverAttr ) $jointSpaces[$n];
+				}
+
+			setAttr ( $control +"."+ $driverAttr ) -10;
+			for( $n=0; $n<$num; $n++ ) {
+				string $attrName = ( "r"+ `zooCSTVectorAsName $axisStrs[$n]` );
+				if( $axis != "" ) $attrName = "r"+ $axis;
+				setAttr ( $jointSpaces[$n] +"."+ $attrName ) ( -90*$invert );
+				setDrivenKeyframe -at $attrName -cd( $control +"."+ $driverAttr ) $jointSpaces[$n];
+				}
+
+			setAttr ( $control +"."+ $name +"Curl" ) 0;
+			}
+
+
+	//------
+	//build pickwalking if required
+	//------
+		if( $pickwalking ) {
+			zooPickwalk "-load";
+			for( $n=0; $n<`size $jointCtrls`-1; $n++ ) zooSetPickwalkObj $jointCtrls[$n] $jointCtrls[( $n+1 )] "-dir down -reciprocal 1";
+			zooSetPickwalkObj $jointCtrls[0] $controlObj "-dir up -reciprocal 1";
+			}
+
+
+	//------
+	//add a zooObjMenu command to toggle finger control vis, and select them
+	//------
+		if( `objExists $control` ) {
+			int $tglCmdExists = 0;
+			int $cmd1Num;
+			int $cmd2Num;
+			int $connectNum = `zooAddConnect $control $fingerGrp`;
+			for( $a in `zooObjMenuListCmds $control` ) if( `zooGetObjMenuCmdName $control $a` == "hide/show fingers" ) $tglCmdExists = 1;
+			if( !$tglCmdExists ) {
+				$cmd1Num = `zooObjMenuAddCmd $control`;
+				$cmd2Num = `zooObjMenuAddCmd $control`;
+				zooSetObjMenuCmdName $control "hide/show fingers" $cmd1Num;
+				zooSetObjMenuCmdName $control "select all fingers" $cmd2Num;
+				zooSetObjMenuCmdStr $control ( "{\nint $vis = !`getAttr %"+ $connectNum +".v`;\nsetAttr %"+ $connectNum +".v $vis;\n}" ) $cmd1Num;
+				zooSetObjMenuCmdStr $control ( "{\nstring $allKids[] = `listRelatives -pa -ad %"+ $connectNum +"`;\nstring $c[] = {};\nfor( $n=0; $n<`size $allKids`; $n++ ) {\n\tstring $shapes[] = `listRelatives -s $allKids[$n]`;\n\tif( `size $shapes` ) $c[( `size $c` )] = $allKids[$n];\n\t}\nselect $c;\n}" ) $cmd2Num;
+				}
+			}
+
+
+	//------
+	//build triggers if the user wants them
+	//------
+		if( $triggers ) {
+			if( !`objExists $fingerTrig` ) {
+				string $paritySign = "-";
+				if( $parity == "r" ) $paritySign = "";
+				$fingerTrig = `zooBuildControl ( "fingers_select_trigger"+ $suffix ) ( "-type arrow -place "+ $wrist +" -offset -3.5fwd -scale "+ (0.5*$scale) +" -colour "+ $colour )`;
+				zooBrandObject fingersSel $prefix $fingerTrig;
+				zooBrandObject parity $parity $fingerTrig;
+				parent $fingerTrig $fingerGrp;
+				select -cl;
+				string $shapes[] = `listRelatives -s $fingerTrig`;
+				for( $shape in $shapes ) {
+					int $num = `getAttr -s ( $shape +".controlPoints" )`;
+					select -add ( $shape +".controlPoints[0:"+ $num +"]" );
+					}
+				eval( "rotate -r -os 0 "+ $paritySign +"90 0" );
+				zooAttrState "-attrs t r s -k 0 -l 1" $fingerTrig;
+				zooAttrState "-attrs v -k 0" $fingerTrig;
+				zooMakeTrigger $fingerTrig `zooPresetTriggerCmds -selectConnected` $jointCtrls;
+				}
+			else for( $c in $jointCtrls ) zooAddConnect $fingerTrig $c;
+			}
+
+
+	//------
+	//now brand all objects
+	//------
+		for( $obj in $jointSpaces ) {
+			zooBrandObject name $prefix $obj;
+			zooBrandObject finger $name $obj;
+			}
+
+
+	//------
+	//add the controls to the quick selection set
+	//------
+		for( $obj in $jointCtrls ) sets -add $qss $obj;
+
+
+	//------
+	//build the primitive record
+	//------
+		string $primitive = `zooCSTCreatePrimRecord finger $id $prefix`;
+		zooCSTRegisterInput $base $primitive;
+		zooCSTPrimOutputs { $fingerGrp } $primitive;  //for now this object is deliberately left out of the primitive
+		zooCSTPrimOutputs $jointConstraints $primitive;
+		zooCSTPrimOutputs $jointSpaces $primitive;
+		zooBrandObject options $optionStr $primitive;
+		zooBrandObject version "2" $primitive;
+		for( $obj in $jointCtrls ) zooCSTRegisterControl $obj $primitive;
+
+		//zooCSTUtilsRigVis -h;
+		for( $n=0; $n<`size $jointCtrls`; $n++ ) $jointCtrls[$n] = `zooRenamerFunctions replace "[0-9]+$" "" $jointCtrls[$n]`;
+
+	return $jointCtrls;
+	}
+
+
+//------
+//this proc deals with rebuilding the finger primitive
+//------
+global proc string[] zooCSTRebuildPrimFinger( string $primitive ) {
+	string $prefix = `zooQueryBrand $primitive char`;
+	string $parity = "l";
+	string $version = `zooQueryBrand version $primitive`;
+	string $optionStr = `zooQueryBrand $primitive options`;
+	string $inputs[] = `zooCSTListRegistered input $primitive`;
+	string $controls[] = `zooCSTListRegistered control $primitive`;
+	string $temp[] = {};
+	int $useExisting = 1;
+
+	string $dupes[] = {};
+	if( `size $controls` ) {
+		$dupes = `duplicate -rc $controls`;  //duplicate the control objects so we can grab the original control shape nodes, to parent under the new controls created
+		parent -w $dupes;
+		}
+
+	$temp = `zooGetFlagArguments $optionStr parity`; if( `size $temp` ) $parity = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr useExisting`; if( `size $temp` ) $useExisting = $temp[0];
+
+	zooCSTDeletePrimitive $primitive;
+	string $newControls[] = `zooCSTBuildPrimFinger $prefix $parity $inputs[0] $optionStr`;
+
+	//parent the shape nodes of the original controls to the transforms of the new controls
+	if( $useExisting ) for( $n=0; $n<`size $newControls`; $n++ ) zooReplaceShape $dupes[$n] $newControls[$n] 0;
+
+	delete $dupes;
+	return $newControls;
+	}
+
+
+/*
+builds a simple finger rig
+-------
+
+$prefix - the character prefix used to identify the character
+$parity - which side is the arm on?  l (left) or r (right)
+$base - this is the base of the finger - the start joint
+$optionStr - standard option string
+
+option flags
+-------
+-name [string]			this is the name prefix for the control objects the script creates
+-num [int]					the number of joints in the fingers - by default it assumes all children are part of the finger
+-axis [string]			you can override the axis that CST guesses using this flag
+-invert [int]				did zooCST get the rotations wrong?  You can invert the direction of rotation using this flag
+-sliders [int]			so you want the sliders written to the arm control?
+-stretch [int]			do you want stretchy fingers? *NOT currently supported
+-wrist [string]			the wrist joint - the fingers need to be parentConstrained to the wrist to follow the arm
+-control [string]		this is the name of the object in which to write the sliders on to
+*/
+
+
+//zoo.end
+//macaroniKazoo ©2007

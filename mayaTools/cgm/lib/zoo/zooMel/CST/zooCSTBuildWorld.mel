@@ -1,0 +1,103 @@
+zooArrays_str;
+zooAttrUtils;
+zooBrandTools;
+zooCSTUtils;
+zooFlags;
+zooObjMenuUtils;
+zooCSTPrimitives;
+zooSpaceSwitching;
+zooRenamerUtils;
+
+
+//script documentation is at the end of this file
+global proc string[] zooCSTBuildWorld( string $prefix, string $optionStr ) {
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+	string $optionTemp[] = {};
+	float $scale = 1;
+
+	$optionTemp = `zooGetFlagArguments $optionStr scale`; if( `size $optionTemp` ) $scale = $optionTemp[0];
+	$scale *= 2.5;
+
+
+	//------
+	//the build world proc is slightly different from other creation procs - a) world is not a primitive, and
+	// b) it can be called multiple times, but will only create one world if another is detected
+	//------
+	string $world = zooGetElement_str( 0,`zooGetBrandedWith "world" $prefix` );
+	string $parts = zooGetElement_str( 0,`zooGetBrandedWith "parts" $prefix` );
+	string $masterqss = zooGetElement_str( 0,`zooGetBrandedWith "masterqss" $prefix` );
+	string $qss = zooGetElement_str( 0,`zooGetBrandedWith "qss" $prefix` );
+	string $infoNode = zooGetElement_str( 0,`zooGetBrandedWith "export" $prefix` );
+	int $alreadyBuilt = 0;
+
+	if( `objExists $world` ) $alreadyBuilt = 1;
+	if( !$alreadyBuilt ) {
+		string $rigAuthor = `getenv USER`;
+		string $setupVersion = `zooCSTInfo version`;
+		string $date = `about -cd`;
+
+		$world = `zooBuildControl world ( "-type hex -surface 0 -scale "+ (2.5*$scale))`;
+		$parts = `group -empty`;
+		$qss = `sets -empty -text "gCharacterSet" -n "body_ctrls"`;
+		$masterqss = `sets -empty -text "gCharacterSet" -n "all_ctrls"`;
+
+		sets -add $masterqss $qss;
+		$world = `rename $world "main"`;
+		$parts = `rename $parts "parts_grp"`;
+
+		addAttr -ln setupWithVersion -dt "string" $world;
+		addAttr -ln rigAuthor -dt "string" $world;
+		addAttr -ln date -dt "string" $world;
+		setAttr -l 1 -type "string" ( $world +".rigAuthor" ) $rigAuthor;
+		setAttr -l 1 -type "string" ( $world +".setupWithVersion" ) $setupVersion;
+		setAttr -l 1 -type "string" ( $world +".date" ) $date;
+		connectAttr -f ( $world +".s" ) ( $parts +".s" );
+
+		//add right items to the world controller
+		int $qssIdx = `zooAddConnect $world $masterqss`;
+		zooObjMenuAddCmdAll $world "toggle rig vis" "{\nstring $childs[] = `listRelatives -type transform #`;\nint $vis = !`getAttr ( $childs[0]+\".v\" )`;\nfor($a in $childs) if( `objExists ( $a+\".v\" )`) if( `getAttr -se ( $a+\".v\" )`) setAttr ( $a+\".v\" ) $vis;\n}";
+		zooObjMenuAddCmdAll $world "reset to rigpose" ( "zooUtils;\nstring $all[] = `zooQuerySet %"+ $qssIdx +" 0 1`;\nfor( $a in $all ) zooResetAttrs $a;" );
+		zooObjMenuAddCmdAll $world "draw all lines of action" "string $menuObjs[] = `zooGetObjsWithMenus`;\nfor( $m in $menuObjs ) {\n\tint $cmds[] = `zooObjMenuListCmds $m`;\n\tfor( $c in $cmds ) {\n\t\tstring $name = `zooGetObjMenuCmdName $m $c`;\n\t\tif( `match \"draw line of action\" $name` != \"\" ) eval(`zooPopulateCmdStr $m (zooGetObjMenuCmdStr($m,$c)) {}`);\n\t\t}\n\t}";
+		zooObjMenuAddCmdAll $world "controls as curves" ( "zooCSTCtrlType "+ $prefix +" 0 1;" );
+		zooObjMenuAddCmdAll $world "controls as solids" ( "zooCSTCtrlType "+ $prefix +" 1 0;" );
+		zooObjMenuAddCmdAll $world "controls as both" ( "zooCSTCtrlType "+ $prefix +" 1 1;" );
+		zooObjMenuAddCmdAll $world "mirror pose" ( "zooMirrorUtils;\nzooMirrorChar "+ $prefix +" \"\";" );
+		setObjMenuKillState $world 1;
+
+		//add world control to master qss
+		sets -add $masterqss $world;
+
+		//turn unwanted transforms off, so that they are locked, and no longer keyable
+		zooAttrState "-attrs s v -k 0 -l 1" $world;
+		zooAttrState "-attrs t r s v -k 0" $parts;
+
+		//now brand all objects
+		string $allSetupObjects[] = { $world, $parts, $masterqss, $qss };
+		for( $obj in $allSetupObjects ) zooBrandObject name $prefix $obj;
+		zooBrandObject world $prefix $world;
+		zooBrandObject parts $prefix $parts;
+		zooBrandObject masterqss $prefix $masterqss;
+		zooBrandObject qss $prefix $qss;
+		zooBrandObject export $prefix $infoNode;
+		}
+
+	return { $world, $parts, $masterqss, $qss, $infoNode };
+	}
+
+
+/*
+builds the world controls
+-------
+
+$prefix - the character prefix used to identify the character
+$optionStr - standard option string - see technical docs for info on option strings
+
+option flags
+-------
+-scale [float]			scale factor to apply to the control (purely a visual thing - scale is frozen).  default: 1
+*/
+
+
+//zoo.end

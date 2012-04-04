@@ -1,0 +1,99 @@
+zooArrays_str;
+zooAttrUtils;
+zooBounds;
+zooFlags;
+zooObjMenuUtils;
+zooRegister;
+zooShaders;
+
+
+global proc zooLineOfAction() {
+	return;
+	}
+
+
+global proc string zooLineOfAction_multi( string $objs[], string $optionStr ) {
+	int $num = `size $objs`;
+	if( $num < 2 ) return "";
+
+	string $temp[] = {};
+	string $colour = "red";
+	float $sizeX[] = zooGetSizeFromBounds(`zooGetPivotBounds $objs`);
+	float $size = zooGetElement_float(-1,`sort $sizeX`);
+	float $thickness = 0;
+
+	for( $n=0; $n<$num-1; $n++ ) $thickness += zooVectorMag(`zooBetweenVector $objs[$n] $objs[( $n+1 )]`);
+	$temp = `zooGetFlagArguments $optionStr thickness`; if( `size $temp` ) $thickness = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr colour`; if( `size $temp` ) $colour = `zooArrayToStr_str $temp " "`;
+
+	string $style = "multi";  //single
+	string $pivots[] = {};
+	string $deforms[] = {};
+	string $curveCmd = "curve -d 1 ";
+	string $topLevel = `group -em`;
+	string $lookat = `zooGetLookat 1`;
+	float $unitComp = (`currentUnit -q -l`=="m")?10:1;
+
+	$topLevel = `rename $topLevel "zooLine_of_action#"`;
+	for( $n=0; $n<$num; $n++ ) {
+		select -d;
+		string $jnt = `joint`;
+		string $grp = `group -em`;
+
+		$deforms[$n] = $jnt;
+		$pivots[$n] = $grp;
+		delete `parentConstraint $objs[$n] $jnt`;
+		delete `parentConstraint $objs[$n] $grp`;
+		parent $jnt $grp;
+		setAttr ( $grp +".v" ) 0;
+		pointConstraint $objs[$n] $grp;
+		aimConstraint -aim 0 0 1 $lookat $grp;
+
+		float $pos[] = `xform -q -ws -rp $jnt`;
+		$curveCmd += "-p "+ $pos[0] +" "+ $pos[1] +" "+ $pos[2] +" ";
+		}
+
+	for( $n=0; $n<$num; $n++ ) $curveCmd += "-k "+ $n +" ";
+	string $baseCurve = `eval $curveCmd`;
+	string $curve = zooGetElement_str(0,`fitBspline -ch 1 -tol 0.0001 $baseCurve`);
+	string $curveShape = zooGetElement_str(0,`listRelatives -s -pa $curve`);
+	string $skinCluster = zooGetElement_str(0,`skinCluster $baseCurve $deforms`);
+
+	for( $n=0; $n<$num; $n++ ) skinPercent -tv $deforms[$n] 1 $skinCluster ( $baseCurve +".cv["+ $n +"]" );
+	setAttr ( $baseCurve +".v" ) 0;
+	setAttr ( $curve +".v" ) 0;
+
+	string $extShape = zooGetElement_str(0,`circle -c 0 0 0 -nr 0 1 0 -sw 360 -r( $thickness/50 ) -d 3 -ut 0 -tol 0 -s 4 -ch 0`);
+	delete `parentConstraint $pivots[0] $extShape`;
+	makeIdentity -a 1 -t 1 -r 1 -s 1 $extShape;
+	setAttr ( $extShape +".v" ) 0;
+	string $ext = zooGetElement_str(0,`extrude -ch 1 -rn 0 -po 0 -et 2 -ucp 1 -fpt 1 -upn 1 -rsp 1 $extShape $curve`);
+
+	addAttr -at "float" -ln "thickness" -k 1 -min 0 -max 10 $ext;
+	addAttr -at "float" -ln "offset" -k 1 -min 0 -dv $size $ext;
+	setAttr -k 1 ( $ext +".thickness" ) 1;
+	setAttr -k 1 ( $ext +".offset" ) $size;
+	connectAttr -f ( $ext +".thickness" ) ( $extShape +".scaleX" );
+	connectAttr -f ( $ext +".thickness" ) ( $extShape +".scaleY" );
+	connectAttr -f ( $ext +".thickness" ) ( $extShape +".scaleZ" );
+	for( $d in $deforms ) connectAttr -f ( $ext +".offset" ) ( $d +".tz" );
+	zooAttrState "-attrs t r s v -k 0" $ext;
+	zooAttrState "-attrs t r s -l 1" $ext;
+	zooSetObjShader $ext `zooGetShader $colour 1`;
+	parent $pivots $topLevel;
+	parent $baseCurve $curve $extShape $ext $topLevel;
+
+	//register the loa
+	string $reg = `zooGetRegister zoo 1`;
+	zooRegisterObj $reg linesOfAction $topLevel 1 1;
+
+	//now finally add right click commands for cleanup
+	zooObjMenuAddCmdAll $ext "delete line of action" "delete `listRelatives -f -p #`;";
+	zooObjMenuAddCmdAll $ext "delete all lines of action" "zooLineOfAction;\nstring $reg = `zooGetRegister zoo 1`;\nstring $loas[] = {};\nzooListRegistered $reg linesOfAction {} $loas;\nfor( $l in $loas ) if( `objExists $l` ) delete $l;";
+	zooObjMenuAddCmdAll $ext "use current camera" "string $panel = `getPanel -wf`;\nstring $cam = `modelPanel -q -cam $panel`;\nzooSetLookat $cam;";
+	select -d;
+	return $topLevel;
+	}
+
+
+//zoo.end

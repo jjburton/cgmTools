@@ -1,0 +1,160 @@
+/*
+this script is a collection of procs that handle object branding
+------------
+
+branding an object tags it with attribute based information, which can be used to
+reliably identify objects in a scene.  brands are string attributes that have
+both a name, and information.
+
+example: zooBrandObject "characterName" "fisty" nurbsSphere1;
+will give the object a brand called characterName.  This brand will be set to: fisty
+
+its sister script - zooRegister - does connection based branding - called registering
+registering is much faster, and its speed is not dependent on scene size.  It is
+much more useful for more real-time scripts.  zooBrandTools is great for rigging
+because speed isn't an issue for rigging tools
+*/
+
+
+global proc zooBrandTools() {
+	return;
+	}
+
+
+global proc zooBrandObject( string $brandName, string $brandInfo, string $obj ) {
+	if( !`objExists $obj` ) return;
+	if( !`objExists ( $obj +".zooBrand" )`) addAttr -ln "zooBrand" -at bool $obj;
+	if( !`objExists ( $obj +".zooBrand_"+ $brandName )`) addAttr -ln ( "zooBrand_"+ $brandName ) -dt "string" $obj;
+	if( `substring $brandInfo 1 1` == "-" ) $brandInfo = " "+ $brandInfo;  //for some reason maya won't let you have a hyphen as the first character in a string attribute, so this is a simple check to make sure problems don't arise
+	setAttr -type "string" ( $obj +".zooBrand_"+ $brandName ) $brandInfo;
+	}
+
+
+//lists all branded objects in a scene
+global proc string[] zooListBranded() {
+	string $all[] = `ls`;
+	string $branded[] = {};
+
+	for( $n=0; $n<`size $all`; $n++ ) if( `objExists ( $all[$n] +".zooBrand" )`) $branded[( `size $branded` )] = $all[$n];
+	return $branded;
+	}
+
+
+//lists all branded objects in a scene
+global proc string[] zooListAllWithBrand( string $brandName ) {
+	string $branded[] = `zooListBranded`;
+	string $brandedWith[] = {};
+
+	for( $obj in $branded ) if( `objExists ( $obj +".zooBrand_"+ $brandName )`) $brandedWith[( `size $brandedWith` )] = $obj;
+	return $brandedWith;
+	}
+
+
+//returns whether an object is branded with certain information
+global proc int zooIsBrandedWith( string $node, string $brandName, string $brandInfo ) {
+	int $isBrandedWith = 0;
+	if( `objExists ( $node +".zooBrand_"+ $brandName )`) if( `getAttr ( $node +".zooBrand_"+ $brandName )` == $brandInfo ) $isBrandedWith = 1;
+	return $isBrandedWith;
+	}
+
+
+//returns a list of all objects branded with a single brandName and brand information
+global proc string[] zooGetBrandedWith( string $brandName, string $brandInfo ) {
+	string $branded[] = `zooListBranded`;
+	string $brandedWith[] = {};
+
+	for( $obj in $branded ) if( `zooIsBrandedWith $obj $brandName $brandInfo` ) $brandedWith[( `size $brandedWith` )] = $obj;
+	return $brandedWith;
+	}
+
+
+//returns information from a brand - this is essentially just a wrapper for the getAttr command, but the advantage of using
+//this command is that if the zooBrand prefix changes in some way, this proc will still return correct information
+global proc string zooQueryBrand( string $node, string $brandName ) {
+	string $brandInfo = "";
+	if( `objExists ( $node +".zooBrand_"+ $brandName )`) $brandInfo = `getAttr ( $node +".zooBrand_"+ $brandName )`;
+	return $brandInfo;
+	}
+
+
+//lists all brands on an object
+global proc string[] zooListObjBrands( string $obj ) {
+	string $userAttrs[] = `listAttr -ud $obj`;
+	string $brandPrefix = "zooBrand_";
+	string $brands[] = {};
+	int $prefixSize = `size $brandPrefix`;
+
+	for( $attr in $userAttrs ) if( `size $attr` > $prefixSize ) {
+		if( `match ( "^"+ $brandPrefix ) $attr` == $brandPrefix ) $brands[( `size $brands` )] = `substring $attr ($prefixSize+1) (size($attr))`;
+		}
+
+	return $brands;
+	}
+
+
+/*
+returns a list of objects branded with multiple brandNames
+
+example: zooGetBrandedWithList { "charName","foot" } { "mister","left" }
+this will only list objects with the brandName: "charName" set to "mister"
+as well as the brandName: "foot" set to "left"
+
+this is great when used in conjunction with the zooGetElement_str proc
+example: string $parent = zooGetElement_str( 0,`zooGetBrandedWithList { "charName","foot" } { "mister","left" }` );
+*/
+global proc string[] zooGetBrandedWithList( string $brandNames[], string $brandInfos[] ) {
+	int $numNames = `size $brandNames`;
+	int $numInfos = `size $brandInfos`;
+	if( $numNames != $numInfos ) error "number of brand names doesn't match number of brand infos";
+
+	string $branded[] = `zooListBranded`;
+	string $brandedWith[] = {};
+	int $contender = 0;
+
+	for( $obj in $branded ) {
+		for( $n=0; $n<`size $brandNames`; $n++ ) {
+			if( `zooIsBrandedWith $obj $brandNames[$n] $brandInfos[$n]` ) $contender++;
+			}
+
+		if( $contender == $numNames ) $brandedWith[( `size $brandedWith` )] = $obj;
+		$contender = 0;
+		}
+
+	return $brandedWith;
+	}
+
+
+//like zooReplaceBrandInfo but works on all brands for all objects in the scene
+global proc string[] zooReplaceAnyInfo( string $orgInfo, string $newInfo ) {
+	string $all[] = `zooListBranded`;
+	string $renamed[] = {};
+
+	for( $o in $all ) {
+		string $brands[] = `zooListObjBrands $o`;
+		for( $brand in $brands ) $renamed = zooAddArray_str($renamed,`zooReplaceBrandInfo $brand $orgInfo $newInfo`);
+		}
+
+	return $renamed;
+	}
+
+
+/*
+given a brand name, a search string and a replace string, this proc will look
+for any object with the given brand, and if the brand info matches the search
+string, it will replace that info with the replace string - useful for renaming
+characters after they've been built
+*/
+global proc string[] zooReplaceBrandInfo( string $brand, string $orgInfo, string $newInfo ) {
+	string $all[] = `zooListAllWithBrand $brand`;
+	string $renamed[] = {};
+
+	for( $o in $all ) if( `zooQueryBrand $o $brand` == $orgInfo ) {
+		zooBrandObject $brand $newInfo $o;
+		$renamed[( `size $renamed` )] = $o;
+		}
+
+	return $renamed;
+	}
+
+
+//zoo.end

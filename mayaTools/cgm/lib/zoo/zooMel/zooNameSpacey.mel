@@ -1,0 +1,147 @@
+//
+// zooNameSpacey
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 07 October 2003
+//
+// Description:
+// helps management of name spaces within a scene
+//
+
+
+zooNameSpaceyUtils;
+
+
+global proc zooNameSpacey() {
+	string $windowName = "zooNameSpaceyWindow";
+	string $windowTitle = "zooNameSpacey v" + `zooNameSpaceyInfo version` + "   -:macaroniKazoo:-";
+
+	if ( `window -ex $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -widthHeight 320 190 $windowName;
+		scriptJob -p $windowName -e "SceneOpened" "zooNameSpaceyWindowFunctions -update";
+		menuBarLayout;
+			menu -label "Help";
+				menuItem -l "Help..." -c ( "zooHelp zooNameSpacey 1" );
+
+		formLayout zooNameSpaceyForm;
+			columnLayout -columnWidth 115 -columnAttach both 0 zooNameSpaceyColumnButtons;
+				button -l "select members" -height 20 -c ( "zooNameSpaceyWindowFunctions -select" );
+				button -l "remove namespace" -height 20 -c ( "zooNameSpaceyWindowFunctions -remove" );
+				button -l "delete namespace" -height 20 -c ( "zooNameSpaceyWindowFunctions -delete" );
+
+				text -l "";
+				text -l "current namespace:";
+				textField -ed 0 zooNameSpaceyTextCurrent;
+				setParent..;
+
+			string $rnmLbl = `text -l "rename:" zooNameSpaceyTextRenameLabel`;
+			string $spaces = `textScrollList -numberOfRows 8 -allowMultiSelection 0 -sc ( "zooNameSpaceyWindowFunctions -updateSpace" ) -dcc ( "zooNameSpaceyWindowFunctions -makeCurrent" ) zooNameSpaceyScrollSpaces`;
+
+			string $rnmTxt = `textField -cc ( "zooNameSpaceyWindowFunctions -rename" ) zooNameSpaceyTextName`;
+
+			string $image = `image -width 328 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" ) zooNameSpaceyImageSig`;
+			popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+			setParent..;
+
+	formLayout -edit
+		-af zooNameSpaceyColumnButtons "top" 2
+		-af zooNameSpaceyColumnButtons "left" 2
+		-an zooNameSpaceyColumnButtons "right"
+		-ac zooNameSpaceyColumnButtons "bottom" 2 zooNameSpaceyTextName
+
+		-af $spaces "top" 2
+		-ac $spaces "left" 2 zooNameSpaceyColumnButtons
+		-af $spaces "right" 2
+		-ac $spaces "bottom" 2 $rnmTxt
+
+		-an $rnmLbl "top"
+		-af $rnmLbl "left" 2
+		-an $rnmLbl "right"
+		-ac $rnmLbl "bottom" 5 $image
+
+		-an $rnmTxt "top"
+		-ac $rnmTxt "left" 2 zooNameSpaceyTextRenameLabel
+		-af $rnmTxt "right" 2
+		-ac $rnmTxt "bottom" 2 $image
+
+		-an $image "top"
+		-af $image "left" 2
+		-af $image "right" 2
+		-af $image "bottom" 2
+		zooNameSpaceyForm;
+
+	showWindow $windowName;
+	zooNameSpaceyWindowFunctions -update;
+	}
+
+
+global proc zooNameSpaceyWindowFunctions( string $function ) {
+	string $selectedNameSpace[] = `textScrollList -q -si zooNameSpaceyScrollSpaces`;
+	switch( $function ) {
+		case "-u":
+		case "-update":
+			string $nameSpaces[] = `namespaceInfo -lon`;
+			textScrollList -e -removeAll zooNameSpaceyScrollSpaces;
+			textScrollList -e -append "Root" zooNameSpaceyScrollSpaces;
+			textScrollList -e -append ".." zooNameSpaceyScrollSpaces;
+			for( $space in $nameSpaces ) if( $space != "UI" ) textScrollList -e -append $space zooNameSpaceyScrollSpaces;
+
+			zooNameSpaceyWindowFunctions -updateSpace;
+			break;
+
+		case "-us":
+		case "-updateSpace":
+			textField -e -tx ( `namespaceInfo -cur`==":"?"Root":`namespaceInfo -cur` ) zooNameSpaceyTextCurrent;
+			break;
+
+		case "-r":
+		case "-rename":
+			if( $selectedNameSpace[0] != "Root" && $selectedNameSpace[0] != ".." ) {
+				string $newName = `textField -q -tx zooNameSpaceyTextName`;
+				zooNameSpaceyRename $selectedNameSpace[0] $newName;
+				zooNameSpaceyWindowFunctions -update;
+				}
+			break;
+
+		case "-s":
+		case "-select":
+			if( $selectedNameSpace[0] != "Root" && $selectedNameSpace[0] != ".." ) select `ls ( ":" + $selectedNameSpace[0] + ":*" )`;
+			break;
+
+		case "-mc":
+		case "-makeCurrent":
+			string $prefix = `namespaceInfo -cur`;
+			if( $selectedNameSpace[0] == "Root" ) namespace -set ":";
+			else if( $selectedNameSpace[0] == ".." ) namespace -set ( ":" + `namespaceInfo -parent` );
+			else namespace -set ( ":" + $selectedNameSpace[0] );
+			zooNameSpaceyWindowFunctions -update;
+			break;
+
+		case "-rem":
+		case "-remove":
+			zooNameSpaceyRemove $selectedNameSpace[0];
+			zooNameSpaceyWindowFunctions -update;
+			break;
+
+		case "-d":
+		case "-delete":
+			if( `confirmDialog -title "Confirm" -message "This will delete ALL objects in the namespace" -button "Do it!" -button "No" -defaultButton "No" -cancelButton "No" -dismissString "No"` != "No" ) zooNameSpaceyDelete $selectedNameSpace[0];
+			zooNameSpaceyWindowFunctions -update;
+			break;
+		}
+	}
+
+
+global proc string zooNameSpaceyInfo ( string $function ) {
+	string $creationDate = "07 October 2003";
+	string $lastRevision = "05 September 2005";
+	string $currentVersion = "1.1.0";
+
+	if ( $function == "created" ) return $creationDate;
+	if ( $function == "modified" ) return $lastRevision;
+	if ( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+//zoo.end

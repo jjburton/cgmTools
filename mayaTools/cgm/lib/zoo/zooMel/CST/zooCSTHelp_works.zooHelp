@@ -1,0 +1,47 @@
+----Introduction----
+This section will give you a bit of an idea about what's happening "under the hood" of CST.  It covers the main things to know about rigging with CST:  Predecessors, Prefixes, Branding and Primitives.  These are the four main points things that distinguish CST from other rigging tools.
+
+
+----Using CST----
+Welcome to the Character Setup Toolkit.  This script helps to simplify the somewhat tedious task of character setup.  It aims to be maximally flexible, while still being simple to use.  The architecture of the script allows it to be easily adapted to a different UI, with minimal hassle.
+
+The Character Setup Toolkit abstracts character rigging by defining common rig sub-structures, or "rig primitives".  Rig structures such as arms, legs, spines etc, are all considererd one "part".  Using the "rig primitives", characters can be quickly rigged using the scripts that comprise the setup toolkit.  The following sections will give you an overview of what happens behind the scenes of CST to create its rig primitives.
+
+
+----Predecessor Primitives----
+To get the full benefit of zooCST, the order you create rig primitives matters.  Certain primitives are able to make use of "predecessor primitives" in order to be fully functional.  For example, the arm primitive will use the chest and head control as dynamic parents if they exist.  If they don't exist, its no drama, the arm will still be created, you just won't have the option of being able to dynamically parent the arm to the chest or head.
+
+If you're using zooCST in conjunction with your own rigs, you can specify your own objects as predecessors.  See the flags documentation on which flags to use for predecessor overrides.
+
+
+----Prefixes----
+A prefix in CST is used as a character identifier.  CST uses the prefix to discover other parts of the rig using branding (discussed below).  Its important that you keep your prefix the same when setting up different parts of the rig (ie the arms and legs).  If you change the prefix, zooCST will no longer be able to find predecessor primitives, as it uses the prefix to indentify primitive nodes.
+
+At the moment, there is no way to change a prefix once a character has been rigged.
+
+
+----Branding----
+CST brands all of its important controls to enable different parts of the script to identify accurately the object names of such controls.  This also allows the user to freely change the names of controls, and frees them from a pre-defined naming convention.
+
+Branding is a simple process of adding a custom string attribute to an node.  Most nodes that CST creates are branded with a name - which is the prefix of the character.  By branding an object with the prefix of the character, zooCST can easily and accurately identify parts of the rig that belong to the character.
+
+Important nodes are branded with both a name, and a type.  For example, the root control has both the "name" and "root" brands.  This allows the spine primitive (for example) to parent itself to the root primitive regardless of when the root control was created.
+
+Its important to understand branding if you plan on manually creating certain parts of your rig, and automatically creating other parts with CST.  For more information on how to create your own rigs manually in conjunction with zooCST, have a look in the Technical Notes section of the help.
+
+
+----Primitives----
+Rig primitives in CST are actual nodes.  A primitive node "knows" all the other objects in the scene that it needs to re-create itself.  This enables zooCST to deal with rig primitives more like they were single objects.  So they can be deleted as if they were a single object, rebuilt, and potentially other functions as well.
+
+A primitive node has three main connection types.  Inputs, outputs, and controls.  When a primitive is built, every node that gets created gets registered with the primitive as one of these types.  Inputs are usually joints on the character's skeleton.  The inputs are what the rig is built to control.  So for an arm primitive, there are three inputs:  the bicep, elbow and wrist.
+
+The outputs of a primitive are all the nodes associated with that part of the rig.  Basically every single node that gets built by the primitive creation script should get registered as an output.  Its the outputs that get disconnected and then deleted when a primitive is deleted.
+
+Lastly, the primitive knows what objects are considered controls.  A control is really just a special kind of output.  Most outputs are generally hidden from the animator, as they're not directly useful.  The controls however, are the nodes that the animator interacts with, they're the interface between the animator and the rig.
+
+To inspect what rig primitives have been built in your scene, go to the Tools->List Primitives menu option.
+
+To find out more about what you can currently do with rig primitives, have a look through the zooCSTPrimitives script.
+
+Hamish McKenzie ©2005...
+macaroniKazoo Productions ©2005...

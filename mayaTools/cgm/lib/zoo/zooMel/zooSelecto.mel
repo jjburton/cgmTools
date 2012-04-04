@@ -1,0 +1,219 @@
+zooSelectoUtils;
+zooUtils;
+
+
+global proc zooSelecto() {
+	string $windowName = "zooSelectoAuthorWindow";
+	string $windowTitle = "Selecto Author";
+	string $sel[] = `ls -sl`;
+
+	if ( `window -ex $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -maximizeButton 0 -sizeable 1 -widthHeight 300 250 $windowName;
+		menuBarLayout;
+			menu -l "Presets" -pmc( "zooBuildSelectPresetMenu zooSelectoPresetMenu;" ) zooSelectoPresetMenu;
+			menu -l "Help";
+				menuItem -l "Setup Hotkey" -c( "zooHotkeyer selectoMenu \"zooSelectoMenu;\" \"zooSelectoMenuKillUI;\" \"-ann creates the zooSelecto marking menu -default n -enableMods 0\"" );
+
+		string $tabs = `tabLayout zooSelectoAuthorTabMaster`;
+			string $manageForm = `formLayout`;
+				string $charList = `textScrollList -ams 1 zooSelectoAuthorUITSLChars`;
+				string $toggleVis = `button -l "hide/show selectos" -c( "zooSelectoAuthorFunctions -toggleVis" )`;
+				string $transLbl = `text -l "transparency"`;
+				string $trans = `floatField -width 100 -min 0 -max 1 zooSelectoAuthorUIFloatTrans`;
+				string $setTrans = `button -l "set trans" -c( "zooSelectoAuthorFunctions -transparency" )`;
+				string $select = `button -l "select" -c( "zooSelectoAuthorFunctions -select;" )`;
+				string $delete = `button -l "delete" -c( "zooSelectoAuthorFunctions -delete;" )`;
+				string $allToggle = `button -l "hide/show ALL selectos" -c( "zooToggleSelectoVis" )`;
+			setParent ..;
+
+			string $createForm = `formLayout`;
+				string $typeLbl = `text -l "shape:"`;
+				string $type = `textField -ed 0 -tx "circle" zooSelectoAuthorUITextShape`;
+				string $optsLbl = `text -l "additional options:"`;
+				string $opts = `textField zooSelectoAuthorUITextOptions`;
+				string $create = `button -l "build selectos" -c( "zooSelectoAuthorFunctions -build" )`;
+
+	popupMenu -p $type -b 3;
+		menuItem -l "circle" -c( "textField -e -tx circle "+ $type );
+		menuItem -l "triangle" -c( "textField -e -tx triangle "+ $type );
+		menuItem -l "square" -c( "textField -e -tx square "+ $type );
+		menuItem -l "pentagon" -c( "textField -e -tx pentagon "+ $type );
+		menuItem -l "hexagon" -c( "textField -e -tx hexagon "+ $type );
+		menuItem -l "pill" -c( "textField -e -tx pill "+ $type );
+		menuItem -l "donut" -c( "textField -e -tx donut "+ $type );
+
+	popupMenu -p $opts -b 3;
+		menuItem -l "-colour" -sm 1;
+			menuItem -l "light red" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour lightred\" ) "+ $opts );
+			menuItem -l "red" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour red\" ) "+ $opts );
+			menuItem -l "dark red" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour darkred\" ) "+ $opts );
+			menuItem -l "light orange" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour lightorange\" ) "+ $opts );
+			menuItem -l "orange" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour orange\" ) "+ $opts );
+			menuItem -l "dark orange" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour darkorange\" ) "+ $opts );
+			menuItem -l "light yellow" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour lightyellow\" ) "+ $opts );
+			menuItem -l "yellow" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour yellow\" ) "+ $opts );
+			menuItem -l "dark yellow" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour darkyellow\" ) "+ $opts );
+			menuItem -l "light green" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour lightgreen\" ) "+ $opts );
+			menuItem -l "green" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour green\" ) "+ $opts );
+			menuItem -l "dark green" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour darkgreen\" ) "+ $opts );
+			menuItem -l "light blue" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour lightblue\" ) "+ $opts );
+			menuItem -l "blue" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour blue\" ) "+ $opts );
+			menuItem -l "dark blue" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour darkblue\" ) "+ $opts );
+			menuItem -l "light purple" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour lightpurple\" ) "+ $opts );
+			menuItem -l "purple" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour purple\" ) "+ $opts );
+			menuItem -l "dark purple" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour darkpurple\" ) "+ $opts );
+			menuItem -l "light grey" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour lightgrey\" ) "+ $opts );
+			menuItem -l "grey" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour grey\" ) "+ $opts );
+			menuItem -l "dark grey" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour darkgrey\" ) "+ $opts );
+			menuItem -l "brown" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour brown\" ) "+ $opts );
+			menuItem -l "black" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour black\" ) "+ $opts );
+			menuItem -l "white" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -colour white\" ) "+ $opts );
+		setParent -m ..;
+		menuItem -l "-size" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -size 1.0\" ) "+ $opts );
+		menuItem -l "-camera" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -camera persp \" ) "+ $opts );
+		menuItem -l "-posObj" -c( "{string $sel[] = `ls -sl`; textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -posObj \"+ $sel[0] ) "+ $opts +";}" );
+		menuItem -l "-offset" -c( "textField -e -tx ( `textField -q -tx "+ $opts +"` +\" -offset 0.5\" ) "+ $opts );
+		menuItem -d 1;
+		menuItem -l "clear all" -c( "textField -e -tx \"\" "+ $opts );
+
+	tabLayout -e -tabLabel $manageForm "manage" -tabLabel $createForm "create" $tabs;
+	formLayout -edit
+		-af $charList "top" 0
+		-af $charList "left" 0
+		-ac $charList "right" 3 $trans
+		-ac $charList "bottom" 0 $toggleVis
+
+		-an $toggleVis "top"
+		-af $toggleVis "left" 0
+		-ac $toggleVis "right" 3 $trans
+		-ac $toggleVis "bottom" 0 $allToggle
+
+		-af $transLbl "top" 0
+		-an $transLbl "left"
+		-af $transLbl "right" 0
+		-an $transLbl "bottom"
+
+		-ac $trans "top" 0 $transLbl
+		-an $trans "left"
+		-af $trans "right" 0
+		-an $trans "bottom"
+
+		-ac $setTrans "top" 0 $trans
+		-ac $setTrans "left" 0 $charList
+		-af $setTrans "right" 0
+		-an $setTrans "bottom"
+
+		-ac $select "top" 8 $setTrans
+		-ac $select "left" 0 $charList
+		-af $select "right" 0
+		-an $select "bottom"
+
+		-ac $delete "top" 0 $select
+		-ac $delete "left" 0 $charList
+		-af $delete "right" 0
+		-an $delete "bottom"
+
+		-an $allToggle "top"
+		-af $allToggle "left" 0
+		-af $allToggle "right" 0
+		-af $allToggle "bottom" 0
+		$manageForm;
+
+	formLayout -edit
+		-af $typeLbl "top" 2
+		-af $typeLbl "left" 0
+		-an $typeLbl "right"
+		-an $typeLbl "bottom"
+
+		-af $type "top" 0
+		-ac $type "left" 3 $typeLbl
+		-af $type "right" 0
+		-an $type "bottom"
+
+		-ac $optsLbl "top" 2 $type
+		-af $optsLbl "left" 0
+		-an $optsLbl "right"
+		-an $optsLbl "bottom"
+
+		-ac $opts "top" 0 $type
+		-ac $opts "left" 3 $optsLbl
+		-af $opts "right" 0
+		-an $opts "bottom"
+
+		-ac $create "top" 0 $opts
+		-af $create "left" 0
+		-af $create "right" 0
+		-an $create "bottom"
+		$createForm;
+
+	zooSelectoAuthorFunctions -updateChars;
+	showWindow $windowName;
+	}
+
+
+global proc zooSelectoAuthorFunctions( string $function ) {
+	string $sel[] = `textScrollList -q -si zooSelectoAuthorUITSLChars`;
+	switch( $function ) {
+		case "-updateChars":
+			string $chars[] = `zooListCharactersWithSelectos`;
+
+			textScrollList -e -ra zooSelectoAuthorUITSLChars;
+			for( $char in $chars ) textScrollList -e -a $char zooSelectoAuthorUITSLChars;
+			break;
+
+		case "-select":
+			select -cl;
+			for( $s in $sel ) select -add `zooListCharacterSelectos $s`;
+			break;
+
+		case "-delete":
+			for( $s in $sel ) delete `zooListCharacterSelectos $s`;
+			break;
+
+		case "-transparency":
+			float $trans = `floatField -q -v zooSelectoAuthorUIFloatTrans`;
+			zooSetSelectoTransparency $trans;
+			break;
+
+		case "-toggleVis":
+			int $vis = `zooSetCharacterSelectoVis $sel[0] -1`;
+			for( $s in $sel ) zooSetCharacterSelectoVis $s (!$vis);
+			break;
+
+		case "-build":
+			string $optionStr = `textField -q -tx zooSelectoAuthorUITextOptions`;
+			string $shape = `textField -q -tx zooSelectoAuthorUITextShape`;
+			string $selObjs[] = `ls -sl`;
+
+			for( $a in $selObjs ) zooCreateSelecto $a ( "-shape "+ $shape +" "+ $optionStr );
+			zooSelectoAuthorFunctions -updateChars;
+			break;
+		}
+	}
+
+
+global proc zooBuildSelectPresetMenu( string $parent ) {
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	string $sel[] = `ls -sl`;
+	string $selUI[] = `textScrollList -q -si zooSelectoAuthorUITSLChars`;
+	string $presetsL[] = `zooListPresets "local" zooSelecto preset`;
+	string $presetsG[] = `zooListPresets "global" zooSelecto preset`;
+	string $ns = `zooGetNamespace $sel[0]`;
+	string $char = `match "^[^:]+" $sel[0]`;
+	int $en = 1;
+	int $enUI = 1;
+
+	if( !`size $sel` ) $en = 0;
+	if( !`size $selUI` ) $enUI = 0;
+	for( $p in $presetsL ) menuItem -en $en -l( `match "^[^.]+" $p` ) -c( "zooSelectoPresets; zooImportSelectos \""+ $ns +"\" \"local\" "+ $p +";" );
+	if( `size $presetsL` ) menuItem -d 1;
+	for( $p in $presetsG ) menuItem -en $en -l( `match "^[^.]+" $p` ) -c( "zooSelectoPresets; zooImportSelectos \""+ $ns +"\" \"global\" "+ $p +";" );
+	if( `size $presetsG` ) menuItem -d 1;
+	menuItem -en $enUI -l "save selected preset" -c( "zooExportSelectos \""+ $selUI[0] +"\" \""+ $char +"\" 1;" );
+	menuItem -l "manage presets" -c( "zooPresetManagerWin \"local\" zooSelecto preset;" );
+	}
+
+
+//zoo.end

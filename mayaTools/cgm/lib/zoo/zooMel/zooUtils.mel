@@ -1,0 +1,453 @@
+//this script is a collection of commonly used functions
+global proc zooUtils() {
+	return;
+	}
+
+
+//returns an array containing the start and end times for the current timeline selection
+global proc float[] zooGetSelectedRange() {
+	global string $gPlayBackSlider;
+	float $range[] = `timeControl -q -ra $gPlayBackSlider`;
+	int $rangeTrue = 1;
+
+	if( $range[0]+1 == $range[1] ) {
+		$range[0] = `playbackOptions -q -min`;
+		$range[1] = `playbackOptions -q -max`;
+		$rangeTrue = 0;
+		}
+
+	return { $range[0], $range[1], $rangeTrue };
+	}
+
+
+global proc string[] zooGetFiles( string $path, string $filespec ){
+	string $files[] = `getFileList -folder ( $path +"/" ) -filespec $filespec`;
+	string $dirs[] = {};
+
+	for( $file in $files ) if( `filetest -f ( $path +"/"+ $file )` ) $dirs[( `size $dirs` )] = $file;
+
+	return $dirs;
+	}
+
+
+//returns a list of immediate children directories under the given directory
+global proc string[] zooGetSubDirs( string $path, int $includeRoot ){
+	string $files[] = `getFileList -folder ( $path +"/" )`;
+	string $dirs[] = {};
+
+	if( `substring $path (size($path)) (size($path))` != "/" ) $path += "/";
+	for( $file in $files ) if( `filetest -d ( $path + $file )` ) {
+		if( $includeRoot ) $dirs[( `size $dirs` )] = $path + $file +"/";
+		else $dirs[( `size $dirs` )] = $file;
+		}
+
+	return $dirs;
+	}
+
+
+//returns ALL sub directories under a given directory
+global proc string[] zooGetRecursedSubDirs( string $path ) {
+	string $pathsFound[] = {};
+
+	if( !`filetest -d $path` ) return {};
+	if( `substring $path (size($path)) (size($path))` != "/" ) $path += "/";
+	$pathsFound[0] = $path;
+	for( $n=0; $n<`size $pathsFound`; $n++ ) {
+		string $temp[] = `zooGetSubDirs $pathsFound[$n] 0`;
+		int $tempSize = `size $temp`;
+
+		for( $i=0; $i<$tempSize; $i++ ) $temp[$i] = $pathsFound[$n] + $temp[$i] + "/";
+		if( `size $temp` ) for( $t in $temp ) $pathsFound[`size $pathsFound`] = $t;
+
+		//just a safeguard
+		if( $n>10000 ) {
+			warning "zooUtils::zooGetRecursedSubDirs() has searched 10000 directories, aborting...";
+			break;
+			}
+		}
+
+	return $pathsFound;
+	}
+
+
+//
+global proc string[] zooGetRecursedSubDirsRelative( string $path ) {
+	string $pathsFound[] = {};
+
+	if( !`filetest -d $path` ) return {};
+	if( `substring $path (size($path)) (size($path))` != "/" ) $path += "/";
+	$pathsFound = `zooGetSubDirs $path 0`;
+	for( $n=0; $n<`size $pathsFound`; $n++ ) {
+		string $searchPath = $path + $pathsFound[$n];
+		string $temp[] = `zooGetSubDirs $searchPath 0`;
+		int $tempSize = `size $temp`;
+
+		if( $tempSize ) for( $t in $temp ) $pathsFound[`size $pathsFound`] = $pathsFound[$n] +"/"+ $t;
+
+		//just a safeguard
+		if( $n>10000 ) {
+			warning "zooUtils::zooGetRecursedSubDirsRelative() has searched 10000 directories, aborting...";
+			break;
+			}
+		}
+
+	return $pathsFound;
+	}
+
+
+//copies an entire directory tree to the destination path
+global proc zooCopyDirTo( string $copyFrom, string $copyTo ) {
+	string $subdirs[] = `zooGetRecursedSubDirs $copyFrom`;
+	int $baseLength = `size $copyFrom`+1;
+
+	if( !`filetest -d $copyTo` ) sysFile -makeDir $copyTo;
+	$subdirs = `zooIndexCrop_str $subdirs "1:"`;  //the first entry is always the actual directory we're recursing from
+	for( $n=0; $n<`size $subdirs`; $n++ ) $subdirs[$n] = `substring $subdirs[$n] $baseLength (size($subdirs[$n]))`;  //strip off the base path so we're left with paths relative to the base
+	for( $dir in $subdirs ) if( !`filetest -d ($copyTo+$dir)` ) sysFile -makeDir ($copyTo+$dir);  //make sure the destination directories exist
+	for( $dir in $subdirs ) {
+		//now copy all the files in each subdir over
+		string $files[] = `zooGetFiles ( $copyFrom+$dir ) "*.*"`;
+		for( $file in $files ) sysFile -copy ( $copyTo+$dir+$file ) ( $copyFrom+$dir+$file );
+		}
+
+	//now copy all files in the basedir
+	string $files[] = `zooGetFiles $copyFrom "*.*"`;
+	for( $file in $files ) sysFile -copy ( $copyTo+$file ) ( $copyFrom+$file );
+	}
+
+
+//deals with reliably copying a file - if the target directory path doesn't exist
+//it gets created
+global proc int zooCopyFileTo( string $fromPath, string $toPath ) {
+	if( !`filetest -f $fromPath` ) return 0;
+	$toPath = `fromNativePath $toPath`;
+	string $toks[] = `zooTokenize $toPath "/"`;
+	$toks = `zooIndexCrop_str $toks ":-1"`;
+	string $tgtDir = `zooArrayToStr_str $toks "/"`;
+	if( !`filetest -d $tgtDir` ) sysFile -makeDir $tgtDir;
+	return `sysFile -copy $toPath $fromPath`;
+	}
+
+
+//------
+//loads a file with optional new line stripping
+//
+// to strip newline characters, use
+// -strip [bool]		if true, will strip the newline character from each line
+//------
+global proc string[] zooReadFile( string $file, string $optionStr ){
+	//------
+	//parse optionStr to determine which flags are enabled for this proc
+	//------
+	int $strip = 0;
+
+	//if we need more options, this will need to use zooFlags
+	if( $optionStr == "-strip 1" ) $strip = 1;
+
+	if( !`filetest -r $file` ) {
+		warning( "zooUtils::zooReadFile() \""+ $file +"\" doesn't exist" );
+		return {};
+		}
+	string $fileContents[] = {};
+	string $word = "a";
+	int $fileId = `fopen $file "r"`;
+
+	while( `size $word` > 0 ){
+		$word = `fgetline $fileId`;
+		if( `size $word` ) {
+			if( $strip ) $fileContents[( `size $fileContents` )] = `substitute "\n" $word ""`;
+			else $fileContents[( `size $fileContents` )] = $word;
+			}
+		}
+
+	fclose $fileId;
+	return $fileContents;
+	}
+
+
+global proc string[] zooListEnv( string $env ) {
+	string $paths[] = {};
+	string $sep = ":";
+
+	if( $env == "" ) $env = "MAYA_SCRIPT_PATH";
+	if( `about -nt` ) $sep = ";";
+	tokenize `getenv $env` $sep $paths;
+	return $paths;
+	}
+
+
+//returns the path of a script
+global proc string zooGetScriptLocation( string $scriptName ) {
+	string $scriptPath = "";
+	$scriptPath = `zooGetFileLocation {} $scriptName "mel"`;
+	return $scriptPath;
+	}
+
+
+//unlike the get script path, this proc takes a file name including extension
+global proc string zooGetIconLocation( string $iconFileName ) {
+	string $paths[] = `zooListEnv XBMLANGPATH`;
+	string $buffer[] = {};
+	string $iconName;
+	string $ext;
+	string $scriptPath = "";
+
+	tokenize $iconFileName "." $buffer;
+	for( $n=0; $n<( `size $buffer`-1 ); $n++ ) $iconName = $iconName + $buffer[$n];
+	$ext = $buffer[`size $buffer`-1];
+	$scriptPath = `zooGetFileLocation $paths $iconName $ext` +"/"+ $iconFileName;
+	$scriptPath = `zooScrubPath $scriptPath`;
+
+	return $scriptPath;
+	}
+
+
+//returns the location of a file given a list of paths
+global proc string zooGetFileLocation( string $paths[], string $fileName, string $ext ) {
+	string $scriptPath = "";
+
+	if( !`size $paths` ) $paths = `zooListEnv ""`;
+	for( $path in $paths ) if( `filetest -f ( $path +"/"+ $fileName +"."+ $ext )` ){ $scriptPath = $path; break; }
+	if( `match "[\\/]$" $scriptPath` == "" ) $scriptPath += "/";
+	return $scriptPath;
+	}
+
+
+global proc int zooRoundFloat( float $x ) {
+	int $lower = (int)$x;
+	int $upper = (int)$x + 1;
+	float $dif = $x - $lower;
+	if( $dif > 0.5 ) return $upper;
+	else return $lower;
+	}
+
+
+//rounds a float value to a given number of decimal places
+global proc float zooRoundFloatTo( float $x, int $places ) {
+	int $shifter = `pow 10 $places`;
+	float $rounded = 1.*$x*$shifter;
+	int $roundedInt = `zooRoundFloat $rounded`;
+
+	$rounded = $roundedInt / (float)$shifter;
+
+	return $rounded;
+	}
+
+
+//is the first arg less than the second within a tolerance?
+global proc int zooEqTol( float $leftSide, float $rightSide, float $tolerance ) {
+	if( abs($leftSide-$rightSide) <= $tolerance ) return 1;
+	return 0;
+	}
+
+
+//turns all viewports on or off - speeds up procs that have to use current time
+//changes as the viewports no longer need to refresh
+global proc zooAllViews( int $state ) {
+	string $modelPanels[] = `getPanel -vis`;
+	string $emptySelConn = `selectionConnection`;
+
+	for( $panel in $modelPanels ) if( `getPanel -to $panel` == "modelPanel" ) {
+		isolateSelect -state (!$state) $panel;
+		if( $state ) modelEditor -e -mlc $emptySelConn $panel;
+		}
+	if( !$state ) deleteUI $emptySelConn;
+	}
+
+
+//sometimes maya needs a little bump to update a window correctly - often this
+//is only nessecary with formlayouts
+global proc zooBumpWindow( string $windowName ) {
+	int $w = `window -q -w $windowName`;
+	evalDeferred( "window -e -w "+ ($w+1) +" "+ $windowName +";" );
+	evalDeferred( "window -e -w "+ $w +" "+ $windowName +";" );
+	}
+
+
+//given a list of stuff (usually just from the ls command), this proc will filter
+//out all the components (given a component string) in the list and return them.
+//for example, if you wanted to list all verticies from a list, you would use:
+//zooFilterComponent `ls -sl` "vtx";
+//you can do likewise for cvs, edges, faces etc...
+global proc string[] zooFilterComponent( string $list[], string $componentStr ) {
+	string $components[] = {};
+	int $num = `size $list`;
+
+	for( $n=0; $n<$num; $n++ ) if( `match ( "^[_a-zA-Z|:][_a-zA-Z0-9|:]+."+ $componentStr +"\[[0-9]+(:[0-9]+)*\](\[[0-9]+(:[0-9]+)*\])*$" ) $list[$n]` != "" ) $components[( `size $components` )] = $list[$n];
+
+	return $components;
+	}
+
+
+// returns a set containing all the quick selection sets in the scene
+global proc string[] zoolsqss() {
+	string $sets[] = `ls -sets`;
+	string $qssSets[] = {};
+
+	for( $set in $sets ) if( `sets -q -t $set` == "gCharacterSet" ) $qssSets[( `size $qssSets` )] = $set;
+
+	return $qssSets;
+	}
+
+
+//recursively queries set members.  see the zooSetRelatives comments for details
+//on the args taken
+global proc string[] zooQuerySet( string $set, int $parents, int $recursive ) {
+	string $sets[] = `zooSetRelatives $set 1 $parents $recursive`;
+	string $objs[] = {};
+
+	for( $set in $sets ) {
+		string $setObjs[] = `sets -q $set`;
+		for( $obj in $setObjs ) if( `nodeType $obj` != "objectSet" ) $objs[( `size $objs` )] = $obj;
+		}
+
+	return $objs;
+	}
+
+
+//like listRelatives for sets.  the parents arg tells whether you want to
+//query child sets or parent sets.  the recursive arg simply tells the script
+//whether to perform a recursive listing of members
+global proc string[] zooSetRelatives( string $set, int $includeSelf, int $parents, int $recursive ) {
+	string $sets[] = {$set};
+	int $maxRecursion = 250;
+	int $n = 0;
+
+	while( 1 ) {
+		string $nextSets[] = ls("-type","objectSet",`sets -q $sets[$n]`);
+		if( $parents ) $nextSets = `listConnections -s 0 -type objectSet $sets[$n]`;
+		$sets = `zooAddArray_str $sets $nextSets`;
+		$n++;
+		if( !$recursive ) break;
+		else if( !`size $nextSets` ) break;
+		else if( $n > $maxRecursion ) break;  //just in case - yes this means you can't have nested sets more than $maxRecursion deep...  deal with it
+		}
+
+	if( !$includeSelf ) $sets = `zooIndexCrop_str $sets "1:"`;
+
+	return $sets;
+	}
+
+
+//this proc "cleans" a given filepath - removed multiple slashes, makes all
+//slashes uniform (unix style)
+global proc string zooScrubPath( string $path ) {
+	$path = `fromNativePath $path`;
+	int $isUNC = `match "^//" $path` == "//"? 1: 0;
+	while( `match "/{2,}" $path` != "" ) $path = `substitute "/{2,}" $path "/"`;
+	if( $isUNC ) $path = "/"+ $path;
+
+	return $path;
+	}
+
+
+//resolves a path string.  path strings may contain unresolved env var references
+//as well as the .. path op
+global proc string zooResolvePath( string $path ) {
+	$path = `zooScrubPath $path`;
+
+	//first resolve all env variables
+	while( `match "\%[^%]+\%" $path` != "" ) {
+		string $envName = `match "\%[^%]+\%" $path`;
+		string $envVal = `substring $envName 2 (size($envName)-1)`;
+
+		$envVal = `getenv $envVal`;
+		$path = `substitute $envName $path $envVal`;
+		}
+
+	//now split the paths up so we can resolve any path manipulation
+	string $paths[] = `zooTokenize $path "/"`;
+	string $usePaths[] = {};
+	int $num = `size $paths`;
+	int $i = 0;
+
+	for( $n=0; $n<$num; $n++ ) {
+		if( $paths[$n] == ".." ) {
+			$usePaths = `zooIndexCrop_str $usePaths ":-1"`;
+			$i--;
+			}
+		else {
+			$usePaths[$i] = $paths[$n];
+			$i++;
+			}
+		}
+
+	return `zooArrayToStr_str $usePaths "/"`;
+	}
+
+
+//opens an explorer window with the given file/directory selected
+global proc zooExploreTo( string $filepath ) {
+	$filepath = `zooScrubPath $filepath`;
+	if( !`filetest -r $filepath` ) return;
+	string $cmd = "explorer /n,/e,/select,\""+ `zooReplaceInString $filepath "/" "\\"` +"\"";
+	print( $cmd +"\n" );
+	system $cmd;
+	}
+
+
+global proc zooCmdTo( string $filepath ) {
+	$filepath = `zooScrubPath $filepath`;
+	if( !`filetest -d $filepath` ) {
+		string $toks[] = `zooTokenize $filepath "/"`;
+		$toks = `zooIndexCrop_str $toks ":-1"`;
+		$filepath = `zooArrayToStr_str $toks "/"`;
+		}
+	if( !`filetest -d $filepath` ) return;
+	string $cmd = "start cmd /K cd "+ (zooReplaceInString($filepath,"/","\\\\"));
+	print( $cmd +"\n" );
+	system $cmd;
+	}
+
+
+//this script is just a simple wrapper around the distanceDimension command - basically
+//because its shit and only returns the shape node.  this command returns an array
+//containing the distanceTransform node, distance shape node, start locator and end locator
+//also, there are two optional flags (ie they can be empty) that can contain objects
+//to constrain the start and end positions of the distance dimension tool to
+global proc string[] zooDistance( string $obj1, string $obj2 ) {
+	string $dist = `distanceDimension -sp (rand(1000000)) (rand(2000000)) 2364 -ep 284055 (rand(3000000)) (rand(4000000))`;  //create a distance node at some reasonably obscure position - if you choose a position that a locator already exists at, maya uses that locator instead of creating a new one...  very helpful alias...
+	string $end[] = `listConnections -d 0 ( $dist +".endPoint" )`;
+	string $start[] = `listConnections -d 0 ( $dist +".startPoint" )`;
+	string $trans[] = `listRelatives -pa -p $dist`;
+	string $toReturn[] = { $trans[0], $dist, $start[0], $end[0] };
+
+	setAttr ( $start[0] +".t" ) 0 0 0;
+	setAttr ( $end[0] +".t" ) 1 0 0;
+	if( `objExists $obj1` ) pointConstraint $obj1 $start[0];
+	if( `objExists $obj2` ) pointConstraint $obj2 $end[0];
+
+	return $toReturn;
+	}
+
+
+//like the distance command above, this is a simple wrapper for creating annotation nodes,
+//and having the nodes you actually want returned to you.  whoever wrote these commands
+//should be shot.  with a large gun
+global proc string[] zooAnnotate( string $obj, string $text ) {
+	string $end = zooGetElement_str(0,`spaceLocator`);
+	string $shape = `annotate -p (rand(1000000)) (rand(2000000)) 2364 -tx $text $end`;
+	string $start = zooGetElement_str(0,`listRelatives -p $shape`);
+	string $endShape = zooGetElement_str(0,`listRelatives -s $end`);
+	delete `parentConstraint $obj $end`;
+	setAttr ( $start +".t" ) 0 0 0;
+	setAttr ( $endShape +".v" ) 0;
+	setAttr -l 1 ( $endShape +".v" );
+	parent $end $obj;
+
+	return {$start,$end,$shape};
+	}
+
+
+//returns whether a transform is of a certain type - ie a camera, mesh etc...  instead of having to
+//list shapes and check their node types
+global proc int isOfType( string $obj, string $type ) {
+	if( `nodeType $obj` == $type ) return 1;
+	string $shapes[] = `listRelatives -pa -s $obj`;
+	if( !`size $shapes` ) return 0;
+	for( $shape in $shapes ) if( `nodeType $shape` != $type ) return 0;
+	return 1;
+	}
+
+
+//zoo.end

@@ -1,0 +1,247 @@
+//
+// Tangent Works
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 14 October 2001
+//
+// Description:
+// creates a marking menu containing a bunch of keyframe
+// relevant operations.  The keys that are affected, is context
+// sensitive.  If there are keys on the current frame, it
+// changes them.  If there aren't keys on the current frame,
+// it changes the closest previous keyframes, and if keys are
+// selected, it changes those.
+//
+// Usage:
+//  assign this function to a key press:
+//	zooTangentWks;
+//
+//  assign this function to the release;
+//	zooTangentWksKillUI;
+//
+// NOTE: if the hotkey you want to assign this script to contains
+// either ctrl, alt or shift, then modify the "popupMenu" line below
+// to reflect which key is used (ie if you're using alt-w then
+// change it to -alt 1).
+//
+// HELP: for more help on how to install the script, run:
+//  source zooTangentWks;
+//  zooTangentWksHelp help;
+//
+// macaroniKazoo
+
+
+zooGraphFilterUtils;
+zooTangentWksUtils;
+zooUtils;
+
+
+global proc zooTangentWks () {
+	global int $zooIsClicked;
+	string $panel = `getPanel -up`;
+
+	$zooIsClicked = 0;
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	if( !`control -ex $panel` ) $panel = "viewPanes";
+	popupMenu -ctl 0 -alt 0 -sh 0 -mm 1 -b 1 -aob 1 -p $panel -pmc( "zooTangentWksCreateUI tempMM;" ) tempMM;
+	}
+
+
+global proc zooTangentWksCreateUI ( string $parent ) {
+	global int $zooIsClicked;
+	string $currentTangents[] = `keyTangent -q -global -itt -ott`;
+	float $factor = `optionVar -ex zooSensibleFactor`? `optionVar -q zooSensibleFactor`: 0.5;
+	int $sel = size( `ls -sl` );
+
+	setParent -m $parent;
+	menu -e -dai $parent;
+
+	$zooIsClicked = 1;
+	if( $sel ) {
+		menuItem -l "spline tangents" -c( "zooTangentType spline" ) -rp NE;
+		menuItem -l "tighten tangents" -c( "zooTangentManip tighten \"*\"" ) -rp E;
+		menuItem -l "make sensible tangents" -c( "zooMakeSensibleTangents \"*\"" ) -rp SE;
+		menuItem -ob 1 -c( "zooMakeSensibleTangents \"1\"" );
+
+		menuItem -l "linear tangents" -c( "zooTangentType linear" ) -rp NW;
+		menuItem -l "sharpen tangents" -c( "zooTangentManip sharpen \"*\"" ) -rp W;
+		menuItem -l "unsharpen tangents" -c( "zooTangentManip unsharpen \"*\"" ) -rp SW;
+
+		menuItem -l "filter like channels" -c( "zooGraphChannelTypes `zooGetHighlightedChannels`" ) -rp N;
+		menuItem -l "toggle selected curve" -c( "zooToggleSelectedAll" ) -rp S;
+		}
+	else menuItem -l "no selected items";
+
+	menuItem -en $sel -l "stepped tangents" -c( "zooTangentType step;" );
+	menuItem -en $sel -l "flat tangents" -c( "zooTangentType flat;" );
+	menuItem -d 1;
+	menuItem -en $sel -l "select all static keys" -c( "zooSelectStaticKeys static 1;" );
+	menuItem -en $sel -l "select outer static keys" -c( "zooSelectStaticKeys outer 1;" );
+	menuItem -en $sel -l "select inner static keys" -c( "zooSelectStaticKeys inner 1;" );
+	menuItem -en $sel -l "select non static keys" -c( "zooSelectStaticKeys static 1; selectKey -tgl -k `ls -sl`;" );
+	menuItem -d 1;
+	menuItem -l "sensible factor" -sm 1;
+		menuItem -l "more sensible by 5%" -cb( $factor == 0.05 ) -c( "optionVar -fv zooSensibleFactor 0.05" );
+		menuItem -l "more sensible by 10%" -cb( $factor == 0.1 ) -c( "optionVar -fv zooSensibleFactor 0.1" );
+		menuItem -l "more sensible by 25%" -cb( $factor == 0.25 ) -c( "optionVar -fv zooSensibleFactor 0.25" );
+		menuItem -l "more sensible by 35%" -cb( $factor == 0.35 ) -c( "optionVar -fv zooSensibleFactor 0.35" );
+		menuItem -l "more sensible by 50%" -cb( $factor == 0.5 ) -c( "optionVar -fv zooSensibleFactor 0.5" );
+		menuItem -l "more sensible by 75%" -cb( $factor == 0.75 ) -c( "optionVar -fv zooSensibleFactor 0.75" );
+	setParent -m ..;
+	menuItem -l "default tangents" -sm 1;
+		menuItem -l "spline" -cb(( $currentTangents[0] == "spline" && $currentTangents[1] == "spline" )?1:0 ) -c( "keyTangent -global -itt spline -ott spline" );
+		menuItem -l "linear" -cb(( $currentTangents[0] == "linear" && $currentTangents[1] == "linear" )?1:0 ) -c( "keyTangent -global -itt linear -ott linear" );
+		menuItem -l "stepped" -cb(( $currentTangents[0] == "linear" && $currentTangents[1] == "step" )?1:0 ) -c( "keyTangent -global -itt linear -ott step" );
+		menuItem -l "clamped" -cb(( $currentTangents[0] == "clamped" && $currentTangents[1] == "clamped" )?1:0 ) -c( "keyTangent -global -itt clamped -ott clamped" );
+		menuItem -l "flat" -cb(( $currentTangents[0] == "flat" && $currentTangents[1] == "flat" )?1:0 ) -c( "keyTangent -global -itt flat -ott flat" );
+	setParent -m ..;
+
+	menuItem -d 1;
+	if( $sel ) menuItem -l "graph filters" -c( "zooGraphFilter" );
+	menuItem -l "configure" -c( "zooTangentWksConfig" );
+	}
+
+
+global proc zooTangentWksConfig() {
+	string $windowName = "zooTangentWksConfigWindow";
+	string $windowTitle = "Tangent Works";
+	string $currentDefault = ( `optionVar -ex zooTangentWksDefaultOption` )?`optionVar -q zooTangentWksDefaultOption`:"flat";
+	string $functionNames[] = { "spline", "linear", "flat", "step", "clamped", "tighten", "sharpen","sensible"};
+	int $defaultOn = ( `optionVar -ex zooTangentWksCheckDefault` )?`optionVar -q zooTangentWksCheckDefault`:1;
+	int $selection = 1;
+	int $n = 1;
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -sizeable 1 -width 177 $windowName;
+
+		menuBarLayout;
+			menu -label "Help";
+				menuItem -l "Help..." -c ( "zooTangentWksHelp help" );
+				menuItem -divider 1;
+				menuItem -l "About" -c ( "zooTangentWksHelp about" );
+
+			columnLayout -adjustableColumn true -rowSpacing 2 zooTangentWksLeftColumn;
+				text -align "left" -label "Change default behaviour to:";
+				rowLayout -numberOfColumns 2
+					-columnWidth2 90 80
+					-columnAttach 1 "both" 	1
+					-columnAttach 2 "both" 	1;
+					optionMenu -label "" -changeCommand ( "" ) zooTangentWksDefaultOption;
+					checkBox -align "left" -label "Default On" -v $defaultOn zooTangentWksCheckDefault;
+					setParent..;
+
+				for( $function in $functionNames ) {
+					menuItem -label $function -p zooTangentWksDefaultOption;
+					if( $function == $currentDefault ) { $selection = $n; }
+					$n++;
+					}
+
+				float $tightWeight = ( `optionVar -ex zooTangentWksTightenWeight` )?`optionVar -q zooTangentWksTightenWeight`:0.5;
+				float $sharpWeight = ( `optionVar -ex zooTangentWksSharpenWeight` )?`optionVar -q zooTangentWksSharpenWeight`:0.15;
+
+				rowLayout -numberOfColumns 3
+					-columnWidth3 35 35 100
+					-columnAttach 1 "both" 1
+					-columnAttach 2 "both" 1
+					-columnAttach 3 "both" 1;
+					text -label "weight";
+					textField -ed 1 -text $tightWeight -cc ( "{ float $value = `textField -q -text zooTangentWksTextfieldTighten`; floatSlider -e -value $value zooTangentWksSliderTighten; }" ) zooTangentWksTextfieldTighten;
+					floatSlider -min 0.001 -max 1 -value $tightWeight -step 1 -cc ( "textField -e -text `floatSlider -q -v zooTangentWksSliderTighten` zooTangentWksTextfieldTighten" ) zooTangentWksSliderTighten;
+					setParent..;
+
+				rowLayout -numberOfColumns 3
+					-columnWidth3 35 35 100
+					-columnAttach 1 "both" 1
+					-columnAttach 2 "both" 1
+					-columnAttach 3 "both" 1;
+					text -label "weight";
+					textField -ed 1 -text $sharpWeight -cc ( "{ float $value = `textField -q -text zooTangentWksTextfieldSharpen`; floatSlider -e -value $value zooTangentWksSliderSharpen; }" ) zooTangentWksTextfieldSharpen;
+					floatSlider -min 0.001 -max 1 -value $sharpWeight -step 1 -cc ( "textField -e -text `floatSlider -q -v zooTangentWksSliderSharpen` zooTangentWksTextfieldSharpen" ) zooTangentWksSliderSharpen;
+					setParent..;
+
+				rowLayout -numberOfColumns 2
+					-columnWidth2 85 85
+					-columnAttach 1 "both" 	1
+					-columnAttach 2 "both" 	1;
+					button -label "Save Config" -c ( "zooTangentWksConfigDoIt defaultChange" );
+					button -label "Cancel" -c ( "zooTangentWksConfigDoIt cancel" );
+					setParent..;
+
+				string $image = `image -width 177 -height 8 -backgroundColor ((float)96/255) ((float)100/255) ((float)146/255) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+				setParent..;
+
+	showWindow $windowName;
+	optionMenu -edit -select $selection zooTangentWksDefaultOption;
+	}
+
+
+global proc zooTangentWksConfigDoIt ( string $function ) {
+	string $windowName = "zooTangentWksConfigWindow";
+
+	switch ( $function ) {
+		case "defaultChange":
+			optionVar -sv zooTangentWksCheckDefault ( `checkBox -q -v zooTangentWksCheckDefault` );
+			optionVar -sv zooTangentWksDefaultOption ( `optionMenu -q -value zooTangentWksDefaultOption` );
+			optionVar -fv zooTangentWksTightenWeight ( `floatSlider -q -v zooTangentWksSliderTighten` );
+			optionVar -fv zooTangentWksSharpenWeight ( `floatSlider -q -v zooTangentWksSliderSharpen` );
+			deleteUI $windowName;
+			break;
+
+		case "cancel":
+			deleteUI $windowName;
+			break;
+		}
+	}
+
+
+global proc zooTangentWksKillUI () {
+	global int $zooIsClicked;
+	int $defaultOn = ( `optionVar -ex zooTangentWksCheckDefault` )?`optionVar -q zooTangentWksCheckDefault`:1;
+
+	if( !$zooIsClicked && $defaultOn ) {
+		string $currentDefault = ( `optionVar -ex zooTangentWksDefaultOption` )?`optionVar -q zooTangentWksDefaultOption`:"flat";
+		if( $currentDefault == "tighten" ) zooTangentManip tighten "*";
+		else if( $currentDefault == "sharpen" ) zooTangentManip sharpen "*";
+		else if( $currentDefault == "sensible" ) zooMakeSensibleTangents "*";
+		else zooTangentType $currentDefault;
+		}
+
+	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
+	$zooIsClicked = 0;
+	}
+
+
+global proc string zooTangentWksInfo ( string $function ) {
+	string $creationDate = "14 October 2001";
+	string $currentVersion = "3.06.08";
+
+	if( $function == "created" ) return $creationDate;
+	if( $function == "version" ) return $currentVersion;
+	return "";
+	}
+
+
+global proc string[] zooTangentWksDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $iconDependencies[] = {};
+	string $return[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooArrays_float";
+	$melDependencies[( `size $melDependencies` )] = "zooGraphFilter";
+	$melDependencies[( `size $melDependencies` )] = "zooGraphFilterUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooTangentWksUtils";
+	$melDependencies[( `size $melDependencies` )] = "zooSetkey";
+	$melDependencies[( `size $melDependencies` )] = "zooKeymaster";
+	$melDependencies[( `size $melDependencies` )] = "zooKeymasterMenu";
+	$melDependencies[( `size $melDependencies` )] = "zooKeymasterWin";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+	$iconDependencies[( `size $iconDependencies` )] = "zooTangentWks_flattenStatic.xpm";
+
+	if( $mode == "-scripts" ) $return = $melDependencies;
+	if( $mode == "-icons" ) $return = $iconDependencies;
+	return $return;
+	}
+
+
+//zoo.end

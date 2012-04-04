@@ -1,0 +1,166 @@
+//proc for dealing with creating and applying a "smallest possible" set of shaders
+//using reasonably high-level, but still flexible tools.  this proc will let you
+//for example, apply a "red" shader to an object - if an existing shader that is
+//also red exists, that will be used, otherwise a new one will be created
+
+
+zooArrays_str;
+zooRegister;
+zooUtils;
+
+
+global proc zooShaders() {
+	return;
+	}
+
+
+global proc zooSetShaderColour( string $shader, string $colour ) {
+	float $col[] = `zooColourToFloat $colour`;
+	setAttr ( $shader +".outColor" ) $col[0] $col[1] $col[2];
+	if( $col[3] < 100 ) setAttr ( $shader +".outTransparency" ) $col[3] $col[3] $col[3];
+	}
+
+
+global proc zooSetObjShader( string $obj, string $shader ) {
+	if( !`objExists $obj` ) return;
+	if( !`objExists $shader` ) return;
+
+	string $SG[] = `listConnections -s 0 -type shadingEngine ( $shader +".outColor" )`;
+	string $shapes[] = `listRelatives -pa -s $obj`;
+
+	for( $shape in $shapes ) if( `nodeType $shape` != "nurbsCurve" ) sets -e -forceElement $SG[0] $shape;
+	}
+
+
+//returns the shader currently assigned to the given object
+global proc string zooGetObjShader( string $obj ) {
+	if( !`objExists $obj` ) return "";
+	string $shapes[] = `listRelatives -pa -s $obj`;
+	if( !`size $shapes` ) return "";
+
+	string $cons[] = `listConnections -s 0 -type shadingEngine $shapes`;
+	for( $c in $cons ) {
+		string $shaders[] = `listConnections -d 0 ( $c +".surfaceShader" )`;//-type surfaceShader
+		if( `size $shaders` ) return $shaders[0];
+		}
+
+	return "";
+	}
+
+
+//given a colour, this proc will either return an existing shader with that colour
+//or it will create a new shader (if forceCreate is true) if an existing one isn't
+//found
+//NOTE - this proc will look for a shader that has a similar colour to the one
+//specified - so the colour may not always be totally accurate if a shader exists
+//with a similar colour - the colour/alpha threshold is 0.05
+global proc string zooGetShader( string $colour, int $forceCreate ) {
+	string $shaders[] = `zooGetShaders`;
+	float $rgba[] = `zooColourToFloat $colour`;
+
+	for( $shader in $shaders ) {
+		float $col[] = `getAttr ( $shader +".outColor" )`;
+		float $trans[] = `getAttr ( $shader +".outTransparency" )`;
+		if( abs($col[0]-$rgba[0]) < 0.05 ) if( abs($col[1]-$rgba[1]) < 0.05 ) if( abs($col[2]-$rgba[2]) < 0.05 )
+			if( abs($trans[0]-$rgba[3]) < 0.05 ) if( abs($trans[1]-$rgba[3]) < 0.05 ) if( abs($trans[2]-$rgba[3]) < 0.05 )
+				return $shader;
+		}
+	if( $forceCreate ) return `zooCreateShader $colour`;
+	return "";
+	}
+
+
+//creates a shader of a given colour - always creates a new shader
+global proc string zooCreateShader( string $colour ) {
+	string $name = `match "^[^ ]+" $colour`;
+	string $shader = `shadingNode -asShader surfaceShader`;
+	string $SG = `sets -renderable 1 -noSurfaceShader 1 -empty`;
+	string $reg = `zooGetRegister zoo 1`;
+
+	connectAttr -f ( $shader +".outColor" ) ( $SG +".surfaceShader" );
+	float $colourRGBA[] = `zooColourToFloat $colour`;
+	setAttr ( $shader +".outColor" ) $colourRGBA[0] $colourRGBA[1] $colourRGBA[2];
+	setAttr ( $shader +".outTransparency" ) $colourRGBA[3] $colourRGBA[3] $colourRGBA[3];
+	zooRegisterObj $reg shaders $shader 1 1;
+	$shader = `rename $shader ( "zooShader_"+ $name )`;
+	$SG = `rename $SG ( $shader +"SG" )`;
+	shadingConnection -e -cs 0 ( $SG +".surfaceShader" );  //makes non-renderable
+
+	return $shader;
+	}
+
+
+//colour can be a combination:
+//name alpha  ->  darkred 0.5
+//name
+//r g b a  ->  1 0 0 0.2
+//if r, g, b or a are missing, they're assumed to be 0
+//a 4 float, RGBA array is returned
+global proc float[] zooColourToFloat( string $colour ) {
+	string $data[] = {};
+	float $alpha = 0.0;
+
+	tokenize $colour " " $data;
+	string $name = $data[0];
+	if( `size $data` > 1 ) $alpha = $data[1];
+	switch( $name ) {
+		case "highlight":
+		case "active": return { 0.26, 1, 0.64 };
+		case "black": return {0.,0.,0.,$alpha};
+		case "white": return {1.,1.,1.,$alpha};
+		case "grey": return {.5,.5,.5,$alpha};
+		case "lightgrey": return {.7,.7,.7,$alpha};
+		case "darkgrey": return {.25,.25,.25,$alpha};
+		case "red": return {1.,0.,0.,$alpha};
+		case "pink":
+		case "lightred": return {1.,.5,1.,$alpha};
+		case "peach": return {1.,.5,.5,$alpha};
+		case "crimson":
+		case "darkred": return {.6,0.,0.,$alpha};
+		case "orange": return {1.,.5,0.,$alpha};
+		case "lightorange": return {1.,.7,.1,$alpha};
+		case "darkorange": return {.7,.25,0.,$alpha};
+		case "yellow": return {1.,1.,0.,$alpha};
+		case "lightyellow": return {1.,1.,.5,$alpha};
+		case "darkyellow": return {.8,.8,0.,$alpha};
+		case "green": return {0.,1.,0.,$alpha};
+		case "lightgreen": return {.4,1.,.2,$alpha};
+		case "darkgreen": return {0.,.5,0.,$alpha};
+		case "blue": return {0.,0.,1.,$alpha};
+		case "lightblue": return {.4,.55,1.,$alpha};
+		case "darkblue": return {0.,0.,.4,$alpha};
+		case "purple": return {.7,0.,1.,$alpha};
+		case "lavender":
+		case "lightpurple": return {.8,.5,1,$alpha};
+		case "plum":
+		case "darkpurple": return {.375,0.,.5,$alpha};
+		case "brown": return {.57,.49,.39,$alpha};
+		case "lightbrown": return {.76,.64,.5,$alpha};
+		case "darkbrown": return {.37,.28,.17,$alpha};
+		}
+
+	if( `match "^[-0-9. ]+$" $colour` == $colour ) {
+		string $toks[] = `zooTokenize $colour " "`;
+		for( $n=0; $n<4; $n++ ) if( $toks[$n] == "" ) $toks[$n] = "0";
+		return { ((float)$toks[0]), ((float)$toks[1]), ((float)$toks[2]), ((float)$toks[3]) };
+		}
+
+	return {0.,0.,0.,0.};
+	}
+
+
+//lists all existing registered shaders in the scene
+global proc string[] zooGetShaders() {
+	string $shaders[] = {};
+	string $existingShaders[] = {};
+	string $reg = `zooGetRegister zoo 1`;
+	int $idxs[] = {};
+
+	zooListRegistered $reg shaders $idxs $shaders;
+	for( $s in $shaders ) if( `objExists $s` ) $existingShaders[( `size $existingShaders` )] = $s;
+
+	return $existingShaders;
+	}
+
+
+//zoo.end

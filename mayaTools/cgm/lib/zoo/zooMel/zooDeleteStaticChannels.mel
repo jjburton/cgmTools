@@ -1,0 +1,68 @@
+global proc zooDeleteStaticChannelsSel() {
+	string $sel[] = `ls -sl`;
+	int $count = 0;
+
+	for( $s in $sel ) $count += `zooDeleteStaticChannels $s`;
+	print( $count +" static sdk curves have been deleted\n" );
+	}
+
+
+global proc int zooDeleteStaticChannels( string $obj ) {
+	string $static[] = `zooFindStaticChannels $obj`;
+	int $num = `size $static`;
+
+	for( $n=0; $n<$num; $n++ ) {
+		float $value = zooGetElement_float(0,`keyframe -in 0 -q -vc $static[$n]`);
+		string $connectedTo = zooGetElement_str(0,`listConnections -scn 1 -s 0 -p 1 ( $static[$n] +".output" )`);
+		string $blendDestination = "";
+
+		if( `nodeType $connectedTo` == "blendWeighted" ) $blendDestination = zooGetElement_str(0,`listConnections -scn 1 -s 0 -p 1 ((match("^[^.]+",$connectedTo))+".output" )`);
+		delete $static[$n];
+		if( `objExists $connectedTo` ) setAttr $connectedTo $value;
+		//else if( `objExists $blendDestination` ) setAttr $blendDestination $value;
+		}
+
+	return $num;
+	}
+
+
+//returns a list of static channels - if no object is specified, a list of all
+//static channels in the scene is returned, otherwise only channels for a given
+//object are returned
+global proc string[] zooFindStaticChannels( string $obj ) {
+	string $curves[] = {};//`ls -type animCurve`;
+	string $static[] = {};
+
+	if( `objExists $obj` ) $curves = `zooGetObjSDKCurves $obj`;
+	for( $curve in $curves ) {
+		float $value = zooGetElement_float(0,`keyframe -in 0 -q -vc $curve`);
+		int $numKeys = `keyframe -q -kc $curve`;
+		int $pass = 0;
+
+		for( $n=1; $n<$numKeys; $n++ ) if( zooGetElement_float(0,`keyframe -in $n -q -vc $curve`) != $value ) {
+			$pass = 1;
+			break;
+			}
+
+		if( $pass ) continue;
+		$static[( `size $static` )] = $curve;
+		}
+
+	return $static;
+	}
+
+
+global proc string[] zooGetObjSDKCurves( string $obj ) {
+	string $attrs[] = `listAttr -k -v -s -m $obj`;
+	string $sdkCurves[] = {};
+
+	for( $attr in $attrs ) {
+		string $curves[] = `zooGetSDKCurves $obj $attr`;
+		$sdkCurves = `zooAddArray_str $sdkCurves $curves`;
+		}
+
+	return $sdkCurves;
+	}
+
+
+//zoo.end

@@ -1,0 +1,63 @@
+{
+string $control[] = {};
+$control[0] = `createNode transform -n "zooControl"`;
+$control[1] = `createNode nurbsCurve -n "zooControlShape" -p $control[0]`;
+	setAttr -k 0 ".v";
+	setAttr ".cc" -type "nurbsCurve"
+		3 8 2 no 3
+		13 -2 -1 0 1 2 3 4 5 6 7 8 9 10
+		11
+		0.122 0.122 0
+		0 0.17254 0
+		-0.122 0.122 0
+		-0.17254 0 0
+		-0.122 -0.122 0
+		0 -0.17254 0
+		0.122 -0.122 0
+		0.17254 0 0
+		0.122 0.122 0
+		0 0.17254 0
+		-0.122 0.122 0;
+$control[2] = `createNode nurbsCurve -n "zooControlShape1" -p $control[0]`;
+	setAttr -k 0 ".v";
+	setAttr ".cc" -type "nurbsCurve"
+		3 8 2 no 3
+		13 -2 -1 0 1 2 3 4 5 6 7 8 9 10
+		11
+		0.205598 0.2056 0
+		0 0.29076 0
+		-0.205598 0.2056 0
+		-0.29076 0 0
+		-0.205598 -0.2056 0
+		0 -0.29076 0
+		0.205598 -0.2056 0
+		0.29076 0 0
+		0.205598 0.2056 0
+		0 0.29076 0
+		-0.205598 0.2056 0;
+$control[3] = `createNode nurbsCurve -n "zooControlShape2" -p $control[0]`;
+	setAttr -k 0 ".v";
+	setAttr ".cc" -type "nurbsCurve"
+		3 12 2 no 3
+		17 -2 -1 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+		15
+		0.2778 0.26 0
+		0 0.3 0
+		-0.2778 0.26 0
+		-0.5213 0.0289 0
+		-0.53 0 0
+		-0.5213 -0.0289 0
+		-0.2778 -0.26 0
+		0 -0.3 0
+		0.2778 -0.26 0
+		0.5221 -0.0289 0
+		0.529 0 0
+		0.5221 0.0289 0
+		0.2778 0.26 0
+		0 0.3 0
+		-0.2778 0.26 0;
+setAttr ( $control[0] +".s" ) 0.95 0.95 0.95;
+setAttr ( $control[0] +".rx" ) -90;
+makeIdentity -a 1 -r 1 -s 1 $control[0];
+select $control[0];
+}

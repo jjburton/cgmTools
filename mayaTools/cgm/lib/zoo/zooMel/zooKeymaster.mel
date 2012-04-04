@@ -1,0 +1,141 @@
+zooArrays_float;
+zooFlags;
+zooUtils;
+zooTangentWksUtils;
+
+
+//-dir [str]			the direction to move the keys - up, down, left or right
+//-factor [float]		the percentage to move the key values
+//-abs [int]			puts the tool into absolute mode - so if value is negative, treats it like positive
+//-pivot [str]			options are mid, min, max, zero.  controls where the keys scale around when doing a vertical nudge
+//-curvePivot [int]	if curve pivot is on, then all scaling pivots are calculted per curve instead of having a single pivot for all relevant keys.  NOTE: when no keys are selected all keys for all selected objects are scaled
+global proc zooKeymaster( string $optionStr ) {
+	string $objs[] = `ls -sl`;
+	string $temp[];
+	string $dir = "down";
+	string $pivot = "zero";
+	float $factor = `zooKeymasterDefaultSettings zooKeyFactor`;
+	int $pivDefault = `zooKeymasterDefaultSettings zooKeyPivot`;
+	int $abs = `optionVar -q zooKeyAbs`;
+	int $curvePivot = `optionVar -q zooKeyCurvePivot`;
+
+	print( "zooKeymaster \""+ $optionStr +"\";\n" );
+	if( $pivDefault == 2 ) $pivot = "min";
+	if( $pivDefault == 3 ) $pivot = "mid";
+	if( $pivDefault == 4 ) $pivot = "max";
+	$temp = `zooGetFlagArguments $optionStr dir`; if( `size $temp` ) $dir = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr factor`; if( `size $temp` ) $factor = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr abs`; if( `size $temp` ) $abs = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr pivot`; if( `size $temp` ) $pivot = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr curvePivot`; if( `size $temp` ) $curvePivot = $temp[0];
+	if( $dir == "left" || $dir == "right" ) { zooKeymasterNudge $optionStr; return; }
+	if( $dir == "up" ) $factor*=-1;
+	if( $curvePivot ) { zooScaleCurves $optionStr; return; }
+
+	float $pivotVal = 0;
+	int $selectionMode = size(`keyframe -q -sl`);
+	string $curves[] = {};
+	float $keyValues[] = {};
+	int $keyIdxs[] = {};
+	int $num = `zooGetKeySet $curves {} $keyValues $keyIdxs`;
+
+	if( $pivot == "mid" ) $pivotVal = `zooAverageArray_float $keyValues`;
+	if( $pivot == "min" ) {
+		int $idx = `zooGetLowestValueIdx_float $keyValues`;
+		$pivotVal = $keyValues[$idx];
+		}
+	if( $pivot == "max" ) {
+		int $idx = `zooGetHighestValueIdx_float $keyValues`;
+		$pivotVal = $keyValues[$idx];
+		}
+
+	for( $n=0; $n<$num; $n++ ) {
+		float $val = $keyValues[$n];
+		float $increment = ($val-$pivotVal)*$factor;
+
+		if( $abs ) $increment = abs($val-$pivotVal)*$factor;
+		keyframe -in $keyIdxs[$n] -vc( $val-$increment ) $curves[$n];
+		}
+	}
+
+
+//this proc will do a scale curve around the given pivot, but the pivots are calculated
+//per curve, instead of globally for all keys acted upon
+global proc zooScaleCurves( string $optionStr ) {
+	string $temp[];
+	string $dir = "down";
+	string $pivot = "zero";
+	float $factor = `zooKeymasterDefaultSettings zooKeyFactor`;
+	int $pivDefault = `zooKeymasterDefaultSettings zooKeyPivot`;
+
+	if( $pivDefault == 2 ) $pivot = "min";
+	if( $pivDefault == 3 ) $pivot = "mid";
+	if( $pivDefault == 4 ) $pivot = "max";
+	$temp = `zooGetFlagArguments $optionStr dir`; if( `size $temp` ) $dir = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr factor`; if( `size $temp` ) $factor = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr pivot`; if( `size $temp` ) $pivot = $temp[0];
+	if( $dir == "up" ) $factor*=-1;
+
+	string $curves[] = `keyframe -q -n -sl`;
+	int $sel = `keyframe -q -sl -kc`;
+
+	if( !$sel ) $curves = `keyframe -q -n`;
+	for( $n=0; $n<`size $curves`; $n++ ) {
+		float $keys[] = `keyframe -q -sl $curves[$n]`;
+		float $keyVals[] = `keyframe -q -vc -sl $curves[$n]`;
+		float $pivotVal = 0;
+
+		if( !$sel ) {
+			$keys = `keyframe -q $curves[$n]`;
+			$keyVals = `keyframe -q -vc $curves[$n]`;
+			}
+		if( $pivot == "mid" ) $pivotVal = `zooAverageArray_float $keyVals`;
+		if( $pivot == "min" ) {
+			int $idx = `zooGetLowestValueIdx_float $keyVals`;
+			$pivotVal = $keyVals[$idx];
+			}
+		if( $pivot == "max" ) {
+			int $idx = `zooGetHighestValueIdx_float $keyVals`;
+			$pivotVal = $keyVals[$idx];
+			}
+
+		for( $i=0; $i<`size $keys`; $i++ ) keyframe -t $keys[$i] -e -vc( $keyVals[$i]-(($keyVals[$i]-$pivotVal)*$factor)) $curves[$n];
+		}
+	}
+
+
+global proc zooKeymasterNudge( string $optionStr ) {
+	string $objs[] = `ls -sl`;
+	string $temp[];
+	string $dir = "right";
+	string $userFactor = "*";
+	string $userNudge = "*";
+	int $nudge = 1;
+
+	$temp = `zooGetFlagArguments $optionStr dir`; if( `size $temp` ) $dir = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr nudge`; if( `size $temp` ) $userNudge = $temp[0];
+	$temp = `zooGetFlagArguments $optionStr factor`; if( `size $temp` ) $userFactor = $temp[0];
+	if( $userFactor != "*" ) $nudge = $userFactor;
+	if( $userNudge != "*" ) $nudge = $userNudge;
+	if( $dir == "left" ) $nudge*=-1;
+
+	string $curves[] = {};
+	int $keyIdxs[] = {};
+	int $num = `zooGetKeySet $curves {} {} $keyIdxs`;
+
+	for( $n=0; $n<$num; $n++ ) keyframe -in $keyIdxs[$n] -e -r -tc $nudge $curves[$n];
+	}
+
+
+global proc float zooKeymasterDefaultSettings( string $setting ) {
+	int $exists = `optionVar -ex $setting`;
+	if( $exists ) return((float)`optionVar -q $setting`);
+	switch( $setting ) {
+		case "zooKeyFactor": return 0.02;
+		case "zooKeyNudge": return 1.;
+		case "zooKeyPivot": return 1.;
+		}
+	}
+
+
+//zoo.end

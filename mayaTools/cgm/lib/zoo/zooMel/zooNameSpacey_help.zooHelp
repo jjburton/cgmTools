@@ -1,0 +1,13 @@
+Overview
+zooNameSpacey helps manage namespaces in a somewhat more friendly way than maya offers.
+
+All it does at the moment is offer navigation, renaming, and deletion tools.
+
+Navigating
+Double clicking a namespace will allow you to \"look\" into that namespace (kinda like a directory) to see if it has any sub-namespaces.  This also changes the default namespace in maya.  ie any new objects created get stuck into this default namespace.
+
+Renaming
+To rename a namespace, simply select it, and type in a new name at the bottom, and hit enter.  The script handles renaming all sub spaces accordingly.
+
+Remove and Delete
+Remove will remove the namespace, and dump all its contents (including anything in sub spaces) into its parent's namespace.  Delete will actually delete all contents of a namespace (including sub spaces) as well as removing the namespace itself.";

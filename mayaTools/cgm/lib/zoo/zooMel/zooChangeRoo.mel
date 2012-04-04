@@ -1,0 +1,114 @@
+//
+// zooChangeRoo
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 09 January 2002
+//
+// Description:
+// will change the rotation order of all selected objects
+// without mangling their orientation.  The script even
+// works on objects that have been animated as well.
+//
+// Usage:
+// this script takes one parameter - the new rotation order
+// example:  zooChangeRoo zxy;
+// will change all selected objects rotation order to zxy
+//
+//
+
+
+zooArrays_float;
+zooArrays_str;
+zooUtils;
+
+
+global proc zooChangeRoo( string $newRoo ) {
+	string $selObjs[] = `ls -sl`;
+	string $staticObjs[] = {};
+	string $animatedObjs[] = {};
+	string $rotateOrders[] = { "xyz","yzx","zxy","xzy","yxz ","zyx" };
+	float $keyTimeList[] = {};
+	float $initialTime = `currentTime -q`;
+
+	//source all dependencies
+	string $deps[] = `zooChangeRooDependencies -scripts`;
+	for( $script in $deps ) if( `exists $script` ) eval( "source " + $script );
+
+	for( $obj in $selObjs ) {
+		float $tempKeys[] = `keyframe -q ( $obj +".r" )`;
+		if( `size $tempKeys` ) {
+			$keyTimeList = `zooAddArray_float $keyTimeList $tempKeys`;
+			$animatedObjs[`size $animatedObjs`] = $obj;
+			}
+		else $staticObjs[`size $staticObjs`] = $obj;
+		}
+
+	$keyTimeList = `sort $keyTimeList`;
+	$keyTimeList = `zooRemoveDupeItems_float $keyTimeList`;
+
+	//make sure if any rotation channel has a key, ALL rotation channels have keys
+	zooAllViews 0;
+	int $numKeys = `size $keyTimeList`;
+	for( $n=0; $n<$numKeys; $n++ ) {
+		currentTime $keyTimeList[$n];
+		setKeyframe -t $keyTimeList[$n] -at r $animatedObjs;
+		}
+
+	for( $n=0; $n<$numKeys; $n++ ) {
+		int $t = $keyTimeList[$n];
+		currentTime $t;
+		for( $i=0; $i<`size $animatedObjs`; $i++ ) {
+			string $obj = $animatedObjs[$i];
+			int $oldRooAttr = `getAttr ( $obj + ".rotateOrder" )`;
+			string $oldRoo = $rotateOrders[$oldRooAttr];
+
+			//make sure both the target object exist AND the object's source has a key on this frame
+			if( `keyframe -t $t -q -kc $obj` ) {
+				setKeyframe -at r $obj;
+				xform -p 1 -roo $newRoo $obj;
+				setKeyframe -at r $obj;
+				xform -p 0 -roo $oldRoo $obj;
+				}
+			}
+		}
+
+	zooAllViews 1;
+	xform -p 1 -roo $newRoo $staticObjs;
+	xform -p 0 -roo $newRoo $animatedObjs;
+	for( $obj in $animatedObjs ) filterCurve ($obj +".rx") ($obj +".ry") ($obj +".rz");
+
+	currentTime $initialTime;
+	}
+
+
+
+global proc string zooChangeRooInfo ( string $function ) {
+	string $creationDate = "10 January 2004";
+	string $lastRevision = "12 January 2004";
+	string $revisionHistory = "v1.02  12-01-04\nFIX: now works on both animated and static objects\n\nv1.00  10-01-04\nNEW: initial version";
+	string $info = "";
+	float $currentVersion = 1.02;
+
+	if ( $function == "created" ) $info = $creationDate;
+	if ( $function == "modified" ) $info = $lastRevision;
+	if ( $function == "history" ) $info = $revisionHistory;
+	if ( $function == "version" ) $info = $currentVersion;
+	return $info;
+	}
+
+
+global proc string[] zooChangeRooDependencies( string $mode ) {
+	string $melDependencies[] = {};
+	string $iconDependencies[] = {};
+
+	$melDependencies[( `size $melDependencies` )] = "zooArrays_float";
+	$melDependencies[( `size $melDependencies` )] = "zooArrays_str";
+	$melDependencies[( `size $melDependencies` )] = "zooUtils";
+
+	if( $mode == "-scripts" ) return $melDependencies;
+	if( $mode == "-icons" ) return $iconDependencies;
+	return {};
+	}
+
+
+//zoo.end

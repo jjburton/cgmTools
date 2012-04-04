@@ -1,0 +1,18 @@
+----Usage----
+Keymaster lets you bump key values around really easily. The
+script works on either selected keys, or if you don't have any selected keys, any keys on the current frame.  If there are no keys on the current frame, then the script works on the keys on the previous most frame.
+
+Hitting the "push up" button will bump the key value up by a percentage value.  By default the value is 2% (or 0.02).  Hitting the "push down" button will decrease the value by the given percentage.  So this script allows a super easy way to quickly bump the values of your keyframes around.
+
+
+----Assigning Hotkeys----
+You can assign this script to a hotkey if you want.  So you might want to have a hotkey to bump values by 1% and another hotkey to bump values by 5%.  Or whatever way you like to work.
+
+The command to put into the hotkey is:
+zooKeymaster "-dir up -factor 0.01";
+
+this would bump keys up by 1%.  If you wanted a key to bump down by 10% you would use this:
+
+zooKeymaster "-dir down -factor 0.1";
+
+If you ever want to know what command to put as a hotkey, just set the values you want in the UI, press the direction to shift the keyframe and check out te script editor.  It all gets echoed into the script editor so all you need to do is copy/paste it directly into your hotkey command.

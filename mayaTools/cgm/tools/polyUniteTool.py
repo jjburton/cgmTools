@@ -32,7 +32,7 @@ __version__ = '0.1.03192012'
 import maya.mel as mel
 import maya.cmds as mc
 
-from cgm.lib.cgmBaseMelUI import *
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.lib import (guiFactory,
                      dictionary,
@@ -50,6 +50,10 @@ def run():
 
 
 class polyUniteClass(BaseMelWindow):
+	from  cgm.lib import guiFactory
+	guiFactory.initializeTemplates()
+	USE_TEMPLATE = 'cgmUITemplate'
+	
 	WINDOW_NAME = 'PolyUniteTool'
 	WINDOW_TITLE = 'cgm.polyUniteTool'
 	DEFAULT_SIZE = 250, 150
@@ -58,7 +62,6 @@ class polyUniteClass(BaseMelWindow):
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-	guiFactory.initializeTemplates()
 
 	def __init__( self):
 

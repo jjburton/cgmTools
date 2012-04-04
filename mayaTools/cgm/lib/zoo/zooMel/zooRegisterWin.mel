@@ -1,0 +1,141 @@
+zooRegister;
+
+
+global proc zooRegisterWin() {
+	string $windowName = "zooRegistryWindow";
+	string $windowTitle = "zooRegister editor   ::macaroniKazoo::";
+
+	if( `window -exists $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -mb 1 -resizeToFitChildren 0 -maximizeButton 0 -sizeable 1 -wh 300 400 $windowName;
+		menu -label "Help";
+			menuItem -l "Help..." -c ( "zooHelp zooXferAnim 1" );
+			menuItem -l "Scripting xferAnim" -c ( "zooHelp zooXferAnim 3" );
+			menuItem -divider 1;
+			menuItem -l "About" -c ( "zooHelp zooXferAnim 2" );
+
+		string $form = `formLayout zooRegForm`;
+			string $regLbl = `text -l "register:"`;
+			string $register = `textField -ed 0 zooRegRegister`;
+			string $registriesLbl = `text -l "registries"`;
+			string $registries = `textScrollList -sc( "zooRegisterWindowFunction -updateMembers;" ) zooRegRegistries`;
+			string $membersLbl = `text -l "registry members"`;
+			string $members = `textScrollList -ams 1 zooRegMembers`;
+
+			string $image = `image -w 300 -height 8 -backgroundColor ((float)1) ((float)0) ((float)0) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
+				popupMenu -p $image -b 1 -pmc( "showHelp -a \"http://www.macaronikazoo.com/\"" );
+			setParent ..;
+
+	popupMenu -p $register -pmc( "zooRegistryPopups register registerPopup" ) registerPopup;
+	popupMenu -p $registries -pmc( "zooRegistryPopups registries registriesPopup" ) registriesPopup;
+	popupMenu -p $members -pmc( "zooRegistryPopups members membersPopup" ) membersPopup;
+	formLayout -e
+		-af $regLbl "top" 3
+		-af $regLbl "left" 5
+		-an $regLbl "right"
+		-an $regLbl "bottom"
+
+		-af $register "top" 0
+		-ac $register "left" 5 $regLbl
+		-af $register "right" 0
+		-an $register "bottom"
+
+		-ac $registriesLbl "top" 3 $register
+		-af $registriesLbl "left" 0
+		-an $registriesLbl "right"
+		-an $registriesLbl "bottom"
+
+		-ac $registries "top" 3 $registriesLbl
+		-af $registries "left" 0
+		-ap $registries "right" 0 50
+		-ac $registries "bottom" 2 $image
+
+		-ac $membersLbl "top" 3 $register
+		-ap $membersLbl "left" 0 50
+		-an $membersLbl "right"
+		-an $membersLbl "bottom"
+
+		-ac $members "top" 3 $membersLbl
+		-ap $members "left" 0 50
+		-af $members "right" 0
+		-ac $members "bottom" 2 $image
+
+		-an $image "top"
+		-af $image "left" 2
+		-af $image "right" 2
+		-af $image "bottom" 2
+		$form;
+
+	showWindow $windowName;
+	}
+
+
+global proc zooRegisterWindowFunction( string $function ) {
+	string $register = `control -q -docTag zooRegForm`;
+	switch( $function ) {
+		case "-updateRegistries":
+			string $registries[] = `zooListRegistries $register`;
+			textScrollList -e -ra zooRegRegistries;
+			for( $r in $registries ) textScrollList -e -a $r zooRegRegistries;
+			break;
+
+		case "-updateMembers":
+			string $registry = zooGetElement_str(0,`textScrollList -q -si zooRegRegistries`);
+			string $members[] = {};
+			zooListRegistered $register $registry {} $members;
+			textScrollList -e -ra zooRegMembers;
+			for( $m in $members ) textScrollList -e -a $m zooRegMembers;
+			break;
+		}
+	}
+
+
+global proc zooRegistryPopups( string $type, string $parent ) {
+	menu -e -dai $parent;
+	setParent -m $parent;
+	string $register = `control -q -docTag zooRegForm`;
+	string $registry = zooGetElement_str(0,`textScrollList -q -si zooRegRegistries`);
+	switch( $type ) {
+		case "register":
+			string $registers[] = `zooListRegisters`;
+			for( $r in $registers ) menuItem -l $r -c( "zooSetRegisterFocus "+ $r +";" );
+			if( `size $registers` ) menuItem -d 1;
+			menuItem -l "new register" -c( "{string $a = `promptDialog -m \"name:\" -b \"create\" -b \"cancel\" -db \"create\"`; if( $a == \"create\" ) { string $new = zooGetRegister(`promptDialog -q -tx`, 1); zooSetRegisterFocus $new; }}" );
+			menuItem -d 1;
+			menuItem -en( `objExists $register` ) -l "delete current register" -c( "delete "+ $register +"; zooSetRegisterFocus \"\";" );
+			break;
+		case "registries":
+			menuItem -l "new registry" -c( "{string $a = `promptDialog -m \"name:\" -b \"create\" -b \"cancel\" -db \"create\"`; if( $a == \"create\" ) addAttr -at message -ln( \"zooReg\"+ `promptDialog -q -tx` +\"0\" ) "+ $register +"; zooRegisterWindowFunction -updateRegistries; }" );
+			menuItem -d 1;
+			menuItem -l "delete registry" -c( "zooDeleteRegistry "+ $register +" "+ $registry +"; zooRegisterWindowFunction -updateRegistries; zooRegisterWindowFunction -updateMembers;" );
+			break;
+		case "members":
+			string $sel[] = `ls -sl`;
+			menuItem -en( `size $sel` ) -l "add members" -c( "{for( $s in `ls -sl` ) zooRegisterObj "+ $register +" "+ $registry +" $s 1 1;zooRegisterWindowFunction -updateMembers;}" );
+			menuItem -l "select members" -c( "select `textScrollList -q -si zooRegMembers`;" );
+			menuItem -d 1;
+			menuItem -l "remove members" -c( "{for( $s in `textScrollList -q -si zooRegMembers` ) zooUnregisterObj "+ $register +" "+ $registry +" $s 1 0;zooRegisterWindowFunction -updateMembers;}" );
+			break;
+		}
+	}
+
+
+global proc zooSetRegisterFocus( string $register ) {
+	control -e -docTag $register zooRegForm;
+	textField -e -tx $register zooRegRegister;
+	textScrollList -e -da zooRegRegistries;
+	textScrollList -e -da zooRegMembers;
+	zooRegisterWindowFunction -updateRegistries;
+	}
+
+
+global proc zooAddRegisterToUI( string $register ) {
+	setParent zooRegistryList;
+	frameLayout -l $register -labelVisible 1 -collapsable 0 -borderStyle "etchedIn" $register;
+		scrollLayout;
+		setParent ..;
+	setParent ..;
+	textField -w 110 -numberOfRows 22 -ams 0 -sc( "zooXferAnimWindowFunctions srcChange n" ) -deleteKeyCommand( "zooXferAnimWindowFunctions deleteLink n" ) -dcc( "zooXferAnimWindowFunctions select n;" ) zooXferAnimScrollSrcs;
+	}
+
+
+//zoo.end

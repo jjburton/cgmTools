@@ -1,0 +1,56 @@
+zooArrays_str;
+zooBrandTools;
+zooUtils;
+
+
+global proc zooCSTCtrlType( string $prefix, int $showSurface, int $showCurve ) {
+	string $ctrls[] = {};
+	string $prefixes[] = {$prefix};
+
+	if( $prefix == "*" ) $prefixes = `zooListAllCSTChars`;
+	for( $p in $prefixes ) {
+		string $all[] = `zooGetBrandedWith masterqss $p`;
+		if( `objExists $all[0]` ) $ctrls = zooAddArray_str($ctrls,`zooQuerySet $all[0] 0 1`);
+		}
+
+	for( $c in $ctrls ) {
+		string $surfaces[] = `listRelatives -type nurbsSurface -type mesh -f -s $c`;
+		string $curves[] = `listRelatives -type nurbsCurve -f -s $c`;
+		string $shapes[] = `listRelatives -f -s $c`;
+
+		//first check the initial hide state of the shape nodes - if all shape nodes
+		//on the control are hidden, chances are its a "shape hidden control" such as
+		//a gimbal - if so, keep loopin
+		int $anyVisible = 0;
+		for( $shape in $shapes ) if( `getAttr ( $shape +".v" )`) $anyVisible = 1;
+		if( !$anyVisible ) continue;
+
+		//now make sure ALL shape nodes are hidden - and only unhide what we want
+		for( $shape in $shapes ) if( `getAttr -se ( $shape +".v" )` ) setAttr ( $shape +".v" ) 0;
+		if( $showSurface ) {
+			for( $surface in $surfaces ) if( `getAttr -se ( $surface +".v" )` ) setAttr ( $surface +".v" ) 1;
+			//if the control has no surface shapes, then make sure all of its curve shapes are visible
+			if( !`size $surfaces` ) for( $curve in $curves ) if( `getAttr -se ( $curve +".v" )` ) setAttr ( $curve +".v" ) 1;
+			}
+		if( $showCurve ) {
+			for( $curve in $curves ) if( `getAttr -se ( $curve +".v" )` ) setAttr ( $curve +".v" ) 1;
+			//if the control has no curve shapes, then make sure any of its surface shapes are visible
+			if( !`size $curves` ) for( $surface in $surfaces ) if( `getAttr -se ( $surface +".v" )` ) setAttr ( $surface +".v" ) 1;
+			}
+		}
+	}
+
+
+global proc string[] zooListAllCSTChars() {
+	string $worlds[] = `zooListAllWithBrand world`;
+	string $chars[] = {};
+
+	for( $world in $worlds ) $chars[( `size $chars` )] = `zooQueryBrand $world world`;
+	$chars = `stringArrayRemoveDuplicates $chars`;
+
+	return $chars;
+	}
+
+
+//zoo.end
+//macaroniKazoo ©2007

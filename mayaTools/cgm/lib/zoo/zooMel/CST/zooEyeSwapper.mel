@@ -1,0 +1,88 @@
+zooBrandTools;
+zooSortToHeirarchy {};
+
+
+global proc zooEyeSwapper() {
+	return;
+	}
+
+
+global proc zooSwapToRotateEyes( string $char ) {
+	string $eyeL = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeRot" } { $char,"l" }`);
+	string $eyeR = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeRot" } { $char,"r" }`);
+	string $eyeAim = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyes" } { $char,$char }`);
+
+	setAttr ( $eyeL +".r" ) 0 0 0;
+	setAttr ( $eyeR +".r" ) 0 0 0;
+	zooChangeSpace "-attrs parent 0" $eyeAim;
+	zooChangeSpace ( "-cmd setAttr "+ $eyeAim +".t 0 0 0; -objs "+ $eyeR ) $eyeL;
+	}
+
+
+global proc zooSwapToLookatEyes( string $char ) {
+	string $sel[] = `ls -sl`;
+	string $eyeL = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeRot" } { $char,"l" }`);
+	string $eyeR = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeRot" } { $char,"r" }`);
+	string $eyeAimL = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeAim" } { $char,"l" }`);
+	string $eyeAimR = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeAim" } { $char,"r" }`);
+	string $eyeAim = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyes" } { $char,$char }`);
+	float $positions[] = `zooGetLookatPos $char`;
+
+	move -ws -rpr $positions[0] $positions[1] $positions[2] $eyeAim;
+	move -ws -rpr $positions[3] $positions[4] $positions[5] $eyeAimL;
+	move -ws -rpr $positions[6] $positions[7] $positions[8] $eyeAimR;
+	setAttr ( $eyeL +".r" ) 0 0 0;
+	setAttr ( $eyeR +".r" ) 0 0 0;
+	select $sel;
+	}
+
+
+global proc float[] zooGetLookatPos( string $char ) {
+	string $eyeL = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeRot" } { $char,"l" }`);
+	string $eyeR = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeRot" } { $char,"r" }`);
+	string $eyeAimL = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeAim" } { $char,"l" }`);
+	string $eyeAimR = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyeAim" } { $char,"r" }`);
+	string $eyeAim = zooGetElement_str(0,`zooGetBrandedWithList { "name","eyes" } { $char,$char }`);
+	float $eyePos_L[] = `xform -q -ws -rp $eyeL`;
+	float $eyePos_R[] = `xform -q -ws -rp $eyeR`;
+	float $eyeLookAtPos[] = `xform -q -ws -rp $eyeAim`;
+	float $eyeCentre[] = {};
+	float $lookAtDistance = 0;
+
+	//find centre of eye rotations
+	$eyeCentre[0] = ( $eyePos_L[0] + $eyePos_R[0] )/2;
+	$eyeCentre[1] = ( $eyePos_L[1] + $eyePos_R[1] )/2;
+	$eyeCentre[2] = ( $eyePos_L[2] + $eyePos_R[2] )/2;
+
+	//find distance of eye aim from centre of eyes
+	$lookAtDistance += pow(($eyeCentre[0]-$eyeLookAtPos[0]),2);
+	$lookAtDistance += pow(($eyeCentre[1]-$eyeLookAtPos[1]),2);
+	$lookAtDistance += pow(($eyeCentre[2]-$eyeLookAtPos[2]),2);
+	$lookAtDistance = sqrt($lookAtDistance);
+
+	//figure out the cumulative scale to apply to the transforms (ie scale from all parents)
+	string $parents[] = `zooGetAllParents $eyeL`;
+	float $cumulativeScale = 1;
+
+	for( $p in $parents ) $cumulativeScale *= `getAttr ($p +".sx" )`;
+	$lookAtDistance /= $cumulativeScale;
+
+	//transform the distance vector to the appropriate space for the individual eye aims
+	float $eye_LMat[] = `xform -q -m -ws $eyeL`;
+	float $eye_RMat[] = `xform -q -m -ws $eyeR`;
+	float $newAimPosL[] = `pointMatrixMult {0.,0.,$lookAtDistance} $eye_LMat`;
+	float $newAimPosR[] = `pointMatrixMult {0.,0.,$lookAtDistance} $eye_RMat`;
+	float $newAimPos[] = {};
+
+	$newAimPosL[0] += $eyePos_L[0];
+	$newAimPosL[1] += $eyePos_L[1];
+	$newAimPosL[2] += $eyePos_L[2];
+	$newAimPosR[0] += $eyePos_R[0];
+	$newAimPosR[1] += $eyePos_R[1];
+	$newAimPosR[2] += $eyePos_R[2];
+	$newAimPos[0] = ($newAimPosL[0]+$newAimPosR[0])/2;
+	$newAimPos[1] = ($newAimPosL[1]+$newAimPosR[1])/2;
+	$newAimPos[2] = ($newAimPosL[2]+$newAimPosR[2])/2;
+
+	return { $newAimPos[0], $newAimPos[1], $newAimPos[2], $newAimPosL[0], $newAimPosL[1], $newAimPosL[2], $newAimPosR[0], $newAimPosR[1], $newAimPosR[2] };
+	}

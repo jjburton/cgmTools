@@ -1,0 +1,80 @@
+//
+// zooSurgeon
+//
+// Created by Hamish McKenzie zootoolbox@googlegroups.com
+// Created : 17 April 2005
+//
+// Description:
+// cuts up a skinned mesh into objects, and parents those objects to the affecting joint.  It basically
+// generates a low res proxy for a character automatically.  It cuts up geometry based on the face's
+// weighting to a joint.  It goes through each face in your mesh, adds up the weight of all verts in
+// that face to a joint, and assigns the face to the joint with the highest weighting.  By going through
+// each face, it builds up proxy objects to parent directly to the joints deforming the original mesh,
+// thus generating a low-res
+//
+// Usage:
+//  to cut up your skinned meshes, select them:  zooSurgeon;
+//  to delete a cut up mesh:  zooSurgeonDelete;
+//
+
+
+zooArrays_str;
+zooArrays_int;
+zooArrays_float;
+zooFlags;
+zooSurgeonUtils;
+zooUtils;
+
+
+//------
+//this proc builds the window
+//------
+global proc zooSurgeon() {
+	string $windowName = "zooSurgeonWindow";
+	string $windowTitle = "zooSurgeon v"+ `zooSurgeonInfo version`;
+
+	if( `window -ex $windowName` ) deleteUI $windowName;
+	window -title $windowTitle -resizeToFitChildren 1 -maximizeButton 0 -width 300 -height 50 $windowName;
+		string $form = `formLayout`;
+			string $button1 = `button -l "create proxies" -c( "zooSurgeonSplitMesh ( \"-buildType \"+ `radioCollection -q -sl zooSurgeonRadios` );" )`;
+			string $button2 = `button -l "select proxies" -c( "select `zooSurgeonListProxies`" )`;
+			string $radioColl = `radioCollection zooSurgeonRadios`;
+			string $radBut1 = `radioButton -sl -l "parent to joints" parent`;
+			string $radBut2 = `radioButton -l "constrain to joints" constrain`;
+
+	formLayout -e
+		-af $button1 "top" 2
+		-af $button1 "left" 2
+		-ap $button1 "right" 1 50
+		-ac $button1 "bottom" 2 $radBut1
+
+		-af $button2 "top" 2
+		-ap $button2 "left" 1 50
+		-af $button2 "right" 2
+		-ac $button2 "bottom" 2 $radBut1
+
+		-an $radBut1 "top"
+		-af $radBut1 "left" 2
+		-ap $radBut1 "right" 1 50
+		-af $radBut1 "bottom" 2
+
+		-an $radBut2 "top"
+		-ap $radBut2 "left" 1 50
+		-af $radBut2 "right" 2
+		-af $radBut2 "bottom" 2
+		$form;
+
+	showWindow $windowName;
+	}
+
+
+global proc string zooSurgeonInfo( string $function ) {
+	string $lastRevision = "22 June 2005";
+	string $currentVersion = "1.06.12";
+
+	if( $function == "modified" ) return $lastRevision;
+	if( $function == "version" ) return $currentVersion;
+	}
+
+
+//zoo.end
