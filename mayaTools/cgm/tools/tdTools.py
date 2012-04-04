@@ -27,18 +27,17 @@
 #
 #=================================================================================================================================================
 __version__ = '0.1.01102012'
-
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 import maya.mel as mel
 import maya.cmds as mc
 
-from cgm.lib.zoo.zooPyMaya.baseMelUI import *
-
+mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
+	
 from cgm.lib import (guiFactory,
                      dictionary,
                      search
                      )
-
 from cgm.tools.lib import  (tdToolsLib,
                             locinatorLib,
                             namingToolsLib)
@@ -46,14 +45,13 @@ from cgm.tools.lib import  (tdToolsLib,
 reload(tdToolsLib)
 reload(namingToolsLib)
 
-
 def run():
 	tdTools = tdToolsClass()
 
 class tdToolsClass(BaseMelWindow):
 	from  cgm.lib import guiFactory
 	guiFactory.initializeTemplates()
-	USE_TEMPLATE = 'cgmUITemplate'
+	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'TDTools'
 	WINDOW_TITLE = 'cgm.tdTools'
@@ -64,28 +62,14 @@ class tdToolsClass(BaseMelWindow):
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
-	def __init__( self):
-		""" Hamish, why is this import necessary? It errors out if it isn't here....
-		I guess I had it it in the mel.eval call before which is what locinator id doing
-		from cgm.lib import guiFactory
-		guiFactory.initializeTemplates()
-		"""
-		"""
-		import maya.mel as mel
-		import maya.cmds as mc
-
-		from cgm.lib import (guiFactory,
-				             search)
-		from cgm.tools.lib import (tdToolsLib,
-		                           namingToolsLib,
-		                           locinatorLib)
-
+	def __init__( self):	
 		"""
 		# Maya version check
 		if mayaVer >= 2011:
 			self.currentGen = True
 		else:
 			self.currentGen = False
+		"""
 		# Basic variables
 		self.window = ''
 		self.activeTab = ''

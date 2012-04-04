@@ -1,8 +1,6 @@
 
 from __future__ import with_statement
 
-import maya.cmds as mc
-
 import os
 import re
 import sys
@@ -12,7 +10,7 @@ try:
 	import wingdbstub
 except ImportError: pass
 
-
+import maya.cmds as mc
 import maya
 from maya.mel import eval as evalMel
 from cgm.lib import guiFactory
@@ -198,7 +196,10 @@ def loadCGMPlugin( pluginName ):
 # Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def loadTDTools( *a ):
-	import cgm	
+	import cgm
+	import maya.cmds as mc
+	import maya.mel as mel
+	mel.eval('python("import maya.cmds as mc;")')
 	from cgm.tools import tdTools
 	reload(tdTools)
 	tdTools.run()
@@ -212,9 +213,7 @@ def loadAttrTools( *a ):
 def loadLocinator( *a ):
 	import cgm
 	from cgm.tools import locinator
-	from cgm.tools.lib import locinatorLib
 	reload(locinator)
-	reload(locinatorLib)
 	locinator.run()
 
 def loadNamingTools( *a ):
@@ -289,7 +288,7 @@ class ToolboxTabs(MelTabLayout):
 class ToolboxWindow(BaseMelWindow):
 	from  cgm.lib import guiFactory
 	guiFactory.initializeTemplates()
-	USE_TEMPLATE = 'cgmUITemplate'
+	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'cgmToolbox'
 	WINDOW_TITLE = 'cgm.Toolbox'
@@ -302,7 +301,7 @@ class ToolboxWindow(BaseMelWindow):
 	def __init__( self ):
 		from  cgm.lib import guiFactory
 		guiFactory.initializeTemplates()
-		USE_TEMPLATE = 'cgmUITemplate'
+		USE_Template = 'cgmUITemplate'
 		
 		self.UI_menu = MelMenu( l='Setup', pmc=self.buildSetupMenu )
 		ToolboxTabs( self )
