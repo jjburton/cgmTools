@@ -308,37 +308,43 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 
 
             if self.forceEveryFrame== True:
-
                 for item in toUpdate:
                     #Then delete the key clear any key frames in the region to be able to cleanly put new ones on keys only mode
                     mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1))
 
-
-                guiFactory.doProgressWindow()
+                mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(range(self.startFrame,self.endFrame + 1)),"On '%s'"%item)
+                #guiFactory.doProgressWindow()
                 maxRange = self.endFrame + 1
 
                 for f in range(self.startFrame,self.endFrame + 1):
+		    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+			    break
+		    mc.progressBar(mayaMainProgressBar, edit=True, status = ("On frame %i for '%s'"%(f,"','".join(toUpdate))), step=1)                    
+                    """
                     if guiFactory.doUpdateProgressWindow('On f',f,maxRange,f) == 'break':
                         break
+                    """
                     mc.currentTime(f)
                     for item in toUpdate:
-
                         if search.returnObjectType(item) == 'locator':
                             locators.doUpdateLocator(item,self.forceBoundingBoxState)
                         else:
                             if queryCanUpdate(item):
-                                position.moveParentSnap(item,matchObject)
+				matchObject = search.returnTagInfo(item,'cgmMatchObject')
+				if mc.objExists(matchObject):
+				    position.moveParentSnap(item,matchObject)
                             else:
                                 break
-                        print 'am I here?'
                         mc.setKeyframe(item,time = f,at=['translateX','translateY','translateZ','rotateX','rotateY','rotateZ'])
 
+		guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
-                guiFactory.doCloseProgressWindow()
+                #guiFactory.doCloseProgressWindow()
                 #Put the time line back where it was
                 mc.currentTime(initialFramePosition)
 
             else:
+
                 guiFactory.doProgressWindow()
                 itemCnt = 0
 

@@ -34,6 +34,7 @@ import maya.mel as mel
 import maya.cmds as mc
 
 from cgm.tools.lib import locinatorLib
+reload(locinatorLib)
 from cgm.lib import (search,guiFactory)
 
 
