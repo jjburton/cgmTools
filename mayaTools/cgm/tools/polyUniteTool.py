@@ -46,8 +46,8 @@ reload(tdToolsLib)
 
 
 def run():
-	mel.eval('python("import maya.cmds as mc;from cgm.tools import polyUniteTool;from cgm.tools.lib import tdToolsLib;from cgm.lib import guiFactory;cgmPolyUniteWin = polyUniteTool.polyUniteClass()")')
-
+	#mel.eval('python("import maya.cmds as mc;from cgm.tools import polyUniteTool;from cgm.tools.lib import tdToolsLib;from cgm.lib import guiFactory;cgmPolyUniteWin = polyUniteTool.polyUniteClass()")')
+	polyUniteWin = polyUniteClass()
 
 class polyUniteClass(BaseMelWindow):
 	from  cgm.lib import guiFactory
