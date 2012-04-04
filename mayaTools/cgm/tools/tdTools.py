@@ -552,7 +552,7 @@ class tdToolsClass(BaseMelWindow):
 		self.ContainerList = []
 
 		self.ContainerList.append( self.buildAutoNameTool(parent,vis=False) )
-		self.ContainerList.append( self.buildUtilitiesTool(parent,vis=False) )
+		self.ContainerList.append( self.buildStandardNamingTool(parent,vis=False) )
 
 		for item in OptionList:
 			self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
@@ -1423,6 +1423,20 @@ class tdToolsClass(BaseMelWindow):
 
 
 		return self.containerName
+	
+	
+	def buildStandardNamingTool(self,parent, vis=True):
+		containerName = 'Standard Naming Container'
+		self.containerName = MelColumn(parent,vis=vis)
+
+		#>>> Tag Labels
+		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		MelLabel(TagLabelsRow,label = 'Not done yet...')
+		TagLabelsRow.layout()
+		
+
+		return self.containerName
+	
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Components
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
