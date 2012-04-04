@@ -13,8 +13,8 @@ except ImportError: pass
 import maya.cmds as mc
 import maya
 from maya.mel import eval as evalMel
-from cgm.lib import guiFactory
 
+from cgm.lib import guiFactory
 from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
