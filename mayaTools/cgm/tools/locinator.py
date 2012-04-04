@@ -28,7 +28,7 @@
 #                      some stuff not being visible when you show the
 #
 #=================================================================================================================================================
-from cgm.lib.cgmBaseMelUI import *
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -38,18 +38,12 @@ from cgm.lib import (search,guiFactory)
 
 
 def run():
-	# real one
-	mel.eval('python("from cgm.lib import guiFactory;from cgm.tools import locinator;from cgm.tools.lib import locinatorLib;import maya.cmds as mc;cgmLocWin = locinator.locinatorClass()")')
-	"""
-	See note on tdTools
-	
-    locinatorClass()
-	"""
+	cgmLocinatorWin = locinatorClass()
 
 class locinatorClass(BaseMelWindow):
 	from  cgm.lib import guiFactory
 	guiFactory.initializeTemplates()
-	USE_TEMPLATE = 'cgmUITemplate'
+	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'cgmLocinatorWindow'
 	WINDOW_TITLE = 'cgm.locinator'
@@ -282,10 +276,10 @@ class locinatorClass(BaseMelWindow):
 		TimeButtonRow = MelHLayout(parent,padding = 5, ut='cgmUISubTemplate',vis= not EveryFrameOption)
 		self.timeSubMenu.append( TimeButtonRow(q=True, fpn=True) )
 		currentRangeButton = guiFactory.doButton2(TimeButtonRow,'Current Range',
-				                                  'from cgm.lib import search;timelineInfo = search.returnTimelineInfo();cgmLocWin.startFrameField(edit=True,value=(timelineInfo["rangeStart"]));cgmLocWin.endFrameField(edit=True,value=(timelineInfo["rangeEnd"]))',
+		                                          lambda *a: locinatorLib.setGUITimeRangeToCurrent(self),
 				                                  'Sets the time range to the current slider range')
 		sceneRangeButton = guiFactory.doButton2(TimeButtonRow,'Scene Range',
-				                                'from cgm.lib import search;timelineInfo = search.returnTimelineInfo();cgmLocWin.startFrameField(edit=True,value=(timelineInfo["sceneStart"]));cgmLocWin.endFrameField(edit=True,value=(timelineInfo["sceneEnd"]))',
+		                                        lambda *a: locinatorLib.setGUITimeRangeToScene(self),
 				                                'Sets the time range to the current slider range')
 
 		TimeButtonRow.layout()

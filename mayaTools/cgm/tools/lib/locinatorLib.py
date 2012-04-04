@@ -54,6 +54,19 @@ reload(locators)
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# GUI
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def setGUITimeRangeToCurrent(self):
+    timelineInfo = search.returnTimelineInfo()
+    self.startFrameField(edit=True,value=(timelineInfo["rangeStart"]))
+    self.endFrameField(edit=True,value=(timelineInfo["rangeEnd"]))
+    
+def setGUITimeRangeToScene(self):
+    timelineInfo = search.returnTimelineInfo()
+    self.startFrameField(edit=True,value=(timelineInfo["sceneStart"]))
+    self.endFrameField(edit=True,value=(timelineInfo["sceneEnd"]))
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tool Commands
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doLocMe(self):
