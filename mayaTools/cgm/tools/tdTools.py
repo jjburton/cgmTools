@@ -577,7 +577,7 @@ class tdToolsClass(BaseMelWindow):
 		for i in colorSwatchesList:
 			colorBuffer = mc.colorIndex(i, q=True)
 			mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,
-					  pc = ('%s%i%s' %("tdToolsLib.doSetCurveColorByIndex(",i,")")),
+					  pc = ('%s%i%s' %("from cgm.tools.lib import tdToolsLib;tdToolsLib.doSetCurveColorByIndex(",i,")")),
 					  annotation = 'Sets the color of the object to this')
 			mc.popupMenu(button = 3)
 			mc.menuItem(label = 'Set as default',
