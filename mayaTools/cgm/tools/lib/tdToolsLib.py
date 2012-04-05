@@ -37,7 +37,8 @@ from cgm.lib import (guiFactory,
                      search,
                      deformers,
                      skinning)
-from cgm.tools import locinatorLib,namingToolsLib
+
+from cgm.tools.lib import locinatorLib,namingToolsLib
 """
 
 """

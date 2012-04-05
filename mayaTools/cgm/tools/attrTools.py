@@ -29,10 +29,9 @@ from cgm.lib import (guiFactory,
                      dictionary,
                      search)
 
-from cgm.tools import (tdToolsLib,
-                       locinatorLib)
-
-from cgm.tools.lib import (attrToolsLib)
+from cgm.tools.lib import (tdToolsLib,
+                           locinatorLib,
+                           attrToolsLib)
 
 reload(tdToolsLib)
 reload(attrToolsLib)
@@ -52,15 +51,6 @@ class attrToolsClass(BaseMelWindow):
 	guiFactory.initializeTemplates()
 
 	def __init__( self):
-		import maya.mel as mel
-		import maya.cmds as mc
-
-		from cgm.lib import (guiFactory,
-				             search)
-		from cgm.tools import (tdToolsLib,
-				               locinatorLib)
-
-
 		# Maya version check
 		if mayaVer >= 2011:
 			self.currentGen = True

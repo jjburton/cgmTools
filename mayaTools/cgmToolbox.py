@@ -211,7 +211,6 @@ def loadCGMPlugin( pluginName ):
 # Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def loadTDTools( *a ):
-	import cgm
 	import maya.cmds as mc
 	import maya.mel as mel
 	mel.eval('python("import maya.cmds as mc;")')
@@ -220,25 +219,21 @@ def loadTDTools( *a ):
 	tdTools.run()
 
 def loadAttrTools( *a ):
-	import cgm
 	from cgm.tools import attrTools
 	reload(attrTools)
 	attrTools.run()
 	
 def loadLocinator( *a ):
-	import cgm
 	from cgm.tools import locinator
 	reload(locinator)
 	locinator.run()
 
 def loadNamingTools( *a ):
-	import cgm
 	from cgm.tools import namingTools
 	reload(namingTools)
 	namingTools.run()
 	
 def loadPolyUniteTool( *a ):
-	import cgm
 	from cgm.tools import polyUniteTool
 	reload(polyUniteTool)
 	polyUniteTool.run()
