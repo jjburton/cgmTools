@@ -1,1 +1,1 @@
-from zooPyMaya.baseMelUI import *
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *

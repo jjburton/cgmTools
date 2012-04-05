@@ -7,16 +7,16 @@ else:
 	print ('You need to get the zooPy directory in one of your scripts paths')
 """
 
-from zooPy.path import Path, findFirstInEnv, findInPyPath
+from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
 
 
-def setupCgmPaths():
+def setupZooPaths():
         thisFile = Path( __file__ )
         thisPath = thisFile.up()
 
         mayaSysPaths = sys.path
 
-        for folder in 'lib','cgmTools','rigger','zooPy':
+        for folder in 'lib/zoo','lib/zooMel','lib/zooPy','lib/zooPyMaya':
                 bufferFolderPath = thisPath / folder
 
                 if bufferFolderPath not in mayaSysPaths:
@@ -25,7 +25,6 @@ def setupCgmPaths():
                         except:
                                 print ('%s Failed to append' %bufferFolderPath)
 
-setupCgmPaths()
 
 def devPaths():
         mayaSysPaths = sys.path

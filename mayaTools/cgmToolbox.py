@@ -14,6 +14,11 @@ import maya.cmds as mc
 import maya
 from maya.mel import eval as evalMel
 
+#>>>>> Bridge to get our sub zoo stuff working
+from cgm import cgmInitialize
+cgmInitialize.setupZooPaths()
+#>>>>>
+
 from cgm.lib import guiFactory
 from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
@@ -27,10 +32,20 @@ def setupCGMScriptPaths():
 	mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
 	mayaScriptPathsSet = set( mayaScriptPaths )
 	cgmMelPath = thisPath / '/cgm/mel'
+	cgmZooPath = thisPath / '/cgm/lib/zoo'
 
 	if cgmMelPath not in mayaScriptPathsSet:
 		mayaScriptPaths.append( cgmMelPath )
 		mayaScriptPaths.extend( cgmMelPath.dirs( recursive=True ) )
+
+		mayaScriptPaths = removeDupes( mayaScriptPaths )
+		newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
+
+		maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
+		
+	if cgmZooPath not in mayaScriptPathsSet:
+		mayaScriptPaths.append( cgmZooPath )
+		mayaScriptPaths.extend( cgmZooPath.dirs( recursive=True ) )
 
 		mayaScriptPaths = removeDupes( mayaScriptPaths )
 		newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
