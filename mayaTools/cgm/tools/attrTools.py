@@ -361,7 +361,7 @@ class attrToolsClass(BaseMelWindow):
 		self.CreateAttrTypeRadioCollection = MelRadioCollection()
 		self.CreateAttrTypeRadioCollectionChoices = []		
 		if not mc.optionVar( ex='cgmAttrCreateType' ):
-			mc.optionVar( sv=('cgmAttrCreateType', '') )
+			mc.optionVar( sv=('cgmAttrCreateType', 'string') )
 			
 		#build our sub section options
 		AttrTypeRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
