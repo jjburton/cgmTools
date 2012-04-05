@@ -349,16 +349,28 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                 itemCnt = 0
 
                 for item in toUpdate:
+		    print item
                     if guiFactory.doUpdateProgressWindow('On ',itemCnt,(len(toUpdate)),item) == 'break':
                         break
+		    
+		    # If our object is a locator that's created from muliple sources, we need to check each object for keyframes
 
                     if search.returnObjectType(item) == 'locator':
-                        matchObject = returnLocatorSource(item)
+			sourceObjectBuffer = search.returnTagInfo(item,'cgmSource')
+			if ',' in sourceObjectBuffer:
+			    keyFrames = []
+			    matchObjects = returnLocatorSources(item)
+			    for o in matchObjects:
+				keyFrames.extend(search.returnListOfKeyIndices(o))
+			    keyFrames = lists.returnListNoDuplicates(keyFrames)
+			else:
+			    matchObject = returnLocatorSource(item)
+			    keyFrames = search.returnListOfKeyIndices(matchObject)
+
                     else:
                         matchObject = search.returnTagInfo(item,'cgmMatchObject')
-
-                    print 'no here'    
-                    keyFrames = search.returnListOfKeyIndices(matchObject)
+			keyFrames = search.returnListOfKeyIndices(matchObject)
+			
                     maxRange = len(keyFrames)
                     #Start our frame counter
                     mayaMainProgressBar = guiFactory.doStartMayaProgressBar(maxRange)
@@ -376,6 +388,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 
                             mc.currentTime(f)
                             if search.returnObjectType(item) == 'locator':
+				print 'updating...'
                                 locators.doUpdateLocator(item,self.forceBoundingBoxState)
                             else:
                                 if mc.objExists(matchObject):
@@ -485,9 +498,10 @@ def returnLocatorSource(locatorName):
     if search.returnObjectType(locatorName) == 'locator':
         sourceObjectBuffer = search.returnTagInfo(locatorName,'cgmSource')
         if sourceObjectBuffer:
+	    print sourceObjectBuffer
             if ',' in list(sourceObjectBuffer):
-                sourceObjects = sourceObjectBuffer.split(',')
-                return sourceObjects[-1]
+                sourceObjectsBuffer = sourceObjectBuffer.split(',')
+                return sourceObjectsBuffer[-1]
             else:
                 return sourceObjectBuffer
 
@@ -505,3 +519,34 @@ def returnLocatorSource(locatorName):
 
     else:
         return False
+    
+def returnLocatorSources(locatorName):
+    sourceObjectBuffer = search.returnTagInfo(locatorName,'cgmSource')
+    if sourceObjectBuffer:
+	if ',' in list(sourceObjectBuffer):
+	    sourceObjectsBuffer = sourceObjectBuffer.split(',')
+	    sourceObjects = []
+	    for o in sourceObjectsBuffer:
+		if '.' in o:
+		    splitBuffer = o.split('.')
+		    sourceObjects.append(splitBuffer[0])
+		else:
+		    sourceObjects.append(o)
+	    return lists.returnListNoDuplicates(sourceObjects)
+	else:
+	    return sourceObjectBuffer
+	
+	sourceObject = search.returnTagInfo(locatorName,'cgmName')
+
+	if sourceObject and mc.objExists(sourceObject):
+	    if '.' in list(sourceObject):
+		splitBuffer = sourceObject.split('.')
+		return splitBuffer[0]
+	    else:
+		return sourceObject
+	else:
+	    print "Doesn't have a source stored"
+	    return False
+
+    else:
+	return False
