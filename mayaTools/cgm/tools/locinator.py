@@ -252,7 +252,7 @@ class locinatorClass(BaseMelWindow):
 
 		# TimeInput Row
 		TimeInputRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',vis= not EveryFrameOption)
-		self.timeSubMenu.append( TimeInputRow(q=True, fpn=True) )
+		self.timeSubMenu.append( TimeInputRow )
 		MelSpacer(TimeInputRow)
 		MelLabel(TimeInputRow,l='start')
 
@@ -270,12 +270,12 @@ class locinatorClass(BaseMelWindow):
 		TimeInputRow.layout()
 
 		mc.setParent(parent)
-		self.timeSubMenu.append(mc.separator(ut = 'cgmUISubTemplate',style='none',height = 5,vis= not EveryFrameOption))
+		self.timeSubMenu.append(MelSeparator(parent,ut = 'cgmUISubTemplate',style='none',height = 5,vis= not EveryFrameOption))
 
 
 		# Button Row
 		TimeButtonRow = MelHLayout(parent,padding = 5, ut='cgmUISubTemplate',vis= not EveryFrameOption)
-		self.timeSubMenu.append( TimeButtonRow(q=True, fpn=True) )
+		self.timeSubMenu.append( TimeButtonRow )
 		currentRangeButton = guiFactory.doButton2(TimeButtonRow,'Current Range',
 		                                          lambda *a: locinatorLib.setGUITimeRangeToCurrent(self),
 				                                  'Sets the time range to the current slider range')
@@ -284,16 +284,9 @@ class locinatorClass(BaseMelWindow):
 				                                'Sets the time range to the current slider range')
 
 		TimeButtonRow.layout()
-		"""
-		currentRangeButton = MelButton(TimeButtonRow,l='Current Range',ut = 'cgmUITemplate',
-		          c='from cgm.lib import search;timelineInfo = search.returnTimelineInfo();mc.intField("startFrameField",edit=True,value=(timelineInfo["rangeStart"]));mc.intField("endFrameField",edit=True,value=(timelineInfo["rangeEnd"]))')
-		sceneRangeButton = MelButton(TimeButtonRow,l='Scene Range',ut = 'cgmUITemplate',
-		          c='from cgm.lib import search;timelineInfo = search.returnTimelineInfo();mc.intField("startFrameField",edit=True,value=(timelineInfo["sceneStart"]));mc.intField("endFrameField",edit=True,value=(timelineInfo["sceneEnd"]))')
-
-		"""
 
 		mc.setParent(parent)
-		self.timeSubMenu.append(mc.separator(ut = 'cgmUISubTemplate',style='none',height = 5,vis=not EveryFrameOption))
+		self.timeSubMenu.append(MelSeparator(parent,ut = 'cgmUISubTemplate',style='none',height = 5,vis=not EveryFrameOption))
 
 
 		guiFactory.doButton2(parent,'Do it!',
