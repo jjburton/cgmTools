@@ -620,7 +620,7 @@ def returnCGMSetting(setting):
     return (dict.get(setting))
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnUniqueGeneratedName(obj,ignore='none'):
+def returnUniqueGeneratedName(obj,ignore='none',bypassIterator = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -661,7 +661,7 @@ def returnUniqueGeneratedName(obj,ignore='none'):
 
     """ add the iterator to the name dictionary if our object exists"""
     nameFactory = factory(obj)
-    if mc.objExists(coreName):
+    if bypassIterator:
         iterator = returnIterateNumber(obj)
         if iterator > 0:
             updatedNamesDict['cgmIterator'] = str(iterator)
@@ -768,7 +768,6 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
     #>>> Get our cgmVariables
     userAttrs = attributes.returnUserAttributes(obj)
     cgmAttrs = lists.returnMatchList(userAttrs,order)
-
     #>>> Tag ignoring
     if ignore != 'none':
         if ignore in order:
@@ -779,7 +778,6 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
         tagInfo = search.findRawTagInfo(obj,tag)
         if tagInfo is not False:
             namesDict[tag] = (tagInfo)
-
     """ remove tags up stream that we don't want if they don't exist on the actual object"""
     if mc.objExists(obj+'.cgmTypeModifier') != True:
         if namesDict.get('cgmTypeModifier') != None:
@@ -818,6 +816,8 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
             childNamesDict['cgmType'] = namesDict.get('cgmType')
             if namesDict.get('cgmDirection') != None:
                 childNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
+            if namesDict.get('cgmNameModifier') != None:
+                childNamesDict['cgmNameModifier'] = namesDict.get('cgmNameModifier')
             if namesDict.get('cgmDirectionModifier') != None:
                 childNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
             if namesDict.get('cgmTypeModifier') != None:
@@ -856,7 +856,7 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions that do stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doNameObject(obj):
+def doNameObject(obj,bypassIterator = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -872,10 +872,11 @@ def doNameObject(obj):
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-    name = returnUniqueGeneratedName(obj)
+    name = returnUniqueGeneratedName(obj,bypassIterator = bypassIterator)
     nameFactory = factory(obj)
     
     if nameFactory.amIMe(name):
+        print "I'm me"
         guiFactory.warning("'%s' is already named correctly."%nameFactory.nameBase)
         return name
     else:
