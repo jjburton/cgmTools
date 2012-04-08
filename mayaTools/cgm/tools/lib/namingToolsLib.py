@@ -190,7 +190,7 @@ def uiClearTags(self):
 	
 	tagToKeyDict = {'Name':'cgmName',
                       'Type':'cgmType',
-                      'NameModifer':'cgmNameModifier',
+                      'NameModifier':'cgmNameModifier',
                       'TypeModifier':'cgmTypeModifier',
                       'DirectionModifier':'cgmDirectionModifier',
                       'Direction':'cgmDirection',
@@ -239,7 +239,7 @@ def uiMultiTagObjects(self):
 	
 	tagToKeyDict = {'Name':'cgmName',
                       'Type':'cgmType',
-                      'NameModifer':'cgmNameModifier',
+                      'NameModifier':'cgmNameModifier',
                       'TypeModifier':'cgmTypeModifier',
                       'DirectionModifier':'cgmDirectionModifier',
                       'Direction':'cgmDirection',
