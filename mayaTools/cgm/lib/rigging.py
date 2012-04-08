@@ -37,6 +37,7 @@ from cgm.lib import search
 from cgm.lib import attributes
 from cgm.lib import autoname
 from cgm.lib import lists
+from cgm.lib import cgmMath
 
 # Maya version check
 mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
@@ -304,24 +305,23 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     """return stuff to transfer"""
     objTrans = mc.xform (obj, q=True, ws=True, sp=True)
     objRot = mc.xform (obj, q=True, ws=True, ro=True)
+
     objRoo = mc.xform (obj, q=True, roo=True )
     """return rotation order"""
     correctRo = rotationOrderDictionary[objRoo]
-    createBuffer = mc.group (w=True, empty=True)
-    newName = autoname.doNameObject(createBuffer)
-    mc.setAttr ((newName+'.rotateOrder'), correctRo)
-    mc.move (objTrans[0],objTrans[1],objTrans[2], [newName])
-    mc.rotate (objRot[0], objRot[1], objRot[2], [newName], ws=True)
-    mc.xform (newName, cp=True)
+    groupBuffer = mc.group (w=True, empty=True)
+    mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
+    mc.move (objTrans[0],objTrans[1],objTrans[2], [groupBuffer])
+    mc.rotate (objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
+    mc.xform (groupBuffer, cp=True)
     
     if maintainParent == True and oldParent:
-        newName = doParentReturnName(newName,oldParent)
+        groupBuffer = doParentReturnName(groupBuffer,oldParent)
     if parent == True:
-        obj = doParentReturnName(obj,newName)
+        obj = doParentReturnName(obj,groupBuffer)        
 
-    newName = autoname.doNameObject(newName)
+    return autoname.doNameObject(groupBuffer)
 
-    return newName
 
 def zeroTransformMeObject(obj):
     """
@@ -337,13 +337,26 @@ def zeroTransformMeObject(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     parent = mc.listRelatives(obj,parent=True)
-    if parent != None:
-        group = groupMeObject(obj,True,True)
-        mc.makeIdentity(obj,apply=True,scale =True)
-        attributes.storeInfo(group,'cgmTypeModifier','zero')
-        return autoname.doNameObject(group)
-    else:
-        return groupMeObject(obj,True)
+
+    group = groupMeObject(obj,True,True)
+
+    objScale = []
+    objScale.append(mc.getAttr(obj+'.sx'))
+    objScale.append(mc.getAttr(obj+'.sy'))
+    objScale.append(mc.getAttr(obj+'.sz'))
+    grpScale = []
+    grpScale.append(mc.getAttr(group+'.sx'))
+    grpScale.append(mc.getAttr(group+'.sy'))
+    grpScale.append(mc.getAttr(group+'.sz'))
+    multScale = cgmMath.multiplyLists([objScale,grpScale])
+    
+    mc.scale(multScale[0], multScale[1], multScale[2],[group])
+    for attr in 'sx','sy','sz':
+        attributes.doSetAttr((obj+'.'+attr),1)
+    
+    attributes.storeInfo(group,'cgmTypeModifier','zero')
+    return autoname.doNameObject(group)
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
