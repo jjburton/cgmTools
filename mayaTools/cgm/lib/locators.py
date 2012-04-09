@@ -112,7 +112,8 @@ def locMeCenter(objList,forceBBCenter = False):
 	#store info
 	attributes.storeInfo(nameBuffer[0],'cgmSource',(','.join(objList)),False)
 	attributes.storeInfo(nameBuffer[0],'cgmLocMode','selectCenter',False)
-	attributes.storeInfo(nameBuffer[0],'cgmName',('%s%s%s' %(objList[0],'_to_',objList[-1])),False)
+	attributes.storeInfo(nameBuffer[0],'cgmName',(str('_to_'.join(objList))),False)
+	attributes.storeInfo(nameBuffer[0],'cgmTypeModifier','midPoint',False)
 
 	posList = []
 
@@ -213,12 +214,15 @@ def locClosest(objectList,targetObject):
 		mc.delete(loc)
 		
 	for loc in bufferList:
+		cnt = bufferList.index(loc)
 		storeList = []
 		storeList = objectList
 		storeList.append(targetObject)
+		attributes.storeInfo(loc,'cgmName',('%s_to_%s'%(objectList[0],objectList[-1])),False)		
 		attributes.storeInfo(loc,'cgmSource',(','.join(storeList)),False)
 		attributes.storeInfo(loc,'cgmLocMode','closestPoint',False)
-
+		attributes.storeInfo(loc,'cgmTypeModifier','closestPoint',False)
+		bufferList[cnt] = autoname.doNameObject(loc)
 
 
 	return bufferList[0]
