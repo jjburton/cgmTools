@@ -1428,6 +1428,9 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.doButton2(UtilitiesRow,'Update Name',
 		                     lambda *a:namingToolsLib.doUpdateObjectName(self),
 				             "Takes the name you've manually changed the object to, \n stores that to the cgmName tag then \n renames the object")
+		guiFactory.doButton2(UtilitiesRow,'Report Object Name Dict',
+		                     lambda *a:namingToolsLib.uiReturnFastName(self),
+				             "Get's object's naming factory info ")
 		guiFactory.doButton2(UtilitiesRow,'Report object info',
 		                     lambda *a:namingToolsLib.uiGetObjectInfo(self),
 				             "Get's object's naming factory info ")
