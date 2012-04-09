@@ -1402,25 +1402,41 @@ class tdToolsClass(BaseMelWindow):
 
 		BasicRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		guiFactory.doButton2(BasicRow,'Name Object',
-		                     lambda *a:namingToolsLib.uiNameObject(self),
-				             "Attempts to name an object")
-		guiFactory.doButton2(BasicRow,'Update Name',
+		                     lambda *a:namingToolsLib.uiNameObject(self,False),
+				             "Attempts to name an object")	
+		guiFactory.doButton2(BasicRow,'Name Heirarchy',
+		                     lambda *a:namingToolsLib.doNameHeirarchy(self,False),
+				             "Attempts to intelligently name a  \n heirarchy of objects")
+		guiFactory.doButton2(BasicRow,'Unique Name Object',
+		                     lambda *a:namingToolsLib.uiNameObject(self,True),
+				             "Attempts to name an object\n while verifying no scene duplicates")	
+		guiFactory.doButton2(BasicRow,'Unique Name Heirarchy',
+		                     lambda *a:namingToolsLib.doNameHeirarchy(self,True),
+				             "Attempts to intelligently name a  \n heirarchy of objects\n while verifying no scene duplicates")
+
+
+
+		
+		BasicRow.layout()
+		mc.setParent(self.containerName )
+		guiFactory.lineSubBreak()
+
+		#>>> Utilities
+		mc.setParent(self.containerName )
+
+		UtilitiesRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)	
+		guiFactory.doButton2(UtilitiesRow,'Update Name',
 		                     lambda *a:namingToolsLib.doUpdateObjectName(self),
 				             "Takes the name you've manually changed the object to, \n stores that to the cgmName tag then \n renames the object")
-		guiFactory.doButton2(BasicRow,'Name Heirarchy',
-		                     lambda *a:namingToolsLib.doNameHeirarchy(self),
-				             "Attempts to intelligently name a  \n heirarchy of objects")
-		guiFactory.doButton2(BasicRow,'Report object info',
+		guiFactory.doButton2(UtilitiesRow,'Report object info',
 		                     lambda *a:namingToolsLib.uiGetObjectInfo(self),
 				             "Get's object's naming factory info ")
-		BasicRow.layout()
+
 		
-		
+		UtilitiesRow.layout()
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
 		guiFactory.lineBreak()
-
-
 
 		return self.containerName
 	

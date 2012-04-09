@@ -151,11 +151,11 @@ class factory():
 
 
     def getMatchedNameObjects(self):
-        if not self.sceneObjectsNameDictMap:
-            self.generateSceneDictMap()
-            
         self.matchObjectList = []
         self.matchDictionaryList = []
+        
+        if not self.sceneObjectsNameDictMap:
+            self.generateSceneDictMap()
         
         #Get a list of objects in the scene that match the name object
         for k in self.sceneObjectsNameDictMap.keys():
@@ -163,7 +163,8 @@ class factory():
                 if self.sceneObjectsNameDictMap.get(k) == self.objGeneratedNameDict:
                     self.matchObjectList.append(k)
                     self.matchDictionaryList.append(self.sceneObjectsNameDictMap.get(k))
-            
+        
+        
         self.matchesChecked = True
 
 
@@ -305,6 +306,78 @@ class factory():
             self.nameCandidateDict['cgmIterator'] = str(cnt)
 
         return cnt        
+
+    def getFastIterator(self):
+        #>>> Variation of the full on iteration check, this is a fast version that doesn't bother full scene dictioinary searches
+        if not self.parentsChecked:
+            self.getMatchedParents()
+        if not self.childrenChecked:
+            self.getMatchedChildren()  
+        
+        objGeneratedNameCandidateDict = returnObjectGeneratedNameDict(self.nameLong)  
+        bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
+        cnt = 0
+        
+        # Check for match parents, return len + 1  
+        if self.matchedParents:
+            return len(self.matchedParents) + 1
+        elif self.matchedChildren:
+            if len(self.matchedParents) == 0:
+                # if children, and no parents, use...
+                return 1
+            else:
+                # Start looking after 1
+                cnt = 1 
+            
+        if objGeneratedNameCandidateDict.get('cgmIterator'):
+            cnt = objGeneratedNameCandidateDict.get('cgmIterator')
+        elif cnt == 0:
+            #Check if anything else is named 1
+            matchCheckDict = objGeneratedNameCandidateDict.copy()
+            matchCheckDict['cgmIterator'] = str(1)
+            matchBuffer = returnCombinedNameFromDict(matchCheckDict)
+            if mc.objExists(matchBuffer):
+                matchFound = True
+                cnt = 1
+            
+        if cnt:
+            objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+        ### Scene search for our first open number
+        loopBreak = 0
+        foundAvailableNumber = False
+        while not foundAvailableNumber and loopBreak <= 100: 
+            bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
+            if mc.objExists(bufferName):
+                matchNameList = mc.ls(bufferName,shortNames=True)
+                for item in matchNameList:
+                    if not self.amIMe(item):
+                        #If the generated name exists
+                        if bufferName == item:
+                            cnt +=1
+                            loopBreak +=1
+                            objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+                            break
+
+                        #If the generated name exists anywhere else
+                        elif '|' in item:
+                            buffer = item.split('|')
+                            if bufferName == buffer[-1]:
+                                cnt +=1
+                                loopBreak +=1                               
+                                objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
+                                break
+
+                    else:
+                        foundAvailableNumber = True
+            else:
+                foundAvailableNumber = True            
+
+        return cnt
+                                
+
+
+
+
 
     def getFirstOpenIterator(self):
         if not self.baseIteratorChecked:
@@ -521,6 +594,29 @@ def returnMatchedNameChildren(obj):
     else:
         return []
 
+
+def returnFastIterateNumber(obj):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Check through a scene to figure out what iterative number an obj
+
+    REQUIRES:
+    obj(string)
+
+    RETURNS:
+    order(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    #>>> input check
+    assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+    
+    objToQuery = factory(obj)
+    
+    return objToQuery.getFastIterator()
+
+    
+    
 def returnIterateNumber(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -620,7 +716,7 @@ def returnCGMSetting(setting):
     return (dict.get(setting))
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnUniqueGeneratedName(obj,ignore='none',bypassIterator = False):
+def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -661,7 +757,12 @@ def returnUniqueGeneratedName(obj,ignore='none',bypassIterator = False):
 
     """ add the iterator to the name dictionary if our object exists"""
     nameFactory = factory(obj)
-    if bypassIterator:
+    if not sceneUnique:
+        iterator = returnFastIterateNumber(obj)
+        if iterator > 0:
+            updatedNamesDict['cgmIterator'] = str(iterator)
+            coreName = doBuildName()
+    else:
         iterator = returnIterateNumber(obj)
         if iterator > 0:
             updatedNamesDict['cgmIterator'] = str(iterator)
@@ -856,7 +957,7 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions that do stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doNameObject(obj,bypassIterator = False):
+def doNameObject(obj,sceneUnique = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -872,12 +973,13 @@ def doNameObject(obj,bypassIterator = False):
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-    name = returnUniqueGeneratedName(obj,bypassIterator = bypassIterator)
+    name = returnUniqueGeneratedName(obj,sceneUnique = sceneUnique)
     nameFactory = factory(obj)
     
     if nameFactory.amIMe(name):
         print "I'm me"
         guiFactory.warning("'%s' is already named correctly."%nameFactory.nameBase)
+        print name
         return name
     else:
         objLong = mc.ls(obj,long=True)
@@ -886,14 +988,14 @@ def doNameObject(obj,bypassIterator = False):
         shapes = mc.listRelatives(renameBuffer,shapes=True,fullPath=True)
         if shapes:
             for shape in shapes:
-                name = returnUniqueGeneratedName(shape)
+                name = returnUniqueGeneratedName(shape,sceneUnique = sceneUnique)
                 mc.rename(shape,name)
     
         return renameBuffer
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def doRenameHeir(obj):
+def doRenameHeir(obj,sceneUnique = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -934,7 +1036,7 @@ def doRenameHeir(obj):
         objectToName = (attributes.returnMessageObject(tmpGroup,attr))
         mc.progressBar(mayaMainProgressBar, edit=True, status = ("Naming '%s'"%objectToName), step=1)
 
-        buffer =  doNameObject( objectToName )
+        buffer =  doNameObject( objectToName,sceneUnique )
         if buffer:
             newNames.append(buffer)
             
