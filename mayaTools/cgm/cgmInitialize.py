@@ -16,7 +16,7 @@ def setupZooPaths():
 
         mayaSysPaths = sys.path
 
-        for folder in 'lib/zoo','lib/zooMel','lib/zooPy','lib/zooPyMaya':
+        for folder in 'lib/zoo','lib/zoo/zooMel','lib/zoo/zooPy','lib/zoo/zooPyMaya':
                 bufferFolderPath = thisPath / folder
 
                 if bufferFolderPath not in mayaSysPaths:
