@@ -328,7 +328,7 @@ def uiReturnIterator(self):
 	reload(autoname)
 	
 	for obj in selected:
-			print (autoname.returnIterateNumber(obj))
+		print (autoname.returnIterateNumber(obj))
 			
 def uiReturnFastName(self):
 	selected = mc.ls(sl=True)
@@ -336,7 +336,7 @@ def uiReturnFastName(self):
 	reload(autoname)
 	
 	for obj in selected:
-			print (autoname.returnUniqueGeneratedName(obj,fastName=True))
+		print (autoname.returnObjectGeneratedNameDict(obj))
 			
 def uiReturnSceneUniqueName(self):
 	selected = mc.ls(sl=True)
@@ -344,7 +344,7 @@ def uiReturnSceneUniqueName(self):
 	reload(autoname)
 	
 	for obj in selected:
-			print (autoname.returnUniqueGeneratedName(obj))
+		print (autoname.returnUniqueGeneratedName(obj,True))
 			
 def uiNameObject(self,sceneUnique):
 	selected = mc.ls(sl=True,flatten=True,long=True)
