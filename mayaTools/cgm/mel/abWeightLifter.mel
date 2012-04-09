@@ -1,0 +1,3137 @@
+/*
+abWeightLifter v 1.8
+brendan ross  06.01.2005
+www.supercrumbly.com
+
+update -- 03.08.05:  Mirror tolerance was too small for copy.  Broke it out into two discreet user configurable variables.
+update -- 03.11.05:  Faster on subsequent mirror copies (Keep the script open to avoid having to rebuild the symmetry table).  Added option to show/hide unconnected influences warning dialogue.
+update -- 03.15.05:  Better method for copying vertices weighted to individual influences.  Added "Show Selection Influences", "Select Influences", and "Include Dest Strays".  Options mirror direction checkbox now actually does something.
+update -- 03.16.05:  Fixed "Include Dest Strays" selection bug.  Added "Deselect Influenced" button in Influence window.
+update -- 03.19.05:  Objects, connections, and symmetry table are now retained for mirror operations when the main UI is closed with the menu bar close button.
+update -- 03.21.05:  Added "Cull Matching Weights" to prefs.  If enabled matching src/dest vertex weights will be culled from the copy operation; much faster copies when > 60% (wild guess) of the vertex weights match properly.
+update -- 03.26.05:  Various bugs fixed.  Option for alphanumeric connection display (if you've got lots of infs).  Weight culling actually works now.
+update -- 06.01.05:  Added option to perform a copy like a mirror with "Mirror Across Origin" in the "Copy Vertices Using:" drop down; plus a few bug tweaks.
+update -- 09.23.05:  Fixed Maya 7 fatal error related to alphanumeric connection labels.  Added "Show SymTable Vertices" and "Clear SymTable" to options.
+update -- 06.04.07:  Interface now scales; skinCluster selection bug fixed; Select Influences button now works as expected -- if joints or transforms are selected when clicked, overlapping selection will be hilited in the filter influence list, otherwise selected items in the filter influence list will be selected in the scene; Select Influences window Select Influences button now selects influence transforms which is more useful than highlighting transforms in the source object scrollList.  Added "Replace Skin" to Tools menu.  To use it, select two meshes, one skinned the other not.  When you invoke the command, the unskinned mesh will be bound to the influences on the skinned mesh, all weights will be copied, the originally skinned mesh will be unbound and deleted.
+update -- 04.14.08:  "Select Influenced Verts" is now more sensitive.
+update -- 04.16.08:  Added "Move Weights" button to UI.  It will move all the weights of the source influence to the destination influence.  You can limit the scope of the operation by selecting vertices on your mesh (otherwise it will act on the entire mesh).  Avoid specifying the same inf in more than one connection at a time (infs connected to themselves are ignored).  Improved symmetry feedback.  A prompt now alerts you if the mesh isn't symmetrical.  SymTable menu items are disabled when there's no symTable data.  
+update -- 04.17.08:  Added "Check Symmetry", "Get Symmetry From Selected" and "Copy Skin to Mesh" to tools menu.  "Check Symmetry" will check for symmetry for mirror operations on both one object and across objects.  "Get Symmetry From Selected" will determine symmetry on your source and destination object (they must be the same) from another copy of the mesh.  This is useful for establishing symmetry when your symmetrical skinned mesh isn't reading as symmetrical because of skin weights (or whatever).  To use "Copy Skin to Mesh" you must first select a skinned and (at least partially overlapping) unskinned mesh and then click the menu item.  Once the UI appears you can select some vertices on the skinned mesh to limit which influences get skinned to the target mesh (if you don't select any vertices, the target will be bound to all source's influences).
+update -- 06.03.08:  Verts that lie on the origin will now be accounted for when "Auto Weight Origin Verts" is enabled in the preferences UI.  Added "Select Centerline Vertices" to the Options menu.
+update -- 02.06.09:  Added the ability to save and import weights (still no interpolation).   The import will be restricted to any selected verts on the destination mesh.  Improved auto connect and added find and replace fields to the UI for use with auto connecting (ignored in mirror mode).  Also various speed improvements and bug fixes (thanks Jiet).
+
+use:
+
+getting me out of a pickle
+
+directions:
+
+See help
+*/
+
+
+
+global proc string[] abWlBuildSymTable(string $srcObj, string $destObj, int $axis, int $posToNeg, float $tol, int $usePiv, int $checkSym){
+	// if $checkSym is true, proc will not update the symTable (it will actually delete the current table).  This proc returns $aNonSymVerts;
+	
+	global string $abWlSymTable[];
+	global string $abWlOriginVts[];
+	string $aNegVerts[], $aPosVerts[], $aMidVerts[], $aNonSymVerts[], $aStr[], $vtx, $str;
+	float $aNegVertTrans[], $aPosVertTrans[], $aVtxTrans[], $aVtx2Trans[], $bBox[], $mid, $midOffset, $posOffset, $negOffset, $flt, $progNum, $progDenom;
+	int $aPosVertsInt[], $aNegVertsInt[], $aInt[], $totVtx, $i, $j, $mod, $prog, $ret;
+	int $mAxisInd = $axis - 1; //mirror axis index (for xform)
+	int $axis2Ind = ($mAxisInd + 1) % 3;
+	int $axis3Ind = ($mAxisInd + 2) % 3;
+	int $vertCounter = 0;
+	int $singleObj = ($srcObj == $destObj);
+	
+	float $progUpdate = 50.0; //what percentage of time (during an operation) does the prog bar update itself
+	
+	if ($singleObj){
+		if ($usePiv){
+			$aVtxTrans = `xform -q -ws -t $srcObj`;
+			$mid = $aVtxTrans[$mAxisInd];
+		}else{
+			$bBox = `xform -q -ws -boundingBox $srcObj`;
+			$mid = $bBox[$mAxisInd] + (($bBox[($mAxisInd+3)] - $bBox[$mAxisInd])/2);
+		}
+	}else{
+		$mid = 0;
+	}
+	
+	$aInt = `polyEvaluate -v $srcObj`; 
+	$totVtx = $aInt[0];
+	
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status "Sorting";
+	$progDenom = $totVtx;
+	$flt = ceil($progDenom/$progUpdate);
+	$mod = $flt;
+	
+	if ($singleObj){
+		for ($i=0;$i<$totVtx;$i++){
+			
+			//prog win
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*100.0;
+				progressWindow -e -progress $prog;
+			}
+			//end prog win
+			
+			$vtx = $srcObj+".vtx["+$i+"]";
+			$aVtxTrans = `xform -q -ws -translation $vtx`;
+			$midOffset = $aVtxTrans[$mAxisInd] - $mid;
+			
+			if (abs($midOffset) < $tol){
+				// it's a mid vertex
+				$aMidVerts[size($aMidVerts)] = $vtx;
+				continue;
+			}
+			
+			if ($midOffset >= 0){
+				$aPosVerts[size($aPosVerts)] = $vtx;
+				$aPosVertsInt[size($aPosVertsInt)] = $i;
+				$aVtxTrans = `xform -q -ws -t $vtx`;
+				$aPosVertTrans[size($aPosVertTrans)] = $aVtxTrans[$mAxisInd];
+			}else{
+				if ($midOffset < 0){
+					$aNegVerts[size($aNegVerts)] = $vtx;
+					$aNegVertsInt[size($aNegVertsInt)] = $i;
+					$aVtxTrans = `xform -q -ws -t $vtx`;
+					$aNegVertTrans[size($aNegVertTrans)] = $aVtxTrans[$mAxisInd];
+				}
+			}
+		}
+	}else{
+		
+		for ($i=0;$i<$totVtx;$i++){
+			
+			//prog win
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*50.0;
+				progressWindow -e -progress $prog;
+			}
+			//end prog win
+			
+			$vtx = $srcObj+".vtx["+$i+"]";
+			$aPosVerts[size($aPosVerts)] = $vtx;
+			$aPosVertsInt[size($aPosVertsInt)] = $i;
+		}
+		$aInt = `polyEvaluate -v $destObj`; 
+		int $totDestVtx = $aInt[0];
+		
+		$progDenom = $totDestVtx;
+		$mod = int(ceil($progDenom/$progUpdate));
+		
+		for ($i=0;$i<$totDestVtx;$i++){
+			
+			//prog win
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*50.0 + 50;
+				progressWindow -e -progress $prog;
+			}
+			//end prog win
+			
+			$vtx = $destObj+".vtx["+$i+"]";
+			$aNegVerts[size($aNegVerts)] = $vtx;
+			$aNegVertsInt[size($aNegVertsInt)] = $i;
+		}
+	}
+	
+	string $aPosVertsComp[] = $aPosVerts;
+	string $aNegVertsComp[] = $aNegVerts;
+	
+	progressWindow -e -progress 0 -status "Building Symmetry Table";
+	
+	$progDenom = size($aPosVertsComp);
+	$flt = ceil($progDenom/$progUpdate);
+	$mod = $flt;
+	
+	//now find nonsymverts
+	for ($i=0;$i<size($aPosVertsComp);$i++){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = $progNum/$progDenom*100;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$vtx = $aPosVertsComp[$i];
+		$posOffset = ($aPosVertTrans[$i] - $mid);
+		if ($singleObj){
+			if ($posOffset < $tol){
+				$aPosVertsComp[$i] = "m";
+				$vertCounter ++;
+				continue;
+			}
+		}
+		for ($j=0;$j<size($aNegVertsComp);$j++){
+			if ($aNegVertsComp[$j] == "m") continue;
+			$negOffset = $mid - $aNegVertTrans[$j];
+			if ($singleObj){
+				if ($negOffset < $tol){
+					$aNegVertsComp[$j] = "m";
+					$vertCounter ++;
+					continue;
+				}
+			}
+			if (abs($posOffset - $negOffset) <= $tol){
+				$aVtxTrans = `xform -q -ws -t $vtx`;
+				$aVtx2Trans = `xform -q -ws -t $aNegVertsComp[$j]`;
+				$test1 = $aVtxTrans[$axis2Ind] - $aVtx2Trans[$axis2Ind];
+				$test2 = $aVtxTrans[$axis3Ind] - $aVtx2Trans[$axis3Ind];
+				if (abs($test1) < $tol && abs($test2) < $tol){
+					//match
+					//use this info to build symmetry table
+					$abWlSymTable[size($abWlSymTable)] = $srcObj+".vtx["+$aPosVertsInt[$i]+"]";
+					$abWlSymTable[size($abWlSymTable)] = $destObj+".vtx["+$aNegVertsInt[$j]+"]";
+					$vertCounter += 2;
+					$aPosVertsComp[$i] = $aNegVertsComp[$j] = "m"; //m is for match
+					break;
+				}
+			}
+		}
+	}
+	
+	//now strip out "m" from $aPosVertsComp and $aNegVertsComp, and we'll have asymmetry
+	$aStr = {"m"};
+	$aPosVertsComp = stringArrayRemove($aStr, $aPosVertsComp);
+	$aNegVertsComp = stringArrayRemove($aStr, $aNegVertsComp);
+	$aNonSymVerts = stringArrayCatenate($aPosVertsComp, $aNegVertsComp);
+	
+	if (size($aMidVerts) > 0) $abWlOriginVts = $aMidVerts;
+	
+	progressWindow -endProgress;
+	waitCursor -state off;
+	
+	if (!$checkSym){
+		if (size($aPosVertsComp)+size($aNegVertsComp) > 0){
+			//object is not symmetrical
+			string $result = `confirmDialog -title "Confirm" -message "The base geometry is not symmetrical.  Not all weights\ncan be mirrored.  If you think your mesh is symmetrical,\ntry lowering the mirror tolerance in the options window.\n\nKeep the symmetry data?" -button "Yes" -button "No" -defaultButton "No" -cancelButton "No" -dismissString "No"`;
+			if ($result == "No"){
+				clear($abWlSymTable);
+				clear($abWlOriginVts);
+				$vertCounter = 0;
+				select -r $aNonSymVerts;
+			}
+		}
+	}else{
+		clear($abWlSymTable);
+		clear($abWlOriginVts);
+	}
+	
+	return $aNonSymVerts;
+	
+}
+
+
+global proc abWlMirrorWeights(string $srcObj, string $destObj, int $axis, int $posToNeg, float $tol, int $usePiv, int $normalize){
+	//$abWlSymTable goes a little like {obj.vtx[pos mAxis 1], obj.vtx[neg mAxis 1]}
+	
+	global string $abWlSrcInf[];
+	global string $abWlSymTable[];
+	global string $abWlOriginVts[];
+	global string $abWlPrefs[];
+	string $aNegVerts[], $aPosVerts[], $vtxCopyList[], $vtx, $str, $aStr[], $aTemp[];
+	int $i, $j, $k, $vtxNum;
+	int $weightOriginVts = $abWlPrefs[12];
+	int $originVtModCounter = 0;
+	
+	int $buildTable = (size($abWlSymTable) == 0) ? true : false; //flag -> true if need to build table
+	if ($buildTable){
+		abWlBuildSymTable($srcObj, $destObj, $axis, $posToNeg, $tol, $usePiv, false);
+	}
+	
+	if (size($abWlSymTable) == 0){
+		warning "The symmetry table is empty.  Unable to proceed";
+		return;
+	}
+	
+	//copy weights from one side to the other
+	string $aSelVts[] = `filterExpand -sm 31`;
+	if (size($aSelVts) == 0){
+		//$aVtsToCopy = ($posToNeg) ? $aPosVerts : $aNegVerts;
+		if ($posToNeg){
+			$vtxCopyList = $abWlSymTable;
+		}else{
+			//reverse table
+			for ($i=0;$i<size($abWlSymTable);$i+=2){
+				$vtxCopyList[size($vtxCopyList)] = $abWlSymTable[$i+1];
+				$vtxCopyList[size($vtxCopyList)] = $abWlSymTable[$i];
+			}
+		}
+	}else{
+		for ($i=0;$i<size($abWlSymTable);$i+=2){
+			$aPosVerts[size($aPosVerts)] = $abWlSymTable[$i];
+			$aNegVerts[size($aNegVerts)] = $abWlSymTable[$i+1];
+		}
+		
+		//make sure $aSelVts are all on the copy side of the object
+		string $copySideVts[] = ($posToNeg) ? $aPosVerts : $aNegVerts;
+		string $myIntersector = `stringArrayIntersector`;
+		stringArrayIntersector -edit -intersect $copySideVts $myIntersector;
+		stringArrayIntersector -edit -intersect $aSelVts $myIntersector;
+		string $aVtsToCopy[] = `stringArrayIntersector -query $myIntersector`;
+		deleteUI $myIntersector;
+		
+		//make the copy list
+		string $mirrorVtx;
+		for ($i=0;$i<size($aVtsToCopy);$i++){
+			$mirrorVtx = abWlGetSymVtx($aVtsToCopy[$i]);
+			if ($mirrorVtx != ""){
+				$vtxCopyList[size($vtxCopyList)] = $aVtsToCopy[$i];
+				$vtxCopyList[size($vtxCopyList)] = $mirrorVtx;
+			}
+		}
+	}
+	
+	abWlWeightCopy($vtxCopyList, $normalize);
+	
+	// take care of origin vertices if this is a single mesh mirror
+	
+	if ($weightOriginVts && size($abWlOriginVts) > 0 && $srcObj == $destObj){
+		
+		string $aConnEdges[], $aConnVerts[], $cmd;
+		string $cluster = abWlGetSkinCluster($destObj);
+		float $aWeights[], $aTempWeights[], $denom;
+		string $aInfs[] = `skinCluster -q -inf $cluster`;
+		int $matchCounter;
+		
+		// make origin vert int array for easy indexing (currently $abWlOriginVts are strings)
+		int $aOriginVtsInt[];
+		for ($i=0;$i<size($abWlOriginVts);$i++){
+			
+			$str = `match ".vtx\[[0-9]+\]" $abWlOriginVts[$i]`;
+			$str = `match "[0-9]+" $str`;
+			
+			$aOriginVtsInt[size($aOriginVtsInt)] = int($str);
+			
+		}
+		
+		for ($i=0;$i<size($abWlOriginVts);$i++){
+			
+			clear($aConnVerts);
+			clear($aConnEdges);
+			clear($aWeights);
+			clear($aTempWeights);
+			
+			// get current vtx number
+			$vtxNum = $aOriginVtsInt[$i];
+			
+			// first get connected verts for each origin vtx
+			$aTemp = `polyInfo -vertexToEdge $abWlOriginVts[$i]`;
+			tokenize($aTemp[0], $aStr);
+			
+			// get connected edges
+			for ($j=2;$j<size($aStr);$j++) $aConnEdges[size($aConnEdges)] = $destObj+".e["+$aStr[$j]+"]"; 
+			
+			if (size($aConnEdges) == 0) continue;
+			
+			// get connected verts
+			for ($j=0;$j<size($aConnEdges);$j++){
+				
+				$aTemp = `polyInfo -edgeToVertex $aConnEdges[$j]`;
+				tokenize($aTemp[0], $aStr);
+				
+				
+				for ($k=2;$k<size($aStr);$k++){
+					if (int($aStr[$k]) != $vtxNum){
+						if ( `match "[0-9]*" $aStr[$k]` != ""){ 
+							// throw out other origin verts
+							if (abWlIntGetPos(int($aStr[$k]), $aOriginVtsInt) == -1){
+								$aConnVerts[size($aConnVerts)] = $destObj+".vtx["+$aStr[$k]+"]";
+							}
+						}
+					}
+				}
+			}
+			
+			
+			// average connected weights in common
+			for ($j=0;$j<size($aConnVerts);$j++){
+				
+				if ($j == 0){
+					$aWeights = `skinPercent -query -value $cluster $aConnVerts[$j]`;
+				}else{
+					$aTempWeights = `skinPercent -query -value $cluster $aConnVerts[$j]`;
+					for ($k=0;$k<size($aWeights);$k++) $aWeights[$k] = $aWeights[$k] + $aTempWeights[$k];
+				}
+				
+			}
+			
+			$denom = float(size($aConnVerts));
+			
+			for ($j=0;$j<size($aWeights);$j++) $aWeights[$j] = $aWeights[$j]/$denom;
+			
+			// skinPercent
+			if (size($aInfs) == size($aWeights)){
+				
+				// check existing weights against $aWeights
+				$aTempWeights = `skinPercent -query -value $cluster $abWlOriginVts[$i]`;
+				$matchCounter = 0;
+				
+				for ($j=0;$j<size($aTempWeights);$j++){
+					if (abs($aTempWeights[$j] - $aWeights[$j]) < $tol) $matchCounter++;
+				}
+				
+				// if this vert's weights are already where we want them then skip it
+				if ($matchCounter == size($aWeights)) continue;
+				
+				//adjust weights				
+				$cmd = "skinPercent -normalize "+$normalize;
+				for ($j=0;$j<size($aInfs);$j++){
+					$cmd += " -tv "+$aInfs[$j]+" "+$aWeights[$j];
+				}
+				$cmd += " "+$cluster+" "+$abWlOriginVts[$i];
+				eval($cmd);
+				$originVtModCounter++;
+			}
+			
+		}
+	}
+	
+	// done with origin verts
+	
+	string $msgStr;
+	$msgStr = ((size($vtxCopyList))/2)+" vertex weight(s) copied.";
+	if ($originVtModCounter > 0) $msgStr += "  "+$originVtModCounter+" origin vertex weight(s) modified.";
+	
+	print $msgStr;
+	
+}
+
+
+global proc string[] abWlCullMatchingWeights(string $aVts[]){
+	//$aVts is array of matching verts (src, dest) on same or different objects (mirror or copy) -- returns only verts with non matching weights
+	
+	string $ret[], $srcInfs[], $destInfs[], $srcVtx, $destVtx, $conInf;
+	int $i, $j, $match, $tInd;
+	
+	string $srcObj = `textField -q -text soFld`;
+	string $destObj = `textField -q -text doFld`;
+	string $srcCluster = abWlGetSkinCluster($srcObj);
+	string $destCluster = ($srcObj != $destObj) ? abWlGetSkinCluster($destObj) : $srcCluster;
+	string $srcInfsStr, $destInfsStr, $srcComp[], $destComp[];
+	float $aSrcWeights[], $aDestWeights[];
+	float $matchTol = .0000000001;
+	
+	//build connection arrays for faster lookup
+	global string $abWlSrcInf[], $abWlDestInf[];
+	string $destConLU[], $inf;
+	for ($i=0;$i<size($abWlSrcInf);$i++){
+		$tInd = abWlGetConnectedInf($i, -1);
+		if ($tInd >= 0) $destConLU[$i] = $abWlDestInf[$tInd];
+	}
+	
+	int $mod, $prog;
+	float $flt, $progNum, $progDenom;
+	float $progUpdate = 50.0;
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status "Culling Matching Weights";
+	$progDenom = size($aVts);
+	$flt = ceil($progDenom/$progUpdate);
+	$mod = $flt;
+	
+	for ($i=0;$i<size($aVts);$i+=2){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$match = 0;
+		$srcVtx = $aVts[$i];
+		$destVtx = $aVts[$i+1];
+		$srcInfs = `skinPercent -ib .00000000000000000000000000000000000000001 -q -t $srcCluster $srcVtx`;
+		$aSrcWeights = `skinPercent -ib .00000000000000000000000000000000000000001 -q -v $srcCluster $srcVtx`;
+		$destInfs = `skinPercent -ib .00000000000000000000000000000000000000001 -q -t $destCluster $destVtx`;
+		$aDestWeights = `skinPercent -ib .00000000000000000000000000000000000000001 -q -v $destCluster $destVtx`;
+		
+		if (size($srcInfs) == size($destInfs)){
+			for ($j=0;$j<size($srcInfs);$j++){
+				$tInd = abWlStrGetPos($srcInfs[$j], $abWlSrcInf);
+				if ($tInd >= 0){
+					$conInf = $destConLU[$tInd];
+					if (abWlStrGetPos($conInf, $destInfs) != -1){
+						//if (`skinPercent -t ($srcInfs[$j]) -q -v $srcCluster $srcVtx` - `skinPercent -t $conInf -q -v $destCluster $destVtx` < $matchTol){
+						if ($aSrcWeights[$tInd] - $aDestWeights[$tInd] < $matchTol){
+							$match ++;
+						}else{
+							break;
+						}
+					}else{
+						break;
+					}
+				}
+			}
+		}
+		if ($match != size($srcInfs)){
+			$ret[size($ret)] = $srcVtx;
+			$ret[size($ret)] = $destVtx;
+		}
+	}
+	progressWindow -endProgress;
+	waitCursor -state off;
+	print ("Culled "+(size($aVts)-size($ret))+" verts with symmetrical weighting from selection\n");
+	return $ret;
+}
+
+
+global proc string[] abWlStrArrayCatenateUnique(string $array1[], string $array2[]){
+	//combines two string arrays culling duplicate values
+	
+	string $ret[] = stringArrayCatenate($array1, $array2);
+	$ret = stringArrayRemoveDuplicates($ret);
+	select -r $array2;	
+	return $ret;
+}
+
+
+global proc abWlMoveWeights(){
+	// called from move weights button in the UI -- calls abWlReplaceWeights if all is good to go
+	
+	global int $abWlInfConnections[];
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	string $obj = `textField -q -text "soFld"`;
+	string $aSelVts[];
+	
+	// make infTable
+	int $i;
+	string $aInfTable[];
+	
+	for ($i=0;$i<size($abWlInfConnections);$i+=2){
+		
+		$aInfTable[size($aInfTable)] = $abWlSrcInf[$abWlInfConnections[$i]];
+		$aInfTable[size($aInfTable)] = $abWlDestInf[$abWlInfConnections[$i+1]];
+	}
+	
+	if (size($aInfTable) == 0){
+		warning "Make some connections between influences and try again";
+		return;
+	}
+	
+	string $aHilite[] = `ls -hilite`;
+	if (size($aHilite) == 1 && $aHilite[0] == $obj){
+		$aSelVts = `filterExpand -sm 31`;
+	}else if (size($aHilite) > 1){
+		warning "Multiple objects are in component mode.  Select vertices on your source mesh to limit the move operation.  Unable to proceed.";
+		return;
+	}
+	
+	abWlReplaceWeights($obj, $aInfTable, $aSelVts);
+	
+}
+
+
+global proc abWlReplaceWeights(string $obj, string $aInfTable[], string $aVts[]){
+	// operates on a single object ($srcObj = $destObj), instead of a mirror copy this proc takes all weights of a source inf and move them to the dest inf
+	// $aInfTable is in the form of {$srcInf, $destInf, $src2Inf, $dest2Inf}
+	// confined to selected ($aVts) vertices.  If $aVts is empty it uses the entire object.
+	
+	if (!objExists($obj)){
+		warning ($obj+" doesn't exist.");
+		return;
+	}
+	
+	string $cluster = abWlGetSkinCluster($obj);
+	
+	if ($cluster == ""){
+		warning ($obj+" is not a skinned mesh");
+		return;
+	}
+	
+	int $i, $aInt[], $totVts;
+	string $srcInf, $destInf, $aInfVts[], $aSrcInfVts[], $vtx;
+	float $aSrcWeight, $aDestWeight;
+	int $infCounter = 0;
+	int $vtxCounter = 0;
+	
+	// fill $aVts if empty
+	if (size($aVts) == 0){
+		
+		$aInt = `polyEvaluate -v $obj`;
+		$totVts = $aInt[0];
+		
+		string $vtxStr = $obj+".vtx[";
+		
+		for ($i=0;$i<$totVts;$i++) $aVts[size($aVts)] = $vtxStr+$i+"]";
+	}
+	
+	// iterate through infs and intersect inf verts with aVts to create selection to work on
+	string $myIntersector = `stringArrayIntersector`;
+	
+	for ($i=0;$i<size($aInfTable);$i+=2){
+		
+		$srcInf = $aInfTable[$i];
+		$destInf = $aInfTable[$i+1];
+		
+		if (!objExists($srcInf) || !objExists($destInf) || $srcInf == $destInf) continue;
+		
+		stringArrayIntersector -edit -reset $myIntersector;
+		
+		$aSrcInfVts = abWlGetAffectedVertsByInf($obj, {$srcInf});
+		
+		stringArrayIntersector -edit -intersect $aVts $myIntersector;
+		stringArrayIntersector -edit -intersect $aSrcInfVts $myIntersector;
+		
+		$aInfVts = `stringArrayIntersector -query $myIntersector`;
+		
+		for ($vtx in $aInfVts){
+			// move the weights from srcInf to destInf
+			
+			$aSrcWeight = `skinPercent -transform $srcInf -query $cluster $vtx`;
+			$aDestWeight = `skinPercent -transform $destInf -query $cluster $vtx`;
+			$aDestWeight += $aSrcWeight;
+			
+			// set weights
+			skinPercent -transformValue $srcInf 0 -transformValue $destInf $aDestWeight $cluster $vtx;
+			
+			$vtxCounter++;
+		}
+		$infCounter++;
+	}
+	
+	deleteUI $myIntersector;
+	
+	string $pairStr = ($infCounter == 1) ? "pair" : "pairs";
+	string $weightStr = ($vtxCounter == 1) ? "weight" : "weights";
+	print ("Moved "+$vtxCounter+" "+$weightStr+" between "+$infCounter+" influence "+$pairStr+".\n");
+	
+}
+
+
+global proc abWl2MeshWeightCopy(string $srcObj, string $destObj, float $tol, int $normalize, int $copyType){
+	//sets up vertCopyList and sends it to abWlWeightCopy for mesh to mesh copies
+	//mode is 1 worldSpace, 2 objectSpace, 3 vertexNum
+	
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	global int $abWlInfConnections[];
+	global string $abWlSymTable[];
+	string $destVtx, $srcVtx;
+	int $i, $j, $k;
+	int $aInt[] = `polyEvaluate -v $srcObj`;
+	int $totSrcVts = $aInt[0];
+	$aInt = `polyEvaluate -v $destObj`;
+	int $totDestVts = $aInt[0];
+	float $aFlt[];
+	float $progUpdate = 50.0;
+	
+	string $aSrcVts[];
+	for ($i=0;$i<$totSrcVts;$i++){
+		$aSrcVts[size($aSrcVts)] = $srcObj+".vtx["+$i+"]";
+	}
+	string $aDestVts[];
+	for ($i=0;$i<$totDestVts;$i++){
+		$aDestVts[size($aDestVts)] = $destObj+".vtx["+$i+"]";
+	}
+	
+	string $aSelVts[] = `filterExpand -sm 31`;
+	if (size($aSelVts) == 0){
+		$aSelVts = $aSrcVts;
+	}
+	
+	//make sure only srcObj verts are selected
+	string $myIntersector = `stringArrayIntersector`;
+	stringArrayIntersector -edit -intersect $aSrcVts $myIntersector;
+	stringArrayIntersector -edit -intersect $aSelVts $myIntersector;
+	string $aVtsToCopy[] = `stringArrayIntersector -query $myIntersector`;
+	deleteUI $myIntersector;
+	
+	int $totVtsToCopy = size($aVtsToCopy);
+	string $vtxCopyList[];
+	
+	if ($copyType == 1 || $copyType == 2){
+		
+		int $matchInd;
+		float $floatMatchFlag = -666666.0;
+		
+		string $space = ($copyType == 1) ? "-ws" : "-os";
+		
+		int $mod;
+		int $prog;
+		float $flt;
+		float $progNum;
+		
+		waitCursor -state on;
+		progressWindow -title "Working" -progress 0 -status "Checking Overlap";
+		$progDenom = $totVtsToCopy;
+		$flt = ceil($progDenom/$progUpdate);
+		$mod = $flt;
+		
+		//make lookup for destObj
+		float $destXTransLU[], $destYTransLU[], $destZTransLU[];
+		for ($i=0;$i<$totDestVts;$i++){
+			$destVtx = $aDestVts[$i];
+			$aFlt = eval("xform "+$space+" -q -translation "+$destVtx);
+			$destXTransLU[size($destXTransLU)] = $aFlt[0];
+			$destYTransLU[size($destYTransLU)] = $aFlt[1];
+			$destZTransLU[size($destZTransLU)] = $aFlt[2];
+		}
+		
+		for ($i=0;$i<$totVtsToCopy;$i++){
+			
+			//prog win
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*100.0;
+				progressWindow -e -progress $prog;
+			}
+			//end prog win
+			
+			$srcVtx = $aVtsToCopy[$i];
+			$aFlt = eval("xform "+$space+" -q -translation "+$srcVtx);
+			for ($j=0;$j<$totDestVts;$j++){
+				if ($aFlt[0] == $floatMatchFlag){ //this might slow things down, I'll have to check
+					continue;
+				}
+				if (abs($destXTransLU[$j] - $aFlt[0]) < $tol){
+					//passed the first gate
+					if (abs($destYTransLU[$j] - $aFlt[1]) < $tol){
+						//second, and...
+						if (abs($destZTransLU[$j] - $aFlt[2]) < $tol){
+							//match!
+							$vtxCopyList[size($vtxCopyList)] = $srcVtx;
+							$vtxCopyList[size($vtxCopyList)] = $aDestVts[$j];
+							$destXTransLU[$j] = $destYTransLU[$j] = $destZTransLU[$j] = $floatMatchFlag;
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		progressWindow -endProgress;
+		waitCursor -state off;
+		
+	}else if ($copyType == 3){
+		//copy by vtx (I doubt anyone but me will ever need this)
+		int $srcObjStrOffset = size($srcObj)+1;
+		int $srcVtxStrSize;
+		for ($i=0;$i<$totVtsToCopy;$i++){
+			$srcVtx = $aVtsToCopy[$i];
+			$srcVtxStrSize = size($srcVtx);
+			$destVtx = $destObj + `substring $srcVtx $srcObjStrOffset $srcVtxStrSize`;
+			$vtxCopyList[size($vtxCopyList)] = $srcVtx;
+			$vtxCopyList[size($vtxCopyList)] = $destVtx;
+		}
+	}
+	
+	abWlWeightCopy($vtxCopyList, $normalize);
+	
+	print (((size($vtxCopyList))/2)+" vertex weight(s) copied\n");
+}
+
+
+global proc abWlWeightCopy(string $vtsCopyList[], int $normalize){
+	//here's where the heavy lifting is done -- pass a paired list of verts [pair1src.vtx, pair1dest.vtx, pair2src.vtx, pair2dest.vtx] and this proc will copy infs according to the infconnectionlist
+	//if a src inf isn't connected to a dest inf, it won't be copied, it will be normalized though, so the weights won't be symmetrical
+	
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	global int $abWlInfConnections[];
+	global string $abWlPrefs[];
+	int $i, $j;
+	
+	string $srcObj = `textField -q -text "soFld"`;
+	string $destObj = `textField -q -text "doFld"`;
+	string $srcCluster = abWlGetSkinCluster($srcObj);
+	string $destCluster = abWlGetSkinCluster($destObj);
+	string $srcVtx, $destVtx, $tSrcInfs[], $tCurInfs[], $tDestInfsCopy[], $tvStr;
+	float $tWeight;
+	float $progUpdate = 50.0;
+	int $destVtxInd;
+	
+	int $utInt = $abWlPrefs[10];
+	if ($utInt) $vtsCopyList = abWlCullMatchingWeights($vtsCopyList);
+	
+	string $tInfName, $tSrcInfName, $tDestInfName;
+	string $srcConLU[]; //source connection lookup
+	string $destConLU[]; //dest connection lookup
+	string $aInfsCopyList[]; //convert connections list from int to string
+	int $aInitDestLock[]; //stores init state of lockweights
+	
+	for ($i=0;$i<size($abWlInfConnections);$i+=2){
+		$tDestInfName = $abWlDestInf[$abWlInfConnections[$i+1]];
+		$aInitDestLock[size($aInitDestLock)] = `skinCluster -inf $tDestInfName -q -lockWeights $destCluster`;
+		skinCluster -e -inf $tDestInfName -lockWeights 0 $destCluster; //make sure all infs are unlocked so weights can be pruned to 0
+		
+		//make 2 lists to speed lookup of connections -- first with connected srcnames, second with destnames at corresponding indices
+		$srcConLU[size($srcConLU)] = $abWlSrcInf[$abWlInfConnections[$i]];
+		$destConLU[size($destConLU)] = $abWlDestInf[$abWlInfConnections[$i+1]];
+	}
+	
+	int $scNormWeights = `getAttr ($destCluster+".normalizeWeights")`;
+	if ($scNormWeights == (1-$normalize)){
+		setAttr ($destCluster+".normalizeWeights") $normalize;
+	}
+	
+	int $mod;
+	int $prog;
+	float $flt;
+	float $progNum;
+	float $progDenom;
+	
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status "Copying Weights";
+	$progDenom = size($vtsCopyList);
+	$flt = ceil($progDenom/$progUpdate);
+	$mod = $flt;
+	//string $testDestVtx[];
+	for ($i=0;$i<size($vtsCopyList);$i+=2){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$srcVtx = $vtsCopyList[$i];
+		$destVtx = $vtsCopyList[$i+1];
+		//get infs on src vtx
+		
+		$tSrcInfs = `skinPercent -ib .00000000000000000000000000000000000000001 -q -transform $srcCluster $srcVtx`;
+		
+		//get corresponding dest infs to copy to
+		$tvStr = "";
+		clear($tCurInfs);
+		for ($j=0;$j<size($tSrcInfs);$j++){
+			$tSrcInfName = $tSrcInfs[$j];
+			$destVtxInd = abWlStrGetPos($tSrcInfName, $srcConLU);
+			if ($destVtxInd != -1){
+				$tDestInfName = $destConLU[$destVtxInd];
+				$tWeight = `skinPercent -transform $tSrcInfName -q $srcCluster $srcVtx`;
+				$tvStr += " -tv "+$tDestInfName+" "+$tWeight;
+				$tCurInfs[size($tCurInfs)] = $tDestInfName;
+			}
+		}
+		if ($tvStr != ""){
+			$tDestInfsCopy = $abWlDestInf;
+			$tDestInfsCopy = stringArrayRemove($tCurInfs, $tDestInfsCopy); //tDestInfsCopy is now all infs on destobj that will be set to 0
+			for ($tDestInfName in $tDestInfsCopy){
+				$tvStr += " -tv "+$tDestInfName+" 0";
+			}
+			
+			eval("skinPercent -nrm 0"+$tvStr+" "+$destCluster+" "+$destVtx);
+			if($normalize){
+				skinPercent -nrm 1 -prw .00000000000000000000000000000000000000001 $destCluster $destVtx;
+			}
+		}
+	}
+	//select -r $testDestVtx;
+	setAttr ($destCluster+".normalizeWeights") $scNormWeights;
+	for ($i=0;$i<size($aInitDestLock);$i++){
+		skinCluster -e -inf $destConLU[$i] -lockWeights $aInitDestLock[$i] $destCluster;
+	}
+	progressWindow -endProgress;
+	waitCursor -state off;
+}
+
+
+global proc abWlDoIt(){
+	//copy weights
+	
+	global string $abWlPrefs[]; //{"lf_", "rt_", "3", "1", "3"}
+	global int $abWlInfConnections[];
+	global string $abWlSrcInf[];
+	int $mirrorAxis = $abWlPrefs[2];
+	int $mirrorPos2Neg = $abWlPrefs[3];
+	int $copyType = $abWlPrefs[4];
+	//int $normalize = ($abWlPrefs[5] == "1") ? 1 : 0;
+	int $normalize = $abWlPrefs[5];
+	int $ok = false; //true if all src infs have connections
+	float $mTol = $abWlPrefs[6];
+	float $cTol = $abWlPrefs[7];
+	int $showDialogue = $abWlPrefs[8];
+	string $importFileName = $abWlPrefs[13];
+	
+	if (size($abWlSrcInf) == (size($abWlInfConnections)/2)){
+		$ok = true;
+	}else{
+		if (size($abWlInfConnections) > 0){
+			if ($showDialogue){
+				string $result = `confirmDialog -title "Confirm" -message "At least one source influence is unconnected.\nThis could lead to lead to funky results.\n\nAre you sure you want to proceed?" -button "Yes" -button "No" -defaultButton "No" -cancelButton "No" -dismissString "No"`;
+				if ($result == "Yes"){
+					$ok = true;
+				}
+			}else{
+				$ok = true;
+			}
+		}else{
+			warning ("You need to specify at least one connection between a source and destination influence");
+		}
+	}
+	
+	if (size($abWlInfConnections) > 0 && $ok){
+		string $srcObj = `textField -q -text "soFld"`;
+		string $destObj = `textField -q -text "doFld"`;
+		if ($srcObj != "" && $destObj != ""){
+			if ($srcObj == $destObj || $copyType == 4){
+				//mirror this object
+				if ($importFileName == ""){
+					abWlMirrorWeights($srcObj, $destObj, $mirrorAxis, $mirrorPos2Neg, $mTol, 1, $normalize);
+				}else{
+					warning "Mirror copies aren't supported for imports.";
+				}
+			}else{
+				if ($importFileName == ""){
+					//copy from $srcObj to $destObj
+					abWl2MeshWeightCopy($srcObj, $destObj, $cTol, $normalize, $copyType);
+				}else{
+					//impoprt from file to $destObj
+					abWlImportWeights($srcObj, $destObj, $cTol, $normalize, $copyType);
+				}
+			}
+		}
+	}
+}
+
+
+global proc string abWlGetSymVtx(string $vtx){
+	//works with string versions of vtx names (unlike abSymMesh)
+	
+	global string $abWlSymTable[];
+	
+	string $mVtx = "";
+	int $i;
+	
+	for ($i=0;$i<size($abWlSymTable);$i++){
+		if ($vtx == $abWlSymTable[$i]){
+			//match
+			if (($i % 2) == 0){
+				//even number, match is record above (it's a positive vert)
+				$mVtx = $abWlSymTable[$i+1];
+			}else{
+				$mVtx = $abWlSymTable[$i-1];
+			}
+			break;
+		}
+	}
+	return $mVtx;
+}
+
+
+global proc abWlAutoConnect(){
+	//attempts to connect items in src and dest pane
+	
+	global string $abWlPrefs[];
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	int $autoConnections[], $i, $j, $srcInd, $destInd;
+	string $infName, $conInfName; //connected (potential) inf name
+	string $lp = $abWlPrefs[0];
+	string $rp = $abWlPrefs[1];
+	string $abWlDestInfLeaves[];
+	string $srcObj = `textField -q -text "soFld"`;
+	string $destObj = `textField -q -text "doFld"`;
+	
+	string $find = $abWlPrefs[14];
+	string $replace = $abWlPrefs[15];
+	
+	int $lpSize = size($lp);
+	int $rpSize = size($rp);
+	int $connectCounter = 0;
+	int $noConnectCounter = 0;
+	
+	//run through srcInf array attempting to match with items from destInf array
+	
+	for ($i=0;$i<size($abWlDestInf);$i++){
+		$abWlDestInfLeaves[size($abWlDestInfLeaves)] = `match "[a-zA-Z0-9_]+$" $abWlDestInf[$i]`;
+	}
+	
+	if ($lp != "" && $rp != ""){
+		for ($i=0;$i<size($abWlSrcInf);$i++){
+			$infName = `match "[a-zA-Z0-9_]+$" $abWlSrcInf[$i]`;
+			//flip inf to other prefix (if it has a prefix)
+			if ($srcObj == $destObj || $abWlPrefs[4] == 4){
+				if (startsWith($infName, $lp)){
+					$conInfName = $rp + endString($infName, size($infName)-$lpSize);
+				}else if (startsWith($infName, $rp)){
+					$conInfName = $lp + endString($infName, size($infName)-$rpSize);
+				}else{
+					if (`match $lp $infName` != ""){
+						$conInfName = substitute($lp, $infName, $rp);
+					}else if (`match $rp $infName` != ""){
+						$conInfName = substitute($rp, $infName, $lp);
+					}else{
+						$conInfName = $infName;
+					}
+				}
+			}else{
+				$conInfName = $infName;
+			}
+			
+			if ($find != "" && $srcObj != $destObj) $conInfName = substitute($find, $conInfName, $replace);
+			
+			$destInd = abWlStrGetPos($conInfName, $abWlDestInfLeaves);
+			
+			if ($destInd != -1){
+				$srcInd = $i;
+				abWlConnectInfs($srcInd, $destInd, 0);
+				$connectCounter++;
+			}else{
+				$noConnectCounter++;
+			}
+		}
+	}
+	
+	if ($connectCounter == 0){
+		if ($srcObj == $destObj){
+			print "No mirror connections were made.  Make sure that the left and right prefixes in the options UI match your own naming conventions.\n";
+		}else{
+			if ($abWlPrefs[4] == 4){
+				print "No mirror connections were made.  Make sure that the left and right prefixes in the options UI match your own naming conventions.\n";
+			}else{
+				print "No copy connections were made.  If you are trying to mirror weights across the origin, remember to specify \"Mirror Across Origin\" in the preferences UI.\n";
+			}
+		}
+	}else{
+		print ($connectCounter+" connection(s) made.  Unable to connect "+$noConnectCounter+" influence(s).\n");
+	}
+	
+}
+
+
+global proc abWlClose(){
+	//close window
+	
+	deleteUI -window abWlWin;
+	if (`window -exists abWlPrefsWin`){
+		deleteUI -window abWlPrefsWin;
+	}
+	if (`window -exists abWlHelp`){
+		deleteUI -window abWlHelp;
+	}
+	if (`window -exists abWlVertInfs`){
+		deleteUI -window abWlVertInfs;
+	}
+	abWlClearGlobals();
+}
+
+
+global proc abWlClearGlobals(){
+	
+	global int $abWlSelList[];
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	global int $abWlInfConnections[];
+	global string $abWlSymTable[];
+	global string $abWlOriginVts[];
+	
+	clear($abWlSelList);
+	clear($abWlSrcInf);
+	clear($abWlDestInf);
+	clear($abWlInfConnections);
+	clear($abWlSymTable);
+	clear($abWlOriginVts);
+}
+
+
+global proc string[] abGetSrc2DestConInfsAsStr(string $aSelInfs[]){
+	//returns a string of connected infs when given array of src infs
+	
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	
+	string $aConInfs[];
+	int $tConInf, $i, $j;
+	for ($i=0;$i<size($aSelInfs);$i++){
+		//need to find index of cur $aInfs item in $abWlSrcInf
+		for ($j=0;$j<size($abWlSrcInf);$j++){
+			if ($aSelInfs[$i] == $abWlSrcInf[$j]){
+				$tConInf = abWlGetConnectedInf($j, -1);
+				if ($tConInf != -1){
+					$aConInfs[size($aConInfs)] = $abWlDestInf[$tConInf];
+				}
+				break;
+			}
+		}
+	}
+	return $aConInfs;
+}
+
+
+global proc abWlFWSelVerts(){
+	
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	global string $abWlSymTable[];
+	global string $abWlPrefs[];
+	global int $abWlInfConnections[];
+	int $aSelInd[] = `textScrollList -q -sii "fiList"`;
+	string $srcObj = `textField -q -text "soFld"`;
+	string $destObj = `textField -q -text "doFld"`;
+	string $srcCluster = abWlGetSkinCluster($srcObj);
+	string $destCluster = abWlGetSkinCluster($destObj);
+	string $aSelInfs[], $selVerts[], $aConInfs[];
+	int $ind;
+	
+	for ($ind in $aSelInd){
+		$aSelInfs[size($aSelInfs)] = $abWlSrcInf[$ind-1];
+	}
+	
+	if (size($aSelInd) != 0){
+		selectMode -object;
+		select -r $srcObj;
+		selectMode -component;
+		selectType -vertex true;
+		
+		if ($abWlPrefs[9] == true){
+			
+			//make sure there's a symtable if $srcObj == $destObj
+			if ($srcObj == $destObj){
+				if (size($abWlSymTable) == 0){
+					int $mirrorAxis = $abWlPrefs[2];
+					int $mirrorPos2Neg = $abWlPrefs[3];
+					float $mTol = $abWlPrefs[6];
+					abWlBuildSymTable($srcObj, $destObj, $mirrorAxis, $mirrorPos2Neg, $mTol, true, false);
+				}
+				
+				//get connected infs
+				if (size($abWlInfConnections) > 0){
+					$aConInfs = abGetSrc2DestConInfsAsStr($aSelInfs);
+				}
+				
+				//check to see if connected
+				string $result = "Yes";
+				if (size($aSelInfs) != size($aConInfs)){
+					//at least on sel inf is unconnected
+					$result = `confirmDialog -title "Confirm" -message "Do you want to Auto-connect influences now\nto include stray influenced vertices in copy?" -button "Yes" -button "No" -defaultButton "Yes" -cancelButton "No" -dismissString "No"`;
+					if ($result == "Yes"){
+						abWlAutoConnect();
+						$aConInfs = abGetSrc2DestConInfsAsStr($aSelInfs);
+					}
+				}
+				string $aVerts[] = abWlGetAffectedVertsByInf($srcObj, $aSelInfs);
+				string $aConVerts[] = abWlGetAffectedVertsByInf($destObj, $aConInfs);
+				//bring $aConVerts back to source object by mirroring them in this case
+				string $mConVerts[]; //mirrored connected verts
+				string $vtx;
+				for ($i=0;$i<size($aConVerts);$i++){
+					$vtx = abWlGetSymVtx($aConVerts[$i]);
+					if ($vtx != ""){
+						$mConVerts[size($mConVerts)] = $vtx;
+					}
+				}
+				$selVerts = abWlStrArrayCatenateUnique($aVerts, $mConVerts);
+			}else{
+				//do copy deal here
+				$selVerts = abWlGetAffectedVertsByInf($srcObj, $aSelInfs);
+			}
+		}else{
+			$selVerts = abWlGetAffectedVertsByInf($srcObj, $aSelInfs);
+		}
+		select -r $selVerts;
+	}else{
+		warning("You must select at least one influence from the \"Select Verts By Influence\" scroll field");
+	}
+}
+
+
+global proc string[] abWlGetAffectedVertsByInf(string $obj, string $aInfs[]){
+	//returns affected verts "object.vtx[2]" -- if $includeStrays then connected infs affected verts are also selected and mirrored
+	
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	
+	int $aInt[] = `polyEvaluate -v $obj`;
+	int $totVts = $aInt[0];
+	int $h, $i, $selectedVts[];
+	string $cluster = abWlGetSkinCluster($obj);
+	string $ret[], $aCurVtxInfs[], $vtx;
+	
+	if ($cluster != ""){
+				
+		for ($i=0;$i<$totVts;$i++){
+						
+			$vtx = $obj+".vtx["+$i+"]";
+			$aCurVtxInfs = `skinPercent -ib .00000000000000000000000000000000000000001 -q -transform $cluster $vtx`;
+			for ($h=0;$h<size($aInfs);$h++){
+				$inf = $aInfs[$h];
+				if (abWlStrGetPos($inf, $aCurVtxInfs) != -1){
+					$ret[size($ret)] = $vtx;
+					break;
+				}
+			}
+		}
+	}
+	return $ret;
+}
+
+
+global proc abWlShowSrcListItems(int $aIndsToShow[]) {
+	//hides or shows items in "soInfFld" based on passed array of indices -- empty array shows all
+	
+	global string $abWlSrcInf[];
+	string $infName;
+	int $i;
+	int $ind;
+	
+	textScrollList -e -ra "soInfList";
+	
+	if (size($aIndsToShow) > 0){
+		for ($i=0;$i<size($aIndsToShow);$i++){
+			$ind = $aIndsToShow[$i];
+			if (abWlIntGetPos($ind, $aIndsToShow) != -1){
+				$infName = `match "[a-zA-Z0-9_]+$" $abWlSrcInf[$ind]`;
+				textScrollList -e -append $infName "soInfList";
+			}
+		}
+	}else{
+		for ($i=0;$i<size($abWlSrcInf);$i++){
+			$infName = `match "[a-zA-Z0-9_]+$" $abWlSrcInf[$i]`;
+			textScrollList -e -append $infName "soInfList";
+		}
+	}
+}
+
+
+global proc int abWlStrGetPos(string $str, string $aStr[]){
+	//returns position of string in array, or -1 if not in array
+	
+	int $i;
+	int $ret = -1;
+	for ($i=0;$i<size($aStr);$i++){
+		if ($aStr[$i] == $str){
+			$ret = $i;
+			break;
+		}
+	}
+	return $ret;
+}
+
+
+global proc int abWlIntGetPos(int $int, int $aInt[]){
+	//returns position of int in array, or -1 if not in array
+	
+	int $i;
+	int $ret = -1;
+	for ($i=0;$i<size($aInt);$i++){
+		if ($aInt[$i] == $int){
+			$ret = $i;
+			break;
+		}
+	}
+	return $ret;
+}
+
+
+global proc abWlFWSelect(){
+	//item in Filter textScrollList has been clicked -- want to deselect component selection to avoid confusion when applying filter (it will use selected verts which might not correspond to just selected infs)
+	
+	string $srcObj = `textField -q -text "soFld"`;
+	selectMode -object;
+	select -clear;
+	//select -r $srcObj;
+}
+
+
+global proc string abGetSelSkinnedObject(){
+	//returns first item in `ls -sl` array
+	
+	string $selObj[];
+	string $ret;
+	string $sel[] = `ls -sl -o`;
+	if (size($sel) == 0){
+		$sel = `ls -hl`;
+	}
+	$selObj = `filterExpand -sm 12 $sel`; //select only polys
+	if (size($selObj) > 0){
+		if (size($selObj) > 1){
+			warning ("Select only one item.  "+$selObj[0]+" selected -- other objects in selection set ignored");
+		}
+		if (abWlGetSkinCluster($selObj[0]) != ""){
+			$ret = $selObj[0];
+		}else{
+			warning ($selObj[0]+" is not a skinned mesh");
+		}
+	}
+	return $ret;
+}
+
+
+global proc string abWlGetSkinCluster(string $obj){
+	//returns skincluster name on $obj or "" if there isn't one
+	
+	string $aStr[];
+	string $str;
+	string $sc;
+	
+	$aStr = `listHistory $obj`;
+	for ($str in $aStr){
+		if (`nodeType $str` == "skinCluster"){
+			$sc = $str;
+			break;
+		}
+	}
+	return $sc;
+}
+
+
+global proc abWlSelObject(string $cField){
+	//$cField is name of field that the name of the ui field that this object will be put into
+	
+	// make sure a single object is selected
+	int $selOk = false;
+	
+	string $aSel[] = `ls -sl`;
+	string $aHiliteSel[] = `ls -hilite`;
+	
+	if (size($aSel) + size($aHiliteSel) <= 1) $selOk = true;
+	
+	if (!$selOk){
+		string $objStr = ($cField == "soFld") ? "source object." : "destination object.";
+		warning ("Multiple objects selected.  Unable to specify a "+$objStr);
+		return;
+	}
+	
+	// ok, now that that ugly bit of business is done let's continue on, shall we?
+	string $selObj = abGetSelSkinnedObject();
+	
+	if ($cField == "soFld"){
+		
+		abWlSoFldCleanup();
+		
+		//clear infs in selection infs window
+		if (`window -exists abWlVertInfs`) abWlUpdateSelInfList(); 
+	}
+	
+	if ($selObj != ""){
+		textField -e -text $selObj $cField;
+		abWlPopulateInfFields($cField, 0, false);
+	}else{
+		textField -e -text "" $cField;
+		abWlPopulateInfFields($cField, 1, false);
+	}
+	
+	abWlRefreshSoDoBns();
+	
+}
+
+
+global proc abWlSoFldCleanup(){
+	// cleans up some globals when an object is selected in the soFld
+	
+	global string $abWlSymTable[];
+	global string $abWlOriginVts[];
+	global string $abWlPrefs[];
+	
+	clear($abWlSymTable);
+	clear($abWlOriginVts);
+	$abWlPrefs[13] = "";
+	
+}
+
+
+global proc abWlRefreshSoDoBns(){
+	// enables buttons if both so and do fields are filled, otherwise disables them
+	
+	int $enable = (`textField -q -text soFld` != "" && `textField -q -text doFld` != "") ? true : false;
+	abWlEnableButtons($enable);
+	abWlVisualizeConnections();
+	
+}
+
+
+global proc abWlEnableButtons(int $enable){
+	//if $enable, buttons that require src and dest obj fields to be filled are enabled
+	
+	global string $abWlPrefs[];
+	string $importFileName = $abWlPrefs[13];
+	
+	if ($enable){
+		//enable options that require both objects selected
+		
+		if ($importFileName == ""){
+			// objects in both so and do fields
+			abWlPopulateCopyList(1);
+			button -e -en true sivBn;
+			button -e -en true siBn;
+			button -e -en true acBn;
+			button -e -en true ccBn;
+			button -e -en true actionBn;
+			button -e -en true ssiBn;
+		}else{
+			// if this is an import (file name in soFld)
+			abWlPopulateCopyList(0);
+			button -e -en false sivBn;
+			button -e -en false siBn;
+			button -e -en true acBn;
+			button -e -en true ccBn;
+			button -e -en true actionBn;
+			button -e -en false ssiBn;
+			
+		}
+		
+		if (`textField -q -text soFld` == `textField -q -text doFld`){
+			checkBox -e -en true isChkBx;
+			button -e -en true abWlMoveWtsBn;
+			
+			// enable mirror options, disable copy
+			abWlDisablePrefs(0, 1);
+			abWlDisablePrefs(1, 0);
+			
+			textField -e -en false fndFld;
+			textField -e -en false rplcFld;
+			text -e -en false fndTxt;
+			text -e -en false rplcTxt;
+			
+		}else{
+			checkBox -e -en false isChkBx;
+			button -e -en false abWlMoveWtsBn;
+			
+			// enable copy options, disable mirror
+			abWlDisablePrefs(0, 0);
+			abWlDisablePrefs(1, 1);
+			
+			textField -e -en true fndFld;
+			textField -e -en true rplcFld;
+			text -e -en true fndTxt;
+			text -e -en true rplcTxt;
+		}
+	}else{
+		abWlPopulateCopyList(0);
+		button -e -en false sivBn;
+		button -e -en false siBn;
+		button -e -en false acBn;
+		button -e -en false ccBn;
+		button -e -en false actionBn;
+		button -e -en false ssiBn;
+		button -e -en false abWlMoveWtsBn;
+		checkBox -e -en false isChkBx;
+		textField -e -en false fndFld;
+		textField -e -en false rplcFld;
+		text -e -en false fndTxt;
+		text -e -en false rplcTxt;
+		
+		// enable both mirror and copy options
+		abWlDisablePrefs(0, 1);
+		abWlDisablePrefs(1, 1);
+	}
+}
+
+
+global proc abWlPopulateCopyList(int $populate){
+	//if !$populate then empty the field (I know, it's not consistent with abWlPopulateInfFields)
+	global string $abWlPrefs[];
+	
+	string $importFileName = $abWlPrefs[13];
+	
+	if ($populate && $importFileName == ""){
+		string $sc = abWlGetSkinCluster(`textField -q -text soFld`);
+		string $aInfs[] = `skinCluster -q -influence $sc`;
+		string $aInfCopy[], $inf;
+		
+		textScrollList -e -ra fiList;
+		for ($inf in $aInfs){
+			$infLeaf = `match "[a-zA-Z0-9_]+$" $inf`;
+			$aInfCopy[size($aInfCopy)] = $infLeaf;
+		}
+		
+		// sort the list
+		$aInfCopy = sort($aInfCopy);
+		
+		// populate the text scroll list
+		for ($inf in $aInfCopy) textScrollList -e -append $inf fiList;
+		
+	}else{
+		textScrollList -e -ra fiList;
+	}
+}
+
+
+global proc abWlPopulateInfFields(string $cField, int $dePopulate, int $keepConnections){
+	//bool $dePopulate true = empty field; $keepConnections true = infconnections not cleared (only called from main ui proc to recapture existing connections)
+	
+	global int $abWlSelList[];
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	global string $abWlPrefs[];
+	global int $abWlInfConnections[]; //array of paired indices with srcIndex always the first of the two (eg. [srcTextScrollList.ind2, srcTextScrollList.ind6])
+	string $aInfList[]; //used as reference to get values into correct global array
+	string $ctextListFld;
+	int $selListInd;
+	
+	string $importFileName = $abWlPrefs[13];
+	
+	if (!$keepConnections) clear($abWlInfConnections);
+	if ($cField == "soFld"){
+		$ctextListFld = "soInfList";
+		$selListInd = 0;
+		clear($abWlSrcInf);
+	}else{
+		$ctextListFld = "doInfList";
+		$selListInd = 1;
+		clear($abWlDestInf);
+	}
+	
+	textScrollList -e -removeAll $ctextListFld;
+	
+	if (!$dePopulate){
+		
+		string $inf, $infLeaf, $aInfs[];
+		
+		if ($importFileName == "" || $cField == "doFld"){
+			
+			// soFld has an object in it -- get infs
+			string $obj = `textField -q -text $cField`;
+			string $sc = abWlGetSkinCluster($obj);
+			$aInfs = `skinCluster -q -influence $sc`;
+			
+		}else{
+			
+			// soFld contains an import filePath -- get infs
+			$aInfs = abWlGetImportInfs($importFileName);
+			
+		}
+		
+		// sort the list
+		$aInfList = sort($aInfs);
+		
+		for ($inf in $aInfList){
+			$infLeaf = `match "[a-zA-Z0-9_]+$" $inf`;
+			textScrollList -e -append $infLeaf $ctextListFld;
+		}
+		
+		//unset last selected
+		$abWlSelList[$selListInd] = 0;
+		
+		if ($cField == "soFld"){
+			$abWlSrcInf = $aInfList;
+		}else{
+			$abWlDestInf = $aInfList;
+		}
+	}
+	
+}
+
+
+global proc int abWlSrcInd2ListPos(int $srcInd){
+	//send a src array index and this returns its position in textScrollList (or 0 if not in scrollList)
+	
+	int $ret = 0;
+	int $int;
+	$ret = $srcInd + 1;
+	return $ret;
+}
+
+
+global proc int abWlListPos2SrcInd(int $slInd){
+	//send a textScrollList position and this returns its src array index (-1 on not in array)
+	
+	int $ret = -1;
+	int $int;
+	if ($slInd > 0){
+		$ret = $slInd - 1;
+	}
+	return $ret;
+}
+
+
+global proc abWlSelectInfs(string $aInfs[]){
+	//take any infs in selection and select them in the filter list
+	
+	global string $abWlSrcInf[];
+	
+	string $myIntersector = `stringArrayIntersector`;
+	stringArrayIntersector -edit -intersect $aInfs $myIntersector;
+	stringArrayIntersector -edit -intersect $abWlSrcInf $myIntersector;
+	string $infsToSelect[] = `stringArrayIntersector -query $myIntersector`;
+	deleteUI $myIntersector;
+	
+	int $i, $j, $ind;
+	string $selStr;
+	for ($i=0;$i<size($abWlSrcInf);$i++){
+		$ind = abWlStrGetPos($abWlSrcInf[$i], $infsToSelect);
+		if ($ind != -1){
+			$selStr += " -sii "+($i+1);
+		}else{
+			$selStr += " -dii "+($i+1);
+		}
+	}
+	
+	eval("textScrollList -e"+$selStr+" fiList");
+}
+
+
+global proc abWlScrollListSelect(string $cScrollList){
+	//called when an item in the scroll list is selected
+	
+	global int $abWlSelList[]; //[0] is index of last soInfList clicked and [1] is doInfList
+		
+	//populate array if it doesn't exist
+	if (size($abWlSelList) == 0){
+		$abWlSelList = {0, 0};
+	}
+	int $cSelListPos = ($cScrollList == "soInfList") ? 0 : 1;
+		
+	int $scrollListsSelInd[]; //[0] is srcFld selected index, [1] is destFld -si, and [2] is srcFld position with no filter (ie position w/ regard to all src infs)
+	int $aInt[] = `textScrollList -q -selectIndexedItem "soInfList"`;
+	
+	$scrollListsSelInd[0] = $aInt[0]; //textScrollList index of item currently selected in soInfList (0 if nothing selected)
+	$scrollListsSelInd[2] = abWlListPos2SrcInd($scrollListsSelInd[0]); //this index is the position of this influence in $abWlSrcInfs (-1 if nothing is selected)
+	$aInt = `textScrollList -q -sii "doInfList"`;
+	$scrollListsSelInd[1] = $aInt[0]; //textScrollList index of item currently selected in doInfList (0 if nothing selected)
+	$scrollListsSelInd[3] = $scrollListsSelInd[1]-1; //this index is the position of this influence in $abWlDestInfs (-1 if nothing is selected)
+	int $cSelItem = $scrollListsSelInd[$cSelListPos];
+	int $otherSelItem = $scrollListsSelInd[1-$cSelListPos];
+	
+	if ($cSelItem == $abWlSelList[$cSelListPos]){
+		//clicking an already selected item -- deselect
+		if ($otherSelItem != 0 && $cScrollList == "doInfList"){
+			//this index has an existing connection -- since it's in the destination pane we can disconnect it
+			abWlConnectInfs($scrollListsSelInd[2], $scrollListsSelInd[3], 1);
+		}
+		textScrollList -e -deselectIndexedItem $cSelItem $cScrollList;
+		$abWlSelList[$cSelListPos] = 0;
+		if ($cScrollList == "soInfList"){
+			//need to deselect dest pane item too
+			textScrollList -e -deselectAll "doInfList";
+		}
+	}else{
+		if ($otherSelItem != 0 && $cScrollList == "doInfList"){
+			//make a connection -- can only make and break connections in the destination scroll window
+			abWlConnectInfs($scrollListsSelInd[2], $scrollListsSelInd[3], 0);
+		}else if ($cScrollList == "soInfList"){
+			//highlight connected item since clicking in src pane
+			textScrollList -e -deselectAll "doInfList";
+			$abWlSelList[1-$cSelListPos] = 0;
+			int $doSelInd = abWlGetConnectedInf($scrollListsSelInd[2], -1);
+			if ($doSelInd != -1){
+				textScrollList -e -sii ($doSelInd+1) "doInfList";
+				$abWlSelList[1] = $doSelInd+1;
+			}
+		}
+		$abWlSelList[$cSelListPos] = $scrollListsSelInd[$cSelListPos];
+	}
+}
+
+
+global proc abWlVisualizeConnections(){
+	//modifies contents of soInfList and "doInfList" to visualize connections
+	
+	global int $abWlInfConnections[];
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	global string $abWlPrefs[];
+	string $alphabet[] = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"};
+	float $fAlphabetSize = size($alphabet);
+	int $aInt[] = `textScrollList -q -sii "soInfList"`;
+	int $srcSelInd = $aInt[0];
+	$aInt = `textScrollList -q -sii "doInfList"`;
+	int $destSelInd = $aInt[0];
+	string $conNamedSrcInf[]; //list of src infs cleaned up and showing connections -- "elbowJNT" turns to "elbowJNT=>(a)"
+	string $infName, $conNamedDestInf[], $id;
+	int $i, $k, $tInt;
+	int $alphaNumId = $abWlPrefs[11]; //id connections as a1, b1, c1, a2, b2, c2 instead of a, b, c, aa, bb, cc
+	
+	//first fill $conNamedSrc/DestInf arrays with connected items
+	for ($i=0;$i<size($abWlInfConnections);$i+=2){
+		//make appropriate id (form a, b, c, aa, bb, cc); a1, b1, c1, a2, b2, c2, if $alphaNumId == true
+		$id = $alphabet[$i/2 % size($alphabet)];
+		$tInt = floor(($i/2)/$fAlphabetSize); //double (or more) up letters if there are more infs than letters
+		if ($alphaNumId){
+			if ($tInt > 0) $id = $id + $tInt;
+			//$id += ($tInt > 0) ? $tInt : ""; //this line seems to have been the fatal bug culprit in v7
+		}else{
+			$k = 0;
+			while ($k < $tInt){
+				$id += $alphabet[$i/2 % size($alphabet)];
+				$k++;
+			}
+		}
+		$infName = $abWlSrcInf[$abWlInfConnections[$i]];
+		$conNamedSrcInf[$abWlInfConnections[$i]] = `match "[a-zA-Z0-9_]+$" $infName`+" => "+$id;
+		$infName = $abWlDestInf[$abWlInfConnections[$i+1]];
+		$conNamedDestInf[$abWlInfConnections[$i+1]] = $id+" <= "+`match "[a-zA-Z0-9_]+$" $infName`;
+	}
+	//now for the rest -- update fields with new names
+	string $inf;
+	string $aSlInfNames[] = `textScrollList -q -allItems "soInfList"`; //list of all current scrolllist influence names
+	
+	for ($i=0;$i<size($abWlSrcInf);$i++){
+		if ($conNamedSrcInf[$i] == ""){
+			$infName = $abWlSrcInf[$i];
+			$infName = `match "[a-zA-Z0-9_]+$" $infName`;
+		}else{
+			$infName = $conNamedSrcInf[$i];
+		}
+		if ($infName != $aSlInfNames[$i]){
+			textScrollList -e -removeIndexedItem ($i+1) "soInfList";
+			textScrollList -e -appendPosition ($i+1) $infName "soInfList";
+		}
+	}
+	
+	$aSlInfNames = `textScrollList -q -allItems "doInfList"`; //list of all current scrolllist influence names
+	for ($i=0;$i<size($abWlDestInf);$i++){
+		if ($conNamedDestInf[$i] == ""){
+			$infName = $abWlDestInf[$i];
+			$infName = `match "[a-zA-Z0-9_]+$" $infName`;
+		}else{
+			$infName = $conNamedDestInf[$i];
+		}
+		if ($infName != $aSlInfNames[$i]){
+			textScrollList -e -removeIndexedItem ($i+1) "doInfList";
+			textScrollList -e -appendPosition ($i+1) $infName "doInfList";
+		}
+	}
+	if ($srcSelInd != 0){
+		textScrollList -e -deselectAll "soInfList";
+		textScrollList -e -sii $srcSelInd "soInfList";
+	}
+	if ($destSelInd != 0){
+		textScrollList -e -deselectAll "doInfList";
+		textScrollList -e -sii $destSelInd "doInfList";
+	}
+}
+
+
+global proc int abWlGetConnectedInf(int $srcIndex, int $destIndex) {
+	//looks up connected inf in $abWlInfConnections for non negative argument -- if no connection exists returns -1;
+	
+	global int $abWlInfConnections[];
+	int $ret = -1;
+	
+	if ($srcIndex != -1 || $destIndex != -1 && !($srcIndex != -1 && $destIndex != -1)){
+		int $i;
+		for ($i=0;$i<size($abWlInfConnections);$i+=2){
+			if($abWlInfConnections[$i] == $srcIndex || $abWlInfConnections[$i+1] == $destIndex){
+				$ret = ($srcIndex != -1) ? $abWlInfConnections[$i+1] : $abWlInfConnections[$i];
+				break;
+			}
+		}
+	}
+	return $ret;
+}
+
+
+global proc int abWlConnectInfs(int $srcInd, int $destInd, int $disconnectInf) {
+	//adds items to $abWlInfConnections creating a connection between them and cleaning up existing connections -- $disconnectInf is a bool => if true connections are cut, use -1 for an empty index -- returns bool on success/failure
+	
+	global int $abWlInfConnections[];
+	
+	//clear array of both indices (and partners) -- each ind can only be connected to one other ind
+	int $i;
+	int $ind1;
+	int $ind2;
+	int $newInfCon[];
+	
+	int $ret = true;
+	int $j;
+	for ($i=0;$i<size($abWlInfConnections);$i+=2){
+		$ind1 = $abWlInfConnections[$i];
+		$ind2 = $abWlInfConnections[$i+1];
+		if ($ind1 == $srcInd || $ind2 == $destInd){
+			//do nothing.  don't want to copy this to the new array
+		}else{
+			$newInfCon[size($newInfCon)] = $ind1;
+			$newInfCon[size($newInfCon)] = $ind2;
+		}
+	}
+	clear($abWlInfConnections);
+	$abWlInfConnections = $newInfCon;
+	
+	if (!$disconnectInf){
+		//now add the passed indices
+		$abWlInfConnections[size($abWlInfConnections)] = $srcInd;
+		$abWlInfConnections[size($abWlInfConnections)] = $destInd;
+	}
+	abWlVisualizeConnections();
+	return $ret;
+}
+
+
+global proc abWeightLifter(){
+	
+	global int $abWlInfConnections[];
+	global string $abWlSymTable[];
+	global string $abWlPrefs[];
+	string $srcObj, $destObj;
+	int $utInt;
+	
+	if (size($abWlPrefs) == 0){
+		$abWlPrefs = {"lf_", "rt_", "1", "1", "1", "0", "0.001", "0.01", "1", "0", "1", "1", "1", "", "", ""}; //(default left naming prefix, def right naming prefix, default mirror axis ("1", "2", "3"), mirror pos to neg axis, default copy type ("1", "2", "3"), normalize weights, mirror tolerance, copy tolerance, show warning dialogue, include destination strays in vert select, Cull Non-Matching Weights On Copy, Display Connections Alphanumerically ("a1" vs "aa"), Auto Weight Origin Vertices, Active Imported File, Find Str, Replace Str
+	}
+	
+	//make UI
+	if (`window -exists abWlWin`){
+		deleteUI -window abWlWin;
+	}
+	//windowPref -remove abWlWin;
+	window -t "abWeightLifter" -width 300 -height 582 -menuBar true abWlWin;
+	
+	menu -label "Options" -postMenuCommand "global string $abWlSymTable[];string $srcObj = `textField -q -text \"soFld\"`;string $destObj = `textField -q -text \"doFld\"`;menuItem -e -en (size($abWlSymTable)!=0) abWlSelSTVtsMnIt;menuItem -e -en (size($abWlSymTable)!=0 && $srcObj != \"\" && $srcObj == $destObj) abWlSelOriginVtsMnIt;menuItem -e -en (size($abWlSymTable)!=0) abWlClrSTMnIt;";
+ 		menuItem -label "Options" -c "abWlShowPrefs()";
+		menuItem -divider true;
+		menuItem -label "Select SymTable Vertices" -c "global string $abWlSymTable[];select -r $abWlSymTable;" abWlSelSTVtsMnIt;
+		menuItem -label "Select Centerline Vertices" -c "global string $abWlOriginVts[];select -r $abWlOriginVts;" abWlSelOriginVtsMnIt;
+		menuItem -label "Clear SymTable" -c "global string $abWlSymTable[];global string $abWlOriginVts[];clear($abWlSymTable);clear($abWlOriginVts);" abWlClrSTMnIt;
+ 		menuItem -divider true;
+ 		menuItem -label "Quit" -c "abWlClose()";
+	
+	menu -label "Tools" -postMenuCommand "string $srcObj = `textField -q -text \"soFld\"`;string $destObj = `textField -q -text \"doFld\"`; menuItem -e -en ($srcObj != \"\" && $destObj != \"\") abWlCheckSymMnIt; menuItem -e -en ($srcObj != \"\" && $destObj != \"\" && $srcObj == $destObj) abWlGetSymFrmSelMnIt;";
+		menuItem -label "Check Symmetry" -c "abWlCheckSym()" abWlCheckSymMnIt;
+		menuItem -label "Get Symmetry From Selected" -c "abWlBuildSymTableFromSelObj()" abWlGetSymFrmSelMnIt;
+		menuItem -divider true;
+		menuItem -label "Import Weights" -c "abWlShowImportWeightDialog()";
+		menuItem -label "Export Weights From Selected" -c "abWlShowExportWeightDialog()";
+		menuItem -divider true;
+ 		menuItem -label "Copy Skin to Mesh" -c "abWlReplaceSkin()";
+	
+ 	menu -label "Help" -helpMenu true;
+ 		menuItem -label "Help" -c "abWlShowHelp()";
+ 		menuItem -label "Visit Website" -c "showHelp -a \"http://www.supercrumbly.com/3d.php?sid=124\"";
+ 	
+	formLayout -numberOfDivisions 100 abWlForm;
+		
+	button -label "Source Object" -command "abWlSelObject(\"soFld\")" soBn; //source object button
+	textField -editable false soFld; //source object field
+	button -label "Destination Object" -command "abWlSelObject(\"doFld\")" doBn;
+	textField -editable false doFld;
+	
+	separator sep1;
+	text -l "Select Verts By Influence:" infTxt;
+	textScrollList -numberOfRows 6 -allowMultiSelection true -selectCommand "abWlFWSelect()" -dcc "abWlFWSelVerts()" fiList; //source object influence list
+	button -l "Select Influenced Verts" -en false -c "abWlFWSelVerts()" sivBn;
+	$utInt = $abWlPrefs[9];
+	checkBox -l "Include Dest Strays" -en false -value $utInt -changeCommand "$abWlPrefs[9] = `checkBox -q -value isChkBx`" isChkBx; //include strays -- only works for mirror operations at the moment
+	
+	button -l "Select Influences" -en false -c "string $aSel[] = `ls -sl -o -type joint -type transform`; if (size($aSel) == 0){string $tSel[]=`textScrollList -q -si fiList`;int $i;for ($i=0;$i<size($tSel);$i++){$tSel[$i] =`match \"[a-zA-Z0-9_|:]*\" $tSel[$i]`;}select -r $tSel;}else{abWlSelectInfs($aSel);}" siBn; //select influences Button
+	
+	button -l "Show Selection Influences" -en false -c "abWlShowInfluences()" ssiBn; //show selection influences Button
+	
+	separator sep2;
+	text -l "source:" srcTxt;
+	text -l "destination:" destTxt;
+	textScrollList -numberOfRows 15 -allowMultiSelection false -selectCommand "abWlScrollListSelect(\"soInfList\")" soInfList; //source object influence list
+	textScrollList -numberOfRows 15 -allowMultiSelection false -selectCommand "abWlScrollListSelect(\"doInfList\")" doInfList; //source object influence list
+	
+	separator sep3;
+	button -l "Auto Connect Influences" -en false -c "abWlAutoConnect()" acBn; //autoconnect button
+	
+	text -l "Search:" -en false fndTxt;
+	text -l "Replace:" -en false rplcTxt;
+	textField -text $abWlPrefs[14] -en false -changeCommand "$abWlPrefs[14] = `textField -q -text fndFld`" -editable true fndFld; //find field
+	textField -text $abWlPrefs[15] -en false -changeCommand "$abWlPrefs[15] = `textField -q -text rplcFld`" -editable true rplcFld; //replace field
+	
+	button -l "Clear All Connections" -en false -c "clear($abWlInfConnections);abWlVisualizeConnections();" ccBn; //autoconnect button
+	separator sep4;
+		
+	button -height 25 -label "Copy Weights" -en false -command "abWlDoIt()" actionBn;
+	button -height 25 -label "Move Weights" -en false -command "abWlMoveWeights()" abWlMoveWtsBn;
+	button -height 25 -label "Close" -command "abWlClose()" closeBn;
+		
+	int $lmargin = 3;
+	int $rmargin = 3;
+	int $labelWidth = 15;
+	
+	formLayout -e
+	
+	-attachForm soFld "top" 8
+		-af soFld "left" $lmargin
+		-af soFld "right" 110
+		
+		-ac soBn "left" 3 soFld
+		-af soBn "top" 8
+		-af soBn "right" $rmargin
+		
+		-ac doFld "top" 5 soBn
+		-af doFld "left" $lmargin
+		-af doFld "right" 110
+		
+		-ac doBn "left" 3 doFld
+		-ac doBn "top" 5 soBn
+		-af doBn "right" $rmargin
+		
+		-ac sep1 "top" 7 doFld
+		-af sep1 "left" $lmargin
+		-af sep1 "right" $rmargin
+		
+		-ac infTxt "top" 3 sep1
+		-af infTxt "left" $lmargin
+		-af infTxt "right" $rmargin
+		
+		-ac fiList "top" 3 infTxt
+		-af fiList "left" $lmargin
+		-ap fiList "right" $rmargin 50
+		
+		-ac sivBn "top" 3 infTxt
+		-ac sivBn "left" 6 fiList
+		-af sivBn "right" $rmargin
+		
+		-ac isChkBx "top" 4 sivBn
+		-ac isChkBx "left" 6 fiList
+		-af isChkBx "right" $rmargin
+		
+		-ac ssiBn "top" 4 isChkBx
+		-ac ssiBn "left" 6 fiList
+		-af ssiBn "right" $rmargin
+		
+		-ac siBn "top" 7 fiList
+		-af siBn "left" $lmargin
+		-af siBn "right" $rmargin
+		
+		-ac sep2 "top" 7 siBn
+		-af sep2 "left" $lmargin
+		-af sep2 "right" $rmargin
+		
+		-ac srcTxt "top" 3 sep2
+		-af srcTxt "left" $lmargin
+		-ap srcTxt "right" $rmargin 50
+		
+		-ac destTxt "top" 3 sep2
+		-af destTxt "right" $rmargin
+		-ac destTxt "left" 5 srcTxt
+		
+		-af actionBn "left" $lmargin
+		-af actionBn "bottom" 5
+		-ap actionBn "right" $rmargin 35
+		
+		-ac abWlMoveWtsBn "left" $lmargin actionBn
+		-af abWlMoveWtsBn "bottom" 5
+		-ap abWlMoveWtsBn "right" $rmargin 70
+		
+		-ac closeBn "left" 3 abWlMoveWtsBn
+		-af closeBn "bottom" 5
+		-af closeBn "right" $rmargin
+		
+		-ac sep4 "bottom" 5 actionBn
+		-af sep4 "left" $lmargin
+		-af sep4 "right" $rmargin
+		
+		-ac acBn "bottom" 7 sep4
+		-af acBn "right" 180
+		-af acBn "left" $lmargin 
+		
+		-ac ccBn "bottom" 7 sep4
+		-af ccBn "right" $rmargin
+		-ac ccBn "left" $lmargin acBn
+		
+		-ac fndTxt "bottom" 7 acBn
+		-af fndTxt "left" $labelWidth
+		
+		-ac fndFld "bottom" 5 acBn
+		-ac fndFld "left" $lmargin fndTxt
+		-ap fndFld "right" $rmargin 50
+		
+		-ac rplcTxt "bottom" 7 acBn
+		-ac rplcTxt "left" $labelWidth fndFld
+		
+		-ac rplcFld "bottom" 5 acBn
+		-ac rplcFld "left" $lmargin rplcTxt
+		-af rplcFld "right" $rmargin
+		
+		-ac sep3 "bottom" 5 fndFld
+		-af sep3 "left" $lmargin
+		-af sep3 "right" $rmargin
+		
+		-ac soInfList "top" 3 srcTxt
+		-ac soInfList "bottom" 7 sep3
+		-af soInfList "left" $lmargin
+		-ap soInfList "right" $rmargin 50
+		
+		-ac doInfList "top" 3 destTxt
+		-ac doInfList "bottom" 7 sep3
+		-af doInfList "right" $rmargin
+		-ac doInfList "left" 5 soInfList
+		
+		abWlForm
+		;
+		
+		if (size($abWlSymTable) > 0){
+			//use existing data
+			//make sure it still exists
+			$srcObj = match("^[a-zA-Z0-9_]+", $abWlSymTable[0]);
+			$destObj = match("^[a-zA-Z0-9_]+", $abWlSymTable[1]);
+			if (`objExists $srcObj` && abWlGetSkinCluster($srcObj) != "" && `objExists $destObj` && abWlGetSkinCluster($destObj) != ""){
+				textField -e -text $srcObj soFld; //source object field
+				textField -e -text $destObj doFld; //source object field
+				abWlPopulateInfFields("soFld", 0, true);
+				abWlPopulateInfFields("doFld", 0, true);
+				abWlEnableButtons(true);
+				abWlVisualizeConnections();
+			}else{
+				abWlClearGlobals();
+			}
+		}else{
+			abWlClearGlobals();
+		}
+		
+	showWindow abWlWin;
+	
+	scriptJob -uiDeleted "abWlWin" "if (`window -exists abWlPrefsWin`) deleteUI -window abWlPrefsWin;";
+}
+
+
+global proc abWlShowPrefs(){
+	//show copy options
+	global string $abWlPrefs[];
+	global string $abWlSymTable[];
+	int $winW = 196;
+	int $winH = 540;
+	int $utInt;
+	
+	if (`window -exists abWlPrefsWin`){
+		deleteUI -window abWlPrefsWin;
+	}
+	if (`windowPref -exists abWlPrefsWin`) windowPref -remove abWlPrefsWin;
+	
+	int $mainLfEdge = `window -q -leftEdge abWlWin`;
+	int $mainTpEdge = `window -q -topEdge abWlWin`;
+	window -t "Options" -width $winW -height $winH -leftEdge ($mainLfEdge-$winW) -topEdge $mainTpEdge -minimizeButton false -maximizeButton false abWlPrefsWin;
+	
+	formLayout -numberOfDivisions 100 abPrefsForm;
+	
+	text -l "General Preferences" -font "boldLabelFont" gPrefTxt;
+	separator sep1;
+	text -l "left prefix" lpTxt;
+	text -l "right prefix" rpTxt;
+	textField -text $abWlPrefs[0] -changeCommand "$abWlPrefs[0] = `textField -q -text lpFld`" -editable true lpFld; //left prefix field
+	textField -text $abWlPrefs[1] -changeCommand "$abWlPrefs[1] = `textField -q -text rpFld`" -editable true rpFld; //left prefix field
+	$utInt = $abWlPrefs[5];
+	checkBox -l "Normalize Weights" -value $utInt -changeCommand "$abWlPrefs[5] = `checkBox -q -value nrmChkBx`" nrmChkBx;
+	$utInt = $abWlPrefs[10];
+	checkBox -l "Cull Matching Weights" -value $utInt -changeCommand "$abWlPrefs[10] = `checkBox -q -value cnmwChkBx`" cnmwChkBx; //cull non matching weights check box
+	$utInt = $abWlPrefs[8];
+	checkBox -l "Warn On Unconnected Infs" -value $utInt -changeCommand "$abWlPrefs[8] = `checkBox -q -value uwChkBx`" uwChkBx; //unconnected warn check box
+	$utInt = $abWlPrefs[11];
+	checkBox -l "Alphanumeric Connections" -value $utInt -changeCommand "$abWlPrefs[11] = `checkBox -q -value ancChkBx`;abWlVisualizeConnections();" ancChkBx; //alphanumeric connections check box
+	separator -vis false sep2;
+	
+	text -l "Mirror Preferences" -font "boldLabelFont" mPrefTxt;
+	separator sep3;
+	text -l "Mirror Axis:" axisTxt;
+	$utInt = $abWlPrefs[2]; // utility int
+	radioButtonGrp -numberOfRadioButtons 3 -l1 "YZ" -l2 "XZ" -l3 "XY" 
+		-select $utInt -columnWidth3 48 48 48 -onCommand "$abWlPrefs[2] = `radioButtonGrp -q -select smaRbGrp`; global string $abWlSymTable; global string $abWlOriginVts; clear($abWlSymTable); clear($abWlOriginVts);" smaRbGrp; //select mirror axis
+	$utInt = $abWlPrefs[3];
+	checkBox -l "Operate +X to -X" -value $utInt -changeCommand "$abWlPrefs[3] = `checkBox -q -value maChkBx`" maChkBx;
+	$utInt = $abWlPrefs[12];
+	checkBox -l "Auto Weight Origin Verts" -value $utInt -changeCommand "$abWlPrefs[12] = `checkBox -q -value awovChkBx`" awovChkBx;
+	text -l "tolerance" mTolTxt;
+	textField -text $abWlPrefs[6] -changeCommand "$abWlPrefs[6] = `textField -q -text mTolFld`" -editable true mTolFld; //left prefix field
+	
+	separator -vis false sep4;
+	text -l "Copy Preferences" -font "boldLabelFont" cPrefTxt;
+	separator sep5;
+	text -l "Match Vertices Using:" ctTxt;
+	optionMenu -changeCommand "$abWlPrefs[4] = `optionMenu -q -select mvuOm`" mvuOm; //copy type option menu
+ 		menuItem -label "World Space Coords";
+ 		menuItem -label "Object Space Coords";
+ 		menuItem -label "Vertex Number";
+		menuItem -label "Mirror Across Origin";
+	 setParent ..;
+	 $utInt = $abWlPrefs[4];
+	 optionMenu -e -select $utInt mvuOm;
+	 
+	 text -l "tolerance" cTolTxt;
+	 textField -text $abWlPrefs[7] -changeCommand "$abWlPrefs[7] = `textField -q -text cTolFld`" -editable true cTolFld; //left prefix field
+	 
+	 separator -vis false sep6;
+	 separator sep7;
+	 button -height 25 -l "close" -c "deleteUI -window abWlPrefsWin" pcBn; //prefs close button
+	
+	int $lmargin = 3;
+	int $rmargin = 3;
+	int $ctSpc = 8;
+	int $sepTopSpc = 2;
+	int $sepBotSpc = 5;
+	
+	formLayout -e
+		-af gPrefTxt "left" $lmargin
+		-af gPrefTxt "top" 8
+		-af gPrefTxt "right" $rmargin
+		
+		-ac sep1 "top" $sepTopSpc gPrefTxt
+		-af sep1 "left" $lmargin
+		-af sep1 "right" $rmargin
+		
+		-af lpFld "left" $lmargin
+		-ac lpFld "top" $ctSpc sep1
+		-ap lpFld "right" $rmargin 45
+		
+		-ac lpTxt "left" 4 lpFld
+		-ac lpTxt "top" ($ctSpc+2) sep1
+		-af lpTxt "right" $rmargin
+		
+		-af rpFld "left" $lmargin
+		-ac rpFld "top" 4 lpFld
+		-ap rpFld "right" $rmargin 45
+		
+		-ac rpTxt "left" 4 rpFld
+		-ac rpTxt "top" 6 lpFld
+		-af rpTxt "right" $rmargin
+		
+		-af nrmChkBx "left" $lmargin
+		-ac nrmChkBx "top" $ctSpc rpTxt
+		-af nrmChkBx "right" $rmargin
+		
+		-af cnmwChkBx "left" $lmargin
+		-ac cnmwChkBx "top" $ctSpc nrmChkBx
+		-af cnmwChkBx "right" $rmargin
+		
+		-af uwChkBx "left" $lmargin
+		-ac uwChkBx "top" $ctSpc cnmwChkBx
+		-af uwChkBx "right" $rmargin
+		
+		-af ancChkBx "left" $lmargin
+		-ac ancChkBx "top" $ctSpc uwChkBx
+		-af ancChkBx "right" $rmargin
+		
+		-af sep2 "left" $lmargin
+		-ac sep2 "top" $ctSpc ancChkBx
+		-af sep2 "right" $rmargin
+		
+		-af mPrefTxt "left" $lmargin
+		-ac mPrefTxt "top" 12 sep2
+		-af mPrefTxt "right" $rmargin
+		
+		-ac sep3 "top" $sepTopSpc mPrefTxt
+		-af sep3 "left" $lmargin
+		-af sep3 "right" $rmargin
+		
+		-af axisTxt "left" $lmargin
+		-ac axisTxt "top" $sepBotSpc sep3
+		-af axisTxt "right" $rmargin
+		
+		-ac smaRbGrp "top" 4 axisTxt
+		-af smaRbGrp "left" $lmargin
+		
+		-af awovChkBx "left" $lmargin
+		-ac awovChkBx "top" $ctSpc smaRbGrp
+		-af awovChkBx "right" $rmargin
+		
+		-af maChkBx "left" $lmargin
+		-ac maChkBx "top" $ctSpc awovChkBx
+		-af maChkBx "right" $rmargin
+		
+		-af mTolFld "left" $lmargin
+		-ac mTolFld "top" $ctSpc maChkBx
+		-ap mTolFld "right" $rmargin 45
+		
+		-ac mTolTxt "left" 4 mTolFld
+		-ac mTolTxt "top" ($ctSpc+2) maChkBx
+		-af mTolTxt "right" $rmargin
+		
+		-af sep4 "left" $lmargin
+		-ac sep4 "top" $ctSpc mTolTxt
+		-af sep4 "right" $rmargin
+		
+		-af cPrefTxt "left" $lmargin
+		-ac cPrefTxt "top" 12 sep4
+		-af cPrefTxt "right" $rmargin
+		
+		-af sep5 "left" $lmargin
+		-ac sep5 "top" $sepTopSpc cPrefTxt
+		-af sep5 "right" $rmargin
+		
+		-af ctTxt "left" $lmargin
+		-ac ctTxt "top" $sepBotSpc sep5
+		-af ctTxt "right" $rmargin
+		
+		-ac mvuOm "top" 4 ctTxt
+		-af mvuOm "left" $lmargin
+		
+		-af cTolFld "left" $lmargin
+		-ac cTolFld "top" $ctSpc mvuOm
+		-ap cTolFld "right" $rmargin 45
+		
+		-ac cTolTxt "left" 4 cTolFld
+		-ac cTolTxt "top" ($ctSpc+2) mvuOm
+		-af cTolTxt "right" $rmargin
+		
+		-af sep6 "left" $lmargin
+		-ac sep6 "top" $ctSpc cTolTxt
+		-af sep6 "right" $rmargin
+		
+		-af sep7 "left" $lmargin
+		-ac sep7 "top" $ctSpc sep6
+		-af sep7 "right" $rmargin
+		
+		-af pcBn "left" $lmargin
+		-ac pcBn "top" 5 sep7
+		-af pcBn "right" $rmargin
+		
+		abPrefsForm
+	;
+	
+	showWindow abWlPrefsWin;
+	
+	// update enabled and disabled pref UI sections (mirror and copy)
+	string $srcObj = `textField -q -text soFld`;
+	string $destObj = `textField -q -text doFld`;
+	
+	if ($srcObj == "" || $destObj == ""){
+		// enable copy and mirror options
+		abWlDisablePrefs(0, 1);
+		abWlDisablePrefs(1, 1);
+		
+	}else if ($srcObj == $destObj){
+		// enable mirror options, disable copy
+		abWlDisablePrefs(0, 1);
+		abWlDisablePrefs(1, 0);
+		
+	}else{
+		// enable copy options, disable mirror
+		abWlDisablePrefs(0, 0);
+		abWlDisablePrefs(1, 1);
+	}
+}
+
+
+global proc abWlUpdateSelInfList(){
+	//fills selection influence window with all infs on currently selected verts
+	
+	string $inf, $aInfs[];
+	string $aSel[] = `filterExpand -sm 31`;
+	
+	if (size($aSel) > 0){
+		string $srcObj = `textField -q -text soFld`;
+		string $cluster = abWlGetSkinCluster($srcObj);
+		string $infs[] = `skinPercent -ib .00000000000000000000000000000000000000001 -q -t $cluster $aSel`;
+		
+		int $i;
+		string $aStr[], $str;
+		textScrollList -e -ra siList;
+		for ($i=0;$i<size($infs);$i++){
+			$aStr = {$infs[$i]};
+			$aStr = abGetSrc2DestConInfsAsStr($aStr);
+			
+			$str = (size($aStr) != 0) ? $infs[$i]+" [c]" : $infs[$i];
+			$aInfs[size($aInfs)] = $str;
+		}
+		
+		// sort the infs
+		$aInfs = sort($aInfs);
+		
+		// refresh the textScrollList
+		for ($inf in $aInfs) textScrollList -e -append $inf siList;
+		
+	}else{
+		textScrollList -e -ra siList;
+	}
+}
+
+
+global proc abWlShowInfluences(){
+	//window with textScrollList containing influences on selected vertices
+	
+	if (`window -exists abWlVertInfs`){
+		deleteUI -window abWlVertInfs;
+	}
+	//windowPref -remove abWlVertInfs;
+	window -t "Selection Influences" -width 150 -height 358 -minimizeButton false -maximizeButton false abWlVertInfs;
+	formLayout -numberOfDivisions 100 abWlVertInfsForm;
+	textScrollList -numberOfRows 16 -sc "string $aSi[]=`textScrollList -q -si siList`;string $si=match(\"[a-zA-Z0-9_|:]*\", $aSi[0]);global string $abWlSrcInf[];int $iSi=abWlStrGetPos($si, $abWlSrcInf)+1;textScrollList -e -sii $iSi soInfList;abWlScrollListSelect(\"soInfList\");" -dcc "string $aInfs[]=`textScrollList -q -si siList`;int $i;for ($i=0;$i<size($aInfs);$i++){$aInfs[$i] =`match \"[a-zA-Z0-9_|]*\" $aInfs[$i]`;}string $tSel[] = abWlGetAffectedVertsByInf(`textField -q -text soFld`, $aInfs);select -r $tSel;" -allowMultiSelection true siList; //selection inf list
+	button -l "Update List" -c "abWlUpdateSelInfList();" uBn; //update button
+	//button -l "Select Influences" -c "string $origSel[]=`ls -sl`;string $tSel[]=`textScrollList -q -si siList`;int $i;for ($i=0;$i<size($tSel);$i++){$tSel[$i] =`match \"[a-zA-Z0-9_|]*\" $tSel[$i]`;}abWlSelectInfs($tSel);" sBn; //select button
+	button -l "Select Influences" -c "string $tSel[]=`textScrollList -q -si siList`;int $i;for ($i=0;$i<size($tSel);$i++){$tSel[$i] =`match \"[a-zA-Z0-9_|:]*\" $tSel[$i]`;}select -r $tSel;" sBn; //select button
+	button -l "Deselect Influenced" -c "string $tSel[]=`textScrollList -q -si siList`;int $i;for ($i=0;$i<size($tSel);$i++){$tSel[$i] =`match \"[a-zA-Z0-9_|:]*\" $tSel[$i]`;}if (size($tSel)>0){string $deSel[] = abWlGetAffectedVertsByInf(`textField -q -text soFld`, $tSel);select -d $deSel;}" diBn;
+	button -l "Close" -height 25 -c "deleteUI -window abWlVertInfs;" cBn;
+	
+	int $lmargin = 3;
+	int $rmargin = 3;
+	
+	formLayout -e
+		-af cBn "left" $lmargin
+		-af cBn "bottom" 5
+		-af cBn "right" $rmargin
+		
+		-af diBn "left" $lmargin
+		-ac diBn "bottom" 5 cBn
+		-af diBn "right" $rmargin
+		
+		-af sBn "left" $lmargin
+		-ac sBn "bottom" 5 diBn
+		-af sBn "right" $rmargin
+		
+		-af uBn "left" $lmargin
+		-ac uBn "bottom" 5 sBn
+		-af uBn "right" $rmargin
+		
+		-af siList "top" 6
+		-ac siList "bottom" 5 uBn
+		-af siList "left" $lmargin
+		-af siList "right" $rmargin
+		
+		abWlVertInfsForm
+	;
+	abWlUpdateSelInfList();
+	showWindow abWlVertInfs;
+}
+
+
+global proc abWlShowHelp(){
+	
+	if (`window -exists abWlHelp`){
+		deleteUI -window abWlHelp;
+	}
+	//windowPref -remove abWlHelp;
+	window -t "abWeightLifter Help" -width 435 -height 350 -minimizeButton false -maximizeButton false abWlHelp;
+	formLayout -numberOfDivisions 100 abWlHelpForm;
+		scrollLayout abWlHelpScroll;
+			columnLayout;
+			string $text;
+			text -l "abWeightLifter v 1.4.1\nBrendan Ross\n06.01.2005\nwww.supercrumbly.com\n\n" -align left;
+			text -l "about:\n" -align left;
+			$text = "A tool to copy and mirror skin weights on polygon objects bound to the same or\nseparate rigs. Any number of influences can be copied/mirrored by establishing\nconnections in the UI.\n\n\ndirections:\n\n1.  Select the skinned polygon object that you want to copy weights from and\nclick the \"Source Object\" button. Select the mesh you want to copy to and click\n\"Destination Object.\" To mirror weights across a single object, select it as\nboth the source and destination objects. To mirror weights across two separate\nobjects that are symmetrical with one another, select \"Mirror Across Origin\" in\nthe \"Match Vertices Using:\" drop down menu.\n\n\n2.  Connections are made between influences in the \"source:\"(SSL) and\n\"destination:\"(DSL) scroll lists. Select an influence in the SSL and click on\none in the DSL. A connection is made as indicated by the \"=>a\" and \"a<=\" suffix\nand prefix on your now connected influences. Leaving the SSL influence selected,\nclick the highlighted item in the DSL. Now you've broken the connection.\n\nClicking in the SSL will highlight connected influences (if any) in the DSL.\nClicking in the DSL will establish and break connections with the item selected\n(if any) in the SSL.\n\n\n3.  You can also auto connect your influences by clicking the \"Auto Connect\nInfluences\" button. If you're performing a mirror copy, open the options menu\nand enter the appropriate left and right prefixes.\n\nYou change your init preferences by editing the $abWlPrefs array (search for\n\"string $abWlPrefs[];\"). Run \"clear($abWlPrefs);\" in the script editor to clear\nyour session settings and re-init your preferences.\n\n\n4.  Make sure your source and destination objects are in their bind poses and\nClick \"Copy Weights\". If you copy without all SSL influences connected you'll\nget a warning and, most likely, bad results (especially if the \"Normalize\"\ncheckbox under \"General Preferences\" is unchecked).\n\nYou can control which vertices are copied by making a vertex component selection\nbefore clicking \"Copy Weights.\"\n \nLeave the \"Normalize\" checkbox unchecked if the weights you're copying have\nalready been normalized (which is most likely). Checking it will slow down the\nweight copy.\n\nIf you're mirroring weights, the first copy operation will build the symmetry\ntable (ST). This only needs to be done once. If you close the script using the\nclose window button on menu bar, your current ST and connection information will\nbe preserved, so the the next time you open the script you won't have to do it\nagain. Once the ST has been built, you don't have to reset your character to its\nbinding position to copy weights.\n\n\n5.  Use the \"Select Verts By Influence\" (SVBI) window to create selections based\non a given set of influences. In this way you can copy the weights for only the\ninfluences that you're interested in.\n\nSelect an influence (or influences) in the SVBI window and click the \"Select\nInfluenced Verts\" button. All vertices with non-zero weighting to the selected\ninfluence(s) will be selected. You can also make selections in the SVBI window\nby selecting influences in your scene and clicking the \"Select Influences\"\nbutton in the main UI. Enable \"Include Dest Strays\" to include all vertices\nweighted to the selected and connected influences in the selection. This ensures\nthat if you reduce the weight of a selected influence to zero on vertices from\nthe source side of your object, those verts will still be included in the\nselection as long as their mirrored vertices' weight to the connected influence\nis greater than zero. \"Include Dest Strays\" is only available when you're\nmirroring weights.\n\nYou can also see which influences are affecting a given selection of vertices by\nselecting some verts and clicking the \"Show Selection Influences\" button.\nConnected items are suffixed with a \"[c].\" Clicking a list item selects it in\nthe SSL and highlights its connection (if any) in the DSL. Double clicking an\nitem selects all the vertices weighted to that influence. This only works for\none item at a time. Click the \"Select Influences\" button to select the influences\nhilited in the SVBI window.  The \"Deselect Influenced\" button removes any verts\nweighted to the selected influences from the current selection. Click the \"Update\nList\" button to refresh the list after making a new vertex selection or to reflect\nnewly connected influences.\n\n\nAs always, click the \"Close\" button in the UI (instead of the close window\nbutton on the title bar) to clear the script globals.\n\n";
+			text -l $text -align left;
+			setParent ..;
+		setParent ..;
+		button -l "Close" -height 25 -c "deleteUI -window abWlHelp;" cBn;
+	
+	int $lmargin = 3;
+	int $rmargin = 3;
+	
+	formLayout -e
+		
+		-attachForm abWlHelpScroll "left" $lmargin
+		-attachForm abWlHelpScroll "top" 6
+		-attachForm abWlHelpScroll "right" $rmargin
+		-attachControl abWlHelpScroll "bottom" 4 cBn
+		
+		//-attachControl cBn "top" 8 abWlHelpScroll
+		-attachForm cBn "left" $lmargin
+		-attachForm cBn "right" $rmargin
+		-attachForm cBn "bottom" 5
+		
+		abWlHelpForm
+	;
+		
+	showWindow abWlHelp;
+}
+
+
+global proc abWlReplaceSkinUI(string $srcMesh, string $targetMesh){
+	// srcMesh is skinned mesh, targetMesh is unskinned to copy to target mesh
+	
+	int $lmargin = 3;
+	int $rmargin = 3;
+	int $lCol = 44;
+	int $rCol = 64;
+	
+	if (`window -exists abWlRsReplaceSkinWin`){
+		deleteUI -window abWlRsReplaceSkinWin;
+	}
+	if (`windowPref -exists abWlRsReplaceSkinWin`) windowPref -remove abWlRsReplaceSkinWin;
+	
+	window -t "Replace Skin" -width 232 -height 142 -minimizeButton false -maximizeButton false abWlRsReplaceSkinWin;
+	
+	formLayout -numberOfDivisions 100 abWlRsReplaceSkinForm;
+	
+	textFieldGrp -ed false -label "Source:" -text $srcMesh -cw2 $lCol $rCol -ad2 2 -columnAttach 1 right 4 abWlRsSknMshTxFldGrp;
+	textFieldGrp -ed false -label "Target:" -text $targetMesh -cw2 $lCol $rCol -ad2 2 -columnAttach 1 right 4 abWlRsRplmntMshTxFldGrp;
+	
+	checkBox -l "Delete Source Mesh" -value false abWlRsDelSrcChkBx;
+	
+	button -height 25 -label "Bind And Copy Weights" -command "abWlReplaceSkin2()" abWlRsRplcSknCopyBn;
+	
+	
+	formLayout -e
+		-af abWlRsSknMshTxFldGrp "left" $lmargin
+		-af abWlRsSknMshTxFldGrp "top" 8
+		-af abWlRsSknMshTxFldGrp "right" $rmargin
+		
+		-ac abWlRsRplmntMshTxFldGrp "top" 5 abWlRsSknMshTxFldGrp
+		-af abWlRsRplmntMshTxFldGrp "left" $lmargin
+		-af abWlRsRplmntMshTxFldGrp "right" $rmargin
+		
+		-ac abWlRsDelSrcChkBx "top" 6 abWlRsRplmntMshTxFldGrp
+		-af abWlRsDelSrcChkBx "left" ($lmargin+$lCol)
+		-af abWlRsDelSrcChkBx "right" $rmargin
+		
+		-ac abWlRsRplcSknCopyBn "top" 6 abWlRsDelSrcChkBx
+		-af abWlRsRplcSknCopyBn "left" $lmargin
+		-af abWlRsRplcSknCopyBn "right" $rmargin
+		
+		abWlRsReplaceSkinForm
+	;
+	
+	showWindow abWlRsReplaceSkinWin;
+	
+}
+
+
+global proc abWlReplaceSkin2(){
+	// second part of replace skin proc -- called by abWlReplaceSkinUI
+	
+	if (!`window -exists abWlRsReplaceSkinWin`) return;
+	
+	string $srcObj = `textFieldGrp -q -text abWlRsSknMshTxFldGrp`;
+	string $targObj = `textFieldGrp -q -text abWlRsRplmntMshTxFldGrp`;
+	string $sc = abWlGetSkinCluster($srcObj);
+	
+	int $delSrcObj = `checkBox -q -value abWlRsDelSrcChkBx`;
+	int $okToDelete = true;
+	string $aHilited[] = `ls -hilite`;
+	string $aSelVts[], $aInfs[], $msgStr;
+	
+	
+	if (size($aHilited) == 1 && $aHilited[0] == $srcObj){
+		// now get list of selected vertices
+		$aSelVts = `filterExpand -sm 31`;
+	}
+	
+	// get affecting infs
+	if (size($aSelVts) > 0){
+		$aInfs = `skinPercent -ib .00000000000000000000000000000000000000001 -q -t $sc $aSelVts`;
+	}else{
+		$aInfs = `skinCluster -q -influence $sc`;
+	}
+	
+	// bind unskinnedMesh
+	skinCluster -toSelectedBones -dr 4 -maximumInfluences 5 -omi true $aInfs $targObj;
+	
+	string $dc = abWlGetSkinCluster($targObj);
+	
+	if (`exists copySkinWeights`){
+		copySkinWeights -smooth -noMirror -surfaceAssociation closestPoint -influenceAssociation name -sourceSkin $sc -destinationSkin $dc;
+		print ($targObj+" has been skinned to "+(size($aInfs))+" influences and its weights copied from "+$srcObj+".\n");
+	}else{
+		$okToDelete = false;
+		$msgStr = "Unable to copy weights.  "+$targObj+" has been skinned to the specified influences.  You can now copy the weights using this script's main UI.";
+		if ($delSrcObj) $msgStr += "  The source object will not be deleted.";
+		warning $msgStr;
+	}
+	
+	if ($delSrcObj && $okToDelete){
+		// delete source mesh
+		skinCluster -e -unbind $sc;
+		delete $srcObj;
+	}
+	
+	if (size($aHilited) > 0) toggleSelMode;
+	
+	if (`window -exists abWlRsReplaceSkinWin`) deleteUI -window abWlRsReplaceSkinWin;
+	
+}
+
+
+global proc abWlReplaceSkin(){
+	
+	string $aSel[] = `filterExpand -sm 12`;
+	
+	if (size($aSel) != 2){
+		warning "Select two meshes";
+		return;
+	}
+	
+	string $cluster1 = abWlGetSkinCluster($aSel[0]);
+	string $cluster2 = abWlGetSkinCluster($aSel[1]);
+	
+	if ($cluster1 == "" && $cluster2 == ""){
+		warning "One of the selected meshes must be skinned";
+		return;
+	}
+	if ($cluster1 != "" && $cluster2 != ""){
+		warning "Only one of the selected meshes should be skinned";
+		return;
+	}
+	
+	string $sMesh, $uMesh, $sc; // skinnedMesh, unskinnedMesh, skinCluster
+	
+	if ($cluster1 != ""){
+		$sMesh = $aSel[0];
+		$uMesh = $aSel[1];
+		$sc = $cluster1;
+	}else{
+		$sMesh = $aSel[1];
+		$uMesh = $aSel[0];
+		$sc = $cluster2;
+	}
+	
+	select -clear;
+	hilite $sMesh;
+	SelectVertexMask;
+	
+	abWlReplaceSkinUI($sMesh, $uMesh);
+
+}
+
+
+global proc abWlCheckSym(){
+	// checks the symmetry of source object (if src and dest are the same) or the src and dest (if different)
+	
+	global string $abWlPrefs[];
+	
+	int $mirrorAxis = $abWlPrefs[2];
+	int $mirrorPos2Neg = $abWlPrefs[3];
+	float $mTol = $abWlPrefs[6];
+	int $copyType = $abWlPrefs[4];
+	string $aUnSymVerts[];
+	
+	string $srcObj = `textField -q -text "soFld"`;
+	string $destObj = `textField -q -text "doFld"`;
+	
+	if ($srcObj == "" || $destObj == ""){
+		warning "A source and destination object must specified before symmetry can be determined.  Unable to proceed.";
+		return;
+	}
+	
+	if ($srcObj == $destObj){
+		$aUnSymVerts = abWlBuildSymTable($srcObj, $destObj, $mirrorAxis, $mirrorPos2Neg, $mTol, true, true);
+	}else{
+		if ($copyType == 4){
+			$aUnSymVerts = abWlBuildSymTable($srcObj, $destObj, $mirrorAxis, $mirrorPos2Neg, $mTol, true, true);
+		}else{
+			warning "You must select \"Mirror Across Origin\" as the copy type in preferences (Options > Options) to perform a mirror across multiple objects.";
+			return;
+		}
+	}
+	
+	if (size($aUnSymVerts) > 0){
+		select -r $aUnSymVerts;
+		warning ("The mesh is not symmetrical.  Found "+(size($aUnSymVerts))+" asymmetric vert(s).  Try increasing the tolerance under \"Mirror Preferences\" in the options menu if you believe that your mesh is symmetrical (.005 is a good place to start).");
+	}else{
+		select -clear;
+		print "The mesh is symmetrical.\n";
+	}
+	
+}
+
+
+global proc abWlBuildSymTableFromSelObj(){
+	// builds a symmetry table from a selected object with the same number of verts as the src and destination objects (which must be the same)
+	
+	global string $abWlSymTable[];
+	global string $abWlOriginVts[];
+	global string $abWlPrefs[];
+	
+	string $srcObj = `textField -q -text "soFld"`;
+	string $destObj = `textField -q -text "doFld"`;
+	string $aSel[], $selObj, $srchVtxStr, $rplcVtxStr, $aASymVerts[];
+	int $aInt[], $srcTotVts, $selTotVts, $i;
+	int $mirrorAxis = $abWlPrefs[2];
+	int $mirrorPos2Neg = $abWlPrefs[3];
+	float $mTol = $abWlPrefs[6];
+	
+	$aSel = `ls -sl`;
+	if (size($aSel) == 1){
+		$selObj = $aSel[0];
+	}else{
+		warning "Select one object with the same topology as your source/destination object";
+		return;
+	}
+	
+	if ($srcObj == $destObj && $srcObj != "" && $selObj != $srcObj){
+		
+		$aInt = `polyEvaluate -v $srcObj`;
+		$srcTotVts = $aInt[0];
+		$aInt = `polyEvaluate -v $selObj`;
+		$selTotVts = $aInt[0];
+		
+		if ($srcTotVts == $selTotVts){
+			
+			$aASymVerts = abWlBuildSymTable($selObj, $selObj, $mirrorAxis, $mirrorPos2Neg, $mTol, true, false);
+			
+			if (size($abWlSymTable) == 0){
+				warning "The symTable is empty.  Unable to proceed.";
+				return;
+			}
+			
+			// now substitute srcObj in abWlSymTable for selObj
+			$srchVtxStr = $selObj+"\\.vtx\\[";
+			$rplcVtxStr = $srcObj+".vtx[";
+			
+			// do it for the symTable
+			for ($i=0;$i<size($abWlSymTable);$i++) $abWlSymTable[$i] = `substitute $srchVtxStr $abWlSymTable[$i] $rplcVtxStr`;
+			
+			// do it for the origin array
+			for ($i=0;$i<size($abWlOriginVts);$i++) $abWlOriginVts[$i] = `substitute $srchVtxStr $abWlOriginVts[$i] $rplcVtxStr`;
+			
+			if (size($aASymVerts) == 0){
+				print ("Mesh is symmetrical.  SymTable updated with data for "+(size($abWlSymTable))/2+" vertices.\n");
+			}else{
+				print ("Mesh is not symmetrical.  Found "+(size($aASymVerts))+" asymmetric vert(s).\n");
+			}
+			
+		}else{
+			warning "Topology on selected object doesn't match the source/destination object.";
+			return;
+		}
+	}else{
+		if ($srcObj == "" || $destObj == ""){
+			warning "You must specify a source and destination object.";
+		}else if ($srcObj != $destObj){
+			warning "Source and destination object must be the same.";
+		}else if ($selObj == $srcObj){
+			warning "Selected object cannot be the same as the source/destination object.";
+		}
+	}
+}
+
+
+global proc abWlDisablePrefs(int $prefsInd, int $enable){
+	// disables mirror or copy prefs in the options UI based on current selection (makes difference between copy and mirror more obvious)
+	// prefsInd is 0 for mirror prefs, 1 for copy prefs.  enable will enable or disable (0) prefs specified by prefsInd
+	
+	if (!`window -exists abWlPrefsWin`) return;
+	
+	if ($prefsInd == 0){
+		// mirror prefs
+		text -e -en $enable mPrefTxt;
+		text -e -en $enable axisTxt;
+		text -e -en $enable mTolTxt;
+		radioButtonGrp -e -en $enable smaRbGrp;
+		checkBox -e -en $enable awovChkBx;
+		checkBox -e -en $enable maChkBx;
+		textField -e -en $enable mTolFld;
+	}else if ($prefsInd == 1){
+		// copy prefs
+		text -e -en $enable cPrefTxt;
+		text -e -en $enable ctTxt;
+		text -e -en $enable cTolTxt;
+		optionMenu -e -en $enable mvuOm;
+		textField -e -en $enable cTolFld;
+	}
+}
+
+
+global proc abWlShowExportWeightDialog(){
+	// shows export weight file save dialog
+	
+	string $aStr[], $aRel[], $skinObj;
+	
+	$aStr = `ls -sl -type transform`;
+	
+	if (size($aStr) != 1){
+		warning "Select a single skinned mesh";
+		return;
+	}else{
+		$aRel = `listRelatives -c -type mesh $aStr[0]`;
+		if (size($aRel) > 0){
+			$skinObj = $aStr[0];
+			select -r $skinObj;
+		}else{
+			return;
+		}
+	}
+	
+	string $srcCluster = abWlGetSkinCluster($skinObj);
+	
+	if (!objExists($skinObj) || $srcCluster == ""){
+		warning ("Selected Mesh "+$skinObj+" is not skinned.  Select a skinned mesh and try again.");
+		return;
+	}
+	
+	fileBrowserDialog -m 1 -fc "abWlShowExportWeightHandler" -an "Save" -filterList "abWeightLifter Save(*.wsv),*.wsv" -fileType "abWeightLifter Save(*.wsv)" -dialogStyle 1;
+	
+}
+
+
+global proc abWlShowExportWeightHandler(string $fileName, string $type){
+	// called by export dialog, acts as intermediary between it and exportWeight proc
+	
+	string $aStr[] = `ls -sl`;
+	string $skinObj = $aStr[0];
+	
+	abWlExportWeights($skinObj, $fileName);
+	
+}
+
+
+global proc abWlExportWeights(string $skinObj, string $fileName){
+	// exports weights to a text file in form of:
+	// vertNum>worldX&worldY&worldZ>localX&localY&localZ>inf1&weight1&inf2&weight2&inf3&weight3
+	// "**infs" signifies a special line that contains all of the infs separated by "&"
+	
+	string $data, $aChunk[], $vtxStr, $aInfs[], $aInfWeightData[], $aInfs[];
+	int $aInt[], $totVtx, $i, $k;
+	float $aFlt[];
+	
+	string $dataSep = ">";
+	string $grpSep = "&";
+	string $nl = "\n";
+	
+	string $srcCluster = abWlGetSkinCluster($skinObj);
+	
+	if (!objExists($skinObj) || $srcCluster == ""){
+		warning ("Selected Mesh "+$skinObj+" is not skinned.  Select a skinned mesh and try again.");
+		return;
+	}
+	
+	$aInt = `polyEvaluate -v $skinObj`; 
+	$totVtx = $aInt[0];
+	
+	// init data stuff (save infs)
+	$aInfs = sort(`skinCluster -q -influence $srcCluster`);
+	$data += "**infs>"+stringArrayToString($aInfs, "&");
+	// done
+	
+	
+	// prog bar init stuff
+	int $mod;
+	int $prog;
+	float $flt;
+	float $progNum;
+	float $progDenom;
+	
+	float $progUpdate = 50.0;
+	
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status "Exporting Weights";
+	$progDenom = $totVtx;
+	$flt = ceil($progDenom/$progUpdate);
+	$mod = $flt;
+	// end prob bar init
+	
+	// save skin info
+	for ($i=0;$i<$totVtx;$i++){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		//$nl = ($i == 0) ? "" : "\n";
+		
+		$vtxStr = $skinObj+".vtx["+$i+"]";
+		
+		clear($aChunk);
+		
+		$aChunk[0] = $i;
+		$aFlt = `xform -q -ws -t $vtxStr`;
+		$aChunk[1] = string($aFlt[0])+$grpSep+string($aFlt[1])+$grpSep+string($aFlt[2]);
+		$aFlt = `xform -q -os -t $vtxStr`;
+		$aChunk[2] = string($aFlt[0])+$grpSep+string($aFlt[1])+$grpSep+string($aFlt[2]);
+		
+		$aInfs = `skinPercent -ib .00000000000000000000000000000000000000001 -q -t $srcCluster $vtxStr`;
+		$aFlt = `skinPercent -ib .00000000000000000000000000000000000000001 -q -v $srcCluster $vtxStr`;
+		
+		// capture weights for this vtx
+		clear ($aInfWeightData);
+		if (size($aInfs) == size($aFlt)){
+			
+			for ($k=0;$k<size($aInfs);$k++){
+				$aInfWeightData[size($aInfWeightData)] = $aInfs[$k];
+				$aInfWeightData[size($aInfWeightData)] = string($aFlt[$k]);
+			}
+			
+			$aChunk[3] = stringArrayToString($aInfWeightData, $grpSep);
+			
+		}else{
+			return;
+		}
+		
+		$data += $nl+stringArrayToString($aChunk, $dataSep);
+		
+	}
+	
+	progressWindow -endProgress;
+	waitCursor -state off;
+	
+	// save to file
+	int $fileId = `fopen $fileName "w"`;
+	fprint $fileId $data;
+	fclose $fileId;
+	
+	/*
+	
+	// interpolate weight copy (coming some day?)
+	
+	int $pomLoaded = `pluginInfo -query -l nearestPointOnMesh`;
+	if( !$pomLoaded ){
+		loadPlugin nearestPointOnMesh;
+	}
+	
+	string $gNode = `createNode nearestPointOnMesh`;
+	
+	connectAttr -f "milo.worldMesh" ($gNode+".inMesh");
+	
+	connectAttr -f ("locator1.tx") ($gNode+".ipx");
+	connectAttr -f ("locator1.ty") ($gNode+".ipy");
+	connectAttr -f ("locator1.tz") ($gNode+".ipz");
+	
+	int $uu = `getAttr ($gNode+".nearestFaceIndex")`;
+	
+	select ("milo.f["+$uu+"]");
+	
+	delete $gNode;
+	
+	*/
+	
+}
+
+
+global proc abWlShowImportWeightDialog(){
+	// shows export weight file save dialog
+	
+	global string $abWlPrefs[];
+	
+	string $aStr[], $aRel[], $skinObj;
+	
+	string $fileName = `fileDialog -m 0 -dm "*.wsv"`;
+	
+	if ($fileName == ""){
+		return;
+	}else if (!(endsWith($fileName, ".wsv"))){
+		warning "Select a valid weight save file.";
+		return;
+	}
+	
+	//$fileName = substituteAllString($fileName, "\\", "/");
+	
+	// clear selection and insert fileName
+	
+	abWlSoFldCleanup();
+	
+	// set global so the other procs know this is a special case
+	
+	textField -e -text $fileName soFld;
+	$abWlPrefs[13] = $fileName;
+	
+	abWlRefreshSoDoBns();
+	abWlPopulateInfFields("soFld", false, false);
+	
+}
+
+
+global proc string[] abWlGetImportData(string $fileName){
+	// returns either data from given $fileName as an array of lines, or an empty array if the file can't be found
+	
+	string $aRet[], $nextLine;
+	int $fileId;
+	
+	if (`file -q -ex $fileName` == false) return $aRet;
+	
+	$fileId = `fopen $fileName "r"`;
+	$nextLine = `fgetline $fileId`;
+	
+	while (size($nextLine) > 0){
+		if (endsWith($nextLine, "\n")) $nextLine = substring($nextLine, 1, size($nextLine)-1);
+		$aRet[size($aRet)] = $nextLine;
+		$nextLine = `fgetline $fileId`;
+	}
+	
+	fclose $fileId;
+	
+	return $aRet;
+	
+}
+
+
+global proc string[] abWlGetImportInfs(string $fileName){
+	// retrieves all of the infs from a given import file path
+	
+	string $aRet[], $aData[], $aStr[];
+	int $fileId, $i;
+	
+	$aData = abWlGetImportData($fileName);
+	
+	if (size($aData) == 0){
+		// file doesn't exist; clear selection and return
+		select -clear
+		abWlSelObject("soFld");
+		
+		return $aRet;
+	}
+	
+	if (startsWith($aData[0], "**infs")){
+		
+		$aStr = stringToStringArray($aData[0],">");
+		$aRet = stringToStringArray($aStr[1],"&");
+		
+	}
+	
+	return $aRet;
+}
+
+
+global proc abWlImportWeights(string $srcObj, string $destObj, float $tol, int $normalize, int $copyType){
+	
+	//sets up vertCopyList and sends it to abWlWeightCopy for mesh to mesh copies
+	//mode is 1 worldSpace, 2 objectSpace, 3 vertexNum
+	
+	global string $abWlSrcInf[];
+	global string $abWlDestInf[];
+	global int $abWlInfConnections[];
+	string $destVtx, $srcVtx;
+	int $i, $j, $k;
+	
+	// import data	
+	string $aData[] = abWlGetImportData($srcObj);
+	if (size($aData) <= 1){
+		warning "The weight save file is bad.  Unable to proceed.";
+		return;
+	}
+	
+	// parse data
+	// vertNum>worldX&worldY&worldZ>localX&localY&localZ>inf1&weight1&inf2&weight2&inf3&weight3
+	
+	float $aImpX[], $aImpY[], $aImpZ[];
+	string $aImpWeightData[], $aSubData1[], $aSubData2[], $aSrcVts[];
+	
+	int $spaceInd = ($copyType == 1) ? 1 : 2; // worldSpace atts are at index 1 of aData, localSpace at index 2
+	
+	for ($i=1;$i<size($aData);$i++){
+		
+		$aSubData1 = stringToStringArray($aData[$i], ">");
+		$aSubData2 = stringToStringArray($aSubData1[$spaceInd], "&");
+		$aImpX[size($aImpX)] = float($aSubData2[0]);
+		$aImpY[size($aImpY)] = float($aSubData2[1]);
+		$aImpZ[size($aImpZ)] = float($aSubData2[2]);
+		$aImpWeightData[size($aImpWeightData)] = $aSubData1[3];
+		
+	}
+	
+	int $totSrcVts = size($aImpX);
+	
+	$aInt = `polyEvaluate -v $destObj`;
+	int $totDestVts = $aInt[0];
+	float $aFlt[];
+	float $progUpdate = 50.0;
+	
+	string $aDestVts[], $aVtsToCopy[];
+	for ($i=0;$i<$totDestVts;$i++){
+		$aDestVts[size($aDestVts)] = $destObj+".vtx["+$i+"]";
+	}
+	
+	string $aSelVts[] = `filterExpand -sm 31`;
+	if (size($aSelVts) == 0){
+		$aVtsToCopy = $aDestVts;
+	}else{
+		
+		//make sure only destObj verts are selected
+		string $myIntersector = `stringArrayIntersector`;
+		stringArrayIntersector -edit -intersect $aDestVts $myIntersector;
+		stringArrayIntersector -edit -intersect $aSelVts $myIntersector;
+		$aVtsToCopy = `stringArrayIntersector -query $myIntersector`;
+		deleteUI $myIntersector;
+		
+	}
+	
+	int $mod;
+	int $prog;
+	float $flt;
+	float $progNum;
+	float $progDenom;
+	
+	int $totVtsToCopy = size($aVtsToCopy);
+	string $aDestCopyList[];
+	int $aSrcCopyIndList[];
+	
+	if ($copyType == 1 || $copyType == 2){
+		
+		int $matchInd;
+		float $floatMatchFlag = -666666.0;
+		
+		string $space = ($copyType == 1) ? "-ws" : "-os";
+		
+		waitCursor -state on;
+		progressWindow -title "Working" -progress 0 -status "Checking Overlap";
+		$progDenom = $totVtsToCopy;
+		$flt = ceil($progDenom/$progUpdate);
+		$mod = $flt;
+		
+		for ($i=0;$i<$totVtsToCopy;$i++){
+			
+			//prog win
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*100.0;
+				progressWindow -e -progress $prog;
+			}
+			//end prog win
+			
+			$destVtx = $aVtsToCopy[$i];
+			$aFlt = eval("xform "+$space+" -q -translation "+$destVtx);
+			for ($j=0;$j<$totSrcVts;$j++){
+				if ($aFlt[0] == $floatMatchFlag){ //this might slow things down, I'll have to check
+					continue;
+				}
+				
+				if (abs($aImpX[$j] - $aFlt[0]) < $tol){
+					//passed the first gate
+					if (abs($aImpY[$j] - $aFlt[1]) < $tol){
+						//second, and...
+						if (abs($aImpZ[$j] - $aFlt[2]) < $tol){
+							//match!
+							$aSrcCopyIndList[size($aSrcCopyIndList)] = $j;
+							$aDestCopyList[size($aDestCopyList)] = $destVtx;
+							$aImpX[$j] = $aImpY[$j] = $aImpZ[$j] = $floatMatchFlag;
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		progressWindow -endProgress;
+		waitCursor -state off;
+		
+	}else if ($copyType == 3){
+		//copy by vtx (I doubt anyone but me will ever need this)
+		
+		string $match;
+		int $destVtxNum;
+		
+		for ($i=0;$i<$totVtsToCopy;$i++){
+			
+			$destVtx = $aVtsToCopy[$i];
+			
+			// get dest vtx num
+			$match = `match "vtx\[[0-9]+\]$" $destVtx`;
+			$destVtxNum = int(substring($match, 5, size($match)-1));
+			
+			// put them in the arrays
+			$aSrcCopyIndList[size($aSrcCopyIndList)] = $destVtxNum;
+			$aDestCopyList[size($aDestCopyList)] = $destVtx;
+			
+		}
+	}
+	
+	
+	// if the copy arrays are populated then there's a copyin' about to commence (hee haw)
+	
+	global string $abWlPrefs[];
+	
+	string $destCluster = abWlGetSkinCluster($destObj);
+	string $tSrcInfs[], $tCurInfs[], $tDestInfsCopy[], $tvStr;
+	float $tWeight;
+	int $destVtxInd, $srcVtxInd;
+	string $tInfName, $tSrcInfName, $tDestInfName;
+	int $aInitDestLock[]; //stores init state of lockweights
+	
+	string $srcConLU[]; //source connection lookup
+	string $destConLU[]; //dest connection lookup
+	
+	int $cullMatch, $tInd;
+	string $aSrcInfs[], $aDestInfs[], $conInf;
+	float $aSrcWeights[], $aDestWeights[];
+	float $cullMatchTol = .0000000001;
+	int $vertCounter = 0;
+	
+	
+	//make sure all infs are unlocked so weights can be pruned to 0
+	for ($i=0;$i<size($abWlInfConnections);$i+=2){
+		$tDestInfName = $abWlDestInf[$abWlInfConnections[$i+1]];
+		$aInitDestLock[size($aInitDestLock)] = `skinCluster -inf $tDestInfName -q -lockWeights $destCluster`;
+		skinCluster -e -inf $tDestInfName -lockWeights 0 $destCluster; 
+		
+		//make 2 lists to speed lookup of connections -- first with connected srcnames, second with destnames at corresponding indices
+		$srcConLU[size($srcConLU)] = $abWlSrcInf[$abWlInfConnections[$i]];
+		$destConLU[size($destConLU)] = $abWlDestInf[$abWlInfConnections[$i+1]];
+	}
+	
+	int $scNormWeights = `getAttr ($destCluster+".normalizeWeights")`;
+	if ($scNormWeights == (1-$normalize)){
+		setAttr ($destCluster+".normalizeWeights") $normalize;
+	}
+	
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status "Copying Weights";
+	$progDenom = size($aSrcCopyIndList);
+	$flt = ceil($progDenom/$progUpdate);
+	$mod = $flt;
+	
+	for ($i=0;$i<size($aSrcCopyIndList);$i++){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$srcVtxInd = $aSrcCopyIndList[$i];
+		$destVtx = $aDestCopyList[$i];
+		
+		//tokenize weight data
+		$aSubData = stringToStringArray($aImpWeightData[$srcVtxInd], "&");
+		
+		// cull verts with the same weighting
+		clear($aSrcInfs);
+		clear($aSrcWeights);
+		for ($j=0;$j<size($aSubData);$j+=2){
+			$aSrcInfs[size($aSrcInfs)] = $aSubData[$j];
+			$aSrcWeights[size($aSrcWeights)] = float($aSubData[$j+1]);
+		}
+			
+		$cullMatch = 0;
+		$aDestInfs = `skinPercent -ib .00000000000000000000000000000000000000001 -q -t $destCluster $destVtx`;
+		$aDestWeights = `skinPercent -ib .00000000000000000000000000000000000000001 -q -v $destCluster $destVtx`;
+		
+		if (size($aSrcInfs) == size($aDestInfs)){
+			for ($j=0;$j<size($aSrcInfs);$j++){
+				$tInd = abWlStrGetPos($aSrcInfs[$j], $abWlSrcInf);
+				if ($tInd >= 0){
+					$conInf = $destConLU[$tInd];
+					if (abWlStrGetPos($conInf, $aDestInfs) != -1){
+						if ($aSrcWeights[$tInd] - $aDestWeights[$tInd] < $cullMatchTol){
+							$cullMatch ++;
+						}else{
+							break;
+						}
+					}else{
+						break;
+					}
+				}
+			}
+		}
+		
+		// if the weights alreadt match, this vertex can be skipped
+		if ($cullMatch == size($aSrcInfs)){
+			continue;
+		}else{
+			$vertCounter ++;
+		}
+		// done with weight check
+		
+		//get corresponding dest infs to copy to
+		$tvStr = "";
+		clear($tCurInfs);
+		for ($j=0;$j<size($aSubData);$j+=2){
+			
+			$tSrcInfName = $aSubData[$j];
+			$tWeight = float($aSubData[$j+1]);
+			
+			$destVtxInd = abWlStrGetPos($tSrcInfName, $srcConLU);
+			if ($destVtxInd != -1){
+				$tDestInfName = $destConLU[$destVtxInd];
+				
+				$tvStr += " -tv "+$tDestInfName+" "+$tWeight;
+				$tCurInfs[size($tCurInfs)] = $tDestInfName;
+			}
+			
+		}
+		
+		if ($tvStr != ""){
+			$tDestInfsCopy = $abWlDestInf;
+			$tDestInfsCopy = stringArrayRemove($tCurInfs, $tDestInfsCopy); //tDestInfsCopy is now all infs on destobj that will be set to 0
+			for ($tDestInfName in $tDestInfsCopy){
+				$tvStr += " -tv "+$tDestInfName+" 0";
+			}
+			
+			eval("skinPercent -nrm 0"+$tvStr+" "+$destCluster+" "+$destVtx);
+			if($normalize){
+				skinPercent -nrm 1 -prw .00000000000000000000000000000000000000001 $destCluster $destVtx;
+			}
+		}
+	}
+	
+	setAttr ($destCluster+".normalizeWeights") $scNormWeights;
+	for ($i=0;$i<size($aInitDestLock);$i++){
+		skinCluster -e -inf $destConLU[$i] -lockWeights $aInitDestLock[$i] $destCluster;
+	}
+	progressWindow -endProgress;
+	waitCursor -state off;
+	
+	print ("Matched "+(size($aDestCopyList))+" vert(s).  "+$vertCounter+" vertex weight(s) copied\n");
+	
+}
+
+

@@ -1,0 +1,565 @@
+/*
+abTwoFace v 1.5
+brendan ross  03.08.2004
+www.supercrumbly.com
+
+update 1.1 -- 09.20.2004: fixed non origin weighting, and random 6.0 issues, redesigned interface
+update 1.2 -- 09.23.2004: much improved performance
+update 1.2.1 -- 09.23.2004: removed three lines of code that cause the occasional unreliable result
+update 1.3 -- 03.14.2005: added ability to specify left and right naming prefixes, tweaked interface
+update 1.4 -- 04.01.2005: fixed placement of result meshes, existing result meshes are now updated in place (so you can now tweak your original symmetrical mesh and the script will modify your blendshapes)
+update 1.4.1 -- 06.13.06: removed an optimization that resulted in incorrect weighting in Maya 7.
+update 1.5 -- 05.26.11: updated to work in 2012.
+
+
+use:
+
+Useful for breaking a symmetrical blend target into a smoothly blending left/right, up/down
+(whatever/whatever) pair.
+
+directions:
+
+The base object will be your character's head (or whatever) in its default expression,
+and the target object will be a modified duplicate of the same mesh that you want to split
+into two asymmetrical meshes.  There can only be one set of blend joints per scene, but you
+can weight multiple Base Objects to them.
+
+Duplicate your (unskinned) base object and then run abTwoFace at the command line.
+The taper value determines the width of the transition between the joint weights as a
+percentage of the width (x dimension) of the base object (or the guide object, if one is
+selected).  Increase the value to widen (and smooth) the transition between the left and
+right joint weights.  Leave the "Follow Guide Object" textfield empty for now.
+
+Now, select the duplicated object and click "Create Weighted Base Object".  
+Once created, you should have two joints, abLeftBlendJNT and abRightBlendJNT, on your newly
+weighted base object.  If you want to adjust the weight taper on an existing base object,
+just enter a new value in the field and click the "Taper Weights" button.
+
+The "Follow Guide Object" is useful if you have, say, a separate mouth mesh for which you want
+to create blends that follow your head mesh.  The weighting will follow that
+of the Guide Object (assuming the same taper value was used for each mesh).  The result 
+mesh will be placed relative to its Guide result meshes.  Clear this field for default (no guide
+object) behavior.
+
+Once you're happy with the weighting, select your newly weighted mesh and click
+"Select Base Object".  Now select your target mesh (the blend target that you want to split into
+two meshes).  Click "Swap Left/Right Names" if you, like me, have an object facing -z -- it
+swaps the naming on the result objects.  The left object will now be prefixed with an "rt_"
+and vice versa.
+
+Now just click "Create Meshes" to create the new objects, and you're off...
+
+
+note: To change your default naming prefixes, search for 'string $lfDefPrefix =' or
+'string $rtDefPrefix =' and change the string values to your desired left and right prefixes;
+*/
+
+
+global proc string abGetSkinCluster (string $obj){
+	//returns skincluster name on $obj or "" if there isn't one
+	string $aStr[];
+	string $str;
+	string $sc;
+	
+	$aStr = `listHistory $obj`;
+	for ($str in $aStr){
+		if (`nodeType $str` == "skinCluster"){
+			$sc = $str;
+		}
+	}
+	return $sc;
+}
+
+global proc string abGetSelObject () {
+	//returns first item in `ls -sl` array
+	string $aStr[];
+	$aStr = `filterExpand -sm 12`; //select only polys
+	if (size($aStr) > 1){
+		warning ("Select only one item.  "+$aStr[0]+" selected -- other objects in selection set ignored");
+	}
+	return $aStr[0];
+}
+
+global proc abWeightedBlendCtl (string $action) {
+	global string $candidateVtx[];
+	string $str;
+	string $warning;
+	string $guideObj = `textField -q -text uowTxt`;
+	float $taper = `floatField -q -v taperFltFld`;
+	
+	$taper = clamp (0, 1, $taper);
+	
+	switch ($action){
+		case "cwoBn":
+			$str = abGetSelObject();
+			$warning = "Must select an unskinned polygon mesh";
+			if ($str != ""){
+				if ((abGetSkinCluster($str)) == ""){ //object is unskinned
+					abBuildWeightObj ($str, "abLeftBlendJNT", "abRightBlendJNT"); //reverse the bool just to make things confusing
+					abTaperWeights ($str, $guideObj, $taper, true);
+					textField -e -text $str swoTxt;
+				}else{
+					warning $warning;
+				}
+			}else{
+				warning $warning;
+			}
+			break;
+			
+		case "twBn":
+			$str = abGetSelObject();
+			$warning = "Must select an smooth skinned polygon mesh";
+			if ($str != ""){
+				if ((abGetSkinCluster($str)) != ""){
+					abTaperWeights ($str, $guideObj, $taper, false);
+				}else{
+					warning $warning;
+				}
+			}else{
+				warning $warning;
+			}
+			break;
+					
+		case "uowBn":
+			textField -e -text (abGetSelObject()) uowTxt;
+			break;
+			
+		case "swoBn":
+			//textField -e -text (abGetSelObject()) swoTxt;
+			$str = abGetSelObject();
+			$warning = "Must select an smooth skinned polygon mesh";
+			if ($str != ""){
+				if ((abGetSkinCluster($str)) != ""){
+					textField -e -text $str swoTxt;
+				}else{
+					warning $warning;
+				}
+			}else{
+				textField -e -text "" swoTxt;
+			}
+			break;
+			
+		case "createBn":
+			string $weightObj = `textField -q -text swoTxt`;
+			string $targetObj = abGetSelObject();
+			//chimpy validation
+			if ($weightObj == "" || $targetObj == ""){
+				warning ("You need to select a base and target object to make this dog hunt");
+				break;
+			}
+			string $sc = abGetSkinCluster($weightObj);
+			if ($sc == ""){
+				warning ("The base object must be a smooth bound poly mesh");				
+				break;
+			}
+			
+			//find Joints on weightObj
+			$aStr = `skinCluster -q -influence abWeightObjectSkin`;
+			string $lfInf = $aStr[0]; //joints returned in alphabetical order
+			string $rtInf = $aStr[1];
+			
+			if (`checkBox -q -value flfChkBx` == true){
+				//flip the influences if flip left/right checkbox is checked
+				$lfInf = $aStr[1];
+				$rtInf = $aStr[0];
+			}
+			abCullCandidateVerts($weightObj, $targetObj);
+			waitCursor -state on;
+			progressWindow -title "Working" -progress 0 /*-status ("Creating lf_"+$targetObj)*/;
+			abBuildWeightedBlend ($lfInf, $targetObj, $weightObj, $sc, `textField -q -text lpFld`+$targetObj, 1, $guideObj); //build left blend
+			abBuildWeightedBlend ($rtInf, $targetObj, $weightObj, $sc, `textField -q -text rpFld`+$targetObj, 2, $guideObj);
+			progressWindow -endProgress;
+			waitCursor -state off;
+			break;
+				
+		case "cancelBn":
+			clear $candidateVtx;
+			deleteUI -window abwbWin;
+			break;
+	}
+}
+
+
+global proc abTwoFace () {
+	string $lfDefPrefix = "lf_";
+	string $rtDefPrefix = "rt_";
+	
+	if (!`window -exists abwbWin`){
+		window -t "abTwoFace" -width 185 -height 354 abwbWin;
+	}
+	if (`windowPref -exists abwbWin`) windowPref -remove abwbWin;
+	formLayout -numberOfDivisions 100 abwbForm;
+	button -label "Create Weighted Base Object" -height 25 -command "abWeightedBlendCtl(\"cwoBn\")" cwoBn; //create weight object bn
+	button -label "Taper Weights" -command "abWeightedBlendCtl(\"twBn\")" twBn;
+	floatField -v .2 -w 50 taperFltFld;
+	separator sep1;
+	textField -editable true uowTxt;
+	button -label "Follow Guide Object" -command "abWeightedBlendCtl(\"uowBn\")" uowBn;
+	//separator sep2;
+	button -label "Select Base Object" -command "abWeightedBlendCtl(\"swoBn\")" swoBn;
+	textField -editable true swoTxt; //select weight object textfield button group
+	separator sep3;
+	textField -editable true -text $lfDefPrefix lpFld; //left prefix
+	text -l "Left And Right Naming Prefixes" npTxt; //naming prefix text
+	textField -editable true -text $rtDefPrefix rpFld; //right prefix
+	
+	checkBox -label "Swap Left/Right Names" -value false flfChkBx;
+	button -height 25 -label "Create Meshes" -command "abWeightedBlendCtl(\"createBn\")" createBn;
+	button -height 25 -label "Close" -command "abWeightedBlendCtl(\"cancelBn\")" cancelBn;
+	int $lmargin = 3;
+	int $rmargin = 3;
+			
+	formLayout -e
+	
+		-attachForm cwoBn "top" 6
+		-attachForm cwoBn "left" $lmargin
+		-attachForm cwoBn "right" $rmargin
+		
+		-attachControl twBn "top" 5 cwoBn
+		-attachForm twBn "left" $lmargin
+		-attachControl twBn "right" 3 taperFltFld
+
+		-attachControl taperFltFld "top" 5 cwoBn
+		-attachForm taperFltFld "right" $rmargin
+		
+		-attachForm uowTxt "left" $lmargin
+		-attachControl uowTxt "top" 6 taperFltFld
+		-attachForm uowTxt "right" $rmargin
+		
+		-attachForm uowBn "left" $lmargin
+		-attachControl uowBn "top" 5 uowTxt
+		-attachForm uowBn "right" $rmargin
+		
+		-attachControl sep1 "top" 5 uowBn
+		-attachForm sep1 "left" $lmargin
+		-attachForm sep1 "right" $rmargin
+		
+		-attachControl swoTxt "top" 6 sep1
+		-attachForm swoTxt "left" $lmargin
+		-attachForm swoTxt "right" $rmargin
+		
+		-attachForm swoBn "left" $lmargin
+		-attachControl swoBn "top" 5 swoTxt
+		-attachForm swoBn "right" $rmargin		
+		
+		-attachControl sep3 "top" 5 swoBn
+		-attachForm sep3 "left" $lmargin
+		-attachForm sep3 "right" $rmargin
+		
+		-attachForm npTxt "left" $lmargin
+		-attachControl npTxt "top" 5 sep3
+		-attachForm npTxt "right" $rmargin
+		
+		-attachForm lpFld "left" $lmargin
+		-attachControl lpFld "top" 3 npTxt
+		-attachPosition lpFld "right" 6 50
+		
+		-attachPosition rpFld "left" 6 50
+		-attachControl rpFld "top" 2 npTxt
+		-attachForm rpFld "right" $rmargin
+		
+		-attachControl flfChkBx "top" 7 lpFld
+		-attachForm flfChkBx "left" $lmargin
+		-attachForm flfChkBx "right" $rmargin
+		
+		-attachForm createBn "left" $lmargin
+		-attachControl createBn "top" 15 flfChkBx
+		-attachForm createBn "right" $rmargin
+		
+		-attachForm cancelBn "right" $rmargin
+		-attachForm cancelBn "left" $lmargin
+		-attachControl cancelBn "top" 5 createBn
+		
+		abwbForm
+		;
+	
+	showWindow abwbWin;
+}
+
+
+global proc abBuildWeightObj (string $weightObj, string $lfInf, string $rtInf) {
+	//bind duplicated base object to appropriate joints
+	float $bBox[];
+	float $xOffset;
+	float $yOffset;
+	int $i;
+	int $existingWeightObj = false;
+	string $aStr[];
+	string $rootJnt = "abBlendRootJNT";
+		
+	$bBox = `xform -q -ws -boundingBox $weightObj`;
+	$xOffset = ($bBox[3] - $bBox[0])/10;
+	$yOffset = ($bBox[4] - $bBox[1])/10;
+	select -clear;
+	//check for existing base object root joint
+	$aStr = `ls -dag`;
+	for ($i=0;$i<size($aStr);$i++){
+		if ($aStr[$i] == $rootJnt){
+			$existingWeightObj = true;
+			break;
+		}
+	}
+	if (!$existingWeightObj){ //build rig
+	joint -n $rootJnt -position ($bBox[0] + ($bBox[3] - $bBox[0])/2) ($bBox[1] + ($bBox[4] - $bBox[1])/2 - $yOffset) ($bBox[2] + ($bBox[5] - $bBox[2])/2);
+	joint -n $rtInf -position ($bBox[0] + ($bBox[3] - $bBox[0])/2 - $xOffset) ($bBox[1] + ($bBox[4] - $bBox[1])/2) ($bBox[2] + ($bBox[5] - $bBox[2])/2);
+	mirrorJoint -mirrorYZ -mirrorBehavior -searchReplace $rtInf $lfInf $rtInf;
+	}
+	skinCluster -n abWeightObjectSkin -dropoffRate 2 -toSelectedBones ($rootJnt+"|"+$lfInf) ($rootJnt+"|"+$rtInf) $weightObj;
+}
+
+global proc abTaperWeights (string $weightObj, string $taperGuideObj, float $taper, int $initTaper) {
+	//blend the weight transition between the lf and rt infs
+	//$taperGuideObj is object to derive dimensions for calculating the unit width of the taper -- useful for weighting separate mouth mesh to follow a face
+	//$taper (0 to 1) is percentage of half the x dimension of the object
+	//basically how far into each side of the mesh does the blend extend
+	//$calcMid is a bool to calculate the midPoint from the bounding box instead of assuming it's centered in ws x
+	//probably more reliable results (especially if your mesh isn't symmetrical) with it set to false
+	//$initTaper is true if this is the first taper after building the weight object
+	//can do the taper much faster if this is the case
+	
+	string $aStr[];
+	string $sc; //skinCluster
+	string $wVtx;
+	string $lfInf;
+	string $statMsg;
+	float $wVtxTrans[];
+	float $bBox[];
+	float $progNum;
+	float $progDenom;
+	float $midOffset = 0;
+	float $lfWeight;
+	float $flt;
+	int $aInt[];
+	int $totVtx;
+	int $prog;
+	int $mod;
+	int $i;
+	
+	if ($taperGuideObj == ""){$taperGuideObj = $weightObj;}
+	if ($taper == 0){$taper = .0001;}
+	$aInt = `polyEvaluate -v $weightObj`;
+	$totVtx = $aInt[0];
+	$bBox = `xform -q -ws -boundingBox $taperGuideObj`;
+	$sc = abGetSkinCluster($weightObj);
+	$aStr = `skinCluster -q -influence $weightObj`;
+	$lfInf = $aStr[0]; //alphabetical return abLeftBlendJNT comes before abRightBlendJNT
+
+	//want to find ws pos of taper
+	float $wObjWidth = $bBox[3] - $bBox[0];
+	float $wObjMidX = $bBox[0] + ($bBox[3] - $bBox[0])/2;
+	float $taperWidth = ($wObjWidth/2) * $taper;
+	float $taperMax = $taperWidth; //ws x of taper end on the high side of weightObj midpoint
+	float $taperMin = - $taperWidth;
+	
+	waitCursor -state on;
+	if ($initTaper){
+		$statMsg = "Weighting Base Object";
+	}else{
+		$statMsg = "Reweighting Base Object";
+	}
+	progressWindow -title "Working" -progress 0 -status $statMsg;
+	
+	$progDenom = $totVtx;
+	$flt = ceil($progDenom/50.0);
+	$mod = $flt;
+	
+	for ($i=0;$i<$totVtx;$i++){
+		
+		//prog win
+		if (($i % $mod) == 0){
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$wVtx = $weightObj+".vtx["+$i+"]";
+		$wVtxTrans = `xform -q -ws -translation $wVtx`;
+		$midOffset = $wVtxTrans[0] - $wObjMidX;
+		/* if ($midOffset > $taperMax || $midOffset < $taperMin){
+			if ($initTaper){
+			//ignore those verts beyond the end of the taper -- should already be fully weighted to appropriate Jnt
+			continue;
+			}
+		} */
+		if ($midOffset == 0){
+			$lfWeight = .5; //just adjust one weight cause we're normalizing -- left is arbitrary
+		}else{
+			if ($midOffset > 0){
+				//leftJnt is +x, rightJnt is -x
+				//want this $lfWeight to taper to 1
+				if ($midOffset < $taperMax){
+				$lfWeight = ($midOffset/$taperWidth)*.5 + .5;
+				}else{
+					if (`skinPercent -t $lfInf -q $sc $wVtx` != 1) {
+						$lfWeight = 1;
+					}else{
+						continue;
+					}
+				}
+			}else{ //less than zero
+				//this $lfWeight tapers to 0 (since $rtWeight tapers to 1)
+				if ($midOffset > $taperMin){
+					$lfWeight = (1 + $midOffset/$taperWidth)*.5;
+				}else{
+					if (`skinPercent -t $lfInf -q $sc $wVtx` != 0) {
+						$lfWeight = 0;
+					}else{
+						continue;
+					}
+				}
+			}
+		}
+		skinPercent -tv $lfInf $lfWeight -normalize true $sc $wVtx;
+	}		
+	progressWindow -endProgress;
+	waitCursor -state off;
+	select $weightObj;	
+}
+
+
+global proc abBuildWeightedBlend (string $inf, string $targetObj, string $weightObj, string $sc, string $name, int $locInd, string $guideObj) {
+	//creates a new object based on the base and target shapes -- this is where it all goes down, jimmy.
+	//$joint is the inf object (joint), $name is the new object's name, and $locInd is location index (used to position result)	
+	global string $candidateVtx[]; //verts with dif translations from base object ('.vtx[#]', '.vtx[##]')		
+	int $aInt[];
+	int $totVtx;
+	int $i;
+	int $j;
+	string $wVtx; //weightObj vertex
+	string $lockedAtt[]; //I'm a master of unlocking	
+	string $str;
+	string $vtxStr; //less concantenating
+	float $vtxWeight;
+	float $aFlt[]; //utility float array
+	float $objOffset; //new object y offset
+	float $wVtxTrans[]; //weighted object vertex translation
+	float $tVtxTrans[]; //target object vertex translation
+	float $rVtxTrans[]; //result object vertex translation
+	float $progNum;
+	float $progDenom;
+	float $flt;
+	int $prog;
+	int $mod;	
+		
+	if ($guideObj == ""){$guideObj = $weightObj;}
+	
+	//find total number of vertices
+	$aInt = `polyEvaluate -v $weightObj`;
+	$totVtx = $aInt[0];
+	
+	
+	if (size($candidateVtx) > 0){
+		if (`objExists $name`){
+			$aInt = `polyEvaluate -v $name`;
+			if ($aInt[0] != $totVtx){
+				progressWindow -endProgress;
+				waitCursor -state off;
+				error ($name+" does not share the same number of vertices as your base object!");
+			}
+		}else{
+			//dupe and place object
+			duplicate -name $name $weightObj;
+			$lockedAtt = {".tx", ".ty", ".tz", ".rx", ".ry", ".rz", ".sx", ".sy", ".sz"};
+			for ($str in $lockedAtt){
+				setAttr -lock false ($name+$str);
+			}
+			$aFlt = `polyEvaluate -boundingBox $guideObj`;
+			$objOffset = $aFlt[3] - $aFlt[2] + ($aFlt[3] - $aFlt[2])*.2;
+			$aFlt = `xform -q -ws -translation $targetObj`;
+			$aFlt[1] -= $objOffset * $locInd;
+			xform -ws -translation $aFlt[0] $aFlt[1] $aFlt[2] $name;
+		}
+	}else{
+		warning "Target Mesh should be a modified version of your Base Object.  Vertices in these two objects share the same translation values";
+	}
+	
+	progressWindow -e  -progress 0 -status ("Creating "+$name);
+	$progDenom = size($candidateVtx);
+	$flt = ceil($progDenom/20.0);
+	$mod = $flt;	
+	
+	for ($i=0;$i<size($candidateVtx);$i++){		
+		//updateProg ($i, $mod, $progDenom);
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+		$progNum = $i;
+		$prog = ($progNum/$progDenom)*100.0;
+		progressWindow -e -progress $prog;
+		}
+		//end prog win		
+		
+		//calculate vtx trans based on weightedObj(base), targetObj, and vtx skinweight
+		$vtxStr = $candidateVtx[$i];
+		$wVtx = $weightObj+$vtxStr;
+		$vtxWeight = `skinPercent -t $inf -q -v $sc $wVtx`;
+		
+		//why doesn't this work?
+		//if ($vtxWeight == 0){
+		//	continue;
+		//}
+		
+		$wVtxTrans = `xform -q -os -translation $wVtx`;
+		$tVtxTrans = `xform -q -os -translation ($targetObj+$vtxStr)`;
+		for ($j=0;$j<3;$j++){
+			$rVtxTrans[$j] = $wVtxTrans[$j] + (($tVtxTrans[$j] - $wVtxTrans[$j]) * $vtxWeight);
+		}
+		xform -os -translation $rVtxTrans[0] $rVtxTrans[1] $rVtxTrans[2] ($name+$vtxStr);
+	}	
+}
+
+
+global proc abCullCandidateVerts (string $weightObj, string $targetObj){
+	global string $candidateVtx[];	
+	string $vtxStr; //less concatenating
+	float $wVtxTrans[]; //weighted object vertex translation
+	float $tVtxTrans[]; //target object vertex translation
+	float $progNum;
+	float $progDenom;
+	float $tol = .001;
+	float $flt;
+	int $aInt[];
+	int $transMatch; //all three translation axes match flag
+	int $totVtx;
+	int $i;
+	int $j;
+	int $mod;
+	int $prog;
+	
+	clear $candidateVtx;
+	//find total number of vertices
+	$aInt = `polyEvaluate -v $weightObj`;
+	$totVtx = $aInt[0];	
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status ("Culling Candidate Vertices");			
+	$progDenom = $totVtx;
+	$flt = ceil($progDenom/20.0);
+	$mod = $flt;
+	for ($i=0;$i<$totVtx;$i++){		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+		$progNum = $i;
+		$prog = ($progNum/$progDenom)*100.0;
+		progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$vtxStr = ".vtx["+$i+"]";
+		$wVtxTrans = `xform -q -os -translation ($weightObj+$vtxStr)`;
+		$tVtxTrans = `xform -q -os -translation ($targetObj+$vtxStr)`;
+		$transMatch = true;
+		for ($j=0;$j<3;$j++){
+			if (abs($wVtxTrans[$j] - $tVtxTrans[$j]) > $tol){
+				$transMatch = false;
+				break;
+			}
+		}
+		if ($transMatch == false){
+			$candidateVtx[size($candidateVtx)] = $vtxStr;
+		}
+	}
+	progressWindow -endProgress;
+	waitCursor -state off;
+}
+

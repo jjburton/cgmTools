@@ -1002,8 +1002,25 @@ class tdToolsClass(BaseMelWindow):
 		SkinWeightsCopyRow.layout()
 		mc.setParent(self.containerName)
 		guiFactory.lineSubBreak()
+		guiFactory.lineBreak()
+
+		#>>> Weight Utility tools
+		mc.setParent(self.containerName)
+		guiFactory.header('Utilities')
+		guiFactory.lineSubBreak()
 
 
+		SkinWeightsUtilitiesRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		
+		guiFactory.doButton2(SkinWeightsUtilitiesRow,'abWeightLifter',
+		                     lambda *a: mel.eval('abWeightLifter'),
+				             "Tool for working with influences\n by Brendan Ross")
+
+
+
+		SkinWeightsUtilitiesRow.layout()
+		mc.setParent(self.containerName)
+		guiFactory.lineSubBreak()
 
 
 		return self.containerName
@@ -1145,6 +1162,27 @@ class tdToolsClass(BaseMelWindow):
 		mc.setParent(self.containerName)
 		guiFactory.lineSubBreak()
 		guiFactory.lineBreak()
+
+
+		#>>> Blendshape Utility tools
+		mc.setParent(self.containerName)
+		guiFactory.header('Utilities')
+		guiFactory.lineSubBreak()
+
+
+		BlendshapeUtilitiesRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+		
+		guiFactory.doButton2(BlendshapeUtilitiesRow,'abSymMesh',
+		                     lambda *a: mel.eval('abSymMesh'),
+				             "Tool for working geo for blendshapes\n by Brendan Ross")
+		guiFactory.doButton2(BlendshapeUtilitiesRow,'abTwoFace',
+		                     lambda *a: mel.eval('abTwoFace'),
+				             "Tool for splitting geo for blendshapes\n by Brendan Ross")
+
+
+		BlendshapeUtilitiesRow.layout()
+		mc.setParent(self.containerName)
+		guiFactory.lineSubBreak()
 
 
 

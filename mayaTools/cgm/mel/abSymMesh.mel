@@ -1,0 +1,1209 @@
+/*
+abSymMesh v 1.7
+brendan ross 03.10.2004
+www.supercrumbly.com
+
+update -- 09.20.2004: "Select Moved Verts" button will select vertices that have been moved relative to the base mesh.
+update -- 3.21.2005: Added progress bar for "Select Moved Verts".  I love progress bars.
+update -- 10.12.2006: Added popupMenu to "Revert Selected to Base" button to revert by a given percentage.  Added $abSymProgBarThresh to adjust the number of verts included in an operation before a progress bar will be displayed (adjust higher for faster computers).
+update -- 10.25.2006: Added a slider to dynamically revert selected verts to base object.  The slider only works on vertex selections, not on the object level (too slow).  You can now specify alternate versions of the base mesh to revert to as well.  Improved performance of revert.
+update -- 12.04.2006: It should now work in Maya 8.
+update -- 4.12.2008: Added operations menu.  Allows you to copy, add and subtract blendshapes from one another.
+
+use:
+
+A useful little script for building symmetrical and asymmetrical blendshapes.  Check for symmetry, mirror
+and flip polygon geometry, and much more.
+
+(ok, not much more, but it is pretty useful)
+
+directions:
+
+It should be fairly self explanatory, but here goes.
+
+Select a mesh and click "Check Symmetry" to highlight asymmetric vertices.  
+
+To use the selection mirror, mirror selected, flip, and revert functions, you must first select a symmetrical mesh
+and click "Select Base Geometry."  You can now select a duplicate mesh with the same structure,  and you should be
+able to use all of the functions on it.  Revert, mirror, and flip work on both vertex (component) and object selections.
+
+Uncheck "Use Pivot as Origin" to evaluate your objects using the mirror axis world origin as 
+your axis of symmetry.  
+
+That's it.  I hope you find it useful.
+*/
+
+global int $abSymProgBarThresh = 800; //number of verts in an operation beyond which a progress bar is shown (set higher for faster computers)
+global int $abSymTable[];
+
+global string $abSymRevVertTable[];
+global vector $abSymRevPosTable[];
+global vector $abSymRevBasePosTable[];
+global int $abSymSliderDragging = false; //used to flag when the mouse is dragging a slider
+
+global proc string[] abCheckSym (string $obj, int $axis, float $tol, int $bTable, int $usePiv) {
+	//$bTable is bool to use $obj to create and populate $abSymTable
+	//which goes a little like {obj.vtx[pos mAxis 1], obj.vtx[neg mAxis 1]}
+		
+	global int $abSymTable[];
+	string $aNegVerts[];
+	string $aPosVerts[];
+	string $aNonSymVerts[];
+	string $aStr[];
+	string $vtx;
+	string $str;
+	int $aPosVertsInt[];
+	int $aNegVertsInt[];
+	int $aInt[];
+	int $totVtx;
+	int $i;
+	int $j;
+	int $mAxisInd = $axis - 1; //mirror axis index (for xform)
+	int $axis2Ind = ($mAxisInd + 1) % 3;
+	int $axis3Ind = ($mAxisInd + 2) % 3;
+	int $mod;
+	int $prog;
+	int $vertCounter = 0;
+	float $aNegVertTrans[];
+	float $aPosVertTrans[];
+	float $aVtxTrans[];
+	float $aVtx2Trans[];
+	float $bBox[];
+	float $mid;
+	float $midOffset;
+	float $posOffset;
+	float $negOffset;
+	float $flt;
+	float $progNum;
+	float $progDenom;
+	float $test1;
+	float $test2;
+	
+	float $midOffsetTol = -.0000001;
+	
+	if ($usePiv){
+		$aVtxTrans = `xform -q -ws -t $obj`;
+		$mid = $aVtxTrans[$mAxisInd];
+	}else{
+		if ($bTable){
+			$bBox = `xform -q -ws -boundingBox $obj`;
+			$mid = $bBox[$mAxisInd] + (($bBox[($mAxisInd+3)] - $bBox[$mAxisInd])/2);
+		}else{
+			$mid = 0; //if object isn't symmetrical, it's got to be at the origin to measure symmetry
+		}
+	}
+	
+	if ($bTable) clear($abSymTable);
+		
+	$aInt = `polyEvaluate -v $obj`; 
+	$totVtx = $aInt[0];
+	
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status "Sorting";
+	$progDenom = $totVtx;
+	$flt = ceil($progDenom/50);
+	$mod = $flt;
+
+	for ($i=0;$i<$totVtx;$i++){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$vtx = $obj+".vtx["+$i+"]";
+		$aVtxTrans = `xform -q -ws -translation $vtx`;
+		$midOffset = $aVtxTrans[$mAxisInd] - $mid;
+		if ($midOffset >= $midOffsetTol){
+			$aPosVerts[size($aPosVerts)] = $vtx;
+			if ($bTable){$aPosVertsInt[size($aPosVertsInt)] = $i;}
+			$aPosVertTrans[size($aPosVertTrans)] = $aVtxTrans[$mAxisInd];
+		}else{
+			if ($midOffset < $midOffsetTol){
+				$aNegVerts[size($aNegVerts)] = $vtx;
+				if ($bTable){$aNegVertsInt[size($aNegVertsInt)] = $i;}
+				$aNegVertTrans[size($aNegVertTrans)] = $aVtxTrans[$mAxisInd];
+			}
+		}
+	}
+	
+	if ($bTable){$str = "Building Symmetry Table";}else{$str = "Checking For Symmetry";}
+	progressWindow -e -progress 0 -status $str;
+	$progDenom = size($aPosVerts);
+	$flt = ceil($progDenom/50);
+	$mod = $flt;
+	
+	//now find nonsymverts
+	for ($i=0;$i<size($aPosVerts);$i++){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$vtx = $aPosVerts[$i];
+		$posOffset = ($aPosVertTrans[$i] - $mid);
+		if ($posOffset < $tol){
+			$aPosVerts[$i] = "m";
+			$vertCounter ++;
+			continue;
+		}
+		for ($j=0;$j<size($aNegVerts);$j++){
+			if ($aNegVerts[$j] == "m") continue;
+			$negOffset = $mid - $aNegVertTrans[$j];
+			if ($negOffset < $tol){
+				$aNegVerts[$j] = "m";
+				$vertCounter ++;
+				continue;
+			}
+			if (abs($posOffset - $negOffset) <= $tol){
+				$aVtxTrans = `xform -q -ws -t $vtx`;
+				$aVtx2Trans = `xform -q -ws -t $aNegVerts[$j]`;
+				$test1 = $aVtxTrans[$axis2Ind] - $aVtx2Trans[$axis2Ind];
+				$test2 = $aVtxTrans[$axis3Ind] - $aVtx2Trans[$axis3Ind];
+				if (abs($test1) < $tol && abs($test2) < $tol){
+					//match
+					if ($bTable){
+						//use this info to build symmetry table
+						$abSymTable[size($abSymTable)] = $aPosVertsInt[$i];
+						$abSymTable[size($abSymTable)] = $aNegVertsInt[$j];
+						$vertCounter += 2;
+					}
+					$aPosVerts[$i] = $aNegVerts[$j] = "m"; //m is for match
+					break;
+				}
+			}
+		}
+	}
+	//now strip out "m" from $aPosVerts and $aNegVerts, and we'll have asymmetry
+	$aStr = {"m"};
+	$aPosVerts = stringArrayRemove($aStr, $aPosVerts);
+	$aNegVerts = stringArrayRemove($aStr, $aNegVerts);
+	$aNonSymVerts = stringArrayCatenate($aPosVerts, $aNegVerts);
+	
+	if ($bTable){
+		$int = size($abSymTable) + $vertCounter;
+		if ($vertCounter != $totVtx){
+			//object is not symmetrical
+			warning "Base geometry is not symmetrical, not all vertices can be mirrored";
+		}else{
+			print "Base geometry is symmetrical";
+		}
+	}
+	progressWindow -endProgress;
+	waitCursor -state off;
+	return $aNonSymVerts;
+}
+
+
+global proc int abGetSymVtx (int $vtxInt){
+	//uses abSymTable, returns symmetrical vtx or -1 if failed
+	global int $abSymTable[];
+	int $mVtxInt = -1;
+	int $i;
+	
+	for ($i=0;$i<size($abSymTable);$i++){
+		if ($vtxInt == $abSymTable[$i]){
+			//match
+			if (($i % 2) == 0){
+				//even number, match is record above (it's a positive vert)
+				$mVtxInt = $abSymTable[$i+1];
+			}else{
+				$mVtxInt = $abSymTable[$i-1];
+			}
+			break;
+		}
+	}
+	return $mVtxInt;
+}
+
+
+global proc abMirrorSel (string $obj, string $baseObj, string $aSelVerts[], int $axis, int $negToPos, int $flip, int $usePiv, float $tol){
+	//$axis is 1, 2, 3 -- $negToPos is bool -- true mirrors negative (axis) to positive (axis)
+	//$flip is bool -- if true, selVerts are flipped instead of mirrored
+	//$usePiv is bool to use pivot on $obj as origin
+	global int $abSymTable[];
+	global int $abSymProgBarThresh;
+	
+	string $aStr[];
+	string $str;
+	string $vtx;
+	string $obj;
+	int $aPosVertsInt[];
+	int $aNegVertsInt[];
+	int $aZeroVertsInt[];
+	int $mAxisInd = $axis - 1; //mirror axis index (for xform)
+	int $axis2Ind = ($mAxisInd + 1) % 3;
+	int $axis3Ind = ($mAxisInd + 2) % 3;
+	int $vertNum;
+	int $i;
+	int $j;
+	int $prog;
+	int $mod;
+	int $showProg = false;  //don't show the progress bar
+	float $bBox[];
+	float $baseMid;
+	float $baseMidOffset;
+	float $aVtxTrans[];
+	float $aFlpVtxTrans[];
+	float $mid; //mirror axis midpoint
+	float $progNum;
+	float $progDenom;
+	float $flt;
+	
+	if ($usePiv){
+		$aVtxTrans = `xform -q -ws -t $obj`;
+		$mid = $aVtxTrans[$mAxisInd];
+		$aVtxTrans = `xform -q -ws -t $baseObj`;
+		$baseMid = $aVtxTrans[$mAxisInd];
+	}else{
+		$mid = 0;
+		$bBox = `xform -q -ws -boundingBox $baseObj`;
+		$baseMid = $bBox[$mAxisInd] + (($bBox[($mAxisInd+3)] - $bBox[$mAxisInd])/2);
+	}
+	
+	waitCursor -state on;
+	if (size($aSelVerts) > $abSymProgBarThresh){ //show prog if more than this many verts being mirrored
+		$showProg = true;
+		$str = "Mirroring Vertices";
+		if ($flip){$str = "Flipping Vertices";}
+		progressWindow -title "Working" -progress 0 -status $str;
+		$progDenom = size($aSelVerts);
+		$flt = ceil($progDenom/50);
+		$mod = $flt;
+	}
+		
+	//strip out Pos verts if $negToPos is true (and vice versa)
+	//aposverts (and anegverts) are int arrays in this proc to simplify matching
+	//get pos neg info from base mesh
+	for ($i=0;$i<size($aSelVerts);$i++){
+		
+		//prog win
+		if ($showProg){
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*50.0;
+				progressWindow -e -progress $prog;
+			}
+		}
+		//end prog win
+		
+		$vtx = $aSelVerts[$i];
+		//$aVtxTrans = `xform -q -ws -translation $vtx`;
+		$vertNum = match("([0-9])+", (match ("([0-9])+\\]", $vtx)));
+		$aVtxTrans = `xform -q -ws -translation ($baseObj+".vtx["+$vertNum+"]")`;
+		$baseMidOffset = $aVtxTrans[$mAxisInd] - $baseMid;
+		if (abs($baseMidOffset) < $tol){
+			$aZeroVertsInt[size($aZeroVertsInt)] = $vertNum;
+			continue;
+		}
+		if ($baseMidOffset > 0){
+			$aPosVertsInt[size($aPosVertsInt)] = $vertNum;
+			continue;
+		}
+		if ($baseMidOffset < 0){
+			$aNegVertsInt[size($aNegVertsInt)] = $vertNum;
+			continue;
+		}
+	}
+	
+	if ($negToPos){
+		$aPosVertsInt = $aNegVertsInt;
+	}
+	
+	if ($showProg){
+		$progDenom = size($aPosVertsInt);
+		$flt = ceil($progDenom/50);
+		$mod = $flt;
+	}
+	
+	for ($i=0;$i<size($aPosVertsInt);$i++){
+		
+		//prog win
+		if ($showProg){
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*50.0 + 50;
+				progressWindow -e -progress $prog;
+			}
+		}
+		//end prog win
+		
+		$vertNum = abGetSymVtx($aPosVertsInt[$i]);
+		if ($vertNum != -1){
+			if (!$flip){ //mirror selected
+				$aVtxTrans = `xform -q -ws -t ($obj+".vtx["+$aPosVertsInt[$i]+"]")`;
+				$aVtxTrans[$mAxisInd] = 2*$mid - $aVtxTrans[$mAxisInd];
+				xform -ws -t $aVtxTrans[0] $aVtxTrans[1] $aVtxTrans[2] ($obj+".vtx["+$vertNum+"]");
+			}else{ //flip selected
+				$aVtxTrans = `xform -q -ws -t ($obj+".vtx["+$aPosVertsInt[$i]+"]")`;
+				$aVtxTrans[$mAxisInd] = 2*$mid - $aVtxTrans[$mAxisInd];
+				$aFlpVtxTrans = `xform -q -ws -t ($obj+".vtx["+$vertNum+"]")`;
+				$aFlpVtxTrans[$mAxisInd] = 2*$mid - $aFlpVtxTrans[$mAxisInd];
+				xform -ws -t $aVtxTrans[0] $aVtxTrans[1] $aVtxTrans[2] ($obj+".vtx["+$vertNum+"]");
+				xform -ws -t $aFlpVtxTrans[0] $aFlpVtxTrans[1] $aFlpVtxTrans[2] ($obj+".vtx["+$aPosVertsInt[$i]+"]");
+			}
+		}
+	}
+	for ($i=0;$i<size($aZeroVertsInt);$i++){ //flip middle verts too
+		if ($flip){
+			$aVtxTrans = `xform -q -ws -t ($obj+".vtx["+$aZeroVertsInt[$i]+"]")`;
+			$aVtxTrans[$mAxisInd] = 2*$mid - $aVtxTrans[$mAxisInd];
+			xform -ws -t $aVtxTrans[0] $aVtxTrans[1] $aVtxTrans[2] ($obj+".vtx["+$aZeroVertsInt[$i]+"]");
+		}else{
+			$aVtxTrans = `xform -q -ws -t ($obj+".vtx["+$aZeroVertsInt[$i]+"]")`;
+			$aVtxTrans[$mAxisInd] = $mid;
+			xform -ws -t $aVtxTrans[0] $aVtxTrans[1] $aVtxTrans[2] ($obj+".vtx["+$aZeroVertsInt[$i]+"]");
+		}
+	}
+	if ($showProg){progressWindow -endProgress;}
+	waitCursor -state off;
+}
+
+
+global proc abRevertSel(string $aSelVerts[], string $obj, string $baseObj, float $bias){
+	//reverts selected verts to base -os trans -- $bias is the percentage (0-1) to revert from current verts position to the base verts position, 100 taking on the base object's vert positions (original default behaviour) 
+	global int $abSymProgBarThresh;
+		
+	string $str;
+	string $vtx;
+	int $vertNum;
+	int $i;
+	int $prog;
+	int $mod;
+	int $showProg = false;  //don't show the progress bar
+	float $aTrans[];
+	float $progNum;
+	float $progDenom;
+	float $flt;
+	float $tol = 0;
+	vector $vTol = <<$tol, $tol, $tol>>;
+	vector $vBaseTrans;
+	vector $vObjTrans;
+	
+	if ($bias > 1){
+		$bias = 1;
+	}else if ($bias < 0){
+		$bias = 0;
+	}
+	$bias = 1 - $bias;
+	if ($bias < .01) $bias = 0;
+	
+	if (size($aSelVerts) > $abSymProgBarThresh){ //show prog if more than this many verts being mirrored
+		$showProg = true;
+		progressWindow -title "Working" -progress 0 -status "Reverting Vertices";
+		$progDenom = size($aSelVerts);
+		$flt = ceil($progDenom/50);
+		$mod = $flt;
+	}
+	
+	waitCursor -state on;
+	for ($i=0;$i<size($aSelVerts);$i++){
+		//prog win
+		if ($showProg){
+			if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+				$progNum = $i;
+				$prog = ($progNum/$progDenom)*100;
+				progressWindow -e -progress $prog;
+			}
+		}
+		//end prog win
+		$vtx = $aSelVerts[$i];
+		$vertNum = match("([0-9])+", (match ("([0-9])+\\]", $vtx)));
+		$aTrans = `xform -q -os -t ($baseObj+".vtx["+$vertNum+"]")`;
+		$vBaseTrans = <<$aTrans[0], $aTrans[1], $aTrans[2]>>;
+		
+		//bias stuff
+		$aTrans = `xform -q -os -t $vtx`;
+		$vObjTrans = <<$aTrans[0], $aTrans[1], $aTrans[2]>>;
+		
+		if (abs($vObjTrans - $vBaseTrans) > $vTol) xform -os -t ($vBaseTrans.x+($vObjTrans.x-$vBaseTrans.x)*$bias) ($vBaseTrans.y+($vObjTrans.y-$vBaseTrans.y)*$bias) ($vBaseTrans.z+($vObjTrans.z-$vBaseTrans.z)*$bias) $vtx;
+		//done
+	}
+	
+	if ($showProg){progressWindow -endProgress;}	
+	waitCursor -state off;
+}
+
+
+global proc abSymInteractiveRevertToBase(){
+	//responds to revert to base slider movement
+	
+	global string $abSymRevVertTable[];
+	global vector $abSymRevPosTable[];
+	global vector $abSymRevBasePosTable[];
+	global int $abSymSliderDragging;
+	global string $abAltSbg;
+	global string $abSbg;
+	
+	int $i;
+	int $firstClick = false;
+	
+	if ($abSymSliderDragging == false){
+		$abSymSliderDragging = true;
+		
+		//check to see if selection is the same -- if it is, use the existing $abSymRevPosTable
+		
+		string $aStr[], $selObj, $aSelVerts[], $aBaseVerts[];
+		int $buildNewTables = true;
+		
+		$aStr = `filterExpand -sm 12`;
+		if (size($aStr) == 1){
+			$selObj = $aStr[0];
+		}else{
+			$aStr = `ls -hilite`;
+			if (size($aStr) == 1){
+				$selObj = $aStr[0];
+			}
+		}
+		
+		$aSelVerts = `filterExpand -sm 31`;
+		
+		if ($selObj != "" && size($aSelVerts) > 0){
+			
+			if (size($aSelVerts) == size($abSymRevVertTable) && size($abSymRevVertTable) == size($abSymRevBasePosTable)){				
+				$buildNewTables = false;
+				for ($i=0;$i<size($aSelVerts);$i++){
+					if ($aSelVerts[$i] != $abSymRevVertTable[$i]){
+						$buildNewTables = true;
+						break;
+					}
+				}
+			}
+			
+			if ($buildNewTables){
+				
+				abSymClearRevTables();
+				
+				float $tol = .001;
+				float $aFlt[];
+				string $aBaseVerts[];
+				vector $vector1, $vector2;
+				
+				string $baseObj = ($abAltSbg != "") ? $abAltSbg : $abSbg;
+				
+				//make base verts array
+				for ($i=0;$i<size($aSelVerts);$i++){
+					$aBaseVerts[size($aBaseVerts)] = $baseObj+(`match "\\.vtx\\[([0-9])+]$" $aSelVerts[$i]`);
+				}
+				
+				for ($i=0;$i<size($aSelVerts);$i++){
+					
+					$aFlt = `xform -q -os -translation $aSelVerts[$i]`;
+					$vector1 = <<$aFlt[0], $aFlt[1], $aFlt[2]>>;
+					$aFlt = `xform -q -os -translation $aBaseVerts[$i]`;
+					$vector2 = <<$aFlt[0], $aFlt[1], $aFlt[2]>>;
+					
+					if ((abs($vector1 - $vector2)) > <<$tol, $tol, $tol>>){
+						
+						$abSymRevVertTable[size($abSymRevVertTable)] = $aSelVerts[$i];
+						$abSymRevPosTable[size($abSymRevPosTable)] = $vector1;
+						$abSymRevBasePosTable[size($abSymRevBasePosTable)] = $vector2;
+					}
+				}
+			}
+		}else{
+			abSymClearRevTables();
+			warning "Select vertices on one polygon object.";
+		}
+		$firstClick = true;
+	}
+	
+	float $bias = `floatSlider -q -v rvrtFltSldr`;
+	float $aObjTrans[], $aBaseTrans[];
+	vector $vObjTrans, $vBaseTrans;
+	
+	if (size($abSymRevVertTable) == size($abSymRevPosTable) && size($abSymRevPosTable) == size($abSymRevBasePosTable)){
+		for ($i=0;$i<size($abSymRevVertTable);$i++){
+			
+			$vObjTrans = $abSymRevPosTable[$i];
+			$vBaseTrans = $abSymRevBasePosTable[$i];
+			xform -os -t ($vBaseTrans.x+($vObjTrans.x-$vBaseTrans.x)*$bias) ($vBaseTrans.y+($vObjTrans.y-$vBaseTrans.y)*$bias) ($vBaseTrans.z+($vObjTrans.z-$vBaseTrans.z)*$bias) $abSymRevVertTable[$i];
+		}
+	}
+	
+	if ($firstClick) undoInfo -swf off;
+}
+
+
+global proc abSymEndDrag(){
+	//called when dragging is done
+	
+	global int $abSymSliderDragging;
+	
+	$abSymSliderDragging = false;
+	undoInfo -swf on;
+}
+
+
+global proc abSymClearRevTables(){
+	//clears out globals associated with dragging reversion slider
+	
+	global string $abSymRevVertTable[];
+	global vector $abSymRevPosTable[];
+	global vector $abSymRevBasePosTable[];
+	
+	clear $abSymRevVertTable;
+	clear $abSymRevPosTable;
+	clear $abSymRevBasePosTable;
+}
+
+
+global proc abSymUseAlternateBase(int $useAltBase){
+	//substitute alternate variation of this mesh as the base shape for revert commands -- $useAltBase is a boolean which determines whether to use the alternate base or to revert to original base object
+	
+	global string $abAltSbg;
+	global string $abSbg;
+	
+	string $aStr[];
+	int $aInt[], $totNewVtx, $totOrigVtx;
+	
+	
+	if ($useAltBase){
+		$aStr = `filterExpand -sm 12`;
+		if (size($aStr) == 1){
+			
+			$aInt = `polyEvaluate -v $abSbg`; 
+			$totOrigVtx = $aInt[0];
+			$aInt = `polyEvaluate -v  $aStr[0]`; 
+			$totNewVtx = $aInt[0];
+			if ($totOrigVtx = $totNewVtx){
+				//number of verts match up, so accept this mesh as a usable base
+				
+				$abAltSbg = $aStr[0];
+				abSymClearRevTables();
+				menuItem -e -label ("Using "+$abAltSbg+" as Base") abSymCurBsMnIt;
+				menuItem -e -enable true abSymSlOrigRvtBsMnIt;
+				menuItem -e -enable true abSymSlAltMvVtsMnIt;
+				
+			}else{
+				warning "The new base mesh must have the same number of vertices as the current base mesh.";
+			}
+		}else{
+			warning "Select a mesh to use as a base object.";
+		}
+	}else{
+		$abAltSbg = "";
+		abSymClearRevTables();
+		menuItem -e -label "Using Original Base" abSymCurBsMnIt;
+		menuItem -e -enable false abSymSlOrigRvtBsMnIt;
+		menuItem -e -enable false abSymSlAltMvVtsMnIt;
+		
+	}
+}
+
+
+global proc string[] abSelMovedVerts(string $obj, string $baseObj, float $tol){
+	//select repositioned verts (as compared to the base mesh)
+	int $aInt[];
+	int $totVtx;
+	int $i;
+	int $j;
+	float $tFlt;
+	float $aVtxTrans[];
+	string $objStr = $obj+".vtx[";
+	string $baseObjStr = $baseObj+".vtx[";
+	string $aRetSel[];
+	string $vtx;
+	
+	vector $vTrans1, $vTrans2;
+	vector $vTol = <<$tol, $tol, $tol>>;
+	
+	$aInt = `polyEvaluate -v $obj`; 
+	$totVtx = $aInt[0];
+	
+	int $mod, $prog;
+	float $flt, $progNum, $progDenom;
+	float $progUpdate = 50.0;
+	waitCursor -state on;
+	progressWindow -title "Working" -progress 0 -status "Checking Verts";
+	$progDenom = $totVtx;
+	$flt = ceil($progDenom/$progUpdate);
+	$mod = $flt;
+	
+	for ($i=0;$i<$totVtx;$i++){
+		
+		//prog win
+		if (($i % $mod) == 0){ //make the progress bar a bit less resource intensive
+			$progNum = $i;
+			$prog = ($progNum/$progDenom)*100.0;
+			progressWindow -e -progress $prog;
+		}
+		//end prog win
+		
+		$vtx = $objStr+$i+"]";
+		$aVtxTrans = `xform -q -os -t ($baseObjStr+$i+"]")`;
+		$vTrans1 = <<$aVtxTrans[0], $aVtxTrans[1], $aVtxTrans[2]>>;
+		
+		$aVtxTrans = `xform -q -os -t $vtx`;
+		$vTrans2 = <<$aVtxTrans[0], $aVtxTrans[1], $aVtxTrans[2]>>;
+		
+		if (abs($vTrans1 - $vTrans2) > $vTol) $aRetSel[size($aRetSel)] = $vtx;
+	}
+	
+	progressWindow -endProgress;
+	waitCursor -state off;
+	
+	return $aRetSel;
+}
+
+
+global proc abSMServiceAddSubtractCopy(int $operation){
+	// called by add, subtract and copy buttons in the menu -- if selection and basemesh are in order it calls abSMAddSubtractCopyMesh
+	// operation is passed to abSMAddSubtractCopyMesh
+	
+	global string $abSbg;
+	
+	if ($abSbg == ""){
+		warning "You must select a base mesh first.";
+		return;
+	}
+	
+	string $aSel[] = `ls -sl`;
+	
+	if (size($aSel) != 2){
+		warning "Select two mesh objects (source and target).";
+		return;
+	}
+	
+	string $mesh, $aRel[];
+	
+	int $aInt[] = `polyEvaluate -v $abSbg`; 
+	int $baseVertNum = $aInt[0];
+	
+	// make sure that both objects are meshes with the correct number of verts (same as base mesh) and neither is the basemesh
+	for ($mesh in $aSel){
+		// make sure neither mesh is the base mesh
+		if ($mesh == $abSbg){
+			warning "The basemesh cannot be used as a source or target.  Try using revert instead.";
+			return;
+		}
+		$aRel = `listRelatives -type mesh`;
+		if (size($aRel) == 0){
+			warning ($mesh+" is not a mesh.  Unable to proceed.");
+			return;
+		}else{
+			$aInt = `polyEvaluate -v $mesh`;
+			if ($aInt[0] != $baseVertNum){
+				warning ($mesh+" topology doesn't match the base object.  Unable to proceed.");
+				return;
+			}
+		}
+	}
+	
+	// ok, it's good to go
+	abSMAddSubtractCopyMesh($abSbg, $aSel[0], $aSel[1], $operation);
+	
+}
+
+
+global proc abSMAddSubtractCopyMesh(string $baseMesh, string $source, string $target, int $operation){
+	// adds or subtracts one blend ($source) from another ($target) based on operation (0 == subtract, 1 == add, 2 == copy)
+	
+	int $aInt[], $totVtx, $i;
+	float $aBaseVtxTrans[], $aSourceVtxTrans[], $aTargetVtxTrans[], $aSourceBaseOffset[];
+	string $baseMeshStr = $baseMesh+".vtx[";
+	string $sourceMeshStr = $source+".vtx[";
+	string $targetMeshStr = $target+".vtx[";
+	
+	
+	$aInt = `polyEvaluate -v $baseMesh`; 
+	$totVtx = $aInt[0];
+		
+	// get offset of source verts from baseMesh
+	for ($i=0;$i<$totVtx;$i++){
+		
+		$aBaseVtxTrans = `xform -q -os -t ($baseMeshStr+$i+"]")`;
+		$aSourceVtxTrans = `xform -q -os -t ($sourceMeshStr+$i+"]")`;
+		$aTargetVtxTrans = `xform -q -os -t ($targetMeshStr+$i+"]")`;
+		$aSourceBaseOffset = {$aSourceVtxTrans[0]-$aBaseVtxTrans[0], $aSourceVtxTrans[1]-$aBaseVtxTrans[1], $aSourceVtxTrans[2]-$aBaseVtxTrans[2]};
+		
+		if ($operation == 0){
+			// subtract
+			$aTargetVtxTrans = {$aTargetVtxTrans[0]-$aSourceBaseOffset[0], $aTargetVtxTrans[1]-$aSourceBaseOffset[1], $aTargetVtxTrans[2]-$aSourceBaseOffset[2]};
+		}else if ($operation  == 1){
+			// add
+			$aTargetVtxTrans = {$aTargetVtxTrans[0]+$aSourceBaseOffset[0], $aTargetVtxTrans[1]+$aSourceBaseOffset[1], $aTargetVtxTrans[2]+$aSourceBaseOffset[2]};
+		}else if ($operation == 2){
+			// copy
+			$aTargetVtxTrans = $aSourceVtxTrans;
+		}
+		
+		xform -os -t $aTargetVtxTrans[0] $aTargetVtxTrans[1] $aTargetVtxTrans[2] ($targetMeshStr+$i+"]");
+	}
+	
+}
+
+
+global proc string[] abSelSideVerts (string $obj, string $baseObj, int $mAxisInd, int $selNeg, int $usePiv, float $tol){
+	//selects a side of the object (located on origin) for faster mirroring (instead of having to find symmetrical verts)
+	//$selNeg true -- select Negative side of mesh, false -- select Pos side, 2 -- select all verts
+	int $aInt[];
+	int $totVtx;
+	int $i;
+	string $aRetSel[]; //return string of selected verts
+	string $vtxStr;
+	float $aVtxTrans[];
+	float $bBox[];
+	float $baseMid;
+	float $baseMidOffset;
+	
+	$mAxisInd -= 1; //from (1 to 3) to (0 to 2)
+	
+	$aInt = `polyEvaluate -v $obj`; 
+	$totVtx = $aInt[0];
+	
+	if ($selNeg == 2){ //return all verts
+		for ($i=0;$i<$totVtx;$i++){
+			$vtx = $obj+".vtx["+$i+"]";
+			$aRetSel[size($aRetSel)] = $vtx;
+		}
+		return $aRetSel;
+	}
+	
+	if ($usePiv){
+		$aVtxTrans = `xform -q -ws -t $baseObj`;
+		$baseMid = $aVtxTrans[$mAxisInd];
+	}else{
+		$bBox = `xform -q -ws -boundingBox $baseObj`;
+		$baseMid = $bBox[$mAxisInd] + (($bBox[($mAxisInd+3)] - $bBox[$mAxisInd])/2);
+	}
+
+	for ($i=0;$i<$totVtx;$i++){
+		$vtxStr = ".vtx["+$i+"]";
+		$aVtxTrans = `xform -q -ws -translation ($baseObj+$vtxStr)`;
+		$baseMidOffset = $aVtxTrans[$mAxisInd] - $baseMid;
+		if (abs($baseMidOffset) < $tol){
+			$aRetSel[size($aRetSel)] = $obj+$vtxStr;
+			continue;
+		}
+		if ($baseMidOffset > 0 && !$selNeg){
+			$aRetSel[size($aRetSel)] = $obj+$vtxStr;
+			continue;
+		}
+		if ($baseMidOffset < 0 && $selNeg){
+			$aRetSel[size($aRetSel)] = $obj+$vtxStr;
+			continue;
+		}
+	}
+	return $aRetSel;
+}
+
+
+global proc string[] abSelMirror (string $obj, string $aSelVerts[]){
+	//mirror selection (not selected)
+	global int $abSymTable[];
+	string $aRetVerts[];
+	string $vtxStr;
+	int $i;
+	int $vertNum;
+	int $mVertNum;
+	
+	if (size($abSymTable) == 0){
+		warning "No Base Geometry Selected";
+		return $aSelVerts;
+	}
+	waitCursor -state on;
+	$vtxStr = $obj+".vtx[";
+	for ($i=0;$i<size($aSelVerts);$i++){
+		$vertNum = match("([0-9])+", (match ("([0-9])+\\]", ($vtxStr+$aSelVerts[$i]+"]"))));
+		$mVertNum = abGetSymVtx($vertNum);
+		if ($mVertNum != -1){
+			$aRetVerts[size($aRetVerts)] = ($vtxStr+$mVertNum+"]");
+		}else{ //return non symverts too (zeros and others)
+			$aRetVerts[size($aRetVerts)] = ($vtxStr+$vertNum+"]");
+		}
+	}
+	waitCursor -state off;
+	return $aRetVerts;
+}
+
+
+global proc abClearSbg (){
+	//clears sbgFld and empties $abSymTable
+	global int $abSymTable[];	
+	global string $abSbg;
+	global string $abAltSbg;
+	
+	button -e -enable false smBn;
+	button -e -enable false smvBn;
+	button -e -enable false msBn;
+	button -e -enable false fsBn;
+	button -e -enable false rsBn;
+	clear($abSymTable);
+	$abSbg = $abAltSbg = "";
+	textField -e -text "" sbgFld;
+}
+
+
+global proc abSymCtl (string $action){
+	
+	global int $abSymTable[];
+	global string $abSbg;
+	global string $abAltSbg;
+	
+	string $sel[] = `ls -sl -fl`;
+	string $aStr[];
+	string $aSelVerts[];
+	string $aHiliteObj[];
+	string $baseObj = $abSbg;
+	string $revertBaseObj = ($abAltSbg != "") ? $abAltSbg : $abSbg;
+	string $str;
+	string $selMesh;
+	float $tol = `floatField -q -value tolFltFld`;
+	int $axisSel = `radioButtonGrp -q -select saRbGrp`;
+	int $negToPos = `checkBox -q -value maChkBx`;
+	int $usePiv = `checkBox -q -value upoChkBx`;
+	int $warned = false; //set if warning has already been passed
+	float $revertBias = 1;
+	
+	if ($action == "rsPrBn"){
+		$revertBias = `floatField -q -value rsPrFltFld`;
+		$action = "rsBn";
+	}
+	
+	//get selection info
+	
+	$aStr = `filterExpand -sm 12 $sel`;
+	if (size($aStr) > 1){
+		warning "Select one polygon object";
+		$warned = true;
+	}else{
+		$selMesh = $aStr[0]; //if an object is selected
+	}
+	
+	//make sure selected components are on only one mesh
+	if ($selMesh == ""){
+		$aHiliteObj = `ls -hilite`;
+		if (size($aHiliteObj) == 1){
+			$selMesh = $aHiliteObj[0];
+			$aSelVerts = `filterExpand -sm 31 $sel`;
+		}else{
+			if (size($aHiliteObj) > 1){
+				clear($aSelVerts);
+				warning "Only one object can be hilited in component mode";
+				$warned = true;
+			}
+		}
+	}else{
+		select $selMesh; //if two objects are selected
+	}
+	
+	switch ($action){
+		
+		case "sbgBn":
+			if ($selMesh != ""){
+				abCheckSym($selMesh, $axisSel, $tol, true, $usePiv);
+				$abSbg = $selMesh;
+				textField -e -text $selMesh sbgFld;
+				button -e -enable true smBn;
+				button -e -enable true smvBn;
+				button -e -enable true msBn;
+				button -e -enable true fsBn;
+				button -e -enable true rsBn;
+			}else{
+				abClearSbg();
+			}
+			break;
+		
+		case "favBn":
+			if ($selMesh != ""){
+				$aSelVerts = abCheckSym($selMesh, $axisSel, $tol, false, $usePiv);
+				if (size($aSelVerts) > 0){
+					selectMode -component;
+					select $aSelVerts;
+					print (size($aSelVerts)+" asymmetric vert(s)");
+				}else{
+					select $selMesh;
+					print ($selMesh+" is symmetrical");
+				}
+			}
+			break;
+			
+		case "smBn":
+			if (size($aSelVerts) > 0){
+				$aSelVerts = abSelMirror ($selMesh, $aSelVerts);
+				select $aSelVerts;
+			}
+			break;
+			
+		case "smvBn":
+			if ($selMesh != ""){
+				$aSelVerts = abSelMovedVerts($selMesh, $baseObj, $tol);
+				select $aSelVerts;
+			}
+			break;
+			
+		case "smvAltBn":
+			if ($selMesh != ""){
+				$aSelVerts = abSelMovedVerts($selMesh, $revertBaseObj, $tol);
+				select $aSelVerts;
+			}
+			break;	
+			
+		case "msBn":
+			if (size($aSelVerts) > 0){
+				abMirrorSel($selMesh, $baseObj, $aSelVerts, $axisSel, $negToPos, false, $usePiv, $tol);
+			}else{
+				if ($selMesh != ""){ //if object is selected, select half side verts then pass that as $aSelVerts
+					$aSelVerts = abSelSideVerts ($selMesh, $baseObj, $axisSel, $negToPos, $usePiv, $tol);
+					abMirrorSel($selMesh, $baseObj, $aSelVerts, $axisSel, $negToPos, false, $usePiv, $tol);
+				}
+			}
+			break;
+			
+		case "fsBn":
+			if (size($aSelVerts) > 0){
+				abMirrorSel($selMesh, $baseObj, $aSelVerts, $axisSel, $negToPos, true, $usePiv, $tol);
+			}else{
+				if ($selMesh != ""){ //if object is selected, select half side verts then pass that as $aSelVerts
+					$aSelVerts = abSelSideVerts ($selMesh, $baseObj, $axisSel, $negToPos, $usePiv, $tol);
+					abMirrorSel($selMesh, $baseObj, $aSelVerts, $axisSel, $negToPos, true, $usePiv, $tol);
+				}
+			}
+			break;
+					
+		case "rsBn":
+			
+			if (size($aSelVerts) > 0){
+				abRevertSel($aSelVerts, $selMesh, $revertBaseObj, $revertBias);
+			}else{
+				if ($selMesh != ""){ //if object is selected, select half side verts then pass that as $aSelVerts
+					$aSelVerts = abSelSideVerts ($selMesh, $baseObj, $axisSel, 2, $usePiv, $tol); //2 returns all verts
+					abRevertSel($aSelVerts, $selMesh, $revertBaseObj, $revertBias);
+				}
+			}
+			break;
+			
+		case "cBn":
+			abClearSbg();
+			abSymClearRevTables();
+			deleteUI -window abSymWin;
+			break;
+		
+		case "saRbGrp":
+			abClearSbg();
+			switch ($axisSel){
+				case 1:
+					$str = "X";
+					break;
+				case 2:
+					$str = "Y";
+					break;
+				case 3:
+					$str = "Z";
+					break;
+				
+			}
+			$str = "Operate -"+$str+" to +"+$str;
+			checkBox -e -l $str maChkBx;
+	}
+	setFocus "modelPanel1";
+}
+
+
+global proc abSymMesh (){
+	
+	global int $abSymTable[];
+	global string $abSbg;
+	global string $abAltSbg;
+	global int $abSymSliderDragging;
+	
+	$abSymSliderDragging = false;
+	
+	abSymClearRevTables();
+	
+	float $aRevertPopupVals[] = {1,2,3,4,5,1111,10,20,30,40,50,60,70,80,90}; //values that will appear in the revert popup menu (1111 is a divider bar)
+	
+	int $sbgBnsEn = false; //bool for enabled state of sbg dependent buttons
+	string $selBaseGeo;
+	
+	if (size($abSymTable) > 0 && `objExists $abSbg`){ //reselect object whose data is in symTable
+		$selBaseGeo = $abSbg;
+		$sbgBnsEn = true;
+	}else{
+		clear($abSymTable);
+		$abSbg = $abAltSbg = "";
+	}
+	
+	if (`window -exists abSymWin`){
+		deleteUI -window abSymWin;
+	}
+	
+	window -t "abSymMesh" -w 180 -h 474 -menuBar true abSymWin;
+	
+	// add menu
+	menu -label "Operations" -postMenuCommand "global string $abSbg; menuItem -e -en ($abSbg != \"\") abSMOpCopyMnIt; menuItem -e -en ($abSbg != \"\") abSMOpAddMnIt; menuItem -e -en ($abSbg != \"\") abSMOpSubtractMnIt;" abSMOperationsMn;
+	menuItem -label "Copy A to B" -command "abSMServiceAddSubtractCopy(2);" abSMOpCopyMnIt;
+	menuItem -label "Add A to B" -command "abSMServiceAddSubtractCopy(1);" abSMOpAddMnIt;
+	menuItem -label "Subtract A from B" -command "abSMServiceAddSubtractCopy(0);" abSMOpSubtractMnIt;
+	
+	
+	// continue with layout
+	formLayout -numberOfDivisions 100 abSymForm;
+	
+	radioButtonGrp -numberOfRadioButtons 3 -l1 "YZ" -l2 "XZ" -l3 "XY"
+		-select 1 -columnWidth3 52 52 52 -onCommand "abSymCtl(\"saRbGrp\")" saRbGrp;
+	separator sep1;
+	text -l "Global Tolerance" tolTxt;
+	
+	floatField -min 0 -max 1 -value .001 tolFltFld;
+	separator sep2;
+	button -l "Select Base Geometry" -command "abSymCtl(\"sbgBn\")" sbgBn;
+	textField -editable false -text $selBaseGeo sbgFld;
+	separator sep3;
+	button -l "Check Symmetry" -command "abSymCtl(\"favBn\")" csBn;
+	button -l "Selection Mirror" -enable $sbgBnsEn -command "abSymCtl(\"smBn\")" smBn;
+	button -l "Select Moved Verts" -enable $sbgBnsEn -command "abSymCtl(\"smvBn\")" smvBn;
+	separator sep4;
+	button -l "Mirror Selected" -enable $sbgBnsEn -command "abSymCtl(\"msBn\")" msBn;
+	button -l "Flip Selected" -enable $sbgBnsEn -command "abSymCtl(\"fsBn\")" fsBn;
+	button -l "Revert Selected to Base" -enable $sbgBnsEn  -command "abSymCtl(\"rsBn\")" rsBn;
+	floatSlider -value 1 -minValue 0 -maxValue 1 -dragCommand "abSymInteractiveRevertToBase();" -changeCommand "abSymEndDrag();" rvrtFltSldr;
+	popupMenu -button 3 -p rvrtFltSldr rsPpUpMn;
+	menuItem -label "Commit Changes" -command "abSymClearRevTables();";
+	separator sep5;
+	checkBox -l "Operate -X to +X" -value false maChkBx;
+	checkBox -l "Use Pivot as Origin" -value true upoChkBx;
+	button -l "Close" -height 24 -command "abSymCtl(\"cBn\")" cBn;
+	
+	//hidden var field
+	floatField -value 1 -min 0 -max 1 -pre 2 -manage 0 rsPrFltFld;
+		
+	//revert button popup menus
+	
+	popupMenu -button 3 -p rsBn rsPpUpMn;
+	
+	if (size($aRevertPopupVals) > 0){
+		
+		int $i;
+		string $cmdStr;
+		float $flt;
+		
+		for ($i=0;$i<size($aRevertPopupVals);$i++){
+			
+			if ($aRevertPopupVals[$i] == 1111){
+				$cmdStr += "menuItem -divider true;";
+				continue;
+			}
+			$flt = $aRevertPopupVals[$i]/100;
+			$cmdStr += "menuItem -label \""+$aRevertPopupVals[$i]+"%\" -command \"floatField -e -value "+$flt+" rsPrFltFld;abSymCtl(\\\"rsPrBn\\\");\";";
+		}
+		$cmdStr += "menuItem -divider true;";
+		eval($cmdStr);
+	}
+	setParent -m rsPpUpMn;
+	
+	string $baseStr;
+	int $enableOrigRecall = false;
+	
+	if ($abAltSbg != "" && `objExists $abAltSbg`){
+		$baseStr = "Using "+$abAltSbg+" as Base";
+		$enableOrigRecall = true;
+	}else{
+		$baseStr = "Using Original Base";
+	}
+	
+	menuItem -label $baseStr abSymCurBsMnIt;
+	menuItem -divider true;
+	menuItem -label "Use Selected as Base" -command "abSymUseAlternateBase(1);" abSymSlRvtBsMnIt;
+	menuItem -label "Use Original Base" -enable $enableOrigRecall -command "abSymUseAlternateBase(0);" abSymSlOrigRvtBsMnIt;
+	menuItem -label "Select Moved from Revert Base" -enable $enableOrigRecall -command "abSymCtl(\"smvAltBn\");" abSymSlAltMvVtsMnIt;
+	menuItem -divider true;
+	menuItem -label "Use Overshoot" -checkBox 0 -command "float $min,$max;if (`menuItem -q -c abSymOvrShtMnIt`){$min=-.5;$max=1.5;}else{$min=0;$max=1;}floatSlider -e -min $min -max $max rvrtFltSldr;" abSymOvrShtMnIt;
+	setParent ..;
+	
+	int $tMarg = 7;
+	int $lMarg = 5;
+	int $rMarg = 5;
+	int $ctSpc = 5; //control top space
+	int $cbSpc = 20;
+		
+	formLayout -e
+		
+		-attachForm saRbGrp "top" $tMarg
+		-attachForm saRbGrp "left" 18
+		
+		-attachForm sep1 "left" $lMarg
+		-attachControl sep1 "top" $ctSpc saRbGrp
+		-attachForm sep1 "right" $rMarg
+		
+		-attachForm tolTxt "left" $lMarg
+		-attachControl tolTxt "top" ($ctSpc+2) sep1
+		-attachControl tolFltFld "left" $ctSpc tolTxt
+		-attachControl tolFltFld "top" $ctSpc sep1
+		-attachForm tolFltFld "right" $rMarg
+		
+		-attachForm sep2 "left" $lMarg
+		-attachControl sep2 "top" $ctSpc tolFltFld
+		-attachForm sep2 "right" $rMarg
+		
+		-attachForm sbgBn "left" $lMarg
+		-attachControl sbgBn "top" $ctSpc sep2
+		-attachForm sbgBn "right" $rMarg
+		
+		-attachForm sbgFld "left" $lMarg
+		-attachControl sbgFld "top" $ctSpc sbgBn
+		-attachForm sbgFld "right" $rMarg
+		
+		-attachForm sep3 "left" $lMarg
+		-attachControl sep3 "top" $ctSpc sbgFld
+		-attachForm sep3 "right" $rMarg
+		
+		-attachForm csBn "left" $lMarg
+		-attachControl csBn "top" $ctSpc sep3
+		-attachForm csBn "right" $rMarg
+		
+		-attachForm smBn "left" $lMarg
+		-attachControl smBn "top" $ctSpc csBn
+		-attachForm smBn "right" $rMarg
+		
+		-attachForm smvBn "left" $lMarg
+		-attachControl smvBn "top" $ctSpc smBn
+		-attachForm smvBn "right" $rMarg
+		
+		-attachForm sep4 "left" $lMarg
+		-attachControl sep4 "top" $ctSpc smvBn
+		-attachForm sep4 "right" $rMarg
+		
+		-attachForm msBn "left" $lMarg
+		-attachControl msBn "top" $ctSpc sep4
+		-attachForm msBn "right" $rMarg
+				
+		-attachForm fsBn "left" $lMarg
+		-attachControl fsBn "top" $ctSpc msBn
+		-attachForm fsBn "right" $rMarg
+		
+		-attachForm sep5 "left" $lMarg
+		-attachControl sep5 "top" $ctSpc fsBn
+		-attachForm sep5 "right" $rMarg
+		
+		-attachForm rsBn "left" $lMarg
+		-attachControl rsBn "top" $ctSpc sep5
+		-attachForm rsBn "right" $rMarg
+				
+		-attachForm rvrtFltSldr "left" $lMarg
+		-attachControl rvrtFltSldr "top" $ctSpc rsBn
+		-attachForm rvrtFltSldr "right" $rMarg
+				
+		-attachForm maChkBx "left" $lMarg
+		-attachControl maChkBx "top" ($ctSpc+4) rvrtFltSldr
+		
+		-attachForm upoChkBx "left" $lMarg
+		-attachControl upoChkBx "top" $ctSpc maChkBx
+		
+		-attachForm cBn "left" $lMarg
+		-attachControl cBn "top" $cbSpc upoChkBx
+		-attachForm cBn "right" $rMarg
+		
+		abSymForm
+		;
+	
+	showWindow abSymWin;
+}
