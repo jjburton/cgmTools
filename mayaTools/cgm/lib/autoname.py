@@ -768,7 +768,6 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
             updatedNamesDict['cgmIterator'] = str(iterator)
             coreName = doBuildName()
             
-    objNameCandidate = coreName
 
     # Accounting for ':' in a name
     if ':' in coreName:
@@ -776,9 +775,20 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
         cnt = coreName.index(':')
         buffer.remove(':')
         buffer.insert(cnt,'to')
-        objNameCandidate = ''.join(buffer)
-
-    return objNameCandidate
+        coreName = ''.join(buffer)
+        
+    if '[' or ']' or '.' in coreName:
+        buffer = list(coreName)
+        for b in buffer:
+            if b == '[' or b == ']':
+                buffer.remove(b)
+            elif b == '.':
+                cnt = buffer.index(b)
+                buffer.pop(cnt)
+                buffer.insert(cnt,'_')
+        coreName = ''.join(buffer)
+        
+    return coreName
 
 
 

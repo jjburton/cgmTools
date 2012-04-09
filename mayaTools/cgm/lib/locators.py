@@ -690,14 +690,25 @@ def locMeCVsOfCurve(curve):
 		cvList = []
 		shapes = mc.listRelatives(curve,shapes=True,fullPath=True)
 		for shape in shapes:
-			cvList = (mc.ls ([shape+'.cv[*]'],flatten=True))
-			for cv in cvList:
-				locList.append(locMeObject(cv))
-		return locList
+			cvList = (mc.ls ([shape+'.cv[*]'],flatten=True))		
+			if cvList:
+				mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(cvList))						
+				for cv in cvList:
+					if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+						break
+					mc.progressBar(mayaMainProgressBar, edit=True, status = ("Procssing '%s'"%str(cv)), step=1)
+	
+					locList.append(locMeObject(cv))
+					
+				guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+
 	else:
 		print ('Curve does not exist')
 		success = False
 		return False
+	
+	if locList:
+		return locList
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeCVsOnCurve(curve):
@@ -719,13 +730,23 @@ def locMeCVsOnCurve(curve):
 		shapes = mc.listRelatives(curve,shapes=True,fullPath=True)
 		for shape in shapes:
 			cvList = (mc.ls ([shape+'.cv[*]'],flatten=True))
-			for cv in cvList:
-				print cv
-				locList.append(locClosest([cv],curve))
-		return locList
+			if cvList:
+				mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(cvList))		
+				for cv in cvList:
+					if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+						break
+					mc.progressBar(mayaMainProgressBar, edit=True, status = ("Procssing '%s'"%str(cv)), step=1)
+	
+					locList.append(locClosest([cv],curve))
+					
+				guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+			
 	else:
 		print ('Curve does not exist')
 		return False
+	
+	if locList:
+		return locList
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeEditPoint(editPoint):

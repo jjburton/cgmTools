@@ -89,11 +89,21 @@ def doLocMe(self):
     mc.select(cl=True)
     self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
 
-    for item in selected:
-        locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
-        if '.' not in list(item):
-            attributes.storeInfo(item,'cgmMatchObject',locBuffer)
-        bufferList.append(locBuffer)
+    if selected:
+	mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected))		
+	
+	for item in selected:
+	    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+		    break
+	    mc.progressBar(mayaMainProgressBar, edit=True, status = ("Procssing '%s'"%item), step=1)
+
+	    
+	    locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
+	    if '.' not in list(item):
+		attributes.storeInfo(item,'cgmMatchObject',locBuffer)
+	    bufferList.append(locBuffer)
+	    
+	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
     if bufferList:
         mc.select(bufferList)
