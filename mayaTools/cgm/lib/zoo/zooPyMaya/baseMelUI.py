@@ -48,7 +48,7 @@ TYPE_NAMES_TO_CMDS = { u'staticText': cmd.text,
 WIDGETS_WITHOUT_DOC_TAG_SUPPORT = [ cmd.popupMenu ]
 
 
-class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
+class BaseMelUI(unicode):
 	'''
 	This is a wrapper class for a mel widget to make it behave a little more like an object.  It
 	inherits from str because thats essentially what a mel widget is - a name coupled with a mel
@@ -64,6 +64,8 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 	aButton = AButtonClass( parentName, label='hello' )
 	aButton( edit=True, label='new label!' )
 	'''
+
+	__metaclass__ = typeFactories.trackableTypeFactory( typeFactories.instanceTrackerTypeFactory() )
 
 	#this should be set to the mel widget command used by this widget wrapped - ie cmd.button, or cmd.formLayout
 	WIDGET_CMD = cmd.control
@@ -84,9 +86,6 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 
 	#this is the name of the "main" change command kwarg.  some widgets have multiple change callbacks that can be set, and they're not abstracted, but this is the name of the change cb name you want to be referenced by the setChangeCB method
 	KWARG_CHANGE_CB_NAME = 'cc'
-
-	#track instances so we can send them update messages -
-	_INSTANCE_LIST = []
 
 	@classmethod
 	def Exists( cls, theControl ):
@@ -139,7 +138,7 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 		#guaranteed the widget LEAF name will be unique.  I'm assuming maya also does this, but I'm unsure.  if there are weird ui naming conflicts
 		#it might be nessecary to uncomment this code
 		formatStr = '%s%d__'#+ parentNameTok
-		baseName, n = cls.__name__, len( cls._INSTANCE_LIST )
+		baseName, n = cls.__name__, cls.GetUniqueId()
 		uniqueName = formatStr % (baseName, n)
 		while WIDGET_CMD( uniqueName, q=True, exists=True ):
 			n += 1
@@ -150,7 +149,6 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 		new = unicode.__new__( cls, uniqueName )
 		new.parent = parent
 		new._cbDict = cbDict = {}
-		cls._INSTANCE_LIST.append( new )
 
 		#add the instance variables to the instance
 		for attrName, attrValue in instanceVariables.iteritems():
@@ -223,6 +221,8 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 					method( *methodArgs, **methodKwargs )
 				except:
 					melUtils.printErrorStr( 'Event Failed: %s, %s, %s' % (methodName, methodArgs, methodKwargs) )
+					import traceback
+					traceback.print_exc()
 		else:
 			self.parent.processEvent( methodName, methodArgs, methodKwargs )
 	def getVisibility( self ):
@@ -316,8 +316,6 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 		return cmd.control( self, ex=True )
 	def delete( self ):
 		cmd.deleteUI( self )
-		if self in self._INSTANCE_LIST:
-			self._INSTANCE_LIST.remove( self )
 	def setSelectionChangeCB( self, cb, compressUndo=True, **kw ):
 		'''
 		creates a scriptJob to monitor selection, and fires the given callback when the selection changes
@@ -364,16 +362,14 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 		'''
 
 		#if the instance is in the instance list, return it
-		if theStr in cls._INSTANCE_LIST:
-			idx = cls._INSTANCE_LIST.index( theStr )
-
-			return cls._INSTANCE_LIST[ idx ]
+		for instance in cls.IterInstances():
+			if str( instance ) == theStr:
+				return instance
 		else:
 			theStrLeaf = theStr.split( '|' )[-1]
-			if theStrLeaf in cls._INSTANCE_LIST:
-				idx = cls._INSTANCE_LIST.index( theStrLeaf )
-
-				return cls._INSTANCE_LIST[ idx ]
+			for instance in cls.IterInstances():
+				if str( instance ) == theStrLeaf:
+					return instance
 
 		try:
 			uiTypeStr = cmd.objectTypeUI( theStr )
@@ -407,7 +403,9 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 
 		new = unicode.__new__( theCls, theStr )  #we don't want to run initialize on the object - just cast it appropriately
 		new._cbDict = cbDict = {}
-		cls._INSTANCE_LIST.append( new )
+
+		#we need to manually add it to the instance list though - because its not being constructed in the usual way
+		cls.AppendInstance( new )
 
 		#try to grab the parent...
 		try:
@@ -415,23 +413,6 @@ class BaseMelUI(typeFactories.trackableClassFactory( unicode )):
 		except RuntimeError: new.parent = None
 
 		return new
-	@classmethod
-	def ValidateInstanceList( cls ):
-		control = cmd.control
-		_INSTANCE_LIST = cls._INSTANCE_LIST
-		cls._INSTANCE_LIST = [ ui for ui in _INSTANCE_LIST if control( ui, exists=True ) ]
-	@classmethod
-	def IterInstances( cls ):
-		existingInstList = []
-		for inst in cls._INSTANCE_LIST:
-			if not isinstance( inst, cls ):
-				continue
-
-			if cls.WIDGET_CMD( inst, q=True, exists=True ):
-				existingInstList.append( inst )
-				yield inst
-
-		cls._INSTANCE_LIST = existingInstList
 
 
 class BaseMelLayout(BaseMelUI):
@@ -2339,20 +2320,6 @@ class BaseMelWindow(BaseMelUI):
 		'''
 		if cls.Exists():
 			cmd.deleteUI( cls.WINDOW_NAME )
-	@classmethod
-	def FromStr( cls, theStr ):
-
-		#see if the data stored in the docTag is a valid class name - it might not be if teh user has used the docTag for something (why would they? there is no need, but still check...)
-		possibleClassName = cmd.window( theStr, q=True, docTag=True )
-		theCls = BaseMelWindow.GetNamedSubclass( possibleClassName )
-
-		#if the data stored in the docTag doesn't map to a subclass, then we'll have to guess at the best class...
-		if theCls is None:
-			theCls = BaseMelWindow  #at this point default to be an instance of the base widget class
-
-		new = unicode.__new__( theCls, theStr )  #we don't want to run initialize on the object - just cast it appropriately
-
-		return new
 
 	def __new__( cls, *a, **kw ):
 		kw.setdefault( 'title', cls.WINDOW_TITLE )
@@ -2377,12 +2344,6 @@ class BaseMelWindow(BaseMelUI):
 			MelMenuItem( helpMenu, l="Help...", en=helpPage is not None, c=lambda x: cmd.showHelp(helpPage, absolute=True) )
 			#MelMenuItemDiv( helpMenu )
 			#bugReporterUI.addBugReporterMenuItems( toolName, assignee=authorEmail, parent=helpMenu )
-
-		#validate the instance list - this should be done regularly, but not always because its kinda slow...
-		BaseMelUI.ValidateInstanceList()
-
-		#track the instance
-		cls._INSTANCE_LIST.append( new )
 
 		return new
 	def __init__( self, *a, **kw ): pass
