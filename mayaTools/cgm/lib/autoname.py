@@ -247,7 +247,6 @@ class factory():
                                                 cnt +=1                              
 
                     else:
-                        print ('here')
                         #next look through the named dictionaries
                         for o in sceneObjectsNameDictMap.keys():
                             if o not in self.matchedChildren:
@@ -328,7 +327,7 @@ class factory():
             else:
                 # Start looking after 1
                 cnt = 1 
-            
+                
         if objGeneratedNameCandidateDict.get('cgmIterator'):
             cnt = objGeneratedNameCandidateDict.get('cgmIterator')
         elif cnt == 0:
@@ -339,13 +338,13 @@ class factory():
             if mc.objExists(matchBuffer):
                 matchFound = True
                 cnt = 1
-            
+
         if cnt:
             objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
         ### Scene search for our first open number
         loopBreak = 0
         foundAvailableNumber = False
-        while not foundAvailableNumber and loopBreak <= 100: 
+        while foundAvailableNumber == False and loopBreak <= 100: 
             bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
             if mc.objExists(bufferName):
                 matchNameList = mc.ls(bufferName,shortNames=True)
@@ -356,7 +355,7 @@ class factory():
                             cnt +=1
                             loopBreak +=1
                             objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-                            break
+                            
 
                         #If the generated name exists anywhere else
                         elif '|' in item:
@@ -365,12 +364,13 @@ class factory():
                                 cnt +=1
                                 loopBreak +=1                               
                                 objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
-                                break
+                                
 
                     else:
                         foundAvailableNumber = True
             else:
-                foundAvailableNumber = True            
+                foundAvailableNumber = True
+            loopBreak +=1
 
         return cnt
                                 
@@ -768,27 +768,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
             updatedNamesDict['cgmIterator'] = str(iterator)
             coreName = doBuildName()
             
-
-    # Accounting for ':' in a name
-    if ':' in coreName:
-        buffer = list(coreName)
-        cnt = coreName.index(':')
-        buffer.remove(':')
-        buffer.insert(cnt,'to')
-        coreName = ''.join(buffer)
-        
-    if '[' or ']' or '.' in coreName:
-        buffer = list(coreName)
-        for b in buffer:
-            if b == '[' or b == ']':
-                buffer.remove(b)
-            elif b == '.':
-                cnt = buffer.index(b)
-                buffer.pop(cnt)
-                buffer.insert(cnt,'_')
-        coreName = ''.join(buffer)
-        
-    return coreName
+    return returnCombinedNameFromDict(updatedNamesDict)
 
 
 
@@ -850,7 +830,23 @@ def returnCombinedNameFromDict(nameDict):
         buffer = nameDict.get(item)
         buffer = search.returnTagInfoShortName(buffer,item)
         if buffer > 0 and buffer != 'ignore':
+            if '|' or '[' or ']' in buffer:
+                bufferList = list(buffer)
+                for i in buffer:
+                    if i == '[' or i == ']' or i == '|':
+                        bufferList.remove(i) 
+                    elif i == '.':
+                        cnt = buffer.index(i)
+                        bufferList.pop(cnt)
+                        bufferList.insert(cnt,'_')
+                    elif i == ':':
+                        cnt = bufferList.index(i)
+                        bufferList.pop(cnt)
+                        bufferList.insert(cnt,'to')
+                buffer = ''.join(bufferList)
+                
             nameBuilder.append(buffer)
+    
     return divider.join(nameBuilder)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -989,7 +985,6 @@ def doNameObject(obj,sceneUnique = False):
     if nameFactory.amIMe(name):
         print "I'm me"
         guiFactory.warning("'%s' is already named correctly."%nameFactory.nameBase)
-        print name
         return name
     else:
         objLong = mc.ls(obj,long=True)

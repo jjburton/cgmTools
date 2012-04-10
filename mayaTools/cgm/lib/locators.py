@@ -160,7 +160,7 @@ def doPositionLocator(locatorName,locInfo):
 
 		return True
 	else:
-		print 'Not a locator.'
+		guiFactory.warning('Not a locator.')
 		return False
 
 
@@ -250,7 +250,7 @@ def doUpdateLocator(locatorName,forceBBCenter = False):
 				doPositionLocator(locatorName,locInfo)
 				return True
 			else:
-				print "The stored object doesn't exist"
+				guiFactory.warning ("The stored object doesn't exist")
 				return False
 			
 		else:
@@ -261,16 +261,14 @@ def doUpdateLocator(locatorName,forceBBCenter = False):
 				if mc.objExists(obj):
 					targetObjects.append(obj)
 				else:
-					print ('%s%s' % (obj, " not found, using any that are... "))
+					guiFactory.warning  ('%s%s' % (obj, " not found, using any that are... "))
 			if locatorMode == 'selectCenter':
 				locBuffer = locMeCenter(targetObjects,forceBBCenter)
 				position.moveParentSnap(locatorName,locBuffer)
 				mc.delete(locBuffer)
 
 			if locatorMode == 'closestPoint':
-				print targetObjects
 				locBuffer = locClosest(targetObjects[:-1],targetObjects[-1])
-				print locBuffer
 				position.moveParentSnap(locatorName,locBuffer)
 				mc.delete(locBuffer)
 				
@@ -641,7 +639,7 @@ def locMeCVOfCurve(curveCV):
 		mc.move (cvPos[0],cvPos[1],cvPos[2], [actualName[0]])
 		return actualName[0]
 	else:
-		print ('Not a curveCV')
+		guiFactory.warning  ('Not a curveCV')
 		return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -668,7 +666,7 @@ def locMeCVOnCurve(curveCV):
 		mc.move (uPos[0],uPos[1],uPos[2], [actualName[0]])
 		return actualName[0]
 	else:
-		print ('Not a curveCV')
+		guiFactory.warning  ('Not a curveCV')
 		return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -703,7 +701,7 @@ def locMeCVsOfCurve(curve):
 				guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
 	else:
-		print ('Curve does not exist')
+		guiFactory.warning ('Curve does not exist')
 		success = False
 		return False
 	
@@ -742,7 +740,7 @@ def locMeCVsOnCurve(curve):
 				guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 			
 	else:
-		print ('Curve does not exist')
+		guiFactory.warning  ('Curve does not exist')
 		return False
 	
 	if locList:
@@ -769,7 +767,7 @@ def locMeEditPoint(editPoint):
 		mc.move (pos[0],pos[1],pos[2], [actualName[0]])
 		return actualName[0]
 	else:
-		print ('Not an editPoint')
+		guiFactory.warning  ('Not an editPoint')
 		return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -796,7 +794,7 @@ def locMeCvFromCvIndex(shape,cvIndex):
 		mc.move (uPos[0],uPos[1],uPos[2], [actualName[0]])
 		return actualName[0]
 	else:
-		print ('Shape does not exist')
+		guiFactory.warning  ('Shape does not exist')
 		return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeSurfaceCV(cv):
