@@ -65,8 +65,9 @@ def copySetDrivenKey(sourceDriver,targetDriver,drivenObject,targetObject):
                 curveInfo = returnSetDrivenCurveInfo(sourceDriver,attr)
                 
                 for key in curveInfo.keys():
+                    attrBuffer = attr.split('.')
                     # set the SDK's
-                    mc.setDrivenKeyframe(attr, currentDriver = targetDriver, driverValue = key,value = curveInfo[key])
+                    mc.setDrivenKeyframe(targetObject+'.'+attrBuffer[-1], currentDriver = targetDriver, driverValue = key,value = curveInfo[key])
                 
                 #Copy Curve tangents and stuff
                 oldCurve = returnDriverCurve(sourceDriver,attr)
