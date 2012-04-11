@@ -111,8 +111,8 @@ def doPointAimConstraintObjectGroup(targets,object,mode=0):
     """
     returnList = []
     """ figure out which is the aim direction  """
-    aimVector = distance.returnLocalAimDirection(object,targets[-1])
-    upVector = distance.returnLocalUp(aimVector)
+    aimVector = locators.returnLocalAimDirection(object,targets[-1])
+    upVector = locators.returnLocalUp(aimVector)
     
     """ create locators """
     locs = []

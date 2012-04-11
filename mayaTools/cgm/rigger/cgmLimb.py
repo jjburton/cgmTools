@@ -465,7 +465,7 @@ def doTemplate(masterNull, moduleNull):
         #>>> Direction and size Stuff
         
         """ Directional data derived from joints """
-        generalDirection = distance.returnHorizontalOrVertical(templObjNameList)
+        generalDirection = locators.returnHorizontalOrVertical(templObjNameList)
         if generalDirection == 'vertical' and 'leg' not in partType:
             worldUpVector = [0,0,-1]
         elif generalDirection == 'vertical' and 'leg' in partType:
@@ -887,7 +887,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
     returnBuffer = []
     #>>> Direction and size Stuff
     """ Directional data derived from joints """
-    generalDirection = distance.returnHorizontalOrVertical(objects)
+    generalDirection = locators.returnHorizontalOrVertical(objects)
     if generalDirection == 'vertical' and 'leg' not in moduleType:
         worldUpVector = [0,0,-1]
     elif generalDirection == 'vertical' and 'leg' in moduleType:
@@ -1115,7 +1115,7 @@ def doSizeCharacter(masterNull):
     meshGroup = attributes.returnMessageObject(masterNull,'meshGroup')
     
     """ basic orientation"""
-    basicOrientation = distance.returnHorizontalOrVertical(templateSizeObjects)
+    basicOrientation = locators.returnHorizontalOrVertical(templateSizeObjects)
     
     horiztonalLegDict = {'left':[3,templateSizeObjects[0],templateSizeObjects[1]],'right':[7,templateSizeObjects[0],templateSizeObjects[1]],'left_front':[3,templateSizeObjects[1],templateSizeObjects[0]], 'right_front':[7,templateSizeObjects[1],templateSizeObjects[0]], 'left_back':[3,templateSizeObjects[0],templateSizeObjects[1]],'right_back':[7,templateSizeObjects[0],templateSizeObjects[1]]}
     cvDict = {'left':3,'right':7,'bottom':5,'top':0, 'left_front':4, 'right_front':6, 'left_back':2,'right_back':8,'None':0}
@@ -1940,7 +1940,7 @@ def doGeneratePartBaseDistance(locator,meshGroup):
         locOrder = [locator,measureLoc]
         
         """ determine our aim direction """
-    aimDirection = distance.returnLinearDirection(locOrder[0],locOrder[1])
+    aimDirection = locators.returnLinearDirection(locOrder[0],locOrder[1])
     aimVector = vectorToStringDict.get(aimDirection)
     maxIndexMatch =  max(aimVector)
     maxIndex = aimVector.index(maxIndexMatch)
