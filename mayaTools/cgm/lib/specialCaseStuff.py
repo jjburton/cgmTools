@@ -147,6 +147,31 @@ def connectPhosphorJoints (qssJointsToProcess):
         #stores the constraints
         attributes.storeObjListNameToMessage (constraintsList, dataHolderGrp)
 
+def copyMouthSDKsPhosphor(sourceJoint,targetJoint):
+    from cgm.lib import sdk
+    attributes = ['rest_txtCrv.mouthCloseFix',
+                  'smile_txtCrv.smile',
+                  'sneer_txtCrv.sneer',
+                  'wide_txtCrv.wide',
+                  'narrow_txtCrv.narrow',
+                  'mouthUD_txtCrv.mouthUD',
+                  'mouthUD_txtCrv.mouthDn',
+                  'lipsUp_txtCrv.lipsUp',
+                  'lipsDn_txtCrv.lipsDn',
+                  'lipTighten_txtCrv.lipsTighten',
+                  'lipRollOut_txtCrv.lipRollOut',
+                  'lipRollIn_txtCrv.lipRollIn',
+                  'jawOpen_txtCrv.jawOpen',
+                  'jawOpenMouthClosed_txtCrv.jawOpenMouthClosed',
+                  'jawLR_txtCrv.jawLR',
+                  'jawLR_txtCrv.jawRight',
+                  'frown_txtCrv.frown']
+    for attr in attributes:
+        if mc.objExists(attr):
+            print ("on '%s'"%attr)
+            sdk.copySetDrivenKey(attr,attr,sourceJoint,targetJoint)
+
+    
 
 
 def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
