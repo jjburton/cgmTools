@@ -44,9 +44,9 @@ settingsDictionaryFile = settings.getSettingsDictionaryFile()
 Orienation and Vectors
 """
 def returnStringToVectors(direction):
-    vectorToStringDict = {'x+':[1,0,0],'x-':[-1,0,0],'y+':[0,1,0],'y-':[0,-1,0],'z+':[0,0,1],'z-':[0,0,-1]}
-    if direction in vectorToStringDict.keys():
-        return vectorToStringDict.get(direction)
+    stringToVectorDict = {'x+':[1,0,0],'x-':[-1,0,0],'y+':[0,1,0],'y-':[0,-1,0],'z+':[0,0,1],'z-':[0,0,-1]}
+    if direction in stringToVectorDict.keys():
+        return stringToVectorDict.get(direction)
     else:
         return False
 

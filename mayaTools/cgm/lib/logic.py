@@ -22,12 +22,61 @@
 import maya.cmds as mc
 
 from cgm.lib import (locators,
-                     distance)
+                     distance,
+                     rigging,
+                     dictionary,
+                     guiFactory)
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Logic
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class axisFactory():
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    
+
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    def __init__(self,input):
+        self.axisString = ''
+        self.axisVector = ''
+        
+        shortStringsDict = {'x':'x+','y':'y+','z':'z+'}
+        stringToVectorDict = {'x+':[1,0,0],'x-':[-1,0,0],'y+':[0,1,0],'y-':[0,-1,0],'z+':[0,0,1],'z-':[0,0,-1]}
+        vectorToStringDict = {'[1,0,0]':'x+','[-1,0,0]':'x-','[0,1,0]':'y+','[0,-1,0]':'y-','[0,0,1]':'z+','[0,0,-1]':'z-'}
+        
+        if input in shortStringsDict.keys():
+            self.axisString = shortStringsDict.get(input)
+            self.axisVector = stringToVectorDict.get(self.axisString)
+            
+        elif input in stringToVectorDict.keys():
+            self.axisVector = stringToVectorDict.get(input)
+            self.axisString = input
+            
+        elif str(input) in vectorToStringDict.keys():
+            self.axisString = vectorToStringDict.get(str(input))
+            self.axisVector = stringToVectorDict.get(self.axisString)
+            
+        elif ' ' in list(str(input)):
+            splitBuffer = str(input).split(' ')
+            newVectorString =  ''.join(splitBuffer)
+            self.axisString = vectorToStringDict.get(newVectorString)
+            self.axisVector = stringToVectorDict.get(self.axisString)
+            
+        else:
+            print input
+            print str(input)
+            self.axisString = False
+            self.axisVector = False
+            guiFactory.warning("'%s' not recognized"%input)
+            
+
+            
+
+        
+        
+        
 def returnLocalUp(aimVector):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -66,7 +115,7 @@ def returnLocalAimDirection(rootObj,aimObj):
     returnDirections = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]
     distanceBuffer = distance.returnDistanceBetweenObjects(rootObj,aimObj)
 
-    distance = distanceBuffer /2
+    #distanceValues = distanceBuffer /2
     cnt = 0
     for direction in directions:
         locBuffer = locators.locMeObject(rootObj)

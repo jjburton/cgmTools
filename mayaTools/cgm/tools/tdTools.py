@@ -300,42 +300,43 @@ class tdToolsClass(BaseMelWindow):
 
 		# Object Aim Menu
 		ObjectAimMenu = MelMenuItem( self.UI_AxisMenu, l='Object Aim', subMenu=True)
-		ObjectAimCollection = MelRadioMenuCollection()
+		self.ObjectAimCollection = MelRadioMenuCollection()
 
 		for axis in self.axisOptions :
 			if mc.optionVar( q='cgmVarObjectAimAxis' ) == axis:
 				checkState = True
 			else:
 				checkState = False
-			ObjectAimCollection.createButton(ObjectAimMenu,l=axis,
-						                     c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectAimAxis','",axis,"'))")),
-						                     rb = checkState)
+			self.ObjectAimCollection.createButton(ObjectAimMenu,l=axis,
+			                                      c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectAimAxis','",axis,"'))")),
+			                                      rb = checkState)
 
 		# Object Up Menu
 		ObjectUpMenu = MelMenuItem( self.UI_AxisMenu, l='Object Up', subMenu=True)
-		ObjectUpCollection = MelRadioMenuCollection()
+		self.ObjectUpCollection = MelRadioMenuCollection()
 
 		for axis in self.axisOptions :
 			if mc.optionVar( q='cgmVarObjectUpAxis' ) == axis:
 				checkState = True
 			else:
 				checkState = False
-			ObjectUpCollection.createButton(ObjectUpMenu,l=axis,
-						                    c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectUpAxis','",axis,"'))")),
-						                    rb = checkState)
+			self.ObjectUpCollection.createButton(ObjectUpMenu,l=axis,
+			                                     c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectUpAxis','",axis,"'))")),
+			                                     rb = checkState)
 
 		# World Up Menu
 		WorldUpMenu = MelMenuItem( self.UI_AxisMenu, l='World Up', subMenu=True)
-		WorldUpCollection = MelRadioMenuCollection()
+		self.WorldUpCollection = MelRadioMenuCollection()
 
 		for axis in self.axisOptions :
 			if mc.optionVar( q='cgmVarWorldUpAxis' ) == axis:
 				checkState = True
 			else:
 				checkState = False
-			WorldUpCollection.createButton(WorldUpMenu,l=axis,
-						                   c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarWorldUpAxis','",axis,"'))")),
-						                   rb = checkState)
+			self.WorldUpCollection.createButton(WorldUpMenu,l=axis,
+			                                    c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarWorldUpAxis','",axis,"'))")),
+			                                    rb = checkState)
+		MelMenuItem(self.UI_AxisMenu, l = 'Guess from selected', c = lambda *a: tdToolsLib.uiSetGuessOrientation(self))
 
 
 

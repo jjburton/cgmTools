@@ -1293,7 +1293,7 @@ def returnObjectSizesForCreation(self,objList):
 	else:
 		sizeList = []
 		for item in objList:
-			child = mc.listRelatives(item,children = True, type = 'transform')
+			child = mc.listRelatives(item,children = True, type = 'transform',path = True)
 			if child:
 				sizeBuffer = (distance.returnDistanceBetweenObjects(item,child))/2
 				if sizeBuffer <= 0:
@@ -1305,7 +1305,7 @@ def returnObjectSizesForCreation(self,objList):
 				objSize = distance.returnBoundingBoxSize(item)
 				sizeAverage = sum(objSize)/len(objSize)
 				if sizeAverage <= 0:
-					parent = mc.listRelatives(item,parent = True, type = 'transform')
+					parent = mc.listRelatives(item,parent = True, type = 'transform', path = True)
 					sizeList.append( (distance.returnDistanceBetweenObjects(parent,item))/2 )
 				else:
 					sizeList.append( sizeAverage )
@@ -1439,7 +1439,14 @@ def doCreateCurveControl(self):
 		if selected:
 			sizeReturn = returnObjectSizesForCreation(self,selected)
 			#['Object','Average','Input Size','First Object']
+			mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected))		
+
 			for item in selected:
+				if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+					break
+				mc.progressBar(mayaMainProgressBar, edit=True, status = ("Creating curve for '%s'"%item), step=1)
+				
+				
 				if self.sizeMode == 0:
 					creationSize = sizeReturn[selected.index(item)]
 				else:
@@ -1456,7 +1463,7 @@ def doCreateCurveControl(self):
 					position.moveParentSnap(buffer,item)
 
 				curves.setCurveColorByIndex(buffer,colorChoice)
-
+			guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
 		else:
 			print shapeOption
@@ -1498,6 +1505,76 @@ def doCreateCurveFromObjects():
 		return curves.curveFromObjList(selected)
 	except:
 		guiFactory.warning('Houston, we have a problem')
+		
+def uiSetGuessOrientation(self):
+	"""
+	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	DESCRIPTION:
+	Guess an objects orientation
+
+	REQUIRES:
+	Active Selection
+
+	RETURNS:
+	curveName(string)
+	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	"""
+	selected = []
+	bufferList = []
+	selected = (mc.ls (sl=True,flatten=True))
+	aimFromObject = []
+	aimToObject = []
+	# set world regardless of selection
+	worldUp = mc.upAxis(q=True,axis=True)		
+	worldAxis = logic.axisFactory(worldUp)	
+	if worldAxis:
+		index = self.axisOptions.index(worldAxis.axisString)
+		mc.optionVar( sv=('cgmVarWorldUpAxis', worldAxis.axisString) )
+		menuItems = self.WorldUpCollection.getItems()
+		menuItems[index](edit = True,rb = True)	
+		print("worldUp set to '%s'"%worldAxis.axisString)	
+	
+	
+	if selected:
+		aimAxis = []
+		upAxis = []	
+		child = mc.listRelatives(selected[0],children = True, type = 'transform',path = True)
+		parent = mc.listRelatives(selected[0],parent = True, type = 'transform',path = True)
+		if parent:
+			aimFromObject = parent[0]
+			aimToObject = selected[0]
+		elif child:
+			aimFromObject = selected[0]
+			aimToObject = child[0]			
+
+		if aimFromObject and aimToObject:
+			aim = logic.returnLocalAimDirection(aimFromObject,aimToObject)
+			up = logic.returnLocalUp(aim)	
+			aimAxis = logic.axisFactory(aim)
+			upAxis = logic.axisFactory(up)
+				
+		else:
+			aimAxis = logic.axisFactory('z+')
+			upAxis = logic.axisFactory('y+')			
+
+		if aimAxis:
+			index = self.axisOptions.index(aimAxis.axisString)
+			mc.optionVar( sv=('cgmVarObjectAimAxis', aimAxis.axisString) )
+			menuItems = self.ObjectAimCollection.getItems()
+			menuItems[index](edit = True,rb = True)
+			print("aim set to '%s'"%aimAxis.axisString)
+			
+		if upAxis:
+			index = self.axisOptions.index(upAxis.axisString)
+			mc.optionVar( sv=('cgmVarObjectUpAxis', upAxis.axisString) )
+			menuItems = self.ObjectUpCollection.getItems()
+			menuItems[index](edit = True, rb = True)
+			print("up set to '%s'"%upAxis.axisString)			
+	else:
+		guiFactory.warning("No objects selected")
+		
+
+
 
 def doShapeParent():
 	"""
