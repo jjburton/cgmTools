@@ -115,6 +115,38 @@ def updatePhosphorFaceJointSDKs (jOhJoints):
             position.movePointSnap(o,buffer)
             sdk.updateSDKWithCurrentObjectInfo (o, 'rest_txtCrv.rest')
 
+def connectPhosphorJointsToDirectControls (qssJointsToProcess):
+    mc.select(cl=True)
+    mc.select(qssJointsToProcess)
+    objectsToFix = mc.ls(sl=True)
+    constraintsList = []
+    for o in objectsToFix:
+        #Find our match
+        buffer = 'jOH_'+o+'_crv'
+        print buffer
+        if mc.objExists(buffer):
+            print True
+            print ("'%s' matches '%s'"%(o,buffer))
+
+            pntConstBuffer = mc.pointConstraint(buffer,o,maintainOffset=True,weight=1)
+            orConstBuffer = mc.orientConstraint(buffer,o,maintainOffset=True,weight=1)
+            pntConst = mc.rename(pntConstBuffer,(o+('_pntConst')))
+            orConst = mc.rename(orConstBuffer,(o+('_orConst')))
+            constraintsList.append(pntConst)
+            constraintsList.append(orConst)
+
+
+    if constraintsList:
+        #make our attribute Holder object
+        """ need to make our master scale connector"""
+        dataHolderGrp= ('rigJointsConstraintHolder_grp')
+        if mc.objExists (dataHolderGrp):
+            pass
+        else:
+            mc.group (n= dataHolderGrp, w=True, empty=True)
+        #stores the constraints
+        attributes.storeObjListNameToMessage (constraintsList, dataHolderGrp)
+        
 def connectPhosphorJoints (qssJointsToProcess):
     mc.select(cl=True)
     mc.select(qssJointsToProcess)
@@ -149,8 +181,7 @@ def connectPhosphorJoints (qssJointsToProcess):
 
 def copyMouthSDKsPhosphor(sourceJoint,targetJoint):
     from cgm.lib import sdk
-    attributes = ['rest_txtCrv.mouthCloseFix',
-                  'smile_txtCrv.smile',
+    attributes = ['smile_txtCrv.smile',
                   'sneer_txtCrv.sneer',
                   'wide_txtCrv.wide',
                   'narrow_txtCrv.narrow',
@@ -170,8 +201,35 @@ def copyMouthSDKsPhosphor(sourceJoint,targetJoint):
         if mc.objExists(attr):
             print ("on '%s'"%attr)
             sdk.copySetDrivenKey(attr,attr,sourceJoint,targetJoint)
-
-    
+            
+def parentObjectToNameObject(object):
+    object = autoname.factory(object)
+    if mc.objExists(object.cgmName):
+        obj = rigging.doParentReturnName(object.nameLong,object.cgmName)
+            
+def copyMouthSDKs2Phosphor(sourceJoint,targetJoint):
+    from cgm.lib import sdk
+    attributes = ['mouthFB_txtCrv.mouthForward',
+                  'mouthFB_txtCrv.mouthBack']
+    for attr in attributes:
+        if mc.objExists(attr):
+            print ("on '%s'"%attr)
+            sdk.copySetDrivenKey(attr,attr,sourceJoint,targetJoint)
+            
+def copyBrowSDKsPhosphor(sourceJoint,targetJoint):
+    from cgm.lib import sdk
+    attributes = ['browInnerDn_txtCrv.browInnerDn',
+                  'browInnerUp_txtCrv.browInnerUp',
+                  'browOuterDn_txtCrv.browOuterDn',
+                  'browSqueeze_txtCrv.browSqueeze']
+    for attr in attributes:
+        if mc.objExists(attr):
+            print ("on '%s'"%attr)
+            sdk.copySetDrivenKey(attr,attr,sourceJoint,targetJoint)
+            
+def copySelectedJointToOtherSDKsPhosphor(): 
+    selected = mc.ls(sl=True)
+    copyMouthSDKs2Phosphor(selected[0],selected[1])
 
 
 def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
