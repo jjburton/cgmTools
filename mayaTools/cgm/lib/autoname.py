@@ -53,8 +53,19 @@ class factory():
         ### input check
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
 
-        self.storeNameStrings(obj)        
+        self.storeNameStrings(obj)  
+        
+        self.cgmName = ''
+        self.cgmNameModifier = ''
+        self.cgmPosition = ''
+        self.cgmDirectionModifier = ''
+        self.cgmDirection = ''
+        self.cgmIterator = ''
+        self.cgmTypeModifier = ''
+        self.cgmType  = ''
         self.objGeneratedNameDict = returnObjectGeneratedNameDict(obj)
+        self.getCGMTags()
+        
         self.getNameLinkObject()
 
         self.sceneObjectsNameDictMap = []
@@ -69,7 +80,19 @@ class factory():
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def getCGMTags(self):
+        self.cgmName = search.findRawTagInfo(self.nameLong,'cgmName')
+        self.cgmNameModifier = search.findRawTagInfo(self.nameLong,'cgmNameModifier')
+        self.cgmPosition = search.findRawTagInfo(self.nameLong,'cgmPosition')
+        self.cgmDirectionModifier = search.findRawTagInfo(self.nameLong,'cgmDirectionModifier')
+        self.cgmDirection = search.findRawTagInfo(self.nameLong,'cgmDirection')
+        self.cgmIterator = search.findRawTagInfo(self.nameLong,'cgmIterator')
+        self.cgmTypeModifier = search.findRawTagInfo(self.nameLong,'cgmTypeModifier')
+        self.cgmType  = search.findRawTagInfo(self.nameLong,'cgmType')
+                
+            
+    
     def storeNameStrings(self,obj):
         buffer = mc.ls(obj,long=True)
         self.nameLong = buffer[0]
@@ -154,15 +177,19 @@ class factory():
         self.matchObjectList = []
         self.matchDictionaryList = []
         
-        if not self.sceneObjectsNameDictMap:
-            self.generateSceneDictMap()
+
         
         #Get a list of objects in the scene that match the name object
-        for k in self.sceneObjectsNameDictMap.keys():
-            if k not in (self.nameLong,self.nameShort): 
-                if self.sceneObjectsNameDictMap.get(k) == self.objGeneratedNameDict:
-                    self.matchObjectList.append(k)
-                    self.matchDictionaryList.append(self.sceneObjectsNameDictMap.get(k))
+        if len(self.objGeneratedNameDict.keys()) <= 1 and 'cgmType' in self.objGeneratedNameDict.keys():
+            guiFactory.warning("There's only a type tag, ignoring match check")
+        else:
+            if not self.sceneObjectsNameDictMap:
+                self.generateSceneDictMap()            
+            for k in self.sceneObjectsNameDictMap.keys():
+                if k not in (self.nameLong,self.nameShort): 
+                    if self.sceneObjectsNameDictMap.get(k) == self.objGeneratedNameDict:
+                        self.matchObjectList.append(k)
+                        self.matchDictionaryList.append(self.sceneObjectsNameDictMap.get(k))
         
         
         self.matchesChecked = True
@@ -308,16 +335,18 @@ class factory():
 
     def getFastIterator(self):
         #>>> Variation of the full on iteration check, this is a fast version that doesn't bother full scene dictioinary searches
+        """
         if not self.parentsChecked:
             self.getMatchedParents()
         if not self.childrenChecked:
             self.getMatchedChildren()  
-        
+        """
         objGeneratedNameCandidateDict = returnObjectGeneratedNameDict(self.nameLong)  
         bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
         cnt = 0
         
-        # Check for match parents, return len + 1  
+        # Check for match parents, return len + 1
+        """
         if self.matchedParents:
             return len(self.matchedParents) + 1
         elif self.matchedChildren:
@@ -327,7 +356,8 @@ class factory():
             else:
                 # Start looking after 1
                 cnt = 1 
-                
+        """
+             
         if objGeneratedNameCandidateDict.get('cgmIterator'):
             cnt = objGeneratedNameCandidateDict.get('cgmIterator')
         elif cnt == 0:
@@ -338,7 +368,7 @@ class factory():
             if mc.objExists(matchBuffer):
                 matchFound = True
                 cnt = 1
-
+        
         if cnt:
             objGeneratedNameCandidateDict['cgmIterator'] = str(cnt)
         ### Scene search for our first open number
@@ -754,9 +784,10 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
         updatedNamesDict = returnObjectGeneratedNameDict(obj,ignore)
 
     coreName = doBuildName()
-
+    
     """ add the iterator to the name dictionary if our object exists"""
     nameFactory = factory(obj)
+    
     if not sceneUnique:
         iterator = returnFastIterateNumber(obj)
         if iterator > 0:
@@ -767,7 +798,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
         if iterator > 0:
             updatedNamesDict['cgmIterator'] = str(iterator)
             coreName = doBuildName()
-            
+    
     return returnCombinedNameFromDict(updatedNamesDict)
 
 
