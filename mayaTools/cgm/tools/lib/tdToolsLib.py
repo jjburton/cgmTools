@@ -1122,7 +1122,7 @@ def doReturnExcessInfluenceVerts(self):
 	"""
 	def returnProc(badVertices):
 		if len(badVertices)>0:
-			mc.select(badVertices[0], replace=True)
+			mc.select(badVertices, replace=True)
 			print (guiFactory.doPrintReportStart())
 			print ('%s%i%s%i%s' % ('There are ',(len(badVertices)),' verts are over the max influence (',maxInfluences,'):'))
 			print badVertices
