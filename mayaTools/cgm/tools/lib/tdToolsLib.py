@@ -1571,7 +1571,16 @@ def uiSetGuessOrientation(self):
 			menuItems[index](edit = True, rb = True)
 			print("up set to '%s'"%upAxis.axisString)			
 	else:
-		guiFactory.warning("No objects selected")
+		guiFactory.warning("No objects selected. Setting defaults of 'z+' aim, 'y+' up")
+		aimIndex = self.axisOptions.index('z+')
+		mc.optionVar( sv=('cgmVarObjectAimAxis', 'z+') )
+		menuItems = self.ObjectAimCollection.getItems()
+		menuItems[aimIndex](edit = True,rb = True)	
+		
+		upIndex = self.axisOptions.index('y+')
+		mc.optionVar( sv=('cgmVarObjectUpAxis', 'y+') )
+		menuItems = self.ObjectUpCollection.getItems()
+		menuItems[upIndex](edit = True,rb = True)	
 		
 
 
