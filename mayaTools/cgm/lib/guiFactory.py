@@ -134,7 +134,7 @@ def showAbout(uiWin):
     mc.setParent( '..' )
     mc.showWindow( window )
 
-def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers):
+def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers,forceInt = False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -149,7 +149,10 @@ def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     visOn = OptionList.index(OptionSelection)
-    mc.optionVar(sv=(OptionVarName,OptionSelection))
+    if forceInt:
+        mc.optionVar(iv=(OptionVarName,int(visOn)))
+    else:
+        mc.optionVar(sv=(OptionVarName,OptionSelection))
 
     cnt = 0
     for Container in ListOfContainers:
@@ -160,7 +163,26 @@ def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers):
             #Container(e=True,vis=False)
             setUIObjectVisibility(Container,False)
         cnt+=1
+        
+def toggleOptionVarState(OptionSelection,OptionList,OptionVarName,forceInt = False):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Toggle for turning off and on the visbility of a list of containers
 
+    REQUIRES:
+    optionSelection(string) - this should point to the variable holding a (bool) value
+    optionList(list) - the option selection must be in the optionList
+
+    RETURNS:
+    locatorName(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    cnt = OptionList.index(OptionSelection)
+    if forceInt:
+        mc.optionVar(iv=(OptionVarName,int(cnt)))
+    else:
+        mc.optionVar(sv=(OptionVarName,OptionSelection))
 
 def toggleMenuShowState(stateToggle, listOfItems):
     """

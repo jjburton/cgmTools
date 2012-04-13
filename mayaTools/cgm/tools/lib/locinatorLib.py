@@ -281,8 +281,9 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
-    self.currentFrameOnly = mc.optionVar( q='cgmCurrentFrameOnly' )
-    self.forceEveryFrame = mc.optionVar( q='cgmVarForceEveryFrame' )
+    self.bakeMode = mc.optionVar( q='cgmLocinatorBakeState' )
+    self.forceEveryFrame = mc.optionVar( q='cgmKeyingMode' )
+    self.keyingTargetState = mc.optionVar( q='cgmKeyingTarget' )
     self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
 
     if not len(selected):
@@ -297,20 +298,23 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 
 
     if len(toUpdate) >= 1:
-        if self.currentFrameOnly or forceCurrentFrameOnly:
+        if not self.bakeMode:
+	    print 'yes'
             for item in toUpdate:
                 if search.returnObjectType(item) == 'locator':
                     if locators.doUpdateLocator(item,self.forceBoundingBoxState):
-                        guiFactory.warning('%s%s' % (item, " updated..."))
+                        guiFactory.warning("'%s' updated..."%item)
                     else:
                         guiFactory.warning('%s%s' % (item, " could not be updated..."))
                 else:
                     matchObject = search.returnTagInfo(item,'cgmMatchObject')
                     if mc.objExists(matchObject):
                         position.moveParentSnap(item,matchObject)
-                        print ('%s%s' % (item, " updated..."))
+                        print ("'%s' updated..."%item)
                     else:
                         guiFactory.warning('%s%s' % (item, " has no match object"))
+	    mc.select(toUpdate)
+	    
         else:
             self.startFrame = self.startFrameField(q=True,value=True)
             self.endFrame = self.endFrameField(q=True,value=True)
@@ -352,6 +356,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                 #guiFactory.doCloseProgressWindow()
                 #Put the time line back where it was
                 mc.currentTime(initialFramePosition)
+		mc.select(toUpdate)
 
             else:
 
@@ -366,20 +371,31 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 		    # If our object is a locator that's created from muliple sources, we need to check each object for keyframes
 
                     if search.returnObjectType(item) == 'locator':
-			sourceObjectBuffer = search.returnTagInfo(item,'cgmSource')
-			if ',' in sourceObjectBuffer:
-			    keyFrames = []
-			    matchObjects = returnLocatorSources(item)
-			    for o in matchObjects:
-				keyFrames.extend(search.returnListOfKeyIndices(o))
-			    keyFrames = lists.returnListNoDuplicates(keyFrames)
+			# If we're using the source object
+			if not self.keyingTargetState:
+			    sourceObjectBuffer = search.returnTagInfo(item,'cgmSource')
+			    if sourceObjectBuffer and ',' in sourceObjectBuffer:
+				keyFrames = []
+				matchObjects = returnLocatorSources(item)
+				for o in matchObjects:
+				    keyFrames.extend(search.returnListOfKeyIndices(o))
+				keyFrames = lists.returnListNoDuplicates(keyFrames)
+			    else:
+				matchObject = returnLocatorSource(item)
+				keyFrames = search.returnListOfKeyIndices(matchObject)
+			# if we're using the object's keys
 			else:
-			    matchObject = returnLocatorSource(item)
-			    keyFrames = search.returnListOfKeyIndices(matchObject)
+			    matchObject = search.returnTagInfo(item,'cgmMatchObject')
+			    keyFrames = search.returnListOfKeyIndices(item)
 
                     else:
-                        matchObject = search.returnTagInfo(item,'cgmMatchObject')
-			keyFrames = search.returnListOfKeyIndices(matchObject)
+			matchObject = search.returnTagInfo(item,'cgmMatchObject')
+			if not self.keyingTargetState:
+			    keyFrames = search.returnListOfKeyIndices(matchObject)
+			else:
+			    keyFrames = search.returnListOfKeyIndices(item)
+		    
+		    guiFactory.warning("'%s' has keys of %s"%(item,keyFrames))
 			
                     maxRange = len(keyFrames)
                     #Start our frame counter
@@ -398,7 +414,6 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 
                             mc.currentTime(f)
                             if search.returnObjectType(item) == 'locator':
-				print 'updating...'
                                 locators.doUpdateLocator(item,self.forceBoundingBoxState)
                             else:
                                 if mc.objExists(matchObject):
@@ -415,6 +430,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                 guiFactory.doCloseProgressWindow()
                 #Put the time line back where it was
                 mc.currentTime(initialFramePosition)
+		mc.select(toUpdate)
     else:
         guiFactory.warning('No updateable object selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

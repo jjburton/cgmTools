@@ -48,7 +48,7 @@ class locinatorClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'cgmLocinatorWindow'
 	WINDOW_TITLE = 'cgm.locinator'
-	DEFAULT_SIZE = 175, 250
+	DEFAULT_SIZE = 175, 260
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -83,7 +83,9 @@ class locinatorClass(BaseMelWindow):
 		self.setupVariables
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
-
+		
+		self.ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
+		
 		#Tabs
 		tabs = MelTabLayout( self )
 		TabBasic = MelColumnLayout(tabs)
@@ -109,7 +111,8 @@ class locinatorClass(BaseMelWindow):
 			mc.optionVar( iv=('cgmVarLocinatorShowHelp', 0) )
 		if not mc.optionVar( ex='cgmCurrentFrameOnly' ):
 			mc.optionVar( iv=('cgmCurrentFrameOnly', 0) )
-
+		if not mc.optionVar( ex='cgmVarLocinatorShowHelp' ):
+			mc.optionVar( iv=('cgmVarLocinatorShowHelp', 0) )
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -133,7 +136,7 @@ class locinatorClass(BaseMelWindow):
 		PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
 				                             c=lambda *a: mc.optionVar( iv=('cgmVarForceBoundingBoxState', 0)),
 				                             rb=pivotOption )
-
+		"""
 		# Anim Menu
 		AnimMenu = MelMenuItem( self.UI_OptionsMenu, l='Anim', subMenu=True)
 		AnimMenuCollection = MelRadioMenuCollection()
@@ -153,13 +156,12 @@ class locinatorClass(BaseMelWindow):
 				                        rb=KeysOnlyOption )
 
 		MelMenuItemDiv( self.UI_OptionsMenu )
-
+		"""
 
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
-		ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
 		MelMenuItem( self.UI_HelpMenu, l="Show Help",
-				     cb=ShowHelpOption,
+				     cb=self.ShowHelpOption,
 				     c= lambda *a: self.do_showHelpToggle())
 		MelMenuItem( self.UI_HelpMenu, l="Print Tools Help",
 				     c=lambda *a: self.printHelp() )
@@ -169,9 +171,9 @@ class locinatorClass(BaseMelWindow):
 				     c=lambda *a: self.showAbout() )
 
 	def do_showHelpToggle( self):
-		ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
-		guiFactory.toggleMenuShowState(ShowHelpOption,self.helpBlurbs)
-		mc.optionVar( iv=('cgmVarLocinatorShowHelp', not ShowHelpOption))
+		self.ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
+		guiFactory.toggleMenuShowState(self.ShowHelpOption,self.helpBlurbs)
+		mc.optionVar( iv=('cgmVarLocinatorShowHelp', not self.ShowHelpOption))
 
 	def do_showTimeSubMenuToggleOn( self):
 		guiFactory.toggleMenuShowState(1,self.timeSubMenu)
@@ -216,82 +218,145 @@ class locinatorClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Layouts
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-	def buildBasicLayout(self,parent):
-
-		#>>>Time Section
-		ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
-
-		UpdateOptionRadioCollection = MelRadioCollection()
-		EveryFrameOption = mc.optionVar( q='cgmCurrentFrameOnly' )
-		mc.setParent(parent)
-		guiFactory.lineSubBreak()
-		guiFactory.header('Update','center')
-
-		UpdateOptionRow = MelHSingleStretchLayout(parent, ut='cgmUISubTemplate')
-		MelSpacer(UpdateOptionRow)
-		currentFrameButton = UpdateOptionRadioCollection.createButton(UpdateOptionRow,l='Current Frame',
-				                                                      onCommand=lambda *a: self.do_showTimeSubMenuToggleOn())
-		UpdateOptionRow.setStretchWidget( MelSpacer(UpdateOptionRow) )
-		everyFrameButton = UpdateOptionRadioCollection.createButton(UpdateOptionRow,l='Bake',
-				                                                    onCommand=lambda *a: self.do_showTimeSubMenuToggleOff())
-
-		UpdateOptionRow.layout()
-
-		# Select our time button
-		if not EveryFrameOption:
-			everyFrameButton.select()
-		else:
-			currentFrameButton.select()
-
+	def buildPlaceHolder(self,parent):
+		self.containerName = MelColumnLayout(parent,ut='cgmUISubTemplate')
+		return self.containerName
+	
+	def buildTimeSubMenu(self,parent):
+		self.containerName = MelColumnLayout(parent,ut='cgmUISubTemplate')
 		# Time Submenu
-		mc.setParent(parent)
-		self.helpBlurbs.extend(guiFactory.instructions(" Set your time range",vis = ShowHelpOption))
+		mc.setParent(self.containerName)
+		self.helpBlurbs.extend(guiFactory.instructions(" Set your time range",vis = self.ShowHelpOption))
 
 		timelineInfo = search.returnTimelineInfo()
 
+
 		# TimeInput Row
-		TimeInputRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',vis= not EveryFrameOption)
+		TimeInputRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate')
 		self.timeSubMenu.append( TimeInputRow )
 		MelSpacer(TimeInputRow)
 		MelLabel(TimeInputRow,l='start')
 
 		self.startFrameField = MelIntField(TimeInputRow,'cgmLocWinStartFrameField',
-				                           width = 40,
-				                           value= timelineInfo['rangeStart'])
+	                                       width = 40,
+	                                       value= timelineInfo['rangeStart'])
 		TimeInputRow.setStretchWidget( MelSpacer(TimeInputRow) )
 		MelLabel(TimeInputRow,l='end')
 
 		self.endFrameField = MelIntField(TimeInputRow,'cgmLocWinEndFrameField',
-				                         width = 40,
-				                         value= timelineInfo['rangeEnd'])
+	                                     width = 40,
+	                                     value= timelineInfo['rangeEnd'])
 
 		MelSpacer(TimeInputRow)
 		TimeInputRow.layout()
 
-		mc.setParent(parent)
-		self.timeSubMenu.append(MelSeparator(parent,ut = 'cgmUISubTemplate',style='none',height = 5,vis= not EveryFrameOption))
-
+		MelSeparator(self.containerName,ut = 'cgmUISubTemplate',style='none',height = 5)
+		
 
 		# Button Row
-		TimeButtonRow = MelHLayout(parent,padding = 5, ut='cgmUISubTemplate',vis= not EveryFrameOption)
-		self.timeSubMenu.append( TimeButtonRow )
+		TimeButtonRow = MelHSingleStretchLayout(self.containerName,padding = 1, ut='cgmUISubTemplate')
+		MelSpacer(TimeButtonRow,w=2)
 		currentRangeButton = guiFactory.doButton2(TimeButtonRow,'Current Range',
-		                                          lambda *a: locinatorLib.setGUITimeRangeToCurrent(self),
-				                                  'Sets the time range to the current slider range')
+	                                              lambda *a: locinatorLib.setGUITimeRangeToCurrent(self),
+	                                              'Sets the time range to the current slider range')
+		TimeButtonRow.setStretchWidget( MelSpacer(TimeButtonRow,w=2) )
 		sceneRangeButton = guiFactory.doButton2(TimeButtonRow,'Scene Range',
-		                                        lambda *a: locinatorLib.setGUITimeRangeToScene(self),
-				                                'Sets the time range to the current slider range')
-
+	                                            lambda *a: locinatorLib.setGUITimeRangeToScene(self),
+	                                            'Sets the time range to the current slider range')
+		MelSpacer(TimeButtonRow,w=2)
+		
 		TimeButtonRow.layout()
 
-		mc.setParent(parent)
-		self.timeSubMenu.append(MelSeparator(parent,ut = 'cgmUISubTemplate',style='none',height = 5,vis=not EveryFrameOption))
+		
+		#>>> Base Settings Flags
+		self.KeyingModeCollection = MelRadioCollection()
+		self.KeyingModeCollectionChoices = []		
+		if not mc.optionVar( ex='cgmKeyingMode' ):
+			mc.optionVar( iv=('cgmKeyingMode', 0) )
+		
+		KeysSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
+		MelSpacer(KeysSettingsFlagsRow,w=2)	
+		KeysSettingsFlagsRow.setStretchWidget( MelLabel(KeysSettingsFlagsRow,l='Option: ',align='right') )
+		self.keyingOptions = ['Keys','All']
+		for item in self.keyingOptions:
+			cnt = self.keyingOptions.index(item)
+			self.KeyingModeCollectionChoices.append(self.KeyingModeCollection.createButton(KeysSettingsFlagsRow,label=self.keyingOptions[cnt],
+			                                                                               onCommand = Callback(guiFactory.toggleOptionVarState,self.keyingOptions[cnt],self.keyingOptions,'cgmKeyingMode',True)))
+			MelSpacer(KeysSettingsFlagsRow,w=5)
+		mc.radioCollection(self.KeyingModeCollection ,edit=True,sl= (self.KeyingModeCollectionChoices[ (mc.optionVar(q='cgmKeyingMode')) ]))
+		
+		KeysSettingsFlagsRow.layout()
 
+		#>>> Base Settings Flags
+		self.KeyingTargetCollection = MelRadioCollection()
+		self.KeyingTargetCollectionChoices = []		
+		if not mc.optionVar( ex='cgmKeyingTarget' ):
+			mc.optionVar( iv=('cgmKeyingTarget', 0) )
+		
+		BakeSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
+		MelSpacer(BakeSettingsFlagsRow,w=2)	
+		BakeSettingsFlagsRow.setStretchWidget( MelLabel(BakeSettingsFlagsRow,l='Keys: ',align='right') )
+		MelSpacer(BakeSettingsFlagsRow)
+		self.keyTargetOptions = ['source','self']
+		for item in self.keyTargetOptions:
+			cnt = self.keyTargetOptions.index(item)
+			self.KeyingTargetCollectionChoices.append(self.KeyingTargetCollection.createButton(BakeSettingsFlagsRow,label=self.keyTargetOptions[cnt],
+		                                                                                       onCommand = Callback(guiFactory.toggleOptionVarState,self.keyTargetOptions[cnt],self.keyTargetOptions,'cgmKeyingTarget',True)))
+			MelSpacer(BakeSettingsFlagsRow,w=5)
+		mc.radioCollection(self.KeyingTargetCollection ,edit=True,sl= (self.KeyingTargetCollectionChoices[ (mc.optionVar(q='cgmKeyingTarget')) ]))
+		
+		BakeSettingsFlagsRow.layout()
+		
+		return self.containerName
+	
+	def buildBasicLayout(self,parent):
+
+		#>>>Time Section
+		UpdateOptionRadioCollection = MelRadioCollection()
+		EveryFrameOption = mc.optionVar( q='cgmLocinatorBakeState' )
+		mc.setParent(parent)
+		guiFactory.lineSubBreak()
+		guiFactory.header('Update')
+		
+		#>>> Time Menu Container
+		self.BakeModeOptionList = ['Current Frame','Bake']
+		cgmVarName = 'cgmLocinatorBakeState'
+		
+		if not mc.optionVar( ex=cgmVarName ):
+			mc.optionVar( iv=(cgmVarName, 0) )
+		
+		#build our sub section options
+		self.ContainerList = []
+		
+		#Mode Change row 
+		ModeSetRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate')
+		self.BakeModeRadioCollection = MelRadioCollection()
+		self.BakeModeChoiceList = []	
+		MelSpacer(ModeSetRow,w=2)
+
+		self.BakeModeChoiceList.append(self.BakeModeRadioCollection.createButton(ModeSetRow,label=self.BakeModeOptionList[0],
+	                                                                      onCommand = Callback(guiFactory.toggleModeState,self.BakeModeOptionList[0],self.BakeModeOptionList,cgmVarName,self.ContainerList,True)))
+		
+		ModeSetRow.setStretchWidget( MelSpacer(ModeSetRow) )
+		
+		self.BakeModeChoiceList.append(self.BakeModeRadioCollection.createButton(ModeSetRow,label=self.BakeModeOptionList[1],
+	                                                                      onCommand = Callback(guiFactory.toggleModeState,self.BakeModeOptionList[1],self.BakeModeOptionList,cgmVarName,self.ContainerList,True)))
+		
+		ModeSetRow.layout()
+		
+		
+		#>>>
+		self.ContainerList.append( self.buildPlaceHolder(parent) )
+		self.ContainerList.append( self.buildTimeSubMenu( parent) )
+		
+		mc.radioCollection(self.BakeModeRadioCollection,edit=True, sl=self.BakeModeChoiceList[mc.optionVar(q=cgmVarName)])
+		#>>>
+		
+		mc.setParent(parent)
 
 		guiFactory.doButton2(parent,'Do it!',
-		                     lambda *a: locinatorLib.doUpdateLoc(self),
-				             'Update a locator at a particular frame or through a timeline')
+	                         lambda *a: locinatorLib.doUpdateLoc(self),
+	                         'Update a locator at a particular frame or through a timeline')
 
 		guiFactory.lineSubBreak()
 
@@ -300,16 +365,13 @@ class locinatorClass(BaseMelWindow):
 		#>>>  Loc Me Section
 		guiFactory.lineBreak()
 		guiFactory.lineSubBreak()
-		self.helpBlurbs.extend(guiFactory.instructions(" Find the center point from a selection set",vis = ShowHelpOption))
 		guiFactory.doButton2(parent,'Just Loc Selected',
-		                     lambda *a: locinatorLib.doLocMe(self),
-				             'Create an updateable locator based off the selection and options')
+			                 lambda *a: locinatorLib.doLocMe(self),
+			                 'Create an updateable locator based off the selection and options')
 
 
 
 	def buildSpecialLayout(self,parent):
-		ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
-
 		SpecialColumn = MelColumnLayout(parent)
 
 		#>>>  Center Section
@@ -348,7 +410,6 @@ class locinatorClass(BaseMelWindow):
 
 
 	def buildMatchLayout(self,parent):
-		ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
 
 		MatchColumn = MelColumnLayout(parent)
 
@@ -361,7 +422,7 @@ class locinatorClass(BaseMelWindow):
 
 		#>>>  Purge Section
 		guiFactory.lineSubBreak()
-		self.helpBlurbs.extend(guiFactory.instructions("  Purge all traces of cgmThinga tools from the object",vis = ShowHelpOption))
+		self.helpBlurbs.extend(guiFactory.instructions("  Purge all traces of cgmThinga tools from the object",vis = self.ShowHelpOption))
 		guiFactory.doButton2(MatchColumn,'Purge it',
 		                     lambda *a: locinatorLib.doPurgeCGMAttrs(self),
 				             "Clean it")

@@ -1060,7 +1060,7 @@ def returnUserAttrsToList(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrsList = []
-    attrTypes = returnObjectsUserAttributeTypes(obj)
+    attrTypes = returnUserAttrsToDict(obj)
     objAttributes = attrTypes.keys()
     
     if not objAttributes == None:

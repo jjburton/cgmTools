@@ -36,6 +36,7 @@ from cgm.lib import distance
 from cgm.lib import search
 from cgm.lib import lists
 from cgm.lib import rigging
+from cgm.lib import guiFactory
 
 import copy
 import random
@@ -97,7 +98,8 @@ def doPurgeNull(null):
     userAttrsData = attributes.returnUserAttrsToList(null)
     attrsToPurge = lists.removeMatchedIndexEntries(userAttrsData,'cgm')
     for attr in attrsToPurge:
-        attributes.deleteAttr(null,attr[0]) 
+        attributes.deleteAttr(null,attr[0])
+        guiFactory.warning("Deleted: '%s.%s'"%(null,attr[0]))    
 
 def purgeCGMAttrsFromObject(obj):
     """ 
@@ -117,6 +119,7 @@ def purgeCGMAttrsFromObject(obj):
     if len(attrsToPurge):
         for attr in attrsToPurge:
             attributes.deleteAttr(obj,attr[0]) 
+            guiFactory.warning("Deleted: '%s.%s'"%(obj,attr[0]))
         return True
     else:
         return False
