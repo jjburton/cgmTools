@@ -276,7 +276,7 @@ class locinatorClass(BaseMelWindow):
 		
 		KeysSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(KeysSettingsFlagsRow,w=2)	
-		KeysSettingsFlagsRow.setStretchWidget( MelLabel(KeysSettingsFlagsRow,l='Option: ',align='right') )
+		KeysSettingsFlagsRow.setStretchWidget( MelLabel(KeysSettingsFlagsRow,l='Anim Option: ',align='right') )
 		self.keyingOptions = ['Keys','All']
 		for item in self.keyingOptions:
 			cnt = self.keyingOptions.index(item)
@@ -295,7 +295,7 @@ class locinatorClass(BaseMelWindow):
 		
 		BakeSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(BakeSettingsFlagsRow,w=2)	
-		BakeSettingsFlagsRow.setStretchWidget( MelLabel(BakeSettingsFlagsRow,l='Keys: ',align='right') )
+		BakeSettingsFlagsRow.setStretchWidget( MelLabel(BakeSettingsFlagsRow,l='From: ',align='right') )
 		MelSpacer(BakeSettingsFlagsRow)
 		self.keyTargetOptions = ['source','self']
 		for item in self.keyTargetOptions:
