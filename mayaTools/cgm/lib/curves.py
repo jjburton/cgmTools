@@ -32,6 +32,7 @@ from cgm.lib import (distance,
                      rigging,
                      autoname,
                      guiFactory,
+                     locators,
                      position)
 
 import re
@@ -89,45 +90,70 @@ def parentShapeInPlace(obj,curve):
     """copy pivot """
     rigging.copyPivot(workingCurve,obj)
     curveScale =  mc.xform(workingCurve,q=True, s=True,r=True)
+    print "curve scale is '%s'"%curveScale
     objScale =  mc.xform(obj,q=True, s=True,r=True)
+    print "curve scale is '%s'"%objScale
+    
     """account for freezing"""
-    pos = mc.xform(obj, q=True, os=True, rp = True)
     mc.makeIdentity(workingCurve,apply=True,translate =True, rotate = True, scale=False)
+    
     
     """ make our zero out group"""
     group = rigging.groupMeObject(obj,False)
-    mc.move(pos[0],pos[1],pos[2],workingCurve)
+    pos = []
+    pos.append(mc.getAttr(group+'.translateX') - mc.getAttr(obj+'.translateX'))
+    pos.append(mc.getAttr(group+'.translateY') - mc.getAttr(obj+'.translateY'))
+    pos.append(mc.getAttr(group+'.translateZ') - mc.getAttr(obj+'.translateZ'))
+    
     workingCurve = rigging.doParentReturnName(workingCurve,group)
     
     """ zero out the group """
-    mc.setAttr((group+'.tx'),0)
-    mc.setAttr((group+'.ty'),0)
-    mc.setAttr((group+'.tz'),0)
+    mc.setAttr((group+'.tx'),pos[0])
+    mc.setAttr((group+'.ty'),pos[1])
+    mc.setAttr((group+'.tz'),pos[2])
     mc.setAttr((group+'.rx'),0)
     mc.setAttr((group+'.ry'),0)
-    mc.setAttr((group+'.rz'),0)    
-       
-    """main scale fix """
+    mc.setAttr((group+'.rz'),0)
+    
+    """ zero out the object """
+
+    #main scale fix 
     baseMultiplier = [0,0,0]
-    baseMultiplier[0] = ( curveScale[0]/objScale[1] )
-    baseMultiplier[1] = ( curveScale[0]/objScale[1] )
-    baseMultiplier[2] = ( curveScale[0]/objScale[1] )
-    mc.setAttr(workingCurve+'.sx',baseMultiplier[0])
-    mc.setAttr(workingCurve+'.sy',baseMultiplier[1])
-    mc.setAttr(workingCurve+'.sz',baseMultiplier[2])
-       
-    """ parent scale fix """    
+    baseMultiplier[0] = ( curveScale[0]/objScale[0] )
+    baseMultiplier[1] = ( curveScale[1]/objScale[1] )
+    baseMultiplier[2] = ( curveScale[2]/objScale[2] )
+
+    #parent scale fix     
     if parents:
 	parents.reverse()
 	multiplier = [baseMultiplier[0],baseMultiplier[1],baseMultiplier[2]]
         for p in parents:
-            scaleBuffer = mc.xform(p,q=True, s=True,r=True)
+	    scaleBuffer = []
+	    scaleBuffer.append(mc.getAttr(p+'.sx'))
+	    scaleBuffer.append(mc.getAttr(p+'.sy'))
+	    scaleBuffer.append(mc.getAttr(p+'.sz'))
+            #scaleBuffer = mc.xform(p,q=True, s=True,r=True)
+	    print "'%s' scale is '%s'"%(p,objScale)
+	    #multiplier[0] = ( (scaleBuffer[0]/objScale[0]) * multiplier[0] )
+	    #multiplier[1] = ( (scaleBuffer[1]/objScale[1]) * multiplier[1] )
+	    #multiplier[2] = ( (scaleBuffer[2]/objScale[2]) * multiplier[2] )
+	    
 	    multiplier[0] = ( (objScale[0]/scaleBuffer[0]) * multiplier[0] )
 	    multiplier[1] = ( (objScale[1]/scaleBuffer[1]) * multiplier[1] )
 	    multiplier[2] = ( (objScale[2]/scaleBuffer[2]) * multiplier[2] )
-	mc.setAttr(workingCurve+'.sx',multiplier[0])
-	mc.setAttr(workingCurve+'.sy',multiplier[1])
-	mc.setAttr(workingCurve+'.sz',multiplier[2])
+	    
+	    mc.setAttr(workingCurve+'.sx',multiplier[0])
+	    mc.setAttr(workingCurve+'.sy',multiplier[1])
+	    mc.setAttr(workingCurve+'.sz',multiplier[2])
+	    mc.makeIdentity(workingCurve,apply=True,translate =False, rotate = False, scale=True)
+	    
+	    
+    else:
+	mc.setAttr(workingCurve+'.sx',baseMultiplier[0])
+	mc.setAttr(workingCurve+'.sy',baseMultiplier[1])
+	mc.setAttr(workingCurve+'.sz',baseMultiplier[2])
+	
+    
     
     workingCurve = mc.parent(workingCurve,world=True)
     mc.delete(group)
@@ -137,6 +163,9 @@ def parentShapeInPlace(obj,curve):
     shape = mc.listRelatives (workingCurve, f= True,shapes=True)
     mc.parent (shape,obj,add=True,shape=True)
     mc.delete(workingCurve)
+    
+    #>>>Put object back where it was
+    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -162,7 +191,7 @@ def parentShapeInPlace2(obj,curve):
     parents = search.returnAllParents(obj)
 
     """copy pivot """
-    copyPivot(workingCurve,obj)
+    rigging.copyPivot(workingCurve,obj)
     curveScale =  mc.xform(workingCurve,q=True, s=True,r=True)
 
     mc.makeIdentity(workingCurve,apply=True,translate =True, rotate = True, scale=True)
