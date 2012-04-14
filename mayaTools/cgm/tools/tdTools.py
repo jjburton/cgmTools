@@ -397,11 +397,9 @@ class tdToolsClass(BaseMelWindow):
 		curvesLeftColumn = self.buildBasicLeftColumn(curvesMainFormLayout)
 		curvesRightColumn = MelColumnLayout(curvesMainFormLayout)
 
-		self.buildCurveCreator(curvesRightColumn)
 		self.buildTextObjectCreator(curvesRightColumn)
+		self.buildCurveCreator(curvesRightColumn)
 		self.buildCurveUtilities(curvesRightColumn)
-		self.buildSnapMoveTool(curvesRightColumn)
-
 
 		#>> Defining Main Form Layout
 		curvesMainFormLayout(edit = True,
@@ -619,9 +617,11 @@ class tdToolsClass(BaseMelWindow):
 				             'Creates loc at object, matching trans,rot and rotOrd')
 
 		guiFactory.lineSubBreak()
+		"""
 		guiFactory.doButton2(LeftColumn,'updateLoc',
 		                     lambda *a:locinatorLib.doUpdateLoc(self,True),
 				             'Updates loc or object connected to loc base don selection. See cgmLocinator for more options')
+		"""
 		return LeftColumn
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -721,7 +721,7 @@ class tdToolsClass(BaseMelWindow):
 
 		buttonRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Update Current',
-		                                              lambda *a:tdToolsLib.doUpdateTexCurveObject(self),
+		                                              lambda *a:tdToolsLib.doUpdateTextCurveObject(self),
 				                                      'Updates a current text object')
 		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Create',
 		                                              lambda *a:tdToolsLib.doCreateTextCurveObject(self),

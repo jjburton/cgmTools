@@ -30,8 +30,8 @@ import subprocess
 
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
-from cgm.lib import *
 from cgm.lib import (guiFactory,
+                     curves,
                      dictionary,
                      autoname,
                      search,
@@ -39,6 +39,8 @@ from cgm.lib import (guiFactory,
                      skinning)
 
 from cgm.tools.lib import locinatorLib,namingToolsLib
+
+reload(curves)
 """
 
 """
@@ -1366,21 +1368,37 @@ def doLoadTexCurveObject(self):
 				guiFactory.warning('Selected object is not a cgmTextCurve object')
 			else:
 				mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = selected[0],editable = False )
-				doUpdateTexCurveObjectUI(self)
+				doUpdateTextCurveObjectUI(self)
 	else:
 		guiFactory.warning('You must select something.')
 
 
-def doUpdateTexCurveObjectUI(self):
+def doUpdateTextCurveObjectUI(self):
 	textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
 	objAttrs = attributes.returnUserAttrsToDict(textCurveObject)
 	mc.textField(self.textObjectTextField,e=True,text=(objAttrs['cgmObjectText']))
 	mc.floatField(self.textObjectSizeField,e=True,value=(float(objAttrs['cgmObjectSize'])))
 
 
-def doUpdateTexCurveObject(self):
+def doUpdateTextCurveObject(self):
+	self.renameObjectOnUpdate = mc.optionVar(q='cgmVarRenameOnUpdate')
+	self.textObjectFont =  mc.optionVar(q='cgmVarFontOption')
 	textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
-	if textCurveObject:
+	selected = mc.ls(sl=True)
+	
+	if selected:
+		for obj in selected:
+			updatedSomething = False
+			if search.returnTagInfo(obj,'cgmObjectType') == 'textCurve':
+				attributes.storeInfo(obj,'cgmObjectFont',self.textObjectFont)				
+				buffer = curves.updateTextCurveObject(obj)				
+				guiFactory.warning("'%s' updated"%buffer)
+				updatedSomething = True
+				
+		if updatedSomething:
+			return
+	
+	elif textCurveObject:
 		if mc.objExists(textCurveObject) and search.returnTagInfo(textCurveObject,'cgmObjectType') == 'textCurve':
 			# Get our variables
 			self.textObjectText = mc.textField(self.textObjectTextField,q=True,text=True)
@@ -1401,7 +1419,9 @@ def doUpdateTexCurveObject(self):
 			# Put our updated object info
 			mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
 
-			doUpdateTexCurveObjectUI(self)
+			doUpdateTextCurveObjectUI(self)
+			guiFactory.warning("'%s' updated"%textCurveObject)
+			
 
 	else:
 		guiFactory.warning('No textCurveObject loaded')
