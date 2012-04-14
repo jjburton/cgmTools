@@ -30,12 +30,19 @@ import subprocess
 
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
+
+
 from cgm.lib import (guiFactory,
                      curves,
                      dictionary,
                      autoname,
                      search,
                      deformers,
+                     logic,
+                     rigging,
+                     attributes,
+                     distance,
+                     position,
                      skinning)
 
 from cgm.tools.lib import locinatorLib,namingToolsLib

@@ -46,6 +46,7 @@ reload(tdToolsLib)
 reload(namingToolsLib)
 
 def run():
+	reload(tdToolsLib)
 	tdTools = tdToolsClass()
 
 class tdToolsClass(BaseMelWindow):
@@ -352,6 +353,11 @@ class tdToolsClass(BaseMelWindow):
 		MelMenuItemDiv( self.UI_HelpMenu )
 		MelMenuItem( self.UI_HelpMenu, l="About",
 				     c=lambda *a: self.showAbout() )
+		
+		MelMenuItemDiv( self.UI_HelpMenu )
+		MelMenuItem( self.UI_HelpMenu, l="Reload",
+				     c=lambda *a: run())		
+		
 
 	def do_showHelpToggle(self):
 		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
