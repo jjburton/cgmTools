@@ -452,7 +452,8 @@ def returnAbsoluteSizeCurve(curve):
             isShape = True
 
         loc = rigging.locMeObjectStandAlone(curve)
-        locGroup = rigging.groupMeObject(loc)
+        locGroup = rigging.groupMeObject(loc,False)
+        loc = rigging.doParentReturnName(loc,locGroup)
         directions = ['x','y','z']
         for direction in directions:
             positionsBuffer = []
