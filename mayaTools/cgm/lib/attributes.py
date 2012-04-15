@@ -91,7 +91,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
     infoData = 0
 
     #Force leave  unlocked to be on in the case of referenced objects.
-    if mc.referenceQuery(obj, isNodeReferenced=True) == True:
+    if mc.referenceQuery(obj, isNodeReferenced=True):
         leaveUnlocked = True
 
 
