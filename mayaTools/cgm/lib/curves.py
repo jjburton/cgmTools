@@ -517,45 +517,20 @@ def updateTextCurveObject(textCurveObj):
     shapes = mc.listRelatives(textCurveObj,shapes=True,fullPath=True)
     storedSize = float(mc.getAttr(textCurveObj+'.cgmObjectSize'))
     """parent scales """
-    parents = search.returnAllParents(textCurveObj)
     scales = []
     scaleBuffer = mc.xform(textCurveObj,q=True, s=True,r=True)
     scales.append(sum(scaleBuffer)/len(scaleBuffer))
-    
-    if parents:       
-        for p in parents:
-            scaleBuffer = mc.xform(p,q=True, s=True,r=True)
-            average = sum(scaleBuffer)
-            scales.append(sum(scaleBuffer)/len(scaleBuffer))
         
     if shapes == None:
         size = storedSize
         
     else:
-        print 'here'
         boundingBoxSize =  distance.returnAbsoluteSizeCurve(textCurveObj)
-        print boundingBoxSize
-        print scaleBuffer
-        print storedSize
         if max(boundingBoxSize) != storedSize:
-            print 'got here'
-            if parents:
-                print parents
-                print 'parents'
-                scaleBuffer = max(boundingBoxSize)
-                for s in scales:
-                    scaleBuffer /= s
-                size = scaleBuffer
-                attributes.storeInfo(textCurveObj,'cgmObjectSize',size)
-            else:
-                print 'am I here'
-                size = max(boundingBoxSize)
-                #size = max(boundingBoxSize) / (sum(scaleBuffer)/len(scaleBuffer))
-                attributes.storeInfo(textCurveObj,'cgmObjectSize',size)
+	    size = max(boundingBoxSize)
+	    attributes.storeInfo(textCurveObj,'cgmObjectSize',size)
         else:
-            'equal'
             size = storedSize
-    
     
     """ delete current shapes"""
     if shapes:
