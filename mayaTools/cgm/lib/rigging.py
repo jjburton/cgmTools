@@ -136,7 +136,6 @@ def doParentToWorld(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     parents = search.returnParentObject(obj)
-    print parents
     if parents != False:
         returnBuffer = mc.parent(obj,world = True)
         return returnBuffer[0]
@@ -278,7 +277,6 @@ def groupMe():
     for obj in placeObjs:
         buffer = groupMeObject(obj,True)
         returnBuffer.append(buffer)
-        print (buffer+' created')
     return returnBuffer
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
