@@ -230,7 +230,4 @@ def renameObjectListFromList (objList,nameList):
             cnt += 1
         return nameList
         
-def returnSelectedToList ():
-    selected = []
-    selected = (mc.ls (sl=True))
-    return selected
+
