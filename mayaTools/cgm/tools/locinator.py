@@ -171,9 +171,9 @@ class locinatorClass(BaseMelWindow):
 				     c=lambda *a: self.showAbout() )
 
 	def do_showHelpToggle( self):
-		self.ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
 		guiFactory.toggleMenuShowState(self.ShowHelpOption,self.helpBlurbs)
 		mc.optionVar( iv=('cgmVarLocinatorShowHelp', not self.ShowHelpOption))
+		self.ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
 
 	def do_showTimeSubMenuToggleOn( self):
 		guiFactory.toggleMenuShowState(1,self.timeSubMenu)
