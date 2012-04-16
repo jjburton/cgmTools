@@ -30,9 +30,10 @@ import maya.cmds as mc
 import cgm
 import cgm.lib
 
-from cgm.lib import distance
+from cgm.lib import (distance,
+                     lists)
 
-def layoutByColumns(objectList,columnNumber=3):
+def layoutByColumns(objectList,columnNumber=3,startPos = [0,0,0]):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -56,20 +57,38 @@ def layoutByColumns(objectList,columnNumber=3):
 	
     for obj in objectList:
 	mc.move(0,0,0,obj,a=True)
-	
-	
-    sizeX = max(sizeXBuffer)
-    sizeY = max(sizeYBuffer)
+
+    sizeX = max(sizeXBuffer) * 1.75
+    sizeY = max(sizeYBuffer) * 1.75
+    
+    startX = startPos[0]
+    startY = startPos[1]
+    startZ = startPos[2]
     
     col=1
     objectCnt = 0
+    #sort the list
+    
+    sortedList = lists.returnListChunks(objectList,columnNumber)
+    bufferY = startY
+    for row in sortedList:
+	bufferX = startX
+	for obj in row:
+	    mc.xform(obj,os=True,t=[bufferX,bufferY,startZ])
+	    bufferX += sizeX
+	bufferY += sizeY
+
+	
+    """
     for i in range (len(objectList)):
 	row = i//columnNumber
 	if col>columnNumber:
 	    col=1
-	mc.xform(objectList[objectCnt],a=True,t=[((sizeX*(col+1.2))*1.5),(sizeY*row*-1.5),0])
+	#mc.xform(objectList[objectCnt],a=True,t=[((sizeX*(col+1.2))*1.5),(sizeY*row*-1.5),0])
+	mc.xform(objectList[objectCnt],a=True,t=[((sizeX*(col+1.2))),(sizeY*row),0])	
 	objectCnt +=1
 	col+=1
+    """
 	
 	
 
