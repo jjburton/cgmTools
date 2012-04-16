@@ -763,15 +763,15 @@ class tdToolsClass(BaseMelWindow):
 
 		curveUtilitiesRow1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
 
-		guiFactory.doButton2(curveUtilitiesRow1,'Objects to Crv',
-				             lambda *a:tdToolsLib.doCreateCurveFromObjects(),
-				             'Creates a curve through the pivots of objects')
 		guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt',
 				             lambda *a:tdToolsLib.doShapeParent(),
 				             "Maya's standard shape parent")
 		guiFactory.doButton2(curveUtilitiesRow1,'shpPrnt in Place',
 				             lambda *a:tdToolsLib.doShapeParentInPlace(),
-				             'shapeParents a curve in place')
+				             'shapeParents a curve in place/nFrom to relationship')
+		guiFactory.doButton2(curveUtilitiesRow1,'Replace Shapes',
+				             lambda *a:tdToolsLib.doReplaceCurveShapes(),
+				             'Replaces the shapes of the last object with those\nof the other objects')
 
 
 		curveUtilitiesRow1.layout()
@@ -781,9 +781,9 @@ class tdToolsClass(BaseMelWindow):
 
 
 		curveUtilitiesRow2 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
-		guiFactory.doButton2(curveUtilitiesRow2,'What am I',
-				             lambda *a:tdToolsLib.doReportObjectType(),
-				             'Reports what cgmThinga thinks the object is')
+		guiFactory.doButton2(curveUtilitiesRow2,'Objects to Crv',
+				             lambda *a:tdToolsLib.doCreateCurveFromObjects(),
+				             'Creates a curve through the pivots of objects')
 		guiFactory.doButton2(curveUtilitiesRow2,'Crv to Python',
 				             lambda *a:tdToolsLib.doCurveToPython(),
 				             'Creates a python command to recreate a curve')
@@ -895,7 +895,7 @@ class tdToolsClass(BaseMelWindow):
 
 		guiFactory.doButton2(GridLayoutButtonRow,'Do it!',
 		                     lambda *a:tdToolsLib.doLayoutByRowsAndColumns(self),
-				             'Lays out the selected in a grid format /n by the number of columns input')
+				             'Lays out the selected in a grid format\nby the number of columns input\nfrom the position of the last object selected')
 
 
 		GridLayoutButtonRow.layout()
@@ -1657,13 +1657,12 @@ class tdToolsClass(BaseMelWindow):
 		self.RowColumnIntField = MelIntField(RowColumnLayoutModeRow,w=30,v=(mc.optionVar(q='cgmVarRowColumnCount')))
 
 		self.OrderByNameCheckBox = MelCheckBox(RowColumnLayoutModeRow,l = 'Arrange by Name',
-				                               onCommand = lambda *a: mc.optionVar(sv=('cgmVarOrderByName',1)),
-				                               offCommand = lambda *a: mc.optionVar(sv=('cgmVarOrderByName',0)))
+		                                       v = (mc.optionVar(query='cgmVarOrderByName')),
+		                                       onCommand = lambda *a: mc.optionVar(iv=('cgmVarOrderByName',1)),
+		                                       offCommand = lambda *a: mc.optionVar(iv=('cgmVarOrderByName',0)))
 
 
 		RowColumnLayoutModeRow.layout()
-
-		#mc.radioCollection(self.uiRowColumnLayoutModeOptionGroup ,edit=True,sl= self.RowColumnLayoutModeCollectionChoices[ mc.optionVar(q='cgmRowColumnLayoutMode') ] )
 
 
 
