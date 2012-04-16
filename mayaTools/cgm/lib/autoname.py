@@ -1014,7 +1014,6 @@ def doNameObject(obj,sceneUnique = False):
     nameFactory = factory(obj)
     
     if nameFactory.amIMe(name):
-        print "I'm me"
         guiFactory.warning("'%s' is already named correctly."%nameFactory.nameBase)
         return name
     else:

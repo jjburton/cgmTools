@@ -44,6 +44,7 @@ from cgm.lib import (guiFactory,
                      batch,
                      distance,
                      position,
+                     lists,
                      skinning)
 
 from cgm.tools.lib import locinatorLib,namingToolsLib
@@ -57,6 +58,24 @@ def uiSetSelfVariable(self,variable,value):
     print value
     self.variable = value
 
+
+
+
+def loadGUIOnStart(self):
+    selected = mc.ls(sl=True)
+    if selected:
+        for obj in selected:
+            if search.returnTagInfo(selected[0],'cgmObjectType') == 'textCurve':
+                mc.select(selected[0])
+                doLoadTexCurveObject(self)
+                break
+            
+        mc.select(selected[0])
+        namingToolsLib.uiLoadAutoNameObject(self)
+            
+    
+    
+        mc.select(selected)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Auto Naming
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -116,7 +135,6 @@ def uiNameLoadedAutoNameObjectChildren(self):
 
 
 def uiLoadAutoNameObject(self):
-    selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
 
@@ -1377,12 +1395,12 @@ def doLoadTexCurveObject(self):
                 guiFactory.warning('Selected object is not a cgmTextCurve object')
             else:
                 mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = selected[0],editable = False )
-                doUpdateTextCurveObjectUI(self)
+                uiLoadTextCurveObject(self)
     else:
         guiFactory.warning('You must select something.')
 
 
-def doUpdateTextCurveObjectUI(self):
+def uiLoadTextCurveObject(self):
     textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
     objAttrs = attributes.returnUserAttrsToDict(textCurveObject)
     mc.textField(self.textObjectTextField,e=True,text=(objAttrs['cgmObjectText']))
@@ -1393,21 +1411,26 @@ def doUpdateTextCurveObject(self):
     #Get variables
     self.renameObjectOnUpdate = mc.optionVar(q='cgmVarRenameOnUpdate')
     self.textObjectFont =  mc.optionVar(q='cgmVarFontOption')
+    self.changeFontOnUpdate = mc.optionVar(q='cgmVarChangeFontOnUpdate')
     textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
     selected = mc.ls(sl=True)
     
     #>>> Doing the stuff
     if selected:
+	mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected))			
         for obj in selected:
             updatedObjects = []
+	    
+            #Progress bar
+	    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+		    break
+	    mc.progressBar(mayaMainProgressBar, edit=True, status = ("Checking '%s'"%obj), step=1)
+            
             # If the object is a text curve object, we have stuff to do
             if search.returnTagInfo(obj,'cgmObjectType') == 'textCurve':
                 self.textObjectText = mc.textField(self.textObjectTextField,q=True,text=True)				
-                attributes.storeInfo(obj,'cgmObjectFont',self.textObjectFont)	
                 
                 #If the object selected is the loaded object, we need to grab the info there.
-                print obj
-                print textCurveObject
                 if obj == textCurveObject:
                     # Get our variables
                     self.textObjectText = mc.textField(self.textObjectTextField,q=True,text=True)
@@ -1416,20 +1439,25 @@ def doUpdateTextCurveObject(self):
                     # Store the data on on the object
                     attributes.storeInfo(obj,'cgmObjectText',self.textObjectText)
                     attributes.storeInfo(obj,'cgmObjectSize',self.textObjectSize)
-                    attributes.storeInfo(obj,'cgmObjectFont',self.textObjectFont)
+                    
                     
                     if self.renameObjectOnUpdate:
                         attributes.storeInfo(obj,'cgmName',self.textObjectText)
                         obj = autoname.doNameObject(obj)                    
-                    
+                 
+                if self.changeFontOnUpdate:
+                    attributes.storeInfo(obj,'cgmObjectFont',self.textObjectFont) 
                 buffer = curves.updateTextCurveObject(obj)	
                   
                 updatedObjects.append(buffer)
                 guiFactory.warning("'%s' updated"%buffer)
+		
+	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
         if updatedObjects:
             mc.select(buffer)
             doLoadTexCurveObject(self)
+            namingToolsLib.uiLoadAutoNameObject(self)            
             mc.select(updatedObjects)
             return
 
@@ -1442,7 +1470,9 @@ def doUpdateTextCurveObject(self):
             # Store the data on on the object
             attributes.storeInfo(textCurveObject,'cgmObjectText',self.textObjectText)
             attributes.storeInfo(textCurveObject,'cgmObjectSize',self.textObjectSize)
-            attributes.storeInfo(textCurveObject,'cgmObjectFont',self.textObjectFont)
+            if self.changeFontOnUpdate:
+                print 'YESSSSS'                
+                attributes.storeInfo(textCurveObject,'cgmObjectFont',self.textObjectFont)
 
             textCurveObject = curves.updateTextCurveObject(textCurveObject)
 
@@ -1453,12 +1483,13 @@ def doUpdateTextCurveObject(self):
             # Put our updated object info
             mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
 
-            doUpdateTextCurveObjectUI(self)
+            uiLoadTextCurveObject(self)
+            namingToolsLib.uiLoadAutoNameObject(self)                        
             guiFactory.warning("'%s' updated"%textCurveObject)
 
 
     else:
-        doUpdateTextCurveObjectUI(self)
+        uiLoadTextCurveObject(self)        
         guiFactory.warning('No textCurveObject loaded or selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>Curve Utilities
@@ -1635,7 +1666,10 @@ def uiSetGuessOrientation(self):
         upIndex = self.axisOptions.index('y+')
         mc.optionVar( sv=('cgmVarObjectUpAxis', 'y+') )
         menuItems = self.ObjectUpCollection.getItems()
-        menuItems[upIndex](edit = True,rb = True)	
+        menuItems[upIndex](edit = True,rb = True)
+    
+    if selected:
+        mc.select(selected)
 
 
 
