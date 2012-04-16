@@ -130,7 +130,6 @@ def parentShapeInPlace(obj,curve):
 	multiplier = [baseMultiplier[0],baseMultiplier[1],baseMultiplier[2]]
         for p in parents:
             scaleBuffer = mc.xform(p,q=True, s=True,r=True)
-	    print "'%s' scale is %s"%(p,scaleBuffer)
 	    multiplier[0] = ( (multiplier[0]/scaleBuffer[0]) )
 	    multiplier[1] = ( (multiplier[1]/scaleBuffer[1]) )
 	    multiplier[2] = ( (multiplier[2]/scaleBuffer[2])  )
@@ -257,7 +256,6 @@ def parentShapeInPlace2(obj,curve):
     """ make our zero out group"""
     group = rigging.groupMeObject(obj,False)
     workingCurve = rigging.doParentReturnName(workingCurve,group)
-    print workingCurve
     """ zero out the group """
     mc.setAttr((group+'.tx'),0)
     mc.setAttr((group+'.ty'),0)
@@ -527,12 +525,16 @@ def updateTextCurveObject(textCurveObj):
     else:
         boundingBoxSize =  distance.returnAbsoluteSizeCurve(textCurveObj)
         if max(boundingBoxSize) != storedSize:
-	    size = max(boundingBoxSize)
+	    if storedSize < max(boundingBoxSize):
+		size = max(boundingBoxSize)
+	    else:
+		size = storedSize
 	    attributes.storeInfo(textCurveObj,'cgmObjectSize',size)
         else:
             size = storedSize
     
     """ delete current shapes"""
+    colorIndex = []
     if shapes:
       """first get the current color"""
       colorIndex = mc.getAttr(shapes[0]+'.overrideColor')
@@ -551,7 +553,8 @@ def updateTextCurveObject(textCurveObj):
     parentShapeInPlace(textCurveObj,textCurve)
     mc.delete(textCurve)
     textCurveObj = autoname.doNameObject(textCurveObj)
-    setCurveColorByIndex(textCurveObj,colorIndex)
+    if colorIndex:
+	setCurveColorByIndex(textCurveObj,colorIndex)
     
     return textCurveObj
     
