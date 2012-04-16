@@ -64,13 +64,6 @@ class tdToolsClass(BaseMelWindow):
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
 	def __init__( self):	
-		"""
-		# Maya version check
-		if mayaVer >= 2011:
-			self.currentGen = True
-		else:
-			self.currentGen = False
-		"""
 		# Basic variables
 		self.window = ''
 		self.activeTab = ''
@@ -164,6 +157,9 @@ class tdToolsClass(BaseMelWindow):
 		self.buildAttributeTab(TabAttribute)
 		self.buildDeformerTab(TabDeformer)
 		self.buildNamingTab(TabNaming)
+		
+		#Trying a preload from selected
+		tdToolsLib.loadGUIOnStart(self)
 
 		self.show()
 
@@ -197,8 +193,7 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
-
-		# Font Menu
+		# Font Menu			
 		FontMenu = MelMenuItem( self.UI_OptionsMenu, l='Font', subMenu=True)
 		FontMenuCollection = MelRadioMenuCollection()
 
@@ -281,11 +276,20 @@ class tdToolsClass(BaseMelWindow):
 		UpdatingMenu = MelMenuItem( self.UI_OptionsMenu, l='Updating', subMenu=True)
 
 		RenameOnUpdateState = mc.optionVar( q='cgmVarRenameOnUpdate' )
-
 		MelMenuItem( UpdatingMenu, l="Rename on Update",
 				     cb=RenameOnUpdateState,
 				     c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVarRenameOnUpdate'))
-
+		
+		# Change font
+		if not mc.optionVar( ex='cgmVarChangeFontOnUpdate' ):
+			mc.optionVar( iv=('cgmVarChangeFontOnUpdate', 1) )
+			
+		ChangeFontOnUpdateState = mc.optionVar( q='cgmVarChangeFontOnUpdate' )		
+		MelMenuItem( UpdatingMenu, l="Change font",
+	                             cb=ChangeFontOnUpdateState,
+	                             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVarChangeFontOnUpdate'))
+		
+		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 
 	def buildAxisMenu(self, *a ):
@@ -726,9 +730,9 @@ class tdToolsClass(BaseMelWindow):
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 		buttonRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
-		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Update Current',
+		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Update',
 		                                              lambda *a:tdToolsLib.doUpdateTextCurveObject(self),
-				                                      'Updates a current text object')
+				                                      'Updates selected text curve objects\n or the loaded text curve object')
 		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Create',
 		                                              lambda *a:tdToolsLib.doCreateTextCurveObject(self),
 				                                      'Create a text object with the provided settings')
