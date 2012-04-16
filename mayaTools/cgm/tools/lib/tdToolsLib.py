@@ -1314,33 +1314,36 @@ def doSnapClosestPointToSurface(aim=True):
 # Curve Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-#['Object','Average','Input Size','First Object']
+#['Object','1/2 Object size','Average','Input Size','First Object']
 def returnObjectSizesForCreation(self,objList):
-    if self.sizeMode == 2:
+    if self.sizeMode == 3:
         return ( mc.floatField(self.textObjectSizeField,q=True,value=True) )
     else:
+	if self.sizeMode == 1:
+	    divider = 2
+	else:
+	    divider = 1
         sizeList = []
         for item in objList:
             child = mc.listRelatives(item,children = True, type = 'transform',path = True)
             if child:
-                sizeBuffer = (distance.returnDistanceBetweenObjects(item,child))/2
+                sizeBuffer = (distance.returnDistanceBetweenObjects(item,child)/divider)
                 if sizeBuffer <= 0:
                     parent = mc.listRelatives(item,parent = True, type = 'transform')
-                    sizeList.append( (distance.returnDistanceBetweenObjects(parent,item))/2 )
+                    sizeList.append( (distance.returnDistanceBetweenObjects(parent,item)/divider) )
                 else:
-                    sizeList.append( (distance.returnDistanceBetweenObjects(item,child))/2 )
+                    sizeList.append( (distance.returnDistanceBetweenObjects(item,child)/divider) )
             else:
                 objSize = distance.returnBoundingBoxSize(item)
                 sizeAverage = max(objSize)
-                #sizeAverage = sum(objSize)/len(objSize)
                 if sizeAverage <= 0:
                     parent = mc.listRelatives(item,parent = True, type = 'transform', path = True)
-                    sizeList.append( (distance.returnDistanceBetweenObjects(parent,item))/2 )
+                    sizeList.append( (distance.returnDistanceBetweenObjects(parent,item)/divider))
                 else:
                     sizeList.append( sizeAverage )
-        if self.sizeMode == 1:
+        if self.sizeMode == 2:
             return ( sum(sizeList)/len(sizeList) )
-        elif self.sizeMode == 3:
+        elif self.sizeMode == 4:
             return sizeList[0]
         else:
             return sizeList
@@ -1493,7 +1496,29 @@ def doUpdateTextCurveObject(self):
         guiFactory.warning('No textCurveObject loaded or selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>Curve Utilities
-
+def doCreateOneOfEachCurve(self):
+    bufferList = []
+    mc.select(cl=True)
+    colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
+    creationSize = mc.floatField(self.textObjectSizeField,q=True,value=True)
+    self.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
+    
+    #Info
+    mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.curveOptionList))		    
+    for option in self.curveOptionList:
+	if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+		break
+	mc.progressBar(mayaMainProgressBar, edit=True, status = ("Procssing '%s'"%option), step=1)
+	
+	buffer = curves.createControlCurve(option,creationSize,self.uiCurveAxis )
+	attributes.storeInfo(buffer,'cgmName',option)	
+	buffer = autoname.doNameObject(buffer)
+	curves.setCurveColorByIndex(buffer,colorChoice)
+	bufferList.append(buffer)
+	
+    guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+    mc.select(bufferList)
+    
 def doCreateCurveControl(self):
     selected = []
     bufferList = []
@@ -1504,7 +1529,6 @@ def doCreateCurveControl(self):
     #Info
     self.uiCurveName = self.uiCurveNameField(q=True,text=True)
     curveChoice = self.shapeOptions(q=True,sl=True)
-    #curveChoice = (mc.optionMenuGrp(self.uiCurveSelector,q=True,sl=True))
     shapeOption =  self.curveOptionList[curveChoice-1]
     self.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
     self.sizeMode = mc.optionVar( q='cgmVarSizeMode' )
@@ -1524,7 +1548,7 @@ def doCreateCurveControl(self):
     else:
         if selected:
             sizeReturn = returnObjectSizesForCreation(self,selected)
-            #['Object','Average','Input Size','First Object']
+            #['Object','1/2 object','Average','Input Size','First Object']
             mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected))		
 
             for item in selected:
@@ -1533,7 +1557,7 @@ def doCreateCurveControl(self):
                 mc.progressBar(mayaMainProgressBar, edit=True, status = ("Creating curve for '%s'"%item), step=1)
 
 
-                if self.sizeMode == 0:
+                if self.sizeMode == 0 or self.sizeMode == 1:
                     creationSize = sizeReturn[selected.index(item)]
                 else:
                     creationSize = sizeReturn
@@ -1648,14 +1672,14 @@ def uiSetGuessOrientation(self):
             mc.optionVar( sv=('cgmVarObjectAimAxis', aimAxis.axisString) )
             menuItems = self.ObjectAimCollection.getItems()
             menuItems[index](edit = True,rb = True)
-            print("aim set to '%s'"%aimAxis.axisString)
+            guiFactory.warning("aim set to '%s'"%aimAxis.axisString)
 
         if upAxis:
             index = self.axisOptions.index(upAxis.axisString)
             mc.optionVar( sv=('cgmVarObjectUpAxis', upAxis.axisString) )
             menuItems = self.ObjectUpCollection.getItems()
             menuItems[index](edit = True, rb = True)
-            print("up set to '%s'"%upAxis.axisString)			
+            guiFactory.warning("up set to '%s'"%upAxis.axisString)			
     else:
         guiFactory.warning("No objects selected. Setting defaults of 'z+' aim, 'y+' up")
         aimIndex = self.axisOptions.index('z+')

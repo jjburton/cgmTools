@@ -86,7 +86,7 @@ class tdToolsClass(BaseMelWindow):
 		self.version = __version__
 
 		# About Window
-		self.sizeOptions = ['Object','Average','Input Size','First Object']
+		self.sizeOptions = ['Object','1/2 Object Size','Average','Input Size','First Object']
 		self.sizeMode = 0
 		self.forceBoundingBoxState = False
 
@@ -108,7 +108,16 @@ class tdToolsClass(BaseMelWindow):
 		# Curves
 		self.uiCurveSelector = ''
 		self.controlCurveShape = 'cube'
-		self.curveOptionList = 	['circle','square','squareRounded','squareDoubleRounded','semiSphere','sphere','cube','pyramid','cross','fatCross','arrowSingle','arrowSingleFat','arrowDouble','arrowDoubleFat','arrow4','arrow4Fat','arrow8','arrowsOnBall','nail','nail2','nail4','eye','teeth','foot','gear','dumcgmell','locator','arrowsLocator','arrowsPointCenter','arrowForm','arrowDirectionBall','arrowRotate90','arrowRotate90Fat','arrowRotate180','arrowRotate180Fat','circleArrow','circleArrow1','cirlceArrow2','circleArrow3','circleArrow1Interior','circleArrow2Axis','masterAnim']
+		self.curveOptionList = 	['circle','square','squareRounded','squareDoubleRounded',
+		                         'semiSphere','sphere','cube','pyramid',
+		                         'cross','fatCross',
+		                         'arrowSingle','arrowSingleFat','arrowDouble','arrowDoubleFat','arrow4','arrow4Fat','arrow8','arrowsOnBall',
+		                         'nail','nail2','nail4',
+		                         'eye','teeth','foot','gear','dumbell','locator',
+		                         'arrowsLocator','arrowsPointCenter','arrowForm','arrowDirectionBall',
+		                         'arrowRotate90','arrowRotate90Fat','arrowRotate180','arrowRotate180Fat',
+		                         'circleArrow','circleArrow1','circleArrow2','circleArrow3','circleArrow1Interior','circleArrow2Axis',
+		                         'masterAnim']
 
 		self.uiCurveAxisOptionGroup = ''
 		self.uiCurveAxis = 'z+'
@@ -678,6 +687,9 @@ class tdToolsClass(BaseMelWindow):
 		guiFactory.doButton2(buttonRow,'Create',
 		                     lambda *a:tdToolsLib.doCreateCurveControl(self),
 				             'Create Curve Object with Settings',w=50)
+		guiFactory.doButton2(buttonRow,'Create one of each',
+		                     lambda *a:tdToolsLib.doCreateOneOfEachCurve(self),
+		                             'Creates one of each curve in the library')
 		buttonRow.layout()
 
 		mc.setParent(parent)
@@ -736,6 +748,8 @@ class tdToolsClass(BaseMelWindow):
 		guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Create',
 		                                              lambda *a:tdToolsLib.doCreateTextCurveObject(self),
 				                                      'Create a text object with the provided settings')
+		
+		
 		buttonRow.layout()
 
 		mc.setParent(parent)
