@@ -21,10 +21,29 @@
 
 import maya.cmds as mc
 
+def returnListChunks(l, n):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    SOURCE:
+    http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python/312644#312644
+    
+    DESCRIPTION:
+    Spits a list into chunks
+    
+    REQUIRES:
+    l(list) ex [1,2,3,4,5,6]
+    n(int) - to split by
+    
+    RETURNS:
+    splitList(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """       
+    return [l[i:i+n] for i in range(0, len(l), n)]
 
-def returnSelectedToList():
+
+def returnSelectedToList(): 
     selected = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True,fullPath=True))
     return selected
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
