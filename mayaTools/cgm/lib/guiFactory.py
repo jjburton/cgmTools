@@ -45,14 +45,10 @@ def setBGColorState(textFieldToChange, newState):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def initializeTemplates():
     guiBackgroundColor = [.45,.45,.45]
-    guiHeaderColor = [.3,.3,.3]
+    guiHeaderColor = [.25,.25,.25]
     guiSubMenuColor = [.65,.65,.65]
-    guiButtonColor = [.3,.3,.3]
-    #guiHelpBackgroundColor = [ 0.89, 0.89, 0.89]
+    guiButtonColor = [.35,.35,.35]
     guiHelpBackgroundColor = [0.8, 0.8, 0.8]
-    #guiHelpBackgroundReservedColor = [0.392157, 0.392157, 0.392157]
-    #guiHelpBackgroundLockedColor = [ 0.568627, 0, 0.0100545]
-    #guiHelpBackgroundLockedColor = [ .5, .2, 0.1]
     guiHelpBackgroundReservedColor = [0.411765 , 0.411765 , 0.411765]
     guiHelpBackgroundLockedColor = [0.837, 0.399528, 0.01674]
 
