@@ -89,7 +89,7 @@ def initializeTemplates():
     mc.rowLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
     mc.rowColumnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
     mc.columnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
-    
+
     # Define our Reserved
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
         mc.deleteUI( 'cgmUIReservedTemplate', uiTemplate=True )
@@ -159,7 +159,7 @@ def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers,fo
             #Container(e=True,vis=False)
             setUIObjectVisibility(Container,False)
         cnt+=1
-        
+
 def toggleOptionVarState(OptionSelection,OptionList,OptionVarName,forceInt = False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -358,6 +358,16 @@ def doToggleIntOptionVariable(variable):
     varState = mc.optionVar( q= variable )
     mc.optionVar( iv=(variable, not varState))
 
+def doCheckBox(parent,optionVarName,*a,**kw):
+    if not mc.optionVar( ex=optionVarName ):
+        mc.optionVar( iv=(optionVarName, 0) )  
+
+    return MelCheckBox(parent,
+                       v = mc.optionVar(q=optionVarName),
+                       onCommand = lambda *a: mc.optionVar(iv=(optionVarName,1)),
+                       offCommand = lambda *a: mc.optionVar(iv=(optionVarName,0)),
+                       *a,**kw)
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Text and line breaks
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -540,4 +550,3 @@ def doPrintReportBreak():
 
 def doPrintReportEnd():
     return '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-
