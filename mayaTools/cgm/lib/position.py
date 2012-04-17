@@ -76,7 +76,7 @@ def layoutByColumns(objectList,columnNumber=3,startPos = [0,0,0]):
 	for obj in row:
 	    mc.xform(obj,os=True,t=[bufferX,bufferY,startZ])
 	    bufferX += sizeX
-	bufferY += sizeY
+	bufferY -= sizeY
 
 	
     """
