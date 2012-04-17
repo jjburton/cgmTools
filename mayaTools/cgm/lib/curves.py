@@ -694,7 +694,7 @@ def createControlCurve(desiredShape,size,direction='z+'):
     curve(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """ 
-    directionDict = {'x+':[0,90,0],'x-':[0,-90,0],'y+':[0,-90,-90],'y-':[0,90,90],'z+':[0,0,0],'z-':[0,180,0]}
+    directionDict = {'x+':[0,90,0],'x-':[0,-90,0],'y+':[-90,0,0],'y-':[90,0,0],'z+':[0,0,0],'z-':[0,180,0]}
     rotationFactor = directionDict.get(direction)
     curve = createCurve(desiredShape)
     mc.rotate (rotationFactor[0], rotationFactor[1], rotationFactor[2], curve, ws=True)
