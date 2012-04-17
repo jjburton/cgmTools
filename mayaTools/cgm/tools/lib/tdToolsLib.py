@@ -33,6 +33,7 @@ from cgm.lib.cgmBaseMelUI import *
 
 
 from cgm.lib import (guiFactory,
+                     objectFactory,
                      controlBuilder,
                      curves,
                      dictionary,
@@ -41,6 +42,7 @@ from cgm.lib import (guiFactory,
                      deformers,
                      logic,
                      rigging,
+                     locators,
                      attributes,
                      batch,
                      distance,
@@ -1278,9 +1280,9 @@ def doCreateCurveControl(self):
         if selected:
             size = max(distance.returnBoundingBoxSize(selected))
             if self.uiCurveName:
-                controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl)
+                bufferList.append( controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl))
             else:
-                controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl)
+                bufferList.append( controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl))
 
         else:
             guiFactory.warning('Pick something for size reference')
@@ -1289,7 +1291,6 @@ def doCreateCurveControl(self):
             sizeReturn = returnObjectSizesForCreation(self,selected)
             #['Object','1/2 object','Average','Input Size','First Object']
             mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected))		
-
             for item in selected:
                 if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
                     break
@@ -1302,6 +1303,7 @@ def doCreateCurveControl(self):
                     creationSize = sizeReturn
                 buffer = curves.createControlCurve(shapeOption,creationSize,self.uiCurveAxis )
                 attributes.storeInfo(buffer,'cgmName',item)
+		attributes.storeInfo(buffer,'cgmSource',item)
                 buffer = autoname.doNameObject(buffer)
 
                 if self.forceBoundingBoxState == True:
@@ -1312,8 +1314,9 @@ def doCreateCurveControl(self):
                     position.moveParentSnap(buffer,item)
 
                 curves.setCurveColorByIndex(buffer,colorChoice)
+		bufferList.append(buffer)
             guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
-
+	    
         else:
             print shapeOption
             print self.uiCurveAxis
@@ -1326,8 +1329,62 @@ def doCreateCurveControl(self):
                 attributes.storeInfo(buffer,'cgmName',shapeOption)
             buffer = autoname.doNameObject(buffer)
             curves.setCurveColorByIndex(buffer,colorChoice)
+	    bufferList.append(buffer)
+	    
+    if bufferList:
+	mc.select(bufferList[-1])
+	namingToolsLib.uiLoadAutoNameObject(self)            
+	mc.select(bufferList)	    
 
+def doConnectCurveControl(self):
+    selected = []
+    bufferList = []
+    selected = (mc.ls (sl=True,flatten=True))
+    
+    if not selected:
+	guiFactory.warning("Nothing is selected"%source.nameBase)
+	return
+    
+    #>>> Variables
+    #ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
+    ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmControlConnectionType') ]
+    ParentConstraintState = self.ParentConstraintCB(q=True,v=True)
+    PointConstraintState = self.PointConstraintCB(q=True,v=True)
+    OrientConstraintState = self.OrientConstraintCB(q=True,v=True)
+    ParentConstraintState = self.ScaleConstraintCB(q=True,v=True)
+    
+    print ("parent constraint:%s"%ParentConstraintState)
+    for obj in selected:
+	obj = objectFactory.go(obj)
+	if 'cgmSource' in obj.userAttrs.keys():
+	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
+	    guiFactory.warning("'%s' is the source"%source.nameBase)
+	    
+	    if ConnectBy == 'Shape Parent':
+		curves.parentShapeInPlace(source.nameLong,obj.nameLong)
+		mc.delete(obj.nameLong)
+		
+	    elif ConnectBy == 'Child':
+		guiFactory.warning('CHILD MODE!')
+		rigging.doParentReturnName(obj.nameLong,source.nameLong)
+		
+	    elif ConnectBy == 'Parent':
+		guiFactory.warning('PARENT MODE!')
+		rigging.doParentReturnName(source.nameLong,obj.nameLong)
+		
+		
+		
+	    else:
+		guiFactory.warning('Got to the end!')
+	    #groupBuffer = rigging.groupMeObject(obj.nameLong)
+	    #obj.update(obj.nameBase)
+	    
+	else:
+	    guiFactory.warning("'%s' has no source"%obj.nameBase)
 
+    
+
+    
 def doCreateCurveFromObjects():
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

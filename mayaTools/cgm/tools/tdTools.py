@@ -660,42 +660,20 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Connection Types
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	ConstraintTypes = ['parent','point','orient','scale']
-
-	self.CreateConstraintTypeRadioCollection = MelRadioCollection()
-	self.CreateConstraintTypeRadioCollectionChoices = []		
-	if not mc.optionVar( ex='cgmVarParentConstraintState' ):
-	    mc.optionVar( iv=('cgmVarParentConstraintState', 0) )
-	if not mc.optionVar( ex='cgmVarPointConstraintState' ):
-	    mc.optionVar( iv=('cgmVarPointConstraintState', 0) )
-	if not mc.optionVar( ex='cgmVarOrientConstraintState' ):
-	    mc.optionVar( iv=('cgmVarOrientConstraintState', 0) )
-	if not mc.optionVar( ex='cgmVarScaleConstratingState' ):
-	    mc.optionVar( iv=('cgmVarScaleConstratingState', 0) )
+	self.ConstraintTypes = ['parent','point','orient','scale']	
 	    
 	#build our sub section options
 	ConstraintTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
 	ConstraintTypeRow.setStretchWidget( MelSpacer(ConstraintTypeRow,w=5) )
 	MelLabel(ConstraintTypeRow,l='Constraint Options: ',align='right')
-	self.ParentConstraintCB = MelCheckBox(ConstraintTypeRow,label = 'parent',
-	                                      v = mc.optionVar(q='cgmVarParentConstraintState'),
-	                                      onCommand = lambda *a: mc.optionVar(iv=('cgmVarParentConstraintState',1)),
-	                                      offCommand = lambda *a: mc.optionVar(iv=('cgmVarParentConstraintState',0)))
+	
+	self.ParentConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarParentConstraintState',label = 'parent')
 	MelSpacer(ConstraintTypeRow,w=5)   
-	self.PointConstraintCB = MelCheckBox(ConstraintTypeRow,label = 'point',
-	                                     v = mc.optionVar(q='cgmVarPointConstraintState'),
-	                                     onCommand = lambda *a: mc.optionVar(iv=('cgmVarPointConstraintState',1)),
-	                                     offCommand = lambda *a: mc.optionVar(iv=('cgmVarPointConstraintState',0)))	                                     
+	self.PointConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarPointConstraintState',label = 'point')	                                    
 	MelSpacer(ConstraintTypeRow,w=5)   
-	self.OrientConstraintCB = MelCheckBox(ConstraintTypeRow,label = 'orient',
-	                                      v = mc.optionVar(q='cgmVarOrientConstraintState'),
-	                                      onCommand = lambda *a: mc.optionVar(iv=('cgmVarOrientConstraintState',1)),
-	                                      offCommand = lambda *a: mc.optionVar(iv=('cgmVarOrientConstraintState',0)))	                                      
+	self.OrientConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarOrientConstraintState',label = 'orient')	                                    
 	MelSpacer(ConstraintTypeRow,w=5)   
-	self.ScaleConstraintCB = MelCheckBox(ConstraintTypeRow,label = 'scale',
-	                                     v = mc.optionVar(q='cgmVarScaleConstratingState'),
-	                                     onCommand = lambda *a: mc.optionVar(iv=('cgmVarScaleConstratingState',1)),
-	                                     offCommand = lambda *a: mc.optionVar(iv=('cgmVarScaleConstratingState',0)))	                                     
+	self.ScaleConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarScaleConstratingState',label = 'scale')	                                    
 	MelSpacer(ConstraintTypeRow,w=5)   
 	
 
@@ -706,7 +684,7 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Connection Types
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
+	self.ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
 
 	self.CreateConnectionTypeRadioCollection = MelRadioCollection()
 	self.CreateConnectionTypeRadioCollectionChoices = []		
@@ -716,9 +694,9 @@ class tdToolsClass(BaseMelWindow):
 	#build our sub section options
 	ConnectionTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
 	ConnectionTypeRow.setStretchWidget(MelLabel(ConnectionTypeRow,l='Connect by: ',align='right'))
-	for item in ConnectionTypes:
-	    cnt = ConnectionTypes.index(item)
-	    self.CreateConnectionTypeRadioCollectionChoices.append(self.CreateConnectionTypeRadioCollection.createButton(ConnectionTypeRow,label=ConnectionTypes[cnt],
+	for item in self.ConnectionTypes:
+	    cnt = self.ConnectionTypes.index(item)
+	    self.CreateConnectionTypeRadioCollectionChoices.append(self.CreateConnectionTypeRadioCollection.createButton(ConnectionTypeRow,label=self.ConnectionTypes[cnt],
 	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmControlConnectionType',",cnt,"))"))))
 	    MelSpacer(ConnectionTypeRow,w=2)
 	MelSpacer(ConnectionTypeRow,w=5)
@@ -778,8 +756,8 @@ class tdToolsClass(BaseMelWindow):
 	                     'Create Curve Object with Settings',w=50)
 
 	guiFactory.doButton2(buttonRow,'Connect',
-	                     lambda *a:guiFactory.warning('MAKE IT WORK'),
-	                     'Creates one of each curve in the library')
+	                     lambda *a:tdToolsLib.doConnectCurveControl(self),
+	                     'Connects our control')
 	guiFactory.doButton2(buttonRow,'Update',
 	                     lambda *a:guiFactory.warning('MAKE IT WORK'),
 	                     'Creates one of each curve in the library')
