@@ -54,12 +54,12 @@ class go():
         self.cgmIterator = ''
         self.cgmTypeModifier = ''
         self.cgmType  = ''
+        self.parent = False
+        self.children = False
         
         self.userAttrs = {}
         
         self.update(obj)
-        
-
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
@@ -76,7 +76,11 @@ class go():
                 
     def getUserAttrs(self):
         self.userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
-    
+        
+    def getFamily(self):
+        self.parent = search.returnParentObject(self.nameLong)
+        self.children = search.returnChildrenObjects(self.nameLong)
+        
     def storeNameStrings(self,obj):
         buffer = mc.ls(obj,long=True)
         self.nameLong = buffer[0]
@@ -92,7 +96,8 @@ class go():
         attributes.storeInfo(self.nameLong,attr,info,*a,**kw)
         
     def update(self,obj):
-        self.storeNameStrings(obj)  
+        self.storeNameStrings(obj) 
+        self.getFamily()
         self.getCGMNameTags()
         self.getUserAttrs()        
 
