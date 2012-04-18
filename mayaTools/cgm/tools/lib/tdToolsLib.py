@@ -35,6 +35,7 @@ from cgm.lib.cgmBaseMelUI import *
 from cgm.lib import (guiFactory,
                      objectFactory,
                      controlBuilder,
+                     constraints,
                      curves,
                      dictionary,
                      autoname,
@@ -1282,10 +1283,11 @@ def doCurveControlCreate(self):
         if selected:
             size = max(distance.returnBoundingBoxSize(selected))
             if self.uiCurveName:
-                bufferList.append( controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl))
+                bufferList = controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl,True)
             else:
-                bufferList.append( controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl))
-
+                bufferList = controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl,True)
+	    
+	    self.MakeMasterControlCB(e=True, value=False)
         else:
             guiFactory.warning('Pick something for size reference')
     else:
@@ -1339,6 +1341,22 @@ def doCurveControlCreate(self):
 	mc.select(bufferList)	    
 
 def doCurveControlConnect(self):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Connects a curve control from the tdTools gui
+
+    REQUIRES:
+    self(class)
+
+    RETURNS:
+    Success(bool)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """    
+    modeToLocknHideDict = {'parent':False,
+                           'point/orient':False,
+                           'point':False,
+                           'orient':False}
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -1352,74 +1370,113 @@ def doCurveControlConnect(self):
     ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmControlConnectionType') ]
     ConstraintMode = self.ConstraintTypes[ mc.optionVar(q='cgmControlConstraintType') ]
     
-    ScaleConstraintState = self.ScaleConstraintCB(q=True,v=True)
+    ScaleState = self.ScaleConstraintCB(q=True,v=True)
     RotateOrderState = self.controlCurveRotateOrderCB(q=True,v=True)
     ExtraGroupState = self.CurveControlExtraGroupCB(q=True,v=True)
-    HeirarchyState = self.CurveControlHeirarchyCB(q=True,v=True)
+    LockNHideState = self.CurveControlLockNHideCB(q=True,v=True)
     
-    if HeirarchyState:
-	CheckList = []
-	for obj in selected:
-	    obj = objectFactory.go(obj)
-	    if 'cgmSource' in obj.userAttrs.keys():
-		source = objectFactory.go(obj.userAttrs.get('cgmSource'))
-		#CheckList.append(source.nameShort)
-		if mc.objExists(source.parent):
-		    curveParentObj = search.returnObjectsConnectedToObj(source.parent,True)
-		    if curveParentObj:
-			buffer = rigging.doParentReturnName(obj.nameLong,curveParentObj[0])
-			obj.update(buffer)
-		
-	guiFactory.warning('%s'%CheckList)
-	
+    HeirarchyState = self.CurveControlHeirarchyCB(q=True,v=True)
+    HeirarchyMode = self.HeirBuildTypes[ mc.optionVar(q='cgmHeirBuildType') ]
+    
+    # First loop to get info
+    parentConstraintTargets = {}
     for obj in selected:
 	obj = objectFactory.go(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
 	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
-	    guiFactory.warning("'%s' is the source"%source.nameBase)
+	    		
+	    if mc.objExists(source.parent):
+		curveParentObj = search.returnObjectsConnectedToObj(source.parent,True)	
+		
+		if HeirarchyState and HeirarchyMode == 'match':
+		    if curveParentObj:
+			buffer = rigging.doParentReturnName(obj.nameLong,curveParentObj[0])
+			obj.update(buffer)
+		else:
+		    parentConstraintTargets[obj.nameBase] = curveParentObj[0]
+			
+    print parentConstraintTargets
+    
+    # Loop to connect stuff
+    for obj in selected:
+	obj = objectFactory.go(obj)
+	if 'cgmSource' in obj.userAttrs.keys():
+	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
 	    
 	    if ConnectBy == 'ShapeParent':
 		curves.parentShapeInPlace(source.nameLong,obj.nameLong)
 		mc.delete(obj.nameLong)
 		
 	    elif ConnectBy == 'ChildOf':
-		guiFactory.warning('CHILD MODE!')
 		rigging.doParentReturnName(obj.nameLong,source.nameLong)
-		
-	    elif ConnectBy == 'ParentTo':
-		guiFactory.warning('PARENT MODE!')
+		mc.select(selected)
+
+	    elif ConnectBy == 'Parent':
 		rigging.doParentReturnName(source.nameLong,obj.nameLong)
-		
-	    elif ConnectBy == 'Constraint':
+		mc.select(selected)
+
+	    elif ConnectBy == 'Constrain':
 		groupBuffer = rigging.groupMeObject(obj.nameLong,True,True)
 		obj.update(obj.nameBase)
+		
+		if HeirarchyState and HeirarchyMode == 'maintain' :
+		    if obj.nameBase in parentConstraintTargets.keys():
+			constraints.parent(parentConstraintTargets.get(obj.nameBase),groupBuffer,maintainOffset = True)
+			if ScaleState:
+			    pass
+			    #buffer = constraints.scale(parentConstraintTargets.get(obj.nameBase),groupBuffer,maintainOffset = False)   
+			    #rigging.copyPivot(buffer[0],parentConstraintTargets.get(obj.nameBase))
+			
 		if ExtraGroupState:
 		    ConstraintGroup = objectFactory.go(rigging.groupMeObject(obj.nameLong,True,True) )
 		    ConstraintGroup.store('cgmTypeModifier','constraint')
-		    autoname.doNameObject(ConstraintGroup.nameLong)
-		    obj.update(obj.nameBase)
+		    
 		if RotateOrderState:
 		    buffer = attributes.addRotateOrderAttr(obj.nameShort,'setRO')
 		    mc.connectAttr(buffer,(obj.nameShort+'.rotateOrder'))
-		print("Constraint mode is: '%s'"%ConstraintMode)
-	
+		    mc.connectAttr(buffer,(groupBuffer+'.rotateOrder'))
+		    if ExtraGroupState:
+			mc.connectAttr(buffer,(ConstraintGroup.nameLong+'.rotateOrder'))
+			
+		if ExtraGroupState:	
+		    autoname.doNameObject(ConstraintGroup.nameLong)
+		    obj.update(obj.nameBase)
+				
 		if ConstraintMode == 'parent':
-		    mc.parentConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+		    constraints.parent(obj.nameLong,source.nameLong,maintainOffset = False)
+		    
+		    #mc.parentConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
 		elif ConstraintMode == 'point':
-		    mc.pointConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+		    constraints.point(obj.nameLong,source.nameLong,maintainOffset = False)
+		    if LockNHideState:
+			attributes.doSetLockHideKeyableAttr(obj.nameLong,channels = ['rx','ry','rz'])
 		elif ConstraintMode == 'orient':
 		    mc.orientConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+		    if LockNHideState:
+			attributes.doSetLockHideKeyableAttr(obj.nameLong,channels = ['tx','ty','tz'])
 		elif ConstraintMode == 'point/orient':
-		    mc.pointConstraint(obj.nameLong,source.nameLong,maintainOffset = False)		    
-		    mc.orientConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
-	    
+		    constraints.point(obj.nameLong,source.nameLong,maintainOffset = False)		    
+		    constraints.orient(obj.nameLong,source.nameLong,maintainOffset = False)
+		
+		if ScaleState:
+		    attributes.doConnectAttr((obj.nameLong+'.s'),(source.nameLong+'.s'))
+		    #buffer = constraints.scale(obj.nameLong,source.nameLong,maintainOffset = False)
+		    #rigging.copyPivot(buffer[0],parentConstraintTargets.get(obj.nameBase))
+		
+		if LockNHideState:
+		    attributes.doSetLockHideKeyableAttr(obj.nameLong,channels = ['v'])
+		    if not ScaleState:
+			attributes.doSetLockHideKeyableAttr(obj.nameLong,channels = ['sx','sy','sz'])		    
+
+		obj.store('cgmDrivenObject',source.nameLong)
+		obj.remove('cgmSource')
+		
+		mc.select(selected)
+		
 	    else:
 		guiFactory.warning('Got to the end!')
-	    mc.select(selected)
 		
-	    #groupBuffer = rigging.groupMeObject(obj.nameLong)
-	    #obj.update(obj.nameBase)
-	    
+
 	else:
 	    guiFactory.warning("'%s' has no source"%obj.nameBase)
 

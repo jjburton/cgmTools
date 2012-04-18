@@ -662,20 +662,43 @@ class tdToolsClass(BaseMelWindow):
     def buildCurveControlOptionsRow(self,parent):	
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Connection Types
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	    
+	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	
+	self.HeirBuildTypes = ['match','maintain']
+	self.HeirBuildTypesRadioCollection = MelRadioCollection()
+	self.HeirBuildTypesRadioCollectionChoices = []	
+	if not mc.optionVar( ex='cgmHeirBuildType' ):
+	    mc.optionVar( iv=('cgmHeirBuildType', 0) )
+	    
 	#build our sub section options
 	CurveControlOptionsTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
 	#CurveControlOptionsTypeRow.setStretchWidget( MelSpacer(CurveControlOptionsTypeRow,w=5) )
 	#MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right')
-	CurveControlOptionsTypeRow.setStretchWidget( MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right') )
-	self.controlCurveRotateOrderCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarRotationOrderCurveControlOptionState',label = 'Rotation Order')
-	MelSpacer(CurveControlOptionsTypeRow,w=5)   
-	self.CurveControlExtraGroupCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarExtraGroupCurveControlOptionState',label = 'extra group')
-	MelSpacer(CurveControlOptionsTypeRow,w=5) 
-	self.CurveControlHeirarchyCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarMaintainHeirarchyCurveControlOptionState',label = 'Maintain Heir')
-	MelSpacer(CurveControlOptionsTypeRow,w=50) 
+	#CurveControlOptionsTypeRow.setStretchWidget( MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right') )
+	MelSpacer(CurveControlOptionsTypeRow,w=10)
+	self.controlCurveRotateOrderCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarRotationOrderCurveControlOptionState',label = 'Rotate Order')
 	
+	MelSpacer(CurveControlOptionsTypeRow,w=2)   
+	self.CurveControlExtraGroupCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarExtraGroupCurveControlOptionState',label = '+Group')
+	
+	MelSpacer(CurveControlOptionsTypeRow,w=2)   
+	self.CurveControlLockNHideCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarLockNHideControlOptionState',label = 'LockNHide')
+	
+	CurveControlOptionsTypeRow.setStretchWidget( MelSpacer(CurveControlOptionsTypeRow) )	
+	
+	self.CurveControlHeirarchyCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarMaintainHeirarchyCurveControlOptionState',label = 'Heir: ')
+	
+	for item in self.HeirBuildTypes:
+	    cnt = self.HeirBuildTypes.index(item)
+	    self.HeirBuildTypesRadioCollectionChoices.append(self.HeirBuildTypesRadioCollection.createButton(CurveControlOptionsTypeRow,
+	                                                                                                     label=self.HeirBuildTypes[cnt],
+	                                                                                                     onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmHeirBuildType',",cnt,"))"))))
+	    
+
+	MelSpacer(CurveControlOptionsTypeRow,w=8)	
 	CurveControlOptionsTypeRow.layout()
+	
+	mc.radioCollection(self.HeirBuildTypesRadioCollection,edit=True,
+	                   sl= (self.HeirBuildTypesRadioCollectionChoices[ mc.optionVar(q='cgmHeirBuildType') ]))
     
     def buildConstraintTypeRow(self,parent):	
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -709,7 +732,7 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Connection Types
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	self.ConnectionTypes = ['Constraint','ShapeParent','ParentTo','ChildOf']
+	self.ConnectionTypes = ['Constrain','ShapeParent','Parent','ChildOf']
 	self.containerName = MelColumn(parent)	
 	self.CreateConnectionTypeRadioCollection = MelRadioCollection()
 	self.CreateConnectionTypeRadioCollectionChoices = []		
