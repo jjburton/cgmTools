@@ -600,7 +600,7 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.header('Set Color')
 
 	mc.columnLayout(columnAttach = ('both',5),backgroundColor = [.2,.2,.2])
-	colorSwatchMenu = mc.gridLayout(aec = False, numberOfRowsColumns=(10,3), cwh = (30,15),backgroundColor = [.2,.2,.2])
+	colorSwatchMenu = mc.gridLayout(aec = False, numberOfRowsColumns=(10,3), cwh = (30,12),backgroundColor = [.2,.2,.2])
 	colorSwatchesList = [1,2,3,11,24,21,12,10,25,4,13,20,8,30,9,5,6,18,15,29,28,7,27,19,23,26,14,17,22,16]
 	for i in colorSwatchesList:
 	    colorBuffer = mc.colorIndex(i, q=True)
@@ -625,16 +625,19 @@ class tdToolsClass(BaseMelWindow):
 	                     lambda *a:tdToolsLib.doGroupMeInPlace(),
 	                     "Groups an object while maintaining its parent\n if it has one")
 
-	guiFactory.lineSubBreak()
 	guiFactory.doButton2(LeftColumn,'Zero Me',
 	                     lambda *a:tdToolsLib.zeroGroupMe(),
 	                     'Zeros out object under group')
 
-	guiFactory.lineSubBreak()
 	guiFactory.doButton2(LeftColumn,'Transform Here',
 	                     lambda *a:tdToolsLib.makeTransformHere(),
 	                     'Create transform matching object')
 
+	guiFactory.lineSubBreak()
+	guiFactory.doButton2(LeftColumn,'Parent Selected',
+	                     lambda *a:tdToolsLib.doParentSelected(),
+	                     'Parents a list in order')
+	
 	guiFactory.lineSubBreak()
 	guiFactory.doButton2(LeftColumn,'Copy Pivot',
 	                     lambda *a:tdToolsLib.doCopyPivot(),
