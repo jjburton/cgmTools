@@ -42,6 +42,7 @@ from cgm.lib import settings
 from cgm.lib import lists
 from cgm.lib import modules
 from cgm.lib import settings
+from cgm.lib import objectFactory
 
 import re
 import math
@@ -137,7 +138,7 @@ def createJoystickControl(name,mode='classic',border = True):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-def createMasterControl(characterName,controlScale,font, controlVis = False, controlSettings = False):
+def createMasterControl(characterName,controlScale,font, controlVis = False, controlSettings = False, defaultGroups = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     1) get info
@@ -171,7 +172,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     curves.setCurveColorByName(rootShapes[0],masterColors[0])
     curves.setCurveColorByName(rootShapes[1],masterColors[1])
 
-    attributes.storeInfo(rootCurve,"cgmName",(masterNull+'.cgmName'))
+    #attributes.storeInfo(rootCurve,"cgmName",(masterNull+'.cgmName'))
     attributes.storeInfo(rootCurve,"cgmType","controlMaster")
     
     rootCurve = rigging.doParentReturnName(rootCurve,masterNull)
@@ -192,6 +193,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
 
     attributes.storeInfo(masterText,"cgmName","master")
     attributes.storeInfo(masterText,"cgmType","textCurve")
+    attributes.storeInfo(masterText,"cgmObjectText",(masterNull+'.cgmName'))
     
     
     masterText = autoname.doNameObject(masterText)
@@ -214,7 +216,27 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
         for control in childControls:
             controlsReturn.append(control)
         
+    """ Default groups """
+    if defaultGroups:
+        nullBuffer = mc.group(em=True)
+        null = objectFactory.go(nullBuffer)
+        null.store('cgmName','noTransform')
+        null.name()
+        null.parentTo(masterNull)
         
+        nullBuffer = mc.group(em=True)
+        null = objectFactory.go(nullBuffer)
+        null.store('cgmName','skeleton')
+        null.name()
+        null.parentTo(rootCurve)
+        
+        nullBuffer = mc.group(em=True)
+        null = objectFactory.go(nullBuffer)
+        null.store('cgmName','controls')
+        null.name()
+        null.parentTo(rootCurve)   
+        
+    
     """ store it to the master null"""
     attributes.storeInfo(masterNull,'controlMaster',rootCurve)
     return controlsReturn
@@ -390,7 +412,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
         mc.parent(control,baseControl)
         curves.setCurveColorByIndex(control,controlColor)
         if zeroGroups == True:
-            rigging.zeroTransformMeObject(control)
+            rigging.groupMeObject(control,True,True)
         if lockHide == True:
             attributes.doSetLockHideKeyableAttr(control)
             
