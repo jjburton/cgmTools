@@ -1053,12 +1053,14 @@ def doSnapClosestPointToSurface(aim=True):
 # Curve Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-#['Object','1/2 Object size','Average','Input Size','First Object']
+#['Object','1.25 x size', '1/2 Object size','Average','Input Size','First Object']
 def returnObjectSizesForCreation(self,objList):
-    if self.sizeMode == 3:
+    if self.sizeMode == 4:
         return ( mc.floatField(self.textObjectSizeField,q=True,value=True) )
     else:
 	if self.sizeMode == 1:
+	    divider = .9
+	elif self.sizeMode == 2:
 	    divider = 2
 	else:
 	    divider = 1
@@ -1079,10 +1081,10 @@ def returnObjectSizesForCreation(self,objList):
                     parent = mc.listRelatives(item,parent = True, type = 'transform', path = True)
                     sizeList.append( (distance.returnDistanceBetweenObjects(parent,item)/divider))
                 else:
-                    sizeList.append( sizeAverage )
-        if self.sizeMode == 2:
+                    sizeList.append( sizeAverage/divider )
+        if self.sizeMode == 3:
             return ( sum(sizeList)/len(sizeList) )
-        elif self.sizeMode == 4:
+        elif self.sizeMode == 5:
             return sizeList[0]
         else:
             return sizeList
@@ -1260,7 +1262,7 @@ def doCreateOneOfEachCurve(self):
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
     mc.select(bufferList)
     
-def doCreateCurveControl(self):
+def doCurveControlCreate(self):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -1297,7 +1299,7 @@ def doCreateCurveControl(self):
                 mc.progressBar(mayaMainProgressBar, edit=True, status = ("Creating curve for '%s'"%item), step=1)
 
 
-                if self.sizeMode == 0 or self.sizeMode == 1:
+                if self.sizeMode in [0,1,2]:
                     creationSize = sizeReturn[selected.index(item)]
                 else:
                     creationSize = sizeReturn
@@ -1336,42 +1338,52 @@ def doCreateCurveControl(self):
 	namingToolsLib.uiLoadAutoNameObject(self)            
 	mc.select(bufferList)	    
 
-def doConnectCurveControl(self):
+def doCurveControlConnect(self):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
     
     if not selected:
-	guiFactory.warning("Nothing is selected"%source.nameBase)
+	guiFactory.warning("Nothing is selected")
 	return
     
     #>>> Variables
     #ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
     ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmControlConnectionType') ]
-    ParentConstraintState = self.ParentConstraintCB(q=True,v=True)
-    PointConstraintState = self.PointConstraintCB(q=True,v=True)
-    OrientConstraintState = self.OrientConstraintCB(q=True,v=True)
-    ParentConstraintState = self.ScaleConstraintCB(q=True,v=True)
+    ConstraintMode = self.ConnectionTypes[ mc.optionVar(q='cgmControlConstraintType') ]
     
-    print ("parent constraint:%s"%ParentConstraintState)
+    ScaleConstraintState = self.ScaleConstraintCB(q=True,v=True)
+    RotateOrderState = self.controlCurveRotateOrderCB(q=True,v=True)
+    ExtraGroupState = self.CurveControlExtraGroupCB(q=True,v=True)
+    HeirarchyState = self.CurveControlHeirarchyCB(q=True,v=True)
+    
     for obj in selected:
 	obj = objectFactory.go(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
 	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
 	    guiFactory.warning("'%s' is the source"%source.nameBase)
 	    
-	    if ConnectBy == 'Shape Parent':
+	    if ConnectBy == 'ShapeParent':
 		curves.parentShapeInPlace(source.nameLong,obj.nameLong)
 		mc.delete(obj.nameLong)
 		
-	    elif ConnectBy == 'Child':
+	    elif ConnectBy == 'ChildOf':
 		guiFactory.warning('CHILD MODE!')
 		rigging.doParentReturnName(obj.nameLong,source.nameLong)
 		
-	    elif ConnectBy == 'Parent':
+	    elif ConnectBy == 'ParentTo':
 		guiFactory.warning('PARENT MODE!')
 		rigging.doParentReturnName(source.nameLong,obj.nameLong)
 		
+	    elif ConnectBy == 'Constraint':
+		groupBuffer = rigging.groupMeObject(obj.nameLong,True,True)
+		obj.update(obj.nameBase)
+		ConstraintGroup = rigging.groupMeObject(obj.nameLong,True,True)
+		obj.update(obj.nameBase)
+		
+		mc.parentConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+		#attributes.doConnectAttr(obj.nameLong + '.t',source.nameLong + '.t')
+		#attributes.doConnectAttr(obj.nameLong + '.r',source.nameLong + '.r')
 		
 		
 	    else:

@@ -86,7 +86,7 @@ class tdToolsClass(BaseMelWindow):
 	self.version = __version__
 
 	# About Window
-	self.sizeOptions = ['Object','1/2 Object Size','Average','Input Size','First Object']
+	self.sizeOptions = ['Object','Size+','1/2 Size','Average','Input Size','First Object']
 	self.sizeMode = 0
 	self.forceBoundingBoxState = False
 
@@ -656,59 +656,84 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Curve Stuff
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def buildCurveControlOptionsRow(self,parent):	
+	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	# Connection Types
+	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	    
+	#build our sub section options
+	CurveControlOptionsTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
+	#CurveControlOptionsTypeRow.setStretchWidget( MelSpacer(CurveControlOptionsTypeRow,w=5) )
+	#MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right')
+	CurveControlOptionsTypeRow.setStretchWidget( MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right') )
+	self.controlCurveRotateOrderCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarRotationOrderCurveControlOptionState',label = 'Rotation Order')
+	MelSpacer(CurveControlOptionsTypeRow,w=5)   
+	self.CurveControlExtraGroupCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarExtraGroupCurveControlOptionState',label = 'extra group')
+	MelSpacer(CurveControlOptionsTypeRow,w=5) 
+	self.CurveControlHeirarchyCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarMaintainHeirarchyCurveControlOptionState',label = 'Maintain Heir')
+	MelSpacer(CurveControlOptionsTypeRow,w=50) 
+	
+	CurveControlOptionsTypeRow.layout()
+    
     def buildConstraintTypeRow(self,parent):	
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Connection Types
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	self.ConstraintTypes = ['parent','point','orient','scale']	
-	    
-	#build our sub section options
-	ConstraintTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
-	ConstraintTypeRow.setStretchWidget( MelSpacer(ConstraintTypeRow,w=5) )
-	MelLabel(ConstraintTypeRow,l='Constraint Options: ',align='right')
-	
-	self.ParentConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarParentConstraintState',label = 'parent')
-	MelSpacer(ConstraintTypeRow,w=5)   
-	self.PointConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarPointConstraintState',label = 'point')	                                    
-	MelSpacer(ConstraintTypeRow,w=5)   
-	self.OrientConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarOrientConstraintState',label = 'orient')	                                    
-	MelSpacer(ConstraintTypeRow,w=5)   
-	self.ScaleConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarScaleConstratingState',label = 'scale')	                                    
-	MelSpacer(ConstraintTypeRow,w=5)   
-	
+	self.ConstraintTypes = ['parent','point/orient','point','orient']
+	self.containerName = MelColumn(parent)	
+	self.CreateConstraintTypeRadioCollection = MelRadioCollection()
+	self.CreateConstraintTypeRadioCollectionChoices = []		
+	if not mc.optionVar( ex='cgmControlConstraintType' ):
+	    mc.optionVar( iv=('cgmControlConstraintType', 0) )
 
+	#build our sub section options
+	ConstraintTypeRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+	ConstraintTypeRow.setStretchWidget(MelLabel(ConstraintTypeRow,l='Constraint: ',align='right'))
+	for item in self.ConstraintTypes:
+	    cnt = self.ConstraintTypes.index(item)
+	    self.CreateConstraintTypeRadioCollectionChoices.append(self.CreateConstraintTypeRadioCollection.createButton(ConstraintTypeRow,label=self.ConstraintTypes[cnt],
+	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmControlConstraintType',",cnt,"))"))))
+	    MelSpacer(ConstraintTypeRow,w=5)
+	self.ScaleConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarScaleConstratingState',label = 'scale')	                                    
+	MelSpacer(ConstraintTypeRow,w=25) 
+	
 	ConstraintTypeRow.layout()
-	return ConstraintTypeRow
-    
+	
+	
+	mc.radioCollection(self.CreateConstraintTypeRadioCollection ,edit=True,sl= (self.CreateConstraintTypeRadioCollectionChoices[ mc.optionVar(q='cgmControlConstraintType') ]))
+
+
     def buildConnectionTypeRow(self,parent):	
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Connection Types
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	self.ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
-
+	self.ConnectionTypes = ['Constraint','ShapeParent','ParentTo','ChildOf']
+	self.containerName = MelColumn(parent)	
 	self.CreateConnectionTypeRadioCollection = MelRadioCollection()
 	self.CreateConnectionTypeRadioCollectionChoices = []		
 	if not mc.optionVar( ex='cgmControlConnectionType' ):
 	    mc.optionVar( iv=('cgmControlConnectionType', 0) )
 
 	#build our sub section options
-	ConnectionTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
-	ConnectionTypeRow.setStretchWidget(MelLabel(ConnectionTypeRow,l='Connect by: ',align='right'))
+	ConnectionTypeRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
+	ConnectionTypeRow.setStretchWidget(MelLabel(ConnectionTypeRow,l='Mode: ',align='right'))
 	for item in self.ConnectionTypes:
 	    cnt = self.ConnectionTypes.index(item)
 	    self.CreateConnectionTypeRadioCollectionChoices.append(self.CreateConnectionTypeRadioCollection.createButton(ConnectionTypeRow,label=self.ConnectionTypes[cnt],
 	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmControlConnectionType',",cnt,"))"))))
-	    MelSpacer(ConnectionTypeRow,w=2)
-	MelSpacer(ConnectionTypeRow,w=5)
+	    MelSpacer(ConnectionTypeRow,w=5)
+	MelSpacer(ConnectionTypeRow,w=50)
+	
+	ConnectionTypeRow.layout()
+	
+	
 	mc.radioCollection(self.CreateConnectionTypeRadioCollection ,edit=True,sl= (self.CreateConnectionTypeRadioCollectionChoices[ mc.optionVar(q='cgmControlConnectionType') ]))
 
-	ConnectionTypeRow.layout()
 
 
 
     def buildCurveCreator(self,parent):
 	makeCurvesContainer = MelColumnLayout(parent, ut='cgmUISubTemplate')
-	guiFactory.header('Curve Creation')
+	guiFactory.header('Curve Controls')
 	guiFactory.lineSubBreak()
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -749,18 +774,16 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	self.buildConnectionTypeRow(makeCurvesContainer)
 	self.buildConstraintTypeRow(makeCurvesContainer)
-
+	self.buildCurveControlOptionsRow(makeCurvesContainer)
+	
 	buttonRow = MelHLayout(makeCurvesContainer,ut='cgmUISubTemplate',padding = 2)
 	guiFactory.doButton2(buttonRow,'Create',
-	                     lambda *a:tdToolsLib.doCreateCurveControl(self),
+	                     lambda *a:tdToolsLib.doCurveControlCreate(self),
 	                     'Create Curve Object with Settings',w=50)
 
 	guiFactory.doButton2(buttonRow,'Connect',
-	                     lambda *a:tdToolsLib.doConnectCurveControl(self),
+	                     lambda *a:tdToolsLib.doCurveControlConnect(self),
 	                     'Connects our control')
-	guiFactory.doButton2(buttonRow,'Update',
-	                     lambda *a:guiFactory.warning('MAKE IT WORK'),
-	                     'Creates one of each curve in the library')
 	guiFactory.doButton2(buttonRow,'Create one of each',
 	                     lambda *a:tdToolsLib.doCreateOneOfEachCurve(self),
 	                     'Creates one of each curve in the library')
@@ -799,33 +822,24 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	currentObjectRow = MelHSingleStretchLayout(textObjectColumn,padding = 5)
 	MelSpacer(currentObjectRow)
-	self.textCurrentObjectField = MelTextField(currentObjectRow, ut = 'cgmUIReservedTemplate', editable = False)
-	guiTextObjLoadButton = guiFactory.doButton2(currentObjectRow,'<<<',
+	guiTextObjLoadButton = guiFactory.doButton2(currentObjectRow,'>>',
 	                                            lambda *a:tdToolsLib.doLoadTexCurveObject(self),
 	                                            'Load to field')
+	self.textCurrentObjectField = MelTextField(currentObjectRow, ut = 'cgmUIReservedTemplate', editable = False)
 
-	MelSpacer(currentObjectRow)
-
+	guiTextObjUpdateButton = guiFactory.doButton2(currentObjectRow,'Update',
+	                                              lambda *a:tdToolsLib.doUpdateTextCurveObject(self),
+	                                              'Updates selected text curve objects\n or the loaded text curve object')
+	guiTextObjUpdateButton = guiFactory.doButton2(currentObjectRow,'Create',
+	                                              lambda *a:tdToolsLib.doCreateTextCurveObject(self),
+	                                              'Create a text object with the provided settings')
+	
+	MelSpacer(currentObjectRow,w=5)
 	currentObjectRow.setStretchWidget(self.textCurrentObjectField)
 	currentObjectRow.layout()
 
 	mc.setParent(textObjectColumn)
 	guiFactory.lineSubBreak()
-
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	# Line 3
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-	buttonRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
-	guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Update',
-	                                              lambda *a:tdToolsLib.doUpdateTextCurveObject(self),
-	                                              'Updates selected text curve objects\n or the loaded text curve object')
-	guiTextObjUpdateButton = guiFactory.doButton2(buttonRow,'Create',
-	                                              lambda *a:tdToolsLib.doCreateTextCurveObject(self),
-	                                              'Create a text object with the provided settings')
-
-
-	buttonRow.layout()
 
 	mc.setParent(parent)
 	guiFactory.lineSubBreak()
