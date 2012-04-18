@@ -32,6 +32,58 @@ from cgm.lib import guiFactory
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Constraint Info
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def parent(*a, **kw):
+    buffer = mc.parentConstraint(*a, **kw)
+    if buffer:
+        returnList = []
+        for c in buffer:
+            returnList.append(autoname.doNameObject(c))
+        return returnList
+    else:
+        return False
+    
+def orient(*a, **kw):
+    buffer = mc.orientConstraint(*a, **kw)
+    if buffer:
+        returnList = []
+        for c in buffer:
+            returnList.append(autoname.doNameObject(c))
+        return returnList
+    else:
+        return False
+    
+def point(*a, **kw):
+    buffer = mc.pointConstraint(*a, **kw)
+    if buffer:
+        returnList = []
+        for c in buffer:
+            returnList.append(autoname.doNameObject(c))
+        return returnList
+    else:
+        return False
+
+def scale(*a, **kw):
+    buffer = mc.scaleConstraint(*a, **kw)
+    if buffer:
+        returnList = []
+        for c in buffer:
+            returnList.append(autoname.doNameObject(c))
+        return returnList
+    else:
+        return False
+    
+def aim(*a, **kw):
+    buffer = mc.aimConstraint(*a, **kw)
+    if buffer:
+        returnList = []
+        for c in buffer:
+            returnList.append(autoname.doNameObject(c))
+        return returnList
+    else:
+        return False
+
+
+
 def returnObjectConstraints(object):
     buffer = mc.listRelatives(object,type='constraint')
     if buffer:
@@ -82,10 +134,6 @@ def returnConstraintTargetWeights(constraint):
     else:
         return targetsDict
 
-
-    
-    
-    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Point/Aim
