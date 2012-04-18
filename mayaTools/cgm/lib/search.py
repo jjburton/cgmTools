@@ -365,8 +365,9 @@ def returnObjectsConnectedToObj(obj,messageOnly = False):
         for o in plugs:
             buffer = o.split('.')
             if messageOnly:
-                if attributes.queryIfMessage(buffer[0],buffer[1]):
-                    returnList.append(buffer[0])
+                if '[' not in buffer[-1]:
+                    if attributes.queryIfMessage(buffer[0],buffer[-1]):
+                        returnList.append(buffer[0])
             else:
                 returnList.append(buffer[0])
         return lists.returnListNoDuplicates(returnList)
