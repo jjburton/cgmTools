@@ -1350,7 +1350,7 @@ def doCurveControlConnect(self):
     #>>> Variables
     #ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
     ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmControlConnectionType') ]
-    ConstraintMode = self.ConnectionTypes[ mc.optionVar(q='cgmControlConstraintType') ]
+    ConstraintMode = self.ConstraintTypes[ mc.optionVar(q='cgmControlConstraintType') ]
     
     ScaleConstraintState = self.ScaleConstraintCB(q=True,v=True)
     RotateOrderState = self.controlCurveRotateOrderCB(q=True,v=True)
@@ -1378,16 +1378,30 @@ def doCurveControlConnect(self):
 	    elif ConnectBy == 'Constraint':
 		groupBuffer = rigging.groupMeObject(obj.nameLong,True,True)
 		obj.update(obj.nameBase)
-		ConstraintGroup = rigging.groupMeObject(obj.nameLong,True,True)
-		obj.update(obj.nameBase)
-		
-		mc.parentConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
-		#attributes.doConnectAttr(obj.nameLong + '.t',source.nameLong + '.t')
-		#attributes.doConnectAttr(obj.nameLong + '.r',source.nameLong + '.r')
-		
-		
+		if ExtraGroupState:
+		    ConstraintGroup = objectFactory.go(rigging.groupMeObject(obj.nameLong,True,True) )
+		    ConstraintGroup.store('cgmTypeModifier','constraint')
+		    autoname.doNameObject(ConstraintGroup.nameLong)
+		    obj.update(obj.nameBase)
+		if RotateOrderState:
+		    buffer = attributes.addRotateOrderAttr(obj.nameShort,'setRO')
+		    mc.connectAttr(buffer,(obj.nameShort+'.rotateOrder'))
+		print("Constraint mode is: '%s'"%ConstraintMode)
+	
+		if ConstraintMode == 'parent':
+		    mc.parentConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+		elif ConstraintMode == 'point':
+		    mc.pointConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+		elif ConstraintMode == 'orient':
+		    mc.orientConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+		elif ConstraintMode == 'point/orient':
+		    mc.pointConstraint(obj.nameLong,source.nameLong,maintainOffset = False)		    
+		    mc.orientConstraint(obj.nameLong,source.nameLong,maintainOffset = False)
+	    
 	    else:
 		guiFactory.warning('Got to the end!')
+	    mc.select(selected)
+		
 	    #groupBuffer = rigging.groupMeObject(obj.nameLong)
 	    #obj.update(obj.nameBase)
 	    
