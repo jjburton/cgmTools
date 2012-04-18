@@ -29,11 +29,15 @@
 import maya.cmds as mc
 import maya.mel as mel
 
-from cgm.lib import lists
-from cgm.lib import search
-from cgm.lib import attributes
-from cgm.lib import dictionary
-from cgm.lib import settings
+from cgm.lib import (lists,
+                     search,
+                     autoname,
+                     attributes,
+                     dictionary,
+                     rigging,
+                     settings,
+                     guiFactory)
+
 
 class go():
     """ 
@@ -91,9 +95,24 @@ class go():
             self.nameBase = splitBuffer[-1]
         else:
             self.nameBase = self.nameShort
-            
+
+    def parentTo(self,p):
+        buffer = rigging.doParentReturnName(self.nameLong,p)
+        self.update(  buffer)  
+        
+    def name(self):
+        buffer = autoname.doNameObject(self.nameLong)
+        if buffer:
+            self.update(buffer)
+        
     def store(self,attr,info,*a,**kw):
         attributes.storeInfo(self.nameLong,attr,info,*a,**kw)
+        
+    def remove(self,attr):
+        try:
+            attributes.deleteAttr(self.nameLong,attr)
+        except:
+            guiFactory.warning("'%s.%s' not found"%(self.nameLong,attr))
         
     def update(self,obj):
         self.storeNameStrings(obj) 
