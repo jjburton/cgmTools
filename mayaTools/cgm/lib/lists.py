@@ -236,7 +236,10 @@ def returnMatchList(list1,list2):
         for item in list1:
             if item in list2:
                 matchList.append(item)
-    return matchList
+    if matchList:
+        return matchList
+    else:
+        return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnMissingList(baseList,searchList):
     """ 
