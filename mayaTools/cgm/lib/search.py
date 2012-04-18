@@ -342,6 +342,38 @@ def returnMatchedTagsFromObjectList(objList,tagToMatch,infoToMatch):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # General
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnAttrsConnectedToObj(obj):
+    return mc.listConnections(obj,p=True)
+
+def returnObjectsConnectedToObj(obj,messageOnly = False):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Function for finding objects connected to another object
+
+    REQUIRES:
+    obj(string)
+    messageOnly(bool) - whether you only want mesage objects or not
+
+    RETURNS:
+    objList(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    plugs = mc.listConnections(obj,p=True)
+    returnList = []
+    if plugs:
+        for o in plugs:
+            buffer = o.split('.')
+            if messageOnly:
+                if attributes.queryIfMessage(buffer[0],buffer[1]):
+                    returnList.append(buffer[0])
+            else:
+                returnList.append(buffer[0])
+        return lists.returnListNoDuplicates(returnList)
+    else:
+        return False
+        
+
 def seekDownStream(startingNode,endObjType,incPlugs=False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
