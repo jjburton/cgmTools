@@ -1042,7 +1042,6 @@ def returnUserAttrsToDict(obj):
                 attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
         return attrDict
     else:
-        print ('Sorry, no attributes found.')
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -1095,7 +1094,6 @@ def returnUserAttrsToList(obj):
                 attrsList.append(buffer)
         return attrsList
     else:
-        print ('Sorry, no attributes found.')
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
