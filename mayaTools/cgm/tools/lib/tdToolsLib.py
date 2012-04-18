@@ -1357,6 +1357,21 @@ def doCurveControlConnect(self):
     ExtraGroupState = self.CurveControlExtraGroupCB(q=True,v=True)
     HeirarchyState = self.CurveControlHeirarchyCB(q=True,v=True)
     
+    if HeirarchyState:
+	CheckList = []
+	for obj in selected:
+	    obj = objectFactory.go(obj)
+	    if 'cgmSource' in obj.userAttrs.keys():
+		source = objectFactory.go(obj.userAttrs.get('cgmSource'))
+		#CheckList.append(source.nameShort)
+		if mc.objExists(source.parent):
+		    curveParentObj = search.returnObjectsConnectedToObj(source.parent,True)
+		    if curveParentObj:
+			buffer = rigging.doParentReturnName(obj.nameLong,curveParentObj[0])
+			obj.update(buffer)
+		
+	guiFactory.warning('%s'%CheckList)
+	
     for obj in selected:
 	obj = objectFactory.go(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
@@ -1763,3 +1778,32 @@ def doCopyPivot():
             rigging.copyPivot(obj,selected[0])
         except:
             guiFactory.warning(obj + ' failed')
+	    
+def doParentSelected():
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Copies the pivot from the first object to all other objects
+
+    REQUIRES:
+    Active Selection
+
+    RETURNS:
+    locatorList(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    selected = []
+    bufferList = []
+    selected = (mc.ls (sl=True,flatten=True))
+    mc.select(cl=True)
+
+    if len(selected)<2:
+        guiFactory.warning('You must have at least two objects selected')
+        return False
+
+    try:
+	rigging.parentListToHeirarchy(selected)
+	mc.select(selected)
+    except:
+	guiFactory.warning('Failed to parent selected')
+	    
