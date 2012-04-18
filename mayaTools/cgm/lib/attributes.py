@@ -382,7 +382,6 @@ def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False
         return True
 
     else:
-        print ('Sorry, no matched attrs found.')
         return False
 
 
@@ -452,7 +451,6 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
             mc.setAttr((toObject+'.'+attr),lock=True)
         return True
     else:
-        print ('Sorry, no matched attrs found.')
         return False
 
 def copyNameTagAttrs(fromObject,toObject):
@@ -492,7 +490,6 @@ def copyNameTagAttrs(fromObject,toObject):
             mc.setAttr((toObject+'.'+attr),lock=True)
         return True
     else:
-        print ('Sorry, no matched attrs found.')
         return False
 
 def swapNameTagAttrs(object1,object2):
@@ -867,7 +864,6 @@ def returnObjectsAttributeTypes(obj,*a, **kw ):
                 guiFactory.warning("%s didn't query" %attr)
         return attrDict
     else:
-        print ('Sorry, no atributes of this type  found.')
         return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -968,7 +964,6 @@ def returnMessageAttrs(obj):
                     messageList[attr] = (query[0])
         return messageList
     else:
-        print ('Sorry, no message attributes found.')
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -999,7 +994,6 @@ def returnMessageAttrsAsList(obj):
                     messageList.append (messageBuffer)
         return messageList
     else:
-        print ('Sorry, no message attributes found.')
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnUserAttrsToDict(obj):
