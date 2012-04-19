@@ -1352,11 +1352,14 @@ def doCurveControlConnect(self):
     RETURNS:
     Success(bool)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """    
-    modeToLocknHideDict = {'parent':False,
-                           'point/orient':False,
-                           'point':False,
-                           'orient':False}
+    """
+    def updateTransform(curve,sourceObject):
+	transform = rigging.groupMeObject(sourceObject,False,False)
+	attributes.copyUserAttrs(curve,transform)
+	buffer = curves.parentShapeInPlace(transform,curve)
+	mc.delete(curve)
+	return transform
+    
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -1383,8 +1386,13 @@ def doCurveControlConnect(self):
     for obj in selected:
 	obj = objectFactory.go(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
-	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
-	    		
+	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))	
+	    
+	    buffer = updateTransform(obj.nameShort,source.nameShort)
+	    print buffer
+	    obj.update(buffer)
+	    obj.name()
+	    
 	    if mc.objExists(source.parent):
 		curveParentObj = search.returnObjectsConnectedToObj(source.parent,True)	
 		
@@ -1402,6 +1410,7 @@ def doCurveControlConnect(self):
 	obj = objectFactory.go(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
 	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
+	    
 	    
 	    if ConnectBy == 'ShapeParent':
 		curves.parentShapeInPlace(source.nameLong,obj.nameLong)
@@ -1471,7 +1480,6 @@ def doCurveControlConnect(self):
 		obj.store('cgmDrivenObject',source.nameLong)
 		obj.remove('cgmSource')
 		
-		mc.select(selected)
 		
 	    else:
 		guiFactory.warning('Got to the end!')
