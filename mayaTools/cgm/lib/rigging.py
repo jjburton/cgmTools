@@ -321,7 +321,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     return autoname.doNameObject(groupBuffer)
 
 
-def zeroTransformMeObject(obj):
+def zeroTransformMeObject(obj,scaleZero=False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -337,7 +337,46 @@ def zeroTransformMeObject(obj):
     parent = mc.listRelatives(obj,parent=True)
 
     group = groupMeObject(obj,True,True)
-
+    group2 = ''
+    attributes.storeInfo(group,'cgmTypeModifier','zero')
+    
+    
+    objScale = []
+    objScale.append(mc.getAttr(obj+'.sx'))
+    objScale.append(mc.getAttr(obj+'.sy'))
+    objScale.append(mc.getAttr(obj+'.sz'))
+    
+    #Check if we got zero translates
+    zeroCheck = mc.xform (obj, q=True, os=True, rp=True)
+    if zeroCheck:
+        if scaleZero:
+            mc.makeIdentity(obj,apply=True,t=0,r=0,s=1)              
+        group2 = groupMeObject(obj,True,True)
+        zeroCheck = mc.xform (obj, q=True, os=True, rp=True)
+        
+        zeroCheck = cgmMath.multiplyLists([objScale,zeroCheck])
+        mc.xform (group2,t=(-zeroCheck[0],-zeroCheck[1],-zeroCheck[2]), os=True)
+        attributes.storeInfo(group,'cgmTypeModifier','zeroParent')
+        attributes.storeInfo(group2,'cgmTypeModifier','zero')
+        group2 = autoname.doNameObject(group2) 
+    
+        for attr in 'tx','ty','tz':
+            attributes.doSetAttr((obj+'.'+attr),0)
+    
+    #Check for zero rotates
+    rotateCheck = mc.xform(obj, q=True, os=True, ro=True)
+    if rotateCheck:
+        if not group2:
+            group2 = groupMeObject(obj,True,True)
+            attributes.storeInfo(group,'cgmTypeModifier','zeroParent')
+            attributes.storeInfo(group2,'cgmTypeModifier','zero')
+            autoname.doNameObject(group2) 
+        
+        mc.xform (group2,ro=(rotateCheck[0],rotateCheck[1],rotateCheck[2]), os=True)
+        for attr in 'rx','ry','rz':
+            attributes.doSetAttr((obj+'.'+attr),0)        
+    
+    """
     objScale = []
     objScale.append(mc.getAttr(obj+'.sx'))
     objScale.append(mc.getAttr(obj+'.sy'))
@@ -351,8 +390,7 @@ def zeroTransformMeObject(obj):
     mc.scale(multScale[0], multScale[1], multScale[2],[group])
     for attr in 'sx','sy','sz':
         attributes.doSetAttr((obj+'.'+attr),1)
-    
-    attributes.storeInfo(group,'cgmTypeModifier','zero')
+    """
     return autoname.doNameObject(group)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
