@@ -26,7 +26,7 @@
 #	0.1.01113012 - Started skin cluster utilities, added find verts with excess influence
 #
 #=================================================================================================================================================
-__version__ = '0.1.01102012'
+__version__ = '0.1.04182012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 import maya.mel as mel
@@ -156,7 +156,8 @@ class tdToolsClass(BaseMelWindow):
 	#tabs.setCB(self.updateCurrentTab(tabs,'cgmTDToolsWinActiveTab'))
 
 	n = 0
-	for tab in 'Curves','Position','Info','Attribute','Deformer','Naming':
+	tabList = ['Curves','Position','Info','Attribute','Deformer','Naming']
+	for tab in tabList:
 	    tabs.setLabel(n,tab)
 	    n+=1
 	
@@ -171,7 +172,7 @@ class tdToolsClass(BaseMelWindow):
 	for t in tabsToBuild:
 	    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 		    break
-	    mc.progressBar(mayaMainProgressBar, edit=True, status = ("Building '%s'"%t), step=1)
+	    mc.progressBar(mayaMainProgressBar, edit=True, status = ("Building '%s'"%tabList[tabsToBuild.index(t)]), step=1)
 	    t
 	
 	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
@@ -308,6 +309,24 @@ class tdToolsClass(BaseMelWindow):
 	             cb=ChangeFontOnUpdateState,
 	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVarChangeFontOnUpdate'))
 
+	
+	# Autoloading options
+	AutoloadMenu = MelMenuItem( self.UI_OptionsMenu, l='Auto Loading', subMenu=True)
+	if not mc.optionVar( ex='cgmOptionVar_AutoloadAutoName' ):
+	    mc.optionVar( iv=('cgmOptionVar_AutoloadAutoName', 0) )
+	    
+	RenameOnUpdateState = mc.optionVar( q='cgmOptionVar_AutoloadAutoName' )
+	MelMenuItem( AutoloadMenu, l="Autoname",
+	             cb= mc.optionVar( q='cgmOptionVar_AutoloadAutoName' ),
+	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmOptionVar_AutoloadAutoName'))
+	
+	if not mc.optionVar( ex='cgmOptionVar_AutoloadTextObject' ):
+	    mc.optionVar( iv=('cgmOptionVar_AutoloadTextObject', 0) )
+	    
+	RenameOnUpdateState = mc.optionVar( q='cgmOptionVar_AutoloadTextObject' )
+	MelMenuItem( AutoloadMenu, l="Text Objects",
+	             cb= mc.optionVar( q='cgmOptionVar_AutoloadTextObject' ),
+	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmOptionVar_AutoloadTextObject'))
 
 	MelMenuItemDiv( self.UI_OptionsMenu )
 

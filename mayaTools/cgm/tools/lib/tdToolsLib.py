@@ -70,13 +70,15 @@ def loadGUIOnStart(self):
     if selected:
         for obj in selected:
             if search.returnTagInfo(selected[0],'cgmObjectType') == 'textCurve':
-                mc.select(selected[0])
-                doLoadTexCurveObject(self)
-                break
-            
-        mc.select(selected[0])
-        namingToolsLib.uiLoadAutoNameObject(self)
+		if mc.optionVar( q='cgmOptionVar_AutoloadTextObject' ):
+		    mc.select(selected[0])
+		    doLoadTexCurveObject(self)
+		    break
 	
+    if mc.optionVar( q='cgmOptionVar_AutoloadAutoName' ):
+	mc.select(selected[0])
+	namingToolsLib.uiLoadAutoNameObject(self)
+	    
         mc.select(selected)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1067,22 +1069,26 @@ def returnObjectSizesForCreation(self,objList):
 	    divider = 1
         sizeList = []
         for item in objList:
-            child = mc.listRelatives(item,children = True, type = 'transform',path = True)
-            if child:
-                sizeBuffer = (distance.returnDistanceBetweenObjects(item,child)/divider)
-                if sizeBuffer <= 0:
-                    parent = mc.listRelatives(item,parent = True, type = 'transform')
-                    sizeList.append( (distance.returnDistanceBetweenObjects(parent,item)/divider) )
-                else:
-                    sizeList.append( (distance.returnDistanceBetweenObjects(item,child)/divider) )
-            else:
-                objSize = distance.returnBoundingBoxSize(item)
-                sizeAverage = max(objSize)
-                if sizeAverage <= 0:
-                    parent = mc.listRelatives(item,parent = True, type = 'transform', path = True)
-                    sizeList.append( (distance.returnDistanceBetweenObjects(parent,item)/divider))
-                else:
-                    sizeList.append( sizeAverage/divider )
+	    o = objectFactory.go(item)
+	    if o.type == 'joint':
+		child = mc.listRelatives(item,children = True, type = 'transform',path = True)
+		if child:
+		    sizeBuffer = (distance.returnDistanceBetweenObjects(item,child)/divider)
+		    if sizeBuffer <= 0:
+			parent = mc.listRelatives(item,parent = True, type = 'transform')
+			sizeList.append( (distance.returnDistanceBetweenObjects(parent,item)/divider) )
+		    else:
+			sizeList.append( (distance.returnDistanceBetweenObjects(item,child)/divider) )
+		else:
+		    objSize = distance.returnBoundingBoxSize(item)
+		    sizeAverage = max(objSize)
+		    if sizeAverage <= 0:
+			parent = mc.listRelatives(item,parent = True, type = 'transform', path = True)
+			sizeList.append( (distance.returnDistanceBetweenObjects(parent,item)/divider))
+		    else:
+			sizeList.append( sizeAverage/divider )
+	    else:
+		sizeList.append( max(distance.returnBoundingBoxSize(item)) )
         if self.sizeMode == 3:
             return ( sum(sizeList)/len(sizeList) )
         elif self.sizeMode == 5:
@@ -1110,11 +1116,11 @@ def doCreateTextCurveObject(self):
             for word in textObjectsToMake:
                 self.textCurrentObject = curves.createTextCurveObject(word,self.textObjectSize,None, font = self.textObjectFont)
                 mc.textField(self.textCurrentObjectField,edit=True,text = self.textCurrentObject )
-                curves.setCurveColorByIndex(self.textCurrentObject,colorChoice)
+                curves.setColorByIndex(self.textCurrentObject,colorChoice)
         else:
             self.textCurrentObject = curves.createTextCurveObject(self.textObjectText,self.textObjectSize,None, font = self.textObjectFont)
             mc.textField(self.textCurrentObjectField,edit=True,text = self.textCurrentObject )
-            curves.setCurveColorByIndex(self.textCurrentObject,colorChoice)
+            curves.setColorByIndex(self.textCurrentObject,colorChoice)
 
 
 def doSetCurveColorByIndex(colorIndex):
@@ -1123,7 +1129,7 @@ def doSetCurveColorByIndex(colorIndex):
     selected = (mc.ls (sl=True,flatten=True))
     if selected:
         for obj in selected:
-            curves.setCurveColorByIndex(obj,colorIndex)
+            curves.setColorByIndex(obj,colorIndex)
 
     else:
         guiFactory.warning('You must select something.')
@@ -1257,7 +1263,7 @@ def doCreateOneOfEachCurve(self):
 	buffer = curves.createControlCurve(option,creationSize,self.uiCurveAxis )
 	attributes.storeInfo(buffer,'cgmName',option)	
 	buffer = autoname.doNameObject(buffer)
-	curves.setCurveColorByIndex(buffer,colorChoice)
+	curves.setColorByIndex(buffer,colorChoice)
 	bufferList.append(buffer)
 	
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
@@ -1300,7 +1306,7 @@ def doCurveControlCreate(self):
                     break
                 mc.progressBar(mayaMainProgressBar, edit=True, status = ("Creating curve for '%s'"%item), step=1)
 
-
+		print 2
                 if self.sizeMode in [0,1,2]:
                     creationSize = sizeReturn[selected.index(item)]
                 else:
@@ -1309,15 +1315,15 @@ def doCurveControlCreate(self):
                 attributes.storeInfo(buffer,'cgmName',item)
 		attributes.storeInfo(buffer,'cgmSource',item)
                 buffer = autoname.doNameObject(buffer)
-
                 if self.forceBoundingBoxState == True:
+		    guiFactory.warning("Forced Bounding box on")
                     locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
                     position.moveParentSnap(buffer,locBuffer)
                     mc.delete(locBuffer)
                 else:
                     position.moveParentSnap(buffer,item)
 
-                curves.setCurveColorByIndex(buffer,colorChoice)
+                curves.setColorByIndex(buffer,colorChoice)
 		bufferList.append(buffer)
             guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 	    
@@ -1332,12 +1338,13 @@ def doCurveControlCreate(self):
             else:
                 attributes.storeInfo(buffer,'cgmName',shapeOption)
             buffer = autoname.doNameObject(buffer)
-            curves.setCurveColorByIndex(buffer,colorChoice)
+            curves.setColorByIndex(buffer,colorChoice)
 	    bufferList.append(buffer)
 	    
     if bufferList:
-	mc.select(bufferList[-1])
-	namingToolsLib.uiLoadAutoNameObject(self)            
+	if  mc.optionVar( q='cgmOptionVar_AutoloadAutoName' ):
+	    mc.select(bufferList[-1])
+	    namingToolsLib.uiLoadAutoNameObject(self)  
 	mc.select(bufferList)	    
 
 def doCurveControlConnect(self):
@@ -1673,7 +1680,9 @@ def doReplaceCurveShapes():
         return False
     
     originalShapes = mc.listRelatives (selected[-1], f= True,shapes=True)
-    
+    if originalShapes:
+	colorIndex = mc.getAttr(originalShapes[0]+'.overrideColor') 
+	 
     for obj in selected[:-1]:
 	curves.parentShapeInPlace(selected[-1],obj)
 	
@@ -1684,7 +1693,11 @@ def doReplaceCurveShapes():
 	    except:
 		guiFactory.warning("'%s' failed to delete"%shape)
     
-
+    #recolor
+    if colorIndex:
+	curves.setColorByIndex(selected[-1],colorIndex)
+	
+    mc.delete(selected[:-1])
 
 def doCurveToPython():
     """
