@@ -417,19 +417,22 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
     """ Get the attribute types of those the source object"""
     attrTypes = returnObjectsAttributeTypes(fromObject)
 
-    print ('The following attrirbues will be created and copied')
-    print matchAttrs
     #>>> The creation of attributes part
+    messageAttrs = {}
     if len(matchAttrs)>0:
         for attr in matchAttrs:
+            # see if it's a message attribute to copy    
+            if queryIfMessage(fromObject,attr):
+                messageAttrs[attr] = (returnMessageObject(fromObject,attr))
+                
             """ see if it was locked, unlock it and store that it was locked """
             if mc.getAttr((fromObject+'.'+attr),lock=True) == True:
                 lockAttrs[attr] = True
                 mc.setAttr((fromObject+'.'+attr),lock=False)
+                
             """if it doesn't exist, make it"""
             if mc.objExists(toObject+'.'+attr) is not True:
                 attrType = (attrTypes.get(attr))
-                print attrType
                 if attrType == 'string':
                     mc.addAttr (toObject, ln = attr,  dt =attrType )
                 elif attrType == 'enum':
@@ -443,7 +446,11 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
                 else:
                     mc.addAttr (toObject, ln = attr,  at =attrType )
         """ copy values """
-        mc.copyAttr(fromObject,toObject,attribute=matchAttrs,v=True,ic=True)
+        mc.copyAttr(fromObject,toObject,attribute=matchAttrs,v=True,ic=True,oc=True,keepSourceConnections=True)
+        
+        if messageAttrs:
+            for a in messageAttrs.keys():
+                storeInfo(toObject,a,messageAttrs.get(a))
 
         """ relock """
         for attr in lockAttrs.keys():
@@ -810,7 +817,7 @@ def returnDrivenAttribute(attribute):
     """
     if (mc.connectionInfo (attribute,isSource=True)) == True:
         destinationBuffer = (mc.connectionInfo (attribute,destinationFromSource=True))
-        return destinationBuffer[0]
+        return destinationBuffer
     else:
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -827,10 +834,13 @@ def returnDrivenObject(attribute):
     Success - drivenObj(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    objectBuffer =  returnDrivenAttribute (attribute)
-    if objectBuffer:
-        strippedObject = '.'.join(objectBuffer.split('.')[0:-1])
-        return strippedObject
+    objectsBuffer =  returnDrivenAttribute (attribute)
+    returnBuffer = []
+    if objectsBuffer:
+        for o in objectsBuffer:
+            strippedObject = '.'.join(o.split('.')[0:-1])
+            returnBuffer.append( strippedObject )
+        return returnBuffer
     else:
         return False
 
@@ -861,7 +871,7 @@ def returnObjectsAttributeTypes(obj,*a, **kw ):
             try:
                 attrDict[attr] = (mc.getAttr((obj+'.'+attr),type=True))
             except:
-                guiFactory.warning("%s didn't query" %attr)
+                pass
         return attrDict
     else:
         return False
@@ -1448,11 +1458,26 @@ def storeObjectToMessage (obj, storageObj, messageName):
     """
     attrCache = (storageObj+'.'+messageName)
     try:
-        if  mc.objExists (attrCache):  
-            print (attrCache+' already exists. Adding to existing message node.')
-            breakConnection(attrCache)
-            mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-            return True
+        if  mc.objExists (attrCache):
+            if queryIfMessage(storageObj,messageName):
+                print (attrCache+' already exists. Adding to existing message node.')
+                breakConnection(attrCache)
+                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                return True                
+            else:
+                connections = returnDrivenAttribute(attrCache)
+                if connections:
+                    for c in connections:
+                        breakConnection(c)
+                        
+                guiFactory.warning("'%s' already exists. Not a message attr, converting."%attrCache)
+                deleteAttr(storageObj,messageName)
+                
+                buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
+                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                
+                        
+                return True
         else:
             mc.addAttr (storageObj, ln=messageName, at= 'message')
             mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
