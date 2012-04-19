@@ -60,6 +60,7 @@ class go():
         self.cgmType  = ''
         self.parent = False
         self.children = False
+        self.type = ''
         
         self.userAttrs = {}
         
@@ -81,9 +82,13 @@ class go():
     def getUserAttrs(self):
         self.userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
         
+    def getType(self):
+        self.type = search.returnObjectType(self.nameLong)
+        
     def getFamily(self):
         self.parent = search.returnParentObject(self.nameLong)
         self.children = search.returnChildrenObjects(self.nameLong)
+        self.shapes = mc.listRelatives(self.nameLong, f= True,shapes=True)
         
     def storeNameStrings(self,obj):
         buffer = mc.ls(obj,long=True)
@@ -116,6 +121,7 @@ class go():
         
     def update(self,obj):
         self.storeNameStrings(obj) 
+        self.getType()
         self.getFamily()
         self.getCGMNameTags()
         self.getUserAttrs()        
