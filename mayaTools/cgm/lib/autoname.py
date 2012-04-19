@@ -903,7 +903,7 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
     divider = returnCGMDivider()
     order = returnCGMOrder()
     nameBuilder = []
-    #>>> Get our cgmVariables
+    #>>> Get our cgmVar_iables
     userAttrs = attributes.returnUserAttributes(obj)
     cgmAttrs = lists.returnMatchList(userAttrs,order)
     #>>> Tag ignoring

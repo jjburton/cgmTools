@@ -87,7 +87,7 @@ def doLocMe(self):
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
-    self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
+    self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
 
     if selected:
 	mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected))		
@@ -154,7 +154,7 @@ def doLocCenter(self):
     selected = []
     selected = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
-    self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
+    self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
 
     print selected 
 
@@ -284,7 +284,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     self.bakeMode = mc.optionVar( q='cgmLocinatorBakeState' )
     self.forceEveryFrame = mc.optionVar( q='cgmKeyingMode' )
     self.keyingTargetState = mc.optionVar( q='cgmKeyingTarget' )
-    self.forceBoundingBoxState = mc.optionVar( q='cgmVarForceBoundingBoxState' )
+    self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
 
     if not len(selected):
         guiFactory.warning('Nothing Selected')

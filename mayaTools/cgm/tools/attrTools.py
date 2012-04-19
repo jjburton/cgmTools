@@ -100,7 +100,7 @@ class attrToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildHelpMenu(self, *a ):
 		self.UI_HelpMenu.clear()
-		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		MelMenuItem( self.UI_HelpMenu, l="Show Help",
 				     cb=ShowHelpOption,
 				     c= lambda *a: self.do_showHelpToggle())
@@ -112,9 +112,9 @@ class attrToolsClass(BaseMelWindow):
 				     c=lambda *a: self.showAbout() )
 
 	def do_showHelpToggle(self):
-		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		guiFactory.toggleMenuShowState(ShowHelpOption,self.helpBlurbs)
-		mc.optionVar( iv=('cgmVarTDToolsShowHelp', not ShowHelpOption))
+		mc.optionVar( iv=('cgmVar_TDToolsShowHelp', not ShowHelpOption))
 
 
 	def showAbout(self):
@@ -147,14 +147,14 @@ class attrToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildAttributeTool(self,parent,vis=True):
 		OptionList = ['Tools','Manager','Utilities']
-		cgmVarName = 'cgmAttributeMode'
+		cgmVar_Name = 'cgmAttributeMode'
 		RadioCollectionName ='AttributeMode'
 		RadioOptionList = 'AttributeModeSelectionChoicesList'
 
-		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		
-		if not mc.optionVar( ex=cgmVarName ):
-			mc.optionVar( sv=(cgmVarName, OptionList[0]) )
+		if not mc.optionVar( ex=cgmVar_Name ):
+			mc.optionVar( sv=(cgmVar_Name, OptionList[0]) )
 		
 		MelSeparator(parent,ut = 'cgmUIHeaderTemplate',h=5)
 		
@@ -173,11 +173,11 @@ class attrToolsClass(BaseMelWindow):
 		
 		for item in OptionList:
 			self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
-						                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVarName,self.ContainerList)))
+						                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVar_Name,self.ContainerList)))
 		ModeSetRow.layout()
 
 
-		mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVarName))])
+		mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVar_Name))])
 
 		
 		
@@ -219,8 +219,8 @@ class attrToolsClass(BaseMelWindow):
 		
 		#>>> Load To Field
 		#clear our variables
-		if not mc.optionVar( ex='cgmVarAttributeSourceObject' ):
-			mc.optionVar( sv=('cgmVarAttributeSourceObject', '') )
+		if not mc.optionVar( ex='cgmVar_AttributeSourceObject' ):
+			mc.optionVar( sv=('cgmVar_AttributeSourceObject', '') )
 	
 		LoadAttributeObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
 	
@@ -391,8 +391,8 @@ class attrToolsClass(BaseMelWindow):
 		MelLabel(TagLabelsRow,label = 'Not done yet...')
 		TagLabelsRow.layout()
 		
-		if mc.optionVar( q = 'cgmVarAttributeSourceObject'):
-			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAttributeSourceObject'))
+		if mc.optionVar( q = 'cgmVar_AttributeSourceObject'):
+			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVar_AttributeSourceObject'))
 			attrToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
 
 		return self.containerName

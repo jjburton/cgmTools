@@ -121,8 +121,8 @@ class polyUniteClass(BaseMelWindow):
 	def buildPolyUniteTool(self,parent):
 		#Options
 		#clear our variables
-		if not mc.optionVar( ex='cgmVarSourceObject' ):
-			mc.optionVar( sv=('cgmVarSourceObject', '') )
+		if not mc.optionVar( ex='cgmVar_SourceObject' ):
+			mc.optionVar( sv=('cgmVar_SourceObject', '') )
 
 		mc.setParent(parent)
 		guiFactory.header('PolyUnite')
@@ -195,7 +195,7 @@ class polyUniteClass(BaseMelWindow):
 			self.SourceObjectField(edit=True,text = mc.optionVar( q = optionVar))
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadSingleObjectToTextField(cgmTDToolsWin.SourceObjectField,'cgmVarSourceObject')",
+				             "guiFactory.doLoadSingleObjectToTextField(cgmTDToolsWin.SourceObjectField,'cgmVar_SourceObject')",
 				             'Load to field')
 
 
@@ -205,7 +205,7 @@ class polyUniteClass(BaseMelWindow):
 		LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVarTargetObjects')",
+				             "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVar_TargetObjects')",
 				             'Load to field')
 
 		MelSpacer(LoadObjectTargetUtilityRow,w=5)
@@ -218,10 +218,10 @@ class polyUniteClass(BaseMelWindow):
 	
 	def buildLoadObjectTargetTool(self,parent,baseNameField=True):
 		#clear our variables
-		if not mc.optionVar( ex='cgmVarSourceObject' ):
-			mc.optionVar( sv=('cgmVarSourceObject', '') )
-		if not mc.optionVar( ex='cgmVarTargetObjects' ):
-			mc.optionVar( sv=('cgmVarTargetObjects', '') )
+		if not mc.optionVar( ex='cgmVar_SourceObject' ):
+			mc.optionVar( sv=('cgmVar_SourceObject', '') )
+		if not mc.optionVar( ex='cgmVar_TargetObjects' ):
+			mc.optionVar( sv=('cgmVar_TargetObjects', '') )
 
 
 		LoadObjectTargetUtilityRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
@@ -236,11 +236,11 @@ class polyUniteClass(BaseMelWindow):
 		MelLabel(LoadObjectTargetUtilityRow,l='Source:',align='right')
 
 		self.SourceObjectField = MelTextField(LoadObjectTargetUtilityRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-		if mc.optionVar( q = 'cgmVarSourceObject'):
-			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarSourceObject'))
+		if mc.optionVar( q = 'cgmVar_SourceObject'):
+			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVar_SourceObject'))
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadSingleObjectToTextField(cgmTDToolsWin.SourceObjectField,'cgmVarSourceObject')",
+				             "guiFactory.doLoadSingleObjectToTextField(cgmTDToolsWin.SourceObjectField,'cgmVar_SourceObject')",
 				             'Load to field')
 
 
@@ -250,7 +250,7 @@ class polyUniteClass(BaseMelWindow):
 		LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
 
 		guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-				             "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVarTargetObjects')",
+				             "guiFactory.doLoadMultipleObjectsToTextField(cgmTDToolsWin.TargetObjectField,False,'cgmVar_TargetObjects')",
 				             'Load to field')
 
 		MelSpacer(LoadObjectTargetUtilityRow,w=5)

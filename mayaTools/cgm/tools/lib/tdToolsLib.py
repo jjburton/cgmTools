@@ -75,11 +75,11 @@ def loadGUIOnStart(self):
 		    doLoadTexCurveObject(self)
 		    break
 	
-    if mc.optionVar( q='cgmOptionVar_AutoloadAutoName' ):
-	mc.select(selected[0])
-	namingToolsLib.uiLoadAutoNameObject(self)
-	    
-        mc.select(selected)
+	if mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
+	    mc.select(selected[0])
+	    namingToolsLib.uiLoadAutoNameObject(self)
+		
+	    mc.select(selected)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # SDK
@@ -130,7 +130,7 @@ def doDeformerKeyableAttributesConnect(self):
 
     targetObjects = mc.ls(sl=True, flatten = True)
     if not targetObjects:
-        targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        targetObjectsBuffer = mc.optionVar(q='cgmVar_TargetObjects')
         if ';' in targetObjectsBuffer:
             targetObjects = targetObjectsBuffer.split(';')
         else:
@@ -247,7 +247,7 @@ def doBuildPolyUnite(self):
 
     targetObjects = mc.ls(sl=True, flatten = True)
     if not targetObjects:
-        targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        targetObjectsBuffer = mc.optionVar(q='cgmVar_TargetObjects')
         if ';' in targetObjectsBuffer:
             targetObjects = targetObjectsBuffer.split(';')
         else:
@@ -305,7 +305,7 @@ def doLoadBlendShapePoseBuffer(self):
         #Check for a connected blendshape node
         blendShapeSearchBuffer = deformers.returnBlendShapeNodeFromPoseBuffer(poseBufferCandidate)
         if blendShapeSearchBuffer:
-            guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,blendShapeSearchBuffer,'cgmVarTargetObjects')
+            guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,blendShapeSearchBuffer,'cgmVar_TargetObjects')
         else:
             return (guiFactory.warning('No connected blendShape node found'))
     else:
@@ -335,8 +335,8 @@ def doCreatePoseBuffer(self):
 
     baseName = self.BaseNameField(query=True, text =True)
 
-    DoConnectCase = mc.optionVar(q='cgmVarPoseBufferDoConnect') 
-    TransferConnectionsCase = mc.optionVar(q='cgmVarPoseBufferTransferConnections') 
+    DoConnectCase = mc.optionVar(q='cgmVar_PoseBufferDoConnect') 
+    TransferConnectionsCase = mc.optionVar(q='cgmVar_PoseBufferTransferConnections') 
 
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -381,15 +381,15 @@ def doUpdatePoseBuffer(self):
     targetObjects = mc.ls(sl=True, flatten = True)
     if not targetObjects:
         targetObjectsBuffer = self.TargetObjectField(q=True,text=True)
-        #targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        #targetObjectsBuffer = mc.optionVar(q='cgmVar_TargetObjects')
         if ';' in targetObjectsBuffer:
             targetObjects = targetObjectsBuffer.split(';')
         else:
             targetObjects = [targetObjectsBuffer]
 
-    RemoveMissingCase = mc.optionVar(q='cgmVarPoseBufferDoRemoveMissing')
-    DoConnectCase = mc.optionVar(q='cgmVarPoseBufferDoConnect')
-    TransferConnectionsCase = mc.optionVar(q='cgmVarPoseBufferTransferConnections')
+    RemoveMissingCase = mc.optionVar(q='cgmVar_PoseBufferDoRemoveMissing')
+    DoConnectCase = mc.optionVar(q='cgmVar_PoseBufferDoConnect')
+    TransferConnectionsCase = mc.optionVar(q='cgmVar_PoseBufferTransferConnections')
 
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -438,17 +438,17 @@ def doBakeBlendShapeTargetsToTargetsFromSource(self):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     # Check for selection, defaults to using that for targets
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')
+    sourceObject = mc.optionVar(q='cgmVar_SourceObject')
     #targetObjectsBuffer = self.TargetObjectField(query = True, text=True)
-    targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+    targetObjectsBuffer = mc.optionVar(q='cgmVar_TargetObjects')
     if ';' in targetObjectsBuffer:
         targetObjects = targetObjectsBuffer.split(';')
     else:
         targetObjects = targetObjectsBuffer
 
-    bakeInbetweensCase = mc.optionVar(q='cgmVarBSBakeInbetweens')
-    transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections')
-    bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine')
+    bakeInbetweensCase = mc.optionVar(q='cgmVar_BSBakeInbetweens')
+    transferConnectionsCase = mc.optionVar(q='cgmVar_BSBakeTransferConnections')
+    bakeCombineCase = mc.optionVar(q='cgmVar_BSBakeCombine')
     combineTermsString = self.BlendShapeCombineTermsField(query=True,text=True)
 
     baseName = self.BaseNameField(query=True, text =True)
@@ -527,10 +527,10 @@ def doBakeBlendShapeTargetsFromSource(self):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     # Check for selection, defaults to using that for targets
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')
-    bakeInbetweensCase = mc.optionVar(q='cgmVarBSBakeInbetweens')
-    transferConnectionsCase = mc.optionVar(q='cgmVarBSBakeTransferConnections')
-    bakeCombineCase = mc.optionVar(q='cgmVarBSBakeCombine')
+    sourceObject = mc.optionVar(q='cgmVar_SourceObject')
+    bakeInbetweensCase = mc.optionVar(q='cgmVar_BSBakeInbetweens')
+    transferConnectionsCase = mc.optionVar(q='cgmVar_BSBakeTransferConnections')
+    bakeCombineCase = mc.optionVar(q='cgmVar_BSBakeCombine')
     combineTermsString = self.BlendShapeCombineTermsField(query=True,text=True)
 
     baseName = self.BaseNameField(query=True, text =True)
@@ -580,7 +580,7 @@ def doShrinkWrapToSource():
     Function for finding vertices that are over X influences
 
     REQUIRES:
-    A selection or a set cgmVarSourceObject
+    A selection or a set cgmVar_SourceObject
 
     RETURNS:
     NA
@@ -589,7 +589,7 @@ def doShrinkWrapToSource():
     # Check for selection, defaults to using that for targets
     selected = mc.ls(sl=True,flatten=True)
 
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')
+    sourceObject = mc.optionVar(q='cgmVar_SourceObject')
 
     #see if we have selected stuff to work on
     if selected:
@@ -601,7 +601,7 @@ def doShrinkWrapToSource():
             targetObjects = selected
 
     else:
-        targetObjects = mc.optionVar(q='cgmVarTargetObjects')
+        targetObjects = mc.optionVar(q='cgmVar_TargetObjects')
 
 
     if len(selected) >=1:
@@ -717,9 +717,9 @@ def doCopySkinningToVertFromSource():
             if search.returnObjectType(obj) == 'polyVertex':
                 targetObjects.append(obj)
     else:
-        targetObjectsBuffer = mc.optionVar(q='cgmVarTargetObjects')
+        targetObjectsBuffer = mc.optionVar(q='cgmVar_TargetObjects')
 
-    sourceObject = mc.optionVar(q='cgmVarSourceObject') 
+    sourceObject = mc.optionVar(q='cgmVar_SourceObject') 
 
 
     if sourceObject: 
@@ -749,7 +749,7 @@ def doTransferSkinning():
     Transfers the skin weighting from one object to another
 
     REQUIRES:
-    A selection or a set cgmVarSourceObject
+    A selection or a set cgmVar_SourceObject
 
     RETURNS:
     Nothing
@@ -761,9 +761,9 @@ def doTransferSkinning():
     if selected:
         targetObjects = selected
     else:
-        targetObjects = mc.optionVar(q='cgmVarTargetObjects')
+        targetObjects = mc.optionVar(q='cgmVar_TargetObjects')
 
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')
+    sourceObject = mc.optionVar(q='cgmVar_SourceObject')
 
     if sourceObject:
         if targetObjects:
@@ -790,7 +790,7 @@ def doCopyWeightsFromFirstToOthers():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     # Check for selection, defaults to using that for targets
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')
+    sourceObject = mc.optionVar(q='cgmVar_SourceObject')
     sourceObjectCheck = False
     if mc.objExists(sourceObject):
         if search.returnObjectType(sourceObject) == 'polyVertex':
@@ -855,7 +855,7 @@ def doSelectInfluenceJoints():
     Function for selecting the influence objects from a mesh with a skinCluster
 
     REQUIRES:
-    A selection or a set cgmVarSourceObject
+    A selection or a set cgmVar_SourceObject
 
     RETURNS:
     badVertices(list)
@@ -888,7 +888,7 @@ def doReturnExcessInfluenceVerts(self):
     Function for finding vertices that are over X influences
 
     REQUIRES:
-    A selection or a set cgmVarSourceObject
+    A selection or a set cgmVar_SourceObject
 
     RETURNS:
     badVertices(list)
@@ -905,7 +905,7 @@ def doReturnExcessInfluenceVerts(self):
             guiFactory.warning('No verts over max influence')
 
 
-    sourceObject = mc.optionVar(q='cgmVarSourceObject')
+    sourceObject = mc.optionVar(q='cgmVar_SourceObject')
     maxInfluences = self.MaxVertsField(q=True,v=True)
 
 
@@ -935,9 +935,9 @@ def doOrientSnap():
     batch.doObjToTargetFunctionOnSelected(position.moveOrientSnap)
 
 def doLayoutByRowsAndColumns(self):
-    mc.optionVar(iv=('cgmVarRowColumnCount',self.RowColumnIntField(q=True,v=True)))
-    sortByName = mc.optionVar(q='cgmVarOrderByName')
-    columnNumber = mc.optionVar(q='cgmVarRowColumnCount')
+    mc.optionVar(iv=('cgmVar_RowColumnCount',self.RowColumnIntField(q=True,v=True)))
+    sortByName = mc.optionVar(q='cgmVar_OrderByName')
+    columnNumber = mc.optionVar(q='cgmVar_RowColumnCount')
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -960,9 +960,9 @@ def doCGMNameToFloat():
 
 #>>> Aim Snap
 def doAimSnapToOne():
-    aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectAimAxis'))
-    upVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectUpAxis'))
-    worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarWorldUpAxis'))
+    aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_ObjectAimAxis'))
+    upVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_ObjectUpAxis'))
+    worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_WorldUpAxis'))
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -976,9 +976,9 @@ def doAimSnapToOne():
         guiFactory.warning('You must have at least two objects selected')
 
 def doAimSnapOneToNext():
-    aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectAimAxis'))
-    upVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectUpAxis'))
-    worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarWorldUpAxis'))
+    aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_ObjectAimAxis'))
+    upVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_ObjectUpAxis'))
+    worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_WorldUpAxis'))
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -998,11 +998,11 @@ def doAimSnapOneToNext():
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doSnapClosestPointToSurface(aim=True):
     #mode 0 - normal, 1 - where it was
-    aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectAimAxis'))
-    upVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarObjectUpAxis'))
-    worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVarWorldUpAxis'))
+    aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_ObjectAimAxis'))
+    upVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_ObjectUpAxis'))
+    worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_WorldUpAxis'))
 
-    aimMode = mc.optionVar(q='cgmVarSurfaceSnapAimMode')
+    aimMode = mc.optionVar(q='cgmVar_SurfaceSnapAimMode')
 
     selected = []
     bufferList = []
@@ -1101,8 +1101,8 @@ def returnObjectSizesForCreation(self,objList):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doCreateTextCurveObject(self):
     textCheck = mc.textField(self.textObjectTextField,q=True,text=True)
-    self.textObjectFont = mc.optionVar( q='cgmVarFontOption' )
-    colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
+    self.textObjectFont = mc.optionVar( q='cgmVar_FontOption' )
+    colorChoice = mc.optionVar(q='cgmVar_DefaultOverrideColor')
 
     if textCheck:
         self.textObjectText = self.textObjectTextField(q=True,text=True)
@@ -1161,9 +1161,9 @@ def uiLoadTextCurveObject(self):
 
 def doUpdateTextCurveObject(self):
     #Get variables
-    self.renameObjectOnUpdate = mc.optionVar(q='cgmVarRenameOnUpdate')
-    self.textObjectFont =  mc.optionVar(q='cgmVarFontOption')
-    self.changeFontOnUpdate = mc.optionVar(q='cgmVarChangeFontOnUpdate')
+    self.renameObjectOnUpdate = mc.optionVar(q='cgmVar_RenameOnUpdate')
+    self.textObjectFont =  mc.optionVar(q='cgmVar_FontOption')
+    self.changeFontOnUpdate = mc.optionVar(q='cgmVar_ChangeFontOnUpdate')
     textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
     selected = mc.ls(sl=True)
     
@@ -1209,7 +1209,8 @@ def doUpdateTextCurveObject(self):
         if updatedObjects:
             mc.select(buffer)
             doLoadTexCurveObject(self)
-            namingToolsLib.uiLoadAutoNameObject(self)            
+	    if mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
+		namingToolsLib.uiLoadAutoNameObject(self)            
             mc.select(updatedObjects)
             return
 
@@ -1249,9 +1250,9 @@ def doUpdateTextCurveObject(self):
 def doCreateOneOfEachCurve(self):
     bufferList = []
     mc.select(cl=True)
-    colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
+    colorChoice = mc.optionVar(q='cgmVar_DefaultOverrideColor')
     creationSize = mc.floatField(self.textObjectSizeField,q=True,value=True)
-    self.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
+    self.uiCurveAxis = mc.optionVar(q='cgmVar_ObjectAimAxis')
     
     #Info
     mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.curveOptionList))		    
@@ -1274,14 +1275,14 @@ def doCurveControlCreate(self):
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
-    colorChoice = mc.optionVar(q='cgmVarDefaultOverrideColor')
+    colorChoice = mc.optionVar(q='cgmVar_DefaultOverrideColor')
 
     #Info
     self.uiCurveName = self.uiCurveNameField(q=True,text=True)
     curveChoice = self.shapeOptions(q=True,sl=True)
     shapeOption =  self.curveOptionList[curveChoice-1]
-    self.uiCurveAxis = mc.optionVar(q='cgmVarObjectAimAxis')
-    self.sizeMode = mc.optionVar( q='cgmVarSizeMode' )
+    self.uiCurveAxis = mc.optionVar(q='cgmVar_ObjectAimAxis')
+    self.sizeMode = mc.optionVar( q='cgmVar_SizeMode' )
     makeVisControl =  self.MakeVisControlCB(q=True, value=True)
     makeSettingsControl =  self.MakeSettingsControlCB(q=True, value=True)
 
@@ -1342,7 +1343,7 @@ def doCurveControlCreate(self):
 	    bufferList.append(buffer)
 	    
     if bufferList:
-	if  mc.optionVar( q='cgmOptionVar_AutoloadAutoName' ):
+	if  mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
 	    mc.select(bufferList[-1])
 	    namingToolsLib.uiLoadAutoNameObject(self)  
 	mc.select(bufferList)	    
@@ -1391,7 +1392,12 @@ def doCurveControlConnect(self):
     # First loop to get info
     parentConstraintTargets = {}
     for obj in selected:
+	cnt = selected.index(obj)
 	obj = objectFactory.go(obj)
+	obj.store('cgmType','controlAnim')
+	obj.doName()	
+	selected[cnt] = obj.nameBase
+	
 	if 'cgmSource' in obj.userAttrs.keys():
 	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))	
 	    
@@ -1399,6 +1405,8 @@ def doCurveControlConnect(self):
 	    print buffer
 	    obj.update(buffer)
 	    obj.name()
+	    obj.store('cgmAim',(mc.optionVar( q = 'cgmVar_ObjectAimAxis')) )
+	    obj.store('cgmUp',(mc.optionVar( q = 'cgmVar_ObjectUpAxis')) )
 	    
 	    if mc.objExists(source.parent):
 		curveParentObj = search.returnObjectsConnectedToObj(source.parent,True)	
@@ -1409,6 +1417,8 @@ def doCurveControlConnect(self):
 			obj.update(buffer)
 		else:
 		    parentConstraintTargets[obj.nameBase] = curveParentObj[0]
+	else:
+	    return guiFactory.warning("'%s' has no source"%obj.nameBase)	    
 			
     print parentConstraintTargets
     
@@ -1416,8 +1426,7 @@ def doCurveControlConnect(self):
     for obj in selected:
 	obj = objectFactory.go(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
-	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
-	    
+	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))    
 	    
 	    if ConnectBy == 'ShapeParent':
 		curves.parentShapeInPlace(source.nameLong,obj.nameLong)
@@ -1451,6 +1460,7 @@ def doCurveControlConnect(self):
 		    buffer = attributes.addRotateOrderAttr(obj.nameShort,'setRO')
 		    mc.connectAttr(buffer,(obj.nameShort+'.rotateOrder'))
 		    mc.connectAttr(buffer,(groupBuffer+'.rotateOrder'))
+		    mc.connectAttr(buffer,(source.nameShort+'.rotateOrder'))
 		    if ExtraGroupState:
 			mc.connectAttr(buffer,(ConstraintGroup.nameLong+'.rotateOrder'))
 			
@@ -1548,11 +1558,10 @@ def uiSetGuessOrientation(self):
     worldAxis = logic.axisFactory(worldUp)	
     if worldAxis:
         index = self.axisOptions.index(worldAxis.axisString)
-        mc.optionVar( sv=('cgmVarWorldUpAxis', worldAxis.axisString) )
+        mc.optionVar( sv=('cgmVar_WorldUpAxis', worldAxis.axisString) )
         menuItems = self.WorldUpCollection.getItems()
         menuItems[index](edit = True,rb = True)	
         print("worldUp set to '%s'"%worldAxis.axisString)	
-
 
     if selected:
         aimAxis = []
@@ -1578,26 +1587,26 @@ def uiSetGuessOrientation(self):
 
         if aimAxis:
             index = self.axisOptions.index(aimAxis.axisString)
-            mc.optionVar( sv=('cgmVarObjectAimAxis', aimAxis.axisString) )
+            mc.optionVar( sv=('cgmVar_ObjectAimAxis', aimAxis.axisString) )
             menuItems = self.ObjectAimCollection.getItems()
             menuItems[index](edit = True,rb = True)
             guiFactory.warning("aim set to '%s'"%aimAxis.axisString)
 
         if upAxis:
             index = self.axisOptions.index(upAxis.axisString)
-            mc.optionVar( sv=('cgmVarObjectUpAxis', upAxis.axisString) )
+            mc.optionVar( sv=('cgmVar_ObjectUpAxis', upAxis.axisString) )
             menuItems = self.ObjectUpCollection.getItems()
             menuItems[index](edit = True, rb = True)
             guiFactory.warning("up set to '%s'"%upAxis.axisString)			
     else:
         guiFactory.warning("No objects selected. Setting defaults of 'z+' aim, 'y+' up")
         aimIndex = self.axisOptions.index('z+')
-        mc.optionVar( sv=('cgmVarObjectAimAxis', 'z+') )
+        mc.optionVar( sv=('cgmVar_ObjectAimAxis', 'z+') )
         menuItems = self.ObjectAimCollection.getItems()
         menuItems[aimIndex](edit = True,rb = True)	
 
         upIndex = self.axisOptions.index('y+')
-        mc.optionVar( sv=('cgmVarObjectUpAxis', 'y+') )
+        mc.optionVar( sv=('cgmVar_ObjectUpAxis', 'y+') )
         menuItems = self.ObjectUpCollection.getItems()
         menuItems[upIndex](edit = True,rb = True)
     

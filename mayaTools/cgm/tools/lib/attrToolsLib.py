@@ -45,19 +45,19 @@ def uiLoadSourceObject(self,selectAttr = False):
             guiFactory.warning('Only one object can be loaded')
         else:
             # Put the object in the field
-            guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarAttributeSourceObject')
+            guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_AttributeSourceObject')
             # Get our attr menu
             uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 
 
     else:
         #clear the field
-        guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarAttributeSourceObject')
+        guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_AttributeSourceObject')
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 
 def uiSelectActiveAttr(self,attr):  
     #>>> Variables
-    sourceObject =  mc.optionVar( q = 'cgmVarAttributeSourceObject')
+    sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
     attrType = mc.getAttr((sourceObject+'.'+attr),type=True)
     print attrType
     
@@ -128,7 +128,7 @@ def uiSelectActiveAttr(self,attr):
 
 def uiDeleteAttr(self,menu):
     #>>> Variables and assertations
-    sourceObject =  mc.optionVar( q = 'cgmVarAttributeSourceObject')
+    sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
     assert mc.objExists(sourceObject) is True, "'%s' doesn't exist."%sourceObject
 
     #>>> Get info
@@ -154,7 +154,7 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
     def uiAttrUpdate(item):
         uiSelectActiveAttr(self,item)
 
-    sourceObject =  mc.optionVar( q = 'cgmVarAttributeSourceObject')
+    sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
 
     if mc.objExists(sourceObject):
         # Get the attributes list

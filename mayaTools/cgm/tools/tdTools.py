@@ -187,20 +187,20 @@ class tdToolsClass(BaseMelWindow):
 	if not mc.optionVar( ex='cgmTDToolsWinActiveTab' ):
 	    mc.optionVar( iv=('cgmTDToolsWinActiveTab', 1) )
 
-	if not mc.optionVar( ex='cgmVarForceBoundingBoxState' ):
-	    mc.optionVar( iv=('cgmVarForceBoundingBoxState', 0) )
-	if not mc.optionVar( ex='cgmVarForceEveryFrame' ):
-	    mc.optionVar( iv=('cgmVarForceEveryFrame', 0) )
-	if not mc.optionVar( ex='cgmVarLocinatorShowHelp' ):
-	    mc.optionVar( iv=('cgmVarLocinatorShowHelp', 0) )
-	if not mc.optionVar( ex='cgmVarFontOption' ):
-	    mc.optionVar( sv=('cgmVarFontOption', self.textObjectFont) )
-	if not mc.optionVar( ex='cgmVarSizeMode' ):
-	    mc.optionVar( iv=('cgmVarSizeMode', 0) )
-	if not mc.optionVar( ex='cgmVarRenameOnUpdate' ):
-	    mc.optionVar( iv=('cgmVarRenameOnUpdate', 1) )
-	if not mc.optionVar( ex='cgmVarDefaultOverrideColor' ):
-	    mc.optionVar( iv=('cgmVarDefaultOverrideColor', 6) )
+	if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
+	    mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
+	if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
+	    mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0) )
+	if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
+	    mc.optionVar( iv=('cgmVar_LocinatorShowHelp', 0) )
+	if not mc.optionVar( ex='cgmVar_FontOption' ):
+	    mc.optionVar( sv=('cgmVar_FontOption', self.textObjectFont) )
+	if not mc.optionVar( ex='cgmVar_SizeMode' ):
+	    mc.optionVar( iv=('cgmVar_SizeMode', 0) )
+	if not mc.optionVar( ex='cgmVar_RenameOnUpdate' ):
+	    mc.optionVar( iv=('cgmVar_RenameOnUpdate', 1) )
+	if not mc.optionVar( ex='cgmVar_DefaultOverrideColor' ):
+	    mc.optionVar( iv=('cgmVar_DefaultOverrideColor', 6) )
 
 
     def updateCurrentTab(self,optionVar):
@@ -217,27 +217,27 @@ class tdToolsClass(BaseMelWindow):
 	FontMenu = MelMenuItem( self.UI_OptionsMenu, l='Font', subMenu=True)
 	FontMenuCollection = MelRadioMenuCollection()
 
-	fontOption = mc.optionVar( q='cgmVarFontOption' )
-	if mc.optionVar( q='cgmVarFontOption' ) not in self.fontList:
+	fontOption = mc.optionVar( q='cgmVar_FontOption' )
+	if mc.optionVar( q='cgmVar_FontOption' ) not in self.fontList:
 	    pickedFontState = True
 	else:
 	    pickedFontState = False
 
 	for font in self.fontList:
 	    if not pickedFontState:
-		if mc.optionVar( q='cgmVarFontOption' ) == font:
+		if mc.optionVar( q='cgmVar_FontOption' ) == font:
 		    fontState = True
 		else:
 		    fontState = False
 	    else:
 		fontState = False
 	    FontMenuCollection.createButton(FontMenu,l=font,
-	                                    c=('%s%s%s' %("mc.optionVar( sv=('cgmVarFontOption','",font,"'))")),
+	                                    c=('%s%s%s' %("mc.optionVar( sv=('cgmVar_FontOption','",font,"'))")),
 	                                    rb = fontState)
 
 	MelMenuItemDiv( FontMenu )
 	FontMenuCollection.createButton(FontMenu,l='Custom',
-	                                c=lambda *a: mc.optionVar( sv=('cgmVarFontOption', guiFactory.doReturnFontFromDialog(fontOption))),
+	                                c=lambda *a: mc.optionVar( sv=('cgmVar_FontOption', guiFactory.doReturnFontFromDialog(fontOption))),
 	                                rb = pickedFontState)
 
 	# Size Menu
@@ -246,12 +246,12 @@ class tdToolsClass(BaseMelWindow):
 
 	for item in self.sizeOptions :
 	    cnt = self.sizeOptions.index(item)
-	    if mc.optionVar( q='cgmVarSizeMode' ) == cnt:
+	    if mc.optionVar( q='cgmVar_SizeMode' ) == cnt:
 		sizeModeState = True
 	    else:
 		sizeModeState = False
 	    SizeMenuCollection.createButton(SizeMenu,l=item,
-	                                    c= ("mc.optionVar( iv=('cgmVarSizeMode',%i))" % cnt),
+	                                    c= ("mc.optionVar( iv=('cgmVar_SizeMode',%i))" % cnt),
 	                                    rb = sizeModeState)
 
 
@@ -259,7 +259,7 @@ class tdToolsClass(BaseMelWindow):
 	PlacementMenu = MelMenuItem( self.UI_OptionsMenu, l='Placement', subMenu=True)
 	PlacementMenuCollection = MelRadioMenuCollection()
 
-	if mc.optionVar( q='cgmVarForceBoundingBoxState' ) == 0:
+	if mc.optionVar( q='cgmVar_ForceBoundingBoxState' ) == 0:
 	    cgmOption = False
 	    pivotOption = True
 	else:
@@ -267,10 +267,10 @@ class tdToolsClass(BaseMelWindow):
 	    pivotOption = False
 
 	PlacementMenuCollection.createButton(PlacementMenu,l='Bounding Box Center',
-	                                     c=lambda *a: mc.optionVar( iv=('cgmVarForceBoundingBoxState', 1)),
+	                                     c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 1)),
 	                                     rb=cgmOption )
 	PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
-	                                     c=lambda *a: mc.optionVar( iv=('cgmVarForceBoundingBoxState', 0)),
+	                                     c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0)),
 	                                     rb=pivotOption )
 
 
@@ -278,7 +278,7 @@ class tdToolsClass(BaseMelWindow):
 	AnimMenu = MelMenuItem( self.UI_OptionsMenu, l='Anim', subMenu=True)
 	AnimMenuCollection = MelRadioMenuCollection()
 
-	if mc.optionVar( q='cgmVarForceEveryFrame' ) == 0:
+	if mc.optionVar( q='cgmVar_ForceEveryFrame' ) == 0:
 	    EveryFrameOption = False
 	    KeysOnlyOption = True
 	else:
@@ -286,39 +286,39 @@ class tdToolsClass(BaseMelWindow):
 	    KeysOnlyOption = False
 
 	AnimMenuCollection.createButton(AnimMenu,l='Every Frame',
-	                                c=lambda *a: mc.optionVar( iv=('cgmVarForceEveryFrame', 1)),
+	                                c=lambda *a: mc.optionVar( iv=('cgmVar_ForceEveryFrame', 1)),
 	                                rb=EveryFrameOption )
 	AnimMenuCollection.createButton(AnimMenu,l='Keys Only',
-	                                c=lambda *a: mc.optionVar( iv=('cgmVarForceEveryFrame', 0)),
+	                                c=lambda *a: mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0)),
 	                                rb=KeysOnlyOption )
 
 	# Updating Options Menu
 	UpdatingMenu = MelMenuItem( self.UI_OptionsMenu, l='Updating', subMenu=True)
 
-	RenameOnUpdateState = mc.optionVar( q='cgmVarRenameOnUpdate' )
+	RenameOnUpdateState = mc.optionVar( q='cgmVar_RenameOnUpdate' )
 	MelMenuItem( UpdatingMenu, l="Rename on Update",
 	             cb=RenameOnUpdateState,
-	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVarRenameOnUpdate'))
+	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_RenameOnUpdate'))
 
 	# Change font
-	if not mc.optionVar( ex='cgmVarChangeFontOnUpdate' ):
-	    mc.optionVar( iv=('cgmVarChangeFontOnUpdate', 1) )
+	if not mc.optionVar( ex='cgmVar_ChangeFontOnUpdate' ):
+	    mc.optionVar( iv=('cgmVar_ChangeFontOnUpdate', 1) )
 
-	ChangeFontOnUpdateState = mc.optionVar( q='cgmVarChangeFontOnUpdate' )		
+	ChangeFontOnUpdateState = mc.optionVar( q='cgmVar_ChangeFontOnUpdate' )		
 	MelMenuItem( UpdatingMenu, l="Change font",
 	             cb=ChangeFontOnUpdateState,
-	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVarChangeFontOnUpdate'))
+	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_ChangeFontOnUpdate'))
 
 	
 	# Autoloading options
 	AutoloadMenu = MelMenuItem( self.UI_OptionsMenu, l='Auto Loading', subMenu=True)
-	if not mc.optionVar( ex='cgmOptionVar_AutoloadAutoName' ):
-	    mc.optionVar( iv=('cgmOptionVar_AutoloadAutoName', 0) )
+	if not mc.optionVar( ex='cgmOptionVar_AutoloadAutoname' ):
+	    mc.optionVar( iv=('cgmOptionVar_AutoloadAutoname', 0) )
 	    
-	RenameOnUpdateState = mc.optionVar( q='cgmOptionVar_AutoloadAutoName' )
+	RenameOnUpdateState = mc.optionVar( q='cgmOptionVar_AutoloadAutoname' )
 	MelMenuItem( AutoloadMenu, l="Autoname",
-	             cb= mc.optionVar( q='cgmOptionVar_AutoloadAutoName' ),
-	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmOptionVar_AutoloadAutoName'))
+	             cb= mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ),
+	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmOptionVar_AutoloadAutoname'))
 	
 	if not mc.optionVar( ex='cgmOptionVar_AutoloadTextObject' ):
 	    mc.optionVar( iv=('cgmOptionVar_AutoloadTextObject', 0) )
@@ -331,12 +331,12 @@ class tdToolsClass(BaseMelWindow):
 	MelMenuItemDiv( self.UI_OptionsMenu )
 
     def buildAxisMenu(self, *a ):
-	if not mc.optionVar( ex='cgmVarObjectUpAxis' ):
-	    mc.optionVar( sv=('cgmVarObjectUpAxis', 'x+') )
-	if not mc.optionVar( ex='cgmVarObjectAimAxis' ):
-	    mc.optionVar( sv=('cgmVarObjectAimAxis', 'x+') )
-	if not mc.optionVar( ex='cgmVarWorldUpAxis' ):
-	    mc.optionVar( sv=('cgmVarWorldUpAxis', 'y+') )
+	if not mc.optionVar( ex='cgmVar_ObjectUpAxis' ):
+	    mc.optionVar( sv=('cgmVar_ObjectUpAxis', 'x+') )
+	if not mc.optionVar( ex='cgmVar_ObjectAimAxis' ):
+	    mc.optionVar( sv=('cgmVar_ObjectAimAxis', 'x+') )
+	if not mc.optionVar( ex='cgmVar_WorldUpAxis' ):
+	    mc.optionVar( sv=('cgmVar_WorldUpAxis', 'y+') )
 
 
 	self.UI_AxisMenu.clear()
@@ -346,12 +346,12 @@ class tdToolsClass(BaseMelWindow):
 	self.ObjectAimCollection = MelRadioMenuCollection()
 
 	for axis in self.axisOptions :
-	    if mc.optionVar( q='cgmVarObjectAimAxis' ) == axis:
+	    if mc.optionVar( q='cgmVar_ObjectAimAxis' ) == axis:
 		checkState = True
 	    else:
 		checkState = False
 	    self.ObjectAimCollection.createButton(ObjectAimMenu,l=axis,
-	                                          c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectAimAxis','",axis,"'))")),
+	                                          c= ('%s%s%s' %("mc.optionVar( sv=('cgmVar_ObjectAimAxis','",axis,"'))")),
 	                                          rb = checkState)
 
 	# Object Up Menu
@@ -359,12 +359,12 @@ class tdToolsClass(BaseMelWindow):
 	self.ObjectUpCollection = MelRadioMenuCollection()
 
 	for axis in self.axisOptions :
-	    if mc.optionVar( q='cgmVarObjectUpAxis' ) == axis:
+	    if mc.optionVar( q='cgmVar_ObjectUpAxis' ) == axis:
 		checkState = True
 	    else:
 		checkState = False
 	    self.ObjectUpCollection.createButton(ObjectUpMenu,l=axis,
-	                                         c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectUpAxis','",axis,"'))")),
+	                                         c= ('%s%s%s' %("mc.optionVar( sv=('cgmVar_ObjectUpAxis','",axis,"'))")),
 	                                         rb = checkState)
 
 	# World Up Menu
@@ -372,12 +372,12 @@ class tdToolsClass(BaseMelWindow):
 	self.WorldUpCollection = MelRadioMenuCollection()
 
 	for axis in self.axisOptions :
-	    if mc.optionVar( q='cgmVarWorldUpAxis' ) == axis:
+	    if mc.optionVar( q='cgmVar_WorldUpAxis' ) == axis:
 		checkState = True
 	    else:
 		checkState = False
 	    self.WorldUpCollection.createButton(WorldUpMenu,l=axis,
-	                                        c= ('%s%s%s' %("mc.optionVar( sv=('cgmVarWorldUpAxis','",axis,"'))")),
+	                                        c= ('%s%s%s' %("mc.optionVar( sv=('cgmVar_WorldUpAxis','",axis,"'))")),
 	                                        rb = checkState)
 	MelMenuItem(self.UI_AxisMenu, l = 'Guess from selected', c = lambda *a: tdToolsLib.uiSetGuessOrientation(self))
 
@@ -385,7 +385,7 @@ class tdToolsClass(BaseMelWindow):
 
     def buildHelpMenu(self, *a ):
 	self.UI_HelpMenu.clear()
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 	MelMenuItem( self.UI_HelpMenu, l="Show Help",
 	             cb=ShowHelpOption,
 	             c= lambda *a: self.do_showHelpToggle())
@@ -402,9 +402,9 @@ class tdToolsClass(BaseMelWindow):
 
 
     def do_showHelpToggle(self):
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 	guiFactory.toggleMenuShowState(ShowHelpOption,self.helpBlurbs)
-	mc.optionVar( iv=('cgmVarTDToolsShowHelp', not ShowHelpOption))
+	mc.optionVar( iv=('cgmVar_TDToolsShowHelp', not ShowHelpOption))
 
 
     def showAbout(self):
@@ -436,7 +436,7 @@ class tdToolsClass(BaseMelWindow):
     # Tab Layouts
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def buildCurvesTab(self,parent):
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 
 	#>>>Main Form
 	curvesMainFormLayout = MelFormLayout(parent)
@@ -487,7 +487,7 @@ class tdToolsClass(BaseMelWindow):
 	                       )
 
     def buildInfoTab(self,parent):
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 
 	#>>>Main Form
 	InfoMainFormLayout = MelFormLayout(parent)
@@ -510,7 +510,7 @@ class tdToolsClass(BaseMelWindow):
 	                   )
 
     def buildAttributeTab(self,parent):
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 
 	#>>>Main Form
 	AttributeMaAttributermLayout = MelFormLayout(parent)
@@ -535,17 +535,17 @@ class tdToolsClass(BaseMelWindow):
     def buildDeformerTab(self,parent):
 	#Options
 	OptionList = ['skinCluster','blendshape','utilities']
-	cgmVarName = 'cgmVarDeformerMode'
+	cgmVar_Name = 'cgmVar_DeformerMode'
 	RadioCollectionName ='DeformerMode'
 	RadioOptionList = 'DeformerModeSelectionChoicesList'
 	ModeSetRow = 'DeformerModeSetRow'
 
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
-	if not mc.optionVar( ex=cgmVarName ):
-	    mc.optionVar( sv=(cgmVarName, OptionList[0]) )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
+	if not mc.optionVar( ex=cgmVar_Name ):
+	    mc.optionVar( sv=(cgmVar_Name, OptionList[0]) )
 
 
-	#self.buildModeSetUtilityRow(parent,'DeformerMode','DeformerModeChoices', SectionLayoutCommands, 'cgmVarDeformerMode',modesToToggle, labelText = 'Choose Mode: ')
+	#self.buildModeSetUtilityRow(parent,'DeformerMode','DeformerModeChoices', SectionLayoutCommands, 'cgmVar_DeformerMode',modesToToggle, labelText = 'Choose Mode: ')
 
 	#Start layout
 	mc.setParent(parent)
@@ -569,24 +569,24 @@ class tdToolsClass(BaseMelWindow):
 
 	for item in OptionList:
 	    self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
-	                                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVarName,self.ContainerList)))
+	                                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVar_Name,self.ContainerList)))
 	ModeSetRow.layout()
 
 
-	mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVarName))])
+	mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVar_Name))])
 
 
     def buildNamingTab(self,parent):
 	#Options
 	OptionList = ['autoname','standard']
-	cgmVarName = 'cgmVarNamingMode'
+	cgmVar_Name = 'cgmVar_NamingMode'
 	RadioCollectionName ='NamingMode'
 	RadioOptionList = 'NamingModeSelectionChoicesList'
 	ModeSetRow = 'DeformerModeSetRow'
 
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
-	if not mc.optionVar( ex=cgmVarName ):
-	    mc.optionVar( sv=(cgmVarName, OptionList[0]) )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
+	if not mc.optionVar( ex=cgmVar_Name ):
+	    mc.optionVar( sv=(cgmVar_Name, OptionList[0]) )
 
 
 	#Start layout
@@ -603,10 +603,10 @@ class tdToolsClass(BaseMelWindow):
 
 	for item in OptionList:
 	    self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
-	                                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVarName,self.ContainerList)))
+	                                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVar_Name,self.ContainerList)))
 	ModeSetRow.layout()
 
-	mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVarName))])
+	mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVar_Name))])
 
 
 
@@ -614,7 +614,7 @@ class tdToolsClass(BaseMelWindow):
     # Sections of gui stuff
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def buildBasicLeftColumn(self,parent):
-	ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 	LeftColumn = MelColumnLayout(parent, cw = 100)
 	guiFactory.header('Set Color')
 
@@ -628,7 +628,7 @@ class tdToolsClass(BaseMelWindow):
 	              annotation = 'Sets the color of the object to this')
 	    mc.popupMenu(button = 3)
 	    mc.menuItem(label = 'Set as default',
-	                c = ('%s%i%s' %("mc.optionVar( iv=('cgmVarDefaultOverrideColor',",i,"))")))
+	                c = ('%s%i%s' %("mc.optionVar( iv=('cgmVar_DefaultOverrideColor',",i,"))")))
 
 	mc.setParent('..')
 	mc.setParent('..')
@@ -694,17 +694,17 @@ class tdToolsClass(BaseMelWindow):
 	#MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right')
 	#CurveControlOptionsTypeRow.setStretchWidget( MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right') )
 	MelSpacer(CurveControlOptionsTypeRow,w=10)
-	self.controlCurveRotateOrderCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarRotationOrderCurveControlOptionState',label = 'Rotate Order')
+	self.controlCurveRotateOrderCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_RotationOrderCurveControlOptionState',label = 'Rotate Order')
 	
 	MelSpacer(CurveControlOptionsTypeRow,w=2)   
-	self.CurveControlExtraGroupCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarExtraGroupCurveControlOptionState',label = '+Group')
+	self.CurveControlExtraGroupCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_ExtraGroupCurveControlOptionState',label = '+Group')
 	
 	MelSpacer(CurveControlOptionsTypeRow,w=2)   
-	self.CurveControlLockNHideCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarLockNHideControlOptionState',label = 'LockNHide')
+	self.CurveControlLockNHideCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_LockNHideControlOptionState',label = 'LockNHide')
 	
 	CurveControlOptionsTypeRow.setStretchWidget( MelSpacer(CurveControlOptionsTypeRow) )	
 	
-	self.CurveControlHeirarchyCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVarMaintainHeirarchyCurveControlOptionState',label = 'Heir: ')
+	self.CurveControlHeirarchyCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_MaintainHeirarchyCurveControlOptionState',label = 'Heir: ')
 	
 	for item in self.HeirBuildTypes:
 	    cnt = self.HeirBuildTypes.index(item)
@@ -738,7 +738,7 @@ class tdToolsClass(BaseMelWindow):
 	    self.CreateConstraintTypeRadioCollectionChoices.append(self.CreateConstraintTypeRadioCollection.createButton(ConstraintTypeRow,label=self.ConstraintTypes[cnt],
 	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmControlConstraintType',",cnt,"))"))))
 	    MelSpacer(ConstraintTypeRow,w=5)
-	self.ScaleConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVarScaleConstratingState',label = 'scale')	                                    
+	self.ScaleConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVar_ScaleConstratingState',label = 'scale')	                                    
 	MelSpacer(ConstraintTypeRow,w=25) 
 	
 	ConstraintTypeRow.layout()
@@ -1189,12 +1189,12 @@ class tdToolsClass(BaseMelWindow):
 	self.containerName = MelColumn(parent,vis=vis)
 
 	#clear our variables
-	if not mc.optionVar( ex='cgmVarBSBakeInbetweens' ):
-	    mc.optionVar( iv=('cgmVarBSBakeInbetweens', 0) )
-	if not mc.optionVar( ex='cgmVarBSBakeTransferConnections' ):
-	    mc.optionVar( iv=('cgmVarBSBakeTransferConnections', 0) )
-	if not mc.optionVar( ex='cgmVarBSBakeCombine' ):
-	    mc.optionVar( iv=('cgmVarBSBakeCombine', 0) )
+	if not mc.optionVar( ex='cgmVar_BSBakeInbetweens' ):
+	    mc.optionVar( iv=('cgmVar_BSBakeInbetweens', 0) )
+	if not mc.optionVar( ex='cgmVar_BSBakeTransferConnections' ):
+	    mc.optionVar( iv=('cgmVar_BSBakeTransferConnections', 0) )
+	if not mc.optionVar( ex='cgmVar_BSBakeCombine' ):
+	    mc.optionVar( iv=('cgmVar_BSBakeCombine', 0) )
 
 
 	mc.setParent(self.containerName)
@@ -1206,20 +1206,20 @@ class tdToolsClass(BaseMelWindow):
 	MelSpacer(BakerSettingsRow,w=5)
 
 	self.uiBlendShapeBakeInbetweensOptionCB = MelCheckBox(BakerSettingsRow,l='Inbetweens',
-	                                                      onCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeInbetweens',1)),
-	                                                      offCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeInbetweens',0)),
+	                                                      onCommand = lambda *a: mc.optionVar(iv=('cgmVar_BSBakeInbetweens',1)),
+	                                                      offCommand = lambda *a: mc.optionVar(iv=('cgmVar_BSBakeInbetweens',0)),
 	                                                      annotation = "Do inbetween targets as well",
-	                                                      v = (mc.optionVar(query='cgmVarBSBakeInbetweens')))
+	                                                      v = (mc.optionVar(query='cgmVar_BSBakeInbetweens')))
 
 	self.uiBlendShapeBakeTransferConnectionsCB = MelCheckBox(BakerSettingsRow,l='Transfer Connections',
-	                                                         onCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeTransferConnections',1)),
-	                                                         offCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeTransferConnections',0)),
+	                                                         onCommand = lambda *a: mc.optionVar(iv=('cgmVar_BSBakeTransferConnections',1)),
+	                                                         offCommand = lambda *a: mc.optionVar(iv=('cgmVar_BSBakeTransferConnections',0)),
 	                                                         annotation = "Creates a blendShape node on the target object(s)\n Attempts to transfer the connections for\n the bake blendshape node to the new one",
-	                                                         v = (mc.optionVar(query='cgmVarBSBakeTransferConnections')))
+	                                                         v = (mc.optionVar(query='cgmVar_BSBakeTransferConnections')))
 	self.uiBlendShapeBakeCombineOptionCB = MelCheckBox(BakerSettingsRow,l='Combine',
-	                                                   onCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeCombine',1)),
-	                                                   offCommand = lambda *a: mc.optionVar(iv=('cgmVarBSBakeCombine',0)),
-	                                                   v = (mc.optionVar(query='cgmVarBSBakeCombine')),
+	                                                   onCommand = lambda *a: mc.optionVar(iv=('cgmVar_BSBakeCombine',1)),
+	                                                   offCommand = lambda *a: mc.optionVar(iv=('cgmVar_BSBakeCombine',0)),
+	                                                   v = (mc.optionVar(query='cgmVar_BSBakeCombine')),
 	                                                   enable = True)
 
 	MelLabel(BakerSettingsRow,l='Search Terms:')
@@ -1261,12 +1261,12 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.lineSubBreak()
 
 	#clear our variables
-	if not mc.optionVar( ex='cgmVarPoseBufferTransferConnections' ):
-	    mc.optionVar( iv=('cgmVarPoseBufferTransferConnections', 1) )
-	if not mc.optionVar( ex='cgmVarPoseBufferDoConnect' ):
-	    mc.optionVar( iv=('cgmVarPoseBufferDoConnect', 1) )
-	if not mc.optionVar( ex='cgmVarPoseBufferDoRemoveMissing' ):
-	    mc.optionVar( iv=('cgmVarPoseBufferDoRemoveMissing', 1) )
+	if not mc.optionVar( ex='cgmVar_PoseBufferTransferConnections' ):
+	    mc.optionVar( iv=('cgmVar_PoseBufferTransferConnections', 1) )
+	if not mc.optionVar( ex='cgmVar_PoseBufferDoConnect' ):
+	    mc.optionVar( iv=('cgmVar_PoseBufferDoConnect', 1) )
+	if not mc.optionVar( ex='cgmVar_PoseBufferDoRemoveMissing' ):
+	    mc.optionVar( iv=('cgmVar_PoseBufferDoRemoveMissing', 1) )
 
 	#>>> Option Row
 	PoseBufferSettingsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
@@ -1274,22 +1274,22 @@ class tdToolsClass(BaseMelWindow):
 	MelLabel(PoseBufferSettingsRow,l='Options: ', align = 'right')
 	PoseBufferSettingsRow.setStretchWidget(MelSpacer(PoseBufferSettingsRow))
 	self.uiPoseBufferDoConnectOptionCB = MelCheckBox(PoseBufferSettingsRow,l='Connect',
-	                                                 onCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferDoConnect',1)),
-	                                                 offCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferDoConnect',0)),
+	                                                 onCommand = lambda *a: mc.optionVar(iv=('cgmVar_PoseBufferDoConnect',1)),
+	                                                 offCommand = lambda *a: mc.optionVar(iv=('cgmVar_PoseBufferDoConnect',0)),
 	                                                 annotation = 'Connects blendShape channels to corresponding \n buffer channels',
-	                                                 v = (mc.optionVar(query='cgmVarPoseBufferDoConnect')) )
+	                                                 v = (mc.optionVar(query='cgmVar_PoseBufferDoConnect')) )
 
 	self.uiPoseBufferTransferConnectionsCB = MelCheckBox(PoseBufferSettingsRow,l='Transfer Connections',
-	                                                     onCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferTransferConnections',1)),
-	                                                     offCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferTransferConnections',0)),
+	                                                     onCommand = lambda *a: mc.optionVar(iv=('cgmVar_PoseBufferTransferConnections',1)),
+	                                                     offCommand = lambda *a: mc.optionVar(iv=('cgmVar_PoseBufferTransferConnections',0)),
 	                                                     annotation = "Transfers sdk or expression \n connections driving the blendshape \nchannels to the buffer",
-	                                                     v = (mc.optionVar(query='cgmVarPoseBufferTransferConnections')))
+	                                                     v = (mc.optionVar(query='cgmVar_PoseBufferTransferConnections')))
 
 	self.uiPoseBufferDoRemoveMissing = MelCheckBox(PoseBufferSettingsRow,l='Remove Missing',
-	                                               onCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferDoRemoveMissing',1)),
-	                                               offCommand = lambda *a: mc.optionVar(iv=('cgmVarPoseBufferDoRemoveMissing',0)),
+	                                               onCommand = lambda *a: mc.optionVar(iv=('cgmVar_PoseBufferDoRemoveMissing',1)),
+	                                               offCommand = lambda *a: mc.optionVar(iv=('cgmVar_PoseBufferDoRemoveMissing',0)),
 	                                               annotation = "Removes bs channels that have been deleted from the buffer",
-	                                               v = (mc.optionVar(query='cgmVarPoseBufferDoRemoveMissing')) )
+	                                               v = (mc.optionVar(query='cgmVar_PoseBufferDoRemoveMissing')) )
 
 	PoseBufferSettingsRow.layout()
 
@@ -1433,8 +1433,8 @@ class tdToolsClass(BaseMelWindow):
 
 	#>>> Load To Field
 	#clear our variables
-	if not mc.optionVar( ex='cgmVarAutoNameObject' ):
-	    mc.optionVar( sv=('cgmVarAutoNameObject', '') )
+	if not mc.optionVar( ex='cgmVar_AutoNameObject' ):
+	    mc.optionVar( sv=('cgmVar_AutoNameObject', '') )
 
 	LoadAutoNameObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
 
@@ -1673,7 +1673,7 @@ class tdToolsClass(BaseMelWindow):
 	    self.SourceObjectField(edit=True,text = mc.optionVar( q = optionVar))
 
 	guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-	                     lambda *a:guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarSourceObject'),
+	                     lambda *a:guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_SourceObject'),
 	                     'Load to field')
 
 
@@ -1683,7 +1683,7 @@ class tdToolsClass(BaseMelWindow):
 	LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
 
 	guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-	                     lambda *a:guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,False,'cgmVarTargetObjects'),
+	                     lambda *a:guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,False,'cgmVar_TargetObjects'),
 	                     'Load to field')
 
 	MelSpacer(LoadObjectTargetUtilityRow,w=5)
@@ -1696,10 +1696,10 @@ class tdToolsClass(BaseMelWindow):
 
     def buildLoadObjectTargetTool(self,parent,baseNameField=True):
 	#clear our variables
-	if not mc.optionVar( ex='cgmVarSourceObject' ):
-	    mc.optionVar( sv=('cgmVarSourceObject', '') )
-	if not mc.optionVar( ex='cgmVarTargetObjects' ):
-	    mc.optionVar( sv=('cgmVarTargetObjects', '') )
+	if not mc.optionVar( ex='cgmVar_SourceObject' ):
+	    mc.optionVar( sv=('cgmVar_SourceObject', '') )
+	if not mc.optionVar( ex='cgmVar_TargetObjects' ):
+	    mc.optionVar( sv=('cgmVar_TargetObjects', '') )
 
 
 	LoadObjectTargetUtilityRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
@@ -1714,11 +1714,11 @@ class tdToolsClass(BaseMelWindow):
 	MelLabel(LoadObjectTargetUtilityRow,l='Source:',align='right')
 
 	self.SourceObjectField = MelTextField(LoadObjectTargetUtilityRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-	if mc.optionVar( q = 'cgmVarSourceObject'):
-	    self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVarSourceObject'))
+	if mc.optionVar( q = 'cgmVar_SourceObject'):
+	    self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVar_SourceObject'))
 
 	guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-	                     lambda *a:guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVarSourceObject'),
+	                     lambda *a:guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_SourceObject'),
 	                     'Load to field')
 
 
@@ -1728,7 +1728,7 @@ class tdToolsClass(BaseMelWindow):
 	LoadObjectTargetUtilityRow.setStretchWidget(self.BaseNameField )
 
 	guiFactory.doButton2(LoadObjectTargetUtilityRow,'<<',
-	                     lambda *a:guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,False,'cgmVarTargetObjects'),
+	                     lambda *a:guiFactory.doLoadMultipleObjectsToTextField(self.TargetObjectField,False,'cgmVar_TargetObjects'),
 	                     'Load to field')
 
 	MelSpacer(LoadObjectTargetUtilityRow,w=5)
@@ -1740,12 +1740,12 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.lineSubBreak()
 
 
-    def buildModeSetUtilityRow(self,parent,RadioCollectionName,ModeSelectionChoicesList, SectionLayoutCommands, cgmVarName,OptionList,labelText = 'Choose: '):
+    def buildModeSetUtilityRow(self,parent,RadioCollectionName,ModeSelectionChoicesList, SectionLayoutCommands, cgmVar_Name,OptionList,labelText = 'Choose: '):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# General purpose mode setter
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	if not mc.optionVar( ex=cgmVarName ):
-	    mc.optionVar( sv=(cgmVarName, OptionList[0]) )
+	if not mc.optionVar( ex=cgmVar_Name ):
+	    mc.optionVar( sv=(cgmVar_Name, OptionList[0]) )
 
 	ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
 	MelLabel(ModeSetRow, label = labelText,align='right')
@@ -1762,15 +1762,15 @@ class tdToolsClass(BaseMelWindow):
 
 	for item in OptionList:
 	    self.ModeSelectionChoicesList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
-	                                                                               onCommand = lambda *a: guiFactory.toggleModeState(item,OptionList,cgmVarName,ContainerList)))
+	                                                                               onCommand = lambda *a: guiFactory.toggleModeState(item,OptionList,cgmVar_Name,ContainerList)))
 
 	"""
         for item in OptionList:
             self.ModeSelectionChoicesList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
-                                                                                 onCommand = ('%s%s%s%s%s' %("mc.optionVar( sv=('",cgmVarName,"','",item,"'))"))))
+                                                                                 onCommand = ('%s%s%s%s%s' %("mc.optionVar( sv=('",cgmVar_Name,"','",item,"'))"))))
         """
 
-	mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.ModeSelectionChoicesList[OptionList.index(mc.optionVar(q=cgmVarName))])
+	mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.ModeSelectionChoicesList[OptionList.index(mc.optionVar(q=cgmVar_Name))])
 	ModeSetRow.layout()
 
 
@@ -1778,22 +1778,22 @@ class tdToolsClass(BaseMelWindow):
     # Position Components
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def buildRowColumnUIRow(self,parent):
-	if not mc.optionVar( ex='cgmVarRowColumnCount' ):
-	    mc.optionVar( iv=('cgmVarRowColumnCount', 3) )
-	if not mc.optionVar( ex='cgmVarOrderByName' ):
-	    mc.optionVar( iv=('cgmVarOrderByName', 0) )
+	if not mc.optionVar( ex='cgmVar_RowColumnCount' ):
+	    mc.optionVar( iv=('cgmVar_RowColumnCount', 3) )
+	if not mc.optionVar( ex='cgmVar_OrderByName' ):
+	    mc.optionVar( iv=('cgmVar_OrderByName', 0) )
 
 	self.RowColumnLayoutModes = ['Column','Row']
 
 	RowColumnLayoutModeRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 20)
 
 	MelLabel(RowColumnLayoutModeRow, l='Number of Columns:',w=30)
-	self.RowColumnIntField = MelIntField(RowColumnLayoutModeRow,w=30,v=(mc.optionVar(q='cgmVarRowColumnCount')))
+	self.RowColumnIntField = MelIntField(RowColumnLayoutModeRow,w=30,v=(mc.optionVar(q='cgmVar_RowColumnCount')))
 
 	self.OrderByNameCheckBox = MelCheckBox(RowColumnLayoutModeRow,l = 'Arrange by Name',
-	                                       v = (mc.optionVar(query='cgmVarOrderByName')),
-	                                       onCommand = lambda *a: mc.optionVar(iv=('cgmVarOrderByName',1)),
-	                                       offCommand = lambda *a: mc.optionVar(iv=('cgmVarOrderByName',0)))
+	                                       v = (mc.optionVar(query='cgmVar_OrderByName')),
+	                                       onCommand = lambda *a: mc.optionVar(iv=('cgmVar_OrderByName',1)),
+	                                       offCommand = lambda *a: mc.optionVar(iv=('cgmVar_OrderByName',0)))
 
 
 	RowColumnLayoutModeRow.layout()
@@ -1805,8 +1805,8 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# World Up Axis
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	if not mc.optionVar( ex='cgmVarSurfaceSnapAimMode' ):
-	    mc.optionVar( iv=('cgmVarSurfaceSnapAimMode', 0) )
+	if not mc.optionVar( ex='cgmVar_SurfaceSnapAimMode' ):
+	    mc.optionVar( iv=('cgmVar_SurfaceSnapAimMode', 0) )
 
 	self.surfaceSnapAimModes = ['Normal','Start Pos']
 
@@ -1816,14 +1816,14 @@ class tdToolsClass(BaseMelWindow):
 	self.surfaceSnapAimModeCollectionChoices = []
 	for item in self.surfaceSnapAimModes:
 	    cnt = self.surfaceSnapAimModes.index(item)
-	    if mc.optionVar( q='cgmVarSurfaceSnapAimMode' ) == cnt:
+	    if mc.optionVar( q='cgmVar_SurfaceSnapAimMode' ) == cnt:
 		checkState = True
 	    else:
 		checkState = False
 	    self.surfaceSnapAimModeCollectionChoices.append(self.uiSurfaceSnapAimModeOptionGroup.createButton(surfaceSnapAimModeRow,label=item,
-	                                                                                                      onCommand = ("mc.optionVar( iv=('cgmVarSurfaceSnapAimMode',%i))" % cnt)))
+	                                                                                                      onCommand = ("mc.optionVar( iv=('cgmVar_SurfaceSnapAimMode',%i))" % cnt)))
 
-	mc.radioCollection(self.uiSurfaceSnapAimModeOptionGroup ,edit=True,sl= self.surfaceSnapAimModeCollectionChoices[ mc.optionVar(q='cgmVarSurfaceSnapAimMode') ] )
+	mc.radioCollection(self.uiSurfaceSnapAimModeOptionGroup ,edit=True,sl= self.surfaceSnapAimModeCollectionChoices[ mc.optionVar(q='cgmVar_SurfaceSnapAimMode') ] )
 	surfaceSnapAimModeRow.layout()
 
 
@@ -1837,9 +1837,9 @@ class tdToolsClass(BaseMelWindow):
 	self.objectUpAxisCollectionChoices = []
 	for item in self.axisOptions:
 	    self.objectUpAxisCollectionChoices.append(self.uiObjectUpAxisOptionGroup.createButton(objectUpRow,label=item,
-	                                                                                          onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectUpAxis','",item,"'))"))))
+	                                                                                          onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVar_ObjectUpAxis','",item,"'))"))))
 
-	mc.radioCollection(self.uiObjectUpAxisOptionGroup ,edit=True,sl= (self.objectUpAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVarObjectUpAxis')) ]))
+	mc.radioCollection(self.uiObjectUpAxisOptionGroup ,edit=True,sl= (self.objectUpAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVar_ObjectUpAxis')) ]))
 	objectUpRow.layout()
 
     def buildObjectAimRow(self,parent):
@@ -1852,9 +1852,9 @@ class tdToolsClass(BaseMelWindow):
 	self.objectAimAxisCollectionChoices = []
 	for item in self.axisOptions:
 	    self.objectAimAxisCollectionChoices.append(self.uiObjectAimAxisOptionGroup.createButton(objectAimRow,label=item,
-	                                                                                            onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVarObjectAimAxis','",item,"'))"))))
+	                                                                                            onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVar_ObjectAimAxis','",item,"'))"))))
 
-	mc.radioCollection(self.uiObjectAimAxisOptionGroup ,edit=True,sl= (self.objectAimAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVarObjectAimAxis')) ]))
+	mc.radioCollection(self.uiObjectAimAxisOptionGroup ,edit=True,sl= (self.objectAimAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVar_ObjectAimAxis')) ]))
 	objectAimRow.layout()
 
     def buildWorldUpRow(self,parent):
@@ -1867,7 +1867,7 @@ class tdToolsClass(BaseMelWindow):
 	self.worldUpAxisCollectionChoices = []
 	for item in self.axisOptions:
 	    self.worldUpAxisCollectionChoices.append(self.uiWorldUpAxisOptionGroup.createButton(worldUpRow,label=item,
-	                                                                                        onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVarWorldUpAxis','",item,"'))"))))
+	                                                                                        onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVar_WorldUpAxis','",item,"'))"))))
 
-	mc.radioCollection(self.uiWorldUpAxisOptionGroup ,edit=True,sl= (self.worldUpAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVarWorldUpAxis')) ]))
+	mc.radioCollection(self.uiWorldUpAxisOptionGroup ,edit=True,sl= (self.worldUpAxisCollectionChoices[ self.axisOptions.index(mc.optionVar(q='cgmVar_WorldUpAxis')) ]))
 	worldUpRow.layout()

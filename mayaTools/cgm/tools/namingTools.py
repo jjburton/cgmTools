@@ -145,7 +145,7 @@ class namingToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildHelpMenu(self, *a ):
 		self.UI_HelpMenu.clear()
-		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		MelMenuItem( self.UI_HelpMenu, l="Show Help",
 				     cb=ShowHelpOption,
 				     c= lambda *a: self.do_showHelpToggle())
@@ -157,9 +157,9 @@ class namingToolsClass(BaseMelWindow):
 				     c=lambda *a: self.showAbout() )
 
 	def do_showHelpToggle(self):
-		ShowHelpOption = mc.optionVar( q='cgmVarTDToolsShowHelp' )
+		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		guiFactory.toggleMenuShowState(ShowHelpOption,self.helpBlurbs)
-		mc.optionVar( iv=('cgmVarTDToolsShowHelp', not ShowHelpOption))
+		mc.optionVar( iv=('cgmVar_TDToolsShowHelp', not ShowHelpOption))
 
 
 	def showAbout(self):
@@ -213,8 +213,8 @@ class namingToolsClass(BaseMelWindow):
 	
 		#>>> Load To Field
 		#clear our variables
-		if not mc.optionVar( ex='cgmVarAutoNameObject' ):
-			mc.optionVar( sv=('cgmVarAutoNameObject', '') )
+		if not mc.optionVar( ex='cgmVar_AutoNameObject' ):
+			mc.optionVar( sv=('cgmVar_AutoNameObject', '') )
 	
 		LoadAutoNameObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
 	
@@ -223,8 +223,8 @@ class namingToolsClass(BaseMelWindow):
 		MelLabel(LoadAutoNameObjectRow,l='Object:',align='right')
 	
 		self.AutoNameObjectField = MelTextField(LoadAutoNameObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
-		if mc.optionVar( q = 'cgmVarAutoNameObject'):
-			self.AutoNameObjectField(edit=True,text = mc.optionVar( q = 'cgmVarAutoNameObject'))
+		if mc.optionVar( q = 'cgmVar_AutoNameObject'):
+			self.AutoNameObjectField(edit=True,text = mc.optionVar( q = 'cgmVar_AutoNameObject'))
 	
 		guiFactory.doButton2(LoadAutoNameObjectRow,'<<',
 	                        'tdToolsLib.uiLoadAutoNameObject(cgmTDToolsWin)',

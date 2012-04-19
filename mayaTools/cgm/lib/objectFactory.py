@@ -88,7 +88,7 @@ class go():
     def getFamily(self):
         self.parent = search.returnParentObject(self.nameLong)
         self.children = search.returnChildrenObjects(self.nameLong)
-        self.shapes = mc.listRelatives(self.nameLong, f= True,shapes=True)
+        self.shapes = mc.listRelatives(self.nameLong,shapes=True)
         
     def storeNameStrings(self,obj):
         buffer = mc.ls(obj,long=True)
@@ -100,15 +100,20 @@ class go():
             self.nameBase = splitBuffer[-1]
         else:
             self.nameBase = self.nameShort
-
-    def doParent(self,p):
-        buffer = rigging.doParentReturnName(self.nameLong,p)
-        self.update(  buffer)  
         
     def name(self):
         buffer = autoname.doNameObject(self.nameLong)
         if buffer:
             self.update(buffer)
+            
+    def doName(self):
+        buffer = autoname.doNameObject(self.nameLong)
+        if buffer:
+            self.update(buffer)
+            
+    def doParent(self,p):
+        buffer = rigging.doParentReturnName(self.nameLong,p)
+        self.update(  buffer)  
         
     def store(self,attr,info,*a,**kw):
         attributes.storeInfo(self.nameLong,attr,info,*a,**kw)

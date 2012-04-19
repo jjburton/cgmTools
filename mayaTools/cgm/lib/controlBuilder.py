@@ -221,22 +221,21 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
         nullBuffer = mc.group(em=True)
         null = objectFactory.go(nullBuffer)
         null.store('cgmName','noTransform')
-        null.name()
+        null.doName()
         null.doParent(masterNull)
         
         nullBuffer = mc.group(em=True)
         null = objectFactory.go(nullBuffer)
         null.store('cgmName','skeleton')
-        null.name()
+        null.doName()
         null.doParent(rootCurve)
         
         nullBuffer = mc.group(em=True)
         null = objectFactory.go(nullBuffer)
         null.store('cgmName','controls')
-        null.name()
+        null.doName()
         null.doParent(rootCurve)   
         
-    
     """ store it to the master null"""
     attributes.storeInfo(masterNull,'controlMaster',rootCurve)
     return controlsReturn

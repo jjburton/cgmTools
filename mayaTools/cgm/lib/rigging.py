@@ -317,7 +317,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
         groupBuffer = doParentReturnName(groupBuffer,oldParent)
     if parent == True:
         obj = doParentReturnName(obj,groupBuffer)        
-
+    
     return autoname.doNameObject(groupBuffer)
 
 

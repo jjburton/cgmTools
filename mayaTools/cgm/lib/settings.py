@@ -287,43 +287,61 @@ def makeDefaultSettingsDictionary():
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         """
         defaultDictionary = """### cgmAutoNameStuff
+cgmModifier:cgmModifier
+
+
+
 cgmName:cgmName
 cgmType:cgmType
 cgmNameModifier:cgmNameModifier
+cgmTypeModifier:cgmTypeModifier
+cgmDirectionModifier:cgmDirectionModifier
 cgmDirection:cgmDirection
 cgmModuleType:cgmModuleType
 cgmIterator:cgmIterator
+cgmPosition:cgmPosition
 
-nameOrder:cgmNameModifier,cgmDirection,cgmName,cgmIterator,cgmType
+nameOrder:cgmPosition,cgmDirectionModifier,cgmDirection,cgmNameModifier,cgmName,cgmIterator,cgmTypeModifier,cgmType
 nameDivider:_
+
+defaultTextFont:Arial
+
+
+### Color settings. Side:primary,secondary
+### yellowBright,olive
+colorLeft:blueBright,blueSky
+colorRight:redBright,redDark
+colorCenter:greenBright,greenBlue
+colorMaster:yellowBright,olive
 
 ### Part Settings
 moduleTypes:master,spine,spineRicgmon,arm,leg,segment,head,quadLeg
 
 ### Part Names
+foot_NameList:heel,ball,toe
 head_NameList:neck,head,headTop
 torso_NameList:pelvis,spine,sternum,shoulders
-arm_NameList:clavicle,shoulder,elbow,wrist,uprArm,lwrArm
+arm_NameList:shoulder,elbow,wrist,uprArm,lwrArm
 leg_NameList:hip,knee,ankle,uprLeg,lwrLeg
-quadLeg_NameList:
+clavicle_NameList:clavicle,clavicleEnd
 
 
+### References Part Names
+head_TemplateParts:0,1,2
+arm_TemplateParts:0,1,2
+leg_TemplateParts:0,1,2
+torso_TemplateParts:0,1,2,3
+clavicle_TemplateParts:0,1,2,3
 
-
-
-head_TemplateParts:neck,head,headTop
-arm_TemplateParts:shoulder,elbow,wrist
-arm2_TemplateParts:clavicle,shoulder,elbow,wrist
-leg_TemplateParts:hip,knee,ankle
-torso_TemplateParts:pelvis,spine,sternum,shoulders
-quadLeg_TemplateParts:hip,knee,ankle,ball
 
 ### Positional Data normalized to 1.0
-head_PositionalData:0,.76,0|0,.85,0|0,1,0
-arm_PositionalData:.125,0,0|.45,0,0|.75,0,0
-arm2_PositionalData:.06,0,0|.125,0,0|.45,0,0|.75,0,0
-leg_PositionalData:0,.5,0|0,.25,0|0,.05,0
-torso_PositionalData:0,.5,0|0,.575,0|0,.64,0|0,.75,0
+finger_PositionalData:0,0,.2|0,0,.5|0,0,.7|0,0,.85|0,0,1
+foot_PositionalData:0,0,-.25|0,0,.55|0,0,1
+torso_PositionalData:0,0,.05|0,0,.6|0,0,.95
+head_PositionalData:0,0,.1|0,0,.35|0,0,1
+arm_PositionalData:0,0,0|0,0,.45|0,0,1
+leg_PositionalData:0,0,0|0,0,.5|0,0,1
+clavicle_PositionalData:.35,0,-.15|0,0,0
 
 ### Joint Settings
 jointOrientation:zyx
@@ -339,10 +357,13 @@ horizontalJointUpDirection:yup
 moduleProcessOrder:spine,limb,limbEnd,other
 spineModules:spine,spineRicgmon,torso
 limbModules:arm,leg,head,arm2
-limbEndModules:hand,foot
+limbEndModules:hand,foot,clavicle
 
-### Skeletonize settings
-weighted:spine,head
+
+### Rig process steps
+module_ProcessSteps:initialized,templated,skeletonized,rigged
+
+
 """
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cgmSettings.conf')
         if not os.path.exists(path):

@@ -84,7 +84,7 @@ class locinatorClass(BaseMelWindow):
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 		
-		self.ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
+		self.ShowHelpOption = mc.optionVar( q='cgmVar_LocinatorShowHelp' )
 		
 		#Tabs
 		tabs = MelTabLayout( self )
@@ -103,16 +103,16 @@ class locinatorClass(BaseMelWindow):
 		self.show()
 
 	def setupVariables():
-		if not mc.optionVar( ex='cgmVarForceBoundingBoxState' ):
-			mc.optionVar( iv=('cgmVarForceBoundingBoxState', 0) )
-		if not mc.optionVar( ex='cgmVarForceEveryFrame' ):
-			mc.optionVar( iv=('cgmVarForceEveryFrame', 0) )
-		if not mc.optionVar( ex='cgmVarLocinatorShowHelp' ):
-			mc.optionVar( iv=('cgmVarLocinatorShowHelp', 0) )
+		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
+			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
+		if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
+			mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0) )
+		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
+			mc.optionVar( iv=('cgmVar_LocinatorShowHelp', 0) )
 		if not mc.optionVar( ex='cgmCurrentFrameOnly' ):
 			mc.optionVar( iv=('cgmCurrentFrameOnly', 0) )
-		if not mc.optionVar( ex='cgmVarLocinatorShowHelp' ):
-			mc.optionVar( iv=('cgmVarLocinatorShowHelp', 0) )
+		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
+			mc.optionVar( iv=('cgmVar_LocinatorShowHelp', 0) )
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -123,7 +123,7 @@ class locinatorClass(BaseMelWindow):
 		PlacementMenu = MelMenuItem( self.UI_OptionsMenu, l='Placement', subMenu=True)
 		PlacementMenuCollection = MelRadioMenuCollection()
 
-		if mc.optionVar( q='cgmVarForceBoundingBoxState' ) == 0:
+		if mc.optionVar( q='cgmVar_ForceBoundingBoxState' ) == 0:
 			cgmOption = False
 			pivotOption = True
 		else:
@@ -131,17 +131,17 @@ class locinatorClass(BaseMelWindow):
 			pivotOption = False
 
 		PlacementMenuCollection.createButton(PlacementMenu,l='Bounding Box Center',
-				                             c=lambda *a: mc.optionVar( iv=('cgmVarForceBoundingBoxState', 1)),
+				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 1)),
 				                             rb=cgmOption )
 		PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
-				                             c=lambda *a: mc.optionVar( iv=('cgmVarForceBoundingBoxState', 0)),
+				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0)),
 				                             rb=pivotOption )
 		"""
 		# Anim Menu
 		AnimMenu = MelMenuItem( self.UI_OptionsMenu, l='Anim', subMenu=True)
 		AnimMenuCollection = MelRadioMenuCollection()
 
-		if mc.optionVar( q='cgmVarForceEveryFrame' ) == 0:
+		if mc.optionVar( q='cgmVar_ForceEveryFrame' ) == 0:
 			EveryFrameOption = False
 			KeysOnlyOption = True
 		else:
@@ -149,10 +149,10 @@ class locinatorClass(BaseMelWindow):
 			KeysOnlyOption = False
 
 		AnimMenuCollection.createButton(AnimMenu,l='Every Frame',
-				                        c=lambda *a: mc.optionVar( iv=('cgmVarForceEveryFrame', 1)),
+				                        c=lambda *a: mc.optionVar( iv=('cgmVar_ForceEveryFrame', 1)),
 				                        rb=EveryFrameOption )
 		AnimMenuCollection.createButton(AnimMenu,l='Keys Only',
-				                        c=lambda *a: mc.optionVar( iv=('cgmVarForceEveryFrame', 0)),
+				                        c=lambda *a: mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0)),
 				                        rb=KeysOnlyOption )
 
 		MelMenuItemDiv( self.UI_OptionsMenu )
@@ -172,8 +172,8 @@ class locinatorClass(BaseMelWindow):
 
 	def do_showHelpToggle( self):
 		guiFactory.toggleMenuShowState(self.ShowHelpOption,self.helpBlurbs)
-		mc.optionVar( iv=('cgmVarLocinatorShowHelp', not self.ShowHelpOption))
-		self.ShowHelpOption = mc.optionVar( q='cgmVarLocinatorShowHelp' )
+		mc.optionVar( iv=('cgmVar_LocinatorShowHelp', not self.ShowHelpOption))
+		self.ShowHelpOption = mc.optionVar( q='cgmVar_LocinatorShowHelp' )
 
 	def do_showTimeSubMenuToggleOn( self):
 		guiFactory.toggleMenuShowState(1,self.timeSubMenu)
@@ -209,9 +209,9 @@ class locinatorClass(BaseMelWindow):
 		help(locinatorLib)
 
 	def do_everyFrameToggle( self):
-		EveryFrameOption = mc.optionVar( q='cgmVarForceEveryFrame' )
+		EveryFrameOption = mc.optionVar( q='cgmVar_ForceEveryFrame' )
 		guiFactory.toggleMenuShowState(EveryFrameOption,self.timeSubMenu)
-		mc.optionVar( iv=('cgmVarForceEveryFrame', not EveryFrameOption))
+		mc.optionVar( iv=('cgmVar_ForceEveryFrame', not EveryFrameOption))
 
 
 
@@ -320,10 +320,10 @@ class locinatorClass(BaseMelWindow):
 		
 		#>>> Time Menu Container
 		self.BakeModeOptionList = ['Current Frame','Bake']
-		cgmVarName = 'cgmLocinatorBakeState'
+		cgmVar_Name = 'cgmLocinatorBakeState'
 		
-		if not mc.optionVar( ex=cgmVarName ):
-			mc.optionVar( iv=(cgmVarName, 0) )
+		if not mc.optionVar( ex=cgmVar_Name ):
+			mc.optionVar( iv=(cgmVar_Name, 0) )
 		
 		#build our sub section options
 		self.ContainerList = []
@@ -335,12 +335,12 @@ class locinatorClass(BaseMelWindow):
 		MelSpacer(ModeSetRow,w=2)
 
 		self.BakeModeChoiceList.append(self.BakeModeRadioCollection.createButton(ModeSetRow,label=self.BakeModeOptionList[0],
-	                                                                      onCommand = Callback(guiFactory.toggleModeState,self.BakeModeOptionList[0],self.BakeModeOptionList,cgmVarName,self.ContainerList,True)))
+	                                                                      onCommand = Callback(guiFactory.toggleModeState,self.BakeModeOptionList[0],self.BakeModeOptionList,cgmVar_Name,self.ContainerList,True)))
 		
 		ModeSetRow.setStretchWidget( MelSpacer(ModeSetRow) )
 		
 		self.BakeModeChoiceList.append(self.BakeModeRadioCollection.createButton(ModeSetRow,label=self.BakeModeOptionList[1],
-	                                                                      onCommand = Callback(guiFactory.toggleModeState,self.BakeModeOptionList[1],self.BakeModeOptionList,cgmVarName,self.ContainerList,True)))
+	                                                                      onCommand = Callback(guiFactory.toggleModeState,self.BakeModeOptionList[1],self.BakeModeOptionList,cgmVar_Name,self.ContainerList,True)))
 		
 		ModeSetRow.layout()
 		
@@ -349,7 +349,7 @@ class locinatorClass(BaseMelWindow):
 		self.ContainerList.append( self.buildPlaceHolder(parent) )
 		self.ContainerList.append( self.buildTimeSubMenu( parent) )
 		
-		mc.radioCollection(self.BakeModeRadioCollection,edit=True, sl=self.BakeModeChoiceList[mc.optionVar(q=cgmVarName)])
+		mc.radioCollection(self.BakeModeRadioCollection,edit=True, sl=self.BakeModeChoiceList[mc.optionVar(q=cgmVar_Name)])
 		#>>>
 		
 		mc.setParent(parent)

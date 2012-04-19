@@ -90,7 +90,7 @@ def uiLoadAutoNameObject(self):
 			guiFactory.warning('Only one object can be loaded')
 		else:
 			# Put the object in the field
-			guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVarAutoNameObject')
+			guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVar_AutoNameObject')
 
 			#Get the tag info for the object
 			tagsDict = autoname.returnObjectGeneratedNameDict(selected[0])
@@ -172,7 +172,7 @@ def uiLoadAutoNameObject(self):
 			
 	else:
 		#clear the field
-		guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVarAutoNameObject')
+		guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVar_AutoNameObject')
 		# update the fields
 		for key in fieldToKeyDict.keys():
 			mc.textField(fieldToKeyDict.get(key),edit=True,enable=False,
