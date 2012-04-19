@@ -410,7 +410,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
     
     for control in controlsMade:
         mc.parent(control,baseControl)
-        curves.setCurveColorByIndex(control,controlColor)
+        curves.setColorByIndex(control,controlColor)
         if zeroGroups == True:
             rigging.groupMeObject(control,True,True)
         if lockHide == True:

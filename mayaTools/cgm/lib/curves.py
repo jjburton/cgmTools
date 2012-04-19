@@ -355,9 +355,9 @@ def setCurveColorByName(obj,color):
     if colorIndex == False:
         return False
     else:
-        return setCurveColorByIndex(obj,colorIndex)     
+        return setColorByIndex(obj,colorIndex)     
             
-def setCurveColorByIndex(obj,colorIndex):
+def setColorByIndex(obj,colorIndex):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -554,7 +554,7 @@ def updateTextCurveObject(textCurveObj):
     mc.delete(textCurve)
     textCurveObj = autoname.doNameObject(textCurveObj)
     if colorIndex:
-	setCurveColorByIndex(textCurveObj,colorIndex)
+	setColorByIndex(textCurveObj,colorIndex)
     
     return textCurveObj
     
