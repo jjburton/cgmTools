@@ -72,14 +72,15 @@ def loadGUIOnStart(self):
             if search.returnTagInfo(selected[0],'cgmObjectType') == 'textCurve':
 		if mc.optionVar( q='cgmOptionVar_AutoloadTextObject' ):
 		    mc.select(selected[0])
-		    doLoadTexCurveObject(self)
+		    TextCurveObjectdoLoad(self)
 		    break
 	
 	if mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
 	    mc.select(selected[0])
 	    namingToolsLib.uiLoadAutoNameObject(self)
 		
-	    mc.select(selected)
+    if selected:
+	mc.select(selected)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # SDK
@@ -1099,7 +1100,7 @@ def returnObjectSizesForCreation(self,objList):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>> Text Curve Objects Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doCreateTextCurveObject(self):
+def TextCurveObjectCreate(self):
     textCheck = mc.textField(self.textObjectTextField,q=True,text=True)
     self.textObjectFont = mc.optionVar( q='cgmVar_FontOption' )
     colorChoice = mc.optionVar(q='cgmVar_DefaultOverrideColor')
@@ -1135,7 +1136,7 @@ def doSetCurveColorByIndex(colorIndex):
         guiFactory.warning('You must select something.')
 
 
-def doLoadTexCurveObject(self):
+def TextCurveObjectdoLoad(self):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -1147,19 +1148,19 @@ def doLoadTexCurveObject(self):
                 guiFactory.warning('Selected object is not a cgmTextCurve object')
             else:
                 mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = selected[0],editable = False )
-                uiLoadTextCurveObject(self)
+                TextCurveObjectLoadUI(self)
     else:
         guiFactory.warning('You must select something.')
 
 
-def uiLoadTextCurveObject(self):
+def TextCurveObjectLoadUI(self):
     textCurveObject = mc.textField(self.textCurrentObjectField ,q=True,text=True)
     objAttrs = attributes.returnUserAttrsToDict(textCurveObject)
     mc.textField(self.textObjectTextField,e=True,text=(objAttrs['cgmObjectText']))
     mc.floatField(self.textObjectSizeField,e=True,value=(float(objAttrs['cgmObjectSize'])))
 
 
-def doUpdateTextCurveObject(self):
+def TextCurveObjectdoUpdate(self):
     #Get variables
     self.renameObjectOnUpdate = mc.optionVar(q='cgmVar_RenameOnUpdate')
     self.textObjectFont =  mc.optionVar(q='cgmVar_FontOption')
@@ -1208,7 +1209,7 @@ def doUpdateTextCurveObject(self):
 
         if updatedObjects:
             mc.select(buffer)
-            doLoadTexCurveObject(self)
+            TextCurveObjectdoLoad(self)
 	    if mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
 		namingToolsLib.uiLoadAutoNameObject(self)            
             mc.select(updatedObjects)
@@ -1236,13 +1237,13 @@ def doUpdateTextCurveObject(self):
             # Put our updated object info
             mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
 
-            uiLoadTextCurveObject(self)
+            TextCurveObjectLoadUI(self)
             namingToolsLib.uiLoadAutoNameObject(self)                        
             guiFactory.warning("'%s' updated"%textCurveObject)
 
 
     else:
-        uiLoadTextCurveObject(self)        
+        TextCurveObjectLoadUI(self)        
         guiFactory.warning('No textCurveObject loaded or selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>Curve Utilities
@@ -1270,7 +1271,7 @@ def doCreateOneOfEachCurve(self):
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
     mc.select(bufferList)
     
-def doCurveControlCreate(self):
+def curveControlCreate(self):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True))
@@ -1289,14 +1290,16 @@ def doCurveControlCreate(self):
     if self.MakeMasterControlCB(q=True, value=True):
         if selected:
             size = max(distance.returnBoundingBoxSize(selected))
-            if self.uiCurveName:
-                bufferList = controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl,True)
-            else:
-                bufferList = controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl,True)
+	else:
+	    size = self.textObjectSizeField(q=True,value=True)
 	    
-	    self.MakeMasterControlCB(e=True, value=False)
-        else:
-            guiFactory.warning('Pick something for size reference')
+	if self.uiCurveName:
+	    bufferList = controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl,True)
+	else:
+	    bufferList = controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl,True)
+	
+	self.MakeMasterControlCB(e=True, value=False)
+
     else:
         if selected:
             sizeReturn = returnObjectSizesForCreation(self,selected)
@@ -1348,7 +1351,7 @@ def doCurveControlCreate(self):
 	    namingToolsLib.uiLoadAutoNameObject(self)  
 	mc.select(bufferList)	    
 
-def doCurveControlConnect(self):
+def curveControlConnect(self):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1362,10 +1365,18 @@ def doCurveControlConnect(self):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     def updateTransform(curve,sourceObject):
+	childrenToWorld = []	
+	children = mc.listRelatives(curve,children=True,type = 'transform')
+	if children:
+	    for c in children:
+		childrenToWorld.append(rigging.doParentToWorld(c))
 	transform = rigging.groupMeObject(sourceObject,False,False)
 	attributes.copyUserAttrs(curve,transform)
 	buffer = curves.parentShapeInPlace(transform,curve)
 	mc.delete(curve)
+	if childrenToWorld:
+	    for c in childrenToWorld:
+		rigging.doParentReturnName(c,transform)
 	return transform
     
     selected = []
@@ -1416,7 +1427,7 @@ def doCurveControlConnect(self):
 			buffer = rigging.doParentReturnName(obj.nameLong,curveParentObj[0])
 			obj.update(buffer)
 		else:
-		    parentConstraintTargets[obj.nameBase] = curveParentObj[0]
+		    parentConstraintTargets[obj.nameBase] = source.parent
 	else:
 	    return guiFactory.warning("'%s' has no source"%obj.nameBase)	    
 			

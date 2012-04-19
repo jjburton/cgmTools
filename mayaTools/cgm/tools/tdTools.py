@@ -156,17 +156,17 @@ class tdToolsClass(BaseMelWindow):
 	#tabs.setCB(self.updateCurrentTab(tabs,'cgmTDToolsWinActiveTab'))
 
 	n = 0
-	tabList = ['Curves','Position','Info','Attribute','Deformer','Naming']
+	tabList = ['Curves','Position','Joints','Attribute','Deformer','Naming']
 	for tab in tabList:
 	    tabs.setLabel(n,tab)
 	    n+=1
 	
-	tabsToBuild = [self.buildCurvesTab(TabCurves),
-	               self.buildPositionTab(TabPosition),
-	               self.buildInfoTab(TabInfo),
-	               self.buildAttributeTab(TabAttribute),
-	               self.buildDeformerTab(TabDeformer),
-	               self.buildNamingTab(TabNaming)]
+	tabsToBuild = [self.buildTab_Curves(TabCurves),
+	               self.buildTab_Position(TabPosition),
+	               self.buildTab_Joints(TabInfo),
+	               self.buildTab_Attributes(TabAttribute),
+	               self.buildTab_Deformer(TabDeformer),
+	               self.buildTab_Naming(TabNaming)]
 
 	mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(tabsToBuild))
 	for t in tabsToBuild:
@@ -193,8 +193,6 @@ class tdToolsClass(BaseMelWindow):
 	    mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0) )
 	if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
 	    mc.optionVar( iv=('cgmVar_LocinatorShowHelp', 0) )
-	if not mc.optionVar( ex='cgmVar_FontOption' ):
-	    mc.optionVar( sv=('cgmVar_FontOption', self.textObjectFont) )
 	if not mc.optionVar( ex='cgmVar_SizeMode' ):
 	    mc.optionVar( iv=('cgmVar_SizeMode', 0) )
 	if not mc.optionVar( ex='cgmVar_RenameOnUpdate' ):
@@ -213,7 +211,12 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def buildOptionsMenu( self, *a ):
 	self.UI_OptionsMenu.clear()
-	# Font Menu			
+	# Font Menu
+	if not mc.optionVar( ex='cgmVar_FontOption' ):
+	    mc.optionVar( sv=('cgmVar_FontOption', self.textObjectFont) )	
+	if not mc.optionVar( ex='cgmVar_FontOption' ):
+	    mc.optionVar( sv=('cgmVar_CustomFontOption', self.textObjectFont) )	
+	
 	FontMenu = MelMenuItem( self.UI_OptionsMenu, l='Font', subMenu=True)
 	FontMenuCollection = MelRadioMenuCollection()
 
@@ -234,11 +237,18 @@ class tdToolsClass(BaseMelWindow):
 	    FontMenuCollection.createButton(FontMenu,l=font,
 	                                    c=('%s%s%s' %("mc.optionVar( sv=('cgmVar_FontOption','",font,"'))")),
 	                                    rb = fontState)
-
+	
+	if mc.optionVar( q='cgmVar_FontOption' ) not in self.fontList:
+	    customState = True
+	else:
+	    customState = False
+	self.CustomFontButton = FontMenuCollection.createButton(FontMenu,l='Custom',
+	                                                        c=('%s%s%s' %("mc.optionVar( sv=('cgmVar_FontOption','",mc.optionVar(q='cgmVar_CustomFontOption'),"'))")),
+	                                                        rb = customState)	
 	MelMenuItemDiv( FontMenu )
-	FontMenuCollection.createButton(FontMenu,l='Custom',
-	                                c=lambda *a: mc.optionVar( sv=('cgmVar_FontOption', guiFactory.doReturnFontFromDialog(fontOption))),
-	                                rb = pickedFontState)
+	MelMenuItem(FontMenu,l='Set Custom',
+	            c=lambda *a: mc.optionVar( sv=('cgmVar_FontOption', guiFactory.doReturnFontFromDialog(fontOption))),
+	            )
 
 	# Size Menu
 	SizeMenu = MelMenuItem( self.UI_OptionsMenu, l='Size', subMenu=True)
@@ -435,7 +445,7 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Tab Layouts
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildCurvesTab(self,parent):
+    def buildTab_Curves(self,parent):
 	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 
 	#>>>Main Form
@@ -460,7 +470,7 @@ class tdToolsClass(BaseMelWindow):
 
 	                     )
 
-    def buildPositionTab(self,parent):
+    def buildTab_Position(self,parent):
 	#>>>Main Form
 	positionMainFormLayout = MelFormLayout(parent)
 
@@ -486,7 +496,7 @@ class tdToolsClass(BaseMelWindow):
 
 	                       )
 
-    def buildInfoTab(self,parent):
+    def buildTab_Info(self,parent):
 	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 
 	#>>>Main Form
@@ -508,8 +518,30 @@ class tdToolsClass(BaseMelWindow):
 	                   attachControl = [(InfoRightColumn,'left',0,InfoLeftColumn)]
 
 	                   )
+    def buildTab_Joints(self,parent):
+	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 
-    def buildAttributeTab(self,parent):
+	#>>>Main Form
+	JointsMainFormLayout = MelFormLayout(parent)
+
+
+	JointsLeftColumn = self.buildBasicLeftColumn(JointsMainFormLayout)
+	JointsRightColumn = MelColumnLayout(JointsMainFormLayout)
+
+	self.buildTools_Joints(JointsRightColumn)
+
+	#>> Defining Main Form Layout
+	JointsMainFormLayout(edit = True,
+	                   attachForm = [(JointsLeftColumn,'left',0),
+	                                 (JointsLeftColumn,'top',0),
+	                                 (JointsRightColumn,'right',0),
+	                                 (JointsRightColumn,'top',0),
+	                                 ],
+	                   attachControl = [(JointsRightColumn,'left',0,JointsLeftColumn)]
+
+	                   )
+	
+    def buildTab_Attributes(self,parent):
 	ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 
 	#>>>Main Form
@@ -532,7 +564,7 @@ class tdToolsClass(BaseMelWindow):
 
 	                             )
 
-    def buildDeformerTab(self,parent):
+    def buildTab_Deformer(self,parent):
 	#Options
 	OptionList = ['skinCluster','blendshape','utilities']
 	cgmVar_Name = 'cgmVar_DeformerMode'
@@ -563,7 +595,7 @@ class tdToolsClass(BaseMelWindow):
 	#build our sub sesctions
 	self.ContainerList = []
 
-	self.ContainerList.append( self.buildSkinClusterTool(parent,vis=False) )
+	self.ContainerList.append( self.buildTool_SkinCluster(parent,vis=False) )
 	self.ContainerList.append( self.buildBlendshapeTool( parent,vis=False) )
 	self.ContainerList.append( self.buildUtilitiesTool( parent,vis=False) )
 
@@ -576,7 +608,7 @@ class tdToolsClass(BaseMelWindow):
 	mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVar_Name))])
 
 
-    def buildNamingTab(self,parent):
+    def buildTab_Naming(self,parent):
 	#Options
 	OptionList = ['autoname','standard']
 	cgmVar_Name = 'cgmVar_NamingMode'
@@ -823,11 +855,11 @@ class tdToolsClass(BaseMelWindow):
 	
 	buttonRow = MelHLayout(makeCurvesContainer,ut='cgmUISubTemplate',padding = 2)
 	guiFactory.doButton2(buttonRow,'Create',
-	                     lambda *a:tdToolsLib.doCurveControlCreate(self),
+	                     lambda *a:tdToolsLib.curveControlCreate(self),
 	                     'Create Curve Object with Settings',w=50)
 
 	guiFactory.doButton2(buttonRow,'Connect',
-	                     lambda *a:tdToolsLib.doCurveControlConnect(self),
+	                     lambda *a:tdToolsLib.curveControlConnect(self),
 	                     'Connects our control')
 	guiFactory.doButton2(buttonRow,'Create one of each',
 	                     lambda *a:tdToolsLib.doCreateOneOfEachCurve(self),
@@ -868,15 +900,15 @@ class tdToolsClass(BaseMelWindow):
 	currentObjectRow = MelHSingleStretchLayout(textObjectColumn,padding = 5)
 	MelSpacer(currentObjectRow)
 	guiTextObjLoadButton = guiFactory.doButton2(currentObjectRow,'>>',
-	                                            lambda *a:tdToolsLib.doLoadTexCurveObject(self),
+	                                            lambda *a:tdToolsLib.TextCurveObjectdoLoad(self),
 	                                            'Load to field')
 	self.textCurrentObjectField = MelTextField(currentObjectRow, ut = 'cgmUIReservedTemplate', editable = False)
 
 	guiTextObjUpdateButton = guiFactory.doButton2(currentObjectRow,'Update',
-	                                              lambda *a:tdToolsLib.doUpdateTextCurveObject(self),
+	                                              lambda *a:tdToolsLib.TextCurveObjectdoUpdate(self),
 	                                              'Updates selected text curve objects\n or the loaded text curve object')
 	guiTextObjUpdateButton = guiFactory.doButton2(currentObjectRow,'Create',
-	                                              lambda *a:tdToolsLib.doCreateTextCurveObject(self),
+	                                              lambda *a:tdToolsLib.TextCurveObjectCreate(self),
 	                                              'Create a text object with the provided settings')
 	
 	MelSpacer(currentObjectRow,w=5)
@@ -1039,6 +1071,25 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Info Tools
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def buildTools_Joints(self,parent):
+	mc.setParent(parent)
+	guiFactory.header('Joint Utilities')
+	guiFactory.lineSubBreak()
+
+	Row1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
+
+	guiFactory.doButton2(Row1,'cometJointOrient',
+	                     lambda *a: mel.eval('cometJointOrient'),
+	                     "General Joint orientation tool\n by Michael Comet")
+
+	mc.setParent(parent)
+	guiFactory.lineSubBreak()
+
+	Row1.layout()
+	
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Joint Tools
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def buildBasicInfoTools(self,parent):
 	mc.setParent(parent)
 	guiFactory.header('Basic Info')
@@ -1103,7 +1154,7 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Deformer Tools
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildSkinClusterTool(self,parent, vis=True):
+    def buildTool_SkinCluster(self,parent, vis=True):
 	containerName = 'SkinClusterContainer'
 	self.containerName = MelColumn(parent,vis=vis)
 
@@ -1174,7 +1225,10 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.doButton2(SkinWeightsUtilitiesRow,'abWeightLifter',
 	                     lambda *a: mel.eval('abWeightLifter'),
 	                     "Tool for working with influences\n by Brendan Ross")
-
+	
+	guiFactory.doButton2(SkinWeightsUtilitiesRow,'zoo.SkinPropagationTool',
+	                     lambda *a: cgmToolbox.loadSkinPropagation(),
+	                     "For sending weighting from a referenced file back to the original file\n by Hamish McKenzie")
 
 
 	SkinWeightsUtilitiesRow.layout()

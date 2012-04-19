@@ -1,0 +1,499 @@
+// --------------------------------------------------------------------------
+// cometJointOrient.mel - MEL Script
+// --------------------------------------------------------------------------
+//
+// DESCRIPTION:
+//	A nicer utility for setting rotation axis and aiming of joints
+//	automatically.
+//
+// REQUIRES:
+//	Nothing.
+//
+//
+// USAGE:
+//	source "cometJointOrient.mel"; cometJointOrient();
+//
+// AUTHORS:
+//	Michael B. Comet - comet@comet-cartoons.com
+//	Copyright ©2004 Michael B. Comet - All Rights Reserved.
+//
+// VERSIONS:
+//	1.00 - Feb 21, 2004 - Initial Release.
+//	1.01 - Feb 21, 2004 - Added dot check for up vector so that it will
+//		stop the up vector from flipping in cases where the bones go
+//		up and then down. 
+//	1.02 - Sep 17, 2004 - Added + and - tweak buttons, and right click on tweak.
+//	1.03 - April 10, 2005 - Fixed so only unparents transform/joint not shapes.
+//
+// --------------------------------------------------------------------------
+
+global string $cJO_version = "1.03" ;
+global string $cJO_date = "Apr 10, 2004" ;
+
+// --------------------------------------------------------------------------
+
+/*
+ * cometJointOrient() - Main UI entry.
+ */
+global proc cometJointOrient()
+{
+    global string $cJO_version ;
+    global string $cJO_date ;
+
+    if (`window -ex cometJointOrientWin` != true)
+        {
+	window -w 310 -h 256 -t ("cometJointOrient - "+$cJO_version) -in "cometJointOrient" -s true -tb true cometJointOrientWin;
+	
+	formLayout mainForm ;
+
+	separator -style "in" -h 3 sep0 ;
+
+	button -l "Show Axis" -h 18 -al "center" -c ("toggle -state on -localAxis; ") -ann ("Show Local Axis") btnShow ;
+	button -l "Hide Axis" -h 18 -al "center" -c ("toggle -state off -localAxis; ") -ann ("Hide Local Axis") btnHide ;
+
+	radioButtonGrp -l "Aim Axis:" -nrb 3 -la3 "X" "Y" "Z" -sl 2 -cw4 80 40 40 40 rbgAim ;
+	radioButtonGrp -l "Up  Axis:" -nrb 3 -la3 "X" "Y" "Z" -sl 1 -cw4 80 40 40 40 rbgUp ;
+	
+	checkBox -l "Reverse" -v 0 cbRevAim ;
+	checkBox -l "Reverse" -v 0 cbRevUp ;
+	
+	separator -style "in" -h 3 sep1 ;
+	
+	floatFieldGrp -nf 3 -label "World Up Dir:" -v1 1.0 -v2 0.0 -v3 0.0 -cw4 80 50 50 50 ffgUpDir ;
+	button -l "X" -w 20 -c ("floatFieldGrp -e -v1 1.0 -v2 0.0 -v3 0.0 ffgUpDir; ") -ann ("Auto Set UpDir to X-Axis") btnX ;
+	button -l "Y" -w 20 -c ("floatFieldGrp -e -v1 0.0 -v2 1.0 -v3 0.0 ffgUpDir; ") -ann ("Auto Set UpDir to Y-Axis") btnY ;
+	button -l "Z" -w 20 -c ("floatFieldGrp -e -v1 0.0 -v2 0.0 -v3 1.0 ffgUpDir; ") -ann ("Auto Set UpDir to Z-Axis") btnZ ;
+	
+	checkBox -l "Auto-Guess Up Direction" -v 0 cbAutoDir ;
+
+	button -l "Orient Joints" -al "center" -c ("cJO_orientUI();") -ann ("Orient selected joints based on settings above.") btnOJ;
+	
+	
+	separator -style "double" -h 7 sepBig ;
+	
+	floatFieldGrp -nf 3 -label "Tweak:" -v1 0.0 -v2 0.0 -v3 0.0 -cw4 80 50 50 50 ffgTweak ;
+	button -l "ZERO" -w 40 -c ("floatFieldGrp -e -v1 0.0 -v2 0.0 -v3 0.0 ffgTweak; ") -ann ("Zero's tweak values.") btnZero ;
+	
+	popupMenu -p ffgTweak ;
+	    menuItem -l "X=1" -c ("floatFieldGrp -e -v1 1.0 ffgTweak ; ") ;
+	    menuItem -l "Y=1" -c ("floatFieldGrp -e -v2 1.0 ffgTweak ; ") ;
+	    menuItem -l "Z=1" -c ("floatFieldGrp -e -v3 1.0 ffgTweak ; ") ;
+	    menuItem -divider true ;
+	    menuItem -l "X=5" -c ("floatFieldGrp -e -v1 5.0 ffgTweak ; ") ;
+	    menuItem -l "Y=5" -c ("floatFieldGrp -e -v2 5.0 ffgTweak ; ") ;
+	    menuItem -l "Z=5" -c ("floatFieldGrp -e -v3 5.0 ffgTweak ; ") ;
+	    menuItem -divider true ;
+	    menuItem -l "X=10" -c ("floatFieldGrp -e -v1 10.0 ffgTweak ; ") ;
+	    menuItem -l "Y=10" -c ("floatFieldGrp -e -v2 10.0 ffgTweak ; ") ;
+	    menuItem -l "Z=10" -c ("floatFieldGrp -e -v3 10.0 ffgTweak ; ") ;
+	
+
+	button -l "Manual + Rot Tweak" -al "center" -c ("cJO_tweakUI(1.0);") -ann ("Manually rotates selected joints axis positive.") btnTweakP ;
+	button -l "Manual - Rot Tweak" -al "center" -c ("cJO_tweakUI(-1.0);") -ann ("Manually rotates selected joints axis negative.") btnTweakN ;
+
+	separator -style "in" -h 3 sep2 ;
+
+	iconTextButton -style "textOnly" -l ("comet@comet-cartoons.com") -ann ("cometJointOrient - "+$cJO_version+" - "+$cJO_date+"  Copyright ©2004 Michael B. Comet All Rights Reserved") -c ("showHelp -a \"http://www.comet-cartoons.com/toons/\"") -h 24 email ;
+	
+	formLayout -e
+	    -af sep0 "left" 0 
+	    -af sep0 "right" 0
+	    -af sep0 "top" 0
+	    -an sep0 "bottom"
+
+	    -af btnShow "left" 0
+	    -ap btnShow "right" 0 50
+	    -ac btnShow "top" 0 sep0
+	    -an btnShow "bottom"
+
+	    -ap btnHide "left" 0 50
+	    -af btnHide "right" 0
+	    -ac btnHide "top" 0 sep0
+	    -an btnHide "bottom"
+
+
+	    -af rbgAim "left" 0 
+	    -an rbgAim "right" 
+	    -ac rbgAim "top" 0 btnShow
+	    -an rbgAim "bottom"
+	    
+		-ac cbRevAim "left" 0 rbgAim
+		-af cbRevAim "right" 0
+		-ac cbRevAim "top" 0 btnShow
+		-an cbRevAim "bottom"
+		
+	
+	    -af rbgUp "left" 0 
+	    -an rbgUp "right" 
+	    -ac rbgUp "top" 0 rbgAim
+	    -an rbgUp "bottom"
+
+		-ac cbRevUp "left" 0 rbgUp
+		-af cbRevUp "right" 0
+		-ac cbRevUp "top" 0 rbgAim
+		-an cbRevUp "bottom"
+	
+	    -af sep1 "left" 0 
+	    -af sep1 "right" 0
+	    -ac sep1 "top" 0 rbgUp
+	    -an sep1 "bottom"
+
+	    -af ffgUpDir "left" 0 
+	    -an ffgUpDir "right" 
+	    -ac ffgUpDir "top" 0 sep1
+	    -an ffgUpDir "bottom"	    
+
+		-ac btnX "left" 2 ffgUpDir 
+		-an btnX "right" 
+		-ac btnX "top" 0 sep1
+		-an btnX "bottom"	    
+
+		-ac btnY "left" 2 btnX 
+		-an btnY "right" 
+		-ac btnY "top" 0 sep1
+		-an btnY "bottom"	    
+
+		-ac btnZ "left" 2 btnY 
+		-an btnZ "right"
+		-ac btnZ "top" 0 sep1
+		-an btnZ "bottom"	    
+
+	    -af cbAutoDir "left" 20 
+	    -af cbAutoDir "right" 0
+	    -ac cbAutoDir "top" 0 ffgUpDir
+	    -an cbAutoDir "bottom"	    
+
+	    -af btnOJ "left" 5 
+	    -af btnOJ "right" 5
+	    -ac btnOJ "top" 5 cbAutoDir
+	    -an btnOJ "bottom"	
+
+	    -af sepBig "left" 0
+	    -af sepBig "right" 0
+	    -ac sepBig "top" 5 btnOJ
+	    -an sepBig "bottom"	
+
+	    -af ffgTweak "left" 0
+	    -an ffgTweak "right" 
+	    -ac ffgTweak "top" 5 sepBig
+	    -an ffgTweak "bottom"	
+
+		-ac btnZero "left" 2 ffgTweak 
+		-an btnZero "right" 
+		-ac btnZero "top" 5 sepBig
+		-an btnZero "bottom"	    
+
+	    -af btnTweakP "left" 5
+	    -ap btnTweakP "right" 0 49
+	    -ac btnTweakP "top" 5 ffgTweak
+	    -an btnTweakP "bottom"	
+
+	    -ap btnTweakN "left" 0 51
+	    -af btnTweakN "right" 5
+	    -ac btnTweakN "top" 5 ffgTweak
+	    -an btnTweakN "bottom"	
+
+	    -af sep2 "left" 5
+	    -af sep2 "right" 5
+	    -ac sep2 "top" 5 btnTweakP
+	    -an sep2 "bottom"	
+
+	    -af email "left" 0 
+	    -af email "right" 0
+	    -ac email "top" 0 sep2
+	    -an email "bottom" 
+	
+	    mainForm ;
+
+
+	showWindow cometJointOrientWin;
+	}
+    else	// else just pop it up from being minimized again
+    	{
+	showWindow cometJointOrientWin;
+	}
+
+}
+
+
+// --------------------------------------------------------------------------
+
+/*
+ * cJO_orientUI() - UI wrapper for starting an orient
+ */
+global proc cJO_orientUI()
+{
+    print ("// cometJointOrient\n"); 
+
+    int $nAimAxis = `radioButtonGrp -q -sl rbgAim` ;
+    int $nUpAxis = `radioButtonGrp -q -sl rbgUp` ;
+    float $aimAxis[] = {0,0,0} ;
+    float $upAxis[] = {0,0,0} ;
+    
+    float $revAim = 1.0 ;
+    if (`checkBox -q -v cbRevAim`)
+        $revAim = -1.0 ;
+    
+    float $revUp = 1.0 ;
+    if (`checkBox -q -v cbRevUp`)
+        $revUp = -1.0 ;
+    
+    if ($nAimAxis == $nUpAxis)
+       warning -sl 0 ("The AIM and UP axis are the same! Orientaiton probably won't work!") ;
+   
+    $aimAxis[ ($nAimAxis-1) ] = $revAim ;
+    $upAxis[ ($nUpAxis-1) ] = $revUp ;
+    	
+    float $upDir[3] ;
+    $upDir[0] = `floatFieldGrp -q -v1 ffgUpDir` ;
+    $upDir[1] = `floatFieldGrp -q -v2 ffgUpDir` ;
+    $upDir[2] = `floatFieldGrp -q -v3 ffgUpDir` ;
+
+    int $doAuto = `checkBox -q -v cbAutoDir` ;
+
+    string $joints[] = `ls -type "joint" -sl` ;
+    
+    // Now do it!
+    cJO_orient($joints, $aimAxis, $upAxis, $upDir, $doAuto) ;
+
+    // End with same stuff selected!
+    select -r $joints ;
+    
+
+}
+
+
+// --------------------------------------------------------------------------
+
+/*
+ * cJO_orient() - The real worker orient proc.
+ *
+ *	$joints is array of joints to orient
+ *	$aimAxis = is xyz array of what axis of joint does aim
+ *	$upAxis = is xyz array of what axis of joint does up
+ *	$upDir = what vector to use for up direction?
+ *	$doAuto = If possible will try to guess the up axis otherwise
+ *		it will use prev joint up axis or else world upDir.
+ *	
+ */
+global proc cJO_orient(string $joints[], float $aimAxis[], float $upAxis[], 
+		float $upDir[], int $doAuto)
+{
+
+    int $nJnt = size($joints) ;
+    int $i;
+    
+    vector $prevUp = <<0,0,0>>;
+    
+    	// Now orient each joint
+    for ($i=0; $i < $nJnt; ++$i)
+        {
+        
+	// First we need to unparent everything and then store that,
+	string $childs[] = `listRelatives -children -type "transform" -type "joint" $joints[$i]` ;
+	if (size($childs) > 0)
+	    $childs = `parent -w $childs` ;		// unparent and get NEW names in case they changed...
+	
+	// Find parent for later in case we need it.
+	string $parents[] = `listRelatives -parent $joints[$i]` ;
+	string $parent = $parents[0] ;
+	
+	
+	// Now if we have a child joint...aim to that.
+	string $aimTgt="" ;
+	string $child ;
+	for ($child in $childs)
+	    {
+	    if (nodeType($child) == "joint")
+	        {
+	        $aimTgt = $child ;
+	        break ;
+	        }
+	    }
+	    
+//	print ("// DEBUG: JNT="+$joints[$i]+" Parent="+$parent+" AimTgt="+$aimTgt+" //\n") ;
+	    
+	
+	if ($aimTgt != "")
+	    {
+	    float $upVec[3] = {0,0,0} ;
+	    
+	    // First off...if $doAuto is on, we need to guess the cross axis dir.
+	    //
+	    if ($doAuto)
+	    	{
+	    	// Now since the first joint we want to match the second orientation
+	    	// we kind of hack the things passed in if it is the first joint
+	    	// ie: If the joint doesn't have a parent...OR if the parent it has
+	    	// has the "same" position as itself...then we use the "next" joints
+	    	// as the up cross calculations
+	    	//
+		float $posJ[3] = `xform -q -ws -rp $joints[$i]` ;
+		float $posP[3] = $posJ ;
+		if ($parent != "")
+		    $posP = `xform -q -ws -rp $parent` ;
+
+		float $tol = 0.0001 ;	// How close to we consider "same"?
+		
+	    	if ($parent == "" || (abs($posJ[0] - $posP[0]) <= $tol && abs($posJ[1] - $posP[1]) <= $tol && abs($posJ[2] - $posP[2]) <= $tol ))
+	    	    {
+	    	    string $aimChilds[] = `listRelatives -children $aimTgt` ;
+		    string $aimChild = "" ;
+		    string $child ;
+		    for ($child in $aimChilds)
+			{
+			if (nodeType($child) == "joint")
+			    {
+			    $aimChild = $child ;
+			    break ;
+			    }
+			}    
+	    	    $upVec = cJO_getCrossDir($joints[$i], $aimTgt, $aimChild) ;
+	    	    }
+		else
+	    	    $upVec = cJO_getCrossDir($parent, $joints[$i], $aimTgt) ;
+		}
+		
+	    if (!$doAuto || ($upVec[0] == 0.0 && $upVec[1] == 0.0 && $upVec[2] == 0.0))
+		$upVec = $upDir ;	// or else use user set up Dir. if needed
+	    
+
+	    string $aCons[] = `aimConstraint 
+	    	-aim $aimAxis[0] $aimAxis[1] $aimAxis[2] 
+	    	-upVector $upAxis[0] $upAxis[1] $upAxis[2] 
+	    	-worldUpVector $upVec[0] $upVec[1] $upVec[2] 
+	    	-worldUpType "vector"
+	    	-weight 1.0
+	    	$aimTgt 
+	    	$joints[$i]` ;
+	    
+	    delete $aCons ;
+	    
+	    
+	    
+	    // Now compare the up we used to the prev one.
+	    vector $curUp = << $upVec[0], $upVec[1], $upVec[2] >> ;
+	    $curUp = unit($curUp) ;
+	    float $dot = $curUp * $prevUp ; 	// dot product for angle betwen...
+	    $prevUp = << $upVec[0], $upVec[1], $upVec[2] >> ; // store for later
+
+	    if ($i > 0 && $dot <= 0.0)
+	        {
+	        // Adjust the rotation axis 180 if it looks like we've flopped the wrong way!
+		xform -r -os -ra ($aimAxis[0]*180.0) ($aimAxis[1]*180.0) ($aimAxis[2]*180.0) $joints[$i] ;
+	    	$prevUp *= -1.0 ;
+	        }
+
+
+	    // And now finish clearing out joint axis...
+	    joint -e -zso $joints[$i] ;
+	    makeIdentity -apply true $joints[$i] ;
+
+
+	    }
+	else if ($parent != "")
+	    {
+	    // Otherwise if there is no target, just dup orienation of parent...
+	    string $oCons[] = `orientConstraint 
+	    	-weight 1.0
+	    	$parent 
+	    	$joints[$i]` ;
+	    
+	    delete $oCons ;
+	    
+	    // And now finish clearing out joint axis...
+	    joint -e -zso $joints[$i] ;
+	    makeIdentity -apply true $joints[$i] ;
+	    }
+	
+	// Now that we're done... reparent
+	if (size($childs) > 0)
+	    parent $childs $joints[$i] ;
+        }
+
+}
+
+// --------------------------------------------------------------------------
+
+/*
+ * cJO_getCrossDir() - Given three nodes, this gets the cross product of 
+ *	the directions from B->A and B->C.
+ */
+global proc float[] cJO_getCrossDir(string $objA, string $objB, string $objC)
+{
+    float $cross[3] = {0,0,0} ;
+    
+    if ($objA == "" || $objB == "" || $objC == "" ||
+    	objExists($objA) != true || objExists($objB) != true || objExists($objC) != true)
+    	return $cross ;
+
+    float $posA[3] = `xform -q -ws -rp $objA` ;
+    float $posB[3] = `xform -q -ws -rp $objB` ;
+    float $posC[3] = `xform -q -ws -rp $objC` ;
+    	
+    vector $v1 = << $posA[0]-$posB[0], $posA[1]-$posB[1], $posA[2]-$posB[2] >> ;
+    vector $v2 = << $posC[0]-$posB[0], $posC[1]-$posB[1], $posC[2]-$posB[2] >> ;
+
+    vector $vC = $v1 ^ $v2 ;	// Do cross product!
+    $vC = unit($vC) ;		// normalize
+    
+    $cross[0] = $vC.x ;
+    $cross[1] = $vC.y ;
+    $cross[2] = $vC.z ;
+    
+    return $cross ;
+}
+
+// --------------------------------------------------------------------------
+
+
+
+/*
+ * cJO_tweakUI() - UI wrapper for starting a joint tweak
+ */
+global proc cJO_tweakUI(float $mult)
+{
+    float $rot[3] ;
+    $rot[0] = `floatFieldGrp -q -v1 ffgTweak` * $mult ;
+    $rot[1] = `floatFieldGrp -q -v2 ffgTweak` * $mult ;
+    $rot[2] = `floatFieldGrp -q -v3 ffgTweak` * $mult ;
+    
+    string $joints[] = `ls -type "joint" -sl` ;
+    
+    // Now do it!
+    cJO_tweak($joints, $rot) ;
+
+    // End with same stuff selected!
+    select -r $joints ;
+
+}
+
+// --------------------------------------------------------------------------
+
+/*
+ * cJO_tweak() - Tweaks the rotation of a joint the amount specified
+ *
+ *	$joints is array of joints to orient
+ *	$rot = is xyz array of how much to rotate
+ *	
+ */
+global proc cJO_tweak(string $joints[], float $rot[])
+{
+    int $nJnt = size($joints) ;
+    int $i;
+
+    	// Now tweak each joint
+    for ($i=0; $i < $nJnt; ++$i)
+        {
+	// Adjust the rotation axis
+	xform -r -os -ra $rot[0] $rot[1] $rot[2] $joints[$i] ;
+
+ 	// And now finish clearing out joint axis...
+	joint -e -zso $joints[$i] ;
+	makeIdentity -apply true $joints[$i] ;
+	}
+}
+
+// --------------------------------------------------------------------------
+
+

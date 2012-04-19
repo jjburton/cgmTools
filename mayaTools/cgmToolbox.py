@@ -238,6 +238,15 @@ def loadPolyUniteTool( *a ):
 	reload(polyUniteTool)
 	polyUniteTool.run()
 
+#Zoo stuff
+def loadSkinPropagation( *a ):
+	from zooPyMaya import refPropagation
+	refPropagation.propagateWeightChangesToModel_confirm()
+	
+def loadXferAnim( *a ):
+	from zooPyMaya import xferAnimUI
+	xferAnimUI.XferAnimWindow()
+	
 class ToolCB(object):
 	def __init__( self, melStr ):
 		self.cmdStr = melStr
@@ -251,26 +260,36 @@ class ToolCB(object):
 #NOTE: the press callback should take *a as its args
 TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locators",
                             loadLocinator),
+                             ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
+                              loadXferAnim), 
+                             ('zoo.Keymaster', "from Hamish McKenzie's zooToolbox - keymaster gives you a heap of tools to manipulate keyframes - scaling around curve pivots, min/max scaling of curves/keys etc...",
+                              ToolCB( 'source zooKeymaster; zooKeymasterWin;' )),
                              
                              )),
               
               ('rigging', (('Locinator', "Tool for creating, updating, locators",
                             loadLocinator),
-
+                           
 						   ('TD Tools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
                             loadTDTools),
                            
                            ('PolyUnite Tool', "Stand alone poly unite tool for Plastic",
                             loadPolyUniteTool),
+                           
                            )),
+              
+              ('layout', (('zoo.Shots', "from Hamish McKenzie's zooToolbox -  zooShots is a camera management tool.  It lets you create a bunch of cameras in your scene, and 'edit' them together in time.  The master camera then cuts between each 'shot' camera.  All camera attributes are maintained over the cut - focal length, clipping planes, fstop etc...",
+                           ToolCB('zooShots')),
+                          ('zoo.HUDCtrl', "from Hamish McKenzie's zooToolbox -  zooHUDCtrl lets you easily add stuff to your viewport HUD. ",
+                           ToolCB('zooHUDCtrl')),
+                           )),
+              
 
               ('dev', (('Naming Tools', " Autoname and Standard naming tools",
                         loadNamingTools),
-                       
                        ('Attribute Tools', " Attribute tools",
                         loadAttrTools),                       
-                       
-                       )),
+                       ))
 
               )
 

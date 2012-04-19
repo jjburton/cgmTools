@@ -1,0 +1,241 @@
+// --------------------------------------------------------------------------
+// autoTangent.mel - MEL Script
+// --------------------------------------------------------------------------
+//
+// DESCRIPTION:
+//	Changes selected graph editor keys to be smooth but without overshoot.
+//	Kinda like 3DSMax's autoTangents.  The amount of softness can be 
+//	user set, so that the tangents will overshoot a little bit if desired.
+//
+//	This also has a built in UI to run all of this and to set the softness.
+//	The softness value is also remembered per session from the last one used.
+//
+// USAGE:
+//	source "autoTangent.mel"; autoTangent();
+//
+// AUTHORS:
+//	Michael B. Comet - comet@comet-cartoons.com - http://www.comet-cartoons.com/
+//	
+// COPYRIGHT:
+//	Copyright ©2003 Michael B. Comet - All Rights Reserved
+//
+// VERSIONS:
+//	1.00 - 09/06/2003 - Michael B. Comet - Initial Release
+//	1.01 - 10/16/2003 - comet - Made -cc for slider so more interactive.
+//	1.02 - 04/12/2005 - mcomet - Made "Flatten" for start/end keys option
+//			at bequest of Rob Dollase.  This will work truly flat when the 
+//			soften value is at 0.  When soften is higher the keys will 
+//			be rounder like the others tho still more towards flat.
+//
+// --------------------------------------------------------------------------
+
+/*
+ * Global Vars
+ */
+global string $aTan_version = "1.02";
+
+// --------------------------------------------------------------------------
+
+/*
+ * autoTangent() - Main Entry
+ */
+global proc autoTangent()
+{
+    global string $aTan_version ;
+
+    if (`window -q -ex autoTangentWin`)
+        {
+        showWindow autoTangentWin ;
+        return ;
+        }
+
+
+	// Load Prefs
+    float $soft = 0.0 ;
+	int $bFlatten = 0 ;
+    if(`optionVar -ex "aTan_softness"`)
+		$soft = `optionVar -q "aTan_softness"` * 100.0 ;
+    if(`optionVar -ex "aTan_flatten"`)
+		$bFlatten = `optionVar -q "aTan_flatten"` ;
+
+
+	// Make Window
+    window -w 200 -h 125 -t ("autoTangent - "+$aTan_version) -in "autoTangent" autoTangentWin;
+    columnLayout ;
+    
+    separator -style "in" -w 200 -h 5 ; 
+	checkBox -l "Flatten Start/End Keys" -v $bFlatten cbFlatten ;
+    floatSliderGrp -label "Softness:" -field true -min 0.0 -max 100.0 -v $soft -adj 3 -cw3 60 40 90 -cc ("aTan_start();") fsgSoft;
+    button -l ("Auto Tangent Selected Keys") -al "center" -w 180 -c ("aTan_start();") btnTan;
+    separator -style "in" -w 200 -h 5 ; 
+    text -l ("Copyright ©2003-2005 Michael B. Comet");
+    text -l ("All Rights Reserved") ;
+    
+    showWindow autoTangentWin ;
+
+}
+
+// --------------------------------------------------------------------------
+
+/*
+ * aTan_start() - Wrapper for start from UI.
+ */
+global proc aTan_start()
+{
+    float $soft = `floatSliderGrp -q -v fsgSoft` / 100.0 ;
+	int $bFlatten = `checkBox -q -v cbFlatten` ;
+
+    // Store in option var too!
+    optionVar -fv "aTan_softness" $soft ;
+    optionVar -iv "aTan_flatten" $bFlatten ;
+
+    // Make it so!
+    aTan_smoothKeys($soft, $bFlatten) ;
+    
+}
+
+
+// --------------------------------------------------------------------------
+
+/*
+ * aTan_smoothKeys() - Does actual smooth work
+ */
+global proc aTan_smoothKeys(float $softness, int $bFlatten)
+{
+    string $curves[] = `keyframe -q -name -sl` ; // get all selected animCurve Nodes
+    string $crv ;
+    
+    waitCursor -state on ;
+    
+    	// For each curve...
+    for ($crv in $curves)
+        {
+        	// What key indexes 0..1..2..n for that curve are chosen?
+        	//
+        int $idxs[] = `keyframe -q -indexValue -sl $crv` ;
+        int $idx ;
+        
+        for ($idx in $idxs)
+            {
+			// How many keys on this curve?
+			int $total = `keyframe -q -keyframeCount $crv` ;
+			
+			// Figure current Time and Value
+			//
+			float $valCs[] = `keyframe -index $idx -q -valueChange $crv` ;
+			float $timeCs[] = `keyframe -index $idx -q -timeChange $crv` ;
+			
+			float $valPs[] = $valCs ;
+			float $valNs[] = $valCs ;
+			float $timePs[] = $timeCs ;
+			float $timeNs[] = $timeCs ;
+			
+			// Figure prev Time and Value
+			//
+			if ($idx > 0)
+				{
+			$valPs = `keyframe -index ($idx-1) -q -valueChange $crv` ;
+			$timePs = `keyframe -index ($idx-1) -q -timeChange $crv` ;
+			}
+			   
+			// Figure next Time and Value
+			//
+			if ($idx < $total-1)
+				{
+			$valNs = `keyframe -index ($idx+1) -q -valueChange $crv` ;
+			$timeNs = `keyframe -index ($idx+1) -q -timeChange $crv` ;
+			}
+			
+			float $valC = $valCs[0] ;
+			float $valP = $valPs[0] ;
+			float $valN = $valNs[0] ;
+			float $timeC = $timeCs[0] ;
+			float $timeP = $timePs[0] ;
+			float $timeN = $timeNs[0] ;
+			
+			// Make start/end keys nice and not flat
+			if ($idx == 0 && !$bFlatten)
+				{
+				$timeP = $timeC - ($timeN - $timeC) ;
+				$valP = $valC - ($valN - $valC) ;
+				}
+			else if ($idx == ($total-1) && !$bFlatten)
+				{
+				$timeN = $timeC + ($timeC - $timeP) ;
+				$valN = $valC + ($valC - $valP) ;
+				}
+				
+	
+			// Now we have all the basic data we need of current and prev and next
+			// key times and values... so use that to adjust the current tangents.
+			//
+	//	    print ("// valC="+$valC+" timeC="+$timeC+" //\n") ;
+	//	    print ("// valP="+$valP+" timeP="+$timeP+" //\n") ;
+	//	    print ("// valN="+$valN+" timeN="+$timeN+" //\n") ;
+	
+			// Compare changes in value
+			float $valIn = $valC - $valP ;
+			float $valOut = $valN - $valC ;
+	
+			// Compare changes in time
+			float $timeIn = $timeC - $timeP ;
+			float $timeOut = $timeN - $timeC ;
+			
+				// Figure slopes
+			float $slopeIn = 0 ;
+			float $slopeOut = 0 ;
+			if ($timeIn != 0)
+				$slopeIn = $valIn / $timeIn ;
+			if ($timeOut != 0)
+				$slopeOut = $valOut / $timeOut ;
+	
+	//	    print ("// slopeIn="+$slopeIn+" slopeOut="+$slopeOut+" //\n") ;	
+	
+			   // Now set power to be more of whichever one has LESS slope
+			float $powIn = 0.5, $powOut = 0.5;
+			
+			if ($slopeIn + $slopeOut != 0)
+				$powIn = 1.0 - ( abs($slopeIn) / ( abs($slopeIn) + abs($slopeOut) ) ) ;
+			$powOut = 1.0 - $powIn ;
+	
+			// Now use softness value so that as it goes to 1, we reset the
+			// weight power evenly to 0.5... so that it becomes more like smooth.
+			//
+			$powIn = ((1.0 - $softness) * $powIn ) + ($softness * 0.5) ;
+			$powOut = ((1.0 - $softness) * $powOut ) + ($softness * 0.5) ;
+	
+	//	    print ("// powIn="+$powIn+" powOut="+$powOut+" //\n") ;	
+		
+			float $newSlope = ( $powIn * $slopeIn ) + ( $powOut * $slopeOut ) ;
+	
+	//	    print ("// newSlope="+$newSlope+" //\n") ;	
+			
+			float $ang = atan( $newSlope ) * 180.0 / 3.14159 ;
+	
+	//	    print ("// ang="+$ang+" //\n") ;	
+			
+				// Update the tangents
+			keyTangent -itt spline -ott spline -time $timeC $crv ;
+			keyTangent -ia $ang -oa $ang -time $timeC $crv ;
+			
+				// Also does this use weighted tangents?
+			int $wts[] = `keyTangent -q -wt $crv` ;
+			if ($wts[0] == 1)
+				{
+				float $inWt = abs($timeIn) / 3.0 ;
+				float $outWt = abs($timeOut) / 3.0 ;
+				keyTangent -iw $inWt -ow $outWt -time $timeC $crv ;
+				}
+			}	// end of each idx
+    
+        } // end of each curve
+    
+    waitCursor -state off ;
+    
+    print ("// autoTangent Done. //\n") ;
+    
+}
+
+
+// --------------------------------------------------------------------------
+
