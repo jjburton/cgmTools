@@ -96,7 +96,7 @@ class go():
         else:
             self.nameBase = self.nameShort
 
-    def parentTo(self,p):
+    def doParent(self,p):
         buffer = rigging.doParentReturnName(self.nameLong,p)
         self.update(  buffer)  
         
