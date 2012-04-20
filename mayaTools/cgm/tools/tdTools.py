@@ -651,7 +651,7 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.header('Set Color')
 
 	mc.columnLayout(columnAttach = ('both',5),backgroundColor = [.2,.2,.2])
-	colorSwatchMenu = mc.gridLayout(aec = False, numberOfRowsColumns=(10,3), cwh = (30,12),backgroundColor = [.2,.2,.2])
+	colorSwatchMenu = mc.gridLayout(aec = False, numberOfRowsColumns=(10,3), cwh = (30,14),backgroundColor = [.2,.2,.2])
 	colorSwatchesList = [1,2,3,11,24,21,12,10,25,4,13,20,8,30,9,5,6,18,15,29,28,7,27,19,23,26,14,17,22,16]
 	for i in colorSwatchesList:
 	    colorBuffer = mc.colorIndex(i, q=True)

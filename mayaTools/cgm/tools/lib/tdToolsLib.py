@@ -1294,9 +1294,9 @@ def curveControlCreate(self):
 	    size = self.textObjectSizeField(q=True,value=True)
 	    
 	if self.uiCurveName:
-	    bufferList = controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeSettingsControl,makeVisControl,True)
+	    bufferList = controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeVisControl,makeSettingsControl,True)
 	else:
-	    bufferList = controlBuilder.createMasterControl('char',size,self.textObjectFont,makeSettingsControlControl,makeVisControl,True)
+	    bufferList = controlBuilder.createMasterControl('char',size,self.textObjectFont,makeVisControl,makeSettingsControl,True)
 	
 	self.MakeMasterControlCB(e=True, value=False)
 

@@ -208,36 +208,63 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     """ children controls"""
     controlsToMake = []
     if controlVis:
-        controlsToMake.append('controlSettings')
-    if controlSettings:
         controlsToMake.append('controlVisibility')
+    if controlSettings:
+        controlsToMake.append('controlSettings')
     if len(controlsToMake) >=1:
         childControls = childControlMaker(rootCurve, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 135, controls = controlsToMake, mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
-        for control in childControls:
-            controlsReturn.append(control)
+        for c in childControls.keys():
+            controlsReturn.append(childControls.get(c))
         
     """ Default groups """
     if defaultGroups:
         nullBuffer = mc.group(em=True)
-        null = objectFactory.go(nullBuffer)
-        null.store('cgmName','noTransform')
-        null.doName()
-        null.doParent(masterNull)
+        noTransNull = objectFactory.go(nullBuffer)
+        noTransNull.store('cgmName','noTransform')
+        noTransNull.doName()
+        noTransNull.doParent(masterNull)
         
         nullBuffer = mc.group(em=True)
-        null = objectFactory.go(nullBuffer)
-        null.store('cgmName','skeleton')
-        null.doName()
-        null.doParent(rootCurve)
+        geoNull = objectFactory.go(nullBuffer)
+        geoNull.store('cgmName','geo')
+        geoNull.doName()
+        geoNull.doParent(noTransNull.nameLong)
         
         nullBuffer = mc.group(em=True)
-        null = objectFactory.go(nullBuffer)
-        null.store('cgmName','controls')
-        null.doName()
-        null.doParent(rootCurve)   
+        skeletonNull = objectFactory.go(nullBuffer)
+        skeletonNull.store('cgmName','skeleton')
+        skeletonNull.doName()
+        skeletonNull.doParent(rootCurve)    
         
+        nullBuffer = mc.group(em=True)
+        rigNull = objectFactory.go(nullBuffer)
+        rigNull.store('cgmName','rig')
+        rigNull.doName()
+        rigNull.doParent(rootCurve)   
+        
+    if controlVis and defaultGroups:
+        visControl =  childControls.get('controlVisibility')
+        attributes.addSectionBreakAttrToObj(visControl,'Parts')
+        attributes.addBoolAttrToObject(visControl,'rig')
+        attributes.addBoolAttrToObject(visControl,'skeleton')
+        attributes.addBoolAttrToObject(visControl,'geo')
+            
+        attributes.doConnectAttr((visControl+'.rig'),(rigNull.nameLong+'.v'))
+        attributes.doConnectAttr((visControl+'.skeleton'),(skeletonNull.nameLong+'.v'))
+        attributes.doConnectAttr((visControl+'.geo'),(geoNull.nameLong+'.v'))
+        
+        attributes.doSetAttr((visControl+'.rig'),1)
+        attributes.doSetAttr((visControl+'.skeleton'),1)
+        attributes.doSetAttr((visControl+'.geo'),1)
+            
     """ store it to the master null"""
     attributes.storeInfo(masterNull,'controlMaster',rootCurve)
+    
+    buffer = rigging.groupMeObject(rootCurve,True,True)
+    grp = objectFactory.go(buffer)
+    grp.store('cgmTypeModifier','constraint')
+    grp.name()
+    
     return controlsReturn
 
 
@@ -296,9 +323,8 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Make Controls 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    controlsMade=[]
+    controlsMade={}
     for control in controls:
-        print control
         """ If the type is in the dictionary, use that shape, if not make it as text"""
         if controlTypes.get(control) != None:
             controlBuffer = curves.createControlCurve(controlTypes.get(control),controlScale)
@@ -310,14 +336,14 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
             controlNameCleanBuffer = control.split('control')
             controlNameClean = controlNameCleanBuffer[1]
             attributes.storeInfo(baseControl,('childControl'+ (controlNameClean.capitalize())), controlBuffer)
-            controlsMade.append(controlBuffer)
+            controlsMade[control] = controlBuffer
             
         else:
             controlBuffer = curves.createTextCurveObject(control,size=controlScale,font=font)
             attributes.storeInfo(controlBuffer,'parentControl', baseControl)
             attributes.storeInfo(baseControl,('childControl'+ (control.capitalize())), controlBuffer)
             attributes.storeInfo(controlBuffer,"textFont",(settingsInfoNull+'.font'))
-            controlsMade.append(controlBuffer)   
+            controlsMade[control] = controlBuffer 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Prepping the transform group
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -371,7 +397,8 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
     distanceFactor = (max(absSize)/2) * distanceMultiplier
     
     runningRotation = 0 + offset
-    for control in controlsMade:
+    for c in controlsMade.keys():
+        control = controlsMade.get(c)
         """ move it """
         mc.setAttr((control+'.ty'),distanceFactor)
         """ loc it and rotate to get our control position"""
@@ -407,7 +434,8 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
         
     position.moveParentSnap(baseControlTransformGroup,baseControl)
     
-    for control in controlsMade:
+    for c in controlsMade.keys():
+        control = controlsMade.get(c)
         mc.parent(control,baseControl)
         curves.setColorByIndex(control,controlColor)
         if zeroGroups == True:
@@ -417,6 +445,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
             
     mc.delete(baseControlTransformGroup)
                 
+    
     return controlsMade
             
     
