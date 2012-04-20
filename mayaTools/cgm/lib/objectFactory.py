@@ -117,6 +117,11 @@ class go():
         
     def store(self,attr,info,*a,**kw):
         attributes.storeInfo(self.nameLong,attr,info,*a,**kw)
+
+    def doGroup(self,maintain=False):
+        group = rigging.groupMeObject(self.nameLong,True,maintain) 
+        groupLong = mc.ls(group,long =True)
+        self.update(groupLong[0]+'|'+self.nameBase)  
         
     def remove(self,attr):
         try:

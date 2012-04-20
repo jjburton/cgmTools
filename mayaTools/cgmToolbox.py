@@ -258,7 +258,7 @@ class ToolCB(object):
 #in the UI, and a tuple containing the annotation string and the button press callback to invoke when that
 #tool's toolbox button is pressed.
 #NOTE: the press callback should take *a as its args
-TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locators",
+TOOL_CATS = ( ('animation', (('cgm.locinator', "Tool for creating, updating, locators",
                             loadLocinator),
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
                               loadXferAnim), 
@@ -267,13 +267,13 @@ TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locator
                              
                              )),
               
-              ('rigging', (('Locinator', "Tool for creating, updating, locators",
+              ('rigging', (('cgm.locinator', "Tool for creating, updating, locators",
                             loadLocinator),
                            
-						   ('TD Tools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
+						   ('cgm.tdTools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
                             loadTDTools),
                            
-                           ('PolyUnite Tool', "Stand alone poly unite tool for Plastic",
+                           ('cgm.PolyUniteTool', "Stand alone poly unite tool for Plastic",
                             loadPolyUniteTool),
                            
                            )),
@@ -285,9 +285,9 @@ TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locator
                            )),
               
 
-              ('dev', (('Attribute Tools', " Attribute tools",
+              ('dev', (('cgm.attrTools', " Attribute tools",
                         loadAttrTools), 
-                       ('Anim Tools', " Anim tools",
+                       ('cgm.animTools', " Anim tools",
                         loadAnimTools),                         
                        ))
 
