@@ -227,12 +227,12 @@ def loadLocinator( *a ):
 	from cgm.tools import locinator
 	reload(locinator)
 	locinator.run()
-
-def loadNamingTools( *a ):
-	from cgm.tools import namingTools
-	reload(namingTools)
-	namingTools.run()
 	
+def loadAnimTools( *a ):
+	from cgm.tools import animTools
+	reload(animTools)
+	animTools.run()
+		
 def loadPolyUniteTool( *a ):
 	from cgm.tools import polyUniteTool
 	reload(polyUniteTool)
@@ -285,10 +285,10 @@ TOOL_CATS = ( ('animation', (('Locinator', "Tool for creating, updating, locator
                            )),
               
 
-              ('dev', (('Naming Tools', " Autoname and Standard naming tools",
-                        loadNamingTools),
-                       ('Attribute Tools', " Attribute tools",
-                        loadAttrTools),                       
+              ('dev', (('Attribute Tools', " Attribute tools",
+                        loadAttrTools), 
+                       ('Anim Tools', " Anim tools",
+                        loadAnimTools),                         
                        ))
 
               )

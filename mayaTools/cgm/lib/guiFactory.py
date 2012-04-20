@@ -68,7 +68,10 @@ def initializeTemplates():
     mc.uiTemplate('cgmUIHeaderTemplate')
     mc.text(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
     mc.separator(dt='cgmUIHeaderTemplate', height = 5, style = 'none',backgroundColor = guiHeaderColor)
-
+    mc.formLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)    
+    mc.rowLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
+    mc.rowColumnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
+    mc.columnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)  
 
     # Define our sub template
     if mc.uiTemplate( 'cgmUISubTemplate', exists=True ):
@@ -86,6 +89,7 @@ def initializeTemplates():
         mc.deleteUI( 'cgmUIInstructionsTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUIInstructionsTemplate')
     mc.text(dt = 'cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
+    mc.formLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
     mc.rowLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
     mc.rowColumnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
     mc.columnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
@@ -94,8 +98,12 @@ def initializeTemplates():
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
         mc.deleteUI( 'cgmUIReservedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUIReservedTemplate')
-    mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiHelpBackgroundReservedColor)
-
+    mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiButtonColor)
+    mc.formLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)    
+    mc.rowLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
+    mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
+    mc.columnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)  
+    
     # Define our Locked
     if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
         mc.deleteUI( 'cgmUILockedTemplate', uiTemplate=True )
