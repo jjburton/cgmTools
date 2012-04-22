@@ -40,11 +40,6 @@ def returnListChunks(l, n):
     """       
     return [l[i:i+n] for i in range(0, len(l), n)]
 
-
-def returnSelectedToList(): 
-    selected = []
-    selected = (mc.ls (sl=True,flatten=True,fullPath=True))
-    return selected
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Simplifying

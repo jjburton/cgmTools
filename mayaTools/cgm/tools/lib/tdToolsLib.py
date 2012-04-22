@@ -66,7 +66,7 @@ def uiSetSelfVariable(self,variable,value):
 
 
 def loadGUIOnStart(self):
-    selected = mc.ls(sl=True)
+    selected = mc.ls(sl=True) or []
     if selected:
         for obj in selected:
             if search.returnTagInfo(selected[0],'cgmObjectType') == 'textCurve':
@@ -86,7 +86,7 @@ def loadGUIOnStart(self):
 # SDK
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doSelectDrivenJoints(self):
-    selected = mc.ls(sl=True)
+    selected = mc.ls(sl=True) or []
     mc.select(cl=True)
     channelBoxName = search.returnMainChannelBoxName()
 
@@ -298,7 +298,7 @@ def doLoadBlendShapePoseBuffer(self):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get our variables from the ui and optionVars
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    selectBuffer = mc.ls(sl=True, flatten = True)
+    selectBuffer = mc.ls(sl=True, flatten = True) or []
     if selectBuffer:
         poseBufferCandidate = selectBuffer[0]
         self.SourceObjectField(edit = True, text = poseBufferCandidate)
@@ -588,7 +588,7 @@ def doShrinkWrapToSource():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     # Check for selection, defaults to using that for targets
-    selected = mc.ls(sl=True,flatten=True)
+    selected = mc.ls(sl=True,flatten=True) or []
 
     sourceObject = mc.optionVar(q='cgmVar_SourceObject')
 
@@ -710,7 +710,7 @@ def doCopySkinningToVertFromSource():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """   
     # Check for selection, defaults to using that for targets
-    selected = mc.ls(sl=True,flatten=True)
+    selected = mc.ls(sl=True,flatten=True) or []
     targetObjects = []
 
     if selected:
@@ -757,7 +757,7 @@ def doTransferSkinning():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     # Check for selection, defaults to using that for targets
-    selected = mc.ls(sl=True,flatten=True)
+    selected = mc.ls(sl=True,flatten=True) or []
 
     if selected:
         targetObjects = selected
@@ -863,7 +863,7 @@ def doSelectInfluenceJoints():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     # Check for selection, defaults to using that for targets
-    selected = mc.ls(sl=True,flatten=True)
+    selected = mc.ls(sl=True,flatten=True) or []
 
     if selected:
         influenceList = []
@@ -910,7 +910,7 @@ def doReturnExcessInfluenceVerts(self):
     maxInfluences = self.MaxVertsField(q=True,v=True)
 
 
-    selected = mc.ls(sl=True,flatten=True)
+    selected = mc.ls(sl=True,flatten=True) or []
     if skinning.querySkinCluster(selected[0]):
         badVertices = skinning.returnExcessInfluenceVerts(selected[0],maxInfluences)
         returnProc(badVertices)
@@ -941,7 +941,7 @@ def doLayoutByRowsAndColumns(self):
     columnNumber = mc.optionVar(q='cgmVar_RowColumnCount')
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True)) or []
     mc.select(cl=True)
     if selected:
 	targetObject = selected[-1]
@@ -966,7 +966,7 @@ def doAimSnapToOne():
     worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_WorldUpAxis'))
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
     if len(selected) >=2:
         for item in selected[:-1]:
@@ -982,7 +982,7 @@ def doAimSnapOneToNext():
     worldUpVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_WorldUpAxis'))
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
     if len(selected) >=2:
         parsedList = lists.parseListToPairs(selected)
@@ -1007,7 +1007,7 @@ def doSnapClosestPointToSurface(aim=True):
 
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
     if len(selected) >=2:
         ### Counter start ###
@@ -1127,7 +1127,7 @@ def TextCurveObjectCreate(self):
 def doSetCurveColorByIndex(colorIndex):
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     if selected:
         for obj in selected:
             curves.setColorByIndex(obj,colorIndex)
@@ -1139,7 +1139,7 @@ def doSetCurveColorByIndex(colorIndex):
 def TextCurveObjectdoLoad(self):
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     if selected:
         if len(selected) >= 2:
             guiFactory.warning('Only one cgmTextCurve can be loaded')
@@ -1274,7 +1274,7 @@ def doCreateOneOfEachCurve(self):
 def curveControlCreate(self):
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
     colorChoice = mc.optionVar(q='cgmVar_DefaultOverrideColor')
 
@@ -1379,9 +1379,8 @@ def curveControlConnect(self):
 		rigging.doParentReturnName(c,transform)
 	return transform
     
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     
     if not selected:
 	guiFactory.warning("Nothing is selected")
@@ -1532,9 +1531,8 @@ def doCreateCurveFromObjects():
     curveName(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
 
     if len(selected)<2:
@@ -1559,9 +1557,8 @@ def uiSetGuessOrientation(self):
     curveName(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     aimFromObject = []
     aimToObject = []
     # set world regardless of selection
@@ -1640,7 +1637,7 @@ def doShapeParent():
     """
     selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
 
     if len(selected)<2:
@@ -1666,9 +1663,8 @@ def doShapeParentInPlace():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
 
     if len(selected)<2:
@@ -1691,8 +1687,7 @@ def doReplaceCurveShapes():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
 
     if len(selected)<2:
@@ -1732,9 +1727,8 @@ def doCurveToPython():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     if selected:
         for obj in selected:
             if search.returnObjectType(obj) in ['nurbsCurve','shape']:
@@ -1758,9 +1752,8 @@ def doCombineCurves():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True)
     if selected:
         goodObjects = []
         for obj in selected:
@@ -1789,9 +1782,8 @@ def doReportObjectType():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     for obj in selected:
         objType = search.returnObjectType(obj)
         print (">>> '" + obj + "' == " + objType)
@@ -1818,9 +1810,8 @@ def doReportSelectionCount():
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def zeroGroupMe():
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     if selected:
         for obj in selected:
             rigging.zeroTransformMeObject(obj)
@@ -1829,9 +1820,8 @@ def zeroGroupMe():
         guiFactory.warning('You must select something.')
 
 def makeTransformHere():
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     if selected:
         for obj in selected:
             rigging.groupMeObject(obj,False)
@@ -1840,9 +1830,8 @@ def makeTransformHere():
         guiFactory.warning('You must select something.')
 
 def doGroupMeInPlace():
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     if selected:
         for obj in selected:
             rigging.groupMeObject(obj,True,True)
@@ -1862,9 +1851,8 @@ def doCopyPivot():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
 
     if len(selected)<2:
@@ -1890,9 +1878,8 @@ def doParentSelected():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
 
     if len(selected)<2:

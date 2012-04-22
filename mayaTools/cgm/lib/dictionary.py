@@ -31,6 +31,9 @@
 
 import maya.cmds as mc
 from cgm.lib import settings
+import operator
+from operator import itemgetter
+from itertools import groupby
 
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
@@ -43,8 +46,22 @@ settingsDictionaryFile = settings.getSettingsDictionaryFile()
 """
 Orienation and Vectors
 """
+stringToVectorDict = {'x+':[1,0,0],
+                      'x-':[-1,0,0],
+                      'y+':[0,1,0],
+                      'y-':[0,-1,0],
+                      'z+':[0,0,1],
+                      'z-':[0,0,-1]}
+
+vectorToStringDict = {'[1,0,0]':'x+',
+                      '[-1,0,0]':'x-',
+                      '[0,1,0]':'y+',
+                      '[0,-1,0]':'y-',
+                      '[0,0,1]':'z+',
+                      '[0,0,-1]':'z-'}
+
+
 def returnStringToVectors(direction):
-    stringToVectorDict = {'x+':[1,0,0],'x-':[-1,0,0],'y+':[0,1,0],'y-':[0,-1,0],'z+':[0,0,1],'z-':[0,0,-1]}
     if direction in stringToVectorDict.keys():
         return stringToVectorDict.get(direction)
     else:
@@ -53,7 +70,6 @@ def returnStringToVectors(direction):
 
 
 def returnVectorToString(vector):
-    vectorToStringDict = {'[1,0,0]':'x+','[-1,0,0]':'x-','[0,1,0]':'y+','[0,-1,0]':'y-','[0,0,1]':'z+','[0,0,-1]':'z-'}
     joinBuffer = ','.join(map(str,vector))
     buffer =   ('%s%s%s' % ("[",joinBuffer,"]"))
     stringBuffer= vectorToStringDict.get(buffer)
@@ -66,32 +82,40 @@ def returnVectorToString(vector):
 """
 Colors
 """    
+colorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
+             'blueDark':5,'blueBright':6,'greenDark':7,'violetDark':8,
+             'violetBright':9,'brownReg':10,'brownDark':11,
+             'orangeDark':12,'redBright':13,'greenBright':14,'blueDull':15,
+             'white':16,'yellowBright':17,'blueSky':18,'teal':19,
+             'pink':20,'peach':21,'yellow':22,'greenBlue':23,'tan':24,
+             'olive':25,'greenYellow':26,'greenBlue':27,'blueGray':28,
+             'blueGrayDark':29,'purple':30,'purpleBrown':31}
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnColorIndex(color):
-    colorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,'blueDark':5,'blueBright':6,'greenDark':7,'violetDark':8,'violetBright':9,'brownReg':10,'brownDark':11,'orangeDark':12,'redBright':13,'greenBright':14,'blueDull':15,'white':16,'yellowBright':17,'blueSky':18,'teal':19,'pink':20,'peach':21,'yellow':22,'greenBlue':23,'tan':24,'olive':25,'greenYellow':26,'greenBlue':27,'blueGray':28,'blueGrayDark':29,'purple':30,'purpleBrown':31}
     colorIndexBuffer = colorDict.get(color)
     if colorIndexBuffer != None:
         return colorIndexBuffer
     else:
         return None
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+stateColors = {'normal':[1,1,1],
+               'ready':[ 0.166262 ,0.388495 , 0.022797],
+               'keyed':[0.870588, 0.447059, 0.478431],
+               'locked':[0.360784, 0.407843, 0.454902],
+               'connected':[0.945098, 0.945098, 0.647059],
+               'reserved':[0.411765 , 0.411765 , 0.411765],
+               'semiLocked':[ 0.89, 0.89, 0.89],
+               'help':[0.8, 0.8, 0.8],
+               'warning':[0.837, 0.399528, 0.01674],
+               'error':[1, 0.0470588, 0.0677366],
+               'black':[0,0,0]}
+
 def returnColorDict():
-    colorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,'blueDark':5,'blueBright':6,'greenDark':7,'violetDark':8,'violetBright':9,'brownReg':10,'brownDark':11,'orangeDark':12,'redBright':13,'greenBright':14,'blueDull':15,'white':16,'yellowBright':17,'blueSky':18,'teal':19,'pink':20,'peach':21,'yellow':22,'greenBlue':23,'tan':24,'olive':25,'greenYellow':26,'greenBlue':27,'blueGray':28,'blueGrayDark':29,'purple':30,'purpleBrown':31}
     return colorDict
 
 
 def returnStateColor(newState):
-    stateColors = {'normal':[1,1,1],
-                   'ready':[ 0.166262 ,0.388495 , 0.022797],
-                   'keyed':[0.870588, 0.447059, 0.478431],
-                   'locked':[0.360784, 0.407843, 0.454902],
-                   'connected':[0.945098, 0.945098, 0.647059],
-                   'reserved':[0.411765 , 0.411765 , 0.411765],
-                   'semiLocked':[ 0.89, 0.89, 0.89],
-                   'help':[0.8, 0.8, 0.8],
-                   'warning':[0.837, 0.399528, 0.01674],
-                   'error':[1, 0.0470588, 0.0677366],
-                   'black':[0,0,0]}
     if newState in stateColors.keys():
         return stateColors.get(newState)
     else:
@@ -99,9 +123,15 @@ def returnStateColor(newState):
 """
 Rotate Order
 """
+rotateOrderDictionary = {'xyz':0,
+                         'yzx':1,
+                         'zxy':2,
+                         'xzy':3,
+                         'yxz':4,
+                         'zyx':5}    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnRotateOrderIndex(ro):
-    rotateOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5}    
     indexBuffer = rotateOrderDictionary.get(ro)
     if indexBuffer != None:
         return indexBuffer
@@ -109,7 +139,6 @@ def returnRotateOrderIndex(ro):
         return None
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnRotateOrderDict():    
-    rotateOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5}    
     return rotateOrderDictionary
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -142,7 +171,19 @@ def initializeDictionary(file):
             else:
                 dictionary[colonSplit[0]] = colonSplit[1]
     return dictionary
-
+def initializeDictionaryScott(file):
+    with open(file) as f:
+        dictionary = dict()
+        for line in f: # this is more efficient because we are not dumping the whole file into a list
+            key, sep, value = line.partition(':')
+            if ',' in value:
+                value = map(str.strip, value.split(','))
+            else:
+                dictionary[colonSplit[0]] = colonSplit[1]
+                value = value.strip()
+            
+            dictionary[key.strip()] = value
+    return dictionary
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnDictionaryListToList(dictionaryFile,key):
     """ 
@@ -158,52 +199,27 @@ def returnDictionaryListToList(dictionaryFile,key):
     orderedModules(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """   
-    dict = initializeDictionary(dictionaryFile)
-    listBuffer = dict.get(key)
+    dictFile = initializeDictionary(dictionaryFile)
+    listBuffer = dictFile[key]
     return listBuffer.split(',')
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDictionarySortedToList (dict,sortBy='values'):
+def returnDictionarySortedToList (dictToSort,sortByValues=True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns a sorted list from a dictionary
     
     REQUIRES:
-    dict(dict) - in {'name':vaue} format
-    sortBy(string) - default is to sort by values, you can tell it to set by keys with
-                     any other value
+    dict(dict) - in {'name':value} format
+    sortByValues(bool) - default is to sort by values
     
     RETURNS:
     sortedList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """   
-    dictionaryList = []
-    
-    """ set our sort by variable """
-    if sortBy == 'values':
-        sorter = 1
-    else:
-        sorter = 0
-    
-    """ get list form """
-    for key in dict:
-        buffer = []
-        buffer.append(key)
-        buffer.append(dict.get(key))
-        dictionaryList.append(buffer)
-    
-    """ sort it """
-    newList = []
-    from operator import itemgetter
-    dictionaryList.sort(key=itemgetter(sorter))
-    from itertools import groupby
-    y = groupby(dictionaryList, itemgetter(sorter))
-    
-    for set, items in groupby(dictionaryList, itemgetter(sorter)):
-        for i in items:
-            newList.append(i)
-    return newList
+    return sorted(dictToSort.iteritems(), key=operator.itemgetter(sortByValues))    
+
         
     
 

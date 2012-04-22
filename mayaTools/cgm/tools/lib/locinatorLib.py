@@ -83,35 +83,36 @@ def doLocMe(self):
     locList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selection = mc.ls(sl=True,flatten=True) or []
     mc.select(cl=True)
+    
+    if not selection:
+	return mc.spaceLocator(name = 'worldCenter_loc')
+    
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
+    
+    retLocators = []
+    
+    mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selection))		
+    
+    for item in selection:
+	if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+		break
+	mc.progressBar(mayaMainProgressBar, edit=True, status = ("Procssing '%s'"%item), step=1)
 
-    if selected:
-	mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selected))		
+	loc = locators.locMeObject(item, self.forceBoundingBoxState)
+	if '.' not in list(item):
+	    attributes.storeInfo(item,'cgmMatchObject',loc)
+	retLocators.append(loc)
 	
-	for item in selected:
-	    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-		    break
-	    mc.progressBar(mayaMainProgressBar, edit=True, status = ("Procssing '%s'"%item), step=1)
+    guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
-	    
-	    locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
-	    if '.' not in list(item):
-		attributes.storeInfo(item,'cgmMatchObject',locBuffer)
-	    bufferList.append(locBuffer)
-	    
-	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+    if retLocators:
+        mc.select(retLocators)
 
-    if bufferList:
-        mc.select(bufferList)
-
-    if len(bufferList) > 0:
-        print ('%s%s' % (" The following locators have been created - ", bufferList))
-    else:
-        return (mc.spaceLocator(name = 'worldCenter_loc'))
+    print 'The following locators have been created - %s' % ','.join(retLocators)
+    return retLocators
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doPurgeCGMAttrs(self):
     """
@@ -183,9 +184,8 @@ def doTagObjects(self):
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True)) or []
     mc.select(cl=True)
 
     if len(selected)<2:
@@ -252,9 +252,8 @@ def doLocClosest():
     locatorList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True)) or []
     mc.select(cl=True)
 
     if len(selected)<2:
@@ -278,9 +277,8 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     Nothing
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True)) or []
     self.bakeMode = mc.optionVar( q='cgmLocinatorBakeState' )
     self.forceEveryFrame = mc.optionVar( q='cgmKeyingMode' )
     self.keyingTargetState = mc.optionVar( q='cgmKeyingTarget' )
@@ -447,8 +445,7 @@ def doLocCVsOfObject():
     locList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = lists.returnSelectedToList()
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True))  or []
     badObjects = []
     returnList = []
     if len(selected)<=1:
@@ -481,8 +478,7 @@ def doLocCVsOnObject():
     locList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = lists.returnSelectedToList()
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = (mc.ls (sl=True,flatten=True)) or []
     badObjects = []
     returnList = []
 
@@ -573,6 +569,5 @@ def returnLocatorSources(locatorName):
 	else:
 	    print "Doesn't have a source stored"
 	    return False
-
     else:
 	return False
