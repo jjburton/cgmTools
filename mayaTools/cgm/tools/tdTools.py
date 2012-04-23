@@ -843,6 +843,7 @@ class tdToolsClass(BaseMelWindow):
 	self.MakeMasterControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Master')
 	self.MakeVisControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Vis')
 	self.MakeSettingsControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Settings')
+	self.MakeGroupsCB = MelCheckBox(MasterControlSettingsRow,label = 'Groups')
 	MasterControlSettingsRow.layout()
 
 

@@ -30,10 +30,10 @@ import subprocess
 
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
+from cgm.lib.classes.ObjectFactory import *
 
 
 from cgm.lib import (guiFactory,
-                     objectFactory,
                      controlBuilder,
                      constraints,
                      curves,
@@ -55,6 +55,7 @@ from cgm.tools.lib import locinatorLib,namingToolsLib
 
 reload(curves)
 reload(position)
+reload(attributes)
 """
 
 """
@@ -1066,7 +1067,7 @@ def returnObjectSizesForCreation(self,objList):
 	    divider = 1
         sizeList = []
         for item in objList:
-	    o = objectFactory.go(item)
+	    o = ObjectFactory(item)
 	    if o.type == 'joint':
 		child = mc.listRelatives(item,children = True, type = 'transform',path = True)
 		if child:
@@ -1085,7 +1086,7 @@ def returnObjectSizesForCreation(self,objList):
 		    else:
 			sizeList.append( sizeAverage/divider )
 	    else:
-		sizeList.append( max(distance.returnBoundingBoxSize(item)) )
+		sizeList.append( max(distance.returnBoundingBoxSize(item))/divider )
         if self.sizeMode == 3:
             return ( sum(sizeList)/len(sizeList) )
         elif self.sizeMode == 5:
@@ -1279,6 +1280,9 @@ def curveControlCreate(self):
     self.sizeMode = mc.optionVar( q='cgmVar_SizeMode' )
     makeVisControl =  self.MakeVisControlCB(q=True, value=True)
     makeSettingsControl =  self.MakeSettingsControlCB(q=True, value=True)
+    makeRigGroups = self.MakeGroupsCB(q=True, value=True)
+    
+    
 
     if self.MakeMasterControlCB(q=True, value=True):
         if selection:
@@ -1287,9 +1291,9 @@ def curveControlCreate(self):
 	    size = self.textObjectSizeField(q=True,value=True)
 	    
 	if self.uiCurveName:
-	    bufferList = controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeVisControl,makeSettingsControl,True)
+	    bufferList = controlBuilder.createMasterControl(self.uiCurveName,size,self.textObjectFont,makeVisControl,makeSettingsControl,makeRigGroups)
 	else:
-	    bufferList = controlBuilder.createMasterControl('char',size,self.textObjectFont,makeVisControl,makeSettingsControl,True)
+	    bufferList = controlBuilder.createMasterControl('char',size,self.textObjectFont,makeVisControl,makeSettingsControl,makeRigGroups)
 	
 	self.MakeMasterControlCB(e=True, value=False)
 
@@ -1396,13 +1400,13 @@ def curveControlConnect(self):
     parentConstraintTargets = {}
     for obj in selection:
 	cnt = selection.index(obj)
-	obj = objectFactory.go(obj)
+	obj = ObjectFactory(obj)
 	obj.store('cgmType','controlAnim')
 	obj.doName()	
 	selection[cnt] = obj.nameBase
 	
 	if 'cgmSource' in obj.userAttrs.keys():
-	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))	
+	    source = ObjectFactory(obj.userAttrs.get('cgmSource'))	
 	    
 	    buffer = updateTransform(obj.nameShort,source.nameShort)
 	    print buffer
@@ -1427,9 +1431,9 @@ def curveControlConnect(self):
     
     # Loop to connect stuff
     for obj in selection:
-	obj = objectFactory.go(obj)
+	obj = ObjectFactory(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
-	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))    
+	    source = ObjectFactory(obj.userAttrs.get('cgmSource'))    
 	    
 	    if ConnectBy == 'ShapeParent':
 		curves.parentShapeInPlace(source.nameLong,obj.nameLong)
@@ -1456,7 +1460,7 @@ def curveControlConnect(self):
 			    #rigging.copyPivot(buffer[0],parentConstraintTargets.get(obj.nameBase))
 			
 		if ExtraGroupState:
-		    ConstraintGroup = objectFactory.go(rigging.groupMeObject(obj.nameLong,True,True) )
+		    ConstraintGroup = ObjectFactory(rigging.groupMeObject(obj.nameLong,True,True) )
 		    ConstraintGroup.store('cgmTypeModifier','constraint')
 		    
 		if RotateOrderState:
@@ -1857,7 +1861,7 @@ def doCopyPivot():
         except:
             guiFactory.warning(obj + ' failed')
 	    
-def doParentselection():
+def doParentSelected():
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:

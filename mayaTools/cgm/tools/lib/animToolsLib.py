@@ -30,10 +30,10 @@ import subprocess
 
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
+from cgm.lib.classes.ObjectFactory import *
 
 
 from cgm.lib import (guiFactory,
-                     objectFactory,
                      controlBuilder,
                      constraints,
                      curves,
@@ -1384,9 +1384,9 @@ def curveControlConnect(self):
     # First loop to get info
     parentConstraintTargets = {}
     for obj in selected:
-	obj = objectFactory.go(obj)
+	obj = ObjectFactory(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
-	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))	
+	    source = ObjectFactory(obj.userAttrs.get('cgmSource'))	
 	    
 	    buffer = updateTransform(obj.nameShort,source.nameShort)
 	    print buffer
@@ -1407,9 +1407,9 @@ def curveControlConnect(self):
     
     # Loop to connect stuff
     for obj in selected:
-	obj = objectFactory.go(obj)
+	obj = ObjectFactory(obj)
 	if 'cgmSource' in obj.userAttrs.keys():
-	    source = objectFactory.go(obj.userAttrs.get('cgmSource'))
+	    source = ObjectFactory(obj.userAttrs.get('cgmSource'))
 	    
 	    
 	    if ConnectBy == 'ShapeParent':
@@ -1437,7 +1437,7 @@ def curveControlConnect(self):
 			    #rigging.copyPivot(buffer[0],parentConstraintTargets.get(obj.nameBase))
 			
 		if ExtraGroupState:
-		    ConstraintGroup = objectFactory.go(rigging.groupMeObject(obj.nameLong,True,True) )
+		    ConstraintGroup = ObjectFactory(rigging.groupMeObject(obj.nameLong,True,True) )
 		    ConstraintGroup.store('cgmTypeModifier','constraint')
 		    
 		if RotateOrderState:
