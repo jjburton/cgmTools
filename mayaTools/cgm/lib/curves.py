@@ -330,7 +330,7 @@ def returnColorsFromCurve(curve):
                 volmesBuffer = volmesBuffer + volume
         colorVolumes[color] = volmesBuffer
         
-    orderedDictList = dictionary.returnDictionarySortedToList (colorVolumes,sortBy='values')
+    orderedDictList = dictionary.returnDictionarySortedToList (colorVolumes,True)
     returnList = []
     orderedDictList.reverse()
     for set in orderedDictList:
