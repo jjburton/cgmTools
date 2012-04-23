@@ -1138,7 +1138,7 @@ def addAttributesToObj (obj, attributeTypesDict):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     """sort the keys"""
-    sortedAttributes = dictionary.returnDictionarySortedToList(attributeTypesDict,sortBy='values')
+    sortedAttributes = dictionary.returnDictionarySortedToList(attributeTypesDict,True)
 
     """ make em"""
     for set in sortedAttributes:
