@@ -18,7 +18,7 @@
 #
 # CHANGELOG:
 #	0.1.11292011 - First version
-#	0.1.12012011 - Closest object working, update selected, just loc selected working
+#	0.1.12012011 - Closest object working, update selection, just loc selection working
 #	0.1.12022011 - Got most things working now except for the stuff in time, tabs added, honoring postion option now
 #	0.1.12032011 - Made hide info hideable, work on templates. Update locator over time working. Adding match tab
 #	0.1.12062011 - Rewrite to work with maya 2010 and below, pushing most things through guiFactory now
@@ -127,15 +127,15 @@ def doPurgeCGMAttrs(self):
     locatorName(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selection = []
+    selection = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
 
-    if len(selected) >=1:
-        for item in selected:
+    if len(selection) >=1:
+        for item in selection:
             modules.purgeCGMAttrsFromObject(item)
     else:
-        guiFactory.warning('Something must be selected')
+        guiFactory.warning('Something must be selection')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -152,17 +152,17 @@ def doLocCenter(self):
     locatorName(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selection = []
+    selection = (mc.ls (sl=True,flatten=True))
     mc.select(cl=True)
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
 
-    print selected 
+    print selection 
 
-    if len(selected) >=2:
-        buffer = (locators.locMeCenter(selected,self.forceBoundingBoxState))
-    elif len(selected) == 1:
-        buffer =(locators.locMeCenter(selected,True))
+    if len(selection) >=2:
+        buffer = (locators.locMeCenter(selection,self.forceBoundingBoxState))
+    elif len(selection) == 1:
+        buffer =(locators.locMeCenter(selection,True))
     else:
         return (mc.spaceLocator(name = 'worldCenter_loc'))
 
@@ -185,16 +185,16 @@ def doTagObjects(self):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True)) or []
+    selection = (mc.ls (sl=True,flatten=True)) or []
     mc.select(cl=True)
 
-    if len(selected)<2:
-        guiFactory.warning('You must have at least two objects selected')
+    if len(selection)<2:
+        guiFactory.warning('You must have at least two objects selection')
         return False
 
     typeList = []
     taggingLoc = False
-    for obj in selected:
+    for obj in selection:
         if 'locator' not in typeList:
             objType = search.returnObjectType(obj)
             typeList.append(objType)
@@ -204,7 +204,7 @@ def doTagObjects(self):
             print 'You have more than one locator'
 
     if taggingLoc:
-        for obj in selected:
+        for obj in selection:
             if obj is not taggingLoc:
                 attributes.storeInfo(obj,'cgmMatchObject',taggingLoc)
                 print ('%s%s' % (obj, " tagged and released..."))
@@ -253,21 +253,21 @@ def doLocClosest():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True)) or []
+    selection = (mc.ls (sl=True,flatten=True)) or []
     mc.select(cl=True)
 
-    if len(selected)<2:
-        guiFactory.warning('You must have at least two objects selected')
+    if len(selection)<2:
+        guiFactory.warning('You must have at least two objects selection')
         return False
     else:
-        buffer = locators.locClosest(selected[:-1],selected[-1])
+        buffer = locators.locClosest(selection[:-1],selection[-1])
         mc.select(buffer)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Updates selected locator or object connected to a match locator's position and rotation
+    Updates selection locator or object connected to a match locator's position and rotation
 
     REQUIRES:
     ui
@@ -278,19 +278,19 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True)) or []
+    selection = (mc.ls (sl=True,flatten=True)) or []
     self.bakeMode = mc.optionVar( q='cgmLocinatorBakeState' )
     self.forceEveryFrame = mc.optionVar( q='cgmKeyingMode' )
     self.keyingTargetState = mc.optionVar( q='cgmKeyingTarget' )
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
 
-    if not len(selected):
-        guiFactory.warning('Nothing Selected')
+    if not len(selection):
+        guiFactory.warning('Nothing selection')
         return 
 
     toUpdate = []
     # First see if we have any updateable objects
-    for item in selected:
+    for item in selection:
         if queryCanUpdate(item):
             toUpdate.append(item)
 
@@ -430,7 +430,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                 mc.currentTime(initialFramePosition)
 		mc.select(toUpdate)
     else:
-        guiFactory.warning('No updateable object selected')
+        guiFactory.warning('No updateable object selection')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doLocCVsOfObject():
     """
@@ -439,17 +439,17 @@ def doLocCVsOfObject():
     Places locators on the cv's of a curve
 
     REQUIRES:
-    Selected Curve
+    selection Curve
 
     RETURNS:
     locList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = (mc.ls (sl=True,flatten=True))  or []
+    selection = (mc.ls (sl=True,flatten=True))  or []
     badObjects = []
     returnList = []
-    if len(selected)<=1:
-        for item in selected:
+    if len(selection)<=1:
+        for item in selection:
             if search.returnObjectType(item) == 'nurbsCurve':
                 returnList.extend( locators.locMeCVsOfCurve(item) )
             else:
@@ -472,18 +472,18 @@ def doLocCVsOnObject():
     Places locators on the cv's closest position on a curve
 
     REQUIRES:
-    Selected Curve
+    selection Curve
 
     RETURNS:
     locList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    selected = (mc.ls (sl=True,flatten=True)) or []
+    selection = (mc.ls (sl=True,flatten=True)) or []
     badObjects = []
     returnList = []
 
-    if len(selected)<=1:
-        for item in selected:
+    if len(selection)<=1:
+        for item in selection:
             if search.returnObjectType(item) == 'nurbsCurve':
                 returnList.extend( locators.locMeCVsOnCurve(item) )
             else:
