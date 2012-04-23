@@ -366,9 +366,14 @@ def doToggleIntOptionVariable(variable):
     varState = mc.optionVar( q= variable )
     mc.optionVar( iv=(variable, not varState))
 
-def doCheckBox(parent,optionVarName,*a,**kw):
+def appendOptionVarList(self,varName):
+    if varName not in self.optionVars:
+        self.optionVars.append(varName)
+
+def doCheckBox(self,parent,optionVarName,*a,**kw):
+    appendOptionVarList(self,'cgmVar_KeyingTarget')	
     if not mc.optionVar( ex=optionVarName ):
-        mc.optionVar( iv=(optionVarName, 0) )  
+        mc.optionVar( iv=(optionVarName, 0) )         
 
     return MelCheckBox(parent,
                        v = mc.optionVar(q=optionVarName),

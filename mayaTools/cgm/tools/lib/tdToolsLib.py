@@ -57,6 +57,7 @@ reload(curves)
 reload(position)
 reload(attributes)
 reload(autoname)
+reload(guiFactory)
 
 """
 

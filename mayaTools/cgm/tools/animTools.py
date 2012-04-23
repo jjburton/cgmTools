@@ -17,7 +17,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.04182012'
+__version__ = '0.1.04232012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
@@ -60,7 +60,8 @@ class animToolsClass(BaseMelWindow):
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
 		self.website = 'www.cgmonks.com'
-		self.version = __version__
+		self.version =  __version__ 
+		self.optionVars = []
 
 		self.currentFrameOnly = True
 		self.startFrame = ''
@@ -107,8 +108,8 @@ class animToolsClass(BaseMelWindow):
 			mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0) )
 		if not mc.optionVar( ex='cgmVar_animToolsShowHelp' ):
 			mc.optionVar( iv=('cgmVar_animToolsShowHelp', 0) )
-		if not mc.optionVar( ex='cgmCurrentFrameOnly' ):
-			mc.optionVar( iv=('cgmCurrentFrameOnly', 0) )
+		if not mc.optionVar( ex='cgmVar_CurrentFrameOnly' ):
+			mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0) )
 		if not mc.optionVar( ex='cgmVar_animToolsShowHelp' ):
 			mc.optionVar( iv=('cgmVar_animToolsShowHelp', 0) )
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -154,11 +155,11 @@ class animToolsClass(BaseMelWindow):
 
 	def do_showTimeSubMenuToggleOn( self):
 		guiFactory.toggleMenuShowState(1,self.timeSubMenu)
-		mc.optionVar( iv=('cgmCurrentFrameOnly', 1))
+		mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 1))
 
 	def do_showTimeSubMenuToggleOff( self):
 		guiFactory.toggleMenuShowState(0,self.timeSubMenu)
-		mc.optionVar( iv=('cgmCurrentFrameOnly', 0))
+		mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0))
 
 
 	def showAbout(self):

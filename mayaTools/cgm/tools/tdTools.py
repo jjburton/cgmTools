@@ -26,7 +26,7 @@
 #	0.1.01113012 - Started skin cluster utilities, added find verts with excess influence
 #
 #=================================================================================================================================================
-__version__ = '0.1.04182012'
+__version__ = '0.1.04232012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 import maya.mel as mel
@@ -70,20 +70,24 @@ class tdToolsClass(BaseMelWindow):
 	self.toolName = 'cgmTDTools'
 	self.module = 'cgmTDTools'
 	self.winName = 'cgmTDToolsWin'
-
+	self.version = __version__
+	self.optionVars = []
+	
 	self.showHelp = False
 	self.helpBlurbs = []
 	self.oldGenBlurbs = []
 
 	self.showTimeSubMenu = False
 	self.timeSubMenu = []
+	
+
 
 	# About Window
 	self.description = 'A large series of tools for general rigging purposes including: Curves, Naming, Positioning,Deformers'
 	self.author = 'Josh Burton'
 	self.owner = 'CG Monks'
 	self.website = 'www.cgmonks.com'
-	self.version = __version__
+
 
 	# About Window
 	self.sizeOptions = ['Object','Size+','1/2 Size','Average','Input Size','First Object']
@@ -177,7 +181,7 @@ class tdToolsClass(BaseMelWindow):
 	
 	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 	
-
+	print self.optionVars
 	#Trying a preload from selected
 	tdToolsLib.loadGUIOnStart(self)
 
@@ -199,6 +203,11 @@ class tdToolsClass(BaseMelWindow):
 	    mc.optionVar( iv=('cgmVar_RenameOnUpdate', 1) )
 	if not mc.optionVar( ex='cgmVar_DefaultOverrideColor' ):
 	    mc.optionVar( iv=('cgmVar_DefaultOverrideColor', 6) )
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_DefaultOverrideColor')	
+	guiFactory.appendOptionVarList(self,'cgmVar_RenameOnUpdate')	
+	guiFactory.appendOptionVarList(self,'cgmVar_SizeMode')	
+	guiFactory.appendOptionVarList(self,'cgmTDToolsWinActiveTab')	
 
 
     def updateCurrentTab(self,optionVar):
@@ -214,8 +223,11 @@ class tdToolsClass(BaseMelWindow):
 	# Font Menu
 	if not mc.optionVar( ex='cgmVar_FontOption' ):
 	    mc.optionVar( sv=('cgmVar_FontOption', self.textObjectFont) )	
-	if not mc.optionVar( ex='cgmVar_FontOption' ):
+	if not mc.optionVar( ex='cgmVar_CustomFontOption' ):
 	    mc.optionVar( sv=('cgmVar_CustomFontOption', self.textObjectFont) )	
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_FontOption')	
+	guiFactory.appendOptionVarList(self,'cgmVar_CustomFontOption')	
 	
 	FontMenu = MelMenuItem( self.UI_OptionsMenu, l='Font', subMenu=True)
 	FontMenuCollection = MelRadioMenuCollection()
@@ -313,7 +325,9 @@ class tdToolsClass(BaseMelWindow):
 	# Change font
 	if not mc.optionVar( ex='cgmVar_ChangeFontOnUpdate' ):
 	    mc.optionVar( iv=('cgmVar_ChangeFontOnUpdate', 1) )
-
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_ChangeFontOnUpdate')	
+	    
 	ChangeFontOnUpdateState = mc.optionVar( q='cgmVar_ChangeFontOnUpdate' )		
 	MelMenuItem( UpdatingMenu, l="Change font",
 	             cb=ChangeFontOnUpdateState,
@@ -324,7 +338,8 @@ class tdToolsClass(BaseMelWindow):
 	AutoloadMenu = MelMenuItem( self.UI_OptionsMenu, l='Auto Loading', subMenu=True)
 	if not mc.optionVar( ex='cgmVar_AutoloadAutoname' ):
 	    mc.optionVar( iv=('cgmVar_AutoloadAutoname', 0) )
-	    
+	guiFactory.appendOptionVarList(self,'cgmVar_AutoloadAutoname')	
+  
 	RenameOnUpdateState = mc.optionVar( q='cgmVar_AutoloadAutoname' )
 	MelMenuItem( AutoloadMenu, l="Autoname",
 	             cb= mc.optionVar( q='cgmVar_AutoloadAutoname' ),
@@ -332,7 +347,8 @@ class tdToolsClass(BaseMelWindow):
 	
 	if not mc.optionVar( ex='cgmVar_AutoloadTextObject' ):
 	    mc.optionVar( iv=('cgmVar_AutoloadTextObject', 0) )
-	    
+	guiFactory.appendOptionVarList(self,'cgmVar_AutoloadTextObject')	
+
 	RenameOnUpdateState = mc.optionVar( q='cgmVar_AutoloadTextObject' )
 	MelMenuItem( AutoloadMenu, l="Text Objects",
 	             cb= mc.optionVar( q='cgmVar_AutoloadTextObject' ),
@@ -341,6 +357,10 @@ class tdToolsClass(BaseMelWindow):
 	MelMenuItemDiv( self.UI_OptionsMenu )
 
     def buildAxisMenu(self, *a ):
+	guiFactory.appendOptionVarList(self,'cgmVar_ObjectUpAxis')	
+	guiFactory.appendOptionVarList(self,'cgmVar_ObjectAimAxis')	
+	guiFactory.appendOptionVarList(self,'cgmVar_WorldUpAxis')	
+
 	if not mc.optionVar( ex='cgmVar_ObjectUpAxis' ):
 	    mc.optionVar( sv=('cgmVar_ObjectUpAxis', 'x+') )
 	if not mc.optionVar( ex='cgmVar_ObjectAimAxis' ):
@@ -568,6 +588,8 @@ class tdToolsClass(BaseMelWindow):
 	#Options
 	OptionList = ['skinCluster','blendshape','utilities']
 	cgmVar_Name = 'cgmVar_DeformerMode'
+	guiFactory.appendOptionVarList(self,'cgmVar_DeformerMode')	
+	
 	RadioCollectionName ='DeformerMode'
 	RadioOptionList = 'DeformerModeSelectionChoicesList'
 	ModeSetRow = 'DeformerModeSetRow'
@@ -611,6 +633,8 @@ class tdToolsClass(BaseMelWindow):
     def buildTab_Naming(self,parent):
 	#Options
 	OptionList = ['autoname','standard']
+	guiFactory.appendOptionVarList(self,'cgmVar_NamingMode')	
+
 	cgmVar_Name = 'cgmVar_NamingMode'
 	RadioCollectionName ='NamingMode'
 	RadioOptionList = 'NamingModeSelectionChoicesList'
@@ -719,6 +743,7 @@ class tdToolsClass(BaseMelWindow):
 	self.HeirBuildTypesRadioCollectionChoices = []	
 	if not mc.optionVar( ex='cgmVar_HeirBuildType' ):
 	    mc.optionVar( iv=('cgmVar_HeirBuildType', 0) )
+	guiFactory.appendOptionVarList(self,'cgmVar_HeirBuildType')	
 	    
 	#build our sub section options
 	CurveControlOptionsTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
@@ -726,17 +751,17 @@ class tdToolsClass(BaseMelWindow):
 	#MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right')
 	#CurveControlOptionsTypeRow.setStretchWidget( MelLabel(CurveControlOptionsTypeRow,l='Options: ',align='right') )
 	MelSpacer(CurveControlOptionsTypeRow,w=10)
-	self.controlCurveRotateOrderCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_RotationOrderCurveControlOptionState',label = 'Rotate Order')
+	self.controlCurveRotateOrderCB = guiFactory.doCheckBox(self,CurveControlOptionsTypeRow,'cgmVar_RotationOrderCurveControlOptionState',label = 'Rotate Order')
 	
 	MelSpacer(CurveControlOptionsTypeRow,w=2)   
-	self.CurveControlExtraGroupCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_ExtraGroupCurveControlOptionState',label = '+Group')
+	self.CurveControlExtraGroupCB = guiFactory.doCheckBox(self,CurveControlOptionsTypeRow,'cgmVar_ExtraGroupCurveControlOptionState',label = '+Group')
 	
 	MelSpacer(CurveControlOptionsTypeRow,w=2)   
-	self.CurveControlLockNHideCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_LockNHideControlOptionState',label = 'LockNHide')
+	self.CurveControlLockNHideCB = guiFactory.doCheckBox(self,CurveControlOptionsTypeRow,'cgmVar_LockNHideControlOptionState',label = 'LockNHide')
 	
 	CurveControlOptionsTypeRow.setStretchWidget( MelSpacer(CurveControlOptionsTypeRow) )	
 	
-	self.CurveControlHeirarchyCB = guiFactory.doCheckBox(CurveControlOptionsTypeRow,'cgmVar_MaintainHeirarchyCurveControlOptionState',label = 'Heir: ')
+	self.CurveControlHeirarchyCB = guiFactory.doCheckBox(self,CurveControlOptionsTypeRow,'cgmVar_MaintainHeirarchyCurveControlOptionState',label = 'Heir: ')
 	
 	for item in self.HeirBuildTypes:
 	    cnt = self.HeirBuildTypes.index(item)
@@ -761,6 +786,8 @@ class tdToolsClass(BaseMelWindow):
 	self.CreateConstraintTypeRadioCollectionChoices = []		
 	if not mc.optionVar( ex='cgmVar_ControlConstraintType' ):
 	    mc.optionVar( iv=('cgmVar_ControlConstraintType', 0) )
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_ControlConstraintType')	
 
 	#build our sub section options
 	ConstraintTypeRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
@@ -770,7 +797,7 @@ class tdToolsClass(BaseMelWindow):
 	    self.CreateConstraintTypeRadioCollectionChoices.append(self.CreateConstraintTypeRadioCollection.createButton(ConstraintTypeRow,label=self.ConstraintTypes[cnt],
 	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmVar_ControlConstraintType',",cnt,"))"))))
 	    MelSpacer(ConstraintTypeRow,w=5)
-	self.ScaleConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVar_ScaleConstratingState',label = 'scale')	                                    
+	self.ScaleConstraintCB = guiFactory.doCheckBox(self,ConstraintTypeRow,'cgmVar_ScaleConstratingState',label = 'scale')	                                    
 	MelSpacer(ConstraintTypeRow,w=25) 
 	
 	ConstraintTypeRow.layout()
@@ -789,6 +816,7 @@ class tdToolsClass(BaseMelWindow):
 	self.CreateConnectionTypeRadioCollectionChoices = []		
 	if not mc.optionVar( ex='cgmVar_ControlConnectionType' ):
 	    mc.optionVar( iv=('cgmVar_ControlConnectionType', 0) )
+	guiFactory.appendOptionVarList(self,'cgmVar_ControlConnectionType')	
 
 	#build our sub section options
 	ConnectionTypeRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
@@ -841,10 +869,10 @@ class tdToolsClass(BaseMelWindow):
 
 	MelLabel(MasterControlSettingsRow,label = 'Master Control:',align='right')
 	
-	self.MakeMasterControlCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterControl',label = 'Master')
-	self.MakeVisControlCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterSettings',label = 'Vis')
-	self.MakeSettingsControlCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterVis',label = 'Settings')
-	self.MakeGroupsCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterGroups',label = 'Groups')
+	self.MakeMasterControlCB = guiFactory.doCheckBox(self,MasterControlSettingsRow,'cgmVar_MakeMasterControl',label = 'Master')
+	self.MakeVisControlCB = guiFactory.doCheckBox(self,MasterControlSettingsRow,'cgmVar_MakeMasterSettings',label = 'Vis')
+	self.MakeSettingsControlCB = guiFactory.doCheckBox(self,MasterControlSettingsRow,'cgmVar_MakeMasterVis',label = 'Settings')
+	self.MakeGroupsCB = guiFactory.doCheckBox(self,MasterControlSettingsRow,'cgmVar_MakeMasterGroups',label = 'Groups')
 	
 	MasterControlSettingsRow.layout()
 
@@ -1253,6 +1281,9 @@ class tdToolsClass(BaseMelWindow):
 	if not mc.optionVar( ex='cgmVar_BSBakeCombine' ):
 	    mc.optionVar( iv=('cgmVar_BSBakeCombine', 0) )
 
+	guiFactory.appendOptionVarList(self,'cgmVar_BSBakeInbetweens')	
+	guiFactory.appendOptionVarList(self,'cgmVar_BSBakeTransferConnections')	
+	guiFactory.appendOptionVarList(self,'cgmVar_BSBakeCombine')	
 
 	mc.setParent(self.containerName)
 	guiFactory.header('Baker')
@@ -1324,6 +1355,10 @@ class tdToolsClass(BaseMelWindow):
 	    mc.optionVar( iv=('cgmVar_PoseBufferDoConnect', 1) )
 	if not mc.optionVar( ex='cgmVar_PoseBufferDoRemoveMissing' ):
 	    mc.optionVar( iv=('cgmVar_PoseBufferDoRemoveMissing', 1) )
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_PoseBufferTransferConnections')	
+	guiFactory.appendOptionVarList(self,'cgmVar_PoseBufferDoConnect')	
+	guiFactory.appendOptionVarList(self,'cgmVar_PoseBufferDoRemoveMissing')	
 
 	#>>> Option Row
 	PoseBufferSettingsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
@@ -1492,6 +1527,8 @@ class tdToolsClass(BaseMelWindow):
 	#clear our variables
 	if not mc.optionVar( ex='cgmVar_AutoNameObject' ):
 	    mc.optionVar( sv=('cgmVar_AutoNameObject', '') )
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_AutoNameObject')	
 
 	LoadAutoNameObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
 
@@ -1717,6 +1754,8 @@ class tdToolsClass(BaseMelWindow):
 	#clear our variables
 	if not mc.optionVar( ex=optionVar ):
 	    mc.optionVar( sv=(optionVar, '') )
+	    
+	guiFactory.appendOptionVarList(self,optionVar)	
 
 	LoadObjectTargetUtilityRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
@@ -1758,6 +1797,9 @@ class tdToolsClass(BaseMelWindow):
 	if not mc.optionVar( ex='cgmVar_TargetObjects' ):
 	    mc.optionVar( sv=('cgmVar_TargetObjects', '') )
 
+	guiFactory.appendOptionVarList(self,'cgmVar_SourceObject')	
+	guiFactory.appendOptionVarList(self,'cgmVar_TargetObjects')	
+	
 
 	LoadObjectTargetUtilityRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
@@ -1803,6 +1845,7 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	if not mc.optionVar( ex=cgmVar_Name ):
 	    mc.optionVar( sv=(cgmVar_Name, OptionList[0]) )
+	guiFactory.appendOptionVarList(self,cgmVar_Name)	
 
 	ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
 	MelLabel(ModeSetRow, label = labelText,align='right')
@@ -1839,6 +1882,9 @@ class tdToolsClass(BaseMelWindow):
 	    mc.optionVar( iv=('cgmVar_RowColumnCount', 3) )
 	if not mc.optionVar( ex='cgmVar_OrderByName' ):
 	    mc.optionVar( iv=('cgmVar_OrderByName', 0) )
+	
+	guiFactory.appendOptionVarList(self,'cgmVar_RowColumnCount')	
+	guiFactory.appendOptionVarList(self,'cgmVar_OrderByName')	
 
 	self.RowColumnLayoutModes = ['Column','Row']
 
@@ -1864,6 +1910,8 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	if not mc.optionVar( ex='cgmVar_SurfaceSnapAimMode' ):
 	    mc.optionVar( iv=('cgmVar_SurfaceSnapAimMode', 0) )
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_SurfaceSnapAimMode')	
 
 	self.surfaceSnapAimModes = ['Normal','Start Pos']
 

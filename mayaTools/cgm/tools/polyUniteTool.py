@@ -86,6 +86,7 @@ class polyUniteClass(BaseMelWindow):
 		self.toolName = 'cgmTDTools'
 		self.module = 'cgmTDTools'
 		self.winName = 'cgmTDToolsWin'
+		self.optionVars = []
 
 		self.showHelp = False
 		self.helpBlurbs = []

@@ -43,7 +43,7 @@ optionVarTypeDict = {'int':['int','i','integer',1,0],
                      'float':['f','float','fl',1.0,0.0],
                      'string':['string','str','s']}
 
-class OptionVarsFactory():
+class OptionVarFactory():
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     Assertions to verify:

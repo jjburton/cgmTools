@@ -28,6 +28,8 @@
 #                      some stuff not being visible when you show the
 #
 #=================================================================================================================================================
+__version__ = '0.1.04232012'
+
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 import maya.mel as mel
@@ -36,7 +38,6 @@ import maya.cmds as mc
 from cgm.tools.lib import locinatorLib
 reload(locinatorLib)
 from cgm.lib import (search,guiFactory)
-
 
 def run():
 	cgmLocinatorWin = locinatorClass()
@@ -63,7 +64,8 @@ class locinatorClass(BaseMelWindow):
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
 		self.website = 'www.cgmonks.com'
-		self.version = '0.1.12112011'
+		self.version =  __version__ 
+		self.optionVars = []
 
 		self.currentFrameOnly = True
 		self.startFrame = ''
@@ -78,6 +80,7 @@ class locinatorClass(BaseMelWindow):
 
 		self.showTimeSubMenu = False
 		self.timeSubMenu = []
+		
 
 		#Menu
 		self.setupVariables
@@ -99,6 +102,9 @@ class locinatorClass(BaseMelWindow):
 		self.buildBasicLayout(TabBasic)
 		self.buildSpecialLayout(TabSpecial)
 		self.buildMatchLayout(TabMatch)
+		
+		print self.optionVars
+
 
 		self.show()
 
@@ -109,10 +115,12 @@ class locinatorClass(BaseMelWindow):
 			mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0) )
 		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
 			mc.optionVar( iv=('cgmVar_LocinatorShowHelp', 0) )
-		if not mc.optionVar( ex='cgmCurrentFrameOnly' ):
-			mc.optionVar( iv=('cgmCurrentFrameOnly', 0) )
-		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
-			mc.optionVar( iv=('cgmVar_LocinatorShowHelp', 0) )
+		if not mc.optionVar( ex='cgmVar_CurrentFrameOnly' ):
+			mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0) )
+			
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorShowHelp')	
+
+
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -177,11 +185,11 @@ class locinatorClass(BaseMelWindow):
 
 	def do_showTimeSubMenuToggleOn( self):
 		guiFactory.toggleMenuShowState(1,self.timeSubMenu)
-		mc.optionVar( iv=('cgmCurrentFrameOnly', 1))
+		mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 1))
 
 	def do_showTimeSubMenuToggleOff( self):
 		guiFactory.toggleMenuShowState(0,self.timeSubMenu)
-		mc.optionVar( iv=('cgmCurrentFrameOnly', 0))
+		mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0))
 
 
 	def showAbout(self):
@@ -273,6 +281,8 @@ class locinatorClass(BaseMelWindow):
 		self.KeyingModeCollectionChoices = []		
 		if not mc.optionVar( ex='cgmVar_KeyingMode' ):
 			mc.optionVar( iv=('cgmVar_KeyingMode', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_KeyingMode')	
+			
 		
 		KeysSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(KeysSettingsFlagsRow,w=2)	
@@ -292,6 +302,8 @@ class locinatorClass(BaseMelWindow):
 		self.KeyingTargetCollectionChoices = []		
 		if not mc.optionVar( ex='cgmVar_KeyingTarget' ):
 			mc.optionVar( iv=('cgmVar_KeyingTarget', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_KeyingTarget')	
+			
 		
 		BakeSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(BakeSettingsFlagsRow,w=2)	

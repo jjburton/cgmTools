@@ -88,6 +88,7 @@ class namingToolsClass(BaseMelWindow):
 		self.toolName = 'namingTools'
 		self.module = 'tdTools'
 		self.winName = 'NamingToolsWin'
+		self.optionVars = []
 
 		self.showHelp = False
 		self.helpBlurbs = []
@@ -101,7 +102,7 @@ class namingToolsClass(BaseMelWindow):
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
 		self.website = 'www.cgmonks.com'
-		self.version = __version__
+		self.version =  __version__ 
 
 		# About Window
 		self.sizeOptions = ['Object','Average','Input Size','First Object']

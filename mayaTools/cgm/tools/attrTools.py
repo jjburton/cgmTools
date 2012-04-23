@@ -62,6 +62,7 @@ class attrToolsClass(BaseMelWindow):
 		self.toolName = 'attrTools'
 		self.module = 'tdTools'
 		self.winName = 'attrToolsWin'
+		self.optionVars = []
 
 		self.showHelp = False
 		self.helpBlurbs = []
