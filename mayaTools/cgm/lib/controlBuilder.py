@@ -26,6 +26,8 @@
 #   
 #=================================================================================================================================================
 import maya.cmds as mc
+from cgm.lib.classes import ObjectFactory
+
 
 from cgm.lib import search
 from cgm.lib import locators
@@ -42,7 +44,6 @@ from cgm.lib import settings
 from cgm.lib import lists
 from cgm.lib import modules
 from cgm.lib import settings
-from cgm.lib import objectFactory
 
 import re
 import math
@@ -219,25 +220,25 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     """ Default groups """
     if defaultGroups:
         nullBuffer = mc.group(em=True)
-        noTransNull = objectFactory.go(nullBuffer)
+        noTransNull = ObjectFactory(nullBuffer)
         noTransNull.store('cgmName','noTransform')
         noTransNull.doName()
         noTransNull.doParent(masterNull)
         
         nullBuffer = mc.group(em=True)
-        geoNull = objectFactory.go(nullBuffer)
+        geoNull = ObjectFactory(nullBuffer)
         geoNull.store('cgmName','geo')
         geoNull.doName()
         geoNull.doParent(noTransNull.nameLong)
         
         nullBuffer = mc.group(em=True)
-        skeletonNull = objectFactory.go(nullBuffer)
+        skeletonNull = ObjectFactory(nullBuffer)
         skeletonNull.store('cgmName','skeleton')
         skeletonNull.doName()
         skeletonNull.doParent(rootCurve)    
         
         nullBuffer = mc.group(em=True)
-        rigNull = objectFactory.go(nullBuffer)
+        rigNull = ObjectFactory(nullBuffer)
         rigNull.store('cgmName','rig')
         rigNull.doName()
         rigNull.doParent(rootCurve)   
@@ -261,7 +262,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     attributes.storeInfo(masterNull,'controlMaster',rootCurve)
     
     buffer = rigging.groupMeObject(rootCurve,True,True)
-    grp = objectFactory.go(buffer)
+    grp = ObjectFactory(buffer)
     grp.store('cgmTypeModifier','constraint')
     grp.name()
     
