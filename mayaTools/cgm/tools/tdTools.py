@@ -322,21 +322,21 @@ class tdToolsClass(BaseMelWindow):
 	
 	# Autoloading options
 	AutoloadMenu = MelMenuItem( self.UI_OptionsMenu, l='Auto Loading', subMenu=True)
-	if not mc.optionVar( ex='cgmOptionVar_AutoloadAutoname' ):
-	    mc.optionVar( iv=('cgmOptionVar_AutoloadAutoname', 0) )
+	if not mc.optionVar( ex='cgmVar_AutoloadAutoname' ):
+	    mc.optionVar( iv=('cgmVar_AutoloadAutoname', 0) )
 	    
-	RenameOnUpdateState = mc.optionVar( q='cgmOptionVar_AutoloadAutoname' )
+	RenameOnUpdateState = mc.optionVar( q='cgmVar_AutoloadAutoname' )
 	MelMenuItem( AutoloadMenu, l="Autoname",
-	             cb= mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ),
-	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmOptionVar_AutoloadAutoname'))
+	             cb= mc.optionVar( q='cgmVar_AutoloadAutoname' ),
+	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_AutoloadAutoname'))
 	
-	if not mc.optionVar( ex='cgmOptionVar_AutoloadTextObject' ):
-	    mc.optionVar( iv=('cgmOptionVar_AutoloadTextObject', 0) )
+	if not mc.optionVar( ex='cgmVar_AutoloadTextObject' ):
+	    mc.optionVar( iv=('cgmVar_AutoloadTextObject', 0) )
 	    
-	RenameOnUpdateState = mc.optionVar( q='cgmOptionVar_AutoloadTextObject' )
+	RenameOnUpdateState = mc.optionVar( q='cgmVar_AutoloadTextObject' )
 	MelMenuItem( AutoloadMenu, l="Text Objects",
-	             cb= mc.optionVar( q='cgmOptionVar_AutoloadTextObject' ),
-	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmOptionVar_AutoloadTextObject'))
+	             cb= mc.optionVar( q='cgmVar_AutoloadTextObject' ),
+	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_AutoloadTextObject'))
 
 	MelMenuItemDiv( self.UI_OptionsMenu )
 
@@ -455,9 +455,9 @@ class tdToolsClass(BaseMelWindow):
 	curvesLeftColumn = self.buildBasicLeftColumn(curvesMainFormLayout)
 	curvesRightColumn = MelColumnLayout(curvesMainFormLayout)
 
-	self.buildTextObjectCreator(curvesRightColumn)
-	self.buildCurveCreator(curvesRightColumn)
-	self.buildCurveUtilities(curvesRightColumn)
+	self.buildTool_TextObjectCreator(curvesRightColumn)
+	self.buildTool_CurveCreator(curvesRightColumn)
+	self.buildTool_CurveUtilities(curvesRightColumn)
 
 	#>> Defining Main Form Layout
 	curvesMainFormLayout(edit = True,
@@ -717,8 +717,8 @@ class tdToolsClass(BaseMelWindow):
 	self.HeirBuildTypes = ['match','maintain']
 	self.HeirBuildTypesRadioCollection = MelRadioCollection()
 	self.HeirBuildTypesRadioCollectionChoices = []	
-	if not mc.optionVar( ex='cgmHeirBuildType' ):
-	    mc.optionVar( iv=('cgmHeirBuildType', 0) )
+	if not mc.optionVar( ex='cgmVar_HeirBuildType' ):
+	    mc.optionVar( iv=('cgmVar_HeirBuildType', 0) )
 	    
 	#build our sub section options
 	CurveControlOptionsTypeRow = MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 2)
@@ -742,14 +742,14 @@ class tdToolsClass(BaseMelWindow):
 	    cnt = self.HeirBuildTypes.index(item)
 	    self.HeirBuildTypesRadioCollectionChoices.append(self.HeirBuildTypesRadioCollection.createButton(CurveControlOptionsTypeRow,
 	                                                                                                     label=self.HeirBuildTypes[cnt],
-	                                                                                                     onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmHeirBuildType',",cnt,"))"))))
+	                                                                                                     onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmVar_HeirBuildType',",cnt,"))"))))
 	    
 
 	MelSpacer(CurveControlOptionsTypeRow,w=8)	
 	CurveControlOptionsTypeRow.layout()
 	
 	mc.radioCollection(self.HeirBuildTypesRadioCollection,edit=True,
-	                   sl= (self.HeirBuildTypesRadioCollectionChoices[ mc.optionVar(q='cgmHeirBuildType') ]))
+	                   sl= (self.HeirBuildTypesRadioCollectionChoices[ mc.optionVar(q='cgmVar_HeirBuildType') ]))
     
     def buildConstraintTypeRow(self,parent):	
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -759,8 +759,8 @@ class tdToolsClass(BaseMelWindow):
 	self.containerName = MelColumn(parent)	
 	self.CreateConstraintTypeRadioCollection = MelRadioCollection()
 	self.CreateConstraintTypeRadioCollectionChoices = []		
-	if not mc.optionVar( ex='cgmControlConstraintType' ):
-	    mc.optionVar( iv=('cgmControlConstraintType', 0) )
+	if not mc.optionVar( ex='cgmVar_ControlConstraintType' ):
+	    mc.optionVar( iv=('cgmVar_ControlConstraintType', 0) )
 
 	#build our sub section options
 	ConstraintTypeRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
@@ -768,7 +768,7 @@ class tdToolsClass(BaseMelWindow):
 	for item in self.ConstraintTypes:
 	    cnt = self.ConstraintTypes.index(item)
 	    self.CreateConstraintTypeRadioCollectionChoices.append(self.CreateConstraintTypeRadioCollection.createButton(ConstraintTypeRow,label=self.ConstraintTypes[cnt],
-	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmControlConstraintType',",cnt,"))"))))
+	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmVar_ControlConstraintType',",cnt,"))"))))
 	    MelSpacer(ConstraintTypeRow,w=5)
 	self.ScaleConstraintCB = guiFactory.doCheckBox(ConstraintTypeRow,'cgmVar_ScaleConstratingState',label = 'scale')	                                    
 	MelSpacer(ConstraintTypeRow,w=25) 
@@ -776,7 +776,7 @@ class tdToolsClass(BaseMelWindow):
 	ConstraintTypeRow.layout()
 	
 	
-	mc.radioCollection(self.CreateConstraintTypeRadioCollection ,edit=True,sl= (self.CreateConstraintTypeRadioCollectionChoices[ mc.optionVar(q='cgmControlConstraintType') ]))
+	mc.radioCollection(self.CreateConstraintTypeRadioCollection ,edit=True,sl= (self.CreateConstraintTypeRadioCollectionChoices[ mc.optionVar(q='cgmVar_ControlConstraintType') ]))
 
 
     def buildConnectionTypeRow(self,parent):	
@@ -787,8 +787,8 @@ class tdToolsClass(BaseMelWindow):
 	self.containerName = MelColumn(parent)	
 	self.CreateConnectionTypeRadioCollection = MelRadioCollection()
 	self.CreateConnectionTypeRadioCollectionChoices = []		
-	if not mc.optionVar( ex='cgmControlConnectionType' ):
-	    mc.optionVar( iv=('cgmControlConnectionType', 0) )
+	if not mc.optionVar( ex='cgmVar_ControlConnectionType' ):
+	    mc.optionVar( iv=('cgmVar_ControlConnectionType', 0) )
 
 	#build our sub section options
 	ConnectionTypeRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
@@ -796,19 +796,19 @@ class tdToolsClass(BaseMelWindow):
 	for item in self.ConnectionTypes:
 	    cnt = self.ConnectionTypes.index(item)
 	    self.CreateConnectionTypeRadioCollectionChoices.append(self.CreateConnectionTypeRadioCollection.createButton(ConnectionTypeRow,label=self.ConnectionTypes[cnt],
-	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmControlConnectionType',",cnt,"))"))))
+	                                                                                                                 onCommand = ('%s%i%s' %("mc.optionVar( iv=('cgmVar_ControlConnectionType',",cnt,"))"))))
 	    MelSpacer(ConnectionTypeRow,w=5)
 	MelSpacer(ConnectionTypeRow,w=50)
 	
 	ConnectionTypeRow.layout()
 	
 	
-	mc.radioCollection(self.CreateConnectionTypeRadioCollection ,edit=True,sl= (self.CreateConnectionTypeRadioCollectionChoices[ mc.optionVar(q='cgmControlConnectionType') ]))
+	mc.radioCollection(self.CreateConnectionTypeRadioCollection ,edit=True,sl= (self.CreateConnectionTypeRadioCollectionChoices[ mc.optionVar(q='cgmVar_ControlConnectionType') ]))
 
 
 
 
-    def buildCurveCreator(self,parent):
+    def buildTool_CurveCreator(self,parent):
 	makeCurvesContainer = MelColumnLayout(parent, ut='cgmUISubTemplate')
 	guiFactory.header('Curve Controls')
 	guiFactory.lineSubBreak()
@@ -840,10 +840,12 @@ class tdToolsClass(BaseMelWindow):
 	MasterControlSettingsRow = MelHLayout(makeCurvesContainer,ut='cgmUISubTemplate',padding = 2)
 
 	MelLabel(MasterControlSettingsRow,label = 'Master Control:',align='right')
-	self.MakeMasterControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Master')
-	self.MakeVisControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Vis')
-	self.MakeSettingsControlCB = MelCheckBox(MasterControlSettingsRow,label = 'Settings')
-	self.MakeGroupsCB = MelCheckBox(MasterControlSettingsRow,label = 'Groups')
+	
+	self.MakeMasterControlCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterControl',label = 'Master')
+	self.MakeVisControlCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterSettings',label = 'Vis')
+	self.MakeSettingsControlCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterVis',label = 'Settings')
+	self.MakeGroupsCB = guiFactory.doCheckBox(MasterControlSettingsRow,'cgmVar_MakeMasterGroups',label = 'Groups')
+	
 	MasterControlSettingsRow.layout()
 
 
@@ -872,7 +874,7 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.lineSubBreak()
 
 
-    def buildTextObjectCreator(self,parent):
+    def buildTool_TextObjectCreator(self,parent):
 	guiFactory.header('Text Objects')
 	textObjectColumn = MelColumnLayout(parent, ut='cgmUISubTemplate', cw = 100)
 	guiFactory.lineSubBreak()
@@ -923,7 +925,7 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.lineSubBreak()
 
 
-    def buildCurveUtilities(self,parent):
+    def buildTool_CurveUtilities(self,parent):
 	mc.setParent(parent)
 	guiFactory.header('Curve Utilities')
 	guiFactory.lineSubBreak()

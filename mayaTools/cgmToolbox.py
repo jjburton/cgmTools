@@ -83,10 +83,10 @@ def setupCGMToolBox():
 
 
 def setupCGMMenu():
-	if not cmd.optionVar( ex='cgmToolboxMainMenu' ):
-		cmd.optionVar( iv=('cgmToolboxMainMenu', 1) )
+	if not cmd.optionVar( ex='cgmVar_ToolboxMainMenu' ):
+		cmd.optionVar( iv=('cgmVar_ToolboxMainMenu', 1) )
 
-	if not cmd.optionVar( q='cgmToolboxMainMenu' ):
+	if not cmd.optionVar( q='cgmVar_ToolboxMainMenu' ):
 		return
 
 	if not hasattr( maya, '_cgmToolboxMenu' ):
@@ -338,8 +338,8 @@ class ToolboxWindow(BaseMelWindow):
 	def buildSetupMenu( self, *a ):
 		
 		self.UI_menu.clear()
-		setupMenu = cmd.optionVar( q='cgmToolboxMainMenu' )
-		MelMenuItem( self.UI_menu, l="Create cgm Tools Menu", cb=setupMenu, c=lambda *a: cmd.optionVar( iv=('cgmToolboxMainMenu', not setupMenu) ) )
+		setupMenu = cmd.optionVar( q='cgmVar_ToolboxMainMenu' )
+		MelMenuItem( self.UI_menu, l="Create cgm Tools Menu", cb=setupMenu, c=lambda *a: cmd.optionVar( iv=('cgmVar_ToolboxMainMenu', not setupMenu) ) )
 		MelMenuItemDiv( self.UI_menu )
 
 		installer = AutoStartInstaller()

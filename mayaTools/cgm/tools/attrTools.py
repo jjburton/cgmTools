@@ -147,7 +147,7 @@ class attrToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildAttributeTool(self,parent,vis=True):
 		OptionList = ['Tools','Manager','Utilities']
-		cgmVar_Name = 'cgmAttributeMode'
+		cgmVar_Name = 'cgmVar_AttributeMode'
 		RadioCollectionName ='AttributeMode'
 		RadioOptionList = 'AttributeModeSelectionChoicesList'
 
@@ -360,18 +360,18 @@ class attrToolsClass(BaseMelWindow):
 
 		self.CreateAttrTypeRadioCollection = MelRadioCollection()
 		self.CreateAttrTypeRadioCollectionChoices = []		
-		if not mc.optionVar( ex='cgmAttrCreateType' ):
-			mc.optionVar( sv=('cgmAttrCreateType', 'string') )
+		if not mc.optionVar( ex='cgmVar_AttrCreateType' ):
+			mc.optionVar( sv=('cgmVar_AttrCreateType', 'string') )
 			
 		#build our sub section options
 		AttrTypeRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
 		for item in attrTypes:
 			cnt = attrTypes.index(item)
 			self.CreateAttrTypeRadioCollectionChoices.append(self.CreateAttrTypeRadioCollection.createButton(AttrTypeRow,label=attrShortTypes[cnt],
-			                                                                                                 onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmAttrCreateType','",item,"'))"))))
+			                                                                                                 onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVar_AttrCreateType','",item,"'))"))))
 			MelSpacer(AttrTypeRow,w=2)
 
-		mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(mc.optionVar(q='cgmAttrCreateType')) ]))
+		mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(mc.optionVar(q='cgmVar_AttrCreateType')) ]))
 		
 		AttrTypeRow.layout()
 		"""

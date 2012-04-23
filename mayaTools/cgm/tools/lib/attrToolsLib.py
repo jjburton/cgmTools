@@ -197,7 +197,7 @@ def doAddAttributesToSelected(self):
     #>>> Variables
     varCheck = mc.textField(self.AttrNamesTextField,q=True,text=True)
     selected = mc.ls(sl=True,shortNames = True)
-    attrType = mc.optionVar(q='cgmAttrCreateType')
+    attrType = mc.optionVar(q='cgmVar_AttrCreateType')
 
     ### Asserts and verifies
     if not varCheck:

@@ -279,9 +279,9 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
     bufferList = []
     selection = (mc.ls (sl=True,flatten=True)) or []
-    self.bakeMode = mc.optionVar( q='cgmLocinatorBakeState' )
-    self.forceEveryFrame = mc.optionVar( q='cgmKeyingMode' )
-    self.keyingTargetState = mc.optionVar( q='cgmKeyingTarget' )
+    self.bakeMode = mc.optionVar( q='cgmVar_LocinatorBakeState' )
+    self.forceEveryFrame = mc.optionVar( q='cgmVar_KeyingMode' )
+    self.keyingTargetState = mc.optionVar( q='cgmVar_KeyingTarget' )
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
 
     if not len(selection):

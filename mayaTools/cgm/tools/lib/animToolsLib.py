@@ -1370,8 +1370,8 @@ def curveControlConnect(self):
     
     #>>> Variables
     #ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
-    ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmControlConnectionType') ]
-    ConstraintMode = self.ConstraintTypes[ mc.optionVar(q='cgmControlConstraintType') ]
+    ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmVar_ControlConnectionType') ]
+    ConstraintMode = self.ConstraintTypes[ mc.optionVar(q='cgmVar_ControlConstraintType') ]
     
     ScaleState = self.ScaleConstraintCB(q=True,v=True)
     RotateOrderState = self.controlCurveRotateOrderCB(q=True,v=True)
@@ -1379,7 +1379,7 @@ def curveControlConnect(self):
     LockNHideState = self.CurveControlLockNHideCB(q=True,v=True)
     
     HeirarchyState = self.CurveControlHeirarchyCB(q=True,v=True)
-    HeirarchyMode = self.HeirBuildTypes[ mc.optionVar(q='cgmHeirBuildType') ]
+    HeirarchyMode = self.HeirBuildTypes[ mc.optionVar(q='cgmVar_HeirBuildType') ]
     
     # First loop to get info
     parentConstraintTargets = {}

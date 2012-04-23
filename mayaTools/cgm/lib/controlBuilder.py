@@ -26,7 +26,7 @@
 #   
 #=================================================================================================================================================
 import maya.cmds as mc
-from cgm.lib.classes import ObjectFactory
+from cgm.lib.classes.ObjectFactory import *
 
 
 from cgm.lib import search
@@ -47,7 +47,6 @@ from cgm.lib import settings
 
 import re
 import math
-
 
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())

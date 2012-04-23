@@ -56,6 +56,8 @@ from cgm.tools.lib import locinatorLib,namingToolsLib
 reload(curves)
 reload(position)
 reload(attributes)
+reload(autoname)
+
 """
 
 """
@@ -71,12 +73,12 @@ def loadGUIOnStart(self):
     if selection:
         for obj in selection:
             if search.returnTagInfo(selection[0],'cgmObjectType') == 'textCurve':
-		if mc.optionVar( q='cgmOptionVar_AutoloadTextObject' ):
+		if mc.optionVar( q='cgmVar_AutoloadTextObject' ):
 		    mc.select(selection[0])
 		    TextCurveObjectdoLoad(self)
 		    break
 	
-	if mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
+	if mc.optionVar( q='cgmVar_AutoloadAutoname' ):
 	    mc.select(selection[0])
 	    namingToolsLib.uiLoadAutoNameObject(self)
 		
@@ -1205,7 +1207,7 @@ def TextCurveObjectdoUpdate(self):
         if updatedObjects:
             mc.select(buffer)
             TextCurveObjectdoLoad(self)
-	    if mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
+	    if mc.optionVar( q='cgmVar_AutoloadAutoname' ):
 		namingToolsLib.uiLoadAutoNameObject(self)            
             mc.select(updatedObjects)
             return
@@ -1343,7 +1345,7 @@ def curveControlCreate(self):
 	    bufferList.append(buffer)
 	    
     if bufferList:
-	if  mc.optionVar( q='cgmOptionVar_AutoloadAutoname' ):
+	if  mc.optionVar( q='cgmVar_AutoloadAutoname' ):
 	    mc.select(bufferList[-1])
 	    namingToolsLib.uiLoadAutoNameObject(self)  
 	mc.select(bufferList)	    
@@ -1385,8 +1387,8 @@ def curveControlConnect(self):
     
     #>>> Variables
     #ConnectionTypes = ['Constrain','Direct','Shape Parent','Parent','Child']
-    ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmControlConnectionType') ]
-    ConstraintMode = self.ConstraintTypes[ mc.optionVar(q='cgmControlConstraintType') ]
+    ConnectBy = self.ConnectionTypes[ mc.optionVar(q='cgmVar_ControlConnectionType') ]
+    ConstraintMode = self.ConstraintTypes[ mc.optionVar(q='cgmVar_ControlConstraintType') ]
     
     ScaleState = self.ScaleConstraintCB(q=True,v=True)
     RotateOrderState = self.controlCurveRotateOrderCB(q=True,v=True)
@@ -1394,7 +1396,7 @@ def curveControlConnect(self):
     LockNHideState = self.CurveControlLockNHideCB(q=True,v=True)
     
     HeirarchyState = self.CurveControlHeirarchyCB(q=True,v=True)
-    HeirarchyMode = self.HeirBuildTypes[ mc.optionVar(q='cgmHeirBuildType') ]
+    HeirarchyMode = self.HeirBuildTypes[ mc.optionVar(q='cgmVar_HeirBuildType') ]
     
     # First loop to get info
     parentConstraintTargets = {}

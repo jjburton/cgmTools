@@ -41,7 +41,7 @@ from cgm.lib import constraints
 from cgm.lib import rigging
 from cgm.lib import position
 from cgm.lib import sdk
-
+from cgm.lib.classes.NameFactory import *
 
 # Maya version check
 mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
@@ -203,7 +203,7 @@ def copyMouthSDKsPhosphor(sourceJoint,targetJoint):
             sdk.copySetDrivenKey(attr,attr,sourceJoint,targetJoint)
             
 def parentObjectToNameObject(object):
-    object = autoname.factory(object)
+    object = NameFactory(object)
     if mc.objExists(object.cgmName):
         obj = rigging.doParentReturnName(object.nameLong,object.cgmName)
             

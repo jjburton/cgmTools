@@ -27,6 +27,7 @@ __version__ = '0.1.03182012'
 import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.classes.NameFactory import *
 
 from cgm.lib import *
 from cgm.lib import (guiFactory,
@@ -319,7 +320,7 @@ def uiGetObjectInfo(self):
 	reload(autoname)
 	
 	for obj in selected:
-		obj = autoname.factory(obj)
+		obj = NameFactory(obj)
 		obj.reportInfo()
 			
 		

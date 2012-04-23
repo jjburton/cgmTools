@@ -271,8 +271,8 @@ class locinatorClass(BaseMelWindow):
 		#>>> Base Settings Flags
 		self.KeyingModeCollection = MelRadioCollection()
 		self.KeyingModeCollectionChoices = []		
-		if not mc.optionVar( ex='cgmKeyingMode' ):
-			mc.optionVar( iv=('cgmKeyingMode', 0) )
+		if not mc.optionVar( ex='cgmVar_KeyingMode' ):
+			mc.optionVar( iv=('cgmVar_KeyingMode', 0) )
 		
 		KeysSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(KeysSettingsFlagsRow,w=2)	
@@ -281,17 +281,17 @@ class locinatorClass(BaseMelWindow):
 		for item in self.keyingOptions:
 			cnt = self.keyingOptions.index(item)
 			self.KeyingModeCollectionChoices.append(self.KeyingModeCollection.createButton(KeysSettingsFlagsRow,label=self.keyingOptions[cnt],
-			                                                                               onCommand = Callback(guiFactory.toggleOptionVarState,self.keyingOptions[cnt],self.keyingOptions,'cgmKeyingMode',True)))
+			                                                                               onCommand = Callback(guiFactory.toggleOptionVarState,self.keyingOptions[cnt],self.keyingOptions,'cgmVar_KeyingMode',True)))
 			MelSpacer(KeysSettingsFlagsRow,w=5)
-		mc.radioCollection(self.KeyingModeCollection ,edit=True,sl= (self.KeyingModeCollectionChoices[ (mc.optionVar(q='cgmKeyingMode')) ]))
+		mc.radioCollection(self.KeyingModeCollection ,edit=True,sl= (self.KeyingModeCollectionChoices[ (mc.optionVar(q='cgmVar_KeyingMode')) ]))
 		
 		KeysSettingsFlagsRow.layout()
 
 		#>>> Base Settings Flags
 		self.KeyingTargetCollection = MelRadioCollection()
 		self.KeyingTargetCollectionChoices = []		
-		if not mc.optionVar( ex='cgmKeyingTarget' ):
-			mc.optionVar( iv=('cgmKeyingTarget', 0) )
+		if not mc.optionVar( ex='cgmVar_KeyingTarget' ):
+			mc.optionVar( iv=('cgmVar_KeyingTarget', 0) )
 		
 		BakeSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(BakeSettingsFlagsRow,w=2)	
@@ -301,9 +301,9 @@ class locinatorClass(BaseMelWindow):
 		for item in self.keyTargetOptions:
 			cnt = self.keyTargetOptions.index(item)
 			self.KeyingTargetCollectionChoices.append(self.KeyingTargetCollection.createButton(BakeSettingsFlagsRow,label=self.keyTargetOptions[cnt],
-		                                                                                       onCommand = Callback(guiFactory.toggleOptionVarState,self.keyTargetOptions[cnt],self.keyTargetOptions,'cgmKeyingTarget',True)))
+		                                                                                       onCommand = Callback(guiFactory.toggleOptionVarState,self.keyTargetOptions[cnt],self.keyTargetOptions,'cgmVar_KeyingTarget',True)))
 			MelSpacer(BakeSettingsFlagsRow,w=5)
-		mc.radioCollection(self.KeyingTargetCollection ,edit=True,sl= (self.KeyingTargetCollectionChoices[ (mc.optionVar(q='cgmKeyingTarget')) ]))
+		mc.radioCollection(self.KeyingTargetCollection ,edit=True,sl= (self.KeyingTargetCollectionChoices[ (mc.optionVar(q='cgmVar_KeyingTarget')) ]))
 		
 		BakeSettingsFlagsRow.layout()
 		
@@ -313,14 +313,14 @@ class locinatorClass(BaseMelWindow):
 
 		#>>>Time Section
 		UpdateOptionRadioCollection = MelRadioCollection()
-		EveryFrameOption = mc.optionVar( q='cgmLocinatorBakeState' )
+		EveryFrameOption = mc.optionVar( q='cgmVar_LocinatorBakeState' )
 		mc.setParent(parent)
 		guiFactory.lineSubBreak()
 		guiFactory.header('Update')
 		
 		#>>> Time Menu Container
 		self.BakeModeOptionList = ['Current Frame','Bake']
-		cgmVar_Name = 'cgmLocinatorBakeState'
+		cgmVar_Name = 'cgmVar_LocinatorBakeState'
 		
 		if not mc.optionVar( ex=cgmVar_Name ):
 			mc.optionVar( iv=(cgmVar_Name, 0) )
