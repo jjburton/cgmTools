@@ -1,10 +1,12 @@
 import maya.cmds as mc
+
+from cgm.lib.classes import NameFactory
+
 from cgm.lib import (joints,
                      rigging,
                      attributes,
                      names,
                      distance,
-                     autoname,
                      search,
                      dictionary,
                      settings,
@@ -27,7 +29,7 @@ def rigSpine(moduleNull):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>>>Get our info
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    partName = autoname.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
+    partName = NameFactory.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
     
     """ template null """
     templateNull = modules.returnTemplateNull(moduleNull)
@@ -37,7 +39,7 @@ def rigSpine(moduleNull):
     
 
     """ AutonameStuff """
-    divider = autoname.returnCGMDivider()
+    divider = NameFactory.returnCGMDivider()
     
     """ control helper objects """
     controlTemplateObjects = modules.returnInfoNullObjects(moduleNull,'templateControlObjects',types='all')
@@ -108,7 +110,7 @@ def rigSpine(moduleNull):
     locBuffer = locators.locMeObject(hips)
     attributes.storeInfo(locBuffer,'cgmName',hips)
     attributes.storeInfo(locBuffer,'cgmTypeModifier','anchor')
-    hipsAnchor = autoname.doNameObject(locBuffer)
+    hipsAnchor = NameFactory.doNameObject(locBuffer)
     
     mc.setAttr((hipsAnchor+'.rotateOrder'),5)
     
@@ -119,14 +121,14 @@ def rigSpine(moduleNull):
     groupBuffer =  rigging.groupMeObject(hipsAnchor)
     attributes.storeInfo(groupBuffer,'cgmName',hipsAnchor)
     attributes.storeInfo(groupBuffer,'cgmTypeModifier','orient')
-    hipsAnchorOrGroup = autoname.doNameObject(groupBuffer)
+    hipsAnchorOrGroup = NameFactory.doNameObject(groupBuffer)
     orientConstraintBuffer = mc.orientConstraint(segmentControls[0],hipsAnchorOrGroup, maintainOffset=False,weight =1)
 
     """ end anchor locator """
     locBuffer = locators.locMeObject(segmentControls[-1])
     attributes.storeInfo(locBuffer,'cgmName',segmentControls[-1])
     attributes.storeInfo(locBuffer,'cgmTypeModifier','anchor')
-    endAnchor = autoname.doNameObject(locBuffer)
+    endAnchor = NameFactory.doNameObject(locBuffer)
     
     mc.setAttr((endAnchor+'.rotateOrder'),5)
     
@@ -156,21 +158,21 @@ def rigSpine(moduleNull):
     surfaceJoints = []
     for joint in dupJointsBuffer:
         attributes.storeInfo(joint,'cgmType','surfaceJoint')
-        surfaceJoints.append(autoname.doNameObject(joint))
+        surfaceJoints.append(NameFactory.doNameObject(joint))
     
     """ firm start """
     startJointsBuffer = mc.duplicate(skinJoints[0],po=True,rc=True)
     startJoints = []
     for joint in startJointsBuffer:
         attributes.storeInfo(joint,'cgmType','deformationJoint')
-        startJoints.append(autoname.doNameObject(joint))
+        startJoints.append(NameFactory.doNameObject(joint))
     
     """ firm end """
     endJointsBuffer = mc.duplicate(skinJoints[-2:],po=True,rc=True)
     endJoints = []
     for joint in endJointsBuffer:
         attributes.storeInfo(joint,'cgmType','deformationJoint')
-        endJoints.append(autoname.doNameObject(joint))
+        endJoints.append(NameFactory.doNameObject(joint))
     mc.parent(endJoints[0],world=True)
 
     #>>> Influence chain
@@ -191,7 +193,7 @@ def rigSpine(moduleNull):
         attributes.storeInfo(buffer[0],'cgmName',closestObject)
         attributes.storeInfo(buffer[0],'cgmType','influenceJoint')
         rigging.doParentToWorld(buffer[0])
-        influenceJoints.append(autoname.doNameObject(buffer[0]))
+        influenceJoints.append(NameFactory.doNameObject(buffer[0]))
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>>> Put our deformation joints in the rig
@@ -217,7 +219,7 @@ def rigSpine(moduleNull):
     controlSurface = surfaceBuffer[0]
     attributes.copyUserAttrs(moduleNull,controlSurface,attrsToCopy=['cgmName'])
     attributes.storeInfo(controlSurface,'cgmType','controlSurface',True)
-    controlSurface = autoname.doNameObject(controlSurface)
+    controlSurface = NameFactory.doNameObject(controlSurface)
     
     """ connect joints to surface"""
     surfaceConnectReturn = joints.attachJointChainToSurface(surfaceJoints,controlSurface,jointOrientation,upChannel,'animCrv')
@@ -273,7 +275,7 @@ def HOLDER(moduleNull):
     #>>> creating our skin joint null and store the info
     #skinJointNullBuffer = modules.createInfoNull('skinJointNull')
     #mc.parent(skinJointNullBuffer,partNull)
-    #skinJointNull = autoname.doNameObject(skinJointNullBuffer)
+    #skinJointNull = NameFactory.doNameObject(skinJointNullBuffer)
     #attributes.storeObjListNameToMessage(spineJoints,skinJointNull)
     #attributes.storeObjectToMessage(skinJointNull,partNull,'skinJointNull')
     

@@ -37,7 +37,7 @@ from cgm.lib import locators
 from cgm.lib import search
 from cgm.lib import lists
 from cgm.lib import batch
-from cgm.lib import autoname
+from cgm.lib.classes import NameFactory
 from cgm.lib import guiFactory
 from cgm.lib import modules
 from cgm.lib import position
@@ -47,7 +47,7 @@ reload(lists)
 reload(batch)
 reload(rigging)
 reload(search)
-reload(autoname)
+reload(NameFactory)
 reload(guiFactory)
 reload(modules)
 reload(locators)
@@ -135,7 +135,7 @@ def doPurgeCGMAttrs(self):
         for item in selection:
             modules.purgeCGMAttrsFromObject(item)
     else:
-        guiFactory.warning('Something must be selection')
+        guiFactory.warning('Something must be selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -189,7 +189,7 @@ def doTagObjects(self):
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
 
     typeList = []
@@ -257,7 +257,7 @@ def doLocClosest():
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
     else:
         buffer = locators.locClosest(selection[:-1],selection[-1])
@@ -285,7 +285,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
 
     if not len(selection):
-        guiFactory.warning('Nothing selection')
+        guiFactory.warning('Nothing selected')
         return 
 
     toUpdate = []
@@ -430,7 +430,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                 mc.currentTime(initialFramePosition)
 		mc.select(toUpdate)
     else:
-        guiFactory.warning('No updateable object selection')
+        guiFactory.warning('No updateable object selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doLocCVsOfObject():
     """

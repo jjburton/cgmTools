@@ -164,7 +164,7 @@ def skeletonize(moduleNull, stiffIndex=0):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>>>Get our info
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    partName = autoname.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
+    partName = NameFactory.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
     
     """ template null """
     templateNull = modules.returnTemplateNull(moduleNull)
@@ -184,7 +184,7 @@ def skeletonize(moduleNull, stiffIndex=0):
     rollJoints = templateNullData.get('rollJoints')
 
     """ AutonameStuff """
-    divider = autoname.returnCGMDivider()
+    divider = NameFactory.returnCGMDivider()
     skinJointsNull = modules.returnInfoTypeNull(moduleNull,'skinJoints')
     
     templateObjects = []
@@ -295,7 +295,7 @@ def skeletonize(moduleNull, stiffIndex=0):
         """Then we copy it"""
         attributes.copyUserAttrs(transferObj,closestJoint,attrsToCopy=['cgmNameModifier','cgmDirection','cgmName'])
     
-    limbJointsBuffer = autoname.doRenameHeir(limbJoints[0])
+    limbJointsBuffer = NameFactory.doRenameHeir(limbJoints[0])
     limbJoints = []
     limbJoints.append(limbJointsBuffer[0])
     for joint in limbJointsBuffer[1]:

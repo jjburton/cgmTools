@@ -103,8 +103,6 @@ class locinatorClass(BaseMelWindow):
 		self.buildSpecialLayout(TabSpecial)
 		self.buildMatchLayout(TabMatch)
 		
-		print self.optionVars
-
 
 		self.show()
 
@@ -144,6 +142,11 @@ class locinatorClass(BaseMelWindow):
 		PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
 				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0)),
 				                             rb=pivotOption )
+		
+		
+		MelMenuItemDiv( self.UI_OptionsMenu )
+		MelMenuItem( self.UI_OptionsMenu, l="Reset",
+			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))		
 		"""
 		# Anim Menu
 		AnimMenu = MelMenuItem( self.UI_OptionsMenu, l='Anim', subMenu=True)
@@ -333,6 +336,7 @@ class locinatorClass(BaseMelWindow):
 		#>>> Time Menu Container
 		self.BakeModeOptionList = ['Current Frame','Bake']
 		cgmVar_Name = 'cgmVar_LocinatorBakeState'
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorBakeState')	
 		
 		if not mc.optionVar( ex=cgmVar_Name ):
 			mc.optionVar( iv=(cgmVar_Name, 0) )

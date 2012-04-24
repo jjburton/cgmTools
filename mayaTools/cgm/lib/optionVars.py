@@ -23,6 +23,7 @@ import maya.mel as mel
 def purgeOptionVar(varName):
     if mc.optionVar(exists = varName):    
         mc.optionVar( remove=varName )
+        print "'%s' removed"%varName
         return True
     return False
 

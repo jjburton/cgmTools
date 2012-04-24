@@ -27,7 +27,7 @@ import maya.cmds as mc
 
 from cgm.lib import search
 from cgm.lib import attributes
-from cgm.lib import autoname
+from cgm.lib.classes import NameFactory
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -86,7 +86,7 @@ def createPoseBuffer(name,poseList):
     poseBuffer = mc.group( em=True)
     attributes.storeInfo(poseBuffer,'cgmName', name)
     attributes.storeInfo(poseBuffer,'cgmType', 'poseBuffer')
-    poseBuffer = autoname.doNameObject(poseBuffer)
+    poseBuffer = NameFactory.doNameObject(poseBuffer)
     returnList.append(poseBuffer)
     
     returnList.append(attributes.addFloatAttrsToObj(poseBuffer, poseList,dv = 0))

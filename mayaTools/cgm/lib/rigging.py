@@ -35,7 +35,7 @@ import maya.mel as mel
 
 from cgm.lib import search
 from cgm.lib import attributes
-from cgm.lib import autoname
+from cgm.lib.classes import NameFactory
 from cgm.lib import lists
 from cgm.lib import cgmMath
 
@@ -318,7 +318,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     if parent == True:
         obj = doParentReturnName(obj,groupBuffer)        
     
-    return autoname.doNameObject(groupBuffer)
+    return NameFactory.doNameObject(groupBuffer)
 
 
 def zeroTransformMeObject(obj,scaleZero=False):
@@ -358,7 +358,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
         mc.xform (group2,t=(-zeroCheck[0],-zeroCheck[1],-zeroCheck[2]), os=True)
         attributes.storeInfo(group,'cgmTypeModifier','zeroParent')
         attributes.storeInfo(group2,'cgmTypeModifier','zero')
-        group2 = autoname.doNameObject(group2) 
+        group2 = NameFactory.doNameObject(group2) 
     
         for attr in 'tx','ty','tz':
             attributes.doSetAttr((obj+'.'+attr),0)
@@ -370,7 +370,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
             group2 = groupMeObject(obj,True,True)
             attributes.storeInfo(group,'cgmTypeModifier','zeroParent')
             attributes.storeInfo(group2,'cgmTypeModifier','zero')
-            autoname.doNameObject(group2) 
+            NameFactory.doNameObject(group2) 
         
         mc.xform (group2,ro=(rotateCheck[0],rotateCheck[1],rotateCheck[2]), os=True)
         for attr in 'rx','ry','rz':
@@ -391,7 +391,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
     for attr in 'sx','sy','sz':
         attributes.doSetAttr((obj+'.'+attr),1)
     """
-    return autoname.doNameObject(group)
+    return NameFactory.doNameObject(group)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

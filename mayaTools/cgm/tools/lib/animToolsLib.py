@@ -31,6 +31,7 @@ import subprocess
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.ObjectFactory import *
+from cgm.lib.classes import NameFactory
 
 
 from cgm.lib import (guiFactory,
@@ -38,7 +39,6 @@ from cgm.lib import (guiFactory,
                      constraints,
                      curves,
                      dictionary,
-                     autoname,
                      search,
                      deformers,
                      logic,
@@ -1189,7 +1189,7 @@ def TextCurveObjectdoUpdate(self):
                     
                     if self.renameObjectOnUpdate:
                         attributes.storeInfo(obj,'cgmName',self.textObjectText)
-                        obj = autoname.doNameObject(obj)                    
+                        obj = NameFactory.doNameObject(obj)                    
                  
                 if self.changeFontOnUpdate:
                     attributes.storeInfo(obj,'cgmObjectFont',self.textObjectFont) 
@@ -1224,7 +1224,7 @@ def TextCurveObjectdoUpdate(self):
 
             if self.renameObjectOnUpdate:
                 attributes.storeInfo(textCurveObject,'cgmName',self.textObjectText)
-                textCurveObject = autoname.doNameObject(textCurveObject)
+                textCurveObject = NameFactory.doNameObject(textCurveObject)
 
             # Put our updated object info
             mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
@@ -1256,7 +1256,7 @@ def doCreateOneOfEachCurve(self):
 	
 	buffer = curves.createControlCurve(option,creationSize,self.uiCurveAxis )
 	attributes.storeInfo(buffer,'cgmName',option)	
-	buffer = autoname.doNameObject(buffer)
+	buffer = NameFactory.doNameObject(buffer)
 	curves.setColorByIndex(buffer,colorChoice)
 	bufferList.append(buffer)
 	
@@ -1308,7 +1308,7 @@ def curveControlCreate(self):
                 buffer = curves.createControlCurve(shapeOption,creationSize,self.uiCurveAxis )
                 attributes.storeInfo(buffer,'cgmName',item)
 		attributes.storeInfo(buffer,'cgmSource',item)
-                buffer = autoname.doNameObject(buffer)
+                buffer = NameFactory.doNameObject(buffer)
 
                 if self.forceBoundingBoxState == True:
                     locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
@@ -1331,7 +1331,7 @@ def curveControlCreate(self):
                 attributes.storeInfo(buffer,'cgmName',self.uiCurveName)
             else:
                 attributes.storeInfo(buffer,'cgmName',shapeOption)
-            buffer = autoname.doNameObject(buffer)
+            buffer = NameFactory.doNameObject(buffer)
             curves.setColorByIndex(buffer,colorChoice)
 	    bufferList.append(buffer)
 	    
@@ -1448,7 +1448,7 @@ def curveControlConnect(self):
 			mc.connectAttr(buffer,(ConstraintGroup.nameLong+'.rotateOrder'))
 			
 		if ExtraGroupState:	
-		    autoname.doNameObject(ConstraintGroup.nameLong)
+		    NameFactory.doNameObject(ConstraintGroup.nameLong)
 		    obj.update(obj.nameBase)
 				
 		if ConstraintMode == 'parent':

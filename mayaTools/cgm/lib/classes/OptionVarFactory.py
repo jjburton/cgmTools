@@ -28,11 +28,11 @@
 
 import maya.cmds as mc
 import maya.mel as mel
+from cgm.lib.classes import NameFactory
 
 from cgm.lib import (lists,
                      optionVars,
                      search,
-                     autoname,
                      attributes,
                      dictionary,
                      rigging,

@@ -24,13 +24,14 @@
 import maya.cmds as mc
 import maya.mel as mel
 
+from cgm.lib.classes import NameFactory
+
 from cgm.lib import (distance,
                      dictionary,
                      cgmMath,
                      attributes,
                      search,
                      rigging,
-                     autoname,
                      guiFactory,
                      locators,
                      position)
@@ -415,7 +416,7 @@ def doUpdateTextFromName(textCurveObj):
     nameBuffer = textCurveObj
     attributes.storeInfo(textCurveObj,'cgmObjectText',nameBuffer,True)
     updateTextCurveObject(textCurveObj)
-    buffer = autoname.doNameObject(textCurveObj)
+    buffer = NameFactory.doNameObject(textCurveObj)
     return buffer
 
 def createTextCurve(text,size=1,font='Arial'):
@@ -495,7 +496,7 @@ def createTextCurveObject(text,size=1,name=None,font='Arial'):
     attributes.storeInfo(textCurve,'cgmObjectType','textCurve')
     attributes.storeInfo(textCurve,'cgmObjectSize',currentSize)
     
-    return autoname.doNameObject(textCurve)
+    return NameFactory.doNameObject(textCurve)
     
 def updateTextCurveObject(textCurveObj):
     """ 
@@ -552,7 +553,7 @@ def updateTextCurveObject(textCurveObj):
     """parentshape in place """
     parentShapeInPlace(textCurveObj,textCurve)
     mc.delete(textCurve)
-    textCurveObj = autoname.doNameObject(textCurveObj)
+    textCurveObj = NameFactory.doNameObject(textCurveObj)
     if colorIndex:
 	setColorByIndex(textCurveObj,colorIndex)
     

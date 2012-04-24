@@ -28,10 +28,10 @@
 
 import maya.cmds as mc
 import maya.mel as mel
+from cgm.lib.classes import NameFactory
 
 from cgm.lib import (lists,
                      search,
-                     autoname,
                      attributes,
                      dictionary,
                      rigging,
@@ -102,12 +102,12 @@ class ObjectFactory():
             self.nameBase = self.nameShort
         
     def name(self):
-        buffer = autoname.doNameObject(self.nameLong)
+        buffer = NameFactory.doNameObject(self.nameLong)
         if buffer:
             self.update(buffer)
             
     def doName(self):
-        buffer = autoname.doNameObject(self.nameLong)
+        buffer = NameFactory.doNameObject(self.nameLong)
         if buffer:
             self.update(buffer)
             
@@ -123,7 +123,7 @@ class ObjectFactory():
         groupLong = mc.ls(group,long =True)
         self.update(groupLong[0]+'|'+self.nameBase)  
         
-    def deleteAttr(self,attr):
+    def remove(self,attr):
         try:
             attributes.deleteAttr(self.nameLong,attr)
         except:

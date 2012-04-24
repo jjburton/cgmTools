@@ -28,7 +28,7 @@
 
 import maya.cmds as mc
 
-from cgm.lib import autoname 
+from cgm.lib.classes import NameFactory 
 from cgm.lib import attributes
 from cgm.lib import dictionary
 from cgm.lib import settings
@@ -148,13 +148,13 @@ def createMasterNull(characterName='nothingNothing'):
     attributes.storeInfo(masterNullBuffer,'cgmName',characterName)   
     attributes.storeInfo(masterNullBuffer,'cgmType','ignore')
     attributes.storeInfo(masterNullBuffer,'cgmModuleType','master')
-    masterNull = autoname.doNameObject(masterNullBuffer)
+    masterNull = NameFactory.doNameObject(masterNullBuffer)
     
     #Create modules container null
     modulesGroupBuffer = mc.group (empty=True)
     attributes.storeInfo(modulesGroupBuffer,'cgmName','modules')   
     attributes.storeInfo(modulesGroupBuffer,'cgmType','group')
-    modulesGroup = autoname.doNameObject(modulesGroupBuffer)
+    modulesGroup = NameFactory.doNameObject(modulesGroupBuffer)
     modulesGroup = rigging.doParentReturnName(modulesGroup,masterNull)
     attributes.storeObjectToMessage (modulesGroup, masterNull, 'modulesGroup')
     
@@ -162,7 +162,7 @@ def createMasterNull(characterName='nothingNothing'):
     meshGroupBuffer = mc.group (empty=True)
     attributes.storeInfo(meshGroupBuffer,'cgmName','mesh')   
     attributes.storeInfo(modulesGroupBuffer,'cgmType','group')
-    meshGroup = autoname.doNameObject(modulesGroupBuffer)
+    meshGroup = NameFactory.doNameObject(modulesGroupBuffer)
     meshGroup = rigging.doParentReturnName(meshGroup,masterNull)
     attributes.storeObjectToMessage (meshGroup, masterNull, 'meshGroup')
     
@@ -208,7 +208,7 @@ def createInfoNull(infoType):
     attributes.storeInfo(createBuffer,'cgmName',infoType)
     attributes.storeInfo(createBuffer,'cgmType','infoNull')
     mc.xform (createBuffer, os=True, piv= (0,0,0)) 
-    infoNull = autoname.doNameObject(createBuffer)
+    infoNull = NameFactory.doNameObject(createBuffer)
     return infoNull
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -239,7 +239,7 @@ def saveTemplateToModule(moduleNull):
     moduleNullData = attributes.returnUserAttrsToDict(moduleNull)
         
     """ part name """
-    partName = autoname.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
+    partName = NameFactory.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
     partType = moduleNullData.get('cgmModuleType')
     direction = moduleNullData.get('cgmDirection')
     
@@ -262,7 +262,7 @@ def saveTemplateToModule(moduleNull):
     templateControlObjectsDataNull = returnInfoTypeNull(moduleNull,'templateControlObjectsData')
 
     """ AutonameStuff """
-    divider = autoname.returnCGMDivider()    
+    divider = NameFactory.returnCGMDivider()    
     moduleRootBuffer =  returnInfoNullObjects(moduleNull,'templatePosObjects',types='templateRoot')
     moduleRoot = moduleRootBuffer[0]
     templateObjects = []
@@ -583,7 +583,7 @@ def returnInfoNullObjects(moduleNull,infoType,types='templateObject'):
     infoNullData = attributes.returnUserAttrsToDict (infoNull)
     infoNullObjects = []
     coreNamesArray = []  
-    divider = autoname.returnCGMDivider()
+    divider = NameFactory.returnCGMDivider()
 
     for key in infoNullData.keys():
         if (mc.attributeQuery (key,node=infoNull,msg=True)) == True:
@@ -754,7 +754,7 @@ def returnTemplateObjects(moduleNull,types='templateObject'):
     templateNullData = attributes.returnUserAttrsToDict (templateNull)
     templateObjects = []
     coreNamesArray = []  
-    divider = autoname.returnCGMDivider()
+    divider = NameFactory.returnCGMDivider()
 
     for key in templateNullData.keys():
         if (mc.attributeQuery (key,node=templateNull,msg=True)) == True:

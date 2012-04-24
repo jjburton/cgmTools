@@ -27,14 +27,13 @@ __version__ = '0.1.03182012'
 import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
-from cgm.lib.classes.NameFactory import *
+from cgm.lib.classes import NameFactory
 
 from cgm.lib import *
 from cgm.lib import (guiFactory,
                      dictionary,
-                     autoname,
                      search)
-reload(autoname)
+reload(NameFactory)
 reload(search)
 reload(dictionary)
 
@@ -44,7 +43,7 @@ reload(dictionary)
 def uiUpdateAutoNamePreview(self):
 	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
-		newName = autoname.returnUniqueGeneratedName(autoNameObject,True)
+		newName = NameFactory.returnUniqueGeneratedName(autoNameObject,True)
 		self.GeneratedNameField(e = True,label = ("Preview : '" + newName + "'"))
 	else:
 		self.GeneratedNameField(e = True,label = ('Name will preview here...'))
@@ -53,19 +52,19 @@ def uiUpdateAutoNamePreview(self):
 def uiNameLoadedAutoNameObject(self):
 	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
-		newName = autoname.doNameObject(autoNameObject,True)
+		newName = NameFactory.doNameObject(autoNameObject,True)
 		mc.textField(self.AutoNameObjectField,e = True,text = newName)
 	else:
-		gselfFactory.warning('No current autoname object loaded!')
+		guiFactory.warning('No current autoname object loaded!')
 		
 def uiNameLoadedAutoNameObjectChildren(self):
 	autoNameObject = mc.textField(self.AutoNameObjectField,q=True,text = True)
 	if autoNameObject:
-		newNameList = autoname.doRenameHeir(autoNameObject,True)
+		newNameList = NameFactory.doRenameHeir(autoNameObject,True)
 		mc.textField(self.AutoNameObjectField,e = True,text = newNameList[0])
 
 	else:
-		gselfFactory.warning('No current autoname object loaded!')
+		guiFactory.warning('No current autoname object loaded!')
 def uiLoadParentNameObject(self,parentNameObject):
 	assert mc.objExists(parentNameObject) is True,"'%s' doesn't exist" % parentNameObject
 	mc.select(cl=True)
@@ -94,9 +93,9 @@ def uiLoadAutoNameObject(self):
 			guiFactory.doLoadSingleObjectToTextField(self.AutoNameObjectField,'cgmVar_AutoNameObject')
 
 			#Get the tag info for the object
-			tagsDict = autoname.returnObjectGeneratedNameDict(selected[0])
+			tagsDict = NameFactory.returnObjectGeneratedNameDict(selected[0])
 			userAttrs = attributes.returnUserAttributes(selected[0])
-			cgmAttrs = autoname.returnCGMOrder()
+			cgmAttrs = NameFactory.returnCGMOrder()
 			usedAttrs = lists.returnMatchList(userAttrs,cgmAttrs)
 			tagAttrs = tagsDict.keys()
 			#Enable the tag fields
@@ -316,37 +315,37 @@ def uiUpdateAutoNameTag(self,tag):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def uiGetObjectInfo(self):
 	selected = mc.ls(sl=True,long=True)
-	from cgm.lib import autoname
-	reload(autoname)
+	from cgm.lib.classes import NameFactory
+	reload(NameFactory)
 	
 	for obj in selected:
-		obj = NameFactory(obj)
+		obj = NameFactory.NameFactory(obj)
 		obj.reportInfo()
 			
 		
 def uiReturnIterator(self):
 	selected = mc.ls(sl=True)
-	from cgm.lib import autoname
-	reload(autoname)
+	from cgm.lib.classes import NameFactory
+	reload(NameFactory)
 	
 	for obj in selected:
-		print (autoname.returnIterateNumber(obj))
+		print (NameFactory.returnIterateNumber(obj))
 			
 def uiReturnFastName(self):
 	selected = mc.ls(sl=True)
-	from cgm.lib import autoname
-	reload(autoname)
+	from cgm.lib.classes import NameFactory
+	reload(NameFactory)
 	
 	for obj in selected:
-		print (autoname.returnObjectGeneratedNameDict(obj))
+		print (NameFactory.returnObjectGeneratedNameDict(obj))
 			
 def uiReturnSceneUniqueName(self):
 	selected = mc.ls(sl=True)
-	from cgm.lib import autoname
-	reload(autoname)
+	from cgm.lib.classes import NameFactory
+	reload(NameFactory)
 	
 	for obj in selected:
-		print (autoname.returnUniqueGeneratedName(obj,True))
+		print (NameFactory.returnUniqueGeneratedName(obj,True))
 			
 def uiNameObject(self,sceneUnique):
 	selected = mc.ls(sl=True,flatten=True,long=True)
@@ -374,7 +373,7 @@ def uiNameObject(self,sceneUnique):
 			mc.progressBar(mayaMainProgressBar, edit=True, status = ("Naming '%s'"%objectToName), step=1)
 
 			try:
-				buffer =  autoname.doNameObject( objectToName,sceneUnique )
+				buffer =  NameFactory.doNameObject( objectToName,sceneUnique )
 			except:
 				guiFactory.warning("'%s' failed"%objectToName)
 
@@ -387,7 +386,7 @@ def uiNameObject(self,sceneUnique):
 		
 		
 	else:
-		autoname.doNameObject(selected[0],sceneUnique)
+		NameFactory.doNameObject(selected[0],sceneUnique)
 	
 	if newNames:
 		print ("The following were named: %s" %','.join(newNames))
@@ -399,7 +398,7 @@ def doUpdateObjectName(self):
 	
 	for obj in selected:
 		try:
-			autoname.doUpdateName(obj)
+			NameFactory.doUpdateName(obj)
 		except:
 			guiFactory.warning('Error on naming attempt')
 			
@@ -412,7 +411,7 @@ def doNameHeirarchy(self,sceneUnique):
 	
 	for obj in selected:
 		try:
-			autoname.doRenameHeir(obj,sceneUnique)
+			NameFactory.doRenameHeir(obj,sceneUnique)
 		except:
 			guiFactory.warning('Error on naming attempt')		
 		

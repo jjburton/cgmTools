@@ -32,7 +32,7 @@ from cgm.lib import guiFactory
 from cgm.lib import settings
 from cgm.lib import search
 from cgm.lib import attributes
-from cgm.lib import autoname
+from cgm.lib.classes import NameFactory
 from cgm.lib import lists
 from cgm.lib import nodes
 from cgm.lib import rigging
@@ -598,7 +598,7 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
     if baseNameToUse != False:
         attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
     attributes.storeInfo(meshGroup,'cgmTypeModifier', 'blendShapeGeo')
-    meshGroup = autoname.doNameObject(meshGroup)
+    meshGroup = NameFactory.doNameObject(meshGroup)
 
     for geo in bakedGeo:
         rigging.doParentReturnName(geo,meshGroup)
@@ -750,7 +750,7 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
     meshGroup = mc.group( em=True)
     attributes.storeInfo(meshGroup,'cgmName', baseName)
     attributes.storeInfo(meshGroup,'cgmTypeModifier', 'blendShapeGeo')
-    meshGroup = autoname.doNameObject(meshGroup)
+    meshGroup = NameFactory.doNameObject(meshGroup)
 
     for geo in bakedGeo:
         rigging.doParentReturnName(geo,meshGroup)
@@ -885,7 +885,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
     meshGroup = mc.group( em=True)
     attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
     attributes.storeInfo(meshGroup,'cgmTypeModifier', 'blendShapeGeo')
-    meshGroup = autoname.doNameObject(meshGroup)
+    meshGroup = NameFactory.doNameObject(meshGroup)
 
     for geo in bakedGeo:
         rigging.doParentReturnName(geo,meshGroup)
@@ -978,7 +978,7 @@ def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stri
     if baseNameToUse != False:
         attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
     attributes.storeInfo(meshGroup,'cgmTypeModifier', 'blendShapeGeo')
-    meshGroup = autoname.doNameObject(meshGroup)
+    meshGroup = NameFactory.doNameObject(meshGroup)
 
     for geo in bakedGeo:
         rigging.doParentReturnName(geo,meshGroup)

@@ -24,7 +24,7 @@ import maya.cmds as mc
 from cgm.lib import lists
 from cgm.lib import rigging
 from cgm.lib import distance
-from cgm.lib import autoname 
+from cgm.lib.classes import NameFactory 
 from cgm.lib import cgmMath
 from cgm.lib import search
 from cgm.lib import guiFactory
@@ -37,7 +37,7 @@ def parent(*a, **kw):
     if buffer:
         returnList = []
         for c in buffer:
-            returnList.append(autoname.doNameObject(c))
+            returnList.append(NameFactory.doNameObject(c))
         return returnList
     else:
         return False
@@ -47,7 +47,7 @@ def orient(*a, **kw):
     if buffer:
         returnList = []
         for c in buffer:
-            returnList.append(autoname.doNameObject(c))
+            returnList.append(NameFactory.doNameObject(c))
         return returnList
     else:
         return False
@@ -57,7 +57,7 @@ def point(*a, **kw):
     if buffer:
         returnList = []
         for c in buffer:
-            returnList.append(autoname.doNameObject(c))
+            returnList.append(NameFactory.doNameObject(c))
         return returnList
     else:
         return False
@@ -67,7 +67,7 @@ def scale(*a, **kw):
     if buffer:
         returnList = []
         for c in buffer:
-            returnList.append(autoname.doNameObject(c))
+            returnList.append(NameFactory.doNameObject(c))
         return returnList
     else:
         return False
@@ -77,7 +77,7 @@ def aim(*a, **kw):
     if buffer:
         returnList = []
         for c in buffer:
-            returnList.append(autoname.doNameObject(c))
+            returnList.append(NameFactory.doNameObject(c))
         return returnList
     else:
         return False
@@ -169,7 +169,7 @@ def doPointAimConstraintObjectGroup(targets,object,mode=0):
         locBuffer = locators.locMeObject(object)
         attributes.storeInfo(locBuffer,'cgmName',object)
         attributes.storeInfo(locBuffer,'cgmTypeModifier',type)
-        locs.append(autoname.doNameObject(locBuffer))
+        locs.append(NameFactory.doNameObject(locBuffer))
     
     pointLoc = locs[0]
     aimLoc = locs[1]
@@ -183,7 +183,7 @@ def doPointAimConstraintObjectGroup(targets,object,mode=0):
     objGroup = rigging.groupMeObject(object,True)
     attributes.storeInfo(objGroup,'cgmName',object)
     attributes.storeInfo(objGroup,'cgmTypeModifier','follow')
-    objGroup = autoname.doNameObject(objGroup)
+    objGroup = NameFactory.doNameObject(objGroup)
     
     pointConstraintBuffer = mc.pointConstraint (pointLoc,objGroup, maintainOffset=False)
     aimConstraintBuffer = mc.aimConstraint(aimLoc,objGroup,maintainOffset = False, weight = 1, aimVector = aimVector, upVector = upVector, worldUpObject = upLoc, worldUpType = 'object' )

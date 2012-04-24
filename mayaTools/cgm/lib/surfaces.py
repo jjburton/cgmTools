@@ -25,7 +25,7 @@ import maya.cmds as mc
 from cgm.lib import rigging
 from cgm.lib import distance
 from cgm.lib import attributes
-from cgm.lib import autoname 
+from cgm.lib.classes import NameFactory 
 from cgm.lib import curves
 from cgm.lib import position
 
@@ -70,7 +70,7 @@ def basicEyeJointSurfaceSetup(jointList, jointRoot, surface):
         """ naming it """
         attributes.storeInfo(jointControl,'cgmName',joint,True)
         attributes.storeInfo(jointControl,'cgmType','controlAnim')
-        jointControl = autoname.doNameObject(jointControl)
+        jointControl = NameFactory.doNameObject(jointControl)
         controls.append(jointControl)
         
         groups.append( rigging.zeroTransformMeObject(jointControl) )
@@ -134,11 +134,11 @@ def attachAimedObjectToSurface (obj, surface, aimObject, parent = True):
         aimLoc = locators.locMeObject(aimObject)
         attributes.storeInfo(upLoc,'cgmName',obj)
         attributes.storeInfo(upLoc,'cgmTypeModifier','up')
-        upLoc = autoname.doNameObject(upLoc)
+        upLoc = NameFactory.doNameObject(upLoc)
         
         attributes.storeInfo(aimLoc,'cgmName',aimObject)
         attributes.storeInfo(aimLoc,'cgmTypeModifier','aim')
-        aimLoc = autoname.doNameObject(aimLoc)
+        aimLoc = NameFactory.doNameObject(aimLoc)
 
         attributes.storeInfo(surfaceFollowGroup,'locatorUp',upLoc)
         attributes.storeInfo(surfaceFollowGroup,'aimLoc',aimLoc)

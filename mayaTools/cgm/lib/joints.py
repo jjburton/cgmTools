@@ -30,7 +30,7 @@ from cgm.lib import distance
 from cgm.lib import attributes
 from cgm.lib import nodes
 from cgm.lib import lists
-from cgm.lib import autoname 
+from cgm.lib.classes import NameFactory 
 from cgm.lib import curves
 
 def connectJointScalingBlendToMasterScale(mainDriverAttribute,jointList):
@@ -453,7 +453,7 @@ def createJointsFromTemplateObjects(objectList):
         objectPositionList = []
         for obj in objectList:
                 tempPos = mc.xform (obj,q=True, ws=True, rp=True)
-                nameBuffer = autoname.returnUniqueGeneratedName(obj,'cgmType')
+                nameBuffer = NameFactory.returnUniqueGeneratedName(obj,'cgmType')
                 objectPositionList.append (tempPos)
                 cleanNamesList.append (nameBuffer)
         jointListBuffer=[]

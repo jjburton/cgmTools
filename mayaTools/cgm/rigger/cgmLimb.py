@@ -12,13 +12,14 @@ Key:
 
 """
 import maya.cmds as mc
+from cgm.lib.classes import NameFactory
+
 from cgm.lib import (search,
                      distance,
                      names,
                      attributes,
                      names,
                      rigging,
-                     autoname,
                      constraints,
                      curves,
                      dictionary,
@@ -39,7 +40,6 @@ reload(names)
 reload(attributes)
 reload(names)
 reload(rigging)
-reload(autoname) 
 reload(constraints)
 reload(curves)
 reload(dictionary)
@@ -115,15 +115,15 @@ class Limb:
         attributes.storeInfo(createBuffer,'cgmModuleType',self.partType)
         
         """ make sure name is unique """
-        rawModuleName = autoname.returnObjectGeneratedNameDict(createBuffer)
+        rawModuleName = NameFactory.returnObjectGeneratedNameDict(createBuffer)
         cnt = 0
         for module in modules:
-            if autoname.returnObjectGeneratedNameDict(module,'cgmNameModifier') ==  rawModuleName:
+            if NameFactory.returnObjectGeneratedNameDict(module,'cgmNameModifier') ==  rawModuleName:
                 cnt +=1
                 print 'yes'
         if cnt > 0:
             attributes.storeInfo(createBuffer,'cgmNameModifier',('%s%i' % ('extra',cnt)))
-        moduleNull = autoname.doNameObject(createBuffer)
+        moduleNull = NameFactory.doNameObject(createBuffer)
 
         mc.xform (moduleNull, os=True, piv= (0,0,0)) 
         self.moduleNull = moduleNull
@@ -147,7 +147,7 @@ class Limb:
         mc.xform (createBuffer, os=True, piv= (0,0,0)) 
         createBuffer = rigging.doParentReturnName(createBuffer,moduleNull)
         attributes.storeObjectToMessage (createBuffer, moduleNull, 'rigNull')
-        rigNullName = autoname.doNameObject(createBuffer)
+        rigNullName = NameFactory.doNameObject(createBuffer)
         
         #>>>TemplateNull stuff
         """creates template null"""
@@ -159,7 +159,7 @@ class Limb:
             attributes.storeInfo(createBuffer,'cgmPosition',self.position,True)
         mc.xform (createBuffer, os=True, piv= (0,0,0)) 
         createBuffer = rigging.doParentReturnName(createBuffer,moduleNull)
-        templateNullName = autoname.doNameObject(createBuffer)
+        templateNullName = NameFactory.doNameObject(createBuffer)
         attributes.storeObjectToMessage (templateNullName, moduleNull, 'templateNull')
         
         """stores our variables"""   
@@ -216,7 +216,7 @@ class Limb:
         rotateOrderInfoNull = rigging.doParentReturnName(rotateOrderInfoNull,moduleInfoNull)
         
         #>>> Checks naming
-        autoname.doRenameHeir(moduleNull)
+        NameFactory.doRenameHeir(moduleNull)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Subclasses
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -431,14 +431,14 @@ def doTemplate(masterNull, moduleNull):
             if direction != None:
                 attributes.storeInfo(createBuffer,'cgmDirection',direction)
             attributes.storeInfo(createBuffer,'cgmType','templateObject')
-            tmpObjName = autoname.doNameObject(createBuffer)
+            tmpObjName = NameFactory.doNameObject(createBuffer)
             mc.move (pos[0], pos[1], pos[2], [tmpObjName], a=True)
                         
             """adds it to the list"""
             templObjNameList.append (tmpObjName)
             templHandleList.append (tmpObjName)  
             """ replaces the message node locator objects with the new template ones """  
-            attributes.storeObjectToMessage (tmpObjName, templatePosObjectsInfoNull, autoname.returnUniqueGeneratedName(tmpObjName,ignore='cgmType'))  
+            attributes.storeObjectToMessage (tmpObjName, templatePosObjectsInfoNull, NameFactory.returnUniqueGeneratedName(tmpObjName,ignore='cgmType'))  
             
             cnt +=1
 
@@ -490,7 +490,7 @@ def doTemplate(masterNull, moduleNull):
         attributes.storeInfo(createBuffer,'cgmType','templateRoot')
         if direction != None:
             attributes.storeInfo(createBuffer,'cgmDirection',direction)
-        rootCtrl = autoname.doNameObject(createBuffer)
+        rootCtrl = NameFactory.doNameObject(createBuffer)
         
         rootGroup = rigging.groupMeObject(rootCtrl)
         rootGroup = rigging.doParentReturnName(rootGroup,templateNull)
@@ -506,7 +506,7 @@ def doTemplate(masterNull, moduleNull):
         modulesGroup = attributes.returnMessageObject(masterNull,'modulesGroup')
         modulesInfoNull = modules.returnInfoTypeNull(masterNull,'modules')
         
-        attributes.storeObjectToMessage (moduleNull, modulesInfoNull, (autoname.returnUniqueGeneratedName(moduleNull,ignore='cgmType')))
+        attributes.storeObjectToMessage (moduleNull, modulesInfoNull, (NameFactory.returnUniqueGeneratedName(moduleNull,ignore='cgmType')))
         
         """ parenting of the modules group if necessary"""
         moduleNullBuffer = rigging.doParentReturnName(moduleNull,modulesGroup)
@@ -587,7 +587,7 @@ def doTemplate(masterNull, moduleNull):
     moduleNullData = attributes.returnUserAttrsToDict(moduleNull)
 
     """ part name """
-    partName = autoname.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
+    partName = NameFactory.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
     partType = moduleNullData.get('cgmModuleType')
     direction = moduleNullData.get('cgmDirection')
     
@@ -653,7 +653,7 @@ def doTemplate(masterNull, moduleNull):
         coreNamesAttrs.append(coreNamesInfoNull+'.'+set[0])
         
     
-    divider = autoname.returnCGMDivider()
+    divider = NameFactory.returnCGMDivider()
     
     print ('%s%s'% (moduleNull,' data aquired...'))
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -718,7 +718,7 @@ def doTemplate(masterNull, moduleNull):
             
     print 'Constraint groups parented...'
     
-    rootName = autoname.doNameObject(root[0])
+    rootName = NameFactory.doNameObject(root[0])
     
     for obj in handles:
         attributes.doSetLockHideKeyableAttr(obj,True,False,False,['sx','sy','sz','v'])
@@ -740,12 +740,12 @@ def doTemplate(masterNull, moduleNull):
         closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
         if (search.returnTagInfo(moduleNull,'cgmModuleType')) != 'foot':
             constraintGroup = rigging.groupMeObject(rootName,maintainParent=True)
-            constraintGroup = autoname.doNameObject(constraintGroup)
+            constraintGroup = NameFactory.doNameObject(constraintGroup)
             mc.pointConstraint(closestParentObject,constraintGroup, maintainOffset=True)
             mc.scaleConstraint(closestParentObject,constraintGroup, maintainOffset=True)
         else:
             constraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
-            constraintGroup = autoname.doNameObject(constraintGroup)
+            constraintGroup = NameFactory.doNameObject(constraintGroup)
             mc.parentConstraint(rootName,constraintGroup, maintainOffset=True)
             
     """ grab the last clavicle piece if the arm has one and connect it to the arm  """
@@ -763,7 +763,7 @@ def doTemplate(masterNull, moduleNull):
                             parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
                 closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
                 endConstraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
-                endConstraintGroup = autoname.doNameObject(endConstraintGroup)
+                endConstraintGroup = NameFactory.doNameObject(endConstraintGroup)
                 mc.pointConstraint(handles[0],endConstraintGroup, maintainOffset=True)
                 mc.scaleConstraint(handles[0],endConstraintGroup, maintainOffset=True)
         
@@ -788,7 +788,7 @@ def doTemplate(masterNull, moduleNull):
     attributes.doConnectAttr((visControl+'.orientHelpers'),(templateNull+'.visOrientHelpers'))
     attributes.doConnectAttr((visControl+'.controlHelpers'),(templateNull+'.visControlHelpers'))
     #>>> Run a rename on the module to make sure everything is named properly
-    #autoname.doRenameHeir(moduleNull)
+    #NameFactory.doRenameHeir(moduleNull)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def templatizeCharacter(masterNull):
@@ -903,7 +903,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
     curves.setCurveColorByName(createBuffer,moduleColors[0])
     """ copy the name attr"""
     attributes.storeInfo(createBuffer,'cgmType','templateOrientRoot')
-    mainOrientHelperObj = autoname.doNameObject(createBuffer)
+    mainOrientHelperObj = NameFactory.doNameObject(createBuffer)
     """ store the object to it's respective  object """
     attributes.storeObjectToMessage (mainOrientHelperObj, root, 'orientHelper')
     returnBuffer.append(mainOrientHelperObj)
@@ -913,7 +913,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
     mc.delete (constBuffer[0])
     """ Follow Groups """
     mainOrientHelperGroupBuffer = rigging.groupMeObject(mainOrientHelperObj)
-    mainOrientHelperGroupBuffer = autoname.doNameObject(mainOrientHelperGroupBuffer)
+    mainOrientHelperGroupBuffer = NameFactory.doNameObject(mainOrientHelperGroupBuffer)
     mainOrientHelperGroup = rigging.doParentReturnName(mainOrientHelperGroupBuffer,root)
     mc.pointConstraint(objects[0],mainOrientHelperGroupBuffer,maintainOffset = False)
     helperObjectGroups.append(mainOrientHelperGroup)
@@ -940,7 +940,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
         """ copy the name attr"""
         attributes.copyUserAttrs(pair[0],createBuffer,['cgmName'])
         attributes.storeInfo(createBuffer,'cgmType','templateOrientObject')
-        helperObj = autoname.doNameObject(createBuffer)
+        helperObj = NameFactory.doNameObject(createBuffer)
         
         
         """ store the object to it's respective  object and to an object list """
@@ -954,7 +954,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
         
         """ follow groups """
         helperGroupBuffer = rigging.groupMeObject(helperObj)
-        helperGroup = autoname.doNameObject(helperGroupBuffer)
+        helperGroup = NameFactory.doNameObject(helperGroupBuffer)
         helperGroup = rigging.doParentReturnName(helperGroup,pair[0])
         helperObjectGroups.append(helperGroup)
         
@@ -977,7 +977,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
         """ copy the name attr"""
         attributes.copyUserAttrs(obj,createBuffer,['cgmName'])
         attributes.storeInfo(createBuffer,'cgmType','templateOrientObject')
-        helperObj = autoname.doNameObject(createBuffer)
+        helperObj = NameFactory.doNameObject(createBuffer)
         
         """ store the object to it's respective  object """
         attributes.storeObjectToMessage (helperObj, obj, 'orientHelper')
@@ -989,7 +989,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
         
         """ follow groups """
         helperGroupBuffer = rigging.groupMeObject(helperObj)
-        helperGroup = autoname.doNameObject(helperGroupBuffer)
+        helperGroup = NameFactory.doNameObject(helperGroupBuffer)
         helperGroup = rigging.doParentReturnName(helperGroup,obj)
         helperObjectGroups.append(helperGroup)
         
@@ -1044,7 +1044,7 @@ def addControlHelpers(sourceObjects,moduleNull,visAttr):
         """ copy the name attr"""
         attributes.copyUserAttrs(obj,createBuffer,['cgmName'])
         attributes.storeInfo(createBuffer,'cgmType','templateControlObject')
-        helperObj = autoname.doNameObject(createBuffer)
+        helperObj = NameFactory.doNameObject(createBuffer)
         
         helperObjects.append(helperObj)
         
@@ -1063,7 +1063,7 @@ def addControlHelpers(sourceObjects,moduleNull,visAttr):
         
         """ follow groups """
         helperGroupBuffer = rigging.groupMeObject(helperObj)
-        helperGroup = autoname.doNameObject(helperGroupBuffer)
+        helperGroup = NameFactory.doNameObject(helperGroupBuffer)
         #objParent = search.returnParentObject(obj)
         helperGroup = rigging.doParentReturnName(helperGroup,obj)
         helperObjectGroups.append(helperGroup)
@@ -1140,7 +1140,7 @@ def doSizeCharacter(masterNull):
     for module in orderedModules:
         moduleParent = attributes.returnMessageObject(module,'moduleParent')
         if moduleParent == masterNull:
-            rawModuleName = autoname.returnUniqueGeneratedName(module,ignore='cgmType')
+            rawModuleName = NameFactory.returnUniqueGeneratedName(module,ignore='cgmType')
             locInfoBuffer = createStartingPositionLoc(module,'innerChild',templateSizeObjects[0],templateSizeObjects[1])
             characterCorePositionListBuffer = doGenerateInitialPositionData(module,masterNull,locInfoBuffer,templateSizeObjects)      
             characterCorePositionList[module] = characterCorePositionListBuffer[0]
@@ -1159,7 +1159,7 @@ def doSizeCharacter(masterNull):
                 # Starter locs
                 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 for m in directionModuleSet:
-                    rawModuleName = autoname.returnUniqueGeneratedName(m,ignore='cgmType')
+                    rawModuleName = NameFactory.returnUniqueGeneratedName(m,ignore='cgmType')
                     """ make our initial sub groups """
                     if moduleType == 'arm' or moduleType == 'wing' or moduleType == 'tail':
                         locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),typeWorkingCurveDict.get(moduleType),typeAimingCurveDict.get(moduleType),cvDict.get(directionKey))
@@ -1323,7 +1323,7 @@ def doSizeCharacter(masterNull):
         infoNulls = modules.returnInfoNullsFromModule(module)
     
         """ part name """
-        partName = autoname.returnUniqueGeneratedName(module, ignore = 'cgmType')
+        partName = NameFactory.returnUniqueGeneratedName(module, ignore = 'cgmType')
         partType = moduleData.get('cgmModuleType')
         direction = moduleData.get('cgmDirection')
         
@@ -1470,7 +1470,7 @@ def doGenerateInitialPositionData(moduleNull,masterNull, startLocList, templateS
     moduleNullData = attributes.returnUserAttrsToDict(moduleNull)
 
     """ part name """
-    partName = autoname.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
+    partName = NameFactory.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
     partType = moduleNullData.get('cgmModuleType')
     direction = moduleNullData.get('cgmDirection')
     
@@ -1703,7 +1703,7 @@ def createStartingPositionLoc(moduleNull, modeType='child', workingObject=None, 
     returnList(list) = [rootHelper(string),helperObjects(list),helperObjectGroups(list)]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    moduleName = autoname.returnUniqueGeneratedName(moduleNull,ignore='cgmType')
+    moduleName = NameFactory.returnUniqueGeneratedName(moduleNull,ignore='cgmType')
     if modeType == 'child':
         """ make initial lock and orient it """
         returnLoc = []

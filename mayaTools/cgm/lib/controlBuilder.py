@@ -36,7 +36,7 @@ from cgm.lib import position
 from cgm.lib import names
 from cgm.lib import attributes
 from cgm.lib import rigging
-from cgm.lib import autoname 
+from cgm.lib.classes import NameFactory 
 from cgm.lib import constraints
 from cgm.lib import curves
 from cgm.lib import dictionary
@@ -76,7 +76,7 @@ def createJoystickControl(name,mode='classic',border = True):
     controlTransform = mc.group( em=True)
     attributes.storeInfo(controlTransform,'cgmName', name)
     attributes.storeInfo(controlTransform,'cgmType', 'joystickControlTransform')
-    controlTransform = autoname.doNameObject(controlTransform)
+    controlTransform = NameFactory.doNameObject(controlTransform)
 
     if border == True:
         """ make the base border square"""
@@ -84,7 +84,7 @@ def createJoystickControl(name,mode='classic',border = True):
         borderBuffer = curves.createControlCurve('squareRounded',2.25)
         attributes.storeInfo(borderBuffer,'cgmName', name)
         attributes.storeInfo(borderBuffer,'cgmType', 'borderCurve')
-        borderBuffer = autoname.doNameObject(borderBuffer)
+        borderBuffer = NameFactory.doNameObject(borderBuffer)
         
         borderBuffer = rigging.doParentReturnName(borderBuffer,controlTransform)
         shapes = mc.listRelatives(borderBuffer, shapes = True)
@@ -96,7 +96,7 @@ def createJoystickControl(name,mode='classic',border = True):
     controlBuffer = curves.createControlCurve('circle',.25)
     attributes.storeInfo(controlBuffer,'cgmName', name)
     attributes.storeInfo(controlBuffer,'cgmType', 'controlAnim')
-    controlBuffer = autoname.doNameObject(controlBuffer)
+    controlBuffer = NameFactory.doNameObject(controlBuffer)
     
     if mode == 'classic':
         """ parent control to transform """
@@ -159,7 +159,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     """
     nullBuffer = mc.group(em=True)
     attributes.storeInfo(nullBuffer,'cgmName',characterName)
-    masterNull = autoname.doNameObject(nullBuffer)
+    masterNull = NameFactory.doNameObject(nullBuffer)
     masterColors = modules.returnSettingsData('colorMaster',True)
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -176,7 +176,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     attributes.storeInfo(rootCurve,"cgmType","controlMaster")
     
     rootCurve = rigging.doParentReturnName(rootCurve,masterNull)
-    rootCurve = autoname.doNameObject(rootCurve)
+    rootCurve = NameFactory.doNameObject(rootCurve)
 
     controlsReturn.append(rootCurve)
     
@@ -196,7 +196,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     attributes.storeInfo(masterText,"cgmObjectText",(masterNull+'.cgmName'))
     
     
-    masterText = autoname.doNameObject(masterText)
+    masterText = NameFactory.doNameObject(masterText)
     masterText = rigging.doParentReturnName(masterText,rootCurve)
     controlsReturn.append(masterText)
     
@@ -332,7 +332,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
             attributes.storeInfo(controlBuffer,'cgmType', control)
             attributes.storeInfo(controlBuffer,'parentControl', baseControl)
 
-            controlBuffer = autoname.doNameObject(controlBuffer)
+            controlBuffer = NameFactory.doNameObject(controlBuffer)
             controlNameCleanBuffer = control.split('control')
             controlNameClean = controlNameCleanBuffer[1]
             attributes.storeInfo(baseControl,('childControl'+ (controlNameClean.capitalize())), controlBuffer)
@@ -572,13 +572,13 @@ def createSizeTemplateControl(masterNull):
     attributes.storeInfo(sizeCurveControlStart,'cgmName',(masterNull+'.cgmName'))
     attributes.storeInfo(sizeCurveControlStart,'cgmDirection','start')
     attributes.storeInfo(sizeCurveControlStart,'cgmType','templateSizeObject')
-    sizeCurveControlStart = autoname.doNameObject(sizeCurveControlStart)
+    sizeCurveControlStart = NameFactory.doNameObject(sizeCurveControlStart)
     mc.makeIdentity(sizeCurveControlStart, apply = True, t=True,s=True,r=True)
 
     attributes.storeInfo(sizeCurveControlEnd,'cgmName',(masterNull+'.cgmName'))
     attributes.storeInfo(sizeCurveControlEnd,'cgmDirection','end')
     attributes.storeInfo(sizeCurveControlEnd,'cgmType','templateSizeObject')
-    sizeCurveControlEnd  = autoname.doNameObject(sizeCurveControlEnd)
+    sizeCurveControlEnd  = NameFactory.doNameObject(sizeCurveControlEnd)
     
     endGroup = rigging.groupMeObject(sizeCurveControlEnd)
     mc.makeIdentity(sizeCurveControlEnd, apply = True, t=True,s=True,r=True)
@@ -589,7 +589,7 @@ def createSizeTemplateControl(masterNull):
     controlGroup = rigging.groupMeObject(sizeCurveControlStart)
     attributes.storeInfo(controlGroup,'cgmName',(masterNull+'.cgmName'))
     attributes.storeInfo(controlGroup,'cgmType','templateSizeObjectGroup')
-    controlGroup = autoname.doNameObject(controlGroup)
+    controlGroup = NameFactory.doNameObject(controlGroup)
     attributes.storeInfo(controlGroup,'controlStart',sizeCurveControlStart)
     attributes.storeInfo(controlGroup,'controlEnd',sizeCurveControlEnd)
     
@@ -681,7 +681,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
         attributes.copyUserAttrs(controlTemplateObjects[-1],transform,attrsToCopy=['cgmName'])
         attributes.storeInfo(transform,'cgmType','controlAnim')
         attributes.storeInfo(transform,'cgmTypeModifier','ik')
-        transform = autoname.doNameObject(transform)
+        transform = NameFactory.doNameObject(transform)
         returnControls['spineIKHandle'] = transform
     
     if 'ikHandle' in controlTypes:
@@ -708,7 +708,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
         attributes.copyUserAttrs(controlTemplateObjects[-1],transform,attrsToCopy=['cgmName'])
         attributes.storeInfo(transform,'cgmType','controlAnim')
         attributes.storeInfo(transform,'cgmTypeModifier','ik')
-        transform = autoname.doNameObject(transform)
+        transform = NameFactory.doNameObject(transform)
         returnControls['ikHandle'] = transform
         
     if 'twistFix' in controlTypes:
@@ -735,7 +735,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
         attributes.copyUserAttrs(controlTemplateObjects[0],transform,attrsToCopy=['cgmName'])
         attributes.storeInfo(transform,'cgmType','controlAnim')
         attributes.storeInfo(transform,'cgmTypeModifier','twist')
-        transform = autoname.doNameObject(transform)
+        transform = NameFactory.doNameObject(transform)
         returnControls['twistFix'] = transform
      
     if 'vectorHandleSpheres' in controlTypes:
@@ -765,7 +765,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
             attributes.copyUserAttrs(obj,transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','ik')
-            vectorHandleBuffer = autoname.doNameObject(transform)
+            vectorHandleBuffer = NameFactory.doNameObject(transform)
             vectorHandles.append(vectorHandleBuffer)
             
             
@@ -801,7 +801,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
             attributes.copyUserAttrs(obj,transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','ik')
-            vectorHandleBuffer = autoname.doNameObject(transform)
+            vectorHandleBuffer = NameFactory.doNameObject(transform)
             vectorHandles.append(vectorHandleBuffer)
             
             
@@ -827,7 +827,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
         """ Store data and name"""
         attributes.storeInfo(transform,'cgmName','hips')
         attributes.storeInfo(transform,'cgmType','controlAnim')
-        hips = autoname.doNameObject(transform)
+        hips = NameFactory.doNameObject(transform)
         returnControls['hips'] = hips
             
     if 'cog' in controlTypes:
@@ -843,7 +843,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
         """ Store data and name"""
         attributes.storeInfo(cogControl,'cgmName','cog')
         attributes.storeInfo(cogControl,'cgmType','controlAnim')
-        cogControl = autoname.doNameObject(cogControl)
+        cogControl = NameFactory.doNameObject(cogControl)
         returnControls['cog'] = cogControl
     
     if 'segmentControls' in controlTypes:
@@ -936,7 +936,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
             attributes.copyUserAttrs(segment[0],transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','fk')
-            segmentCurveBuffer = autoname.doNameObject(transform)
+            segmentCurveBuffer = NameFactory.doNameObject(transform)
             segmentControls.append(segmentCurveBuffer)
             
             cnt+=1
@@ -1033,7 +1033,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
             attributes.copyUserAttrs(segment[0],transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','fk')
-            limbControlBuffer = autoname.doNameObject(transform)
+            limbControlBuffer = NameFactory.doNameObject(transform)
             limbControls.append(limbControlBuffer)
             
             cnt+=1
@@ -1134,7 +1134,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
             attributes.copyUserAttrs(segment[0],transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','fk')
-            segmentCurveBuffer = autoname.doNameObject(transform)
+            segmentCurveBuffer = NameFactory.doNameObject(transform)
             headControls.append(segmentCurveBuffer)
             
             cnt+=1
@@ -1205,7 +1205,7 @@ def createMasterControlFromMasterNull(masterNull):
     attributes.storeInfo(rootCurve,"cgmType","controlMaster")
     
     rootCurve = rigging.doParentReturnName(rootCurve,masterNull)
-    rootCurve = autoname.doNameObject(rootCurve)
+    rootCurve = NameFactory.doNameObject(rootCurve)
 
     controlsReturn.append(rootCurve)
     
@@ -1226,7 +1226,7 @@ def createMasterControlFromMasterNull(masterNull):
     attributes.storeInfo(masterText,"curveText",(masterNull+'.cgmName'))
     attributes.storeInfo(masterText,"textFont",(settingsInfoNull+'.font'))
     
-    masterText = autoname.doNameObject(masterText)
+    masterText = NameFactory.doNameObject(masterText)
     masterText = rigging.doParentReturnName(masterText,rootCurve)
     controlsReturn.append(masterText)
     

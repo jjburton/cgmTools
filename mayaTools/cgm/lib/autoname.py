@@ -36,7 +36,7 @@ from cgm.lib import dictionary
 from cgm.lib import settings
 from cgm.lib import lists
 from cgm.lib import guiFactory
-from cgm.lib.classes.NameFactory import *
+from cgm.lib.classes.NameFactory import NameFactory
 
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()

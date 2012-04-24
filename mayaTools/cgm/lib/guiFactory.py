@@ -25,6 +25,7 @@ import maya.mel as mel
 
 from cgmBaseMelUI import *
 from cgm.lib import dictionary
+from cgm.lib import optionVars
 
 mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 
@@ -110,7 +111,10 @@ def initializeTemplates():
     mc.uiTemplate('cgmUILockedTemplate')
     mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor)
 
-
+def resetGuiInstanceOptionVars(optionVarHolder,runCommand):
+    if optionVarHolder:
+	purgeOptionVars(optionVarHolder)
+    runCommand()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Standard functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -366,6 +370,16 @@ def doToggleIntOptionVariable(variable):
     varState = mc.optionVar( q= variable )
     mc.optionVar( iv=(variable, not varState))
 
+def purgeOptionVars(varHolder):
+    """
+    Typically self.optionVars
+    """
+    sceneOptionVars = mc.optionVar(list=True)
+    if varHolder:
+        for var in varHolder:
+            if var in sceneOptionVars:
+                optionVars.purgeOptionVar(var)
+                
 def appendOptionVarList(self,varName):
     if varName not in self.optionVars:
         self.optionVars.append(varName)

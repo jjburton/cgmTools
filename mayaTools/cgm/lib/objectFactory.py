@@ -31,7 +31,6 @@ import maya.mel as mel
 
 from cgm.lib import (lists,
                      search,
-                     autoname,
                      attributes,
                      dictionary,
                      rigging,
@@ -102,12 +101,12 @@ class go():
             self.nameBase = self.nameShort
         
     def name(self):
-        buffer = autoname.doNameObject(self.nameLong)
+        buffer = NameFactory.doNameObject(self.nameLong)
         if buffer:
             self.update(buffer)
             
     def doName(self):
-        buffer = autoname.doNameObject(self.nameLong)
+        buffer = NameFactory.doNameObject(self.nameLong)
         if buffer:
             self.update(buffer)
             

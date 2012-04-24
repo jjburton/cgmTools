@@ -46,7 +46,6 @@ reload(tdToolsLib)
 reload(namingToolsLib)
 
 def run():
-    reload(tdToolsLib)
     tdTools = tdToolsClass()
 
 class tdToolsClass(BaseMelWindow):
@@ -355,11 +354,16 @@ class tdToolsClass(BaseMelWindow):
 	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_AutoloadTextObject'))
 
 	MelMenuItemDiv( self.UI_OptionsMenu )
-
+	
+	MelMenuItemDiv( self.UI_OptionsMenu )
+	MelMenuItem( self.UI_OptionsMenu, l="Reset",
+	             c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
+	
     def buildAxisMenu(self, *a ):
 	guiFactory.appendOptionVarList(self,'cgmVar_ObjectUpAxis')	
 	guiFactory.appendOptionVarList(self,'cgmVar_ObjectAimAxis')	
-	guiFactory.appendOptionVarList(self,'cgmVar_WorldUpAxis')	
+	guiFactory.appendOptionVarList(self,'cgmVar_WorldUpAxis')
+	
 
 	if not mc.optionVar( ex='cgmVar_ObjectUpAxis' ):
 	    mc.optionVar( sv=('cgmVar_ObjectUpAxis', 'x+') )
@@ -368,6 +372,7 @@ class tdToolsClass(BaseMelWindow):
 	if not mc.optionVar( ex='cgmVar_WorldUpAxis' ):
 	    mc.optionVar( sv=('cgmVar_WorldUpAxis', 'y+') )
 
+	self.uiCurveAxis = mc.optionVar(q='cgmVar_ObjectAimAxis')
 
 	self.UI_AxisMenu.clear()
 
@@ -424,11 +429,7 @@ class tdToolsClass(BaseMelWindow):
 
 	MelMenuItemDiv( self.UI_HelpMenu )
 	MelMenuItem( self.UI_HelpMenu, l="About",
-	             c=lambda *a: self.showAbout() )
-
-	MelMenuItemDiv( self.UI_HelpMenu )
-	MelMenuItem( self.UI_HelpMenu, l="Reload",
-	             c=lambda *a: run())		
+	             c=lambda *a: self.showAbout() )		
 
 
     def do_showHelpToggle(self):

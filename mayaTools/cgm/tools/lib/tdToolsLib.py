@@ -31,6 +31,7 @@ import subprocess
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.ObjectFactory import *
+from cgm.lib.classes import NameFactory 
 
 
 from cgm.lib import (guiFactory,
@@ -38,7 +39,6 @@ from cgm.lib import (guiFactory,
                      constraints,
                      curves,
                      dictionary,
-                     autoname,
                      search,
                      deformers,
                      logic,
@@ -56,7 +56,7 @@ from cgm.tools.lib import locinatorLib,namingToolsLib
 reload(curves)
 reload(position)
 reload(attributes)
-reload(autoname)
+reload(NameFactory)
 reload(guiFactory)
 
 """
@@ -846,7 +846,7 @@ def doCopyWeightsFromFirstToOthers():
             guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
         else:
-            guiFactory.warning('You need target objects selection')
+            guiFactory.warning('You need target objects selected')
     else:
         guiFactory.warning('You need a source object selection or loaded')
 
@@ -883,7 +883,7 @@ def doSelectInfluenceJoints():
         else:
             guiFactory.warning('No Influences found')
     else:
-        guiFactory.warning('Must have something selection')
+        guiFactory.warning('Must have something selected')
 
 
 def doReturnExcessInfluenceVerts(self):
@@ -953,7 +953,7 @@ def doLayoutByRowsAndColumns(self):
     if len(selection) >=2:
         position.layoutByColumns(selection,columnNumber)
     else:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
     mc.select(selection)
 
 def doCGMNameToFloat():
@@ -976,7 +976,7 @@ def doAimSnapToOne():
             bufferList.append(position.aimSnap(item,selection[-1],aimVector,upVector,worldUpVector))
         return bufferList
     else:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
 
 def doAimSnapOneToNext():
     aimVector = dictionary.returnStringToVectors(mc.optionVar(q='cgmVar_ObjectAimAxis'))
@@ -993,7 +993,7 @@ def doAimSnapOneToNext():
             bufferList.append(position.aimSnap(pair[0],pair[1],aimVector,upVector,worldUpVector))
         return bufferList
     else:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Position
@@ -1051,7 +1051,7 @@ def doSnapClosestPointToSurface(aim=True):
         guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
         return bufferList
     else:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Curve Tools
@@ -1194,7 +1194,7 @@ def TextCurveObjectdoUpdate(self):
                     
                     if self.renameObjectOnUpdate:
                         attributes.storeInfo(obj,'cgmName',self.textObjectText)
-                        obj = autoname.doNameObject(obj)                    
+                        obj = NameFactory.doNameObject(obj)                    
                  
                 if self.changeFontOnUpdate:
                     attributes.storeInfo(obj,'cgmObjectFont',self.textObjectFont) 
@@ -1230,7 +1230,7 @@ def TextCurveObjectdoUpdate(self):
 
             if self.renameObjectOnUpdate:
                 attributes.storeInfo(textCurveObject,'cgmName',self.textObjectText)
-                textCurveObject = autoname.doNameObject(textCurveObject)
+                textCurveObject = NameFactory.doNameObject(textCurveObject)
 
             # Put our updated object info
             mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
@@ -1242,7 +1242,7 @@ def TextCurveObjectdoUpdate(self):
 
     else:
         TextCurveObjectLoadUI(self)        
-        guiFactory.warning('No textCurveObject loaded or selection')
+        guiFactory.warning('No textCurveObject loaded or selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>Curve Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1262,7 +1262,7 @@ def doCreateOneOfEachCurve(self):
 	
 	buffer = curves.createControlCurve(option,creationSize,self.uiCurveAxis )
 	attributes.storeInfo(buffer,'cgmName',option)	
-	buffer = autoname.doNameObject(buffer)
+	buffer = NameFactory.doNameObject(buffer)
 	curves.setColorByIndex(buffer,colorChoice)
 	bufferList.append(buffer)
 	
@@ -1310,15 +1310,19 @@ def curveControlCreate(self):
                     break
                 mc.progressBar(mayaMainProgressBar, edit=True, status = ("Creating curve for '%s'"%item), step=1)
 
-		print 2
                 if self.sizeMode in [0,1,2]:
                     creationSize = sizeReturn[selection.index(item)]
                 else:
                     creationSize = sizeReturn
+		
+		print shapeOption
+		print creationSize
+		print self.uiCurveAxis
                 buffer = curves.createControlCurve(shapeOption,creationSize,self.uiCurveAxis )
+		print "buffer is '%s'"%buffer
                 attributes.storeInfo(buffer,'cgmName',item)
 		attributes.storeInfo(buffer,'cgmSource',item)
-                buffer = autoname.doNameObject(buffer)
+                buffer = NameFactory.doNameObject(buffer)
                 if self.forceBoundingBoxState == True:
 		    guiFactory.warning("Forced Bounding box on")
                     locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
@@ -1341,7 +1345,7 @@ def curveControlCreate(self):
                 attributes.storeInfo(buffer,'cgmName',self.uiCurveName)
             else:
                 attributes.storeInfo(buffer,'cgmName',shapeOption)
-            buffer = autoname.doNameObject(buffer)
+            buffer = NameFactory.doNameObject(buffer)
             curves.setColorByIndex(buffer,colorChoice)
 	    bufferList.append(buffer)
 	    
@@ -1475,7 +1479,7 @@ def curveControlConnect(self):
 			mc.connectAttr(buffer,(ConstraintGroup.nameLong+'.rotateOrder'))
 			
 		if ExtraGroupState:	
-		    autoname.doNameObject(ConstraintGroup.nameLong)
+		    NameFactory.doNameObject(ConstraintGroup.nameLong)
 		    obj.update(obj.nameBase)
 				
 		if ConstraintMode == 'parent':
@@ -1536,7 +1540,7 @@ def doCreateCurveFromObjects():
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
 
     try:
@@ -1640,7 +1644,7 @@ def doShapeParent():
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
 
     for obj in selection[1:]:
@@ -1667,7 +1671,7 @@ def doShapeParentInPlace():
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
 
     for obj in selection[1:]:
@@ -1690,7 +1694,7 @@ def doReplaceCurveShapes():
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
     
     originalShapes = mc.listRelatives (selection[-1], f= True,shapes=True)
@@ -1855,7 +1859,7 @@ def doCopyPivot():
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
 
     for obj in selection[1:]:
@@ -1882,12 +1886,12 @@ def doParentSelected():
     mc.select(cl=True)
 
     if len(selection)<2:
-        guiFactory.warning('You must have at least two objects selection')
+        guiFactory.warning('You must have at least two objects selected')
         return False
 
     try:
 	rigging.parentListToHeirarchy(selection)
 	mc.select(selection)
     except:
-	guiFactory.warning('Failed to parent selection')
+	guiFactory.warning('Failed to parent selected')
 	    
