@@ -52,6 +52,9 @@ reload(guiFactory)
 reload(modules)
 reload(locators)
 
+matchModeKeyingDict = {0:['translateX','translateY','translateZ','rotateX','rotateY','rotateZ'],
+                       1:['translateX','translateY','translateZ'],
+                       2:['rotateX','rotateY','rotateZ']}
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # GUI
@@ -65,6 +68,23 @@ def setGUITimeRangeToScene(self):
     timelineInfo = search.returnTimelineInfo()
     self.startFrameField(edit=True,value=(timelineInfo["sceneStart"]))
     self.endFrameField(edit=True,value=(timelineInfo["sceneEnd"]))
+
+def getSelfOptionVars(self):
+    try:
+	if self.toolName == 'cgm.locinator':
+	    self.bakeMode = mc.optionVar( q='cgmVar_LocinatorBakeState' )
+	    self.forceEveryFrame = mc.optionVar( q='cgmVar_LocinatorKeyingMode' )
+	    self.keyingTargetState = mc.optionVar( q='cgmVar_LocinatorKeyingTarget' )
+	    self.matchMode = mc.optionVar(q='cgmVar_LocinatorMatchMode')
+	    print self.forceEveryFrame
+	    
+	elif self.toolName == 'cgm.animTools':
+	    self.bakeMode = mc.optionVar( q='cgmVar_animToolsBakeState' )
+	    self.forceEveryFrame = mc.optionVar( q='animToolscgmVar_KeyingMode' )
+	    self.keyingTargetState = mc.optionVar( q='cgmVar_animToolsKeyingTarget' )
+	    self.matchMode = mc.optionVar(q='cgmVar_animToolsMatchMode')	    
+    except:
+	guiFactory.warning("'%s' failed - locinatorLib.getSelfOptionVars"%self.toolName)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tool Commands
@@ -86,12 +106,11 @@ def doLocMe(self):
     bufferList = []
     selection = mc.ls(sl=True,flatten=True) or []
     mc.select(cl=True)
+    self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
     
     if not selection:
 	return mc.spaceLocator(name = 'worldCenter_loc')
-    
-    self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
-    
+        
     retLocators = []
     
     mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selection))		
@@ -262,6 +281,22 @@ def doLocClosest():
     else:
         buffer = locators.locClosest(selection[:-1],selection[-1])
         mc.select(buffer)
+
+def doUpdateObj(self,obj):
+    matchObject = search.returnTagInfo(obj,'cgmMatchObject')
+    
+    if mc.objExists(matchObject):
+	try:
+	    if self.matchMode == 0:
+		position.moveParentSnap(obj,matchObject)
+	    elif self.matchMode == 1:
+		position.movePointSnap(obj,matchObject)
+	    elif self.matchMode == 2:
+		position.moveOrientSnap(obj,matchObject)
+	    return True
+	except:
+	    return False
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
@@ -279,11 +314,10 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
     bufferList = []
     selection = (mc.ls (sl=True,flatten=True)) or []
-    self.bakeMode = mc.optionVar( q='cgmVar_LocinatorBakeState' )
-    self.forceEveryFrame = mc.optionVar( q='cgmVar_KeyingMode' )
-    self.keyingTargetState = mc.optionVar( q='cgmVar_KeyingTarget' )
+    getSelfOptionVars(self)
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
-
+    getSelfOptionVars(self)
+    
     if not len(selection):
         guiFactory.warning('Nothing selected')
         return 
@@ -294,7 +328,8 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
         if queryCanUpdate(item):
             toUpdate.append(item)
 
-
+    print "Self bake mode is '%s'"%self.bakeMode
+    print "Force Every Frame mode is '%s'"%self.forceEveryFrame
     if len(toUpdate) >= 1:
         if not self.bakeMode:
 	    print 'yes'
@@ -306,8 +341,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                         guiFactory.warning('%s%s' % (item, " could not be updated..."))
                 else:
                     matchObject = search.returnTagInfo(item,'cgmMatchObject')
-                    if mc.objExists(matchObject):
-                        position.moveParentSnap(item,matchObject)
+                    if doUpdateObj(self,item):
                         print ("'%s' updated..."%item)
                     else:
                         guiFactory.warning('%s%s' % (item, " has no match object"))
@@ -322,7 +356,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
             if self.forceEveryFrame== True:
                 for item in toUpdate:
                     #Then delete the key clear any key frames in the region to be able to cleanly put new ones on keys only mode
-                    mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1))
+                    mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1),at= matchModeKeyingDict.get(self.matchMode))
 
                 mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(range(self.startFrame,self.endFrame + 1)),"On '%s'"%item)
                 #guiFactory.doProgressWindow()
@@ -342,12 +376,10 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                             locators.doUpdateLocator(item,self.forceBoundingBoxState)
                         else:
                             if queryCanUpdate(item):
-				matchObject = search.returnTagInfo(item,'cgmMatchObject')
-				if mc.objExists(matchObject):
-				    position.moveParentSnap(item,matchObject)
+				doUpdateObj(self,item)
                             else:
                                 break
-                        mc.setKeyframe(item,time = f,at=['translateX','translateY','translateZ','rotateX','rotateY','rotateZ'])
+                        mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
 
 		guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
@@ -400,7 +432,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                     mayaMainProgressBar = guiFactory.doStartMayaProgressBar(maxRange)
 
                     #first clear any key frames in the region to be able to cleanly put new ones on keys only mode
-                    mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1))
+                    mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1),at= matchModeKeyingDict.get(self.matchMode))
 
                     maxRange = len(keyFrames)
                     for f in keyFrames:
@@ -414,12 +446,10 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                             if search.returnObjectType(item) == 'locator':
                                 locators.doUpdateLocator(item,self.forceBoundingBoxState)
                             else:
-                                if mc.objExists(matchObject):
-                                    position.moveParentSnap(item,matchObject)
-                                else:
-                                    return False
+				doUpdateObj(self,item)
 
-                            mc.setKeyframe(item,time = f,at=['translateX','translateY','translateZ','rotateX','rotateY','rotateZ'])
+
+                            mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
                             #Close our progress bar
 
                     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)

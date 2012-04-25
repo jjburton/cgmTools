@@ -49,7 +49,7 @@ class locinatorClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'cgmLocinatorWindow'
 	WINDOW_TITLE = 'cgm.locinator'
-	DEFAULT_SIZE = 175, 260
+	DEFAULT_SIZE = 180, 260
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -59,7 +59,7 @@ class locinatorClass(BaseMelWindow):
 
 	def __init__( self):
 
-		self.toolName = 'Locinator'
+		self.toolName = 'cgm.locinator'
 		self.description = 'This tool makes locators based on selection types and provides ways to update those locators over time'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
@@ -109,12 +109,13 @@ class locinatorClass(BaseMelWindow):
 	def setupVariables():
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
-		if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
-			mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0) )
 		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
 			mc.optionVar( iv=('cgmVar_LocinatorShowHelp', 0) )
-		if not mc.optionVar( ex='cgmVar_CurrentFrameOnly' ):
-			mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0) )
+		if not mc.optionVar( ex='cgmVar_LocinatorCurrentFrameOnly' ):
+			mc.optionVar( iv=('cgmVar_LocinatorCurrentFrameOnly', 0) )
+			
+		if not mc.optionVar( ex='cgmVar_LocinatorBakingMode' ):
+			mc.optionVar( iv=('cgmVar_LocinatorBakingMode', 0) )
 			
 		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorShowHelp')	
 
@@ -152,7 +153,7 @@ class locinatorClass(BaseMelWindow):
 		AnimMenu = MelMenuItem( self.UI_OptionsMenu, l='Anim', subMenu=True)
 		AnimMenuCollection = MelRadioMenuCollection()
 
-		if mc.optionVar( q='cgmVar_ForceEveryFrame' ) == 0:
+		if mc.optionVar( q='cgmVar_LocinatorBakingMode' ) == 0:
 			EveryFrameOption = False
 			KeysOnlyOption = True
 		else:
@@ -160,10 +161,10 @@ class locinatorClass(BaseMelWindow):
 			KeysOnlyOption = False
 
 		AnimMenuCollection.createButton(AnimMenu,l='Every Frame',
-				                        c=lambda *a: mc.optionVar( iv=('cgmVar_ForceEveryFrame', 1)),
+				                        c=lambda *a: mc.optionVar( iv=('cgmVar_LocinatorBakingMode', 1)),
 				                        rb=EveryFrameOption )
 		AnimMenuCollection.createButton(AnimMenu,l='Keys Only',
-				                        c=lambda *a: mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0)),
+				                        c=lambda *a: mc.optionVar( iv=('cgmVar_LocinatorBakingMode', 0)),
 				                        rb=KeysOnlyOption )
 
 		MelMenuItemDiv( self.UI_OptionsMenu )
@@ -188,11 +189,11 @@ class locinatorClass(BaseMelWindow):
 
 	def do_showTimeSubMenuToggleOn( self):
 		guiFactory.toggleMenuShowState(1,self.timeSubMenu)
-		mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 1))
+		mc.optionVar( iv=('cgmVar_LocinatorCurrentFrameOnly', 1))
 
 	def do_showTimeSubMenuToggleOff( self):
 		guiFactory.toggleMenuShowState(0,self.timeSubMenu)
-		mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0))
+		mc.optionVar( iv=('cgmVar_LocinatorCurrentFrameOnly', 0))
 
 
 	def showAbout(self):
@@ -218,13 +219,6 @@ class locinatorClass(BaseMelWindow):
 	def printHelp(self):
 		import locinatorLib
 		help(locinatorLib)
-
-	def do_everyFrameToggle( self):
-		EveryFrameOption = mc.optionVar( q='cgmVar_ForceEveryFrame' )
-		guiFactory.toggleMenuShowState(EveryFrameOption,self.timeSubMenu)
-		mc.optionVar( iv=('cgmVar_ForceEveryFrame', not EveryFrameOption))
-
-
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Layouts
@@ -282,9 +276,9 @@ class locinatorClass(BaseMelWindow):
 		#>>> Base Settings Flags
 		self.KeyingModeCollection = MelRadioCollection()
 		self.KeyingModeCollectionChoices = []		
-		if not mc.optionVar( ex='cgmVar_KeyingMode' ):
-			mc.optionVar( iv=('cgmVar_KeyingMode', 0) )
-		guiFactory.appendOptionVarList(self,'cgmVar_KeyingMode')	
+		if not mc.optionVar( ex='cgmVar_LocinatorKeyingMode' ):
+			mc.optionVar( iv=('cgmVar_LocinatorKeyingMode', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorKeyingMode')	
 			
 		
 		KeysSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
@@ -294,18 +288,18 @@ class locinatorClass(BaseMelWindow):
 		for item in self.keyingOptions:
 			cnt = self.keyingOptions.index(item)
 			self.KeyingModeCollectionChoices.append(self.KeyingModeCollection.createButton(KeysSettingsFlagsRow,label=self.keyingOptions[cnt],
-			                                                                               onCommand = Callback(guiFactory.toggleOptionVarState,self.keyingOptions[cnt],self.keyingOptions,'cgmVar_KeyingMode',True)))
+			                                                                               onCommand = Callback(guiFactory.toggleOptionVarState,self.keyingOptions[cnt],self.keyingOptions,'cgmVar_LocinatorKeyingMode',True)))
 			MelSpacer(KeysSettingsFlagsRow,w=5)
-		mc.radioCollection(self.KeyingModeCollection ,edit=True,sl= (self.KeyingModeCollectionChoices[ (mc.optionVar(q='cgmVar_KeyingMode')) ]))
+		mc.radioCollection(self.KeyingModeCollection ,edit=True,sl= (self.KeyingModeCollectionChoices[ (mc.optionVar(q='cgmVar_LocinatorKeyingMode')) ]))
 		
 		KeysSettingsFlagsRow.layout()
 
 		#>>> Base Settings Flags
 		self.KeyingTargetCollection = MelRadioCollection()
 		self.KeyingTargetCollectionChoices = []		
-		if not mc.optionVar( ex='cgmVar_KeyingTarget' ):
-			mc.optionVar( iv=('cgmVar_KeyingTarget', 0) )
-		guiFactory.appendOptionVarList(self,'cgmVar_KeyingTarget')	
+		if not mc.optionVar( ex='cgmVar_LocinatorKeyingTarget' ):
+			mc.optionVar( iv=('cgmVar_LocinatorKeyingTarget', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorKeyingTarget')	
 			
 		
 		BakeSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
@@ -316,22 +310,46 @@ class locinatorClass(BaseMelWindow):
 		for item in self.keyTargetOptions:
 			cnt = self.keyTargetOptions.index(item)
 			self.KeyingTargetCollectionChoices.append(self.KeyingTargetCollection.createButton(BakeSettingsFlagsRow,label=self.keyTargetOptions[cnt],
-		                                                                                       onCommand = Callback(guiFactory.toggleOptionVarState,self.keyTargetOptions[cnt],self.keyTargetOptions,'cgmVar_KeyingTarget',True)))
+		                                                                                       onCommand = Callback(guiFactory.toggleOptionVarState,self.keyTargetOptions[cnt],self.keyTargetOptions,'cgmVar_LocinatorKeyingTarget',True)))
 			MelSpacer(BakeSettingsFlagsRow,w=5)
-		mc.radioCollection(self.KeyingTargetCollection ,edit=True,sl= (self.KeyingTargetCollectionChoices[ (mc.optionVar(q='cgmVar_KeyingTarget')) ]))
+		mc.radioCollection(self.KeyingTargetCollection ,edit=True,sl= (self.KeyingTargetCollectionChoices[ (mc.optionVar(q='cgmVar_LocinatorKeyingTarget')) ]))
 		
 		BakeSettingsFlagsRow.layout()
 		
 		return self.containerName
 	
 	def buildBasicLayout(self,parent):
+		mc.setParent(parent)
+		guiFactory.lineSubBreak()
 
+		#>>>Match Mode
+		self.MatchModeCollection = MelRadioCollection()
+		self.MatchModeCollectionChoices = []		
+		if not mc.optionVar( ex='cgmVar_LocinatorMatchMode' ):
+			mc.optionVar( iv=('cgmVar_LocinatorMatchMode', 0) )	
+			
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorMatchMode')
+			
+		#MatchModeFlagsRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)	
+		MatchModeFlagsRow = MelHSingleStretchLayout(parent,ut='cgmUIReservedTemplate',padding = 2)	
+		MelSpacer(MatchModeFlagsRow,w=2)				
+		self.MatchModeOptions = ['parent','point','orient']
+		for item in self.MatchModeOptions:
+			cnt = self.MatchModeOptions.index(item)
+			self.MatchModeCollectionChoices.append(self.MatchModeCollection.createButton(MatchModeFlagsRow,label=self.MatchModeOptions[cnt],
+			                                                                             onCommand = Callback(guiFactory.toggleOptionVarState,self.MatchModeOptions[cnt],self.MatchModeOptions,'cgmVar_LocinatorMatchMode',True)))
+			MelSpacer(MatchModeFlagsRow,w=3)
+		MatchModeFlagsRow.setStretchWidget( self.MatchModeCollectionChoices[-1] )
+		MelSpacer(MatchModeFlagsRow,w=2)		
+		MatchModeFlagsRow.layout()	
+		
+		mc.radioCollection(self.MatchModeCollection ,edit=True,sl= (self.MatchModeCollectionChoices[ (mc.optionVar(q='cgmVar_LocinatorMatchMode')) ]))
+		
 		#>>>Time Section
 		UpdateOptionRadioCollection = MelRadioCollection()
 		EveryFrameOption = mc.optionVar( q='cgmVar_LocinatorBakeState' )
 		mc.setParent(parent)
 		guiFactory.lineSubBreak()
-		guiFactory.header('Update')
 		
 		#>>> Time Menu Container
 		self.BakeModeOptionList = ['Current Frame','Bake']

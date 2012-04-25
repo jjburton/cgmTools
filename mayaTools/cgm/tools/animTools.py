@@ -17,7 +17,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.04232012'
+__version__ = '0.1.040242012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
@@ -26,12 +26,13 @@ import maya.cmds as mc
 
 from cgm.tools.lib import (animToolsLib,
                            tdToolsLib,
-                           locinatorLib,
-                           )
+                           locinatorLib)
 from cgm.lib import guiFactory
 
 reload(animToolsLib)
 reload(guiFactory)
+reload(locinatorLib)
+
 from cgm.lib import (search,guiFactory)
 
 
@@ -55,8 +56,8 @@ class animToolsClass(BaseMelWindow):
 
 	def __init__( self):
 
-		self.toolName = 'animTools'
-		self.description = 'This tool makes locators based on selection types and provides ways to update those locators over time'
+		self.toolName = 'cgm.animTools'
+		self.description = 'This is a series of tools for basic animation functions'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
 		self.website = 'www.cgmonks.com'
@@ -112,6 +113,9 @@ class animToolsClass(BaseMelWindow):
 			mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0) )
 		if not mc.optionVar( ex='cgmVar_animToolsShowHelp' ):
 			mc.optionVar( iv=('cgmVar_animToolsShowHelp', 0) )
+			
+		guiFactory.appendOptionVarList(self,'cgmVar_animToolsShowHelp')
+		
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -135,6 +139,10 @@ class animToolsClass(BaseMelWindow):
 		PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
 				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0)),
 				                             rb=pivotOption )
+		MelMenuItemDiv( self.UI_OptionsMenu )
+		MelMenuItem( self.UI_OptionsMenu, l="Reset",
+			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
+
 
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
@@ -235,11 +243,11 @@ class animToolsClass(BaseMelWindow):
 		TimeButtonRow = MelHSingleStretchLayout(self.containerName,padding = 1, ut='cgmUISubTemplate')
 		MelSpacer(TimeButtonRow,w=2)
 		currentRangeButton = guiFactory.doButton2(TimeButtonRow,'Current Range',
-	                                              lambda *a: animToolsLib.setGUITimeRangeToCurrent(self),
+	                                              lambda *a: locinatorLib.setGUITimeRangeToCurrent(self),
 	                                              'Sets the time range to the current slider range')
 		TimeButtonRow.setStretchWidget( MelSpacer(TimeButtonRow,w=2) )
 		sceneRangeButton = guiFactory.doButton2(TimeButtonRow,'Scene Range',
-	                                            lambda *a: animToolsLib.setGUITimeRangeToScene(self),
+	                                            lambda *a: locinatorLib.setGUITimeRangeToScene(self),
 	                                            'Sets the time range to the current slider range')
 		MelSpacer(TimeButtonRow,w=2)
 		
@@ -251,6 +259,7 @@ class animToolsClass(BaseMelWindow):
 		self.KeyingModeCollectionChoices = []		
 		if not mc.optionVar( ex='cgmVar_KeyingMode' ):
 			mc.optionVar( iv=('cgmVar_KeyingMode', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_KeyingMode')
 		
 		KeysSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(KeysSettingsFlagsRow,w=2)	
@@ -270,6 +279,7 @@ class animToolsClass(BaseMelWindow):
 		self.KeyingTargetCollectionChoices = []		
 		if not mc.optionVar( ex='cgmVar_KeyingTarget' ):
 			mc.optionVar( iv=('cgmVar_KeyingTarget', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_KeyingTarget')
 		
 		BakeSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(BakeSettingsFlagsRow,w=2)	
@@ -297,6 +307,8 @@ class animToolsClass(BaseMelWindow):
 		if not mc.optionVar( ex='cgmVar_MatchMode' ):
 			mc.optionVar( iv=('cgmVar_MatchMode', 0) )	
 			
+		guiFactory.appendOptionVarList(self,'cgmVar_MatchMode')
+			
 		#MatchModeFlagsRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)	
 		MatchModeFlagsRow = MelHSingleStretchLayout(parent,ut='cgmUIReservedTemplate',padding = 2)	
 		MelSpacer(MatchModeFlagsRow,w=2)				
@@ -314,13 +326,15 @@ class animToolsClass(BaseMelWindow):
 		
 		#>>>Time Section
 		UpdateOptionRadioCollection = MelRadioCollection()
-		EveryFrameOption = mc.optionVar( q='cgmVar_AnimToolsBakeState' )
 		
 		#>>> Time Menu Container
 		self.BakeModeOptionList = ['Current Frame','Bake']
 		cgmVar_Name = 'cgmVar_AnimToolsBakeState'
 		if not mc.optionVar( ex=cgmVar_Name ):
 			mc.optionVar( iv=(cgmVar_Name, 0) )
+			
+		EveryFrameOption = mc.optionVar( q='cgmVar_AnimToolsBakeState' )
+		guiFactory.appendOptionVarList(self,'cgmVar_AnimToolsBakeState')
 		
 		#build our sub section options
 		self.ContainerList = []
@@ -352,18 +366,17 @@ class animToolsClass(BaseMelWindow):
 		mc.setParent(parent)
 
 		guiFactory.doButton2(parent,'Do it!',
-	                         lambda *a: animToolsLib.doUpdateLoc(self),
-	                         'Update a locator at a particular frame or through a timeline')
+	                         lambda *a: locinatorLib.doUpdateLoc(self),
+	                         'Update an obj or locator at a particular frame or through a timeline')
 
 		guiFactory.lineSubBreak()
-
 
 
 		#>>>  Loc Me Section
 		guiFactory.lineBreak()
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(parent,'Just Loc Selected',
-			                 lambda *a: animToolsLib.doLocMe(self),
+			                 lambda *a: locinatorLib.doLocMe(self),
 			                 'Create an updateable locator based off the selection and options')
 
 

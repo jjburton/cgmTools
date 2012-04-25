@@ -187,10 +187,18 @@ def toggleOptionVarState(OptionSelection,OptionList,OptionVarName,forceInt = Fal
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     cnt = OptionList.index(OptionSelection)
+    print mc.optionVar(q=OptionVarName)    
+    print OptionSelection
+    print OptionList
+    print OptionVarName
+    print forceInt
+    print ">>>>>>>"
     if forceInt:
         mc.optionVar(iv=(OptionVarName,int(cnt)))
     else:
         mc.optionVar(sv=(OptionVarName,OptionSelection))
+    print mc.optionVar(q=OptionVarName)
+    print ">>>>>>>"
 
 def toggleMenuShowState(stateToggle, listOfItems):
     """
