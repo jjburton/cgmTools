@@ -499,7 +499,7 @@ class tdToolsClass(BaseMelWindow):
 	positionLeftColumn = self.buildBasicLeftColumn(positionMainFormLayout)
 	positionRightColumn = MelColumnLayout(positionMainFormLayout)
 
-	self.buildSnapMoveTool(positionRightColumn)
+	self.buildTool_MoveTool(positionRightColumn)
 	self.buildSnapAimTool(positionRightColumn)
 
 	self.buildSnapToSurfaceTool(positionRightColumn)
@@ -1012,7 +1012,7 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Position Tools
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def buildSnapMoveTool(self,parent):
+    def buildTool_MoveTool(self,parent):
 	mc.setParent(parent)
 	guiFactory.header('Snap Move')
 	guiFactory.lineSubBreak()
