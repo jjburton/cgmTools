@@ -25,30 +25,26 @@ from cgm.lib import guiFactory
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doFunctionOnSelected(function,**a):
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
     for item in selected:
         bufferList.append(function(item,**a))
 
 def doObjToTargetFunctionOnSelected(function,**a):
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
     if len(selected) >=2:
         for item in selected[:-1]:
-            print ('on ' + item)
             bufferList.append(function(item,selected[-1]))
         return bufferList
     else:
         guiFactory.warning('You must have at least two objects selected')
 
 def doObjOnlyFunctionOnSelected(function):
-    selected = []
     bufferList = []
-    selected = (mc.ls (sl=True,flatten=True))
+    selected = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
     for item in selected:
         bufferList.append(function(item))
