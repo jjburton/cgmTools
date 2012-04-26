@@ -258,8 +258,10 @@ class ToolCB(object):
 #in the UI, and a tuple containing the annotation string and the button press callback to invoke when that
 #tool's toolbox button is pressed.
 #NOTE: the press callback should take *a as its args
-TOOL_CATS = ( ('animation', (('cgm.locinator', "Tool for creating, updating, locators",
-                            loadLocinator),
+TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
+                              loadAnimTools),
+                             ('cgm.locinator', "Tool for creating, updating, locators",
+                              loadLocinator),
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
                               loadXferAnim), 
                              ('zoo.Keymaster', "from Hamish McKenzie's zooToolbox - keymaster gives you a heap of tools to manipulate keyframes - scaling around curve pivots, min/max scaling of curves/keys etc...",
@@ -284,11 +286,49 @@ TOOL_CATS = ( ('animation', (('cgm.locinator', "Tool for creating, updating, loc
                            ToolCB('zooHUDCtrl')),
                            )),
               
+              ('hotkeys', (('Align - align selected objects',
+                            'snaps two objects together - first select the master object, then the object you want to snap, then hit the hotkey',
+                            ToolCB( 'zooHotkeyer zooAlign \"{zooAlign \\\"-load 1\\\";\\\nstring $sel[] = `ls -sl`;\\\nfor( $n=1; $n<`size $sel`; $n++ ) zooAlignSimple $sel[0] $sel[$n];}\" \"\" \"-default a -alt 1 -enableMods 1 -ann aligns two objects\"')),
 
+                           ('Reset Selected',
+                            'Resets keyable attribute values to their defaults for all selected nodes',
+                            ToolCB( "zooHotkeyer zooResetAttrs \"python( \\\"from zooPyMaya import resetAttrs; resetAttrs.resetAttrsForSelection()\\\" );\" \"\" \"-default s -enableMods 1 -alt 1 -ann resets keyable attributes for selection\";" )),
+
+                           ('Set Menu - selection set menu',
+                            'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
+                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+
+                           ('Tangent Works - tangency manipulation menu',
+                            'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
+                            ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
+
+                           ('Set Key Menu - key creation menu',
+                            'zooSetKey is a tool designed to replace the set key hotkey.  It is a marking menu script that lets you perform a variety of set key based operations - such as push the current key to the next key, perform a euler filter on all selected objects etc...',
+                            ToolCB( "zooHotkeyer zooSetkey \"zooSetkey;\" \"zooSetkeyKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+
+                           ('Key Master - key manipulation menu',
+                            'zooKeyMaster is a marking menu to help push and pull keys around quickly both in time and in value',
+                            ToolCB( "zooHotkeyer zooKeymaster \"zooKeymasterMenu;\" \"zooKeymasterMenuKillUI;\" \"-default z -enableMods 0 -ann creates the zooKeymaster marking menu\";" )),
+
+                           ('zooCam - Camera Menu',
+                            'zooCam is a marking menu that lets you quickly swap between any camera in your scene.  It is integrated tightly with zooShots, so you can quickly navigate between shot cameras, master cameras, or any other in-scene camera.',
+                            ToolCB( "zooHotkeyer zooCam \"zooCam;\" \"zooCamKillUI;\" \"-default l -enableMods 0 -ann zooCam marking menu script for managing in scene cameras\";" )),
+
+                           ('Toggle Shading',
+                            'toggles viewport shading',
+                            ToolCB( "zooHotkeyer zooToggleShading \"zooToggle shading;\" \"\" \"-default 1 -enableMods 1 -ann toggles viewport shading\"" )),
+
+                           ('Toggle Texturing',
+                            'toggles viewport texturing',
+                            ToolCB( "zooHotkeyer zooToggleTexture \"zooToggle texturing;\" \"\" \"-default 2 -enableMods 1 -ann toggles viewport texturing\"" )),
+
+                           ('Toggle Lights',
+                            'toggles viewport lighting',
+                            ToolCB( "zooHotkeyer zooToggleLights \"zooToggle lighting;\" \"\" \"-default 3 -enableMods 1 -ann toggles viewport lighting\"" )),
+                           )),
+              
               ('dev', (('cgm.attrTools', " Attribute tools",
-                        loadAttrTools), 
-                       ('cgm.animTools', " Anim tools",
-                        loadAnimTools),                         
+                        loadAttrTools),                         
                        ))
 
               )
@@ -322,7 +362,7 @@ class ToolboxWindow(BaseMelWindow):
 	WINDOW_NAME = 'cgmToolbox'
 	WINDOW_TITLE = 'cgm.Toolbox'
 
-	DEFAULT_SIZE = 400, 300
+	DEFAULT_SIZE = 300, 300
 	FORCE_DEFAULT_SIZE = True
 
 	DEFAULT_MENU = None
