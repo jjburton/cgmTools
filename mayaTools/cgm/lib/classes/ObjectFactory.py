@@ -50,6 +50,8 @@ class ObjectFactory():
     def __init__(self,obj):
         ### input check
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+        assert mc.ls(obj,type='transform'),"'%s' has no transform"%obj
+        
         self.cgmName = ''
         self.cgmNameModifier = ''
         self.cgmPosition = ''
@@ -90,6 +92,9 @@ class ObjectFactory():
         self.children = search.returnChildrenObjects(self.nameLong)
         self.shapes = mc.listRelatives(self.nameLong,shapes=True)
         
+    def getTransforms(self):
+        self.rotateOrder = mc.getAttr(self.nameLong+'.rotateOrder')
+        
     def storeNameStrings(self,obj):
         buffer = mc.ls(obj,long=True)
         self.nameLong = buffer[0]
@@ -100,11 +105,52 @@ class ObjectFactory():
             self.nameBase = splitBuffer[-1]
         else:
             self.nameBase = self.nameShort
+            
+    def update(self,obj):
+        assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+        assert mc.ls(obj,type='transform'),"'%s' has no transform"%obj        
         
+        self.storeNameStrings(obj) 
+        self.getType()
+        self.getFamily()
+        self.getCGMNameTags()
+        self.getUserAttrs() 
+        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Attribute Functions
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
+    def store(self,attr,info,*a,**kw):
+        attributes.storeInfo(self.nameLong,attr,info,*a,**kw)
+        
+    def remove(self,attr):
+        try:
+            attributes.deleteAttr(self.nameLong,attr)
+        except:
+            guiFactory.warning("'%s.%s' not found"%(self.nameLong,attr))
+        
+    def copyRotateOrder(self,targetObject):
+        assert mc.objExists(targetObject) is True, "'%s' - target object doesn't exist" %targetObject        
+        assert mc.ls(targetObject,type='transform'),"'%s' has no transform"%targetObject
+        buffer = mc.getAttr(targetObject+'.rotateOrder')
+        attributes.doSetAttr(self.nameLong+'.rotateOrder',buffer) 
+        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Rigging Functions
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+    def copyPivot(self,sourceObject):
+        assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
+        assert mc.ls(sourceObject,type='transform'),"'%s' has no transform"%sourceObject
+        rigging.copyPivot(self.nameLong,sourceObject)
+    
+    def doGroup(self,maintain=False):
+        group = rigging.groupMeObject(self.nameLong,True,maintain) 
+        groupLong = mc.ls(group,long =True)
+        self.update(groupLong[0]+'|'+self.nameBase)  
+
     def name(self):
         buffer = NameFactory.doNameObject(self.nameLong)
         if buffer:
-            self.update(buffer)
+            self.update(buffer)   
             
     def doName(self):
         buffer = NameFactory.doNameObject(self.nameLong)
@@ -114,25 +160,3 @@ class ObjectFactory():
     def doParent(self,p):
         buffer = rigging.doParentReturnName(self.nameLong,p)
         self.update(  buffer)  
-        
-    def store(self,attr,info,*a,**kw):
-        attributes.storeInfo(self.nameLong,attr,info,*a,**kw)
-
-    def doGroup(self,maintain=False):
-        group = rigging.groupMeObject(self.nameLong,True,maintain) 
-        groupLong = mc.ls(group,long =True)
-        self.update(groupLong[0]+'|'+self.nameBase)  
-        
-    def remove(self,attr):
-        try:
-            attributes.deleteAttr(self.nameLong,attr)
-        except:
-            guiFactory.warning("'%s.%s' not found"%(self.nameLong,attr))
-        
-    def update(self,obj):
-        self.storeNameStrings(obj) 
-        self.getType()
-        self.getFamily()
-        self.getCGMNameTags()
-        self.getUserAttrs()        
-
