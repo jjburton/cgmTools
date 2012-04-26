@@ -933,11 +933,11 @@ def doReturnExcessInfluenceVerts(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>> moveSnap
 def doParentSnap():
-    batch.doObjToTargetFunctionOnselection(position.moveParentSnap)
+    batch.doObjToTargetFunctionOnSelected(position.moveParentSnap)
 def doPointSnap():
-    batch.doObjToTargetFunctionOnselection(position.movePointSnap)
+    batch.doObjToTargetFunctionOnSelected(position.movePointSnap)
 def doOrientSnap():
-    batch.doObjToTargetFunctionOnselection(position.moveOrientSnap)
+    batch.doObjToTargetFunctionOnSelected(position.moveOrientSnap)
 
 def doLayoutByRowsAndColumns(self):
     mc.optionVar(iv=('cgmVar_RowColumnCount',self.RowColumnIntField(q=True,v=True)))

@@ -46,7 +46,7 @@ class animToolsClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'cgmAnimToolsWindow'
 	WINDOW_TITLE = 'cgm.animTools'
-	DEFAULT_SIZE = 180, 260
+	DEFAULT_SIZE = 180, 350
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -139,6 +139,19 @@ class animToolsClass(BaseMelWindow):
 		PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
 				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0)),
 				                             rb=pivotOption )
+		
+		# Tagging options
+		AutoloadMenu = MelMenuItem( self.UI_OptionsMenu, l='Tagging', subMenu=True)
+		if not mc.optionVar( ex='cgmVar_TaggingUpdateRO' ):
+			mc.optionVar( iv=('cgmVar_TaggingUpdateRO', 1) )
+		guiFactory.appendOptionVarList(self,'cgmVar_TaggingUpdateRO')	
+	  
+		RenameOnUpdateState = mc.optionVar( q='cgmVar_TaggingUpdateRO' )
+		MelMenuItem( AutoloadMenu, l="Update Rotation Order",
+	                 cb= mc.optionVar( q='cgmVar_TaggingUpdateRO' ),
+	                 c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_TaggingUpdateRO'))
+		
+
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
 			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
@@ -257,9 +270,9 @@ class animToolsClass(BaseMelWindow):
 		#>>> Base Settings Flags
 		self.KeyingModeCollection = MelRadioCollection()
 		self.KeyingModeCollectionChoices = []		
-		if not mc.optionVar( ex='cgmVar_KeyingMode' ):
-			mc.optionVar( iv=('cgmVar_KeyingMode', 0) )
-		guiFactory.appendOptionVarList(self,'cgmVar_KeyingMode')
+		if not mc.optionVar( ex='cgmVar_AnimToolsKeyingMode' ):
+			mc.optionVar( iv=('cgmVar_AnimToolsKeyingMode', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_AnimToolsKeyingMode')
 		
 		KeysSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(KeysSettingsFlagsRow,w=2)	
@@ -268,18 +281,18 @@ class animToolsClass(BaseMelWindow):
 		for item in self.keyingOptions:
 			cnt = self.keyingOptions.index(item)
 			self.KeyingModeCollectionChoices.append(self.KeyingModeCollection.createButton(KeysSettingsFlagsRow,label=self.keyingOptions[cnt],
-			                                                                               onCommand = Callback(guiFactory.toggleOptionVarState,self.keyingOptions[cnt],self.keyingOptions,'cgmVar_KeyingMode',True)))
+			                                                                               onCommand = Callback(guiFactory.toggleOptionVarState,self.keyingOptions[cnt],self.keyingOptions,'cgmVar_AnimToolsKeyingMode',True)))
 			MelSpacer(KeysSettingsFlagsRow,w=5)
-		mc.radioCollection(self.KeyingModeCollection ,edit=True,sl= (self.KeyingModeCollectionChoices[ (mc.optionVar(q='cgmVar_KeyingMode')) ]))
+		mc.radioCollection(self.KeyingModeCollection ,edit=True,sl= (self.KeyingModeCollectionChoices[ (mc.optionVar(q='cgmVar_AnimToolsKeyingMode')) ]))
 		
 		KeysSettingsFlagsRow.layout()
 
 		#>>> Base Settings Flags
 		self.KeyingTargetCollection = MelRadioCollection()
 		self.KeyingTargetCollectionChoices = []		
-		if not mc.optionVar( ex='cgmVar_KeyingTarget' ):
-			mc.optionVar( iv=('cgmVar_KeyingTarget', 0) )
-		guiFactory.appendOptionVarList(self,'cgmVar_KeyingTarget')
+		if not mc.optionVar( ex='cgmVar_AnimToolsKeyingTarget' ):
+			mc.optionVar( iv=('cgmVar_AnimToolsKeyingTarget', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_AnimToolsKeyingTarget')
 		
 		BakeSettingsFlagsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(BakeSettingsFlagsRow,w=2)	
@@ -289,9 +302,9 @@ class animToolsClass(BaseMelWindow):
 		for item in self.keyTargetOptions:
 			cnt = self.keyTargetOptions.index(item)
 			self.KeyingTargetCollectionChoices.append(self.KeyingTargetCollection.createButton(BakeSettingsFlagsRow,label=self.keyTargetOptions[cnt],
-		                                                                                       onCommand = Callback(guiFactory.toggleOptionVarState,self.keyTargetOptions[cnt],self.keyTargetOptions,'cgmVar_KeyingTarget',True)))
+		                                                                                       onCommand = Callback(guiFactory.toggleOptionVarState,self.keyTargetOptions[cnt],self.keyTargetOptions,'cgmVar_AnimToolsKeyingTarget',True)))
 			MelSpacer(BakeSettingsFlagsRow,w=5)
-		mc.radioCollection(self.KeyingTargetCollection ,edit=True,sl= (self.KeyingTargetCollectionChoices[ (mc.optionVar(q='cgmVar_KeyingTarget')) ]))
+		mc.radioCollection(self.KeyingTargetCollection ,edit=True,sl= (self.KeyingTargetCollectionChoices[ (mc.optionVar(q='cgmVar_AnimToolsKeyingTarget')) ]))
 		
 		BakeSettingsFlagsRow.layout()
 		
@@ -299,15 +312,16 @@ class animToolsClass(BaseMelWindow):
 	
 	def Match_buildLayout(self,parent):
 		mc.setParent(parent)
+		guiFactory.header('Update')
 		guiFactory.lineSubBreak()
 
 		#>>>Match Mode
 		self.MatchModeCollection = MelRadioCollection()
 		self.MatchModeCollectionChoices = []		
-		if not mc.optionVar( ex='cgmVar_MatchMode' ):
-			mc.optionVar( iv=('cgmVar_MatchMode', 0) )	
+		if not mc.optionVar( ex='cgmVar_AnimToolsMatchMode' ):
+			mc.optionVar( iv=('cgmVar_AnimToolsMatchMode', 0) )	
 			
-		guiFactory.appendOptionVarList(self,'cgmVar_MatchMode')
+		guiFactory.appendOptionVarList(self,'cgmVar_AnimToolsMatchMode')
 			
 		#MatchModeFlagsRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)	
 		MatchModeFlagsRow = MelHSingleStretchLayout(parent,ut='cgmUIReservedTemplate',padding = 2)	
@@ -316,13 +330,13 @@ class animToolsClass(BaseMelWindow):
 		for item in self.MatchModeOptions:
 			cnt = self.MatchModeOptions.index(item)
 			self.MatchModeCollectionChoices.append(self.MatchModeCollection.createButton(MatchModeFlagsRow,label=self.MatchModeOptions[cnt],
-			                                                                             onCommand = Callback(guiFactory.toggleOptionVarState,self.MatchModeOptions[cnt],self.MatchModeOptions,'cgmVar_MatchMode',True)))
+			                                                                             onCommand = Callback(guiFactory.toggleOptionVarState,self.MatchModeOptions[cnt],self.MatchModeOptions,'cgmVar_AnimToolsMatchMode',True)))
 			MelSpacer(MatchModeFlagsRow,w=3)
 		MatchModeFlagsRow.setStretchWidget( self.MatchModeCollectionChoices[-1] )
 		MelSpacer(MatchModeFlagsRow,w=2)		
 		MatchModeFlagsRow.layout()	
 		
-		mc.radioCollection(self.MatchModeCollection ,edit=True,sl= (self.MatchModeCollectionChoices[ (mc.optionVar(q='cgmVar_MatchMode')) ]))
+		mc.radioCollection(self.MatchModeCollection ,edit=True,sl= (self.MatchModeCollectionChoices[ (mc.optionVar(q='cgmVar_AnimToolsMatchMode')) ]))
 		
 		#>>>Time Section
 		UpdateOptionRadioCollection = MelRadioCollection()
@@ -380,16 +394,35 @@ class animToolsClass(BaseMelWindow):
 			                 'Create an updateable locator based off the selection and options')
 
 
+		#>>>  Tag Section
+		guiFactory.lineSubBreak()
+		guiFactory.doButton2(parent,'Tag it',
+		                     lambda *a: locinatorLib.doTagObjects(self),
+				             "Tag the selected objects to the first locator in the selection set. After this relationship is set up, you can match objects to that locator.")
+
+
 
 	def Keys_buildLayout(self,parent):
 		SpecialColumn = MelColumnLayout(parent)
 
 		#>>>  Center Section
+		guiFactory.header('Tangents')		
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SpecialColumn,'autoTangent',
 		                     lambda *a: mel.eval('autoTangent'),
 				             'Fantastic script courtesy of Michael Comet')
-
+		
+		guiFactory.lineBreak()		
+		guiFactory.header('Breakdowns')
+		guiFactory.lineSubBreak()
+		guiFactory.doButton2(SpecialColumn,'tweenMachine',
+		                     lambda *a: mel.eval('tweenMachine'),
+				             'Breakdown tool courtesy of Justin Barrett')
+		guiFactory.lineSubBreak()		
+		guiFactory.doButton2(SpecialColumn,'breakdownDragger',
+		                     lambda *a: animToolsLib.ml_breakdownDraggerCall(),
+				             'Breakdown tool courtesy of Morgan Loomis')
+	
 
 	def Snap_buildLayout(self,parent):
 
@@ -408,5 +441,5 @@ class animToolsClass(BaseMelWindow):
 		
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SnapColumn,'Orient Snap',
-		                     lambda *a: tdToolsLib.doPointSnap(),
+		                     lambda *a: tdToolsLib.doOrientSnap(),
 				             "Basic Orient Snap")

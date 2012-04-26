@@ -30,6 +30,11 @@ import maya.cmds as mc
 import maya.mel as mel
 import subprocess
 
+from cgm.lib.classes import NameFactory
+from cgm.lib.classes import ObjectFactory
+reload(ObjectFactory)
+
+from cgm.lib.classes.ObjectFactory import *
 
 from cgm.lib import rigging
 from cgm.lib import attributes
@@ -76,13 +81,11 @@ def getSelfOptionVars(self):
 	    self.forceEveryFrame = mc.optionVar( q='cgmVar_LocinatorKeyingMode' )
 	    self.keyingTargetState = mc.optionVar( q='cgmVar_LocinatorKeyingTarget' )
 	    self.matchMode = mc.optionVar(q='cgmVar_LocinatorMatchMode')
-	    print self.forceEveryFrame
-	    
 	elif self.toolName == 'cgm.animTools':
-	    self.bakeMode = mc.optionVar( q='cgmVar_animToolsBakeState' )
-	    self.forceEveryFrame = mc.optionVar( q='animToolscgmVar_KeyingMode' )
-	    self.keyingTargetState = mc.optionVar( q='cgmVar_animToolsKeyingTarget' )
-	    self.matchMode = mc.optionVar(q='cgmVar_animToolsMatchMode')	    
+	    self.bakeMode = mc.optionVar( q='cgmVar_AnimToolsBakeState' )
+	    self.forceEveryFrame = mc.optionVar( q='cgmVar_AnimToolsKeyingMode' )
+	    self.keyingTargetState = mc.optionVar( q='cgmVar_AnimToolsKeyingTarget' )
+	    self.matchMode = mc.optionVar(q='cgmVar_AnimToolsMatchMode')	    
     except:
 	guiFactory.warning("'%s' failed - locinatorLib.getSelfOptionVars"%self.toolName)
 
@@ -194,7 +197,8 @@ def doTagObjects(self):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Tag objects with a single locator in a selection, if more than one locator exists,
-    it uses the first one in the selection list.
+    it uses the first one in the selection list. It uses the first object in the list
+    as a rotateOrder source if update rotate order is on.
 
     REQUIRES:
     Active Selection
@@ -206,6 +210,7 @@ def doTagObjects(self):
     bufferList = []
     selection = (mc.ls (sl=True,flatten=True)) or []
     mc.select(cl=True)
+    self.updateMatchRotateOrder = mc.optionVar(q='cgmVar_TaggingUpdateRO')
 
     if len(selection)<2:
         guiFactory.warning('You must have at least two objects selected')
@@ -219,14 +224,23 @@ def doTagObjects(self):
             typeList.append(objType)
             if objType == 'locator':
                 taggingLoc = obj
+		selection.remove(obj)
+		break
         else:
             print 'You have more than one locator'
-
+    
     if taggingLoc:
-        for obj in selection:
-            if obj is not taggingLoc:
-                attributes.storeInfo(obj,'cgmMatchObject',taggingLoc)
-                print ('%s%s' % (obj, " tagged and released..."))
+	for obj in selection:
+	    attributes.storeInfo(obj,'cgmMatchObject',taggingLoc)
+	    print ('%s%s' % (obj, " tagged and released..."))
+	    
+	if self.updateMatchRotateOrder:
+	    loc = ObjectFactory(taggingLoc)
+	    loc.copyRotateOrder(selection[0])
+	    guiFactory.warning("'%s's rotate order updated to match '%s'"%(loc.nameLong,selection[0]))
+	
+	selection.append(taggingLoc)
+	mc.select(selection)
 
     else:
         guiFactory.warning('No locator in selection, you need one')

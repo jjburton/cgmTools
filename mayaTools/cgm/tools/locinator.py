@@ -143,32 +143,23 @@ class locinatorClass(BaseMelWindow):
 		PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
 				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0)),
 				                             rb=pivotOption )
+		# Tagging options
+		AutoloadMenu = MelMenuItem( self.UI_OptionsMenu, l='Tagging', subMenu=True)
+		if not mc.optionVar( ex='cgmVar_TaggingUpdateRO' ):
+			mc.optionVar( iv=('cgmVar_TaggingUpdateRO', 1) )
+		guiFactory.appendOptionVarList(self,'cgmVar_TaggingUpdateRO')	
+	  
+		RenameOnUpdateState = mc.optionVar( q='cgmVar_TaggingUpdateRO' )
+		MelMenuItem( AutoloadMenu, l="Update Rotation Order",
+	                 cb= mc.optionVar( q='cgmVar_TaggingUpdateRO' ),
+	                 c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_TaggingUpdateRO'))
 		
-		
+
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
-			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))		
-		"""
-		# Anim Menu
-		AnimMenu = MelMenuItem( self.UI_OptionsMenu, l='Anim', subMenu=True)
-		AnimMenuCollection = MelRadioMenuCollection()
+			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))	
+		
 
-		if mc.optionVar( q='cgmVar_LocinatorBakingMode' ) == 0:
-			EveryFrameOption = False
-			KeysOnlyOption = True
-		else:
-			EveryFrameOption = True
-			KeysOnlyOption = False
-
-		AnimMenuCollection.createButton(AnimMenu,l='Every Frame',
-				                        c=lambda *a: mc.optionVar( iv=('cgmVar_LocinatorBakingMode', 1)),
-				                        rb=EveryFrameOption )
-		AnimMenuCollection.createButton(AnimMenu,l='Keys Only',
-				                        c=lambda *a: mc.optionVar( iv=('cgmVar_LocinatorBakingMode', 0)),
-				                        rb=KeysOnlyOption )
-
-		MelMenuItemDiv( self.UI_OptionsMenu )
-		"""
 
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
@@ -320,6 +311,7 @@ class locinatorClass(BaseMelWindow):
 	
 	def buildBasicLayout(self,parent):
 		mc.setParent(parent)
+		guiFactory.header('Update')
 		guiFactory.lineSubBreak()
 
 		#>>>Match Mode
@@ -420,8 +412,6 @@ class locinatorClass(BaseMelWindow):
 		guiFactory.doButton2(SpecialColumn,'Locate Closest Point',
 		                     lambda *a: locinatorLib.doLocClosest(),
 				             'Select the proximity object(s), then the object to find point on. Accepted target object types are - nurbsCurves and surfaces and poly objects')
-
-
 
 		#>>>  Curves Section
 		guiFactory.lineSubBreak()
