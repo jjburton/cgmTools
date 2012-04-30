@@ -30,6 +30,7 @@ def doFunctionOnSelected(function,**a):
     mc.select(cl=True)
     for item in selected:
         bufferList.append(function(item,**a))
+    mc.select(selected)
 
 def doObjToTargetFunctionOnSelected(function,**a):
     bufferList = []
@@ -38,6 +39,7 @@ def doObjToTargetFunctionOnSelected(function,**a):
     if len(selected) >=2:
         for item in selected[:-1]:
             bufferList.append(function(item,selected[-1]))
+        mc.select(selected)
         return bufferList
     else:
         guiFactory.warning('You must have at least two objects selected')
@@ -48,6 +50,8 @@ def doObjOnlyFunctionOnSelected(function):
     mc.select(cl=True)
     for item in selected:
         bufferList.append(function(item))
+        
+    mc.select(selected)
     return bufferList
 
 def doObjOnlyFunctionOnObjectPerFrame(function,object,startFrame,endFrame):
