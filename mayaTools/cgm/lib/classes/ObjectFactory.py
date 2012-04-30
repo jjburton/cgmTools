@@ -104,6 +104,14 @@ class ObjectFactory():
     def getTransforms(self):
         """ Get transform information of the object. """
         self.rotateOrder = mc.getAttr(self.nameLong + '.rotateOrder')
+        
+    def getMatchObject(self):
+        """ Get match object of the object. """
+	matchObject = search.returnTagInfo(self.nameLong,'cgmMatchObject')
+	
+	if mc.objExists(matchObject):
+	    return matchObject
+	return False
 
     def storeNameStrings(self,obj):
         """ Store the base, short and long names of an object to instance."""
