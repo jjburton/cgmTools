@@ -34,7 +34,9 @@ from cgm.lib.ml import ml_resetChannels
 from cgm.lib.ml import ml_deleteKey
 from cgm.lib.ml import ml_setKey
 from cgm.lib.ml import ml_hold
+from cgm.lib.ml import ml_arcTracer
 
+reload(ml_arcTracer)
 """
 
 """
@@ -52,3 +54,6 @@ def ml_setKeyCall():
     
 def ml_holdCall():
     ml_hold.ui()
+    
+def ml_arcTracerCall():
+    ml_arcTracer.ui()
