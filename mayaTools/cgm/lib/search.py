@@ -51,7 +51,7 @@ def matchObjectCheck():
     matchCheckList = []
     if selection:
         for o in selection:
-            matchObject = search.returnTagInfo(o,'cgmMatchObject')
+            matchObject = returnTagInfo(o,'cgmMatchObject')
             if mc.objExists(matchObject):
                 return 1
     return 0
