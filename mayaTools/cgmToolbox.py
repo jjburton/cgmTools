@@ -288,7 +288,7 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
               
               ('hotkeys', (('Qss Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
-                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default t -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Tangent Works - tangency manipulation menu',
                             'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
@@ -296,7 +296,7 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
 
                            ('Snap Tools - snap tools menu',
                             'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
-                            ToolCB( "zooHotkeyer cgmSnapMM \"cgmSnapMM;\" \"cgmSnapMMKillUI;\" \"-default d -enableMods 0 -ann Tools for snapping stuff around\";" )),
+                            ToolCB( "zooHotkeyer cgmSnapMM \"cgmSnapMM;\" \"cgmSnapMMKillUI;\" \"-default t -enableMods 0 -ann Tools for snapping stuff around\";" )),
 
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
