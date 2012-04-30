@@ -17,7 +17,7 @@ import cgmToolbox
 
 reload(locinatorLib)
 reload(tdToolsLib)
-
+reload(animToolsLib)
 def run():
 	cgmSetKeyMM = setKeyMarkingMenu()
 	
@@ -95,7 +95,8 @@ class setKeyMarkingMenu(BaseMelWindow):
 			        c = lambda *a: buttonAction(animToolsLib.ml_holdCall()))
 		MelMenuItem(parent,l = 'ml Delete Key',
 			        c = lambda *a: buttonAction(animToolsLib.ml_deleteKeyCall()))
-
+		MelMenuItem(parent,l = 'ml Arc Tracer',
+			        c = lambda *a: buttonAction(animToolsLib.ml_arcTracerCall()))
 
 		MelMenuItemDiv(parent)	
 		MelMenuItem(parent, l="Reset",
@@ -107,13 +108,17 @@ class setKeyMarkingMenu(BaseMelWindow):
 def killUI():
 	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
 	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+	sel = search.selectCheck()
 	
 	if mc.popupMenu('cgmMM',ex = True):
 		mc.deleteUI('cgmMM')
-		
+
+	if sel:
+		if not mmActionOptionVar.value:
+			mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
+			
 	IsClickedOptionVar.set(0)
 	mmActionOptionVar.set(0)	
-
 """
 if (`popupMenu -exists tempMM`) { deleteUI tempMM; }
 """
