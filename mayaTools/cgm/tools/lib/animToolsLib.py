@@ -30,11 +30,25 @@ import subprocess
 
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.ml import ml_breakdownDragger
+from cgm.lib.ml import ml_resetChannels
+from cgm.lib.ml import ml_deleteKey
+from cgm.lib.ml import ml_setKey
+from cgm.lib.ml import ml_hold
 
 """
 
 """
 def ml_breakdownDraggerCall():
     ml_breakdownDragger.drag()
+    
+def ml_resetChannelsCall():
+    ml_resetChannels.resetChannels()
 
-
+def ml_deleteKeyCall():
+    ml_deleteKey.ui()
+    
+def ml_setKeyCall():
+    ml_setKey.ui()
+    
+def ml_holdCall():
+    ml_hold.ui()
