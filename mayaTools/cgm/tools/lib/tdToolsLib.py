@@ -1050,9 +1050,9 @@ def doSnapClosestPointToSurface(aim=True):
 			    position.aimSnap(item,aimLoc,aimVector,upVector,worldUpVector)
     
     
-	mc.delete([bufferLoc,aimLoc])
-	if nurbsCurveCase:
-	    mc.delete(nurbsCurveAimLoc)
+	    mc.delete([bufferLoc,aimLoc])
+	    if nurbsCurveCase:
+		mc.delete(nurbsCurveAimLoc)
 
 
         guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
