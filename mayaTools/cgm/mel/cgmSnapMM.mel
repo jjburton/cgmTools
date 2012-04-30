@@ -1,0 +1,7 @@
+global proc cgmSnapMM() {
+	python("from cgm.tools.markingMenus import cgmSnap;reload(cgmSnap);cgmSnap.run()");
+	}
+	
+global proc cgmSnapMMKillUI() {
+	python("cgmSnap.killUI()");
+	}

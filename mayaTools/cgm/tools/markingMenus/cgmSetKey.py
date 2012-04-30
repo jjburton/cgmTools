@@ -7,13 +7,7 @@ from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib import guiFactory
 from cgm.tools.lib import animToolsLib
 
-
-"""
-if (`popupMenu -exists tempMM`) { deleteUI tempMM; }
-popupMenu -button 1 -ctl false -alt false -sh false -allowOptionBoxes true -parent viewPanes -mm 1 tempMM; 
-source "menu_cgmTesting";
-"""
-
+reload(animToolsLib)
 def run():
 	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
 	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')	
@@ -35,7 +29,6 @@ def run():
 
 def createUI(parent):
 	def buttonAction(command):
-		mc.currentTime(27)
 		command
 		mmActionOptionVar.set(1)
 
@@ -53,8 +46,13 @@ def createUI(parent):
 	mc.setParent(parent,m=True)
 	
 	mc.menuItem(en = sel,
+                l = 'Reset Selected',
+                c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCall()),
+                rp = 'N')
+	
+	mc.menuItem(en = sel,
                 l = 'dragBreakdown',
-                c = lambda *a:animToolsLib.ml_breakdownDraggerCall(),
+                c = lambda *a:buttonAction(animToolsLib.ml_breakdownDraggerCall()),
                 rp = 'S')
 	
 	mc.setParent('..',m=True)
@@ -63,8 +61,15 @@ def createUI(parent):
                 c = lambda *a: buttonAction(mel.eval('autoTangent')))
 	mc.menuItem(l = 'tweenMachine',
                 c = lambda *a: buttonAction(mel.eval('tweenMachine')))
-
 	
+	mc.menuItem(d = 1)
+	mc.menuItem(l = 'ml Set Key',
+                c = lambda *a: buttonAction(animToolsLib.ml_setKeyCall()))
+	mc.menuItem(l = 'ml Hold',
+                c = lambda *a: buttonAction(animToolsLib.ml_holdCall()))
+	mc.menuItem(l = 'ml Delete Key',
+                c = lambda *a: buttonAction(animToolsLib.ml_deleteKeyCall()))
+
 def killUI():
 	print "killing SetKey mm"
 	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
@@ -72,18 +77,17 @@ def killUI():
 	print IsClickedOptionVar.value
 	print mmActionOptionVar.value
 	
-	#sel = guiFactory.selectCheck()
+	sel = guiFactory.selectCheck()
 	
 	if mc.popupMenu('tempMM',ex = True):
 		mc.deleteUI('tempMM')
-	"""
+	
 	print '>>>'
 	print sel	
 	if sel:
 		if not mmActionOptionVar.value:
-			pass
-			#mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
-	"""
+			mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
+	
 	
 """
 if (`popupMenu -exists tempMM`) { deleteUI tempMM; }

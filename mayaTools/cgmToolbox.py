@@ -286,45 +286,22 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ToolCB('zooHUDCtrl')),
                            )),
               
-              ('hotkeys', (('Set Menu - selection set menu',
+              ('hotkeys', (('Qss Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
-                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default t -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Tangent Works - tangency manipulation menu',
                             'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
                             ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
 
                            ('Snap Tools - snap tools menu',
-                            'zooSetKey is a tool designed to replace the set key hotkey.  It is a marking menu script that lets you perform a variety of set key based operations - such as push the current key to the next key, perform a euler filter on all selected objects etc...',
-                            ToolCB( "zooHotkeyer cgmMarkingMenuCalls \"cgmMMSnap;\" \"cgmMMSnapKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+                            'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
+                            ToolCB( "zooHotkeyer cgmSnapMM \"cgmSnapMM;\" \"cgmSnapMMKillUI;\" \"-default d -enableMods 0 -ann Tools for snapping stuff around\";" )),
 
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
-                            ToolCB( "zooHotkeyer cgmSetKey \"cgmSetKey;\" \"cgmSetKeyKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+                            ToolCB( "zooHotkeyer cgmSetKeyMM \"cgmSetKeyMM;\" \"cgmSetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
 
-                           ('Zoo Set Key Menu - key creation menu',
-                            'zooSetKey is a tool designed to replace the set key hotkey.  It is a marking menu script that lets you perform a variety of set key based operations - such as push the current key to the next key, perform a euler filter on all selected objects etc...',
-                            ToolCB( "zooHotkeyer zooSetkey \"zooSetkey;\" \"zooSetkeyKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
-
-                           ('Key Master - key manipulation menu',
-                            'zooKeyMaster is a marking menu to help push and pull keys around quickly both in time and in value',
-                            ToolCB( "zooHotkeyer zooKeymaster \"zooKeymasterMenu;\" \"zooKeymasterMenuKillUI;\" \"-default z -enableMods 0 -ann creates the zooKeymaster marking menu\";" )),
-
-                           ('zooCam - Camera Menu',
-                            'zooCam is a marking menu that lets you quickly swap between any camera in your scene.  It is integrated tightly with zooShots, so you can quickly navigate between shot cameras, master cameras, or any other in-scene camera.',
-                            ToolCB( "zooHotkeyer zooCam \"zooCam;\" \"zooCamKillUI;\" \"-default l -enableMods 0 -ann zooCam marking menu script for managing in scene cameras\";" )),
-
-                           ('Toggle Shading',
-                            'toggles viewport shading',
-                            ToolCB( "zooHotkeyer zooToggleShading \"zooToggle shading;\" \"\" \"-default 1 -enableMods 1 -ann toggles viewport shading\"" )),
-
-                           ('Toggle Texturing',
-                            'toggles viewport texturing',
-                            ToolCB( "zooHotkeyer zooToggleTexture \"zooToggle texturing;\" \"\" \"-default 2 -enableMods 1 -ann toggles viewport texturing\"" )),
-
-                           ('Toggle Lights',
-                            'toggles viewport lighting',
-                            ToolCB( "zooHotkeyer zooToggleLights \"zooToggle lighting;\" \"\" \"-default 3 -enableMods 1 -ann toggles viewport lighting\"" )),
                            )),
               
               ('dev', (('cgm.attrTools', " Attribute tools",
