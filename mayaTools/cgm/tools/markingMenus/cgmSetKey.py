@@ -4,91 +4,116 @@ import maya.mel as mel
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.lib.classes.OptionVarFactory import *
+from cgm.lib.classes.ObjectFactory import *
+
 from cgm.lib import guiFactory
+from cgm.lib import search
 from cgm.tools.lib import animToolsLib
+from cgm.tools.lib import tdToolsLib
+from cgm.tools.lib import locinatorLib
+from cgm.lib import locators
 
-reload(animToolsLib)
+import cgmToolbox
+
+reload(locinatorLib)
+reload(tdToolsLib)
+
 def run():
-	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')	
-	panel = mc.getPanel(up = True)
-	sel = guiFactory.selectCheck()
+	cgmSetKeyMM = setKeyMarkingMenu()
 	
-	IsClickedOptionVar.set(0)
-	mmActionOptionVar.set(0)
+class setKeyMarkingMenu(BaseMelWindow):
+	_DEFAULT_MENU_PARENT = 'viewPanes'
 	
-	if mc.popupMenu('tempMM',ex = True):
-		mc.deleteUI('tempMM')
-	print panel
-	if panel:
-		if mc.control(panel, ex = True):
-			mc.popupMenu('tempMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = 'viewPanes',
-				         pmc = lambda *a: createUI('tempMM'))
-			return
-		             
-
-def createUI(parent):
-	def buttonAction(command):
-		command
-		mmActionOptionVar.set(1)
-
+	def __init__(self):	
+		"""
+		Initializes the pop up menu class call
+		"""
+		self.optionVars = []
+		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
+		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')			
 		
-	print 'Buildling mm'	
-	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+		panel = mc.getPanel(up = True)
+		sel = search.selectCheck()
+		
+		IsClickedOptionVar.set(0)
+		mmActionOptionVar.set(0)
+		
+		if mc.popupMenu('cgmMM',ex = True):
+			mc.deleteUI('cgmMM')
+		print panel
+		if panel:
+			if mc.control(panel, ex = True):
+				mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = 'viewPanes',
+					         pmc = lambda *a: self.createUI('cgmMM'))
 	
-	sel = guiFactory.selectCheck()
+	def createUI(self,parent):
+		"""
+		Create the UI
+		"""		
+		def buttonAction(command):
+			"""
+			execute a command and let the menu know not do do the default button action but just kill the ui
+			"""			
+			killUI()
+			command
+			mmActionOptionVar.set(1)
+		
+		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
+		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+		
+		sel = search.selectCheck()
+		selPair = search.checkSelectionLength(2)
+		ShowMatch = search.matchObjectCheck()
+		
+		IsClickedOptionVar.set(1)
+		
+		mc.menu(parent,e = True, deleteAllItems = True)
+		MelMenuItem(parent,
+		            en = sel,
+		            l = 'Reset Selected',
+		            c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCall()),
+		            rp = 'N')            
+		
+		MelMenuItem(parent,
+		            en = sel,
+		            l = 'dragBreakdown',
+		            c = lambda *a:buttonAction(animToolsLib.ml_breakdownDraggerCall()),
+		            rp = 'S')
+		
 	
-	IsClickedOptionVar.set(1)
-	
-	mc.menu(parent,e = True, deleteAllItems = True)
-	
-	mc.setParent(parent,m=True)
-	
-	mc.menuItem(en = sel,
-                l = 'Reset Selected',
-                c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCall()),
-                rp = 'N')
-	
-	mc.menuItem(en = sel,
-                l = 'dragBreakdown',
-                c = lambda *a:buttonAction(animToolsLib.ml_breakdownDraggerCall()),
-                rp = 'S')
-	
-	mc.setParent('..',m=True)
-	mc.menuItem(d = 1)	
-	mc.menuItem(l = 'autoTangent',
-                c = lambda *a: buttonAction(mel.eval('autoTangent')))
-	mc.menuItem(l = 'tweenMachine',
-                c = lambda *a: buttonAction(mel.eval('tweenMachine')))
-	
-	mc.menuItem(d = 1)
-	mc.menuItem(l = 'ml Set Key',
-                c = lambda *a: buttonAction(animToolsLib.ml_setKeyCall()))
-	mc.menuItem(l = 'ml Hold',
-                c = lambda *a: buttonAction(animToolsLib.ml_holdCall()))
-	mc.menuItem(l = 'ml Delete Key',
-                c = lambda *a: buttonAction(animToolsLib.ml_deleteKeyCall()))
+		
+		MelMenuItemDiv(parent)
+		MelMenuItem(parent,l = 'autoTangent',
+				    c = lambda *a: buttonAction(mel.eval('autoTangent')))
+		MelMenuItem(parent,l = 'tweenMachine',
+				    c = lambda *a: buttonAction(mel.eval('tweenMachine')))	
+				
+		MelMenuItemDiv(parent)
+		MelMenuItem(parent,l = 'ml Set Key',
+			        c = lambda *a: buttonAction(animToolsLib.ml_setKeyCall()))
+		MelMenuItem(parent,l = 'ml Hold',
+			        c = lambda *a: buttonAction(animToolsLib.ml_holdCall()))
+		MelMenuItem(parent,l = 'ml Delete Key',
+			        c = lambda *a: buttonAction(animToolsLib.ml_deleteKeyCall()))
 
+
+		MelMenuItemDiv(parent)	
+		MelMenuItem(parent, l="Reset",
+	                 c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars))
+			
+		
+	
+		
 def killUI():
-	print "killing SetKey mm"
 	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
 	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
-	print IsClickedOptionVar.value
-	print mmActionOptionVar.value
 	
-	sel = guiFactory.selectCheck()
-	
-	if mc.popupMenu('tempMM',ex = True):
-		mc.deleteUI('tempMM')
-	
-	print '>>>'
-	print sel	
-	if sel:
-		if not mmActionOptionVar.value:
-			mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
-	
-	
+	if mc.popupMenu('cgmMM',ex = True):
+		mc.deleteUI('cgmMM')
+		
+	IsClickedOptionVar.set(0)
+	mmActionOptionVar.set(0)	
+
 """
 if (`popupMenu -exists tempMM`) { deleteUI tempMM; }
 """

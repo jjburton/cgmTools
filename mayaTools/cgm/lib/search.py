@@ -38,6 +38,31 @@ namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Quick queries
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def selectCheck():
+    selection = mc.ls(sl = True) or []
+    if selection:
+        return 1
+    return 0   
+
+def matchObjectCheck():
+    selection = mc.ls(sl=True,type = 'transform') or []
+    matchCheckList = []
+    if selection:
+        for o in selection:
+            matchObject = search.returnTagInfo(o,'cgmMatchObject')
+            if mc.objExists(matchObject):
+                return 1
+    return 0
+
+def checkSelectionLength(length):
+    selection = mc.ls(sl=True,type = 'transform') or []
+    if len(selection)>=length:
+        return 1
+    return 0
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnObjectMasterNull(obj):

@@ -23,7 +23,6 @@
 import maya.cmds as mc
 import maya.mel as mel
 
-from cgm.lib.classes.ObjectFactory import *
 
 from cgmBaseMelUI import *
 from cgm.lib import dictionary
@@ -271,12 +270,7 @@ def setUIObjectVisibility(item, visState):
         warning('%s%s%s' %('No idea what ', item, ' is'))
 
 
-def selectCheck():
-    selection = mc.ls(sl = True) or []
-    if selection:
-        return 1
-    else:
-        return 0   
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Load to fields
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -587,21 +581,3 @@ def doPrintReportBreak():
 def doPrintReportEnd():
     return '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Pop up functions
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def matchObjectCheck():
-    selection = mc.ls(sl=True,type = 'transform') or []
-    matchCheckList = []
-    if selection:
-        for o in selection:
-            obj = ObjectFactory(o)
-            if obj.getMatchObject():
-                return 1
-    return 0
-
-def checkSelectionLength(length):
-    selection = mc.ls(sl=True,type = 'transform') or []
-    if len(selection)>=length:
-        return 1
-    return 0

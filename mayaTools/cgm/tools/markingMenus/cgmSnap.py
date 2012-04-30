@@ -7,6 +7,7 @@ from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 
 from cgm.lib import guiFactory
+from cgm.lib import search
 from cgm.tools.lib import animToolsLib
 from cgm.tools.lib import tdToolsLib
 from cgm.tools.lib import locinatorLib
@@ -35,7 +36,7 @@ class snapMarkingMenu(BaseMelWindow):
 		
 		
 		panel = mc.getPanel(up = True)
-		sel = guiFactory.selectCheck()
+		sel = search.selectCheck()
 		
 		IsClickedOptionVar.set(0)
 		mmActionOptionVar.set(0)
@@ -63,9 +64,9 @@ class snapMarkingMenu(BaseMelWindow):
 		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
 		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
 		
-		sel = guiFactory.selectCheck()
-		selPair = guiFactory.checkSelectionLength(2)
-		ShowMatch = guiFactory.matchObjectCheck()
+		sel = search.selectCheck()
+		selPair = search.checkSelectionLength(2)
+		ShowMatch = search.matchObjectCheck()
 		
 		IsClickedOptionVar.set(1)
 		
