@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Tools for optionVars
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #
 # AUTHOR:

@@ -6,7 +6,7 @@
 //	A nicer utility for setting rotation axis and aiming of joints
 //	automatically.
 //
-// REQUIRES:
+// ARGUMENTS:
 //	Nothing.
 //
 //

@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for finding stuff
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #
 # AUTHOR:

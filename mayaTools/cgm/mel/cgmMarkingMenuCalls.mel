@@ -1,0 +1,15 @@
+global proc cgmMMSetKey() {
+	python("from cgm.tools.markingMenus import cgmSetKey;reload(cgmSetKey);cgmSetKey.run()");
+	}
+
+global proc cgmMMSetKeyKillUI () {
+	python("from cgm.tools.markingMenus import cgmSetKey;reload(cgmSetKey);cgmSetKey.killUI()");
+	}
+
+global proc cgmMMSnap() {
+	python("from cgm.tools.markingMenus import cgmSnap;reload(cgmSnap);cgmSnap.run()");
+	}
+	
+global proc cgmMMSnapKillUI() {
+	python("from cgm.tools.markingMenus import cgmSnap;reload(cgmSnap);cgmSnap.killUI()");
+	}

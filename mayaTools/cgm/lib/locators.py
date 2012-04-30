@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for the widgety magic of rigging
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #   distance
 #
@@ -55,7 +55,7 @@ def locMe():
 	Pass selection into it and return locators placed at the pivots of
 	each object - matching translation, rotation and rotation order
 
-	REQUIRES:
+	ARGUMENTS:
 	Nothing
 
 	RETURNS:
@@ -77,7 +77,7 @@ def createLocFromObject(obj):
 	DESCRIPTION:
 	Pass  an object into it and get a named locator with stored info for updating it
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -99,7 +99,7 @@ def locMeCenter(objList,forceBBCenter = False):
 	DESCRIPTION:
 	Pass  an object into it and get a named locator with stored info for updating it
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -135,7 +135,7 @@ def doPositionLocator(locatorName,locInfo):
 	DESCRIPTION:
 	Position a locator with locator info generated from returnInfoForLoc
 
-	REQUIRES:
+	ARGUMENTS:
 	locatorName(string)
 	locInfo(dict)
 
@@ -171,7 +171,7 @@ def locClosest(objectList,targetObject):
 	Creates a locator on the surface of the last object in a selection set closest
 	to each remaining object in the selection
 
-	REQUIRES:
+	ARGUMENTS:
 	objectList
 
 	RETURNS:
@@ -233,7 +233,7 @@ def doUpdateLocator(locatorName,forceBBCenter = False):
 	DESCRIPTION:
 	Update a locator created with our nifty tool.
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -286,7 +286,7 @@ def locMeObject(obj,forceBBCenter = False):
 	Pass  an object into it and return locator placed at the pivots -
 	matching translation, rotation and rotation order
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -309,7 +309,7 @@ def locMeObjectStandAlone(obj):
 	Pass  an object into it and return locator placed at the pivots -
 	matching translation, rotation and rotation order
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -350,7 +350,7 @@ def returnInfoForLoc(obj,forceBBCenter = False):
 	DESCRIPTION:
 	Return info to create or update a locator.
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -419,7 +419,7 @@ def parentPivotLocMeObject(obj):
 	Pass  an object into it and return locator placed at the center of
 	the bounding box of the object while matching other factors
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -448,7 +448,7 @@ def centerPivotLocMeObject(obj):
 	Pass  an object into it and return locator placed at the center of
 	the bounding box of the object while matching other factors
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -491,7 +491,7 @@ def pointLocMeObj(obj):
 	DESCRIPTION:
 	Pass  an object into it and return locator placed at the pivot of the object
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 
 	RETURNS:
@@ -512,7 +512,7 @@ def locMeClosestPointOnCurve(obj, curve):
 	DESCRIPTION:
 	Places a locator on the closest point on a curve to the target object
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 	curve(string)
 
@@ -536,7 +536,7 @@ def locMeClosestUVOnSurface(obj, surface, pivotOnSurfaceOnly = False):
 	DESCRIPTION:
 	Places locators on the cv's of a surface
 
-	REQUIRES:
+	ARGUMENTS:
 	curve(string)
 
 	RETURNS:
@@ -586,7 +586,7 @@ def locMeClosestPointOnMesh(obj, mesh):
 	DESCRIPTION:
 	Places locators on the closest point of a mesh to a target object
 
-	REQUIRES:
+	ARGUMENTS:
 	obj(string)
 	mesh(string)
 
@@ -625,7 +625,7 @@ def locMeCVOfCurve(curveCV):
 	DESCRIPTION:
 	Places locators on the cv's of a curve
 
-	REQUIRES:
+	ARGUMENTS:
 	curve(string)
 
 	RETURNS:
@@ -649,7 +649,7 @@ def locMeCVOnCurve(curveCV):
 	DESCRIPTION:
 	Places locators on the cv's closest position on a curve
 
-	REQUIRES:
+	ARGUMENTS:
 	curve(string)
 
 	RETURNS:
@@ -676,7 +676,7 @@ def locMeCVsOfCurve(curve):
 	DESCRIPTION:
 	Places locators on the cv's of a curve
 
-	REQUIRES:
+	ARGUMENTS:
 	curve(string)
 
 	RETURNS:
@@ -715,7 +715,7 @@ def locMeCVsOnCurve(curve):
 	DESCRIPTION:
 	Places locators on the cv's closest position on a curve
 
-	REQUIRES:
+	ARGUMENTS:
 	curve(string)
 
 	RETURNS:
@@ -753,7 +753,7 @@ def locMeEditPoint(editPoint):
 	DESCRIPTION:
 	Places locators on the cv's of a curve
 
-	REQUIRES:
+	ARGUMENTS:
 	curve(string)
 
 	RETURNS:
@@ -777,7 +777,7 @@ def locMeCvFromCvIndex(shape,cvIndex):
 	DESCRIPTION:
 	Places locators on the cv's closest position on a curve
 
-	REQUIRES:
+	ARGUMENTS:
 	curve(string)
 
 	RETURNS:
@@ -803,7 +803,7 @@ def locMeSurfaceCV(cv):
 	DESCRIPTION:
 	Places locator on a cv of a surface
 
-	REQUIRES:
+	ARGUMENTS:
 	cv(string)
 	cvIndex
 
@@ -827,7 +827,7 @@ def locMeEdgeLoop(polyEdge):
 	DESCRIPTION:
 	Creates a locator from an edgeloop
 
-	REQUIRES:
+	ARGUMENTS:
 	polyEdge(string)
 
 	RETURNS:

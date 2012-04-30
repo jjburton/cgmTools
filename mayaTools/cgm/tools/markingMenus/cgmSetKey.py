@@ -1,46 +1,110 @@
-//
-// Tangent Works
-//
-// Created by Hamish McKenzie zootoolbox@googlegroups.com
-// Created : 29 May 2005
-//
-// Description:
-//  designed as a replacement for the set key hotkey.  this is a marking menu that
-//  lets you push keys forward or backwards.  for example, if you're on a key, and
-//  you want to quickly "push" the pose to the next keyframe, then the push foward
-//  menu will do exactly that.  by default, the hotkey assigned to the marking menu
-//  will simply set a keyframe.
-//
-// Usage:
-//  assign this function to a key press:
-//	 zooSetkey;
-//
-//  assign this function to the release;
-//	 zooSetkeyKillUI;
-//
-// NOTE: if the hotkey you want to assign this script to contains
-// either ctrl, alt or shift, then modify the "popupMenu" line below
-// to reflect which key is used (ie if you're using alt-w then
-// change it to -alt 1).
-//
+import maya.cmds as mc
+import maya.mel as mel
+
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+
+from cgm.lib.classes.OptionVarFactory import *
+from cgm.lib import guiFactory
+from cgm.tools.lib import animToolsLib
 
 
-zooFlags;  //source zooFlags
-zooTangentWksUtils;
+"""
+if (`popupMenu -exists tempMM`) { deleteUI tempMM; }
+popupMenu -button 1 -ctl false -alt false -sh false -allowOptionBoxes true -parent viewPanes -mm 1 tempMM; 
+source "menu_cgmTesting";
+"""
 
+def run():
+	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
+	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')	
+	panel = mc.getPanel(up = True)
+	sel = guiFactory.selectCheck()
+	
+	IsClickedOptionVar.set(0)
+	mmActionOptionVar.set(0)
+	
+	if mc.popupMenu('tempMM',ex = True):
+		mc.deleteUI('tempMM')
+	print panel
+	if panel:
+		if mc.control(panel, ex = True):
+			mc.popupMenu('tempMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = 'viewPanes',
+				         pmc = lambda *a: createUI('tempMM'))
+			return
+		             
 
-global proc zooSetkey() {
+def createUI(parent):
+	def buttonAction(command):
+		mc.currentTime(27)
+		command
+		mmActionOptionVar.set(1)
+
+		
+	print 'Buildling mm'	
+	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
+	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+	
+	sel = guiFactory.selectCheck()
+	
+	IsClickedOptionVar.set(1)
+	
+	mc.menu(parent,e = True, deleteAllItems = True)
+	
+	mc.setParent(parent,m=True)
+	
+	mc.menuItem(en = sel,
+                l = 'dragBreakdown',
+                c = lambda *a:animToolsLib.ml_breakdownDraggerCall(),
+                rp = 'S')
+	
+	mc.setParent('..',m=True)
+	mc.menuItem(d = 1)	
+	mc.menuItem(l = 'autoTangent',
+                c = lambda *a: buttonAction(mel.eval('autoTangent')))
+	mc.menuItem(l = 'tweenMachine',
+                c = lambda *a: buttonAction(mel.eval('tweenMachine')))
+
+	
+def killUI():
+	print "killing SetKey mm"
+	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
+	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+	print IsClickedOptionVar.value
+	print mmActionOptionVar.value
+	
+	#sel = guiFactory.selectCheck()
+	
+	if mc.popupMenu('tempMM',ex = True):
+		mc.deleteUI('tempMM')
+	"""
+	print '>>>'
+	print sel	
+	if sel:
+		if not mmActionOptionVar.value:
+			pass
+			#mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
+	"""
+	
+"""
+if (`popupMenu -exists tempMM`) { deleteUI tempMM; }
+"""
+	
+	
+"""
+
+global proc cgmSetkeyKillUI () {
 	global int $zooIsClicked;
-	string $panel = `getPanel -up`;
+	if( `popupMenu -ex tempMM` ) {
+		deleteUI tempMM;
+		if ( !$zooIsClicked ) performSetKeyframeArgList 1 {"0", "animationList"};
+		}
 
 	$zooIsClicked = 0;
-	if( `popupMenu -ex tempMM` ) deleteUI tempMM;
-	if( `control -ex $panel` ) popupMenu -ctl 0 -alt 0 -sh 0 -mm 1 -b 1 -aob 1 -p $panel -pmc ( "zooSetkeyCreateUI tempMM 0;" ) tempMM;
-	else performSetKeyframeArgList 1 {"0", "animationList"};
 	}
 
 
-global proc zooSetkeyCreateUI( string $parent, int $keyCommands ) {
+
+global proc cgmSetkeyCreateUI( string $parent, int $keyCommands ) {
 	global int $zooIsClicked;
 	string $selObjs[] = `ls -sl`;
 	float $factor = `optionVar -ex zooCopycatFactor`? `optionVar -q zooCopycatFactor`: 0.1;
@@ -67,6 +131,8 @@ global proc zooSetkeyCreateUI( string $parent, int $keyCommands ) {
 	menuItem -en $sel -l "copycat value toward prev" -c( "zooCopycat left "+ $factor +";" ) -rp SW;
 
 	menuItem -en $sel -l "copycat adjacent" -c( "zooCopycat left "+ $factor +"; zooCopycat right "+ $factor +";" ) -rp N;
+	
+	//menuItem -en $sel -l "dragBreakdown" -c( python("from cgm.tools.lib import animToolsLib;animToolsLib.ml_breakdownDraggerCall()")) -rp "S";
 	menuItem -en $sel -l "dragBreakdown" -c(python("from cgm.tools.lib import animToolsLib;animToolsLib.ml_breakdownDraggerCall()")) -rp "S";
 
 	menuItem -en $sel -l "copycat (breakdown) factor" -sm 1;
@@ -76,6 +142,10 @@ global proc zooSetkeyCreateUI( string $parent, int $keyCommands ) {
 		menuItem -l "nudge by 25%" -cb( $factor == 0.25 ) -c( "optionVar -fv zooCopycatFactor 0.25;" );
 		menuItem -l "nudge by 50%" -cb( $factor == 0.5 ) -c( "optionVar -fv zooCopycatFactor 0.5;" );
 	setParent -m ..;
+	menuItem -d 1;
+	menuItem -en 1 -l "autoTangent" -c( "autoTangent;" );
+		menuItem -en 1 -l "tweenMachine" -c( "tweenMachine;" );
+
 	menuItem -d 1;
 
 	menuItem -en $sel -l "select all static keys" -c( "zooSelectStaticKeys static 1;" );
@@ -96,46 +166,11 @@ global proc zooSetkeyCreateUI( string $parent, int $keyCommands ) {
 	}
 
 
-//------
-//sets or queries the playspeed for a scene - this can be used to set playback to
-//be ones, twos, threes etc...  the smooth arg determines whether frames are held
-//for longer, or subframes are played.  ie if smooth is true, then subframes are
-//displayed.  if false, each frame is held for longer.  sometimes its useful to
-//play back at half speed, instead of holding each frame for twice as long
-//------
-global proc float zooPlaySpeed( float $rate, int $smooth ) {
-	float $playSpeed = `playbackOptions -q -ps`;  //the playspeed is basically the frame hold
-	float $playBy = `playbackOptions -q -by`;  //the playby is the frame increment
-
-	if( $smooth == -1 ) $smooth = `optionVar -ex zooSetkeySmooth`? `optionVar -q zooSetkeySmooth`: 0;
-	if( $rate<0 ) {
-		if( $smooth ) return $playBy;
-		else return $playSpeed;
-		}
-
-	if( $smooth ) {
-		playbackOptions -ps ($rate==1? 1: 0);
-		playbackOptions -by $rate;
-		}
-	else {
-		playbackOptions -ps $rate;
-		playbackOptions -by 1;
-		}
-
-	return $rate;
-	}
 
 
-global proc float zooSetkeyDefaults( string $setting ) {
-	int $exists = `optionVar -ex $setting`;
-	if( $exists ) return((float)`optionVar -q $setting`);
-	switch( $setting ) {
-		case "zooCopycatFactor": return 0.05;
-		}
-	}
 
 
-global proc zooSetkeyKillUI () {
+global proc cgmSetkeyKillUI () {
 	global int $zooIsClicked;
 	if( `popupMenu -ex tempMM` ) {
 		deleteUI tempMM;
@@ -145,5 +180,4 @@ global proc zooSetkeyKillUI () {
 	$zooIsClicked = 0;
 	}
 
-
-//zoo.end
+"""

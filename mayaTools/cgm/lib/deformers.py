@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #       Series of tools for the widgety magic of deformers
 #
-# REQUIRES:
+# ARGUMENTS:
 #       Maya
 #   distance
 #
@@ -51,7 +51,7 @@ def polyUniteGeo(objList,name='unitedGeo'):
     Unites polys with the poly unite command. Every piece of geo must have
     a deformer node with an .outputGeometry
 
-    REQUIRES:
+    ARGUMENTS:
     objList(string)
     name(string) - base name for the geo and node created
 
@@ -227,7 +227,7 @@ def returnObjectDeformers(obj, deformerTypes = 'all'):
     DESCRIPTION:
     Returns a list of deformers on an object in order from top to bottom
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -268,7 +268,7 @@ def reorderDeformersByType(obj, deformerOrder = ['skinCluster','blendShape','twe
     DESCRIPTION:
     Returns a list of deformers on an object in order from top to bottom
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     deformerOrder(list) - (['skinCluster','blendShape','tweak'])
     >>>> Options are sculpt, cluster, jointCluster, lattice, wire, jointLattice, boneLattice, blendShape.
@@ -304,7 +304,7 @@ def reorderDeformersByOrderedList(obj, deformerOrder):
     DESCRIPTION:
     Reorders deformers on an object by a list of deformers
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     deformerOrder(list) - list of the order youw ant
 
@@ -336,7 +336,7 @@ def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferCon
     Takes the attributes of a blendshape, adds them as attributes, connects them and transfers
     any driver should you choose
 
-    REQUIRES:
+    ARGUMENTS:
     name(string)
     blendShapeNode(string)
     doConnect(bool) - (True) - if you want to connect the atributes to the new ones
@@ -370,7 +370,7 @@ def updateBlendShapeNodeToPoseBuffer(poseBuffer,blendShapeNode,doConnect = True,
     Updates a blendshape to posebuffer connection with new attrs (need to
     make it remove non existing ones, maybe make the creation one tag it's parent blendshape node)
 
-    REQUIRES:
+    ARGUMENTS:
     poseBuffer(string)
     blendShapeNode(string)
     doConnect(bool) - (True) - if you want to connect the atributes to the new ones
@@ -442,7 +442,7 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     sourceObject(string)
     duplicateObject(bool) whether to duplicate the object or not
@@ -486,7 +486,7 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     sourceObject(string)
     blendShapeNode(string) the node to bake from
@@ -616,7 +616,7 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another when you have a left/right variant
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     sourceObject(string)
     blendShapeNode(string) the node to bake from
@@ -768,7 +768,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
     DESCRIPTION:
     Function for baking a series of blendshapes out from one object that have a split type
 
-    REQUIRES:
+    ARGUMENTS:
     sourceObject(string)
     sourceObject(string)
     blendShapeNode(string) the node to bake from
@@ -902,7 +902,7 @@ def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stri
     DESCRIPTION:
     Function for exporting an object's blendshapes
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     sourceObject(string)
     blendShapeNode(string) the node to bake from
@@ -997,7 +997,7 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
     DESCRIPTION:
     Builds a blendshape node, while looking for in between shapes and connecting them accordingly
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     blendShapeTargets(list) -
     nameBlendShape(bool/string) - if it's False, it uses the target Object name, else, it uses what is supplied
@@ -1047,7 +1047,7 @@ def bakeBlendShapes(sourceObject, targetObject, blendShapeNode, baseNameToUse = 
     DESCRIPTION:
     Function for exporting an objects blendshapes
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     sourceObject(string)
     blendShapeNode(string) the node to bake from
@@ -1154,7 +1154,7 @@ def returnBlendShapeAttributes(blendshapeNode):
     DESCRIPTION:
     Returns cv coordinates from a surface CV
 
-    REQUIRES:
+    ARGUMENTS:
     surfaceCV(string)
 
     RETURNS:
@@ -1169,7 +1169,7 @@ def returnBlendShapeBaseObjects(blendShapeNode):
     DESCRIPTION:
     Returns the base objects of a blendshape node
 
-    REQUIRES:
+    ARGUMENTS:
     blendShapeNode(string)
 
     RETURNS:
@@ -1199,7 +1199,7 @@ def returnBlendShapeIndexList(blendShapeNode):
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another when you have a left/right variant
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     sourceObject(string)
     blendShapeNode(string) the node to bake from
@@ -1233,7 +1233,7 @@ def returnBlendShapeTargetsAndWeights(sourceObject, blendShapeNodeName):
     DESCRIPTION:
     Function for returning the targets per blendshape index, including inbetween shapes
 
-    REQUIRES:
+    ARGUMENTS:
     sourceObject(string)
     blendShapeNode(string)
 

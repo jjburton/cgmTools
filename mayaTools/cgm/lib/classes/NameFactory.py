@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for finding stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 	search
 # 	names
@@ -630,7 +630,7 @@ def returnFastIterateNumber(obj):
     DESCRIPTION:
     Check through a scene to figure out what iterative number an obj
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -652,7 +652,7 @@ def returnIterateNumber(obj):
     DESCRIPTION:
     Check through a scene to figure out what iterative number an obj
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -698,7 +698,7 @@ def returnCGMOrder():
     DESCRIPTION:
     Returns the order for names in a list format
 
-    REQUIRES:
+    ARGUMENTS:
     Nothin
 
     RETURNS:
@@ -716,7 +716,7 @@ def returnCGMDivider():
     DESCRIPTION:
     Returns the divider string
 
-    REQUIRES:
+    ARGUMENTS:
     Nothin
 
     RETURNS:
@@ -734,7 +734,7 @@ def returnCGMSetting(setting):
     DESCRIPTION:
     Returns the divider string
 
-    REQUIRES:
+    ARGUMENTS:
     Nothin
 
     RETURNS:
@@ -751,7 +751,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
     DESCRIPTION:
     Returns a generated name with iteration for heirarchy objects with the same tag info
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object
     ignore(string) - default is 'none', only culls out cgmtags that are 
                      generated via returnCGMOrder() function
@@ -813,7 +813,7 @@ def returnRawGeneratedName(obj,ignore='none'):
     DESCRIPTION:
     Returns a generated name
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object
     ignore(string) - default is 'none', only culls out cgmtags that are 
                      generated via returnCGMOrder() function
@@ -842,7 +842,7 @@ def returnCombinedNameFromDict(nameDict):
     DESCRIPTION:
     Returns a generated name
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object
     ignore(string) - default is 'none', only culls out cgmtags that are 
                      generated via returnCGMOrder() function
@@ -886,7 +886,7 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
     DESCRIPTION:
     Returns a generated dictionary of name info
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object
     ignore(string) - default is 'none', only culls out cgmtags that are 
                      generated via returnCGMOrder() function
@@ -995,17 +995,15 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doNameObject(obj,sceneUnique = False):
     """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Names an object, when forceOverride is False, will select conflicting objects
+    Names an object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we'd like to name
-    forceOverride(bool)- whether to rename conflicts or not
+    sceneUnique(bool)- whether to do a full scene check or just the faster check
 
     RETURNS:
     newName(string) on success
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
@@ -1031,16 +1029,15 @@ def doNameObject(obj,sceneUnique = False):
 
 def doRenameHeir(obj,sceneUnique = False):
     """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
     Names an object's heirarchy below
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we'd like to startfrom
+    sceneUnique(bool)- whether to do a full scene check or just the faster check
 
     RETURNS:
     newNames(list)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
@@ -1084,11 +1081,9 @@ def doRenameHeir(obj,sceneUnique = False):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateName(obj):
     """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Names an object's heirarchy below
+    Updates the name of an object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we'd like to startfrom
 
     RETURNS:

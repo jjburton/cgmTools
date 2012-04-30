@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Large collection of rigging tools
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #
 # AUTHOR:

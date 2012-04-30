@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for the widgety magic of rigging
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #   distance
 #
@@ -239,7 +239,7 @@ def attachQSSSkinJointsToRigJoints (qssSkinJoints,qssRigJoints):
     Created for N project. It will constrain one skeleton to the other
     by looking for the closest joint in a qss set of bind joints
 
-    REQUIRES:
+    ARGUMENTS:
     qssSet(set) - must exist in scene. Set of the rig joints
     rigStartJoint - the first joint of a unifed  deformation skeleton
 

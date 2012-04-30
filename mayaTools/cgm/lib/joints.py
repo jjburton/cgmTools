@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with joints
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:
@@ -55,7 +55,7 @@ def renameJointChainList (jointList, startJointName, interiorJointRootName):
         DESCRIPTION:
         Script to rename a joint chain list
 
-        REQUIRES:
+        ARGUMENTS:
         jointList(list) - list of joints in order
         startJointName(string) - what you want the root named
         interiorJointRootName(string) - what you want the iterative name to be
@@ -86,7 +86,7 @@ def toggleJntLocalAxisDisplay (jnt):
         DESCRIPTION:
         Toggles the display of a joint's local axis
 
-        REQUIRES:
+        ARGUMENTS:
         jnt(string) - the joint you wanna mess with
 
         RETURNS:
@@ -106,7 +106,7 @@ def setRotationOrderOnJoint (jnt, ro):
         DESCRIPTION:
         Set's the rotation order on a joint
 
-        REQUIRES:
+        ARGUMENTS:
         jnt(string) - the joint to be fixed
         ro(string) - the rotation order you'd like used
 
@@ -132,7 +132,7 @@ def orientJoint (jointToOrient, orientation, up):
         DESCRIPTION:
         Orients a joint
 
-        REQUIRES:
+        ARGUMENTS:
         jointToOrient(string) - Joint to orient.
         orientation(string) - how you want it oriented
         up(string) - what's the joint's up vector
@@ -180,7 +180,7 @@ def freezeJointOrientation(jointToOrient):
         DESCRIPTION:
         Freezes the joint orientation.
 
-        REQUIRES:
+        ARGUMENTS:
         jointToOrient(string - Joint to orient.
 
         RETURNS:
@@ -197,7 +197,7 @@ def orientJointChain (jointList, orientation, up):
         DESCRIPTION:
         Orients a chain of joints with the appropriate inputs
 
-        REQUIRES:
+        ARGUMENTS:
         jointList(list) - list of joints
         orientation(string) - your chosen orienation for the joints
         up(string) - what should be considered up for the joints
@@ -216,7 +216,7 @@ def setGoodJointRadius(jointList,multiplier):
         DESCRIPTION:
         Guesses a good joint radius value and uses the multiplier to tweak it
 
-        REQUIRES:
+        ARGUMENTS:
         jointList(list) - list of locators
         multiplier(float/integer) - just what it sounds like
 
@@ -238,7 +238,7 @@ def duplicateChainInPlace(jointList):
         DESCRIPTION:
         asdf
 
-        REQUIRES:
+        ARGUMENTS:
         asdf(list) - list of the objects you want joints created at
 
         RETURNS:
@@ -256,7 +256,7 @@ def duplicateJoint (joint):
         DESCRIPTION:
         asdf
 
-        REQUIRES:
+        ARGUMENTS:
         asdf(list) - list of the objects you want joints created at
 
         RETURNS:
@@ -277,7 +277,7 @@ def createJointsFromCurve(curve, name, divideSpans = 0):
         DESCRIPTION:
         Creates joint chain from a curve
 
-        REQUIRES:
+        ARGUMENTS:
         curve(string) - the curve
         name(string) - name you want it iterate on
         divideSpans(int) - number of roll joints you want, 0 is default
@@ -349,7 +349,7 @@ def createJointsFromCurveBAK (curve, name):
         DESCRIPTION:
         Creates joint chain from a curve
 
-        REQUIRES:
+        ARGUMENTS:
         curve(string) - the curve
         name(string) - name you want it iterate on
 
@@ -384,7 +384,7 @@ def createCurveFromJoints (startJoint):
         DESCRIPTION:
         Creates a curve from a chain of joints
 
-        REQUIRES:
+        ARGUMENTS:
         startJoint(string) - root of the chain you wanna curv...iate
 
         RETURNS:
@@ -417,7 +417,7 @@ def createJointsFromPosListName (jointPositions,name):
         DESCRIPTION:
         Draws joints from input parameters
 
-        REQUIRES:
+        ARGUMENTS:
         jointPositions(list) - an list of vector positions
         name(string) - name you want it iterate on
         suffix(string) - the suffix you'd like used
@@ -442,7 +442,7 @@ def createJointsFromTemplateObjects(objectList):
         DESCRIPTION:
         asdf
 
-        REQUIRES:
+        ARGUMENTS:
         asdf
 
         RETURNS:
@@ -471,7 +471,7 @@ def createJointsFromPosListNameIterate (jointPositions, name, suffix):
         DESCRIPTION:
         Draws joints from input parameters
 
-        REQUIRES:
+        ARGUMENTS:
         jointPositions(list) - an list of vector positions
         name(string) - name you want it iterate on
         suffix(string) - the suffix you'd like used
@@ -497,7 +497,7 @@ def createJointsFromPosListNameWithNameList (jointPositions, nameList, suffix):
         DESCRIPTION:
         Draws joints from input parameters
 
-        REQUIRES:
+        ARGUMENTS:
         jointPositions(list) - a list of transform positions
         nameListlist) - list of names you'd like the joints named as
         suffix(string) - the suffix you'd like used
@@ -522,7 +522,7 @@ def createJointsFromObjPositions (objList, suffix):
         DESCRIPTION:
         Draws joints from object positions
 
-        REQUIRES:
+        ARGUMENTS:
         objList(list) - list of the objects you want joints created at
         suffix(string) - the suffix you'd like for the joints
 
@@ -547,7 +547,7 @@ def createJointsFromObjects (objects, name, suffix):
         DESCRIPTION:
         Created joints from a locator list
 
-        REQUIRES:
+        ARGUMENTS:
         objects(list) - list of objects
         name(string) - name of the joints
         suffix(string) - suffix for the joints
@@ -579,7 +579,7 @@ def createJointChainsFromNurbsSurface (name,surface,chainMode=0,directionMode=0,
         DESCRIPTION:
         Created joint chains from a lofted surface
 
-        REQUIRES:
+        ARGUMENTS:
         name(string) - your root name for the joints	
         surface(string) - the lofted surface to be used
         chainMode -   0 - mid only
@@ -673,7 +673,7 @@ def addSqashStretchToSurfaceChainByAttr(attributeHolder,jointChain,jointOrient):
         DESCRIPTION:
         Add squash and stretch to a joint chain that's been attached to a surface
 
-        REQUIRES:
+        ARGUMENTS:
         attributeHolder(string) - what you wanna connect the squashStretch attributes to
         jointChain(list) - the joint chain to be processed (list of joints in chain)	
         jointOrient(string) - the joint orientation you want - ['xyz','yzx','zxy','xzy','yxz','zyx','none']
@@ -775,7 +775,7 @@ def addSqashStretchToSurfaceChainByAnimCrv(attributeHolder,jointChain,jointOrien
         DESCRIPTION:
         Add squash and stretch to a joint chain that's been attached to a surface
 
-        REQUIRES:
+        ARGUMENTS:
         attributeHolder(string) - what you wanna connec the squashStretch attributes to
         jointChain(list) - the joint chain to be processed (list of joints in chain)	
         jointOrient(string) - the joint orientation you want - ['xyz','yzx','zxy','xzy','yxz','zyx','none']
@@ -894,7 +894,7 @@ def attachJointChainToSurface(jointChain,surface,jointOrient,jointUp,squashStret
         DESCRIPTION:
         Attaches joint chain to a surface
 
-        REQUIRES:
+        ARGUMENTS:
         jointChain - List of joints	
         surface - the lofted surface to be used
         jointOrient - the joint orientation you want - ['xyz','yzx','zxy','xzy','yxz','zyx','none']
@@ -1094,7 +1094,7 @@ def loftSurfaceFromJointList(jointList,outChannel):
         DESCRIPTION:
         Lofts a surface from a joint list
 
-        REQUIRES:
+        ARGUMENTS:
         jointList(list) - list of the joints you want to loft from
         outChannel(string)['x','y','z - the the extrude out direction
 
@@ -1141,7 +1141,7 @@ def makeJointControlSurface(startJoint,controlJointList,outChannel,name):
         DESCRIPTION:
         Makes a ricgmon surface for ricgmon rigging and sets things up for it
 
-        REQUIRES:
+        ARGUMENTS:
         startJoint - first joint of the heirarchy to work with
         controlJointList - seperate joints that will have the surface skinned to it (instead of using clusters)
         outChannel - x/y/z - which direction is out from the joint. In a traditional sense, it would most likely be x with a z aim and y up world

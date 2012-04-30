@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with cgmMath
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:
@@ -28,7 +28,7 @@ def multiplyLists(lists,allowZeros = True):
     DESCRIPTION:
     Muliplies a list of lists
     
-    REQUIRES:
+    ARGUMENTS:
     lists(list) - [[2,3,4],[2,3,4],[2,3,4,3]]
     
     RETURNS:
@@ -71,7 +71,7 @@ def multiplyList(listToMultiply):
     DESCRIPTION:
     Muliplies all non zero values in a list
     
-    REQUIRES:
+    ARGUMENTS:
     listToMultiply(listToMultiply) - [124,2,0,4]
     
     RETURNS:
@@ -89,7 +89,7 @@ def multiplyList(listToMultiply):
 # DESCRIPTION:
 #   normalize values of a list to make its max = normalizeTo
 # 
-# REQUIRES:
+# ARGUMENTS:
 #   L - list to normalize
 # 	normalizeTo - the value to normalize to
 #
@@ -112,7 +112,7 @@ def normList(L, normalizeTo=1):
 # DESCRIPTION:
 #   Divide a length into the positions of the number of points input
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	length - 
 #   points - the number of points on the length you want
 #

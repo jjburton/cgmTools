@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for list stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:
@@ -83,7 +83,7 @@ def returnLocalUp(aimVector):
     DESCRIPTION:
     Returns a local aim direction
 
-    REQUIRES:
+    ARGUMENTS:
     aimVector(string) = '[1,0,0]'
 
     RETURNS:
@@ -101,7 +101,7 @@ def returnLocalAimDirection(rootObj,aimObj):
     DESCRIPTION:
     Returns a local aim direction
 
-    REQUIRES:
+    ARGUMENTS:
     rootObj(string)
     aimObj(string)
 
@@ -143,7 +143,7 @@ def returnLinearDirection(rootObj,aimObj):
     DESCRIPTION:
     Returns a linear direction
 
-    REQUIRES:
+    ARGUMENTS:
     rootObj(string)
     aimObj(string)
 
@@ -173,7 +173,7 @@ def returnHorizontalOrVertical(objList):
     DESCRIPTION:
     Returns if a set of objects is laid out vertically or horizontally
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list)
 
     RETURNS:

@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with distances
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging, nodes
 # 
 # AUTHOR:
@@ -39,7 +39,7 @@ def layoutByColumns(objectList,columnNumber=3,startPos = [0,0,0]):
     DESCRIPTION:
     Lays out a seies of objects in column and row format
 
-    REQUIRES:
+    ARGUMENTS:
     objectList(string)
     columnNumber(int) - number of columns
     
@@ -101,7 +101,7 @@ def moveParentSnap (obj,target):
     DESCRIPTION:
     Snaps with a parent constraint style
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     target(string)
     
@@ -122,7 +122,7 @@ def movePointSnap (obj,target):
     DESCRIPTION:
     Snaps with a point constraint style
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     target(string)
     
@@ -140,7 +140,7 @@ def moveOrientSnap (obj,target):
     DESCRIPTION:
     Snaps with a orient constraint style
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     target(string)
     
@@ -157,7 +157,7 @@ def aimSnapUpObject (obj,target,worldUpObject,aimVector = [0,0,1],upVector = [0,
     DESCRIPTION:
     Snaps with a point constraint style
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     target(string)
     aimVector(list)
@@ -177,7 +177,7 @@ def aimSnap (obj,target,aimVector = [0,0,1],upVector = [0,1,0],worldUp = [0,1,0]
     DESCRIPTION:
     Snaps with a point constraint style
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     target(string)
     aimVector(list)
@@ -198,7 +198,7 @@ def moveAimSnap(obj,target,aimTarget,vector):
     DESCRIPTION:
     Snaps with a point constraint style
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     target(string)
     aimTarget(string)

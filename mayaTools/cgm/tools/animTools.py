@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Tool for making locators and other stuffs
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #   distance
 #
@@ -313,7 +313,6 @@ class animToolsClass(BaseMelWindow):
 	def Match_buildLayout(self,parent):
 		mc.setParent(parent)
 		guiFactory.header('Update')
-		guiFactory.lineSubBreak()
 
 		#>>>Match Mode
 		self.MatchModeCollection = MelRadioCollection()

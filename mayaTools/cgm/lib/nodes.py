@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for skinning
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #   distance
 # 
@@ -74,7 +74,7 @@ def createPoseBuffer(name,poseList):
     Returns the colors used on the shapes of a curve as a list in order
     of volume used
 
-    REQUIRES:
+    ARGUMENTS:
     curve(string
     
     RETURNS:
@@ -105,7 +105,7 @@ def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferCon
     Takes the attributes of a blendshape, adds them as attributes, connects them and transfers
     any driver should you choose
 
-    REQUIRES:
+    ARGUMENTS:
     name(string)
     blendShapeNode(string)
     doConnect(bool) - (True) - if you want to connect the atributes to the new ones
@@ -140,7 +140,7 @@ def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferCon
 # DESCRIPTION:
 #   Pass a node name (sans suffix) along with the node type into it and return a node created
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	name - name for the node (sans suffix)
 # 	type - the node type
 #
@@ -187,7 +187,7 @@ def returnConnectedClosestPointOnMeshNode (targetObj, mesh):
 # DESCRIPTION:
 #   roviding the proper variables, creates a nodal setup to control the speed of an offset animation
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	waveDeformer - the object with the .offset attribute to drive
 # 	speedAttr -  the attribute you want to drive speed (float)
 # 	cycleLength - how many frames you want the cycle to happen over (integer)

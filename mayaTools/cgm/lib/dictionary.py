@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for Dictionaries
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 	search
 # 	names
@@ -150,7 +150,7 @@ def initializeDictionary(file):
     DESCRIPTION:
     Reads a text file in the form of key:value per line into an active dictionary
     
-    REQUIRES:
+    ARGUMENTS:
     file(string) - Path and/or file
     
     RETURNS:
@@ -192,7 +192,7 @@ def returnDictionaryListToList(dictionaryFile,key):
     Reads all of the modules attached to a masterNull and orders them from
     the settings.conf
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -210,7 +210,7 @@ def returnDictionarySortedToList (dictToSort,sortByValues=True):
     DESCRIPTION:
     Returns a sorted list from a dictionary
     
-    REQUIRES:
+    ARGUMENTS:
     dict(dict) - in {'name':value} format
     sortByValues(bool) - default is to sort by values
     

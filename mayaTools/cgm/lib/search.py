@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for finding stuff
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #
 # AUTHOR:
@@ -46,7 +46,7 @@ def returnObjectMasterNull(obj):
     DESCRIPTION:
     Returns an objects module if it has one
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -66,7 +66,7 @@ def returnObjectModule(obj):
     DESCRIPTION:
     Returns an objects module if it has one
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -86,7 +86,7 @@ def returnObjectsOwnedByModuleNull(moduleNull):
     DESCRIPTION:
     Returns all objeccts owned by a particular module
 
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string) for example the templateNull
 
     RETURNS:
@@ -114,7 +114,7 @@ def returnTagInfo(obj,tag):
     DESCRIPTION:
     Reads the data from a tag
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to read the tag from
     tag(string) - cgmName, cgmType, etc
 
@@ -146,7 +146,7 @@ def returnNameTag(obj):
     DESCRIPTION:
     Returns name from a cgmName Tag
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we're starting from
 
     RETURNS:
@@ -163,7 +163,7 @@ def returnType(obj):
     DESCRIPTION:
     Returns type from a cgmName Tag, if there is not tag it guesses it
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we're starting from
 
     RETURNS:
@@ -185,7 +185,7 @@ def findRawTagInfo(obj,tag):
     before calling it quits. Also, it checks the types and names dictionaries for
     short versions
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we're starting from
     tag(string)
 
@@ -223,7 +223,7 @@ def returnTagInfoShortName(info,tagType):
     before calling it quits. Also, it checks the types and names dictionaries for
     short versions
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we're starting from
     tag(string)
 
@@ -255,7 +255,7 @@ def returnTagUp(obj,tag):
     Returns name from a cgmName Tag from the first object above the input
     object that has it
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we're starting from
 
     RETURNS:
@@ -281,7 +281,7 @@ def returnTagDown(obj,tag):
     Returns name from a cgmName Tag from the first object above the input
     object that has it
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we're starting from
 
     RETURNS:
@@ -321,7 +321,7 @@ def returnMatchedTagsFromObjectList(objList,tagToMatch,infoToMatch):
     DESCRIPTION:
     Returns objects that match the input tag from a specific object list
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list)
     tagToMatch(string) - 'cgmName'
     infoToMatch(string) - the value to match
@@ -351,7 +351,7 @@ def returnObjectsConnectedToObj(obj,messageOnly = False):
     DESCRIPTION:
     Function for finding objects connected to another object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     messageOnly(bool) - whether you only want mesage objects or not
 
@@ -385,7 +385,7 @@ def seekDownStream(startingNode,endObjType,incPlugs=False):
     Replacement for getAttr which get's message objects as well as parses double3 type
     attributes to a list
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     attr(string)
 
@@ -484,7 +484,7 @@ def returnTimelineInfo():
     Returns timeline info as a dictionary
     {currentTime,sceneStart,sceneEnd,rangeStart,rangeEnd}
 
-    REQUIRES:
+    ARGUMENTS:
     nothing
 
     RETURNS:
@@ -507,7 +507,7 @@ def returnListOfKeyIndices(obj):
     Return a list of the time indexes of the keyframes on an object
     {currentTime,sceneStart,sceneEnd,rangeStart,rangeEnd}
 
-    REQUIRES:
+    ARGUMENTS:
     nothing
 
     RETURNS:
@@ -544,7 +544,7 @@ def returnReferencePrefix(obj):
     DESCRIPTION:
     Returns a reference prefix of an object. False if it is not referenced
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object
 
     RETURNS:
@@ -568,7 +568,7 @@ def returnObjectType(obj):
     DESCRIPTION:
     Asks maya what the object type is
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object
 
     RETURNS:
@@ -635,7 +635,7 @@ def returnNonJointObjsInHeirarchy(root):
     DESCRIPTION:
     Search for non joint stuff in a heirarchy chain (example - ik effector)
 
-    REQUIRES:
+    ARGUMENTS:
     root(string) - the root of the heirarchy to check
 
     RETURNS:
@@ -657,7 +657,7 @@ def returnJointHeirarchyCount(startJoint):
     DESCRIPTION:
     Count joints
 
-    REQUIRES:
+    ARGUMENTS:
     startJoint(string) - the root of the heirarchy to check
 
     RETURNS:
@@ -679,7 +679,7 @@ def returnJointHeirarchy(startJoint):
     DESCRIPTION:
     Gets the joints in a heirarchy to a nice list
 
-    REQUIRES:
+    ARGUMENTS:
     startJoint(string) - the root of the heirarchy to check
 
     RETURNS:
@@ -699,7 +699,7 @@ def returnChildrenJoints(root, allDescendents=True):
     DESCRIPTION:
     Returns children joints of the input object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     allDescendents(bool) - true or false -True is default
 
@@ -721,7 +721,7 @@ def returnAllChildrenObjects(obj,fullPath=False):
     DESCRIPTION:
     Returns children of the input object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -738,7 +738,7 @@ def returnChildrenObjects(obj,fullPath=False):
     DESCRIPTION:
     Returns children of the input object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -755,7 +755,7 @@ def returnParentObject(obj,fullPath=True):
     DESCRIPTION:
     Returns parent of the input object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     fullPath(bool) - default is True
 
@@ -774,7 +774,7 @@ def returnAllParents(obj,shortNames=False):
     DESCRIPTION:
     Returns parents of the input object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -811,7 +811,7 @@ def returnIndiceFromName(obj):
     DESCRIPTION:
     Returns indice from an object name
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj.component[x]
 
     RETURNS:
@@ -831,7 +831,7 @@ def returnCVCoordsToList(surfaceCV):
     DESCRIPTION:
     Returns cv coordinates from a surface CV
 
-    REQUIRES:
+    ARGUMENTS:
     surfaceCV(string)
 
     RETURNS:
@@ -857,7 +857,7 @@ def returnEdgeLoopFromEdge(polyEdge):
     DESCRIPTION:
     Returns an edgeloop from an edge
 
-    REQUIRES:
+    ARGUMENTS:
     polyEdge(string)
 
     RETURNS:
@@ -880,7 +880,7 @@ def returnVertsFromEdge(polyEdge):
     DESCRIPTION:
     Returns an edgeloop from an edge
 
-    REQUIRES:
+    ARGUMENTS:
     polyEdge(string)
 
     RETURNS:
@@ -900,7 +900,7 @@ def returnVertsFromFace(polyFace):
     DESCRIPTION:
     Returns the vertices of a face
 
-    REQUIRES:
+    ARGUMENTS:
     polyFace(string)
 
     RETURNS:
@@ -925,7 +925,7 @@ def returnBlendShapeAttributes(blendshapeNode):
     DESCRIPTION:
     Returns cv coordinates from a surface CV
 
-    REQUIRES:
+    ARGUMENTS:
     surfaceCV(string)
 
     RETURNS:
@@ -943,7 +943,7 @@ def returnOutFromOrientation(orientation):
     DESCRIPTION:
     Returns cv coordinates from a surface CV
 
-    REQUIRES:
+    ARGUMENTS:
     surfaceCV(string)
 
     RETURNS:
@@ -965,7 +965,7 @@ def returnAimUpOutVectorsFromOrientation(orientation):
     DESCRIPTION:
     Returns aim up and out vectors from an orientation
 
-    REQUIRES:
+    ARGUMENTS:
     orientation(string) - ['xyz','yzx','zxy','xzy','yxz','zyx']
 
     RETURNS:

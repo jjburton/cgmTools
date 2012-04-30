@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Library of functions for the cgmRiggingTools tool
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #
 #
@@ -119,7 +119,7 @@ def doDeformerKeyableAttributesConnect(self):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Function for connecting the animateable attributes of a deformer to another object
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -159,7 +159,7 @@ def doLoadPolyUnite(self):
     DESCRIPTION:
     loads a polyUnite node to our source and selects the source shapes
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -215,7 +215,7 @@ def doDeletePolyUniteNode(self):
     DESCRIPTION:
     Function for extracting blendshapes from an object that may have had the targets deleted
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -239,7 +239,7 @@ def doBuildPolyUnite(self):
     DESCRIPTION:
     Function for extracting blendshapes from an object that may have had the targets deleted
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -292,7 +292,7 @@ def doLoadBlendShapePoseBuffer(self):
     DESCRIPTION:
     loads a blendShape poseBuffer node to our source and selects the source shapes
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -324,7 +324,7 @@ def doCreatePoseBuffer(self):
     DESCRIPTION:
     Function for extracting blendshapes from an object that may have had the targets deleted
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -371,7 +371,7 @@ def doUpdatePoseBuffer(self):
     DESCRIPTION:
     Function for extracting blendshapes from an object that may have had the targets deleted
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -431,7 +431,7 @@ def doBakeBlendShapeTargetsToTargetsFromSource(self):
     DESCRIPTION:
     Function for extracting blendshapes from an object that may have had the targets deleted
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -524,7 +524,7 @@ def doBakeBlendShapeTargetsFromSource(self):
     DESCRIPTION:
     Function for extracting blendshapes from an object that may have had the targets deleted
 
-    REQUIRES:
+    ARGUMENTS:
     ui(string) - ui window name under which our variables are stored.
 
     RETURNS:
@@ -584,7 +584,7 @@ def doShrinkWrapToSource():
     DESCRIPTION:
     Function for finding vertices that are over X influences
 
-    REQUIRES:
+    ARGUMENTS:
     A selection or a set cgmVar_SourceObject
 
     RETURNS:
@@ -706,7 +706,7 @@ def doCopySkinningToVertFromSource():
     DESCRIPTION:
     asdf
 
-    REQUIRES:
+    ARGUMENTS:
     asdf
 
     RETURNS:
@@ -753,7 +753,7 @@ def doTransferSkinning():
     DESCRIPTION:
     Transfers the skin weighting from one object to another
 
-    REQUIRES:
+    ARGUMENTS:
     A selection or a set cgmVar_SourceObject
 
     RETURNS:
@@ -787,7 +787,7 @@ def doCopyWeightsFromFirstToOthers():
     DESCRIPTION:
     Transfers the skin weighting from one oomponent to another
 
-    REQUIRES:
+    ARGUMENTS:
     A selection of vertices
 
     RETURNS:
@@ -859,7 +859,7 @@ def doSelectInfluenceJoints():
     DESCRIPTION:
     Function for selecting the influence objects from a mesh with a skinCluster
 
-    REQUIRES:
+    ARGUMENTS:
     A selection or a set cgmVar_SourceObject
 
     RETURNS:
@@ -892,7 +892,7 @@ def doReturnExcessInfluenceVerts(self):
     DESCRIPTION:
     Function for finding vertices that are over X influences
 
-    REQUIRES:
+    ARGUMENTS:
     A selection or a set cgmVar_SourceObject
 
     RETURNS:
@@ -1071,7 +1071,7 @@ def returnObjectSizesForCreation(self,objList):
         sizeList = []
         for item in objList:
 	    o = ObjectFactory(item)
-	    if o.type == 'joint':
+	    if o.mType == 'joint':
 		child = mc.listRelatives(item,children = True, type = 'transform',path = True)
 		if child:
 		    sizeBuffer = (distance.returnDistanceBetweenObjects(item,child)/divider)
@@ -1361,7 +1361,7 @@ def curveControlConnect(self):
     DESCRIPTION:
     Connects a curve control from the tdTools gui
 
-    REQUIRES:
+    ARGUMENTS:
     self(class)
 
     RETURNS:
@@ -1528,7 +1528,7 @@ def doCreateCurveFromObjects():
     DESCRIPTION:
     Creates a curve from a selection of objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1554,7 +1554,7 @@ def uiSetGuessOrientation(self):
     DESCRIPTION:
     Guess an objects orientation
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1632,7 +1632,7 @@ def doShapeParent():
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1659,7 +1659,7 @@ def doShapeParentInPlace():
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1683,7 +1683,7 @@ def doReplaceCurveShapes():
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1723,7 +1723,7 @@ def doCurveToPython():
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1748,7 +1748,7 @@ def doCombineCurves():
     DESCRIPTION:
     Combines curves on the first curves transform
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1778,7 +1778,7 @@ def doReportObjectType():
     DESCRIPTION:
     Parents the shapefrom the first object to all other objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1798,7 +1798,7 @@ def doReportSelectionCount():
     DESCRIPTION:
     Reports the number of selection items
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1847,7 +1847,7 @@ def doCopyPivot():
     DESCRIPTION:
     Copies the pivot from the first object to all other objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -1874,7 +1874,7 @@ def doParentSelected():
     DESCRIPTION:
     Copies the pivot from the first object to all other objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:

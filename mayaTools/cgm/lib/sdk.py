@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of functions for working with SDK stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:
@@ -39,7 +39,7 @@ def copySetDrivenKey(sourceDriver,targetDriver,drivenObject,targetObject):
     DESCRIPTION:
     Copies an SDK
 
-    REQUIRES:
+    ARGUMENTS:
     sourceDriver(string)
     targetDriver(string)
     drivenObject(string)
@@ -92,7 +92,7 @@ def returnDriverCurve(driverAttribute,drivenObject):
     DESCRIPTION:
     Returns the anim curve from a driver to a driven object
 
-    REQUIRES:
+    ARGUMENTS:
     driverAttribute(string)
     drivenObject(string)
 
@@ -114,7 +114,7 @@ def returnSetDrivenCurveInfo(driverAttribute,drivenObject):
     DESCRIPTION:
     Returns the info for a sdk curve
 
-    REQUIRES:
+    ARGUMENTS:
     driverAttribute(string)
     drivenObject(string)
 
@@ -148,7 +148,7 @@ def returnCurveKeyInfoWIP(animCurve):
     DESCRIPTION:
     Returns the info for a sdk curve
 
-    REQUIRES:
+    ARGUMENTS:
     driverAttribute(string)
     drivenObject(string)
 
@@ -183,7 +183,7 @@ def copyAnimCurveSettingsToCurve(sourceCurve,targetCurve):
     DESCRIPTION:
     Returns the info for a sdk curve
 
-    REQUIRES:
+    ARGUMENTS:
     driverAttribute(string)
     drivenObject(string)
 
@@ -253,7 +253,7 @@ def returnDrivenJoints(driverAttribute):
     DESCRIPTION:
     Returns driven objects from a driver Attribute
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     attr(string)
 
@@ -293,7 +293,7 @@ def updateSDKWithCurrentObjectInfo (obj, sdkAttribute, driverValues = [0,1]):
     DESCRIPTION:
     asdf
 
-    REQUIRES:
+    ARGUMENTS:
     jointList(list) - list of joints in order
 
 

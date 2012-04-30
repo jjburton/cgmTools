@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with surfaces
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:
@@ -41,7 +41,7 @@ def basicEyeJointSurfaceSetup(jointList, jointRoot, surface):
     DESCRIPTION:
     Script to rename a joint chain list
     
-    REQUIRES:
+    ARGUMENTS:
     jointList(list) - list of joints in order
     startJointName(string) - what you want the root named
     interiorJointRootName(string) - what you want the iterative name to be
@@ -89,7 +89,7 @@ def attachAimedObjectToSurface (obj, surface, aimObject, parent = True):
     DESCRIPTION:
     Script to rename a joint chain list
     
-    REQUIRES:
+    ARGUMENTS:
     jointList(list) - list of joints in order
     startJointName(string) - what you want the root named
     interiorJointRootName(string) - what you want the iterative name to be
@@ -183,7 +183,7 @@ def attachObjectToMesh (obj, mesh, aim=False):
     DESCRIPTION:
     Script to rename a joint chain list
     
-    REQUIRES:
+    ARGUMENTS:
     jointList(list) - list of joints in order
     startJointName(string) - what you want the root named
     interiorJointRootName(string) - what you want the iterative name to be

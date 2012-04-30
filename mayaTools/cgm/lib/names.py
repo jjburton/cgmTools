@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with names, renaming and whatnot
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -36,7 +36,7 @@ import maya.cmds as mc
 # DESCRIPTION:
 #   Strips the suffix if it has one
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	obj - object
 #
 # RETURNS:
@@ -70,7 +70,7 @@ def initializeDictionary(file):
 # DESCRIPTION:
 #   Returns a short name for an input long one
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	longName
 #
 # RETURNS:
@@ -100,7 +100,7 @@ def returnShortName(longName):
 # DESCRIPTION:
 #   Strips the suffix if it has one
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	obj - object
 #
 # RETURNS:
@@ -124,7 +124,7 @@ def stripSuffixObj (obj):
 # DESCRIPTION:
 #   Strips the suffix of an list of objects
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	objList - list of objects to strip
 #
 # RETURNS:
@@ -176,7 +176,7 @@ def addSuffixList (suffix,objList):
 # DESCRIPTION:
 #   Renames a joint chain procedurally 
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	jointList - list of joints to be renamed (should be a hierarchy)
 #   startJointName - what you want the root of the chain to be called (ie. 'pelvis' or 'spine_root')
 #   interiorJointRootName = what you want the iterative name to be (ie. 'spine' for 'spine_01', 'spine_02', etc)
@@ -209,7 +209,7 @@ def renameJointChainList (jointList, startJointName, interiorJointRootName):
 # DESCRIPTION:
 #   Get's the distance bewteen two points
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	point1 - [x,x,x]
 # 	point1 - [x,x,x]
 #

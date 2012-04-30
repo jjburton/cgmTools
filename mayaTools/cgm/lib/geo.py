@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with attributes
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -36,7 +36,7 @@ def createPolyFromPosList(posList):
     DESCRIPTION:
     Creates a poly from position list
     
-    REQUIRES:
+    ARGUMENTS:
     posList(string) - list of positions
     
     RETURNS:

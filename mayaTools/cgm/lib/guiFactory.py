@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Tool to make standard guis for our tools
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #
 # AUTHOR:
@@ -148,7 +148,7 @@ def toggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers,fo
     DESCRIPTION:
     Toggle for turning off and on the visbility of a list of containers
 
-    REQUIRES:
+    ARGUMENTS:
     optionSelection(string) - this should point to the variable holding a (bool) value
     optionList(list) - the option selection must be in the optionList
 
@@ -178,7 +178,7 @@ def toggleOptionVarState(OptionSelection,OptionList,OptionVarName,forceInt = Fal
     DESCRIPTION:
     Toggle for turning off and on the visbility of a list of containers
 
-    REQUIRES:
+    ARGUMENTS:
     optionSelection(string) - this should point to the variable holding a (bool) value
     optionList(list) - the option selection must be in the optionList
 
@@ -199,7 +199,7 @@ def toggleMenuShowState(stateToggle, listOfItems):
     DESCRIPTION:
     Toggle for turning off and on the visibility of a menu section
 
-    REQUIRES:
+    ARGUMENTS:
     stateToggle(string) - this should point to the variable holding a (bool) value
     listOfItems(list) - list of menu item names to change
 
@@ -239,7 +239,7 @@ def setUIObjectVisibility(item, visState):
     DESCRIPTION:
     Toggle for turning off and on the visibility of a menu section
 
-    REQUIRES:
+    ARGUMENTS:
     stateToggle(string) - this should point to the variable holding a (bool) value
     listOfItems(list) - list of menu item names to change
 
@@ -268,7 +268,12 @@ def setUIObjectVisibility(item, visState):
         warning('%s%s%s' %('No idea what ', item, ' is'))
 
 
-
+def selectCheck():
+    selection = mc.ls(sl = True) or []
+    if selection:
+	    return 1
+    else:
+	    return 0   
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Load to fields
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -489,7 +494,7 @@ def doUpdateProgressWindow(statusMessage,stepInterval,stepRange,reportItem=False
     DESCRIPTION:
     Tools to do a maya progress window. This function and doEndMayaProgressBar are a part of a set.
 
-    REQUIRES:
+    ARGUMENTS:
     statusMessage(string) - starting status message
     stepInterval(int)
     stepRange(int)
@@ -541,7 +546,7 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
 
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
-    REQUIRES:
+    ARGUMENTS:
     stepMaxValue(int) - max number of steps (defualt -  100)
     statusMessage(string) - starting status message
     interruptableState(bool) - is it interuptible or not (default - True)

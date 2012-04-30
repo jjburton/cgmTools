@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with distances
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging, nodes
 #
 # AUTHOR:
@@ -50,7 +50,7 @@ def returnDistanceBetweenPoints (point1, point2):
     DESCRIPTION:
     Get's the distance bewteen two points
 
-    REQUIRES:
+    ARGUMENTS:
     point1(list) - [x,x,x]
     point1(list) - [x,x,x]
 
@@ -68,7 +68,7 @@ def returnDistanceBetweenObjects (obj1, obj2):
     DESCRIPTION:
     Gets the distance bewteen two objects
 
-    REQUIRES:
+    ARGUMENTS:
     obj1(string)
     obj2(string)
 
@@ -87,7 +87,7 @@ def returnDistanceBetweenObjectsList (objList):
     DESCRIPTION:
     Measure the distance between an list of objects. From object1 to object2, then object2 to object3, etc.
 
-    REQUIRES:
+    ARGUMENTS:
     objectList(list) - list of objects
 
     RETURNS:
@@ -118,7 +118,7 @@ def returnAveragePointPosition (posList):
     DESCRIPTION:
     Pass a list of objects into it and get an average position back
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list) - list of objects to measure between
 
     RETURNS:
@@ -143,7 +143,7 @@ def returnAverageDistanceBetweenObjectsAndRoot (objList,root):
     DESCRIPTION:
     Pass an list of objects into it, it measures distances and returns an average.
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list) - list of objects to measure between
 
     RETURNS:
@@ -164,7 +164,7 @@ def returnAverageDistanceBetweenObjects (objList):
     DESCRIPTION:
     Pass an list of objects into it, it measures distances and returns an average.
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list) - list of objects to measure between
 
     RETURNS:
@@ -182,7 +182,7 @@ def returnAverageDistanceBetweenPositionList (posList):
     DESCRIPTION:
     Pass an list of objects into it, it measures distances and returns an average.
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list) - list of objects to measure between
 
     RETURNS:
@@ -203,7 +203,7 @@ def returnBoundingBoxSizeToAverage (meshGrp):
     Pass an object, mesh group or whatever into it,  it calculates it's
     bounding box info and returns list
 
-    REQUIRES:
+    ARGUMENTS:
     meshGrp(string) - mesh or mesh group
 
     RETURNS:
@@ -224,7 +224,7 @@ def returnWorldSpacePosition (obj):
     DESCRIPTION:
     Gets an object's world space position
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -245,7 +245,7 @@ def returnWorldSpacePositionFromList (objList):
     DESCRIPTION:
     Creates an nested list of postions from a list of locators
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list)
 
     RETURNS:
@@ -269,7 +269,7 @@ def createCurveLengthNode(curve):
     DESCRIPTION:
     Creates a curve lenght measuring node
 
-    REQUIRES:
+    ARGUMENTS:
     polyFace(string) - face of a poly
 
     RETURNS:
@@ -300,7 +300,7 @@ def createDistanceNodeBetweenObjects (obj1,obj2):
     DESCRIPTION:
     Creates a distance node between objects
 
-    REQUIRES:
+    ARGUMENTS:
     obj1(string)
     obj2(string)
 
@@ -334,7 +334,7 @@ def createDistanceNodeBetweenPosInfoNodes (node1,node2):
     DESCRIPTION:
     Creates a distance node between two position info nodes
 
-    REQUIRES:
+    ARGUMENTS:
     node1(string)
     node2(string)
 
@@ -363,7 +363,7 @@ def createDistanceObjectsBetweenObjectList (objList):
     DESCRIPTION:
     Pass an list of objects into it, it creates distance dimension objects between them while naming and grouping them
 
-    REQUIRES:
+    ARGUMENTS:
     objList - list of objects to measure between
 
     RETURNS:
@@ -412,7 +412,7 @@ def returnAbsoluteSizeCurve(curve):
     DESCRIPTION:
     Pass an curve into it and it returns absolute distance scale
 
-    REQUIRES:
+    ARGUMENTS:
     curve(string) - curve
 
     RETURNS:
@@ -481,7 +481,7 @@ def returnBoundingBoxSize (meshGrp):
     DESCRIPTION:
     Pass an object, mesh group or whatever into it,  it calculates it's bounding box info and returns list
 
-    REQUIRES:
+    ARGUMENTS:
     meshGrp(string) - mesh or mesh group
 
     RETURNS:
@@ -505,7 +505,7 @@ def returnCenterPivotPosition (meshGrp):
     DESCRIPTION:
     Pass an object, mesh group or whatever into it,  it calculates it's bounding box pivot
 
-    REQUIRES:
+    ARGUMENTS:
     meshGrp(string) - mesh or mesh group
 
     RETURNS:
@@ -531,7 +531,7 @@ def returnObjectSize(obj):
     Semi intelligent object sizer. Currently works for verts, edges,
     faces, poly meshes, nurbs surfaces, nurbs curve
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - mesh or mesh group
 
     RETURNS:
@@ -593,7 +593,7 @@ def returnEdgeLength(polyEdge):
     DESCRIPTION:
     Returns an edge length
 
-    REQUIRES:
+    ARGUMENTS:
     polyEdge(string) - edge of a poly
 
     RETURNS:
@@ -611,7 +611,7 @@ def returnFaceArea(polyFace):
     DESCRIPTION:
     Returns area of a face
 
-    REQUIRES:
+    ARGUMENTS:
     polyFace(string) - face of a poly
 
     RETURNS:
@@ -637,7 +637,7 @@ def returnCurveLength(curve):
     DESCRIPTION:
     Returns the length of a curve, and a sum of the shapes lenghts of a compound curve
 
-    REQUIRES:
+    ARGUMENTS:
     curve(string)
 
     RETURNS:
@@ -680,7 +680,7 @@ def returnClosestObjectsFromAim(targetObject,objectList):
     Returns normalized list of values derived from up and down stream objects from
     a target object
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string) - object you want to check distance to
     objectList(list) - list of objects to pick from
     maxReturn(int) - maximum number of return values
@@ -734,7 +734,7 @@ def returnDistanceSortedList(targetObject, objectList):
     DESCRIPTION:
     Returns a list of objects in order of closeness to a target object
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string) - object you want to check distance to
     objectList(list) - list of objects to pick from
 
@@ -756,7 +756,7 @@ def returnClosestVert(targetVert, vertList):
     DESCRIPTION:
     Get the closest object from an list to a target object
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string) - object you want to check distance to
     objectList(list) - list of objects to pick from
 
@@ -776,7 +776,7 @@ def returnClosestObject(targetObject, objectList):
     DESCRIPTION:
     Get the closest object from an list to a target object
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string) - object you want to check distance to
     objectList(list) - list of objects to pick from
 
@@ -797,7 +797,7 @@ def returnClosestCV (targetObject, surface):
     DESCRIPTION:
     Get the closest cv on a surface to a target object
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     surface(string) - nurbs surface
 
@@ -821,7 +821,7 @@ def returnClosestCVFromList (targetObject, cvList):
     DESCRIPTION:
     Get the closest cv on a surface to a target object
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     surface(string) - nurbs surface
 
@@ -844,7 +844,7 @@ def returnClosestObjToCV (cv, objectList):
     DESCRIPTION:
     Get the closest object to a cv
 
-    REQUIRES:
+    ARGUMENTS:
     cv(list)
     objectList(list)
 
@@ -868,7 +868,7 @@ def returnClosestUV (targetObject,surface):
     DESCRIPTION:
     Pass target object and surface into it and return the closest UV coordinates
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     surface(string)
 
@@ -896,7 +896,7 @@ def returnClosestUPosition (targetObject,curve):
     DESCRIPTION:
     Pass target object and curve into it and return the closest U position
 
-    REQUIRES:
+    ARGUMENTS:
     targetObject(string)
     surface(string)
 
@@ -947,7 +947,7 @@ def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     Returns pertinent info of the closest point of a mesh to a position in space -
     position, normal, parameterU,parameterV,closestFaceIndex,closestVertexIndex
 
-    REQUIRES:
+    ARGUMENTS:
     pos(string)
     mesh(string)
 
@@ -987,7 +987,7 @@ def returnClosestPointOnMeshInfo(targetObj, mesh):
     Returns pertinent info of the closest point of a mesh to a target object -
     position, normal, parameterU,parameterV,closestFaceIndex,closestVertexIndex
 
-    REQUIRES:
+    ARGUMENTS:
     targetObj(string)
     mesh(string)
 

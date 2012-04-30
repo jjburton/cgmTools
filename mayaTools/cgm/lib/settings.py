@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Functions to get the locations of the rigger conf files, and create default ones
 # 
-# REQUIRES:
+# ARGUMENTS:
 #	Nothing
 # 
 # AUTHOR:
@@ -27,7 +27,7 @@ def getNamesDictionaryFile():
         DESCRIPTION:
         Function to get location of cgmNames.conf settings file
 
-        REQUIRES:
+        ARGUMENTS:
         Nothing
 
         RETURNS:
@@ -47,7 +47,7 @@ def getTypesDictionaryFile():
         DESCRIPTION:
         Function to get location of cgmTypes.conf settings file
 
-        REQUIRES:
+        ARGUMENTS:
         Nothing
 
         RETURNS:
@@ -67,7 +67,7 @@ def getSettingsDictionaryFile():
         DESCRIPTION:
         Function to get location of cgmSettings.conf settings file
 
-        REQUIRES:
+        ARGUMENTS:
         Nothing
 
         RETURNS:
@@ -87,7 +87,7 @@ def makeDefaultNamesDictionary():
         DESCRIPTION:
         Function to create default cgmNames.conf settings file
 
-        REQUIRES:
+        ARGUMENTS:
         Nothing
 
         RETURNS:
@@ -174,7 +174,7 @@ def makeDefaultTypesDictionary():
         DESCRIPTION:
         Function to create default cgmTypes.conf settings file
 
-        REQUIRES:
+        ARGUMENTS:
         Nothing
 
         RETURNS:
@@ -279,7 +279,7 @@ def makeDefaultSettingsDictionary():
         DESCRIPTION:
         Function to create default cgmSettings.conf settings file
 
-        REQUIRES:
+        ARGUMENTS:
         Nothing
 
         RETURNS:
@@ -385,7 +385,7 @@ def returnShortName(key,dictionary):
         DESCRIPTION:
         Returns a short name for an input long one
 
-        REQUIRES:
+        ARGUMENTS:
         key(string) - the key in the dictionary you're looking for
         dictionary(dict) - dictionary you wanna search
 

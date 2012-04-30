@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for the widgety magic of rigging
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #   distance
 # 

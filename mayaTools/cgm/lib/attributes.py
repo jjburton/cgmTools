@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with attributes
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -36,7 +36,7 @@ def returnAttrListFromStringInput (stringInput1,stringInput2 = None):
     Takes an list of string variables to add to an object as string
     attributes. Skips it if it exists.
 
-    REQUIRES:
+    ARGUMENTS:
     stringInput(string/stringList)
 
     RETURNS:
@@ -74,7 +74,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
     -If info is attribute, connected to attribute
     -Otherwise, stored as string
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add our tag to
     infoType(string) - cgmName, cgmType, etc
     info(string) - info to store, object to connect to, attribute to connect to
@@ -168,7 +168,7 @@ def doGetAttr(obj,attr):
     Replacement for getAttr which get's message objects as well as parses double3 type 
     attributes to a list
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     attr(string)
 
@@ -216,7 +216,7 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
     to force a setting of the values. Also has a lock when done overide.
     In addition has transfer connections ability for buffer nodes.
 
-    REQUIRES:
+    ARGUMENTS:
     attribute(string) - 'obj.attribute'
     value() - depends on the attribute type
     forceLock(bool) = False(default)
@@ -254,7 +254,7 @@ def doSetAttr(attribute,value,forceLock = False):
     Replacement for setAttr which will unlock a locked node it's given
     to force a setting of the values. Also has a lock when done overide
 
-    REQUIRES:
+    ARGUMENTS:
     attribute(string) - 'obj.attribute'
     value() - depends on the attribute type
     forceLock(bool) = False(default)
@@ -282,7 +282,7 @@ def doSetStringAttr(attribute,value,forceLock = False):
     Replacement for setAttr which will unlock a locked node it's given
     to force a setting of the values. Also has a lock when done overide
 
-    REQUIRES:
+    ARGUMENTS:
     attribute(string) - 'obj.attribute'
     value() - depends on the attribute type
     forceLock(bool) = False(default)
@@ -312,7 +312,7 @@ def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False
     Copy attributes from one object to another. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it.
 
-    REQUIRES:
+    ARGUMENTS:
     fromObject(string) - obj with attrs
     toObject(string) - obj to copy to
     attrsToCopy(list) - list of attr names to copy, if [True] is used, it will do all of them
@@ -392,7 +392,7 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
     Copy attributes from one object to another. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it.
 
-    REQUIRES:
+    ARGUMENTS:
     fromObject(string) - obj with attrs
     toObject(string) - obj to copy to
     attrsToCopy(list) - list of attr names to copy, if [True] is used, it will do all of them
@@ -466,7 +466,7 @@ def copyNameTagAttrs(fromObject,toObject):
     DESCRIPTION:
     Copy cgmTag attrs from one object to another. 
 
-    REQUIRES:
+    ARGUMENTS:
     fromObject(string) - obj with attrs
     toObject(string) - obj to copy to
 
@@ -505,7 +505,7 @@ def swapNameTagAttrs(object1,object2):
     DESCRIPTION:
     Swap cgmNameTag attrs from one object to another. 
 
-    REQUIRES:
+    ARGUMENTS:
     fromObject(string) - 
     toObject(string) - 
 
@@ -571,7 +571,7 @@ def doSetOverrideSettings(obj,enabled=True,displayType=1,levelOfDetail = 0,overr
     DESCRIPTION:
     Sets drawing override settings on an object or it's shapes
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we'd like to startfrom
     enabled(bool) - whether to enable the override or not
     displayType(int) - (1)
@@ -616,7 +616,7 @@ def doToggleTemplateDisplayMode(obj):
     DESCRIPTION:
     Toggles the template disply mode of an object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we'd like to startfrom
 
     RETURNS:
@@ -641,7 +641,7 @@ def deleteAttr(obj,attr):
     DESCRIPTION:
     Deletes and attribute if it exists. Even if it's locked
 
-    REQUIRES:
+    ARGUMENTS:
     attr(string) - the attribute to delete
 
     RETURNS:
@@ -666,7 +666,7 @@ def setRotationOrderObj (obj, ro):
     Pass an object and rotation order (xyz,xzy,etc) into it and it will
     set the object to that rotation order
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object
     ro(string) - rotation order 
                             xyz,yzx,zxy,xzy,yxz,zyx,none
@@ -700,7 +700,7 @@ def doSetLockHideKeyableAttr (obj,lock=True,visible=False,keyable=False,channels
     Pass an oject, True/False for locking it, True/False for visible in
     channel box, and which channels you want locked in ('tx','ty',etc) form
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     lock(bool)
     visible(bool)
@@ -729,7 +729,7 @@ def breakConnection(attr):
     DESCRIPTION:
     Breaks a connection on an attribute if there is one
 
-    REQUIRES:
+    ARGUMENTS:
     attr(string) - the attribute to break the connection on
 
     RETURNS:
@@ -767,7 +767,7 @@ def returnDriverAttribute(attribute):
     DESCRIPTION:
     Returns the driverAttribute of an attribute if there is one
 
-    REQUIRES:
+    ARGUMENTS:
     attribute(string)
 
     RETURNS:
@@ -787,7 +787,7 @@ def returnDriverObject(attribute):
     DESCRIPTION:
     Returns the driver of an attribute if there is one
 
-    REQUIRES:
+    ARGUMENTS:
     attribute(string)
 
     RETURNS:
@@ -807,7 +807,7 @@ def returnDrivenAttribute(attribute):
     DESCRIPTION:
     Returns the drivenAttribute of an attribute if there is one
 
-    REQUIRES:
+    ARGUMENTS:
     attribute(string)
 
     RETURNS:
@@ -827,7 +827,7 @@ def returnDrivenObject(attribute):
     DESCRIPTION:
     Returns the driven object of an attribute if there is one
 
-    REQUIRES:
+    ARGUMENTS:
     attribute(string)
 
     RETURNS:
@@ -855,7 +855,7 @@ def returnObjectsAttributeTypes(obj,*a, **kw ):
     DESCRIPTION:
     Pass an object into it with user attributes and it will return a dictionary attribute's data types
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj with attrs
     any arguments for the mc.listAttr command
 
@@ -884,7 +884,7 @@ def returnUserAttributes(obj):
     DESCRIPTION:
     Returns user created attributes of an object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj to check
 
     RETURNS:
@@ -904,7 +904,7 @@ def returnMessageObject(storageObject, messageAttr):
     DESCRIPTION:
     Returns the object linked to the message attribute
 
-    REQUIRES:
+    ARGUMENTS:
     storageObject(string) - object holding the message attr
     messageAttr(string) - name of the message attr
 
@@ -929,7 +929,7 @@ def returnMessageObjs(obj):
     DESCRIPTION:
     Pass an object into it with messages, it will return a list of the objects
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj with message attrs
 
     RETURNS:
@@ -955,7 +955,7 @@ def returnMessageAttrs(obj):
     DESCRIPTION:
     Pass an object into it with messages, it will return a nested list in terms of [[attrName, target],[etc][etc]]
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj with message attrs
 
     RETURNS:
@@ -983,7 +983,7 @@ def returnMessageAttrsAsList(obj):
     DESCRIPTION:
     Pass an object into it with messages, it will return a nested list in terms of [[attrName, target],[etc][etc]]
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj with message attrs
 
     RETURNS:
@@ -1012,7 +1012,7 @@ def returnUserAttrsToDict(obj):
     DESCRIPTION:
     Pass an object into it with user attributes and it will return a dictionary of the data back
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj with attrs
 
     RETURNS:
@@ -1055,7 +1055,7 @@ def returnUserAttrsToList(obj):
     DESCRIPTION:
     Pass an object into it with user attributes and it will return a dictionary of the data back
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj with attrs
 
     RETURNS:
@@ -1110,7 +1110,7 @@ def addRotateOrderAttr (obj,name):
     DESCRIPTION:
     Add a rotate order attr
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attributes to
     attrList(list) - list of attributes to add
 
@@ -1129,7 +1129,7 @@ def addAttributesToObj (obj, attributeTypesDict):
     Takes an list of string variables to add to an object as string
     attributes. Skips it if it exists.
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attributes to
     attrList(list) - list of attributes to add
 
@@ -1168,7 +1168,7 @@ def addStringAttributeToObj (obj,attr,*a, **kw ):
     Adds a string attribute to an object, passing forward commands
 
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     attr(string)
 
@@ -1193,7 +1193,7 @@ def addIntegerAttributeToObj (obj,attr,*a, **kw ):
     Adds a integer attribute to an object, passing forward commands
 
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     attr(string)
 
@@ -1217,7 +1217,7 @@ def addMessageAttributeToObj (obj,attr,*a, **kw ):
     Adds a integer attribute to an object, passing forward commands
 
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     attr(string)
 
@@ -1240,7 +1240,7 @@ def addVectorAttributeToObj (obj,attr,*a, **kw):
     DESCRIPTION:
     Adds a vector attribute to an object, passing forward commands
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     attr(string)
 
@@ -1270,7 +1270,7 @@ def addStringAttributesToObj (obj, attrList):
     Takes an list of string variables to add to an object as string attributes. Skips it if it exists.
     Input -obj, attrList(list).
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attributes to
     attrList(list) - list of attributes to add
 
@@ -1292,7 +1292,7 @@ def addFloatAttributeToObject (obj, attr,*a, **kw):
     DESCRIPTION:
     Adds a float attribute to an object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attribute to
     attr(string) - attribute name to add
     minValue(int/float) - minimum value
@@ -1319,7 +1319,7 @@ def addEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
     DESCRIPTION:
     Adds a enum attribute to an object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attribute to
     attrName(list)
     optionList(list)
@@ -1348,7 +1348,7 @@ def addFloatAttrsToObj (obj,attrList, *a, **kw):
     DESCRIPTION:
     Adds a float attribute to an object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attribute to
     attrList(list) - attribute name to add
     minValue(int/float) - minimum value
@@ -1371,7 +1371,7 @@ def addBoolAttrToObject(obj, attr, *a, **kw):
     DESCRIPTION:
     Adds a section break for an attribute list
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attribute to
     attr(string) - name for the section break
 
@@ -1398,7 +1398,7 @@ def addSectionBreakAttrToObj(obj, attr):
     DESCRIPTION:
     Adds a section break for an attribute list
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to add attribute to
     attr(string) - name for the section break
 
@@ -1424,7 +1424,7 @@ def storeObjNameToMessage (obj, storageObj):
     DESCRIPTION:
     Adds the obj name as a message attribute to the storage object
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to store
     storageObject(string) - object to store the info to
 
@@ -1447,7 +1447,7 @@ def storeObjectToMessage (obj, storageObj, messageName):
     Adds the obj name as a message attribute to the storage object with
     a custom message attribute name
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to store
     storageObject(string) - object to store the info to
     messageName(string) - message name to store it as
@@ -1493,7 +1493,7 @@ def storeObjListNameToMessage (objList, storageObj):
     DESCRIPTION:
     Adds the obj names as  message attributes to the storage object
 
-    REQUIRES:
+    ARGUMENTS:
     objList(string) - object to store
     storageObj(string) - object to store the info to
 
@@ -1510,7 +1510,7 @@ def queryIfMessage(obj,attr):
     DESCRIPTION:
     Pass an object into it with messages, it will return a nested list in terms of [[attrName, target],[etc][etc]]
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - obj with message attrs
 
     RETURNS:

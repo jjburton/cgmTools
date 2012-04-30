@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Gui Tool for attribute tools
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #
 # AUTHOR:

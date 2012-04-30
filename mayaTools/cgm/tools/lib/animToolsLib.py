@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Library of functions for the cgmRiggingTools tool
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #
 #

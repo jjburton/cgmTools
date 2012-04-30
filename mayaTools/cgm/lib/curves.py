@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for working with attributes
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -49,7 +49,7 @@ def parentShape(obj,curve):
     DESCRIPTION:
     Simple parent shape 
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     curve(string)
     
@@ -68,7 +68,7 @@ def parentShapeInPlace(obj,curve):
     Way to parent shape an object's transform node in place. Man this thing
     sucked figuring out....:) 
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     curve(string)
     
@@ -156,7 +156,7 @@ def parentShapeInPlace3(obj,curve):
     Way to parent shape an object's transform node in place. Man this thing
     sucked figuring out....:) 
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     curve(string)
     
@@ -235,7 +235,7 @@ def parentShapeInPlace2(obj,curve):
     DESCRIPTION:
     Way to parent shape an object's transform node in place
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     curve(string)
     
@@ -309,7 +309,7 @@ def returnColorsFromCurve(curve):
     Returns the colors used on the shapes of a curve as a list in order
     of volume used
 
-    REQUIRES:
+    ARGUMENTS:
     curve(string
     
     RETURNS:
@@ -344,7 +344,7 @@ def setCurveColorByName(obj,color):
     DESCRIPTION:
     Set the color of a curve(and subshapes) or shape by color name
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to affect
     color(string) - the color name
     
@@ -364,7 +364,7 @@ def setColorByIndex(obj,colorIndex):
     DESCRIPTION:
     Set the color of a curve(and subshapes) or shape by color index
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to affect
     color(string) - the color name
     
@@ -406,7 +406,7 @@ def doUpdateTextFromName(textCurveObj):
     DESCRIPTION:
     Names an object's heirarchy below
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - the object we'd like to startfrom
     
     RETURNS:
@@ -425,7 +425,7 @@ def createTextCurve(text,size=1,font='Arial'):
     DESCRIPTION:
     Replacement for maya's textCurves utilizing a single tranform instead of a nested tranform setup
     
-    REQUIRES:
+    ARGUMENTS:
     text(string) = the text to be created as curves
     size(float) = size you want it initiall created as
     font(string) = make sure you use an existing font
@@ -472,7 +472,7 @@ def createTextCurveObject(text,size=1,name=None,font='Arial'):
     DESCRIPTION:
     Creates a text curve objected with pertinent information
     
-    REQUIRES:
+    ARGUMENTS:
     text(string) = the text to be created as curves
     size(float) = size you want it initiall created as
     name(string) = name tag should you want to specify one, if not, it uses the text
@@ -505,7 +505,7 @@ def updateTextCurveObject(textCurveObj):
     Updates/e a text curve object using the stored size, text and font information
     utilizing the original tranform
     
-    REQUIRES:
+    ARGUMENTS:
     textCurveObj(string)
     
     RETURNS:
@@ -568,7 +568,7 @@ def duplicateShape(shape):
     DESCRIPTION:
     Duplicates a shape
 
-    REQUIRES:
+    ARGUMENTS:
     shape(string)
     
     RETURNS:
@@ -601,7 +601,7 @@ def curveToPython(crvName):
     DESCRIPTION:
     Function to figure out tshe command to recreate a curve
     
-    REQUIRES:
+    ARGUMENTS:
     crvName(string)
     
     RETURNS:
@@ -654,7 +654,7 @@ def curveFromObjList(objList):
     DESCRIPTION:
     Creates a curve from an object list through the object's pivots
     
-    REQUIRES:
+    ARGUMENTS:
     objList(list)
     
     RETURNS:
@@ -686,7 +686,7 @@ def createControlCurve(desiredShape,size,direction='z+'):
     DESCRIPTION:
     Creates a curve in the desired shape and scales it
     
-    REQUIRES:
+    ARGUMENTS:
     desiredShape(string) - see help(createCurve) for list
     size(float)
     direction(string)
@@ -714,7 +714,7 @@ def doScaleCurve(curve,size):
     DESCRIPTION:
     Combines curve on the first curve's transform
     
-    REQUIRES:
+    ARGUMENTS:
     curves(list)
     
     RETURNS:
@@ -734,7 +734,7 @@ def combineCurves(curvesToCombine):
     DESCRIPTION:
     Combines curve on the first curve's transform
     
-    REQUIRES:
+    ARGUMENTS:
     curves(list)
     
     RETURNS:
@@ -765,7 +765,7 @@ def doCombineSelectedCurves():
     DESCRIPTION:
     Combines curve on the first curve's transform
     
-    REQUIRES:
+    ARGUMENTS:
     curves(list)
     
     RETURNS:
@@ -784,7 +784,7 @@ def translateMelCommandToPy(string):
     DESCRIPTION:
     Translates a mel curve create command to python
     
-    REQUIRES:
+    ARGUMENTS:
     command(string) - 'curve -d = 1, p = ....'
     
     RETURNS:
@@ -857,7 +857,7 @@ def returnShapeInfo(crvShape,type = 'all'):
     DESCRIPTION:
     Simple funtion for getting curve info
     
-    REQUIRES:
+    ARGUMENTS:
     crvName(string)
     type(string) -  shape,spans,form,degree,cvs,knots,all(default)
     
@@ -911,7 +911,7 @@ def returnCurveInfo(crvName,type = 'all'):
     DESCRIPTION:
     Simple funtion for getting curve info
     
-    REQUIRES:
+    ARGUMENTS:
     crvName(string)
     type(string) -  shape,spans,form,degree,cvs,knots,all(default)
     
@@ -945,7 +945,7 @@ def returnCurveCVs(crvShape):
     DESCRIPTION:
     Return the cv positions of a curve
     
-    REQUIRES:
+    ARGUMENTS:
     crvName(string)
     
     RETURNS:
@@ -978,7 +978,7 @@ def returnCurveKnots(crvShape):
     DESCRIPTION:
     Return the knots of a curve
     
-    REQUIRES:
+    ARGUMENTS:
     crvName(string)
     
     RETURNS:
@@ -1029,7 +1029,7 @@ def createCurve(desiredShape):
     DESCRIPTION:
     Creates a nurbs control for rigging purposes
     
-    REQUIRES:
+    ARGUMENTS:
     shape(string) - Options...
                     circleX/Y/Z
                     circle

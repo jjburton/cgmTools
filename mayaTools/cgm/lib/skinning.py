@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for skinning
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #   distance
 #   rigging
@@ -52,7 +52,7 @@ def controlSurfaceSmoothWeights(surface):
     DESCRIPTION:
     Early version of a weight smoother for a
 
-    REQUIRES:
+    ARGUMENTS:
     surface(string)
 
     RETURNS:
@@ -85,7 +85,7 @@ def simpleControlSurfaceSmoothWeights(surface,maxBlend = 3):
     DESCRIPTION:
     Early version of a weight smoother for a
 
-    REQUIRES:
+    ARGUMENTS:
     surface(string)
 
     RETURNS:
@@ -211,7 +211,7 @@ def skinMeshFromMesh(sourceMesh,targetMesh):
     DESCRIPTION:
     Takes a skinned mesh, gets it's influences, creates a new skinCluster for the target mesh, then copies the weights over
 
-    REQUIRES:
+    ARGUMENTS:
     sourceMesh(string)
     targetMesh(string)
 
@@ -238,7 +238,7 @@ def cleanMeshReskin(objWithSkinCluster,name):
     DESCRIPTION:
     Takes a skinned mesh, duplicates it to get rid of history, reskins and copies the weights from the old mesh
 
-    REQUIRES:
+    ARGUMENTS:
     objWithSkinCluster(string)
     name(string)
 
@@ -273,7 +273,7 @@ def copySkinWeightBetweenVertices(sourceVertice,targetVertice):
     DESCRIPTION:
 
 
-    REQUIRES:
+    ARGUMENTS:
     skinCluster(string)
     vertJointWeightData(list)
 
@@ -319,7 +319,7 @@ def setSkinWeights( skinCluster, vertJointWeightData ):
     DESCRIPTION:
 
 
-    REQUIRES:
+    ARGUMENTS:
     skinCluster(string)
     vertJointWeightData(list)
         vertJointWeightData is a list of 2-tuples containing the vertex component name, and a list of 2-tuples
@@ -383,7 +383,7 @@ def copyWeightsByClosestVertice(sourceMesh, targetMesh):
     DESCRIPTION:
     Tool to copy weights from one mesh to another by checking for the closest vertice to each vertice
 
-    REQUIRES:
+    ARGUMENTS:
     sourceMesh(string)
     targetMesh(string)
 
@@ -464,7 +464,7 @@ def returnExcessInfluenceVerts(mesh, maxInfluences):
     DESCRIPTION:
     Function for finding vertices that are over X influences
 
-    REQUIRES:
+    ARGUMENTS:
     mesh(string)
     maxInfluences(int)
 
@@ -509,7 +509,7 @@ def returnVerticeJointWeightDataToList(sourceMesh):
     DESCRIPTION:
     Function for getting vertice influce weight data
 
-    REQUIRES:
+    ARGUMENTS:
     sourceMesh(string)
 
     RETURNS:
@@ -539,7 +539,7 @@ def returnVerticeJointWeightDataToDict(sourceMesh):
     DESCRIPTION:
     Function for getting vertice influce weight data
 
-    REQUIRES:
+    ARGUMENTS:
     sourceMesh(string)
 
     RETURNS:
@@ -573,7 +573,7 @@ def querySkinCluster(obj):
     DESCRIPTION:
     Query an meesh objects skin cluster if it has one
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:

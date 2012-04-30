@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for making stuff you can grab to make other stuff move!
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -61,7 +61,7 @@ def createJoystickControl(name,mode='classic',border = True):
     DESCRIPTION:
     Creates traditional joystick style controls
     
-    REQUIRES:
+    ARGUMENTS:
     name(string)
     mode(string) - (4point)
             classic
@@ -150,7 +150,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     being a mesh there. If there is no mesh, it sets sets an intial size of a 
     [155,170,29] unit character.
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -278,7 +278,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
     as a message  node and stores the parentControl info to each generated control. It also takes into 
     account the colors of the baseControl using a secondary color if it exists.
     
-    REQUIRES:
+    ARGUMENTS:
     baseControl(string) - The control we're working off of
     controlTypes(list) - the controls you want created. If the type specified isn't in the base settings,
                          the control is created as a cgmTextCurveObject
@@ -460,7 +460,7 @@ def createSizeTemplateControl(masterNull):
     being a mesh there. If there is no mesh, it sets sets an intial size of a 
     [155,170,29] unit character.
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -615,7 +615,7 @@ def limbControlMaker(moduleNull,controlTypes = ['cog']):
 	* If anything in the module doesn't belong there, un parent it, report it
 		* like a template object parented to another obect
 
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     controlTypes(list) = ['option1','option2']
     
@@ -1157,7 +1157,7 @@ def createMasterControlFromMasterNull(masterNull):
     being a mesh there. If there is no mesh, it sets sets an intial size of a 
     [155,170,29] unit character.
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -1254,7 +1254,7 @@ def makeObjectControl(obj,desiredShape, size):
     DESCRIPTION:
     Shape parents a nurbs curve to an object to make it usable as a control
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     desiredShape(string) - see options in curves (createControlCurve)
     size(float)
@@ -1275,7 +1275,7 @@ def makeControlForObject(obj,desiredShape, size):
     and rotationOrder. Then shape parents a nurbs curve to an object to make
     it usable as a control
     
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     desiredShape(string) - see options in curves (createControlCurve)
     size(float)

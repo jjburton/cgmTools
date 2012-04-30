@@ -231,7 +231,7 @@ def loadLocinator( *a ):
 def loadAnimTools( *a ):
 	from cgm.tools import animTools
 	reload(animTools)
-	animTools.run()
+	cgmAnimToolsWin = animTools.run()
 		
 def loadPolyUniteTool( *a ):
 	from cgm.tools import polyUniteTool
@@ -286,15 +286,7 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ToolCB('zooHUDCtrl')),
                            )),
               
-              ('hotkeys', (('Align - align selected objects',
-                            'snaps two objects together - first select the master object, then the object you want to snap, then hit the hotkey',
-                            ToolCB( 'zooHotkeyer zooAlign \"{zooAlign \\\"-load 1\\\";\\\nstring $sel[] = `ls -sl`;\\\nfor( $n=1; $n<`size $sel`; $n++ ) zooAlignSimple $sel[0] $sel[$n];}\" \"\" \"-default a -alt 1 -enableMods 1 -ann aligns two objects\"')),
-
-                           ('Reset Selected',
-                            'Resets keyable attribute values to their defaults for all selected nodes',
-                            ToolCB( "zooHotkeyer zooResetAttrs \"python( \\\"from zooPyMaya import resetAttrs; resetAttrs.resetAttrsForSelection()\\\" );\" \"\" \"-default s -enableMods 1 -alt 1 -ann resets keyable attributes for selection\";" )),
-
-                           ('Set Menu - selection set menu',
+              ('hotkeys', (('Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
                             ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
@@ -302,7 +294,15 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                             'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
                             ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
 
+                           ('Snap Tools - snap tools menu',
+                            'zooSetKey is a tool designed to replace the set key hotkey.  It is a marking menu script that lets you perform a variety of set key based operations - such as push the current key to the next key, perform a euler filter on all selected objects etc...',
+                            ToolCB( "zooHotkeyer cgmMarkingMenuCalls \"cgmMMSnap;\" \"cgmMMSnapKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+
                            ('Set Key Menu - key creation menu',
+                            'cgmLibrary tools for dealing with keys',
+                            ToolCB( "zooHotkeyer cgmSetKey \"cgmSetKey;\" \"cgmSetKeyKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+
+                           ('Zoo Set Key Menu - key creation menu',
                             'zooSetKey is a tool designed to replace the set key hotkey.  It is a marking menu script that lets you perform a variety of set key based operations - such as push the current key to the next key, perform a euler filter on all selected objects etc...',
                             ToolCB( "zooHotkeyer zooSetkey \"zooSetkey;\" \"zooSetkeyKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
 

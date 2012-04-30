@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for finding stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -45,7 +45,7 @@ def skeletonizeCharacter(masterNull):
     DESCRIPTION:
     Skeletonizes a character
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -89,7 +89,7 @@ def skeletonStoreCharacter(masterNull):
     DESCRIPTION:
     stores a skeleton of a character
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -124,7 +124,7 @@ def storeTemplateRootParent(moduleNull):
     DESCRIPTION:
     Stores the template root parent to the root control if there is a new one
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -150,7 +150,7 @@ def skeletonize(moduleNull, stiffIndex=0):
     DESCRIPTION:
     Basic limb skeletonizer
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     stiffIndex(int) - the index of the template objects you want to not have roll joints
                       For example, a value of -1 will let the chest portion of a spine 
@@ -345,7 +345,7 @@ def orientSegment(limbJoints,posTemplateObjects,orientation):
     DESCRIPTION:
     Basic limb skeletonizer
     
-    REQUIRES:
+    ARGUMENTS:
     limbJoints(list)
     templeateObjects(list)
     orientation(string) - ['xyz','yzx','zxy','xzy','yxz','zyx']

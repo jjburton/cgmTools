@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Tool for making locators and other stuffs
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #   distance
 #
@@ -98,7 +98,7 @@ def doLocMe(self):
     DESCRIPTION:
     Function to create a locator from a seleciton
 
-    REQUIRES:
+    ARGUMENTS:
     ui(activeUI)
     Active Selection
 
@@ -142,7 +142,7 @@ def doPurgeCGMAttrs(self):
     DESCRIPTION:
     Creates a locator at the center of of a selection of objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -167,7 +167,7 @@ def doLocCenter(self):
     DESCRIPTION:
     Creates a locator at the center of of a selection of objects
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -200,7 +200,7 @@ def doTagObjects(self):
     it uses the first one in the selection list. It uses the first object in the list
     as a rotateOrder source if update rotate order is on.
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -251,7 +251,7 @@ def queryCanUpdate(objectToUpdate):
     DESCRIPTION:
     Checks if an object is updatable
 
-    REQUIRES:
+    ARGUMENTS:
     objectToUpdate(string)
 
     RETURNS:
@@ -278,7 +278,7 @@ def doLocClosest():
     Creates a locator on the surface of the last object in a selection set closest
     to each remaining object in the selection
 
-    REQUIRES:
+    ARGUMENTS:
     Active Selection
 
     RETURNS:
@@ -318,7 +318,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     DESCRIPTION:
     Updates selection locator or object connected to a match locator's position and rotation
 
-    REQUIRES:
+    ARGUMENTS:
     ui
     Active Selection
 
@@ -482,7 +482,7 @@ def doLocCVsOfObject():
     DESCRIPTION:
     Places locators on the cv's of a curve
 
-    REQUIRES:
+    ARGUMENTS:
     selection Curve
 
     RETURNS:
@@ -515,7 +515,7 @@ def doLocCVsOnObject():
     DESCRIPTION:
     Places locators on the cv's closest position on a curve
 
-    REQUIRES:
+    ARGUMENTS:
     selection Curve
 
     RETURNS:
@@ -554,7 +554,7 @@ def returnLocatorSource(locatorName):
     DESCRIPTION:
     Returns a locator's source
 
-    REQUIRES:
+    ARGUMENTS:
     locatorName(string)
 
     RETURNS:

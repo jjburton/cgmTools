@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for finding stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -44,7 +44,7 @@ import maya.mel as mel
 # DESCRIPTION:
 #   Makes input joint chains dynamic and names things properly
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	startJoints - list of start joints
 #   name - base name for the system
 #
@@ -142,7 +142,7 @@ def makeChainsDynamic(startJoints,name):
 # DESCRIPTION:
 #   connects stuff to a control
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	startJoints - list of start joints
 #   name - base name for the system
 #   controlHolder - control to connect the attributes to
@@ -181,7 +181,7 @@ def makeChainsFishDynamic (startJoints,name,controlHolder):
 # DESCRIPTION:
 #   connects stuff to a control
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	startJoints - list of start joints
 #   name - base name for the system
 #   controlHolder - control to connect the attributes to

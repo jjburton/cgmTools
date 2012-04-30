@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for list stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:
@@ -30,7 +30,7 @@ def returnListChunks(l, n):
     DESCRIPTION:
     Spits a list into chunks
     
-    REQUIRES:
+    ARGUMENTS:
     l(list) ex [1,2,3,4,5,6]
     n(int) - to split by
     
@@ -50,7 +50,7 @@ def returnSplitList(listToSplit, mode=0):
     DESCRIPTION:
     Returns a list sundered in TWO
     
-    REQUIRES:
+    ARGUMENTS:
     listToSplit(list) ex [1,2,3,4,5,6]
     mode(int) - OPTIONAL - 0 - split is default and favors the front 
                                [1,2,3],[3,4,5,6]
@@ -86,7 +86,7 @@ def returnFirstMidLastList(list):
     DESCRIPTION:
     Returns the first middle and last items of a list of items for constraint purposes
     
-    REQUIRES:
+    ARGUMENTS:
     list(list)
     
     RETURNS:
@@ -106,7 +106,7 @@ def returnFactoredList(listToFactor, factor):
     Takes a list and factors it out for constraining purposes
     ex - returnFactoredList(testList, 3)
     
-    REQUIRES:
+    ARGUMENTS:
     listToFactor(list) - ex testList = [0,1,2,3,4,5,6,7]
     factor(int)
     
@@ -158,7 +158,7 @@ def parseListToPairs(dataList):
  	Takes a datalist and parses it to pairs. For example [dog,cat,pig,monkey] would be
  	[[dog,cat],[cat,pig],[pig,monkey]]
     
-    REQUIRES:
+    ARGUMENTS:
     dataList(list)
     
     RETURNS:
@@ -184,7 +184,7 @@ def returnPosListNoDuplicates(posSearchList,decimalPlaces=4):
     DESCRIPTION:
     Removes duplicates from a list of positions with a variance ot decimal places to check
     
-    REQUIRES:
+    ARGUMENTS:
     posSearchList(list)
     decimalPlaces(int) - the number of decimal places to check
     
@@ -219,7 +219,7 @@ def returnMatchList(list1,list2):
     DESCRIPTION:
     Returns a list of matches
     
-    REQUIRES:
+    ARGUMENTS:
     searchList(list)
     
     RETURNS:
@@ -242,7 +242,7 @@ def returnMissingList(baseList,searchList):
     DESCRIPTION:
     Returns a list of items not found
     
-    REQUIRES:
+    ARGUMENTS:
     baseList(list)
     searchList(list)
     
@@ -264,7 +264,7 @@ def returnListNoDuplicates(searchList):
     DESCRIPTION:
     Removes duplicates from a list
     
-    REQUIRES:
+    ARGUMENTS:
     searchList(list)
     
     RETURNS:
@@ -284,7 +284,7 @@ def removeMatchedIndexEntries(searchList,searchTerm):
     DESCRIPTION:
     Removes duplicates from a list
     
-    REQUIRES:
+    ARGUMENTS:
     searchList(list) - should be a nested list
     searchTerm(string) - what you wanna look for
     
@@ -305,7 +305,7 @@ def returnMatchedIndexEntries(searchList,searchTerm):
     DESCRIPTION:
     Returns a list of 
     
-    REQUIRES:
+    ARGUMENTS:
     searchList(list) - should be a nested list
     searchTerm(string) - what you wanna look for
     
@@ -327,7 +327,7 @@ def returnMatchedStrippedEndList(searchList,searchTerms = ['left','right']):
     Look through a list for match terms like ['left','right'] and returns a
     nested pairs list
     
-    REQUIRES:
+    ARGUMENTS:
     searchList(list) - should be a nested list
     searchTerm(string) - what you wanna look for
     
@@ -366,7 +366,7 @@ def cvListSimplifier(listToSimplify,mode):
     DESCRIPTION:
  	Simplifies a cv list. In a semi intelligent manner
     
-    REQUIRES:
+    ARGUMENTS:
     listToSimplify(list) - list or nested list of cv stuff
     mode -  0 - mid only
             1 - ends only

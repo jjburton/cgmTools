@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for the widgety magic of rigging
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #   distance
 #
@@ -59,7 +59,7 @@ def copyPivot(obj,sourceObject):
     DESCRIPTION:
     Basic Pivot copy
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string) - object to affect
     sourceObject(string) - the object to copy the pivot from
 
@@ -81,7 +81,7 @@ def locMeObjectStandAlone(obj):
     Pass  an object into it and return locator placed at the pivots -
     matching translation, rotation and rotation order
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:
@@ -128,7 +128,7 @@ def doParentToWorld(obj):
     DESCRIPTION:
     Parents an object to the world
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list)
 
     RETURNS:
@@ -150,7 +150,7 @@ def doParentReturnName(obj,parentObj):
     DESCRIPTION:
     Parents the items in a list to eachother heirarchally where list[0] is the root
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list)
 
     RETURNS:
@@ -174,7 +174,7 @@ def parentListToHeirarchy(objList):
     DESCRIPTION:
     Parents the items in a list to eachother heirarchally where list[0] is the root
 
-    REQUIRES:
+    ARGUMENTS:
     objList(list)
 
     RETURNS:
@@ -204,7 +204,7 @@ def moveMirrorPosObj(obj,targetObj):
     DESCRIPTION:
     Attempts to mirror an objects position and rotation
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     targetObj(string)
 
@@ -232,7 +232,7 @@ def moveMirrorPosObjNow ():
     Attempts to mirror an objects position and rotation from a first to
     a second object position
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     targetObj(string)
 
@@ -263,7 +263,7 @@ def groupMe():
     object - matching translation, rotation and rotation order and grouping
     the object to them
 
-    REQUIRES:
+    ARGUMENTS:
     Selection
 
     RETURNS:
@@ -288,7 +288,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     matching translation, rotation and rotation order and grouping
     it under the grp
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
     parent(bool) - Whether to parent the object to the group
 
@@ -327,7 +327,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
     DESCRIPTION:
     Makes sure an object is zeroed out, parents the zero group back to the original objects parent
 
-    REQUIRES:
+    ARGUMENTS:
     obj(string)
 
     RETURNS:

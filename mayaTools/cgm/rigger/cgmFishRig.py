@@ -13,7 +13,7 @@ from cgm.lib import skinning as cgmSkin
 # DESCRIPTION:
 #   makes a fin control rig
 # 
-# REQUIRES:
+# ARGUMENTS:
 #	objectNull- null which houses our variables
 #   bindJoint- start of the spine chain you wanna connect to
 #   mirror - True/False (currently accross yz only)

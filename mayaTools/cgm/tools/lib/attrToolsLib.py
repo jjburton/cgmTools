@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #   Library of functions for the attributeTool
 #
-# REQUIRES:
+# ARGUMENTS:
 #   Maya
 #
 # AUTHOR:

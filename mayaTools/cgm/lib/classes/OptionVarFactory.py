@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for finding stuff
 #
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 #
 # AUTHOR:
@@ -28,8 +28,8 @@
 
 import maya.cmds as mc
 import maya.mel as mel
-from cgm.lib.classes import NameFactory
 
+from cgm.lib.classes import NameFactory
 from cgm.lib import (lists,
                      optionVars,
                      search,
@@ -45,30 +45,37 @@ optionVarTypeDict = {'int':['int','i','integer',1,0],
 
 class OptionVarFactory():
     """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    Assertions to verify:
-    1) An object knows what it is
-
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    OpioinVar Class handler
+    
     """
     def __init__(self,varName,varType = 'int'):
+        """ 
+        Intializes an optionVar class handler
+        
+        Keyword arguments:
+        varName(string) -- name for the optionVar
+        varType(string) -- 'int','float','string' (default 'int')
+        
+        """
         #Default to creation of a var as an int value of 0
         ### input check   
-        self.name = ''
+        self.name = varName
         self.form = ''
         self.value = ''
         
-        self.check(varName,varType)
+        self.update(varType)
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-    def check(self,varName,varType):
-        #If it doesn't exist, make it. If it does, fill out the data
-        if not mc.optionVar(exists = varName):
+    def update(self,varType):
+        """ 
+        If it doesn't exist, makes it. If it does, fill out the data
+        """
+        
+        if not mc.optionVar(exists = self.name):
             for option in optionVarTypeDict.keys():
                 if varType in optionVarTypeDict.get(option):
-                    self.name = varName
                     self.form = option
                     self.create(self.form)
                     self.value = mc.optionVar(q=self.name)
@@ -77,22 +84,26 @@ class OptionVarFactory():
                 return guiFactory.warning("'%s' is not a valid variable type"%varType)  
         
         else:
-            self.name = varName
-            self.value = mc.optionVar(q=varName)
-            typeReturn = type(self.value)
-            if typeReturn is list:
-                if type(self.value[0]) is unicode:
-                    self.form = 'string'
-                else:
-                    typeBuffer = str(type(self.value[0]))
+            self.name = self.name
+            dataBuffer = mc.optionVar(q=self.name)
+            typeBuffer = self.getStringType(dataBuffer)
+            if typeBuffer == varType:
+                self.form = typeBuffer
+                self.value = dataBuffer
+                return                
             else:
-                typeBuffer = str(typeReturn)
-            
-            self.getStringType(typeBuffer)
-
+                for option in optionVarTypeDict.keys():
+                    if varType in optionVarTypeDict.get(option):
+                        self.form = option
+                        self.create(self.form)
+                        self.value = mc.optionVar(q=self.name)
+                        return                        
 
     def create(self,doType):
-        print "making '%s'"%self.form
+        """ 
+        If it doesn't exist, makes it. If it does, fill out the data.
+        """
+        print "Creating '%s' as '%s'"%(self.name,self.form)
             
         if doType == 'int':
             mc.optionVar(iv=(self.name,0))
@@ -102,17 +113,41 @@ class OptionVarFactory():
             mc.optionVar(sv=(self.name,''))
             
 
-    def getStringType(self,typeBuffer):
-        if typeBuffer is int:
-            self.form = 'int'
-        elif typeBuffer is float:
-            self.form = 'float'
-        elif typeBuffer is unicode:
-            self.form = 'string'
+    def getStringType(self,dataBuffer):
+        """ 
+        Get type string for the optionVar's value(s).
+        
+        Keyword arguments:
+        dataBuffer() -- the data to check
+        
+        """
+        def simpleReturn(t):
+            if t is int:
+                return 'int'
+            elif t is float:
+                return 'float'
+            elif t is unicode:
+                return 'string'
+            else:
+                return False   
+            
+        typeReturn = type(dataBuffer)
+        
+        if typeReturn is list:
+            if type(dataBuffer[0]) is unicode:
+                return 'string'
+            else:
+                return simpleReturn(type(dataBuffer[0]))
         else:
-            self.form = typeBuffer
+            return simpleReturn(typeReturn)           
+        
+        
+
   
     def purge(self):
+        """ 
+        Purge an optionVar from maya
+        """
         try:
             mc.optionVar(remove = self.name)
             self.name = ''
@@ -123,8 +158,61 @@ class OptionVarFactory():
             guiFactory.warning("'%s' doesn't exist"%(self.name))
             
             
-    def add(self,value):
-        pass
+    def set(self,value):
+        if self.form == 'int':
+            try:
+                mc.optionVar(iv = (self.name,value))
+                self.value = value
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'float':
+            try:
+                mc.optionVar(fv = (self.name,value))
+                self.value = value
+                
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'string':
+            try:
+                mc.optionVar(sv = (self.name,str(value)))
+                self.value = value
+                
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+    def append(self,value):
+        if self.form == 'int':
+            try:
+                mc.optionVar(iva = (self.name,int(value)))
+                self.update(self.name,self.form)
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'float':
+            try:
+                mc.optionVar(fva = (self.name,value))
+                self.update(self.name,self.form)
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'string':
+            try:
+                mc.optionVar(sva = (self.name,str(value)))
+                self.update(self.name,self.form)
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+    
+    def toggle(self):
+        assert self.form == 'int',"'%s' not an int type var"%(self.name)
+        
+        mc.optionVar(iv = (self.name,not self.value))
+        self.value = not self.value
+        guiFactory.warning("'%s':%s"%(self.name,self.value))
+        
+
+                        
         
 
     

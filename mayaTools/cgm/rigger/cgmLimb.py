@@ -823,7 +823,7 @@ def returnTemplateSizeObject(masterNull):
     DESCRIPTION:
     Returns an existing template size object or makes one and returns it
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(list)
     
     RETURNS:
@@ -846,7 +846,7 @@ def masterNullCheck():
     Makes sure we have a master null in scene. If there aren't any, it makes one. If there is
     it returns it, if there are too many it returns False
     
-    REQUIRES:
+    ARGUMENTS:
     Nada
     
     RETURNS:
@@ -872,7 +872,7 @@ def addOrientationHelpers(objects,root,moduleNull,moduleType,visAttr):
     DESCRIPTION:
     Adds orientation helpers to a template chain
     
-    REQUIRES:
+    ARGUMENTS:
     objects(list)
     root(string) - root control of the limb chain
     moduleType(string)
@@ -1015,7 +1015,7 @@ def addControlHelpers(sourceObjects,moduleNull,visAttr):
     DESCRIPTION:
     Adds control size and pivot helpers to a template chain
     
-    REQUIRES:
+    ARGUMENTS:
     sourceObjects(list)
     visAttr(string)
     
@@ -1088,7 +1088,7 @@ def doSizeCharacter(masterNull):
     DESCRIPTION:
     Adds control size and pivot helpers to a template chain
     
-    REQUIRES:
+    ARGUMENTS:
     sourceObjects(list)
     visAttr(string)
     
@@ -1458,7 +1458,7 @@ def doGenerateInitialPositionData(moduleNull,masterNull, startLocList, templateS
     DESCRIPTION:
     Calculates initial positioning info for objects
     
-    REQUIRES:
+    ARGUMENTS:
     sourceObjects(list)
     visAttr(string)
     
@@ -1682,7 +1682,7 @@ def createStartingPositionLoc(moduleNull, modeType='child', workingObject=None, 
     Adds a locator setup to duplicate to get our initial position locators. All should be zeroed out.
     The top node of the return group has the loctor and move group connected is message nodes if needed.
     
-    REQUIRES:
+    ARGUMENTS:
     modeType(string)
         child - basic child locator to the workingObject
         innerChild - aims locator from the working to the aiming curves
@@ -1902,7 +1902,7 @@ def doGeneratePartBaseDistance(locator,meshGroup):
     Pass  a generated locator (z is forward) from this system and it measures the distance
     to the bounding box edge
     
-    REQUIRES:
+    ARGUMENTS:
     locator(string)
     meshGroup(string)
     

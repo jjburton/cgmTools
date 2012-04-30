@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for bath stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:

@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for constraint stuff
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	rigging
 # 
 # AUTHOR:
@@ -147,7 +147,7 @@ def doPointAimConstraintObjectGroup(targets,object,mode=0):
     DESCRIPTION:
     Groups an object and constrains that group to the other objects
     
-    REQUIRES:
+    ARGUMENTS:
     targets(list) - should be in format of from to back with the last one being the aim object
     object(string)
     mode(int) - 0 - equal influence
@@ -218,7 +218,7 @@ def doSegmentAimPointConstraint(objList):
     DESCRIPTION:
     Processes a list of items to make a contstraint array
     
-    REQUIRES:
+    ARGUMENTS:
     objList(list) - list of items to connect
     
     RETURNS:
@@ -261,7 +261,7 @@ def doParentConstraintObjectGroup(targets,object,mode=0):
     DESCRIPTION:
     Groups an object and constrains that group to the other objects
     
-    REQUIRES:
+    ARGUMENTS:
     targets(list)
     object(string
     mode(int) - 0 - equal influence
@@ -294,7 +294,7 @@ def doLimbSegmentListParentConstraint(objList):
     DESCRIPTION:
     Processes a list of items to make a contstraint array
     
-    REQUIRES:
+    ARGUMENTS:
     objList(list) - list of items to connect
     
     RETURNS:
@@ -335,7 +335,7 @@ def doPointConstraintObjectGroup(targets,object,mode=0):
     DESCRIPTION:
     Groups an object and constrains that group to the other objects
     
-    REQUIRES:
+    ARGUMENTS:
     targets(list)
     object(string
     mode(int) - 0 - equal influence
@@ -368,7 +368,7 @@ def doLimbSegmentListPointConstraint(objList):
     DESCRIPTION:
     Processes a list of items to make a contstraint array
     
-    REQUIRES:
+    ARGUMENTS:
     objList(list) - list of items to connect
     
     RETURNS:

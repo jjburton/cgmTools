@@ -7,7 +7,7 @@
 # DESCRIPTION:
 #	Series of tools for finding stuff from our cgm modules
 # 
-# REQUIRES:
+# ARGUMENTS:
 # 	Maya
 # 
 # AUTHOR:
@@ -54,7 +54,7 @@ def cgmTagToFloatAttr(obj,cgmTag,*a, **kw):
     DESCRIPTION:
     Lays out a seies of objects in column and row format
 
-    REQUIRES:
+    ARGUMENTS:
     objectList(string)
     columnNumber(int) - number of columns
     
@@ -88,7 +88,7 @@ def doPurgeNull(null):
     DESCRIPTION:
     Delete all non 'cgm' type user attributes on an object
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -107,7 +107,7 @@ def purgeCGMAttrsFromObject(obj):
     DESCRIPTION:
     Delete all  'cgm' type user attributes on an object
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -132,7 +132,7 @@ def createMasterNull(characterName='nothingNothing'):
     DESCRIPTION:
     Creates a masterNull for a character/asset
     
-    REQUIRES:
+    ARGUMENTS:
     characterName(string)
     
     RETURNS:
@@ -197,7 +197,7 @@ def createInfoNull(infoType):
     DESCRIPTION:
     Creates an infoNull
     
-    REQUIRES:
+    ARGUMENTS:
     infoType(string)
     
     RETURNS:
@@ -224,7 +224,7 @@ def saveTemplateToModule(moduleNull):
 	* If anything in the module doesn't belong there, un parent it, report it
 		* like a template object parented to another obect
 
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -426,7 +426,7 @@ def moduleStateCheck(obj,stateChecks):
     DESCRIPTION:
     Easy way to check the status of a module by inputing the checks to....check
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     state(list) - ['template','skeleton','rig']
     
@@ -462,7 +462,7 @@ def returnDirectionalInfo(moduleNull):
     Returns directional info from a module to a list and False 
     in an entry if no data is there
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -482,7 +482,7 @@ def returnDirectionalInfoToString(moduleNull):
     Returns directional info from a module to a string and 'None' if 
     there is not directional info
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -507,7 +507,7 @@ def returnSettingsDataAsFloat(setting):
     DESCRIPTION:
     Returns a particular setting data piece as number info rather than string
     
-    REQUIRES:
+    ARGUMENTS:
     setting(string)
     
     RETURNS:
@@ -544,7 +544,7 @@ def returnSettingsData(setting,parsed=False):
     DESCRIPTION:
     Returns the divider string
     
-    REQUIRES:
+    ARGUMENTS:
     setting(string) - the dictionary key to get the data from
     
     RETURNS:
@@ -571,7 +571,7 @@ def returnInfoNullObjects(moduleNull,infoType,types='templateObject'):
     DESCRIPTION:
     Returns the template null of a module
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     infoType(string)
     
@@ -607,7 +607,7 @@ def returnPartNestedMessages(partNull):
     DESCRIPTION:
     Returns a nested dictionary of template objects info connected to a part
     
-    REQUIRES:
+    ARGUMENTS:
     partNull(obj)
     
     RETURNS:
@@ -628,7 +628,7 @@ def returncgmTemplatePartPositionData(part):
     DESCRIPTION:
     Returns the order for names in a list format
     
-    REQUIRES:
+    ARGUMENTS:
     Nothin
     
     RETURNS:
@@ -656,7 +656,7 @@ def returncgmTemplatePartNames(part):
     DESCRIPTION:
     Returns the part names for a part
     
-    REQUIRES:
+    ARGUMENTS:
     Nothin
     
     RETURNS:
@@ -676,7 +676,7 @@ def returncgmTemplateCoreNames(part):
     DESCRIPTION:
     Returns the part names for a part
     
-    REQUIRES:
+    ARGUMENTS:
     Nothin
     
     RETURNS:
@@ -698,7 +698,7 @@ def returncgmTemplateSizeRatios(part):
     DESCRIPTION:
     Returns the part names for a part
     
-    REQUIRES:
+    ARGUMENTS:
     Nothin
     
     RETURNS:
@@ -726,7 +726,7 @@ def returnTemplateNull(moduleNull):
     DESCRIPTION:
     Returns the template null of a module
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -743,7 +743,7 @@ def returnTemplateObjects(moduleNull,types='templateObject'):
     DESCRIPTION:
     Returns the template null of a module
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -780,7 +780,7 @@ def returnSceneModules():
     DESCRIPTION:
     Returns all modules in a scene file
     
-    REQUIRES:
+    ARGUMENTS:
     
     
     RETURNS:
@@ -805,7 +805,7 @@ def returnOrderedChildrenModules(moduleNull):
     DESCRIPTION:
     Returns children parts organized by part type and direction
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -884,7 +884,7 @@ def returnOrderedParentModules(masterNull):
     DESCRIPTION:
     Returns ordered list of modules connected to a master that have children
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -931,7 +931,7 @@ def returnOrderedModules(masterNull):
     Reads all of the modules attached to a masterNull and orders them 
     by moduleParent heirarchy
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -968,7 +968,7 @@ def returnModules(masterNull):
     DESCRIPTION:
     Returns all the modules connected to a master null
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     
     RETURNS:
@@ -992,7 +992,7 @@ def returnInfoNullsFromModule(moduleNull):
     DESCRIPTION:
     Returns all info nulls of a module as a dictionary
     
-    REQUIRES:
+    ARGUMENTS:
     moduleNull(string)
     
     RETURNS:
@@ -1009,7 +1009,7 @@ def returnInfoTypeNullFromModule(moduleNull,infoType):
     DESCRIPTION:
     Returns an info null from a module
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     infoType(string)
     
@@ -1029,7 +1029,7 @@ def returnInfoTypeNull(masterNull,infoType):
     DESCRIPTION:
     Returns an info null from a masterNull
     
-    REQUIRES:
+    ARGUMENTS:
     masterNull(string)
     infoType(string)
     
@@ -1052,7 +1052,7 @@ def returnMasterObjects():
     DESCRIPTION:
     Looks for master objects and returns a list of the objects
     
-    REQUIRES:
+    ARGUMENTS:
     nothing
     
     RETURNS:
