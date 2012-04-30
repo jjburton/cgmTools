@@ -310,7 +310,23 @@ def doUpdateObj(self,obj):
 	    return True
 	except:
 	    return False
-
+	
+def doUpdateSelectedObjects(self):
+    selection = mc.ls(sl=True,type = 'transform') or []
+    if selection:
+	for obj in selection:
+	    matchObject = search.returnTagInfo(obj,'cgmMatchObject')
+    
+	    if mc.objExists(matchObject):
+		try:
+		    if self.matchMode == 0:
+			position.moveParentSnap(obj,matchObject)
+		    elif self.matchMode == 1:
+			position.movePointSnap(obj,matchObject)
+		    elif self.matchMode == 2:
+			position.moveOrientSnap(obj,matchObject)
+		except:
+		    guiFactory.warning("'%s' has no match object"%obj)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
