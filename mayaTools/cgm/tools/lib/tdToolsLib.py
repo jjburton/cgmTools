@@ -938,6 +938,9 @@ def doPointSnap():
     batch.doObjToTargetFunctionOnSelected(position.movePointSnap)
 def doOrientSnap():
     batch.doObjToTargetFunctionOnSelected(position.moveOrientSnap)
+def doMatchSnap():
+    batch.doObjOnlyFunctionOnSelected(locinatorLib.doUpdateObj)
+    
 
 def doLayoutByRowsAndColumns(self):
     mc.optionVar(iv=('cgmVar_RowColumnCount',self.RowColumnIntField(q=True,v=True)))
@@ -1006,17 +1009,21 @@ def doSnapClosestPointToSurface(aim=True):
 
     aimMode = mc.optionVar(q='cgmVar_SurfaceSnapAimMode')
 
+    
     bufferList = []
     selection = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
+    
+    if search.returnObjectType(selection[-1]) not in ['mesh','nurbsSurface','nurbsCurve']:
+	guiFactory.warning("'%s' is not a mesh, nurbsSurface, or nurbsCurve"%selection[-1])
+	return
+    
     if len(selection) >=2:
         ### Counter start ###
         mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(selection),'Snapping...')
-        itemCnt = 0
-        ### Counter start ###
         nurbsCurveCase = False
         if search.returnObjectType(selection[-1]) == 'nurbsCurve':
-            nurbsCurveCase ==True
+            nurbsCurveCase = True
             nurbsCurveAimLoc = locators.locMeObject(selection[-1],True)
         for item in selection[:-1]:
             ### Counter Break ###
@@ -1027,28 +1034,29 @@ def doSnapClosestPointToSurface(aim=True):
             ### Counter Break ###
             aimLoc = locators.locMeObject(item)
             bufferLoc = locators.locClosest([item],selection[-1])
-            position.movePointSnap(item,bufferLoc)
-            if aim:
-                if aimMode:
-                    if nurbsCurveCase:
-                        position.aimSnap(item,nurbsCurveAimLoc,aimVector,upVector,worldUpVector)
-                    else:
-                        position.aimSnap(item,aimLoc,aimVector,upVector,worldUpVector)
-                else:
-                    if nurbsCurveCase:
-                        mc.move(5, 0, 0,bufferLoc,os=True, r=True)
-                        position.aimSnap(item,bufferLoc,aimVector,upVector,worldUpVector)
-                    else:
-                        position.aimSnap(item,aimLoc,aimVector,upVector,worldUpVector)
-
-
-            itemCnt += 1
-            mc.delete([bufferLoc,aimLoc])
-            if nurbsCurveCase:
-                mc.delete(nurbsCurveAimLoc)
+	    if bufferLoc:
+		position.movePointSnap(item,bufferLoc)
+		if aim:
+		    if aimMode:
+			if nurbsCurveCase:
+			    position.aimSnap(item,nurbsCurveAimLoc,aimVector,upVector,worldUpVector)
+			else:
+			    position.aimSnap(item,aimLoc,aimVector,upVector,worldUpVector)
+		    else:
+			if nurbsCurveCase:
+			    mc.move(5, 0, 0,bufferLoc,os=True, r=True)
+			    position.aimSnap(item,bufferLoc,aimVector,upVector,worldUpVector)
+			else:
+			    position.aimSnap(item,aimLoc,aimVector,upVector,worldUpVector)
+    
+    
+	mc.delete([bufferLoc,aimLoc])
+	if nurbsCurveCase:
+	    mc.delete(nurbsCurveAimLoc)
 
 
         guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+	mc.select(selection)
         return bufferList
     else:
         guiFactory.warning('You must have at least two objects selected')
