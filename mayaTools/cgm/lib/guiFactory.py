@@ -23,6 +23,8 @@
 import maya.cmds as mc
 import maya.mel as mel
 
+from cgm.lib.classes.ObjectFactory import *
+
 from cgmBaseMelUI import *
 from cgm.lib import dictionary
 from cgm.lib import optionVars
@@ -104,17 +106,18 @@ def initializeTemplates():
     mc.rowLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
     mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
     mc.columnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)  
-    
+
     # Define our Locked
     if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
         mc.deleteUI( 'cgmUILockedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUILockedTemplate')
     mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor)
 
-def resetGuiInstanceOptionVars(optionVarHolder,runCommand):
+def resetGuiInstanceOptionVars(optionVarHolder,commandToRun = False):
     if optionVarHolder:
-	purgeOptionVars(optionVarHolder)
-    runCommand()
+        purgeOptionVars(optionVarHolder)
+    if commandToRun:    
+        commandToRun()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Standard functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -271,9 +274,9 @@ def setUIObjectVisibility(item, visState):
 def selectCheck():
     selection = mc.ls(sl = True) or []
     if selection:
-	    return 1
+        return 1
     else:
-	    return 0   
+        return 0   
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Load to fields
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -385,7 +388,7 @@ def purgeOptionVars(varHolder):
         for var in varHolder:
             if var in sceneOptionVars:
                 optionVars.purgeOptionVar(var)
-                
+
 def appendOptionVarList(self,varName):
     if varName not in self.optionVars:
         self.optionVars.append(varName)
@@ -583,3 +586,22 @@ def doPrintReportBreak():
 
 def doPrintReportEnd():
     return '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Pop up functions
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def matchObjectCheck():
+    selection = mc.ls(sl=True,type = 'transform') or []
+    matchCheckList = []
+    if selection:
+        for o in selection:
+            obj = ObjectFactory(o)
+            if obj.getMatchObject():
+                return 1
+    return 0
+
+def checkSelectionLength(length):
+    selection = mc.ls(sl=True,type = 'transform') or []
+    if len(selection)>=length:
+        return 1
+    return 0
