@@ -421,7 +421,13 @@ class animToolsClass(BaseMelWindow):
 		guiFactory.doButton2(SpecialColumn,'breakdownDragger',
 		                     lambda *a: animToolsLib.ml_breakdownDraggerCall(),
 				             'Breakdown tool courtesy of Morgan Loomis')
-	
+		
+		guiFactory.lineBreak()		
+		guiFactory.header('Utilities')
+		guiFactory.lineSubBreak()		
+		guiFactory.doButton2(SpecialColumn,'arcTracr',
+		                     lambda *a: animToolsLib.ml_arcTracerCall(),
+				             'Path tracing tool courtesy of Morgan Loomis')
 
 	def Snap_buildLayout(self,parent):
 
