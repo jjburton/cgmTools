@@ -1,8 +1,0 @@
-global proc cgmSetKey() {
-	python("from cgm.tools.markingMenus import cgmSetKey;reload(cgmSetKey);cgmSetKey.run()");
-	}
-
-
-global proc cgmSetKeyKillUI () {
-	python("cgmSetKey.killUI()");
-	}
