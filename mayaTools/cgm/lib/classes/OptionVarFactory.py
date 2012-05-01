@@ -45,7 +45,7 @@ optionVarTypeDict = {'int':['int','i','integer',1,0],
 
 class OptionVarFactory():
     """ 
-    OpioinVar Class handler
+    OptionVar Class handler
     
     """
     def __init__(self,varName,varType = 'int'):
@@ -141,8 +141,6 @@ class OptionVarFactory():
         else:
             return simpleReturn(typeReturn)           
         
-        
-
   
     def purge(self):
         """ 
@@ -150,6 +148,7 @@ class OptionVarFactory():
         """
         try:
             mc.optionVar(remove = self.name)
+            print mc.optionVar(q=self.name)
             self.name = ''
             self.form = ''
             self.value = ''
@@ -186,32 +185,78 @@ class OptionVarFactory():
         if self.form == 'int':
             try:
                 mc.optionVar(iva = (self.name,int(value)))
-                self.update(self.name,self.form)
+                self.update(self.form)
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
         elif self.form == 'float':
             try:
                 mc.optionVar(fva = (self.name,value))
-                self.update(self.name,self.form)
+                self.update(self.form)
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
         elif self.form == 'string':
             try:
                 mc.optionVar(sva = (self.name,str(value)))
-                self.update(self.name,self.form)
+                self.update(self.form)
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+                
+    def extend(self,valuesList):
+        assert type(valuesList) is list,"'%s' not a list"%(valuesList)
+        for v in valuesList:
+            print v
+            self.append(v)
     
     def toggle(self):
+        """
+        Toggles an int type variable
+        """
         assert self.form == 'int',"'%s' not an int type var"%(self.name)
         
         mc.optionVar(iv = (self.name,not self.value))
         self.value = not self.value
         guiFactory.warning("'%s':%s"%(self.name,self.value))
         
-
+        
+        
+    def select(self):
+        """
+        Attempts to select the items of a optionVar buffer
+        """
+        selectList = []
+        if self.value:
+            for item in self.value:
+                if mc.objExists(item):
+                    if '.' in item:
+                        buffer = mc.ls(item,o=True)
+                        if mc.objExists(buffer[0]):
+                            selectList.append(buffer[0])
+                    else:
+                        selectList.append(item)
+                
+        if selectList:
+            mc.select(selectList)
+            
+            
+    def existCheck(self):
+        """
+        Attempts to select the items of a optionVar buffer
+        """
+        bufferList = self.value
+        existsList = []
+        if bufferList:
+            for item in bufferList:
+                if mc.objExists(item):
+                        existsList.append(item)
+                        
+        mc.optionVar(clearArray = self.name)
+        if existsList:
+            existsList = lists.returnListNoDuplicates(existsList)
+            self.extend(existsList)
+                
+                        
                         
         
 
