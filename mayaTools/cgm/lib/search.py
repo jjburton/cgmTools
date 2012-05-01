@@ -600,6 +600,10 @@ def returnObjectType(obj):
     type(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    intialCheck = mc.objectType(obj)
+    if intialCheck == 'objectSet':
+        return 'objectSet'
+    
     objShapes = mc.listRelatives(obj,shapes=True,fullPath=True)
 
     # Standard
