@@ -1249,7 +1249,7 @@ class tdToolsClass(BaseMelWindow):
 	                     "Tool for working with influences\n by Brendan Ross")
 	
 	guiFactory.doButton2(SkinWeightsUtilitiesRow,'zoo.SkinPropagationTool',
-	                     lambda *a: cgmToolbox.loadSkinPropagation(),
+	                     lambda *a: tdToolsLib.loadZooSkinPropagation(),
 	                     "For sending weighting from a referenced file back to the original file\n by Hamish McKenzie")
 
 
