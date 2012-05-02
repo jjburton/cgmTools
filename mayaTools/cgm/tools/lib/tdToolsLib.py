@@ -49,6 +49,7 @@ from cgm.lib import (guiFactory,
                      distance,
                      position,
                      lists,
+                     sdk,
                      skinning)
 
 from cgm.tools.lib import locinatorLib,namingToolsLib
@@ -62,6 +63,10 @@ reload(guiFactory)
 """
 
 """
+def loadZooSkinPropagation( *a ):
+    from zooPyMaya import refPropagation
+    refPropagation.propagateWeightChangesToModel_confirm()
+
 def uiSetSelfVariable(self,variable,value):
     print variable
     print value
@@ -1009,7 +1014,6 @@ def doSnapClosestPointToSurface(aim=True):
 
     aimMode = mc.optionVar(q='cgmVar_SurfaceSnapAimMode')
 
-    
     bufferList = []
     selection = mc.ls (sl=True,flatten=True) or []
     mc.select(cl=True)
