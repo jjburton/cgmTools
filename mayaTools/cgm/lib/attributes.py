@@ -1118,9 +1118,13 @@ def addRotateOrderAttr (obj,name):
     NA
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    mc.addAttr(obj, ln=name, at = 'enum',en = 'xyz:yzx:zxy:xzy:yxz:zyx')
-    mc.setAttr((obj+'.'+name),e = True, keyable = True )
-    return (obj+'.'+name)
+    try:
+        mc.addAttr(obj, ln=name, at = 'enum',en = 'xyz:yzx:zxy:xzy:yxz:zyx')
+        mc.setAttr((obj+'.'+name),e = True, keyable = True )
+        return ("%s.%s"%(obj,name))
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,name))
+        
 
 def addAttributesToObj (obj, attributeTypesDict):
     """ 
@@ -1180,7 +1184,7 @@ def addStringAttributeToObj (obj,attr,*a, **kw ):
 
     try: 
         mc.addAttr (obj, ln = attr, dt = 'string',*a, **kw)
-        return True
+        return ("%s.%s"%(obj,attr))
     except:
         guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
@@ -1205,7 +1209,7 @@ def addIntegerAttributeToObj (obj,attr,*a, **kw ):
 
     try: 
         mc.addAttr (obj, ln = attr, at = 'long',*a, **kw)
-        return True
+        return ("%s.%s"%(obj,attr))
     except:
         guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
@@ -1229,7 +1233,7 @@ def addMessageAttributeToObj (obj,attr,*a, **kw ):
 
     try: 
         mc.addAttr (obj, ln = attr, at = 'message',*a, **kw )
-        return True
+        return ("%s.%s"%(obj,attr))
     except:
         guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
         return False   
@@ -1253,7 +1257,7 @@ def addVectorAttributeToObj (obj,attr,*a, **kw):
         mc.addAttr (obj, ln=(attr+'X'),p=attr , at= 'double',*a, **kw)
         mc.addAttr (obj, ln=(attr+'Y'),p=attr , at= 'double',*a, **kw)
         mc.addAttr (obj, ln=(attr+'Z'),p=attr , at= 'double',*a, **kw)       
-        return True
+        return ("%s.%s"%(obj,attr))
     
     except:
         guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
@@ -1282,6 +1286,7 @@ def addStringAttributesToObj (obj, attrList):
         attrCache = (obj+'.'+attr)
         if not mc.objExists (attrCache):
             mc.addAttr (obj, ln = attr,  dt = 'string')
+            return ("%s.%s"%(obj,attr))            
         else:
             print ('"' + attrCache + '" exists, moving on')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1307,7 +1312,7 @@ def addFloatAttributeToObject (obj, attr,*a, **kw):
 
     try: 
         mc.addAttr (obj, ln = attr, at = 'float',*a, **kw)
-        return True
+        return ("%s.%s"%(obj,attr))
     except:
         guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
@@ -1334,7 +1339,7 @@ def addEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
     try: 
         mc.addAttr (obj,ln = attr, at = 'enum', en=('%s' %(':'.join(optionList))),*a, **kw)
         mc.setAttr ((obj+'.'+attr),e=True,keyable=True)
-        return True
+        return ("%s.%s"%(obj,attr))
     except:
         guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
