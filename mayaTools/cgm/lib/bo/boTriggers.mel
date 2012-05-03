@@ -1,0 +1,2336 @@
+/*
+	Triggers
+	1.4
+	
+	Copyright (c) 2010 Bohdon Sayre
+	All Rights Reserved.
+	bo@bohdon.com
+	
+	Description:
+		Allows you to create a "trigger" out of any maya object.
+		By selecting a trigger you can reselect other objects, set attributes to
+		certain values, and/or run mel scripts.
+	
+	unique prefix: btr
+	
+	Version 1.4:
+	    > Changed selection mode GUI coloring for 2011
+	    > Updated for 2011 GUI
+		> Allows use of referenced objects as trigger objects (watch out for unique naming though...)
+		> Mac compatible (needs more updates)
+		> Updated script node procedure names (for groups only), they now include namespaces as a pre-suffix, to avoid overwrites
+		> Update procedure now removes duplicate triggers
+		> Changed updating method to check for unrecognized triggers
+		> Some fixes, and the melscript character count added
+		> Adding attributes to the list is much more optimized
+		> Full GUI rebuild using formLayouts and a more simple scaling system
+		> Updated script nodes to not store scriptJobs in a global variable, fixing grid issues
+		> Expanding group triggers now available! Select a Group in the list and run Advanced > Ungroup
+		> Group Triggers procedure available! Select triggers in the list and run Advanced > Group Triggers
+		> Double click trigger method uses selection mode instead of renaming
+		> GUI updates and other small features
+		> Revamped procedures and added printing options
+		> Referenced and imported scenes with triggers supported (support for namespaces and prefixing)
+		> Help section available!
+		> Selection Mode! when selection mode is on, any trigger in the scene can be selected normally for adjustments
+		> Load triggers! load one or multiple triggers to easily edit or duplicate them
+		> Double click triggers list to select nodes in the scene
+		> Selection Change checking has been optimized for scenes with many triggers
+	
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc boTriggers() {
+    $version = "1.4";
+    
+	//window name
+	string $btrWin = "btrWin";
+	
+	//check for pre-existing window
+	if (`window -exists $btrWin`) deleteUI -window $btrWin;
+	
+	//create window
+	window  -w 100 -h 100 -s 1 -mb 1 -mxb 0 -t ("Triggers "+$version) $btrWin;
+	
+	//retrieve the global variables
+	global int $btrTrigSelectionMode;
+	global string $btrTrigCurrentVersion;
+	$btrTrigCurrentVersion = "1.3";
+	global string $btrTrigSelectionList[];
+	global string $btrTrigAttributeList[];
+	global string $btrTrigMelscript;
+	
+	//set section color arrays [window default color: .835 .816 .785 ] //.658, .655, .647
+	float $btrCol1[3] = {.28, .28, .28};
+
+	//menus
+	menu -l "File" btrWinMenu;
+		menuItem -l "Export selected triggers..." -c btrTrigExport;
+		menuItem -d 1;
+		menuItem -c "global string $btrTrigSelectionList[]; global string $btrTrigAttributeList[]; global string $btrTrigMelscript; clear $btrTrigSelectionList; clear $btrTrigAttributeList; $btrTrigMelscript = \"\"; textScrollList -e -ra btrSelectObjList; textScrollList -e -ra btrSetattrObjList; scrollField -e -cl btrMelscriptField; btrSelectObjListCommand; btrSetattrObjListCommand; btrMelscriptFieldCommand; btrTrigRefresh; btrTrigCheck 0 1;"
+			-l "Clear Fields and Refresh";
+		menuItem -c "source boTriggers; boTriggers;" -l "Re-Source boTriggers";
+	menu -l "Options" btrOptMenu;
+		menuItem -cb 1 -l "Check Versions"
+				-ann "Checks to make sure triggers are up to date"
+				btrOptMenuCheckVersions;
+		menuItem -cb 1 -l "Include Control Object with Load"
+				-ann "Includes the control object when loading a trigger"
+				btrOptMenuIncludeControl;
+		menuItem -l "Print Trigger Information"
+				-ann "Prints out the information for the selected triggers"
+				-c "btrTrigPrintInfo"
+				btrOptMenuPrintInfo;
+	menu -l "Advanced" btrAdvancedMenu;
+		menuItem -l "Update All Triggers" -c "btrTrigCheck 0 0; btrTrigUpdate 0;";
+		menuItem -l "Update Selected Triggers" -c "btrTrigCheck 1 0; btrTrigUpdate 1;";
+		menuItem -d 1;
+		menuItem -l "Delete All Script Jobs" -c "btrScriptJobsDeleteAll";
+		menuItem -d 1;
+		menuItem -l "Group Triggers" -c "btrTrigGroupCreate";
+		menuItem -l "Ungroup Trigger" -c "btrTrigGroupExpand";
+	menu -l "Help" btrHelpMenu;
+		menuItem -c btrTriggersHelp -l "How to use Triggers" btrHowHelpItem;
+		//menuItem -en 0 -l "Video Tutorial (Coming later...)";
+		menuItem -d 1;
+		menuItem -l "Tip: Roll over controls to";
+		menuItem -l "      see help in Help Line";
+    
+	
+	string $text;
+	//main form
+	formLayout -nd 100 btrMainForm;
+	    
+		//control (trigger object) form - - - -
+		frameLayout -l "Trigger" -mw 2 -mh 2 -bs "etchedIn" btrControlFrame;
+            formLayout -nd 100 btrControlForm;
+                textField -w 266 -ann "The object that will be a trigger, This can be an object of any type (mesh, light, camera, etc..)" btrControlObjField;
+                popupMenu -mm 1 -p btrControlObjField;
+                    menuItem -rp "S" -l "Create" -c btrTrigCreate;
+                button -w 50 -h 21 -ann "Set the selected object as the trigger" -c btrControlGet -l "Get" btrControlGetBtn;
+            formLayout -e -af btrControlObjField "top" 0 -af btrControlObjField "left" 2 -ac btrControlObjField "right" 4 btrControlGetBtn
+                        -af btrControlGetBtn "top" 0 -af btrControlGetBtn "right" 2
+                        btrControlForm;
+        //- - - - - - - - - - - - - - - - - - -
+        
+        setParent btrMainForm;
+        
+        //options and settings form - - - - - -
+        frameLayout -l "Actions" -mh 2 -mw 2 -bs "etchedIn" btrOptFrame;
+            formLayout -nd 100 btrOptFrameForm;
+                
+                text -l " Actions..." -al "left" -fn "boldLabelFont" btrOptText;
+                
+                tabLayout -imh 2 -imw 2 -w 308 btrOptTabs;
+                    formLayout -nd 100 btrSelectForm;
+                        //title and resizing slider
+                        text -h 18 -w 300 -al "left" -l "  select these objects..." btrSelectText;
+                        
+                        //options
+                        textScrollList -w 300 -ams true
+                            -ann "Highlighted items in this list will be selected..."
+                            -sc "btrSelectObjListCommand"
+                            btrSelectObjList;
+                        popupMenu -b 3 -mm 1 -p btrSelectObjList;
+                            menuItem -rp "S" -l "Create" -c btrTrigCreate;
+                        button -h 20 -l "add selected"
+                            -ann "Add all selected objects in the scene to the list."
+                            -c btrSelectGet 
+                            btrSelectGetBtn;
+                        button -h 20 -l "remove selected"
+                            -ann "Remove all objects that are highlighted in the list"
+                            -c btrSelectDel
+                            btrSelectDelBtn;
+                        button -h 20 -l "clear all"
+                            -ann "Clear the list"
+                            -c ("textScrollList -e -ra btrSelectObjList; btrSelectObjListCommand; global string $btrTrigSelectionList[]; $btrTrigSelectionList = `textScrollList -q -ai btrSelectObjList`;") 
+                            btrSelectClearBtn;
+                        
+                        formLayout -e
+                            -ap btrSelectText "top" 0 0
+                            -ap btrSelectGetBtn "bottom" 0 100 -ap btrSelectGetBtn "left" 0 0 -ap btrSelectGetBtn "right" 0 33
+                            -ap btrSelectDelBtn "bottom" 0 100 -ap btrSelectDelBtn "left" 0 33 -ap btrSelectDelBtn "right" 0 66
+                            -ap btrSelectClearBtn "bottom" 0 100 -ap btrSelectClearBtn "left" 0 66 -ap btrSelectClearBtn "right" 0 100
+                            -ac btrSelectObjList "top" 4 btrSelectText -ac btrSelectObjList "bottom" 4 btrSelectGetBtn
+                            -ap btrSelectObjList "left" 0 0 -ap btrSelectObjList "right" 0 100
+                            btrSelectForm;
+                        
+                        //re-parent to the column immediately under the options frame
+                        setParent btrOptTabs;
+                    
+                    formLayout -nd 100 btrSetattrForm;
+                        //title and resizing slider
+                        text -h 18 -w 300 -al "left" -l "  remember these attributes..." btrSetattrText;
+                        
+                        //options
+                        textScrollList -w 300 -ams true
+                            -ann "Attributes that are highlighted in this list will be restored to their current value..."
+                            -sc "btrSetattrObjListCommand"
+                            btrSetattrObjList;
+                        
+                        button -h 20 -l "add keyable"
+                            -ann "Add all selected objects' keyable attributes to the list"
+                            -c "btrSetattrGet 1"
+                            btrSetattrGetKeyBtn;
+                        button -h 20 -l "add non-keyable"
+                            -ann "Add all selected objects' non-keyable attributes to the list, Does not include hidden attributes"
+                            -c "btrSetattrGet 0"
+                            btrSetattrGetAllBtn;
+                        button -h 20 
+                            -ann "Remove all objects that are highlighted in the list"
+                            -c btrSetattrDel -l "remove selected"
+                            btrSetattrDelBtn;
+                        button -h 20 -l "clear all"
+                            -ann "Clear the list"
+                            -c ("textScrollList -e -ra btrSetattrObjList; btrSetattrObjListCommand; global string $btrTrigAttributeList[]; $btrTrigAttributeList = `textScrollList -q -ai btrSetattrObjList`;")
+                            btrSetattrClearBtn;
+                        
+                        formLayout -e
+                            -ap btrSetattrText "top" 0 0
+                            -ap btrSetattrDelBtn "bottom" 0 100 -ap btrSetattrDelBtn "left" 0 0 -ap btrSetattrDelBtn "right" 0 50
+                            -ap btrSetattrClearBtn "bottom" 0 100 -ap btrSetattrClearBtn "left" 0 50 -ap btrSetattrClearBtn "right" 0 100
+                            //
+                            -ac btrSetattrGetKeyBtn "bottom" 0 btrSetattrDelBtn -ap btrSetattrGetKeyBtn "left" 0 0 -ap btrSetattrGetKeyBtn "right" 0 50
+                            -ac btrSetattrGetAllBtn "bottom" 0 btrSetattrClearBtn -ap btrSetattrGetAllBtn "left" 0 50 -ap btrSetattrGetAllBtn "right" 0 100
+                            //
+                            -ac btrSetattrObjList "top" 4 btrSetattrText -ac btrSetattrObjList "bottom" 4 btrSetattrGetKeyBtn
+                            -ap btrSetattrObjList "left" 0 0 -ap btrSetattrObjList "right" 0 100
+                            btrSetattrForm;
+                        
+                        popupMenu -p btrSetattrObjList;
+                            menuItem -l "Remove:";
+                            menuItem -d 1;
+                            menuItem -l "translates" -c "btrSetattrDelAttr(0)";
+                            menuItem -l "rotates" -c "btrSetattrDelAttr(1)";
+                            menuItem -l "scales" -c "btrSetattrDelAttr(2)";
+                            menuItem -l "visibilities" -c "btrSetattrDelAttr(3)";
+                            menuItem -l "all except trans/rot/scale" -c "btrSetattrDelAttr(4)";
+                            
+                        //re-parent to the column immediately under the options frame
+                        setParent btrOptTabs;
+                        
+                    formLayout -nd 100 btrMelscriptForm;
+                        //title
+                        text -w 300 -al "left" -l "  run this mel script..." btrMelscriptText;
+                        
+                        //Mel script text field
+                        scrollField -w 300
+                            -ann "Mel typed here will be run every time the trigger runs..."
+                            -kpc "global string $btrTrigMelscript; $btrTrigMelscript = `scrollField -q -tx btrMelscriptField`; btrMelscriptFieldCommand;"
+                            -cc "global string $btrTrigMelscript; $btrTrigMelscript = `scrollField -q -tx btrMelscriptField`; btrMelscriptFieldCommand;"
+                            btrMelscriptField;
+                        
+                        button -h 20 -l "test script..."
+                            -ann "Test the mel script in the text field, You should always do this before creation"
+                            -c btrMelscriptTest
+                            btrMelscriptTestBtn;
+                        button -h 20 -l "clear"
+                            -ann "Clear the text field, This action is not undoable!"
+                            -c ("scrollField -e -cl btrMelscriptField; global string $btrTrigMelscript; $btrTrigMelscript = `scrollField -q -tx btrMelscriptField`;btrMelscriptFieldCommand;")
+                            btrMelscriptClearBtn;
+                        
+                        formLayout -e
+                            -ap btrMelscriptText "top" 0 0
+                            -ap btrMelscriptTestBtn "bottom" 0 100 -ap btrMelscriptTestBtn "left" 0 0 -ap btrMelscriptTestBtn "right" 0 50
+                            -ap btrMelscriptClearBtn "bottom" 0 100 -ap btrMelscriptClearBtn "left" 0 50 -ap btrMelscriptClearBtn "right" 0 100
+                            //
+                            -ac btrMelscriptField "top" 4 btrMelscriptText -ac btrMelscriptField "bottom" 4 btrMelscriptTestBtn
+                            -ap btrMelscriptField "left" 0 0 -ap btrMelscriptField "right" 0 100
+                            btrMelscriptForm;
+                    
+                    setParent btrOptFrameForm;
+                    
+                //check box section
+                checkBox -w 300 -v 0 -l "Include Custom MEL Script" -al "left" 
+                            -ann "Include the MEL script with the trigger, Turning this off allows you to keep text in the MEL Script text field but not use it"
+                            btrMelscriptCheck;
+                checkBox -w 300 -v 1 -l "Auto-Deselect Trigger" -al "left" 
+                            -ann "Deselect the trigger immediately after it has been selected,  You will, however, be able to select the trigger using Selection Mode"
+                            btrDeselTrigCheck;
+                            
+                tabLayout -e
+                    -tli 1 " Reselection [0] "
+                    -tli 2 " Attributes [0] "
+                    -tli 3 " Melscript [0] "
+                    btrOptTabs;
+                            
+            formLayout -e
+                -af btrOptText "top" 4
+                -af btrOptText "left" 8
+                -ac btrOptTabs "top" 4 btrOptText
+                -ac btrOptTabs "bottom" 4 btrMelscriptCheck
+                -af btrOptTabs "left" 0
+                -af btrOptTabs "right" 0
+                -ac btrMelscriptCheck "bottom" 2 btrDeselTrigCheck
+                -af btrDeselTrigCheck "bottom" 0
+                btrOptFrameForm;
+        //- - - - - - - - - - - - - - - - - - -
+        
+        setParent btrMainForm;
+        
+        //triggers form - - - - - - - - - - - -
+		formLayout -nd 100 btrTrigForm;
+			text -w 120 -fn "boldLabelFont" -l "  Triggers" btrTrigText;
+			checkBox -w 100 -h 20 -v $btrTrigSelectionMode -l "Selection Mode" -bgc .267 .267 .267
+					-ann "When checked, enables the selection of triggers in the scene (Disables all triggers temporarily)"
+					-ofc "global int $btrTrigSelectionMode = 0; checkBox -e -bgc .267 .267 .267 btrTrigSelModeCheck"
+					-onc "global int $btrTrigSelectionMode = 1; checkBox -e -bgc 1 0 0 btrTrigSelModeCheck"
+					btrTrigSelModeCheck;
+            if ($btrTrigSelectionMode == 1) checkBox -e -bgc 1 0 0 btrTrigSelModeCheck;
+                    
+			button -w 50 -h 20 -l "Refresh"
+				-ann "Refresh the list of triggers currently in this scene"
+				-c "btrTrigRefresh; btrTrigCheck 0 1"
+				btrTrigRefreshBtn;
+            
+			text -rs 1 -l "" btrTrigListText;                
+                
+			//triggers list
+			textScrollList -w 300 -h 150 -ams 1
+				-ann "Triggers that are currently in the scene,  Double click to select the trigger control in the scene"
+				-dcc btrTrigSelectNode
+				btrTrigList;
+			//list menu
+			popupMenu -p btrTrigList -pmc "//check stuff"
+					btrTrigListMenu;
+				menuItem -rp "N" -l "Load" -c "btrTrigLoad";
+				menuItem -rp "S" -l "Create" -c "btrTrigCreate";
+				menuItem -rp "SE" -l "Group" -c "btrTrigGroupCreate";
+				menuItem -rp "SW" -l "Ungroup" -c "btrTrigGroupExpand";
+				menuItem -rp "E" -l "Update" -c "btrTrigCheck 1 0; btrTrigUpdate 1";
+				menuItem -rp "W" -l "Delete" -c "btrTrigDelete `textScrollList -q -si btrTrigList`";
+                    
+                
+			button -w 100 -h 30 -bgc $btrCol1[0] $btrCol1[1] $btrCol1[2] -l "Create" 
+				-ann "Create a trigger with the current options,  Don't forget to highlight items before you create!"
+				-c btrTrigCreate
+				btrTrigCreateBtn;
+			button -w 100 -h 30 -l "Delete"
+				-ann "Delete the highlighted triggers"
+				-c "btrTrigDelete `textScrollList -q -si btrTrigList`" 
+				btrTrigDeleteBtn;
+			button -w 100 -h 30 -l "Load"
+				-ann "Load the highlighted triggers into the lists, They can then be edited for modification"
+				-c btrTrigLoad
+				btrTrigLoadBtn;
+            progressBar -h 12 -w 300 -min 0 -max 10	btrTrigProgBar;
+			
+			formLayout -e
+				-ap btrTrigText "top" 0 0
+				-ap btrTrigText "left" 0 0
+				-ap btrTrigListText "top" 0 0
+				-ap btrTrigListText "right" 0 100
+				-ac btrTrigListText "left" 0 btrTrigText
+				-ac btrTrigSelModeCheck "top" 0 btrTrigText
+				-ap btrTrigSelModeCheck "left" 0 0
+				-ac btrTrigRefreshBtn "top" 0 btrTrigListText
+				-ap btrTrigRefreshBtn "right" 0 100
+				//
+				-ac btrTrigList "top" 2 btrTrigSelModeCheck
+				-ac btrTrigList "bottom" 2 btrTrigProgBar
+				-ap btrTrigList "left" 0 0 -ap btrTrigList "right" 0 100
+				//
+				-ac btrTrigProgBar "bottom" 2 btrTrigCreateBtn
+				-ap btrTrigProgBar "left" 0 0 -ap btrTrigProgBar "right" 0 100
+				-ap btrTrigCreateBtn "bottom" 0 100 -ap btrTrigCreateBtn "left" 0 0 -ap btrTrigCreateBtn "right" 0 33
+				-ap btrTrigDeleteBtn "bottom" 0 100 -ap btrTrigDeleteBtn "left" 0 33 -ap btrTrigDeleteBtn "right" 0 66
+				-ap btrTrigLoadBtn "bottom" 0 100 -ap btrTrigLoadBtn "left" 0 66 -ap btrTrigLoadBtn "right" 0 100
+				btrTrigForm;
+        //- - - - - - - - - - - - - - - - - - -
+        
+		formLayout -e
+		    -af btrControlFrame "top" 0
+		    -af btrControlFrame "left" 0
+		    -af btrControlFrame "right" 0
+			-ac btrOptFrame "top" 4 btrControlFrame
+			-af btrOptFrame "left" 0
+			-af btrOptFrame "right" 0
+			-af btrTrigForm "left" 0
+			-af btrTrigForm "right" 0
+			-af btrTrigForm "bottom" 0
+			-ap btrOptFrame "bottom" 4 65
+			-ap btrTrigForm "top" 4 65
+			
+			btrMainForm;
+
+    //repopulate the lists with the global variables
+    for ($i in $btrTrigSelectionList)
+        textScrollList -e -append $i btrSelectObjList;
+    for ($i in $btrTrigAttributeList)
+        textScrollList -e -append $i btrSetattrObjList;
+    
+    scrollField -e -tx $btrTrigMelscript btrMelscriptField;
+    
+    
+    
+    //resize the window now that all the controls have been made
+    window -e -w 340 -h 780 btrWin;
+	showWindow $btrWin;
+    
+    //run the btrTrigRefresh to load the current triggers
+    //this is run at the end of all Trig procedures
+    btrTrigRefresh;
+	//then check all the triggers to make sure they're valid
+	btrTrigCheck 0 1;
+}
+global proc  btrSelectObjListCommand() {
+//handler for the select command of btrSelectObjList
+
+	int $numSelect = `textScrollList -q -nsi btrSelectObjList`;
+	tabLayout -e -tli 1 (" Reselection ["+$numSelect+"] ") btrOptTabs;
+}
+global proc  btrSetattrObjListCommand() {
+//handler for the select command of btrSelectObjList
+
+	int $numSetattr = `textScrollList -q -nsi btrSetattrObjList`;
+	tabLayout -e -tli 2 (" Attributes ["+$numSetattr+"] ") btrOptTabs;
+}
+global proc btrMelscriptFieldCommand() {
+//handler for the melscript field change/key press commands
+
+	string $text = `scrollField -q -tx btrMelscriptField`;
+	int $numChars = size($text);
+	tabLayout -e -tli 3 (" Melscript ["+$numChars+"] ") btrOptTabs;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//CONTROL OBJECT PROCEDURE
+global proc btrControlGet() {
+    string $selList[] = `ls -sl`;
+    
+    if (size($selList) == 0) {
+        //the selection list is empty
+        textField -e -tx "" btrControlObjField;
+        return ;
+    } else if (size($selList) > 1) {
+        //more than one object is selected
+        textField -e -tx "" btrControlObjField;
+        error ("more than one object was selected");
+        return ;
+    }
+    string $shortName = `match "[^|]*$" $selList[0]`;
+    
+    if (size(`ls $shortName`) > 1) {
+        textField -e -tx "" btrControlObjField;
+        error ("object name is not unique!");
+        return ;
+    }
+    
+    //set the text field to the selected object
+    textField -e -tx ($selList[0]) btrControlObjField;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//RESELECTION PROCEDURES
+global proc btrSelectGet() {
+    string $selList[] = `ls -sl`;
+    
+    if (size($selList) <= 0) {
+        //the selection list is empty
+        error ("no objects were selected\n");
+        return ;
+    }
+    
+	progressBar -e -max `size($selList)` btrTrigProgBar;
+	
+	string $curObjs[] = `textScrollList -q -ai btrSelectObjList`;
+	string $curObjStr = "^"+`stringArrayToString $curObjs "^"`+"^";
+	string $cmd;
+	$cmd = "textScrollList -e ";
+	
+    for ($obj in $selList) {
+		if (!size(`match ("\\^"+$obj+"\\^") $curObjStr`))
+			$cmd += "-a "+$obj+" ";
+		
+		progressBar -e -s 1 btrTrigProgBar;
+    }
+	$cmd += "btrSelectObjList";
+	eval($cmd);
+
+	progressBar -e -pr 0 btrTrigProgBar;
+    //refresh global var
+    global string $btrTrigSelectionList[];
+    $btrTrigSelectionList = `textScrollList -q -ai btrSelectObjList`;
+}
+
+global proc btrSelectDel() {
+    string $selList[] = `textScrollList -q -si btrSelectObjList`;
+
+    for ($i in $selList) {
+        textScrollList -e -ri $i btrSelectObjList;
+    }
+    
+	btrSelectObjListCommand;
+    //refresh global var
+    global string $btrTrigSelectionList[];
+    $btrTrigSelectionList = `textScrollList -q -ai btrSelectObjList`;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//ATTRIBUTE SETTING PROCEDURES
+global proc btrSetattrGet(int $keyable) {
+	
+    string $selList[] = `ls -sl`;
+    if (size($selList) <= 0) {
+        //the selection list is empty
+        error ("no objects were selected\n");
+        return ;
+    }
+	
+	int $attrCount;
+	string $cmd;
+	string $curAttrs[] = `textScrollList -q -ai btrSetattrObjList`;
+	string $curAttrStr = "^"+`stringArrayToString $curAttrs "^"`+"^";
+	
+	if ($keyable) {
+		$attrCount = size(`listAttr -m -s -r -c -k -v $selList`);
+	} else {
+		$attrCount = size(`listAttr -v -cb $selList`);
+	}	
+	progressBar -e -max $attrCount btrTrigProgBar;
+	
+	$cmd = "textScrollList -e ";
+    for ($i in $selList) {
+        //get all the keyable attributes of the current object
+		string $attrs[];
+        if ($keyable) {
+			$attrs = `listAttr -m -s -r -c -k -v $i`;
+		} else {
+			$attrs = `listAttr -v -cb $i`;
+		}
+        
+        string $objSplit[] = stringToStringArray($i, ".");
+        string $obj = $objSplit[0];
+        
+        for ($attr in $attrs) {
+            //check if the object is already on the list
+            if (!size(`match ("\\^"+$obj+"."+$attr+"\\^") $curAttrStr`))
+				$cmd += ("-a "+$obj+"."+$attr+" ");
+			
+			progressBar -e -s 1 btrTrigProgBar;
+        }
+    }
+	$cmd += " btrSetattrObjList";
+	eval($cmd);
+    
+	progressBar -e -pr 0 btrTrigProgBar;
+	
+    //refresh global var
+    global string $btrTrigAttributeList[];
+    $btrTrigAttributeList = `textScrollList -q -ai btrSetattrObjList`;
+}
+
+
+global proc btrSetattrDelAttr(int $attrType) {
+    //0 = translate, 1 = rotate, 2 = scale, 3 = visibility, 4 = custom
+    
+    string $attrExt;
+    
+    switch ($attrType) {
+        case 0:
+            $attrExt = "translate";
+            break;
+        case 1:
+            $attrExt = "rotate";
+            break;
+        case 2:
+            $attrExt = "scale";
+            break;
+        case 3:
+            //no need, visibility is a special case
+            break;
+        case 4:
+            //no need, custom is a special case
+            break;
+    }
+    
+    if ($attrType < 3) {
+        //delete script for everything but visibility and custom
+        string $itemList[] = `textScrollList -q -ai btrSetattrObjList`;
+        int $i;
+        for ($i = 0; $i < size($itemList); $i++) {
+            if (endsWith($itemList[$i], "."+$attrExt+"X") || endsWith($itemList[$i], "."+$attrExt+"Y") || endsWith($itemList[$i], "."+$attrExt+"Z")) {
+                textScrollList -e -rii ($i+1) btrSetattrObjList;
+                stringArrayRemoveAtIndex($i, $itemList);
+                $i--;
+            }
+        }
+    } else if ($attrType == 3) {
+        //delete all visibility attributes
+        string $itemList[] = `textScrollList -q -ai btrSetattrObjList`;
+        int $i;
+        for ($i = 0; $i < size($itemList); $i++) {
+            if (endsWith($itemList[$i], ".visibility")) {
+                textScrollList -e -rii ($i+1) btrSetattrObjList;
+                stringArrayRemoveAtIndex($i, $itemList);
+                $i--;
+            }
+        }
+    } else if ($attrType == 4) {
+        //delete all custom attributes
+        string $itemList[] = `textScrollList -q -ai btrSetattrObjList`;
+        int $i;
+        for ($i = 0; $i < size($itemList); $i++) {
+            //nested checks for translate, rotate, scale, or visibility, otherwise delete
+            if (!endsWith($itemList[$i], ".translateX") && !endsWith($itemList[$i], ".translateY") && !endsWith($itemList[$i], ".translateZ")) {
+                if (!endsWith($itemList[$i], ".rotateX") && !endsWith($itemList[$i], ".rotateY") && !endsWith($itemList[$i], ".rotateZ")) {
+                    if (!endsWith($itemList[$i], ".scaleX") && !endsWith($itemList[$i], ".scaleY") && !endsWith($itemList[$i], ".scaleZ")) {
+                        if (!endsWith($itemList[$i], ".visibility")) {
+                            textScrollList -e -rii ($i+1) btrSetattrObjList;
+                            stringArrayRemoveAtIndex($i, $itemList);
+                            $i--;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+	btrSetattrObjListCommand;
+    //refresh global var
+    global string $btrTrigAttributeList[];
+    $btrTrigAttributeList = `textScrollList -q -ai btrSetattrObjList`;
+}
+
+global proc btrSetattrDel() {
+    string $selList[] = `textScrollList -q -si btrSetattrObjList`;
+
+    for ($i in $selList) {
+        textScrollList -e -ri $i btrSetattrObjList;
+    }
+    
+	btrSetattrObjListCommand;
+    //refresh global var
+    global string $btrTrigAttributeList[];
+    $btrTrigAttributeList = `textScrollList -q -ai btrSetattrObjList`;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//MEL SCRIPT PROCEDURES
+global proc btrMelscriptTest() {
+    //refresh global var
+    global string $btrTrigMelscript;
+    $btrTrigMelscript = `scrollField -q -tx btrMelscriptField`;
+    
+    string $script = `scrollField -q -tx btrMelscriptField`;
+    if ($script == "") {
+        print ("//no script to test\n");
+        return;
+    }
+    if (endsWith($script, ";") || endsWith($script, "}")) {
+        evalEcho($script);
+    } else {
+        warning ("script does not end with a ';' or '}', this will interfere with your trigger");
+        return;
+    }
+    
+
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//TRIGGER PROCEDURES
+global proc btrTrigRefresh() {
+//repopulates the list with the current triggers in the scene
+
+    //clear the current list
+	string $selList[] = `textScrollList -q -si btrTrigList`;
+    textScrollList -e -ra btrTrigList;
+    
+	int $trigCount = 0;
+    string $appendCmd;
+	string $selectCmd;
+    string $trigList[], $trigGrpList[];
+    
+    //get lists
+    $trigList = `ls -r 1 "*btrTrig_*"`;
+	$trigGrpList = `ls -r 1 "*btrTrigGrp_*"`;
+    $trigCount = size($trigList)+size($trigGrpList);
+    
+	//REGULAR
+	$appendCmd = "textScrollList -e ";
+    for ($trig in $trigList)
+		$appendCmd += ("-a "+$trig+" ");
+	$appendCmd += "btrTrigList";
+	eval($appendCmd);
+		
+    //GROUPED
+	$appendCmd = "textScrollList -e ";
+    for ($trig in $trigGrpList)
+		$appendCmd += ("-a "+$trig+" ");
+	$appendCmd += "btrTrigList";
+	eval($appendCmd);
+	
+	if (size($selList) > 0) {
+		$selectCmd = "textScrollList -e ";
+		for ($trig in $selList) {
+			if (`objExists $trig`)
+				$selectCmd += ("-si "+$trig+" ");
+		}
+		$selectCmd += "btrTrigList";
+		eval($selectCmd);
+	}
+    
+    text -e -l  (" Triggers: "+$trigCount+"") btrTrigText;
+    text -e -l ("") btrTrigListText;
+}
+global proc btrTrigCheck(int $useSelected, int $promptUpdate) {
+//checks triggers for non-unique ctls, old version, or unrecognizeable structures
+
+	global string $btrTrigCurrentVersion;
+    int $trigCount = 0;
+    int $nonUnique = 0;
+    int $notUpdated = 0;
+	int $notRecognized = 0;
+    string $trigList[], $trigGrpList[], $unrecogList[];
+    
+    //get lists
+	if ($useSelected) {
+		string $selected[] = `textScrollList -q -si btrTrigList`;
+		for ($trig in $selected) {
+			if (`gmatch $trig "*btrTrigGrp_*"`) {
+				$trigGrpList[size($trigGrpList)] = $trig;
+			} else {
+				$trigList[size($trigList)] = $trig;
+			}
+		}
+	} else {
+		//get lists
+		$trigList = `ls -r 1 "*btrTrig_*"`;
+		$trigGrpList = `ls -r 1 "*btrTrigGrp_*"`;
+	}
+    $trigCount = size($trigList)+size($trigGrpList);
+    
+	if ($trigCount > 0) {
+        progressBar -e -min 0 -max $trigCount -pr 0 btrTrigProgBar;
+    
+        //REGULAR
+        text -e -l "checking regular triggers..." btrTrigListText;
+        for ($trig in $trigList) {
+			if (btrTrig_getVersion($trig) == "") {
+				$notRecognized++;
+				$unrecogList[size($unrecogList)] = $trig;
+			} else if (btrTrig_getVersion($trig) != $btrTrigCurrentVersion) {
+                $notUpdated++;
+			}
+            progressBar -e -step 1 btrTrigProgBar;
+        }
+		
+        //GROUPED
+		for ($trig in $trigGrpList) {
+			if (btrTrig_getVersion($trig) == "") {
+				$notRecognized++;
+				$unrecogList[size($unrecogList)] = $trig;
+			} else if (btrTrig_getVersion($trig) != $btrTrigCurrentVersion) {
+                $notUpdated++;
+			}
+			progressBar -e -step 1 btrTrigProgBar;
+		}
+        
+        progressBar -e -min 0 -max 10 -pr 0 btrTrigProgBar;
+        
+        //results
+		text -e -l "checking trigger validity..." btrTrigListText;
+		if ($notRecognized > 0) {
+			string $messageStr = "These triggers were made before version 0.7\n and need to be deleted and recreated:\n\n";
+			for ($trig in $unrecogList) {
+				$messageStr += ($trig+"\n");
+			}
+			$messageStr += "\nClick Delete Now to delete them,\n or OK to continue";
+			string $confirm = `confirmDialog -title ($notRecognized+" trigger(s) are not recognized...")
+					-message $messageStr
+					-ma "left"
+					-p btrWin
+					-button "Delete Now"
+					-button "OK"
+					-defaultButton "Delete Now"
+					-cancelButton "OK"
+					-dismissString "OK"`;
+			
+			if ($confirm == "Delete Now") {
+				//delete the bad triggers
+				btrTrigDelete($unrecogList);
+			}
+		}
+        text -e -l "checking non-unique..." btrTrigListText;
+        if ($nonUnique > 0) {
+            warning ("there are "+$nonUnique+" non-unique triggers in this scene!");
+            string $confirm = `confirmDialog -title ($nonUnique + " non-unique triggers were found...")
+                    -message ("This could be due to an imported scene without prefixing or namespaces.\nThose triggers won't work until the control objects are renamed/deleted.")
+                    -ma "center"
+                    -p btrWin
+                    -button "OK"
+                    -defaultButton "OK"
+                    -cancelButton "OK"
+                    -dismissString "OK"`;
+        }
+        text -e -l "checking versions..." btrTrigListText;
+        if (`menuItem -q -cb btrOptMenuCheckVersions` && $promptUpdate) {
+            if ($notUpdated > 0) {
+                string $confirm = `confirmDialog -title ($notUpdated + " trigger(s) need to be updated...")
+                        -message ("Update "+$notUpdated+" triggers to the latest version ("+$btrTrigCurrentVersion+")?\n\n(Manually update using Advanced > Update All Triggers)\n(Turn off this check using Options > Check Versions)")
+                        -ma "center"
+                        -p btrWin
+                        -button "Update"
+                        -button "Cancel"
+                        -defaultButton "Update"
+                        -cancelButton "Cancel"
+                        -dismissString "Cancel"`;
+                
+                if ($confirm == "Update")
+                    btrTrigUpdate 0;
+            }
+        }
+        
+    }
+    text -e -l ("") btrTrigListText;
+}
+global proc btrTrigPrintInfo() {
+//prints the information about the selected triggers
+
+    string $trigList[] = `textScrollList -q -si btrTrigList`;
+	if (!size($trigList)) {
+		print ("// no triggers were selected");
+		return;
+	}
+	
+	print ("\n// start trigger info\n");
+	for ($trig in $trigList) {
+		string $printStr = "";
+		int $isGroup = 0;
+		int $ctlObjCount = 0;
+		string $version = "";
+		string $ctlObjs[] = {};
+		string $ctlObjStr = "";
+		
+		//get info
+		$isGroup = btrTrig_groupCheck($trig);
+		$version = btrTrig_getVersion($trig);
+		$ctlObjs = btrTrig_getCtlObjs($trig);
+		$version = btrTrig_getVersion($trig);
+		$ctlObjStr = stringArrayToString($ctlObjs, ", ");
+		$ctlObjCount = size($ctlObjs);
+		
+		//add to print string
+		$printStr = "// trigger"+($isGroup == 1 ? " group" : "")+": "+$trig+"\n";
+		$printStr += "//	version: "+($version != "" ? $version : "[unknown]")+"\n";
+		$printStr += "//	triggers("+$ctlObjCount+"): "+($ctlObjStr != "" ? $ctlObjStr : "[none]")+"\n";
+		$printStr += "//\n";
+		
+		print $printStr;
+	}
+	
+    print ("// end trigger info\n");
+	ScriptEditor;
+}
+global proc btrTrigSelectNode() {
+    string $trigList[] = `textScrollList -q -si btrTrigList`;
+    if (!size($trigList)) return ;
+    
+    //check version number
+    if (btrTrig_getVersion($trigList[0]) == "") return ;
+	
+	
+	//get control objects
+	string $ctlObjs[];
+	$ctlObjs = btrTrig_getCtlObjs($trigList[0]);
+	if (!size($ctlObjs))
+		return;
+    
+    //check for non-unique, if it exists
+	for ($ctlObj in $ctlObjs) {
+		string $longObjs[] = `ls -long $ctlObj`;
+		if (size($longObjs) > 1) {
+			print ("\n\n//Non-unique objects:\n\n");
+			for ($obj in $longObjs) {
+				print ($obj+"\n");
+			}
+			print "\n";
+			error ("name is not unique: "+$ctlObj+". Delete non-unique nodes or rename if you want this trigger to work (see script editor for objects)");
+			return ;
+		}
+	}
+    
+    //using selection mode (old version renamed triggers, it was messy)
+    global int $btrTrigSelectionMode;
+    int $wasOff = ($btrTrigSelectionMode == 0 ? 1 : 0);
+    
+    //enable selection mode, update window, and select ctlObj
+    $btrTrigSelectionMode = 1;
+    checkBox -e -v $btrTrigSelectionMode btrTrigSelModeCheck;
+    catch(`select $ctlObjs`);
+    
+    //if selection mode was off before, turn it back off, else leave it alone
+    if ($wasOff) {
+        evalDeferred("global int $btrTrigSelectionMode; $btrTrigSelectionMode = 0; checkBox -e -v $btrTrigSelectionMode btrTrigSelModeCheck;");
+    }
+}
+global proc btrTrigCreate() {
+	
+	//check for valid controller
+	string $ctlObj = `textField -q -tx btrControlObjField`;
+	string $ctlObjOrig = $ctlObj;
+	if ($ctlObj == "") {
+		error "no trigger object was specified\n";
+		return;
+	}
+	if (`gmatch $ctlObj "*:*"` == 1) {
+		//string $buffer[];
+		//$buffer = stringToStringArray($ctlObj, ":");
+		//$ctlObj = $buffer[size($buffer)-1];
+		$ctlObj = `substitute ":" $ctlObj "_"`;
+	}
+	if (`gmatch $ctlObj "*|*"` == 1) {
+		$ctlObj = `substitute "|" $ctlObj "_"`;
+	}
+	
+	string $trigList[] = `ls "btrTrig_*"`;
+	for ($trig in $trigList) {
+		if (`substring $trig 9 (size($trig))` == $ctlObj) {
+			string $confirm = `confirmDialog -title ($ctlObjOrig+" trigger already exists...")
+				-message ("Update/Replace the existing trigger, "+$ctlObjOrig+"?")
+				-ma "center"
+				-p btrWin
+				-button "Yes"
+				-button "No"
+				-defaultButton "Yes"
+				-cancelButton "No"
+				-dismissString "No"`;
+			if ($confirm == "No")
+				return;
+		}
+	}
+	
+	//get check box values for deselecting the trigger
+	int $autoDesel = `checkBox -q -v btrDeselTrigCheck`;
+	int $useMelscript = `checkBox -q -v btrMelscriptCheck`;
+	
+	//get selected items from reselection and attribute setting sections
+	string $selectObjs[] = `textScrollList -q -si btrSelectObjList`;
+	string $setattrAttrs[] = `textScrollList -q -si btrSetattrObjList`;
+	string $melscript = "";
+	if ($useMelscript == 1) {
+		$melscript = `scrollField -q -tx btrMelscriptField`;
+	}
+	
+	
+	$trigScriptNode = ("btrTrig_"+$ctlObj);
+	if (`objExists $trigScriptNode`) {
+		catch(`delete $trigScriptNode`);
+	}
+	
+	
+	//get attribute values
+	for ($i = 0; $i < size($setattrAttrs); $i++) {
+		$setattrAttrs[$i] = ($setattrAttrs[$i]+","+`getAttr $setattrAttrs[$i]`);
+	}
+	
+	string $trigScript[] = btrTrig_createTrigScript($ctlObjOrig, $selectObjs, $setattrAttrs, $melscript, $autoDesel);
+	
+	scriptNode -st 1 -bs $trigScript[0] -as $trigScript[1] -n $trigScriptNode;
+	scriptNode -eb $trigScriptNode;
+	
+	print ("//"+$ctlObjOrig+" trigger was created successfully!\n");
+	btrTrigRefresh;
+}
+global proc btrTrigGroupCreate() {
+	//load selected triggers
+	string $trigList[] = `textScrollList -q -si btrTrigList`;
+	if (!size($trigList)) {
+		error("no triggers were selected, please select them in the Triggers List");
+		return;
+	}
+	if (size($trigList) < 2) {
+		error("select at least two triggers, no point in grouping only one");
+		return;
+	}
+	for ($trig in $trigList) {
+		if (size(`match ":" $trig`)) {
+			error("cannot group/ungroup referenced triggers because they are read only, group or ungroup them before referencing");
+			return;
+		}
+		if (size(`match "btrTrigGrp_" $trig`)) {
+			error ("cannot group a group trigger, ungroup first then select all of the groups triggers");
+			return;
+		}
+	}
+	
+	
+	string $groupName;
+	string $result = `promptDialog
+			-parent "btrWin"
+			-title "Create Group"
+			-message "Enter Name (must be unique):"
+			-button "OK"
+			-button "Cancel"
+			-db "OK"
+			-cb "Cancel"`;
+	if ($result == "OK" ) {
+		$groupName = `promptDialog -q -text`;
+	} else {
+		return;
+	}
+	
+	//check for blank
+	if ($groupName == "") {
+		error("groups must have a name");
+		return;
+	}
+	//check for unique
+	if (size(`ls ("btrTrigGrp_"+$groupName)`) > 0)
+		return;
+	
+	
+	//generate the script
+	$trigScript = `btrTrig_createTrigGroupScript $groupName $trigList`;
+	$trigScriptNode = ("btrTrigGrp_"+$groupName);
+	
+	scriptNode -st 1 -bs $trigScript[0] -as $trigScript[1] -n $trigScriptNode;
+    scriptNode -eb $trigScriptNode;
+	
+	//delete source triggers
+	print ("deleting indiviual triggers...\n");
+	for ($trig in $trigList) {
+        if ( catch(`delete $trig`) ) {
+            warning ("see script editor for errors, the triggers may not be deletable (referenced or read-only)");
+        } else {
+            print ("//"+$trig+" deleted successfully\n");
+        }
+    }
+	
+	print("//trigger group "+$trigScriptNode+" was created successfully\n");
+	
+    btrTrigRefresh;
+}
+global proc btrTrigGroupExpand() {
+//takes a group and turns it into several triggers
+
+	//get selected triggers
+	string $trigList[] = `textScrollList -q -si btrTrigList`;
+	if (!size($trigList)) return ;
+	
+	for ($trig in $trigList) {
+		if (size(`match ":" $trig`)) {
+			error("cannot group/ungroup referenced triggers because they are read only. group or ungroup them before referencing");
+			return;
+		}
+		if (!size(`match "btrTrigGrp" $trig`)) {
+			error("cannot ungroup normal triggers");
+			return;
+		}
+	}
+	
+	string $expandedTrigList[];
+	for ($i = 0; $i < size($trigList); $i++) {
+		//get the group trigger info
+		string $ctlObjs[] = btrTrig_getCtlObjs($trigList[$i]);
+		string $actions[] = btrTrig_getActions($trigList[$i]);
+		
+		for ($j = 0; $j < size($ctlObjs); $j++) {
+			//create safe name ctlObj
+			string $safeCtlObj = `substitute ":" $ctlObjs[$j] "_"`;
+			
+			string $autoDesel = btrTrig_getAutoDeselect($ctlObjs[$j], $actions[$j]);
+			string $selectObjs[] = btrTrig_getSelectObjs($actions[$j]);
+			string $setattrAttrs[] = btrTrig_getSetattrAttrs($actions[$j]);
+			string $melscript = btrTrig_getMelscript($actions[$j]);
+			
+			string $trigScript[] = btrTrig_createTrigScript($ctlObjs[$j], $selectObjs, $setattrAttrs, $melscript, $autoDesel);
+			string $trigScriptNode = ("btrTrig_"+$safeCtlObj);
+			
+			scriptNode -st 1 -bs $trigScript[0] -as $trigScript[1] -n $trigScriptNode;
+			scriptNode -ea $trigScriptNode;
+			scriptNode -eb $trigScriptNode;
+			
+			$expandedTrigList[size($expandedTrigList)] = $trigScriptNode;
+		}
+		
+		delete $trigList[$i];
+	}
+	
+	btrTrigRefresh;
+	
+	textScrollList -e -da btrTrigList;
+	for ($trig in $expandedTrigList) {
+		textScrollList -e -si $trig btrTrigList;
+	}
+	
+	print ("//"+size($trigList)+" trigger group(s) successfully ungrouped\n");
+}
+global proc btrTrigLoad() {
+    string $trigList[] = `textScrollList -q -si btrTrigList`;
+    
+    if (!size($trigList)) return ;
+    
+    textScrollList -e -da btrSelectObjList;
+    textScrollList -e -da btrSetattrObjList;
+    
+    for ($i = 0; $i < size($trigList); $i++) {
+		if (size(`match ".*btrTrigGrp_.*" $trigList[$i]`))
+			continue;
+		
+        //get the information
+        string $ctlObjs[] = btrTrig_getCtlObjs($trigList[$i]);
+		string $ctlObj = $ctlObjs[0];
+		string $actions[] = btrTrig_getActions($trigList[$i]);
+        string $selectObjs[] = btrTrig_getSelectObjs($actions[0]);
+        string $setattrAttrs[] = btrTrig_getSetattrAttrs($actions[0]);
+        string $melscript = btrTrig_getMelscript($actions[0]);
+        
+        if (`menuItem -q -cb btrOptMenuIncludeControl`)
+            textField -e -tx $ctlObj btrControlObjField;
+        
+        //check for reselection, then add
+        if (size($selectObjs) > 0) {
+            progressBar -e -min 0 -max `size($selectObjs)` -pr 0 btrTrigProgBar;
+            for ($obj in $selectObjs) {
+                // add object if it doesnt exist
+                string $objList[] = `textScrollList -q -ai btrSelectObjList`;
+                int $dup = 0;
+                for ($exObj in $objList) {
+                    if ($obj == $exObj) {
+                        $dup = 1;
+                    }
+                }
+                //if dup was not set to true, then the object is not already on the list
+                if ($dup == 0)
+                    textScrollList -e -append $obj btrSelectObjList;
+                textScrollList -e -si $obj btrSelectObjList;
+                
+                progressBar -e -step 1 btrTrigProgBar;
+            }
+        }
+        
+        //check for attribute setting, then add
+        if (size($setattrAttrs) > 0) {
+            progressBar -e -min 0 -max `size($setattrAttrs)` -pr 0 btrTrigProgBar;
+            for ($attr in $setattrAttrs) {
+                string $attrSplit[] = stringToStringArray($attr, ",");
+                // add item if it doesnt exist
+                string $attrList[] = `textScrollList -q -ai btrSetattrObjList`;
+                int $dup = 0;
+                for ($exAttr in $attrList) {
+                    if ($attrSplit[0] == $exAttr) {
+                        $dup = 1;
+                        break;
+                    }
+                }
+                //if dup was not set to true, then the object is not already on the list
+                if ($dup == 0)
+                    textScrollList -e -append $attrSplit[0] btrSetattrObjList;
+                textScrollList -e -si $attrSplit[0] btrSetattrObjList;
+                
+                progressBar -e -step 1 btrTrigProgBar;
+            }
+        }
+        progressBar -e -min 0 -max 10 -pr 0 btrTrigProgBar;
+        
+        if ($melscript != "") {
+            string $curMelscriptStr = `scrollField -q -tx btrMelscriptField`;
+            print $curMelscriptStr;
+            print "\n\n\n\n\n";
+            print $melscript;
+            if (!`gmatch $curMelscriptStr ("*"+$melscript+"*")`) {
+                if ($curMelscriptStr != "") {
+                    $curMelscriptStr += ("\n\n"+$melscript);
+                    scrollField -e -tx $curMelscriptStr btrMelscriptField;
+                } else {
+                    scrollField -e -tx $melscript btrMelscriptField;
+                }
+            }
+        }
+    }
+    
+    //update global vars
+    global string $btrTrigSelectionList[];
+    $btrTrigSelectionList = `textScrollList -q -ai btrSelectObjList`;
+    global string $btrTrigAttributeList[];
+    $btrTrigAttributeList = `textScrollList -q -ai btrSetattrObjList`;
+    global string $btrTrigMelscript;
+    $btrTrigMelscript = `scrollField -q -tx btrMelscriptField`;
+}
+global proc btrTrigDelete(string $trigList[]) {
+    
+    if (size($trigList) == 0) {
+        //no item was selected
+        return ;
+    }
+    for ($i in $trigList) {
+        //coolest thing ever, when you kill the script node it kills the script job
+        
+        if ( catch(`delete $i`) ) {
+            warning ("see script editor for errors, the triggers may not be deletable (referenced or read-only)");
+        } else {
+            print ("//script node was deleted successfully\n");
+        }
+    }
+    
+    btrTrigRefresh;
+}
+global proc btrTrigUpdate(int $useSelected) {
+    //counters
+    int $fixed = 0, $fixedGrp = 0;
+    string $trigList[], $trigGrpList[], $unrecogList[];
+	clear $trigList;
+	clear $trigGrpList;
+	
+	if ($useSelected) {
+		string $selected[] = `textScrollList -q -si btrTrigList`;
+		for ($trig in $selected) {
+			if (`gmatch $trig "*btrTrigGrp_*"`) {
+				$trigGrpList[size($trigGrpList)] = $trig;
+			} else {
+				$trigList[size($trigList)] = $trig;
+			}
+		}
+	} else {
+		//get lists
+		$trigList = `ls -r 1 "*btrTrig_*"`;
+		$trigGrpList = `ls -r 1 "*btrTrigGrp_*"`;
+	}
+	
+    $trigCount = size($trigList)+size($trigGrpList);
+	
+    if ($trigCount == 0) {
+        print ("//no triggers to update\n");
+        return ;
+    }
+    
+    //REBUILD TRIGGERS
+    for ($i = 0; $i < size($trigList); $i++) {
+		//trigList[$i] is the name of the script node, it contains the prefix information
+		//get type of trigger (none, :, or _)
+		string $type = "none";
+		if (size(`match ":btrTrig" (""+$trigList[$i])`)) {
+			$type = ":";
+		} else if (size(`match "_btrTrig" (""+$trigList[$i])`)) {
+			$type = "_";
+		}
+        //get current trigger information
+        string $version = btrTrig_getVersion($trigList[$i]);
+        if ($version == "") {
+            $unrecogList[size($unrecogList)] = $trigList[$i];
+			continue ;
+        }
+        string $ctlObjs[] = btrTrig_getCtlObjs($trigList[$i]);
+		string $ctlObj = $ctlObjs[0];
+		string $actions[] = btrTrig_getActions($trigList[$i]);
+        string $autoDesel = btrTrig_getAutoDeselect($ctlObj, $actions[0]);
+        string $selectObjs[] = btrTrig_getSelectObjs($actions[0]);
+        string $setattrAttrs[] = btrTrig_getSetattrAttrs($actions[0]);
+        string $melscript = btrTrig_getMelscript($actions[0]);
+		//
+		string $newCtlObj = $ctlObj;
+		string $newSelectObjs[] = $selectObjs;
+		string $newSetattrAttrs[] = $setattrAttrs;
+		//
+        string $prefix = "";
+		
+		//perform non-regular trigger actions
+		if ($type != "none") {
+			string $prefix = `substitute ($type+"btrTrig_.*") $trigList[$i] ""`;
+			
+			//update ctlObj
+			if (`objExists ($prefix+$type+$ctlObj)`)
+				$newCtlObj = ($prefix+$type+$ctlObj);
+			//update selectObjs
+			for ($j = 0; $j < size($newSelectObjs); $j++) {
+				if (`objExists ($prefix+$type+$newSelectObjs[$j])`)
+					$newSelectObjs[$j] = ($prefix+$type+$newSelectObjs[$j]);
+			}
+			//update setattrAttrs
+			for ($j = 0; $j < size($newSetattrAttrs); $j++) {
+				string $attrSplit[] = stringToStringArray($newSetattrAttrs[$j], ",");
+				if (`objExists ($prefix+$type+$attrSplit[0])`)
+					$newSetattrAttrs[$j] = ($prefix+$type+$attrSplit[0]+","+$attrSplit[1]);
+			}
+		}
+		
+        //generate scriptNode script
+        string $trigScript[] = btrTrig_createTrigScript($newCtlObj, $newSelectObjs, $newSetattrAttrs, $melscript, $autoDesel);
+        //edit the script node
+        scriptNode -ea $trigList[$i];
+        scriptNode -e -bs $trigScript[0] -as $trigScript[1] $trigList[$i];
+        scriptNode -eb $trigList[$i];
+        
+        $fixed++;
+    }
+    
+	
+	//REBUILD GROUP TRIGGERS
+	for ($i = 0; $i < size($trigGrpList); $i++) {
+		//groups didn't exist before 1.3, so theyre all updateable
+		string $type = "none";
+		if (size(`match ":btrTrigGrp" (""+$trigGrpList[$i])`)) {
+			$type = ":";
+		} else if (size(`match "_btrTrigGrp" (""+$trigGrpList[$i])`)) {
+			$type = "_";
+		}
+        //get trigger group info
+		string $ctlObjs[] = {};
+		string $actions[] = {};
+		$ctlObjs = btrTrig_getCtlObjs($trigGrpList[$i]);
+		$actions = btrTrig_getActions($trigGrpList[$i]);
+		string $ctlObjStr = "^";
+		//
+		string $groupName = `substitute ".*btrTrigGrp_" $trigGrpList[$i] ""`;
+		$groupName = `substitute "_btrTrigProc$" $groupName ""`;
+		//
+        string $prefix = "";
+		if ($type != "none") {
+			$prefix = `substitute ($type+"btrTrigGrp_.*") $trigGrpList[$i] ""`;
+		}
+		
+		//in order to allow for multiples of the same character, we need to append the prefix to the end of group name
+		//currently using two underscores in case we ever need to remove it
+		$groupName = ($groupName+"__"+$prefix);
+		
+		//now build a new trigSnippets
+		string $trigSnippets[] = {};
+		for ($j = 0; $j < size($ctlObjs); $j++) {
+			if (size(`match ("^"+$ctlObjs[$j]+"^") $ctlObjStr`)) {
+				//skip this bcause its a duplicate
+				continue;
+			}
+			//append to enable duplicate checking
+			$ctlObjStr += ($ctlObjs[$j]+"^");
+			
+			//update ctlObj
+			string $autoDesel = btrTrig_getAutoDeselect($ctlObjs[$j], $actions[$j]);
+			string $selectObjs[] = btrTrig_getSelectObjs($actions[$j]);
+			string $setattrAttrs[] = btrTrig_getSetattrAttrs($actions[$j]);
+			string $melscript = btrTrig_getMelscript($actions[$j]);
+			//
+			string $newCtlObj = $ctlObjs[$j];
+			string $newSelectObjs[] = $selectObjs;
+			string $newSetattrAttrs[] = $setattrAttrs;
+			
+			if ($type != "none") {
+				if (`objExists ($prefix+$type+$ctlObjs[$j])`)
+					$newCtlObj = ($prefix+$type+$ctlObjs[$j]);
+				//update selectObjs
+				for ($k = 0; $k < size($newSelectObjs); $k++) {
+					if (`objExists ($prefix+$type+$newSelectObjs[$k])`)
+						$newSelectObjs[$k] = ($prefix+$type+$newSelectObjs[$k]);
+				}
+				//update setattrAttrs
+				for ($k = 0; $k < size($newSetattrAttrs); $k++) {
+					string $attrSplit[] = stringToStringArray($newSetattrAttrs[$k], ",");
+					if (`objExists ($prefix+$type+$attrSplit[0])`)
+						$newSetattrAttrs[$k] = ($prefix+$type+$attrSplit[0]+","+$attrSplit[1]);
+				}
+			}
+			string $curNum = btrPadNumber(($j+1), 3);
+			
+			//generate snippet
+			$trigSnippets[size($trigSnippets)] = btrTrig_createTrigGroupSnippet($curNum, $newCtlObj, $newSelectObjs, $newSetattrAttrs, $melscript, $autoDesel);
+		}
+		
+		//before and after scripts
+		$beforeScript = btrTrig_createTrigGroupBeforeScript($groupName, $trigSnippets);
+		$afterScript = btrTrig_createTrigAfterScript(1, $groupName);
+		
+        //generate scriptNode script
+        //edit the script node
+        scriptNode -ea $trigGrpList[$i];
+        scriptNode -e -bs $beforeScript -as $afterScript $trigGrpList[$i];
+        scriptNode -eb $trigGrpList[$i];
+        
+        $fixedGrp++;
+	}
+	
+	//print unrecognized list
+	if (size($unrecogList) > 0) {
+		$printStr = "\n// unrecognized triggers:\n";
+		for ($trig in $unrecogList) {
+			$printStr += ("//	"+$trig+"\n");
+		}
+		$printStr += "//\n";
+		print $printStr;
+	}
+	
+    $printStr = "";
+    if ($fixed > 0)
+        $printStr += ($fixed+" trigger(s) updated/rebuilt; ");
+	if ($fixedGrp > 0)
+		$printStr += ($fixedGrp+" trigger group(s) updated/rebuilt; ");
+    if (size($unrecogList) > 0)
+       $printStr += (size($unrecogList)+" triggers weren't recognized (see script editor for list)");
+    $printStr += "\n";
+    
+    if (size($unrecogList) > 0) {
+        warning $printStr;
+    } else {
+        print ("// "+$printStr);
+    }
+	
+	btrTrigRefresh;
+}
+global proc btrTrigExport() {
+    string $trigList[] = `textScrollList -q -si btrTrigList`;
+    
+    if (size($trigList) == 0) {
+        //no item was selected
+		warning("no triggers were selected to export");
+        return ;
+    }
+    select -cl;
+    for ($i in $trigList) {
+        select -add $i;
+    }
+    
+    ExportSelection;
+    btrTrigRefresh;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//SCRIPT JOB PROCEDURES
+global proc btrScriptJobsList() {
+    ScriptEditor;
+    print (`scriptJob -lj`);
+    print "// NOTE:\n// Type \"scriptJob -kill #\" to delete a specified script job\n// Alternatively, enter the number in the Advanced section of the Triggers window\n// DO NOT delete jobs you didn't create!!\n";
+}
+
+global proc btrScriptJobKill() {
+    string $text;
+    string $result = `promptDialog
+        -title "Job Number"
+        -message "Enter an integer:"
+        -button "OK" -button "Cancel"
+        -defaultButton "OK" -cancelButton "Cancel"
+        -dismissString "Cancel"`;
+
+    if ($result == "OK") {
+        $text = `promptDialog -query -text`;
+    } else {
+        return ;
+    }
+
+    int $killJobNum = int($text);
+    if ($killJobNum <= 29) {
+        print "//\n// NOTE: The first 29 script jobs are usually pre-defined by Maya and are necessary to the system\n";
+        print ("// If you are sure " + $killJobNum + " is correct, use \"scriptJob -kill " + $killJobNum + " \" to remove the job manually\n //\n");
+        error "the script job number is invalid, see the script editor for details";
+        return;
+    }
+    
+    print "// no warning means the job was killed successfully\n";
+    scriptJob -kill $killJobNum;
+}
+
+global proc btrScriptJobsDeleteAll() {
+//deletes all script jobs whos event ends with "_trigProc"
+	
+	int $killCount;
+	string $scriptJobList[] = `scriptJob -lj`;
+	for ($job in $scriptJobList) {
+		string $num = `match "^[0-9]*[^:]*" $job`;
+		string $matchStr1 = "\"SelectionChanged\" \".*_trigProc\"";
+		string $matchStr2 = "\"SelectionChanged\" \".*_btrTrigProc\"";
+		string $match1 = (`match $matchStr1 $job`);
+		string $match2 = (`match $matchStr2 $job`);
+		if (size($match1) > 0 || size($match2) > 0) {
+			scriptJob -k ((int)$num);
+			$killCount ++;
+		}
+	}
+	print ("// "+$killCount+" trigger job(s) were deleted. Use Advanced > Update All Triggers to recreate existing triggers.");
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//TRIGGER INFORMATION RETRIEVAL PROCEDURES (LOADING PROCEDURES)
+global proc string[] btrTrig_getScriptLines(string $trigger) {
+//returns an array containing each line of a trigger script
+    if (!size(`ls -typ script $trigger`)) return {};
+    
+    string $script = `scriptNode -q -bs $trigger`;
+    string $scriptLines[] = stringToStringArray($script, "\n");
+    return $scriptLines;
+}
+global proc string[] btrTrig_getActions(string $trigger) {
+//returns an array containing all of the action segments
+//this is the script in between ACTIONS_BEGIN and ACTIONS_END
+//works for both regular and group triggers
+
+	string $actions[] = {};
+	string $script[] = `btrTrig_getScriptLines $trigger`;
+	int $foundBegin = 0, $foundEnd = 1;
+	int $beginIndeces[], $endIndeces[];
+	
+	for ($i = 0; $i < size($script); $i++) {
+		if ($foundEnd) {
+			if (`gmatch $script[$i] "*//ACTIONS_BEGIN*"`) {
+				$beginIndeces[size($beginIndeces)] = $i;
+				$foundEnd = 0;
+				$foundBegin = 1;
+			}
+		} else if ($foundBegin) {
+			if (`gmatch $script[$i] "*//ACTIONS_END*"`) {
+				$endIndeces[size($endIndeces)] = $i;
+				$foundEnd = 1;
+				$foundBegin = 0;
+			}
+		}
+	}
+	
+	for ($i = 0; $i < size($beginIndeces); $i++) {
+		string $curString = "";
+		if ($beginIndeces[$i] <= $endIndeces[$i]) {
+			for ($j = $beginIndeces[$i]; $j <= $endIndeces[$i]; $j++) {
+				//add the line
+				$curString += $script[$j];
+				if ($j < $endIndeces[$i])
+					$curString += "\n";
+			}
+		}
+		$actions[size($actions)] = $curString;
+	}
+	
+	return $actions;
+}
+global proc string btrTrig_getVersion(string $trigger) {
+//get the version of the trigger
+
+    string $version = "";
+    string $script[] = btrTrig_getScriptLines($trigger);
+    //check the first line for the version number
+    if (`gmatch $script[0] "*v*"`) {
+        $version = `substitute "[^v]*v" $script[0] ""`;
+    }
+    
+    return $version;
+}
+global proc string[] btrTrig_getCtlObjs(string $trigger) {
+//get the control object of a regular trigger
+
+    string $ctlObjs[] = {};
+    string $version = btrTrig_getVersion($trigger);
+    string $script[] = btrTrig_getScriptLines($trigger);
+	int $isGroup = btrTrig_groupCheck($trigger);
+    
+    if ($version == "")
+		return {};
+	
+    if (!$isGroup) {
+		//the control object is found after the first "ls -sl"
+		for ($line in $script) {
+			if (`gmatch $line "*ls -sl*"`) {
+				//split it by "
+				string $buffer[] = stringToStringArray($line, "\"");
+				//second item (the item in quotes) is the control object
+				$ctlObjs[0] = $buffer[1];
+				break;
+			}
+		}
+	} else {
+		//the control objects are in the lines right after "//TRIGGER_00N"
+		for ($line in $script) {
+			string $ctlObj;
+			if (size(`match "if \\(size\\(\`match \"\\\\\\\\\^" $line`) > 0) {
+				$ctlObj = `match "\\^[^\\]*" $line`;
+				$ctlObj = `substitute "\\^" $ctlObj ""`;
+				$ctlObjs[size($ctlObjs)] = $ctlObj;
+			}
+		}
+	}
+    
+    
+    return $ctlObjs;
+}
+global proc int btrTrig_getAutoDeselect(string $ctlObj, string $actions) {
+//check for auto-deselect of control within the ACTIONS portion of a script
+
+	string $script[] = stringToStringArray($actions, "\n");
+	int $autoDesel = 0;
+	
+    for ($line in $script) {
+        if (size(`match ("select -d "+$ctlObj+";") $line`)) {
+            $autoDesel = 1;
+        }
+    }
+    
+    return $autoDesel;
+}
+global proc string[] btrTrig_getSelectObjs(string $actions) {
+//get reselection objects of a trigger
+
+	string $script[] = `stringToStringArray $actions "\n"`;
+	string $selectObjs[] = {};
+	//get script indeces
+	int $selectBI = 0;
+	int $selectEI = 0;
+	//requiring the $selectBI to be 0 means it has to be the first occurance
+	for ($i = 0; $i < size($script); $i++) {
+		if (`gmatch $script[$i] "*//SELECT*"`) {
+			if ($selectBI == 0) $selectBI = $i;
+		} else if (`gmatch $script[$i] "*//ENDSELECT*"`) {
+			if ($selectEI == 0) $selectEI = $i;
+		}
+	}
+	//no indeces means no select objects
+	if (!$selectBI || !$selectEI) return {};
+	
+	//parse the lines, add the objects
+	for ($i = ($selectBI+1); $i < $selectEI; $i++) {
+		string $itemArr[] = stringToStringArray($script[$i], " ");
+		string $item = $itemArr[size($itemArr)-1];
+		$item = `match "^[^;]*" $item`;
+		//add it
+		$selectObjs[size($selectObjs)] = $item;
+	}
+	
+	return $selectObjs;
+}
+global proc string[] btrTrig_getSetattrAttrs(string $actions) {
+//get attribute setting objects of a trigger
+//returns an array containing "attr,value" pairs
+
+    string $script[] = stringToStringArray($actions, "\n");
+    string $setattrAttrs[] = {};
+    //get script indeces
+    int $setattrBI = 0;
+    int $setattrEI = 0;
+    
+    //requiring the $setattrBI to be 0 means it has to be the first occurance
+    for ($i = 0; $i < size($script); $i++) {
+        if (`gmatch $script[$i] "*//SETATTR*"`) {
+            if ($setattrBI == 0) $setattrBI = $i;
+        } else if (`gmatch $script[$i] "*//ENDSETATTR*"`) {
+            if ($setattrEI == 0) $setattrEI = $i;
+        }
+    }
+
+    //no indeces means no select objects
+    if (!$setattrBI || !$setattrEI) return {};
+	
+    //parse the lines, add the objects
+    for ($i = ($setattrBI+1); $i < $setattrEI; $i++) {
+        string $itemArr[] = stringToStringArray($script[$i], " ");
+        string $item, $value;
+		if (size($itemArr) < 2)
+			continue;
+        $item = $itemArr[size($itemArr)-2];
+        $value = $itemArr[size($itemArr)-1];
+		$value = `match "^[^;]*" $value`;
+        
+        //add it
+        $setattrAttrs[size($setattrAttrs)] = ($item+","+$value);
+    }
+    
+    return $setattrAttrs;
+}
+global proc string btrTrig_getMelscript(string $actions) {
+//get mel script of a trigger
+
+    string $melscript = "";
+    string $script[] = stringToStringArray($actions, "\n");    
+    //get script indeces
+    int $melscriptBI = 0;
+    int $melscriptEI = 0;
+    
+    for ($i = 0; $i < size($script); $i++) {
+        if (`gmatch $script[$i] "*//MELSCRIPT*"`) {
+            if ($melscriptBI == 0) $melscriptBI = $i;
+        } else if (`gmatch $script[$i] "*//ENDMELSCRIPT*"`) {
+			//no checking means its the last occurrance, incase they put it in their own mel script
+            $melscriptEI = $i;
+        }
+    }
+    
+    //grab the string
+    if ($melscriptBI !=0) {
+        for ($i = ($melscriptBI+1); $i < $melscriptEI; $i++) {
+            $melscript += $script[$i];
+        }
+    }
+    
+    return $melscript;
+}
+global proc int btrTrig_groupCheck(string $trig) {
+//returns 1 if it's a group, 0 if it's a regular trigger
+
+	if (size(`match "btrTrigGrp_" $trig`)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//SCRIPT GENERATING PROCEDURES
+global proc string btrTrig_createTrigActionsScript(string $ctlObjOrig, string $selectObjs[], string $setattrAttrs[], string $melscript, int $autoDesel) {
+//returns the script from //ACTIONS_BEGIN to //ACTIONS_END
+	
+	string $script;
+	$script = "	//ACTIONS_BEGIN\n";
+    //check whether or not to deselect the controller
+    if ($autoDesel) $script += "	select -d "+$ctlObjOrig+";\n";
+    //RESELECTION
+    if (size($selectObjs) > 0) {
+        $script += "	\n	//SELECT\n";
+        for ($obj in $selectObjs) {
+            $script += "	select -add "+$obj+";\n";
+        }
+        $script += "	//ENDSELECT\n";
+    }
+    //ATTRIBUTE SETTING
+    if (size($setattrAttrs) > 0) {
+        $script += "	\n	//SETATTR\n";
+        for ($attr in $setattrAttrs) {
+            string $attrSplit[] = stringToStringArray($attr, ",");
+            $script += "	setAttr "+$attrSplit[0]+" "+$attrSplit[1]+";\n";
+        }
+        $script += "	//ENDSETATTR\n";
+    }
+    //MEL SCRIPT
+    if ($melscript != "") {
+        $script += "	\n	//MELSCRIPT\n";
+        $script += $melscript;
+        $script += "\n	//ENDMELSCRIPT\n";
+    }
+    $script += "	\n	//ACTIONS_END";
+	
+	return $script;
+}
+global proc string[] btrTrig_createTrigScript(string $ctlObj, string $selectObjs[], string $setattrAttrs[], string $melscript, int $autoDesel) {
+//returns string array containing before script and after script
+    
+    string $trigScript[];
+    string $beforeScript;
+    string $afterScript;
+    
+    //convert ctlObj for naming
+    string $ctlObjOrig = $ctlObj;
+    if (`gmatch $ctlObj "*:*"`) {
+        string $buffer[] = stringToStringArray($ctlObj, ":");
+        $ctlObj = $buffer[size($buffer)-1];
+    }
+    if (`gmatch $ctlObj "*|*"`) {
+        $ctlObj = `substitute "|" $ctlObj "_"`;
+    }
+    
+    //before script
+    $beforeScript = "//boTriggers v1.3\n	\n";
+    $beforeScript += "global proc " + $ctlObj + "_btrTrigProc() {\n";
+	$beforeScript += "\tglobal int $btrTrigSelectionMode;\n";
+	$beforeScript += "\tif ($btrTrigSelectionMode == 1) return;\n";
+	$beforeScript += "\tif (size(`ls -sl -r 1 \""+$ctlObjOrig+"\"`) == 0) return;\n	\n";
+	//insert actions script
+	$beforeScript += `btrTrig_createTrigActionsScript $ctlObjOrig $selectObjs $setattrAttrs $melscript $autoDesel`;
+	//end
+	$beforeScript += "\n\}\n";
+	$beforeScript += "scriptJob -cu 1 -kws -e \"SelectionChanged\" \""+$ctlObj+"_btrTrigProc\";";
+    
+    //after script
+    $afterScript = btrTrig_createTrigAfterScript(0, $ctlObj);
+	
+    $trigScript = {$beforeScript, $afterScript};
+    
+    return $trigScript;
+}
+global proc string[] btrTrig_createTrigGroupScript(string $groupName, string $trigList[]) {
+//returns string array containing before script and after script
+	
+	string $trigScript[] = {};
+	string $beforeScript;
+	string $afterScript;
+	string $trigSnippets[] = {};
+	
+	//get all the trig snippets
+	for ($i = 0; $i < size($trigList); $i++) {
+		string $curTrigSnippet = "";
+		string $trigger = $trigList[$i];
+		
+		string $ctlObjs[] = `btrTrig_getCtlObjs $trigger`;
+		string $ctlObj = $ctlObjs[0];
+		string $version = `btrTrig_getVersion $trigger`;
+		if ($version == "")
+			continue;
+		string $actions[] = `btrTrig_getActions $trigger`;
+		int $autoDesel = `btrTrig_getAutoDeselect $ctlObj $actions[0]`;
+		string $selectObjs[] = `btrTrig_getSelectObjs $actions[0]`;
+		string $setattrAttrs[] = `btrTrig_getSetattrAttrs $actions[0]`;
+		string $melscript = `btrTrig_getMelscript $actions[0]`;
+		
+		string $curNum = `btrPadNumber ($i+1) 3`;
+		
+		$trigSnippets[size($trigSnippets)] = btrTrig_createTrigGroupSnippet($curNum, $ctlObj, $selectObjs, $setattrAttrs, $melscript, $autoDesel);
+	}
+	
+	//before and after script
+	$beforeScript = btrTrig_createTrigGroupBeforeScript($groupName, $trigSnippets);
+    $afterScript = btrTrig_createTrigAfterScript(1, $groupName);
+	
+	$trigScript = {$beforeScript, $afterScript};
+	clear $trigSnippets;
+	
+	return $trigScript;
+}
+global proc string btrTrig_createTrigGroupSnippet(string $curNum, string $ctlObj, string $selectObjs[], string $setattrAttrs[], string $melscript, string $autoDesel) {
+//returns the snippet of code from //TRIGGER_001 to //TRIGGER_END_001
+
+	string $trigSnippet = "//TRIGGER_"+$curNum+"\n";
+	$trigSnippet += "if (size(`match \"\\\\^"+$ctlObj+"\\\\^\" $selString`)) {;\n";
+	$trigSnippet += btrTrig_createTrigActionsScript($ctlObj, $selectObjs, $setattrAttrs, $melscript, $autoDesel);
+	$trigSnippet += "\n}\n//TRIGGER_END_"+$curNum+"\n";
+	
+	return $trigSnippet;
+}
+global proc string btrTrig_createTrigGroupBeforeScript(string $groupName, string $trigSnippets[]) {
+//returns the before script determined by groupName and the trigSnippets
+	
+	string $beforeScript = "";
+	$beforeScript = "//boTriggers v1.3\n";
+	$beforeScript += "\t\n";
+	$beforeScript += "//GROUP_TRIGGER\n";
+	$beforeScript += "global proc btrTrigGrp_"+$groupName+"_btrTrigProc() {\n";
+	$beforeScript += "\tglobal int $btrTrigSelectionMode;\n";
+	$beforeScript += "\tif ($btrTrigSelectionMode == 1) return;\n";
+	$beforeScript += "string $selString = (\"^\" + stringArrayToString(`ls -sl -r 1`, \"^\") + \"^\");\n";
+	$beforeScript += "\n";
+	$beforeScript += "//BEGIN_TRIGGERS\n";
+	for ($snippet in $trigSnippets) {
+		$beforeScript += $snippet;
+	}
+	$beforeScript += "	//END_TRIGGERS\n";
+	$beforeScript += "}\n";
+	$beforeScript += "scriptJob -cu 1 -kws -e \"SelectionChanged\" \"btrTrigGrp_"+$groupName+"_btrTrigProc\";";
+	
+	return $beforeScript;
+}
+global proc string btrTrig_createTrigAfterScript(int $group, string $ctlObj) {
+//returns the after script determined by if its a group, and the ctlObj
+	
+	string $groupStr = ($group == 1 ? "btrTrigGrp_" : "");
+	string $afterScript = "proc "+$groupStr+$ctlObj+"_btrTrigKillProc() {\n";
+	$afterScript += "\tstring \$scriptJobList[] = `scriptJob -lj`;\n";
+	$afterScript += "\tfor (\$job in \$scriptJobList) {\n";
+	$afterScript += "\t\tstring \$num = `match \"^[0-9]*[^:]*\" \$job`;\n";
+	$afterScript += "\t\tstring \$matchStr = \"\\\"SelectionChanged\\\" \\\""+$groupStr+$ctlObj+"_btrTrigProc\\\"\";\n";
+	$afterScript += "\t\tstring \$match = (`match \$matchStr \$job`);\n";
+	$afterScript += "\t\tif (size(\$match) > 0)\n";
+	$afterScript += "\t\t\tscriptJob -k ((int)\$num);\n";
+	$afterScript += "\t}\n";
+	$afterScript += "}\n";
+	$afterScript += $groupStr+$ctlObj+"_btrTrigKillProc;";
+	
+	return $afterScript;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+global proc string btrPadNumber(int $num, int $padding) {
+//returns a string of num padded with the necessary amount of zeros
+
+	string $numStr = string($num);
+	while (size($numStr) < $padding) {
+		$numStr = "0"+$numStr;
+	}
+	
+	return $numStr;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+//HELP DOCS
+global proc btrTriggersHelp() {
+//window name
+	string $btrHelpWin = "btrHelpWin";
+	
+	//check for pre-existing window
+	if (`window -exists $btrHelpWin`) deleteUI -window $btrHelpWin;
+	
+	//get btr window position
+	int $btrWinPosition[] = `window -q -tlc btrWin`;
+	
+	//colors
+	float $btrColSelect[3] = {.847, .882, .898};
+	float $btrColSetattr[3] = {.659, .792, .867};
+	float $btrColMelscript[3] = {.525, .612, .682};
+	
+	//create window
+	window -s 1 -rtf 0 -mxb 0 -t "Triggers Help" $btrHelpWin;
+
+	//main column layout
+	formLayout btrHelpMainForm;
+	tabLayout -innerMarginWidth 5 -innerMarginHeight 5 -scr 1 btrHelpMainTabs;
+		columnLayout -adj 1 btrHelpTab1Column;
+			text -w 270 -fn "boldLabelFont" -al "left" -l "Creating a trigger:";
+			separator -h 14 -st single;
+			text -w 270 -fn "boldLabelFont" -al "left" -l "    Trigger Object";
+			text -w 270 -al "left" -l "Select the object that will act as your trigger and\nload it using the <<< button\n\nSelecting this object will trigger the following actions:\n";
+			text -w 270 -al "left" -l "    Note: None of the actions are required.\n        You can use all or none of the features and the\n        trigger can still be created normally.";
+			separator -h 20 -st none;
+			
+			frameLayout -w 274 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -lv 0 -bs "etchedIn";
+				columnLayout;
+					text -w 270 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -fn "boldLabelFont" -al "left" -l "    1 : Reselection";
+					text -w 270 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -al "left" -l "Select any objects that you would like to be\nselected when when the trigger runs, and\nadd them using the 'add selected' button.\n\nThen highlight the them in the list.";
+					separator -w 270 -h 20 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -st single;
+					text -w 270 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -al "center" -fn "boldLabelFont" -l "Objects MUST be highlighted\nwhen you click Create.\n";
+					text -w 270 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -al "center" -l "This allows you to use only a portion of the objects in the\nlist. You can load many objects, but only use some\nfor each trigger, allowing faster and easier creation.";
+					separator -w 270 -h 20 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -st single;
+					text -w 270 -bgc $btrColSelect[0] $btrColSelect[1] $btrColSelect[2] -al "center" -l "Ex: You can create HUD reselection\n    controls with this section.\n";
+					
+					setParent ..;
+				setParent ..;
+			separator -h 20 -st none;
+			
+			frameLayout -w 274 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -lv 0 -bs "etchedIn";
+				columnLayout;
+					text -w 270 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -fn "boldLabelFont" -al "left" -l "    2 : Attribute Setting";
+					text -w 270 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -al "left" -l "Select any objects whose attributes you would like to\nbe remembered and add them using the 'add keyable' or\n'add non-keyable' buttons.\n\nThen highlight the them in the list.\n";
+					text -w 270 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -al "left" -l "You can then remove all of a certain type of attribute\nusing the remove 'trans', 'rot', 'scale', 'vis' buttons.\nThis affects the entire list, not just the selected items.";
+					separator -w 270 -h 20 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -st single;
+					text -w 270 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -al "center" -fn "boldLabelFont" -l "Attributes MUST be highlighted\nwhen you click Create.\n";
+					text -w 270 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -al "center" -l "This allows you to use only a portion of the attrs in the\nlist. You can load many attrs, but only use some\nfor each trigger, allowing faster and easier creation.";
+					separator -w 270 -h 20 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -st single;
+					text -w 270 -bgc $btrColSetattr[0] $btrColSetattr[1] $btrColSetattr[2] -al "center" -l "Ex: You can create a pose library with this section.\n";
+					
+					setParent ..;
+				setParent ..;
+			separator -h 20 -st none;
+			
+			frameLayout -w 274 -bgc $btrColMelscript[0] $btrColMelscript[1] $btrColMelscript[2] -lv 0 -bs "etchedIn";
+				columnLayout;
+					text -w 270 -bgc $btrColMelscript[0] $btrColMelscript[1] $btrColMelscript[2] -fn "boldLabelFont" -al "left" -l "    3 : Mel Script";
+					text -w 270 -bgc $btrColMelscript[0] $btrColMelscript[1] $btrColMelscript[2] -al "left" -l "If you would like to run a script with the trigger,\ntype it in the MEL script section, don't forget to\nend with a semi-colon or bracket (if applicable)\notherwise the trigger will not work.\n";
+					text -w 270 -bgc $btrColMelscript[0] $btrColMelscript[1] $btrColMelscript[2] -al "center" -fn "boldLabelFont" -l "Mel Script does NOT have to be selected\nwhen you click create.\n";
+					text -w 270 -bgc $btrColMelscript[0] $btrColMelscript[1] $btrColMelscript[2] -al "center" -l "If you do not wish to include the typed mel script,\nbut don't want to delete it, uncheck\nthe 'Include MEL Script' check box.\n\nI recommend using the script editor to store multiple\nscripts that you may be working with.";
+					separator -w 270 -h 20 -bgc $btrColMelscript[0] $btrColMelscript[1] $btrColMelscript[2] -st single;
+					text -w 270 -bgc $btrColMelscript[0] $btrColMelscript[1] $btrColMelscript[2] -al "center" -l "Ex: You can pretty much do anything in the world\nwith this section, even eat 7 saltines in a minute.\n";
+					
+					setParent ..;
+				setParent ..;
+			separator -h 20 -st none;
+			
+			frameLayout -w 274 -lv 0 -mh 5 -bs "etchedIn";
+				columnLayout;
+					text -w 270 -fn "boldLabelFont" -l "Finally, click Create!\n";
+					text -w 270 -l "If the trigger already exists, you will be prompted\nto overwrite. Otherwise you should see a\n'trigger was created successfully!' message\n";
+			
+					setParent ..;
+				setParent ..;
+				
+			separator -h 15 -st none;
+			separator -h 3 -st single;
+			separator -h 3 -st single;
+			separator -h 3 -st single;
+			separator -h 15 -st none;
+				
+			frameLayout -w 274 -cll 1 -cl 1 -li 10 -l "Auto-Deselect Trigger" -bs "etchedOut";
+				columnLayout;
+					text -w 270 -al "center" -l "Determines whether or not the trigger object will be\ndeselected when it is run.\nOn by default, and recommended.\n\n    Because auto-deselect means you won't be able to\nselect a trigger object, you can use 'Selection Mode'\nto deactive triggers temporarily, and allow normal\nselection of any control object.\n";
+					
+					setParent ..;
+				setParent ..;
+			separator -h 10 -st none;
+			frameLayout -w 274 -cll 1 -cl 1 -li 10 -l "Loading and Deleting" -bs "etchedOut";
+				columnLayout;
+					separator -h 2 -st none;
+					text -w 270 -al "center" -l "'Load' will restore all the lists that were used to\ncreate the highlighted triggers.\nYou can load multiple triggers at once,\nwhich will combine selections as well as mel scripts.\n\nThis button is used to easily modify an existing trigger.\nYou can add onto, subtract from, or combine triggers\neasily by loading.\n\nKeep in mind that the selection and attribute lists\nwill not contain duplicates, but the\nmel script section may start to repeat if\nmultiple triggers are loaded multiple times.";
+					separator -w 270 -h 10 -st single;
+					text -w 270 -al "center" -l "'Delete' will delete all of the highlighted triggers.\nThis does not affect any objects in your scene!\n";
+					setParent ..;
+				setParent ..;
+			separator -h 10 -st none;
+			frameLayout -w 274 -cll 1 -cl 1 -li 10 -l "Grouping" -bs "etchedOut";
+				columnLayout;
+					separator -h 2 -st none;
+					text -w 270 -al "center" -l "Using the Advanced > Group Triggers feature\nyou can join multiple triggers into one scriptNode.\nThis will cause them to evaluate instantaneously,\nbut still be separate. The lag that is usually\nexperienced when selecting many triggers will be\neliminated. To restore the original triggers,\nselect a btrTrigGrp and then choose\nAdvanced > Expand Trigger.";
+					setParent ..;
+				setParent ..;
+			separator -h 10 -st none;
+			frameLayout -w 274 -cll 1 -cl 1 -li 10 -l "Exporting" -bs "etchedOut";
+				columnLayout;
+					separator -h 2 -st none;
+					text -w 270 -al "center" -l "Because triggers work via name, you can import them\n into a scene with properly named objects and they\n will still work! This is great for transferring between\nsimilarly named rigs or different versions of a file.\n\n'Export' will save the selected triggers to a file.\nIt does NOT export the control object,\nyou will need to make sure a control object of the\nsame name exists in the scene where you\nimport the trigger.\n";
+					setParent ..;
+				setParent ..;
+			setParent ..;
+		columnLayout btrHelpTab2Column;
+			frameLayout -w 274 -lv 0 -mw 3 -mh 3 -bs "etchedOut";
+				columnLayout;
+					text -w 270 -fn "boldLabelFont" -l "No Renaming!\n";
+					text -w 270 -al "left" -l "Trigger objects work via their names, this means that\nrenaming an object will stop the trigger from working.\nThis also applies to objects being selected or\nhaving their attributes set.\n";
+					setParent ..;
+				setParent ..;
+			separator -h 10 -st none;
+			frameLayout -w 274 -lv 0 -mw 3 -mh 3 -bs "etchedOut";
+				columnLayout;
+					text -w 270 -fn "boldLabelFont" -l "Namespaces and Prefixing are OK!\n";
+					text -w 270 -al "left" -l "If you import or reference a scene using namespaces\nor prefixing, just click Advanced > Update All Triggers\nto rebuild and fix all of your triggers.";
+					setParent ..;
+				setParent ..;
+			separator -h 10 -st none;
+			frameLayout -w 274 -lv 0 -mw 3 -mh 3 -bs "etchedOut";
+				columnLayout;
+					text -w 270 -fn "boldLabelFont" -l "Unique names only!\n";
+					text -w 270 -fn "boldLabelFont" -al "left" -l "No Pipes!\n";
+					text -w 270 -al "left" -l "Non-unique objects mean your trigger control\nwill have a pipe in its name.\n\nTrigger objects must be uniquely named,\nbecause the '|' is not fully supported.\n(ie. An object named 'group1|pCube1' can't be a trigger)\n";
+					setParent ..;
+				setParent ..;
+			separator -h 10 -st none;
+			frameLayout -w 274 -lv 0 -mw 3 -mh 3 -bs "etchedOut";
+				columnLayout;
+					text -w 270 -fn "boldLabelFont" -l "If you Undo..";
+					text -w 270 -al "left" -l "If you undo the creation of a trigger, the scriptjob\nwill not die, meaning the trigger will still try\nto run, so use Advanced > Delete All Script Jobs,\nthen choose Advanced > Update All Triggers.\nThis will refresh everything.";
+					setParent ..;
+				setParent ..;
+			setParent ..;
+		columnLayout btrHelpTab3Column;
+			frameLayout -w 274 -lv 0 -mw 3 -mh 3 -bs "etchedOut";
+				columnLayout;
+					text -w 270 -al "left" -l "Quite simply, when you create a trigger, a scriptNode\nis made that stores what should happen when the\ntrigger is selected.\n\nMultiple scriptNodes are created so that they can\nbe easily exported and imported.\n\nA scriptjob is created to check for the trigger\ncontrol everytime you change selections.\n\nThe scriptjobs die with the scene, and are created\nvia the scriptnode when you open a scene. That way\nall scriptjobs are secure.\n\n\nSelection works via the 'select -add <object>' command\nallowing additive triggers.\n\nAttribute setting happens via the setAttr command.\n\nSelection, attribute setting, and melscript happen\nin the order they appear\n\n\nYou can view what a trigger looks like by going\nto the Expression Editor, clicking\nSelect Filter > Script Node,\nand clicking on a btrTrig node.";
+					setParent ..;
+				setParent ..;
+			setParent ..;
+
+
+	tabLayout -edit
+		-tabLabel btrHelpTab1Column "Usage"
+		-tabLabel btrHelpTab2Column "Important Things"
+		-tabLabel btrHelpTab3Column "How it works"
+		btrHelpMainTabs;
+		
+	formLayout -edit
+		-attachForm btrHelpMainTabs "top"    0
+		-attachForm btrHelpMainTabs "left"   0
+		-attachForm btrHelpMainTabs "bottom" 0
+		-attachForm btrHelpMainTabs "right"  0
+		btrHelpMainForm;
+	
+	//resize the window now that all the controls have been made
+	if ($btrWinPosition[1] > 1200) {
+		window -e -w 320 -h `window -q -h btrWin` -tlc  $btrWinPosition[0] ($btrWinPosition[1]-330) btrHelpWin;
+	} else {
+		window -e -w 320 -h `window -q -h btrWin` -tlc  $btrWinPosition[0] ($btrWinPosition[1]+`window -q -w btrWin`+10) btrHelpWin;
+	}
+	showWindow $btrHelpWin;
+}
+//====================================================================================================
+
+
+proc versionInfo() {
+//====================================================================================================
+/*version information
+
+Example 0.6 trigger:
+//-------------------------------------------------
+global proc hairTail_jointTrig1_trigCheck() {
+	string $selList[] = `ls -sl`;
+	for ($i in $selList) {
+		if ($i == "hairTail_jointTrig1") hairTail_jointTrig1_trigAction();
+	}
+}
+ 
+ 
+global proc hairTail_jointTrig1_trigAction() {
+    //ACTIONS_BEGIN
+
+    select -d hairTail_jointTrig1;
+
+    //Begin_Select
+    select -add hairTail_joint1;
+    //End_Select
+
+    //Begin_Setattr
+    setAttr maura_ac_bk_cn_chest_pivot_ctrl.translateX 0;
+    setAttr maura_ac_bk_cn_chest_pivot_ctrl.translateY 0;
+    setAttr maura_ac_bk_cn_chest_pivot_ctrl.translateZ 0;
+    //End_Setattr
+
+    //Begin_MelScript
+headsUpMessage "pose: neutral";
+    //End_MelScript
+	
+    //ACTIONS_END
+}
+ 
+$btrTrig_hairTail_jointTrig1JobNum = `scriptJob -cu 1 -kws -e "SelectionChanged" "hairTail_jointTrig1_trigCheck"` ;
+print ("// hairTail_jointTrig1's script job number is "+$btrTrig_hairTail_jointTrig1JobNum+"; use 'scriptJob -kill "+$btrTrig_hairTail_jointTrig1JobNum+"' to manually kill this job\n"); 
+
+//-------------------------------------------------
+
+
+
+Example 0.7 trigger:
+//-------------------------------------------------
+//created with bTriggers v0.7
+global proc allBtnCTL_trigProc() {
+    global int $btrTrigSelectionMode;
+    if ($btrTrigSelectionMode == 1) return;
+
+    string $selList[] = `ls -sl "allBtnCTL"`;
+    if (!`size ($selList)`) return;
+
+    //SELECT
+    select -add maura_ac_bk_cn_head_ctrl;
+    select -add maura_ac_bk_cn_chest_ctrl;
+    //ENDSELECT
+	
+	//SETATTR
+    setAttr maura_visibility_ctrl.cogCtrl 1;
+    setAttr maura_visibility_ctrl.meshCtrls 0;
+    //ENDSETATTR
+
+    //MELSCRIPT
+headsUpMessage "selected ALL controls";
+    //ENDMELSCRIPT
+
+    //ACTIONS_END
+}
+
+$btrTrig_allBtnCTLJobNum = `scriptJob -cu 1 -kws -e "SelectionChanged" "allBtnCTL_trigProc"` ;
+print ("// allBtnCTL's script job number is "+$btrTrig_allBtnCTLJobNum+"; use 'scriptJob -kill "+$btrTrig_allBtnCTLJobNum+"' to manually kill this job\n"); 
+
+//-------------------------------------------------
+
+
+
+Example 1.0 trigger:
+//-------------------------------------------------
+//created with bTriggers v1.0
+
+global proc allBtnCTL_trigProc() {
+    global int $btrTrigSelectionMode;
+    if ($btrTrigSelectionMode == 1) return;
+
+    string $selList[] = `ls -sl "allBtnCTL"`;
+    if (!`size ($selList)`) return;
+
+    //ACTIONS_BEGIN
+    select -d allBtnCTL;
+
+    //SELECT
+    select -add maura_ac_bk_cn_head_ctrl;
+    select -add maura_ac_bk_cn_chest_ctrl;
+    //ENDSELECT
+	
+	//SETATTR
+    setAttr maura_visibility_ctrl.cogCtrl 1;
+    setAttr maura_visibility_ctrl.meshCtrls 0;
+    //ENDSETATTR
+
+    //MELSCRIPT
+headsUpMessage "selected ALL controls";
+    //ENDMELSCRIPT
+
+    //ACTIONS_END
+}
+
+$btrTrig_allBtnCTLJobNum = `scriptJob -cu 1 -kws -e "SelectionChanged" "allBtnCTL_trigProc"` ;
+print ("// allBtnCTL's script job number is "+$btrTrig_allBtnCTLJobNum+"; use 'scriptJob -kill "+$btrTrig_allBtnCTLJobNum+"' to manually kill this job\n");
+//--------------------------------------------------
+
+
+
+//====================================================================================================
+Example 1.1, 1.2 trigger: (there are spaces on blank lines)
+//--------------------------------------------------
+//boTriggers v1.1
+ 
+global proc triggerCTL_trigProc() {
+    global int $btrTrigSelectionMode;
+    if ($btrTrigSelectionMode == 1) return;
+    if (size(`ls -sl "triggerCTL"`) == 0) return;
+ 
+    //ACTIONS_BEGIN
+    select -d triggerCTL;
+ 
+    //SELECT
+    select -add triggerTarget;
+    //ENDSELECT
+ 
+    //SETATTR
+    setAttr triggerTarget.translateX 5;
+    setAttr triggerTarget.translateY 0;
+    setAttr triggerTarget.translateZ -6;
+    //ENDSETATTR
+ 
+    //MELSCRIPT
+headsUpMessage "triggers 1.1!"; 
+    //ENDMELSCRIPT
+ 
+    //ACTIONS_END
+}
+ 
+global int $btrTrig_triggerCTLJobNum;
+$btrTrig_triggerCTLJobNum = `scriptJob -cu 1 -kws -e "SelectionChanged" "triggerCTL_trigProc"` ;
+//--------------------------------------------------
+//group trigger
+//--------------------------------------------------
+//boTriggers v1.2
+ 
+//GROUP_TRIGGER
+global proc btrTrigGrp_groupName_trigProc() {
+    global int $btrTrigSelectionMode;
+    if ($btrTrigSelectionMode == 1) return;
+    string $selList[] = `ls -sl`;
+ 
+    //LOOP_BEGIN
+    for ($obj in $selList) {
+        if ($obj == "triggerCTL1") {
+            select -d "object1";
+        }
+        if ($obj == "triggerCTL2") {
+            select -d "object2";
+        }
+
+    }
+    //LOOP_END
+}
+ 
+$btrTrigbobJobNum = `scriptJob -cu 1 -kws -e "SelectionChanged" "btrTrigGrp_groupName_trigProc"` ;
+//--------------------------------------------------
+//====================================================================================================
+
+
+
+//====================================================================================================
+Example 1.3 trigger: (still spaces on blank lines)
+
+//before script
+//--------------------------------------------------
+//boTriggers v1.3
+ 
+global proc triggerCTL_btrTrigProc() {
+	global int $btrTrigSelectionMode;
+	if ($btrTrigSelectionMode == 1) return;
+	if (size(`ls -sl -r 1 "triggerCTL"`) == 0) return;
+	
+	//ACTIONS_BEGIN
+	select -d triggerCTL;
+	
+	//SELECT
+	select -add triggerTarget;
+	//ENDSELECT
+	
+	//SETATTR
+	setAttr triggerTarget.translateX 5;
+	setAttr triggerTarget.translateY 0;
+	setAttr triggerTarget.translateZ -6;
+	//ENDSETATTR
+	
+	//MELSCRIPT
+headsUpMessage "triggers 1.3!"; 
+	//ENDMELSCRIPT
+	
+	//ACTIONS_END
+}
+scriptJob -cu 1 -kws -e "SelectionChanged" "triggerCTL_btrTrigProc";
+//--------------------------------------------------
+
+//after script
+//--------------------------------------------------
+proc triggerCTL_btrTrigKillProc() {
+	string $scriptJobList[] = `scriptJob -lj`;
+	for ($job in $scriptJobList) {
+		string $num = `match "^[0-9]*[^:]*" $job`;
+		string $matchStr = "\"SelectionChanged\" \"triggerCTL_btrTrigProc\"";
+		string $match = (`match $matchStr $job`);
+		if (size($match) > 0)
+			scriptJob -k ((int)$num);
+	}
+}
+triggerCTL_btrTrigKillProc;
+//--------------------------------------------------
+
+//group trigger
+//--------------------------------------------------
+//boTriggers v1.3
+	
+//GROUP_TRIGGER
+global proc btrTrigGrp_groupName_btrTrigProc() {
+	global int $btrTrigSelectionMode;
+	if ($btrTrigSelectionMode == 1) return;
+	string $selString = ("^" + stringArrayToString(`ls -sl -r 1`, "^") + "^");
+	
+	//BEGIN_TRIGGERS
+//TRIGGER_001
+	if (size(`match "\\^triggerCTL1\\^" $selString`)) {
+	    //ACTIONS_BEGIN
+		select -d triggerCTL;
+	 
+		//SELECT
+		select -add triggerTarget;
+		//ENDSELECT
+	 
+		//SETATTR
+		setAttr triggerTarget.translateX 1;
+		setAttr triggerTarget.translateY 2;
+		setAttr triggerTarget.translateZ 3;
+		//ENDSETATTR
+	 
+		//MELSCRIPT
+headsUpMessage "triggers 1.3!"; 
+		//ENDMELSCRIPT
+	 
+		//ACTIONS_END
+	}
+//TRIGGER_END_001
+
+//TRIGGER_002
+	if (size(`match "\\^triggerCTL2\\^" $selString`)) {
+	    //ACTIONS_BEGIN
+		select -d triggerCTL;
+	
+		//SELECT
+		select -add triggerTarget;
+		//ENDSELECT
+	
+		//SETATTR
+		setAttr triggerTarget.translateX 1;
+		setAttr triggerTarget.translateY 2;
+		setAttr triggerTarget.translateZ 3;
+		//ENDSETATTR
+	
+		//MELSCRIPT
+headsUpMessage "triggers 1.3!"; 
+		//ENDMELSCRIPT
+	
+		//ACTIONS_END
+	}
+//TRIGGER_END_002
+	//END_TRIGGERS
+}
+scriptJob -cu 1 -kws -e "SelectionChanged" "btrTrigGrp_groupName_btrTrigProc";
+//--------------------------------------------------
+end version info */
+//====================================================================================================
+}
+
+
+
+
+
+
+

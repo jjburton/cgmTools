@@ -10,13 +10,13 @@ else:
 from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
 
 
-def setupZooPaths():
+def setupContributorPaths():
         thisFile = Path( __file__ )
         thisPath = thisFile.up()
 
         mayaSysPaths = sys.path
 
-        for folder in 'lib/zoo','lib/zoo/zooMel','lib/zoo/zooPy','lib/zoo/zooPyMaya':
+        for folder in 'lib/zoo','lib/zoo/zooMel','lib/zoo/zooPy','lib/zoo/zooPyMaya','lib/bo','lib/ml':
                 bufferFolderPath = thisPath / folder
 
                 if bufferFolderPath not in mayaSysPaths:

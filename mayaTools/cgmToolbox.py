@@ -16,7 +16,8 @@ from maya.mel import eval as evalMel
 
 #>>>>> Bridge to get our sub zoo stuff working
 from cgm import cgmInitialize
-cgmInitialize.setupZooPaths()
+reload(cgmInitialize)
+cgmInitialize.setupContributorPaths()
 #>>>>>
 
 from cgm.lib import guiFactory

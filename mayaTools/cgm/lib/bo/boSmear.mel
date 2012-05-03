@@ -1,0 +1,475 @@
+/*
+	Smear
+	2.0.3
+	
+	Copyright © 2011 Bohdon Sayre
+	All Rights Reserved.
+	bsayre@c.ringling.edu
+	
+	Description:
+		Allows you to create a "2D" mesh warp on specified objects,
+		controlled relative to a camera. This allows the creation of
+		"smearing" effects seen in traditional animations.
+	
+	unique prefix: bsm
+	
+	Version 2.0.3:
+	    > Fixes some issues in Maya 2011+ and some OSX issues
+		> Instant setup, no more waiting
+		> Huge speed improvement by using much simpler connections from the mesh control
+		> Much easier to animate and control animation with the new Controls window
+		> Now uses one window to control all smear meshes
+		> More mesh controls (soften, weight, etc)
+		> Multiple smears can be made!
+	
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc boSmear() {
+	//window name
+	string $bsmWin = "bsmWin";
+	
+	//check for pre-existing window
+	if (`window -exists $bsmWin`) deleteUI -window $bsmWin;
+	
+	//create window
+	window  -w 100 -h 100 -rtf 1 -mb 1 -mxb 0 -mnc "window -e -t \"Smear 2.0.3\" bsmWin;" -t "Smear 2.0.3" $bsmWin;
+	
+	formLayout -nd 100 bsmWin_MainForm;
+		frameLayout -lv 0 -bs "etchedIn" -mw 4 -mh 4 bsmSettingsFrame;
+			formLayout -nd 100 bsmSettingsForm;
+				//camera
+				optionMenu -l "Camera"
+					bsmCameraOptionMenu;
+				bsmUpdateCameraList;
+					
+				button -w 50 -l "Refresh"
+						-c "bsmUpdateCameraList"
+						bsmCameraRefresh;
+				
+				//resolution
+				text -l "Resolution " -w 55 bsmResText;
+				intField -w 40 -v 18 bsmResXField;
+				text -l "x" bsmResMultText;
+				intField -w 40 -v 12 bsmResYField;
+				
+				separator -st "in" bsmSeparator1;
+				
+				//target
+				text -l "Target" -w 38 bsmTargetText;
+				textField -w 200 bsmTargetField;
+				button -w 50 -l "Get"
+						-c "if (size(`ls -sl`)) {string $selList[] = `ls -sl`;textField -e -tx $selList[0] bsmTargetField;} else {textField -e -tx \"\" bsmTargetField;}"
+						bsmTargetGet;
+				
+				//geometry
+				text -l "Geometry" -w 60 bsmGeoText;
+				textScrollList -w 240 -h 120 -ams 1 bsmGeoList;
+				text -w 200 -vis 0 ;
+				button -w 50 -l "Add" -c "bsmAddGeo" bsmAddGeoBtn;
+				button -w 50 -l "Remove" -c "bsmDelGeo" bsmDelGeoBtn;
+			
+			formLayout -e
+				-ap bsmCameraOptionMenu "left" 17 0
+				-ac bsmCameraOptionMenu "right" 2 bsmCameraRefresh
+				-ap bsmCameraRefresh "right" 0 100
+				
+				-ac bsmResText "top" 4 bsmCameraOptionMenu
+				-ap bsmResText "left" 0 0
+				-ac bsmResXField "top" 4 bsmCameraOptionMenu
+				-ac bsmResXField "left" 2 bsmResText
+				-ac bsmResMultText "top" 4 bsmCameraOptionMenu
+				-ac bsmResMultText "left" 4 bsmResXField
+				-ac bsmResYField "top" 4 bsmCameraOptionMenu
+				-ac bsmResYField "left" 4 bsmResMultText
+				
+				-ac bsmSeparator1 "top" 4 bsmResXField
+				-ap bsmSeparator1 "left" 0 0
+				-ap bsmSeparator1 "right" 0 100
+				
+				-ac bsmTargetText "top" 4 bsmSeparator1
+				-ap bsmTargetText "left" 0 0
+				-ac bsmTargetField "top" 4 bsmSeparator1
+				-ac bsmTargetField "left" 2 bsmTargetText
+				-ac bsmTargetField "right" 2 bsmTargetGet
+				-ac bsmTargetGet "top" 4 bsmSeparator1
+				-ap bsmTargetGet "right" 0 100
+				
+				-ac bsmGeoText "bottom" 2 bsmGeoList
+				-ap bsmGeoText "left" 0 0
+				-ac bsmDelGeoBtn "top" 7 bsmTargetField
+				-ap bsmDelGeoBtn "right" 0 100
+				-ac bsmAddGeoBtn "top" 7 bsmTargetField
+				-ac bsmAddGeoBtn "right" 2 bsmDelGeoBtn
+				-ac bsmGeoList "top" 2 bsmAddGeoBtn
+				-ap bsmGeoList "left" 0 0
+				-ap bsmGeoList "right" 0 100
+				-ap bsmGeoList "bottom" 2 100
+				
+				bsmSettingsForm;
+			setParent bsmWin_MainForm;
+			
+		button -l "Create Smear" -c "bsmCreateSmear(`optionMenu -q -v bsmCameraOptionMenu`, `textField -q -tx bsmTargetField`,`textScrollList -q -ai bsmGeoList`, `intField -q -v bsmResXField`, `intField -q -v bsmResYField`)" bsmCreateSmearBtn;
+		button -l "Smear Controls Window" -c "bsmSmearControlsWin" bsmGenerateScriptsBtn;
+		text -vis 0 -w 284 -al "left" -l "" bsmProgText;
+		progressBar -vis 0 -w 284 -h 14 -min 0 -max 10 -pr 0 bsmProgBar;
+	
+	formLayout -e
+		-ap bsmSettingsFrame "top" 4 0
+		-ap bsmSettingsFrame "left" 4 0
+		-ap bsmSettingsFrame "right" 4 100
+		-ac bsmSettingsFrame "bottom" 4 bsmCreateSmearBtn
+		-ap bsmCreateSmearBtn "left" 2 0
+		-ap bsmCreateSmearBtn "right" 2 50
+		-ap bsmCreateSmearBtn "bottom" 2 100
+		-ap bsmGenerateScriptsBtn "left" 2 50
+		-ap bsmGenerateScriptsBtn "right" 2 100
+		-ap bsmGenerateScriptsBtn "bottom" 2 100
+		//-ac bsmProgText "bottom" 2 bsmProgBar
+		//-ap bsmProgBar "left" 2 0
+		//-ap bsmProgBar "right" 2 100
+		//-ap bsmProgBar "bottom" 2 100
+		bsmWin_MainForm;
+	
+	window -e -w 292 -h 320 $bsmWin;
+	showWindow $bsmWin;
+	
+	
+	//check for scripts
+	$p2SurfWhatIs = `whatIs parentToSurface`;
+	$link = "http://www.ringling.edu/~bsayre/scripts/";
+	
+	if ($p2SurfWhatIs == "Unknown") {
+		warning ("please install parentToSurface: "+$link);
+		confirmDialog -t "parentToSurface needed" -p bsmWin -m ("The parentToSurface script was not found.\nPlease make sure it is installed.\nSee script editor for link.") -b "OK" -ds "OK" -db "OK";
+	}
+}
+global proc bsmUpdateCameraList() {
+//clears the camera list and updates it with the current available cameras
+
+	string $curItems[] = `optionMenu -q -ill bsmCameraOptionMenu`;
+	for ($obj in $curItems) {
+		deleteUI -mi $obj;
+	}
+	
+	//get camera info
+	string $camList[] = `ls -typ camera`;
+	string $perspCamList[];
+	for ($cam in $camList) {
+		if (!`camera -q -o $cam`) {
+			$camTransform =  `listRelatives -p $cam`;
+			$perspCamList[size($perspCamList)] = $camTransform[0];
+		}
+	}
+	
+	//add the items
+	setParent -m bsmCameraOptionMenu;
+	for($obj in $perspCamList) {
+		menuItem -l $obj;
+	}
+}
+
+global proc bsmCreateSmear(string $camera, string $target, string $geo[], int $resX, int $resY) {
+	float $xTimer = `timerX`;
+	
+	//what are we doing here...
+	//
+	//1. Check objects
+	//2. Create hierarchy
+	//4. Create lattice
+	//5. Create attributes
+	//6. Create mesh
+	//7. Apply Expressions and Connections
+	//8. Lock it up
+	//9. Celebrate!
+	
+	//check objects
+	if ($camera == "" || $target == "" || !size($geo)) {
+		warning ("please fill all fields and have at least one geo object");
+		return ;
+	}
+	if (!`objExists $camera`) {
+		warning ("no object: "+$camera);
+		return ;
+	}
+	if (!`objExists $target`) {
+		warning ("no object: "+$target);
+		return ;
+	}
+	for ($obj in $geo) {
+		if (!`objExists $obj`) {
+			warning ("no object: "+$obj);
+			return ;
+		}
+	}
+	if ($resX < 2 || $resX > 30) {
+		warning ("resolutions should be within 2 - 30");
+		return ;
+	}
+	if ($resY < 2 || $resY > 30) {
+		warning ("resolutions should be within 2 - 30");
+		return ;
+	}
+	
+
+	//create hierarchy
+	text -e -l "building hierarchy..." bsmProgText;
+	$mainGRP = `group -em -n SmearGrp1`;
+	$cameraChild = `group -em -n smear_cameraChild -p $mainGRP`;
+	
+	$meshOffset = `group -em -n smear_mesh_offset -p ($mainGRP+"|"+$cameraChild)`;
+	$meshScale = `group -em -n smear_mesh_scale -p ($mainGRP+"|"+$cameraChild+"|"+$meshOffset)`;
+	$latticeFollow = `group -em -n smear_lattice_follower -p ($mainGRP+"|"+$cameraChild)`;
+	$latticeScale = `group -em -n smear_lattice_scale -p ($mainGRP+"|"+$cameraChild+"|"+$latticeFollow)`;
+	
+	//reassign to long names
+	$meshOffset = ($mainGRP+"|"+$cameraChild+"|"+$meshOffset);
+	$meshScale = ($meshOffset+"|"+$meshScale);
+	$latticeFollow = ($mainGRP+"|"+$cameraChild+"|"+$latticeFollow);
+	$latticeScale = ($latticeFollow+"|"+$latticeScale);
+		
+	
+	//create lattice and temp deformer
+	text -e -l "creating lattice..." bsmProgText;
+	$smearLattice = `lattice  -is -dv ($resX+2) ($resY+2) 2 -ldv 4 4 4 -cp -s 1 1 1 -n smear1 -pos 0 0 0`;
+	$latticeGroup = bsmGetFrom(`listRelatives -p $smearLattice[1]`, 0);
+	for ($obj in $geo) {
+		lattice -e -g $obj $smearLattice[0];
+	}
+	
+	//when a lattice is made, the vertex points are absolute, if a deformer is applied a latticeShapeOrig is created
+	//and the current lattice points are now all at 0. once they're all at 0 we can directly connect them to the mesh points :D
+	
+	select -cl;
+	select -add ($smearLattice[1]+".pt[0][0][0]");
+	string $newCluster[] = `newCluster " -relative -envelope 1"`;
+	delete $newCluster[1];
+	
+	
+	//move into hierarchy
+	text -e -l "organizing deformers..." bsmProgText;
+	$latticeGroup = bsmGetFrom(`parent $latticeGroup $latticeScale`, 0);
+	float $scaleX = 1.0275 * (float($resX+2)/$resX);
+	float $scaleY = 0.58 * (float($resY+2)/$resY);
+	
+	setAttr ($latticeGroup+".scaleX") $scaleX;
+	setAttr ($latticeGroup+".scaleY") $scaleY;
+	setAttr ($latticeGroup+".visibility") 0;
+	
+	
+	//create bounding box curve
+	$smearDepthGuide = `curve -d 1 -p -0.5 -0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5 -p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 -0.5 -0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 `;
+	$smearDepthGuide = `rename $smearDepthGuide "smearDepthBox"`;
+	$smearDepthGuide = bsmGetFrom(`parent $smearDepthGuide $latticeScale`, 0);
+	setAttr ($smearDepthGuide+".scaleX") $scaleX;
+	setAttr ($smearDepthGuide+".scaleY") $scaleY;
+	setAttr ($smearDepthGuide+".overrideEnabled") 1;
+	setAttr ($smearDepthGuide+".overrideDisplayType") 1;
+	
+	
+	//create mesh
+	text -e -l "building mesh control..." bsmProgText;
+	$smearMesh = bsmGetFrom(`polyPlane -w 1 -h 1 -sx ($resX-1) -sy ($resY-1) -ax 0 0 1 -cuv 2 -ch 1 -n smearMesh`, 0);
+	$smearMesh = bsmGetFrom(`ls -sl`, 0);
+	select -r $smearMesh;
+	HighQualityDisplay;
+	scale -a -xyz (float($resX)/($resX+2)) (float($resY)/($resY+2)) 1 $smearMesh;
+	makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+	delete -ch $smearMesh;
+	$smearMesh = bsmGetFrom(`parent $smearMesh $meshScale`, 0);
+	$smearMeshShape = bsmGetFrom(`listRelatives -c -f $smearMesh`, 0);
+	
+	
+	//render stats
+	setAttr ($smearMeshShape+".castsShadows") 0;
+	setAttr ($smearMeshShape+".receiveShadows") 0;
+	setAttr ($smearMeshShape+".motionBlur") 0;
+	setAttr ($smearMeshShape+".primaryVisibility") 0;
+	setAttr ($smearMeshShape+".smoothShading") 0;
+	setAttr ($smearMeshShape+".visibleInReflections") 0;
+	setAttr ($smearMeshShape+".visibleInRefractions") 0;
+	setAttr ($smearMeshShape+".doubleSided") 0;
+	
+	//material
+	$smearMat = `shadingNode -asShader blinn -n "bsmSmear_mat1"`;
+	$smearSG = `sets -renderable true -noSurfaceShader true -empty -name "bsmSmear_SG1"`;
+	connectAttr -f ($smearMat+".outColor") ($smearSG+".surfaceShader");
+	setAttr ($smearMat+".color") .85 .85 .85;
+	setAttr ($smearMat+".transparency") .9 .9 .9;
+	setAttr ($smearMat+".reflectivity") 0;
+	sets -e -forceElement $smearSG $smearMesh;
+	
+	//add attributes
+	addAttr -ln "smearWeight" -at double -min 0 -max 1 -dv 1 $smearMesh;
+	addAttr -ln "smearSoften" -at long -min 2 -max 12 -dv 4 $smearMesh;
+	addAttr -ln "smearDepthScale" -at double -dv 12 $smearMesh;
+	addAttr -ln "smearDepthGuide"  -at long  -min 0 -max 1 -dv 0 $smearMesh;
+	addAttr -ln "smearMeshTransparency"  -at double  -min 0 -max 1 -dv .9 $smearMesh;
+	setAttr -e-keyable true ($smearMesh+".smearWeight");
+	setAttr -e-keyable true ($smearMesh+".smearSoften");
+	setAttr -e-keyable true ($smearMesh+".smearDepthScale");
+	setAttr -e-keyable true ($smearMesh+".smearDepthGuide");
+	setAttr -e-keyable true ($smearMesh+".smearMeshTransparency");
+	//connect attributes
+	connectAttr -f ($smearMesh+".smearWeight") ($smearLattice[0]+".envelope");
+	connectAttr -f ($smearMesh+".smearSoften") ($smearLattice[0]+".localInfluenceS");
+	connectAttr -f ($smearMesh+".smearSoften") ($smearLattice[0]+".localInfluenceT");
+	connectAttr -f ($smearMesh+".smearSoften") ($smearLattice[0]+".localInfluenceU");
+	connectAttr -f ($smearMesh+".smearDepthScale") ($latticeScale+".scaleZ");
+	connectAttr -f ($smearMesh+".smearDepthGuide") ($smearDepthGuide+".visibility");
+	connectAttr -f ($smearMesh+".smearMeshTransparency") ($smearMat+".transparencyR");
+	connectAttr -f ($smearMesh+".smearMeshTransparency") ($smearMat+".transparencyG");
+	connectAttr -f ($smearMesh+".smearMeshTransparency") ($smearMat+".transparencyB");
+	
+	
+	
+	
+	//connect verts to clusters
+	int $i = 0;
+	
+	text -e -l ("connecting mesh points...") bsmProgText;
+	for ($y = 1; $y <= $resY; $y++) {
+		for ($x = 1; $x <= $resX; $x++) {
+			for ($j = 0; $j <= 1; $j++) {
+				connectAttr -f ($smearMeshShape+".pnts["+$i+"]") ($smearLattice[1]+".pt["+$x+"]["+$y+"]["+$j+"]");
+			}
+			$i++;
+		}
+	}
+	
+	string $camShape[] = `listRelatives -c -f $camera`;
+	$filmAperture = `getAttr ($camShape[0]+".hfa")`;
+	
+	setAttr ($meshScale+".scaleX") (1.2*$scaleX*($filmAperture/1.4173));
+	setAttr ($meshScale+".scaleY") (1.2*$scaleY*($filmAperture/1.4173));
+	
+	
+	//create constraints (now we can leave origin)
+		//depth Z constraint
+	pointConstraint -skip x -skip y -w 1 $target $latticeFollow;
+		//camera constraint
+	parentConstraint -w 1 $camera ($mainGRP+"|"+$cameraChild);
+		//smear focal scale expression
+	string $scaleEquation = ("35/"+$camera+".focalLength*-"+$latticeFollow+".translateZ");
+	expression -s ($latticeScale+".scaleX = "+$scaleEquation+";\r\n"+$latticeScale+".scaleY = "+$scaleEquation+";")  -o $latticeScale -ae 1 -uc all;
+	expression -s ($meshOffset+".translateZ = ("+$camera+".focalLength)/-29;") -o $meshOffset -ae 1 -uc all;
+	
+	
+	text -e -l ("locking attributes...") bsmProgText;
+	//lock everything up
+	bsmLockAttr($mainGRP);
+	bsmLockAttr($mainGRP+"|"+$cameraChild);
+	bsmLockAttr($meshOffset);
+	bsmLockAttr($meshScale);
+	bsmLockAttr($smearMesh);
+	bsmLockAttr($latticeFollow);
+	bsmLockAttr($latticeScale);
+	bsmLockAttr($latticeGroup);
+	bsmLockAttr($smearDepthGuide);
+	
+	//generate scripts for user
+	$smearMesh = bsmGetFrom(`ls -l $smearMesh`, 0);
+	bsmSmearControlsWin;
+	
+	progressBar -e -min 0 -max ($resY * $resX) -pr 0 bsmProgBar;
+	text -e -l ("finished!") bsmProgText; // ("+`timerX -st $xTimer`+" seconds)") bsmProgText;
+}
+
+
+global proc bsmAddGeo() {
+	string $selList[] = `ls -sl`;
+	if (!size($selList)) return ;
+	string $itemList[] = `textScrollList -q -ai bsmGeoList`;
+	
+	
+	int $dup = 0;
+	for ($obj in $selList) {
+		$dup = 0;
+		for ($item in $itemList) {
+			if ($obj == $item) $dup = 1;
+		}
+		if (!$dup)
+			textScrollList -e -a $obj bsmGeoList;
+	}
+}
+global proc bsmDelGeo() {
+	string $selItem[] = `textScrollList -q -si bsmGeoList`;
+	if (!size($selItem)) return ;
+	
+	for ($obj in $selItem) {
+		textScrollList -e -ri $obj bsmGeoList;
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+global proc bsmSmearControlsWin() {
+	
+	string $curSmears[] = `ls -r 1 -l "SmearGrp*"`;
+	global string $bsmSmearMesh;
+	$bsmSmearMesh = ($curSmears[0]+"|smear_cameraChild|smear_mesh_offset|smear_mesh_scale|smearMesh");
+	
+	if (`window -ex bsmScriptsWin`) deleteUI -wnd bsmScriptsWin;
+	window -rtf 1 -t "Animation Controls" bsmScriptsWin;
+		columnLayout -adj 1 -rs 2;
+			optionMenu -l "Smear Mesh"
+				-cc "global string $bsmSmearMesh; $bsmSmearMesh = (`optionMenu -q -v bsmSmearControlsOptionMenu`+\"|smear_cameraChild|smear_mesh_offset|smear_mesh_scale|smearMesh\");"
+				bsmSmearControlsOptionMenu;
+            for($obj in $curSmears) {
+                menuItem -l $obj;
+            }
+			button -l "Toggle Mesh Visibility" -c ("bsmSmearControl_toggleVis; setFocus `getPanel -wf`;");
+			button -l "Reset Mesh" -c ("bsmSmearControl_resetMesh; setFocus `getPanel -wf`;");
+			button -l "Key All Mesh Verts" -c ("bsmSmearControl_keyAllVerts; setFocus `getPanel -wf`;");
+			button -l "Show Keys in Graph Editor" -c ("bsmSmearControl_showKeys; setFocus `getPanel -wf`;");
+			
+	window -e -w 200 bsmScriptsWin;
+	showWindow bsmScriptsWin;
+}
+global proc bsmSmearControl_toggleVis() {
+	global string $bsmSmearMesh;
+	if (`getAttr ($bsmSmearMesh+".visibility")`){
+		setAttr ($bsmSmearMesh+".visibility") 0;
+	} else {
+		setAttr ($bsmSmearMesh+".visibility") 1;
+	}
+}
+global proc bsmSmearControl_resetMesh() {
+	global string $bsmSmearMesh;
+	$vertCount = `polyEvaluate -v $bsmSmearMesh`;
+	for ($i = 0; $i < $vertCount[0]; $i++) {
+		setAttr ($bsmSmearMesh+".vtx["+$i+"].pntx") 0;
+		setAttr ($bsmSmearMesh+".vtx["+$i+"].pnty") 0;
+		setAttr ($bsmSmearMesh+".vtx["+$i+"].pntz") 0;
+	}
+}
+global proc bsmSmearControl_keyAllVerts() {
+	global string $bsmSmearMesh;
+	$vertCount = `polyEvaluate -v $bsmSmearMesh`;
+	select ($bsmSmearMesh+".vtx[0:"+$vertCount[0]+"]");
+	setKeyframe;
+	bsmSmearControl_showKeys;
+}
+global proc bsmSmearControl_showKeys() {
+	global string $bsmSmearMesh;
+	string $bsmSmearMeshShape[] = `listRelatives -c -s $bsmSmearMesh`;
+	if (`objExists $bsmSmearMeshShape[0]`)
+		select $bsmSmearMeshShape[0];
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//useful procedures
+global proc string bsmGetFrom(string $arr[], int $index) {
+	return $arr[$index];
+}
+global proc bsmLockAttr(string $obj) {
+	string $attrList[] = {"tx","ty","tz","rx","ry","rz","sx","sy","sz"};
+	for ($attr in $attrList) {
+		setAttr -l 1 -k 0 -cb 0 ($obj+"."+$attr);
+	}
+	setAttr -k 0 -cb 1 ($obj+".v");
+}
