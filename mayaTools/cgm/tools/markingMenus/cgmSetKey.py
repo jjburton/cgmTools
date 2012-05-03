@@ -33,6 +33,10 @@ class setKeyMarkingMenu(BaseMelWindow):
 		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')			
 		
 		panel = mc.getPanel(up = True)
+		# Attempt at fixing a bug of some tools not working when the pop up parent isn't 'viewPanes'
+		if 'MayaWindow' in mc.panel(panel,q = True,ctl = True):
+			panel = 'viewPanes'
+			
 		sel = search.selectCheck()
 		
 		IsClickedOptionVar.set(0)
@@ -40,11 +44,12 @@ class setKeyMarkingMenu(BaseMelWindow):
 		
 		if mc.popupMenu('cgmMM',ex = True):
 			mc.deleteUI('cgmMM')
-		print panel
+			
 		if panel:
 			if mc.control(panel, ex = True):
-				mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = 'viewPanes',
+				mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = panel,
 					         pmc = lambda *a: self.createUI('cgmMM'))
+			
 	
 	def createUI(self,parent):
 		"""
@@ -61,6 +66,7 @@ class setKeyMarkingMenu(BaseMelWindow):
 		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
 		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
 		
+			
 		sel = search.selectCheck()
 		selPair = search.checkSelectionLength(2)
 		ShowMatch = search.matchObjectCheck()
@@ -87,7 +93,8 @@ class setKeyMarkingMenu(BaseMelWindow):
 				    c = lambda *a: buttonAction(mel.eval('autoTangent')))
 		MelMenuItem(parent,l = 'tweenMachine',
 				    c = lambda *a: buttonAction(mel.eval('tweenMachine')))	
-				
+		MelMenuItem(parent, l = 'cgm.animTools',
+	                c = lambda *a: buttonAction(cgmToolbox.loadAnimTools()))	
 		MelMenuItemDiv(parent)
 		MelMenuItem(parent,l = 'ml Set Key',
 			        c = lambda *a: buttonAction(animToolsLib.ml_setKeyCall()))

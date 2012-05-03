@@ -115,7 +115,9 @@ class snapMarkingMenu(BaseMelWindow):
 	                c = lambda *a: buttonAction(cgmToolbox.loadLocinator()))
 		MelMenuItem(parent, l = 'cgm.animTools',
 	                c = lambda *a: buttonAction(cgmToolbox.loadAnimTools()))
-
+		MelMenuItem(parent, l = 'cgm.tdTools',
+	                c = lambda *a: buttonAction(cgmToolbox.loadTDTools()))
+		
 		#>>>Match Mode
 		self.MatchModeOptions = ['parent','point','orient']
 		
