@@ -43,6 +43,7 @@ import random
 
 reload(dictionary)
 reload(lists)
+reload(attributes)
 
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
@@ -66,10 +67,10 @@ def cgmTagToFloatAttr(obj,cgmTag,*a, **kw):
     success = False
     for key in userAttrsData.keys():
         if key == cgmTag:
-            success = True
-            attributes.addFloatAttributeToObject (obj, userAttrsData.get(key) )
-            
-    return success
+            try:
+                return attributes.addFloatAttributeToObject (obj, userAttrsData.get(key),*a, **kw )
+            except:
+                return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #  Utilities
