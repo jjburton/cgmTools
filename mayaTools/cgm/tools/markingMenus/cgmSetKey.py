@@ -33,9 +33,10 @@ class setKeyMarkingMenu(BaseMelWindow):
 		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')			
 		
 		panel = mc.getPanel(up = True)
-		# Attempt at fixing a bug of some tools not working when the pop up parent isn't 'viewPanes'
-		if 'MayaWindow' in mc.panel(panel,q = True,ctl = True):
-			panel = 'viewPanes'
+		if panel:
+			# Attempt at fixing a bug of some tools not working when the pop up parent isn't 'viewPanes'
+			if 'MayaWindow' in mc.panel(panel,q = True,ctl = True):
+				panel = 'viewPanes'
 			
 		sel = search.selectCheck()
 		
