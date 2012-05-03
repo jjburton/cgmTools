@@ -428,6 +428,14 @@ class animToolsClass(BaseMelWindow):
 		guiFactory.doButton2(SpecialColumn,'arcTracr',
 		                     lambda *a: animToolsLib.ml_arcTracerCall(),
 				             'Path tracing tool courtesy of Morgan Loomis')
+		guiFactory.lineSubBreak()				
+		guiFactory.doButton2(SpecialColumn,'copy Anim',
+		                     lambda *a: animToolsLib.ml_copyAnimCall(),
+				             'Animation copy tool courtesy of Morgan Loomis')
+		guiFactory.lineSubBreak()				
+		guiFactory.doButton2(SpecialColumn,'convert Rotation Order',
+		                     lambda *a: animToolsLib.ml_convertRotationOrderCall(),
+				             'Rotation Order Conversion tool courtesy of Morgan Loomis')		
 
 	def Snap_buildLayout(self,parent):
 

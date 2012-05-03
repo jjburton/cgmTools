@@ -29,12 +29,14 @@ import maya.mel as mel
 import subprocess
 
 from cgm.lib.cgmBaseMelUI import *
-from cgm.lib.ml import ml_breakdownDragger
-from cgm.lib.ml import ml_resetChannels
-from cgm.lib.ml import ml_deleteKey
-from cgm.lib.ml import ml_setKey
-from cgm.lib.ml import ml_hold
-from cgm.lib.ml import ml_arcTracer
+from cgm.lib.ml import (ml_breakdownDragger,
+                        ml_resetChannels,
+                        ml_deleteKey,
+                        ml_setKey,
+                        ml_hold,
+                        ml_arcTracer,
+                        ml_convertRotationOrder,
+                        ml_copyAnim)
 
 reload(ml_arcTracer)
 """
@@ -57,3 +59,9 @@ def ml_holdCall():
     
 def ml_arcTracerCall():
     ml_arcTracer.ui()
+    
+def ml_copyAnimCall():
+    ml_copyAnim.ui()
+
+def ml_convertRotationOrderCall():
+    ml_convertRotationOrder.ui()
