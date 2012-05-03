@@ -24,11 +24,22 @@
 import maya.cmds as mc
 from cgm.lib import guiFactory,dictionary,settings
 
-
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
+attrTypesDict = {'message':['message','msg','m'],
+                 'double':['float','fl','f','doubleLinear'],
+                 'string':['string','s','str'],
+                 'long':['long','int','i','integer'],
+                 'bool':['bool','b','boolean'],
+                 'enum':['enum','options','e'],
+                 'vector':['vector','vec','v']}
+                 
+dataConversionDict = {'long':int,
+                      'string':str,
+                      'double':float}
+                      
 def returnAttrListFromStringInput (stringInput1,stringInput2 = None):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -87,6 +98,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
     typeDictionary = dictionary.initializeDictionary(typesDictionaryFile)
     namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
     settingsDictionary = dictionary.initializeDictionary(settingsDictionaryFile)
+    attrTypes = returnObjectsAttributeTypes(obj)    
     goodToGo = False
     infoData = 0
 
@@ -147,7 +159,16 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
             set the data
             """
             if infoData == 'attribute':
+                infoAttrType = mc.getAttr(info,type=True)
+                if mc.objExists(obj+'.'+infoType):
+                    objAttrType = mc.getAttr((obj+'.'+infoType),type=True)
+                    if infoAttrType != objAttrType:
+                        convertAttrType((obj+'.'+infoType),infoAttrType)
+                print infoAttrType
+                print objAttrType
+                
                 doConnectAttr(info,attributeBuffer)
+                
                 if leaveUnlocked != True:
                     mc.setAttr(attributeBuffer,lock=True)
             else:
@@ -304,6 +325,114 @@ def doSetStringAttr(attribute,value,forceLock = False):
 
     if wasLocked == True or forceLock == True:
         mc.setAttr(attribute,lock=True)
+        
+def convertAttrType(targetAttrName,attrType):
+    """ 
+    Attempts to convert an existing attrType from one type to another. 
+    Enum's are stored to strings as 'option1;option2'.
+    Strings with a ';' will split to enum options on conversion.
+    
+    Keyword arguments:
+    targetAttrName(string) -- name for an existing attribute name
+    attrType(string) -- desired attribute type
+    
+    """    
+    assert mc.objExists(targetAttrName) is True,"'%s' doesn't exist!"%targetAttrName
+    
+    aType = False
+    for option in attrTypesDict.keys():
+        if attrType in attrTypesDict.get(option): 
+            aType = option
+            break
+        
+    assert aType is not False,"'%s' is not a valid attribute type!"%attrType
+    
+            
+    #>>> Get data
+    targetLock = False
+    if mc.getAttr((targetAttrName),lock = True) == True:
+        targetLock = True
+        mc.setAttr(targetAttrName,lock = False)
+    
+    targetType = mc.getAttr(targetAttrName,type=True)
+    
+    buffer = targetAttrName.split('.')
+    targetObj = buffer[0]
+    targetAttr = buffer[-1]
+    
+    print "Target object is '%s'"%targetObj
+    print "Target attr is '%s'"%targetAttr
+    
+    #>>> Do the stuff
+    if aType != targetType:
+        # get data connection and data to transfer after we make our new attr
+        # see if it's a message attribute to copy    
+        connection = ''
+        if queryIfMessage(targetObj,targetAttr):
+            dataBuffer = (returnMessageObject(targetObj,targetAttr))
+        else:
+            connection = returnDriverAttribute(targetAttrName)            
+            dataBuffer = mc.getAttr(targetAttrName)
+        
+        if targetType == 'enum':
+            enumStuff = mc.attributeQuery(targetAttr, node = targetObj, listEnum=True)
+            buffer = enumStuff[0].split(':')
+            dataBuffer = ';'.join(buffer)
+            
+        print "Data buffer is '%s'"%dataBuffer   
+        
+        deleteAttr(targetObj,targetAttr)
+        
+        """if it doesn't exist, make it"""
+        if aType == 'string':
+            mc.addAttr (targetObj, ln = targetAttr,  dt = aType )
+            
+        elif aType == 'enum':
+            if dataBuffer:
+                if ';' in dataBuffer:
+                    enumStuff = dataBuffer.split(';')
+                else:
+                    enumStuff = [dataBuffer]
+            else:
+                enumStuff = ['off','on']
+            print enumStuff
+            mc.addAttr (targetObj, ln = targetAttr, at=  'enum', en = ':'.join(enumStuff))
+            
+        elif aType == 'double3':
+            mc.addAttr (targetObj, ln=targetAttr, at= 'double3')
+            mc.addAttr (targetObj, ln=(targetAttr+'X'),p=targetAttr , at= 'double')
+            mc.addAttr (targetObj, ln=(targetAttr+'Y'),p=targetAttr , at= 'double')
+            mc.addAttr (targetObj, ln=(targetAttr+'Z'),p=targetAttr , at= 'double')
+        else:
+            mc.addAttr (targetObj, ln = targetAttr,  at = aType )
+            
+        if connection:
+            try:
+                doConnectAttr(connection,targetAttrName)
+            except:
+                guiFactory.warning("Couldn't connect '%s' to the '%s'"%(connection,targetAttrName))
+                
+        elif dataBuffer is not None:
+            if mc.objExists(dataBuffer) and aType == 'message':
+                storeObjectToMessage(dataBuffer,targetObj,targetAttr)
+            else:
+                try:
+                    if aType == 'long':
+                        mc.setAttr(targetAttrName,int(float(dataBuffer)))
+                    elif aType == 'string':
+                        mc.setAttr(targetAttrName,str(dataBuffer),type = aType)
+                    elif aType == 'double':
+                        mc.setAttr(targetAttrName,float(dataBuffer))   
+                    else:
+                        mc.setAttr(targetAttrName,dataBuffer,type = aType)
+                except:
+                    guiFactory.warning("Couldn't add '%s' to the '%s'"%(dataBuffer,targetAttrName))
+                    
+                
+        if targetLock:
+            mc.setAttr(targetAttrName,lock = True)
+            
+
 
 def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False):
     """                                     
@@ -1523,10 +1652,11 @@ def queryIfMessage(obj,attr):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if mc.objExists(obj+'.'+attr) != False:
-        messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
-        if messageQuery == True:
-            return True
-        else:
+        try:
+            messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
+            if messageQuery == True:
+                return True
+        except:
             return False
     else:
         return False
