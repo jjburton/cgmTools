@@ -1,0 +1,157 @@
+zooArrays_str;
+
+
+global proc zooDates() {
+	return;
+	}
+
+
+//given a date string, this proc simply reverses the date tokens
+global proc string zooReverseDate( string $dateStr ) {
+	string $toks[] = `zooTokenize $dateStr "/"`;
+	$toks = `zooReverseArray_str $toks`;
+	return `zooArrayToStr_str $toks "/"`;
+	}
+
+
+//same as zooGetDay_int, but the arg is a string date, not an int array
+global proc string zooGetDay_str( string $dateStr ) {
+	string $toks[] = `zooTokenize $dateStr "/"`;
+	string $day = `zooGetDay_int { (int)$toks[0],(int)$toks[1],(int)$toks[2] }`;
+
+	return $day;
+	}
+
+
+//this proc will take a date and figure out what day that date falls on in a week
+global proc string zooGetDay_int( int $date[] ) {
+	string $days[] = { "sunday","monday","tuesday","wednesday","thursday","friday","saturday" };  //we start the array with sunday because 1995/01/01 was a sunday
+	int $dayCount = `zooDateToInt $date[0] $date[1] $date[2]`-1;
+	int $day = $dayCount%7;
+
+	return $days[$day];
+	}
+
+
+//same as zooDaysAgo_int, but the arg is a string date, not an int array
+global proc string zooDaysAgo_str( string $dateStr, int $days ) {
+	string $toks[] = `zooTokenize $dateStr "/"`;
+	int $newDate[] = `zooDaysAgo_int { (int)$toks[0],(int)$toks[1],(int)$toks[2] } $days`;
+
+	return `zooArrayToStr_int $newDate "/"`;
+	}
+
+
+//given a date, this proc will figure out the date x days ago
+global proc int[] zooDaysAgo_int( int $date[], int $days ) {
+	int $count = `zooDateToInt $date[0] $date[1] $date[2]` - $days;
+	int $newDate[] = `zooIntToDate $count`;
+
+	return $newDate;
+	}
+
+
+//given an int, this proc will convert it back to a date - so we can convert a
+//date to an int, add two dates together, and convert it back to a date again
+global proc int[] zooIntToDate( int $count ) {
+	int $year = 1995;  //1995 is the "start date" that zoodates works with
+	int $month = 0;
+	int $day = 0;
+	int $yearDays = 0;
+
+	for( $year; 1; $year++ ) {
+		$yearDays = `zooYearToInt $year`;
+		if( $yearDays > $count ) break;
+		}
+	$year--;  //since we went over the remaining count, we need to subtract one
+	$count -= `zooYearToInt $year`;
+
+	int $monthDays = 0;
+	for( $month=0; $month<12; $month++ ) {
+		$monthDays = `zooMonthToInt $year $month`;
+		if( $monthDays > $count ) break;
+		}
+	$month--;
+	$count -= `zooMonthToInt $year $month`;
+	$day = $count;
+
+	return { $year, ($month+1), $day };  //we add one to the month because above it is a zero based month
+	}
+
+
+//converts an entire date to an integer - which is basically just a day count
+//from an arbitrary start time (in this case 1995/01/01).  this functionality is
+//needed to do date arithmetic
+global proc int zooDateToInt( int $year, int $month, int $day ) {
+	int $startYear = 1995;
+	if( $year<$startYear ) return 0;
+	$month--;  //take 1 from the month, as months are 1-based while the array is 0-based
+
+	//do years
+	int $count = `zooYearToInt $year`;
+	$count += `zooMonthToInt $year $month`;
+	$count += $day;
+
+	return $count;
+	}
+
+
+//given a year and a date, returns a day count up till the end of that month
+global proc int zooMonthToInt( int $year, int $month ) {
+	int $count = 0;
+	int $monthLengths[] = {};
+
+	zooMonthDays $year {} {} $monthLengths;
+	for( $n=0; $n<$month; $n++ ) $count += $monthLengths[$n];
+
+	return $count;
+	}
+
+
+//converts a year to an integer - which is basically just a day count from an
+//arbitrary start time - needed to do date arithmetic
+global proc int zooYearToInt( int $year ) {
+	int $startYear = 1995;
+	int $count = 0;
+
+	if( $year<$startYear ) return 0;
+
+	for( $n=$startYear; $n<$year; $n++ ) {
+		$count += 365;
+		if( `zooIsLeapYear $n` ) $count++;
+		}
+
+	return $count;
+	}
+
+
+//the year needs to be known to take into account leap years
+global proc zooMonthDays( int $year, string $monthLongNames[], string $monthShortNames[], int $monthLengths[] ) {
+	clear $monthLongNames;
+	clear $monthShortNames;
+	clear $monthLengths;
+	int $leapYear = `zooIsLeapYear $year`;
+	int $feb = 28;
+
+	if( $leapYear ) $feb = 29;
+	$monthLongNames = { "january","february","march","april","may","june","july","august","september","october","november","december" };
+	$monthShortNames = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
+	$monthLengths = { 31, $feb, 31, 30, 31, 30, 31, 31, 30, 31, 30 ,31 };
+	}
+
+
+global proc int zooIsLeapYear( int $year ) {
+	int $leapyear = 0;
+	if( !($year%4)) {
+		$leapyear = 1;
+		if( !($year%100)) {
+			if( !($year%400)) $leapyear = 1;  //100 years are only leap years if divisible by 400 as well
+			else $leapyear = 0;
+			}
+		}
+
+	return $leapyear;
+	}
+
+
+//zoo.end
