@@ -388,13 +388,11 @@ def convertAttrType(targetAttrName,attrType):
             mc.addAttr (targetObj, ln = targetAttr,  dt = aType )
             
         elif aType == 'enum':
+            enumStuff  = ['off','on'] 
             if dataBuffer:
-                if ';' in dataBuffer:
-                    enumStuff = dataBuffer.split(';')
-                else:
-                    enumStuff = [dataBuffer]
-            else:
-                enumStuff = ['off','on']
+                if type(dataBuffer) is str or type(dataBuffer) is unicode:
+                    if ';' in dataBuffer:
+                        enumStuff = dataBuffer.split(';')
             print enumStuff
             mc.addAttr (targetObj, ln = targetAttr, at=  'enum', en = ':'.join(enumStuff))
             
