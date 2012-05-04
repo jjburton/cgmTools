@@ -73,6 +73,8 @@ def uiSetSelfVariable(self,variable,value):
     print value
     self.variable = value
 
+def loadJTDDynamicParent():
+    mel.eval('source JTDDynParentUI;')
 
 def loadGUIOnStart(self):
     selection = mc.ls(sl=True) or []

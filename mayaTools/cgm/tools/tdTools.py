@@ -494,7 +494,9 @@ class tdToolsClass(BaseMelWindow):
 
 	self.buildSnapToSurfaceTool(positionRightColumn)
 
-	self.buildGridLayoutTool(positionRightColumn)
+	self.buildTool_GridLayout(positionRightColumn)
+	
+	self.buildTool_Constraints(positionRightColumn)
 
 	#>> Defining Main Form Layout
 	positionMainFormLayout(edit = True,
@@ -1069,7 +1071,7 @@ class tdToolsClass(BaseMelWindow):
 
 	snapToSurfaceButton.layout()
 
-    def buildGridLayoutTool(self,parent):
+    def buildTool_GridLayout(self,parent):
 	mc.setParent(parent)
 	guiFactory.header('Grid Layout')
 	guiFactory.lineSubBreak()
@@ -1088,7 +1090,22 @@ class tdToolsClass(BaseMelWindow):
 
 	GridLayoutButtonRow.layout()
 
+    def buildTool_Constraints(self,parent):
+	mc.setParent(parent)
+	guiFactory.header('Constraints')
+	guiFactory.lineSubBreak()
 
+
+	ConstraintsButtonRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
+
+	guiFactory.doButton2(ConstraintsButtonRow,'JTD Dynamic Parent Constraint GUI',
+	                     lambda *a:tdToolsLib.loadJTDDynamicParent(),
+	                     'Dynamic Constraint Tool\n by John Doublestein')
+
+
+	ConstraintsButtonRow.layout()
+	mc.setParent(parent)
+	guiFactory.lineSubBreak()	
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Info Tools
