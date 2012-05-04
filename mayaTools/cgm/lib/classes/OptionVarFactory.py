@@ -86,7 +86,7 @@ class OptionVarFactory():
         else:
             self.name = self.name
             dataBuffer = mc.optionVar(q=self.name)
-            typeBuffer = self.getStringType(dataBuffer)
+            typeBuffer = search.returnDataType(dataBuffer)
             if typeBuffer == varType:
                 self.form = typeBuffer
                 self.value = dataBuffer
@@ -112,35 +112,6 @@ class OptionVarFactory():
         elif doType == 'string':
             mc.optionVar(sv=(self.name,''))
             
-
-    def getStringType(self,dataBuffer):
-        """ 
-        Get type string for the optionVar's value(s).
-        
-        Keyword arguments:
-        dataBuffer() -- the data to check
-        
-        """
-        def simpleReturn(t):
-            if t is int:
-                return 'int'
-            elif t is float:
-                return 'float'
-            elif t is unicode:
-                return 'string'
-            else:
-                return False   
-            
-        typeReturn = type(dataBuffer)
-        
-        if typeReturn is list:
-            if type(dataBuffer[0]) is unicode:
-                return 'string'
-            else:
-                return simpleReturn(type(dataBuffer[0]))
-        else:
-            return simpleReturn(typeReturn)           
-        
   
     def purge(self):
         """ 

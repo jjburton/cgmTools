@@ -63,6 +63,47 @@ def checkSelectionLength(length):
     return 0
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Data check
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnDataType(data):
+    """ 
+    Get type string for a data set. Currently handles list,int,float,string,unicode
+    
+    Keyword arguments:
+    data() -- the data to check
+    
+    """
+    def simpleReturn(t):
+        if t is int:
+            return 'int'
+        elif t is float:
+            return 'float'
+        elif t is unicode or t is str:
+            return 'string'
+        else:
+            return False   
+        
+    typeReturn = type(data)
+    
+    if typeReturn is list:
+        stringFound = False
+        # First if there is a single string in the data set, the rest of the list will be treated as a string set
+        for o in data:
+            if type(o) is unicode or type(o) is str:
+                return 'string'
+        # If not, check for floats
+        for o in data:
+            if type(o) is float:
+                return 'float'        
+        # Else just use the first one
+        if type(data[0]) is unicode or type(data[0]) is str:
+            return 'string'
+        else:
+            return simpleReturn(type(data[0]))
+    else:
+        return simpleReturn(typeReturn) 
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnObjectMasterNull(obj):
