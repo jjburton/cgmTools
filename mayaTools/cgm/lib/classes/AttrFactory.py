@@ -47,7 +47,7 @@ class AttrFactory():
     """ 
     Initialized a maya object as a class obj
     """
-    def __init__(self,objName,attrName,attrType,value = None,*a, **kw):
+    def __init__(self,objName,attrName,attrType = False,value = None,*a, **kw):
         """ 
         Asserts object's existance and that it has a transform. Then initializes. If 
         an existing attribute name on an object is called and the attribute type is different,
@@ -67,13 +67,16 @@ class AttrFactory():
         # If it exists we need to check the type. 
         if mc.objExists('%s.%s'%(self.obj.nameLong,attrName)):
             currentType = mc.getAttr('%s.%s'%(self.obj.nameLong,attrName),type=True)
-            if attrType != currentType:            
+            if attrType != currentType and self.form is not False:            
                 self.convert(attrType)
             else:
                 self.attr = attrName
         else:
             try:
-                if self.form == 'double':
+                if self.form == False:
+                    self.form = 'string'
+                    attributes.addStringAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
+                elif self.form == 'double':
                     attributes.addFloatAttributeToObject(self.obj.nameLong,attrName,*a, **kw)
                 elif self.form == 'string':
                     attributes.addStringAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
@@ -114,7 +117,6 @@ class AttrFactory():
                 aType = option
                 break
             
-        assert aType is not False,"'%s' is not a valid attribute type!"%attrType
         return aType
     
     def set(self,value,*a, **kw):
