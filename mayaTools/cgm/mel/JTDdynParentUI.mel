@@ -1,0 +1,4355 @@
+/*
+JTDdynParentUI is a user interface that works with JTDdynParent.  
+
+usage: JTDdynParentUI;
+
+JTDdynParent allows the user to animate a child switching between multiple parents.  This is useful for setting up rig controls that
+can switch inheritance between body parts or give characters the ability to easily pick up and put down objects. The switching is done
+through a right mouse menu that is added at the time of creation.  When parenting is changed from this menu, it calls an embedded script 
+that switches the constraint and snaps the object back to its original position, so there is no distinguishable change in postion. Keying
+the parent attribute and transformation values is left up to the user.
+
+ex usage: JTDdynParent("-chi locator1 -par locator2,locator3 -nms parent1,parent2");
+
+flags:
+
+-chi: child
+-par: list of parents separated by commas
+-nms: list of names to use separated by commas
+-grp: dont create a parent group, use this one instead
+-mnu: add the right click menu to this instead
+-typ: "parent", "orient", or "follow" constraint options
+
+parent type is the default behavior
+orient type handles just rotations and leaves the translation channels free
+follow type is a hybrid of the two, allowing an object to maintain its orientation, yet still behave as if a child of the parents
+*/
+
+JTDdynParentUI;
+global proc JTDdynParentUI()
+{
+int $aimModifier = 0;
+int $upModifier = 0;
+int $worldModifier = 0;
+
+if ((`window -ex JTDdynParentUI`) == true) deleteUI -window JTDdynParentUI;
+if((`windowPref -exists JTDdynParentUI`) == 1) windowPref -remove JTDdynParentUI;
+
+window 	-title "JTD dynamic parenting tool"
+	-width 400
+	-height 445
+	-menuBar true
+	-rtf false
+	JTDdynParentUI;
+	
+	menu -label "About" -tearOff false;
+	//menuItem -divider true;
+	menuItem -label "John Doublestein's website"
+		 -c "launch -web \"http://www.johndoublestein.com\""
+		 -ann "Opens John Doublestein's website.";	
+	
+	
+ 	string $base = `formLayout -numberOfDivisions 100`;
+ 	string $tabs = `tabLayout`;
+	
+	formLayout -e 
+		   -attachForm $tabs "top" 5
+		   -attachForm $tabs "left" 5
+		   -attachPosition $tabs "right" 0 100
+		   $base;
+		   
+	string $tab7 = `formLayout -numberOfDivisions 100 -h 445`;
+	string $childButton = `textFieldButtonGrp -label "Child Object" -cw3 70 200 50 -buttonLabel "<<<" -ad3 2`;
+	
+	formLayout -e 
+		   -attachForm $childButton "left" 5
+		   -attachForm $childButton "top" 10
+		   -attachPosition $childButton "right" 0 100
+		   $tab7;
+		   
+	string $parentScroll = `textScrollList -w 150 -numberOfRows 5 -allowMultiSelection false -showIndexedItem 4`;
+ 	
+ 	formLayout -e 
+ 		   -attachForm $parentScroll "left" 10
+ 		   -attachForm $parentScroll "top" 65
+ 		   -attachPosition $parentScroll "right" 0 50
+		   $tab7;
+		   
+	string $renameScroll = `textScrollList -w 150 -numberOfRows 5 -allowMultiSelection false -showIndexedItem 4`;
+
+	formLayout -e 
+ 		   -attachForm $renameScroll "top" 65
+ 		   -attachControl $renameScroll "left" 5 $parentScroll
+ 		   -attachPosition $renameScroll "right" 0 95
+		   $tab7;
+		   
+	string $parentLabel = `text -label "Parents: "`;
+
+	formLayout -e 
+		   -attachForm $parentLabel "left" 10
+		   -attachForm $parentLabel "top" 40
+		   -attachPosition $parentLabel "right" 0 50
+		   $tab7;
+		   
+	string $aliasLabel = `text -label "Alias: "`;
+
+	formLayout -e 
+		   -attachForm $aliasLabel "top" 40
+		   -attachControl $aliasLabel "left" 5 $parentLabel
+		   $tab7;
+		   
+	string $addParentButton = `button -label "Add Parent"`;
+
+	formLayout -e 
+ 		   -attachForm $addParentButton "left" 10
+ 		   -attachForm $addParentButton "top" 140
+ 		   -attachPosition $addParentButton "right" 0 50
+		   $tab7;
+		   
+	string $removeButton = `button -label "Remove from List"`;
+
+	formLayout -e 
+ 		   -attachForm $removeButton "left" 10
+ 		   -attachForm $removeButton "top" 180
+ 		   -attachPosition $removeButton "right" 0 50
+		   $tab7;
+		   
+	string $renameField = `textFieldButtonGrp -buttonLabel "Rename" -cw2 115 50 -ad2 1`;
+
+	formLayout -e 
+ 		   -attachForm $renameField "top" 140
+ 		   -attachControl $renameField "left" 5 $addParentButton
+ 		   -attachPosition $renameField "right" 0 95
+		   $tab7;
+		   
+	string $radioParentType =`radioButtonGrp -numberOfRadioButtons 3 -l "Constraint Type:" -labelArray3 "Parent" "Orient" "Follow" -cw4 90 55 55 55 -ct4 "left" "left" "left" "left"`;
+
+	formLayout -e 
+		   -attachForm $radioParentType "top" 220
+		   -attachForm $radioParentType  "left" 10
+		   -attachPosition $radioParentType  "right" 0 95
+		   $tab7;
+		   
+	string $createDynButton = `button -label "Create/Update Dynamic Parent Switch"`;
+	
+	formLayout -e 
+ 		   -attachForm $createDynButton "left" 10
+ 		   -attachForm $createDynButton "top" 245
+ 		   -attachPosition $createDynButton "right" 0 95
+		   $tab7;
+		   
+	string $advFrame = `frameLayout -l " Advanced"`;
+		   
+	string $dynAdvForm = `formLayout`;
+	
+	formLayout -e
+		   -numberOfDivisions 100
+		   $dynAdvForm;
+		   
+	string $addMenuField = `textFieldButtonGrp -label "Add Menu To:" -cw3 80 200 50 -buttonLabel "<<<" -ad3 2`;
+
+	formLayout -e 
+		   -attachForm $addMenuField "left" 5
+		   -attachForm $addMenuField "top" 0
+		   -attachPosition $addMenuField "right" 0 100
+		   $dynAdvForm;
+		   
+	string $useAltGrpField = `textFieldButtonGrp -label "Alternate Grp:" -cw3 80 200 50 -buttonLabel "<<<" -ad3 2`;
+	
+	formLayout -e 
+		   -attachForm $useAltGrpField "left" 5
+		   -attachForm $useAltGrpField "top" 25
+		   -attachPosition $useAltGrpField "right" 0 100
+		   $dynAdvForm;
+	
+	setParent..;
+
+	formLayout -e 
+		   -attachForm $advFrame "top" 285
+		   -attachForm $advFrame "left" 5
+		   -attachPosition $advFrame "right" 0 100
+		   $tab7;
+		   
+	setParent..;
+	setParent..;
+	
+	tabLayout -edit 
+		  -tabLabel $tab7 "DynParent"
+		  $tabs;
+	
+	string $JTDbc = ("int $cnt = 0; int $choice = 1; string $child[]; string $parent; string $connections[]; string $parentConnections[]; string $altGrpConnection[]; string $target[] = `ls -sl -typ transform`; if(objExists($target[0]+\".menuPtr\")) {$child = `listConnections ($target[0]+\".menuPtr\")`; textFieldButtonGrp -e -text $child[0] "+$addMenuField+"; } else{$child = $target; textFieldButtonGrp -e -text \"\" "+$addMenuField+";} if(`objExists( ($child[0]+\".parentType\") )` ) $choice = getAttr ($child[0]+\".parentType\"); textFieldButtonGrp -e -text $target[0] "+$childButton+"; textScrollList -e -ra "+$renameScroll+"; textScrollList -e -ra "+$parentScroll+"; while(`objExists( ($child[0]+\".Parent_\"+$cnt) )` ) { $connections = `listConnections ($child[0]+\".Parent_\"+$cnt)`; $parentConnections = `listConnections ($connections[0]+\".parentGrp\")`; if(endsWith($connections[0], \"_DynDriver\")) { $connections[0] =  JTDshortNameOf($connections[0]); $parent = substitute(\"_DynDriver\", $connections[0], \"\");} textScrollList -e -append $parentConnections[0] "+$parentScroll+"; textScrollList -e -append $parent "+$renameScroll+"; $cnt++; } if(objExists($child[0]+\".constr\")) { $altGrpConnection = `listConnections ($child[0]+\".constr\")`; textFieldButtonGrp -e -text $altGrpConnection[0] "+$useAltGrpField+";} else textFieldButtonGrp -e -text \"\" "+$useAltGrpField+"; radioButtonGrp -e -sl $choice "+$radioParentType+"; textFieldButtonGrp -e -tx \"\" "+$renameField+";");
+	string $JTDcc = ("int $cnt = 0; int $choice = 1; string $child[]; string $parent; string $connections[]; string $parentConnections[]; string $altGrpConnection[]; string $textGrp = `textFieldButtonGrp -q -text "+$childButton+"`; if(objExists($textGrp+\".menuPtr\")) {$child = `listConnections ($textGrp+\".menuPtr\")`; textFieldButtonGrp -e -text $child[0] "+$addMenuField+"; } else{$child[0] = $textGrp; textFieldButtonGrp -e -text \"\" "+$addMenuField+";} if(`objExists( ($child[0]+\".parentType\") )` ) $choice = getAttr ($child[0]+\".parentType\"); textScrollList -e -ra "+$renameScroll+"; textScrollList -e -ra "+$parentScroll+"; while(`objExists( ($child[0]+\".Parent_\"+$cnt) )` ) { $connections = `listConnections ($child[0]+\".Parent_\"+$cnt)`; $parentConnections = `listConnections ($connections[0]+\".parentGrp\")`; if(endsWith($connections[0], \"_DynDriver\")) { $connections[0] =  JTDshortNameOf($connections[0]); $parent = substitute(\"_DynDriver\", $connections[0], \"\");} textScrollList -e -append $parentConnections[0] "+$parentScroll+"; textScrollList -e -append $parent "+$renameScroll+"; $cnt++; } if(objExists($child[0]+\".constr\")) { $altGrpConnection = `listConnections ($child[0]+\".constr\")`; textFieldButtonGrp -e -text $altGrpConnection[0] "+$useAltGrpField+";} else textFieldButtonGrp -e -text \"\" "+$useAltGrpField+"; radioButtonGrp -e -sl $choice "+$radioParentType+"; textFieldButtonGrp -e -tx \"\" "+$renameField+";");	
+ 		   
+	textFieldButtonGrp -e
+			   -ed false
+			   -buttonCommand $JTDbc
+			   -cc $JTDcc
+			   $childButton;
+
+ 	textScrollList -e
+ 		       -sc ("int $sel[] = `textScrollList -q -sii " +$parentScroll+"`; textScrollList -e -sii $sel[0] "+$renameScroll+"; string $JTDallItems[] = `textScrollList -q -ai "+$renameScroll+"`; textFieldButtonGrp -e -text $JTDallItems[$sel[0]-1] "+$renameField+";")
+ 		       $parentScroll;
+ 		       
+ 	textScrollList -e 
+	 	       -sc ("int $sel[] = `textScrollList -q -sii " +$renameScroll+"`; textScrollList -e -sii $sel[0] "+$parentScroll+"; string $JTDallItems[] = `textScrollList -q -ai "+$renameScroll+"`; textFieldButtonGrp -e -text $JTDallItems[$sel[0]-1] "+$renameField+";")
+ 		       $renameScroll;
+ 	
+	button -e
+	       -command ("string $item[] = `ls -sl`; textScrollList -e -append $item[0] "+$parentScroll+" ;textScrollList -e -append `JTDshortNameOf($item[0])` "+$renameScroll+" ;")
+	       -width 80
+	       -height 32
+	       -al "center"
+	       $addParentButton;
+
+	button -e
+	       -command ("int $rem[] = `textScrollList -q -sii "+ $parentScroll+"`; textScrollList -e -rii $rem[0] "+ $parentScroll+"; textScrollList -e -rii $rem[0] "+ $renameScroll+";")
+	       -width 80
+	       -height 32
+	       -al "center"
+	       $removeButton;
+	
+	textFieldButtonGrp -e
+			   -buttonCommand ("string $renameString = `textFieldButtonGrp -q -tx "+$renameField+"`; if(`strip($renameString)` == \"\") error \"Can't use an Alias with an empty string\"; int $rem[] = `textScrollList -q -sii "+ $renameScroll +"`; textScrollList -e -rii $rem[0] "+ $renameScroll +";textScrollList -e -ap $rem[0] $renameString "+ $renameScroll +"; textFieldButtonGrp -e -tx \"\" "+$renameField+";" )
+			   $renameField;
+
+	radioButtonGrp -e
+		       -sl 1
+		       $radioParentType;
+
+	button -e
+	       -command ("string $JTDchild = `textFieldButtonGrp -q -text "+$childButton+"`; string $JTDparents = stringArrayToString(`textScrollList -q -ai "+$parentScroll+"`, \",\"); string $JTDnames = stringArrayToString(`textScrollList -q -ai "+$renameScroll+"`, \",\"); string $JTDconstrType = \"parent\"; if(`radioButtonGrp -q -sl "+$radioParentType+"` == 2) $JTDconstrType = \"orient\"; if(`radioButtonGrp -q -sl "+$radioParentType+"` == 3) $JTDconstrType = \"follow\";  string $JTDadvMenu = `textFieldButtonGrp -q -text "+$addMenuField+"`; string $JTDaltGrp = `textFieldButtonGrp -q -text "+$useAltGrpField+"`; JTDdynParent(\"-chi \"+$JTDchild+\" -par \"+$JTDparents+\" -nms \"+$JTDnames+\" -typ \"+$JTDconstrType+\" -grp \"+$JTDaltGrp+\" -mnu \"+$JTDadvMenu+\"\"); textFieldButtonGrp -e -text $JTDchild -fcc "+$childButton+";")
+	       -width 80
+	       -height 32
+	       -al "center"
+	       $createDynButton;
+
+	frameLayout -e
+		    -cll true
+		    -cl true
+		    -bv false
+		    $advFrame;
+
+	textFieldButtonGrp -e
+			   -ed true
+			   -buttonCommand ("string $objs[] = `ls -sl`; textFieldButtonGrp -e -text $objs[0] "+$addMenuField+";")
+			   $addMenuField;
+		   
+	textFieldButtonGrp -e
+			   -ed true
+			   -buttonCommand ("string $objs[] = `ls -sl -typ transform`; textFieldButtonGrp -e -text $objs[0] "+$useAltGrpField+";")
+			   $useAltGrpField;
+
+showWindow;
+}	
+
+global proc int JTDdynParent(string $inputs)
+{
+string $params[] = JTDflags($inputs);
+string $child;
+string $listOfParents[];
+string $nameOfParents[];
+string $checkGrp[];
+string $parentGrp;
+string $addMenuTo;
+string $enumString;
+string $targetParent;
+string $constrType;
+int $cnt;
+
+for($param in $params)
+{
+	if(startsWith($param, "ch")) { $child = endString($param, (size($param)-4)); $cnt++;}
+	if(startsWith($param, "pa")) { string $temp = endString($param, (size($param)-4)); $listOfParents = stringToStringArray($temp, ","); $cnt++;}
+	if(startsWith($param, "nm")) { string $temp = endString($param, (size($param)-4)); $nameOfParents = stringToStringArray($temp, ","); $cnt++;}
+	if(startsWith($param, "gr")) { $parentGrp = endString($param, (size($param)-4)); $cnt++;}
+	if(startsWith($param, "mn")) { $addMenuTo = endString($param, (size($param)-4)); $cnt++;}
+	if(startsWith($param, "ty")) { $constrType = endString($param, (size($param)-4)); $cnt++;}
+}
+
+if($child == "") error "You must specify a target object\n";
+
+if($constrType == "") $constrType = "parent"; //this is the default behavior, next we'll check to see if the user input something unexpected
+if( ($constrType == "parent") || ($constrType == "Parent") || ($constrType == "orient") || ($constrType == "Orient") || ($constrType == "follow") || ($constrType == "Follow") ) ;
+else error "Please choose from the following constraint options: parent, orient or follow";
+
+//build a list of parents using the actual names of the objects, otherwise use the list provided
+if($nameOfParents[0] == "") //no alias names were provided
+{
+	for($parent in $listOfParents) 
+	{
+		if($parent != $child) $enumString += (`JTDstripNameSpace($parent)`+":");
+	}
+}
+else
+{
+	if(size($listOfParents) != size($nameOfParents)) error "Please specify a name for each one of the parents\n";
+	for($name in $nameOfParents) $enumString += (`JTDstripNameSpace($name)`+":");
+}
+
+//once the list is complete, check for duplicates
+if(JTDfoundDupParents($listOfParents)) error "Duplicate parents found in the list, please remove";
+//check to see if the object is on the list and trying to be a parent of itself
+if(JTDfoundChildInParents($child, $listOfParents)) error "Child cannot be a parent of itself, please remove";
+
+//now we're going to setup a new dyn parent or modify an already existing one
+if( !objExists($child+".Parent")) // if it doesnt have the parent attribute, it means we're making a new dyn parent constraint
+{
+	if(size($listOfParents) < 2) error "You must specify at least two parent objects\n";
+	
+	addAttr -ln Parent -at "enum" -en $enumString $child;
+	setAttr -keyable true ($child+".Parent");
+	
+	if( ($constrType == "follow") || ($constrType == "Follow") ) //this is the special case
+	{
+		addAttr -ln Follow -at "enum" -en $enumString $child;
+		setAttr -keyable true ($child+".Follow");
+	}
+}
+else //when modifying an existing parent constraint, changing the alias names is the only option that does not remove and recreate the constraint, however, it does not remove the "parent" or "follow" attribute, so the animation data attached to these attributes is retained
+{
+	if( (!JTDmodifyingParents($child, $listOfParents)) && (!JTDchangingConstrType($child, $constrType)) ) //just changing names, not changing constraints
+	{
+		JTDmodifyNames($child, $enumString);
+		select -cl;
+		print "Updated Alias Names\n";
+		return 1;
+	}
+	else if(size($listOfParents) <= 1) //removing all constraints
+	{
+		JTDremoveAllConstraints($child);
+		deleteAttr ($child+".Parent");
+		if(objExists($child+".Follow")) deleteAttr ($child+".Follow");
+		print "Deleted dynParent constraint\n";
+		select -cl;
+		return 1; //script ends here
+	}
+	else //appending or removing constraints
+	{
+		JTDremoveAllConstraints($child);
+		addAttr -e -enumName $enumString ($child+".Parent");
+		if( ($constrType == "follow") || ($constrType == "Follow") )  
+		{
+			if(!objExists(($child+".Follow")))
+			{
+				addAttr -ln Follow -at "enum" -en $enumString $child;
+				setAttr -keyable true ($child+".Follow");
+			}
+			else addAttr -e -enumName $enumString ($child+".Follow");
+		}
+		print "Modified existing dynParent constraint\n"; //script continues on to rebuild the constraint
+	}
+}
+
+if($addMenuTo == "") $addMenuTo = $child; //put the right click menu on the child object - this is the default
+else //add an attribute that points to the child, so the scripts will know what has the parent enum attribute
+{
+	addAttr -ln menuPtr -at "message" $child; //so the child knows who has the rt click menu
+	connectAttr -f ($addMenuTo+".message") ($child+".menuPtr");
+	
+	addAttr -ln childPtr -at "message" $addMenuTo; //so the object holding the rt click menu knows where the child is
+	connectAttr -f ($child+".message") ($addMenuTo+".childPtr");
+}
+
+//each dyn parent gets a group above itself which recieves the constraint so the child object can still be animated
+if($parentGrp == "") //make a group above the child - this is the default
+{
+	//first check to see if it's referenced, because if it is, it cant be grouped and needs an alternate group
+	if(`referenceQuery -inr $child`) error "The child is referenced and can't be grouped, please undo, then supply an alternate group using the advanced options";
+
+	$parentGrp = JTDgetUniqueName($child+"_DynDriven_grp");
+	string $parent[] = `listRelatives -p $child`;
+	if($parent[0] != "") group -p $parent[0] -n $parentGrp $child;
+	else group -n $parentGrp $child;
+	float $absPos[] = `xform -q -ws -rp $child`; //put its pivot at the same place as the target
+	move $absPos[0] $absPos[1] $absPos[2] ($parentGrp+".scalePivot") ($parentGrp+".rotatePivot");
+	
+	addAttr -ln constrGrp -at "message" $child;
+	connectAttr -f ($parentGrp+".message") ($child+".constrGrp");
+}
+else //using a group that was provided - nothing extra is created or reparented, so this will work in a referenced file
+{
+	//first make sure that the group is actually a parent of the child
+	if(!isParentOf($parentGrp, $child)) error "The alternate group must be a parent of the child, please undo and try again";
+	
+	//then check to see if it's a different group than the one that was originally provided
+	if(objExists($child+".constr")) 
+	{
+		$checkGrp = `listConnections ($child+".constr")`;
+		if($checkGrp[0] != $parentGrp) error ("The child already has an alternate Grp: "+ $checkGrp[0] +", you should use it instead of: " +$parentGrp);
+	}
+	
+	addAttr -ln constr -at "message" $child;
+	connectAttr -f ($parentGrp+".message") ($child+".constr");
+}
+
+//now lets add the constraints and hook them up to the parent enum attribute on the child object
+int $num = 0;
+string $constraint[];
+for($parent in $listOfParents)
+{
+	string $driverGrp[];
+	if(objExists($parent+".driverGrp")) {$driverGrp = `listConnections ($parent+".driverGrp")`;} 
+	else //create a dummy group to be used with the constraint, just in case there's weird rotation orders on the objects themselves
+	{
+		string $dynDriverGrp = (`JTDstripNameSpace($nameOfParents[$num])`+"_DynDriver");
+		if(!objExists($dynDriverGrp))
+		{
+			group -em -p $parent -n $dynDriverGrp;
+			float $absPos[] = `xform -q -ws -rp $parent`; 
+			move $absPos[0] $absPos[1] $absPos[2] ($dynDriverGrp+".scalePivot") ($dynDriverGrp+".rotatePivot");
+			
+			addAttr -ln parentGrp -at "message" $dynDriverGrp;
+			connectAttr -f ($parent+".message") ($dynDriverGrp+".parentGrp");
+		}
+		
+		addAttr -ln driverGrp -at "message" $parent;
+		connectAttr -f ($dynDriverGrp+".message") ($parent+".driverGrp");
+				
+		$driverGrp[0] = $dynDriverGrp;
+	}
+	
+	//now we'll add one constraint for each parent on the list
+	if(($constrType == "parent") || ($constrType == "Parent")) 
+	{
+		$constraint = `parentConstraint -mo -weight 1 $driverGrp[0] $parentGrp`; //do rotation and translation
+		if(!objExists($addMenuTo+".parentType"))
+		{
+			addAttr -ln parentType -dt "string" $addMenuTo; 
+			setAttr -type "string" ($addMenuTo+".parentType") 1;
+		}
+	}
+	else if(($constrType == "orient") || ($constrType == "Orient"))
+	{
+		$constraint = `orientConstraint -mo -weight 1 $driverGrp[0] $parentGrp`; //only do rotation
+		if(!objExists($addMenuTo+".parentType"))
+		{
+			addAttr -ln parentType -dt "string" $addMenuTo; 
+			setAttr -type "string" ($addMenuTo+".parentType") 2;
+		}
+	}
+	else if(($constrType == "follow") || ($constrType == "Follow"))
+	{
+		string $followGrp;
+		string $orConstraint[];
+		if(!objExists($addMenuTo+".parentType"))
+		{
+			$followGrp = JTDgetUniqueName($child+"_follow"); //this group will control the translation of the child, so that the translation and orientation can be controlled independently
+			group -em -n $followGrp;
+			float $absPos[] = `xform -q -ws -rp $parentGrp`;
+			move $absPos[0] $absPos[1] $absPos[2] ($followGrp+".scalePivot") ($followGrp+".rotatePivot");
+			makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 $followGrp;
+			
+			addAttr -ln followGrp -at "message" $addMenuTo;
+			connectAttr -f ($followGrp+".message") ($addMenuTo+".followGrp");
+	
+			addAttr -ln parentType -dt "string" $addMenuTo; 
+			setAttr -type "string" ($addMenuTo+".parentType") 3;
+			
+			pointConstraint -weight 1 $followGrp $parentGrp; //this connects the follow group's translation to the child
+		}
+				
+		$constraint = `parentConstraint -mo -weight 1 $driverGrp[0] $followGrp`; //the follow group recieves a normal dynamic parent constraint
+		$orConstraint = `orientConstraint -mo -weight 1 $driverGrp[0] $parentGrp`; //this connects the orientation of the parents to the child, its translation comes from the follow group
+							
+		string $ifFollow = JTDgetUniqueName($parentGrp+"_"+$driverGrp[0]+"_ifFollow"); //used to switch the weights of the follow constraint
+		createNode "condition" -n $ifFollow;
+		setAttr ($ifFollow+".operation") 0; //equal
+		connectAttr ($child+".Follow")  ($ifFollow+".firstTerm");
+		setAttr ($ifFollow+".secondTerm") $num;
+		setAttr ($ifFollow+".colorIfTrueR") 1;
+		setAttr ($ifFollow+".colorIfFalseR") 0;
+		connectAttr ($ifFollow+".outColorR") ($orConstraint[0]+".w"+$num);
+		
+		addAttr -ln ("Follow_"+$num) -at "message" $addMenuTo;
+		connectAttr -f ($driverGrp[0]+".message") ($addMenuTo+".Follow_"+$num);
+	}
+		
+	//this attribute will help the scripts know what to show on the rt click menus
+	addAttr -ln ("Parent_"+$num) -at "message" $addMenuTo;
+	connectAttr -f ($driverGrp[0]+".message") ($addMenuTo+".Parent_"+$num);
+		
+	string $dynChooser = JTDgetUniqueName($parent+"_ifDynParent");
+	createNode "condition" -n $dynChooser;
+	setAttr ($dynChooser+".operation") 0; //equal
+	connectAttr ($child+".Parent")  ($dynChooser+".firstTerm");
+	setAttr ($dynChooser+".secondTerm") $num;
+	setAttr ($dynChooser+".colorIfTrueR") 1;
+	setAttr ($dynChooser+".colorIfFalseR") 0;
+	connectAttr ($dynChooser+".outColorR") ($constraint[0]+".w"+$num);
+	$num++;
+}
+
+
+JTDcreateRtClick();
+JTDrunScripts;
+
+print "Successfully updated dynParent constraint\n";
+
+select -cl;
+return 1;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDremoveAllConstraints
+//Desc: cleans out a dynamic parent constraint, removing all the hidden attributes and extra groups that were created for it
+//Requires: Nothing
+//Returns: Nothing
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc JTDremoveAllConstraints(string $child)
+{
+int $cnt = 0;
+string $constrGrp[];
+string $connectConstr[];
+string $parent[];
+string $dynDriver[];
+string $menuGrp[];
+
+if(objExists($child+".constrGrp")) //unparent the object, delete the group
+{
+	$constrGrp = `listConnections($child+".constrGrp")`;
+	$parent = `listRelatives -p $constrGrp[0]`;
+	if($parent[0] == "") parent -w $child;
+	else parent $child $parent[0];
+	
+	deleteAttr ($child+".constrGrp"); //remove the message attribute
+	delete $constrGrp[0];
+}
+
+if(objExists($child+".constr")) //delete the constraint
+{
+	$constrGrp = `listConnections($child+".constr")`;
+	$constrGrp = `listConnections -type parentConstraint $constrGrp[0]`;
+	deleteAttr ($child+".constr"); //remove the message attribute
+	delete $constrGrp[0];
+}
+
+if(objExists($child+".followGrp"))
+{
+	$constrGrp = `listConnections($child+".followGrp")`;
+	delete $constrGrp[0];
+	deleteAttr ($child+".followGrp");
+}
+
+if(objExists($child+".parentType")) deleteAttr ($child+".parentType");
+
+//find the object holding the list of parents
+if(objExists($child+".Parent_"+$cnt)) $menuGrp[0] = $child;
+else if(objExists($child+".menuPtr"))
+{
+	$menuGrp = `listConnections ($child+".menuPtr")`;
+	deleteAttr ($menuGrp[0]+".childPtr"); //remove the message attribute
+	deleteAttr ($child+".menuPtr"); //remove the message attribute
+}
+else error "Cannont find the object that holds the list of parents";
+
+//delete all dynDriver groups as long as no one else is using them
+while(objExists($menuGrp[0]+".Parent_"+$cnt))
+{
+$dynDriver = `listConnections ($menuGrp[0]+".Parent_"+$cnt)`; 
+$driverGrp = `listConnections ($dynDriver[0]+".parentGrp")`;
+$connectConstr = `listConnections -t parentConstraint $dynDriver[0]`; //checks to see if there is a parent constraint attached, this should register zero (since we deleted the constraints in the previous step) but will have a positive value if also driving another dynParent constraint, in which case we dont want to delete it
+
+if(size($connectConstr) == 0) delete $dynDriver[0];
+
+deleteAttr ($driverGrp[0]+".driverGrp"); //remove the message attribute
+deleteAttr ($menuGrp[0]+".Parent_"+$cnt); //remove the message attribute
+if(objExists($menuGrp[0]+".Follow_"+$cnt)) deleteAttr ($menuGrp[0]+".Follow_"+$cnt);
+$cnt++;
+}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDfoundChildInParents
+//Desc: checks the list of parents to see if the child is on the list, since a child cannot be a parent of itself
+//Requires: Nothing
+//Returns: 1 if the child is in the list of parents, 0 if it's not
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc int JTDfoundChildInParents(string $child, string $listOfParents[])
+{
+	for($parent in $listOfParents)
+	{
+		if(isSameObject($child, $parent))
+		{
+			return 1;
+		}
+	}
+return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDisDynParent
+//Desc: checks to see if an object on the list of parents is already controlling the child object
+//Requires: Nothing
+//Returns: 1 if the parent is already controlling the child, 0 if it's not
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc int JTDisDynParent(string $child, string $parent)
+{
+int $cnt = 0;
+int $matched = 0;
+string $dynDriver[];
+string $menuGrp[];
+
+if(objExists($child+".Parent_"+$cnt)) $menuGrp[0] = $child;
+else if(objExists($child+".menuPtr")) $menuGrp = `listConnections ($child+".menuPtr")`;
+
+while(objExists($menuGrp[0]+".Parent_"+$cnt))
+{
+$dynDriver = `listConnections ($menuGrp[0]+".Parent_"+$cnt)`; 
+$driverGrp = `listConnections ($dynDriver[0]+".parentGrp")`;
+	if($driverGrp[0] == $parent)
+	{
+		$matched = 1;
+		break; 
+	}
+	
+	$cnt++;
+}
+return $matched;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDfoundDupParents
+//Desc: checks the list of parents to see if there are duplicates
+//Requires: Nothing
+//Returns: 1 if there are duplicates on the list, 0 if the list has unique members
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc int JTDfoundDupParents(string $listOfParents[])
+{
+	for($i=0;$i<size($listOfParents);$i++)
+	{
+		for($j=0;$j<size($listOfParents);$j++)
+		{
+			if($j != $i) //so it doesnt compare to itself
+			{
+				if(isSameObject($listOfParents[$i], $listOfParents[$j]) ) return 1;
+			}
+		}
+	}
+return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDmodifyingParents
+//Desc: this returns true if there's a discrepancy between the number of parents connected to the child and the number of parents on the list, so we can tell if the constraint needs to be redone
+//Requires: JTDisDynParent, JTDnumDynParents
+//Returns: 1 if the constraint needs to me remade, 0 if the constraint is not going to change
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc int JTDmodifyingParents(string $child, string $listOfParents[])
+{
+int $cnt = 0;
+for($parent in $listOfParents)
+{
+	if(JTDisDynParent($child, $parent)) $cnt++;
+}
+
+if(($cnt == size($listOfParents)) && (JTDnumDynParents($child) == size($listOfParents)) ) return 0;
+return 1;
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDchangingConstrType
+//Desc: checks to see if the parent type is changing, which means we'll have to make a new constraint
+//Requires: Nothing
+//Returns: 1 if the constraint type is changing, 0 if the constraint type is the same as it used to be
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc int JTDchangingConstrType(string $child, string $constrType)
+{
+int $origType = `getAttr ($child+".parentType")`;
+int $compType;
+
+if( ($constrType == "parent") || ($constrType == "Parent") ) $compType = 1;
+if( ($constrType == "orient") || ($constrType == "Orient") ) $compType = 2;
+if( ($constrType == "follow") || ($constrType == "Follow") ) $compType = 3;
+
+if($compType == $origType) return 0;
+return 1;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDnumDynParents
+//Desc: counts the number of dynParents connected to the child, so we can compare them to the number of parents in the list of parents
+//Requires: Nothing
+//Returns: the number of dynamic parents connected to the child object
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc int JTDnumDynParents(string $child)
+{
+int $cnt = 0;
+string $dynDriver[];
+string $menuGrp[];
+
+if(objExists($child+".Parent_"+$cnt)) $menuGrp[0] = $child;
+else if(objExists($child+".menuPtr")) $menuGrp = `listConnections ($child+".menuPtr")`;
+
+while(objExists($menuGrp[0]+".Parent_"+$cnt))
+{
+	$cnt++;
+}
+return $cnt;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDstripNameSpace
+//Desc: gets rid of the namespace from the name
+//Requires: Nothing
+//Returns: a string with the new name - sans namespace
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc string JTDstripNameSpace(string $origName)
+{
+string $buffer[];
+int $numTokens = `tokenize $origName ":" $buffer`;
+if($numTokens > 1) return $buffer[1];
+else return $origName;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDshortNameOf
+//Desc: gets rid of the full path information
+//Requires: Nothing
+//Returns: a string with the new name - sans the full path info
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc string JTDshortNameOf(string $longName)
+{
+string $path[] = stringToStringArray($longName, "|");
+return $path[size($path)-1];
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDmodifyNames
+//Desc: changes the enum string and the names of the dynDriver groups
+//Requires: Nothing
+//Returns: Nothing
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc JTDmodifyNames(string $child, string $enumString)
+{
+int $cnt = 0;
+string $enums[] = stringToStringArray($enumString, ":");
+while(objExists($child+".Parent_"+$cnt))
+{
+$dynDriver = `listConnections ($child+".Parent_"+$cnt)`;
+rename $dynDriver[0] ($enums[$cnt]+"_DynDriver");
+
+$cnt++;
+}
+
+addAttr -e -enumName $enumString ($child+".Parent");
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDflags
+//Desc: separates the input string based on "-" for use in procs that can take a varied number of inputs
+//returns a three character string to identify the flag followed by a space followed by the value 
+// of the flag. To identify a flag and its value use: startsWith($param, "hi") and endString($param, (size($param)-4))
+// ex: JTDflags("-hip joint1 -kn joint2 -a joint3") returns "hip joint1" "kn# joint2" "a## joint3"
+// use ex: if(startsWith($param, "hi")) $hip = endString($param, (size($param)-4));
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc string[] JTDflags(string $inputs)
+{
+string $buffer[];
+string $buffer2[];
+$numTokens = `tokenize $inputs "-" $buffer`; //looking for hashes: "-"
+
+for($i=0;$i<size($buffer); $i++)
+{
+	$buffer[$i] = `strip($buffer[$i])`;
+	$numTokens = tokenize($buffer[$i], " ", $buffer2); //looking for spaces: " " since a space separates each flag, index 0 holds the flag name, and index 1 holds the value
+
+	if( ($numTokens != 2) || (size($buffer2[1]) == 0) )
+	{
+		//warning ("-"+$buffer2[0]+" has no value");
+		continue;
+	}
+	
+	$buffer2[0] = `substring $buffer2[0] 1 3`; //just some formatting
+	if(size($buffer2[0]) == 1) $buffer2[0] = ($buffer2[0]+ "##");
+	else if(size($buffer2[0]) == 2) $buffer2[0] = ($buffer2[0]+ "#");
+		
+	$buffer[$i] = ($buffer2[0] + " " + $buffer2[1]); //making sure the start of the string is always the same size
+	clear $buffer2;
+}
+return $buffer;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDgetUniqueName
+//Desc: Uses mayas own autorenaming to find a unique name - it creates a node and uses the name maya gives it
+//requires: nothing
+//Returns: The new name if it got renamed (string)
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc string JTDgetUniqueName(string $name)
+{
+string $newName = `scriptNode -n $name`;
+delete $newName;
+
+return $newName;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//JTDcreateRtClick
+//Desc: adds a customized rt. click menu to the scene, overriding maya's own dagMenuProc script
+//requires: JTDgetRtClickMenuScript, JTDgetDagMenuScript7, JTDgetDagMenuScript8, JTDgetPivotScripts
+//Returns: The new name if it got renamed (string)
+//////////////////////////////////////////////////////////////////////////////////////////////////
+global proc JTDcreateRtClick()
+{
+int $cnt;
+string $cmd;
+string $nodes[] = `ls -typ script`;
+
+for($node in $nodes)
+{
+	if(objExists( ($node+".rtClick") )) //see if one already exists
+	{
+		$cnt++;
+	}
+}
+
+if($cnt == 0)
+{
+	$cmd = JTDgetRtClickMenuScript();
+	scriptNode -st 1 -bs $cmd -n "rtClickMenu";
+	
+	addAttr -ln rtClick -dt "string" rtClickMenu; //add an attribute to test for
+	setAttr -type "string" rtClickMenu.rtClick "rtClickMenu";
+	setAttr -l true rtClickMenu.rtClick;
+	
+	$cmd = JTDgetDagMenuScript7();	//this code is based on the code found in the maya scripts and needs to be updated for new versions of Maya
+	scriptNode -st 1 -bs $cmd -n "dagMenuProc7";
+	
+	$cmd = JTDgetDagMenuScript8();	//this code is based on the code found in the maya scripts and needs to be updated for new versions of Maya
+	scriptNode -st 1 -bs $cmd -n "dagMenuProc8";
+	
+	$cmd = JTDgetPivotScripts();
+	scriptNode -st 1 -bs $cmd -n "pivotScripts";
+	
+	scriptNode -eb "rtClickMenu"; //execute the code
+	scriptNode -eb "pivotScripts"; //execute the code
+	
+	JTDrunScripts; //execute the code
+}
+
+}
+
+global proc string JTDgetRtClickMenuScript()
+{
+string $cmd= (
+
+"JTDrunScripts;\n"+
+"global proc JTDrunScripts()\n"+
+"{\n"+
+"string $JTDnameSpace = \"\";\n"+
+"string $refs[] = `file -q -r`;\n"+
+"for($ref in $refs) \n"+
+"{\n"+
+"\t$JTDnameSpace = (`file -q -ns $ref` + \":\");\n"+
+"\tif(!`objExists(($JTDnameSpace+\"rtClickMenu\"))`) $JTDnameSpace = \"\";\n"+
+"}\n"+
+"if ((getApplicationVersionAsFloat() >= 7.0) && (getApplicationVersionAsFloat() < 8.0))\n"+
+"{\n"+
+"\tscriptNode -executeBefore ($JTDnameSpace+\"dagMenuProc7\");\n"+
+"}\n"+
+"else if ((getApplicationVersionAsFloat() >= 8.0) && (getApplicationVersionAsFloat() < 9.0))\n"+
+"{\n"+
+"\tscriptNode -executeBefore ($JTDnameSpace+\"dagMenuProc8\");\n"+
+"}\n"+
+"}\n"+
+"global proc JTDdynParentSnap(string $control, int $enum)\n"+
+"{\n"+
+"float $JTDpos[];\n"+
+"float $JTDrot[];\n"+
+"string $hasParentAttr[];\n"+
+"int $onOff;\n"+
+"$JTDpos = `xform -q -ws -rp $control`;\n"+
+"$JTDrot = `xform -q -ws -ro $control`;\n"+
+"if(objExists(($control+\".autoStretch\"))) {$onOff = `getAttr ($control+\".autoStretch\")`; setAttr ($control+\".autoStretch\") 0;}\n"+
+"if(objExists(($control+\".parentPtr\"))) {$hasParentAttr = `listConnections ($control+\".parentPtr\")`;}\n"+
+"if($hasParentAttr[0] != \"\") setAttr ($hasParentAttr[0]+\".Parent\") $enum;\n"+
+"else setAttr ($control+\".Parent\") $enum;\n"+
+"move -a -ws -rpr $JTDpos[0] $JTDpos[1] $JTDpos[2] $control;\n"+
+"rotate -a -ws $JTDrot[0] $JTDrot[1] $JTDrot[2] $control;\n"+
+"if(objExists(($control+\".autoStretch\"))) setAttr ($control+\".autoStretch\") $onOff;\n"+
+"}\n"+
+"global proc JTDfollowSnap(string $control, int $enum)\n"+
+"{\n"+
+"float $JTDrot[];\n"+
+"$JTDrot = `xform -q -ws -ro $control`;\n"+
+"setAttr ($control+\".Follow\") $enum;\n"+
+"rotate -a -ws $JTDrot[0] $JTDrot[1] $JTDrot[2] $control;\n"+
+"}\n"+
+"proc JTDmatchFKIK(string $JTDswitcher, string $JTDupSW, string $JTDmidSW, string $JTDlowSW, string $JTDupFK, string $JTDmidFK, string $JTDlowFK, string $JTDupIK, string $JTDmidIK)\n"+
+"{\n"+
+"if(getAttr(($JTDswitcher+\".IKFK\")) != 0){\n"+
+"float $upStretch = `getAttr ($JTDupIK+\".stretch\")`;\n"+
+"float $midStretch = `getAttr ($JTDmidIK+\".stretch\")`;\n"+
+"float $upRot[] = `xform -q -ws -ro $JTDupSW`;\n"+
+"float $midRot[] = `xform -q -ws -ro $JTDmidSW`;\n"+
+"float $lowRot[] = `xform -q -ws -ro $JTDlowSW`;\n"+
+"rotate -a -ws $upRot[0] $upRot[1] $upRot[2] $JTDupFK;\n"+
+"rotate -a -ws $midRot[0] $midRot[1] $midRot[2] $JTDmidFK;\n"+
+"rotate -a -ws $lowRot[0] $lowRot[1] $lowRot[2] $JTDlowFK;\n"+
+"setAttr ($JTDupFK+\".stretch\") $upStretch;\n"+
+"setAttr ($JTDmidFK+\".stretch\") ($midStretch);\n"+
+"setAttr ($JTDswitcher+\".IKFK\") 0;}\n"+
+"select -r $JTDlowFK;\n"+
+"}\n"+
+"proc JTDmatchIKFK(string $JTDswitcher, string $JTDIKpos, string $JTDIKcntrl, string $JTDPV, string $JTDPVpos)\n"+
+"{\n"+
+"if(getAttr(($JTDswitcher+\".IKFK\")) != 1){\n"+
+"float $lowRot[] = `xform -q -ws -ro $JTDIKpos`;\n"+
+"float $lowPos[] = `xform -q -ws -rp $JTDIKpos`;\n"+
+"float $midPos[] = `xform -q -ws -rp $JTDPVpos`;\n"+
+"float $pivotPos[];\n"+
+"if(objExists( ($JTDIKcntrl+\".js_pivotObj\") )) { $pivot = `js_pivot_get $JTDIKcntrl \"js_pivotObj\"`; $pivotPos[0] = `getAttr ($pivot+\".tx\")`; $pivotPos[1] = `getAttr ($pivot+\".ty\")`; $pivotPos[2] = `getAttr ($pivot+\".tz\")`; jd_pivot_reset($JTDIKcntrl);}\n"+
+"move -a -ws -rpr $lowPos[0] $lowPos[1] $lowPos[2] $JTDIKcntrl;\n"+
+"rotate -a -ws $lowRot[0] $lowRot[1] $lowRot[2] $JTDIKcntrl;\n"+
+"move -a -ws -rpr $midPos[0] $midPos[1] $midPos[2] $JTDPV;\n"+
+"setAttr ($JTDswitcher+\".IKFK\") 1;\n"+
+"if(objExists( ($JTDIKcntrl+\".js_pivotObj\") )) {$pivot = `js_pivot_get $JTDIKcntrl \"js_pivotMovObj\"`; setAttr ($pivot+\".tx\") $pivotPos[0]; setAttr ($pivot+\".ty\") $pivotPos[1]; setAttr ($pivot+\".tz\") $pivotPos[2]; js_pivot_snap($JTDIKcntrl, 0);}\n"+
+"}\n"+
+"select -r $JTDIKcntrl;\n"+
+"}\n"
+);
+
+return $cmd;
+}
+
+
+global proc string JTDgetDagMenuScript7()
+{
+string $cmd = (
+
+"proc optionalDagMenuProc( string $parent, string $item )\n"+
+"{\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tstring $shape = \"\";\n"+
+"\tint $gotVisible = 0;\n"+
+"\tif( size($object) < 1 ) return;\n"+
+"\tfor( $i=0; $i<size($object); $i+=1) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor( $i=0; $i<size($object); $i+=1) {\n"+
+"\t\t\tif( 0 == getAttr($object[$i] + \".io\")) {\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( \"\" != $shape ) {\n"+
+"\t\tstring $nt = `nodeType $shape`;\n"+
+"\t\tswitch( $nt ) {\n"+
+"\t\t  case \"subdiv\":\n"+
+"\t\t\tsubdOptionalDagMenuProc( $parent, $item );\n"+
+"\t\t\tmenuItem -d true; \n"+
+"\t\t\tbreak;\n"+
+"\t\t  default:\n"+
+"\t\t\t// Check to make sure we have a kPlugin prefix\n"+
+"\t\t\tstring $apiNt = `nodeType -api $shape`;\n"+
+"\t\t\tif ( startsWith( $apiNt, \"kPlugin\" ) ) {\n"+
+"\t\t\t\tstring $nodeMenuCommand = $nt + \"DagMenuProc\";\n"+
+"\t\t\t\tstring $nodeMenuCommandWithArgs = $nodeMenuCommand + \"(\\\"\" + $parent + \"\\\" , \\\"\" + $item + \"\\\" )\";\n"+
+"\t\t\t\tif ( exists( $nodeMenuCommand ) ) {\n"+
+"\t\t\t\t   eval( $nodeMenuCommandWithArgs );\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"proc int objectIsTrimmed(string $item)\n"+
+"// Return true if this is a trimmed surface\n"+
+"{\n"+
+"\tstring $command = (\"getAttr -size \" + $item + \".trimFace\");\n"+
+"\tint $trimCount = eval($command);\n"+
+"\treturn ($trimCount != 0);\n"+
+"}\n"+
+"proc string getControlledHandle(string $item)\n"+
+"{\n"+
+"\tstring $handle;\n"+
+"\tif (size(`ls ($item+\".ikBlend\")`)) {\n"+
+"\t\tstring $connHandles[] =\n"+
+"\t\t\t`listConnections -type ikHandle ($item+\".ikBlend\")`;\n"+
+"\t\tif (size($connHandles)) {\n"+
+"\t\t\t$handle = $connHandles[0];\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\treturn $handle;\n"+
+"}\n"+
+"proc int isIKcontroller(string $item)\n"+
+"{\n"+
+"\tstring $handle = getControlledHandle($item);\n"+
+"\treturn (size($handle) > 0);\n"+
+"}\n"+
+"proc\n"+
+"createFBIKmenuItems(string $parent,\n"+
+"\t\t\t\t\tstring $item,\n"+
+"\t\t\t\t\tstring $ikReachModeLocation,\n"+
+"\t\t\t\t\tstring $keyBodyPartLocation,\n"+
+"\t\t\t\t\tstring $keyAllLocation,\n"+
+"\t\t\t\t\tstring $keySelectedLocation)\n"+
+"{\n"+
+"\tstring $reachKeyingMode = \"Reach Mode:\";\n"+
+"\tint $rkm = `optionVar -q setIKKey`;\n"+
+"\tswitch ($rkm)\n"+
+"\t{\n"+
+"\t\tcase 1:\n"+
+"\t\t\t$reachKeyingMode = $reachKeyingMode + \" IK\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase 2:\n"+
+"\t\t\t$reachKeyingMode = $reachKeyingMode + \" FK\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase 3:\n"+
+"\t\t\t$reachKeyingMode = $reachKeyingMode + \" Simple\";\n"+
+"\t\t\tbreak;\n"+
+"\t}\t\n"+
+"\tmenuItem -rp $ikReachModeLocation -l $reachKeyingMode\n"+
+"\t\t-subMenu true\n"+
+"\t\t-annotation \"Determine how reach values get keyed when doing FBIK keying.\";\n"+
+"\t\tmenuItem -rp \"S\" -label \"IK (Reach = 1)\"\n"+
+"\t\t\t-command FBIKReachKeyingOptionIK;\n"+
+"\t\tmenuItem -rp \"N\" -label \"FK (Reach = 0)\"\n"+
+"\t\t\t-command FBIKReachKeyingOptionFK;\n"+
+"\t\tmenuItem -rp \"E\" -label \"Simple (No Reach)\"\n"+
+"\t\t\t-command FBIKReachKeyingOptionSimple;\n"+
+"\tsetParent -m $parent;\n"+
+"\t\n"+
+"\tmenuItem -l \"Key All\"\n"+
+"\t\t-echoCommand true\n"+
+"\t\t-c (\"doSetFullBodyIKKeysArgList 2 {\\\"1\\\", \\\"2\\\", \\\"\"+$item+\"\\\"};\")\n"+
+"\t\t-rp $keyAllLocation\n"+
+"\t\tkeyAllItem;\n"+
+"\t\n"+
+"\tmenuItem -l \"Key Body Part\"\n"+
+"\t\t-echoCommand true\n"+
+"\t\t-c (\"doSetFullBodyIKKeysArgList 2 {\\\"2\\\", \\\"2\\\", \\\"\"+$item+\"\\\"};\")\n"+
+"\t\t-rp $keyBodyPartLocation\n"+
+"\t\tkeyBodyPartItem;\n"+
+"\t\n"+
+"\tmenuItem -l \"Key Selected\"\n"+
+"\t\t-echoCommand true\n"+
+"\t\t-c (\"doSetFullBodyIKKeysArgList 2 {\\\"4\\\", \\\"2\\\", \\\"\"+$item+\"\\\"};\")\n"+
+"\t\t-rp $keySelectedLocation\n"+
+"\t\tkeySelectedItem;\n"+
+"}\n"+
+"proc checkForSkinInfluenceItem(string $item, string $quadrant)\n"+
+"{\n"+
+"\tint $isJoint = (nodeType($item) == \"joint\");\n"+
+"\t\n"+
+"\t// Check if the current context is the skinPaint context \n"+
+"\t// and the the joint is connected to a skinCluster\n"+
+"\t//\n"+
+"\tstring  $currContext = `currentCtx`;\n"+
+"\tstring  $currTool    = \"\";\n"+
+"\tif(`contextInfo -ex $currContext`) {\n"+
+"\t\t$currTool = `contextInfo -c $currContext`;\n"+
+"\t}\n"+
+"\tif ( $currTool == \"artAttrSkin\" ) {\n"+
+"\t\tstring $whichTool = `artAttrCtx -q -whichTool $currContext`;\n"+
+"\t\tif ( $whichTool == \"skinWeights\" )  {\n"+
+"\t\t\tstring $connL[] = `listConnections ($item+\".worldMatrix\")`;\n"+
+"\t\t\tstring $conn;\n"+
+"\t\t\tfor($conn in $connL) {\n"+
+"\t\t\t\tif (`nodeType $conn` == \"skinCluster\")\n"+
+"\t\t\t\t{\t\n"+
+"\t\t\t\t\t// select the surface (not the joint) and set\n"+
+"\t\t\t\t\t// the joint as the current influence\n"+
+"\t\t\t\t\t//\n"+
+"\t\t\t\t\tstring $currSel[] = `ls -sl`;\n"+
+"\t\t\t\t\tstring $currSelString;\n"+
+"\t\t\t\t\tif (size($currSel) > 0) {\n"+
+"\t\t\t\t\t\tstring $currObj;\n"+
+"\t\t\t\t\t\t$currSelString = \"select -r \";\n"+
+"\t\t\t\t\t\tfor ($currObj in $currSel) {\n"+
+"\t\t\t\t\t\t\t$currSelString += ($currObj+\" \");\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t\tmenuItem -l \"Paint Weights\"\n"+
+"\t\t\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t\t\t-c ($currSelString+\"; setSmoothSkinInfluence \" + $item)\n"+
+"\t\t\t\t\t\t-rp $quadrant\n"+
+"\t\t\t\t\t\tpaintWeightItem;\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\t\t// menu for skinCluster paint\n"+
+"\telse if ( $isJoint && ($currTool == \"artAttr\") ) {\n"+
+"\t\tstring $whichTool = `artAttrCtx -q -whichTool $currContext`;\n"+
+"\t\tif ( $whichTool == \"general\" )  {\n"+
+"\t\t\tstring $connL[] = `listConnections ($item+\".worldMatrix\")`;\n"+
+"\t\t\tstring $conn;\n"+
+"\t\t\tfor($conn in $connL) {\n"+
+"\t\t\t\tif (`nodeType $conn` == \"jointCluster\")\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\tstring $artCommand = \"artAttrCtx\" ;\n"+
+"\t\t\t\t\tstring $attribute = \"cluster.\" + $conn +  \".weights\" ;\n"+
+"\t\t\t\t\tmenuItem -l \"Paint Weights\"\n"+
+"\t\t\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t\t\t// the following command doesnot update the UI hence we use the next one\n"+
+"\t\t\t\t\t\t//-c (\"artAttrCtx -e -pas \\\"cluster.\" + $conn +  \".weights\\\" `currentCtx`\")\n"+
+"\t\t\t\t\t\t-c (\"artSetToolAndSelectAttr( \\\"\" + $artCommand + \"\\\", \\\"\" + $attribute + \"\\\" )\")\n"+
+"\t\t\t\t\t\t-rp \"N\"\n"+
+"\t\t\t\t\t\tpaintWeightItem;\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\t// menu for joint-set paint\n"+
+"\t// Check if the current context is the setPaint context \n"+
+"\t// and the the joint is connected to a objectSet via jointCluster\n"+
+"\t//\n"+
+"\telse if ( $isJoint && ($currTool == \"artSetPaint\") ) {\n"+
+"\t\tstring $connL[] = `listConnections ($item+\".worldMatrix\")`;\n"+
+"\t\tstring $conn;\n"+
+"\t\tfor($conn in $connL) {\n"+
+"\t\t\tif (`nodeType $conn` == \"jointCluster\") {\t\n"+
+"\t\t\t\tstring $connS[] = `listConnections ($conn+\".message\")`;\n"+
+"\t\t\t\tfor($set in $connS) {\n"+
+"\t\t\t\t\tif (`nodeType $set` == \"objectSet\") {\n"+
+"\t\t\t\t\t\tmenuItem -l \"Paint Set Membership\"\n"+
+"\t\t\t\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t\t\t\t// the following command doesnot update the UI hence we use the next one\n"+
+"\t\t\t\t\t\t\t//-c (\"artSetPaintCtx -e -settomodify \" + $set + \" `currentCtx`\")\n"+
+"\t\t\t\t\t\t\t-c (\"artSetPaintSelectSet( \\\"\" + $set + \"\\\" )\")\n"+
+"\t\t\t\t\t\t\t-rp \"N\"\n"+
+"\t\t\t\t\t\t\tpaintWeightItem;\n"+
+"\t\t\t\t\t\tbreak;\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"global proc string[] objectSelectMasks(string $item)\n"+
+"// Returns the component selection masks that apply to this object\n"+
+"{\n"+
+"\tstring $maskList[];\n"+
+"\tstring $shape = $item;\n"+
+"\tint $i;\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tint $gotVisible = 0;\n"+
+"\tfor ($i = 0; $i < size($object); ++$i) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor ($i = 0; $i < size($object); ++$i)\n"+
+"\t\t{\n"+
+"\t\t\tif (getAttr($object[$i] + \".io\") == 0)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tstring $nt = `nodeType $shape`;\n"+
+"\tswitch ($nt) {\n"+
+"\t\tcase \"lattice\":\n"+
+"\t\t\t$maskList[0] = \"latticePoint\";\n"+
+"\t\t\tbreak;\t\n"+
+"\t\tcase \"locator\":\n"+
+"\t\t\t$maskList[0] = \"locator\";\n"+
+"\t\t\tbreak;\t\n"+
+"\t\tcase \"nurbsCurve\":\n"+
+"\t\t\t$maskList[0] = \"curveParameterPoint\";\n"+
+"\t\t\t$maskList[1] = \"controlVertex\";\n"+
+"\t\t\t$maskList[2] = \"editPoint\";\n"+
+"\t\t\t$maskList[3] = \"hull\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"nurbsSurface\":\n"+
+"\t\t\t$maskList[0] = \"isoparm\";\n"+
+"\t\t\t$maskList[1] = \"controlVertex\";\n"+
+"\t\t\t$maskList[2] = \"surfaceParameterPoint\";\n"+
+"\t\t\t$maskList[3] = \"hull\";\n"+
+"\t\t\t$maskList[4] = \"surfaceFace\";\n"+
+"\t\t\t$maskList[5] = \"surfaceUV\"; \n"+
+"\t\t\tif (objectIsTrimmed($shape)) {\n"+
+"\t\t\t\t$maskList[6] = \"surfaceEdge\";\n"+
+"\t\t\t}\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"mesh\":\n"+
+"\t\t\t$maskList[0] = \"edge\";\n"+
+"\t\t\t$maskList[1] = \"vertex\";\n"+
+"\t\t\t$maskList[2] = \"facet\";\n"+
+"\t\t\t$maskList[3] = \"puv\";\n"+
+"\t\t\t$maskList[4] = \"pvf\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"joint\":\n"+
+"\t\t\t$maskList[0] = \"joint\";\t\t// special case\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"ikHandle\":\n"+
+"\t\t\t$maskList[0] = \"ikHandle\";\t// special case\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"hikEffector\":\n"+
+"\t\tcase \"hikFloorContactMarker\":\n"+
+"\t\t\t$maskList[0] = \"hikEffector\";\t// special case\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"particle\":\n"+
+"\t\t\t$maskList[0] = \"particle\";\t// only one choice\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"spring\":\n"+
+"\t\t\t$maskList[0] = \"springComponent\";\t// only one choice\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"subdiv\":\n"+
+" \t\t\t$maskList[0] = \"subdivMeshPoint\";\t\n"+
+" \t\t\t$maskList[1] = \"subdivMeshEdge\";\t\n"+
+" \t\t\t$maskList[2] = \"subdivMeshFace\";\t\n"+
+" \t\t\t$maskList[3] = \"subdivMeshUV\";\t\n"+
+"\t\t\tbreak;\n"+
+"\t}\n"+
+"\tif (isIKcontroller($item)) {\n"+
+"\t\t$maskList[size($maskList)] = \"ikfkHandle\";\n"+
+"\t}\n"+
+"\treturn $maskList;\n"+
+"}\n"+
+"global proc createSelectMenuItems(string $parent, string $item)\n"+
+"// Create a menu that shows the dag parenting for this object\n"+
+"{\n"+
+"\tstring $maskList[] = `objectSelectMasks($item)`;\n"+
+"\tstring $radialPosition[];\n"+
+"\tstring $uiName;\n"+
+"\tint $i;\n"+
+"\tint $isNurbObject     = false;\n"+
+"\tint $isPolyObject     = false;\n"+
+"\tint $isLatticeObject  = false;\n"+
+"\tint $isJointObject    = false;\n"+
+"\tint $isHikEffector\t  = false;\n"+
+"\tint $isIkHandleObject = false;\n"+
+"\tint $isIkFkHandleObject = false;\t\n"+
+"\tint $isParticleObject = false;\n"+
+"\tint $isSpringObject   = false;\n"+
+"\tint $isSubdivObject   = false;\n"+
+"\tint $isLocatorObject  = false;\n"+
+"\tint $hasComponents\t  = false;\n"+
+"\tif (1 <= size($maskList)) {\n"+
+"\t\t$isLatticeObject = ($maskList[0] == \"latticePoint\");\n"+
+"\t\t$isJointObject = ($maskList[0] == \"joint\");\n"+
+"\t\t$isHikEffector = ($maskList[0] == \"hikEffector\");\n"+
+"\t\t$isIkHandleObject = ($maskList[0] == \"ikHandle\");\n"+
+"\t\t$isParticleObject = ($maskList[0] == \"particle\");\n"+
+"\t\t$isSpringObject = ($maskList[0] == \"springComponent\");\n"+
+"\t\t$isSubdivObject = ($maskList[0] == \"subdivMeshPoint\");\n"+
+"\t\t$isLocatorObject = ($maskList[0] == \"locator\");\n"+
+"\t}\n"+
+"\tif (2 <= size($maskList)) {\n"+
+"\t\t$isNurbObject = ($maskList[1] == \"controlVertex\");\n"+
+"\t\t$isPolyObject = ($maskList[1] == \"vertex\");\n"+
+"\t}\n"+
+"\t// $maxRadialPos keeps track of how many octants of the\n"+
+"\t// RMB marking menu will be populated\n"+
+"\t//\n"+
+"\tint $maskSize = size($maskList);\n"+
+"\tint $maxRadialPos = size($maskList);\n"+
+"\tif (($maskSize > 0) && ($maskList[$maskSize-1] == \"ikfkHandle\")) {\n"+
+"\t\t$isIkFkHandleObject = true;\n"+
+"\t\t$maxRadialPos--; // ikfkHandle does not populate like other masks\n"+
+"\t}\n"+
+"\t$hasComponents = $isLatticeObject || \n"+
+"\t\t\t\t\t $isParticleObject ||\n"+
+"\t\t\t\t\t $isSubdivObject ||\n"+
+"\t\t\t\t\t $isSpringObject ||\n"+
+"\t\t\t\t\t $isNurbObject ||\n"+
+"\t\t\t\t\t $isPolyObject;\n"+
+"\t// NOTE: \n"+
+"\t//\t\t\tIf the object has selectable components, then the\n"+
+"\t//\t\tradial position \"NE\" will be used for the menuItem:  \n"+
+"\t//\t\t\"Revert back to object mode.\"\n"+
+"\t//\n"+
+"\tsetParent -menu $parent;\n"+
+"\t$radialPosition[0] = \"N\";\n"+
+"\t$radialPosition[1] = \"W\";\n"+
+"\t$radialPosition[2] = \"S\";\n"+
+"\t$radialPosition[3] = \"E\";\n"+
+"\t$radialPosition[4] = \"SW\";\n"+
+"\t$radialPosition[5] = \"SE\";\n"+
+"\t$radialPosition[6] = \"NW\";\n"+
+"\t$radialPosition[7] = \"NE\";\n"+
+"\tif ($isNurbObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tswitch ($maskList[$i]) {\n"+
+"\t\t\t\tcase \"surfaceParameterPoint\":\n"+
+"\t\t\t\t\t$uiName = \"Surface Point\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"curveParameterPoint\":\n"+
+"\t\t\t\t\t$uiName = \"Curve Point\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"surfaceEdge\":\n"+
+"\t\t\t\t\t$uiName = \"Trim Edge\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"surfaceFace\":\n"+
+"\t\t\t\t\t$uiName = \"Surface Patch\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"surfaceUV\":\n"+
+"\t\t\t\t\t$uiName = \"UV\";\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$uiName = `interToUI $maskList[$i]`;\n"+
+"\t\t\t}\n"+
+"\t\t\tif ($maskList[$i] != \"ikfkHandle\") {\n"+
+"\t\t\t\tmenuItem -l $uiName\n"+
+"\t\t\t\t\t-ecr false\n"+
+"\t\t\t\t\t-c ( \"doMenuNURBComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t\t $item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"NW\");\n"+
+"\t} else if ($isPolyObject) {\n"+
+"\t\t\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tswitch ($maskList[$i]) {\n"+
+"\t\t\t  case \"puv\":\n"+
+"\t\t\t\t$uiName = \"UV\";\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t  case \"facet\":\n"+
+"\t\t\t\t$uiName = \"Face\";\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t  case \"pvf\":\n"+
+"\t\t\t\t$uiName = \"Vertex Faces\";\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t  default:\n"+
+"\t\t\t\t$uiName = `interToUI $maskList[$i]`;\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t\tif ($maskList[$i] != \"ikfkHandle\") {\n"+
+"\t\t\t\tmenuItem -l $uiName\n"+
+"\t\t\t\t\t-ecr false\n"+
+"\t\t\t\t\t-c ( \"doMenuComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t\t $item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\t// Check if the current context is the skinPaint context \n"+
+"\t\t// and the the poly is connected to a skinCluster. If so, add\n"+
+"\t\t// Paint Skin Weights to north (\"NW\") quadrant\n"+
+"\t\t//\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"NW\");\n"+
+"\t} else if ($isLatticeObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tif ($maskList[$i] != \"ikfkHandle\") {\n"+
+"\t\t\t\t$uiName = `interToUI $maskList[$i]`;\n"+
+"\t\t\t\tmenuItem -l $uiName\n"+
+"\t\t\t\t\t-ecr false\n"+
+"\t\t\t\t\t-c ( \"doMenuLatticeComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t\t $item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t} else if ($isJointObject) {\n"+
+"\t\tstring $setCmd = `performSetPrefAngle 2`;\n"+
+"\t\tstring $assumeCmd = `performAssumePrefAngle 2`;\t\t\n"+
+"\t\t$setCmd += (\" \"+$item);\n"+
+"\t\t$assumeCmd += (\" \"+$item);\n"+
+"\t\tstring $jts[] = `ls -sl -type joint`;\n"+
+"\t\tfor ($jointItem in $jts) {\n"+
+"\t\t\tif ($jointItem != $item) {\n"+
+"\t\t\t\t$setCmd += (\" \"+$jointItem);\n"+
+"\t\t\t\t$assumeCmd += (\" \"+$jointItem);\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tmenuItem -l \"Set Preferred Angle\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c ($setCmd)\n"+
+"\t\t\t-rp \"N\"\n"+
+"\t\t\tsetPrefAngleItem;\n"+
+"\t\t\n"+
+"\t\tmenuItem -l \"Assume Preferred Angle\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c ($assumeCmd)\n"+
+"\t\t\t-rp \"S\"\n"+
+"\t\t\tassumePrefAngleItem;\n"+
+"\t\tstring $hikHandle[] = `listConnections -type hikHandle $item`;\n"+
+"\t\tint $isFBIKjoint = (size($hikHandle) > 0);\n"+
+"\t\tif ($isFBIKjoint) {\n"+
+"\t\t\tcreateFBIKmenuItems($parent, $item,\"W\",\"NE\",\"E\",\"SE\");\n"+
+"\t\t}\n"+
+"\t\t\n"+
+"\t\t// Check if the current context is the skinPaint context \n"+
+"\t\t// and the the joint is connected to a skinCluster. If so, add\n"+
+"\t\t// Paint Skin Weights to north (\"N\") quadrant\n"+
+"\t\t//\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"N\");\n"+
+"\t} else if ($isHikEffector){\n"+
+"\t\tif (nodeType($item) == \"hikFloorContactMarker\") {\n"+
+"\t\t\tstring $parentItems[] = `listRelatives -pa -p $item`;\n"+
+"\t\t\tif (size($parentItems) &&\n"+
+"\t\t\t\tnodeType($parentItems[0]) == \"hikEffector\") {\n"+
+"\t\t\t\t$item = $parentItems[0];\n"+
+"\t\t\t} else {\n"+
+"\t\t\t\t$isHikEffector = false;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tif ($isHikEffector) {\n"+
+"\t\t    string $pivotOffsetPlug = $item + \".pivotOffset\";\n"+
+"\t\t    float $pivotOffset[] = `getAttr $pivotOffsetPlug`;\n"+
+"\t\t    int $enablePin = (equivalentTol($pivotOffset[0],0.0,0.001) &&\n"+
+"\t\t                      equivalentTol($pivotOffset[1],0.0,0.001) &&\n"+
+"\t\t                      equivalentTol($pivotOffset[2],0.0,0.001));\n"+
+"\t\t    \n"+
+"\t\t\t// set pinning for hikEffectors\n"+
+"\t\t\tmenuItem -l \"Pin Both\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"3\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-enable $enablePin\n"+
+"\t\t\t\t-rp \"N\"\n"+
+"\t\t\t\tpinAllItem;\n"+
+"\t\t\t\n"+
+"\t\t\tmenuItem -l \"Pin Translate\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"1\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-enable $enablePin\n"+
+"\t\t\t\t-rp \"NW\"\n"+
+"\t\t\t\tpinTransItem;\n"+
+"\t\t\t\n"+
+"\t\t\tmenuItem -l \"Pin Rotate\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"2\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-enable $enablePin\n"+
+"\t\t\t\t-rp \"SW\"\n"+
+"\t\t\t\tpinRotItem;\n"+
+"\t\t\t\n"+
+"\t\t\tmenuItem -l \"Unpin\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"0\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-rp \"S\"\n"+
+"\t\t\t\tunpinItem;\n"+
+"\t\t\t\n"+
+"\t\t\tcreateFBIKmenuItems($parent, $item,\"W\",\"NE\",\"E\",\"SE\");\n"+
+"\t\t}\n"+
+"\t} else if ($isLocatorObject) {\n"+
+"\t\t// Check if the current context is the skinPaint context \n"+
+"\t\t// and the the joint is connected to a skinCluster. If so, add\n"+
+"\t\t// Paint Skin Weights to north (\"N\") quadrant\n"+
+"\t\t//\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"N\");\n"+
+"\t} else if ($isIkHandleObject) {\n"+
+"\t\tmenuItem -l \"Set Preferred Angle\"\n"+
+"\t\t\t-annotation \"Set Preferred: Select ikHandles or joints\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (`performSetPrefAngle 2` + \" \" + $item)\n"+
+"\t\t\t-rp \"W\"\n"+
+"\t\t\tsetPrefAngleItem;\n"+
+"\t\tmenuItem -l \"Assume Preferred Angle\"\n"+
+"\t\t\t-annotation \"Assume Preferred: Select ikHandles or joints\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (`performAssumePrefAngle 2` + \" \" + $item)\n"+
+"\t\t\t-rp \"E\"\n"+
+"\t\t\tassumePrefAngleItem;\n"+
+"\t\tmenuItem -l \"Enable ikHandle\"\n"+
+"\t\t\t-annotation \"Enable IK Handles: Select ikHandles\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -eh \" + $item)\n"+
+"\t\t\t-rp \"N\"\n"+
+"\t\t\tenableIKHandlesItem;\n"+
+"\t\tmenuItem -l \"Disable ikHandle\"\n"+
+"\t\t\t-annotation \"Disable IK Handles: Select ikHandles\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -dh \" + $item)\n"+
+"\t\t\t-rp \"S\"\n"+
+"\t\t\tdisableIKHandlesItem;\n"+
+"\t\tmenuItem -l \"Enable Snap\"\n"+
+"\t\t\t-annotation \"Enable IK Handle Snapping: Select ikHandles\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -see \" + $item + \";\" +\n"+
+"\t\t\t\t\"ikHandle -e -shf on \" + $item)\n"+
+"\t\t\t-rp \"SE\"\n"+
+"\t\t\tenableIKHandlesSnapItem;\n"+
+"\t\tmenuItem -l \"Disable Snap\"\n"+
+"\t\t\t-annotation \"Disable IK Handle Snapping: Select ikHandles\"\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -shf off \" + $item)\n"+
+"\t\t\t-rp \"SW\"\n"+
+"\t\t\tdisableIKHandlesSnapItem;\n"+
+"\t\t$maxRadialPos = 6;\n"+
+"\t} else if ($isParticleObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tswitch ($maskList[$i]) {\n"+
+"\t\t\t\tcase \"particle\":\n"+
+"\t\t\t\t\t$uiName = \"Particle\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$uiName = `interToUI $maskList[$i]`;\n"+
+"\t\t\t}\n"+
+"\t\t\tmenuItem -l $uiName\n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"doMenuParticleComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t$item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t}\n"+
+"\t} else if ($isSpringObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tswitch ($maskList[$i]) {\n"+
+"\t\t\t\tcase \"springComponent\":\n"+
+"\t\t\t\t\t$uiName = \"Spring\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$uiName = `interToUI $maskList[$i]`;\n"+
+"\t\t\t}\n"+
+"\t\t\tmenuItem -l $uiName\n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"doMenuSpringComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t$item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t}\n"+
+"\t} else if ($isSubdivObject) {\n"+
+"\t\tsubdDagMenuProc( 0, $item, $maskList );\n"+
+"\t} else {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tif ($maskList[$i] == \"ikfkHandle\") {\n"+
+"\t\t\t\tcontinue;\n"+
+"\t\t\t}\n"+
+"\t\t\t\n"+
+"\t\t\t$uiName = `interToUI $maskList[$i]`;\n"+
+"\t\t\tmenuItem -l $uiName\n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"doMenuComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t$item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t}\n"+
+"\t} \n"+
+"\t// If components are present, provide the ability to \n"+
+"\t// get back to object mode...\n"+
+"\t//\n"+
+"\tif ($hasComponents) {\n"+
+"\t\tmenuItem -l \"Object Mode\"\n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"hilite -unHilite \" + $item + \"; string $selection[] = `ls -sl`;\"\n"+
+"\t\t\t\t\t+ \"changeSelectMode -object; select -r $selection;\" )\n"+
+"\t\t\t\t-rp \"NE\";\n"+
+"\t}\n"+
+"\t// Since any object can be an ikfk handle, we only populate the ikfk items\n"+
+"\t// in slots that are not already in use.\n"+
+"\t//\n"+
+"\tif ($isIkFkHandleObject) {\n"+
+"\t\tstring $handle = getControlledHandle($item);\n"+
+"\t\tif ($maxRadialPos < 8) {\n"+
+"\t\t\tmenuItem -label \"Set IK/FK Key\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-annotation \"Set keys on selected joint chains and handles.\"\n"+
+"\t\t\t\t-rp $radialPosition[7]\n"+
+"\t\t\t\t-command (\"select -r \"+$item+\"; SetIKFKKeyframe\");\n"+
+"\t\t}\n"+
+"\t\tif ($maxRadialPos < 7) {\n"+
+"\t\t\tmenuItem -label \"Move IK to FK\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-annotation \"Select an IK handle or IK/FK connected object.\"\n"+
+"\t\t\t\t-rp $radialPosition[6]\n"+
+"\t\t\t\t-command (\"select -r \"+$item+\"; MoveIKtoFK\");\n"+
+"\t\t}\n"+
+"\t\tif ($maxRadialPos < 5) {\n"+
+"\t\t\tmenuItem -l \"Disable ikHandle\"\n"+
+"\t\t\t\t-annotation \"Disable IK Handle\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"ikHandle -e -dh \" + $handle)\n"+
+"\t\t\t\t-rp $radialPosition[5];\n"+
+"\t\t\tmenuItem -l \"Enable ikHandle\"\n"+
+"\t\t\t\t-annotation \"Enable IK Handle\"\n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"ikHandle -e -eh \" + $handle)\n"+
+"\t\t\t\t-rp $radialPosition[4];\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\t\n"+
+"\t\n"+
+"//\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"//       $itemName = \"SELM\" + string($i);\n"+
+"//\t\t\tsetParent -menu $parent;\n"+
+"//\t\t\tmenuItem\n"+
+"//\t\t\t\t-c (\"doMenuComponentSelection(\\\"\" + \n"+
+"//\t\t\t\t\t$item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"//\t\t\t\t-l $maskList[$i]\n"+
+"//\t\t\t\t-rp $radialPosition[$i]\n"+
+"//\t\t\t\t$itemName;\n"+
+"//\t}\n"+
+"\tsetParent -menu $parent;\n"+
+"}\n"+
+"global proc doMenuNURBComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Change the selection/display state to allow selection of NURB components\n"+
+"//\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t\t// Test for implicit UVs - If we are in implicit UV mode\n"+
+"\t\t// UVs are not selectable. So issue a warning.\n"+
+"\t\t//\n"+
+"\t\tif( $mask == \"surfaceUV\" )\n"+
+"\t\t{\n"+
+"\t\t\tint $isExplicit[] = `nurbsUVSet -q -ue $item`;\n"+
+"\t\t\tif( !$isExplicit[0] )\n"+
+"\t\t\t{\n"+
+"\t\t\t\tstring $warn = \"Edit UV Mode is not enabled on \";\n"+
+"\t\t\t\t$warn += $item;\n"+
+"\t\t\t\t$warn += \". UVs will not be selectable.\";\n"+
+"\t\t\t\twarning($warn);\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t} else {\n"+
+"\t\tselectType -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -allComponents 1;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -isoparm 2;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -\" + $mask + \" 3;\";\n"+
+"\t\t\tswitch ($mask) {\n"+
+"\t\t\t\tcase \"surfaceUV\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -uv \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\"; \n"+
+"\t\t\t\t\t// Test for implicit UVs - If we are in implicit UV mode\n"+
+"\t\t\t\t\t// UVs are not selectable. So issue a warning.\n"+
+"\t\t\t\t\t//\n"+
+"\t\t\t\t\tint $isExplicit[] = `nurbsUVSet -q -ue $item`;\n"+
+"\t\t\t\t\tif( !$isExplicit[0] )\n"+
+"\t\t\t\t\t{\n"+
+"\t\t\t\t\t\tstring $warn = \"Edit UV Mode is not enabled on \";\n"+
+"\t\t\t\t\t\t$warn += $item;\n"+
+"\t\t\t\t\t\t$warn += \". UVs will not be selectable.\";\n"+
+"\t\t\t\t\t\twarning($warn);\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t\tbreak; \n"+
+"\t\t\t\tcase \"editPoint\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"controlVertex\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"hull\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item + \";\"; \n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t\t// Test for implicit UVs - If we are in implicit UV mode\n"+
+"\t\t\t// UVs are not selectable. So issue a warning.\n"+
+"\t\t\t//\n"+
+"\t\t\tint $isExplicit[] = `nurbsUVSet -q -ue $item`;\n"+
+"\t\t\tif( !$isExplicit[0] )\n"+
+"\t\t\t{\n"+
+"\t\t\t\tstring $warn = \"Edit UV Mode is not enabled on \";\n"+
+"\t\t\t\t$warn += $item;\n"+
+"\t\t\t\t$warn += \". UVs will not be selectable.\";\n"+
+"\t\t\t\twarning($warn);\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuLatticeComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Changes the selection/display state on this object to allow\n"+
+"// selection of the Lattice control points\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (!`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"toggle -\" + $mask + \";\"; \n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuParticleComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Change the selection/display state to allow selection of particle\n"+
+"// components\n"+
+"//\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -allComponents 1;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -particle 2;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -\" + $mask + \" 3;\";\n"+
+"\t\t\tswitch ($mask) {\n"+
+"\t\t\t\tcase \"particle\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -particle \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuSpringComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Change the selection/display state to allow selection of spring\n"+
+"// components\n"+
+"//\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -allComponents 1;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -springComponent 2;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -\" + $mask + \" 3;\";\n"+
+"\t\t\tswitch ($mask) {\n"+
+"\t\t\t\tcase \"springComponent\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -springComponent \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Changes the selection/display state on this object to allow\n"+
+"// selection of the specified selection mask type.\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (!`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc undoMenuComponentSelection(string $item, string $mask)\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" false;\";\n"+
+"\t} else {\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" false;\";\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc toggleBoundingBoxDisplay ( string $parent )\n"+
+"//\n"+
+"// For each shape under the selected parent object, toggle the\n"+
+"// state of bounding box display mode.\n"+
+"//\n"+
+"{\n"+
+"\tstring $shapes[] = `listRelatives -shapes $parent`;\n"+
+"\tstring $shape;\n"+
+"\tfor ( $shape in $shapes ) {\n"+
+"\t\tint $overrideOn = `getAttr ( $shape + \".overrideEnabled\")`;\n"+
+"\t\tint $lodMode =    `getAttr ( $shape + \".overrideLevelOfDetail\")`;\n"+
+"\t\tint $enabled =     $overrideOn && $lodMode == 1;\n"+
+"\t\tif ( $enabled ) {\n"+
+"\t\t\t// Don't reset the overrideEnabled attribute. It\n"+
+"\t\t\t// is used for more than just bounding box display\n"+
+"\t\t\t// and turning if off will mess things up of you\n"+
+"\t\t\t// have temporarily enabled bounding box display \n"+
+"\t\t\t// of an object in a layer.\n"+
+"\t\t\tsetAttr ( $shape + \".overrideLevelOfDetail\" ) 0;\n"+
+"\t\t} else {\n"+
+"\t\t\tsetAttr ( $shape + \".overrideEnabled\") 1;\n"+
+"\t\t\tsetAttr ( $shape + \".overrideLevelOfDetail\") 1;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"global proc createActionsMenuItems(string $parent, string $item)\n"+
+"//\n"+
+"// Creates a menu with common operations to perform on an object\n"+
+"//\n"+
+"{\t\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tmenuItem -l \"Template\" -c (\"toggle -template -state on \" + $item);\n"+
+"\tmenuItem -l \"Untemplate\" -c (\"toggle -template -state off \" + $item);\n"+
+"\tmenuItem -l \"Unparent\" -c (\"parent -w \" + $item);\n"+
+"\tmenuItem -l \"Bounding Box\" -c (\"toggleBoundingBoxDisplay \" + $item);\n"+
+"}\n"+
+"global proc showSG(string $item)\n"+
+"{\n"+
+"\t//check selection list for faces (polys, subds, nurbs)\n"+
+"\tstring $shader = \"\";\n"+
+"\tstring $selection[] = `filterExpand -sm 34 -sm 38 -sm 72`;\n"+
+"\t// If there are components selected, try to find a component shader\n"+
+"\tif( size( $selection ) > 0)\n"+
+"\t{\n"+
+"\t\tstring $nameBuffer[];\n"+
+"\t\tint $numComps = size( $selection );\n"+
+"\t\tint $comp;\n"+
+"\t\tfor( $comp = 0; $comp < $numComps; $comp++)\n"+
+"\t\t{\n"+
+"\t\t\ttokenize $selection[ $comp] \".\" $nameBuffer;\n"+
+"\t\t\t//if the selected component is on the object under the pointer\n"+
+"\t\t\t//get it's shader\n"+
+"\t\t\tif ($nameBuffer[0] == $item) {\n"+
+"\t\t\t\t$shader = `getComponentShader $selection[$comp]`;\n"+
+"\t\t\t\t//check if the shader is already selected - only toggle\n"+
+"\t\t\t\t//selection if it is not selected\n"+
+"\t\t\t\tstring $shaderSelected[] = `ls -selection $shader`;\n"+
+"\t\t\t\tif ( size( $shaderSelected ) == 0){\n"+
+"\t\t\t\t\tselect -tgl $shader;\n"+
+"\t\t\t\t\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\t// If we didn't find a component level shader, try for an object level one\n"+
+"\tif( size( $shader ) == 0 ) {\n"+
+"\t\tstring $allNodes[] = (`listHistory -f true $item` );\n"+
+"\t\tstring $node = \"\";\n"+
+"\t\tfor ($node in $allNodes) {\n"+
+"\t\t\tif(`nodeType $node` == \"shadingEngine\") {\n"+
+"\t\t\t\t$shader = $node;\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\t// If we found a shader, show it\n"+
+"\tif( size( $shader ) > 0) \n"+
+"\t{\n"+
+"\t\tshowEditor $shader;\n"+
+"\t}\n"+
+"}\n"+
+"\t\n"+
+"global proc showBakeSets(string $item, string $type)\n"+
+"{\n"+
+"\tstring $possibleBakeSets[] = (`listHistory -f true $item` );\n"+
+"\tstring $node = \"\";\n"+
+"    int $bakeSetExists = false;\n"+
+"\tfor ($node in $possibleBakeSets) {\n"+
+"\t\tif(`nodeType $node` == $type)\n"+
+"        {\n"+
+"\t\t\tshowEditor $node;\n"+
+"            $bakeSetExists = true;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"    // If no bake set exists for the $item, then create the\n"+
+"    // initial bake set of that $type and assign it to the $item.\n"+
+"    //\n"+
+"    if (!$bakeSetExists)\n"+
+"    {\n"+
+"        string $initialBakeSet = \"\";\n"+
+"\t\tif($type == \"vertexBakeSet\") \n"+
+"        {\n"+
+"            $initialBakeSet = \"initialVertexBakeSet\";\n"+
+"        }\n"+
+"        else if($type == \"textureBakeSet\") \n"+
+"        {\n"+
+"            $initialBakeSet = \"initialTextureBakeSet\";\n"+
+"\t\t}\n"+
+"        else\n"+
+"        {\n"+
+"            error   -showLineNumber true\n"+
+"                (\"Bake set type \"+$type + \" does not exist.\");\n"+
+"            return;\n"+
+"        }\n"+
+"        // Create it if it does not exist yet.\n"+
+"        //\n"+
+"        if  ( size(`ls $initialBakeSet`) < 1)\n"+
+"        {\n"+
+"            createBakeSet($initialBakeSet, $type);\n"+
+"        } \n"+
+"    \n"+
+"        // Assign the initial bake set to the item.\n"+
+"        //\n"+
+"        assignBakeSet($initialBakeSet, $item);\n"+
+"        // Show the initial bake set.\n"+
+"        //\n"+
+"        showBakeSetAE($initialBakeSet);\n"+
+"    }\n"+
+"}\n"+
+"global proc createShaderMenuItems(string $parent, string $item)\n"+
+"{\n"+
+"\tpopupMenu -e -deleteAllItems $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tmenuItem -l \"Material Attributes...\" -c (\"showSG \" + $item);\n"+
+"\tmenuItem -d true;\n"+
+"\tbuildShaderMenus($item);\n"+
+"}\n"+
+"global proc refreshBakingAttributeMenu (string $parent, string $item)\n"+
+"{\n"+
+"    setParent -menu $parent;\n"+
+"    int $suitable = bakeSetTypeSuitableForItem(\"textureBakeSet\", $item);\n"+
+"    menuItem -edit -enable $suitable textureBakingAttributeItem;\n"+
+"    $suitable = bakeSetTypeSuitableForItem(\"vertexBakeSet\", $item);\n"+
+"    menuItem -edit -enable $suitable vertexBakingAttributeItem;\n"+
+"}\n"+
+"// Description:  This procedure is called to create the \n"+
+"//  baking attribute menu.\n"+
+"//\n"+
+"proc createBakingAttributeMenu(string $parent, string $item)\n"+
+"{\n"+
+"    setParent -menu $parent;\n"+
+"\tmenuItem -l \"Edit Attributes...\" \n"+
+"        -subMenu true\n"+
+"        -tearOff true\n"+
+"        -postMenuCommand (\"refreshBakingAttributeMenu \\\"\"\n"+
+"                            +$parent+\"|editAttributeItem\\\" \\\"\"\n"+
+"                            +$item+\"\\\"\")\n"+
+"        editAttributeItem; \n"+
+"        menuItem -l \"texture\" \n"+
+"            -c (\"showBakeSets \\\"\"+$item+\"\\\" \\\"textureBakeSet\\\"\") \n"+
+"            textureBakingAttributeItem;\n"+
+"        menuItem -l \"vertex\" \n"+
+"            -c (\"showBakeSets \\\"\"+$item+\"\\\" \\\"vertexBakeSet\\\"\") \n"+
+"            vertexBakingAttributeItem;\n"+
+"    setParent -menu ..;\n"+
+"}\n"+
+"// Description:  This procedure is called to create the baking\n"+
+"//  menu items.\n"+
+"//\n"+
+"global proc createBakingMenuItems(string $parent, string $item)\n"+
+"//\n"+
+"//\tCreate the Baking menus for the RMB popup menu.\n"+
+"//\n"+
+"{\n"+
+"\tpopupMenu -e -deleteAllItems $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"    createBakingAttributeMenu($parent, $item);\n"+
+"\tmenuItem -d true;\n"+
+"\tif (!`about -evalVersion`) {\n"+
+"\t\tbuildBakingMenus($item);\n"+
+"\t}\n"+
+"}\n"+
+"// Description:  This procedure is called to create the switch proxy\n"+
+"//  menu items.\n"+
+"//\n"+
+"global proc createSwitchProxyMenuItems(string $parent, string $item, string $refNode)\n"+
+"//\n"+
+"//\tCreate the switch proxy submenu for the RMB popup menu.\n"+
+"//\n"+
+"{\n"+
+"\tpopupMenu -e -deleteAllItems $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tstring $proxyNodes[] = `getRelatedProxies $refNode`;\n"+
+"\tint $i;\n"+
+"\tstring $proxyLabel;\n"+
+"\tstring $proxyTag;\n"+
+"\tfor( $i=0; $i<size($proxyNodes); $i+=1) {\n"+
+"\t\t$proxyTag = `getAttr ($proxyNodes[$i] + \".proxyTag\")`;\n"+
+"\t\t\n"+
+"\t\tmenuItem -l $proxyTag -c (\"proxySwitch \" + $proxyNodes[$i]);\n"+
+"\t}\n"+
+"}\n"+
+"global proc createHistoryMenuItems(string $parent, string $item)\n"+
+"//\n"+
+"// Creates a menu on the toolbar that shows a list of\n"+
+"// all operations that took place to create/modify\n"+
+"// the currently selected object.  Note that the list\n"+
+"// is not being filtered yet to get rid of things that\n"+
+"// users won't really care about, nor are the operations\n"+
+"// being listed as operations - their DG node names are\n"+
+"// simply being stuck into the menu.  This should\n"+
+"// change.\n"+
+"//\n"+
+"// Also note that the chain of operations limit is being\n"+
+"// hardcoded to 20 here, for the sake of speed.\n"+
+"//\n"+
+"{\n"+
+"\t//\n"+
+"\t// Delete all menu entries currently in the popup\n"+
+"\t//\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\thistoryPopupFill( $item, false, 1 );\n"+
+"}\n"+
+"global proc createFutureMenuItems(string $parent, string $item)\n"+
+"//\n"+
+"// Also note that the chain of operations limit is being\n"+
+"// hardcoded to 20 here, for the sake of speed.\n"+
+"//\n"+
+"{\n"+
+"\t//\n"+
+"\t// Delete all menu entries currently in the popup\n"+
+"\t//\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\thistoryPopupFill( $item, true, 1 );\n"+
+"}\n"+
+"global proc string objectHandlesUvSets(string $item)\n"+
+"{\n"+
+"\tstring $maskList[];\n"+
+"\tstring $shape = $item;\n"+
+"\tint $i;\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tint $gotVisible = 0;\n"+
+"\tfor ($i = 0; $i < size($object); ++$i) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor ($i = 0; $i < size($object); ++$i)\n"+
+"\t\t{\n"+
+"\t\t\tif (getAttr($object[$i] + \".io\") == 0)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tstring $nt = `nodeType $shape`;\n"+
+"\tif ($nt == \"mesh\")\t\n"+
+"\t\treturn $shape;\n"+
+"\treturn \"\";\n"+
+"}\n"+
+"global proc createUVsetMenuItems(string $parent, string $item,\n"+
+"\t\t\t\t\t\t\t\t string $shape)\n"+
+"{\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tstring $cmd = \"polyUVSet -currentUVSet -uvSet \";\n"+
+"\tstring $curSet[] = `polyUVSet -q -currentUVSet $shape`;\n"+
+"\tstring $names[] = `polyUVSet -q -auv $shape`;\n"+
+"\tstring $allProjects[] = `polyUVSet -pr -q $shape`;\n"+
+"\tstring $setClearCmd = \"\";\n"+
+"\tif (size($allProjects))\n"+
+"\t{\n"+
+"\t\t$setClearCmd = \"select -d \";\t\t\n"+
+"\t\tfor ($p=0; $p<size($allProjects); $p++)\n"+
+"\t\t\t$setClearCmd += (\" \" + $allProjects[$p]);\n"+
+"\t\t$setClearCmd += \";\";\n"+
+"\t}\n"+
+"\tint $numNames = size($names);\n"+
+"\t// Add in a menu to do uv-linking\n"+
+"\tif ($numNames > 0)\n"+
+"\t{\t\n"+
+"\t\tstring $ann = `getRunTimeCommandAnnotation \"UVCentricUVLinkingEditor\"`;\n"+
+"\t\tstring $cmd = \"UVCentricUVLinkingEditor; \" + \"select -r \" + $item;\n"+
+"\t\tmenuItem -l \"UV Linking...\"\n"+
+"\t\t\t-c $cmd\n"+
+"\t\t\t-annotation $ann;\n"+
+"\t\tmenuItem -divider true;\n"+
+"\t}\n"+
+"\tfor ($i=0; $i<$numNames; $i++)\n"+
+"\t{\n"+
+"\t\tstring $uvEditname = (\"\\\"\" + $names[$i] + \"\\\"\");\n"+
+"\t\tstring $uvname = $names[$i];\n"+
+"\t\tstring $setCurCmd = $cmd + $uvEditname + \" \" + $shape + \";\";\n"+
+"\t\t// Find any projections associated with the uvset\n"+
+"\t\tstring $projs[];\n"+
+"\t\t$projs = `polyUVSet -pr -uvs $uvname -q $shape`;\n"+
+"\t\tstring $projCmd;\n"+
+"\t\t// Add a divider between items\n"+
+"\t\tif ($i > 0)\n"+
+"\t\t\tmenuItem -divider true;\n"+
+"\t\tif ($uvname == $curSet[0])\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -l ($uvname) -c $setClearCmd -checkBox true;\n"+
+"\t\t\tfor ($j=0; $j<size($projs); $j++)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$projCmd = ($setClearCmd + \"select -add \"+ $projs[$j] + \";setToolTo ShowManips;\"); \n"+
+"\t\t\t\tmenuItem -l $projs[$j] -c $projCmd;\n"+
+"\t\t\t\tif ($j >= 5)\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\telse\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -l ($uvname) -c ($setClearCmd + $setCurCmd) -checkBox false;\n"+
+"\t\t\tfor ($j=0; $j<size($projs); $j++)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$projCmd = ($setCurCmd + $setClearCmd + \"select -add \"+ $projs[$j] + \";setToolTo ShowManips;\"); \n"+
+"\t\t\t\tmenuItem -l $projs[$j] -c $projCmd;\n"+
+"\t\t\t\tif ($j >= 5)\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"//\n"+
+"global proc string objectHandlesColorSets(string $item)\n"+
+"{\n"+
+"\tstring $maskList[];\n"+
+"\tstring $shape = $item;\n"+
+"\tint $i;\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tint $gotVisible = 0;\n"+
+"\tfor ($i = 0; $i < size($object); ++$i) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor ($i = 0; $i < size($object); ++$i)\n"+
+"\t\t{\n"+
+"\t\t\tif (getAttr($object[$i] + \".io\") == 0)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tstring $nt = `nodeType $shape`;\n"+
+"\tif ($nt == \"mesh\")\t\n"+
+"\t\treturn $shape;\n"+
+"\treturn \"\";\n"+
+"}\n"+
+"global proc createColorSetMenuItems(string $parent, string $item,\n"+
+"\t\t\t\t\t\t\t\t string $shape)\n"+
+"{\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tstring $cmd = \"polyColorSet -currentColorSet -colorSet \";\n"+
+"\tstring $curSet[] = `polyColorSet -q -currentColorSet $shape`;\n"+
+"\tstring $names[] = `polyColorSet -q -acs $shape`;\n"+
+"\tint $numNames = size($names);\n"+
+"\t// Add in a menu to access color set editor\n"+
+"\tmenuItem -l \"Color Set Editor...\"\n"+
+"\t\t-ann (getRunTimeCommandAnnotation(\"ColorSetEditor\"))\n"+
+"\t\t-command \"colorSetEditor\"\n"+
+"\t\t;\n"+
+"\tif ($numNames > 0)\n"+
+"\t{\t\n"+
+"\tmenuItem -divider true;\n"+
+"\t}\n"+
+"\tfor ($i=0; $i < $numNames; $i++)\n"+
+"\t{\n"+
+"\t\tstring $colorEditname = (\"\\\"\" + $names[$i] + \"\\\"\");\n"+
+"\t\tstring $colorname = $names[$i];\n"+
+"\t\tstring $setCurCmd = $cmd + $colorEditname + \" \" + $shape + \";\";\n"+
+"\t\t// Add a divider between items\n"+
+"\t\tif ($i > 0)\n"+
+"\t\t\tmenuItem -divider true;\n"+
+"\t\tif ($colorname == $curSet[0])\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -l ($colorname) -checkBox true;\n"+
+"\t\t}\n"+
+"\t\telse\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -l ($colorname) -c ($setCurCmd) -checkBox false;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"global proc createArtAttrMenuItems(\n"+
+"\tstring \t\t$parent, \n"+
+"\tstring \t\t$item\n"+
+")\n"+
+"//\n"+
+"//\tDescription:\n"+
+"// \t\tCreates a menu that shows all the paintable attributes.\n"+
+"// \n"+
+"//\tNOTE: paintAttr are sorted by the paintable node type.\n"+
+"// \n"+
+"{\t\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\t\n"+
+"\t// add default items which are always displayed in the context menu\n"+
+"\tmenuItem -p $parent -label \"Paint Select\" -command \"ArtPaintSelectToolOptions\" ;\n"+
+"\tmenuItem -p $parent -label \"3D Paint\" -command \"Art3dPaintToolOptions\" ;\n"+
+"\tmenuItem -p $parent -label \"Sculpt\" -command \"SculptGeometryToolOptions\" ;\n"+
+"\t// Get all paintable attributes\n"+
+"\tstring $paintAttr = `artBuildPaintMenu $item`;\n"+
+"\t\n"+
+"\tif ($paintAttr != \"\")\n"+
+"\t{\n"+
+"\t\t// if the menu item has not been created, create it.\n"+
+"\t\tif( $parent == \"\" )\n"+
+"\t\t\t$parent = `menuItem -subMenu true -aob true -l \"Paint\"`;\n"+
+"\t\t\t\n"+
+"\t\n"+
+"\t\t// Create the menu.\n"+
+"\t\tartAttrCreateMenuItems( $parent, $paintAttr );\n"+
+"\t\t\n"+
+"\t\t// artAttrCreateMenuItems currently does not use $object\n"+
+"\t\t// hence we are making a seperate call to this function to handle\n"+
+"\t\t// cloth objects. We need the object name to select the object and detect \n"+
+"\t\t// dynamic attributes available for painting.\n"+
+"\t\t//\n"+
+"\t\tcreatePaintingMenuItems( $parent, $item );\n"+
+"\t}\n"+
+"}\n"+
+"// This has been called because a menu press happened on a DAG object\n"+
+"// So find the Object submenu and add the DAG specific items to it.\n"+
+"//\n"+
+"global proc dagMenuProc(string $parent, string $object)\n"+
+"{\n"+
+"\tglobal string $artSelectObject ;\n"+
+"\tstring $mode = \"All\";\n"+
+"\tif (`optionVar -exists currentMenuBarTab`) {\n"+
+"\t\t$mode = `optionVar -q currentMenuBarTab`;\n"+
+"\t} else {\n"+
+"\t\toptionVar -sv currentMenuBarTab $mode;\n"+
+"\t}\n"+
+"\tif (`popupMenu -e -exists $parent`) {\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t\t// label the object\n"+
+"\t\tstring $shortName = `substitute \".*|\" $object \"\"`;\n"+
+"\t\tmenuItem -l ($shortName + \"...\") -c (\"showEditor \"+$object);\n"+
+"\t\tmenuItem -divider true;\n"+
+"\t\tmenuItem -divider true;\n"+
+"\t\t// Create the list of selection masks\n"+
+"\t\tcreateSelectMenuItems($parent, $object);\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\tmenuItem -l \"Select\" -c (\"select -r \" + $object);\n"+
+"\t\tmenuItem -l \"Select Hierarchy\" -c (\"select -hierarchy \" + $object);\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\tif( (objExists(($object+\".Parent\"))) || (objExists(($object+\".childPtr\"))) ) \n"+
+"\t\t{\n"+
+"\t\t\t\tint $cnt = 0;\n"+
+"\t\t\t\tstring $connections[];\n"+
+"\t\t\t\tstring $parent;\n"+
+"\t\t\t\tstring $child = $object;\n"+
+"\t\t\t\twhile(`objExists( ($object+\".Parent_\"+$cnt) )` ) \n"+
+"\t\t\t\t{ \n"+
+"\t\t\t\t\t\t$connections = `listConnections ($object+\".Parent_\"+$cnt)`;\n"+
+"\t\t\t\t\t\tif(endsWith($connections[0], \"_DynDriver\")) $parent = substitute(\"_DynDriver\", $connections[0], \"\");\n"+
+"\t\t\t\t\t\tif(objExists(($object+\".childPtr\")))\n"+
+"\t\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t\t$connections = `listConnections ($object+\".childPtr\")`;\n"+
+"\t\t\t\t\t\t\t$child = $connections[0];\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t\tmenuItem -l (\"Parent to: \"+$parent) -c (\"JTDdynParentSnap(\\\"\"+$child+\"\\\",\"+$cnt+\")\");\n"+
+"\t\t\t\t\t\t$cnt++;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\tif( (objExists(($object+\".Follow\"))) || (objExists(($object+\".childPtr\"))) ) \n"+
+"\t\t{\n"+
+"\t\t\t\tint $cnt = 0;\n"+
+"\t\t\t\tstring $connections[];\n"+
+"\t\t\t\tstring $parent;\n"+
+"\t\t\t\tstring $child = $object;\n"+
+"\t\t\t\twhile(`objExists( ($object+\".Follow_\"+$cnt) )` ) \n"+
+"\t\t\t\t{ \n"+
+"\t\t\t\t\t\t$connections = `listConnections ($object+\".Follow_\"+$cnt)`;\n"+
+"\t\t\t\t\t\tif(endsWith($connections[0], \"_DynDriver\")) $parent = substitute(\"_DynDriver\", $connections[0], \"\");\n"+
+"\t\t\t\t\t\tif(objExists(($object+\".childPtr\")))\n"+
+"\t\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t\t$connections = `listConnections ($object+\".childPtr\")`;\n"+
+"\t\t\t\t\t\t\t$child = $connections[0];\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t\tmenuItem -l (\"Follow: \"+$parent) -c (\"JTDfollowSnap(\\\"\"+$child+\"\\\",\"+$cnt+\")\");\n"+
+"\t\t\t\t\t\t$cnt++;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\tif(objExists( ($object+\".IKFK\") ))\n"+
+"\t\t{\n"+
+"\t\t\t\tstring $JTDupSW[] = `listConnections ($object+\".SWup\")`;\n"+
+"\t\t\t\tstring $JTDmidSW[] = `listConnections ($object+\".SWmid\")`;\n"+
+"\t\t\t\tstring $JTDupFK[] = `listConnections ($object+\".FKup\")`;\n"+
+"\t\t\t\tstring $JTDmidFK[] = `listConnections ($object+\".FKmid\")`;\n"+
+"\t\t\t\tstring $JTDlowFK[] = `listConnections ($object+\".FKlow\")`;\n"+
+"\t\t\t\tstring $JTDupIK[] = `listConnections ($object+\".IKup\")`;\n"+
+"\t\t\t\tstring $JTDmidIK[] = `listConnections ($object+\".IKmid\")`;\n"+
+"\t\t\t\tstring $JTDIKpos[] = `listConnections ($object+\".IKpos\")`;\n"+
+"\t\t\t\tstring $JTDIKcntrl[] = `listConnections ($object+\".IKcntrl\")`;\n"+
+"\t\t\t\tstring $JTDPV[] = `listConnections ($object+\".PV\")`;\n"+
+"\t\t\t\tstring $JTDPVpos[] = `listConnections ($object+\".PVsnapPos\")`;\n"+
+"\t\t\t\tif( `getAttr($object+\".IKFK\")` == 0 ) menuItem -l \"Snap to IK Mode!\" -c (\"JTDmatchIKFK(\\\"\"+$object+\"\\\",\\\"\"+$JTDIKpos[0]+\"\\\",\\\"\"+$JTDIKcntrl[0]+\"\\\",\\\"\"+$JTDPV[0]+\"\\\",\\\"\"+$JTDPVpos[0]+\"\\\")\");\n"+
+"\t\t\t\telse if( `getAttr($object+\".IKFK\")` == 1 ) menuItem -l \"Snap to FK Mode!\" -c (\"JTDmatchFKIK(\\\"\"+$object+\"\\\",\\\"\"+$JTDupSW[0]+\"\\\",\\\"\"+$JTDmidSW[0]+\"\\\",\\\"\"+$object+\"\\\",\\\"\"+$JTDupFK[0]+\"\\\",\\\"\"+$JTDmidFK[0]+\"\\\",\\\"\"+$JTDlowFK[0]+\"\\\",\\\"\"+$JTDupIK[0]+\"\\\",\\\"\"+$JTDmidIK[0]+\"\\\")\");\n"+
+"\t\t\t\telse \n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\t\tmenuItem -l \"Snap to IK Mode!\" -c (\"JTDmatchIKFK(\\\"\"+$object+\"\\\",\\\"\"+$JTDIKpos[0]+\"\\\",\\\"\"+$JTDIKcntrl[0]+\"\\\",\\\"\"+$JTDPV[0]+\"\\\",\\\"\"+$JTDPVpos[0]+\"\\\")\");\n"+
+"\t\t\t\t\t\tmenuItem -l \"Snap to FK Mode!\" -c (\"JTDmatchFKIK(\\\"\"+$object+\"\\\",\\\"\"+$JTDupSW[0]+\"\\\",\\\"\"+$JTDmidSW[0]+\"\\\",\\\"\"+$object+\"\\\",\\\"\"+$JTDupFK[0]+\"\\\",\\\"\"+$JTDmidFK[0]+\"\\\",\\\"\"+$JTDlowFK[0]+\"\\\",\\\"\"+$JTDupIK[0]+\"\\\",\\\"\"+$JTDmidIK[0]+\"\\\")\");\n"+
+"\t\t\t\t}\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\tif(objExists( ($object+\".js_pivotObj\") ) )\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -l \"Select Moveable Pivot\" -c (\"js_pivot_createMov (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tmenuItem -l \"Apply & Key Moved Pivot\" -c (\"js_pivot_snap (\\\"\"+$object+\"\\\", 1)\");\n"+
+"\t\t\tstring $menu = `menuItem -subMenu true -aob true -l \"Pivot Options\"`;\n"+
+"\t\t\tmenuItem -l \"Toggle Moveable Pivot Locator\" -c (\"js_pivot_mov_toggle (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tmenuItem -l \"Toggle Actual Pivot Locator\" -c (\"js_pivot_toggle (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tmenuItem -l \"Reset Pivot\" -c (\"jd_pivot_reset (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tsetParent -m $parent;\n"+
+"\t\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\toptionalDagMenuProc( $parent, $object );\n"+
+"\t\tstring $menu = `menuItem -subMenu true -aob true -l \"Inputs\"`;\n"+
+"\t\tmenu -e \n"+
+"\t\t\t-pmc ( \"createHistoryMenuItems \\\"\"+$menu+\"\\\" \"+$object ) $menu;\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t\t$menu = `menuItem -subMenu true -aob true -l \"Outputs\"`;\n"+
+"\t\tmenu -e -pmc ( \"createFutureMenuItems \\\"\"+$menu+\"\\\" \"+$object ) $menu;\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t \t// Look at the shape child of this object\n"+
+"\t \t//\n"+
+" \t\tstring $shapes[] = `listRelatives -path -s $object`;\n"+
+"\t\t// get current selection of shapes\n"+
+"\t\tstring $currentSel[] = `ls -sl -dagObjects -shapes` ;\n"+
+"\t\tstring $paintParent = \"\" ;\n"+
+"\t\tint $selIndex  ;\n"+
+" \t\tint $i;\n"+
+" \t\tfor ($i = 0; $i < size($shapes); ++$i) \n"+
+"\t\t{\n"+
+"\t\t\tstring $nodeType = `nodeType $shapes[$i]` ;\n"+
+"\t\t\tif ( ( $nodeType == \"nurbsSurface\") ||\n"+
+"\t\t\t\t ( $nodeType == \"mesh\") ||\n"+
+"\t\t\t\t ( $nodeType == \"subdiv\")) \n"+
+"\t\t\t{\n"+
+"\t\t\t\t// save the object name if it is not already selected by the user\n"+
+"\t\t\t\t// We use this info to select the object if user chooses a paint option\n"+
+"\t\t\t\t//\n"+
+"\t\t\t\t// If user has selected multiple objects and is using context menu on one of them\n"+
+"\t\t\t\t// we do not change the selection list as user may want to paint some attribute \n"+
+"\t\t\t\t// on all of them. (It is the way it has been working all along...we don't want to \n"+
+"\t\t\t\t// break it )\n"+
+"\t\t\t\t\n"+
+"\t\t\t\tint $found = 0 ;\n"+
+"\t\t\t\tfor( $selIndex  = 0 ; $selIndex  < size( $currentSel ); ++$selIndex  )\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\tif( $shapes[$i] == $currentSel[ $selIndex  ] )\n"+
+"\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t$found = 1 ;\n"+
+"\t\t\t\t\t\tbreak ;\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\t\t\tif( $found )\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\t$artSelectObject = \"\" ;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\telse\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\t// check if the object is in component selection mode\n"+
+"\t\t\t\t\t// and if it is, do not do any further selection.\n"+
+"\t\t\t\t\t// We are assuming that if the object is in hilite mode\n"+
+"\t\t\t\t\t// then the user is in component selection mode.\n"+
+"\t\t\t\t\t\n"+
+"\t\t\t\t\t$currentSel = `ls -hilite` ;\n"+
+"\t\t\t\t\tfor( $selIndex  = 0 ; $selIndex  < size( $currentSel ); ++$selIndex  )\n"+
+"\t\t\t\t\t{\n"+
+"\t\t\t\t\t\tif( $object == $currentSel[ $selIndex  ] )\n"+
+"\t\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t\t$found = 1 ;\n"+
+"\t\t\t\t\t\t\tbreak ;\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t\tif( !$found ) \n"+
+"\t\t\t\t\t\t$artSelectObject = $object ;\n"+
+"\t\t\t\t\telse\n"+
+"\t\t\t\t\t\t$artSelectObject = \"\" ;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\t\t\t$paintParent = `menuItem -subMenu true -aob true -l \"Paint\"`;\n"+
+"\t\t\t\tmenu -e\t-pmc ( \"createArtAttrMenuItems \\\"\"+ $paintParent +\"\\\" \"+$object ) $paintParent ;\n"+
+"\t\t\t\tsetParent -m $parent;\n"+
+"\t\t\t\tbreak ;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t    $menu = `menuItem -subMenu true -l \"Actions\"`;\n"+
+"\t\tmenu -e -pmc ( \"createActionsMenuItems \\\"\"+$menu+\"\\\" \"+$object ) $menu;\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t\t// If the object can handle uv sets then add the uvset menu\n"+
+"\t\t//\n"+
+"\t\tstring $shape = objectHandlesUvSets( $object );\n"+
+"\t\tif ($shape != \"\")\n"+
+"\t\t{\n"+
+"\t\t\t$menu = `menuItem -subMenu true -l \"UV Sets\"`;\n"+
+"\t\t\tmenu -e \n"+
+"\t\t\t\t-pmc ( \"createUVsetMenuItems \\\"\"+$menu+\"\\\" \" +$object + \" \"+\n"+
+"\t\t\t\t\t  $shape )\n"+
+"\t\t\t\t$menu;\n"+
+"\t\t\tsetParent -m $parent;\n"+
+"\t\t}\n"+
+"\t\tstring $shape = objectHandlesColorSets( $object );\n"+
+"\t\tif ($shape != \"\")\n"+
+"\t\t{\n"+
+"\t\t\t$menu = `menuItem -subMenu true -l \"Color Sets\"`;\n"+
+"\t\t\tmenu -e \n"+
+"\t\t\t\t-pmc ( \"createColorSetMenuItems \\\"\"+$menu+\"\\\" \" +$object + \" \"+\n"+
+"\t\t\t\t\t  $shape )\n"+
+"\t\t\t\t$menu;\n"+
+"\t\t\tsetParent -m $parent;\n"+
+"\t\t}\n"+
+"\t\t// Shader menu to be able to quickly assign existing shaders\n"+
+"\t\t// to the object under the pointer.\n"+
+"\t\t//\n"+
+"    \tmenuItem -d true;\n"+
+" \t\t$menu = `menuItem -subMenu true -l \"Materials\"`;\n"+
+" \t\tmenu -e\n"+
+"\t\t\t-pmc ( \"createShaderMenuItems \\\"\"+$menu+\"\\\" \"+$object )\n"+
+"\t\t\t$menu;\n"+
+" \t\tsetParent -m $parent;\n"+
+"\t\tint $mentalIsLoaded = 0;\n"+
+"\t\tstring $renderer;\n"+
+"\t    for ($renderer in `renderer -query -namesOfAvailableRenderers`) {\n"+
+"\t\t\tif( $renderer == \"mentalRay\" ) {\n"+
+"\t\t\t\t$mentalIsLoaded = 1;\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tif ($mentalIsLoaded) {\n"+
+" \t\t\t$menu = `menuItem -subMenu true -l \"Baking\"`;\n"+
+" \t\t\tmenu -e\n"+
+"\t\t\t\t-pmc ( \"createBakingMenuItems \\\"\"+$menu+\"\\\" \"+$object )\n"+
+"\t\t\t\t$menu;\n"+
+" \t\t\tsetParent -m $parent;\n"+
+"\t\t}\n"+
+"//\t\t{\n"+
+"// \t\t\t$menu = `menuItem -subMenu true -l \"Paint\"`;\n"+
+"//\t\t\tmenu -e\n"+
+"//\t\t\t\t-pmc ( \"createPaintingMenuItems \\\"\"+$menu+\"\\\" \"+$object )\n"+
+"//\t\t\t\t$menu;\n"+
+"// \t\t\tsetParent -m $parent;\n"+
+"//\t\t}\n"+
+"\t\tif ($mode == \"Dynamics\") {\n"+
+"\t\t\tmenuItem -d true;\n"+
+"\t\t\tmenuItem -l \"Connect Field\" -c (\"connectDynamic -f \" + $object);\n"+
+"\t\t\tmenuItem -l \"Connect Emitter\" -c (\"connectDynamic -em \" + $object);\n"+
+"\t\t\tmenuItem -l \"Connect Collision\" -c (\"connectDynamic -c \" + $object);\n"+
+"\t\t}\n"+
+"\t\t// is there a reference associated with the object ?\n"+
+"\t\t// and if so, is it in a loaded or unloaded state?\n"+
+"\t\tstring $refNode = `getRelatedReference $object`;\n"+
+"\t\tif( size($refNode) > 0) {\n"+
+"\t\t\tmenuItem -d true;\n"+
+"\t\t\tif( `file -rfn $refNode -q -dr` ) {\n"+
+"\t\t\t\tmenuItem -l \"Load Related Reference\" -c (\"loadRelatedReference \" + $object);\n"+
+"\t\t\t} else {\n"+
+"\t\t\t\tmenuItem -l \"Reload Related Reference\" -c (\"loadRelatedReference \" + $object);\n"+
+"\t\t\t\tmenuItem -l \"Unload Related Reference\" -c (\"unloadRelatedReference \" + $object);\n"+
+"\t\t\t}\n"+
+"\t\t\t// Is this reference a proxy? If so, add proxy switch submenu\n"+
+"\t\t\t//\n"+
+"\t\t\tstring $proxyNodes[] = `getRelatedProxies $refNode`;\n"+
+"\t\t\tif(size($proxyNodes) > 0) {\n"+
+"\t\t\t\t$menu = `menuItem -subMenu true -l \"Reload Proxy As\"`;\n"+
+"\t\t\t\tmenu -e\n"+
+"\t\t\t\t\t-pmc ( \"createSwitchProxyMenuItems \\\"\"+$menu+\"\\\" \"+$object + \" \" + $refNode )\n"+
+"\t\t\t\t\t$menu;\n"+
+"\t\t\t\tsetParent -m $parent;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t} else {\n"+
+"\t\twarning(\"Menu \" + $parent + \" doesn't exist.\");\n"+
+"\t}\n"+
+"}\n"
+);
+
+return $cmd;
+}
+
+
+global proc string JTDgetDagMenuScript8()
+{
+string $cmd = (
+
+"proc optionalDagMenuProc( string $parent, string $item )\n"+
+"{\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tstring $shape = \"\";\n"+
+"\tint $gotVisible = 0;\n"+
+"\tif( size($object) < 1 ) return;\n"+
+"\tfor( $i=0; $i<size($object); $i+=1) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor( $i=0; $i<size($object); $i+=1) {\n"+
+"\t\t\tif( 0 == getAttr($object[$i] + \".io\")) {\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( \"\" != $shape ) {\n"+
+"\t\tstring $nt = `nodeType $shape`;\n"+
+"\t\tswitch( $nt ) {\n"+
+"\t\t  case \"subdiv\":\n"+
+"\t\t\tsubdOptionalDagMenuProc( $parent, $item );\n"+
+"\t\t\tmenuItem -d true; \n"+
+"\t\t\tbreak;\n"+
+"\t\t  default:\n"+
+"\t\t\t// Check to make sure we have a kPlugin prefix\n"+
+"\t\t\tstring $apiNt = `nodeType -api $shape`;\n"+
+"\t\t\tif ( startsWith( $apiNt, \"kPlugin\" ) ) {\n"+
+"\t\t\t\tstring $nodeMenuCommand = $nt + \"DagMenuProc\";\n"+
+"\t\t\t\tstring $nodeMenuCommandWithArgs = $nodeMenuCommand + \"(\\\"\" + $parent + \"\\\" , \\\"\" + $item + \"\\\" )\";\n"+
+"\t\t\t\tif ( exists( $nodeMenuCommand ) ) {\n"+
+"\t\t\t\t   eval( $nodeMenuCommandWithArgs );\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"proc int objectIsTrimmed(string $item)\n"+
+"// Return true if this is a trimmed surface\n"+
+"{\n"+
+"\tstring $command = (\"getAttr -size \" + $item + \".trimFace\");\n"+
+"\tint $trimCount = eval($command);\n"+
+"\treturn ($trimCount != 0);\n"+
+"}\n"+
+"proc string getControlledHandle(string $item)\n"+
+"{\n"+
+"\tstring $handle;\n"+
+"\tif (size(`ls ($item+\".ikBlend\")`)) {\n"+
+"\t\tstring $connHandles[] =\n"+
+"\t\t\t`listConnections -type ikHandle ($item+\".ikBlend\")`;\n"+
+"\t\tif (size($connHandles)) {\n"+
+"\t\t\t$handle = $connHandles[0];\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\treturn $handle;\n"+
+"}\n"+
+"proc int isIKcontroller(string $item)\n"+
+"{\n"+
+"\tstring $handle = getControlledHandle($item);\n"+
+"\treturn (size($handle) > 0);\n"+
+"}\n"+
+"proc\n"+
+"createFBIKmenuItems(string $parent,\n"+
+"\t\t\t\t\tstring $item,\n"+
+"\t\t\t\t\tstring $ikReachModeLocation,\n"+
+"\t\t\t\t\tstring $keyBodyPartLocation,\n"+
+"\t\t\t\t\tstring $keyAllLocation,\n"+
+"\t\t\t\t\tstring $keySelectedLocation)\n"+
+"{\n"+
+"\tstring $reachKeyingMode = \"Reach Mode:\";\n"+
+"\tint $rkm = `optionVar -q setIKKey`;\n"+
+"\tswitch ($rkm)\n"+
+"\t{\n"+
+"\t\tcase 1:\n"+
+"\t\t\t$reachKeyingMode = $reachKeyingMode + \" IK\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase 2:\n"+
+"\t\t\t$reachKeyingMode = $reachKeyingMode + \" FK\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase 3:\n"+
+"\t\t\t$reachKeyingMode = $reachKeyingMode + \" Simple\";\n"+
+"\t\t\tbreak;\n"+
+"\t}\t\n"+
+"\tmenuItem -rp $ikReachModeLocation -label $reachKeyingMode\n"+
+"\t\t-subMenu true\n"+
+"\t\t-annotation (uiRes(\"m_dagMenuProc.kDetermineHowAnnot\")) ;\n"+
+"\t\tmenuItem -rp \"S\" -label (uiRes(\"m_dagMenuProc.kIK\")) \n"+
+"\t\t\t-command FBIKReachKeyingOptionIK;\n"+
+"\t\tmenuItem -rp \"N\" -label (uiRes(\"m_dagMenuProc.kFK\")) \n"+
+"\t\t\t-command FBIKReachKeyingOptionFK;\n"+
+"\t\tmenuItem -rp \"E\" -label (uiRes(\"m_dagMenuProc.kSimpleNoReach\")) \n"+
+"\t\t\t-command FBIKReachKeyingOptionSimple;\n"+
+"\tsetParent -m $parent;\n"+
+"\t\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kKeyAll\")) \n"+
+"\t\t-echoCommand true\n"+
+"\t\t-c (\"doSetFullBodyIKKeysArgList 2 {\\\"1\\\", \\\"2\\\", \\\"\"+$item+\"\\\"};\")\n"+
+"\t\t-rp $keyAllLocation\n"+
+"\t\tkeyAllItem;\n"+
+"\t\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kKeyBodyPart\")) \n"+
+"\t\t-echoCommand true\n"+
+"\t\t-c (\"doSetFullBodyIKKeysArgList 2 {\\\"2\\\", \\\"2\\\", \\\"\"+$item+\"\\\"};\")\n"+
+"\t\t-rp $keyBodyPartLocation\n"+
+"\t\tkeyBodyPartItem;\n"+
+"\t\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kKeySelected\")) \n"+
+"\t\t-echoCommand true\n"+
+"\t\t-c (\"doSetFullBodyIKKeysArgList 2 {\\\"4\\\", \\\"2\\\", \\\"\"+$item+\"\\\"};\")\n"+
+"\t\t-rp $keySelectedLocation\n"+
+"\t\tkeySelectedItem;\n"+
+"}\n"+
+"proc checkForSkinInfluenceItem(string $item, string $quadrant)\n"+
+"{\n"+
+"\tint $isJoint = (nodeType($item) == \"joint\");\n"+
+"\t\n"+
+"\t// Check if the current context is the skinPaint context \n"+
+"\t// and the the joint is connected to a skinCluster\n"+
+"\t//\n"+
+"\tstring  $currContext = `currentCtx`;\n"+
+"\tstring  $currTool    = \"\";\n"+
+"\tif(`contextInfo -ex $currContext`) {\n"+
+"\t\t$currTool = `contextInfo -c $currContext`;\n"+
+"\t}\n"+
+"\tstring $paintWeights = (uiRes(\"m_dagMenuProc.kPaintWeights\"));\n"+
+"\tif ( $currTool == \"artAttrSkin\" ) {\n"+
+"\t\tstring $whichTool = `artAttrCtx -q -whichTool $currContext`;\n"+
+"\t\tif ( $whichTool == \"skinWeights\" )  {\n"+
+"\t\t\tstring $connL[] = `listConnections ($item+\".worldMatrix\")`;\n"+
+"\t\t\tstring $conn;\n"+
+"\t\t\tfor($conn in $connL) {\n"+
+"\t\t\t\tif (`nodeType $conn` == \"skinCluster\")\n"+
+"\t\t\t\t{\t\n"+
+"\t\t\t\t\t// select the surface (not the joint) and set\n"+
+"\t\t\t\t\t// the joint as the current influence\n"+
+"\t\t\t\t\t//\n"+
+"\t\t\t\t\tstring $currSel[] = `ls -sl`;\n"+
+"\t\t\t\t\tstring $currSelString;\n"+
+"\t\t\t\t\tif (size($currSel) > 0) {\n"+
+"\t\t\t\t\t\tstring $currObj;\n"+
+"\t\t\t\t\t\t$currSelString = \"select -r \";\n"+
+"\t\t\t\t\t\tfor ($currObj in $currSel) {\n"+
+"\t\t\t\t\t\t\t$currSelString += ($currObj+\" \");\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t\tmenuItem -label $paintWeights \n"+
+"\t\t\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t\t\t-c ($currSelString+\"; setSmoothSkinInfluence \" + $item)\n"+
+"\t\t\t\t\t\t-rp $quadrant\n"+
+"\t\t\t\t\t\tpaintWeightItem;\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\t\t// menu for skinCluster paint\n"+
+"\t// Check if the current context is the clusterPaint context \n"+
+"\t// and the the joint is connected to a jointCluster\n"+
+"\t//\n"+
+"\telse if ( $isJoint && ($currTool == \"artAttr\") ) {\n"+
+"\t\tstring $whichTool = `artAttrCtx -q -whichTool $currContext`;\n"+
+"\t\tif ( $whichTool == \"general\" )  {\n"+
+"\t\t\tstring $connL[] = `listConnections ($item+\".worldMatrix\")`;\n"+
+"\t\t\tstring $conn;\n"+
+"\t\t\tfor($conn in $connL) {\n"+
+"\t\t\t\tif (`nodeType $conn` == \"jointCluster\")\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\tstring $artCommand = \"artAttrCtx\" ;\n"+
+"\t\t\t\t\tstring $attribute = \"cluster.\" + $conn +  \".weights\" ;\n"+
+"\t\t\t\t\tmenuItem -label $paintWeights \n"+
+"\t\t\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t\t\t// the following command doesnot update the UI hence we use the next one\n"+
+"\t\t\t\t\t\t//-c (\"artAttrCtx -e -pas \\\"cluster.\" + $conn +  \".weights\\\" `currentCtx`\")\n"+
+"\t\t\t\t\t\t-c (\"artSetToolAndSelectAttr( \\\"\" + $artCommand + \"\\\", \\\"\" + $attribute + \"\\\" )\")\n"+
+"\t\t\t\t\t\t-rp \"N\"\n"+
+"\t\t\t\t\t\tpaintWeightItem;\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\t// menu for joint-set paint\n"+
+"\t// Check if the current context is the setPaint context \n"+
+"\t// and the the joint is connected to a objectSet via jointCluster\n"+
+"\t//\n"+
+"\telse if ( $isJoint && ($currTool == \"artSetPaint\") ) {\n"+
+"\t\tstring $connL[] = `listConnections ($item+\".worldMatrix\")`;\n"+
+"\t\tstring $conn;\n"+
+"\t\tfor($conn in $connL) {\n"+
+"\t\t\tif (`nodeType $conn` == \"jointCluster\") {\t\n"+
+"\t\t\t\tstring $connS[] = `listConnections ($conn+\".message\")`;\n"+
+"\t\t\t\tfor($set in $connS) {\n"+
+"\t\t\t\t\tif (`nodeType $set` == \"objectSet\") {\n"+
+"\t\t\t\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kPaintSetMembership\")) \n"+
+"\t\t\t\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t\t\t\t// the following command doesnot update the UI hence we use the next one\n"+
+"\t\t\t\t\t\t\t//-c (\"artSetPaintCtx -e -settomodify \" + $set + \" `currentCtx`\")\n"+
+"\t\t\t\t\t\t\t-c (\"artSetPaintSelectSet( \\\"\" + $set + \"\\\" )\")\n"+
+"\t\t\t\t\t\t\t-rp \"N\"\n"+
+"\t\t\t\t\t\t\tpaintWeightItem;\n"+
+"\t\t\t\t\t\tbreak;\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t}\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"global proc string[] objectSelectMasks(string $item)\n"+
+"// Returns the component selection masks that apply to this object\n"+
+"{\n"+
+"\tstring $maskList[];\n"+
+"\tstring $shape = $item;\n"+
+"\tint $i;\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tint $gotVisible = 0;\n"+
+"\tfor ($i = 0; $i < size($object); ++$i) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor ($i = 0; $i < size($object); ++$i)\n"+
+"\t\t{\n"+
+"\t\t\tif (getAttr($object[$i] + \".io\") == 0)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tstring $nt = `nodeType $shape`;\n"+
+"\tswitch ($nt) {\n"+
+"\t\tcase \"lattice\":\n"+
+"\t\t\t$maskList[0] = \"latticePoint\";\n"+
+"\t\t\tbreak;\t\n"+
+"\t\tcase \"locator\":\n"+
+"\t\t\t$maskList[0] = \"locator\";\n"+
+"\t\t\tbreak;\t\n"+
+"\t\tcase \"nurbsCurve\":\n"+
+"\t\t\t$maskList[0] = \"curveParameterPoint\";\n"+
+"\t\t\t$maskList[1] = \"controlVertex\";\n"+
+"\t\t\t$maskList[2] = \"editPoint\";\n"+
+"\t\t\t$maskList[3] = \"hull\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"nurbsSurface\":\n"+
+"\t\t\t$maskList[0] = \"isoparm\";\n"+
+"\t\t\t$maskList[1] = \"controlVertex\";\n"+
+"\t\t\t$maskList[2] = \"surfaceParameterPoint\";\n"+
+"\t\t\t$maskList[3] = \"hull\";\n"+
+"\t\t\t$maskList[4] = \"surfaceFace\";\n"+
+"\t\t\t$maskList[5] = \"surfaceUV\"; \n"+
+"\t\t\tif (objectIsTrimmed($shape)) {\n"+
+"\t\t\t\t$maskList[6] = \"surfaceEdge\";\n"+
+"\t\t\t}\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"mesh\":\n"+
+"\t\t\t$maskList[0] = \"edge\";\n"+
+"\t\t\t$maskList[1] = \"vertex\";\n"+
+"\t\t\t$maskList[2] = \"facet\";\n"+
+"\t\t\t$maskList[3] = \"puv\";\n"+
+"\t\t\t$maskList[4] = \"pvf\";\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"joint\":\n"+
+"\t\t\t$maskList[0] = \"joint\";\t\t// special case\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"ikHandle\":\n"+
+"\t\t\t$maskList[0] = \"ikHandle\";\t// special case\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"hikEffector\":\n"+
+"\t\t// fall through\n"+
+"\t\tcase \"hikFloorContactMarker\":\n"+
+"\t\t\t$maskList[0] = \"hikEffector\";\t// special case\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"particle\":\n"+
+"\t\t\t$maskList[0] = \"particle\";\t// only one choice\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"spring\":\n"+
+"\t\t\t$maskList[0] = \"springComponent\";\t// only one choice\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"subdiv\":\n"+
+" \t\t\t$maskList[0] = \"subdivMeshPoint\";\t\n"+
+" \t\t\t$maskList[1] = \"subdivMeshEdge\";\t\n"+
+" \t\t\t$maskList[2] = \"subdivMeshFace\";\t\n"+
+" \t\t\t$maskList[3] = \"subdivMeshUV\";\t\n"+
+"\t\t\tbreak;\n"+
+"\t}\n"+
+"\tif (isIKcontroller($item)) {\n"+
+"\t\t$maskList[size($maskList)] = \"ikfkHandle\";\n"+
+"\t}\n"+
+"\treturn $maskList;\n"+
+"}\n"+
+"global proc string dagMenuProc_selectionMask_melToUI( string $mel )\n"+
+"{\n"+
+"\tstring $result = $mel; \n"+
+" \n"+
+"\tswitch ($mel) \n"+
+"\t{\n"+
+"\t\tcase \"latticePoint\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kLatticePoint\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"locator\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kLocator\"));\n"+
+"\t\t\tbreak;\t\t \n"+
+"\t\tcase \"controlVertex\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kControlVertex\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"editPoint\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kEditPoint\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"hull\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kHull\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"isoparm\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kIsoparm\"));\n"+
+"\t\t\tbreak;\t \t \n"+
+"\t\tcase \"subdivMeshEdge\":\n"+
+"\t\t\t// fall through\n"+
+"\t\tcase \"edge\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kEdge\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"subdivMeshPoint\":\n"+
+"\t\t\t// fall through\n"+
+"\t\tcase \"vertex\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kVertex\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"joint\":\t\t\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kJoint\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"ikHandle\":\t\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kIkHandle\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"hikEffector\":\t\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kHikEffector\"));\n"+
+"\t\t\tbreak;\t \n"+
+"\t\tcase \"ikfkHandle\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kIkfkHandle\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"surfaceUV\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kSurfaceUV\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"surfaceParameterPoint\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kSurfacePoint\"));\n"+
+"\t\t\tbreak;\t\n"+
+"\t\tcase \"curveParameterPoint\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kCurvePoint\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"surfaceEdge\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kTrimEdge\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"surfaceFace\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kSurfacePatch\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"subdivMeshUV\":\n"+
+"\t\t\t// fall through\n"+
+"\t\tcase \"puv\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kUV\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"subdivMeshFace\":\n"+
+"\t\t\t// fall through\n"+
+"\t\tcase \"facet\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kFace\"));\n"+
+"\t\t\tbreak;\t\n"+
+"\t\tcase \"pvf\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kVertexFace\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"particle\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kParticle\"));\n"+
+"\t\t\tbreak;\n"+
+"\t\tcase \"springComponent\":\n"+
+"\t\t\t$result = (uiRes(\"m_dagMenuProc.kSpring\"));\n"+
+"\t\t\tbreak;\t \t \n"+
+"\t\tdefault:\n"+
+"\t\t\tuiToMelMsg( \"dagMenuProc_selectionMask_melToUI\", $mel, 1 );\n"+
+"\t\t\tbreak;\n"+
+"\t}\n"+
+"\treturn $result;\t\t \t \n"+
+"}\n"+
+"global proc createSelectMenuItems(string $parent, string $item)\n"+
+"// Create a menu that shows the dag parenting for this object\n"+
+"{\n"+
+"\tstring $maskList[] = `objectSelectMasks($item)`;\n"+
+"\tstring $radialPosition[];\n"+
+"\tstring $uiName;\n"+
+"\tint $i;\n"+
+"\tint $isNurbObject     = false;\n"+
+"\tint $isPolyObject     = false;\n"+
+"\tint $isLatticeObject  = false;\n"+
+"\tint $isJointObject    = false;\n"+
+"\tint $isHikEffector\t  = false;\n"+
+"\tint $isIkHandleObject = false;\n"+
+"\tint $isIkFkHandleObject = false;\t\n"+
+"\tint $isParticleObject = false;\n"+
+"\tint $isSpringObject   = false;\n"+
+"\tint $isSubdivObject   = false;\n"+
+"\tint $isLocatorObject  = false;\n"+
+"\tint $hasComponents\t  = false;\n"+
+"\tif (1 <= size($maskList)) {\n"+
+"\t\t$isLatticeObject = ($maskList[0] == \"latticePoint\");\n"+
+"\t\t$isJointObject = ($maskList[0] == \"joint\");\n"+
+"\t\t$isHikEffector = ($maskList[0] == \"hikEffector\");\n"+
+"\t\t$isIkHandleObject = ($maskList[0] == \"ikHandle\");\n"+
+"\t\t$isParticleObject = ($maskList[0] == \"particle\");\n"+
+"\t\t$isSpringObject = ($maskList[0] == \"springComponent\");\n"+
+"\t\t$isSubdivObject = ($maskList[0] == \"subdivMeshPoint\");\n"+
+"\t\t$isLocatorObject = ($maskList[0] == \"locator\");\n"+
+"\t}\n"+
+"\tif (2 <= size($maskList)) {\n"+
+"\t\t$isNurbObject = ($maskList[1] == \"controlVertex\");\n"+
+"\t\t$isPolyObject = ($maskList[1] == \"vertex\");\n"+
+"\t}\n"+
+"\t// $maxRadialPos keeps track of how many octants of the\n"+
+"\t// RMB marking menu will be populated\n"+
+"\t//\n"+
+"\tint $maskSize = size($maskList);\n"+
+"\tint $maxRadialPos = size($maskList);\n"+
+"\tif (($maskSize > 0) && ($maskList[$maskSize-1] == \"ikfkHandle\")) {\n"+
+"\t\t$isIkFkHandleObject = true;\n"+
+"\t\t$maxRadialPos--; // ikfkHandle does not populate like other masks\n"+
+"\t}\n"+
+"\t$hasComponents = $isLatticeObject || \n"+
+"\t\t\t\t\t $isParticleObject ||\n"+
+"\t\t\t\t\t $isSubdivObject ||\n"+
+"\t\t\t\t\t $isSpringObject ||\n"+
+"\t\t\t\t\t $isNurbObject ||\n"+
+"\t\t\t\t\t $isPolyObject;\n"+
+"\t// NOTE: \n"+
+"\t//\t\t\tIf the object has selectable components, then the\n"+
+"\t//\t\tradial position \"NE\" will be used for the menuItem:  \n"+
+"\t//\t\t\"Revert back to object mode.\"\n"+
+"\t//\n"+
+"\tsetParent -menu $parent;\n"+
+"\t$radialPosition[0] = \"N\";\n"+
+"\t$radialPosition[1] = \"W\";\n"+
+"\t$radialPosition[2] = \"S\";\n"+
+"\t$radialPosition[3] = \"E\";\n"+
+"\t$radialPosition[4] = \"SW\";\n"+
+"\t$radialPosition[5] = \"SE\";\n"+
+"\t$radialPosition[6] = \"NW\";\n"+
+"\t$radialPosition[7] = \"NE\";\n"+
+"    \n"+
+"    string $disableikHandle = (uiRes(\"m_dagMenuProc.kDisableIkHandle\")); \n"+
+"    string $enableIkHandle  = (uiRes(\"m_dagMenuProc.kEnableIkHandle\"));\n"+
+"\tstring $setPreferred\t= (uiRes(\"m_dagMenuProc.kSetPreferredAngle\"));\n"+
+"\tstring $assumePreferred = (uiRes(\"m_dagMenuProc.kAssumePreferredAngle\")); \n"+
+"\t\n"+
+"\tif ($isNurbObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\t\t\t  \n"+
+"\t\t\t  $uiName = `dagMenuProc_selectionMask_melToUI $maskList[$i]`;\t\t\t  \n"+
+"\t\t\tif ($maskList[$i] != \"ikfkHandle\") {\n"+
+"\t\t\t\tmenuItem -label $uiName\n"+
+"\t\t\t\t\t-ecr false\n"+
+"\t\t\t\t\t-c ( \"doMenuNURBComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t\t $item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\t// Check if the current context is the skinPaint context \n"+
+"\t\t// and the the nurbs is connected to a skinCluster. If so, add\n"+
+"\t\t// Paint Skin Weights to north (\"NW\") quadrant\n"+
+"\t\t//\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"NW\");\n"+
+"\t} else if ($isPolyObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\t\t\t\t\n"+
+"\t\t\t\t$uiName = `dagMenuProc_selectionMask_melToUI $maskList[$i]`;\n"+
+"\t\t\tif ($maskList[$i] != \"ikfkHandle\") {\n"+
+"\t\t\t\tmenuItem -label $uiName\n"+
+"\t\t\t\t\t-ecr false\n"+
+"\t\t\t\t\t-c ( \"doMenuComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t\t $item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\t// Check if the current context is the skinPaint context \n"+
+"\t\t// and the the poly is connected to a skinCluster. If so, add\n"+
+"\t\t// Paint Skin Weights to north (\"NW\") quadrant\n"+
+"\t\t//\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"NW\");\n"+
+"\t} else if ($isLatticeObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tif ($maskList[$i] != \"ikfkHandle\") {\n"+
+"\t\t\t\t$uiName = `dagMenuProc_selectionMask_melToUI $maskList[$i]`;\n"+
+"\t\t\t\tmenuItem -label $uiName\n"+
+"\t\t\t\t\t-ecr false\n"+
+"\t\t\t\t\t-c ( \"doMenuLatticeComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t\t $item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t} else if ($isJointObject) {\n"+
+"\t\tstring $setCmd = `performSetPrefAngle 2`;\n"+
+"\t\tstring $assumeCmd = `performAssumePrefAngle 2`;\t\t\n"+
+"\t\t$setCmd += (\" \"+$item);\n"+
+"\t\t$assumeCmd += (\" \"+$item);\n"+
+"\t\tstring $jts[] = `ls -sl -type joint`;\n"+
+"\t\tfor ($jointItem in $jts) {\n"+
+"\t\t\tif ($jointItem != $item) {\n"+
+"\t\t\t\t$setCmd += (\" \"+$jointItem);\n"+
+"\t\t\t\t$assumeCmd += (\" \"+$jointItem);\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tmenuItem -label $setPreferred \n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c ($setCmd)\n"+
+"\t\t\t-rp \"N\"\n"+
+"\t\t\tsetPrefAngleItem;\n"+
+"\t\t\n"+
+"\t\tmenuItem -label $assumePreferred \n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c ($assumeCmd)\n"+
+"\t\t\t-rp \"S\"\n"+
+"\t\t\tassumePrefAngleItem;\n"+
+"\t\tstring $hikHandle[] = `listConnections -type hikHandle $item`;\n"+
+"\t\tint $isFBIKjoint = (size($hikHandle) > 0);\n"+
+"\t\tif ($isFBIKjoint) {\n"+
+"\t\t\tcreateFBIKmenuItems($parent, $item,\"W\",\"NE\",\"E\",\"SE\");\n"+
+"\t\t}\n"+
+"\t\t\n"+
+"\t\t// Check if the current context is the skinPaint context \n"+
+"\t\t// and the the joint is connected to a skinCluster. If so, add\n"+
+"\t\t// Paint Skin Weights to north (\"N\") quadrant\n"+
+"\t\t//\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"N\");\n"+
+"\t} else if ($isHikEffector){\n"+
+"\t\tif (nodeType($item) == \"hikFloorContactMarker\") {\n"+
+"\t\t\tstring $parentItems[] = `listRelatives -pa -p $item`;\n"+
+"\t\t\tif (size($parentItems) &&\n"+
+"\t\t\t\tnodeType($parentItems[0]) == \"hikEffector\") {\n"+
+"\t\t\t\t$item = $parentItems[0];\n"+
+"\t\t\t} else {\n"+
+"\t\t\t\t$isHikEffector = false;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tif ($isHikEffector) {\n"+
+"\t\t    string $pivotOffsetPlug = $item + \".pivotOffset\";\n"+
+"\t\t    float $pivotOffset[] = `getAttr $pivotOffsetPlug`;\n"+
+"\t\t    int $enablePin = (equivalentTol($pivotOffset[0],0.0,0.001) &&\n"+
+"\t\t                      equivalentTol($pivotOffset[1],0.0,0.001) &&\n"+
+"\t\t                      equivalentTol($pivotOffset[2],0.0,0.001));\n"+
+"\t\t    \n"+
+"\t\t\t// set pinning for hikEffectors\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kPinBoth\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"3\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-enable $enablePin\n"+
+"\t\t\t\t-rp \"N\"\n"+
+"\t\t\t\tpinAllItem;\n"+
+"\t\t\t\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kPinTranslate\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"1\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-enable $enablePin\n"+
+"\t\t\t\t-rp \"NW\"\n"+
+"\t\t\t\tpinTransItem;\n"+
+"\t\t\t\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kPinRotate\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"2\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-enable $enablePin\n"+
+"\t\t\t\t-rp \"SW\"\n"+
+"\t\t\t\tpinRotItem;\n"+
+"\t\t\t\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kUnpin\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"doPinHikEffectors 1 {\\\"0\\\",\\\"\" + $item + \"\\\"};\")\n"+
+"\t\t\t\t-rp \"S\"\n"+
+"\t\t\t\tunpinItem;\n"+
+"\t\t\t\n"+
+"\t\t\tcreateFBIKmenuItems($parent, $item,\"W\",\"NE\",\"E\",\"SE\");\n"+
+"\t\t}\n"+
+"\t} else if ($isLocatorObject) {\n"+
+"\t\t// Check if the current context is the skinPaint context \n"+
+"\t\t// and the the joint is connected to a skinCluster. If so, add\n"+
+"\t\t// Paint Skin Weights to north (\"N\") quadrant\n"+
+"\t\t//\n"+
+"\t\tcheckForSkinInfluenceItem($item, \"N\");\n"+
+"\t} else if ($isIkHandleObject) {\n"+
+"\t\tstring $selectikHandlesJointsAnnot = (uiRes(\"m_dagMenuProc.kSelectikHandlesAnnot\"));\n"+
+"\t\tstring $selectikHandlesAnnot = (uiRes(\"m_dagMenuProc.kEnableIKHandlesAnnot\"));\n"+
+"\t\tmenuItem -label $setPreferred\n"+
+"\t\t\t-annotation $selectikHandlesJointsAnnot \n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (`performSetPrefAngle 2` + \" \" + $item)\n"+
+"\t\t\t-rp \"W\"\n"+
+"\t\t\tsetPrefAngleItem;\n"+
+"\t\tmenuItem -label $assumePreferred \n"+
+"\t\t\t-annotation $selectikHandlesJointsAnnot \n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (`performAssumePrefAngle 2` + \" \" + $item)\n"+
+"\t\t\t-rp \"E\"\n"+
+"\t\t\tassumePrefAngleItem;\n"+
+"\t\tmenuItem -label $enableIkHandle \n"+
+"\t\t\t-annotation $selectikHandlesAnnot \n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -eh \" + $item)\n"+
+"\t\t\t-rp \"N\"\n"+
+"\t\t\tenableIKHandlesItem;\n"+
+"\t\tmenuItem -label $disableikHandle \n"+
+"\t\t\t-annotation $selectikHandlesAnnot \n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -dh \" + $item)\n"+
+"\t\t\t-rp \"S\"\n"+
+"\t\t\tdisableIKHandlesItem;\n"+
+"\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kEnableSnap\")) \n"+
+"\t\t\t-annotation $selectikHandlesAnnot\n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -see \" + $item + \";\" +\n"+
+"\t\t\t\t\"ikHandle -e -shf on \" + $item)\n"+
+"\t\t\t-rp \"SE\"\n"+
+"\t\t\tenableIKHandlesSnapItem;\n"+
+"\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kDisableSnap\")) \n"+
+"\t\t\t-annotation $selectikHandlesAnnot \n"+
+"\t\t\t-echoCommand true\n"+
+"\t\t\t-c (\"ikHandle -e -shf off \" + $item)\n"+
+"\t\t\t-rp \"SW\"\n"+
+"\t\t\tdisableIKHandlesSnapItem;\n"+
+"\t\t$maxRadialPos = 6;\n"+
+"\t} else if ($isParticleObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\t\t\t   \n"+
+"\t\t\t   $uiName = `dagMenuProc_selectionMask_melToUI $maskList[$i]`;\t\t\t   \t\t\t\n"+
+"\t\t\tmenuItem -label $uiName\n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"doMenuParticleComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t$item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t}\n"+
+"\t} else if ($isSpringObject) {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\t\t\t   \n"+
+"\t\t\t   $uiName = `dagMenuProc_selectionMask_melToUI $maskList[$i]`;\t\t\t\n"+
+"\t\t\tmenuItem -label $uiName\n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"doMenuSpringComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t$item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t}\n"+
+"\t} else if ($isSubdivObject) {\n"+
+"\t\tsubdDagMenuProc( 0, $item, $maskList );\n"+
+"\t} else {\n"+
+"\t\tfor ($i = 0; $i < size($maskList); $i++) {\n"+
+"\t\t\tif ($maskList[$i] == \"ikfkHandle\") {\n"+
+"\t\t\t\tcontinue;\n"+
+"\t\t\t}\n"+
+"\t\t\t\n"+
+"\t\t\t$uiName = `dagMenuProc_selectionMask_melToUI $maskList[$i]`;\n"+
+"\t\t\tmenuItem -label $uiName\n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"doMenuComponentSelection(\\\"\" +\n"+
+"\t\t\t\t\t$item + \"\\\", \\\"\" +  $maskList[$i] + \"\\\")\")\n"+
+"\t\t\t\t-rp $radialPosition[$i];\n"+
+"\t\t}\n"+
+"\t} \n"+
+"\t// If components are present, provide the ability to \n"+
+"\t// get back to object mode...\n"+
+"\t//\n"+
+"\tif ($hasComponents) {\n"+
+"\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kObjectMode\")) \n"+
+"\t\t\t\t-ecr false\n"+
+"\t\t\t\t-c ( \"hilite -unHilite \" + $item + \"; string $selection[] = `ls -sl`;\"\n"+
+"\t\t\t\t\t+ \"changeSelectMode -object; select -r $selection;\" )\n"+
+"\t\t\t\t-rp \"NE\";\n"+
+"\t}\n"+
+"\t// Since any object can be an ikfk handle, we only populate the ikfk items\n"+
+"\t// in slots that are not already in use.\n"+
+"\t//\n"+
+"\tif ($isIkFkHandleObject) {\n"+
+"\t\tstring $handle = getControlledHandle($item);\n"+
+"\t\tif ($maxRadialPos < 8) {\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kSetIKFKKey\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-annotation (uiRes(\"m_dagMenuProc.kSetKeysAnnot\")) \n"+
+"\t\t\t\t-rp $radialPosition[7]\n"+
+"\t\t\t\t-command (\"select -r \"+$item+\"; SetIKFKKeyframe\");\n"+
+"\t\t}\n"+
+"\t\tif ($maxRadialPos < 7) {\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kMoveIKToFK\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-annotation (uiRes(\"m_dagMenuProc.kSelectAnIKHandleOrIKFKAnnot\")) \n"+
+"\t\t\t\t-rp $radialPosition[6]\n"+
+"\t\t\t\t-command (\"select -r \"+$item+\"; MoveIKtoFK\");\n"+
+"\t\t}\n"+
+"\t\tif ($maxRadialPos < 5) {\n"+
+"\t\t\tmenuItem -label $disableikHandle \n"+
+"\t\t\t\t-annotation (uiRes(\"m_dagMenuProc.kDisableIKHandleAnnot\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"ikHandle -e -dh \" + $handle)\n"+
+"\t\t\t\t-rp $radialPosition[5];\n"+
+"\t\t\tmenuItem -label $enableIkHandle \n"+
+"\t\t\t\t-annotation (uiRes(\"m_dagMenuProc.kEnableIKHandleAnnot\")) \n"+
+"\t\t\t\t-echoCommand true\n"+
+"\t\t\t\t-c (\"ikHandle -e -eh \" + $handle)\n"+
+"\t\t\t\t-rp $radialPosition[4];\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tsetParent -menu $parent;\n"+
+"}\n"+
+"global proc doMenuNURBComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Change the selection/display state to allow selection of NURB components\n"+
+"//\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tstring $warn = (uiRes(\"m_dagMenuProc.kEditUVModeWarn\"));\n"+
+"\t\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t\t// Test for implicit UVs - If we are in implicit UV mode\n"+
+"\t\t// UVs are not selectable. So issue a warning.\n"+
+"\t\t//\n"+
+"\t\tif( $mask == \"surfaceUV\" )\n"+
+"\t\t{\n"+
+"\t\t\tint $isExplicit[] = `nurbsUVSet -q -ue $item`;\n"+
+"\t\t\tif( !$isExplicit[0] )\n"+
+"\t\t\t{\n"+
+"\t\t\t\twarning(`format -s $item $warn`);\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t} else {\n"+
+"\t\tselectType -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -allComponents 1;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -isoparm 2;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -\" + $mask + \" 3;\";\n"+
+"\t\t\tswitch ($mask) {\n"+
+"\t\t\t\tcase \"surfaceUV\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -uv \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\"; \n"+
+"\t\t\t\t\t// Test for implicit UVs - If we are in implicit UV mode\n"+
+"\t\t\t\t\t// UVs are not selectable. So issue a warning.\n"+
+"\t\t\t\t\t//\n"+
+"\t\t\t\t\tint $isExplicit[] = `nurbsUVSet -q -ue $item`;\n"+
+"\t\t\t\t\tif( !$isExplicit[0] )\n"+
+"\t\t\t\t\t{\n"+
+"\t\t\t\t\t\twarning(`format -s $item $warn`);\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t\tbreak; \n"+
+"\t\t\t\tcase \"editPoint\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"controlVertex\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tcase \"hull\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item + \";\"; \n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -hull \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -controlVertex \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -editPoint \" + $item + \";\";\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd +\n"+
+"\t\t\t\t\t\t\"toggle -state false -uv \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t\t// Test for implicit UVs - If we are in implicit UV mode\n"+
+"\t\t\t// UVs are not selectable. So issue a warning.\n"+
+"\t\t\t//\n"+
+"\t\t\tint $isExplicit[] = `nurbsUVSet -q -ue $item`;\n"+
+"\t\t\tif( !$isExplicit[0] )\n"+
+"\t\t\t{\n"+
+"\t\t\t    warning(`format -s $item $warn`);\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuLatticeComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Changes the selection/display state on this object to allow\n"+
+"// selection of the Lattice control points\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (!`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"toggle -\" + $mask + \";\"; \n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuParticleComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Change the selection/display state to allow selection of particle\n"+
+"// components\n"+
+"//\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -allComponents 1;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -particle 2;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -\" + $mask + \" 3;\";\n"+
+"\t\t\tswitch ($mask) {\n"+
+"\t\t\t\tcase \"particle\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -particle \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuSpringComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Change the selection/display state to allow selection of spring\n"+
+"// components\n"+
+"//\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -allComponents 1;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -springComponent 2;\";\n"+
+"\t\t\t$selectCmd = $selectCmd +\"selectPriority -\" + $mask + \" 3;\";\n"+
+"\t\t\tswitch ($mask) {\n"+
+"\t\t\t\tcase \"springComponent\":\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state true -\" + $mask + \" \" + $item +\";\"; \n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t\tdefault:\n"+
+"\t\t\t\t\t$selectCmd = $selectCmd + \n"+
+"\t\t\t\t\t\t\"toggle -state false -springComponent \" + $item + \";\";\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t} else {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc doMenuComponentSelection(string $item, string $mask)\n"+
+"//\n"+
+"// Changes the selection/display state on this object to allow\n"+
+"// selection of the specified selection mask type.\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\thilite $item;\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" true;\";\n"+
+"\t} else {\n"+
+"\t\tselectType -ocm -alc false;\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" true;\";\n"+
+"\t\tif (!`selectMode -q -preset`) {\n"+
+"\t\t\t$selectCmd = $selectCmd + \"hilite \" + $item + \";\";\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc undoMenuComponentSelection(string $item, string $mask)\n"+
+"{\n"+
+"\tstring $selectCmd;\n"+
+"\tif (`selectMode -q -object`) {\n"+
+"\t\t$selectCmd = \"selectType -ocm -\" + $mask + \" false;\";\n"+
+"\t} else {\n"+
+"\t\t$selectCmd = \"selectType -\" + $mask + \" false;\";\n"+
+"\t}\n"+
+"\teval $selectCmd;\n"+
+"}\n"+
+"global proc toggleBoundingBoxDisplay ( string $parent )\n"+
+"//\n"+
+"// For each shape under the selected parent object, toggle the\n"+
+"// state of bounding box display mode.\n"+
+"//\n"+
+"{\n"+
+"\tstring $shapes[] = `listRelatives -shapes $parent`;\n"+
+"\tstring $shape;\n"+
+"\tfor ( $shape in $shapes ) {\n"+
+"\t\tint $overrideOn = `getAttr ( $shape + \".overrideEnabled\")`;\n"+
+"\t\tint $lodMode =    `getAttr ( $shape + \".overrideLevelOfDetail\")`;\n"+
+"\t\tint $enabled =     $overrideOn && $lodMode == 1;\n"+
+"\t\tif ( $enabled ) {\n"+
+"\t\t\t// Don't reset the overrideEnabled attribute. It\n"+
+"\t\t\t// is used for more than just bounding box display\n"+
+"\t\t\t// and turning if off will mess things up of you\n"+
+"\t\t\t// have temporarily enabled bounding box display \n"+
+"\t\t\t// of an object in a layer.\n"+
+"\t\t\tsetAttr ( $shape + \".overrideLevelOfDetail\" ) 0;\n"+
+"\t\t} else {\n"+
+"\t\t\tsetAttr ( $shape + \".overrideEnabled\") 1;\n"+
+"\t\t\tsetAttr ( $shape + \".overrideLevelOfDetail\") 1;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"global proc createActionsMenuItems(string $parent, string $item)\n"+
+"//\n"+
+"// Creates a menu with common operations to perform on an object\n"+
+"//\n"+
+"{\t\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kTemplate\"))  -c (\"toggle -template -state on \" + $item);\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kUntemplate\"))  -c (\"toggle -template -state off \" + $item);\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kUnparent\"))  -c (\"parent -w \" + $item);\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kBoundingBox\"))  -c (\"toggleBoundingBoxDisplay \" + $item);\n"+
+"}\n"+
+"global proc showSG(string $item)\n"+
+"{\n"+
+"\t//check selection list for faces (polys, subds, nurbs)\n"+
+"\tstring $shader = \"\";\n"+
+"\tstring $selection[] = `filterExpand -sm 34 -sm 38 -sm 72`;\n"+
+"\t// If there are components selected, try to find a component shader\n"+
+"\tif( size( $selection ) > 0)\n"+
+"\t{\n"+
+"\t\tstring $nameBuffer[];\n"+
+"\t\tint $numComps = size( $selection );\n"+
+"\t\tint $comp;\n"+
+"\t\tfor( $comp = 0; $comp < $numComps; $comp++)\n"+
+"\t\t{\n"+
+"\t\t\ttokenize $selection[ $comp] \".\" $nameBuffer;\n"+
+"\t\t\t//if the selected component is on the object under the pointer\n"+
+"\t\t\t//get it's shader\n"+
+"\t\t\tif ($nameBuffer[0] == $item) {\n"+
+"\t\t\t\t$shader = `getComponentShader $selection[$comp]`;\n"+
+"\t\t\t\t//check if the shader is already selected - only toggle\n"+
+"\t\t\t\t//selection if it is not selected\n"+
+"\t\t\t\tstring $shaderSelected[] = `ls -selection $shader`;\n"+
+"\t\t\t\tif ( size( $shaderSelected ) == 0){\n"+
+"\t\t\t\t\tselect -tgl $shader;\n"+
+"\t\t\t\t\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\t// If we didn't find a component level shader, try for an object level one\n"+
+"\tif( size( $shader ) == 0 ) {\n"+
+"\t\tstring $allNodes[] = (`listHistory -f true $item` );\n"+
+"\t\tstring $node = \"\";\n"+
+"\t\tfor ($node in $allNodes) {\n"+
+"\t\t\tif(`nodeType $node` == \"shadingEngine\") {\n"+
+"\t\t\t\t$shader = $node;\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\t// If we found a shader, show it\n"+
+"\tif( size( $shader ) > 0) \n"+
+"\t{\n"+
+"\t\tshowEditor $shader;\n"+
+"\t}\n"+
+"}\n"+
+"\t\n"+
+"global proc showBakeSets(string $item, string $type)\n"+
+"{\n"+
+"\tstring $possibleBakeSets[] = (`listHistory -f true $item` );\n"+
+"\tstring $node = \"\";\n"+
+"    int $bakeSetExists = false;\n"+
+"\tfor ($node in $possibleBakeSets) {\n"+
+"\t\tif(`nodeType $node` == $type)\n"+
+"        {\n"+
+"\t\t\tshowEditor $node;\n"+
+"            $bakeSetExists = true;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"    // If no bake set exists for the $item, then create the\n"+
+"    // initial bake set of that $type and assign it to the $item.\n"+
+"    //\n"+
+"    if (!$bakeSetExists)\n"+
+"    {\n"+
+"        string $initialBakeSet = \"\";\n"+
+"\t\tif($type == \"vertexBakeSet\") \n"+
+"        {\n"+
+"            $initialBakeSet = \"initialVertexBakeSet\";\n"+
+"        }\n"+
+"        else if($type == \"textureBakeSet\") \n"+
+"        {\n"+
+"            $initialBakeSet = \"initialTextureBakeSet\";\n"+
+"\t\t}\n"+
+"        else\n"+
+"        {\n"+
+"            string $errorMsg = (uiRes(\"m_dagMenuProc.kBakeSetError\"));\n"+
+"            error   -showLineNumber true\n"+
+"                (`format -s $type $errorMsg`);\n"+
+"            return;\n"+
+"        }\n"+
+"        // Create it if it does not exist yet.\n"+
+"        //\n"+
+"        if  ( size(`ls $initialBakeSet`) < 1)\n"+
+"        {\n"+
+"            createBakeSet($initialBakeSet, $type);\n"+
+"        } \n"+
+"    \n"+
+"        // Assign the initial bake set to the item.\n"+
+"        //\n"+
+"        assignBakeSet($initialBakeSet, $item);\n"+
+"        // Show the initial bake set.\n"+
+"        //\n"+
+"        showBakeSetAE($initialBakeSet);\n"+
+"    }\n"+
+"}\n"+
+"// Description:  This procedure is called to refresh the baking \n"+
+"//  attribute menu items.\n"+
+"//\n"+
+"global proc refreshBakingAttributeMenu (string $parent, string $item)\n"+
+"{\n"+
+"    setParent -menu $parent;\n"+
+"    int $suitable = bakeSetTypeSuitableForItem(\"textureBakeSet\", $item);\n"+
+"    menuItem -edit -enable $suitable textureBakingAttributeItem;\n"+
+"    $suitable = bakeSetTypeSuitableForItem(\"vertexBakeSet\", $item);\n"+
+"    menuItem -edit -enable $suitable vertexBakingAttributeItem;\n"+
+"}\n"+
+"// Description:  This procedure is called to create the \n"+
+"//  baking attribute menu.\n"+
+"//\n"+
+"proc createBakingAttributeMenu(string $parent, string $item)\n"+
+"{\n"+
+"    setParent -menu $parent;\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kEditAttributes\"))  \n"+
+"        -subMenu true\n"+
+"        -tearOff true\n"+
+"        -postMenuCommand (\"refreshBakingAttributeMenu \\\"\"\n"+
+"                            +$parent+\"|editAttributeItem\\\" \\\"\"\n"+
+"                            +$item+\"\\\"\")\n"+
+"        editAttributeItem; \n"+
+"        menuItem -label (uiRes(\"m_dagMenuProc.kTexture\"))  \n"+
+"            -c (\"showBakeSets \\\"\"+$item+\"\\\" \\\"textureBakeSet\\\"\") \n"+
+"            textureBakingAttributeItem;\n"+
+"        menuItem -label (uiRes(\"m_dagMenuProc.kVertexMenuLabel\"))  \n"+
+"            -c (\"showBakeSets \\\"\"+$item+\"\\\" \\\"vertexBakeSet\\\"\") \n"+
+"            vertexBakingAttributeItem;\n"+
+"    setParent -menu ..;\n"+
+"}\n"+
+"// Description:  This procedure is called to create the baking\n"+
+"//  menu items.\n"+
+"//\n"+
+"global proc createBakingMenuItems(string $parent, string $item)\n"+
+"//\n"+
+"//\tCreate the Baking menus for the RMB popup menu.\n"+
+"//\n"+
+"{\n"+
+"\tpopupMenu -e -deleteAllItems $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"    createBakingAttributeMenu($parent, $item);\n"+
+"\tmenuItem -d true;\n"+
+"\tif (!`about -evalVersion`) {\n"+
+"\t\tbuildBakingMenus($item);\n"+
+"\t}\n"+
+"}\n"+
+"// Description:  This procedure is called to create the switch proxy\n"+
+"//  menu items.\n"+
+"//\n"+
+"global proc createSwitchProxyMenuItems(string $parent, string $item, string $refNode)\n"+
+"//\n"+
+"//\tCreate the switch proxy submenu for the RMB popup menu.\n"+
+"//\n"+
+"{\n"+
+"\tpopupMenu -e -deleteAllItems $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tstring $proxyNodes[] = `getRelatedProxies $refNode`;\n"+
+"\tint $i;\n"+
+"\tstring $proxyLabel;\n"+
+"\tstring $proxyTag;\n"+
+"\tfor( $i=0; $i<size($proxyNodes); $i+=1) {\n"+
+"\t\t$proxyTag = `getAttr ($proxyNodes[$i] + \".proxyTag\")`;\n"+
+"\t\t\n"+
+"\t\tmenuItem -label $proxyTag -c (\"proxySwitch \" + $proxyNodes[$i]);\n"+
+"\t}\n"+
+"}\n"+
+"global proc createHistoryMenuItems(string $parent, string $item)\n"+
+"{\n"+
+"\t//\n"+
+"\t// Delete all menu entries currently in the popup\n"+
+"\t//\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\thistoryPopupFill( $item, false, 1 );\n"+
+"}\n"+
+"global proc createFutureMenuItems(string $parent, string $item)\n"+
+"{\n"+
+"\t//\n"+
+"\t// Delete all menu entries currently in the popup\n"+
+"\t//\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\thistoryPopupFill( $item, true, 1 );\n"+
+"}\n"+
+"global proc string objectHandlesUvSets(string $item)\n"+
+"{\n"+
+"\tstring $maskList[];\n"+
+"\tstring $shape = $item;\n"+
+"\tint $i;\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tint $gotVisible = 0;\n"+
+"\tfor ($i = 0; $i < size($object); ++$i) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor ($i = 0; $i < size($object); ++$i)\n"+
+"\t\t{\n"+
+"\t\t\tif (getAttr($object[$i] + \".io\") == 0)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tstring $nt = `nodeType $shape`;\n"+
+"\tif ($nt == \"mesh\")\t\n"+
+"\t\treturn $shape;\n"+
+"\treturn \"\";\n"+
+"}\n"+
+"global proc createUVsetMenuItems(string $parent, string $item,\n"+
+"\t\t\t\t\t\t\t\t string $shape)\n"+
+"{\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tstring $cmd = \"polyUVSet -currentUVSet -uvSet \";\n"+
+"\tstring $curSet[] = `polyUVSet -q -currentUVSet $shape`;\n"+
+"\tstring $names[] = `polyUVSet -q -auv $shape`;\n"+
+"\tstring $allProjects[] = `polyUVSet -pr -q $shape`;\n"+
+"\tstring $setClearCmd = \"\";\n"+
+"\tif (size($allProjects))\n"+
+"\t{\n"+
+"\t\t$setClearCmd = \"select -d \";\t\t\n"+
+"\t\tfor ($p=0; $p<size($allProjects); $p++)\n"+
+"\t\t\t$setClearCmd += (\" \" + $allProjects[$p]);\n"+
+"\t\t$setClearCmd += \";\";\n"+
+"\t}\n"+
+"\tint $numNames = size($names);\n"+
+"\t// Add in a menu to do uv-linking\n"+
+"\tif ($numNames > 0)\n"+
+"\t{\t\n"+
+"\t\tstring $ann = `getRunTimeCommandAnnotation \"UVCentricUVLinkingEditor\"`;\n"+
+"\t\tstring $cmd = \"UVCentricUVLinkingEditor; \" + \"select -r \" + $item;\n"+
+"\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kUVLinking\")) \n"+
+"\t\t\t-c $cmd\n"+
+"\t\t\t-annotation $ann;\n"+
+"\t\tmenuItem -divider true;\n"+
+"\t}\n"+
+"\tfor ($i=0; $i<$numNames; $i++)\n"+
+"\t{\n"+
+"\t\tstring $uvEditname = (\"\\\"\" + $names[$i] + \"\\\"\");\n"+
+"\t\tstring $uvname = $names[$i];\n"+
+"\t\tstring $setCurCmd = $cmd + $uvEditname + \" \" + $shape + \";\";\n"+
+"\t\t// Find any projections associated with the uvset\n"+
+"\t\tstring $projs[];\n"+
+"\t\t$projs = `polyUVSet -pr -uvs $uvname -q $shape`;\n"+
+"\t\tstring $projCmd;\n"+
+"\t\t// Add a divider between items\n"+
+"\t\tif ($i > 0)\n"+
+"\t\t\tmenuItem -divider true;\n"+
+"\t\tif ($uvname == $curSet[0])\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -label ($uvname) -c $setClearCmd -checkBox true;\n"+
+"\t\t\tfor ($j=0; $j<size($projs); $j++)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$projCmd = ($setClearCmd + \"select -add \"+ $projs[$j] + \";setToolTo ShowManips;\"); \n"+
+"\t\t\t\tmenuItem -label $projs[$j] -c $projCmd;\n"+
+"\t\t\t\tif ($j >= 5)\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\telse\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -label ($uvname) -c ($setClearCmd + $setCurCmd) -checkBox false;\n"+
+"\t\t\tfor ($j=0; $j<size($projs); $j++)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$projCmd = ($setCurCmd + $setClearCmd + \"select -add \"+ $projs[$j] + \";setToolTo ShowManips;\"); \n"+
+"\t\t\t\tmenuItem -label $projs[$j] -c $projCmd;\n"+
+"\t\t\t\tif ($j >= 5)\n"+
+"\t\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"//\n"+
+"global proc string objectHandlesColorSets(string $item)\n"+
+"{\n"+
+"\tstring $maskList[];\n"+
+"\tstring $shape = $item;\n"+
+"\tint $i;\n"+
+"\t// Look at the shape child of this object\n"+
+"\t//\n"+
+"\tstring $object[] = `listRelatives -path -s $item`;\n"+
+"\tint $gotVisible = 0;\n"+
+"\tfor ($i = 0; $i < size($object); ++$i) {\n"+
+"\t\tif( (0 == getAttr($object[$i] + \".io\")) &&\n"+
+"\t\t\tgetAttr($object[$i] + \".v\") ) {\n"+
+"\t\t\t$shape = $object[$i];\n"+
+"\t\t\t$gotVisible = 1;\n"+
+"\t\t\tbreak;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tif( !$gotVisible ) {\n"+
+"\t\tfor ($i = 0; $i < size($object); ++$i)\n"+
+"\t\t{\n"+
+"\t\t\tif (getAttr($object[$i] + \".io\") == 0)\n"+
+"\t\t\t{\n"+
+"\t\t\t\t$shape = $object[$i];\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t}\n"+
+"\tstring $nt = `nodeType $shape`;\n"+
+"\tif ($nt == \"mesh\")\t\n"+
+"\t\treturn $shape;\n"+
+"\treturn \"\";\n"+
+"}\n"+
+"global proc createColorSetMenuItems(string $parent, string $item,\n"+
+"\t\t\t\t\t\t\t\t string $shape)\n"+
+"{\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\tstring $cmd = \"polyColorSet -currentColorSet -colorSet \";\n"+
+"\tstring $curSet[] = `polyColorSet -q -currentColorSet $shape`;\n"+
+"\tstring $names[] = `polyColorSet -q -acs $shape`;\n"+
+"\tint $numNames = size($names);\n"+
+"\t// Add in a menu to access color set editor\n"+
+"\tmenuItem -label (uiRes(\"m_dagMenuProc.kColorSetEditor\")) \n"+
+"\t\t-ann (getRunTimeCommandAnnotation(\"ColorSetEditor\"))\n"+
+"\t\t-command \"colorSetEditor\"\n"+
+"\t\t;\n"+
+"\tif ($numNames > 0)\n"+
+"\t{\t\n"+
+"\tmenuItem -divider true;\n"+
+"\t}\n"+
+"\tfor ($i=0; $i < $numNames; $i++)\n"+
+"\t{\n"+
+"\t\tstring $colorEditname = (\"\\\"\" + $names[$i] + \"\\\"\");\n"+
+"\t\tstring $colorname = $names[$i];\n"+
+"\t\tstring $setCurCmd = $cmd + $colorEditname + \" \" + $shape + \";\";\n"+
+"\t\t// Add a divider between items\n"+
+"\t\tif ($i > 0)\n"+
+"\t\t\tmenuItem -divider true;\n"+
+"\t\tif ($colorname == $curSet[0])\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -label ($colorname) -checkBox true;\n"+
+"\t\t}\n"+
+"\t\telse\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -label ($colorname) -c ($setCurCmd) -checkBox false;\n"+
+"\t\t}\n"+
+"\t}\n"+
+"}\n"+
+"global proc createArtAttrMenuItems(\n"+
+"\tstring \t\t$parent, \n"+
+"\tstring \t\t$item\n"+
+")\n"+
+"{\t\n"+
+"\tpopupMenu -e -dai $parent;\n"+
+"\tsetParent -menu $parent;\n"+
+"\t\n"+
+"\t// add default items which are always displayed in the context menu\n"+
+"\tmenuItem -p $parent -label (uiRes(\"m_dagMenuProc.kPaintSelect\"))  -command \"ArtPaintSelectToolOptions\" ;\n"+
+"\tmenuItem -p $parent -label (uiRes(\"m_dagMenuProc.kThreeDPaint\"))  -command \"Art3dPaintToolOptions\" ;\n"+
+"\tmenuItem -p $parent -label (uiRes(\"m_dagMenuProc.kSculpt\"))  -command \"SculptGeometryToolOptions\" ;\n"+
+"\t// Get all paintable attributes\n"+
+"\tstring $paintAttr = `artBuildPaintMenu $item`;\n"+
+"\tstring $paint = (uiRes(\"m_dagMenuProc.kPaint\"));\n"+
+"\t\n"+
+"\tif ($paintAttr != \"\")\n"+
+"\t{\n"+
+"\t\t// if the menu item has not been created, create it.\n"+
+"\t\tif( $parent == \"\" )\n"+
+"\t\t\t$parent = `menuItem -subMenu true -aob true -label $paint `;\n"+
+"\t\t\t\n"+
+"\t\n"+
+"\t\t// create special purpose painting menu items for objects\n"+
+"\t\t// such as cloth\n"+
+"\t\t//\n"+
+"\t\tstring $excludeNodes[] = createPaintingMenuItems( $parent, $item );\n"+
+"\t\t// Create the menu.\n"+
+"\t\tartAttrCreateMenuItems( $parent, $paintAttr, $excludeNodes );\n"+
+"\t\t\n"+
+"\t}\n"+
+"}\n"+
+"// This has been called because a menu press happened on a DAG object\n"+
+"// So find the Object submenu and add the DAG specific items to it.\n"+
+"//\n"+
+"global proc dagMenuProc(string $parent, string $object)\n"+
+"{\n"+
+"\tglobal string $artSelectObject ;\n"+
+"\tstring $mode = \"\";\n"+
+"\tif (`optionVar -exists currentMenuBarTab`) {\n"+
+"\t\t$mode = `optionVar -q currentMenuBarTab`;\n"+
+"\t} else {\n"+
+"\t\toptionVar -sv currentMenuBarTab $mode;\n"+
+"\t}\n"+
+"\tif (`popupMenu -e -exists $parent`) {\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t\t// label the object\n"+
+"\t\tstring $shortName = `substitute \".*|\" $object \"\"`;\n"+
+"\t\tmenuItem -label ($shortName + \"...\") -c (\"showEditor \"+$object);\n"+
+"\t\tmenuItem -divider true;\n"+
+"\t\tmenuItem -divider true;\n"+
+"\t\t// Create the list of selection masks\n"+
+"\t\tcreateSelectMenuItems($parent, $object);\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kSelect\"))  -c (\"select -r \" + $object);\n"+
+"\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kSelectHierarchy\"))  -c (\"select -hierarchy \" + $object);\n"+
+"    \tmenuItem -d true;\n"+
+"\tif( (objExists(($object+\".Parent\"))) || (objExists(($object+\".childPtr\"))) ) \n"+
+"\t\t{\n"+
+"\t\t\t\tint $cnt = 0;\n"+
+"\t\t\t\tstring $connections[];\n"+
+"\t\t\t\tstring $parent;\n"+
+"\t\t\t\tstring $child = $object;\n"+
+"\t\t\t\twhile(`objExists( ($object+\".Parent_\"+$cnt) )` ) \n"+
+"\t\t\t\t{ \n"+
+"\t\t\t\t\t\t$connections = `listConnections ($object+\".Parent_\"+$cnt)`;\n"+
+"\t\t\t\t\t\tif(endsWith($connections[0], \"_DynDriver\")) $parent = substitute(\"_DynDriver\", $connections[0], \"\");\n"+
+"\t\t\t\t\t\tif(objExists(($object+\".childPtr\")))\n"+
+"\t\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t\t$connections = `listConnections ($object+\".childPtr\")`;\n"+
+"\t\t\t\t\t\t\t$child = $connections[0];\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t\tmenuItem -l (\"Parent to: \"+$parent) -c (\"JTDdynParentSnap(\\\"\"+$child+\"\\\",\"+$cnt+\")\");\n"+
+"\t\t\t\t\t\t$cnt++;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\tif( (objExists(($object+\".Follow\"))) || (objExists(($object+\".childPtr\"))) ) \n"+
+"\t\t{\n"+
+"\t\t\t\tint $cnt = 0;\n"+
+"\t\t\t\tstring $connections[];\n"+
+"\t\t\t\tstring $parent;\n"+
+"\t\t\t\tstring $child = $object;\n"+
+"\t\t\t\twhile(`objExists( ($object+\".Follow_\"+$cnt) )` ) \n"+
+"\t\t\t\t{ \n"+
+"\t\t\t\t\t\t$connections = `listConnections ($object+\".Follow_\"+$cnt)`;\n"+
+"\t\t\t\t\t\tif(endsWith($connections[0], \"_DynDriver\")) $parent = substitute(\"_DynDriver\", $connections[0], \"\");\n"+
+"\t\t\t\t\t\tif(objExists(($object+\".childPtr\")))\n"+
+"\t\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t\t$connections = `listConnections ($object+\".childPtr\")`;\n"+
+"\t\t\t\t\t\t\t$child = $connections[0];\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t\tmenuItem -l (\"Follow: \"+$parent) -c (\"JTDfollowSnap(\\\"\"+$child+\"\\\",\"+$cnt+\")\");\n"+
+"\t\t\t\t\t\t$cnt++;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\tif(objExists( ($object+\".IKFK\") ))\n"+
+"\t\t{\n"+
+"\t\t\t\tstring $JTDupSW[] = `listConnections ($object+\".SWup\")`;\n"+
+"\t\t\t\tstring $JTDmidSW[] = `listConnections ($object+\".SWmid\")`;\n"+
+"\t\t\t\tstring $JTDupFK[] = `listConnections ($object+\".FKup\")`;\n"+
+"\t\t\t\tstring $JTDmidFK[] = `listConnections ($object+\".FKmid\")`;\n"+
+"\t\t\t\tstring $JTDlowFK[] = `listConnections ($object+\".FKlow\")`;\n"+
+"\t\t\t\tstring $JTDupIK[] = `listConnections ($object+\".IKup\")`;\n"+
+"\t\t\t\tstring $JTDmidIK[] = `listConnections ($object+\".IKmid\")`;\n"+
+"\t\t\t\tstring $JTDIKpos[] = `listConnections ($object+\".IKpos\")`;\n"+
+"\t\t\t\tstring $JTDIKcntrl[] = `listConnections ($object+\".IKcntrl\")`;\n"+
+"\t\t\t\tstring $JTDPV[] = `listConnections ($object+\".PV\")`;\n"+
+"\t\t\t\tstring $JTDPVpos[] = `listConnections ($object+\".PVsnapPos\")`;\n"+
+"\t\t\t\tif( `getAttr($object+\".IKFK\")` == 0 ) menuItem -l \"Snap to IK Mode!\" -c (\"JTDmatchIKFK(\\\"\"+$object+\"\\\",\\\"\"+$JTDIKpos[0]+\"\\\",\\\"\"+$JTDIKcntrl[0]+\"\\\",\\\"\"+$JTDPV[0]+\"\\\",\\\"\"+$JTDPVpos[0]+\"\\\")\");\n"+
+"\t\t\t\telse if( `getAttr($object+\".IKFK\")` == 1 ) menuItem -l \"Snap to FK Mode!\" -c (\"JTDmatchFKIK(\\\"\"+$object+\"\\\",\\\"\"+$JTDupSW[0]+\"\\\",\\\"\"+$JTDmidSW[0]+\"\\\",\\\"\"+$object+\"\\\",\\\"\"+$JTDupFK[0]+\"\\\",\\\"\"+$JTDmidFK[0]+\"\\\",\\\"\"+$JTDlowFK[0]+\"\\\",\\\"\"+$JTDupIK[0]+\"\\\",\\\"\"+$JTDmidIK[0]+\"\\\")\");\n"+
+"\t\t\t\telse \n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\t\tmenuItem -l \"Snap to IK Mode!\" -c (\"JTDmatchIKFK(\\\"\"+$object+\"\\\",\\\"\"+$JTDIKpos[0]+\"\\\",\\\"\"+$JTDIKcntrl[0]+\"\\\",\\\"\"+$JTDPV[0]+\"\\\",\\\"\"+$JTDPVpos[0]+\"\\\")\");\n"+
+"\t\t\t\t\t\tmenuItem -l \"Snap to FK Mode!\" -c (\"JTDmatchFKIK(\\\"\"+$object+\"\\\",\\\"\"+$JTDupSW[0]+\"\\\",\\\"\"+$JTDmidSW[0]+\"\\\",\\\"\"+$object+\"\\\",\\\"\"+$JTDupFK[0]+\"\\\",\\\"\"+$JTDmidFK[0]+\"\\\",\\\"\"+$JTDlowFK[0]+\"\\\",\\\"\"+$JTDupIK[0]+\"\\\",\\\"\"+$JTDmidIK[0]+\"\\\")\");\n"+
+"\t\t\t\t}\n"+
+"\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\tif(objExists( ($object+\".js_pivotObj\") ) )\n"+
+"\t\t{\n"+
+"\t\t\tmenuItem -l \"Select Moveable Pivot\" -c (\"js_pivot_createMov (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tmenuItem -l \"Apply & Key Moved Pivot\" -c (\"js_pivot_snap (\\\"\"+$object+\"\\\", 1)\");\n"+
+"\t\t\tstring $menu = `menuItem -subMenu true -aob true -l \"Pivot Options\"`;\n"+
+"\t\t\tmenuItem -l \"Toggle Moveable Pivot Locator\" -c (\"js_pivot_mov_toggle (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tmenuItem -l \"Toggle Actual Pivot Locator\" -c (\"js_pivot_toggle (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tmenuItem -l \"Reset Pivot\" -c (\"jd_pivot_reset (\\\"\"+$object+\"\\\")\");\n"+
+"\t\t\tsetParent -m $parent;\n"+
+"\t\t\tmenuItem -d true;\n"+
+"\t\t}\n"+
+"\t\t\n"+
+"\t\toptionalDagMenuProc( $parent, $object );\n"+
+"\t\tstring $menu = `menuItem -subMenu true -aob true -label (uiRes(\"m_dagMenuProc.kInputs\")) `;\n"+
+"\t\tmenu -e \n"+
+"\t\t\t-pmc ( \"createHistoryMenuItems \\\"\"+$menu+\"\\\" \"+$object ) $menu;\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t\t$menu = `menuItem -subMenu true -aob true -label (uiRes(\"m_dagMenuProc.kOutputs\")) `;\n"+
+"\t\tmenu -e -pmc ( \"createFutureMenuItems \\\"\"+$menu+\"\\\" \"+$object ) $menu;\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t \t// Look at the shape child of this object\n"+
+"\t \t//\n"+
+" \t\tstring $shapes[] = `listRelatives -path -s $object`;\n"+
+"\t\t// get current selection of shapes\n"+
+"\t\tstring $currentSel[] = `ls -sl -dagObjects -shapes` ;\n"+
+"\t\tstring $paintParent = \"\" ;\n"+
+"\t\tint $selIndex  ;\n"+
+" \t\tint $i;\n"+
+" \t\tfor ($i = 0; $i < size($shapes); ++$i) \n"+
+"\t\t{\n"+
+"\t\t\tstring $nodeType = `nodeType $shapes[$i]` ;\n"+
+"\t\t\tif ( ( $nodeType == \"nurbsSurface\") ||\n"+
+"\t\t\t\t ( $nodeType == \"mesh\") ||\n"+
+"\t\t\t\t ( $nodeType == \"subdiv\")) \n"+
+"\t\t\t{\n"+
+"\t\t\t\t// save the object name if it is not already selected by the user\n"+
+"\t\t\t\t// We use this info to select the object if user chooses a paint option\n"+
+"\t\t\t\t//\n"+
+"\t\t\t\t// If user has selected multiple objects and is using context menu on one of them\n"+
+"\t\t\t\t// we do not change the selection list as user may want to paint some attribute \n"+
+"\t\t\t\t// on all of them. (It is the way it has been working all along...we don't want to \n"+
+"\t\t\t\t// break it )\n"+
+"\t\t\t\t\n"+
+"\t\t\t\tint $found = 0 ;\n"+
+"\t\t\t\tfor( $selIndex  = 0 ; $selIndex  < size( $currentSel ); ++$selIndex  )\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\tif( $shapes[$i] == $currentSel[ $selIndex  ] )\n"+
+"\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t$found = 1 ;\n"+
+"\t\t\t\t\t\tbreak ;\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\t\t\tif( $found )\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\t$artSelectObject = \"\" ;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\telse\n"+
+"\t\t\t\t{\n"+
+"\t\t\t\t\t// check if the object is in component selection mode\n"+
+"\t\t\t\t\t// and if it is, do not do any further selection.\n"+
+"\t\t\t\t\t// We are assuming that if the object is in hilite mode\n"+
+"\t\t\t\t\t// then the user is in component selection mode.\n"+
+"\t\t\t\t\t\n"+
+"\t\t\t\t\t$currentSel = `ls -hilite` ;\n"+
+"\t\t\t\t\tfor( $selIndex  = 0 ; $selIndex  < size( $currentSel ); ++$selIndex  )\n"+
+"\t\t\t\t\t{\n"+
+"\t\t\t\t\t\tif( $object == $currentSel[ $selIndex  ] )\n"+
+"\t\t\t\t\t\t{\n"+
+"\t\t\t\t\t\t\t$found = 1 ;\n"+
+"\t\t\t\t\t\t\tbreak ;\n"+
+"\t\t\t\t\t\t}\n"+
+"\t\t\t\t\t}\n"+
+"\t\t\t\t\tif( !$found ) \n"+
+"\t\t\t\t\t\t$artSelectObject = $object ;\n"+
+"\t\t\t\t\telse\n"+
+"\t\t\t\t\t\t$artSelectObject = \"\" ;\n"+
+"\t\t\t\t}\n"+
+"\t\t\t\t\n"+
+"\t\t\t\t$paintParent = `menuItem -subMenu true -aob true -label (uiRes(\"m_dagMenuProc.kPaintSubmenu\")) `;\n"+
+"\t\t\t\tmenu -e\t-pmc ( \"createArtAttrMenuItems \\\"\"+ $paintParent +\"\\\" \"+$object ) $paintParent ;\n"+
+"\t\t\t\tsetParent -m $parent;\n"+
+"\t\t\t\tbreak ;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t    $menu = `menuItem -subMenu true -label (uiRes(\"m_dagMenuProc.kActions\")) `;\n"+
+"\t\tmenu -e -pmc ( \"createActionsMenuItems \\\"\"+$menu+\"\\\" \"+$object ) $menu;\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t\t// If the object can handle uv sets then add the uvset menu\n"+
+"\t\t//\n"+
+"\t\tstring $shape = objectHandlesUvSets( $object );\n"+
+"\t\tif ($shape != \"\")\n"+
+"\t\t{\n"+
+"\t\t\t$menu = `menuItem -subMenu true -label (uiRes(\"m_dagMenuProc.kUVSets\")) `;\n"+
+"\t\t\tmenu -e \n"+
+"\t\t\t\t-pmc ( \"createUVsetMenuItems \\\"\"+$menu+\"\\\" \" +$object + \" \"+ $shape )\n"+
+"\t\t\t\t$menu;\n"+
+"\t\t\tsetParent -m $parent;\n"+
+"\t\t}\n"+
+"\t\tstring $shape = objectHandlesColorSets( $object );\n"+
+"\t\tif ($shape != \"\")\n"+
+"\t\t{\n"+
+"\t\t\t$menu = `menuItem -subMenu true -label (uiRes(\"m_dagMenuProc.kColorSets\")) `;\n"+
+"\t\t\tmenu -e \n"+
+"\t\t\t\t-pmc ( \"createColorSetMenuItems \\\"\"+$menu+\"\\\" \" +$object + \" \"+ $shape )\n"+
+"\t\t\t\t$menu;\n"+
+"\t\t\tsetParent -m $parent;\n"+
+"\t\t}\n"+
+"\t\t// Shader menu to be able to quickly assign existing shaders\n"+
+"\t\t// to the object under the pointer.\n"+
+"\t\t//\n"+
+"    \tmenuItem -d true;\n"+
+" \t\tmenuItem -label (uiRes(\"m_dagMenuProc.kMaterialAttributes\")) -c (\"showSG \"+$object);\n"+
+"    \t\n"+
+"    \tmenuItem -d true;\n"+
+"        \n"+
+"        buildShaderMenus($object);\n"+
+"        \n"+
+"        menuItem -d true;\n"+
+"        menuItem -divider true;\n"+
+"        string $removeOverrideMenuItem = `menuItem \n"+
+"\t\t\t-label (uiRes(\"m_dagMenuProc.kRemoveMaterialOverride\"))\n"+
+"            -subMenu true`;\n"+
+"        menuItem -edit -postMenuCommand\n"+
+"            (\"buildMaterialRemoveOverrideMenu -surface \"+$object+\" \"+$removeOverrideMenuItem)\n"+
+"            $removeOverrideMenuItem;\n"+
+"        setParent -m ..;\n"+
+"\t\tint $mentalIsLoaded = 0;\n"+
+"\t\tstring $renderer;\n"+
+"\t    for ($renderer in `renderer -query -namesOfAvailableRenderers`) {\n"+
+"\t\t\tif( $renderer == \"mentalRay\" ) {\n"+
+"\t\t\t\t$mentalIsLoaded = 1;\n"+
+"\t\t\t\tbreak;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tif ($mentalIsLoaded) {\n"+
+" \t\t\t$menu = `menuItem -subMenu true -label (uiRes(\"m_dagMenuProc.kBaking\")) `;\n"+
+" \t\t\tmenu -e\n"+
+"\t\t\t\t-pmc ( \"createBakingMenuItems \\\"\"+$menu+\"\\\" \"+$object )\n"+
+"\t\t\t\t$menu;\n"+
+" \t\t\tsetParent -m $parent;\n"+
+"\t\t}\n"+
+"\t\tif ($mode == \"dynamicsMenuSet\") {\n"+
+"\t\t\tmenuItem -d true;\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kConnectField\"))  -c (\"connectDynamic -f \" + $object);\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kConnectEmitter\"))  -c (\"connectDynamic -em \" + $object);\n"+
+"\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kConnectCollision\"))  -c (\"connectDynamic -c \" + $object);\n"+
+"\t\t}\n"+
+"\t\t// is there a reference associated with the object ?\n"+
+"\t\t// and if so, is it in a loaded or unloaded state?\n"+
+"\t\tstring $refNode = `getRelatedReference $object`;\n"+
+"\t\tif( size($refNode) > 0) {\n"+
+"\t\t\tmenuItem -d true;\n"+
+"\t\t\tif( `file -rfn $refNode -q -dr` ) {\n"+
+"\t\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kLoadRelatedReference\"))  -c (\"loadRelatedReference \" + $object);\n"+
+"\t\t\t} else {\n"+
+"\t\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kReloadRelatedReference\"))  -c (\"loadRelatedReference \" + $object);\n"+
+"\t\t\t\tmenuItem -label (uiRes(\"m_dagMenuProc.kUnloadRelatedReference\"))  -c (\"unloadRelatedReference \" + $object);\n"+
+"\t\t\t}\n"+
+"\t\t\t// Is this reference a proxy? If so, add proxy switch submenu\n"+
+"\t\t\t//\n"+
+"\t\t\tstring $proxyNodes[] = `getRelatedProxies $refNode`;\n"+
+"\t\t\tif(size($proxyNodes) > 0) {\n"+
+"\t\t\t\t$menu = `menuItem -subMenu true -label (uiRes(\"m_dagMenuProc.kReloadProxy\")) `;\n"+
+"\t\t\t\tmenu -e\n"+
+"\t\t\t\t\t-pmc ( \"createSwitchProxyMenuItems \\\"\"+$menu+\"\\\" \"+$object + \" \" + $refNode )\n"+
+"\t\t\t\t\t$menu;\n"+
+"\t\t\t\tsetParent -m $parent;\n"+
+"\t\t\t}\n"+
+"\t\t}\n"+
+"\t\tsetParent -m $parent;\n"+
+"\t} else {\n"+
+"\t\tstring $warn = (uiRes(\"m_dagMenuProc.kMenuWarn\"));\n"+
+"\t\twarning(`format -s $parent $warn`);\n"+
+"\t}\n"+
+"}\n"
+);
+
+return $cmd;
+}
+
+global proc string JTDgetPivotScripts()
+{
+string $cmd = (
+
+"//These scripts based on Jason Schliefer's jspivot.mel  All props go to him.  Please support him by visiting his website at www.jonhandhisdog.com\n"+
+"global proc js_pivot_createMov (string $control)\n"+
+"{\n"+
+"    // this proc will toggle the visibility of the mov pivot on, and then select it.  That way the animator can grab it and move\n"+
+"    // it to the right place.\n"+
+"\tfloat $t[];\n"+
+"\tstring $truePiv;\n"+
+"        $pivot = `js_pivot_get $control \"js_pivotMovObj\"`;\n"+
+"        if ($pivot != \"\")\n"+
+"        {\n"+
+"            showHidden $pivot;\n"+
+"            $truePiv = `js_pivot_get $pivot \"js_pivotObj\"`;\n"+
+"            $t = `getAttr ($truePiv + \".t\")`;\n"+
+"            setAttr ($pivot + \".t\") $t[0] $t[1] $t[2];\n"+
+"        }\n"+
+"\tselect $pivot;\n"+
+"\tsetToolTo moveSuperContext;\n"+
+"}\n"+
+"global proc js_pivot_snap (string $control, int $keyOption)\n"+
+"{\n"+
+"    // Based on the selected object, this procedure will snap the object to the position of the new pivot.\n"+
+"        string $object;\n"+
+"        string $pivot;\n"+
+"        string $pivotMov;\n"+
+"        $object = `js_pivot_getObj $control`;\n"+
+"        $pivot  = `js_pivot_get $control \"js_pivotObj\"`;\n"+
+"        $pivotMov  = `js_pivot_get $control \"js_pivotMovObj\"`;\n"+
+"        if (($object == \"\") || ($pivot == \"\") || ($pivotMov == \"\"))\n"+
+"        {\n"+
+"            error ($control + \" was not set up to handle pivot modification.\\n\");\n"+
+"        }\n"+
+"        // first, save a keyframe at the previous frame for the object, and the pivot\n"+
+" \t$frame = `currentTime -q`;\n"+
+"\tif($keyOption == 1)\n"+
+"\t{ \n"+
+"\t        print (\"Saving a key for \" + $object + \" and \" + $pivot + \" at frame \" + ($frame-1) + \"\\n\");\n"+
+"       \t setKeyframe -t ($frame-1) -itt \"linear\" -ott \"linear\" $pivot; \n"+
+"\t        setKeyframe -t ($frame-1) $object;\n"+
+"\t}\n"+
+"        // now get the local translation of pivotMov\n"+
+"        $trans = `getAttr ($pivotMov + \".t\")`;\n"+
+"        // get the world position\n"+
+"        $world = `xform -q -ws -rp $pivotMov`;\n"+
+"        // set the position of old pivot to be the same as the new pivot\n"+
+"        setAttr ($pivot + \".t\") $trans[0] $trans[1] $trans[2];\n"+
+"        // now move the object\n"+
+"        move -rpr $world[0] $world[1] $world[2] ($object);\n"+
+"        // now save a keyframe\n"+
+"\tif($keyOption == 1)\n"+
+"\t{\n"+
+"        \tsetKeyframe -t ($frame) -itt \"linear\" -ott \"linear\" $pivot; \n"+
+"\t        setKeyframe -t ($frame) $object;\n"+
+"\t}\n"+
+"\t setAttr ($pivotMov+\".v\") 0;\n"+
+"        select $object;\n"+
+"}\n"+
+"global proc string js_pivot_get (string $object, string $type)\n"+
+"{\n"+
+"    string $return;\n"+
+"    string $tmp[0];\n"+
+"    // we're going to grab the object's pivot, or the pivot move object.  If $type is \"js_pivotObj\", we'll\n"+
+"    // grab the pivot.  If it's \"js_pivotMovObj\", we'll return the move pivot.\n"+
+"    //\n"+
+"   \n"+
+"    // get the object\n"+
+"    $object = `js_pivot_getObj $object`;\n"+
+"    if ($object != \"\")\n"+
+"    {\n"+
+"        if (`attributeQuery -exists -node $object $type`)\n"+
+"        {\n"+
+"            // yep, this object has a pivot.  Let's get it\n"+
+"            $tmp = `listConnections -type transform ($object + \".\" + $type)`;\n"+
+"            $return = $tmp[0];\n"+
+"        }\n"+
+"    }\n"+
+"    return $return;\n"+
+"}\n"+
+"global proc string js_pivot_getObj (string $sel)\n"+
+"{\n"+
+"    // based on the selected item, return the object\n"+
+"    string $return;\n"+
+"    \n"+
+"    if (`attributeQuery -exists -node $sel \"js_pivotObj\"`)\n"+
+"    {\n"+
+"        $return = $sel;\n"+
+"    }\n"+
+"    else\n"+
+"    {\n"+
+"        // okay, we probably have one of the pivots selected..\n"+
+"        if ((`attributeQuery -exists -node $sel \"js_pivot\"`) || (`attributeQuery -exists -node $sel \"js_pivotMov\"`))\n"+
+"        {\n"+
+"            $tmp = `listConnections -p true -d true ($sel + \".message\")`;\n"+
+"            string $item;\n"+
+"            for ($item in $tmp)\n"+
+"            {\n"+
+"                // check each one and see if what's connected contains \"js_pivotObj\"\n"+
+"                if (`gmatch $item \"*js_pivot*\"`)\n"+
+"                {\n"+
+"                    // okay, we've got a pivot selected, and we know that the item that we've just found will\n"+
+"                    // have the connection to the object we want.\n"+
+"                    // let's get rid of the attribute\n"+
+"                    string $break[0];\n"+
+"                    tokenize ($item, \".\", $break);\n"+
+"                    $return = $break[0];\n"+
+"                }\n"+
+"            }\n"+
+"            \n"+
+"        }\n"+
+"    }\n"+
+"    return $return;\n"+
+"}\n"+
+"global proc js_pivot_toggle (string $control)\n"+
+"{\n"+
+"        $pivot = `js_pivot_get $control \"js_pivotObj\"`; \n"+
+"        $onOff = (!`getAttr ($pivot + \".v\")`); \n"+
+"\t setAttr ($pivot + \".v\") $onOff;\n"+
+"\t if($onOff == 1) select $pivot;\n"+
+"\t else select $control;\n"+
+"}\n"+
+"global proc js_pivot_mov_toggle (string $control)\n"+
+"{\n"+
+"        $pivot = `js_pivot_get $control \"js_pivotMovObj\"`; \n"+
+"        $onOff = (!`getAttr ($pivot + \".v\")`); \n"+
+"        setAttr ($pivot + \".v\") $onOff;\n"+
+"\t if($onOff == 1) select $pivot;\n"+
+"\t else select $control;\n"+
+"}\n"+
+"global proc jd_pivot_reset (string $control)\n"+
+"{\n"+
+"       $pivot = `js_pivot_get $control \"js_pivotMovObj\"`; \n"+
+"\tif(objExists(($pivot+\".pivotX\")) ) setAttr ($pivot+\".tx\") `getAttr ($pivot+\".pivotX\")`;\n"+
+"\tif(objExists(($pivot+\".pivotY\")) ) setAttr ($pivot+\".ty\") `getAttr ($pivot+\".pivotY\")`;\n"+
+"\tif(objExists(($pivot+\".pivotZ\")) ) setAttr ($pivot+\".tz\") `getAttr ($pivot+\".pivotZ\")`;\n"+
+"\tjs_pivot_snap($control, 0);\n"+
+"}\n"+
+"global proc string[] js_pivot_create ()\n"+
+"{\n"+
+"    // This procedure will create a pivot control on the currently selected objects.\n"+
+"    // it will actually create 2 pivots.. one which is hooked up to the pivot, and the other\n"+
+"    // which can be used to toggle the re-position of the pivot.\n"+
+"    //\n"+
+"    // get the selected objects that the user has picked in the 3dView\n"+
+"    string $objs[0];\n"+
+"    string $pivotObjects[0];\n"+
+"    int $pivotCount = 0;\n"+
+"    $objs = `ls -sl`;\n"+
+"    // for each item selected, we will check and see if a pivot is connected.\n"+
+"    // if there isn't one, then we'll create one.  If there is, then we will \n"+
+"    // go on to the next object\n"+
+"    for ($obj in $objs)\n"+
+"    {\n"+
+"        string $pivotObj;\n"+
+"        $pivotObj = `js_pivot_get $obj \"js_pivotObj\"`;\n"+
+"        if ($pivotObj == \"\")\n"+
+"        {\n"+
+"            // time to create a new pivot\n"+
+"            // create a locator\n"+
+"            string $locator[0];\n"+
+"            $locator = `spaceLocator`;\n"+
+"            $locator[0] = `rename $locator[0] ($obj + \"_pivot_anim\")`;\n"+
+"            // get the position of the object\n"+
+"            $pos = `xform -q -ws -rp $obj`;\n"+
+"            // set the position of the locator\n"+
+"            move -a -ws $pos[0] $pos[1] $pos[2] $locator[0];\n"+
+"            // parent the locator under the $object\n"+
+"            parent $locator[0] $obj;\n"+
+"            // set the locator's rotation to 0\n"+
+"            setAttr ($locator[0] + \".r\") 0 0 0;\n"+
+"\t\t//makeIdentity -apply true -t 1 -r 0 -s 0 -n 0 $locator[0];\n"+
+"            // create a new locator which will be used as the second pivot\n"+
+"            $dup = `duplicate $locator[0]`;\n"+
+"            $dupLoc = `rename $dup[0] ($obj + \"_pivot_mov\")`;\n"+
+"            // scale the duplicated locator a bit smaller\n"+
+"            scale .8 .8 .8 $dupLoc;\n"+
+"            // connect the locator's translation to the objects rotatePivot\n"+
+"            connectAttr -f ($locator[0] + \".t\") ($obj + \".rotatePivot\");\n"+
+"            // set the locator's scale and rotate attributes locked and unkeyable\n"+
+"            $attrs = {\"rx\", \"ry\", \"rz\", \"sx\", \"sy\", \"sz\"};\n"+
+"            for ($at in $attrs)\n"+
+"            {\n"+
+"                setAttr -l 1 -k 0 ($locator[0] + \".\" + $at);\n"+
+"                setAttr -l 1 -k 0 ($dupLoc + \".\" + $at);\n"+
+"            }\n"+
+"            // set the visibility unkeyable, but not locked\n"+
+"            setAttr -k 0 ($locator[0] + \".v\");\n"+
+"            setAttr -k 0 ($dupLoc + \".v\");\n"+
+"        \n"+
+"            hide $dupLoc;\n"+
+"            // add an attribute called \"js_pivot\";\n"+
+"            addAttr -ln \"js_pivot\" -at \"message\" $locator[0];\n"+
+"            addAttr -ln \"js_pivotMov\" -at \"message\" $dupLoc;\n"+
+"            addAttr -ln \"js_pivotObj\" -at \"message\" $obj;\n"+
+"            addAttr -ln \"js_pivotMovObj\" -at \"message\" $obj;\n"+
+"\t\n"+
+"\taddAttr -ln pivotX -at double $dupLoc;\n"+
+"\tsetAttr -l 1 -k 0 ($dupLoc+\".pivotX\") `getAttr ($dupLoc+\".tx\")`;\n"+
+"\taddAttr -ln pivotY -at double $dupLoc;\n"+
+"\tsetAttr -l 1 -k 0 ($dupLoc+\".pivotY\") `getAttr ($dupLoc+\".ty\")`;\n"+
+"\taddAttr -ln pivotZ -at double $dupLoc;\n"+
+"\tsetAttr -l 1 -k 0 ($dupLoc+\".pivotZ\") `getAttr ($dupLoc+\".tz\")`;\n"+
+"            connectAttr ($locator[0] + \".message\") ($obj + \".js_pivotObj\") ;\n"+
+"            connectAttr ($dupLoc + \".message\") ($obj + \".js_pivotMovObj\") ;\n"+
+"            $pivotObjects[$pivotCount++] = $locator[0];\n"+
+"            $pivotObjects[$pivotCount++] = $dupLoc;\n"+
+"        }\n"+
+"    }\n"+
+"    return $pivotObjects;\n"+
+"}\n"
+);
+
+return $cmd;
+}
