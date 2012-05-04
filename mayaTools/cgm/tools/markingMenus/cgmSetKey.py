@@ -19,7 +19,10 @@ reload(locinatorLib)
 reload(tdToolsLib)
 reload(animToolsLib)
 def run():
-	cgmSetKeyMM = setKeyMarkingMenu()
+	try:
+		cgmSetKeyMM = setKeyMarkingMenu()
+	except:
+		mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
 	
 class setKeyMarkingMenu(BaseMelWindow):
 	_DEFAULT_MENU_PARENT = 'viewPanes'
@@ -48,10 +51,12 @@ class setKeyMarkingMenu(BaseMelWindow):
 			
 		if panel:
 			if mc.control(panel, ex = True):
-				mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = panel,
-					         pmc = lambda *a: self.createUI('cgmMM'))
-			
-	
+				try:
+					mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = panel,
+						         pmc = lambda *a: self.createUI('cgmMM'))
+				except:
+					mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')			
+
 	def createUI(self,parent):
 		"""
 		Create the UI
