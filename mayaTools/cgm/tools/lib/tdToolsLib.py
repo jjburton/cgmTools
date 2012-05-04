@@ -41,6 +41,7 @@ from cgm.lib import (guiFactory,
                      dictionary,
                      search,
                      deformers,
+                     modules,
                      logic,
                      rigging,
                      locators,
@@ -59,7 +60,7 @@ reload(position)
 reload(attributes)
 reload(NameFactory)
 reload(guiFactory)
-
+reload(modules)
 """
 
 """
@@ -71,7 +72,6 @@ def uiSetSelfVariable(self,variable,value):
     print variable
     print value
     self.variable = value
-
 
 
 def loadGUIOnStart(self):
@@ -967,8 +967,12 @@ def doLayoutByRowsAndColumns(self):
 def doCGMNameToFloat():
     returnBuffer = []
     for obj in  mc.ls(sl=True):
-        returnBuffer.append(modules.cgmTagToFloatAttr(obj,'cgmName'))
-    return returnBuffer
+        returnBuffer.append(modules.cgmTagToFloatAttr(obj,'cgmName',keyable = True))
+
+    if returnBuffer:
+	for i in returnBuffer:
+	    if i:
+		guiFactory.warning("'%s' created"%(i))
 
 #>>> Aim Snap
 def doAimSnapToOne():
