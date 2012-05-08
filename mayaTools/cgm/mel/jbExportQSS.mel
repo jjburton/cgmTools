@@ -1,0 +1,164 @@
+/*
+TITLE: jbExportQSS
+VERSION: 1.5
+AUTHOR:Josh Burton
+       www.joshburton.com
+
+DESCRIPTION:
+Script to aid in the redundancy of setting up quick selection sets all the time
+for the same assets but in different files. Exports a mel script that will set up
+the identical quick selection set in another scene.
+
+Exporting:
+1) Select a quick selection sets in the outliner to be exported
+2) Run script - it will export a mel file to recreate the sets
+
+Importing:
+1) Run the mel in your new file you want to set up the quick selection sets in
+2) It will ask you want to add a prefix. If you're using a referenced asset
+   put in the prefix. If not, leave it blank:)
+
+Features:
+1) Checks for referencing data and removes it in the exported selection set
+2) Can do multiple selection sets at once
+3) Will account for prefixes on import if desired
+4) Reports if set members aren't found in imported sets
+
+Thanks:
+To David Bokser for answering my many questions and Scott Englert for my picking apart some of his scripts
+
+History
+v1.5 - July 14, 2008 - Added the ability to export multiple sets at once into a single mel file, making importing easier. Also,
+      little quick selection window doesnt' pop up any more due to a flag on the "sets" command I hadn't known about. Several bug fixes
+	  as well
+v1.0 - July 3, 2008 - Initial realease
+*/
+
+global proc jbExportQSS () {
+ 	string $filename = `fileBrowserDialog -m 1 -fc "getQssData" -ft "mel" -an "Export" -om "ExportActive"`;
+
+}   
+
+global proc getQssData (string $filename, string $filetype) {
+string $sets[] = `ls -sl`;
+string $RefPrefix;
+string $qssNames[];
+string $baseObjectSets[];
+int $s = 0;
+int $z;
+
+    for ($set in $sets){
+		//Checking if it's a set or not 
+       if(`nodeType($set)` == "objectSet") {
+	
+		//Add the $set name to our exporting set name list
+		$qssNames[$s] = $set;
+
+		//Gets set members
+		string $qssMembers[] = `sets -q $set`;
+	
+
+		//check to see if it's refereneced
+		int $isReferenced = `referenceQuery -inr $qssMembers[0]`;
+		int $i = 0;
+		string $qssFinalMembers[];
+		string $qssFinalMembersPrintable;
+		
+				//Referencing conditionals
+				if($isReferenced == 1){
+   					for($qssMember in $qssMembers){
+   					 //getting reference prefix
+      					string $filename = `referenceQuery -filename $qssMember`;
+						string $ns = `file -q -ns $filename`;
+						string $RefPrefix = ($ns + ":");
+						//Removing prefix from the name if it exists
+						string $bareMemberName = `substitute $RefPrefix $qssMember ""`;
+						//adding it to our exporting member name array
+						$qssFinalMembers[$i] = $bareMemberName;
+						$i++;
+       				 }               
+   				} else {
+   				    for($qssMember in $qssMembers)    {
+       					$qssFinalMembers[$i] = $qssMember;
+         				$i++;
+        				}
+    				}
+
+		//Puts out objects in a format we need for exporting and reports success
+		string $objectsBuffer = stringArrayToString($qssFinalMembers, " ");
+		$baseObjectSets[$s] = $objectsBuffer;
+		$s++;
+		print $baseObjectSets[$s];  
+		print ($set + " exported successfully.\n");
+
+		//Clear the array
+		int $size = size($qssFinalMembers);
+			for($z=0;$z<$size;$z++){ 
+ 				stringArrayRemoveAtIndex(0, $qssFinalMembers);				
+			}
+		}
+          else {
+          warning($set + " is not an exportable set.\n");
+		  }
+    }
+
+//Get's our Final Members in a printable format - Thanks Scott Englert for this bit of code on CGTalk:)  
+string $baseObjectsSetsPrintable = "string $baseObjectSets[] = {\"" + stringArrayToString($baseObjectSets,"\", \"") +"\"}; ";
+string $qssNamesPrintable = "string $qssNames[] = {\"" + stringArrayToString($qssNames,"\", \"") +"\"}; ";
+
+//Make Our Mel
+$fileId=`fopen $filename "w"`;   
+fprint $fileId "global proc makeQss() { \n";
+fprint $fileId ($baseObjectsSetsPrintable+"\n");
+fprint $fileId ($qssNamesPrintable+"\n");
+fprint $fileId "string $qssObjects[]; \n";
+fprint $fileId "string $qssMissingObjects[]; \n";
+fprint $fileId "string $prefix; \n";
+fprint $fileId "int $i = 0; \n";
+fprint $fileId "int $n = 0; \n";
+fprint $fileId "int $m = 0; \n";
+fprint $fileId ("string $result = `promptDialog -title \"Prefix Object Names?\" \n");
+fprint $fileId ("                       -message \"Insert any prefix you would like to add\" \n");
+fprint $fileId "                         -button \"Confirm\" -button \"Cancel\" \n";
+fprint $fileId "                        -defaultButton \"Confirm\" -cancelButton \"Cancel\" \n";
+fprint $fileId "                        -dismissString \"Cancel\"`; \n";
+fprint $fileId "    if ($result == \"Confirm\") { \n";
+fprint $fileId "       $prefix = `promptDialog -query -text`; \n";
+fprint $fileId "     } \n";
+fprint $fileId " for ($set in $baseObjectSets) { \n";
+fprint $fileId "	$i = 0;	 \n";
+fprint $fileId "    string $currentSet[]; \n";
+fprint $fileId "    int $numTokens = tokenize($baseObjectSets[$n], $currentSet); \n";
+fprint $fileId "       	for($object in $currentSet) { \n";
+fprint $fileId "       		string $prefixedObject = $prefix + $object; \n";
+fprint $fileId "      		$qssObjects[$i] = $prefixedObject; \n";
+fprint $fileId "      			if(! `objExists $prefixedObject`) { \n";
+fprint $fileId ("                 print ($prefixedObject + \" not found from \" + $qssNames[$n] + \"\\n\");   \n");
+fprint $fileId "					$qssMissingObjects[$m] = $prefixedObject ;  \n";
+fprint $fileId "					$m++; \n";
+fprint $fileId "        		}  \n";
+fprint $fileId "			$i++; \n";
+fprint $fileId "        }  \n";
+fprint $fileId "	string $qssFoundObjects[]= stringArrayRemove($qssMissingObjects, $qssObjects); \n";
+fprint $fileId "	string $nameBuffer = $prefix + $qssNames[$n]; \n";
+fprint $fileId "	sets -text \"gCharacterSet\" -name $nameBuffer $qssFoundObjects; \n";
+fprint $fileId "	int $size = size($qssObjects); \n";
+fprint $fileId "		for($z=0;$z<$size;$z++){ \n";
+fprint $fileId "			stringArrayRemoveAtIndex(0, $qssObjects); \n";				
+fprint $fileId "		} \n";
+fprint $fileId "	$n++; \n";
+fprint $fileId "    } \n";
+fprint $fileId " } \n";
+fprint $fileId " makeQss; \n";
+
+fclose $fileId;
+
+}
+
+
+
+
+
+
+
+
