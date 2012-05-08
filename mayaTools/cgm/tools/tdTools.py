@@ -1116,6 +1116,9 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.lineSubBreak()
 
 	Row1 = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)
+	guiFactory.doButton2(Row1,'move Mirror Selected Joints TEMP',
+	                     lambda *a: mel.eval('jbMirrorSelectedJoints'),
+	                     "Temporary mirror joint tool")
 
 	guiFactory.doButton2(Row1,'cometJointOrient',
 	                     lambda *a: mel.eval('cometJointOrient'),
@@ -1176,6 +1179,11 @@ class tdToolsClass(BaseMelWindow):
 
 
 	sdkRow = MelHLayout(parent ,ut='cgmUISubTemplate',padding = 2)
+
+	guiFactory.doButton2(sdkRow,'Graph SDK Attr',
+	                     lambda *a: mel.eval('jbGraphSetDrivenAttribute'),
+	                     "Loads an SDK to the graph editor")
+	
 	guiFactory.doButton2(sdkRow,'Select Driven Joints',
 	                     lambda *a:tdToolsLib.doSelectDrivenJoints(self),
 	                     "Selects driven joints from an sdk attribute")
@@ -1183,7 +1191,6 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.doButton2(sdkRow,'seShapeTaper',
 	                     lambda *a: mel.eval('seShapeTaper'),
 	                     "Mirror splits of joint poses for joint based facial\n by Scott Englert")
-
 
 	sdkRow.layout()
 	mc.setParent(parent)

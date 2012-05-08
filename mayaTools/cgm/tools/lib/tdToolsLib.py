@@ -75,23 +75,29 @@ def uiSetSelfVariable(self,variable,value):
 
 def loadJTDDynamicParent():
     mel.eval('source JTDDynParentUI;')
+    
+def tempLoadSDKToGraphEditor():
+    mel.eval('source jbGraphSetDrivenAttribute;')   
 
 def loadGUIOnStart(self):
     selection = mc.ls(sl=True) or []
-    if selection:
-        for obj in selection:
-            if search.returnTagInfo(selection[0],'cgmObjectType') == 'textCurve':
-		if mc.optionVar( q='cgmVar_AutoloadTextObject' ):
-		    mc.select(selection[0])
-		    TextCurveObjectdoLoad(self)
-		    break
-	
-	if mc.optionVar( q='cgmVar_AutoloadAutoname' ):
-	    mc.select(selection[0])
-	    namingToolsLib.uiLoadAutoNameObject(self)
-		
-    if selection:
-	mc.select(selection)
+    try:
+	if selection:
+	    for obj in selection:
+		if search.returnTagInfo(selection[0],'cgmObjectType') == 'textCurve':
+		    if mc.optionVar( q='cgmVar_AutoloadTextObject' ):
+			mc.select(selection[0])
+			TextCurveObjectdoLoad(self)
+			break
+	    
+	    if mc.optionVar( q='cgmVar_AutoloadAutoname' ):
+		mc.select(selection[0])
+		namingToolsLib.uiLoadAutoNameObject(self)
+		    
+	if selection:
+	    mc.select(selection)
+    except:
+	pass
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # SDK
