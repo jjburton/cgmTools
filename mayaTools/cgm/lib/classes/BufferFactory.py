@@ -46,25 +46,84 @@ class BufferFactory(OptionVarFactory):
         varType(string) -- 'int','float','string' (default 'int')
         
         """
+        ### input check           
+        self.rootName = bufferName
+        self.bufferType = ''
+        self.bufferList = []
+        
         if mc.objExists(bufferName):
             self.rootName = search.findRawTagInfo(bufferName,'cgmName')
             self.bufferType = search.findRawTagInfo(bufferName,'cgmType')
-        ### input check   
-        self.rootName = bufferName
-        self.bufferType = ''
-        
-        self.create()
+            self.name = bufferName
+            userAttrs = attributes.returnUserAttrsToDict(self.name)
+            for key in userAttrs.keys():
+                if 'item_' in key:
+                    data = userAttrs.get(key)
+                    if data:
+                        self.bufferList.append(data)
+            
+        else:
+            self.create()
+
         
         
     def create(self):
         buffer = mc.group(em=True)
         attributes.storeInfo(buffer,'cgmName',self.rootName)
         attributes.storeInfo(buffer,'cgmType','objectBuffer')
-        self.name = NameFactory.doNameObject(buffer)
+        self.name = NameFactory.doNameObject(buffer,True)
         
-    def store(self,attr,info,*a,**kw):
+    def returnNextAvailableCnt(self):
+        userAttrs = attributes.returnUserAttrsToDict(self.name)
+        countList = []
+        for key in userAttrs.keys():
+            if 'item_' in key:
+                splitBuffer = key.split('item_')
+                countList.append(int(splitBuffer[-1]))
+        cnt = 0
+        cntBreak = 0
+        while cnt in countList and cntBreak < 500:
+            cnt+=1
+            cntBreak += 1
+        return cnt
+        
+    def store(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
-        attributes.storeInfo(self.nameLong,attr,info,*a,**kw)        
+        if info in self.bufferList:
+            guiFactory.warning("'%s' is already stored on '%s'"%(info,self.name))    
+            return
+        
+        userAttrs = attributes.returnUserAttrsToDict(self.name)
+        countList = []
+        for key in userAttrs.keys():
+            if 'item_' in key:
+                splitBuffer = key.split('item_')
+                countList.append(int(splitBuffer[-1]))
+        cnt = 0
+        cntBreak = 0
+        while cnt in countList and cntBreak < 500:
+            cnt+=1
+            cntBreak += 1
+    
+        attributes.storeInfo(self.name,('item_'+str(cnt)),info,*a,**kw)
+        self.bufferList.append(info)
+        
+    def purge(self):
+        userAttrs = attributes.returnUserAttrsToDict(self.name)
+        for attr in userAttrs.keys():
+            if 'item_' in attr:
+                attributes.deleteAttr(self.name,attr)
+                guiFactory.warning("Deleted: '%s.%s'"%(self.name,attr))    
+                
+                
+    def doStoreSelected(self): 
+        toStore = mc.ls(sl=True,flatten=True) or []
+        for item in toStore:
+            try:
+                self.store(item)
+            except:
+                guiFactory.warning("Couldn't store '%s'"%(item))    
+                
         
     def select(self):
         if self.value:
