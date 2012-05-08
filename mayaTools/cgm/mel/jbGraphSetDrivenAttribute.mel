@@ -1,0 +1,32 @@
+/*
+TITLE: jbGraphSetDrivenAttribute
+VERSION: 1.0
+AUTHOR:Josh Burton
+DATE: October 26, 2007
+
+DESCRIPTION:
+Script for use with setting up set driven key poses. Sometimes you wanna see all the curves
+of one attribute in the graph editor and not manually select them.
+
+HOW TO USE:
+1. Select an attribute
+2. Run script
+
+LIMITATIONS:
+- Select an attribute with set driven keys connected
+
+HISTORY:
+10.26.07 - BIRTH!
+
+*/
+
+global proc jbGraphSetDrivenAttribute() {
+global string $gChannelBoxName;
+        string $selected[] = `ls -sl`;
+        string $selAttr[] = `channelBox -q -sma $gChannelBoxName`;
+string $fullAttr = $selected[0] + "." + $selAttr[0];
+select `listConnections -p true $fullAttr`;
+}
+jbGraphSetDrivenAttribute;
+GraphEditor;
+
