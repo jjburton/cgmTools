@@ -361,7 +361,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
         group2 = NameFactory.doNameObject(group2) 
     
         for attr in 'tx','ty','tz':
-            attributes.doSetAttr((obj+'.'+attr),0)
+            attributes.doSetAttr(obj, attr, 0)
     
     #Check for zero rotates
     rotateCheck = mc.xform(obj, q=True, os=True, ro=True)
@@ -374,7 +374,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
         
         mc.xform (group2,ro=(rotateCheck[0],rotateCheck[1],rotateCheck[2]), os=True)
         for attr in 'rx','ry','rz':
-            attributes.doSetAttr((obj+'.'+attr),0)        
+            attributes.doSetAttr(obj, attr, 0)        
     
     """
     objScale = []
@@ -389,7 +389,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
     
     mc.scale(multScale[0], multScale[1], multScale[2],[group])
     for attr in 'sx','sy','sz':
-        attributes.doSetAttr((obj+'.'+attr),1)
+        attributes.doSetAttr(obj,attr,1)
     """
     return NameFactory.doNameObject(group)
 

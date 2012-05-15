@@ -30,9 +30,12 @@ import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib import attributes
 from cgm.lib.classes.OptionVarFactory import *
+from cgm.lib.classes.ObjectFactory import *
+from cgm.lib.classes.AttrFactory import *
+
 from cgm.lib.classes import NameFactory
 
-class BufferFactory(OptionVarFactory):
+class BufferFactory(object):
     """ 
     Buffer Class handler
     
@@ -42,39 +45,49 @@ class BufferFactory(OptionVarFactory):
         Intializes an buffer factory class handler
         
         Keyword arguments:
-        varName(string) -- name for the optionVar
-        varType(string) -- 'int','float','string' (default 'int')
+        bufferName(string) -- name for the buffer
         
         """
         ### input check           
-        self.rootName = bufferName
         self.bufferType = ''
         self.bufferList = []
         
         if mc.objExists(bufferName):
-            self.rootName = search.findRawTagInfo(bufferName,'cgmName')
+            self.baseName = search.findRawTagInfo(bufferName,'cgmName')
             self.bufferType = search.findRawTagInfo(bufferName,'cgmType')
-            self.name = bufferName
-            userAttrs = attributes.returnUserAttrsToDict(self.name)
-            for key in userAttrs.keys():
-                if 'item_' in key:
-                    data = userAttrs.get(key)
+            self.storeNameStrings(bufferName)
+            userAttrs = mc.listAttr(self.nameLong,ud=True)
+            for attr in userAttrs:
+                if 'item_' in attr:
+                    a = AttrFactory(bufferName,attr)
+                    data = a.getMessage()
                     if data:
                         self.bufferList.append(data)
             
         else:
             self.create()
 
-        
+    def storeNameStrings(self,obj):
+        """ Store the base, short and long names of an object to instance."""
+        buffer = mc.ls(obj,long=True)
+        self.nameLong = buffer[0]
+        buffer = mc.ls(obj,shortNames=True)        
+        self.nameShort = buffer[0]
+        if '|' in buffer[0]:
+            splitBuffer = buffer[0].split('|')
+            self.nameLongBase = splitBuffer[-1]
+            return
+        self.nameLongBase = self.nameShort  
         
     def create(self):
         buffer = mc.group(em=True)
-        attributes.storeInfo(buffer,'cgmName',self.rootName)
+        attributes.storeInfo(buffer,'cgmName',self.baseName)
         attributes.storeInfo(buffer,'cgmType','objectBuffer')
-        self.name = NameFactory.doNameObject(buffer,True)
+        buffer = NameFactory.doNameObject(buffer,True)
+        storeNameStrings(buffer)
         
     def returnNextAvailableCnt(self):
-        userAttrs = attributes.returnUserAttrsToDict(self.name)
+        userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
         countList = []
         for key in userAttrs.keys():
             if 'item_' in key:
@@ -87,13 +100,17 @@ class BufferFactory(OptionVarFactory):
             cntBreak += 1
         return cnt
         
+        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Data
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def store(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
         if info in self.bufferList:
-            guiFactory.warning("'%s' is already stored on '%s'"%(info,self.name))    
+            guiFactory.warning("'%s' is already stored on '%s'"%(info,self.nameLong))    
             return
         
-        userAttrs = attributes.returnUserAttrsToDict(self.name)
+        userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
         countList = []
         for key in userAttrs.keys():
             if 'item_' in key:
@@ -105,17 +122,31 @@ class BufferFactory(OptionVarFactory):
             cnt+=1
             cntBreak += 1
     
-        attributes.storeInfo(self.name,('item_'+str(cnt)),info,*a,**kw)
+        attributes.storeInfo(self.nameLong,('item_'+str(cnt)),info,*a,**kw)
         self.bufferList.append(info)
         
+        
+    def remove(self,info,*a,**kw):
+        """ Store information to an object in maya via case specific attribute. """
+        if info not in self.bufferList:
+            guiFactory.warning("'%s' isn't already stored '%s'"%(info,self.nameLong))    
+            return
+        
+        userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
+        countList = []
+        for key in userAttrs.keys():
+            if item == attributes.getInfo:
+                pass
+        
     def purge(self):
-        userAttrs = attributes.returnUserAttrsToDict(self.name)
+        userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
         for attr in userAttrs.keys():
             if 'item_' in attr:
-                attributes.deleteAttr(self.name,attr)
-                guiFactory.warning("Deleted: '%s.%s'"%(self.name,attr))    
+                attributes.deleteAttr(self.nameLong,attr)
+                guiFactory.warning("Deleted: '%s.%s'"%(self.nameLong,attr))    
                 
-                
+        self.bufferList = []
+        
     def doStoreSelected(self): 
         toStore = mc.ls(sl=True,flatten=True) or []
         for item in toStore:
@@ -126,8 +157,8 @@ class BufferFactory(OptionVarFactory):
                 
         
     def select(self):
-        if self.value:
-            for item in self.value:
+        if self.bufferList:
+            for item in self.bufferList:
                 print item
     
 

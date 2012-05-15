@@ -1,0 +1,534 @@
+/*
+    Z Depth Shader
+    0.8
+    
+    Copyright (c) 2010 Bohdon Sayre
+    All Rights Reserved.
+    bo@bohdon.com
+    
+    unique prefix: bzdsh
+    
+    Description:
+        Creates a Z Depth Shader for all existing shaders in the scene.
+		The shader uses samplerInfo nodes, making it Software, Mental Ray, and Renderman compatible.
+		Preserves displacement and alpha connections for any materials that require it.
+		Does not support fur, particles, volume, or any other special shaders.
+	
+	Version 0.8:
+		> Invert Black and White option
+		> Distance range sliders that provide instant feedback when modelviews are in texture mode
+		> Delete Lights Option
+		> Delete Unused Nodes option
+    
+    Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc boZDepthShader() {
+	string $win = "bzdshWin";
+	if (`window -ex $win`) deleteUI -wnd $win;
+	
+	window -w 100 -s 1 -mxb 1 -t "Z Depth Shader 0.8" $win;
+	
+	string $form = `formLayout -nd 100`;
+		checkBox -v 1 -l "Delete Unused Nodes" bzdshWin_DeleteUnusedCheck;
+		checkBox -v 1 -l "Delete Lights" bzdshWin_DeleteLightsCheck;
+		string $btn = `button -w 190 -h 30 -l "Create Z Shaders" -c bzdshWinCreate`;
+		string $sep = `separator -w 190 -h 3 -st "in"`;
+		string $txt2 = `text -l "Distance Range:"`;
+		
+		//check for existing setRange node
+		float $curMinVal = 0;
+		float $curMaxVal = 100;
+		string $setRange = bzdshGetSetRange();
+		if (size($setRange)) {
+			$curMinVal = `getAttr ($setRange+".oldMinX")`;
+			$curMaxVal = `getAttr ($setRange+".oldMaxX")`;
+			print ("curMinVal: "+ $curMinVal + "\n"); //pv
+			print ("curMaxVal: "+ $curMaxVal + "\n"); //pv
+			
+		}
+		floatSliderGrp -f 1 -pre 0 -min 0 -max 1000 -ss 2 -fmn -5000 -fmx 1000000 -v $curMinVal -cw2 50 10
+			-cc "undoInfo -swf 1; bzdshSetRangeMin(#1)"
+			-dc "undoInfo -swf 0; bzdshSetRangeMin(#1)"
+			bzdshWin_zMinFloat;
+		floatSliderGrp -f 1 -pre 0 -min 1 -max 1000 -ss 2 -fmn -5000 -fmx 1000000 -v $curMaxVal -cw2 50 130
+			-cc "undoInfo -swf 1; bzdshSetRangeMax(#1)"
+			-dc "undoInfo -swf 0; bzdshSetRangeMax(#1)"
+			bzdshWin_zMaxFloat;
+		checkBox -l "Invert Black and White" -cc "bzdshInvert(#1)" bzdshWin_InvertBWCheck;
+		string $txt = `text -en 0 -al "center" -l "Disable raytracing and all passes\nbefore rendering to save render time\n(point clouds, brickmaps, etc)"`;
+		
+		
+	
+	formLayout -e
+		-ap bzdshWin_DeleteUnusedCheck "top" 10 0
+		-ap bzdshWin_DeleteUnusedCheck "left" -64 50
+		
+		-ac bzdshWin_DeleteLightsCheck "top" 6 bzdshWin_DeleteUnusedCheck
+		-ap bzdshWin_DeleteLightsCheck "left" -64 50
+		
+		-ac $btn "top" 10 bzdshWin_DeleteLightsCheck
+		-ap $btn "left" -95 50
+		
+		-ac $sep "top" 10 $btn
+		-ap $sep "left" -95 50
+		
+		-ac $txt2 "top" 12 $sep
+		-ap $txt2 "left" -98 50
+		
+		-ac bzdshWin_zMinFloat "top" 10 $txt2
+		-ap bzdshWin_zMinFloat "left" -103 50
+		
+		-ac bzdshWin_zMaxFloat "top" 10 bzdshWin_zMinFloat
+		-ap bzdshWin_zMaxFloat "left" -103 50
+		
+		-ac bzdshWin_InvertBWCheck "top" 6 bzdshWin_zMaxFloat
+		-ap bzdshWin_InvertBWCheck "left" -70 50
+		
+		-ac $txt "top" 8 bzdshWin_InvertBWCheck
+		-ap $txt "left" -86 50
+		$form;
+	
+	window -e -w 238 -h 310 $win;
+	showWindow $win;
+}
+
+
+/**
+* Retrieves the GUI settings and runs bzdshCreate
+**/
+global proc bzdshWinCreate() {
+	int $delUnused = `checkBox -q -v bzdshWin_DeleteUnusedCheck`;
+	int $delLights = `checkBox -q -v bzdshWin_DeleteLightsCheck`;
+	int $zMin = `floatSliderGrp -q -v bzdshWin_zMinFloat`;
+	int $zMax = `floatSliderGrp -q -v bzdshWin_zMaxFloat`;
+	int $invert = `checkBox	-q -v bzdshWin_InvertBWCheck`;
+	string $msg;
+	
+	$msg = bzdshCreate();
+	bzdshInvert($invert);
+	bzdshSetRange($zMin, $zMax);
+	
+	int $delUnusedCount;
+	if ($delUnused) {
+		print ("// Deleting unused nodes...\n");
+		$delUnusedCount = MLdeleteUnused();
+		print "\n";
+		if ($delUnusedCount) {
+			$msg += ("\\n"+$delUnusedCount+"  unused node(s) deleted\\n");	
+		}
+	}
+	
+	int $delLightCount = 0;
+	if ($delLights) {
+		print ("// Deleting all Lights...\n");
+		string $lights[] = `listTransforms -lights`;
+		if (size($lights)) {
+			for ($light in $lights) {
+				if (catch(`delete $light`)) {
+				} else {
+					$delLightCount++;
+				};
+			}
+		}
+		if (catchQuiet(`ls -typ "RenderManEnvLightShape"`)) {
+			print "// RenderMan plug-in not available. Skipping RenderManEnvLightShape nodes.";
+		} else {
+			string $lights[] = `ls -typ "RenderManEnvLightShape"`;
+			if (size($lights)) {
+				for ($light in $lights) {
+					if (catch(`delete $light`)) {
+					} else {
+						$delLightCount++;
+					};
+				}
+			}
+		}
+		print "\n";
+		
+		if ($delLightCount) {
+			$msg += ("\\n"+$delLightCount+"  light(s) deleted\\n");
+		}
+	}
+	
+	
+	string $title = "Z Depth Shaders Created";
+	string $btn = "Ok";
+	
+	evalDeferred("confirmDialog -b \""+$btn+"\" -db \""+$btn+"\" -cb \""+$btn+"\" -m \""+$msg+"\" -t \""+$title+"\"");
+}
+
+
+/**
+* Creates a shader for rendering z depth passes.
+* 1. Find all shading groups in the scene
+* 2. Find shading groups whose materials have no alpha values or displacement shaders
+* 4. Assign the default zShader material to those objects
+* 5. For the remaining materials/shading groups, create a material for each material,
+* 	and transfer the belonging objects. Alpha values/displacement shaders must be
+* 	transferred.
+* 6. Delete unused nodes.
+* 
+* Renderman specific:
+* 7. Check for env lights, and rman passes and ask to disable them
+**/
+
+global proc string bzdshCreate() {
+	//get all shading groups, then filter the lists
+	string $sgs[] = bzdshGetSGs();
+	$sgs = bzdshRemoveEmptySGs($sgs);
+	string $plainSGs[] = bzdshGetCleanSGs($sgs);
+	
+	
+	//create default zShader
+	string $zShader[] = bzdshCreateDefaultZShader();
+	for ($sg in $plainSGs) {
+		string $objs[] = bzdshGetMembers($sg);
+		for ($obj in $objs)
+			catch(`sets -e -fe $zShader[1] $obj`);
+	}
+	
+	
+	//get the outplug of the last node in the zShader chain, for reuse
+	string $out = bzdshGetFinalOut();
+	//create materials for all special mats
+	string $specialSGs[] = stringArrayRemove($plainSGs, $sgs);
+	string $dispSGs[];
+	string $transSGs[];
+	for ($sg in $specialSGs) {
+		//create the shader
+		string $newShader[] = bzdshCreateSpecialShader($sg, $out);
+		if ($newShader[2])
+			$dispSGs[size($dispSGs)] = $newShader[0];
+		if ($newShader[3])
+			$transSGs[size($transSGs)] = $newShader[0];
+		//move all objects to the new shading group
+		string $objs[] = bzdshGetMembers($sg);
+		for ($obj in $objs)
+			sets -e -fe $newShader[1] $obj;
+	}
+	
+	//returns a message formatted for a confirmDialog
+	int $shaderCount = size($specialSGs) + 1;
+	string $msg = (""+$shaderCount+"  Z Depth shader(s) created successfully.\\n");
+	if (size($dispSGs)) {
+		$msg += ("\\n"+(size($dispSGs))+"  displacement shaders preserved:\\n");
+		for ($sg in $dispSGs)
+			$msg += ("    "+$sg+"\\n");
+	}
+	if (size($transSGs)) {
+		$msg += ("\\n"+(size($transSGs))+"  transparent shaders preserved:\\n");
+		for ($sg in $transSGs)
+			$msg += ("    "+$sg+"\\n");
+	}
+	return $msg;
+}
+
+
+
+/** Create the default bzdsh material and shading group **/
+global proc string[] bzdshCreateDefaultZShader() {
+	string $mat = "zShader_mat";
+	string $sg = "zShader_SG";
+	
+	//check if the default z shader has already been created.
+	if (size(`ls "*.bzdshShaderMat"`)) {
+		if (size(`ls "*.bzdshShaderEngine"`)) {
+			print ("// The Default zShader already exists.\n");
+			return {$mat, $sg};
+		}
+	}
+	
+	//create material and shading group
+	$mat = `shadingNode -asShader surfaceShader -n $mat`;
+	addAttr -ln "bzdshShaderMat"  -at long  $mat;
+	$sg = `sets -renderable true -noSurfaceShader true -empty -name $sg`;
+	addAttr -ln "bzdshShaderEngine"  -at long  $sg;
+	connectAttr -f ($mat+".outColor") ($sg+".surfaceShader");
+	
+	//create samplerInfo > mult > setRange > remap > blend
+	string $sampler = `shadingNode -asUtility samplerInfo -n "zSamplerInfo"`;
+	string $mult = `shadingNode -asUtility multiplyDivide -n "zMultiply"`;
+	string $setRange = `shadingNode -asUtility setRange -n "zSetRange"`;
+	string $remap = `shadingNode -asUtility remapValue -n "zRemapValue"`;
+	string $blend = `shadingNode -asUtility blendColors -n "zBlendColors"`;
+	addAttr -ln "bzdshSamplerInfo"  -at long  $sampler;
+	addAttr -ln "bzdshMultiply"  -at long  $mult;
+	addAttr -ln "bzdshSetRange"  -at long  $setRange;
+	addAttr -ln "bzdshRemapValue"  -at long  $remap;
+	addAttr -ln "bzdshBlendColors"  -at long  $blend;
+	
+	setAttr ($mult+".operation") 1;
+	setAttr ($mult+".input2X") -1;
+	setAttr ($setRange+".maxX") 1;
+	setAttr ($blend+".color1") -type double3 0 0 0;
+	setAttr ($blend+".color2") -type double3 1 1 1;
+	
+	connectAttr -f ($sampler+".pointCameraZ") ($mult+".input1X");
+	connectAttr -f ($mult+".outputX") ($setRange+".valueX");
+	connectAttr -f ($setRange+".outValue.outValueX") ($remap+".inputValue");
+	connectAttr -f ($remap+".outValue") ($blend+".blender");
+	connectAttr ($blend+".outputR") ($mat+".outColorR");
+	connectAttr ($blend+".outputR") ($mat+".outColorG");
+	connectAttr ($blend+".outputR") ($mat+".outColorB");
+	connectAttr ($blend+".outputR") ($mat+".bzdshShaderMat");
+	
+	return {$mat, $sg};
+}
+
+global proc string[] bzdshCreateSpecialShader(string $ssg, string $out) {
+	
+	string $smat = bzdshGetMat($ssg);
+	int $hasDisp, $hasTrans;
+	
+	string $matSuffix = `substitute "^z_" $smat ""`;
+	$matSuffix = boValidateObjectName($matSuffix);
+	string $sgSuffix = `substitute "^z_" $ssg ""`;
+	$sgSuffix = boValidateObjectName($sgSuffix);
+	
+	string $mat = "z_"+$matSuffix;
+	$mat = `shadingNode -asShader lambert -n $mat`;
+	string $sg = "z_"+$sgSuffix;
+	$sg = `sets -renderable true -noSurfaceShader true -empty -name $sg`;
+	connectAttr -f ($mat+".outColor") ($sg+".surfaceShader");
+	setAttr ($mat+".color") -type "double3" 0 0 0;
+	setAttr ($mat+".diffuse") 0;
+	connectAttr -f $out ($mat+".incandescenceR");   
+	connectAttr -f $out ($mat+".incandescenceG");
+	connectAttr -f $out ($mat+".incandescenceB");
+	
+	//connect displ shaders if any
+	string $displs[] = `listConnections($ssg+".displacementShader")`;
+	if (size($displs)) {
+		print ("// copying displacement shader from "+$ssg+" to "+$sg+"\n");
+		connectAttr -f ($displs[0]+".displacement") ($sg+".displacementShader");
+		$hasDisp = 1;
+	}
+	
+	//check for transparency value and connections
+	string $attrs[] = {"transparency", "transparencyR", "transparencyG", "transparencyB"};
+	if (!attributeExists ($attrs[0], $smat))
+		$attrs = {"outTransparency", "outTransparencyR", "outTransparencyG", "outTransparencyB"};
+	if (!attributeExists($attrs[0], $smat))
+		$attrs = {};
+	
+	
+	string $attrs2[] = {"transparency", "transparencyR", "transparencyG", "transparencyB"};
+	for ($i = 0; $i < size($attrs); $i++) {
+		string $plugs[] = `listConnections -p 1 -s 1 -d 0 ($smat+"."+$attrs[$i])`;
+		if (size($plugs)) {
+			//create a reverse and a ramp, plug into the reverse, which color gains the ramp,
+			//then plug the ramp into the incandescence
+			string $ramp = `shadingNode -asTexture ramp`;
+			removeMultiInstance -break true ($ramp+".colorEntryList[1]");
+			removeMultiInstance -break true ($ramp+".colorEntryList[2]");
+			connectAttr -force $out ($ramp+".colorEntryList[0].colorR");
+			connectAttr -force $out ($ramp+".colorEntryList[0].colorG");
+			connectAttr -force $out ($ramp+".colorEntryList[0].colorB");
+			
+			string $reverse = `shadingNode -asUtility reverse`;
+			connectAttr -f ($plugs[0]) ($reverse+".input");
+			connectAttr -f ($reverse+".output") ($ramp+".colorGain");
+			disconnectAttr ($out) ($mat+".incandescenceR");
+			disconnectAttr ($out) ($mat+".incandescenceG");
+			disconnectAttr ($out) ($mat+".incandescenceB");
+			connectAttr -f ($ramp+".outColor")  ($mat+".incandescence");
+			
+			connectAttr -f ($plugs[0]) ($mat+".transparency");
+			$hasTrans = 1;
+		}
+	}
+	
+	if (size($attrs) > 1) {
+		for ($i = 1; $i < size($attrs); $i++) {
+			float $trans = `getAttr ($smat+"."+$attrs[$i])`;
+			if ($trans != 0 && `getAttr -se ($smat+"."+$attrs[$i])`) {
+				setAttr ($mat+"."+$attrs2[$i]) $trans;
+				$hasTrans = 1;
+			}
+		}
+	} else if (size($attrs) == 1) {
+		print ("1: ");
+		print $attrs;
+		float $trans = `getAttr ($smat+"."+$attrs[0])`;
+		if ($trans != 0 && `getAttr -se ($smat+"."+$attrs[0])`) {
+			setAttr ($mat+"."+$attrs2[0]) $trans;
+			setAttr ($mat+"."+$attrs2[1]) $trans;
+			setAttr ($mat+"."+$attrs2[2]) $trans;
+			$hasTrans = 1;
+		}
+	}
+	
+	return {$mat, $sg, $hasDisp, $hasTrans};
+}
+
+
+/** Sets the min and max distance of the z depth shader **/
+global proc bzdshSetRange(float $min, float $max) {
+	string $setRange = bzdshGetSetRange();
+	if (size($setRange)) {
+		setAttr ($setRange+".oldMinX") $min;
+		setAttr ($setRange+".oldMaxX") $max;
+	}
+}
+global proc bzdshSetRangeMin(float $min) {
+	string $setRange = bzdshGetSetRange();
+	if (size($setRange)) {
+		setAttr ($setRange+".oldMinX") $min;
+	}
+}
+global proc bzdshSetRangeMax(float $max) {
+	string $setRange = bzdshGetSetRange();
+	if (size($setRange)) {
+		setAttr ($setRange+".oldMaxX") $max;
+	}
+}
+/** sets the color 1 and 2 of the blendColors node for an easy invert **/
+global proc bzdshInvert(int $invert) {
+	string $blend = bzdshGetBlend();
+	if (size($blend)) {
+		setAttr ($blend+".color1") -type double3 $invert $invert $invert;
+		setAttr ($blend+".color2") -type double3 (!$invert) (!$invert) (!$invert);
+	}
+}
+
+
+
+
+/** Returns the out plug of the last node in the zShader tree **/
+global proc string bzdshGetFinalOut() {
+	string $mat[] = `ls "*.bzdshShaderMat"`;
+	if (!size($mat))
+		return "-1";
+	string $plugs[] = `listConnections -p 1 -s 1 -d 0 $mat[0]`;
+	if (!size($plugs))
+		return "-2";
+	
+	return $plugs[0];
+}
+/** Finds the zSetRange node, if it exists **/
+global proc string bzdshGetSetRange() {
+	string $ls[] = `ls "*.bzdshSetRange"`;
+	if (!size($ls))
+		return "";
+	string $setRange = `match "^[^\.]*" $ls[0]`;
+	return $setRange;
+}
+/** Finds the blend node, if it exists **/
+global proc string bzdshGetBlend() {
+	string $ls[] = `ls "*.bzdshBlendColors"`;
+	if (!size($ls))
+		return "";
+	string $blend = `match "^[^\.]*" $ls[0]`;
+	return $blend;
+}
+
+
+
+/**
+* Returns a list of shading engines in the scene
+* Only finds shaders that have set members
+**/
+global proc string[] bzdshGetSGs() {
+	string $sgs[] = `ls -typ "shadingEngine"`;
+	
+	string $invalidMatTypes[] = {"displacementShader", "particleCloud", "shaderGlow", "RenderManVolume", "envFog", "lightFog", "volumeFog", "volumeShader", "fluidShape"};
+	
+	for ($i = size($sgs)-1; $i >= 0; $i--) {
+		string $mat = bzdshGetMat($sgs[$i]);
+		string $nodeType = `nodeType $mat`;
+		
+		if (stringArrayContains($nodeType, $invalidMatTypes))
+			$sgs = stringArrayRemove({$sgs[$i]}, $sgs);
+	}
+	
+	return $sgs;
+}
+
+/** Returns a list of sgs of which empty sets have been removed **/
+global proc string[] bzdshRemoveEmptySGs(string $sgs[]) {
+	string $cleanSGs[];
+	for ($sg in $sgs) {
+		//check for empty shading group
+		string $objs[] = bzdshGetMembers($sg);
+		if (size($objs)) {
+			$cleanSGs[size($cleanSGs)] = $sg;
+		}
+	}
+	return $cleanSGs;
+}
+
+/** Returns a list of mats who have no displacement shaders or alpha maps **/
+global proc string[] bzdshGetCleanSGs(string $sgs[]) {
+	string $cleanSGs[];
+	
+	for ($sg in $sgs) {
+		//check for displacement shader
+		if (size(`listConnections($sg+".displacementShader")`)) {
+			continue;
+		}
+		
+		//check for transparency value and connections
+		string $mat = bzdshGetMat($sg);
+		string $attrs[] = {"transparency", "transparencyR", "transparencyG", "transparencyB"};
+		if (!attributeExists ($attrs[0], $mat))
+			$attrs = {"outTransparency", "outTransparencyR", "outTransparencyG", "outTransparencyB"};
+		if (!attributeExists($attrs[0], $mat))
+			$attrs = {};
+		
+		if (size($attrs) > 1) {
+			float $trans[] = `getAttr ($mat+"."+$attrs[0])`;
+			if ($trans[0] != 0 || $trans[1] != 0 || $trans[2] != 0) {
+				continue;
+			}
+			
+			if (size(`listConnections($mat+"."+$attrs[0])`))
+				continue;
+			if (size(`listConnections($mat+"."+$attrs[1])`))
+				continue;
+			if (size(`listConnections($mat+"."+$attrs[2])`))
+				continue;
+		} else if (size($attrs)) {
+			float $trans = `getAttr ($mat+"."+$attrs[0])`;
+			if ($trans != 0)
+				continue;
+			
+			if (size(`listConnections($mat+"."+$attrs[0])`))
+				continue;
+		}
+		
+		$cleanSGs[size($cleanSGs)] = $sg;
+	}
+	
+	return $cleanSGs;
+}
+
+/** Given a shading engine, returns the corresponding material, if it exists **/
+global proc string bzdshGetMat(string $sg) {
+	string $connects[] = `listConnections ($sg+".surfaceShader")`;
+	if (size($connects))
+		return $connects[0];
+	else
+		return "";
+}
+
+/** Given a shading engine, finds the members **/
+global proc string[] bzdshGetMembers(string $sg) {
+	string $objs[] = `listConnections -sh 1 -s 1 -d 0 ($sg+".dagSetMembers")`;
+	return $objs;
+}
+
+
+
+global proc string boValidateObjectName(string $name) {
+	string $pattern = "[^1-9a-zA-Z_]";
+	int $i = 0;
+	while(size(`match $pattern $name`) > 0) {
+		$name = `substitute $pattern $name "_"`;
+		$i++; if ($i > 1000) break;
+	}
+	
+	return $name;
+}
+ 

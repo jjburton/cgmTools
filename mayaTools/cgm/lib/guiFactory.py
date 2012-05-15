@@ -128,8 +128,20 @@ def warning(message):
             mel.eval('%s%s%s' %("$messageVar =  '", message,"'"))
         else:
             mel.eval('%s%s%s' %('$messageVar =  "', message,'"'))
+            
         mel.eval('warning $messageVar')
-
+        
+def error(message):
+    try:
+        mc.error(message)
+    except:
+        if "'" in list(message):
+            mel.eval('%s%s%s' %("$messageVar =  '", message,"'"))
+        else:
+            mel.eval('%s%s%s' %('$messageVar =  "', message,'"'))
+            
+        mel.eval('error $messageVar')
+        
 def showAbout(uiWin):
     window = mc.window( title="About", iconName='About', widthHeight=(200, 55),backgroundColor = guiBackgroundColor )
     mc.columnLayout( adjustableColumn=True )
@@ -572,6 +584,9 @@ def doProgressBar(winName,trackedList,statusMessage):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Reporting
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def report(message):
+    print ("# Report: %s #"%message)
+    
 def doPrintReportStart():
     return '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
 

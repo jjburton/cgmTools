@@ -73,7 +73,7 @@ def polyUniteGeo(objList,name='unitedGeo'):
                 if outGeoNode != False:
                     break
         else:
-            geoShapes = mc.listRelatives(obj,shapes=True)
+            geoShapes = mc.listRelatives(obj,shapes=True,fullPath=True)
             if mc.objExists(geoShapes[0]+'.outMesh') == True:
                 outGeoNode = (geoShapes[0]+'.outMesh')
                 geoOutNodes.append(geoShapes[0])
@@ -94,6 +94,7 @@ def polyUniteGeo(objList,name='unitedGeo'):
     nodeTracker = []
     for obj in objList:
         index = objList.index(obj)
+        print geoOutNodes[index]
         if search.returnObjectType( (geoOutNodes[index]) ) is 'shape':
             mc.connectAttr(('%s%s'% (geoOutNodes[index],'.outMesh')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
             mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
@@ -105,6 +106,10 @@ def polyUniteGeo(objList,name='unitedGeo'):
                 mc.connectAttr(('%s%s'% (geoOutNodes[index],'[0]')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
             mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
             nodeTracker.append(geoOutNodes[index])
+        """
+        except:
+            guiFactory.warning("'%s' failed to add. Verify that the object is polyGeo"%obj)
+        """
 
     """ Create our outPut mesh"""
     unitedGeoShape = mc.createNode('mesh')
@@ -549,7 +554,7 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
             print ('breaking....' + blendShapeBuffer)
             """break it """
             attributes.breakConnection(blendShapeBuffer)
-            attributes.doSetAttr(blendShapeBuffer,0)
+            attributes.doSetAttr(blendShapeNode,shape,0)
 
     # Bake it
     bakedGeo = bakeBlendShapes(sourceObject, targetObjectBaked, blendShapeNode, baseNameToUse, stripPrefix, ignoreInbetweens, ignoreTargets)
@@ -685,7 +690,7 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
         blendShapeConnections.append(attributes.returnDriverAttribute(blendShapeBuffer))
         """break it """
         attributes.breakConnection(blendShapeBuffer)
-        attributes.doSetAttr(blendShapeBuffer,0)
+        attributes.doSetAttr(blendShapeNode,shape,0)
 
     """ Find pairs """
     blendshapePairs = lists.returnMatchedStrippedEndList(blendShapeNodeChannels,directions)
@@ -714,10 +719,8 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
         blendShapeNodeChannelsBuffer = blendshapePairs[pair]
         shape1 = blendShapeNodeChannelsBuffer[0]
         shape2 = blendShapeNodeChannelsBuffer[1]
-        blendShape1Buffer = (blendShapeNode+'.'+shape1)
-        blendShape2Buffer = (blendShapeNode+'.'+shape2)
-        attributes.doSetAttr(blendShape1Buffer,1)
-        attributes.doSetAttr(blendShape2Buffer,1)
+        attributes.doSetAttr(blendShapeNode,shape1,1)
+        attributes.doSetAttr(blendShapeNode,shape2,1)
         dupBuffer = mc.duplicate(targetObjectBaked)
         splitBuffer = blendShapeShortNames[pair].split('_')
         nameBuffer = splitBuffer[:-1]
@@ -727,8 +730,8 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
         mc.xform(dupBuffer,r=True,t=[((sizeX*(t+1.2))*1.5),(sizeY*row*-1.5),0])
         bakedGeo.append(dupBuffer)
 
-        attributes.doSetAttr(blendShape1Buffer,0)
-        attributes.doSetAttr(blendShape2Buffer,0)
+        attributes.doSetAttr(blendShapeNode,shape1,0)
+        attributes.doSetAttr(blendShapeNode,shape2,0)
         pair +=1
         t+=1
 

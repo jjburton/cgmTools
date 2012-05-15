@@ -89,8 +89,8 @@ def createJoystickControl(name,mode='classic',border = True):
         borderBuffer = rigging.doParentReturnName(borderBuffer,controlTransform)
         shapes = mc.listRelatives(borderBuffer, shapes = True)
         for shape in shapes:
-            attributes.doSetAttr((shape+'.overrideEnabled'),1)
-            attributes.doSetAttr((shape+'.overrideDisplayType'),1)
+            attributes.doSetAttr(shape, 'overrideEnabled', 1)
+            attributes.doSetAttr(shape, 'overrideDisplayType', 1)
 
     """ make the joystick"""
     controlBuffer = curves.createControlCurve('circle',.25)
@@ -253,9 +253,9 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
         attributes.doConnectAttr((visControl+'.skeleton'),(skeletonNull.nameLong+'.v'))
         attributes.doConnectAttr((visControl+'.geo'),(geoNull.nameLong+'.v'))
         
-        attributes.doSetAttr((visControl+'.rig'),1)
-        attributes.doSetAttr((visControl+'.skeleton'),1)
-        attributes.doSetAttr((visControl+'.geo'),1)
+        attributes.doSetAttr(visControl, 'rig', 1)
+        attributes.doSetAttr(visControl, 'skeleton', 1)
+        attributes.doSetAttr(visControl, 'geo', 1)
             
     """ store it to the master null"""
     attributes.storeInfo(masterNull,'controlMaster',rootCurve)

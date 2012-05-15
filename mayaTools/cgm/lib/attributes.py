@@ -164,8 +164,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
                     objAttrType = mc.getAttr((obj+'.'+infoType),type=True)
                     if infoAttrType != objAttrType:
                         convertAttrType((obj+'.'+infoType),infoAttrType)
-                print infoAttrType
-                print objAttrType
+
                 
                 doConnectAttr(info,attributeBuffer)
                 
@@ -182,7 +181,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Set/Copy/Delete Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doGetAttr(obj,attr):
+def doGetAttr(obj,attr,*a, **kw):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -202,11 +201,13 @@ def doGetAttr(obj,attr):
         objAttributes =(mc.listAttr (obj))
         messageBuffer = []
         messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
-
         if messageQuery == True:
             query = (mc.listConnections(obj+'.'+attr))
             if not query == None:
                 return query[0]
+        else:
+            return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+        """
         elif attrType == 'double3':
             childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
             dataBuffer = []
@@ -219,13 +220,11 @@ def doGetAttr(obj,attr):
                 attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
         else:
             return (mc.getAttr((obj+'.'+attr)))
+        """
     else:
         return False
 
 
-
-
-    mc.attributeQuery('position', node ='closestPointOnMesh3', listChildren = True)
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
@@ -268,15 +267,17 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
             mc.connectAttr(bufferConnection,fromAttr)
 
 
-def doSetAttr(attribute,value,forceLock = False):
+def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
     """                                     
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Replacement for setAttr which will unlock a locked node it's given
-    to force a setting of the values. Also has a lock when done overide
+    to force a setting of the values. It will also break connections to
+    set a value. Also has a lock when done overide
 
     ARGUMENTS:
-    attribute(string) - 'obj.attribute'
+    obj(string)
+    attribute(string)
     value() - depends on the attribute type
     forceLock(bool) = False(default)
 
@@ -284,17 +285,36 @@ def doSetAttr(attribute,value,forceLock = False):
     nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    attrBuffer = '%s.%s'%(obj,attribute)
     wasLocked = False
-    if (mc.objExists(attribute)) == True:
-        if mc.getAttr(attribute,lock=True) == True:
-            wasLocked = True
-            mc.setAttr(attribute,lock=False)
-            mc.setAttr(attribute,value)
-        else:
-            mc.setAttr(attribute,value)
+    
+    if (mc.objExists(attrBuffer)) == True:
+        try:
+            attrType = mc.getAttr(attrBuffer,type=True)
+            
+            if mc.getAttr(attrBuffer,lock=True) == True:
+                wasLocked = True
+                mc.setAttr(attrBuffer,lock=False)
+                
+            if breakConnection(attrBuffer):
+                guiFactory.warning("'%s' connection broken"%(attrBuffer))
+            
+            if attrType == 'long':
+                mc.setAttr(attrBuffer,int(float(value)), *a, **kw)
+            elif attrType == 'string':
+                mc.setAttr(attrBuffer,str(value),type = 'string', *a, **kw)
+            elif attrType == 'double':
+                mc.setAttr(attrBuffer,float(value), *a, **kw)
+            else:
+                mc.setAttr(attrBuffer,value, *a, **kw)
+            
+            if wasLocked == True or forceLock == True:
+                mc.setAttr(attrBuffer,lock=True)
+            guiFactory.report("'%s' set to '%s'"%(attrBuffer,value))
+        except:
+            guiFactory.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
 
-    if wasLocked == True or forceLock == True:
-        mc.setAttr(attribute,lock=True)
+
 
 def doSetStringAttr(attribute,value,forceLock = False):
     """                                     
@@ -476,7 +496,7 @@ def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False
             """if it doesn't exist, make it"""
             if mc.objExists(toObject+'.'+attr) is not True:
                 attrType = (attrTypes.get(attr))
-                print attrType
+                
                 if attrType == 'string':
                     mc.addAttr (toObject, ln = attr,  dt =attrType )
                 elif attrType == 'enum':
@@ -721,21 +741,21 @@ def doSetOverrideSettings(obj,enabled=True,displayType=1,levelOfDetail = 0,overr
     shapes = mc.listRelatives(obj,shapes = True)
     if shapes > 0:
         for shape in shapes:
-            doSetAttr((shape+'.overrideEnabled'),enabled)
-            doSetAttr((shape+'.overrideDisplayType'),displayType)
-            doSetAttr((shape+'.overrideLevelOfDetail'),levelOfDetail)
-            doSetAttr((shape+'.overrideShading'),overrideShading)
-            doSetAttr((shape+'.overrideTexturing'),overrideTexturing)
-            doSetAttr((shape+'.overridePlayback'),overridePlayback)
-            doSetAttr((shape+'.overrideVisible'),overrideVisible)
+            doSetAttr(shape, 'overrideEnabled', enabled)
+            doSetAttr(shape, 'overrideDisplayType', displayType)
+            doSetAttr(shape, 'overrideLevelOfDetail', levelOfDetail)
+            doSetAttr(shape, 'overrideShading', overrideShading)
+            doSetAttr(shape, 'overrideTexturing', overrideTexturing)
+            doSetAttr(shape, 'overridePlayback', overridePlayback)
+            doSetAttr(shape, 'overrideVisible', overrideVisible)
     else:
-        doSetAttr((obj+'.overrideEnabled'),enabled)
-        doSetAttr((obj+'.overrideDisplayType'),displayType)
-        doSetAttr((obj+'.overrideLevelOfDetail'),levelOfDetail)
-        doSetAttr((obj+'.overrideShading'),overrideShading)
-        doSetAttr((obj+'.overrideTexturing'),overrideTexturing)
-        doSetAttr((obj+'.overridePlayback'),overridePlayback)
-        doSetAttr((obj+'.overrideVisible'),overrideVisible)
+        doSetAttr(obj, 'overrideEnabled', enabled)
+        doSetAttr(obj, 'overrideDisplayType', displayType)
+        doSetAttr(obj, 'overrideLevelOfDetail', levelOfDetail)
+        doSetAttr(obj, 'overrideShading', overrideShading)
+        doSetAttr(obj, 'overrideTexturing', overrideTexturing)
+        doSetAttr(obj, 'overridePlayback', overridePlayback)
+        doSetAttr(obj, 'overrideVisible', overrideVisible)
 
 def doToggleTemplateDisplayMode(obj):
     """ 
@@ -755,11 +775,11 @@ def doToggleTemplateDisplayMode(obj):
     if shapes > 0:
         for shape in shapes:
             currentState = doGetAttr(shape,'template')
-            doSetAttr((shape+'.template'), not currentState)
+            doSetAttr(shape, 'template', not currentState)
 
     else:
         currentState = doGetAttr(obj,'template')
-        doSetAttr((obj+'.template'), not currentState)
+        doSetAttr(obj,'template', not currentState)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def deleteAttr(obj,attr):
@@ -866,7 +886,6 @@ def breakConnection(attr):
     source = []
     if (mc.connectionInfo (attr,isDestination=True)):
         source = (mc.connectionInfo (attr,sourceFromDestination=True))
-        print source
 
         #>>>See if stuff is locked
         if mc.getAttr(attr,lock=True):
@@ -888,7 +907,7 @@ def breakConnection(attr):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def returnDriverAttribute(attribute):
+def returnDriverAttribute(attribute,skipConversionNodes = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -903,12 +922,12 @@ def returnDriverAttribute(attribute):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if (mc.connectionInfo (attribute,isDestination=True)) == True:
-        sourcebuffer = (mc.connectionInfo (attribute,sourceFromDestination=True))
-        return sourcebuffer
+        sourcebuffer = mc.listConnections (attribute, scn = skipConversionNodes, s = True, plugs = True)
+        return sourcebuffer[0]
     else:
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDriverObject(attribute):
+def returnDriverObject(attribute,skipConversionNodes = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -921,14 +940,12 @@ def returnDriverObject(attribute):
     Success - driverObj(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    objectBuffer =  returnDriverAttribute (attribute)
-    if objectBuffer:
-        strippedObject = '.'.join(objectBuffer.split('.')[0:-1])
-        return strippedObject
-    else:
+    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, s = True, plugs = False)
+    if not objectBuffer:
         return False
+    return objectBuffer[0]
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDrivenAttribute(attribute):
+def returnDrivenAttribute(attribute,skipConversionNodes = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -943,12 +960,12 @@ def returnDrivenAttribute(attribute):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if (mc.connectionInfo (attribute,isSource=True)) == True:
-        destinationBuffer = (mc.connectionInfo (attribute,destinationFromSource=True))
+        destinationBuffer = mc.listConnections (attribute, scn = skipConversionNodes, d = True, plugs = True)
         return destinationBuffer
     else:
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDrivenObject(attribute):
+def returnDrivenObject(attribute,skipConversionNodes = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -961,15 +978,14 @@ def returnDrivenObject(attribute):
     Success - drivenObj(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    objectsBuffer =  returnDrivenAttribute (attribute)
-    returnBuffer = []
-    if objectsBuffer:
-        for o in objectsBuffer:
-            strippedObject = '.'.join(o.split('.')[0:-1])
-            returnBuffer.append( strippedObject )
-        return returnBuffer
-    else:
+    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, d = True, plugs = False)
+    if not objectBuffer:
         return False
+    
+    if attribute in objectBuffer:
+        objectBuffer.remove(attribute)
+
+    return objectBuffer
 
 
 

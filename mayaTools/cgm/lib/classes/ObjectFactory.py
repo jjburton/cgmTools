@@ -155,7 +155,7 @@ class ObjectFactory():
         assert mc.objExists(targetObject) is True, "'%s' - target object doesn't exist" %targetObject        
         assert mc.ls(targetObject,type = 'transform'),"'%s' has no transform"%targetObject
         buffer = mc.getAttr(targetObject + '.rotateOrder')
-        attributes.doSetAttr(self.nameLong + '.rotateOrder',buffer) 
+        attributes.doSetAttr(self.nameLong, 'rotateOrder',buffer) 
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Rigging Functions

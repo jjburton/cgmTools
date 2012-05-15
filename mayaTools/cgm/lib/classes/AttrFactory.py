@@ -71,6 +71,8 @@ class AttrFactory():
                 self.convert(attrType)
             else:
                 self.attr = attrName
+                self.form = currentType
+                self.get(*a, **kw)
         else:
             try:
                 if self.form == False:
@@ -103,6 +105,12 @@ class AttrFactory():
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def convert(self,attrType):
+        """ 
+        Converts an attribute type from one to another
+        
+        Keyword arguments:
+        attrType(string)        
+        """        
         #try:
         attributes.convertAttrType('%s.%s'%(self.obj.nameLong,self.attr),attrType)
             
@@ -111,6 +119,12 @@ class AttrFactory():
             
             
     def validateRequestedAttrType(self,attrType):
+        """ 
+        Returns if an attr type is valid or not
+        
+        Keyword arguments:
+        attrType(string)        
+        """          
         aType = False
         for option in attrTypesDict.keys():
             if attrType in attrTypesDict.get(option): 
@@ -120,33 +134,55 @@ class AttrFactory():
         return aType
     
     def set(self,value,*a, **kw):
+        """ 
+        Set attr value based on attr type
+        
+        Keyword arguments:
+        value(varied)   
+        *a, **kw
+        """
         try:
-            attrBuffer = '%s.%s'%(self.obj.nameLong,self.attr)
-            if self.form == 'long':
-                mc.setAttr(attrBuffer,int(float(value)),*a, **kw)
-            elif self.form == 'string':
-                mc.setAttr(attrBuffer,str(value),type = 'string',*a, **kw)
-            elif self.form == 'double':
-                mc.setAttr(attrBuffer,float(value),*a, **kw)
-            elif self.form == 'message':
-                buffer = attributes.storeObjectToMessage(value,self.obj.nameLong,self.attr)
-                if not buffer:
-                    guiFactory.warning("'%s.%s' failed to add '%s'. Guessing it doesn't exist"%(self.obj.nameLong,self.attr,value))                    
-            else:
-                mc.setAttr(attrBuffer,value,type = self.form,*a, **kw)        
-    
-            mc.setAttr('%s.%s'%(self.obj.nameLong,self.attr),*a, **kw)
+            attributes.doSetAttr(self.obj.nameLong,self.attr, value, *a, **kw)
+        
         except:
             guiFactory.warning("'%s.%s' failed to set '%s'"%(self.obj.nameLong,self.attr,value))
         
+        
     def get(self,*a, **kw):
+        """ 
+        Get and store attribute value based on attr type
+        
+        Keyword arguments:
+        *a, **kw
+        """     
         try:
             if self.form == 'message':
                 self.value = attributes.returnMessageObject(self.obj.nameLong,self.attr)
             else:
-                self.value =  mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),*a, **kw)
-            guiFactory.warning("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
+                self.value =  attributes.doGetAttr(self.obj.nameLong,self.attr,*a, **kw)
+            guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
+            return self.value
         except:
-            guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
+            guiFactory.error("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
+            
+    def getMessage(self,*a, **kw):
+        """ 
+        Get and store attribute value as if they were messages. Used for bufferFactory to use a connected
+        attribute as a poor man's attribute message function
+        
+        Keyword arguments:
+        *a, **kw
+        """   
+        try:
+            if self.form == 'message':
+                self.value = attributes.returnMessageObject(self.obj.nameLong,self.attr)
+            else:
+                self.value = attributes.returnDriverAttribute("%s.%s"%(self.obj.nameLong,self.attr))
+
+            guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
+            return self.value
+            
+        except:
+            guiFactory.error("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
             
         

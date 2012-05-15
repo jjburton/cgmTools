@@ -440,7 +440,54 @@ def returnObjectsConnectedToObj(obj,messageOnly = False):
     else:
         return False
         
+def seekUpStream(startingNode,endObjType = False,incPlugs=False):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    NOT DONE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ACKNOWLEDGEMENT:
+    Modified from Scott Englert's MEL script
 
+    DESCRIPTION:
+    Replacement for getAttr which get's message objects as well as parses double3 type
+    attributes to a list
+
+    ARGUMENTS:
+    obj(string)
+    attr(string)
+
+    RETURNS:
+    attrInfo(varies)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    #
+    currentNode = startingNode
+    destNodeType = ''
+    timeOut = 0
+    # do a loop to keep doing down stream on the connections till the type
+    # of what we are searching for is found
+
+    while destNodeType != endObjType and timeOut < 50:
+        destNodeName = mc.listConnections(currentNode, scn = True, s= False)
+        if not destNodeName:
+            endNode = 'not found'
+            break
+        if incPlugs:
+            destNodeNamePlug = mc.listConnections(currentNode, scn = True, p = True, s= False)
+            endNode = destNodeName[0]
+        else:
+            endNode = destNodeName[0]
+        # Get the Node Type
+        destNodeTypeBuffer = mc.ls(destNodeName[0], st = True)
+        destNodeType = destNodeTypeBuffer[1]
+
+        if destNodeType == 'pairBlend':
+            pairBlendInPlug = mc.listConnections(currentNode, scn = True, p = True, s= False)
+            print ('pairBlendInPlug is %s' %pairBlendInPlug)
+        else:
+            currentNode = destNodeName[0]
+        timeOut +=1
+    return endNode
+    
 def seekDownStream(startingNode,endObjType,incPlugs=False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -473,6 +520,7 @@ def seekDownStream(startingNode,endObjType,incPlugs=False):
         else:
             destNodeName = mc.listConnections(currentNode, scn = True, s= False)
             if not destNodeName:
+                print destNodeName
                 endNode = 'not found'
                 break
             if incPlugs:
