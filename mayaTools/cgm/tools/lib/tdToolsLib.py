@@ -1442,7 +1442,7 @@ def curveControlConnect(self):
 	    buffer = updateTransform(obj.nameShort,source.nameShort)
 	    print buffer
 	    obj.update(buffer)
-	    obj.name()
+	    obj.doName()
 	    obj.store('cgmAim',(mc.optionVar( q = 'cgmVar_ObjectAimAxis')) )
 	    obj.store('cgmUp',(mc.optionVar( q = 'cgmVar_ObjectUpAxis')) )
 	    
