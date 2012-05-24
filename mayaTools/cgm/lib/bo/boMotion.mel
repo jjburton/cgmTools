@@ -1,0 +1,144 @@
+/*
+    Motion
+    0.8.2
+    
+    Copyright © 2010 Bohdon Sayre
+	All Rights Reserved.
+	bsayre@c.ringling.edu
+    
+    Description:
+        Allows you to track the movement of any vertex over time.
+    
+    unique prefix: bmo
+
+	Version 0.8:
+			Starting development, not bug tested
+	
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc boMotion() {
+	//window name
+	string $bmoWin = "bmoWin";
+	
+	//check for pre-existing window
+	if (`window -exists $bmoWin`) deleteUI -window $bmoWin;
+	
+	//create window
+	window  -w 200 -h 200 -s 1 -rtf 1 -mb 1 -mxb 0 -mnc "window -e -t \"Motion 0.8.2\" bmoWin;" -t "Motion 0.8.2" $bmoWin;
+	
+	string $form = `formLayout -nd 100`;
+		textScrollList -w 150 -h 160 -ams 1 bmoObjectList;
+        button -w 75 -l "add"
+            -c bmoObjectAdd
+            bmoObjectAddBtn;
+        button -w 75 -l "remove"
+            -c "for ($itr in `textScrollList -q -si bmoObjectList`) {textScrollList -e -ri $itr bmoObjectList;}"
+            bmoObjectClearBtn;
+        
+		colorIndexSliderGrp -cw3 1 60 106 -label "" -min 1 -max 32 -value 17 bmoCurveColorSlider;
+
+		button -w 150 -bgc .7 .8 .9 -l "Create Motion Path"
+            -c bmoCreateMotionPath
+            bmoCreateMotionPathBtn;
+		button -w 150 -l "Toggle CVs"
+            -c "toggle -controlVertex"
+            bmoToggleCVsBtn;
+		button -w 150 -bgc .9 .55 .5 -l "Delete All Paths"
+            -c "delete bmoMotionPath_grp"
+            bmoDeleteMotionPathBtn;
+    
+    formLayout -e
+        -af bmoObjectList "top" 0
+        -af bmoObjectList "left" 0
+        -af bmoObjectList "right" 0
+        -ac bmoObjectList "bottom" 2 bmoObjectAddBtn
+        -af bmoObjectAddBtn "left" 0
+        -ap bmoObjectAddBtn "right" 1 50
+        -ac bmoObjectAddBtn "bottom" 6 bmoCurveColorSlider
+        -af bmoObjectClearBtn "right" 0
+        -ap bmoObjectClearBtn "left" 1 50
+        -ac bmoObjectClearBtn "bottom" 6 bmoCurveColorSlider
+        -af bmoCurveColorSlider "left" 0
+        -af bmoCurveColorSlider "right" 0
+        -ac bmoCurveColorSlider "bottom" 6 bmoCreateMotionPathBtn
+        -af bmoCreateMotionPathBtn "left" 0
+        -af bmoCreateMotionPathBtn "right" 0
+        -ac bmoCreateMotionPathBtn "bottom" 2 bmoToggleCVsBtn
+        -af bmoToggleCVsBtn "left" 0
+        -af bmoToggleCVsBtn "right" 0
+        -ac bmoToggleCVsBtn "bottom" 6 bmoDeleteMotionPathBtn
+        -af bmoDeleteMotionPathBtn "left" 0
+        -af bmoDeleteMotionPathBtn "right" 0
+        -af bmoDeleteMotionPathBtn "bottom" 0
+        $form;
+    
+	window -e -w 158 $bmoWin;
+	showWindow $bmoWin;
+}
+
+global proc bmoObjectAdd() {
+	string $selList[] = `ls -fl -sl`;
+	
+	if (!`size($selList)`) return;
+	
+	for ($i in $selList) {
+		textScrollList -e -append $i bmoObjectList;
+	}
+}
+
+
+global proc bmoCreateMotionPath() {
+	string $objList[] = `textScrollList -q -si bmoObjectList`;
+	
+	if (!`size($objList)`) return ;
+	
+	int $st = `playbackOptions -q -min`;
+	int $et = `playbackOptions -q -max`;
+	int $curTime = `currentTime -q`;
+	int $curveColor = `colorIndexSliderGrp -q -v bmoCurveColorSlider`;
+	string $bmoCurve;
+	
+	refresh -su 1;
+	for ($obj in $objList) {		
+		string $niceNameObj = `substitute "\\." $obj "_"`;
+		$niceNameObj = `substitute "\\[" $niceNameObj ""`;
+		$niceNameObj = `substitute "]" $niceNameObj ""`;
+		
+		//check for existing curve, and delete
+		if (`objExists ($niceNameObj+"_bmoMPath")`)
+			delete ($niceNameObj+"_bmoMPath");
+	
+		//iterate through time and grab pointPositions
+		for ($t = $st; $t <= $et; $t++) {
+			//set the time
+			currentTime $t;
+			
+			//get position of point
+			float $pos[] = `pointPosition $obj`;
+			
+			//first time actions
+			if ($t == $st) {
+				//create motion curve
+				curve -d 2 -p $pos[0] $pos[1] $pos[2];
+				$bmoCurve = `rename ($niceNameObj+"_bmoMPath")` ;
+			} else if ($t > $st && $t < $et) {
+				//add points to motion curve
+				curve -a -p $pos[0] $pos[1] $pos[2] $bmoCurve;
+			} else if ($t == $et) {
+				//create parent group if needed
+				if (!`objExists "bmoMotionPath_grp"`)
+					group -em -n "bmoMotionPath_grp";
+				
+				setAttr ($bmoCurve+".overrideEnabled") 1;
+				setAttr ($bmoCurve+".overrideColor") ($curveColor-1);
+				
+				parent $bmoCurve bmoMotionPath_grp;
+				toggle -controlVertex $bmoCurve;
+			}
+		}
+	}
+	refresh -su 0;
+}
+

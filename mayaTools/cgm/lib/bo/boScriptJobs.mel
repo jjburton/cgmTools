@@ -1,0 +1,122 @@
+/*
+    Script Jobs
+    1.0
+    
+    Copyright (c) 2010 Bohdon Sayre
+    All Rights Reserved.
+    bo@bohdon.com
+    
+    unique prefix: bsj
+    
+    Description:
+        Provides a manager and helpful procedures
+		for handling script jobs
+    
+    Instructions:
+        boScriptJobs;
+    
+	Version 1.0:
+		> Window manager for deleting jobs
+	
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc boScriptJobs() {
+//main window procedure
+
+	//window name
+	$win = "bsjWin";
+	
+	//check for pre-existing window
+	if (`window -ex $win`) deleteUI -wnd $win;
+	
+	//create window
+	window -rtf 1 -mb 1 -mxb 0 -t "Bo Script Job Manager" -mnc ("window -e -t \"Bo Script Job Manager\" "+$win+";") $win;
+	
+	//main layout
+	frameLayout -lv 0 -bv 0 -mw 4 -mh 4;
+		formLayout -nd 10 bsjMgrForm;
+			button -l "List Jobs" -c "bsjMgrRefresh" bsjMgrRefreshBtn;
+			//main job list
+			textScrollList -h 200 -ams 1 bsjMgrList;
+			//list popup menu
+			popupMenu -mm 1 -aob 1;
+				menuItem -rp "S" -l "Delete" -c "bsjMgrDeleteSelected";
+			
+		formLayout -e
+			-ap bsjMgrRefreshBtn "left" 0 0
+			-ap bsjMgrRefreshBtn "right" 0 10
+			-ac bsjMgrList "top" 4 bsjMgrRefreshBtn
+			-ap bsjMgrList "left" 0 0
+			-ap bsjMgrList "right" 0 10
+			-ap bsjMgrList "bottom" 0 10
+			bsjMgrForm;
+	
+	window -e -w 300 -h 550 $win;
+	showWindow $win;
+}
+
+global proc bsjMgrRefresh() {
+	string $scriptJobList[] = `scriptJob -lj`;
+	
+	//string newlines
+	$scriptJobList = `bsjMgrStripNewlines $scriptJobList`;
+	
+	textScrollList -e -ra bsjMgrList;
+	for ($scriptJob in $scriptJobList) {
+		textScrollList -e -a $scriptJob bsjMgrList;
+	}
+}
+global proc bsjMgrDeleteSelected() {
+	string $jobsToDelete[] = `textScrollList -q -si bsjMgrList`;
+	if (!size($jobsToDelete))
+		return;
+	
+	int $sjNums[] = `bsjMgrExtractNums $jobsToDelete`;
+
+	print ("\n");
+	
+	int $succeed = 0;
+	for ($num in $sjNums) {
+		if ($num > 27) {
+			if (catch( `scriptJob -kill $num`)) {
+				$succeed = 0;
+			} else {
+				$succeed = 1;
+			}
+			if ($succeed) {
+				print ("// deleted scriptJob "+$num+"\n");
+			} else {
+				print("// could not delete scriptJob "+$num+"\n");
+			}
+		} else {
+			print ("// please attempt manual deletion of scriptJob "+$num+"\n");
+		}
+	}
+	
+	//refresh
+	textScrollList -e -da bsjMgrList;
+	bsjMgrRefresh();
+	
+}
+
+
+global proc string[] bsjMgrStripNewlines(string $scriptJobList[]) {
+//removes newline characters from the end of each line
+
+	string $sjLines[];
+	for ($line in $scriptJobList) {
+		$sjLines[size($sjLines)] = `substitute "\n" $line ""`;
+	}
+	return $sjLines;
+}
+
+//match operation procedures
+global proc int[] bsjMgrExtractNums(string $scriptJobList[]) {
+	int $sjNums[];
+	for ($line in $scriptJobList) {
+		$sjNums[size($sjNums)] = (int)`match "^[0-9]*[^:]*" $line`;
+	}
+	return $sjNums;
+}

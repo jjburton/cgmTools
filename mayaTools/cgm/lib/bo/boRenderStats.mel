@@ -1,0 +1,211 @@
+/*
+	Render Stats
+	0.8
+	
+	Copyright (c) 2010 Bohdon Sayre
+	All Rights Reserved.
+	bo@bohdon.com
+	
+	unique prefix: brnst
+	
+	Description:
+		A GUI for quickly setting render stats on multiple objects.
+    
+    Instructions:
+        boRenderStats;
+    
+	Version 0.8:
+		> Select/Deselect a checkBox column to select/deselect the attribute on all objects
+		> Horizontal checkBox rows for every selected item
+	
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc boRenderStats() {
+    /**
+    * Main procedure. Creates the GUI and sets up the main script job.
+    **/
+	//window name
+	string $win = "brnstWin";
+	
+	//check for pre-existing window
+	if (`window -exists $win`) deleteUI -window $win;
+	
+	//create window
+	window  -w 200 -s 1 -tlb 1 -t "Render Stats" $win;
+	
+	
+	//build variables
+	string $titles[] = { "Cast", "Receive", "Blur", "Vis", "Smooth", "Reflect", "Refract", "Double", "Opposite" };
+	string $attrs[] = brnstGetAttrs();
+	
+	string $form = `formLayout -nd 100`;
+		string $scroll = `scrollLayout`;
+			columnLayout -adj 1 brnstScrollColumn;
+			
+				//Header Column
+				columnLayout -rs 4 brnstHeaderColumn;
+					int $firstColWidth = 140;
+					int $colWidth = 45;
+				
+					//titles row
+					string $titlesRow = `rowLayout -nc (size($titles) + 1)`;
+						rowLayout -e -cal 1 "center" -cw 1 $firstColWidth $titlesRow;
+						text -w $firstColWidth -fn "boldLabelFont" -l "Object";
+					
+						for ($i = 1; $i < size($titles) + 1; $i++) {
+							rowLayout -e -cal ($i+1) "center" -cw ($i+1) $colWidth $titlesRow;
+							text -w $colWidth -l $titles[$i-1] ("brnstMainCheck_" + $titles[$i-1]);
+						};
+					setParent ..;
+					
+					//checkboxes row
+					string $boxesRow = `rowLayout -nc (size($titles) + 1)`;
+						rowLayout -e -cw 1 ($firstColWidth + $colWidth/2 - 5) $boxesRow;
+						text -l "";
+						for ($i = 1; $i < size($titles) + 1; $i++) {
+							rowLayout -e -cal ($i+1) "center" -cw ($i+1) $colWidth $boxesRow;
+							checkBox -l "" -cc ("brnstCheckAll(\"" + $titles[$i-1] + "\",\"" + $attrs[$i-1] + "\", #1);");
+						};
+					setParent ..;
+					
+				
+				setParent ..;
+				separator -st "single";
+				columnLayout -rs 4 brnstMainColumn;
+				setParent ..;
+			setParent ..;
+		setParent ..;
+	
+	formLayout -e
+		-ap $scroll "left" 0 0
+		-ap $scroll "right" 0 100
+		-ap $scroll "top" 0 0
+		-ap $scroll "bottom" 0 100
+		$form;
+	
+	window -e -w 580 -h 220 $win;
+	showWindow $win;
+	
+	//setup script job
+	brnstSetupScriptjob($win);
+	brnstRefresh();
+
+}
+
+global proc brnstAddObject(string $obj) {
+    /**
+    * Adds an object to the list in the window.
+    **/
+	string $layout = brnstGetLayout();
+	string $titles[] = { "Cast", "Receive", "Blur", "Vis", "Smooth", "Reflect", "Refract", "Double", "Opposite" };
+	string $attrs[] = brnstGetAttrs();
+	int $firstColWidth = 140;
+	int $colWidth = 45;
+	
+	setParent $layout;
+	//checkboxes row
+	string $row = `rowLayout -nc (size($attrs) + 1)`;
+		rowLayout -e -cw 1 ($firstColWidth + $colWidth/2 - 5) $row;
+		text -l $obj;
+		for ($i = 1; $i < size($attrs) + 1; $i++) {
+			rowLayout -e -cal ($i+1) "center" -cw ($i+1) $colWidth $row;
+			
+			string $checkBox = ("brnstCheck_"+$obj+"_"+$titles[$i-1]);
+			int $val = `getAttr ($obj+"."+$attrs[$i-1])`;
+			
+			checkBox -l "" -v $val -cc ("brnstSetAttr(\"" + $obj + "\", \"" + ($attrs[$i-1]) + "\", #1);") $checkBox;
+		}
+}
+
+
+global proc string brnstGetLayout() {
+    /**
+    * Retrieves the layout for adding items to the window. This
+    * is a columnLayout, so that objects can be added easily in a descending order.
+    **/
+	return "brnstMainColumn";
+}
+
+
+global proc string[] brnstGetAttrs() {
+    /**
+    * Returns the current list of render stat attributes. They are listed in the
+    * same order as they appear in the Attribute Editor.
+    **/
+	return { "castsShadows", "receiveShadows", "motionBlur", "primaryVisibility", "smoothShading", "visibleInReflections", "visibleInRefractions", "doubleSided", "opposite" };
+}
+
+
+
+global proc brnstSetupScriptjob(string $parent) {
+    /**
+    * Creates a script job tied to the window. Checks for selection
+    * changes and refreshes the window as necessary.
+    **/
+	scriptJob -p $parent -cu 1 -e "SelectionChanged" "brnstRefresh";
+}
+
+
+
+
+global proc brnstRefresh() {
+    /**
+    * Called on selection change by the script job.
+    * Checks the selection and updates the window contents.
+    **/
+	//clear the layout;
+	string $layout = brnstGetLayout();
+	string $children[] = `columnLayout -q -ca $layout`;
+	if (size($children)) {
+		for ($i = 0; $i < size($children); $i++) {
+			deleteUI -lay $children[$i];
+		}
+	}
+
+	string $selList[] = `ls -r 1 -sl`;
+	if (!size($selList))
+		return;
+	
+	for ($i = 0; $i < size($selList); $i++) {
+		brnstAddObject($selList[$i]);
+	}
+}
+
+
+
+global proc brnstSetAttr(string $obj, string $attr, int $val) {
+    /** Sets a render attribute on the specified object **/
+	if (`objExists ($obj+"."+$attr)`) {
+		setAttr ($obj+"."+$attr) $val;
+	}
+}
+
+global proc brnstUpdateObjs(string $title, string $attr) {
+    /** Retrieves checkBox values, and sets render stats. This is necessary because changeCommand isn't triggered when checkBoxes are edited **/
+    string $selList[] = `ls -r 1 -sl`;
+	if (!size($selList))
+		return;
+	
+	for ($i = 0; $i < size($selList); $i++) {
+		string $checkBox = ("brnstCheck_"+$selList[$i]+"_"+$title);
+		int $val = `checkBox -q -v $checkBox`;
+		setAttr ($selList[$i]+"."+$attr) $val;
+	}
+}
+
+global proc brnstCheckAll(string $title, string $attr, int $val) {
+    /** Checks all checkboxes of the column indicated by the title **/
+	//go through current selection and call the checkboxes by prefix and title suffix, and set their values
+	string $selList[] = `ls -r 1 -sl`;
+	if (!size($selList))
+		return;
+	
+	for ($i = 0; $i < size($selList); $i++) {
+		string $checkBox = ("brnstCheck_"+$selList[$i]+"_"+$title);
+		checkBox -e -v $val $checkBox;
+	}
+	
+	brnstUpdateObjs($title, $attr);
+}

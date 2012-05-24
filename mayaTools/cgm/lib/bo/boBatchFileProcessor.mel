@@ -1,0 +1,174 @@
+/*
+	Batch File Processor
+	1.0
+
+	Copyright © 2010 Bohdon Sayre
+	All Rights Reserved.
+	bsayre@c.ringling.edu
+
+	Description:
+		A GUI for running mel script on multiple Maya files. Includes options for
+		importing references as well as saving files with a new prefix.
+
+	unique prefix: bbchf
+
+	Version 1.0:
+		> Run custom MEL script (before or after importing references feature)
+		> Overwrite original files, or save with custom prefix
+		> Import References feature
+
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+//====================================================================================================
+//IMPORT ALL REFERENCES
+global proc boBatchFileProcessor() {
+	//window name
+    $win = "bbchfWin";
+    
+    //check for pre-existing window
+    if (`window -ex $win`) deleteUI -wnd $win;
+    
+    //create window
+    window -w 325 -h 100 -rtf 1 -mb 1 -mxb 0 -t "Batch File Processor" -mnc ("window -e -t \"Batch File Processor\" "+$win+";") $win;
+    
+    //main layout
+    columnLayout -adj 1;
+        //window buffer
+        frameLayout -mh 4 -mw 4 -lv 0 -bv 0;
+            columnLayout -adj 1;
+                frameLayout -mh 4 -mw 4 -l "Choose File(s)" -la "center" -li 8 -bs "etchedIn";
+                    columnLayout -adj 1;
+                        button -l "Add File..."
+                            -c "fileBrowserDialog -m 0 -fc \"bbchfAddHandler\" -ft \"mayaAscii (*.ma)\" -an \"Choose...\" -om \"Import\";"
+                            bbchfAddFileButton;
+                        separator -h 4 -st none;
+                        textScrollList -h 100 -ams 1 bbchfFileList;
+                        separator -h 4 -st none;
+                        formLayout -nd 2 bbchfFileListForm;
+                            button -h 20 -l "Remove Selected"
+                                -c "while (`textScrollList -q -nsi bbchfFileList` > 0) {textScrollList -e -ri `textScrollList -q -si bbchfFileList` bbchfFileList;}"
+                                bbchfRemoveFileButton;
+                            button -h 20 -l "Clear All"
+                                -c "textScrollList -e -ra bbchfFileList"
+                                bbchfClearAllButton;
+                            formLayout -e
+                                -ap bbchfRemoveFileButton "left" 5 0 -ap bbchfRemoveFileButton "right" 5 1
+                                -ap bbchfClearAllButton "left" 5 1 -ap bbchfClearAllButton "right" 5 2
+                                bbchfFileListForm;
+                            setParent ..;
+                        setParent ..;
+                    setParent ..;
+                separator -h 6 -st none;
+                frameLayout -mh 4 -mw 14 -l "Options" -la "center" -li 8 -bs "etchedIn";
+                    columnLayout -rs 2;
+                        checkBox -l "Overwrite original files (use at your own risk!)" -v 0
+                            -cc "textFieldGrp -e -en (!`checkBox -q -v bbchfOverwriteSaveCheck`) bbchfPrefixField"
+                            bbchfOverwriteSaveCheck;
+                        textFieldGrp -l "New File Prefix" -cw2 92 100 bbchfPrefixField;
+                        text -en 0 -l "    By default, files will be saved with a \"batched_\" prefix.";
+                        separator -w 300 -h 4 -st "in";
+                        checkBox -l "Import References" -v 0 bbchfImportReferencesCheck;
+                        separator -w 300 -h 4 -st "in";
+                        checkBox -l "Run Custom MEL Script: (don't forget to test it!!)" -v 0 bbchfRunCustomScriptCheck;
+                        //Mel script text field
+                        scrollField -w 300 -h 120 bbchfMelScrollField;
+						checkBox -l "Run Script After Importing References (default is before)" -v 0 bbchfRunScriptAfterCheck;
+                        setParent ..;
+                    setParent ..;
+                separator -h 6 -st none;
+                formLayout -nd 7 bbchfRunForm;
+                    button -l "Run" -c "bbchfRun" bbchfRunButton;
+                    
+                    formLayout -e
+                        -ap bbchfRunButton "left" 5 1 -ap bbchfRunButton "right" 5 6
+                        bbchfRunForm;
+                        
+
+    
+    window -e -w 350 $win;
+    showWindow $win;
+}
+
+global proc bbchfAddHandler(string $result, string $type) {
+    textScrollList -e -a $result bbchfFileList;
+}
+
+global proc bbchfRun() {
+    //get variables
+    string $scenesList[] = `textScrollList -q -ai bbchfFileList`;
+    string $prefix = `textFieldGrp -q -tx bbchfPrefixField`;
+    if (!size($prefix)) {
+        $prefix = "batched_";
+    }
+    int $importRefCheck = `checkBox -q -v bbchfImportReferencesCheck`;
+    int $overwriteCheck = `checkBox -q -v bbchfOverwriteSaveCheck`;
+    int $customScriptCheck = `checkBox -q -v bbchfRunCustomScriptCheck`;
+	int $runScriptAfterCheck = `checkBox -q -v bbchfRunScriptAfterCheck`;
+    string $script;
+    
+    if ($customScriptCheck) {
+        $script = `scrollField -q -tx bbchfMelScrollField`;
+        if ($script == "") {
+            $customScriptCheck = 0;
+        }
+    }
+    
+    bbchfExecute($scenesList, $overwriteCheck, $importRefCheck, $customScriptCheck, $runScriptAfterCheck, $script, $prefix);
+}
+
+global proc bbchfExecute(string $scenesList[], int $overwriteCheck, int $importRefCheck, int $customScriptCheck, int $runScriptAfterCheck, string $script, string $prefix) {
+    //print ("overwriteCheck: "+$overwriteCheck+"\n");
+    //print ("importRefCheck: "+$importRefCheck+"\n");
+    //print ("customScriptCheck: "+$customScriptCheck+"\n");
+    //print ("script: "+$script+"\n");
+    
+    if (!size($scenesList)) {
+        warning("no scenes were specified...");
+        return ;
+    }
+    if (!$importRefCheck && !$customScriptCheck) {
+        warning ("no actions were selected to run...");
+        return ;
+    }
+    
+    for ($i = 0; $i < size($scenesList); $i++) {
+        //open scene
+        file -f -open -lrd "all" $scenesList[$i];
+        
+        //run custom script before
+        if ($customScriptCheck && !$runScriptAfterCheck) {
+            evalEcho ($script);   
+        }
+        //get reference file list
+        if ($importRefCheck) {
+            for ($fileRef in `file -q -list`) {
+                if ($fileRef == `file -q -sn`) {
+                    //print "this is the main file!\n";
+                } else {
+                    $regExp = ".*\\.ma(\\{[0-9]*\\})*";
+                    string $isMayaAscii = `match $regExp (""+$fileRef)`;
+                    if (`size($isMayaAscii)` != 0) {
+                        print ("// importing reference: "+$fileRef+"\n");
+                        file -importReference $fileRef;
+                    }
+                }
+            }
+        }
+        
+        //run custom script after
+        if ($customScriptCheck && $runScriptAfterCheck) {
+            evalEcho ($script);   
+        }
+        
+        //save
+        if ($overwriteCheck) {
+            file -save;
+        } else {
+            file -rename ($prefix+`file -q -rpr $scenesList[$i]`);
+            file -save;
+        }
+    }
+
+    print ("// finished running scripts on "+size($scenesList)+" files successfully...\n");
+}

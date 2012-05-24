@@ -1,0 +1,609 @@
+/*
+	Randomizer
+	1.1
+
+	Copyright (c) 2010 Bohdon Sayre
+	All Rights Reserved.
+	bo@bohdon.com
+
+	unique prefix: brnd
+
+	Description:
+		Provides a GUI for efficiently randomizing objects,
+		components, or attributes with several options
+	
+    Instructions:
+        boRandomizer;
+    
+	Version 1.1:
+		> Channel randomizer now grabs attributes from main object, shape, history, and and outputs
+		> Channel Randomization via channelBox selection
+		> Echoing transformation commands to the script editor is optional
+		> Custom seeding for repeated randomizations
+		> Round values option
+		> Absolute or Relative transformations
+		> Translate and Rotate Space options including Object, World, Local, and Gimbal
+		> Axis isolation and uniform scaling options
+		> Object and Component randomization through "move" "rotate" and "scale" commands
+		
+
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+global proc boRandomizer() {
+	//window name
+	$win = "brndWin";
+	
+	//check for pre-existing window
+	if (`window -ex $win`) deleteUI -wnd $win;
+	
+	//create window
+	window -rtf 1 -mb 1 -mxb 0 -t "Bo Randomizer 1.1" -mnc ("window -e -t \"Bo Randomizer 1.1\" "+$win+";") $win;
+	
+	//menu bar
+	menu -l "Options" brndWin_Menu;
+		menuItem -l "Echo Commands" -cb 0 brndWin_Menu_Echo;
+		menuItem -d 1;
+		menuItem -l "Reset All Settings" -c "boRandomizer";
+	
+	//main layout
+	columnLayout -adj 1 -rs 4;
+		//Object frame layout
+		frameLayout -l "Object / Component" -li 4 -bs "etchedOut" -mw 4 -mh 4;
+			formLayout -nd 100 brndObjForm;
+				floatField -pre 3 -v -1.0 brndWin_ObjTransMinFloat;
+				floatField -pre 3 -v 1.0 brndWin_ObjTransMaxFloat;
+				intField -vis 0 -v 2 brndWin_ObjTransSpaceInt;
+				button -l "Translate"
+					-c "brndObjRandomize 1 0 0;"
+					brndWin_ObjTransBtn;
+				
+				floatField -pre 1 -v -180.0 brndWin_ObjRotMinFloat;
+				floatField -pre 1 -v 180.0 brndWin_ObjRotMaxFloat;
+				intField -vis 0 -v 2 brndWin_ObjRotSpaceInt;
+				button -l "Rotate"
+					-c "brndObjRandomize 0 1 0;"
+					brndWin_ObjRotBtn;
+				
+				floatField -pre 3 -v 0.5 brndWin_ObjScaleMinFloat;
+				floatField -pre 3 -v 2.0 brndWin_ObjScaleMaxFloat;
+				button -l "Scale"
+					-c "brndObjRandomize 0 0 1;"
+					brndWin_ObjScaleBtn;
+				
+				button -l "All"
+					-c "brndObjRandomize 1 1 1;"
+					brndWin_ObjAllBtn;
+				
+				checkBox -l "Sync multiple objects" brndWin_ObjSyncObjsCheck;
+				setParent..;
+			
+			formLayout -e
+				-ap brndWin_ObjTransMinFloat "top" 0 0
+				-ap brndWin_ObjTransMinFloat "left" 2 0
+				-ap brndWin_ObjTransMinFloat "right" 2 25
+				-ap brndWin_ObjTransMaxFloat "top" 0 0
+				-ap brndWin_ObjTransMaxFloat "left" 2 25
+				-ap brndWin_ObjTransMaxFloat "right" 2 50
+				-ap brndWin_ObjTransBtn "top" 0 0
+				-ap brndWin_ObjTransBtn "left" 2 50
+				-ap brndWin_ObjTransBtn "right" 2 75
+				-aoc brndWin_ObjTransBtn "bottom" 0 brndWin_ObjTransMinFloat
+				
+				
+				-ac brndWin_ObjRotMinFloat "top" 2 brndWin_ObjTransMinFloat
+				-ap brndWin_ObjRotMinFloat "left" 2 0
+				-ap brndWin_ObjRotMinFloat "right" 2 25
+				-ac brndWin_ObjRotMaxFloat "top" 2 brndWin_ObjTransMinFloat
+				-ap brndWin_ObjRotMaxFloat "left" 2 25
+				-ap brndWin_ObjRotMaxFloat "right" 2 50
+				-ac brndWin_ObjRotBtn "top" 2 brndWin_ObjTransMinFloat
+				-ap brndWin_ObjRotBtn "left" 2 50
+				-ap brndWin_ObjRotBtn "right" 2 75
+				-aoc brndWin_ObjRotBtn "bottom" 0 brndWin_ObjRotMinFloat
+				
+				
+				-ac brndWin_ObjScaleMinFloat "top" 2 brndWin_ObjRotMinFloat
+				-ap brndWin_ObjScaleMinFloat "left" 2 0
+				-ap brndWin_ObjScaleMinFloat "right" 2 25
+				-ac brndWin_ObjScaleMaxFloat "top" 2 brndWin_ObjRotMinFloat
+				-ap brndWin_ObjScaleMaxFloat "left" 2 25
+				-ap brndWin_ObjScaleMaxFloat "right" 2 50
+				-ac brndWin_ObjScaleBtn "top" 2 brndWin_ObjRotMinFloat
+				-ap brndWin_ObjScaleBtn "left" 2 50
+				-ap brndWin_ObjScaleBtn "right" 2 75
+				-aoc brndWin_ObjScaleBtn "bottom" 0 brndWin_ObjScaleMinFloat
+				
+				-ap brndWin_ObjAllBtn "top" 0 0
+				-ap brndWin_ObjAllBtn "left" 2 75
+				-ap brndWin_ObjAllBtn "right" 2 100
+				-aoc brndWin_ObjAllBtn "bottom" 0 brndWin_ObjScaleMinFloat
+				
+				-ac brndWin_ObjSyncObjsCheck "top" 2 brndWin_ObjScaleMinFloat
+				-ap brndWin_ObjSyncObjsCheck "left" 2 0
+				
+				brndObjForm;
+				
+			//marking menus
+			popupMenu -mm 1 -b 3  -p brndWin_ObjTransBtn;
+				menuItem -rp "S" -l "Relative" -cb 1
+					-c "menuItem -e -cb 1 brndWin_ObjTransMM_Relative; menuItem -e -cb 0 brndWin_ObjTransMM_Absolute;"
+					brndWin_ObjTransMM_Relative;
+				menuItem -rp "N" -l "Absolute" -cb 0
+					-c "menuItem -e -cb 0 brndWin_ObjTransMM_Relative; menuItem -e -cb 1 brndWin_ObjTransMM_Absolute;"
+					brndWin_ObjTransMM_Absolute;
+				menuItem -rp "NW" -l "Object" -cb 0
+					-c "intField -e -v 1 brndWin_ObjTransSpaceInt; menuItem -e -cb 1 brndWin_ObjTransMM_Object; menuItem -e -cb 0 brndWin_ObjTransMM_World; menuItem -e -cb 0 brndWin_ObjTransMM_Local;"
+					brndWin_ObjTransMM_Object;
+				menuItem -rp "W" -l "World" -cb 1
+					-c "intField -e -v 2 brndWin_ObjTransSpaceInt; menuItem -e -cb 0 brndWin_ObjTransMM_Object; menuItem -e -cb 1 brndWin_ObjTransMM_World; menuItem -e -cb 0 brndWin_ObjTransMM_Local;"
+					brndWin_ObjTransMM_World;
+				menuItem -rp "SW" -l "Local" -cb 0
+					-c "intField -e -v 3 brndWin_ObjTransSpaceInt; menuItem -e -cb 0 brndWin_ObjTransMM_Object; menuItem -e -cb 0 brndWin_ObjTransMM_World; menuItem -e -cb 1 brndWin_ObjTransMM_Local;"
+					brndWin_ObjTransMM_Local;
+				menuItem -rp "NE" -l "X" -cb 1 brndWin_ObjTransMM_X;
+				menuItem -rp "E" -l "Y" -cb 1 brndWin_ObjTransMM_Y;
+				menuItem -rp "SE" -l "Z" -cb 1 brndWin_ObjTransMM_Z;
+				menuItem -l "Round Values" -cb 0 brndWin_ObjTransMM_Round;
+			popupMenu -mm 1 -b 3 -p brndWin_ObjRotBtn;
+				menuItem -rp "S" -l "Relative" -cb 0
+					-c "menuItem -e -cb 1 brndWin_ObjRotMM_Relative; menuItem -e -cb 0 brndWin_ObjRotMM_Absolute;"
+					brndWin_ObjRotMM_Relative;
+				menuItem -rp "N" -l "Absolute" -cb 1
+					-c "menuItem -e -cb 0 brndWin_ObjRotMM_Relative; menuItem -e -cb 1 brndWin_ObjRotMM_Absolute;"
+					brndWin_ObjRotMM_Absolute;
+				menuItem -rp "NW" -l "Gimbal" -cb 0
+					-c "intField -e -v 1 brndWin_ObjRotSpaceInt; menuItem -e -cb 1 brndWin_ObjRotMM_Gimbal; menuItem -e -cb 0 brndWin_ObjRotMM_World; menuItem -e -cb 0 brndWin_ObjRotMM_Local;"
+					brndWin_ObjRotMM_Gimbal;
+				menuItem -rp "W" -l "World" -cb 1
+					-c "intField -e -v 2 brndWin_ObjRotSpaceInt; menuItem -e -cb 0 brndWin_ObjRotMM_Gimbal; menuItem -e -cb 1 brndWin_ObjRotMM_World; menuItem -e -cb 0 brndWin_ObjRotMM_Local;"
+					brndWin_ObjRotMM_World;
+				menuItem -rp "SW" -l "Local" -cb 0
+					-c "intField -e -v 3 brndWin_ObjRotSpaceInt; menuItem -e -cb 0 brndWin_ObjRotMM_Gimbal; menuItem -e -cb 0 brndWin_ObjRotMM_World; menuItem -e -cb 1 brndWin_ObjRotMM_Local;"
+					brndWin_ObjRotMM_Local;
+				menuItem -rp "NE" -l "X" -cb 1 brndWin_ObjRotMM_X;
+				menuItem -rp "E" -l "Y" -cb 1 brndWin_ObjRotMM_Y;
+				menuItem -rp "SE" -l "Z" -cb 1 brndWin_ObjRotMM_Z;
+				menuItem -l "Round Values" -cb 0 brndWin_ObjRotMM_Round;
+			popupMenu -mm 1 -b 3  -p brndWin_ObjScaleBtn;
+				menuItem -rp "S" -l "Relative" -cb 0
+					-c "menuItem -e -cb 1 brndWin_ObjScaleMM_Relative; menuItem -e -cb 0 brndWin_ObjScaleMM_Absolute;"
+					brndWin_ObjScaleMM_Relative;
+				menuItem -rp "N" -l "Absolute" -cb 1
+					-c "menuItem -e -cb 0 brndWin_ObjScaleMM_Relative; menuItem -e -cb 1 brndWin_ObjScaleMM_Absolute;"
+					brndWin_ObjScaleMM_Absolute;
+				menuItem -rp "NE" -l "X" -cb 1 brndWin_ObjScaleMM_X;
+				menuItem -rp "E" -l "Y" -cb 1 brndWin_ObjScaleMM_Y;
+				menuItem -rp "SE" -l "Z" -cb 1 brndWin_ObjScaleMM_Z;
+				menuItem -l "Round Values" -cb 0 brndWin_ObjScaleMM_Round;
+				menuItem -l "Uniform Scale" -cb 1 brndWin_ObjScaleMM_Uniform;
+			
+			setParent ..;
+		
+		//Channel frame layout
+		frameLayout -l "Channel" -li 4 -bs "etchedOut" -mw 4 -mh 4;
+			formLayout -nd 100 brndChanForm;
+				floatField -pre 3 -v 0.0 brndWin_ChanMinFloat;
+				floatField -pre 3 -v 1.0 brndWin_ChanMaxFloat;
+				button -l "Randomize"
+                    -c "brndChan_Randomize"
+                    brndWin_ChanRandBtn;
+				
+				checkBox -l "Sync multiple objects" brndWin_ChanSyncObjsCheck;
+				checkBox -l "Sync multiple channels" brndWin_ChanSyncChansCheck;
+				
+				setParent ..;
+			
+			formLayout -e
+				-ap brndWin_ChanMinFloat "left" 2 0
+				-ap brndWin_ChanMinFloat "right" 2 25
+				-ap brndWin_ChanMaxFloat "left" 2 25
+				-ap brndWin_ChanMaxFloat "right" 2 50
+				-ap brndWin_ChanRandBtn "top" 0 0
+				-ap brndWin_ChanRandBtn "left" 2 50
+				-ap brndWin_ChanRandBtn "right" 2 100
+				-aoc brndWin_ChanRandBtn "bottom" 0 brndWin_ChanMaxFloat
+				
+				-ac brndWin_ChanSyncObjsCheck "top" 6 brndWin_ChanMinFloat
+				-ac brndWin_ChanSyncChansCheck "top" 2 brndWin_ChanSyncObjsCheck
+				
+				brndChanForm;
+			
+			//marking menus
+			popupMenu -mm 1 -b 3  -p brndWin_ChanRandBtn;
+				menuItem -rp "S" -l "Round Values" -cb 0 brndWin_ChanRandMM_Round;
+			
+			setParent ..;
+		
+		//Options frame layout
+		frameLayout -l "Custom Seeding" -li 4 -bs "etchedOut" -mw 4 -mh 4;
+			formLayout -nd 100 brndOptForm;
+				checkBox -l "Use Custom Seed" brndWin_OptSeedCheck;
+				intField -v 0 brndWin_OptSeedInt;
+				button -l "random seed" -c ("intField -e -v ((int)rand(10000)) brndWin_OptSeedInt") brndWin_OptSeedRandBtn;
+				
+				setParent ..;
+			
+			formLayout -e
+				-ap brndWin_OptSeedCheck "top" 0 0
+				-ap brndWin_OptSeedCheck "left" 2 0
+				-ac brndWin_OptSeedInt "top" 2 brndWin_OptSeedCheck
+				-ap brndWin_OptSeedInt "left" 26 0
+				-ac brndWin_OptSeedRandBtn "top" 2 brndWin_OptSeedCheck
+				-ac brndWin_OptSeedRandBtn "left" 10 brndWin_OptSeedInt
+				-aoc brndWin_OptSeedRandBtn "bottom" 0 brndWin_OptSeedInt
+				
+				brndOptForm;
+			
+			setParent ..;
+		
+	
+	window -e -w 276 -h 325 $win;
+	showWindow $win;
+	
+};
+//====================================================================================================
+
+
+//====================================================================================================
+global proc brndObjRandomize(int $trans, int $rot, int $scale) {
+//randomizes the selected objects/components in the specified transformational types
+
+	//get the selection
+	string $selList[] = `ls -r 1 -fl -sl`;
+	if (!size($selList))
+		return;
+	
+	//create the important variables
+	int $syncObjs, $useSeed, $round;
+	float $customSeed, $tOpts[], $rOpts[], $sOpts[];
+	
+	$syncObjs = `checkBox -q -v brndWin_ObjSyncObjsCheck`;
+	$useSeed = `checkBox -q -v brndWin_OptSeedCheck`;
+	$customSeed = `intField -q -v brndWin_OptSeedInt`;
+	$echoCommand = `menuItem -q -cb brndWin_Menu_Echo`;
+	
+	//all transformations will be written to one final command string, and exectuted at once
+	string $finalCmd = "";
+	string $flags[];
+	float $values[];
+	
+	if ($useSeed) {
+		seed($customSeed);
+	} else {
+		//millisecond based seeding
+		int $time = (int)(`timerX` * 100);
+		seed($time);
+	}
+	
+	//get the options of menu items and checkboxes for any of the transform types
+	if ($trans) {
+		$tOpts = brndObj_GetOptions("Trans");
+	}
+	if ($rot) {
+		$rOpts = brndObj_GetOptions("Rot");
+	}
+	if ($scale) {
+		$sOpts = brndObj_GetOptions("Scale");
+	}
+	//disable a transform type if none of the axes are checked
+	if ($tOpts[2]!=1 && $tOpts[3]!=1 && $tOpts[4]!=1)
+		$trans = 0;
+	if ($rOpts[2]!=1 && $rOpts[3]!=1 && $rOpts[4]!=1)
+		$rot = 0;
+	if ($sOpts[2]!=1 && $sOpts[3]!=1 && $sOpts[4]!=1)
+		$scale = 0;
+	
+	//cancel the whole thing if none of the types are now checked
+	if ($trans!=1 && $rot!=1 && $scale!=1) {
+		warning "none of the axes were checked for the selected transform types";
+		return;
+	}
+	
+	//build the finalCmd
+	if ($syncObjs) {
+		//generate only 1 set of rand values (all objects will receive the same command)
+		
+		if ($trans) {
+			$flags = `brndObj_BuildFlags "trans" $tOpts`;
+			$values = `brndObj_BuildValues "trans" $tOpts`;
+			$round = $tOpts[6];
+			$finalCmd += `brndObj_BuildCmd "move" $flags $values $round ""`;
+		}
+		if ($rot) {
+			$flags = `brndObj_BuildFlags "rot" $rOpts`;
+			$values = `brndObj_BuildValues "rot" $rOpts`;
+			$round = $rOpts[6];
+			$finalCmd += `brndObj_BuildCmd "rotate" $flags $values $round ""`;
+		}
+		if ($scale) {
+			$flags = `brndObj_BuildFlags "scale" $sOpts`;
+			$values = `brndObj_BuildValues "scale" $sOpts`;
+			$round = $sOpts[6];
+			$finalCmd += `brndObj_BuildCmd "scale" $flags $values $round ""`;
+		}
+	} else {
+		//loop through each object and generate a set of commands
+		
+		for ($obj in $selList) {
+			if ($trans) {
+				$flags = `brndObj_BuildFlags "trans" $tOpts`;
+				$values = `brndObj_BuildValues "trans" $tOpts`;
+				$round = $tOpts[6];
+				$finalCmd += `brndObj_BuildCmd "move" $flags $values $round $obj`;
+			}
+			if ($rot) {
+				$flags = `brndObj_BuildFlags "rot" $rOpts`;
+				$values = `brndObj_BuildValues "rot" $rOpts`;
+				$round = $rOpts[6];
+				$finalCmd += `brndObj_BuildCmd "rotate" $flags $values $round $obj`;
+			}
+			if ($scale) {
+				$flags = `brndObj_BuildFlags "scale" $sOpts`;
+				$values = `brndObj_BuildValues "scale" $sOpts`;
+				$round = $sOpts[6];
+				$finalCmd += `brndObj_BuildCmd "scale" $flags $values $round $obj`;
+			}
+		}
+	}
+	
+	//execute the command
+	if ($echoCommand) {
+		evalEcho($finalCmd);
+	} else {
+		eval($finalCmd);
+	}
+}
+global proc float[] brndObj_GetOptions(string $type) {
+//returns an array of options based on $type
+//$type should be "Trans", "Rot", or "Scale"
+//0 - min value
+//1 - max value
+//2 - use X axis
+//3 - use Y axis
+//4 - use Z axis
+//5 - relative transform
+//6 - round the values
+//7 - transform space (only for trans or rotate)
+//8 - uniform scale (only for scale)
+	
+	if ($type != "Trans" && $type != "Rot" && $type != "Scale")
+		return {};
+	
+	float $opts[];
+
+	$opts[0] = `floatField -q -v ("brndWin_Obj"+$type+"MinFloat")`;
+	$opts[1] = `floatField -q -v ("brndWin_Obj"+$type+"MaxFloat")`;
+	$opts[2] = `menuItem -q -cb ("brndWin_Obj"+$type+"MM_X")`;
+	$opts[3] = `menuItem -q -cb ("brndWin_Obj"+$type+"MM_Y")`;
+	$opts[4] = `menuItem -q -cb ("brndWin_Obj"+$type+"MM_Z")`;
+	$opts[5] = `menuItem -q -cb ("brndWin_Obj"+$type+"MM_Relative")`;
+	$opts[6] = `menuItem -q -cb ("brndWin_Obj"+$type+"MM_Round")`;
+	if ($type != "Scale") {
+		$opts[7] = `intField -q -v ("brndWin_Obj"+$type+"SpaceInt")`;
+		$opts[8] = 0;
+	} else {
+		$opts[7] = 0;
+		$opts[8] = `menuItem -q -cb ("brndWin_Obj"+$type+"MM_Uniform")`;
+	}
+	
+	return $opts;
+}
+global proc string[] brndObj_BuildFlags(string $type, float $opts[]) {
+//returns the flags based on the type and the options
+
+	string $flags[];
+	
+	// $flags[0] : relative/absolute
+	$flags[0] = ($opts[5] == 1 ? "-r" : "-a");
+	
+	// $flags[1] : space (only for trans and rot)
+	if ($type == "trans") {
+		if ($opts[7] == 1) {
+			$flags[1] = "-os";
+		} else if ($opts[7] == 2) {
+			$flags[1] = "-ws";
+		} else if ($opts[7] == 3) {
+			$flags[1] = "-ls";
+		}
+	} else if ($type == "rot") {
+		if ($opts[7] == 1) {
+			$flags[1] = "-eu";
+		} else if ($opts[7] == 2) {
+			$flags[1] = "-ws";
+		} else if ($opts[7] == 3) {
+			$flags[1] = "-os";
+		}
+	} else {
+		$flags[1] = "";
+	}
+	
+	// $flags[2] : axis flag (-x -xy -xyz -xz -y -yz or -z)
+	string $axisFlag = "-";
+	if ($opts[2]) {
+		$axisFlag += "x";
+	}
+	if ($opts[3]) {
+		$axisFlag += "y";
+	}
+	if ($opts[4]) {
+		$axisFlag += "z";
+	}
+	$flags[2] = $axisFlag;
+	
+	//return the array
+	return $flags;
+}
+global proc float[] brndObj_BuildValues(string $type, float $opts[]) {
+//returns an array of 1, 2, or 3 values based on the tyep and the options
+
+	float $values[];
+	
+	if ($opts[8] == 1) {
+		//uniform is checked (could also work for trans and rot in the future)
+		float $value = `brndRandRange $opts[0] $opts[1]`;
+		$values = {$value, $value, $value};
+	} else {
+		if ($opts[2]) {
+			$values[size($values)] = `brndRandRange $opts[0] $opts[1]`;
+		}
+		if ($opts[3]) {
+			$values[size($values)] = `brndRandRange $opts[0] $opts[1]`;
+		}
+		if ($opts[4]) {
+			$values[size($values)] = `brndRandRange $opts[0] $opts[1]`;
+		}
+	}
+	
+	return $values;
+}
+global proc string brndObj_BuildCmd(string $mainCmd, string $flags[], float $values[], int $round, string $obj) {
+//returns a command based on a mainCmd (move, rotate, or scale), flags, and values
+
+	string $cmd = ($mainCmd + " ");
+	for ($flag in $flags) {
+		if ($flag != "") {
+			$cmd += ($flag + " ");
+		}
+	}
+	for ($value in $values) {
+		if ($round) {
+			$value = floor($value + 0.5);
+		}
+		$cmd += ($value + " ");
+	}
+	
+	//when using objects in the command, there must always be three values
+	//even if a two or one value flag is used (like -x or -xy)
+	if (size($values) == 1) {
+		$cmd += "0 0 ";
+	} else if (size($values) == 2) {
+		$cmd += "0 ";
+	}
+	
+	//$obj isn't used if object sync is on
+	if ($obj != "") {
+		$cmd += $obj;
+	}
+	
+	$cmd += ";\n";
+	
+	return $cmd;
+}
+//====================================================================================================
+
+
+
+//====================================================================================================
+global proc brndChan_Randomize() {
+//randomizes the selected channels in the channel box for the selected objects
+
+	//get the selections
+	string $selList[] = `ls -r 1 -fl -sl`;
+	if (!size($selList))
+		return;
+	
+	string $attrList[], $mainAttrs[], $outAttrs[], $histAttrs[], $shapeAttrs[];
+	$mainAttrs = `channelBox -q -sma mainChannelBox`;
+	$outAttrs = `channelBox -q -soa mainChannelBox`;
+	$histAttrs = `channelBox -q -sha mainChannelBox`;
+	$shapeAttrs = `channelBox -q -ssa mainChannelBox`;
+	$attrList = stringArrayCatenate($mainAttrs, $outAttrs);
+	$attrList = stringArrayCatenate($attrList, $histAttrs);
+	$attrList = stringArrayCatenate($attrList, $shapeAttrs);
+	
+	if(!size($attrList))
+		return ;
+
+	//create the important variables
+	int $syncObjs, $syncChans, $useSeed, $round;
+	float $customSeed, $optMin, $optMax;
+	
+	$syncObjs = `checkBox -q -v brndWin_ChanSyncObjsCheck`;
+	$syncChans = `checkBox -q -v brndWin_ChanSyncChansCheck`;
+	$round = `menuItem -q -cb brndWin_ChanRandMM_Round`;
+	$useSeed = `checkBox -q -v brndWin_OptSeedCheck`;
+	$customSeed = `intField -q -v brndWin_OptSeedInt`;
+	$echoCommand = `menuItem -q -cb brndWin_Menu_Echo`;
+
+	$optMin = `floatField -q -v brndWin_ChanMinFloat`;
+	$optMax = `floatField -q -v brndWin_ChanMaxFloat`;
+	
+	if ($useSeed) {
+		seed($customSeed);
+	} else {
+		//millisecond based seeding
+		int $time = (int)(`timerX` * 100);
+		seed($time);
+	}
+	
+	
+	string $finalCmd = "";
+	
+	if ($syncChans) {
+		if ($syncObjs) {
+			//only need one set of random values for the whole thing
+			float $val = brndRandRange($optMin, $optMax);
+			if ($round) $val = floor($val+0.5);
+			for ($obj in $selList) {
+				for ($attr in $attrList) {
+					if (`objExists ($obj+"."+$attr)`)
+						$finalCmd += "setAttr "+$obj+"."+$attr+" "+$val+";\n";
+				}
+			}
+		} else {
+			//only need one set of random values for each object
+			for ($obj in $selList) {
+				float $val = brndRandRange($optMin, $optMax);
+				if ($round) $val = floor($val+0.5);
+				for ($attr in $attrList) {
+					if (`objExists ($obj+"."+$attr)`)
+						$finalCmd += "setAttr "+$obj+"."+$attr+" "+$val+";\n";
+				}
+			}
+		}
+	} else {
+		if ($syncObjs) {
+			//need only one set of random channel values (1 for each channel)
+			for ($attr in $attrList) {
+				float $val = brndRandRange($optMin, $optMax);
+				if ($round) $val = floor($val+0.5);
+				for ($obj in $selList) {
+					if (`objExists ($obj+"."+$attr)`)
+						$finalCmd += "setAttr "+$obj+"."+$attr+" "+$val+";\n";
+				}
+			}
+		} else {
+			//need a random value for every channel for every object
+			for ($attr in $attrList) {
+				for ($obj in $selList) {
+					float $val = brndRandRange($optMin, $optMax);
+					if ($round) $val = floor($val+0.5);
+					if (`objExists ($obj+"."+$attr)`)
+						$finalCmd += "setAttr "+$obj+"."+$attr+" "+$val+";\n";
+				}
+			}
+		}
+	}
+	
+	//execute the command
+	if ($echoCommand) {
+		evalEcho($finalCmd);
+	} else {
+		eval($finalCmd);
+	}
+}
+
+
+//====================================================================================================
+global proc float brndRandRange(float $min, float $max) {
+//returns a random number in the specified range
+
+	float $dist = $max - $min;
+	float $rand = rand($dist);
+	$rand += $min;
+	return $rand;
+}
+//====================================================================================================
+
+

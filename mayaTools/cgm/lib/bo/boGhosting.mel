@@ -1,0 +1,335 @@
+/*
+    Ghosting
+    1.8
+    
+    Copyright (c) 2010 Bohdon Sayre
+    All Rights Reserved.
+    bo@bohdon.com
+    
+    unique prefix: bgh
+    
+    Description:
+        Allows you to create a ghost of an object at any time.
+        Ghosts are automatically given a transparent shader and grouped.
+		Selecting a time range or keyframes will cause multiple ghosts to be created.
+    
+    Instructions:
+        source boGhosting;
+        boGhosting;
+        
+	Version 1.8:
+        Cleaner code and error checking
+        Selecting keys in the graph editor will cause objects to be ghosted at those keyframe times
+        Shift selecting a timeline range lets you ghost over a sequence of frames
+        Objects in the list are remembered via global vars
+        New formLayout window, allowing scroll list resizing
+        Added opacity slider
+        Added visibility toggle and shader creation
+	
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+//coming features
+/*
+Select range, delete selected
+Save geometry set to the scene
+*/
+
+global proc boGhosting() {
+	//window name
+	string $bghWin = "bghWin";
+	
+	//check for pre-existing window
+	if (`window -exists $bghWin`) deleteUI -window $bghWin;
+	
+	//create window
+	window  -w 100 -s 1 -rtf 1 -mb 1 -mxb 0 -mnc "window -e -t \"Ghosting 1.8\" bghWin;" -t "Ghosting 1.8" $bghWin;
+	
+	formLayout -nd 100 bghWin_MainForm;
+		textScrollList -w 150 -h 80 -ams 1
+			-ann "List of objects that can be used for ghosting. Selected items in the list and click Create Ghost(s)."
+			bghGeoList;
+		
+		button -w 75 -l "Add"
+			-ann "Add selected geometry"
+			-c "bghGeoAddSelected;" bghGeoAddBtn;
+		button -w 75 -l "Remove Selected"
+			-ann "Remove selected items from the list"
+			-c "bghGeoRemoveSelected;" bghGeoRemoveBtn;
+		
+		checkBox -l "Auto-Delete Existing" -v 1 bghAutoDeleteCheck;
+		button -w 150 -h 30 -bgc .7 .8 .9 -l "Create Ghost(s)"
+			-ann "Create a ghost of items selected in the list. If a time range or keyframes are selected, multiple ghosts will be created."
+			-c bghGhost bghGhostBtn;
+		
+		button -w 150 -l "Toggle Visibility"
+			-ann "Toggle the visibility of all ghosts"
+			-c "bghToggleGhostVisibility;" bghToggleVisBtn;
+			
+		text -l "Opacity" bghOpacityTxt;
+		floatSlider -w 150 -min 0 -max 1 -dc "bghSetMatOpacity #1;" -v .1 bghOpacitySlider;
+		
+		
+		button -w 150 -bgc .9 .55 .5 -l "Delete Ghost(s)"
+			-ann "Delete all ghosts and cleanup"
+			-c "bghDeleteAll;" bghDeleteBtn;
+	
+	formLayout -e
+		//geo list
+		-ap bghGeoList "top" 4 0
+		-ap bghGeoList "left" 4 0 -ap bghGeoList "right" 4 100
+		-ac bghGeoList "bottom" 2 bghGeoAddBtn
+		//add btn
+		-ap bghGeoAddBtn "left" 4 0 -ap bghGeoAddBtn "right" 1 30
+		-ac bghGeoAddBtn "bottom" 12 bghAutoDeleteCheck
+		//remove btn
+		-ap bghGeoRemoveBtn "left" 1 30 -ap bghGeoRemoveBtn "right" 4 100
+		-ac bghGeoRemoveBtn "bottom" 12 bghAutoDeleteCheck
+		//auto delete check box
+		-ap bghAutoDeleteCheck "left" 4 0
+		-ac bghAutoDeleteCheck "bottom" 4 bghGhostBtn
+		//create btn
+		-ap bghGhostBtn "left" 4 0 -ap bghGhostBtn "right" 4 100
+		-ac bghGhostBtn "bottom" 2 bghToggleVisBtn
+		//toggle vis btn
+		-ap bghToggleVisBtn "left" 4 0 -ap bghToggleVisBtn "right" 4 100
+		-ac bghToggleVisBtn "bottom" 2 bghOpacitySlider
+		//opacity txt
+		-ap bghOpacityTxt "left" 4 0
+		-ac bghOpacityTxt "bottom" 13 bghDeleteBtn
+		//opacity slider
+		-ac bghOpacitySlider "left" 4 bghOpacityTxt
+		-ap bghOpacitySlider "right" 0 100
+		-ac bghOpacitySlider "bottom" 10 bghDeleteBtn
+		//delete btn
+		-ap bghDeleteBtn "bottom" 12 100
+		-ap bghDeleteBtn "left" 4 0
+		-ap bghDeleteBtn "right" 4 100
+		
+		bghWin_MainForm;
+	
+	window -e -w 200 -h 340 $bghWin;
+	showWindow $bghWin;
+	
+	bghGeoUpdateList;
+}
+
+/** Populates the geo list with whatever is stored in the global var. **/
+global proc bghGeoUpdateList() {
+	global string $bghGeoList[];
+	if (size($bghGeoList)) {
+		bghGeoClear;
+		bghGeoAdd($bghGeoList);
+	}
+}
+
+/** Adds the selected geometry to the list. **/
+global proc bghGeoAddSelected() {
+	string $selList[] = `ls -r 1 -sl`;
+	if (size($selList)) {	
+		bghGeoAdd($selList);
+	}
+}
+/** Adds an array of objects to the geo list. **/
+global proc bghGeoAdd(string $geo[]) {
+	if (!size($geo))
+		return;
+	
+	string $curItems[] = `textScrollList -q -ai bghGeoList`;
+	
+	for ($item in $geo) {
+		if (!stringArrayContains($item, $curItems))
+			textScrollList -e -append $item bghGeoList;
+	}
+	
+	//update the global var
+	global string $bghGeoList[];
+	$bghGeoList = `textScrollList -q -ai bghGeoList`;
+}
+/** Removes the selected items from the geo text scroll list **/
+global proc bghGeoRemoveSelected() {
+	string $selItems[] = `textScrollList -q -si bghGeoList`;
+	if (!size($selItems))
+		return;
+	
+	for ($item in $selItems) {
+		textScrollList -e -ri $item bghGeoList;
+	}
+	
+	//update the global var
+	global string $bghGeoList[];
+	$bghGeoList = `textScrollList -q -ai bghGeoList`;
+}
+
+/** Clears all items from the list **/
+global proc bghGeoClear() {
+	textScrollList -e -ra bghGeoList;
+}
+
+/** Returns the list of selected geo **/
+global proc string[] bghGetSelectedGeo() {
+	string $geo[] = `textScrollList -q -si bghGeoList`;
+	if (size($geo)) {
+		return $geo;
+	} else {
+		return {};
+	}
+}
+
+
+/** Sets the transparency of the ghost material to 1 - $val, allowing the slider to represent opacity **/
+global proc bghSetMatOpacity (float $val) {
+	float $trans = 1 - $val;
+	if (`objExists bghGhost_mat`) {
+		setAttr bghGhost_mat.transparency $trans $trans $trans;
+	}
+}
+
+/** Toggles the visibility of the ghost group, which contains all ghosted geometry **/
+global proc bghToggleGhostVisibility() {
+	if (`objExists bghGhost_grp`) {
+		setAttr bghGhost_grp.v (!`getAttr bghGhost_grp.v`);
+	}
+}
+
+
+
+/**
+* Creates a ghost from the selected items in the geo list.
+* If a set of keys are selected, the ghosts are created at those keyframes.
+* If a time range is selected, the ghosts are created for every frame of that range.
+**/
+global proc bghGhost() {
+	//store the current state
+	string $selList[] = `ls -r 1 -sl`;
+	float $currentTime = `currentTime -q`;
+	
+	//get geo from list
+	string $selGeo[] = bghGetSelectedGeo();
+	if (!size($selGeo)) {
+		error "No geometry was selected in the list. Add objects to the list and then select them first.";
+	}
+	
+	
+	//get time range times
+	float $times[] = bghGetTimeRangeTimes();
+	//if size of timerange is less than 2, check for selected keys
+	if (size($times) < 2) {
+		float $keyTimes[] = bghGetKeyTimes();
+		if (size($keyTimes)) {
+			$times = $keyTimes;
+		}
+	}
+	print "times:\n";
+	print $times;
+	
+	
+	//get/create material
+	string $tex[] = bghGetMaterial();
+	//create group if necessary
+	if (!`objExists "bghGhost_grp"`)
+		group -em -n "bghGhost_grp";
+	
+	for ($time in $times) {
+		currentTime -e $time;
+		for ($item in $selGeo) {
+			if (!`objExists $item`)
+				continue;
+			
+			string $ghostDup[] = `duplicate $item`;
+			string $ghostParent[] = `parent $ghostDup[0] "bghGhost_grp"`;
+			int $curTime = `currentTime -q`;
+			
+			//check for auto-delete
+			int $autoDelete = `checkBox -q -v bghAutoDeleteCheck`;
+			if ($autoDelete) {
+				string $existing[] = `ls -typ "transform" ("bghGhost_"+$ghostDup[0]+"_t"+$curTime+"_*")`;
+				if (size($existing)) {
+					for ($obj in $existing)
+						delete $obj;
+				}
+			}
+			
+			string $ghostRename = `rename $ghostParent[0] ("bghGhost_"+$ghostDup[0]+"_t"+$curTime+"_1")`;
+			
+			sets -e -forceElement $tex[1] $ghostRename;
+		}
+	}
+	
+	currentTime -e $currentTime;
+	select -cl;
+	select $selList;
+	
+	string $focusPanel = `getPanel -wf`;
+	catchQuiet(`setFocus $focusPanel`);
+}
+
+/** Creates ghost material if it doesn't already exist **/
+global proc string[] bghGetMaterial() {
+	string $mat;
+	string $sg;
+	if (!`objExists "bghGhost_mat"`) {
+		$mat = `shadingNode -asShader blinn -n bghGhost_mat`;
+		$sg = `sets -renderable true -noSurfaceShader true -empty -name bghGhost_SG`;
+		connectAttr -f ($mat+".outColor") ($sg+".surfaceShader");
+		setAttr ($mat+".color") 0.76208 0.844447 0.88;
+		setAttr ($mat+".transparency") .9 .9 .9;
+		setAttr ($mat+".reflectivity") 0;
+		bghSetMatOpacity(`floatSlider -q -v bghOpacitySlider`);
+	} else {
+		$mat = "bghGhost_mat";
+		$sg = "bghGhost_SG";
+	}
+	
+	return { $mat, $sg };
+}
+
+/** Deletes the ghost group, and all materials related **/
+global proc bghDeleteAll() {
+	string $objects[] = {"bghGhost_grp", "bghGhost_mat", "bghGhost_SG"};
+	
+	int $ghostCount;
+	for ($object in $objects) {
+		if (`objExists $object`) {
+			if ($object == "bghGhost_grp")
+				$ghostCount = size(`listRelatives -c -type "transform" $object`);
+			delete $object;
+		}
+	}
+	print ("// "+$ghostCount+" ghost(s) were deleted.\n");
+}
+
+
+/** Returns an array of the selected time range, expanded **/
+global proc float[] bghGetTimeRangeTimes() {
+	//get timerange
+	global string $gPlayBackSlider;
+	float $timeRange[] = `timeControl -q -ra $gPlayBackSlider`;
+	
+	//expand timerange
+	float $times[];
+	for ($time = $timeRange[0]; $time < $timeRange[1]; $time++) {
+		$times[size($times)] = $time;
+	}
+	
+	return $times;
+}
+/** Returns an array of selected keyframe times, if any **/
+global proc float[] bghGetKeyTimes() {
+	float $keyTimes[] = `keyframe -sl -q -tc`;
+	
+	string $keyTimesStr = "[";
+	for ($time in $keyTimes) {
+		string $timeStr = $time;
+		if ($time == floor($time))
+			$timeStr += ".0";
+		$keyTimesStr += $timeStr+",";
+	}
+	$keyTimesStr += "]";
+	
+	$keyTimes = `python("list(set("+$keyTimesStr+"))")`;
+	sort($keyTimes);
+	
+	return $keyTimes;
+}

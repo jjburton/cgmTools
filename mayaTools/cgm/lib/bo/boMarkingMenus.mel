@@ -1,0 +1,1072 @@
+/*
+	Marking Menus
+	2.0.1
+
+	Copyright (c) 2010 Bohdon Sayre
+	All Rights Reserved.
+	bo@bohdon.com
+
+	unique prefix: bmm
+
+	Description:
+		This script includes several marking menus that
+		drastically improve work speed and functionality.
+		Menus include object/component masking systems,
+		Dynamic quick selection, perspective camera, and resetter systems
+		Requires boRightClickManager.mel, boResetter.py is recommended
+
+	Instructions:
+		Put this in userSetup.mel:
+			source boMarkingMenus;
+			catch(`boMarkingMenus`);
+		Install and run:
+			boMarkingMenus;
+		To restore the default hotkeys, run:
+			source boMarkingMenus; bmmRestoreDefaults;
+
+	Version 2.0.1:
+	    > Small fix to allow multi-version compatibility
+		> Quick menus now assigned to f. The fitPanel -selected command only occurs if the menu was never used
+		> Quick menu features now include renaming
+		> Quick menus selecting is now additive
+		> Major restructuring
+		> alt+q + MMB is a resetter menu using boResetter
+		> alt+q + LMB is a masking menu for components of all types, also switches to component mode
+		> q + LMB is a masking menu for isolating object type selection
+		> q + MMB is a display menu for hiding object types in the current model panel
+		> q + RMB is the quick menu system
+
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+//TODO: store/bookmark frames (currentTimes) in slots
+//		possible subMenu expansion option
+
+//====================================================================================================
+//INSTALL/UNINSTALL
+global proc boMarkingMenus() {
+//install all hotkeys...
+
+	//check for right click manager
+	if (`exists boRightClickManager`) {
+	    //pass
+	} else {
+		error ("boRightClickManager was not found and is required. check www.bohdon.com for available downloads...");
+	}
+	
+	
+	//cleanup, then recreate
+	bmmDeleteRunTimeCommands(0);
+	bmmCreateHotkeys;
+	//register the right click condition
+	brcmRegisterCondition("bmmMarkingMenuCondition", 1);
+	
+	print ("// Bo Marking Menus 2.0 setup successfully!\n");
+}
+global proc bmmRestoreDefaults() {
+//removes runtime commands and restores hotkeys to their defaults...
+//restoring hotkeys doesn't actually remove them from the userHotkeys.mel, as this seems to be
+//impossible through mel... it simply reassigns them to their known default.
+//perhaps in the future we will manually edit the userHotkeys document
+
+	bmmDeleteRunTimeCommands(1);
+	bmmRemoveHotkeys;
+}
+global proc bmmCreateHotkeys() {
+//creates any hotkeys required by the marking menus
+//currently using:
+//	q
+//	alt+q
+//	f
+
+	//=====================================
+	// Mask, Selection, Persp Cameras
+	// id: 01
+    runTimeCommand -category "User"
+        -ann "Object masking, selection storing, and the perspective cameras menu. Uses lmb, mmb, and rmb."
+        -c ("if (`exists bmmBuildMarkingMenu_01`) bmmBuildMarkingMenu_01;")
+        bmmMarkingMenu01Command;
+	nameCommand
+		-ann "bmmMarkingMenu01NameCommand"
+		-c ("bmmMarkingMenu01Command")
+		bmmMarkingMenu01NameCommand;
+	hotkey -keyShortcut "q" -name ("bmmMarkingMenu01NameCommand");
+	//=====================================
+	
+	
+	//=====================================
+	// Component Mask, and Resetter menus
+	// id: 02
+	runTimeCommand -category "User"
+		-ann "Component masking and boResetter marking menu. Uses lmb and mmb."
+		-c ("if (`exists bmmBuildMarkingMenu_02`) bmmBuildMarkingMenu_02;")
+		bmmMarkingMenu02Command;
+	nameCommand
+		-ann "bmmMarkingMenu02NameCommand"
+		-c ("bmmMarkingMenu02Command")
+		bmmMarkingMenu02NameCommand;
+	hotkey -keyShortcut "q" -altModifier -name ("bmmMarkingMenu02NameCommand");
+	//=====================================
+
+	//=====================================
+	// Quick Menu System
+	// id: 03
+	runTimeCommand -category "User"
+		-ann "Quick Menu system. Uses lmb."
+		-c ("if (`exists bmmBuildMarkingMenu_03`) bmmBuildMarkingMenu_03; global int $bmmSkipFocus = 0;")
+		bmmMarkingMenu03Command;
+	nameCommand
+		-ann "bmmMarkingMenu03NameCommand"
+		-c ("bmmMarkingMenu03Command")
+		bmmMarkingMenu03NameCommand;
+	hotkey -keyShortcut "f" -name ("bmmMarkingMenu03NameCommand");
+	//=====================================
+
+
+	//=====================================
+	// Pop Down command
+	runTimeCommand -category "User"
+		-ann "All marking menus pop down"
+		-c ("if (`exists bmmMarkingMenuPopDown`) { bmmMarkingMenuPopDown; } else { print \"please include \\\"source boMarkingMenus;\\\" in your userSetup.mel\\n\";}")
+		bmmMarkingMenuPopDownCommand;
+	nameCommand
+		-ann "bmmMarkingMenuPopDownNameCommand"
+		-c ("bmmMarkingMenuPopDownCommand")
+		bmmMarkingMenuPopDownNameCommand;
+	hotkey -keyShortcut "q" -releaseName ("bmmMarkingMenuPopDownNameCommand");
+	hotkey -keyShortcut "q" -altModifier -releaseName ("bmmMarkingMenuPopDownNameCommand");
+	//Pop Down command for f
+	runTimeCommand -category "User"
+		-ann "Marking menu pop down and conditional fitPanel command"
+		-c ("if (`exists bmmMarkingMenuPopDown`) { bmmMarkingMenuPopDown; } else { print \"please include \\\"source boMarkingMenus;\\\" in your userSetup.mel\\n\";}\nglobal int $bmmSkipFocus;\nif(!$bmmSkipFocus) fitPanel -selected;")
+		bmmMarkingMenuPopDownCommand2;
+	nameCommand
+		-ann "bmmMarkingMenuPopDownNameCommand2"
+		-c ("bmmMarkingMenuPopDownCommand2")
+		bmmMarkingMenuPopDownNameCommand2;
+	hotkey -keyShortcut "f" -releaseName ("bmmMarkingMenuPopDownNameCommand2");
+	//=====================================
+}
+global proc bmmRemoveHotkeys() {
+//assigns the hotkeys back to their default values
+
+	hotkey -keyShortcut "q" -releaseName ("SelectMaskToolMarkingMenuPopDownNameCommand");
+	hotkey -keyShortcut "q" -name ("SelectMaskToolMarkingMenuNameCommand");
+	hotkey -keyShortcut "q" -altModifier -name ("SelectPolygonToolMarkingMenuNameCommand");
+	hotkey -keyShortcut "q" -altModifier -releaseName ("SelectPolygonToolMarkingMenuPopDownNameCommand");
+	//need this to account for previous versions...
+	hotkey -keyShortcut "w" -altModifier -name ("ToggleFBIKEffectorsTranslatePinStateNameCommand");
+	hotkey -keyShortcut "w" -altModifier -releaseName("");
+	hotkey -keyShortcut "f" -name ("FrameSelectedNameCommand");
+	hotkey -keyShortcut "f" -releaseName("");
+	
+	print ("// Removed boMarkingMenus and restored default hotkeys successfully...\n");
+}
+global proc bmmMarkingMenuPopDown() {
+//marking menu pop down procedure
+
+	//tempMM, 2, and 3 are Maya default names for marking menus
+    if( `popupMenu -exists tempMM`) deleteUI tempMM;
+    if( `popupMenu -exists tempMM2`) deleteUI tempMM2;
+    if( `popupMenu -exists tempMM3`) deleteUI tempMM3;
+	
+	//disable bmmMarkingMenuActive, used to create rmb menus
+	global int $bmmMarkingMenuActive;
+	$bmmMarkingMenuActive = 0;
+	//set RMB menu to none, incase another menu pops up that doesnt have an RMB menu
+	global string $bmmRMBMarkingMenu;
+	$bmmRMBMarkingMenu = "none";
+}
+global proc bmmDeleteRunTimeCommands(int $verbose) {
+// deletes all runtimes containing "bmm*MarkingMenu*",
+// so menu names can change easily, and still reflect content
+
+	string $userCommandArray[] = `runTimeCommand -q -uca`;
+	string $bmmCommandMatches[];
+	for ($command in $userCommandArray) {
+		if (size(`match ("^bs*mm.*MarkingMenu.*") $command`)) {
+			$bmmCommandMatches[size($bmmCommandMatches)] = $command;
+		}
+	}
+	
+	if (!size($bmmCommandMatches))
+		return;
+	
+	if ($verbose)
+		print ("\n//\n");
+	for ($command in $bmmCommandMatches) {
+		runTimeCommand -e -del $command;
+		if ($verbose)
+			print ("// deleted command: "+$command+" //\n");
+	}
+}
+global proc string bmmMarkingMenuCondition() {
+//this procedure is passed into brcmRegisterCondition
+//if bmmMarkingMenuActive is 1, then build the rmb menu specified by bmmRMBmarkingMenu
+//different hotkeys define different menus, so this procedure takes care of all of them
+
+	global int $bmmMarkingMenuActive;
+	if ($bmmMarkingMenuActive) {
+		//get current RMB marking menu
+		global string $bmmRMBMarkingMenu;
+		if ($bmmRMBMarkingMenu != "none") {
+			return $bmmRMBMarkingMenu;
+		}
+	}
+	return "";
+}
+//====================================================================================================
+
+
+//====================================================================================================
+global proc bmmBuildMarkingMenu_01() {
+//builds the Masking Menu and Display Menu marking menus and registers bmmBuildRMBMarkingMenu_01 for the Persp Camera menu
+//also switches to the Select Tool if not already switched
+	
+	//change to select tool
+	if ("selectSuperContext" != `currentCtx`)
+		SelectTool;
+
+	// delete existing temp popup menus to avoid display problems
+	if(`popupMenu -exists tempMM`) deleteUI tempMM;
+	if(`popupMenu -exists tempMM2`) deleteUI tempMM2;
+	if (`popupMenu -exists tempMM3`) deleteUI tempMM3;
+	
+	
+	//LMB MENU
+	popupMenu -mm 1 -b 1 -aob 1 -parent viewPanes tempMM;
+	bmmMenu_ObjectMasking("tempMM");
+	
+	
+	
+	//MMB MENU
+	//this menu isn't always the Display Masking menu, it changes based on the panel type
+	//evaluate the current panel type
+	string $curPanel = `getPanel -up`;
+	string $panelType = `getPanel -to $curPanel`;
+	
+	if ($panelType == "modelPanel") {
+		//create the menu for ModelPanels
+		popupMenu -mm 1 -b 2 -aob 1 -parent viewPanes tempMM2;
+		bmmMenu_DisplayMasking("tempMM2");
+		
+	} else if ($panelType == "scriptedPanel" && size(`match "^graphEditor" $curPanel`)) {
+		//create the menu for GraphEditors
+		popupMenu -mm 1 -b 2 -aob 1 -parent viewPanes tempMM2;
+		bmmMenu_EditAnimKeys("tempMM2");
+	}
+	
+	
+	
+	//RMB MENU
+	//enable bmmMarkingMenuActive for the right click condition
+	global int $bmmMarkingMenuActive;
+	$bmmMarkingMenuActive = 1;
+	//enable RMB menu, since the right click condition must call the menu,
+	//this variable says which menu should be called
+	global string $bmmRMBMarkingMenu;
+	$bmmRMBMarkingMenu = "bmmMenu_PerspCameras";
+}
+global proc bmmMenu_ObjectMasking(string $parentName) {
+//object masking menu
+	
+	setParent -m $parentName;
+	menuItem -rp "NW" -l "Reset" -ecr 0
+			-ann "Reset all selection masks"
+			-c "selectMode -component; selectMode -object; selectionMaskResetAll; bmmBuildMarkingMenu_01";	
+	menuItem -rp "N" -l "Polys" -ecr 0
+		-c "selectMode -object; selectType -polymesh #1;"
+		-checkBox  (`selectType -q -p`);
+	menuItem -rp "NE" -l "All Off" -ecr 0
+		-c "selectMode -object; selectType -handle 0 -ikHandle 0 -joint 0 -nurbsCurve 0 -cos 0 -stroke 0 -nurbsSurface 0 -polymesh 0 -subdiv 0 -plane 0 -lattice 0 -cluster 0 -sculpt 0 -nonlinear 0 -particleShape 0 -emitter 0 -field 0 -spring 0 -rigidBody 0 -fluid 0 -hairSystem 0 -follicle 0 -rigidConstraint 0 -collisionModel 0 -light 0 -camera 0 -texture 0 -ikEndEffector 0 -locator 0 -dimension 0 -nCloth 0 -nRigid 0 -dynamicConstraint 0; bmmBuildMarkingMenu_01";
+	menuItem -rp "E" -l "Curves" -ecr 0
+		-c "selectMode -object; selectType -nurbsCurve #1 -cos #1 -stroke #1;"
+		-checkBox  (`selectType -q -nurbsCurve` == 1 ? 1 : 0);
+	menuItem -rp "SE" -l "Clear Selection" -ecr 1
+		-c "select -clear";
+	menuItem -rp "S" -l "Use Selected" -ecr 0
+		-ann "Only allow the selection of the current type of object"
+		-c bmmMaskSelectedObjectsOnly;
+	menuItem -rp "SW" -l "Joints" -ecr 0
+		-c "selectMode -object; selectType -joint #1;"
+		-checkBox  (`selectType -q -joint` == 1 ? 1 : 0);
+	menuItem -rp "W" -l "Surfaces" -ecr 0
+		-c "selectMode -object; selectType -nurbsSurface #1 -subdiv #1 -plane #1"
+		-checkBox  (`selectType -q -nurbsSurface` == 1 ? 1 : 0);
+
+	// list items
+	menuItem -l "Masking Menu" -ecr 0
+		-c "" -en 0;
+	menuItem -d 1;
+	
+	menuItem -l "Render" -ecr 0
+		-c "selectMode -object; selectType -light #1 -camera #1 -texture #1"
+		-checkBox  (`selectType -q -light` == 1 ? 1 : 0);
+	menuItem -l "Deformers" -ecr 0
+		-c "selectMode -object; selectType -lattice #1 -cluster #1 -sculpt #1 -nonlinear #1"
+		-checkBox  (`selectType -q -lattice` == 1 ? 1 : 0);
+	menuItem -l "Dynamics" -ecr 0
+		-c "selectMode -object; selectType -particleShape #1 -emitter #1 -field #1 -spring #1 -rigidBody #1 -fluid #1 -hairSystem #1 -follicle #1 -rigidConstraint #1"
+		-checkBox  (`selectType -q -particleShape` == 1 ? 1 : 0);
+	menuItem -l "Misc" -ecr 0
+		-c "selectMode -object; selectType -ikEndEffector #1 -locator #1 -dimension #1"
+		-checkBox  (`selectType -q -ikEndEffector` == 1 ? 1 : 0);
+	menuItem -d 1;
+	menuItem -l "Templates" -ecr 0
+		-c "if (#1) {selectMode -template;} else {selectMode -object;}"
+		-checkBox (`selectMode -q -t` == 1 ? 1 : 0);
+}
+global proc bmmMenu_DisplayMasking(string $parentName) {
+//display masking menu
+	
+	string $curPanel = `getPanel -up`;
+	
+	setParent -m $parentName;
+	menuItem -rp "NW" -l "Show All" -ecr 0
+			-ann "Show all display types"
+			-c ("modelEditor -e -allObjects 1 "+$curPanel+"; bmmBuildMarkingMenu_01;");
+	menuItem -rp "N" -l "Polys" -ecr 0
+		-c ("modelEditor -e -polymeshes #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -polymeshes $curPanel`);
+	menuItem -rp "NE" -l "Hide All" -ecr 0
+		-ann "Hide all display types"
+		-c "modelEditor -e -allObjects 0 `getPanel -wf`; bmmBuildMarkingMenu_01;";
+	menuItem -rp "E" -l "Curves" -ecr 0
+		-c ("modelEditor -e -nurbsCurves #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -nurbsCurves $curPanel`);
+	menuItem -rp "SE" -l "Joints" -ecr 0
+		-c ("modelEditor -e -joints #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -joints $curPanel`);
+	menuItem -rp "S" -l "Hide Selected" -ecr 0
+		-ann "Hide the type of objects that are currently selected"
+		-c "bmmHideSelectedDispTypes; bmmBuildMarkingMenu_01;";
+	menuItem -rp "SW" -l "Lights" -ecr 0
+		-c ("modelEditor -e -lights #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -lights $curPanel`);
+	menuItem -rp "W" -l "Surfaces" -ecr 0
+		-c ("modelEditor -e -nurbsSurfaces #1 -subdivSurfaces #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -nurbsSurfaces $curPanel`);
+	
+	// list items
+	menuItem -l "Display Menu" -ecr 0
+		-c "" -en 0;
+	menuItem -d 1;
+	
+	menuItem -l "Cameras" -ecr 0
+		-c ("modelEditor -e -cameras #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -cameras $curPanel`);
+	menuItem -l "Locators" -ecr 0
+		-c ("modelEditor -e -locators #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -locators $curPanel`);
+	menuItem -l "Deformers" -ecr 0
+		-c ("modelEditor -e -deformers #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -deformers $curPanel`);
+	menuItem -l "Dynamics" -ecr 0
+		-c ("modelEditor -e -dynamics #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -dynamics $curPanel`);
+	menuItem -l "Misc" -ecr 0
+		-c ("modelEditor -e -planes #1 -ikHandles #1 -fluids #1 -hairSystems #1 -follicles #1 -dynamicConstraints #1 -pivots #1 -handles #1 -textures #1 -strokes #1 "+$curPanel+";")
+		-checkBox  (`modelEditor -q -planes $curPanel`);
+}
+global proc bmmMenu_EditAnimKeys(string $parentName) {
+//marking menu for editing animation. copy/paste keys... template/untemplate etc
+
+	setParent -m $parentName;
+	menuItem -rp "N" -l "Template" -ecr 1
+		-c "doTemplateChannel graphEditor1FromOutliner 1;";
+	menuItem -rp "E" -l "Paste Key Value" -ecr 1
+		-c "global float $bmmCopyKeyValue[]; keyframe -vc $bmmCopyKeyValue[0];";
+	menuItem -rp "SE" -l "Special Tick Draw" -ecr 1
+		-c "keyframe -tds 1";
+	menuItem -rp "S" -l "Untemplate" -ecr 1
+		-c "doTemplateChannel graphEditor1FromOutliner 0;";
+	menuItem -rp "SW" -l "Normal Tick Draw" -ecr 1
+		-c "keyframe -tds 0";
+	menuItem -rp "W" -l "Copy Key Value" -ecr 1
+		-c "global float $bmmCopyKeyValue[]; $bmmCopyKeyValue = `keyframe -q -sl -vc`;";
+	
+	//list items
+	menuItem -l "Show Buffer Curves" -ecr 0
+		-c "animCurveEditor -e -sb \"tgl\" graphEditor1GraphEd;"
+		-checkBox (`animCurveEditor -q -sb graphEditor1GraphEd` == "on" ? 1 : 0);
+}
+global proc bmmMenu_PerspCameras(string $parentName) {
+//builds the RMB menu when called, it must be passed the parentName of the menu that it will be added to
+//this menu lists all perspective cameras in the scene for easy access
+
+	//get perspective camera list
+	string $camList[] = `ls -typ camera`;
+	string $perspCamList[];
+	for ($cam in $camList) {
+		if (!`camera -q -o $cam` && $cam != "perspShape") {
+			$camTransform =  `listRelatives -p $cam`;
+			$perspCamList[size($perspCamList)] = $camTransform[0];
+		}
+	}
+	$perspCamCount = size($perspCamList);
+	
+	//create array in order of camera distribution (1st camera NE, 2nd camera E, etc...)
+	string $camRPList[];
+	if ($perspCamCount < 2) {
+		$camRPList = {"S"};
+	} else if ($perspCamCount < 4) {
+		$camRPList = {"E", "S", "W"};
+	} else {
+		$camRPList = {"NE", "E", "SE", "S", "SW", "W", "NW"};
+	}
+	
+	setParent -menu $parentName;
+		//persp always gets North
+		menuItem -l "persp" -rp "N" -c ("lookThroughModelPanel \"persp\" `getPanel -wf`");
+		
+	for ($i = 0; $i < $perspCamCount; $i++) {
+		if ($i < size($camRPList)) {
+			menuItem -rp $camRPList[$i] -l $perspCamList[$i] -c ("lookThroughModelPanel \""+$perspCamList[$i]+"\" `getPanel -wf`");
+		} else {
+			menuItem -l $perspCamList[$i] -c ("lookThroughModelPanel \""+$perspCamList[$i]+"\" `getPanel -wf`");
+		}
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+global proc bmmBuildMarkingMenu_02() {
+//builds the Component Masking and Resetter marking menus
+//also automatically switches to component mode
+	
+    // delete existing temp popup menus to avoid display problems
+    if( `popupMenu -exists tempMM` ) deleteUI tempMM;
+    if( `popupMenu -exists tempMM2` ) deleteUI tempMM2;
+    if ( `popupMenu -exists tempMM3` ) deleteUI tempMM3;
+	
+	
+	//LMB MENU
+	popupMenu -mm 1 -b 1 -alt 1 -aob 1 -parent viewPanes tempMM;
+	bmmMenu_ComponentMasking("tempMM");
+	
+	//MMB MENU
+	popupMenu -mm 1 -b 2 -alt 1 -aob 1 -parent viewPanes tempMM2;
+	bmmMenu_Resetter("tempMM2");
+}
+global proc bmmMenu_ComponentMasking(string $parentName) {
+//component masking menu
+
+	setParent -m $parentName;
+	menuItem -bld 1 -rp "N" -l "Points" -ecr 0
+	  -c "selectMode -component; selectType -cv 1 -vertex 1 -subdivMeshPoint 1 -latticePoint 1 -particle 1 -editPoint 0 -curveParameterPoint 0 -surfaceParameterPoint 0 -puv 0 -polymeshEdge 0 -subdivMeshEdge 0 -isoparm 0 -surfaceEdge 0 -surfaceFace 0 -springComponent 0 -facet 0 -subdivMeshFace 0 -hull 0 -rotatePivot 0 -scalePivot 0 -jointPivot 0 -selectHandle 0 -localRotationAxis 0 -imagePlane 0;";
+
+	menuItem -rp "NE" -l "Handles" -ecr 0
+	  -c "selectMode -component; selectType -cv 0 -vertex 0 -subdivMeshPoint 0 -latticePoint 0 -particle 0 -editPoint 0 -curveParameterPoint 0 -surfaceParameterPoint 0 -puv 0 -polymeshEdge 0 -subdivMeshEdge 0 -isoparm 0 -surfaceEdge 0 -surfaceFace 0 -springComponent 0 -facet 0 -subdivMeshFace 0 -hull 0 -rotatePivot 0 -scalePivot 0 -jointPivot 0 -selectHandle 1 -localRotationAxis 0 -imagePlane 0;";
+
+	menuItem -bld 1 -rp "E" -l "Lines" -ecr 0
+	  -c "selectMode -component; selectType -cv 0 -vertex 0 -subdivMeshPoint 0 -latticePoint 0 -particle 0 -editPoint 0 -curveParameterPoint 0 -surfaceParameterPoint 0 -puv 0 -polymeshEdge 1 -subdivMeshEdge 1 -isoparm 1 -surfaceEdge 1 -surfaceFace 0 -springComponent 1 -facet 0 -subdivMeshFace 0 -hull 0 -rotatePivot 0 -scalePivot 0 -jointPivot 0 -selectHandle 0 -localRotationAxis 0 -imagePlane 0;";
+
+	menuItem -rp "SE"  -l "Hulls" -ecr 0
+	  -c "selectMode -component; selectType -cv 0 -vertex 0 -subdivMeshPoint 0 -latticePoint 0 -particle 0 -editPoint 0 -curveParameterPoint 0 -surfaceParameterPoint 0 -puv 0 -polymeshEdge 0 -subdivMeshEdge 0 -isoparm 0 -surfaceEdge 0 -surfaceFace 0 -springComponent 0 -facet 0 -subdivMeshFace 0 -hull 1 -rotatePivot 0 -scalePivot 0 -jointPivot 0 -selectHandle 0 -localRotationAxis 0 -imagePlane 0;";
+
+	menuItem -bld 1 -rp "S" -l "Faces"  -ecr 0
+	  -c "selectMode -component; selectType -cv 0 -vertex 0 -subdivMeshPoint 0 -latticePoint 0 -particle 0 -editPoint 0 -curveParameterPoint 0 -surfaceParameterPoint 0 -puv 0 -polymeshEdge 0 -subdivMeshEdge 0 -isoparm 0 -surfaceEdge 0 -surfaceFace 1 -springComponent 0 -facet 1 -subdivMeshFace 1 -hull 0 -rotatePivot 0 -scalePivot 0 -jointPivot 0 -selectHandle 0 -localRotationAxis 0 -imagePlane 0;";
+
+	menuItem -rp "SW"  -l "Pivots"  -ecr 0
+	  -c "selectMode -component; selectType -cv 0 -vertex 0 -subdivMeshPoint 0 -latticePoint 0 -particle 0 -editPoint 0 -curveParameterPoint 0 -surfaceParameterPoint 0 -puv 0 -polymeshEdge 0 -subdivMeshEdge 0 -isoparm 0 -surfaceEdge 0 -surfaceFace 0 -springComponent 0 -facet 0 -subdivMeshFace 0 -hull 0 -rotatePivot 1 -scalePivot 1 -jointPivot 1 -selectHandle 0 -localRotationAxis 0 -imagePlane 0;";
+
+	menuItem -bld 1 -rp "W" -l "Param"  -ecr 0
+	  -c "selectMode -component; selectType -cv 0 -vertex 0 -subdivMeshPoint 0 -latticePoint 0 -particle 0 -editPoint 1 -curveParameterPoint 1 -surfaceParameterPoint 1 -puv 1 -polymeshEdge 0 -subdivMeshEdge 0 -isoparm 0 -surfaceEdge 0 -surfaceFace 0 -springComponent 0 -facet 0 -subdivMeshFace 0 -hull 0 -rotatePivot 0 -scalePivot 0 -jointPivot 0 -selectHandle 0 -localRotationAxis 0 -imagePlane 0;";
+
+	menuItem -rp "NW" -l "Misc" -ecr 0
+	  -c "selectMode -component; selectType -cv 0 -vertex 0 -subdivMeshPoint 0 -latticePoint 0 -particle 0 -editPoint 0 -curveParameterPoint 0 -surfaceParameterPoint 0 -puv 0 -polymeshEdge 0 -subdivMeshEdge 0 -isoparm 0 -surfaceEdge 0 -surfaceFace 0 -springComponent 0 -facet 0 -subdivMeshFace 0 -hull 0 -rotatePivot 0 -scalePivot 0 -jointPivot 0 -selectHandle 0 -localRotationAxis 1 -imagePlane 1;";
+}
+global proc bmmMenu_Resetter(string $parentName) {
+//marking menu for boResetter
+//if boResetter isn't found, uses some simple reset procedures built into this script
+
+	setParent -m $parentName;
+	//simple resets
+	menuItem -rp "W" -l "Rot" -ecr 1
+		-ann "Reset the rotations on all selected objects"
+		-c "bmmSimpleTransformResets 0 1 0";
+	menuItem -rp "E" -l "Scale" -ecr 1
+		-ann "Reset the scales on all selected objects"
+		-c "bmmSimpleTransformResets 0 0 1";
+	menuItem -rp "S" -l "Trans" -ecr 1
+		-ann "Reset the translations on all selected objects"
+		-c "bmmSimpleTransformResets 1 0 0";
+	
+	python("try:\n    import boResetter\nexcept ImportError:\n    print 1");
+	if(!catch(`python("boResetter")`)) {
+		menuItem -rp "N" -l "Smart" -ecr 1
+			-ann "Reset the selected objects' transformations to the defaults, or identity if defaults aren't available"
+			-c "python(\"boResetter.resetSmart()\")";
+		menuItem -rp "NW" -l "Xform" -ecr 1
+			-ann "Reset the selected objects' transformations to identity, even if defaults are available"
+			-c "python(\"boResetter.resetTransform()\")";
+		menuItem -rp "NE" -l "Defaults" -ecr 1
+			-ann "Reset the selected objects' transformations to the defaults, ignore the object if none are available"
+			-c "python(\"boResetter.reset()\")";
+		menuItem -rp "SE" -l "All Defaults" -ecr 0
+			-ann "Reset any object that has defaults to it's defaults"
+			-c "python(\"boResetter.resetAll()\")";
+		
+		//list menus
+		menuItem -l "Resetter" -ecr 0
+			-ann "Open the boResetter GUI"
+			-c "python(\"boResetter.GUI()\")";
+		menuItem -d 1;
+		menuItem -l "Set Defaults" -ecr 0
+			-ann "Set the current transformations as the defaults for the selected objects"
+			-c "python(\"boResetter.setDefaults()\")";
+		menuItem -l "Set Defaults Nonkeyable" -ecr 0
+			-ann "Set the current transformations as the defaults for the selected objects, including nonkeyable"
+			-c "python(\"boResetter.setDefaultsNonkeyable()\")";
+		menuItem -l "Set Defaults CB" -ecr 0
+			-ann "Set the current settings as the defaults for the selected attributes in the channel box, includes non-keyable"
+			-c "python(\"boResetter.setDefaultsCB()\")";
+		menuItem -l "Remove Defaults" -ecr 0
+			-ann "Removes the defulats for the selected objects"
+			-c "python(\"boResetter.removeDefaults()\")";
+		menuItem -l "List Defaults" -ecr 1
+			-ann "Lists the default values for the selected objects, if any exist"
+			-c "python(\"boResetter.listDefaults()\")";
+		menuItem -l "Select Objects" -ecr 1
+			-ann "Select all objects in the scene that have attribute defaults"
+			-c "python(\"boResetter.selectObjectsWithDefaults()\")";
+		
+	} else {
+		menuItem -rp "N" -l "All" -ecr 1
+			-ann "Reset translations, rotations, and scales, on all selected objects"
+			-c "bmmSimpleTransformResets 1 1 1";
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+global proc bmmBuildMarkingMenu_03() {
+//builds the Quick Select system marking menus
+
+	// delete existing temp popup menus to avoid display problems
+    if( `popupMenu -exists tempMM` ) deleteUI tempMM;
+    if( `popupMenu -exists tempMM2` ) deleteUI tempMM2;
+    if ( `popupMenu -exists tempMM3` ) deleteUI tempMM3;
+	
+	//LMB MENU
+	popupMenu -mm 1 -b 1 -aob 1 -pmc ("global int $bmmSkipFocus = 1;") -parent viewPanes tempMM;
+	bmmMenu_QuickSelect("tempMM");
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//QuickSelect Menu system procedures
+global proc bmmMenu_QuickSelect(string $parentName) {
+//this a menu that provides an object/component quick selection system
+//the option boxes clear/assign the selected objects to a direction
+
+	//get the lists of objects (whether empty or full)
+	global string $bmmQSRadialList[];
+	if (!size($bmmQSRadialList))
+		$bmmQSRadialList = {"", "", "", "", "", "", "", ""};
+	global string $bmmQSList[];
+	
+	
+	setParent -menu $parentName;
+	string $radials[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+	string $label;
+	for ($i = 0; $i < 8; $i++) {
+		$label = bmmMenu_QuickSelect_GetListAbbrev($bmmQSRadialList[$i]);
+		if ($label == "")
+			$label = ". . .";
+		menuItem -rp $radials[$i] -l $label -c ("bmmMenu_QuickSelect_RadialCmd \""+$radials[$i]+"\";");
+		if ($label != ". . .")
+			menuItem -ob 1 -c ("bmmMenu_QuickSelect_RadialOptionCmd \""+$radials[$i]+"\";");
+	}
+	
+	for ($i = 0; $i < size($bmmQSList); $i++) {
+		$label = ($i+1)+": "+(bmmMenu_QuickSelect_GetListAbbrev($bmmQSList[$i]));
+		menuItem -aob 1 -l $label -c ("bmmMenu_QuickSelect_ListCmd "+$i+";");
+		menuItem -ob 1 -c ("bmmMenu_QuickSelect_ListOptionCmd "+$i+";");
+	}
+	
+	menuItem -l ". . ." -c "bmmMenu_QuickSelect_AddListItem";
+	menuItem -d 1;
+	menuItem -l "Select All" -c "bmmMenu_QuickSelect_SelectAll";
+	menuItem -l "Store All" -c "bmmMenu_QuickSelect_StoreLists";
+	menuItem -l "Clear All" -c "bmmMenu_QuickSelect_ClearAll";
+	menuItem -d 1;
+	menuItem -l "Print Sel Size" -c "print (\"// \"+(size(`ls -r 1 -fl -sl`))+\" object(s) selected\\n\");";
+}
+global proc bmmMenu_QuickSelect_ClearAll() {
+	global string $bmmQSRadialList[];
+	$bmmQSRadialList = {"", "", "", "", "", "", "", ""};
+	global string $bmmQSList[];
+	clear $bmmQSList;
+}
+global proc bmmMenu_QuickSelect_RadialCmd(string $dir) {
+//checks the radial list global var, if it is a list of objects then those objects are selected
+//if the radial position is blank, however, it checks the selection and assigns it to that direction
+
+	global string $bmmQSRadialList[];
+	string $radials[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+	for ($i = 0; $i < 8; $i++) {
+		if ($dir == $radials[$i]) {
+			if ($bmmQSRadialList[$i] == "") {
+				//get selection and assign
+				string $selList[] = `ls -r 1 -sl`;
+				if (!size($selList))
+					return;
+				$bmmQSRadialList[$i] = stringArrayToString($selList, ",");
+			} else {
+				//get the item, split it by commas, and select the array
+				string $list[] = bmmMenu_QuickSelect_GetObjects($bmmQSRadialList[$i]);
+				for ($obj in $list) {
+					if (`objExists $obj`)
+						select -add $obj;
+				}
+			}
+		}
+	}
+}
+global proc bmmMenu_QuickSelect_ListCmd(int $index) {
+//selects the objects at $bmmQSList[$index]
+
+    global string $bmmQSList[];
+	if ($index >= size($bmmQSList))
+		return;
+	
+	//get the item, split it by commas, and select the array
+	string $list[] = bmmMenu_QuickSelect_GetObjects($bmmQSList[$index]);
+	for ($obj in $list) {
+		if (`objExists $obj`)
+			select -add $obj;
+	}
+}
+global proc bmmMenu_QuickSelect_RadialOptionCmd(string $dir) {
+//prompts the user to either remove or rename the selected direction
+//removes the quick select at the specified direction in $bmmQSRadialList
+
+	global string $bmmQSRadialList[];
+	string $radials[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+	for ($i = 0; $i < 8; $i++) {
+		if ($dir == $radials[$i]) {
+			bmmMenu_QuickSelect_OptionCmdMain("radial", $i);
+			return;
+		}
+	}
+}
+global proc bmmMenu_QuickSelect_ListOptionCmd(int $index) {
+//option command for list items
+
+	bmmMenu_QuickSelect_OptionCmdMain("list", $index);
+}
+global proc bmmMenu_QuickSelect_OptionCmdMain(string $type, int $i){
+//handles the option box command for both radials and lists
+
+	global string $bmmQSRadialList[];
+	global string $bmmQSList[];
+	string $list[];
+	
+	if ($type == "radial") {
+		$list = $bmmQSRadialList;
+	} else if ($type == "list") {
+		$list = $bmmQSList;
+	} else {
+		return;
+	}
+	
+	string $label;
+	$label = bmmMenu_QuickSelect_GetListAbbrev($list[$i]);
+	string $result;
+	$result = `confirmDialog
+		-t "Edit..."
+		-m $label
+		-b "Remove"
+		-b "Rename"
+		-b "Cancel"
+		-db "Remove"
+		-cb "Cancel"
+		-ds "Cancel"`;
+	
+	if ($result == "Cancel") {
+		return;
+	
+	} else if ($result == "Remove") {
+		$list[$i] = "";
+		
+	} else if ($result == "Rename") {
+		string $name, $oldName;
+		$oldName = bmmMenu_QuickSelect_GetName($list[$i]);
+		$result = `promptDialog
+			-t "Rename..."
+			-tx $oldName
+			-m ("Objects: "+$label)
+			-b "Ok"
+			-b "Cancel"
+			-db "Ok"
+			-cb "Cancel"
+			-ds "Cancel"`;
+		
+		if ($result == "Cancel")
+			return;
+		
+		$name = `promptDialog -q -tx`;
+		$name = `strip $name`;
+		$list[$i] = bmmMenu_QuickSelect_SetName($list[$i], $name);
+	}
+	
+	//assign the new values back to the global vars
+	if ($type == "radial") {
+		$bmmQSRadialList[$i] = $list[$i];
+	} else if ($type == "list") {
+		$bmmQSList[$i] = $list[$i];
+		print ("bmmQSList[$i]: "+$bmmQSList[$i]+"\n"); //pv
+		if ($bmmQSList[$i] == "") {
+			stringArrayRemoveAtIndex($i, $bmmQSList);
+		}
+	}
+}
+global proc bmmMenu_QuickSelect_AddListItem() {
+//checks the selection and adds it to $bmmQSList
+
+    string $selList[] = `ls -r 1 -sl`;
+	if (!size($selList))
+		return;
+	
+	global string $bmmQSList[];
+	$bmmQSList[size($bmmQSList)] = stringArrayToString($selList, ",");
+	
+	$bmmQSList = stringArrayRemoveDuplicates($bmmQSList);
+}
+global proc bmmMenu_QuickSelect_RemoveSelected() {
+//checks both arrays for the selected objects (as a whole) and removes them if they exist
+//this is effectively the only way to remove specific objects (tough if the objects get deleted though...)
+
+    string $selList[] = `ls -r 1 -sl`;
+	if (!size($selList))
+		return;
+	
+	global string $bmmQSRadialList[];
+	global string $bmmQSList[];
+	string $objStr = stringArrayToString($selList, ",");
+	for ($i = 0; $i < size($bmmQSRadialList); $i++) {
+		string $listStr = stringArrayToString(bmmMenu_QuickSElect_GetObjects($bmmQSRadialList[$i]), ",");
+		if ($listStr == $objStr)
+			$bmmQSRadialList[$i] = "";
+	}
+	
+	$bmmQSList = stringArrayRemove({$objStr}, $bmmQSList);
+}
+global proc bmmMenu_QuickSelect_SelectAll() {
+//selects all items from the radial and normal list
+
+	global string $bmmQSRadialList[];
+	global string $bmmQSList[];
+	
+	string $allObjs[];
+	for ($item in $bmmQSRadialList) {
+		//split the item, then append it
+		string $objs[] = bmmMenu_QuickSelect_GetObjects($item);
+		if (size($objs))
+			$allObjs = stringArrayCatenate($allObjs, $objs);
+	}
+	for ($item in $bmmQSList) {
+		//split the item, then append it
+		string $objs[] = bmmMenu_QuickSelect_GetObjects($item);
+		if (size($objs))
+			$allObjs = stringArrayCatenate($allObjs, $objs);
+	}
+	for ($obj in $allObjs) {
+		if (!`objExists $obj`)
+			$allObjs = stringArrayRemove({$obj}, $allObjs);
+	}
+	select $allObjs;
+}
+global proc bmmMenu_QuickSelect_StoreLists() {
+//stores the radial and normal lists to the scene file
+	
+	global string $bmmQSRadialList[];
+	global string $bmmQSList[];
+	
+	string $bs = "global string $bmmQSRadialList[];\nglobal string $bmmQSList[];\n$bmmQSRadialList = {\"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"};\n";
+	for ($i = 0; $i < size($bmmQSRadialList); $i++) {
+		if ($bmmQSRadialList[$i] != "")
+			$bs += ("$bmmQSRadialList["+$i+"] = \""+$bmmQSRadialList[$i]+"\";\n");
+	}
+	for ($i = 0; $i < size($bmmQSList); $i++) {
+		$bs += ("$bmmQSList["+$i+"] = \""+$bmmQSList[$i]+"\";\n");
+	}
+	
+	string $scriptNode = "bmmMenu_QuickSelect_sn";
+	if (`objExists $scriptNode`)
+		delete $scriptNode;
+	scriptNode -st 1 -bs $bs -n $scriptNode;
+	
+	print ("\n// Quick Select script node:\n");
+	print $bs;
+	print ("\n");
+	print ("// Quick Select menu items stored successfully\n");
+}
+global proc string bmmMenu_QuickSelect_SetName(string $list, string $name) {
+//takes a list as a string, with a possible name prefix, and returns the list with a new name prefix
+//if name is nothing, removes the prefix altogether
+	
+	if ($name == "") {
+		if (size(`match "\\^" $list`))
+			return `substitute ".*^" $list ""`;
+		else
+			return $list;
+	}
+	
+	if (size(`match "\\^" $list`))
+		$list = `substitute ".*^" $list ($name+"^")`;
+	else
+		$list = $name+"^"+$list;
+	
+	return $list;
+}
+global proc string bmmMenu_QuickSelect_GetName(string $list) {
+//returns the prefix name of a list string
+
+	if (!size(`match "\\^" $list`))
+		return "";
+	
+	string $name = `substitute "\\^.*" $list ""`;
+	return $name;
+}
+global proc string[] bmmMenu_QuickSelect_GetObjects(string $list) {
+//returns the list of objects without their name prefix (if one exists)
+
+	$list = `substitute ".*^" $list ""`;
+	string $objs[] = stringToStringArray($list, ",");
+	return $objs;
+}
+global proc string bmmMenu_QuickSelect_GetListAbbrev(string $list) {
+//returns either the name of, or an abbreviation of the list provided
+
+	if ($list == "")
+		return "";
+	
+	string $name, $abbrev;
+	$name = bmmMenu_QuickSelect_GetName($list);
+	if ($name == "") {
+		$abbrev = `substring $list 1 15` + "...";
+		return $abbrev;
+	} else {
+		return $name;
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//HELPER PROCEDURES
+global proc bmmMaskSelectedObjectsOnly() {
+//changes object mask to the selected object's type(s) only
+
+	string $selList[] = `ls -sl`;
+	int $match = 0;
+
+	setObjectPickMask "All" 0;
+
+	for ($obj in $selList) {
+		string $objShapes[] = {$obj};
+
+		if (`nodeType $obj` == "transform") $objShapes = `listRelatives -f -c $obj`;
+
+		$obj = $objShapes[0];
+		string $selType = `nodeType $obj`;
+
+		//check for direct type
+		string $directTypes[] = {"nurbsSurface", "subdiv", "joint", "camera", "locator"};
+		for ($type in $directTypes) {
+			if ($selType == $type) {
+				$command = "selectMode -object; selectType -"+$selType+" 1";
+				eval ($command);
+				$match = 1;
+				break ;
+			}
+		}
+
+		//non-direct types:
+			//polyMesh > search:mesh
+			//light > search:*light*
+			//curve > search:nurbsCurve
+		if ($selType == "mesh") {
+			selectMode -object; selectType -p 1;
+			$match = 1;
+		} else if (`gmatch $selType "*Light"`) {
+			selectMode -object; selectType -light 1;
+			$match = 1;
+		} else if ($selType == "nurbsCurve") {
+			selectMode -object; selectType -curve 1;
+			$match = 1;
+		}
+	}
+	
+	bmmBuildMarkingMenu_01;
+	if ($match) return ;
+
+	//didn't find a match
+	selectionMaskResetAll;
+	print ("//node type isn't supported\n");
+}
+global proc bmmHideSelectedDispTypes() {
+//gets the display types of all selected items,
+//and hides them in the current modelPanel
+
+	string $curPanel = `getPanel -wf`;
+	string $selList[] = `ls -r 1 -sl`;
+	
+	if(size($selList)) {	
+		string $dispFlags[] = `bmmGetNodeDispTypes($selList)`;
+		$dispFlags = stringArrayRemoveDuplicates($dispFlags);
+
+		string $cmd = "modelEditor -e ";
+		for ($flag in $dispFlags) {
+			$cmd += ("-"+$flag+" 0 ");
+		}
+		$cmd += ($curPanel+";");
+		
+		print ($cmd+"\n");
+		eval($cmd);
+	}
+}
+global proc string[] bmmGetNodeDispTypes(string $objs[]) {
+//for a set of objects $objs, returns their display types
+// (one of the types listed in the model panel's Show menu)
+
+	string $nodeType, $nodeShapeType, $obj, $objShape;
+	string $nodeShapes[], $nodeTypeList[];
+	string $returnList[];
+	int $objCount = size($objs);
+	
+	//list of possible display types for a given modelPanel
+	string $typeConvertList[] = {"nurbsCurves", "nurbsSurfaces", "polymeshes",
+					"subdivSurfaces", "planes", "lights", "cameras",
+					"controlVertices", "grid", "hulls", "joints",
+					"ikHandles",
+					"deformers", "deformers", "deformers", "deformers", "deformers",
+					"dynamics", "dynamics", "dynamics", "dynamics", "dynamics", 
+					"fluids",
+					"hairSystems", "follicles", "nCloths", "nParticles",
+					"nRigids", "dynamicConstraints", "locators",
+					"manipulators", "dimensions", "handles", "pivots",
+					"textures", "textures", "strokes"};
+					
+	//node type will return these values, the command options are of the same index in $typeConvertList
+	string $typeList[] = {"nurbsCurve", "nurbsSurface", "mesh",
+					"subdiv", "plane", "light", "camera",
+					"controlVertices", "grid", "hulls", "joint",
+					"ikHandle",
+					"lattice", "clusterHandle", "softModHandle", "deformFunc", "implicitSphere",
+					"particle", "pointEmitter", "rigidBody", "field", "rigidConstraint",
+					"fluidShape",
+					"hairSystem", "follicle", "nCloth", "nParticle",
+					"nRigid", "dynamicConstraint", "locator",
+					"manipulators", "dimensionShape", "handle", "pivot",
+					"place3dTexture", "place2dTexture", "pfxGeometry"};
+	
+	
+	for ($i = 0; $i < $objCount;$i++) {
+		$obj = $objs[$i];
+		$returnList[$i] = "";
+		
+		//get the nodeType of obj
+		string $nodeType = `nodeType $obj`;
+		//print ("\n\n//nodeType:"+$nodeType+"\n//\n");
+
+		if (stringArrayContains($nodeType, $typeList)) {
+			//found it!
+			$returnList[$i] = $nodeType;
+			continue;
+		}
+		
+		
+		//try the objShape, since the first nodeType wasn't right
+		if ($nodeType == "transform") {
+			$nodeShapes = `listRelatives -c -s $obj`;
+			if (!size($nodeShapes)) {
+				print ("node is an empty transform...\n\n");
+				continue;
+			} else {
+				$objShape = $nodeShapes[0];
+			}
+		} else {
+			$objShape = $obj;
+		}
+		string $nodeType = `nodeType $objShape`;
+		//print ("\n\n//nodeType of objShape:"+$nodeType+"\n//\n");
+		
+		if (stringArrayContains($nodeType, $typeList)) {
+			//found it!
+			$returnList[$i] = $nodeType;
+			continue;
+		}
+		
+		//in the case the the nodeType of objShape still isn't a valid display type,
+		//use the nodeType inheritance list to find a valid display type
+		$nodeTypeList = `nodeType -i $objShape`;
+		$inheritCount = size($nodeTypeList);
+		for ($j = ($inheritCount-1); $j >= 0; $j--) {
+			//print ("item:"+$nodeTypeList[$j]+"\n");
+			if (stringArrayContains($nodeTypeList[$j], $typeList)) {
+				//found it!
+				$returnList[$i] = $nodeTypeList[$j];
+				break;
+			}
+
+		}
+		
+	}
+	
+	
+	//convert the returnList
+	for ($i = 0; $i < size($returnList); $i++) {
+		for ($j = 0; $j < size($typeList); $j++) {
+			if ($returnList[$i] == $typeList[$j]) {
+				$returnList[$i] = $typeConvertList[$j];
+			}
+		}
+	}
+	
+	return $returnList;
+}
+global proc bmmSimpleTransformResets(int $trans, int $rot, int $scale) {
+//uses simple procedures to reset the transformations
+	
+	string $selList[] = `ls -r 1 -sl`;
+	if (!size($selList))
+		return;
+	
+	string $attrs[];
+	
+	if ($trans) {
+		$attrs[size($attrs)] = "tx";
+		$attrs[size($attrs)] = "ty";
+		$attrs[size($attrs)] = "tz";
+	}
+	if ($rot) {
+		$attrs[size($attrs)] = "rx";
+		$attrs[size($attrs)] = "ry";
+		$attrs[size($attrs)] = "rz";
+	}
+	if ($scale) {
+		$attrs[size($attrs)] = "sx";
+		$attrs[size($attrs)] = "sy";
+		$attrs[size($attrs)] = "sz";
+	}
+	
+	for ($obj in `ls -sl`) {
+		for ($attr in $attrs) {
+			if (`getAttr -se ($obj+"."+$attr)`) {
+				if (size(`match "^s" $attr`)) {
+					setAttr ($obj+"."+$attr) 1;
+				} else {
+					setAttr ($obj+"."+$attr) 0;
+				}
+			}
+		}
+	}
+}
+//====================================================================================================
+

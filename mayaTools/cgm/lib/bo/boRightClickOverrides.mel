@@ -1,0 +1,572 @@
+/*
+    Right Click Overrides for Maya 2011
+    1.4
+    
+    created by Bohdon Sayre
+    bsayre@c.ringling.edu
+    
+    unique prefix: brcm
+    
+    Description:
+        This script includes the necessary procedures for overriding
+        Maya's default right click handlers. Requires boRightClickManager and
+        should not be used alone.
+    
+    Instructions:
+        Make sure both boRightClickManager.mel and this script are in your
+        scripts directory. Also ensure that both scripts are for the correct
+        version of Maya
+    
+    Version 1.4:
+        > Renamed global variable lists to something shorter
+    
+    Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc boRightClickOverrides() {
+    /*  Identity procedure. Allows for checking the existance of this script */
+}
+
+//===========================================================================
+//Replaced from Autodesk\Maya2011\scripts\others\buildObjectMenuItemsNow.mel
+//This procedure is called whenever a right click is registered on a model panel
+//
+global proc buildObjectMenuItemsNow( string $parentName) {
+	global int $gIsMarkingMenuOn;
+
+	if (`popupMenu -e -exists $parentName`) {
+		popupMenu -e -deleteAllItems $parentName;	
+		if (`popupMenu -q -mm $parentName` != $gIsMarkingMenuOn) {
+			popupMenu -e -mm $gIsMarkingMenuOn $parentName;
+		}
+		
+		//CHANGES
+		global string $brcmHighConditions[];
+		global string $brcmLowConditions[];
+		string $brcmOrderedConditions[] = `stringArrayCatenate $brcmHighConditions $brcmLowConditions`;
+		for ($condition in $brcmOrderedConditions) {
+			if (`exists $condition`) {
+				$result = `eval($condition)`;
+				if ( size($result) ) {
+					eval($result+"(\""+$parentName+"\")");
+					return;
+				}
+			}
+		}
+		//END CHANGES
+		
+		if (!`dagObjectHit -mn $parentName`) {
+			string $leadObject[] = `ls -sl -tail 1 -typ transform -typ shape`;
+			if (size($leadObject) > 0) {
+				dagMenuProc($parentName, $leadObject[0]);
+			
+			//CHANGES
+			//checks for and builds the project explorer marking menu
+			} else if (`exists brcmProjectExplorerMM`) {
+				brcmProjectExplorerMM($parentName);
+			//END CHANGES
+			
+			} else {
+				setParent -menu $parentName;
+
+				menuItem
+					-label (uiRes("m_buildObjectMenuItemsNow.kSelectAll"))
+					-radialPosition "S"
+					-command ("SelectAll");
+
+            	menuItem
+					-label (uiRes("m_buildObjectMenuItemsNow.kCompleteTool"))
+					-radialPosition "N"
+					-command ("CompleteCurrentTool");
+
+            	setParent ..;
+			}
+		}
+	} else {
+		warning (uiRes("m_buildObjectMenuItemsNow.kParentWarn"));
+	}
+}
+//===========================================================================
+
+
+//===========================================================================
+//Replaced from Autodesk\Maya2011\scripts\others\dagMenuProc.mel
+//
+proc optionalDagMenuProc( string $parent, string $item )
+{
+	// Look at the shape child of this object
+	//
+	string $object[] = `listRelatives -path -s $item`;
+
+	string $shape = "";
+	int $gotVisible = 0;
+
+	if( size($object) < 1 ) return;
+
+	for( $i=0; $i<size($object); $i+=1) {
+		if( (0 == getAttr($object[$i] + ".io")) &&
+			getAttr($object[$i] + ".v") ) {
+			$shape = $object[$i];
+			$gotVisible = 1;
+			break;
+		}
+	}
+
+	if( !$gotVisible ) {
+		for( $i=0; $i<size($object); $i+=1) {
+			if( 0 == getAttr($object[$i] + ".io")) {
+				$shape = $object[$i];
+				break;
+			}
+		}
+	}
+
+	if( "" != $shape ) {
+		string $nt = `nodeType $shape`;
+		switch( $nt ) {
+		  case "subdiv":
+			subdOptionalDagMenuProc( $parent, $item );
+			menuItem -d true; 
+			break;
+
+		  default:
+			// Check to make sure we have a kPlugin prefix
+			string $apiNt = `nodeType -api $shape`;
+			if ( startsWith( $apiNt, "kPlugin" ) ) {
+				string $nodeMenuCommand = $nt + "DagMenuProc";
+				string $nodeMenuCommandWithArgs = $nodeMenuCommand + "(\"" + $parent + "\" , \"" + $item + "\" )";
+				if ( exists( $nodeMenuCommand ) ) {
+				   eval( $nodeMenuCommandWithArgs );
+				}
+			}
+			break;
+		}
+	}
+}
+
+// This has been called because a menu press happened on a DAG object
+// So find the Object submenu and add the DAG specific items to it.
+//
+global proc dagMenuProc(string $parent, string $object)
+{
+	global string $artSelectObject ;
+	string $mode = "";
+
+	if (`optionVar -exists currentMenuBarTab`) {
+		$mode = `optionVar -q currentMenuBarTab`;
+	} else {
+		optionVar -sv currentMenuBarTab $mode;
+	}
+	
+	if (($object == "CubeCompass"))
+	{
+		createViewCubeMenuItems($parent);
+		return;
+	}
+
+	if (`popupMenu -e -exists $parent`) {
+		setParent -m $parent;
+		
+		//CHANGES
+		global string $brcmHitConditions[];
+		for ($condition in $brcmHitConditions) {
+			if (`exists $condition`) {
+				$result = `eval($condition+" \""+$object+"\"")`;
+				if (size($result)) {
+					eval($result+" \""+$parent+"\"");
+					return;
+				}
+			}
+		}
+		//END CHANGES
+		
+		string  $currContext = `currentCtx`;		
+		if ( $currContext == "artAttrSkinContext" )
+		{
+			createSelectMenuItems($parent, $object);
+			
+			string $shortName = `substitute ".*|" $object ""`;
+			menuItem -label ($shortName + "...") -c ("showEditor "+$object);
+			menuItem -divider true;
+			menuItem -divider true;
+
+			menuItem -divider true;
+			menuItem -divider true;
+			
+			menuItem -label (uiRes("m_dagMenuProc.kDagMenuGotoBindPose")) -c "gotoBindPose";
+			
+			menuItem -divider true;
+			menuItem -divider true;
+
+			menuItem -label (uiRes("m_dagMenuProc.kDagMenuSelect"))  -c ("select -r " + $object);
+			menuItem -label (uiRes("m_dagMenuProc.kDagMenuAddToSelection")) -c ("select -add " + $object);
+			menuItem -label (uiRes("m_dagMenuProc.kDagMenuSelectHierarchy"))  -c ("select -hierarchy " + $object);
+			
+			menuItem -divider true;
+			menuItem -divider true;
+			
+			string $activePanel = `getPanel -wf`;
+			int $currentXrayValue = `modelEditor -q -jointXray $activePanel`;
+			$xrayJointCB = `menuItem -subMenu false -cb $currentXrayValue  -c "skinPaintXrayJoints;" -label (uiRes("m_dagMenuProc.kDagMenuXRayJoints")) xrayJointsCB`;  
+			setParent -m $parent;
+			
+			int $currentIsolateValue = `isolateSelect -q -state $activePanel`;
+			$isolateParent = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kDagMenuIsolate"))`;
+								menuItem -subMenu false -cb $currentIsolateValue  -c "getActiveModelPanel;" -label (uiRes("m_dagMenuProc.kDagMenuIsolateSelected")) $isolateParent;
+								menuItem -subMenu false -label (uiRes("m_dagMenuProc.kDagMenuAddObject")) -c "addSelectedToIsolation;" $isolateParent;										
+			setParent -m $parent;										
+			
+			menuItem -divider true;
+			menuItem -divider true;
+			
+			int $artAttrUseColorRamp = `checkBoxGrp -q -value1 artisanRampUseRamp`;
+			$colorRampCB = `menuItem -subMenu false -cb $artAttrUseColorRamp  -c "skinPaintUseColorFeedback;" -label (uiRes("m_dagMenuProc.kDagMenuUseColorRamp")) useColorFeedbackCB`;
+
+			$paintModeParent = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kDagMenuPaintMode")) $parent`;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuPaintModeAdd")) -c "artAttrPaintOperation artAttrSkinPaintCtx Add;" $paintModeParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuPaintModeReplace")) -c "artAttrPaintOperation artAttrSkinPaintCtx Replace;" $paintModeParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuPaintModeScale")) -c "artAttrPaintOperation artAttrSkinPaintCtx Scale;" $paintModeParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuPaintModeSmooth")) -c "artAttrPaintOperation artAttrSkinPaintCtx Smooth;" $paintModeParent;
+			
+			setParent -m $parent;
+								
+													
+			$brushParent = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kDagMenuBrushProfile")) $parent`;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushProfileHard")) $brushParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushProfileSoft")) $brushParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushProfileGaussian")) $brushParent;
+					
+			setParent -m $parent;																			
+			
+			$valueParent = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kDagMenuBrushValue")) $parent`;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue0")) -c "artSkinSetSelectionValue 0.000 false artAttrSkinPaintCtx artAttrSkin;" $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue1")) -c "artSkinSetSelectionValue 0.100 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue2")) -c "artSkinSetSelectionValue 0.200 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue3")) -c "artSkinSetSelectionValue 0.300 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue4")) -c "artSkinSetSelectionValue 0.400 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue5")) -c "artSkinSetSelectionValue 0.500 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue6")) -c "artSkinSetSelectionValue 0.600 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue7")) -c "artSkinSetSelectionValue 0.700 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue8")) -c "artSkinSetSelectionValue 0.800 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue9")) -c "artSkinSetSelectionValue 0.900 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuBrushValue10")) -c "artSkinSetSelectionValue 1.000 false artAttrSkinPaintCtx artAttrSkin;"  $valueParent;		
+								
+			setParent -m $parent;																					
+													
+			$opacityParent = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kDagMenuOpacity")) $parent`;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue0")) -c "artAttrSkinPaintCtx -e -opacity 0.000 `currentCtx`" $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue1")) -c "artAttrSkinPaintCtx -e -opacity 0.100 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue2")) -c "artAttrSkinPaintCtx -e -opacity 0.200 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue3")) -c "artAttrSkinPaintCtx -e -opacity 0.300 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue4")) -c "artAttrSkinPaintCtx -e -opacity 0.400 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue5")) -c "artAttrSkinPaintCtx -e -opacity 0.500 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue6")) -c "artAttrSkinPaintCtx -e -opacity 0.600 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue7")) -c "artAttrSkinPaintCtx -e -opacity 0.650 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue8")) -c "artAttrSkinPaintCtx -e -opacity 0.750 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue9")) -c "artAttrSkinPaintCtx -e -opacity 0.850 `currentCtx`"  $opacityParent;
+								menuItem -label (uiRes("m_dagMenuProc.kDagMenuOpacityValue10")) -c "artAttrSkinPaintCtx -e -opacity 1.000 `currentCtx`"  $opacityParent;							
+			
+			setParent -m $parent;					
+								
+			menuItem -divider true;
+			menuItem -divider true;				
+								
+			$mirrorWeightsParent = `menuItem -subMenu false -c "MirrorSkinWeights" -label (uiRes("m_dagMenuProc.kDagMenuMirrorSkinWeights"))`;
+			$mirroWeightsOB = `menuItem -subMenu false -ob true -c "MirrorSkinWeightsOptions" $mirrorWeightsParent`;
+			
+			$copyWeightsParent = `menuItem -subMenu false -c "CopySkinWeights" -label (uiRes("m_dagMenuProc.kDagMenuCopySkinWeights"))`;
+			$copyWeightsOB = `menuItem -subMenu false -ob true -c "CopySkinWeightsOptions" $copyWeightsParent`;
+			
+			$pruneWeightsParent = `menuItem -subMenu false -c "PruneSmallWeights" -label (uiRes("m_dagMenuProc.kDagMenuPruneSmallWeights"))`;
+			$pruneWeightsOB = `menuItem -subMenu false -ob true -c "PruneSmallWeightsOptions" $pruneWeightsParent`;			
+			
+			menuItem -subMenu false -c "removeUnusedInfluences" -label (uiRes("m_dagMenuProc.kDagMenuRemoveUnusedInfluences"));
+			
+			
+			menuItem -divider true;
+			menuItem -divider true;
+			
+			string $menu = `menuItem -subMenu true -aob true -label (uiRes("m_dagMenuProc.kDagMenuInputs")) `;
+							menu -e 
+								-pmc ( "createHistoryMenuItems \""+$menu+"\" "+$object ) $menu;
+			setParent -m $parent;
+
+			$menu = `menuItem -subMenu true -aob true -label (uiRes("m_dagMenuProc.kDagMenuOutputs")) `;
+					menu -e -pmc ( "createFutureMenuItems \""+$menu+"\" "+$object ) $menu;
+			setParent -m $parent;
+			
+			menuItem -divider true;
+			menuItem -divider true;							
+		}
+		else
+		{
+
+		    // label the object
+		    string $shortName = `substitute ".*|" $object ""`;
+		    menuItem -label ($shortName + "...") -c ("showEditor "+$object);
+		    menuItem -divider true;
+		    menuItem -divider true;
+
+		    // Create the list of selection masks
+		    createSelectMenuItems($parent, $object);
+
+		    menuItem -d true;
+
+		    menuItem -label (uiRes("m_dagMenuProc.kSelect"))  -c ("select -r " + $object);
+		    menuItem -label (uiRes("m_dagMenuProc.kSelectHierarchy"))  -c ("select -hierarchy " + $object);
+		    string $container = `container -q -fc $object`;
+		    if( $container != "" ){
+			    menuItem -label (uiRes("m_dagMenuProc.kSelectContainer")) -c ("select -r " + $container);
+		    }
+
+    	    menuItem -d true;
+
+		    optionalDagMenuProc( $parent, $object );
+
+		    // Create the dg traversal menu
+		    //
+		    string $menu = `menuItem -subMenu true -aob true -label (uiRes("m_dagMenuProc.kDGTraversal")) `;
+		    menu -e 
+			    -pmc ( "createTraversalMenuItems \""+$menu+"\" "+$object ) $menu;
+		    setParent -m $parent;
+
+		    // create the history menu
+		    //
+		    string $menu = `menuItem -subMenu true -aob true -label (uiRes("m_dagMenuProc.kInputs")) `;
+		    menu -e 
+			    -pmc ( "createHistoryMenuItems \""+$menu+"\" "+$object ) $menu;
+		    setParent -m $parent;
+
+		    $menu = `menuItem -subMenu true -aob true -label (uiRes("m_dagMenuProc.kOutputs")) `;
+		    menu -e -pmc ( "createFutureMenuItems \""+$menu+"\" "+$object ) $menu;
+		    setParent -m $parent;
+
+	 	    // Look at the shape child of this object
+	 	    //
+ 		    string $shapes[] = `listRelatives -path -s $object`;
+
+		    // get current selection of shapes
+		    string $currentSel[] = `ls -sl -dagObjects -shapes` ;
+
+		    string $paintParent = "" ;
+		    int $selIndex  ;
+
+ 		    int $i;
+ 		    for ($i = 0; $i < size($shapes); ++$i) 
+		    {
+			    string $nodeType = `nodeType $shapes[$i]` ;
+
+			    if ( ( $nodeType == "nurbsSurface") ||
+				     ( $nodeType == "mesh") ||
+				     ( $nodeType == "subdiv")) 
+			    {
+				    // save the object name if it is not already selected by the user
+				    // We use this info to select the object if user chooses a paint option
+				    //
+				    // If user has selected multiple objects and is using context menu on one of them
+				    // we do not change the selection list as user may want to paint some attribute 
+				    // on all of them. (It is the way it has been working all along...we don't want to 
+				    // break it )
+    				
+				    int $found = 0 ;
+				    for( $selIndex  = 0 ; $selIndex  < size( $currentSel ); ++$selIndex  )
+				    {
+					    if( $shapes[$i] == $currentSel[ $selIndex  ] )
+					    {
+						    $found = 1 ;
+						    break ;
+					    }
+				    }
+    				
+				    if( $found )
+				    {
+					    $artSelectObject = "" ;
+				    }
+				    else
+				    {
+					    // check if the object is in component selection mode
+					    // and if it is, do not do any further selection.
+					    // We are assuming that if the object is in hilite mode
+					    // then the user is in component selection mode.
+    					
+					    $currentSel = `ls -hilite` ;
+					    for( $selIndex  = 0 ; $selIndex  < size( $currentSel ); ++$selIndex  )
+					    {
+						    if( $object == $currentSel[ $selIndex  ] )
+						    {
+							    $found = 1 ;
+							    break ;
+						    }
+					    }
+
+					    if( !$found ) 
+						    $artSelectObject = $object ;
+					    else
+						    $artSelectObject = "" ;
+				    }
+    				
+				    $paintParent = `menuItem -subMenu true -aob true -label (uiRes("m_dagMenuProc.kPaintSubmenu")) `;
+				    menu -e	-pmc ( "createArtAttrMenuItems \""+ $paintParent +"\" "+$object ) $paintParent ;
+				    setParent -m $parent;
+				    break ;
+			    }
+		    }
+
+	        $menu = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kActions")) `;
+		    menu -e -pmc ( "createActionsMenuItems \""+$menu+"\" "+$object ) $menu;
+
+		    setParent -m $parent;
+
+		    // If the object can handle uv sets then add the uvset menu
+		    //
+		    string $shape = objectHandlesUvSets( $object );
+		    if ($shape != "")
+		    {
+			    $menu = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kUVSets")) `;
+			    menu -e 
+				    -pmc ( "createUVsetMenuItems \""+$menu+"\" " +$object + " "+ $shape )
+				    $menu;
+			    setParent -m $parent;
+		    }
+
+		    string $shape = objectHandlesColorSets( $object );
+		    if ($shape != "")
+		    {
+			    $menu = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kColorSets")) `;
+			    menu -e 
+				    -pmc ( "createColorSetMenuItems \""+$menu+"\" " +$object + " "+ $shape )
+				    $menu;
+			    setParent -m $parent;
+		    }
+
+		    // Shader menu to be able to quickly assign existing shaders
+		    // to the object under the pointer.
+		    //
+    	    menuItem -d true;
+
+ 		    menuItem -label (uiRes("m_dagMenuProc.kMaterialAttributes")) -c ("showSG "+$object);
+        	
+    	    menuItem -d true;
+            
+            buildShaderMenus($object);
+            
+            menuItem -d true;
+
+            menuItem -divider true;
+
+            string $removeOverrideMenuItem = `menuItem 
+			    -label (uiRes("m_dagMenuProc.kRemoveMaterialOverride"))
+                -subMenu true`;
+            menuItem -edit -postMenuCommand
+                ("buildMaterialRemoveOverrideMenu -surface "+$object+" "+$removeOverrideMenuItem)
+                $removeOverrideMenuItem;
+            setParent -m ..;
+
+		    int $mentalIsLoaded = 0;
+		    string $renderer;
+	        for ($renderer in `renderer -query -namesOfAvailableRenderers`) {
+			    if( $renderer == "mentalRay" ) {
+				    $mentalIsLoaded = 1;
+				    break;
+			    }
+		    }
+
+		    if ($mentalIsLoaded) {
+ 			    $menu = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kBaking")) `;
+ 			    menu -e
+				    -pmc ( "createBakingMenuItems \""+$menu+"\" "+$object )
+				    $menu;
+ 			    setParent -m $parent;
+		    }
+
+    //		{
+    // 			$menu = `menuItem -subMenu true -label $paint `;
+    //			menu -e
+    //				-pmc ( "createPaintingMenuItems \""+$menu+"\" "+$object )
+    //				$menu;
+    // 			setParent -m $parent;
+    //		}
+
+		    if ($mode == "dynamicsMenuSet") {
+			    menuItem -d true;
+			    menuItem -label (uiRes("m_dagMenuProc.kConnectField"))  -c ("connectDynamic -f " + $object);
+			    menuItem -label (uiRes("m_dagMenuProc.kConnectEmitter"))  -c ("connectDynamic -em " + $object);
+			    menuItem -label (uiRes("m_dagMenuProc.kConnectCollision"))  -c ("connectDynamic -c " + $object);
+		    }
+
+		    // is there a reference associated with the object ?
+		    // and if so, is it in a loaded or unloaded state?
+		    string $refNode = `getRelatedReference $object`;
+		    if( size($refNode) > 0) {
+			    menuItem -d true;
+			    if( `file -rfn $refNode -q -dr` ) {
+				    menuItem -label (uiRes("m_dagMenuProc.kLoadRelatedReference"))  -c ("loadRelatedReference " + $object);
+			    } else {
+				    menuItem -label (uiRes("m_dagMenuProc.kReloadRelatedReference"))  -c ("loadRelatedReference " + $object);
+				    menuItem -label (uiRes("m_dagMenuProc.kUnloadRelatedReference"))  -c ("unloadRelatedReference " + $object);
+			    }
+			    // Is this reference a proxy? If so, add proxy switch submenu
+			    //
+			    string $proxyNodes[] = `getRelatedProxies $refNode`;
+			    if(size($proxyNodes) > 0) {
+				    $menu = `menuItem -subMenu true -label (uiRes("m_dagMenuProc.kReloadProxy")) `;
+				    menu -e
+					    -pmc ( "createSwitchProxyMenuItems \""+$menu+"\" "+$object + " " + $refNode )
+					    $menu;
+				    setParent -m $parent;
+			    }
+		    }
+
+		    string $container = `container -q -findContainer { $object }`;
+    		
+		    if (size($container) > 0)
+		    {
+			    string $menuProc = `getAttr ($container+".rmbCommand")`;
+			    if (size($menuProc) > 0)
+			    {
+				    if (`exists $menuProc`)
+				    {
+					    string $menuItems[] = `eval $menuProc`;
+					    int $mm;
+					    int $menuCount = size($menuItems);
+					    if ($menuCount % 2 != 0)
+					    {
+						    // the user provided an invalid # of items, skip
+						    // the last
+						    //
+						    $menuCount--;
+					    }
+					    if ($menuCount > 0) {
+						    string $containerType = `getAttr ($container + ".containerType")`;
+						    if ($containerType == "")
+						    {
+							    menuItem -d true;
+							    menuItem - subMenu true -label (uiRes("m_dagMenuProc.kCustom"));
+						    }
+						    else
+						    {
+							    menuItem -d true;
+							    menuItem -subMenu true -label ($containerType);
+						    }
+						    for ($mm = 0; $mm < $menuCount; $mm+=2)
+						    {
+							    menuItem -label $menuItems[$mm] -c ($menuItems[$mm+1]+" "+$object);
+						    }
+					    }
+				    }
+				    else {
+					    string $warnStr = (uiRes("m_dagMenuProc.kSkippedRmb"));
+					    warning(`format -s $menuProc $warnStr`);
+				    }
+			    }
+		    }
+
+		    setParent -m $parent;
+
+        }
+	} else {
+		string $warn = (uiRes("m_dagMenuProc.kMenuWarn"));
+		warning(`format -s $parent $warn`);
+	}
+}

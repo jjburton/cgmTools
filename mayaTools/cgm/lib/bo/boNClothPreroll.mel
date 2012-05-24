@@ -1,0 +1,459 @@
+/*
+    nCloth Preroll
+    0.8.1
+    
+    Copyright (c) 2010 Bohdon Sayre
+    All Rights Reserved.
+    bo@bohdon.com
+    
+    Description:
+        Automates the process of creating initial states for any
+		nCloths in the scene. Requires Resetter
+    
+    unique prefix: bncpr
+
+	Version 0.8.1:
+		> Coming Soon: Alternative to boResetter incase it is not installed
+		> Coming Soon: Warning if keys already exist at the preroll start time
+		> Coming Soon: Escapable main prerolling
+		> Relax steps slider
+		> Preroll length slider
+		> Set nucleus start frames to current time option
+		> Relax procedure uses the main progress bar and is escapable
+		> Relax and Clear Initial State buttons for convenience
+		> Automatic listing of all nCloths
+		> uses boResetter to reset main controls
+	
+	Feel free to email me with any bugs, comments, or requests!
+*/
+
+global proc boNClothPreroll() {
+	string $win = "bncprWin";
+	if (`window -ex $win`) deleteUI -wnd $win;
+	
+	window -w 100 -s 1 -mb 1 -mxb 0 -mnc "window -e -t \"nCloth Preroll 0.8.1\" bncprWin;" -t "nCloth Preroll 0.8.1" $win;
+	
+	string $form = `formLayout -nd 100`;
+		string $txt1 = `text -l "Controls to reset:"`;
+		checkBox -l "Use Resetter" -en 0 -v 1 bncprWin_UseResetterCheck;
+		textScrollList -ams 1 -h 200 bncprWin_CtlList;
+		string $addBtn = `button -l "Add" -c "bncprWinAddCtl()"`;
+		string $remBtn = `button -l "Remove" -c "bncprWinRemCtl()"`;
+		string $clearBtn = `button -l "Clear" -c "bncprWinClearCtls()"`;
+		string $txt2 = `text -l "nCloths (select from list):"`;
+		string $relaxBtn = `button -l "Relax" -c "bncprWinRelax()"`;
+		string $clearBtn2 = `button -l "Clear Initial State" -c "bncprWinClearInitialState()"`;
+		string $refreshBtn = `button -l "Refresh" -c "bncprFillClothList()"`;
+		textScrollList -ams 1 -h 100 -sc "bncprWin_ClothListSelect()" bncprWin_ClothList;
+		checkBox -l "Set nucleus start frame to current time" -v 1 bncprWin_UseCurCheck;
+		intFieldGrp -l "Preroll Length (frames):" -v1 15 -cw2 122 60 bncprWin_RollLenField;
+		intFieldGrp -l "Relax Iterations:" -v1 20 -cw2 122 60 bncprWin_RelaxStepsField;
+		string $runBtn = `button -l "Preroll Cloth(s)" -c "bncprWinPreroll()"`;
+		
+	formLayout -e
+		-ap $txt1 "top" 7 0 -ap $txt1 "left" 8 0
+		
+		-ap bncprWin_UseResetterCheck "top" 7 0
+		-ac bncprWin_UseResetterCheck "left" 16 $txt1
+		
+		-ac bncprWin_CtlList "top" 4 $txt1
+		-ap bncprWin_CtlList "left" 4 0
+		-ap bncprWin_CtlList "right" 4 100
+		-ac bncprWin_CtlList "bottom" 4 $addBtn
+		
+		-ac $addBtn "bottom" 10 $txt2
+		-ap $addBtn "left" 4 0 -ap $addBtn "right" 1 24
+		-ac $remBtn "bottom" 10 $txt2
+		-ap $remBtn "left" 1 24 -ap $remBtn "right" 1 60
+		-ac $clearBtn "bottom" 10 $txt2
+		-ap $clearBtn "left" 1 60 -ap $clearBtn "right" 4 100
+		
+		-ac $txt2 "bottom" 4 bncprWin_ClothList
+		-ap $txt2 "left" 8 0
+		
+		-ac bncprWin_ClothList "bottom" 4 $refreshBtn
+		-ap bncprWin_ClothList "left" 4 0
+		-ap bncprWin_ClothList "right" 4 100
+		
+		-ap $relaxBtn "left" 4 0 -ap $relaxBtn "right" 1 25
+		-ac $relaxBtn "bottom" 6 bncprWin_UseCurCheck
+		
+		-ap $clearBtn2 "left" 1 25 -ap $clearBtn2 "right" 1 75
+		-ac $clearBtn2 "bottom" 6 bncprWin_UseCurCheck
+		
+		-ap $refreshBtn "left" 1 75 -ap $refreshBtn "right" 4 100
+		-ac $refreshBtn "bottom" 6 bncprWin_UseCurCheck
+		
+		-ac bncprWin_UseCurCheck "bottom" 4 bncprWin_RollLenField
+		-ap bncprWin_UseCurCheck "left" 8 0
+		
+		-ac bncprWin_RollLenField "bottom" 4 bncprWin_RelaxStepsField
+		-ap bncprWin_RollLenField "left" 4 0
+		
+		-ac bncprWin_RelaxStepsField "bottom" 4 $runBtn
+		-ap bncprWin_RelaxStepsField "left" 4 0
+		
+		-ap $runBtn "bottom" 4 100
+		-ap $runBtn "left" 4 0 -ap $runBtn "right" 4 100
+		$form;
+	
+	bncprFillClothList();
+	
+	window -e -w 235 -h 440 $win;
+	showWindow $win;
+}
+
+global proc bncprFillClothList() {
+	string $allCloths[] = `ls -r 1 -typ "nCloth"`;
+	textScrollList -e -ra bncprWin_ClothList;
+	for ($cloth in $allCloths)
+		textScrollList -e -a $cloth bncprWin_ClothList;
+	
+	for ($i = 0; $i < 0; $i++)
+		textScrollList -e -a ($i) bncprWin_ClothList;
+	int $ni = `textScrollList -q -ni bncprWin_ClothList`;
+	int $height = ($ni * 14) + 6;
+	$height = ($height < 20 ? 20 : $height);
+	$height = ($height < 100 ? $height : 100);
+	textScrollList -e -h $height bncprWin_ClothList;
+}
+
+global proc bncprWinAddCtl() {
+	string $selList[] = `ls -r 1 -sl`;
+	string $curList[] = `textScrollList -q -ai bncprWin_CtlList`;
+	string $allList[] = stringArrayCatenate($curList, $selList);
+	$allList = stringArrayRemoveDuplicates($allList);
+	textScrollList -e -ra bncprWin_CtlList;
+	for ($item in $allList) {
+		textScrollList -e -a $item bncprWin_CtlList;	
+	}
+}
+
+global proc bncprWinRemCtl() {
+	string $selList[] = `textScrollList -q -si bncprWin_CtlList`;
+	for ($item in $selList) {
+		textScrollList -e -ri $item bncprWin_CtlList;		
+	}
+}
+
+global proc bncprWinClearCtls() {
+	textScrollList -e -ra bncprWin_CtlList;
+}
+global proc bncprWin_ClothListSelect() {
+	string $selList[] = `textScrollList -q -si bncprWin_ClothList`;
+	select -r $selList;
+}
+
+global proc bncprWinRelax() {
+	string $cloths[] = `textScrollList -q -si bncprWin_ClothList`;
+	if (!size($cloths))
+		return;
+	int $numSteps = `intFieldGrp -q -v1 bncprWin_RelaxStepsField`;
+	
+	bncprRelaxCloths($cloths, $numSteps);
+}
+
+global proc bncprWinClearInitialState() {
+	string $cloths[] = `textScrollList -q -si bncprWin_ClothList`;
+	bncprClearInitialState($cloths);
+}
+
+/** Grabs the window control values and runs bncprPreroll **/
+global proc bncprWinPreroll() {
+	string $cloths[] = `textScrollList -q -si bncprWin_ClothList`;
+	if (!size($cloths))
+		return;
+	string $ctls[] = `textScrollList -q -ai bncprWin_CtlList`;
+	int $useCurFrame = 1;
+	int $rollLen = `intFieldGrp -q -v1 bncprWin_RollLenField`;
+	if ($rollLen < 1 || $rollLen > 100)
+		return;
+	int $numSteps = `intFieldGrp -q -v1 bncprWin_RelaxStepsField`;
+	
+	bncprPreroll($cloths, $ctls, $useCurFrame, $rollLen, $numSteps, 1);
+}
+
+
+
+
+
+
+/**
+* The main preroll procedure
+*  Retrieves all nucleus and cloth nodes
+*  Gets a list of start frames from each nucleus solver
+*  Disables any unimportant cloths, possibly breaking connections but remembering them
+*  Determines the start frame based on $rollLen
+*  Resets all the specified controls so that the given rig is ready to deform the cloth properly
+*  Enables only the specified cloths and runs time forward
+*  When the nucleus start time is reached, any pertaining cloths are
+*    stuffed into their start positions (set as initial states)
+*  Nucleus start frames are reset and cloth connections remade
+**/
+global proc bncprPreroll(string $cloths[], string $ctls[], int $useCurFrame, int $rollLen, int $numSteps, int $resetter) {
+	
+	string $allCloths[] = `ls -r 1 -typ "nCloth"`;
+	string $allNuclei[] = `ls -r 1 -typ "nucleus"`;
+	
+	string $nucStates[] = bncprDisableDisconnect($allNuclei, "enable");
+	string $clothStates[] = bncprDisableDisconnect($allCloths, "isDynamic");
+	
+	//get nucleus start frames
+	string $nuclei[] = bncprGetClothNuclei($cloths);
+	int $startFrames[] = bncprGetStartFrames($nuclei, $useCurFrame);
+	
+	//get the first frame of the preroll
+	int $sfSort[] = $startFrames;
+	sort($sfSort);
+	int $firstFrame = $sfSort[0];
+	int $lastFrame = $sfSort[size($sfSort)-1];
+	int $prerollStart = $firstFrame - $rollLen;
+	
+	//Begin Preroll
+	print "// Beginning nCloth Preroll\n";
+	print ("//  start frame: "+ $prerollStart + "\n"); //pv
+	
+	global string $gMainProgressBar;
+	progressBar -edit -bp -ii true
+		-status (uiRes("m_relaxInitialState.kRelaxInitialState"))
+		-max ($lastFrame - $prerollStart)
+		$gMainProgressBar;
+	progressBar -edit -pr 0 $gMainProgressBar;
+	
+	currentTime $prerollStart;
+	//reset ctls
+	print ("//  resetting controls... \n");
+	bncprResetCtls($ctls, $resetter);
+	
+	//enable target cloths
+	print ("//  clearing initial states.. \n");
+	bncprClearInitialState($cloths);
+	for ($cloth in $cloths) {
+		setAttr ($cloth+".isDynamic") 1;
+	}
+	//enable nuclei
+	for ($nucleus in $nuclei) {
+		setAttr ($nucleus+".startFrame") $prerollStart;
+		setAttr ($nucleus+".enable") 1;
+	}
+	
+	//run forward until each nucleus start time is found
+	print ("//    running preroll...\n");
+	int $b = 0;
+	while (`currentTime -q` < $lastFrame) {
+		currentTime (`currentTime -q` + 1);
+		//if ( `progressBar -query -isCancelled $gMainProgressBar` )
+			//break;
+		progressBar -edit -step 1 $gMainProgressBar;
+		
+		print ("//     step "+ $b +", checking nuclei \n");
+		for ($i = 0; $i < size($nuclei); $i++) {
+			if (`currentTime -q` == $startFrames[$i]) {
+				//time to relax all cloths in this nucleus solver,
+				//then disable this nucleus for the rest of the way
+				string $relCloths[] = bncprGetNucleusCloths($nuclei[$i], $cloths);
+				print ("//    relaxing "+size($relCloths)+" cloth(s) at frame "+$startFrames[$i]+"\n");
+				bncprRelaxCloths($relCloths, 20);
+				setAttr ($nuclei[$i]+".startFrame") $startFrames[$i];
+				setAttr ($nuclei[$i]+".enable") 0;
+			}
+		}
+		
+		//failsafe
+		$b++;
+		if ($b >= 1000)
+			break;
+		
+	}
+	progressBar -edit -endProgress $gMainProgressBar;
+	
+	//delete keys from controls
+	bncprClearKey($ctls, $prerollStart);
+	
+	//End Preroll
+	print "// Preroll Finished Successfully\n";
+	
+	
+	bncprEnableConnect($nucStates);
+	bncprEnableConnect($clothStates);
+	
+}
+
+global proc bncprRelaxCloths(string $cloths[], int $numSteps) {
+	
+	print ("//      relaxing cloths [" + $numSteps + " steps]:\n");
+	for ($cloth in $cloths)
+		print ("//        "+$cloth+"\n");
+	
+	global string $gMainProgressBar;
+	progressBar -edit -bp -ii true
+		-status (uiRes("m_relaxInitialState.kRelaxInitialState"))
+		-max $numSteps 
+		$gMainProgressBar;
+	progressBar -edit -pr 0 $gMainProgressBar;
+	
+	//catenate the cloth and nucleus objects
+	string $nuclei[] = bncprGetClothNuclei($cloths);
+	string $objs[] = stringArrayCatenate($cloths, $nuclei);
+	//disconnect time attribute
+	print ("//      disconnecting time\n");
+	for ($obj in $objs)
+		catch(`disconnectAttr time1.outTime ($obj + ".currentTime")`);
+	
+	//run the cloth for $numSteps frames
+	print ("//      relaxing\n");
+	int $curTime = `currentTime -q`;
+	for ($s = 0; $s < $numSteps; $s++) {
+		for ($obj in $objs) {
+			setAttr ($obj + ".currentTime") ($curTime + $s);
+			getAttr ($obj+".forceDynamics");
+		}
+		
+		refresh -f;
+		
+		
+		if ( `progressBar -query -isCancelled $gMainProgressBar` )
+			break;
+		
+		progressBar -edit -step 1 $gMainProgressBar;
+	}
+	
+	
+	//set the intial states and reconnect to time1
+	print ("//      setting initial state and reconnecting time\n");
+	for ($obj in $objs)
+		connectAttr time1.outTime ($obj + ".currentTime");
+	for ($cloth in $cloths)
+		nBase -e -stuffStart $cloth;
+	
+	progressBar -edit -endProgress $gMainProgressBar;
+}
+
+/** Clears the initial state of the specified cloths **/
+global proc bncprClearInitialState(string $cloths[]) {
+	for ($cloth in $cloths) {
+		nBase -e -cs $cloth;
+		dgdirty ($cloth + ".outputMesh");
+	}
+	refresh -f;
+}
+
+global proc bncprResetCtls(string $ctls[], int $resetter) {
+	if (!size($ctls))
+		return;
+	
+	string $selList[] = `ls -r 1 -sl`;
+	
+	$resetter = 1;
+	if ($resetter) {
+		select -r $ctls;
+		python("import boResetter");
+		python("boResetter.resetSmart()");
+		setKeyframe -breakdown 0 -hierarchy none -controlPoints 0 -shape 0 -itt flat -ott flat $ctls;
+		select -cl;
+	}
+	
+	select $selList;
+}
+global proc bncprClearKey(string $ctls[], int $time) {
+	if (!size($ctls))
+		return;
+	
+	//cutKey -clear -t $time $ctls;
+}
+
+/**
+* sets the value of $attr on all $nodes to 0
+* if a connection exists, the connection is broken and returned as a comma separated string
+* if the attribute is already disabled, the node is skipped and not returned
+**/
+global proc string[] bncprDisableDisconnect(string $nodes[], string $attr) {
+	string $result[];
+	for ($node in $nodes) {
+		string $attrStr = $node + "." + $attr;
+		
+		string $cons[] = `listConnections -sh 1 -p 1 -s 1 -d 0 $attrStr`;
+		if (size($cons)) {
+			disconnectAttr $cons[0] $attrStr;
+			//print ("disconnected "+$cons[0]+" from "+$attrStr+"\n");
+			$result[size($result)] = $cons[0] + "," + $attrStr;
+		} else {
+			if (`getAttr $attrStr`)
+				$result[size($result)] = $attrStr;
+		}
+		setAttr $attrStr 0;
+		//print ("set "+$attrStr+" to 0\n");
+	}
+	
+	return $result;
+}
+/**
+* loops through an array containing possibly attr pairs, or a single attr
+* if its a pair, the connection is made, if its a single attr, its value is set to 1
+**/
+global proc bncprEnableConnect(string $array[]) {
+	for ($item in $array) {
+		//check if its a connection or just an attribute
+		if (size(`match "," $item`)) {
+			string $split[] = stringToStringArray($item, ",");
+			connectAttr -f $split[0] $split[1];
+			//print ("connected "+$split[0]+" to "+$split[1]+"\n");
+		} else if (`objExists $item`) {
+			setAttr $item 1;
+			//print ("set "+$item+" to 1\n");
+		}
+	}
+}
+
+
+
+/** Given a list of cloths, returns all the connection nucleus solvers. **/
+global proc string[] bncprGetClothNuclei(string $cloths[]) {
+	string $nuclei[];
+	for ($cloth in $cloths) {
+		string $nucleusCons[] = `listConnections -type nucleus ($cloth + ".currentState")`;
+		if (size($nucleusCons))
+			$nuclei[size($nuclei)] = $nucleusCons[0];
+	}
+	$nuclei = stringArrayRemoveDuplicates($nuclei);
+	return $nuclei;
+}
+/**
+* Returns a list of start frames for nuclei
+* if useCurFrame is set to 1, all startFrames are set to currentTime
+**/
+global proc int[] bncprGetStartFrames(string $nuclei[], int $useCurFrame) {
+	int $curTime = `currentTime -q`;
+	int $startFrames[];
+	for ($nucleus in $nuclei) {
+		if ($useCurFrame)
+			$startFrames[size($startFrames)] = $curTime;
+		else
+			$startFrames[size($startFrames)] = `getAttr ($nucleus+".startFrame")`;
+	}
+	
+	return $startFrames;
+}
+
+/**
+* Given a nucleus solver, returns all connected nCloths
+* if the $cloths array is not empty, only the intersection is returned
+**/
+global proc string[] bncprGetNucleusCloths(string $nucleus, string $intCloths[]) {
+	string $cons[] = `listConnections -sh 1 -s 0 -d 1 ($nucleus+".startFrame")`;
+	
+	string $cloths[];
+	for ($con in $cons) {
+		if (`nodeType $con` == "nCloth") {
+			if (size($intCloths)) {
+				if (stringArrayContains($con, $intCloths))
+					$cloths[size($cloths)] = $con;
+			} else {
+				$cloths[size($cloths)] = $con;
+			}
+		}
+	}
+	
+	return $cloths;
+}
+ 

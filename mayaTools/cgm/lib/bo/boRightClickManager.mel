@@ -1,0 +1,281 @@
+/*
+    Right Click Manager for Maya 2011
+    1.43.2
+    
+    created by Bohdon Sayre
+    bsayre@c.ringling.edu
+    
+    unique prefix: brcm
+    
+    Description:
+        Provides procedures for creating condition based custom right click menus.
+        Requires boRightClickOverrides.mel
+    
+    Instructions:
+        Put this in your userSetup.mel:
+            evalDeferred("source boRightClickManager");
+            
+        To register a normal condition, use brcmRegisterCondition(<procedureName>, <priority>);
+            - procedureName should be a proc that returns a string based on whether a condition is met
+                if the condition was true, the string should be the name of the procedure that will build the menu,
+                if the condition was false, the string should be blank
+            - The return procedure if the condition is true should accept string $parentName
+              and build a marking menu by using setParent -m $parentName
+            - priority should be 0 or 1 based on the order that conditions should be checked.
+                if the condition should be checked during a hotkey press use priority of 1
+                if the condition should be checked when right clicking normally then use priority of 0
+                
+        To register a hit test condition, use brcmRegisterHitCondition(<procedureName>);
+            - hit test conditions have no priority, because only one object can be hit at a time
+            - procedureName should accept string $object and should return a string based on whether a condition is met
+                if the condition was true, the string should be the name of the procedure that will build the menu,
+                if the condition was false, the string should be blank
+            - The return procedure if the condition is true should accept string $parentName
+              and build a marking menu by using setParent -m $parentName
+    
+    Examples:
+        //Register a condition that will check to see if the selected object contains 'customRMB' in its name
+        //If it does, a custom menu will be built.
+        //To test this example create a cube called "myCube_customRMB", then run the script, select the cube, and right click
+        global proc string customRMBExample() {
+            string $selList[] = `ls -sl "*customRMB*"`;
+            if ( size($selList) )  return "customRMBMenu";
+            else  return "";
+        }
+        global proc customRMBMenu(string $parentName) {
+            setParent -m $parentName;
+            menuItem -rp "N" -l "IK Mode" -c "print \"setting to IK Mode\\n\"";
+            menuItem -rp "S" -l "FK Mode" -c "print \"setting to FK Mode\\n\"";
+        }
+        //using a priority of 0 because we are not using a hotkey for this menu
+        brcmRegisterCondition("customRMBExample", 0);
+        
+        //To later remove the condition
+        brcmRemoveCondition("customRMBExample");
+    
+    Version 1.4:
+        > Compatible with vista (uses load instead of exporer.exe)
+        > Remove hit test conditions using brcmRemoveHitCondition
+        > Register hit test conditions using brcmRegisterHitCondition
+        > Remove conditions using brcmRemoveCondition
+        > Register conditions using brcmRegisterCondition
+    
+    Feel free to email me with any bugs, comments, or requests!
+*/
+
+
+global proc string brcmVersion() {
+    return "2011";
+}
+global proc boRightClickManager() {
+    /*  Runs when the script is sourced */
+    //check the version
+    string $version = brcmVersion();
+    string $program = `about -p`;
+    if ( !size(`match $version $program`) ) {
+        warning ("// This version of Right Click Manager is designed for Maya "+$version+", visit www.bohdon.com/scripts for the correct version.");
+        return;
+    }
+    
+    //source the overrider
+    if (`exists boRightClickOverrides`) {
+        source boRightClickOverrides;
+        print "// Right Click Manager 1.42 sourced successfully\n";
+    } else {
+        warning "Right Click Manager could not be sourced successfully, and should be updated or removed before continuing.";
+    }
+}
+boRightClickManager();
+
+
+
+
+//===========================================================================
+global proc brcmProjectExplorerMM(string $parentMenu) {
+    /*
+    Builds a marking menu for quickly accessing project folders
+    such as scenes, sourceimages, images, etc...
+    */
+    
+    //get project and workspace dir
+    string $project = "Project (" + basename(`workspace -q -act`, "") + ")";
+    string $workspace = `workspace -q -rd`;
+    $workspace = `substituteAllString $workspace "/" "\\"`;
+    
+    //get scripts dir
+    string $scripts;
+    string $pathsStr = `getenv MAYA_SCRIPT_PATH`;
+    string $paths[] = stringToStringArray($pathsStr, ";");
+    string $version = brcmVersion();
+    for ($path in $paths) {
+        if (size(`match ("/"+$version+"(-x64)*/scripts$") $path`)) {
+            $scripts = $path;
+        }
+    }
+    
+    //build menu
+    setParent -m $parentMenu;
+    menuItem -rp "NW" -l $project -c ("system(\"load "+encodeString($workspace)+"\");");
+    menuItem -rp "SW" -l "Scenes" -c ("system(\"load "+encodeString($workspace+"scenes")+"\");");
+    menuItem -rp "W" -l "Working Directory" -c ("system(\"load "+encodeString(`workspace -q -dir`)+"\");");
+    menuItem -rp "E" -l "Scripts" -c ("system(\"load "+encodeString($scripts)+"\");");
+    menuItem -rp "NE" -l "Images" -c ("system(\"load "+encodeString($workspace+"images")+"\");");
+    menuItem -rp "SE" -l "Source Images" -c ("system(\"load "+encodeString($workspace+"sourceimages")+"\");");
+    
+    menuItem
+        -label (uiRes("m_buildObjectMenuItemsNow.kSelectAll"))
+        -radialPosition "S"
+        -command ("SelectAll");
+    
+    menuItem
+        -label (uiRes("m_buildObjectMenuItemsNow.kCompleteTool"))
+        -radialPosition "N"
+        -command ("CompleteCurrentTool");
+    
+    menuItem -l "Set Project.." -c "SetProject";
+    
+    menuItem -label (uiRes("m_FileMenu.kNewScene"))
+			-annotation (uiRes("m_FileMenu.kNewSceneAnnot"))
+			-command ("NewScene") newProject;
+        menuItem -optionBox true 
+            -annotation (uiRes("m_FileMenu.kNewSceneOptionsAnnot"))
+            -command ("performNewScene 1")
+            newFileOptions;
+    
+    menuItem -label (uiRes("m_FileMenu.kOpenScene"))
+                -annotation (uiRes("m_FileMenu.kOpenSceneAnnot"))
+                -command ("OpenScene") openProject;
+        menuItem -optionBox true 
+            -annotation (uiRes("m_FileMenu.kOpenOptionsAnnot"))
+            -command ("OpenSceneOptions")
+            openFileOptions;
+    
+    menuItem -l (uiRes("m_FileMenu.kSaveAs"))
+			-annotation (uiRes("m_FileMenu.kSaveAsAnnot"))
+			-command ("SaveSceneAs") saveAsItem;
+			menuItem -optionBox true 
+				-annotation (uiRes("m_FileMenu.kSaveAsOptionsAnnot"))
+				-command ("SaveSceneAsOptions") 
+				saveAsOptions;
+    
+    menuItem -label (uiRes("m_FileMenu.kReferenceEditor"))
+                -annotation (uiRes("m_FileMenu.kReferenceEditorAnnot"))
+                -command ("ReferenceEditor")
+                residentFileItem;
+    
+    menuItem -d 1;
+    
+	brcmBuildRecentFileMenu($parentMenu);
+}
+global proc  brcmBuildRecentFileMenu(string $parentMenu) {
+    /* Add the list of recent files to $parentMenu */
+	string $fileList[], $fileTypeList[], $cmd, $label;
+	int $i, $count;
+
+	if (`optionVar -exists "RecentFilesList"`) {
+	    //get recent files list
+        $fileList = `optionVar -q "RecentFilesList"`;
+        $count = size($fileList);
+        
+        if ($count > 0) {
+            //ensure file type list is initiated
+            if ( !`optionVar -exists "RecentFilesTypeList"`)
+                initRecentFilesTypeList( $fileList );
+            $fileTypeList = `optionVar -q "RecentFilesTypeList"`;
+            
+            setParent -m $parentMenu;
+            for ($i = 0; $i < $count; $i++) {
+                $file = $fileList[$count-$i-1];
+                $cmd = ( "openRecentFile(\"" + $file + "\", \"" + $fileTypeList[$count-$i-1] + "\")" );
+                $label = basename($file, "");
+                menuItem -label $label -command $cmd;
+            }
+        }
+	}
+}
+//===========================================================================
+
+
+
+
+//===========================================================================
+global proc brcmRegisterCondition(string $conditionProc, int $priority) {
+    /*
+    Registers a right click condition procedure.
+    Registered procedures are run when a right click is performed on 
+    */
+    global string $brcmHighConditions[];
+    global string $brcmLowConditions[];
+    if ($priority == 0) {
+        if (!stringArrayContains($conditionProc, $brcmLowConditions))
+            $brcmLowConditions[size($brcmLowConditions)] = $conditionProc;
+    } else if ($priority == 1) {
+        if (!stringArrayContains($conditionProc, $brcmHighConditions))
+            $brcmHighConditions[size($brcmHighConditions)] = $conditionProc;
+    }
+}
+global proc brcmRemoveCondition(string $conditionProc) {
+    /*
+    Removes a condition from the global list.
+    Runs on both high and low priority conditions, so no priority is needed
+    */
+    global string $brcmHighConditions[];
+    global string $brcmLowConditions[];
+    $brcmHighConditions = stringArrayRemove({$conditionProc}, $brcmHighConditions);
+    $brcmLowConditions = stringArrayRemove({$conditionProc}, $brcmLowConditions);
+}
+global proc string[] brcmGetConditions(int $priority) {
+    /*
+    Returns the conditions of the specified priority
+    If priority is -1 returns a list of all conditions
+    */
+    global string $brcmHighConditions[];
+    global string $brcmLowConditions[];
+    if ($priority == 0) {
+        return $brcmLowConditions;
+    } else if ($priority == 1) {
+        return $brcmHighConditions;
+    } else if ($priority == -1) {
+        string $allConditions[] = `stringArrayCatenate $brcmHighConditions $brcmLowConditions`;
+        return $allConditions;
+    }
+}
+global proc brcmClearAllConditions() {
+    /* Deletes all conditions from both high and low priority lists */
+    global string $brcmHighConditions[];
+    global string $brcmLowConditions[];
+    clear $brcmHighConditions;
+    clear $brcmLowConditions;
+}
+//===========================================================================
+
+
+
+
+//===========================================================================
+global proc brcmRegisterHitCondition(string $conditionProc) {
+    /*
+    Registers a hit-test condition.
+    Hit test conditions are checked if no normal right click conditions are found or met.
+    */
+	global string $brcmHitConditions[];
+	if (!stringArrayContains($conditionProc, $brcmHitConditions))
+			$brcmHitConditions[size($brcmHitConditions)] = $conditionProc;
+}
+global proc brcmRemoveHitCondition(string $conditionProc) {
+    /* Removes a condition from the hit-test condition list */
+	global string $brcmHitConditions[];
+	$brcmHitConditions = stringArrayRemove({$conditionProc}, $brcmHitConditions);
+}
+global proc string[] brcmGetHitConditions() {
+    /* Returns all hit-test conditions */
+	global string $brcmHitConditions[];
+	return $brcmHitConditions;
+}
+
+global proc brcmClearAllHitConditions() {
+    /* Clears all hit-test conditions */
+	global string $brcmHitConditions[];
+	clear $brcmHitConditions;
+}
+//===========================================================================

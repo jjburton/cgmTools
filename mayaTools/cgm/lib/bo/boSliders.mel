@@ -1,0 +1,2027 @@
+/*
+    Sliders
+    1.1
+    
+    Copyright © 2010 Bohdon Sayre
+    All Rights Reserved.
+    bohdon@gmail.com
+    
+    Description:
+        GUI and marking-menu based interface for creating control sliders.
+        Controls are for creating a Jason Osipa style facial layout.
+    
+    unique prefix: bsldr
+    
+    Version 1.1:
+        > Added menu option for immediate cleanup
+        > Added Maya 2011 Compatibility
+        > 5 Major corner interpolation modes which can be mixed on a single control
+        > Enable/Disable rotations or scales to free control for set driven keys
+        > Automatic four edge, four corner, two vertical and two horizontal control setups
+        > All controls are renameable, duplicate names are acceptable as they are numerically incremented
+        > Titles are automatically sized and spaced, and underscores automatically removed
+        > Extremely light, (only 2 transform nodes for one entire control)
+        > Custom control shader
+        > Cleanup functions that are run when connections are made or broken
+        > Cleanup functions for elegantly removing unused nodes when the GUI is exited
+        > Custom setup menu for both blendshape targets and channel box attributes
+        > Auto-retrieval of blendshape attributes via targets
+        > Sliders are all created the same, but all have dynamic limits which can be manually set or chosen presets
+        > Requires boRightClickManager
+    
+    Feel free to email me with any bugs, comments, or requests!
+*/
+
+//TODO:
+//auto evaluate whether or not the limits should be shrunken on break connections
+//auto tweak curve control when rotations are enabled
+//auto reset scales and rotates when disabled
+//add 'Select Slider Group' to the main marking menu of a control
+//finish help docs and add menu option linking to them
+//
+
+
+global proc boSliders() {
+	if (!`exists brcmRegisterCondition`)
+		error ("Sorry, boSliders requires boRightClickManager...");
+	
+	string $version = `about -v`;
+	int $is2011 = (`match "2011" $version` != "" ? 1 : 0);
+	
+    //window name
+    string $win = "bsldrWin";
+    int $w = 230;
+    int $h = ($is2011 ? 95 : 145);
+    
+    //check for pre-existing window and windowPref
+    if (`window -ex $win`)
+		deleteUI -wnd $win;
+	if (`windowPref -ex $win`)
+	    windowPref -e -w $w -h $h $win;
+    
+    //create window
+	window -rtf 1 -mb 1 -mxb 0 -s 1
+		-t "Sliders 1.1"
+		-mnc ("window -e -t \"Sliders 1.1\" "+$win+";") $win;
+	
+    //menus
+    menu -l "File";
+        menuItem -l "Save Slider Setup to File... (coming soon)" -en 0;
+        menuItem -l "Build Slider Setup from File... (coming soon)" -en 0;
+    menu -l "Edit";
+        menuItem -l "Run Cleanup Now" -ann "Finds loose utilities, unused shaders/nodes and deletes them. This is run automatically when the window is closed." -c "bsldrCleanup(1)";
+    menu -l "Help";
+        menuItem -l "View Help Docs (coming soon)" -en 0;
+    
+    
+	//main layout
+    formLayout -nd 100 bsldrWin_MainForm;
+	    // create button	
+	    button -l "Create New Slider" -c "bsldrCreateSliderAuto()" -ann "Create a new slider. Prompts for the slider name." bsldrWin_CreateBtn;
+		string $sep = `separator -h 4 -st "in"`;
+		
+		//active ctl controls
+		textField -en 0 -tx "" -ann "The currently active control. Connections are made on this control." bsldrWin_CurCtlField;
+		text -l "Active:" bsldrWin_CurCtlText;
+		
+		// interpolation menu
+		text -l "Corner Interpolation: " -ann "The type of interpolation used when a corner connection is made. See the help docs for info." bsldrWin_InterpolText;
+		optionMenu -l "" -ann "The type of interpolation used when a corner connection is made. See the help docs for info." bsldrWin_InterpolMenu;
+			menuItem -l "Single";
+			menuItem -l "Dual Combine";
+			menuItem -l "Dual Blend";
+			menuItem -l "Triple Combine";
+			menuItem -l "Triple Blend";
+		optionMenu -e -sl 2 bsldrWin_InterpolMenu;
+		
+		
+		//hidden controls
+		text -vis 0 -l "" bsldrWin_LastNameTxt;
+		text -vis 0 -l "" bsldrWin_HitObjectTxt;
+		checkBox -vis 0 -l "Allow limits > 1" -v 0 bsldrWin_AllowAboveOneCheck;
+		checkBox -vis 0 -l "Auto-Reset Limits" -v 1 bsldrWin_AutoResetTransCheck;
+		
+	
+	formLayout -e
+		-af bsldrWin_CreateBtn "top" 0
+		-af bsldrWin_CreateBtn "left" 4
+		-af bsldrWin_CreateBtn "right" 4
+		
+		-ac $sep "top" 3 bsldrWin_CreateBtn
+		-af $sep "left" 6
+		-af $sep "right" 6
+		
+		-ac bsldrWin_CurCtlText "top" 5 $sep
+		-af bsldrWin_CurCtlText "left" 5
+		-ac bsldrWin_CurCtlField "top" 3 $sep
+		-ac bsldrWin_CurCtlField "left" 3 bsldrWin_CurCtlText
+		-af bsldrWin_CurCtlField "right" 4
+	
+		-ac bsldrWin_InterpolText "top" 10 bsldrWin_CurCtlText
+		-af bsldrWin_InterpolText "left" 8
+		-ac bsldrWin_InterpolMenu "top" 8 bsldrWin_CurCtlText
+		-ac bsldrWin_InterpolMenu "left" 4 bsldrWin_InterpolText
+		
+		bsldrWin_MainForm;
+    
+    window -e -w $w -h $h $win;
+    showWindow $win;
+	
+	//create right click condition
+	//attached to window, changes the right click function using boRightClickManager
+	brcmRegisterCondition("bsldrRightClickCondition", 0);
+	brcmRegisterHitCondition("bsldrRightClickHitCondition");
+	//setup a scriptjob to monitor the windows deletion
+	scriptJob -uid $win "bsldrScriptJobCleanup";
+}
+global proc bsldrClose() {
+//deletes the window and causes the script job to run cleanup
+
+	deleteUI -wnd bsldrWin;
+}
+global proc bsldrScriptJobCleanup() {
+//removes the right click condition and runs cleanup
+//this proc is run by a scriptjob
+
+	//sometimes this is run when the window is recreated, so we should only do it if the window doesn't exist
+	if (!`window -ex bsldrWin`) {
+		brcmRemoveCondition("bsldrRightClickCondition");
+		brcmRemoveHitCondition("bsldrRightClickHitCondition");
+		bsldrCleanup(1);
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//RIGHT CLICK
+global proc string bsldrRightClickCondition() {
+//right click condition main procedure
+
+	if (!`window -ex bsldrWin`) {	
+		brcmRemoveCondition("bsldrRightClickCondition");
+		brcmRemoveHitCondition("bsldrRightClickHitCondition");
+		bsldrCleanup(0);
+		return "";
+	}
+	
+	string $selList[] = `ls -sl`;
+	if (!size($selList))
+		return "";
+	
+	//filter the selection for boSlider controls
+	string $ctls[] = bsldrGetCtls($selList);
+	
+	if (size($ctls)) //some controls are selected
+		return "bsldrRightClickMenu";
+	else if (size(`bsldrGetChannelBoxSelection`)) //some cb attributes are selected
+		return "bsldrRightClickMenu";
+	else if (size(`bsldrGetTargetBlend $selList[0]`)) //some blendshape targets are selected
+		return "bsldrRightClickMenu";
+	else
+		return "";
+	
+}
+global proc bsldrRightClickMenu(string $parentName) {
+//builds the right click menu for setting up boSliders
+
+	string $selList[] = `ls -sl`;
+	
+	setParent -m $parentName;
+	
+	//filter the selection for boSlider controls
+	string $ctls[] = bsldrGetCtls($selList);
+	
+	if (size($ctls)) {
+		//menu for controls
+		menuItem -rp "N" -l "Set Active" -c "bsldrSetSelectedCurCtl";
+		
+		menuItem -rp "E" -sm 1 -l "Expand Limits";
+			int $allowAboveOne = `checkBox -q -v bsldrWin_AllowAboveOneCheck`;
+			menuItem -ecr 0 -bld 1 -rp "N" -l "+y" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0, 1, "+$allowAboveOne+")");
+			menuItem -ecr 0 -rp "NE" -l "+x +y" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 1, "+$allowAboveOne+")");
+			menuItem -ecr 0 -bld 1 -rp "E" -l "+x" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 0, "+$allowAboveOne+")");
+			menuItem -ecr 0 -rp "SE" -l "+x -y" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, -1, "+$allowAboveOne+")");
+			menuItem -ecr 0 -bld 1 -rp "S" -l "-y" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0, -1, "+$allowAboveOne+")");
+			menuItem -ecr 0 -rp "SW" -l "-x -y" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, -1, "+$allowAboveOne+")");
+			menuItem -ecr 0 -bld 1 -rp "W" -l "-x" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, 0, "+$allowAboveOne+")");
+			menuItem -ecr 0 -rp "NW" -l "-x +y" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, 1, "+$allowAboveOne+")");
+			
+			menuItem -ecr 0 -l "Expand All" -c ("bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, -1, "+$allowAboveOne+"); bsldrExpandLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 1, "+$allowAboveOne+");");
+			menuItem -d 1;
+			menuItem -ecr 0 -l "Allow limits above 1" -cb `checkBox -q -v bsldrWin_AllowAboveOneCheck` -c "checkBox -e -v #1 bsldrWin_AllowAboveOneCheck";
+			setParent -m ..;
+			
+		menuItem -rp "W" -sm 1 -l "Preset Limits";
+			menuItem -ecr 0 -rp "W" -l "Full" -c ("bsldrSetTransLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1.0, 1.0, -1.0, 1.0)");
+			menuItem -ecr 0 -rp "E" -l "Half Top" -c ("bsldrSetTransLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1.0, 1.0, 0.0, 1.0)");
+			menuItem -ecr 0 -rp "N" -l "Two Vertical" -c ("bsldrSetTransLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0.0, 0.0, -1.0, 1.0)");
+			menuItem -ecr 0 -rp "S" -l "Two Horizontal" -c ("bsldrSetTransLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1.0, 1.0, 0.0, 0.0)");
+			menuItem -ecr 0 -rp "SE" -l "Reset Limits" -c ("bsldrSetTransLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0.0, 0.0, 0.0, 0.0)");
+			setParent -m ..;
+			
+		menuItem -rp "SW" -sm 1 -l "Shrink Limits";
+			menuItem -ecr 0 -bld 1 -rp "N" -l "+y" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0, 1)");
+			menuItem -ecr 0 -rp "NE" -l "+x +y" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 1)");
+			menuItem -ecr 0 -bld 1 -rp "E" -l "+x" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 0)");
+			menuItem -ecr 0 -rp "SE" -l "+x -y" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, -1)");
+			menuItem -ecr 0 -bld 1 -rp "S" -l "-y" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0, -1)");
+			menuItem -ecr 0 -rp "SW" -l "-x -y" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, -1)");
+			menuItem -ecr 0 -bld 1 -rp "W" -l "-x" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, 0)");
+			menuItem -ecr 0 -rp "NW" -l "-x +y" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, 1)");
+			
+			menuItem -ecr 0 -l "Shrink All" -c ("bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, -1); bsldrShrinkLimits({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 1);");
+			setParent -m ..;
+			
+		menuItem -rp "S" -sm 1 -l "Break Connections";
+			menuItem -ecr 0 -bld 1 -rp "N" -l "+y" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0, 1, 1)");
+			menuItem -ecr 0 -rp "NE" -l "+x +y" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 1, 1)");
+			menuItem -ecr 0 -bld 1 -rp "E" -l "+x" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, 0, 1)");
+			menuItem -ecr 0 -rp "SE" -l "+x -y" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1, -1, 1)");
+			menuItem -ecr 0 -bld 1 -rp "S" -l "-y" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0, -1, 1)");
+			menuItem -ecr 0 -rp "SW" -l "-x -y" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, -1, 1)");
+			menuItem -ecr 0 -bld 1 -rp "W" -l "-x" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, 0, 1)");
+			menuItem -ecr 0 -rp "NW" -l "-x +y" -c ("bsldrDisconnectFromCtls({\""+stringArrayToString($ctls, "\", \"")+"\"}, -1, 1, 1)");
+			
+			menuItem -ecr 0 -l "Break All Connections" -c ("bsldrDisconnectAllFromCtl({\""+stringArrayToString($ctls, "\", \"")+"\"})");
+			menuItem -d 1;
+			menuItem -l "Auto-Reset Limits" -cb `checkBox -q -v bsldrWin_AutoResetTransCheck` -c "checkBox -e -v #1 bsldrWin_AutoResetTransCheck";
+			setParent -m ..;
+		menuItem -rp "NE" -ecr 0 -l "Duplicate" -c ("bsldrDuplicateCtls({\""+stringArrayToString($ctls, "\", \"")+"\"})");
+		menuItem -rp "NW" -ecr 0 -l "Rename" -c ("bsldrRenameCtls({\""+stringArrayToString($ctls, "\", \"")+"\"})");
+			
+		menuItem -ecr 0 -l "Enable Rotations" -c ("bsldrModifyRotates({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0)");
+		menuItem -ecr 0 -l "Enable Scales" -c ("bsldrModifyScales({\""+stringArrayToString($ctls, "\", \"")+"\"}, 0)");
+		menuItem -d 1;
+		menuItem -ecr 0 -l "Disable Rotations" -c ("bsldrModifyRotates({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1)");
+		menuItem -ecr 0 -l "Disable Scales" -c ("bsldrModifyScales({\""+stringArrayToString($ctls, "\", \"")+"\"}, 1)");
+
+	} else if (size(`bsldrGetChannelBoxSelection`)) {
+		//menu for channel box
+		menuItem -bld 1 -rp "N" -l "+y"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", 0, 1)");
+		menuItem -rp "NE" -l "+x +y"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", 1, 1)");
+		menuItem -bld 1 -rp "E" -l "+x"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", 1, 0)");
+		menuItem -rp "SE" -l "+x -y"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", 1, -1)");
+		menuItem -bld 1 -rp "S" -l "-y"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", 0, -1)");
+		menuItem -rp "SW" -l "-x -y"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", -1, -1)");
+		menuItem -bld 1 -rp "W" -l "-x"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", -1, 0)");
+		menuItem -rp "NW" -l "-x +y"
+			-c ("bsldrConnectSelectionToCtl(\"channel\", -1, 1)");
+		
+		if (size(`bsldrGetChannelBoxSelection`) == 2) {
+			menuItem -l "Auto 2 Vertical" -c ("bsldrAutoConnectMultipleToCtl(\"twoVert\", \"channel\")");
+			menuItem -l "Auto 2 Horizontal" -c ("bsldrAutoConnectMultipleToCtl(\"twoHorz\", \"channel\")");
+		} else if (size(`bsldrGetChannelBoxSelection`) == 4) {
+			menuItem -l "Auto 4 Edges" -c ("bsldrAutoConnectMultipleToCtl(\"fourEdges\", \"channel\")");
+			menuItem -l "Auto 4 Corners" -c ("bsldrAutoConnectMultipleToCtl(\"fourCorners\", \"channel\")");
+		}
+	} else if (size(`bsldrGetTargetBlend $selList[0]`)) {
+		//menu for blendshape targets
+		menuItem -bld 1 -rp "N" -l "+y"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", 0, 1)");
+		menuItem -rp "NE" -l "+x +y"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", 1, 1)");
+		menuItem -bld 1 -rp "E" -l "+x"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", 1, 0)");
+		menuItem -rp "SE" -l "+x -y"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", 1, -1)");
+		menuItem -bld 1 -rp "S" -l "-y"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", 0, -1)");
+		menuItem -rp "SW" -l "-x -y"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", -1, -1)");
+		menuItem -bld 1 -rp "W" -l "-x"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", -1, 0)");
+		menuItem -rp "NW" -l "-x +y"
+			-c ("bsldrConnectSelectionToCtl(\"blendTarget\", -1, 1)");
+		
+		if (size($selList) == 2 && size(`bsldrGetTargetBlend $selList[0]`) && size(`bsldrGetTargetBlend $selList[1]`)) {
+			menuItem -l "Auto 2 Vertical" -c ("bsldrAutoConnectMultipleToCtl(\"twoVert\", \"blendTarget\")");
+			menuItem -l "Auto 2 Horizontal" -c ("bsldrAutoConnectMultipleToCtl(\"twoHorz\", \"blendTarget\")");
+		} else if (size($selList) == 4  && size(`bsldrGetTargetBlend $selList[0]`) && size(`bsldrGetTargetBlend $selList[1]`) && size(`bsldrGetTargetBlend $selList[2]`) && size(`bsldrGetTargetBlend $selList[3]`)) {
+			menuItem -l "Auto 4 Edges" -c ("bsldrAutoConnectMultipleToCtl(\"fourEdges\", \"blendTarget\")");
+			menuItem -l "Auto 4 Corners" -c ("bsldrAutoConnectMultipleToCtl(\"fourCorners\", \"blendTarget\")");
+		}
+	}
+}
+global proc string bsldrRightClickHitCondition(string $object) {
+//hit condition for the right click menu without a selection
+
+	if (!`objExists $object`)
+		return "";
+	
+	if (size(`bsldrGetTargetBlend $object`)) {
+		text -e -l $object bsldrWin_HitObjectTxt;
+		return "bsldrRightClickHitMenu";
+	} else {
+		return "";
+	}
+}
+global proc bsldrRightClickHitMenu(string $parentName) {
+//right click menu for the hid condition
+
+	setParent -m $parentName;
+	string $object = `text -q -l bsldrWin_HitObjectTxt`;
+	//menu for blendshape targets
+	menuItem -bld 1 -rp "N" -l "+y"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", 0, 1)");
+	menuItem -rp "NE" -l "+x +y"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", 1, 1)");
+	menuItem -bld 1 -rp "E" -l "+x"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", 1, 0)");
+	menuItem -rp "SE" -l "+x -y"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", 1, -1)");
+	menuItem -bld 1 -rp "S" -l "-y"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", 0, -1)");
+	menuItem -rp "SW" -l "-x -y"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", -1, -1)");
+	menuItem -bld 1 -rp "W" -l "-x"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", -1, 0)");
+	menuItem -rp "NW" -l "-x +y"
+		-c ("bsldrConnectHitToCtl(\""+$object+"\", -1, 1)");
+	
+	menuItem -l ($object+"...");
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//CREATE
+global proc bsldrCreateSliderAuto() {
+//handles prompting for some options, then runs bsldrCreateSlider
+
+	if (!`window -ex bsldrWin`)
+		return;
+	
+	// 1.1: changed from checkboxes to always be 1
+	int $polyCtl = 1;
+	int $curveCtl = 1;
+	int $nurbsCtl = 1;
+	if (!$curveCtl && !$polyCtl && !$nurbsCtl)
+		warning "the control will not be visible with all shapes unchecked...";
+
+	string $name;
+	string $lastName = `text -q -l bsldrWin_LastNameTxt`;
+	string $result = `promptDialog
+			-title "Create New Slider..."
+			-message "Title:"
+			-text $lastName
+			-button "OK" -button "Cancel"
+			-defaultButton "OK" -cancelButton "Cancel"
+			-dismissString "Cancel"`;
+	
+	
+	if ($result == "OK") {
+		$name = `promptDialog -query -text`;
+	} else {
+		return;
+	}
+	
+	//replace all spaces with _
+	$name = `substituteAllString $name " " "_"`;
+	if (!isValidObjectName($name)) {
+		error ("Sorry, "+$name+" is not a valid object name");
+	}
+	
+	text -e -l $name bsldrWin_LastNameTxt;
+	
+	bsldrCreateSlider($name, $curveCtl, $polyCtl, $nurbsCtl, .2, {});
+}
+global proc string bsldrCreateSlider(string $name, int $curveCtl, int $polyCtl, int $nurbsCtl, float $radius, float $limits[]) {
+//creates a slider with the specified options
+	
+	//check the params
+	if ($radius < 0)
+		return "";
+	if (!size($name))
+		return "";
+	
+	string $ctl, $ctlGrp, $ctlName, $curveShape, $polyShape, $border, $titleShapes[];
+	
+	//create the slider group node
+	string $grpName = ($name+"_bsldrGrp");
+	$ctlGrp = bsldrCreateCtlGrp($grpName);
+	
+	//create the control node
+	string $ctlName = ($name+"_Ctl");
+	$ctl = bsldrCreateCtlNode($ctlName);
+	//connect to the group for association
+	connectAttr -f ($ctl+".bsldrCtlGrpMessage") ($ctlGrp+".bsldrCtlMessage");
+	setAttr -l 1 ($ctlGrp+".bsldrCtlMessage");
+	//set the radius
+	setAttr -l 1 ($ctl+".radius") $radius;
+	
+	//parent control
+	$ctl = bsldrGetFrom(`parent $ctl $ctlGrp`, 0);
+	
+	//add some shapes to the control node
+	$curveShape = bsldrCreateCurveCtl($ctl, $ctl, $radius);
+	connectAttr -f ($ctlGrp+".curveVisibility") ($curveShape+".visibility");
+	
+	$polyShape = bsldrCreatePolyCtl($ctl, $ctl, $radius);
+	connectAttr -f ($ctlGrp+".polyVisibility") ($polyShape+".visibility");
+	bsldrAssignCtlMaterial($polyShape);
+	
+	$nurbsShape = bsldrCreateNurbsCtl($ctl, $ctl, $radius); 
+	connectAttr -f ($ctlGrp+".nurbsVisibility") ($nurbsShape+".visibility");
+	bsldrAssignCtlMaterial($nurbsShape);
+	
+	//set the controls visibilities
+	setAttr ($ctlGrp+".curveVisibility") $curveCtl;
+	setAttr ($ctlGrp+".polyVisibility") $polyCtl;
+	setAttr ($ctlGrp+".nurbsVisibility") $nurbsCtl;
+	
+	//create the constraint border
+	$border = bsldrCreateCtlBorder($ctl);
+	connectAttr -f ($ctl+".borderVisibility") ($border+".visibility");
+	
+	//create the title text
+	$titleShapes = bsldrCreateCtlTitle($name, $ctlGrp);
+	for ($shape in $titleShapes) {
+		connectAttr -f ($ctl+".titleVisibility") ($shape+".visibility");
+		connectAttr -f ($ctl+".templateTitle") ($shape+".overrideEnabled");
+		connectAttr -f ($ctl+".templateTitle") ($shape+".overrideDisplayType");
+	}
+	
+	//set the controls limits
+	if (size($limits))
+		bsldrSetTransLimits({$ctl}, $limits[0], $limits[1], $limits[2], $limits[3]);
+	
+	string $focusPanel = `getPanel -wf`;
+	catchQuiet(`setFocus $focusPanel`);
+	
+	select -r $ctlGrp;
+	if (`window -ex bsldrWin`)
+	    bsldrSetSelectedCurCtl;
+	return $ctlGrp;
+}
+global proc string bsldrCreateCtlGrp(string $name) {
+//creates the main transform group node
+//adds a few attributes for customization
+
+	// the # ensures name uniquety
+	string $ctlGrp = `group -em -n ($name+"#")`;
+	//we don't want any attributes keyable
+	bsldrSetAttrs({$ctlGrp}, {"[all]"}, 0, 0, 1);
+	//don't want to show shear attributes
+	bsldrSetAttrs({$ctlGrp}, {"shxy", "shxz", "shyz"}, 1, 0, 0);
+	
+	//add attributes
+	addAttr -ln "bsldrCtlMessage" -at double $ctlGrp;
+	setAttr -e -k 0 -l 0 -cb 0 ($ctlGrp+".bsldrCtlMessage");
+	addAttr -ln "curveVisibility" -at long -min 0 -max 1 -dv 1 $ctlGrp;
+	setAttr -e -k 0 -cb 1 ($ctlGrp+".curveVisibility");
+	addAttr -ln "polyVisibility" -at long -min 0 -max 1 -dv 1 $ctlGrp;
+	setAttr -e -k 0 -cb 1 ($ctlGrp+".polyVisibility");
+	addAttr -ln "nurbsVisibility" -at long -min 0 -max 1 -dv 1 $ctlGrp;
+	setAttr -e -k 0 -cb 1 ($ctlGrp+".nurbsVisibility");
+	
+	return $ctlGrp;
+}
+global proc string bsldrCreateCtlNode(string $name) {
+//creates the empty node that will contain the ctl shapes
+//adds a few attributes and makes it ready for animation
+	
+	string $ctl = `group -em -n ($name+"#")`;
+	//by default, we don't use tz, rx, ry, or any scales
+	string $attrs[] = {"tz", "rx", "ry", "rz", "sx", "sy", "sz"};
+	bsldrSetAttrs({$ctl}, $attrs, 1, 0, 0);
+	bsldrSetAttrs({$ctl}, {"v"}, 0, 0, 1);
+	
+	//add attributes
+	addAttr -ln "bsldrEndUtils" -at double $ctl;
+	setAttr -e -k 0 -l 1 -cb 0 ($ctl+".bsldrEndUtils");
+	addAttr -ln "bsldrCtlGrpMessage" -at double $ctl;
+	setAttr -e -k 0 -l 1 -cb 0 ($ctl+".bsldrCtlGrpMessage");
+	
+	addAttr -ln "radius" -at double $ctl;
+	addAttr -ln "bsldrCtl" -at long -dv 1 $ctl;
+	addAttr -ln "templateTitle"  -at long  -min 0 -max 1 -dv 1 $ctl;
+	setAttr -e -k 0 -cb 1 ($ctl+".templateTitle");
+	addAttr -ln "titleVisibility"  -at long  -min 0 -max 1 -dv 1 $ctl;
+	setAttr -e -k 0 -cb 1 ($ctl+".titleVisibility");
+	addAttr -ln "borderVisibility" -at long -min 0 -max 1 -dv 1 $ctl;
+	setAttr -e -k 0 -cb 1 ($ctl+".borderVisibility");
+	
+	//limit x and y axes
+	transformLimits -ety 1 1 -etx 1 1 $ctl;	
+	//all controls start with full limits
+	transformLimits -tx 0 0 -ty 0 0;
+	
+	return $ctl;
+}
+global proc string bsldrCreateCtlBorder(string $ctl) {
+//builds a 4-ep 1-degree curve representing the constraints of $ctl
+
+	string $borderName = ($ctl+"BorderShape");
+	if (!`objExists $ctl` || `objExists $borderName`)
+		return "";
+	
+	string $ctlGrp = bsldrGetFrom(`listRelatives -p -typ "transform" $ctl`, 0);
+	if (!size($ctlGrp) || !size(`match "bsldrGrp" $ctlGrp`))
+		return "";
+	
+	
+	//get constraints
+	float $tx[] = `transformLimits -q -tx $ctl`;
+	float $ty[] = `transformLimits -q -ty $ctl`;	
+	
+	//create the curve
+	string $shape;
+	string $trans = `curve -d 1 -p 0 0 0 -p 0 0 0 -p 0 0 0 -p 0 0 0 -p 0 0 0 -k 0 -k 1 -k 2 -k 3 -k 4`;
+	$shape = bsldrGetFrom(`listRelatives -c -s $trans`, 0);
+	$shape = `rename $shape $borderName`;
+	
+	//override display and template
+	setAttr ($shape+".overrideEnabled") 1;
+	setAttr ($shape+".overrideDisplayType") 1;
+	
+	parent -add -s $shape $ctlGrp;
+	delete $trans;
+	
+	//connect the trans limits to the control points
+	// crashes maya for some reason  :( (i think... it's complete speculation...)
+	//connectAttr -f ($ctl+".maxTransXLimit") ($shape+".controlPoints[0].xValue");
+	//connectAttr -f ($ctl+".minTransXLimit") ($shape+".controlPoints[1].xValue");
+	//connectAttr -f ($ctl+".minTransXLimit") ($shape+".controlPoints[2].xValue");
+	//connectAttr -f ($ctl+".maxTransXLimit") ($shape+".controlPoints[3].xValue");
+	//connectAttr -f ($ctl+".maxTransXLimit") ($shape+".controlPoints[4].xValue");
+	
+	//connectAttr -f ($ctl+".maxTransYLimit") ($shape+".controlPoints[0].yValue");
+	//connectAttr -f ($ctl+".maxTransYLimit") ($shape+".controlPoints[1].yValue");
+	//connectAttr -f ($ctl+".minTransYLimit") ($shape+".controlPoints[2].yValue");
+	//connectAttr -f ($ctl+".minTransYLimit") ($shape+".controlPoints[3].yValue");
+	//connectAttr -f ($ctl+".maxTransYLimit") ($shape+".controlPoints[4].yValue");
+	
+	return $shape;
+}
+global proc string bsldrCreateCurveCtl(string $name, string $parent, float $radius) {
+//creates a circle curve with normal 0 0 1 and center 0 0 0 then parents the shape to $parent
+
+	string $shapeName = ($name+"CurveShape");
+	if (!`objExists $parent` || `nodeType $parent` != "transform" || `objExists $shapeName`)
+		return "";
+	
+	string $cmd, $trans, $shape;
+	
+	$trans = bsldrGetFrom(`circle -c 0 0 0 -nr 0 0 1 -sw 360 -r $radius -d 3 -ut 0 -tol 0.001 -s 16 -ch 0`, 0);
+	$shape = bsldrGetFrom(`listRelatives -c -s $trans`, 0);
+	$shape = `rename $shape $shapeName`;
+	
+	parent -add -s $shape $parent;
+	delete $trans;
+	return $shape;
+}
+global proc string bsldrCreatePolyCtl(string $name, string $parent, float $radius) {
+//creates a circular polygon with normal 0 0 1 and center 0 0 0 then parents the shape to $parent
+	
+	string $shapeName = ($name+"PolyShape");
+	if (!`objExists $parent` || `nodeType $parent` != "transform" || `objExists $shapeName`)
+		return "";
+	
+	string $cmd, $trans, $shape;
+
+	$cmd = "polyCreateFacet -ch 0 -s 1 " + `bsldrGetCirclePoints 16 $radius`;
+	$trans = bsldrGetFrom(`eval($cmd)`, 0);
+	$shape = bsldrGetFrom(`listRelatives -c -s $trans`, 0);
+	$shape = `rename $shape $shapeName`;
+	bsldrSetRenderStats({$shape});
+	
+	//horizontal line
+	//polySplit -ch 0 -s 1 -sma 0 -ep 7 1 -ep 0 0 $shape;
+	
+	setAttr ($shape+".displaySmoothMesh") 2;
+	setAttr ($shape+".smoothLevel") 1;
+	setAttr ($shape+".displaySubdComps") 0;
+	setAttr ($shape+".castsShadows") 0;
+	setAttr ($shape+".receiveShadows") 0;
+	setAttr ($shape+".motionBlur") 0;
+	setAttr ($shape+".primaryVisibility") 0;
+	setAttr ($shape+".smoothShading") 0;
+	setAttr ($shape+".visibleInReflections") 0;
+	setAttr ($shape+".visibleInRefractions") 0;
+	
+	parent -add -s $shape $parent;
+	delete $trans;
+	return $shape;
+}
+global proc string bsldrCreateNurbsCtl(string $name, string $parent, string $radius) {
+//creates a planar surface from $circle and returns it as the nurbs ctl shape
+
+	string $shapeName = ($name+"NurbsShape");
+	if (!`objExists $parent` || `nodeType $parent` != "transform" || `objExists $shapeName`)
+		return "";
+	
+	string $cmd, $trans, $shape, $curveTrans;
+
+	//temp curve
+	$curveTrans = bsldrGetFrom(`circle -c 0 0 0 -nr 0 0 1 -sw 360 -r $radius -d 3 -ut 0 -tol 0.001 -s 16 -ch 0`, 0);
+	$cmd = "planarSrf -ch 0 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "+$curveTrans;
+	$trans = bsldrGetFrom(`eval($cmd)`, 0);
+	delete $curveTrans;
+	$shape = bsldrGetFrom(`listRelatives -c -s $trans`, 0);
+	$shape = `rename $shape $shapeName`;
+	bsldrSetRenderStats({$shape});
+	
+	setAttr -l 1 ($shape+".curvePrecisionShaded") 10;
+	setAttr -l 1 ($shape+".curvePrecision") 10;
+	setAttr -l 1 ($shape+".divisionsU") 0;
+	setAttr -l 1 ($shape+".divisionsV") 0;
+	
+	parent -add -s $shape $parent;
+	delete $trans;
+	return $shape;
+}
+global proc string[] bsldrCreateCtlTitle(string $name, string $ctlGrp) {
+//create a title using the text command and parents the shapes into $ctlGrp
+//returns the list of shapes
+
+	if (!size($name))
+		return {};
+	
+	string $text = `substituteAllString $name "_" " "`;
+	string $textGrp[] = `textCurves -ch 0 -f "Verdana|h-13" -t $text`;
+	string $chars[] = `listRelatives -c $textGrp[0]`;
+	//get individual curves
+	string $curves[];
+	for ($char in $chars) {
+		string $curvesTemp[] = `listRelatives -c $char`;
+		if (size($curvesTemp))
+			$curves = stringArrayCatenate($curves, $curvesTemp);
+	}
+	//group, then freeze
+	string $tempGrp = `group -w $curves`;
+	$curves = `listRelatives -c $tempGrp`;
+	
+	//position and scale the group
+	float $bBoxSizeX = `getAttr ($tempGrp+".boundingBoxSizeX")`;
+	float $tempGrpScale = 2.0/$bBoxSizeX;
+	if ($tempGrpScale > .4)
+		$tempGrpScale = .4;
+	if ($tempGrpScale < .06)
+		$tempGrpScale = .06;
+	
+	move -y 0 0 0 ($tempGrp+".scalePivot") ($tempGrp+".rotatePivot");
+	//squash the text a little bit
+	scale -a ($tempGrpScale* .8) $tempGrpScale $tempGrpScale $tempGrp;
+	//should be positioned slightly above a 2x2 square
+	move -rpr -a -ws 0 1.1 0;
+	makeIdentity -apply 1 -t 1 -s 1 -r 1 $tempGrp;
+	
+	//get the shapes
+	string $shapes[];
+	for ($curve in $curves) {
+		string $shapesTemp[] = `listRelatives -c -s $curve`;
+		if (size($shapesTemp))
+			$shapes = stringArrayCatenate($shapes, $shapesTemp);
+	}
+	$shapes = `parent -add -s $shapes $ctlGrp`;
+	
+	//don't need the old hierarchy
+	delete $tempGrp;
+	delete $textGrp[0];
+	
+	return $shapes;
+}
+global proc bsldrAssignCtlMaterial(string $shape) {
+//assigns the bsldrCtl_mat to $shape
+//creates the material if it doesn't already exist
+
+	if (!`objExists $shape`)
+		return;
+	
+	string $newMat, $newSg;
+	if (!`objExists "bsldrCtl_mat"`) {
+		if (`objExists "bsldrCtl_SG"`)
+			delete bsldrCtl_SG;
+		$newMat = `shadingNode -asShader surfaceShader -n bsldrCtl_mat`;
+		$newSG = `sets -renderable true -noSurfaceShader true -empty -name bsldrCtl_SG`;
+		connectAttr -f bsldrCtl_mat.outColor bsldrCtl_SG.surfaceShader;
+		setAttr "bsldrCtl_mat.outColor" 1 1 1 ;
+		setAttr "bsldrCtl_mat.outTransparency" .75 .75 .75;
+	}
+	
+	//apply shader
+	sets -e -forceElement bsldrCtl_SG $shape;
+}
+
+//====================================================================================================
+
+
+//====================================================================================================
+//CONNECT
+global proc bsldrAutoConnectMultipleToCtl(string $method, string $type) {
+//automatically assigns, a preset 2 or 4 configuration based on the selection type and method
+
+    string $selList[] = `ls -sl`;
+	
+	if ($method == "fourEdges") {
+		select $selList[0];
+		bsldrConnectSelectionToCtl($type, 0, 1);
+		refresh;
+		select $selList[1];
+		bsldrConnectSelectionToCtl($type, 1, 0);
+		refresh;
+		select $selList[2];
+		bsldrConnectSelectionToCtl($type, 0, -1);
+		refresh;
+		select $selList[3];
+		bsldrConnectSelectionToCtl($type, -1, 0);
+		refresh;
+	} else if ($method == "fourCorners") {
+		select $selList[0];
+		bsldrConnectSelectionToCtl($type, 1, 1);
+		refresh;
+		select $selList[1];
+		bsldrConnectSelectionToCtl($type, 1, -1);
+		refresh;
+		select $selList[2];
+		bsldrConnectSelectionToCtl($type, -1, -1);
+		refresh;
+		select $selList[3];
+		bsldrConnectSelectionToCtl($type, -1, 1);
+		refresh;
+	} else if ($method == "twoVert") {
+		select $selList[0];
+		bsldrConnectSelectionToCtl($type, 0, 1);
+		refresh;
+		select $selList[1];
+		bsldrConnectSelectionToCtl($type, 0, -1);
+		refresh;
+	} else if ($method == "twoHorz") {
+		select $selList[0];
+		bsldrConnectSelectionToCtl($type, -1, 0);
+		refresh;
+		select $selList[1];
+		bsldrConnectSelectionToCtl($type, 1, 0);
+		refresh;
+	}
+}
+global proc bsldrConnectSelectionToCtl(string $type, int $x, int $y) {
+//connects to the current control in the direction based on $x and $y
+//$type determines the current selection checking (target shapes... channels... etc)
+
+	string $selList[] = `ls -sl`;
+	
+	//validate $type
+	if ($type != "blendTarget" && $type != "channel") {
+		return;
+	}
+	
+	//get current ctl
+	string $ctl = `textField -q -tx bsldrWin_CurCtlField`;
+	if (!size($ctl)) {
+		error ("please set the active control first!");
+		return;
+	}
+	
+	if (!`objExists $ctl`) {
+		warning ("create or set a valid controller first...");
+		return;
+	}
+	
+	string $destAttrs[];
+	//find connecting attributes, one way or another
+	if ($type == "channel") {
+		$destAttrs = bsldrGetChannelBoxSelection();
+		if (!size($destAttrs))
+			return;
+		bsldrConnectToDirection($ctl, $x, $y, $destAttrs);
+		
+		
+	} else if ($type == "blendTarget") {
+		//get the blendshape node
+		for ($obj in $selList) {
+			string $objBS[] = `bsldrGetTargetBlend $obj`;
+			for ($bs in $objBS) {
+				if (`objExists($bs+"."+$obj)`) {
+					$destAttrs[size($destAttrs)] = ($bs+"."+$obj);
+				}
+			}
+		}
+		bsldrConnectToDirection($ctl, $x, $y, $destAttrs);
+	}
+	
+	//modify transform limits
+	bsldrExpandLimitsIfNeeded({$ctl}, $x, $y, 1);
+	
+	//cleanup after every connection
+	bsldrCleanupLooseUtilities();
+	
+	select -r $selList;
+}
+global proc bsldrConnectHitToCtl(string $object, int $x, int $y) {
+//connects the hit object's blendshape attribute to the active control
+
+	//get current ctl
+	string $ctl = `textField -q -tx bsldrWin_CurCtlField`;
+	if (!size($ctl)) {
+		error ("please set the active control first!");
+		return;
+	}
+	
+	if (!`objExists $ctl`) {
+		warning ("create or set a valid controller first...");
+		return;
+	}
+	
+	string $destAttrs[];
+	
+	//get the blendshape node
+	string $objBS[] = `bsldrGetTargetBlend $object`;
+	for ($bs in $objBS) {
+		if (`objExists($bs+"."+$object)`) {
+			$destAttrs[size($destAttrs)] = ($bs+"."+$object);
+		}
+	}
+	bsldrConnectToDirection($ctl, $x, $y, $destAttrs);
+		
+	//modify transform limits
+	bsldrExpandLimitsIfNeeded({$ctl}, $x, $y, 1);
+	
+	//cleanup after every connection
+	bsldrCleanupLooseUtilities();
+}
+global proc bsldrConnectToDirection(string $ctl, int $x, int $y, string $destAttrs[]) {
+//connects based on $x and $y to all $destAttrs
+//as of now, the gui will hold hidden information determing the default corner method (2:small, 3:blend, 4:regular, 5:large...)
+
+	//hard coding type 3 as the default for now
+	int $cornerType = `optionMenu -q -sl bsldrWin_InterpolMenu`;
+	
+	print ("cornerType: "+$cornerType+"\n"); //pv
+	
+	string $endUtilities[];
+	
+	if ($x == 0) {
+		if ($y == 0) {
+			//not possible, something went wrong...
+			error ("x and y directional values were both 0");
+		} else if ($y > 0) {
+			//top
+			string $name = ($ctl+"_1py");
+			bsldrConnectToEdge($ctl, $name, ($ctl+".translateY"), $y, $destAttrs);
+			
+		} else if ($y < 0) {
+			//bottom
+			string $name = ($ctl+"_1ny");
+			bsldrConnectToEdge($ctl, $name, ($ctl+".translateY"), $y, $destAttrs);
+			
+		}
+	} else if ($x > 0) {
+		if ($y == 0) {
+			//right
+			string $name = ($ctl+"_1px");
+			bsldrConnectToEdge($ctl, $name, ($ctl+".translateX"), $x, $destAttrs);
+		} else if ($y > 0) {
+			//top-right
+			string $name = $cornerType+"pxpy";
+			bsldrConnectToCorner($ctl, $name, $cornerType, $x, $y, $destAttrs);
+			
+		} else if ($y < 0) {
+			//bottom-right
+			string $name = $cornerType+"pxny";
+			bsldrConnectToCorner($ctl, $name, $cornerType, $x, $y, $destAttrs);
+		}
+	} else if ($x < 0) {
+		if ($y == 0) {
+			//left
+			string $name = ($ctl+"_1nx");
+			bsldrConnectToEdge($ctl, $name, ($ctl+".translateX"), $x, $destAttrs);
+		} else if ($y > 0) {
+			//top-left
+			string $name = $cornerType+"nxpy";
+			bsldrConnectToCorner($ctl, $name, $cornerType, $x, $y, $destAttrs);
+			
+		} else if ($y < 0) {
+			//bottom-left
+			string $name = $cornerType+"nxny";
+			bsldrConnectToCorner($ctl, $name, $cornerType, $x, $y, $destAttrs);
+		}
+	}
+}
+global proc string bsldrConnectToEdge(string $ctl, string $name, string $ctlAttr, int $v, string $destAttrs[]) {
+//creates a utility chain for edge connections
+//$v repreesents either $x or $y, depending on the edge
+//returns the end utility (the last one in the chain)
+	
+	//create a multiply to account for + or -
+	string $sideMult = bsldrConnectMult(($name+"_mult"), {$ctlAttr}, {}, {(float)$v});
+	//create a clamp to keep the main values above 0
+	//edge controls allow the expansion of limits, whereas corner controls do not
+	string $unitClamp = bsldrConnectClamp(($name+"_clamp"), {($sideMult+".outputX"), ($sideMult+".outputY")}, {}, {1000.0});
+	
+	bsldrAddConnections(($unitClamp+".outputR"), $destAttrs);
+	
+	//add attributes and connect the chain (adds attributes and takes care of everything)
+	bsldrConnectUtilChain($unitClamp, {$sideMult});
+	
+	//connect the end utility to the control
+	//this requires bsldrEndUtil, so it must come after bsldrConnectUtilChain
+	connectAttr -f ($ctl+".bsldrEndUtils") ($unitClamp+".bsldrEndUtil");
+	
+	return $unitClamp;
+}
+global proc string bsldrConnectToCorner(string $ctl, string $name, int $cornerType, int $x, int $y, string $destAttrs[]) {
+//creates a utility chain for the specified corner based on $cornerType
+//returns the end utility (the last utility in the chain)
+	
+	//make prefix
+	string $prefix = ($ctl+"_"+$name);
+	string $allEndFilter = "[0-9]"+ `substitute "^.*[0-9]" $name ""` +"_";
+	
+	//check for existing end utilities with a different prefix but same direction
+	string $endUtilsOld[] = bsldrGetEndUtilities($ctl, $allEndFilter);
+	if (size($endUtilsOld)) {
+		$destAttrs = stringArrayCatenate($destAttrs, bsldrGetOutAttrs($ctl, $allEndFilter));
+		bsldrDeleteEndUtilChains($endUtilsOld);
+	}
+	$destAttrs = stringArrayRemoveDuplicates($destAttrs);
+	
+	//check for existing end utility with the same prefix
+	string $endUtils[] = bsldrGetEndUtilities($ctl, $prefix);
+	if (size($endUtils)) {
+		string $endUtility = $endUtils[0];
+		string $endAttr = bsldrGetEndUtilAttrType($endUtility);
+		bsldrAddConnections(($endUtility+$endAttr), $destAttrs);
+		return $endUtility;
+	}
+	
+	string $endUtility;
+	if ($cornerType == 1) {
+		$endUtility = bsldrBuildCornerUtilitiesSingle($ctl, $prefix, $x, $y);
+	} else if ($cornerType == 2 || $cornerType == 3) {
+		$endUtility = bsldrBuildCornerUtilitiesDouble($ctl, $prefix, $x, $y, $cornerType);
+	} else if ($cornerType == 4 || $cornerType == 5) {
+		$endUtility = bsldrBuildCornerUtilitiesTriple($ctl, $prefix, $x, $y, $cornerType);
+	}
+	
+	string $endAttr = bsldrGetEndUtilAttrType($endUtility);
+	
+	//setup connections for the end utility
+	bsldrAddConnections(($endUtility+$endAttr), $destAttrs);
+	
+	//connect the end utility to the control
+	connectAttr -f ($ctl+".bsldrEndUtils") ($endUtility+".bsldrEndUtil");
+	
+	return $endUtility;
+}
+
+global proc string bsldrBuildCornerUtilitiesSingle(string $ctl, string $prefix, int $x, int $y) {
+//builds utilities for a simple multiply corner
+//returns the end utility
+
+	//create a multiply to account for + or -
+	string $sideMult = bsldrConnectMult(($prefix+"_side_mult"), {($ctl+".translateX"), ($ctl+".translateY")}, {}, {(float)$x, $y});
+	//clamp the output from 0 to 1000 (currently no limits)
+	string $clamp = bsldrConnectClamp(($prefix+"_clamp"), {($sideMult+".outputX"), ($sideMult+".outputY")}, {0.0, 0.0}, {1000.0, 1000.0});
+	//create a multiply to blend the two
+	string $singleMult = bsldrConnectMult(($prefix+"_single_mult"), {($clamp+".outputR")}, {($clamp+".outputG")}, {});
+	
+	//add attributes and connect the chain (adds attributes and takes care of everything)
+	bsldrConnectUtilChain($singleMult, {$sideMult, $clamp});
+	
+	return $singleMult;
+}
+global proc string bsldrBuildCornerUtilitiesDouble(string $ctl, string $prefix, int $x, int $y, int $cornerType) {
+//builds utilities for a double combine or double blend corner
+//doubles always have a horizontal orientation (top and bottom never blend), so the control needs to be rotated to achieve otherwise
+//returns the end utility
+	
+	//create a multiply to account for + or -
+	string $sideMult = bsldrConnectMult(($prefix+"_side_mult"), {($ctl+".translateX"), ($ctl+".translateY")}, {}, {(float)$x, $y});
+	//create a clamp for keeping the fade from -1 to 1
+	string $fadeClamp = bsldrConnectClamp(($prefix+"_fade_clamp"), {($sideMult+".outputX")}, {-1.0}, {1.0});	
+	//create a setrange to control the fade
+	float $maxes[];
+	if ($cornerType == 2) {
+		$maxes = {2.0};
+	} else {
+		$maxes = {1.0};
+	}
+	string $fadeRange = bsldrConnectSetRange(($prefix+"_fade_setRange"), {($fadeClamp+".outputR")}, {-1.0}, {1.0}, {0.0}, {$maxes[0]});
+	//create one more clamp on this fade branch, to keep the high values from multiplying
+	string $fadeClamp2 = bsldrConnectClamp(($prefix+"_fade_clamp2"), {($fadeRange+".outValueX")}, {}, {1.0});
+	//create a clamp to keep the main values from 0 to 1
+	string $unitClamp = bsldrConnectClamp(($prefix+"_unit1_clamp"), {($sideMult+".outputY")}, {}, {1.0});
+	//multiply the two streams together
+	string $mainMult = bsldrConnectMult(($prefix+"_main_mult"), {($fadeClamp2+".outputR")}, {($unitClamp+".outputR")}, {});
+	//create another unit clamp
+	string $unitClamp2 = bsldrConnectClamp(($prefix+"_unit2_clamp"), {($mainMult+".outputX")}, {}, {1.0});
+	
+	//add attributes and connect the chain (adds attributes and takes care of everything)
+	bsldrConnectUtilChain($unitClamp2, {$sideMult, $fadeClamp, $fadeRange, $fadeClamp2, $unitClamp, $mainMult});
+	
+	
+	return $unitClamp2;
+}
+global proc string bsldrBuildCornerUtilitiesTriple(string $ctl, string $prefix, int $x, int $y, int $cornerType) {
+//builds utilities for a triple combine or triple blend corner
+//returns the end utility
+
+	//create a multiply to account for + or -
+	string $sideMult = bsldrConnectMult(($prefix+"_side_mult"), {($ctl+".translateX"), ($ctl+".translateY")}, {}, {(float)$x, $y});
+	//create a clamp for keeping the fade from -1 to 1
+	string $fadeClamp = bsldrConnectClamp(($prefix+"_fade_clamp"), {($sideMult+".outputX"), ($sideMult+".outputY")}, {-1.0, -1.0}, {1.0, 1.0});	
+	//create a setrange to control the fade
+	float $maxes[];
+	if ($cornerType == 4) {
+		$maxes = {2.0, 2.0};
+	} else {
+		$maxes = {1.0, 1.0};
+	}
+	string $fadeRange = bsldrConnectSetRange(($prefix+"_fade_setRange"), {($fadeClamp+".outputR"), ($fadeClamp+".outputG")}, {-1.0, -1.0}, {1.0, 1.0}, {0.0, 0.0}, {$maxes[0], $maxes[1]});
+	//create a clamp to keep the main values from 0 to 1
+	string $unitClamp = bsldrConnectClamp(($prefix+"_unit1_clamp"), {($sideMult+".outputX"), ($sideMult+".outputY")}, {}, {1.0, 1.0});
+	//multiply the two streams together
+	//very important!! we swap the X and Y coming from the set range so that we're multiplying the correct values
+	string $mainMult = bsldrConnectMult(($prefix+"_main_mult"), {($fadeRange+".outValueY"), ($fadeRange+".outValueX")}, {($unitClamp+".outputR"), ($unitClamp+".outputG")}, {});
+	//create another unit clamp
+	string $unitClamp2 = bsldrConnectClamp(($prefix+"_unit2_clamp"), {($mainMult+".outputX"), ($mainMult+".outputY")}, {}, {1.0, 1.0});
+	
+	//4 = screen method, 5 = lighten method
+	string $endUtility;
+	if ($cornerType == 4) {
+		//create the screen
+		string $screenNodes[] = bsldrConnectScreen($prefix, ($unitClamp2+".outputR"), ($unitClamp2+".outputG"));
+		$endUtility = $screenNodes[2];
+		bsldrConnectUtilChain($endUtility, {$screenNodes[0], $screenNodes[1]});
+	} else {
+		//create a lighten
+		string $lighten = bsldrConnectLighten(($prefix+"_lighten"), ($unitClamp2+".outputR"), ($unitClamp2+".outputG"));
+		$endUtility = $lighten;
+		bsldrConnectUtilChain($endUtility, {$lighten});
+	}
+	
+	//add attributes and connect the chain (adds attributes and takes care of everything)
+	bsldrConnectUtilChain($endUtility, {$sideMult, $fadeClamp, $fadeRange, $unitClamp, $mainMult, $unitClamp2});
+	
+	
+	return $endUtility;
+}
+global proc bsldrConnectUtilChain(string $endUtil, string $utils[]) {
+//connects $endUtil to all of $utils using .bsldrEndUtil and .bsldrUtil custom attributes
+
+    if (!`objExists $endUtil`)
+		return;
+	
+	//add the attribute if it doesn't exist
+	if (!`objExists ($endUtil+".bsldrEndUtil")`) {
+		addAttr -ln "bsldrEndUtil" -at long  $endUtil;
+		setAttr -e -k 0 ($endUtil+".bsldrEndUtil");
+	}
+	
+	for ($util in $utils) {
+		if (!`objExists $util`)
+			continue;
+		
+		if (!`objExists ($util+".bsldrUtil")`) {
+			addAttr -ln "bsldrUtil" -at long $util;
+			setAttr -e -k 0 ($util+".bsldrUtil");
+			catchQuiet(`connectAttr -f ($endUtil+".bsldrEndUtil") ($util+".bsldrUtil")`);
+		}
+	}
+}
+global proc bsldrAddConnections(string $outAttr, string $attrs[]) {
+//adds a connection from $outAttr to all $attrs
+
+	for ($attr in $attrs) {
+		string $connects[] = `listConnections -s 1 -d 0 -p 1 $attr`;
+		print $connects;
+		print "\n";
+		print $outAttr;
+		print "\n\n";
+		if (!stringArrayContains($outAttr, $connects))
+			catchQuiet(`connectAttr -f $outAttr $attr`);
+	}
+}
+global proc string bsldrConnectMult(string $name, string $input1Attrs[], string $input2Attrs[], float $values[]) {
+//creates a multiply node and connects inputAttrs (if they exist) to inputX, inputY, or inputZ
+//$values[] should be empty if $input2Attrs is not, and vice versa
+//returns the multiply
+	
+	string $input1Names[] = {"input1X", "input1Y", "input1Z"};
+	string $input2Names[] = {"input2X", "input2Y", "input2Z"};
+	string $connections[];
+	int $i = 0;
+	
+	//check for bad params
+	if (size($input2Attrs) && size($values)) {
+		//shouldn't pass both values and secondary attributes
+		return "";
+	}
+	
+	string $mult = `shadingNode -au multiplyDivide -n $name`;
+	$i=0;
+	for ($attr in $input1Attrs) {
+		connectAttr -f $attr ($mult+"."+$input1Names[$i]);
+		$i++;
+	}
+	$i=0;
+	for ($attr in $input2Attrs) {
+		connectAttr -f $attr ($mult+"."+$input2Names[$i]);
+		$i++;
+	}
+	$i=0;
+	for ($value in $values) {
+		setAttr -l 0 ($mult+"."+$input2Names[$i]) $value;
+		$i++;
+	}
+	
+	return $mult;
+}
+global proc string bsldrConnectClamp(string $name, string $inputAttrs[], float $mins[], float $maxes[]) {
+//creates a clamp with and assigns $mins and $maxes to minX, minY, minZ, maxX, maxY, or maxZ
+//connects all inputAttrs into the corresponding slot
+//returns the clamp
+	
+	string $inputNames[] = {"inputR", "inputG", "inputB"};
+	string $minNames[] = {"minR", "minG", "minB"};
+	string $maxNames[] = {"maxR", "maxG", "maxB"};
+	int $i = 0;
+	
+	string $clamp = `shadingNode -au clamp -n $name`;
+	$i=0;
+	for ($attr in $inputAttrs) {
+		connectAttr -f $attr ($clamp+"."+$inputNames[$i]);
+		$i++;
+	}
+	$i=0;
+	for ($min in $mins) {
+		setAttr -l 0 ($clamp+"."+$minNames[$i]) $min;
+		$i++;
+	}
+	$i=0;
+	for ($max in $maxes) {
+		setAttr -l 0 ($clamp+"."+$maxNames[$i]) $max;
+		$i++;
+	}
+	
+	return $clamp;
+}
+global proc string bsldrConnectSetRange(string $name, string $inputAttrs[], float $oldMins[], float $oldMaxes[], float $mins[], float $maxes[]) {
+//creates a set range node and assigns oldMins oldMaxes mins and maxes
+//returns the setRange
+	
+	string $inputNames[] = {"valueX", "valueY", "valueZ"};
+	string $oldMinNames[] = {"oldMinX", "oldMinY", "oldMinZ"};
+	string $oldMaxNames[] = {"oldMaxX", "oldMaxY", "oldMaxZ"};
+	string $minNames[] = {"minX", "minY", "minZ"};
+	string $maxNames[] = {"maxX", "maxY", "maxZ"};
+	int $i = 0;
+	
+	string $setRange = `shadingNode -au setRange -n $name`;
+	$i=0;
+	for ($attr in $inputAttrs) {
+		connectAttr -f $attr ($setRange+"."+$inputNames[$i]);
+		$i++;
+	}
+	$i=0;
+	for ($oldMin in $oldMins) {
+		setAttr -l 0 ($setRange+"."+$oldMinNames[$i]) $oldMin;
+		$i++;
+	}
+	$i=0;
+	for ($oldMax in $oldMaxes) {
+		setAttr -l 0 ($setRange+"."+$oldMaxNames[$i]) $oldMax;
+		$i++;
+	}
+	$i=0;
+	for ($min in $mins) {
+		setAttr -l 0 ($setRange+"."+$minNames[$i]) $min;
+		$i++;
+	}
+	$i=0;
+	for ($max in $maxes) {
+		setAttr -l 0 ($setRange+"."+$maxNames[$i]) $max;
+		$i++;
+	}
+	
+	return $setRange;
+}
+global proc string[] bsldrConnectScreen(string $name, string $inputX, string $inputY) {
+//creates a set of two reverse nodes and one multiply, effectively creating a screen between two attributes
+//returns all three created nodes in order
+
+    string $reverse1, $mult, $reverse2;
+	
+	$reverse1 = ($name+"_scrnReverse1");
+	$mult = ($name+"_scrnMult");
+	$reverse2 = ($name+"_scrnReverse2");
+	
+	//not the most secure method right now, but it gets the job done
+	string $lsRev1[] = `ls $reverse1`;
+	string $lsMult[] = `ls $mult`;
+	string $lsRev2[] = `ls $reverse2`;
+	if (size($lsRev1) && size($lsMult) && size($lsRev2)) {
+		return {$lsRev1[0], $lsMult[0], $lsRev2[0]};
+	} else {
+		//the thought here is that the screen can't exist without
+		//all it's parts, so it must be a leftover
+		if (size($lsRev1))
+			delete $lsRev1;
+		if (size($lsMult))
+			delete $lsMult;
+		if (size($lsRev2))
+			delete $lsRev2;
+	}
+	
+	$reverse1 = `shadingNode -au reverse -n $reverse1`;
+	$mult = `shadingNode -au multiplyDivide -n $mult`;
+	$reverse2 = `shadingNode -au reverse -n $reverse2`;
+	
+	//connect inputs
+	connectAttr -f $inputX ($reverse1+".inputX");
+	connectAttr -f $inputY ($reverse1+".inputY");
+	//connect reverse1 to mult
+	connectAttr -f ($reverse1+".outputX") ($mult+".input1X");
+	connectAttr -f ($reverse1+".outputY") ($mult+".input2X");
+	//connect mult to reverse2
+	connectAttr -f ($mult+".outputX") ($reverse2+".inputX");
+	
+	return {$reverse1, $mult, $reverse2};
+}
+global proc string bsldrConnectLighten(string $name, string $inputX, string $inputY) {
+//creates a condition node that replicates the lighten functionality
+//returns the condition node
+
+    string $lighten;
+	
+	$lighten = `shadingNode -au condition -n $name`;
+	
+	//connect inputs
+	connectAttr -f $inputX ($lighten+".firstTerm");
+	connectAttr -f $inputX ($lighten+".colorIfTrueR");
+	connectAttr -f $inputY ($lighten+".secondTerm");
+	connectAttr -f $inputY ($lighten+".colorIfFalseR");
+	setAttr ($lighten+".operation") 2;
+	
+	return $lighten;
+}
+//====================================================================================================
+
+//====================================================================================================
+//MODIFY
+global proc bsldrSetSelectedCurCtl() {
+//gets the selected control and sets the GUI field
+
+	string $selList[] = `ls -sl`;
+	if (!size($selList)) {
+		warning "nothing was selected...";
+		return;
+	}
+	
+	string $ctls[] = bsldrGetCtls($selList);
+	if (size($ctls))
+		bsldrSetCurCtl($ctls[0]);
+}
+global proc bsldrSetCurCtl(string $ctl) {
+//sets a specified control as the current control
+
+	if (`objExists ($ctl+".bsldrCtl")`) {
+		textField -e -tx $ctl bsldrWin_CurCtlField;
+		print ("// "+$ctl+" has been set as the active control...\n");
+	} else {
+		warning ($ctl+" was not a valid boSlider ...");
+		return;
+	}
+}
+global proc bsldrExpandLimitsIfNeeded(string $ctls[], int $x, int $y, int $allowAboveOne) {
+//makes sure the limits in direction $x $y are at least 1
+
+	for ($ctl in $ctls) {
+		float $tx[] = `transformLimits -q -tx $ctl`;
+		float $ty[] = `transformLimits -q -ty $ctl`;
+		if ($x != 0) {
+			if ($x > 0) {
+				if ($tx[1] < 1)
+					$tx[1] = 1;
+			} else {
+				if ($tx[0] > -1)
+					$tx[0] = -1;
+			}
+		}
+		if  ($y != 0) {
+			if ($y > 0) {
+				if ($ty[1] < 1)
+					$ty[1] = 1;
+			} else {
+				if ($ty[0] > -1)
+					$ty[0] = -1;
+			}
+		}		
+		//set the new limits
+		bsldrSetTransLimits({$ctl}, $tx[0], $tx[1], $ty[0], $ty[1]);
+	}
+}
+global proc bsldrExpandLimits(string $ctls[], int $x, int $y, int $allowAboveOne) {
+//gets the current limits, checks if AllowAboveOne is enabled, and expands in the direction $x $y
+
+	for ($ctl in $ctls) {
+		float $tx[] = `transformLimits -q -tx $ctl`;
+		float $ty[] = `transformLimits -q -ty $ctl`;
+		if ($x != 0) {
+			if ($x > 0) {
+				$tx[1] += 1;
+				if (!$allowAboveOne)
+					if ($tx[1] > 1)
+						$tx[1] = 1;
+			} else {
+				$tx[0] -= 1;
+				if (!$allowAboveOne)
+					if ($tx[0] < -1)
+						$tx[0] = -1;
+			}
+		}
+		if  ($y != 0) {
+			if ($y > 0) {
+				$ty[1] += 1;
+				if (!$allowAboveOne)
+					if ($ty[1] > 1)
+						$ty[1] = 1;
+			} else {
+				$ty [0] -= 1;
+				if (!$allowAboveOne)
+					if ($ty[0] < -1)
+						$ty[0] = -1;
+			}
+		}
+		//set the new limits
+		bsldrSetTransLimits({$ctl}, $tx[0], $tx[1], $ty[0], $ty[1]);
+	}
+}
+global proc bsldrShrinkLimits(string $ctls[], int $x, int $y) {
+//grabs the limits and subtracts 1 from the direction $x $y
+	
+	for ($ctl in $ctls) {
+		float $tx[] = `transformLimits -q -tx $ctl`;
+		float $ty[] = `transformLimits -q -ty $ctl`;
+		if ($x != 0) {
+			if ($x > 0) {
+				$tx[1] -= 1;
+				if ($tx[1] < 0)
+					$tx[1] = 0;
+			} else {
+				$tx[0] += 1;
+				if ($tx[0] > 0)
+					$tx[0] = 0;
+			}
+		}
+		if  ($y != 0) {
+			if ($y > 0) {
+				$ty[1] -= 1;
+				if ($ty[1] < 0)
+					$ty[1] = 0;
+			} else {
+				$ty [0] += 1;
+				if ($ty[0] > 0)
+					$ty[0] = 0;
+			}
+		}
+		//set the new limits
+		bsldrSetTransLimits({$ctl}, $tx[0], $tx[1], $ty[0], $ty[1]);
+	}
+}
+global proc bsldrModifyLimits(string $ctls[], int $x, int $y, int $expand)  {
+//determines the new transform limits of $ctl based on $x and $y
+
+	for ($ctl in $ctls) {
+		float $tx[] = `transformLimits -q -tx $ctl`;
+		float $ty[] = `transformLimits -q -ty $ctl`;
+		//free limits in the right directions
+		if ($x != 0) {
+			if ($x > 0)
+				$tx[1] = $x * $expand;
+			else
+				$tx[0] = $x * $expand;
+		}
+		if  ($y != 0) {
+			if ($y > 0)
+				$ty[1] = $y * $expand;
+			else
+				$ty [0] = $y * $expand;
+		}
+		if ($x == 0 && $y == 0) {
+			$tx = {0, 0};
+			$ty = {0, 0};
+		}
+		//set the new limits
+		bsldrSetTransLimits({$ctl}, $tx[0], $tx[1], $ty[0], $ty[1]);
+	}
+}
+global proc bsldrSetTransLimits(string $ctls[], float $x1, float $x2, float $y1, float $y2) {
+//receives all four limits instead of figuring out what to use.
+//this is useful for expanding all at once, but not useful when only a directional x and y is given
+//should go through bsldrModifyLimits in such a situation
+
+	for ($ctl in $ctls) {
+		transformLimits -e -tx $x1 $x2 -ty $y1 $y2 $ctl;
+		//print ("// new limits for "+$ctl+":   x: "+$x1+" -> "+$x2+"   y: "+$y1+" -> "+$y2+"\n");	
+		//update the border shape
+		bsldrUpdateBorderShape($ctl, $x1, $x2, $y1, $y2);
+	}
+}
+global proc bsldrModifyRotates(string $objs[], int $locked) {
+//unlocks the rotations of the specified controls
+
+    string $ctls[] = bsldrGetCtls($objs);
+	bsldrSetAttrs ($ctls, {"rz"}, $locked, !$locked, !$locked);
+}
+global proc bsldrModifyScales(string $objs[], int $locked) {
+//unlocks the rotations of the specified controls
+
+    string $ctls[] = bsldrGetCtls($objs);
+	bsldrSetAttrs ($ctls, {"sx", "sy"}, $locked, !$locked, !$locked);
+}
+global proc bsldrUpdateBorderShape(string $ctl, float $x1, float $x2, float $y1, float $y2) {
+//updates the border shape of the specified control
+
+	string $border = bsldrGetFrom(`listConnections -s 0 -d 1 -sh 1 ($ctl+".borderVisibility")`, 0);
+	if (!size($border))
+		return;
+	
+	move -a -os $x2 $y2 0 ($border+".cv[0]");
+	move -a -os $x1 $y2 0 ($border+".cv[1]");
+	move -a -os $x1 $y1 0 ($border+".cv[2]");
+	move -a -os $x2 $y1 0 ($border+".cv[3]");
+	move -a -os $x2 $y2 0 ($border+".cv[4]");
+}
+global proc bsldrDuplicateCtls(string $objs[]) {
+//duplicates the selected controls
+
+	//make sure all the objects are controls
+	string $ctls[] = bsldrGetCtls($objs);
+	
+	string $newCtls[];
+	for ($ctl in $ctls) {
+		string $ctlName = `substitute "\_Ctl[0-9]+" $ctl ""`;
+		string $ctlGrp = bsldrGetFrom(`listConnections -s 0 -d 1 ($ctl+".bsldrCtlGrpMessage")`, 0);
+		string $parent = bsldrGetFrom(`listRelatives -p $ctlGrp`, 0);
+		vector $pos = `getAttr ($ctlGrp+".translate")`;
+		vector $rot = `getAttr ($ctlGrp+".rotate")`;
+		vector $scale = `getAttr ($ctlGrp+".scale")`;
+		int $polys = `getAttr ($ctlGrp+".polyVisibility")`;
+		int $curves = `getAttr ($ctlGrp+".curveVisibility")`;
+		int $nurbs = `getAttr ($ctlGrp+".nurbsVisibility")`;
+		float $txLimits[] = `transformLimits -q -tx $ctl`;
+		float $tyLimits[] = `transformLimits -q -ty $ctl`;
+		float $limits[] = {$txLimits[0], $txLimits[1], $tyLimits[0], $tyLimits[1]};
+		
+		string $newCtl = bsldrCreateSlider($ctlName, $polys, $curves, $nurbs, 0.2, $limits);
+		if (size($parent))
+			$newCtl = bsldrGetFrom(`parent $newCtl $parent`, 0);
+		move -a -os ($pos.x) ($pos.y) ($pos.z);
+		rotate -a -os ($rot.x) ($rot.y) ($rot.z);
+		scale -a ($scale.x) ($scale.y) ($scale.z);
+		$newCtls[size($newCtls)] = $newCtl;
+	}
+	
+	if (size($newCtls)) {
+		print ("// duplicated "+size($newCtls)+" controls...\n");
+		print $newCtls;
+		select $newCtls;
+	}
+}
+global proc bsldrRenameCtls(string $objs[]) {
+//prompts for a name, then renames the selected control(s)
+//if there are multiple controls selected, they will be renamined incrementally
+//each controls text curves are deleted then rebuilt
+
+//currently doesn't rename any utility nodes or shape nodes like borderShape or polyShape
+
+	string $ctls[] = bsldrGetCtls($objs);
+	if (!size($ctls))
+		error ("no valid controls were specified");
+	
+	string $name;
+	string $lastName = `text -q -l bsldrWin_LastNameTxt`;
+	string $result = `promptDialog
+			-title "Rename Slider..."
+			-message "Title:"
+			-text $lastName
+			-button "OK" -button "Cancel"
+			-defaultButton "OK" -cancelButton "Cancel"
+			-dismissString "Cancel"`;
+	
+	
+	if ($result == "OK") {
+		$name = `promptDialog -query -text`;
+	} else {
+		return;
+	}
+	
+	//replace all spaces with _
+	$name = `substituteAllString $name " " "_"`;
+	if (!isValidObjectName($name)) {
+		error ("Sorry, "+$name+" is not a valid object name");
+	}
+	
+	text -e -l $name bsldrWin_LastNameTxt;
+	
+	int $noParent;
+	string $ctlGrps[];
+	
+	for ($i = 0; $i < size($ctls); $i++) {
+		//rename all the controls temporarily so that number increments work properly
+		$ctls[$i] = `rename $ctls[$i] ("bslderCtlTEMPRename#")`;
+	}
+	
+	for ($ctl in $ctls) {
+		string $ctlGrp = bsldrGetFrom(`listConnections -s 0 -d 1 ($ctl+".bsldrCtlGrpMessage")`, 0);
+		if (!size($ctlGrp))
+			$ctlGrp = bsldrGetFrom(`listRelatives -p $ctl`, 0);
+		
+		if(!size($ctlGrp)) {
+			$noParent ++;
+			continue;
+		}
+		
+		//add the group so we can select it at the end
+		$ctlGrps[size($ctlGrps)] = $ctlGrp;
+		
+		string $oldText[] = `listConnections -s 0 -d 1 -sh 1 ($ctl+".titleVisibility")`;
+		if (size($oldText))
+			delete $oldText;
+		
+		//create the new text and rename the control
+		string $newText[] = bsldrCreateCtlTitle($name, $ctlGrp);
+		for ($curve in $newText) {
+			connectAttr -f ($ctl+".titleVisibility") ($curve+".visibility");
+			connectAttr -f ($ctl+".templateTitle") ($curve+".overrideEnabled");
+			connectAttr -f ($ctl+".templateTitle") ($curve+".overrideDisplayType");
+		}
+		$ctl = `rename $ctl ($name+"_Ctl#")`;
+	}
+	if ($noParent) {
+		warning ("some controls could not be renamed because they have no group node...");
+	}
+}
+//====================================================================================================
+
+//====================================================================================================
+//DISCONNECT
+global proc bsldrDisconnectAllFromCtl(string $ctls[]) {
+//disconnects all directions for $ctl
+	
+	if (!size($ctls)) {
+		return;
+	}
+	$ctls = bsldrGetCtls($ctls);
+	
+	print "\n";
+	int $disconCount = 0;
+	for ($ctl in $ctls) {
+		
+		string $dis1[] = bsldrDisconnectFromCtls({$ctl}, 0, 1, 0);
+		string $dis2[] = bsldrDisconnectFromCtls({$ctl}, 1, 1, 0);
+		string $dis3[] = bsldrDisconnectFromCtls({$ctl}, 1, 0, 0);
+		string $dis4[] = bsldrDisconnectFromCtls({$ctl}, 1, -1, 0);
+		string $dis5[] = bsldrDisconnectFromCtls({$ctl}, 0, -1, 0);
+		string $dis6[] = bsldrDisconnectFromCtls({$ctl}, -1, -1, 0);
+		string $dis7[] = bsldrDisconnectFromCtls({$ctl}, -1, 0, 0);
+		string $dis8[] = bsldrDisconnectFromCtls({$ctl}, -1, 1, 0);
+		
+		string $disconDirs[] = {};
+		if (size($dis1))
+			$disconDirs[size($disconDirs)] = "top";
+		if (size($dis2))
+			$disconDirs[size($disconDirs)] = "top right";
+		if (size($dis3))
+			$disconDirs[size($disconDirs)] = "right";
+		if (size($dis4))
+			$disconDirs[size($disconDirs)] = "bottom right";
+		if (size($dis5))
+			$disconDirs[size($disconDirs)] = "bottom";
+		if (size($dis6))
+			$disconDirs[size($disconDirs)] = "bottom left";
+		if (size($dis7))
+			$disconDirs[size($disconDirs)] = "left";
+		if (size($dis8))
+			$disconDirs[size($disconDirs)] = "top left";
+		
+		//this also means reset the transformLimits
+		if (`checkBox -q -v bsldrWin_AutoResetTransCheck`)
+			bsldrModifyLimits({$ctl}, 0, 0, 0);
+		
+		if (size($disconDirs)) {
+			print ("//     disconnected "+stringArrayToString($disconDirs, ", ")+" conections from "+$ctl+"...\n");
+		}
+		$disconCount += size($disconDirs);
+	}
+	if ($disconCount) {
+		print ("// disconnected "+$disconCount+" directions from "+size($ctls)+" controls. see script editor for details...\n");
+	} else {
+		print ("// there were no connections to break on any of the selection controls...\n");
+	}
+}
+global proc string[] bsldrDisconnectFromCtls(string $ctls[], int $x, int $y, int $verbose) {
+//disconnects all connections in the direction determined by $x and $y
+//returns the $deleted objects
+
+	string $deleted[] = {};
+	string $xStr[] = {"left", "", "right"};
+	string $yStr[] = {"bottom ", "", "top "};
+	string $dirStr = ($yStr[$y+1]+$xStr[$x+1]);
+	
+	for ($ctl in $ctls) {
+		string $filter;
+		string $oldAttrs[];
+		string $deletedTemp[];
+	
+		if ($x == 0) {
+			if ($y == 0) {
+				//not possible, something went wrong...
+				print ("//error: x and y directional values were both 0");
+				return {};
+			} else if ($y > 0) {
+				//top
+				$filter = ($ctl+"_[0-9]+py_");
+			} else if ($y < 0) {
+				//bottom
+				$filter = ($ctl+"_[0-9]+ny_");
+			}
+		} else if ($x > 0) {
+			//x won't be requiring a clamp
+			//figure out if it's a corner or the side
+			if ($y == 0) {
+				//left
+				$filter = ($ctl+"_[0-9]+px_");
+			} else if ($y > 0) {
+				//top-right
+				$filter = ($ctl+"_[0-9]+pxpy_");
+			} else if ($y < 0) {
+				//bottom-right
+				$filter = ($ctl+"_[0-9]+pxny_");
+			}
+		} else if ($x < 0) {
+			if ($y == 0) {
+				//left
+				$filter = ($ctl+"_[0-9]+nx_");
+			} else if ($y > 0) {
+				//top-left
+				$filter = ($ctl+"_[0-9]+nxpy_");
+			} else if ($y < 0) {
+				//bottom-left
+				$filter = ($ctl+"_[0-9]+nxny_");
+			}
+		}
+		
+		$oldAttrs = bsldrGetOutAttrs($ctl, $filter);
+		$deletedTemp = bsldrDeleteUtilsFromDirection($ctl, $filter);
+		for ($attr in $oldAttrs)
+			if (!size(`match "\.scale" $attr`)) {
+				setAttr $attr 0;
+			} else {
+				//for scales, reset to 0
+				setAttr $attr 1;
+			}
+		
+		if ($verbose) {
+			if (!size($oldAttrs))
+				print ("// nothing to disconnect from "+$ctl+" "+$dirStr+"...\n");
+			else
+				print ("// "+$ctl+" "+$dirStr+" outputs broken ["+size($oldAttrs)+"] and utils deleted successfully ["+size($deletedTemp)+"]...\n");
+		}
+		
+		$deleted = stringArrayCatenate($deleted, $deletedTemp);
+	}
+	
+	return $deleted;
+}
+global proc string[] bsldrDeleteUtilsFromDirection(string $ctl, string $filter) {
+//finds all end utilities of $ctl matching $filter and deletes their chains
+//returns the list of deleted nodes
+
+	string $endUtilList[] = bsldrGetEndUtilities($ctl, $filter);
+	if (!size($endUtilList))
+		return {};
+	
+	string $deleted[] = bsldrDeleteEndUtilChains($endUtilList);
+	return $deleted;
+}
+global proc string[] bsldrDeleteEndUtilChains(string $endUtils[]) {
+//deletes all nodes associated with an $endUtil
+//returns deleted nodes
+	
+	string $deleted[];
+	for ($endUtil in $endUtils) {
+		string $utils[] = bsldrGetUtilityChain($endUtil);
+		if (size($utils)) {
+			delete $utils;
+			$deleted = stringArrayCatenate($deleted, $utils);
+			$deleted = stringArrayCatenate($deleted, {$endUtil});
+		}
+	}
+	
+	return $deleted;
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//CLEANUP
+global proc bsldrCleanup(int $verbose) {
+//does the cleaning
+	
+	if ($verbose)
+		print "// boSliders: cleaning up loose utilities...\n";
+	//search for loose multiplyDivides, clamps, or adds
+	string $deleted[] = bsldrCleanupLooseUtilities();
+	int $utilCount = size($deleted);
+	if ($utilCount && $verbose) {
+		print ("//     deleted "+$utilCount+" unused utility nodes...\n");
+	}
+	
+	//check for any ctls, else cleanup the material
+	string $deletedShading[] = bsldrCleanupCtlMaterial();
+	if (size($deletedShading) && $verbose) {
+		string $nodes = stringArrayToString($deletedShading, ", ");
+		print ("//     deleted shading nodes: "+$nodes+"... (no controls remaining in scene)\n");
+	}
+	
+	int $total = $utilCount + size($deletedShading);
+	if ($verbose)
+	    if ($total)
+		    print ("// cleanup successful: " + $total + " node(s) deleted, see script editor for details...\n");
+		else
+		    print ("// cleanup successful, no nodes were deleted.\n");
+}
+global proc string[] bsldrCleanupCtlMaterial() {
+//checks if bsldrCtl_mat exists, if it's on any objects, and if it isn't then delete it
+//returns what was deleted.. if anything
+
+	string $sldrCtls[] = bsldrGetAllCtls();
+	
+	string $deleted[];
+	if (!size($sldrCtls)) {
+		if (`objExists "bsldrCtl_mat"`) {
+			delete bsldrCtl_mat;
+			$deleted[size($deleted)] = "bsldrCtl_mat";
+		}
+		if (`objExists "bsldrCtl_SG"`) {
+			delete bsldrCtl_SG;
+			$deleted[size($deleted)] = "bsldrCtl_SG";
+		}
+	}
+	
+	return $deleted;
+}
+global proc string[] bsldrCleanupLooseUtilities() {
+    //finds disconnected end utilities and deletes them
+    //	1px (py, nx, ny)			- type 1 (edges/simple connections)
+    //	2pxpy (pxny, nxny, nxpy)	- type 2 (smooth corners small)
+    //	3pxpy (pxny, nxny, nxpy)	- type 3 (smooth corners blend)
+    //	4pxpy (pxny, nxny, nxpy)	- type 4 (smooth corners regular)
+    //	5pxpy (pxny, nxny, nxpy)	- type 5 (smooth corners large)
+
+	//reg exp filter
+	string $searches[] = {("_[0-9]+py_"), ("_[0-9]+ny_"), ("_[0-9]+px_"), ("_[0-9]+pxpy_"), ("_[0-9]+pxny_"), ("_[0-9]+nx_"), ("_[0-9]+nxpy_"), ("_[0-9]+nxny_")};
+	
+	string $endUtils[] = bsldrGetAllEndUtils();
+	string $deleted[] = {};
+	
+	for ($endUtil in $endUtils) {
+		string $attrs[] = bsldrGetEndUtilOutAttrs($endUtil);
+		string $ctl = bsldrGetEndUtilCtl($endUtil);
+		
+		//check for no out attributes
+		if (!size($attrs) || !size($ctl)) {
+			//either there's no out attributes, or the control was deleted, either way, goodbye!
+			$deleted = stringArrayCatenate($deleted, bsldrDeleteEndUtilChains({$endUtil}));
+		}
+	}
+	
+	return $deleted;
+}
+//====================================================================================================
+
+//====================================================================================================
+//GET
+global proc string[] bsldrGetAllCtls() {
+//returns a list of any boSlider controls in the scene
+
+	string $allNodes[] = `ls`;
+	string $ctls[] = bsldrGetCtls($allNodes);
+	
+	return $ctls;
+}
+global proc string[] bsldrGetCtls(string $objs[]) {
+//returns any controls within the specified objects (searches controls themselves and their groups)
+
+	string $ctls[];
+	for ($obj in $objs) {
+		if (`objExists ($obj+".bsldrCtl")`) //its the actual ctl
+			$ctls[size($ctls)] = $obj;
+		else if (`objExists ($obj+".bsldrCtlMessage")`) //its the ctls grp
+			$ctls[size($ctls)] = bsldrGetFrom(`listConnections -s 1 -d 0 ($obj+".bsldrCtlMessage")`, 0);
+	}
+	
+	$clts =stringArrayRemoveDuplicates($ctls);
+	
+	return $ctls;
+}
+global proc string[] bsldrGetAllEndUtils() {
+//returns a list of all the bsldrEndUtils in the scene (uses the custom attribute to find them)
+
+	string $allNodes[] = `ls`;
+	string $endUtils[] = {};
+	for ($obj in $allNodes) {
+		if (`objExists ($obj+".bsldrEndUtil")`)
+			$endUtils[size($endUtils)] = $obj;
+	}
+	
+	return $endUtils;
+}
+global proc string bsldrGetEndUtilCtl(string $endUtil) {
+//returns the control that goes into $endUtil
+
+    string $ctl = bsldrGetFrom(`listConnections -s 1 -d 0 ($endUtil+".bsldrEndUtil")`, 0);
+	
+	return $ctl;
+}
+global proc string[] bsldrGetEndUtilities(string $ctl, string $filter) {
+//returns a list of all the end utilities of any chains coming out of $ctl
+
+	string $connections[] = `listConnections -s 0 -d 1 ($ctl+".bsldrEndUtils")`;
+	
+	if ($filter != "") {
+		string $results[];
+		for ($connect in $connections) {
+			if (size(`match $filter $connect`))
+				$results[size($results)] = $connect;
+		}
+		return $results;
+	}
+	return $connections;
+}
+global proc string bsldrGetEndUtilAttrType(string $endUtility) {
+//returns the attribute that corresponds to the output of $endUtil
+
+    string $endAttr;
+	if (`nodeType $endUtility` == "clamp")
+		$endAttr = ".outputR";
+	if (`nodeType $endUtility` == "reverse")
+		$endAttr = ".outputX";
+	if (`nodeType $endUtility` == "multiplyDivide")
+		$endAttr = ".outputX";
+	if (`nodeType $endUtility` == "condition")
+		$endAttr = ".outColorR";
+	
+	return $endAttr;
+}
+global proc string[] bsldrGetEndUtilOutAttrs(string $endUtility) {
+//returns the out attributes of a specific endUtility
+	
+	string $outAttr = bsldrGetEndUtilAttrType($endUtility);
+	string $outAttrs[] = `listConnections -s 0 -d 1 -p 1 ($endUtility+$outAttr)`;
+	return $outAttrs;
+}
+global proc string[] bsldrGetUtilityChain(string $endUtil) {
+//given an $endUtil, returns all of the connected utilities
+
+	string $utils[] = `listConnections -s 0 -d 1 ($endUtil+".bsldrEndUtil")`;
+	$utils = stringArrayCatenate($utils, {$endUtil});
+	$utils = stringArrayRemoveDuplicates($utils);
+	$utils = sort($utils);
+	return $utils;
+}
+global proc string[] bsldrGetOutAttrs(string $ctl, string $filter) {
+//returns a list of all the receiving attributes connected of a list of end utilities determined by filter
+
+	string $endUtilities[] = bsldrGetEndUtilities($ctl, $filter);
+	if (!size($endUtilities))
+		return {};
+	
+	string $attrs[] = {};
+	for ($util in $endUtilities) {
+		string $outAttr = bsldrGetEndUtilAttrType($util);
+			
+		$attrs = stringArrayCatenate($attrs, `listConnections -s 0 -d 1 -p 1 ($util+$outAttr)`);
+	}
+	$attrs = sort($attrs);
+	
+	return $attrs;
+}
+global proc string bsldrGetCirclePoints(int $ptCount, float $rad) {
+//takes a point count and radius and returns a string of points representing a circle
+//return format:
+//	"-p <x1> <y1> <z1> -p <x2> <y2> <z2> -p <xn> <yn> <zn>..."
+
+	string $points = "";
+	float $degStep = 360.0/$ptCount;
+	
+	for ($i = 0; $i < $ptCount; $i++) {
+		float $curDeg = deg_to_rad ($i*$degStep);
+		vector $pt = {($rad*`cos $curDeg`), ($rad * `sin $curDeg`), 0};
+		$points += "-p "+($pt.x)+" "+($pt.y)+" "+($pt.z)+" ";
+	}
+	
+	return $points;
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//Helpers...
+global proc string[] bsldrGetTargetBlend(string $target) {
+//get any blendshapes that correspond to a target piece of geo
+
+    string $targetShape[] = `listRelatives -c -s $target`;
+    if (!size($targetShape))
+		return {};
+    string $bsList[] = `listConnections -t blendShape -s 0 -d 1 $targetShape[0]`;
+	
+    return $bsList;
+}
+global proc string[] bsldrGetChannelBoxSelection() {
+//returns an array of all the selected attributes in the channel box
+
+	string $attrs[];
+	
+	string $selMainObjs[] = `channelBox -q -mol mainChannelBox`;
+	string $selMainAttrs[] = `channelBox -q -sma mainChannelBox`;
+	for ($obj in $selMainObjs) {
+		for ($attr in $selMainAttrs) {
+			if (`objExists ($obj+"."+$attr)`)
+				$attrs[size($attrs)]  = ($obj+"."+$attr);
+		}
+	}
+	
+	string $selShapeObjs[] = `channelBox -q -sol mainChannelBox`;
+	string $selShapeAttrs[] = `channelBox -q -ssa mainChannelBox`;
+	for ($obj in $selShapeObjs) {
+		for ($attr in $selShapeAttrs) {
+			if (`objExists ($obj+"."+$attr)`)
+				$attrs[size($attrs)]  = ($obj+"."+$attr);
+		}
+	}
+	
+	string $selOutObjs[] = `channelBox -q -ool mainChannelBox`;
+	string $selOutAttrs[] = `channelBox -q -soa mainChannelBox`;
+	for ($obj in $selOutObjs) {
+		for ($attr in $selOutAttrs) {
+			if (`objExists ($obj+"."+$attr)`)
+				$attrs[size($attrs)]  = ($obj+"."+$attr);
+		}
+	}
+	
+	string $selHistObjs[] = `channelBox -q -hol mainChannelBox`;
+	string $selHistAttrs[] = `channelBox -q -sha mainChannelBox`;
+	for ($obj in $selHistObjs) {
+		for ($attr in $selHistAttrs) {
+			if (`objExists ($obj+"."+$attr)`)
+				$attrs[size($attrs)]  = ($obj+"."+$attr);
+		}
+	}
+	
+	$attrs = sort($attrs);
+	return $attrs;
+}
+global proc bsldrSetAttrs(string $objs[], string $attrs[], int $l, int $k, int $cb){
+//locks all the specified attributes on the specified objects
+//params:
+//	objs: string array of objects
+//	attrs: string array of attributes
+//	l: locked, boolean
+//	k: keyable, boolean
+//	cb: channel box visible, boolean
+
+	if ($attrs[0] == "[allXforms]") {
+		$attrs = {"tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"};
+	} else if ($attrs[0] == "[all]") {
+		$attrs = {"tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v"};
+	}
+	if ($k == 1 && $cb == 1)
+		$cb = 0; //strange glitch where when both are 1, keyable is set to false
+	for ($obj in $objs) {
+		for ($attr in $attrs) {
+			setAttr -l $l -k $k -cb $cb ($obj+"."+$attr);
+			//print ("setAttr -l "+$l+" -k "+$k+" -cb "+$cb+" "+$obj+"."+$attr+"\n");
+		}
+	}
+}
+global proc bsldrSetRenderStats(string $shapes[]) {
+//turns off all the render stats on the specified shapes
+
+    for ($shape in $shapes) {
+		setAttr ($shape+".castsShadows") 0;
+		setAttr ($shape+".receiveShadows") 0;
+		setAttr ($shape+".motionBlur") 0;
+		setAttr ($shape+".primaryVisibility") 0;
+		setAttr ($shape+".smoothShading") 0;
+		setAttr ($shape+".visibleInReflections") 0;
+		setAttr ($shape+".visibleInRefractions") 0;
+		setAttr ($shape+".doubleSided") 0;
+	}
+}
+global proc string bsldrGetFrom(string $array[], int $index) {
+//helper procedure to avoid creating unnecessary buffer arrays
+	return ($array[$index]);
+}
+//====================================================================================================
