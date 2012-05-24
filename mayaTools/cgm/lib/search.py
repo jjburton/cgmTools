@@ -62,6 +62,44 @@ def checkSelectionLength(length):
         return 1
     return 0
 
+def returnObjectBuffers():
+    """ Search for cgmObjectBuffers in a scene """       
+    returnList = []
+    groupCheck = mc.ls(type='transform')
+    
+    for o in groupCheck:
+        if returnTagInfo(o,'cgmType') == 'objectBuffer':
+            returnList.append(o)
+    
+    if returnList:
+        return returnList
+    return False
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Channel Box
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnSelectedAttributesFromChannelBox():
+    """ 
+    Returns a list of selected object attributes from the channel box
+    
+    Keyword arguments:
+    data() -- the data to check
+    
+    """    
+    selection = mc.ls(sl=True)
+    ChannelBoxName = mel.eval('$tmp = $gChannelBoxName');
+    channels = mc.channelBox(ChannelBoxName,q = True, sma = True)
+    if channels and selection:
+        returnBuffer = []
+        for item in selection:
+            for attr in channels:
+                buffer = "%s.%s"%(item,attr)
+                if mc.objExists(buffer):
+                    fullName = mc.ls(buffer)
+                    returnBuffer.append(fullName[0])
+        return returnBuffer
+    return False
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Data check
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

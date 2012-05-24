@@ -58,7 +58,7 @@ def initializeTemplates():
         mc.deleteUI( 'cgmUITemplate', uiTemplate=True )
     mc.uiTemplate('cgmUITemplate')
     mc.separator(dt='cgmUITemplate', height = 10, style = 'none')
-    mc.button(dt = 'cgmUITemplate', backgroundColor = guiButtonColor)
+    mc.button(dt = 'cgmUITemplate', backgroundColor = guiButtonColor,align = 'center')
     mc.window(dt = 'cgmUITemplate', backgroundColor = guiBackgroundColor)
     mc.textField(dt = 'cgmUITemplate', backgroundColor = [1,1,1])
     mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)

@@ -109,11 +109,12 @@ class AutoStartInstaller(object):
 		pyUserSetup, melUserSetup = None, None
 		try:
 			pyUserSetup = findInPyPath( 'userSetup.py' )
-		except: pass
+		except: print ('No py user setup')
 
 		try:
 			melUserSetup = findFirstInEnv( 'userSetup.mel', 'MAYA_SCRIPT_PATH' )
-		except: pass
+			print "Mel user file is '%s'"%melUserSetup
+		except: print ('No mel user setup')
 
 		return pyUserSetup, melUserSetup
 	def isInstalled( self ):
@@ -127,17 +128,19 @@ class AutoStartInstaller(object):
 			if self.isInstalledMel( melUserSetup ):
 				return True
 
+		print ('Not installed')
 		return False
 	def install( self ):
 		success = False
 		pyUserSetup, melUserSetup = self.getUserSetupFile()
 		if pyUserSetup is None and melUserSetup is None:
+			print 'No py or mel user setup files found'
 			return
 
 		success = False
 		errors = []
-
-		"""if pyUserSetup is not None:
+		"""
+		if pyUserSetup is not None:
 			try:
 				self.installPy( pyUserSetup )
 				success = True
@@ -153,8 +156,10 @@ class AutoStartInstaller(object):
 					errors.append( x )
 
 		if not success:
+			print '>>>>>Failed>>>>>>'
 			for x in errors:
 				printErrorStr( str(x) )
+				
 	def isInstalledPy( self, pyUserSetup ):
 		with open( pyUserSetup ) as f:
 			for line in f:
@@ -185,6 +190,7 @@ class AutoStartInstaller(object):
 				f.write( '\n\npython( "import cgmToolbox" );\n' )
 		else:
 			raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % melUserSetup )
+
 
 
 def buildCGMMenu( *a ):
@@ -233,7 +239,12 @@ def loadAnimTools( *a ):
 	from cgm.tools import animTools
 	reload(animTools)
 	cgmAnimToolsWin = animTools.run()
-		
+	
+def loadBufferTools( *a ):
+	from cgm.tools import bufferTools
+	reload(bufferTools)
+	cgmBufferToolsWin = bufferTools.run()	
+	
 def loadPolyUniteTool( *a ):
 	from cgm.tools import polyUniteTool
 	reload(polyUniteTool)
@@ -306,7 +317,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            )),
               
               ('dev', (('cgm.attrTools', " Attribute tools",
-                        loadAttrTools),                         
+                        loadAttrTools),  
+                       ('cgm.bufferTools', " Buffer tools",
+                        loadBufferTools),                        
                        ))
 
               )

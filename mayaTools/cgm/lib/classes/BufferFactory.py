@@ -35,6 +35,7 @@ from cgm.lib.classes.AttrFactory import *
 
 from cgm.lib.classes import NameFactory
 
+
 class BufferFactory(object):
     """ 
     Buffer Class handler
@@ -51,18 +52,13 @@ class BufferFactory(object):
         ### input check           
         self.bufferType = ''
         self.bufferList = []
+        self.bufferDict = {}
         
         if mc.objExists(bufferName):
             self.baseName = search.findRawTagInfo(bufferName,'cgmName')
             self.bufferType = search.findRawTagInfo(bufferName,'cgmType')
             self.storeNameStrings(bufferName)
-            userAttrs = mc.listAttr(self.nameLong,ud=True)
-            for attr in userAttrs:
-                if 'item_' in attr:
-                    a = AttrFactory(bufferName,attr)
-                    data = a.getMessage()
-                    if data:
-                        self.bufferList.append(data)
+            self.updateData()
             
         else:
             self.create()
@@ -80,6 +76,7 @@ class BufferFactory(object):
         self.nameLongBase = self.nameShort  
         
     def create(self):
+        """ Creates a cgm buffer object """        
         buffer = mc.group(em=True)
         attributes.storeInfo(buffer,'cgmName',self.baseName)
         attributes.storeInfo(buffer,'cgmType','objectBuffer')
@@ -87,6 +84,7 @@ class BufferFactory(object):
         storeNameStrings(buffer)
         
     def returnNextAvailableCnt(self):
+        """ Get's the next available item number """        
         userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
         countList = []
         for key in userAttrs.keys():
@@ -104,8 +102,49 @@ class BufferFactory(object):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    def updateData(self,*a,**kw):
+        """ Updates the stored data """
+        self.bufferList = []
+        self.bufferDict = {}
+        userAttrs = mc.listAttr(self.nameLong,ud=True)
+        for attr in userAttrs:
+            if 'item_' in attr:
+                a = AttrFactory(self.nameLong,attr)
+                data = a.getMessage()
+                if data:
+                    self.bufferList.append(data)
+                    self.bufferDict[attr] = data
+                    
+    def rebuild(self,*a,**kw):
+        """ Rebuilds the buffer data cleanly """        
+        if self.bufferDict:
+            #make a copy list            
+            buffer = []
+            for item in self.bufferList:
+                buffer.append(item)
+                
+            #purge our existing stuff
+            self.purge()
+            
+            #add our stuff    
+            for item in buffer:
+                try:
+                    self.store(item)
+                except:
+                    guiFactory.warning("'%s' failed. Probably doesn't exist"%(info))    
+            # Update data        
+            self.updateData()
+                    
     def store(self,info,*a,**kw):
-        """ Store information to an object in maya via case specific attribute. """
+        """ 
+        Store information to an object in maya via case specific attribute.
+        
+        Keyword arguments:
+        info(string) -- must be an object in the scene
+        
+        """
+        assert mc.objExists(info) is True, "'%s' doesn't exist"%info
+        
         if info in self.bufferList:
             guiFactory.warning("'%s' is already stored on '%s'"%(info,self.nameLong))    
             return
@@ -123,8 +162,26 @@ class BufferFactory(object):
             cntBreak += 1
     
         attributes.storeInfo(self.nameLong,('item_'+str(cnt)),info,*a,**kw)
+        guiFactory.warning("'%s' stored on '%s'"%(info,self.nameLong))            
         self.bufferList.append(info)
+        self.bufferDict['item_'+str(cnt)] = info
         
+    def doStoreSelected(self): 
+        """ Store elected objects """
+        # First look for attributes in the channel box
+        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        if channelBoxCheck:
+            for item in channelBoxCheck:
+                self.store(item)
+            return
+        
+        # Otherwise add the objects themselves
+        toStore = mc.ls(sl=True,flatten=True) or []
+        for item in toStore:
+            try:
+                self.store(item)
+            except:
+                guiFactory.warning("Couldn't store '%s'"%(item))     
         
     def remove(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
@@ -132,34 +189,81 @@ class BufferFactory(object):
             guiFactory.warning("'%s' isn't already stored '%s'"%(info,self.nameLong))    
             return
         
-        userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
-        countList = []
-        for key in userAttrs.keys():
-            if item == attributes.getInfo:
-                pass
-        
-    def purge(self):
-        userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
-        for attr in userAttrs.keys():
-            if 'item_' in attr:
-                attributes.deleteAttr(self.nameLong,attr)
-                guiFactory.warning("Deleted: '%s.%s'"%(self.nameLong,attr))    
+        for key in self.bufferDict.keys():
+            if self.bufferDict.get(key) == info:
+                attributes.deleteAttr(self.nameLong,key)
+                self.bufferList.remove(info)
+                self.bufferDict.pop(key)
                 
-        self.bufferList = []
+        guiFactory.warning("'%s' removed!"%(info))  
+                
+        self.updateData()
         
-    def doStoreSelected(self): 
+    def doRemoveSelected(self): 
+        """ Store elected objects """
+        # First look for attributes in the channel box
+        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        if channelBoxCheck:
+            for item in channelBoxCheck:
+                self.remove(item)
+            return
+        
+        # Otherwise add the objects themselves
         toStore = mc.ls(sl=True,flatten=True) or []
         for item in toStore:
             try:
-                self.store(item)
+                self.remove(item)
             except:
-                guiFactory.warning("Couldn't store '%s'"%(item))    
+                guiFactory.warning("Couldn't remove '%s'"%(item)) 
                 
+    def purge(self):
+        """ Purge all buffer attributes from an object """
         
+        userAttrs = mc.listAttr(self.nameLong,userDefined = True)
+        for attr in userAttrs:
+            if 'item_' in attr:
+                attributes.deleteAttr(self.nameLong,attr)
+                guiFactory.warning("Deleted: '%s.%s'"%(self.nameLong,attr))  
+                
+        self.bufferList = []
+        self.bufferDict = {}        
+         
     def select(self):
+        """ 
+        Select the buffered objects. Need to work out nested searching better
+        only goes through two nexts now
+        """        
         if self.bufferList:
+            selectList = []
+            # Need to dig down through the items
             for item in self.bufferList:
-                print item
+                if search.returnTagInfo(item,'cgmType') == 'objectBuffer':
+                    tmpFactory = BufferFactory(item)
+                    selectList.extend(tmpFactory.bufferList)
+                    
+                    for item in tmpFactory.bufferList:
+                        if search.returnTagInfo(item,'cgmType') == 'objectBuffer':
+                            subTmpFactory = BufferFactory(item)   
+                            selectList.extend(subTmpFactory.bufferList)
+                            
+                else:
+                    selectList.append(item)
+                    
+            mc.select(selectList)
+            return
+        
+        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        return False
+    
+    def key(self,*a,**kw):
+        """ Select the buffered objects """        
+        if self.bufferList:
+            mc.select(self.bufferList)
+            mc.setKeyframe(*a,**kw)
+            return True
+        
+        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        return False
     
 
 

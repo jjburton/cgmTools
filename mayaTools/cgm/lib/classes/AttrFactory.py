@@ -165,6 +165,22 @@ class AttrFactory():
         except:
             guiFactory.error("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
             
+    def delete(self,*a, **kw):
+        """ 
+        Deletes an attribute
+        
+        Keyword arguments:
+        *a, **kw
+        """ 
+        try:
+            attributes.deleteAttr(self.obj.nameLong,self.attr)
+            guiFactory.warning("'%s.%s' deleted"%(self.obj.nameLong,self.attr))
+            self.value = None
+            return self.value
+        
+        except:
+            guiFactory.warning("'%s.%s' failed to delete"%(self.obj.nameLong,self.attr))   
+            
     def getMessage(self,*a, **kw):
         """ 
         Get and store attribute value as if they were messages. Used for bufferFactory to use a connected
@@ -179,7 +195,7 @@ class AttrFactory():
             else:
                 self.value = attributes.returnDriverAttribute("%s.%s"%(self.obj.nameLong,self.attr))
 
-            guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
+            guiFactory.report("'%s.%s' >Message> '%s'"%(self.obj.nameLong,self.attr,self.value))
             return self.value
             
         except:
