@@ -31,8 +31,9 @@ import subprocess
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.BufferFactory import *
 
-from cgm.lib import search
+from cgm.lib import (search,guiFactory)
 reload(search)
+reload(guiFactory)
 
 """
 
@@ -60,6 +61,7 @@ def purgeBuffer(objectBufferName):
     tmp = BufferFactory(objectBufferName)
     tmp.purge()  
     
-def deleteSelected(objectBufferName):
-    tmp = BufferFactory(objectBufferName)
-    tmp.key()  
+def createBuffer(self):
+    b = BufferFactory('Buffer')
+    b.doStoreSelected()
+    self.reset()

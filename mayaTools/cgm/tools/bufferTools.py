@@ -43,7 +43,7 @@ class bufferToolsClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'cgmBufferToolsWindow'
 	WINDOW_TITLE = 'cgm.bufferTools'
-	DEFAULT_SIZE = 250, 150
+	DEFAULT_SIZE = 300, 200
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -132,8 +132,9 @@ class bufferToolsClass(BaseMelWindow):
 
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
-			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
-
+			         c=lambda *a: self.reset())
+	def reset(self):
+		guiFactory.resetGuiInstanceOptionVars(self.optionVars,run)
 
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
@@ -206,8 +207,9 @@ class bufferToolsClass(BaseMelWindow):
 		guiFactory.header('Buffers')
 		guiFactory.lineSubBreak()
 		
+		bufferScroll = MelScrollLayout(BufferLayout,cr = 1)
 		for i,b in enumerate(self.objectBuffers):
-			self.b = MelHSingleStretchLayout(BufferLayout ,ut='cgmUISubTemplate',h = 20)
+			self.b = MelHSingleStretchLayout(bufferScroll,h = 20)
 			
 			MelSpacer(self.b, w = 2)
 			"""
@@ -242,9 +244,15 @@ class bufferToolsClass(BaseMelWindow):
 			MelSpacer(self.b, w = 2)
 			self.b.layout()
 			
-			mc.setParent(BufferLayout)
-			guiFactory.lineSubBreak()
-			"""
+		mc.setParent(BufferLayout)
+		guiFactory.lineSubBreak()
+			
+		guiFactory.lineBreak()
+		guiFactory.doButton2(BufferLayout,
+	                         'Create Buffer',
+	                         lambda *a:bufferToolsLib.createBuffer(self),
+	                         'Create new buffer from selected buffer')			
+		"""
 		for b in self.objectBuffers:
 			self.b = MelFormLayout(BufferLayout,height = 20)
 			tmpSel = guiFactory.doButton2(self.b,

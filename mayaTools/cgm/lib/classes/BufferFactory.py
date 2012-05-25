@@ -61,6 +61,7 @@ class BufferFactory(object):
             self.updateData()
             
         else:
+            self.baseName = bufferName
             self.create()
 
     def storeNameStrings(self,obj):
@@ -81,7 +82,7 @@ class BufferFactory(object):
         attributes.storeInfo(buffer,'cgmName',self.baseName)
         attributes.storeInfo(buffer,'cgmType','objectBuffer')
         buffer = NameFactory.doNameObject(buffer,True)
-        storeNameStrings(buffer)
+        self.storeNameStrings(buffer)
         
     def returnNextAvailableCnt(self):
         """ Get's the next available item number """        

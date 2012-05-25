@@ -29,7 +29,7 @@ typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
 attrTypesDict = {'message':['message','msg','m'],
-                 'double':['float','fl','f','doubleLinear'],
+                 'double':['float','fl','f','doubleLinear','doubleAngle','double'],
                  'string':['string','s','str'],
                  'long':['long','int','i','integer'],
                  'bool':['bool','b','boolean'],
@@ -799,6 +799,12 @@ def deleteAttr(obj,attr):
     if (mc.objExists(attrBuffer)) == True:
         if mc.getAttr(attrBuffer,lock=True) == True:
             mc.setAttr(attrBuffer,lock=False)
+            
+        try:
+            breakConnection(attrBuffer)
+        except:
+            pass
+        
         mc.deleteAttr(attrBuffer)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -870,7 +876,7 @@ def doSetLockHideKeyableAttr (obj,lock=True,visible=False,keyable=False,channels
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Connections Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def breakConnection(attr):
+def breakConnection(objAttr):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -884,21 +890,21 @@ def breakConnection(attr):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     source = []
-    if (mc.connectionInfo (attr,isDestination=True)):
-        source = (mc.connectionInfo (attr,sourceFromDestination=True))
+    if (mc.connectionInfo (objAttr,isDestination=True)):
+        source = (mc.connectionInfo (objAttr,sourceFromDestination=True))
 
         #>>>See if stuff is locked
-        if mc.getAttr(attr,lock=True):
+        if mc.getAttr(objAttr,lock=True):
             print ('attr locked')
-            mc.setAttr(attr,lock=False)
-        driverAttr = returnDriverAttribute(attr)
+            mc.setAttr(objAttr,lock=False)
+        driverAttr = returnDriverAttribute(objAttr)
         if driverAttr:
             print ('ODriver is %s' %driverAttr)
             if mc.getAttr(driverAttr,lock=True):
                 mc.setAttr(driverAttr,lock=False)
         try:
             print ('On %s' %source)
-            mc.disconnectAttr (source,attr)
+            mc.disconnectAttr (source,objAttr)
             return source
         except:
             guiFactory.warning('Unable to break connection. See script dump')
@@ -1165,6 +1171,7 @@ def returnUserAttrsToDict(obj):
     attrDict = {}
     objAttributes =(mc.listAttr (obj, userDefined=True))
     attrTypes = returnObjectsAttributeTypes(obj,userDefined = True)
+    
     if not objAttributes == None:
         for attr in objAttributes:                    
             messageBuffer = []
@@ -1185,6 +1192,10 @@ def returnUserAttrsToDict(obj):
                 if parentAttr != None:
                     if parentAttr[0] not in objAttributes:
                         attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
+                    else:
+                        attrDict[attr] = (mc.getAttr((obj+'.'+attr)))                    
+                else:
+                    attrDict[attr] = (mc.getAttr((obj+'.'+attr)))                    
             else:
                 attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
         return attrDict
@@ -1205,43 +1216,18 @@ def returnUserAttrsToList(obj):
     attrsList(list) - nested list in terms of [[attrName : target],[etc][etc]]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    attrsList = []
-    attrTypes = returnUserAttrsToDict(obj)
-    objAttributes = attrTypes.keys()
-    
-    if not objAttributes == None:
-        for attr in objAttributes:                    
-            messageBuffer = []
+    returnList = []
+    bufferDict = returnUserAttrsToDict(obj)
+    if bufferDict:
+        for key in bufferDict.keys():
             buffer = []
-            messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
-            attrType = attrTypes.get(attr)
-            if messageQuery == True:
-                query = (mc.listConnections(obj+'.'+attr))
-                if not query == None:
-                    buffer.append(attr)
-                    buffer.append(query[0])
-                    attrsList.append(buffer)
-            elif attrType == 'double3':
-                childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
-                dataBuffer = []
-                for childAttr in childrenAttrs:
-                    dataBuffer.append(mc.getAttr(obj+'.'+childAttr))
-                buffer.append(attr)
-                buffer.append(dataBuffer)
-                attrsList.append(buffer)
-            elif attrType == 'double':
-                parentAttr = mc.attributeQuery(attr, node =obj, listParent = True)
-                if parentAttr[0] not in objAttributes:
-                    buffer.append(attr)
-                    buffer.append(mc.getAttr((obj+'.'+attr)))
-                    attrsList.append(buffer)            
-            else:
-                buffer.append(attr)
-                buffer.append(mc.getAttr((obj+'.'+attr)))
-                attrsList.append(buffer)
-        return attrsList
-    else:
-        return False
+            buffer.append(key)
+            buffer.append(bufferDict.get(key))
+            returnList.append(buffer)
+        return returnList
+    return False
+    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
