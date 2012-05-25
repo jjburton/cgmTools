@@ -58,7 +58,7 @@ def initializeTemplates():
         mc.deleteUI( 'cgmUITemplate', uiTemplate=True )
     mc.uiTemplate('cgmUITemplate')
     mc.separator(dt='cgmUITemplate', height = 10, style = 'none')
-    mc.button(dt = 'cgmUITemplate', backgroundColor = guiButtonColor,align = 'center')
+    mc.button(dt = 'cgmUITemplate', height = 15, backgroundColor = guiButtonColor,align = 'center')
     mc.window(dt = 'cgmUITemplate', backgroundColor = guiBackgroundColor)
     mc.textField(dt = 'cgmUITemplate', backgroundColor = [1,1,1])
     mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)
@@ -81,7 +81,7 @@ def initializeTemplates():
     mc.uiTemplate('cgmUISubTemplate')
     mc.formLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.text(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-    mc.separator(dt='cgmUISubTemplate', height = 3, style = 'none', backgroundColor = guiSubMenuColor)
+    mc.separator(dt='cgmUISubTemplate', height = 2, style = 'none', backgroundColor = guiSubMenuColor)
     mc.rowLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.rowColumnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.columnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
@@ -354,10 +354,14 @@ def doButton2(parent, labelText, commandText = 'guiFactory.warning("Fix this")',
     if currentGenUI:
         return 	MelButton(parent,l=labelText,ut = 'cgmUITemplate',
                                  c= commandText,
+                                 height = 20,
+                                 align = 'center',
                                  annotation = annotationText,*a,**kw)
     else:
         return MelButton(parent,l=labelText, backgroundColor = [.75,.75,.75],
                          c= commandText,
+                         height = 20,
+                         align = 'center',
                          annotation = annotationText,*a,**kw)
 
 
