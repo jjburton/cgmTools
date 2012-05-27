@@ -20,6 +20,7 @@
 __version__ = '0.1.05242012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.classes.OptionVarFactory import *
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -35,6 +36,7 @@ reload(guiFactory)
 
 def run():
 	cgmBufferToolsWin = bufferToolsClass()
+	#cgmBufferToolsWin(edit = True, resizeToFitChildren = True)
 
 class bufferToolsClass(BaseMelWindow):
 	from  cgm.lib import guiFactory
@@ -43,13 +45,12 @@ class bufferToolsClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'cgmBufferToolsWindow'
 	WINDOW_TITLE = 'cgm.bufferTools'
-	DEFAULT_SIZE = 300, 200
+	DEFAULT_SIZE = 265, 200
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-
 
 	def __init__( self):		
 		self.toolName = 'cgm.bufferTools'
@@ -59,6 +60,9 @@ class bufferToolsClass(BaseMelWindow):
 		self.website = 'www.cgmonks.com'
 		self.version =  __version__ 
 		self.optionVars = []
+		
+		self.activeObjectBuffersOptionVar = OptionVarFactory('cgmVar_activeObjectBuffers','string')
+		guiFactory.appendOptionVarList(self,'cgmVar_activeObjectBuffers')		
 
 		self.showHelp = False
 		self.helpBlurbs = []
@@ -75,8 +79,7 @@ class bufferToolsClass(BaseMelWindow):
 		self.ShowHelpOption = mc.optionVar( q='cgmVar_AnimToolsShowHelp' )
 		
 		#GUI
-		self.windowStuff = MelColumnLayout(self)
-		self.Main_buildLayout(self.windowStuff)
+		self.Main_buildLayout(self)
 
 		self.show()
 
@@ -91,7 +94,8 @@ class bufferToolsClass(BaseMelWindow):
 			mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0) )
 		if not mc.optionVar( ex='cgmVar_bufferToolsShowHelp' ):
 			mc.optionVar( iv=('cgmVar_bufferToolsShowHelp', 0) )
-			
+		
+		
 		guiFactory.appendOptionVarList(self,'cgmVar_bufferToolsShowHelp')
 		
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -201,6 +205,151 @@ class bufferToolsClass(BaseMelWindow):
 		return self.containerName
 	
 	def Main_buildLayout(self,parent):
+		MainForm = MelFormLayout(parent)
+
+		#>>>  Snap Section
+		BufferHeader = guiFactory.header('Buffers')
+		HelpInfo = MelLabel(MainForm,
+		                    l = " Set buffer options: Set active, select, change name,add,remove,key,purge",
+		                    ut = 'cgmUIInstructionsTemplate',
+		                    al = 'center',
+		                    ww = True,vis = self.ShowHelpOption)
+		self.helpBlurbs.extend([HelpInfo])
+		
+		BufferListScroll = MelScrollLayout(MainForm,cr = 1, ut = 'cgmUISubTemplate')
+		BufferMasterForm = MelFormLayout(BufferListScroll)
+		BufferListColumn = MelColumnLayout(BufferMasterForm, adj = True, rowSpacing = 3)
+		
+		for b in self.objectBuffers:
+			tmpSetRow = MelFormLayout(BufferListColumn,height = 20)
+			
+			#Get check box state
+			activeState = False
+			if b in self.activeObjectBuffersOptionVar.value:
+				activeState = True
+			
+			tmpActive = MelCheckBox(tmpSetRow,
+			                        annotation = 'Set buffer set as active',
+			                        value = activeState,
+			                        onCommand =  "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.setBufferAsActive('cgmVar_activeObjectBuffers','",b,"')"),
+			                        offCommand = "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.setBufferAsInactive('cgmVar_activeObjectBuffers','",b,"')"))
+			tmpSel = guiFactory.doButton2(tmpSetRow,
+			                              's->',
+										  "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.selectBufferObjects('",b,"')"),
+			                              'Select the buffer objects')
+			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b)
+			
+			tmpAdd = guiFactory.doButton2(tmpSetRow,
+			                               '+',
+										   "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.addSelected('",b,"')"),
+			                               'Add selected  to the buffer')
+			tmpRem= guiFactory.doButton2(tmpSetRow,
+			                             '-',
+										 "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.removeSelected('",b,"')"),
+			                             'Remove selected  to the buffer')
+			tmpKey = guiFactory.doButton2(tmpSetRow,
+			                              'k',
+										  "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.keyBuffer('",b,"')"),
+			                              'Key buffer')
+			tmpPurge = guiFactory.doButton2(tmpSetRow,
+			                                'p',
+											"%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.purgeBuffer('",b,"')"),
+			                                'Purge buffer')	
+			mc.formLayout(tmpSetRow, edit = True,
+			              af = [(tmpActive, "left", 2),
+			                    (tmpPurge,"right",0)],
+			              ac = [(tmpSel,"left",0,tmpActive),
+			                    (tmpName,"left",2,tmpSel),
+			                    (tmpName,"right",2,tmpAdd),
+			                    (tmpAdd,"right",2,tmpRem),
+			                    (tmpRem,"right",2,tmpKey),
+			                    (tmpKey,"right",2,tmpPurge)])
+			
+			MelSpacer(tmpSetRow, w = 2)
+		
+		
+		
+			
+		
+		NewBufferRow = guiFactory.doButton2(MainForm,
+		                                    'Create Buffer',
+		                                    lambda *a:bufferToolsLib.createBuffer(self),
+		                                    'Create new buffer from selected buffer')	
+			
+		BufferMasterForm(edit = True,
+		                 af = [(BufferListColumn,"top",0),
+		                       (BufferListColumn,"left",0),
+		                       (BufferListColumn,"right",0),
+		                       (BufferListColumn,"bottom",0)])
+		                 
+		MainForm(edit = True,
+		         af = [(BufferHeader,"top",0),
+		               (BufferHeader,"left",0),
+		               (BufferHeader,"right",0),
+		               (HelpInfo,"left",0),
+		               (HelpInfo,"right",0),
+		               (BufferListScroll,"left",0),
+		               (BufferListScroll,"right",0),
+		               (NewBufferRow,"left",4),
+		               (NewBufferRow,"right",4),
+		               (NewBufferRow,"bottom",4)],
+		         ac = [(HelpInfo,"top",0,BufferHeader),
+		               (BufferListScroll,"top",0,HelpInfo),
+		               (BufferListScroll,"bottom",0,NewBufferRow)],
+		         attachNone = [(NewBufferRow,"top")])
+
+
+		"""
+			formLayout -e
+				-af $opts "top" 0
+				-af $opts "left" 0
+				-af $opts "right" 0
+		
+				-ac $labelForm "top" 0 $opts
+				-af $labelForm "left" 0
+				-af $labelForm "right" 0
+		
+				-ac $list "top" 0 $labelForm
+				-af $list "left" 0
+				-af $list "right" 0
+				-ac $list "bottom" 2 $newset
+		
+				-af $newset "left" 0
+				-af $newset "right" 0
+				-ac $newset "bottom" 2 $image
+		
+				-af $image "left" 0
+				-af $image "right" 0
+				-af $image "bottom" 0
+				$master;
+		
+			formLayout -e
+				-af $allsel "left" 0
+		
+				-ac $alllbl "left" 0 $allsel
+				-ac $alllbl "right" 0 $alladd
+		
+				-ac $alladd "right" 0 $allrem
+		
+				-ac $allrem "right" 0 $alldel
+		
+				-af $alldel "right" 42
+				$labelForm;
+		
+			formLayout -e
+				-af $setList "top" 0
+				-af $setList "left" 0
+				-af $setList "right" 0
+				-af $setList "bottom" 0
+				$qssMaster;		
+				
+			"""
+		
+		
+
+
+		
+	def MainBackup_buildLayout(self,parent):
 		BufferLayout = MelColumnLayout(parent)
 
 		#>>>  Snap Section

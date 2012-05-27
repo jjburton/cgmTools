@@ -85,6 +85,8 @@ def initializeTemplates():
     mc.rowLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.rowColumnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.columnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+    mc.scrollLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+
 
     # Define our instructional template
     if mc.uiTemplate( 'cgmUIInstructionsTemplate', exists=True ):

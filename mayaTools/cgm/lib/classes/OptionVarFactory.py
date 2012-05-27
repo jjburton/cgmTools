@@ -157,6 +157,8 @@ class OptionVarFactory():
             try:
                 mc.optionVar(iva = (self.name,int(value)))
                 self.update(self.form)
+                guiFactory.warning("'%s' added to '%s'"%(value,self.name))
+                
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
@@ -164,6 +166,8 @@ class OptionVarFactory():
             try:
                 mc.optionVar(fva = (self.name,value))
                 self.update(self.form)
+                guiFactory.warning("'%s' added to '%s'"%(value,self.name))
+                
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
@@ -171,9 +175,25 @@ class OptionVarFactory():
             try:
                 mc.optionVar(sva = (self.name,str(value)))
                 self.update(self.form)
+                guiFactory.warning("'%s' added to '%s'"%(value,self.name))
+                
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
-                
+
+    def remove(self,value):
+        if value in self.value:
+            try:         
+                i = self.value.index(value)
+                mc.optionVar(removeFromArray = (self.name,i))
+                self.update(self.form)
+                guiFactory.warning("'%s' removed from '%s'"%(value,self.name))
+            except:
+                guiFactory.warning("'%s' failed to remove '%s'"%(value,self.name))
+        else:
+            guiFactory.warning("'%s' wasn't found in '%s'"%(value,self.name))
+            
+
+                            
     def extend(self,valuesList):
         assert type(valuesList) is list,"'%s' not a list"%(valuesList)
         for v in valuesList:

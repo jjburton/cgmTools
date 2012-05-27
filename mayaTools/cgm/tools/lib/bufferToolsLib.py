@@ -30,6 +30,7 @@ import subprocess
 
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.BufferFactory import *
+from cgm.lib.classes.OptionVarFactory import *
 
 from cgm.lib import (search,guiFactory)
 reload(search)
@@ -60,6 +61,16 @@ def keyBuffer(objectBufferName):
 def purgeBuffer(objectBufferName):
     tmp = BufferFactory(objectBufferName)
     tmp.purge()  
+    
+def setBufferAsActive(optionVar,bufferName):
+    tmp = OptionVarFactory(optionVar,'string')
+    if '' in tmp.value:
+        tmp.remove('')
+    tmp.append(bufferName) 
+    
+def setBufferAsInactive(optionVar,bufferName):
+    tmp = OptionVarFactory(optionVar,'string')
+    tmp.remove(bufferName) 
     
 def createBuffer(self):
     b = BufferFactory('Buffer')
