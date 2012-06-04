@@ -68,8 +68,16 @@ def polyUniteGeo(objList,name='unitedGeo'):
         if deformers:
             for i in range(len(deformers)):
                 if mc.objExists(deformers[i]+'.outputGeometry') == True:
-                    outGeoNode = (deformers[i]+'.outputGeometry')
-                geoOutNodes.append(outGeoNode)
+                    #Check for FFD
+                    if search.returnObjectType(deformers[i]) == 'ffd':
+                        geoShapes = mc.listRelatives(obj,shapes=True,fullPath=True)
+                        for shape in geoShapes:
+                            if 'Deformed' in shape and mc.objExists(shape+'.outMesh') == True:
+                                outGeoNode = (shape+'.outMesh')
+                                geoOutNodes.append(shape)                        
+                    else:
+                        outGeoNode = (deformers[i]+'.outputGeometry')
+                        geoOutNodes.append(outGeoNode)
                 if outGeoNode != False:
                     break
         else:
@@ -84,33 +92,35 @@ def polyUniteGeo(objList,name='unitedGeo'):
 
     """ check for a dup list"""
     #geoOutNodes = lists.returnListNoDuplicates(geoOutNodes)
+    
 
     """ make the node """
     uniteNode = mc.createNode('polyUnite')
     uniteNode = mc.rename(uniteNode,(name+'_polyUniteNode'))
 
-
+    
     """ connect our stuff """
     nodeTracker = []
     for obj in objList:
-        index = objList.index(obj)
-        print geoOutNodes[index]
-        if search.returnObjectType( (geoOutNodes[index]) ) is 'shape':
-            mc.connectAttr(('%s%s'% (geoOutNodes[index],'.outMesh')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
-            mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
-        else:
-            # Check if we've already used this connection, if so we need to iterate
-            if geoOutNodes[index] in nodeTracker:
-                mc.connectAttr(('%s%s%i%s'% (geoOutNodes[index],'[', (nodeTracker.count(geoOutNodes[index]) ) ,']')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
+        print "On '%s'"%obj
+        try:
+            index = objList.index(obj)
+            print geoOutNodes[index]
+            if search.returnObjectType( (geoOutNodes[index]) ) is 'shape':
+                mc.connectAttr(('%s%s'% (geoOutNodes[index],'.outMesh')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
+                mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
             else:
-                mc.connectAttr(('%s%s'% (geoOutNodes[index],'[0]')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
-            mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
-            nodeTracker.append(geoOutNodes[index])
-        """
+                # Check if we've already used this connection, if so we need to iterate
+                if geoOutNodes[index] in nodeTracker:
+                    mc.connectAttr(('%s%s%i%s'% (geoOutNodes[index],'[', (nodeTracker.count(geoOutNodes[index]) ) ,']')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
+                else:
+                    mc.connectAttr(('%s%s'% (geoOutNodes[index],'[0]')),('%s%s%i%s'% (uniteNode,'.inputPoly[',index,']')),f=True)
+                mc.connectAttr(('%s%s'% (obj,'.worldMatrix[0]')),('%s%s%i%s'% (uniteNode,'.inputMat[',index,']')),f=True)
+                nodeTracker.append(geoOutNodes[index])
+            
         except:
             guiFactory.warning("'%s' failed to add. Verify that the object is polyGeo"%obj)
-        """
-
+        
     """ Create our outPut mesh"""
     unitedGeoShape = mc.createNode('mesh')
     unitedGeo = mc.listRelatives(unitedGeoShape,parent=True,type='transform')
