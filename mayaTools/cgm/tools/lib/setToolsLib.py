@@ -42,65 +42,143 @@ reload(guiFactory)
 
 """
 def printReport(self):
-    print self.objectSets 
+    guiFactory.doPrintReportStart()
+    tmp = OptionVarFactory('cgmVar_activeObjectSets','string')    
+    print "# Object Sets found: "
+    for o in self.objectSets:
+        print "#    '%s'"%o
+    if tmp.value:
+        print "# Active Sets: "
+        for o in tmp.value:
+            if o:
+                print "#    '%s'"%o        
+    guiFactory.doPrintReportEnd()
+
 
 def updateObjectSets(self):
     self.objectSets = search.returnObjectSets()
-
-def selectSetObjects(objectSetName):
-    tmp = SetFactory(objectSetName)
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Individual Set Stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def selectSetObjects(self,nameIndex):
+    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
     tmp.select()
 
-def addSelected(objectSetName):
-    tmp = SetFactory(objectSetName)
+def addSelected(self,nameIndex):
+    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
     tmp.doStoreSelected()
 
-def removeSelected(objectSetName):
-    tmp = SetFactory(objectSetName)
+def removeSelected(self,nameIndex):
+    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
     tmp.doRemoveSelected()
 
-def keySet(objectSetName):
-    tmp = SetFactory(objectSetName)
-    tmp.key()  
+def keySet(self,nameIndex):
+    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
+    tmp.key() 
+    
+def deleteCurrentSetKey(self,nameIndex):
+    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
+    time = search.returnTimelineInfo()
+    tmp.deleteCurrentKey()  
 
-def purgeSet(objectSetName):
-    tmp = SetFactory(objectSetName)
+def purgeSet(self,nameIndex):
+    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
     tmp.purge()  
 
-def setSetAsActive(optionVar,setName):
+def setSetAsActive(self,optionVar,nameIndex):
     tmp = OptionVarFactory(optionVar,'string')
     if '' in tmp.value:
         tmp.remove('')
-    tmp.append(setName) 
+    tmp.append(self.objectSetsDict.get(nameIndex)) 
 
-def setSetAsInactive(optionVar,setName):
+def setSetAsInactive(self,optionVar,nameIndex):
     tmp = OptionVarFactory(optionVar,'string')
-    tmp.remove(setName) 
+    tmp.remove(self.objectSetsDict.get(nameIndex)) 
 
 def createSet(self):
     b = SetFactory('Set')
     b.doStoreSelected()
     self.reset()
-
-def setEditSet(self,name):
-    self.editSet = name
-
-"""
-def updateSetName(self,setTextField,setName):
+    
+def deleteSet(self,nameIndex):
+    setName = self.objectSetsDict.get(nameIndex)  
+    mc.delete(setName)
+    self.reset()
+    
+def copySet(self,nameIndex):
+    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
+    tmp.copy()
+    self.reset()
+    
+def toggleQssState(self,nameIndex):
+    setName = self.objectSetsDict.get(nameIndex)
+    Set = SetFactory(setName)
+    Set.isQss(not Set.qssState)
+    
+def updateSetName(self,setTextField,nameIndex):
     # get the field
+    setName = self.objectSetsDict.get(nameIndex)
     assert mc.objExists(setName) is True,"'%s' doesn't exist.Try updating the tool."%bufferObject
 
-    
     newName = mc.textField(setTextField,q=True,text = True)
 
     if setName and newName:
+        #Name it
         attributes.storeInfo(setName,'cgmName',newName)
         buffer = NameFactory.doNameObject(setName)
-        if buffer:
-            mc.textField(setTextField,e = True,text = buffer)
-            updateObjectSets(self)
-            guiFactory.resetGuiInstanceOptionVars(self.optionVars,run)
+        #Update...field
+        mc.textField(setTextField,e = True,text = buffer)
+        #...dict...
+        self.objectSetsDict[nameIndex] = buffer
+        #...optionVar...
+        tmp = OptionVarFactory('cgmVar_activeObjectSets','string')
+        if setName in tmp.value:
+            guiFactory.report("Set was an active set. Setting new name '%s' as active"%buffer)
+            tmp.remove(setName)
+            tmp.append(buffer) 
+        
 
     else:
-        guiFactory.warning("There's a problem with the name input.")"""
+        guiFactory.warning("There's a problem with the name input.")
+        
+        
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# All Set Stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+def selectAll(self):
+    allObjectsList = []
+    for i in self.objectSetsDict.keys():
+        tmp = SetFactory(self.objectSetsDict.get(i))
+        allObjectsList.extend(tmp.setList)
+    
+    mc.select(allObjectsList)
+    
+def setAllSetsAsActive(self):
+    if self.activeSetsCBDict:
+        for i in self.activeSetsCBDict.keys():
+            tmp = self.activeSetsCBDict.get(i)           
+            mc.checkBox(tmp, edit = True,
+                        value = True)
+            setSetAsActive(self,'cgmVar_activeObjectSets',i)
 
+def setAllSetsAsInactive(self):
+    if self.activeSetsCBDict:
+        for i in self.activeSetsCBDict.keys():
+            tmp = self.activeSetsCBDict.get(i)                        
+            mc.checkBox(tmp, edit = True,
+                        value = False)
+            setSetAsInactive(self,'cgmVar_activeObjectSets',i)
+            
+def keyAll(self):
+    allObjectsList = []
+    for i in self.objectSetsDict.keys():
+        tmp = SetFactory(self.objectSetsDict.get(i))
+        tmp.key()
+    
+def deleteAllCurrentKeys(self):
+    allObjectsList = []
+    for i in self.objectSetsDict.keys():
+        tmp = SetFactory(self.objectSetsDict.get(i))
+        tmp.deleteCurrentKey()
+    
+    selectAll(self)

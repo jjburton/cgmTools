@@ -21,6 +21,7 @@ __version__ = '0.1.06042012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
+from cgm.lib.classes.SetFactory import *
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -62,7 +63,7 @@ class setToolsClass(BaseMelWindow):
 		self.optionVars = []
 		
 		self.activeObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
-		guiFactory.appendOptionVarList(self,'cgmVar_activeObjectSets')		
+		#guiFactory.appendOptionVarList(self,'cgmVar_activeObjectSets')		
 
 		self.showHelp = False
 		self.helpBlurbs = []
@@ -137,10 +138,15 @@ class setToolsClass(BaseMelWindow):
 		
 
 		MelMenuItemDiv( self.UI_OptionsMenu )
+		MelMenuItem( self.UI_OptionsMenu, l="Reset Active",
+			         c=lambda *a: self.reset(True))		
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
 			         c=lambda *a: self.reset())
-	def reset(self):
-		guiFactory.resetGuiInstanceOptionVars(self.optionVars,run)
+		
+	def reset(self,resetActive = False):
+		if resetActive:
+			guiFactory.purgeOptionVars(['cgmVar_activeObjectSets'])
+		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
 
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
@@ -211,13 +217,62 @@ class setToolsClass(BaseMelWindow):
 		                    ww = True,vis = self.ShowHelpOption)
 		self.helpBlurbs.extend([HelpInfo])
 		
+		
+		#>>>  All Sets menu
+		AllSetsRow = MelFormLayout(MainForm,height = 20)
+		activeState = True
+		i = 1
+		for b in self.objectSets:
+			if b not in self.activeObjectSetsOptionVar.value:
+				activeState = False
+			
+		tmpActive = MelCheckBox(AllSetsRow,
+	                            annotation = 'Sets all sets active',
+	                            value = activeState,
+	                            onCommand =  Callback(setToolsLib.setAllSetsAsActive,self),
+	                            offCommand = Callback(setToolsLib.setAllSetsAsInactive,self))
+		
+		tmpSel = guiFactory.doButton2(AllSetsRow,
+		                              ' select ',
+		                              Callback(setToolsLib.selectAll,self),
+		                              'Select the set objects')
+						
+		
+		tmpName = MelLabel(AllSetsRow, w = 100, l = '<<< All Sets >>>')
+		
+
+		tmpKey = guiFactory.doButton2(AllSetsRow,
+	                                  ' k ',
+	                                  Callback(setToolsLib.keyAll,self),			                              
+	                                  'Key All Sets')
+		tmpPurge = guiFactory.doButton2(AllSetsRow,
+	                                    ' d ',
+	                                    Callback(setToolsLib.deleteAllCurrentKeys,self),			                              			                                
+	                                    'Delete All Set Keys')	
+		
+		mc.formLayout(AllSetsRow, edit = True,
+	                  af = [(tmpActive, "left", 10),
+	                        (tmpPurge,"right",10)],
+	                  ac = [(tmpSel,"left",0,tmpActive),
+	                        (tmpName,"left",2,tmpSel),
+	                        (tmpName,"right",2,tmpKey),
+	                        (tmpKey,"right",2,tmpPurge)])
+		
+		
+		
+		
+		#>>> Sets building section
 		SetListScroll = MelScrollLayout(MainForm,cr = 1, ut = 'cgmUISubTemplate')
 		SetMasterForm = MelFormLayout(SetListScroll)
 		SetListColumn = MelColumnLayout(SetMasterForm, adj = True, rowSpacing = 3)
 		
-		self.setFields = {}
+		self.objectSetsDict = {}
+		self.activeSetsCBDict = {}
 		
 		for i,b in enumerate(self.objectSets):
+			#Store the info to a dict
+			self.objectSetsDict[i] = b
+			
 			tmpSetRow = MelFormLayout(SetListColumn,height = 20)
 			
 			#Get check box state
@@ -225,56 +280,86 @@ class setToolsClass(BaseMelWindow):
 			if b in self.activeObjectSetsOptionVar.value:
 				activeState = True
 			tmpActive = MelCheckBox(tmpSetRow,
-		                            annotation = 'Set buffer set as active',
+		                            annotation = 'make set as active',
 		                            value = activeState,
-		                            onCommand =  Callback(setToolsLib.setSetAsActive,'cgmVar_activeObjectSets',b),
-		                            offCommand = Callback(setToolsLib.setSetAsInactive,'cgmVar_activeObjectSets',b))
+		                            onCommand =  Callback(setToolsLib.setSetAsActive,self,'cgmVar_activeObjectSets',i),
+		                            offCommand = Callback(setToolsLib.setSetAsInactive,self,'cgmVar_activeObjectSets',i))
+			self.activeSetsCBDict[i] = tmpActive
+			
 			tmpSel = guiFactory.doButton2(tmpSetRow,
-		                                  's->',
-			                              Callback(setToolsLib.selectSetObjects,b),
-		                                  'Select the buffer objects')
+		                                  ' s ',
+			                              Callback(setToolsLib.selectSetObjects,self,i),
+		                                  'Select the set objects')
 				
 
-			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b,
-			                       rfc = "print '%s'"%b)
+			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b)
 			
-			self.setFields[b] = tmpName					
-			bName = "%s"%b
 			tmpName(edit = True,
-			        ec = Callback(self.updateSetName,tmpName,b))
+			        ec = Callback(setToolsLib.updateSetName,self,tmpName,i)	)
+			
 
-			
-			"""
-			tmpName(edit = True,
-			        ec = "%s%s%s%s%s%s%s"%("from cgm.tools.lib import setToolsLib;setToolsLib.updateSetName('",self,"','",tmpName,"','",b,"')"))
-			"""
 			tmpAdd = guiFactory.doButton2(tmpSetRow,
 			                               '+',
-			                               Callback(setToolsLib.addSelected,b),
-			                               'Add selected  to the buffer')
+			                               Callback(setToolsLib.addSelected,self,i),
+			                               'Add selected  to the set')
 			tmpRem= guiFactory.doButton2(tmpSetRow,
 			                             '-',
-			                             Callback(setToolsLib.removeSelected,b),
-			                             'Remove selected  to the buffer')
+			                             Callback(setToolsLib.removeSelected,self,i),
+			                             'Remove selected  to the set')
 			tmpKey = guiFactory.doButton2(tmpSetRow,
 			                              'k',
-			                              Callback(setToolsLib.keySet,b),			                              
-			                              'Key buffer')
+			                              Callback(setToolsLib.keySet,self,i),			                              
+			                              'Key set')
 			tmpPurge = guiFactory.doButton2(tmpSetRow,
-			                                'p',
-			                                Callback(setToolsLib.purgeSet,b),			                              			                                
-			                                'Purge buffer')	
+			                                'd',
+			                                Callback(setToolsLib.deleteCurrentSetKey,self,i),			                              			                                
+			                                'delete set key')	
 			mc.formLayout(tmpSetRow, edit = True,
-			              af = [(tmpActive, "left", 2),
+			              af = [(tmpActive, "left", 4),
 			                    (tmpPurge,"right",0)],
 			              ac = [(tmpSel,"left",0,tmpActive),
-			                    (tmpName,"left",2,tmpSel),
-			                    (tmpName,"right",2,tmpAdd),
-			                    (tmpAdd,"right",2,tmpRem),
-			                    (tmpRem,"right",2,tmpKey),
-			                    (tmpKey,"right",2,tmpPurge)])
+			                    (tmpName,"left",4,tmpSel),
+			                    (tmpName,"right",4,tmpAdd),
+			                    (tmpAdd,"right",4,tmpRem),
+			                    (tmpRem,"right",4,tmpKey),
+			                    (tmpKey,"right",4,tmpPurge)])
 			
 			MelSpacer(tmpSetRow, w = 2)
+			
+			#Build pop up for text field
+			popUpMenu = MelPopupMenu(tmpName,button = 3)
+			qssMenu = MelMenuItem(popUpMenu,
+			                    label = "'%s':"%b,
+			                    enable = False)
+			
+			qssState = False
+			Set = SetFactory(b)
+			qssState = Set.qssState
+			qssMenu = MelMenuItem(popUpMenu,
+			                      label = 'Qss',
+			                      cb = qssState,
+			                      c = Callback(setToolsLib.toggleQssState,self,i))
+			
+			categoryMenu = MelMenuItem(popUpMenu,
+			                           label = 'Type:',
+			                           sm = True)
+			
+			for n in 'none','modeling','anim':
+				MelMenuItem(categoryMenu,
+				            label = n)	
+				
+			MelMenuItem(popUpMenu ,
+		                label = 'Copy Set',
+		                c = Callback(setToolsLib.copySet,self,i))
+			
+			MelMenuItem(popUpMenu ,
+		                label = 'Purge',
+		                c = Callback(setToolsLib.purgeSet,self,i))
+			
+			MelMenuItemDiv(popUpMenu)
+			MelMenuItem(popUpMenu ,
+		                label = 'Delete',
+		                c = Callback(setToolsLib.deleteSet,self,i))	
 		
 		
 		
@@ -297,210 +382,20 @@ class setToolsClass(BaseMelWindow):
 		               (SetHeader,"right",0),
 		               (HelpInfo,"left",0),
 		               (HelpInfo,"right",0),
+		               (AllSetsRow,"left",0),
+		               (AllSetsRow,"right",0),
 		               (SetListScroll,"left",0),
 		               (SetListScroll,"right",0),
 		               (NewSetRow,"left",4),
 		               (NewSetRow,"right",4),
 		               (NewSetRow,"bottom",4)],
-		         ac = [(HelpInfo,"top",0,SetHeader),
-		               (SetListScroll,"top",0,HelpInfo),
+		         ac = [(HelpInfo,"top",3,SetHeader),
+		               (AllSetsRow,"top",3,HelpInfo),
+		               (SetListScroll,"top",3,AllSetsRow),
 		               (SetListScroll,"bottom",0,NewSetRow)],
-		         attachNone = [(NewSetRow,"top")])
-
-
-		"""
-			formLayout -e
-				-af $opts "top" 0
-				-af $opts "left" 0
-				-af $opts "right" 0
-		
-				-ac $labelForm "top" 0 $opts
-				-af $labelForm "left" 0
-				-af $labelForm "right" 0
-		
-				-ac $list "top" 0 $labelForm
-				-af $list "left" 0
-				-af $list "right" 0
-				-ac $list "bottom" 2 $newset
-		
-				-af $newset "left" 0
-				-af $newset "right" 0
-				-ac $newset "bottom" 2 $image
-		
-				-af $image "left" 0
-				-af $image "right" 0
-				-af $image "bottom" 0
-				$master;
-		
-			formLayout -e
-				-af $allsel "left" 0
-		
-				-ac $alllbl "left" 0 $allsel
-				-ac $alllbl "right" 0 $alladd
-		
-				-ac $alladd "right" 0 $allrem
-		
-				-ac $allrem "right" 0 $alldel
-		
-				-af $alldel "right" 42
-				$labelForm;
-		
-			formLayout -e
-				-af $setList "top" 0
-				-af $setList "left" 0
-				-af $setList "right" 0
-				-af $setList "bottom" 0
-				$qssMaster;		
-				
-			"""
-		
+		         attachNone = [(NewSetRow,"top")])	
 		
 
 
-		
-	def MainBackup_buildLayout(self,parent):
-		SetLayout = MelColumnLayout(parent)
-
-		#>>>  Snap Section
-		guiFactory.header('Sets')
-		guiFactory.lineSubBreak()
-		
-		bufferScroll = MelScrollLayout(SetLayout,cr = 1)
-		for i,b in enumerate(self.objectSets):
-			self.b = MelHSingleStretchLayout(bufferScroll,h = 20)
-			
-			MelSpacer(self.b, w = 2)
-			"""
-			
-			lambda *a:setToolsLib.selectSetObjects(self.objectSets[i]),
-			"%s%s%s"%("from cgm.tools.lib import setToolsLib;setToolsLib.selectSetObjects('",b,"')"),
-			
-			"""
-			guiFactory.doButton2(self.b,
-			                     'Sel',
-			                     "%s%s%s"%("from cgm.tools.lib import setToolsLib;setToolsLib.selectSetObjects('",b,"')"),
-			                     'Select the buffer objects')
-			tmp = MelTextField(self.b, w = 100,ut = 'cgmUIReservedTemplate', text = b, editable = False)
-			self.b.setStretchWidget(tmp)
-			guiFactory.doButton2(self.b,
-			                     '+',
-			                     "%s%s%s"%("from cgm.tools.lib import setToolsLib;setToolsLib.addSelected('",b,"')"),
-			                     'Add selected  to the buffer')
-			guiFactory.doButton2(self.b,
-			                     '-',
-			                     "%s%s%s"%("from cgm.tools.lib import setToolsLib;setToolsLib.removeSelected('",b,"')"),
-			                     'Remove selected  to the buffer')
-			guiFactory.doButton2(self.b,
-			                     'k',
-			                     "%s%s%s"%("from cgm.tools.lib import setToolsLib;setToolsLib.keySet('",b,"')"),
-			                     'Key buffer')
-			guiFactory.doButton2(self.b,
-			                     'p',
-			                     "%s%s%s"%("from cgm.tools.lib import setToolsLib;setToolsLib.purgeSet('",b,"')"),
-			                     'Purge buffer')			
-			
-			MelSpacer(self.b, w = 2)
-			self.b.layout()
-			
-		mc.setParent(SetLayout)
-		guiFactory.lineSubBreak()
-			
-		guiFactory.lineBreak()
-		guiFactory.doButton2(SetLayout,
-	                         'Create Set',
-	                         lambda *a:setToolsLib.createSet(self),
-	                         'Create new buffer from selected buffer')	
-		
 
 
-		"""
-		for b in self.objectSets:
-			self.b = MelFormLayout(SetLayout,height = 20)
-			tmpSel = guiFactory.doButton2(self.b,
-			                              'Sel',
-			                              lambda *a:setToolsLib.selectSetObjects(b),
-			                              'Select the buffer objects')
-			tmpName = MelTextField(self.b, w = 100,ut = 'cgmUIReservedTemplate', text = b, editable = False)
-			
-			tmpAdd = guiFactory.doButton2(self.b,
-			                               '+',
-			                               lambda *a:setToolsLib.addSelected(b),
-			                               'Add selected  to the buffer')
-			tmpRem= guiFactory.doButton2(self.b,
-			                             '-',
-			                             lambda *a:setToolsLib.removeSelected(b),
-			                             'Remove selected  to the buffer')
-			tmpKey = guiFactory.doButton2(self.b,
-			                              'k',
-			                              lambda *a:setToolsLib.keySet(b),
-			                              'Key buffer')
-			tmpPurge = guiFactory.doButton2(self.b,
-			                                'p',
-			                                lambda *a:setToolsLib.purgeSet(b),
-			                                'Purge buffer')	
-			mc.formLayout(self.b, edit = True,
-			              af = [tmpSel, "left", 0],
-			              ac = [tmpName,"left",0,tmpSel],
-			              ac = [tmpName,"right",0,tmpAdd],
-			              ac = [tmpAdd,"right",0,tmpRem],
-			              ac = [tmpRem,"right",0,tmpKey],
-			              ac = [tmpKey,"right",0,tmpPurge],
-			              af = [tmpPurge,"right",0])
-			
-			
-		
-		"""
-		"""
-		for( $set in $sets ) {
-			string $isPrevious = ( $zooSetMenuPreviousSet == $set ) ? "boldLabelFont":"smallPlainLabelFont";
-			int $hideState = 0;
-			int $isPostCommand = 0;
-			string $hideLabel = ( $hideState ) ? ">":"h";
-			string $unhideLabel = ( $hideState ) ? "u":"<";
-			string $postLabel = ( $isPostCommand ) ? "pc>":"-o-";
-
-			if( `objExists ( $set +".zooSetMenuHidden" )` ) $hideState = `getAttr ( $set +".zooSetMenuHidden" )`;
-			else addAttr -ln zooSetMenuHidden -k 0 -h 1 -at bool $set;
-
-			if( `objExists ( $set +".postCommandString" )` ) $isPostCommand = 1;
-
-			string $rowName = `formLayout`;
-				string $sel = `button -height 20 -label $buttonLabel -c ( "{zooSetSelector `zooSetNameFromRowName "+ $rowName +"`; zooSetPreviousSet `zooSetNameFromRowName "+ $rowName +"`;}" )`;
-				string $name = `nameField -height 20 -o $set`;
-				string $add = `button -height 20 -label "+" -align center -c ( "sets -add `zooSetNameFromRowName "+ $rowName +"` `ls -sl`" )`;
-				string $rem = `button -height 20 -label "-" -align center -c ( "sets -rm `zooSetNameFromRowName "+ $rowName +"` `ls -sl`" )`;
-				string $del = `button -height 20 -label "del" -align center -c ( "{delete `zooSetNameFromRowName "+ $rowName +"`; zooSetMenuWindowFunctions delete "+ $rowName +" none;}" )`;
-				string $pc = `button -height 20 -label $postLabel -align center -c ( "zooSetMenuPostFunctions window `zooSetNameFromRowName "+ $rowName +"`;" )`;
-			setParent ..;
-
-			formLayout -e
-				-af $sel "left" 0
-
-				-ac $name "left" 0 $sel
-				-ac $name "right" 0 $add
-
-				-ac $add "right" 0 $rem
-
-				-ac $rem "right" 0 $del
-
-				-ac $del "right" 0 $pc
-
-				-af $pc "right" 0
-				$rowName;
-			}		
-		"""
-	def updateSetName(self,setTextField,setName):
-		# get the field
-		assert mc.objExists(setName) is True,"'%s' doesn't exist.Try updating the tool."%bufferObject
-		
-		newName = mc.textField(setTextField,q=True,text = True)
-	
-		if setName and newName:
-			attributes.storeInfo(setName,'cgmName',newName)
-			buffer = NameFactory.doNameObject(setName)
-			if buffer:
-				mc.textField(setTextField,e = True,text = buffer)
-				setToolsLib.updateObjectSets(self)
-
-		else:
-			guiFactory.warning("There's a problem with the name input.")
