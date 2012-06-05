@@ -1,0 +1,232 @@
+#=================================================================================================================================================
+#=================================================================================================================================================
+#	objectFactory - a part of cgmTools
+#=================================================================================================================================================
+#=================================================================================================================================================
+#
+# DESCRIPTION:
+#	Series of tools for finding stuff
+#
+# ARGUMENTS:
+# 	Maya
+#
+# AUTHOR:
+# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
+#
+# CHANGELOG:
+#	0.1 - 02/09/2011 - added documenation
+#   0.11 - 04/04/2011 - added cvListSimplifier
+#
+# FUNCTION KEY:
+#   1) ????
+#   2) ????
+#   3) ????
+#
+#=================================================================================================================================================
+
+import maya.cmds as mc
+import maya.mel as mel
+from cgm.lib import attributes
+from cgm.lib.classes.OptionVarFactory import *
+from cgm.lib.classes.ObjectFactory import *
+from cgm.lib.classes.AttrFactory import *
+
+from cgm.lib.classes import NameFactory
+
+
+class SetFactory(object):
+    """ 
+    Set Class handler
+    
+    """
+    def __init__(self,setName,setType = False,qssState = False):
+        """ 
+        Intializes an set factory class handler
+        
+        Keyword arguments:
+        setName(string) -- name for the set
+        
+        """
+        ### input check           
+        self.setType = ''
+        self.setList = []
+        self.qssState = qssState
+        
+        if mc.objExists(setName):
+            self.baseName = search.findRawTagInfo(setName,'cgmName')
+            self.setType = search.findRawTagInfo(setName,'cgmTypeModifier')
+            self.storeNameStrings(setName)
+            self.updateData()
+            
+        else:
+            self.baseName = setName
+            self.create(setType)
+
+    def storeNameStrings(self,obj):
+        """ Store the base, short and long names of an object to instance."""
+        set = mc.ls(obj,long=True)
+        self.nameLong = set[0]
+        set = mc.ls(obj,shortNames=True)        
+        self.nameShort = set[0]
+        if '|' in set[0]:
+            splitBuffer = set[0].split('|')
+            self.nameLongBase = splitBuffer[-1]
+            return
+        self.nameLongBase = self.nameShort  
+        
+    def create(self,setType):
+        """ Creates a set object honoring our quick select set options """ 
+        set = mc.sets(em=True)
+            
+        attributes.storeInfo(set,'cgmName',self.baseName)
+        if setType:
+            self.setType = setType
+            attributes.storeInfo(set,'cgmTypeModifier',setType)
+            
+        set = NameFactory.doNameObject(set,True)
+        self.storeNameStrings(set)
+        
+        if self.qssState:
+            self.isQss(self.qssState)        
+        
+    def isQss(self,arg = True):
+        if arg:
+            if mc.sets(self.nameLong,q=True,text=True)!= 'gCharacterSet':
+                mc.sets(self.nameLong, edit = True, text = 'gCharacterSet')
+                guiFactory.warning("'%s' is now a qss"%(self.nameShort))
+                self.qssState = True
+                
+        else:
+            if mc.sets(self.nameLong,q=True,text=True)== 'gCharacterSet':
+                mc.sets(self.nameLong, edit = True, text = '')            
+                guiFactory.warning("'%s' is no longer a qss"%(self.nameShort)) 
+                self.qssState = False
+                
+        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Data
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    def updateData(self,*a,**kw):
+        """ Updates the stored data """
+        self.setList = mc.sets(self.nameLong, q = True)
+        if not self.setList:
+            self.setList = []
+
+                      
+    def store(self,info,*a,**kw):
+        """ 
+        Store information to a set in maya via case specific attribute.
+        
+        Keyword arguments:
+        info(string) -- must be an object in the scene
+        
+        """
+        assert mc.objExists(info) is True, "'%s' doesn't exist"%info
+        
+        if info in self.setList:
+            guiFactory.warning("'%s' is already stored on '%s'"%(info,self.nameLong))    
+            return
+        
+        try:
+            mc.sets(info,add = self.nameLong)
+            self.setList.append(info)
+        except:
+            guiFactory.warning("'%s' failed to add to '%s'"%(info,self.nameLong))    
+            
+        
+        
+    def doStoreSelected(self): 
+        """ Store selected objects """
+        # First look for attributes in the channel box
+        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        if channelBoxCheck:
+            for item in channelBoxCheck:
+                self.store(item)
+            return
+        
+        # Otherwise add the objects themselves
+        toStore = mc.ls(sl=True,flatten=True) or []
+        for item in toStore:
+            try:
+                self.store(item)
+            except:
+                guiFactory.warning("Couldn't store '%s'"%(item))     
+        
+        
+    def remove(self,info,*a,**kw):
+        """ Store information to an object in maya via case specific attribute. """
+        if info not in self.setList:
+            guiFactory.warning("'%s' isn't already stored '%s'"%(info,self.nameLong))    
+            return
+        
+        try:
+            mc.sets(info,rm = self.nameLong)    
+            guiFactory.warning("'%s' removed!"%(info))  
+            self.updateData()
+            
+        except:
+            guiFactory.warning("'%s' failed to remove from '%s'"%(info,self.nameLong))    
+            
+        
+    def doRemoveSelected(self): 
+        """ Store elected objects """
+        # First look for attributes in the channel box
+        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        if channelBoxCheck:
+            for item in channelBoxCheck:
+                self.remove(item)
+            return
+        
+        # Otherwise add the objects themselves
+        toStore = mc.ls(sl=True,flatten=True) or []
+        for item in toStore:
+            try:
+                self.remove(item)
+            except:
+                guiFactory.warning("Couldn't remove '%s'"%(item)) 
+                
+    def purge(self):
+        """ Purge all set memebers from a set """
+        
+        try:
+            mc.sets( clear = self.nameLong)
+            self.setList = []
+            guiFactory.report("'%s' purged!"%(self.nameLong))     
+        except:
+            guiFactory.warning("'%s' failed to purge"%(self.nameLong)) 
+        
+         
+    def select(self):
+        """ 
+        Select set members or connected objects
+        """ 
+        if self.setList:
+            mc.select(self.setList)
+            return
+        
+        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        return False
+    
+    def selectSelf(self):
+        """ 
+        Select set members or connected objects
+        """ 
+        mc.select(self.nameLong,noExpand=True)
+    
+    def key(self,*a,**kw):
+        """ Select the seted objects """        
+        if self.setList:
+            mc.select(self.setList)
+            mc.setKeyframe(*a,**kw)
+            return True
+        
+        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        return False
+    
+
+
+        
+
+    
