@@ -31,6 +31,7 @@ import subprocess
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.BufferFactory import *
 from cgm.lib.classes.OptionVarFactory import *
+from cgm.lib.classes.ObjectFactory import *
 
 from cgm.lib import (search,guiFactory)
 reload(search)
@@ -41,15 +42,15 @@ reload(guiFactory)
 """
 def updateObjectBuffers(self):
     self.objectBuffers = search.returnObjectBuffers()
-    
+
 def selectBufferObjects(objectBufferName):
     tmp = BufferFactory(objectBufferName)
     tmp.select()
-    
+
 def addSelected(objectBufferName):
     tmp = BufferFactory(objectBufferName)
     tmp.doStoreSelected()
-    
+
 def removeSelected(objectBufferName):
     tmp = BufferFactory(objectBufferName)
     tmp.doRemoveSelected()
@@ -57,22 +58,41 @@ def removeSelected(objectBufferName):
 def keyBuffer(objectBufferName):
     tmp = BufferFactory(objectBufferName)
     tmp.key()  
-    
+
 def purgeBuffer(objectBufferName):
     tmp = BufferFactory(objectBufferName)
     tmp.purge()  
-    
+
 def setBufferAsActive(optionVar,bufferName):
     tmp = OptionVarFactory(optionVar,'string')
     if '' in tmp.value:
         tmp.remove('')
     tmp.append(bufferName) 
-    
+
 def setBufferAsInactive(optionVar,bufferName):
     tmp = OptionVarFactory(optionVar,'string')
     tmp.remove(bufferName) 
-    
+
 def createBuffer(self):
     b = BufferFactory('Buffer')
     b.doStoreSelected()
     self.reset()
+
+
+def updateBufferName(self,bufferTextField,bufferName):
+	newName = mc.textField(bufferTextField,q=True,text = True)
+	
+	assert mc.objExists(bufferName) is True,"'%s' doesn't exist.Try updating the tool."%bufferObject
+
+	if bufferName and newName:
+		b = ObjectFactory(bufferName)
+		b.store('cgmName', newName)
+		b.doName()
+		mc.textField(bufferTextField,e = True,text = b.nameBase)
+		#Reset
+		guiFactory.resetGuiInstanceOptionVars(self.optionVars,bufferTools.run)
+
+	else:
+		guiFactory.warning("There's a problem with the name input.")
+
+

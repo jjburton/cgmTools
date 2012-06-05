@@ -17,7 +17,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.05242012'
+__version__ = '0.1.06042012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
@@ -220,7 +220,7 @@ class bufferToolsClass(BaseMelWindow):
 		BufferMasterForm = MelFormLayout(BufferListScroll)
 		BufferListColumn = MelColumnLayout(BufferMasterForm, adj = True, rowSpacing = 3)
 		
-		for b in self.objectBuffers:
+		for i,b in enumerate(self.objectBuffers):
 			tmpSetRow = MelFormLayout(BufferListColumn,height = 20)
 			
 			#Get check box state
@@ -237,8 +237,17 @@ class bufferToolsClass(BaseMelWindow):
 			                              's->',
 										  "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.selectBufferObjects('",b,"')"),
 			                              'Select the buffer objects')
-			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b)
 			
+			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b)
+			bField = "%s"%tmpName
+			bName = "%s"%b
+			tmpName(edit = True,
+			        ec = lambda *a:bufferToolsLib.updateBufferName(self,bField,bName))
+			
+			"""
+			tmpName(edit = True,
+			        ec = "%s%s%s%s%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.updateBufferName('",self,"','",tmpName,"','",b,"')"))
+			"""
 			tmpAdd = guiFactory.doButton2(tmpSetRow,
 			                               '+',
 										   "%s%s%s"%("from cgm.tools.lib import bufferToolsLib;bufferToolsLib.addSelected('",b,"')"),
@@ -400,7 +409,10 @@ class bufferToolsClass(BaseMelWindow):
 		guiFactory.doButton2(BufferLayout,
 	                         'Create Buffer',
 	                         lambda *a:bufferToolsLib.createBuffer(self),
-	                         'Create new buffer from selected buffer')			
+	                         'Create new buffer from selected buffer')	
+		
+
+
 		"""
 		for b in self.objectBuffers:
 			self.b = MelFormLayout(BufferLayout,height = 20)
