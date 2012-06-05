@@ -240,10 +240,10 @@ def loadAnimTools( *a ):
 	reload(animTools)
 	cgmAnimToolsWin = animTools.run()
 	
-def loadBufferTools( *a ):
-	from cgm.tools import bufferTools
-	reload(bufferTools)
-	cgmBufferToolsWin = bufferTools.run()	
+def loadSetTools( *a ):
+	from cgm.tools import setTools
+	reload(setTools)
+	cgmSetToolsWin = setTools.run()	
 	
 def loadPolyUniteTool( *a ):
 	from cgm.tools import polyUniteTool
@@ -318,8 +318,8 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
               
               ('dev', (('cgm.attrTools', " Attribute tools",
                         loadAttrTools),  
-                       ('cgm.bufferTools', " Buffer tools",
-                        loadBufferTools),                        
+                       ('cgm.SetTools', " Set tools",
+                        loadSetTools),                        
                        ))
 
               )
