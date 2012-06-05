@@ -113,6 +113,14 @@ class SetFactory(object):
         self.setList = mc.sets(self.nameLong, q = True)
         if not self.setList:
             self.setList = []
+            
+        if mc.sets(self.nameLong,q=True,text=True)== 'gCharacterSet':
+            self.qssState = True
+        else:
+            self.qssState = False
+            
+
+        
 
                       
     def store(self,info,*a,**kw):
@@ -197,7 +205,15 @@ class SetFactory(object):
         except:
             guiFactory.warning("'%s' failed to purge"%(self.nameLong)) 
         
-         
+    def copy(self):
+        """ Purge all set memebers from a set """
+        
+        try:
+            buffer = mc.sets(name = ('%s_Copy'%self.nameShort), copy = self.nameLong)
+            guiFactory.report("'%s' duplicated!"%(self.nameLong))     
+        except:
+            guiFactory.warning("'%s' failed to copy"%(self.nameLong)) 
+            
     def select(self):
         """ 
         Select set members or connected objects
@@ -224,6 +240,26 @@ class SetFactory(object):
         
         guiFactory.error("'%s' has no data"%(self.nameShort))  
         return False
+    
+    def deleteKey(self,*a,**kw):
+        """ Select the seted objects """        
+        if self.setList:
+            mc.select(self.setList)
+            mc.cutKey(*a,**kw)
+            return True
+        
+        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        return False   
+    
+    def deleteCurrentKey(self,*a,**kw):
+        """ Select the seted objects """        
+        if self.setList:
+            mc.select(self.setList)
+            mel.eval('timeSliderClearKey;')
+            return True
+        
+        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        return False        
     
 
 
