@@ -62,6 +62,19 @@ def checkSelectionLength(length):
         return 1
     return 0
 
+
+def returnObjectSets():
+    allSets = mc.listSets(allSets = True)
+    renderSets = mc.listSets(type = 1)
+    for set in renderSets:
+        allSets.remove(set)
+        
+    if 'defaultCreaseDataSet' in allSets:
+        allSets.remove('defaultCreaseDataSet')
+        
+    return allSets
+
+
 def returnObjectBuffers():
     """ Search for cgmObjectBuffers in a scene """       
     returnList = []
