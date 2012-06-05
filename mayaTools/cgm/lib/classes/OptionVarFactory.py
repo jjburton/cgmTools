@@ -86,7 +86,11 @@ class OptionVarFactory():
         else:
             self.name = self.name
             dataBuffer = mc.optionVar(q=self.name)
-            typeBuffer = search.returnDataType(dataBuffer)
+            if dataBuffer:
+                typeBuffer = search.returnDataType(dataBuffer)
+            else:
+                typeBuffer = 'string'
+                
             if typeBuffer == varType:
                 self.form = typeBuffer
                 self.value = dataBuffer
