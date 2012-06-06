@@ -316,20 +316,20 @@ class setToolsClass(BaseMelWindow):
 			                                'delete set key')	
 			mc.formLayout(tmpSetRow, edit = True,
 			              af = [(tmpActive, "left", 4),
-			                    (tmpPurge,"right",0)],
+			                    (tmpPurge,"right",2)],
 			              ac = [(tmpSel,"left",0,tmpActive),
-			                    (tmpName,"left",4,tmpSel),
+			                    (tmpName,"left",2,tmpSel),
 			                    (tmpName,"right",4,tmpAdd),
-			                    (tmpAdd,"right",4,tmpRem),
-			                    (tmpRem,"right",4,tmpKey),
-			                    (tmpKey,"right",4,tmpPurge)])
+			                    (tmpAdd,"right",2,tmpRem),
+			                    (tmpRem,"right",2,tmpKey),
+			                    (tmpKey,"right",2,tmpPurge)])
 			
 			MelSpacer(tmpSetRow, w = 2)
 			
 			#Build pop up for text field
 			popUpMenu = MelPopupMenu(tmpName,button = 3)
 			qssMenu = MelMenuItem(popUpMenu,
-			                    label = "'%s':"%b,
+			                    label = "<<<%s>>>"%b,
 			                    enable = False)
 			
 			qssState = False
@@ -389,9 +389,9 @@ class setToolsClass(BaseMelWindow):
 		               (NewSetRow,"left",4),
 		               (NewSetRow,"right",4),
 		               (NewSetRow,"bottom",4)],
-		         ac = [(HelpInfo,"top",3,SetHeader),
-		               (AllSetsRow,"top",3,HelpInfo),
-		               (SetListScroll,"top",3,AllSetsRow),
+		         ac = [(HelpInfo,"top",0,SetHeader),
+		               (AllSetsRow,"top",2,HelpInfo),
+		               (SetListScroll,"top",2,AllSetsRow),
 		               (SetListScroll,"bottom",0,NewSetRow)],
 		         attachNone = [(NewSetRow,"top")])	
 		

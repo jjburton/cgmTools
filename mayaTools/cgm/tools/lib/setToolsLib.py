@@ -155,16 +155,16 @@ def selectAll(self):
     
 def setAllSetsAsActive(self):
     if self.activeSetsCBDict:
-        for i in self.activeSetsCBDict.keys():
-            tmp = self.activeSetsCBDict.get(i)           
+        for i,s in enumerate(self.activeSetsCBDict.keys()):
+            tmp = self.activeSetsCBDict.get(s)          
             mc.checkBox(tmp, edit = True,
                         value = True)
             setSetAsActive(self,'cgmVar_activeObjectSets',i)
 
 def setAllSetsAsInactive(self):
     if self.activeSetsCBDict:
-        for i in self.activeSetsCBDict.keys():
-            tmp = self.activeSetsCBDict.get(i)                        
+        for i,s in enumerate(self.activeSetsCBDict.keys()):
+            tmp = self.activeSetsCBDict.get(s)                        
             mc.checkBox(tmp, edit = True,
                         value = False)
             setSetAsInactive(self,'cgmVar_activeObjectSets',i)
