@@ -157,32 +157,36 @@ class OptionVarFactory():
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
     def append(self,value):
-        if self.form == 'int':
-            try:
-                mc.optionVar(iva = (self.name,int(value)))
-                self.update(self.form)
-                guiFactory.warning("'%s' added to '%s'"%(value,self.name))
+        if value not in self.value:
+            if self.form == 'int':
+                try:
+                    mc.optionVar(iva = (self.name,int(value)))
+                    self.update(self.form)
+                    guiFactory.warning("'%s' added to '%s'"%(value,self.name))
+                    
+                except:
+                    guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
                 
-            except:
-                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            elif self.form == 'float':
+                try:
+                    mc.optionVar(fva = (self.name,value))
+                    self.update(self.form)
+                    guiFactory.warning("'%s' added to '%s'"%(value,self.name))
+                    
+                except:
+                    guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+                
+            elif self.form == 'string':
+                try:
+                    mc.optionVar(sva = (self.name,str(value)))
+                    self.update(self.form)
+                    guiFactory.warning("'%s' added to '%s'"%(value,self.name))
+                    
+                except:
+                    guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+        else:
+            guiFactory.warning("'%s' already added"%(value))
             
-        elif self.form == 'float':
-            try:
-                mc.optionVar(fva = (self.name,value))
-                self.update(self.form)
-                guiFactory.warning("'%s' added to '%s'"%(value,self.name))
-                
-            except:
-                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
-            
-        elif self.form == 'string':
-            try:
-                mc.optionVar(sva = (self.name,str(value)))
-                self.update(self.form)
-                guiFactory.warning("'%s' added to '%s'"%(value,self.name))
-                
-            except:
-                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
 
     def remove(self,value):
         if value in self.value:
