@@ -34,7 +34,7 @@ from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes import NameFactory
 
-from cgm.lib import (search,guiFactory)
+from cgm.lib import (search,guiFactory,lists)
 reload(search)
 reload(guiFactory)
 
@@ -57,43 +57,100 @@ def printReport(self):
 
 def updateObjectSets(self):
     self.objectSets = search.returnObjectSets()
+    self.refPrefixes = []        
+    
+    if self.objectSets:
+        for o in self.objectSets:
+            buffer = search.returnReferencePrefix(o)
+            if buffer:
+                self.refPrefixes.append(buffer)
+        if self.refPrefixes:
+            self.refPrefixes = lists.returnListNoDuplicates(self.refPrefixes)
+    
+        print ("Prefixes are: '%s'"%self.refPrefixes)
+            
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Individual Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def selectSetObjects(self,nameIndex):
-    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
-    tmp.select()
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.select()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+        
 
 def addSelected(self,nameIndex):
-    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
-    tmp.doStoreSelected()
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.doStoreSelected()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+
 
 def removeSelected(self,nameIndex):
-    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
-    tmp.doRemoveSelected()
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.doRemoveSelected()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+        
 
 def keySet(self,nameIndex):
-    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
-    tmp.key() 
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.key()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+    
     
 def deleteCurrentSetKey(self,nameIndex):
-    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
-    time = search.returnTimelineInfo()
-    tmp.deleteCurrentKey()  
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.deleteCurrentKey()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+    
 
 def purgeSet(self,nameIndex):
-    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
-    tmp.purge()  
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.purge()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
 
-def setSetAsActive(self,optionVar,nameIndex):
-    tmp = OptionVarFactory(optionVar,'string')
-    if '' in tmp.value:
-        tmp.remove('')
-    tmp.append(self.objectSetsDict.get(nameIndex)) 
 
-def setSetAsInactive(self,optionVar,nameIndex):
-    tmp = OptionVarFactory(optionVar,'string')
-    tmp.remove(self.objectSetsDict.get(nameIndex)) 
+def setSetAsActive(self,nameIndex):
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        if '' in self.activeObjectSetsOptionVar.value:
+            self.activeObjectSetsOptionVar.remove('')
+        self.activeObjectSetsOptionVar.append(setName) 
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+
+def setSetAsInactive(self,nameIndex):
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName): 
+        self.activeObjectSetsOptionVar.remove(setName) 
+            
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
 
 def createSet(self):
     b = SetFactory('Set')
@@ -101,24 +158,40 @@ def createSet(self):
     self.reset()
     
 def deleteSet(self,nameIndex):
-    setName = self.objectSetsDict.get(nameIndex)  
-    mc.delete(setName)
-    self.reset()
+    setName = self.objectSetsDict.get(nameIndex) 
+    if mc.objExists(setName):
+        mc.delete(setName)
+        self.reset()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
     
 def copySet(self,nameIndex):
-    tmp = SetFactory(self.objectSetsDict.get(nameIndex))
-    tmp.copy()
-    self.reset()
+    setName = self.objectSetsDict.get(nameIndex) 
+    if mc.objExists(setName):
+        s = SetFactory(self.objectSetsDict.get(nameIndex))
+        s.copy()
+        self.reset()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
     
 def toggleQssState(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
-    Set = SetFactory(setName)
-    Set.isQss(not Set.qssState)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.isQss(not s.qssState)
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
     
 def updateSetName(self,setTextField,nameIndex):
     # get the field
     setName = self.objectSetsDict.get(nameIndex)
-    assert mc.objExists(setName) is True,"'%s' doesn't exist.Try updating the tool."%bufferObject
+    if not mc.objExists(setName):
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+        return
 
     newName = mc.textField(setTextField,q=True,text = True)
 
@@ -143,23 +216,15 @@ def updateSetName(self,setTextField,nameIndex):
         
         
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# All Set Stuff
+# Multi Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-def selectAll(self):
-    allObjectsList = []
-    for i in self.objectSetsDict.keys():
-        tmp = SetFactory(self.objectSetsDict.get(i))
-        allObjectsList.extend(tmp.setList)
-    
-    mc.select(allObjectsList)
-    
 def setAllSetsAsActive(self):
     if self.activeSetsCBDict:
         for i,s in enumerate(self.activeSetsCBDict.keys()):
             tmp = self.activeSetsCBDict.get(s)          
             mc.checkBox(tmp, edit = True,
                         value = True)
-            setSetAsActive(self,'cgmVar_activeObjectSets',i)
+            setSetAsActive(self,i)
 
 def setAllSetsAsInactive(self):
     if self.activeSetsCBDict:
@@ -167,18 +232,68 @@ def setAllSetsAsInactive(self):
             tmp = self.activeSetsCBDict.get(s)                        
             mc.checkBox(tmp, edit = True,
                         value = False)
-            setSetAsInactive(self,'cgmVar_activeObjectSets',i)
+            setSetAsInactive(self,i)
+
+def selectMultiSets(self):
+    allObjectsList = []            
+    if self.setMode:
+        if self.activeObjectSetsOptionVar.value:
+            for o in self.activeObjectSetsOptionVar.value:
+                s = SetFactory(o)
+                allObjectsList.extend(s.setList)     
+        else:
+            guiFactory.warning("No active sets found")
+            return
             
-def keyAll(self):
-    allObjectsList = []
-    for i in self.objectSetsDict.keys():
-        tmp = SetFactory(self.objectSetsDict.get(i))
-        tmp.key()
+    else:
+        for i in self.objectSetsDict.keys():
+            tmp = SetFactory(self.objectSetsDict.get(i))
+            allObjectsList.extend(tmp.setList)
+
+    if allObjectsList:
+        mc.select(allObjectsList)
+            
+def keyMultiSets(self):
+    allObjectsList = []   
     
-def deleteAllCurrentKeys(self):
-    allObjectsList = []
-    for i in self.objectSetsDict.keys():
-        tmp = SetFactory(self.objectSetsDict.get(i))
-        tmp.deleteCurrentKey()
+    if self.setMode:
+        if self.activeObjectSetsOptionVar.value:    
+            for i in self.objectSetsDict.keys():
+                s = SetFactory(self.objectSetsDict.get(i))
+                s.key()
+                allObjectsList.extend(s.setList)                 
+        else:
+            guiFactory.warning("No active sets found")
+            return  
+    else:
+        for i in self.objectSetsDict.keys():
+            s = SetFactory(self.objectSetsDict.get(i))
+            s.key()
+            allObjectsList.extend(s.setList)             
+
+    if allObjectsList:
+        mc.select(allObjectsList)
     
-    selectAll(self)
+def deleteMultiCurrentKeys(self):
+    allObjectsList = []      
+    
+    if self.setMode:
+        if self.activeObjectSetsOptionVar.value:    
+            for i in self.objectSetsDict.keys():
+                s = SetFactory(self.objectSetsDict.get(i))
+                s.deleteCurrentKey()
+                allObjectsList.extend(s.setList)                
+        else:
+            guiFactory.warning("No active sets found")
+            return  
+    else:
+        for i in self.objectSetsDict.keys():
+            s = SetFactory(self.objectSetsDict.get(i))
+            s.deleteCurrentKey()
+            allObjectsList.extend(s.setList) 
+            
+    if allObjectsList:
+        mc.select(allObjectsList)    
+            
+            
+    
