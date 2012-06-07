@@ -163,7 +163,7 @@ class AttrFactory():
             guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
             return self.value
         except:
-            guiFactory.error("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
+            guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
             
     def delete(self,*a, **kw):
         """ 
@@ -199,6 +199,6 @@ class AttrFactory():
             return self.value
             
         except:
-            guiFactory.error("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
+            guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
             
         

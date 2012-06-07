@@ -253,7 +253,7 @@ class BufferFactory(object):
             mc.select(selectList)
             return
         
-        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        guiFactory.warning("'%s' has no data"%(self.nameShort))  
         return False
     
     def key(self,*a,**kw):
@@ -263,7 +263,7 @@ class BufferFactory(object):
             mc.setKeyframe(*a,**kw)
             return True
         
-        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        guiFactory.warning("'%s' has no data"%(self.nameShort))  
         return False
     
 
