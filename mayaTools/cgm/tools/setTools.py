@@ -63,17 +63,26 @@ class setToolsClass(BaseMelWindow):
 		self.optionVars = []
 		
 		self.activeObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
-		#guiFactory.appendOptionVarList(self,'cgmVar_activeObjectSets')		
-
+		
+		self.setTypes = ['none',
+		                 'animation',
+		                 'layout',
+		                 'modeling',
+		                 'td',
+		                 'fx',
+		                 'lighting']
+		self.setModes = ['<<< All Loaded Sets >>>','<<< Active Sets >>>']
+		
 		self.showHelp = False
 		self.helpBlurbs = []
 		self.oldGenBlurbs = []
 		
 		self.objectSets = []
 		setToolsLib.updateObjectSets(self)
+		self.objectSetsDict = {}		
 
 		#Menu
-		self.setupVariables
+		self.setupVariables()
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 		
@@ -86,7 +95,11 @@ class setToolsClass(BaseMelWindow):
 		
 		self.show()
 
-	def setupVariables():
+	def setupVariables(self):
+		if not mc.optionVar( ex='cgmVar_setToolsMode' ):
+			mc.optionVar( iv=('cgmVar_setToolsMode', 0) )
+		guiFactory.appendOptionVarList(self,'cgmVar_setToolsMode')
+
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
 		if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
@@ -106,7 +119,13 @@ class setToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
+		
+		#>>> Sort by Options
+		MelMenuItem( self.UI_OptionsMenu, l=">>Sorting<<",
+		             en=False)				
 
+
+		"""
 		# Placement Menu
 		PlacementMenu = MelMenuItem( self.UI_OptionsMenu, l='Placement', subMenu=True)
 		PlacementMenuCollection = MelRadioMenuCollection()
@@ -136,7 +155,8 @@ class setToolsClass(BaseMelWindow):
 	                 cb= mc.optionVar( q='cgmVar_TaggingUpdateRO' ),
 	                 c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_TaggingUpdateRO'))
 		
-
+		"""
+		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset Active",
 			         c=lambda *a: self.reset(True))		
@@ -200,12 +220,14 @@ class setToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Layouts
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	def buildPlaceHolder(self,parent):
-		self.containerName = MelColumnLayout(parent,ut='cgmUISubTemplate')
-		return self.containerName
-	
 	
 	def Main_buildLayout(self,parent):
+		def modeSet( item ):
+			tmp = OptionVarFactory('cgmVar_setToolsMode')
+			i =  self.setModes.index(item)
+			tmp.set( i )
+			self.setMode = i
+
 		MainForm = MelFormLayout(parent)
 
 		#>>>  Snap Section
@@ -222,9 +244,12 @@ class setToolsClass(BaseMelWindow):
 		AllSetsRow = MelFormLayout(MainForm,height = 20)
 		activeState = True
 		i = 1
-		for b in self.objectSets:
-			if b not in self.activeObjectSetsOptionVar.value:
-				activeState = False
+		if self.objectSets:
+			for b in self.objectSets:
+				if b not in self.activeObjectSetsOptionVar.value:
+					activeState = False
+		else:
+			activeState = False
 			
 		tmpActive = MelCheckBox(AllSetsRow,
 	                            annotation = 'Sets all sets active',
@@ -233,32 +258,35 @@ class setToolsClass(BaseMelWindow):
 	                            offCommand = Callback(setToolsLib.setAllSetsAsInactive,self))
 		
 		tmpSel = guiFactory.doButton2(AllSetsRow,
-		                              ' select ',
-		                              Callback(setToolsLib.selectAll,self),
-		                              'Select the set objects')
+		                              ' s ',
+		                              Callback(setToolsLib.selectMultiSets,self),
+		                              'Select All Loaded Sets')
 						
-		
-		tmpName = MelLabel(AllSetsRow, w = 100, l = '<<< All Sets >>>')
-		
-
+		# Mode toggle box
+		self.setMode = mc.optionVar( q = 'cgmVar_setToolsMode')		
+		self.SetModeOptionMenu = MelOptionMenu(AllSetsRow,
+		                                       cc = modeSet)
+		for o in self.setModes:
+			self.SetModeOptionMenu.append(o)
+			
+		self.SetModeOptionMenu.selectByIdx(self.setMode,False)
+			
 		tmpKey = guiFactory.doButton2(AllSetsRow,
 	                                  ' k ',
-	                                  Callback(setToolsLib.keyAll,self),			                              
+	                                  Callback(setToolsLib.keyMultiSets,self),			                              
 	                                  'Key All Sets')
 		tmpPurge = guiFactory.doButton2(AllSetsRow,
 	                                    ' d ',
-	                                    Callback(setToolsLib.deleteAllCurrentKeys,self),			                              			                                
+	                                    Callback(setToolsLib.deleteMultiCurrentKeys,self),			                              			                                
 	                                    'Delete All Set Keys')	
 		
 		mc.formLayout(AllSetsRow, edit = True,
 	                  af = [(tmpActive, "left", 10),
 	                        (tmpPurge,"right",10)],
 	                  ac = [(tmpSel,"left",0,tmpActive),
-	                        (tmpName,"left",2,tmpSel),
-	                        (tmpName,"right",2,tmpKey),
+	                        (self.SetModeOptionMenu,"left",4,tmpSel),
+	                        (self.SetModeOptionMenu,"right",4,tmpKey),
 	                        (tmpKey,"right",2,tmpPurge)])
-		
-		
 		
 		
 		#>>> Sets building section
@@ -272,6 +300,7 @@ class setToolsClass(BaseMelWindow):
 		for i,b in enumerate(self.objectSets):
 			#Store the info to a dict
 			self.objectSetsDict[i] = b
+			s = SetFactory(b)
 			
 			tmpSetRow = MelFormLayout(SetListColumn,height = 20)
 			
@@ -282,8 +311,8 @@ class setToolsClass(BaseMelWindow):
 			tmpActive = MelCheckBox(tmpSetRow,
 		                            annotation = 'make set as active',
 		                            value = activeState,
-		                            onCommand =  Callback(setToolsLib.setSetAsActive,self,'cgmVar_activeObjectSets',i),
-		                            offCommand = Callback(setToolsLib.setSetAsInactive,self,'cgmVar_activeObjectSets',i))
+		                            onCommand =  Callback(setToolsLib.setSetAsActive,self,i),
+		                            offCommand = Callback(setToolsLib.setSetAsInactive,self,i))
 			self.activeSetsCBDict[i] = tmpActive
 			
 			tmpSel = guiFactory.doButton2(tmpSetRow,
@@ -292,7 +321,8 @@ class setToolsClass(BaseMelWindow):
 		                                  'Select the set objects')
 				
 
-			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b)
+			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b,
+			                       en = not s.refState)
 			
 			tmpName(edit = True,
 			        ec = Callback(setToolsLib.updateSetName,self,tmpName,i)	)
@@ -301,11 +331,13 @@ class setToolsClass(BaseMelWindow):
 			tmpAdd = guiFactory.doButton2(tmpSetRow,
 			                               '+',
 			                               Callback(setToolsLib.addSelected,self,i),
-			                               'Add selected  to the set')
+			                               'Add selected  to the set',
+			                               en = not s.refState)
 			tmpRem= guiFactory.doButton2(tmpSetRow,
 			                             '-',
 			                             Callback(setToolsLib.removeSelected,self,i),
-			                             'Remove selected  to the set')
+			                             'Remove selected  to the set',
+			                             en = not s.refState)
 			tmpKey = guiFactory.doButton2(tmpSetRow,
 			                              'k',
 			                              Callback(setToolsLib.keySet,self,i),			                              
@@ -344,7 +376,7 @@ class setToolsClass(BaseMelWindow):
 			                           label = 'Type:',
 			                           sm = True)
 			
-			for n in 'none','modeling','anim':
+			for n in self.setTypes:
 				MelMenuItem(categoryMenu,
 				            label = n)	
 				
@@ -360,8 +392,6 @@ class setToolsClass(BaseMelWindow):
 			MelMenuItem(popUpMenu ,
 		                label = 'Delete',
 		                c = Callback(setToolsLib.deleteSet,self,i))	
-		
-		
 		
 			
 		
