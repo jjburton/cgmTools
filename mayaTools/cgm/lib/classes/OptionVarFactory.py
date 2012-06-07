@@ -48,7 +48,7 @@ class OptionVarFactory():
     OptionVar Class handler
     
     """
-    def __init__(self,varName,varType = 'int'):
+    def __init__(self,varName,varType = None,value = None):
         """ 
         Intializes an optionVar class handler
         
@@ -63,45 +63,89 @@ class OptionVarFactory():
         self.form = ''
         self.value = ''
         
-        self.update(varType)
-
+        #>>> If it doesn't exist, create, else update
+        if not mc.optionVar(exists = self.name):
+            if varType is not None:
+                requestVarType = self.returnVarTypeFromCall(varType)
+            else:
+                requestVarType = 'int'
+                
+            if requestVarType:
+                self.form = requestVarType
+                self.create(self.form)
+                if value is not None:
+                    self.initialStore(value)
+                    
+                self.value = mc.optionVar(q=self.name)
+                
+            else:
+                guiFactory.warning("'%s' is not a valid variable type"%varType)
+            
+        else:               
+            self.update(varType)
+            
+            #Attempt to set a value on call
+            if value is not None:           
+                self.initialStore(value)
+            
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-    def update(self,varType):
+    def initialStore(self,value):
+        if type(value) is list:
+            self.extend(value)
+        else:
+            if type(self.value) is list:
+                self.append(value)                            
+            else:
+                if value != self.value:
+                    self.set(value)
+                        
+    def returnVarTypeFromCall(self, varTypeCheck):    
+        for option in optionVarTypeDict.keys():
+            if varTypeCheck in optionVarTypeDict.get(option):
+                return option
+        return 'int'
+    
+    def update(self,varType = None):
         """ 
-        If it doesn't exist, makes it. If it does, fill out the data
+        Update the data in case some other process has changed on optionVar
         """
+        dataBuffer = mc.optionVar(q=self.name)   
+        
+        requestVarType = self.returnVarTypeFromCall(varType)
         
         if not mc.optionVar(exists = self.name):
-            for option in optionVarTypeDict.keys():
-                if varType in optionVarTypeDict.get(option):
-                    self.form = option
-                    self.create(self.form)
-                    self.value = mc.optionVar(q=self.name)
-                    return
-            if not self.form:
+            if requestVarType:
+                self.form = requestVarType
+                self.create(self.form)
+                self.value = mc.optionVar(q=self.name)
+                return
+            else:
                 return guiFactory.warning("'%s' is not a valid variable type"%varType)  
         
         else:
-            self.name = self.name
-            dataBuffer = mc.optionVar(q=self.name)
+            #If it exists, first check for data buffer
             if dataBuffer:
                 typeBuffer = search.returnDataType(dataBuffer)
             else:
                 typeBuffer = 'string'
-                
-            if typeBuffer == varType:
-                self.form = typeBuffer
-                self.value = dataBuffer
-                return                
+            
+            if varType is not None:    
+                if typeBuffer == requestVarType:
+                    self.form = typeBuffer
+                    self.value = dataBuffer
+                    return                
+                else:
+                    self.form = requestVarType
+                    self.create(self.form)
+                    self.value = mc.optionVar(q=self.name)
+                    return  
             else:
-                for option in optionVarTypeDict.keys():
-                    if varType in optionVarTypeDict.get(option):
-                        self.form = option
-                        self.create(self.form)
-                        self.value = mc.optionVar(q=self.name)
-                        return                        
+                self.form = typeBuffer
+                self.value = mc.optionVar(q=self.name)
+                return                  
+            
 
     def create(self,doType):
         """ 
@@ -115,7 +159,7 @@ class OptionVarFactory():
             mc.optionVar(fv=(self.name,0))
         elif doType == 'string':
             mc.optionVar(sv=(self.name,''))
-            
+
   
     def purge(self):
         """ 
@@ -123,7 +167,6 @@ class OptionVarFactory():
         """
         try:
             mc.optionVar(remove = self.name)
-            print mc.optionVar(q=self.name)
             self.name = ''
             self.form = ''
             self.value = ''
@@ -156,36 +199,40 @@ class OptionVarFactory():
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
-    def append(self,value):
-        if value not in self.value:
-            if self.form == 'int':
-                try:
-                    mc.optionVar(iva = (self.name,int(value)))
-                    self.update(self.form)
-                    guiFactory.warning("'%s' added to '%s'"%(value,self.name))
-                    
-                except:
-                    guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+    def append(self,value): 
+        if type(self.value) is list:
+            if '' in self.value:
+                self.remove('')
+            if value in self.value:
+                return guiFactory.warning("'%s' already added"%(value))
+
+        if self.form == 'int':
+            try:
+                mc.optionVar(iva = (self.name,int(value)))
+                self.update(self.form)
+                guiFactory.report("'%s' added to '%s'"%(value,self.name))
                 
-            elif self.form == 'float':
-                try:
-                    mc.optionVar(fva = (self.name,value))
-                    self.update(self.form)
-                    guiFactory.warning("'%s' added to '%s'"%(value,self.name))
-                    
-                except:
-                    guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'float':
+            try:
+                mc.optionVar(fva = (self.name,value))
+                self.update(self.form)
+                guiFactory.report("'%s' added to '%s'"%(value,self.name))
                 
-            elif self.form == 'string':
-                try:
-                    mc.optionVar(sva = (self.name,str(value)))
-                    self.update(self.form)
-                    guiFactory.warning("'%s' added to '%s'"%(value,self.name))
-                    
-                except:
-                    guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
-        else:
-            guiFactory.warning("'%s' already added"%(value))
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'string':
+            try:
+                mc.optionVar(sva = (self.name,str(value)))
+                self.update(self.form)
+                guiFactory.report("'%s' added to '%s'"%(value,self.name))
+                
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+
             
 
     def remove(self,value):
@@ -204,9 +251,14 @@ class OptionVarFactory():
                             
     def extend(self,valuesList):
         assert type(valuesList) is list,"'%s' not a list"%(valuesList)
+        
         for v in valuesList:
-            print v
-            self.append(v)
+            if type(self.value) is list:
+                if v not in self.value:
+                    self.append(v)
+            else:
+                if v != self.value:
+                    self.append(v)
     
     def toggle(self):
         """
