@@ -130,7 +130,7 @@ class tdToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 	#Menu
-	self.setupVariables
+	self.setupVariables()
 	self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 	self.UI_AxisMenu = MelMenu( l='Axis', pmc=self.buildAxisMenu)
 	self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
@@ -176,7 +176,7 @@ class tdToolsClass(BaseMelWindow):
 
 	self.show()
 
-    def setupVariables():
+    def setupVariables(self):
 	if not mc.optionVar( ex='cgmTDToolsWinActiveTab' ):
 	    mc.optionVar( iv=('cgmTDToolsWinActiveTab', 1) )
 
@@ -196,7 +196,34 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.appendOptionVarList(self,'cgmVar_DefaultOverrideColor')	
 	guiFactory.appendOptionVarList(self,'cgmVar_RenameOnUpdate')	
 	guiFactory.appendOptionVarList(self,'cgmVar_SizeMode')	
-	guiFactory.appendOptionVarList(self,'cgmTDToolsWinActiveTab')	
+	guiFactory.appendOptionVarList(self,'cgmTDToolsWinActiveTab')
+	
+	
+	#>>> Font Menu
+	if not mc.optionVar( ex='cgmVar_FontOption' ):
+	    mc.optionVar( sv=('cgmVar_FontOption', self.textObjectFont) )	
+	if not mc.optionVar( ex='cgmVar_CustomFontOption' ):
+	    mc.optionVar( sv=('cgmVar_CustomFontOption', self.textObjectFont) )	
+	if not mc.optionVar( ex='cgmVar_ChangeFontOnUpdate' ):
+	    mc.optionVar( iv=('cgmVar_ChangeFontOnUpdate', 1) )
+		
+	guiFactory.appendOptionVarList(self,'cgmVar_ChangeFontOnUpdate')	
+	guiFactory.appendOptionVarList(self,'cgmVar_FontOption')	
+	guiFactory.appendOptionVarList(self,'cgmVar_CustomFontOption')	
+	
+	#>>> axis variables
+	if not mc.optionVar( ex='cgmVar_ObjectUpAxis' ):
+	    mc.optionVar( sv=('cgmVar_ObjectUpAxis', 'y+') )
+	if not mc.optionVar( ex='cgmVar_ObjectAimAxis' ):
+	    mc.optionVar( sv=('cgmVar_ObjectAimAxis', 'z+') )
+	if not mc.optionVar( ex='cgmVar_WorldUpAxis' ):
+	    mc.optionVar( sv=('cgmVar_WorldUpAxis', 'y+') )
+	    
+	guiFactory.appendOptionVarList(self,'cgmVar_ObjectUpAxis')	
+	guiFactory.appendOptionVarList(self,'cgmVar_ObjectAimAxis')	
+	guiFactory.appendOptionVarList(self,'cgmVar_WorldUpAxis')
+
+	self.uiCurveAxis = mc.optionVar(q='cgmVar_ObjectAimAxis')		
 
 
     def updateCurrentTab(self,optionVar):
@@ -209,14 +236,6 @@ class tdToolsClass(BaseMelWindow):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def buildOptionsMenu( self, *a ):
 	self.UI_OptionsMenu.clear()
-	# Font Menu
-	if not mc.optionVar( ex='cgmVar_FontOption' ):
-	    mc.optionVar( sv=('cgmVar_FontOption', self.textObjectFont) )	
-	if not mc.optionVar( ex='cgmVar_CustomFontOption' ):
-	    mc.optionVar( sv=('cgmVar_CustomFontOption', self.textObjectFont) )	
-	    
-	guiFactory.appendOptionVarList(self,'cgmVar_FontOption')	
-	guiFactory.appendOptionVarList(self,'cgmVar_CustomFontOption')	
 	
 	FontMenu = MelMenuItem( self.UI_OptionsMenu, l='Font', subMenu=True)
 	FontMenuCollection = MelRadioMenuCollection()
@@ -311,12 +330,7 @@ class tdToolsClass(BaseMelWindow):
 	             cb=RenameOnUpdateState,
 	             c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_RenameOnUpdate'))
 
-	# Change font
-	if not mc.optionVar( ex='cgmVar_ChangeFontOnUpdate' ):
-	    mc.optionVar( iv=('cgmVar_ChangeFontOnUpdate', 1) )
-	    
-	guiFactory.appendOptionVarList(self,'cgmVar_ChangeFontOnUpdate')	
-	    
+	# Change font    
 	ChangeFontOnUpdateState = mc.optionVar( q='cgmVar_ChangeFontOnUpdate' )		
 	MelMenuItem( UpdatingMenu, l="Change font",
 	             cb=ChangeFontOnUpdateState,
@@ -350,21 +364,7 @@ class tdToolsClass(BaseMelWindow):
 	             c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
 	
     def buildAxisMenu(self, *a ):
-	guiFactory.appendOptionVarList(self,'cgmVar_ObjectUpAxis')	
-	guiFactory.appendOptionVarList(self,'cgmVar_ObjectAimAxis')	
-	guiFactory.appendOptionVarList(self,'cgmVar_WorldUpAxis')
-	
-
-	if not mc.optionVar( ex='cgmVar_ObjectUpAxis' ):
-	    mc.optionVar( sv=('cgmVar_ObjectUpAxis', 'x+') )
-	if not mc.optionVar( ex='cgmVar_ObjectAimAxis' ):
-	    mc.optionVar( sv=('cgmVar_ObjectAimAxis', 'x+') )
-	if not mc.optionVar( ex='cgmVar_WorldUpAxis' ):
-	    mc.optionVar( sv=('cgmVar_WorldUpAxis', 'y+') )
-
-	self.uiCurveAxis = mc.optionVar(q='cgmVar_ObjectAimAxis')
-
-	self.UI_AxisMenu.clear()
+	self.UI_AxisMenu.clear()		
 
 	# Object Aim Menu
 	ObjectAimMenu = MelMenuItem( self.UI_AxisMenu, l='Object Aim', subMenu=True)
