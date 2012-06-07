@@ -59,10 +59,12 @@ class SetFactory(object):
             self.setType = search.findRawTagInfo(setName,'cgmTypeModifier')
             self.storeNameStrings(setName)
             self.updateData()
+            self.isRef()
             
         else:
             self.baseName = setName
             self.create(setType)
+            self.refState = False
 
     def storeNameStrings(self,obj):
         """ Store the base, short and long names of an object to instance."""
@@ -104,7 +106,12 @@ class SetFactory(object):
                 guiFactory.warning("'%s' is no longer a qss"%(self.nameShort)) 
                 self.qssState = False
                 
-        
+    def isRef(self):
+        if mc.referenceQuery(self.nameLong, isNodeReferenced=True):
+            self.refState = True
+            return
+        self.refState = False
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -148,8 +155,11 @@ class SetFactory(object):
     def doStoreSelected(self): 
         """ Store selected objects """
         # First look for attributes in the channel box
+        SelectCheck = False
+        
         channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
+            SelectCheck = True
             for item in channelBoxCheck:
                 self.store(item)
             return
@@ -159,8 +169,13 @@ class SetFactory(object):
         for item in toStore:
             try:
                 self.store(item)
+                SelectCheck = True                
             except:
-                guiFactory.warning("Couldn't store '%s'"%(item))     
+                guiFactory.warning("Couldn't store '%s'"%(item))   
+                
+        if not SelectCheck:
+            guiFactory.warning("No selection found")   
+            
         
         
     def remove(self,info,*a,**kw):
@@ -180,9 +195,12 @@ class SetFactory(object):
         
     def doRemoveSelected(self): 
         """ Store elected objects """
+        SelectCheck = False
+        
         # First look for attributes in the channel box
         channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
+            SelectCheck = True                            
             for item in channelBoxCheck:
                 self.remove(item)
             return
@@ -192,9 +210,13 @@ class SetFactory(object):
         for item in toStore:
             try:
                 self.remove(item)
+                SelectCheck = True                                
             except:
                 guiFactory.warning("Couldn't remove '%s'"%(item)) 
                 
+        if not SelectCheck:
+            guiFactory.warning("No selection found")   
+                    
     def purge(self):
         """ Purge all set memebers from a set """
         
@@ -222,7 +244,7 @@ class SetFactory(object):
             mc.select(self.setList)
             return
         
-        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        guiFactory.warning("'%s' has no data"%(self.nameShort))  
         return False
     
     def selectSelf(self):
@@ -238,7 +260,7 @@ class SetFactory(object):
             mc.setKeyframe(*a,**kw)
             return True
         
-        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        guiFactory.warning("'%s' has no data"%(self.nameShort))  
         return False
     
     def deleteKey(self,*a,**kw):
@@ -248,7 +270,7 @@ class SetFactory(object):
             mc.cutKey(*a,**kw)
             return True
         
-        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        guiFactory.warning("'%s' has no data"%(self.nameShort))  
         return False   
     
     def deleteCurrentKey(self,*a,**kw):
@@ -258,7 +280,7 @@ class SetFactory(object):
             mel.eval('timeSliderClearKey;')
             return True
         
-        guiFactory.error("'%s' has no data"%(self.nameShort))  
+        guiFactory.warning("'%s' has no data"%(self.nameShort))  
         return False        
     
 
