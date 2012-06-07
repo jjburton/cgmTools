@@ -57,7 +57,7 @@ class locinatorClass(BaseMelWindow):
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
 
-	def __init__( self):
+	def __init__(self):
 
 		self.toolName = 'cgm.locinator'
 		self.description = 'This tool makes locators based on selection types and provides ways to update those locators over time'
@@ -83,7 +83,7 @@ class locinatorClass(BaseMelWindow):
 		
 
 		#Menu
-		self.setupVariables
+		self.setupVariables()
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 		
@@ -106,7 +106,7 @@ class locinatorClass(BaseMelWindow):
 
 		self.show()
 
-	def setupVariables():
+	def setupVariables(self):
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
 		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):

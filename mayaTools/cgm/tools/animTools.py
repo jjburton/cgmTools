@@ -79,7 +79,7 @@ class animToolsClass(BaseMelWindow):
 		self.timeSubMenu = []
 
 		#Menu
-		self.setupVariables
+		self.setupVariables()
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 		
@@ -102,7 +102,7 @@ class animToolsClass(BaseMelWindow):
 
 		self.show()
 
-	def setupVariables():
+	def setupVariables(self):
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
 		if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
