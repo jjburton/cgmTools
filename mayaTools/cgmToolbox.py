@@ -249,6 +249,10 @@ def loadPolyUniteTool( *a ):
 	from cgm.tools import polyUniteTool
 	reload(polyUniteTool)
 	polyUniteTool.run()
+	
+def purgeCGMOptionVars( *a ):
+	from cgm.lib import optionVars
+	optionVars.purgeCGM()	
 
 #Zoo stuff
 def loadSkinPropagation( *a ):
@@ -319,7 +323,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
               ('dev', (('cgm.attrTools', " Attribute tools",
                         loadAttrTools),  
                        ('cgm.SetTools', " Set tools",
-                        loadSetTools),                        
+                        loadSetTools), 
+                       ('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
+                        purgeCGMOptionVars),                         
                        ))
 
               )
