@@ -64,13 +64,14 @@ def checkSelectionLength(length):
 
 
 def returnObjectSets():
-    allSets = mc.listSets(allSets = True)
+    allSets = mc.ls(type='objectSet')
     renderSets = mc.listSets(type = 1)
     for set in renderSets:
         allSets.remove(set)
-        
-    if 'defaultCreaseDataSet' in allSets:
-        allSets.remove('defaultCreaseDataSet')
+    
+    for s in 'defaultCreaseDataSet','defaultObjectSet','defaultLightSet':
+        if s in allSets:
+            allSets.remove(s)
         
     return allSets
 
