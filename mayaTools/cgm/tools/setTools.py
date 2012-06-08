@@ -63,6 +63,7 @@ class setToolsClass(BaseMelWindow):
 		self.optionVars = []
 		
 		self.activeObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
+		self.ActiveRefsVar = OptionVarFactory('cgmVar_ActiveRefs','string')
 		
 		self.setTypes = ['none',
 		                 'animation',
@@ -122,7 +123,33 @@ class setToolsClass(BaseMelWindow):
 		
 		#>>> Sort by Options
 		MelMenuItem( self.UI_OptionsMenu, l=">>Sorting<<",
-		             en=False)				
+		             en=False)	
+		
+		#Ref menu
+		guiFactory.appendOptionVarList(self,self.ActiveRefsVar.name)	
+		
+				
+		if self.refPrefixes:
+		
+			refMenu = MelMenuItem( self.UI_OptionsMenu, l='Ref', subMenu=True)
+			
+	
+			
+			for i,n in enumerate(self.refPrefixes):
+				activeState = False
+				i = 1
+				if self.ActiveRefsVar.value:
+					for b in self.refPrefixes:
+						if b in self.ActiveRefsVar.value:
+							activeState = True	
+				
+				MelMenuItem( refMenu, l = n,
+				             cb = activeState,
+				             c = 'print "asdasdf"')				
+				
+			MelMenuItemDiv( refMenu )
+			MelMenuItem( refMenu, l = 'All',
+			             cb = True)				
 
 
 		"""
