@@ -1020,8 +1020,9 @@ def doNameObject(obj,sceneUnique = False):
         shapes = mc.listRelatives(renameBuffer,shapes=True,fullPath=True)
         if shapes:
             for shape in shapes:
-                name = returnUniqueGeneratedName(shape,sceneUnique = sceneUnique)
-                mc.rename(shape,name)
+                if not mc.referenceQuery(shape, isNodeReferenced=True):
+                    name = returnUniqueGeneratedName(shape,sceneUnique = sceneUnique)
+                    mc.rename(shape,name)
     
         return renameBuffer
 

@@ -250,7 +250,7 @@ class setToolsClass(BaseMelWindow):
 	
 	def Main_buildLayout(self,parent):
 		def modeSet( item ):
-			tmp = OptionVarFactory('cgmVar_setToolsMode')
+			tmp = OptionVarFactory('cgmVar_setToolsMode','int')
 			i =  self.setModes.index(item)
 			tmp.set( i )
 			self.setMode = i

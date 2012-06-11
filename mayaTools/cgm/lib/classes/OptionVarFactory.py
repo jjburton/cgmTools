@@ -129,7 +129,7 @@ class OptionVarFactory():
             if dataBuffer:
                 typeBuffer = search.returnDataType(dataBuffer)
             else:
-                typeBuffer = 'string'
+                typeBuffer = 'int'
             
             if varType is not None:    
                 if typeBuffer == requestVarType:

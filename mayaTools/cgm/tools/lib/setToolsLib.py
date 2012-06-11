@@ -258,16 +258,16 @@ def keyMultiSets(self):
     
     if self.setMode:
         if self.activeObjectSetsOptionVar.value:    
-            for i in self.objectSetsDict.keys():
-                s = SetFactory(self.objectSetsDict.get(i))
+            for o in self.activeObjectSetsOptionVar.value:
+                s = SetFactory(o)
                 s.key()
                 allObjectsList.extend(s.setList)                 
         else:
             guiFactory.warning("No active sets found")
             return  
     else:
-        for i in self.objectSetsDict.keys():
-            s = SetFactory(self.objectSetsDict.get(i))
+        for o in self.objectSetsDict.keys():
+            s = SetFactory(self.objectSetsDict.get(o))
             s.key()
             allObjectsList.extend(s.setList)             
 
@@ -279,8 +279,8 @@ def deleteMultiCurrentKeys(self):
     
     if self.setMode:
         if self.activeObjectSetsOptionVar.value:    
-            for i in self.objectSetsDict.keys():
-                s = SetFactory(self.objectSetsDict.get(i))
+            for o in self.activeObjectSetsOptionVar.value:
+                s = SetFactory(o)
                 s.deleteCurrentKey()
                 allObjectsList.extend(s.setList)                
         else:
