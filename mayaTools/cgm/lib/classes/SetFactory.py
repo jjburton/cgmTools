@@ -126,9 +126,6 @@ class SetFactory(object):
         else:
             self.qssState = False
             
-
-        
-
                       
     def store(self,info,*a,**kw):
         """ 

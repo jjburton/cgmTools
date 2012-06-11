@@ -201,8 +201,6 @@ class OptionVarFactory():
             
     def append(self,value): 
         if type(self.value) is list:
-            if '' in self.value:
-                self.remove('')
             if value in self.value:
                 return guiFactory.warning("'%s' already added"%(value))
 
@@ -229,6 +227,9 @@ class OptionVarFactory():
                 mc.optionVar(sva = (self.name,str(value)))
                 self.update(self.form)
                 guiFactory.report("'%s' added to '%s'"%(value,self.name))
+                
+                if '' in self.value:
+                    self.remove('')                
                 
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
