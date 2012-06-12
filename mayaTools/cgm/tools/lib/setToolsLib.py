@@ -43,32 +43,73 @@ reload(guiFactory)
 """
 def printReport(self):
     guiFactory.doPrintReportStart()
-    tmp = OptionVarFactory('cgmVar_activeObjectSets','string')    
+    print self.refSetsDict
     print "# Object Sets found: "
-    for o in self.objectSets:
+    for o in self.objectSetsRaw:
         print "#    '%s'"%o
-    if tmp.value:
+    
+    print "# Loaded Sets: "  
+    for o in self.objectSets:
+        print "#    '%s'"%o  
+        
+    if self.ActiveObjectSetsOptionVar.value:
         print "# Active Sets: "
-        for o in tmp.value:
+        for o in self.ActiveObjectSetsOptionVar.value:
             if o:
-                print "#    '%s'"%o        
+                print "#    '%s'"%o 
+    if self.refSetsDict:
+        print "# Refs and sets: "
+        for o in self.refSetsDict.keys():
+            print "#     '%s':'%s'"%(o,"','".join(self.refSetsDict.get(o)))            
+    
+    if self.ActiveRefsOptionVar.value:
+        print "# Active Refs: "
+        for o in self.ActiveRefsOptionVar.value:
+            if o:
+                print "#    '%s'"%o 
     guiFactory.doPrintReportEnd()
 
 
 def updateObjectSets(self):
-    self.objectSets = search.returnObjectSets()
-    self.refPrefixes = []        
+    self.objectSetsRaw = search.returnObjectSets()
+    self.refPrefixes = []
+    self.refSetsDict = {'From Scene':[]}
+    self.sortedSets = []
+    self.objectSets = []
     
-    if self.objectSets:
-        for o in self.objectSets:
+    if self.objectSetsRaw:
+        for o in self.objectSetsRaw:
+            # Get our reference prefixes and sets sorted out
             buffer = search.returnReferencePrefix(o)
             if buffer:
-                self.refPrefixes.append(buffer)
-        if self.refPrefixes:
-            self.refPrefixes = lists.returnListNoDuplicates(self.refPrefixes)
-    
-        print ("Prefixes are: '%s'"%self.refPrefixes)
+                if buffer in self.refSetsDict.keys():
+                    self.refSetsDict[buffer].append(o)
+                else:
+                    self.refSetsDict[buffer] = [o]
+            else:
+                self.refSetsDict['From Scene'].append(o)
+                        
+        if self.refSetsDict.keys():
+            self.refPrefixes.extend( self.refSetsDict.keys() )
+        
+    if self.ActiveRefsOptionVar.value and self.objectSetsRaw:
+        self.sortedSets = []
+        for r in self.refSetsDict.keys():
+            if r in self.ActiveRefsOptionVar.value:
+                self.sortedSets.extend(self.refSetsDict.get(r))
+                
+        if self.sortedSets:
+            self.objectSets = self.sortedSets
+        else:
+            self.objectSets = self.objectSetsRaw
             
+    else:
+        self.objectSets = self.objectSetsRaw
+            
+            
+    #Get our sets ref info
+    print ("Prefixes are: '%s'"%self.refPrefixes)
+        
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Individual Set Stuff
@@ -136,9 +177,9 @@ def purgeSet(self,nameIndex):
 def setSetAsActive(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
-        if '' in self.activeObjectSetsOptionVar.value:
-            self.activeObjectSetsOptionVar.remove('')
-        self.activeObjectSetsOptionVar.append(setName) 
+        if '' in self.ActiveObjectSetsOptionVar.value:
+            self.ActiveObjectSetsOptionVar.remove('')
+        self.ActiveObjectSetsOptionVar.append(setName) 
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
@@ -146,10 +187,23 @@ def setSetAsActive(self,nameIndex):
 def setSetAsInactive(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName): 
-        self.activeObjectSetsOptionVar.remove(setName) 
+        self.ActiveObjectSetsOptionVar.remove(setName) 
             
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+
+def setRefState(self,refIndex,value,reset = True):
+    refName = self.refPrefixDict.get(refIndex)
+    if refName in self.refPrefixes:
+        if value:
+            self.ActiveRefsOptionVar.append(refName)
+        else:
+            self.ActiveRefsOptionVar.remove(refName)
+        if reset:
+            self.reset()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%refName)
         self.reset()
 
 def createSet(self):
@@ -237,8 +291,8 @@ def setAllSetsAsInactive(self):
 def selectMultiSets(self):
     allObjectsList = []            
     if self.setMode:
-        if self.activeObjectSetsOptionVar.value:
-            for o in self.activeObjectSetsOptionVar.value:
+        if self.ActiveObjectSetsOptionVar.value:
+            for o in self.ActiveObjectSetsOptionVar.value:
                 s = SetFactory(o)
                 allObjectsList.extend(s.setList)     
         else:
@@ -257,8 +311,8 @@ def keyMultiSets(self):
     allObjectsList = []   
     
     if self.setMode:
-        if self.activeObjectSetsOptionVar.value:    
-            for o in self.activeObjectSetsOptionVar.value:
+        if self.ActiveObjectSetsOptionVar.value:    
+            for o in self.ActiveObjectSetsOptionVar.value:
                 s = SetFactory(o)
                 s.key()
                 allObjectsList.extend(s.setList)                 
@@ -278,8 +332,8 @@ def deleteMultiCurrentKeys(self):
     allObjectsList = []      
     
     if self.setMode:
-        if self.activeObjectSetsOptionVar.value:    
-            for o in self.activeObjectSetsOptionVar.value:
+        if self.ActiveObjectSetsOptionVar.value:    
+            for o in self.ActiveObjectSetsOptionVar.value:
                 s = SetFactory(o)
                 s.deleteCurrentKey()
                 allObjectsList.extend(s.setList)                
@@ -295,5 +349,11 @@ def deleteMultiCurrentKeys(self):
     if allObjectsList:
         mc.select(allObjectsList)    
             
+def setAllRefState(self,value):
+    if self.activeRefsCBDict:
+        for i in self.activeRefsCBDict.keys():
+            tmp = self.activeRefsCBDict.get(i)
+            mc.menuItem(tmp,edit = True,cb=value)
+            setRefState(self,i,value,False)
+        self.reset()
             
-    

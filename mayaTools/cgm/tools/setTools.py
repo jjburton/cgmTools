@@ -62,8 +62,9 @@ class setToolsClass(BaseMelWindow):
 		self.version =  __version__ 
 		self.optionVars = []
 		
-		self.activeObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
-		self.ActiveRefsVar = OptionVarFactory('cgmVar_ActiveRefs','string')
+		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
+		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs','string')
+		#guiFactory.appendOptionVarList(self,'cgmVar_activeRefs')
 		
 		self.setTypes = ['none',
 		                 'animation',
@@ -99,7 +100,7 @@ class setToolsClass(BaseMelWindow):
 	def setupVariables(self):
 		if not mc.optionVar( ex='cgmVar_setToolsMode' ):
 			mc.optionVar( iv=('cgmVar_setToolsMode', 0) )
-		guiFactory.appendOptionVarList(self,'cgmVar_setToolsMode')
+		#guiFactory.appendOptionVarList(self,'cgmVar_setToolsMode')
 
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
@@ -125,31 +126,39 @@ class setToolsClass(BaseMelWindow):
 		MelMenuItem( self.UI_OptionsMenu, l=">>Sorting<<",
 		             en=False)	
 		
-		#Ref menu
-		guiFactory.appendOptionVarList(self,self.ActiveRefsVar.name)	
-		
+		#Ref menu	
+		self.refPrefixDict = {}	
+		self.activeRefsCBDict = {}
 				
 		if self.refPrefixes:
 		
-			refMenu = MelMenuItem( self.UI_OptionsMenu, l='Ref', subMenu=True)
+			refMenu = MelMenuItem( self.UI_OptionsMenu, l='Ref Prefixes', subMenu=True)
 			
-	
+				
+			MelMenuItem( refMenu, l = 'All',
+			             c = Callback(setToolsLib.setAllRefState,self,True))				
+			MelMenuItemDiv( refMenu )
+
 			
 			for i,n in enumerate(self.refPrefixes):
-				activeState = False
-				i = 1
-				if self.ActiveRefsVar.value:
-					for b in self.refPrefixes:
-						if b in self.ActiveRefsVar.value:
-							activeState = True	
+				self.refPrefixDict[i] = n
 				
-				MelMenuItem( refMenu, l = n,
-				             cb = activeState,
-				             c = 'print "asdasdf"')				
+				activeState = False
+				
+				if self.ActiveRefsOptionVar.value:
+					if n in self.ActiveRefsOptionVar.value:
+						activeState = True	
+							
+				tmp = MelMenuItem( refMenu, l = n,
+				                   cb = activeState,
+				                   c = Callback(setToolsLib.setRefState,self,i,not activeState))	
+				
+				self.activeRefsCBDict[i] = tmp
 				
 			MelMenuItemDiv( refMenu )
-			MelMenuItem( refMenu, l = 'All',
-			             cb = True)				
+			MelMenuItem( refMenu, l = 'None',
+			             c = Callback(setToolsLib.setAllRefState,self,False))	
+				
 
 
 		"""
@@ -186,13 +195,16 @@ class setToolsClass(BaseMelWindow):
 		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset Active",
-			         c=lambda *a: self.reset(True))		
+			         c=lambda *a: self.reset(True,True))		
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
-			         c=lambda *a: self.reset())
+			         c=lambda *a: self.reset(False,True))
 		
-	def reset(self,resetActive = False):
+	def reset(self,resetActive = False,resetMode = False):
 		if resetActive:
 			guiFactory.purgeOptionVars(['cgmVar_activeObjectSets'])
+		if resetMode:
+			guiFactory.purgeOptionVars(['cgmVar_setToolsMode'])
+			
 		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
 
 	def buildHelpMenu( self, *a ):
@@ -273,7 +285,7 @@ class setToolsClass(BaseMelWindow):
 		i = 1
 		if self.objectSets:
 			for b in self.objectSets:
-				if b not in self.activeObjectSetsOptionVar.value:
+				if b not in self.ActiveObjectSetsOptionVar.value:
 					activeState = False
 		else:
 			activeState = False
@@ -333,7 +345,7 @@ class setToolsClass(BaseMelWindow):
 			
 			#Get check box state
 			activeState = False
-			if b in self.activeObjectSetsOptionVar.value:
+			if b in self.ActiveObjectSetsOptionVar.value:
 				activeState = True
 			tmpActive = MelCheckBox(tmpSetRow,
 		                            annotation = 'make set as active',
