@@ -17,7 +17,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.06042012'
+__version__ = '0.1.06132012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
@@ -64,9 +64,11 @@ class setToolsClass(BaseMelWindow):
 		
 		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
 		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs','string')
+		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes','string')
+		
 		#guiFactory.appendOptionVarList(self,'cgmVar_activeRefs')
 		
-		self.setTypes = ['none',
+		self.setTypes = ['NONE',
 		                 'animation',
 		                 'layout',
 		                 'modeling',
@@ -81,7 +83,6 @@ class setToolsClass(BaseMelWindow):
 		
 		self.objectSets = []
 		setToolsLib.updateObjectSets(self)
-		self.objectSetsDict = {}		
 
 		#Menu
 		self.setupVariables()
@@ -136,7 +137,7 @@ class setToolsClass(BaseMelWindow):
 			
 				
 			MelMenuItem( refMenu, l = 'All',
-			             c = Callback(setToolsLib.setAllRefState,self,True))				
+			             c = Callback(setToolsLib.doSetAllRefState,self,True))				
 			MelMenuItemDiv( refMenu )
 
 			
@@ -151,15 +152,46 @@ class setToolsClass(BaseMelWindow):
 							
 				tmp = MelMenuItem( refMenu, l = n,
 				                   cb = activeState,
-				                   c = Callback(setToolsLib.setRefState,self,i,not activeState))	
+				                   c = Callback(setToolsLib.doSetRefState,self,i,not activeState))	
 				
 				self.activeRefsCBDict[i] = tmp
 				
 			MelMenuItemDiv( refMenu )
-			MelMenuItem( refMenu, l = 'None',
-			             c = Callback(setToolsLib.setAllRefState,self,False))	
+			MelMenuItem( refMenu, l = 'Clear',
+			             c = Callback(setToolsLib.doSetAllRefState,self,False))	
 				
+		#Types menu	
+		self.typeDict = {}	
+		self.activeTypesCBDict = {}
+					
+		if self.setTypes:
+		
+			typeMenu = MelMenuItem( self.UI_OptionsMenu, l='Types: ', subMenu=True)
+			
+				
+			MelMenuItem( typeMenu, l = 'All',
+		                 c = Callback(setToolsLib.doSetAllTypeState,self,True))				
+			MelMenuItemDiv( typeMenu )
 
+			
+			for i,n in enumerate(self.setTypes):
+				self.typeDict[i] = n
+				
+				activeState = False
+				
+				if self.ActiveTypesOptionVar.value:
+					if n in self.ActiveTypesOptionVar.value:
+						activeState = True	
+							
+				tmp = MelMenuItem( typeMenu, l = n,
+			                       cb = activeState,
+			                       c = Callback(setToolsLib.doSetTypeState,self,i,not activeState))	
+				
+				self.activeTypesCBDict[i] = tmp
+				
+			MelMenuItemDiv( typeMenu )
+			MelMenuItem( typeMenu, l = 'Clear',
+		                 c = Callback(setToolsLib.doSetAllTypeState,self,False))	
 
 		"""
 		# Placement Menu
@@ -195,16 +227,19 @@ class setToolsClass(BaseMelWindow):
 		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset Active",
-			         c=lambda *a: self.reset(True,True))		
+			         c=lambda *a: self.reset(True,True,True))		
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
-			         c=lambda *a: self.reset(False,True))
+			         c=lambda *a: self.reset(False,True,True))
 		
-	def reset(self,resetActive = False,resetMode = False):
+	def reset(self,resetActive = False,resetMode = False,resetType = False):
+	
 		if resetActive:
 			guiFactory.purgeOptionVars(['cgmVar_activeObjectSets'])
 		if resetMode:
 			guiFactory.purgeOptionVars(['cgmVar_setToolsMode'])
-			
+		if resetType:
+			guiFactory.purgeOptionVars(['cgmVar_activeTypes'])
+				
 		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
 
 	def buildHelpMenu( self, *a ):
@@ -293,12 +328,12 @@ class setToolsClass(BaseMelWindow):
 		tmpActive = MelCheckBox(AllSetsRow,
 	                            annotation = 'Sets all sets active',
 	                            value = activeState,
-	                            onCommand =  Callback(setToolsLib.setAllSetsAsActive,self),
-	                            offCommand = Callback(setToolsLib.setAllSetsAsInactive,self))
+	                            onCommand =  Callback(setToolsLib.doSetAllSetsAsActive,self),
+	                            offCommand = Callback(setToolsLib.doSetAllSetsAsInactive,self))
 		
 		tmpSel = guiFactory.doButton2(AllSetsRow,
 		                              ' s ',
-		                              Callback(setToolsLib.selectMultiSets,self),
+		                              Callback(setToolsLib.doSelectMultiSets,self),
 		                              'Select All Loaded Sets')
 						
 		# Mode toggle box
@@ -312,11 +347,11 @@ class setToolsClass(BaseMelWindow):
 			
 		tmpKey = guiFactory.doButton2(AllSetsRow,
 	                                  ' k ',
-	                                  Callback(setToolsLib.keyMultiSets,self),			                              
+	                                  Callback(setToolsLib.doKeyMultiSets,self),			                              
 	                                  'Key All Sets')
 		tmpPurge = guiFactory.doButton2(AllSetsRow,
 	                                    ' d ',
-	                                    Callback(setToolsLib.deleteMultiCurrentKeys,self),			                              			                                
+	                                    Callback(setToolsLib.doDeleteMultiCurrentKeys,self),			                              			                                
 	                                    'Delete All Set Keys')	
 		
 		mc.formLayout(AllSetsRow, edit = True,
@@ -350,13 +385,13 @@ class setToolsClass(BaseMelWindow):
 			tmpActive = MelCheckBox(tmpSetRow,
 		                            annotation = 'make set as active',
 		                            value = activeState,
-		                            onCommand =  Callback(setToolsLib.setSetAsActive,self,i),
-		                            offCommand = Callback(setToolsLib.setSetAsInactive,self,i))
+		                            onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
+		                            offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i))
 			self.activeSetsCBDict[i] = tmpActive
 			
 			tmpSel = guiFactory.doButton2(tmpSetRow,
 		                                  ' s ',
-			                              Callback(setToolsLib.selectSetObjects,self,i),
+			                              Callback(setToolsLib.doSelectSetObjects,self,i),
 		                                  'Select the set objects')
 				
 
@@ -364,26 +399,26 @@ class setToolsClass(BaseMelWindow):
 			                       en = not s.refState)
 			
 			tmpName(edit = True,
-			        ec = Callback(setToolsLib.updateSetName,self,tmpName,i)	)
+			        ec = Callback(setToolsLib.doUpdateSetName,self,tmpName,i)	)
 			
 
 			tmpAdd = guiFactory.doButton2(tmpSetRow,
 			                               '+',
-			                               Callback(setToolsLib.addSelected,self,i),
+			                               Callback(setToolsLib.doAddSelected,self,i),
 			                               'Add selected  to the set',
 			                               en = not s.refState)
 			tmpRem= guiFactory.doButton2(tmpSetRow,
 			                             '-',
-			                             Callback(setToolsLib.removeSelected,self,i),
+			                             Callback(setToolsLib.doRemoveSelected,self,i),
 			                             'Remove selected  to the set',
 			                             en = not s.refState)
 			tmpKey = guiFactory.doButton2(tmpSetRow,
 			                              'k',
-			                              Callback(setToolsLib.keySet,self,i),			                              
+			                              Callback(setToolsLib.doKeySet,self,i),			                              
 			                              'Key set')
 			tmpPurge = guiFactory.doButton2(tmpSetRow,
 			                                'd',
-			                                Callback(setToolsLib.deleteCurrentSetKey,self,i),			                              			                                
+			                                Callback(setToolsLib.doDeleteCurrentSetKey,self,i),			                              			                                
 			                                'delete set key')	
 			mc.formLayout(tmpSetRow, edit = True,
 			              af = [(tmpActive, "left", 4),
@@ -409,34 +444,36 @@ class setToolsClass(BaseMelWindow):
 			qssMenu = MelMenuItem(popUpMenu,
 			                      label = 'Qss',
 			                      cb = qssState,
-			                      c = Callback(setToolsLib.toggleQssState,self,i))
+			                      c = Callback(setToolsLib.doToggleQssState,self,i))
 			
 			categoryMenu = MelMenuItem(popUpMenu,
-			                           label = 'Type:',
+			                           label = 'Make Type:',
 			                           sm = True)
 			
 			for n in self.setTypes:
 				MelMenuItem(categoryMenu,
-				            label = n)	
+				            label = n,
+				            c = Callback(setToolsLib.doSetType,self,i,n))
+			
 				
 			MelMenuItem(popUpMenu ,
 		                label = 'Copy Set',
-		                c = Callback(setToolsLib.copySet,self,i))
+		                c = Callback(setToolsLib.doCopySet,self,i))
 			
 			MelMenuItem(popUpMenu ,
 		                label = 'Purge',
-		                c = Callback(setToolsLib.purgeSet,self,i))
+		                c = Callback(setToolsLib.doPurgeSet,self,i))
 			
 			MelMenuItemDiv(popUpMenu)
 			MelMenuItem(popUpMenu ,
 		                label = 'Delete',
-		                c = Callback(setToolsLib.deleteSet,self,i))	
+		                c = Callback(setToolsLib.doDeleteSet,self,i))	
 		
 			
 		
 		NewSetRow = guiFactory.doButton2(MainForm,
 		                                    'Create Set',
-		                                    lambda *a:setToolsLib.createSet(self),
+		                                    lambda *a:setToolsLib.doCreateSet(self),
 		                                    'Create new buffer from selected buffer')	
 			
 		SetMasterForm(edit = True,

@@ -67,6 +67,13 @@ def printReport(self):
         for o in self.ActiveRefsOptionVar.value:
             if o:
                 print "#    '%s'"%o 
+                
+    if self.ActiveTypesOptionVar.value:
+        print "# Active Types: "
+        for o in self.ActiveTypesOptionVar.value:
+            if o:
+                print "#    '%s'"%o 
+                
     guiFactory.doPrintReportEnd()
 
 
@@ -74,24 +81,68 @@ def updateObjectSets(self):
     self.objectSetsRaw = search.returnObjectSets()
     self.refPrefixes = []
     self.refSetsDict = {'From Scene':[]}
+    self.setTypesDict = {}
+    for t in self.setTypes:
+        self.setTypesDict[t] = []
     self.sortedSets = []
     self.objectSets = []
     
     if self.objectSetsRaw:
         for o in self.objectSetsRaw:
+            sInstance = SetFactory(o)
+            
             # Get our reference prefixes and sets sorted out
-            buffer = search.returnReferencePrefix(o)
-            if buffer:
-                if buffer in self.refSetsDict.keys():
-                    self.refSetsDict[buffer].append(o)
+            if sInstance.refState:
+                if sInstance.refPrefix in self.refSetsDict.keys():
+                    self.refSetsDict[sInstance.refPrefix].append(o)
                 else:
-                    self.refSetsDict[buffer] = [o]
+                    self.refSetsDict[sInstance.refPrefix] = [o]
             else:
                 self.refSetsDict['From Scene'].append(o)
-                        
+                
+            # Get our type tags, if none assign 'NONE'
+            if sInstance.setType:
+                if sInstance.setType in self.setTypesDict.keys():
+                    self.setTypesDict[sInstance.setType].append(o)
+                else:
+                    self.setTypesDict['NONE'].append(o)     
+            else:
+                self.setTypesDict['NONE'].append(o)
+
+        print self.setTypesDict
+        
         if self.refSetsDict.keys():
             self.refPrefixes.extend( self.refSetsDict.keys() )
         
+        self.sortedSets = []
+        
+        #Sort for activeRefs
+        if self.ActiveRefsOptionVar.value:
+            for r in self.refSetsDict.keys():
+                if r in self.ActiveRefsOptionVar.value:
+                    self.sortedSets.extend(self.refSetsDict.get(r))
+                    
+        #Sort for active types            
+        if self.ActiveTypesOptionVar.value:
+            for t in self.setTypesDict.keys():
+                if t not in self.ActiveTypesOptionVar.value:
+                    typeBuffer = self.setTypesDict.get(t)
+                    if typeBuffer:
+                        for n in typeBuffer:
+                            try:
+                                self.sortedSets.remove(n)
+                            except:
+                                print "'%s' failed to remove"%n
+                
+        if self.sortedSets:
+            self.objectSets = self.sortedSets
+        else:
+            self.objectSets = self.objectSetsRaw
+            
+    else:
+        self.objectSets = self.objectSetsRaw   
+            
+    """    
     if self.ActiveRefsOptionVar.value and self.objectSetsRaw:
         self.sortedSets = []
         for r in self.refSetsDict.keys():
@@ -105,6 +156,7 @@ def updateObjectSets(self):
             
     else:
         self.objectSets = self.objectSetsRaw
+    """
             
             
     #Get our sets ref info
@@ -114,7 +166,7 @@ def updateObjectSets(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Individual Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def selectSetObjects(self,nameIndex):
+def doSelectSetObjects(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -124,7 +176,7 @@ def selectSetObjects(self,nameIndex):
         self.reset()
         
 
-def addSelected(self,nameIndex):
+def doAddSelected(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -134,7 +186,7 @@ def addSelected(self,nameIndex):
         self.reset()
 
 
-def removeSelected(self,nameIndex):
+def doRemoveSelected(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -144,7 +196,7 @@ def removeSelected(self,nameIndex):
         self.reset()
         
 
-def keySet(self,nameIndex):
+def doKeySet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -154,7 +206,7 @@ def keySet(self,nameIndex):
         self.reset()
     
     
-def deleteCurrentSetKey(self,nameIndex):
+def doDeleteCurrentSetKey(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -164,7 +216,7 @@ def deleteCurrentSetKey(self,nameIndex):
         self.reset()
     
 
-def purgeSet(self,nameIndex):
+def doPurgeSet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -173,45 +225,12 @@ def purgeSet(self,nameIndex):
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
 
-
-def setSetAsActive(self,nameIndex):
-    setName = self.objectSetsDict.get(nameIndex)
-    if mc.objExists(setName):
-        if '' in self.ActiveObjectSetsOptionVar.value:
-            self.ActiveObjectSetsOptionVar.remove('')
-        self.ActiveObjectSetsOptionVar.append(setName) 
-    else:
-        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
-
-def setSetAsInactive(self,nameIndex):
-    setName = self.objectSetsDict.get(nameIndex)
-    if mc.objExists(setName): 
-        self.ActiveObjectSetsOptionVar.remove(setName) 
-            
-    else:
-        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
-
-def setRefState(self,refIndex,value,reset = True):
-    refName = self.refPrefixDict.get(refIndex)
-    if refName in self.refPrefixes:
-        if value:
-            self.ActiveRefsOptionVar.append(refName)
-        else:
-            self.ActiveRefsOptionVar.remove(refName)
-        if reset:
-            self.reset()
-    else:
-        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%refName)
-        self.reset()
-
-def createSet(self):
+def doCreateSet(self):
     b = SetFactory('Set')
     b.doStoreSelected()
     self.reset()
     
-def deleteSet(self,nameIndex):
+def doDeleteSet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex) 
     if mc.objExists(setName):
         mc.delete(setName)
@@ -220,7 +239,7 @@ def deleteSet(self,nameIndex):
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
     
-def copySet(self,nameIndex):
+def doCopySet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex) 
     if mc.objExists(setName):
         s = SetFactory(self.objectSetsDict.get(nameIndex))
@@ -230,7 +249,7 @@ def copySet(self,nameIndex):
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
     
-def toggleQssState(self,nameIndex):
+def doToggleQssState(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -238,10 +257,30 @@ def toggleQssState(self,nameIndex):
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
+
+def doSetType(self,nameIndex,typeName):
+    setName = self.objectSetsDict.get(nameIndex)
+    print "Setname is '%s'"%setName
+    print "setType is '%s'"%typeName
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        print s.nameLong
+        print s.nameShort
+        if typeName == 'NONE':
+            s.doSetType()            
+        else:
+            s.doSetType(typeName)
+        self.reset()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+        
     
-def updateSetName(self,setTextField,nameIndex):
+def doUpdateSetName(self,setTextField,nameIndex):
     # get the field
     setName = self.objectSetsDict.get(nameIndex)
+    print ">>>>>>>>>>>>>>"
+    print setName
     if not mc.objExists(setName):
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
@@ -258,6 +297,7 @@ def updateSetName(self,setTextField,nameIndex):
         #...dict...
         self.objectSetsDict[nameIndex] = buffer
         #...optionVar...
+        
         tmp = OptionVarFactory('cgmVar_activeObjectSets','string')
         if setName in tmp.value:
             guiFactory.report("Set was an active set. Setting new name '%s' as active"%buffer)
@@ -268,27 +308,74 @@ def updateSetName(self,setTextField,nameIndex):
     else:
         guiFactory.warning("There's a problem with the name input.")
         
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Gui stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def doSetSetAsActive(self,nameIndex):
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        if '' in self.ActiveObjectSetsOptionVar.value:
+            self.ActiveObjectSetsOptionVar.remove('')
+        self.ActiveObjectSetsOptionVar.append(setName) 
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+
+def doSetSetAsInactive(self,nameIndex):
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName): 
+        self.ActiveObjectSetsOptionVar.remove(setName) 
+            
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
+
+def doSetRefState(self,refIndex,value,reset = True):
+    refName = self.refPrefixDict.get(refIndex)
+    if refName in self.refPrefixes:
+        if value:
+            self.ActiveRefsOptionVar.append(refName)
+        else:
+            self.ActiveRefsOptionVar.remove(refName)
+        if reset:
+            self.reset()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%refName)
+        self.reset()
+        
+def doSetTypeState(self,typeIndex,value,reset = True):
+    typeName = self.typeDict.get(typeIndex)
+    if typeName in self.setTypes:
+        if value:
+            self.ActiveTypesOptionVar.append(typeName)
+        else:
+            self.ActiveTypesOptionVar.remove(typeName)
+        if reset:
+            self.reset()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%typeName)
+        self.reset()
         
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Multi Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-def setAllSetsAsActive(self):
+def doSetAllSetsAsActive(self):
     if self.activeSetsCBDict:
         for i,s in enumerate(self.activeSetsCBDict.keys()):
             tmp = self.activeSetsCBDict.get(s)          
             mc.checkBox(tmp, edit = True,
                         value = True)
-            setSetAsActive(self,i)
+            doSetSetAsActive(self,i)
 
-def setAllSetsAsInactive(self):
+def doSetAllSetsAsInactive(self):
     if self.activeSetsCBDict:
         for i,s in enumerate(self.activeSetsCBDict.keys()):
             tmp = self.activeSetsCBDict.get(s)                        
             mc.checkBox(tmp, edit = True,
                         value = False)
-            setSetAsInactive(self,i)
+            doSetSetAsInactive(self,i)
 
-def selectMultiSets(self):
+def doSelectMultiSets(self):
     allObjectsList = []            
     if self.setMode:
         if self.ActiveObjectSetsOptionVar.value:
@@ -307,7 +394,7 @@ def selectMultiSets(self):
     if allObjectsList:
         mc.select(allObjectsList)
             
-def keyMultiSets(self):
+def doKeyMultiSets(self):
     allObjectsList = []   
     
     if self.setMode:
@@ -328,7 +415,7 @@ def keyMultiSets(self):
     if allObjectsList:
         mc.select(allObjectsList)
     
-def deleteMultiCurrentKeys(self):
+def doDeleteMultiCurrentKeys(self):
     allObjectsList = []      
     
     if self.setMode:
@@ -349,11 +436,19 @@ def deleteMultiCurrentKeys(self):
     if allObjectsList:
         mc.select(allObjectsList)    
             
-def setAllRefState(self,value):
+def doSetAllRefState(self,value):
     if self.activeRefsCBDict:
         for i in self.activeRefsCBDict.keys():
             tmp = self.activeRefsCBDict.get(i)
             mc.menuItem(tmp,edit = True,cb=value)
-            setRefState(self,i,value,False)
+            doSetRefState(self,i,value,False)
+        self.reset()
+        
+def doSetAllTypeState(self,value):
+    if self.activeTypesCBDict:
+        for i in self.activeTypesCBDict.keys():
+            tmp = self.activeTypesCBDict.get(i)
+            mc.menuItem(tmp,edit = True,cb=value)
+            doSetTypeState(self,i,value,False)
         self.reset()
             
