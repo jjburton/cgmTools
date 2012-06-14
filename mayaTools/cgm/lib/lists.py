@@ -234,7 +234,7 @@ def returnMatchList(list1,list2):
     if matchList:
         return matchList
     else:
-        return False
+        return []
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnMissingList(baseList,searchList):
     """ 
