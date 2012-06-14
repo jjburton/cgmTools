@@ -1007,6 +1007,8 @@ def doNameObject(obj,sceneUnique = False):
     """
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+    assert mc.referenceQuery(obj, isNodeReferenced=True) is not True, "'%s' is referenced, can't name!" %obj
+    
     name = returnUniqueGeneratedName(obj,sceneUnique = sceneUnique)
     nameFactory = NameFactory(obj)
     
