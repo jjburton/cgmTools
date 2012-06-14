@@ -35,6 +35,12 @@ from cgm.lib.classes.AttrFactory import *
 
 from cgm.lib.classes import NameFactory
 
+setTypes = {'animation':'animationSet',
+            'layout':'layoutSet',
+            'modeling':'modelingSet',
+            'td':'tdSet',
+            'fx':'fxSet',
+            'lighting':'lightingSet'}
 
 class SetFactory(object):
     """ 
@@ -53,6 +59,8 @@ class SetFactory(object):
         self.setType = ''
         self.setList = []
         self.qssState = qssState
+        self.refPrefix = ''
+        self.refState = False
         
         if mc.objExists(setName):
             self.baseName = search.findRawTagInfo(setName,'cgmName')
@@ -85,7 +93,11 @@ class SetFactory(object):
         attributes.storeInfo(set,'cgmName',self.baseName)
         if setType:
             self.setType = setType
-            attributes.storeInfo(set,'cgmTypeModifier',setType)
+            if setType in setTypes.keys():
+                doType = setTypes.get(setType)
+            else:
+                doType = setType
+            attributes.storeInfo(set,'cgmType',setType)
             
         set = NameFactory.doNameObject(set,True)
         self.storeNameStrings(set)
@@ -109,6 +121,7 @@ class SetFactory(object):
     def isRef(self):
         if mc.referenceQuery(self.nameLong, isNodeReferenced=True):
             self.refState = True
+            self.refPrefix = search.returnReferencePrefix(self.nameLong)
             return
         self.refState = False
 
@@ -116,7 +129,12 @@ class SetFactory(object):
     # Data
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def updateData(self,*a,**kw):
-        """ Updates the stored data """
+        """ 
+        Updates the stored data
+        
+        Stores basic data, qss state and type
+        
+        """
         self.setList = mc.sets(self.nameLong, q = True)
         if not self.setList:
             self.setList = []
@@ -125,6 +143,13 @@ class SetFactory(object):
             self.qssState = True
         else:
             self.qssState = False
+        
+        typeBuffer = search.returnTagInfo(self.nameLong,'cgmType')
+        if typeBuffer:
+            for t in setTypes.keys():
+                if setTypes.get(t) == typeBuffer:
+                    self.setType = t
+            
             
                       
     def store(self,info,*a,**kw):
@@ -278,7 +303,40 @@ class SetFactory(object):
             return True
         
         guiFactory.warning("'%s' has no data"%(self.nameShort))  
-        return False        
+        return False
+    
+    def doName(self,sceneUnique=False):
+        """
+        Function for naming a maya instanced object using the cgm.NameFactory class.
+        
+        Keyword arguments:
+        sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
+        
+        """           
+        buffer = NameFactory.doNameObject(self.nameLong,sceneUnique)
+        self.storeNameStrings(buffer)
+        return buffer
+        
+            
+    def doSetType(self,setType = None):
+        """ Set a set's type """
+        if setType is not None:
+            doSetType = setType
+            if setType in setTypes.keys():
+                doSetType = setTypes.get(setType)
+
+            if attributes.storeInfo(self.nameLong,'cgmType',doSetType,True):
+                self.doName()
+                guiFactory.warning("'%s' renamed!"%(self.nameShort))  
+                return self.nameShort
+            else:               
+                guiFactory.warning("'%s' failed to store info"%(self.nameShort))  
+                return False
+        else:
+            attributes.deleteAttr(self.nameShort,'cgmType')
+            self.doName()
+            guiFactory.warning("'%s' renamed!"%(self.nameShort))  
+            return self.nameShort
     
 
 
