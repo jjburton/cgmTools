@@ -64,12 +64,25 @@ def checkSelectionLength(length):
 
 
 def returnObjectSets():
-    allSets = mc.ls(type='objectSet')
-    renderSets = mc.listSets(type = 1)
-    for set in renderSets:
-        allSets.remove(set)
+    allSets = mc.ls(type='objectSet') or []
+    renderSets = mc.listSets(type = 1) or []
+    deformerSets = mc.listSets(type = 2) or []
     
-    for s in 'defaultCreaseDataSet','defaultObjectSet','defaultLightSet':
+    if renderSets:
+        for set in renderSets:
+            try:
+                allSets.remove(set)
+            except:
+                pass
+            
+    if deformerSets:
+        for set in deformerSets:
+            try:            
+                allSets.remove(set)
+            except:
+                pass
+    
+    for s in 'defaultCreaseDataSet','defaultObjectSet','defaultLightSet','initialParticleSE','initialShadingGroup':
         if s in allSets:
             allSets.remove(s)
         
@@ -79,7 +92,7 @@ def returnObjectSets():
 def returnObjectBuffers():
     """ Search for cgmObjectBuffers in a scene """       
     returnList = []
-    groupCheck = mc.ls(type='transform')
+    groupCheck = mc.ls(type='transform') or []
     
     for o in groupCheck:
         if returnTagInfo(o,'cgmType') == 'objectBuffer':
