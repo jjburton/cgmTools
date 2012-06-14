@@ -131,7 +131,7 @@ class setToolsClass(BaseMelWindow):
 		self.refPrefixDict = {}	
 		self.activeRefsCBDict = {}
 				
-		if self.refPrefixes:
+		if self.refPrefixes and len(self.refPrefixes) > 1:
 		
 			refMenu = MelMenuItem( self.UI_OptionsMenu, l='Ref Prefixes', subMenu=True)
 			
@@ -192,39 +192,20 @@ class setToolsClass(BaseMelWindow):
 			MelMenuItemDiv( typeMenu )
 			MelMenuItem( typeMenu, l = 'Clear',
 		                 c = Callback(setToolsLib.doSetAllTypeState,self,False))	
-
-		"""
-		# Placement Menu
-		PlacementMenu = MelMenuItem( self.UI_OptionsMenu, l='Placement', subMenu=True)
-		PlacementMenuCollection = MelRadioMenuCollection()
-
-		if mc.optionVar( q='cgmVar_ForceBoundingBoxState' ) == 0:
-			cgmOption = False
-			pivotOption = True
-		else:
-			cgmOption = True
-			pivotOption = False
-
-		PlacementMenuCollection.createButton(PlacementMenu,l='Bounding Box Center',
-				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 1)),
-				                             rb=cgmOption )
-		PlacementMenuCollection.createButton(PlacementMenu,l='Pivot',
-				                             c=lambda *a: mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0)),
-				                             rb=pivotOption )
 		
-		# Tagging options
-		AutoloadMenu = MelMenuItem( self.UI_OptionsMenu, l='Tagging', subMenu=True)
-		if not mc.optionVar( ex='cgmVar_TaggingUpdateRO' ):
-			mc.optionVar( iv=('cgmVar_TaggingUpdateRO', 1) )
-		guiFactory.appendOptionVarList(self,'cgmVar_TaggingUpdateRO')	
-	  
-		RenameOnUpdateState = mc.optionVar( q='cgmVar_TaggingUpdateRO' )
-		MelMenuItem( AutoloadMenu, l="Update Rotation Order",
-	                 cb= mc.optionVar( q='cgmVar_TaggingUpdateRO' ),
-	                 c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_TaggingUpdateRO'))
+		#>>> Grouping Options
+		GroupingMenu = MelMenuItem( self.UI_OptionsMenu, l='Grouping', subMenu=True)
 		
-		"""
+		#guiFactory.appendOptionVarList(self,'cgmVar_MaintainLocalSetGroup')			
+		MelMenuItem( GroupingMenu, l="Maintain Local Set Group",
+	                 cb= mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ),
+	                 c= lambda *a: setToolsLib.doSetMaintainLocalSetGroup(self))
+		MelMenuItem( GroupingMenu, l="Hide Set Groups",
+	                 cb= mc.optionVar( q='cgmVar_HideSetGroups' ),
+	                 c= lambda *a: setToolsLib.doSetHideSetGroups(self))
 		
+		
+		#>>> Reset Options		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset Active",
 			         c=lambda *a: self.reset(True,True))		
@@ -360,6 +341,26 @@ class setToolsClass(BaseMelWindow):
 	                        (self.SetModeOptionMenu,"right",4,tmpKey),
 	                        (tmpKey,"right",2,tmpPurge)])
 		
+		#>>> Sets building section
+		allPopUpMenu = MelPopupMenu(self.SetModeOptionMenu ,button = 3)
+		
+		"""
+		qssMenu = MelMenuItem(allPopUpMenu,
+	                          label = 'Qss',
+	                          cb = qssState,
+	                          c = Callback(setToolsLib.doToggleQssState,self,i))"""
+		
+		allCategoryMenu = MelMenuItem(allPopUpMenu,
+	                               label = 'Make Type:',
+	                               sm = True)
+		
+		for n in self.setTypes:
+			MelMenuItem(allCategoryMenu,
+		                label = n,
+		                c = Callback(setToolsLib.doMultiSetType,self,n))
+		
+		
+		
 		
 		#>>> Sets building section
 		SetListScroll = MelScrollLayout(MainForm,cr = 1, ut = 'cgmUISubTemplate')
@@ -451,7 +452,7 @@ class setToolsClass(BaseMelWindow):
 			for n in self.setTypes:
 				MelMenuItem(categoryMenu,
 				            label = n,
-				            c = Callback(setToolsLib.doSetType,self,i,n))
+				            c = Callback(setToolsLib.guiDoSetType,self,i,n))
 			
 				
 			MelMenuItem(popUpMenu ,

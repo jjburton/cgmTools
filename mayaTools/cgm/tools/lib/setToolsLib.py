@@ -92,7 +92,8 @@ def updateObjectSets(self):
         self.setTypesDict[t] = []
     self.sortedSets = []
     self.objectSets = []
-    
+    self.setGroupName = False
+    self.setGroups = []
     
     if self.objectSetsRaw:
         for o in self.objectSetsRaw:
@@ -106,6 +107,11 @@ def updateObjectSets(self):
                     self.refSetsDict[sInstance.refPrefix] = [o]
             else:
                 self.refSetsDict['From Scene'].append(o)
+                # See if we have a scene set group and if so, initialize
+                if sInstance.setType == 'objectSetGroup':
+                    self.setsGroup = SetFactory(o)
+                    self.setGroupName = self.setsGroup.nameShort
+                    self.setGroups.append(self.setsGroup.nameShort)
                 
             # Get our type tags, if none assign 'NONE'
             if sInstance.setType:
@@ -145,14 +151,27 @@ def updateObjectSets(self):
         elif tmpActiveTypeSets:
             self.sortedSets = tmpActiveTypeSets
         else:
-            self.sortedSets = tmpActiveTypeSets
-        
+            self.sortedSets = tmpActiveRefSets
+                   
     if self.sortedSets:
         self.objectSets = self.sortedSets
     else:
         self.objectSets = self.objectSetsRaw
+        
 
+    # Set Group creation if they don't have em
+    if mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ) and not self.setGroupName:
+        initializeSetGroup(self)
+        
+    if mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ):
+        doGroupLocal(self)
             
+    # Hide Set groups
+    if mc.optionVar( q='cgmVar_HideSetGroups' ):
+        for s in self.setGroups:
+            if s in self.objectSets:
+                self.objectSets.remove(s)
+        
     #Get our sets ref info
     print ("Prefixes are: '%s'"%self.refPrefixes)
         
@@ -252,19 +271,13 @@ def doToggleQssState(self,nameIndex):
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
 
-def doSetType(self,nameIndex,typeName):
-    setName = self.objectSetsDict.get(nameIndex)
-    print "Setname is '%s'"%setName
-    print "setType is '%s'"%typeName
+def doSetType(self,setName,typeName):
     if mc.objExists(setName):
         s = SetFactory(setName)
-        print s.nameLong
-        print s.nameShort
         if typeName == 'NONE':
             s.doSetType()            
         else:
             s.doSetType(typeName)
-        self.reset()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
@@ -350,40 +363,109 @@ def doSetTypeState(self,typeIndex,value,reset = True):
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%typeName)
         self.reset()
         
+def guiDoSetType(self,nameIndex,typeName):
+    """ Function for the gui call, root function is above """
+    setName = self.objectSetsDict.get(nameIndex)
+    doSetType(self,setName,typeName)
+    self.reset()
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Set Group Stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+def initializeSetGroup(self):
+    # Set Group creation if they don't have em
+    if not self.setGroupName:
+        self.setsGroup = SetFactory('Scene','objectSetGroup')
+        self.setGroupName = self.setsGroup.nameShort
+        if not mc.optionVar( q='cgmVar_HideSetGroups' ):
+            self.objectSets.append(self.setsGroup.nameShort)    
+
+def doSetMaintainLocalSetGroup(self):
+    optionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup')
+    optionVar.toggle()
+    if optionVar.value:
+        if not self.setGroupName:
+            initializeSetGroup(self)
+        buffer = self.refSetsDict.get('From Scene')
+        for s in buffer:
+            sInstance = SetFactory(s)
+            if not sInstance.parents:
+                self.setsGroup.store(s)
+        
+        self.reset()
+        
+def doSetHideSetGroups(self):
+    optionVar = OptionVarFactory('cgmVar_HideSetGroups')
+    optionVar.toggle()
+    self.reset()
+    
+def doGroupLocal(self):
+    if not self.setGroupName:
+        initializeSetGroup(self)
+    buffer = self.refSetsDict.get('From Scene')
+    for s in buffer:
+        sInstance = SetFactory(s)
+        if not sInstance.parents:
+            self.setsGroup.store(s)
+    
+        
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Multi Set Stuff
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+def doMultiSetType(self,typeName):
+    if self.setMode:
+        if self.ActiveObjectSetsOptionVar.value:
+            for s in self.ActiveObjectSetsOptionVar.value:
+                if s in self.objectSets and s in self.refSetsDict.get('From Scene'):
+                    doSetType(self,s,typeName)
+            self.reset()
+            
+        else:
+            guiFactory.warning("No active sets found")
+            return
+            
+    else:
+        for s in self.objectSets:
+            if s in self.refSetsDict.get('From Scene'):
+                doSetType(self,s,typeName)      
+        self.reset()
+                
+            
+
 def doSetAllSetsAsActive(self):
     if self.activeSetsCBDict:
         for i,s in enumerate(self.activeSetsCBDict.keys()):
-            tmp = self.activeSetsCBDict.get(s)          
-            mc.checkBox(tmp, edit = True,
-                        value = True)
-            doSetSetAsActive(self,i)
+            if self.objectSetsDict.get(i) in self.objectSets:
+                tmp = self.activeSetsCBDict.get(s)          
+                mc.checkBox(tmp, edit = True,
+                            value = True)
+                doSetSetAsActive(self,i)
 
 def doSetAllSetsAsInactive(self):
     if self.activeSetsCBDict:
         for i,s in enumerate(self.activeSetsCBDict.keys()):
-            tmp = self.activeSetsCBDict.get(s)                        
-            mc.checkBox(tmp, edit = True,
-                        value = False)
-            doSetSetAsInactive(self,i)
+            if self.objectSetsDict.get(i) in self.objectSets:
+                tmp = self.activeSetsCBDict.get(s)                        
+                mc.checkBox(tmp, edit = True,
+                            value = False)
+                doSetSetAsInactive(self,i)
 
 def doSelectMultiSets(self):
     allObjectsList = []            
     if self.setMode:
         if self.ActiveObjectSetsOptionVar.value:
             for o in self.ActiveObjectSetsOptionVar.value:
-                s = SetFactory(o)
-                allObjectsList.extend(s.setList)     
+                if o in self.objectSets:
+                    s = SetFactory(o)
+                    allObjectsList.extend(s.setList)     
         else:
             guiFactory.warning("No active sets found")
             return
             
     else:
-        for i in self.objectSetsDict.keys():
-            tmp = SetFactory(self.objectSetsDict.get(i))
-            allObjectsList.extend(tmp.setList)
+        for s in self.objectSets:
+            sInstance = SetFactory(s)
+            allObjectsList.extend(sInstance.setList) 
 
     if allObjectsList:
         mc.select(allObjectsList)
@@ -394,17 +476,18 @@ def doKeyMultiSets(self):
     if self.setMode:
         if self.ActiveObjectSetsOptionVar.value:    
             for o in self.ActiveObjectSetsOptionVar.value:
-                s = SetFactory(o)
-                s.key()
-                allObjectsList.extend(s.setList)                 
+                if o in self.objectSets:
+                    s = SetFactory(o)
+                    s.key()
+                    allObjectsList.extend(s.setList)                 
         else:
             guiFactory.warning("No active sets found")
             return  
     else:
-        for o in self.objectSetsDict.keys():
-            s = SetFactory(self.objectSetsDict.get(o))
-            s.key()
-            allObjectsList.extend(s.setList)             
+        for s in self.objectSets:
+            sInstance = SetFactory(s)
+            sInstance.key()
+            allObjectsList.extend(sInstance.setList)             
 
     if allObjectsList:
         mc.select(allObjectsList)
@@ -415,17 +498,18 @@ def doDeleteMultiCurrentKeys(self):
     if self.setMode:
         if self.ActiveObjectSetsOptionVar.value:    
             for o in self.ActiveObjectSetsOptionVar.value:
-                s = SetFactory(o)
-                s.deleteCurrentKey()
-                allObjectsList.extend(s.setList)                
+                if o in self.objectSets:
+                    s = SetFactory(o)
+                    s.deleteCurrentKey()
+                    allObjectsList.extend(s.setList)                
         else:
             guiFactory.warning("No active sets found")
             return  
     else:
-        for i in self.objectSetsDict.keys():
-            s = SetFactory(self.objectSetsDict.get(i))
-            s.deleteCurrentKey()
-            allObjectsList.extend(s.setList) 
+        for s in self.objectSets:
+            sInstance = SetFactory(s)
+            sInstance.deleteCurrentKey()
+            allObjectsList.extend(sInstance.setList) 
             
     if allObjectsList:
         mc.select(allObjectsList)    
@@ -445,4 +529,5 @@ def doSetAllTypeState(self,value):
             mc.menuItem(tmp,edit = True,cb=value)
             doSetTypeState(self,i,value,False)
         self.reset()
+        
             
