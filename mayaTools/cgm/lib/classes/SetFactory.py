@@ -143,12 +143,16 @@ class SetFactory(object):
             self.qssState = True
         else:
             self.qssState = False
+            
+        self.parents = mc.listSets(o=self.nameLong)
         
         typeBuffer = search.returnTagInfo(self.nameLong,'cgmType')
         if typeBuffer:
             for t in setTypes.keys():
                 if setTypes.get(t) == typeBuffer:
                     self.setType = t
+            if not self.setType:
+                self.setType = typeBuffer
             
             
                       
