@@ -227,18 +227,16 @@ class setToolsClass(BaseMelWindow):
 		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset Active",
-			         c=lambda *a: self.reset(True,True,True))		
+			         c=lambda *a: self.reset(True,True))		
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
-			         c=lambda *a: self.reset(False,True,True))
+			         c=lambda *a: self.reset(False,True))
 		
-	def reset(self,resetActive = False,resetMode = False,resetType = False):
+	def reset(self,resetActive = False,resetMode = False):
 	
 		if resetActive:
 			guiFactory.purgeOptionVars(['cgmVar_activeObjectSets'])
 		if resetMode:
 			guiFactory.purgeOptionVars(['cgmVar_setToolsMode'])
-		if resetType:
-			guiFactory.purgeOptionVars(['cgmVar_activeTypes'])
 				
 		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
 

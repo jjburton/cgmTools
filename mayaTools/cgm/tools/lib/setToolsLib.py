@@ -62,17 +62,23 @@ def printReport(self):
         for o in self.refSetsDict.keys():
             print "#     '%s':'%s'"%(o,"','".join(self.refSetsDict.get(o)))            
     
-    if self.ActiveRefsOptionVar.value:
-        print "# Active Refs: "
+    print "# Active Refs: "
+    if self.ActiveRefsOptionVar.value:   
         for o in self.ActiveRefsOptionVar.value:
             if o:
-                print "#    '%s'"%o 
+                print "#    '%s'"%o
+    else:
+        print "#    None"
+        
+        
                 
-    if self.ActiveTypesOptionVar.value:
-        print "# Active Types: "
+    print "# Active Types: "
+    if self.ActiveTypesOptionVar.value:    
         for o in self.ActiveTypesOptionVar.value:
             if o:
                 print "#    '%s'"%o 
+    else:
+        print "#    None"
                 
     guiFactory.doPrintReportEnd()
 
@@ -86,6 +92,7 @@ def updateObjectSets(self):
         self.setTypesDict[t] = []
     self.sortedSets = []
     self.objectSets = []
+    
     
     if self.objectSetsRaw:
         for o in self.objectSetsRaw:
@@ -114,50 +121,37 @@ def updateObjectSets(self):
         if self.refSetsDict.keys():
             self.refPrefixes.extend( self.refSetsDict.keys() )
         
+        
         self.sortedSets = []
         
         #Sort for activeRefs
-        if self.ActiveRefsOptionVar.value:
+        tmpActiveRefSets = []
+        if self.refSetsDict.keys() and self.ActiveRefsOptionVar.value:
             for r in self.refSetsDict.keys():
-                if r in self.ActiveRefsOptionVar.value:
-                    self.sortedSets.extend(self.refSetsDict.get(r))
+                #If value, let's add or subtract based on if our set refs are found
+                if r in self.ActiveRefsOptionVar.value and self.refSetsDict.get(r):
+                    tmpActiveRefSets.extend(self.refSetsDict.get(r))
+                      
                     
-        #Sort for active types            
-        if self.ActiveTypesOptionVar.value:
+        #Sort for active types  
+        tmpActiveTypeSets = []
+        if self.setTypesDict.keys() and self.ActiveTypesOptionVar.value:
             for t in self.setTypesDict.keys():
-                if t not in self.ActiveTypesOptionVar.value:
-                    typeBuffer = self.setTypesDict.get(t)
-                    if typeBuffer:
-                        for n in typeBuffer:
-                            try:
-                                self.sortedSets.remove(n)
-                            except:
-                                print "'%s' failed to remove"%n
-                
-        if self.sortedSets:
-            self.objectSets = self.sortedSets
+                if t in self.ActiveTypesOptionVar.value and self.setTypesDict.get(t):
+                    tmpActiveTypeSets.extend(self.setTypesDict.get(t))
+        
+        if tmpActiveTypeSets and tmpActiveRefSets:
+            self.sortedSets = lists.returnMatchList(tmpActiveTypeSets,tmpActiveRefSets)
+        elif tmpActiveTypeSets:
+            self.sortedSets = tmpActiveTypeSets
         else:
-            self.objectSets = self.objectSetsRaw
-            
-    else:
-        self.objectSets = self.objectSetsRaw   
-            
-    """    
-    if self.ActiveRefsOptionVar.value and self.objectSetsRaw:
-        self.sortedSets = []
-        for r in self.refSetsDict.keys():
-            if r in self.ActiveRefsOptionVar.value:
-                self.sortedSets.extend(self.refSetsDict.get(r))
-                
-        if self.sortedSets:
-            self.objectSets = self.sortedSets
-        else:
-            self.objectSets = self.objectSetsRaw
-            
+            self.sortedSets = tmpActiveTypeSets
+        
+    if self.sortedSets:
+        self.objectSets = self.sortedSets
     else:
         self.objectSets = self.objectSetsRaw
-    """
-            
+
             
     #Get our sets ref info
     print ("Prefixes are: '%s'"%self.refPrefixes)
