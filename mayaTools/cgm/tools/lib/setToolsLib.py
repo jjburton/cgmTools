@@ -217,7 +217,15 @@ def doKeySet(self,nameIndex):
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
-    
+        
+def doResetSet(self,nameIndex):
+    setName = self.objectSetsDict.get(nameIndex)
+    if mc.objExists(setName):
+        s = SetFactory(setName)
+        s.reset()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
+        self.reset()
     
 def doDeleteCurrentSetKey(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
@@ -512,8 +520,30 @@ def doDeleteMultiCurrentKeys(self):
             allObjectsList.extend(sInstance.setList) 
             
     if allObjectsList:
-        mc.select(allObjectsList)    
-            
+        mc.select(allObjectsList) 
+        
+def doResetMultiSets(self):
+    allObjectsList = []   
+    
+    if self.setMode:
+        if self.ActiveObjectSetsOptionVar.value:    
+            for o in self.ActiveObjectSetsOptionVar.value:
+                if o in self.objectSets:
+                    s = SetFactory(o)
+                    s.reset()
+                    allObjectsList.extend(s.setList)                 
+        else:
+            guiFactory.warning("No active sets found")
+            return  
+    else:
+        for s in self.objectSets:
+            sInstance = SetFactory(s)
+            sInstance.reset()
+            allObjectsList.extend(sInstance.setList)             
+
+    if allObjectsList:
+        mc.select(allObjectsList)
+               
 def doSetAllRefState(self,value):
     if self.activeRefsCBDict:
         for i in self.activeRefsCBDict.keys():

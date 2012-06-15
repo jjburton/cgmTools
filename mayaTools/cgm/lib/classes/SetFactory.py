@@ -35,6 +35,8 @@ from cgm.lib.classes.AttrFactory import *
 
 from cgm.lib.classes import NameFactory
 
+from cgm.lib.ml import (ml_resetChannels)
+
 setTypes = {'animation':'animationSet',
             'layout':'layoutSet',
             'modeling':'modelingSet',
@@ -284,6 +286,16 @@ class SetFactory(object):
         if self.setList:
             mc.select(self.setList)
             mc.setKeyframe(*a,**kw)
+            return True
+        
+        guiFactory.warning("'%s' has no data"%(self.nameShort))  
+        return False
+    
+    def reset(self,*a,**kw):
+        """ Reset the set objects """        
+        if self.setList:
+            mc.select(self.setList)
+            ml_resetChannels.resetChannels()        
             return True
         
         guiFactory.warning("'%s' has no data"%(self.nameShort))  

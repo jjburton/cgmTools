@@ -123,9 +123,6 @@ class setToolsClass(BaseMelWindow):
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
 		
-		#>>> Sort by Options
-		MelMenuItem( self.UI_OptionsMenu, l=">>Sorting<<",
-		             en=False)	
 		
 		#Ref menu	
 		self.refPrefixDict = {}	
@@ -133,7 +130,7 @@ class setToolsClass(BaseMelWindow):
 				
 		if self.refPrefixes and len(self.refPrefixes) > 1:
 		
-			refMenu = MelMenuItem( self.UI_OptionsMenu, l='Ref Prefixes', subMenu=True)
+			refMenu = MelMenuItem( self.UI_OptionsMenu, l='Load Refs:', subMenu=True)
 			
 				
 			MelMenuItem( refMenu, l = 'All',
@@ -166,7 +163,7 @@ class setToolsClass(BaseMelWindow):
 					
 		if self.setTypes:
 		
-			typeMenu = MelMenuItem( self.UI_OptionsMenu, l='Types: ', subMenu=True)
+			typeMenu = MelMenuItem( self.UI_OptionsMenu, l='Load Types: ', subMenu=True)
 			
 				
 			MelMenuItem( typeMenu, l = 'All',
@@ -328,18 +325,24 @@ class setToolsClass(BaseMelWindow):
 	                                  ' k ',
 	                                  Callback(setToolsLib.doKeyMultiSets,self),			                              
 	                                  'Key All Sets')
-		tmpPurge = guiFactory.doButton2(AllSetsRow,
+		tmpDeleteKey = guiFactory.doButton2(AllSetsRow,
 	                                    ' d ',
 	                                    Callback(setToolsLib.doDeleteMultiCurrentKeys,self),			                              			                                
 	                                    'Delete All Set Keys')	
+		tmpReset = guiFactory.doButton2(AllSetsRow,
+	                                    ' r ',
+	                                    Callback(setToolsLib.doResetMultiSets,self),			                              			                                
+	                                    'Reset All Set Keys')	
 		
 		mc.formLayout(AllSetsRow, edit = True,
 	                  af = [(tmpActive, "left", 10),
-	                        (tmpPurge,"right",10)],
+	                        (tmpReset,"right",10)],
 	                  ac = [(tmpSel,"left",0,tmpActive),
 	                        (self.SetModeOptionMenu,"left",4,tmpSel),
 	                        (self.SetModeOptionMenu,"right",4,tmpKey),
-	                        (tmpKey,"right",2,tmpPurge)])
+	                        (tmpKey,"right",2,tmpDeleteKey),
+		                    (tmpDeleteKey,"right",2,tmpReset)
+		                    ])
 		
 		#>>> Sets building section
 		allPopUpMenu = MelPopupMenu(self.SetModeOptionMenu ,button = 3)
@@ -353,7 +356,7 @@ class setToolsClass(BaseMelWindow):
 		allCategoryMenu = MelMenuItem(allPopUpMenu,
 	                               label = 'Make Type:',
 	                               sm = True)
-		
+		#Mulit set type
 		for n in self.setTypes:
 			MelMenuItem(allCategoryMenu,
 		                label = n,
@@ -415,19 +418,26 @@ class setToolsClass(BaseMelWindow):
 			                              'k',
 			                              Callback(setToolsLib.doKeySet,self,i),			                              
 			                              'Key set')
-			tmpPurge = guiFactory.doButton2(tmpSetRow,
+			tmpDeleteKey = guiFactory.doButton2(tmpSetRow,
 			                                'd',
 			                                Callback(setToolsLib.doDeleteCurrentSetKey,self,i),			                              			                                
 			                                'delete set key')	
+			
+			tmpReset = guiFactory.doButton2(tmpSetRow,
+			                                'r',
+			                                Callback(setToolsLib.doResetSet,self,i),			                              			                                
+			                                'Reset Set')
 			mc.formLayout(tmpSetRow, edit = True,
 			              af = [(tmpActive, "left", 4),
-			                    (tmpPurge,"right",2)],
+			                    (tmpReset,"right",2)],
 			              ac = [(tmpSel,"left",0,tmpActive),
 			                    (tmpName,"left",2,tmpSel),
 			                    (tmpName,"right",4,tmpAdd),
 			                    (tmpAdd,"right",2,tmpRem),
 			                    (tmpRem,"right",2,tmpKey),
-			                    (tmpKey,"right",2,tmpPurge)])
+			                    (tmpKey,"right",2,tmpDeleteKey),
+			                    (tmpDeleteKey,"right",2,tmpReset)
+			                    ])
 			
 			MelSpacer(tmpSetRow, w = 2)
 			
