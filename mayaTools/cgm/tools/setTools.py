@@ -34,9 +34,9 @@ from cgm.lib import guiFactory
 reload(setToolsLib)
 reload(guiFactory)
 
-
 def run():
 	cgmSetToolsWin = setToolsClass()
+		
 	#cgmSetToolsWin(edit = True, resizeToFitChildren = True)
 
 class setToolsClass(BaseMelWindow):
@@ -46,7 +46,7 @@ class setToolsClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'cgmSetToolsWindow'
 	WINDOW_TITLE = 'cgm.setTools'
-	DEFAULT_SIZE = 265, 200
+	DEFAULT_SIZE = 275, 400
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -65,6 +65,7 @@ class setToolsClass(BaseMelWindow):
 		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
 		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs','string')
 		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes','string')
+		self.setMode = mc.optionVar( q = 'cgmVar_setToolsMode')		
 		
 		#guiFactory.appendOptionVarList(self,'cgmVar_activeRefs')
 		
@@ -95,9 +96,8 @@ class setToolsClass(BaseMelWindow):
 		
 		self.Main_buildLayout(self)
 		
-		
 		self.show()
-
+		
 	def setupVariables(self):
 		if not mc.optionVar( ex='cgmVar_setToolsMode' ):
 			mc.optionVar( iv=('cgmVar_setToolsMode', 0) )
@@ -309,11 +309,10 @@ class setToolsClass(BaseMelWindow):
 		
 		tmpSel = guiFactory.doButton2(AllSetsRow,
 		                              ' s ',
-		                              Callback(setToolsLib.doSelectMultiSets,self),
+		                              Callback(setToolsLib.doSelectMultiSets,self,self.setMode),
 		                              'Select All Loaded Sets')
 						
 		# Mode toggle box
-		self.setMode = mc.optionVar( q = 'cgmVar_setToolsMode')		
 		self.SetModeOptionMenu = MelOptionMenu(AllSetsRow,
 		                                       cc = modeSet)
 		for o in self.setModes:
@@ -323,15 +322,15 @@ class setToolsClass(BaseMelWindow):
 			
 		tmpKey = guiFactory.doButton2(AllSetsRow,
 	                                  ' k ',
-	                                  Callback(setToolsLib.doKeyMultiSets,self),			                              
+	                                  Callback(setToolsLib.doKeyMultiSets,self,self.setMode),			                              
 	                                  'Key All Sets')
 		tmpDeleteKey = guiFactory.doButton2(AllSetsRow,
 	                                    ' d ',
-	                                    Callback(setToolsLib.doDeleteMultiCurrentKeys,self),			                              			                                
+	                                    Callback(setToolsLib.doDeleteMultiCurrentKeys,self,self.setMode),			                              			                                
 	                                    'Delete All Set Keys')	
 		tmpReset = guiFactory.doButton2(AllSetsRow,
 	                                    ' r ',
-	                                    Callback(setToolsLib.doResetMultiSets,self),			                              			                                
+	                                    Callback(setToolsLib.doResetMultiSets,self,self.setMode),			                              			                                
 	                                    'Reset All Set Keys')	
 		
 		mc.formLayout(AllSetsRow, edit = True,
@@ -360,7 +359,7 @@ class setToolsClass(BaseMelWindow):
 		for n in self.setTypes:
 			MelMenuItem(allCategoryMenu,
 		                label = n,
-		                c = Callback(setToolsLib.doMultiSetType,self,n))
+		                c = Callback(setToolsLib.doMultiSetType,self,self.setMode,n))
 		
 		
 		
@@ -510,7 +509,4 @@ class setToolsClass(BaseMelWindow):
 		               (SetListScroll,"bottom",0,NewSetRow)],
 		         attachNone = [(NewSetRow,"top")])	
 		
-
-
-
 

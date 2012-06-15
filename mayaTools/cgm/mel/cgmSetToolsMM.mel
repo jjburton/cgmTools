@@ -1,0 +1,16 @@
+global proc cgmSetToolsMM() {
+	python("from cgm.tools.markingMenus import cgmSetMenu;reload(cgmSetMenu);cgmSetMenu.run()");
+	}
+	
+global proc cgmSetToolsMMKillUI() {
+	python("cgmSetMenu.killUI()");
+	}
+
+/*
+global proc cgmSetToolsMM() {
+	python("from cgm.tools.markingMenus import cgmSetMenu;reload(cgmSetMenu);cgmSetMenu.run()");
+	}
+	
+global proc cgmSetToolsMMKillUI() {
+	python("cgmSetMenu.killUI()");
+	}

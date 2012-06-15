@@ -413,15 +413,15 @@ def doGroupLocal(self):
     buffer = self.refSetsDict.get('From Scene')
     for s in buffer:
         sInstance = SetFactory(s)
-        if not sInstance.parents:
+        if not sInstance.parents and s != self.setGroupName:
             self.setsGroup.store(s)
     
         
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Multi Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-def doMultiSetType(self,typeName):
-    if self.setMode:
+def doMultiSetType(self,setMode,typeName):
+    if setMode:
         if self.ActiveObjectSetsOptionVar.value:
             for s in self.ActiveObjectSetsOptionVar.value:
                 if s in self.objectSets and s in self.refSetsDict.get('From Scene'):
@@ -458,9 +458,9 @@ def doSetAllSetsAsInactive(self):
                             value = False)
                 doSetSetAsInactive(self,i)
 
-def doSelectMultiSets(self):
+def doSelectMultiSets(self,setMode):
     allObjectsList = []            
-    if self.setMode:
+    if setMode:
         if self.ActiveObjectSetsOptionVar.value:
             for o in self.ActiveObjectSetsOptionVar.value:
                 if o in self.objectSets:
@@ -478,10 +478,10 @@ def doSelectMultiSets(self):
     if allObjectsList:
         mc.select(allObjectsList)
             
-def doKeyMultiSets(self):
+def doKeyMultiSets(self,setMode):
     allObjectsList = []   
     
-    if self.setMode:
+    if setMode:
         if self.ActiveObjectSetsOptionVar.value:    
             for o in self.ActiveObjectSetsOptionVar.value:
                 if o in self.objectSets:
@@ -500,16 +500,16 @@ def doKeyMultiSets(self):
     if allObjectsList:
         mc.select(allObjectsList)
     
-def doDeleteMultiCurrentKeys(self):
+def doDeleteMultiCurrentKeys(self,setMode):
     allObjectsList = []      
     
-    if self.setMode:
+    if setMode:
         if self.ActiveObjectSetsOptionVar.value:    
             for o in self.ActiveObjectSetsOptionVar.value:
                 if o in self.objectSets:
-                    s = SetFactory(o)
-                    s.deleteCurrentKey()
-                    allObjectsList.extend(s.setList)                
+                    sInstance = SetFactory(o)
+                    sInstance.deleteCurrentKey()
+                    allObjectsList.extend(sInstance.setList)                
         else:
             guiFactory.warning("No active sets found")
             return  
@@ -520,12 +520,13 @@ def doDeleteMultiCurrentKeys(self):
             allObjectsList.extend(sInstance.setList) 
             
     if allObjectsList:
+        print 'SELECTING'
         mc.select(allObjectsList) 
         
-def doResetMultiSets(self):
+def doResetMultiSets(self,setMode):
     allObjectsList = []   
     
-    if self.setMode:
+    if setMode:
         if self.ActiveObjectSetsOptionVar.value:    
             for o in self.ActiveObjectSetsOptionVar.value:
                 if o in self.objectSets:

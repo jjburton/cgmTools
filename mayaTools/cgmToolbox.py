@@ -302,9 +302,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ToolCB('zooHUDCtrl')),
                            )),
               
-              ('hotkeys', (('Qss Set Menu - selection set menu',
-                            'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
-                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+              ('hotkeys', (('Set Menu - menu for cgm.setTools',
+                            'Menu for working with cgm.SetTools. There are a wide fariety of tools for them..',
+                            ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Tangent Works - tangency manipulation menu',
                             'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
