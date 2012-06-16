@@ -81,8 +81,14 @@ def returnObjectSets():
                 allSets.remove(set)
             except:
                 pass
+            
+    for s in allSets:
+        print s
+        if returnObjectType(s) == 'animLayer':
+            print s
+            allSets.remove(s)
     
-    for s in 'defaultCreaseDataSet','defaultObjectSet','defaultLightSet','initialParticleSE','initialShadingGroup':
+    for s in 'BaseAnimation','defaultCreaseDataSet','defaultObjectSet','defaultLightSet','initialParticleSE','initialShadingGroup':
         if s in allSets:
             allSets.remove(s)
         
@@ -105,26 +111,41 @@ def returnObjectBuffers():
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Channel Box
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnSelectedAttributesFromChannelBox():
+def returnSelectedAttributesFromChannelBox(returnRaw = False):
     """ 
     Returns a list of selected object attributes from the channel box
     
     Keyword arguments:
-    data() -- the data to check
+    returnRaw() -- whether you just want channels or objects combined with selected attributes
     
     """    
     selection = mc.ls(sl=True)
     ChannelBoxName = mel.eval('$tmp = $gChannelBoxName');
-    channels = mc.channelBox(ChannelBoxName,q = True, sma = True)
+    
+    sma = mc.channelBox(ChannelBoxName, query=True, sma=True)
+    ssa = mc.channelBox(ChannelBoxName, query=True, ssa=True)
+    sha = mc.channelBox(ChannelBoxName, query=True, sha=True)
+                
+    channels = []
+    if sma:
+        channels.extend(sma)
+    if ssa:
+        channels.extend(ssa)
+    if sha:
+        channels.extend(sha)
+        
     if channels and selection:
-        returnBuffer = []
-        for item in selection:
-            for attr in channels:
-                buffer = "%s.%s"%(item,attr)
-                if mc.objExists(buffer):
-                    fullName = mc.ls(buffer)
-                    returnBuffer.append(fullName[0])
-        return returnBuffer
+        if not returnRaw:
+            returnBuffer = []
+            for item in selection:
+                for attr in channels:
+                    buffer = "%s.%s"%(item,attr)
+                    if mc.objExists(buffer):
+                        fullName = mc.ls(buffer)
+                        returnBuffer.append(fullName[0])
+            return returnBuffer
+        else:
+            return channels
     return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
