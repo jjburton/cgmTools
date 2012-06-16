@@ -134,9 +134,9 @@ class OptionVarFactory():
         
         else:
             #If it exists, first check for data buffer
-            if dataBuffer:
-                typeBuffer = search.returnDataType(dataBuffer)
-            else:
+            typeBuffer = search.returnDataType(dataBuffer) or False
+            if not typeBuffer:
+                print'changing to int!'
                 typeBuffer = 'int'
             
             if varType is not None:    
@@ -197,7 +197,7 @@ class OptionVarFactory():
                 self.value = value
                 
             except:
-                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
         elif self.form == 'string':
             try:
@@ -205,7 +205,7 @@ class OptionVarFactory():
                 self.value = value
                 
             except:
-                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
     def append(self,value): 
         if type(self.value) is list:
@@ -228,7 +228,7 @@ class OptionVarFactory():
                 guiFactory.report("'%s' added to '%s'"%(value,self.name))
                 
             except:
-                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
             
         elif self.form == 'string':
             try:
@@ -238,7 +238,7 @@ class OptionVarFactory():
                              
                 
             except:
-                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
 
             
 
@@ -248,11 +248,11 @@ class OptionVarFactory():
                 i = self.value.index(value)
                 mc.optionVar(removeFromArray = (self.name,i))
                 self.update(self.form)
-                guiFactory.warning("'%s' removed from '%s'"%(value,self.name))
+                guiFactory.report("'%s' removed from '%s'"%(value,self.name))
             except:
-                guiFactory.warning("'%s' failed to remove '%s'"%(value,self.name))
+                guiFactory.report("'%s' failed to remove '%s'"%(value,self.name))
         else:
-            guiFactory.warning("'%s' wasn't found in '%s'"%(value,self.name))
+            guiFactory.report("'%s' wasn't found in '%s'"%(value,self.name))
             
 
                             
@@ -275,7 +275,7 @@ class OptionVarFactory():
         
         mc.optionVar(iv = (self.name,not self.value))
         self.value = not self.value
-        guiFactory.warning("'%s':%s"%(self.name,self.value))
+        guiFactory.report("'%s':%s"%(self.name,self.value))
         
         
         
