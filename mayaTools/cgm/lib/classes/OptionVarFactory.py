@@ -48,13 +48,15 @@ class OptionVarFactory():
     OptionVar Class handler
     
     """
-    def __init__(self,varName,varType = None,value = None):
+    def __init__(self,varName,varType = None,value = None, defaultValue = None):
         """ 
         Intializes an optionVar class handler
         
         Keyword arguments:
         varName(string) -- name for the optionVar
         varType(string) -- 'int','float','string' (default 'int')
+        value() -- will attempt to set the optionVar with the value
+        defaultValue() -- will ONLY use if the optionVar doesn't exist
         
         """
         #Default to creation of a var as an int value of 0
@@ -67,13 +69,19 @@ class OptionVarFactory():
         if not mc.optionVar(exists = self.name):
             if varType is not None:
                 requestVarType = self.returnVarTypeFromCall(varType)
+            elif defaultValue is not None:
+                requestVarType = search.returnDataType(defaultValue)                
+            elif value is not None:
+                requestVarType = search.returnDataType(value)
             else:
                 requestVarType = 'int'
                 
             if requestVarType:
                 self.form = requestVarType
                 self.create(self.form)
-                if value is not None:
+                if defaultValue is not None:
+                    self.initialStore(defaultValue)
+                elif value is not None:
                     self.initialStore(value)
                     
                 self.value = mc.optionVar(q=self.name)
@@ -149,7 +157,7 @@ class OptionVarFactory():
 
     def create(self,doType):
         """ 
-        If it doesn't exist, makes it. If it does, fill out the data.
+        Makes an optionVar.
         """
         print "Creating '%s' as '%s'"%(self.name,self.form)
             
@@ -227,9 +235,7 @@ class OptionVarFactory():
                 mc.optionVar(sva = (self.name,str(value)))
                 self.update(self.form)
                 guiFactory.report("'%s' added to '%s'"%(value,self.name))
-                
-                if '' in self.value:
-                    self.remove('')                
+                             
                 
             except:
                 guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
