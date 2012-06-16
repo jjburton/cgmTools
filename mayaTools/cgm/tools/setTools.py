@@ -62,10 +62,7 @@ class setToolsClass(BaseMelWindow):
 		self.version =  __version__ 
 		self.optionVars = []
 		
-		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
-		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs','string')
-		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes','string')
-		self.setMode = mc.optionVar( q = 'cgmVar_setToolsMode')		
+		
 		
 		#guiFactory.appendOptionVarList(self,'cgmVar_activeRefs')
 		
@@ -83,10 +80,12 @@ class setToolsClass(BaseMelWindow):
 		self.oldGenBlurbs = []
 		
 		self.objectSets = []
-		setToolsLib.updateObjectSets(self)
 
 		#Menu
 		self.setupVariables()
+		self.setMode = self.SetToolsModeOptionVar.value		
+		setToolsLib.updateObjectSets(self)
+		
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 		
@@ -99,23 +98,22 @@ class setToolsClass(BaseMelWindow):
 		self.show()
 		
 	def setupVariables(self):
-		if not mc.optionVar( ex='cgmVar_setToolsMode' ):
-			mc.optionVar( iv=('cgmVar_setToolsMode', 0) )
-		#guiFactory.appendOptionVarList(self,'cgmVar_setToolsMode')
+		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
+		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs',defaultValue = [''])
+		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes',defaultValue = [''])
+		self.SetToolsModeOptionVar = OptionVarFactory('cgmVar_setToolsMode', defaultValue = 0)
+		self.KeyTypeOptionVar = OptionVarFactory('cgmVar_KeyType', defaultValue = 0)
+		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_setToolsShowHelp', defaultValue = 0)
+		self.MaintainLocalSetGroupOptionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup', defaultValue = 1)
+		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
 
-		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
-			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
-		if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
-			mc.optionVar( iv=('cgmVar_ForceEveryFrame', 0) )
-		if not mc.optionVar( ex='cgmVar_setToolsShowHelp' ):
-			mc.optionVar( iv=('cgmVar_setToolsShowHelp', 0) )
-		if not mc.optionVar( ex='cgmVar_CurrentFrameOnly' ):
-			mc.optionVar( iv=('cgmVar_CurrentFrameOnly', 0) )
-		if not mc.optionVar( ex='cgmVar_setToolsShowHelp' ):
-			mc.optionVar( iv=('cgmVar_setToolsShowHelp', 0) )
 		
 		
-		guiFactory.appendOptionVarList(self,'cgmVar_setToolsShowHelp')
+		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.KeyTypeOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.HideSetGroupOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.MaintainLocalSetGroupOptionVar.name)
+
 		
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
@@ -201,6 +199,24 @@ class setToolsClass(BaseMelWindow):
 	                 cb= mc.optionVar( q='cgmVar_HideSetGroups' ),
 	                 c= lambda *a: setToolsLib.doSetHideSetGroups(self))
 		
+		#>>> Keying Options
+		KeyMenu = MelMenuItem( self.UI_OptionsMenu, l='Key type', subMenu=True)
+		KeyMenuCollection = MelRadioMenuCollection()
+	
+		if self.KeyTypeOptionVar.value == 0:
+			regKeyOption = True
+			bdKeyOption = False
+		else:
+			regKeyOption = False
+			bdKeyOption = True
+	
+		KeyMenuCollection.createButton(KeyMenu,l=' Reg ',
+	                                         c=lambda *a:self.KeyTypeOptionVar.set(0),
+	                                         rb= regKeyOption )
+		KeyMenuCollection.createButton(KeyMenu,l=' Breakdown ',
+	                                         c=lambda *a:self.KeyTypeOptionVar.set(1),
+	                                         rb= bdKeyOption )
+
 		
 		#>>> Reset Options		
 		MelMenuItemDiv( self.UI_OptionsMenu )
@@ -345,12 +361,6 @@ class setToolsClass(BaseMelWindow):
 		
 		#>>> Sets building section
 		allPopUpMenu = MelPopupMenu(self.SetModeOptionMenu ,button = 3)
-		
-		"""
-		qssMenu = MelMenuItem(allPopUpMenu,
-	                          label = 'Qss',
-	                          cb = qssState,
-	                          c = Callback(setToolsLib.doToggleQssState,self,i))"""
 		
 		allCategoryMenu = MelMenuItem(allPopUpMenu,
 	                               label = 'Make Type:',

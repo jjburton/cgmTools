@@ -72,10 +72,11 @@ class setToolsMarkingMenu(BaseMelWindow):
 		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
 		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
 		
-		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets','string')
-		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs','string')
-		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes','string')
-			
+		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
+		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs',defaultValue = [''])
+		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes',defaultValue = [''])
+		self.SetToolsModeOptionVar = OptionVarFactory('cgmVar_setToolsMode', defaultValue = 0)
+		
 		self.setTypes = ['NONE',
 		                 'animation',
 		                 'layout',

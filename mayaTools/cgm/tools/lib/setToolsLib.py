@@ -94,6 +94,7 @@ def updateObjectSets(self):
     self.objectSets = []
     self.setGroupName = False
     self.setGroups = []
+    self.activeSets = []
     
     if self.objectSetsRaw:
         for o in self.objectSetsRaw:
@@ -122,7 +123,6 @@ def updateObjectSets(self):
             else:
                 self.setTypesDict['NONE'].append(o)
 
-        print self.setTypesDict
         
         if self.refSetsDict.keys():
             self.refPrefixes.extend( self.refSetsDict.keys() )
@@ -158,7 +158,12 @@ def updateObjectSets(self):
     else:
         self.objectSets = self.objectSetsRaw
         
-
+    if self.ActiveObjectSetsOptionVar.value:
+        loadedActiveBuffer = []
+        for o in self.objectSets:
+            if o in self.ActiveObjectSetsOptionVar.value:
+                self.activeSets.append(o)
+    
     # Set Group creation if they don't have em
     if mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ) and not self.setGroupName:
         initializeSetGroup(self)
@@ -172,8 +177,7 @@ def updateObjectSets(self):
             if s in self.objectSets:
                 self.objectSets.remove(s)
         
-    #Get our sets ref info
-    print ("Prefixes are: '%s'"%self.refPrefixes)
+
         
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -213,7 +217,10 @@ def doKeySet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
-        s.key()
+        if self.KeyTypeOptionVar.value:
+            s.key(breakdown = True)
+        else:
+            s.key()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
@@ -329,9 +336,8 @@ def doUpdateSetName(self,setTextField,nameIndex):
 def doSetSetAsActive(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
-        if '' in self.ActiveObjectSetsOptionVar.value:
-            self.ActiveObjectSetsOptionVar.remove('')
         self.ActiveObjectSetsOptionVar.append(setName) 
+        self.activeSets.append(setName)
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
         self.reset()
@@ -340,6 +346,7 @@ def doSetSetAsInactive(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName): 
         self.ActiveObjectSetsOptionVar.remove(setName) 
+        self.activeSets.remove(setName)
             
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
@@ -389,9 +396,8 @@ def initializeSetGroup(self):
             self.objectSets.append(self.setsGroup.nameShort)    
 
 def doSetMaintainLocalSetGroup(self):
-    optionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup')
-    optionVar.toggle()
-    if optionVar.value:
+    self.MaintainLocalSetGroupOptionVar.toggle()
+    if self.MaintainLocalSetGroupOptionVar.value:
         if not self.setGroupName:
             initializeSetGroup(self)
         buffer = self.refSetsDict.get('From Scene')
@@ -403,8 +409,7 @@ def doSetMaintainLocalSetGroup(self):
         self.reset()
         
 def doSetHideSetGroups(self):
-    optionVar = OptionVarFactory('cgmVar_HideSetGroups')
-    optionVar.toggle()
+    self.HideSetGroupOptionVar.toggle()
     self.reset()
     
 def doGroupLocal(self):
@@ -485,16 +490,22 @@ def doKeyMultiSets(self,setMode):
         if self.ActiveObjectSetsOptionVar.value:    
             for o in self.ActiveObjectSetsOptionVar.value:
                 if o in self.objectSets:
-                    s = SetFactory(o)
-                    s.key()
-                    allObjectsList.extend(s.setList)                 
+                    sInstance = SetFactory(o)
+                    if self.KeyTypeOptionVar.value:
+                        sInstance.key(breakdown = True)
+                    else:
+                        sInstance.key()
+                    allObjectsList.extend(sInstance.setList)                 
         else:
             guiFactory.warning("No active sets found")
             return  
     else:
         for s in self.objectSets:
             sInstance = SetFactory(s)
-            sInstance.key()
+            if self.KeyTypeOptionVar.value:
+                sInstance.key(breakdown = True)
+            else:
+                sInstance.key()
             allObjectsList.extend(sInstance.setList)             
 
     if allObjectsList:
