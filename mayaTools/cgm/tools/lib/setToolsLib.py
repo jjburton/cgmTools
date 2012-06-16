@@ -190,7 +190,7 @@ def doSelectSetObjects(self,nameIndex):
         s.select()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
         
 
 def doAddSelected(self,nameIndex):
@@ -200,7 +200,7 @@ def doAddSelected(self,nameIndex):
         s.doStoreSelected()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
 
 
 def doRemoveSelected(self,nameIndex):
@@ -210,7 +210,7 @@ def doRemoveSelected(self,nameIndex):
         s.doRemoveSelected()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
         
 
 def doKeySet(self,nameIndex):
@@ -223,7 +223,7 @@ def doKeySet(self,nameIndex):
             s.key()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
         
 def doResetSet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
@@ -232,7 +232,7 @@ def doResetSet(self,nameIndex):
         s.reset()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
     
 def doDeleteCurrentSetKey(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
@@ -241,7 +241,7 @@ def doDeleteCurrentSetKey(self,nameIndex):
         s.deleteCurrentKey()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
     
 
 def doPurgeSet(self,nameIndex):
@@ -251,31 +251,31 @@ def doPurgeSet(self,nameIndex):
         s.purge()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
 
 def doCreateSet(self):
     b = SetFactory('Set')
     b.doStoreSelected()
-    self.reset()
+    self.reload()
     
 def doDeleteSet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex) 
     if mc.objExists(setName):
         mc.delete(setName)
-        self.reset()
+        self.reload()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
     
 def doCopySet(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex) 
     if mc.objExists(setName):
         s = SetFactory(self.objectSetsDict.get(nameIndex))
         s.copy()
-        self.reset()
+        self.reload()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
     
 def doToggleQssState(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
@@ -284,7 +284,7 @@ def doToggleQssState(self,nameIndex):
         s.isQss(not s.qssState)
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
 
 def doSetType(self,setName,typeName):
     if mc.objExists(setName):
@@ -295,17 +295,15 @@ def doSetType(self,setName,typeName):
             s.doSetType(typeName)
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
         
     
 def doUpdateSetName(self,setTextField,nameIndex):
     # get the field
     setName = self.objectSetsDict.get(nameIndex)
-    print ">>>>>>>>>>>>>>"
-    print setName
     if not mc.objExists(setName):
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
         return
 
     newName = mc.textField(setTextField,q=True,text = True)
@@ -331,6 +329,11 @@ def doUpdateSetName(self,setTextField,nameIndex):
         guiFactory.warning("There's a problem with the name input.")
         
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Marking Menu stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
+
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Gui stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doSetSetAsActive(self,nameIndex):
@@ -340,7 +343,7 @@ def doSetSetAsActive(self,nameIndex):
         self.activeSets.append(setName)
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
 
 def doSetSetAsInactive(self,nameIndex):
     setName = self.objectSetsDict.get(nameIndex)
@@ -350,7 +353,7 @@ def doSetSetAsInactive(self,nameIndex):
             
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%setName)
-        self.reset()
+        self.reload()
 
 def doSetRefState(self,refIndex,value,reset = True):
     refName = self.refPrefixDict.get(refIndex)
@@ -360,10 +363,10 @@ def doSetRefState(self,refIndex,value,reset = True):
         else:
             self.ActiveRefsOptionVar.remove(refName)
         if reset:
-            self.reset()
+            self.reload()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%refName)
-        self.reset()
+        self.reload()
         
 def doSetTypeState(self,typeIndex,value,reset = True):
     typeName = self.typeDict.get(typeIndex)
@@ -373,16 +376,16 @@ def doSetTypeState(self,typeIndex,value,reset = True):
         else:
             self.ActiveTypesOptionVar.remove(typeName)
         if reset:
-            self.reset()
+            self.reload()
     else:
         guiFactory.warning("'%s' doesn't exist.Reloading Gui"%typeName)
-        self.reset()
+        self.reload()
         
 def guiDoSetType(self,nameIndex,typeName):
     """ Function for the gui call, root function is above """
     setName = self.objectSetsDict.get(nameIndex)
     doSetType(self,setName,typeName)
-    self.reset()
+    self.reload()
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Set Group Stuff
@@ -406,11 +409,11 @@ def doSetMaintainLocalSetGroup(self):
             if not sInstance.parents:
                 self.setsGroup.store(s)
         
-        self.reset()
+        self.reload()
         
 def doSetHideSetGroups(self):
     self.HideSetGroupOptionVar.toggle()
-    self.reset()
+    self.reload()
     
 def doGroupLocal(self):
     if not self.setGroupName:
@@ -418,7 +421,7 @@ def doGroupLocal(self):
     buffer = self.refSetsDict.get('From Scene')
     for s in buffer:
         sInstance = SetFactory(s)
-        if not sInstance.parents and s != self.setGroupName:
+        if not sInstance.parents:
             self.setsGroup.store(s)
     
         
@@ -431,7 +434,7 @@ def doMultiSetType(self,setMode,typeName):
             for s in self.ActiveObjectSetsOptionVar.value:
                 if s in self.objectSets and s in self.refSetsDict.get('From Scene'):
                     doSetType(self,s,typeName)
-            self.reset()
+            self.reload()
             
         else:
             guiFactory.warning("No active sets found")
@@ -441,7 +444,7 @@ def doMultiSetType(self,setMode,typeName):
         for s in self.objectSets:
             if s in self.refSetsDict.get('From Scene'):
                 doSetType(self,s,typeName)      
-        self.reset()
+        self.reload()
                 
             
 
@@ -531,7 +534,6 @@ def doDeleteMultiCurrentKeys(self,setMode):
             allObjectsList.extend(sInstance.setList) 
             
     if allObjectsList:
-        print 'SELECTING'
         mc.select(allObjectsList) 
         
 def doResetMultiSets(self,setMode):
@@ -562,7 +564,7 @@ def doSetAllRefState(self,value):
             tmp = self.activeRefsCBDict.get(i)
             mc.menuItem(tmp,edit = True,cb=value)
             doSetRefState(self,i,value,False)
-        self.reset()
+        self.reload()
         
 def doSetAllTypeState(self,value):
     if self.activeTypesCBDict:
@@ -570,6 +572,6 @@ def doSetAllTypeState(self,value):
             tmp = self.activeTypesCBDict.get(i)
             mc.menuItem(tmp,edit = True,cb=value)
             doSetTypeState(self,i,value,False)
-        self.reset()
+        self.reload()
         
             

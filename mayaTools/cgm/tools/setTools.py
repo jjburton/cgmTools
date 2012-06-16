@@ -108,7 +108,10 @@ class setToolsClass(BaseMelWindow):
 		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
 
 		
-		
+		guiFactory.appendOptionVarList(self,self.ActiveObjectSetsOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.ActiveRefsOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.ActiveTypesOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.SetToolsModeOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.KeyTypeOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideSetGroupOptionVar.name)
@@ -220,19 +223,16 @@ class setToolsClass(BaseMelWindow):
 		
 		#>>> Reset Options		
 		MelMenuItemDiv( self.UI_OptionsMenu )
-		MelMenuItem( self.UI_OptionsMenu, l="Reset Active",
-			         c=lambda *a: self.reset(True,True))		
+		MelMenuItem( self.UI_OptionsMenu, l="Reload",
+			         c=lambda *a: self.reload())		
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
-			         c=lambda *a: self.reset(False,True))
+			         c=lambda *a: self.reset())
 		
-	def reset(self,resetActive = False,resetMode = False):
-	
-		if resetActive:
-			guiFactory.purgeOptionVars(['cgmVar_activeObjectSets'])
-		if resetMode:
-			guiFactory.purgeOptionVars(['cgmVar_setToolsMode'])
-				
+	def reset(self):	
 		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
+		
+	def reload(self):	
+		run()
 
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()

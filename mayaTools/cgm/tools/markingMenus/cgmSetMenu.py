@@ -31,10 +31,12 @@ class setToolsMarkingMenu(BaseMelWindow):
 		"""
 		Initializes the pop up menu class call
 		"""
-		self.optionVars = []
+		self.optionVars = []		
 		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int',0)
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int',0)			
-			
+		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int',0)
+		
+		self.setupVariables()
+		
 		panel = mc.getPanel(up = True)
 		if panel:
 			# Attempt at fixing a bug of some tools not working when the pop up parent isn't 'viewPanes'
@@ -69,13 +71,8 @@ class setToolsMarkingMenu(BaseMelWindow):
 			command
 			mmActionOptionVar.set(1)
 		
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
-		
-		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
-		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs',defaultValue = [''])
-		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes',defaultValue = [''])
-		self.SetToolsModeOptionVar = OptionVarFactory('cgmVar_setToolsMode', defaultValue = 0)
+		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int',0)
+		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int',0)
 		
 		self.setTypes = ['NONE',
 		                 'animation',
@@ -85,6 +82,7 @@ class setToolsMarkingMenu(BaseMelWindow):
 		                 'fx',
 		                 'lighting']
 		self.setModes = ['<<< All Loaded Sets >>>','<<< Active Sets >>>']
+
 		setToolsLib.updateObjectSets(self)	
 
 		loadedCheck = False
@@ -92,7 +90,7 @@ class setToolsMarkingMenu(BaseMelWindow):
 			loadedCheck = True
 		
 		activeCheck = False
-		if self.ActiveObjectSetsOptionVar.value:
+		if self.activeSets:
 			activeCheck = True
 				
 		IsClickedOptionVar.set(1)
@@ -136,8 +134,100 @@ class setToolsMarkingMenu(BaseMelWindow):
 		
 		
 		MelMenuItemDiv(parent)
+		
 		MelMenuItem(parent,l = 'Show Gui',
-				    c = lambda *a: setTools.run())
+				    c = lambda *a: self.reset())
+		
+		#>>> Keying Options
+		KeyMenu = MelMenuItem( parent, l='Key type', subMenu=True)
+		KeyMenuCollection = MelRadioMenuCollection()
+	
+		if self.KeyTypeOptionVar.value == 0:
+			regKeyOption = True
+			bdKeyOption = False
+		else:
+			regKeyOption = False
+			bdKeyOption = True
+	
+		KeyMenuCollection.createButton(KeyMenu,l=' Reg ',
+		                               c= Callback(self.toggleVarAndReset,self.KeyTypeOptionVar),
+		                               rb= regKeyOption )
+		KeyMenuCollection.createButton(KeyMenu,l=' Breakdown ',
+		                               c= Callback(self.toggleVarAndReset,self.KeyTypeOptionVar),
+		                               rb= bdKeyOption )
+
+
+		#Ref menu	
+		self.refPrefixDict = {}	
+		self.activeRefsCBDict = {}
+				
+		if self.refPrefixes and len(self.refPrefixes) > 1:
+		
+			refMenu = MelMenuItem( parent, l='Load Refs:', subMenu=True)
+			
+				
+			MelMenuItem( refMenu, l = 'All',
+			             c = Callback(setToolsLib.doSetAllRefState,self,True))				
+			MelMenuItemDiv( refMenu )
+
+			
+			for i,n in enumerate(self.refPrefixes):
+				self.refPrefixDict[i] = n
+				
+				activeState = False
+				
+				if self.ActiveRefsOptionVar.value:
+					if n in self.ActiveRefsOptionVar.value:
+						activeState = True	
+							
+				tmp = MelMenuItem( refMenu, l = n,
+				                   cb = activeState,
+				                   c = Callback(setToolsLib.doSetRefState,self,i,not activeState))	
+				
+				self.activeRefsCBDict[i] = tmp
+				
+			MelMenuItemDiv( refMenu )
+			MelMenuItem( refMenu, l = 'Clear',
+			             c = Callback(setToolsLib.doSetAllRefState,self,False))	
+			
+
+			
+		#Types menu	
+		self.typeDict = {}	
+		self.activeTypesCBDict = {}
+					
+		if self.setTypes:
+		
+			typeMenu = MelMenuItem( parent, l='Load Types: ', subMenu=True)
+			
+				
+			MelMenuItem( typeMenu, l = 'All',
+		                 c = Callback(setToolsLib.doSetAllTypeState,self,True))				
+			MelMenuItemDiv( typeMenu )
+
+			
+			for i,n in enumerate(self.setTypes):
+				self.typeDict[i] = n
+				
+				activeState = False
+				
+				if self.ActiveTypesOptionVar.value:
+					if n in self.ActiveTypesOptionVar.value:
+						activeState = True	
+							
+				tmp = MelMenuItem( typeMenu, l = n,
+			                       cb = activeState,
+			                       c = Callback(setToolsLib.doSetTypeState,self,i,not activeState))	
+				
+				self.activeTypesCBDict[i] = tmp
+				
+			MelMenuItemDiv( typeMenu )
+			MelMenuItem( typeMenu, l = 'Clear',
+		                 c = Callback(setToolsLib.doSetAllTypeState,self,False))	
+		
+		
+		
+
 		MelMenuItemDiv(parent)
 		
 		self.objectSetsDict = {}
@@ -163,7 +253,34 @@ class setToolsMarkingMenu(BaseMelWindow):
 
 		MelMenuItemDiv(parent)	
 		MelMenuItem(parent, l="Reset",
-	                 c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars))
+	                 c=lambda *a: self.reset())
+		
+	def setupVariables(self):
+		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
+		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs',defaultValue = [''])
+		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes',defaultValue = [''])
+		self.KeyTypeOptionVar = OptionVarFactory('cgmVar_KeyType', defaultValue = 0)
+
+		
+		guiFactory.appendOptionVarList(self,self.ActiveObjectSetsOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.ActiveRefsOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.ActiveTypesOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.KeyTypeOptionVar.name)
+		
+	def reset(self):
+		guiFactory.purgeOptionVars(self.optionVars)
+		setTools.run()
+		
+	def reload(self):
+		setTools.run()
+		
+	def toggleVarAndReset(self, optionVar):
+		try:
+			optionVar.toggle()
+			self.reload()
+		except:
+			print "MM change var and reset failed!"
+		
 			
 		
 	
