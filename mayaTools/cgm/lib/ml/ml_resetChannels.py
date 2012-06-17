@@ -52,9 +52,17 @@ def resetChannels():
     chans = mc.channelBox(gChannelBoxName, query=True, sma=True)
     
     for obj in sel:
-        attrs = chans
-        if not chans:
-            attrs = mc.listAttr(obj, keyable=True, unlocked=True)
+        #Check if object is an attribute, Morgan, this is the section I added
+        if '.' in obj:
+            splitBuffer = obj.split('.')
+            if splitBuffer and mc.attributeQuery (splitBuffer[-1], node = ''.join(splitBuffer[:-1]), exists = True ):
+                attrs = [splitBuffer[-1]]
+                obj = ''.join(splitBuffer[:-1])
+        
+        else:
+            attrs = chans
+            if not chans:
+                attrs = mc.listAttr(obj, keyable=True, unlocked=True)
         
         for attr in attrs:
             try:
