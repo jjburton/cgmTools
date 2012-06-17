@@ -37,6 +37,8 @@ from cgm.lib.classes import NameFactory
 
 from cgm.lib.ml import (ml_resetChannels)
 
+reload(ml_resetChannels)
+
 setTypes = {'animation':'animationSet',
             'layout':'layoutSet',
             'modeling':'modelingSet',
@@ -167,6 +169,8 @@ class SetFactory(object):
         
         """
         assert mc.objExists(info) is True, "'%s' doesn't exist"%info
+        if info == self.nameShort:
+            return False
         
         if info in self.setList:
             guiFactory.warning("'%s' is already stored on '%s'"%(info,self.nameLong))    
