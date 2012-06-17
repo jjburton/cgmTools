@@ -83,9 +83,7 @@ def returnObjectSets():
                 pass
             
     for s in allSets:
-        print s
         if returnObjectType(s) == 'animLayer':
-            print s
             allSets.remove(s)
     
     for s in 'BaseAnimation','defaultCreaseDataSet','defaultObjectSet','defaultLightSet','initialParticleSE','initialShadingGroup':
