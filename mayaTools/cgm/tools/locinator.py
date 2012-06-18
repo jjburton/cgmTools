@@ -26,11 +26,13 @@
 #	0.1.12112011 - Simplified gui, cleaned up a few things
 #	0.1.01052012 - Rewrote using Hammish's baseMelUI, adds the ability to save between tool instances, weirdness with
 #                      some stuff not being visible when you show the
+#	0.2.06172012 - Added buffer ability and modes
 #
 #=================================================================================================================================================
-__version__ = '0.1.04232012'
+__version__ = '0.2.06172012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.classes.OptionVarFactory import *
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -85,6 +87,7 @@ class locinatorClass(BaseMelWindow):
 		#Menu
 		self.setupVariables()
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
+		self.UI_BufferMenu = MelMenu( l = 'Buffer', pmc=self.buildBufferMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 		
 		self.ShowHelpOption = mc.optionVar( q='cgmVar_LocinatorShowHelp' )
@@ -107,6 +110,12 @@ class locinatorClass(BaseMelWindow):
 		self.show()
 
 	def setupVariables(self):
+		self.LocinatorUpdateObjectsOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateMode',defaultValue = 0)
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorUpdateMode')
+		
+		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorUpdateObjectsBuffer')	
+		
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
 		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
@@ -154,13 +163,48 @@ class locinatorClass(BaseMelWindow):
 	                 cb= mc.optionVar( q='cgmVar_TaggingUpdateRO' ),
 	                 c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_TaggingUpdateRO'))
 		
+		# Update Mode
+		UpdateMenu = MelMenuItem( self.UI_OptionsMenu, l='Update Mode', subMenu=True)
+		UpdateMenuCollection = MelRadioMenuCollection()
+
+		if self.LocinatorUpdateObjectsOptionVar.value == 0:
+			slMode = True
+			bufferMode = False
+		else:
+			slMode = False
+			bufferMode = True
+
+		UpdateMenuCollection.createButton(UpdateMenu,l='Selected',
+				                             c=lambda *a: self.LocinatorUpdateObjectsOptionVar.set(0),
+				                             rb=slMode )
+		UpdateMenuCollection.createButton(UpdateMenu,l='Buffer',
+				                             c=lambda *a:self.LocinatorUpdateObjectsOptionVar.set(1),
+				                             rb=bufferMode )
+		
 
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
 			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))	
 		
 
-
+	def buildBufferMenu( self, *a ):
+		self.UI_BufferMenu.clear()
+		
+		MelMenuItem( self.UI_BufferMenu, l="Define",
+				     c= lambda *a:locinatorLib.defineBuffer(self))
+		
+		MelMenuItem( self.UI_BufferMenu, l="Add Selected",
+				     c= lambda *a:locinatorLib.addSelectedToBuffer(self))
+		
+		MelMenuItem( self.UI_BufferMenu, l="Remove Selected",
+				     c= lambda *a:locinatorLib.removeSelectedFromBuffer(self))
+		
+		MelMenuItemDiv( self.UI_BufferMenu )
+		MelMenuItem( self.UI_BufferMenu, l="Select Members",
+				     c= lambda *a: self.LocinatorUpdateObjectsBufferOptionVar.select())
+		MelMenuItem( self.UI_BufferMenu, l="Purge",
+				     c= lambda *a: self.LocinatorUpdateObjectsBufferOptionVar.clear())
+		
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
 		MelMenuItem( self.UI_HelpMenu, l="Show Help",

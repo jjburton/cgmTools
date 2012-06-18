@@ -182,6 +182,15 @@ class OptionVarFactory():
         except:
             guiFactory.warning("'%s' doesn't exist"%(self.name))
             
+    def clear(self):
+        """
+        Clear the data from an option var
+        """
+        doName = self.name
+        doType = self.form
+        self.purge()
+        self.__init__(doName,doType)
+            
             
     def set(self,value):
         if self.form == 'int':
@@ -296,6 +305,8 @@ class OptionVarFactory():
                 
         if selectList:
             mc.select(selectList)
+        else:
+            guiFactory.warning("'%s' is empty!"%self.name)
             
             
     def existCheck(self):

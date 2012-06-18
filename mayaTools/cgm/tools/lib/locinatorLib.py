@@ -33,8 +33,12 @@ import subprocess
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes import ObjectFactory
 reload(ObjectFactory)
+from cgm.lib.classes import OptionVarFactory
+reload(OptionVarFactory)
+
 
 from cgm.lib.classes.ObjectFactory import *
+from cgm.lib.classes.OptionVarFactory import *
 
 from cgm.lib import rigging
 from cgm.lib import attributes
@@ -42,7 +46,6 @@ from cgm.lib import locators
 from cgm.lib import search
 from cgm.lib import lists
 from cgm.lib import batch
-from cgm.lib.classes import NameFactory
 from cgm.lib import guiFactory
 from cgm.lib import modules
 from cgm.lib import position
@@ -286,7 +289,11 @@ def doLocClosest():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     bufferList = []
-    selection = (mc.ls (sl=True,flatten=True)) or []
+    if self.LocinatorUpdateObjectsOptionVar.value:
+	selection = self.LocinatorUpdateObjectsBufferOptionVar.value
+    else:
+	selection = (mc.ls (sl=True,flatten=True)) or []
+	
     mc.select(cl=True)
 
     if len(selection)<2:
@@ -343,15 +350,28 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     bufferList = []
-    selection = (mc.ls (sl=True,flatten=True)) or []
+    
+    if self.LocinatorUpdateObjectsOptionVar.value:
+	mc.select(cl=True)
+	self.LocinatorUpdateObjectsBufferOptionVar.select()
+	selection = (mc.ls (sl=True,flatten=True)) or []
+	
+    else:
+	selection = (mc.ls (sl=True,flatten=True)) or []
+        
+    if not selection:
+	if self.LocinatorUpdateObjectsOptionVar.value:
+	    guiFactory.warning('Buffer is empty')
+	    return 
+	else:
+	    guiFactory.warning('Nothing selected')
+	    return 
+	
     getSelfOptionVars(self)
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
     getSelfOptionVars(self)
-    
-    if not len(selection):
-        guiFactory.warning('Nothing selected')
-        return 
-
+	
+	
     toUpdate = []
     # First see if we have any updateable objects
     for item in selection:
@@ -631,3 +651,48 @@ def returnLocatorSources(locatorName):
 	    return False
     else:
 	return False
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Buffer Tools - using optionVar
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+def defineBuffer(self):
+    selection = mc.ls(sl=True, flatten = True) or []
+    self.LocinatorUpdateObjectsBufferOptionVar.clear()
+    
+    if selection:
+	for o in selection:
+	    if queryCanUpdate(o):
+		self.LocinatorUpdateObjectsBufferOptionVar.append(o)
+	    else:
+		guiFactory.report("'%s' can't be updated. Not added to buffer"%o)
+    else:
+	guiFactory.warning("Nothing selected")
+	
+def addSelectedToBuffer(self):
+    selection = mc.ls(sl=True, flatten = True) or []
+    
+    if selection:
+	for o in selection:
+	    if queryCanUpdate(o):
+		self.LocinatorUpdateObjectsBufferOptionVar.append(o)
+	    else:
+		guiFactory.report("'%s' can't be updated. Not added to buffer"%o)
+    else:
+	guiFactory.warning("Nothing selected")
+	
+def removeSelectedFromBuffer(self):
+    selection = mc.ls(sl=True, flatten = True) or []
+    
+    if selection:
+	for o in selection:
+	    if queryCanUpdate(o):
+		try:
+		    self.LocinatorUpdateObjectsBufferOptionVar.remove(o)
+		except StandardError:
+		    pass
+	    else:
+		guiFactory.report("'%s' can't be updated. Not added to buffer"%o)
+    else:
+	guiFactory.warning("Nothing selected")
+	
+	    
