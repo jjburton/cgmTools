@@ -289,9 +289,8 @@ class setToolsClass(BaseMelWindow):
 	
 	def Main_buildLayout(self,parent):
 		def modeSet( item ):
-			tmp = OptionVarFactory('cgmVar_setToolsMode','i')
 			i =  self.setModes.index(item)
-			tmp.set( i )
+			self.SetToolsModeOptionVar.set( i )
 			self.setMode = i
 
 		MainForm = MelFormLayout(parent)
@@ -325,8 +324,8 @@ class setToolsClass(BaseMelWindow):
 		
 		tmpSel = guiFactory.doButton2(AllSetsRow,
 		                              ' s ',
-		                              Callback(setToolsLib.doSelectMultiSets,self,self.setMode),
-		                              'Select All Loaded Sets')
+		                              lambda *a:setToolsLib.doSelectMultiSets(self,self.SetToolsModeOptionVar.value),
+		                              'Select All Loaded/Active Sets')
 						
 		# Mode toggle box
 		self.SetModeOptionMenu = MelOptionMenu(AllSetsRow,
@@ -338,15 +337,15 @@ class setToolsClass(BaseMelWindow):
 			
 		tmpKey = guiFactory.doButton2(AllSetsRow,
 	                                  ' k ',
-	                                  Callback(setToolsLib.doKeyMultiSets,self,self.setMode),			                              
-	                                  'Key All Sets')
+		                              lambda *a:setToolsLib.doKeyMultiSets(self,self.SetToolsModeOptionVar.value),
+		                              'Key All Sets')
 		tmpDeleteKey = guiFactory.doButton2(AllSetsRow,
 	                                    ' d ',
-	                                    Callback(setToolsLib.doDeleteMultiCurrentKeys,self,self.setMode),			                              			                                
+		                                lambda *a:setToolsLib.doDeleteMultiCurrentKeys(self,self.SetToolsModeOptionVar.value),
 	                                    'Delete All Set Keys')	
 		tmpReset = guiFactory.doButton2(AllSetsRow,
 	                                    ' r ',
-	                                    Callback(setToolsLib.doResetMultiSets,self,self.setMode),			                              			                                
+		                                lambda *a:setToolsLib.doResetMultiSets(self,self.SetToolsModeOptionVar.value),		                                
 	                                    'Reset All Set Keys')	
 		
 		mc.formLayout(AllSetsRow, edit = True,
@@ -369,7 +368,7 @@ class setToolsClass(BaseMelWindow):
 		for n in self.setTypes:
 			MelMenuItem(allCategoryMenu,
 		                label = n,
-		                c = Callback(setToolsLib.doMultiSetType,self,self.setMode,n))
+		                c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n))
 		
 		
 		
