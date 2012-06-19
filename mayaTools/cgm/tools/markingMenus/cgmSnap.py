@@ -34,6 +34,11 @@ class snapMarkingMenu(BaseMelWindow):
 		surfaceSnapAimModeVar = OptionVarFactory('cgmVar_SurfaceSnapAimMode', 'int')	
 		UpdateRotateOrderOnTagVar = OptionVarFactory('cgmVar_TaggingUpdateRO', 'int')	
 		
+		self.LocinatorUpdateObjectsOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateMode',defaultValue = 0)
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorUpdateMode')
+		
+		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
+		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorUpdateObjectsBuffer')	
 		
 		panel = mc.getPanel(up = True)
 		sel = search.selectCheck()
@@ -43,7 +48,7 @@ class snapMarkingMenu(BaseMelWindow):
 		
 		if mc.popupMenu('cgmMM',ex = True):
 			mc.deleteUI('cgmMM')
-		print panel
+			
 		if panel:
 			if mc.control(panel, ex = True):
 				mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = 'viewPanes',

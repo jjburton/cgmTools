@@ -32,8 +32,8 @@ class setKeyMarkingMenu(BaseMelWindow):
 		Initializes the pop up menu class call
 		"""
 		self.optionVars = []
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')			
+		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 0)
+		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction',0)			
 		
 		panel = mc.getPanel(up = True)
 		if panel:
@@ -55,23 +55,25 @@ class setKeyMarkingMenu(BaseMelWindow):
 					mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = panel,
 						         pmc = lambda *a: self.createUI('cgmMM'))
 				except:
+					guiFactory.warning('Exception on set key marking menu')
 					mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')			
 
 	def createUI(self,parent):
 		"""
 		Create the UI
 		"""		
+		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked')
+		self.mmActionOptionVar = OptionVarFactory('cgmVar_mmAction')
+		
 		def buttonAction(command):
 			"""
 			execute a command and let the menu know not do do the default button action but just kill the ui
 			"""			
-			killUI()
+			self.mmActionOptionVar.set(1)			
 			command
-			mmActionOptionVar.set(1)
-		
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
-		
+			killUI()
+			
+			
 			
 		sel = search.selectCheck()
 		selPair = search.checkSelectionLength(2)
@@ -119,8 +121,8 @@ class setKeyMarkingMenu(BaseMelWindow):
 	
 		
 def killUI():
-	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked')
+	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction')
 	sel = search.selectCheck()
 	
 	if mc.popupMenu('cgmMM',ex = True):
@@ -128,10 +130,9 @@ def killUI():
 
 	if sel:
 		if not mmActionOptionVar.value:
+			print mmActionOptionVar.value
 			mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
 			
-	IsClickedOptionVar.set(0)
-	mmActionOptionVar.set(0)	
 """
 if (`popupMenu -exists tempMM`) { deleteUI tempMM; }
 """

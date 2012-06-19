@@ -32,8 +32,8 @@ class setToolsMarkingMenu(BaseMelWindow):
 		Initializes the pop up menu class call
 		"""
 		self.optionVars = []		
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int',0)
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int',0)
+		self.IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked','int',0)
+		self.mmActionOptionVar = OptionVarFactory('cgmVar_mmAction','int',0)
 		
 		self.setupVariables()
 		
@@ -45,8 +45,8 @@ class setToolsMarkingMenu(BaseMelWindow):
 			
 		sel = search.selectCheck()
 		
-		IsClickedOptionVar.set(0)
-		mmActionOptionVar.set(0)
+		self.IsClickedOptionVar.set(0)
+		self.mmActionOptionVar.set(0)
 		
 		if mc.popupMenu('cgmMM',ex = True):
 			mc.deleteUI('cgmMM')
@@ -57,12 +57,13 @@ class setToolsMarkingMenu(BaseMelWindow):
 					mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = panel,
 						         pmc = lambda *a: self.createUI('cgmMM'))
 				except:
-					pass		
+					guiFactory.warning('cgm.setMenu failed!')		
 
 	def createUI(self,parent):
 		"""
 		Create the UI
 		"""		
+		
 		def buttonAction(command):
 			"""
 			execute a command and let the menu know not do do the default button action but just kill the ui
@@ -71,8 +72,6 @@ class setToolsMarkingMenu(BaseMelWindow):
 			command
 			mmActionOptionVar.set(1)
 		
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int',0)
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int',0)
 		
 		self.setTypes = ['NONE',
 		                 'animation',
@@ -93,7 +92,7 @@ class setToolsMarkingMenu(BaseMelWindow):
 		if self.activeSets:
 			activeCheck = True
 				
-		IsClickedOptionVar.set(1)
+		self.IsClickedOptionVar.set(1)
 		
 		mc.menu(parent,e = True, deleteAllItems = True)
 		MelMenuItem(parent,
