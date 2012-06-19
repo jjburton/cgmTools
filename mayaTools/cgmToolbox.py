@@ -228,7 +228,7 @@ def loadTDTools( *a ):
 def loadAttrTools( *a ):
 	from cgm.tools import attrTools
 	reload(attrTools)
-	attrTools.run()
+	cgmAttrToolsWin = attrTools.run()
 	
 def loadLocinator( *a ):
 	from cgm.tools import locinator

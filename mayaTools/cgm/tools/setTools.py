@@ -37,8 +37,6 @@ reload(guiFactory)
 def run():
 	cgmSetToolsWin = setToolsClass()
 		
-	#cgmSetToolsWin(edit = True, resizeToFitChildren = True)
-
 class setToolsClass(BaseMelWindow):
 	from  cgm.lib import guiFactory
 	guiFactory.initializeTemplates()
@@ -62,10 +60,7 @@ class setToolsClass(BaseMelWindow):
 		self.version =  __version__ 
 		self.optionVars = []
 		
-		
-		
-		#guiFactory.appendOptionVarList(self,'cgmVar_activeRefs')
-		
+				
 		self.setTypes = ['NONE',
 		                 'animation',
 		                 'layout',
@@ -276,7 +271,6 @@ class setToolsClass(BaseMelWindow):
 		mc.showWindow( window )
 
 	def printHelp(self):
-		import setToolsLib
 		help(setToolsLib)
 		
 	def printReport(self):
