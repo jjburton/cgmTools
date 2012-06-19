@@ -318,6 +318,23 @@ def doUpdateObj(self,obj):
 	except:
 	    return False
 	
+def doConstrainToUpdateObject(self,obj):
+    matchObject = search.returnTagInfo(obj,'cgmMatchObject')
+    
+    if mc.objExists(matchObject):
+
+	try:
+	    if self.matchMode == 0:
+		buffer =  mc.parentConstraint(matchObject,obj, maintainOffset=False)
+	    elif self.matchMode == 1:
+		buffer = mc.pointConstraint(matchObject,obj,  maintainOffset=False)
+	    elif self.matchMode == 2:
+		buffer = mc.orientConstraint(matchObject,obj,   maintainOffset=False)
+	    
+	    return buffer
+	except:
+	    return False
+	
 def doUpdateSelectedObjects(self):
     selection = mc.ls(sl=True,type = 'transform') or []
     if selection:
@@ -334,6 +351,8 @@ def doUpdateSelectedObjects(self):
 			position.moveOrientSnap(obj,matchObject)
 		except:
 		    guiFactory.warning("'%s' has no match object"%obj)
+		    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     """
@@ -380,9 +399,9 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 
     print "Self bake mode is '%s'"%self.bakeMode
     print "Force Every Frame mode is '%s'"%self.forceEveryFrame
-    if len(toUpdate) >= 1:
+    if toUpdate:
         if not self.bakeMode:
-	    print 'yes'
+	    #Single frame update
             for item in toUpdate:
                 if search.returnObjectType(item) == 'locator':
                     if locators.doUpdateLocator(item,self.forceBoundingBoxState):
@@ -398,48 +417,65 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 	    mc.select(toUpdate)
 	    
         else:
+	    #Multi frame update
             self.startFrame = self.startFrameField(q=True,value=True)
             self.endFrame = self.endFrameField(q=True,value=True)
             initialFramePosition = mc.currentTime(q=True)
 
-
+	    constraintList = []
+	    itemBaseAttrs = {}
+	    
+	    
             if self.forceEveryFrame== True:
                 for item in toUpdate:
                     #Then delete the key clear any key frames in the region to be able to cleanly put new ones on keys only mode
                     mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1),at= matchModeKeyingDict.get(self.matchMode))
 
                 mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(range(self.startFrame,self.endFrame + 1)),"On '%s'"%item)
-                #guiFactory.doProgressWindow()
                 maxRange = self.endFrame + 1
+		#First set up our constraints for non locator objects
+		for item in toUpdate:
+		    if search.returnObjectType(item) != 'locator' and queryCanUpdate(item):
+			#Grab an attr buffer to see if a blendParent pops up
+			itemBaseAttrs[item] = mc.listAttr(item, userDefined = True)
+			#Then set up the constraint
+			constraintList.append( doConstrainToUpdateObject(self,item) )
 
                 for f in range(self.startFrame,self.endFrame + 1):
 		    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 			    break
 		    mc.progressBar(mayaMainProgressBar, edit=True, status = ("On frame %i for '%s'"%(f,"','".join(toUpdate))), step=1)                    
-                    """
-                    if guiFactory.doUpdateProgressWindow('On f',f,maxRange,f) == 'break':
-                        break
-                    """
+
                     mc.currentTime(f)
                     for item in toUpdate:
                         if search.returnObjectType(item) == 'locator':
                             locators.doUpdateLocator(item,self.forceBoundingBoxState)
-                        else:
-                            if queryCanUpdate(item):
-				doUpdateObj(self,item)
-                            else:
-                                break
                         mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
+			
+			#See if we got a new blendParent pop up we need to set to 1
+			compareAttrList = mc.listAttr(item, userDefined = True)
+			missingList = lists.returnMissingList( itemBaseAttrs.get(item) ,compareAttrList)
+			if missingList:
+			    for i in missingList:
+				if 'blendParent' in i:
+				    attributes.doSetAttr(item,i,1)	
+				    mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
+				    
 
 		guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
-
+		
+		if constraintList:
+		    for o in constraintList:
+			try:
+			    mc.delete(o)
+			except:
+			    pass
                 #guiFactory.doCloseProgressWindow()
                 #Put the time line back where it was
                 mc.currentTime(initialFramePosition)
 		mc.select(toUpdate)
 
             else:
-
                 guiFactory.doProgressWindow()
                 itemCnt = 0
 
@@ -474,6 +510,12 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 			    keyFrames = search.returnListOfKeyIndices(matchObject)
 			else:
 			    keyFrames = search.returnListOfKeyIndices(item)
+			    
+			#Grab an attr buffer to see if a blendParent pops up
+			itemBaseAttrs[item] = mc.listAttr(item, userDefined = True)
+			#Then set up the constraint
+			constraintList.append( doConstrainToUpdateObject(self,item) )
+			
 		    
 		    guiFactory.warning("'%s' has keys of %s"%(item,keyFrames))
 			
@@ -495,18 +537,33 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
                             mc.currentTime(f)
                             if search.returnObjectType(item) == 'locator':
                                 locators.doUpdateLocator(item,self.forceBoundingBoxState)
-                            else:
-				doUpdateObj(self,item)
 
-
-                            mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
+			    mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
+			    
+			    #See if we got a new blendParent pop up we need to set to 1
+			    compareAttrList = mc.listAttr(item, userDefined = True)
+			    missingList = lists.returnMissingList( itemBaseAttrs.get(item) ,compareAttrList)
+			    if missingList:
+				for i in missingList:
+				    if 'blendParent' in i:
+					attributes.doSetAttr(item,i,1)	
+					mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
+				    
                             #Close our progress bar
 
                     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
-                    itemCnt += 1
+		    
+		if constraintList:
+		    for o in constraintList:
+			try:
+			    mc.delete(o)
+			except:
+			    pass
+		    
 
                 guiFactory.doCloseProgressWindow()
                 #Put the time line back where it was
+
                 mc.currentTime(initialFramePosition)
 		mc.select(toUpdate)
     else:

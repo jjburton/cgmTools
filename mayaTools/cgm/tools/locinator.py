@@ -51,7 +51,7 @@ class locinatorClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'cgmLocinatorWindow'
 	WINDOW_TITLE = 'cgm.locinator'
-	DEFAULT_SIZE = 180, 260
+	DEFAULT_SIZE = 180, 275
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -184,9 +184,14 @@ class locinatorClass(BaseMelWindow):
 
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
-			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))	
+			         c=lambda *a: self.reset())	
 		
-
+	def reset(self):	
+		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
+		
+	def reload(self):	
+		run()
+		
 	def buildBufferMenu( self, *a ):
 		self.UI_BufferMenu.clear()
 		
