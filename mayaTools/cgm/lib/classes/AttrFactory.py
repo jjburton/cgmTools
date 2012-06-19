@@ -72,7 +72,6 @@ class AttrFactory():
             else:
                 self.attr = attrName
                 self.form = currentType
-                self.get(*a, **kw)
         else:
             try:
                 if self.form == False:
@@ -99,11 +98,41 @@ class AttrFactory():
                 
         if value is not None:
             self.set(value)
+        
+        self.updateData(*a, **kw)
 
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def updateData(self,*a, **kw):
+        """ 
+        Get's attr updated data       
+        """     
+        assert mc.objExists('%s.%s'%(self.obj.nameLong,self.attr)) is True, "'%s.%s' doesn't exist" %(self.obj.nameLong,self.attr)
+        
+        self.get(*a, **kw)
+        
+        self.locked = attributes.doGetAttr(self.obj.nameLong,self.attr,lock=True)
+        self.keyable = mc.attributeQuery(self.attr, node = self.obj.nameLong, keyable=True)
+        self.hidden = mc.attributeQuery(self.attr, node = self.obj.nameLong, hidden=True)
+        
+        if self.form not in ['string','message']:
+            self.minValue = False
+            if mc.attributeQuery(self.attr, node = self.obj.nameLong, minExists=True):
+                self.minValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, minimum=True)
+                guiFactory.report("'%s.%s' minValue is %s" %(self.obj.nameLong,self.attr, self.minValue))
+                
+            self.maxValue = False
+            if mc.attributeQuery(self.attr, node = self.obj.nameLong, maxExists=True):
+                self.maxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, maximum=True)
+                guiFactory.report("'%s.%s' maxValue is %s" %(self.obj.nameLong,self.attr, self.maxValue))
+                
+            self.defaultValue = False
+            if mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True):
+                self.defaultValue = mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True)
+                guiFactory.report("'%s.%s' defaultValue is %s" %(self.obj.nameLong,self.attr, self.defaultValue))
+    
     def convert(self,attrType):
         """ 
         Converts an attribute type from one to another
@@ -200,5 +229,98 @@ class AttrFactory():
             
         except:
             guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
+            
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Set Options
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
+    def isDefault(self,value = None):
+        if value is not None:
+            try:
+                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,defaultValue = value)
+                self.defaultValue = value
+            except:
+                guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))       
+                
+    def isMax(self,value = None):
+        if value is False:
+            try:
+                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMaxValue = value)
+                self.maxValue = value
+                guiFactory.warning("'%s.%s' had it's max value cleared"%(self.obj.nameLong,self.attr))                     
+            except:
+                guiFactory.warning("'%s.%s' failed to clear a max value"%(self.obj.nameLong,self.attr))  
+        
+        elif value is not None:
+            try:
+                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,maxValue = value)
+                self.maxValue = value
+            except:
+                guiFactory.warning("'%s.%s' failed to set a max value"%(self.obj.nameLong,self.attr))
+                
+                
+    def isMin(self,value = None):
+        if value is False:
+            try:
+                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMinValue = value)
+                self.minValue = value
+                guiFactory.warning("'%s.%s' had it's min value cleared"%(self.obj.nameLong,self.attr))                     
+            except:
+                guiFactory.warning("'%s.%s' failed to clear a min value"%(self.obj.nameLong,self.attr))
+        
+        
+        elif value is not None:
+            try:
+                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,minValue = value)
+                self.minValue = value
+            except:
+                guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))
+    
+    def isLocked(self,arg = True):
+        if arg:
+            if not self.locked:
+                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,lock = True) 
+                guiFactory.report("'%s.%s' locked!"%(self.obj.nameLong,self.attr))
+                self.locked = True
+                
+        else:
+            if self.locked:
+                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,lock = False)           
+                guiFactory.report("'%s.%s' unlocked!"%(self.obj.nameLong,self.attr))
+                self.locked = False
+                
+    def isHidden(self,arg = True):
+        if arg:
+            if not self.hidden:
+                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = False) 
+                guiFactory.report("'%s.%s' hidden!"%(self.obj.nameLong,self.attr))
+                self.hidden = True
+
+                
+        else:
+            if self.hidden:
+                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = True)           
+                guiFactory.report("'%s.%s' unhidden!"%(self.obj.nameLong,self.attr))
+                self.hidden = False
+                
+                
+    def isKeyable(self,arg = True):
+        if arg:
+            if not self.keyable:
+                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = True) 
+                guiFactory.report("'%s.%s' keyable!"%(self.obj.nameLong,self.attr))
+                self.keyable = True
+                if self.hidden:
+                    self.hidden = False
+                
+        else:
+            if self.keyable:
+                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = False)           
+                guiFactory.report("'%s.%s' unkeyable!"%(self.obj.nameLong,self.attr))
+                self.keyable = False
+                if not self.hidden:
+                    mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = True) 
+                    
+            
+            
             
         
