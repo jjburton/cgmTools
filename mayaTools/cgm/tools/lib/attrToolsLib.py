@@ -21,6 +21,7 @@ __version__ = '0.1.03282012'
 import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib.classes import NameFactory
+from cgm.lib.classes.AttrFactory import *
 
 
 from cgm.lib import *
@@ -61,6 +62,7 @@ def uiSelectActiveAttr(self,attr):
     attrType = mc.getAttr((sourceObject+'.'+attr),type=True)
     print attrType
     
+    self.activeAttr = AttrFactory(sourceObject,attr)
     
     typeToTypesDict = {'numeric':['long','double','doubleAngle','doubleLinear'],
                        'string':['string'],

@@ -17,13 +17,12 @@
 #
 #
 #=================================================================================================================================================
-__version__ = '0.1.03292012'
-
-
-import maya.mel as mel
-import maya.cmds as mc
-
+__version__ = '0.1.06192012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.classes.OptionVarFactory import *
+
+import maya.cmds as mc
+import maya.mel as mel
 
 from cgm.lib import (guiFactory,
                      dictionary,
@@ -37,9 +36,13 @@ reload(tdToolsLib)
 reload(attrToolsLib)
 
 def run():
-	attrToolsClass()
+	cgmAttrToolsWin = attrToolsClass()
 
 class attrToolsClass(BaseMelWindow):
+	from  cgm.lib import guiFactory
+	guiFactory.initializeTemplates()
+	USE_Template = 'cgmUITemplate'
+	
 	WINDOW_NAME = 'attrTools'
 	WINDOW_TITLE = 'cgm.attrTools'
 	DEFAULT_SIZE = 350, 400
@@ -48,14 +51,9 @@ class attrToolsClass(BaseMelWindow):
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-	guiFactory.initializeTemplates()
 
-	def __init__( self):
-		# Maya version check
-		if mayaVer >= 2011:
-			self.currentGen = True
-		else:
-			self.currentGen = False
+	def __init__( self):	
+
 		# Basic variables
 		self.window = ''
 		self.activeTab = ''
@@ -70,6 +68,9 @@ class attrToolsClass(BaseMelWindow):
 
 		self.showTimeSubMenu = False
 		self.timeSubMenu = []
+		
+		self.setupVariables()
+		
 
 		# About Window
 		self.description = 'Tools for working with attributes'
@@ -94,6 +95,12 @@ class attrToolsClass(BaseMelWindow):
 		self.show()
 
 
+	def setupVariables(self):
+		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_attrToolsShowHelp', defaultValue = 0)
+
+		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
+
+		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
 
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -101,9 +108,8 @@ class attrToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildHelpMenu(self, *a ):
 		self.UI_HelpMenu.clear()
-		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		MelMenuItem( self.UI_HelpMenu, l="Show Help",
-				     cb=ShowHelpOption,
+				     cb=self.ShowHelpOptionVar.value,
 				     c= lambda *a: self.do_showHelpToggle())
 		MelMenuItem( self.UI_HelpMenu, l="Print Tools Help",
 				     c=lambda *a: self.printHelp() )
@@ -113,10 +119,8 @@ class attrToolsClass(BaseMelWindow):
 				     c=lambda *a: self.showAbout() )
 
 	def do_showHelpToggle(self):
-		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		guiFactory.toggleMenuShowState(ShowHelpOption,self.helpBlurbs)
-		mc.optionVar( iv=('cgmVar_TDToolsShowHelp', not ShowHelpOption))
-
+		self.ShowHelpOptionVar.toggle()
 
 	def showAbout(self):
 		window = mc.window( title="About", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True )
@@ -361,18 +365,18 @@ class attrToolsClass(BaseMelWindow):
 
 		self.CreateAttrTypeRadioCollection = MelRadioCollection()
 		self.CreateAttrTypeRadioCollectionChoices = []		
-		if not mc.optionVar( ex='cgmVar_AttrCreateType' ):
-			mc.optionVar( sv=('cgmVar_AttrCreateType', 'string') )
+		
+		self.CreateAttrTypeOptionVar = OptionVarFactory('cgmVar_AttrCreateType','string')
+		guiFactory.appendOptionVarList(self,self.CreateAttrTypeOptionVar.name)
 			
 		#build our sub section options
 		AttrTypeRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
-		for item in attrTypes:
-			cnt = attrTypes.index(item)
+		for cnt,item in enumerate(attrTypes):
 			self.CreateAttrTypeRadioCollectionChoices.append(self.CreateAttrTypeRadioCollection.createButton(AttrTypeRow,label=attrShortTypes[cnt],
-			                                                                                                 onCommand = ('%s%s%s' %("mc.optionVar( sv=('cgmVar_AttrCreateType','",item,"'))"))))
+			                                                                                                 onCommand = Callback(self.CreateAttrTypeOptionVar.set,item)))
 			MelSpacer(AttrTypeRow,w=2)
 
-		mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(mc.optionVar(q='cgmVar_AttrCreateType')) ]))
+		mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(self.CreateAttrTypeOptionVar.value) ]))
 		
 		AttrTypeRow.layout()
 		"""
