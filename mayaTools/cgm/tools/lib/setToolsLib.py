@@ -1,28 +1,19 @@
 #=================================================================================================================================================
 #=================================================================================================================================================
-#	bufferToolsLib - a part of cgmTools
+#	setToolsLib - a part of cgmTools
 #=================================================================================================================================================
 #=================================================================================================================================================
-#
-# DESCRIPTION:
-#   Library of functions for the cgmRiggingTools tool
-#
-# ARGUMENTS:
-#   Maya
-#
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #	http://www.cgmonks.com
-# 	Copyright 2011 CG Monks - All Rights Reserved.
+# 	Copyright 2012 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
-#	0.1.12072011 - First version
-#	0.1.12132011 - master control maker implemented, snap move tools added
-#	0.1.12272011 - split out library from tool
+#	0.1.06192012 - FIrst release version, documentation added
 #
 #=================================================================================================================================================
-__version__ = '0.1.12032011'
+__version__ = '0.1.06192012'
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -42,6 +33,9 @@ reload(guiFactory)
 
 """
 def printReport(self):
+    """ 
+    Generates a report for the objectSets as the tool sees them.    
+    """    
     guiFactory.doPrintReportStart()
     print self.refSetsDict
     print "# Object Sets found: "
@@ -84,6 +78,9 @@ def printReport(self):
 
 
 def updateObjectSets(self):
+    """ 
+    Gets sccene set objects, and sorts the data in to the class as varaibles
+    """  
     self.objectSetsRaw = search.returnObjectSets()
     self.refPrefixes = []
     self.refSetsDict = {'From Scene':[]}
@@ -99,7 +96,10 @@ def updateObjectSets(self):
     if self.objectSetsRaw:
         for o in self.objectSetsRaw:
             sInstance = SetFactory(o)
-            
+            # if it's an object set group, add it to our list
+            if sInstance.setType == 'objectSetGroup':
+                self.setGroups.append(sInstance.nameShort)
+                
             # Get our reference prefixes and sets sorted out
             if sInstance.refState:
                 if sInstance.refPrefix in self.refSetsDict.keys():
@@ -112,7 +112,6 @@ def updateObjectSets(self):
                 if sInstance.setType == 'objectSetGroup':
                     self.setsGroup = SetFactory(o)
                     self.setGroupName = self.setsGroup.nameShort
-                    self.setGroups.append(self.setsGroup.nameShort)
                 
             # Get our type tags, if none assign 'NONE'
             if sInstance.setType:
@@ -184,6 +183,12 @@ def updateObjectSets(self):
 # Individual Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doSelectSetObjects(self,nameIndex):
+    """ 
+    Selectes the objects of an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """  
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -194,6 +199,12 @@ def doSelectSetObjects(self,nameIndex):
         
 
 def doAddSelected(self,nameIndex):
+    """ 
+    Adds selected objects to an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """  
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -204,6 +215,12 @@ def doAddSelected(self,nameIndex):
 
 
 def doRemoveSelected(self,nameIndex):
+    """ 
+    Removes selected objects to an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """  
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -214,6 +231,12 @@ def doRemoveSelected(self,nameIndex):
         
 
 def doKeySet(self,nameIndex):
+    """ 
+    Keys the objects of an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """      
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -226,6 +249,14 @@ def doKeySet(self,nameIndex):
         self.reload()
         
 def doResetSet(self,nameIndex):
+    """ 
+    Reset the objects of an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    
+    Note - the reset funtion utilizes Morgan Loomis' ml_resetChannels function
+    """   
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -235,6 +266,12 @@ def doResetSet(self,nameIndex):
         self.reload()
     
 def doDeleteCurrentSetKey(self,nameIndex):
+    """ 
+    Delete the current frame keys from the objects of an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """       
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -245,6 +282,12 @@ def doDeleteCurrentSetKey(self,nameIndex):
     
 
 def doPurgeSet(self,nameIndex):
+    """ 
+    Purge the objects of an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """    
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -254,11 +297,21 @@ def doPurgeSet(self,nameIndex):
         self.reload()
 
 def doCreateSet(self):
+    """ 
+    Create a set and reload the gui
+    """        
     b = SetFactory('Set')
+    b.isQss(True)
     b.doStoreSelected()
     self.reload()
     
 def doDeleteSet(self,nameIndex):
+    """ 
+    Delete an indexed object set and reload the gui
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """   
     setName = self.objectSetsDict.get(nameIndex) 
     if mc.objExists(setName):
         mc.delete(setName)
@@ -268,6 +321,12 @@ def doDeleteSet(self,nameIndex):
         self.reload()
     
 def doCopySet(self,nameIndex):
+    """ 
+    Duplicate an indexed object set and reload the gui
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """  
     setName = self.objectSetsDict.get(nameIndex) 
     if mc.objExists(setName):
         s = SetFactory(self.objectSetsDict.get(nameIndex))
@@ -278,6 +337,12 @@ def doCopySet(self,nameIndex):
         self.reload()
     
 def doToggleQssState(self,nameIndex):
+    """ 
+    Toggle the qss state of a indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """ 
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         s = SetFactory(setName)
@@ -287,6 +352,13 @@ def doToggleQssState(self,nameIndex):
         self.reload()
 
 def doSetType(self,setName,typeName):
+    """ 
+    Set the type an indexed object set
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    typeName(string) -- name of a type (preferabbly indexed to our base typeName dictionary)
+    """ 
     if mc.objExists(setName):
         s = SetFactory(setName)
         if typeName == 'NONE':
@@ -299,6 +371,13 @@ def doSetType(self,setName,typeName):
         
     
 def doUpdateSetName(self,setTextField,nameIndex):
+    """ 
+    Updates the name of an indexed object set, and updates the gui
+    
+    Keyword arguments:
+    setTextField(string) - name of the text field to update
+    nameIndex(int) -- index of an objectSet dictionary
+    """ 
     # get the field
     setName = self.objectSetsDict.get(nameIndex)
     if not mc.objExists(setName):
@@ -337,6 +416,12 @@ def doUpdateSetName(self,setTextField,nameIndex):
 # Gui stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doSetSetAsActive(self,nameIndex):
+    """ 
+    Activates active state of an indexed object set, and updates the gui
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """ 
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName):
         self.ActiveObjectSetsOptionVar.append(setName) 
@@ -346,6 +431,12 @@ def doSetSetAsActive(self,nameIndex):
         self.reload()
 
 def doSetSetAsInactive(self,nameIndex):
+    """ 
+    Deactivates active state of an indexed object set, and updates the gui
+    
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """ 
     setName = self.objectSetsDict.get(nameIndex)
     if mc.objExists(setName): 
         self.ActiveObjectSetsOptionVar.remove(setName) 
@@ -356,6 +447,15 @@ def doSetSetAsInactive(self,nameIndex):
         self.reload()
 
 def doSetRefState(self,refIndex,value,reset = True):
+    """ 
+    Establish the ref state of an indexed rererence name, and updates the gui
+    
+    Keyword arguments:
+    refIndex(int) -- index of an refPrefix dictionary
+    value(bool) -- state of the ref
+    reset(bool) -- whether to reset the gui on success
+    
+    """ 
     refName = self.refPrefixDict.get(refIndex)
     if refName in self.refPrefixes:
         if value:
@@ -369,6 +469,15 @@ def doSetRefState(self,refIndex,value,reset = True):
         self.reload()
         
 def doSetTypeState(self,typeIndex,value,reset = True):
+    """ 
+    Establish the type state of an indexed type name, and updates the gui
+    
+    Keyword arguments:
+    typeIndex(int) -- index of an typeDict dictionary
+    value(bool) -- state of the ref
+    reset(bool) -- whether to reset the gui on success
+    """ 
+    
     typeName = self.typeDict.get(typeIndex)
     if typeName in self.setTypes:
         if value:
@@ -391,6 +500,9 @@ def guiDoSetType(self,nameIndex,typeName):
 # Set Group Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
 def initializeSetGroup(self):
+    """ 
+    Initializes local set group
+    """ 
     # Set Group creation if they don't have em
     if not self.setGroupName:
         self.setsGroup = SetFactory('Scene','objectSetGroup')
@@ -399,6 +511,10 @@ def initializeSetGroup(self):
             self.objectSets.append(self.setsGroup.nameShort)    
 
 def doSetMaintainLocalSetGroup(self):
+    """ 
+    Initializes maintain local set group mode, creates local set group if it
+    doesn't exist, and adds stray sets of they're local
+    """     
     self.MaintainLocalSetGroupOptionVar.toggle()
     if self.MaintainLocalSetGroupOptionVar.value:
         if not self.setGroupName:
@@ -412,10 +528,16 @@ def doSetMaintainLocalSetGroup(self):
         self.reload()
         
 def doSetHideSetGroups(self):
+    """ 
+    Toggles hide set group mode
+    """ 
     self.HideSetGroupOptionVar.toggle()
     self.reload()
     
 def doGroupLocal(self):
+    """ 
+    Groups local stray object sets
+    """ 
     if not self.setGroupName:
         initializeSetGroup(self)
     buffer = self.refSetsDict.get('From Scene')
@@ -429,6 +551,13 @@ def doGroupLocal(self):
 # Multi Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 def doMultiSetType(self,setMode,typeName):
+    """ 
+    Sets the type for mutliple sets(active/loaded depending on mode)
+    
+    Keyword arguments:
+    setMode(int) -- loaded/active state
+    typeName(string) -- name of typeName
+    """ 
     if setMode:
         if self.ActiveObjectSetsOptionVar.value:
             for s in self.ActiveObjectSetsOptionVar.value:
@@ -449,6 +578,9 @@ def doMultiSetType(self,setMode,typeName):
             
 
 def doSetAllSetsAsActive(self):
+    """ 
+    Activates the active state for mutliple sets
+    """ 
     if self.activeSetsCBDict:
         for i,s in enumerate(self.activeSetsCBDict.keys()):
             if self.objectSetsDict.get(i) in self.objectSets:
@@ -458,6 +590,9 @@ def doSetAllSetsAsActive(self):
                 doSetSetAsActive(self,i)
 
 def doSetAllSetsAsInactive(self):
+    """ 
+    Deactivates the active state for mutliple sets
+    """     
     if self.activeSetsCBDict:
         for i,s in enumerate(self.activeSetsCBDict.keys()):
             if self.objectSetsDict.get(i) in self.objectSets:
@@ -467,6 +602,12 @@ def doSetAllSetsAsInactive(self):
                 doSetSetAsInactive(self,i)
 
 def doSelectMultiSets(self,setMode):
+    """ 
+    Selects mutliple sets(active/loaded depending on mode)
+    
+    Keyword arguments:
+    setMode(int) -- loaded/active state
+    """ 
     allObjectsList = []            
     if setMode:
         if self.ActiveObjectSetsOptionVar.value:
@@ -487,6 +628,12 @@ def doSelectMultiSets(self,setMode):
         mc.select(allObjectsList)
             
 def doKeyMultiSets(self,setMode):
+    """ 
+    Key mutliple sets(active/loaded depending on mode)
+    
+    Keyword arguments:
+    setMode(int) -- loaded/active state
+    """ 
     allObjectsList = []   
     
     if setMode:
@@ -515,6 +662,12 @@ def doKeyMultiSets(self,setMode):
         mc.select(allObjectsList)
     
 def doDeleteMultiCurrentKeys(self,setMode):
+    """ 
+    Delete the curret key of mutliple sets(active/loaded depending on mode)
+    
+    Keyword arguments:
+    setMode(int) -- loaded/active state
+    """     
     allObjectsList = []      
     
     if setMode:
@@ -537,6 +690,12 @@ def doDeleteMultiCurrentKeys(self,setMode):
         mc.select(allObjectsList) 
         
 def doResetMultiSets(self,setMode):
+    """ 
+    Reset the objects of mutliple sets(active/loaded depending on mode)
+    
+    Keyword arguments:
+    setMode(int) -- loaded/active state
+    """     
     allObjectsList = []   
     
     if setMode:
@@ -559,6 +718,12 @@ def doResetMultiSets(self,setMode):
         mc.select(allObjectsList)
                
 def doSetAllRefState(self,value):
+    """ 
+    Toggle the ref state of mutliple refs
+    
+    Keyword arguments:
+    value(int) -- on or off
+    """     
     if self.activeRefsCBDict:
         for i in self.activeRefsCBDict.keys():
             tmp = self.activeRefsCBDict.get(i)
@@ -567,6 +732,12 @@ def doSetAllRefState(self,value):
         self.reload()
         
 def doSetAllTypeState(self,value):
+    """ 
+    Set the the loaded type state of mutliple types
+    
+    Keyword arguments:
+    value(int) -- on or off
+    """  
     if self.activeTypesCBDict:
         for i in self.activeTypesCBDict.keys():
             tmp = self.activeTypesCBDict.get(i)
