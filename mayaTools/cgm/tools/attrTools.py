@@ -240,12 +240,13 @@ class attrToolsClass(BaseMelWindow):
 		LoadAttributeObjectRow.setStretchWidget(self.SourceObjectField  )
 		
 		MelLabel(LoadAttributeObjectRow, l=' . ')
-		self.ObjectAttributesOptionMenu = MelOptionMenu(LoadAttributeObjectRow)
+		self.ObjectAttributesOptionMenu = MelOptionMenu(LoadAttributeObjectRow, w = 100)
 	
-		guiFactory.doButton2(LoadAttributeObjectRow,'X',
-	                        lambda *a:attrToolsLib.uiDeleteAttr(self,self.ObjectAttributesOptionMenu),
-		                    'Delete attribute',
-		                    w = 25)
+		self.DeleteAttrButton = guiFactory.doButton2(LoadAttributeObjectRow,'X',
+		                                             lambda *a:attrToolsLib.uiDeleteAttr(self,self.ObjectAttributesOptionMenu),
+		                                             'Delete attribute',
+		                                             w = 25,
+		                                             en = False)
 	
 		MelSpacer(LoadAttributeObjectRow,w=5)
 	
@@ -259,85 +260,84 @@ class attrToolsClass(BaseMelWindow):
 		#>>> Standard Flags
 		BasicAttrFlagsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(BasicAttrFlagsRow,w=5)
-		self.KeyableAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Keyable')
+		self.KeyableAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Keyable',en=False)
 		MelSpacer(BasicAttrFlagsRow,w=5)
-		self.HiddenAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Hidden')
+		self.HiddenAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Hidden',en=False)
 		MelSpacer(BasicAttrFlagsRow,w=5)
-		self.LockedAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Locked')
+		self.LockedAttrCB = MelCheckBox(BasicAttrFlagsRow,label = 'Locked',en=False)
 		MelSpacer(BasicAttrFlagsRow,w=5)
 		BasicAttrFlagsRow.layout()
 		
 		#>>> Int Row
-		EditDigitSettingsRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
-		MelLabel(EditDigitSettingsRow,label = 'Settings: ')
-		self.MinField = MelTextField(EditDigitSettingsRow,
-		                             enable = False,
-		                             text = 'Min',
+		self.EditDigitSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
+		MinLabel = MelLabel(self.EditDigitSettingsRow,label = 'Min: ')
+		self.MinField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
-		                             ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
-		                             w = 50)
-		self.MaxField = MelTextField(EditDigitSettingsRow,
-		                             enable = False,
-		                             text = 'Max',
+		                             ec = lambda *a: attrToolsLib.uiUpdateMinValue(self),		                             
+		                             w = 70)
+		MaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'Max: ')		
+		self.MaxField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
-		                             ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmDirection'),
-		                             w = 50)
-		self.DefaultField = MelTextField(EditDigitSettingsRow,
-		                                 enable = False,
-		                                 text = 'Default',
+		                             ec = lambda *a: attrToolsLib.uiUpdateMaxValue(self),		                             		                             
+		                             w = 70)
+		DefaultLabel = MelLabel(self.EditDigitSettingsRow,label = 'Default: ')		
+		self.DefaultField = MelTextField(self.EditDigitSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmName'),
-		                                 w = 50)
-		MelSpacer(EditDigitSettingsRow,w=5)
-		EditDigitSettingsRow.layout()
+		                                 ec = lambda *a: attrToolsLib.uiUpdateDefaultValue(self),		                             		                                 
+		                                 w = 70)
 		
+		mc.formLayout(self.EditDigitSettingsRow, edit = True,
+	                  af = [(MinLabel, "left", 20),
+	                        (self.DefaultField,"right",20)],
+	                  ac = [(self.MinField,"left",2,MinLabel),
+	                        (MaxLabel,"left",2,self.MinField),
+	                        (self.MaxField,"left",2,MaxLabel),
+	                        (DefaultLabel,"left",2,self.MaxField),
+		                    (self.DefaultField,"left",2,DefaultLabel),
+		                    ])
 		#>>> Enum
 		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
-		EditEnumRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
-		MelSpacer(EditEnumRow,w=10)
-		MelLabel(EditEnumRow,label = 'Enum: ')
-		self.EnumField = MelTextField(EditEnumRow,
-		                                enable = False,
-		                                bgc = dictionary.returnStateColor('normal'),
-		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
-		                                w = 75)
-		MelSpacer(EditEnumRow,w=10)
-		EditEnumRow.setStretchWidget(self.EnumField)
+		self.EditEnumRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5, vis = False)
+		MelSpacer(self.EditEnumRow,w=10)
+		MelLabel(self.EditEnumRow,label = 'Enum: ')
+		self.EnumField = MelTextField(self.EditEnumRow,
+				                      annotation = "Options divided by ':'. \n Set values with '=' \n For example: 'off:on=1:maybe:23'",
+		                              bgc = dictionary.returnStateColor('normal'),
+		                              w = 75)
+		MelSpacer(self.EditEnumRow,w=10)
+		self.EditEnumRow.setStretchWidget(self.EnumField)
 		
-		EditEnumRow.layout()
+		self.EditEnumRow.layout()
 		
 		#>>> String
-		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
-		EditStringRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
-		MelSpacer(EditStringRow,w=10)
-		MelLabel(EditStringRow,label = 'String: ')
-		self.StringField = MelTextField(EditStringRow,
-		                                enable = False,
+		self.EditStringRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5, vis = False)
+		MelSpacer(self.EditStringRow,w=10)
+		MelLabel(self.EditStringRow,label = 'String: ')
+		self.StringField = MelTextField(self.EditStringRow,
 		                                bgc = dictionary.returnStateColor('normal'),
-		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
 		                                w = 75)
-		MelSpacer(EditStringRow,w=10)
-		EditStringRow.setStretchWidget(self.StringField)
+		MelSpacer(self.EditStringRow,w=10)
+		self.EditStringRow.setStretchWidget(self.StringField)
 		
-		EditStringRow.layout()
+		self.EditStringRow.layout()
 		
 		#>>> Message
 		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
-		EditMessageRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
-		MelSpacer(EditMessageRow,w=10)
-		MelLabel(EditMessageRow,label = 'Message: ')
-		self.MessageField = MelTextField(EditMessageRow,
+		self.EditMessageRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5, vis = False)
+		MelSpacer(self.EditMessageRow,w=10)
+		MelLabel(self.EditMessageRow,label = 'Message: ')
+		self.MessageField = MelTextField(self.EditMessageRow,
 		                                enable = False,
-		                                bgc = dictionary.returnStateColor('normal'),
+		                                bgc = dictionary.returnStateColor('locked'),
 		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
 		                                w = 75)
-		guiFactory.doButton2(EditMessageRow,'<<',
-	                        lambda *a:attrToolsLib.uiLoadSourceObject(self),
-	                         'Load to field')
-		MelSpacer(EditMessageRow,w=10)
-		EditMessageRow.setStretchWidget(self.MessageField)
+		self.LoadMessageButton = guiFactory.doButton2(self.EditMessageRow,'<<',
+		                                              lambda *a:attrToolsLib.uiLoadSourceObject(self),
+		                                               'Load to message')
+		MelSpacer(self.EditMessageRow,w=10)
+		self.EditMessageRow.setStretchWidget(self.MessageField)
 
-		EditMessageRow.layout()
+		self.EditMessageRow.layout()
 		
 		
 		mc.setParent(self.containerName )
@@ -375,8 +375,9 @@ class attrToolsClass(BaseMelWindow):
 			self.CreateAttrTypeRadioCollectionChoices.append(self.CreateAttrTypeRadioCollection.createButton(AttrTypeRow,label=attrShortTypes[cnt],
 			                                                                                                 onCommand = Callback(self.CreateAttrTypeOptionVar.set,item)))
 			MelSpacer(AttrTypeRow,w=2)
-
-		mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(self.CreateAttrTypeOptionVar.value) ]))
+		
+		if self.CreateAttrTypeOptionVar.value != '':
+			mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(self.CreateAttrTypeOptionVar.value) ]))
 		
 		AttrTypeRow.layout()
 		"""

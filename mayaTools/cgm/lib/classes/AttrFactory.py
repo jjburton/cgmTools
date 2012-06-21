@@ -99,8 +99,12 @@ class AttrFactory():
         if value is not None:
             self.set(value)
         
+        
         self.updateData(*a, **kw)
-
+        
+            
+        guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameLong,self.attr,self.value,self.form))
+        
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
@@ -110,28 +114,51 @@ class AttrFactory():
         Get's attr updated data       
         """     
         assert mc.objExists('%s.%s'%(self.obj.nameLong,self.attr)) is True, "'%s.%s' doesn't exist" %(self.obj.nameLong,self.attr)
-        
+        self.minValue = False
+        self.maxValue = False
+        self.defaultValue = False
+        self.userAttrs = mc.listAttr(self.obj.nameLong, userDefined = True) or []
+        self.dynamic = False
+        self.enum = False
+        if self.attr in self.userAttrs:
+            self.dynamic = True
+            
         self.get(*a, **kw)
         
-        self.locked = attributes.doGetAttr(self.obj.nameLong,self.attr,lock=True)
-        self.keyable = mc.attributeQuery(self.attr, node = self.obj.nameLong, keyable=True)
-        self.hidden = mc.attributeQuery(self.attr, node = self.obj.nameLong, hidden=True)
+        self.locked = mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),lock=True)
+        self.keyable = mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),keyable=True)
         
-        if self.form not in ['string','message']:
-            self.minValue = False
+        # So, if it's keyable, you have to use one attribute to read correctly, otherwise it's the other...awesome
+        self.hidden = not mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),channelBox=True)
+        if self.keyable:
+            self.hidden = mc.attributeQuery(self.attr, node = self.obj.nameLong, hidden=True)
+        #if self.form not in ['string','message'] and self.attr in mc.listAttr(self.obj.nameLong, userDefined = True):
+
+        if self.form not in ['string','message','enum'] and self.dynamic:
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, minExists=True):
-                self.minValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, minimum=True)
-                guiFactory.report("'%s.%s' minValue is %s" %(self.obj.nameLong,self.attr, self.minValue))
-                
-            self.maxValue = False
+                try:
+                    self.minValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, minimum=True)
+                    guiFactory.report("'%s.%s' minValue is %s" %(self.obj.nameLong,self.attr, self.minValue))
+                except:
+                    pass
+                    
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, maxExists=True):
-                self.maxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, maximum=True)
-                guiFactory.report("'%s.%s' maxValue is %s" %(self.obj.nameLong,self.attr, self.maxValue))
+                try:
+                    self.maxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, maximum=True)
+                    guiFactory.report("'%s.%s' maxValue is %s" %(self.obj.nameLong,self.attr, self.maxValue))
+                except:
+                    pass
                 
-            self.defaultValue = False
-            if mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True):
-                self.defaultValue = mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True)
-                guiFactory.report("'%s.%s' defaultValue is %s" %(self.obj.nameLong,self.attr, self.defaultValue))
+            if type(mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True)) is int or float:
+                try:
+                    self.defaultValue = mc.attributeQuery(self.attr, node = self.obj.nameLong, listDefault=True)
+                    guiFactory.report("'%s.%s' defaultValue is %s" %(self.obj.nameLong,self.attr, self.defaultValue))
+                except:
+                    pass
+                
+        if self.form == 'enum':
+            self.enum = mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True, en = True)
+                
     
     def convert(self,attrType):
         """ 
@@ -230,6 +257,25 @@ class AttrFactory():
         except:
             guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
             
+            
+            
+    def setEnum(self,enumCommand):
+        """ 
+        Set the options for an enum attribute
+        
+        Keyword arguments:
+        enumCommand(string) -- 'off:on', 'off=0:on=2', etc
+        """   
+        try:
+            if self.form == 'enum':
+                mc.addAttr ((self.obj.nameLong+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
+            else:
+                guiFactory.warning("'%s.%s' is not an enum. Invalid call"%(self.obj.nameLong,self.attr))
+            
+        except:
+            guiFactory.warning("'%s.%s' failed to change..."%(self.obj.nameLong,self.attr))
+            
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Set Options
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
@@ -291,6 +337,8 @@ class AttrFactory():
     def isHidden(self,arg = True):
         if arg:
             if not self.hidden:
+                if self.keyable:
+                    self.isKeyable(False)
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = False) 
                 guiFactory.report("'%s.%s' hidden!"%(self.obj.nameLong,self.attr))
                 self.hidden = True
@@ -309,16 +357,18 @@ class AttrFactory():
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = True) 
                 guiFactory.report("'%s.%s' keyable!"%(self.obj.nameLong,self.attr))
                 self.keyable = True
-                if self.hidden:
-                    self.hidden = False
+                self.hidden = False
+                    
                 
         else:
             if self.keyable:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = False)           
                 guiFactory.report("'%s.%s' unkeyable!"%(self.obj.nameLong,self.attr))
                 self.keyable = False
-                if not self.hidden:
-                    mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = True) 
+                if not mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),channelBox=True):
+                    self.updateData()
+                    self.isHidden(False)
+
                     
             
             

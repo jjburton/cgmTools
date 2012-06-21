@@ -36,11 +36,98 @@ reload(dictionary)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # UI Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiUpdateCheckBox(self, commandAttr, valueAttr):   
+    commandAttr(not valueAttr)
+    uiSelectActiveAttr(self,self.activeAttr.attr)
+    
+def uiUpdateString(self):    
+    #>>> Variables
+    varCheck = self.StringField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.set(varCheck)             
+        else:
+            self.activeAttr.set('')
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr) 
+        
+
+def uiUpdateEnum(self):    
+    #>>> Variables
+    varCheck = self.EnumField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            try:
+                self.activeAttr.setEnum(varCheck)
+            except:
+                guiFactory.warning("'%s.%s' failed to change. Check your command." %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+        else:
+            self.activeAttr.set('')
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr) 
+    
+def uiUpdateMinValue(self):    
+    #>>> Variables
+    varCheck = self.MinField(q=True,text=True)
+    if self.activeAttr:
+        if type(varCheck)is unicode and len(varCheck) < 1:
+            self.activeAttr.isMin(False)             
+        elif type(varCheck) is float or int:
+            try:
+                self.activeAttr.isMin(float(varCheck))
+            except:
+                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+                
+        else:
+            self.activeAttr.isMin(False)
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)
+        
+def uiUpdateMaxValue(self):    
+    #>>> Variables
+    varCheck = self.MaxField(q=True,text=True)
+    print varCheck
+    if self.activeAttr:
+        if type(varCheck)is unicode and len(varCheck) < 1:
+            self.activeAttr.isMax(False)           
+        elif type(varCheck) is float or int:
+            try:
+                self.activeAttr.isMax(float(varCheck))
+            except:
+                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+                
+        else:
+            self.activeAttr.isMax(False)
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)
+
+        
+def uiUpdateDefaultValue(self):    
+    #>>> Variables
+    varCheck = self.DefaultField(q=True,text=True)
+
+    if self.activeAttr:
+        if type(varCheck)is unicode and len(varCheck) < 1:
+            self.activeAttr.isDefault(False)        
+        elif type(varCheck) is float or int:
+            try:
+                self.activeAttr.isDefault(float(varCheck))
+            except:
+                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+                
+        else:
+            self.activeAttr.isDefault(False)
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)   
+
+
+
+
 def uiLoadSourceObject(self,selectAttr = False):
     selected = []
     bufferList = []
     selected = (mc.ls (sl=True,flatten=True,shortNames=True))
-
+    self.activeAttr = []
     if selected:
         if len(selected) >= 2:
             guiFactory.warning('Only one object can be loaded')
@@ -55,12 +142,25 @@ def uiLoadSourceObject(self,selectAttr = False):
         #clear the field
         guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_AttributeSourceObject')
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
+        
+        #clear the menu items
+        self.KeyableAttrCB(edit=True, en = False)
+        self.HiddenAttrCB(edit=True, en = False)
+        self.LockedAttrCB(edit=True, en = False) 
+        
+        self.EditStringRow(e = True, vis = False)   
+        self.EditEnumRow(e=True, vis = False)
+        self.EditMessageRow(e=True, vis = False)
+        
+        self.DeleteAttrButton(e = True, en = False)
+        
+        #Clear the menus
+        self.EditDigitSettingsRow(edit = True, vis = False)
 
 def uiSelectActiveAttr(self,attr):  
     #>>> Variables
     sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
     attrType = mc.getAttr((sourceObject+'.'+attr),type=True)
-    print attrType
     
     self.activeAttr = AttrFactory(sourceObject,attr)
     
@@ -75,56 +175,68 @@ def uiSelectActiveAttr(self,attr):
                        'message':self.MessageField,
                        'enum':self.EnumField}
     
-    #>>> Basics
-    #keyableState = mc.getAttr((sourceObject+'.'+attr),keyable=True)
-    #hiddenState =  mc.getAttr((sourceObject+'.'+attr),cb=True)
-    lockedState =  mc.getAttr((sourceObject+'.'+attr), lock=True)
-    keyableState = mc.attributeQuery(attr, node = sourceObject, keyable=True)
-    hiddenState =  mc.attributeQuery(attr, node = sourceObject, hidden=True)
-    
-    if mc.attributeQuery(attr, node = sourceObject, minExists=True):
-        minValue =  mc.attributeQuery(attr, node = sourceObject, minimum=True)
-        print 'min'
-        print minValue
-        
-    if mc.attributeQuery(attr, node = sourceObject, maxExists=True):
-        maxValue =  mc.attributeQuery(attr, node = sourceObject, maximum=True)
-        print 'max'
-        print maxValue
-    
-    defaultValue = mc.addAttr((sourceObject+'.'+attr),q=True,defaultValue = True)
-    print 'defaultValue'
-    print defaultValue
-    
-
-    self.KeyableAttrCB(edit=True, value = keyableState)
-    if not hiddenState and not keyableState:
-        self.HiddenAttrCB(edit=True, value = 1)
+    if self.activeAttr.dynamic:
+        self.DeleteAttrButton(e = True, en=True)
     else:
-        self.HiddenAttrCB(edit=True, value = 0)
-    self.LockedAttrCB(edit=True, value = lockedState) 
+        self.DeleteAttrButton(e = True, en=False)
+        
+        
+    #>>> Basics     
+    self.KeyableAttrCB(edit=True, value = self.activeAttr.keyable, en = True,
+                       cc = lambda *a:uiUpdateCheckBox(self, self.activeAttr.isKeyable,self.activeAttr.keyable))
+    
+    self.HiddenAttrCB(edit=True, value = self.activeAttr.hidden, en = True,
+                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.isHidden, self.activeAttr.hidden))
 
+    self.LockedAttrCB(edit=True, value = self.activeAttr.locked, en = True,
+                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.isLocked, self.activeAttr.locked)) 
+
+    #>>> Numbers
+    if self.activeAttr.form in ['long','float','double','doubleLinear','doubleAngle'] and self.activeAttr.dynamic:
+        self.EditDigitSettingsRow(edit = True, vis = True)
+        minBuffer = self.activeAttr.minValue
+        maxBuffer = self.activeAttr.maxValue
+        defaultValue = self.activeAttr.defaultValue
+        if minBuffer is not False:
+            self.MinField(e=True, text = str(minBuffer))
+        else:
+            self.MinField(e=True, text = '')
+            
+        if maxBuffer is not False:
+            self.MaxField(e=True, text = str(maxBuffer))
+        else:
+            self.MaxField(e=True, text = '')
+            
+        if defaultValue is not False:
+            self.DefaultField(e=True, text = str(defaultValue))
+        else:
+            self.DefaultField(e=True, text = '')
+            
+    else:
+        self.EditDigitSettingsRow(edit = True, vis = False)
+        
     #>>> String
-    if attrType == 'string':
-        currentString = mc.getAttr((sourceObject+'.'+attr))
-        self.StringField(edit = True,enable = True, text = currentString)
+    if self.activeAttr.form  == 'string':
+        self.EditStringRow(e = True, vis = True)        
+        self.StringField(edit = True,enable = True, text = self.activeAttr.value, 
+                         cc = lambda *a:uiUpdateString(self))      
+    else:
+        self.EditStringRow(e = True, vis = False)
         
-    elif attrType == 'message':
-        currentObject = attributes.returnMessageObject(sourceObject,attr)
-        self.MessageField(edit = True,enable = True, text = currentObject)
+    if self.activeAttr.form  == 'message':
+        self.EditMessageRow(e=True, vis = True)
+        self.MessageField(edit = True,enable = False, text = self.activeAttr.value)
+    else:
+        self.EditMessageRow(e=True, vis = False)
         
-    elif attrType == 'enum':
-        currentString = mc.getAttr((sourceObject+'.'+attr),asString = True)
-        options = mc.attributeQuery(attr, node = sourceObject, listEnum=True)
-        optionList = options[0].split(':')
-        for o in optionList:
-            print o
         
-        self.EnumField(edit = True,enable = True, text = (';'.join(optionList)))
-
-
-
-
+    #>>> Enum
+    if self.activeAttr.form  == 'enum': 
+        self.EditEnumRow(e=True, vis = True)
+        self.EnumField(edit = True,enable = True, text = self.activeAttr.enum,
+                       cc = lambda *a:uiUpdateEnum(self))
+    else:
+        self.EditEnumRow(e=True, vis = False)
 
 
 
@@ -165,7 +277,7 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         regAttrs = mc.listAttr(sourceObject)
         userAttrs = mc.listAttr(sourceObject,userDefined = True)
         lockedAttrs = mc.listAttr(sourceObject,locked = True)
-        for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','visibility':
+        for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','v':
             if attr in regAttrs:
                 attrs.append(attr)
 
@@ -188,11 +300,13 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
             index = attrs.index(selectAttr)
             self.ObjectAttributesOptionMenu.selectByIdx(index ) 
             uiSelectActiveAttr(self,attr)
+        else:
+            uiSelectActiveAttr(self,attrs[0])
         menu(edit=True,cc = uiAttrUpdate)
 
     else:
         menu.clear()
-
+  
 
 
 def doAddAttributesToSelected(self):    
