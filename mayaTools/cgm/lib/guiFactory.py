@@ -63,6 +63,8 @@ def initializeTemplates():
     mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)
     mc.optionMenuGrp(dt ='cgmUITemplate', backgroundColor = guiButtonColor)
     mc.textField(dt = 'cgmUITemplate',backgroundColor = [1,1,1],h=20)
+    mc.formLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor)    
+    mc.textScrollList(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
 
     # Define our header template
     if mc.uiTemplate( 'cgmUIHeaderTemplate', exists=True ):
@@ -74,6 +76,7 @@ def initializeTemplates():
     mc.rowLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
     mc.rowColumnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
     mc.columnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)  
+    mc.textScrollList(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
 
     # Define our sub template
     if mc.uiTemplate( 'cgmUISubTemplate', exists=True ):
@@ -87,6 +90,7 @@ def initializeTemplates():
     mc.columnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.scrollLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.textField(dt = 'cgmUISubTemplate',backgroundColor = [1,1,1],h=20)
+    mc.textScrollList(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
 
 
     # Define our instructional template
@@ -99,6 +103,7 @@ def initializeTemplates():
     mc.rowColumnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
     mc.columnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
     mc.textField(dt = 'cgmUIInstructionsTemplate',backgroundColor = [1,1,1],h=20)
+    mc.textScrollList(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor) 
 
     # Define our Reserved
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
@@ -132,6 +137,7 @@ def forceSelectUpdate():
     if transforms:
         for t in transforms:
             if t not in selection:
+                print "Selecting '%s'"%t
                 mc.select(t)
                 break
         if selection:
