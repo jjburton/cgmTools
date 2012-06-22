@@ -22,7 +22,7 @@
 #=================================================================================================================================================
 
 import maya.cmds as mc
-from cgm.lib import guiFactory,dictionary,settings
+from cgm.lib import guiFactory,dictionary,settings,lists
 
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
@@ -1230,7 +1230,6 @@ def returnUserAttrsToDict(obj):
     else:
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 def returnUserAttrsToList(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1688,3 +1687,75 @@ def queryIfMessage(obj,attr):
             return False
     else:
         return False
+    
+    
+    
+def reorderAttributes(obj,attrs,direction = 0):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    Acknowledgement:
+    Thank you to - http://www.the-area.com/forum/autodesk-maya/mel/how-can-we-reorder-an-attribute-in-the-channel-box/
+    
+    DESCRIPTION:
+    Pass an object into it with messages, it will return a nested list in terms of [[attrName, target],[etc][etc]]
+
+    ARGUMENTS:
+    obj(string) - obj with message attrs
+
+    RETURNS:
+    messageList - nested list in terms of [[attrName, target],[etc][etc]]
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    assert direction in [0,1],"Direction must be 0 for negative, or 1 for positive movement"
+    for attr in attrs:
+        assert mc.objExists(obj+'.'+attr) is True, "'%s.%s' doesn't exist. Swing and a miss..."%(obj,atr)
+        
+    userAttrs = mc.listAttr(obj,userDefined = True)
+    
+    attrsToMove = []
+    for attr in userAttrs:
+        if not mc.attributeQuery(attr, node = obj,listParent = True):
+            attrsToMove.append(attr)
+            
+            
+    lists.reorderListInPlace(attrsToMove,attrs,direction)
+    
+    
+    for attr in attrsToMove:
+        try:
+            mc.deleteAttr('%s.%s'%(obj,attr))
+            mc.undo()
+        except:
+            guiFactory.warning("'%s' Failed to reorder"%attr)
+        
+
+"""    
+    global proc zooDoReorder( string $dir ) {
+        string $validTypes[] = { "bool", "enum", "long", "double" };
+        string $obj = `text -q -l dwAttrManObjTXT`;
+        string $selAttrs[] = `textScrollList -q -si dwAttrManTSL`;
+        if( !`size $selAttrs` ) return;
+    
+        string $attrs[] = `listAttr -k -ud $obj`;
+        string $validAttrs[];
+        int $toReorder[];
+    
+        //filters the list of attributes - the re-ordering process only works on attributes that show up in the channel box
+        for( $n=0; $n<`size $attrs`; $n++ ) {
+            string $type = `addAttr -q -at ( $obj +"."+ $attrs[$n] )`;
+            int $isValid = 0;
+            for( $a in $validTypes ) if( $type == $a ) { $isValid = 1; break; }
+            if( $isValid ) $validAttrs[( `size $validAttrs` )] = $attrs[$n];
+            }
+    
+        //gets a list of which attributes are selected, and puts their indicies into an array
+        for( $n=0; $n<`size $validAttrs`; $n++ ) for( $a in $selAttrs ){
+            if( $a == $validAttrs[$n] ) $toReorder[( `size $toReorder` )] = $n;
+            }
+    
+        string $newOrder[] = `zooAttrManUtilsArrayReorder $validAttrs $toReorder $dir`;
+        zooAttrManReorder $obj $newOrder;
+        dwAttrMan_LoadAttributes $obj `checkBox -q -v dwAttrManListKeyableCheck`;
+        for( $a in $selAttrs ) textScrollList -e -si $a dwAttrManTSL;
+        }
+"""
