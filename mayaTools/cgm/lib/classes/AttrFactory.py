@@ -35,8 +35,9 @@ from cgm.lib import (search,
                      dictionary,
                      guiFactory)
 reload(attributes)
+reload(guiFactory)
 attrTypesDict = {'message':['message','msg','m'],
-                 'double':['float','fl','f','doubleLinear'],
+                 'double':['float','fl','f','doubleLinear','double'],
                  'string':['string','s','str'],
                  'long':['long','int','i','integer'],
                  'bool':['bool','b','boolean'],
@@ -61,6 +62,7 @@ class AttrFactory():
         assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
         self.form = self.validateRequestedAttrType(attrType)
         self.attr = attrName
+        
         
         self.obj = ObjectFactory(objName)
         
@@ -99,11 +101,10 @@ class AttrFactory():
         if value is not None:
             self.set(value)
         
-        
         self.updateData(*a, **kw)
         
             
-        guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameLong,self.attr,self.value,self.form))
+        #guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameLong,self.attr,self.value,self.form))
         
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -114,45 +115,64 @@ class AttrFactory():
         Get's attr updated data       
         """     
         assert mc.objExists('%s.%s'%(self.obj.nameLong,self.attr)) is True, "'%s.%s' doesn't exist" %(self.obj.nameLong,self.attr)
+        # Default attrs
+        self.nameCombined = '%s.%s'%(self.obj.nameLong,self.attr)        
         self.minValue = False
         self.maxValue = False
         self.defaultValue = False
-        self.userAttrs = mc.listAttr(self.obj.nameLong, userDefined = True) or []
-        self.dynamic = False
+        self.nameNice = mc.attributeQuery(self.attr, node = self.obj.nameLong, niceName = True)
+        self.nameLong = mc.attributeQuery(self.attr, node = self.obj.nameLong, longName = True)
+        self.nameAlias = False
+        if mc.aliasAttr(self.nameCombined,q=True):
+            self.nameAlias = mc.aliasAttr(self.nameCombined,q=True)
+        
         self.enum = False
-        if self.attr in self.userAttrs:
+        self.userAttrs = mc.listAttr(self.obj.nameLong, userDefined = True) or []
+        
+        #Check connections
+        self.driverAttribute = attributes.returnDriverAttribute(self.nameCombined)
+        self.drivenAttribute = attributes.returnDrivenAttribute(self.nameCombined)
+        
+        #Check if dynamic. As best I understand it, it's whether an attribute is user created or not
+        self.dynamic = False        
+        if self.nameLong in self.userAttrs:
             self.dynamic = True
             
         self.get(*a, **kw)
         
-        self.locked = mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),lock=True)
-        self.keyable = mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),keyable=True)
+        #Check if numeric
+        self.numeric = True
+        if self.form in ['string','message','enum','bool']:
+            self.numeric = False
+        
+        self.locked = mc.getAttr(self.nameCombined ,lock=True)
+        self.keyable = mc.getAttr(self.nameCombined ,keyable=True)
         
         # So, if it's keyable, you have to use one attribute to read correctly, otherwise it's the other...awesome
-        self.hidden = not mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),channelBox=True)
+        self.hidden = not mc.getAttr(self.nameCombined,channelBox=True)
         if self.keyable:
             self.hidden = mc.attributeQuery(self.attr, node = self.obj.nameLong, hidden=True)
         #if self.form not in ['string','message'] and self.attr in mc.listAttr(self.obj.nameLong, userDefined = True):
 
-        if self.form not in ['string','message','enum'] and self.dynamic:
+        if self.numeric and self.dynamic:
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, minExists=True):
                 try:
                     self.minValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, minimum=True)
-                    guiFactory.report("'%s.%s' minValue is %s" %(self.obj.nameLong,self.attr, self.minValue))
+                    #guiFactory.report("'%s.%s' minValue is %s" %(self.obj.nameLong,self.attr, self.minValue))
                 except:
                     pass
                     
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, maxExists=True):
                 try:
                     self.maxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, maximum=True)
-                    guiFactory.report("'%s.%s' maxValue is %s" %(self.obj.nameLong,self.attr, self.maxValue))
+                    #guiFactory.report("'%s.%s' maxValue is %s" %(self.obj.nameLong,self.attr, self.maxValue))
                 except:
                     pass
                 
             if type(mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True)) is int or float:
                 try:
                     self.defaultValue = mc.attributeQuery(self.attr, node = self.obj.nameLong, listDefault=True)
-                    guiFactory.report("'%s.%s' defaultValue is %s" %(self.obj.nameLong,self.attr, self.defaultValue))
+                    #guiFactory.report("'%s.%s' defaultValue is %s" %(self.obj.nameLong,self.attr, self.defaultValue))
                 except:
                     pass
                 
@@ -167,11 +187,12 @@ class AttrFactory():
         Keyword arguments:
         attrType(string)        
         """        
-        #try:
-        attributes.convertAttrType('%s.%s'%(self.obj.nameLong,self.attr),attrType)
+        try:
+            attributes.convertAttrType(self.nameCombined,attrType)
+            guiFactory.warning("'%s.%s' converted to '%s'"%(self.obj.nameLong,self.attr,attrType))
             
-        #except:
-        #guiFactory.warning("'%s.%s' failed to convert"%(self.obj.nameLong,self.attr))
+        except:
+            guiFactory.warning("'%s.%s' failed to convert"%(self.obj.nameLong,self.attr))
             
             
     def validateRequestedAttrType(self,attrType):
@@ -216,7 +237,7 @@ class AttrFactory():
                 self.value = attributes.returnMessageObject(self.obj.nameLong,self.attr)
             else:
                 self.value =  attributes.doGetAttr(self.obj.nameLong,self.attr,*a, **kw)
-            guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
+            #guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
             return self.value
         except:
             guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
@@ -269,17 +290,35 @@ class AttrFactory():
         try:
             if self.form == 'enum':
                 mc.addAttr ((self.obj.nameLong+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
+                guiFactory.report("'%s.%s' has been updated!"%(self.obj.nameLong,self.attr))
+                
             else:
                 guiFactory.warning("'%s.%s' is not an enum. Invalid call"%(self.obj.nameLong,self.attr))
             
         except:
             guiFactory.warning("'%s.%s' failed to change..."%(self.obj.nameLong,self.attr))
             
-
+    def doStore(self,infoToStore,convertIfNecessary = True):
+        """ 
+        Set the options for an enum attribute
+        
+        Keyword arguments:
+        enumCommand(string) -- 'off:on', 'off=0:on=2', etc
+        """   
+        try:
+            if self.form == 'message':
+                self.obj.store(self.attr,infoToStore)
+            elif convertIfNecessary:
+                self.convert('message')
+                self.updateData()
+                self.obj.store(self.attr,infoToStore)                
+            
+        except:
+            guiFactory.warning("'%s.%s' failed to store '%s'"%(self.obj.nameLong,self.attr,infoToStore))
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Set Options
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
-    def isDefault(self,value = None):
+    def doDefault(self,value = None):
         if value is not None:
             try:
                 mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,defaultValue = value)
@@ -287,7 +326,7 @@ class AttrFactory():
             except:
                 guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))       
                 
-    def isMax(self,value = None):
+    def doMax(self,value = None):
         if value is False:
             try:
                 mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMaxValue = value)
@@ -304,7 +343,7 @@ class AttrFactory():
                 guiFactory.warning("'%s.%s' failed to set a max value"%(self.obj.nameLong,self.attr))
                 
                 
-    def isMin(self,value = None):
+    def doMin(self,value = None):
         if value is False:
             try:
                 mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMinValue = value)
@@ -321,7 +360,7 @@ class AttrFactory():
             except:
                 guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))
     
-    def isLocked(self,arg = True):
+    def doLocked(self,arg = True):
         if arg:
             if not self.locked:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,lock = True) 
@@ -334,11 +373,11 @@ class AttrFactory():
                 guiFactory.report("'%s.%s' unlocked!"%(self.obj.nameLong,self.attr))
                 self.locked = False
                 
-    def isHidden(self,arg = True):
+    def doHidden(self,arg = True):
         if arg:
             if not self.hidden:
                 if self.keyable:
-                    self.isKeyable(False)
+                    self.doKeyable(False)
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = False) 
                 guiFactory.report("'%s.%s' hidden!"%(self.obj.nameLong,self.attr))
                 self.hidden = True
@@ -351,7 +390,7 @@ class AttrFactory():
                 self.hidden = False
                 
                 
-    def isKeyable(self,arg = True):
+    def doKeyable(self,arg = True):
         if arg:
             if not self.keyable:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = True) 
@@ -365,9 +404,55 @@ class AttrFactory():
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = False)           
                 guiFactory.report("'%s.%s' unkeyable!"%(self.obj.nameLong,self.attr))
                 self.keyable = False
-                if not mc.getAttr('%s.%s'%(self.obj.nameLong,self.attr),channelBox=True):
+                if not mc.getAttr(self.nameCombined,channelBox=True):
                     self.updateData()
-                    self.isHidden(False)
+                    self.doHidden(False)
+                    
+    def doAlias(self,arg):
+        if arg:
+            try:
+                if arg != self.nameAlias:
+                    if mc.aliasAttr(arg,self.nameCombined):
+                        self.nameAlias = arg
+                else:
+                    guiFactory.report("'%s.%s' already has that alias!"%(self.obj.nameLong,self.attr,arg))
+                    
+            except:
+                guiFactory.warning("'%s.%s' failed to set alias of '%s'!"%(self.obj.nameLong,self.attr,arg))
+                    
+        else:
+            if self.nameAlias:
+                self.attr = self.nameLong                
+                mc.aliasAttr(self.nameCombined,remove=True)
+                self.nameAlias = False
+                self.updateData()
+                
+                
+    def doNiceName(self,arg):
+        if arg:
+            try:
+                mc.addAttr(self.nameCombined,edit = True, niceName = arg)
+                self.nameNice = arg
+
+            except:
+                guiFactory.warning("'%s.%s' failed to set nice name of '%s'!"%(self.obj.nameLong,self.attr,arg))
+                    
+
+    def doRename(self,arg):
+        assert type(arg) is str or unicode,"Must pass string argument into doRename"
+        if arg:
+            try:
+                if arg != self.nameLong:
+                    attributes.doRenameAttr(self.obj.nameLong,self.nameLong,arg)
+                    self.attr = arg
+                    self.updateData()
+                    
+                else:
+                    guiFactory.report("'%s.%s' already has that nice name!"%(self.obj.nameLong,self.attr,arg))
+                    
+            except:
+                guiFactory.warning("'%s.%s' failed to rename name of '%s'!"%(self.obj.nameLong,self.attr,arg))
+                    
 
                     
             
