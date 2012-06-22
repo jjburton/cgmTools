@@ -60,7 +60,7 @@ def initializeTemplates():
     mc.separator(dt='cgmUITemplate', height = 10, style = 'none')
     mc.button(dt = 'cgmUITemplate', height = 15, backgroundColor = guiButtonColor,align = 'center')
     mc.window(dt = 'cgmUITemplate', backgroundColor = guiBackgroundColor)
-    mc.textField(dt = 'cgmUITemplate', backgroundColor = [1,1,1])
+    mc.textField(dt = 'cgmUITemplate', backgroundColor = [1,1,1],h=20)
     mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)
     mc.optionMenuGrp(dt ='cgmUITemplate', backgroundColor = guiButtonColor)
 
@@ -102,7 +102,7 @@ def initializeTemplates():
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
         mc.deleteUI( 'cgmUIReservedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUIReservedTemplate')
-    mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiButtonColor)
+    mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiButtonColor,h=20)
     mc.formLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)    
     mc.rowLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
     mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
@@ -112,7 +112,7 @@ def initializeTemplates():
     if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
         mc.deleteUI( 'cgmUILockedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUILockedTemplate')
-    mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor)
+    mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor, h=20)
 
 def resetGuiInstanceOptionVars(optionVarHolder,commandToRun = False):
     if optionVarHolder:
@@ -122,6 +122,19 @@ def resetGuiInstanceOptionVars(optionVarHolder,commandToRun = False):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Standard functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def forceSelectUpdate():
+    selection = mc.ls(sl=True, flatten = True, long = True) or []
+    transforms = mc.ls(type='transform') or []
+    mc.select(cl=True)
+    
+    if transforms:
+        for t in transforms:
+            if t not in selection:
+                mc.select(t)
+                break
+        if selection:
+            mc.select(selection)
+
 def warning(message):
     try:
         mc.warning(message)
