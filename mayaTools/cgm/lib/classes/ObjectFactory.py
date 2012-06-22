@@ -67,8 +67,6 @@ class ObjectFactory():
         self.children = False
         self.mType = ''
 
-        self.userAttrs = {}
-
         self.update(obj)
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -87,9 +85,11 @@ class ObjectFactory():
         self.cgmTypeModifier =  search.findRawTagInfo(self.nameLong,'cgmTypeModifier')
         self.cgmType  =  search.findRawTagInfo(self.nameLong,'cgmType')
 
-    def getUserAttrs(self):
+    def getAttrs(self):
         """ Stores the dictionary of userAttrs of an object."""
-        self.userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
+        self.userAttrsDict = attributes.returnUserAttrsToDict(self.nameLong) or {}
+	self.userAttrs = mc.listAttr(self.nameLong, userDefined = True) or []
+	self.attrs = mc.listAttr(self.nameLong) or []
 
     def getType(self):
         """ get the type of the object """
@@ -134,7 +134,7 @@ class ObjectFactory():
         self.getType()
         self.getFamily()
         self.getCGMNameTags()
-        self.getUserAttrs() 
+        self.getAttrs() 
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Attribute Functions
