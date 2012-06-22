@@ -21,8 +21,13 @@ __version__ = '0.1.03282012'
 import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib.classes import NameFactory
-from cgm.lib.classes.AttrFactory import *
+from cgm.lib.classes import AttrFactory
+from cgm.lib.classes import ObjectFactory
+reload(AttrFactory)
+reload(ObjectFactory)
 
+from cgm.lib.classes.AttrFactory import *
+from cgm.lib.classes.ObjectFactory import *
 
 from cgm.lib import *
 from cgm.lib import (guiFactory,
@@ -33,6 +38,142 @@ reload(attributes)
 reload(search)
 reload(dictionary)
 reload(guiFactory)
+
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Info processing
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiUpdateSourceObjectData(self):
+    if mc.optionVar(q = self.SourceObjectOptionVar.name):
+	self.SourceObject = ObjectFactory(mc.optionVar(q = self.SourceObjectOptionVar.name))
+    else:
+	self.SourceObject = False
+
+def printActiveSelection(self):
+    print '%s'%self.ManageAttrList.getSelectedItems()
+    
+def updateLoaded(self):
+    try:
+	uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
+	uiUpdateSourceObjectData(self)
+	
+	self.ManageAttrList.clear()
+	if self.SourceObject:
+	    for a in self.SourceObject.userAttrs:
+		self.ManageAttrList.append(a)	
+    except:
+	pass
+    
+def uiReorderAttributes(self,direction):
+    attrsToMove = self.ManageAttrList.getSelectedItems()
+    
+    if attrsToMove and self.SourceObjectOptionVar.value:
+	attributes.reorderAttributes(self.SourceObject.nameLong,attrsToMove,direction)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrsToMove)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsKeyable(self):
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doKeyable(True)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsUnkeyable(self):
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doKeyable(False)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsHide(self):
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doHidden(True)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsUnhide(self):
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doHidden(False)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsLocked(self):
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doLocked(True)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsUnlocked(self):
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doLocked(False)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+	
+def uiManageAttrsDelete(self):
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.delete()
+	
+	updateLoaded(self)
+	
+    else:
+	guiFactory.warning('No attributes selected.')
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # UI Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -204,7 +345,6 @@ def uiUpdateDefaultValue(self):
 def uiLoadSourceObject(self,selectAttr = False):
     selected = []
     bufferList = []
-    #mc.select('test_bsNode')
     
     selected = (mc.ls (sl=True,flatten=True,shortNames=True))
     self.activeAttr = []
@@ -213,15 +353,23 @@ def uiLoadSourceObject(self,selectAttr = False):
             guiFactory.warning('Only one object can be loaded')
         else:
             # Put the object in the field
-            guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_AttributeSourceObject')
-            
+	    guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField, self.SourceObjectOptionVar.name)
+            self.ManagerSourceObjectField(e=True, text = mc.optionVar(q = self.SourceObjectOptionVar.name) )	    
+	    
             # Get our attr menu
             uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
-
+	    uiUpdateSourceObjectData(self)
+	    
+	    self.ManageAttrList.clear()
+	    if self.SourceObject:
+		for a in self.SourceObject.userAttrs:
+		    self.ManageAttrList.append(a)
 
     else:
         #clear the field
-        guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_AttributeSourceObject')
+        guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField, self.SourceObjectOptionVar.name)
+	self.ManagerSourceObjectField(e=True, text = mc.optionVar(q = self.SourceObjectOptionVar.name) )	    
+	
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 	
 	self.ConvertAttrTypeOptionVar.set(0)
@@ -245,6 +393,8 @@ def uiLoadSourceObject(self,selectAttr = False):
         
         #Clear the menus
         self.EditDigitSettingsRow(edit = True, vis = False)
+	
+	self.ManageAttrList.clear()
 
 def uiSelectActiveAttr(self,attr):  
     #>>> Variables
@@ -405,8 +555,8 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         regAttrs = mc.listAttr(sourceObject)
         userAttrs = mc.listAttr(sourceObject,userDefined = True) or []
         lockedAttrs = mc.listAttr(sourceObject,locked = True) or []
-        for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','v':
-            if attr in regAttrs:
+        for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','visibility':
+            if mc.getAttr((sourceObject+'.'+attr)) is not False:
                 attrs.append(attr)
 
         if userAttrs:

@@ -18,6 +18,7 @@
 #
 #=================================================================================================================================================
 __version__ = '0.1.06192012'
+
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
 
@@ -89,9 +90,9 @@ class attrToolsClass(BaseMelWindow):
 		#Menu
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 
-		MainColumn = MelColumnLayout(self)
-
-		self.buildAttributeTool(MainColumn)
+		WindowForm = MelColumnLayout(self)
+		           
+		self.buildAttributeTool(WindowForm)
 		
 		self.show()
 
@@ -100,7 +101,10 @@ class attrToolsClass(BaseMelWindow):
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_attrToolsShowHelp', defaultValue = 0)
 
 		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
-
+		
+		self.SourceObjectOptionVar = OptionVarFactory('cgmVar_AttributeSourceObject', defaultValue= '')
+		guiFactory.appendOptionVarList(self,self.SourceObjectOptionVar.name)
+		
 		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
 
 
@@ -153,20 +157,18 @@ class attrToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildAttributeTool(self,parent,vis=True):
 		OptionList = ['Tools','Manager','Utilities']
-		cgmVar_Name = 'cgmVar_AttributeMode'
 		RadioCollectionName ='AttributeMode'
 		RadioOptionList = 'AttributeModeSelectionChoicesList'
 
 		ShowHelpOption = mc.optionVar( q='cgmVar_TDToolsShowHelp' )
 		
-		if not mc.optionVar( ex=cgmVar_Name ):
-			mc.optionVar( sv=(cgmVar_Name, OptionList[0]) )
+		self.AttributeModeOptionVar = OptionVarFactory( 'cgmVar_AttributeMode',defaultValue = OptionList[0])
 		
 		MelSeparator(parent,ut = 'cgmUIHeaderTemplate',h=5)
 		
 		#Mode Change row 
-		ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
-		MelLabel(ModeSetRow, label = 'Choose Mode: ',align='right')
+		self.ModeSetRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 0)
+		MelLabel(self.ModeSetRow, label = 'Choose Mode: ',align='right')
 		self.RadioCollectionName = MelRadioCollection()
 		self.RadioOptionList = []		
 
@@ -178,14 +180,13 @@ class attrToolsClass(BaseMelWindow):
 		self.ContainerList.append( self.buildAttributeUtilitiesTool( parent,vis=False) )
 		
 		for item in OptionList:
-			self.RadioOptionList.append(self.RadioCollectionName.createButton(ModeSetRow,label=item,
-						                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,cgmVar_Name,self.ContainerList)))
-		ModeSetRow.layout()
+			self.RadioOptionList.append(self.RadioCollectionName.createButton(self.ModeSetRow,label=item,
+						                                                      onCommand = Callback(guiFactory.toggleModeState,item,OptionList,self.AttributeModeOptionVar.name,self.ContainerList)))
+		self.ModeSetRow.layout()
 
 
-		mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(mc.optionVar(q=cgmVar_Name))])
+		mc.radioCollection(self.RadioCollectionName,edit=True, sl=self.RadioOptionList[OptionList.index(self.AttributeModeOptionVar.value)])
 
-		
 		
 	def buildAttributeEditingTool(self,parent, vis=True):
 		#Container
@@ -233,9 +234,6 @@ class attrToolsClass(BaseMelWindow):
 		MelSeparator(self.containerName,ut = 'cgmUISubTemplate',h=2)
 		
 		#>>> Load To Field
-		#clear our variables
-		if not mc.optionVar( ex='cgmVar_AttributeSourceObject' ):
-			mc.optionVar( sv=('cgmVar_AttributeSourceObject', '') )
 	
 		LoadAttributeObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
 	
@@ -278,20 +276,20 @@ class attrToolsClass(BaseMelWindow):
 		#>>> Name Row
 		self.EditNameSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate')
 		NameLabel = MelLabel(self.EditNameSettingsRow,label = 'Name: ')
-		self.NameField = MelTextField(self.EditNameSettingsRow,
+		self.NameField = MelTextField(self.EditNameSettingsRow,en = False,
 		                              bgc = dictionary.returnStateColor('normal'),
 		                              ec = lambda *a: attrToolsLib.uiRenameAttr(self),
 		                              h=20,
 		                              w = 75)
 
 		NiceNameLabel = MelLabel(self.EditNameSettingsRow,label = 'Nice: ')		
-		self.NiceNameField = MelTextField(self.EditNameSettingsRow,
+		self.NiceNameField = MelTextField(self.EditNameSettingsRow,en = False,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateNiceName(self),		                             
 		                             h=20,
 		                             w = 75)
 		AliasLabel = MelLabel(self.EditNameSettingsRow,label = 'Alias: ')		
-		self.AliasField = MelTextField(self.EditNameSettingsRow,
+		self.AliasField = MelTextField(self.EditNameSettingsRow,en = False,
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: attrToolsLib.uiUpdateAlias(self),		                                 
 		                                 h=20,
@@ -448,20 +446,113 @@ class attrToolsClass(BaseMelWindow):
 
 		
 	def buildAttributeManagerTool(self,parent, vis=True):
-		containerName = 'Attributes Constainer'
-		self.containerName = MelColumn(parent,vis=vis)
-
-		#>>> Tag Labels
-		TagLabelsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
-		MelLabel(TagLabelsRow,label = 'Not done yet...')
-		TagLabelsRow.layout()
+		self.ManageForm = MelFormLayout(self.Get())
 		
-		if mc.optionVar( q = 'cgmVar_AttributeSourceObject'):
-			self.SourceObjectField(edit=True,text = mc.optionVar( q = 'cgmVar_AttributeSourceObject'))
-			attrToolsLib.uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
+		ManageHeader = guiFactory.header('Manage Attributes')
 
-		return self.containerName
+		#>>> Manager load frow
+		ManagerLoadObjectRow = MelHSingleStretchLayout(self.ManageForm ,ut='cgmUITemplate',padding = 5)
 	
+		MelSpacer(ManagerLoadObjectRow,w=5)
+		
+		guiFactory.doButton2(ManagerLoadObjectRow,'>>',
+	                        lambda *a:attrToolsLib.uiLoadSourceObject(self),
+	                         'Load to field')
+		
+		self.ManagerSourceObjectField = MelTextField(ManagerLoadObjectRow, w= 125, h=20, ut = 'cgmUIReservedTemplate', editable = False)
+	
+		ManagerLoadObjectRow.setStretchWidget(self.ManagerSourceObjectField  )
+		
+	
+		MelSpacer(ManagerLoadObjectRow,w=5)
+	
+		ManagerLoadObjectRow.layout()
+
+		#>>> ScrollList
+		#AttributeListScroll = MelScrollLayout(self.ManageForm,cr = 1, ut = 'cgmUISubTemplate')
+
+		#>>> Attribute List
+		self.ManageAttrList = MelObjectScrollList(self.ManageForm, allowMultiSelection=True, ut = 'cgmUIReservedTemplate' )
+		
+		#>>> Reorder Button
+		ReorderButtonsRow = MelHLayout(self.ManageForm)
+		guiFactory.doButton2(ReorderButtonsRow,
+		                     'Move Up',
+		                     lambda *a: attrToolsLib.uiReorderAttributes(self,0),
+		                     'Create new buffer from selected buffer')	
+		guiFactory.doButton2(ReorderButtonsRow,
+		                     'Move Down',
+		                     lambda *a: attrToolsLib.uiReorderAttributes(self,1),
+		                     'Create new buffer from selected buffer')	
+		ReorderButtonsRow.layout()
+
+		BottomButtonRow = guiFactory.doButton2(self.ManageForm,
+		                                 'Transfer Attributes',
+		                                 "print 'yes'",
+		                                 'Create new buffer from selected buffer')	
+
+		self.ManageForm(edit = True,
+		         af = [(ManageHeader,"top",0),
+		               (ManageHeader,"left",0),
+		               (ManageHeader,"right",0),
+		               (self.ManageAttrList,"left",0),
+		               (self.ManageAttrList,"right",0),
+		               (ManagerLoadObjectRow,"left",0),
+		               (ManagerLoadObjectRow,"right",0),
+		               (ReorderButtonsRow,"left",0),
+		               (ReorderButtonsRow,"right",0),		               
+		               (BottomButtonRow,"left",0),
+		               (BottomButtonRow,"right",0),
+		               (BottomButtonRow,"bottom",4)],
+		         ac = [(ManagerLoadObjectRow,"top",5,ManageHeader),
+		               (self.ManageAttrList,"top",5,ManagerLoadObjectRow),
+		               (self.ManageAttrList,"bottom",5,ReorderButtonsRow),
+		               (ReorderButtonsRow,"bottom",5,BottomButtonRow)],
+		         attachNone = [(BottomButtonRow,"top")])	
+		
+
+
+
+		#Build pop up for attribute list field
+		popUpMenu = MelPopupMenu(self.ManageAttrList,button = 3)
+				
+			
+		MelMenuItem(popUpMenu ,
+	                label = 'Make Keyable',
+	                c = lambda *a: attrToolsLib.uiManageAttrsKeyable(self))
+		
+		MelMenuItem(popUpMenu ,
+	                label = 'Make Unkeyable',
+		            c = lambda *a: attrToolsLib.uiManageAttrsUnkeyable(self))
+		
+		MelMenuItemDiv(popUpMenu)
+		
+		MelMenuItem(popUpMenu ,
+	                label = 'Hide',
+		            c = lambda *a: attrToolsLib.uiManageAttrsHide(self))
+		
+		MelMenuItem(popUpMenu ,
+	                label = 'Unhide',
+		            c = lambda *a: attrToolsLib.uiManageAttrsUnhide(self))
+		
+		MelMenuItemDiv(popUpMenu)
+		MelMenuItem(popUpMenu ,
+	                label = 'Lock',
+		            c = lambda *a: attrToolsLib.uiManageAttrsLocked(self))
+		
+		MelMenuItem(popUpMenu ,
+	                label = 'Unlock',
+		            c = lambda *a: attrToolsLib.uiManageAttrsUnlocked(self))
+		
+		MelMenuItemDiv(popUpMenu)
+		MelMenuItem(popUpMenu ,
+	                label = 'Delete',
+		            c = lambda *a: attrToolsLib.uiManageAttrsDelete(self))
+
+
+		return self.ManageForm
+	
+
 	
 	def buildAttributeUtilitiesTool(self,parent, vis=True):
 		containerName = 'Utilities Container'
