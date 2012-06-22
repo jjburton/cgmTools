@@ -346,6 +346,37 @@ def doSetStringAttr(attribute,value,forceLock = False):
     if wasLocked == True or forceLock == True:
         mc.setAttr(attribute,lock=True)
         
+def doRenameAttr(obj,oldAttrName,newAttrName,forceLock = False):
+    """                                     
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Replacement for setAttr which will unlock a locked node it's given
+    to force a setting of the values. Also has a lock when done overide
+
+    ARGUMENTS:
+    attribute(string) - 'obj.attribute'
+    value() - depends on the attribute type
+    forceLock(bool) = False(default)
+
+    RETURNS:
+    nothin
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    wasLocked = False
+    combinedBuffer = '%s.%s'%(obj,oldAttrName)
+    if (mc.objExists(combinedBuffer)) == True:
+        if mc.getAttr(combinedBuffer,lock=True) == True:
+            wasLocked = True
+            mc.setAttr(combinedBuffer,lock=False)
+            mc.renameAttr(combinedBuffer,newAttrName)
+        else:
+            breakConnection(combinedBuffer)
+            mc.renameAttr(combinedBuffer,newAttrName)
+
+    if wasLocked == True or forceLock == True:
+        newBuffer = '%s.%s'%(obj,newAttrName)
+        mc.setAttr(newBuffer,lock=True)
+          
 def convertAttrType(targetAttrName,attrType):
     """ 
     Attempts to convert an existing attrType from one type to another. 
@@ -380,8 +411,6 @@ def convertAttrType(targetAttrName,attrType):
     targetObj = buffer[0]
     targetAttr = buffer[-1]
     
-    print "Target object is '%s'"%targetObj
-    print "Target attr is '%s'"%targetAttr
     
     #>>> Do the stuff
     if aType != targetType:
@@ -394,13 +423,10 @@ def convertAttrType(targetAttrName,attrType):
             connection = returnDriverAttribute(targetAttrName)            
             dataBuffer = mc.getAttr(targetAttrName)
         
-        if targetType == 'enum':
-            enumStuff = mc.attributeQuery(targetAttr, node = targetObj, listEnum=True)
-            buffer = enumStuff[0].split(':')
-            dataBuffer = ';'.join(buffer)
-            
-        print "Data buffer is '%s'"%dataBuffer   
-        
+        if targetType == 'enum':           
+            dataBuffer = mc.addAttr((targetObj+'.'+targetAttr),q=True, en = True)
+
+                    
         deleteAttr(targetObj,targetAttr)
         
         """if it doesn't exist, make it"""
@@ -408,13 +434,11 @@ def convertAttrType(targetAttrName,attrType):
             mc.addAttr (targetObj, ln = targetAttr,  dt = aType )
             
         elif aType == 'enum':
-            enumStuff  = ['off','on'] 
+            enumStuff  = 'off:on'
             if dataBuffer:
                 if type(dataBuffer) is str or type(dataBuffer) is unicode:
-                    if ';' in dataBuffer:
-                        enumStuff = dataBuffer.split(';')
-            print enumStuff
-            mc.addAttr (targetObj, ln = targetAttr, at=  'enum', en = ':'.join(enumStuff))
+                    enumStuff = dataBuffer
+            mc.addAttr (targetObj, ln = targetAttr, at=  'enum', en = enumStuff)
             
         elif aType == 'double3':
             mc.addAttr (targetObj, ln=targetAttr, at= 'double3')
@@ -1169,18 +1193,18 @@ def returnUserAttrsToDict(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrDict = {}
-    objAttributes =(mc.listAttr (obj, userDefined=True))
+    objAttributes =(mc.listAttr (obj, userDefined=True)) or []
     attrTypes = returnObjectsAttributeTypes(obj,userDefined = True)
     
-    if not objAttributes == None:
+    if objAttributes:
         for attr in objAttributes:                    
             messageBuffer = []
             messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
             attrType = attrTypes.get(attr)
             if messageQuery == True:
-                query = (mc.listConnections(obj+'.'+attr))
-                if not query == None:
-                    attrDict[attr] = (query[0])
+                query = returnMessageObject(obj,attr)
+                if query:
+                    attrDict[attr] = (query)
             elif attrType == 'double3':
                 childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
                 dataBuffer = []
@@ -1197,7 +1221,11 @@ def returnUserAttrsToDict(obj):
                 else:
                     attrDict[attr] = (mc.getAttr((obj+'.'+attr)))                    
             else:
-                attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
+                if attrType != 'attributeAlias':
+                    buffer = mc.getAttr(obj+'.'+attr)
+                    if buffer:
+                        attrDict[attr] = (buffer)
+                    
         return attrDict
     else:
         return False
