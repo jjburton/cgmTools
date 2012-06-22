@@ -36,10 +36,78 @@ reload(dictionary)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # UI Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiUpdateAttrReport(self): 
+    buildReport = []
+    if self.activeAttr:
+    
+	if self.activeAttr.driverAttribute and self.activeAttr.form != 'message':
+	    buildReport.append("'%s'>>Drives Me"%self.activeAttr.driverAttribute)
+	    
+	if self.activeAttr.drivenAttribute:
+	    buildReport.append("Drives>>'%s'"%self.activeAttr.drivenAttribute)
+	
+	
+	if self.activeAttr.numeric:
+	    if len(list(str(self.activeAttr.value))) > 4 and type(self.activeAttr.value) is float:
+		buildReport.append("Value=%f"%self.activeAttr.value)        
+	    else:
+		buildReport.append("Value=%s"%self.activeAttr.value)
+	elif self.activeAttr.form == 'message':
+	    buildReport.append("Message='%s'"%self.activeAttr.value)        
+	else:
+	    buildReport.append("Value=%s"%self.activeAttr.value)
+	    
+	
+	self.AttrReportField(edit = True, label = ' | '.join(buildReport))
+
 def uiUpdateCheckBox(self, commandAttr, valueAttr):   
     commandAttr(not valueAttr)
     uiSelectActiveAttr(self,self.activeAttr.attr)
     
+def uiConvertLoadedAttr(self,mode,Active = True):    
+    #>>> Variables
+    if self.activeAttr and self.ConvertAttrTypeOptionVar.value:
+	self.activeAttr.convert(mode)
+	uiSelectActiveAttr(self,self.activeAttr.attr) 
+	
+def uiRenameAttr(self):    
+    #>>> Variables
+    varCheck = self.NameField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.doRename(varCheck)
+	    mc.select(self.activeAttr.obj.nameLong)
+	    uiLoadSourceObject(self,varCheck)	    
+            uiSelectActiveAttr(self,varCheck)
+        else:
+            uiSelectActiveAttr(self,self.activeAttr.attr)  
+        
+def uiUpdateAlias(self):    
+    #>>> Variables
+    varCheck = self.AliasField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.doAlias(varCheck) 
+            uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr = varCheck)
+            uiSelectActiveAttr(self,varCheck)	    
+        else:
+            self.activeAttr.doAlias(False)
+            uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr = self.activeAttr.attr)
+            uiSelectActiveAttr(self,self.activeAttr.attr)	    
+            
+        uiSelectActiveAttr(self,self.activeAttr.nameLong)  
+        
+def uiUpdateNiceName(self):    
+    #>>> Variables
+    varCheck = self.NiceNameField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.doNiceName(varCheck)             
+        else:
+            self.activeAttr.doNiceName(self.activeAttr.attr.capitalize())
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)  
+        
 def uiUpdateString(self):    
     #>>> Variables
     varCheck = self.StringField(q=True,text=True)
@@ -51,6 +119,17 @@ def uiUpdateString(self):
             
         uiSelectActiveAttr(self,self.activeAttr.attr) 
         
+def uiUpdateMessage(self):    
+    #>>> Variables
+    selection = mc.ls(sl=True,flatten=True,long=True) or []
+    if self.activeAttr:
+        if selection:
+            self.activeAttr.doStore(selection[0])             
+        else:
+            self.activeAttr.doStore('')
+            guiFactory.warning("'%s.%s' failed to store"%(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr) 
 
 def uiUpdateEnum(self):    
     #>>> Variables
@@ -71,33 +150,32 @@ def uiUpdateMinValue(self):
     varCheck = self.MinField(q=True,text=True)
     if self.activeAttr:
         if type(varCheck)is unicode and len(varCheck) < 1:
-            self.activeAttr.isMin(False)             
+            self.activeAttr.doMin(False)             
         elif type(varCheck) is float or int:
             try:
-                self.activeAttr.isMin(float(varCheck))
+                self.activeAttr.doMin(float(varCheck))
             except:
                 guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
                 
         else:
-            self.activeAttr.isMin(False)
+            self.activeAttr.doMin(False)
             
         uiSelectActiveAttr(self,self.activeAttr.attr)
         
 def uiUpdateMaxValue(self):    
     #>>> Variables
     varCheck = self.MaxField(q=True,text=True)
-    print varCheck
     if self.activeAttr:
         if type(varCheck)is unicode and len(varCheck) < 1:
-            self.activeAttr.isMax(False)           
+            self.activeAttr.doMax(False)           
         elif type(varCheck) is float or int:
             try:
-                self.activeAttr.isMax(float(varCheck))
+                self.activeAttr.doMax(float(varCheck))
             except:
                 guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
                 
         else:
-            self.activeAttr.isMax(False)
+            self.activeAttr.doMax(False)
             
         uiSelectActiveAttr(self,self.activeAttr.attr)
 
@@ -108,15 +186,15 @@ def uiUpdateDefaultValue(self):
 
     if self.activeAttr:
         if type(varCheck)is unicode and len(varCheck) < 1:
-            self.activeAttr.isDefault(False)        
+            self.activeAttr.doDefault(False)        
         elif type(varCheck) is float or int:
             try:
-                self.activeAttr.isDefault(float(varCheck))
+                self.activeAttr.doDefault(float(varCheck))
             except:
                 guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
                 
         else:
-            self.activeAttr.isDefault(False)
+            self.activeAttr.doDefault(False)
             
         uiSelectActiveAttr(self,self.activeAttr.attr)   
 
@@ -126,6 +204,8 @@ def uiUpdateDefaultValue(self):
 def uiLoadSourceObject(self,selectAttr = False):
     selected = []
     bufferList = []
+    #mc.select('test_bsNode')
+    
     selected = (mc.ls (sl=True,flatten=True,shortNames=True))
     self.activeAttr = []
     if selected:
@@ -134,6 +214,7 @@ def uiLoadSourceObject(self,selectAttr = False):
         else:
             # Put the object in the field
             guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_AttributeSourceObject')
+            
             # Get our attr menu
             uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 
@@ -142,15 +223,23 @@ def uiLoadSourceObject(self,selectAttr = False):
         #clear the field
         guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField,'cgmVar_AttributeSourceObject')
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
+	
+	self.ConvertAttrTypeOptionVar.set(0)
         
         #clear the menu items
-        self.KeyableAttrCB(edit=True, en = False)
-        self.HiddenAttrCB(edit=True, en = False)
-        self.LockedAttrCB(edit=True, en = False) 
+        self.AttrReportField(edit = True, label = '...')
+        
+        self.KeyableAttrCB(edit=True, en = False,v=0)
+        self.HiddenAttrCB(edit=True, en = False,v=0)
+        self.LockedAttrCB(edit=True, en = False,v=0) 
+        self.NameField(edit=True, en=False, text = '')
+        self.NiceNameField(edit=True, en=False, text = '')
+        self.AliasField(edit=True, en=False, text = '')        
         
         self.EditStringRow(e = True, vis = False)   
         self.EditEnumRow(e=True, vis = False)
         self.EditMessageRow(e=True, vis = False)
+	self.AttrConvertRow(e=True, vis = False)
         
         self.DeleteAttrButton(e = True, en = False)
         
@@ -177,20 +266,54 @@ def uiSelectActiveAttr(self,attr):
     
     if self.activeAttr.dynamic:
         self.DeleteAttrButton(e = True, en=True)
+	#Converion Row
+	self.AttrConvertRow(e=True, vis = True)
+	indexAttr = False
+	
+        for option in attrTypesDict.keys():
+            if self.activeAttr.form in attrTypesDict.get(option): 
+                indexAttr = option
+		if indexAttr == 'long':
+		    indexAttr = 'int'
+		elif indexAttr == 'double':
+		    indexAttr = 'float'
+                break
+	
+	if indexAttr in self.attrConvertTypes:
+	    self.ConvertAttrTypeOptionVar.set(0)	    
+	    mc.radioCollection(self.ConvertAttrTypeRadioCollection ,edit=True,sl= (self.ConvertAttrTypeRadioCollectionChoices[ self.attrConvertTypes.index(indexAttr) ]))
+	    self.ConvertAttrTypeOptionVar.set(1)
+	    
+		
     else:
         self.DeleteAttrButton(e = True, en=False)
+	self.AttrConvertRow(e=True, vis = False)
         
-        
+    uiUpdateAttrReport(self)
+    
     #>>> Basics     
     self.KeyableAttrCB(edit=True, value = self.activeAttr.keyable, en = True,
-                       cc = lambda *a:uiUpdateCheckBox(self, self.activeAttr.isKeyable,self.activeAttr.keyable))
+                       cc = lambda *a:uiUpdateCheckBox(self, self.activeAttr.doKeyable,self.activeAttr.keyable))
     
     self.HiddenAttrCB(edit=True, value = self.activeAttr.hidden, en = True,
-                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.isHidden, self.activeAttr.hidden))
+                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.doHidden, self.activeAttr.hidden))
 
     self.LockedAttrCB(edit=True, value = self.activeAttr.locked, en = True,
-                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.isLocked, self.activeAttr.locked)) 
+                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.doLocked, self.activeAttr.locked)) 
 
+    self.NameField(edit=True, en=True, text = self.activeAttr.nameLong)
+    
+    if self.activeAttr.dynamic:
+    	self.NiceNameField(edit=True, en=True, text = self.activeAttr.nameNice)
+    else:
+	self.NiceNameField(edit=True, en=False, text = '')  
+	
+    if self.activeAttr.nameAlias:
+	self.AliasField(edit=True, en=True, text = self.activeAttr.nameAlias)
+    else:
+	self.AliasField(edit=True, en=True, text = '')  
+    
+    
     #>>> Numbers
     if self.activeAttr.form in ['long','float','double','doubleLinear','doubleAngle'] and self.activeAttr.dynamic:
         self.EditDigitSettingsRow(edit = True, vis = True)
@@ -223,9 +346,12 @@ def uiSelectActiveAttr(self,attr):
     else:
         self.EditStringRow(e = True, vis = False)
         
+        
+    #>>> String  
     if self.activeAttr.form  == 'message':
         self.EditMessageRow(e=True, vis = True)
         self.MessageField(edit = True,enable = False, text = self.activeAttr.value)
+        uiUpdateMessage
     else:
         self.EditMessageRow(e=True, vis = False)
         
@@ -275,8 +401,8 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         menu.clear()
         attrs = mc.listAttr(sourceObject,keyable=True)
         regAttrs = mc.listAttr(sourceObject)
-        userAttrs = mc.listAttr(sourceObject,userDefined = True)
-        lockedAttrs = mc.listAttr(sourceObject,locked = True)
+        userAttrs = mc.listAttr(sourceObject,userDefined = True) or []
+        lockedAttrs = mc.listAttr(sourceObject,locked = True) or []
         for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','v':
             if attr in regAttrs:
                 attrs.append(attr)
@@ -288,10 +414,14 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
             attrs.extend( lockedAttrs )
 
         attrs = lists.returnListNoDuplicates(attrs)
-        attrs.sort()
+        attrs.sort()	    
+	    
         if attrs:
             for a in attrs:
-                menu.append(a)
+                if a in ['attributeAliasList']:
+		    attrs.remove(a)
+		else:
+                    menu.append(a)
             uiSelectActiveAttr(self,attrs[-1])
         else:
             menu.clear()
@@ -336,7 +466,6 @@ def doAddAttributesToSelected(self):
     returnDict = {}
     if attrType == 'message':
         if len(selected) == 1:
-            print ("single mode")
             objAttrBuffer = []
             #Just gonna add a message attr
             for attr in attrsToAdd: 
@@ -346,14 +475,12 @@ def doAddAttributesToSelected(self):
         else:
             #if our number of names is equal to our number of selected items minus the last which we will add to
             if len(selected[0:-1]) == len(attrsToAdd):
-                print('message mode')
                 #Just gonna add a message attr
                 for obj in selected[:-1]: 
                     objAttrBuffer = []
                     cnt=selected.index(obj)
                     if attributes.storeObjectToMessage(obj,selected[-1],attrsToAdd[cnt]):
                         objAttrBuffer.append(attrsToAdd[cnt])
-                        print objAttrBuffer
                 returnDict[selected[-1]] = objAttrBuffer
 
             else:
@@ -394,12 +521,11 @@ def doAddAttributesToSelected(self):
     mc.select(cl=True)
     mc.select(selected[-1])
 
-    print returnDict
 
     uiLoadSourceObject(self,objAttrBuffer[-1])
+    uiSelectActiveAttr(self,objAttrBuffer[-1])
 
     mc.select(selected)
-    print returnDict
     return returnDict
 
 

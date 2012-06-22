@@ -201,7 +201,7 @@ class attrToolsClass(BaseMelWindow):
 		MelSpacer(attrCreateRow)
 
 		MelLabel(attrCreateRow,l='Names:',align='right')
-		self.AttrNamesTextField = MelTextField(attrCreateRow,backgroundColor = [1,1,1],
+		self.AttrNamesTextField = MelTextField(attrCreateRow,backgroundColor = [1,1,1],h=20,
 		                                       annotation = "Names for the attributes. Create multiple with a ';'. \n Message nodes try to connect to the last object in a selection \n For example: 'Test1;Test2;Test3'")
 		guiFactory.doButton2(attrCreateRow,'Add',
 		                     lambda *a: attrToolsLib.doAddAttributesToSelected(self),
@@ -212,7 +212,7 @@ class attrToolsClass(BaseMelWindow):
 		attrCreateRow.layout()
 		
 		
-		#>>> asf
+		#>>> modify Section
 		self.buildAttrTypeRow(self.containerName)
 		MelSeparator(self.containerName,ut = 'cgmUIHeaderTemplate',h=3)
 		MelSeparator(self.containerName,ut = 'cgmUITemplate',h=10)
@@ -221,6 +221,15 @@ class attrToolsClass(BaseMelWindow):
 		mc.setParent(self.containerName)
 		guiFactory.header('Modify')
 		guiFactory.lineSubBreak()
+		AttrReportRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate')
+		self.AttrReportField = MelLabel(AttrReportRow,
+		                                bgc = dictionary.returnStateColor('help'),
+		                                align = 'center',
+		                                label = '...',
+		                                h=20)
+	
+		AttrReportRow.layout()
+		MelSeparator(self.containerName,ut = 'cgmUISubTemplate',h=2)
 		
 		#>>> Load To Field
 		#clear our variables
@@ -235,7 +244,7 @@ class attrToolsClass(BaseMelWindow):
 	                        lambda *a:attrToolsLib.uiLoadSourceObject(self),
 	                         'Load to field')
 		
-		self.SourceObjectField = MelTextField(LoadAttributeObjectRow, w= 125, ut = 'cgmUIReservedTemplate', editable = False)
+		self.SourceObjectField = MelTextField(LoadAttributeObjectRow, w= 125, h=20, ut = 'cgmUIReservedTemplate', editable = False)
 	
 		LoadAttributeObjectRow.setStretchWidget(self.SourceObjectField  )
 		
@@ -251,12 +260,8 @@ class attrToolsClass(BaseMelWindow):
 		MelSpacer(LoadAttributeObjectRow,w=5)
 	
 		LoadAttributeObjectRow.layout()
+		
 	
-	
-		mc.setParent(self.containerName)
-		guiFactory.lineSubBreak()
-
-
 		#>>> Standard Flags
 		BasicAttrFlagsRow = MelHLayout(self.containerName ,ut='cgmUISubTemplate',padding = 2)
 		MelSpacer(BasicAttrFlagsRow,w=5)
@@ -268,22 +273,57 @@ class attrToolsClass(BaseMelWindow):
 		MelSpacer(BasicAttrFlagsRow,w=5)
 		BasicAttrFlagsRow.layout()
 		
+		
+		#>>> Name Row
+		self.EditNameSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate')
+		NameLabel = MelLabel(self.EditNameSettingsRow,label = 'Name: ')
+		self.NameField = MelTextField(self.EditNameSettingsRow,en = False,
+		                             bgc = dictionary.returnStateColor('normal'),
+		                             ec = lambda *a: attrToolsLib.uiRenameAttr(self),
+		                             h=20,
+		                             w = 75)
+		NiceNameLabel = MelLabel(self.EditNameSettingsRow,label = 'Nice: ')		
+		self.NiceNameField = MelTextField(self.EditNameSettingsRow,en = False,
+		                             bgc = dictionary.returnStateColor('normal'),
+		                             ec = lambda *a: attrToolsLib.uiUpdateNiceName(self),		                             
+		                             h=20,
+		                             w = 75)
+		AliasLabel = MelLabel(self.EditNameSettingsRow,label = 'Alias: ')		
+		self.AliasField = MelTextField(self.EditNameSettingsRow,en = False,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: attrToolsLib.uiUpdateAlias(self),		                                 
+		                                 h=20,
+		                                 w = 75)
+		
+		mc.formLayout(self.EditNameSettingsRow, edit = True,
+	                  af = [(NameLabel, "left", 5),
+	                        (self.AliasField,"right",5)],
+	                  ac = [(self.NameField,"left",2,NameLabel),
+	                        (NiceNameLabel,"left",2,self.NameField),
+	                        (self.NiceNameField,"left",2,NiceNameLabel),
+	                        (AliasLabel,"left",2,self.NiceNameField),
+		                    (self.AliasField,"left",2,AliasLabel),
+		                    ])
+		
 		#>>> Int Row
 		self.EditDigitSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
 		MinLabel = MelLabel(self.EditDigitSettingsRow,label = 'Min: ')
 		self.MinField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
-		                             ec = lambda *a: attrToolsLib.uiUpdateMinValue(self),		                             
+		                             ec = lambda *a: attrToolsLib.uiUpdateMinValue(self),
+		                             h=20,
 		                             w = 70)
 		MaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'Max: ')		
 		self.MaxField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
-		                             ec = lambda *a: attrToolsLib.uiUpdateMaxValue(self),		                             		                             
+		                             ec = lambda *a: attrToolsLib.uiUpdateMaxValue(self),	
+		                             h=20,
 		                             w = 70)
 		DefaultLabel = MelLabel(self.EditDigitSettingsRow,label = 'Default: ')		
 		self.DefaultField = MelTextField(self.EditDigitSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
-		                                 ec = lambda *a: attrToolsLib.uiUpdateDefaultValue(self),		                             		                                 
+		                                 ec = lambda *a: attrToolsLib.uiUpdateDefaultValue(self),	
+		                                 h=20,
 		                                 w = 70)
 		
 		mc.formLayout(self.EditDigitSettingsRow, edit = True,
@@ -296,12 +336,12 @@ class attrToolsClass(BaseMelWindow):
 		                    (self.DefaultField,"left",2,DefaultLabel),
 		                    ])
 		#>>> Enum
-		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
 		self.EditEnumRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5, vis = False)
 		MelSpacer(self.EditEnumRow,w=10)
 		MelLabel(self.EditEnumRow,label = 'Enum: ')
 		self.EnumField = MelTextField(self.EditEnumRow,
-				                      annotation = "Options divided by ':'. \n Set values with '=' \n For example: 'off:on=1:maybe:23'",
+		                              h=20,
+				                      annotation = "Options divided by ':'. \n Set values with '=' \n For example: 'off:on=1:maybe=23'",
 		                              bgc = dictionary.returnStateColor('normal'),
 		                              w = 75)
 		MelSpacer(self.EditEnumRow,w=10)
@@ -314,6 +354,7 @@ class attrToolsClass(BaseMelWindow):
 		MelSpacer(self.EditStringRow,w=10)
 		MelLabel(self.EditStringRow,label = 'String: ')
 		self.StringField = MelTextField(self.EditStringRow,
+		                                h=20,
 		                                bgc = dictionary.returnStateColor('normal'),
 		                                w = 75)
 		MelSpacer(self.EditStringRow,w=10)
@@ -322,23 +363,26 @@ class attrToolsClass(BaseMelWindow):
 		self.EditStringRow.layout()
 		
 		#>>> Message
-		MelSeparator(self.containerName,ut='cgmUISubTemplate',h=5)
 		self.EditMessageRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5, vis = False)
 		MelSpacer(self.EditMessageRow,w=10)
 		MelLabel(self.EditMessageRow,label = 'Message: ')
 		self.MessageField = MelTextField(self.EditMessageRow,
-		                                enable = False,
-		                                bgc = dictionary.returnStateColor('locked'),
-		                                ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
-		                                w = 75)
+		                                 h=20,
+		                                 enable = False,
+		                                 bgc = dictionary.returnStateColor('locked'),
+		                                 ec = lambda *a: tdToolsLib.uiUpdateAutoNameTag(self,'cgmPosition'),
+		                                 w = 75)
 		self.LoadMessageButton = guiFactory.doButton2(self.EditMessageRow,'<<',
-		                                              lambda *a:attrToolsLib.uiLoadSourceObject(self),
-		                                               'Load to message')
+		                                              lambda *a:attrToolsLib.uiUpdateMessage(self),
+		                                              'Load to message')
 		MelSpacer(self.EditMessageRow,w=10)
 		self.EditMessageRow.setStretchWidget(self.MessageField)
 
 		self.EditMessageRow.layout()
 		
+		#>>> Conversion
+		self.buildAttrConversionRow(self.containerName)
+		self.AttrConvertRow(e=True, vis = False)
 		
 		mc.setParent(self.containerName )
 		guiFactory.lineSubBreak()
@@ -380,12 +424,29 @@ class attrToolsClass(BaseMelWindow):
 			mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(self.CreateAttrTypeOptionVar.value) ]))
 		
 		AttrTypeRow.layout()
-		"""
-		AttrLabelRow = MelHLayout(self.containerName,ut='cgmUISubTemplate')
-		for item in attrTypes:
-			MelLabel(AttrLabelRow,label=item)
-		AttrLabelRow.layout()
-		"""
+		
+	def buildAttrConversionRow(self,parent):	
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		# Attr type row
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		self.attrConvertTypes = ['string','float','int','bool','enum','message']
+		self.attrConvertShortTypes = ['str','float','int','bool','enum','msg']
+
+		self.ConvertAttrTypeRadioCollection = MelRadioCollection()
+		self.ConvertAttrTypeRadioCollectionChoices = []	
+		
+		self.ConvertAttrTypeOptionVar = OptionVarFactory('cgmVar_ActiveAttrConversionState','int')
+		guiFactory.appendOptionVarList(self,self.ConvertAttrTypeOptionVar.name)
+		self.ConvertAttrTypeOptionVar.set(0)
+			
+		#build our sub section options
+		self.AttrConvertRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
+		for cnt,item in enumerate(self.attrConvertTypes):
+			self.ConvertAttrTypeRadioCollectionChoices.append(self.ConvertAttrTypeRadioCollection.createButton(self.AttrConvertRow,label=self.attrConvertShortTypes[cnt],
+			                                                                                                   onCommand = Callback(attrToolsLib.uiConvertLoadedAttr,self,item)))
+			MelSpacer(self.AttrConvertRow,w=2)
+
+		self.AttrConvertRow.layout()
 
 		
 	def buildAttributeManagerTool(self,parent, vis=True):
