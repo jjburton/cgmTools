@@ -315,6 +315,19 @@ class AttrFactory():
             
         except:
             guiFactory.warning("'%s.%s' failed to store '%s'"%(self.obj.nameLong,self.attr,infoToStore))
+            
+    def doDelete(self):
+        """ 
+        Set the options for an enum attribute
+        
+        Keyword arguments:
+        enumCommand(string) -- 'off:on', 'off=0:on=2', etc
+        """   
+        try:
+            mc.deleteAttr(self.nameCombined)            
+            self.attr = False
+        except:
+            guiFactory.warning("'%s.%s' failed to store '%s'"%(self.obj.nameLong,self.attr,infoToStore))
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Set Options
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
