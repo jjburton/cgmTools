@@ -278,6 +278,8 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                               loadAnimTools),
                              ('cgm.locinator', "Tool for creating, updating, locators",
                               loadLocinator),
+                             ('cgm.SetTools', " Set tools",
+                              loadSetTools),
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
                               loadXferAnim), 
                              ('zoo.Keymaster', "from Hamish McKenzie's zooToolbox - keymaster gives you a heap of tools to manipulate keyframes - scaling around curve pivots, min/max scaling of curves/keys etc...",
@@ -290,6 +292,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            
 						   ('cgm.tdTools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
                             loadTDTools),
+                           
+                           ('cgm.attrTools', " Attribute tools",
+                            loadAttrTools),  
                            
                            ('cgm.PolyUniteTool', "Stand alone poly unite tool for Plastic",
                             loadPolyUniteTool),
@@ -320,11 +325,7 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
 
                            )),
               
-              ('dev', (('cgm.attrTools', " Attribute tools",
-                        loadAttrTools),  
-                       ('cgm.SetTools', " Set tools",
-                        loadSetTools), 
-                       ('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
+              ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
                         purgeCGMOptionVars),                         
                        ))
 
