@@ -34,6 +34,7 @@ from cgm.tools.lib import (tdToolsLib,
 
 reload(tdToolsLib)
 reload(attrToolsLib)
+reload(guiFactory)
 
 def run():
 	cgmAttrToolsWin = attrToolsClass()
@@ -277,19 +278,20 @@ class attrToolsClass(BaseMelWindow):
 		#>>> Name Row
 		self.EditNameSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate')
 		NameLabel = MelLabel(self.EditNameSettingsRow,label = 'Name: ')
-		self.NameField = MelTextField(self.EditNameSettingsRow,en = False,
-		                             bgc = dictionary.returnStateColor('normal'),
-		                             ec = lambda *a: attrToolsLib.uiRenameAttr(self),
-		                             h=20,
-		                             w = 75)
+		self.NameField = MelTextField(self.EditNameSettingsRow,
+		                              bgc = dictionary.returnStateColor('normal'),
+		                              ec = lambda *a: attrToolsLib.uiRenameAttr(self),
+		                              h=20,
+		                              w = 75)
+
 		NiceNameLabel = MelLabel(self.EditNameSettingsRow,label = 'Nice: ')		
-		self.NiceNameField = MelTextField(self.EditNameSettingsRow,en = False,
+		self.NiceNameField = MelTextField(self.EditNameSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateNiceName(self),		                             
 		                             h=20,
 		                             w = 75)
 		AliasLabel = MelLabel(self.EditNameSettingsRow,label = 'Alias: ')		
-		self.AliasField = MelTextField(self.EditNameSettingsRow,en = False,
+		self.AliasField = MelTextField(self.EditNameSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: attrToolsLib.uiUpdateAlias(self),		                                 
 		                                 h=20,
@@ -311,20 +313,17 @@ class attrToolsClass(BaseMelWindow):
 		self.MinField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateMinValue(self),
-		                             h=20,
-		                             w = 70)
+		                             h = 20, w = 70)
 		MaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'Max: ')		
 		self.MaxField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateMaxValue(self),	
-		                             h=20,
-		                             w = 70)
+		                             h = 20, w = 70)
 		DefaultLabel = MelLabel(self.EditDigitSettingsRow,label = 'Default: ')		
 		self.DefaultField = MelTextField(self.EditDigitSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: attrToolsLib.uiUpdateDefaultValue(self),	
-		                                 h=20,
-		                                 w = 70)
+		                                 h = 20, w = 70)
 		
 		mc.formLayout(self.EditDigitSettingsRow, edit = True,
 	                  af = [(MinLabel, "left", 20),
@@ -340,10 +339,9 @@ class attrToolsClass(BaseMelWindow):
 		MelSpacer(self.EditEnumRow,w=10)
 		MelLabel(self.EditEnumRow,label = 'Enum: ')
 		self.EnumField = MelTextField(self.EditEnumRow,
-		                              h=20,
 				                      annotation = "Options divided by ':'. \n Set values with '=' \n For example: 'off:on=1:maybe=23'",
 		                              bgc = dictionary.returnStateColor('normal'),
-		                              w = 75)
+		                              h = 20, w = 75)
 		MelSpacer(self.EditEnumRow,w=10)
 		self.EditEnumRow.setStretchWidget(self.EnumField)
 		

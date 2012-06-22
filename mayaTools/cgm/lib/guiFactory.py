@@ -60,9 +60,9 @@ def initializeTemplates():
     mc.separator(dt='cgmUITemplate', height = 10, style = 'none')
     mc.button(dt = 'cgmUITemplate', height = 15, backgroundColor = guiButtonColor,align = 'center')
     mc.window(dt = 'cgmUITemplate', backgroundColor = guiBackgroundColor)
-    mc.textField(dt = 'cgmUITemplate', backgroundColor = [1,1,1],h=20)
     mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)
     mc.optionMenuGrp(dt ='cgmUITemplate', backgroundColor = guiButtonColor)
+    mc.textField(dt = 'cgmUITemplate',backgroundColor = [1,1,1],h=20)
 
     # Define our header template
     if mc.uiTemplate( 'cgmUIHeaderTemplate', exists=True ):
@@ -86,6 +86,7 @@ def initializeTemplates():
     mc.rowColumnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.columnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.scrollLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+    mc.textField(dt = 'cgmUISubTemplate',backgroundColor = [1,1,1],h=20)
 
 
     # Define our instructional template
@@ -97,6 +98,7 @@ def initializeTemplates():
     mc.rowLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
     mc.rowColumnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
     mc.columnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
+    mc.textField(dt = 'cgmUIInstructionsTemplate',backgroundColor = [1,1,1],h=20)
 
     # Define our Reserved
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):

@@ -32,7 +32,7 @@ from cgm.lib import (guiFactory,
 reload(attributes)
 reload(search)
 reload(dictionary)
-
+reload(guiFactory)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # UI Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -233,7 +233,7 @@ def uiLoadSourceObject(self,selectAttr = False):
         self.HiddenAttrCB(edit=True, en = False,v=0)
         self.LockedAttrCB(edit=True, en = False,v=0) 
         self.NameField(edit=True, en=False, text = '')
-        self.NiceNameField(edit=True, en=False, text = '')
+	self.NiceNameField(edit=True, en=False, text = '')
         self.AliasField(edit=True, en=False, text = '')        
         
         self.EditStringRow(e = True, vis = False)   
@@ -304,14 +304,16 @@ def uiSelectActiveAttr(self,attr):
     self.NameField(edit=True, en=True, text = self.activeAttr.nameLong)
     
     if self.activeAttr.dynamic:
-    	self.NiceNameField(edit=True, en=True, text = self.activeAttr.nameNice)
+    	self.NiceNameField(edit=True, en=True, bgc = dictionary.returnStateColor('normal'), text = self.activeAttr.nameNice)
     else:
 	self.NiceNameField(edit=True, en=False, text = '')  
 	
     if self.activeAttr.nameAlias:
-	self.AliasField(edit=True, en=True, text = self.activeAttr.nameAlias)
+	self.AliasField(edit=True, en=True,
+	                bgc = dictionary.returnStateColor('normal'), text = self.activeAttr.nameAlias)
     else:
-	self.AliasField(edit=True, en=True, text = '')  
+	self.AliasField(edit=True, en=True,
+	                bgc = dictionary.returnStateColor('normal'), text = '')  
     
     
     #>>> Numbers
