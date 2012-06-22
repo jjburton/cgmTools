@@ -1436,8 +1436,8 @@ def curveControlConnect(self):
 	obj.doName()	
 	selection[cnt] = obj.nameBase
 	
-	if 'cgmSource' in obj.userAttrs.keys():
-	    source = ObjectFactory(obj.userAttrs.get('cgmSource'))	
+	if 'cgmSource' in obj.userAttrsDict.keys():
+	    source = ObjectFactory(obj.userAttrsDict.get('cgmSource'))	
 	    
 	    buffer = updateTransform(obj.nameShort,source.nameShort)
 	    print buffer
@@ -1463,8 +1463,8 @@ def curveControlConnect(self):
     # Loop to connect stuff
     for obj in selection:
 	obj = ObjectFactory(obj)
-	if 'cgmSource' in obj.userAttrs.keys():
-	    source = ObjectFactory(obj.userAttrs.get('cgmSource'))    
+	if 'cgmSource' in obj.userAttrsDict.keys():
+	    source = ObjectFactory(obj.userAttrsDict.get('cgmSource'))    
 	    
 	    if ConnectBy == 'ShapeParent':
 		curves.parentShapeInPlace(source.nameLong,obj.nameLong)
