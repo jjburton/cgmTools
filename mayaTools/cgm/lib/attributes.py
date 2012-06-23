@@ -806,7 +806,7 @@ def doToggleTemplateDisplayMode(obj):
         doSetAttr(obj,'template', not currentState)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def deleteAttr(obj,attr):
+def doDeleteAttr(obj,attr):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1697,11 +1697,13 @@ def reorderAttributes(obj,attrs,direction = 0):
     Thank you to - http://www.the-area.com/forum/autodesk-maya/mel/how-can-we-reorder-an-attribute-in-the-channel-box/
     
     DESCRIPTION:
-    Pass an object into it with messages, it will return a nested list in terms of [[attrName, target],[etc][etc]]
-
+    Reorders attributes on an object
+    
     ARGUMENTS:
     obj(string) - obj with message attrs
-
+    attrs(list) must be attributes on the object
+    direction(int) - 0 is is negative (up on the channelbox), 1 is positive (up on the channelbox)
+    
     RETURNS:
     messageList - nested list in terms of [[attrName, target],[etc][etc]]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1720,42 +1722,23 @@ def reorderAttributes(obj,attrs,direction = 0):
             
     lists.reorderListInPlace(attrsToMove,attrs,direction)
     
-    
+    #To reorder, we need delete and undo in the order we want
     for attr in attrsToMove:
         try:
+            attrBuffer = '%s.%s'%(obj,attr)
+            lockState = False
+            if mc.getAttr(attrBuffer,lock=True) == True:
+                lockState = True
+                mc.setAttr(attrBuffer,lock=False)
+                
             mc.deleteAttr('%s.%s'%(obj,attr))
+            
             mc.undo()
+            
+            if lockState:
+                mc.setAttr(attrBuffer,lock=True)
+                
         except:
             guiFactory.warning("'%s' Failed to reorder"%attr)
         
 
-"""    
-    global proc zooDoReorder( string $dir ) {
-        string $validTypes[] = { "bool", "enum", "long", "double" };
-        string $obj = `text -q -l dwAttrManObjTXT`;
-        string $selAttrs[] = `textScrollList -q -si dwAttrManTSL`;
-        if( !`size $selAttrs` ) return;
-    
-        string $attrs[] = `listAttr -k -ud $obj`;
-        string $validAttrs[];
-        int $toReorder[];
-    
-        //filters the list of attributes - the re-ordering process only works on attributes that show up in the channel box
-        for( $n=0; $n<`size $attrs`; $n++ ) {
-            string $type = `addAttr -q -at ( $obj +"."+ $attrs[$n] )`;
-            int $isValid = 0;
-            for( $a in $validTypes ) if( $type == $a ) { $isValid = 1; break; }
-            if( $isValid ) $validAttrs[( `size $validAttrs` )] = $attrs[$n];
-            }
-    
-        //gets a list of which attributes are selected, and puts their indicies into an array
-        for( $n=0; $n<`size $validAttrs`; $n++ ) for( $a in $selAttrs ){
-            if( $a == $validAttrs[$n] ) $toReorder[( `size $toReorder` )] = $n;
-            }
-    
-        string $newOrder[] = `zooAttrManUtilsArrayReorder $validAttrs $toReorder $dir`;
-        zooAttrManReorder $obj $newOrder;
-        dwAttrMan_LoadAttributes $obj `checkBox -q -v dwAttrManListKeyableCheck`;
-        for( $a in $selAttrs ) textScrollList -e -si $a dwAttrManTSL;
-        }
-"""
