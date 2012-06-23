@@ -99,11 +99,12 @@ class attrToolsClass(BaseMelWindow):
 
 	def setupVariables(self):
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_attrToolsShowHelp', defaultValue = 0)
-
-		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
 		
 		self.SourceObjectOptionVar = OptionVarFactory('cgmVar_AttributeSourceObject', defaultValue= '')
 		guiFactory.appendOptionVarList(self,self.SourceObjectOptionVar.name)
+		
+		self.CopyAttrModeOptionVar = OptionVarFactory('cgmVar_CopyAttributeMode', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.CopyAttrModeOptionVar.name)		
 		
 		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
 
@@ -475,7 +476,7 @@ class attrToolsClass(BaseMelWindow):
 		self.ManageAttrList = MelObjectScrollList(self.ManageForm, allowMultiSelection=True, ut = 'cgmUIReservedTemplate' )
 		
 		#>>> Reorder Button
-		ReorderButtonsRow = MelHLayout(self.ManageForm)
+		ReorderButtonsRow = MelHLayout(self.ManageForm,padding = 5)
 		guiFactory.doButton2(ReorderButtonsRow,
 		                     'Move Up',
 		                     lambda *a: attrToolsLib.uiReorderAttributes(self,0),
@@ -486,8 +487,30 @@ class attrToolsClass(BaseMelWindow):
 		                     'Create new buffer from selected buffer')	
 		ReorderButtonsRow.layout()
 
+
+		#>>>Transfer Options
+		self.TransferModeCollection = MelRadioCollection()
+		self.TransferModeCollectionChoices = []	
+		
+		TransferModeFlagsRow = MelHSingleStretchLayout(self.ManageForm,padding = 2)	
+		MelSpacer(TransferModeFlagsRow,w=10)						
+		Label = MelLabel(TransferModeFlagsRow,l='Options: ')
+		Spacer = MelSpacer(TransferModeFlagsRow,w=2)				
+		self.TransferModeOptions = ['Copy','Transfer','Copy and Connect']
+		for i,item in enumerate(self.TransferModeOptions):
+			self.TransferModeCollectionChoices.append(self.TransferModeCollection.createButton(TransferModeFlagsRow,label=item,
+			                                                                             onCommand = Callback(self.CopyAttrModeOptionVar.set,i)))
+			MelSpacer(TransferModeFlagsRow,w=3)
+		TransferModeFlagsRow.setStretchWidget( Spacer )
+		MelSpacer(TransferModeFlagsRow,w=2)		
+		TransferModeFlagsRow.layout()	
+		
+		mc.radioCollection(self.TransferModeCollection ,edit=True,sl= (self.TransferModeCollectionChoices[ (mc.optionVar(q='cgmVar_LocinatorTransferMode')) ]))
+		
+		
+
 		BottomButtonRow = guiFactory.doButton2(self.ManageForm,
-		                                 'Transfer Attributes',
+		                                 'Transfer',
 		                                 "print 'yes'",
 		                                 'Create new buffer from selected buffer')	
 
@@ -497,18 +520,21 @@ class attrToolsClass(BaseMelWindow):
 		               (ManageHeader,"right",0),
 		               (self.ManageAttrList,"left",0),
 		               (self.ManageAttrList,"right",0),
-		               (ManagerLoadObjectRow,"left",0),
-		               (ManagerLoadObjectRow,"right",0),
+		               (ManagerLoadObjectRow,"left",5),
+		               (ManagerLoadObjectRow,"right",5),
 		               (ReorderButtonsRow,"left",0),
-		               (ReorderButtonsRow,"right",0),		               
-		               (BottomButtonRow,"left",0),
-		               (BottomButtonRow,"right",0),
-		               (BottomButtonRow,"bottom",4)],
+		               (ReorderButtonsRow,"right",0),	
+		               (TransferModeFlagsRow,"left",5),
+		               (TransferModeFlagsRow,"right",5),
+		               (BottomButtonRow,"left",5),
+		               (BottomButtonRow,"right",5),
+		               (TransferModeFlagsRow,"bottom",4)],
 		         ac = [(ManagerLoadObjectRow,"top",5,ManageHeader),
 		               (self.ManageAttrList,"top",5,ManagerLoadObjectRow),
 		               (self.ManageAttrList,"bottom",5,ReorderButtonsRow),
-		               (ReorderButtonsRow,"bottom",5,BottomButtonRow)],
-		         attachNone = [(BottomButtonRow,"top")])	
+		               (ReorderButtonsRow,"bottom",5,BottomButtonRow),		               
+		               (BottomButtonRow,"bottom",5,TransferModeFlagsRow)],
+		         attachNone = [(TransferModeFlagsRow,"top")])	
 		
 
 

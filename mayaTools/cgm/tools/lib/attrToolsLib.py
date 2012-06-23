@@ -44,15 +44,19 @@ reload(guiFactory)
 # Info processing
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def uiUpdateSourceObjectData(self):
+    """ 
+    Update the loaded source object cata from the optionVar
+    """      
     if mc.optionVar(q = self.SourceObjectOptionVar.name):
 	self.SourceObject = ObjectFactory(mc.optionVar(q = self.SourceObjectOptionVar.name))
     else:
 	self.SourceObject = False
 
-def printActiveSelection(self):
-    print '%s'%self.ManageAttrList.getSelectedItems()
     
 def updateLoaded(self):
+    """ 
+    Updates loaded source object attr menus
+    """     
     try:
 	uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
 	uiUpdateSourceObjectData(self)
@@ -63,286 +67,18 @@ def updateLoaded(self):
 		self.ManageAttrList.append(a)	
     except:
 	pass
-    
-def uiReorderAttributes(self,direction):
-    attrsToMove = self.ManageAttrList.getSelectedItems()
-    
-    if attrsToMove and self.SourceObjectOptionVar.value:
-	attributes.reorderAttributes(self.SourceObject.nameLong,attrsToMove,direction)
-	
-	updateLoaded(self)
-	
-	self.ManageAttrList.selectItems(attrsToMove)
-    else:
-	guiFactory.warning('No attributes selected.')
-	
-def uiManageAttrsKeyable(self):
-    attrs = self.ManageAttrList.getSelectedItems()
-    
-    if attrs and self.SourceObjectOptionVar.value:
-	for a in attrs:
-	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.doKeyable(True)
-	
-	updateLoaded(self)
-	
-	self.ManageAttrList.selectItems(attrs)
-    else:
-	guiFactory.warning('No attributes selected.')
-	
-def uiManageAttrsUnkeyable(self):
-    attrs = self.ManageAttrList.getSelectedItems()
-    
-    if attrs and self.SourceObjectOptionVar.value:
-	for a in attrs:
-	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.doKeyable(False)
-	
-	updateLoaded(self)
-	
-	self.ManageAttrList.selectItems(attrs)
-    else:
-	guiFactory.warning('No attributes selected.')
-	
-def uiManageAttrsHide(self):
-    attrs = self.ManageAttrList.getSelectedItems()
-    
-    if attrs and self.SourceObjectOptionVar.value:
-	for a in attrs:
-	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.doHidden(True)
-	
-	updateLoaded(self)
-	
-	self.ManageAttrList.selectItems(attrs)
-    else:
-	guiFactory.warning('No attributes selected.')
-	
-def uiManageAttrsUnhide(self):
-    attrs = self.ManageAttrList.getSelectedItems()
-    
-    if attrs and self.SourceObjectOptionVar.value:
-	for a in attrs:
-	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.doHidden(False)
-	
-	updateLoaded(self)
-	
-	self.ManageAttrList.selectItems(attrs)
-    else:
-	guiFactory.warning('No attributes selected.')
-	
-def uiManageAttrsLocked(self):
-    attrs = self.ManageAttrList.getSelectedItems()
-    
-    if attrs and self.SourceObjectOptionVar.value:
-	for a in attrs:
-	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.doLocked(True)
-	
-	updateLoaded(self)
-	
-	self.ManageAttrList.selectItems(attrs)
-    else:
-	guiFactory.warning('No attributes selected.')
-	
-def uiManageAttrsUnlocked(self):
-    attrs = self.ManageAttrList.getSelectedItems()
-    
-    if attrs and self.SourceObjectOptionVar.value:
-	for a in attrs:
-	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.doLocked(False)
-	
-	updateLoaded(self)
-	
-	self.ManageAttrList.selectItems(attrs)
-    else:
-	guiFactory.warning('No attributes selected.')
-	
-	
-def uiManageAttrsDelete(self):
-    attrs = self.ManageAttrList.getSelectedItems()
-    
-    if attrs and self.SourceObjectOptionVar.value:
-	for a in attrs:
-	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.delete()
-	
-	updateLoaded(self)
-	
-    else:
-	guiFactory.warning('No attributes selected.')
-	
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# UI Stuff
+# Basic UI
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def uiUpdateAttrReport(self): 
-    buildReport = []
-    if self.activeAttr:
-    
-	if self.activeAttr.driverAttribute and self.activeAttr.form != 'message':
-	    buildReport.append("'%s'>>Drives Me"%self.activeAttr.driverAttribute)
-	    
-	if self.activeAttr.drivenAttribute:
-	    buildReport.append("Drives>>'%s'"%self.activeAttr.drivenAttribute)
-	
-	
-	if self.activeAttr.numeric:
-	    if len(list(str(self.activeAttr.value))) > 4 and type(self.activeAttr.value) is float:
-		buildReport.append("Value=%f"%self.activeAttr.value)        
-	    else:
-		buildReport.append("Value=%s"%self.activeAttr.value)
-	elif self.activeAttr.form == 'message':
-	    buildReport.append("Message='%s'"%self.activeAttr.value)        
-	else:
-	    buildReport.append("Value=%s"%self.activeAttr.value)
-	    
-	
-	self.AttrReportField(edit = True, label = ' | '.join(buildReport))
-
-def uiUpdateCheckBox(self, commandAttr, valueAttr):   
-    commandAttr(not valueAttr)
-    uiSelectActiveAttr(self,self.activeAttr.attr)
-    
-def uiConvertLoadedAttr(self,mode,Active = True):    
-    #>>> Variables
-    if self.activeAttr and self.ConvertAttrTypeOptionVar.value:
-	self.activeAttr.convert(mode)
-	uiSelectActiveAttr(self,self.activeAttr.attr) 
-	
-def uiRenameAttr(self):    
-    #>>> Variables
-    varCheck = self.NameField(q=True,text=True)
-    if self.activeAttr:
-        if varCheck:
-            self.activeAttr.doRename(varCheck)
-	    mc.select(self.activeAttr.obj.nameLong)
-	    uiLoadSourceObject(self,varCheck)	    
-            uiSelectActiveAttr(self,varCheck)
-        else:
-            uiSelectActiveAttr(self,self.activeAttr.attr)  
-        
-def uiUpdateAlias(self):    
-    #>>> Variables
-    varCheck = self.AliasField(q=True,text=True)
-    if self.activeAttr:
-        if varCheck:
-            self.activeAttr.doAlias(varCheck) 
-            uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr = varCheck)
-            uiSelectActiveAttr(self,varCheck)	    
-        else:
-            self.activeAttr.doAlias(False)
-            uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr = self.activeAttr.attr)
-            uiSelectActiveAttr(self,self.activeAttr.attr)	    
-            
-        uiSelectActiveAttr(self,self.activeAttr.nameLong)  
-        
-def uiUpdateNiceName(self):    
-    #>>> Variables
-    varCheck = self.NiceNameField(q=True,text=True)
-    if self.activeAttr:
-        if varCheck:
-            self.activeAttr.doNiceName(varCheck)             
-        else:
-            self.activeAttr.doNiceName(self.activeAttr.attr.capitalize())
-            
-        uiSelectActiveAttr(self,self.activeAttr.attr)  
-        
-def uiUpdateString(self):    
-    #>>> Variables
-    varCheck = self.StringField(q=True,text=True)
-    if self.activeAttr:
-        if varCheck:
-            self.activeAttr.set(varCheck)             
-        else:
-            self.activeAttr.set('')
-            
-        uiSelectActiveAttr(self,self.activeAttr.attr) 
-        
-def uiUpdateMessage(self):    
-    #>>> Variables
-    selection = mc.ls(sl=True,flatten=True,long=True) or []
-    if self.activeAttr:
-        if selection:
-            self.activeAttr.doStore(selection[0])             
-        else:
-            self.activeAttr.doStore('')
-            guiFactory.warning("'%s.%s' failed to store"%(self.activeAttr.obj.nameLong,self.activeAttr.attr))
-            
-        uiSelectActiveAttr(self,self.activeAttr.attr) 
-
-def uiUpdateEnum(self):    
-    #>>> Variables
-    varCheck = self.EnumField(q=True,text=True)
-    if self.activeAttr:
-        if varCheck:
-            try:
-                self.activeAttr.setEnum(varCheck)
-            except:
-                guiFactory.warning("'%s.%s' failed to change. Check your command." %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
-        else:
-            self.activeAttr.set('')
-            
-        uiSelectActiveAttr(self,self.activeAttr.attr) 
-    
-def uiUpdateMinValue(self):    
-    #>>> Variables
-    varCheck = self.MinField(q=True,text=True)
-    if self.activeAttr:
-        if type(varCheck)is unicode and len(varCheck) < 1:
-            self.activeAttr.doMin(False)             
-        elif type(varCheck) is float or int:
-            try:
-                self.activeAttr.doMin(float(varCheck))
-            except:
-                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
-                
-        else:
-            self.activeAttr.doMin(False)
-            
-        uiSelectActiveAttr(self,self.activeAttr.attr)
-        
-def uiUpdateMaxValue(self):    
-    #>>> Variables
-    varCheck = self.MaxField(q=True,text=True)
-    if self.activeAttr:
-        if type(varCheck)is unicode and len(varCheck) < 1:
-            self.activeAttr.doMax(False)           
-        elif type(varCheck) is float or int:
-            try:
-                self.activeAttr.doMax(float(varCheck))
-            except:
-                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
-                
-        else:
-            self.activeAttr.doMax(False)
-            
-        uiSelectActiveAttr(self,self.activeAttr.attr)
-
-        
-def uiUpdateDefaultValue(self):    
-    #>>> Variables
-    varCheck = self.DefaultField(q=True,text=True)
-
-    if self.activeAttr:
-        if type(varCheck)is unicode and len(varCheck) < 1:
-            self.activeAttr.doDefault(False)        
-        elif type(varCheck) is float or int:
-            try:
-                self.activeAttr.doDefault(float(varCheck))
-            except:
-                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
-                
-        else:
-            self.activeAttr.doDefault(False)
-            
-        uiSelectActiveAttr(self,self.activeAttr.attr)   
-
-
-
-
 def uiLoadSourceObject(self,selectAttr = False):
+    """ 
+    Loads a source object and updates menus
+    
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """   
     selected = []
     bufferList = []
     
@@ -368,7 +104,7 @@ def uiLoadSourceObject(self,selectAttr = False):
     else:
         #clear the field
         guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField, self.SourceObjectOptionVar.name)
-	self.ManagerSourceObjectField(e=True, text = mc.optionVar(q = self.SourceObjectOptionVar.name) )	    
+	self.ManagerSourceObjectField(e=True, text = '' )	    
 	
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 	
@@ -397,6 +133,12 @@ def uiLoadSourceObject(self,selectAttr = False):
 	self.ManageAttrList.clear()
 
 def uiSelectActiveAttr(self,attr):  
+    """ 
+    All the processes for when an attribut is selected
+    
+    Keyword arguments:
+    attr(string) -- Name of an attr 
+    """   
     #>>> Variables
     sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
     attrType = mc.getAttr((sourceObject+'.'+attr),type=True)
@@ -517,32 +259,14 @@ def uiSelectActiveAttr(self,attr):
         self.EditEnumRow(e=True, vis = False)
 
 
-
-def uiDeleteAttr(self,menu):
-    #>>> Variables and assertations
-    sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
-    assert mc.objExists(sourceObject) is True, "'%s' doesn't exist."%sourceObject
-
-    #>>> Get info
-    buffer =  menu.getMenuItems()
-    attrList = []
-    for item in buffer:
-        attrList.append( mc.menuItem(item,q=True,label=True))
-    cnt =  menu.getSelectedIdx()
-    attrToDelete = attrList[cnt]
-
-    #>>>Function
-    try:
-        attributes.deleteAttr(sourceObject,attrToDelete)
-        guiFactory.warning("'%s.%s' removed"%(sourceObject,attrToDelete))
-    except:
-        guiFactory.warning("'%s.%s' failed to delete"%(sourceObject,attrToDelete))
-
-    #Update the attr menu    
-    uiUpdateObjectAttrMenu(self,menu)
-
-
-def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):			
+def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
+    """ 
+    Updates the attribute menu of a loaded object in the modify section
+    
+    Keyword arguments:
+    menu(string) -- Menu name
+    selectAttr(string) -- Name of an attr (False ignores)
+    """ 
     def uiAttrUpdate(item):
         uiSelectActiveAttr(self,item)
 
@@ -556,7 +280,7 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         userAttrs = mc.listAttr(sourceObject,userDefined = True) or []
         lockedAttrs = mc.listAttr(sourceObject,locked = True) or []
         for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','visibility':
-            if mc.getAttr((sourceObject+'.'+attr)) is not False:
+            if mc.objExists(sourceObject+'.'+attr) and mc.getAttr((sourceObject+'.'+attr)) is not False:
                 attrs.append(attr)
 
         if userAttrs:
@@ -590,8 +314,13 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         menu.clear()
   
 
-
-def doAddAttributesToSelected(self):    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Attribute Creation Section
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def doAddAttributesToSelected(self): 
+    """ 
+    Adds attributes to selected objects
+    """  
     #>>> Variables
     varCheck = mc.textField(self.AttrNamesTextField,q=True,text=True)
     selected = mc.ls(sl=True,shortNames = True)
@@ -680,5 +409,377 @@ def doAddAttributesToSelected(self):
     mc.select(selected)
     return returnDict
 
+	
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Modify Menu Stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiUpdateAttrReport(self): 
+    """ 
+    Updates the attr report for the modify section
+    """     
+    buildReport = []
+    if self.activeAttr:
+    
+	if self.activeAttr.driverAttribute and self.activeAttr.form != 'message':
+	    buildReport.append("'%s'>>Drives Me"%self.activeAttr.driverAttribute)
+	    
+	if self.activeAttr.drivenAttribute:
+	    buildReport.append("Drives>>'%s'"%self.activeAttr.drivenAttribute)
+	
+	
+	if self.activeAttr.numeric:
+	    if len(list(str(self.activeAttr.value))) > 4 and type(self.activeAttr.value) is float:
+		buildReport.append("Value=%f"%self.activeAttr.value)        
+	    else:
+		buildReport.append("Value=%s"%self.activeAttr.value)
+	elif self.activeAttr.form == 'message':
+	    buildReport.append("Message='%s'"%self.activeAttr.value)        
+	else:
+	    buildReport.append("Value=%s"%self.activeAttr.value)
+	    
+	
+	self.AttrReportField(edit = True, label = ' | '.join(buildReport))
 
+def uiUpdateCheckBox(self, commandAttr, valueAttr):   
+    """ 
+    Updates a checkbox and exectures a command
+    
+    Keyword arguments:
+    commandAttr(instanced command) 
+    valueAttr(instanced attr)
+    """     
+    commandAttr(not valueAttr)
+    uiSelectActiveAttr(self,self.activeAttr.attr)
+    
+def uiConvertLoadedAttr(self,mode,Active = True):  
+    """ 
+    Converts a loaded attribute type
+    
+    Keyword arguments:
+    mode(string) -- mode to convert to
+    """     
+    #>>> Variables
+    if self.activeAttr and self.ConvertAttrTypeOptionVar.value:
+	self.activeAttr.convert(mode)
+	uiSelectActiveAttr(self,self.activeAttr.attr) 
+	
+def uiRenameAttr(self):   
+    """ 
+    Renames a loaded attr in the modify menu
+    """     
+    #>>> Variables
+    varCheck = self.NameField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.doRename(varCheck)
+	    mc.select(self.activeAttr.obj.nameLong)
+	    uiLoadSourceObject(self,varCheck)	    
+            uiSelectActiveAttr(self,varCheck)
+        else:
+            uiSelectActiveAttr(self,self.activeAttr.attr)  
+        
+def uiUpdateAlias(self):   
+    """ 
+    Updates the alias a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.AliasField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.doAlias(varCheck) 
+            uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr = varCheck)
+            uiSelectActiveAttr(self,varCheck)	    
+        else:
+            self.activeAttr.doAlias(False)
+            uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr = self.activeAttr.attr)
+            uiSelectActiveAttr(self,self.activeAttr.attr)	    
+            
+        uiSelectActiveAttr(self,self.activeAttr.nameLong)  
+        
+def uiUpdateNiceName(self):  
+    """ 
+    Update nice name of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.NiceNameField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.doNiceName(varCheck)             
+        else:
+            self.activeAttr.doNiceName(self.activeAttr.attr.capitalize())
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)  
+        
+def uiUpdateString(self):   
+    """ 
+    Sets string value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.StringField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            self.activeAttr.set(varCheck)             
+        else:
+            self.activeAttr.set('')
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr) 
+        
+def uiUpdateMessage(self):   
+    """ 
+    Sets the message value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    selection = mc.ls(sl=True,flatten=True,long=True) or []
+    if self.activeAttr:
+        if selection:
+            self.activeAttr.doStore(selection[0])             
+        else:
+            self.activeAttr.doStore('')
+            guiFactory.warning("'%s.%s' failed to store"%(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr) 
 
+def uiUpdateEnum(self):  
+    """ 
+    Updates enum options of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.EnumField(q=True,text=True)
+    if self.activeAttr:
+        if varCheck:
+            try:
+                self.activeAttr.setEnum(varCheck)
+            except:
+                guiFactory.warning("'%s.%s' failed to change. Check your command." %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+        else:
+            self.activeAttr.set('')
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr) 
+    
+def uiUpdateMinValue(self):  
+    """ 
+    Sets min value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.MinField(q=True,text=True)
+    if self.activeAttr:
+        if type(varCheck)is unicode and len(varCheck) < 1:
+            self.activeAttr.doMin(False)             
+        elif type(varCheck) is float or int:
+            try:
+                self.activeAttr.doMin(float(varCheck))
+            except:
+                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+                
+        else:
+            self.activeAttr.doMin(False)
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)
+        
+def uiUpdateMaxValue(self):  
+    """ 
+    Sets max value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.MaxField(q=True,text=True)
+    if self.activeAttr:
+        if type(varCheck)is unicode and len(varCheck) < 1:
+            self.activeAttr.doMax(False)           
+        elif type(varCheck) is float or int:
+            try:
+                self.activeAttr.doMax(float(varCheck))
+            except:
+                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+                
+        else:
+            self.activeAttr.doMax(False)
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)
+
+        
+def uiUpdateDefaultValue(self):  
+    """ 
+    Sets the default value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.DefaultField(q=True,text=True)
+
+    if self.activeAttr:
+        if type(varCheck)is unicode and len(varCheck) < 1:
+            self.activeAttr.doDefault(False)        
+        elif type(varCheck) is float or int:
+            try:
+                self.activeAttr.doDefault(float(varCheck))
+            except:
+                guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+                
+        else:
+            self.activeAttr.doDefault(False)
+            
+        uiSelectActiveAttr(self,self.activeAttr.attr)   
+
+def uiDeleteAttr(self,menu):
+    """ 
+    Deletes a loaded attr in the modify menu
+    """  
+    #>>> Variables and assertations
+    sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
+    assert mc.objExists(sourceObject) is True, "'%s' doesn't exist."%sourceObject
+
+    #>>> Get info
+    buffer =  menu.getMenuItems()
+    attrList = []
+    for item in buffer:
+        attrList.append( mc.menuItem(item,q=True,label=True))
+    cnt =  menu.getSelectedIdx()
+    attrToDelete = attrList[cnt]
+
+    #>>>Function
+    try:
+        attributes.deleteAttr(sourceObject,attrToDelete)
+        guiFactory.warning("'%s.%s' removed"%(sourceObject,attrToDelete))
+    except:
+        guiFactory.warning("'%s.%s' failed to delete"%(sourceObject,attrToDelete))
+
+    #Update the attr menu    
+    uiUpdateObjectAttrMenu(self,menu)
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Manage attributes functions
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiReorderAttributes(self,direction):
+    """ 
+    Reorder attributes from an active attribute selection
+    
+    Keyword arguments:
+    direction(int) -- 0 is negative, 1 is positive
+    """     
+    attrsToMove = self.ManageAttrList.getSelectedItems()
+    
+    if attrsToMove and self.SourceObjectOptionVar.value:
+	attributes.reorderAttributes(self.SourceObject.nameLong,attrsToMove,direction)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrsToMove)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsKeyable(self):
+    """ 
+    Makes an active attribute selection keyable
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doKeyable(True)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsUnkeyable(self):
+    """ 
+    Makes an active attribute selection unkeyable
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doKeyable(False)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsHide(self):
+    """ 
+    Makes an active attribute selection hidden
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doHidden(True)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsUnhide(self):
+    """ 
+    Makes an active attribute selection unhidden
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doHidden(False)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsLocked(self):
+    """ 
+    Makes an active attribute selection locked
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doLocked(True)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+def uiManageAttrsUnlocked(self):
+    """ 
+    Makes an active attribute selection unlocked
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.doLocked(False)
+	
+	updateLoaded(self)
+	
+	self.ManageAttrList.selectItems(attrs)
+    else:
+	guiFactory.warning('No attributes selected.')
+	
+	
+def uiManageAttrsDelete(self):
+    """ 
+    Makes an active attribute selection no more...deleted
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    
+    if attrs and self.SourceObjectOptionVar.value:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
+	    aInstance.delete()
+	
+	updateLoaded(self)
+	
+    else:
+	guiFactory.warning('No attributes selected.')

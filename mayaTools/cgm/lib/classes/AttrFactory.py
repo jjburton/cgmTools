@@ -250,7 +250,7 @@ class AttrFactory():
         *a, **kw
         """ 
         try:
-            attributes.deleteAttr(self.obj.nameLong,self.attr)
+            attributes.doDeleteAttr(self.obj.nameLong,self.attr)
             guiFactory.warning("'%s.%s' deleted"%(self.obj.nameLong,self.attr))
             self.value = None
             return self.value
