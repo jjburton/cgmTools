@@ -37,6 +37,30 @@ from cgm.lib import settings
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
+
+def returnSelected():
+    """ 
+    A better return selected. Prioritizes channel box selection over reg objects.
+    """      
+    # First look for attributes in the channel box
+    returnList = []
+        
+    channelBoxCheck = returnSelectedAttributesFromChannelBox()
+    if channelBoxCheck:
+        for item in channelBoxCheck:
+            returnList.append(item)
+        return returnList
+    
+    # Otherwise add the objects themselves
+    viewPortSelection = mc.ls(sl=True,flatten=True) or []
+    for item in viewPortSelection:
+        returnList.append(item)
+ 
+    if returnList:
+        return returnList
+    return False
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Quick queries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -123,7 +147,9 @@ def returnSelectedAttributesFromChannelBox(returnRaw = False):
     sma = mc.channelBox(ChannelBoxName, query=True, sma=True)
     ssa = mc.channelBox(ChannelBoxName, query=True, ssa=True)
     sha = mc.channelBox(ChannelBoxName, query=True, sha=True)
-                
+    soa = mc.channelBox(ChannelBoxName, query=True, soa=True)
+ 
+    
     channels = []
     if sma:
         channels.extend(sma)
@@ -131,6 +157,8 @@ def returnSelectedAttributesFromChannelBox(returnRaw = False):
         channels.extend(ssa)
     if sha:
         channels.extend(sha)
+    if soa:
+        channels.extend(soa)
         
     if channels and selection:
         if not returnRaw:
