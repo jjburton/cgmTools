@@ -53,7 +53,6 @@ class ObjectFactory():
         """
         ### input check
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        assert mc.ls(obj,type='transform'),"'%s' has no transform"%obj
 
         self.cgmName = ''
         self.cgmNameModifier = ''
@@ -90,6 +89,13 @@ class ObjectFactory():
         self.userAttrsDict = attributes.returnUserAttrsToDict(self.nameLong) or {}
 	self.userAttrs = mc.listAttr(self.nameLong, userDefined = True) or []
 	self.attrs = mc.listAttr(self.nameLong) or []
+	self.keyableAttrs = mc.listAttr(self.nameLong, keyable = True) or []
+	
+	self.transformAttrs = []
+	for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','visibility':
+	    if mc.objExists(self.nameLong+'.'+attr) and mc.getAttr((self.nameLong+'.'+attr)) is not False:
+		self.transformAttrs.append(attr)
+
 
     def getType(self):
         """ get the type of the object """
@@ -128,13 +134,17 @@ class ObjectFactory():
     def update(self,obj):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        assert mc.ls(obj,type = 'transform'),"'%s' has no transform"%obj        
         
-        self.storeNameStrings(obj) 
-        self.getType()
-        self.getFamily()
-        self.getCGMNameTags()
-        self.getAttrs() 
+        try:
+	    self.transform = mc.ls(obj,type = 'transform',long = True) or False
+	    self.storeNameStrings(obj) 
+	    self.getType()
+	    self.getFamily()
+	    self.getCGMNameTags()
+	    self.getAttrs() 
+	    return True
+	except:
+	    return False
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Attribute Functions
@@ -152,7 +162,8 @@ class ObjectFactory():
 
     def copyRotateOrder(self,targetObject):
         """ Copy the rotate order from a target object to the current instanced maya object. """
-        assert mc.objExists(targetObject) is True, "'%s' - target object doesn't exist" %targetObject        
+        assert mc.objExists(targetObject) is True, "'%s' - target object doesn't exist" %targetObject    
+        assert self.transform ,"'%s' has no transform"%obj	
         assert mc.ls(targetObject,type = 'transform'),"'%s' has no transform"%targetObject
         buffer = mc.getAttr(targetObject + '.rotateOrder')
         attributes.doSetAttr(self.nameLong, 'rotateOrder',buffer) 
@@ -163,6 +174,7 @@ class ObjectFactory():
     def copyPivot(self,sourceObject):
         """ Copy the pivot from a source object to the current instanced maya object. """
         assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
+        assert self.transform ,"'%s' has no transform"%obj		
         assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
         rigging.copyPivot(self.nameLong,sourceObject)
 
@@ -174,6 +186,8 @@ class ObjectFactory():
         maintain(bool) -- whether to parent the maya object in place or not (default False)
         
         """
+        assert mc.ls(self.nameLong,type='transform'),"'%s' has no transform"%obj	
+	
         group = rigging.groupMeObject(self.nameLong,True,maintain) 
         groupLong = mc.ls(group,long=True)
         self.update(groupLong[0]+'|'+self.nameBase)  
@@ -199,6 +213,8 @@ class ObjectFactory():
         p(string) -- Whether to run a full scene dictionary check or the faster just objExists check
         
         """  
-        assert mc.objExists(p) is True, "'%s' - parent object doesn't exist" %p        
+        assert mc.objExists(p) is True, "'%s' - parent object doesn't exist" %p     
+        assert self.transform,"'%s' has no transform"%obj	
+	
         buffer = rigging.doParentReturnName(self.nameLong,p)
         self.update(buffer)  
