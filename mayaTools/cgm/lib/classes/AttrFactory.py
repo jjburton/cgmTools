@@ -465,10 +465,76 @@ class AttrFactory():
                     
             except:
                 guiFactory.warning("'%s.%s' failed to rename name of '%s'!"%(self.obj.nameLong,self.attr,arg))
-                    
+                
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Connections and transfers
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>             
+    def doConnectOut(self,target,*a, **kw):
+        """ 
+        Connect to a target
+        
+        Keyword arguments:
+        *a, **kw
+        """ 
+        assert mc.objExists(target),"'%s' doesn't exist"%target
+        
+        if mc.ls(target,type = 'transform',long = True):
+            #If the object has a transform
+            if mc.objExists('%s.%s'%(target,self.attr)):
+                #If it has a matching attribute
+                try:
+                    attributes.doConnectAttr(self.nameCombined,('%s.%s'%(target,self.attr)))
+                except:
+                    guiFactory.warning("'%s' failed to connect to '%s'!"%(self.nameCombined,target))
+            else:
+                print "Target object doesn't have this particular attribute"
 
-                    
-            
+        elif '.' in target:           
+            try:
+                attributes.doConnectAttr(self.nameCombined,target)
+            except:
+                guiFactory.warning("'%s' failed to connect to '%s'!"%(self.nameCombined,target))   
+                
+    def doConnectIn(self,source,*a, **kw):
+        """ 
+        Connect to a target
+        
+        Keyword arguments:
+        *a, **kw
+        """ 
+        assert mc.objExists(source),"'%s' doesn't exist"%source
+        
+        if mc.ls(source,type = 'transform',long = True):
+            #If the object has a transform
+            if mc.objExists('%s.%s'%(source,self.attr)):
+                #If it has a matching attribute
+                try:
+                    attributes.doConnectAttr(('%s.%s'%(source,self.attr)),self.nameCombined)
+                except:
+                    guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
+            else:
+                print "Target object doesn't have this particular attribute"
+
+        elif '.' in source:           
+            try:
+                attributes.doConnectAttr(source,self.nameCombined)
+            except:
+                guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
+                
+    def doCopyTo(self,target,values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
+        """ 
+        Connect to a target
+        
+        Keyword arguments:
+        *a, **kw
+        """ 
+        assert mc.objExists(target),"'%s' doesn't exist"%target
+        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
+        assert '.' not in list(target),"'%s' appears to be an attribute"%target
+        
+        attributes.copyAttrs(self.obj.nameLong,target,[self.attr], values, incomingConnections, outgoingConnections, keepSourceConnections)
+        """except:
+            guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))   """         
             
             
         

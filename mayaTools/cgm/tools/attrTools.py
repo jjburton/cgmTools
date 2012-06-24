@@ -72,7 +72,7 @@ class attrToolsClass(BaseMelWindow):
 		self.timeSubMenu = []
 		
 		self.setupVariables()
-		
+		self.loadAttrs = []
 
 		# About Window
 		self.description = 'Tools for working with attributes'
@@ -99,15 +99,28 @@ class attrToolsClass(BaseMelWindow):
 
 	def setupVariables(self):
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_attrToolsShowHelp', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
 		
 		self.SourceObjectOptionVar = OptionVarFactory('cgmVar_AttributeSourceObject', defaultValue= '')
 		guiFactory.appendOptionVarList(self,self.SourceObjectOptionVar.name)
 		
 		self.CopyAttrModeOptionVar = OptionVarFactory('cgmVar_CopyAttributeMode', defaultValue = 0)
-		guiFactory.appendOptionVarList(self,self.CopyAttrModeOptionVar.name)		
+		guiFactory.appendOptionVarList(self,self.CopyAttrModeOptionVar.name)	
 		
-		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
-
+		self.CopyAttrOptionsOptionVar = OptionVarFactory('cgmVar_CopyAttributeOptions', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.CopyAttrOptionsOptionVar.name)	
+		
+		self.TransferValueOptionVar = OptionVarFactory('cgmVar_AttributeTransferValueState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferValueOptionVar.name)	
+		
+		self.TransferIncomingOptionVar = OptionVarFactory('cgmVar_AttributeTransferInConnectionState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferIncomingOptionVar.name)		
+		
+		self.TransferOutgoingOptionVar = OptionVarFactory('cgmVar_AttributeTransferOutConnectionState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferOutgoingOptionVar.name)	
+		
+		self.TransferKeepSourceOptionVar = OptionVarFactory('cgmVar_AttributeTransferKeepSourceState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferKeepSourceOptionVar.name)	
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
@@ -385,14 +398,6 @@ class attrToolsClass(BaseMelWindow):
 		guiFactory.lineSubBreak()
 		guiFactory.lineBreak()
 
-		
-		#>>> Basic
-		mc.setParent(self.containerName )
-		guiFactory.header('Connect')
-		guiFactory.doButton2(self.containerName,'Select an attr',
-	                        lambda *a: attrToolsLib.uiSelectAttrMenu(self,'test'),
-		                    'Delete attribute')		
-		guiFactory.lineSubBreak()
 
 			
 		return self.containerName
@@ -447,12 +452,12 @@ class attrToolsClass(BaseMelWindow):
 
 		
 	def buildAttributeManagerTool(self,parent, vis=True):
-		self.ManageForm = MelFormLayout(self.Get())
+		self.ManageForm = MelFormLayout(self.Get(),ut='cgmUITemplate')
 		
 		ManageHeader = guiFactory.header('Manage Attributes')
 
 		#>>> Manager load frow
-		ManagerLoadObjectRow = MelHSingleStretchLayout(self.ManageForm ,ut='cgmUITemplate',padding = 5)
+		ManagerLoadObjectRow = MelHSingleStretchLayout(self.ManageForm ,padding = 5)
 	
 		MelSpacer(ManagerLoadObjectRow,w=5)
 		
@@ -469,11 +474,9 @@ class attrToolsClass(BaseMelWindow):
 	
 		ManagerLoadObjectRow.layout()
 
-		#>>> ScrollList
-		#AttributeListScroll = MelScrollLayout(self.ManageForm,cr = 1, ut = 'cgmUISubTemplate')
 
 		#>>> Attribute List
-		self.ManageAttrList = MelObjectScrollList(self.ManageForm, allowMultiSelection=True, ut = 'cgmUIReservedTemplate' )
+		self.ManageAttrList = MelObjectScrollList(self.ManageForm, allowMultiSelection=True )
 		
 		#>>> Reorder Button
 		ReorderButtonsRow = MelHLayout(self.ManageForm,padding = 5)
@@ -488,15 +491,16 @@ class attrToolsClass(BaseMelWindow):
 		ReorderButtonsRow.layout()
 
 
+
+
+
 		#>>>Transfer Options
 		self.TransferModeCollection = MelRadioCollection()
 		self.TransferModeCollectionChoices = []	
 		
 		TransferModeFlagsRow = MelHSingleStretchLayout(self.ManageForm,padding = 2)	
-		MelSpacer(TransferModeFlagsRow,w=10)						
-		Label = MelLabel(TransferModeFlagsRow,l='Options: ')
-		Spacer = MelSpacer(TransferModeFlagsRow,w=2)				
-		self.TransferModeOptions = ['Copy','Transfer','Copy and Connect']
+		Spacer = MelSpacer(TransferModeFlagsRow,w=10)						
+		self.TransferModeOptions = ['Connect','Copy','Copy and Connect','Transfer']
 		for i,item in enumerate(self.TransferModeOptions):
 			self.TransferModeCollectionChoices.append(self.TransferModeCollection.createButton(TransferModeFlagsRow,label=item,
 			                                                                             onCommand = Callback(self.CopyAttrModeOptionVar.set,i)))
@@ -508,11 +512,56 @@ class attrToolsClass(BaseMelWindow):
 		mc.radioCollection(self.TransferModeCollection ,edit=True,sl= (self.TransferModeCollectionChoices[ (mc.optionVar(q='cgmVar_LocinatorTransferMode')) ]))
 		
 		
+		#>>>Transfer Options
+		self.TransferOptionsCollection = MelRadioCollection()
+		self.TransferOptionsCollectionChoices = []	
+		
+		TransferOptionsFlagsRow = MelHLayout(self.ManageForm,padding = 2)	
 
+		self.ValueCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Value',
+		                           annotation = "Copy values",		                           
+		                           value = self.TransferValueOptionVar.value,
+		                           onCommand = Callback(self.TransferValueOptionVar.set,1),
+		                           offCommand = Callback(self.TransferValueOptionVar.set,0))
+		
+		self.IncomingCB = MelCheckBox(TransferOptionsFlagsRow,label = 'InConn',
+				                      annotation = "Copy or transfer incoming connections",		                              
+		                              value = self.TransferIncomingOptionVar.value,
+		                              onCommand = Callback(self.TransferIncomingOptionVar.set,1),
+		                              offCommand = Callback(self.TransferIncomingOptionVar.set,0))
+
+		self.OutgoingCB = MelCheckBox(TransferOptionsFlagsRow,label = 'OutConn',
+		                              annotation = "Copy or transfer incoming connections",		                              
+		                              value = self.TransferOutgoingOptionVar.value,
+		                              onCommand = Callback(self.TransferOutgoingOptionVar.set,1),
+		                              offCommand = Callback(self.TransferOutgoingOptionVar.set,0))	
+
+		self.KeepSourceCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Keep Source',
+		                                annotation = "Keep source connections when copying",		                                
+		                                value = self.TransferKeepSourceOptionVar.value,
+		                                onCommand = Callback(self.TransferKeepSourceOptionVar.set,1),
+		                                offCommand = Callback(self.TransferKeepSourceOptionVar.set,0))
+		
+		TransferOptionsFlagsRow.layout()	
+
+		"""
+		self.TransferValueOptionVar = OptionVarFactory('cgmVar_AttributeTransferValueState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferValueOptionVar.name)	
+		
+		self.TransferIncomingOptionVar = OptionVarFactory('cgmVar_AttributeTransferInConnectionState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferIncomingOptionVar.name)		
+		
+		self.TransferOutgoingOptionVar = OptionVarFactory('cgmVar_AttributeTransferOutConnectionState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferOutgoingOptionVar.name)	
+		
+		self.TransferKeepSourceOptionVar = OptionVarFactory('cgmVar_AttributeTransferKeepSourceState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferKeepSourceOptionVar.name)			
+		"""
+		
 		BottomButtonRow = guiFactory.doButton2(self.ManageForm,
-		                                 'Transfer',
-		                                 "print 'yes'",
-		                                 'Create new buffer from selected buffer')	
+		                                       'Transfer',
+		                                       lambda *a: attrToolsLib.uiTransferAttributes(self),
+		                                       'Create new buffer from selected buffer')	
 
 		self.ManageForm(edit = True,
 		         af = [(ManageHeader,"top",0),
@@ -527,14 +576,17 @@ class attrToolsClass(BaseMelWindow):
 		               (TransferModeFlagsRow,"left",5),
 		               (TransferModeFlagsRow,"right",5),
 		               (BottomButtonRow,"left",5),
-		               (BottomButtonRow,"right",5),
-		               (TransferModeFlagsRow,"bottom",4)],
+		               (BottomButtonRow,"right",5),		               
+		               (TransferOptionsFlagsRow,"left",5),
+		               (TransferOptionsFlagsRow,"right",5),
+		               (TransferOptionsFlagsRow,"bottom",4)],
 		         ac = [(ManagerLoadObjectRow,"top",5,ManageHeader),
 		               (self.ManageAttrList,"top",5,ManagerLoadObjectRow),
 		               (self.ManageAttrList,"bottom",5,ReorderButtonsRow),
 		               (ReorderButtonsRow,"bottom",5,BottomButtonRow),		               
-		               (BottomButtonRow,"bottom",5,TransferModeFlagsRow)],
-		         attachNone = [(TransferModeFlagsRow,"top")])	
+		               (BottomButtonRow,"bottom",5,TransferModeFlagsRow),
+		               (TransferModeFlagsRow,"bottom",5,TransferOptionsFlagsRow)],
+		         attachNone = [(TransferOptionsFlagsRow,"top")])	
 		
 
 

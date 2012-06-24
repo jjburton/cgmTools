@@ -29,7 +29,6 @@ reload(ObjectFactory)
 from cgm.lib.classes.AttrFactory import *
 from cgm.lib.classes.ObjectFactory import *
 
-from cgm.lib import *
 from cgm.lib import (guiFactory,
                      dictionary,
                      attributes,
@@ -39,6 +38,49 @@ reload(search)
 reload(dictionary)
 reload(guiFactory)
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Info processing
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiTransferAttributes(self):
+    """ 
+    Update the loaded source object cata from the optionVar
+    """     
+    attrs = self.ManageAttrList.getSelectedItems()
+    targets = search.returnSelected()
+    guiFactory.report("Source object is '%s'"%self.SourceObject.nameShort)
+    
+    if not self.SourceObject:
+	return guiFactory.warning("No source")
+    if not attrs:
+	return guiFactory.warning("No selected attrs")
+    if not targets:
+	return guiFactory.warning("No selected targets")
+    
+    if attrs and self.SourceObject and targets:
+	for a in attrs:
+	    aInstance = AttrFactory(self.SourceObject.nameLong,a)	    
+	    if self.CopyAttrModeOptionVar.value == 0:
+		#Connect mode
+		for target in targets:
+		    guiFactory.report("On target '%s'"%target)
+		    aInstance.doConnectOut(target)
+	    elif self.CopyAttrModeOptionVar.value == 1:
+		#Copy mode
+		for target in targets:
+		    guiFactory.report("On target '%s'"%target)
+		    aInstance.doCopyTo(target,self.TransferValueOptionVar.value,
+		                       self.TransferIncomingOptionVar.value,
+		                       self.TransferOutgoingOptionVar.value,
+		                       self.TransferKeepSourceOptionVar.value)
+			
+			
+    uiUpdateSourceObjectData(self)
+    
+    for a in attrs:
+	try:
+	    self.ManageAttrList.selectItems(attrs)
+	except:
+	    pass
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Info processing
@@ -46,28 +88,30 @@ reload(guiFactory)
 def uiUpdateSourceObjectData(self):
     """ 
     Update the loaded source object cata from the optionVar
-    """      
-    if mc.optionVar(q = self.SourceObjectOptionVar.name):
-	self.SourceObject = ObjectFactory(mc.optionVar(q = self.SourceObjectOptionVar.name))
-    else:
-	self.SourceObject = False
-
-    
-def updateLoaded(self):
-    """ 
-    Updates loaded source object attr menus
     """     
     try:
-	uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
-	uiUpdateSourceObjectData(self)
-	
-	self.ManageAttrList.clear()
-	if self.SourceObject:
-	    for a in self.SourceObject.userAttrs:
-		self.ManageAttrList.append(a)	
+	if self.SourceObject.update(self.SourceObject.nameLong):
+	    
+	    self.loadAttrs = []
+	    self.loadAttrs.extend(self.SourceObject.transformAttrs)
+	    self.loadAttrs.extend(self.SourceObject.userAttrs)
+	    self.loadAttrs.extend(self.SourceObject.keyableAttrs)
+	    
+	    self.loadAttrs = lists.returnListNoDuplicates(self.loadAttrs)
+	    
+	    uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
+	    
+	    self.ManageAttrList.clear()
+	    if self.SourceObject:
+		for a in self.loadAttrs:
+		    self.ManageAttrList.append(a)
+	    
+	else:
+	    self.SourceObject = False
     except:
-	pass
+	guiFactory.warning("Failed to update loaded!")
 
+    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Basic UI
@@ -79,32 +123,25 @@ def uiLoadSourceObject(self,selectAttr = False):
     Keyword arguments:
     selectAttr(string) -- Name of an attr (False ignores)
     """   
-    selected = []
-    bufferList = []
+    selected = search.returnSelected()
     
-    selected = (mc.ls (sl=True,flatten=True,shortNames=True))
     self.activeAttr = []
     if selected:
-        if len(selected) >= 2:
-            guiFactory.warning('Only one object can be loaded')
-        else:
-            # Put the object in the field
-	    guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField, self.SourceObjectOptionVar.name)
-            self.ManagerSourceObjectField(e=True, text = mc.optionVar(q = self.SourceObjectOptionVar.name) )	    
-	    
-            # Get our attr menu
-            uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
-	    uiUpdateSourceObjectData(self)
-	    
-	    self.ManageAttrList.clear()
-	    if self.SourceObject:
-		for a in self.SourceObject.userAttrs:
-		    self.ManageAttrList.append(a)
+	# Put the object in the field
+	self.SourceObjectOptionVar.set(selected[0])
+	self.SourceObjectField(e=True, text = self.SourceObjectOptionVar.value )	    
+	self.ManagerSourceObjectField(e=True, text = self.SourceObjectOptionVar.value )	    
+	self.SourceObject = ObjectFactory(selected[0])
+	
+	# Get our attr menu
+	uiUpdateSourceObjectData(self)	
+	uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 
     else:
         #clear the field
         guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField, self.SourceObjectOptionVar.name)
 	self.ManagerSourceObjectField(e=True, text = '' )	    
+	self.SourceObjectOptionVar.set('')	
 	
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 	
@@ -269,29 +306,16 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
     """ 
     def uiAttrUpdate(item):
         uiSelectActiveAttr(self,item)
-
-    sourceObject =  mc.optionVar( q = 'cgmVar_AttributeSourceObject')
-
-    if mc.objExists(sourceObject):
+    
+    menu.clear()
+    attrs=[]
+    for a in self.loadAttrs:
+	attrs.append(a)
+    
+    if attrs:
+	attrs.sort()    
+	
         # Get the attributes list
-        menu.clear()
-        attrs = mc.listAttr(sourceObject,keyable=True)
-        regAttrs = mc.listAttr(sourceObject)
-        userAttrs = mc.listAttr(sourceObject,userDefined = True) or []
-        lockedAttrs = mc.listAttr(sourceObject,locked = True) or []
-        for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','visibility':
-            if mc.objExists(sourceObject+'.'+attr) and mc.getAttr((sourceObject+'.'+attr)) is not False:
-                attrs.append(attr)
-
-        if userAttrs:
-            attrs.extend( userAttrs )
-
-        if lockedAttrs:
-            attrs.extend( lockedAttrs )
-
-        attrs = lists.returnListNoDuplicates(attrs)
-        attrs.sort()	    
-	    
         if attrs:
             for a in attrs:
                 if a in ['attributeAliasList']:
@@ -305,13 +329,10 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         if selectAttr in attrs:            
             index = attrs.index(selectAttr)
             self.ObjectAttributesOptionMenu.selectByIdx(index ) 
-            uiSelectActiveAttr(self,attr)
+            uiSelectActiveAttr(self,selectAttr)
         else:
             uiSelectActiveAttr(self,attrs[0])
         menu(edit=True,cc = uiAttrUpdate)
-
-    else:
-        menu.clear()
   
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -659,7 +680,7 @@ def uiReorderAttributes(self,direction):
     if attrsToMove and self.SourceObjectOptionVar.value:
 	attributes.reorderAttributes(self.SourceObject.nameLong,attrsToMove,direction)
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
 	self.ManageAttrList.selectItems(attrsToMove)
     else:
@@ -676,7 +697,7 @@ def uiManageAttrsKeyable(self):
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
 	    aInstance.doKeyable(True)
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
 	self.ManageAttrList.selectItems(attrs)
     else:
@@ -693,7 +714,7 @@ def uiManageAttrsUnkeyable(self):
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
 	    aInstance.doKeyable(False)
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
 	self.ManageAttrList.selectItems(attrs)
     else:
@@ -710,7 +731,7 @@ def uiManageAttrsHide(self):
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
 	    aInstance.doHidden(True)
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
 	self.ManageAttrList.selectItems(attrs)
     else:
@@ -727,7 +748,7 @@ def uiManageAttrsUnhide(self):
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
 	    aInstance.doHidden(False)
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
 	self.ManageAttrList.selectItems(attrs)
     else:
@@ -744,7 +765,7 @@ def uiManageAttrsLocked(self):
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
 	    aInstance.doLocked(True)
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
 	self.ManageAttrList.selectItems(attrs)
     else:
@@ -761,7 +782,7 @@ def uiManageAttrsUnlocked(self):
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
 	    aInstance.doLocked(False)
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
 	self.ManageAttrList.selectItems(attrs)
     else:
@@ -779,7 +800,7 @@ def uiManageAttrsDelete(self):
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
 	    aInstance.delete()
 	
-	updateLoaded(self)
+	uiUpdateSourceObjectData(self)
 	
     else:
 	guiFactory.warning('No attributes selected.')
