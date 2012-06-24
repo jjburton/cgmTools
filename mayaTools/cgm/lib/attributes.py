@@ -38,8 +38,8 @@ attrTypesDict = {'message':['message','msg','m'],
                  
 dataConversionDict = {'long':int,
                       'string':str,
-                      'double':float}
-                      
+                      'double':float}   
+        
 def returnAttrListFromStringInput (stringInput1,stringInput2 = None):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -474,7 +474,80 @@ def convertAttrType(targetAttrName,attrType):
         if targetLock:
             mc.setAttr(targetAttrName,lock = True)
             
+def copyAttrs(fromObject,toObject,attrsToCopy=[],values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
+    """                                     
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Copy attributes from one object to another. If the attribute already
+    exists, it'll copy the values. If it doesn't, it'll make it.
 
+    ARGUMENTS:
+    fromObject(string) - obj with attrs
+    toObject(string) - obj to copy to
+    attrsToCopy(list) - list of attr names to copy, if [True] is used, it will do all of them
+
+    RETURNS:
+    success(bool)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    attrDict = {}
+    userAttrs =(mc.listAttr (fromObject)) or []
+    matchAttrs = []
+    lockAttrs = {}
+    if not userAttrs:
+        return False
+    else:
+        for attr in attrsToCopy:
+            if attr in userAttrs:
+                matchAttrs.append(attr)
+                
+    """ Get the attribute types of those the source object"""
+    attrTypes = returnObjectsAttributeTypes(fromObject)
+
+    #>>> The creation of attributes part
+    messageAttrs = {}
+    if len(matchAttrs)>0:
+        for attr in matchAttrs:
+            # see if it's a message attribute to copy    
+            if queryIfMessage(fromObject,attr):
+                messageAttrs[attr] = (returnMessageObject(fromObject,attr))
+                
+            """ see if it was locked, unlock it and store that it was locked """
+            if mc.getAttr((fromObject+'.'+attr),lock=True) == True:
+                lockAttrs[attr] = True
+                mc.setAttr((fromObject+'.'+attr),lock=False)
+                
+            """if it doesn't exist, make it"""
+            if not mc.objExists(toObject+'.'+attr):
+                attrType = (attrTypes.get(attr))
+                if attrType == 'string':
+                    mc.addAttr (toObject, ln = attr,  dt =attrType )
+                elif attrType == 'enum':
+                    enumStuff = mc.attributeQuery(attr, node=fromObject, listEnum=True)
+                    mc.addAttr (toObject, ln=attr, at= 'enum', en=enumStuff[0])
+                elif attrType == 'double3':
+                    mc.addAttr (toObject, ln=attr, at= 'double3')
+                    mc.addAttr (toObject, ln=(attr+'X'),p=attr , at= 'double')
+                    mc.addAttr (toObject, ln=(attr+'Y'),p=attr , at= 'double')
+                    mc.addAttr (toObject, ln=(attr+'Z'),p=attr , at= 'double')
+                else:
+                    mc.addAttr (toObject, ln = attr,  at =attrType )
+                    
+        """ copy values """
+        mc.copyAttr(fromObject,toObject,attribute=matchAttrs,v=values,ic=incomingConnections,oc=outgoingConnections,keepSourceConnections=keepSourceConnections)
+        
+        if messageAttrs:
+            for a in messageAttrs.keys():
+                storeInfo(toObject,a,messageAttrs.get(a))
+
+        """ relock """
+        for attr in lockAttrs.keys():
+            mc.setAttr((fromObject+'.'+attr),lock=True)
+            mc.setAttr((toObject+'.'+attr),lock=True)
+        return True
+    else:
+        return False
+    
 
 def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False):
     """                                     
