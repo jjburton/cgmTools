@@ -21,7 +21,6 @@
 
 import maya.cmds as mc
 
-from cgm.lib import guiFactory
 
 def returnListChunks(l, n):
     """ 
@@ -75,34 +74,11 @@ def reorderListInPlace(l, subL, direction = 0):
                         returnList.remove(i)
                         returnList.insert(idx+1,i)
             else:
-                guiFactory.report("List is already in order. No change.")
+                print ("List is already in order. No change.")
         else:
-            guiFactory.report("'%s' not in the target list. Try again..."%i)
-    print l        
+           print("'%s' not in the target list. Try again..."%i)
     return returnList 
 
-"""
-global proc string[] zooAttrManUtilsArrayReorder( string $array[], int $entries[], string $dir ) {
-	string $newArray[] = $array;
-	int $gaps[];
-	int $be;
-
-	if( !`size $entries` ) return $array;
-	$entries = `sort $entries`;
-	$gaps[0] = $entries[0];
-	for( $n = 0; $n < `size $entries`-1; $n++ ) if( $entries[$n]+1 != $entries[( $n+1 )] ) {
-		$gaps[( `size $gaps` )] = $entries[$n];
-		$gaps[( `size $gaps` )] = $entries[( $n+1 )];
-		}
-	$gaps[( `size $gaps` )] = $entries[( `size $entries`-1 )];
-
-	for( $n = 0; $n < `size $gaps`; $n+=2 ) if( $dir == "up" ) $newArray = `zooAttrManUtilsArrayShiftUp $newArray $gaps[$n] $gaps[( $n+1 )]`;
-	for( $n = 0; $n < `size $gaps`; $n+=2 ) if( $dir == "down" ) $newArray = `zooAttrManUtilsArrayShiftDown $newArray $gaps[$n] $gaps[( $n+1 )]`;
-
-	return $newArray;
-	}
-
-"""
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Simplifying
