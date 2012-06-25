@@ -473,6 +473,50 @@ def convertAttrType(targetAttrName,attrType):
                 
         if targetLock:
             mc.setAttr(targetAttrName,lock = True)
+
+def returnMatchAttrsDict(fromObject,toObject,attributes=[True],directMatchOnly = False,*a, **kw ):
+    """                                     
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Tries to find match attrs regardless of name alias or what not in dict form.
+
+    ARGUMENTS:
+    fromObject(string) - obj with attrs
+    toObject(string) - obj to check
+    attrsToCopy(list) - list of attr names to copy, if [True] is used, it will do all of them
+    directMatchOnly(bool) =- whether to check longNames (ignores alias'). Default is the wider search (False)
+
+    If attriubtes is set to default ([True]), you can pass keywords and arguments into a listAttr call for the 
+    search parameters
+    
+    
+    RETURNS:
+    matchAttrs(dict) = {sourceAttr:targetAttr, }
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    matchAttrs = {}
+    if attributes[0] is True:
+        attributes = mc.listAttr(fromObject, *a, **kw) or []
+    
+    if attributes:
+        for attr in attributes:
+            if mc.objExists('%s.%s'%(fromObject, attr) ):
+                if directMatchOnly:
+                    if mc.objExists('%s.%s'%(toObject, attr) ):
+                        matchAttrs[attr] = attr                        
+                else:
+                    try:
+                        buffer = mc.attributeQuery(attr,node=fromObject,longName=True) or ''                    
+                        if mc.objExists('%s.%s'%(toObject, buffer) ):
+                            matchAttrs[attr] = buffer
+                    except:
+                        guiFactory.warning("'%s' failed to query a long name to check"%attr)
+        if matchAttrs:
+            return matchAttrs
+        else:
+            return False
+    return False
+                    
             
 def copyAttrs(fromObject,toObject,attrsToCopy=[],values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
     """                                     
@@ -491,15 +535,14 @@ def copyAttrs(fromObject,toObject,attrsToCopy=[],values = True, incomingConnecti
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrDict = {}
-    userAttrs =(mc.listAttr (fromObject)) or []
-    matchAttrs = []
+    sourceAttrs =(mc.listAttr (fromObject)) or []
+    sourceAttrs =(mc.listAttr (toObject)) or []
+    
+    matchAttrs = returnMatchAttrsDict(fromObject,toObject,attrsToCopy)
     lockAttrs = {}
-    if not userAttrs:
+    
+    if not matchAttrs:
         return False
-    else:
-        for attr in attrsToCopy:
-            if attr in userAttrs:
-                matchAttrs.append(attr)
                 
     """ Get the attribute types of those the source object"""
     attrTypes = returnObjectsAttributeTypes(fromObject)
@@ -507,7 +550,7 @@ def copyAttrs(fromObject,toObject,attrsToCopy=[],values = True, incomingConnecti
     #>>> The creation of attributes part
     messageAttrs = {}
     if len(matchAttrs)>0:
-        for attr in matchAttrs:
+        for attr in matchAttrs.keys():
             # see if it's a message attribute to copy    
             if queryIfMessage(fromObject,attr):
                 messageAttrs[attr] = (returnMessageObject(fromObject,attr))
@@ -534,7 +577,11 @@ def copyAttrs(fromObject,toObject,attrsToCopy=[],values = True, incomingConnecti
                     mc.addAttr (toObject, ln = attr,  at =attrType )
                     
         """ copy values """
-        mc.copyAttr(fromObject,toObject,attribute=matchAttrs,v=values,ic=incomingConnections,oc=outgoingConnections,keepSourceConnections=keepSourceConnections)
+        copyAttrs = []
+        for a in matchAttrs.keys():
+            copyAttrs.append(matchAttrs.get(a))
+            
+        mc.copyAttr(fromObject,toObject,attribute=copyAttrs,v=values,ic=incomingConnections,oc=outgoingConnections,keepSourceConnections=keepSourceConnections)
         
         if messageAttrs:
             for a in messageAttrs.keys():
