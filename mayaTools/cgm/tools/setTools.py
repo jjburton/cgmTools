@@ -101,7 +101,9 @@ class setToolsClass(BaseMelWindow):
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_setToolsShowHelp', defaultValue = 0)
 		self.MaintainLocalSetGroupOptionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup', defaultValue = 1)
 		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
-
+		self.HideAnimLayerSetsOptionVar = OptionVarFactory('cgmVar_HideAnimLayerSets', defaultValue = 1)
+		self.HideMayaSetsOptionVar = OptionVarFactory('cgmVar_HideMayaSets', defaultValue = 1)
+		
 		
 		guiFactory.appendOptionVarList(self,self.ActiveObjectSetsOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.ActiveRefsOptionVar.name)
@@ -111,6 +113,8 @@ class setToolsClass(BaseMelWindow):
 		guiFactory.appendOptionVarList(self,self.KeyTypeOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideSetGroupOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.MaintainLocalSetGroupOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.HideAnimLayerSetsOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.HideMayaSetsOptionVar.name)
 
 		
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -193,9 +197,23 @@ class setToolsClass(BaseMelWindow):
 		MelMenuItem( GroupingMenu, l="Maintain Local Set Group",
 	                 cb= mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ),
 	                 c= lambda *a: setToolsLib.doSetMaintainLocalSetGroup(self))
-		MelMenuItem( GroupingMenu, l="Hide Set Groups",
-	                 cb= mc.optionVar( q='cgmVar_HideSetGroups' ),
-	                 c= lambda *a: setToolsLib.doSetHideSetGroups(self))
+		
+		
+		#>>> Grouping Options
+		HidingMenu = MelMenuItem( self.UI_OptionsMenu, l='Auto Hide', subMenu=True)
+		
+		#guiFactory.appendOptionVarList(self,'cgmVar_MaintainLocalSetGroup')			
+		MelMenuItem( HidingMenu, l="Anim Layer Sets",
+	                 cb= self.HideAnimLayerSetsOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideAnimLayerSetsOptionVar))
+		
+		MelMenuItem( HidingMenu, l="Maya Sets",
+	                 cb= self.HideMayaSetsOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideMayaSetsOptionVar))
+		
+		MelMenuItem( HidingMenu, l="Set Groups",
+	                 cb= self.HideSetGroupOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideSetGroupOptionVar))
 		
 		#>>> Keying Options
 		KeyMenu = MelMenuItem( self.UI_OptionsMenu, l='Key type', subMenu=True)

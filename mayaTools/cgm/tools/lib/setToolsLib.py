@@ -171,13 +171,33 @@ def updateObjectSets(self):
         doGroupLocal(self)
             
     # Hide Set groups
-    if mc.optionVar( q='cgmVar_HideSetGroups' ):
+    if mc.optionVar(q='cgmVar_HideSetGroups'):
         for s in self.setGroups:
             if s in self.objectSets:
                 self.objectSets.remove(s)
-        
+                
+    # Hide animLayer Sets
+    if mc.optionVar(q='cgmVar_HideAnimLayerSets'):
+        for s in self.setGroups:
+            if s in self.objectSets and search.returnObjectType(s) == 'animLayer':
+                self.objectSets.remove(s)
+                
+    # Hide Maya Sets
+    if mc.optionVar(q='cgmVar_HideMayaSets'):
+        for s in ['defaultCreaseDataSet',
+                  'defaultObjectSet',
+                  'defaultLightSet',
+                  'initialParticleSE',
+                  'initialShadingGroup']:
+            if s in self.objectSets:
+                self.objectSets.remove(s)
+                
+        for s in self.objectSets:
+            if 'tweakSet' in s:
+                self.objectSets.remove(s)
+                
 
-        
+                    
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Individual Set Stuff
@@ -532,6 +552,13 @@ def doSetHideSetGroups(self):
     Toggles hide set group mode
     """ 
     self.HideSetGroupOptionVar.toggle()
+    self.reload()
+    
+def uiToggleOptionCB(self,optionVar):
+    """ 
+    Toggles hide set group mode
+    """ 
+    optionVar.toggle()
     self.reload()
     
 def doGroupLocal(self):
