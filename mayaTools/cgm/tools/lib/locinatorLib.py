@@ -371,6 +371,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     bufferList = []
     
     if self.LocinatorUpdateObjectsOptionVar.value:
+	preSelectBuffer = mc.ls(sl=True,flatten=True,long=True) or []
 	mc.select(cl=True)
 	self.LocinatorUpdateObjectsBufferOptionVar.select()
 	selection = (mc.ls (sl=True,flatten=True)) or []
@@ -566,6 +567,10 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 
                 mc.currentTime(initialFramePosition)
 		mc.select(toUpdate)
+		
+	if self.LocinatorUpdateObjectsOptionVar.value and preSelectBuffer:
+	    mc.select(preSelectBuffer)
+	     
     else:
         guiFactory.warning('No updateable object selected')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -751,5 +756,14 @@ def removeSelectedFromBuffer(self):
 		guiFactory.report("'%s' can't be updated. Not added to buffer"%o)
     else:
 	guiFactory.warning("Nothing selected")
+	
+def selectBufferMembers(bufferOptionVar):
+    bufferOptionVar = OptionVarFactory(bufferOptionVar.name)
+    
+    if bufferOptionVar.value:
+	bufferOptionVar.select()
+    else:
+	guiFactory.warning("Nothing selected")
+	
 	
 	    

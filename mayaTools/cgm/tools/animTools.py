@@ -20,6 +20,7 @@
 __version__ = '0.1.040242012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.classes.OptionVarFactory import *
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -81,6 +82,7 @@ class animToolsClass(BaseMelWindow):
 		#Menu
 		self.setupVariables()
 		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
+		self.UI_BufferMenu = MelMenu( l = 'Buffer', pmc=self.buildBufferMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
 		
 		self.ShowHelpOption = mc.optionVar( q='cgmVar_AnimToolsShowHelp' )
@@ -103,6 +105,12 @@ class animToolsClass(BaseMelWindow):
 		self.show()
 
 	def setupVariables(self):
+		self.LocinatorUpdateObjectsOptionVar = OptionVarFactory('cgmVar_AnimToolsUpdateMode',defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.LocinatorUpdateObjectsOptionVar.name)
+		
+		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
+		guiFactory.appendOptionVarList(self,self.LocinatorUpdateObjectsBufferOptionVar.name)	
+		
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
 		if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
@@ -151,12 +159,47 @@ class animToolsClass(BaseMelWindow):
 	                 cb= mc.optionVar( q='cgmVar_TaggingUpdateRO' ),
 	                 c= lambda *a: guiFactory.doToggleIntOptionVariable('cgmVar_TaggingUpdateRO'))
 		
+		# Update Mode
+		UpdateMenu = MelMenuItem( self.UI_OptionsMenu, l='Update Mode', subMenu=True)
+		UpdateMenuCollection = MelRadioMenuCollection()
 
+		if self.LocinatorUpdateObjectsOptionVar.value == 0:
+			slMode = True
+			bufferMode = False
+		else:
+			slMode = False
+			bufferMode = True
+
+		UpdateMenuCollection.createButton(UpdateMenu,l='Selected',
+				                             c=lambda *a: self.LocinatorUpdateObjectsOptionVar.set(0),
+				                             rb=slMode )
+		UpdateMenuCollection.createButton(UpdateMenu,l='Buffer',
+				                             c=lambda *a:self.LocinatorUpdateObjectsOptionVar.set(1),
+				                             rb=bufferMode )
+		
+		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
 			         c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
 
-
+	def buildBufferMenu( self, *a ):
+		self.UI_BufferMenu.clear()
+		
+		MelMenuItem( self.UI_BufferMenu, l="Define",
+				     c= lambda *a:locinatorLib.defineBuffer(self))
+		
+		MelMenuItem( self.UI_BufferMenu, l="Add Selected",
+				     c= lambda *a:locinatorLib.addSelectedToBuffer(self))
+		
+		MelMenuItem( self.UI_BufferMenu, l="Remove Selected",
+				     c= lambda *a:locinatorLib.removeSelectedFromBuffer(self))
+		
+		MelMenuItemDiv( self.UI_BufferMenu )
+		MelMenuItem( self.UI_BufferMenu, l="Select Members",
+				     c= lambda *a: locinatorLib.selectBufferMembers(self.LocinatorUpdateObjectsBufferOptionVar))
+		MelMenuItem( self.UI_BufferMenu, l="Purge",
+				     c= lambda *a: self.LocinatorUpdateObjectsBufferOptionVar.clear())
+		
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
 		MelMenuItem( self.UI_HelpMenu, l="Show Help",
