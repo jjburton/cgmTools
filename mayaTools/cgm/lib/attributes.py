@@ -147,7 +147,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
             to store other data to we need to delete it
             """
             if queryIfMessage(obj,infoTypeName) == True:
-                deleteAttr(obj,infoTypeName)
+                doDeleteAttr(obj,infoTypeName)
             """
             Make our new string attribute if it doesn't exist
             """
@@ -427,7 +427,7 @@ def convertAttrType(targetAttrName,attrType):
             dataBuffer = mc.addAttr((targetObj+'.'+targetAttr),q=True, en = True)
 
                     
-        deleteAttr(targetObj,targetAttr)
+        doDeleteAttr(targetObj,targetAttr)
         
         """if it doesn't exist, make it"""
         if aType == 'string':
@@ -824,7 +824,7 @@ def swapNameTagAttrs(object1,object2):
                 if mc.getAttr((object1+'.'+attr),lock=True) == True:
                     object1LockAttrs[attr] = True
 
-                deleteAttr(object1,attr) 
+                doDeleteAttr(object1,attr) 
         #Copy object 2's tags to object 1            
         for attr in object2TagsDict.keys():
             if object2TagTypesDict.get(attr) == 'message':
@@ -840,7 +840,7 @@ def swapNameTagAttrs(object1,object2):
                 if mc.getAttr((object2+'.'+attr),lock=True) == True:
                     object2LockAttrs[attr] = True
 
-                deleteAttr(object2,attr) 
+                doDeleteAttr(object2,attr) 
 
         #Copy object 1's tags to object 2                      
         for attr in object1TagsDict.keys():
@@ -1752,7 +1752,7 @@ def storeObjectToMessage (obj, storageObj, messageName):
                         breakConnection(c)
                         
                 guiFactory.warning("'%s' already exists. Not a message attr, converting."%attrCache)
-                deleteAttr(storageObj,messageName)
+                doDeleteAttr(storageObj,messageName)
                 
                 buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
                 mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
