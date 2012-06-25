@@ -85,19 +85,25 @@ def uiTransferAttributes(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Info processing
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def updateLoadAttrs(self):
+    self.loadAttrs = []
+    
+    if self.SourceObject and self.SourceObject.update(self.SourceObject.nameLong):
+	self.loadAttrs.extend(self.SourceObject.transformAttrs)
+	self.loadAttrs.extend(self.SourceObject.userAttrs)
+	self.loadAttrs.extend(self.SourceObject.keyableAttrs)
+	
+	self.loadAttrs = lists.returnListNoDuplicates(self.loadAttrs) 
+	if self.loadAttrs:
+	    return True
+    return False
+
 def uiUpdateSourceObjectData(self):
     """ 
     Update the loaded source object cata from the optionVar
     """     
     try:
-	if self.SourceObject.update(self.SourceObject.nameLong):
-	    
-	    self.loadAttrs = []
-	    self.loadAttrs.extend(self.SourceObject.transformAttrs)
-	    self.loadAttrs.extend(self.SourceObject.userAttrs)
-	    self.loadAttrs.extend(self.SourceObject.keyableAttrs)
-	    
-	    self.loadAttrs = lists.returnListNoDuplicates(self.loadAttrs)
+	if updateLoadAttrs(self):
 	    
 	    uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
 	    
@@ -108,6 +114,8 @@ def uiUpdateSourceObjectData(self):
 	    
 	else:
 	    self.SourceObject = False
+	    self.loadAttrs = []
+	    
     except:
 	guiFactory.warning("Failed to update loaded!")
 
@@ -142,6 +150,8 @@ def uiLoadSourceObject(self,selectAttr = False):
         guiFactory.doLoadSingleObjectToTextField(self.SourceObjectField, self.SourceObjectOptionVar.name)
 	self.ManagerSourceObjectField(e=True, text = '' )	    
 	self.SourceObjectOptionVar.set('')	
+	self.SourceObject = False
+	self.loadAttrs = []	
 	
         uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,selectAttr)
 	
@@ -306,6 +316,8 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
     """ 
     def uiAttrUpdate(item):
         uiSelectActiveAttr(self,item)
+	
+    updateLoadAttrs(self)
     
     menu.clear()
     attrs=[]
@@ -657,7 +669,7 @@ def uiDeleteAttr(self,menu):
 
     #>>>Function
     try:
-        attributes.deleteAttr(sourceObject,attrToDelete)
+        attributes.doDeleteAttr(sourceObject,attrToDelete)
         guiFactory.warning("'%s.%s' removed"%(sourceObject,attrToDelete))
     except:
         guiFactory.warning("'%s.%s' failed to delete"%(sourceObject,attrToDelete))
@@ -798,7 +810,7 @@ def uiManageAttrsDelete(self):
     if attrs and self.SourceObjectOptionVar.value:
 	for a in attrs:
 	    aInstance = AttrFactory(self.SourceObject.nameLong,a)
-	    aInstance.delete()
+	    aInstance.doDelete()
 	
 	uiUpdateSourceObjectData(self)
 	

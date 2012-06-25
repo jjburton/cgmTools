@@ -186,13 +186,21 @@ class AttrFactory():
         
         Keyword arguments:
         attrType(string)        
-        """        
-        try:
-            attributes.convertAttrType(self.nameCombined,attrType)
-            guiFactory.warning("'%s.%s' converted to '%s'"%(self.obj.nameLong,self.attr,attrType))
+        """
+        keyable = self.keyable
+        hidden = self.hidden
+        locked = self.locked
+        attributes.convertAttrType(self.nameCombined,attrType)
+        self.updateData()
+        
+        self.doHidden(hidden)
+        self.doKeyable(keyable)        
+        self.doLocked(locked)
+        
+        guiFactory.warning("'%s.%s' converted to '%s'"%(self.obj.nameLong,self.attr,attrType))
             
-        except:
-            guiFactory.warning("'%s.%s' failed to convert"%(self.obj.nameLong,self.attr))
+        """except:
+            guiFactory.warning("'%s.%s' failed to convert"%(self.obj.nameLong,self.attr))"""
             
             
     def validateRequestedAttrType(self,attrType):
@@ -242,21 +250,6 @@ class AttrFactory():
         except:
             guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
             
-    def delete(self,*a, **kw):
-        """ 
-        Deletes an attribute
-        
-        Keyword arguments:
-        *a, **kw
-        """ 
-        try:
-            attributes.doDeleteAttr(self.obj.nameLong,self.attr)
-            guiFactory.warning("'%s.%s' deleted"%(self.obj.nameLong,self.attr))
-            self.value = None
-            return self.value
-        
-        except:
-            guiFactory.warning("'%s.%s' failed to delete"%(self.obj.nameLong,self.attr))   
             
     def getMessage(self,*a, **kw):
         """ 
@@ -324,10 +317,13 @@ class AttrFactory():
         enumCommand(string) -- 'off:on', 'off=0:on=2', etc
         """   
         try:
-            mc.deleteAttr(self.nameCombined)            
-            self.attr = False
+            attributes.doDeleteAttr(self.obj.nameLong,self.attr)
+            guiFactory.warning("'%s.%s' deleted"%(self.obj.nameLong,self.attr))
+            self.value = None
+            return self.value
+        
         except:
-            guiFactory.warning("'%s.%s' failed to store '%s'"%(self.obj.nameLong,self.attr,infoToStore))
+            guiFactory.warning("'%s.%s' failed to delete"%(self.obj.nameLong,self.attr))  
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Set Options
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
@@ -521,7 +517,7 @@ class AttrFactory():
             except:
                 guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
                 
-    def doCopyTo(self,target,values = True, incomingConnections = False, outgoingConnections = False, keepSourceConnections = False):
+    def doCopyTo(self,target,values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
         """ 
         Connect to a target
         
@@ -532,20 +528,22 @@ class AttrFactory():
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
         
         if '.' in list(target):
+            #need to make it copy to a specific attribute
             pass
         else:
             matchAttr = attributes.returnMatchAttrsDict(self.obj.nameLong,target,[self.nameLong])
-        
-            if not matchAttr:
-                print "No match attr....making"
+            if matchAttr:
+                attributes.copyAttrs(self.obj.nameLong,target,[self.nameLong], values, incomingConnections, outgoingConnections, keepSourceConnections)                
+            else:
+                print "No match attr....duplicated attribute to"
+                self.doTransferTo(target, False, values, incomingConnections, outgoingConnections, keepSourceConnections)
             
         
-        attributes.copyAttrs(self.obj.nameLong,target,[self.nameLong], values, incomingConnections, outgoingConnections, keepSourceConnections)
         
         """except:
             guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))   """         
             
-    def doTransferTo(self,target,deleteSelfWhenDone = False):
+    def doTransferTo(self,target, deleteSelfWhenDone = False,values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
         """ 
         Connect to a target
         
@@ -556,9 +554,10 @@ class AttrFactory():
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
         assert '.' not in list(target),"'%s' appears to be an attribute"%target
         
-        target = AttrFactory(target,self.attr,self.form,self.value)
+        target = AttrFactory(target,self.attr)
+        target.convert(self.form)
         
-        attributes.copyAttrs(self.obj.nameLong,target.obj.nameLong,[target.attr])        
+        mc.copyAttr(self.obj.nameLong,target.obj.nameLong,attribute = [target.attr],v=values,ic=incomingConnections,oc=outgoingConnections,keepSourceConnections=keepSourceConnections)
         
         if self.form == 'enum':
             target.setEnum(self.enum)
