@@ -509,7 +509,7 @@ class attrToolsClass(BaseMelWindow):
 		MelSpacer(TransferModeFlagsRow,w=2)		
 		TransferModeFlagsRow.layout()	
 		
-		mc.radioCollection(self.TransferModeCollection ,edit=True,sl= (self.TransferModeCollectionChoices[ (mc.optionVar(q='cgmVar_LocinatorTransferMode')) ]))
+		mc.radioCollection(self.TransferModeCollection ,edit=True,sl= (self.TransferModeCollectionChoices[ (self.CopyAttrModeOptionVar.value) ]))
 		
 		
 		#>>>Transfer Options

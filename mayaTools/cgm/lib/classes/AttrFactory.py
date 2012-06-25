@@ -521,7 +521,31 @@ class AttrFactory():
             except:
                 guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
                 
-    def doCopyTo(self,target,values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
+    def doCopyTo(self,target,values = True, incomingConnections = False, outgoingConnections = False, keepSourceConnections = False):
+        """ 
+        Connect to a target
+        
+        Keyword arguments:
+        *a, **kw
+        """ 
+        assert mc.objExists(target),"'%s' doesn't exist"%target
+        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
+        
+        if '.' in list(target):
+            pass
+        else:
+            matchAttr = attributes.returnMatchAttrsDict(self.obj.nameLong,target,[self.nameLong])
+        
+            if not matchAttr:
+                print "No match attr....making"
+            
+        
+        attributes.copyAttrs(self.obj.nameLong,target,[self.nameLong], values, incomingConnections, outgoingConnections, keepSourceConnections)
+        
+        """except:
+            guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))   """         
+            
+    def doTransferTo(self,target,deleteSelfWhenDone = False):
         """ 
         Connect to a target
         
@@ -532,9 +556,20 @@ class AttrFactory():
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
         assert '.' not in list(target),"'%s' appears to be an attribute"%target
         
-        attributes.copyAttrs(self.obj.nameLong,target,[self.attr], values, incomingConnections, outgoingConnections, keepSourceConnections)
-        """except:
-            guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))   """         
-            
-            
+        target = AttrFactory(target,self.attr,self.form,self.value)
+        
+        attributes.copyAttrs(self.obj.nameLong,target.obj.nameLong,[target.attr])        
+        
+        if self.form == 'enum':
+            target.setEnum(self.enum)
+        if self.form == 'message':
+            target.doStore(self.value)
+        target.doHidden(self.hidden)
+        target.doKeyable(self.keyable)        
+        target.doLocked(self.locked)
+        
+        if deleteSelfWhenDone:
+            self.doDelete()
+        
+        
         
