@@ -292,10 +292,7 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            
 						   ('cgm.tdTools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
                             loadTDTools),
-                           
-                           ('cgm.attrTools', " Attribute tools",
-                            loadAttrTools),  
-                           
+
                            ('cgm.PolyUniteTool', "Stand alone poly unite tool for Plastic",
                             loadPolyUniteTool),
                            
@@ -326,7 +323,10 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            )),
               
               ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
-                        purgeCGMOptionVars),                         
+                        purgeCGMOptionVars),  
+                       ('cgm.attrTools', " Attribute tools",
+                                          loadAttrTools)
+                       
                        ))
 
               )
