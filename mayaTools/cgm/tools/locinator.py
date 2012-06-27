@@ -196,19 +196,19 @@ class locinatorClass(BaseMelWindow):
 		self.UI_BufferMenu.clear()
 		
 		MelMenuItem( self.UI_BufferMenu, l="Define",
-				     c= lambda *a:locinatorLib.defineBuffer(self))
+		             c= lambda *a: locinatorLib.defineObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 		
 		MelMenuItem( self.UI_BufferMenu, l="Add Selected",
-				     c= lambda *a:locinatorLib.addSelectedToBuffer(self))
+		             c= lambda *a: locinatorLib.addSelectedToObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 		
 		MelMenuItem( self.UI_BufferMenu, l="Remove Selected",
-				     c= lambda *a:locinatorLib.removeSelectedFromBuffer(self))
+		             c= lambda *a: locinatorLib.removeSelectedFromObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 		
 		MelMenuItemDiv( self.UI_BufferMenu )
 		MelMenuItem( self.UI_BufferMenu, l="Select Members",
-				     c= lambda *a: self.LocinatorUpdateObjectsBufferOptionVar.select())
-		MelMenuItem( self.UI_BufferMenu, l="Purge",
-				     c= lambda *a: self.LocinatorUpdateObjectsBufferOptionVar.clear())
+				     c= lambda *a: locinatorLib.selectObjBufferMembers(self.LocinatorUpdateObjectsBufferOptionVar))
+		MelMenuItem( self.UI_BufferMenu, l="Clear",
+		             c= lambda *a: locinatorLib.clearObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 		
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
