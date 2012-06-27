@@ -259,12 +259,15 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
             breakConnection(toAttr)
             mc.connectAttr(fromAttr,toAttr)
 
+    if bufferConnection:
+        mc.connectAttr(bufferConnection,fromAttr)        
+        
     if wasLocked == True or forceLock == True:
         mc.setAttr(toAttr,lock=True)
 
     if transferConnection == True:
         if bufferConnection != False:
-            mc.connectAttr(bufferConnection,fromAttr)
+            mc.connectAttr(bufferConnection,toAttr)
 
 
 def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
@@ -370,7 +373,6 @@ def doRenameAttr(obj,oldAttrName,newAttrName,forceLock = False):
             mc.setAttr(combinedBuffer,lock=False)
             mc.renameAttr(combinedBuffer,newAttrName)
         else:
-            breakConnection(combinedBuffer)
             mc.renameAttr(combinedBuffer,newAttrName)
 
     if wasLocked == True or forceLock == True:

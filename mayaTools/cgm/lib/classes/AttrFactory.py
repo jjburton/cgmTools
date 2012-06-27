@@ -69,8 +69,11 @@ class AttrFactory():
         # If it exists we need to check the type. 
         if mc.objExists('%s.%s'%(self.obj.nameLong,attrName)):
             currentType = mc.getAttr('%s.%s'%(self.obj.nameLong,attrName),type=True)
-            if attrType != currentType and self.form is not False:            
+            if attrType != currentType and self.form is not False:
+                self.updateData(*a, **kw)                
                 self.convert(attrType)
+                self.updateData(*a, **kw)
+                
             else:
                 self.attr = attrName
                 self.form = currentType
@@ -525,25 +528,55 @@ class AttrFactory():
         *a, **kw
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
-        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
         
         if '.' in list(target):
-            #need to make it copy to a specific attribute
-            pass
+            targetBuffer = target.split('.')
+            if len(targetBuffer) == 2:
+                #Start by renaming our copy from attr to our target attr name
+                buffer = self.attr
+                self.doRename(targetBuffer[1])
+                tInstance = AttrFactory(targetBuffer[0],targetBuffer[1],self.form)
+                attributes.copyAttrs(self.obj.nameLong,
+                                     tInstance.obj.nameLong,
+                                     [self.nameLong],
+                                     values, incomingConnections,
+                                     outgoingConnections, keepSourceConnections)               
+                self.doRename(buffer)
+            else:
+                guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
         else:
             matchAttr = attributes.returnMatchAttrsDict(self.obj.nameLong,target,[self.nameLong])
             if matchAttr:
                 attributes.copyAttrs(self.obj.nameLong,target,[self.nameLong], values, incomingConnections, outgoingConnections, keepSourceConnections)                
             else:
-                print "No match attr....duplicated attribute to"
-                self.doTransferTo(target, False, values, incomingConnections, outgoingConnections, keepSourceConnections)
-            
+                print "No match attr....duplicated attribute "
+                self.doDuplicateTo(target, False)
+                attributes.copyAttrs(self.obj.nameLong,self.target.obj.nameLong,[self.nameLong], values, incomingConnections, outgoingConnections, keepSourceConnections)                
         
         
         """except:
             guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))   """         
             
-    def doTransferTo(self,target, deleteSelfWhenDone = False,values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
+    def doTransferTo(self,target):
+        """ 
+        Connect to a target
+        
+        Keyword arguments:
+        *a, **kw
+        """ 
+        assert mc.objExists(target),"'%s' doesn't exist"%target
+        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target        
+        assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
+        assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
+        
+        self.doDuplicateTo(target,False)
+        
+        mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
+        
+        self.doDelete()
+
+            
+    def doDuplicateTo(self,target, connectToSource = False):
         """ 
         Connect to a target
         
@@ -552,23 +585,20 @@ class AttrFactory():
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
-        assert '.' not in list(target),"'%s' appears to be an attribute"%target
         
-        target = AttrFactory(target,self.attr)
-        target.convert(self.form)
-        
-        mc.copyAttr(self.obj.nameLong,target.obj.nameLong,attribute = [target.attr],v=values,ic=incomingConnections,oc=outgoingConnections,keepSourceConnections=keepSourceConnections)
-        
+        self.target = AttrFactory(target,self.attr)
+        self.target.convert(self.form)
+                
         if self.form == 'enum':
-            target.setEnum(self.enum)
+            self.target.setEnum(self.enum)
         if self.form == 'message':
-            target.doStore(self.value)
-        target.doHidden(self.hidden)
-        target.doKeyable(self.keyable)        
-        target.doLocked(self.locked)
+            self.target.doStore(self.value)
+        self.target.doHidden(self.hidden)
+        self.target.doKeyable(self.keyable)        
+        self.target.doLocked(self.locked)
         
-        if deleteSelfWhenDone:
-            self.doDelete()
+        if connectToSource:
+            self.target.doConnectIn(self.nameCombined)
         
         
         

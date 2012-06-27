@@ -500,7 +500,7 @@ class attrToolsClass(BaseMelWindow):
 		
 		TransferModeFlagsRow = MelHSingleStretchLayout(self.ManageForm,padding = 2)	
 		Spacer = MelSpacer(TransferModeFlagsRow,w=10)						
-		self.TransferModeOptions = ['Connect','Copy','Copy and Connect','Transfer']
+		self.TransferModeOptions = ['Connect','Duplicate','Copy','Transfer']
 		for i,item in enumerate(self.TransferModeOptions):
 			self.TransferModeCollectionChoices.append(self.TransferModeCollection.createButton(TransferModeFlagsRow,label=item,
 			                                                                             onCommand = Callback(self.CopyAttrModeOptionVar.set,i)))

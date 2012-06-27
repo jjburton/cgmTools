@@ -65,6 +65,12 @@ def uiTransferAttributes(self):
 		    guiFactory.report("On target '%s'"%target)
 		    aInstance.doConnectOut(target)
 	    elif self.CopyAttrModeOptionVar.value == 1:
+		#Dup
+		for target in targets:
+		    guiFactory.report("On target '%s'"%target)
+		    aInstance.doDuplicateTo(target,self.TransferKeepSourceOptionVar.value)
+
+	    elif self.CopyAttrModeOptionVar.value == 2:
 		#Copy mode
 		for target in targets:
 		    guiFactory.report("On target '%s'"%target)
@@ -72,6 +78,11 @@ def uiTransferAttributes(self):
 		                       self.TransferIncomingOptionVar.value,
 		                       self.TransferOutgoingOptionVar.value,
 		                       self.TransferKeepSourceOptionVar.value)
+	    else:
+		#Transfer
+		for target in targets:
+		    guiFactory.report("On target '%s'"%target)
+		    aInstance.doTransferTo(target)
 			
 			
     uiUpdateSourceObjectData(self)
