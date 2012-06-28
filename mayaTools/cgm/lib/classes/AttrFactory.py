@@ -37,25 +37,28 @@ from cgm.lib import (search,
 reload(attributes)
 reload(guiFactory)
 attrTypesDict = {'message':['message','msg','m'],
-                 'double':['float','fl','f','doubleLinear','double'],
+                 'double':['float','fl','f','doubleLinear','doubleAngle','double'],
                  'string':['string','s','str'],
                  'long':['long','int','i','integer'],
                  'bool':['bool','b','boolean'],
                  'enum':['enum','options','e'],
-                 'vector':['vector','vec','v']}
+                 'double3':['vector','vec','v','double3']}
 
 class AttrFactory():
     """ 
-    Initialized a maya object as a class obj
+    Initialized a maya attribute as a class obj
     """
     def __init__(self,objName,attrName,attrType = False,value = None,*a, **kw):
         """ 
         Asserts object's existance and that it has a transform. Then initializes. If 
-        an existing attribute name on an object is called and the attribute type is different,
-        
+        an existing attribute name on an object is called and the attribute type is different,it converts it.
         
         Keyword arguments:
-        obj(string)        
+        obj(string) -- must exist in scene
+        attrName(string) -- name for an attribute to initialize
+        attrType(string) -- must be valid attribute type. If AttrFactory is imported, you can type 'print attrTypesDict'
+        value() -- set value on call
+        *a, **kw
         
         """
         ### input check
@@ -155,29 +158,83 @@ class AttrFactory():
         self.hidden = not mc.getAttr(self.nameCombined,channelBox=True)
         if self.keyable:
             self.hidden = mc.attributeQuery(self.attr, node = self.obj.nameLong, hidden=True)
-        #if self.form not in ['string','message'] and self.attr in mc.listAttr(self.obj.nameLong, userDefined = True):
-
-        if self.numeric and self.dynamic:
+            
+        #>>> Parent Stuff
+        
+        pBuffer = mc.attributeQuery(self.attr, node = self.obj.nameLong, listParent=True)
+        if pBuffer is None:
+            self.parent = False
+        else:
+            self.parent = pBuffer[0]
+        self.children = mc.attributeQuery(self.attr, node = self.obj.nameLong, listChildren=True)
+        if self.children is None:
+            self.children = False        
+        self.siblings = mc.attributeQuery(self.attr, node = self.obj.nameLong, listSiblings=True)
+        if self.siblings is None:
+            self.siblings = False        
+        
+        #>>> Numeric 
+        if self.numeric and self.dynamic and not self.children:
+            #>>> Default, min and max
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, minExists=True):
                 try:
                     self.minValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, minimum=True)
-                    #guiFactory.report("'%s.%s' minValue is %s" %(self.obj.nameLong,self.attr, self.minValue))
                 except:
-                    pass
+                    self.minValue = 'ERROR'
+                    guiFactory.warning("'%s.%s' failed to query min value" %(self.obj.nameLong,self.attr))
+
                     
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, maxExists=True):
                 try:
                     self.maxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, maximum=True)
                     #guiFactory.report("'%s.%s' maxValue is %s" %(self.obj.nameLong,self.attr, self.maxValue))
                 except:
-                    pass
+                    self.maxValue = 'ERROR'
+                    guiFactory.warning("'%s.%s' failed to query max value" %(self.obj.nameLong,self.attr))
+
                 
             if type(mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True)) is int or float:
                 try:
                     self.defaultValue = mc.attributeQuery(self.attr, node = self.obj.nameLong, listDefault=True)
                     #guiFactory.report("'%s.%s' defaultValue is %s" %(self.obj.nameLong,self.attr, self.defaultValue))
                 except:
-                    pass
+                    self.defaultValue = 'ERROR'
+                    guiFactory.warning("'%s.%s' failed to query default value" %(self.obj.nameLong,self.attr))
+
+            #>>> Soft values
+            if mc.attributeQuery(self.attr, node = self.obj.nameLong, softMaxExists=True):
+                try:
+                    self.softMaxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMaximum=True)
+                    guiFactory.report("'%s.%s' softMaxValue is %s" %(self.obj.nameLong,self.attr, self.softMaxValue))
+                except:
+                    self.softMaxValue = 'ERROR'
+                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
+            if mc.attributeQuery(self.attr, node = self.obj.nameLong, softMinExists=True):
+                try:
+                    self.softMinValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMinimum=True)
+                    guiFactory.report("'%s.%s' softMinValue is %s" %(self.obj.nameLong,self.attr, self.softMinValue))
+                except:
+                    self.softMinValue = 'ERROR'
+                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
+            
+            #>>> Range
+            if mc.attributeQuery(self.attr, node = self.obj.nameLong, rangeExists=True):
+                try:
+                    self.rangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, range=True)
+                    guiFactory.report("'%s.%s' softMinValue is %s" %(self.obj.nameLong,self.attr, self.rangeValue))
+                except:
+                    self.rangeValue = 'ERROR'
+                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
+            if mc.attributeQuery(self.attr, node = self.obj.nameLong, softRangeExists=True):
+                try:
+                    self.softRangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softRange=True)
+                    guiFactory.report("'%s.%s' softMinValue is %s" %(self.obj.nameLong,self.attr, self.rangeValue))
+                except:
+                    self.softRangeValue = 'ERROR'
+                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
+        
+                        
+                        
                 
         if self.form == 'enum':
             self.enum = mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True, en = True)
@@ -528,6 +585,10 @@ class AttrFactory():
         *a, **kw
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
+        copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections]
+        if sum(copyTest) < 1:
+            guiFactory.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
+            return False
         
         if '.' in list(target):
             targetBuffer = target.split('.')
@@ -597,8 +658,10 @@ class AttrFactory():
         self.target.doKeyable(self.keyable)        
         self.target.doLocked(self.locked)
         
+        mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=False,oc=False,keepSourceConnections=False)
+        
         if connectToSource:
-            self.target.doConnectIn(self.nameCombined)
+            self.doConnectIn(self.target.nameCombined)
         
         
         
