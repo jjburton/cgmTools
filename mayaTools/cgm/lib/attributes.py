@@ -34,11 +34,38 @@ attrTypesDict = {'message':['message','msg','m'],
                  'long':['long','int','i','integer'],
                  'bool':['bool','b','boolean'],
                  'enum':['enum','options','e'],
-                 'vector':['vector','vec','v']}
+                 'double3':['vector','vec','v','double3']}
+
                  
 dataConversionDict = {'long':int,
                       'string':str,
                       'double':float}   
+
+def returnAttributeFamilyDict(obj,attr):
+    """ 
+    Returns a diciontary of parent,children,sibling of an attribute or False if nothing found   
+    
+    Keyword arguments:
+    obj(string) -- must exist in scene
+    attr(string) -- name for an attribute    
+    """       
+    assert mc.objExists("%s.%s"%(obj,attr)) is True,"'%s.%s' doesn't exist!"%(obj,attr)
+ 
+    returnDict = {}
+    buffer = mc.attributeQuery(attr, node = obj, listParent=True)
+    if buffer is not None:
+        returnDict['parent'] = buffer[0]
+    buffer= mc.attributeQuery(attr, node = obj, listChildren=True)
+    if buffer is not None:
+        returnDict['children'] = buffer
+    buffer= mc.attributeQuery(attr, node = obj, listSiblings=True)
+    if buffer is not None:
+        returnDict['siblings'] = buffer
+        
+    if returnDict:
+        return returnDict
+    return False
+
         
 def returnAttrListFromStringInput (stringInput1,stringInput2 = None):
     """ 
