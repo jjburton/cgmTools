@@ -29,17 +29,123 @@ typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
 attrTypesDict = {'message':['message','msg','m'],
-                 'double':['float','fl','f','doubleLinear','doubleAngle','double'],
+                 'double':['float','fl','f','doubleLinear','doubleAngle','double','d'],
                  'string':['string','s','str'],
                  'long':['long','int','i','integer'],
                  'bool':['bool','b','boolean'],
                  'enum':['enum','options','e'],
-                 'double3':['vector','vec','v','double3']}
+                 'double3':['vector','vec','v','double3','d3']}
 
                  
 dataConversionDict = {'long':int,
                       'string':str,
                       'double':float}   
+
+def validateRequestedAttrType(attrType):
+    """ 
+    Returns if an attr type is valid or not
+    
+    Keyword arguments:
+    attrType(string)        
+    """          
+    aType = False
+    for option in attrTypesDict.keys():
+        if attrType in attrTypesDict.get(option): 
+            aType = option
+            break
+        
+    return aType
+
+def doAddAttr(obj,attrName,attrType,*a, **kw):
+    """ 
+    Adds an attr if you don't care to know the specific commands for each type
+    
+    Keyword arguments:
+    obj(string) -- must exist in scene
+    attrName(string) -- attribute name
+    attrType(string) -- must be valid type. Type 'print attrTypesDict' for search dict  
+    """          
+    assert mc.objExists(obj) is True,"'%s' doesn't exists!. Can't add attribute"%obj
+    assert mc.objExists('%s.%s'%(obj,attrName)) is not True,"'%s.%s' already exists. "%(obj,attrName)
+    
+    attrType = validateRequestedAttrType(attrType)
+    assert attrType is not False,"'%s' is not a valid attribute type."%attrType
+    
+    if attrType == 'string':
+        return addStringAttributeToObj(obj,attrName,*a, **kw)
+    elif attrType == 'double':
+        return addFloatAttributeToObject(obj,attrName,*a, **kw)
+    elif attrType == 'string':
+        return addStringAttributeToObj(obj,attrName,*a, **kw)
+    elif attrType == 'long':
+        return addIntegerAttributeToObj(obj,attrName,*a, **kw) 
+    elif attrType == 'double3':
+        return addVectorAttributeToObj(obj,attrName,*a, **kw)
+    elif attrType == 'enum':
+        return addEnumAttrToObj(obj,attrName,*a, **kw)
+    elif attrType == 'bool':
+        return addBoolAttrToObject(obj,attrName,*a, **kw)
+    elif attrType == 'message':
+        return addMessageAttributeToObj(obj,attrName,*a, **kw)
+    else:
+        return False
+
+def returnStandardAttrFlags(obj,attr): 
+    """ 
+    Returns a diciontary of locked,keyable,locked states of an attribute
+    
+    Keyword arguments:
+    obj(string) -- must exist in scene
+    attr(string) -- name for an attribute    
+    """    
+    nameCombined = "%s.%s"%(obj,attr)
+    assert mc.objExists(nameCombined) is True,"'%s' doesn't exist!"%(nameCombined)
+    
+    objAttrs = mc.listAttr(obj, userDefined = True) or []
+    
+    locked = mc.getAttr(nameCombined ,lock=True)
+    keyable = mc.getAttr(nameCombined ,keyable=True)
+    
+    # So, if it's keyable, you have to use one attribute to read correctly, otherwise it's the other...awesome
+    hidden = not mc.getAttr(nameCombined,channelBox=True)
+    if keyable:
+        hidden = mc.attributeQuery(attr, node = obj, hidden=True)
+        
+    dynamic = True
+    if attr not in objAttrs:
+        dynamic = False
+        
+    attrType = mc.getAttr(nameCombined,type=True)
+    
+    numeric = True
+    if attrType in ['string','message','enum','bool']:
+        numeric = False
+        
+    return {'locked':locked,'keyable':keyable,'hidden':hidden,'dynamic':dynamic, 'numeric':numeric, 'type':attrType}
+        
+        
+        
+def returnAttributeDataDict(obj,attr,value = True,incoming = True, outGoing = True):
+    """ 
+    Returns a diciontary of parent,children,sibling of an attribute or False if nothing found   
+    
+    Keyword arguments:
+    obj(string) -- must exist in scene
+    attr(string) -- name for an attribute    
+    """       
+    assert mc.objExists("%s.%s"%(obj,attr)) is True,"'%s.%s' doesn't exist!"%(obj,attr)
+ 
+    returnDict = {}
+    if value:
+        returnDict['value'] = doGetAttr(obj,attr)
+    if incoming:
+        returnDict['incoming'] = returnDriverAttribute('%s.%s'%(obj,attr),False)
+    if outGoing:
+        returnDict['outGoing'] = returnDrivenAttribute('%s.%s'%(obj,attr),False)
+        
+    if returnDict:
+        return returnDict
+    return False
 
 def returnAttributeFamilyDict(obj,attr):
     """ 
@@ -547,14 +653,15 @@ def returnMatchAttrsDict(fromObject,toObject,attributes=[True],directMatchOnly =
     return False
                     
             
-def copyAttrs(fromObject,toObject,attrsToCopy=[],values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
+def doCopyAttr(fromObject,fromAttr, toObject,toAttr = None, convertToMatch = True, values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True, copyFlags = True):
     """                                     
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
+    Replacement for Maya's since maya's can't handle shapes....blrgh...
     Copy attributes from one object to another. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it.
 
-    ARGUMENTS:
+    Keywords:
     fromObject(string) - obj with attrs
     toObject(string) - obj to copy to
     attrsToCopy(list) - list of attr names to copy, if [True] is used, it will do all of them
@@ -563,66 +670,79 @@ def copyAttrs(fromObject,toObject,attrsToCopy=[],values = True, incomingConnecti
     success(bool)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    attrDict = {}
-    sourceAttrs =(mc.listAttr (fromObject)) or []
-    sourceAttrs =(mc.listAttr (toObject)) or []
+    assert mc.objExists('%s.%s'%(fromObject,fromAttr)),"Source '%s.%s' doesn't exist"%(fromObject,fromAttr)
+    assert mc.objExists(toObject),"Target '%s' doesn't exist"%toObject
     
-    matchAttrs = returnMatchAttrsDict(fromObject,toObject,attrsToCopy)
-    lockAttrs = {}
+    # Gather info   
+    sourceFlags = returnStandardAttrFlags(fromObject,fromAttr)
+    sourceType = sourceFlags.get('type')
+    sourceLock = sourceFlags.get('locked')
+    sourceKeyable = sourceFlags.get('keyable')
+    sourceHidden = sourceFlags.get('hidden')
+    sourceDynamic = sourceFlags.get('dynamic')
     
-    if not matchAttrs:
-        return False
-                
-    """ Get the attribute types of those the source object"""
-    attrTypes = returnObjectsAttributeTypes(fromObject)
+    #Let's check on the target attr
+    if toAttr is not None:
+        if mc.objExists('%s.%s'%(toObject,toAttr)):
+            #If it exists, verify the types match
+            targetType = mc.getAttr((toObject+'.'+toAttr),type=True)
+            if targetType != sourceType and sourceDynamic:
+                #If it doesn't match, covert
+                guiFactory.warning("'%s.%s' must be converted. It's type is not '%s'"%(toObject,toAttr,targetType))              
+        elif doAddAttr(toObject,toAttr,sourceType):
+            #If it doesn't exist, make it
+            toAttr = fromAttr   
+            guiFactory.report("'%s.%s' created!"%(toObject,toAttr))            
+        else:
+            return False
+            
+    else:
+        #If no attr is specified (None), we first look to see if our target has an attr called what our source is
+        matchAttrs = returnMatchAttrsDict(fromObject,toObject,[fromAttr])
+        if matchAttrs:
+            guiFactory.report("Match Found! >> '%s'"%(matchAttrs))
+            toAttr = matchAttrs.get(fromAttr)
+        elif doAddAttr(toObject,fromAttr,sourceType):
+            toAttr = fromAttr
+            guiFactory.report("'%s.%s' created!"%(toObject,fromAttr))   
+            
+            
+            """    
+    if mc.getAttr((fromObject+'.'+attr),lock=True) == True:
+        lockAttrs[attr] = True
+        mc.setAttr((fromObject+'.'+attr),lock=False)
 
     #>>> The creation of attributes part
-    messageAttrs = {}
     if len(matchAttrs)>0:
         for attr in matchAttrs.keys():
             # see if it's a message attribute to copy    
             if queryIfMessage(fromObject,attr):
                 messageAttrs[attr] = (returnMessageObject(fromObject,attr))
                 
-            """ see if it was locked, unlock it and store that it was locked """
+            # see if it was locked, unlock it and store that it was locked 
             if mc.getAttr((fromObject+'.'+attr),lock=True) == True:
                 lockAttrs[attr] = True
                 mc.setAttr((fromObject+'.'+attr),lock=False)
                 
-            """if it doesn't exist, make it"""
-            if not mc.objExists(toObject+'.'+attr):
-                attrType = (attrTypes.get(attr))
-                if attrType == 'string':
-                    mc.addAttr (toObject, ln = attr,  dt =attrType )
-                elif attrType == 'enum':
-                    enumStuff = mc.attributeQuery(attr, node=fromObject, listEnum=True)
-                    mc.addAttr (toObject, ln=attr, at= 'enum', en=enumStuff[0])
-                elif attrType == 'double3':
-                    mc.addAttr (toObject, ln=attr, at= 'double3')
-                    mc.addAttr (toObject, ln=(attr+'X'),p=attr , at= 'double')
-                    mc.addAttr (toObject, ln=(attr+'Y'),p=attr , at= 'double')
-                    mc.addAttr (toObject, ln=(attr+'Z'),p=attr , at= 'double')
-                else:
-                    mc.addAttr (toObject, ln = attr,  at =attrType )
                     
-        """ copy values """
+        # copy values 
         copyAttrs = []
-        for a in matchAttrs.keys():
+        for a in matchAttrs.keys():       
             copyAttrs.append(matchAttrs.get(a))
-            
+        
         mc.copyAttr(fromObject,toObject,attribute=copyAttrs,v=values,ic=incomingConnections,oc=outgoingConnections,keepSourceConnections=keepSourceConnections)
         
         if messageAttrs:
             for a in messageAttrs.keys():
                 storeInfo(toObject,a,messageAttrs.get(a))
 
-        """ relock """
+        # relock 
         for attr in lockAttrs.keys():
             mc.setAttr((fromObject+'.'+attr),lock=True)
             mc.setAttr((toObject+'.'+attr),lock=True)
         return True
     else:
-        return False
+        return False"""
     
 
 def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False):
