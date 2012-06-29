@@ -47,7 +47,7 @@ class attrToolsClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'attrTools'
 	WINDOW_TITLE = 'cgm.attrTools'
-	DEFAULT_SIZE = 400, 350
+	DEFAULT_SIZE = 350, 350
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -88,13 +88,16 @@ class attrToolsClass(BaseMelWindow):
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 		#Menu
+		self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)
 		self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)
+		
 
 		WindowForm = MelColumnLayout(self)
 		           
 		self.buildAttributeTool(WindowForm)
 		
-		attrToolsLib.uiLoadSourceObject(self)
+		if mc.ls(sl=True):
+			attrToolsLib.uiLoadSourceObject(self)
 		
 		self.show()
 
@@ -109,7 +112,7 @@ class attrToolsClass(BaseMelWindow):
 		self.CopyAttrModeOptionVar = OptionVarFactory('cgmVar_CopyAttributeMode', defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.CopyAttrModeOptionVar.name)	
 		
-		self.CopyAttrOptionsOptionVar = OptionVarFactory('cgmVar_CopyAttributeOptions', defaultValue = 0)
+		self.CopyAttrOptionsOptionVar = OptionVarFactory('cgmVar_CopyAttributeOptions', defaultValue = 1)
 		guiFactory.appendOptionVarList(self,self.CopyAttrOptionsOptionVar.name)	
 		
 		self.TransferValueOptionVar = OptionVarFactory('cgmVar_AttributeTransferValueState', defaultValue = 1)
@@ -123,8 +126,13 @@ class attrToolsClass(BaseMelWindow):
 		
 		self.TransferKeepSourceOptionVar = OptionVarFactory('cgmVar_AttributeTransferKeepSourceState', defaultValue = 1)
 		guiFactory.appendOptionVarList(self,self.TransferKeepSourceOptionVar.name)	
-			
-
+		
+		self.TransferConvertStateOptionVar = OptionVarFactory('cgmVar_AttributeTransferConvertState', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.TransferConvertStateOptionVar.name)
+		
+		self.TransferDriveSourceStateOptionVar = OptionVarFactory('cgmVar_AttributeTransferConnectToSourceState', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.TransferDriveSourceStateOptionVar.name)	
+		
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -139,7 +147,17 @@ class attrToolsClass(BaseMelWindow):
 		MelMenuItemDiv( self.UI_HelpMenu )
 		MelMenuItem( self.UI_HelpMenu, l="About",
 				     c=lambda *a: self.showAbout() )
-
+		
+	def buildOptionsMenu( self, *a ):
+		self.UI_OptionsMenu.clear()
+		
+		#>>> Reset Options		
+		MelMenuItemDiv( self.UI_OptionsMenu )
+		MelMenuItem( self.UI_OptionsMenu, l="Reload",
+			         c=lambda *a: self.reload())		
+		MelMenuItem( self.UI_OptionsMenu, l="Reset",
+			         c=lambda *a: self.reset())
+		
 	def do_showHelpToggle(self):
 		guiFactory.toggleMenuShowState(ShowHelpOption,self.helpBlurbs)
 		self.ShowHelpOptionVar.toggle()
@@ -165,10 +183,14 @@ class attrToolsClass(BaseMelWindow):
 		mc.showWindow( window )
 
 	def printHelp(self):
-		import tdToolsLib
-		help(tdToolsLib)
+		from cgm.tools.lib import attrToolsLib
+		help(attrToolsLib)
 
-	
+	def reset(self):	
+		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
+		
+	def reload(self):	
+		run()
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Tools
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -291,7 +313,9 @@ class attrToolsClass(BaseMelWindow):
 		
 		
 		#>>> Name Row
-		self.EditNameSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate')
+		self.EditNameSettingsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate')
+		self.EditNameSettingsRow.setStretchWidget(MelSpacer(self.EditNameSettingsRow,w=5))
+		
 		NameLabel = MelLabel(self.EditNameSettingsRow,label = 'Name: ')
 		self.NameField = MelTextField(self.EditNameSettingsRow,en = False,
 		                              bgc = dictionary.returnStateColor('normal'),
@@ -311,8 +335,9 @@ class attrToolsClass(BaseMelWindow):
 		                                 ec = lambda *a: attrToolsLib.uiUpdateAlias(self),		                                 
 		                                 h=20,
 		                                 w = 75)
-		
-		mc.formLayout(self.EditNameSettingsRow, edit = True,
+		MelSpacer(self.EditNameSettingsRow,w=5)
+		self.EditNameSettingsRow.layout()
+		"""mc.formLayout(self.EditNameSettingsRow, edit = True,
 	                  af = [(NameLabel, "left", 5),
 	                        (self.AliasField,"right",5)],
 	                  ac = [(self.NameField,"left",2,NameLabel),
@@ -320,42 +345,42 @@ class attrToolsClass(BaseMelWindow):
 	                        (self.NiceNameField,"left",2,NiceNameLabel),
 	                        (AliasLabel,"left",2,self.NiceNameField),
 		                    (self.AliasField,"left",2,AliasLabel),
-		                    ])
+		                    ])"""
 		
 		#>>> Int Row
 		#self.EditDigitSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
-		self.EditDigitSettingsRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
-		
+		self.EditDigitSettingsRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
+		self.EditDigitSettingsRow.setStretchWidget(MelSpacer(self.EditDigitSettingsRow,w=5))
 		MinLabel = MelLabel(self.EditDigitSettingsRow,label = 'Min:')
 		self.MinField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateMinValue(self),
-		                             h = 20, w = 40)
+		                             h = 20, w = 35)
 		
 		MaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'Max:')		
 		self.MaxField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateMaxValue(self),	
-		                             h = 20, w = 40)
+		                             h = 20, w = 35)
 		
 		DefaultLabel = MelLabel(self.EditDigitSettingsRow,label = 'dv:')		
 		self.DefaultField = MelTextField(self.EditDigitSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: attrToolsLib.uiUpdateDefaultValue(self),	
-		                                 h = 20, w = 40)
+		                                 h = 20, w = 35)
 		SoftMinLabel = MelLabel(self.EditDigitSettingsRow,label = 'sMin:')				
 		self.SoftMinField = MelTextField(self.EditDigitSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: attrToolsLib.uiUpdateSoftMinValue(self),	
-		                                 h = 20, w = 40)
+		                                 h = 20, w = 35)
 		
 		SoftMaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'sMax:')				
 		self.SoftMaxField = MelTextField(self.EditDigitSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: attrToolsLib.uiUpdateSoftMaxValue(self),	
-		                                 h = 20, w = 40)
+		                                 h = 20, w = 35)
 		
-
+		MelSpacer(self.EditDigitSettingsRow,w=5)
 		self.EditDigitSettingsRow.layout()
 		
 		"""mc.formLayout(self.EditDigitSettingsRow, edit = True,
@@ -423,7 +448,7 @@ class attrToolsClass(BaseMelWindow):
 
 
 		#>>> Connect Report
-		self.ConnectionReportRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate',h=20)
+		self.ConnectionReportRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate',h=20,vis=False)
 		self.ConnectionReportField = MelLabel(self.ConnectionReportRow,vis=False,
 		                                bgc = dictionary.returnStateColor('help'),
 		                                align = 'center',
@@ -537,8 +562,9 @@ class attrToolsClass(BaseMelWindow):
 		self.TransferModeCollectionChoices = []	
 		
 		TransferModeFlagsRow = MelHSingleStretchLayout(self.ManageForm,padding = 2)	
-		Spacer = MelSpacer(TransferModeFlagsRow,w=10)						
-		self.TransferModeOptions = ['Connect','Copy','Transfer','Duplicate(connectToSource)']
+		MelLabel(TransferModeFlagsRow,l='Modes')
+		Spacer = MelSeparator(TransferModeFlagsRow,w=10)						
+		self.TransferModeOptions = ['Connect','Copy','Transfer']
 		for i,item in enumerate(self.TransferModeOptions):
 			self.TransferModeCollectionChoices.append(self.TransferModeCollection.createButton(TransferModeFlagsRow,label=item,
 			                                                                             onCommand = Callback(self.CopyAttrModeOptionVar.set,i)))
@@ -554,7 +580,15 @@ class attrToolsClass(BaseMelWindow):
 		self.TransferOptionsCollection = MelRadioCollection()
 		self.TransferOptionsCollectionChoices = []	
 		
-		TransferOptionsFlagsRow = MelHLayout(self.ManageForm,padding = 2)	
+		TransferOptionsFlagsRow = MelHSingleStretchLayout(self.ManageForm,padding = 0)	
+		Spacer = MelSpacer(TransferOptionsFlagsRow)						
+		TransferOptionsFlagsRow.setStretchWidget( Spacer )
+		
+		self.ConvertCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Convert',
+				                           annotation = "Converts if necessary to finish the copy process",		                           
+				                           value = self.TransferConvertStateOptionVar.value,
+				                           onCommand = Callback(self.TransferConvertStateOptionVar.set,1),
+				                           offCommand = Callback(self.TransferConvertStateOptionVar.set,0))
 
 		self.ValueCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Value',
 		                           annotation = "Copy values",		                           
@@ -562,23 +596,35 @@ class attrToolsClass(BaseMelWindow):
 		                           onCommand = Callback(self.TransferValueOptionVar.set,1),
 		                           offCommand = Callback(self.TransferValueOptionVar.set,0))
 		
-		self.IncomingCB = MelCheckBox(TransferOptionsFlagsRow,label = 'InConn',
+		self.IncomingCB = MelCheckBox(TransferOptionsFlagsRow,label = 'In',
 				                      annotation = "Copy or transfer incoming connections",		                              
 		                              value = self.TransferIncomingOptionVar.value,
 		                              onCommand = Callback(self.TransferIncomingOptionVar.set,1),
 		                              offCommand = Callback(self.TransferIncomingOptionVar.set,0))
 
-		self.OutgoingCB = MelCheckBox(TransferOptionsFlagsRow,label = 'OutConn',
+		self.OutgoingCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Out',
 		                              annotation = "Copy or transfer incoming connections",		                              
 		                              value = self.TransferOutgoingOptionVar.value,
 		                              onCommand = Callback(self.TransferOutgoingOptionVar.set,1),
 		                              offCommand = Callback(self.TransferOutgoingOptionVar.set,0))	
 
-		self.KeepSourceCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Keep Source',
+		self.KeepSourceCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Keep',
 		                                annotation = "Keep source connections when copying",		                                
 		                                value = self.TransferKeepSourceOptionVar.value,
 		                                onCommand = Callback(self.TransferKeepSourceOptionVar.set,1),
 		                                offCommand = Callback(self.TransferKeepSourceOptionVar.set,0))
+		
+		self.DriveSourceCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Drive',
+		                                annotation = "Connect the source attr \nto selected or created attribute",		                                
+		                                value = self.TransferDriveSourceStateOptionVar.value,
+		                                onCommand = Callback(self.TransferDriveSourceStateOptionVar.set,1),
+		                                offCommand = Callback(self.TransferDriveSourceStateOptionVar.set,0))
+		
+		self.AttrOptionsCB = MelCheckBox(TransferOptionsFlagsRow,label = 'Options',
+		                                annotation = "Copies the attributes basic flags\n(locked,keyable,hidden)",		                                
+		                                value = self.CopyAttrOptionsOptionVar.value,
+		                                onCommand = Callback(self.CopyAttrOptionsOptionVar.set,1),
+		                                offCommand = Callback(self.TransferDriveSourceStateOptionVar.set,0))
 		
 		TransferOptionsFlagsRow.layout()	
 
@@ -602,8 +648,8 @@ class attrToolsClass(BaseMelWindow):
 		               (TransferModeFlagsRow,"right",5),
 		               (BottomButtonRow,"left",5),
 		               (BottomButtonRow,"right",5),		               
-		               (TransferOptionsFlagsRow,"left",5),
-		               (TransferOptionsFlagsRow,"right",5),
+		               (TransferOptionsFlagsRow,"left",2),
+		               (TransferOptionsFlagsRow,"right",2),
 		               (TransferOptionsFlagsRow,"bottom",4)],
 		         ac = [(ManagerLoadObjectRow,"top",5,ManageHeader),
 		               (self.ManageAttrList,"top",5,ManagerLoadObjectRow),
