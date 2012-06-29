@@ -69,21 +69,21 @@ def uiTransferAttributes(self):
 	    elif self.CopyAttrModeOptionVar.value == 1:
 		#Copy mode
 		for target in targets:
-		    aInstance.doCopyTo(target,self.TransferValueOptionVar.value,
-		                       self.TransferIncomingOptionVar.value,
-		                       self.TransferOutgoingOptionVar.value,
-		                       self.TransferKeepSourceOptionVar.value)
+		    aInstance.doCopyTo(target,
+		                       connectSourceToTarget = self.TransferDriveSourceStateOptionVar.value,
+		                       convertToMatch = self.TransferConvertStateOptionVar.value,
+		                       copyAttrSettings = self.CopyAttrOptionsOptionVar.value, 		                       
+		                       values = self.TransferValueOptionVar.value,
+		                       incomingConnections = self.TransferIncomingOptionVar.value,
+		                       outgoingConnections = self.TransferOutgoingOptionVar.value,
+		                       keepSourceConnections = self.TransferKeepSourceOptionVar.value)
 
-	    elif self.CopyAttrModeOptionVar.value == 2:
+	    else:
 		#Transfer
 		for target in targets:
 		    guiFactory.report("On target '%s'"%target)
 		    aInstance.doTransferTo(target)
-	    else:
-		#Dup
-		for target in targets:
-		    guiFactory.report("On target '%s'"%target)
-		    aInstance.doDuplicateTo(target,True)
+
 			
     uiUpdateSourceObjectData(self)
     uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
@@ -104,8 +104,11 @@ def updateLoadAttrs(self):
 	self.loadAttrs.extend(self.SourceObject.transformAttrs)
 	self.loadAttrs.extend(self.SourceObject.userAttrs)
 	self.loadAttrs.extend(self.SourceObject.keyableAttrs)
-
+	
 	self.loadAttrs = lists.returnListNoDuplicates(self.loadAttrs) 
+	
+	print self.loadAttrs
+	
 	if self.loadAttrs:	    
 	    return True
     return False
@@ -227,10 +230,14 @@ def uiSelectActiveAttr(self,attr):
 
     if self.activeAttr.dynamic:
 	self.DeleteAttrButton(e = True, en=True)
-	#Converion Row
-	self.AttrConvertRow(e=True, vis = True)
 	indexAttr = False
-
+	
+	#Converion Row
+	if self.activeAttr.parent or self.activeAttr.children:
+	    self.AttrConvertRow(e=True, vis = False)
+	else:
+	    self.AttrConvertRow(e=True, vis = True)
+	
 	for option in attrTypesDict.keys():
 	    if self.activeAttr.form in attrTypesDict.get(option): 
 		indexAttr = option
@@ -348,23 +355,19 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
     def uiAttrUpdate(item):
 	uiSelectActiveAttr(self,item)
 
-    updateLoadAttrs(self)
-
     menu.clear()
     attrs=[]
     for a in self.loadAttrs:
-	attrs.append(a)
+	if a not in ['attributeAliasList']:
+	    attrs.append(a)
 
     if attrs:
 	attrs.sort()    
-
+	print attrs
 	# Get the attributes list
 	if attrs:
 	    for a in attrs:
-		if a in ['attributeAliasList']:
-		    attrs.remove(a)
-		else:
-		    menu.append(a)
+		menu.append(a)
 	    uiSelectActiveAttr(self,attrs[-1])
 	else:
 	    menu.clear()
@@ -792,13 +795,18 @@ def uiReorderAttributes(self,direction):
 	for attr in attrsToMove:
 	    #Check for parents
 	    bufferDict = attributes.returnAttributeFamilyDict(self.SourceObject.nameLong,attr)
-	    if bufferDict and 'parent' in bufferDict.keys():
-		checkedAttrs.append(bufferDict.get('parent'))
-	    else:
-		checkedAttrs.append(attr)
+	    flagDict = attributes.returnStandardAttrFlags(self.SourceObject.nameLong,attr)
+	    if flagDict.get('dynamic'):
+		if bufferDict and 'parent' in bufferDict.keys():
+		    checkedAttrs.append(bufferDict.get('parent'))
+		else:
+		    checkedAttrs.append(attr)
 	    checkedAttrs = lists.returnListNoDuplicates(checkedAttrs)
-	    
-	attributes.reorderAttributes(self.SourceObject.nameLong,checkedAttrs,direction)
+	
+	if checkedAttrs:    
+	    attributes.reorderAttributes(self.SourceObject.nameLong,checkedAttrs,direction)
+	else:
+	    guiFactory.warning("No dynamic attributes selected")
 
 	uiUpdateSourceObjectData(self)
 
