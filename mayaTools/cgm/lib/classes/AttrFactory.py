@@ -28,6 +28,7 @@
 
 import maya.cmds as mc
 import maya.mel as mel
+import copy
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib import (search,
@@ -129,36 +130,29 @@ class AttrFactory():
         self.nameAlias = False
         if mc.aliasAttr(self.nameCombined,q=True):
             self.nameAlias = mc.aliasAttr(self.nameCombined,q=True)
-        
+            
+        self.get(*a, **kw)
+
         self.enum = False
         self.userAttrs = mc.listAttr(self.obj.nameLong, userDefined = True) or []
+        
+        standardFlagsBuffer = attributes.returnStandardAttrFlags(self.obj.nameLong,self.nameLong)
+        standardDataBuffer = attributes.returnAttributeDataDict(self.obj.nameLong,self.nameLong)
         
         #Check connections
         self.driverAttribute = attributes.returnDriverAttribute(self.nameCombined,False)
         self.drivenAttribute = attributes.returnDrivenAttribute(self.nameCombined,False)
         
-        #Check if dynamic. As best I understand it, it's whether an attribute is user created or not
-        self.dynamic = False        
-        if self.nameLong in self.userAttrs:
-            self.dynamic = True
+        self.numeric = standardFlagsBuffer.get('numeric')
+        self.dynamic = standardFlagsBuffer.get('dynamic')
             
-        self.get(*a, **kw)
+        self.locked = standardFlagsBuffer.get('locked')
+        self.keyable = standardFlagsBuffer.get('keyable')
+        self.hidden = standardFlagsBuffer.get('hidden')
         
-        #Check if numeric
-        self.numeric = True
-        if self.form in ['string','message','enum','bool']:
-            self.numeric = False
-        
-        self.locked = mc.getAttr(self.nameCombined ,lock=True)
-        self.keyable = mc.getAttr(self.nameCombined ,keyable=True)
-        
-        # So, if it's keyable, you have to use one attribute to read correctly, otherwise it's the other...awesome
-        self.hidden = not mc.getAttr(self.nameCombined,channelBox=True)
-        if self.keyable:
-            self.hidden = mc.attributeQuery(self.attr, node = self.obj.nameLong, hidden=True)
+       
             
         #>>> Parent Stuff
-        
         pBuffer = mc.attributeQuery(self.attr, node = self.obj.nameLong, listParent=True)
         if pBuffer is None:
             self.parent = False
@@ -171,68 +165,35 @@ class AttrFactory():
         if self.siblings is None:
             self.siblings = False        
         
-        #>>> Numeric 
-        if self.numeric and self.dynamic and not self.children:
-            #>>> Default, min and max
-            if mc.attributeQuery(self.attr, node = self.obj.nameLong, minExists=True):
-                try:
-                    self.minValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, minimum=True)
-                    if self.minValue is not False:
-                        self.minValue = self.minValue[0]
-                except:
-                    self.minValue = False
-                    guiFactory.warning("'%s.%s' failed to query min value" %(self.obj.nameLong,self.attr))
-
-                    
-            if mc.attributeQuery(self.attr, node = self.obj.nameLong, maxExists=True):
-                try:
-                    self.maxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, maximum=True)
-                    if self.maxValue is not False:
-                        self.maxValue = self.maxValue[0]                    
-                except:
-                    self.maxValue = False
-                    guiFactory.warning("'%s.%s' failed to query max value" %(self.obj.nameLong,self.attr))
-
-                
-            if type(mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True)) is int or float:
-                try:
-                    self.defaultValue = mc.attributeQuery(self.attr, node = self.obj.nameLong, listDefault=True)
-                    if self.defaultValue is not False:
-                        self.defaultValue = self.defaultValue[0]  
-                except:
-                    self.defaultValue = False
-                    guiFactory.warning("'%s.%s' failed to query default value" %(self.obj.nameLong,self.attr))
-
-            #>>> Soft values
-            try:
-                self.softMaxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMax=True)
-                if self.softMaxValue is not False:
-                    self.softMaxValue = self.softMaxValue[0]                  
-            except:
-                self.softMaxValue = False
-            try:
-                self.softMinValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMin=True)
-                if self.softMinValue is not False:
-                    self.softMinValue = self.softMinValue[0]                  
-            except:
-                self.softMinValue = False
-            
-            #>>> Range
-            try:
-                self.rangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, range=True)
-            except:
-                self.rangeValue = False
-                
-            try:
-                self.softRangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softRange=True)
-            except:
-                self.softRangeValue = False
         
-                        
-                        
-                
+        if self.dynamic:
+            self.readable = standardFlagsBuffer.get('readable')
+            self.writable = standardFlagsBuffer.get('writable')
+            self.storable = standardFlagsBuffer.get('storable')
+            self.usedAsColor = standardFlagsBuffer.get('usedAsColor')   
+            
+        #>>> Numeric 
+        if self.numeric:
+            bufferDict = attributes.returnNumericAttrSettingsDict(self.obj.nameLong,self.nameLong)
+            if bufferDict:
+                self.maxValue = bufferDict.get('max')
+                self.minValue = bufferDict.get('min')
+                self.defaultValue = bufferDict.get('default')
+                self.softMaxValue = bufferDict.get('softMax')
+                self.softMinValue = bufferDict.get('softMin')
+                self.rangeValue = bufferDict.get('range')
+                self.softRangeValue = bufferDict.get('softRange')
+            else:
+                self.maxValue = False
+                self.minValue = False
+                self.defaultValue = False
+                self.softMaxValue = False
+                self.softMinValue = False
+                self.rangeValue = False
+                self.softRangeValue = False               
+                           
         if self.form == 'enum':
-            self.enum = mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True, en = True)
+            self.enum = standardFlagsBuffer.get('enum')
                 
     
     def convert(self,attrType):
@@ -242,15 +203,17 @@ class AttrFactory():
         Keyword arguments:
         attrType(string)        
         """
-        keyable = self.keyable
-        hidden = self.hidden
-        locked = self.locked
+        keyable = copy.copy(self.keyable)
+        hidden =  copy.copy(self.hidden)
+        locked =  copy.copy(self.locked)
+        storedNumeric = False
         if self.numeric and not self.children:
-            minimum = self.minValue
-            maximum = self.maxValue
-            default = self.defaultValue
-            softMin = self.softMinValue
-            softMax = self.softMaxValue
+            storedNumeric = True
+            minimum =  copy.copy(self.minValue)
+            maximum =  copy.copy(self.maxValue)
+            default =  copy.copy(self.defaultValue)
+            softMin =  copy.copy(self.softMinValue)
+            softMax =  copy.copy(self.softMaxValue)
         
         attributes.convertAttrType(self.nameCombined,attrType)
         self.updateData()
@@ -260,7 +223,7 @@ class AttrFactory():
         self.doKeyable(keyable)        
         self.doLocked(locked)
 
-        if self.numeric and not self.children:
+        if self.numeric and not self.children and storedNumeric:
             if softMin is not False or int(softMin) !=0 :
                 self.doSoftMin(softMin)
             if softMax is not False or int(softMax) !=0 :
@@ -452,7 +415,7 @@ class AttrFactory():
             if value is False:
                 try:
                     mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasSoftMaxValue = 0)
-                    self.SoftMaxValue = value
+                    self.softMaxValue = value
                     guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameLong,self.attr))                     
                 except:
                     guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameLong,self.attr))  
@@ -460,7 +423,7 @@ class AttrFactory():
             elif value is not None:
                 try:
                     mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,softMaxValue = value)
-                    self.SoftMaxValue = value
+                    self.softMaxValue = value
                 except:
                     guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
                     
@@ -469,7 +432,7 @@ class AttrFactory():
             if value is False:
                 try:
                     mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasSoftMinValue = 0)
-                    self.SoftMinValue = value
+                    self.softMinValue = value
                     guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameLong,self.attr))                     
                 except:
                     guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameLong,self.attr))  
@@ -477,7 +440,7 @@ class AttrFactory():
             elif value is not None:
                 try:
                     mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,softMinValue = value)
-                    self.SoftMinValue = value
+                    self.softMinValue = value
                 except:
                     guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
         
@@ -629,7 +592,7 @@ class AttrFactory():
             except:
                 guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
                 
-    def doCopyTo(self,target,values = True, incomingConnections = True, outgoingConnections = True, keepSourceConnections = True):
+    def doCopyTo(self,target, targetAttrName = None, convertToMatch = True, values = True, incomingConnections = False, outgoingConnections = False, keepSourceConnections = True, copyAttrSettings = True, connectSourceToTarget = False):
         """ 
         Connect to a target
         
@@ -639,7 +602,8 @@ class AttrFactory():
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
         
-        copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections]
+        copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
+        
         if sum(copyTest) < 1:
             guiFactory.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
             return False
@@ -647,27 +611,26 @@ class AttrFactory():
         if '.' in list(target):
             targetBuffer = target.split('.')
             if len(targetBuffer) == 2:
-                #Start by renaming our copy from attr to our target attr name
-                buffer = self.attr
-                self.doRename(targetBuffer[1])
-                tInstance = AttrFactory(targetBuffer[0],targetBuffer[1],self.form)
-                attributes.copyAttrs(self.obj.nameLong,
-                                     tInstance.obj.nameLong,
-                                     [self.nameLong],
-                                     values, incomingConnections,
-                                     outgoingConnections, keepSourceConnections)               
-                self.doRename(buffer)
+                attributes.doCopyAttr(self.obj.nameLong,
+                                      self.nameLong,
+                                      targetBuffer[0],
+                                      targetBuffer[1],
+                                      convertToMatch,
+                                      values, incomingConnections,
+                                      outgoingConnections, keepSourceConnections,
+                                      copyAttrSettings, connectSourceToTarget)               
+
             else:
                 guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
         else:
-            matchAttr = attributes.returnMatchAttrsDict(self.obj.nameLong,target,[self.nameLong])
-            if matchAttr:
-                attributes.copyAttrs(self.obj.nameLong,target,[self.nameLong], values, incomingConnections, outgoingConnections, keepSourceConnections)                
-            else:
-                print "No match attr....duplicated attribute "
-                self.doDuplicateTo(target, False)
-                attributes.copyAttrs(self.obj.nameLong,self.target.obj.nameLong,[self.nameLong], values, incomingConnections, outgoingConnections, keepSourceConnections)                
-        
+            attributes.doCopyAttr(self.obj.nameLong,
+                                  self.nameLong,
+                                  target,
+                                  targetAttrName, convertToMatch,
+                                  values, incomingConnections,
+                                  outgoingConnections, keepSourceConnections,
+                                  copyAttrSettings, connectSourceToTarget)  
+
         
         """except:
             guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))   """         
