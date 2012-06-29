@@ -37,12 +37,12 @@ from cgm.lib import (search,
 reload(attributes)
 reload(guiFactory)
 attrTypesDict = {'message':['message','msg','m'],
-                 'double':['float','fl','f','doubleLinear','doubleAngle','double'],
+                 'double':['float','fl','f','doubleLinear','doubleAngle','double','d'],
                  'string':['string','s','str'],
                  'long':['long','int','i','integer'],
                  'bool':['bool','b','boolean'],
                  'enum':['enum','options','e'],
-                 'double3':['vector','vec','v','double3']}
+                 'double3':['vector','vec','v','double3','d3']}
 
 class AttrFactory():
     """ 
@@ -91,14 +91,12 @@ class AttrFactory():
                     attributes.addStringAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
                 elif self.form == 'long':
                     attributes.addIntegerAttributeToObj(self.obj.nameLong,attrName,*a, **kw) 
-                elif self.form == 'vector':
+                elif self.form == 'double3':
                     attributes.addVectorAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
                 elif self.form == 'enum':
                     attributes.addEnumAttrToObj(self.obj.nameLong,attrName,*a, **kw)
                 elif self.form == 'bool':
                     attributes.addBoolAttrToObject(self.obj.nameLong,attrName,*a, **kw)
-                elif self.form == 'enum':
-                    attributes.addEnumAttrToObj(self.obj.nameLong,attrName,*a, **kw)
                 elif self.form == 'message':
                     attributes.addMessageAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
             except:
@@ -136,8 +134,8 @@ class AttrFactory():
         self.userAttrs = mc.listAttr(self.obj.nameLong, userDefined = True) or []
         
         #Check connections
-        self.driverAttribute = attributes.returnDriverAttribute(self.nameCombined)
-        self.drivenAttribute = attributes.returnDrivenAttribute(self.nameCombined)
+        self.driverAttribute = attributes.returnDriverAttribute(self.nameCombined,False)
+        self.drivenAttribute = attributes.returnDrivenAttribute(self.nameCombined,False)
         
         #Check if dynamic. As best I understand it, it's whether an attribute is user created or not
         self.dynamic = False        
@@ -179,59 +177,56 @@ class AttrFactory():
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, minExists=True):
                 try:
                     self.minValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, minimum=True)
+                    if self.minValue is not False:
+                        self.minValue = self.minValue[0]
                 except:
-                    self.minValue = 'ERROR'
+                    self.minValue = False
                     guiFactory.warning("'%s.%s' failed to query min value" %(self.obj.nameLong,self.attr))
 
                     
             if mc.attributeQuery(self.attr, node = self.obj.nameLong, maxExists=True):
                 try:
                     self.maxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, maximum=True)
-                    #guiFactory.report("'%s.%s' maxValue is %s" %(self.obj.nameLong,self.attr, self.maxValue))
+                    if self.maxValue is not False:
+                        self.maxValue = self.maxValue[0]                    
                 except:
-                    self.maxValue = 'ERROR'
+                    self.maxValue = False
                     guiFactory.warning("'%s.%s' failed to query max value" %(self.obj.nameLong,self.attr))
 
                 
             if type(mc.addAttr((self.obj.nameLong+'.'+self.attr),q=True,defaultValue = True)) is int or float:
                 try:
                     self.defaultValue = mc.attributeQuery(self.attr, node = self.obj.nameLong, listDefault=True)
-                    #guiFactory.report("'%s.%s' defaultValue is %s" %(self.obj.nameLong,self.attr, self.defaultValue))
+                    if self.defaultValue is not False:
+                        self.defaultValue = self.defaultValue[0]  
                 except:
-                    self.defaultValue = 'ERROR'
+                    self.defaultValue = False
                     guiFactory.warning("'%s.%s' failed to query default value" %(self.obj.nameLong,self.attr))
 
             #>>> Soft values
-            if mc.attributeQuery(self.attr, node = self.obj.nameLong, softMaxExists=True):
-                try:
-                    self.softMaxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMaximum=True)
-                    guiFactory.report("'%s.%s' softMaxValue is %s" %(self.obj.nameLong,self.attr, self.softMaxValue))
-                except:
-                    self.softMaxValue = 'ERROR'
-                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
-            if mc.attributeQuery(self.attr, node = self.obj.nameLong, softMinExists=True):
-                try:
-                    self.softMinValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMinimum=True)
-                    guiFactory.report("'%s.%s' softMinValue is %s" %(self.obj.nameLong,self.attr, self.softMinValue))
-                except:
-                    self.softMinValue = 'ERROR'
-                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
+            try:
+                self.softMaxValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMax=True)
+                if self.softMaxValue is not False:
+                    self.softMaxValue = self.softMaxValue[0]                  
+            except:
+                self.softMaxValue = False
+            try:
+                self.softMinValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softMin=True)
+                if self.softMinValue is not False:
+                    self.softMinValue = self.softMinValue[0]                  
+            except:
+                self.softMinValue = False
             
             #>>> Range
-            if mc.attributeQuery(self.attr, node = self.obj.nameLong, rangeExists=True):
-                try:
-                    self.rangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, range=True)
-                    guiFactory.report("'%s.%s' softMinValue is %s" %(self.obj.nameLong,self.attr, self.rangeValue))
-                except:
-                    self.rangeValue = 'ERROR'
-                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
-            if mc.attributeQuery(self.attr, node = self.obj.nameLong, softRangeExists=True):
-                try:
-                    self.softRangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softRange=True)
-                    guiFactory.report("'%s.%s' softMinValue is %s" %(self.obj.nameLong,self.attr, self.rangeValue))
-                except:
-                    self.softRangeValue = 'ERROR'
-                    guiFactory.warning("'%s.%s' failed to query soft max value" %(self.obj.nameLong,self.attr))
+            try:
+                self.rangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, range=True)
+            except:
+                self.rangeValue = False
+                
+            try:
+                self.softRangeValue =  mc.attributeQuery(self.attr, node = self.obj.nameLong, softRange=True)
+            except:
+                self.softRangeValue = False
         
                         
                         
@@ -250,13 +245,33 @@ class AttrFactory():
         keyable = self.keyable
         hidden = self.hidden
         locked = self.locked
+        if self.numeric and not self.children:
+            minimum = self.minValue
+            maximum = self.maxValue
+            default = self.defaultValue
+            softMin = self.softMinValue
+            softMax = self.softMaxValue
+        
         attributes.convertAttrType(self.nameCombined,attrType)
         self.updateData()
         
+        #>>> Reset variables
         self.doHidden(hidden)
         self.doKeyable(keyable)        
         self.doLocked(locked)
-        
+
+        if self.numeric and not self.children:
+            if softMin is not False or int(softMin) !=0 :
+                self.doSoftMin(softMin)
+            if softMax is not False or int(softMax) !=0 :
+                self.doSoftMax(softMax)            
+            if minimum is not False:
+                self.doMin(minimum)
+            if maximum is not False:
+                self.doMax(maximum)
+            if default is not False:
+                self.doDefault(default)
+            
         guiFactory.warning("'%s.%s' converted to '%s'"%(self.obj.nameLong,self.attr,attrType))
             
         """except:
@@ -388,47 +403,84 @@ class AttrFactory():
     # Set Options
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
     def doDefault(self,value = None):
-        if value is not None:
-            try:
-                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,defaultValue = value)
-                self.defaultValue = value
-            except:
-                guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))       
+        if self.numeric and not self.children: 
+            if value is not None:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,defaultValue = value)
+                    self.defaultValue = value
+                except:
+                    guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))       
                 
     def doMax(self,value = None):
-        if value is False:
-            try:
-                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMaxValue = value)
-                self.maxValue = value
-                guiFactory.warning("'%s.%s' had it's max value cleared"%(self.obj.nameLong,self.attr))                     
-            except:
-                guiFactory.warning("'%s.%s' failed to clear a max value"%(self.obj.nameLong,self.attr))  
-        
-        elif value is not None:
-            try:
-                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,maxValue = value)
-                self.maxValue = value
-            except:
-                guiFactory.warning("'%s.%s' failed to set a max value"%(self.obj.nameLong,self.attr))
+        if self.numeric and not self.children: 
+            if value is False:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMaxValue = value)
+                    self.maxValue = value
+                    guiFactory.warning("'%s.%s' had it's max value cleared"%(self.obj.nameLong,self.attr))                     
+                except:
+                    guiFactory.warning("'%s.%s' failed to clear a max value"%(self.obj.nameLong,self.attr))  
+            
+            elif value is not None:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,maxValue = value)
+                    self.maxValue = value
+                except:
+                    guiFactory.warning("'%s.%s' failed to set a max value"%(self.obj.nameLong,self.attr))
                 
                 
     def doMin(self,value = None):
-        if value is False:
-            try:
-                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMinValue = value)
-                self.minValue = value
-                guiFactory.warning("'%s.%s' had it's min value cleared"%(self.obj.nameLong,self.attr))                     
-            except:
-                guiFactory.warning("'%s.%s' failed to clear a min value"%(self.obj.nameLong,self.attr))
+        if self.numeric and not self.children: 
+            if value is False:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMinValue = value)
+                    self.minValue = value
+                    guiFactory.warning("'%s.%s' had it's min value cleared"%(self.obj.nameLong,self.attr))                     
+                except:
+                    guiFactory.warning("'%s.%s' failed to clear a min value"%(self.obj.nameLong,self.attr))
+            
+            
+            elif value is not None:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,minValue = value)
+                    self.minValue = value
+                except:
+                    guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))
+                    
+    def doSoftMax(self,value = None):
+        if self.numeric and not self.children: 
+            if value is False:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasSoftMaxValue = 0)
+                    self.SoftMaxValue = value
+                    guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameLong,self.attr))                     
+                except:
+                    guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameLong,self.attr))  
+            
+            elif value is not None:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,softMaxValue = value)
+                    self.SoftMaxValue = value
+                except:
+                    guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
+                    
+    def doSoftMin(self,value = None):
+        if self.numeric and not self.children: 
+            if value is False:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasSoftMinValue = 0)
+                    self.SoftMinValue = value
+                    guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameLong,self.attr))                     
+                except:
+                    guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameLong,self.attr))  
+            
+            elif value is not None:
+                try:
+                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,softMinValue = value)
+                    self.SoftMinValue = value
+                except:
+                    guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
         
-        
-        elif value is not None:
-            try:
-                mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,minValue = value)
-                self.minValue = value
-            except:
-                guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))
-    
     def doLocked(self,arg = True):
         if arg:
             if not self.locked:
@@ -585,6 +637,8 @@ class AttrFactory():
         *a, **kw
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
+        assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
+        
         copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections]
         if sum(copyTest) < 1:
             guiFactory.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
