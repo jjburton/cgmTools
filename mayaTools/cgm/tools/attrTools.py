@@ -47,7 +47,7 @@ class attrToolsClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'attrTools'
 	WINDOW_TITLE = 'cgm.attrTools'
-	DEFAULT_SIZE = 350, 400
+	DEFAULT_SIZE = 400, 350
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -123,6 +123,7 @@ class attrToolsClass(BaseMelWindow):
 		
 		self.TransferKeepSourceOptionVar = OptionVarFactory('cgmVar_AttributeTransferKeepSourceState', defaultValue = 1)
 		guiFactory.appendOptionVarList(self,self.TransferKeepSourceOptionVar.name)	
+			
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
@@ -232,25 +233,25 @@ class attrToolsClass(BaseMelWindow):
 		
 		#>>> modify Section
 		self.buildAttrTypeRow(self.containerName)
-		MelSeparator(self.containerName,ut = 'cgmUIHeaderTemplate',h=3)
+		MelSeparator(self.containerName,ut = 'cgmUIHeaderTemplate',h=2)
 		MelSeparator(self.containerName,ut = 'cgmUITemplate',h=10)
 		
 		###Modify
 		mc.setParent(self.containerName)
 		guiFactory.header('Modify')
-		guiFactory.lineSubBreak()
-		AttrReportRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate')
+
+		
+		AttrReportRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate',h=20)
 		self.AttrReportField = MelLabel(AttrReportRow,
 		                                bgc = dictionary.returnStateColor('help'),
 		                                align = 'center',
 		                                label = '...',
 		                                h=20)
-	
 		AttrReportRow.layout()
-		MelSeparator(self.containerName,ut = 'cgmUISubTemplate',h=2)
+			
+		MelSeparator(self.containerName,ut = 'cgmUISubTemplate',h=5)
 		
 		#>>> Load To Field
-	
 		LoadAttributeObjectRow = MelHSingleStretchLayout(self.containerName ,ut='cgmUISubTemplate',padding = 5)
 	
 		MelSpacer(LoadAttributeObjectRow,w=5)
@@ -322,32 +323,55 @@ class attrToolsClass(BaseMelWindow):
 		                    ])
 		
 		#>>> Int Row
-		self.EditDigitSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
-		MinLabel = MelLabel(self.EditDigitSettingsRow,label = 'Min: ')
+		#self.EditDigitSettingsRow = MelFormLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
+		self.EditDigitSettingsRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',vis = False)
+		
+		MinLabel = MelLabel(self.EditDigitSettingsRow,label = 'Min:')
 		self.MinField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateMinValue(self),
-		                             h = 20, w = 70)
-		MaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'Max: ')		
+		                             h = 20, w = 40)
+		
+		MaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'Max:')		
 		self.MaxField = MelTextField(self.EditDigitSettingsRow,
 		                             bgc = dictionary.returnStateColor('normal'),
 		                             ec = lambda *a: attrToolsLib.uiUpdateMaxValue(self),	
-		                             h = 20, w = 70)
-		DefaultLabel = MelLabel(self.EditDigitSettingsRow,label = 'Default: ')		
+		                             h = 20, w = 40)
+		
+		DefaultLabel = MelLabel(self.EditDigitSettingsRow,label = 'dv:')		
 		self.DefaultField = MelTextField(self.EditDigitSettingsRow,
 		                                 bgc = dictionary.returnStateColor('normal'),
 		                                 ec = lambda *a: attrToolsLib.uiUpdateDefaultValue(self),	
-		                                 h = 20, w = 70)
+		                                 h = 20, w = 40)
+		SoftMinLabel = MelLabel(self.EditDigitSettingsRow,label = 'sMin:')				
+		self.SoftMinField = MelTextField(self.EditDigitSettingsRow,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: attrToolsLib.uiUpdateSoftMinValue(self),	
+		                                 h = 20, w = 40)
 		
-		mc.formLayout(self.EditDigitSettingsRow, edit = True,
+		SoftMaxLabel = MelLabel(self.EditDigitSettingsRow,label = 'sMax:')				
+		self.SoftMaxField = MelTextField(self.EditDigitSettingsRow,
+		                                 bgc = dictionary.returnStateColor('normal'),
+		                                 ec = lambda *a: attrToolsLib.uiUpdateSoftMaxValue(self),	
+		                                 h = 20, w = 40)
+		
+
+		self.EditDigitSettingsRow.layout()
+		
+		"""mc.formLayout(self.EditDigitSettingsRow, edit = True,
 	                  af = [(MinLabel, "left", 20),
-	                        (self.DefaultField,"right",20)],
+	                        (self.SoftMinField,"right",20)],
 	                  ac = [(self.MinField,"left",2,MinLabel),
 	                        (MaxLabel,"left",2,self.MinField),
 	                        (self.MaxField,"left",2,MaxLabel),
 	                        (DefaultLabel,"left",2,self.MaxField),
 		                    (self.DefaultField,"left",2,DefaultLabel),
-		                    ])
+		                    (SoftMaxLabel,"left",2,self.DefaultField),
+		                    (self.SoftMaxField,"left",2,SoftMaxLabel),
+		                    (SoftMinLabel,"left",2,self.SoftMaxField),		                    		                    
+		                    (self.SoftMinField,"left",2,SoftMinLabel)		                    
+		                    ])"""
+		
 		#>>> Enum
 		self.EditEnumRow = MelHSingleStretchLayout(self.containerName,ut='cgmUISubTemplate',padding = 5, vis = False)
 		MelSpacer(self.EditEnumRow,w=10)
@@ -396,12 +420,24 @@ class attrToolsClass(BaseMelWindow):
 		self.buildAttrConversionRow(self.containerName)
 		self.AttrConvertRow(e=True, vis = False)
 		
+
+
+		#>>> Connect Report
+		self.ConnectionReportRow = MelHLayout(self.containerName ,ut='cgmUIInstructionsTemplate',h=20)
+		self.ConnectionReportField = MelLabel(self.ConnectionReportRow,vis=False,
+		                                bgc = dictionary.returnStateColor('help'),
+		                                align = 'center',
+		                                label = '...',
+		                                h=20)	
+		self.ConnectionReportRow.layout()	
+		
+		self.ConnectedPopUpMenu = MelPopupMenu(self.ConnectionReportRow,button = 3)
+		
+		MelSeparator(self.containerName,ut = 'cgmUIHeaderTemplate',h=2)
+		
 		mc.setParent(self.containerName )
-		guiFactory.lineSubBreak()
 		guiFactory.lineBreak()
-
-
-			
+		
 		return self.containerName
 	
 	def buildAttrTypeRow(self,parent):	
@@ -502,7 +538,7 @@ class attrToolsClass(BaseMelWindow):
 		
 		TransferModeFlagsRow = MelHSingleStretchLayout(self.ManageForm,padding = 2)	
 		Spacer = MelSpacer(TransferModeFlagsRow,w=10)						
-		self.TransferModeOptions = ['Connect','Copy','Transfer','Duplicate']
+		self.TransferModeOptions = ['Connect','Copy','Transfer','Duplicate(connectToSource)']
 		for i,item in enumerate(self.TransferModeOptions):
 			self.TransferModeCollectionChoices.append(self.TransferModeCollection.createButton(TransferModeFlagsRow,label=item,
 			                                                                             onCommand = Callback(self.CopyAttrModeOptionVar.set,i)))
@@ -546,20 +582,7 @@ class attrToolsClass(BaseMelWindow):
 		
 		TransferOptionsFlagsRow.layout()	
 
-		"""
-		self.TransferValueOptionVar = OptionVarFactory('cgmVar_AttributeTransferValueState', defaultValue = 1)
-		guiFactory.appendOptionVarList(self,self.TransferValueOptionVar.name)	
-		
-		self.TransferIncomingOptionVar = OptionVarFactory('cgmVar_AttributeTransferInConnectionState', defaultValue = 1)
-		guiFactory.appendOptionVarList(self,self.TransferIncomingOptionVar.name)		
-		
-		self.TransferOutgoingOptionVar = OptionVarFactory('cgmVar_AttributeTransferOutConnectionState', defaultValue = 1)
-		guiFactory.appendOptionVarList(self,self.TransferOutgoingOptionVar.name)	
-		
-		self.TransferKeepSourceOptionVar = OptionVarFactory('cgmVar_AttributeTransferKeepSourceState', defaultValue = 1)
-		guiFactory.appendOptionVarList(self,self.TransferKeepSourceOptionVar.name)			
-		"""
-		
+
 		BottomButtonRow = guiFactory.doButton2(self.ManageForm,
 		                                       'Transfer',
 		                                       lambda *a: attrToolsLib.uiTransferAttributes(self),
@@ -648,7 +671,6 @@ class attrToolsClass(BaseMelWindow):
 		guiFactory.doButton2(AttributeUtilityRow1,'cgmName to Float',
 			                 lambda *a:tdToolsLib.doCGMNameToFloat(),
 			                 'Makes an animatalbe float attribute using the cgmName tag')
-	
 	
 		mc.setParent(self.containerName)
 		guiFactory.lineSubBreak()

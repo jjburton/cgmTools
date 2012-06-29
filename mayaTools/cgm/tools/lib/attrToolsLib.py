@@ -28,6 +28,7 @@ reload(ObjectFactory)
 
 from cgm.lib.classes.AttrFactory import *
 from cgm.lib.classes.ObjectFactory import *
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.lib import (guiFactory,
                      dictionary,
@@ -53,7 +54,8 @@ def uiTransferAttributes(self):
     if not self.SourceObject:
 	return guiFactory.warning("No source")
     if not attrs:
-	return guiFactory.warning("No selected attrs")
+	guiFactory.warning("No selected attrs.Doing all loaded!")
+	attrs = self.loadAttrs
     if not targets:
 	return guiFactory.warning("No selected targets")
 
@@ -63,12 +65,10 @@ def uiTransferAttributes(self):
 	    if self.CopyAttrModeOptionVar.value == 0:
 		#Connect mode
 		for target in targets:
-		    guiFactory.report("On target '%s'"%target)
 		    aInstance.doConnectOut(target)
 	    elif self.CopyAttrModeOptionVar.value == 1:
 		#Copy mode
 		for target in targets:
-		    guiFactory.report("On target '%s'"%target)
 		    aInstance.doCopyTo(target,self.TransferValueOptionVar.value,
 		                       self.TransferIncomingOptionVar.value,
 		                       self.TransferOutgoingOptionVar.value,
@@ -83,7 +83,7 @@ def uiTransferAttributes(self):
 		#Dup
 		for target in targets:
 		    guiFactory.report("On target '%s'"%target)
-		    aInstance.doDuplicateTo(target,self.TransferKeepSourceOptionVar.value)
+		    aInstance.doDuplicateTo(target,True)
 			
     uiUpdateSourceObjectData(self)
     uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu)
@@ -278,26 +278,35 @@ def uiSelectActiveAttr(self,attr):
 
 
     #>>> Numbers
-    if self.activeAttr.form in ['long','float','double','doubleLinear','doubleAngle'] and self.activeAttr.dynamic:
+    if self.activeAttr.numeric and self.activeAttr.dynamic:
 	self.EditDigitSettingsRow(edit = True, vis = True)
 	minBuffer = self.activeAttr.minValue
 	maxBuffer = self.activeAttr.maxValue
 	defaultValue = self.activeAttr.defaultValue
-	if minBuffer is not False:
-	    self.MinField(e=True, text = str(minBuffer))
+	if self.activeAttr.minValue is not False:
+	    self.MinField(e=True, text = str(self.activeAttr.minValue))
 	else:
 	    self.MinField(e=True, text = '')
 
-	if maxBuffer is not False:
-	    self.MaxField(e=True, text = str(maxBuffer))
+	if self.activeAttr.maxValue is not False:
+	    self.MaxField(e=True, text = str(self.activeAttr.maxValue))
 	else:
 	    self.MaxField(e=True, text = '')
 
-	if defaultValue is not False:
-	    self.DefaultField(e=True, text = str(defaultValue))
+	if self.activeAttr.defaultValue is not False:
+	    self.DefaultField(e=True, text = str(self.activeAttr.defaultValue))
 	else:
 	    self.DefaultField(e=True, text = '')
+	    
+	if self.activeAttr.softMinValue is not False:
+	    self.SoftMinField(e=True, text = str(self.activeAttr.softMinValue))
+	else:
+	    self.SoftMinField(e=True, text = '')
 
+	if self.activeAttr.softMaxValue is not False:
+	    self.SoftMaxField(e=True, text = str(self.activeAttr.softMaxValue))
+	else:
+	    self.SoftMaxField(e=True, text = '')
     else:
 	self.EditDigitSettingsRow(edit = True, vis = False)
 
@@ -473,18 +482,37 @@ def uiUpdateAttrReport(self):
     Updates the attr report for the modify section
     """     
     buildReport = []
+    connectReport = []
+    self.ConnectedPopUpMenu.clear()
+    
     if self.activeAttr:
+	#>>> Connect Report
+	if self.activeAttr.driverAttribute and self.activeAttr.form != 'message':
+	    connectReport.append("'%s'>>Drives Me"%self.activeAttr.driverAttribute)
+	    MelMenuItem(self.ConnectedPopUpMenu ,
+		    label = 'Select Driver',
+		    c = lambda *a: mc.select(self.activeAttr.driverAttribute ))
+	    
+	if self.activeAttr.drivenAttribute:
+	    connectReport.append("Drives>>'%s'"%"','".join(self.activeAttr.drivenAttribute))
+	    MelMenuItem(self.ConnectedPopUpMenu ,
+		    label = 'Select Driven',
+	            c = lambda *a: mc.select(self.activeAttr.drivenAttribute ))
+	if connectReport:
+	    self.ConnectionReportRow(e = True, vis = True)
+	    self.ConnectionReportField(edit = True, label = ' | '.join(connectReport),vis=True)
+	    
+	    
+	else:
+	    self.ConnectionReportRow(e = True, vis = False)
+	    self.ConnectionReportField(edit = True, label = '')	  
+	    
+	#>>> Other report
 	if self.activeAttr.parent:
 	    buildReport.append("Parent='%s'"%self.activeAttr.parent)
 	if self.activeAttr.children:
 	    buildReport.append("Children='%s'"%(',').join(self.activeAttr.children))
 	    
-	if self.activeAttr.driverAttribute and self.activeAttr.form != 'message':
-	    buildReport.append("'%s'>>Drives Me"%self.activeAttr.driverAttribute)
-
-	if self.activeAttr.drivenAttribute:
-	    buildReport.append("Drives>>'%s'"%self.activeAttr.drivenAttribute)
-
 	if self.activeAttr.numeric and self.activeAttr.children is False:
 	    if len(list(str(self.activeAttr.value))) > 4 and type(self.activeAttr.value) is float:
 		buildReport.append("Value=%f"%self.activeAttr.value)        
@@ -496,8 +524,12 @@ def uiUpdateAttrReport(self):
 	elif self.activeAttr.children is False:
 	    buildReport.append("Value=%s"%self.activeAttr.value)
 
-
-	self.AttrReportField(edit = True, label = ' | '.join(buildReport))
+	if buildReport:
+	    self.AttrReportField(edit = True, label = ' | '.join(buildReport))
+	
+  
+	
+	
 
 def uiUpdateCheckBox(self, commandAttr, valueAttr):   
     """ 
@@ -675,8 +707,48 @@ def uiUpdateDefaultValue(self):
 	else:
 	    self.activeAttr.doDefault(False)
 
-	uiSelectActiveAttr(self,self.activeAttr.attr)   
+	uiSelectActiveAttr(self,self.activeAttr.attr) 
+	
+def uiUpdateSoftMaxValue(self):  
+    """ 
+    Sets min value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.SoftMaxField(q=True,text=True)
+    if self.activeAttr:
+	if type(varCheck)is unicode and len(varCheck) < 1:
+	    self.activeAttr.doSoftMax(0)             
+	elif type(varCheck) is float or int:
+	    try:
+		self.activeAttr.doSoftMax(float(varCheck))
+	    except:
+		guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
 
+	else:
+	    self.activeAttr.doSoftMax(False)
+
+	uiSelectActiveAttr(self,self.activeAttr.attr)
+	
+def uiUpdateSoftMinValue(self):  
+    """ 
+    Sets min value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    varCheck = self.SoftMinField(q=True,text=True)
+    if self.activeAttr:
+	if type(varCheck)is unicode and len(varCheck) < 1:
+	    self.activeAttr.doSoftMin(0)             
+	elif type(varCheck) is float or int:
+	    try:
+		self.activeAttr.doSoftMin(float(varCheck))
+	    except:
+		guiFactory.report("'%s.%s' failed to set min. Probably not a dynamic attribute" %(self.activeAttr.obj.nameLong,self.activeAttr.attr))
+
+	else:
+	    self.activeAttr.doSoftMin(False)
+
+	uiSelectActiveAttr(self,self.activeAttr.attr)
+	
 def uiDeleteAttr(self,menu):
     """ 
     Deletes a loaded attr in the modify menu
