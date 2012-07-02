@@ -631,7 +631,7 @@ class attrToolsClass(BaseMelWindow):
 
 
 		BottomButtonRow = guiFactory.doButton2(self.ManageForm,
-		                                       'Transfer',
+		                                       'Connect/Copy/Transfer',
 		                                       lambda *a: attrToolsLib.uiTransferAttributes(self),
 		                                       'Create new buffer from selected buffer')	
 
