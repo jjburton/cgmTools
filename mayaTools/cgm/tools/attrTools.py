@@ -133,6 +133,9 @@ class attrToolsClass(BaseMelWindow):
 		self.TransferDriveSourceStateOptionVar = OptionVarFactory('cgmVar_AttributeTransferConnectToSourceState', defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.TransferDriveSourceStateOptionVar.name)	
 		
+		self.CreateAttrTypeOptionVar = OptionVarFactory('cgmVar_AttrCreateType',defaultValue='')
+		guiFactory.appendOptionVarList(self,self.CreateAttrTypeOptionVar.name)		
+		
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -177,7 +180,7 @@ class attrToolsClass(BaseMelWindow):
 		guiFactory.lineBreak()
 		mc.text(label='Version: %s' % self.version)
 		mc.text(label='')
-		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.cgmonks.com")')
+		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/attrtools/")')
 		guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
 		mc.setParent( '..' )
 		mc.showWindow( window )
@@ -243,6 +246,7 @@ class attrToolsClass(BaseMelWindow):
 
 		MelLabel(attrCreateRow,l='Names:',align='right')
 		self.AttrNamesTextField = MelTextField(attrCreateRow,backgroundColor = [1,1,1],h=20,
+		                                       ec = lambda *a: attrToolsLib.doAddAttributesToSelected(self),
 		                                       annotation = "Names for the attributes. Create multiple with a ';'. \n Message nodes try to connect to the last object in a selection \n For example: 'Test1;Test2;Test3'")
 		guiFactory.doButton2(attrCreateRow,'Add',
 		                     lambda *a: attrToolsLib.doAddAttributesToSelected(self),
@@ -469,24 +473,21 @@ class attrToolsClass(BaseMelWindow):
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		# Attr type row
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-		attrTypes = ['string','float','int','vector','bool','enum','message']
+		self.attrTypes = ['string','float','int','double3','bool','enum','message']
 		attrShortTypes = ['str','float','int','[000]','bool','enum','msg']
 
 		self.CreateAttrTypeRadioCollection = MelRadioCollection()
 		self.CreateAttrTypeRadioCollectionChoices = []		
-		
-		self.CreateAttrTypeOptionVar = OptionVarFactory('cgmVar_AttrCreateType','string')
-		guiFactory.appendOptionVarList(self,self.CreateAttrTypeOptionVar.name)
 			
 		#build our sub section options
 		AttrTypeRow = MelHLayout(self.containerName,ut='cgmUISubTemplate',padding = 5)
-		for cnt,item in enumerate(attrTypes):
+		for cnt,item in enumerate(self.attrTypes):
 			self.CreateAttrTypeRadioCollectionChoices.append(self.CreateAttrTypeRadioCollection.createButton(AttrTypeRow,label=attrShortTypes[cnt],
 			                                                                                                 onCommand = Callback(self.CreateAttrTypeOptionVar.set,item)))
 			MelSpacer(AttrTypeRow,w=2)
 		
-		if self.CreateAttrTypeOptionVar.value != '':
-			mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ attrTypes.index(self.CreateAttrTypeOptionVar.value) ]))
+		if self.CreateAttrTypeOptionVar.value:
+			mc.radioCollection(self.CreateAttrTypeRadioCollection ,edit=True,sl= (self.CreateAttrTypeRadioCollectionChoices[ self.attrTypes.index(self.CreateAttrTypeOptionVar.value) ]))
 		
 		AttrTypeRow.layout()
 		
