@@ -107,7 +107,6 @@ def updateLoadAttrs(self):
 	
 	self.loadAttrs = lists.returnListNoDuplicates(self.loadAttrs) 
 	
-	print self.loadAttrs
 	
 	if self.loadAttrs:	    
 	    return True
@@ -381,7 +380,6 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
 
     if attrs:
 	attrs.sort()    
-	print attrs
 	# Get the attributes list
 	if attrs:
 	    for a in attrs:
