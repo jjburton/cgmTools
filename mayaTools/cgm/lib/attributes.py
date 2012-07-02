@@ -158,18 +158,20 @@ def returnStandardAttrFlags(obj,attr):
                 'keyable':mc.getAttr(nameCombined ,keyable=True)}
 
     # So, if it's keyable, you have to use one attribute to read correctly, otherwise it's the other...awesome
-    hidden = not mc.getAttr(nameCombined,channelBox=True)
-    if dataDict.get('keyable'):
-        hidden = mc.attributeQuery(attr, node = obj, hidden=True)
-    dataDict['hidden'] = hidden
-
     dynamic = True
     if attr not in objAttrs:
         dynamic = False
     dataDict['dynamic'] = dynamic
+    
+    
+    hidden = not mc.getAttr(nameCombined,channelBox=True)
+    
+    if dataDict.get('keyable'):
+        hidden = mc.attributeQuery(attr, node = obj, hidden=True)
+    dataDict['hidden'] = hidden
 
     enumData = False
-    if dataDict.get('type') == 'enum':
+    if dataDict.get('type') == 'enum' and dynamic == True:
         dataDict['enum'] = mc.addAttr(nameCombined,q=True, en = True)
     
     numeric = True
@@ -663,7 +665,7 @@ def doRenameAttr(obj,oldAttrName,newAttrName,forceLock = False):
         newBuffer = '%s.%s'%(obj,newAttrName)
         mc.setAttr(newBuffer,lock=True)
           
-def convertAttrType(targetAttrName,attrType):
+def doConvertAttrType(targetAttrName,attrType):
     """ 
     Attempts to convert an existing attrType from one type to another. 
     Enum's are stored to strings as 'option1;option2'.
