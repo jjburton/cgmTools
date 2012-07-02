@@ -78,7 +78,7 @@ def uiTransferAttributes(self):
 		                       outgoingConnections = self.TransferOutgoingOptionVar.value,
 		                       keepSourceConnections = self.TransferKeepSourceOptionVar.value)
 
-	    else:
+	    elif self.CopyAttrModeOptionVar.value == 2:
 		#Transfer
 		for target in targets:
 		    guiFactory.report("On target '%s'"%target)
@@ -354,7 +354,7 @@ def uiSelectActiveAttr(self,attr):
 
 
     #>>> Enum
-    if self.activeAttr.form  == 'enum': 
+    if self.activeAttr.form  == 'enum' and self.activeAttr.dynamic: 
 	self.EditEnumRow(e=True, vis = True)
 	self.EnumField(edit = True,enable = True, text = self.activeAttr.enum,
 	               cc = lambda *a:uiUpdateEnum(self))
@@ -572,7 +572,7 @@ def uiConvertLoadedAttr(self,mode,Active = True):
     """     
     #>>> Variables
     if self.activeAttr and self.ConvertAttrTypeOptionVar.value:
-	self.activeAttr.convert(mode)
+	self.activeAttr.doConvert(mode)
 	uiSelectActiveAttr(self,self.activeAttr.attr) 
 
 def uiRenameAttr(self):   

@@ -77,7 +77,7 @@ class AttrFactory():
             currentType = mc.getAttr('%s.%s'%(self.obj.nameLong,attrName),type=True)
             if attrType != currentType and self.form is not False:
                 self.updateData(*a, **kw)                
-                self.convert(attrType)
+                self.doConvert(attrType)
                 self.updateData(*a, **kw)
                 
             else:
@@ -196,7 +196,7 @@ class AttrFactory():
             self.enum = standardFlagsBuffer.get('enum')
                 
     
-    def convert(self,attrType):
+    def doConvert(self,attrType):
         """ 
         Converts an attribute type from one to another while preserving as much data as possible.
         
@@ -217,7 +217,7 @@ class AttrFactory():
             softMin =  copy.copy(self.softMinValue)
             softMax =  copy.copy(self.softMaxValue)
         
-        attributes.convertAttrType(self.nameCombined,attrType)
+        attributes.doConvertAttrType(self.nameCombined,attrType)
         self.updateData()
         
         #>>> Reset variables
@@ -333,6 +333,7 @@ class AttrFactory():
         try:
             if self.form == 'enum':
                 mc.addAttr ((self.obj.nameLong+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
+                self.enum = enumCommand
                 guiFactory.report("'%s.%s' has been updated!"%(self.obj.nameLong,self.attr))
                 
             else:
@@ -355,7 +356,7 @@ class AttrFactory():
             if self.form == 'message':
                 self.obj.store(self.attr,infoToStore)
             elif convertIfNecessary:
-                self.convert('message')
+                self.doConvert('message')
                 self.updateData()
                 self.obj.store(self.attr,infoToStore)                
             
@@ -836,7 +837,7 @@ class AttrFactory():
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target        
         assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
         assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
-                
+        assert self.dynamic is True,"'%s' is not a dynamic attribute."%self.nameCombined
         #mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
         attributes.doCopyAttr(self.obj.nameLong,
                               self.nameLong,
