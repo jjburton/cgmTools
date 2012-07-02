@@ -37,10 +37,43 @@ attrTypesDict = {'message':['message','msg'],
                  'double3':['vector','vec','v','double3','d3'],
                  'multi':['multi','m']}
 
-                 
+attrCompatibilityDict = {'message':['message'],
+                         'double':['float','doubleLinear','doubleAngle','double'],
+                         'string':['string'],
+                         'long':['long','integer'],
+                         'bool':['bool',],
+                         'enum':['enum'],
+                         'double3':['vector','double3'],
+                         'multi':['multi']}
+
+
 dataConversionDict = {'long':int,
                       'string':str,
                       'double':float}   
+
+def returnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
+    """ 
+    Returns compatible attributes
+    
+    Keyword arguments:
+    attrType1(string)  
+    attrType1(string)  
+    """
+    assert mc.objExists('%s.%s'%(sourceObj,sourceAttr)) is True,"'%s.%s' doesn't exist."%(sourceObj,sourceAttr)
+    assert mc.objExists(target) is True,"'%s' doesn't exist."%(target)
+    
+    sourceType = validateRequestedAttrType( mc.getAttr((sourceObj+'.'+sourceAttr),type=True) )
+    if sourceType:
+        returnBuffer = []
+        bufferDict = returnObjectsAttributeByTypeDict(target,attrTypesDict.get(sourceType),*a, **kw) or {}
+        for key in bufferDict.keys():
+            returnBuffer.extend(bufferDict.get(key))
+        if returnBuffer:    
+            return returnBuffer
+    return False
+    
+
+
 
 def validateRequestedAttrType(attrType):
     """ 
@@ -263,7 +296,7 @@ def returnAttributeDataDict(obj,attr,value = True,incoming = True, outGoing = Tr
         
     return returnDict
 
-def returnAttributeFamilyDict(obj,attr):
+def returnAttrFamilyDict(obj,attr):
     """ 
     Returns a diciontary of parent,children,sibling of an attribute or False if nothing found   
     
@@ -809,6 +842,15 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     sourceKeyable = sourceFlags.get('keyable')
     sourceHidden = sourceFlags.get('hidden')
     sourceDynamic = sourceFlags.get('dynamic')
+    sourceNumeric = sourceFlags.get('numeric')
+    if sourceNumeric:
+        sourceNumericFlags = returnNumericAttrSettingsDict(fromObject,fromAttr)
+        sourceDefault = sourceNumericFlags.get('default')
+        sourceMax = sourceNumericFlags.get('max')
+        sourceMin = sourceNumericFlags.get('min')
+        sourceSoftMax = sourceNumericFlags.get('softMax')
+        sourceSoftMin = sourceNumericFlags.get('softMin')
+        
     sourceEnum = False
     if sourceType == 'enum':
         sourceEnum = sourceFlags.get('enum')
@@ -919,6 +961,17 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     if copyAttrSettings:
         if sourceEnum:
             mc.addAttr (('%s.%s'%(toObject,toAttr)), e = True, at=  'enum', en = sourceEnum)
+        if sourceNumeric and sourceNumericFlags:
+            if sourceDefault:
+                mc.addAttr((toObject+'.'+toAttr),e=True,dv = sourceDefault)
+            if sourceMax:
+                mc.addAttr((toObject+'.'+toAttr),e=True,maxValue = sourceMax)                
+            if sourceMin:
+                mc.addAttr((toObject+'.'+toAttr),e=True,minValue = sourceMin)                
+            if sourceSoftMax:
+                mc.addAttr((toObject+'.'+toAttr),e=True,softMaxValue = sourceSoftMax)                
+            if sourceSoftMin:
+                mc.addAttr((toObject+'.'+toAttr),e=True,softMinValue = sourceSoftMin)                
             
         mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,channelBox = not sourceHidden)
         mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,keyable = sourceKeyable)
@@ -1510,7 +1563,49 @@ def returnObjectsAttributeTypes(obj,*a, **kw ):
         return attrDict
     else:
         return False
+    
+def returnObjectsAttributeByTypeDict(obj,typeCheck = [],*a, **kw ):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Pass an object into it with  it will return a dictionary of attribute names by type keys
 
+    ARGUMENTS:
+    obj(string) - obj with attrs
+    typeCheck(list) == list of attribute types to look for. default [] will query all
+    any arguments for the mc.listAttr command
+
+    RETURNS:
+    attrDict(Dictionary) - dictionary in terms of {[type : attr1,attr2],[etc][etc]}
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    assert mc.objExists(obj) is True, "'%s' doesn't exist"%obj
+    
+    attrs =(mc.listAttr (obj,*a, **kw ))
+    typeDict = {}    
+    if typeCheck:
+        for check in typeCheck:
+            typeDict[check] = []
+        
+    if not attrs == None:   
+        for attr in attrs:
+            try:               
+                typeBuffer = mc.getAttr((obj+'.'+attr),type=True) or None
+                if typeCheck:
+                    if typeBuffer and typeBuffer in typeDict.keys():
+                        typeDict[typeBuffer].append(attr)
+                else:
+                    if typeBuffer and typeBuffer in typeDict.keys():
+                        typeDict[typeBuffer].append(attr)
+                    elif typeBuffer:
+                        typeDict[typeBuffer] = [attr]                    
+            except:
+                pass
+    if typeDict: 
+        for key in typeDict.keys():
+            if typeDict.get(key):
+                return typeDict
+    return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def returnUserAttributes(obj):
