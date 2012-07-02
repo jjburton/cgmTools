@@ -537,23 +537,16 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
         if mc.getAttr(toAttr,lock=True) == True:
             wasLocked = True
             mc.setAttr(toAttr,lock=False)
-            bufferConnection = returnDriverAttribute(toAttr)
-            breakConnection(toAttr)
-            mc.connectAttr(fromAttr,toAttr)
-        else:
-            bufferConnection = returnDriverAttribute(toAttr)
-            breakConnection(toAttr)
-            mc.connectAttr(fromAttr,toAttr)
-
-    if bufferConnection:
-        mc.connectAttr(bufferConnection,fromAttr)        
-        
-    if wasLocked == True or forceLock == True:
-        mc.setAttr(toAttr,lock=True)
+        bufferConnection = returnDriverAttribute(toAttr)
+        breakConnection(toAttr)
+        mc.connectAttr(fromAttr,toAttr)     
 
     if transferConnection == True:
         if bufferConnection != False:
             mc.connectAttr(bufferConnection,toAttr)
+            
+    if wasLocked == True or forceLock == True:
+        mc.setAttr(toAttr,lock=True)
 
 
 def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
@@ -941,7 +934,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
         else:
             doSetAttr(toObject,toAttr,dataDict.get('value'))
             
-    if incomingConnections:
+    if incomingConnections and not connectSourceToTarget:
         buffer = dataDict.get('incoming')
         if buffer:
             try:
@@ -982,7 +975,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
         
         
     if connectSourceToTarget:
-        try:
+        try:            
             doConnectAttr(('%s.%s'%(toObject,toAttr)),('%s.%s'%(fromObject,fromAttr)))
         except:
             guiFactory.warning("Connect to source fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
