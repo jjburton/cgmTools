@@ -829,8 +829,8 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     RETURNS:
     success(bool)
     """
-    assert mc.objExists('%s.%s'%(fromObject,fromAttr)),"Source '%s.%s' doesn't exist"%(fromObject,fromAttr)
-    assert mc.objExists(toObject),"Target '%s' doesn't exist"%toObject
+    assert mc.objExists('%s.%s'%(fromObject,fromAttr)) is True,"Source '%s.%s' doesn't exist"%(fromObject,fromAttr)
+    assert mc.objExists(toObject) is True,"Target '%s' doesn't exist"%toObject
     
     # Gather info   
     sourceFlags = returnStandardAttrFlags(fromObject,fromAttr)
@@ -847,11 +847,12 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     sourceNumeric = sourceFlags.get('numeric')
     if sourceNumeric:
         sourceNumericFlags = returnNumericAttrSettingsDict(fromObject,fromAttr)
-        sourceDefault = sourceNumericFlags.get('default')
-        sourceMax = sourceNumericFlags.get('max')
-        sourceMin = sourceNumericFlags.get('min')
-        sourceSoftMax = sourceNumericFlags.get('softMax')
-        sourceSoftMin = sourceNumericFlags.get('softMin')
+        if sourceNumericFlags:
+            sourceDefault = sourceNumericFlags.get('default')
+            sourceMax = sourceNumericFlags.get('max')
+            sourceMin = sourceNumericFlags.get('min')
+            sourceSoftMax = sourceNumericFlags.get('softMax')
+            sourceSoftMin = sourceNumericFlags.get('softMin')
         
     sourceEnum = False
     if sourceType == 'enum':
