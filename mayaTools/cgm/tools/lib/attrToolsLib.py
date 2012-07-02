@@ -259,15 +259,33 @@ def uiSelectActiveAttr(self,attr):
 
     uiUpdateAttrReport(self)
 
-    #>>> Basics     
-    self.KeyableAttrCB(edit=True, value = self.activeAttr.keyable, en = True,
-                       cc = lambda *a:uiUpdateCheckBox(self, self.activeAttr.doKeyable,self.activeAttr.keyable))
+    #>>> Basics
+    # Get our states
+    keyableState = self.activeAttr.keyable
+    hiddenState = self.activeAttr.hidden
+    lockedState = self.activeAttr.locked
+    if self.activeAttr.children:
+	cKeyable = []
+	cHidden = []
+	cLocked = []
+	for c in self.activeAttr.children:
+	    buffer = attributes.returnStandardAttrFlags(self.activeAttr.obj.nameLong,c)
+	    cKeyable.append(buffer.get('keyable'))
+	    cHidden.append(buffer.get('hidden'))
+	    cLocked.append(buffer.get('locked'))
+	keyableState = sum(cKeyable)
+	hiddenState = sum(cHidden)
+	lockedState = sum(cLocked)
+	    
+    
+    self.KeyableAttrCB(edit=True, value = keyableState, en = True,
+                       cc = lambda *a:uiUpdateCheckBox(self, self.activeAttr.doKeyable,keyableState))
 
-    self.HiddenAttrCB(edit=True, value = self.activeAttr.hidden, en = True,
-                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.doHidden, self.activeAttr.hidden))
+    self.HiddenAttrCB(edit=True, value = hiddenState, en = True,
+                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.doHidden, hiddenState))
 
-    self.LockedAttrCB(edit=True, value = self.activeAttr.locked, en = True,
-                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.doLocked, self.activeAttr.locked)) 
+    self.LockedAttrCB(edit=True, value = lockedState, en = True,
+                      cc = lambda *a:uiUpdateCheckBox(self,self.activeAttr.doLocked, lockedState)) 
 
     self.NameField(edit=True, en=True, text = self.activeAttr.nameLong)
 
@@ -285,7 +303,7 @@ def uiSelectActiveAttr(self,attr):
 
 
     #>>> Numbers
-    if self.activeAttr.numeric and self.activeAttr.dynamic:
+    if self.activeAttr.numeric and self.activeAttr.dynamic and not self.activeAttr.children:
 	self.EditDigitSettingsRow(edit = True, vis = True)
 	minBuffer = self.activeAttr.minValue
 	maxBuffer = self.activeAttr.maxValue
@@ -448,7 +466,7 @@ def doAddAttributesToSelected(self):
 		if attrType == 'string':
 		    if attributes.addStringAttributeToObj(obj,attr):
 			objAttrBuffer.append(attr)
-		elif attrType == 'vector':
+		elif attrType == 'double3':
 		    if attributes.addVectorAttributeToObj(obj,attr):
 			objAttrBuffer.append(attr)
 		elif attrType == 'int':
@@ -794,7 +812,7 @@ def uiReorderAttributes(self,direction):
 	checkedAttrs = []
 	for attr in attrsToMove:
 	    #Check for parents
-	    bufferDict = attributes.returnAttributeFamilyDict(self.SourceObject.nameLong,attr)
+	    bufferDict = attributes.returnAttrFamilyDict(self.SourceObject.nameLong,attr)
 	    flagDict = attributes.returnStandardAttrFlags(self.SourceObject.nameLong,attr)
 	    if flagDict.get('dynamic'):
 		if bufferDict and 'parent' in bufferDict.keys():
