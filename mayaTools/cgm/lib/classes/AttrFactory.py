@@ -52,7 +52,9 @@ class AttrFactory():
     def __init__(self,objName,attrName,attrType = False,value = None,*a, **kw):
         """ 
         Asserts object's existance and that it has a transform. Then initializes. If 
-        an existing attribute name on an object is called and the attribute type is different,it converts it.
+        an existing attribute name on an object is called and the attribute type is different,it converts it. All functions
+        ignore locks on attributes and will act when called regardless of target settings
+        
         
         Keyword arguments:
         obj(string) -- must exist in scene
@@ -132,8 +134,21 @@ class AttrFactory():
             self.nameAlias = mc.aliasAttr(self.nameCombined,q=True)
             
         self.get(*a, **kw)
-
+        
+        #>>> Parent Stuff
+        pBuffer = mc.attributeQuery(self.attr, node = self.obj.nameLong, listParent=True)
+        if pBuffer is None:
+            self.parent = False
+        else:
+            self.parent = pBuffer[0]
+        self.children = mc.attributeQuery(self.attr, node = self.obj.nameLong, listChildren=True)
+        if self.children is None:
+            self.children = False        
+        self.siblings = mc.attributeQuery(self.attr, node = self.obj.nameLong, listSiblings=True)
+        if self.siblings is None:
+            self.siblings = False    
         self.enum = False
+        
         self.userAttrs = mc.listAttr(self.obj.nameLong, userDefined = True) or []
         
         standardFlagsBuffer = attributes.returnStandardAttrFlags(self.obj.nameLong,self.nameLong)
@@ -149,22 +164,7 @@ class AttrFactory():
         self.locked = standardFlagsBuffer.get('locked')
         self.keyable = standardFlagsBuffer.get('keyable')
         self.hidden = standardFlagsBuffer.get('hidden')
-        
-       
-            
-        #>>> Parent Stuff
-        pBuffer = mc.attributeQuery(self.attr, node = self.obj.nameLong, listParent=True)
-        if pBuffer is None:
-            self.parent = False
-        else:
-            self.parent = pBuffer[0]
-        self.children = mc.attributeQuery(self.attr, node = self.obj.nameLong, listChildren=True)
-        if self.children is None:
-            self.children = False        
-        self.siblings = mc.attributeQuery(self.attr, node = self.obj.nameLong, listSiblings=True)
-        if self.siblings is None:
-            self.siblings = False        
-        
+         
         
         if self.dynamic:
             self.readable = standardFlagsBuffer.get('readable')
@@ -198,11 +198,13 @@ class AttrFactory():
     
     def convert(self,attrType):
         """ 
-        Converts an attribute type from one to another
+        Converts an attribute type from one to another while preserving as much data as possible.
         
         Keyword arguments:
         attrType(string)        
         """
+        if self.children:
+            return guiFactory.warning("'%s' has children, can't convert"%self.nameCombined)
         keyable = copy.copy(self.keyable)
         hidden =  copy.copy(self.hidden)
         locked =  copy.copy(self.locked)
@@ -265,7 +267,17 @@ class AttrFactory():
         *a, **kw
         """
         try:
-            attributes.doSetAttr(self.obj.nameLong,self.attr, value, *a, **kw)
+            if self.children:
+                guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                for c in self.children:
+                    try:
+                        cInstance = AttrFactory(self.obj.nameLong,c)                        
+                        attributes.doSetAttr(cInstance.obj.nameLong,cInstance.attr, value, *a, **kw)
+                    except:
+                        guiFactory.warning("'%s' failed to set"%c)
+                        
+            else:     
+                attributes.doSetAttr(self.obj.nameLong,self.attr, value, *a, **kw)
         
         except:
             guiFactory.warning("'%s.%s' failed to set '%s'"%(self.obj.nameLong,self.attr,value))
@@ -331,11 +343,14 @@ class AttrFactory():
             
     def doStore(self,infoToStore,convertIfNecessary = True):
         """ 
-        Set the options for an enum attribute
+        Store information to an object. If the info exits as an object, it stores as a message node. Otherwise there are
+        other storing methods.
         
         Keyword arguments:
-        enumCommand(string) -- 'off:on', 'off=0:on=2', etc
+        infoToStore(string) -- string of information to store
+        convertIfNecessary(bool) -- whether to convert the attribute if it needs to to store it. Default (True)
         """   
+        assert self.children is False,"This attribute has children. Can't store."
         try:
             if self.form == 'message':
                 self.obj.store(self.attr,infoToStore)
@@ -349,10 +364,7 @@ class AttrFactory():
             
     def doDelete(self):
         """ 
-        Set the options for an enum attribute
-        
-        Keyword arguments:
-        enumCommand(string) -- 'off:on', 'off=0:on=2', etc
+        Deletes an attribute
         """   
         try:
             attributes.doDeleteAttr(self.obj.nameLong,self.attr)
@@ -364,17 +376,41 @@ class AttrFactory():
             guiFactory.warning("'%s.%s' failed to delete"%(self.obj.nameLong,self.attr))  
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Set Options
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>                       
     def doDefault(self,value = None):
-        if self.numeric and not self.children: 
+        """ 
+        Set default settings of an attribute
+        
+        Keyword arguments:
+        value(string) -- value or False to reset
+        """   
+        if self.numeric: 
             if value is not None:
-                try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,defaultValue = value)
-                    self.defaultValue = value
-                except:
-                    guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))       
+                if self.children:
+                    guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                    for c in self.children:
+                        cInstance = AttrFactory(self.obj.nameLong,c)                        
+                        try:
+                            mc.addAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,defaultValue = value)
+                            cInstance.defaultValue = value                                                        
+                        except:
+                            guiFactory.warning("'%s' failed to set a default value"%cInstance.nameCombined)                
+                    self.defaultValue = value                            
+                
+                else:     
+                    try:
+                        mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,defaultValue = value)
+                        self.defaultValue = value
+                    except:
+                        guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))       
                 
     def doMax(self,value = None):
+        """ 
+        Set max value for a numeric attribute
+        
+        Keyword arguments:
+        value(string) -- value or False to reset
+        """ 
         if self.numeric and not self.children: 
             if value is False:
                 try:
@@ -393,6 +429,12 @@ class AttrFactory():
                 
                 
     def doMin(self,value = None):
+        """ 
+        Set min value for a numeric attribute
+        
+        Keyword arguments:
+        value(string) -- value or False to reset
+        """ 
         if self.numeric and not self.children: 
             if value is False:
                 try:
@@ -411,6 +453,12 @@ class AttrFactory():
                     guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))
                     
     def doSoftMax(self,value = None):
+        """ 
+        Set soft max value for a numeric attribute
+        
+        Keyword arguments:
+        value(string) -- value or False to reset
+        """ 
         if self.numeric and not self.children: 
             if value is False:
                 try:
@@ -428,6 +476,12 @@ class AttrFactory():
                     guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
                     
     def doSoftMin(self,value = None):
+        """ 
+        Set soft min value for a numeric attribute
+        
+        Keyword arguments:
+        value(string) -- value or False to reset
+        """ 
         if self.numeric and not self.children: 
             if value is False:
                 try:
@@ -445,21 +499,66 @@ class AttrFactory():
                     guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
         
     def doLocked(self,arg = True):
+        """ 
+        Set lock state of an attribute
+        
+        Keyword arguments:
+        arg(bool)
+        """ 
+        assert type(arg) is bool, "doLocked arg must be a bool!"
         if arg:
-            if not self.locked:
+            if self.children:
+                guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                for c in self.children:
+                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    if not cInstance.locked:
+                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,lock = True) 
+                        guiFactory.report("'%s.%s' locked!"%(cInstance.obj.nameLong,cInstance.attr))
+                        cInstance.locked = True
+                self.updateData()  
+                
+            elif not self.locked:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,lock = True) 
                 guiFactory.report("'%s.%s' locked!"%(self.obj.nameLong,self.attr))
                 self.locked = True
                 
         else:
-            if self.locked:
+            if self.children:
+                guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                for c in self.children:
+                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    if cInstance.locked:
+                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,lock = False) 
+                        guiFactory.report("'%s.%s' unlocked!"%(cInstance.obj.nameLong,cInstance.attr))
+                        cInstance.locked = False
+                self.updateData()  
+                
+            elif self.locked:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,lock = False)           
                 guiFactory.report("'%s.%s' unlocked!"%(self.obj.nameLong,self.attr))
                 self.locked = False
                 
     def doHidden(self,arg = True):
+        """ 
+        Set hidden state of an attribute
+        
+        Keyword arguments:
+        arg(bool)
+        """ 
+        assert type(arg) is bool, "doLocked arg must be a bool!"        
         if arg:
-            if not self.hidden:
+            if self.children:
+                guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                for c in self.children:
+                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    if not cInstance.hidden:
+                        if cInstance.keyable:
+                            cInstance.doKeyable(False)
+                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,channelBox = False) 
+                        guiFactory.report("'%s.%s' hidden!"%(cInstance.obj.nameLong,cInstance.attr))
+                        cInstance.hidden = False
+                
+            elif not self.hidden:
                 if self.keyable:
                     self.doKeyable(False)
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = False) 
@@ -468,15 +567,42 @@ class AttrFactory():
 
                 
         else:
-            if self.hidden:
+            if self.children:
+                guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                for c in self.children:
+                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    if cInstance.hidden:
+                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,channelBox = True) 
+                        guiFactory.report("'%s.%s' unhidden!"%(cInstance.obj.nameLong,cInstance.attr))
+                        cInstance.hidden = False
+                
+            elif self.hidden:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = True)           
                 guiFactory.report("'%s.%s' unhidden!"%(self.obj.nameLong,self.attr))
                 self.hidden = False
                 
                 
     def doKeyable(self,arg = True):
+        """ 
+        Set keyable state of an attribute
+        
+        Keyword arguments:
+        arg(bool)
+        """         
+        assert type(arg) is bool, "doLocked arg must be a bool!"        
         if arg:
-            if not self.keyable:
+            if self.children:
+                guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                for c in self.children:
+                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    if not cInstance.keyable:
+                        mc.setAttr(cInstance.nameCombined,e=True,keyable = True) 
+                        guiFactory.report("'%s.%s' keyable!"%(cInstance.obj.nameLong,cInstance.attr))
+                        cInstance.keyable = True
+                        cInstance.hidden = False
+
+                
+            elif not self.keyable:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = True) 
                 guiFactory.report("'%s.%s' keyable!"%(self.obj.nameLong,self.attr))
                 self.keyable = True
@@ -484,7 +610,19 @@ class AttrFactory():
                     
                 
         else:
-            if self.keyable:
+            if self.children:
+                guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+                for c in self.children:
+                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    if cInstance.keyable:
+                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,keyable = False) 
+                        guiFactory.report("'%s.%s' unkeyable!"%(cInstance.obj.nameLong,cInstance.attr))
+                        cInstance.keyable = False
+                        if not mc.getAttr(cInstance.nameCombined,channelBox=True):
+                            cInstance.updateData()
+                            cInstance.doHidden(False)                
+                
+            elif self.keyable:
                 mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = False)           
                 guiFactory.report("'%s.%s' unkeyable!"%(self.obj.nameLong,self.attr))
                 self.keyable = False
@@ -493,6 +631,13 @@ class AttrFactory():
                     self.doHidden(False)
                     
     def doAlias(self,arg):
+        """ 
+        Set the alias of an attribute
+        
+        Keyword arguments:
+        arg(string) -- name you want to use as an alias
+        """     
+        assert type(arg) is str or unicode,"Must pass string argument into doAlias"                
         if arg:
             try:
                 if arg != self.nameAlias:
@@ -513,6 +658,13 @@ class AttrFactory():
                 
                 
     def doNiceName(self,arg):
+        """ 
+        Set the nice name of an attribute
+        
+        Keyword arguments:
+        arg(string) -- name you want to use as a nice name
+        """    
+        assert type(arg) is str or unicode,"Must pass string argument into doNiceName"        
         if arg:
             try:
                 mc.addAttr(self.nameCombined,edit = True, niceName = arg)
@@ -523,6 +675,12 @@ class AttrFactory():
                     
 
     def doRename(self,arg):
+        """ 
+        Rename an attribute as something else
+        
+        Keyword arguments:
+        arg(string) -- name you want to use as a nice name
+        """            
         assert type(arg) is str or unicode,"Must pass string argument into doRename"
         if arg:
             try:
@@ -539,12 +697,27 @@ class AttrFactory():
                 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Connections and transfers
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>             
-    def doConnectOut(self,target,*a, **kw):
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    def returnCompatibleFromTarget(self,target,*a, **kw):
         """ 
-        Connect to a target
+        Attempts to make a connection from instanced attribute to a target
         
         Keyword arguments:
+        target(string) - object or attribute to connect to
+        *a, **kw
+        """ 
+        assert mc.objExists(target),"'%s' doesn't exist"%target
+        
+        return attributes.returnCompatibleAttrs(self.obj.nameLong,self.nameLong,target,*a, **kw)
+        
+            
+    
+    def doConnectOut(self,target,*a, **kw):
+        """ 
+        Attempts to make a connection from instanced attribute to a target
+        
+        Keyword arguments:
+        target(string) - object or attribute to connect to
         *a, **kw
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
@@ -568,9 +741,10 @@ class AttrFactory():
                 
     def doConnectIn(self,source,*a, **kw):
         """ 
-        Connect to a target
+        Attempts to make a connection from a source to our instanced attribute
         
         Keyword arguments:
+        source(string) - object or attribute to connect to
         *a, **kw
         """ 
         assert mc.objExists(source),"'%s' doesn't exist"%source
@@ -593,12 +767,27 @@ class AttrFactory():
                 guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
                 
     def doCopyTo(self,target, targetAttrName = None, convertToMatch = True, values = True, incomingConnections = False, outgoingConnections = False, keepSourceConnections = True, copyAttrSettings = True, connectSourceToTarget = False):
-        """ 
-        Connect to a target
+        """                                     
+        Replacement for Maya's since maya's can't handle shapes....blrgh...
+        Copy attributes from one object to another as well as other options. If the attribute already
+        exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
+        It will not make toast.
+    
+        Keywords:
+        toObject(string) - obj to copy to
+        targetAttrName(string) -- name of the attr to copy to . Default is None which will create an 
+                          attribute of the fromAttr name on the toObject if it doesn't exist
+        convertToMatch(bool) -- whether to convert if necessary.default True        
+        values(bool) -- copy values. default True
+        incomingConnections(bool) -- default False
+        outGoingConnections(bool) -- default False
+        keepSourceConnections(bool)-- keeps connections on source. default True
+        copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
+        connectSourceToTarget(bool) useful for moving attribute controls to another object. default False
         
-        Keyword arguments:
-        *a, **kw
-        """ 
+        RETURNS:
+        success(bool)
+        """
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
         
@@ -607,78 +796,59 @@ class AttrFactory():
         if sum(copyTest) < 1:
             guiFactory.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
             return False
-        
-        if '.' in list(target):
-            targetBuffer = target.split('.')
-            if len(targetBuffer) == 2:
+        try:
+            if '.' in list(target):
+                targetBuffer = target.split('.')
+                if len(targetBuffer) == 2:
+                    attributes.doCopyAttr(self.obj.nameLong,
+                                          self.nameLong,
+                                          targetBuffer[0],
+                                          targetBuffer[1],
+                                          convertToMatch,
+                                          values, incomingConnections,
+                                          outgoingConnections, keepSourceConnections,
+                                          copyAttrSettings, connectSourceToTarget)               
+    
+                else:
+                    guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
+            else:
                 attributes.doCopyAttr(self.obj.nameLong,
                                       self.nameLong,
-                                      targetBuffer[0],
-                                      targetBuffer[1],
-                                      convertToMatch,
+                                      target,
+                                      targetAttrName, convertToMatch,
                                       values, incomingConnections,
                                       outgoingConnections, keepSourceConnections,
-                                      copyAttrSettings, connectSourceToTarget)               
-
-            else:
-                guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
-        else:
-            attributes.doCopyAttr(self.obj.nameLong,
-                                  self.nameLong,
-                                  target,
-                                  targetAttrName, convertToMatch,
-                                  values, incomingConnections,
-                                  outgoingConnections, keepSourceConnections,
-                                  copyAttrSettings, connectSourceToTarget)  
+                                      copyAttrSettings, connectSourceToTarget)  
 
         
-        """except:
-            guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))   """         
+        except:
+            guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))          
             
     def doTransferTo(self,target):
         """ 
-        Connect to a target
+        Transfer an instanced attribute to a target with all settings and connections intact
         
         Keyword arguments:
+        target(string) -- object to transfer it to
         *a, **kw
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target        
         assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
         assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
-        
-        self.doDuplicateTo(target,False)
-        
-        mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
-        
+                
+        #mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
+        attributes.doCopyAttr(self.obj.nameLong,
+                              self.nameLong,
+                              target,
+                              self.nameLong,
+                              convertToMatch = True,
+                              values = True, incomingConnections = True,
+                              outgoingConnections = True, keepSourceConnections = False,
+                              copyAttrSettings = True, connectSourceToTarget = False)
         self.doDelete()
 
             
-    def doDuplicateTo(self,target, connectToSource = False):
-        """ 
-        Connect to a target
-        
-        Keyword arguments:
-        *a, **kw
-        """ 
-        assert mc.objExists(target),"'%s' doesn't exist"%target
-        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
-        
-        self.target = AttrFactory(target,self.attr)
-        self.target.convert(self.form)
-                
-        if self.form == 'enum':
-            self.target.setEnum(self.enum)
-        if self.form == 'message':
-            self.target.doStore(self.value)
-        self.target.doHidden(self.hidden)
-        self.target.doKeyable(self.keyable)        
-        self.target.doLocked(self.locked)
-        
-        mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=False,oc=False,keepSourceConnections=False)
-        
-        if connectToSource:
-            self.doConnectIn(self.target.nameCombined)
-        
+
         
         
