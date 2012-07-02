@@ -92,8 +92,8 @@ class ObjectFactory():
 	self.keyableAttrs = mc.listAttr(self.nameLong, keyable = True) or []
 	
 	self.transformAttrs = []
-	for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility':
-	    if mc.objExists(self.nameLong+'.'+attr) and mc.getAttr((self.nameLong+'.'+attr)) is not False:
+	for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
+	    if mc.objExists(self.nameLong+'.'+attr):
 		self.transformAttrs.append(attr)
 
 
