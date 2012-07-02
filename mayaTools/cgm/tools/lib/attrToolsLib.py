@@ -79,10 +79,15 @@ def uiTransferAttributes(self):
 		                       keepSourceConnections = self.TransferKeepSourceOptionVar.value)
 
 	    elif self.CopyAttrModeOptionVar.value == 2:
-		#Transfer
-		for target in targets:
-		    guiFactory.report("On target '%s'"%target)
-		    aInstance.doTransferTo(target)
+		if aInstance.dynamic:
+		    #Transfer
+		    guiFactory.report("On target '%s'"%targets[0])
+		    aInstance.doTransferTo(targets[0])
+		    if len(targets) > 1:
+			guiFactory.warning("Only one target allowed in this mode.Ignorming -'%s'"%("','".join(targets[1:])))
+		else:
+		    guiFactory.warning("'%s' isn't dynamic. Can't transfer"%(aInstance.nameCombined))
+		    
 
 			
     uiUpdateSourceObjectData(self)

@@ -834,10 +834,12 @@ class AttrFactory():
         *a, **kw
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
-        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target        
+        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
+        assert self.obj.transform is not False,"'%s' Doesn't have a transform. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.obj.nameLong        
         assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
         assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
         assert self.dynamic is True,"'%s' is not a dynamic attribute."%self.nameCombined
+        
         #mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
         attributes.doCopyAttr(self.obj.nameLong,
                               self.nameLong,

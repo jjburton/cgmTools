@@ -158,9 +158,9 @@ def returnStandardAttrFlags(obj,attr):
                 'keyable':mc.getAttr(nameCombined ,keyable=True)}
 
     # So, if it's keyable, you have to use one attribute to read correctly, otherwise it's the other...awesome
-    dynamic = True
-    if attr not in objAttrs:
-        dynamic = False
+    dynamic = False
+    if attr in objAttrs:
+        dynamic = True
     dataDict['dynamic'] = dynamic
     
     
@@ -936,7 +936,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     dataDict = returnAttributeDataDict(fromObject,fromAttr)
     
     if values:
-        if sourceType == 'message' and targetType == 'message' and dataDict.get('value'):
+        if sourceType == 'message' and dataDict.get('value'):
             storeInfo(toObject,toAttr,dataDict.get('value'))
         else:
             doSetAttr(toObject,toAttr,dataDict.get('value'))
