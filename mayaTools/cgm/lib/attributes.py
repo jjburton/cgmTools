@@ -538,7 +538,10 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
             wasLocked = True
             mc.setAttr(toAttr,lock=False)
         bufferConnection = returnDriverAttribute(toAttr)
-        breakConnection(toAttr)
+        attrBuffer = returnObjAttrSplit(toAttr)
+        if not attrBuffer:
+            return False
+        doBreakConnection(attrBuffer[0],attrBuffer[1])
         mc.connectAttr(fromAttr,toAttr)     
 
     if transferConnection == True:
@@ -578,7 +581,7 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
                 wasLocked = True
                 mc.setAttr(attrBuffer,lock=False)
                 
-            if breakConnection(attrBuffer):
+            if doBreakConnection(obj,attribute):
                 guiFactory.warning("'%s' connection broken"%(attrBuffer))
             
             if attrType == 'long':
@@ -618,11 +621,11 @@ def doSetStringAttr(attribute,value,forceLock = False):
     if (mc.objExists(attribute)) == True:
         if mc.getAttr(attribute,lock=True) == True:
             wasLocked = True
-            breakConnection(attribute)
+            doBreakConnection(attribute)
             mc.setAttr(attribute,lock=False)
             mc.setAttr(attribute,value, type='string')
         else:
-            breakConnection(attribute)
+            doBreakConnection(attribute)
             mc.setAttr(attribute,value, type='string')
 
     if wasLocked == True or forceLock == True:
@@ -812,6 +815,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     toObject(string) - obj to copy to
     toAttr(string) -- name of the attr to copy to . Default is None which will create an 
                       attribute of the fromAttr name on the toObject if it doesn't exist
+    convertToMatch(bool) -- whether to automatically convert attribute if they need to be. Default True                  
     values(bool) -- copy values. default True
     incomingConnections(bool) -- default False
     outGoingConnections(bool) -- default False
@@ -829,7 +833,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     sourceFlags = returnStandardAttrFlags(fromObject,fromAttr)
     sourceType = sourceFlags.get('type')
     
-    if not validateRequestedAttrType(sourceType):
+    if values and not validateRequestedAttrType(sourceType):
         guiFactory.warning("'%s.%s' is a '%s' and not valid for copying."%(fromObject,fromAttr,sourceType))             
         return False
     
@@ -940,7 +944,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
             try:
                 doConnectAttr(buffer,('%s.%s'%(toObject,toAttr)))
                 if not keepSourceConnections:
-                    breakConnection('%s.%s'%(fromObject,fromAttr))
+                    doBreakConnection('%s.%s'%(fromObject,fromAttr))
             except:
                 if sourceType != 'message':
                     guiFactory.warning("Inbound fail - '%s.%s' failed to connect to '%s"%(fromObject,fromAttr,buffer))
@@ -1336,7 +1340,7 @@ def doDeleteAttr(obj,attr):
             mc.setAttr(attrBuffer,lock=False)
             
         try:
-            breakConnection(attrBuffer)
+            doBreakConnection(attrBuffer)
         except:
             pass
         
@@ -1411,36 +1415,74 @@ def doSetLockHideKeyableAttr (obj,lock=True,visible=False,keyable=False,channels
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Connections Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def breakConnection(objAttr):
+def doBreakConnection(obj,attr=None):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Breaks a connection on an attribute if there is one
 
     ARGUMENTS:
+    obj(string) - 
     attr(string) - the attribute to break the connection on
 
     RETURNS:
     True/False depending if it found anything to break
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    if '.' in obj:
+        attrBuffer = returnObjAttrSplit(obj)
+        if attrBuffer:
+            obj = attrBuffer[0]
+            attr = attrBuffer[1]
+        else:
+            return False
+        
+    assert mc.objExists('%s.%s'%(obj,attr)) is True,"'%s.%s' doesn't exist"%(obj,attr)
+    
+    attrBuffer = '%s.%s'%(obj,attr)
+            
+    family = {}
     source = []
-    if (mc.connectionInfo (objAttr,isDestination=True)):
-        source = (mc.connectionInfo (objAttr,sourceFromDestination=True))
-
-        #>>>See if stuff is locked
-        if mc.getAttr(objAttr,lock=True):
-            print ('attr locked')
-            mc.setAttr(objAttr,lock=False)
-        driverAttr = returnDriverAttribute(objAttr)
-        if driverAttr:
-            print ('ODriver is %s' %driverAttr)
-            if mc.getAttr(driverAttr,lock=True):
-                mc.setAttr(driverAttr,lock=False)
+    
+    if (mc.connectionInfo (attrBuffer,isDestination=True)):             
+        #Get the driven for a vector connection
+        sourceBuffer = mc.listConnections (attrBuffer, scn = False, s = True, plugs = True)
+        if not sourceBuffer:
+            #Parent mode
+            family = returnAttrFamilyDict(obj,attr)           
+            sourceBuffer = mc.connectionInfo (attrBuffer,sourceFromDestination=True)
+        else:
+            sourceBuffer = sourceBuffer[0]
+            
+        if not sourceBuffer:
+            return guiFactory.warning("No source for '%s.%s' found!"%(obj,attr))
         try:
-            print ('On %s' %source)
-            mc.disconnectAttr (source,objAttr)
-            return source
+            drivenAttr = '%s.%s'%(obj,attr)
+            if family and family.get('parent'):
+                drivenAttr = '%s.%s'%(obj,family.get('parent'))
+                
+            print ("Breaking '%s' to '%s'"%(sourceBuffer,drivenAttr))
+            
+            #>>>See if stuff is locked
+            drivenLock = False
+            if mc.getAttr(drivenAttr,lock=True):
+                drivenLock = True
+                mc.setAttr(drivenAttr,lock=False)
+            sourceLock = False    
+            if mc.getAttr(sourceBuffer,lock=True):
+                sourceLock = True
+                mc.setAttr(sourceBuffer,lock=False)
+            
+            mc.disconnectAttr (sourceBuffer,drivenAttr)
+            
+            
+            if drivenLock:
+                mc.setAttr(drivenAttr,lock=True)
+                
+            if sourceLock:
+                mc.setAttr(sourceBuffer,lock=True)
+            
+            return sourceBuffer
         except:
             guiFactory.warning('Unable to break connection. See script dump')
     else:
@@ -1448,7 +1490,7 @@ def breakConnection(objAttr):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def returnDriverAttribute(attribute,skipConversionNodes = True):
+def returnDriverAttribute(attribute,skipConversionNodes = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1463,12 +1505,15 @@ def returnDriverAttribute(attribute,skipConversionNodes = True):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if (mc.connectionInfo (attribute,isDestination=True)) == True:
-        sourcebuffer = mc.listConnections (attribute, scn = skipConversionNodes, s = True, plugs = True)
-        return sourcebuffer[0]
-    else:
+        sourceBuffer = mc.listConnections (attribute, scn = skipConversionNodes, s = True, plugs = True)
+        if not sourceBuffer:
+            sourceBuffer = [mc.connectionInfo (attribute,sourceFromDestination=True)]   
+        if sourceBuffer:
+            return sourceBuffer[0]
         return False
+    return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDriverObject(attribute,skipConversionNodes = True):
+def returnDriverObject(attribute,skipConversionNodes = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1486,7 +1531,7 @@ def returnDriverObject(attribute,skipConversionNodes = True):
         return False
     return objectBuffer[0]
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDrivenAttribute(attribute,skipConversionNodes = True):
+def returnDrivenAttribute(attribute,skipConversionNodes = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1502,9 +1547,12 @@ def returnDrivenAttribute(attribute,skipConversionNodes = True):
     """
     if (mc.connectionInfo (attribute,isSource=True)) == True:
         destinationBuffer = mc.listConnections (attribute, scn = skipConversionNodes, d = True, plugs = True)
-        return destinationBuffer
-    else:
+        if not destinationBuffer:
+            destinationBuffer = mc.connectionInfo (attribute,destinationFromSource=True) 
+        if destinationBuffer:
+            return destinationBuffer
         return False
+    return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnDrivenObject(attribute,skipConversionNodes = True):
     """ 
@@ -1648,7 +1696,31 @@ def returnMessageObject(storageObject, messageAttr):
     else:
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnObjAttrSplit(attr):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Simple attribute string splitter
 
+    ARGUMENTS:
+    attr(string) - obj with message attrs
+
+    RETURNS:
+    returnBuffer(list) -- [obj,attr]
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    assert mc.objExists(attr) is True,"'%s' doesn't exist!"
+    returnBuffer = []
+    
+    if '.' in list(attr):
+        splitBuffer = attr.split('.')
+        if splitBuffer >= 2:
+            returnBuffer = [splitBuffer[0],'.'.join(splitBuffer[1:])]
+            
+        if returnBuffer:
+            return returnBuffer
+    return False  
+    
 def returnMessageObjs(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2175,14 +2247,14 @@ def storeObjectToMessage (obj, storageObj, messageName):
         if  mc.objExists (attrCache):
             if queryIfMessage(storageObj,messageName):
                 print (attrCache+' already exists. Adding to existing message node.')
-                breakConnection(attrCache)
+                doBreakConnection(attrCache)
                 mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
                 return True                
             else:
                 connections = returnDrivenAttribute(attrCache)
                 if connections:
                     for c in connections:
-                        breakConnection(c)
+                        doBreakConnection(c)
                         
                 guiFactory.warning("'%s' already exists. Not a message attr, converting."%attrCache)
                 doDeleteAttr(storageObj,messageName)
