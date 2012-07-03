@@ -47,7 +47,7 @@ class attrToolsClass(BaseMelWindow):
 	
 	WINDOW_NAME = 'attrTools'
 	WINDOW_TITLE = 'cgm.attrTools'
-	DEFAULT_SIZE = 350, 350
+	DEFAULT_SIZE = 375, 350
 	DEFAULT_MENU = None
 	RETAIN = True
 	MIN_BUTTON = True
@@ -103,6 +103,24 @@ class attrToolsClass(BaseMelWindow):
 
 
 	def setupVariables(self):
+		self.SortModifyOptionVar = OptionVarFactory('cgmVar_attrToolsSortModfiy', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.SortModifyOptionVar.name)
+		
+		self.HideTransformsOptionVar = OptionVarFactory('cgmVar_attrToolsHideTransform', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.HideTransformsOptionVar.name)
+		
+		self.HideUserDefinedOptionVar = OptionVarFactory('cgmVar_attrToolsHideUserDefined', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.HideUserDefinedOptionVar.name)		
+		
+		self.HideParentAttrsOptionVar = OptionVarFactory('cgmVar_attrToolsHideParentAttrs', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.HideParentAttrsOptionVar.name)
+		
+		self.HideCGMAttrsOptionVar = OptionVarFactory('cgmVar_attrToolsHideCGMAttrs', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.HideCGMAttrsOptionVar.name)
+		
+		self.HideNonstandardOptionVar = OptionVarFactory('cgmVar_attrToolsHideNonStandard', defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.HideNonstandardOptionVar.name)			
+
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_attrToolsShowHelp', defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
 		
@@ -141,9 +159,6 @@ class attrToolsClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildHelpMenu(self, *a ):
 		self.UI_HelpMenu.clear()
-		MelMenuItem( self.UI_HelpMenu, l="Show Help",
-				     cb=self.ShowHelpOptionVar.value,
-				     c= lambda *a: self.do_showHelpToggle())
 		MelMenuItem( self.UI_HelpMenu, l="Print Tools Help",
 				     c=lambda *a: self.printHelp() )
 
@@ -154,6 +169,35 @@ class attrToolsClass(BaseMelWindow):
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
 		
+		#>>> Grouping Options
+		HidingMenu = MelMenuItem( self.UI_OptionsMenu, l='Autohide:', subMenu=True)
+		MelMenuItem( self.UI_OptionsMenu, l="Sort Modify",
+			         cb=self.SortModifyOptionVar.value,
+		             annotation = "Sort the list of attributes in/nthe modify section alphabetically",
+		             c = lambda *a: attrToolsLib.uiToggleOptionCB(self,self.SortModifyOptionVar))	
+		
+		#guiFactory.appendOptionVarList(self,'cgmVar_MaintainLocalSetGroup')			
+		MelMenuItem( HidingMenu, l="Transforms",
+	                 cb= self.HideTransformsOptionVar.value,
+	                 c= lambda *a: attrToolsLib.uiToggleOptionCB(self,self.HideTransformsOptionVar))
+		
+		MelMenuItem( HidingMenu, l="User Defined",
+	                 cb= self.HideUserDefinedOptionVar.value,
+	                 c= lambda *a: attrToolsLib.uiToggleOptionCB(self,self.HideUserDefinedOptionVar))		
+		
+		MelMenuItem( HidingMenu, l="Parent Attributes",
+	                 cb= self.HideParentAttrsOptionVar.value,
+	                 c= lambda *a: attrToolsLib.uiToggleOptionCB(self,self.HideParentAttrsOptionVar))
+		
+		MelMenuItem( HidingMenu, l="CGM Attributes",
+	                 cb= self.HideCGMAttrsOptionVar.value,
+	                 c= lambda *a: attrToolsLib.uiToggleOptionCB(self,self.HideCGMAttrsOptionVar))		
+		
+		MelMenuItem( HidingMenu, l="Nonstandard",
+	                 cb= self.HideNonstandardOptionVar.value,
+	                 c= lambda *a: attrToolsLib.uiToggleOptionCB(self,self.HideNonstandardOptionVar))
+		
+		
 		#>>> Reset Options		
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reload",
@@ -161,9 +205,6 @@ class attrToolsClass(BaseMelWindow):
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
 			         c=lambda *a: self.reset())
 		
-	def do_showHelpToggle(self):
-		guiFactory.toggleMenuShowState(ShowHelpOption,self.helpBlurbs)
-		self.ShowHelpOptionVar.toggle()
 
 	def showAbout(self):
 		window = mc.window( title="About", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True )

@@ -16,7 +16,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.03282012'
+__version__ = '0.1.07022012'
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -43,6 +43,14 @@ reload(guiFactory)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Info processing
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiToggleOptionCB(self,optionVar):
+    """ 
+    Toggles hide mode
+    """ 
+    optionVar.toggle()
+    uiUpdateSourceObjectData(self)
+
+
 def uiTransferAttributes(self):
     """ 
     Update the loaded source object cata from the optionVar
@@ -106,15 +114,41 @@ def updateLoadAttrs(self):
     self.loadAttrs = []
 
     if self.SourceObject and self.SourceObject.update(self.SourceObject.nameLong):
-	self.loadAttrs.extend(self.SourceObject.transformAttrs)
-	self.loadAttrs.extend(self.SourceObject.userAttrs)
-	self.loadAttrs.extend(self.SourceObject.keyableAttrs)
+	if self.HideNonstandardOptionVar.value:
+	    self.loadAttrs.extend(self.SourceObject.transformAttrs)
+	    self.loadAttrs.extend(self.SourceObject.userAttrs)
+	    self.loadAttrs.extend(self.SourceObject.keyableAttrs)
+	    
+	    self.loadAttrs = lists.returnListNoDuplicates(self.loadAttrs)
+	else:
+	    self.loadAttrs.extend( mc.listAttr(self.SourceObject.nameLong) )
 	
-	self.loadAttrs = lists.returnListNoDuplicates(self.loadAttrs) 
+	if self.HideTransformsOptionVar.value:
+	    for a in self.SourceObject.transformAttrs:
+		if a in self.loadAttrs:
+		    self.loadAttrs.remove(a)
+		    
+	if self.HideUserDefinedOptionVar.value:
+	    for a in self.SourceObject.userAttrs:
+		if a in self.loadAttrs:
+		    self.loadAttrs.remove(a)	
+		    
+	if self.HideParentAttrsOptionVar.value:
+	    for a in self.loadAttrs:
+		if (mc.attributeQuery(a, node = self.SourceObject.nameLong, listChildren=True)) is not None:
+		    self.loadAttrs.remove(a)
+		    
+	if self.HideCGMAttrsOptionVar.value:
+	    buffer = []
+	    for a in self.loadAttrs:
+		if 'cgm' not in a:
+		    buffer.append(a)
+	    if buffer:
+		self.loadAttrs = buffer
+	    
+    if self.loadAttrs:	    
+	return True
 	
-	
-	if self.loadAttrs:	    
-	    return True
     return False
 
 def uiUpdateSourceObjectData(self):
@@ -134,6 +168,7 @@ def uiUpdateSourceObjectData(self):
 	else:
 	    self.SourceObject = False
 	    self.loadAttrs = []
+	    guiFactory.warning("Failed to get attrs!")
 
     except:
 	guiFactory.warning("Failed to update loaded!")
@@ -384,7 +419,8 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
 	    attrs.append(a)
 
     if attrs:
-	attrs.sort()    
+	if self.SortModifyOptionVar.value:
+	    attrs.sort()    
 	# Get the attributes list
 	if attrs:
 	    for a in attrs:
@@ -511,17 +547,43 @@ def uiUpdateAttrReport(self):
     
     if self.activeAttr:
 	#>>> Connect Report
-	if self.activeAttr.driverAttribute and self.activeAttr.form != 'message':
-	    connectReport.append("'%s'>>Drives Me"%self.activeAttr.driverAttribute)
+	if self.activeAttr.driver and self.activeAttr.form != 'message':
+	    connectReport.append("'%s'>>Drives Me"%self.activeAttr.driver)
+	    buffer = attributes.returnObjAttrSplit(self.activeAttr.driver)
 	    MelMenuItem(self.ConnectedPopUpMenu ,
 		    label = 'Select Driver',
-		    c = lambda *a: mc.select(self.activeAttr.driverAttribute ))
-	    
-	if self.activeAttr.drivenAttribute:
-	    connectReport.append("Drives>>'%s'"%"','".join(self.activeAttr.drivenAttribute))
+		    c = Callback(mc.select,buffer[0]))	    
 	    MelMenuItem(self.ConnectedPopUpMenu ,
-		    label = 'Select Driven',
-	            c = lambda *a: mc.select(self.activeAttr.drivenAttribute ))
+		    label = 'Load Driver',
+		    c = lambda *a: uiLoadAttrFromSub(self,self.activeAttr.driver ))		
+	    MelMenuItem(self.ConnectedPopUpMenu ,
+	            label = "Break from '%s'"%self.activeAttr.driver,
+	            c = Callback(uiBreakConnection,self,self.activeAttr.nameCombined))
+	    
+	if self.activeAttr.driven:
+	    if len(self.activeAttr.driven)<2:
+		connectReport.append("Drives>>'%s'"%"','".join(self.activeAttr.driven))
+	    else:
+		connectReport.append("Drives>>[ %i ] attributes"%len(self.activeAttr.driven))		
+	    MelMenuItem(self.ConnectedPopUpMenu,l='Driven:',en=False)
+	    if len(self.activeAttr.driven)>1:
+		MelMenuItem(self.ConnectedPopUpMenu ,
+		        label = "Select All Connections",
+		        c = Callback(mc.select,self.activeAttr.driven))	    
+	    MelMenuItemDiv(self.ConnectedPopUpMenu)
+	    for c in self.activeAttr.driven:
+		buffer = attributes.returnObjAttrSplit(c)
+		MelMenuItem(self.ConnectedPopUpMenu ,
+		        label = "Select '%s'"%buffer[0],
+		        c = Callback(mc.select,buffer[0]))
+		MelMenuItem(self.ConnectedPopUpMenu ,
+		        label = "Load Connection",
+		        c = Callback(uiLoadAttrFromSub,self,c))		
+		MelMenuItem(self.ConnectedPopUpMenu ,
+		        label = "Break to '%s'"%c,
+		        c = Callback(uiBreakConnection,self,c))	
+		MelMenuItemDiv(self.ConnectedPopUpMenu)
+		
 	if connectReport:
 	    self.ConnectionReportRow(e = True, vis = True)
 	    self.ConnectionReportField(edit = True, label = ' | '.join(connectReport),vis=True)
@@ -953,3 +1015,20 @@ def uiManageAttrsDelete(self):
 
     else:
 	guiFactory.warning('No attributes selected.')
+	
+def uiBreakConnection(self,attribute):
+    """ 
+    Breaks a connection in a submenu
+    """     
+    attributes.doBreakConnection(attribute)
+    buffer = attributes.returnObjAttrSplit(attribute)
+    if buffer:
+	uiUpdateObjectAttrMenu(self,self.ObjectAttributesOptionMenu,buffer[1])
+	
+def uiLoadAttrFromSub(self,attribute):
+    """ 
+    Load an attribute from a submenu
+    """     
+    mc.select(attribute)
+    #buffer = attributes.returnObjAttrSplit(attribute)    
+    uiLoadSourceObject(self)
