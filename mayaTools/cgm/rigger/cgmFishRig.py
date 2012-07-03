@@ -188,7 +188,7 @@ def finRigger(objectNull,spineChain,worldScale,mirror,mode,jointsPerChain,deform
             """ break the connection so we can parent it"""
             """first return the original thing to follow"""
             parentBuffer = attributes.returnDriverObject ((chain[0]+'.translate'))
-            attributes.breakConnection (chain[0]+'.translate')
+            attributes.doBreakConnection (chain[0]+'.translate')
             mc.parent (chain[0],tailHookJoint)
             """ reconstrain it to the driver"""
             constraintBuffer = mc.pointConstraint (parentBuffer,chain[0], maintainOffset = True)
@@ -203,7 +203,7 @@ def finRigger(objectNull,spineChain,worldScale,mirror,mode,jointsPerChain,deform
             """ break the connection s we can parent it"""
             """first return the original thing to follow"""
             parentBuffer = attributes.returnDriverObject ((chain[0]+'.translate'))
-            attributes.breakConnection (chain[0]+'.translate')
+            attributes.doBreakConnection (chain[0]+'.translate')
             mc.parent (chain[0],tailHookJoint)
             """ reconstrain it to the driver"""
             constraintBuffer = mc.pointConstraint (parentBuffer,chain[0], maintainOffset = True)
@@ -236,7 +236,7 @@ def finRigger(objectNull,spineChain,worldScale,mirror,mode,jointsPerChain,deform
             """ break the connection so we can parent it"""
             """first return the original thing to follow"""
             parentBuffer = attributes.returnDriverObject ((chain[0]+'.translate'))
-            attributes.breakConnection (chain[0]+'.translate')
+            attributes.doBreakConnection (chain[0]+'.translate')
             mc.parent (chain[0],tailHookJoint)
             """ reconstrain it to the driver"""
             constraintBuffer = mc.pointConstraint (parentBuffer,chain[0], maintainOffset = True)
@@ -466,7 +466,7 @@ def surfRigger(objectNull,anchor,worldScale,mirror,mode,jointsPerChain,deformCha
             """ break the connection so we can parent it"""
             """first return the original thing to follow"""
             parentBuffer = attributes.returnDriverObject ((chain[0]+'.translate'))
-            attributes.breakConnection (chain[0]+'.translate')
+            attributes.doBreakConnection (chain[0]+'.translate')
             #mc.parent (chain[0],tailHookJoint)
             """ reconstrain it to the driver"""
             constraintBuffer = mc.pointConstraint (parentBuffer,chain[0], maintainOffset = True)
@@ -481,7 +481,7 @@ def surfRigger(objectNull,anchor,worldScale,mirror,mode,jointsPerChain,deformCha
             """ break the connection s we can parent it"""
             """first return the original thing to follow"""
             parentBuffer = attributes.returnDriverObject ((chain[0]+'.translate'))
-            attributes.breakConnection (chain[0]+'.translate')
+            attributes.doBreakConnection (chain[0]+'.translate')
             #mc.parent (chain[0],tailHookJoint)
             """ reconstrain it to the driver"""
             constraintBuffer = mc.pointConstraint (parentBuffer,chain[0], maintainOffset = True)
@@ -514,7 +514,7 @@ def surfRigger(objectNull,anchor,worldScale,mirror,mode,jointsPerChain,deformCha
             """ break the connection so we can parent it"""
             """first return the original thing to follow"""
             parentBuffer = attributes.returnDriverObject ((chain[0]+'.translate'))
-            attributes.breakConnection (chain[0]+'.translate')
+            attributes.doBreakConnection (chain[0]+'.translate')
             #mc.parent (chain[0],tailHookJoint)
             """ reconstrain it to the driver"""
             constraintBuffer = mc.pointConstraint (parentBuffer,chain[0], maintainOffset = True)

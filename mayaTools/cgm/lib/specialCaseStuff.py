@@ -59,7 +59,7 @@ def plasticConstraintsAndScaleFromObjectToTransform():
         objScaleConnections = []
         for s in 'sx','sy','sz':
             buffer =  attributes.returnDriverAttribute(obj+'.'+s)
-            attributes.breakConnection(obj+'.'+s)
+            attributes.doBreakConnection(obj+'.'+s)
             attributes.doConnectAttr(buffer,(group+'.'+s))
 
         # Get constraint info from obj

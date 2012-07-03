@@ -703,8 +703,8 @@ def addSqashStretchToSurfaceChainByAttr(attributeHolder,jointChain,jointOrient):
         cnt=0
         for jnt in jointChain[0:-1]:
                 """ breaks the connecton first to the extra scale channels and store the connection """
-                worldScale1Attr = attributes.breakConnection((jnt+'.scale'+scaleDirection1))
-                worldScale2Attr = attributes.breakConnection((jnt+'.scale'+scaleDirection2))
+                worldScale1Attr = attributes.doBreakConnection((jnt+'.scale'+scaleDirection1))
+                worldScale2Attr = attributes.doBreakConnection((jnt+'.scale'+scaleDirection2))
 
 
                 #create the master scale node
@@ -822,8 +822,8 @@ def addSqashStretchToSurfaceChainByAnimCrv(attributeHolder,jointChain,jointOrien
         cnt=0
         for jnt in jointChain[0:-1]:
                 """ breaks the connecton first to the extra scale channels and store the connection """
-                worldScale1Attr = attributes.breakConnection((jnt+'.scale'+scaleDirection1))
-                worldScale2Attr = attributes.breakConnection((jnt+'.scale'+scaleDirection2))
+                worldScale1Attr = attributes.doBreakConnection((jnt+'.scale'+scaleDirection1))
+                worldScale2Attr = attributes.doBreakConnection((jnt+'.scale'+scaleDirection2))
 
 
                 #create the master scale node

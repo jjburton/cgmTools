@@ -563,7 +563,7 @@ def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, 
         if keepGoing == True:
             print ('breaking....' + blendShapeBuffer)
             """break it """
-            attributes.breakConnection(blendShapeBuffer)
+            attributes.doBreakConnection(blendShapeBuffer)
             attributes.doSetAttr(blendShapeNode,shape,0)
 
     # Bake it
@@ -699,7 +699,7 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
         blendShapeBuffer = (blendShapeNode+'.'+shape)
         blendShapeConnections.append(attributes.returnDriverAttribute(blendShapeBuffer))
         """break it """
-        attributes.breakConnection(blendShapeBuffer)
+        attributes.doBreakConnection(blendShapeBuffer)
         attributes.doSetAttr(blendShapeNode,shape,0)
 
     """ Find pairs """
@@ -826,7 +826,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
         blendShapeBuffer = (blendShapeNode+'.'+shape)
         blendShapeConnections.append(attributes.returnDriverAttribute(blendShapeBuffer))
         """break it """
-        attributes.breakConnection(blendShapeBuffer)
+        attributes.doBreakConnection(blendShapeBuffer)
         attributes.doSetAttr(blendShapeBuffer,0)
 
     """ Find pairs """
@@ -967,7 +967,7 @@ def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stri
         blendShapeConnections.append(attributes.returnDriverAttribute(blendShapeBuffer))
         print blendShapeConnections
         """break it """
-        attributes.breakConnection(blendShapeBuffer)
+        attributes.doBreakConnection(blendShapeBuffer)
         attributes.doSetAttr(blendShapeBuffer,0)
 
 
