@@ -155,8 +155,8 @@ class AttrFactory():
         standardDataBuffer = attributes.returnAttributeDataDict(self.obj.nameLong,self.nameLong)
         
         #Check connections
-        self.driverAttribute = attributes.returnDriverAttribute(self.nameCombined,False)
-        self.drivenAttribute = attributes.returnDrivenAttribute(self.nameCombined,False)
+        self.driver = attributes.returnDriverAttribute(self.nameCombined,False)
+        self.driven = attributes.returnDrivenAttribute(self.nameCombined,False)
         
         self.numeric = standardFlagsBuffer.get('numeric')
         self.dynamic = standardFlagsBuffer.get('dynamic')
@@ -723,22 +723,25 @@ class AttrFactory():
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
         
-        if mc.ls(target,type = 'transform',long = True):
+        if '.' in target:           
+            try:
+                attributes.doConnectAttr(self.nameCombined,target)
+            except:
+                guiFactory.warning("'%s' failed to connect to '%s'!"%(self.nameCombined,target))  
+                
+        else:
             #If the object has a transform
-            if mc.objExists('%s.%s'%(target,self.attr)):
+            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.nameLong,target,[self.nameLong]) or []
+            if matchAttr:
                 #If it has a matching attribute
                 try:
-                    attributes.doConnectAttr(self.nameCombined,('%s.%s'%(target,self.attr)))
+                    attributes.doConnectAttr(self.nameCombined,('%s.%s'%(target,matchAttr.get(self.nameLong))))
                 except:
                     guiFactory.warning("'%s' failed to connect to '%s'!"%(self.nameCombined,target))
             else:
                 print "Target object doesn't have this particular attribute"
 
-        elif '.' in target:           
-            try:
-                attributes.doConnectAttr(self.nameCombined,target)
-            except:
-                guiFactory.warning("'%s' failed to connect to '%s'!"%(self.nameCombined,target))   
+ 
                 
     def doConnectIn(self,source,*a, **kw):
         """ 
@@ -749,23 +752,24 @@ class AttrFactory():
         *a, **kw
         """ 
         assert mc.objExists(source),"'%s' doesn't exist"%source
-        
-        if mc.ls(source,type = 'transform',long = True):
-            #If the object has a transform
-            if mc.objExists('%s.%s'%(source,self.attr)):
-                #If it has a matching attribute
-                try:
-                    attributes.doConnectAttr(('%s.%s'%(source,self.attr)),self.nameCombined)
-                except:
-                    guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
-            else:
-                print "Target object doesn't have this particular attribute"
-
-        elif '.' in source:           
+               
+        if '.' in source:           
             try:
                 attributes.doConnectAttr(source,self.nameCombined)
             except:
-                guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
+                guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))  
+                
+        else:
+            #If the object has a transform
+            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.nameLong,source,[self.nameLong]) or []
+            if matchAttr:
+                #If it has a matching attribute
+                try:
+                    attributes.doConnectAttr(('%s.%s'%(source,matchAttr.get(self.nameLong))),self.nameCombined)
+                except:
+                    guiFactory.warning("'%s' failed to connect to '%s'!"%(source,self.nameCombined))
+            else:
+                print "Source object doesn't have this particular attribute"
                 
     def doCopyTo(self,target, targetAttrName = None, convertToMatch = True, values = True, incomingConnections = False, outgoingConnections = False, keepSourceConnections = True, copyAttrSettings = True, connectSourceToTarget = False):
         """                                     
