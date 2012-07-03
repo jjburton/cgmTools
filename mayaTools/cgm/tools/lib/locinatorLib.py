@@ -88,7 +88,14 @@ def getSelfOptionVars(self):
 	    self.bakeMode = mc.optionVar( q='cgmVar_AnimToolsBakeState' )
 	    self.forceEveryFrame = mc.optionVar( q='cgmVar_AnimToolsKeyingMode' )
 	    self.keyingTargetState = mc.optionVar( q='cgmVar_AnimToolsKeyingTarget' )
-	    self.matchMode = mc.optionVar(q='cgmVar_AnimToolsMatchMode')	    
+	    self.matchMode = mc.optionVar(q='cgmVar_AnimToolsMatchMode')	
+	elif self.toolName == 'cgm.snapMM':
+	    self.bakeMode = 0
+	    self.forceEveryFrame = 0
+	    self.keyingTargetState = 0
+	    self.matchMode = mc.optionVar(q='cgmVar_SnapMMMatchMode')	    
+	    
+	    
     except:
 	guiFactory.warning("'%s' failed - locinatorLib.getSelfOptionVars"%self.toolName)
 
@@ -392,7 +399,6 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     getSelfOptionVars(self)
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
     getSelfOptionVars(self)
-
 
     toUpdate = []
     # First see if we have any updateable objects
