@@ -390,7 +390,6 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
     if mc.referenceQuery(obj, isNodeReferenced=True):
         leaveUnlocked = True
 
-
     if mc.objExists(info):
         if overideMessageCheck == False:
             infoData = 'message'
@@ -2242,14 +2241,32 @@ def storeObjectToMessage (obj, storageObj, messageName):
     Success
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    assert mc.objExists(obj) is True,"'%s' doesn't exist"%(obj)
+    assert mc.objExists(storageObj) is True,"'%s' doesn't exist"%(storageObj)
+    
     attrCache = (storageObj+'.'+messageName)
+    objLong = mc.ls(obj,long=True)
+    if len(objLong)>1:
+        guiFactory.warning("Can't find long name for storage, found '%s'"%objLong)
+        return False 
+    objLong = objLong[0]
+    
+    storageLong = mc.ls(storageObj,long=True)
+    if len(storageLong)>1:
+        guiFactory.warning("Can't find long name for storage, found '%s'"%storageLong)
+        return False
+    storageLong = storageLong[0]
+        
     try:
         if  mc.objExists (attrCache):
             if queryIfMessage(storageObj,messageName):
-                print (attrCache+' already exists. Adding to existing message node.')
-                doBreakConnection(attrCache)
-                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-                return True                
+                if returnMessageObject(storageObj,messageName) != obj:
+                    guiFactory.report(attrCache+' already exists. Adding to existing message node.')
+                    doBreakConnection(attrCache)
+                    mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                    return True 
+                else:
+                    guiFactory.report("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
             else:
                 connections = returnDrivenAttribute(attrCache)
                 if connections:
