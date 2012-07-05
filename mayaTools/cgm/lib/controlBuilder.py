@@ -263,7 +263,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     buffer = rigging.groupMeObject(rootCurve,True,True)
     grp = ObjectFactory(buffer)
     grp.store('cgmTypeModifier','constraint')
-    grp.name()
+    grp.doName()
     
     return controlsReturn
 
@@ -470,16 +470,16 @@ def createSizeTemplateControl(masterNull):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get info
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    meshGroup = attributes.returnMessageObject(masterNull,'meshGroup')
+    geoGroup = attributes.returnMessageObject(masterNull,'geoGroup')
     centerColors = modules.returnSettingsData('colorCenter',True)
     masterInfoNull = attributes.returnMessageObject(masterNull,'info')
-    meshInfoNull = attributes.returnMessageObject(masterInfoNull,'mesh')
+    geoInfoNull = attributes.returnMessageObject(masterInfoNull,'geo')
     settingsInfoNull  = attributes.returnMessageObject(masterInfoNull,'settings')
     font = mc.getAttr((settingsInfoNull+'.font'))
     
     """ first see if we already have one """
-    meshInfoNull = attributes.returnMessageObject(masterInfoNull,'mesh')
-    templateObjectCheck = attributes.returnMessageObject(meshInfoNull,'sizeTemplateObject')
+    geoInfoNull = attributes.returnMessageObject(masterInfoNull,'geo')
+    templateObjectCheck = attributes.returnMessageObject(geoInfoNull,'sizeTemplateObject')
     if templateObjectCheck != False:
         returnList = []
         childCatch = mc.listRelatives(templateObjectCheck,children = True, type='transform')
@@ -488,19 +488,19 @@ def createSizeTemplateControl(masterNull):
             returnList.append(c)
         return returnList
     
-    """ checks for there being anything in our mesh group """
-    inMeshGroup = mc.listRelatives(meshGroup,children=True,type='transform')
+    """ checks for there being anything in our geo group """
+    inMeshGroup = mc.listRelatives(geoGroup,children=True,type='transform')
     if inMeshGroup == None:
         boundingBoxSize =  modules.returnSettingsDataAsFloat('meshlessSizeTemplate')
     else:
-        boundingBoxSize = distance.returnBoundingBoxSize (meshGroup)
+        boundingBoxSize = distance.returnBoundingBoxSize (geoGroup)
     
     """determine orienation """
     maxSize = max(boundingBoxSize)
     matchIndex = boundingBoxSize.index(maxSize)
     
     """Find the pivot of the bounding box """
-    pivotPosition = distance.returnCenterPivotPosition(meshGroup)
+    pivotPosition = distance.returnCenterPivotPosition(geoGroup)
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # if a vertical object
@@ -1167,20 +1167,20 @@ def createMasterControlFromMasterNull(masterNull):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Get info
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    meshGroup = attributes.returnMessageObject(masterNull,'meshGroup')
+    geoGroup = attributes.returnMessageObject(masterNull,'geoGroup')
     masterColors = modules.returnSettingsData('colorMaster',True)
     masterInfoNull = attributes.returnMessageObject(masterNull,'info')
-    meshInfoNull = attributes.returnMessageObject(masterInfoNull,'mesh')
+    geoInfoNull = attributes.returnMessageObject(masterInfoNull,'geo')
     settingsInfoNull  = attributes.returnMessageObject(masterInfoNull,'settings')
     font = mc.getAttr((settingsInfoNull+'.font'))
 
     
-    """ checks for there being anything in our mesh group """
-    inMeshGroup = mc.listRelatives(meshGroup,children=True,type='transform')
+    """ checks for there being anything in our geo group """
+    inMeshGroup = mc.listRelatives(geoGroup,children=True,type='transform')
     if inMeshGroup == None:
         boundingBoxSize =  modules.returnSettingsDataAsFloat('meshlessSizeTemplate')
     else:
-        boundingBoxSize = distance.returnBoundingBoxSize (meshGroup)
+        boundingBoxSize = distance.returnBoundingBoxSize (geoGroup)
         
     """ Determine our size """
     sizeCheck=[]

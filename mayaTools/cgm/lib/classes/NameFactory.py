@@ -745,7 +745,7 @@ def returnCGMSetting(setting):
     return (dict.get(setting))
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
+def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore='none'):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -787,13 +787,11 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,ignore='none'):
     """ add the iterator to the name dictionary if our object exists"""
     nameFactory = NameFactory(obj)
     
-    if not sceneUnique:
-        iterator = returnFastIterateNumber(obj)
-        if iterator > 0:
-            updatedNamesDict['cgmIterator'] = str(iterator)
-            coreName = doBuildName()
-    else:
-        iterator = returnIterateNumber(obj)
+    if sceneUnique:
+        if fastIterate:
+            iterator = returnFastIterateNumber(obj)            
+        else:
+            iterator = returnIterateNumber(obj)
         if iterator > 0:
             updatedNamesDict['cgmIterator'] = str(iterator)
             coreName = doBuildName()
@@ -993,7 +991,7 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions that do stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doNameObject(obj,sceneUnique = False):
+def doNameObject(obj,sceneUnique = False,fastIterate = True):
     """ 
     Names an object
 
@@ -1009,7 +1007,7 @@ def doNameObject(obj,sceneUnique = False):
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
     assert mc.referenceQuery(obj, isNodeReferenced=True) is not True, "'%s' is referenced, can't name!" %obj
     
-    name = returnUniqueGeneratedName(obj,sceneUnique = sceneUnique)
+    name = returnUniqueGeneratedName(obj,sceneUnique, fastIterate)
     nameFactory = NameFactory(obj)
     
     if nameFactory.amIMe(name):
@@ -1023,14 +1021,14 @@ def doNameObject(obj,sceneUnique = False):
         if shapes:
             for shape in shapes:
                 if not mc.referenceQuery(shape, isNodeReferenced=True):
-                    name = returnUniqueGeneratedName(shape,sceneUnique = sceneUnique)
+                    name = returnUniqueGeneratedName(shape,sceneUnique, fastIterate)
                     mc.rename(shape,name)
     
         return renameBuffer
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def doRenameHeir(obj,sceneUnique = False):
+def doRenameHeir(obj,sceneUnique = False,fastIterate = True):
     """ 
     Names an object's heirarchy below
 
@@ -1070,7 +1068,7 @@ def doRenameHeir(obj,sceneUnique = False):
         objectToName = (attributes.returnMessageObject(tmpGroup,attr))
         mc.progressBar(mayaMainProgressBar, edit=True, status = ("Naming '%s'"%objectToName), step=1)
 
-        buffer =  doNameObject( objectToName,sceneUnique )
+        buffer =  doNameObject( objectToName,sceneUnique,fastIterate )
         if buffer:
             newNames.append(buffer)
             
@@ -1082,7 +1080,7 @@ def doRenameHeir(obj,sceneUnique = False):
     return newNames
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doUpdateName(obj):
+def doUpdateName(obj,*a, **kw):
     """ 
     Updates the name of an object
 
@@ -1106,4 +1104,4 @@ def doUpdateName(obj):
         mc.setAttr(attrName,lock=True)
     else:
         attributes.storeInfo(obj,'cgmName',obj,True)
-    return doNameObject(obj)
+    return doNameObject(obj,*a, **kw)

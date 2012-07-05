@@ -1717,7 +1717,7 @@ class tdToolsClass(BaseMelWindow):
 	                     lambda *a:namingToolsLib.uiNameObject(self,True),
 	                     "Attempts to name an object\n while verifying no scene duplicates")	
 	guiFactory.doButton2(BasicRow,'Unique Name Heirarchy',
-	                     lambda *a:namingToolsLib.doNameHeirarchy(self,True),
+	                     lambda *a:namingToolsLib.doNameHeirarchy(self,True,False),
 	                     "Attempts to intelligently name a  \n heirarchy of objects\n while verifying no scene duplicates")
 
 
