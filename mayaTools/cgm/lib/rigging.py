@@ -160,7 +160,7 @@ def doParentReturnName(obj,parentObj):
     parentChildren = search.returnChildrenObjects(parentObj)
     if parentChildren != None:
         if obj in parentChildren:
-            return False
+            return obj
         else:
             returnBuffer = mc.parent(obj,parentObj)
             return returnBuffer[0]
