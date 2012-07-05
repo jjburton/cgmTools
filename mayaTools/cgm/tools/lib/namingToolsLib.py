@@ -204,7 +204,7 @@ def uiClearTags(self):
 		success = []
 		for obj in selected:
 			try:
-				attributes.deleteAttr(obj,tagToUse)
+				attributes.doDeleteAttr(obj,tagToUse)
 				success.append(obj)
 			except:
 				guiFactory.warning('%s failed to recieve info!' %obj)
@@ -296,7 +296,7 @@ def uiUpdateAutoNameTag(self,tag):
 			
 			
 		else:
-			attributes.deleteAttr(autoNameObject,tag)
+			attributes.doDeleteAttr(autoNameObject,tag)
 			guiFactory.setBGColorState(tagField,'normal')
 			guiFactory.warning('%s purged' %tag)
 			
@@ -402,7 +402,7 @@ def doUpdateObjectName(self):
 		except:
 			guiFactory.warning('Error on naming attempt')
 			
-def doNameHeirarchy(self,sceneUnique):
+def doNameHeirarchy(self,sceneUnique=False,fastIterate=True):
 	selected = mc.ls(sl=True)
 	
 	if not selected:
@@ -411,7 +411,7 @@ def doNameHeirarchy(self,sceneUnique):
 	
 	for obj in selected:
 		try:
-			NameFactory.doRenameHeir(obj,sceneUnique)
+			NameFactory.doRenameHeir(obj,sceneUnique,fastIterate)
 		except:
 			guiFactory.warning('Error on naming attempt')		
 		

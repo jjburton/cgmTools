@@ -325,7 +325,7 @@ def skeletonize(moduleNull, stiffIndex=0):
         for entry in existingSkinJoints:
             attrBuffer = (skinJointsNull+'.'+entry[0])
             print attrBuffer
-            attributes.deleteAttr(skinJointsNull,entry[0])
+            attributes.doDeleteAttr(skinJointsNull,entry[0])
             
     
     for i in range(len(limbJoints)):

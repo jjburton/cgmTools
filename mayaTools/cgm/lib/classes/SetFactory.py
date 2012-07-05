@@ -353,7 +353,7 @@ class SetFactory(object):
                 guiFactory.warning("'%s' failed to store info"%(self.nameShort))  
                 return False
         else:
-            attributes.deleteAttr(self.nameShort,'cgmType')
+            attributes.doDeleteAttr(self.nameShort,'cgmType')
             self.doName()
             guiFactory.warning("'%s' renamed!"%(self.nameShort))  
             return self.nameShort

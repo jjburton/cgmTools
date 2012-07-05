@@ -124,7 +124,7 @@ class go():
         
     def remove(self,attr):
         try:
-            attributes.deleteAttr(self.nameLong,attr)
+            attributes.doDeleteAttr(self.nameLong,attr)
         except:
             guiFactory.warning("'%s.%s' not found"%(self.nameLong,attr))
         

@@ -192,7 +192,7 @@ class BufferFactory(object):
         
         for key in self.bufferDict.keys():
             if self.bufferDict.get(key) == info:
-                attributes.deleteAttr(self.nameLong,key)
+                attributes.doDeleteAttr(self.nameLong,key)
                 self.bufferList.remove(info)
                 self.bufferDict.pop(key)
                 
@@ -223,7 +223,7 @@ class BufferFactory(object):
         userAttrs = mc.listAttr(self.nameLong,userDefined = True)
         for attr in userAttrs:
             if 'item_' in attr:
-                attributes.deleteAttr(self.nameLong,attr)
+                attributes.doDeleteAttr(self.nameLong,attr)
                 guiFactory.warning("Deleted: '%s.%s'"%(self.nameLong,attr))  
                 
         self.bufferList = []

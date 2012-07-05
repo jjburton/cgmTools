@@ -99,7 +99,7 @@ def doPurgeNull(null):
     userAttrsData = attributes.returnUserAttrsToList(null)
     attrsToPurge = lists.removeMatchedIndexEntries(userAttrsData,'cgm')
     for attr in attrsToPurge:
-        attributes.deleteAttr(null,attr[0])
+        attributes.doDeleteAttr(null,attr[0])
         guiFactory.warning("Deleted: '%s.%s'"%(null,attr[0]))    
 
 def purgeCGMAttrsFromObject(obj):
@@ -119,7 +119,7 @@ def purgeCGMAttrsFromObject(obj):
     attrsToPurge = lists.returnMatchedIndexEntries(userAttrsData,'cgm')
     if len(attrsToPurge):
         for attr in attrsToPurge:
-            attributes.deleteAttr(obj,attr[0]) 
+            attributes.doDeleteAttr(obj,attr[0]) 
             guiFactory.warning("Deleted: '%s.%s'"%(obj,attr[0]))
         return True
     else:
@@ -161,11 +161,11 @@ def createMasterNull(characterName='nothingNothing'):
     
     #Create modules container null
     meshGroupBuffer = mc.group (empty=True)
-    attributes.storeInfo(meshGroupBuffer,'cgmName','mesh')   
+    attributes.storeInfo(meshGroupBuffer,'cgmName','geo')   
     attributes.storeInfo(modulesGroupBuffer,'cgmType','group')
     meshGroup = NameFactory.doNameObject(modulesGroupBuffer)
     meshGroup = rigging.doParentReturnName(meshGroup,masterNull)
-    attributes.storeObjectToMessage (meshGroup, masterNull, 'meshGroup')
+    attributes.storeObjectToMessage (meshGroup, masterNull, 'geoGroup')
     
     #Create master info null
     masterInfoNull = createInfoNull('master')
@@ -178,8 +178,8 @@ def createMasterNull(characterName='nothingNothing'):
     modulesInfoNull = rigging.doParentReturnName(modulesInfoNull,masterInfoNull)
     
     #Create mesh info null
-    meshInfoNull = createInfoNull('mesh')
-    attributes.storeObjectToMessage (meshInfoNull, masterInfoNull, 'mesh')
+    meshInfoNull = createInfoNull('geo')
+    attributes.storeObjectToMessage (meshInfoNull, masterInfoNull, 'geo')
     modulesInfoNull = rigging.doParentReturnName(meshInfoNull,masterInfoNull)
     
     #Create global settings info null

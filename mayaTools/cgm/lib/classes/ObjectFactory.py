@@ -156,7 +156,7 @@ class ObjectFactory():
     def remove(self,attr):
         """ Removes an attr from the maya object instanced. """
         try:
-            attributes.deleteAttr(self.nameLong,attr)
+            attributes.doDeleteAttr(self.nameLong,attr)
         except:
             guiFactory.warning("'%s.%s' not found"%(self.nameLong,attr))
 
