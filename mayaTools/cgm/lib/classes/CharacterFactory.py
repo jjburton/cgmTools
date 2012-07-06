@@ -78,7 +78,7 @@ class CharacterFactory():
         self.nameBase = characterName
         self.geo = []
         self.modules = []
-        self.templateSizeObject = {}
+        self.templateSizeObjects = {}
         
         #>>> See if our null exists
         if not self.verifyMasterNull():
@@ -86,6 +86,7 @@ class CharacterFactory():
             return False
         
         self.checkGeo()
+        self.verifyTemplateSizeObject(False)
         guiFactory.report("'%s' checks out"%self.nameBase)
         
     def doRenameMaster(self,newName):
@@ -98,6 +99,7 @@ class CharacterFactory():
         attributes.storeInfo(self.MasterNullName,'cgmName',newName)   
         self.MasterNullName = NameFactory.doNameObject(self.MasterNullName,False) 
         self.nameBase = newName
+        guiFactory.report("Master renamed as '%s'"%newName)
         
         
     def verifyMasterNull(self):
@@ -117,6 +119,7 @@ class CharacterFactory():
                 cnt +=1
                 buffer = random.choice(randomOptions)
             self.nameBase = buffer
+            
         #Master null
         if not mc.objExists(self.nameBase) and not attributes.doGetAttr(self.nameBase,'cgmModuleType') == 'master':
             self.MasterNullName = mc.group(empty=True)
@@ -126,11 +129,7 @@ class CharacterFactory():
         attributes.storeInfo(self.MasterNullName,'cgmName',self.nameBase,True)   
         attributes.storeInfo(self.MasterNullName,'cgmType','ignore')
         attributes.storeInfo(self.MasterNullName,'cgmModuleType','master')
-        
-        if not mc.objExists('%s.%s'%(self.MasterNullName,'cgmModuleMode')):
-            self.aModuleMode = AttrFactory(self.MasterNullName,'cgmModuleMode',value = 0)      
-        self.aModuleMode = AttrFactory(self.MasterNullName,'cgmModuleMode','int')      
-        
+             
         
         if self.MasterNullName != self.nameBase:
             self.MasterNullName = NameFactory.doNameObject(self.MasterNullName,True)
@@ -242,42 +241,31 @@ class CharacterFactory():
         attributes.storeInfo(self.SettingsInfoName ,'cgmName','settings')   
         attributes.storeInfo(self.SettingsInfoName ,'cgmType','info')
         defaultFont = modules.returnSettingsData('defaultTextFont')
-        attributes.storeInfo(self.SettingsInfoName,'font',defaultFont)
+        
         
         if self.SettingsInfoName != buffer:
             self.SettingsInfoName = NameFactory.doNameObject(self.SettingsInfoName,False)
         self.SettingsInfoName = rigging.doParentReturnName(self.SettingsInfoName,self.MasterInfoGroupName)
         
         attributes.storeObjectToMessage (self.SettingsInfoName, self.MasterInfoGroupName, 'settings') 
-
-        mc.select(cl=True)
+        
+        attributes.storeInfo(self.SettingsInfoName,'font',defaultFont)
+        
+        if not mc.objExists('%s.%s'%(self.SettingsInfoName,'cgmModuleMode')):
+            self.aModuleMode = AttrFactory(self.SettingsInfoName,'cgmModuleMode','int',value = 0)      
+        self.aModuleMode = AttrFactory(self.SettingsInfoName,'cgmModuleMode','int')
+        
+        self.aUpAxis= AttrFactory(self.SettingsInfoName,'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-') 
+        self.aUpAxis= AttrFactory(self.SettingsInfoName,'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-') 
+        
+        if not mc.objExists('%s.%s'%(self.SettingsInfoName,'axisAim')):
+            self.aUpAxis= AttrFactory(self.SettingsInfoName,'axisAim','enum',value = 0) 
+            self.aUpAxis.setEnum('xyz:yzx:zxy:xzy:yxz:zyx')
+        self.aUpAxis = AttrFactory(self.SettingsInfoName,'axisAim')
+        
+        if mc.ls(sl=True):
+            mc.select(cl=True)
         return True
-    
-
-    def verifyTemplateSizeObject(self):
-        """ 
-        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        DESCRIPTION:
-        Returns an existing template size object or makes one and returns it
-        
-        ARGUMENTS:
-        masterNull(list)
-        
-        RETURNS:
-        returnList(list) - size object controls
-        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        """
-        templateSizeObject = attributes.returnMessageObject(self.MasterNullName,'templateSizeObject')
-        if not templateSizeObject:
-            buffer = controlBuilder.createSizeTemplateControl(self.MasterNullName)
-            
-        if buffer:
-            self.templateSizeObjects['root'] = templateSizeObject
-            self.templateSizeObjects['bottom'] = attributes.returnMessageObject(templateSizeObject,'controlBottom')
-            self.templateSizeObjects['top'] = attributes.returnMessageObject(templateSizeObject,'controlTop')
-            return templateSizeObjects
-        else:
-            return controlBuilder.createSizeTemplateControl(masterNull)    
         
     def addGeo(self):
         """ 
@@ -317,6 +305,209 @@ class CharacterFactory():
     def doSetMode(self,i):
         assert i <(len(CharacterTypes)),"%i isn't a viable base pupppet type"
         self.aModuleMode.set(i)
+        
+    def verifyTemplateSizeObject(self,create = False):
+        """ 
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        DESCRIPTION:
+        Returns an existing template size object or makes one and returns it
+        
+        ARGUMENTS:
+        masterNull(list)
+        
+        RETURNS:
+        returnList(list) - size object controls
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """
+        templateSizeObject = attributes.returnMessageObject(self.MasterNullName,'templateSizeObject')
+        if not mc.objExists(templateSizeObject) and create:
+            self.createSizeTemplateControl()
+            guiFactory.report("'%s' has template object '%s'"%(self.MasterNullName,templateSizeObject))
+            return True
+        elif templateSizeObject:
+            self.templateSizeObjects['root'] = templateSizeObject
+            self.templateSizeObjects['start'] = attributes.returnMessageObject(templateSizeObject,'controlStart')
+            self.templateSizeObjects['end'] = attributes.returnMessageObject(templateSizeObject,'controlEnd')
+            for key in self.templateSizeObjects.keys():
+                if not self.templateSizeObjects[key]:
+                    #self.templateSizeObjects = {}
+                    guiFactory.warning("'%s' didn't check out. Rebuildling..."%(key))
+                    try:
+                        mc.delete(templateSizeObject)
+                        self.createSizeTemplateControl()
+                    except:
+                        guiFactory.warning("Rebuild failed")                        
+                    return False
+            guiFactory.report("'%s' has template object '%s'"%(self.MasterNullName,templateSizeObject))
+            return True
+            
+        guiFactory.warning("Size template failed to verify")
+        return False
+        
+    def createSizeTemplateControl(self):
+        """ 
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+        DESCRIPTION:
+        Generates a sizeTemplateObject. It's been deleted, it recreates it. Guess the size based off of there
+        being a mesh there. If there is no mesh, it sets sets an intial size of a 
+        [155,170,29] unit character.
+        
+        ARGUMENTS:
+        self.MasterNullName(string)
+        
+        RETURNS:
+        returnList(list) = [startCrv(string),EndCrv(list)]
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Get info
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        centerColors = modules.returnSettingsData('colorCenter',True)
+        font = mc.getAttr((self.SettingsInfoName+'.font'))
+        
+        """ checks for there being anything in our geo group """
+        if not self.geo:
+            return guiFactory.warning('Need some geo defined to make this tool worthwhile')
+            boundingBoxSize =  modules.returnSettingsDataAsFloat('meshlessSizeTemplate')
+        else:
+            boundingBoxSize = distance.returnBoundingBoxSize (self.GeoGroupName)
+            boundingBox = mc.exactWorldBoundingBox(self.GeoGroupName)
+            
+        
+        """determine orienation """
+        maxSize = max(boundingBoxSize)
+        matchIndex = boundingBoxSize.index(maxSize)
+        
+        """Find the pivot of the bounding box """
+        pivotPosition = distance.returnCenterPivotPosition(self.GeoGroupName)
+        
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Get our positions
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        print self.aModuleMode.value
+        if self.aModuleMode.value == 0:
+            #If bio...
+            if matchIndex == 1 or matchIndex == 0:
+                #Vertical
+                posBuffers = [[0,.5,0],[0,.75,0]]
+                width = (boundingBoxSize[0]/2)
+                height = (boundingBoxSize[1])
+                depth = boundingBoxSize[2]
+                
+                for cnt,pos in enumerate(posBuffers):
+                    posBuffer = posBuffers[cnt]
+                    posBuffer[0] = 0
+                    posBuffer[1] = (posBuffer[1] * height)
+                    posBuffer[2] = 0
+                    
+            elif matchIndex == 2:
+                #Horizontal
+                posBuffers = [[0,0,-.33],[0,0,.66]]
+                width = boundingBoxSize[1]
+                height = boundingBoxSize[2]/2
+                depth = (boundingBoxSize[0])
+                
+                for cnt,pos in enumerate(posBuffers):
+                    posBuffer = posBuffers[cnt]
+                    posBuffer[0] = 0
+                    posBuffer[1] = boundingBoxSize[1] * .75
+                    posBuffer[2] = (posBuffer[2] * height)
+                          
+        else:
+            #Otherwise 
+            if matchIndex == 1 or matchIndex == 0:
+                #Vertical
+                width = (boundingBoxSize[0]/2)
+                height = (boundingBoxSize[1])
+                depth = boundingBoxSize[2]                
+                posBuffers = [[0,boundingBox[1],0],[0,boundingBox[4],0]]
+
+            elif matchIndex == 2:
+                #Horizontal
+                width = boundingBoxSize[0]
+                height = boundingBoxSize[2]/2
+                depth = (boundingBoxSize[1])
+                startHeight = max([boundingBox[4],boundingBox[1]]) - depth/2
+                print startHeight
+                posBuffers = [[0,startHeight,boundingBox[2]],[0,startHeight,boundingBox[5]]]
+                    
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Making the controls
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>       
+        """ make our control object """
+        startCurves = []
+        startCurve = curves.createControlCurve('circle',depth*.8)
+        mc.xform(startCurve,t=posBuffers[0],ws=True)
+        attributes.doSetAttr(startCurve,'rotateOrder',5)
+        curves.setCurveColorByName(startCurve,centerColors[1])
+        startCurves.append(startCurve)
+        
+        startText = curves.createTextCurve('start',size=depth*.75,font=font)
+        mc.xform(startText,t=posBuffers[0],ws=True)
+        curves.setCurveColorByName(startText,centerColors[0])
+        startCurves.append(startText)
+        
+        endCurves = []
+        endCurve = curves.createControlCurve('circle',depth*.8)
+        mc.xform(endCurve,t=posBuffers[1],ws=True)
+        curves.setCurveColorByName(endCurve,centerColors[1])
+        attributes.doSetAttr(endCurve,'rotateOrder',5)        
+        endCurves.append(endCurve)
+        
+        endText = curves.createTextCurve('end',size=depth*.6,font=font)
+        mc.xform(endText,t=posBuffers[1],ws=True)
+        curves.setCurveColorByName(endText,centerColors[0])
+        endCurves.append(endText)
+        
+        """ aiming """
+        position.aimSnap(startCurve,endCurve,[0,0,1],[0,1,0])
+        position.aimSnap(startText,endCurve,[0,0,1],[0,1,0])
+        
+        position.aimSnap(endCurve,startCurve,[0,0,-1],[0,1,0])
+        position.aimSnap(endText,startCurve,[0,0,-1],[0,1,0])
+            
+        sizeCurveControlStart = curves.combineCurves(startCurves)
+        sizeCurveControlEnd = curves.combineCurves(endCurves)
+        """ store our info to name our objects"""
+        attributes.storeInfo(sizeCurveControlStart,'cgmName',(self.MasterNullName+'.cgmName'))
+        attributes.storeInfo(sizeCurveControlStart,'cgmDirection','start')
+        attributes.storeInfo(sizeCurveControlStart,'cgmType','templateSizeObject')
+        sizeCurveControlStart = NameFactory.doNameObject(sizeCurveControlStart)
+        mc.makeIdentity(sizeCurveControlStart, apply = True, t=True,s=True,r=True)
+    
+        attributes.storeInfo(sizeCurveControlEnd,'cgmName',(self.MasterNullName+'.cgmName'))
+        attributes.storeInfo(sizeCurveControlEnd,'cgmDirection','end')
+        attributes.storeInfo(sizeCurveControlEnd,'cgmType','templateSizeObject')
+        sizeCurveControlEnd  = NameFactory.doNameObject(sizeCurveControlEnd)
+        
+        endGroup = rigging.groupMeObject(sizeCurveControlEnd)
+        mc.makeIdentity(sizeCurveControlEnd, apply = True, t=True,s=True,r=True)
+        
+        mc.parentConstraint(sizeCurveControlStart,endGroup,maintainOffset = True)
+        
+        """ make control group """
+        controlGroup = rigging.groupMeObject(sizeCurveControlStart)
+        attributes.storeInfo(controlGroup,'cgmName',(self.MasterNullName+'.cgmName'))
+        attributes.storeInfo(controlGroup,'cgmType','templateSizeObjectGroup')
+        controlGroup = NameFactory.doNameObject(controlGroup)
+
+        
+        endGroup = rigging.doParentReturnName(endGroup,controlGroup)
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Getting data ready
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+        attributes.storeInfo(controlGroup,'controlStart',sizeCurveControlStart)
+        attributes.storeInfo(controlGroup,'controlEnd',sizeCurveControlEnd)        
+        attributes.storeInfo(self.MasterNullName,'templateSizeObject',controlGroup)
+        
+        self.templateSizeObjects['root'] = controlGroup
+        self.templateSizeObjects['start'] = sizeCurveControlStart
+        self.templateSizeObjects['end'] = sizeCurveControlEnd  
+       
+        returnList=[]
+        returnList.append(sizeCurveControlStart)
+        returnList.append(sizeCurveControlEnd)
+        return returnList
 
         
 

@@ -181,7 +181,7 @@ class thingamarigClass(BaseMelWindow):
 	def buildHelpMenu( self, *a ):
 		self.UI_HelpMenu.clear()
 		MelMenuItem( self.UI_HelpMenu, l="Show Help",
-				     cb=self.ShowHelpOption,
+				     cb=self.ShowHelpOptionVar.value,
 				     c= lambda *a: self.do_showHelpToggle())
 		
 		MelMenuItem( self.UI_HelpMenu, l="Print Set Report",
@@ -194,9 +194,8 @@ class thingamarigClass(BaseMelWindow):
 				     c=lambda *a: self.showAbout() )
 
 	def do_showHelpToggle( self):
-		guiFactory.toggleMenuShowState(self.ShowHelpOption,self.helpBlurbs)
-		mc.optionVar( iv=('cgmVar_thingamarigShowHelp', not self.ShowHelpOption))
-		self.ShowHelpOption = mc.optionVar( q='cgmVar_thingamarigShowHelp' )
+		guiFactory.toggleMenuShowState(self.ShowHelpOptionVar.value,self.helpBlurbs)
+		self.ShowHelpOptionVar.toggle()
 
 
 	def showAbout(self):
@@ -271,7 +270,8 @@ class thingamarigClass(BaseMelWindow):
 		self.InitialStateButtonRow = MelHLayout(TopSection, h = 20,vis=False,padding = 5)
 		guiFactory.doButton2(self.InitialStateButtonRow,'Add Geo',
 		                     lambda *a:thingamarigLib.doAddGeo(self))
-		guiFactory.doButton2(self.InitialStateButtonRow,'Build Size Template')
+		guiFactory.doButton2(self.InitialStateButtonRow,'Build Size Template',
+		                     lambda *a:thingamarigLib.doBuildSizeTemplate(self))
 		
 		self.InitialStateButtonRow.layout()
 		
@@ -370,7 +370,7 @@ class thingamarigClass(BaseMelWindow):
 		                         l = " Set buffer options: Set active, select, change name,add,remove,key,purge",
 		                         ut = 'cgmUIInstructionsTemplate',
 		                         al = 'center',
-		                         ww = True,vis = self.ShowHelpOption)
+		                         ww = True,vis = self.ShowHelpOptionVar.value)
 		self.helpBlurbs.extend([self.helpInfo ])
 		
 		VerifyRow = guiFactory.doButton2(MainForm,

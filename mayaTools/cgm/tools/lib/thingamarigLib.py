@@ -23,6 +23,8 @@ from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes import CharacterFactory
+from cgm.lib.classes import AttrFactory
+reload(AttrFactory)
 reload(NameFactory)
 reload(CharacterFactory)
 
@@ -67,7 +69,7 @@ def updatePuppetName(self):
     if self.puppetInstance:
         if varCheck:
             try:
-                self.puppetInstance.doRenameMaster(varCheck)  
+                self.puppetInstance.doRenameMaster(varCheck)
             except:		
                 pass
 			
@@ -88,13 +90,36 @@ def updatePuppetUIReport(self):
     else:
 	buildReport.append('%i modules'%len(self.puppetInstance.modules))
 	
-	
-    buildReport.append('No size template')
+    if not self.puppetInstance.templateSizeObjects:
+	buildReport.append('No size template')
+
     
 
     if buildReport:
 	    self.puppetReport(edit = True, label = ' | '.join(buildReport))
 	    
+    updateHelpUI(self)
+	    
+	    
+def updateHelpUI(self):
+    buildReport = []
+	    
+    if not self.puppetInstance:
+	self.helpInfo(edit=True, label = 'Try adding a Puppet')
+			    
+    #Initial State help
+    if not self.puppetInstance.geo:
+	self.helpInfo(edit=True, label = 'Need some geo')
+	return
+	
+    if not self.puppetInstance.templateSizeObjects:
+	self.helpInfo(edit=True, label = 'Add a size template')
+	return
+    
+    if not self.puppetInstance.modules:
+	self.helpInfo(edit=True, label = 'Need at least one module')
+	return
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Define
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -102,11 +127,14 @@ def doAddGeo(self):
     self.puppetInstance.addGeo()
     updatePuppetUIReport(self)
     
-
 def setPuppetBaseMode(self,i):
     if self.puppetInstance:
 	self.puppetInstance.aModuleMode.set(i)
     self.PuppetModeOptionVar.set(i)
+    
+def doBuildSizeTemplate(self):
+    self.puppetInstance.verifyTemplateSizeObject(True)
+    updatePuppetUIReport(self)
 	
   
 
