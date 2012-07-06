@@ -49,7 +49,7 @@ class AttrFactory():
     """ 
     Initialized a maya attribute as a class obj
     """
-    def __init__(self,objName,attrName,attrType = False,value = None,*a, **kw):
+    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,*a, **kw):
         """ 
         Asserts object's existance and that it has a transform. Then initializes. If 
         an existing attribute name on an object is called and the attribute type is different,it converts it. All functions
@@ -60,13 +60,14 @@ class AttrFactory():
         obj(string) -- must exist in scene
         attrName(string) -- name for an attribute to initialize
         attrType(string) -- must be valid attribute type. If AttrFactory is imported, you can type 'print attrTypesDict'
+        enum(string) -- default enum list to set on call or recall
         value() -- set value on call
         *a, **kw
         
         """
         ### input check
         assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
-        self.form = self.validateRequestedAttrType(attrType)
+        self.form = attributes.validateRequestedAttrType(attrType)
         self.attr = attrName
         
         
@@ -75,14 +76,20 @@ class AttrFactory():
         # If it exists we need to check the type. 
         if mc.objExists('%s.%s'%(self.obj.nameLong,attrName)):
             currentType = mc.getAttr('%s.%s'%(self.obj.nameLong,attrName),type=True)
-            if attrType != currentType and self.form is not False:
+            if not attributes.validateAttrTypeMatch(attrType,currentType) and self.form is not False:
                 self.updateData(*a, **kw)                
                 self.doConvert(attrType)
+                if enum:
+                    try:
+                        self.setEnum(enum)
+                    except:
+                        guiFactory.warning("Failed to set enum value of '%s'"%enum)                
                 self.updateData(*a, **kw)
                 
             else:
                 self.attr = attrName
                 self.form = currentType
+                
         else:
             try:
                 if self.form == False:
@@ -107,7 +114,11 @@ class AttrFactory():
                 
         if value is not None:
             self.set(value)
-        
+        if enum:
+            try:
+                self.setEnum(enum)
+            except:
+                guiFactory.warning("Failed to set enum value of '%s'"%enum)        
         self.updateData(*a, **kw)
         
             
@@ -242,21 +253,6 @@ class AttrFactory():
         """except:
             guiFactory.warning("'%s.%s' failed to convert"%(self.obj.nameLong,self.attr))"""
             
-            
-    def validateRequestedAttrType(self,attrType):
-        """ 
-        Returns if an attr type is valid or not
-        
-        Keyword arguments:
-        attrType(string)        
-        """          
-        aType = False
-        for option in attrTypesDict.keys():
-            if attrType in attrTypesDict.get(option): 
-                aType = option
-                break
-            
-        return aType
     
     def set(self,value,*a, **kw):
         """ 
@@ -273,11 +269,13 @@ class AttrFactory():
                     try:
                         cInstance = AttrFactory(self.obj.nameLong,c)                        
                         attributes.doSetAttr(cInstance.obj.nameLong,cInstance.attr, value, *a, **kw)
+                        self.value = value
                     except:
                         guiFactory.warning("'%s' failed to set"%c)
                         
             else:     
                 attributes.doSetAttr(self.obj.nameLong,self.attr, value, *a, **kw)
+                self.value = value
         
         except:
             guiFactory.warning("'%s.%s' failed to set '%s'"%(self.obj.nameLong,self.attr,value))
