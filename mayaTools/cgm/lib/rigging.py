@@ -148,25 +148,19 @@ def doParentReturnName(obj,parentObj):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Parents the items in a list to eachother heirarchally where list[0] is the root
-
+    Parents an object while returning the new name as a simple string
+    
     ARGUMENTS:
-    objList(list)
+    obj(string)
 
-    RETURNS:
-    Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    parentChildren = search.returnChildrenObjects(parentObj)
-    if parentChildren != None:
-        if obj in parentChildren:
-            return obj
-        else:
-            returnBuffer = mc.parent(obj,parentObj)
-            return returnBuffer[0]
-    else:
+    try:
         returnBuffer = mc.parent(obj,parentObj)
         return returnBuffer[0]
+    except:
+        return obj
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def parentListToHeirarchy(objList):
     """
