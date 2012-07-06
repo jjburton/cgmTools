@@ -583,11 +583,11 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
             if doBreakConnection(obj,attribute):
                 guiFactory.warning("'%s' connection broken"%(attrBuffer))
             
-            if attrType == 'long':
+            if validateRequestedAttrType(attrType) == 'long':
                 mc.setAttr(attrBuffer,int(float(value)), *a, **kw)
-            elif attrType == 'string':
+            elif validateRequestedAttrType(attrType) == 'string':
                 mc.setAttr(attrBuffer,str(value),type = 'string', *a, **kw)
-            elif attrType == 'double':
+            elif validateRequestedAttrType(attrType) == 'double':
                 mc.setAttr(attrBuffer,float(value), *a, **kw)
             else:
                 mc.setAttr(attrBuffer,value, *a, **kw)
@@ -808,9 +808,10 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     Copy attributes from one object to another as well as other options. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
     It will not make toast.
-
+    
     Keywords:
     fromObject(string) - obj with attrs
+    fromAttr(string) - source attribute
     toObject(string) - obj to copy to
     toAttr(string) -- name of the attr to copy to . Default is None which will create an 
                       attribute of the fromAttr name on the toObject if it doesn't exist
@@ -1905,7 +1906,21 @@ def addRotateOrderAttr (obj,name):
     except:
         guiFactory.warning("'%s' failed to add '%s'"%(obj,name))
         
+def addPickAxisAttr(obj,name):
+    """ 
+    Add an axis picker attr
 
+    ARGUMENTS:
+    obj(string) - object to add attributes to
+    name(string) - name of the attr to make
+    """
+    try:
+        mc.addAttr(obj, ln=name, at = 'enum',en = 'x+:y+:z+:x-:y-:z-')
+        mc.setAttr((obj+'.'+name),e = True, keyable = True )
+        return ("%s.%s"%(obj,name))
+    except:
+        guiFactory.warning("'%s' failed to add '%s'"%(obj,name))
+        
 def addAttributesToObj (obj, attributeTypesDict):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
