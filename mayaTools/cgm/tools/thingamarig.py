@@ -21,7 +21,7 @@ __version__ = '0.1.07052012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
-from cgm.lib.classes.CharacterFactory import *
+from cgm.lib.classes.PuppetFactory import *
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -29,7 +29,7 @@ import maya.cmds as mc
 from cgm.tools.lib import (thingamarigLib)
 from cgm.lib import (search,guiFactory,modules)
 
-from cgm.lib import guiFactory
+from cgm.lib import guiFactory,dictionary
 
 reload(thingamarigLib)
 reload(guiFactory)
@@ -137,6 +137,53 @@ class thingamarigClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildPuppetMenu( self, *a ):
 		self.UI_PuppetMenu.clear()
+		
+		#>>> Puppet Options		
+		if self.puppetInstance:		
+			
+			MelMenuItem( self.UI_PuppetMenu,l=('%s'%self.puppetInstance.nameBase),en=False)
+			
+			aimAxisMenu = MelMenuItem( self.UI_PuppetMenu, l='Aim Axis:', subMenu=True)
+			aimAxisMenuCollection = MelRadioMenuCollection()
+			
+			for i,a in enumerate(self.puppetInstance.aAimAxis.enum.split(':')):
+				aimRBState = False
+				if i == self.puppetInstance.aAimAxis.value:
+					aimRBState = True				
+				aimAxisMenuCollection.createButton( aimAxisMenu, l="%s"%a,
+				                                    rb = aimRBState,
+				                                    c= Callback(self.puppetInstance.doSetAimAxis,i))	
+			
+			
+			upAxisMenu = MelMenuItem( self.UI_PuppetMenu, l='Up Axis:', subMenu=True)
+			upAxisMenuCollection = MelRadioMenuCollection()
+			
+			for i,a in enumerate(self.puppetInstance.aUpAxis.enum.split(':')):
+				upRBState = False
+				if i == self.puppetInstance.aUpAxis.value:
+					upRBState = True
+				upAxisMenuCollection.createButton( upAxisMenu, l="%s"%a,
+				                                   rb = upRBState,
+				                                   c= Callback(self.puppetInstance.doSetUpAxis,i))	
+				
+			outAxisMenu = MelMenuItem( self.UI_PuppetMenu, l='Out Axis:', subMenu=True)
+			outAxisMenuCollection = MelRadioMenuCollection()
+			
+			for i,a in enumerate(self.puppetInstance.aOutAxis.enum.split(':')):
+				outRBState = False
+				if i == self.puppetInstance.aOutAxis.value:
+					outRBState = True
+				outAxisMenuCollection.createButton( outAxisMenu, l="%s"%a,
+			                                       rb = outRBState,
+			                                       c= Callback(self.puppetInstance.doSetOutAxis,i))	
+				
+
+
+
+
+			MelMenuItemDiv( self.UI_PuppetMenu )
+		
+		
 		MelMenuItem( self.UI_PuppetMenu, l="New",
 	                 c=lambda *a:thingamarigLib.activatePuppet(self))
 		
@@ -150,7 +197,8 @@ class thingamarigClass(BaseMelWindow):
 					         c= Callback(thingamarigLib.activatePuppet,self,m))		
 		else:
 			MelMenuItem( loadMenu, l="None found")	
-
+			
+			
 		#>>> Reset Options		
 		MelMenuItemDiv( self.UI_PuppetMenu )
 		MelMenuItem( self.UI_PuppetMenu, l="Reload",
@@ -281,7 +329,7 @@ class thingamarigClass(BaseMelWindow):
 		
 		self.InitialStateModeRow = MelHSingleStretchLayout(TopSection,padding = 2,vis=False)	
 		MelSpacer(self.InitialStateModeRow,w=5)				
-		MelLabel(self.InitialStateModeRow,l='Modes')
+		MelLabel(self.InitialStateModeRow,l='Template Modes')
 		Spacer = MelSeparator(self.InitialStateModeRow,w=10)						
 		for i,item in enumerate(CharacterTypes):
 			self.PuppetModeCollectionChoices.append(self.PuppetModeCollection.createButton(self.InitialStateModeRow,label=item,

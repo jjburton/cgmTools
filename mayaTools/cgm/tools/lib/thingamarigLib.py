@@ -22,13 +22,13 @@ from cgm.lib.classes.SetFactory import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes import NameFactory
-from cgm.lib.classes import CharacterFactory
+from cgm.lib.classes import PuppetFactory
 from cgm.lib.classes import AttrFactory
 reload(AttrFactory)
 reload(NameFactory)
-reload(CharacterFactory)
+reload(PuppetFactory)
 
-from cgm.lib.classes.CharacterFactory import *
+from cgm.lib.classes.PuppetFactory import *
 
 
 from cgm.lib import (search,guiFactory,lists,modules)
@@ -40,7 +40,7 @@ reload(guiFactory)
 """
 def activatePuppet(self,name = ''):
     try:
-        self.puppetInstance = CharacterFactory(name)
+        self.puppetInstance = PuppetFactory(name)
     except:
         self.puppetInstance = False
         self.MasterPuppetTF(edit=True, text = '')        
@@ -54,8 +54,8 @@ def activatePuppet(self,name = ''):
     
     self.InitialStateButtonRow(edit = True, vis = True)
     self.InitialStateModeRow(edit = True, vis = True)
-    self.PuppetModeOptionVar.set(self.puppetInstance.aModuleMode.value)
-    mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.aModuleMode.value ]))
+    self.PuppetModeOptionVar.set(self.puppetInstance.aPuppetMode.value)
+    mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.aPuppetMode.value ]))
     
     
     updatePuppetUIReport(self)    
@@ -69,7 +69,7 @@ def updatePuppetName(self):
     if self.puppetInstance:
         if varCheck:
             try:
-                self.puppetInstance.doRenameMaster(varCheck)
+                self.puppetInstance.doRenamePuppet(varCheck)
             except:		
                 pass
 			
@@ -129,7 +129,7 @@ def doAddGeo(self):
     
 def setPuppetBaseMode(self,i):
     if self.puppetInstance:
-	self.puppetInstance.aModuleMode.set(i)
+	self.puppetInstance.aPuppetMode.set(i)
     self.PuppetModeOptionVar.set(i)
     
 def doBuildSizeTemplate(self):
