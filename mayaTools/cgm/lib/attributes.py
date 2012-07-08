@@ -575,7 +575,7 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
     if (mc.objExists(attrBuffer)) == True:
         try:
             attrType = mc.getAttr(attrBuffer,type=True)
-            
+            attrType = validateRequestedAttrType(attrType)
             if mc.getAttr(attrBuffer,lock=True) == True:
                 wasLocked = True
                 mc.setAttr(attrBuffer,lock=False)

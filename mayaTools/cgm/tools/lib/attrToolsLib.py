@@ -859,6 +859,7 @@ def uiDeleteAttr(self,menu):
 	guiFactory.warning("'%s.%s' failed to delete"%(sourceObject,attrToDelete))
 
     #Update the attr menu    
+    updateLoadAttrs(self)
     uiUpdateObjectAttrMenu(self,menu)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
