@@ -49,7 +49,7 @@ class AttrFactory():
     """ 
     Initialized a maya attribute as a class obj
     """
-    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,*a, **kw):
+    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,*a, **kw):
         """ 
         Asserts object's existance and that it has a transform. Then initializes. If 
         an existing attribute name on an object is called and the attribute type is different,it converts it. All functions
@@ -62,6 +62,8 @@ class AttrFactory():
         attrType(string) -- must be valid attribute type. If AttrFactory is imported, you can type 'print attrTypesDict'
         enum(string) -- default enum list to set on call or recall
         value() -- set value on call
+        initialValue() -- only set on creation
+        
         *a, **kw
         
         """
@@ -69,7 +71,7 @@ class AttrFactory():
         assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
         self.form = attributes.validateRequestedAttrType(attrType)
         self.attr = attrName
-        
+        initialCreate = False
         
         self.obj = ObjectFactory(objName)
         
@@ -77,14 +79,7 @@ class AttrFactory():
         if mc.objExists('%s.%s'%(self.obj.nameLong,attrName)):
             currentType = mc.getAttr('%s.%s'%(self.obj.nameLong,attrName),type=True)
             if not attributes.validateAttrTypeMatch(attrType,currentType) and self.form is not False:
-                self.updateData(*a, **kw)                
-                self.doConvert(attrType)
-                if enum:
-                    try:
-                        self.setEnum(enum)
-                    except:
-                        guiFactory.warning("Failed to set enum value of '%s'"%enum)                
-                self.updateData(*a, **kw)
+                self.doConvert(attrType)             
                 
             else:
                 self.attr = attrName
@@ -109,19 +104,30 @@ class AttrFactory():
                     attributes.addBoolAttrToObject(self.obj.nameLong,attrName,*a, **kw)
                 elif self.form == 'message':
                     attributes.addMessageAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
+                else:
+                    guiFactory.warning("'%s' is an unknown form to this class",(self.form))
+                    return False
+                initialCreate = True
+                
             except:
                 guiFactory.warning("'%s.%s' failed to add",(self.obj.nameLong,attrName))
-                
-        if value is not None:
-            self.set(value)
+         
+        self.updateData(*a, **kw)
+       
+            
         if enum:
             try:
                 self.setEnum(enum)
             except:
                 guiFactory.warning("Failed to set enum value of '%s'"%enum)        
-        self.updateData(*a, **kw)
-        
+
+        if initialValue is not None and initialCreate:
+            self.set(initialValue)
             
+        elif value is not None:
+            self.set(value)
+                
+                
         #guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameLong,self.attr,self.value,self.form))
         
 
