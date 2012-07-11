@@ -209,7 +209,7 @@ def createInfoNull(infoType):
     attributes.storeInfo(createBuffer,'cgmName',infoType)
     attributes.storeInfo(createBuffer,'cgmType','infoNull')
     mc.xform (createBuffer, os=True, piv= (0,0,0)) 
-    infoNull = NameFactory.doNameObject(createBuffer)
+    infoNull = NameFactory.doNameObject(createBuffer,True)
     return infoNull
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
