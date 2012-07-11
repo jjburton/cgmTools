@@ -65,6 +65,7 @@ def initializeTemplates():
     mc.textField(dt = 'cgmUITemplate',backgroundColor = [1,1,1],h=20)
     mc.formLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor)    
     mc.textScrollList(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
+    mc.frameLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
 
     # Define our header template
     if mc.uiTemplate( 'cgmUIHeaderTemplate', exists=True ):
@@ -77,6 +78,7 @@ def initializeTemplates():
     mc.rowColumnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
     mc.columnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)  
     mc.textScrollList(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
+    mc.frameLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
 
     # Define our sub template
     if mc.uiTemplate( 'cgmUISubTemplate', exists=True ):
@@ -91,6 +93,7 @@ def initializeTemplates():
     mc.scrollLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
     mc.textField(dt = 'cgmUISubTemplate',backgroundColor = [1,1,1],h=20)
     mc.textScrollList(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
+    mc.frameLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
 
 
     # Define our instructional template
@@ -104,6 +107,7 @@ def initializeTemplates():
     mc.columnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
     mc.textField(dt = 'cgmUIInstructionsTemplate',backgroundColor = [1,1,1],h=20)
     mc.textScrollList(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor) 
+    mc.frameLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor) 
 
     # Define our Reserved
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
@@ -114,12 +118,14 @@ def initializeTemplates():
     mc.rowLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
     mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
     mc.columnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)  
+    mc.frameLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor) 
 
     # Define our Locked
     if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
         mc.deleteUI( 'cgmUILockedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUILockedTemplate')
     mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor, h=20)
+    mc.frameLayout(dt='cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor) 
 
 def resetGuiInstanceOptionVars(optionVarHolder,commandToRun = False):
     if optionVarHolder:
@@ -603,12 +609,18 @@ def doProgressBar(winName,trackedList,statusMessage):
 def report(message):
     print ("# Report: %s #"%message)
     
-def doPrintReportStart():
-    print '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+def doPrintReportStart(label = False):
+    if label and type(label) is str:
+        start = '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> '
+        end = ' - start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+        print "%s%s%s"%(start,label,end)
+        
+    else:
+        print '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
 
 def doPrintReportBreak():
     print '#---------------------------------------------------------------------------'
 
-def doPrintReportEnd():
+def doPrintReportEnd(label = False):
     print '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
 
