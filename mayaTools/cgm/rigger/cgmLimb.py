@@ -60,7 +60,7 @@ class Limb:
         # Initial Checks
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         """ make sure no module with this name exists """
-        modules = modules.returnSceneModules()
+        sceneModules = modules.returnSceneModules()
         moduleNamesInfo = []
         modulesDirectionInfo = []
         modulesModifierInfo = []
@@ -117,7 +117,7 @@ class Limb:
         """ make sure name is unique """
         rawModuleName = NameFactory.returnObjectGeneratedNameDict(createBuffer)
         cnt = 0
-        for module in modules:
+        for module in sceneModules:
             if NameFactory.returnObjectGeneratedNameDict(module,'cgmNameModifier') ==  rawModuleName:
                 cnt +=1
                 print 'yes'
@@ -855,7 +855,7 @@ def masterNullCheck():
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     # Check for a master node
-    masterNulls = modules.returnMasterObjects()
+    masterNulls = modules.returnPuppetObjects()
     if len(masterNulls) == 0:
         return modules.createMasterNull()
     elif len(masterNulls) == 1:
