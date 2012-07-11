@@ -56,7 +56,6 @@ class BufferFactory(object):
         
         if mc.objExists(bufferName):
             self.baseName = search.findRawTagInfo(bufferName,'cgmName')
-            self.bufferType = search.findRawTagInfo(bufferName,'cgmType')
             self.storeNameStrings(bufferName)
             self.updateData()
             
@@ -80,7 +79,6 @@ class BufferFactory(object):
         """ Creates a cgm buffer object """        
         buffer = mc.group(em=True)
         attributes.storeInfo(buffer,'cgmName',self.baseName)
-        attributes.storeInfo(buffer,'cgmType','objectBuffer')
         buffer = NameFactory.doNameObject(buffer,True)
         self.storeNameStrings(buffer)
         
