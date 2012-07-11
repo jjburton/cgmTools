@@ -805,7 +805,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnRawGeneratedName(obj,ignore='none'):
+def returnRawGeneratedName(obj,ignore=[False]):
     """  
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -813,7 +813,7 @@ def returnRawGeneratedName(obj,ignore='none'):
 
     ARGUMENTS:
     obj(string) - object
-    ignore(string) - default is 'none', only culls out cgmtags that are 
+    ignore(list) -  only culls out cgmtags that are 
                      generated via returnCGMOrder() function
 
     RETURNS:
@@ -829,7 +829,7 @@ def returnRawGeneratedName(obj,ignore='none'):
     #>>> Dictionary driven order
     for item in order:
         buffer = rawNamesDict.get(item)
-        if buffer > 0 and buffer != 'ignore':
+        if buffer > 0 and item not in ignore:
             nameBuilder.append(buffer)
     return divider.join(nameBuilder)
 
@@ -878,7 +878,7 @@ def returnCombinedNameFromDict(nameDict):
     return divider.join(nameBuilder)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnObjectGeneratedNameDict(obj,ignore='none'):
+def returnObjectGeneratedNameDict(obj,ignore=[False]):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -904,9 +904,10 @@ def returnObjectGeneratedNameDict(obj,ignore='none'):
     userAttrs = attributes.returnUserAttributes(obj)
     cgmAttrs = lists.returnMatchList(userAttrs,order)
     #>>> Tag ignoring
-    if ignore != 'none':
-        if ignore in order:
-            order.remove(ignore)
+    if ignore:
+        for i in ignore:
+            if i in order:
+                order.remove(i)
 
     #>>> Geting our data
     for tag in order:
