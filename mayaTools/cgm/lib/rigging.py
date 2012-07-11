@@ -155,11 +155,15 @@ def doParentReturnName(obj,parentObj):
 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    try:
-        returnBuffer = mc.parent(obj,parentObj)
-        return returnBuffer[0]
-    except:
+    if parentObj in str(mc.ls(obj,long=True)):
         return obj
+    else:
+        try:
+            returnBuffer = mc.parent(obj,parentObj)
+            return returnBuffer[0]
+        except:
+            return False
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def parentListToHeirarchy(objList):
