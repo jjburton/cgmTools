@@ -292,15 +292,13 @@ def returnTagInfo(obj,tag):
     Success - read data
     Failure - false
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert mc.objExists(obj) is True, "%s doesn't exist" %obj
-    
-    if (mc.objExists('%s%s%s' %(obj,'.',tag))) == True:
+    """   
+    if (mc.objExists('%s.%s' %(obj,tag))) == True:
         messageQuery = (mc.attributeQuery (tag,node=obj,msg=True))
         if messageQuery == True:
             return attributes.returnMessageObject(obj,tag)
         else:
-            infoBuffer = mc.getAttr('%s%s%s' % (obj,'.',tag))
+            infoBuffer = mc.getAttr('%s.%s' % (obj,tag))
             if len(list(infoBuffer)) > 0:
                 return infoBuffer
             else:
