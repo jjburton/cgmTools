@@ -75,7 +75,8 @@ class thingamarigClass(BaseMelWindow):
 		
 		
 		self.setModes = ['<<< All Loaded Sets >>>','<<< Active Sets >>>']
-		self.scenePuppets = modules.returnMasterObjects()		
+		self.scenePuppets = modules.returnPuppetObjects()
+		self.UI_StateRows = {'define':[],'template':[],'skeleton':[],'rig':[]}
 		
 		self.showHelp = False
 		self.helpBlurbs = []
@@ -108,6 +109,14 @@ class thingamarigClass(BaseMelWindow):
 		self.PuppetModeOptionVar = OptionVarFactory('cgmVar_PuppetCreateMode',defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.PuppetModeOptionVar.name)
 		
+		self.PuppetAimOptionVar = OptionVarFactory('cgmVar_PuppetAimAxis',defaultValue = 2)
+		guiFactory.appendOptionVarList(self,self.PuppetAimOptionVar.name)		
+		self.PuppetUpOptionVar = OptionVarFactory('cgmVar_PuppetUpAxis',defaultValue = 1)
+		guiFactory.appendOptionVarList(self,self.PuppetUpOptionVar.name)	
+		self.PuppetOutOptionVar = OptionVarFactory('cgmVar_PuppetOutAxis',defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.PuppetOutOptionVar.name)			
+		
+		
 		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
 		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs',defaultValue = [''])
 		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes',defaultValue = [''])
@@ -138,7 +147,8 @@ class thingamarigClass(BaseMelWindow):
 	def buildPuppetMenu( self, *a ):
 		self.UI_PuppetMenu.clear()
 		
-		#>>> Puppet Options		
+		#>>> Puppet Options	
+		"""
 		if self.puppetInstance:		
 			
 			MelMenuItem( self.UI_PuppetMenu,l=('%s'%self.puppetInstance.nameBase),en=False)
@@ -177,18 +187,18 @@ class thingamarigClass(BaseMelWindow):
 			                                       rb = outRBState,
 			                                       c= Callback(self.puppetInstance.doSetOutAxis,i))	
 				
-
+		
 
 
 
 			MelMenuItemDiv( self.UI_PuppetMenu )
 		
-		
+		"""
 		MelMenuItem( self.UI_PuppetMenu, l="New",
 	                 c=lambda *a:thingamarigLib.activatePuppet(self))
 		
 		#Build load menu
-		self.scenePuppets = modules.returnMasterObjects()		
+		self.scenePuppets = modules.returnPuppetObjects()		
 		loadMenu = MelMenuItem( self.UI_PuppetMenu, l='Pick Puppet:', subMenu=True)
 		
 		if self.scenePuppets:
@@ -312,17 +322,11 @@ class thingamarigClass(BaseMelWindow):
 		MelSpacer(MasterPuppetRow,w=20)
 		
 		MasterPuppetRow.layout()
-		MelSeparator(TopSection,ut='cgmUITemplate',h=5)
+		#MelSeparator(TopSection,ut='cgmUITemplate',h=2)
 		
-		#Initial State Button Row
-		self.InitialStateButtonRow = MelHLayout(TopSection, h = 20,vis=False,padding = 5)
-		guiFactory.doButton2(self.InitialStateButtonRow,'Add Geo',
-		                     lambda *a:thingamarigLib.doAddGeo(self))
-		guiFactory.doButton2(self.InitialStateButtonRow,'Build Size Template',
-		                     lambda *a:thingamarigLib.doBuildSizeTemplate(self))
-		
-		self.InitialStateButtonRow.layout()
-		
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		# Define State Rows
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>		
 		#Initial State Mode Row
 		self.PuppetModeCollection = MelRadioCollection()
 		self.PuppetModeCollectionChoices = []			
@@ -340,6 +344,92 @@ class thingamarigClass(BaseMelWindow):
 		self.InitialStateModeRow.layout()	
 		
 		mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ (self.PuppetModeOptionVar.value) ]))
+		self.UI_StateRows['define'].append(self.InitialStateModeRow)
+		
+		
+		self.AxisFrame = MelFrameLayout(TopSection,label = 'Axis',vis=False,
+		                                collapse=True,
+		                                collapsable=True,
+		                                ut = 'cgmUIHeaderTemplate')
+		self.UI_StateRows['define'].append(self.AxisFrame)
+		MelSeparator(TopSection,style='none',h=5)						
+		
+		#Aim Axis Mode Row
+		self.AimAxisCollection = MelRadioCollection()
+		self.AimAxisCollectionChoices = []			
+		
+		self.AimAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
+		MelSpacer(self.AimAxisRow,w=5)				
+		MelLabel(self.AimAxisRow,l='Aim ')
+		Spacer = MelSeparator(self.AimAxisRow,w=10)						
+		for i,item in enumerate(axisDirections):
+			self.AimAxisCollectionChoices.append(self.AimAxisCollection.createButton(self.AimAxisRow,label=item,
+			                                                                         onCommand = Callback(thingamarigLib.setPuppetAxisAim,self,i)))
+			MelSpacer(self.AimAxisRow,w=3)
+		self.AimAxisRow.setStretchWidget( Spacer )
+		MelSpacer(self.AimAxisRow,w=2)		
+		self.AimAxisRow.layout()	
+		
+		mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
+		
+		#Up Axis Mode Row
+		self.UpAxisCollection = MelRadioCollection()
+		self.UpAxisCollectionChoices = []			
+		
+		self.UpAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
+		MelSpacer(self.UpAxisRow,w=5)				
+		MelLabel(self.UpAxisRow,l='Up ')
+		Spacer = MelSeparator(self.UpAxisRow,w=10)						
+		for i,item in enumerate(axisDirections):
+			self.UpAxisCollectionChoices.append(self.UpAxisCollection.createButton(self.UpAxisRow,label=item,
+			                                                                         onCommand = Callback(thingamarigLib.setPuppetAxisUp,self,i)))
+			MelSpacer(self.UpAxisRow,w=3)
+		self.UpAxisRow.setStretchWidget( Spacer )
+		MelSpacer(self.UpAxisRow,w=2)		
+		self.UpAxisRow.layout()	
+		
+		mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
+		
+		#Out Axis Mode Row
+		self.OutAxisCollection = MelRadioCollection()
+		self.OutAxisCollectionChoices = []			
+		
+		self.OutAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
+		MelSpacer(self.OutAxisRow,w=5)				
+		MelLabel(self.OutAxisRow,l='Out ')
+		Spacer = MelSeparator(self.OutAxisRow,w=10)						
+		for i,item in enumerate(axisDirections):
+			self.OutAxisCollectionChoices.append(self.OutAxisCollection.createButton(self.OutAxisRow,label=item,
+			                                                                         onCommand = Callback(thingamarigLib.setPuppetAxisOut,self,i)))
+			MelSpacer(self.OutAxisRow,w=3)
+		self.OutAxisRow.setStretchWidget( Spacer )
+		MelSpacer(self.OutAxisRow,w=2)		
+		self.OutAxisRow.layout()	
+		
+		mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
+		
+		
+		
+		#Initial State Button Row
+		self.InitialStateButtonRow = MelHLayout(TopSection, h = 20,vis=False,padding = 5)
+		guiFactory.doButton2(self.InitialStateButtonRow,'Add Geo',
+		                     lambda *a:thingamarigLib.doAddGeo(self))
+		guiFactory.doButton2(self.InitialStateButtonRow,'Build Size Template',
+		                     lambda *a:thingamarigLib.doBuildSizeTemplate(self))
+		
+		self.InitialStateButtonRow.layout()
+		self.UI_StateRows['define'].append(self.InitialStateButtonRow)
+		
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		# Individual Set Stuff
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		
+		
+		
+		
+		
+		
+		
 		
 		#>>>  All Sets menu
 		AllSetsRow = MelFormLayout(MainForm,height = 20)
@@ -415,7 +505,8 @@ class thingamarigClass(BaseMelWindow):
 		SetListColumn = MelColumnLayout(SetMasterForm, adj = True, rowSpacing = 3)
 		
 		self.helpInfo = MelLabel(MainForm,
-		                         l = " Set buffer options: Set active, select, change name,add,remove,key,purge",
+		                         h=20,
+		                         l = "Add a Puppet",
 		                         ut = 'cgmUIInstructionsTemplate',
 		                         al = 'center',
 		                         ww = True,vis = self.ShowHelpOptionVar.value)
@@ -447,8 +538,8 @@ class thingamarigClass(BaseMelWindow):
 		               (SetListScroll,"right",0),
 		               (SetListScroll,"left",0),
 		               (SetListScroll,"right",0),				       
-		               (self.helpInfo,"left",0),
-		               (self.helpInfo,"right",0),
+		               (self.helpInfo,"left",8),
+		               (self.helpInfo,"right",8),
 		               (VerifyRow,"left",4),
 		               (VerifyRow,"right",4),		               
 		               (VerifyRow,"bottom",4)],

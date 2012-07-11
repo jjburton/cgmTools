@@ -52,9 +52,16 @@ def activatePuppet(self,name = ''):
     self.MasterPuppetTF(edit=True, text = self.puppetInstance.nameBase)
     self.puppetStateButtonsDict[0](edit=True,en=True)
     
-    self.InitialStateButtonRow(edit = True, vis = True)
-    self.InitialStateModeRow(edit = True, vis = True)
+    for uiItem in self.UI_StateRows['define']:
+	uiItem(edit = True, vis = True)
+	
     self.PuppetModeOptionVar.set(self.puppetInstance.aPuppetMode.value)
+    self.PuppetAimOptionVar.set(self.puppetInstance.aAimAxis.value)
+    self.PuppetUpOptionVar.set(self.puppetInstance.aUpAxis.value)
+    self.PuppetOutOptionVar.set(self.puppetInstance.aOutAxis.value)
+    
+    
+    
     mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.aPuppetMode.value ]))
     
     
@@ -131,6 +138,34 @@ def setPuppetBaseMode(self,i):
     if self.puppetInstance:
 	self.puppetInstance.aPuppetMode.set(i)
     self.PuppetModeOptionVar.set(i)
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Axis
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+def setPuppetAxisAim(self,i):
+    if self.puppetInstance:
+	self.puppetInstance.doSetAimAxis(i)
+	updatePuppetAxisMenus(self)
+    
+def setPuppetAxisUp(self,i):
+    if self.puppetInstance:
+	self.puppetInstance.doSetUpAxis(i)
+	updatePuppetAxisMenus(self)
+    
+def setPuppetAxisOut(self,i):
+    if self.puppetInstance:
+	self.puppetInstance.doSetOutAxis(i)
+	updatePuppetAxisMenus(self)
+    
+def updatePuppetAxisMenus(self):
+    self.PuppetAimOptionVar.set(self.puppetInstance.aAimAxis.value)
+    self.PuppetUpOptionVar.set(self.puppetInstance.aUpAxis.value)
+    self.PuppetOutOptionVar.set(self.puppetInstance.aOutAxis.value)    
+    mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
+    mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
+    mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
+    
+    
+    
     
 def doBuildSizeTemplate(self):
     self.puppetInstance.verifyTemplateSizeObject(True)
