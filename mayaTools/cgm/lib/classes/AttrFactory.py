@@ -71,6 +71,7 @@ class AttrFactory():
         assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
         self.form = attributes.validateRequestedAttrType(attrType)
         self.attr = attrName
+        self.children = False
         initialCreate = False
         
         self.obj = ObjectFactory(objName)
@@ -359,10 +360,12 @@ class AttrFactory():
         try:
             if self.form == 'message':
                 self.obj.store(self.attr,infoToStore)
+                self.value = infoToStore
             elif convertIfNecessary:
                 self.doConvert('message')
                 self.updateData()
                 self.obj.store(self.attr,infoToStore)                
+                self.value = infoToStore
             
         except:
             guiFactory.warning("'%s.%s' failed to store '%s'"%(self.obj.nameLong,self.attr,infoToStore))
