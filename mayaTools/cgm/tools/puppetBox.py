@@ -1,6 +1,6 @@
 #=================================================================================================================================================
 #=================================================================================================================================================
-#	cgm.thingamarig - a part of cgmTools
+#	cgm.puppetBox - a part of cgmTools
 #=================================================================================================================================================
 #=================================================================================================================================================
 #
@@ -21,30 +21,30 @@ __version__ = '0.1.07052012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
-from cgm.lib.classes.PuppetFactory import *
+from cgm.rigger.PuppetFactory import *
 
 import maya.mel as mel
 import maya.cmds as mc
 
-from cgm.tools.lib import (thingamarigLib)
+from cgm.tools.lib import (puppetBoxLib)
 from cgm.lib import (search,guiFactory,modules)
 
 from cgm.lib import guiFactory,dictionary
 
-reload(thingamarigLib)
+reload(puppetBoxLib)
 reload(guiFactory)
 reload(modules)
 
 def run():
-	cgmThingamarigWin = thingamarigClass()
+	cgmPuppetBoxWin = puppetBoxClass()
 		
-class thingamarigClass(BaseMelWindow):
+class puppetBoxClass(BaseMelWindow):
 	from  cgm.lib import guiFactory
 	guiFactory.initializeTemplates()
 	USE_Template = 'cgmUITemplate'
 	
-	WINDOW_NAME = 'cgmThingamarigWindow'
-	WINDOW_TITLE = 'cgm.thingamarig'
+	WINDOW_NAME = 'cgmPuppetBoxWindow'
+	WINDOW_TITLE = 'cgm.puppetBox'
 	DEFAULT_SIZE = 250, 400
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -53,7 +53,7 @@ class thingamarigClass(BaseMelWindow):
 	FORCE_DEFAULT_SIZE = False  #always resets the size of the window when its re-created
 
 	def __init__( self):		
-		self.toolName = 'cgm.thingamarig'
+		self.toolName = 'cgm.puppetBox'
 		self.description = 'This is a series of tools for working with cgm Sets'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
@@ -63,8 +63,10 @@ class thingamarigClass(BaseMelWindow):
 		self.scenePuppets = []
 		self.puppetInstance = False
 		self.puppetStateOptions = ['Define','Template','Skeleton','Rig']
-		self.addModules = ['Spine','Leg','Arm','Limb','Finger','Foot','Neck','Head','Spine']
-				
+		#self.addModules = ['Spine','Leg','Arm','Limb','Finger','Foot','Neck','Head','Spine']
+		self.addModules = ['Segment']
+		self.moduleRows = {}
+		
 		self.setTypes = ['NONE',
 		                 'animation',
 		                 'layout',
@@ -82,11 +84,8 @@ class thingamarigClass(BaseMelWindow):
 		self.helpBlurbs = []
 		self.oldGenBlurbs = []
 		
-		self.objectSets = []
-
 		#Menu
 		self.setupVariables()
-		self.setMode = self.SetToolsModeOptionVar.value		
 		
 		self.UI_PuppetMenu = MelMenu( l='Puppet', pmc=self.buildPuppetMenu)
 		self.UI_AddModulesMenu = MelMenu( l='Add', pmc=self.buildAddModulesMenu)
@@ -96,12 +95,15 @@ class thingamarigClass(BaseMelWindow):
 		self.ShowHelpOption = mc.optionVar( q='cgmVar_AnimToolsShowHelp' )
 		
 		#GUI
-		
+				
+		if self.scenePuppets:
+			puppetBoxLib.activatePuppet(self,self.scenePuppets[0])
+			
 		self.Main_buildLayout(self)
 		
-		if self.scenePuppets:
-			thingamarigLib.activatePuppet(self,self.scenePuppets[0])
-
+		if self.puppetInstance:
+			puppetBoxLib.updateUIPuppet(self)
+			self.updateModulesUI()
 		
 		self.show()
 		
@@ -120,9 +122,9 @@ class thingamarigClass(BaseMelWindow):
 		self.ActiveObjectSetsOptionVar = OptionVarFactory('cgmVar_activeObjectSets',defaultValue = [''])
 		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs',defaultValue = [''])
 		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes',defaultValue = [''])
-		self.SetToolsModeOptionVar = OptionVarFactory('cgmVar_thingamarigMode', defaultValue = 0)
+		self.SetToolsModeOptionVar = OptionVarFactory('cgmVar_puppetBoxMode', defaultValue = 0)
 		self.KeyTypeOptionVar = OptionVarFactory('cgmVar_KeyType', defaultValue = 0)
-		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_thingamarigShowHelp', defaultValue = 0)
+		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_puppetBoxShowHelp', defaultValue = 0)
 		self.MaintainLocalSetGroupOptionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup', defaultValue = 1)
 		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
 		self.HideAnimLayerSetsOptionVar = OptionVarFactory('cgmVar_HideAnimLayerSets', defaultValue = 1)
@@ -140,7 +142,26 @@ class thingamarigClass(BaseMelWindow):
 		guiFactory.appendOptionVarList(self,self.HideAnimLayerSetsOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideMayaSetsOptionVar.name)
 
-		
+	def updateModulesUI(self):
+		#deleteExisting
+		if self.moduleRows:
+			for k in self.moduleRows.keys():
+				mc.deleteUI(self.moduleRows.get(k))
+
+		if self.puppetInstance:
+			self.modulesDict = {}
+			self.activeModulesCBDict = {}		
+			self.moduleRows = {}
+			
+			for i,b in enumerate(self.puppetInstance.ModulesBuffer.bufferList):
+				#Store the info to a dict
+				self.modulesDict[i] = b
+				#s = SetFactory(b)
+
+				#tmpSetRow = MelFormLayout(self.ModuleListColumn,height = 20)
+				self.moduleRows[i] = MelLabel(self.ModuleListColumn,l=b)
+				#Get check box state
+ 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -195,7 +216,7 @@ class thingamarigClass(BaseMelWindow):
 		
 		"""
 		MelMenuItem( self.UI_PuppetMenu, l="New",
-	                 c=lambda *a:thingamarigLib.activatePuppet(self))
+	                 c=lambda *a:puppetBoxLib.activeAndUpdatePuppet(self))
 		
 		#Build load menu
 		self.scenePuppets = modules.returnPuppetObjects()		
@@ -204,7 +225,7 @@ class thingamarigClass(BaseMelWindow):
 		if self.scenePuppets:
 			for i,m in enumerate(self.scenePuppets):
 				MelMenuItem( loadMenu, l="%s"%m,
-					         c= Callback(thingamarigLib.activatePuppet,self,m))		
+					         c= Callback(puppetBoxLib.activeAndUpdatePuppet,self,m))		
 		else:
 			MelMenuItem( loadMenu, l="None found")	
 			
@@ -220,14 +241,13 @@ class thingamarigClass(BaseMelWindow):
 		self.UI_AddModulesMenu.clear()
 		for i,m in enumerate(self.addModules):
 			MelMenuItem( self.UI_AddModulesMenu, l="%s"%m,
-				         c="print '%s'"%m)
+				         c=lambda *a:puppetBoxLib.addModule(self,m))
 
 		MelMenuItemDiv( self.UI_AddModulesMenu )
 		
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
 		
-
 		
 	def reset(self):	
 		Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
@@ -271,16 +291,16 @@ class thingamarigClass(BaseMelWindow):
 		guiFactory.lineBreak()
 		mc.text(label='Version: %s' % self.version)
 		mc.text(label='')
-		guiFactory.doButton('Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonks.com/tools/maya-tools/thingamarig/")')
+		guiFactory.doButton('Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonks.com/tools/maya-tools/puppetBox/")')
 		guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
 		mc.setParent( '..' )
 		mc.showWindow( window )
 
 	def printHelp(self):
-		help(thingamarigLib)
+		help(puppetBoxLib)
 		
 	def printReport(self):
-		thingamarigLib.printReport(self)
+		puppetBoxLib.printReport(self)
 
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -311,7 +331,7 @@ class thingamarigClass(BaseMelWindow):
 		MelSpacer(MasterPuppetRow,w=5)
 		self.MasterPuppetTF = MelTextField(MasterPuppetRow,
 		                                   bgc = [1,1,1],
-		                                   ec = lambda *a:thingamarigLib.updatePuppetName(self))
+		                                   ec = lambda *a:puppetBoxLib.updatePuppetName(self))
 		MasterPuppetRow.setStretchWidget(self.MasterPuppetTF)
 		
 		self.puppetStateButtonsDict = {}
@@ -337,7 +357,7 @@ class thingamarigClass(BaseMelWindow):
 		Spacer = MelSeparator(self.InitialStateModeRow,w=10)						
 		for i,item in enumerate(CharacterTypes):
 			self.PuppetModeCollectionChoices.append(self.PuppetModeCollection.createButton(self.InitialStateModeRow,label=item,
-			                                                                               onCommand = Callback(thingamarigLib.setPuppetBaseMode,self,i)))
+			                                                                               onCommand = Callback(puppetBoxLib.setPuppetBaseMode,self,i)))
 			MelSpacer(self.InitialStateModeRow,w=3)
 		self.InitialStateModeRow.setStretchWidget( Spacer )
 		MelSpacer(self.InitialStateModeRow,w=2)		
@@ -364,7 +384,7 @@ class thingamarigClass(BaseMelWindow):
 		Spacer = MelSeparator(self.AimAxisRow,w=10)						
 		for i,item in enumerate(axisDirections):
 			self.AimAxisCollectionChoices.append(self.AimAxisCollection.createButton(self.AimAxisRow,label=item,
-			                                                                         onCommand = Callback(thingamarigLib.setPuppetAxisAim,self,i)))
+			                                                                         onCommand = Callback(puppetBoxLib.setPuppetAxisAim,self,i)))
 			MelSpacer(self.AimAxisRow,w=3)
 		self.AimAxisRow.setStretchWidget( Spacer )
 		MelSpacer(self.AimAxisRow,w=2)		
@@ -382,7 +402,7 @@ class thingamarigClass(BaseMelWindow):
 		Spacer = MelSeparator(self.UpAxisRow,w=10)						
 		for i,item in enumerate(axisDirections):
 			self.UpAxisCollectionChoices.append(self.UpAxisCollection.createButton(self.UpAxisRow,label=item,
-			                                                                         onCommand = Callback(thingamarigLib.setPuppetAxisUp,self,i)))
+			                                                                         onCommand = Callback(puppetBoxLib.setPuppetAxisUp,self,i)))
 			MelSpacer(self.UpAxisRow,w=3)
 		self.UpAxisRow.setStretchWidget( Spacer )
 		MelSpacer(self.UpAxisRow,w=2)		
@@ -400,7 +420,7 @@ class thingamarigClass(BaseMelWindow):
 		Spacer = MelSeparator(self.OutAxisRow,w=10)						
 		for i,item in enumerate(axisDirections):
 			self.OutAxisCollectionChoices.append(self.OutAxisCollection.createButton(self.OutAxisRow,label=item,
-			                                                                         onCommand = Callback(thingamarigLib.setPuppetAxisOut,self,i)))
+			                                                                         onCommand = Callback(puppetBoxLib.setPuppetAxisOut,self,i)))
 			MelSpacer(self.OutAxisRow,w=3)
 		self.OutAxisRow.setStretchWidget( Spacer )
 		MelSpacer(self.OutAxisRow,w=2)		
@@ -409,100 +429,155 @@ class thingamarigClass(BaseMelWindow):
 		mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
 		
 		
-		
 		#Initial State Button Row
 		self.InitialStateButtonRow = MelHLayout(TopSection, h = 20,vis=False,padding = 5)
 		guiFactory.doButton2(self.InitialStateButtonRow,'Add Geo',
-		                     lambda *a:thingamarigLib.doAddGeo(self))
+		                     lambda *a:puppetBoxLib.doAddGeo(self))
 		guiFactory.doButton2(self.InitialStateButtonRow,'Build Size Template',
-		                     lambda *a:thingamarigLib.doBuildSizeTemplate(self))
+		                     lambda *a:puppetBoxLib.doBuildSizeTemplate(self))
 		
 		self.InitialStateButtonRow.layout()
 		self.UI_StateRows['define'].append(self.InitialStateButtonRow)
 		
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-		# Individual Set Stuff
+		# Multi Module
 		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-		
-		
-		
-		
-		
-		
-		
-		
+
 		#>>>  All Sets menu
-		AllSetsRow = MelFormLayout(MainForm,height = 20)
+		AllModulesRow = MelFormLayout(MainForm,height = 20)
 		activeState = True
 		i = 1
-		if self.objectSets:
-			for b in self.objectSets:
-				if b not in self.ActiveObjectSetsOptionVar.value:
-					activeState = False
-		else:
-			activeState = False
 			
-		tmpActive = MelCheckBox(AllSetsRow,
+		tmpActive = MelCheckBox(AllModulesRow,
 	                            annotation = 'Sets all sets active',
 	                            value = activeState,
-	                            onCommand =  Callback(thingamarigLib.doSetAllSetsAsActive,self),
-	                            offCommand = Callback(thingamarigLib.doSetAllSetsAsInactive,self))
+	                            onCommand =  Callback(puppetBoxLib.doSetAllSetsAsActive,self),
+	                            offCommand = Callback(puppetBoxLib.doSetAllSetsAsInactive,self))
 		
-		tmpSel = guiFactory.doButton2(AllSetsRow,
+		tmpSel = guiFactory.doButton2(AllModulesRow,
 		                              ' s ',
-		                              lambda *a:thingamarigLib.doSelectMultiSets(self,self.SetToolsModeOptionVar.value),
 		                              'Select All Loaded/Active Sets')
 						
 		# Mode toggle box
-		self.SetModeOptionMenu = MelOptionMenu(AllSetsRow,
+		self.ModuleModeOptionMenu = MelOptionMenu(AllModulesRow,
 		                                       cc = modeSet)
-		for o in self.setModes:
-			self.SetModeOptionMenu.append(o)
 			
-		self.SetModeOptionMenu.selectByIdx(self.setMode,False)
 			
-		tmpKey = guiFactory.doButton2(AllSetsRow,
+		tmpKey = guiFactory.doButton2(AllModulesRow,
 	                                  ' k ',
-		                              lambda *a:thingamarigLib.doKeyMultiSets(self,self.SetToolsModeOptionVar.value),
 		                              'Key All Sets')
-		tmpDeleteKey = guiFactory.doButton2(AllSetsRow,
+		tmpDeleteKey = guiFactory.doButton2(AllModulesRow,
 	                                    ' d ',
-		                                lambda *a:thingamarigLib.doDeleteMultiCurrentKeys(self,self.SetToolsModeOptionVar.value),
 	                                    'Delete All Set Keys')	
-		tmpReset = guiFactory.doButton2(AllSetsRow,
+		tmpReset = guiFactory.doButton2(AllModulesRow,
 	                                    ' r ',
-		                                lambda *a:thingamarigLib.doResetMultiSets(self,self.SetToolsModeOptionVar.value),		                                
 	                                    'Reset All Set Keys')	
 		
-		mc.formLayout(AllSetsRow, edit = True,
+		mc.formLayout(AllModulesRow, edit = True,
 	                  af = [(tmpActive, "left", 10),
 	                        (tmpReset,"right",10)],
 	                  ac = [(tmpSel,"left",0,tmpActive),
-	                        (self.SetModeOptionMenu,"left",4,tmpSel),
-	                        (self.SetModeOptionMenu,"right",4,tmpKey),
+	                        (self.ModuleModeOptionMenu,"left",4,tmpSel),
+	                        (self.ModuleModeOptionMenu,"right",4,tmpKey),
 	                        (tmpKey,"right",2,tmpDeleteKey),
 		                    (tmpDeleteKey,"right",2,tmpReset)
 		                    ])
 		
 		#>>> Sets building section
-		allPopUpMenu = MelPopupMenu(self.SetModeOptionMenu ,button = 3)
+		allPopUpMenu = MelPopupMenu(self.ModuleModeOptionMenu ,button = 3)
 		
 		allCategoryMenu = MelMenuItem(allPopUpMenu,
 	                               label = 'Make Type:',
 	                               sm = True)
-		#Mulit set type
-		for n in self.setTypes:
-			MelMenuItem(allCategoryMenu,
-		                label = n,
-		                c = Callback(thingamarigLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n))
-		
-		
+
+			
 		
 		
 		#>>> Sets building section
-		SetListScroll = MelScrollLayout(MainForm,cr = 1, ut = 'cgmUISubTemplate')
-		SetMasterForm = MelFormLayout(SetListScroll)
-		SetListColumn = MelColumnLayout(SetMasterForm, adj = True, rowSpacing = 3)
+		ModuleListScroll = MelScrollLayout(MainForm,cr = 1, ut = 'cgmUISubTemplate')
+		ModuleMasterForm = MelFormLayout(ModuleListScroll)
+		self.ModuleListColumn = MelColumnLayout(ModuleMasterForm, adj = True, rowSpacing = 3)
+		
+		
+		
+		#self.ModulesBuffer.bufferList
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		# Modules
+		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	
+		"""
+		self.modulesDict = {}
+		self.activeModulesCBDict = {}		
+		
+		if self.puppetInstance:	
+			print '>>>>>>>>>>>>>>>>>>>>>>>>>yes'
+			for i,b in enumerate(self.puppetInstance.ModulesBuffer.bufferList):
+				#Store the info to a dict
+				self.modulesDict[i] = b
+				#s = SetFactory(b)
+				
+				#tmpSetRow = MelFormLayout(self.ModuleListColumn,height = 20)
+				MelLabel(self.ModuleListColumn,l=b)
+				#Get check box state
+				activeState = False
+				if b in self.ActiveObjectSetsOptionVar.value:
+					activeState = True
+				
+				tmpActive = MelCheckBox(tmpSetRow,
+					                    annotation = 'Set Module as active',
+					                    value = activeState,
+					                    onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
+					                    offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i))
+				self.activeModulesCBDict[i] = tmpActive
+				
+				tmpSel = guiFactory.doButton2(tmpSetRow,
+					                          ' s ',
+					                          Callback(setToolsLib.doSelectSetObjects,self,i),
+					                          'Select the set objects')
+					
+	
+				tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b,
+					                   en = not s.refState)
+				
+				tmpName(edit = True,
+					    ec = Callback(setToolsLib.doUpdateSetName,self,tmpName,i)	)
+				
+	
+				tmpAdd = guiFactory.doButton2(tmpSetRow,
+					                           '+',
+					                           Callback(setToolsLib.doAddSelected,self,i),
+					                           'Add selected  to the set',
+					                           en = not s.refState)
+				tmpRem= guiFactory.doButton2(tmpSetRow,
+					                         '-',
+					                         Callback(setToolsLib.doRemoveSelected,self,i),
+					                         'Remove selected  to the set',
+					                         en = not s.refState)
+				tmpKey = guiFactory.doButton2(tmpSetRow,
+					                          'k',
+					                          Callback(setToolsLib.doKeySet,self,i),			                              
+					                          'Key set')
+				tmpDeleteKey = guiFactory.doButton2(tmpSetRow,
+					                            'd',
+					                            Callback(setToolsLib.doDeleteCurrentSetKey,self,i),			                              			                                
+					                            'delete set key')	
+				
+				tmpReset = guiFactory.doButton2(tmpSetRow,
+					                            'r',
+					                            Callback(setToolsLib.doResetSet,self,i),			                              			                                
+					                            'Reset Set')
+				mc.formLayout(tmpSetRow, edit = True,
+					          af = [(tmpActive, "left", 4),
+					                (tmpReset,"right",2)],
+					          ac = [(tmpSel,"left",0,tmpActive),
+					                (tmpName,"left",2,tmpSel),
+					                (tmpName,"right",4,tmpAdd),
+					                (tmpAdd,"right",2,tmpRem),
+					                (tmpRem,"right",2,tmpKey),
+					                (tmpKey,"right",2,tmpDeleteKey),
+					                (tmpDeleteKey,"right",2,tmpReset)
+					                ])"""
+		
+		
 		
 		self.helpInfo = MelLabel(MainForm,
 		                         h=20,
@@ -514,14 +589,13 @@ class thingamarigClass(BaseMelWindow):
 		
 		VerifyRow = guiFactory.doButton2(MainForm,
 		                                'Check Puppet',
-		                                lambda *a:thingamarigLib.doCreateSet(self),
 		                                'Create new buffer from selected buffer')	
 			
-		SetMasterForm(edit = True,
-		                 af = [(SetListColumn,"top",0),
-		                       (SetListColumn,"left",0),
-		                       (SetListColumn,"right",0),
-		                       (SetListColumn,"bottom",0)])
+		ModuleMasterForm(edit = True,
+		                 af = [(self.ModuleListColumn,"top",0),
+		                       (self.ModuleListColumn,"left",0),
+		                       (self.ModuleListColumn,"right",0),
+		                       (self.ModuleListColumn,"bottom",0)])
 		
 		
 	
@@ -532,20 +606,20 @@ class thingamarigClass(BaseMelWindow):
 		         af = [(TopSection,"top",0),	
 		               (TopSection,"left",0),
 		               (TopSection,"right",0),		               
-		               (AllSetsRow,"left",0),
-		               (AllSetsRow,"right",0),
-		               (SetListScroll,"left",0),
-		               (SetListScroll,"right",0),
-		               (SetListScroll,"left",0),
-		               (SetListScroll,"right",0),				       
+		               (AllModulesRow,"left",0),
+		               (AllModulesRow,"right",0),
+		               (ModuleListScroll,"left",0),
+		               (ModuleListScroll,"right",0),
+		               (ModuleListScroll,"left",0),
+		               (ModuleListScroll,"right",0),				       
 		               (self.helpInfo,"left",8),
 		               (self.helpInfo,"right",8),
 		               (VerifyRow,"left",4),
 		               (VerifyRow,"right",4),		               
 		               (VerifyRow,"bottom",4)],
-		         ac = [(AllSetsRow,"top",2,TopSection),
-		               (SetListScroll,"top",2,AllSetsRow),
-		               (SetListScroll,"bottom",0,self.helpInfo),
+		         ac = [(AllModulesRow,"top",2,TopSection),
+		               (ModuleListScroll,"top",2,AllModulesRow),
+		               (ModuleListScroll,"bottom",0,self.helpInfo),
 		               (self.helpInfo,"bottom",0,VerifyRow)],
 		         attachNone = [(VerifyRow,"top")])	
 		

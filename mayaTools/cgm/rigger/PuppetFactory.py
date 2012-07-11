@@ -94,8 +94,7 @@ class PuppetFactory():
         self.verifyTemplateSizeObject(False)
         guiFactory.report("'%s' checks out"%self.nameBase)
         guiFactory.doPrintReportEnd()
-        
-
+                
     def verifyPuppetNull(self):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -298,13 +297,23 @@ class PuppetFactory():
         if mc.ls(sl=True):
             mc.select(cl=True)
         return True
+
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Modules
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def getModules(self):
+        self.modules = {}
+        if self.ModulesBuffer.bufferList:
+            for k in self.ModulesBuffer.bufferDict.keys():
+                pass
+                #self.modules[k] = 
     
     def addModule(self,moduleName,*a,**kw):
         tmpModule = ModuleFactory(moduleName)
         
         self.ModulesBuffer.store(tmpModule.moduleNull)
         moduleNullBuffer = rigging.doParentReturnName(tmpModule.moduleNull,self.ModulesGroupName)
-        
         
         
     def verifyTemplateSizeObject(self,create = False):

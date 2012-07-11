@@ -23,7 +23,9 @@ from cgm.lib import (modules,
 reload(modules)
 reload(rigging)
 
-InfoNullsNames = ['templatePosObjects',
+InfoNullsNames = ['setupOptions',
+                  'templatePosObjects',
+                  'visibilityOptions',
                   'templateControlObjects',
                   'coreNames',
                   'templateStarterData',
@@ -49,6 +51,14 @@ class ModuleFactory:
         """
         self.moduleNull = False
         self.infoNulls = {}
+        self.parentTagDict = {}
+        if mc.objExists(moduleParent):
+            self.parentTagDict = NameFactory.returnObjectGeneratedNameDict(moduleParent, ignore = ['cgmName','cgmIterator','cgmTypeModifier','cgmType'])
+        
+        self.callTags = {'cgmPosition':position, 
+                         'cgmDirection':direction, 
+                         'cgmDirectionModifier':directionModifier,
+                         'cgmNameModifier':nameModifier}
         
         if mc.objExists(moduleName):
             #Make a name dict to check
@@ -77,17 +87,19 @@ class ModuleFactory:
             self.position = position
             self.moduleParent = moduleParent
             self.typeModifier = False
-            
-        guiFactory.doPrintReportStart(self.nameBase)
-            
+                        
         if not self.verifyModuleNull():
             guiFactory.warning("'%s' failed to verify!"%moduleName)
             return
                 
-        guiFactory.report("'%s' checks out"%self.moduleNull)
-        guiFactory.doPrintReportEnd()
         
     def generateNameDict(self):
+        """
+        Generate a name dict to test if anything with that 'would be' name exists.
+        
+        Returns
+        returnDict(dict)
+        """
         returnDict = {}
         returnDict['cgmName']=self.nameBase
         returnDict['cgmNameModifier']= self.nameModifier                         
@@ -99,7 +111,11 @@ class ModuleFactory:
         
         return returnDict
         
-    def verifyModuleNull(self):  
+    def verifyModuleNull(self):
+        """
+        Verifies the integrity of the base module class null. Repairing and restoring broken connections or deleted items.
+        """
+        
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Nulls creation
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -113,30 +129,20 @@ class ModuleFactory:
         if not self.moduleNull:
             self.moduleNull = mc.group(empty=True)
             
+        #Initialize the module parent attr
+        self.aModuleParent = AttrFactory(self.moduleNull,'moduleParent','message',self.moduleParent)
+
         #Naming stuff           
         attributes.storeInfo(self.moduleNull,'cgmName',self.nameBase,True)   
         attributes.storeInfo(self.moduleNull,'cgmType','module')
         attributes.storeInfo(self.moduleNull,'moduleType','None')
         
-        if mc.objExists(self.moduleParent):
-            attributes.storeInfo(self.moduleNull,'moduleParent',self.moduleParent)
-        else:
-            attributes.storeInfo(self.moduleNull,'moduleParent',False)
-            
-        if self.nameModifier:
-            attributes.storeInfo(self.moduleNull,'cgmNameModifier',self.nameModifier)    
-
-        if self.direction:
-            attributes.storeInfo(self.moduleNull,'cgmDirection',self.direction)
-        """    
-        elif self.moduleParent and parentDirection:
-            attributes.storeInfo(self.moduleNull,'cgmDirection',(self.moduleParent+'.cgmDirection'))
-            
-        if self.position:
-            attributes.storeInfo(self.moduleNull,'cgmPosition',self.position,True)            
-        elif self.moduleParent and parentPosition:
-            attributes.storeInfo(self.moduleNull,'cgmPosition',(self.moduleParent+'.cgmPosition'))
-            """
+        #Store any naming tags from the init call
+        for k in self.callTags.keys():
+            if self.callTags.get(k):
+                attributes.storeInfo(self.moduleNull,k,self.callTags.get(k),True)
+            elif k in self.parentTagDict.keys():
+                attributes.storeInfo(self.moduleNull,k,'%s.%s.'%(self.aModuleParent.value,k))                    
             
         self.moduleNull = NameFactory.doNameObject(self.moduleNull,True)
         mc.xform (self.moduleNull, os=True, piv= (0,0,0)) 
@@ -208,74 +214,13 @@ class ModuleFactory:
 
         return True
     
-    def doConnectToPuppet(self,puppet):
-        
-        """Get our modules group, parents our part null there and connects it to the info null"""
-        modulesGroup = attributes.returnMessageObject(masterNull,'modulesGroup')
-        modulesInfoNull = modules.returnInfoTypeNull(masterNull,'modules')
-        
-        attributes.storeObjectToMessage (moduleNull, modulesInfoNull, (NameFactory.returnUniqueGeneratedName(moduleNull,ignore='cgmType')))
-        
-        """ parenting of the modules group if necessary"""
-        moduleNullBuffer = rigging.doParentReturnName(moduleNull,modulesGroup)
-        if moduleNullBuffer == False:
-            moduleNull = moduleNull
+    def setModuleParent(self,moduleParent):
+        if search.returnTagInfo(moduleParent,'cgmType') == 'module':
+            self.moduleParent = moduleParent
+            self.aModuleParent = AttrFactory(self.moduleNull,'moduleParent','message',self.moduleParent)
         else:
-            moduleNull = moduleNullBuffer
+            guiFactory.warning("'%s' isn't tagged as a module."%moduleParent)
 
-    def oldStuffasdf(self):
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Initial Checks
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        """ get directional info from parent if there is any """
-        parentDirection = search.returnTagInfo(self.moduleParent,'cgmDirection')
-        if parentDirection != False:
-            self.direction = parentDirection
-        parentPosition = search.returnTagInfo(self.moduleParent,'cgmPosition')
-        if parentPosition != False:
-            self.position = parentPosition    
+
+                
             
-            
-        #>>> Parent Module
-        if self.moduleParent == None:
-            attributes.storeInfo(self.moduleNull,'moduleParent',masterNull)
-        else:
-            attributes.storeInfo(self.moduleNull,'moduleParent',self.moduleParent)
-            
-            
-            
-    def limbSpecificStuff(self):
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Variable setup
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>                
-        """Setting the variables"""        
-        templateDataToStore = ['fk', 'ik' , 'stretch', 'bend','rollJoints','stiffIndex','curveDegree']
-        name = self.name
-        self.fk = 0
-        self.ik = 0
-        self.stretch = 0
-        self.bend = 0
-        self.templateAttrs = {'fk' : 0, 'ik' : 0 , 'stretch' : 0, 'visOrientHelpers':1, 'visControlHelpers':1, 'bend' : 0, 'rollJoints' : self.rollJoints, 'handles' : self.handles, 'stiffIndex': self.stiffIndex,'curveDegree':self.curveDegree}
-        self.templateAttrTypes = {'fk' : 'bool', 'ik' : 'bool' , 'stretch' : 'bool', 'visOrientHelpers':'bool','visControlHelpers':'bool', 'bend' : 'bool', 'rollJoints' : 'long', 'handles' : 'long', 'stiffIndex':'long','curveDegree':'long'}
-        cnt = 0     
-        
-        
-        
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Subclasses
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-class Segment(Module):
-    def __init__(self, moduleParent = None, name ='segment', handles = 3, position = 'None', direction = 'None', nameModifier = 'None'):
-        self.partType = 'segment'
-        self.stiffIndex = 0
-        self.curveDegree = 1
-        self.rollJoints = 3
-        self.direction = direction
-        self.position = position
-        self.nameModifier = nameModifier
-        self.moduleParent = moduleParent
-        self.handles = handles
-        self.name = name
-        
-        
-        Limb.__init__(self)

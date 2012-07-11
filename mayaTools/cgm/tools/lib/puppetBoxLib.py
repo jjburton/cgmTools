@@ -9,9 +9,6 @@
 #	http://www.cgmonks.com
 # 	Copyright 2012 CG Monks - All Rights Reserved.
 #
-# CHANGELOG:
-#	0.1.06192012 - FIrst release version, documentation added
-#
 #=================================================================================================================================================
 import maya.cmds as mc
 import maya.mel as mel
@@ -22,13 +19,15 @@ from cgm.lib.classes.SetFactory import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes import NameFactory
-from cgm.lib.classes import PuppetFactory
+from cgm.rigger import PuppetFactory
 from cgm.lib.classes import AttrFactory
+
 reload(AttrFactory)
 reload(NameFactory)
 reload(PuppetFactory)
 
-from cgm.lib.classes.PuppetFactory import *
+from cgm.rigger.PuppetFactory import *
+from cgm.rigger.lib.Limb.module import *
 
 
 from cgm.lib import (search,guiFactory,lists,modules)
@@ -43,10 +42,20 @@ def activatePuppet(self,name = ''):
         self.puppetInstance = PuppetFactory(name)
     except:
         self.puppetInstance = False
-        self.MasterPuppetTF(edit=True, text = '')        
         guiFactory.warning("'%s' failed to initialize"%name)
 
+    
+def updateUIPuppet(self):
     if not self.puppetInstance:
+        self.MasterPuppetTF(edit=True, text = '') 
+	
+	for uiItem in self.UI_StateRows['define']:
+	    uiItem(edit = True, vis = False)	
+	    
+	self.puppetStateButtonsDict[0](edit=True,en=False)
+	
+	updatePuppetUIReport(self) 
+	
         return
     
     self.MasterPuppetTF(edit=True, text = self.puppetInstance.nameBase)
@@ -60,12 +69,15 @@ def activatePuppet(self,name = ''):
     self.PuppetUpOptionVar.set(self.puppetInstance.aUpAxis.value)
     self.PuppetOutOptionVar.set(self.puppetInstance.aOutAxis.value)
     
-    
-    
     mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.aPuppetMode.value ]))
     
+    updatePuppetUIReport(self) 
     
-    updatePuppetUIReport(self)    
+def activeAndUpdatePuppet(self, name = ''):
+    activatePuppet(self,name)
+    updateUIPuppet(self)
+    self.updateModulesUI()
+     
 
 def updatePuppetName(self):
     """ 
@@ -92,10 +104,10 @@ def updatePuppetUIReport(self):
     else:
 	buildReport.append('%i geo items'%len(self.puppetInstance.geo))
     
-    if not self.puppetInstance.modules:
+    if not self.puppetInstance.ModulesBuffer.bufferList:
 	buildReport.append('0 modules')
     else:
-	buildReport.append('%i modules'%len(self.puppetInstance.modules))
+	buildReport.append('%i modules'%len(self.puppetInstance.ModulesBuffer.bufferList))
 	
     if not self.puppetInstance.templateSizeObjects:
 	buildReport.append('No size template')
@@ -164,8 +176,16 @@ def updatePuppetAxisMenus(self):
     mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
     mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
     
-    
-    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Modules
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+def addModule(self,moduleType):
+    if self.puppetInstance:
+	if moduleType == 'Segment':
+	    a = Segment()
+	    self.puppetInstance.addModule(a.moduleNull)
+	
+	
     
 def doBuildSizeTemplate(self):
     self.puppetInstance.verifyTemplateSizeObject(True)

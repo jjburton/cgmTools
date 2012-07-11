@@ -245,10 +245,10 @@ def loadSetTools( *a ):
 	reload(setTools)
 	cgmSetToolsWin = setTools.run()	
 	
-def loadThingamarig( *a ):
-	from cgm.tools import thingamarig
-	reload(thingamarig)
-	cgmThingamarigWin = thingamarig.run()		
+def loadPuppetBox( *a ):
+	from cgm.tools import puppetBox
+	reload(puppetBox)
+	cgmPuppetBoxWin = puppetBox.run()		
 	
 def loadPolyUniteTool( *a ):
 	from cgm.tools import polyUniteTool
@@ -332,8 +332,8 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
               
               ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
                         purgeCGMOptionVars),  
-                       ('cgm.Thingamarig', " WIP - Modular Rigger",
-                                          loadThingamarig)
+                       ('cgm.PuppetBox', " WIP - Modular Rigger",
+                                          loadPuppetBox)
                        
                        ))
 
