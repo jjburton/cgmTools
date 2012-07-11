@@ -16,6 +16,8 @@
 import maya.cmds as mc
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes.AttrFactory import *
+from cgm.lib.classes.ModuleFactory import *
+from cgm.lib.classes.BufferFactory import *
 
 import random
 import re
@@ -57,7 +59,7 @@ typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFil
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
 
-axisDirections = 'x+','y+','z+,','x-','y-','z-'
+axisDirections = ['x+','y+','z+','x-','y-','z-']
 geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 CharacterTypes = 'Bio','Mech','Prop'
 
@@ -81,6 +83,8 @@ class PuppetFactory():
         self.modules = []
         self.templateSizeObjects = {}
         
+        guiFactory.doPrintReportStart()
+        
         #>>> See if our null exists
         if not self.verifyPuppetNull():
             guiFactory.warning("'%s' failed to verify!"%characterName)
@@ -89,6 +93,7 @@ class PuppetFactory():
         self.checkGeo()
         self.verifyTemplateSizeObject(False)
         guiFactory.report("'%s' checks out"%self.nameBase)
+        guiFactory.doPrintReportEnd()
         
 
     def verifyPuppetNull(self):
@@ -146,6 +151,7 @@ class PuppetFactory():
             attributes.storeObjectToMessage (self.ModulesGroupName, self.PuppetNullName, 'modulesGroup')
             
             attributes.doSetLockHideKeyableAttr(self.ModulesGroupName)
+
         except:
             guiFactory.warning("modules container failed!")
             
@@ -230,6 +236,10 @@ class PuppetFactory():
             attributes.storeObjectToMessage (self.ModulesInfoName, self.PuppetInfoGroupName, 'modules') 
             
             attributes.doSetLockHideKeyableAttr(self.ModulesInfoName)
+            
+            #Initialize our modules null as a buffer
+            self.ModulesBuffer = BufferFactory(self.ModulesInfoName)
+            
         except:
             guiFactory.warning("Modules info null failed!")
             
@@ -288,6 +298,14 @@ class PuppetFactory():
         if mc.ls(sl=True):
             mc.select(cl=True)
         return True
+    
+    def addModule(self,moduleName,*a,**kw):
+        tmpModule = ModuleFactory(moduleName)
+        
+        self.ModulesBuffer.store(tmpModule.moduleNull)
+        moduleNullBuffer = rigging.doParentReturnName(tmpModule.moduleNull,self.ModulesGroupName)
+        
+        
         
     def verifyTemplateSizeObject(self,create = False):
         """ 
@@ -537,27 +555,64 @@ class PuppetFactory():
     def doSetMode(self,i):
         assert i <(len(CharacterTypes)),"%i isn't a viable base pupppet type"%i
         self.aPuppetMode.set(i)
-        
-    def doSetUpAxis(self,i):
-        assert i < 6,"%i isn't a viable up axis integer"%i
-        assert i != self.aAimAxis.value,"'%s's aim axis is already %i"%(self.nameBase,i)
-        assert i != self.aOutAxis.value,"'%s's out axis is already %i"%(self.nameBase,i)
-        
-        self.aUpAxis.set(i)
-        
+
     def doSetAimAxis(self,i):
+        """
+        Set the aim axis. if up or out have that axis. They will be changed. Aim is the priority.
+        Then Up, and Out is last.
+        
+        """
         assert i < 6,"%i isn't a viable aim axis integer"%i
-        assert i != self.aUpAxis.value,"'%s's up axis is already %i"%(self.nameBase,i)
-        assert i != self.aOutAxis.value,"'%s'' out axis is already %i"%(self.nameBase,i)
         
         self.aAimAxis.set(i)
+        if self.aUpAxis.value == self.aAimAxis.value:
+            self.doSetUpAxis(i)
+        if self.aOutAxis.value == self.aAimAxis.value:
+            self.doSetOutAxis(i)
+            
+        return True
+        
+    def doSetUpAxis(self,i):
+        """
+        Set the aim axis. if up or out have that axis. They will be changed. Aim is the priority.
+        Then Up, and Out is last.
+        
+        """        
+        assert i < 6,"%i isn't a viable up axis integer"%i
+        axisBuffer = range(6)
+        axisBuffer.remove(self.aAimAxis.value)
+        
+        if i != self.aAimAxis.value:
+            self.aUpAxis.set(i)  
+        else:
+            self.aUpAxis.set(axisBuffer[0]) 
+            guiFactory.warning("Aim axis has '%s'. Changed up axis to '%s'. Change aim setting if you want this seeting"%(axisDirections[self.aAimAxis.value],axisDirections[self.aUpAxis.value]))                  
+            axisBuffer.remove(axisBuffer[0])
+            
+        if self.aOutAxis.value in [self.aAimAxis.value,self.aUpAxis.value]:
+            for i in axisBuffer:
+                if i not in [self.aAimAxis.value,self.aUpAxis.value]:
+                    self.doSetOutAxis(i)
+                    guiFactory.warning("Setting conflict. Changed out axis to '%s'"%axisDirections[i])                    
+                    break
+        return True        
+        
+    
+
         
     def doSetOutAxis(self,i):
         assert i < 6,"%i isn't a viable aim axis integer"%i
-        assert i != self.aUpAxis.value,"'%s's up axis is already %i"%(self.nameBase,i)
-        assert i != self.aAimAxis.value,"'%s's aim axis is already %i"%(self.nameBase,i)
         
-        self.aOutAxis.set(i)
+        if i not in [self.aAimAxis.value,self.aUpAxis.value]:
+            self.aOutAxis.set(i)
+        else:
+            axisBuffer = range(6)
+            axisBuffer.remove(self.aAimAxis.value)
+            axisBuffer.remove(self.aUpAxis.value)
+            self.aOutAxis.set(axisBuffer[0]) 
+            guiFactory.warning("Setting conflict. Changed out axis to '%s'"%axisDirections[ axisBuffer[0] ])                    
+
+
         
     def doRenamePuppet(self,newName):
         """
