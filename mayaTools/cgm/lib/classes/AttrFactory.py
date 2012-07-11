@@ -106,12 +106,12 @@ class AttrFactory():
                 elif self.form == 'message':
                     attributes.addMessageAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
                 else:
-                    guiFactory.warning("'%s' is an unknown form to this class",(self.form))
+                    guiFactory.warning("'%s' is an unknown form to this class"%(self.form))
                     return False
                 initialCreate = True
                 
             except:
-                guiFactory.warning("'%s.%s' failed to add",(self.obj.nameLong,attrName))
+                guiFactory.warning("'%s.%s' failed to add"%(self.obj.nameLong,attrName))
          
         self.updateData(*a, **kw)
        
@@ -221,6 +221,8 @@ class AttrFactory():
         Keyword arguments:
         attrType(string)        
         """
+        self.updateData()
+        
         if self.children:
             return guiFactory.warning("'%s' has children, can't convert"%self.nameCombined)
         keyable = copy.copy(self.keyable)
@@ -280,7 +282,10 @@ class AttrFactory():
                     except:
                         guiFactory.warning("'%s' failed to set"%c)
                         
-            else:     
+            elif self.form == 'message':
+                if value:
+                    self.doStore(value)
+            else:
                 attributes.doSetAttr(self.obj.nameLong,self.attr, value, *a, **kw)
                 self.value = value
         
