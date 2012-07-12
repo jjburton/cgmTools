@@ -80,6 +80,8 @@ class AttrFactory():
         if mc.objExists('%s.%s'%(self.obj.nameLong,attrName)):
             currentType = mc.getAttr('%s.%s'%(self.obj.nameLong,attrName),type=True)
             if not attributes.validateAttrTypeMatch(attrType,currentType) and self.form is not False:
+                if self.obj.refState:
+                    return guiFactory.warning("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.nameShort,attrName,attrType))                   
                 self.doConvert(attrType)             
                 
             else:
@@ -222,7 +224,9 @@ class AttrFactory():
         attrType(string)        
         """
         self.updateData()
-        
+        if self.obj.refState:
+            return guiFactory.warning("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.nameShort,self.attr,attrType))                           
+
         if self.children:
             return guiFactory.warning("'%s' has children, can't convert"%self.nameCombined)
         keyable = copy.copy(self.keyable)

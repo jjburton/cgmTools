@@ -54,16 +54,9 @@ class ObjectFactory():
         ### input check
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
 
-        self.cgmName = ''
-        self.cgmNameModifier = ''
-        self.cgmPosition = ''
-        self.cgmDirectionModifier = ''
-        self.cgmDirection = ''
-        self.cgmIterator = ''
-        self.cgmTypeModifier = ''
-        self.cgmType  = ''
         self.parent = False
         self.children = False
+        self.cgm = {}
         self.mType = ''
 
         self.update(obj)
@@ -71,18 +64,27 @@ class ObjectFactory():
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def isRef(self):
+        if mc.referenceQuery(self.nameLong, isNodeReferenced=True):
+            self.refState = True
+            self.refPrefix = search.returnReferencePrefix(self.nameShort)
+            return
+        self.refState = False
+        self.refPrefix = None
+	
     def getCGMNameTags(self):
         """
         Get the cgm name tags of an object.
         """
-        self.cgmName = search.findRawTagInfo(self.nameLong,'cgmName')
-        self.cgmNameModifier =  search.findRawTagInfo(self.nameLong,'cgmNameModifier')
-        self.cgmPosition =  search.findRawTagInfo(self.nameLong,'cgmPosition')
-        self.cgmDirectionModifier =  search.findRawTagInfo(self.nameLong,'cgmDirectionModifier')
-        self.cgmDirection =  search.findRawTagInfo(self.nameLong,'cgmDirection')
-        self.cgmIterator =  search.findRawTagInfo(self.nameLong,'cgmIterator')
-        self.cgmTypeModifier =  search.findRawTagInfo(self.nameLong,'cgmTypeModifier')
-        self.cgmType  =  search.findRawTagInfo(self.nameLong,'cgmType')
+	self.cgm['cgmName'] = search.findRawTagInfo(self.nameLong,'cgmName')
+	self.cgm['cgmNameModifier'] =  search.findRawTagInfo(self.nameLong,'cgmNameModifier')
+	self.cgm['cgmPosition'] =  search.findRawTagInfo(self.nameLong,'cgmPosition')
+	self.cgm['cgmDirectionModifier'] =  search.findRawTagInfo(self.nameLong,'cgmDirectionModifier')
+	self.cgm['cgmDirection'] =  search.findRawTagInfo(self.nameLong,'cgmDirection')
+	self.cgm['cgmIterator'] =  search.findRawTagInfo(self.nameLong,'cgmIterator')
+	self.cgm['cgmTypeModifier'] =  search.findRawTagInfo(self.nameLong,'cgmTypeModifier')
+	self.cgm['cgmType'] =  search.findRawTagInfo(self.nameLong,'cgmType')
+		
 
     def getAttrs(self):
         """ Stores the dictionary of userAttrs of an object."""
@@ -95,7 +97,6 @@ class ObjectFactory():
 	for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
 	    if mc.objExists(self.nameLong+'.'+attr):
 		self.transformAttrs.append(attr)
-
 
     def getType(self):
         """ get the type of the object """
@@ -141,7 +142,14 @@ class ObjectFactory():
 	    self.getType()
 	    self.getFamily()
 	    self.getCGMNameTags()
-	    self.getAttrs() 
+	    #self.getAttrs() 
+	    self.isRef()
+	    
+	    self.transformAttrs = []
+	    for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
+		if mc.objExists(self.nameLong+'.'+attr):
+		    self.transformAttrs.append(attr)
+	    
 	    return True
 	except:
 	    return False
@@ -155,6 +163,8 @@ class ObjectFactory():
 
     def remove(self,attr):
         """ Removes an attr from the maya object instanced. """
+        if self.refState:
+            return guiFactory.warning("'%s' is referenced. Cannot delete attrs"%self.nameShort)    	
         try:
             attributes.doDeleteAttr(self.nameLong,attr)
         except:
@@ -200,7 +210,10 @@ class ObjectFactory():
         Keyword arguments:
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
         
-        """            
+        """       
+        if self.refState:
+            return guiFactory.warning("'%s' is referenced. Cannot change name"%self.nameShort)
+	
         buffer = NameFactory.doNameObject(self.nameLong,sceneUnique)
         if buffer:
             self.update(buffer)
