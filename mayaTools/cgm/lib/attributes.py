@@ -479,7 +479,9 @@ def doGetAttr(obj,attr,*a, **kw):
     attrInfo(varies)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    if mc.objExists(obj+'.'+attr):
+    if not mc.objExists(obj+'.'+attr):
+        return False
+    else:
         attrType = mc.getAttr((obj+'.'+attr),type=True)
         objAttributes =(mc.listAttr (obj))
         messageBuffer = []
@@ -488,6 +490,8 @@ def doGetAttr(obj,attr,*a, **kw):
             query = (mc.listConnections(obj+'.'+attr))
             if not query == None:
                 return query[0]
+            else:
+                return False
         else:
             return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
         """
@@ -504,8 +508,7 @@ def doGetAttr(obj,attr,*a, **kw):
         else:
             return (mc.getAttr((obj+'.'+attr)))
         """
-    else:
-        return False
+
 
 
 
