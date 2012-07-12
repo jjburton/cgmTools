@@ -57,6 +57,13 @@ typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFil
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
 
+
+defaultSettings = {'partType':'none',
+                   'stiffIndex':0,
+                   'curveDegree':1,
+                   'rollJoints':3,
+                   'handles':3 }
+
 """ 1 """
 class Limb(ModuleFactory):
     """
@@ -70,8 +77,15 @@ class Limb(ModuleFactory):
         ModuleFactory.__init__(self,*a,**kw)
         
         #Then check the subclass specific stuff
-        if not self.verifyLimbModule():
-            guiFactory.warning("'%s' failed to verify!"%self.moduleNull)
+        if not self.refState:
+            if not self.verifyLimbModule():
+                guiFactory.warning("'%s' failed to verify!"%self.moduleNull)
+                return False
+        else:
+            guiFactory.report("'%s' Referenced. Cannot verify, initializing Limb module."%self.moduleNull)
+            if not self.initializeLimbModule():
+                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%moduleName)
+                return False
             
         guiFactory.report("'%s' checks out"%self.moduleNull)
         guiFactory.doPrintReportEnd()
@@ -81,7 +95,13 @@ class Limb(ModuleFactory):
         Verifies the integrity of the Limb module. Repairing and restoring broken connections or deleted items.
         """        
         #Initialize all of our options
-        self.aModuleType = AttrFactory(self.moduleNull,'moduleType','string',value = self.partType)
+        for k in defaultSettings.keys():
+            try:
+                self.__dict__[k]
+            except:
+                self.__dict__[k] = defaultSettings[k]
+            
+        self.aModuleType = AttrFactory(self.moduleNull,'moduleType','string',value= self.partType)
         
         if self.infoNulls['setupOptions']:
             null = self.infoNulls['setupOptions'].value
@@ -102,6 +122,41 @@ class Limb(ModuleFactory):
             self.aVisControlHelpers = AttrFactory(null,'visControlHelpers','bool',initialValue=0)
                     
         return True
+    
+    def initializeLimbModule(self):
+        """
+        Verifies the integrity of the Limb module. Repairing and restoring broken connections or deleted items.
+        """        
+        #Initialize all of our options
+        self.aModuleType = AttrFactory(self.moduleNull,'moduleType')
+        
+        LimbSettingAttrs ={'fk':'bool',
+                    'ik':'bool',
+                    'stretchy':'bool',
+                    'bendy':'bool',
+                    'handles':'int',
+                    'rollJoints':'int',
+                    'stiffIndex':'int',
+                    'curveDegree':'int'}
+        
+        if self.infoNulls['setupOptions']:
+            null = self.infoNulls['setupOptions'].value
+            self.aFK = AttrFactory(null,'fk')
+            self.aIK = AttrFactory(null,'ik')
+            self.aStretchy = AttrFactory(null,'stretchy')
+            self.aBendy = AttrFactory(null,'bendy')
+            
+            self.aHandles = AttrFactory(null,'handles')
+            self.aRollJoints = AttrFactory(null,'rollJoints')
+            self.aStiffIndex= AttrFactory(null,'stiffIndex')
+            self.aCurveDegree= AttrFactory(null,'curveDegree')
+            
+        if self.infoNulls['visibilityOptions']:
+            null = self.infoNulls['visibilityOptions'].value
+            self.aVisOrientHelpers = AttrFactory(null,'visOrientHelpers')
+            self.aVisControlHelpers = AttrFactory(null,'visControlHelpers')
+                    
+        return True
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -116,6 +171,6 @@ class Segment(Limb):
         self.handles = handles
         
         
-        Limb.__init__(self,moduleName,moduleParent,position,direction,directionModifier,nameModifier*a,**kw)
+        Limb.__init__(self,moduleName,moduleParent,position,direction,directionModifier,nameModifier,*a,**kw)
         
         
