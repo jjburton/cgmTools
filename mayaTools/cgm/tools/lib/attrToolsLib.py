@@ -202,6 +202,7 @@ def uiLoadSourceObject(self,selectAttr = False):
 	    
 		
 	# Put the object in the field
+	self.SourceObject.getAttrs()
 	self.SourceObjectField(e=True, text = self.SourceObjectOptionVar.value )	    
 	self.ManagerSourceObjectField(e=True, text = self.SourceObjectOptionVar.value )	    
 
