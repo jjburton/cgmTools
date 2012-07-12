@@ -147,7 +147,7 @@ class puppetBoxClass(BaseMelWindow):
 		if self.moduleRows:
 			for k in self.moduleRows.keys():
 				mc.deleteUI(self.moduleRows.get(k))
-
+						
 		if self.puppetInstance:
 			self.modulesDict = {}
 			self.activeModulesCBDict = {}		
@@ -159,7 +159,19 @@ class puppetBoxClass(BaseMelWindow):
 				#s = SetFactory(b)
 
 				#tmpSetRow = MelFormLayout(self.ModuleListColumn,height = 20)
-				self.moduleRows[i] = MelLabel(self.ModuleListColumn,l=b)
+				# NEED to get colors
+				
+				#Build label for Frame
+				buffer = [b]
+				#buffer.append()
+				
+				self.moduleRows[i] = MelFrameLayout(self.ModuleListColumn,l=b,
+				                                    collapse=True,
+				                                    collapsable=True,
+				                                    bgc = [0.971679, 1, 0])
+				
+				MelLabel(self.moduleRows[i],l='asfasfasdfasdfasdf')
+				
 				#Get check box state
  
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

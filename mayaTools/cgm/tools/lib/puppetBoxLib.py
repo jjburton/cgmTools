@@ -55,7 +55,7 @@ def updateUIPuppet(self):
 	self.puppetStateButtonsDict[0](edit=True,en=False)
 	
 	updatePuppetUIReport(self) 
-	
+	self.updateModulesUI()
         return
     
     self.MasterPuppetTF(edit=True, text = self.puppetInstance.nameBase)
@@ -72,6 +72,7 @@ def updateUIPuppet(self):
     mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.aPuppetMode.value ]))
     
     updatePuppetUIReport(self) 
+    self.updateModulesUI()
     
 def activeAndUpdatePuppet(self, name = ''):
     activatePuppet(self,name)
