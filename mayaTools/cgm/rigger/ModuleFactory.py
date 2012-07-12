@@ -52,6 +52,9 @@ class ModuleFactory:
         self.moduleNull = False
         self.infoNulls = {}
         self.parentTagDict = {}
+        self.refPrefix = None
+        self.refState = False
+        
         if mc.objExists(moduleParent):
             self.parentTagDict = NameFactory.returnObjectGeneratedNameDict(moduleParent, ignore = ['cgmName','cgmIterator','cgmTypeModifier','cgmType'])
         
@@ -72,11 +75,12 @@ class ModuleFactory:
                 self.moduleParent = attributes.doGetAttr(moduleName,'moduleParent')
                 
                 self.moduleNull = moduleName
-                guiFactory.report("'%s' exists. Verifying..."%moduleName)
+                self.isRef()
+                guiFactory.report("'%s' exists. Checking..."%moduleName)
 
             else:
                 guiFactory.warning("'%s' isn't a cgm module. Can't initialize"%moduleName)
-                return
+                return False
                     
         else:
             #Set some variables
@@ -88,10 +92,24 @@ class ModuleFactory:
             self.moduleParent = moduleParent
             self.typeModifier = False
                         
-        if not self.verifyModuleNull():
-            guiFactory.warning("'%s' failed to verify!"%moduleName)
-            return
+        if not self.refState:
+            if not self.verifyModule():
+                guiFactory.warning("'%s' failed to verify!"%moduleName)
+                return False
+        else:
+            guiFactory.report("'%s' Referenced. Cannot verify, initializing..."%moduleName)
+            if not self.initializeModule():
+                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%moduleName)
+                return False
+
                 
+    def isRef(self):
+        if mc.referenceQuery(self.moduleNull, isNodeReferenced=True):
+            self.refState = True
+            self.refPrefix = search.returnReferencePrefix(self.moduleNull)
+            return
+        self.refState = False
+        self.refPrefix = None
         
     def generateNameDict(self):
         """
@@ -111,7 +129,7 @@ class ModuleFactory:
         
         return returnDict
         
-    def verifyModuleNull(self):
+    def verifyModule(self):
         """
         Verifies the integrity of the base module class null. Repairing and restoring broken connections or deleted items.
         """
@@ -211,6 +229,62 @@ class ModuleFactory:
                         
             else:
                 guiFactory.warning("'%s' has failed to initialize"%k)
+
+        return True
+    
+    def initializeModule(self):
+        """
+        Only initialized the data. References default to this. 
+        """
+        
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Nulls creation
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+        #need a check to see if it exists from specfic name call
+        assert mc.objExists(self.moduleNull),"'%s' doens't exist"%self.moduleNull
+            
+        #Initialize the module parent attr
+        self.aModuleParent = AttrFactory(self.moduleNull,'moduleParent')
+
+        #Verfiy vital attributes on module Null
+        for a in 'moduleType','cgmType':
+            if not mc.objExists("%s.%s"%(self.moduleNull,a)):
+                guiFactory("'%s.%s' missing. Initialization Aborted!"%(self.moduleNull,a))
+                return False                
+                    
+        self.aTemplateState = AttrFactory(self.moduleNull,'templateState')
+        self.aRigState = AttrFactory(self.moduleNull,'rigState')
+        self.aSkeletonState = AttrFactory(self.moduleNull,'skeletonState')
+            
+
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Main Nulls
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>         
+        self.aRigNull = AttrFactory(self.moduleNull,'rigNull')
+        self.aTemplateNull = AttrFactory(self.moduleNull,'templateNull')
+        self.aInfoNull = AttrFactory(self.moduleNull,'info')
+        
+        for null in [self.aRigNull, self.aTemplateNull,self.aInfoNull]:
+            if null.form != 'message':
+                guiFactory("'%s' isn't a message. Initialization Aborted!"%(null.nameCombined))                
+                return False
+            if not mc.objExists(null.value):
+                guiFactory("'%s' has no connection. Initialization Aborted!"%(null.nameCombined))                                
+                return False
+            
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Info Nulls
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+        for k in InfoNullsNames:
+            self.infoNulls[k] = AttrFactory(self.aInfoNull.value,k)
+            if self.infoNulls[k].form != 'message':
+                guiFactory("'%s' isn't a message. Initialization Aborted!"%(self.infoNulls[k].nameCombined))                
+                return False            
+            
+            if not self.infoNulls[k].value:
+                guiFactory.report("'%s' not found. Initialization Aborted!"%k)
+                return False
+                
 
         return True
     
