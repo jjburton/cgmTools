@@ -63,7 +63,7 @@ class SetFactory(object):
         self.setType = ''
         self.setList = []
         self.qssState = qssState
-        self.refPrefix = ''
+        self.refPrefix = None
         self.refState = False
         
         if mc.objExists(setName):
@@ -128,6 +128,7 @@ class SetFactory(object):
             self.refPrefix = search.returnReferencePrefix(self.nameLong)
             return
         self.refState = False
+        self.refPrefix = None
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
