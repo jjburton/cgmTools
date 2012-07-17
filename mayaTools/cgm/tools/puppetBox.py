@@ -27,11 +27,12 @@ import maya.mel as mel
 import maya.cmds as mc
 
 from cgm.tools.lib import (puppetBoxLib)
-from cgm.lib import (search,guiFactory,modules)
+from cgm.lib import (search,guiFactory,modules,dictionary)
 
 from cgm.lib import guiFactory,dictionary
 
 reload(puppetBoxLib)
+reload(dictionary)
 reload(guiFactory)
 reload(modules)
 
@@ -65,7 +66,7 @@ class puppetBoxClass(BaseMelWindow):
 		self.puppetStateOptions = ['Define','Template','Skeleton','Rig']
 		#self.addModules = ['Spine','Leg','Arm','Limb','Finger','Foot','Neck','Head','Spine']
 		self.addModules = ['Segment']
-		self.moduleRows = {}
+		self.moduleFrames = {}
 		
 		self.setTypes = ['NONE',
 		                 'animation',
@@ -144,14 +145,14 @@ class puppetBoxClass(BaseMelWindow):
 
 	def updateModulesUI(self):
 		#deleteExisting
-		if self.moduleRows:
-			for k in self.moduleRows.keys():
-				mc.deleteUI(self.moduleRows.get(k))
+		if self.moduleFrames:
+			for k in self.moduleFrames.keys():
+				mc.deleteUI(self.moduleFrames.get(k))
 						
 		if self.puppetInstance:
 			self.modulesDict = {}
 			self.activeModulesCBDict = {}		
-			self.moduleRows = {}
+			self.moduleFrames = {}
 			
 			for i,b in enumerate(self.puppetInstance.ModulesBuffer.bufferList):
 				"""
@@ -173,22 +174,64 @@ class puppetBoxClass(BaseMelWindow):
 				# NEED to get colors
 				
 				#Build label for Frame
-				buffer = [b]
-				#buffer.append()
+				buffer = ["'%s'"%b]
+				if not self.puppetInstance.Module[i].moduleParent:
+					buffer.append( "I'm a root")
 				
-				self.moduleRows[i] = MelFrameLayout(self.ModuleListColumn,l=b,
+				self.moduleFrames[i] = MelFrameLayout(self.ModuleListColumn,l=' | '.join(buffer),
 				                                    collapse=True,
 				                                    collapsable=True,
-				                                    bgc = [0.971679, 1, 0])
+				                                    bgc = dictionary.returnGuiDirectionColor('center'))
 				
-				MelLabel(self.moduleRows[i],l='asfasfasdfasdfasdf')
+				MelLabel(self.moduleFrames[i],l='asfasfasdfasdfasdf',
+				         bgc = dictionary.returnGuiDirectionColor('centerSub'))
+				
+				
+				
+				
+				
+				
 				
 				#PopUp Menu!
-				popUpMenu = MelPopupMenu(self.moduleRows[i],button = 3)
+				popUpMenu = MelPopupMenu(self.moduleFrames[i],button = 3)
 				MelMenuItem(popUpMenu,
-				            label = "<<<%s>>>"%b,
+				            label = "Type - %s"%self.puppetInstance.Module[i].afModuleType.value,
 				            enable = False)
+				#Parent/MIrror
+				MelMenuItem(popUpMenu,
+				            label = "Set Parent>",
+				            enable = False)
+				MelMenuItem(popUpMenu,
+				            label = "Set Mirror>",
+				            enable = False)	
 				
+				
+				MelMenuItem(popUpMenu,
+				            label = 'FK',
+				            cb = self.puppetInstance.Module[i].optionFK.value,
+				            c = lambda *a:self.puppetInstance.Module[i].optionFK.set(not self.puppetInstance.Module[i].optionFK.value ))
+				MelMenuItem(popUpMenu,
+				            label = 'IK',
+				            cb = self.puppetInstance.Module[i].optionIK.value,
+				            c = lambda *a:self.puppetInstance.Module[i].optionIK.set(not self.puppetInstance.Module[i].optionIK.value ))
+				MelMenuItem(popUpMenu,
+				            label = 'Stretchy',
+				            cb = self.puppetInstance.Module[i].optionStretchy.value,
+				            c = lambda *a:self.puppetInstance.Module[i].optionStretchy.set(not self.puppetInstance.Module[i].optionStretchy.value ))
+				MelMenuItem(popUpMenu,
+				            label = 'Bendy',
+				            cb = self.puppetInstance.Module[i].optionBendy.value,
+				            c = lambda *a:self.puppetInstance.Module[i].optionBendy.set(not self.puppetInstance.Module[i].optionBendy.value ))
+				
+				
+				MelMenuItemDiv(popUpMenu)
+				MelMenuItem(popUpMenu ,
+					        label = 'Remove',
+					        c = Callback(puppetBoxLib.doRemoveModule,self,i))
+				
+				MelMenuItem(popUpMenu ,
+					        label = 'Delete',
+					        c = Callback(puppetBoxLib.doDeleteModule,self,i))			
 				
 				#Get check box state
  
@@ -199,52 +242,6 @@ class puppetBoxClass(BaseMelWindow):
 		self.UI_PuppetMenu.clear()
 		
 		#>>> Puppet Options	
-		"""
-		if self.puppetInstance:		
-			
-			MelMenuItem( self.UI_PuppetMenu,l=('%s'%self.puppetInstance.nameBase),en=False)
-			
-			aimAxisMenu = MelMenuItem( self.UI_PuppetMenu, l='Aim Axis:', subMenu=True)
-			aimAxisMenuCollection = MelRadioMenuCollection()
-			
-			for i,a in enumerate(self.puppetInstance.aAimAxis.enum.split(':')):
-				aimRBState = False
-				if i == self.puppetInstance.aAimAxis.value:
-					aimRBState = True				
-				aimAxisMenuCollection.createButton( aimAxisMenu, l="%s"%a,
-				                                    rb = aimRBState,
-				                                    c= Callback(self.puppetInstance.doSetAimAxis,i))	
-			
-			
-			upAxisMenu = MelMenuItem( self.UI_PuppetMenu, l='Up Axis:', subMenu=True)
-			upAxisMenuCollection = MelRadioMenuCollection()
-			
-			for i,a in enumerate(self.puppetInstance.aUpAxis.enum.split(':')):
-				upRBState = False
-				if i == self.puppetInstance.aUpAxis.value:
-					upRBState = True
-				upAxisMenuCollection.createButton( upAxisMenu, l="%s"%a,
-				                                   rb = upRBState,
-				                                   c= Callback(self.puppetInstance.doSetUpAxis,i))	
-				
-			outAxisMenu = MelMenuItem( self.UI_PuppetMenu, l='Out Axis:', subMenu=True)
-			outAxisMenuCollection = MelRadioMenuCollection()
-			
-			for i,a in enumerate(self.puppetInstance.aOutAxis.enum.split(':')):
-				outRBState = False
-				if i == self.puppetInstance.aOutAxis.value:
-					outRBState = True
-				outAxisMenuCollection.createButton( outAxisMenu, l="%s"%a,
-			                                       rb = outRBState,
-			                                       c= Callback(self.puppetInstance.doSetOutAxis,i))	
-				
-		
-
-
-
-			MelMenuItemDiv( self.UI_PuppetMenu )
-		
-		"""
 		MelMenuItem( self.UI_PuppetMenu, l="New",
 	                 c=lambda *a:puppetBoxLib.activeAndUpdatePuppet(self))
 		
@@ -412,7 +409,7 @@ class puppetBoxClass(BaseMelWindow):
 		MelSpacer(self.AimAxisRow,w=5)				
 		MelLabel(self.AimAxisRow,l='Aim ')
 		Spacer = MelSeparator(self.AimAxisRow,w=10)						
-		for i,item in enumerate(axisDirections):
+		for i,item in enumerate(axisDirectionsByString):
 			self.AimAxisCollectionChoices.append(self.AimAxisCollection.createButton(self.AimAxisRow,label=item,
 			                                                                         onCommand = Callback(puppetBoxLib.setPuppetAxisAim,self,i)))
 			MelSpacer(self.AimAxisRow,w=3)
@@ -429,7 +426,7 @@ class puppetBoxClass(BaseMelWindow):
 		MelSpacer(self.UpAxisRow,w=5)				
 		MelLabel(self.UpAxisRow,l='Up ')
 		Spacer = MelSeparator(self.UpAxisRow,w=10)						
-		for i,item in enumerate(axisDirections):
+		for i,item in enumerate(axisDirectionsByString):
 			self.UpAxisCollectionChoices.append(self.UpAxisCollection.createButton(self.UpAxisRow,label=item,
 			                                                                         onCommand = Callback(puppetBoxLib.setPuppetAxisUp,self,i)))
 			MelSpacer(self.UpAxisRow,w=3)
@@ -446,7 +443,7 @@ class puppetBoxClass(BaseMelWindow):
 		MelSpacer(self.OutAxisRow,w=5)				
 		MelLabel(self.OutAxisRow,l='Out ')
 		Spacer = MelSeparator(self.OutAxisRow,w=10)	
-		for i,item in enumerate(axisDirections):
+		for i,item in enumerate(axisDirectionsByString):
 			self.OutAxisCollectionChoices.append(self.OutAxisCollection.createButton(self.OutAxisRow,label=item,
 			                                                                         onCommand = Callback(puppetBoxLib.setPuppetAxisOut,self,i)))
 			MelSpacer(self.OutAxisRow,w=3)

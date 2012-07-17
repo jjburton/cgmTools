@@ -64,12 +64,12 @@ def updateUIPuppet(self):
     for uiItem in self.UI_StateRows['define']:
 	uiItem(edit = True, vis = True)
 	
-    self.PuppetModeOptionVar.set(self.puppetInstance.aPuppetMode.value)
-    self.PuppetAimOptionVar.set(self.puppetInstance.aAimAxis.value)
-    self.PuppetUpOptionVar.set(self.puppetInstance.aUpAxis.value)
-    self.PuppetOutOptionVar.set(self.puppetInstance.aOutAxis.value)
+    self.PuppetModeOptionVar.set(self.puppetInstance.optionPuppetMode.value)
+    self.PuppetAimOptionVar.set(self.puppetInstance.optionAimAxis.value)
+    self.PuppetUpOptionVar.set(self.puppetInstance.optionUpAxis.value)
+    self.PuppetOutOptionVar.set(self.puppetInstance.optionOutAxis.value)
     
-    mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.aPuppetMode.value ]))
+    mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.optionPuppetMode.value ]))
     
     updatePuppetUIReport(self) 
     self.updateModulesUI()
@@ -149,7 +149,7 @@ def doAddGeo(self):
     
 def setPuppetBaseMode(self,i):
     if self.puppetInstance:
-	self.puppetInstance.aPuppetMode.set(i)
+	self.puppetInstance.optionPuppetMode.set(i)
     self.PuppetModeOptionVar.set(i)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Axis
@@ -171,9 +171,9 @@ def setPuppetAxisOut(self,i):
     
 def updatePuppetAxisMenus(self):
     if self.puppetInstance:
-	self.PuppetAimOptionVar.set(self.puppetInstance.aAimAxis.value)
-	self.PuppetUpOptionVar.set(self.puppetInstance.aUpAxis.value)
-	self.PuppetOutOptionVar.set(self.puppetInstance.aOutAxis.value)    
+	self.PuppetAimOptionVar.set(self.puppetInstance.optionAimAxis.value)
+	self.PuppetUpOptionVar.set(self.puppetInstance.optionUpAxis.value)
+	self.PuppetOutOptionVar.set(self.puppetInstance.optionOutAxis.value)    
 	mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
 	mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
 	mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
@@ -187,20 +187,43 @@ def addModule(self,moduleType):
 	updateUIPuppet(self)
 	self.updateModulesUI()
 	
+
+def doRemoveModule(self,nameIndex):
+    """ 
+    Duplicate an indexed object set and reload the gui
+
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """  
+    moduleName = self.puppetInstance.ModulesBuffer.bufferList[nameIndex]
+    if mc.objExists(moduleName):
+	self.puppetInstance.removeModule(moduleName)
+	updatePuppetUIReport(self)	
+	self.updateModulesUI()	
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%moduleName)
+	self.updateModulesUI()
 	
-	
-    
+def doDeleteModule(self,nameIndex):
+    """ 
+    Duplicate an indexed object set and reload the gui
+
+    Keyword arguments:
+    nameIndex(int) -- index of an objectSet dictionary
+    """  
+    moduleName = self.puppetInstance.ModulesBuffer.bufferList[nameIndex]
+    if mc.objExists(moduleName):
+	self.puppetInstance.deleteModule(moduleName)
+	updatePuppetUIReport(self)	
+	self.updateModulesUI()
+    else:
+        guiFactory.warning("'%s' doesn't exist.Reloading Gui"%moduleName)
+	self.updateModulesUI()
+
 def doBuildSizeTemplate(self):
     self.puppetInstance.verifyTemplateSizeObject(True)
     updatePuppetUIReport(self)
 	
-  
-
-
-
-
-
-
 
 
 
