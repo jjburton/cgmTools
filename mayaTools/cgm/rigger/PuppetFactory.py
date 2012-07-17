@@ -17,6 +17,10 @@ import maya.cmds as mc
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes.AttrFactory import *
 from cgm.lib.classes.BufferFactory import *
+
+from cgm.rigger import ModuleFactory
+reload(ModuleFactory)
+
 from cgm.rigger.ModuleFactory import *
 from cgm.rigger.lib.Limb.module import *
 
@@ -64,6 +68,7 @@ settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictio
 axisDirections = ['x+','y+','z+','x-','y-','z-']
 geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 CharacterTypes = 'Bio','Mech','Prop'
+
 moduleTypeToFunctionDict = {'None':ModuleFactory,
                             'segment':Segment}
 
@@ -88,6 +93,7 @@ class PuppetFactory():
         self.geo = []
         self.modules = []
         self.templateSizeObjects = {}
+        self.Modules = {}
         
         guiFactory.doPrintReportStart()
         
@@ -125,6 +131,7 @@ class PuppetFactory():
         
         self.checkGeo()
         self.verifyTemplateSizeObject(False)
+        self.getModules()
         guiFactory.report("'%s' checks out"%self.nameBase)
         guiFactory.doPrintReportEnd()
                 
@@ -375,19 +382,72 @@ class PuppetFactory():
     # Modules
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def getModules(self):
-        self.modules = {}
+        """
+        Intializes all connected modules of a puppet
+        """           
+        self.Module = {}
         if self.ModulesBuffer.bufferList:
-            for k in self.ModulesBuffer.bufferDict.keys():
-                pass
-                #self.modules[k] = 
+            for i,m in enumerate(self.ModulesBuffer.bufferList):
+                modType = search.returnTagInfo(m,'moduleType') or False
+                if modType in moduleTypeToFunctionDict.keys():
+                    self.Module[i] = moduleTypeToFunctionDict[modType](m)
+                else:
+                    guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize")
+
+    def createModule(self,moduleType,*a,**kw):
+        """
+        Create and connect a new module
+        """   
+        if moduleType in moduleTypeToFunctionDict.keys():
+            tmpModule = moduleTypeToFunctionDict[moduleType](forceNew=True)
+            self.ModulesBuffer.store(tmpModule.moduleNull)
+            
+            self.Module[ self.ModulesBuffer.bufferList.index(tmpModule.moduleNull) ] = tmpModule
+            
+            moduleNullBuffer = rigging.doParentReturnName(tmpModule.moduleNull,self.aModulesGroup.value)             
+        else:
+            guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%moduleType)
+
+        
+    def addModule(self,module,*a,**kw):
+        """
+        
+        """
+        if module in self.ModulesBuffer.bufferList:
+            return guiFactory.warning("'%s' already connnected to '%s'"%(module,self.nameBase))
+
+        elif mc.objExists(module):
+            # If it exists, check type to initialize and add
+            modType = search.returnTagInfo(module,'moduleType') or False
+            if modType in moduleTypeToFunctionDict.keys():
+                self.ModulesBuffer.store(module)
+                moduleNullBuffer = rigging.doParentReturnName(module,self.aModulesGroup.value)
+                self.Module[ self.ModulesBuffer.bufferList.index(tmpModule.moduleNull) ] = moduleTypeToFunctionDict[modType](moduleNullBuffer)
+                
+            else:
+                guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize")
+            
+        else:
+            guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%module)
     
-    def addModule(self,moduleName,*a,**kw):
-        tmpModule = ModuleFactory(moduleName)
+    def removeModule(self,moduleName,*a,**kw):
+        if moduleName in self.ModulesBuffer.bufferList:
+            self.ModulesBuffer.remove(moduleName)
+            buffer = rigging.doParentToWorld(moduleName)
+        else:
+            guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot remove"%moduleName)
+    
+    def deleteModule(self,moduleName,*a,**kw):
+        if moduleName in self.ModulesBuffer.bufferList:
+            self.ModulesBuffer.remove(moduleName)
+            buffer = rigging.doParentToWorld(moduleName)
+            mc.delete(buffer)
+        else:
+            guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot delete"%moduleName)
         
-        self.ModulesBuffer.store(tmpModule.moduleNull)
-        moduleNullBuffer = rigging.doParentReturnName(tmpModule.moduleNull,self.aModulesGroup.value)
-        
-        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Size objects
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def verifyTemplateSizeObject(self,create = False):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -686,8 +746,6 @@ class PuppetFactory():
                     break
         return True        
         
-    
-
         
     def doSetOutAxis(self,i):
         assert i < 6,"%i isn't a viable aim axis integer"%i
@@ -713,6 +771,7 @@ class PuppetFactory():
         attributes.storeInfo(self.PuppetNullName,'cgmName ',newName)   
         self.PuppetNullName = NameFactory.doNameObject(self.PuppetNullName,False) 
         self.nameBase = newName
+        self.initializePuppet()
         guiFactory.warning("Puppet renamed as '%s'"%newName)
         
         

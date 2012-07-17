@@ -170,21 +170,23 @@ def setPuppetAxisOut(self,i):
 	updatePuppetAxisMenus(self)
     
 def updatePuppetAxisMenus(self):
-    self.PuppetAimOptionVar.set(self.puppetInstance.aAimAxis.value)
-    self.PuppetUpOptionVar.set(self.puppetInstance.aUpAxis.value)
-    self.PuppetOutOptionVar.set(self.puppetInstance.aOutAxis.value)    
-    mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
-    mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
-    mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
-    
+    if self.puppetInstance:
+	self.PuppetAimOptionVar.set(self.puppetInstance.aAimAxis.value)
+	self.PuppetUpOptionVar.set(self.puppetInstance.aUpAxis.value)
+	self.PuppetOutOptionVar.set(self.puppetInstance.aOutAxis.value)    
+	mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
+	mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
+	mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
 def addModule(self,moduleType):
     if self.puppetInstance:
-	if moduleType == 'Segment':
-	    a = Segment()
-	    self.puppetInstance.addModule(a.moduleNull)
+	self.puppetInstance.createModule(moduleType.lower())
+	updateUIPuppet(self)
+	self.updateModulesUI()
+	
 	
 	
     

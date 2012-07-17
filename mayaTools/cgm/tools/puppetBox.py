@@ -154,6 +154,17 @@ class puppetBoxClass(BaseMelWindow):
 			self.moduleRows = {}
 			
 			for i,b in enumerate(self.puppetInstance.ModulesBuffer.bufferList):
+				"""
+				activeState = False
+				if b in self.ActiveObjectSetsOptionVar.value:
+					activeState = True
+				tmpActive = MelCheckBox(self.ModuleListColumn,
+					                    annotation = 'make set as active',
+					                    value = activeState,
+					                    onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
+					                    offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i))
+				"""
+				
 				#Store the info to a dict
 				self.modulesDict[i] = b
 				#s = SetFactory(b)
@@ -171,6 +182,13 @@ class puppetBoxClass(BaseMelWindow):
 				                                    bgc = [0.971679, 1, 0])
 				
 				MelLabel(self.moduleRows[i],l='asfasfasdfasdfasdf')
+				
+				#PopUp Menu!
+				popUpMenu = MelPopupMenu(self.moduleRows[i],button = 3)
+				MelMenuItem(popUpMenu,
+				            label = "<<<%s>>>"%b,
+				            enable = False)
+				
 				
 				#Get check box state
  
@@ -402,7 +420,6 @@ class puppetBoxClass(BaseMelWindow):
 		MelSpacer(self.AimAxisRow,w=2)		
 		self.AimAxisRow.layout()	
 		
-		mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
 		
 		#Up Axis Mode Row
 		self.UpAxisCollection = MelRadioCollection()
@@ -420,7 +437,6 @@ class puppetBoxClass(BaseMelWindow):
 		MelSpacer(self.UpAxisRow,w=2)		
 		self.UpAxisRow.layout()	
 		
-		mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
 		
 		#Out Axis Mode Row
 		self.OutAxisCollection = MelRadioCollection()
@@ -429,7 +445,7 @@ class puppetBoxClass(BaseMelWindow):
 		self.OutAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
 		MelSpacer(self.OutAxisRow,w=5)				
 		MelLabel(self.OutAxisRow,l='Out ')
-		Spacer = MelSeparator(self.OutAxisRow,w=10)						
+		Spacer = MelSeparator(self.OutAxisRow,w=10)	
 		for i,item in enumerate(axisDirections):
 			self.OutAxisCollectionChoices.append(self.OutAxisCollection.createButton(self.OutAxisRow,label=item,
 			                                                                         onCommand = Callback(puppetBoxLib.setPuppetAxisOut,self,i)))
@@ -438,6 +454,9 @@ class puppetBoxClass(BaseMelWindow):
 		MelSpacer(self.OutAxisRow,w=2)		
 		self.OutAxisRow.layout()	
 		
+		#Set toggles on menu
+		mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))		
+		mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))		
 		mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
 		
 		

@@ -35,7 +35,7 @@ InfoNullsNames = ['setupOptions',
 
 """ 1 """
 class ModuleFactory:
-    def __init__(self, moduleName = '', moduleParent = False, position = False, direction = False, directionModifier = False, nameModifier = False,*a,**kw):
+    def __init__(self, moduleName = '', moduleParent = False, position = False, direction = False, directionModifier = False, nameModifier = False, forceNew = False,*a,**kw):
         """ 
         Intializes an module master class handler
         
@@ -47,6 +47,8 @@ class ModuleFactory:
         position(string) -- position tag
         direction(string) -- direction
         directionModifier(string)
+        nameModifier(string)
+        forceNew(bool) --whether to force the creation of another if the object exists
         
         """
         self.moduleNull = False
@@ -55,6 +57,7 @@ class ModuleFactory:
         self.refPrefix = None
         self.refState = False
         
+        # Get parent info and the call tags to check later on
         if mc.objExists(moduleParent):
             self.parentTagDict = NameFactory.returnObjectGeneratedNameDict(moduleParent, ignore = ['cgmName','cgmIterator','cgmTypeModifier','cgmType'])
         
@@ -63,7 +66,18 @@ class ModuleFactory:
                          'cgmDirectionModifier':directionModifier,
                          'cgmNameModifier':nameModifier}
         
-        if mc.objExists(moduleName):
+        # If the object doesn't exist, we're first going to fill in our base flags from the init call
+        if not mc.objExists(moduleName) or forceNew:
+            #Set some variables
+            self.nameBase = moduleName
+            self.nameModifier = nameModifier                        
+            self.direction = direction
+            self.directionModifier = directionModifier
+            self.position = position
+            self.moduleParent = moduleParent
+            self.typeModifier = False            
+               
+        else:
             #Make a name dict to check
             if search.findRawTagInfo(moduleName,'cgmType') == 'module':
                 self.nameBase = search.findRawTagInfo(moduleName,'cgmName')
@@ -81,19 +95,9 @@ class ModuleFactory:
             else:
                 guiFactory.warning("'%s' isn't a cgm module. Can't initialize"%moduleName)
                 return False
-                    
-        else:
-            #Set some variables
-            self.nameBase = moduleName
-            self.nameModifier = nameModifier                        
-            self.direction = direction
-            self.directionModifier = directionModifier
-            self.position = position
-            self.moduleParent = moduleParent
-            self.typeModifier = False
                         
         if not self.refState:
-            if not self.verifyModule():
+            if not self.verifyModule(forceNew):
                 guiFactory.warning("'%s' failed to verify!"%moduleName)
                 return False
         else:
@@ -129,7 +133,7 @@ class ModuleFactory:
         
         return returnDict
         
-    def verifyModule(self):
+    def verifyModule(self,forceNew = False):
         """
         Verifies the integrity of the base module class null. Repairing and restoring broken connections or deleted items.
         """
@@ -138,11 +142,18 @@ class ModuleFactory:
         # Nulls creation
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         #need a check to see if it exists from specfic name call
-        if not self.moduleNull:
+        if not self.moduleNull or forceNew:
             #See if one exists from the name dict
             buffer = NameFactory.returnCombinedNameFromDict(self.generateNameDict())
             if mc.objExists(buffer):
-                self.moduleNull = buffer
+                if forceNew:
+                    cnt = NameFactory.returnIterateNumber(buffer)
+                    print cnt
+                    self.moduleNull = mc.group(empty=True)
+                    attributes.storeInfo(self.moduleNull,'cgmIterator',cnt)
+                else:
+                    self.moduleNull = buffer
+                
         #if we still don't have one, make it
         if not self.moduleNull:
             self.moduleNull = mc.group(empty=True)
