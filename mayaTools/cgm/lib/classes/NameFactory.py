@@ -64,10 +64,10 @@ class NameFactory():
         self.cgmTypeModifier = ''
         self.cgmType  = ''
         self.objGeneratedNameDict = returnObjectGeneratedNameDict(obj)
-        self.getCGMTags()
         
         self.getNameLinkObject()
-
+        
+        self.claimedIterators = []
         self.sceneObjectsNameDictMap = []
         self.matchedChildren = []
         self.matchedParents = []
@@ -81,17 +81,6 @@ class NameFactory():
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def getCGMTags(self):
-        self.cgmName = search.findRawTagInfo(self.nameLong,'cgmName')
-        self.cgmNameModifier = search.findRawTagInfo(self.nameLong,'cgmNameModifier')
-        self.cgmPosition = search.findRawTagInfo(self.nameLong,'cgmPosition')
-        self.cgmDirectionModifier = search.findRawTagInfo(self.nameLong,'cgmDirectionModifier')
-        self.cgmDirection = search.findRawTagInfo(self.nameLong,'cgmDirection')
-        self.cgmIterator = search.findRawTagInfo(self.nameLong,'cgmIterator')
-        self.cgmTypeModifier = search.findRawTagInfo(self.nameLong,'cgmTypeModifier')
-        self.cgmType  = search.findRawTagInfo(self.nameLong,'cgmType')
-                
-            
     
     def storeNameStrings(self,obj):
         buffer = mc.ls(obj,long=True)
@@ -146,13 +135,16 @@ class NameFactory():
             print ('No match objects found') 
             
         print(guiFactory.doPrintReportBreak())
+        
+        if self.claimedIterators:
+            print ("%s are claimed iterators" %self.claimedIterators)            
 
-        print ("Object's Base iterator is %i" %self.childNameCnt)
+        print ("Object's Base iterator is %i" %self.baseIterator)
         print ('First open iterator is %i' %self.firstOpenIterator)
         print ("Final iterator is %i" %self.iterator )
-        
 
         print (guiFactory.doPrintReportEnd())
+        
             
     def amIMe(self,nameCandidate):
         if nameCandidate == self.nameBase:
@@ -167,17 +159,16 @@ class NameFactory():
 
         self.baseIterator = 0
         #If we have an assigned iterator, start with that
-        if self.objGeneratedNameDict.get('cgmIterator'):
+        if 'cgmIterator' in self.objGeneratedNameDict.keys():
             self.baseIterator = int(self.objGeneratedNameDict.get('cgmIterator'))
         
         self.baseIteratorChecked = True
+        return True
 
 
     def getMatchedNameObjects(self):
         self.matchObjectList = []
         self.matchDictionaryList = []
-        
-
         
         #Get a list of objects in the scene that match the name object
         if len(self.objGeneratedNameDict.keys()) <= 1 and 'cgmType' in self.objGeneratedNameDict.keys():
@@ -187,9 +178,13 @@ class NameFactory():
                 self.generateSceneDictMap()            
             for k in self.sceneObjectsNameDictMap.keys():
                 if k not in (self.nameLong,self.nameShort): 
-                    if self.sceneObjectsNameDictMap.get(k) == self.objGeneratedNameDict:
+                    if self.sceneObjectsNameDictMap[k] == self.objGeneratedNameDict:
                         self.matchObjectList.append(k)
-                        self.matchDictionaryList.append(self.sceneObjectsNameDictMap.get(k))
+                        self.matchDictionaryList.append(self.sceneObjectsNameDictMap[k])
+                    elif 'cgmIterator' in self.sceneObjectsNameDictMap[k].keys() and returnObjectGeneratedNameDict(k,['cgmIterator']) == self.objGeneratedNameDict:
+                        self.claimedIterators.append(int(self.sceneObjectsNameDictMap[k]['cgmIterator']))
+                        self.matchObjectList.append(k)
+                        self.matchDictionaryList.append(self.sceneObjectsNameDictMap[k])                         
         
         
         self.matchesChecked = True
@@ -344,24 +339,11 @@ class NameFactory():
         objGeneratedNameCandidateDict = returnObjectGeneratedNameDict(self.nameLong)  
         bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
         cnt = 0
-        
-        # Check for match parents, return len + 1
-        """
-        if self.matchedParents:
-            return len(self.matchedParents) + 1
-        elif self.matchedChildren:
-            if len(self.matchedParents) == 0:
-                # if children, and no parents, use...
-                return 1
-            else:
-                # Start looking after 1
-                cnt = 1 
-        """
              
         if objGeneratedNameCandidateDict.get('cgmIterator'):
-            cnt = objGeneratedNameCandidateDict.get('cgmIterator')
+            cnt = int(objGeneratedNameCandidateDict.get('cgmIterator'))
         elif cnt == 0:
-            #Check if anything else is named 1
+            #Check if anything else is named 0
             matchCheckDict = objGeneratedNameCandidateDict.copy()
             matchCheckDict['cgmIterator'] = str(1)
             matchBuffer = returnCombinedNameFromDict(matchCheckDict)
@@ -406,9 +388,6 @@ class NameFactory():
                                 
 
 
-
-
-
     def getFirstOpenIterator(self):
         if not self.baseIteratorChecked:
             self.getBaseIterator()
@@ -422,8 +401,12 @@ class NameFactory():
             self.firstOpenChecked = True
             self.firstOpenIterator = 0
             return 0
-
-        cnt = self.baseIterator
+        
+        # Check for a base start of 0 and matched object list
+        if self.baseIterator == 0 and self.matchObjectList:
+            cnt = 1
+        else:
+            cnt = self.baseIterator
 
         ### Before we do anything, we'll see if our top most barent objects has claimed '1'
         ### if it has, we don't need to do much
@@ -475,6 +458,9 @@ class NameFactory():
         while not foundAvailableNumber and loopBreak <= 100: 
             bufferName = returnCombinedNameFromDict(objGeneratedNameCandidateDict)
             if mc.objExists(bufferName):
+                if cnt in self.claimedIterators:
+                    cnt +=1 
+                    break
                 matchNameList = mc.ls(bufferName,shortNames=True)
                 for item in matchNameList:
                     if item not in self.matchedChildren:    
