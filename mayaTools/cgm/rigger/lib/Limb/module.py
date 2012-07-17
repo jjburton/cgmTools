@@ -62,7 +62,11 @@ defaultSettings = {'partType':'none',
                    'stiffIndex':0,
                    'curveDegree':1,
                    'rollJoints':3,
-                   'handles':3 }
+                   'handles':3,
+                   'bendy':True,
+                   'stretchy':True,
+                   'fk':True,
+                   'ik':True}
 
 """ 1 """
 class Limb(ModuleFactory):
@@ -79,15 +83,15 @@ class Limb(ModuleFactory):
         #Then check the subclass specific stuff
         if not self.refState:
             if not self.verifyLimbModule():
-                guiFactory.warning("'%s' failed to verify!"%self.moduleNull)
+                guiFactory.warning("'%s' failed to verify!"%self.ModuleNull.nameShort)
                 return False
         else:
-            guiFactory.report("'%s' Referenced. Cannot verify, initializing Limb module."%self.moduleNull)
+            guiFactory.report("'%s' Referenced. Cannot verify, initializing Limb module."%self.ModuleNull.nameShort)
             if not self.initializeLimbModule():
-                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%moduleName)
+                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.ModuleNull.nameShort)
                 return False
             
-        guiFactory.report("'%s' checks out"%self.moduleNull)
+        guiFactory.report("'%s' checks out"%self.ModuleNull.nameShort)
         guiFactory.doPrintReportEnd()
             
     def verifyLimbModule(self):
@@ -101,26 +105,31 @@ class Limb(ModuleFactory):
             except:
                 self.__dict__[k] = defaultSettings[k]
             
-        self.aModuleType = AttrFactory(self.moduleNull,'moduleType','string',value= self.partType)
+        self.afModuleType = AttrFactory(self.ModuleNull,'moduleType','string',value= self.partType)
         
         if self.infoNulls['setupOptions']:
-            null = self.infoNulls['setupOptions'].value
-            self.aFK = AttrFactory(null,'fk','bool',initialValue=0)
-            self.aIK = AttrFactory(null,'ik','bool',initialValue=0)
-            self.aStretchy = AttrFactory(null,'stretchy','bool',initialValue=0)
-            self.aBendy = AttrFactory(null,'bendy','bool',initialValue=0)
+            self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].value )
+            self.optionFK = AttrFactory(self.SetupOptionsNull,'fk','bool',initialValue= self.fk)
+            self.optionIK = AttrFactory(self.SetupOptionsNull,'ik','bool',initialValue= self.ik)
+            self.optionStretchy = AttrFactory(self.SetupOptionsNull,'stretchy','bool',initialValue= self.stretchy)
+            self.optionBendy = AttrFactory(self.SetupOptionsNull,'bendy','bool',initialValue= self.bendy)
             
-            self.aHandles = AttrFactory(null,'handles','int',initialValue=self.handles)
-            self.aRollJoints = AttrFactory(null,'rollJoints','int',initialValue=self.rollJoints)
-            self.aStiffIndex= AttrFactory(null,'stiffIndex','int',initialValue=self.stiffIndex)
-            self.aCurveDegree= AttrFactory(null,'curveDegree','int',initialValue=self.curveDegree)
-            
+            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles','int',initialValue=self.handles)
+            self.optionRollJoints = AttrFactory(self.SetupOptionsNull,'rollJoints','int',initialValue=self.rollJoints)
+            self.optionStiffIndex= AttrFactory(self.SetupOptionsNull,'stiffIndex','int',initialValue=self.stiffIndex)
+            self.optionCurveDegree= AttrFactory(self.SetupOptionsNull,'curveDegree','int',initialValue=self.curveDegree)
+        else:
+            guiFactory.warning("Setup options null is missing from '%s'. Rebuild"%self.ModuleNull.nameShort)
+            return False
         if self.infoNulls['visibilityOptions']:
-            null = self.infoNulls['visibilityOptions'].value
+            self.VisibilityOptionsNull = ObjectFactory( self.infoNulls['visibilityOptions'].value )
             
-            self.aVisOrientHelpers = AttrFactory(null,'visOrientHelpers','bool',initialValue=0)
-            self.aVisControlHelpers = AttrFactory(null,'visControlHelpers','bool',initialValue=0)
-                    
+            self.visOrientHelpers = AttrFactory(self.VisibilityOptionsNull,'visOrientHelpers','bool',initialValue=0)
+            self.visControlHelpers = AttrFactory(self.VisibilityOptionsNull,'visControlHelpers','bool',initialValue=0)
+        else:
+            guiFactory.warning("Visibility options null is missing from '%s'. Rebuild"%self.ModuleNull.nameShort)
+            return False
+        
         return True
     
     def initializeLimbModule(self):
@@ -128,7 +137,7 @@ class Limb(ModuleFactory):
         Verifies the integrity of the Limb module. Repairing and restoring broken connections or deleted items.
         """        
         #Initialize all of our options
-        self.aModuleType = AttrFactory(self.moduleNull,'moduleType')
+        self.afModuleType = AttrFactory(self.ModuleNull,'moduleType')
         
         LimbSettingAttrs ={'fk':'bool',
                     'ik':'bool',
@@ -140,21 +149,21 @@ class Limb(ModuleFactory):
                     'curveDegree':'int'}
         
         if self.infoNulls['setupOptions']:
-            null = self.infoNulls['setupOptions'].value
-            self.aFK = AttrFactory(null,'fk')
-            self.aIK = AttrFactory(null,'ik')
-            self.aStretchy = AttrFactory(null,'stretchy')
-            self.aBendy = AttrFactory(null,'bendy')
+            self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].value )
+            self.optionFK = AttrFactory(self.SetupOptionsNull,'fk')
+            self.optionIK = AttrFactory(self.SetupOptionsNull,'ik')
+            self.optionStretchy = AttrFactory(self.SetupOptionsNull,'stretchy')
+            self.optionBendy = AttrFactory(self.SetupOptionsNull,'bendy')
             
-            self.aHandles = AttrFactory(null,'handles')
-            self.aRollJoints = AttrFactory(null,'rollJoints')
-            self.aStiffIndex= AttrFactory(null,'stiffIndex')
-            self.aCurveDegree= AttrFactory(null,'curveDegree')
+            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles')
+            self.optionRollJoints = AttrFactory(self.SetupOptionsNull,'rollJoints')
+            self.optionStiffIndex= AttrFactory(self.SetupOptionsNull,'stiffIndex')
+            self.optionCurveDegree= AttrFactory(self.SetupOptionsNull,'curveDegree')
             
         if self.infoNulls['visibilityOptions']:
-            null = self.infoNulls['visibilityOptions'].value
-            self.aVisOrientHelpers = AttrFactory(null,'visOrientHelpers')
-            self.aVisControlHelpers = AttrFactory(null,'visControlHelpers')
+            self.VisibilityOptionsNull = ObjectFactory( self.infoNulls['visibilityOptions'].value )
+            self.visOrientHelpers = AttrFactory(self.VisibilityOptionsNull,'visOrientHelpers')
+            self.visControlHelpers = AttrFactory(self.VisibilityOptionsNull,'visControlHelpers')
                     
         return True
 

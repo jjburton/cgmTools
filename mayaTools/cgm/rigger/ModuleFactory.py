@@ -51,11 +51,11 @@ class ModuleFactory:
         forceNew(bool) --whether to force the creation of another if the object exists
         
         """
-        self.moduleNull = False
+        self.ModuleNull = False
         self.infoNulls = {}
         self.parentTagDict = {}
         self.refPrefix = None
-        self.refState = False
+        self.refState = False      
         
         # Get parent info and the call tags to check later on
         if mc.objExists(moduleParent):
@@ -88,8 +88,8 @@ class ModuleFactory:
                 self.typeModifier =  search.findRawTagInfo(moduleName,'cgmTypeModifier')
                 self.moduleParent = attributes.doGetAttr(moduleName,'moduleParent')
                 
-                self.moduleNull = moduleName
-                self.isRef()
+                self.ModuleNull = ObjectFactory(moduleName)
+                self.refState = self.ModuleNull.refState
                 guiFactory.report("'%s' exists. Checking..."%moduleName)
 
             else:
@@ -108,9 +108,9 @@ class ModuleFactory:
 
                 
     def isRef(self):
-        if mc.referenceQuery(self.moduleNull, isNodeReferenced=True):
+        if mc.referenceQuery(self.ModuleNull.nameShort, isNodeReferenced=True):
             self.refState = True
-            self.refPrefix = search.returnReferencePrefix(self.moduleNull)
+            self.refPrefix = search.returnReferencePrefix(self.ModuleNull.nameShort)
             return
         self.refState = False
         self.refPrefix = None
@@ -142,87 +142,89 @@ class ModuleFactory:
         # Nulls creation
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         #need a check to see if it exists from specfic name call
-        if not self.moduleNull or forceNew:
+        if not self.ModuleNull or forceNew:
             #See if one exists from the name dict
             buffer = NameFactory.returnCombinedNameFromDict(self.generateNameDict())
             if mc.objExists(buffer):
                 if forceNew:
                     cnt = NameFactory.returnIterateNumber(buffer)
-                    print cnt
-                    self.moduleNull = mc.group(empty=True)
-                    attributes.storeInfo(self.moduleNull,'cgmIterator',cnt)
+                    self.ModuleNull = ObjectFactory(mc.group(empty=True))
+                    self.ModuleNull.store('cgmIterator',cnt)
                 else:
-                    self.moduleNull = buffer
+                    self.ModuleNull = ObjectFactory(buffer)
                 
         #if we still don't have one, make it
-        if not self.moduleNull:
-            self.moduleNull = mc.group(empty=True)
+        if not self.ModuleNull:
+            self.ModuleNull = ObjectFactory(mc.group(empty=True))
             
         #Initialize the module parent attr
-        self.aModuleParent = AttrFactory(self.moduleNull,'moduleParent','message',self.moduleParent)
+        self.afModuleParent = AttrFactory(self.ModuleNull,'moduleParent','message',self.moduleParent)
 
         #Naming stuff           
-        attributes.storeInfo(self.moduleNull,'cgmName',self.nameBase,True)   
-        attributes.storeInfo(self.moduleNull,'cgmType','module')
-        attributes.storeInfo(self.moduleNull,'moduleType','None')
+        self.ModuleNull.store('cgmName',self.nameBase,True)   
+        self.ModuleNull.store('cgmType','module')
+        self.afModuleType = AttrFactory(self.ModuleNull,'moduleType',initialValue='None')
         
         #Store any naming tags from the init call
         for k in self.callTags.keys():
             if self.callTags.get(k):
-                attributes.storeInfo(self.moduleNull,k,self.callTags.get(k),True)
+                self.ModuleNull.store(k,self.callTags.get(k),True)
             elif k in self.parentTagDict.keys():
-                attributes.storeInfo(self.moduleNull,k,'%s.%s.'%(self.aModuleParent.value,k))                    
+                self.ModuleNull.store(k,'%s.%s'%(self.afModuleParent.value,k))                    
             
-        self.moduleNull = NameFactory.doNameObject(self.moduleNull,True)
-        mc.xform (self.moduleNull, os=True, piv= (0,0,0)) 
+        self.ModuleNull.doName(True)
+        mc.xform (self.ModuleNull.nameShort, os=True, piv= (0,0,0)) 
         
-        self.aTemplateState = AttrFactory(self.moduleNull,'templateState','int',initialValue=0)
-        self.aRigState = AttrFactory(self.moduleNull,'rigState','int',initialValue=0)
-        self.aSkeletonState = AttrFactory(self.moduleNull,'skeletonState','int',initialValue=0)
+        self.afTemplateState = AttrFactory(self.ModuleNull,'templateState','int',initialValue=0)
+        self.afRigState = AttrFactory(self.ModuleNull,'rigState','int',initialValue=0)
+        self.afSkeletonState = AttrFactory(self.ModuleNull,'skeletonState','int',initialValue=0)
         
-        attributes.doSetLockHideKeyableAttr(self.moduleNull,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+        attributes.doSetLockHideKeyableAttr(self.ModuleNull.nameShort,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
     
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Main Nulls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>         
-        self.aRigNull = AttrFactory(self.moduleNull,'rigNull','message')
-        self.aTemplateNull = AttrFactory(self.moduleNull,'templateNull','message')
-        self.aInfoNull = AttrFactory(self.moduleNull,'info','message')
+        self.afRigNull = AttrFactory(self.ModuleNull,'rigNull','message')
+        self.afTemplateNull = AttrFactory(self.ModuleNull,'templateNull','message')
+        self.afInfoNull = AttrFactory(self.ModuleNull,'info','message')
         
-        for null in [self.aRigNull, self.aTemplateNull,self.aInfoNull]:
+        nullAttributes = [self.afRigNull, self.afTemplateNull, self.afInfoNull]
+        nullInstances = ['RigNull', 'TemplateNull', 'InfoNull']
+        
+        for i,null in enumerate(nullAttributes):
             created = False
             if not null.value:
                 #If there's nothing connected to our message, we're gonna make our null
-                guiFactory.report("'%s' not found. Creating"%self.aRigNull.attr)
-                createBuffer = mc.group (empty=True)
+                guiFactory.report("'%s' not found. Creating"%null.attr)
+                self.__dict__[ nullInstances[i] ] = ObjectFactory(mc.group(empty=True))
                 created = True
             else:
-                createBuffer = null.value
+                self.__dict__[ nullInstances[i] ] = ObjectFactory(null.value)
                 
             if null.attr == 'info':
                 #Special case stuff for the master info null
-                attributes.storeInfo(createBuffer,'cgmName','master',True)  
-                attributes.storeInfo(createBuffer,'cgmType','infoNull')
+                self.__dict__[ nullInstances[i] ].store('cgmName','master',True)  
+                self.__dict__[ nullInstances[i] ].store('cgmType','infoNull')
                 
             else:
-                attributes.storeInfo(createBuffer,'cgmType',null.attr)
+                self.__dict__[ nullInstances[i] ].store('cgmType',null.attr)
                 
-            mc.xform (createBuffer, os=True, piv= (0,0,0)) 
-            createBuffer = rigging.doParentReturnName(createBuffer,self.moduleNull)
+            mc.xform (self.__dict__[ nullInstances[i] ].nameShort, os=True, piv= (0,0,0)) 
+            self.__dict__[ nullInstances[i] ].doParent(self.ModuleNull.nameShort)
             
-            if created and mc.ls(created,long=True) != null.value:
-                null.doStore(createBuffer)
+            if created and self.__dict__[ nullInstances[i] ].nameLong != null.value:
+                null.doStore(self.__dict__[ nullInstances[i] ].nameLong)
                 
-            attributes.doSetLockHideKeyableAttr(createBuffer)
-            NameFactory.doNameObject(createBuffer) 
+            attributes.doSetLockHideKeyableAttr(self.__dict__[ nullInstances[i] ].nameShort)
+            self.__dict__[ nullInstances[i] ].doName(True)
             null.updateData()
             
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Info Nulls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         for k in InfoNullsNames:
-            self.infoNulls[k] = AttrFactory(self.aInfoNull.value,k,'message')
+            self.infoNulls[k] = AttrFactory(self.InfoNull,k,'message')
             
             if not self.infoNulls[k].value:
                 guiFactory.report("'%s' not found. Creating"%k)                
@@ -231,7 +233,7 @@ class ModuleFactory:
                 
             if self.infoNulls[k].value:  
                 attributes.doSetLockHideKeyableAttr(self.infoNulls[k].value)                
-                if rigging.doParentReturnName( self.infoNulls[k].value,self.aInfoNull.value):
+                if rigging.doParentReturnName( self.infoNulls[k].value,self.afInfoNull.value):
                     buffer = NameFactory.doNameObject(self.infoNulls[k].value)
                     if buffer != self.infoNulls[k].value:
                         self.infoNulls[k].doStore(buffer)
@@ -252,42 +254,50 @@ class ModuleFactory:
         # Nulls creation
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         #need a check to see if it exists from specfic name call
-        assert mc.objExists(self.moduleNull),"'%s' doens't exist"%self.moduleNull
+        assert mc.objExists(self.ModuleNull.nameShort),"'%s' doens't exist"%self.ModuleNull.nameShort
+        
+        self.nameBase = search.returnTagInfo(self.ModuleNull.nameShort,'cgmName')
             
         #Initialize the module parent attr
-        self.aModuleParent = AttrFactory(self.moduleNull,'moduleParent')
+        self.afModuleParent = AttrFactory(self.ModuleNull,'moduleParent')
+        self.afModuleType = AttrFactory(self.ModuleNull,'moduleType')
 
         #Verfiy vital attributes on module Null
         for a in 'moduleType','cgmType':
-            if not mc.objExists("%s.%s"%(self.moduleNull,a)):
-                guiFactory("'%s.%s' missing. Initialization Aborted!"%(self.moduleNull,a))
+            if not mc.objExists("%s.%s"%(self.ModuleNull.nameShort,a)):
+                guiFactory("'%s.%s' missing. Initialization Aborted!"%(self.ModuleNull.nameShort,a))
                 return False                
                     
-        self.aTemplateState = AttrFactory(self.moduleNull,'templateState')
-        self.aRigState = AttrFactory(self.moduleNull,'rigState')
-        self.aSkeletonState = AttrFactory(self.moduleNull,'skeletonState')
+        self.afTemplateState = AttrFactory(self.ModuleNull,'templateState')
+        self.afRigState = AttrFactory(self.ModuleNull,'rigState')
+        self.afSkeletonState = AttrFactory(self.ModuleNull,'skeletonState')
             
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Main Nulls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>         
-        self.aRigNull = AttrFactory(self.moduleNull,'rigNull')
-        self.aTemplateNull = AttrFactory(self.moduleNull,'templateNull')
-        self.aInfoNull = AttrFactory(self.moduleNull,'info')
+        self.afRigNull = AttrFactory(self.ModuleNull,'rigNull')
+        self.afTemplateNull = AttrFactory(self.ModuleNull,'templateNull')
+        self.afInfoNull = AttrFactory(self.ModuleNull,'info')
         
-        for null in [self.aRigNull, self.aTemplateNull,self.aInfoNull]:
+        nullAttributes = [self.afRigNull, self.afTemplateNull, self.afInfoNull]
+        nullInstances = ['RigNull', 'TemplateNull', 'InfoNull']  
+        
+        for i,null in enumerate(nullAttributes):
             if null.form != 'message':
                 guiFactory("'%s' isn't a message. Initialization Aborted!"%(null.nameCombined))                
                 return False
             if not mc.objExists(null.value):
                 guiFactory("'%s' has no connection. Initialization Aborted!"%(null.nameCombined))                                
                 return False
+            else:
+                self.__dict__[ nullInstances[i] ] = ObjectFactory(null.value)
             
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Info Nulls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         for k in InfoNullsNames:
-            self.infoNulls[k] = AttrFactory(self.aInfoNull.value,k)
+            self.infoNulls[k] = AttrFactory(self.InfoNull,k)
             if self.infoNulls[k].form != 'message':
                 guiFactory("'%s' isn't a message. Initialization Aborted!"%(self.infoNulls[k].nameCombined))                
                 return False            
@@ -299,13 +309,26 @@ class ModuleFactory:
 
         return True
     
-    def setModuleParent(self,moduleParent):
+    def setParentModule(self,moduleParent):
+        assert mc.objExists(moduleParent),"'%s' doesn't exists! Can't be module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort)
         if search.returnTagInfo(moduleParent,'cgmType') == 'module':
-            self.moduleParent = moduleParent
-            self.aModuleParent = AttrFactory(self.moduleNull,'moduleParent','message',self.moduleParent)
+            if self.afModuleParent.value != moduleParent:
+                self.moduleParent = moduleParent
+                self.afModuleParent = AttrFactory(self.ModuleNull,'moduleParent','message',self.moduleParent)
+                guiFactory.repport("'%s' is not the module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort))
+            else:
+                guiFactory.warning("'%s' already this module's parent. Moving on..."%moduleParent)                
         else:
             guiFactory.warning("'%s' isn't tagged as a module."%moduleParent)
-
-
+            
+    def changeBaseName(self,string):
+        assert type(string) is str,"'%s' isn't a string argument"%string
+        
+        if search.returnTagInfo(self.ModuleNull.nameShort,'cgmName')== string:
+            guiFactory.warning("'%s' already has base name of '%s'."%(self.ModuleNull.nameShort,string))
+        else:
+            self.ModuleNull.store('cgmName',string,True)
+            self.ModuleNull.doName(True,True)
+            self.initializeModule()
                 
             
