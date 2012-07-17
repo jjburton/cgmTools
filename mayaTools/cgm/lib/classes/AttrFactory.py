@@ -57,7 +57,7 @@ class AttrFactory():
         
         
         Keyword arguments:
-        obj(string) -- must exist in scene
+        obj(string) -- must exist in scene or an ObjectFactory instance
         attrName(string) -- name for an attribute to initialize
         attrType(string) -- must be valid attribute type. If AttrFactory is imported, you can type 'print attrTypesDict'
         enum(string) -- default enum list to set on call or recall
@@ -68,17 +68,25 @@ class AttrFactory():
         
         """
         ### input check
-        assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
+        try:
+            #If we have an Object Factory instance, link it
+            objName.nameShort
+            self.obj = objName
+        except:
+            #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+            assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
+            self.obj = ObjectFactory(objName)
+        
         self.form = attributes.validateRequestedAttrType(attrType)
         self.attr = attrName
         self.children = False
         initialCreate = False
         
-        self.obj = ObjectFactory(objName)
+
         
         # If it exists we need to check the type. 
-        if mc.objExists('%s.%s'%(self.obj.nameLong,attrName)):
-            currentType = mc.getAttr('%s.%s'%(self.obj.nameLong,attrName),type=True)
+        if mc.objExists('%s.%s'%(self.obj.nameShort,attrName)):
+            currentType = mc.getAttr('%s.%s'%(self.obj.nameShort,attrName),type=True)
             if not attributes.validateAttrTypeMatch(attrType,currentType) and self.form is not False:
                 if self.obj.refState:
                     return guiFactory.warning("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.nameShort,attrName,attrType))                   
@@ -92,28 +100,28 @@ class AttrFactory():
             try:
                 if self.form == False:
                     self.form = 'string'
-                    attributes.addStringAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
+                    attributes.addStringAttributeToObj(self.obj.nameShort,attrName,*a, **kw)
                 elif self.form == 'double':
-                    attributes.addFloatAttributeToObject(self.obj.nameLong,attrName,*a, **kw)
+                    attributes.addFloatAttributeToObject(self.obj.nameShort,attrName,*a, **kw)
                 elif self.form == 'string':
-                    attributes.addStringAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
+                    attributes.addStringAttributeToObj(self.obj.nameShort,attrName,*a, **kw)
                 elif self.form == 'long':
-                    attributes.addIntegerAttributeToObj(self.obj.nameLong,attrName,*a, **kw) 
+                    attributes.addIntegerAttributeToObj(self.obj.nameShort,attrName,*a, **kw) 
                 elif self.form == 'double3':
-                    attributes.addVectorAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
+                    attributes.addVectorAttributeToObj(self.obj.nameShort,attrName,*a, **kw)
                 elif self.form == 'enum':
-                    attributes.addEnumAttrToObj(self.obj.nameLong,attrName,*a, **kw)
+                    attributes.addEnumAttrToObj(self.obj.nameShort,attrName,*a, **kw)
                 elif self.form == 'bool':
-                    attributes.addBoolAttrToObject(self.obj.nameLong,attrName,*a, **kw)
+                    attributes.addBoolAttrToObject(self.obj.nameShort,attrName,*a, **kw)
                 elif self.form == 'message':
-                    attributes.addMessageAttributeToObj(self.obj.nameLong,attrName,*a, **kw)
+                    attributes.addMessageAttributeToObj(self.obj.nameShort,attrName,*a, **kw)
                 else:
                     guiFactory.warning("'%s' is an unknown form to this class"%(self.form))
                     return False
                 initialCreate = True
                 
             except:
-                guiFactory.warning("'%s.%s' failed to add"%(self.obj.nameLong,attrName))
+                guiFactory.warning("'%s.%s' failed to add"%(self.obj.nameShort,attrName))
          
         self.updateData(*a, **kw)
        
@@ -131,7 +139,7 @@ class AttrFactory():
             self.set(value)
                 
                 
-        #guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameLong,self.attr,self.value,self.form))
+        #guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameShort,self.attr,self.value,self.form))
         
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -141,14 +149,14 @@ class AttrFactory():
         """ 
         Get's attr updated data       
         """     
-        assert mc.objExists('%s.%s'%(self.obj.nameLong,self.attr)) is True, "'%s.%s' doesn't exist" %(self.obj.nameLong,self.attr)
+        assert mc.objExists('%s.%s'%(self.obj.nameShort,self.attr)) is True, "'%s.%s' doesn't exist" %(self.obj.nameShort,self.attr)
         # Default attrs
-        self.nameCombined = '%s.%s'%(self.obj.nameLong,self.attr)        
+        self.nameCombined = '%s.%s'%(self.obj.nameShort,self.attr)        
         self.minValue = False
         self.maxValue = False
         self.defaultValue = False
-        self.nameNice = mc.attributeQuery(self.attr, node = self.obj.nameLong, niceName = True)
-        self.nameLong = mc.attributeQuery(self.attr, node = self.obj.nameLong, longName = True)
+        self.nameNice = mc.attributeQuery(self.attr, node = self.obj.nameShort, niceName = True)
+        self.nameLong = mc.attributeQuery(self.attr, node = self.obj.nameShort, longName = True)
         self.nameAlias = False
         if mc.aliasAttr(self.nameCombined,q=True):
             self.nameAlias = mc.aliasAttr(self.nameCombined,q=True)
@@ -156,23 +164,23 @@ class AttrFactory():
         self.get(*a, **kw)
         
         #>>> Parent Stuff
-        pBuffer = mc.attributeQuery(self.attr, node = self.obj.nameLong, listParent=True)
+        pBuffer = mc.attributeQuery(self.attr, node = self.obj.nameShort, listParent=True)
         if pBuffer is None:
             self.parent = False
         else:
             self.parent = pBuffer[0]
-        self.children = mc.attributeQuery(self.attr, node = self.obj.nameLong, listChildren=True)
+        self.children = mc.attributeQuery(self.attr, node = self.obj.nameShort, listChildren=True)
         if self.children is None:
             self.children = False        
-        self.siblings = mc.attributeQuery(self.attr, node = self.obj.nameLong, listSiblings=True)
+        self.siblings = mc.attributeQuery(self.attr, node = self.obj.nameShort, listSiblings=True)
         if self.siblings is None:
             self.siblings = False    
         self.enum = False
         
-        self.userAttrs = mc.listAttr(self.obj.nameLong, userDefined = True) or []
+        self.userAttrs = mc.listAttr(self.obj.nameShort, userDefined = True) or []
         
-        standardFlagsBuffer = attributes.returnStandardAttrFlags(self.obj.nameLong,self.nameLong)
-        standardDataBuffer = attributes.returnAttributeDataDict(self.obj.nameLong,self.nameLong)
+        standardFlagsBuffer = attributes.returnStandardAttrFlags(self.obj.nameShort,self.nameLong)
+        standardDataBuffer = attributes.returnAttributeDataDict(self.obj.nameShort,self.nameLong)
         
         #Check connections
         self.driver = attributes.returnDriverAttribute(self.nameCombined,False)
@@ -194,7 +202,7 @@ class AttrFactory():
             
         #>>> Numeric 
         if self.numeric:
-            bufferDict = attributes.returnNumericAttrSettingsDict(self.obj.nameLong,self.nameLong)
+            bufferDict = attributes.returnNumericAttrSettingsDict(self.obj.nameShort,self.nameLong)
             if bufferDict:
                 self.maxValue = bufferDict.get('max')
                 self.minValue = bufferDict.get('min')
@@ -261,10 +269,10 @@ class AttrFactory():
             if default is not False:
                 self.doDefault(default)
             
-        guiFactory.warning("'%s.%s' converted to '%s'"%(self.obj.nameLong,self.attr,attrType))
+        guiFactory.warning("'%s.%s' converted to '%s'"%(self.obj.nameShort,self.attr,attrType))
             
         """except:
-            guiFactory.warning("'%s.%s' failed to convert"%(self.obj.nameLong,self.attr))"""
+            guiFactory.warning("'%s.%s' failed to convert"%(self.obj.nameShort,self.attr))"""
             
     
     def set(self,value,*a, **kw):
@@ -280,8 +288,8 @@ class AttrFactory():
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
                     try:
-                        cInstance = AttrFactory(self.obj.nameLong,c)                        
-                        attributes.doSetAttr(cInstance.obj.nameLong,cInstance.attr, value, *a, **kw)
+                        cInstance = AttrFactory(self.obj.nameShort,c)                        
+                        attributes.doSetAttr(cInstance.obj.nameShort,cInstance.attr, value, *a, **kw)
                         self.value = value
                     except:
                         guiFactory.warning("'%s' failed to set"%c)
@@ -290,11 +298,11 @@ class AttrFactory():
                 if value:
                     self.doStore(value)
             else:
-                attributes.doSetAttr(self.obj.nameLong,self.attr, value, *a, **kw)
+                attributes.doSetAttr(self.obj.nameShort,self.attr, value, *a, **kw)
                 self.value = value
         
         except:
-            guiFactory.warning("'%s.%s' failed to set '%s'"%(self.obj.nameLong,self.attr,value))
+            guiFactory.warning("'%s.%s' failed to set '%s'"%(self.obj.nameShort,self.attr,value))
         
         
     def get(self,*a, **kw):
@@ -306,13 +314,13 @@ class AttrFactory():
         """     
         try:
             if self.form == 'message':
-                self.value = attributes.returnMessageObject(self.obj.nameLong,self.attr)
+                self.value = attributes.returnMessageObject(self.obj.nameShort,self.attr)
             else:
-                self.value =  attributes.doGetAttr(self.obj.nameLong,self.attr,*a, **kw)
-            #guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameLong,self.attr,self.value))
+                self.value =  attributes.doGetAttr(self.obj.nameShort,self.attr,*a, **kw)
+            #guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameShort,self.attr,self.value))
             return self.value
         except:
-            guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
+            guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameShort,self.attr))
             
             
     def getMessage(self,*a, **kw):
@@ -325,15 +333,15 @@ class AttrFactory():
         """   
         try:
             if self.form == 'message':
-                self.value = attributes.returnMessageObject(self.obj.nameLong,self.attr)
+                self.value = attributes.returnMessageObject(self.obj.nameShort,self.attr)
             else:
-                self.value = attributes.returnDriverAttribute("%s.%s"%(self.obj.nameLong,self.attr))
+                self.value = attributes.returnDriverAttribute("%s.%s"%(self.obj.nameShort,self.attr))
 
-            guiFactory.report("'%s.%s' >Message> '%s'"%(self.obj.nameLong,self.attr,self.value))
+            guiFactory.report("'%s.%s' >Message> '%s'"%(self.obj.nameShort,self.attr,self.value))
             return self.value
             
         except:
-            guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameLong,self.attr))
+            guiFactory.warning("'%s.%s' failed to get"%(self.obj.nameShort,self.attr))
             
             
             
@@ -346,15 +354,15 @@ class AttrFactory():
         """   
         try:
             if self.form == 'enum':
-                mc.addAttr ((self.obj.nameLong+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
+                mc.addAttr ((self.obj.nameShort+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
                 self.enum = enumCommand
-                guiFactory.report("'%s.%s' has been updated!"%(self.obj.nameLong,self.attr))
+                guiFactory.report("'%s.%s' has been updated!"%(self.obj.nameShort,self.attr))
                 
             else:
-                guiFactory.warning("'%s.%s' is not an enum. Invalid call"%(self.obj.nameLong,self.attr))
+                guiFactory.warning("'%s.%s' is not an enum. Invalid call"%(self.obj.nameShort,self.attr))
             
         except:
-            guiFactory.warning("'%s.%s' failed to change..."%(self.obj.nameLong,self.attr))
+            guiFactory.warning("'%s.%s' failed to change..."%(self.obj.nameShort,self.attr))
             
     def doStore(self,infoToStore,convertIfNecessary = True):
         """ 
@@ -377,20 +385,20 @@ class AttrFactory():
                 self.value = infoToStore
             
         except:
-            guiFactory.warning("'%s.%s' failed to store '%s'"%(self.obj.nameLong,self.attr,infoToStore))
+            guiFactory.warning("'%s.%s' failed to store '%s'"%(self.obj.nameShort,self.attr,infoToStore))
             
     def doDelete(self):
         """ 
         Deletes an attribute
         """   
         try:
-            attributes.doDeleteAttr(self.obj.nameLong,self.attr)
-            guiFactory.warning("'%s.%s' deleted"%(self.obj.nameLong,self.attr))
+            attributes.doDeleteAttr(self.obj.nameShort,self.attr)
+            guiFactory.warning("'%s.%s' deleted"%(self.obj.nameShort,self.attr))
             self.value = None
             return self.value
         
         except:
-            guiFactory.warning("'%s.%s' failed to delete"%(self.obj.nameLong,self.attr))  
+            guiFactory.warning("'%s.%s' failed to delete"%(self.obj.nameShort,self.attr))  
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Set Options
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>                       
@@ -406,9 +414,9 @@ class AttrFactory():
                 if self.children:
                     guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                     for c in self.children:
-                        cInstance = AttrFactory(self.obj.nameLong,c)                        
+                        cInstance = AttrFactory(self.obj.nameShort,c)                        
                         try:
-                            mc.addAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,defaultValue = value)
+                            mc.addAttr((cInstance.obj.nameShort+'.'+cInstance.attr),e=True,defaultValue = value)
                             cInstance.defaultValue = value                                                        
                         except:
                             guiFactory.warning("'%s' failed to set a default value"%cInstance.nameCombined)                
@@ -416,10 +424,10 @@ class AttrFactory():
                 
                 else:     
                     try:
-                        mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,defaultValue = value)
+                        mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,defaultValue = value)
                         self.defaultValue = value
                     except:
-                        guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))       
+                        guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameShort,self.attr))       
                 
     def doMax(self,value = None):
         """ 
@@ -431,18 +439,18 @@ class AttrFactory():
         if self.numeric and not self.children: 
             if value is False:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMaxValue = value)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,hasMaxValue = value)
                     self.maxValue = value
-                    guiFactory.warning("'%s.%s' had it's max value cleared"%(self.obj.nameLong,self.attr))                     
+                    guiFactory.warning("'%s.%s' had it's max value cleared"%(self.obj.nameShort,self.attr))                     
                 except:
-                    guiFactory.warning("'%s.%s' failed to clear a max value"%(self.obj.nameLong,self.attr))  
+                    guiFactory.warning("'%s.%s' failed to clear a max value"%(self.obj.nameShort,self.attr))  
             
             elif value is not None:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,maxValue = value)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,maxValue = value)
                     self.maxValue = value
                 except:
-                    guiFactory.warning("'%s.%s' failed to set a max value"%(self.obj.nameLong,self.attr))
+                    guiFactory.warning("'%s.%s' failed to set a max value"%(self.obj.nameShort,self.attr))
                 
                 
     def doMin(self,value = None):
@@ -455,19 +463,19 @@ class AttrFactory():
         if self.numeric and not self.children: 
             if value is False:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasMinValue = value)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,hasMinValue = value)
                     self.minValue = value
-                    guiFactory.warning("'%s.%s' had it's min value cleared"%(self.obj.nameLong,self.attr))                     
+                    guiFactory.warning("'%s.%s' had it's min value cleared"%(self.obj.nameShort,self.attr))                     
                 except:
-                    guiFactory.warning("'%s.%s' failed to clear a min value"%(self.obj.nameLong,self.attr))
+                    guiFactory.warning("'%s.%s' failed to clear a min value"%(self.obj.nameShort,self.attr))
             
             
             elif value is not None:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,minValue = value)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,minValue = value)
                     self.minValue = value
                 except:
-                    guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameLong,self.attr))
+                    guiFactory.warning("'%s.%s' failed to set a default value"%(self.obj.nameShort,self.attr))
                     
     def doSoftMax(self,value = None):
         """ 
@@ -479,18 +487,18 @@ class AttrFactory():
         if self.numeric and not self.children: 
             if value is False:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasSoftMaxValue = 0)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,hasSoftMaxValue = 0)
                     self.softMaxValue = value
-                    guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameLong,self.attr))                     
+                    guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameShort,self.attr))                     
                 except:
-                    guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameLong,self.attr))  
+                    guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameShort,self.attr))  
             
             elif value is not None:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,softMaxValue = value)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,softMaxValue = value)
                     self.softMaxValue = value
                 except:
-                    guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
+                    guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameShort,self.attr))
                     
     def doSoftMin(self,value = None):
         """ 
@@ -502,18 +510,18 @@ class AttrFactory():
         if self.numeric and not self.children: 
             if value is False:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,hasSoftMinValue = 0)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,hasSoftMinValue = 0)
                     self.softMinValue = value
-                    guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameLong,self.attr))                     
+                    guiFactory.warning("'%s.%s' had it's soft max value cleared"%(self.obj.nameShort,self.attr))                     
                 except:
-                    guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameLong,self.attr))  
+                    guiFactory.warning("'%s.%s' failed to clear a soft max value"%(self.obj.nameShort,self.attr))  
             
             elif value is not None:
                 try:
-                    mc.addAttr((self.obj.nameLong+'.'+self.attr),e=True,softMinValue = value)
+                    mc.addAttr((self.obj.nameShort+'.'+self.attr),e=True,softMinValue = value)
                     self.softMinValue = value
                 except:
-                    guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameLong,self.attr))
+                    guiFactory.warning("'%s.%s' failed to set a soft max value"%(self.obj.nameShort,self.attr))
         
     def doLocked(self,arg = True):
         """ 
@@ -527,32 +535,32 @@ class AttrFactory():
             if self.children:
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    cInstance = AttrFactory(self.obj.nameShort,c)                                            
                     if not cInstance.locked:
-                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,lock = True) 
-                        guiFactory.report("'%s.%s' locked!"%(cInstance.obj.nameLong,cInstance.attr))
+                        mc.setAttr((cInstance.obj.nameShort+'.'+cInstance.attr),e=True,lock = True) 
+                        guiFactory.report("'%s.%s' locked!"%(cInstance.obj.nameShort,cInstance.attr))
                         cInstance.locked = True
                 self.updateData()  
                 
             elif not self.locked:
-                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,lock = True) 
-                guiFactory.report("'%s.%s' locked!"%(self.obj.nameLong,self.attr))
+                mc.setAttr((self.obj.nameShort+'.'+self.attr),e=True,lock = True) 
+                guiFactory.report("'%s.%s' locked!"%(self.obj.nameShort,self.attr))
                 self.locked = True
                 
         else:
             if self.children:
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    cInstance = AttrFactory(self.obj.nameShort,c)                                            
                     if cInstance.locked:
-                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,lock = False) 
-                        guiFactory.report("'%s.%s' unlocked!"%(cInstance.obj.nameLong,cInstance.attr))
+                        mc.setAttr((cInstance.obj.nameShort+'.'+cInstance.attr),e=True,lock = False) 
+                        guiFactory.report("'%s.%s' unlocked!"%(cInstance.obj.nameShort,cInstance.attr))
                         cInstance.locked = False
                 self.updateData()  
                 
             elif self.locked:
-                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,lock = False)           
-                guiFactory.report("'%s.%s' unlocked!"%(self.obj.nameLong,self.attr))
+                mc.setAttr((self.obj.nameShort+'.'+self.attr),e=True,lock = False)           
+                guiFactory.report("'%s.%s' unlocked!"%(self.obj.nameShort,self.attr))
                 self.locked = False
                 
     def doHidden(self,arg = True):
@@ -567,19 +575,19 @@ class AttrFactory():
             if self.children:
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    cInstance = AttrFactory(self.obj.nameShort,c)                                            
                     if not cInstance.hidden:
                         if cInstance.keyable:
                             cInstance.doKeyable(False)
-                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,channelBox = False) 
-                        guiFactory.report("'%s.%s' hidden!"%(cInstance.obj.nameLong,cInstance.attr))
+                        mc.setAttr((cInstance.obj.nameShort+'.'+cInstance.attr),e=True,channelBox = False) 
+                        guiFactory.report("'%s.%s' hidden!"%(cInstance.obj.nameShort,cInstance.attr))
                         cInstance.hidden = False
                 
             elif not self.hidden:
                 if self.keyable:
                     self.doKeyable(False)
-                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = False) 
-                guiFactory.report("'%s.%s' hidden!"%(self.obj.nameLong,self.attr))
+                mc.setAttr((self.obj.nameShort+'.'+self.attr),e=True,channelBox = False) 
+                guiFactory.report("'%s.%s' hidden!"%(self.obj.nameShort,self.attr))
                 self.hidden = True
 
                 
@@ -587,15 +595,15 @@ class AttrFactory():
             if self.children:
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    cInstance = AttrFactory(self.obj.nameShort,c)                                            
                     if cInstance.hidden:
-                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,channelBox = True) 
-                        guiFactory.report("'%s.%s' unhidden!"%(cInstance.obj.nameLong,cInstance.attr))
+                        mc.setAttr((cInstance.obj.nameShort+'.'+cInstance.attr),e=True,channelBox = True) 
+                        guiFactory.report("'%s.%s' unhidden!"%(cInstance.obj.nameShort,cInstance.attr))
                         cInstance.hidden = False
                 
             elif self.hidden:
-                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,channelBox = True)           
-                guiFactory.report("'%s.%s' unhidden!"%(self.obj.nameLong,self.attr))
+                mc.setAttr((self.obj.nameShort+'.'+self.attr),e=True,channelBox = True)           
+                guiFactory.report("'%s.%s' unhidden!"%(self.obj.nameShort,self.attr))
                 self.hidden = False
                 
                 
@@ -611,17 +619,17 @@ class AttrFactory():
             if self.children:
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    cInstance = AttrFactory(self.obj.nameShort,c)                                            
                     if not cInstance.keyable:
                         mc.setAttr(cInstance.nameCombined,e=True,keyable = True) 
-                        guiFactory.report("'%s.%s' keyable!"%(cInstance.obj.nameLong,cInstance.attr))
+                        guiFactory.report("'%s.%s' keyable!"%(cInstance.obj.nameShort,cInstance.attr))
                         cInstance.keyable = True
                         cInstance.hidden = False
 
                 
             elif not self.keyable:
-                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = True) 
-                guiFactory.report("'%s.%s' keyable!"%(self.obj.nameLong,self.attr))
+                mc.setAttr((self.obj.nameShort+'.'+self.attr),e=True,keyable = True) 
+                guiFactory.report("'%s.%s' keyable!"%(self.obj.nameShort,self.attr))
                 self.keyable = True
                 self.hidden = False
                     
@@ -630,18 +638,18 @@ class AttrFactory():
             if self.children:
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.nameLong,c)                                            
+                    cInstance = AttrFactory(self.obj.nameShort,c)                                            
                     if cInstance.keyable:
-                        mc.setAttr((cInstance.obj.nameLong+'.'+cInstance.attr),e=True,keyable = False) 
-                        guiFactory.report("'%s.%s' unkeyable!"%(cInstance.obj.nameLong,cInstance.attr))
+                        mc.setAttr((cInstance.obj.nameShort+'.'+cInstance.attr),e=True,keyable = False) 
+                        guiFactory.report("'%s.%s' unkeyable!"%(cInstance.obj.nameShort,cInstance.attr))
                         cInstance.keyable = False
                         if not mc.getAttr(cInstance.nameCombined,channelBox=True):
                             cInstance.updateData()
                             cInstance.doHidden(False)                
                 
             elif self.keyable:
-                mc.setAttr((self.obj.nameLong+'.'+self.attr),e=True,keyable = False)           
-                guiFactory.report("'%s.%s' unkeyable!"%(self.obj.nameLong,self.attr))
+                mc.setAttr((self.obj.nameShort+'.'+self.attr),e=True,keyable = False)           
+                guiFactory.report("'%s.%s' unkeyable!"%(self.obj.nameShort,self.attr))
                 self.keyable = False
                 if not mc.getAttr(self.nameCombined,channelBox=True):
                     self.updateData()
@@ -661,10 +669,10 @@ class AttrFactory():
                     if mc.aliasAttr(arg,self.nameCombined):
                         self.nameAlias = arg
                 else:
-                    guiFactory.report("'%s.%s' already has that alias!"%(self.obj.nameLong,self.attr,arg))
+                    guiFactory.report("'%s.%s' already has that alias!"%(self.obj.nameShort,self.attr,arg))
                     
             except:
-                guiFactory.warning("'%s.%s' failed to set alias of '%s'!"%(self.obj.nameLong,self.attr,arg))
+                guiFactory.warning("'%s.%s' failed to set alias of '%s'!"%(self.obj.nameShort,self.attr,arg))
                     
         else:
             if self.nameAlias:
@@ -688,7 +696,7 @@ class AttrFactory():
                 self.nameNice = arg
 
             except:
-                guiFactory.warning("'%s.%s' failed to set nice name of '%s'!"%(self.obj.nameLong,self.attr,arg))
+                guiFactory.warning("'%s.%s' failed to set nice name of '%s'!"%(self.obj.nameShort,self.attr,arg))
                     
 
     def doRename(self,arg):
@@ -702,15 +710,15 @@ class AttrFactory():
         if arg:
             try:
                 if arg != self.nameLong:
-                    attributes.doRenameAttr(self.obj.nameLong,self.nameLong,arg)
+                    attributes.doRenameAttr(self.obj.nameShort,self.nameLong,arg)
                     self.attr = arg
                     self.updateData()
                     
                 else:
-                    guiFactory.report("'%s.%s' already has that nice name!"%(self.obj.nameLong,self.attr,arg))
+                    guiFactory.report("'%s.%s' already has that nice name!"%(self.obj.nameShort,self.attr,arg))
                     
             except:
-                guiFactory.warning("'%s.%s' failed to rename name of '%s'!"%(self.obj.nameLong,self.attr,arg))
+                guiFactory.warning("'%s.%s' failed to rename name of '%s'!"%(self.obj.nameShort,self.attr,arg))
                 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Connections and transfers
@@ -725,7 +733,7 @@ class AttrFactory():
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
         
-        return attributes.returnCompatibleAttrs(self.obj.nameLong,self.nameLong,target,*a, **kw)
+        return attributes.returnCompatibleAttrs(self.obj.nameShort,self.nameLong,target,*a, **kw)
         
             
     
@@ -747,7 +755,7 @@ class AttrFactory():
                 
         else:
             #If the object has a transform
-            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.nameLong,target,[self.nameLong]) or []
+            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.nameShort,target,[self.nameLong]) or []
             if matchAttr:
                 #If it has a matching attribute
                 try:
@@ -777,7 +785,7 @@ class AttrFactory():
                 
         else:
             #If the object has a transform
-            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.nameLong,source,[self.nameLong]) or []
+            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.nameShort,source,[self.nameLong]) or []
             if matchAttr:
                 #If it has a matching attribute
                 try:
@@ -810,7 +818,7 @@ class AttrFactory():
         success(bool)
         """
         assert mc.objExists(target),"'%s' doesn't exist"%target
-        assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
+        assert mc.ls(target,long=True) != [self.obj.nameShort], "Can't transfer to self!"
         
         copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
         
@@ -821,7 +829,7 @@ class AttrFactory():
             if '.' in list(target):
                 targetBuffer = target.split('.')
                 if len(targetBuffer) == 2:
-                    attributes.doCopyAttr(self.obj.nameLong,
+                    attributes.doCopyAttr(self.obj.nameShort,
                                           self.nameLong,
                                           targetBuffer[0],
                                           targetBuffer[1],
@@ -833,7 +841,7 @@ class AttrFactory():
                 else:
                     guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
             else:
-                attributes.doCopyAttr(self.obj.nameLong,
+                attributes.doCopyAttr(self.obj.nameShort,
                                       self.nameLong,
                                       target,
                                       targetAttrName, convertToMatch,
@@ -855,13 +863,13 @@ class AttrFactory():
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
-        assert self.obj.transform is not False,"'%s' Doesn't have a transform. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.obj.nameLong        
-        assert mc.ls(target,long=True) != [self.obj.nameLong], "Can't transfer to self!"
+        assert self.obj.transform is not False,"'%s' Doesn't have a transform. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.obj.nameShort        
+        assert mc.ls(target,long=True) != [self.obj.nameShort], "Can't transfer to self!"
         assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
         assert self.dynamic is True,"'%s' is not a dynamic attribute."%self.nameCombined
         
-        #mc.copyAttr(self.obj.nameLong,self.target.obj.nameLong,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
-        attributes.doCopyAttr(self.obj.nameLong,
+        #mc.copyAttr(self.obj.nameShort,self.target.obj.nameShort,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
+        attributes.doCopyAttr(self.obj.nameShort,
                               self.nameLong,
                               target,
                               self.nameLong,
