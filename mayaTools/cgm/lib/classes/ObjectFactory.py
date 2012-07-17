@@ -56,6 +56,7 @@ class ObjectFactory():
 
         self.parent = False
         self.children = False
+	self.refState = False
         self.cgm = {}
         self.mType = ''
 
@@ -65,6 +66,9 @@ class ObjectFactory():
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def isRef(self):
+        """
+        Get ref state of the object
+        """	
         if mc.referenceQuery(self.nameLong, isNodeReferenced=True):
             self.refState = True
             self.refPrefix = search.returnReferencePrefix(self.nameShort)
@@ -76,15 +80,9 @@ class ObjectFactory():
         """
         Get the cgm name tags of an object.
         """
-	self.cgm['cgmName'] = search.findRawTagInfo(self.nameLong,'cgmName')
-	self.cgm['cgmNameModifier'] =  search.findRawTagInfo(self.nameLong,'cgmNameModifier')
-	self.cgm['cgmPosition'] =  search.findRawTagInfo(self.nameLong,'cgmPosition')
-	self.cgm['cgmDirectionModifier'] =  search.findRawTagInfo(self.nameLong,'cgmDirectionModifier')
-	self.cgm['cgmDirection'] =  search.findRawTagInfo(self.nameLong,'cgmDirection')
-	self.cgm['cgmIterator'] =  search.findRawTagInfo(self.nameLong,'cgmIterator')
-	self.cgm['cgmTypeModifier'] =  search.findRawTagInfo(self.nameLong,'cgmTypeModifier')
-	self.cgm['cgmType'] =  search.findRawTagInfo(self.nameLong,'cgmType')
-		
+	self.cgm = {}
+	for tag in 'cgmName','cgmNameModifier','cgmPosition','cgmDirection','cgmDirectionModifier','cgmIterator','cgmType','cgmTypeModifier':
+	    self.cgm[tag] = search.findRawTagInfo(self.nameLong,tag)	
 
     def getAttrs(self):
         """ Stores the dictionary of userAttrs of an object."""
@@ -104,9 +102,9 @@ class ObjectFactory():
 
     def getFamily(self):
         """ Get the parent, child and shapes of the object."""
-        self.parent = search.returnParentObject(self.nameLong)
-        self.children = search.returnChildrenObjects(self.nameLong)
-        self.shapes = mc.listRelatives(self.nameLong,shapes=True)
+        self.parent = search.returnParentObject(self.nameLong) or False
+        self.children = search.returnChildrenObjects(self.nameLong) or []
+        self.shapes = mc.listRelatives(self.nameLong,shapes=True) or []
 
     def getTransforms(self):
         """ Get transform information of the object. """
@@ -203,7 +201,7 @@ class ObjectFactory():
         self.update(groupLong[0]+'|'+self.nameBase)  
 
 
-    def doName(self,sceneUnique=False):
+    def doName(self,sceneUnique=False,nameChildren=False):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
         
@@ -214,9 +212,16 @@ class ObjectFactory():
         if self.refState:
             return guiFactory.warning("'%s' is referenced. Cannot change name"%self.nameShort)
 	
-        buffer = NameFactory.doNameObject(self.nameLong,sceneUnique)
-        if buffer:
-            self.update(buffer)
+	if nameChildren:
+	    buffer = NameFactory.doRenameHeir(self.nameLong,sceneUnique)
+	    if buffer:
+		self.update(buffer[0])
+ 
+	else:
+	    buffer = NameFactory.doNameObject(self.nameLong,sceneUnique)
+	    if buffer:
+		self.update(buffer)   	    
+
 
     def doParent(self,p):
         """
