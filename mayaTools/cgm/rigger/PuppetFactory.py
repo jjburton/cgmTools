@@ -17,6 +17,7 @@ import maya.cmds as mc
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes.AttrFactory import *
 from cgm.lib.classes.BufferFactory import *
+from cgm.lib.classes.ObjectFactory import *
 
 from cgm.rigger import ModuleFactory
 reload(ModuleFactory)
@@ -65,13 +66,15 @@ typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFil
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
 
-axisDirections = ['x+','y+','z+','x-','y-','z-']
+axisDirectionsByString = ['x+','y+','z+','x-','y-','z-']
 geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 CharacterTypes = 'Bio','Mech','Prop'
 
 moduleTypeToFunctionDict = {'None':ModuleFactory,
                             'segment':Segment}
 
+moduleTypeToMasterClassDict = {'None':['none','None',False],
+                               'Limb':['segment']}
 class PuppetFactory():
     """ 
     Character
@@ -85,30 +88,29 @@ class PuppetFactory():
         varName(string) -- name for the optionVar
         """
         #Default to creation of a var as an int value of 0
-        ### input check   
-        self.refPrefix = None
-        self.refState = False        
+        ### input check         
         self.masterNulls = modules.returnPuppetObjects()
         self.nameBase = characterName
         self.geo = []
         self.modules = []
         self.templateSizeObjects = {}
-        self.Modules = {}
+        self.Module = {}
+        self.PuppetNull = False
+        self.refState = False
         
         guiFactory.doPrintReportStart()
-        
         
         if mc.objExists(characterName):
             #Make a name dict to check
             if search.findRawTagInfo(characterName,'cgmModuleType') == 'master':
                 self.nameBase = characterName
-                self.PuppetNullName = characterName
-                self.isRef()
+                self.PuppetNull = ObjectFactory(characterName)
+                self.refState = self.PuppetNull.refState
                 guiFactory.report("'%s' exists. Checking..."%characterName)
 
             else:
-                guiFactory.warning("'%s' isn't a puppet module. Can't initialize"%moduleName)
-                return False
+                guiFactory.warning("'%s' isn't a puppet module. Can't initialize"%characterName)
+                return
         else:
             if self.nameBase == '':
                 randomOptions = ['ReallyNameMe','SolarSystem_isADumbName','David','Josh','Ryan','NameMe','Homer','Georgie','PleaseNameMe','NAMEThis','PleaseNameThisPuppet']
@@ -145,172 +147,194 @@ class PuppetFactory():
         #Puppet null
         try:
             if not mc.objExists(self.nameBase):
-                self.PuppetNullName = mc.group(empty=True)
+                buffer = mc.group(empty=True)
+                self.PuppetNull = ObjectFactory(buffer)
             else:
-                self.PuppetNullName = self.nameBase
+                self.PuppetNull = ObjectFactory(self.nameBase)
             
-            attributes.storeInfo(self.PuppetNullName,'cgmName',self.nameBase,True)   
-            attributes.storeInfo(self.PuppetNullName,'cgmType','ignore')
-            attributes.storeInfo(self.PuppetNullName,'cgmModuleType','master')
+            self.PuppetNull.store('cgmName',self.nameBase,True)   
+            self.PuppetNull.store('cgmType','ignore')
+            self.PuppetNull.store('cgmModuleType','master')
                  
-            if self.PuppetNullName != self.nameBase:
-                self.PuppetNullName = NameFactory.doNameObject(self.PuppetNullName,True)
+            if self.PuppetNull.nameShort != self.nameBase:
+                self.PuppetNull.doName(True)
             
-            attributes.doSetLockHideKeyableAttr(self.PuppetNullName,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+            attributes.doSetLockHideKeyableAttr(self.PuppetNull.nameShort,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         except:
             guiFactory.warning("Puppet null failed!")
             
         #Checks our modules container null
         created = False
         #Initialize message attr
-        self.aModulesGroup = AttrFactory(self.PuppetNullName,'modulesGroup','message')
-        if not self.aModulesGroup.value:
-            self.aModulesGroup.doStore(mc.group(empty=True))
+        self.afModulesGroup = AttrFactory(self.PuppetNull,'modulesGroup','message')
+        if not self.afModulesGroup.value:
+            self.ModulesGroup = ObjectFactory(mc.group(empty=True))            
+            self.afModulesGroup.doStore(self.ModulesGroup.nameShort)
             created = True
+        else:
+            self.ModulesGroup = ObjectFactory(self.afModulesGroup.value)
             
-        attributes.storeInfo(self.aModulesGroup.value ,'cgmName','modules')   
-        attributes.storeInfo(self.aModulesGroup.value ,'cgmType','group')
+        self.ModulesGroup.store('cgmName','modules')   
+        self.ModulesGroup.store('cgmType','group')
         
-        rigging.doParentReturnName(self.aModulesGroup.value,self.PuppetNullName)
+        self.ModulesGroup.doParent(self.PuppetNull.nameShort)
         
         if created:
-            NameFactory.doNameObject(self.aModulesGroup.value)
+            self.ModulesGroup.doName(True)
             
-        self.aModulesGroup.updateData()   
+        self.afModulesGroup.updateData()   
             
-        attributes.doSetLockHideKeyableAttr(self.aModulesGroup.value)
+        attributes.doSetLockHideKeyableAttr(self.ModulesGroup.nameShort)
 
             
         #Checks our noTransform container null
         created = False        
-        self.aNoTransformGroup = AttrFactory(self.PuppetNullName,'noTransformGroup','message')
-        if not self.aNoTransformGroup.value:
-            self.aNoTransformGroup.doStore(mc.group(empty=True))
+        self.afNoTransformGroup = AttrFactory(self.PuppetNull,'noTransformGroup','message')
+        if not self.afNoTransformGroup.value:
+            self.NoTransformGroup = ObjectFactory(mc.group(empty=True))
+            self.afNoTransformGroup.doStore(self.NoTransformGroup.nameShort)
             created = True
+        else:
+            self.NoTransformGroup = ObjectFactory(self.afNoTransformGroup.value)
             
-        attributes.storeInfo(self.aNoTransformGroup.value ,'cgmName','noTransform')   
-        attributes.storeInfo(self.aNoTransformGroup.value ,'cgmType','group')
+        self.NoTransformGroup.store('cgmName','noTransform')   
+        self.NoTransformGroup.store('cgmType','group')
         
-        rigging.doParentReturnName(self.aNoTransformGroup.value,self.PuppetNullName)
+        self.NoTransformGroup.doParent(self.PuppetNull.nameShort)
         
         if created:
-            NameFactory.doNameObject(self.aNoTransformGroup.value)
+            self.NoTransformGroup.doName(True)
             
-        self.aNoTransformGroup.updateData()   
+        self.afNoTransformGroup.updateData()   
             
-        attributes.doSetLockHideKeyableAttr(self.aNoTransformGroup.value)
+        attributes.doSetLockHideKeyableAttr(self.NoTransformGroup.nameShort)
          
             
         #Checks our geo container null
         created = False        
-        self.aGeoGroup = AttrFactory(self.PuppetNullName,'geoGroup','message')
-        if not self.aGeoGroup.value:
-            self.aGeoGroup.doStore(mc.group(empty=True))
+        self.afGeoGroup = AttrFactory(self.PuppetNull,'geoGroup','message')
+        if not self.afGeoGroup.value:
+            self.GeoGroup = ObjectFactory(mc.group(empty=True))
+            self.afGeoGroup.doStore(self.GeoGroup.nameShort)            
             created = True
+        else:
+            self.GeoGroup = ObjectFactory(self.afGeoGroup.value)
             
-        attributes.storeInfo(self.aGeoGroup.value ,'cgmName','geo')   
-        attributes.storeInfo(self.aGeoGroup.value ,'cgmType','group')
+        self.GeoGroup.store('cgmName','geo')   
+        self.GeoGroup.store('cgmType','group')
         
-        rigging.doParentReturnName(self.aGeoGroup.value,self.aNoTransformGroup.value)
+        self.GeoGroup.doParent(self.afNoTransformGroup.value)
         
         if created:
-            NameFactory.doNameObject(self.aGeoGroup.value)
+            self.GeoGroup.doName(True)
             
-        self.aGeoGroup.updateData()   
+        self.afGeoGroup.updateData()   
             
-        attributes.doSetLockHideKeyableAttr(self.aGeoGroup.value)
-        
+        attributes.doSetLockHideKeyableAttr(self.GeoGroup.nameShort)
         
             
         #Checks master info null
         created = False        
-        self.aPuppetInfo = AttrFactory(self.PuppetNullName,'info','message')
-        if not self.aPuppetInfo.value:
-            self.aPuppetInfo.doStore(mc.group(empty=True))
+        self.afPuppetInfo = AttrFactory(self.PuppetNull,'info','message')
+        if not self.afPuppetInfo.value:
+            self.PuppetInfoNull = ObjectFactory(mc.group(empty=True))
+            self.afPuppetInfo.doStore(self.PuppetInfoNull.nameShort)               
             created = True
+        else:
+            self.PuppetInfoNull = ObjectFactory(self.afPuppetInfo.value)
             
-        attributes.storeInfo(self.aPuppetInfo.value ,'cgmName','master')   
-        attributes.storeInfo(self.aPuppetInfo.value ,'cgmType','info')
+            
+        self.PuppetInfoNull.store('cgmName','master')   
+        self.PuppetInfoNull.store('cgmType','info')
         
-        rigging.doParentReturnName(self.aPuppetInfo.value,self.PuppetNullName)
+        self.PuppetInfoNull.doParent(self.PuppetNull.nameShort)
         
         if created:
-            NameFactory.doNameObject(self.aPuppetInfo.value)
+            self.PuppetInfoNull.doName(True)
             
-        self.aPuppetInfo.updateData()   
+        self.afPuppetInfo.updateData()   
             
-        attributes.doSetLockHideKeyableAttr(self.aPuppetInfo.value)
+        attributes.doSetLockHideKeyableAttr(self.PuppetInfoNull.nameShort)
         
             
         #Checks modules info null
         created = False        
-        self.aModuleInfo = AttrFactory(self.aPuppetInfo.value,'modules','message')
-        if not self.aModuleInfo.value:
-            self.aModuleInfo.doStore(mc.group(empty=True))
+        self.afModuleInfo = AttrFactory(self.afPuppetInfo.value,'modules','message')
+        if not self.afModuleInfo.value:
+            self.ModuleInfoNull = ObjectFactory(mc.group(empty=True))
+            self.afModuleInfo.doStore(self.ModuleInfoNull.nameShort)     
             created = True
+        else:
+            self.ModuleInfoNull = ObjectFactory(self.afModuleInfo.value)
             
-        attributes.storeInfo(self.aModuleInfo.value ,'cgmName','modules')   
-        attributes.storeInfo(self.aModuleInfo.value ,'cgmType','info')
+        self.ModuleInfoNull.store('cgmName','modules')   
+        self.ModuleInfoNull.store('cgmType','info')
         
-        rigging.doParentReturnName(self.aModuleInfo.value,self.aPuppetInfo.value)
+        self.ModuleInfoNull.doParent(self.PuppetInfoNull.nameShort)
         
         if created:
-            NameFactory.doNameObject(self.aModuleInfo.value)
+            self.ModuleInfoNull.doName(True)
             
-        self.aModuleInfo.updateData()   
+        self.afModuleInfo.updateData()   
             
-        attributes.doSetLockHideKeyableAttr(self.aModuleInfo.value)        
+        attributes.doSetLockHideKeyableAttr(self.ModuleInfoNull.nameShort)
         
         #Initialize our modules null as a buffer
-        self.ModulesBuffer = BufferFactory(self.aModuleInfo.value)
+        self.ModulesBuffer = BufferFactory(self.ModuleInfoNull.nameShort)
         
         #Checks geo info null
         created = False        
-        self.aGeoInfo = AttrFactory(self.aPuppetInfo.value,'geo','message')
-        if not self.aGeoInfo.value:
-            self.aGeoInfo.doStore(mc.group(empty=True))
+        self.afGeoInfo = AttrFactory(self.afPuppetInfo.value,'geo','message')
+        if not self.afGeoInfo.value:
+            self.GeoInfoNull = ObjectFactory(mc.group(empty=True))
+            self.afGeoInfo.doStore(self.GeoInfoNull.nameShort)              
             created = True
+        else:
+            self.GeoInfoNull = ObjectFactory(self.afGeoInfo.value)
             
-        attributes.storeInfo(self.aGeoInfo.value ,'cgmName','geo')   
-        attributes.storeInfo(self.aGeoInfo.value ,'cgmType','info')
+        self.GeoInfoNull.store('cgmName','geo')   
+        self.GeoInfoNull.store('cgmType','info')
         
-        rigging.doParentReturnName(self.aGeoInfo.value,self.aPuppetInfo.value)
+        self.GeoInfoNull.doParent(self.afPuppetInfo.value)
         
         if created:
-            NameFactory.doNameObject(self.aGeoInfo.value)
+            self.GeoInfoNull.doName(True)
             
-        self.aGeoInfo.updateData()   
+        self.afGeoInfo.updateData()   
             
-        attributes.doSetLockHideKeyableAttr(self.aGeoInfo.value) 
+        attributes.doSetLockHideKeyableAttr(self.GeoInfoNull.nameShort) 
         
             
         #Checks settings info null
         created = False        
-        self.aSettingsInfo = AttrFactory(self.aPuppetInfo.value,'settings','message')
-        if not self.aSettingsInfo.value:
-            self.aSettingsInfo.doStore(mc.group(empty=True))
+        self.afSettingsInfo = AttrFactory(self.afPuppetInfo.value,'settings','message')
+        if not self.afSettingsInfo.value:
+            self.SettingsInfoNull = ObjectFactory(mc.group(empty=True))
+            self.afSettingsInfo.doStore(self.SettingsInfoNull.nameShort)   
             created = True
+        else:
+            self.SettingsInfoNull = ObjectFactory(self.afSettingsInfo.value)
             
-        attributes.storeInfo(self.aSettingsInfo.value ,'cgmName','settings')   
-        attributes.storeInfo(self.aSettingsInfo.value ,'cgmType','info')
+        self.SettingsInfoNull.store('cgmName','settings')   
+        self.SettingsInfoNull.store('cgmType','info')
         defaultFont = modules.returnSettingsData('defaultTextFont')
+        self.SettingsInfoNull.store('font',defaultFont)
         
-        rigging.doParentReturnName(self.aSettingsInfo.value,self.aPuppetInfo.value)
+        self.SettingsInfoNull.doParent(self.afPuppetInfo.value)
         
         if created:
-            NameFactory.doNameObject(self.aSettingsInfo.value)
+            self.SettingsInfoNull.doName(True)
             
-        self.aSettingsInfo.updateData()   
+        self.afSettingsInfo.updateData()   
         
-        attributes.storeInfo(self.aSettingsInfo.value,'font',defaultFont)
         
-        self.aPuppetMode = AttrFactory(self.aSettingsInfo.value,'cgmModuleMode','int',initialValue = 0)      
+        self.optionPuppetMode = AttrFactory(self.SettingsInfoNull,'cgmModuleMode','int',initialValue = 0)      
         
-        self.aAimAxis= AttrFactory(self.aSettingsInfo.value,'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=2) 
-        self.aUpAxis= AttrFactory(self.aSettingsInfo.value,'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=1) 
-        self.aOutAxis= AttrFactory(self.aSettingsInfo.value,'axisOut','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=0)         
+        self.optionAimAxis= AttrFactory(self.SettingsInfoNull,'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=2) 
+        self.optionUpAxis= AttrFactory(self.SettingsInfoNull,'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=1) 
+        self.optionOutAxis= AttrFactory(self.SettingsInfoNull,'axisOut','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=0)         
             
-        attributes.doSetLockHideKeyableAttr(self.aSettingsInfo.value) 
+        attributes.doSetLockHideKeyableAttr(self.SettingsInfoNull.nameShort) 
         
         return True
      
@@ -321,59 +345,69 @@ class PuppetFactory():
         RETURNS:
         success(bool)
         """            
-        #Puppet null
-        self.PuppetNullName = self.nameBase
-        
-        if not attributes.doGetAttr(self.PuppetNullName,'cgmName'):
+        #Puppet null       
+        if not attributes.doGetAttr(self.PuppetNull.nameShort,'cgmName'):
             return False
-        if attributes.doGetAttr(self.PuppetNullName,'cgmType') != 'ignore':
+        if attributes.doGetAttr(self.PuppetNull.nameShort,'cgmType') != 'ignore':
             return False
-        if attributes.doGetAttr(self.PuppetNullName,'cgmModuleType') != 'master':
+        if attributes.doGetAttr(self.PuppetNull.nameShort,'cgmModuleType') != 'master':
             return False        
         
-        self.aModulesGroup = AttrFactory(self.PuppetNullName,'modulesGroup')
-        if not self.aModulesGroup.value:
-            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.aModulesGroup.attr)
+        self.afModulesGroup = AttrFactory(self.PuppetNull,'modulesGroup')
+        if not self.afModulesGroup.value:
+            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.afModulesGroup.attr)
             return False
+        else:
+            self.ModulesGroup = ObjectFactory(self.afModulesGroup.value)
 
-        self.aNoTransformGroup = AttrFactory(self.PuppetNullName,'noTransformGroup')
-        if not self.aNoTransformGroup.value:
-            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.aNoTransformGroup.attr)
+        self.afNoTransformGroup = AttrFactory(self.PuppetNull,'noTransformGroup')
+        if not self.afNoTransformGroup.value:
+            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.afNoTransformGroup.attr)
             return False
+        else:
+            self.NoTransformGroup = ObjectFactory(self.afNoTransformGroup.value)        
             
-        self.aGeoGroup = AttrFactory(self.PuppetNullName,'geoGroup')
-        if not self.aGeoGroup.value:
-            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.aGeoGroup.attr)
+        self.afGeoGroup = AttrFactory(self.PuppetNull,'geoGroup')
+        if not self.afGeoGroup.value:
+            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.afGeoGroup.attr)
             return False
+        else:
+            self.GeoGroup = ObjectFactory(self.afGeoGroup.value)        
          
-        self.aPuppetInfo = AttrFactory(self.PuppetNullName,'info')
-        if not self.aPuppetInfo.value:
-            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.aPuppetInfo.attr)
+        self.afPuppetInfo = AttrFactory(self.PuppetNull,'info')
+        if not self.afPuppetInfo.value:
+            guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.afPuppetInfo.attr)
             return False
         
         else:
-            self.aModuleInfo = AttrFactory(self.aPuppetInfo.value,'modules')
-            if not self.aModuleInfo.value:
-                guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.aModuleInfo.attr)
+            self.PuppetInfoNull = ObjectFactory(self.afPuppetInfo.value)                    
+            self.afModuleInfo = AttrFactory(self.PuppetInfoNull,'modules')
+            if not self.afModuleInfo.value:
+                guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.afModuleInfo.attr)
                 return False  
             else:
                 #Initialize our modules null as a buffer
-                self.ModulesBuffer = BufferFactory(self.aModuleInfo.value)                
+                self.ModuleInfoNull = ObjectFactory(self.afModuleInfo.value)
+                self.ModulesBuffer = BufferFactory(self.afModuleInfo.value)                
             
-            self.aGeoInfo = AttrFactory(self.aPuppetInfo.value,'geo')
-            if not self.aGeoInfo.value:
-                guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.aGeoInfo.attr)
-                return False  
+            self.afGeoInfo = AttrFactory(self.PuppetInfoNull,'geo')
+            if not self.afGeoInfo.value:
+                guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.afGeoInfo.attr)
+                return False
+            else:
+                self.GeoInfoNull = ObjectFactory(self.afGeoInfo.value)             
             
-            self.aSettingsInfo = AttrFactory(self.aPuppetInfo.value,'settings')
-            if not self.aSettingsInfo.value:
-                guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.aSettingsInfo.attr)
+            self.afSettingsInfo = AttrFactory(self.PuppetInfoNull,'settings')
+            if not self.afSettingsInfo.value:
+                guiFactory.warning("'%s' looks to be missing. Go back to unreferenced file"%self.afSettingsInfo.attr)
                 return False 
             else:
-                self.aPuppetMode = AttrFactory(self.aSettingsInfo.value,'cgmModuleMode')
-                self.aAimAxis= AttrFactory(self.aSettingsInfo.value,'axisAim') 
-                self.aUpAxis= AttrFactory(self.aSettingsInfo.value,'axisUp') 
-                self.aOutAxis= AttrFactory(self.aSettingsInfo.value,'axisOut')
+                self.SettingsInfoNull = ObjectFactory(self.afSettingsInfo.value,)
+                
+                self.optionPuppetMode = AttrFactory(self.SettingsInfoNull,'cgmModuleMode')
+                self.optionAimAxis= AttrFactory(self.SettingsInfoNull,'axisAim') 
+                self.optionUpAxis= AttrFactory(self.SettingsInfoNull,'axisUp') 
+                self.optionOutAxis= AttrFactory(self.SettingsInfoNull,'axisOut')
                 
         return True
             
@@ -400,11 +434,11 @@ class PuppetFactory():
         """   
         if moduleType in moduleTypeToFunctionDict.keys():
             tmpModule = moduleTypeToFunctionDict[moduleType](forceNew=True)
-            self.ModulesBuffer.store(tmpModule.moduleNull)
+            self.ModulesBuffer.store(tmpModule.ModuleNull.nameShort)
             
-            self.Module[ self.ModulesBuffer.bufferList.index(tmpModule.moduleNull) ] = tmpModule
+            self.Module[ self.ModulesBuffer.bufferList.index(tmpModule.ModuleNull.nameShort) ] = tmpModule
             
-            moduleNullBuffer = rigging.doParentReturnName(tmpModule.moduleNull,self.aModulesGroup.value)             
+            moduleNullBuffer = rigging.doParentReturnName(tmpModule.ModuleNull.nameShort,self.afModulesGroup.value)             
         else:
             guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%moduleType)
 
@@ -421,8 +455,8 @@ class PuppetFactory():
             modType = search.returnTagInfo(module,'moduleType') or False
             if modType in moduleTypeToFunctionDict.keys():
                 self.ModulesBuffer.store(module)
-                moduleNullBuffer = rigging.doParentReturnName(module,self.aModulesGroup.value)
-                self.Module[ self.ModulesBuffer.bufferList.index(tmpModule.moduleNull) ] = moduleTypeToFunctionDict[modType](moduleNullBuffer)
+                moduleNullBuffer = rigging.doParentReturnName(module,self.afModulesGroup.value)
+                self.Module[ self.ModulesBuffer.bufferList.index(module) ] = moduleTypeToFunctionDict[modType](moduleNullBuffer)
                 
             else:
                 guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize")
@@ -432,6 +466,10 @@ class PuppetFactory():
     
     def removeModule(self,moduleName,*a,**kw):
         if moduleName in self.ModulesBuffer.bufferList:
+            #Clear our instanced module
+            index = self.ModulesBuffer.bufferList.index(moduleName)
+            if index:
+                self.Module[index] = False
             self.ModulesBuffer.remove(moduleName)
             buffer = rigging.doParentToWorld(moduleName)
         else:
@@ -439,6 +477,11 @@ class PuppetFactory():
     
     def deleteModule(self,moduleName,*a,**kw):
         if moduleName in self.ModulesBuffer.bufferList:
+            #Clear our instanced module            
+            index = self.ModulesBuffer.bufferList.index(moduleName)
+            if index:
+                self.Module[index] = False
+                
             self.ModulesBuffer.remove(moduleName)
             buffer = rigging.doParentToWorld(moduleName)
             mc.delete(buffer)
@@ -461,10 +504,10 @@ class PuppetFactory():
         returnList(list) - size object controls
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         """
-        templateSizeObject = attributes.returnMessageObject(self.PuppetNullName,'templateSizeObject')
+        templateSizeObject = attributes.returnMessageObject(self.PuppetNull.nameShort,'templateSizeObject')
         if not mc.objExists(templateSizeObject) and create:
             self.createSizeTemplateControl()
-            guiFactory.report("'%s' has template object '%s'"%(self.PuppetNullName,templateSizeObject))
+            guiFactory.report("'%s' has template object '%s'"%(self.PuppetNull.nameShort,templateSizeObject))
             return True
         elif templateSizeObject:
             self.templateSizeObjects['root'] = templateSizeObject
@@ -480,16 +523,16 @@ class PuppetFactory():
                     except:
                         guiFactory.warning("Rebuild failed")                        
                     return False
-            guiFactory.report("'%s' has template object '%s'"%(self.PuppetNullName,templateSizeObject))
+            guiFactory.report("'%s' has template object '%s'"%(self.PuppetNull.nameShort,templateSizeObject))
             return True
             
         guiFactory.warning("Size template failed to verify")
         return False
     
     def isRef(self):
-        if mc.referenceQuery(self.PuppetNullName, isNodeReferenced=True):
+        if mc.referenceQuery(self.PuppetNull.nameShort, isNodeReferenced=True):
             self.refState = True
-            self.refPrefix = search.returnReferencePrefix(self.PuppetNullName)
+            self.refPrefix = search.returnReferencePrefix(self.PuppetNull.nameShort)
             return
         self.refState = False
         self.refPrefix = None
@@ -503,7 +546,7 @@ class PuppetFactory():
         [155,170,29] unit character.
         
         ARGUMENTS:
-        self.PuppetNullName(string)
+        self.PuppetNull.nameShort(string)
         
         RETURNS:
         returnList(list) = [startCrv(string),EndCrv(list)]
@@ -513,15 +556,15 @@ class PuppetFactory():
         # Get info
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         centerColors = modules.returnSettingsData('colorCenter',True)
-        font = mc.getAttr((self.aSettingsInfo.value+'.font'))
+        font = mc.getAttr((self.afSettingsInfo.value+'.font'))
         
         """ checks for there being anything in our geo group """
         if not self.geo:
             return guiFactory.warning('Need some geo defined to make this tool worthwhile')
             boundingBoxSize =  modules.returnSettingsDataAsFloat('meshlessSizeTemplate')
         else:
-            boundingBoxSize = distance.returnBoundingBoxSize (self.aGeoGroup.value)
-            boundingBox = mc.exactWorldBoundingBox(self.aGeoGroup.value)
+            boundingBoxSize = distance.returnBoundingBoxSize (self.afGeoGroup.value)
+            boundingBox = mc.exactWorldBoundingBox(self.afGeoGroup.value)
             
         
         """determine orienation """
@@ -529,13 +572,13 @@ class PuppetFactory():
         matchIndex = boundingBoxSize.index(maxSize)
         
         """Find the pivot of the bounding box """
-        pivotPosition = distance.returnCenterPivotPosition(self.aGeoGroup.value)
+        pivotPosition = distance.returnCenterPivotPosition(self.afGeoGroup.value)
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Get our positions
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        print self.aPuppetMode.value
-        if self.aPuppetMode.value == 0:
+        print self.optionPuppetMode.value
+        if self.optionPuppetMode.value == 0:
             #If bio...
             if matchIndex == 1 or matchIndex == 0:
                 #Vertical
@@ -619,13 +662,13 @@ class PuppetFactory():
         sizeCurveControlStart = curves.combineCurves(startCurves)
         sizeCurveControlEnd = curves.combineCurves(endCurves)
         """ store our info to name our objects"""
-        attributes.storeInfo(sizeCurveControlStart,'cgmName',(self.PuppetNullName+'.cgmName'))
+        attributes.storeInfo(sizeCurveControlStart,'cgmName',(self.PuppetNull.nameShort+'.cgmName'))
         attributes.storeInfo(sizeCurveControlStart,'cgmDirection','start')
         attributes.storeInfo(sizeCurveControlStart,'cgmType','templateSizeObject')
         sizeCurveControlStart = NameFactory.doNameObject(sizeCurveControlStart)
         mc.makeIdentity(sizeCurveControlStart, apply = True, t=True,s=True,r=True)
     
-        attributes.storeInfo(sizeCurveControlEnd,'cgmName',(self.PuppetNullName+'.cgmName'))
+        attributes.storeInfo(sizeCurveControlEnd,'cgmName',(self.PuppetNull.nameShort+'.cgmName'))
         attributes.storeInfo(sizeCurveControlEnd,'cgmDirection','end')
         attributes.storeInfo(sizeCurveControlEnd,'cgmType','templateSizeObject')
         sizeCurveControlEnd  = NameFactory.doNameObject(sizeCurveControlEnd)
@@ -637,7 +680,7 @@ class PuppetFactory():
         
         """ make control group """
         controlGroup = rigging.groupMeObject(sizeCurveControlStart)
-        attributes.storeInfo(controlGroup,'cgmName',(self.PuppetNullName+'.cgmName'))
+        attributes.storeInfo(controlGroup,'cgmName',(self.PuppetNull.nameShort+'.cgmName'))
         attributes.storeInfo(controlGroup,'cgmType','templateSizeObjectGroup')
         controlGroup = NameFactory.doNameObject(controlGroup)
 
@@ -648,7 +691,7 @@ class PuppetFactory():
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
         attributes.storeInfo(controlGroup,'controlStart',sizeCurveControlStart)
         attributes.storeInfo(controlGroup,'controlEnd',sizeCurveControlEnd)        
-        attributes.storeInfo(self.PuppetNullName,'templateSizeObject',controlGroup)
+        attributes.storeInfo(self.PuppetNull.nameShort,'templateSizeObject',controlGroup)
         
         self.templateSizeObjects['root'] = controlGroup
         self.templateSizeObjects['start'] = sizeCurveControlStart
@@ -664,7 +707,7 @@ class PuppetFactory():
         """ 
         Add geo to a puppet
         """
-        assert self.aGeoGroup.value is not False,"No geo group found!"
+        assert self.afGeoGroup.value is not False,"No geo group found!"
         
         selection = mc.ls(sl=True,flatten=True,long=True) or []
         
@@ -674,8 +717,8 @@ class PuppetFactory():
         returnList = []    
         for o in selection:
             if search.returnObjectType(o) in geoTypes:
-                if self.aGeoGroup.value not in search.returnAllParents(o,True):
-                    o = rigging.doParentReturnName(o,self.aGeoGroup.value)
+                if self.afGeoGroup.value not in search.returnAllParents(o,True):
+                    o = rigging.doParentReturnName(o,self.afGeoGroup.value)
                     self.geo.append(o)
                 else:
                     guiFactory.warning("'%s' already a part of '%s'"%(o,self.nameBase))
@@ -686,9 +729,9 @@ class PuppetFactory():
         """
         Check a puppet's geo that it is actually geo
         """
-        assert self.aGeoGroup.value is not False,"No geo group found!"
+        assert self.afGeoGroup.value is not False,"No geo group found!"
         self.geo = []
-        children = search.returnAllChildrenObjects(self.aGeoGroup.value)
+        children = search.returnAllChildrenObjects(self.afGeoGroup.value)
         if not children:
             return False
     
@@ -703,7 +746,7 @@ class PuppetFactory():
     
     def doSetMode(self,i):
         assert i <(len(CharacterTypes)),"%i isn't a viable base pupppet type"%i
-        self.aPuppetMode.set(i)
+        self.optionPuppetMode.set(i)
         
     def doSetAimAxis(self,i):
         """
@@ -713,10 +756,10 @@ class PuppetFactory():
         """
         assert i < 6,"%i isn't a viable aim axis integer"%i
         
-        self.aAimAxis.set(i)
-        if self.aUpAxis.value == self.aAimAxis.value:
+        self.optionAimAxis.set(i)
+        if self.optionUpAxis.value == self.optionAimAxis.value:
             self.doSetUpAxis(i)
-        if self.aOutAxis.value == self.aAimAxis.value:
+        if self.optionOutAxis.value == self.optionAimAxis.value:
             self.doSetOutAxis(i)
             
         return True
@@ -729,20 +772,20 @@ class PuppetFactory():
         """        
         assert i < 6,"%i isn't a viable up axis integer"%i
         axisBuffer = range(6)
-        axisBuffer.remove(self.aAimAxis.value)
+        axisBuffer.remove(self.optionAimAxis.value)
         
-        if i != self.aAimAxis.value:
-            self.aUpAxis.set(i)  
+        if i != self.optionAimAxis.value:
+            self.optionUpAxis.set(i)  
         else:
-            self.aUpAxis.set(axisBuffer[0]) 
-            guiFactory.warning("Aim axis has '%s'. Changed up axis to '%s'. Change aim setting if you want this seeting"%(axisDirections[self.aAimAxis.value],axisDirections[self.aUpAxis.value]))                  
+            self.optionUpAxis.set(axisBuffer[0]) 
+            guiFactory.warning("Aim axis has '%s'. Changed up axis to '%s'. Change aim setting if you want this seeting"%(axisDirectionsByString[self.optionAimAxis.value],axisDirectionsByString[self.optionUpAxis.value]))                  
             axisBuffer.remove(axisBuffer[0])
             
-        if self.aOutAxis.value in [self.aAimAxis.value,self.aUpAxis.value]:
+        if self.optionOutAxis.value in [self.optionAimAxis.value,self.optionUpAxis.value]:
             for i in axisBuffer:
-                if i not in [self.aAimAxis.value,self.aUpAxis.value]:
+                if i not in [self.optionAimAxis.value,self.optionUpAxis.value]:
                     self.doSetOutAxis(i)
-                    guiFactory.warning("Setting conflict. Changed out axis to '%s'"%axisDirections[i])                    
+                    guiFactory.warning("Setting conflict. Changed out axis to '%s'"%axisDirectionsByString[i])                    
                     break
         return True        
         
@@ -750,14 +793,14 @@ class PuppetFactory():
     def doSetOutAxis(self,i):
         assert i < 6,"%i isn't a viable aim axis integer"%i
         
-        if i not in [self.aAimAxis.value,self.aUpAxis.value]:
-            self.aOutAxis.set(i)
+        if i not in [self.optionAimAxis.value,self.optionUpAxis.value]:
+            self.optionOutAxis.set(i)
         else:
             axisBuffer = range(6)
-            axisBuffer.remove(self.aAimAxis.value)
-            axisBuffer.remove(self.aUpAxis.value)
-            self.aOutAxis.set(axisBuffer[0]) 
-            guiFactory.warning("Setting conflict. Changed out axis to '%s'"%axisDirections[ axisBuffer[0] ])                    
+            axisBuffer.remove(self.optionAimAxis.value)
+            axisBuffer.remove(self.optionUpAxis.value)
+            self.optionOutAxis.set(axisBuffer[0]) 
+            guiFactory.warning("Setting conflict. Changed out axis to '%s'"%axisDirectionsByString[ axisBuffer[0] ])                    
 
 
         
@@ -765,13 +808,14 @@ class PuppetFactory():
         """
         Rename Puppet null
         """
-        if newName == self.nameBase:
+        if newName == self.PuppetNull.cgm['cgmName']:
             return guiFactory.warning("Already named '%s'"%newName)
         
-        attributes.storeInfo(self.PuppetNullName,'cgmName ',newName)   
-        self.PuppetNullName = NameFactory.doNameObject(self.PuppetNullName,False) 
+        self.PuppetNull.store('cgmName ',newName)   
         self.nameBase = newName
+        self.PuppetNull.doName()
         self.initializePuppet()
+        self.getModules()
         guiFactory.warning("Puppet renamed as '%s'"%newName)
         
         
