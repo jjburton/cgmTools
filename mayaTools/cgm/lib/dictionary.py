@@ -111,6 +111,9 @@ stateColors = {'normal':[1,1,1],
                'error':[1, 0.0470588, 0.0677366],
                'black':[0,0,0]}
 
+guiDirectionColors = {'center':[0.971679, 1, 0],
+                      'centerSub':[0.972, 1, 0.726]}
+
 def returnColorDict():
     return colorDict
 
@@ -118,6 +121,12 @@ def returnColorDict():
 def returnStateColor(newState):
     if newState in stateColors.keys():
         return stateColors.get(newState)
+    else:
+        return False
+    
+def returnGuiDirectionColor(key):
+    if key in guiDirectionColors.keys():
+        return guiDirectionColors.get(key)
     else:
         return False
 """
