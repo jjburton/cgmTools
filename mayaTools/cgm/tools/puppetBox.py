@@ -62,19 +62,23 @@ class puppetBoxClass(BaseMelWindow):
 		self.version =  __version__ 
 		self.optionVars = []
 		self.scenePuppets = []
-		self.puppetInstance = False
+		self.Puppet = False
 		self.puppetStateOptions = ['Define','Template','Skeleton','Rig']
 		#self.addModules = ['Spine','Leg','Arm','Limb','Finger','Foot','Neck','Head','Spine']
 		self.addModules = ['Segment']
 		self.moduleFrames = {}
+		self.moduleBaseNameFields = {}
+		self.moduleHandleFields = {}
+		self.moduleRollFields = {}
+		self.moduleCurveFields = {}
+		self.moduleStiffIndexFields = {}
 		
-		self.setTypes = ['NONE',
-		                 'animation',
-		                 'layout',
-		                 'modeling',
-		                 'td',
-		                 'fx',
-		                 'lighting']
+		self.moduleDirectionMenus = {}
+		self.modulePositionMenus = {}
+		
+		self.moduleDirections = ['none','left','right']
+		self.modulePositions = ['none','front','rear','forward','back','top','bottom']
+		
 		
 		
 		self.setModes = ['<<< All Loaded Sets >>>','<<< Active Sets >>>']
@@ -102,9 +106,8 @@ class puppetBoxClass(BaseMelWindow):
 			
 		self.Main_buildLayout(self)
 		
-		if self.puppetInstance:
+		if self.Puppet:
 			puppetBoxLib.updateUIPuppet(self)
-			self.updateModulesUI()
 		
 		self.show()
 		
@@ -145,95 +148,137 @@ class puppetBoxClass(BaseMelWindow):
 
 	def updateModulesUI(self):
 		#deleteExisting
-		if self.moduleFrames:
-			for k in self.moduleFrames.keys():
-				mc.deleteUI(self.moduleFrames.get(k))
-						
-		if self.puppetInstance:
-			self.modulesDict = {}
-			self.activeModulesCBDict = {}		
-			self.moduleFrames = {}
-			
-			for i,b in enumerate(self.puppetInstance.ModulesBuffer.bufferList):
-				"""
-				activeState = False
-				if b in self.ActiveObjectSetsOptionVar.value:
-					activeState = True
-				tmpActive = MelCheckBox(self.ModuleListColumn,
-					                    annotation = 'make set as active',
-					                    value = activeState,
-					                    onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
-					                    offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i))
-				"""
-				
-				#Store the info to a dict
-				self.modulesDict[i] = b
-				#s = SetFactory(b)
-
-				#tmpSetRow = MelFormLayout(self.ModuleListColumn,height = 20)
+		self.ModuleListColumn.clear()
+		
+		if self.Puppet:			
+			for i,b in enumerate(self.Puppet.ModulesBuffer.bufferList):
 				# NEED to get colors
-				
 				#Build label for Frame
-				buffer = ["'%s'"%b]
-				if not self.puppetInstance.Module[i].moduleParent:
-					buffer.append( "I'm a root")
-				
-				self.moduleFrames[i] = MelFrameLayout(self.ModuleListColumn,l=' | '.join(buffer),
-				                                    collapse=True,
-				                                    collapsable=True,
-				                                    bgc = dictionary.returnGuiDirectionColor('center'))
-				
-				MelLabel(self.moduleFrames[i],l='asfasfasdfasdfasdf',
-				         bgc = dictionary.returnGuiDirectionColor('centerSub'))
+				self.moduleFrames[i] = MelFrameLayout(self.ModuleListColumn,l='',
+			                                          collapse=True,
+			                                          collapsable=True,
+				                                      marginHeight=0,
+				                                      marginWidth=0,
+			                                          bgc = dictionary.returnGuiDirectionColor('center'))
+				puppetBoxLib.uiModuleUpdateFrameLabel(self,i)
 				
 				
+				#Build Naming Row
+				tmpNameRow = MelFormLayout(self.moduleFrames[i], h=25,
+				                          )
+				tmpNameLabel = MelLabel(tmpNameRow,l='base:',align='right')
 				
+				self.moduleBaseNameFields[i] = MelTextField(tmpNameRow,text=self.Puppet.Module[i].nameBase or '',
+			                                                ec = Callback(puppetBoxLib.uiUpdateBaseName,self,i),
+				                                            w=50,
+			                                                h=20)
 				
+				tmpDirLabel = MelLabel(tmpNameRow,l='dir:',align='right')								
+				self.moduleDirectionMenus[i] = MelOptionMenu(tmpNameRow)
+
+				for o in self.moduleDirections:
+					self.moduleDirectionMenus[i].append(o)
+					
+				#self.SetModeOptionMenu.selectByIdx(self.setMode,False)	
 				
+				tmpPosLabel = MelLabel(tmpNameRow,l='pos:',align='right')
+				self.modulePositionMenus[i] = MelOptionMenu(tmpNameRow)	
+				for o in self.modulePositions:
+					self.modulePositionMenus[i].append(o)
+					
+					
+				mc.formLayout(tmpNameRow, edit = True,
+				              af = [(tmpNameLabel, "left", 10),
+				                    (self.modulePositionMenus[i],"right",10)],
+				              ac = [(self.moduleBaseNameFields[i],"left",5,tmpNameLabel),
+				                    (self.moduleBaseNameFields[i],"right",5,tmpDirLabel),
+				                    (tmpDirLabel,"right",5,self.moduleDirectionMenus[i]),
+				                    (self.moduleDirectionMenus[i],"right",5,tmpPosLabel),
+				                    (tmpPosLabel,"right",5,self.modulePositionMenus[i] ),
+				                    ])
+				#>>>>>>>>>>>>>>>>>>>>>
 				
+				if self.Puppet.Module[i].moduleClass == 'Limb':
 				
+					#Build Int Settings Row
+					tmpIntRow = MelHSingleStretchLayout(self.moduleFrames[i], h=25,
+					                                    )
+					tmpIntRow.setStretchWidget(MelSpacer(tmpIntRow,w=5))
+					                           
+					MelLabel(tmpIntRow,l='Handles:')
+					self.moduleHandleFields[i] = MelIntField(tmpIntRow,
+					                                         v = self.Puppet.Module[i].optionHandles.value,
+					                                         bgc = dictionary.returnStateColor('normal'),
+					                                         ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleHandleFields,self.Puppet.Module[i].optionHandles,i),
+					                                         h = 20, w = 35)
+					MelLabel(tmpIntRow,l='Roll:')
+					self.moduleRollFields[i] = MelIntField(tmpIntRow,
+					                                       v = self.Puppet.Module[i].optionRollJoints.value,					                                       
+					                                       bgc = dictionary.returnStateColor('normal'),
+					                                       ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleRollFields,self.Puppet.Module[i].optionRollJoints,i),
+					                                       h = 20, w = 35)
+					MelLabel(tmpIntRow,l='Stiff Index:')
+					self.moduleStiffIndexFields[i] = MelIntField(tmpIntRow,
+					                                             v = self.Puppet.Module[i].optionStiffIndex.value,					                                             
+					                                             bgc = dictionary.returnStateColor('normal'),
+					                                             ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleStiffIndexFields,self.Puppet.Module[i].optionStiffIndex,i),
+					                                             h = 20, w = 35)	
+					MelLabel(tmpIntRow,l='Curve:')
+					self.moduleCurveFields[i] = MelIntField(tmpIntRow,
+					                                        v = self.Puppet.Module[i].optionCurveDegree.value,					                                        
+					                                        bgc = dictionary.returnStateColor('normal'),
+					                                        ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleCurveFields,self.Puppet.Module[i].optionCurveDegree,i),
+					                                        h = 20, w = 35)
+					
+					
+					MelSpacer(tmpIntRow,w=10)
+					
+				tmpIntRow.layout()
+
+
+
+
+
+
 				#PopUp Menu!
 				popUpMenu = MelPopupMenu(self.moduleFrames[i],button = 3)
-				MelMenuItem(popUpMenu,
-				            label = "Type - %s"%self.puppetInstance.Module[i].afModuleType.value,
-				            enable = False)
+		
 				#Parent/MIrror
 				MelMenuItem(popUpMenu,
-				            label = "Set Parent>",
-				            enable = False)
+							label = "Set Parent>",
+							enable = False)
 				MelMenuItem(popUpMenu,
-				            label = "Set Mirror>",
-				            enable = False)	
+							label = "Set Mirror>",
+							enable = False)	
 				
-				
-				MelMenuItem(popUpMenu,
-				            label = 'FK',
-				            cb = self.puppetInstance.Module[i].optionFK.value,
-				            c = lambda *a:self.puppetInstance.Module[i].optionFK.set(not self.puppetInstance.Module[i].optionFK.value ))
-				MelMenuItem(popUpMenu,
-				            label = 'IK',
-				            cb = self.puppetInstance.Module[i].optionIK.value,
-				            c = lambda *a:self.puppetInstance.Module[i].optionIK.set(not self.puppetInstance.Module[i].optionIK.value ))
-				MelMenuItem(popUpMenu,
-				            label = 'Stretchy',
-				            cb = self.puppetInstance.Module[i].optionStretchy.value,
-				            c = lambda *a:self.puppetInstance.Module[i].optionStretchy.set(not self.puppetInstance.Module[i].optionStretchy.value ))
-				MelMenuItem(popUpMenu,
-				            label = 'Bendy',
-				            cb = self.puppetInstance.Module[i].optionBendy.value,
-				            c = lambda *a:self.puppetInstance.Module[i].optionBendy.set(not self.puppetInstance.Module[i].optionBendy.value ))
-				
-				
+				if self.Puppet.Module[i].moduleClass == 'Limb':
+					MelMenuItem(popUpMenu,
+						        label = 'FK',
+						        cb = self.Puppet.Module[i].optionFK.value,
+						        c = Callback(self.Puppet.Module[i].optionFK.set,not self.Puppet.Module[i].optionFK.value))
+					MelMenuItem(popUpMenu,
+						        label = 'IK',
+						        cb = self.Puppet.Module[i].optionIK.value,
+						        c = Callback(self.Puppet.Module[i].optionIK.set,not self.Puppet.Module[i].optionIK.value ))
+					MelMenuItem(popUpMenu,
+						        label = 'Stretchy',
+						        cb = self.Puppet.Module[i].optionStretchy.value,
+						        c = Callback(self.Puppet.Module[i].optionStretchy.set,not self.Puppet.Module[i].optionStretchy.value ))
+					MelMenuItem(popUpMenu,
+						        label = 'Bendy',
+						        cb = self.Puppet.Module[i].optionBendy.value,
+						        c = Callback(self.Puppet.Module[i].optionBendy.set,not self.Puppet.Module[i].optionBendy.value ))
+					
+					
 				MelMenuItemDiv(popUpMenu)
 				MelMenuItem(popUpMenu ,
-					        label = 'Remove',
-					        c = Callback(puppetBoxLib.doRemoveModule,self,i))
+							label = 'Remove',
+							c = Callback(puppetBoxLib.doRemoveModule,self,i))
 				
 				MelMenuItem(popUpMenu ,
-					        label = 'Delete',
-					        c = Callback(puppetBoxLib.doDeleteModule,self,i))			
-				
-				#Get check box state
+							label = 'Delete',
+							c = Callback(puppetBoxLib.doDeleteModule,self,i))
+
  
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
@@ -274,6 +319,8 @@ class puppetBoxClass(BaseMelWindow):
 		
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
+		MelMenuItem( self.UI_OptionsMenu, l="Clear modules from UI visually",
+	                 c=lambda *a:puppetBoxLib.uiForceModuleUpdateUI(self))		
 		
 		
 	def reset(self):	
@@ -524,86 +571,7 @@ class puppetBoxClass(BaseMelWindow):
 		#>>> Sets building section
 		ModuleListScroll = MelScrollLayout(MainForm,cr = 1, ut = 'cgmUISubTemplate')
 		ModuleMasterForm = MelFormLayout(ModuleListScroll)
-		self.ModuleListColumn = MelColumnLayout(ModuleMasterForm, adj = True, rowSpacing = 3)
-		
-		
-		
-		#self.ModulesBuffer.bufferList
-		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-		# Modules
-		#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	
-		"""
-		self.modulesDict = {}
-		self.activeModulesCBDict = {}		
-		
-		if self.puppetInstance:	
-			print '>>>>>>>>>>>>>>>>>>>>>>>>>yes'
-			for i,b in enumerate(self.puppetInstance.ModulesBuffer.bufferList):
-				#Store the info to a dict
-				self.modulesDict[i] = b
-				#s = SetFactory(b)
-				
-				#tmpSetRow = MelFormLayout(self.ModuleListColumn,height = 20)
-				MelLabel(self.ModuleListColumn,l=b)
-				#Get check box state
-				activeState = False
-				if b in self.ActiveObjectSetsOptionVar.value:
-					activeState = True
-				
-				tmpActive = MelCheckBox(tmpSetRow,
-					                    annotation = 'Set Module as active',
-					                    value = activeState,
-					                    onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
-					                    offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i))
-				self.activeModulesCBDict[i] = tmpActive
-				
-				tmpSel = guiFactory.doButton2(tmpSetRow,
-					                          ' s ',
-					                          Callback(setToolsLib.doSelectSetObjects,self,i),
-					                          'Select the set objects')
-					
-	
-				tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b,
-					                   en = not s.refState)
-				
-				tmpName(edit = True,
-					    ec = Callback(setToolsLib.doUpdateSetName,self,tmpName,i)	)
-				
-	
-				tmpAdd = guiFactory.doButton2(tmpSetRow,
-					                           '+',
-					                           Callback(setToolsLib.doAddSelected,self,i),
-					                           'Add selected  to the set',
-					                           en = not s.refState)
-				tmpRem= guiFactory.doButton2(tmpSetRow,
-					                         '-',
-					                         Callback(setToolsLib.doRemoveSelected,self,i),
-					                         'Remove selected  to the set',
-					                         en = not s.refState)
-				tmpKey = guiFactory.doButton2(tmpSetRow,
-					                          'k',
-					                          Callback(setToolsLib.doKeySet,self,i),			                              
-					                          'Key set')
-				tmpDeleteKey = guiFactory.doButton2(tmpSetRow,
-					                            'd',
-					                            Callback(setToolsLib.doDeleteCurrentSetKey,self,i),			                              			                                
-					                            'delete set key')	
-				
-				tmpReset = guiFactory.doButton2(tmpSetRow,
-					                            'r',
-					                            Callback(setToolsLib.doResetSet,self,i),			                              			                                
-					                            'Reset Set')
-				mc.formLayout(tmpSetRow, edit = True,
-					          af = [(tmpActive, "left", 4),
-					                (tmpReset,"right",2)],
-					          ac = [(tmpSel,"left",0,tmpActive),
-					                (tmpName,"left",2,tmpSel),
-					                (tmpName,"right",4,tmpAdd),
-					                (tmpAdd,"right",2,tmpRem),
-					                (tmpRem,"right",2,tmpKey),
-					                (tmpKey,"right",2,tmpDeleteKey),
-					                (tmpDeleteKey,"right",2,tmpReset)
-					                ])"""
+		self.ModuleListColumn = MelColumnLayout(ModuleMasterForm, adj = True, rowSpacing = 0)
 		
 		
 		
