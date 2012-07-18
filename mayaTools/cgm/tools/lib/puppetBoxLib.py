@@ -39,14 +39,14 @@ reload(guiFactory)
 """
 def activatePuppet(self,name = ''):
     try:
-        self.puppetInstance = PuppetFactory(name)
+        self.Puppet = PuppetFactory(name)
     except:
-        self.puppetInstance = False
+        self.Puppet = False
         guiFactory.warning("'%s' failed to initialize"%name)
 
     
 def updateUIPuppet(self):
-    if not self.puppetInstance:
+    if not self.Puppet:
         self.MasterPuppetTF(edit=True, text = '') 
 	
 	for uiItem in self.UI_StateRows['define']:
@@ -58,18 +58,18 @@ def updateUIPuppet(self):
 	self.updateModulesUI()
         return
     
-    self.MasterPuppetTF(edit=True, text = self.puppetInstance.nameBase)
+    self.MasterPuppetTF(edit=True, text = self.Puppet.nameBase)
     self.puppetStateButtonsDict[0](edit=True,en=True)
     
     for uiItem in self.UI_StateRows['define']:
 	uiItem(edit = True, vis = True)
 	
-    self.PuppetModeOptionVar.set(self.puppetInstance.optionPuppetMode.value)
-    self.PuppetAimOptionVar.set(self.puppetInstance.optionAimAxis.value)
-    self.PuppetUpOptionVar.set(self.puppetInstance.optionUpAxis.value)
-    self.PuppetOutOptionVar.set(self.puppetInstance.optionOutAxis.value)
+    self.PuppetModeOptionVar.set(self.Puppet.optionPuppetMode.value)
+    self.PuppetAimOptionVar.set(self.Puppet.optionAimAxis.value)
+    self.PuppetUpOptionVar.set(self.Puppet.optionUpAxis.value)
+    self.PuppetOutOptionVar.set(self.Puppet.optionOutAxis.value)
     
-    mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.puppetInstance.optionPuppetMode.value ]))
+    mc.radioCollection(self.PuppetModeCollection ,edit=True,sl= (self.PuppetModeCollectionChoices[ self.Puppet.optionPuppetMode.value ]))
     
     updatePuppetUIReport(self) 
     self.updateModulesUI()
@@ -86,31 +86,31 @@ def updatePuppetName(self):
     """  
     #>>> Variables
     varCheck = self.MasterPuppetTF(q=True,text=True)
-    if self.puppetInstance:
+    if self.Puppet:
         if varCheck:
             try:
-                self.puppetInstance.doRenamePuppet(varCheck)
+                self.Puppet.doRenamePuppet(varCheck)
             except:		
                 pass
 			
 def updatePuppetUIReport(self):
     buildReport = []
 	    
-    if not self.puppetInstance:
-	    self.puppetReport(edit, label = '...')
+    if not self.Puppet:
+	    self.puppetReport(edit=True, label = '...')
 			    
     #build master report
-    if not self.puppetInstance.geo:
+    if not self.Puppet.geo:
 	buildReport.append('No geo defined')
     else:
-	buildReport.append('%i geo items'%len(self.puppetInstance.geo))
+	buildReport.append('%i geo items'%len(self.Puppet.geo))
     
-    if not self.puppetInstance.ModulesBuffer.bufferList:
+    if not self.Puppet.ModulesBuffer.bufferList:
 	buildReport.append('0 modules')
     else:
-	buildReport.append('%i modules'%len(self.puppetInstance.ModulesBuffer.bufferList))
+	buildReport.append('%i modules'%len(self.Puppet.ModulesBuffer.bufferList))
 	
-    if not self.puppetInstance.templateSizeObjects:
+    if not self.Puppet.templateSizeObjects:
 	buildReport.append('No size template')
 
     
@@ -124,19 +124,19 @@ def updatePuppetUIReport(self):
 def updateHelpUI(self):
     buildReport = []
 	    
-    if not self.puppetInstance:
+    if not self.Puppet:
 	self.helpInfo(edit=True, label = 'Try adding a Puppet')
 			    
     #Initial State help
-    if not self.puppetInstance.geo:
+    if not self.Puppet.geo:
 	self.helpInfo(edit=True, label = 'Need some geo')
 	return
 	
-    if not self.puppetInstance.templateSizeObjects:
+    if not self.Puppet.templateSizeObjects:
 	self.helpInfo(edit=True, label = 'Add a size template')
 	return
     
-    if not self.puppetInstance.modules:
+    if not self.Puppet.modules:
 	self.helpInfo(edit=True, label = 'Need at least one module')
 	return
     
@@ -144,36 +144,36 @@ def updateHelpUI(self):
 # Define
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doAddGeo(self):
-    self.puppetInstance.addGeo()
+    self.Puppet.addGeo()
     updatePuppetUIReport(self)
     
 def setPuppetBaseMode(self,i):
-    if self.puppetInstance:
-	self.puppetInstance.optionPuppetMode.set(i)
+    if self.Puppet:
+	self.Puppet.optionPuppetMode.set(i)
     self.PuppetModeOptionVar.set(i)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Axis
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
 def setPuppetAxisAim(self,i):
-    if self.puppetInstance:
-	self.puppetInstance.doSetAimAxis(i)
+    if self.Puppet:
+	self.Puppet.doSetAimAxis(i)
 	updatePuppetAxisMenus(self)
     
 def setPuppetAxisUp(self,i):
-    if self.puppetInstance:
-	self.puppetInstance.doSetUpAxis(i)
+    if self.Puppet:
+	self.Puppet.doSetUpAxis(i)
 	updatePuppetAxisMenus(self)
     
 def setPuppetAxisOut(self,i):
-    if self.puppetInstance:
-	self.puppetInstance.doSetOutAxis(i)
+    if self.Puppet:
+	self.Puppet.doSetOutAxis(i)
 	updatePuppetAxisMenus(self)
     
 def updatePuppetAxisMenus(self):
-    if self.puppetInstance:
-	self.PuppetAimOptionVar.set(self.puppetInstance.optionAimAxis.value)
-	self.PuppetUpOptionVar.set(self.puppetInstance.optionUpAxis.value)
-	self.PuppetOutOptionVar.set(self.puppetInstance.optionOutAxis.value)    
+    if self.Puppet:
+	self.PuppetAimOptionVar.set(self.Puppet.optionAimAxis.value)
+	self.PuppetUpOptionVar.set(self.Puppet.optionUpAxis.value)
+	self.PuppetOutOptionVar.set(self.Puppet.optionOutAxis.value)    
 	mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
 	mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
 	mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
@@ -182,8 +182,8 @@ def updatePuppetAxisMenus(self):
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
 def addModule(self,moduleType):
-    if self.puppetInstance:
-	self.puppetInstance.createModule(moduleType.lower())
+    if self.Puppet:
+	self.Puppet.createModule(moduleType.lower())
 	updateUIPuppet(self)
 	self.updateModulesUI()
 	
@@ -195,9 +195,9 @@ def doRemoveModule(self,nameIndex):
     Keyword arguments:
     nameIndex(int) -- index of an objectSet dictionary
     """  
-    moduleName = self.puppetInstance.ModulesBuffer.bufferList[nameIndex]
+    moduleName = self.Puppet.ModulesBuffer.bufferList[nameIndex]
     if mc.objExists(moduleName):
-	self.puppetInstance.removeModule(moduleName)
+	self.Puppet.removeModule(moduleName)
 	updatePuppetUIReport(self)	
 	self.updateModulesUI()	
     else:
@@ -211,9 +211,9 @@ def doDeleteModule(self,nameIndex):
     Keyword arguments:
     nameIndex(int) -- index of an objectSet dictionary
     """  
-    moduleName = self.puppetInstance.ModulesBuffer.bufferList[nameIndex]
+    moduleName = self.Puppet.ModulesBuffer.bufferList[nameIndex]
     if mc.objExists(moduleName):
-	self.puppetInstance.deleteModule(moduleName)
+	self.Puppet.deleteModule(moduleName)
 	updatePuppetUIReport(self)	
 	self.updateModulesUI()
     else:
@@ -221,20 +221,58 @@ def doDeleteModule(self,nameIndex):
 	self.updateModulesUI()
 
 def doBuildSizeTemplate(self):
-    self.puppetInstance.verifyTemplateSizeObject(True)
+    self.Puppet.verifyTemplateSizeObject(True)
     updatePuppetUIReport(self)
 	
+def uiUpdateBaseName(self,index):  
+    """ 
+    Sets the default value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    if self.moduleBaseNameFields[index]:
+	varCheck = self.moduleBaseNameFields[index](q=True,text=True)
+	if varCheck != self.Puppet.Module[index].nameBase:    
+	    #Rename it
+	    moduleName = self.Puppet.ModulesBuffer.bufferList[index]
+	    self.Puppet.changeModuleBaseName(moduleName,varCheck)
+	    
+	    uiModuleUpdateFrameLabel(self,index)
+	else:
+	    guiFactory.report("'%s' is already the baseName" %varCheck)
+    else:
+	guiFactory.warning("No connected field found. Try reloading the GUI")
+	
+def uiModuleUpdateFrameLabel(self,index):
+    buffer = ["'%s'"%self.Puppet.ModulesBuffer.bufferList[index]]
+    if not self.Puppet.Module[index].moduleParent:
+	buffer.append( "Root")
+    buffer.append("typ: %s"%self.Puppet.Module[index].afModuleType.value)
+    buffer.append("cls: %s"%self.Puppet.Module[index].moduleClass)
+    	    
+    self.moduleFrames[index](edit=True,l=' | '.join(buffer))
+
+
+def uiUpdateIntAttrFromField(self,fieldsDict,attrClassInstance,index):  
+    """ 
+    Sets the default value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    if fieldsDict[index]:
+	varCheck = fieldsDict[index](q=True,value=True)
+	if varCheck != attrClassInstance.value:    
+	    attrClassInstance.set(varCheck)
+	else:
+	    guiFactory.report("'%s' is already the value" %varCheck)
+    else:
+	guiFactory.warning("No connected field found. Try reloading the GUI")
 
 
 
 
 
-
-
-
-
-
-
+	    
+def uiForceModuleUpdateUI(self):  
+    self.updateModulesUI()	    
 
 
 
