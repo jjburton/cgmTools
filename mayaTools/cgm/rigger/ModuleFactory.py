@@ -55,7 +55,8 @@ class ModuleFactory:
         self.infoNulls = {}
         self.parentTagDict = {}
         self.refPrefix = None
-        self.refState = False      
+        self.refState = False    
+        self.moduleClass = None
         
         # Get parent info and the call tags to check later on
         if mc.objExists(moduleParent):
@@ -322,13 +323,14 @@ class ModuleFactory:
             guiFactory.warning("'%s' isn't tagged as a module."%moduleParent)
             
     def changeBaseName(self,string):
-        assert type(string) is str,"'%s' isn't a string argument"%string
-        
+        #print string
+        #assert search.returnDataType(string) == string,"'%s' isn't a string argument"%string        
         if search.returnTagInfo(self.ModuleNull.nameShort,'cgmName')== string:
             guiFactory.warning("'%s' already has base name of '%s'."%(self.ModuleNull.nameShort,string))
+            return False
         else:
             self.ModuleNull.store('cgmName',string,True)
             self.ModuleNull.doName(True,True)
-            self.initializeModule()
+            return True
                 
             

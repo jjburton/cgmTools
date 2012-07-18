@@ -80,6 +80,8 @@ class Limb(ModuleFactory):
         #Initialize the standard module
         ModuleFactory.__init__(self,*a,**kw)
         
+        self.moduleClass = 'Limb'
+        
         #Then check the subclass specific stuff
         if not self.refState:
             if not self.verifyLimbModule():
@@ -99,6 +101,8 @@ class Limb(ModuleFactory):
         Verifies the integrity of the Limb module. Repairing and restoring broken connections or deleted items.
         """        
         #Initialize all of our options
+        ModuleFactory.verifyModule(self)
+        
         for k in defaultSettings.keys():
             try:
                 self.__dict__[k]
@@ -137,6 +141,8 @@ class Limb(ModuleFactory):
         Verifies the integrity of the Limb module. Repairing and restoring broken connections or deleted items.
         """        
         #Initialize all of our options
+        ModuleFactory.initializeModule(self)
+        
         self.afModuleType = AttrFactory(self.ModuleNull,'moduleType')
         
         LimbSettingAttrs ={'fk':'bool',
