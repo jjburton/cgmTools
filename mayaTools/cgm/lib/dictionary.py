@@ -82,7 +82,7 @@ def returnVectorToString(vector):
 """
 Colors
 """    
-colorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
+standardColorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
              'blueDark':5,'blueBright':6,'greenDark':7,'violetDark':8,
              'violetBright':9,'brownReg':10,'brownDark':11,
              'orangeDark':12,'redBright':13,'greenBright':14,'blueDull':15,
@@ -93,7 +93,7 @@ colorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnColorIndex(color):
-    colorIndexBuffer = colorDict.get(color)
+    colorIndexBuffer = standardColorDict.get(color)
     if colorIndexBuffer != None:
         return colorIndexBuffer
     else:
@@ -112,10 +112,11 @@ stateColors = {'normal':[1,1,1],
                'black':[0,0,0]}
 
 guiDirectionColors = {'center':[0.971679, 1, 0],
-                      'centerSub':[0.972, 1, 0.726]}
+                      'centerSub':[0.972, 1, 0.726],
+                      'centerSubBK':[0.749712, 0.764706, 0.614764]}
 
-def returnColorDict():
-    return colorDict
+def returnStandardColorDict():
+    return standardColorDict
 
 
 def returnStateColor(newState):
