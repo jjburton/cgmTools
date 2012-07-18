@@ -19,6 +19,8 @@ from cgm.lib.classes.AttrFactory import *
 from cgm.lib.classes.BufferFactory import *
 from cgm.lib.classes.ObjectFactory import *
 
+from cgm.rigger.lib.Limb import module
+reload(module)
 from cgm.rigger import ModuleFactory
 reload(ModuleFactory)
 
@@ -157,7 +159,7 @@ class PuppetFactory():
             self.PuppetNull.store('cgmModuleType','master')
                  
             if self.PuppetNull.nameShort != self.nameBase:
-                self.PuppetNull.doName(True)
+                self.PuppetNull.doName(False)
             
             attributes.doSetLockHideKeyableAttr(self.PuppetNull.nameShort,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         except:
@@ -180,7 +182,7 @@ class PuppetFactory():
         self.ModulesGroup.doParent(self.PuppetNull.nameShort)
         
         if created:
-            self.ModulesGroup.doName(True)
+            self.ModulesGroup.doName(False)
             
         self.afModulesGroup.updateData()   
             
@@ -203,7 +205,7 @@ class PuppetFactory():
         self.NoTransformGroup.doParent(self.PuppetNull.nameShort)
         
         if created:
-            self.NoTransformGroup.doName(True)
+            self.NoTransformGroup.doName(False)
             
         self.afNoTransformGroup.updateData()   
             
@@ -226,7 +228,7 @@ class PuppetFactory():
         self.GeoGroup.doParent(self.afNoTransformGroup.value)
         
         if created:
-            self.GeoGroup.doName(True)
+            self.GeoGroup.doName(False)
             
         self.afGeoGroup.updateData()   
             
@@ -250,7 +252,7 @@ class PuppetFactory():
         self.PuppetInfoNull.doParent(self.PuppetNull.nameShort)
         
         if created:
-            self.PuppetInfoNull.doName(True)
+            self.PuppetInfoNull.doName(False)
             
         self.afPuppetInfo.updateData()   
             
@@ -273,7 +275,7 @@ class PuppetFactory():
         self.ModuleInfoNull.doParent(self.PuppetInfoNull.nameShort)
         
         if created:
-            self.ModuleInfoNull.doName(True)
+            self.ModuleInfoNull.doName(False)
             
         self.afModuleInfo.updateData()   
             
@@ -298,7 +300,7 @@ class PuppetFactory():
         self.GeoInfoNull.doParent(self.afPuppetInfo.value)
         
         if created:
-            self.GeoInfoNull.doName(True)
+            self.GeoInfoNull.doName(False)
             
         self.afGeoInfo.updateData()   
             
@@ -323,7 +325,7 @@ class PuppetFactory():
         self.SettingsInfoNull.doParent(self.afPuppetInfo.value)
         
         if created:
-            self.SettingsInfoNull.doName(True)
+            self.SettingsInfoNull.doName(False)
             
         self.afSettingsInfo.updateData()   
         
@@ -415,19 +417,40 @@ class PuppetFactory():
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Modules
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def changeModuleBaseName(self,moduleName,newBaseName):
+        if moduleName in self.ModulesBuffer.bufferList:
+            #Clear our instanced module
+            index = self.ModulesBuffer.bufferList.index(moduleName)
+            modType = search.returnTagInfo(self.Module[index].ModuleNull.nameShort,'moduleType') or False
+            if index is not False:
+                if modType in moduleTypeToFunctionDict.keys():
+                    if self.Module[index].changeBaseName(newBaseName):
+                        self.Module[index] = moduleTypeToFunctionDict[modType](self.Module[index].ModuleNull.nameShort)                   
+                    self.ModulesBuffer.updateData()
+                else:
+                    guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%modType)
+                    return False  
+            else:
+                guiFactory.warning("%s is not a valid index. Cannot continue"%index)
+                return False                  
+        else:
+            guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot remove"%moduleName)        
+            return False
+        
     def getModules(self):
         """
         Intializes all connected modules of a puppet
         """           
         self.Module = {}
+        self.ModulesBuffer.updateData()
         if self.ModulesBuffer.bufferList:
             for i,m in enumerate(self.ModulesBuffer.bufferList):
                 modType = search.returnTagInfo(m,'moduleType') or False
                 if modType in moduleTypeToFunctionDict.keys():
                     self.Module[i] = moduleTypeToFunctionDict[modType](m)
                 else:
-                    guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize")
-
+                    guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%modType)
+    
     def createModule(self,moduleType,*a,**kw):
         """
         Create and connect a new module
@@ -435,10 +458,8 @@ class PuppetFactory():
         if moduleType in moduleTypeToFunctionDict.keys():
             tmpModule = moduleTypeToFunctionDict[moduleType](forceNew=True)
             self.ModulesBuffer.store(tmpModule.ModuleNull.nameShort)
-            
+            tmpModule.ModuleNull.doParent(self.ModulesGroup.nameShort)             
             self.Module[ self.ModulesBuffer.bufferList.index(tmpModule.ModuleNull.nameShort) ] = tmpModule
-            
-            moduleNullBuffer = rigging.doParentReturnName(tmpModule.ModuleNull.nameShort,self.afModulesGroup.value)             
         else:
             guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%moduleType)
 
@@ -468,10 +489,11 @@ class PuppetFactory():
         if moduleName in self.ModulesBuffer.bufferList:
             #Clear our instanced module
             index = self.ModulesBuffer.bufferList.index(moduleName)
-            if index:
+            if index is not False:
                 self.Module[index] = False
             self.ModulesBuffer.remove(moduleName)
             buffer = rigging.doParentToWorld(moduleName)
+            self.getModules()
         else:
             guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot remove"%moduleName)
     
@@ -485,6 +507,7 @@ class PuppetFactory():
             self.ModulesBuffer.remove(moduleName)
             buffer = rigging.doParentToWorld(moduleName)
             mc.delete(buffer)
+            self.getModules()
         else:
             guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot delete"%moduleName)
         
