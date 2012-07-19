@@ -629,9 +629,7 @@ def doPrintReportEnd(label = False):
 
 
 
-class cgmBridge:
-        def __init__(self):
-            pass    
+class cgmBridge:pass   
 
 def classBridge_Puppet():
     try:
@@ -642,9 +640,11 @@ def classBridge_Puppet():
 
 def classBridge_Puppet2():
     try:
-        #cgmPuppet
-        mel.eval('python("cgmPuppet;")')
+        cgmPuppet
     except:
-        report("Creating puppet class bridge...")
-        mel.eval('python("from cgm.lib import guiFactory;cgmPuppet = guiFactory.cgmBridge();")')	
+        cgmPuppet = cgmBridge()
         
+def testBridge():
+    class cgmPuppet:pass
+    mel.eval('python("cgmPuppet = %s")'%cgmPuppet)
+    print cgmPuppet.__dict__.keys()
