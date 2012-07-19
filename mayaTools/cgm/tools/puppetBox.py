@@ -52,7 +52,7 @@ class puppetBoxClass(BaseMelWindow):
 	MIN_BUTTON = True
 	MAX_BUTTON = False
 	FORCE_DEFAULT_SIZE = False  #always resets the size of the window when its re-created
-
+	global cgmPuppet
 	def __init__( self):		
 		self.toolName = 'cgm.puppetBox'
 		self.description = 'This is a series of tools for working with cgm Sets'
@@ -100,15 +100,16 @@ class puppetBoxClass(BaseMelWindow):
 		self.ShowHelpOption = mc.optionVar( q='cgmVar_AnimToolsShowHelp' )
 		
 		#GUI
-				
-		if self.scenePuppets:
-			puppetBoxLib.activatePuppet(self,self.scenePuppets[0])
-			
+						
 		self.Main_buildLayout(self)
 		
 		if self.Puppet:
 			puppetBoxLib.updateUIPuppet(self)
 		
+		
+		if self.scenePuppets:
+			puppetBoxLib.activatePuppet(self,self.scenePuppets[0])
+			
 		self.show()
 		
 	def setupVariables(self):
@@ -147,6 +148,14 @@ class puppetBoxClass(BaseMelWindow):
 		guiFactory.appendOptionVarList(self,self.HideMayaSetsOptionVar.name)
 
 	def updateModulesUI(self):
+		def optionMenuSet(item):
+			print item
+			#puppetBoxLib.uiModuleSetCGMTag(self,tag,item,index)
+			"""
+			i =  self.setModes.index(item)
+			self.SetToolsModeOptionVar.set( i )
+			self.setMode = i"""
+			
 		#deleteExisting
 		self.ModuleListColumn.clear()
 		
@@ -159,7 +168,7 @@ class puppetBoxClass(BaseMelWindow):
 			                                          collapsable=True,
 				                                      marginHeight=0,
 				                                      marginWidth=0,
-			                                          bgc = dictionary.returnGuiDirectionColor('center'))
+			                                          bgc = dictionary.guiDirectionColors['center'])
 				puppetBoxLib.uiModuleUpdateFrameLabel(self,i)
 				
 				
@@ -174,18 +183,20 @@ class puppetBoxClass(BaseMelWindow):
 			                                                h=20)
 				
 				tmpDirLabel = MelLabel(tmpNameRow,l='dir:',align='right')								
-				self.moduleDirectionMenus[i] = MelOptionMenu(tmpNameRow)
+				self.moduleDirectionMenus[i] = MelOptionMenu(tmpNameRow, cc = Callback(puppetBoxLib.uiModuleOptionMenuSet,self,self.moduleDirectionMenus,self.moduleDirections,'cgmDirection',i))
 
-				for o in self.moduleDirections:
+				for cnt,o in enumerate(self.moduleDirections):
 					self.moduleDirectionMenus[i].append(o)
-					
-				#self.SetModeOptionMenu.selectByIdx(self.setMode,False)	
-				
+					if o == self.Puppet.Module[i].ModuleNull.cgm['cgmDirection']:
+						self.moduleDirectionMenus[i](edit = True, select = cnt + 1)
+								
 				tmpPosLabel = MelLabel(tmpNameRow,l='pos:',align='right')
-				self.modulePositionMenus[i] = MelOptionMenu(tmpNameRow)	
-				for o in self.modulePositions:
+				self.modulePositionMenus[i] = MelOptionMenu(tmpNameRow,
+				                                            cc = Callback(puppetBoxLib.uiModuleOptionMenuSet,self,self.modulePositionMenus,self.modulePositions,'cgmPosition',i))
+				for cnt,o in enumerate(self.modulePositions):
 					self.modulePositionMenus[i].append(o)
-					
+					if o == self.Puppet.Module[i].ModuleNull.cgm['cgmPosition']:
+						self.modulePositionMenus[i](edit = True, select = cnt + 1)					
 					
 				mc.formLayout(tmpNameRow, edit = True,
 				              af = [(tmpNameLabel, "left", 10),
@@ -209,25 +220,25 @@ class puppetBoxClass(BaseMelWindow):
 					self.moduleHandleFields[i] = MelIntField(tmpIntRow,
 					                                         v = self.Puppet.Module[i].optionHandles.value,
 					                                         bgc = dictionary.returnStateColor('normal'),
-					                                         ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleHandleFields,self.Puppet.Module[i].optionHandles,i),
+					                                         ec = Callback(puppetBoxLib.uiModuleUpdateIntAttrFromField,self,self.moduleHandleFields,'optionHandles',i),
 					                                         h = 20, w = 35)
 					MelLabel(tmpIntRow,l='Roll:')
 					self.moduleRollFields[i] = MelIntField(tmpIntRow,
 					                                       v = self.Puppet.Module[i].optionRollJoints.value,					                                       
 					                                       bgc = dictionary.returnStateColor('normal'),
-					                                       ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleRollFields,self.Puppet.Module[i].optionRollJoints,i),
+					                                       ec = Callback(puppetBoxLib.uiModuleUpdateIntAttrFromField,self,self.moduleRollFields,'optionRollJoints',i),
 					                                       h = 20, w = 35)
 					MelLabel(tmpIntRow,l='Stiff Index:')
 					self.moduleStiffIndexFields[i] = MelIntField(tmpIntRow,
 					                                             v = self.Puppet.Module[i].optionStiffIndex.value,					                                             
 					                                             bgc = dictionary.returnStateColor('normal'),
-					                                             ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleStiffIndexFields,self.Puppet.Module[i].optionStiffIndex,i),
+					                                             ec = Callback(puppetBoxLib.uiModuleUpdateIntAttrFromField,self,self.moduleStiffIndexFields,'optionStiffIndex',i),
 					                                             h = 20, w = 35)	
 					MelLabel(tmpIntRow,l='Curve:')
 					self.moduleCurveFields[i] = MelIntField(tmpIntRow,
 					                                        v = self.Puppet.Module[i].optionCurveDegree.value,					                                        
 					                                        bgc = dictionary.returnStateColor('normal'),
-					                                        ec = Callback(puppetBoxLib.uiUpdateIntAttrFromField,self,self.moduleCurveFields,self.Puppet.Module[i].optionCurveDegree,i),
+					                                        ec = Callback(puppetBoxLib.uiModuleUpdateIntAttrFromField,self,self.moduleCurveFields,'optionCurveDegree',i),
 					                                        h = 20, w = 35)
 					
 					
@@ -255,20 +266,19 @@ class puppetBoxClass(BaseMelWindow):
 					MelMenuItem(popUpMenu,
 						        label = 'FK',
 						        cb = self.Puppet.Module[i].optionFK.value,
-						        c = Callback(self.Puppet.Module[i].optionFK.set,not self.Puppet.Module[i].optionFK.value))
+						        c = Callback(puppetBoxLib.uiModuleToggleBool,self,'optionFK',i))
 					MelMenuItem(popUpMenu,
 						        label = 'IK',
 						        cb = self.Puppet.Module[i].optionIK.value,
-						        c = Callback(self.Puppet.Module[i].optionIK.set,not self.Puppet.Module[i].optionIK.value ))
+					            c = Callback(puppetBoxLib.uiModuleToggleBool,self,'optionIK',i))
 					MelMenuItem(popUpMenu,
 						        label = 'Stretchy',
 						        cb = self.Puppet.Module[i].optionStretchy.value,
-						        c = Callback(self.Puppet.Module[i].optionStretchy.set,not self.Puppet.Module[i].optionStretchy.value ))
+					            c = Callback(puppetBoxLib.uiModuleToggleBool,self,'optionStetchy',i))
 					MelMenuItem(popUpMenu,
 						        label = 'Bendy',
 						        cb = self.Puppet.Module[i].optionBendy.value,
-						        c = Callback(self.Puppet.Module[i].optionBendy.set,not self.Puppet.Module[i].optionBendy.value ))
-					
+					            c = Callback(puppetBoxLib.uiModuleToggleBool,self,'optionBendy',i))
 					
 				MelMenuItemDiv(popUpMenu)
 				MelMenuItem(popUpMenu ,

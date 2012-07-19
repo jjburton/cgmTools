@@ -38,29 +38,37 @@ reload(guiFactory)
 
 """
 def doPuppetCreate(self):
-    try:
-        self.Puppet = PuppetFactory()
-	cgmPuppet.__dict__[self.Puppet.namebase] = self.Puppet
-	updateUIPuppet(self)
-	self.updateModulesUI()
+    #mel.eval('python("cgmTmp = PuppetFactory();cgmPuppet.__dict__[cgmTmp.nameBase] = cgmTmp")')	    
+    self.Puppet = PuppetFactory()
+    updateUIPuppet(self)
+    self.updateModulesUI()
+    """
     except:
         self.Puppet = False
-        guiFactory.warning("'%s' failed to initialize"%name)
+        guiFactory.warning("Failed to create puppet. Check the woodshop.")"""
 	
-def activatePuppet(self,name = ''):
+def activatePuppet(self,name):
     try:
+	if self.Puppet:
+	    if self.Puppet.nameBase != name:
+		self.Puppet = PuppetFactory(name)
+	else:
+	    self.Puppet = PuppetFactory(name)
+	"""
 	if name not in cgmPuppet.__dict__.keys():
 	    buffer = PuppetFactory(name)
 	    cgmPuppet.__dict__[buffer.nameBase] = buffer
-	    #mel.eval('python("from cgm.rigger.PuppetFactory import *;cgmPuppet.__dict__[%s] = PuppetFactory(%s);")'%("'%s'"%name,"'%s'"%name))	
+	    #mel.eval('python("cgmPuppet.__dict__[%s] = PuppetFactory(%s);")'%("'%s'"%name,"'%s'"%name))	
 	self.Puppet = cgmPuppet.__dict__[name]
 	updateUIPuppet(self)
-	self.updateModulesUI()
+	self.updateModulesUI()"""
 	
     except:
         self.Puppet = False
-        guiFactory.warning("'%s' failed to initialize"%name)
-
+        guiFactory.warning("'%s' failed to activate"%name)
+    
+    updateUIPuppet(self)
+    self.updateModulesUI()	
     
 def updateUIPuppet(self):
     if not self.Puppet:
@@ -114,7 +122,8 @@ def updatePuppetUIReport(self):
     buildReport = []
 	    
     if not self.Puppet:
-	    self.puppetReport(edit=True, label = '...')
+	self.puppetReport(edit=True, label = '...')
+	return
 			    
     #build master report
     if not self.Puppet.geo:
@@ -251,8 +260,7 @@ def uiUpdateBaseName(self,index):
 	if varCheck != self.Puppet.Module[index].nameBase:    
 	    #Rename it
 	    moduleName = self.Puppet.ModulesBuffer.bufferList[index]
-	    self.Puppet.changeModuleBaseName(moduleName,varCheck)
-	    
+	    self.Puppet.changeModuleCGMTag(moduleName,'cgmName',varCheck)	    
 	    uiModuleUpdateFrameLabel(self,index)
 	else:
 	    guiFactory.report("'%s' is already the baseName" %varCheck)
@@ -265,24 +273,56 @@ def uiModuleUpdateFrameLabel(self,index):
 	buffer.append( "Root")
     buffer.append("typ: %s"%self.Puppet.Module[index].afModuleType.value)
     buffer.append("cls: %s"%self.Puppet.Module[index].moduleClass)
-    	    
-    self.moduleFrames[index](edit=True,l=' | '.join(buffer))
+    
+    
+    color = dictionary.guiDirectionColors['center']
+    if self.Puppet.Module[index].ModuleNull.cgm['cgmDirection'] in dictionary.guiDirectionColors.keys():
+	color = dictionary.guiDirectionColors[ self.Puppet.Module[index].ModuleNull.cgm['cgmDirection'] ]
+    
+    self.moduleFrames[index](edit=True,l=' | '.join(buffer),
+                             bgc = color)
 
 
-def uiUpdateIntAttrFromField(self,fieldsDict,attrClassInstance,index):  
+def uiModuleUpdateIntAttrFromField(self,fieldsDict,attrClassInstanceName,index):  
     """ 
     Sets the default value of a loaded attr in the modify menu
     """  
     #>>> Variables
     if fieldsDict[index]:
 	varCheck = fieldsDict[index](q=True,value=True)
-	if varCheck != attrClassInstance.value:    
-	    attrClassInstance.set(varCheck)
+	if varCheck != self.Puppet.Module[index].__dict__[attrClassInstanceName].value:    
+	    self.Puppet.Module[index].__dict__[attrClassInstanceName].set(varCheck)
 	else:
 	    guiFactory.report("'%s' is already the value" %varCheck)
     else:
 	guiFactory.warning("No connected field found. Try reloading the GUI")
-
+	
+	
+def uiModuleToggleBool(self,attrClassInstanceName,index):  
+    """ 
+    Sets the default value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    if self.Puppet.Module[index] and attrClassInstanceName in self.Puppet.Module[index].__dict__.keys():
+	self.Puppet.Module[index].__dict__[attrClassInstanceName].set( not self.Puppet.Module[index].__dict__[attrClassInstanceName].value )
+    else:
+	guiFactory.warning("No idea what this is. Try reloading the GUI")
+		
+def uiModuleOptionMenuSet(self,OptionMenuDictInstance,MenuSourceList,tag,index):  
+    """ 
+    Sets the default value of a loaded attr in the modify menu
+    """  
+    #>>> Variables
+    dataIndex =  OptionMenuDictInstance[index](q=True, select=True) -1
+    data = MenuSourceList[dataIndex]
+    if self.Puppet.Module[index]:
+	print data
+	if data:
+	    moduleName = self.Puppet.ModulesBuffer.bufferList[index]	    
+	    self.Puppet.changeModuleCGMTag(moduleName,tag,data)	    
+	    uiModuleUpdateFrameLabel(self,index)	    
+    else:
+	guiFactory.warning("No module found. Try reloading the GUI")
 
 
 
