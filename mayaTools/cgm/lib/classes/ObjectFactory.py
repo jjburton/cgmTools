@@ -81,7 +81,7 @@ class ObjectFactory():
         Get the cgm name tags of an object.
         """
 	self.cgm = {}
-	for tag in 'cgmName','cgmNameModifier','cgmPosition','cgmDirection','cgmDirectionModifier','cgmIterator','cgmType','cgmTypeModifier':
+	for tag in NameFactory.cgmNameTags:
 	    self.cgm[tag] = search.findRawTagInfo(self.nameLong,tag)	
 
     def getAttrs(self):
