@@ -77,6 +77,10 @@ moduleTypeToFunctionDict = {'None':ModuleFactory,
 
 moduleTypeToMasterClassDict = {'None':['none','None',False],
                                'Limb':['segment']}
+
+#Make our class bridge
+guiFactory.classBridge_Puppet()   
+
 class PuppetFactory():
     """ 
     Character
@@ -417,14 +421,14 @@ class PuppetFactory():
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Modules
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def changeModuleBaseName(self,moduleName,newBaseName):
+    def changeModuleCGMTag(self,moduleName,tag,newInfo):
         if moduleName in self.ModulesBuffer.bufferList:
             #Clear our instanced module
             index = self.ModulesBuffer.bufferList.index(moduleName)
             modType = search.returnTagInfo(self.Module[index].ModuleNull.nameShort,'moduleType') or False
             if index is not False:
                 if modType in moduleTypeToFunctionDict.keys():
-                    if self.Module[index].changeBaseName(newBaseName):
+                    if self.Module[index].changeCGMTag(tag,newInfo):
                         self.Module[index] = moduleTypeToFunctionDict[modType](self.Module[index].ModuleNull.nameShort)                   
                     self.ModulesBuffer.updateData()
                 else:
