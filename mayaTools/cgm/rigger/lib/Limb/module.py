@@ -84,24 +84,24 @@ class Limb(ModuleFactory):
         
         #Then check the subclass specific stuff
         if not self.refState:
-            if not self.verifyLimbModule():
+            if not self.verifyModule():
                 guiFactory.warning("'%s' failed to verify!"%self.ModuleNull.nameShort)
                 return False
         else:
             guiFactory.report("'%s' Referenced. Cannot verify, initializing Limb module."%self.ModuleNull.nameShort)
-            if not self.initializeLimbModule():
+            if not self.initializeModule():
                 guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.ModuleNull.nameShort)
                 return False
             
         guiFactory.report("'%s' checks out"%self.ModuleNull.nameShort)
         guiFactory.doPrintReportEnd()
             
-    def verifyLimbModule(self):
+    def verifyModule(self,*a,**kw):
         """
         Verifies the integrity of the Limb module. Repairing and restoring broken connections or deleted items.
         """        
         #Initialize all of our options
-        ModuleFactory.verifyModule(self)
+        ModuleFactory.verifyModule(self,*a,**kw)
         
         for k in defaultSettings.keys():
             try:
@@ -136,7 +136,7 @@ class Limb(ModuleFactory):
         
         return True
     
-    def initializeLimbModule(self):
+    def initializeModule(self):
         """
         Verifies the integrity of the Limb module. Repairing and restoring broken connections or deleted items.
         """        

@@ -322,15 +322,23 @@ class ModuleFactory:
         else:
             guiFactory.warning("'%s' isn't tagged as a module."%moduleParent)
             
-    def changeBaseName(self,string):
-        #print string
-        #assert search.returnDataType(string) == string,"'%s' isn't a string argument"%string        
-        if search.returnTagInfo(self.ModuleNull.nameShort,'cgmName')== string:
-            guiFactory.warning("'%s' already has base name of '%s'."%(self.ModuleNull.nameShort,string))
+    def changeCGMTag(self,tag,string):
+        if tag not in NameFactory.cgmNameTags:
+            guiFactory.warning("'%s' is not a valid cgm name tag."%(tag))         
+            return False
+        
+        if string in [None,False,'None','none']:
+            guiFactory.warning("Removing '%s.%s'"%(self.ModuleNull.nameShort,tag))            
+            self.ModuleNull.remove(tag)
+            self.ModuleNull.doName(True,True)            
+            return True
+            
+        elif self.ModuleNull.cgm[tag] == string:
+            guiFactory.warning("'%s.%s' already has base name of '%s'."%(self.ModuleNull.nameShort,tag,string))
             return False
         else:
-            self.ModuleNull.store('cgmName',string,True)
+            self.ModuleNull.store(tag,string,True)
             self.ModuleNull.doName(True,True)
-            return True
+            return True    
                 
             
