@@ -113,7 +113,8 @@ stateColors = {'normal':[1,1,1],
 
 guiDirectionColors = {'center':[0.971679, 1, 0],
                       'centerSub':[0.972, 1, 0.726],
-                      'centerSubBK':[0.749712, 0.764706, 0.614764]}
+                      'left':[0.305882 ,0.814528, 1],
+                      'right':[0.976471 ,0.355012, 0.310173]}
 
 def returnStandardColorDict():
     return standardColorDict
