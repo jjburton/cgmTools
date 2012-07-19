@@ -37,9 +37,26 @@ reload(guiFactory)
 """
 
 """
+def doPuppetCreate(self):
+    try:
+        self.Puppet = PuppetFactory()
+	cgmPuppet.__dict__[self.Puppet.namebase] = self.Puppet
+	updateUIPuppet(self)
+	self.updateModulesUI()
+    except:
+        self.Puppet = False
+        guiFactory.warning("'%s' failed to initialize"%name)
+	
 def activatePuppet(self,name = ''):
     try:
-        self.Puppet = PuppetFactory(name)
+	if name not in cgmPuppet.__dict__.keys():
+	    buffer = PuppetFactory(name)
+	    cgmPuppet.__dict__[buffer.nameBase] = buffer
+	    #mel.eval('python("from cgm.rigger.PuppetFactory import *;cgmPuppet.__dict__[%s] = PuppetFactory(%s);")'%("'%s'"%name,"'%s'"%name))	
+	self.Puppet = cgmPuppet.__dict__[name]
+	updateUIPuppet(self)
+	self.updateModulesUI()
+	
     except:
         self.Puppet = False
         guiFactory.warning("'%s' failed to initialize"%name)

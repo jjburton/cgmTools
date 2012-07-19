@@ -288,7 +288,7 @@ class puppetBoxClass(BaseMelWindow):
 		
 		#>>> Puppet Options	
 		MelMenuItem( self.UI_PuppetMenu, l="New",
-	                 c=lambda *a:puppetBoxLib.activeAndUpdatePuppet(self))
+	                 c=lambda *a:puppetBoxLib.doPuppetCreate(self))
 		
 		#Build load menu
 		self.scenePuppets = modules.returnPuppetObjects()		
@@ -297,7 +297,7 @@ class puppetBoxClass(BaseMelWindow):
 		if self.scenePuppets:
 			for i,m in enumerate(self.scenePuppets):
 				MelMenuItem( loadMenu, l="%s"%m,
-					         c= Callback(puppetBoxLib.activeAndUpdatePuppet,self,m))		
+					         c= Callback(puppetBoxLib.activatePuppet,self,m))		
 		else:
 			MelMenuItem( loadMenu, l="None found")	
 			
