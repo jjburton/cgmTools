@@ -35,7 +35,7 @@ if mayaVersion >= 2011:
     currentGenUI = True
 else:
     currentGenUI = False
-
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Define our Colors
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -624,3 +624,27 @@ def doPrintReportBreak():
 def doPrintReportEnd(label = False):
     print '#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
 
+
+
+
+
+
+class cgmBridge:
+        def __init__(self):
+            pass    
+
+def classBridge_Puppet():
+    try:
+        mel.eval('python("cgmPuppet")')
+    except:
+        report("Creating puppet class bridge...")
+        mel.eval('python("from cgm.lib import guiFactory;cgmPuppet = guiFactory.cgmBridge();")')	
+
+def classBridge_Puppet2():
+    try:
+        #cgmPuppet
+        mel.eval('python("cgmPuppet;")')
+    except:
+        report("Creating puppet class bridge...")
+        mel.eval('python("from cgm.lib import guiFactory;cgmPuppet = guiFactory.cgmBridge();")')	
+        
