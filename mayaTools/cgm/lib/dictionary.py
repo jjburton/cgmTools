@@ -91,14 +91,7 @@ standardColorDict = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
              'olive':25,'greenYellow':26,'greenBlue':27,'blueGray':28,
              'blueGrayDark':29,'purple':30,'purpleBrown':31}
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnColorIndex(color):
-    colorIndexBuffer = standardColorDict.get(color)
-    if colorIndexBuffer != None:
-        return colorIndexBuffer
-    else:
-        return None
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+ 
 stateColors = {'normal':[1,1,1],
                'ready':[ 0.166262 ,0.388495 , 0.022797],
                'keyed':[0.870588, 0.447059, 0.478431],
@@ -116,10 +109,14 @@ guiDirectionColors = {'center':[0.971679, 1, 0],
                       'left':[0.305882 ,0.814528, 1],
                       'right':[0.976471 ,0.355012, 0.310173]}
 
-def returnStandardColorDict():
-    return standardColorDict
-
-
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnColorIndex(color):
+    colorIndexBuffer = standardColorDict.get(color)
+    if colorIndexBuffer != None:
+        return colorIndexBuffer
+    else:
+        return None
+    
 def returnStateColor(newState):
     if newState in stateColors.keys():
         return stateColors.get(newState)
@@ -148,9 +145,6 @@ def returnRotateOrderIndex(ro):
         return indexBuffer
     else:
         return None
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnRotateOrderDict():    
-    return rotateOrderDictionary
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Search stuff
@@ -182,6 +176,7 @@ def initializeDictionary(file):
             else:
                 dictionary[colonSplit[0]] = colonSplit[1]
     return dictionary
+
 def initializeDictionaryScott(file):
     with open(file) as f:
         dictionary = dict()
