@@ -37,6 +37,33 @@ reload(guiFactory)
 """
 
 """
+def verifyPuppet(self):
+    try:
+	self.Puppet.verify()
+	updateUIPuppet(self)
+	self.updateModulesUI()	
+    except:
+        guiFactory.warning("'%s' failed to activate"%self.Puppet.nameBase)
+	
+	
+def initializePuppet(self):
+    try:
+	self.Puppet.initialize()
+	updateUIPuppet(self)
+	self.updateModulesUI()	
+    except:
+        guiFactory.warning("'%s' failed to activate"%self.Puppet.nameBase)
+	
+def deletePuppet(self):
+    try:
+	self.Puppet.delete()
+	self.Puppet = False
+	updateUIPuppet(self)
+	self.updateModulesUI()	
+    except:
+        self.Puppet = False	
+        guiFactory.warning("'%s' failed to activate"%self.Puppet.nameBase)
+	
 def doPuppetCreate(self):
     #mel.eval('python("cgmTmp = PuppetFactory();cgmPuppet.__dict__[cgmTmp.nameBase] = cgmTmp")')	    
     self.Puppet = PuppetFactory()

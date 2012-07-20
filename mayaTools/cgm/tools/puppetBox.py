@@ -309,9 +309,17 @@ class puppetBoxClass(BaseMelWindow):
 				MelMenuItem( loadMenu, l="%s"%m,
 					         c= Callback(puppetBoxLib.activatePuppet,self,m))		
 		else:
-			MelMenuItem( loadMenu, l="None found")	
+			MelMenuItem( loadMenu, l="None found")
 			
-			
+		if self.Puppet:
+			MelMenuItemDiv( self.UI_PuppetMenu )	
+			MelMenuItem( self.UI_PuppetMenu, l="Initialize",
+				         c=lambda *a:puppetBoxLib.initializePuppet(self))
+			if not self.Puppet.refState:
+				MelMenuItem( self.UI_PuppetMenu, l="Verify",
+					         c=lambda *a:puppetBoxLib.verifyPuppet(self))	
+				MelMenuItem( self.UI_PuppetMenu, l="Delete",
+					         c=lambda *a:puppetBoxLib.deletePuppet(self))	
 		#>>> Reset Options		
 		MelMenuItemDiv( self.UI_PuppetMenu )
 		MelMenuItem( self.UI_PuppetMenu, l="Reload",
@@ -329,7 +337,7 @@ class puppetBoxClass(BaseMelWindow):
 		
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
-		MelMenuItem( self.UI_OptionsMenu, l="Clear modules from UI visually",
+		MelMenuItem( self.UI_OptionsMenu, l="Force module menu reload",
 	                 c=lambda *a:puppetBoxLib.uiForceModuleUpdateUI(self))		
 		
 		
@@ -581,7 +589,7 @@ class puppetBoxClass(BaseMelWindow):
 		#>>> Sets building section
 		ModuleListScroll = MelScrollLayout(MainForm,cr = 1, ut = 'cgmUISubTemplate')
 		ModuleMasterForm = MelFormLayout(ModuleListScroll)
-		self.ModuleListColumn = MelColumnLayout(ModuleMasterForm, adj = True, rowSpacing = 0)
+		self.ModuleListColumn = MelColumnLayout(ModuleMasterForm,ut = 'cgmUIInstructionsTemplate', adj = True, rowSpacing = 2)
 		
 		
 		
@@ -602,10 +610,6 @@ class puppetBoxClass(BaseMelWindow):
 		                       (self.ModuleListColumn,"left",0),
 		                       (self.ModuleListColumn,"right",0),
 		                       (self.ModuleListColumn,"bottom",0)])
-		
-		
-	
-		
 		
 		
 		MainForm(edit = True,
