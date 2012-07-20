@@ -92,7 +92,21 @@ class PuppetFactory():
         
         Keyword arguments:
         varName(string) -- name for the optionVar
+        
+        ObjectFactories:
+        self.PuppetNull - main null
+        self.NoTransformGroup        
+        >>> self.GeoGroup - group where geo is stored to
+        self.PuppetInfoNull - master puppet info null under which the other nulls live        
+        >>> self.GeoInfoNull
+        >>> self.ModuleInfoNull
+        >>> self.ModulesGroup
+        
+        BufferFactories:
+        self.ModulesBuffer - buffer for modules. Instanced from self.ModuleInfoNull
+        
         """
+
         #Default to creation of a var as an int value of 0
         ### input check         
         self.masterNulls = modules.returnPuppetObjects()
@@ -128,7 +142,7 @@ class PuppetFactory():
                 self.nameBase = buffer            
                        
         if not self.refState:
-            if not self.verifyPuppetNull():
+            if not self.verify():
                 guiFactory.warning("'%s' failed to verify!"%characterName)
                 return 
         else:
@@ -143,7 +157,7 @@ class PuppetFactory():
         guiFactory.report("'%s' checks out"%self.nameBase)
         guiFactory.doPrintReportEnd()
                 
-    def verifyPuppetNull(self):
+    def verify(self):
         """ 
         Verifies the various components a masterNull for a character/asset. If a piece is missing it replaces it.
         
@@ -344,7 +358,7 @@ class PuppetFactory():
         
         return True
      
-    def initializePuppet(self):
+    def initialize(self):
         """ 
         Verifies the various components a masterNull for a character/asset. If a piece is missing it replaces it.
         
@@ -417,7 +431,9 @@ class PuppetFactory():
                 
         return True
             
-    
+    def delete(self):
+        mc.delete(self.PuppetNull.nameLong)
+        
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Modules
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
