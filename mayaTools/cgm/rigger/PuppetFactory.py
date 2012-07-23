@@ -437,14 +437,25 @@ class PuppetFactory():
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Modules
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def changeModuleCGMTag(self,moduleName,tag,newInfo):
+    def changeModuleCGMTag(self,moduleName,tag,newInfo,*a,**kw):
+        """
+        Function to change a cgm tag on a module and push a rename through that moudule's instance
+        
+        moduleName(string)
+        tag(string) which tag to use. For a list
+        ###
+        from cgm.lib.classes import NameFactory
+        NameFactory.cgmNameTags   
+        ###
+        newInfo(*a,**kw) - info to pass into the attributes.storeInfo() function
+        """
         if moduleName in self.ModulesBuffer.bufferList:
             #Clear our instanced module
             index = self.ModulesBuffer.bufferList.index(moduleName)
             modType = search.returnTagInfo(self.Module[index].ModuleNull.nameShort,'moduleType') or False
             if index is not False:
                 if modType in moduleTypeToFunctionDict.keys():
-                    if self.Module[index].changeCGMTag(tag,newInfo):
+                    if self.Module[index].changeCGMTag(tag,newInfo,*a,**kw):
                         self.Module[index] = moduleTypeToFunctionDict[modType](self.Module[index].ModuleNull.nameShort)                   
                     self.ModulesBuffer.updateData()
                 else:
@@ -454,7 +465,7 @@ class PuppetFactory():
                 guiFactory.warning("%s is not a valid index. Cannot continue"%index)
                 return False                  
         else:
-            guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot remove"%moduleName)        
+            guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot change tag"%moduleName)        
             return False
         
     def getModules(self):
@@ -468,15 +479,18 @@ class PuppetFactory():
                 modType = search.returnTagInfo(m,'moduleType') or False
                 if modType in moduleTypeToFunctionDict.keys():
                     self.Module[i] = moduleTypeToFunctionDict[modType](m)
+                    self.Module[i].ModuleNull.doParent(self.ModulesGroup.nameLong)
                 else:
                     guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%modType)
     
     def createModule(self,moduleType,*a,**kw):
         """
         Create and connect a new module
+        
+        moduleType(string) - type of module to create
         """   
         if moduleType in moduleTypeToFunctionDict.keys():
-            tmpModule = moduleTypeToFunctionDict[moduleType](forceNew=True)
+            tmpModule = moduleTypeToFunctionDict[moduleType](forceNew=True,*a,**kw)
             self.ModulesBuffer.store(tmpModule.ModuleNull.nameShort)
             tmpModule.ModuleNull.doParent(self.ModulesGroup.nameShort)             
             self.Module[ self.ModulesBuffer.bufferList.index(tmpModule.ModuleNull.nameShort) ] = tmpModule
@@ -486,7 +500,9 @@ class PuppetFactory():
         
     def addModule(self,module,*a,**kw):
         """
+        Adds a module to a puppet
         
+        module(string)
         """
         if module in self.ModulesBuffer.bufferList:
             return guiFactory.warning("'%s' already connnected to '%s'"%(module,self.nameBase))
@@ -505,7 +521,12 @@ class PuppetFactory():
         else:
             guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%module)
     
-    def removeModule(self,moduleName,*a,**kw):
+    def removeModule(self,moduleName):
+        """
+        Removes a module from a puppet
+        
+        module(string)
+        """        
         if moduleName in self.ModulesBuffer.bufferList:
             #Clear our instanced module
             index = self.ModulesBuffer.bufferList.index(moduleName)
@@ -518,6 +539,11 @@ class PuppetFactory():
             guiFactory.warning("'%s' doesn't seem to be a connected module. Cannot remove"%moduleName)
     
     def deleteModule(self,moduleName,*a,**kw):
+        """
+        Removes a module from a puppet
+        
+        module(string)
+        """          
         if moduleName in self.ModulesBuffer.bufferList:
             #Clear our instanced module            
             index = self.ModulesBuffer.bufferList.index(moduleName)
@@ -573,6 +599,9 @@ class PuppetFactory():
         return False
     
     def isRef(self):
+        """
+        Basic ref check. Stores to self
+        """
         if mc.referenceQuery(self.PuppetNull.nameShort, isNodeReferenced=True):
             self.refState = True
             self.refPrefix = search.returnReferencePrefix(self.PuppetNull.nameShort)
