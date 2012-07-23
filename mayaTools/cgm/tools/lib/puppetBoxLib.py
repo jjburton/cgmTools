@@ -40,6 +40,7 @@ reload(guiFactory)
 def verifyPuppet(self):
     try:
 	self.Puppet.verify()
+	self.Puppet.getModules()
 	updateUIPuppet(self)
 	self.updateModulesUI()	
     except:

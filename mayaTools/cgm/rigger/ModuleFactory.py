@@ -322,7 +322,7 @@ class ModuleFactory:
         else:
             guiFactory.warning("'%s' isn't tagged as a module."%moduleParent)
             
-    def changeCGMTag(self,tag,string):
+    def changeCGMTag(self,tag,string,*a,**kw):
         if tag not in NameFactory.cgmNameTags:
             guiFactory.warning("'%s' is not a valid cgm name tag."%(tag))         
             return False
@@ -337,7 +337,7 @@ class ModuleFactory:
             guiFactory.warning("'%s.%s' already has base name of '%s'."%(self.ModuleNull.nameShort,tag,string))
             return False
         else:
-            self.ModuleNull.store(tag,string,True)
+            self.ModuleNull.store(tag,string,True,*a,**kw)
             self.ModuleNull.doName(True,True)
             return True    
                 
