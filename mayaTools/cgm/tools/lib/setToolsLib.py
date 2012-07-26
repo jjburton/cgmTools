@@ -18,6 +18,8 @@ __version__ = '0.1.06192012'
 import maya.cmds as mc
 import maya.mel as mel
 import subprocess
+from cgm.lib.classes import SetFactory 
+reload(SetFactory)
 
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.SetFactory import *
