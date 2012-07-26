@@ -539,7 +539,7 @@ def returnSettingsDataAsFloat(setting):
         
         
 
-def returnSettingsData(setting,parsed=False):
+def returnSettingsData(setting,parsed=True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
