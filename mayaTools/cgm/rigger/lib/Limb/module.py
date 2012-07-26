@@ -68,30 +68,38 @@ defaultSettings = {'partType':'none',
                    'fk':True,
                    'ik':True}
 
-""" 1 """
+#horiztonalLegDict = {'left':[3,templateSizeObjects[0],templateSizeObjects[1]],'right':[7,templateSizeObjects[0],templateSizeObjects[1]],'left_front':[3,templateSizeObjects[1],templateSizeObjects[0]], 'right_front':[7,templateSizeObjects[1],templateSizeObjects[0]], 'left_back':[3,templateSizeObjects[0],templateSizeObjects[1]],'right_back':[7,templateSizeObjects[0],templateSizeObjects[1]]}
+#typeWorkingCurveDict = {'clavicle':templateSizeObjects[1],'head':templateSizeObjects[1],'arm':templateSizeObjects[1],'leg':templateSizeObjects[0],'tail':templateSizeObjects[0],'wing':templateSizeObjects[1],'finger':templateSizeObjects[1]}
+#typeAimingCurveDict = {'arm':templateSizeObjects[0],'leg':templateSizeObjects[1],'tail':templateSizeObjects[1],'wing':templateSizeObjects[0],}
+modeDict = {'finger':'parentDuplicate','foot':'footBase','head':'child','arm':'radialOut','leg':'radialDown','tail':'cvBack','wing':'radialOut','clavicle':'radialOut'}
+aimSpreads = ['arm','leg','wing']
+
 class Limb(ModuleFactory):
     """
     Limb class which inherits the ModuleFactory master class
     """
     def __init__(self,*a,**kw):
+        initializeOnly = kw.pop('initializeOnly',False)
         
         guiFactory.doPrintReportStart()
         
         #Initialize the standard module
-        ModuleFactory.__init__(self,*a,**kw)
+        ModuleFactory.__init__(self,initializeOnly = initializeOnly,*a,**kw)
         
         self.moduleClass = 'Limb'
         
         #Then check the subclass specific stuff
-        if not self.refState:
-            if not self.verifyModule():
-                guiFactory.warning("'%s' failed to verify!"%self.ModuleNull.nameShort)
-                return False
-        else:
-            guiFactory.report("'%s' Referenced. Cannot verify, initializing Limb module."%self.ModuleNull.nameShort)
+        if self.refState or initializeOnly:
+            guiFactory.report("'%s' Limb initializing..."%self.ModuleNull.nameShort)
             if not self.initializeModule():
                 guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.ModuleNull.nameShort)
                 return False
+            
+        else:
+            if not self.verifyModule():
+                guiFactory.warning("'%s' failed to verify!"%self.ModuleNull.nameShort)
+                return False
+
             
         guiFactory.report("'%s' checks out"%self.ModuleNull.nameShort)
         guiFactory.doPrintReportEnd()
@@ -172,13 +180,40 @@ class Limb(ModuleFactory):
             self.visControlHelpers = AttrFactory(self.VisibilityOptionsNull,'visControlHelpers')
                     
         return True
-
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    #>> Sizing
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def doInitialSize(self,PuppetInstance):
+        guiFactory.report("Sizing via Limb - '%s'"%self.ModuleNull.nameBase)
+        print PuppetInstance.nameBase
+        locInfoBuffer = ModuleFactory.doCreateStartingPositionLoc(self,'innerChild',PuppetInstance.templateSizeObjects['start'],PuppetInstance.templateSizeObjects['end'])
+        
+    
+        """
+        rawModuleName = NameFactory.returnUniqueGeneratedName(module,ignore='cgmType')
+        locInfoBuffer = createStartingPositionLoc(module,'innerChild',templateSizeObjects[0],templateSizeObjects[1])
+        characterCorePositionListBuffer = doGenerateInitialPositionData(module,masterNull,locInfoBuffer,templateSizeObjects)      
+        characterCorePositionList[module] = characterCorePositionListBuffer[0]
+        locInfo[module] = characterCorePositionListBuffer[1]
+        checkList.pop(module)
+        orderedModules.remove(module) 
+        """
+        
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Define Subclasses
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
 class Segment(Limb):
-    def __init__(self, moduleName ='segment', moduleParent = False, handles = 3, position = False, direction = False, directionModifier = False, nameModifier = False,*a, **kw):
+    def __init__(self, moduleName = 'segment',*a, **kw):
+        moduleParent = kw.pop('moduleParent',False)
+        handles = kw.pop('handles',3)
+        position = kw.pop('position',False)
+        nameModifier = kw.pop('nameModifier',False)
+        direction = kw.pop('direction',False)
+        directionModifier = kw.pop('directionModifier',False)
+        initializeOnly = kw.pop('initializeOnly',False)
+
         self.partType = 'segment'
         self.stiffIndex = 0
         self.curveDegree = 1
@@ -186,6 +221,19 @@ class Segment(Limb):
         self.handles = handles
         
         
-        Limb.__init__(self,moduleName,moduleParent,position,direction,directionModifier,nameModifier,*a,**kw)
+        Limb.__init__(self,moduleName,initializeOnly = initializeOnly,*a, **kw)
+        
+class SegmentBak(Limb):
+    def __init__(self, moduleName ='segment', moduleParent = False, handles = 3, position = False, direction = False, directionModifier = False, nameModifier = False,initializeOnly = False,*a, **kw):
+        moduleName = kw.pop('moduleName','segment')
+
+        self.partType = 'segment'
+        self.stiffIndex = 0
+        self.curveDegree = 1
+        self.rollJoints = 3
+        self.handles = handles
+        
+        
+        Limb.__init__(self,moduleName,moduleParent,position,direction,directionModifier,nameModifier,initializeOnly, *a,**kw)
         
         

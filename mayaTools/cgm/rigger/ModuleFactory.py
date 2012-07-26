@@ -18,7 +18,8 @@ from cgm.lib.classes import NameFactory
 from cgm.lib.classes.AttrFactory import *
 
 from cgm.lib import (modules,
-                     rigging)
+                     rigging,
+                     locators)
 
 reload(modules)
 reload(rigging)
@@ -33,9 +34,11 @@ InfoNullsNames = ['setupOptions',
                   'skinJoints',
                   'rotateOrders']
 
+cvDict = {'left':3,'right':7,'bottom':5,'top':0, 'left_front':4, 'right_front':6, 'left_back':2,'right_back':8,'None':0}
+
 """ 1 """
 class ModuleFactory:
-    def __init__(self, moduleName = '', moduleParent = False, position = False, direction = False, directionModifier = False, nameModifier = False, forceNew = False,*a,**kw):
+    def __init__(self,moduleName = '',*a,**kw):
         """ 
         Intializes an module master class handler
         
@@ -51,6 +54,16 @@ class ModuleFactory:
         forceNew(bool) --whether to force the creation of another if the object exists
         
         """
+        #>>>Keyword args
+        moduleParent = kw.pop('moduleParent',False)
+        position = kw.pop('position',False)
+        direction = kw.pop('direction',False)
+        directionModifier = kw.pop('directionModifier',False)
+        nameModifier = kw.pop('nameModifier',False)
+        forceNew = kw.pop('forceNew',False)
+        initializeOnly = kw.pop('initializeOnly',False)
+
+        #>>>Variables      
         self.ModuleNull = False
         self.infoNulls = {}
         self.parentTagDict = {}
@@ -96,16 +109,17 @@ class ModuleFactory:
             else:
                 guiFactory.warning("'%s' isn't a cgm module. Can't initialize"%moduleName)
                 return False
-                        
-        if not self.refState:
+        
+        if self.refState or initializeOnly:
+            guiFactory.report("'%s' Module Initializing..."%moduleName)
+            if not self.initializeModule():
+                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%moduleName)
+                return False                        
+        else:
             if not self.verifyModule(forceNew):
                 guiFactory.warning("'%s' failed to verify!"%moduleName)
                 return False
-        else:
-            guiFactory.report("'%s' Referenced. Cannot verify, initializing..."%moduleName)
-            if not self.initializeModule():
-                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%moduleName)
-                return False
+
 
                 
     def isRef(self):
@@ -255,7 +269,7 @@ class ModuleFactory:
         # Nulls creation
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         #need a check to see if it exists from specfic name call
-        assert mc.objExists(self.ModuleNull.nameShort),"'%s' doens't exist"%self.ModuleNull.nameShort
+        assert mc.objExists(self.nameBase),"'%s' doens't exist"%self.nameBase
         
         self.nameBase = search.returnTagInfo(self.ModuleNull.nameShort,'cgmName')
             
@@ -339,6 +353,233 @@ class ModuleFactory:
         else:
             self.ModuleNull.store(tag,string,True,*a,**kw)
             self.ModuleNull.doName(True,True)
-            return True    
+            return True
+        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    #>> Sizing
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def doInitialSize(self,PuppetInstance):
+        guiFactory.report("Sizing via module'%s'"%self.ModuleNull.nameBase)
+        return guiFactory.warning("This isn't done yet. Push to a subclass")
+
+        
+        
+    def doCreateStartingPositionLoc(self, modeType='child', workingObject=None, aimingObject=None, cvIndex = None ):
+        """ 
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        DESCRIPTION:
+        Adds a locator setup to duplicate to get our initial position locators. All should be zeroed out.
+        The top node of the return group has the loctor and move group connected is message nodes if needed.
+        
+        ARGUMENTS:
+        modeType(string)
+            child - basic child locator to the workingObject
+            innerChild - aims locator from the working to the aiming curves
+            cvBack - works off working curves cvIndex. Places it and aiming
+                        it back on z. Mainly used for tails
+            radialOut - Works off working curve cv for position and radial 
+                        orientation. It's transform group is oriented to 
+                        the aiming curves equivalent cv. Good for arms
+            radialDown - same as radial out but locator orientation is y down zup for legs.
+                        transform orientation is the same as radial out
+            footBase - looking for it's module Parent's last loc to start from
+            parentDuplicate - looking for it's module Parent's last loc to start from
+            
+        workingObject(string) - usually the sizing objects start curve (can be a locator for parentchild loc)
+        aimingObject(string) - usually the sizing objects end curve
+        cvIndex(int) - cv to work off of
+        
+        RETURNS:
+        returnList(list) = [rootHelper(string),helperObjects(list),helperObjectGroups(list)]
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """
+        
+        if modeType == 'child':
+            """ make initial loc and orient it """
+            returnLoc = []
+            curveShapes = mc.listRelatives(workingObject, shapes = True)
+            startLoc = locators.locMeObject(workingObject)
+            aimLoc = locators.locMeObject(workingObject)
+            upLoc = locators.locMeCvFromCvIndex(curveShapes[0],0)
+            
+            startLoc = mc.rename(startLoc,(self.ModuleNull.nameBase+'child_startLoc'))
+            
+            sizeObjectLength = distance.returnDistanceBetweenObjects(workingObject,aimingObject)
+            mc.xform(aimLoc,t=[0,0,sizeObjectLength],r=True,os=True)
+            aimConstraintBuffer = mc.aimConstraint(aimLoc,startLoc,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+            mc.delete(aimConstraintBuffer[0])
+            mc.delete(upLoc)
+            mc.delete(aimLoc)
+            
+            returnLoc.append(startLoc)
+            zeroGroup = rigging.zeroTransformMeObject(startLoc)
+            attributes.storeInfo(zeroGroup,'locator',startLoc)
+            returnLoc.append(zeroGroup)
+            
+            return returnLoc
+            
+        elif modeType == 'innerChild':       
+            """ make initial lock and orient it """
+            returnLoc = []
+            curveShapes = mc.listRelatives(workingObject, shapes = True)
+            startLoc = locators.locMeObject(workingObject)
+            aimLoc = locators.locMeObject(aimingObject)
+            upLoc = locators.locMeCvFromCvIndex(curveShapes[0],0)
+            startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_innerChild_startLoc'))
+            
+            aimConstraintBuffer = mc.aimConstraint(aimLoc,startLoc,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+            mc.delete(aimConstraintBuffer[0])
+            mc.delete(upLoc)
+            mc.delete(aimLoc)
+            
+            returnLoc.append(startLoc)
+            zeroGroup = rigging.groupMeObject(startLoc)            
+            #zeroGroup = rigging.zeroTransformMeObject(startLoc)
+            #attributes.storeInfo(zeroGroup,'locator',startLoc)
+            returnLoc.append(zeroGroup)
+            
+            return returnLoc
+            
+        elif  modeType == 'cvBack':
+            returnLoc = []
+            curveShapes = mc.listRelatives(workingObject, shapes = True)
+            startLoc = locators.locMeCvFromCvIndex(curveShapes[0],cvIndex)
+            upLoc = locators.locMeObject(workingObject)
+            
+            initialAimLoc = locators.locMeObject(aimingObject)
+            aimConstraintBuffer = mc.aimConstraint(initialAimLoc,startLoc,maintainOffset = False, weight = 1, aimVector = [0,0,-1], upVector = [0,-1,0],  worldUpObject = upLoc, worldUpType = 'object', skip = ['x','z'])
+            mc.delete(aimConstraintBuffer[0])
+            mc.delete(initialAimLoc)
+    
+            aimLoc = locators.locMeCvFromCvIndex(curveShapes[0],cvIndex)
+            startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_radialBackl_startLoc'))
+            
+            sizeObjectLength = distance.returnDistanceBetweenObjects(workingObject,aimingObject)
+            mc.xform(aimLoc,t=[0,0,-sizeObjectLength],r=True,ws=True)
+            aimConstraintBuffer = mc.aimConstraint(aimLoc,startLoc,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpType = 'vector' )
+            mc.delete(aimConstraintBuffer[0])
+            mc.delete(aimLoc)
+            mc.delete(upLoc)
+            returnLoc.append(startLoc)
+            zeroGroup = rigging.groupMeObject(startLoc)
+            returnLoc.append(zeroGroup)
+            
+            return returnLoc
+            
+        elif  modeType == 'radialOut':
+            sizeObjectLength = distance.returnDistanceBetweenObjects(workingObject,aimingObject)
+            
+            returnLoc = []
+            
+            workingObjectShapes = mc.listRelatives(workingObject, shapes = True)
+            aimingObjectShapes = mc.listRelatives(aimingObject, shapes = True)
+            
+            """initial loc creation and orientation"""
+            startLoc = locators.locMeCvFromCvIndex(workingObjectShapes[0],cvIndex)
+            startLocAim = locators.locMeObject(workingObject)
+            startLocUp = locators.locMeCvFromCvIndex(workingObjectShapes[0],cvIndex)
+            startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_radialOut_startLoc'))
+            """ move the up loc up """
+            mc.xform(startLocUp,t=[0,sizeObjectLength,0],r=True,ws=True)
+    
+            """ aim it """
+            aimConstraintBuffer = mc.aimConstraint(startLocAim,startLoc,maintainOffset = False, weight = 1, aimVector = [0,0,-1], upVector = [0,1,0], worldUpType = 'vector' )
+            mc.delete(aimConstraintBuffer[0])
+            mc.delete(startLocUp)
+            
+            """ setup the transform group"""
+            transformGroup = rigging.groupMeObject(startLoc,False)
+            transformGroup = mc.rename(transformGroup,('%s%s' %(startLoc,'_moveGroup')))
+            groupUp = startLocAim
+            groupAim = locators.locMeCvFromCvIndex(aimingObjectShapes[0],cvIndex)
+            
+            """aim it"""
+            aimConstraintBuffer = mc.aimConstraint(groupAim,transformGroup,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,-1,0],  worldUpObject = groupUp, worldUpType = 'object')
+            mc.delete(aimConstraintBuffer[0])
+            mc.delete(groupUp)
+            mc.delete(groupAim)
+            
+            startLoc = rigging.doParentReturnName(startLoc,transformGroup)
+            rigging.zeroTransformMeObject(startLoc)
+            returnLoc.append(startLoc)
+            returnLoc.append(transformGroup)
+            zeroGroup = rigging.groupMeObject(transformGroup)
+            attributes.storeInfo(zeroGroup,'move',transformGroup)
+            returnLoc.append(zeroGroup)
+            
+            return returnLoc
+            
+        elif  modeType == 'radialDown':
+            sizeObjectLength = distance.returnDistanceBetweenObjects(workingObject,aimingObject)
+            returnLoc = []
+            
+            workingObjectShapes = mc.listRelatives(workingObject, shapes = True)
+            aimingObjectShapes = mc.listRelatives(aimingObject, shapes = True)
+            
+            """initial loc creation and orientation"""
+            startLoc = locators.locMeCvFromCvIndex(workingObjectShapes[0],cvIndex)
+            startLocAim = locators.locMeCvFromCvIndex(workingObjectShapes[0],cvIndex)
+            startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_radialDown_startLoc'))
+            
+            """ move the up loc up """
+            mc.xform(startLocAim,t=[0,-sizeObjectLength,0],r=True, ws=True)
+            
+            """ aim it """
+            aimConstraintBuffer = mc.aimConstraint(startLocAim,startLoc,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,0,1], worldUpType = 'vector' )
+            mc.delete(aimConstraintBuffer[0])
+            
+            
+            """ setup the transform group"""
+            transformGroup = rigging.groupMeObject(startLoc,False)
+            transformGroup = mc.rename(transformGroup,('%s%s' %(startLoc,'_moveGroup')))
+            groupUp = startLocAim
+            groupAim = locators.locMeCvFromCvIndex(aimingObjectShapes[0],cvIndex)
+            
+            """aim it"""
+            aimConstraintBuffer = mc.aimConstraint(groupAim,transformGroup,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,-1,0],  worldUpObject = groupUp, worldUpType = 'object')
+            mc.delete(aimConstraintBuffer[0])
+            mc.delete(groupUp)
+            mc.delete(groupAim)
+            
+            startLoc = rigging.doParentReturnName(startLoc,transformGroup)
+            rigging.zeroTransformMeObject(startLoc)
+            returnLoc.append(startLoc)
+            returnLoc.append(transformGroup)
+            zeroGroup = rigging.groupMeObject(transformGroup)
+            attributes.storeInfo(zeroGroup,'move',transformGroup)
+            returnLoc.append(zeroGroup)
+            
+            return returnLoc
+            
+        elif modeType == 'footBase':
+            returnLoc = []
+            startLoc = locators.locMeObject(workingObject)
+            startLoc = mc.rename(startLoc,(self.ModuleNull.nameBase+'_footcgmase_startLoc'))
+            masterGroup = rigging.groupMeObject(startLoc)
+            
+            mc.setAttr((startLoc+'.rx'),-90)
+            returnLoc.append(startLoc)
+            zeroGroup = rigging.zeroTransformMeObject(startLoc)
+            
+            currentPos = mc.xform(zeroGroup,q=True, t=True,ws=True)
+            mc.xform(zeroGroup,t=[currentPos[0],0,currentPos[2]], ws = True)
+            
+            attributes.storeInfo(zeroGroup,'locator',startLoc)
+            returnLoc.append(zeroGroup)
+            returnLoc.append(masterGroup)
+            
+            return returnLoc
+            
+        elif modeType == 'parentDuplicate':
+            returnLoc = []
+            startLoc = locators.locMeObject(workingObject)
+            startLoc = mc.rename(startLoc,(self.ModuleNull.nameBase+'_parentDup_startLoc'))
+            masterGroup = rigging.groupMeObject(startLoc)
+            returnLoc.append(startLoc)
+            returnLoc.append(masterGroup)
+            
+            return returnLoc
+        else:
+            return False
                 
             
