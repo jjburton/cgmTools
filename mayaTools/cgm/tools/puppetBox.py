@@ -274,7 +274,7 @@ class puppetBoxClass(BaseMelWindow):
 					MelMenuItem(popUpMenu,
 						        label = 'Stretchy',
 						        cb = self.Puppet.Module[i].optionStretchy.value,
-					            c = Callback(puppetBoxLib.uiModuleToggleBool,self,'optionStetchy',i))
+					            c = Callback(puppetBoxLib.uiModuleToggleBool,self,'optionStretchy',i))
 					MelMenuItem(popUpMenu,
 						        label = 'Bendy',
 						        cb = self.Puppet.Module[i].optionBendy.value,
