@@ -296,6 +296,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     """
     if maintainParent == True:
         oldParent = mc.listRelatives(obj,parent=True)
+        if oldParent:oldParent = oldParent[0]
     returnBuffer = []
     rotationOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5,'none':6}
     """return stuff to transfer"""
@@ -316,7 +317,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     if parent == True:
         obj = doParentReturnName(obj,groupBuffer)        
     
-    return NameFactory.doNameObject(groupBuffer)
+    return NameFactory.doNameObject(groupBuffer,True)
 
 
 def zeroTransformMeObject(obj,scaleZero=False):
