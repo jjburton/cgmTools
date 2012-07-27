@@ -1338,14 +1338,13 @@ def doDeleteAttr(obj,attr):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrBuffer = (obj+'.'+attr)
-    if (mc.objExists(attrBuffer)) == True:
-        if mc.getAttr(attrBuffer,lock=True) == True:
+    if mc.objExists(attrBuffer) and not mc.attributeQuery(attr, node = obj, listParent=True):
+        try:
             mc.setAttr(attrBuffer,lock=False)
-            
+        except:pass            
         try:
             doBreakConnection(attrBuffer)
-        except:
-            pass
+        except:pass
         
         mc.deleteAttr(attrBuffer)
 
@@ -1654,8 +1653,7 @@ def returnObjectsAttributeByTypeDict(obj,typeCheck = [],*a, **kw ):
                 return typeDict
     return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-def returnUserAttributes(obj):
+def returnUserAttributes(obj,*a,**kw):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1673,6 +1671,8 @@ def returnUserAttributes(obj):
         return buffer
     else:
         return False
+    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def returnMessageObject(storageObject, messageAttr):
