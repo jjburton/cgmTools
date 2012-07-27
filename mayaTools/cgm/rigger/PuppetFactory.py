@@ -83,6 +83,11 @@ moduleTypeToMasterClassDict = {'None':['none','None',False],
 #Make our class bridge
 #guiFactory.classBridge_Puppet()   
 
+#These are our init variables
+initLists = ['geo','modules','rootModules','orderedModules','orderedParentModules']
+initDicts = ['templateSizeObjects','Module','moduleParents','moduleChildren']
+initStores = ['PuppetNull','refState',]
+ 
 class PuppetFactory():
     """ 
     Character
@@ -117,16 +122,14 @@ class PuppetFactory():
         ### input check         
         self.masterNulls = modules.returnPuppetObjects()
         self.nameBase = characterName
-        self.geo = []
-        self.modules = []
-        self.templateSizeObjects = {}
-        self.Module = {}
-        self.PuppetNull = False
-        self.refState = False
-        self.moduleChildren = False
-        self.orderedParentModules = False
-        self.orderedModules = False
         
+        for l in initLists:
+            self.__dict__[l] = []
+        for d in initDicts:
+            self.__dict__[d] = {}
+        for o in initStores:
+            self.__dict__[o] = False
+
         guiFactory.doPrintReportStart()
         
         if mc.objExists(characterName):
@@ -582,15 +585,16 @@ class PuppetFactory():
         self.orderedModules(list)
         """            
         assert self.ModulesBuffer.bufferList,"'%s' has no modules"%self.nameBase
-        
         self.orderedModules = []
-        moduleParents ={}
+        self.rootModules = []
+        moduleParents = {}
         
         for i,m in enumerate(self.ModulesBuffer.bufferList):
             if self.Module[i].moduleParent:
                 moduleParents[m] = self.Module[i].moduleParent
             else:
                 self.orderedModules.append(m)
+                self.rootModules.append(m)                
                 
         while len(moduleParents):
             for module in self.orderedModules:
@@ -609,19 +613,19 @@ class PuppetFactory():
         Stores:
         self.moduleChildren(dict)
         self.orderedParentModules(list)       
+        self.rootModules(list)
         
         Returns:
         self.orderedParentModules(list)
         """    
-    
-        self.moduleChildren = {}
-        self.orderedParentModules = []
         moduleParents ={}
+        self.orderedParentModules = []
+        self.moduleChildren = {}
         
         #First get our module children stored tothe instance as a dict
         for i,m in enumerate(self.ModulesBuffer.bufferList):
             if not self.Module[i].moduleParent:
-                self.orderedParentModules.append(m)    
+                self.orderedParentModules.append(m) 
             else:
                 moduleParents[m] = self.Module[i].moduleParent                
                 
@@ -802,6 +806,7 @@ class PuppetFactory():
         # Simple reverse of start pos buffers if the object is pointing negative        
         if self.optionAimAxis < 2:        
             posBuffers.reverse()
+            
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Making the controls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>       
@@ -910,7 +915,7 @@ class PuppetFactory():
         Check a puppet's geo that it is actually geo
         """
         assert self.afGeoGroup.value is not False,"No geo group found!"
-        self.geo = []
+        
         children = search.returnAllChildrenObjects(self.afGeoGroup.value)
         if not children:
             return False
@@ -1007,7 +1012,7 @@ class PuppetFactory():
    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     def doSize(self):
         """ 
-        Function to size a 
+        Function to size a puppet
     
         """
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1036,33 +1041,181 @@ class PuppetFactory():
         guiFactory.report("Module children- %s"%self.moduleChildren)        
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Starter locs
+        # Starter locs and positions
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
-        characterCorePositionList = {}
+        coreModulePositionList = {}
         locInfo = {}
         checkList = {}
+        orderedListCopy = copy.copy(self.orderedModules)
+        
         for m in self.orderedModules:
             checkList[m] = False
-        print checkList
-        
-        for m in self.orderedModules:
-            self.Module[ self.moduleIndexDict[m] ].doInitialSize(self)
-                    
+         
+        # first do the root modules """        
+        for m in self.rootModules:
+            #Size each module and store it
+            buffer = self.Module[ self.moduleIndexDict[m] ].doInitialSize(self) or False
+            if not buffer:
+                guiFactory.warning("Failed to get a size return on '%s'"%m)
+                return False
+            coreModulePositionList[m] = buffer['positions']
+            locInfo[m] = buffer['locator']
+            checkList.pop(m)
+            orderedListCopy.remove(m)
             
-        """                  
+        """   
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Delete the locs 
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>            
+        for key in locInfo.keys():
+            buffer = locInfo.get(key)
+            parentBuffer = search.returnAllParents(buffer)
+            if mc.objExists(parentBuffer[-1]):
+                mc.delete(parentBuffer[-1])
+                    
         
-        ### first do the root modules ###
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Store everything
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         for module in orderedModules:
-            moduleParent = attributes.returnMessageObject(module,'moduleParent')
-            if moduleParent == masterNull:
-                rawModuleName = NameFactory.returnUniqueGeneratedName(module,ignore='cgmType')
-                locInfoBuffer = createStartingPositionLoc(module,'innerChild',templateSizeObjects[0],templateSizeObjects[1])
-                characterCorePositionListBuffer = doGenerateInitialPositionData(module,masterNull,locInfoBuffer,templateSizeObjects)      
-                characterCorePositionList[module] = characterCorePositionListBuffer[0]
-                locInfo[module] = characterCorePositionListBuffer[1]
-                checkList.pop(module)
-                orderedModules.remove(module) 
+            ### module null data ###
+            moduleData = attributes.returnUserAttrsToDict(module)
+            infoNulls = modules.returnInfoNullsFromModule(module)
         
+            ### part name ###
+            partName = NameFactory.returnUniqueGeneratedName(module, ignore = 'cgmType')
+            partType = moduleData.get('cgmModuleType')
+            direction = moduleData.get('cgmDirection')
+            
+            ### template null ###
+            templateNull = moduleData.get('templateNull')
+            templateNullData = attributes.returnUserAttrsToDict(templateNull)
+            curveDegree = templateNullData.get('curveDegree')
+            handles = templateNullData.get('handles')
+            stiffIndex = templateNullData.get('stiffIndex') 
+        
+            ### template object nulls ###
+            templatePosObjectsInfoNull = infoNulls.get('templatePosObjects')
+            templateControlObjectsNull = infoNulls.get('templateControlObjects')
+            starterObjectsInfoNull = infoNulls.get('templateStarterData')
+            templateControlObjectsDataNull = infoNulls.get('templateControlObjectsData')
+            rotateOrderInfoNull = infoNulls.get('rotateOrderInfo')
+            coreNamesInfoNull = infoNulls.get('coreNames')
+            
+            ### rig null ###
+            rigNull = moduleData.get('rigNull')
+            
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Positional
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+            corePositionList = characterCorePositionList.get(module)
+            
+            modules.doPurgeNull(starterObjectsInfoNull)
+            ### store our positional data ###
+            for i in range(len(corePositionList)):
+                buffer = ('%s%s' % ('pos_',i))
+                mc.addAttr (starterObjectsInfoNull, ln=buffer, at= 'double3')
+                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'X'),p=buffer , at= 'double')
+                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Y'),p=buffer , at= 'double')
+                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Z'),p=buffer , at= 'double')
+                xBuffer = (starterObjectsInfoNull+'.'+buffer+'X')
+                yBuffer = (starterObjectsInfoNull+'.'+buffer+'Y')
+                zBuffer = (starterObjectsInfoNull+'.'+buffer+'Z')
+                set = corePositionList[i]
+                mc.setAttr (xBuffer, set[0])
+                mc.setAttr (yBuffer, set[1])
+                mc.setAttr (zBuffer, set[2])
+                
+            ### make a place to store rotational data ###
+            for i in range(len(corePositionList)+1):
+                buffer = ('%s%s' % ('rot_',i))
+                mc.addAttr (starterObjectsInfoNull, ln=buffer, at= 'double3')
+                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'X'),p=buffer , at= 'double')
+                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Y'),p=buffer , at= 'double')
+                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Z'),p=buffer , at= 'double')
+    
+            modules.doPurgeNull(templateControlObjectsDataNull)
+            ### store our positional data ###
+            for i in range(len(corePositionList)):
+                buffer = ('%s%s' % ('pos_',i))
+                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
+                
+                ### make a place to store rotational data ###
+                buffer = ('%s%s' % ('rot_',i))
+                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
+                          
+                
+                ### make a place for scale data ###
+                buffer = ('%s%s' % ('scale_',i))
+                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
+                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
+        
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Need to generate names
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
+            ### check the settings first ###
+            settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
+            
+            ### if there are no names settings, genearate them from name of the limb module###
+            generatedNames = []
+            if settingsCoreNames == False:   
+                cnt = 1
+                for handle in range(handles):
+                    generatedNames.append('%s%s%i' % (partName,'_',cnt))
+                    cnt+=1
+            
+            elif (len(corePositionList)) > (len(settingsCoreNames)):
+                ### Otherwise we need to make sure that there are enough core names for handles ###       
+                cntNeeded = (len(corePositionList) - len(settingsCoreNames) +1)
+                nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
+                toIterate = settingsCoreNames[1]
+                iterated = []
+                for i in range(cntNeeded):
+                    iterated.append('%s%s%i' % (toIterate,'_',(i+1)))
+                generatedNames.append(settingsCoreNames[0])
+                for name in iterated:
+                    generatedNames.append(name)
+                for name in nonSplitEnd:
+                    generatedNames.append(name) 
+                    
+            else:
+                generatedNames = settingsCoreNames
+                
+            
+            modules.doPurgeNull(coreNamesInfoNull)
+            ### store our name data###
+            n = 0
+            for name in generatedNames:
+                attrBuffer = (coreNamesInfoNull + '.' + ('%s%s' % ('name_',n)))
+                attributes.addStringAttributeToObj(coreNamesInfoNull,('%s%s' % ('name_',n)))
+                n+=1
+                mc.setAttr(attrBuffer, name, type='string')
+    
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Rotation orders
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            modules.doPurgeNull(rotateOrderInfoNull)
+            ### store our rotation order data ###
+            for i in range(len(corePositionList)):
+                atrrNamebuffer = ('%s%s' % ('rotateOrder_',i))
+                attributes.addRotateOrderAttr(rotateOrderInfoNull,atrrNamebuffer)
+                
+            print ('%s%s' % (module,' sized and stored!')) """
+            
+            
+            
+            
+            
+             
+        """                  
         for module in parentModules:
             childrenModules = modules.returnOrderedChildrenModules(module)
             for moduleType in childrenModules.keys():
@@ -1363,7 +1516,7 @@ class PuppetFactory():
                 atrrNamebuffer = ('%s%s' % ('rotateOrder_',i))
                 attributes.addRotateOrderAttr(rotateOrderInfoNull,atrrNamebuffer)
                 
-            print ('%s%s' % (module,' sized and stored!')) """
+            print ('%s%s' % (module,' sized and stored!'))"""
 
     
     

@@ -18,7 +18,11 @@ from cgm.lib.classes import NameFactory
 from cgm.lib.classes.AttrFactory import *
 
 from cgm.lib import (modules,
+                     distance,
+                     position,
+                     logic,
                      rigging,
+                     cgmMath,
                      locators)
 
 reload(modules)
@@ -35,6 +39,13 @@ InfoNullsNames = ['setupOptions',
                   'rotateOrders']
 
 cvDict = {'left':3,'right':7,'bottom':5,'top':0, 'left_front':4, 'right_front':6, 'left_back':2,'right_back':8,'None':0}
+
+
+initLists = []
+initDicts = ['infoNulls','parentTagDict']
+initStores = ['ModuleNull','refPrefix']
+initNones = ['refPrefix','moduleClass']
+
 
 """ 1 """
 class ModuleFactory:
@@ -63,13 +74,16 @@ class ModuleFactory:
         forceNew = kw.pop('forceNew',False)
         initializeOnly = kw.pop('initializeOnly',False)
 
-        #>>>Variables      
-        self.ModuleNull = False
-        self.infoNulls = {}
-        self.parentTagDict = {}
-        self.refPrefix = None
-        self.refState = False    
-        self.moduleClass = None
+        #>>>Variables  
+        for l in initLists:
+            self.__dict__[l] = []
+        for d in initDicts:
+            self.__dict__[d] = {}
+        for o in initStores:
+            self.__dict__[o] = False
+        for o in initStores:
+            self.__dict__[o] = None
+            
         
         # Get parent info and the call tags to check later on
         if mc.objExists(moduleParent):
@@ -403,6 +417,7 @@ class ModuleFactory:
             upLoc = locators.locMeCvFromCvIndex(curveShapes[0],0)
             
             startLoc = mc.rename(startLoc,(self.ModuleNull.nameBase+'child_startLoc'))
+            StartLoc = ObjectFactory(startLoc)
             
             sizeObjectLength = distance.returnDistanceBetweenObjects(workingObject,aimingObject)
             mc.xform(aimLoc,t=[0,0,sizeObjectLength],r=True,os=True)
@@ -411,8 +426,9 @@ class ModuleFactory:
             mc.delete(upLoc)
             mc.delete(aimLoc)
             
-            returnLoc.append(startLoc)
-            zeroGroup = rigging.zeroTransformMeObject(startLoc)
+            zeroGroup = StartLoc.doGroup()
+            returnLoc.append(StartLoc.nameLong)
+            
             attributes.storeInfo(zeroGroup,'locator',startLoc)
             returnLoc.append(zeroGroup)
             
@@ -426,14 +442,16 @@ class ModuleFactory:
             aimLoc = locators.locMeObject(aimingObject)
             upLoc = locators.locMeCvFromCvIndex(curveShapes[0],0)
             startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_innerChild_startLoc'))
+            StartLoc = ObjectFactory(startLoc)
             
             aimConstraintBuffer = mc.aimConstraint(aimLoc,startLoc,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
             mc.delete(aimConstraintBuffer[0])
             mc.delete(upLoc)
             mc.delete(aimLoc)
             
-            returnLoc.append(startLoc)
-            zeroGroup = rigging.groupMeObject(startLoc)            
+            zeroGroup = StartLoc.doGroup()  
+            returnLoc.append(StartLoc.nameLong)
+            
             #zeroGroup = rigging.zeroTransformMeObject(startLoc)
             #attributes.storeInfo(zeroGroup,'locator',startLoc)
             returnLoc.append(zeroGroup)
@@ -453,6 +471,7 @@ class ModuleFactory:
     
             aimLoc = locators.locMeCvFromCvIndex(curveShapes[0],cvIndex)
             startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_radialBackl_startLoc'))
+            StartLoc = ObjectFactory(startLoc)
             
             sizeObjectLength = distance.returnDistanceBetweenObjects(workingObject,aimingObject)
             mc.xform(aimLoc,t=[0,0,-sizeObjectLength],r=True,ws=True)
@@ -461,8 +480,8 @@ class ModuleFactory:
             mc.delete(aimLoc)
             mc.delete(upLoc)
             returnLoc.append(startLoc)
-            zeroGroup = rigging.groupMeObject(startLoc)
-            returnLoc.append(zeroGroup)
+            zeroGroup = StartLoc.doGroup()  
+            returnLoc.append(StartLoc.nameLong)
             
             return returnLoc
             
@@ -479,6 +498,9 @@ class ModuleFactory:
             startLocAim = locators.locMeObject(workingObject)
             startLocUp = locators.locMeCvFromCvIndex(workingObjectShapes[0],cvIndex)
             startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_radialOut_startLoc'))
+            StartLoc = ObjectFactory(startLoc)
+            
+            
             """ move the up loc up """
             mc.xform(startLocUp,t=[0,sizeObjectLength,0],r=True,ws=True)
     
@@ -520,6 +542,7 @@ class ModuleFactory:
             startLoc = locators.locMeCvFromCvIndex(workingObjectShapes[0],cvIndex)
             startLocAim = locators.locMeCvFromCvIndex(workingObjectShapes[0],cvIndex)
             startLoc = mc.rename(startLoc, (self.ModuleNull.nameBase+'_radialDown_startLoc'))
+            StartLoc = ObjectFactory(startLoc)
             
             """ move the up loc up """
             mc.xform(startLocAim,t=[0,-sizeObjectLength,0],r=True, ws=True)
@@ -555,6 +578,8 @@ class ModuleFactory:
             returnLoc = []
             startLoc = locators.locMeObject(workingObject)
             startLoc = mc.rename(startLoc,(self.ModuleNull.nameBase+'_footcgmase_startLoc'))
+            StartLoc = ObjectFactory(startLoc)
+            
             masterGroup = rigging.groupMeObject(startLoc)
             
             mc.setAttr((startLoc+'.rx'),-90)
@@ -574,6 +599,8 @@ class ModuleFactory:
             returnLoc = []
             startLoc = locators.locMeObject(workingObject)
             startLoc = mc.rename(startLoc,(self.ModuleNull.nameBase+'_parentDup_startLoc'))
+            StartLoc = ObjectFactory(startLoc)
+            
             masterGroup = rigging.groupMeObject(startLoc)
             returnLoc.append(startLoc)
             returnLoc.append(masterGroup)
@@ -582,4 +609,86 @@ class ModuleFactory:
         else:
             return False
                 
+    def doGenerateInitialPositionData(self, PuppetInstance, startLocList,*a,**kw):
+        """ 
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        DESCRIPTION:
+        Calculates initial positioning info for objects
+        
+        ARGUMENTS:
+        sourceObjects(list)
+        visAttr(string)
+        PuppetInstance.templateSizeObjects['start'],PuppetInstance.templateSizeObjects['end']
+        
+        RETURNS:
+        returnList(list) = [posList(list),endChildLoc(loc)]
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """   
+        guiFactory.report("Generating Initial position data via ModuleFactory - '%s'"%self.ModuleNull.nameBase)
+        partBaseDistance = kw.pop('partBaseDistance',1)
+
+        
+    def doGeneratePartBaseDistance(self,PuppetInstance,locator):
+        """ 
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        DESCRIPTION:
+        Pass  a generated locator (z is forward) from this system and it measures the distance
+        to the bounding box edge
+        
+        ARGUMENTS:
+        locator(string)
+        meshGroup(string)
+        
+        RETURNS:
+        distance(float)
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """
+        vectorToStringDict = {'x':[1,0,0],'-x':[1,0,0],'y':[0,1,0],'-y':[0,1,0],'z':[0,0,1],'-z':[0,0,1]}
+
+        """ size distance for pivot """
+        boundingBoxSize = distance.returnBoundingBoxSize( PuppetInstance.GeoGroup.nameLong )
+        boundingBoxSize = cgmMath.multiplyLists([[.5,.5,.5],boundingBoxSize])
+        
+        """ make our bounding box pivot """
+        cgmLoc = locators.centerPivotLocMeObject( PuppetInstance.GeoGroup.nameLong )
+        
+        """makeour measure loc and snap it to the the cgmLoc"""
+        measureLocBuffer = mc.duplicate(locator)
+        measureLoc = measureLocBuffer[0]
+        position.movePointSnap(measureLoc,cgmLoc)
+        
+        """ Get it up on the axis with the cgmLoc back to where it was """
+        distanceToPivot = mc.xform(measureLoc,q=True, t=True,os=True)
+        mc.xform(measureLoc, t= [0,0,distanceToPivot[2]],os=True)
+        
+        """ figure out our relationship between our locators, which is in front"""
+        measureLocPos = mc.xform(measureLoc,q=True, t=True,os=True)
+        mainLocPos = mc.xform(locator,q=True, t=True,os=True)
+        
+        if measureLocPos[2] < mainLocPos[2]:
+            distanceCombineMode = 'subtract'
+            locOrder = [measureLoc,locator]
+        else:
+            distanceCombineMode = 'add'
+            locOrder = [locator,measureLoc]
             
+            """ determine our aim direction """
+        aimDirection = logic.returnLinearDirection(locOrder[0],locOrder[1])
+        aimVector = vectorToStringDict.get(aimDirection)
+        maxIndexMatch =  max(aimVector)
+        maxIndex = aimVector.index(maxIndexMatch)
+        fullDistance = boundingBoxSize[maxIndex]
+        
+        """ get some measurements """
+        distanceToSubtract = distance.returnDistanceBetweenObjects(locOrder[0],locOrder[1])
+        if distanceCombineMode == 'subtract':
+            returnDistance = fullDistance - distanceToSubtract
+        else:
+            returnDistance = fullDistance + distanceToSubtract
+        
+        mc.delete(measureLoc)
+        mc.delete(cgmLoc)
+        
+        return returnDistance
+    
+
