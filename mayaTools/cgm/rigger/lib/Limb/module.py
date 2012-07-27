@@ -61,16 +61,17 @@ settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictio
 defaultSettings = {'partType':'none',
                    'stiffIndex':0,
                    'curveDegree':1,
-                   'rollJoints':3,
                    'handles':3,
+                   'rollJoints':3,
                    'bendy':True,
                    'stretchy':True,
                    'fk':True,
                    'ik':True}
 
 #horiztonalLegDict = {'left':[3,templateSizeObjects[0],templateSizeObjects[1]],'right':[7,templateSizeObjects[0],templateSizeObjects[1]],'left_front':[3,templateSizeObjects[1],templateSizeObjects[0]], 'right_front':[7,templateSizeObjects[1],templateSizeObjects[0]], 'left_back':[3,templateSizeObjects[0],templateSizeObjects[1]],'right_back':[7,templateSizeObjects[0],templateSizeObjects[1]]}
-#typeWorkingCurveDict = {'clavicle':templateSizeObjects[1],'head':templateSizeObjects[1],'arm':templateSizeObjects[1],'leg':templateSizeObjects[0],'tail':templateSizeObjects[0],'wing':templateSizeObjects[1],'finger':templateSizeObjects[1]}
-#typeAimingCurveDict = {'arm':templateSizeObjects[0],'leg':templateSizeObjects[1],'tail':templateSizeObjects[1],'wing':templateSizeObjects[0],}
+horiztonalLegDict = {'left':3,'right':7,'left_front':3, 'right_front':7,'left_back':3,'right_back':7}
+typeWorkingCurveDict = {'clavicle':'end','head':'end','arm':'end','leg':'start','tail':'start','wing':'end','finger':'end'}
+typeAimingCurveDict = {'arm':'start','leg':'end','tail':'end','wing':'start',}
 modeDict = {'finger':'parentDuplicate','foot':'footBase','head':'child','arm':'radialOut','leg':'radialDown','tail':'cvBack','wing':'radialOut','clavicle':'radialOut'}
 aimSpreads = ['arm','leg','wing']
 
@@ -80,11 +81,14 @@ class Limb(ModuleFactory):
     """
     def __init__(self,*a,**kw):
         initializeOnly = kw.pop('initializeOnly',False)
+        self.handles = kw.pop('handles',3) or defaultSettings['handles']
+        print self.handles
+        print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Limb handles are %s"%self.handles
         
         guiFactory.doPrintReportStart()
         
         #Initialize the standard module
-        ModuleFactory.__init__(self,initializeOnly = initializeOnly,*a,**kw)
+        ModuleFactory.__init__(self,initializeOnly = initializeOnly,handles=self.handles,*a,**kw)
         
         self.moduleClass = 'Limb'
         
@@ -126,7 +130,6 @@ class Limb(ModuleFactory):
             self.optionStretchy = AttrFactory(self.SetupOptionsNull,'stretchy','bool',initialValue= self.stretchy)
             self.optionBendy = AttrFactory(self.SetupOptionsNull,'bendy','bool',initialValue= self.bendy)
             
-            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles','int',initialValue=self.handles)
             self.optionRollJoints = AttrFactory(self.SetupOptionsNull,'rollJoints','int',initialValue=self.rollJoints)
             self.optionStiffIndex= AttrFactory(self.SetupOptionsNull,'stiffIndex','int',initialValue=self.stiffIndex)
             self.optionCurveDegree= AttrFactory(self.SetupOptionsNull,'curveDegree','int',initialValue=self.curveDegree)
@@ -169,7 +172,6 @@ class Limb(ModuleFactory):
             self.optionStretchy = AttrFactory(self.SetupOptionsNull,'stretchy')
             self.optionBendy = AttrFactory(self.SetupOptionsNull,'bendy')
             
-            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles')
             self.optionRollJoints = AttrFactory(self.SetupOptionsNull,'rollJoints')
             self.optionStiffIndex= AttrFactory(self.SetupOptionsNull,'stiffIndex')
             self.optionCurveDegree= AttrFactory(self.SetupOptionsNull,'curveDegree')
@@ -187,6 +189,7 @@ class Limb(ModuleFactory):
     def doInitialSize(self,PuppetInstance,*a,**kw):
         guiFactory.report("Sizing via Limb - '%s'"%self.ModuleNull.nameBase)
         
+        #>>> If it's a root
         if not self.moduleParent:
             guiFactory.report("Root module mode!")            
             #>>>Get some info
@@ -195,25 +198,43 @@ class Limb(ModuleFactory):
             baseDistance = ModuleFactory.doGeneratePartBaseDistance(self,PuppetInstance,locInfoBuffer[0])
             print "buffer is '%s'"%baseDistance
             
-            return self.doGenerateInitialPositionData(PuppetInstance,locInfoBuffer,baseDistance) 
+            return self.doGenerateInitialPositionData(PuppetInstance,locInfoBuffer,baseDistance)
         
+        try:pass
+        except:      
+            if self.afModuleTyp.value in ['arm','wing','tail']:
+                locInfoBuffer = ModuleFactory.doCreateStartingPositionLoc(self,'innerChild',PuppetInstance.templateSizeObjects['start'],PuppetInstance.templateSizeObjects['end'])
+                PuppetInstance.locInfoDict[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),typeWorkingCurveDict.get(self.afModuleTyp.value),typeAimingCurveDict.get(self.afModuleTyp.value),cvDict.get(directionKey))
+                orderedModules.remove(m) 
+                checkList.pop(m)
+                
+            elif self.afModuleTyp.value == 'clavicle':
+                locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),templateSizeObjects[1],templateSizeObjects[0],cvDict.get(directionKey))
+                orderedModules.remove(m) 
+                checkList.pop(m)
+            elif self.afModuleTyp.value == 'finger':
+                moduleParent = attributes.returnMessageObject(m,'moduleParent')
+                parentLoc = locInfo.get(moduleParent)
+                locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),parentLoc)
+                orderedModules.remove(m) 
+            elif self.afModuleTyp.value == 'foot':
+                moduleParent = attributes.returnMessageObject(m,'moduleParent')
+                parentLoc = locInfo.get(moduleParent)
+                locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),parentLoc)
+                orderedModules.remove(m) 
+                checkList.pop(m)
+            elif self.afModuleTyp.value == 'head':
+                locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),templateSizeObjects[1],templateSizeObjects[0],cvDict.get(directionKey))
+                orderedModules.remove(m) 
+                checkList.pop(m)
+            elif self.afModuleTyp.value == 'leg':
+                if basicOrientation == 'vertical':
+                    locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),typeWorkingCurveDict.get(self.afModuleTyp.value),typeAimingCurveDict.get(self.afModuleTyp.value),cvDict.get(directionKey))
+                else:
+                    horizontalLegInfoBuffer = horiztonalLegDict.get(directionKey)
+                    locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),horizontalLegInfoBuffer[1],horizontalLegInfoBuffer[2],horizontalLegInfoBuffer[0])
         
-    """
-    def doInitialSize(self,PuppetInstance,*a,**kw):
-        guiFactory.report("Sizing via Limb - '%s'"%self.ModuleNull.nameBase)
-        
-        #>>>Get some info
-        locInfoBuffer = ModuleFactory.doCreateStartingPositionLoc(self,'innerChild',PuppetInstance.templateSizeObjects['start'],PuppetInstance.templateSizeObjects['end'])
-        print locInfoBuffer
-        
-        baseDistance = ModuleFactory.doGeneratePartBaseDistance(self,PuppetInstance,locInfoBuffer[0])
-        print "buffer is '%s'"%baseDistance
-        
-        buffer = self.doGenerateInitialPositionData(PuppetInstance,locInfoBuffer,baseDistance) 
-        """
-    
-        
-        
+   
     def doGenerateInitialPositionData(self, PuppetInstance, startLocList,*a,**kw):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -409,6 +430,8 @@ class Limb(ModuleFactory):
                 
             print "Initial position list is %s"%returnList        
             return returnList
+    
+        
         
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Define Subclasses
@@ -416,7 +439,7 @@ class Limb(ModuleFactory):
 class Segment(Limb):
     def __init__(self, moduleName = 'segment',*a, **kw):
         moduleParent = kw.pop('moduleParent',False)
-        handles = kw.pop('handles',3)
+        self.handles = kw.pop('handles',3)
         position = kw.pop('position',False)
         nameModifier = kw.pop('nameModifier',False)
         direction = kw.pop('direction',False)
@@ -426,11 +449,9 @@ class Segment(Limb):
         self.partType = 'segment'
         self.stiffIndex = 0
         self.curveDegree = 1
-        self.rollJoints = 3
-        self.handles = handles
-        
-        
-        Limb.__init__(self,moduleName,initializeOnly = initializeOnly,*a, **kw)
+        self.rollJoints = 3        
+        print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Segment handles are %s"%self.handles 
+        Limb.__init__(self,moduleName,initializeOnly = initializeOnly,handles=self.handles ,*a, **kw)
         
 class SegmentBak(Limb):
     def __init__(self, moduleName ='segment', moduleParent = False, handles = 3, position = False, direction = False, directionModifier = False, nameModifier = False,initializeOnly = False,*a, **kw):

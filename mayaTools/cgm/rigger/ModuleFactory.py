@@ -43,9 +43,10 @@ cvDict = {'left':3,'right':7,'bottom':5,'top':0, 'left_front':4, 'right_front':6
 
 initLists = []
 initDicts = ['infoNulls','parentTagDict']
-initStores = ['ModuleNull','refPrefix']
+initStores = ['ModuleNull','refState']
 initNones = ['refPrefix','moduleClass']
 
+defaultSettings = {'partType':'none'}
 
 """ 1 """
 class ModuleFactory:
@@ -73,7 +74,8 @@ class ModuleFactory:
         nameModifier = kw.pop('nameModifier',False)
         forceNew = kw.pop('forceNew',False)
         initializeOnly = kw.pop('initializeOnly',False)
-
+        self.handles = kw.pop('handles',1)
+        
         #>>>Variables  
         for l in initLists:
             self.__dict__[l] = []
@@ -166,7 +168,12 @@ class ModuleFactory:
         """
         Verifies the integrity of the base module class null. Repairing and restoring broken connections or deleted items.
         """
-        
+        for k in defaultSettings.keys():
+            try:
+                self.__dict__[k]
+            except:
+                self.__dict__[k] = defaultSettings[k]       
+                
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Nulls creation
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -271,6 +278,10 @@ class ModuleFactory:
                         
             else:
                 guiFactory.warning("'%s' has failed to initialize"%k)
+       
+        if self.infoNulls['setupOptions']:
+            self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].value )            
+            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles','int',initialValue=self.handles)
 
         return True
     
@@ -335,7 +346,10 @@ class ModuleFactory:
                 guiFactory.report("'%s' not found. Initialization Aborted!"%k)
                 return False
                 
-
+        if self.infoNulls['setupOptions']:
+            self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].value )            
+            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles')
+            
         return True
     
     def setParentModule(self,moduleParent):
@@ -691,4 +705,44 @@ class ModuleFactory:
         
         return returnDistance
     
-
+    def doGenerateCoreNames(self):
+        """ 
+        Generate core names for a module and return them
+        
+        RETURNS:
+        generatedNames(list)
+        """
+        guiFactory.report("Generating core names via ModuleFactory - '%s'"%self.ModuleNull.nameBase)
+        
+        ### check the settings first ###
+        partType = self.afModuleType.value
+        settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
+        handles = self.optionHandles.value
+        partName = NameFactory.returnRawGeneratedName(self.ModuleNull.nameShort,ignore=['cgmType','cgmTypeModifier'])
+        
+        ### if there are no names settings, genearate them from name of the limb module###
+        generatedNames = []
+        if settingsCoreNames == False:   
+            cnt = 1
+            for handle in range(handles):
+                generatedNames.append('%s%s%i' % (partName,'_',cnt))
+                cnt+=1
+        
+        elif (len(corePositionList)) > (len(settingsCoreNames)):
+            ### Otherwise we need to make sure that there are enough core names for handles ###       
+            cntNeeded = (len(corePositionList) - len(settingsCoreNames) +1)
+            nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
+            toIterate = settingsCoreNames[1]
+            iterated = []
+            for i in range(cntNeeded):
+                iterated.append('%s%s%i' % (toIterate,'_',(i+1)))
+            generatedNames.append(settingsCoreNames[0])
+            for name in iterated:
+                generatedNames.append(name)
+            for name in nonSplitEnd:
+                generatedNames.append(name) 
+                
+        else:
+            generatedNames = settingsCoreNames
+            
+        return generatedNames

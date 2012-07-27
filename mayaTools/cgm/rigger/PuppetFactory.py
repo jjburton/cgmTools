@@ -25,7 +25,7 @@ from cgm.rigger import ModuleFactory
 reload(ModuleFactory)
 
 from cgm.rigger.ModuleFactory import *
-from cgm.rigger.lib.Limb import *
+from cgm.rigger.lib import *
 
 
 import random
@@ -1043,8 +1043,9 @@ class PuppetFactory():
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Starter locs and positions
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
-        coreModulePositionList = {}
-        locInfo = {}
+        self.sizeCorePositionList = {}
+        self.sizeLocInfo = {}
+        
         checkList = {}
         orderedListCopy = copy.copy(self.orderedModules)
         
@@ -1058,465 +1059,83 @@ class PuppetFactory():
             if not buffer:
                 guiFactory.warning("Failed to get a size return on '%s'"%m)
                 return False
-            coreModulePositionList[m] = buffer['positions']
-            locInfo[m] = buffer['locator']
+            self.sizeCorePositionList[m] = buffer['positions']
+            self.sizeLocInfo[m] = buffer['locator']
             checkList.pop(m)
             orderedListCopy.remove(m)
             
-        """   
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Delete the locs 
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>            
-        for key in locInfo.keys():
-            buffer = locInfo.get(key)
+        # Delete the temp locs 
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+        
+        for key in self.sizeLocInfo.keys():
+            buffer = self.sizeLocInfo.get(key)
             parentBuffer = search.returnAllParents(buffer)
             if mc.objExists(parentBuffer[-1]):
                 mc.delete(parentBuffer[-1])
                     
-        
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Store everything
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        for module in orderedModules:
-            ### module null data ###
-            moduleData = attributes.returnUserAttrsToDict(module)
-            infoNulls = modules.returnInfoNullsFromModule(module)
-        
-            ### part name ###
-            partName = NameFactory.returnUniqueGeneratedName(module, ignore = 'cgmType')
-            partType = moduleData.get('cgmModuleType')
-            direction = moduleData.get('cgmDirection')
+        for m in self.orderedModules:
+            #>> Positional
+            corePositionList = self.sizeCorePositionList.get(m)
             
-            ### template null ###
-            templateNull = moduleData.get('templateNull')
-            templateNullData = attributes.returnUserAttrsToDict(templateNull)
-            curveDegree = templateNullData.get('curveDegree')
-            handles = templateNullData.get('handles')
-            stiffIndex = templateNullData.get('stiffIndex') 
-        
-            ### template object nulls ###
-            templatePosObjectsInfoNull = infoNulls.get('templatePosObjects')
-            templateControlObjectsNull = infoNulls.get('templateControlObjects')
-            starterObjectsInfoNull = infoNulls.get('templateStarterData')
-            templateControlObjectsDataNull = infoNulls.get('templateControlObjectsData')
-            rotateOrderInfoNull = infoNulls.get('rotateOrderInfo')
-            coreNamesInfoNull = infoNulls.get('coreNames')
+            starterDataInfoNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['templateStarterData'].value #Get the infoNull
+            templateControlObjectsDataNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['templateControlObjects'].value
             
-            ### rig null ###
-            rigNull = moduleData.get('rigNull')
+            modules.doPurgeNull( starterDataInfoNull ) # Purge the null
             
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Positional
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-            corePositionList = characterCorePositionList.get(module)
-            
-            modules.doPurgeNull(starterObjectsInfoNull)
             ### store our positional data ###
-            for i in range(len(corePositionList)):
+            for i,pos in enumerate(corePositionList):
                 buffer = ('%s%s' % ('pos_',i))
-                mc.addAttr (starterObjectsInfoNull, ln=buffer, at= 'double3')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-                xBuffer = (starterObjectsInfoNull+'.'+buffer+'X')
-                yBuffer = (starterObjectsInfoNull+'.'+buffer+'Y')
-                zBuffer = (starterObjectsInfoNull+'.'+buffer+'Z')
-                set = corePositionList[i]
-                mc.setAttr (xBuffer, set[0])
-                mc.setAttr (yBuffer, set[1])
-                mc.setAttr (zBuffer, set[2])
-                
-            ### make a place to store rotational data ###
-            for i in range(len(corePositionList)+1):
-                buffer = ('%s%s' % ('rot_',i))
-                mc.addAttr (starterObjectsInfoNull, ln=buffer, at= 'double3')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-    
-            modules.doPurgeNull(templateControlObjectsDataNull)
-            ### store our positional data ###
-            for i in range(len(corePositionList)):
-                buffer = ('%s%s' % ('pos_',i))
-                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-                
-                ### make a place to store rotational data ###
-                buffer = ('%s%s' % ('rot_',i))
-                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-                          
-                
-                ### make a place for scale data ###
-                buffer = ('%s%s' % ('scale_',i))
-                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-        
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Need to generate names
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-            ### check the settings first ###
-            settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
-            
-            ### if there are no names settings, genearate them from name of the limb module###
-            generatedNames = []
-            if settingsCoreNames == False:   
-                cnt = 1
-                for handle in range(handles):
-                    generatedNames.append('%s%s%i' % (partName,'_',cnt))
-                    cnt+=1
-            
-            elif (len(corePositionList)) > (len(settingsCoreNames)):
-                ### Otherwise we need to make sure that there are enough core names for handles ###       
-                cntNeeded = (len(corePositionList) - len(settingsCoreNames) +1)
-                nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
-                toIterate = settingsCoreNames[1]
-                iterated = []
-                for i in range(cntNeeded):
-                    iterated.append('%s%s%i' % (toIterate,'_',(i+1)))
-                generatedNames.append(settingsCoreNames[0])
-                for name in iterated:
-                    generatedNames.append(name)
-                for name in nonSplitEnd:
-                    generatedNames.append(name) 
-                    
-            else:
-                generatedNames = settingsCoreNames
-                
-            
-            modules.doPurgeNull(coreNamesInfoNull)
-            ### store our name data###
-            n = 0
-            for name in generatedNames:
-                attrBuffer = (coreNamesInfoNull + '.' + ('%s%s' % ('name_',n)))
-                attributes.addStringAttributeToObj(coreNamesInfoNull,('%s%s' % ('name_',n)))
-                n+=1
-                mc.setAttr(attrBuffer, name, type='string')
-    
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Rotation orders
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-            modules.doPurgeNull(rotateOrderInfoNull)
-            ### store our rotation order data ###
-            for i in range(len(corePositionList)):
-                atrrNamebuffer = ('%s%s' % ('rotateOrder_',i))
-                attributes.addRotateOrderAttr(rotateOrderInfoNull,atrrNamebuffer)
-                
-            print ('%s%s' % (module,' sized and stored!')) """
-            
-            
-            
-            
-            
-             
-        """                  
-        for module in parentModules:
-            childrenModules = modules.returnOrderedChildrenModules(module)
-            for moduleType in childrenModules.keys():
-                typeModuleDict = childrenModules.get(moduleType)
-                for directionKey in typeModuleDict.keys():
-                    directionModuleSet = typeModuleDict.get(directionKey)
-                    locInfoBuffer = {}
-                    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                    # Starter locs
-                    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                    for m in directionModuleSet:
-                        rawModuleName = NameFactory.returnUniqueGeneratedName(m,ignore='cgmType')
-                        ### make our initial sub groups ###
-                        if moduleType == 'arm' or moduleType == 'wing' or moduleType == 'tail':
-                            locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),typeWorkingCurveDict.get(moduleType),typeAimingCurveDict.get(moduleType),cvDict.get(directionKey))
-                            orderedModules.remove(m) 
-                            checkList.pop(m)
-                        elif moduleType == 'clavicle':
-                            locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),templateSizeObjects[1],templateSizeObjects[0],cvDict.get(directionKey))
-                            orderedModules.remove(m) 
-                            checkList.pop(m)
-                        elif moduleType == 'finger':
-                            moduleParent = attributes.returnMessageObject(m,'moduleParent')
-                            parentLoc = locInfo.get(moduleParent)
-                            locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),parentLoc)
-                            orderedModules.remove(m) 
-                        elif moduleType == 'foot':
-                            moduleParent = attributes.returnMessageObject(m,'moduleParent')
-                            parentLoc = locInfo.get(moduleParent)
-                            locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),parentLoc)
-                            orderedModules.remove(m) 
-                            checkList.pop(m)
-                        elif moduleType == 'head':
-                            locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),templateSizeObjects[1],templateSizeObjects[0],cvDict.get(directionKey))
-                            orderedModules.remove(m) 
-                            checkList.pop(m)
-                        elif moduleType == 'leg':
-                            if basicOrientation == 'vertical':
-                                locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),typeWorkingCurveDict.get(moduleType),typeAimingCurveDict.get(moduleType),cvDict.get(directionKey))
-                            else:
-                                horizontalLegInfoBuffer = horiztonalLegDict.get(directionKey)
-                                locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(moduleType),horizontalLegInfoBuffer[1],horizontalLegInfoBuffer[2],horizontalLegInfoBuffer[0])
-                            orderedModules.remove(m) 
-                            checkList.pop(m)
-                        ### do we need to spread them? ###
-                    numberOfLocs = len(directionModuleSet)
-                    if numberOfLocs > 1:        
-                        if moduleType in aimSpreads:
-                            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                            # Aim spread
-                            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                            print 'aim spread!'
-                            ### do an aim spread ###
-                            sizeObjectLength = distance.returnDistanceBetweenObjects(templateSizeObjects[0],templateSizeObjects[1])
-                            moveDistance = (sizeObjectLength/1.25)/len(directionModuleSet)
-                                
-                            ### let's move stuff ###
-                            cnt = 0
-                            for m in directionModuleSet:
-                                mLocInfo = locInfoBuffer.get(m)
-                                mc.xform(mLocInfo[1],t=[0,0,moveDistance*cnt],r=True,os=True)
-                                cnt += 1
-                        else:
-                            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                            # Split spread
-                            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                            print 'split spread!'
-                            ### if we're not going to do an aim spread...do a split spread ###
-                            if moduleType == 'finger':
-                                print 'yes!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-                                ### get the parent module###
-                                moduleParent = attributes.returnMessageObject(directionModuleSet[0],'moduleParent')
-                                print 
-                                ### get it's positional data###
-                                parentPositions = characterCorePositionList.get(moduleParent)
-                                parentLastSegmentDistance = distance.returnDistanceBetweenPoints(parentPositions[-2],parentPositions[-1])
-                                curveWidth = parentLastSegmentDistance / 5
-                            else:
-                                absCurveSize = distance.returnAbsoluteSizeCurve(typeWorkingCurveDict.get(moduleType))
-                                curveWidth = max(absCurveSize)
-                                curveWidth = (curveWidth*.9)/2
-                                
-                            mLocInfo = locInfoBuffer.get(directionModuleSet[0])
-                            
-                            ### gonna make a curve to split###
-                            locs=[]
-                            locToDup = mLocInfo[0]
-                            curveStartBuffer = mc.duplicate(locToDup,rc=True)
-                            curveEndBuffer = mc.duplicate(locToDup,rc=True)
-                            curveStartBuffer = rigging.doParentToWorld(curveStartBuffer[0])
-                            curveEndBuffer = rigging.doParentToWorld(curveEndBuffer[0])
-                            locs.append(curveStartBuffer)
-                            locs.append(curveEndBuffer)
-                            mc.xform(locs[0],t=[curveWidth,0,0],r=True,os=True)
-                            mc.xform(locs[1],t=[-curveWidth,0,0],r=True,os=True)
-                            
-                            if numberOfLocs == 2:
-                                cnt = 0
-                                for m in directionModuleSet:
-                                    mLocInfo = locInfoBuffer.get(m)
-                                    position.movePointSnap(mLocInfo[1],locs[cnt])
-                                    cnt +=1
-                                for loc in locs:
-                                    mc.delete(loc)
-                            elif numberOfLocs == 3:
-                                midM = directionModuleSet[0]
-                                cnt = 0
-                                for m in directionModuleSet:
-                                    if m != midM:
-                                        mLocInfo = locInfoBuffer.get(m)
-                                        position.movePointSnap(mLocInfo[1],locs[cnt])
-                                        cnt +=1
-                                for loc in locs:
-                                    mc.delete(loc)
-                            else:
-                                crvName = curves.curveFromObjList(locs)          
-                                crvName = mc.rebuildCurve (crvName, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=len(directionModuleSet)-1, d=1, tol=0.001)
-                                curveLocs = locators.locMeCVsOnCurve(crvName[0])
-                                cnt = 0
-                                for m in directionModuleSet:
-                                    mLocInfo = locInfoBuffer.get(m)
-                                    position.movePointSnap(mLocInfo[1],curveLocs[cnt])
-                                    cnt+=1
-                                
-                                for loc in curveLocs,locs:
-                                    mc.delete(loc)
-                                mc.delete(crvName[0])
-                    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                    # Generate initial positional data
-                    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                    for module in directionModuleSet:
-                        #characterCorePositionListBuffer = doGenerateInitialPositionData(m,masterNull,locInfoBuffer,templateSizeObjects)      
-                        characterCorePositionList[module] = 'data goes here!'
-                        currentLocInfo = locInfoBuffer.get(module)
-                        locInfo[module] = currentLocInfo
-                        if moduleType == 'arm':
-                            if modules.returnOrderedChildrenModules(module) != False:
-                                baseDistance = (doGeneratePartBaseDistance(currentLocInfo[0],meshGroup)) * .7
-                            else: baseDistance = doGeneratePartBaseDistance(currentLocInfo[0],meshGroup)
-                        elif moduleType == 'leg':
-                            if modules.returnOrderedChildrenModules(module) != False:
-                                baseDistance = (doGeneratePartBaseDistance(currentLocInfo[0],meshGroup)) * .9
-                            else: baseDistance = doGeneratePartBaseDistance(currentLocInfo[0],meshGroup)
-                        elif moduleType == 'foot' or moduleType == 'hoof':
-                            ### get the parent module###
-                            moduleParent = attributes.returnMessageObject(m,'moduleParent')
-                            ### get it's positional data###
-                            parentPositions = characterCorePositionList.get(moduleParent)
-                            parentLastSegmentDistance = distance.returnDistanceBetweenPoints(parentPositions[-2],parentPositions[-1])
-                            baseDistance = parentLastSegmentDistance / 2.5
-                        else:
-                            baseDistance = doGeneratePartBaseDistance(currentLocInfo[0],meshGroup)
-                        characterCorePositionListBuffer = doGenerateInitialPositionData(module,masterNull,currentLocInfo,templateSizeObjects,baseDistance)      
-                        characterCorePositionList[module] = characterCorePositionListBuffer[0]
-                        locInfo[module] = characterCorePositionListBuffer[1]
-                            
-        
-        for key in locInfo.keys():
-            infoBuffer = locInfo.get(key)
-            parentBuffer = search.returnAllParents(infoBuffer)
-            if mc.objExists(parentBuffer[-1]) == True:
-                mc.delete(parentBuffer[-1])
-                
-                
-        
-        orderedModules = modules.returnOrderedModules(masterNull)
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Store everything
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        for module in orderedModules:
-            ### module null data ###
-            moduleData = attributes.returnUserAttrsToDict(module)
-            infoNulls = modules.returnInfoNullsFromModule(module)
-        
-            ### part name ###
-            partName = NameFactory.returnUniqueGeneratedName(module, ignore = 'cgmType')
-            partType = moduleData.get('cgmModuleType')
-            direction = moduleData.get('cgmDirection')
-            
-            ### template null ###
-            templateNull = moduleData.get('templateNull')
-            templateNullData = attributes.returnUserAttrsToDict(templateNull)
-            curveDegree = templateNullData.get('curveDegree')
-            handles = templateNullData.get('handles')
-            stiffIndex = templateNullData.get('stiffIndex') 
-        
-            ### template object nulls ###
-            templatePosObjectsInfoNull = infoNulls.get('templatePosObjects')
-            templateControlObjectsNull = infoNulls.get('templateControlObjects')
-            starterObjectsInfoNull = infoNulls.get('templateStarterData')
-            templateControlObjectsDataNull = infoNulls.get('templateControlObjectsData')
-            rotateOrderInfoNull = infoNulls.get('rotateOrderInfo')
-            coreNamesInfoNull = infoNulls.get('coreNames')
-            
-            ### rig null ###
-            rigNull = moduleData.get('rigNull')
-            
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Positional
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-            corePositionList = characterCorePositionList.get(module)
-            
-            modules.doPurgeNull(starterObjectsInfoNull)
-            ### store our positional data ###
-            for i in range(len(corePositionList)):
-                buffer = ('%s%s' % ('pos_',i))
-                mc.addAttr (starterObjectsInfoNull, ln=buffer, at= 'double3')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-                xBuffer = (starterObjectsInfoNull+'.'+buffer+'X')
-                yBuffer = (starterObjectsInfoNull+'.'+buffer+'Y')
-                zBuffer = (starterObjectsInfoNull+'.'+buffer+'Z')
-                set = corePositionList[i]
-                mc.setAttr (xBuffer, set[0])
-                mc.setAttr (yBuffer, set[1])
-                mc.setAttr (zBuffer, set[2])
-                
-            ### make a place to store rotational data ###
-            for i in range(len(corePositionList)+1):
-                buffer = ('%s%s' % ('rot_',i))
-                mc.addAttr (starterObjectsInfoNull, ln=buffer, at= 'double3')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (starterObjectsInfoNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-    
-            modules.doPurgeNull(templateControlObjectsDataNull)
-            ### store our positional data ###
-            for i in range(len(corePositionList)):
-                buffer = ('%s%s' % ('pos_',i))
-                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-                
-                ### make a place to store rotational data ###
-                buffer = ('%s%s' % ('rot_',i))
-                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-                          
-                
-                ### make a place for scale data ###
-                buffer = ('%s%s' % ('scale_',i))
-                mc.addAttr (templateControlObjectsDataNull, ln=buffer, at= 'double3')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'X'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Y'),p=buffer , at= 'double')
-                mc.addAttr (templateControlObjectsDataNull, ln=(buffer+'Z'),p=buffer , at= 'double')
-        
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Need to generate names
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-            ### check the settings first ###
-            settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
-            
-            ### if there are no names settings, genearate them from name of the limb module###
-            generatedNames = []
-            if settingsCoreNames == False:   
-                cnt = 1
-                for handle in range(handles):
-                    generatedNames.append('%s%s%i' % (partName,'_',cnt))
-                    cnt+=1
-            
-            elif (len(corePositionList)) > (len(settingsCoreNames)):
-                ### Otherwise we need to make sure that there are enough core names for handles ###       
-                cntNeeded = (len(corePositionList) - len(settingsCoreNames) +1)
-                nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
-                toIterate = settingsCoreNames[1]
-                iterated = []
-                for i in range(cntNeeded):
-                    iterated.append('%s%s%i' % (toIterate,'_',(i+1)))
-                generatedNames.append(settingsCoreNames[0])
-                for name in iterated:
-                    generatedNames.append(name)
-                for name in nonSplitEnd:
-                    generatedNames.append(name) 
-                    
-            else:
-                generatedNames = settingsCoreNames
-                
-            
-            modules.doPurgeNull(coreNamesInfoNull)
-            ### store our name data###
-            n = 0
-            for name in generatedNames:
-                attrBuffer = (coreNamesInfoNull + '.' + ('%s%s' % ('name_',n)))
-                attributes.addStringAttributeToObj(coreNamesInfoNull,('%s%s' % ('name_',n)))
-                n+=1
-                mc.setAttr(attrBuffer, name, type='string')
-    
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Rotation orders
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-            modules.doPurgeNull(rotateOrderInfoNull)
-            ### store our rotation order data ###
-            for i in range(len(corePositionList)):
-                atrrNamebuffer = ('%s%s' % ('rotateOrder_',i))
-                attributes.addRotateOrderAttr(rotateOrderInfoNull,atrrNamebuffer)
-                
-            print ('%s%s' % (module,' sized and stored!'))"""
+                AttrFactory(starterDataInfoNull,buffer,attrType='double3',value=pos,lock=True)
 
+                
+            ### make a place to store rotational data ###
+            for i in range(len(corePositionList)+1):
+                buffer = ('%s%s' % ('rot_',i))
+                AttrFactory(starterDataInfoNull,buffer,attrType='double3',value=pos,lock=True)
+
+            modules.doPurgeNull(templateControlObjectsDataNull)
+            ### store our positional data ###
+            for i,pos in enumerate(corePositionList):
+                buffer = ('%s%s' % ('pos_',i))
+                AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
+
+                ### make a place to store rotational data ###
+                buffer = ('%s%s' % ('rot_',i))
+                AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
+
+                ### make a place for scale data ###
+                buffer = ('%s%s' % ('scale_',i))
+                AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
+
+        
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Need to generate names
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+            coreNames = self.Module[ self.moduleIndexDict[m] ].doGenerateCoreNames()
+            if not coreNames:
+                return "FAILURE OF CORE NAMES"
+            
+            coreNamesInfoNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['coreNames'].value
+            
+            modules.doPurgeNull(coreNamesInfoNull)
+            ### store our name data###
+            for n,name in enumerate(coreNames):
+                AttrFactory(coreNamesInfoNull, ('%s%s' % ('name_',n)) ,value=name,lock=True)
     
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Rotation orders
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            rotateOrderInfoNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['rotateOrders'].value            
+            modules.doPurgeNull(rotateOrderInfoNull)
+            ### store our rotation order data ###
+            for i in range(len(corePositionList)):
+                attrNamebuffer = ('%s%s' % ('rotateOrder_',i))
+                attributes.addRotateOrderAttr(rotateOrderInfoNull,attrNamebuffer)
+            
+            guiFactory.report("'%s' sized and stored"%self.Module[ self.moduleIndexDict[m] ].ModuleNull.nameBase)    
+
     
