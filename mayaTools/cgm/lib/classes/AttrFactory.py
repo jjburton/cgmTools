@@ -49,7 +49,7 @@ class AttrFactory():
     """ 
     Initialized a maya attribute as a class obj
     """
-    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,*a, **kw):
+    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,lock = None,*a, **kw):
         """ 
         Asserts object's existance and that it has a transform. Then initializes. If 
         an existing attribute name on an object is called and the attribute type is different,it converts it. All functions
@@ -81,8 +81,6 @@ class AttrFactory():
         self.attr = attrName
         self.children = False
         initialCreate = False
-        
-
         
         # If it exists we need to check the type. 
         if mc.objExists('%s.%s'%(self.obj.nameShort,attrName)):
@@ -118,6 +116,7 @@ class AttrFactory():
                 else:
                     guiFactory.warning("'%s' is an unknown form to this class"%(self.form))
                     return False
+                
                 initialCreate = True
                 
             except:
@@ -138,6 +137,8 @@ class AttrFactory():
         elif value is not None:
             self.set(value)
                 
+        if type(lock) is bool:
+            self.doLocked(lock)
                 
         #guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameShort,self.attr,self.value,self.form))
         
@@ -286,11 +287,17 @@ class AttrFactory():
         try:
             if self.children:
                 guiFactory.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
-                for c in self.children:
+                
+                for i,c in enumerate(self.children):
                     try:
                         cInstance = AttrFactory(self.obj.nameShort,c)                        
-                        attributes.doSetAttr(cInstance.obj.nameShort,cInstance.attr, value, *a, **kw)
-                        self.value = value
+                        if type(value) is list and len(self.children) == len(value): #if we have the same length of values in our list as we have children, use them
+                            attributes.doSetAttr(cInstance.obj.nameShort,cInstance.attr, value[i], *a, **kw)
+                            cInstance.value = value[i]
+                            self.value = value
+                        else:    
+                            attributes.doSetAttr(cInstance.obj.nameShort,cInstance.attr, value, *a, **kw)
+                            self.value = value
                     except:
                         guiFactory.warning("'%s' failed to set"%c)
                         
