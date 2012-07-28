@@ -96,11 +96,13 @@ def doPurgeNull(null):
     infoNullDict(dict)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    userAttrsData = attributes.returnUserAttrsToList(null)
-    attrsToPurge = lists.removeMatchedIndexEntries(userAttrsData,'cgm')
-    for attr in attrsToPurge:
-        attributes.doDeleteAttr(null,attr[0])
-        guiFactory.warning("Deleted: '%s.%s'"%(null,attr[0]))    
+    userAttrsData = attributes.returnUserAttrsToDict(null)
+    if not userAttrsData:
+        return False
+    for attr in userAttrsData.keys():
+        if 'cgm' not in attr:
+            attributes.doDeleteAttr(null,attr)
+            guiFactory.warning("Deleted: '%s.%s'"%(null,attr))    
 
 def purgeCGMAttrsFromObject(obj):
     """ 
