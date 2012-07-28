@@ -211,13 +211,13 @@ class ModuleFactory:
         self.ModuleNull.doName(True)
         mc.xform (self.ModuleNull.nameShort, os=True, piv= (0,0,0)) 
         
-        self.afTemplateState = AttrFactory(self.ModuleNull,'templateState','int',initialValue=0)
-        self.afRigState = AttrFactory(self.ModuleNull,'rigState','int',initialValue=0)
-        self.afSkeletonState = AttrFactory(self.ModuleNull,'skeletonState','int',initialValue=0)
+        self.afSizeState = AttrFactory(self.ModuleNull,'sizeState','bool',initialValue=0,lock=True)
+        self.afTemplateState = AttrFactory(self.ModuleNull,'templateState','bool',initialValue=0,lock=True)
+        self.afRigState = AttrFactory(self.ModuleNull,'rigState','bool',initialValue=0,lock=True)
+        self.afSkeletonState = AttrFactory(self.ModuleNull,'skeletonState','bool',initialValue=0,lock=True)
         
         attributes.doSetLockHideKeyableAttr(self.ModuleNull.nameShort,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
     
-
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Main Nulls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>         
@@ -306,8 +306,9 @@ class ModuleFactory:
         for a in 'moduleType','cgmType':
             if not mc.objExists("%s.%s"%(self.ModuleNull.nameShort,a)):
                 guiFactory("'%s.%s' missing. Initialization Aborted!"%(self.ModuleNull.nameShort,a))
-                return False                
-                    
+                return False      
+            
+        self.afSizeState = AttrFactory(self.ModuleNull,'sizeState')       
         self.afTemplateState = AttrFactory(self.ModuleNull,'templateState')
         self.afRigState = AttrFactory(self.ModuleNull,'rigState')
         self.afSkeletonState = AttrFactory(self.ModuleNull,'skeletonState')
@@ -348,7 +349,7 @@ class ModuleFactory:
                 
         if self.infoNulls['setupOptions']:
             self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].value )            
-            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles')
+            self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles',lock=True)
             
         return True
     
@@ -386,12 +387,103 @@ class ModuleFactory:
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>> Sizing
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    def doInitialSize(self,PuppetInstance):
+    def getInitialSize(self,PuppetInstance):
+        """
+        This is for class specific stuff
+        Keyword arguments:
+        PuppetInstance(instance) -- should be the module's puppet instance          
+        """
         guiFactory.report("Sizing via module'%s'"%self.ModuleNull.nameBase)
-        return guiFactory.warning("This isn't done yet. Push to a subclass")
-
+        guiFactory.warning("This isn't done yet. Push to a subclass")
+        return False
+    
+    def doInitialSize(self,PuppetInstance):
+        """
+        Initial storing of initial sizes for a module
         
         
+        Keyword arguments:
+        PuppetInstance(instance) -- should be the module's puppet instance   
+        """
+        guiFactory.report("Sizing via module'%s'"%self.ModuleNull.nameBase)
+        
+        if not self.getInitialSize(PuppetInstance):
+            guiFactory.warning("Initial sizing failed!")            
+            return False
+        
+        if not PuppetInstance.sizeCorePositionList[self.ModuleNull.nameBase] and PuppetInstance.sizeLocInfo[self.ModuleNull.nameBase]:      
+            guiFactory.warning("Didn't get necessary data")            
+            return False   
+                            
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Store everything
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        corePositionList = PuppetInstance.sizeCorePositionList[self.ModuleNull.nameBase]
+        
+        starterDataInfoNull = self.infoNulls['templateStarterData'].value #Get the infoNull
+        templateControlObjectsDataNull = self.infoNulls['templateControlObjects'].value
+        
+        modules.doPurgeNull( starterDataInfoNull ) # Purge the null
+        
+        ### store our positional data ###
+        for i,pos in enumerate(corePositionList):
+            buffer = ('pos_%s' % i)
+            AttrFactory(starterDataInfoNull,buffer,attrType='double3',value=pos,lock=True)
+    
+            
+        ### make a place to store rotational data and an extra for the master###
+        for i in range(len(corePositionList)+1):
+            buffer = ('rot_%s' % i)
+            AttrFactory(starterDataInfoNull,buffer,attrType='double3',lock=True)
+    
+        modules.doPurgeNull(templateControlObjectsDataNull)
+        
+        ### store our positional data ###
+        for i,pos in enumerate(corePositionList):
+            buffer = ('pos_%s' % i)
+            AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',value=pos,lock=True)
+    
+            ### make a place to store rotational data ###
+            buffer = ('rot_%s' % i)
+            AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
+    
+            ### make a place for scale data ###
+            buffer = ('scale_%s' %i)
+            AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
+    
+    
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Need to generate names
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+        coreNames = self.getGeneratedCoreNames()
+        if not coreNames:
+            return "FAILURE OF CORE NAMES"
+        
+        coreNamesInfoNull = self.infoNulls['coreNames'].value
+        
+        modules.doPurgeNull(coreNamesInfoNull)
+        ### store our name data###
+        for n,name in enumerate(coreNames):
+            AttrFactory(coreNamesInfoNull, ('name_%s' % n) ,value=name,lock=True)
+    
+        #>>>>>>>>>>>>>>>s>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Rotation orders
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+        rotateOrderInfoNull = self.infoNulls['rotateOrders'].value  
+        
+        modules.doPurgeNull(rotateOrderInfoNull)
+        
+        ### store our rotation order data ###
+        for i in range(len(corePositionList)):
+            attrNameBuffer = ('rotateOrder_%s' % i)
+            attributes.addRotateOrderAttr(rotateOrderInfoNull,attrNameBuffer)
+        
+        
+        self.afSizeState.set(1) # Check our instanced attr state box
+        guiFactory.report("'%s' sized and stored"%self.ModuleNull.nameBase)    
+    
+        return True
+            
     def doCreateStartingPositionLoc(self, modeType='child', workingObject=None, aimingObject=None, cvIndex = None ):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -623,7 +715,7 @@ class ModuleFactory:
         else:
             return False
                 
-    def doGenerateInitialPositionData(self, PuppetInstance, startLocList,*a,**kw):
+    def getGeneratedInitialPositionData(self, PuppetInstance, startLocList,*a,**kw):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         DESCRIPTION:
@@ -640,9 +732,8 @@ class ModuleFactory:
         """   
         guiFactory.report("Generating Initial position data via ModuleFactory - '%s'"%self.ModuleNull.nameBase)
         partBaseDistance = kw.pop('partBaseDistance',1)
-
-        
-    def doGeneratePartBaseDistance(self,PuppetInstance,locator):
+  
+    def getPartBaseDistance(self,PuppetInstance,locator):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         DESCRIPTION:
@@ -705,7 +796,7 @@ class ModuleFactory:
         
         return returnDistance
     
-    def doGenerateCoreNames(self):
+    def getGeneratedCoreNames(self):
         """ 
         Generate core names for a module and return them
         

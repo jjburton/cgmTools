@@ -266,7 +266,6 @@ class PuppetFactory():
             
         attributes.doSetLockHideKeyableAttr(self.GeoGroup.nameShort)
         
-            
         #Checks master info null
         created = False        
         self.afPuppetInfo = AttrFactory(self.PuppetNull,'info','message')
@@ -1041,7 +1040,7 @@ class PuppetFactory():
         guiFactory.report("Module children- %s"%self.moduleChildren)        
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Starter locs and positions
+        # Get our initial data
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
         self.sizeCorePositionList = {}
         self.sizeLocInfo = {}
@@ -1055,87 +1054,24 @@ class PuppetFactory():
         # first do the root modules """        
         for m in self.rootModules:
             #Size each module and store it
-            buffer = self.Module[ self.moduleIndexDict[m] ].doInitialSize(self) or False
-            if not buffer:
+            if not self.Module[ self.moduleIndexDict[m] ].doInitialSize(self):
                 guiFactory.warning("Failed to get a size return on '%s'"%m)
                 return False
-            self.sizeCorePositionList[m] = buffer['positions']
-            self.sizeLocInfo[m] = buffer['locator']
+
             checkList.pop(m)
             orderedListCopy.remove(m)
-            
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Delete the temp locs 
+        # NEED TO DO CHILDREN MODULES NEXT
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
         
-        for key in self.sizeLocInfo.keys():
-            buffer = self.sizeLocInfo.get(key)
-            parentBuffer = search.returnAllParents(buffer)
-            if mc.objExists(parentBuffer[-1]):
-                mc.delete(parentBuffer[-1])
-                    
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Store everything
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        for m in self.orderedModules:
-            #>> Positional
-            corePositionList = self.sizeCorePositionList.get(m)
-            
-            starterDataInfoNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['templateStarterData'].value #Get the infoNull
-            templateControlObjectsDataNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['templateControlObjects'].value
-            
-            modules.doPurgeNull( starterDataInfoNull ) # Purge the null
-            
-            ### store our positional data ###
-            for i,pos in enumerate(corePositionList):
-                buffer = ('%s%s' % ('pos_',i))
-                AttrFactory(starterDataInfoNull,buffer,attrType='double3',value=pos,lock=True)
-
-                
-            ### make a place to store rotational data ###
-            for i in range(len(corePositionList)+1):
-                buffer = ('%s%s' % ('rot_',i))
-                AttrFactory(starterDataInfoNull,buffer,attrType='double3',value=pos,lock=True)
-
-            modules.doPurgeNull(templateControlObjectsDataNull)
-            ### store our positional data ###
-            for i,pos in enumerate(corePositionList):
-                buffer = ('%s%s' % ('pos_',i))
-                AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
-
-                ### make a place to store rotational data ###
-                buffer = ('%s%s' % ('rot_',i))
-                AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
-
-                ### make a place for scale data ###
-                buffer = ('%s%s' % ('scale_',i))
-                AttrFactory(templateControlObjectsDataNull,buffer,attrType='double3',lock=True)
-
         
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Need to generate names
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-            coreNames = self.Module[ self.moduleIndexDict[m] ].doGenerateCoreNames()
-            if not coreNames:
-                return "FAILURE OF CORE NAMES"
-            
-            coreNamesInfoNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['coreNames'].value
-            
-            modules.doPurgeNull(coreNamesInfoNull)
-            ### store our name data###
-            for n,name in enumerate(coreNames):
-                AttrFactory(coreNamesInfoNull, ('%s%s' % ('name_',n)) ,value=name,lock=True)
-    
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Rotation orders
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-            rotateOrderInfoNull = self.Module[ self.moduleIndexDict[m] ].infoNulls['rotateOrders'].value            
-            modules.doPurgeNull(rotateOrderInfoNull)
-            ### store our rotation order data ###
-            for i in range(len(corePositionList)):
-                attrNamebuffer = ('%s%s' % ('rotateOrder_',i))
-                attributes.addRotateOrderAttr(rotateOrderInfoNull,attrNamebuffer)
-            
-            guiFactory.report("'%s' sized and stored"%self.Module[ self.moduleIndexDict[m] ].ModuleNull.nameBase)    
-
-    
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Delete the temp locs 
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+        """
+        for i,m in enumerate(self.ModulesBuffer.bufferList):
+            buffer = self.sizeLocInfo[m] 
+            parentBuffer = search.returnAllParents( buffer )
+            if mc.objExists(parentBuffer[-1]):
+                mc.delete(parentBuffer[-1])"""        
+        return    
