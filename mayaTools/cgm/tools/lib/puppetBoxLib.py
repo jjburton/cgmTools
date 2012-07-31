@@ -21,7 +21,7 @@ from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes import NameFactory
 from cgm.rigger import PuppetFactory
 from cgm.lib.classes import AttrFactory
-
+from cgm.rigger.lib import functions
 reload(AttrFactory)
 reload(NameFactory)
 reload(PuppetFactory)
@@ -231,7 +231,23 @@ def updatePuppetAxisMenus(self):
 	mc.radioCollection(self.AimAxisCollection ,edit=True,sl= (self.AimAxisCollectionChoices[ (self.PuppetAimOptionVar.value) ]))
 	mc.radioCollection(self.UpAxisCollection ,edit=True,sl= (self.UpAxisCollectionChoices[ (self.PuppetUpOptionVar.value) ]))
 	mc.radioCollection(self.OutAxisCollection ,edit=True,sl= (self.OutAxisCollectionChoices[ (self.PuppetOutOptionVar.value) ]))
-	
+
+def doSetAxisAndUpdateModule(self,function,instance,index):
+    function(instance,index)
+    self.updateModulesUI()
+    
+def doCopyAxisFromParent(self,moduleInstance):
+    """
+    Self should be a module instance
+    """
+    parent = moduleInstance.afModuleParent.get()
+    if not parent:
+	functions.copyAxisOptions(moduleInstance,self.Puppet)
+	guiFactory.report("Copied axis settings for '%s' from '%s'"%(moduleInstance.nameBase,self.Puppet.nameBase))	
+    else:
+	guiFactory.warning("Not implemented")
+    self.updateModulesUI()	
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  

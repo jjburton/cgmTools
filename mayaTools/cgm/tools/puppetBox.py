@@ -22,6 +22,8 @@ __version__ = '0.1.07052012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.rigger.PuppetFactory import *
+from cgm.rigger.lib import functions
+reload(functions)
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -244,9 +246,65 @@ class puppetBoxClass(BaseMelWindow):
 					
 					MelSpacer(tmpIntRow,w=10)
 					
-				tmpIntRow.layout()
-
-
+					tmpIntRow.layout()
+				
+				# Module axis menu
+				"""
+				self.AxisFrame = MelFrameLayout(self.moduleFrames[i],label = 'Axis',vis=False,
+						                        collapse=True,
+						                        collapsable=True,
+						                        ut = 'cgmUITemplate')
+				
+				#Aim Axis Mode Row
+				self.AimAxisCollection = MelRadioCollection()
+				self.AimAxisCollectionChoices = []			
+				
+				self.AimAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
+				MelSpacer(self.AimAxisRow,w=5)				
+				MelLabel(self.AimAxisRow,l='Aim ')
+				Spacer = MelSeparator(self.AimAxisRow,w=10)						
+				for i,item in enumerate(axisDirectionsByString):
+					self.AimAxisCollectionChoices.append(self.AimAxisCollection.createButton(self.AimAxisRow,label=item,
+							                                                                 onCommand = Callback(puppetBoxLib.setPuppetAxisAim,self,i)))
+					MelSpacer(self.AimAxisRow,w=3)
+				self.AimAxisRow.setStretchWidget( Spacer )
+				MelSpacer(self.AimAxisRow,w=2)		
+				self.AimAxisRow.layout()	
+				
+				
+				#Up Axis Mode Row
+				self.UpAxisCollection = MelRadioCollection()
+				self.UpAxisCollectionChoices = []			
+				
+				self.UpAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
+				MelSpacer(self.UpAxisRow,w=5)				
+				MelLabel(self.UpAxisRow,l='Up ')
+				Spacer = MelSeparator(self.UpAxisRow,w=10)						
+				for i,item in enumerate(axisDirectionsByString):
+					self.UpAxisCollectionChoices.append(self.UpAxisCollection.createButton(self.UpAxisRow,label=item,
+							                                                                 onCommand = Callback(puppetBoxLib.setPuppetAxisUp,self,i)))
+					MelSpacer(self.UpAxisRow,w=3)
+				self.UpAxisRow.setStretchWidget( Spacer )
+				MelSpacer(self.UpAxisRow,w=2)		
+				self.UpAxisRow.layout()	
+				
+				
+				#Out Axis Mode Row
+				self.OutAxisCollection = MelRadioCollection()
+				self.OutAxisCollectionChoices = []			
+				
+				self.OutAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
+				MelSpacer(self.OutAxisRow,w=5)				
+				MelLabel(self.OutAxisRow,l='Out ')
+				Spacer = MelSeparator(self.OutAxisRow,w=10)	
+				for i,item in enumerate(axisDirectionsByString):
+					self.OutAxisCollectionChoices.append(self.OutAxisCollection.createButton(self.OutAxisRow,label=item,
+							                                                                 onCommand = Callback(puppetBoxLib.setPuppetAxisOut,self,i)))
+					MelSpacer(self.OutAxisRow,w=3)
+				self.OutAxisRow.setStretchWidget( Spacer )
+				MelSpacer(self.OutAxisRow,w=2)		
+				self.OutAxisRow.layout()	
+				"""
 
 
 
@@ -281,6 +339,50 @@ class puppetBoxClass(BaseMelWindow):
 					            c = Callback(puppetBoxLib.uiModuleToggleBool,self,'optionBendy',i))
 					
 				MelMenuItemDiv(popUpMenu)
+				
+				# Object Aim Menu
+				ObjectAimMenu = MelMenuItem(popUpMenu, l='Aim:', subMenu=True)
+				self.ObjectAimCollection = MelRadioMenuCollection()
+			
+				for index,axis in enumerate(dictionary.axisDirectionsByString):
+					if self.Puppet.Module[i].optionAimAxis.get() == index:
+						checkState = True
+					else:
+						checkState = False
+					self.ObjectAimCollection.createButton(ObjectAimMenu,l=axis,
+				                                          c= Callback(puppetBoxLib.doSetAxisAndUpdateModule,self,functions.doSetAimAxis,self.Puppet.Module[i],index),
+				                                          rb = checkState)
+				ObjectUpMenu = MelMenuItem(popUpMenu, l='Up:', subMenu=True)
+				self.ObjectUpCollection = MelRadioMenuCollection()
+			
+				for index,axis in enumerate(dictionary.axisDirectionsByString):
+					if self.Puppet.Module[i].optionUpAxis.get() == index:
+						checkState = True
+					else:
+						checkState = False
+					self.ObjectUpCollection.createButton(ObjectUpMenu,l=axis,
+					                                     c= Callback(puppetBoxLib.doSetAxisAndUpdateModule,self,functions.doSetUpAxis,self.Puppet.Module[i],index),
+				                                          rb = checkState)
+				ObjectOutMenu = MelMenuItem(popUpMenu, l='Out:', subMenu=True)
+				self.ObjectOutCollection = MelRadioMenuCollection()
+			
+				for index,axis in enumerate(dictionary.axisDirectionsByString):
+					if self.Puppet.Module[i].optionOutAxis.get() == index:
+						checkState = True
+					else:
+						checkState = False
+					self.ObjectOutCollection.createButton(ObjectOutMenu,l=axis,
+					                                      c= Callback(puppetBoxLib.doSetAxisAndUpdateModule,self,functions.doSetOutAxis,self.Puppet.Module[i],index),
+				                                          rb = checkState)
+					
+					
+				ObjectOutMenu = MelMenuItem(popUpMenu, l='Copy from Parent', 
+				                            c= Callback(puppetBoxLib.doCopyAxisFromParent,self,self.Puppet.Module[i]))
+				                            
+				MelMenuItemDiv(popUpMenu)
+				
+				
+				
 				MelMenuItem(popUpMenu ,
 							label = 'Remove',
 							c = Callback(puppetBoxLib.doRemoveModule,self,i))
