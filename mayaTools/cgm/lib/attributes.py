@@ -804,7 +804,7 @@ def returnMatchNameAttrsDict(fromObject,toObject,attributes=[True],directMatchOn
     return False
                     
             
-def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = True, values = True, incomingConnections = False, outgoingConnections = False, keepSourceConnections = True, copyAttrSettings = True, connectSourceToTarget = False):
+def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, **kw):
     """                                     
     DESCRIPTION:
     Replacement for Maya's since maya's can't handle shapes....blrgh...
@@ -829,6 +829,16 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     RETURNS:
     success(bool)
     """
+    #>>>Keyword args
+    convertToMatch = kw.pop('convertToMatch',True)
+    values = kw.pop('values',True)
+    incomingConnections = kw.pop('incomingConnections',False)
+    outgoingConnections = kw.pop('outgoingConnections',False)
+    keepSourceConnections = kw.pop('keepSourceConnections',True)
+    copyAttrSettings = kw.pop('copyAttrSettings',True)
+    connectSourceToTarget = kw.pop('connectSourceToTarget',False)
+    connectTargetToSource = kw.pop('connectTargetToSource',False) 
+    
     assert mc.objExists('%s.%s'%(fromObject,fromAttr)) is True,"Source '%s.%s' doesn't exist"%(fromObject,fromAttr)
     assert mc.objExists(toObject) is True,"Target '%s' doesn't exist"%toObject
     
@@ -912,12 +922,13 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
                         
             if not validateAttrTypeMatch(targetType,sourceType):
                 if sourceDynamic and convertToMatch:
+                    toAttr = fromAttr                    
                     #f the match attr doesnt' type as well, convert
                     guiFactory.report("Match is '%s', needs to be '%s'"%(targetType,sourceType))  
                     if targetLock:
                         mc.setAttr('%s.%s'%(toObject,toAttr),lock = False)
                         relockSource = True                        
-                    convertAttrType(('%s.%s'%(toObject,toAttr)),sourceType)
+                    doConvertAttrType(('%s.%s'%(toObject,toAttr)),sourceType)
                 else:
                     goodToGo = False
                     toAttr = matchAttrs.get(fromAttr)
@@ -942,7 +953,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
             doSetAttr(toObject,toAttr,dataDict.get('value'))
             
     if incomingConnections and not connectSourceToTarget:
-        buffer = dataDict.get('incoming')
+        buffer = dataDict['incoming']
         if buffer:
             try:
                 doConnectAttr(buffer,('%s.%s'%(toObject,toAttr)))
@@ -953,8 +964,8 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
                     guiFactory.warning("Inbound fail - '%s.%s' failed to connect to '%s"%(fromObject,fromAttr,buffer))
                     
     if outgoingConnections and not connectSourceToTarget:
-        if dataDict.get('outGoing'):
-            for connection in dataDict.get('outGoing'):
+        if dataDict['outGoing']:
+            for connection in dataDict['outGoing']:
                 try:
                     doConnectAttr(('%s.%s'%(toObject,toAttr)),connection)
                
@@ -984,6 +995,12 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, convertToMatch = Tr
     if connectSourceToTarget:
         try:            
             doConnectAttr(('%s.%s'%(toObject,toAttr)),('%s.%s'%(fromObject,fromAttr)))
+        except:
+            guiFactory.warning("Connect to target fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
+
+    elif connectTargetToSource:
+        try:            
+            doConnectAttr(('%s.%s'%(fromObject,fromAttr)),('%s.%s'%(toObject,toAttr)))
         except:
             guiFactory.warning("Connect to source fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
 
@@ -1851,7 +1868,7 @@ def returnUserAttrsToDict(obj):
             else:
                 if attrType != 'attributeAlias':
                     buffer = mc.getAttr(obj+'.'+attr)
-                    if buffer:
+                    if buffer is not None:
                         attrDict[attr] = (buffer)
                     
         return attrDict
