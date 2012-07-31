@@ -93,7 +93,27 @@ class ObjectFactory():
         """
         self.cgm = {}
         for tag in NameFactory.cgmNameTags:
-            self.cgm[tag] = search.findRawTagInfo(self.nameLong,tag)	
+            self.cgm[tag] = search.findRawTagInfo(self.nameLong,tag)
+            
+    def getNameTagsFromObject(self,target,ignore=[False]):
+        """
+        Get name tags from a target object (connected)
+        
+        Keywords
+        ignore(list) - tags to ignore
+        
+        Returns
+        success(bool)
+        """
+        targetCGM = NameFactory.returnObjectGeneratedNameDict(target,ignore = ignore)
+        didSomething = False
+        
+        for tag in targetCGM.keys():
+            if tag not in ignore and targetCGM[tag] is not None or False:
+                attributes.doCopyAttr(target,tag,
+                                      self.nameLong,connectTargetToSource=True)
+                didSomething = True
+        return didSomething
 
     def getAttrs(self):
         """ Stores the dictionary of userAttrs of an object."""
@@ -310,5 +330,4 @@ class ObjectFactory():
                     
         if pushToShapes:
             raise NotImplementedError,"This feature isn't done yet"
-
 
