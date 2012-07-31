@@ -233,3 +233,150 @@ def getGeneratedInitialPositionData(self, PuppetInstance, startLocList,*a,**kw):
             
         print "Initial position list is %s"%returnList        
         return returnList
+    
+def addOrientationHelpers(self):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Adds orientation helpers to a template chain
+    
+    ARGUMENTS:
+    objects(list)
+    root(string) - root control of the limb chain
+    moduleType(string)
+    
+    RETURNS:
+    returnList(list) = [rootHelper(string),helperObjects(list),helperObjectGroups(list)]
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    moduleColors = modules.returnModuleColors(self.ModuleNull.nameLong)
+    helperObjects = []
+    helperObjectGroups = []
+    returnBuffer = []
+    root = self.afTemplateRoot.getMessage()
+    visAttr = "%s.visOrientHelpers"%self.infoNulls['visibilityOptions'].get()  
+    objects =  self.templatePosObjectsBuffer.bufferList
+
+    #>>> Direction and size Stuff
+    """ Directional data derived from joints """
+    generalDirection = logic.returnHorizontalOrVertical(objects)
+    
+    if generalDirection == 'vertical' and 'leg' not in self.afModuleType.value:
+        worldUpVector = [0,0,-1]
+    elif generalDirection == 'vertical' and 'leg' in self.afModuleType.value:
+        worldUpVector = [0,0,1]
+    else:
+        worldUpVector = [0,1,0]
+    
+    """ Get Size """
+    size = (distance.returnBoundingBoxSizeToAverage(objects[0])*2)
+    #>>> Master Orient helper
+    """ make the curve"""
+    createBuffer = curves.createControlCurve('circleArrow1',(size*2),'z+')
+    curves.setCurveColorByName(createBuffer,moduleColors[0])
+    """ copy the name attr"""
+    attributes.storeInfo(createBuffer,'cgmType','templateOrientRoot')
+    mainOrientHelperObj = NameFactory.doNameObject(createBuffer)
+    """ store the object to it's respective  object """
+    attributes.storeObjectToMessage (mainOrientHelperObj, root , 'orientHelper')
+    returnBuffer.append(mainOrientHelperObj)
+    """ Snapping """
+    position.movePointSnap(mainOrientHelperObj,root)    
+    constBuffer = mc.aimConstraint(objects[1],mainOrientHelperObj,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
+    mc.delete (constBuffer[0])
+    """ Follow Groups """
+    mainOrientHelperGroupBuffer = rigging.groupMeObject(mainOrientHelperObj)
+    mainOrientHelperGroupBuffer = NameFactory.doNameObject(mainOrientHelperGroupBuffer)
+    mainOrientHelperGroup = rigging.doParentReturnName(mainOrientHelperGroupBuffer,root)
+    mc.pointConstraint(objects[0],mainOrientHelperGroupBuffer,maintainOffset = False)
+    helperObjectGroups.append(mainOrientHelperGroup)
+    
+    """ set up constraints """
+    mc.aimConstraint(objects[-1],mainOrientHelperGroup,maintainOffset = True, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpObject = root, worldUpType = 'objectRotation' )
+    """ lock and hide stuff """
+    attributes.doSetLockHideKeyableAttr(mainOrientHelperObj,True,False,False,['tx','ty','tz','rz','ry','sx','sy','sz','v'])
+    
+    #>>> The sub helpers
+    """ make our pair lists """
+    pairList = lists.parseListToPairs(objects)
+
+    """ make our controls """
+    helperObjects = []
+    for pair in pairList:
+        """ Get Size """
+        size = (distance.returnBoundingBoxSizeToAverage(pair[0])*2)
+        
+        """ make the curve"""
+        createBuffer = curves.createControlCurve('circleArrow2Axis',size,'y-')
+        curves.setCurveColorByName(createBuffer,moduleColors[1])
+        
+        """ copy the name attr"""
+        attributes.copyUserAttrs(pair[0],createBuffer,['cgmName'])
+        attributes.storeInfo(createBuffer,'cgmType','templateOrientObject')
+        helperObj = NameFactory.doNameObject(createBuffer)
+        
+        
+        """ store the object to it's respective  object and to an object list """
+        attributes.storeObjectToMessage (helperObj, pair[0], 'orientHelper')
+        helperObjects.append(helperObj)
+        
+        """ initial snapping """
+        position.movePointSnap(helperObj,pair[0])
+        constBuffer = mc.aimConstraint(pair[1],helperObj,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
+        mc.delete (constBuffer[0])
+        
+        """ follow groups """
+        helperGroupBuffer = rigging.groupMeObject(helperObj)
+        helperGroup = NameFactory.doNameObject(helperGroupBuffer)
+        helperGroup = rigging.doParentReturnName(helperGroup,pair[0])
+        helperObjectGroups.append(helperGroup)
+        
+        """ set up constraints """
+        mc.aimConstraint(pair[1],helperGroup,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mainOrientHelperObj, worldUpType = 'objectrotation' )
+
+        """ lock and hide stuff """
+        helperObj = attributes.returnMessageObject(pair[0],'orientHelper')
+        mc.connectAttr((visAttr),(helperObj+'.v'))
+        attributes.doSetLockHideKeyableAttr(helperObj,True,False,False,['tx','ty','tz','ry','rz','sx','sy','sz','v'])
+    
+    #>>> For the last object in the chain
+    for obj in objects[-1:]:
+        """ Get Size """
+        size = (distance.returnBoundingBoxSizeToAverage(obj)*2)
+        
+        """ make the curve"""
+        createBuffer = curves.createControlCurve('circleArrow2Axis',size,'y-')
+        curves.setCurveColorByName(createBuffer,moduleColors[1])
+        """ copy the name attr"""
+        attributes.copyUserAttrs(obj,createBuffer,['cgmName'])
+        attributes.storeInfo(createBuffer,'cgmType','templateOrientObject')
+        helperObj = NameFactory.doNameObject(createBuffer)
+        
+        """ store the object to it's respective  object """
+        attributes.storeObjectToMessage (helperObj, obj, 'orientHelper')
+        
+        """ initial snapping """
+        position.movePointSnap(helperObj,obj)
+        constBuffer = mc.aimConstraint(objects[-2],helperObj,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
+        mc.delete (constBuffer[0])
+        
+        """ follow groups """
+        helperGroupBuffer = rigging.groupMeObject(helperObj)
+        helperGroup = NameFactory.doNameObject(helperGroupBuffer)
+        helperGroup = rigging.doParentReturnName(helperGroup,obj)
+        helperObjectGroups.append(helperGroup)
+        
+        """ set up constraints """
+        secondToLastHelperObject = attributes.returnMessageObject(objects[-2],'orientHelper')
+        mc.orientConstraint(secondToLastHelperObject,helperGroup,maintainOffset = False, weight = 1)
+        
+        """ lock and hide stuff """
+        helperObj = attributes.returnMessageObject(obj,'orientHelper')
+        mc.connectAttr((visAttr),(helperObj+'.v'))
+        attributes.doSetLockHideKeyableAttr(helperObj,True,False,False,['tx','ty','tz','sx','sy','sz','v'])
+        helperObjects.append(helperObj)
+   
+    
+    returnBuffer.append(helperObjects)
+    returnBuffer.append(helperObjectGroups)
+    return returnBuffer

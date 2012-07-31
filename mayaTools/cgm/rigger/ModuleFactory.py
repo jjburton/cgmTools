@@ -28,7 +28,8 @@ from cgm.lib import (modules,
 reload(modules)
 reload(rigging)
 
-InfoNullsNames = ['setupOptions',
+InfoNullsNames = ['settings',
+                  'setupOptions',
                   'templatePosObjects',
                   'visibilityOptions',
                   'templateControlObjects',
@@ -280,9 +281,13 @@ class ModuleFactory:
                 guiFactory.warning("'%s' has failed to initialize"%k)
        
         if self.infoNulls['setupOptions']:
-            self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].value )            
+            self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].get() )            
             self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles','int',initialValue=self.handles)
-
+        
+        if self.infoNulls['settings']:
+            self.optionAimAxis= AttrFactory(self.infoNulls['settings'].get(),'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=2) 
+            self.optionUpAxis= AttrFactory(self.infoNulls['settings'].get(),'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=1) 
+            self.optionOutAxis= AttrFactory(self.infoNulls['settings'].get(),'axisOut','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=0)                       
         return True
     
     def initializeModule(self):
@@ -350,6 +355,11 @@ class ModuleFactory:
         if self.infoNulls['setupOptions']:
             self.SetupOptionsNull = ObjectFactory( self.infoNulls['setupOptions'].value )            
             self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles',lock=True)
+            
+        if self.infoNulls['settings']:
+            self.optionAimAxis= AttrFactory(self.infoNulls['settings'].get(),'axisAim') 
+            self.optionUpAxis= AttrFactory(self.infoNulls['settings'].get(),'axisUp') 
+            self.optionOutAxis= AttrFactory(self.infoNulls['settings'].get(),'axisOut')   
             
         return True
     
@@ -421,7 +431,7 @@ class ModuleFactory:
         corePositionList = PuppetInstance.sizeCorePositionList[self.ModuleNull.nameBase]
         
         starterDataInfoNull = self.infoNulls['templateStarterData'].value #Get the infoNull
-        templateControlObjectsDataNull = self.infoNulls['templateControlObjects'].value
+        templateControlObjectsDataNull = self.infoNulls['templateControlObjectsData'].value
         
         modules.doPurgeNull( starterDataInfoNull ) # Purge the null
         
@@ -837,3 +847,20 @@ class ModuleFactory:
             generatedNames = settingsCoreNames
             
         return generatedNames
+    
+    def returnOverrideColors(self):
+        """ 
+        Generate core names for a module and return them
+        
+        RETURNS:
+        generatedNames(list)
+        """
+        direction = False
+        if self.ModuleNull.cgm['cgmDirection']:
+            direction = dictionary.validateDirection(self.ModuleNull.cgm['cgmDirection'])
+        
+        if not direction:
+            return modules.returnSettingsData('colorCenter',True)
+        else:
+            return modules.returnSettingsData(('color'+direction.capitalize()),True)    
+        

@@ -14,8 +14,10 @@ Key:
 import maya.cmds as mc
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes.AttrFactory import *
+from cgm.lib.classes.BufferFactory import *
 
 from cgm.rigger.lib.Limb import template
+reload(template)
 
 from cgm.rigger.ModuleFactory import *
 
@@ -246,235 +248,241 @@ class Limb(ModuleFactory):
 
 
 
-    def makeLimbTemplate (self):
-        #>>>Curve degree finder
-        if self.optionCurveDegree.value == 0:
-            doCurveDegree = 1
-        else:
-            if len(corePositionList) <= 3:
-                doCurveDegree = 1
-            else:
-                doCurveDegree = len(corePositionList) - 1
-        
-        returnList = []
-        templObjNameList = []
-        templHandleList = []
-        
-        moduleColors = modules.returnModuleColors(self.ModuleNull.nameShort)
-        
-        #>>>Scale stuff
-        moduleParent = attributes.returnMessageObject(self.ModuleNull.nameShort,'moduleParent')
-        if moduleParent == PuppetInstance.PuppetNull.nameShort:
-            length = (distance.returnDistanceBetweenPoints (corePositionList[0],corePositionList[-1]))
-            size = length / len(coreNamesAttrs)
-        else:
-            parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
-            parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
-            parentTemplateObjects = []
-            for key in parentTemplatePosObjectsInfoData.keys():
-                if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
-                    if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
-                        parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
-            createBuffer = curves.createControlCurve('sphere',1)
-            pos = corePositionList[0]
-            mc.move (pos[0], pos[1], pos[2], createBuffer, a=True)
-            closestParentObject = distance.returnClosestObject(createBuffer,parentTemplateObjects)
-            boundingBoxSize = distance.returnBoundingBoxSize (closestParentObject)
-            maxSize = max(boundingBoxSize)
-            size = maxSize *.25
-            mc.delete(createBuffer)
-            if partType == 'clavicle':
-                size = size * .5
-            elif partType == 'head':
-                size = size * .75
-            if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
-                size = size * 2
-            
-        cnt = 0
-        lastCountSizeMatch = len(corePositionList) -1
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Making the template objects
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        for pos in corePositionList:
-            if cnt == 0:
-                sizeMultiplier = 1
-            elif cnt == lastCountSizeMatch:
-                sizeMultiplier = .8
-            else:
-                sizeMultiplier = .5
-            """make a sphere and move it"""
-            createBuffer = curves.createControlCurve('sphere',(size * sizeMultiplier))
-            curves.setCurveColorByName(createBuffer,moduleColors[0])
-            attributes.storeInfo(createBuffer,'cgmName',coreNamesAttrs[cnt])
-            if direction != None:
-                attributes.storeInfo(createBuffer,'cgmDirection',direction)
-            attributes.storeInfo(createBuffer,'cgmType','templateObject')
-            tmpObjName = NameFactory.doNameObject(createBuffer)
-            mc.move (pos[0], pos[1], pos[2], [tmpObjName], a=True)
-                        
-            """adds it to the list"""
-            templObjNameList.append (tmpObjName)
-            templHandleList.append (tmpObjName)  
-            """ replaces the message node locator objects with the new template ones """  
-            attributes.storeObjectToMessage (tmpObjName, templatePosObjectsInfoNull, NameFactory.returnUniqueGeneratedName(tmpObjName,ignore='cgmType'))  
-            
-            cnt +=1
-
-        """Makes our curve"""    
-        crvName = mc.curve (d=doCurveDegree, p = corePositionList , os=True, n=('%s%s%s' %(partName,'_',(typesDictionary.get('templateCurve')))))            
-        if direction != None:
-                attributes.storeInfo(crvName,'cgmDirection',direction)
-        attributes.storeInfo(crvName,'cgmType','templateCurve')
-        curves.setCurveColorByName(crvName,moduleColors[1])
-        curveLocs = []
-        
-        cnt = 0
-        for obj in templObjNameList:
-            pointLoc = locators.locMeObject (obj)
-            attributes.storeInfo(pointLoc,'cgmName',templObjNameList[cnt])
-            if direction != None:
-                attributes.storeInfo(pointLoc,'cgmDirection',direction)
-            mc.setAttr ((pointLoc+'.visibility'),0)
-            mc.parentConstraint ([obj],[pointLoc],mo=False)
-            mc.connectAttr ( (pointLoc+'.translate') , ('%s%s%i%s' % (crvName, '.controlPoints[', cnt, ']')), f=True )
-            curveLocs.append (pointLoc)
-            cnt+=1
-        
-        #>>> Direction and size Stuff
-        
-        """ Directional data derived from joints """
-        generalDirection = locators.returnHorizontalOrVertical(templObjNameList)
-        if generalDirection == 'vertical' and 'leg' not in partType:
-            worldUpVector = [0,0,-1]
-        elif generalDirection == 'vertical' and 'leg' in partType:
-            worldUpVector = [0,0,1]
-        else:
-            worldUpVector = [0,1,0]
-        
-        """ Create root control"""
-        self.ModuleNull.nameShortData = attributes.returnUserAttrsToDict(self.ModuleNull.nameShort)
-        templateNull = self.ModuleNull.nameShortData.get('templateNull')
-        
-        rootSize = (distance.returnBoundingBoxSizeToAverage(templObjNameList[0])*1.5)
-        createBuffer = curves.createControlCurve('cube',rootSize)
-        curves.setCurveColorByName(createBuffer,moduleColors[0])
-        
-        if partType == 'clavicle' or partType == 'clavicle':
-            position.movePointSnap(createBuffer,templObjNameList[0])
-        else:
-            position.movePointSnap(createBuffer,templObjNameList[0])
-        constBuffer = mc.aimConstraint(templObjNameList[-1],createBuffer,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
-        mc.delete (constBuffer[0])
-        attributes.storeInfo(createBuffer,'cgmType','templateRoot')
-        if direction != None:
-            attributes.storeInfo(createBuffer,'cgmDirection',direction)
-        rootCtrl = NameFactory.doNameObject(createBuffer)
-        
-        rootGroup = rigging.groupMeObject(rootCtrl)
-        rootGroup = rigging.doParentReturnName(rootGroup,templateNull)
-        
-        templObjNameList.append (crvName)
-        templObjNameList += curveLocs
-        
-        """ replaces the message node locator objects with the new template ones """                          
-        attributes.storeObjectToMessage (crvName, templatePosObjectsInfoNull, 'curve')
-        attributes.storeObjectToMessage (rootCtrl, templatePosObjectsInfoNull, 'root')  
-        
-        """Get our modules group, parents our part null there and connects it to the info null"""
-        modulesGroup = attributes.returnMessageObject(PuppetInstance.PuppetNull.nameShort,'modulesGroup')
-        modulesInfoNull = modules.returnInfoTypeNull(PuppetInstance.PuppetNull.nameShort,'modules')
-        
-        attributes.storeObjectToMessage (self.ModuleNull.nameShort, modulesInfoNull, (NameFactory.returnUniqueGeneratedName(self.ModuleNull.nameShort,ignore='cgmType')))
-        
-        """ parenting of the modules group if necessary"""
-        self.ModuleNull.nameShortBuffer = rigging.doParentReturnName(self.ModuleNull.nameShort,modulesGroup)
-        if self.ModuleNull.nameShortBuffer == False:
-            self.ModuleNull.nameShort = self.ModuleNull.nameShort
-        else:
-            self.ModuleNull.nameShort = self.ModuleNull.nameShortBuffer
-
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        #>> Orientation helpers
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        """ Make our Orientation Helpers """
-        orientHelpersReturn = addOrientationHelpers(templHandleList,rootCtrl,self.ModuleNull.nameShort,partType,(templateNull+'.visOrientHelpers'))
-        masterOrient = orientHelpersReturn[0]
-        orientObjects = orientHelpersReturn[1]
-        
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        #>> Control helpers
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        print orientObjects
-        print self.ModuleNull.nameShort
-        print (templateNull+'.visControlHelpers')
-        controlHelpersReturn = addControlHelpers(orientObjects,self.ModuleNull.nameShort,(templateNull+'.visControlHelpers'))
-
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        #>> Input the saved values if there are any
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        """ Orientation Helpers """
-        rotBuffer = coreRotationList[-1]
-        #actualName = mc.spaceLocator (n= wantedName)
-        rotCheck = sum(rotBuffer)
-        if rotCheck != 0:
-            mc.rotate(rotBuffer[0],rotBuffer[1],rotBuffer[2],masterOrient,os=True)
-        
-        cnt = 0
-        for obj in orientObjects:
-            rotBuffer = coreRotationList[cnt]
-            rotCheck = sum(rotBuffer)
-            if rotCheck != 0:
-                mc.rotate(rotBuffer[0],rotBuffer[1],rotBuffer[2],obj,os=True)
-            cnt +=1 
-                
-        """ Control Helpers """
-        controlHelpers = controlHelpersReturn[0]
-        cnt = 0
-        for obj in controlHelpers:
-            posBuffer = controlPositionList[cnt]
-            posCheck = sum(posBuffer)
-            if posCheck != 0:
-                mc.xform(obj,t=[posBuffer[0],posBuffer[1],posBuffer[2]],ws=True)
-            
-            rotBuffer = controlRotationList[cnt]
-            rotCheck = sum(rotBuffer)
-            if rotCheck != 0:
-                mc.rotate(rotBuffer[0],rotBuffer[1],rotBuffer[2],obj,ws=True)
-            
-            scaleBuffer = controlScaleList[cnt]
-            scaleCheck = sum(scaleBuffer)
-            if scaleCheck != 0:
-                mc.scale(scaleBuffer[0],scaleBuffer[1],scaleBuffer[2],obj,absolute=True)
-            cnt +=1 
-        
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        #>> Final stuff
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        returnList.append(templObjNameList)
-        returnList.append(templHandleList)
-        returnList.append(rootCtrl)
-        return returnList	
-
-
     def doTemplate(self,PuppetInstance):       
         """
         
         """
+        def makeLimbTemplate (self):
+            #>>>Curve degree finder
+            if self.optionCurveDegree.get() == 0:
+                doCurveDegree = 1
+            else:
+                if len(corePositionList) <= 3:
+                    doCurveDegree = 1
+                else:
+                    doCurveDegree = len(corePositionList) - 1
+            
+            returnList = []
+            templObjNameList = []
+            templHandleList = []
+            
+            moduleColors = modules.returnModuleColors(self.ModuleNull.nameShort)
+            
+            #>>>Scale stuff
+            moduleParent = self.afModuleParent.get()
+            
+            if not moduleParent:
+                length = (distance.returnDistanceBetweenPoints (corePositionList[0],corePositionList[-1]))
+                size = length / self.optionHandles.get()
+            else:
+                #>>>>>>>>>>>>>>>>>>>>> NOT TOUCHED YET
+                parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
+                parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
+                parentTemplateObjects = []
+                for key in parentTemplatePosObjectsInfoData.keys():
+                    if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
+                        if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
+                            parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
+                createBuffer = curves.createControlCurve('sphere',1)
+                pos = corePositionList[0]
+                mc.move (pos[0], pos[1], pos[2], createBuffer, a=True)
+                closestParentObject = distance.returnClosestObject(createBuffer,parentTemplateObjects)
+                boundingBoxSize = distance.returnBoundingBoxSize (closestParentObject)
+                maxSize = max(boundingBoxSize)
+                size = maxSize *.25
+                mc.delete(createBuffer)
+                if partType == 'clavicle':
+                    size = size * .5
+                elif partType == 'head':
+                    size = size * .75
+                if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
+                    size = size * 2
+        
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Making the template objects
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            self.TemplateObject = {}
+            
+            self.templatePosObjectsBuffer = BufferFactory(self.infoNulls['templatePosObjects'].get())
+            self.templatePosObjectsBuffer.purge()
+            
+            for cnt,pos in enumerate(corePositionList):
+                #Size multiplier based on PuppetMode, make it take into account module mode eventually
+                if PuppetInstance.optionPuppetMode.get() == 0:
+                    if cnt == 0:
+                        sizeMultiplier = 1
+                    elif cnt == len(corePositionList) -1:
+                        sizeMultiplier = .8
+                    else:
+                        sizeMultiplier = .5
+                else:
+                    sizeMultiplier = 1
+                    
+                #make a sphere and move it
+                createBuffer = curves.createControlCurve('sphere',(size * sizeMultiplier))
+                self.TemplateObject[cnt] = ObjectFactory(createBuffer) # Instance the control to our module
+                obj = self.TemplateObject[cnt]
+                curves.setCurveColorByName(obj.nameLong,moduleColors[0])
+                obj.store('cgmName',coreNames[cnt])
+                
+                obj.getNameTagsFromObject(self.ModuleNull.nameLong,['cgmName','cgmType'])
+
+                obj.store('cgmType','templateObject')
+                obj.doName()
+                mc.move (pos[0], pos[1], pos[2], [obj.nameLong], a=True)
+                            
+                #adds it to the list
+                templObjNameList.append (obj.nameLong)
+                templHandleList.append (obj.nameLong)  
+                self.templatePosObjectsBuffer.store(obj.nameLong)
+            
+            
+            # Makes our curve    
+            crvName = mc.curve (d=doCurveDegree, p = corePositionList , os=True, n=('%s_%s' %(partName,(typesDictionary.get('templateCurve')))))            
+            self.afTemplateCurve = AttrFactory(self.infoNulls['templatePosObjects'].get(), 'curve','message', value=crvName)
+            
+            curve = ObjectFactory(crvName)
+            curve.getNameTagsFromObject(self.ModuleNull.nameLong,['cgmType'])
+
+            attributes.storeInfo(crvName,'cgmType','templateCurve')
+            curves.setCurveColorByName(crvName,moduleColors[1])
+            curveLocs = []
+            return
+            for cnt,obj in enumerate(templObjNameList):
+                pointLoc = locators.locMeObject(obj)
+                loc = ObjectFactory(pointLoc)
+                loc.store('cgmName',templObjNameList[cnt])
+                loc.getNameTagsFromObject(obj,['cgmType'])
+                mc.setAttr ((loc.nameShort+'.visibility'),0)
+                mc.parentConstraint ([obj],[loc.nameShort],mo=False)
+                mc.connectAttr ( (loc.nameShort+'.translate') , ('%s.controlPoints[%i]' % (crvName, cnt)), f=True )
+                curveLocs.append (pointLoc)
+            
+            #>>> Direction and size Stuff
+            
+            # Directional data derived from joints 
+            generalDirection = logic.returnHorizontalOrVertical(templObjNameList)
+            if generalDirection == 'vertical' and 'leg' not in self.afModuleType.get():
+                worldUpVector = [0,0,-1]
+            elif generalDirection == 'vertical' and 'leg' in self.afModuleType.get():
+                worldUpVector = [0,0,1]
+            else:
+                worldUpVector = [0,1,0]
+            
+            # Create root control
+            templateNull = self.afTemplateNull.get()
+            
+            rootSize = (distance.returnBoundingBoxSizeToAverage(templObjNameList[0])*1.5)
+            rootCtrl = ObjectFactory(curves.createControlCurve('cube',rootSize))
+            rootCtrl.getNameTagsFromObject(self.ModuleNull.nameLong)
+            self.msgTemplateRoot = AttrFactory(self.infoNulls['templatePosObjects'].get(), 'root', 'message', value = rootCtrl.nameLong)
+            curves.setCurveColorByName(rootCtrl.nameLong,moduleColors[0])
+            
+            if self.afModuleType.get() == 'clavicle':
+                position.movePointSnap(rootCtrl.nameLong,templObjNameList[0])
+            else:
+                position.movePointSnap(rootCtrl.nameLong,templObjNameList[0])
+                
+            constBuffer = mc.aimConstraint(templObjNameList[-1],rootCtrl.nameLong,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
+            mc.delete (constBuffer[0])
+            rootCtrl.store('cgmType','templateRoot')
+            
+            #>>>>>>>>>>>>>>>>>>>>>>> add tag copying
+            
+            rootCtrl.doName()
+            
+            rootGroup = rootCtrl.doGroup()
+            rootGroup = rigging.doParentReturnName(rootGroup,templateNull)
+            
+            templObjNameList.append (crvName)
+            templObjNameList += curveLocs
+            
+            return
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            #>> Orientation helpers
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            # Make our Orientation Helpers 
+            orientHelpersReturn = template.addOrientationHelpers(self)
+            masterOrient = orientHelpersReturn[0]
+            orientObjects = orientHelpersReturn[1]
+            
+            
+        
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            #>> Control helpers
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            print orientObjects
+            print self.ModuleNull.nameShort
+            print (templateNull+'.visControlHelpers')
+            controlHelpersReturn = addControlHelpers(orientObjects,self.ModuleNull.nameShort,(templateNull+'.visControlHelpers'))
+    
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            #>> Input the saved values if there are any
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            # Orientation Helpers 
+            rotBuffer = coreRotationList[-1]
+            #actualName = mc.spaceLocator (n= wantedName)
+            rotCheck = sum(rotBuffer)
+            if rotCheck != 0:
+                mc.rotate(rotBuffer[0],rotBuffer[1],rotBuffer[2],masterOrient,os=True)
+            
+            cnt = 0
+            for obj in orientObjects:
+                rotBuffer = coreRotationList[cnt]
+                rotCheck = sum(rotBuffer)
+                if rotCheck != 0:
+                    mc.rotate(rotBuffer[0],rotBuffer[1],rotBuffer[2],obj,os=True)
+                cnt +=1 
+                    
+            # Control Helpers 
+            controlHelpers = controlHelpersReturn[0]
+            cnt = 0
+            for obj in controlHelpers:
+                posBuffer = controlPositionList[cnt]
+                posCheck = sum(posBuffer)
+                if posCheck != 0:
+                    mc.xform(obj,t=[posBuffer[0],posBuffer[1],posBuffer[2]],ws=True)
+                
+                rotBuffer = controlRotationList[cnt]
+                rotCheck = sum(rotBuffer)
+                if rotCheck != 0:
+                    mc.rotate(rotBuffer[0],rotBuffer[1],rotBuffer[2],obj,ws=True)
+                
+                scaleBuffer = controlScaleList[cnt]
+                scaleCheck = sum(scaleBuffer)
+                if scaleCheck != 0:
+                    mc.scale(scaleBuffer[0],scaleBuffer[1],scaleBuffer[2],obj,absolute=True)
+                cnt +=1 
+            
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            #>> Final stuff
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            returnList.append(templObjNameList)
+            returnList.append(templHandleList)
+            returnList.append(rootCtrl)
+            return returnList	
+
+
 
         # Start objects stuff 
+        partName = NameFactory.returnRawGeneratedName(self.ModuleNull.nameShort,ignore=['cgmType','cgmTypeModifier'])
         templateStarterDataInfoNull = self.infoNulls['templateStarterData'].value
         initialObjectsPosData = mc.listAttr(templateStarterDataInfoNull,userDefined=True)
-        corePositionList = {}
-        coreRotationList = {}
+        corePositionList = []
+        coreRotationList = []
+        corePositionDict = {}
+        coreRotationDict = {}        
         for a in initialObjectsPosData:
             buffer = attributes.doGetAttr(templateStarterDataInfoNull,a)                            
             if 'cgm' not in a and type(buffer) is list:
                 if 'pos' in a:
                     split = a.split('pos_')
-                    corePositionList[int(split[1])] =  buffer[0] 
+                    corePositionDict[int(split[1])] =  buffer[0]
+                    corePositionList.append(buffer[0])
                 elif 'rot' in a:
                     split = a.split('rot_')
-                    coreRotationList[int(split[1])] =  buffer[0] 
+                    coreRotationDict[int(split[1])] =  buffer[0] 
+                    coreRotationList.append(buffer[0])
    
         print corePositionList
         print coreRotationList
@@ -482,22 +490,29 @@ class Limb(ModuleFactory):
         # template control objects stuff #
         templateControlObjectsDataNull = self.infoNulls['templateControlObjects'].value
         templateControlObjectsData = mc.listAttr(templateControlObjectsDataNull,userDefined=True)
-        controlPositionList = {}
-        controlRotationList = {}
-        controlScaleList = {}
+        controlPositionList = []
+        controlRotationList = []
+        controlScaleList = []
+        controlPositionDict = {}
+        controlRotationDict = {}
+        controlScaleDict = {}
         
         for a in templateControlObjectsData:
             buffer = attributes.doGetAttr(templateControlObjectsDataNull,a)                            
             if 'cgm' not in a and type(buffer) is list:
                 if 'pos' in a:
                     split = a.split('pos_')
-                    controlPositionList[int(split[1])] =  buffer[0] 
+                    controlPositionDict[int(split[1])] =  buffer[0] 
+                    controlPositionList.append(buffer[0])                    
                 elif 'rot' in a:
                     split = a.split('rot_')
-                    controlRotationList[int(split[1])] =  buffer[0]         
+                    controlRotationDict[int(split[1])] =  buffer[0] 
+                    controlRotationList.append(buffer[0])
                 elif 'scale' in a:
                     split = a.split('scale_')
-                    controlScaleList[int(split[1])] =  buffer[0]          
+                    controlScaleDict[int(split[1])] =  buffer[0]   
+                    controlScaleList.append(buffer[0])
+                    
                   
         print controlPositionList
         print controlRotationList
@@ -523,6 +538,7 @@ class Limb(ModuleFactory):
         #makes template objects#
         templateObjects = makeLimbTemplate(self)
         print 'Template Limb made....'
+        
         return
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         #>> Parent objects
