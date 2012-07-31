@@ -46,6 +46,8 @@ settingsDictionaryFile = settings.getSettingsDictionaryFile()
 """
 Orienation and Vectors
 """
+axisDirectionsByString = ['x+','y+','z+','x-','y-','z-'] #Used for several menus and what not
+
 stringToVectorDict = {'x+':[1,0,0],
                       'x-':[-1,0,0],
                       'y+':[0,1,0],
@@ -226,6 +228,23 @@ def returnDictionarySortedToList (dictToSort,sortByValues=True):
     """   
     return sorted(dictToSort.iteritems(), key=operator.itemgetter(sortByValues))    
 
-        
-    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Direction stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
+directionsDict = {'left':['l','left','lft','lf'],
+                  'right':['r','right','rght','rt']}    
 
+def validateDirection(direction):
+    """ 
+    Returns direction an direction is valid or not
+    
+    Keyword arguments:
+    attrType(string)        
+    """          
+    dType = False
+    for option in directionsDict.keys():
+        if direction.lower() in directionsDict.get(option): 
+            dType = option
+            break
+        
+    return dType
