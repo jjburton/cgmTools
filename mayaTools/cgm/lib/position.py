@@ -31,6 +31,7 @@ import cgm
 import cgm.lib
 
 from cgm.lib import (distance,
+                     dictionary,
                      lists)
 
 def layoutByColumns(objectList,columnNumber=3,startPos = [0,0,0]):
@@ -211,3 +212,28 @@ def moveAimSnap(obj,target,aimTarget,vector):
     movePointSnap (obj,target)
     aimSnap (obj,aimTarget,vector)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+
+def moveAimObjects(objList,objAim,objUp,worldUp,**kw):
+    """
+    """
+    worldUpType = kw.pop('worldUpType','vector')
+
+    assert len(objList) >= 2,"moveAimObjects should only be used on lists of objects more than two items"
+    assert objAim in dictionary.stringToVectorDict.keys(),"invalid objAim argument"
+    assert objUp in dictionary.stringToVectorDict.keys(),"invalid objUp argument"
+    assert worldUp in dictionary.stringToVectorDict.keys(),"invalid worldUp argument"
+    
+    pairList = lists.parseListToPairs(objList)
+    
+    for pair in pairList:       
+        #>>> Set up constraints 
+        constraintBuffer = mc.aimConstraint(pair[1],pair[0],maintainOffset = False, weight = 1,
+	                                    aimVector = dictionary.stringToVectorDict[objAim],
+	                                    upVector = dictionary.stringToVectorDict[objUp],
+	                                    worldUpVector = dictionary.stringToVectorDict[worldUp],worldUpType=worldUpType,**kw)
+	mc.delete(constraintBuffer)
+
+    #>>> For the last object in the chain
+    for obj in objList[-1:]:
+        constraintBuffer = mc.orientConstraint(objList[-2],obj,maintainOffset = False, weight = 1)
+	mc.delete(constraintBuffer)
