@@ -62,13 +62,30 @@ vectorToStringDict = {'[1,0,0]':'x+',
                       '[0,0,1]':'z+',
                       '[0,0,-1]':'z-'}
 
+def validateDirectionVector(direction):
+    """ 
+    Returns a valid direction vector
+    
+    Arguments:
+    direction(string/list)        
+    """
+    if type(direction) is list:
+        for option in stringToVectorDict.keys():
+            if direction == stringToVectorDict[option]: 
+                return stringToVectorDict[option]
+    else:
+        for option in stringToVectorDict.keys():
+            if direction.lower() == option: 
+                return stringToVectorDict[option]
+    
+    return False
+    
 
 def returnStringToVectors(direction):
     if direction in stringToVectorDict.keys():
         return stringToVectorDict.get(direction)
     else:
         return False
-
 
 
 def returnVectorToString(vector):
@@ -192,6 +209,7 @@ def initializeDictionaryScott(file):
             
             dictionary[key.strip()] = value
     return dictionary
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnDictionaryListToList(dictionaryFile,key):
     """ 
@@ -234,7 +252,7 @@ def returnDictionarySortedToList (dictToSort,sortByValues=True):
 directionsDict = {'left':['l','left','lft','lf'],
                   'right':['r','right','rght','rt']}    
 
-def validateDirection(direction):
+def validateStringDirection(direction):
     """ 
     Returns direction an direction is valid or not
     
