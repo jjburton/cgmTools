@@ -29,9 +29,45 @@ from cgm.lib import cgmMath
 from cgm.lib import search
 from cgm.lib import guiFactory
 
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Constraint Info
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnNormalizedWeightsByDistance(obj,targets):
+    """
+    Returns a normalized weight set based on distance from object to targets
+    
+    ARGUMENTS:
+    obj(string)--
+    targets(string)--
+    
+    RETURNS:
+    weights(list)--
+    """
+    weights = []
+    distances = []
+    distanceObjDict = {}
+    objDistanceDict = {}
+    
+    for t in targets:
+        buffer = distance.returnDistanceBetweenObjects(obj,t) # get the distance
+        distances.append(buffer)
+        distanceObjDict[buffer] = t
+        objDistanceDict[t] = buffer
+        
+    normalizedDistances = cgmMath.normList(distances) # get normalized distances to 1
+    distances.sort() #sort our distances
+    normalizedDistances.sort() # sort the normalized list (should match the distance sort)
+    normalizedDistances.reverse() # reverse the sort for weight values    
+    
+    for i,t in enumerate(targets):
+        d = objDistanceDict[t] 
+        index = distances.index(d)
+        weights.append( normalizedDistances[index] )
+    
+    return weights
+    
+
 def parent(*a, **kw):
     buffer = mc.parentConstraint(*a, **kw)
     if buffer:
@@ -274,16 +310,10 @@ def doParentConstraintObjectGroup(targets,object,mode=0):
     objGroup = rigging.groupMeObject(object,True)
     constraint = mc.parentConstraint (targets,objGroup, maintainOffset=True)
     if mode == 1:
-        distances = []
-        for target in targets:
-            distances.append(distance.returnDistanceBetweenObjects(target,objGroup))
-        normalizedDistances = cgmMath.normList(distances)
+        weights = returnNormalizedWeightsByDistance(object,targets)
         targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True)
-        
-        cnt=1
-        for value in normalizedDistances:
+        for cnt,value in enumerate(weights):
             mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )
-            cnt-=1
     return objGroup
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
