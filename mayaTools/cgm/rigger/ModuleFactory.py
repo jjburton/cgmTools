@@ -41,6 +41,7 @@ InfoNullsNames = ['settings',
 
 cvDict = {'left':3,'right':7,'bottom':5,'top':0, 'left_front':4, 'right_front':6, 'left_back':2,'right_back':8,'None':0}
 
+moduleStates = ['size','template','joint','rig']
 
 initLists = []
 initDicts = ['infoNulls','parentTagDict']
@@ -195,7 +196,7 @@ class ModuleFactory:
             self.ModuleNull = ObjectFactory(mc.group(empty=True))
             
         #Initialize the module parent attr
-        self.afModuleParent = AttrFactory(self.ModuleNull,'moduleParent','message',self.moduleParent)
+        self.msgModuleParent = AttrFactory(self.ModuleNull,'moduleParent','message',self.moduleParent)
 
         #Naming stuff           
         self.ModuleNull.store('cgmName',self.nameBase,True)   
@@ -207,31 +208,29 @@ class ModuleFactory:
             if self.callTags.get(k):
                 self.ModuleNull.store(k,self.callTags.get(k),True)
             elif k in self.parentTagDict.keys():
-                self.ModuleNull.store(k,'%s.%s'%(self.afModuleParent.value,k))                    
+                self.ModuleNull.store(k,'%s.%s'%(self.msgModuleParent.value,k))                    
             
         self.ModuleNull.doName(True)
         mc.xform (self.ModuleNull.nameShort, os=True, piv= (0,0,0)) 
         
-        self.afSizeState = AttrFactory(self.ModuleNull,'sizeState','bool',initialValue=0,lock=True)
-        self.afTemplateState = AttrFactory(self.ModuleNull,'templateState','bool',initialValue=0,lock=True)
-        self.afRigState = AttrFactory(self.ModuleNull,'rigState','bool',initialValue=0,lock=True)
-        self.afSkeletonState = AttrFactory(self.ModuleNull,'skeletonState','bool',initialValue=0,lock=True)
-        
+        for flag in moduleStates:
+            self.__dict__["af%sState"%flag.capitalize()] = AttrFactory(self.ModuleNull,'%sState'%flag,'bool',initialValue=0,lock=True)
+
         attributes.doSetLockHideKeyableAttr(self.ModuleNull.nameShort,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
     
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Main Nulls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>         
-        self.afRigNull = AttrFactory(self.ModuleNull,'rigNull','message')
-        self.afTemplateNull = AttrFactory(self.ModuleNull,'templateNull','message')
-        self.afInfoNull = AttrFactory(self.ModuleNull,'info','message')
+        self.msgRigNull = AttrFactory(self.ModuleNull,'rigNull','message')
+        self.msgTemplateNull = AttrFactory(self.ModuleNull,'templateNull','message')
+        self.msgInfoNull = AttrFactory(self.ModuleNull,'info','message')
         
-        nullAttributes = [self.afRigNull, self.afTemplateNull, self.afInfoNull]
+        nullAttributes = [self.msgRigNull, self.msgTemplateNull, self.msgInfoNull]
         nullInstances = ['RigNull', 'TemplateNull', 'InfoNull']
         
         for i,null in enumerate(nullAttributes):
             created = False
-            if not null.value:
+            if not null.get():
                 #If there's nothing connected to our message, we're gonna make our null
                 guiFactory.report("'%s' not found. Creating"%null.attr)
                 self.__dict__[ nullInstances[i] ] = ObjectFactory(mc.group(empty=True))
@@ -270,7 +269,7 @@ class ModuleFactory:
                 
             if self.infoNulls[k].value:  
                 attributes.doSetLockHideKeyableAttr(self.infoNulls[k].value)                
-                if rigging.doParentReturnName( self.infoNulls[k].value,self.afInfoNull.value):
+                if rigging.doParentReturnName( self.infoNulls[k].value,self.msgInfoNull.value):
                     buffer = NameFactory.doNameObject(self.infoNulls[k].value)
                     if buffer != self.infoNulls[k].value:
                         self.infoNulls[k].doStore(buffer)
@@ -285,9 +284,9 @@ class ModuleFactory:
             self.optionHandles = AttrFactory(self.SetupOptionsNull,'handles','int',initialValue=self.handles)
         
         if self.infoNulls['settings']:
-            self.optionAimAxis= AttrFactory(self.infoNulls['settings'].get(),'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=2) 
-            self.optionUpAxis= AttrFactory(self.infoNulls['settings'].get(),'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=1) 
-            self.optionOutAxis= AttrFactory(self.infoNulls['settings'].get(),'axisOut','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=0)                       
+            self.optionAimAxis = AttrFactory(self.infoNulls['settings'].get(),'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=2) 
+            self.optionUpAxis = AttrFactory(self.infoNulls['settings'].get(),'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=1) 
+            self.optionOutAxis = AttrFactory(self.infoNulls['settings'].get(),'axisOut','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=0)                       
         return True
     
     def initializeModule(self):
@@ -304,7 +303,7 @@ class ModuleFactory:
         self.nameBase = search.returnTagInfo(self.ModuleNull.nameShort,'cgmName')
             
         #Initialize the module parent attr
-        self.afModuleParent = AttrFactory(self.ModuleNull,'moduleParent')
+        self.msgModuleParent = AttrFactory(self.ModuleNull,'moduleParent')
         self.afModuleType = AttrFactory(self.ModuleNull,'moduleType')
 
         #Verfiy vital attributes on module Null
@@ -312,21 +311,19 @@ class ModuleFactory:
             if not mc.objExists("%s.%s"%(self.ModuleNull.nameShort,a)):
                 guiFactory("'%s.%s' missing. Initialization Aborted!"%(self.ModuleNull.nameShort,a))
                 return False      
-            
-        self.afSizeState = AttrFactory(self.ModuleNull,'sizeState')       
-        self.afTemplateState = AttrFactory(self.ModuleNull,'templateState')
-        self.afRigState = AttrFactory(self.ModuleNull,'rigState')
-        self.afSkeletonState = AttrFactory(self.ModuleNull,'skeletonState')
-            
+        
+        for flag in moduleStates:
+            self.__dict__["af%sState"%flag.capitalize()] = AttrFactory(self.ModuleNull,'%sState'%flag)
+          
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Main Nulls
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>         
-        self.afRigNull = AttrFactory(self.ModuleNull,'rigNull')
-        self.afTemplateNull = AttrFactory(self.ModuleNull,'templateNull')
-        self.afInfoNull = AttrFactory(self.ModuleNull,'info')
+        self.msgRigNull = AttrFactory(self.ModuleNull,'rigNull')
+        self.msgTemplateNull = AttrFactory(self.ModuleNull,'templateNull')
+        self.msgInfoNull = AttrFactory(self.ModuleNull,'info')
         
-        nullAttributes = [self.afRigNull, self.afTemplateNull, self.afInfoNull]
+        nullAttributes = [self.msgRigNull, self.msgTemplateNull, self.msgInfoNull]
         nullInstances = ['RigNull', 'TemplateNull', 'InfoNull']  
         
         for i,null in enumerate(nullAttributes):
@@ -366,9 +363,9 @@ class ModuleFactory:
     def setParentModule(self,moduleParent):
         assert mc.objExists(moduleParent),"'%s' doesn't exists! Can't be module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort)
         if search.returnTagInfo(moduleParent,'cgmType') == 'module':
-            if self.afModuleParent.value != moduleParent:
+            if self.msgModuleParent.value != moduleParent:
                 self.moduleParent = moduleParent
-                self.afModuleParent = AttrFactory(self.ModuleNull,'moduleParent','message',self.moduleParent)
+                self.msgModuleParent = AttrFactory(self.ModuleNull,'moduleParent','message',self.moduleParent)
                 guiFactory.repport("'%s' is not the module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort))
             else:
                 guiFactory.warning("'%s' already this module's parent. Moving on..."%moduleParent)                
@@ -857,7 +854,7 @@ class ModuleFactory:
         """
         direction = False
         if self.ModuleNull.cgm['cgmDirection']:
-            direction = dictionary.validateDirection(self.ModuleNull.cgm['cgmDirection'])
+            direction = dictionary.validateStringDirection(self.ModuleNull.cgm['cgmDirection'])
         
         if not direction:
             return modules.returnSettingsData('colorCenter',True)

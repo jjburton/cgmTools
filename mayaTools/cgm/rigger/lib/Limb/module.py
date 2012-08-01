@@ -14,6 +14,8 @@ Key:
 import maya.cmds as mc
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes.AttrFactory import *
+from cgm.lib.classes import BufferFactory 
+reload(BufferFactory)
 from cgm.lib.classes.BufferFactory import *
 
 from cgm.rigger.lib.Limb import template
@@ -245,9 +247,6 @@ class Limb(ModuleFactory):
                     horizontalLegInfoBuffer = horiztonalLegDict.get(directionKey)
                     locInfoBuffer[m] = createStartingPositionLoc(m,modeDict.get(self.afModuleTyp.value),horizontalLegInfoBuffer[1],horizontalLegInfoBuffer[2],horizontalLegInfoBuffer[0])
         
-
-
-
     def doTemplate(self,PuppetInstance):       
         """
         
@@ -261,15 +260,22 @@ class Limb(ModuleFactory):
                     doCurveDegree = 1
                 else:
                     doCurveDegree = len(corePositionList) - 1
+                    
+            #Make some storage vehicles
+            self.templatePosObjectsBuffer = BufferFactory(self.infoNulls['templatePosObjects'].get())
+            self.templatePosObjectsBuffer.purge()
+            
+            LocatorCatcher = ObjectFactory('')
+            LocatorBuffer = BufferFactory(LocatorCatcher.nameLong)
+            LocatorBuffer.purge()
             
             returnList = []
-            templObjNameList = []
-            templHandleList = []
+            self.templHandleList = []
             
             moduleColors = modules.returnModuleColors(self.ModuleNull.nameShort)
             
             #>>>Scale stuff
-            moduleParent = self.afModuleParent.get()
+            moduleParent = self.msgModuleParent.get()
             
             if not moduleParent:
                 length = (distance.returnDistanceBetweenPoints (corePositionList[0],corePositionList[-1]))
@@ -303,9 +309,7 @@ class Limb(ModuleFactory):
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             self.TemplateObject = {}
             
-            self.templatePosObjectsBuffer = BufferFactory(self.infoNulls['templatePosObjects'].get())
-            self.templatePosObjectsBuffer.purge()
-            
+            #>>> Template objects
             for cnt,pos in enumerate(corePositionList):
                 #Size multiplier based on PuppetMode, make it take into account module mode eventually
                 if PuppetInstance.optionPuppetMode.get() == 0:
@@ -332,80 +336,92 @@ class Limb(ModuleFactory):
                 mc.move (pos[0], pos[1], pos[2], [obj.nameLong], a=True)
                             
                 #adds it to the list
-                templObjNameList.append (obj.nameLong)
-                templHandleList.append (obj.nameLong)  
+                self.templHandleList.append (obj.nameLong) 
                 self.templatePosObjectsBuffer.store(obj.nameLong)
             
+             
+            #Aim the objects
+            position.aimObjects(self.templHandleList,
+                                dictionary.axisDirectionsByString[ self.optionAimAxis.get() ],
+                                dictionary.axisDirectionsByString[ self.optionUpAxis.get() ],
+                                dictionary.axisDirectionsByString[ PuppetInstance.optionUpAxis.get() ])            
             
-            # Makes our curve    
+            #>>> Template curve
             crvName = mc.curve (d=doCurveDegree, p = corePositionList , os=True, n=('%s_%s' %(partName,(typesDictionary.get('templateCurve')))))            
-            self.afTemplateCurve = AttrFactory(self.infoNulls['templatePosObjects'].get(), 'curve','message', value=crvName)
+            self.afTemplateCurve = AttrFactory(self.infoNulls['templatePosObjects'].get(),
+                                               'curve','message', value=crvName)# connect it back to our template objects info null
             
-            curve = ObjectFactory(crvName)
-            curve.getNameTagsFromObject(self.ModuleNull.nameLong,['cgmType'])
+            curve = ObjectFactory(crvName) # instance it
+            curve.getNameTagsFromObject(self.ModuleNull.nameLong,['cgmType']) #get name tags from the module
 
-            attributes.storeInfo(crvName,'cgmType','templateCurve')
-            curves.setCurveColorByName(crvName,moduleColors[1])
-            curveLocs = []
-            return
-            for cnt,obj in enumerate(templObjNameList):
-                pointLoc = locators.locMeObject(obj)
-                loc = ObjectFactory(pointLoc)
-                loc.store('cgmName',templObjNameList[cnt])
-                loc.getNameTagsFromObject(obj,['cgmType'])
-                mc.setAttr ((loc.nameShort+'.visibility'),0)
-                mc.parentConstraint ([obj],[loc.nameShort],mo=False)
-                mc.connectAttr ( (loc.nameShort+'.translate') , ('%s.controlPoints[%i]' % (crvName, cnt)), f=True )
-                curveLocs.append (pointLoc)
+            attributes.storeInfo(crvName,'cgmType','templateCurve') # store type
+            curves.setCurveColorByName(crvName,moduleColors[1]) # set curve color
             
+            # Make locators to connect the cv's to
+            for cnt,obj in enumerate(self.templHandleList):
+                pointLoc = locators.locMeObject(obj) # make the loc
+                loc = ObjectFactory(pointLoc) #instance it
+                mc.setAttr ((loc.nameShort+'.visibility'),0) # turn off visibility
+                mc.parentConstraint ([obj],[loc.nameShort],mo=False) # parent constrain
+                mc.connectAttr ( (loc.nameShort+'.translate'),
+                                 ('%s.controlPoints[%i]' % (crvName, cnt)), f=True ) # connect the cv to the loc
+                self.TemplateObject[cnt].store('loc',loc.nameLong)
+                LocatorBuffer.store(loc.nameLong)
+                
             #>>> Direction and size Stuff
-            
+            """
             # Directional data derived from joints 
-            generalDirection = logic.returnHorizontalOrVertical(templObjNameList)
+            generalDirection = logic.returnHorizontalOrVertical(self.templHandleList)
             if generalDirection == 'vertical' and 'leg' not in self.afModuleType.get():
                 worldUpVector = [0,0,-1]
             elif generalDirection == 'vertical' and 'leg' in self.afModuleType.get():
                 worldUpVector = [0,0,1]
             else:
                 worldUpVector = [0,1,0]
+            """            
             
             # Create root control
-            templateNull = self.afTemplateNull.get()
+            templateNull = self.msgTemplateNull.get()
+            handleList = copy.copy(self.templatePosObjectsBuffer.bufferList)
             
-            rootSize = (distance.returnBoundingBoxSizeToAverage(templObjNameList[0])*1.5)
+            rootSize = (distance.returnBoundingBoxSizeToAverage(self.templHandleList[0])*1.5)
             rootCtrl = ObjectFactory(curves.createControlCurve('cube',rootSize))
             rootCtrl.getNameTagsFromObject(self.ModuleNull.nameLong)
             self.msgTemplateRoot = AttrFactory(self.infoNulls['templatePosObjects'].get(), 'root', 'message', value = rootCtrl.nameLong)
             curves.setCurveColorByName(rootCtrl.nameLong,moduleColors[0])
             
+            # move the root
             if self.afModuleType.get() == 'clavicle':
-                position.movePointSnap(rootCtrl.nameLong,templObjNameList[0])
+                position.movePointSnap(rootCtrl.nameLong,self.templHandleList[0])
             else:
-                position.movePointSnap(rootCtrl.nameLong,templObjNameList[0])
-                
-            constBuffer = mc.aimConstraint(templObjNameList[-1],rootCtrl.nameLong,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
-            mc.delete (constBuffer[0])
+                position.movePointSnap(rootCtrl.nameLong,self.templHandleList[0])
+            # aim the root
+            position.aimSnap(rootCtrl.nameShort,self.templHandleList[-1],  
+                            dictionary.axisDirectionsByString[ self.optionAimAxis.get() ],
+                            dictionary.axisDirectionsByString[ self.optionUpAxis.get() ],
+                            dictionary.axisDirectionsByString[ PuppetInstance.optionUpAxis.get() ]) 
+            
             rootCtrl.store('cgmType','templateRoot')
-            
-            #>>>>>>>>>>>>>>>>>>>>>>> add tag copying
-            
             rootCtrl.doName()
             
+            #>>> Parent the main objcts
             rootGroup = rootCtrl.doGroup()
             rootGroup = rigging.doParentReturnName(rootGroup,templateNull)
+            curve.doParent(templateNull)
             
-            templObjNameList.append (crvName)
-            templObjNameList += curveLocs
+            for obj in LocatorBuffer.bufferList:
+                rigging.doParentReturnName(obj,templateNull)
+            mc.delete(LocatorCatcher.nameShort) # delete the locator buffer obj
             
-            return
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             #>> Orientation helpers
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
             # Make our Orientation Helpers 
+            """
             orientHelpersReturn = template.addOrientationHelpers(self)
             masterOrient = orientHelpersReturn[0]
             orientObjects = orientHelpersReturn[1]
-            
+            return
             
         
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -414,13 +430,13 @@ class Limb(ModuleFactory):
             print orientObjects
             print self.ModuleNull.nameShort
             print (templateNull+'.visControlHelpers')
-            controlHelpersReturn = addControlHelpers(orientObjects,self.ModuleNull.nameShort,(templateNull+'.visControlHelpers'))
+            controlHelpersReturn = addControlHelpers(orientObjects,self.ModuleNull.nameShort,(templateNull+'.visControlHelpers'))"""
     
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             #>> Input the saved values if there are any
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
             # Orientation Helpers 
-            rotBuffer = coreRotationList[-1]
+            """rotBuffer = coreRotationList[-1]
             #actualName = mc.spaceLocator (n= wantedName)
             rotCheck = sum(rotBuffer)
             if rotCheck != 0:
@@ -452,15 +468,16 @@ class Limb(ModuleFactory):
                 scaleCheck = sum(scaleBuffer)
                 if scaleCheck != 0:
                     mc.scale(scaleBuffer[0],scaleBuffer[1],scaleBuffer[2],obj,absolute=True)
-                cnt +=1 
+                cnt +=1 """
             
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             #>> Final stuff
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            """
             returnList.append(templObjNameList)
-            returnList.append(templHandleList)
-            returnList.append(rootCtrl)
-            return returnList	
+            returnList.append(self.templHandleList)
+            returnList.append(rootCtrl)"""
+            return True	
 
 
 
@@ -530,30 +547,33 @@ class Limb(ModuleFactory):
         print coreNames    
         divider = NameFactory.returnCGMDivider()
         
-        print ('%s%s'% (self.ModuleNull.nameShort,' data aquired...'))
+        print ('%s data aquired...'%self.ModuleNull.nameShort)
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         #>> make template objects
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         #makes template objects#
         templateObjects = makeLimbTemplate(self)
-        print 'Template Limb made....'
+        guiFactory.report( 'Template Limb made....')
         
-        return
+        
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         #>> Parent objects
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        for obj in templateObjects[0]:    
-            obj =  rigging.doParentReturnName(obj,templateNull) 
+        for cnt,obj in enumerate(self.templHandleList): 
+            self.TemplateObject[cnt].doParent(self.msgTemplateNull.get())
     
-        print 'Template objects parented'
+        guiFactory.report('Template objects parented')
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         #>> Transform groups and Handles...handling
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        root = modules.returnInfoNullObjects(self.ModuleNull.nameShort,'templatePosObjects',types='templateRoot')
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        self.templatePosObjectsBuffer.updateData()
+        root = self.msgTemplateRoot.get()
+        handles = copy.copy( self.templatePosObjectsBuffer.bufferList )
+        stiffIndex = self.optionStiffIndex.get()
         
-        handles = templateObjects[1]
+        """ Don't remember why I did this stiff index thing....
         #>>> Break up the handles into the sets we need 
         if stiffIndex == 0:
             splitHandles = False
@@ -568,21 +588,21 @@ class Limb(ModuleFactory):
             splitHandles = True
             handlesToSplit = handles[stiffIndex:]
             handlesRemaining = handles[:stiffIndex]
-            handlesRemaining.append(handles[-1])
+            handlesRemaining.append(handles[-1]) 
+        if len(handlesToSplit)>2:"""
         
         # makes our mid transform groups#
-        if len(handlesToSplit)>2:
-            constraintGroups = constraints.doLimbSegmentListParentConstraint(handlesToSplit)
+        if len(handles)>2:
+            constraintGroups = constraints.doLimbSegmentListParentConstraint(handles)
             print 'Constraint groups created...'
-            
             for group in constraintGroups:
-                mc.parent(group,root[0])
+                mc.parent(group,root)
             
         # zero out the first and last#
         for handle in [handles[0],handles[-1]]:
             groupBuffer = (rigging.groupMeObject(handle,maintainParent=True))
-            mc.parent(groupBuffer,root[0])
-            
+            mc.parent(groupBuffer,root)
+           
         #>>> Break up the handles into the sets we need 
         if stiffIndex < 0:
             for handle in handles[(stiffIndex+-1):-1]:
@@ -595,19 +615,20 @@ class Limb(ModuleFactory):
                 
         print 'Constraint groups parented...'
         
-        rootName = NameFactory.doNameObject(root[0])
-        
-        for obj in handles:
+        #>>> Lock off handles
+        self.templatePosObjectsBuffer.updateData()
+        for obj in self.templatePosObjectsBuffer.bufferList:
             attributes.doSetLockHideKeyableAttr(obj,True,False,False,['sx','sy','sz','v'])
+            
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Parenting constrainging parts
+        # Parenting constraining parts
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        moduleParent = attributes.returnMessageObject(self.ModuleNull.nameShort,'moduleParent')
-        if moduleParent != PuppetInstance.PuppetNull.nameShort:
-            if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
-                moduleParent = attributes.returnMessageObject(moduleParent,'moduleParent')
-            parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
+        """ COME BACK AFTER DONE WITH SEGMENT
+        if self.moduleParent:
+            if self.afModuleType.get() == 'clavicle':
+                self.moduleParent = attributes.returnMessageObject(self.moduleParent,'self.moduleParent')
+            parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(self.moduleParent,'templatePosObjects')
             parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
             parentTemplateObjects = []
             for key in parentTemplatePosObjectsInfoData.keys():
@@ -626,12 +647,11 @@ class Limb(ModuleFactory):
                 mc.parentConstraint(rootName,constraintGroup, maintainOffset=True)
                 
         # grab the last clavicle piece if the arm has one and connect it to the arm  #
-        moduleParent = attributes.returnMessageObject(self.ModuleNull.nameShort,'moduleParent')
-        if moduleParent != PuppetInstance.PuppetNull.nameShort:
+        if self.moduleParent:
             if (search.returnTagInfo(self.ModuleNull.nameShort,'cgmModuleType')) == 'arm':
-                if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
+                if (search.returnTagInfo(self.moduleParent,'cgmModuleType')) == 'clavicle':
                     print '>>>>>>>>>>>>>>>>>>>>> YOU FOUND ME'
-                    parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
+                    parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(self.moduleParent,'templatePosObjects')
                     parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
                     parentTemplateObjects = []
                     for key in parentTemplatePosObjectsInfoData.keys():
@@ -643,29 +663,30 @@ class Limb(ModuleFactory):
                     endConstraintGroup = NameFactory.doNameObject(endConstraintGroup)
                     mc.pointConstraint(handles[0],endConstraintGroup, maintainOffset=True)
                     mc.scaleConstraint(handles[0],endConstraintGroup, maintainOffset=True)
-            
+        """    
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         #>> Final stuff
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         
-        
         #>>> Set our new module rig process state
-        mc.setAttr ((self.ModuleNull.nameShort+'.templateState'), 1)
-        mc.setAttr ((self.ModuleNull.nameShort+'.skeletonState'), 0)
-        print ('%s%s'% (self.ModuleNull.nameShort,' done'))
+        self.afSkeletonState.set(1)
+        self.afSkeletonState.set(0)
+        print ('%s done!'%self.ModuleNull.nameShort)
         
         #>>> Tag our objects for easy deletion
-        children = mc.listRelatives (templateNull, allDescendents = True,type='transform')
+        children = mc.listRelatives (self.msgTemplateNull.get(), allDescendents = True,type='transform')
         for obj in children:
-            attributes.storeInfo(obj,'cgmOwnedBy',templateNull)
+            attributes.storeInfo(obj,'cgmOwnedBy',self.msgTemplateNull.get())
             
         #>>> Visibility Connection
+        """
         masterControl = attributes.returnMessageObject(PuppetInstance.PuppetNull.nameShort,'controlMaster')
         visControl = attributes.returnMessageObject(masterControl,'childControlVisibility')
         attributes.doConnectAttr((visControl+'.orientHelpers'),(templateNull+'.visOrientHelpers'))
         attributes.doConnectAttr((visControl+'.controlHelpers'),(templateNull+'.visControlHelpers'))
+        """
+        
         #>>> Run a rename on the module to make sure everything is named properly
-        #NameFactory.doRenameHeir(self.ModuleNull.nameShort)    
 
 
 

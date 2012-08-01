@@ -240,7 +240,7 @@ def doCopyAxisFromParent(self,moduleInstance):
     """
     Self should be a module instance
     """
-    parent = moduleInstance.afModuleParent.get()
+    parent = moduleInstance.msgModuleParent.get()
     if not parent:
 	functions.copyAxisOptions(moduleInstance,self.Puppet)
 	guiFactory.report("Copied axis settings for '%s' from '%s'"%(moduleInstance.nameBase,self.Puppet.nameBase))	

@@ -73,7 +73,7 @@ def getGeneratedInitialPositionData(self, PuppetInstance, startLocList,*a,**kw):
             bufferList = [0,0]
             bufferList.append(position)
             corePositionList.append(bufferList)     
-    print "Core position list %s"%corePositionList        
+    guiFactory.report( "Core position list %s"%corePositionList )      
             
                     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -145,11 +145,11 @@ def getGeneratedInitialPositionData(self, PuppetInstance, startLocList,*a,**kw):
         returnList['positions'] = posList
         returnList['locator'] = baseLocs[-1]
         
-        """
+        
         for loc in baseLocs[:-1]:
-            mc.delete(loc)"""
+            mc.delete(loc)
             
-        print "Initial position list is %s"%returnList        
+        guiFactory.report( "Initial position list is %s"%returnList)   
         return returnList
         
     else:           
@@ -253,47 +253,49 @@ def addOrientationHelpers(self):
     helperObjects = []
     helperObjectGroups = []
     returnBuffer = []
-    root = self.afTemplateRoot.getMessage()
+    root = self.msgTemplateRoot.getMessage()
     visAttr = "%s.visOrientHelpers"%self.infoNulls['visibilityOptions'].get()  
     objects =  self.templatePosObjectsBuffer.bufferList
-
+    
     #>>> Direction and size Stuff
     """ Directional data derived from joints """
     generalDirection = logic.returnHorizontalOrVertical(objects)
     
-    if generalDirection == 'vertical' and 'leg' not in self.afModuleType.value:
+    if generalDirection == 'vertical' and 'leg' not in self.afModuleType.get():
         worldUpVector = [0,0,-1]
-    elif generalDirection == 'vertical' and 'leg' in self.afModuleType.value:
+    elif generalDirection == 'vertical' and 'leg' in self.afModuleType.get():
         worldUpVector = [0,0,1]
     else:
         worldUpVector = [0,1,0]
     
-    """ Get Size """
+    #Get Size 
     size = (distance.returnBoundingBoxSizeToAverage(objects[0])*2)
+    
     #>>> Master Orient helper
-    """ make the curve"""
-    createBuffer = curves.createControlCurve('circleArrow1',(size*2),'z+')
+    createBuffer = curves.createControlCurve('circleArrow1',(size*2),'z+') # make the curve
     curves.setCurveColorByName(createBuffer,moduleColors[0])
-    """ copy the name attr"""
-    attributes.storeInfo(createBuffer,'cgmType','templateOrientRoot')
+    
+    attributes.storeInfo(createBuffer,'cgmType','templateOrientRoot') #copy the name attr
     mainOrientHelperObj = NameFactory.doNameObject(createBuffer)
-    """ store the object to it's respective  object """
-    attributes.storeObjectToMessage (mainOrientHelperObj, root , 'orientHelper')
+    
+    attributes.storeObjectToMessage (mainOrientHelperObj, self.msgTemplateRoot.get() , 'orientHelper')#store the object to it's respective  object
     returnBuffer.append(mainOrientHelperObj)
-    """ Snapping """
+    
+    # Snapping 
     position.movePointSnap(mainOrientHelperObj,root)    
     constBuffer = mc.aimConstraint(objects[1],mainOrientHelperObj,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
     mc.delete (constBuffer[0])
-    """ Follow Groups """
+    
+    # Follow Groups 
     mainOrientHelperGroupBuffer = rigging.groupMeObject(mainOrientHelperObj)
     mainOrientHelperGroupBuffer = NameFactory.doNameObject(mainOrientHelperGroupBuffer)
     mainOrientHelperGroup = rigging.doParentReturnName(mainOrientHelperGroupBuffer,root)
     mc.pointConstraint(objects[0],mainOrientHelperGroupBuffer,maintainOffset = False)
     helperObjectGroups.append(mainOrientHelperGroup)
     
-    """ set up constraints """
+    # set up constraints
     mc.aimConstraint(objects[-1],mainOrientHelperGroup,maintainOffset = True, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpObject = root, worldUpType = 'objectRotation' )
-    """ lock and hide stuff """
+    # lock and hide stuff 
     attributes.doSetLockHideKeyableAttr(mainOrientHelperObj,True,False,False,['tx','ty','tz','rz','ry','sx','sy','sz','v'])
     
     #>>> The sub helpers
