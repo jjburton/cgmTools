@@ -105,7 +105,7 @@ class BufferFactory(object):
         """ Updates the stored data """
         self.bufferList = []
         self.bufferDict = {}
-        userAttrs = mc.listAttr(self.nameLong,ud=True)
+        userAttrs = mc.listAttr(self.nameLong,ud=True) or []
         for attr in userAttrs:
             if 'item_' in attr:
                 a = AttrFactory(self.nameLong,attr)
@@ -148,7 +148,7 @@ class BufferFactory(object):
             guiFactory.warning("'%s' is already stored on '%s'"%(info,self.nameLong))    
             return
         
-        userAttrs = attributes.returnUserAttrsToDict(self.nameLong)
+        userAttrs = attributes.returnUserAttrsToDict(self.nameLong) or {}
         countList = []
         for key in userAttrs.keys():
             if 'item_' in key:
@@ -218,7 +218,7 @@ class BufferFactory(object):
     def purge(self):
         """ Purge all buffer attributes from an object """
         
-        userAttrs = mc.listAttr(self.nameLong,userDefined = True)
+        userAttrs = mc.listAttr(self.nameLong,userDefined = True) or []
         for attr in userAttrs:
             if 'item_' in attr:
                 attributes.doDeleteAttr(self.nameLong,attr)
