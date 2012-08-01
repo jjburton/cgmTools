@@ -169,6 +169,15 @@ def aimSnapUpObject (obj,target,worldUpObject,aimVector = [0,0,1],upVector = [0,
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    for o in obj,target,worldUpObject:
+	assert mc.objExists(o), "'%s' doesn't exist. Aborting aimSnapUpObject"%o
+	
+    aimVector = dictionary.validateDirectionVector(aimVector)
+    upVector = dictionary.validateDirectionVector(upVector)
+    
+    assert type(aimVector) is list,"invalid aimVector argument"
+    assert type(upVector) is list,"invalid upVector argument"
+    
     aimConstraint = mc.aimConstraint([target],[obj],aimVector=aimVector,upVector = upVector,worldUpObject = worldUpObject, worldUpType='object')
     mc.delete(aimConstraint[0])
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -189,6 +198,17 @@ def aimSnap (obj,target,aimVector = [0,0,1],upVector = [0,1,0],worldUp = [0,1,0]
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    for o in obj,target:
+	assert mc.objExists(o), "'%s' doesn't exist. Aborting aimSnapUpObject"%o
+	
+    aimVector = dictionary.validateDirectionVector(aimVector)
+    upVector = dictionary.validateDirectionVector(upVector)
+    worldUp = dictionary.validateDirectionVector(worldUp)
+    
+    assert type(aimVector) is list,"invalid aimVector argument"
+    assert type(upVector) is list,"invalid upVector argument"
+    assert type(worldUp) is list,"invalid worldUp argument"
+    
     aimConstraint = mc.aimConstraint([target],[obj],aimVector=aimVector,upVector = upVector,worldUpVector = worldUp, worldUpType='vector')
     mc.delete(aimConstraint[0])
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -209,28 +229,55 @@ def moveAimSnap(obj,target,aimTarget,vector):
     Nothin
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    for o in obj,target,aimTarget:
+	assert mc.objExists(o), "'%s' doesn't exist. Aborting aimSnapUpObject"%o
+	
+    vector = dictionary.validateDirectionVector(vector)
+
+    assert type(vector) is list,"invalid vector argument"
+
+    
     movePointSnap (obj,target)
     aimSnap (obj,aimTarget,vector)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 
-def moveAimObjects(objList,objAim,objUp,worldUp,**kw):
+def aimObjects(objList,objAim,objUp,worldUp,**kw):
     """
+    Aim snap tool function for a list of objects
+    
+    Arg:
+    objList(list) -- list of objects
+    objAim(string) -- string format of aim axis. ex. 'x+'
+    objUp(string) -- string format of up axis. 
+    worldUp(string) -- string format of world up
+    
+    Kw:
+    any keyword arguments for an aim constraint
     """
     worldUpType = kw.pop('worldUpType','vector')
-
-    assert len(objList) >= 2,"moveAimObjects should only be used on lists of objects more than two items"
-    assert objAim in dictionary.stringToVectorDict.keys(),"invalid objAim argument"
-    assert objUp in dictionary.stringToVectorDict.keys(),"invalid objUp argument"
-    assert worldUp in dictionary.stringToVectorDict.keys(),"invalid worldUp argument"
     
+    for o in objList:
+	assert mc.ls(o,type = 'transform'),"'%s' doesn't have a transform, erroring out."%o	
+    assert len(objList) >= 2,"moveAimObjects should only be used on lists of objects more than two items"
+    
+    objAim = dictionary.validateDirectionVector(objAim)
+    objUp = dictionary.validateDirectionVector(objUp)
+    worldUp = dictionary.validateDirectionVector(worldUp) 
+    
+    assert type(objAim) is list,"invalid objAim argument"
+    assert type(objUp) is list,"invalid objUp argument"
+    assert type(worldUp) is list,"invalid worldUp argument"
+    
+
     pairList = lists.parseListToPairs(objList)
     
     for pair in pairList:       
         #>>> Set up constraints 
         constraintBuffer = mc.aimConstraint(pair[1],pair[0],maintainOffset = False, weight = 1,
-	                                    aimVector = dictionary.stringToVectorDict[objAim],
-	                                    upVector = dictionary.stringToVectorDict[objUp],
-	                                    worldUpVector = dictionary.stringToVectorDict[worldUp],worldUpType=worldUpType,**kw)
+	                                    aimVector = objAim,
+	                                    upVector = objUp,
+	                                    worldUpVector = worldUp,
+	                                    worldUpType=worldUpType,**kw)
 	mc.delete(constraintBuffer)
 
     #>>> For the last object in the chain
