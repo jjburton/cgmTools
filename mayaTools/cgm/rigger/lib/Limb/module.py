@@ -669,8 +669,8 @@ class Limb(ModuleFactory):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         
         #>>> Set our new module rig process state
-        self.afSkeletonState.set(1)
-        self.afSkeletonState.set(0)
+        self.afDeformState.set(1)
+        self.afDeformState.set(0)
         print ('%s done!'%self.ModuleNull.nameShort)
         
         #>>> Tag our objects for easy deletion

@@ -41,7 +41,7 @@ InfoNullsNames = ['settings',
 
 cvDict = {'left':3,'right':7,'bottom':5,'top':0, 'left_front':4, 'right_front':6, 'left_back':2,'right_back':8,'None':0}
 
-moduleStates = ['size','template','joint','rig']
+moduleStates = ['template','deform','rig']
 
 initLists = []
 initDicts = ['infoNulls','parentTagDict']
@@ -138,6 +138,23 @@ class ModuleFactory:
                 guiFactory.warning("'%s' failed to verify!"%moduleName)
                 return False
 
+    def getState(self):
+        """ 
+        Check module state ONLY from the state check attributes
+        
+        RETURNS:
+        state(int) -- indexed to ModuleFactory.moduleStates
+        """
+        check = False
+        for i,state in enumerate(moduleStates):
+            buffer = self.__dict__["af%sState"%state.capitalize()].get()
+            if buffer:
+                check = True
+                if i == len(moduleStates)-1:
+                    return i+1
+            elif check:
+                return i
+        return 0
 
                 
     def isRef(self):
@@ -486,7 +503,6 @@ class ModuleFactory:
             attributes.addRotateOrderAttr(rotateOrderInfoNull,attrNameBuffer)
         
         
-        self.afSizeState.set(1) # Check our instanced attr state box
         guiFactory.report("'%s' sized and stored"%self.ModuleNull.nameBase)    
     
         return True

@@ -85,7 +85,7 @@ moduleTypeToMasterClassDict = {'None':['none','None',False],
 
 #These are our init variables
 initLists = ['geo','modules','rootModules','orderedModules','orderedParentModules']
-initDicts = ['templateSizeObjects','Module','moduleParents','moduleChildren']
+initDicts = ['templateSizeObjects','Module','moduleParents','moduleChildren','moduleStates']
 initStores = ['PuppetNull','refState',]
  
 class PuppetFactory():
@@ -444,8 +444,26 @@ class PuppetFactory():
         return True
             
     def delete(self):
+        """
+        Delete the Puppet
+        """
         mc.delete(self.PuppetNull.nameLong)
+        self = False
         
+    def getState(self):
+        """
+        Return a Puppet's state
+        
+        Returns:
+        state/False -- (int)/(bool)
+        """
+        checkList = []
+        if self.getModuleStates() is False:
+            return False
+        for k in self.moduleStates.keys():
+            checkList.append(self.moduleStates[k])
+        return min(checkList)
+    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Modules
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -497,6 +515,19 @@ class PuppetFactory():
                     self.moduleIndexDict[m] = i
                 else:
                     guiFactory.warning("'%s' is not a module type found in the moduleTypeToFunctionDict. Cannot initialize"%modType)
+
+    def getModuleStates(self,*a,**kw):
+        """
+        Get's a dictionary of module states indexed to same indexes as the self.Module[i] format
+        """
+        self.ModuleStates = {}
+        if self.ModulesBuffer.bufferList:
+            for i,m in enumerate(self.ModulesBuffer.bufferList):
+                self.moduleStates[i] = self.Module[i].getState()
+        else:
+            return False
+        return self.moduleStates
+                
     
     def createModule(self,moduleType,*a,**kw):
         """
@@ -997,10 +1028,10 @@ class PuppetFactory():
         if newName == self.PuppetNull.cgm['cgmName']:
             return guiFactory.warning("Already named '%s'"%newName)
         
-        self.PuppetNull.store('cgmName ',newName)   
+        self.PuppetNull.store('cgmName ',newName)
         self.nameBase = newName
         self.PuppetNull.doName()
-        self.initializePuppet()
+        self.verify()
         self.getModules()
         guiFactory.warning("Puppet renamed as '%s'"%newName)
         

@@ -43,27 +43,30 @@ def verifyPuppet(self):
 	self.Puppet.getModules()
 	updateUIPuppet(self)
 	self.updateModulesUI()	
+	updateHelpUI(self)	
     except:
-        guiFactory.warning("'%s' failed to activate"%self.Puppet.nameBase)
+        guiFactory.warning("'%s' failed to verify"%self.Puppet.nameBase)
 	
 	
 def initializePuppet(self):
     try:
 	self.Puppet.initialize()
 	updateUIPuppet(self)
-	self.updateModulesUI()	
+	self.updateModulesUI()
+	updateHelpUI(self)	
     except:
-        guiFactory.warning("'%s' failed to activate"%self.Puppet.nameBase)
+        guiFactory.warning("'%s' failed to initialize"%self.Puppet.nameBase)
 	
 def deletePuppet(self):
     try:
 	self.Puppet.delete()
 	self.Puppet = False
 	updateUIPuppet(self)
-	self.updateModulesUI()	
+	self.updateModulesUI()
+	updateHelpUI(self)
     except:
         self.Puppet = False	
-        guiFactory.warning("'%s' failed to activate"%self.Puppet.nameBase)
+        guiFactory.warning("'%s' failed to delete"%self.Puppet.nameBase)
 	
 def doPuppetCreate(self):
     #mel.eval('python("cgmTmp = PuppetFactory();cgmPuppet.__dict__[cgmTmp.nameBase] = cgmTmp")')	    
@@ -76,24 +79,25 @@ def doPuppetCreate(self):
         guiFactory.warning("Failed to create puppet. Check the woodshop.")"""
 	
 def activatePuppet(self,name):
-    try:
-	if self.Puppet:
-	    if self.Puppet.nameBase != name:
-		self.Puppet = PuppetFactory(name)
-	else:
+    
+    if self.Puppet:
+	if self.Puppet.nameBase != name:
 	    self.Puppet = PuppetFactory(name)
-	"""
-	if name not in cgmPuppet.__dict__.keys():
-	    buffer = PuppetFactory(name)
-	    cgmPuppet.__dict__[buffer.nameBase] = buffer
-	    #mel.eval('python("cgmPuppet.__dict__[%s] = PuppetFactory(%s);")'%("'%s'"%name,"'%s'"%name))	
-	self.Puppet = cgmPuppet.__dict__[name]
-	updateUIPuppet(self)
-	self.updateModulesUI()"""
+    else:
+	self.Puppet = PuppetFactory(name)
+
+    """
+    if name not in cgmPuppet.__dict__.keys():
+	buffer = PuppetFactory(name)
+	cgmPuppet.__dict__[buffer.nameBase] = buffer
+	#mel.eval('python("cgmPuppet.__dict__[%s] = PuppetFactory(%s);")'%("'%s'"%name,"'%s'"%name))	
+    self.Puppet = cgmPuppet.__dict__[name]
+    updateUIPuppet(self)
+    self.updateModulesUI()"""
 	
-    except:
+    """except:
         self.Puppet = False
-        guiFactory.warning("'%s' failed to activate"%name)
+        guiFactory.warning("'%s' failed to activate"%name)"""
     
     updateUIPuppet(self)
     self.updateModulesUI()	
@@ -104,14 +108,16 @@ def updateUIPuppet(self):
 	
 	for uiItem in self.UI_StateRows['define']:
 	    uiItem(edit = True, vis = False)	
-	    
-	self.puppetStateButtonsDict[0](edit=True,en=False)
+	
+	for k in self.puppetStateButtonsDict.keys():
+	    self.puppetStateButtonsDict[k](edit = True, en=False)
 	
 	updatePuppetUIReport(self) 
 	self.updateModulesUI()
         return
     
     self.MasterPuppetTF(edit=True, text = self.Puppet.nameBase)
+    
     self.puppetStateButtonsDict[0](edit=True,en=True)
     
     for uiItem in self.UI_StateRows['define']:
@@ -152,21 +158,29 @@ def updatePuppetUIReport(self):
     if not self.Puppet:
 	self.puppetReport(edit=True, label = '...')
 	return
-			    
+    state = self.Puppet.getState()
     #build master report
-    if not self.Puppet.geo:
-	buildReport.append('No geo defined')
-    else:
-	buildReport.append('%i geo items'%len(self.Puppet.geo))
-    
-    if not self.Puppet.ModulesBuffer.bufferList:
-	buildReport.append('0 modules')
-    else:
-	buildReport.append('%i modules'%len(self.Puppet.ModulesBuffer.bufferList))
+    if state == 0:
+	if not self.Puppet.geo:
+	    buildReport.append('No geo defined')
+	else:
+	    buildReport.append('%i geo items'%len(self.Puppet.geo))
 	
-    if not self.Puppet.templateSizeObjects:
-	buildReport.append('No size template')
-
+	if not self.Puppet.ModulesBuffer.bufferList:
+	    buildReport.append('0 modules')
+	else:
+	    buildReport.append('%i modules'%len(self.Puppet.ModulesBuffer.bufferList))
+	    
+	if not self.Puppet.templateSizeObjects:
+	    buildReport.append('No size template')
+    elif state == 1:
+	buildReport.append('Template mode!')
+    elif state == 2:
+	buildReport.append('Deform mode!')
+    elif state == 3:
+	buildReport.append('Rig mode!')
+    else:
+	buildReport.append('No idea what state this is')
     
 
     if buildReport:
@@ -182,17 +196,33 @@ def updateHelpUI(self):
 	self.helpInfo(edit=True, label = 'Try adding a Puppet')
 			    
     #Initial State help
-    if not self.Puppet.geo:
-	self.helpInfo(edit=True, label = 'Need some geo')
-	return
-	
-    if not self.Puppet.templateSizeObjects:
-	self.helpInfo(edit=True, label = 'Add a size template')
-	return
+    state = self.Puppet.getState()
     
-    if not self.Puppet.modules:
-	self.helpInfo(edit=True, label = 'Need at least one module')
-	return
+    if state == 0:
+	if not self.Puppet.geo:
+	    self.helpInfo(edit=True, label = 'Need some geo')
+	    return
+	    
+	if not self.Puppet.templateSizeObjects:
+	    self.helpInfo(edit=True, label = 'Add a size template')
+	    return
+	
+	if not self.Puppet.modules:
+	    self.helpInfo(edit=True, label = 'Need at least one module')
+	    return
+	
+    elif state == 1:
+	self.helpInfo(edit=True, label = 'Template mode!')
+	
+    elif state == 2:
+	self.helpInfo(edit=True, label = 'Deform mode!')
+	
+    elif state == 3:
+	self.helpInfo(edit=True, label = 'Rig mode!')
+	
+    else:
+	self.helpInfo(edit=True, label = 'No idea what state this is...')
+	
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Define
@@ -374,8 +404,8 @@ def uiModuleOptionMenuSet(self,OptionMenuDictInstance,MenuSourceList,tag,index):
 	    
 def uiForceModuleUpdateUI(self):  
     self.updateModulesUI()	    
-
-
+    updatePuppetUIReport(self)
+    updateHelpUI(self)
 
 
 

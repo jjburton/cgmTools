@@ -22,16 +22,19 @@ __version__ = '0.1.07052012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.rigger.PuppetFactory import *
+from cgm.rigger import ModuleFactory
 from cgm.rigger.lib import functions
 reload(functions)
 
 import maya.mel as mel
 import maya.cmds as mc
 
-from cgm.tools.lib import (puppetBoxLib)
-from cgm.lib import (search,guiFactory,modules,dictionary)
+from cgm.tools.lib import puppetBoxLib
+from cgm.lib import (search,
+                     guiFactory,
+                     modules,
+                     dictionary)
 
-from cgm.lib import guiFactory,dictionary
 
 reload(puppetBoxLib)
 reload(dictionary)
@@ -65,7 +68,8 @@ class puppetBoxClass(BaseMelWindow):
 		self.optionVars = []
 		self.scenePuppets = []
 		self.Puppet = False
-		self.puppetStateOptions = ['Define','Template','Skeleton','Rig']
+		self.puppetStateOptions = ['define']
+		self.puppetStateOptions.extend(ModuleFactory.moduleStates)
 		#self.addModules = ['Spine','Leg','Arm','Limb','Finger','Foot','Neck','Head','Spine']
 		self.addModules = ['Segment']
 		self.moduleFrames = {}
@@ -530,7 +534,7 @@ class puppetBoxClass(BaseMelWindow):
 		
 		self.puppetStateButtonsDict = {}
 		for i,s in enumerate(self.puppetStateOptions):
-			self.puppetStateButtonsDict[i] = guiFactory.doButton2(MasterPuppetRow,list(s)[0],
+			self.puppetStateButtonsDict[i] = guiFactory.doButton2(MasterPuppetRow,s.capitalize(),
 			                                                      "print '%s'"%s,
 			                                                      enable = False)
 		MelSpacer(MasterPuppetRow,w=20)
