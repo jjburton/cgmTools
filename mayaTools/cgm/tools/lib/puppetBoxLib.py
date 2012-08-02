@@ -71,6 +71,8 @@ def deletePuppet(self):
 def doPuppetCreate(self):
     #mel.eval('python("cgmTmp = PuppetFactory();cgmPuppet.__dict__[cgmTmp.nameBase] = cgmTmp")')	    
     self.Puppet = PuppetFactory()
+    self.PuppetBridge[self.Puppet.PuppetNull.nameBase] = self.Puppet #Store it to the bridge
+    
     updateUIPuppet(self)
     self.updateModulesUI()
     """
@@ -79,25 +81,17 @@ def doPuppetCreate(self):
         guiFactory.warning("Failed to create puppet. Check the woodshop.")"""
 	
 def activatePuppet(self,name):
-    
-    if self.Puppet:
-	if self.Puppet.nameBase != name:
+    try:
+	if name in self.PuppetBridge.keys(): # if the puppet is instanced to our bridge, just link it up
+	    self.Puppet = self.PuppetBridge[name]
+	else:
 	    self.Puppet = PuppetFactory(name)
-    else:
-	self.Puppet = PuppetFactory(name)
-
-    """
-    if name not in cgmPuppet.__dict__.keys():
-	buffer = PuppetFactory(name)
-	cgmPuppet.__dict__[buffer.nameBase] = buffer
-	#mel.eval('python("cgmPuppet.__dict__[%s] = PuppetFactory(%s);")'%("'%s'"%name,"'%s'"%name))	
-    self.Puppet = cgmPuppet.__dict__[name]
-    updateUIPuppet(self)
-    self.updateModulesUI()"""
+	    self.PuppetBridge[self.Puppet.PuppetNull.nameBase] = self.Puppet #Store it to the bridge
+	    
 	
-    """except:
+    except:
         self.Puppet = False
-        guiFactory.warning("'%s' failed to activate"%name)"""
+        guiFactory.warning("'%s' failed to activate"%name)
     
     updateUIPuppet(self)
     self.updateModulesUI()	
@@ -148,7 +142,10 @@ def updatePuppetName(self):
     if self.Puppet:
         if varCheck:
             try:
+		oldName = self.Puppet.nameBase
                 self.Puppet.doRenamePuppet(varCheck)
+		self.PuppetBridge.pop(oldName)
+		self.PuppetBridge[varCheck] = self.Puppet
             except:		
                 pass
 			
@@ -346,7 +343,7 @@ def uiModuleUpdateFrameLabel(self,index):
     if not self.Puppet.Module[index].moduleParent:
 	buffer.append( "Root")
     buffer.append("typ: %s"%self.Puppet.Module[index].afModuleType.value)
-    buffer.append("cls: %s"%self.Puppet.Module[index].moduleClass)
+    buffer.append("state: %s"%self.Puppet.Module[index].getState())
     
     
     color = dictionary.guiDirectionColors['center']

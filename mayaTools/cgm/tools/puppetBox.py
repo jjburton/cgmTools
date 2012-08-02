@@ -68,6 +68,7 @@ class puppetBoxClass(BaseMelWindow):
 		self.optionVars = []
 		self.scenePuppets = []
 		self.Puppet = False
+		self.PuppetBridge = {}
 		self.puppetStateOptions = ['define']
 		self.puppetStateOptions.extend(ModuleFactory.moduleStates)
 		#self.addModules = ['Spine','Leg','Arm','Limb','Finger','Foot','Neck','Head','Spine']
@@ -252,71 +253,15 @@ class puppetBoxClass(BaseMelWindow):
 					
 					tmpIntRow.layout()
 				
-				# Module axis menu
-				"""
-				self.AxisFrame = MelFrameLayout(self.moduleFrames[i],label = 'Axis',vis=False,
-						                        collapse=True,
-						                        collapsable=True,
-						                        ut = 'cgmUITemplate')
-				
-				#Aim Axis Mode Row
-				self.AimAxisCollection = MelRadioCollection()
-				self.AimAxisCollectionChoices = []			
-				
-				self.AimAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
-				MelSpacer(self.AimAxisRow,w=5)				
-				MelLabel(self.AimAxisRow,l='Aim ')
-				Spacer = MelSeparator(self.AimAxisRow,w=10)						
-				for i,item in enumerate(axisDirectionsByString):
-					self.AimAxisCollectionChoices.append(self.AimAxisCollection.createButton(self.AimAxisRow,label=item,
-							                                                                 onCommand = Callback(puppetBoxLib.setPuppetAxisAim,self,i)))
-					MelSpacer(self.AimAxisRow,w=3)
-				self.AimAxisRow.setStretchWidget( Spacer )
-				MelSpacer(self.AimAxisRow,w=2)		
-				self.AimAxisRow.layout()	
-				
-				
-				#Up Axis Mode Row
-				self.UpAxisCollection = MelRadioCollection()
-				self.UpAxisCollectionChoices = []			
-				
-				self.UpAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
-				MelSpacer(self.UpAxisRow,w=5)				
-				MelLabel(self.UpAxisRow,l='Up ')
-				Spacer = MelSeparator(self.UpAxisRow,w=10)						
-				for i,item in enumerate(axisDirectionsByString):
-					self.UpAxisCollectionChoices.append(self.UpAxisCollection.createButton(self.UpAxisRow,label=item,
-							                                                                 onCommand = Callback(puppetBoxLib.setPuppetAxisUp,self,i)))
-					MelSpacer(self.UpAxisRow,w=3)
-				self.UpAxisRow.setStretchWidget( Spacer )
-				MelSpacer(self.UpAxisRow,w=2)		
-				self.UpAxisRow.layout()	
-				
-				
-				#Out Axis Mode Row
-				self.OutAxisCollection = MelRadioCollection()
-				self.OutAxisCollectionChoices = []			
-				
-				self.OutAxisRow = MelHSingleStretchLayout(self.AxisFrame,padding = 2,vis=False)	
-				MelSpacer(self.OutAxisRow,w=5)				
-				MelLabel(self.OutAxisRow,l='Out ')
-				Spacer = MelSeparator(self.OutAxisRow,w=10)	
-				for i,item in enumerate(axisDirectionsByString):
-					self.OutAxisCollectionChoices.append(self.OutAxisCollection.createButton(self.OutAxisRow,label=item,
-							                                                                 onCommand = Callback(puppetBoxLib.setPuppetAxisOut,self,i)))
-					MelSpacer(self.OutAxisRow,w=3)
-				self.OutAxisRow.setStretchWidget( Spacer )
-				MelSpacer(self.OutAxisRow,w=2)		
-				self.OutAxisRow.layout()	
-				"""
-
-
 
 
 				#PopUp Menu!
 				popUpMenu = MelPopupMenu(self.moduleFrames[i],button = 3)
-		
-				#Parent/MIrror
+				
+				MelMenuItem(popUpMenu,
+							label = "cls: %s"%self.Puppet.Module[i].moduleClass,
+							enable = False)
+				#Parent/MIrror				
 				MelMenuItem(popUpMenu,
 							label = "Set Parent>",
 							enable = False)
