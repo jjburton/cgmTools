@@ -340,7 +340,7 @@ class Limb(ModuleFactory):
                 self.templatePosObjectsBuffer.store(obj.nameLong)
             
              
-            #Aim the objects
+            #Aim the objects           
             position.aimObjects(self.templHandleList,
                                 dictionary.axisDirectionsByString[ self.optionAimAxis.get() ],
                                 dictionary.axisDirectionsByString[ self.optionUpAxis.get() ],
@@ -544,15 +544,15 @@ class Limb(ModuleFactory):
                 split = a.split('name_')
                 coreNames[int(split[1])] =  attributes.doGetAttr(coreNamesInfoNull,a) 
                 
-        print coreNames    
-        divider = NameFactory.returnCGMDivider()
-        
+        print coreNames            
         print ('%s data aquired...'%self.ModuleNull.nameShort)
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         #>> make template objects
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         #makes template objects#
+        assert len(corePositionList) == self.optionHandles.get(),"There isn't enough data to template. Needs to be sized"
+        
         templateObjects = makeLimbTemplate(self)
         guiFactory.report( 'Template Limb made....')
         
@@ -669,8 +669,7 @@ class Limb(ModuleFactory):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
         
         #>>> Set our new module rig process state
-        self.afDeformState.set(1)
-        self.afDeformState.set(0)
+        self.afTemplateState.set(1)
         print ('%s done!'%self.ModuleNull.nameShort)
         
         #>>> Tag our objects for easy deletion
