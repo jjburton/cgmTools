@@ -138,24 +138,6 @@ class ModuleFactory:
                 guiFactory.warning("'%s' failed to verify!"%moduleName)
                 return False
 
-    def getState(self):
-        """ 
-        Check module state ONLY from the state check attributes
-        
-        RETURNS:
-        state(int) -- indexed to ModuleFactory.moduleStates
-        """
-        check = False
-        for i,state in enumerate(moduleStates):
-            buffer = self.__dict__["af%sState"%state.capitalize()].get()
-            if buffer:
-                check = True
-                if i == len(moduleStates)-1:
-                    return i+1
-            elif check:
-                return i
-        return 0
-
                 
     def isRef(self):
         if mc.referenceQuery(self.ModuleNull.nameShort, isNodeReferenced=True):
@@ -492,7 +474,7 @@ class ModuleFactory:
     
         #>>>>>>>>>>>>>>>s>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Rotation orders
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         rotateOrderInfoNull = self.infoNulls['rotateOrders'].value  
         
         modules.doPurgeNull(rotateOrderInfoNull)
@@ -876,4 +858,49 @@ class ModuleFactory:
             return modules.returnSettingsData('colorCenter',True)
         else:
             return modules.returnSettingsData(('color'+direction.capitalize()),True)    
+    #>>>>>>>>>>>>>>>s>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Get States
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    def getState(self):
+        """ 
+        Check module state ONLY from the state check attributes
         
+        RETURNS:
+        state(int) -- indexed to ModuleFactory.moduleStates
+        """
+        check = False
+        for i,state in enumerate(moduleStates):
+            buffer = self.__dict__["af%sState"%state.capitalize()].get()
+            if buffer:
+                check = True
+                if i == len(moduleStates)-1:
+                    return i+1
+            elif check:
+                return i
+        return 0
+
+    def setState(self,state,PuppetInstance):
+        """ 
+        Set a module's state
+        
+        RETURNS:
+        generatedNames(list)
+        """
+        currentState = self.getState()
+        if state is 0:
+            guiFactory.report("This should set '%s' to 'define' state"%(self.ModuleNull.nameBase))
+
+        elif state is 1:#Template
+            guiFactory.report("This should set '%s' to '%s' state"%(self.ModuleNull.nameBase,moduleStates[state-1]))
+            
+            if state is currentState:
+                guiFactory.report("'%s' is already at '%s' state"%(self.ModuleNull.nameBase,moduleStates[state-1]))
+            else:
+                self.doTemplate(PuppetInstance)
+                
+        elif state is 2:#Deform
+            guiFactory.report("This should set '%s' to '%s' state"%(self.ModuleNull.nameBase,moduleStates[state-1]))
+            
+        elif state is 3:#Rig
+            guiFactory.report("This should set '%s' to '%s' state"%(self.ModuleNull.nameBase,moduleStates[state-1]))
+            
