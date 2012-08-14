@@ -1,17 +1,34 @@
+#=================================================================================================================================================
+#=================================================================================================================================================
+#	DraggerContextFactory - a part of cgmTools
+#=================================================================================================================================================
+#=================================================================================================================================================
+#
+# DESCRIPTION:
+#	Classes and functions for DraggerContext
+#
+#
+# AUTHOR:
+# 	Josh Burton
+#	http://www.cgmonks.com
+# 	Copyright 2011 CG Monks - All Rights Reserved.
+#
+# ACKNOWLEDGEMENTS:
+#   Morgan Loomis
+# 	http://forums.cgsociety.org/archive/index.php/t-983068.html
+# 	http://forums.cgsociety.org/archive/index.php/t-1002257.html
+# 	https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
+#======================================================================================================================
 import maya.cmds as mc
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as OpenMaya
 from zooPyMaya import apiExtensions
 
 from cgm.lib import (locators,
+                     distance,
                      guiFactory)
 import os
 
-
-    
-def pressPoint():
-    LocatePoint()
-    
 
 class ContextualPick(object):
     def __init__(self,name = 'cgmDraggerContext', *a,**kw):
@@ -80,122 +97,354 @@ class ContextualPick(object):
         
     def setTool(self):
         mc.setToolTo(self.name)
-        
-class LocatePoint(ContextualPick):
-    '''Creates the tool and manages the data'''
-
-    def __init__(self,drag = False, plane = [0,1,0], *a,**kw
-                 ):
-        
-        ContextualPick.__init__(self, drag = drag, plane = plane, *a,**kw )
-        
+              
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Subclasses
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class clickSurface(ContextualPick):
+    """
+    Find the points on a surface from a ContextualPick instance
     
+    Arguments
+    mesh(list) -- currently poly surfaces only
+    create() -- options - 'locator','joint'
+    closestOnly(bool) -- only get the closest point
+    
+    Stores
+    self.posList(list) -- points on the surface selected in world space
+    """  
+    def __init__(self,mesh = None, create = False, closestOnly = False,*a,**kw
+                 ):
+        self.mesh = mesh
+        self.create = create
+        self.closestOnly = closestOnly
+        
+        ContextualPick.__init__(self, drag = False, space = 'screen',projection = 'viewPlane', *a,**kw )
+
     def press(self):
         ContextualPick.press(self)
         self.returnList.append(self.anchorPoint)
-        nameBuffer = mc.spaceLocator()
-        mc.move (self.anchorPoint[0],self.anchorPoint[1],self.anchorPoint[2], nameBuffer[0]) 
-        return self.anchorPoint
+
+        buffer =  screenToWorld(int(self.anchorPoint[0]),int(self.anchorPoint[1]))#get world point and vector!
+        
+        if self.mesh is not None:
+            self.posList = []
+            for m in self.mesh:
+                if mc.objExists(m):
+                    pos = findMeshIntersection(m, buffer[0], buffer[1])
+                    if pos is not None:
+                        self.posList.append(pos)
+         
+            if self.posList:
+                if self.closestOnly:
+                    buffer = distance.returnClosestPoint(self.anchorPoint,self.posList)
+                    print buffer
+                    self.posList = [buffer]
+                    
+                if self.create:
+                    for pos in self.posList:
+                        if self.create == 'locator':
+                            nameBuffer = mc.spaceLocator()[0]
+                        elif self.create == 'joint':
+                            nameBuffer = mc.joint()
+                        else:
+                            raise NotImplementedError("'%s' hasn't been implemented as a create type yet"%self.create)
+                            
+                        mc.move (pos[0],pos[1],pos[2], nameBuffer)  
+                        
+            else:
+                guiFactory.warning("No hits detected")
+        else:
+            guiFactory.warning("No mesh specified")
+            return
         
     def release(self):pass
     
-    def drag(self):    
-        ContextualPick.drag(self)        
-        print ("Drag: " + str(self.dragPoint) + "  Button is " + str(self.button) + "  Modifier is " + self.modifier + "\n")
-        nameBuffer = mc.spaceLocator()
-        mc.move (self.dragPoint[0],self.dragPoint[1],self.dragPoint[2], nameBuffer[0])           
+    def drag(self):pass   
 
-
-class Testing(ContextualPick):
-    '''Creates the tool and manages the data'''
-
-    def __init__(self,drag = False,space = 'screen',projection = 'viewPlane', *a,**kw
-                 ):
-        
-        ContextualPick.__init__(self, drag = drag, space = space, projection = projection, *a,**kw )
-        
+class clickIntersections(ContextualPick):
+    """
+    Find the interectiions on surfaces
     
+    Arguments
+    mesh(list) -- currently poly surfaces only
+    create() -- options - 'locator','joint'
+    
+    returns hitpoints(list) -- [pos1,pos2...]
+    """  
+    def __init__(self,mesh = None, create = False,*a,**kw
+                 ):
+        self.mesh = mesh
+        self.create = create
+        self.intersections = False
+        
+        ContextualPick.__init__(self, drag = False, space = 'screen',projection = 'viewPlane', *a,**kw )
+
     def press(self):
         ContextualPick.press(self)
         self.returnList.append(self.anchorPoint)
-        print ("Press: " + str(self.anchorPoint) + "  Button is " + str(self.button) + "  Modifier is " + self.modifier + "\n")
 
-        return self.anchorPoint
+        buffer =  screenToWorld(int(self.anchorPoint[0]),int(self.anchorPoint[1]))#get world point and vector!
+        
+        if self.mesh is not None:
+            posList = []
+            for m in self.mesh:
+                if mc.objExists(m):
+                    pos = findMeshIntersections(m, buffer[0], buffer[1])
+                    if pos:
+                        posList.extend(pos)
+            if posList:
+                self.intersections = posList
+                guiFactory.report("Intersections are %s"%posList)
+                
+                if self.create:
+                    for pos in posList:
+                        if self.create == 'locator':
+                            nameBuffer = mc.spaceLocator()[0]
+                        elif self.create == 'joint':
+                            nameBuffer = mc.joint()
+                            mc.select(cl=True)
+                        else:
+                            raise NotImplementedError("'%s' hasn't been implemented as a create type yet"%self.create)
+                            
+                        mc.move (pos[0],pos[1],pos[2], nameBuffer)  
+                        
+   
+            else:
+                guiFactory.warning("No hits detected")
+        else:
+            guiFactory.warning("No mesh specified")
+            return
         
     def release(self):pass
     
-    def drag(self):    
-        ContextualPick.drag(self)        
-        print ("Drag: " + str(self.dragPoint) + "  Button is " + str(self.button) + "  Modifier is " + self.modifier + "\n")
+    def drag(self):pass
+    
+class clickMidPoint(ContextualPick):
+    """
+    Find the mid point of interected points on surfaces
+    
+    Arguments
+    mesh(list) -- currently poly surfaces only
+    create() -- options - 'locator','joint'    
+    
+    returns hitpoints(list) -- [pos1,pos2...]
+    """  
+    def __init__(self,mesh = None, create = False, *a,**kw
+                 ):
+        self.mesh = mesh
+        self.create = create
+        self.posList = []
+        ContextualPick.__init__(self, drag = False, space = 'screen',projection = 'viewPlane', *a,**kw )
 
+    def press(self):
+        ContextualPick.press(self)
+        self.returnList.append(self.anchorPoint)
+        
+        buffer =  screenToWorld(int(self.anchorPoint[0]),int(self.anchorPoint[1]))#get world point and vector!
+        
+        if self.mesh is not None:
+            posList = []
+            for m in self.mesh:
+                if mc.objExists(m):
+                    pos = findMeshIntersections(m, buffer[0], buffer[1])
+                    if pos:
+                        posList.extend(pos)
+            if posList:
+                pos = distance.returnAveragePointPosition(posList)
+                self.posList.append(pos)
+                    
+                if self.create:
+                    if self.create == 'locator':
+                        nameBuffer = mc.spaceLocator()[0]
+                    elif self.create == 'joint':
+                        nameBuffer = mc.joint()
+                    else:
+                        raise NotImplementedError("'%s' hasn't been implemented as a create type yet"%self.create)
+                        
+                    mc.move (pos[0],pos[1],pos[2], nameBuffer)  
+                    
+                guiFactory.report("Mid point is %s"%pos)
+                    
+                self.x = pos[0]
+                self.y = pos[1]
+                self.z = pos[2]
+            else:
+                guiFactory.warning("No hits detected")
+        else:
+            guiFactory.warning("No mesh specified")
+            return
+        
+    def release(self):pass
+    
+    def drag(self):pass
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Functions
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def screenToWorld(startX,startY):
-    maya3DViewHandle = OpenMayaUI.M3dView()
-    activeView = maya3DViewHandle.active3dView()
-    vertexMPoint = OpenMaya.MPoint()
-    vertexMVector = OpenMaya.MVector()
+    """
+    Function to convert a screen space draggerContext click to world space. 
+    
+    Arguments
+    startX(int)
+    startY(int)
+    
+    returns posDouble, vectorDouble
+    """
+    maya3DViewHandle = OpenMayaUI.M3dView() #3dView handle to be able to query
+    activeView = maya3DViewHandle.active3dView() # Get the active view
+    posMPoint = OpenMaya.MPoint() #Storage items
+    vecMVector = OpenMaya.MVector()
 
-    #activeView.worldToView(vertexMPoint, xPosShortPtr, yPosShortPtr,vecDirDoublePtr )
-    activeView.viewToWorld(startX, startY, vertexMPoint, vertexMVector )
-    pos = vertexMPoint.get()
-    vec = vertexMVector.get()
+    success = activeView.viewToWorld(startX, startY, posMPoint, vecMVector ) # The function
     
-    posUtil = OpenMaya.MScriptUtil()
-    vecUtil = OpenMaya.MScriptUtil()
+    return [posMPoint.x,posMPoint.y,posMPoint.z],[vecMVector.x,vecMVector.y,vecMVector.z]
+
+
+def findMeshIntersection(mesh, raySource, rayDir):
+    """
+    Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
-    posTranslate = posUtil.asDouble3Ptr(vertexMPoint)
-    vecTranslate = vecUtil.asDoublePtr(vertexMVector)
+    Return the closest point on a surface from a raySource and rayDir
     
+    Arguments
+    mesh(string) -- currently poly surface only
+    raySource(double3) -- point in world space
+    rayDir(double3) -- world space vector
     
-    return pos,vec
+    returns hitpoint(double3)
+    """    
+    #Create an empty selection list.
+    selectionList = OpenMaya.MSelectionList()
+
+    #Put the mesh's name on the selection list.
+    selectionList.add(mesh)
+
+    #Create an empty MDagPath object.
+    meshPath = OpenMaya.MDagPath()
+
+    #Get the first item on the selection list (which will be our mesh)
+    #as an MDagPath.
+    selectionList.getDagPath(0, meshPath)
+
+    #Create an MFnMesh functionset to operate on the node pointed to by
+    #the dag path.
+    meshFn = OpenMaya.MFnMesh(meshPath)
+
+    #Convert the 'raySource' parameter into an MFloatPoint.
+    raySource = OpenMaya.MFloatPoint(raySource[0], raySource[1], raySource[2])
+
+    #Convert the 'rayDir' parameter into an MVector.`
+    rayDirection = OpenMaya.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+
+    #Create an empty MFloatPoint to receive the hit point from the call.
+    hitPoint = OpenMaya.MFloatPoint()
+
+    #Set up a variable for each remaining parameter in the
+    #MFnMesh::closestIntersection call. We could have supplied these as
+    #literal values in the call, but this makes the example more readable.
+    sortIds = False
+    maxDist = OpenMaya.MDistance.internalToUI(1000) # This needs work
+    bothDirections = False
+    noFaceIds = None
+    noTriangleIds = None
+    noAccelerator = None
+    noHitParam = None
+    noHitFace = None
+    noHitTriangle = None
+    noHitBary1 = None
+    noHitBary2 = None
+
+    #Get the closest intersection.
+    gotHit = meshFn.closestIntersection(
+        raySource, rayDirection,
+        noFaceIds, noTriangleIds,
+        sortIds, OpenMaya.MSpace.kWorld, maxDist, bothDirections,
+        noAccelerator,
+        hitPoint,
+        noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2)
+
+    #Return the intersection as a Pthon list.
+    if gotHit:
+            return [hitPoint.x, hitPoint.y, hitPoint.z]
+    else:
+            return None    
         
-        
-        
-
-"""
-- Captured a mouse click event within a Context command
-- Ran a MGlobal::selectFromScreen on the mouse coords generated by the event
-- Used M3dView::active3dView().viewToWorld to convert 2D screen coords to 3D world coords
-This returns source and direction vectors
-- ran a MFnMesh.closestIntersection() using my vectors
-- Grabbed the hitPoint generated by this method to get final 3D pos (remember to use MDistance::internalToUI() )
-"""
-"""
-def worldToScreen(x,y,z):
-    import maya.OpenMayaUI as OpenMayaUI
-    import maya.OpenMaya as OpenMaya
-    maya3DViewHandle = OpenMayaUI.M3dView()
-    activeView = maya3DViewHandle.active3dView()
-    vertexMPoint = OpenMaya.MPoint(x,y,z)
+def findMeshIntersections(mesh, raySource, rayDir):
+    """
+    Return the pierced points on a surface from a raySource and rayDir
     
-    # Build utilities. maya crashes if you don't in 2011...
-    xUtil = OpenMaya.MScriptUtil()
-    yUtil = OpenMaya.MScriptUtil()
-    vecUtil = OpenMaya.MScriptUtil()
+    Arguments
+    mesh(string) -- currently poly surface only
+    raySource(double3) -- point in world space
+    rayDir(double3) -- world space vector
     
-    xPosShortPtr = xUtil.asShortPtr()
-    yPosShortPtr = yUtil.asShortPtr()
-    vecDirDoublePtr = vecUtil.asDouble3Ptr()
+    returns hitpoints(list) -- [pos1,pos2...]
+    """    
+    #Create an empty selection list.
+    selectionList = OpenMaya.MSelectionList()
+
+    #Put the mesh's name on the selection list.
+    selectionList.add(mesh)
+
+    #Create an empty MDagPath object.
+    meshPath = OpenMaya.MDagPath()
+
+    #Get the first item on the selection list (which will be our mesh)
+    #as an MDagPath.
+    selectionList.getDagPath(0, meshPath)
+
+    #Create an MFnMesh functionset to operate on the node pointed to by
+    #the dag path.
+    meshFn = OpenMaya.MFnMesh(meshPath)
+
+    #Convert the 'raySource' parameter into an MFloatPoint.
+    raySource = OpenMaya.MFloatPoint(raySource[0], raySource[1], raySource[2])
+
+    #Convert the 'rayDir' parameter into an MVector.`
+    rayDirection = OpenMaya.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+
+    #Create an empty MFloatPoint to receive the hit point from the call.
+    hitPoints = OpenMaya.MFloatPointArray()
+
+    #Set up a variable for each remaining parameter in the
+    #MFnMesh::allIntersections call. We could have supplied these as
+    #literal values in the call, but this makes the example more readable.
+    sortIds = False
+    maxDist = OpenMaya.MDistance.internalToUI(1000) # This needs work
+    bothDirections = False
+    noFaceIds = None
+    noTriangleIds = None
+    noHitParam = None
+    noSortHits = False
+    noHitFace = None
+    noHitTriangle = None
+    noHitBary1 = None
+    noHitBary2 = None
+    tolerance = 0
+    noAccelerator = None
+
+    #Get the closest intersection.
+    gotHit = meshFn.allIntersections(
+        raySource,
+        rayDirection,
+        noFaceIds,
+        noTriangleIds,
+        sortIds,
+        OpenMaya.MSpace.kWorld,
+        maxDist,
+        bothDirections,
+        noAccelerator,
+        noSortHits,
+        hitPoints, noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2,tolerance)
+
+    #Return the intersection as a Pthon list.
+    if gotHit:
+        returnList = []
+        for i in range( hitPoints.length() ):
+            returnList.append( [hitPoints[i].x, hitPoints[i].y,hitPoints[i].z])
+        return returnList
+    else:
+        return None   
     
-    #activeView.worldToView(vertexMPoint, xPosShortPtr, yPosShortPtr,vecDirDoublePtr )
-    activeView.worldToView(vertexMPoint, xPosShortPtr, yPosShortPtr,vecDirDoublePtr )
-    xPos = xUtil.getShort(xPosShortPtr)
-    yPos = yUtil.getShort(yPosShortPtr)
-    vec = vecUtil.getDouble(yPosShortPtr)
-    
-    return xPos,yPos,vec
-    
-worldToScreen(1,0,0)
-
-
-
-import maya.OpenMaya as om
-import maya.OpenMayaUI as omui
-
-3dView.viewToWorld(24,38)
-
-m3d = omui.M3dView()
-omui.M3dView.getM3dViewFromModelPanel('modelPanel4', m3d)
-msX = om.MScriptUtil()
-msY = om.MScriptUtil()
-xPtr = msX.asShortPtr()
-yPtr = msY.asShortPtr()"""
