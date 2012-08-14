@@ -32,26 +32,19 @@ def setupCGMScriptPaths():
 
     mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
-    cgmMelPath = thisPath / '/cgm/mel'
-    cgmZooPath = thisPath / '/cgm/lib/zoo'
 
-    if cgmMelPath not in mayaScriptPathsSet:
-        mayaScriptPaths.append( cgmMelPath )
-        mayaScriptPaths.extend( cgmMelPath.dirs( recursive=True ) )
+    for path in '/cgm/mel','/cgm/images','/cgm/lib/zoo':
+        fullPath = thisPath / path
+        if fullPath not in mayaScriptPathsSet:
+            mayaScriptPaths.append( fullPath )
+            mayaScriptPaths.extend( fullPath.dirs( recursive=True ) )
+    
+            mayaScriptPaths = removeDupes( mayaScriptPaths )
+            newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
+    
+            maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
 
-        mayaScriptPaths = removeDupes( mayaScriptPaths )
-        newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
-
-        maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
-
-    if cgmZooPath not in mayaScriptPathsSet:
-        mayaScriptPaths.append( cgmZooPath )
-        mayaScriptPaths.extend( cgmZooPath.dirs( recursive=True ) )
-
-        mayaScriptPaths = removeDupes( mayaScriptPaths )
-        newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
-
-        maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
+        
 
 def setupCGMPlugins():
     thisFile = Path( __file__ )
