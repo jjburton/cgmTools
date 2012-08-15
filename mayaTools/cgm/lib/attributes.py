@@ -491,10 +491,7 @@ def doGetAttr(obj,attr,*a, **kw):
             if not query == None:
                 return query[0]
             else:
-                return False
-        else:
-            return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
-        """
+                return False        
         elif attrType == 'double3':
             childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
             dataBuffer = []
@@ -506,8 +503,8 @@ def doGetAttr(obj,attr,*a, **kw):
             if parentAttr[0] not in objAttributes:
                 attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
         else:
-            return (mc.getAttr((obj+'.'+attr)))
-        """
+            return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+        
 
 
 
