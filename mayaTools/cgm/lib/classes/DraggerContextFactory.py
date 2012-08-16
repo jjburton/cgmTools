@@ -11,7 +11,7 @@
 # AUTHOR:
 # 	Josh Burton
 #	http://www.cgmonks.com
-# 	Copyright 2011 CG Monks - All Rights Reserved.
+# 	Copyright 2012 CG Monks - All Rights Reserved.
 #
 # ACKNOWLEDGEMENTS:
 #   Morgan Loomis
@@ -25,6 +25,8 @@ import maya.OpenMaya as OpenMaya
 from zooPyMaya import apiExtensions
 
 from cgm.lib import (locators,
+                     curves,
+                     rigging,
                      distance,
                      guiFactory)
 import os
@@ -43,58 +45,74 @@ class ContextualPick(object):
         cursor
         drag -- Whether to enable drag mode
         """
-        undoMode = kw.pop('undoMode','step')
-        projection = kw.pop('projection','plane')
-        plane = kw.pop('plane',[1,0,0])
+        self.undoMode = kw.pop('undoMode','step')
+        self.projection = kw.pop('projection','plane')
+        self.plane = kw.pop('plane',[1,0,0])
         self.space = kw.pop('space','world')
-        cursor = kw.pop('cursor','crossHair')
-        drag = kw.pop('drag',False)
-        
-        if mc.draggerContext(name,query=True,exists=True): # if it exists, delete it
-            mc.deleteUI(name)    
+        self.cursor = kw.pop('cursor','crossHair')
+        self.dragOption = kw.pop('drag',False)
         
         self.name = name
+        self.returnList = []
         
-        imageFilePath = ('cgmDefault.png')
-        mc.draggerContext( self.name,  image1 = imageFilePath,
-                           undoMode = undoMode, projection = projection, space = self.space,
-                           initialize = self.initialPress,
-                           pressCommand = self.press,
-                           *a,**kw )
-        
-        if projection == 'plane': mc.draggerContext(self.name,e=True, plane = plane)# if our projection is 'plane', set the plane
-        if drag:mc.draggerContext(self.name,e=True, dragCommand = self.drag)# If drag mode, turn it on
-
+        self.build(*a,**kw )
         self.setTool()
         
-    def finalize(self):
-        mc.setToolTo('selectSuperContext')
-        mc.selectMode(object=True)
+    def build(self,*a,**kw ):
+        if mc.draggerContext(self.name,query=True,exists=True): # if it exists, delete it
+            mc.setToolTo('selectSuperContext')        
+            mc.selectMode(object=True)             
+            mc.deleteUI(self.name)  
+            
+        imageFilePath = ('cgmDefault.png')
+            
+        mc.draggerContext( self.name,  image1 = imageFilePath,
+                           undoMode = self.undoMode, projection = self.projection, space = self.space,
+                           initialize = self.initialPress,
+                           pressCommand = self.press,
+                           releaseCommand = self.release,
+                           finalize = self.finalize,
+                           *a,**kw )
+        
+        if self.projection == 'plane': mc.draggerContext(self.name,e=True, plane = self.plane)# if our projection is 'plane', set the plane
+        if self.dragOption:mc.draggerContext(self.name,e=True, dragCommand = self.drag)# If drag mode, turn it on
+        
+        
+    def finalize(self):pass
+              
         
     def press(self):
+        if not mc.draggerContext(self.name,query=True,exists=True): # if it exists, delete it       
+            self.build
+            self.setTool()            
+        
         self.anchorPoint = mc.draggerContext(self.name, query=True, anchorPoint=True)
         self.modifier = mc.draggerContext(self.name, query=True, modifier=True)
         self.button = mc.draggerContext(self.name, query=True, button=True)
-        self.returnList.append(self.anchorPoint)
         
-        guiFactory.report("Position is %s in '%s' space"%(self.anchorPoint,self.space))
+        self.x = self.anchorPoint[0]
+        self.y = self.anchorPoint[1]
+        self.z = self.anchorPoint[2]
         
+        #guiFactory.report("Position is %s in '%s' space"%(self.anchorPoint,self.space))
+        
+    def release(self):pass
+    
     def drag(self):
         self.dragPoint = mc.draggerContext(self.name, query=True, dragPoint=True)
         self.button = mc.draggerContext( self.name, query=True, button=True)
         self.modifier = mc.draggerContext( self.name, query=True, modifier=True)
         
-        self.returnList.append(self.dragPoint)
+        self.x = self.dragPoint[0]
+        self.y = self.dragPoint[1]
+        self.z = self.dragPoint[2]
 
-    def initialPress(self):
-        self.returnList = []
-        mc.warning("Select the first point")
-         
+    def initialPress(self):pass
+    
     def dropTool(self):
         mc.setToolTo('selectSuperContext')        
         mc.selectMode(object=True) 
-        return self.returnList
-        
+            
     def setTool(self):
         mc.setToolTo(self.name)
               
@@ -107,177 +125,173 @@ class clickSurface(ContextualPick):
     
     Arguments
     mesh(list) -- currently poly surfaces only
-    create() -- options - 'locator','joint'
-    closestOnly(bool) -- only get the closest point
+    mode(string) -- ['surface','intersections','midPoint']
+    
+    create(False/option) -- options - 'locator','joint','curve','group' ('locator' is default
+    closestOnly(bool) -- only get the closest point (default - True)
+    clampIntersections(False/int) -- clamp number of interactions
     
     Stores
     self.posList(list) -- points on the surface selected in world space
     """  
-    def __init__(self,mesh = None, create = False, closestOnly = False,*a,**kw
+    def __init__(self,mesh = None, mode = 'surface', create = False, closestOnly = True,clampIntersections = False,*a,**kw
                  ):
-        self.mesh = mesh
-        self.create = create
+        assert mesh is not None, "Mesh must be specified"
+        assert type(mesh) is list, "Mesh specified must be list"
+        
+        self.meshList = []
+        self.createMode = create
         self.closestOnly = closestOnly
+        self.createdList = []
+        self.setMode(mode)
+        self.clampSetting = clampIntersections
+        self.returnList = []
         
-        ContextualPick.__init__(self, drag = False, space = 'screen',projection = 'viewPlane', *a,**kw )
-
-    def press(self):
-        ContextualPick.press(self)
-        self.returnList.append(self.anchorPoint)
-
-        buffer =  screenToWorld(int(self.anchorPoint[0]),int(self.anchorPoint[1]))#get world point and vector!
-        
-        if self.mesh is not None:
-            self.posList = []
-            for m in self.mesh:
-                if mc.objExists(m):
-                    pos = findMeshIntersection(m, buffer[0], buffer[1])
-                    if pos is not None:
-                        self.posList.append(pos)
-         
-            if self.posList:
-                if self.closestOnly:
-                    buffer = distance.returnClosestPoint(self.anchorPoint,self.posList)
-                    print buffer
-                    self.posList = [buffer]
-                    
-                if self.create:
-                    for pos in self.posList:
-                        if self.create == 'locator':
-                            nameBuffer = mc.spaceLocator()[0]
-                        elif self.create == 'joint':
-                            nameBuffer = mc.joint()
-                        else:
-                            raise NotImplementedError("'%s' hasn't been implemented as a create type yet"%self.create)
-                            
-                        mc.move (pos[0],pos[1],pos[2], nameBuffer)  
-                        
-            else:
-                guiFactory.warning("No hits detected")
-        else:
+        if mesh is None:
             guiFactory.warning("No mesh specified")
             return
-        
-    def release(self):pass
-    
-    def drag(self):pass   
-
-class clickIntersections(ContextualPick):
-    """
-    Find the interectiions on surfaces
-    
-    Arguments
-    mesh(list) -- currently poly surfaces only
-    create() -- options - 'locator','joint'
-    
-    returns hitpoints(list) -- [pos1,pos2...]
-    """  
-    def __init__(self,mesh = None, create = False,*a,**kw
-                 ):
-        self.mesh = mesh
-        self.create = create
-        self.intersections = False
-        
-        ContextualPick.__init__(self, drag = False, space = 'screen',projection = 'viewPlane', *a,**kw )
-
-    def press(self):
-        ContextualPick.press(self)
-        self.returnList.append(self.anchorPoint)
-
-        buffer =  screenToWorld(int(self.anchorPoint[0]),int(self.anchorPoint[1]))#get world point and vector!
-        
-        if self.mesh is not None:
-            posList = []
-            for m in self.mesh:
+        else:
+            for m in mesh:
                 if mc.objExists(m):
-                    pos = findMeshIntersections(m, buffer[0], buffer[1])
-                    if pos:
-                        posList.extend(pos)
-            if posList:
-                self.intersections = posList
-                guiFactory.report("Intersections are %s"%posList)
+                    self.meshList.append(m)
+                else:
+                    guiFactory.warning("'%s' doesn't exist. Ignoring..."%m)
+        
+        ContextualPick.__init__(self, drag = True, space = 'screen',projection = 'viewPlane', *a,**kw )
+        
+    def setMode(self,mode):
+        """
+        Set tool mode
+        """
+        assert mode in ['surface','intersections','midPoint'],"'%s' not a defined mode"%mode
+        self.mode = mode
+        
+    def setCreate(self,create):
+        """
+        Set tool mode
+        """
+        self.createMode = create
+        
+    def reset(self):
+        """
+        Reset data
+        """
+        self.createdList = []
+        self.returnList = []
+        
+        guiFactory.warning("'%s' reset."%self.name)
+        
+    def press(self):
+        """
+        Press action. Clears buffers.
+        """
+        ContextualPick.press(self)
+        self.createModeBuffer = []
+        self.updatePos()
+        
+    def finalize(self):
+        """
+        Press action. Clears buffers.
+        """
+        
+        if self.createMode in ['curve','joint','group'] and self.returnList and len(self.returnList)>1:
+            if self.createMode == 'group':
+                for i,o in enumerate(self.createdList):
+                    buffer = rigging.groupMeObject(o,False)
+                    try:mc.delete(o)
+                    except:pass
+                    self.createdList[i] = buffer                
+            else:
+                for o in self.createdList:
+                    try:mc.delete(o)
+                    except:pass
+                if self.createMode == 'curve':
+                    self.createdList = [curves.curveFromPosList(self.returnList)]
+                elif self.createMode == 'joint':
+                    self.createdList = []
+                    mc.select(cl=True)
+                    for pos in self.returnList:        
+                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2])) )            
+
+        
+    def release(self):
+        """
+        Store current data to return buffers
+        """       
+        guiFactory.report("Position data : %s "%(self.posBuffer))
+        if self.createModeBuffer:
+            guiFactory.report("Created : %s "%(self.createModeBuffer))
+            mc.select(cl=True)
                 
-                if self.create:
-                    for pos in posList:
-                        if self.create == 'locator':
-                            nameBuffer = mc.spaceLocator()[0]
-                        elif self.create == 'joint':
-                            nameBuffer = mc.joint()
-                            mc.select(cl=True)
-                        else:
-                            raise NotImplementedError("'%s' hasn't been implemented as a create type yet"%self.create)
-                            
-                        mc.move (pos[0],pos[1],pos[2], nameBuffer)  
-                        
-   
-            else:
-                guiFactory.warning("No hits detected")
-        else:
-            guiFactory.warning("No mesh specified")
-            return
+        #Only store return values on release
+        for p in self.posBuffer:
+            self.returnList.append(p)
+        self.createdList.extend(self.createModeBuffer)
+    
+    def drag(self):
+        """
+        update positions
+        """
+        ContextualPick.drag(self)
+        self.updatePos()
+    
+    def updatePos(self):
+        """
+        Get updated position data via shooting rays
+        """       
+        buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
+        self.clickPos = buffer[0] #Our world space click point
+        self.clickVector = buffer[1] #Camera vector
         
-    def release(self):pass
-    
-    def drag(self):pass
-    
-class clickMidPoint(ContextualPick):
-    """
-    Find the mid point of interected points on surfaces
-    
-    Arguments
-    mesh(list) -- currently poly surfaces only
-    create() -- options - 'locator','joint'    
-    
-    returns hitpoints(list) -- [pos1,pos2...]
-    """  
-    def __init__(self,mesh = None, create = False, *a,**kw
-                 ):
-        self.mesh = mesh
-        self.create = create
-        self.posList = []
-        ContextualPick.__init__(self, drag = False, space = 'screen',projection = 'viewPlane', *a,**kw )
-
-    def press(self):
-        ContextualPick.press(self)
-        self.returnList.append(self.anchorPoint)
+        self.posBuffer = []#Clear our pos buffer
         
-        buffer =  screenToWorld(int(self.anchorPoint[0]),int(self.anchorPoint[1]))#get world point and vector!
-        
-        if self.mesh is not None:
-            posList = []
-            for m in self.mesh:
-                if mc.objExists(m):
-                    pos = findMeshIntersections(m, buffer[0], buffer[1])
+        for m in self.meshList:#Get positions per mesh piece
+            if mc.objExists(m):
+                if self.mode == 'surface':
+                    pos = findMeshIntersection(m, self.clickPos , self.clickVector )
+                    if pos is not None:
+                        self.posBuffer.append(pos)                
+                else:
+                    pos = findMeshIntersections(m, self.clickPos ,  self.clickVector )              
                     if pos:
-                        posList.extend(pos)
-            if posList:
-                pos = distance.returnAveragePointPosition(posList)
-                self.posList.append(pos)
-                    
-                if self.create:
-                    if self.create == 'locator':
-                        nameBuffer = mc.spaceLocator()[0]
-                    elif self.create == 'joint':
+                        self.posBuffer.extend(pos)
+                        
+                if self.mode == 'midPoint' and self.posBuffer:
+                    if self.clampSetting and self.clampSetting < len(self.posBuffer):
+                        self.posBuffer = self.posBuffer[:self.clampSetting]
+                        
+                    self.posBuffer = [distance.returnAveragePointPosition(self.posBuffer)]
+
+                
+        if self.posBuffer: #Check for closest and just for hits
+            if self.closestOnly and self.mode != 'intersections':
+                buffer = distance.returnClosestPoint(self.anchorPoint,self.posBuffer)
+                self.posBuffer = [buffer]               
+        else:
+            guiFactory.warning("No hits detected")
+            
+        if self.createMode and self.posBuffer: # Make our stuff
+            #Delete the old stuff
+            if self.createModeBuffer:
+                for o in self.createModeBuffer:
+                    try:mc.delete(o)
+                    except:pass
+                self.createModeBuffer = []
+            
+            for pos in self.posBuffer:
+                if len(pos) == 3:
+                    if self.createMode == 'joint':
                         nameBuffer = mc.joint()
                     else:
-                        raise NotImplementedError("'%s' hasn't been implemented as a create type yet"%self.create)
+                        nameBuffer = mc.spaceLocator()[0]
                         
-                    mc.move (pos[0],pos[1],pos[2], nameBuffer)  
-                    
-                guiFactory.report("Mid point is %s"%pos)
-                    
-                self.x = pos[0]
-                self.y = pos[1]
-                self.z = pos[2]
-            else:
-                guiFactory.warning("No hits detected")
-        else:
-            guiFactory.warning("No mesh specified")
-            return
-        
-    def release(self):pass
-    
-    def drag(self):pass
+                    mc.move (pos[0],pos[1],pos[2], nameBuffer)              
+                    self.createModeBuffer.append(nameBuffer)
+                else:
+                    guiFactory.warning("'%s' isn't a valid position"%pos)
+                
+        mc.refresh()#Update maya to make it interactive!
+
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions
@@ -373,6 +387,8 @@ def findMeshIntersection(mesh, raySource, rayDir):
         
 def findMeshIntersections(mesh, raySource, rayDir):
     """
+    Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
+    
     Return the pierced points on a surface from a raySource and rayDir
     
     Arguments
