@@ -411,7 +411,7 @@ def createCurveFromJoints (startJoint):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Joint Chain Creation Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def createJointsFromPosListName (jointPositions,name):
+def createJointsFromPosListName (jointPositions,name = 'joint'):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         DESCRIPTION:
