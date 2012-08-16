@@ -678,6 +678,29 @@ def curveFromObjList(objList):
     crvName = mc.curve (d=curveDegree, p = objPositionList , os=True, )
     return crvName
 
+def curveFromPosList(posList):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Creates a curve from an object list through the object's pivots
+
+    ARGUMENTS:
+    objList(list)
+
+    RETURNS:
+    crvName(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """   
+    # Get the curve degree
+    if len(posList) <= 3:
+        curveDegree = 1
+    else:
+        #curveDegree = 4
+        curveDegree = len(posList) - 1
+
+    # Make the curve
+    return mc.curve (d=curveDegree, p = posList , ws=True, )
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def createControlCurve(desiredShape,size,direction='z+'):
