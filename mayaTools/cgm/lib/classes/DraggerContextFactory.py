@@ -26,6 +26,8 @@ from zooPyMaya import apiExtensions
 
 from cgm.lib import (locators,
                      curves,
+                     search,
+                     lists,
                      rigging,
                      distance,
                      guiFactory)
@@ -121,43 +123,85 @@ class ContextualPick(object):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 class clickSurface(ContextualPick):
     """
-    Find the points on a surface from a ContextualPick instance
+    Find positional data from clicking on a surface from a ContextualPick instance.
+    And other things...:)
     
     Arguments
     mesh(list) -- currently poly surfaces only
-    mode(string) -- ['surface','intersections','midPoint']
+    mode(string) -- options:('surface' is default)
+                    'surface' -- surface hit per mesh piece
+                    'intersections' -- all hits on the vector ray
+                    'midPoint' -- mid point of intersections
     
-    create(False/option) -- options - 'locator','joint','curve','group' ('locator' is default
-    closestOnly(bool) -- only get the closest point (default - True)
+    create(False/option) -- options:('locator' is default)
+                            'locator' -- makes a locator 
+                            'joint' -- creates joints per click
+                            'jointChain' -- rebuilds all positions as a chain at tool exit
+                            'curve' -- builds curve from positions at tool exit
+                            'group' -- build groups at positions
+                            
+    closestOnly(bool) -- only return the closest hit from all mesh hits (default - True)
     clampIntersections(False/int) -- clamp number of interactions
+    dragStore(bool) -- whether to force store data during drag
     
     Stores
     self.posList(list) -- points on the surface selected in world space
     """  
-    def __init__(self,mesh = None, mode = 'surface', create = False, closestOnly = True,clampIntersections = False,*a,**kw
-                 ):
-        assert mesh is not None, "Mesh must be specified"
-        assert type(mesh) is list, "Mesh specified must be list"
+    def __init__(self,
+                 mode = 'surface',
+                 mesh = None,
+                 create = False,
+                 closestOnly = True,
+                 clampIntersections = False,
+                 dragStore = False,
+                 *a,**kw):
+        # Set our attributes  
+        self.createModes = ['locator','joint','jointChain','curve','group',False]
         
         self.meshList = []
         self.createMode = create
         self.closestOnly = closestOnly
         self.createdList = []
-        self.setMode(mode)
         self.clampSetting = clampIntersections
+        self.dragStoreMode = dragStore
         self.returnList = []
+        self.posBuffer = False
+        self.createModeBuffer = False
         
-        if mesh is None:
-            guiFactory.warning("No mesh specified")
-            return
-        else:
-            for m in mesh:
-                if mc.objExists(m):
-                    self.meshList.append(m)
-                else:
-                    guiFactory.warning("'%s' doesn't exist. Ignoring..."%m)
-        
+        self.setMode(mode)
+               
         ContextualPick.__init__(self, drag = True, space = 'screen',projection = 'viewPlane', *a,**kw )
+        
+        if mesh is not None:
+            assert type(mesh) is list,"Mesh call must be in list form when called"
+            for m in mesh:
+                self.addTargetMesh(m)        
+        
+    def addTargetMesh(self,mesh):
+        """
+        Add target mesh to the tool
+        """
+        if not mc.objExists(mesh):
+            guiFactory.warning("'%s' doesn't exist. Ignoring..."%mesh)
+            return False
+
+        if mesh not in self.meshList:
+            buffer = search.returnObjectType(mesh)
+            if buffer == 'mesh':
+                self.meshList.append(mesh)
+                return True
+            else:
+                guiFactory.warning("'%s' is not a mesh. It is returning as '%s'"%(mesh,buffer))
+                return False
+        return False
+            
+    def removeTargetMesh(self,mesh):
+        """
+        Remove target mesh to the tool
+        """
+        if mesh in self.meshList:
+            self.meshList.remove(mesh) 
+            guiFactory.report("'%s' removed from '%s'"%(mesh,self.name))
         
     def setMode(self,mode):
         """
@@ -166,11 +210,26 @@ class clickSurface(ContextualPick):
         assert mode in ['surface','intersections','midPoint'],"'%s' not a defined mode"%mode
         self.mode = mode
         
+    def setClamp(self,setting):
+        """
+        Set clamp setting
+        """
+        assert setting is int or False,"'%s' is not a valid setting"
+        self.clampSetting = setting
+        
     def setCreate(self,create):
         """
         Set tool mode
         """
+        assert create in self.createModes,"'%s' is not a valid create mode"        
         self.createMode = create
+        
+    def setDragStoreMode(self,mode):
+        """
+        Set drag update mode
+        """
+        assert type(mode) is bool,"'%s' should be a bool"                
+        self.dragStoreMode = mode
         
     def reset(self):
         """
@@ -180,6 +239,9 @@ class clickSurface(ContextualPick):
         self.returnList = []
         
         guiFactory.warning("'%s' reset."%self.name)
+        
+    def setTool(self):
+        ContextualPick.setTool(self)
         
     def press(self):
         """
@@ -193,40 +255,52 @@ class clickSurface(ContextualPick):
         """
         Press action. Clears buffers.
         """
+        #Clean our lists...
+        self.createdList = lists.returnListNoDuplicates(self.createdList)
+        self.returnList = lists.returnListNoDuplicates(self.returnList)
         
-        if self.createMode in ['curve','joint','group'] and self.returnList and len(self.returnList)>1:
+        if self.createMode in ['curve','jointChain','group'] and self.returnList and len(self.returnList)>1:
             if self.createMode == 'group':
+                bufferList = []
                 for i,o in enumerate(self.createdList):
                     buffer = rigging.groupMeObject(o,False)
+                    bufferList.append(buffer)                    
                     try:mc.delete(o)
                     except:pass
-                    self.createdList[i] = buffer                
+                self.createdList = bufferList
             else:
                 for o in self.createdList:
                     try:mc.delete(o)
                     except:pass
                 if self.createMode == 'curve':
-                    self.createdList = [curves.curveFromPosList(self.returnList)]
-                elif self.createMode == 'joint':
+                    if len(self.returnList) > 1:
+                        self.createdList = [mc.curve (d=2, p = self.returnList , ws=True)]
+                    else:
+                        guiFactory.warning("Need at least 2 points for a curve")                        
+                elif self.createMode == 'jointChain':
                     self.createdList = []
                     mc.select(cl=True)
                     for pos in self.returnList:        
                         self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2])) )            
-
+        self.reset()
+        
         
     def release(self):
         """
         Store current data to return buffers
-        """       
-        guiFactory.report("Position data : %s "%(self.posBuffer))
+        """
+        if self.posBuffer:
+            guiFactory.report("Position data : %s "%(self.posBuffer))
         if self.createModeBuffer:
             guiFactory.report("Created : %s "%(self.createModeBuffer))
             mc.select(cl=True)
                 
         #Only store return values on release
-        for p in self.posBuffer:
-            self.returnList.append(p)
-        self.createdList.extend(self.createModeBuffer)
+        if self.posBuffer:
+            for p in self.posBuffer:
+                self.returnList.append(p)
+        if self.createModeBuffer:
+            self.createdList.extend(self.createModeBuffer)
     
     def drag(self):
         """
@@ -234,11 +308,21 @@ class clickSurface(ContextualPick):
         """
         ContextualPick.drag(self)
         self.updatePos()
-    
+        
+        if self.dragStoreMode:
+            if self.posBuffer:
+                for p in self.posBuffer:
+                    self.returnList.append(p)
+        if self.createModeBuffer:
+            self.createdList.extend(self.createModeBuffer) 
+            
     def updatePos(self):
         """
         Get updated position data via shooting rays
-        """       
+        """
+        if not self.meshList:
+            return guiFactory.warning("No mesh objects have been added to '%s'"%(self.name))
+        
         buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
         self.clickPos = buffer[0] #Our world space click point
         self.clickVector = buffer[1] #Camera vector
@@ -267,8 +351,8 @@ class clickSurface(ContextualPick):
             if self.closestOnly and self.mode != 'intersections':
                 buffer = distance.returnClosestPoint(self.anchorPoint,self.posBuffer)
                 self.posBuffer = [buffer]               
-        else:
-            guiFactory.warning("No hits detected")
+        else:pass
+            #guiFactory.warning("No hits detected")
             
         if self.createMode and self.posBuffer: # Make our stuff
             #Delete the old stuff
