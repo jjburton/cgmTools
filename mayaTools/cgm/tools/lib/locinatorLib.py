@@ -272,7 +272,11 @@ def queryCanUpdate(objectToUpdate):
 	if search.returnTagInfo(objectToUpdate,'cgmLocMode'):
 	    return True
 	else:
-	    return False
+	    matchObject = search.returnTagInfo(objectToUpdate,'cgmMatchObject')
+	    if mc.objExists(matchObject):
+		return True
+	    else:
+		return False
     else:
 	matchObject = search.returnTagInfo(objectToUpdate,'cgmMatchObject')
 	if mc.objExists(matchObject):
@@ -400,30 +404,38 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
     self.forceBoundingBoxState = mc.optionVar( q='cgmVar_ForceBoundingBoxState' )
     getSelfOptionVars(self)
 
-    toUpdate = []
+    objectsToUpdate = {}
+    
     # First see if we have any updateable objects
     for item in selection:
-	if queryCanUpdate(item):
-	    toUpdate.append(item)
+	matchObject = search.returnTagInfo(item,'cgmMatchObject')
+	if mc.objExists(matchObject):
+	    objectsToUpdate[item] = matchObject
+	    
+	elif search.returnObjectType(item) == 'locator':
+	    if search.returnTagInfo(item,'cgmLocMode'): 
+		objectsToUpdate[item] = False
 
     print "Self bake mode is '%s'"%self.bakeMode
     print "Force Every Frame mode is '%s'"%self.forceEveryFrame
-    if toUpdate:
+    
+    if objectsToUpdate:
 	if not self.bakeMode:
 	    #Single frame update
-	    for item in toUpdate:
-		if search.returnObjectType(item) == 'locator':
-		    if locators.doUpdateLocator(item,self.forceBoundingBoxState):
-			guiFactory.warning("'%s' updated..."%item)
-		    else:
-			guiFactory.warning('%s%s' % (item, " could not be updated..."))
-		else:
-		    matchObject = search.returnTagInfo(item,'cgmMatchObject')
+	    for item in objectsToUpdate.keys():
+		if objectsToUpdate[item]:
 		    if doUpdateObj(self,item):
 			print ("'%s' updated..."%item)
 		    else:
 			guiFactory.warning('%s%s' % (item, " has no match object"))
-	    mc.select(toUpdate)
+		else:	
+		    if locators.doUpdateLocator(item,self.forceBoundingBoxState):
+			guiFactory.warning("'%s' updated..."%item)
+		    else:
+			guiFactory.warning('%s%s' % (item, " could not be updated..."))
+	    
+
+	    mc.select(objectsToUpdate.keys())
 
 	else:
 	    #Multi frame update
@@ -434,17 +446,16 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 	    constraintList = []
 	    itemBaseAttrs = {}
 
-
 	    if self.forceEveryFrame== True:
-		for item in toUpdate:
+		for item in objectsToUpdate.keys():
 		    #Then delete the key clear any key frames in the region to be able to cleanly put new ones on keys only mode
 		    mc.cutKey(item,animation = 'objects', time=(self.startFrame,self.endFrame + 1),at= matchModeKeyingDict.get(self.matchMode))
 
 		mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(range(self.startFrame,self.endFrame + 1)),"On '%s'"%item)
 		maxRange = self.endFrame + 1
 		#First set up our constraints for non locator objects
-		for item in toUpdate:
-		    if search.returnObjectType(item) != 'locator' and queryCanUpdate(item):
+		for item in objectsToUpdate.keys():
+		    if objectsToUpdate[item]:
 			#Grab an attr buffer to see if a blendParent pops up
 			itemBaseAttrs[item] = mc.listAttr(item, userDefined = True)
 			#Then set up the constraint
@@ -453,13 +464,17 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 		for f in range(self.startFrame,self.endFrame + 1):
 		    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 			break
-		    mc.progressBar(mayaMainProgressBar, edit=True, status = ("On frame %i for '%s'"%(f,"','".join(toUpdate))), step=1)                    
+		    mc.progressBar(mayaMainProgressBar, edit=True, status = ("On frame %i for '%s'"%(f,"','".join(objectsToUpdate))), step=1)                    
 
 		    mc.currentTime(f)
-		    for item in toUpdate:
-			if search.returnObjectType(item) == 'locator':
+		    for item in objectsToUpdate.keys():
+			if not objectsToUpdate[item]:#locators are stored with false matchObjects
 			    locators.doUpdateLocator(item,self.forceBoundingBoxState)
+			else:
+			    doUpdateObj(self,item)
+			    
 			mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
+			
 
 			#See if we got a new blendParent pop up we need to set to 1
 			compareAttrList = mc.listAttr(item, userDefined = True)
@@ -482,15 +497,13 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 		#guiFactory.doCloseProgressWindow()
 		#Put the time line back where it was
 		mc.currentTime(initialFramePosition)
-		mc.select(toUpdate)
+		mc.select(objectsToUpdate.keys())
 
 	    else:
 		guiFactory.doProgressWindow()
-		itemCnt = 0
 
-		for item in toUpdate:
-		    print item
-		    if guiFactory.doUpdateProgressWindow('On ',itemCnt,(len(toUpdate)),item) == 'break':
+		for itemCnt,item in enumerate(objectsToUpdate.keys()):
+		    if guiFactory.doUpdateProgressWindow('On ',itemCnt,(len(objectsToUpdate)),item) == 'break':
 			break
 
 		    # If our object is a locator that's created from muliple sources, we need to check each object for keyframes
@@ -544,9 +557,12 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 			    mc.progressBar(mayaMainProgressBar, edit=True, status = ('%s%i' % ('Copying f',f)), step=1)
 
 			    mc.currentTime(f)
-			    if search.returnObjectType(item) == 'locator':
+			    
+			    if search.returnObjectType(item) == 'locator' and not objectsToUpdate[item]:
 				locators.doUpdateLocator(item,self.forceBoundingBoxState)
-
+			    else:
+				doUpdateObj(self,item)
+				
 			    mc.setKeyframe(item,time = f,at= matchModeKeyingDict.get(self.matchMode))
 
 			    #See if we got a new blendParent pop up we need to set to 1
@@ -574,7 +590,7 @@ def doUpdateLoc(self, forceCurrentFrameOnly = False ):
 		#Put the time line back where it was
 
 		mc.currentTime(initialFramePosition)
-		mc.select(toUpdate)
+		mc.select(objectsToUpdate.keys())
 
 	if self.LocinatorUpdateObjectsOptionVar.value and preSelectBuffer:
 	    mc.select(preSelectBuffer)
