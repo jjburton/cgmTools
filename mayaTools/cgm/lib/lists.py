@@ -395,7 +395,27 @@ def returnMatchedStrippedEndList(searchList,searchTerms = ['left','right']):
                             newList.append(set)
     return newList
 
-
+def returnReplacedNameList(searchList,replaceWith = {'left':'right'}):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Look through a list for match terms like ['left','right'] and returns a
+    nested pairs list
+    
+    ARGUMENTS:
+    searchList(list) - should be a nested list
+    searchTerm(string) - what you wanna look for
+    
+    RETURNS:
+    newList(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    newList = []
+    for i,term in enumerate(searchList):
+        for q in replaceWith.keys():
+            if q in term:
+                newList.append(term.replace(q,replaceWith[q]))
+    return newList
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # CV Lists
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
