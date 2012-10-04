@@ -39,7 +39,7 @@ from cgm.lib.ml import (ml_resetChannels)
 
 reload(ml_resetChannels)
 
-setTypes = {'animation':'animationSet',
+setTypes = {'animation':'animSet',
             'layout':'layoutSet',
             'modeling':'modelingSet',
             'td':'tdSet',
