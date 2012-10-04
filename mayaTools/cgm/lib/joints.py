@@ -126,7 +126,7 @@ def setRotationOrderOnJoint (jnt, ro):
         return successRO
 
 # #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def orientJoint (jointToOrient, orientation, up):
+def orientJoint (jointToOrient, orientation = 'xyz', up = 'none'):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         DESCRIPTION:
@@ -150,17 +150,14 @@ def orientJoint (jointToOrient, orientation, up):
                 return False
         if not up in secondaryAxisOptions:
                 print (up + ' is not an acceptable second axis. Expected one of the following:')
-                print secondaryAxisOptions
                 return False
         else:
                 childJoint = mc.listRelatives(jointToOrient, type="joint", c=True)
-                print childJoint
                 if childJoint != None:
                         if len(childJoint) > 0:
-                                try:
-                                        mc.joint (jointToOrient, e=True, orientJoint= orientation, secondaryAxisOrient= up)
-                                except:
-                                        return False
+                                mc.makeIdentity(jointToOrient,apply=True,r = True)
+                                mc.joint (jointToOrient, e=True, orientJoint= orientation, secondaryAxisOrient= up)
+
                 else:
                         #Child joint. Use the same rotation as the parent.
                         parentJoint = mc.listRelatives(jointToOrient, type="joint", p=True) 		
