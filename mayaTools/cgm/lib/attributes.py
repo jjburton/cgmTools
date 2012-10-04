@@ -500,8 +500,12 @@ def doGetAttr(obj,attr,*a, **kw):
             return dataBuffer
         elif attrType == 'double':
             parentAttr = mc.attributeQuery(attr, node =obj, listParent = True)
-            if parentAttr[0] not in objAttributes:
-                attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
+            if parentAttr:
+                if parentAttr[0] not in objAttributes:
+                    attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
+            else:
+                return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+
         else:
             return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
         
@@ -801,7 +805,7 @@ def returnMatchNameAttrsDict(fromObject,toObject,attributes=[True],directMatchOn
     return False
                     
             
-def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, **kw):
+def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     """                                     
     DESCRIPTION:
     Replacement for Maya's since maya's can't handle shapes....blrgh...
@@ -821,7 +825,8 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, **kw):
     outGoingConnections(bool) -- default False
     keepSourceConnections(bool)-- keeps connections on source. default True
     copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
-    connectSourceToTarget(bool) useful for moving attribute controls to another object. default False
+    connectSourceToTarget(bool) --useful for moving attribute controls to another object. default False
+    connectTargetToSource(bool) --useful for moving attribute controls to another object. default False
     
     RETURNS:
     success(bool)
@@ -1855,7 +1860,7 @@ def returnUserAttrsToDict(obj):
                 attrDict[attr] = dataBuffer
             elif attrType == 'double':
                 parentAttr = mc.attributeQuery(attr, node =obj, listParent = True)
-                if parentAttr != None:
+                if parentAttr:
                     if parentAttr[0] not in objAttributes:
                         attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
                     else:
