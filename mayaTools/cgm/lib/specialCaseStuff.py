@@ -204,8 +204,8 @@ def copyMouthSDKsPhosphor(sourceJoint,targetJoint):
             
 def parentObjectToNameObject(object):
     object = NameFactory(object)
-    if mc.objExists(object.cgmName):
-        obj = rigging.doParentReturnName(object.nameLong,object.cgmName)
+    if mc.objExists(object.cgm['cgmName']):
+        obj = rigging.doParentReturnName(object.nameLong,object.cgm['cgmName'])
             
 def copyMouthSDKs2Phosphor(sourceJoint,targetJoint):
     from cgm.lib import sdk

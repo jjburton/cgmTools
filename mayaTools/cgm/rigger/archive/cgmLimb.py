@@ -19,6 +19,7 @@ from cgm.lib import (search,
                      names,
                      attributes,
                      names,
+                     logic,
                      rigging,
                      constraints,
                      curves,
@@ -1940,7 +1941,7 @@ def doGeneratePartBaseDistance(locator,meshGroup):
         locOrder = [locator,measureLoc]
         
         """ determine our aim direction """
-    aimDirection = locators.returnLinearDirection(locOrder[0],locOrder[1])
+    aimDirection = logic.returnLinearDirection(locOrder[0],locOrder[1])
     aimVector = vectorToStringDict.get(aimDirection)
     maxIndexMatch =  max(aimVector)
     maxIndex = aimVector.index(maxIndexMatch)
