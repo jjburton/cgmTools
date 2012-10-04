@@ -770,7 +770,7 @@ def returnReferencePrefix(obj):
     """ first check if referenced """
     if mc.referenceQuery(obj, isNodeReferenced=True) == True:
         splitBuffer = obj.split(':')
-        return (splitBuffer[0])
+        return (':'.join(splitBuffer[:-1]))
     else:
         return False
 
