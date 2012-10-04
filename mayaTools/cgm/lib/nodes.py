@@ -89,7 +89,7 @@ def createPoseBuffer(name,poseList):
     poseBuffer = NameFactory.doNameObject(poseBuffer)
     returnList.append(poseBuffer)
     
-    returnList.append(attributes.addFloatAttrsToObj(poseBuffer, poseList,dv = 0))
+    returnList.append(attributes.addFloatAttrsToObj(poseBuffer, poseList,dv = 0,keyable=True))
     
     attributes.doSetLockHideKeyableAttr(poseBuffer,True,False,False)
     
@@ -149,8 +149,8 @@ def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferCon
 #
 # ====================================================================================================================
 def createNamedNode (nodeName, type):
-    nodeSuffixDictionary = {'curveInfo':'crvInfo','multiplyDivide':'mdNode','pointOnSurfaceInfo':'posInfoNode','closestPointOnSurface':'cPntOnSurfNode','closestPointOnMesh':'cPntOnMeshNode','plusMinusAverage':'pmAvNode','frameCache':'fCacheNode'}
-    utilityNodeList = ['plusMinusAverage']
+    nodeSuffixDictionary = {'curveInfo':'crvInfo','condition':'condNode','multiplyDivide':'mdNode','pointOnSurfaceInfo':'posInfoNode','closestPointOnSurface':'cPntOnSurfNode','closestPointOnMesh':'cPntOnMeshNode','plusMinusAverage':'pmAvNode','frameCache':'fCacheNode'}
+    utilityNodeList = ['plusMinusAverage','condition']
     if not type in nodeSuffixDictionary:
         print (type + ' is not a node type or is not in the dictionary. Expected one of the following:')
         print nodeSuffixDictionary
