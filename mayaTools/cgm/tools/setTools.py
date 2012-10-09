@@ -17,7 +17,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.06132012'
+__version__ = '0.1.10082012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
@@ -43,7 +43,7 @@ class setToolsClass(BaseMelWindow):
 	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'cgmSetToolsWindow'
-	WINDOW_TITLE = 'cgm.setTools'
+	WINDOW_TITLE = 'cgm.setTools - %s'%__version__
 	DEFAULT_SIZE = 275, 400
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -101,8 +101,9 @@ class setToolsClass(BaseMelWindow):
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_setToolsShowHelp', defaultValue = 0)
 		self.MaintainLocalSetGroupOptionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup', defaultValue = 1)
 		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
+		self.HideNonQssOptionVar = OptionVarFactory('cgmVar_HideNonQss', defaultValue = 0)		
 		self.HideAnimLayerSetsOptionVar = OptionVarFactory('cgmVar_HideAnimLayerSets', defaultValue = 1)
-		self.HideMayaSetsOptionVar = OptionVarFactory('cgmVar_HideMayaSets', defaultValue = 1)
+		self.HideMayaSetsOptionVar = OptionVarFactory('cgmVar_HideMayaSets', defaultValue = 0)
 		
 		
 		guiFactory.appendOptionVarList(self,self.ActiveObjectSetsOptionVar.name)
@@ -112,6 +113,7 @@ class setToolsClass(BaseMelWindow):
 		guiFactory.appendOptionVarList(self,self.ShowHelpOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.KeyTypeOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideSetGroupOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.HideNonQssOptionVar.name)		
 		guiFactory.appendOptionVarList(self,self.MaintainLocalSetGroupOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideAnimLayerSetsOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideMayaSetsOptionVar.name)
@@ -193,13 +195,16 @@ class setToolsClass(BaseMelWindow):
 		#>>> Grouping Options
 		GroupingMenu = MelMenuItem( self.UI_OptionsMenu, l='Grouping', subMenu=True)
 		
-		#guiFactory.appendOptionVarList(self,'cgmVar_MaintainLocalSetGroup')			
+		#guiFactory.appendOptionVarList(self,'cgmVar_MaintainLocalSetGroup')	
+		MelMenuItem( GroupingMenu, l="Group Local",
+	                 c= lambda *a: setToolsLib.doGroupLocal(self))
+		
 		MelMenuItem( GroupingMenu, l="Maintain Local Set Group",
 	                 cb= mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ),
 	                 c= lambda *a: setToolsLib.doSetMaintainLocalSetGroup(self))
 		
 		
-		#>>> Grouping Options
+		#>>> Autohide Options
 		HidingMenu = MelMenuItem( self.UI_OptionsMenu, l='Auto Hide', subMenu=True)
 		
 		#guiFactory.appendOptionVarList(self,'cgmVar_MaintainLocalSetGroup')			
@@ -210,6 +215,10 @@ class setToolsClass(BaseMelWindow):
 		MelMenuItem( HidingMenu, l="Maya Sets",
 	                 cb= self.HideMayaSetsOptionVar.value,
 	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideMayaSetsOptionVar))
+		
+		MelMenuItem( HidingMenu, l="Non Qss Sets",
+	                 cb= self.HideNonQssOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideNonQssOptionVar))
 		
 		MelMenuItem( HidingMenu, l="Set Groups",
 	                 cb= self.HideSetGroupOptionVar.value,
@@ -342,8 +351,8 @@ class setToolsClass(BaseMelWindow):
 		# Mode toggle box
 		self.SetModeOptionMenu = MelOptionMenu(AllSetsRow,
 		                                       cc = modeSet)
-		for o in self.setModes:
-			self.SetModeOptionMenu.append(o)
+		for m in self.setModes:
+			self.SetModeOptionMenu.append(m)
 			
 		self.SetModeOptionMenu.selectByIdx(self.setMode,False)
 			
@@ -376,13 +385,18 @@ class setToolsClass(BaseMelWindow):
 		allCategoryMenu = MelMenuItem(allPopUpMenu,
 	                               label = 'Make Type:',
 	                               sm = True)
+		
+		multiMakeQssMenu = MelMenuItem(allPopUpMenu,
+		                               label = 'Make Qss',
+		                               c = Callback(setToolsLib.doMultiSetQss,self,True))
+		multiMakeNotQssMenu = MelMenuItem(allPopUpMenu,
+		                                  label = 'Clear Qss State',
+		                                  c = Callback(setToolsLib.doMultiSetQss,self,False))		
 		#Mulit set type
 		for n in self.setTypes:
 			MelMenuItem(allCategoryMenu,
 		                label = n,
 		                c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n))
-		
-		
 		
 		
 		#>>> Sets building section
@@ -393,22 +407,26 @@ class setToolsClass(BaseMelWindow):
 		self.objectSetsDict = {}
 		self.activeSetsCBDict = {}
 		
-		for i,b in enumerate(self.objectSets):
+		for b in self.objectSets:
 			#Store the info to a dict
-			self.objectSetsDict[i] = b
-			s = SetFactory(b)
+			try:
+				i = self.setInstancesFastIndex[b] # get the index
+				sInstance = self.setInstances[i] # fast link to the instance
+			except:
+				raise StandardError("'%s' failed to query an active instance"%b)
 			
 			tmpSetRow = MelFormLayout(SetListColumn,height = 20)
 			
 			#Get check box state
 			activeState = False
-			if b in self.ActiveObjectSetsOptionVar.value:
+			if sInstance.nameShort in self.ActiveObjectSetsOptionVar.value:
 				activeState = True
 			tmpActive = MelCheckBox(tmpSetRow,
 		                            annotation = 'make set as active',
 		                            value = activeState,
 		                            onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
 		                            offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i))
+			
 			self.activeSetsCBDict[i] = tmpActive
 			
 			tmpSel = guiFactory.doButton2(tmpSetRow,
@@ -417,8 +435,8 @@ class setToolsClass(BaseMelWindow):
 		                                  'Select the set objects')
 				
 
-			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = b,
-			                       en = not s.refState)
+			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = sInstance.nameShort,
+			                       editable = not sInstance.refState)
 			
 			tmpName(edit = True,
 			        ec = Callback(setToolsLib.doUpdateSetName,self,tmpName,i)	)
@@ -428,12 +446,12 @@ class setToolsClass(BaseMelWindow):
 			                               '+',
 			                               Callback(setToolsLib.doAddSelected,self,i),
 			                               'Add selected  to the set',
-			                               en = not s.refState)
+			                               en = not sInstance.refState)
 			tmpRem= guiFactory.doButton2(tmpSetRow,
 			                             '-',
 			                             Callback(setToolsLib.doRemoveSelected,self,i),
 			                             'Remove selected  to the set',
-			                             en = not s.refState)
+			                             en = not sInstance.refState)
 			tmpKey = guiFactory.doButton2(tmpSetRow,
 			                              'k',
 			                              Callback(setToolsLib.doKeySet,self,i),			                              
@@ -463,21 +481,34 @@ class setToolsClass(BaseMelWindow):
 			
 			#Build pop up for text field
 			popUpMenu = MelPopupMenu(tmpName,button = 3)
-			qssMenu = MelMenuItem(popUpMenu,
-			                    label = "<<<%s>>>"%b,
-			                    enable = False)
+			MelMenuItem(popUpMenu,
+			            label = "<<<%s>>>"%b,
+			            enable = False)
 			
-			qssState = False
-			Set = SetFactory(b)
-			qssState = Set.qssState
+			enabledMenuLogic = True
+			if sInstance.mayaSetState or sInstance.refState:
+				if sInstance.mayaSetState:
+					MelMenuItem(popUpMenu,
+						        label = "<Maya Default Set>",
+						        enable = False)				
+				if sInstance.refState:
+					MelMenuItem(popUpMenu,
+						        label = "<Referenced>",
+						        enable = False)
+				
+				enabledMenuLogic = False
+								
+			qssState = sInstance.qssState
 			qssMenu = MelMenuItem(popUpMenu,
 			                      label = 'Qss',
 			                      cb = qssState,
-			                      c = Callback(setToolsLib.doToggleQssState,self,i))
+			                      en = enabledMenuLogic,
+			                      c = Callback(self.setInstances[i].isQss,not qssState))
 			
 			categoryMenu = MelMenuItem(popUpMenu,
 			                           label = 'Make Type:',
-			                           sm = True)
+			                           sm = True,
+			                           en = enabledMenuLogic)
 			
 			for n in self.setTypes:
 				MelMenuItem(categoryMenu,
@@ -487,15 +518,18 @@ class setToolsClass(BaseMelWindow):
 				
 			MelMenuItem(popUpMenu ,
 		                label = 'Copy Set',
+			            en = enabledMenuLogic,
 		                c = Callback(setToolsLib.doCopySet,self,i))
 			
 			MelMenuItem(popUpMenu ,
 		                label = 'Purge',
+			            en = enabledMenuLogic,
 		                c = Callback(setToolsLib.doPurgeSet,self,i))
 			
 			MelMenuItemDiv(popUpMenu)
 			MelMenuItem(popUpMenu ,
 		                label = 'Delete',
+			            en = enabledMenuLogic,
 		                c = Callback(setToolsLib.doDeleteSet,self,i))	
 		
 			

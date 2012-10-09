@@ -151,6 +151,18 @@ class SetFactory(object):
             
         self.parents = mc.listSets(o=self.nameLong)
         
+        #If it's a maya set
+	self.mayaSetState = False
+	for check in ['defaultCreaseDataSet',
+                          'defaultObjectSet',
+                          'defaultLightSet',
+                          'initialParticleSE',
+                          'initialShadingGroup',
+                          'tweakSet']:
+		if check in self.nameLong and not self.qssState:
+			self.mayaSetState = True
+        
+        
         typeBuffer = search.returnTagInfo(self.nameLong,'cgmType')
         if typeBuffer:
             for t in setTypes.keys():
@@ -333,7 +345,10 @@ class SetFactory(object):
         Keyword arguments:
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
         
-        """           
+        """   
+	assert not self.refState, "Cannot change the name of a referenced set"
+	assert not self.mayaSetState, "Cannot change name of a maya default set"
+	
         buffer = NameFactory.doNameObject(self.nameLong,sceneUnique)
         self.storeNameStrings(buffer)
         return buffer
@@ -341,6 +356,10 @@ class SetFactory(object):
             
     def doSetType(self,setType = None):
         """ Set a set's type """
+	assert not self.refState, "Cannot change the type of a referenced set"
+	assert not self.mayaSetState, "Cannot change type of a maya default set"
+
+	
         if setType is not None:
             doSetType = setType
             if setType in setTypes.keys():
