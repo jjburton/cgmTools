@@ -25,6 +25,7 @@
 #   3) ????
 #
 #=================================================================================================================================================
+import copy as copy
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -88,25 +89,70 @@ def checkSelectionLength(length):
 
 
 def returnObjectSets():
-    allSets = mc.ls(type='objectSet') or []
-    renderSets = mc.listSets(type = 1) or []
-    deformerSets = mc.listSets(type = 2) or []
+    """ 
+    Return a semi intelligent dictionary of sets in a mays scene file.
     
-    if renderSets:
-        for set in renderSets:
-            try:
-                allSets.remove(set)
-            except:
-                pass
-            
-    if deformerSets:
-        for set in deformerSets:
-            try:            
-                allSets.remove(set)
-            except:
-                pass
-            
-    return allSets
+    Return dict keys:
+    all(list) -- all sets found
+    maya(list) -- maya made and controlled sets (tweakSet, etc)
+    render(list) -- sets returned by mc.listSets(type=1)
+    deformer(list) -- sets returned by mc.listSets(type=2)
+    referenced(dict) -- ['From Scene'] are local sets, all other sets are indexed to their reference prefix
+    qss(list) -- quick select sets
+    types(dict) -- Sets indexed to their type as understood by cgm tools. 'typeModifier' tag in this case
+    
+    """    
+    returnSetsDict = {'maya':[],'qss':[],'referenced':{},'cgmTypes':{}}
+    
+    returnSetsDict['all'] = mc.ls(type='objectSet') or []
+    returnSetsDict['render'] = mc.listSets(type = 1) or []
+    returnSetsDict['deformer'] = mc.listSets(type = 2) or []    
+    
+    refBuffer = {'From Scene':[]}
+    returnSetsDict['referenced'] = refBuffer
+    
+    typeBuffer = {'NONE':[],'objectSetGroup':[]}
+    returnSetsDict['cgmTypes'] = typeBuffer
+    
+    for s in returnSetsDict['all']:
+	#Get our qss sets
+	if mc.sets(s,q=True,text=True) == 'gCharacterSet':
+	    returnSetsDict['qss'].append(s)
+	    
+	#Get our maya sets
+	for check in ['defaultCreaseDataSet',
+                                  'defaultObjectSet',
+                                  'defaultLightSet',
+                                  'initialParticleSE',
+                                  'initialShadingGroup',
+                                  'tweakSet']:
+	    if check in s:
+		returnSetsDict['maya'].append(s)
+          
+	# Get our reference prefixes and sets sorted out
+        if mc.referenceQuery(s, isNodeReferenced=True):
+            refPrefix = returnReferencePrefix(s)
+
+	    if refPrefix in refBuffer.keys():
+		refBuffer[refPrefix].append(s)
+	    else:
+		refBuffer[refPrefix] = [s]
+	else:
+	    refBuffer['From Scene'].append(s)
+	
+	#Type sort
+	buffer = returnTagInfo(s,'cgmType')
+	for tag in dictionary.setTypes.keys():
+	    if dictionary.setTypes[tag] == buffer:
+		if tag in typeBuffer.keys():
+		    typeBuffer[tag].append(s)
+		else:
+		    typeBuffer[tag] = [s]
+	else:
+	    typeBuffer['NONE'].append(s)
+    
+    
+    return returnSetsDict
 
 
 def returnObjectBuffers():
