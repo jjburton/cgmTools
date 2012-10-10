@@ -99,17 +99,25 @@ def updateObjectSets(self):
     Gets sccene set objects, and sorts the data in to the class as varaibles
     """  
     self.objectSetsRaw = search.returnObjectSets()
+    
     self.refPrefixes = self.objectSetsRaw['referenced'].keys()
     self.refSetsDict = self.objectSetsRaw['referenced'] or {}
     self.setTypesDict = self.objectSetsRaw['cgmTypes'] or {}
-	
-    self.setGroups = self.setTypesDict['objectSetGroup'] or []
+    self.setGroups = self.objectSetsRaw['objectSetGroups'] or []
+    #Set Group stuff
+    self.setGroupName = False
+    
+    for s in self.setGroups:
+	if s in self.refSetsDict.get('From Scene'):
+	    self.setGroupName = s
+	    self.setsGroup = SetFactory(s)
+	    break
+    
     self.mayaSets = self.objectSetsRaw['maya'] or []
     self.qssSets = self.objectSetsRaw['qss'] or []
 	
     self.sortedSets = []
     self.objectSets = []
-    self.setGroupName = False
     self.activeSets = []
     
     #Sort sets we want to actually load
@@ -144,20 +152,15 @@ def updateObjectSets(self):
     else:
         self.objectSets = self.objectSetsRaw['all']
 	
-    print "Cull start..."
-    print self.objectSets
-    
     # Start pulling out stuff by making a list we can iterate through as culling from a list you're iterating through doesn't work
     bufferList = copy.copy(self.objectSets)
     
     # Hide Set groups
     if mc.optionVar(q='cgmVar_HideSetGroups'):
-        for s in self.setTypesDict['objectSetGroup']:
+        for s in self.setGroups:
 	    try:self.objectSets.remove(s)
 	    except:pass
 	    
-    print "after qss..."
-    print self.objectSets
                 
     # Hide animLayer Sets
     if mc.optionVar(q='cgmVar_HideAnimLayerSets'):
@@ -165,8 +168,7 @@ def updateObjectSets(self):
             if search.returnObjectType(s) == 'animLayer':
 		try:self.objectSets.remove(s)
 		except:pass
-    print "after animLayer..."
-    print self.objectSets
+
                 
     # Hide Maya Sets
     if mc.optionVar(q='cgmVar_HideMayaSets'):
@@ -174,7 +176,6 @@ def updateObjectSets(self):
 	    try:self.objectSets.remove(s)
 	    except:pass
 	    
-    print self.objectSets
 	    
     # Hide non qss Sets
     #print self.qssSets
@@ -185,8 +186,6 @@ def updateObjectSets(self):
 	    if s not in self.qssSets and s not in self.setGroups:
 		try:self.objectSets.remove(s)
 		except:pass 
-    print "after qss..."
-    print self.objectSets
     
     
     #Refresh our active lists    
@@ -215,7 +214,6 @@ def updateObjectSets(self):
 	    	    
 	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 
-    return
     # Set Group creation if they don't have em
     if mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ) and not self.setGroupName:
         initializeSetGroup(self)
@@ -368,7 +366,8 @@ def doCopySet(self,nameIndex):
     nameIndex(int) -- index of an objectSet dictionary
     """  
     try:
-	self.setInstances[nameIndex].copy()
+	buffer = self.setInstances[nameIndex].copy()
+	print buffer
         self.reload()	
     except:
         guiFactory.warning("Set not found.Reloading Gui")
@@ -424,21 +423,24 @@ def doUpdateSetName(self,setTextField,nameIndex):
     newName = mc.textField(setTextField,q=True,text = True)
 
     if setName and newName:
-        #Name it
-        attributes.storeInfo(setName,'cgmName',newName)
-	self.setInstances[nameIndex].doName()	
-        buffer = self.setInstances[nameIndex].nameShort
-        #Update...field
-        mc.textField(setTextField,e = True,text = buffer)
-        #...dict...
-        self.objectSetsDict[nameIndex] = buffer
-        #...optionVar...
-        
-        tmp = OptionVarFactory('cgmVar_activeObjectSets','string')
-        if setName in tmp.value:
-            guiFactory.report("Set was an active set. Setting new name '%s' as active"%buffer)
-            tmp.remove(setName)
-            tmp.append(buffer)   
+	if setName == newName:
+	    guiFactory.warning("'%s' already is named what was input."%newName)	    
+	else:
+	    #Name it
+	    attributes.storeInfo(setName,'cgmName',newName)
+	    self.setInstances[nameIndex].doName()	
+	    buffer = self.setInstances[nameIndex].nameShort
+	    #Update...field
+	    mc.textField(setTextField,e = True,text = buffer)
+	    #...dict...
+	    self.objectSetsDict[nameIndex] = buffer
+	    #...optionVar...
+	    
+	    tmp = OptionVarFactory('cgmVar_activeObjectSets','string')
+	    if setName in tmp.value:
+		guiFactory.report("Set was an active set. Setting new name '%s' as active"%buffer)
+		tmp.remove(setName)
+		tmp.append(buffer)   
 
     else:
         guiFactory.warning("There's a problem with the name input.")
@@ -543,11 +545,11 @@ def initializeSetGroup(self):
     Initializes local set group
     """ 
     # Set Group creation if they don't have em
-    if not self.setGroupName:
+    if not self.setGroupName or not mc.objExists(self.setGroupName):
         self.setsGroup = SetFactory('Scene','objectSetGroup')
         self.setGroupName = self.setsGroup.nameShort
         if not mc.optionVar( q='cgmVar_HideSetGroups' ):
-            self.objectSets.append(self.setsGroup.nameShort)    
+            self.objectSets.append(self.setsGroup.nameShort)   
 
 def doSetMaintainLocalSetGroup(self):
     """ 
@@ -585,13 +587,17 @@ def doGroupLocal(self):
 	
     buffer = self.refSetsDict.get('From Scene')
     for s in buffer:
-	index = self.setInstancesFastIndex[s] 
-        sInstance = self.setInstances[index]
-        if not sInstance.parents and not sInstance.refState and not sInstance.mayaSetState:
-            self.setsGroup.store(s)
+	if s in self.setInstancesFastIndex.keys():
+	    index = self.setInstancesFastIndex[s] 
+	    sInstance = self.setInstances[index]
+	else:
+	    sInstance = SetFactory(s)
+	    
+	if not sInstance.parents and not sInstance.refState and not sInstance.mayaSetState and s != self.setGroupName:
+	    self.setsGroup.store(s)
 	    guiFactory.report("'%s' grouped to '%s'!"%(sInstance.nameShort,self.setsGroup.nameShort))	
-    
-        
+    guiFactory.report("Local group function complete.")
+	    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Multi Set Stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 

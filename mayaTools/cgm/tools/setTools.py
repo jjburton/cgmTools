@@ -101,9 +101,9 @@ class setToolsClass(BaseMelWindow):
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_setToolsShowHelp', defaultValue = 0)
 		self.MaintainLocalSetGroupOptionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup', defaultValue = 0)
 		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
-		self.HideNonQssOptionVar = OptionVarFactory('cgmVar_HideNonQss', defaultValue = 0)		
+		self.HideNonQssOptionVar = OptionVarFactory('cgmVar_HideNonQss', defaultValue = 1)		
 		self.HideAnimLayerSetsOptionVar = OptionVarFactory('cgmVar_HideAnimLayerSets', defaultValue = 1)
-		self.HideMayaSetsOptionVar = OptionVarFactory('cgmVar_HideMayaSets', defaultValue = 0)
+		self.HideMayaSetsOptionVar = OptionVarFactory('cgmVar_HideMayaSets', defaultValue = 1)
 		
 		
 		guiFactory.appendOptionVarList(self,self.ActiveObjectSetsOptionVar.name)
@@ -521,7 +521,6 @@ class setToolsClass(BaseMelWindow):
 				
 			MelMenuItem(popUpMenu ,
 		                label = 'Copy Set',
-			            en = enabledMenuLogic,
 		                c = Callback(setToolsLib.doCopySet,self,i))
 			
 			MelMenuItem(popUpMenu ,

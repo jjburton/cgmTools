@@ -224,14 +224,35 @@ class setToolsMarkingMenu(BaseMelWindow):
 			MelMenuItem( typeMenu, l = 'Clear',
 		                 c = Callback(setToolsLib.doSetAllTypeState,self,False))	
 		
+		#>>> Autohide Options
+		HidingMenu = MelMenuItem( parent, l='Auto Hide', subMenu=True)
 		
+		#guiFactory.appendOptionVarList(self,'cgmVar_MaintainLocalSetGroup')			
+		MelMenuItem( HidingMenu, l="Anim Layer Sets",
+	                 cb= self.HideAnimLayerSetsOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideAnimLayerSetsOptionVar))
 		
+		MelMenuItem( HidingMenu, l="Maya Sets",
+	                 cb= self.HideMayaSetsOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideMayaSetsOptionVar))
+		
+		MelMenuItem( HidingMenu, l="Non Qss Sets",
+	                 cb= self.HideNonQssOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideNonQssOptionVar))
+		
+		MelMenuItem( HidingMenu, l="Set Groups",
+	                 cb= self.HideSetGroupOptionVar.value,
+	                 c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideSetGroupOptionVar))
+	
 
 		MelMenuItemDiv(parent)
 		
 		self.objectSetsDict = {}
 		self.activeSetsCBDict = {}
-		for i,b in enumerate(self.objectSets):
+		
+		maxSets = 10
+		
+		for i,b in enumerate(self.objectSets[:maxSets]):
 			#Store the info to a dict
 			self.objectSetsDict[i] = b
 			sInstance = SetFactory(b)
@@ -247,7 +268,11 @@ class setToolsMarkingMenu(BaseMelWindow):
 		                            cb = activeState,
 			                        c = Callback(setToolsLib.doSelectSetObjects,self,i)
 			                        )
-			self.activeSetsCBDict[i] = tmpActive		
+			self.activeSetsCBDict[i] = tmpActive	
+			
+		if len(self.objectSets) >= maxSets:
+			MelMenuItem(parent,l = 'More sets...see menu',
+			            )			
 
 
 		MelMenuItemDiv(parent)	
@@ -259,12 +284,21 @@ class setToolsMarkingMenu(BaseMelWindow):
 		self.ActiveRefsOptionVar = OptionVarFactory('cgmVar_activeRefs',defaultValue = [''])
 		self.ActiveTypesOptionVar = OptionVarFactory('cgmVar_activeTypes',defaultValue = [''])
 		self.KeyTypeOptionVar = OptionVarFactory('cgmVar_KeyType', defaultValue = 0)
-
+		
+		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
+		self.HideNonQssOptionVar = OptionVarFactory('cgmVar_HideNonQss', defaultValue = 1)		
+		self.HideAnimLayerSetsOptionVar = OptionVarFactory('cgmVar_HideAnimLayerSets', defaultValue = 1)
+		self.HideMayaSetsOptionVar = OptionVarFactory('cgmVar_HideMayaSets', defaultValue = 1)
 		
 		guiFactory.appendOptionVarList(self,self.ActiveObjectSetsOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.ActiveRefsOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.ActiveTypesOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.KeyTypeOptionVar.name)
+		
+		guiFactory.appendOptionVarList(self,self.HideSetGroupOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.HideNonQssOptionVar.name)		
+		guiFactory.appendOptionVarList(self,self.HideAnimLayerSetsOptionVar.name)
+		guiFactory.appendOptionVarList(self,self.HideMayaSetsOptionVar.name)		
 		
 	def reset(self):
 		guiFactory.purgeOptionVars(self.optionVars)

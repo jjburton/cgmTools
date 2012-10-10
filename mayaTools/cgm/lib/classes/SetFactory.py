@@ -273,7 +273,13 @@ class SetFactory(object):
         
         try:
             buffer = mc.sets(name = ('%s_Copy'%self.nameShort), copy = self.nameLong)
-            guiFactory.report("'%s' duplicated!"%(self.nameLong))     
+            guiFactory.report("'%s' duplicated!"%(self.nameLong))
+	    
+	    for attr in dictionary.cgmNameTags:
+		if mc.objExists("%s.%s"%(self.nameLong,attr)):
+		    attributes.doCopyAttr(self.nameLong,attr,buffer)
+		
+	    return buffer
         except:
             guiFactory.warning("'%s' failed to copy"%(self.nameLong)) 
             

@@ -102,7 +102,7 @@ def returnObjectSets():
     types(dict) -- Sets indexed to their type as understood by cgm tools. 'typeModifier' tag in this case
     
     """    
-    returnSetsDict = {'maya':[],'qss':[],'referenced':{},'cgmTypes':{}}
+    returnSetsDict = {'maya':[],'qss':[],'referenced':{},'cgmTypes':{},'objectSetGroups':[]}
     
     returnSetsDict['all'] = mc.ls(type='objectSet') or []
     returnSetsDict['render'] = mc.listSets(type = 1) or []
@@ -111,7 +111,7 @@ def returnObjectSets():
     refBuffer = {'From Scene':[]}
     returnSetsDict['referenced'] = refBuffer
     
-    typeBuffer = {'NONE':[],'objectSetGroup':[]}
+    typeBuffer = {'NONE':[]}
     returnSetsDict['cgmTypes'] = typeBuffer
     
     for s in returnSetsDict['all']:
@@ -125,10 +125,25 @@ def returnObjectSets():
                                   'defaultLightSet',
                                   'initialParticleSE',
                                   'initialShadingGroup',
+	                          'Vray',
+	                          'SG',
+	                          ['cluster','Set'],
+	                          ['skinCluster','Set'],
                                   'tweakSet']:
-	    if check in s:
+	    if type(check) is list:
+		buffer = []
+		for c in check:
+		    if c in s:
+			buffer.append(1)
+		    else:buffer.append(0)
+		if len(buffer) == sum(buffer):
+		    returnSetsDict['maya'].append(s)
+		    break
+	    
+	    elif check in s:
 		returnSetsDict['maya'].append(s)
-          
+		break
+	    
 	# Get our reference prefixes and sets sorted out
         if mc.referenceQuery(s, isNodeReferenced=True):
             refPrefix = returnReferencePrefix(s)
@@ -150,6 +165,10 @@ def returnObjectSets():
 		    typeBuffer[tag] = [s]
 	else:
 	    typeBuffer['NONE'].append(s)
+	    
+	#Set group check
+	if returnTagInfo(s,'cgmType') == 'objectSetGroup':
+	    returnSetsDict['objectSetGroups'].append(s)
     
     
     return returnSetsDict
