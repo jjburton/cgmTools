@@ -39,6 +39,14 @@ namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
+setTypes = {'animation':'animSet',
+            'layout':'layoutSet',
+            'modeling':'modelingSet',
+            'td':'tdSet',
+            'fx':'fxSet',
+            'lighting':'lightingSet'}
+
+cgmNameTags = 'cgmName','cgmNameModifier','cgmPosition','cgmDirection','cgmDirectionModifier','cgmIterator','cgmType','cgmTypeModifier'
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Common Dictionaries
