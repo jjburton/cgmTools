@@ -99,7 +99,7 @@ class setToolsClass(BaseMelWindow):
 		self.SetToolsModeOptionVar = OptionVarFactory('cgmVar_setToolsMode', defaultValue = 0)
 		self.KeyTypeOptionVar = OptionVarFactory('cgmVar_KeyType', defaultValue = 0)
 		self.ShowHelpOptionVar = OptionVarFactory('cgmVar_setToolsShowHelp', defaultValue = 0)
-		self.MaintainLocalSetGroupOptionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup', defaultValue = 1)
+		self.MaintainLocalSetGroupOptionVar = OptionVarFactory('cgmVar_MaintainLocalSetGroup', defaultValue = 0)
 		self.HideSetGroupOptionVar = OptionVarFactory('cgmVar_HideSetGroups', defaultValue = 1)
 		self.HideNonQssOptionVar = OptionVarFactory('cgmVar_HideNonQss', defaultValue = 0)		
 		self.HideAnimLayerSetsOptionVar = OptionVarFactory('cgmVar_HideAnimLayerSets', defaultValue = 1)
@@ -415,6 +415,12 @@ class setToolsClass(BaseMelWindow):
 			except:
 				raise StandardError("'%s' failed to query an active instance"%b)
 			
+			#see if the no no fields are enabled
+			enabledMenuLogic = True
+			if sInstance.mayaSetState or sInstance.refState:				
+				enabledMenuLogic = False
+			
+			
 			tmpSetRow = MelFormLayout(SetListColumn,height = 20)
 			
 			#Get check box state
@@ -436,7 +442,7 @@ class setToolsClass(BaseMelWindow):
 				
 
 			tmpName = MelTextField(tmpSetRow, w = 100,ut = 'cgmUIReservedTemplate', text = sInstance.nameShort,
-			                       editable = not sInstance.refState)
+			                       editable = enabledMenuLogic)
 			
 			tmpName(edit = True,
 			        ec = Callback(setToolsLib.doUpdateSetName,self,tmpName,i)	)
@@ -485,8 +491,7 @@ class setToolsClass(BaseMelWindow):
 			            label = "<<<%s>>>"%b,
 			            enable = False)
 			
-			enabledMenuLogic = True
-			if sInstance.mayaSetState or sInstance.refState:
+			if not enabledMenuLogic:
 				if sInstance.mayaSetState:
 					MelMenuItem(popUpMenu,
 						        label = "<Maya Default Set>",
@@ -494,10 +499,8 @@ class setToolsClass(BaseMelWindow):
 				if sInstance.refState:
 					MelMenuItem(popUpMenu,
 						        label = "<Referenced>",
-						        enable = False)
-				
-				enabledMenuLogic = False
-								
+						        enable = False)		
+					
 			qssState = sInstance.qssState
 			qssMenu = MelMenuItem(popUpMenu,
 			                      label = 'Qss',

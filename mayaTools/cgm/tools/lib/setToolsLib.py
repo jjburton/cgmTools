@@ -40,13 +40,16 @@ def printReport(self):
     """    
     guiFactory.doPrintReportStart()
     print self.refSetsDict
-    print "# Object Sets found: "
-    for o in self.objectSetsRaw:
+    print "# %i Object Sets found: "%len(self.objectSetsRaw['all'])
+    for o in self.objectSetsRaw['all']:
         print "#    '%s'"%o
     
     print "# Loaded Sets: "  
-    for o in self.objectSets:
-        print "#    '%s'"%o  
+    if self.objectSets:
+	for o in self.objectSets:
+	    print "#    '%s'"%o  
+    else:
+	"No loaded sets. Check your hiding flags"
 	
     print "# Qss Sets: "
     if self.qssSets:
@@ -96,134 +99,83 @@ def updateObjectSets(self):
     Gets sccene set objects, and sorts the data in to the class as varaibles
     """  
     self.objectSetsRaw = search.returnObjectSets()
-    self.refPrefixes = []
-    self.refSetsDict = {'From Scene':[]}
-    self.setTypesDict = {}
-    for t in self.setTypes:
-        self.setTypesDict[t] = []
+    self.refPrefixes = self.objectSetsRaw['referenced'].keys()
+    self.refSetsDict = self.objectSetsRaw['referenced'] or {}
+    self.setTypesDict = self.objectSetsRaw['cgmTypes'] or {}
+	
+    self.setGroups = self.setTypesDict['objectSetGroup'] or []
+    self.mayaSets = self.objectSetsRaw['maya'] or []
+    self.qssSets = self.objectSetsRaw['qss'] or []
+	
     self.sortedSets = []
     self.objectSets = []
     self.setGroupName = False
-    self.setGroups = []
     self.activeSets = []
-    self.mayaSets = []
-    self.qssSets = []
     
-    #New Method
-    self.setInstances = {}
-    self.setInstancesFastIndex = {}
+    #Sort sets we want to actually load
+    self.sortedSets = []
+    
+    #Sort for activeRefs
+    tmpActiveRefSets = []
+    if self.ActiveRefsOptionVar.value:
+	for r in self.ActiveRefsOptionVar.value:
+	    #If value, let's add or subtract based on if our set refs are found
+	    if self.refSetsDict.get(r):
+		tmpActiveRefSets.extend(self.refSetsDict.get(r))
+			   
+    #Sort for active types  
+    tmpActiveTypeSets = []
+    if self.setTypesDict.keys() and self.ActiveTypesOptionVar.value:
+	for t in self.setTypesDict.keys():
+	    if t in self.ActiveTypesOptionVar.value and self.setTypesDict.get(t):	    
+		tmpActiveTypeSets.extend(self.setTypesDict.get(t))
+
+    if tmpActiveTypeSets and tmpActiveRefSets:
+	self.sortedSets = lists.returnMatchList(tmpActiveTypeSets,tmpActiveRefSets)
+    elif tmpActiveTypeSets:
+	self.sortedSets = tmpActiveTypeSets
+    else:
+	self.sortedSets = tmpActiveRefSets
 	
-    if self.objectSetsRaw:
-        for i,o in enumerate(self.objectSetsRaw):
-	    self.setInstances[i] = SetFactory(o) #Store the instance so we only have to do it once
-	    sInstance = self.setInstances[i] #Simple link to keep the code cleaner
-	    
-	    self.setInstancesFastIndex[o] = i #Store name to index for fast lookup of index on the fly
-	    	    
-            # if it's an object set group, add it to our list
-            if sInstance.setType == 'objectSetGroup':
-                self.setGroups.append(sInstance.nameShort)
-                
-            # Get our reference prefixes and sets sorted out
-            if sInstance.refState:
-                if sInstance.refPrefix in self.refSetsDict.keys():
-                    self.refSetsDict[sInstance.refPrefix].append(o)
-                else:
-                    self.refSetsDict[sInstance.refPrefix] = [o]
-            else:
-                self.refSetsDict['From Scene'].append(o)
-		
-                # See if we have a scene set group and if so, initialize
-                if sInstance.setType == 'objectSetGroup' and not sInstance.refState:
-                    self.setsGroup = sInstance
-                    self.setGroupName = sInstance.nameShort
-                
-            # Get our type tags, if none assign 'NONE'
-            if sInstance.setType: # If it has a set type
-                if sInstance.setType in self.setTypesDict.keys():
-                    self.setTypesDict[sInstance.setType].append(o)
-                else: # If not
-                    self.setTypesDict['NONE'].append(o)     
-            else:
-                self.setTypesDict['NONE'].append(o)
-
-	    if sInstance.qssState:
-		self.qssSets.append(o)
-		
-	    if sInstance.mayaSetState:
-		self.mayaSets.append(o)
-
-        if self.refSetsDict.keys():
-            self.refPrefixes.extend( self.refSetsDict.keys() )
-        
-        self.sortedSets = []
-        
-        #Sort for activeRefs
-        tmpActiveRefSets = []
-        if self.refSetsDict.keys() and self.ActiveRefsOptionVar.value:
-            for r in self.refSetsDict.keys():
-                #If value, let's add or subtract based on if our set refs are found
-                if r in self.ActiveRefsOptionVar.value and self.refSetsDict.get(r):
-		    #print "Ref dicts..."
-		    #print self.refSetsDict.get(r)
-                    tmpActiveRefSets.extend(self.refSetsDict.get(r))
-                               
-        #Sort for active types  
-        tmpActiveTypeSets = []
-	print self.setTypesDict
-        if self.setTypesDict.keys() and self.ActiveTypesOptionVar.value:
-            for t in self.setTypesDict.keys():
-                if t in self.ActiveTypesOptionVar.value and self.setTypesDict.get(t):
-		    print "Set Types..."
-		    print self.setTypesDict.get(t)		    
-                    tmpActiveTypeSets.extend(self.setTypesDict.get(t))
-        
-        if tmpActiveTypeSets and tmpActiveRefSets:
-	    print "Sorting two..."
-            self.sortedSets = lists.returnMatchList(tmpActiveTypeSets,tmpActiveRefSets)
-        elif tmpActiveTypeSets:
-	    print "Active types..."
-            self.sortedSets = tmpActiveTypeSets
-        else:
-	    print "Active refs..."
-            self.sortedSets = tmpActiveRefSets
-                   
+	
+    #Next step, hiding. First get our cull lists
     if self.sortedSets:
         self.objectSets = self.sortedSets
     else:
-        self.objectSets = self.objectSetsRaw
-        
-    if self.ActiveObjectSetsOptionVar.value:
-        loadedActiveBuffer = []
-        for o in self.objectSets:
-            if o in self.ActiveObjectSetsOptionVar.value:
-                self.activeSets.append(o)   
+        self.objectSets = self.objectSetsRaw['all']
 	
-    # Start pulling out stuff
+    print "Cull start..."
+    print self.objectSets
+    
+    # Start pulling out stuff by making a list we can iterate through as culling from a list you're iterating through doesn't work
     bufferList = copy.copy(self.objectSets)
     
     # Hide Set groups
     if mc.optionVar(q='cgmVar_HideSetGroups'):
-        for s in self.setGroups:
-            if s in bufferList:
-		try:
-		    self.objectSets.remove(s)
-		except:pass
+        for s in self.setTypesDict['objectSetGroup']:
+	    try:self.objectSets.remove(s)
+	    except:pass
+	    
+    print "after qss..."
+    print self.objectSets
                 
     # Hide animLayer Sets
     if mc.optionVar(q='cgmVar_HideAnimLayerSets'):
         for s in bufferList:
-            if s in bufferList and search.returnObjectType(s) == 'animLayer':
-		try:
-		    self.objectSets.remove(s)
+            if search.returnObjectType(s) == 'animLayer':
+		try:self.objectSets.remove(s)
 		except:pass
+    print "after animLayer..."
+    print self.objectSets
                 
     # Hide Maya Sets
     if mc.optionVar(q='cgmVar_HideMayaSets'):
 	for s in self.mayaSets:
 	    try:self.objectSets.remove(s)
 	    except:pass
-		
+	    
+    print self.objectSets
+	    
     # Hide non qss Sets
     #print self.qssSets
     #print self.objectSets
@@ -232,8 +184,38 @@ def updateObjectSets(self):
 	for s in bufferList:
 	    if s not in self.qssSets and s not in self.setGroups:
 		try:self.objectSets.remove(s)
-		except:pass
+		except:pass 
+    print "after qss..."
+    print self.objectSets
     
+    
+    #Refresh our active lists    
+    if self.ActiveObjectSetsOptionVar.value:
+	for o in self.objectSets:
+	    if o in self.ActiveObjectSetsOptionVar.value:
+		self.activeSets.append(o) 
+       
+    self.setInstances = {}
+    self.setInstancesFastIndex = {}
+	
+    #If we have object sets to load, we're gonna initialize em
+    if self.objectSets:
+	#Counter build
+	mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.objectSetsRaw),"Getting Set info")
+	
+        for i,o in enumerate(self.objectSets):
+	    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+		break
+	    mc.progressBar(mayaMainProgressBar, edit=True, status = ("On set %s"%(o)), step=1)                    	
+	    
+	    self.setInstances[i] = SetFactory(o) #Store the instance so we only have to do it once
+	    sInstance = self.setInstances[i] #Simple link to keep the code cleaner
+	    
+	    self.setInstancesFastIndex[o] = i #Store name to index for fast lookup of index on the fly
+	    	    
+	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+
+    return
     # Set Group creation if they don't have em
     if mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ) and not self.setGroupName:
         initializeSetGroup(self)

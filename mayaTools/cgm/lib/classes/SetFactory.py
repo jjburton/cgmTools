@@ -29,6 +29,7 @@
 import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib import attributes
+from cgm.lib import dictionary
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes.AttrFactory import *
@@ -39,12 +40,7 @@ from cgm.lib.ml import (ml_resetChannels)
 
 reload(ml_resetChannels)
 
-setTypes = {'animation':'animSet',
-            'layout':'layoutSet',
-            'modeling':'modelingSet',
-            'td':'tdSet',
-            'fx':'fxSet',
-            'lighting':'lightingSet'}
+setTypes = dictionary.setTypes
 
 class SetFactory(object):
     """ 
@@ -68,7 +64,7 @@ class SetFactory(object):
         
         if mc.objExists(setName):
             self.baseName = search.findRawTagInfo(setName,'cgmName')
-            self.setType = search.findRawTagInfo(setName,'cgmTypeModifier')
+            self.setType = search.returnTagInfo(setName,'cgmType') or ''
             self.storeNameStrings(setName)
             self.updateData()
             self.isRef()
