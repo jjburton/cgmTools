@@ -16,7 +16,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.04232012'
+__version__ = '0.2.10112012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 import maya.mel as mel
@@ -44,7 +44,7 @@ class tdToolsClass(BaseMelWindow):
     USE_Template = 'cgmUITemplate'
 
     WINDOW_NAME = 'TDTools'
-    WINDOW_TITLE = 'cgm.tdTools'
+    WINDOW_TITLE = 'cgm.tdTools - %s'%__version__ 
     DEFAULT_SIZE = 550, 400
     DEFAULT_MENU = None
     RETAIN = True

@@ -31,6 +31,8 @@ import subprocess
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.ObjectFactory import *
+from cgm.lib.classes.ControlFactory import *
+
 from cgm.lib.classes import NameFactory 
 
 
@@ -61,6 +63,7 @@ reload(attributes)
 reload(NameFactory)
 reload(guiFactory)
 reload(modules)
+reload(controlBuilder)
 """
 
 """
@@ -1429,22 +1432,21 @@ def curveControlConnect(self):
     
     # First loop to get info
     parentConstraintTargets = {}
-    for obj in selection:
-	cnt = selection.index(obj)
-	obj = ObjectFactory(obj)
+    controlInstances = {}
+    for cnt,o in enumerate(selection):
+	obj = ObjectFactory(o)
 	obj.store('cgmType','controlAnim')
 	obj.doName()	
 	selection[cnt] = obj.nameBase
+	obj.getAttrs()
 	
 	if 'cgmSource' in obj.userAttrsDict.keys():
 	    source = ObjectFactory(obj.userAttrsDict.get('cgmSource'))	
 	    
 	    buffer = updateTransform(obj.nameShort,source.nameShort)
-	    print buffer
 	    obj.update(buffer)
 	    obj.doName()
-	    obj.store('cgmAim',(mc.optionVar( q = 'cgmVar_ObjectAimAxis')) )
-	    obj.store('cgmUp',(mc.optionVar( q = 'cgmVar_ObjectUpAxis')) )
+
 	    
 	    if mc.objExists(source.parent):
 		curveParentObj = search.returnObjectsConnectedToObj(source.parent,True)	
@@ -1458,11 +1460,12 @@ def curveControlConnect(self):
 	else:
 	    return guiFactory.warning("'%s' has no source"%obj.nameBase)	    
 			
-    print parentConstraintTargets
     
     # Loop to connect stuff
-    for obj in selection:
-	obj = ObjectFactory(obj)
+    for cnt,o in enumerate(selection):
+	obj = ControlFactory(o,RotateOrderState,True)
+	obj.getAttrs()
+	
 	if 'cgmSource' in obj.userAttrsDict.keys():
 	    source = ObjectFactory(obj.userAttrsDict.get('cgmSource'))    
 	    
@@ -1495,12 +1498,10 @@ def curveControlConnect(self):
 		    ConstraintGroup.store('cgmTypeModifier','constraint')
 		    
 		if RotateOrderState:
-		    buffer = attributes.addRotateOrderAttr(obj.nameShort,'setRO')
-		    mc.connectAttr(buffer,(obj.nameShort+'.rotateOrder'))
-		    mc.connectAttr(buffer,(groupBuffer+'.rotateOrder'))
-		    mc.connectAttr(buffer,(source.nameShort+'.rotateOrder'))
+		    mc.connectAttr(obj.RotateOrderControl.nameCombined,(groupBuffer+'.rotateOrder'))
+		    mc.connectAttr(obj.RotateOrderControl.nameCombined,(source.nameShort+'.rotateOrder'))
 		    if ExtraGroupState:
-			mc.connectAttr(buffer,(ConstraintGroup.nameLong+'.rotateOrder'))
+			mc.connectAttr(obj.RotateOrderControl.nameCombined,(ConstraintGroup.nameLong+'.rotateOrder'))
 			
 		if ExtraGroupState:	
 		    NameFactory.doNameObject(ConstraintGroup.nameLong)
