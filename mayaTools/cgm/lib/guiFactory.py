@@ -22,6 +22,7 @@
 #=================================================================================================================================================
 import maya.cmds as mc
 import maya.mel as mel
+from cgm.lib.classes.Bridge import *
 
 
 from cgmBaseMelUI import *
@@ -47,6 +48,7 @@ def setBGColorState(textFieldToChange, newState):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def initializeTemplates():
     guiBackgroundColor = [.45,.45,.45]
+    guiTextFieldColor = [.4,.4,.4]    
     guiHeaderColor = [.25,.25,.25]
     guiSubMenuColor = [.65,.65,.65]
     guiButtonColor = [.35,.35,.35]
@@ -113,7 +115,7 @@ def initializeTemplates():
     if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
         mc.deleteUI( 'cgmUIReservedTemplate', uiTemplate=True )
     mc.uiTemplate('cgmUIReservedTemplate')
-    mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiButtonColor,h=20)
+    mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiTextFieldColor,h=20)
     mc.formLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)    
     mc.rowLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
     mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
@@ -628,7 +630,7 @@ def doPrintReportEnd(label = False):
 
 
 
-
+"""
 class cgmBridge:pass   
 
 def classBridge_Puppet():
@@ -643,8 +645,14 @@ def classBridge_Puppet2():
         cgmPuppet
     except:
         cgmPuppet = cgmBridge()
-        
+"""        
 def testBridge():
-    class cgmPuppet:pass
-    mel.eval('python("cgmPuppet = %s")'%cgmPuppet)
-    print cgmPuppet.__dict__.keys()
+    #from cgm.lib.classes import Bridge 
+    globals()['cgmBridge'] = BridgeCGM()
+    print cgmBridge.__dict__.keys()
+    print 'cgmBridge' in globals()
+    cgmBridge.__dict__['test'] = 1
+    print cgmBridge.__dict__.keys()
+
+
+    
