@@ -76,15 +76,17 @@ def uiTransferAttributes(self):
 		    aInstance.doConnectOut(target)
 	    elif self.CopyAttrModeOptionVar.value == 1:
 		#Copy mode
+		print 'Copy Mode'
 		for target in targets:
 		    aInstance.doCopyTo(target,
-		                       connectSourceToTarget = self.TransferDriveSourceStateOptionVar.value,
 		                       convertToMatch = self.TransferConvertStateOptionVar.value,
 		                       copyAttrSettings = self.CopyAttrOptionsOptionVar.value, 		                       
 		                       values = self.TransferValueOptionVar.value,
 		                       incomingConnections = self.TransferIncomingOptionVar.value,
 		                       outgoingConnections = self.TransferOutgoingOptionVar.value,
-		                       keepSourceConnections = self.TransferKeepSourceOptionVar.value)
+		                       keepSourceConnections = self.TransferKeepSourceOptionVar.value,
+		                       connectSourceToTarget = self.TransferDriveSourceStateOptionVar.value,
+		                       )
 
 	    elif self.CopyAttrModeOptionVar.value == 2:
 		if aInstance.dynamic:
