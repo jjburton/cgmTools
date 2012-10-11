@@ -27,7 +27,7 @@
 #=================================================================================================================================================
 import maya.cmds as mc
 from cgm.lib.classes.ObjectFactory import *
-
+from cgm.lib.classes.ControlFactory import *
 
 from cgm.lib import search
 from cgm.lib import locators
@@ -174,14 +174,15 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
 
     #attributes.storeInfo(rootCurve,"cgmName",(masterNull+'.cgmName'))
     attributes.storeInfo(rootCurve,"cgmType","controlMaster")
-    
-    rootCurve = rigging.doParentReturnName(rootCurve,masterNull)
-    rootCurve = NameFactory.doNameObject(rootCurve)
-
-    controlsReturn.append(rootCurve)
+    RootCurve = ControlFactory(rootCurve,makeAimable=True,controlRO=True)
+    RootCurve.doParent(masterNull)
+    RootCurve.doName()
+    guiFactory.warning("I'm here!")
+    RootCurve.RotateOrderControl.set(2)        
+    controlsReturn.append(RootCurve.nameShort)
     
     """ name curve """
-    rootShapes = mc.listRelatives(rootCurve, shapes = True)
+    rootShapes = mc.listRelatives(RootCurve.nameShort, shapes = True)
     characterName = mc.getAttr(masterNull+'.cgmName')
     sizeCurve = curves.duplicateShape(rootShapes[1])
     nameScaleBuffer = distance.returnAbsoluteSizeCurve(sizeCurve)
@@ -195,12 +196,11 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     attributes.storeInfo(masterText,"cgmType","textCurve")
     attributes.storeInfo(masterText,"cgmObjectText",(masterNull+'.cgmName'))
     
-    
     masterText = NameFactory.doNameObject(masterText)
-    masterText = rigging.doParentReturnName(masterText,rootCurve)
+    masterText = rigging.doParentReturnName(masterText,RootCurve.nameShort)
     controlsReturn.append(masterText)
     
-    attributes.storeInfo(rootCurve,"textCurve",masterText)
+    attributes.storeInfo(RootCurve.nameShort,"textCurve",masterText)
     
     attributes.doSetLockHideKeyableAttr(masterText,True,False,False,['tx','ty','tz','rx','ry','rz','v'])
 
@@ -212,7 +212,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     if controlSettings:
         controlsToMake.append('controlSettings')
     if len(controlsToMake) >=1:
-        childControls = childControlMaker(rootCurve, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 135, controls = controlsToMake, mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+        childControls = childControlMaker(RootCurve.nameShort, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 135, controls = controlsToMake, mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
         for c in childControls.keys():
             controlsReturn.append(childControls.get(c))
         
@@ -234,13 +234,13 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
         skeletonNull = ObjectFactory(nullBuffer)
         skeletonNull.store('cgmName','skeleton')
         skeletonNull.doName()
-        skeletonNull.doParent(rootCurve)    
+        skeletonNull.doParent(RootCurve.nameShort)    
         
         nullBuffer = mc.group(em=True)
         rigNull = ObjectFactory(nullBuffer)
         rigNull.store('cgmName','rig')
         rigNull.doName()
-        rigNull.doParent(rootCurve)   
+        rigNull.doParent(RootCurve.nameShort)   
         
     if controlVis and defaultGroups:
         visControl =  childControls.get('controlVisibility')
@@ -258,9 +258,8 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
         attributes.doSetAttr(visControl, 'geo', 1)
             
     """ store it to the master null"""
-    attributes.storeInfo(masterNull,'controlMaster',rootCurve)
-    
-    buffer = rigging.groupMeObject(rootCurve,True,True)
+    attributes.storeInfo(masterNull,'controlMaster',RootCurve.nameShort)
+    buffer = RootCurve.doGroup(True)
     grp = ObjectFactory(buffer)
     grp.store('cgmTypeModifier','constraint')
     grp.doName()
