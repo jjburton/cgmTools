@@ -47,6 +47,7 @@ setTypes = {'animation':'animSet',
             'lighting':'lightingSet'}
 
 cgmNameTags = 'cgmName','cgmNameModifier','cgmPosition','cgmDirection','cgmDirectionModifier','cgmIterator','cgmType','cgmTypeModifier'
+axisDirectionsByString = ['x+','y+','z+','x-','y-','z-']
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Common Dictionaries
