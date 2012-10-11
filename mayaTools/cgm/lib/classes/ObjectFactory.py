@@ -70,6 +70,7 @@ class ObjectFactory():
         self.refState = False
         self.cgm = {}
         self.mType = ''
+        self.transform = False
 
         self.update(obj)
 
@@ -269,25 +270,30 @@ class ObjectFactory():
                 self.update(buffer)   	    
 
 
-    def doParent(self,p):
+    def doParent(self,p = False):
         """
         Function for parenting a maya instanced object while maintaining a correct object instance.
 
         Keyword arguments:
         p(string) -- Whether to run a full scene dictionary check or the faster just objExists check
 
-        """  
-        try:
-            #If we have an Object Factory instance, link it
-            p.nameShort
-            p = p.nameShort
-        except:
-            #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
-            assert mc.objExists(p) is True, "'%s' - parent object doesn't exist" %p     
-
+        """ 
         assert self.transform,"'%s' has no transform"%obj	
+        
+        if p: #if we have a target parent
+            try:
+                #If we have an Object Factory instance, link it
+                p.nameShort
+                p = p.nameShort
+            except:
+                #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+                assert mc.objExists(p) is True, "'%s' - parent object doesn't exist" %p     
 
-        buffer = rigging.doParentReturnName(self.nameLong,p)
+            buffer = rigging.doParentReturnName(self.nameLong,p)
+            
+        else:#If not, do so to world
+            buffer = rigging.doParentToWorld(self.nameLong)
+            
         self.update(buffer)
 
     def setDrawingOverrideSettings(self, attrs = None, pushToShapes = False):
@@ -330,4 +336,5 @@ class ObjectFactory():
                     
         if pushToShapes:
             raise NotImplementedError,"This feature isn't done yet"
+        
 
