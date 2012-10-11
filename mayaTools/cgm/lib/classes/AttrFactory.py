@@ -49,7 +49,7 @@ class AttrFactory():
     """ 
     Initialized a maya attribute as a class obj
     """
-    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,lock = None,*a, **kw):
+    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,lock = None,keyable = None, hidden = None, *a, **kw):
         """ 
         Asserts object's existance and that it has a transform. Then initializes. If 
         an existing attribute name on an object is called and the attribute type is different,it converts it. All functions
@@ -123,7 +123,6 @@ class AttrFactory():
                 guiFactory.warning("'%s.%s' failed to add"%(self.obj.nameShort,attrName))
          
         self.updateData(*a, **kw)
-       
             
         if enum:
             try:
@@ -133,12 +132,19 @@ class AttrFactory():
 
         if initialValue is not None and initialCreate:
             self.set(initialValue)
-            
+          
         elif value is not None:
             self.set(value)
-                
+        
+        if type(keyable) is bool:
+            self.doKeyable(keyable)   
+            
+        if type(hidden) is bool:
+            self.doHidden(hidden)
+            
         if type(lock) is bool:
             self.doLocked(lock)
+            
                 
         #guiFactory.report("'%s.%s' >> '%s' >> is '%s'"%(self.obj.nameShort,self.attr,self.value,self.form))
         
@@ -323,7 +329,7 @@ class AttrFactory():
             if self.form == 'message':
                 self.value = attributes.returnMessageObject(self.obj.nameShort,self.attr)
             else:
-                self.value =  attributes.doGetAttr(self.obj.nameShort,self.attr,*a, **kw)
+                self.value =  attributes.doGetAttr(self.obj.nameShort,self.attr)
             #guiFactory.report("'%s.%s' >> '%s'"%(self.obj.nameShort,self.attr,self.value))
             return self.value
         except:
@@ -832,33 +838,32 @@ class AttrFactory():
         if sum(copyTest) < 1:
             guiFactory.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
             return False
-        try:
-            if '.' in list(target):
-                targetBuffer = target.split('.')
-                if len(targetBuffer) == 2:
-                    attributes.doCopyAttr(self.obj.nameShort,
-                                          self.nameLong,
-                                          targetBuffer[0],
-                                          targetBuffer[1],
-                                          convertToMatch,
-                                          values, incomingConnections,
-                                          outgoingConnections, keepSourceConnections,
-                                          copyAttrSettings, connectSourceToTarget)               
-    
-                else:
-                    guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
-            else:
+
+        if '.' in list(target):
+            targetBuffer = target.split('.')
+            if len(targetBuffer) == 2:
                 attributes.doCopyAttr(self.obj.nameShort,
                                       self.nameLong,
-                                      target,
-                                      targetAttrName, convertToMatch,
+                                      targetBuffer[0],
+                                      targetBuffer[1],
+                                      convertToMatch,
                                       values, incomingConnections,
                                       outgoingConnections, keepSourceConnections,
-                                      copyAttrSettings, connectSourceToTarget)  
+                                      copyAttrSettings, connectSourceToTarget)               
 
-        
-        except:
-            guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))          
+            else:
+                guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
+        else:
+            attributes.doCopyAttr(self.obj.nameShort,
+                                  self.nameLong,
+                                  target,
+                                  targetAttrName, convertToMatch,
+                                  values, incomingConnections,
+                                  outgoingConnections, keepSourceConnections,
+                                  copyAttrSettings, connectSourceToTarget)  
+
+        #except:
+        #    guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))          
             
     def doTransferTo(self,target):
         """ 
