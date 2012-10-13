@@ -28,10 +28,14 @@ import maya.cmds as mc
 import maya.mel as mel
 import subprocess
 
+from cgm.lib.classes import DraggerContextFactory
+reload(DraggerContextFactory)
+
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes.ControlFactory import *
+from cgm.lib.classes.DraggerContextFactory import *
 
 from cgm.lib.classes import NameFactory 
 
@@ -126,7 +130,137 @@ def doSelectDrivenJoints(self):
     else:
         guiFactory.warning('No selection attributes found')
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Surface Click
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def uiUpdate_ClickMeshTargetField(self):
+    if self.ClickMeshTargetOptionVar.value:
+	print self.ClickMeshTargetOptionVar.value
+	if len(self.ClickMeshTargetOptionVar.value) == 1:
+	    self.ClickMeshTargetsField(edit=True, text = "%s"%(self.ClickMeshTargetOptionVar.value[0]))	    
+	else:
+	    self.ClickMeshTargetsField(edit=True, text = "'%s'"%"','".join(self.ClickMeshTargetOptionVar.value))
+    else:
+	self.SurfaceClickTargetsField(edit=True, text = "")
+	
+def uiUpdate_ClickMeshClampField(self):
+    if self.ClickMeshClampOptionVar.value:
+	if len(self.ClickMeshTargetOptionVar.value) > 0:
+	    self.ClickMeshClampIntField(edit=True, value =  self.ClickMeshClampOptionVar.value)    
+	else:
+	    self.ClickMeshClampIntField(edit=True, value = self.ClickMeshClampOptionVar.value)
 
+	
+
+def uiLoadClickMeshTargets(self):
+    """ 
+    Loads target objects and updates menus
+
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """   
+    selection = mc.ls(sl=True) or []
+    self.ClickMeshTargetOptionVar.clear()
+    if not selection:
+	self.SurfaceClickTargetsField(edit=True, text = "")	
+	guiFactory.warning("Nothing selected")
+	return
+    
+    if selection:
+	for o in selection:
+	    if search.returnObjectType(o) == 'mesh':
+		self.ClickMeshTargetOptionVar.append(o)
+	    else:
+		guiFactory.warning("'%s' is not a mesh object. Ignoring"%o)
+		
+    uiUpdateClickMeshTargetField(self)
+
+	
+def uiClickMeshToolLaunch(self):
+    """ 
+    Launches the ClickMesh tool
+
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """
+    doMesh = []
+    if not self.ClickMeshTargetOptionVar.value:
+	raise StandardError("No suitable mesh found")
+    else:
+	for o in self.ClickMeshTargetOptionVar.value:
+	    if not mc.objExists(o):
+		guiFactory.warning("'%s' doesn't exist. Not included!"%o)
+	    else:
+		doMesh.append(o)
+	    
+    if not doMesh:
+	raise StandardError("No suitable mesh found")
+    
+    
+    
+    self.ClickMeshTool = DraggerContextFactory.clickMesh( mesh = doMesh,
+                                                            closestOnly = True,
+                                                            clampIntersections = self.ClickMeshClampOptionVar.value)
+    
+    self.ClickMeshTool.setMode(self.ClickMeshTool.modes[self.ClickMeshModeOptionVar.value])
+    self.ClickMeshTool.setCreate(self.ClickMeshTool.createModes[self.ClickMeshBuildOptionVar.value])  
+    
+def uiClickMesh_changeMode(self,i):
+    """ 
+    Loads target objects and updates menus
+
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """   
+    self.ClickMeshModeOptionVar.set(i)
+    
+    if self.ClickMeshTool:
+	self.ClickMeshTool.setMode(self.ClickMeshTool.modes[self.ClickMeshModeOptionVar.value])
+
+def uiClickMesh_changeCreateMode(self,i):
+    """ 
+    Loads target objects and updates menus
+
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """   
+    self.ClickMeshBuildOptionVar.set(i)
+    
+    if self.ClickMeshTool:
+	self.ClickMeshTool.setCreate(self.ClickMeshTool.createModes[self.ClickMeshBuildOptionVar.value])
+
+def uiClickMesh_setClamp(self):
+    """ 
+    Loads target objects and updates menus
+
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """
+    print "asdfasdfasdfasdfasdfasdf"
+    buffer = self.ClickMeshClampIntField(q=True, value=True)
+    
+    if buffer >= 0:
+	self.ClickMeshClampOptionVar.set(buffer)
+	self.ClickMeshClampIntField(e=True, value=buffer)
+	if self.ClickMeshTool:
+	    self.ClickMeshTool.setClamp(buffer)
+    else:
+	self.ClickMeshClampIntField(e=True, value=self.ClickMeshClampOptionVar.value)
+	guiFactory.warning("%s is an invalid value. Try again!"%buffer)
+    
+	
+def uiClickMesh_dropTool(self,):
+    """ 
+    Finalize the tool
+
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """
+    assert self.ClickMeshTool, "There is no clickMesh tool active"
+    if self.ClickMeshTool:
+	self.ClickMeshTool.finalize()
+	self.ClickMeshTool = False
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Attribute Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
