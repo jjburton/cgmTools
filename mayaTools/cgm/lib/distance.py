@@ -28,6 +28,7 @@
 #=================================================================================================================================================
 import maya.cmds as mc
 import maya.mel as mel
+import copy
 
 from cgm.lib import (nodes,
                      rigging,
@@ -742,10 +743,32 @@ def returnDistanceSortedList(targetObject, objectList):
     sortedList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    bufferList = objectList
+    bufferList = copy.copy(objectList)
     sortedList = []
     while len(bufferList) > 0:
         currentClosest = returnClosestObject(targetObject, bufferList)
+        sortedList.append(currentClosest)
+        bufferList.remove(currentClosest)
+    return sortedList
+
+def returnPositionDataDistanceSortedList(startPosition, posList):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns a list of objects in order of closeness to a target object
+
+    ARGUMENTS:
+    targetObject(string) - object you want to check distance to
+    objectList(list) - list of objects to pick from
+
+    RETURNS:
+    sortedList(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    bufferList = copy.copy(posList)
+    sortedList = []
+    while len(bufferList) > 0:
+        currentClosest = returnClosestPoint(startPosition, bufferList)
         sortedList.append(currentClosest)
         bufferList.remove(currentClosest)
     return sortedList
@@ -972,6 +995,13 @@ def returnClosestPointOnMeshInfoFromPos(pos, mesh):
 
     RETURNS:
     closestPointInfo(dict)
+    Keys:
+    position
+    normal
+    parameterU
+    parameterV
+    closestFaceIndex
+    closestVertexIndex
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
 
