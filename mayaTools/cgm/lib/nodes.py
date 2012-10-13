@@ -24,6 +24,7 @@
 #
 #=================================================================================================================================================
 import maya.cmds as mc
+import maya.mel as mel
 
 from cgm.lib import search
 from cgm.lib import attributes
@@ -149,7 +150,7 @@ def blendShapeNodeToPoseBuffer(name,blendShapeNode,doConnect = True, transferCon
 #
 # ====================================================================================================================
 def createNamedNode (nodeName, type):
-    nodeSuffixDictionary = {'curveInfo':'crvInfo','condition':'condNode','multiplyDivide':'mdNode','pointOnSurfaceInfo':'posInfoNode','closestPointOnSurface':'cPntOnSurfNode','closestPointOnMesh':'cPntOnMeshNode','plusMinusAverage':'pmAvNode','frameCache':'fCacheNode'}
+    nodeSuffixDictionary = {'follicle':'foll','curveInfo':'crvInfo','condition':'condNode','multiplyDivide':'mdNode','pointOnSurfaceInfo':'posInfoNode','closestPointOnSurface':'cPntOnSurfNode','closestPointOnMesh':'cPntOnMeshNode','plusMinusAverage':'pmAvNode','frameCache':'fCacheNode'}
     utilityNodeList = ['plusMinusAverage','condition']
     if not type in nodeSuffixDictionary:
         print (type + ' is not a node type or is not in the dictionary. Expected one of the following:')
@@ -178,6 +179,63 @@ def returnConnectedClosestPointOnMeshNode (targetObj, mesh):
     return closestPointNode
 
 
+def createFollicleOnMesh(mesh, name = 'follicle'):
+    """
+    Creates named follicle node on a mesh
+    
+    Keywords
+    mesh -- mesh to attach to
+    name -- base name to use ('follicle' default)
+    
+    Returns
+    [follicleNode,follicleTransform]
+    """
+    assert mc.objExists(mesh),"'%s' doesn't exist!"%mesh
+    assert search.returnObjectType(mesh) == 'mesh',("'%s' isn't a mesh"%mesh)
+        
+    follicleNode = createNamedNode((name),'follicle')
+    
+    """ make the closest point node """
+    #closestPointNode = createNamedNode((targetObj+'_to_'+mesh),'closestPointOnMesh')
+    controlSurface = mc.listRelatives(mesh,shapes=True)[0]
+    follicleTransform = mc.listRelatives(follicleNode,p=True)[0]
+    
+    attributes.doConnectAttr((controlSurface+'.worldMatrix[0]'),(follicleNode+'.inputWorldMatrix'))#surface to follicle node 
+    attributes.doConnectAttr((controlSurface+'.outMesh'),(follicleNode+'.inputMesh'))    #surface mesh to follicle input mesh
+    
+    attributes.doConnectAttr((follicleNode+'.outTranslate'),(follicleTransform+'.translate'))
+    attributes.doConnectAttr((follicleNode+'.outRotate'),(follicleTransform+'.rotate'))    
+    
+    attributes.doSetLockHideKeyableAttr(follicleTransform)
+    
+    return [follicleNode,follicleTransform]
+    
+
+
+#proc attachObjectToSurface(string $obj, string $surface, float $u, float $v )
+#{
+#	string $follicle = `createNode follicle`;
+#	string $tforms[] = `listTransforms $follicle`;
+#	string $follicleDag = $tforms[0];
+#
+#	
+#	connectAttr ($surface + ".worldMatrix[0]") ($follicle + ".inputWorldMatrix");
+#	string $nType = `nodeType $surface`;
+#	if( "nurbsSurface" == $nType ){ 
+#		connectAttr ($surface + ".local") ($follicle + ".inputSurface");
+#	} else {
+#		connectAttr ($surface + ".outMesh") ($follicle + ".inputMesh");
+#	}
+#	connectAttr ($follicle + ".outTranslate") ($follicleDag + ".translate");
+#	connectAttr ($follicle + ".outRotate") ($follicleDag + ".rotate");
+#	setAttr -lock true  ($follicleDag + ".translate");
+#	setAttr -lock true  ($follicleDag + ".rotate");
+#	setAttr ($follicle + ".parameterU") $u;
+#	setAttr ($follicle + ".parameterV") $v;
+	
+#	//parent -addObject -shape $obj $follicleDag;
+#	parent $obj $follicleDag;
+#}
 # ====================================================================================================================
 # FUNCTION - 2
 #
