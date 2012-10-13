@@ -20,6 +20,7 @@
 # 	https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
 #======================================================================================================================
 import maya.cmds as mc
+import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as OpenMaya
 from zooPyMaya import apiExtensions
@@ -27,10 +28,13 @@ from zooPyMaya import apiExtensions
 from cgm.lib import (locators,
                      curves,
                      search,
+                     attributes,
                      lists,
+                     nodes,
                      rigging,
                      distance,
                      guiFactory)
+reload(distance)
 import os
 
 
@@ -121,7 +125,7 @@ class ContextualPick(object):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Subclasses
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-class clickSurface(ContextualPick):
+class clickMesh(ContextualPick):
     """
     Find positional data from clicking on a surface from a ContextualPick instance.
     And other things...:)
@@ -139,6 +143,7 @@ class clickSurface(ContextualPick):
                             'jointChain' -- rebuilds all positions as a chain at tool exit
                             'curve' -- builds curve from positions at tool exit
                             'group' -- build groups at positions
+                            'follicle' --creates a folicle
                             
     closestOnly(bool) -- only return the closest hit from all mesh hits (default - True)
     clampIntersections(False/int) -- clamp number of interactions
@@ -156,9 +161,10 @@ class clickSurface(ContextualPick):
                  dragStore = False,
                  *a,**kw):
         # Set our attributes  
-        self.createModes = ['locator','joint','jointChain','curve','group',False]
-        
+        self.createModes = ['locator','joint','jointChain','curve','follicle','group',False]
+        self.modes = ['surface','intersections','midPoint']
         self.meshList = []
+        self.meshPosDict = {} #creating this pretty much just for follicle mode so we can attache to a specific mesh
         self.createMode = create
         self.closestOnly = closestOnly
         self.createdList = []
@@ -214,21 +220,21 @@ class clickSurface(ContextualPick):
         """
         Set clamp setting
         """
-        assert setting is int or False,"'%s' is not a valid setting"
+        assert type(setting) is int or setting is False,"'%s' is not a valid setting"%setting 
         self.clampSetting = setting
         
     def setCreate(self,create):
         """
         Set tool mode
         """
-        assert create in self.createModes,"'%s' is not a valid create mode"        
+        assert create in self.createModes,"'%s' is not a valid create mode"%create    
         self.createMode = create
         
     def setDragStoreMode(self,mode):
         """
         Set drag update mode
         """
-        assert type(mode) is bool,"'%s' should be a bool"                
+        assert type(mode) is bool,"'%s' should be a bool"%mode                 
         self.dragStoreMode = mode
         
     def reset(self):
@@ -259,7 +265,7 @@ class clickSurface(ContextualPick):
         self.createdList = lists.returnListNoDuplicates(self.createdList)
         self.returnList = lists.returnListNoDuplicates(self.returnList)
         
-        if self.createMode in ['curve','jointChain','group'] and self.returnList and len(self.returnList)>1:
+        if self.createMode in ['curve','jointChain','group','follicle'] and self.returnList and len(self.returnList)>1:
             if self.createMode == 'group':
                 bufferList = []
                 for i,o in enumerate(self.createdList):
@@ -268,6 +274,8 @@ class clickSurface(ContextualPick):
                     try:mc.delete(o)
                     except:pass
                 self.createdList = bufferList
+                
+                    
             else:
                 for o in self.createdList:
                     try:mc.delete(o)
@@ -281,7 +289,19 @@ class clickSurface(ContextualPick):
                     self.createdList = []
                     mc.select(cl=True)
                     for pos in self.returnList:        
-                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2])) )            
+                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2])) )
+                        
+                elif self.createMode =='follicle':
+                    for pos in self.returnList:
+                        for m in self.meshPosDict.keys():
+                            if pos in self.meshPosDict[m]:
+                                info = distance.returnClosestPointOnMeshInfoFromPos(pos,m)
+                                if info['parameterU'] and info['parameterV']:
+                                    follicle = nodes.createFollicleOnMesh(m)
+                                    attributes.doSetAttr(follicle[0],'parameterU',info['parameterU'])
+                                    attributes.doSetAttr(follicle[0],'parameterV',info['parameterV'])
+                                
+
         self.reset()
         
         
@@ -330,26 +350,39 @@ class clickSurface(ContextualPick):
         self.posBuffer = []#Clear our pos buffer
         
         for m in self.meshList:#Get positions per mesh piece
+            if m not in self.meshPosDict.keys():
+                self.meshPosDict[m] = []
+                
             if mc.objExists(m):
                 if self.mode == 'surface':
-                    pos = findMeshIntersection(m, self.clickPos , self.clickVector )
-                    if pos is not None:
-                        self.posBuffer.append(pos)                
+                    buffer = findMeshIntersection(m, self.clickPos , self.clickVector )                
+                    
+                    if buffer is not None:
+                        self.posBuffer.append(buffer['hit'])  
+                        self.startPoint = buffer['source']
+                        self.meshPosDict[m].append(buffer['hit'])
                 else:
-                    pos = findMeshIntersections(m, self.clickPos ,  self.clickVector )              
-                    if pos:
-                        self.posBuffer.extend(pos)
+                    buffer = findMeshIntersections(m, self.clickPos , self.clickVector )                                    
+                    if buffer:
+                        self.posBuffer.extend(buffer['hits'])
+                        self.startPoint = buffer['source']                      
+                        self.meshPosDict[m].extend(buffer['hits'])
                         
-                if self.mode == 'midPoint' and self.posBuffer:
-                    if self.clampSetting and self.clampSetting < len(self.posBuffer):
-                        self.posBuffer = self.posBuffer[:self.clampSetting]
-                        
-                    self.posBuffer = [distance.returnAveragePointPosition(self.posBuffer)]
+        if not self.posBuffer:
+            guiFactory.warning('No hits detected!')
+            return
+        
+        if self.clampSetting and self.clampSetting < len(self.posBuffer):
+            guiFactory.warning("Position buffer was clamped. Check settings if this was not desired.")
+            self.posBuffer = distance.returnPositionDataDistanceSortedList(self.startPoint,self.posBuffer)
+            self.posBuffer = self.posBuffer[:self.clampSetting]
+            
+        if self.mode == 'midPoint':                
+            self.posBuffer = [distance.returnAveragePointPosition(self.posBuffer)]
 
-                
         if self.posBuffer: #Check for closest and just for hits
             if self.closestOnly and self.mode != 'intersections':
-                buffer = distance.returnClosestPoint(self.anchorPoint,self.posBuffer)
+                buffer = distance.returnClosestPoint(self.startPoint,self.posBuffer)
                 self.posBuffer = [buffer]               
         else:pass
             #guiFactory.warning("No hits detected")
@@ -465,7 +498,7 @@ def findMeshIntersection(mesh, raySource, rayDir):
 
     #Return the intersection as a Pthon list.
     if gotHit:
-            return [hitPoint.x, hitPoint.y, hitPoint.z]
+            return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z]}
     else:
             return None    
         
@@ -541,10 +574,14 @@ def findMeshIntersections(mesh, raySource, rayDir):
 
     #Return the intersection as a Pthon list.
     if gotHit:
-        returnList = []
+        returnDict = {}
+        hitList = []
         for i in range( hitPoints.length() ):
-            returnList.append( [hitPoints[i].x, hitPoints[i].y,hitPoints[i].z])
-        return returnList
+            hitList.append( [hitPoints[i].x, hitPoints[i].y,hitPoints[i].z])
+            
+            returnDict = {'hits':hitList,'source':[raySource.x,raySource.y,raySource.z]}
+
+        return returnDict
     else:
         return None   
     
