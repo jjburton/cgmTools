@@ -242,6 +242,10 @@ class OptionVarFactory():
         elif self.form == 'string':
             try:
                 mc.optionVar(sva = (self.name,str(value)))
+                for i in "",'':
+                    if i in self.value:
+                        self.remove(i)
+
                 self.update(self.form)
                 guiFactory.report("'%s' added to '%s'"%(value,self.name))
                              
