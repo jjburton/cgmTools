@@ -19,6 +19,11 @@
 __version__ = '0.2.10112012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
+from cgm.lib.classes import OptionVarFactory 
+reload(OptionVarFactory)
+
+from cgm.lib.classes.OptionVarFactory import *
+
 import maya.mel as mel
 import maya.cmds as mc
 
@@ -124,6 +129,9 @@ class tdToolsClass(BaseMelWindow):
 
 	# Colors
 	self.defaultOverrideColor = 6
+	
+	# Click Mesh
+	self.ClickMeshTool = False
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Build
@@ -170,7 +178,6 @@ class tdToolsClass(BaseMelWindow):
 	
 	guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
 	
-	print self.optionVars
 	#Trying a preload from selected
 	tdToolsLib.loadGUIOnStart(self)
 
@@ -192,12 +199,24 @@ class tdToolsClass(BaseMelWindow):
 	    mc.optionVar( iv=('cgmVar_RenameOnUpdate', 1) )
 	if not mc.optionVar( ex='cgmVar_DefaultOverrideColor' ):
 	    mc.optionVar( iv=('cgmVar_DefaultOverrideColor', 6) )
+	       
 	    
 	guiFactory.appendOptionVarList(self,'cgmVar_DefaultOverrideColor')	
 	guiFactory.appendOptionVarList(self,'cgmVar_RenameOnUpdate')	
 	guiFactory.appendOptionVarList(self,'cgmVar_SizeMode')	
 	guiFactory.appendOptionVarList(self,'cgmTDToolsWinActiveTab')
 	
+	#Click Surface
+	self.ClickMeshBuildOptionVar = OptionVarFactory('cgmVar_ClickMeshBuild', defaultValue = 0)
+	self.ClickMeshModeOptionVar = OptionVarFactory('cgmVar_ClickMeshMode', defaultValue = 0)
+	self.ClickMeshClampOptionVar = OptionVarFactory('cgmVar_ClickMeshClamp', defaultValue = 2)
+	self.ClickMeshTargetOptionVar = OptionVarFactory('cgmVar_ClickMeshTarget', defaultValue = [''])
+	
+	guiFactory.appendOptionVarList(self,self.ClickMeshBuildOptionVar.name)	
+	guiFactory.appendOptionVarList(self,self.ClickMeshModeOptionVar.name)	
+	guiFactory.appendOptionVarList(self,self.ClickMeshClampOptionVar.name)	
+	guiFactory.appendOptionVarList(self,self.ClickMeshTargetOptionVar.name)	
+
 	
 	#>>> Font Menu
 	if not mc.optionVar( ex='cgmVar_FontOption' ):
@@ -488,8 +507,11 @@ class tdToolsClass(BaseMelWindow):
 
 	positionLeftColumn = self.buildBasicLeftColumn(positionMainFormLayout)
 	positionRightColumn = MelColumnLayout(positionMainFormLayout)
+	
+	self.buildTool_ClickMesh(positionRightColumn)
 
 	self.buildTool_MoveTool(positionRightColumn)
+	
 	self.buildSnapAimTool(positionRightColumn)
 
 	self.buildSnapToSurfaceTool(positionRightColumn)
@@ -1025,7 +1047,92 @@ class tdToolsClass(BaseMelWindow):
 	guiFactory.lineSubBreak()
 
 	snapMoveRow1.layout()
+	
+    def buildTool_ClickMesh(self,parent):
+	mc.setParent(parent)
+	guiFactory.header('Click Mesh')
+	guiFactory.lineSubBreak()
+	
+	#>>>Click Mode
+	self.ClickMeshCreateModeCollection = MelRadioCollection()
+	self.ClickMeshCreateModeCollectionChoices = []	
+	
+	ClickMeshCreateModeOptionsRow = MelHSingleStretchLayout(parent,padding = 2,ut='cgmUISubTemplate')
+	MelSpacer(ClickMeshCreateModeOptionsRow,w=3)	
+	MelLabel(ClickMeshCreateModeOptionsRow,l='Mode')
+	Spacer = MelSeparator(ClickMeshCreateModeOptionsRow,w=5)						
+	self.ClickMeshOptions = ['surface','intersection','midPoint']
+	for i,item in enumerate(self.ClickMeshOptions):
+	    self.ClickMeshCreateModeCollectionChoices.append(self.ClickMeshCreateModeCollection.createButton(ClickMeshCreateModeOptionsRow,label=item,                                                                                           
+	                                                                                                           onCommand = Callback(tdToolsLib.uiClickMesh_changeMode,self,i)))
+	    MelSpacer(ClickMeshCreateModeOptionsRow,w=3)
+	ClickMeshCreateModeOptionsRow.setStretchWidget( Spacer )
 
+	MelLabel(ClickMeshCreateModeOptionsRow,l='Clamp:')
+	
+	self.ClickMeshClampIntField = MelIntField(ClickMeshCreateModeOptionsRow,
+	                                          cc = lambda *a: tdToolsLib.uiClickMesh_setClamp(self))	
+
+	tdToolsLib.uiUpdate_ClickMeshClampField(self) #update the field with a value if we have it
+	
+	MelSpacer(ClickMeshCreateModeOptionsRow,w=2)		
+	ClickMeshCreateModeOptionsRow.layout()	
+	
+	mc.radioCollection(self.ClickMeshCreateModeCollection ,edit=True,sl= (self.ClickMeshCreateModeCollectionChoices[ (self.ClickMeshModeOptionVar.value) ]))
+	
+	#>>>Create Options
+	self.ClickMeshBuildCollection = MelRadioCollection()
+	self.ClickMeshBuildCollectionChoices = []	
+	
+	ClickMeshBuildOptionsRow = MelHSingleStretchLayout(parent,padding = 2,ut='cgmUISubTemplate')
+	MelSpacer(ClickMeshBuildOptionsRow,w=3)	
+	MelLabel(ClickMeshBuildOptionsRow,l='Create')
+	Spacer = MelSeparator(ClickMeshBuildOptionsRow,w=10)						
+	self.ClickMeshOptions = ['locator','joint','jointChain','curve','follicle','group']
+	for i,item in enumerate(self.ClickMeshOptions):
+		self.ClickMeshBuildCollectionChoices.append(self.ClickMeshBuildCollection.createButton(ClickMeshBuildOptionsRow,label=item,                                                                                           
+		                                                                                       onCommand = Callback(tdToolsLib.uiClickMesh_changeCreateMode,self,i)))
+		MelSpacer(ClickMeshBuildOptionsRow,w=3)
+	ClickMeshBuildOptionsRow.setStretchWidget( Spacer )
+	MelSpacer(ClickMeshBuildOptionsRow,w=2)		
+	ClickMeshBuildOptionsRow.layout()	
+	
+	mc.radioCollection(self.ClickMeshBuildCollection ,edit=True,sl= (self.ClickMeshBuildCollectionChoices[ (self.ClickMeshBuildOptionVar.value) ]))
+	
+	
+	#>>> Manager load frow
+	ClickMeshLoadObjectRow = MelHSingleStretchLayout(parent ,padding = 5,ut='cgmUISubTemplate')
+
+	MelSpacer(ClickMeshLoadObjectRow,w=5)
+	
+	guiFactory.doButton2(ClickMeshLoadObjectRow,'>>',
+                        lambda *a:tdToolsLib.uiLoadClickMeshTargets(self),
+	                'Load to field')
+	
+	self.ClickMeshTargetsField = MelTextField(ClickMeshLoadObjectRow, w= 125, h=20, ut = 'cgmUIReservedTemplate', editable = False,
+	                                             ann = 'Target for tool. Objects must be mesh')
+
+	tdToolsLib.uiUpdate_ClickMeshTargetField(self) #update the field with a value if we have it
+	
+	ClickMeshLoadObjectRow.setStretchWidget(self.ClickMeshTargetsField  )
+	
+	guiFactory.doButton2(ClickMeshLoadObjectRow,'Start',
+	                     lambda *a:tdToolsLib.uiClickMeshToolLaunch(self))
+	
+	guiFactory.doButton2(ClickMeshLoadObjectRow,'Drop',
+	                     lambda *a:tdToolsLib.uiClickMesh_dropTool(self),
+	                     "Drop the tool. 'Q' should work on default hotkey setups")
+	
+	MelSpacer(ClickMeshLoadObjectRow,w=5)
+
+	ClickMeshLoadObjectRow.layout()
+	
+	
+
+	mc.setParent(parent)
+	guiFactory.lineSubBreak()
+
+	
     def buildSnapAimTool(self,parent):
 	mc.setParent(parent)
 	guiFactory.header('Snap Aim')
