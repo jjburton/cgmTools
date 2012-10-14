@@ -527,7 +527,25 @@ def locMeClosestPointOnCurve(obj, curve):
 
 	return locatorName
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def doLocPos(pos):
+	"""
+	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	DESCRIPTION:
+	Places a locator at a position in ws
 
+	ARGUMENTS:
+	pos(list)
+
+	RETURNS:
+	locatorName(string)
+	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	"""
+	locatorName = mc.spaceLocator(n='pos_loc')
+
+	mc.move (pos[0],pos[1],pos[2], locatorName)
+
+	return locatorName
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeClosestUVOnSurface(obj, surface, pivotOnSurfaceOnly = False):
