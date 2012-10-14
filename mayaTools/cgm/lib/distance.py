@@ -42,6 +42,57 @@ from math import sqrt,pow
 
 # Maya version check
 mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
+
+def returnMayaSpaceFromWorldSpace(value):
+    """
+    Thanks to parentToSurface.mel from autodesk for figuring out this was necessary
+    
+    
+    """
+    assert type(float(value)) is float,"'%s' is not a numeric value"%value
+    unit = mc.currentUnit(q=True,linear=True)
+	
+    if unit == 'mm':
+	return (value * 10)
+    elif unit =='cm':
+	return value
+    elif unit =='m':
+	return(value * .01)
+    elif unit == 'in':
+	return(value * 0.393701)
+    elif unit == 'ft':
+	return(value * 0.0328084)
+    elif unit =='yd':
+	return(value * 0.0109361)
+    else:
+	return value
+    
+def returnWorldSpaceFromMayaSpace(value):
+    """
+    Thanks to parentToSurface.mel from autodesk for figuring out this was necessary
+        
+    """
+    assert type(float(value)) is float,"'%s' is not a numeric value"%value
+    unit = mc.currentUnit(q=True,linear=True)
+	
+    if unit == 'mm':
+	return (value * .1)
+    elif unit =='cm':
+	return value
+    elif unit =='m':
+	return(value * 100)
+    elif unit == 'in':
+	return(value * 2.54)
+    elif unit == 'ft':
+	return(value * 30.48)
+    elif unit =='yd':
+	return(value * 91.44)
+    else:
+	return value
+				
+#			
+#
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Measure Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
