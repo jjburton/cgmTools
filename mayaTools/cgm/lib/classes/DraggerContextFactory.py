@@ -336,36 +336,60 @@ class clickMesh(ContextualPick):
         if self.createModeBuffer:
             self.createdList.extend(self.createModeBuffer) 
             
+    def getDistanceToCheck(self,m):
+        assert mc.objExists(m), "'%s' doesn't exist. Couldn't check distance!"%m
+        baseDistance = distance.returnDistanceBetweenPoints(self.clickPos, distance.returnWorldSpacePosition(m))
+        baseSize = distance.returnBoundingBoxSize(m)
+        
+        return distance.returnWorldSpaceFromMayaSpace( baseDistance + sum(baseSize) )
+    
+    def convertPosToLocalSpace(self,pos):
+        assert type(pos) is list,"'%s' is not a list. Coordinate expected"%pos
+        returnList = []
+        for f in pos:
+            returnList.append( distance.returnMayaSpaceFromWorldSpace(f))
+        return returnList
+        
     def updatePos(self):
         """
         Get updated position data via shooting rays
         """
         if not self.meshList:
-            return guiFactory.warning("No mesh objects have been added to '%s'"%(self.name))
+            return guiFactory.warnqing("No mesh objects have been added to '%s'"%(self.name))
         
         buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
+        #locators.doLocPos(buffer[0])
+        
         self.clickPos = buffer[0] #Our world space click point
         self.clickVector = buffer[1] #Camera vector
         
         self.posBuffer = []#Clear our pos buffer
         
         for m in self.meshList:#Get positions per mesh piece
+            #First get the distance to try to check
+            checkDistance = self.getDistanceToCheck(m)
+            print ("Checking %s"%checkDistance)
             if m not in self.meshPosDict.keys():
                 self.meshPosDict[m] = []
                 
             if mc.objExists(m):
                 if self.mode == 'surface':
-                    buffer = findMeshIntersection(m, self.clickPos , self.clickVector )                
+                    buffer = findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance )                
                     
                     if buffer is not None:
-                        self.posBuffer.append(buffer['hit'])  
-                        self.startPoint = buffer['source']
+                        self.posBuffer.append(self.convertPosToLocalSpace( buffer['hit'] ))  
+                        self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
                         self.meshPosDict[m].append(buffer['hit'])
                 else:
-                    buffer = findMeshIntersections(m, self.clickPos , self.clickVector )                                    
+                    buffer = findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)                                    
                     if buffer:
-                        self.posBuffer.extend(buffer['hits'])
-                        self.startPoint = buffer['source']                      
+                        conversionBuffer = []
+                        #Need to convert to local space
+                        for hit in buffer['hits']:
+                            conversionBuffer.append(self.convertPosToLocalSpace( hit ))
+                            
+                        self.posBuffer.extend(conversionBuffer)
+                        self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
                         self.meshPosDict[m].extend(buffer['hits'])
                         
         if not self.posBuffer:
@@ -429,11 +453,11 @@ def screenToWorld(startX,startY):
     vecMVector = OpenMaya.MVector()
 
     success = activeView.viewToWorld(startX, startY, posMPoint, vecMVector ) # The function
-    
+            
     return [posMPoint.x,posMPoint.y,posMPoint.z],[vecMVector.x,vecMVector.y,vecMVector.z]
 
 
-def findMeshIntersection(mesh, raySource, rayDir):
+def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
@@ -476,7 +500,8 @@ def findMeshIntersection(mesh, raySource, rayDir):
     #MFnMesh::closestIntersection call. We could have supplied these as
     #literal values in the call, but this makes the example more readable.
     sortIds = False
-    maxDist = OpenMaya.MDistance.internalToUI(1000) # This needs work
+    maxDist = OpenMaya.MDistance.internalToUI(1000000)# This needs work    
+    #maxDist = OpenMaya.MDistance.internalToUI(maxDistance) # This needs work
     bothDirections = False
     noFaceIds = None
     noTriangleIds = None
@@ -502,7 +527,7 @@ def findMeshIntersection(mesh, raySource, rayDir):
     else:
             return None    
         
-def findMeshIntersections(mesh, raySource, rayDir):
+def findMeshIntersections(mesh, raySource, rayDir,maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
@@ -545,7 +570,7 @@ def findMeshIntersections(mesh, raySource, rayDir):
     #MFnMesh::allIntersections call. We could have supplied these as
     #literal values in the call, but this makes the example more readable.
     sortIds = False
-    maxDist = OpenMaya.MDistance.internalToUI(1000) # This needs work
+    maxDist = OpenMaya.MDistance.internalToUI(1000000)# This needs work    
     bothDirections = False
     noFaceIds = None
     noTriangleIds = None
