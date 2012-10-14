@@ -285,7 +285,7 @@ def queryCanUpdate(objectToUpdate):
 	    return False
 
 
-def doLocClosest():
+def doLocClosest(self):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
