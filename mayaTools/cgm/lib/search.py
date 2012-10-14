@@ -741,7 +741,8 @@ def returnMayaInfo():
     mayaInfoDict['operatingSystem'] =  mc.about(operatingSystem=True)
     mayaInfoDict['operatingSystemVersion'] =  mc.about(operatingSystemVersion=True)
     mayaInfoDict['currentTime'] =  mc.about(currentTime=True)
-
+    mayaInfoDict['currentUnit'] =  mc.currentUnit(q=True,linear=True)
+    
     return mayaInfoDict
 
 def returnFontList():
