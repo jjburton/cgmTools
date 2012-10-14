@@ -141,7 +141,7 @@ def uiUpdate_ClickMeshTargetField(self):
 	else:
 	    self.ClickMeshTargetsField(edit=True, text = "'%s'"%"','".join(self.ClickMeshTargetOptionVar.value))
     else:
-	self.SurfaceClickTargetsField(edit=True, text = "")
+	self.ClickMeshTargetsField(edit=True, text = "")
 	
 def uiUpdate_ClickMeshClampField(self):
     if self.ClickMeshClampOptionVar.value:
@@ -173,7 +173,7 @@ def uiLoadClickMeshTargets(self):
 	    else:
 		guiFactory.warning("'%s' is not a mesh object. Ignoring"%o)
 		
-    uiUpdateClickMeshTargetField(self)
+    uiUpdate_ClickMeshTargetField(self)
 
 	
 def uiClickMeshToolLaunch(self):
