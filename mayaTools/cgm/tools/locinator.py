@@ -458,7 +458,7 @@ class locinatorClass(BaseMelWindow):
 		#>>>  Closest Point Section
 		guiFactory.lineSubBreak()
 		guiFactory.doButton2(SpecialColumn,'Locate Closest Point',
-		                     lambda *a: locinatorLib.doLocClosest(),
+		                     lambda *a: locinatorLib.doLocClosest(self),
 				             'Select the proximity object(s), then the object to find point on. Accepted target object types are - nurbsCurves and surfaces and poly objects')
 
 		#>>>  Curves Section
