@@ -131,7 +131,7 @@ def doSelectDrivenJoints(self):
         guiFactory.warning('No selection attributes found')
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Surface Click
+# Mesh Click
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def uiUpdate_ClickMeshTargetField(self):
     if self.ClickMeshTargetOptionVar.value:
@@ -150,8 +150,6 @@ def uiUpdate_ClickMeshClampField(self):
 	else:
 	    self.ClickMeshClampIntField(edit=True, value = self.ClickMeshClampOptionVar.value)
 
-	
-
 def uiLoadClickMeshTargets(self):
     """ 
     Loads target objects and updates menus
@@ -162,7 +160,7 @@ def uiLoadClickMeshTargets(self):
     selection = mc.ls(sl=True) or []
     self.ClickMeshTargetOptionVar.clear()
     if not selection:
-	self.SurfaceClickTargetsField(edit=True, text = "")	
+	self.ClickMeshTargetsField(edit=True, text = "")	
 	guiFactory.warning("Nothing selected")
 	return
     
@@ -199,12 +197,26 @@ def uiClickMeshToolLaunch(self):
     
     
     self.ClickMeshTool = DraggerContextFactory.clickMesh( mesh = doMesh,
-                                                            closestOnly = True,
-                                                            clampIntersections = self.ClickMeshClampOptionVar.value)
+                                                          closestOnly = True,
+                                                          dragStore=False,
+                                                          clampIntersections = self.ClickMeshClampOptionVar.value)
     
     self.ClickMeshTool.setMode(self.ClickMeshTool.modes[self.ClickMeshModeOptionVar.value])
     self.ClickMeshTool.setCreate(self.ClickMeshTool.createModes[self.ClickMeshBuildOptionVar.value])  
+    self.ClickMeshTool.setDragStoreMode(self.ClickMeshDragStoreOptionVar.value)  
     
+def uiClickMesh_setDragStore(self,i):
+    """ 
+    Sets drag store mode
+
+    Keyword arguments:
+    selectAttr(string) -- Name of an attr (False ignores)
+    """
+    self.ClickMeshDragStoreOptionVar.set(i)
+    
+    if self.ClickMeshTool:
+	self.ClickMeshTool.setDragStoreMode(bool(i))  
+	
 def uiClickMesh_changeMode(self,i):
     """ 
     Loads target objects and updates menus

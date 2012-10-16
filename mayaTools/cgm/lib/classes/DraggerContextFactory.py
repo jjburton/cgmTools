@@ -22,10 +22,12 @@
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
-import maya.OpenMaya as OpenMaya
+import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
+from cgm.lib.classes import NameFactory
 
 from cgm.lib import (locators,
+                     geo,
                      curves,
                      search,
                      attributes,
@@ -165,7 +167,15 @@ class clickMesh(ContextualPick):
         self.modes = ['surface','intersections','midPoint']
         self.meshList = []
         self.meshPosDict = {} #creating this pretty much just for follicle mode so we can attache to a specific mesh
+        self.meshUVDict = {}
+        self.meshArea = 1
+        
         self.createMode = create
+        self.getUV = False
+        
+        if self.createMode == 'follicle':#Only get uv intersection for follicles
+            self.getUV = True
+            
         self.closestOnly = closestOnly
         self.createdList = []
         self.clampSetting = clampIntersections
@@ -181,8 +191,21 @@ class clickMesh(ContextualPick):
         if mesh is not None:
             assert type(mesh) is list,"Mesh call must be in list form when called"
             for m in mesh:
-                self.addTargetMesh(m)        
+                self.addTargetMesh(m)    
+            self.updateMeshArea()
+            
+    def updateMeshArea(self):
+        """
+        Updates the mesh area of the added meshes (for sizing purposes)
+        """
+        self.meshArea = 1
+        buffer = []
+        for m in self.meshList:
+            buffer.append(distance.returnObjectSize(m))
         
+        if buffer:
+            self.meshArea = sum(buffer)/len(buffer)
+            
     def addTargetMesh(self,mesh):
         """
         Add target mesh to the tool
@@ -195,6 +218,7 @@ class clickMesh(ContextualPick):
             buffer = search.returnObjectType(mesh)
             if buffer == 'mesh':
                 self.meshList.append(mesh)
+                self.updateMeshArea()
                 return True
             else:
                 guiFactory.warning("'%s' is not a mesh. It is returning as '%s'"%(mesh,buffer))
@@ -214,8 +238,8 @@ class clickMesh(ContextualPick):
         Set tool mode
         """
         assert mode in ['surface','intersections','midPoint'],"'%s' not a defined mode"%mode
-        self.mode = mode
-        
+        self.mode = mode 
+            
     def setClamp(self,setting):
         """
         Set clamp setting
@@ -229,13 +253,16 @@ class clickMesh(ContextualPick):
         """
         assert create in self.createModes,"'%s' is not a valid create mode"%create    
         self.createMode = create
+        if self.createMode == 'follicle':#Only get uv intersection for follicles
+            self.getUV = True            
         
     def setDragStoreMode(self,mode):
         """
         Set drag update mode
         """
-        assert type(mode) is bool,"'%s' should be a bool"%mode                 
+        assert bool(mode) in [True,False],"'%s' should be a bool"%mode                 
         self.dragStoreMode = mode
+        guiFactory.warning("Drag store is %s!"%mode)
         
     def reset(self):
         """
@@ -265,7 +292,7 @@ class clickMesh(ContextualPick):
         self.createdList = lists.returnListNoDuplicates(self.createdList)
         self.returnList = lists.returnListNoDuplicates(self.returnList)
         
-        if self.createMode in ['curve','jointChain','group','follicle'] and self.returnList and len(self.returnList)>1:
+        if self.createMode in ['curve','jointChain','group','follicle'] and self.returnList:
             if self.createMode == 'group':
                 bufferList = []
                 for i,o in enumerate(self.createdList):
@@ -275,14 +302,27 @@ class clickMesh(ContextualPick):
                     except:pass
                 self.createdList = bufferList
                 
-                    
+            elif self.createMode =='follicle':
+                if self.mode == 'midPoint':
+                    guiFactory.warning("Mid point mode doesn't work with follicles")
+                    return
+                bufferList = []
+                for o in self.createdList:
+                    mesh = attributes.doGetAttr(o,'cgmHitTarget')
+                    if mc.objExists(mesh):
+                        uv = distance.returnClosestUVToPos(mesh,distance.returnWorldSpacePosition(o))
+                        follicle = nodes.createFollicleOnMesh(mesh)
+                        attributes.doSetAttr(follicle[0],'parameterU',uv[0])
+                        attributes.doSetAttr(follicle[0],'parameterV',uv[1])
+                        try:mc.delete(o)
+                        except:pass                        
             else:
                 for o in self.createdList:
                     try:mc.delete(o)
                     except:pass
-                if self.createMode == 'curve':
+                if self.createMode == 'curve' and len(self.returnList)>1:
                     if len(self.returnList) > 1:
-                        self.createdList = [mc.curve (d=2, p = self.returnList , ws=True)]
+                        self.createdList = [mc.curve (d=3, p = self.returnList , ws=True)]
                     else:
                         guiFactory.warning("Need at least 2 points for a curve")                        
                 elif self.createMode == 'jointChain':
@@ -290,16 +330,6 @@ class clickMesh(ContextualPick):
                     mc.select(cl=True)
                     for pos in self.returnList:        
                         self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2])) )
-                        
-                elif self.createMode =='follicle':
-                    for pos in self.returnList:
-                        for m in self.meshPosDict.keys():
-                            if pos in self.meshPosDict[m]:
-                                info = distance.returnClosestPointOnMeshInfoFromPos(pos,m)
-                                if info['parameterU'] and info['parameterV']:
-                                    follicle = nodes.createFollicleOnMesh(m)
-                                    attributes.doSetAttr(follicle[0],'parameterU',info['parameterU'])
-                                    attributes.doSetAttr(follicle[0],'parameterV',info['parameterV'])
                                 
 
         self.reset()
@@ -310,7 +340,7 @@ class clickMesh(ContextualPick):
         Store current data to return buffers
         """
         if self.posBuffer:
-            guiFactory.report("Position data : %s "%(self.posBuffer))
+            guiFactory.report("Position data : %s "%(self.returnList))
         if self.createModeBuffer:
             guiFactory.report("Created : %s "%(self.createModeBuffer))
             mc.select(cl=True)
@@ -318,7 +348,7 @@ class clickMesh(ContextualPick):
         #Only store return values on release
         if self.posBuffer:
             for p in self.posBuffer:
-                self.returnList.append(p)
+                self.returnList.append(p)            
         if self.createModeBuffer:
             self.createdList.extend(self.createModeBuffer)
     
@@ -329,12 +359,8 @@ class clickMesh(ContextualPick):
         ContextualPick.drag(self)
         self.updatePos()
         
-        if self.dragStoreMode:
-            if self.posBuffer:
-                for p in self.posBuffer:
-                    self.returnList.append(p)
         if self.createModeBuffer:
-            self.createdList.extend(self.createModeBuffer) 
+            self.createdList.extend(self.createModeBuffer)          
             
     def getDistanceToCheck(self,m):
         assert mc.objExists(m), "'%s' doesn't exist. Couldn't check distance!"%m
@@ -358,28 +384,28 @@ class clickMesh(ContextualPick):
             return guiFactory.warnqing("No mesh objects have been added to '%s'"%(self.name))
         
         buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
-        #locators.doLocPos(buffer[0])
-        
+                
         self.clickPos = buffer[0] #Our world space click point
         self.clickVector = buffer[1] #Camera vector
-        
         self.posBuffer = []#Clear our pos buffer
         
         for m in self.meshList:#Get positions per mesh piece
             #First get the distance to try to check
             checkDistance = self.getDistanceToCheck(m)
-            print ("Checking %s"%checkDistance)
+            #print ("Checking distance of %s"%checkDistance)
             if m not in self.meshPosDict.keys():
                 self.meshPosDict[m] = []
+                self.meshUVDict[m] = []
                 
             if mc.objExists(m):
                 if self.mode == 'surface':
-                    buffer = findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance )                
-                    
+                    buffer = findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance)                
                     if buffer is not None:
-                        self.posBuffer.append(self.convertPosToLocalSpace( buffer['hit'] ))  
+                        hit = self.convertPosToLocalSpace( buffer['hit'] )
+                        self.posBuffer.append(hit)  
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
-                        self.meshPosDict[m].append(buffer['hit'])
+                        self.meshPosDict[m].append(hit)
+                        self.meshUVDict[m].append(buffer['uv'])
                 else:
                     buffer = findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)                                    
                     if buffer:
@@ -387,10 +413,13 @@ class clickMesh(ContextualPick):
                         #Need to convert to local space
                         for hit in buffer['hits']:
                             conversionBuffer.append(self.convertPosToLocalSpace( hit ))
-                            
+                             
                         self.posBuffer.extend(conversionBuffer)
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
-                        self.meshPosDict[m].extend(buffer['hits'])
+                        
+                        self.meshPosDict[m].extend(conversionBuffer)
+                        self.meshUVDict[m].extend(buffer['uvs'])
+                        
                         
         if not self.posBuffer:
             guiFactory.warning('No hits detected!')
@@ -413,7 +442,7 @@ class clickMesh(ContextualPick):
             
         if self.createMode and self.posBuffer: # Make our stuff
             #Delete the old stuff
-            if self.createModeBuffer:
+            if self.createModeBuffer and not self.dragStoreMode:
                 for o in self.createModeBuffer:
                     try:mc.delete(o)
                     except:pass
@@ -423,14 +452,31 @@ class clickMesh(ContextualPick):
                 if len(pos) == 3:
                     if self.createMode == 'joint':
                         nameBuffer = mc.joint()
+                        attributes.doSetAttr(nameBuffer,'radius',(self.meshArea*.00002))
+                        
+                        mc.select(cl=True)
                     else:
                         nameBuffer = mc.spaceLocator()[0]
                         
-                    mc.move (pos[0],pos[1],pos[2], nameBuffer)              
+                        for m in self.meshPosDict.keys():#check each mesh dictionary to see where it came from
+                            if pos in self.meshPosDict[m]:#if the mesh has a match
+                                attributes.storeInfo(nameBuffer,'cgmHitTarget',m)
+                                attributes.doSetAttr(nameBuffer,'localScaleX',(self.meshArea*.02))
+                                attributes.doSetAttr(nameBuffer,'localScaleY',(self.meshArea*.02))
+                                attributes.doSetAttr(nameBuffer,'localScaleZ',(self.meshArea*.02))
+                                break                              
+                        
+                    mc.move (pos[0],pos[1],pos[2], nameBuffer)
+                    
                     self.createModeBuffer.append(nameBuffer)
                 else:
                     guiFactory.warning("'%s' isn't a valid position"%pos)
-                
+        
+        if self.dragStoreMode:
+            if self.posBuffer:
+                for p in self.posBuffer:
+                    self.returnList.append(p)  
+               
         mc.refresh()#Update maya to make it interactive!
 
     
@@ -449,8 +495,8 @@ def screenToWorld(startX,startY):
     """
     maya3DViewHandle = OpenMayaUI.M3dView() #3dView handle to be able to query
     activeView = maya3DViewHandle.active3dView() # Get the active view
-    posMPoint = OpenMaya.MPoint() #Storage items
-    vecMVector = OpenMaya.MVector()
+    posMPoint = om.MPoint() #Storage items
+    vecMVector = om.MVector()
 
     success = activeView.viewToWorld(startX, startY, posMPoint, vecMVector ) # The function
             
@@ -471,13 +517,13 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     returns hitpoint(double3)
     """    
     #Create an empty selection list.
-    selectionList = OpenMaya.MSelectionList()
+    selectionList = om.MSelectionList()
 
     #Put the mesh's name on the selection list.
     selectionList.add(mesh)
 
     #Create an empty MDagPath object.
-    meshPath = OpenMaya.MDagPath()
+    meshPath = om.MDagPath()
 
     #Get the first item on the selection list (which will be our mesh)
     #as an MDagPath.
@@ -485,23 +531,23 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
 
     #Create an MFnMesh functionset to operate on the node pointed to by
     #the dag path.
-    meshFn = OpenMaya.MFnMesh(meshPath)
+    meshFn = om.MFnMesh(meshPath)
 
     #Convert the 'raySource' parameter into an MFloatPoint.
-    raySource = OpenMaya.MFloatPoint(raySource[0], raySource[1], raySource[2])
+    raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
 
     #Convert the 'rayDir' parameter into an MVector.`
-    rayDirection = OpenMaya.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+    rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
 
     #Create an empty MFloatPoint to receive the hit point from the call.
-    hitPoint = OpenMaya.MFloatPoint()
+    hitPoint = om.MFloatPoint()
 
     #Set up a variable for each remaining parameter in the
     #MFnMesh::closestIntersection call. We could have supplied these as
     #literal values in the call, but this makes the example more readable.
     sortIds = False
-    maxDist = OpenMaya.MDistance.internalToUI(1000000)# This needs work    
-    #maxDist = OpenMaya.MDistance.internalToUI(maxDistance) # This needs work
+    maxDist = om.MDistance.internalToUI(1000000)# This needs work    
+    #maxDist = om.MDistance.internalToUI(maxDistance) # This needs work
     bothDirections = False
     noFaceIds = None
     noTriangleIds = None
@@ -516,16 +562,32 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     gotHit = meshFn.closestIntersection(
         raySource, rayDirection,
         noFaceIds, noTriangleIds,
-        sortIds, OpenMaya.MSpace.kWorld, maxDist, bothDirections,
+        sortIds, om.MSpace.kWorld, maxDist, bothDirections,
         noAccelerator,
         hitPoint,
         noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2)
-
+    
     #Return the intersection as a Pthon list.
     if gotHit:
-            return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z]}
+        #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
+        hitMPoint = om.MPoint(hitPoint) # Thank you Capper on Tech-artists.org          
+        pArray = [0.0,0.0]
+        x1 = om.MScriptUtil()
+        x1.createFromList( pArray, 2 )
+        uvPoint = x1.asFloat2Ptr()
+        uvSet = None
+        closestPolygon=None
+        uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
+        
+        uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+        vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+        guiFactory.report("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
+        if uValue and vValue:
+            return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':[uValue,vValue]}                
+        else:
+            return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':False}
     else:
-            return None    
+        return None    
         
 def findMeshIntersections(mesh, raySource, rayDir,maxDistance = 1000):
     """
@@ -541,13 +603,13 @@ def findMeshIntersections(mesh, raySource, rayDir,maxDistance = 1000):
     returns hitpoints(list) -- [pos1,pos2...]
     """    
     #Create an empty selection list.
-    selectionList = OpenMaya.MSelectionList()
+    selectionList = om.MSelectionList()
 
     #Put the mesh's name on the selection list.
     selectionList.add(mesh)
 
     #Create an empty MDagPath object.
-    meshPath = OpenMaya.MDagPath()
+    meshPath = om.MDagPath()
 
     #Get the first item on the selection list (which will be our mesh)
     #as an MDagPath.
@@ -555,22 +617,22 @@ def findMeshIntersections(mesh, raySource, rayDir,maxDistance = 1000):
 
     #Create an MFnMesh functionset to operate on the node pointed to by
     #the dag path.
-    meshFn = OpenMaya.MFnMesh(meshPath)
+    meshFn = om.MFnMesh(meshPath)
 
     #Convert the 'raySource' parameter into an MFloatPoint.
-    raySource = OpenMaya.MFloatPoint(raySource[0], raySource[1], raySource[2])
+    raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
 
     #Convert the 'rayDir' parameter into an MVector.`
-    rayDirection = OpenMaya.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+    rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
 
     #Create an empty MFloatPoint to receive the hit point from the call.
-    hitPoints = OpenMaya.MFloatPointArray()
+    hitPoints = om.MFloatPointArray()
 
     #Set up a variable for each remaining parameter in the
     #MFnMesh::allIntersections call. We could have supplied these as
     #literal values in the call, but this makes the example more readable.
     sortIds = False
-    maxDist = OpenMaya.MDistance.internalToUI(1000000)# This needs work    
+    maxDist = om.MDistance.internalToUI(1000000)# This needs work    
     bothDirections = False
     noFaceIds = None
     noTriangleIds = None
@@ -590,7 +652,7 @@ def findMeshIntersections(mesh, raySource, rayDir,maxDistance = 1000):
         noFaceIds,
         noTriangleIds,
         sortIds,
-        OpenMaya.MSpace.kWorld,
+        om.MSpace.kWorld,
         maxDist,
         bothDirections,
         noAccelerator,
@@ -598,15 +660,29 @@ def findMeshIntersections(mesh, raySource, rayDir,maxDistance = 1000):
         hitPoints, noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2,tolerance)
 
     #Return the intersection as a Pthon list.
-    if gotHit:
+    if gotHit:        
         returnDict = {}
         hitList = []
+        uvList = []
         for i in range( hitPoints.length() ):
             hitList.append( [hitPoints[i].x, hitPoints[i].y,hitPoints[i].z])
             
-            returnDict = {'hits':hitList,'source':[raySource.x,raySource.y,raySource.z]}
+            #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
+            hitMPoint = om.MPoint(hitPoints[i]) # Thank you Capper on Tech-artists.org          
+            pArray = [0.0,0.0]
+            x1 = om.MScriptUtil()
+            x1.createFromList( pArray, 2 )
+            uvPoint = x1.asFloat2Ptr()
+            uvSet = None
+            closestPolygon=None
+            uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
+            
+            uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+            vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+            uvList.append([uValue,vValue])
+        
+        returnDict = {'hits':hitList,'source':[raySource.x,raySource.y,raySource.z],'uvs':uvList}
 
         return returnDict
     else:
         return None   
-    

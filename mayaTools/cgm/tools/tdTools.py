@@ -209,13 +209,15 @@ class tdToolsClass(BaseMelWindow):
 	#Click Surface
 	self.ClickMeshBuildOptionVar = OptionVarFactory('cgmVar_ClickMeshBuild', defaultValue = 0)
 	self.ClickMeshModeOptionVar = OptionVarFactory('cgmVar_ClickMeshMode', defaultValue = 0)
-	self.ClickMeshClampOptionVar = OptionVarFactory('cgmVar_ClickMeshClamp', defaultValue = 2)
+	self.ClickMeshClampOptionVar = OptionVarFactory('cgmVar_ClickMeshClamp', defaultValue = 0)
 	self.ClickMeshTargetOptionVar = OptionVarFactory('cgmVar_ClickMeshTarget', defaultValue = [''])
+	self.ClickMeshDragStoreOptionVar = OptionVarFactory('cgmVar_ClickMeshDragStore', defaultValue = 0)
 	
 	guiFactory.appendOptionVarList(self,self.ClickMeshBuildOptionVar.name)	
 	guiFactory.appendOptionVarList(self,self.ClickMeshModeOptionVar.name)	
 	guiFactory.appendOptionVarList(self,self.ClickMeshClampOptionVar.name)	
 	guiFactory.appendOptionVarList(self,self.ClickMeshTargetOptionVar.name)	
+	guiFactory.appendOptionVarList(self,self.ClickMeshDragStoreOptionVar.name)	
 
 	
 	#>>> Font Menu
@@ -1058,15 +1060,23 @@ class tdToolsClass(BaseMelWindow):
 	self.ClickMeshCreateModeCollectionChoices = []	
 	
 	ClickMeshCreateModeOptionsRow = MelHSingleStretchLayout(parent,padding = 2,ut='cgmUISubTemplate')
-	MelSpacer(ClickMeshCreateModeOptionsRow,w=3)	
+	MelSpacer(ClickMeshCreateModeOptionsRow,w=2)	
 	MelLabel(ClickMeshCreateModeOptionsRow,l='Mode')
-	Spacer = MelSeparator(ClickMeshCreateModeOptionsRow,w=5)						
-	self.ClickMeshOptions = ['surface','intersection','midPoint']
+	Spacer = MelSeparator(ClickMeshCreateModeOptionsRow,w=2)						
+	self.ClickMeshOptions = ['surface','bisect','midPoint']
 	for i,item in enumerate(self.ClickMeshOptions):
 	    self.ClickMeshCreateModeCollectionChoices.append(self.ClickMeshCreateModeCollection.createButton(ClickMeshCreateModeOptionsRow,label=item,                                                                                           
 	                                                                                                           onCommand = Callback(tdToolsLib.uiClickMesh_changeMode,self,i)))
-	    MelSpacer(ClickMeshCreateModeOptionsRow,w=3)
+	    #MelSpacer(ClickMeshCreateModeOptionsRow,w=3)
 	ClickMeshCreateModeOptionsRow.setStretchWidget( Spacer )
+
+	self.ClickMeshDragCB = MelCheckBox(ClickMeshCreateModeOptionsRow,
+	                                   label = 'Drag:',
+	                                   annotation = "Stores drag data rather than just clicks",		                           
+	                                   value = self.ClickMeshDragStoreOptionVar.value,
+	                                   onCommand = lambda *a: tdToolsLib.uiClickMesh_setDragStore(self,1),
+	                                   offCommand = lambda *a: tdToolsLib.uiClickMesh_setDragStore(self,0))
+	
 
 	MelLabel(ClickMeshCreateModeOptionsRow,l='Clamp:')
 	
