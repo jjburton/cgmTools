@@ -27,6 +27,8 @@
 #
 #=================================================================================================================================================
 import maya.cmds as mc
+import maya.OpenMaya as om
+
 import maya.mel as mel
 import copy
 
@@ -587,7 +589,7 @@ def returnObjectSize(obj):
     obj(string) - mesh or mesh group
 
     RETURNS:
-    returnList(list) - [xLength,yLength,zLength]
+    size(float)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     objType = search.returnObjectType(obj)
@@ -1064,10 +1066,10 @@ def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     locBuffer = mc.spaceLocator()
     mc.move (pos[0],pos[1],pos[2], locBuffer[0])
 
-
     attributes.doConnectAttr((locBuffer[0]+'.translate'),(closestPointNode+'.inPosition'))
     attributes.doConnectAttr((controlSurface[0]+'.worldMesh'),(closestPointNode+'.inMesh'))
-
+    attributes.doConnectAttr((locBuffer[0]+'.matrix'),(closestPointNode+'.inputMatrix'))
+ 
     pointInfo = {}
     pointInfo['position']=attributes.doGetAttr(closestPointNode,'position')
     pointInfo['normal']=attributes.doGetAttr(closestPointNode,'normal')
@@ -1103,6 +1105,7 @@ def returnClosestPointOnMeshInfo(targetObj, mesh):
     """ to account for target objects in heirarchies """
     attributes.doConnectAttr((targetObj+'.translate'),(closestPointNode+'.inPosition'))
     attributes.doConnectAttr((controlSurface[0]+'.worldMesh'),(closestPointNode+'.inMesh'))
+    attributes.doConnectAttr((controlSurface[0]+'.matrix'),(closestPointNode+'.inputMatrix'))
 
     pointInfo = {}
     pointInfo['position']=attributes.doGetAttr(closestPointNode,'position')
@@ -1115,6 +1118,57 @@ def returnClosestPointOnMeshInfo(targetObj, mesh):
     mc.delete(closestPointNode)
     return pointInfo
 
+
+def returnClosestUVToPos(mesh, pos):
+    """   
+    Return the closest point on a mesh to a point in space
+    
+    Arguments
+    mesh(string) -- currently poly surface only
+    pos(double3) -- point in world space
+    
+    returns(double2) -- uv coordinate on mesh
+    """
+    buffer = []
+    for p in pos:
+	buffer.append(returnWorldSpaceFromMayaSpace(p))
+    pos = buffer
+    
+    #Create an empty selection list.
+    selectionList = om.MSelectionList()
+
+    #Put the mesh's name on the selection list.
+    selectionList.add(mesh)
+
+    #Create an empty MDagPath object.
+    meshPath = om.MDagPath()
+
+    #Get the first item on the selection list (which will be our mesh)
+    #as an MDagPath.
+    selectionList.getDagPath(0, meshPath)
+
+    #Create an MFnMesh functionset to operate on the node pointed to by
+    #the dag path.
+    meshFn = om.MFnMesh(meshPath)
+    
+    #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
+    floatPoint = om.MFloatPoint(pos[0], pos[1], pos[2])
+    refPoint = om.MPoint(floatPoint) # Thank you Capper on Tech-artists.org          
+    pArray = [0.0,0.0]
+    x1 = om.MScriptUtil()
+    x1.createFromList( pArray, 2 )
+    uvPoint = x1.asFloat2Ptr()
+    uvSet = None
+    closestPolygon=None
+    uvReturn = meshFn.getUVAtPoint(refPoint,uvPoint,om.MSpace.kWorld)
+    
+    uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+    vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+    
+    if uValue and vValue:
+        return [uValue,vValue]
+    return False
+    
 
 
 
