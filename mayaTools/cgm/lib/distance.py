@@ -578,7 +578,7 @@ def returnCenterPivotPosition (meshGrp):
     return returnList
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnObjectSize(obj):
+def returnObjectSize(obj,debugReport = False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -593,14 +593,13 @@ def returnObjectSize(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     objType = search.returnObjectType(obj)
-    print objType
 
     #>>> Poly
     if objType == 'mesh':
         size =  mc.polyEvaluate(obj,worldArea = True)
 
-        print ('%s%f' %('mesh area is ',size))
-        return size
+        if debugReport: print ('%s%f' %('mesh area is ',size))
+	return size
 
     elif objType == 'polyVertex':
         meshArea = mc.polyEvaluate(obj,worldArea = True)
@@ -608,19 +607,19 @@ def returnObjectSize(obj):
         vertices = mc.ls ([splitBuffer[0]+'.vtx[*]'],flatten=True)
         size = meshArea/len(vertices)
 
-        print ('%s%f' %('Average mesh area per vert is  ',size))
+        if debugReport: print ('%s%f' %('Average mesh area per vert is  ',size))
         return size
 
     elif objType == 'polyEdge':
         size = returnEdgeLength(obj)
 
-        print ('%s%f' %('The Edge length is ',size))
+        if debugReport: print ('%s%f' %('The Edge length is ',size))
         return size
 
     elif objType == 'polyFace':
         size =  returnFaceArea(obj)
 
-        print ('%s%f' %('face area is ',size))
+        if debugReport: print ('%s%f' %('face area is ',size))
         return size
 
     #>>> Nurbs
@@ -628,16 +627,16 @@ def returnObjectSize(obj):
         boundingBoxSize = returnBoundingBoxSize(obj)
         size = cgmMath.multiplyList(boundingBoxSize)
 
-        print ('%s%f' %('Bounding box volume is ',size))
+        if debugReport: print ('%s%f' %('Bounding box volume is ',size))
         return size
 
     elif objType == 'nurbsCurve':
         size =  returnCurveLength(obj)
 
-        print ('%s%f' %('Curve length is ',size))
+        if debugReport: print ('%s%f' %('Curve length is ',size))
         return size
     else:
-        print ("Don't know how to handle that one")
+        if debugReport: print ("Don't know how to handle that one")
         return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
