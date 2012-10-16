@@ -37,6 +37,7 @@ from cgm.lib import (locators,
                      distance,
                      guiFactory)
 reload(distance)
+reload(curves)
 import os
 
 
@@ -256,22 +257,22 @@ class clickMesh(ContextualPick):
         if self.createMode == 'follicle':#Only get uv intersection for follicles
             self.getUV = True            
         
-    def setDragStoreMode(self,mode):
+    def setDragStoreMode(self,mode,debugReport = False):
         """
         Set drag update mode
         """
         assert bool(mode) in [True,False],"'%s' should be a bool"%mode                 
         self.dragStoreMode = mode
-        guiFactory.warning("Drag store is %s!"%mode)
+        if debugReport:guiFactory.warning("Drag store is %s!"%mode)
         
-    def reset(self):
+    def reset(self,debugReport = False):
         """
         Reset data
         """
         self.createdList = []
         self.returnList = []
         
-        guiFactory.warning("'%s' reset."%self.name)
+        if debugReport:guiFactory.warning("'%s' reset."%self.name)
         
     def setTool(self):
         ContextualPick.setTool(self)
@@ -322,27 +323,27 @@ class clickMesh(ContextualPick):
                     except:pass
                 if self.createMode == 'curve' and len(self.returnList)>1:
                     if len(self.returnList) > 1:
-                        self.createdList = [mc.curve (d=3, p = self.returnList , ws=True)]
+                        self.createdList = [curves.curveFromPosList(self.returnList)]
                     else:
                         guiFactory.warning("Need at least 2 points for a curve")                        
                 elif self.createMode == 'jointChain':
                     self.createdList = []
                     mc.select(cl=True)
-                    for pos in self.returnList:        
-                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2])) )
+                    for pos in self.returnList:                             
+                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = (self.meshArea*.025)) )
                                 
 
         self.reset()
         
         
-    def release(self):
+    def release(self,debugReport = False):
         """
         Store current data to return buffers
         """
         if self.posBuffer:
-            guiFactory.report("Position data : %s "%(self.returnList))
+            if debugReport:guiFactory.report("Position data : %s "%(self.returnList))
         if self.createModeBuffer:
-            guiFactory.report("Created : %s "%(self.createModeBuffer))
+            if debugReport:guiFactory.report("Created : %s "%(self.createModeBuffer))
             mc.select(cl=True)
                 
         #Only store return values on release
@@ -376,12 +377,12 @@ class clickMesh(ContextualPick):
             returnList.append( distance.returnMayaSpaceFromWorldSpace(f))
         return returnList
         
-    def updatePos(self):
+    def updatePos(self,debugReport = False):
         """
         Get updated position data via shooting rays
         """
         if not self.meshList:
-            return guiFactory.warnqing("No mesh objects have been added to '%s'"%(self.name))
+            return guiFactory.warning("No mesh objects have been added to '%s'"%(self.name))
         
         buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
                 
@@ -422,11 +423,11 @@ class clickMesh(ContextualPick):
                         
                         
         if not self.posBuffer:
-            guiFactory.warning('No hits detected!')
+            if debugReport:guiFactory.warning('No hits detected!')
             return
         
         if self.clampSetting and self.clampSetting < len(self.posBuffer):
-            guiFactory.warning("Position buffer was clamped. Check settings if this was not desired.")
+            if debugReport:guiFactory.warning("Position buffer was clamped. Check settings if this was not desired.")
             self.posBuffer = distance.returnPositionDataDistanceSortedList(self.startPoint,self.posBuffer)
             self.posBuffer = self.posBuffer[:self.clampSetting]
             
@@ -450,27 +451,28 @@ class clickMesh(ContextualPick):
             
             for pos in self.posBuffer:
                 if len(pos) == 3:
+                    baseScale = distance.returnMayaSpaceFromWorldSpace(10)
                     if self.createMode == 'joint':
                         nameBuffer = mc.joint()
-                        attributes.doSetAttr(nameBuffer,'radius',(self.meshArea*.00002))
+                        attributes.doSetAttr(nameBuffer,'radius',(self.meshArea*.025))
                         
                         mc.select(cl=True)
                     else:
                         nameBuffer = mc.spaceLocator()[0]
-                        
                         for m in self.meshPosDict.keys():#check each mesh dictionary to see where it came from
                             if pos in self.meshPosDict[m]:#if the mesh has a match
                                 attributes.storeInfo(nameBuffer,'cgmHitTarget',m)
-                                attributes.doSetAttr(nameBuffer,'localScaleX',(self.meshArea*.02))
-                                attributes.doSetAttr(nameBuffer,'localScaleY',(self.meshArea*.02))
-                                attributes.doSetAttr(nameBuffer,'localScaleZ',(self.meshArea*.02))
+                                
+                                attributes.doSetAttr(nameBuffer,'localScaleX',(self.meshArea*.025))
+                                attributes.doSetAttr(nameBuffer,'localScaleY',(self.meshArea*.025))
+                                attributes.doSetAttr(nameBuffer,'localScaleZ',(self.meshArea*.025))
                                 break                              
                         
                     mc.move (pos[0],pos[1],pos[2], nameBuffer)
                     
                     self.createModeBuffer.append(nameBuffer)
                 else:
-                    guiFactory.warning("'%s' isn't a valid position"%pos)
+                    if debugReport:guiFactory.warning("'%s' isn't a valid position"%pos)
         
         if self.dragStoreMode:
             if self.posBuffer:
@@ -503,7 +505,7 @@ def screenToWorld(startX,startY):
     return [posMPoint.x,posMPoint.y,posMPoint.z],[vecMVector.x,vecMVector.y,vecMVector.z]
 
 
-def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
+def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, debugReport = False):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
@@ -581,7 +583,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
         
         uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
         vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-        guiFactory.report("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
+        if debugReport:guiFactory.report("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
         if uValue and vValue:
             return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':[uValue,vValue]}                
         else:
@@ -589,7 +591,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     else:
         return None    
         
-def findMeshIntersections(mesh, raySource, rayDir,maxDistance = 1000):
+def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, debugReport = False):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     

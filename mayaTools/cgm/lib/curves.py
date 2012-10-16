@@ -695,8 +695,8 @@ def curveFromPosList(posList):
     if len(posList) <= 3:
         curveDegree = 1
     else:
-        #curveDegree = 4
         curveDegree = len(posList) - 1
+        if curveDegree >=7: curveDegree = 7
 
     # Make the curve
     return mc.curve (d=curveDegree, p = posList , ws=True, )
