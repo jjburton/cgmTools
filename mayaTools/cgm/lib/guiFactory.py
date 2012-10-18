@@ -22,7 +22,7 @@
 #=================================================================================================================================================
 import maya.cmds as mc
 import maya.mel as mel
-from cgm.lib.classes.Bridge import *
+#from cgm.lib.classes.Bridge import *
 
 
 from cgmBaseMelUI import *
