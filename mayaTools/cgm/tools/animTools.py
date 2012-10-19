@@ -46,7 +46,7 @@ class animToolsClass(BaseMelWindow):
 	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'cgmAnimToolsWindow'
-	WINDOW_TITLE = 'cgm.animTools'
+	WINDOW_TITLE = 'cgm.animTools - %s'%__version__
 	DEFAULT_SIZE = 180, 350
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -111,6 +111,10 @@ class animToolsClass(BaseMelWindow):
 		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
 		guiFactory.appendOptionVarList(self,self.LocinatorUpdateObjectsBufferOptionVar.name)	
 		
+		self.DebugModeOptionVar = OptionVarFactory('cgmVar_AnimToolsDebug',defaultValue=0)
+		guiFactory.appendOptionVarList(self,self.DebugModeOptionVar.name)		
+		
+		#Old method...clean up at some point
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
 		if not mc.optionVar( ex='cgmVar_ForceEveryFrame' ):
@@ -211,6 +215,9 @@ class animToolsClass(BaseMelWindow):
 		MelMenuItemDiv( self.UI_HelpMenu )
 		MelMenuItem( self.UI_HelpMenu, l="About",
 				     c=lambda *a: self.showAbout() )
+		MelMenuItem( self.UI_HelpMenu, l="Debug",
+				     cb=self.DebugModeOptionVar.value,
+				     c= lambda *a: self.DebugModeOptionVar.toggle())			
 
 	def do_showHelpToggle( self):
 		guiFactory.toggleMenuShowState(self.ShowHelpOption,self.helpBlurbs)

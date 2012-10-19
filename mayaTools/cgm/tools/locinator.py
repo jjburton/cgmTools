@@ -29,7 +29,7 @@
 #	0.2.06172012 - Added buffer ability and modes
 #
 #=================================================================================================================================================
-__version__ = '0.2.06172012'
+__version__ = '0.2.10122012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
@@ -50,7 +50,7 @@ class locinatorClass(BaseMelWindow):
 	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'cgmLocinatorWindow'
-	WINDOW_TITLE = 'cgm.locinator'
+	WINDOW_TITLE = 'cgm.locinator - %s'%__version__
 	DEFAULT_SIZE = 180, 275
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -116,6 +116,10 @@ class locinatorClass(BaseMelWindow):
 		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
 		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorUpdateObjectsBuffer')	
 		
+		self.DebugModeOptionVar = OptionVarFactory('cgmVar_LocinatorDebug',defaultValue=0)
+		guiFactory.appendOptionVarList(self,self.DebugModeOptionVar.name)		
+		
+		#Old method...clean up at some point
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
 			mc.optionVar( iv=('cgmVar_ForceBoundingBoxState', 0) )
 		if not mc.optionVar( ex='cgmVar_LocinatorShowHelp' ):
@@ -221,7 +225,10 @@ class locinatorClass(BaseMelWindow):
 		MelMenuItemDiv( self.UI_HelpMenu )
 		MelMenuItem( self.UI_HelpMenu, l="About",
 				     c=lambda *a: self.showAbout() )
-
+		MelMenuItem( self.UI_HelpMenu, l="Debug",
+				     cb=self.DebugModeOptionVar.value,
+				     c= lambda *a: self.DebugModeOptionVar.toggle())	
+		
 	def do_showHelpToggle( self):
 		guiFactory.toggleMenuShowState(self.ShowHelpOption,self.helpBlurbs)
 		mc.optionVar( iv=('cgmVar_LocinatorShowHelp', not self.ShowHelpOption))
