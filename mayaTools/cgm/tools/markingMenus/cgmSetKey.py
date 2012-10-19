@@ -56,14 +56,24 @@ class setKeyMarkingMenu(BaseMelWindow):
 						         pmc = lambda *a: self.createUI('cgmMM'))
 				except:
 					guiFactory.warning('Exception on set key marking menu')
-					mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')			
+					mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')		
+					
+	def setupVariables(self):
+		self.KeyTypeOptionVar = OptionVarFactory('cgmVar_KeyType', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.KeyTypeOptionVar.name)
+		
+		self.KeyModeOptionVar = OptionVarFactory('cgmVar_KeyMode', defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.KeyModeOptionVar.name)	
+		
+		self.mmActionOptionVar = OptionVarFactory('cgmVar_mmAction')
+		
 
 	def createUI(self,parent):
 		"""
 		Create the UI
 		"""		
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked')
-		self.mmActionOptionVar = OptionVarFactory('cgmVar_mmAction')
+		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked',value = 0)
+		self.setupVariables()
 		
 		def buttonAction(command):
 			"""
@@ -72,8 +82,6 @@ class setKeyMarkingMenu(BaseMelWindow):
 			self.mmActionOptionVar.set(1)			
 			command
 			killUI()
-			
-			
 			
 		sel = search.selectCheck()
 		selPair = search.checkSelectionLength(2)
@@ -95,6 +103,41 @@ class setKeyMarkingMenu(BaseMelWindow):
 		            rp = 'S')
 		
 	
+		#>>> Keying Options
+		KeyMenu = MelMenuItem( parent, l='Key type', subMenu=True)
+		KeyMenuCollection = MelRadioMenuCollection()
+	
+		if self.KeyTypeOptionVar.value == 0:
+			regKeyOption = True
+			bdKeyOption = False
+		else:
+			regKeyOption = False
+			bdKeyOption = True
+	
+		KeyMenuCollection.createButton(KeyMenu,l=' Reg ',
+		                               c= Callback(self.toggleVarAndReset,self.KeyTypeOptionVar),
+		                               rb= regKeyOption )
+		KeyMenuCollection.createButton(KeyMenu,l=' Breakdown ',
+		                               c= Callback(self.toggleVarAndReset,self.KeyTypeOptionVar),
+		                               rb= bdKeyOption )
+		
+		#>>> Keying Mode
+		KeyMenu = MelMenuItem( parent, l='Key Mode', subMenu=True)
+		KeyMenuCollection = MelRadioMenuCollection()
+	
+		if self.KeyModeOptionVar.value == 0:
+			regModeOption = True
+			cbModeOption = False
+		else:
+			regModeOption = False
+			cbModeOption = True
+	
+		KeyMenuCollection.createButton(KeyMenu,l=' Default ',
+		                               c= Callback(self.toggleVarAndReset,self.KeyModeOptionVar),
+		                               rb= regModeOption )
+		KeyMenuCollection.createButton(KeyMenu,l=' Channelbox ',
+		                               c= Callback(self.toggleVarAndReset,self.KeyModeOptionVar),
+		                               rb= cbModeOption )		
 		
 		MelMenuItemDiv(parent)
 		MelMenuItem(parent,l = 'autoTangent',
@@ -117,12 +160,18 @@ class setKeyMarkingMenu(BaseMelWindow):
 		MelMenuItem(parent, l="Reset",
 	                 c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars))
 			
-		
+	def toggleVarAndReset(self, optionVar):
+		try:
+			optionVar.toggle()
+			self.reload()
+		except:
+			print "MM change var and reset failed!"
 	
 		
 def killUI():
 	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked')
 	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction')
+	
 	sel = search.selectCheck()
 	
 	if mc.popupMenu('cgmMM',ex = True):
@@ -130,102 +179,31 @@ def killUI():
 
 	if sel:
 		if not mmActionOptionVar.value:
-			print mmActionOptionVar.value
-			mel.eval('performSetKeyframeArgList 1 {"0", "animationList"};')
+			setKey()
 			
-"""
-if (`popupMenu -exists tempMM`) { deleteUI tempMM; }
-"""
+def setKey():
+	KeyTypeOptionVar = OptionVarFactory('cgmVar_KeyType', defaultValue = 0)
+	KeyModeOptionVar = OptionVarFactory('cgmVar_KeyMode', defaultValue = 0)	
 	
-	
-"""
+	if not KeyModeOptionVar.value:#This is default maya keying mode
+		selection = mc.ls(sl=True) or []
+		if not selection:
+			return guiFactory.warning('Nothing selected!')
+			
+		if not KeyTypeOptionVar.value:
+			mc.setKeyframe(selection)
+		else:
+			mc.setKeyframe(breakdown = True)
+	else:#Let's check the channel box for objects
+		print 'cb mode'
+		selection = search.returnSelectedAttributesFromChannelBox(False) or []
+		if not selection:
+			selection = mc.ls(sl=True) or []
+			if not selection:
+				return guiFactory.warning('Nothing selected!')
+		
+		if not KeyTypeOptionVar.value:
+			mc.setKeyframe(selection)
+		else:
+			mc.setKeyframe(selection,breakdown = True)		
 
-global proc cgmSetkeyKillUI () {
-	global int $zooIsClicked;
-	if( `popupMenu -ex tempMM` ) {
-		deleteUI tempMM;
-		if ( !$zooIsClicked ) performSetKeyframeArgList 1 {"0", "animationList"};
-		}
-
-	$zooIsClicked = 0;
-	}
-
-
-
-global proc cgmSetkeyCreateUI( string $parent, int $keyCommands ) {
-	global int $zooIsClicked;
-	string $selObjs[] = `ls -sl`;
-	float $factor = `optionVar -ex zooCopycatFactor`? `optionVar -q zooCopycatFactor`: 0.1;
-	int $smooth = `optionVar -ex zooSetkeySmooth`? `optionVar -q zooSetkeySmooth`: 0;
-	float $curSpeed = `zooPlaySpeed -1 $smooth`;
-	int $sel = `size $selObjs`;
-
-	if( $keyCommands ) {
-		zooKeyCommands "" "";
-		zooKeyCommandsPopupMenu $parent;
-		menuItem -d 1;
-		}
-	else menu -e -dai $parent;
-	setParent -m $parent;
-
-	$zooIsClicked = 1;
-	menuItem -en $sel -l "push key forward" -c( "zooSetkeyPush fwd;" ) -rp E;
-	menuItem -en $sel -l "push key backward" -c( "zooSetkeyPush bak;" ) -rp W;
-
-	menuItem -en $sel -l "pull from forward key" -c( "zooCopycat right 1.0;" ) -rp NE;
-	menuItem -en $sel -l "pull from previous key" -c( "zooCopycat left 1.0;" ) -rp NW;
-
-	menuItem -en $sel -l "copycat value toward next" -c( "zooCopycat right "+ $factor +";" ) -rp SE;
-	menuItem -en $sel -l "copycat value toward prev" -c( "zooCopycat left "+ $factor +";" ) -rp SW;
-
-	menuItem -en $sel -l "copycat adjacent" -c( "zooCopycat left "+ $factor +"; zooCopycat right "+ $factor +";" ) -rp N;
-	
-	//menuItem -en $sel -l "dragBreakdown" -c( python("from cgm.tools.lib import animToolsLib;animToolsLib.ml_breakdownDraggerCall()")) -rp "S";
-	menuItem -en $sel -l "dragBreakdown" -c(python("from cgm.tools.lib import animToolsLib;animToolsLib.ml_breakdownDraggerCall()")) -rp "S";
-
-	menuItem -en $sel -l "copycat (breakdown) factor" -sm 1;
-		menuItem -l "nudge by 2%" -cb( $factor == 0.02 ) -c( "optionVar -fv zooCopycatFactor 0.02;" );
-		menuItem -l "nudge by 5%" -cb( $factor == 0.05 ) -c( "optionVar -fv zooCopycatFactor 0.05;" );
-		menuItem -l "nudge by 10%" -cb( $factor == 0.1 ) -c( "optionVar -fv zooCopycatFactor 0.1;" );
-		menuItem -l "nudge by 25%" -cb( $factor == 0.25 ) -c( "optionVar -fv zooCopycatFactor 0.25;" );
-		menuItem -l "nudge by 50%" -cb( $factor == 0.5 ) -c( "optionVar -fv zooCopycatFactor 0.5;" );
-	setParent -m ..;
-	menuItem -d 1;
-	menuItem -en 1 -l "autoTangent" -c( "autoTangent;" );
-		menuItem -en 1 -l "tweenMachine" -c( "tweenMachine;" );
-
-	menuItem -d 1;
-
-	menuItem -en $sel -l "select all static keys" -c( "zooSelectStaticKeys static 1;" );
-	menuItem -en $sel -l "select outer static keys" -c( "zooSelectStaticKeys outer 1;" );
-	menuItem -en $sel -l "select inner static keys" -c( "zooSelectStaticKeys inner 1;" );
-	menuItem -en $sel -l "select non static keys" -c( "zooSelectStaticKeys static 1; selectKey -tgl -k `ls -sl`;" );
-	menuItem -d 1;
-
-	menuItem -l "play on..." -sm 1;
-		menuItem -l "ones" -cb( $curSpeed==1 ) -c( "zooPlaySpeed 1 "+ $smooth +";" );
-		menuItem -l "twos" -cb( $curSpeed==0.5 ) -c( "zooPlaySpeed 0.5 "+ $smooth +";" );
-		menuItem -l "threes" -cb( $curSpeed==0.33 ) -c( "zooPlaySpeed 0.33 "+ $smooth +";" );
-		menuItem -l "fours" -cb( $curSpeed==0.25 ) -c( "zooPlaySpeed 0.25 "+ $smooth +";" );
-		menuItem -d 1;
-		menuItem -l "smooth (no frame holds)" -cb $smooth -c(($smooth? "optionVar -rm zooSetkeySmooth;": "optionVar -iv zooSetkeySmooth 1;") +"zooPlaySpeed "+ $curSpeed +" "+ (!$smooth));
-	setParent -m ..;
-	menuItem -l "open keyCommands" -c "source zooKeyCommandsWin;";
-	}
-
-
-
-
-
-
-global proc cgmSetkeyKillUI () {
-	global int $zooIsClicked;
-	if( `popupMenu -ex tempMM` ) {
-		deleteUI tempMM;
-		if ( !$zooIsClicked ) performSetKeyframeArgList 1 {"0", "animationList"};
-		}
-
-	$zooIsClicked = 0;
-	}
-
-"""
