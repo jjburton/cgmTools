@@ -55,7 +55,7 @@ class polyUniteClass(BaseMelWindow):
 	USE_TEMPLATE = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'PolyUniteTool'
-	WINDOW_TITLE = 'cgm.polyUniteTool'
+	WINDOW_TITLE = 'cgm.polyUniteTool - %s'%__version__
 	DEFAULT_SIZE = 250, 150
 	DEFAULT_MENU = None
 	RETAIN = True
