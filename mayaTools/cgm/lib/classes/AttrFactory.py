@@ -808,7 +808,7 @@ class AttrFactory():
             else:
                 print "Source object doesn't have this particular attribute"
                 
-    def doCopyTo(self,target, targetAttrName = None, convertToMatch = True, values = True, incomingConnections = False, outgoingConnections = False, keepSourceConnections = True, copyAttrSettings = True, connectSourceToTarget = False):
+    def doCopyTo(self,target, targetAttrName = None,  debug = True,*a,**kw):
         """                                     
         Replacement for Maya's since maya's can't handle shapes....blrgh...
         Copy attributes from one object to another as well as other options. If the attribute already
@@ -818,7 +818,7 @@ class AttrFactory():
         Keywords:
         toObject(string) - obj to copy to
         targetAttrName(string) -- name of the attr to copy to . Default is None which will create an 
-                          attribute of the fromAttr name on the toObject if it doesn't exist
+                          attribute oft the fromAttr name on the toObject if it doesn't exist
         convertToMatch(bool) -- whether to convert if necessary.default True        
         values(bool) -- copy values. default True
         incomingConnections(bool) -- default False
@@ -832,7 +832,33 @@ class AttrFactory():
         """
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,long=True) != [self.obj.nameShort], "Can't transfer to self!"
+        functionName = 'doCopyTo'
         
+        convertToMatch = kw.pop('convertToMatch',True)
+        values = kw.pop('values',True)
+        incomingConnections = kw.pop('incomingConnections',False)
+        outgoingConnections = kw.pop('outgoingConnections',False)
+        keepSourceConnections = kw.pop('keepSourceConnections',True)
+        copyAttrSettings = kw.pop('copyAttrSettings',True)
+        connectSourceToTarget = kw.pop('connectSourceToTarget',False)
+        connectTargetToSource = kw.pop('connectTargetToSource',False)  
+        
+        if debug:
+            guiFactory.doPrintReportStart(functionName)
+            guiFactory.report("AttrFactory instance: '%s'"%self.nameCombined)
+            guiFactory.report("convertToMatch: '%s'"%convertToMatch)
+            guiFactory.report("targetAttrName: '%s'"%targetAttrName)
+            guiFactory.report("incomingConnections: '%s'"%incomingConnections)
+            guiFactory.report("outgoingConnections: '%s'"%outgoingConnections)
+            guiFactory.report("keepSourceConnections: '%s'"%keepSourceConnections)
+            guiFactory.report("copyAttrSettings: '%s'"%copyAttrSettings)
+            guiFactory.report("connectSourceToTarget: '%s'"%connectSourceToTarget)
+            guiFactory.report("keepSourceConnections: '%s'"%keepSourceConnections)
+            guiFactory.report("connectTargetToSource: '%s'"%connectTargetToSource)
+            guiFactory.doPrintReportBreak()
+            
+
+                
         copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
         
         if sum(copyTest) < 1:
@@ -846,10 +872,10 @@ class AttrFactory():
                                       self.nameLong,
                                       targetBuffer[0],
                                       targetBuffer[1],
-                                      convertToMatch,
-                                      values, incomingConnections,
-                                      outgoingConnections, keepSourceConnections,
-                                      copyAttrSettings, connectSourceToTarget)               
+                                      convertToMatch = convertToMatch,
+                                      values=values, incomingConnections = incomingConnections,
+                                      outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
+                                      copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)               
 
             else:
                 guiFactory.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
@@ -857,11 +883,13 @@ class AttrFactory():
             attributes.doCopyAttr(self.obj.nameShort,
                                   self.nameLong,
                                   target,
-                                  targetAttrName, convertToMatch,
-                                  values, incomingConnections,
-                                  outgoingConnections, keepSourceConnections,
-                                  copyAttrSettings, connectSourceToTarget)  
-
+                                  targetAttrName,
+                                  convertToMatch = convertToMatch,
+                                  values=values, incomingConnections = incomingConnections,
+                                  outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
+                                  copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)                                                 
+        if debug:
+            guiFactory.doPrintReportEnd(functionName)        
         #except:
         #    guiFactory.warning("'%s' failed to copy to '%s'!"%(target,self.nameCombined))          
             

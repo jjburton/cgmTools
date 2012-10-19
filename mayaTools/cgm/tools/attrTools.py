@@ -17,7 +17,7 @@
 #
 #
 #=================================================================================================================================================
-__version__ = '0.1.06192012'
+__version__ = '0.2.10162012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
@@ -46,7 +46,7 @@ class attrToolsClass(BaseMelWindow):
 	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'attrTools'
-	WINDOW_TITLE = 'cgm.attrTools'
+	WINDOW_TITLE = 'cgm.attrTools - %s'%__version__
 	DEFAULT_SIZE = 375, 350
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -152,19 +152,25 @@ class attrToolsClass(BaseMelWindow):
 		guiFactory.appendOptionVarList(self,self.TransferDriveSourceStateOptionVar.name)	
 		
 		self.CreateAttrTypeOptionVar = OptionVarFactory('cgmVar_AttrCreateType',defaultValue='')
-		guiFactory.appendOptionVarList(self,self.CreateAttrTypeOptionVar.name)		
+		guiFactory.appendOptionVarList(self,self.CreateAttrTypeOptionVar.name)	
+		
+		self.DebugModeOptionVar = OptionVarFactory('cgmVar_AttrToolsDebug',defaultValue=0)
+		guiFactory.appendOptionVarList(self,self.DebugModeOptionVar.name)			
 		
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Menus
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildHelpMenu(self, *a ):
-		self.UI_HelpMenu.clear()
+		self.UI_HelpMenu.clear()		
 		MelMenuItem( self.UI_HelpMenu, l="Print Tools Help",
 				     c=lambda *a: self.printHelp() )
-
-		MelMenuItemDiv( self.UI_HelpMenu )
 		MelMenuItem( self.UI_HelpMenu, l="About",
 				     c=lambda *a: self.showAbout() )
+		MelMenuItemDiv( self.UI_HelpMenu )
+		
+		MelMenuItem( self.UI_HelpMenu, l="Debug",
+				     cb=self.DebugModeOptionVar.value,
+				     c= lambda *a: self.DebugModeOptionVar.toggle())		
 		
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()

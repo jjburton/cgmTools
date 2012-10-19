@@ -86,7 +86,7 @@ def uiTransferAttributes(self):
 		                       outgoingConnections = self.TransferOutgoingOptionVar.value,
 		                       keepSourceConnections = self.TransferKeepSourceOptionVar.value,
 		                       connectSourceToTarget = self.TransferDriveSourceStateOptionVar.value,
-		                       )
+		                       debug=self.DebugModeOptionVar.value)
 
 	    elif self.CopyAttrModeOptionVar.value == 2:
 		if aInstance.dynamic:
