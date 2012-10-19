@@ -50,7 +50,7 @@ class puppetBoxClass(BaseMelWindow):
 	USE_Template = 'cgmUITemplate'
 	
 	WINDOW_NAME = 'cgmPuppetBoxWindow'
-	WINDOW_TITLE = 'cgm.puppetBox'
+	WINDOW_TITLE = 'cgm.puppetBox - %s'%__version__
 	DEFAULT_SIZE = 250, 400
 	DEFAULT_MENU = None
 	RETAIN = True
@@ -153,7 +153,10 @@ class puppetBoxClass(BaseMelWindow):
 		guiFactory.appendOptionVarList(self,self.MaintainLocalSetGroupOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideAnimLayerSetsOptionVar.name)
 		guiFactory.appendOptionVarList(self,self.HideMayaSetsOptionVar.name)
-
+		
+		self.DebugModeOptionVar = OptionVarFactory('cgmVar_PuppetBoxDebug',defaultValue=0)
+		guiFactory.appendOptionVarList(self,self.DebugModeOptionVar.name)		
+		
 	def updateModulesUI(self):
 		def optionMenuSet(item):
 			print item
@@ -413,6 +416,9 @@ class puppetBoxClass(BaseMelWindow):
 		MelMenuItemDiv( self.UI_HelpMenu )
 		MelMenuItem( self.UI_HelpMenu, l="About",
 				     c=lambda *a: self.showAbout() )
+		MelMenuItem( self.UI_HelpMenu, l="Debug",
+				     cb=self.DebugModeOptionVar.value,
+				     c= lambda *a: self.DebugModeOptionVar.toggle())			
 
 	def do_showHelpToggle( self):
 		guiFactory.toggleMenuShowState(self.ShowHelpOptionVar.value,self.helpBlurbs)

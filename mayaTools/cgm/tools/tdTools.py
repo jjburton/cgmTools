@@ -49,7 +49,7 @@ class tdToolsClass(BaseMelWindow):
     USE_Template = 'cgmUITemplate'
 
     WINDOW_NAME = 'TDTools'
-    WINDOW_TITLE = 'cgm.tdTools - %s'%__version__ 
+    WINDOW_TITLE = ('cgm.tdTools - %s'%__version__) 
     DEFAULT_SIZE = 550, 400
     DEFAULT_MENU = None
     RETAIN = True
