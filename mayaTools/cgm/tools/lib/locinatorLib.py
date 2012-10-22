@@ -40,15 +40,15 @@ reload(OptionVarFactory)
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes.OptionVarFactory import *
 
-from cgm.lib import rigging
-from cgm.lib import attributes
-from cgm.lib import locators
-from cgm.lib import search
-from cgm.lib import lists
-from cgm.lib import batch
-from cgm.lib import guiFactory
-from cgm.lib import modules
-from cgm.lib import position
+from cgm.lib import (rigging,
+                     attributes,
+                     locators,
+                     search,
+                     lists,
+                     batch,
+                     guiFactory,
+                     modules,
+                     position)
 
 reload(attributes)
 reload(lists)
@@ -328,7 +328,39 @@ def doUpdateObj(self,obj):
 	    return True
 	except:
 	    return False
-
+	
+def doStandAloneUpdateSelected():
+    """
+    Standalone version to update selected at a users request
+    
+    Checks for a match mode
+    
+    This one's for your Tobias.
+    """
+    matchMode = mc.optionVar(q='cgmVar_LocinatorMatchMode')
+    
+    selection = mc.ls(sl=True) or []
+    if not selection:
+	raise StandardError,"Nothing selected"
+    
+    for o in selection:
+	matchObject = search.returnTagInfo(o,'cgmMatchObject')
+	if not matchObject:
+	    guiFactory.warning("No match object found for '%s'"%o)
+	    break
+	if mc.objExists(matchObject):
+	    try:
+		if matchMode == 1:
+		    position.movePointSnap(o,matchObject)
+		elif matchMode == 2:
+		    position.moveOrientSnap(o,matchObject)		    
+		else:
+		    position.moveParentSnap(o,matchObject)
+		    
+		guiFactory.warning("'%s' updated!"%o)
+	    except:pass
+		
+	
 def doConstrainToUpdateObject(self,obj):
     matchObject = search.returnTagInfo(obj,'cgmMatchObject')
 
