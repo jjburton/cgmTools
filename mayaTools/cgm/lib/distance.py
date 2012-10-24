@@ -1065,19 +1065,8 @@ def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     locBuffer = mc.spaceLocator()
     mc.move (pos[0],pos[1],pos[2], locBuffer[0])
 
-    attributes.doConnectAttr((locBuffer[0]+'.translate'),(closestPointNode+'.inPosition'))
-    attributes.doConnectAttr((controlSurface[0]+'.worldMesh'),(closestPointNode+'.inMesh'))
-    attributes.doConnectAttr((locBuffer[0]+'.matrix'),(closestPointNode+'.inputMatrix'))
- 
-    pointInfo = {}
-    pointInfo['position']=attributes.doGetAttr(closestPointNode,'position')
-    pointInfo['normal']=attributes.doGetAttr(closestPointNode,'normal')
-    pointInfo['parameterU']=mc.getAttr(closestPointNode+'.parameterU')
-    pointInfo['parameterV']=mc.getAttr(closestPointNode+'.parameterV')
-    pointInfo['closestFaceIndex']=mc.getAttr(closestPointNode+'.closestFaceIndex')
-    pointInfo['closestVertexIndex']=mc.getAttr(closestPointNode+'.closestVertexIndex')
-
-    mc.delete(closestPointNode)
+    pointInfo = returnClosestPointOnMeshInfo(locBuffer[0],mesh)
+    
     mc.delete(locBuffer[0])
     return pointInfo
 
