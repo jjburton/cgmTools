@@ -117,7 +117,10 @@ class locinatorClass(BaseMelWindow):
 		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorUpdateObjectsBuffer')	
 		
 		self.DebugModeOptionVar = OptionVarFactory('cgmVar_LocinatorDebug',defaultValue=0)
-		guiFactory.appendOptionVarList(self,self.DebugModeOptionVar.name)		
+		guiFactory.appendOptionVarList(self,self.DebugModeOptionVar.name)	
+		
+		self.SnapModeOptionVar = OptionVarFactory('cgmVar_SnapMatchMode',defaultValue = 0)
+		guiFactory.appendOptionVarList(self,self.SnapModeOptionVar.name)		
 		
 		#Old method...clean up at some point
 		if not mc.optionVar( ex='cgmVar_ForceBoundingBoxState' ):
@@ -138,6 +141,25 @@ class locinatorClass(BaseMelWindow):
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	def buildOptionsMenu( self, *a ):
 		self.UI_OptionsMenu.clear()
+		
+		#>>>Match Mode
+		MatchModeMenu = MelMenuItem( self.UI_OptionsMenu, l='Match Mode', subMenu=True)		
+		self.MatchModeOptions = ['parent','point','orient']
+		
+		self.MatchModeCollection = MelRadioMenuCollection()
+		self.MatchModeCollectionChoices = []
+		
+		self.SnapModeOptionVar.update()#Incase another tool changed			
+		
+		self.matchMode = self.SnapModeOptionVar.value
+		for c,item in enumerate(self.MatchModeOptions):
+			if self.matchMode == c:
+				rbValue = True
+			else:
+				rbValue = False
+			self.MatchModeCollectionChoices.append(self.MatchModeCollection.createButton(MatchModeMenu,label=item,
+			                                                                             rb = rbValue,
+			                                                                             command = Callback(self.SnapModeOptionVar.set,c)))		
 
 		# Placement Menu
 		PlacementMenu = MelMenuItem( self.UI_OptionsMenu, l='Placement', subMenu=True)
@@ -186,6 +208,7 @@ class locinatorClass(BaseMelWindow):
 				                             rb=bufferMode )
 		
 
+			                    
 		MelMenuItemDiv( self.UI_OptionsMenu )
 		MelMenuItem( self.UI_OptionsMenu, l="Reset",
 			         c=lambda *a: self.reset())	
@@ -369,29 +392,6 @@ class locinatorClass(BaseMelWindow):
 		mc.setParent(parent)
 		guiFactory.header('Update')
 
-		#>>>Match Mode
-		self.MatchModeCollection = MelRadioCollection()
-		self.MatchModeCollectionChoices = []		
-		if not mc.optionVar( ex='cgmVar_LocinatorMatchMode' ):
-			mc.optionVar( iv=('cgmVar_LocinatorMatchMode', 0) )	
-			
-		guiFactory.appendOptionVarList(self,'cgmVar_LocinatorMatchMode')
-			
-		#MatchModeFlagsRow = MelHLayout(parent,ut='cgmUISubTemplate',padding = 2)	
-		MatchModeFlagsRow = MelHSingleStretchLayout(parent,ut='cgmUIReservedTemplate',padding = 2)	
-		MelSpacer(MatchModeFlagsRow,w=2)				
-		self.MatchModeOptions = ['parent','point','orient']
-		for item in self.MatchModeOptions:
-			cnt = self.MatchModeOptions.index(item)
-			self.MatchModeCollectionChoices.append(self.MatchModeCollection.createButton(MatchModeFlagsRow,label=self.MatchModeOptions[cnt],
-			                                                                             onCommand = Callback(guiFactory.toggleOptionVarState,self.MatchModeOptions[cnt],self.MatchModeOptions,'cgmVar_LocinatorMatchMode',True)))
-			MelSpacer(MatchModeFlagsRow,w=3)
-		MatchModeFlagsRow.setStretchWidget( self.MatchModeCollectionChoices[-1] )
-		MelSpacer(MatchModeFlagsRow,w=2)		
-		MatchModeFlagsRow.layout()	
-		
-		mc.radioCollection(self.MatchModeCollection ,edit=True,sl= (self.MatchModeCollectionChoices[ (mc.optionVar(q='cgmVar_LocinatorMatchMode')) ]))
-		
 		#>>>Time Section
 		UpdateOptionRadioCollection = MelRadioCollection()
 		EveryFrameOption = mc.optionVar( q='cgmVar_LocinatorBakeState' )

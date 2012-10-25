@@ -83,7 +83,7 @@ def getSelfOptionVars(self):
 	    self.bakeMode = mc.optionVar( q='cgmVar_LocinatorBakeState' )
 	    self.forceEveryFrame = mc.optionVar( q='cgmVar_LocinatorKeyingMode' )
 	    self.keyingTargetState = mc.optionVar( q='cgmVar_LocinatorKeyingTarget' )
-	    self.matchMode = mc.optionVar(q='cgmVar_LocinatorMatchMode')
+	    self.matchMode = mc.optionVar(q='cgmVar_SnapMatchMode')
 	elif self.toolName == 'cgm.animTools':
 	    self.bakeMode = mc.optionVar( q='cgmVar_AnimToolsBakeState' )
 	    self.forceEveryFrame = mc.optionVar( q='cgmVar_AnimToolsKeyingMode' )
@@ -93,7 +93,7 @@ def getSelfOptionVars(self):
 	    self.bakeMode = 0
 	    self.forceEveryFrame = 0
 	    self.keyingTargetState = 0
-	    self.matchMode = mc.optionVar(q='cgmVar_SnapMMMatchMode')	    
+	    self.matchMode = mc.optionVar(q='cgmVar_SnapMatchMode')	    
 	    
 	    
     except:
@@ -337,7 +337,7 @@ def doStandAloneUpdateSelected():
     
     This one's for your Tobias.
     """
-    matchMode = mc.optionVar(q='cgmVar_LocinatorMatchMode')
+    matchMode = mc.optionVar(q='cgmVar_SnapMatchMode')
     
     selection = mc.ls(sl=True) or []
     if not selection:
@@ -365,7 +365,6 @@ def doConstrainToUpdateObject(self,obj):
     matchObject = search.returnTagInfo(obj,'cgmMatchObject')
 
     if mc.objExists(matchObject):
-
 	try:
 	    if self.matchMode == 0:
 		buffer =  mc.parentConstraint(matchObject,obj, maintainOffset=False)
@@ -373,7 +372,6 @@ def doConstrainToUpdateObject(self,obj):
 		buffer = mc.pointConstraint(matchObject,obj,  maintainOffset=False)
 	    elif self.matchMode == 2:
 		buffer = mc.orientConstraint(matchObject,obj,   maintainOffset=False)
-
 	    return buffer
 	except:
 	    return False
