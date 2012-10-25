@@ -39,7 +39,7 @@ class snapMarkingMenu(BaseMelWindow):
 		self.LocinatorUpdateObjectsOptionVar = OptionVarFactory('cgmVar_SnapMMUpdateMode',defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.LocinatorUpdateObjectsOptionVar.name)
 		
-		self.SnapModeOptionVar = OptionVarFactory('cgmVar_SnapMMMatchMode',defaultValue = 0)
+		self.SnapModeOptionVar = OptionVarFactory('cgmVar_SnapMatchMode',defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.SnapModeOptionVar.name)
 				
 		
@@ -72,6 +72,8 @@ class snapMarkingMenu(BaseMelWindow):
 		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
 		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
 		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+		
+		self.SnapModeOptionVar.update()#Check if another tool has changed this setting
 		
 		sel = search.selectCheck()
 		selPair = search.checkSelectionLength(2)
