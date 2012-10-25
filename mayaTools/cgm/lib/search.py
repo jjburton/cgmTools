@@ -343,7 +343,7 @@ def returnObjectsOwnedByModuleNull(moduleNull):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tag stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnTagInfo(obj,tag):
+def returnTagInfo(obj,tag,debug = False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -361,7 +361,12 @@ def returnTagInfo(obj,tag):
     if (mc.objExists('%s.%s' %(obj,tag))) == True:
         messageQuery = (mc.attributeQuery (tag,node=obj,msg=True))
         if messageQuery == True:
-            return attributes.returnMessageObject(obj,tag)
+            returnBuffer = attributes.returnMessageObject(obj,tag)
+	    if returnObjectType(returnBuffer) == 'reference':
+		if attributes.repairMessageToReferencedTarget(obj,tag, debug):
+		    return attributes.returnMessageObject(obj,tag)
+		return returnBuffer
+	    return returnBuffer
         else:
             infoBuffer = mc.getAttr('%s.%s' % (obj,tag))
             if len(list(infoBuffer)) > 0:

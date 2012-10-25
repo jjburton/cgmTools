@@ -347,6 +347,9 @@ class AttrFactory():
         try:
             if self.form == 'message':
                 self.value = attributes.returnMessageObject(self.obj.nameShort,self.attr)
+                if search.returnObjectType(self.value) == 'reference':
+                    if attributes.repairMessageToReferencedTarget(self.obj.nameLong,self.attr,*a,**kw):
+                        self.value = attributes.returnMessageObject(self.obj.nameShort,self.attr)                        
             else:
                 self.value = attributes.returnDriverAttribute("%s.%s"%(self.obj.nameShort,self.attr))
 
