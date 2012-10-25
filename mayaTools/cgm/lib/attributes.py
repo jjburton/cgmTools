@@ -1796,7 +1796,40 @@ def returnMessageAttrs(obj):
     else:
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+def repairMessageToReferencedTarget(obj,attr,debug=False):
+    """
+    To be repairable, there must have been a message connection both directions.
+    
+    Assertions - 
+    1) Target Attribute must be a message attribute
+    2) Target is connected to a reference node
+    
+    Returns -
+    Success(bool)
+    
+    """
+    targetAttr = "%s.%s"%(obj,attr)
+    assert mc.attributeQuery (attr,node=obj,msg=True), "'%s' isn't a message attribute. Aborted"%targetAttr
+    
+    objTest = mc.listConnections(targetAttr, p=1)
+    assert mc.objectType(objTest[0]) == 'reference',"'%s' isn't returning a reference. Aborted"%targetAttr 
+    
+    ref = objTest[0].split('RN.')[0] #Get to the ref
+    if debug:guiFactory.report("Reference connection found, attempting to fix...")
+        
+    messageConnectionsOut =  mc.listConnections("%s.message"%(obj), p=1)
+    if messageConnectionsOut and ref:
+        for plug in messageConnectionsOut:
+            if ref in plug:
+                matchObj = plug.split('.')[0]#Just get to the object
+                doConnectAttr("%s.message"%matchObj,targetAttr)
+                if debug: guiFactory.report("'%s' restored to '%s'"%(targetAttr,matchObj))
+                
+                if len(messageConnectionsOut)>1:#fix to first, report other possibles
+                    if debug: guiFactory.warning("Found more than one possible connection. Candidates are:'%s'"%"','".join(messageConnectionsOut))
+                return True
+    return False
+        
 def returnMessageAttrsAsList(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
