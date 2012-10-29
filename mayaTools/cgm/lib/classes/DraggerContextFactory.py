@@ -453,8 +453,8 @@ class clickMesh(ContextualPick):
                 if len(pos) == 3:
                     baseScale = distance.returnMayaSpaceFromWorldSpace(10)
                     if self.createMode == 'joint':
-                        nameBuffer = mc.joint()
-                        attributes.doSetAttr(nameBuffer,'radius',(self.meshArea*.025))
+                        nameBuffer = mc.joint(radius = 1)
+                        #attributes.doSetAttr(nameBuffer,'radius',1)
                         
                         mc.select(cl=True)
                     else:
