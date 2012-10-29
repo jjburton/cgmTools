@@ -330,7 +330,7 @@ class clickMesh(ContextualPick):
                     self.createdList = []
                     mc.select(cl=True)
                     for pos in self.returnList:                             
-                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = (self.meshArea*.025)) )
+                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = 1) )
                                 
 
         self.reset()
