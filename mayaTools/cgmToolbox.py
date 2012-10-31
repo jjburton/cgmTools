@@ -110,6 +110,7 @@ class AutoStartInstaller(object):
         except: print ('No mel user setup')
 
         return pyUserSetup, melUserSetup
+    
     def isInstalled( self ):
         success = False
         pyUserSetup, melUserSetup = self.getUserSetupFile()
@@ -123,22 +124,24 @@ class AutoStartInstaller(object):
 
         print ('Not installed')
         return False
+    
     def install( self ):
         success = False
         pyUserSetup, melUserSetup = self.getUserSetupFile()
         if pyUserSetup is None and melUserSetup is None:
-            print 'No py or mel user setup files found'
-            return
+            print 'No py or mel user setup files found.Creating py'
+            if not self.createPyUserSetup():#if we can't make a user file, break
+                return
 
         success = False
         errors = []
-        """
-		if pyUserSetup is not None:
-			try:
-				self.installPy( pyUserSetup )
-				success = True
-			except self.AutoSetupError, x:
-				errors.append( x )"""
+        
+	"""if pyUserSetup is not None:
+		try:
+			self.installPy( pyUserSetup )
+			success = True
+		except self.AutoSetupError, x:
+			errors.append( x )"""
 
         if not success:
             if melUserSetup is not None:
@@ -160,6 +163,7 @@ class AutoStartInstaller(object):
                     return True
 
         return False
+    
     def installPy( self, pyUserSetup ):
         if self.isInstalledPy( pyUserSetup ):
             return
@@ -174,6 +178,7 @@ class AutoStartInstaller(object):
             for line in f:
                 if 'import' in line and 'cgmToolbox' in line:
                     return True
+                
     def installMel( self, melUserSetup ):
         if self.isInstalledMel( melUserSetup ):
             return
@@ -183,7 +188,23 @@ class AutoStartInstaller(object):
                 f.write( '\n\npython( "import cgmToolbox" );\n' )
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % melUserSetup )
-
+    
+    def createPyUserSetup(self):
+        try:
+            envFile = mc.about(environmentFile = True) or False #Get env variable
+            if not envFile: #See if it got anything
+                print 'No environmental file found'
+            buffer = envFile.split('/')[:-1]#parse to list and pull 'Maya.env'
+            buffer.extend(['scripts','userSetup.mel'])
+            newLocation =  os.sep.join(buffer)
+            
+            f=open(newLocation,'w')
+            f.close()
+            return True
+        except:
+            guiFactory.warning("Couldn't create a mel user file")
+            return False
+        
 
 
 def buildCGMMenu( *a ):
@@ -313,7 +334,11 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ToolCB('zooHUDCtrl')),
                           )),
 
-              ('hotkeys', (('Set Menu - menu for cgm.setTools',
+              ('hotkeys', (('Zoo Set Menu - selection set menu',
+                            'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
+                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+
+                           ('Set Menu - menu for cgm.setTools',
                             'Menu for working with cgm.SetTools. There are a wide fariety of tools for them..',
                             ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
