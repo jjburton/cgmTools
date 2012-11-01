@@ -161,7 +161,7 @@ def uiLoadClickMeshTargets(self):
     self.ClickMeshTargetOptionVar.clear()
     if not selection:
 	self.ClickMeshTargetsField(edit=True, text = "")	
-	guiFactory.warning("Nothing selected")
+	guiFactory.warning("Nothing selected. Cleared.")
 	return
     
     if selection:
@@ -182,9 +182,7 @@ def uiClickMeshToolLaunch(self):
     selectAttr(string) -- Name of an attr (False ignores)
     """
     doMesh = []
-    if not self.ClickMeshTargetOptionVar.value:
-	raise StandardError("No suitable mesh found")
-    else:
+    if self.ClickMeshTargetOptionVar.value:
 	for o in self.ClickMeshTargetOptionVar.value:
 	    if not mc.objExists(o):
 		guiFactory.warning("'%s' doesn't exist. Not included!"%o)
@@ -192,7 +190,10 @@ def uiClickMeshToolLaunch(self):
 		doMesh.append(o)
 	    
     if not doMesh:
-	raise StandardError("No suitable mesh found")
+	allMesh = search.returnAllMeshObjects()
+	if allMesh:doMesh = allMesh
+	else:
+	    raise StandardError("No suitable mesh found")
     
     
     
