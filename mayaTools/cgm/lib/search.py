@@ -1040,6 +1040,19 @@ def returnChildrenObjects(obj,fullPath=False):
     childrenBuffer = mc.listRelatives (obj, children = True,type='transform',fullPath=fullPath)
     return childrenBuffer
 
+def returnAllMeshObjects():
+    """
+    Returns all mesh objects in a scene since mc.ls(type='mesh') only gets shapes
+
+    """
+    returnList = []
+    buffer = mc.ls(type='mesh')
+    for m in buffer:
+	t = mc.listRelatives(m,parent=True,type='transform') or False
+	if t:returnList.extend(t)
+    if returnList:return returnList
+    return False
+
 def returnParentObject(obj,fullPath=True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
