@@ -191,10 +191,11 @@ def uiClickMeshToolLaunch(self):
 	    
     if not doMesh:
 	allMesh = search.returnAllMeshObjects()
-	if allMesh:doMesh = allMesh
-	else:
-	    raise StandardError("No suitable mesh found")
-    
+	meshClamp = 100
+	if len(allMesh)<=meshClamp:
+	    doMesh = allMesh #Still not sure if we wanna do all scene meshes. Need more testing.
+	else: 
+	    raise StandardError("No mesh loaded or too many mesh objects for autoload")
     
     
     self.ClickMeshTool = DraggerContextFactory.clickMesh( mesh = doMesh,
@@ -204,7 +205,9 @@ def uiClickMeshToolLaunch(self):
     
     self.ClickMeshTool.setMode(self.ClickMeshTool.modes[self.ClickMeshModeOptionVar.value])
     self.ClickMeshTool.setCreate(self.ClickMeshTool.createModes[self.ClickMeshBuildOptionVar.value])  
-    self.ClickMeshTool.setDragStoreMode(self.ClickMeshDragStoreOptionVar.value)  
+    self.ClickMeshTool.setDragStoreMode(self.ClickMeshDragStoreOptionVar.value)
+    
+    guiFactory.warning("ClickMesh initialized")
     
 def uiClickMesh_setDragStore(self,i):
     """ 
