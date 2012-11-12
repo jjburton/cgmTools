@@ -16,7 +16,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.2.10112012'
+__version__ = '0.2.11022012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.lib.classes import OptionVarFactory 
