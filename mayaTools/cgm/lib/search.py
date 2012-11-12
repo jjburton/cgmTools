@@ -1048,7 +1048,7 @@ def returnAllMeshObjects():
     returnList = []
     buffer = mc.ls(type='mesh')
     for m in buffer:
-	t = mc.listRelatives(m,parent=True,type='transform') or False
+	t = mc.listRelatives(m,parent=True,type='transform',fullPath=True) or False
 	if t:returnList.extend(t)
     if returnList:return returnList
     return False
