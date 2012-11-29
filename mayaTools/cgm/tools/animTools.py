@@ -17,7 +17,7 @@
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
-__version__ = '0.1.040242012'
+__version__ = '0.1.11.29.2012'
 
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.classes.OptionVarFactory import *
@@ -485,7 +485,11 @@ class animToolsClass(BaseMelWindow):
 		guiFactory.lineSubBreak()				
 		guiFactory.doButton2(SpecialColumn,'convert Rotation Order',
 		                     lambda *a: animToolsLib.ml_convertRotationOrderCall(),
-				             'Rotation Order Conversion tool courtesy of Morgan Loomis')		
+				             'Rotation Order Conversion tool courtesy of Morgan Loomis')
+		guiFactory.lineSubBreak()				
+		guiFactory.doButton2(SpecialColumn,'stopwatch',
+		                     lambda *a: animToolsLib.ml_stopwatchCall(),
+				             'Stop Watch tool courtesy of Morgan Loomis')
 
 	def Snap_buildLayout(self,parent):
 

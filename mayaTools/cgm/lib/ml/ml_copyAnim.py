@@ -5,7 +5,7 @@
 #    / __ `__ \/ /  Licensed under Creative Commons BY-SA
 #   / / / / / / /  http://creativecommons.org/licenses/by-sa/3.0/
 #  /_/ /_/ /_/_/  _________                                   
-#               /_________/  Revision 1, 2012-03-14
+#               /_________/  Revision 3, 2012-11-28
 #      _______________________________
 # - -/__ Installing Python Scripts __/- - - - - - - - - - - - - - - - - - - - 
 # 
@@ -27,12 +27,15 @@
 # 
 # Select the source and destination node (or top node) and press the button to either copy
 # the selected node only, or the whole hierarchy underneath. Highlight the timeline if you
-# want to copy just that part of the animation.
+# want to copy just that part of the animation. Use the Copy to New Layer option if you
+# want the curves copied into a new animation layer, in order to preserve the original
+# animation, or to blend.
 #      ________________
 # - -/__ UI Options __/- - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # 
+# [] Copy To New Layer : Create a new animation layer to copy the curves into, preserving the original animation.
 # [Copy Single] : Copy animation from one object to another.
-# [Copy Hierarchy] : Uses name matching to copy animation across.
+# [Copy Hierarchy] : Uses name matching to copy animation across hierarchies.
 #      __________________
 # - -/__ Requirements __/- - - - - - - - - - - - - - - - - - - - - - - - - - 
 # 
@@ -43,7 +46,7 @@
 
 __author__ = 'Morgan Loomis'
 __license__ = 'Creative Commons Attribution-ShareAlike'
-__revision__ = 1
+__revision__ = 3
 
 import maya.cmds as mc
 import maya.mel as mm
@@ -51,7 +54,7 @@ from maya import OpenMaya
 
 try:
     import ml_utilities as utl
-    utl.upToDateCheck(2)
+    utl.upToDateCheck(8)
 except ImportError:
     result = mc.confirmDialog( title='Module Not Found', 
                 message='This tool requires the ml_utilities module. Once downloaded you will need to restart Maya.', 
@@ -68,9 +71,12 @@ def ui():
 
     with utl.MlUi('ml_copyAnim', 'Copy Animation', width=400, height=120, info='''Copy animation across single nodes, or hierarchies based on name.
 Highlight the timeline to copy just that part of the animation.''') as win:
-
-        win.buttonWithPopup(label='Copy Single', command=copySingle, annotation='Copy animation from one object to another.', shelfLabel='cpAn', shelfIcon='defaultTwoStackedLayout')
-        win.buttonWithPopup(label='Copy Hierarchy', command=copyHierarchy, annotation='Uses name matching to copy animation across.', shelfLabel='cpAn', shelfIcon='defaultTwoStackedLayout')
+        
+        mc.checkBoxGrp('ml_copyAnim_layer_checkBox', label='Copy To New Layer', annotation='Create a new animation layer to copy the curves into, preserving the original animation.')
+        win.ButtonWithPopup(label='Copy Single', command=copySingle, annotation='Copy animation from one object to another.', shelfLabel='cpAn', shelfIcon='defaultTwoStackedLayout',
+                            readUI_toArgs={'addToLayer':'ml_copyAnim_layer_checkBox'})
+        win.ButtonWithPopup(label='Copy Hierarchy', command=copyHierarchy, annotation='Uses name matching to copy animation across hierarchies.', shelfLabel='cpAn', shelfIcon='defaultTwoStackedLayout',
+                            readUI_toArgs={'addToLayer':'ml_copyAnim_layer_checkBox'})
 
 
 def _getStartAndEnd():
@@ -82,10 +88,11 @@ def _getStartAndEnd():
     return None, None
 
 
-def copySingle(source=None, destination=None, pasteMethod='replace', offset=0):
+def copySingle(source=None, destination=None, pasteMethod='replace', offset=0, addToLayer=False):
     '''
     Copy animation from a source node and paste it to a destination node
     '''
+    
     start, end = _getStartAndEnd()
      
     if not source and not destination:
@@ -97,11 +104,18 @@ def copySingle(source=None, destination=None, pasteMethod='replace', offset=0):
         
         source = sel[0]
         destination = sel[1]
+    
+    layer = None
+    if addToLayer:
+        layer = utl.createAnimLayer(destination, layerNamePrefix='ml_cp')
         
-    copyAnimation(source=source, destination=destination, pasteMethod=pasteMethod, offset=offset, start=start, end=end)
+    copyAnimation(source=source, destination=destination, pasteMethod=pasteMethod, offset=offset, start=start, end=end, layer=layer)
+    
+#     if sel:
+#         mc.select(sel)
 
 
-def copyHierarchy(sourceTop=None, destinationTop=None, pasteMethod='replace', offset=0, addToLayer=False):
+def copyHierarchy(sourceTop=None, destinationTop=None, pasteMethod='replace', offset=0, addToLayer=False, layerName=None):
     '''
     Copy animation from a source hierarchy and paste it to a destination hierarchy.
     '''
@@ -119,30 +133,43 @@ def copyHierarchy(sourceTop=None, destinationTop=None, pasteMethod='replace', of
     
     #get keyed objects below source
     nodes = mc.listRelatives(sourceTop, pa=True, ad=True)
+    if not nodes:
+        nodes = list()
+    nodes.append(sourceTop)
     keyed = list()
     
     for node in nodes:
         # this will only return time based keyframes, not driven keys
         if mc.keyframe(node, time=(':',), query=True, keyframeCount=True):
             keyed.append(node)
-    
+
     if not keyed:
         return
     
     #get a list of all nodes under the destination
-    destNames = [x.partition(':')[-1] for x in mc.listRelatives(destinationTop, ad=True)]
-    destNS = destinationTop.partition(':')[0]
+    destNodes = mc.listRelatives(destinationTop, ad=True)
+    if not destNodes:
+        destNodes = list()
+    destNodes.append(destinationTop)
+    
+    destNS = utl.getNamespace(destinationTop)
+    destNames = [x.rpartition(':')[-1] for x in destNodes]
     
     layer = None
     if addToLayer:
-        layer = mc.animLayer('myLayer')
-    
+        if not layerName:
+            layerName = 'copyHierarchy'
+        layer = utl.createAnimLayer(name=layerName)
+        
     for node in keyed:
         nodeName = mc.ls(node, shortNames=True)[0]
-        nodeName = nodeName.partition(':')[-1]
+        
+        #strip namespace
+        if ':' in nodeName:
+            nodeName = nodeName.rpartition(':')[-1]
         
         if nodeName in destNames:
-            destNode = mc.ls(destNS+':'+nodeName)
+            destNode = mc.ls(destNS+nodeName)
             if not destNode:
                 print 'Cannot find destination node: '+destNS+':'+nodeName
                 continue
@@ -152,6 +179,8 @@ def copyHierarchy(sourceTop=None, destinationTop=None, pasteMethod='replace', of
             
             copyAnimation(source=node, destination=destNode[0], pasteMethod=pasteMethod, offset=offset, start=start, end=end, layer=layer)
     
+#     if sel:
+#         mc.select(sel)
 
 def copyAnimation(source=None, destination=None, pasteMethod='replace', offset=0, start=None, end=None, layer=None):
     '''
@@ -159,8 +188,18 @@ def copyAnimation(source=None, destination=None, pasteMethod='replace', offset=0
     set a temporary key before copying, and delete it afterward.
     '''
     
+    if layer:
+        mc.select(destination)
+        mc.animLayer(layer, edit=True, addSelectedObjects=True)
+        
+        #we want to make sure rotation values are within 360 degrees, so we don't get flipping when blending layers.
+        utl.minimizeRotationCurves(source)
+        utl.minimizeRotationCurves(destination)
+    
     if pasteMethod=='replaceCompletely' or not start or not end:
         mc.copyKey(source)
+        if layer:
+            mc.animLayer(layer, edit=True, selected=True)
         mc.pasteKey(destination, option=pasteMethod, timeOffset=offset)
     else:
         
@@ -188,6 +227,10 @@ def copyAnimation(source=None, destination=None, pasteMethod='replace', offset=0
                 cutEnd.append(curve)
             
         mc.copyKey(source, time=(start,end))
+        if layer:
+            for each in mc.ls(type='animLayer'):
+                mc.animLayer(each, edit=True, selected=False, preferred=False)
+            mc.animLayer(layer, edit=True, selected=True, preferred=True)
         mc.pasteKey(destination, option=pasteMethod, time=(start,end), copies=1, connect=0, timeOffset=offset)
 
         #if we set temporary source keys, delete them now
@@ -204,3 +247,7 @@ if __name__ == '__main__': ui()
 # - -/__ Revision History __/- - - - - - - - - - - - - - - - - - - - - - - -
 #
 # Revision 1: 2012-03-14 : First publish.
+#
+# Revision 2: 2012-11-06 : Adding layer option.
+#
+# Revision 3: 2012-11-28 : remove debug print

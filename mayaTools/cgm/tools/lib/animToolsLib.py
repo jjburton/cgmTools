@@ -1,11 +1,11 @@
 #=================================================================================================================================================
 #=================================================================================================================================================
-#	tdToolsLib - a part of cgmTools
+#	animToolsLib - a part of cgmToolbox
 #=================================================================================================================================================
 #=================================================================================================================================================
 #
 # DESCRIPTION:
-#   Library of functions for the cgmRiggingTools tool
+#   Library of functions for the cgmAnimTools
 #
 # ARGUMENTS:
 #   Maya
@@ -14,16 +14,10 @@
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
 #	http://www.cgmonks.com
-# 	Copyright 2011 CG Monks - All Rights Reserved.
+# 	Unless another author's tool, Copyright 2011 CG Monks - All Rights Reserved.
 #
-# CHANGELOG:
-#	0.1.12072011 - First version
-#	0.1.12132011 - master control maker implemented, snap move tools added
-#	0.1.12272011 - split out library from tool
 #
 #=================================================================================================================================================
-__version__ = '0.1.12032011'
-
 import maya.cmds as mc
 import maya.mel as mel
 import subprocess
@@ -34,6 +28,7 @@ from cgm.lib.ml import (ml_breakdownDragger,
                         ml_deleteKey,
                         ml_setKey,
                         ml_hold,
+                        ml_stopwatch,
                         ml_arcTracer,
                         ml_convertRotationOrder,
                         ml_copyAnim)
@@ -65,3 +60,6 @@ def ml_copyAnimCall():
 
 def ml_convertRotationOrderCall():
     ml_convertRotationOrder.ui()
+    
+def ml_stopwatchCall():
+    ml_stopwatch.ui()
