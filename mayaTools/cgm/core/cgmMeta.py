@@ -18,9 +18,6 @@ reload(r9Meta)
 from cgm.lib.Red9.core.Red9_Meta import *
 
 r9Meta.registerMClassInheritanceMapping()    
-print '============================================='  
-r9Meta.printSubClassRegistry()  
-print '============================================='  
 #=========================================================================
 
 #Mark, any thoughts on where to store important defaults
@@ -42,18 +39,17 @@ class cgmMetaClass(MetaClass):#Should we do this?
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
-        MetaClass.__init__(self, *args,**kws)
-        
+        super(cgmMetaClass, self).__init__(*args,**kws) 
+        #MetaClass.__init__(self, *args,**kws)
         self.update(self.mNode)
          
-                    
     #=========================================================================      
     # Get Info
     #========================================================================= 
     def update(self,obj):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        MetaClass.__init__(self, node=obj) #Is this a good idea?
+        super(cgmMetaClass, self).__init__(node = obj)         
         
         self.getRefState()
 
@@ -155,17 +151,16 @@ class cgmMetaClass(MetaClass):#Should we do this?
     
 
 class cgmObject(cgmMetaClass):
-    def __init__(self,obj='', autoCreate = True):
+    def __init__(self,obj='', autoCreate = True,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
         creates an empty transform
 
         Keyword arguments:
-        obj(string)        
+        obj(string)     
         autoCreate(bool) - whether to create a transforum if need be
         """
         ### input check
-
         if not mc.objExists(obj):
             if autoCreate:#If the object doesn't exist, create a transform
                 buffer = mc.group(empty=True)
@@ -176,12 +171,13 @@ class cgmObject(cgmMetaClass):
             else:#Fails
                 log.error("No object specified and no auto create option set")
             
-        cgmMetaClass.__init__(self, node=obj) 
+        super(cgmObject, self).__init__(node=obj,*args,**kws)
+        #cgmMetaClass.__init__(self, node=obj) 
         
         if len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
             log.error("'%s' has no transform"%self.mNode)  
         self.update(self.mNode)#Get intial info
-        
+    
     #=========================================================================      
     # Get Info
     #=========================================================================                   
