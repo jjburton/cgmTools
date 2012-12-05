@@ -26,6 +26,7 @@
 #
 #=================================================================================================================================================
 import copy as copy
+import random
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -38,6 +39,21 @@ from cgm.lib import settings
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
+
+def returnRandomName():
+    """ 
+    A better return selected. Prioritizes channel box selection over reg objects.
+    """   
+    randomOptions = ['ReallyNameMe','Supertastic','DaisiesAreNeatButNotAGoodName','SolarSystem_isADumbName','David','Josh','Ryan','NameMe','Homer','Georgie','PleaseNameMe','NAMEThis','PleaseNameThis']
+    buffer = random.choice(randomOptions)
+    cnt = 0
+    while mc.objExists(buffer) and cnt<10:
+	cnt +=1
+	buffer = random.choice(randomOptions)
+    return buffer 
+
+
+
 
 def returnSelected():
     """ 
