@@ -28,6 +28,13 @@ namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
+#>>>Debug chunk===================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=================================================================
+
 attrTypesDict = {'message':['message','msg'],
                  'double':['float','fl','f','doubleLinear','doubleAngle','double','d'],
                  'string':['string','s','str'],
@@ -225,7 +232,7 @@ def returnNumericAttrSettingsDict(obj,attr):
                     dataDict['min'] = minValue[0]
             except:
                 dataDict['min'] = False
-                guiFactory.warning("'%s.%s' failed to query min value" %(obj,attr))
+                log.warning("'%s.%s' failed to query min value" %(obj,attr))
     
         dataDict['max'] = False                
         if mc.attributeQuery(attr, node = obj, maxExists=True):
@@ -235,7 +242,7 @@ def returnNumericAttrSettingsDict(obj,attr):
                     dataDict['max']  = maxValue[0]                    
             except:
                 dataDict['max']  = False
-                guiFactory.warning("'%s.%s' failed to query max value" %(obj,attr))
+                log.warning("'%s.%s' failed to query max value" %(obj,attr))
     
         dataDict['default'] = False             
         if type(mc.addAttr(nameCombined,q=True,defaultValue = True)) is int or float:
@@ -245,7 +252,7 @@ def returnNumericAttrSettingsDict(obj,attr):
                     dataDict['default'] = defaultValue[0]  
             except:
                 dataDict['default'] = False
-                guiFactory.warning("'%s.%s' failed to query default value" %(obj,attr))
+                log.warning("'%s.%s' failed to query default value" %(obj,attr))
     
         #>>> Soft values
         dataDict['softMax']  = False
@@ -585,7 +592,7 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
                 mc.setAttr(attrBuffer,lock=False)
                 
             if doBreakConnection(obj,attribute):
-                guiFactory.warning("'%s' connection broken"%(attrBuffer))
+                log.warning("'%s' connection broken"%(attrBuffer))
             
             if validateRequestedAttrType(attrType) == 'long':
                 mc.setAttr(attrBuffer,int(float(value)), *a, **kw)
@@ -598,9 +605,9 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
             
             if wasLocked == True or forceLock == True:
                 mc.setAttr(attrBuffer,lock=True)
-            guiFactory.report("'%s' set to '%s'"%(attrBuffer,value))
+            log.info("'%s' set to '%s'"%(attrBuffer,value))
         except:
-            guiFactory.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
+            log.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
 
 
 
@@ -739,7 +746,7 @@ def doConvertAttrType(targetAttrName,attrType):
             try:
                 doConnectAttr(connection,targetAttrName)
             except:
-                guiFactory.warning("Couldn't connect '%s' to the '%s'"%(connection,targetAttrName))
+                log.warning("Couldn't connect '%s' to the '%s'"%(connection,targetAttrName))
                 
         elif dataBuffer is not None:
             if mc.objExists(dataBuffer) and aType == 'message':
@@ -755,7 +762,7 @@ def doConvertAttrType(targetAttrName,attrType):
                     else:
                         mc.setAttr(targetAttrName,dataBuffer,type = aType)
                 except:
-                    guiFactory.warning("Couldn't add '%s' to the '%s'"%(dataBuffer,targetAttrName))
+                    log.warning("Couldn't add '%s' to the '%s'"%(dataBuffer,targetAttrName))
                     
                 
         if targetLock:
@@ -797,7 +804,7 @@ def returnMatchNameAttrsDict(fromObject,toObject,attributes=[True],directMatchOn
                         if mc.objExists('%s.%s'%(toObject, buffer) ):
                             matchAttrs[attr] = buffer
                     except:
-                        guiFactory.warning("'%s' failed to query a long name to check"%attr)
+                        log.warning("'%s' failed to query a long name to check"%attr)
         if matchAttrs:
             return matchAttrs
         else:
@@ -849,7 +856,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     sourceType = sourceFlags.get('type')
     
     if values and not validateRequestedAttrType(sourceType):
-        guiFactory.warning("'%s.%s' is a '%s' and not valid for copying."%(fromObject,fromAttr,sourceType))             
+        log.warning("'%s.%s' is a '%s' and not valid for copying."%(fromObject,fromAttr,sourceType))             
         return False
     
     sourceLock = sourceFlags.get('locked')
@@ -887,12 +894,12 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             targetHidden = targetFlags.get('hidden')
             targetDynamic = targetFlags.get('dynamic')   
             if not validateRequestedAttrType(targetType):
-                guiFactory.warning("'%s.%s' is a '%s' and may not copy correctly."%(toObject,toAttr,sourceType))             
+                log.warning("'%s.%s' is a '%s' and may not copy correctly."%(toObject,toAttr,sourceType))             
 
             if not validateAttrTypeMatch(targetType,sourceType):
                 #If it doesn't match, covert
                 if sourceDynamic and convertToMatch:
-                    guiFactory.warning("'%s.%s' must be converted. It's type is not '%s'"%(toObject,toAttr,targetType))              
+                    log.warning("'%s.%s' must be converted. It's type is not '%s'"%(toObject,toAttr,targetType))              
                     if targetLock:
                         mc.setAttr('%s.%s'%(toObject,toAttr),lock = False)
                         relockSource = True
@@ -903,7 +910,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                 
         elif doAddAttr(toObject,toAttr,sourceType):
             #If it doesn't exist, make it
-            guiFactory.report("'%s.%s' created!"%(toObject,toAttr))            
+            log.info("'%s.%s' created!"%(toObject,toAttr))            
         else:
             return False
             
@@ -919,14 +926,14 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             targetDynamic = targetFlags.get('dynamic')  
             
             if not targetType:
-                guiFactory.warning("'%s.%s' has no type."%(toObject,toAttr))             
+                log.warning("'%s.%s' has no type."%(toObject,toAttr))             
                 return False    
                         
             if not validateAttrTypeMatch(targetType,sourceType):
                 if sourceDynamic and convertToMatch:
                     toAttr = fromAttr                    
                     #f the match attr doesnt' type as well, convert
-                    guiFactory.report("Match is '%s', needs to be '%s'"%(targetType,sourceType))  
+                    log.info("Match is '%s', needs to be '%s'"%(targetType,sourceType))  
                     if targetLock:
                         mc.setAttr('%s.%s'%(toObject,toAttr),lock = False)
                         relockSource = True                        
@@ -940,10 +947,10 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             
         elif doAddAttr(toObject,fromAttr,sourceType):
             toAttr = fromAttr
-            guiFactory.report("'%s.%s' created!"%(toObject,fromAttr))   
+            log.info("'%s.%s' created!"%(toObject,fromAttr))   
             
     if not goodToGo:
-        guiFactory.warning("'%s.%s' may not copy well to '%s.%s'. Source type is '%s', target type is '%s'. Conversion mode is off"%(fromObject,fromAttr,toObject,toAttr,sourceType,targetType))
+        log.warning("'%s.%s' may not copy well to '%s.%s'. Source type is '%s', target type is '%s'. Conversion mode is off"%(fromObject,fromAttr,toObject,toAttr,sourceType,targetType))
         
     #Let's get our data    
     dataDict = returnAttributeDataDict(fromObject,fromAttr)
@@ -963,7 +970,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                     doBreakConnection('%s.%s'%(fromObject,fromAttr))
             except:
                 if sourceType != 'message':
-                    guiFactory.warning("Inbound fail - '%s.%s' failed to connect to '%s"%(fromObject,fromAttr,buffer))
+                    log.warning("Inbound fail - '%s.%s' failed to connect to '%s"%(fromObject,fromAttr,buffer))
                     
     if outgoingConnections and not connectSourceToTarget:
         if dataDict['outGoing']:
@@ -972,7 +979,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                     doConnectAttr(('%s.%s'%(toObject,toAttr)),connection)
                
                 except:
-                    guiFactory.warning("Outbound fail - '%s' failed to connect to '%s.%s'"%(connection,toObject,toAttr))
+                    log.warning("Outbound fail - '%s' failed to connect to '%s.%s'"%(connection,toObject,toAttr))
         
     if copyAttrSettings:
         if sourceEnum:
@@ -998,13 +1005,13 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
         try:            
             doConnectAttr(('%s.%s'%(toObject,toAttr)),('%s.%s'%(fromObject,fromAttr)))
         except:
-            guiFactory.warning("Connect to target fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
+            log.warning("Connect to target fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
 
     elif connectTargetToSource:
         try:            
             doConnectAttr(('%s.%s'%(fromObject,fromAttr)),('%s.%s'%(toObject,toAttr)))
         except:
-            guiFactory.warning("Connect to source fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
+            log.warning("Connect to source fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
 
     if relockSource:
         mc.setAttr('%s.%s'%(toObject,toAttr),lock = True)
@@ -1267,7 +1274,7 @@ def swapNameTagAttrs(object1,object2):
                 storeInfo(object2,attr,object1TagsDict.get(attr),True)
 
     else:
-        guiFactory.warning("Selected objects don't have cgmTags to swap")
+        log.warning("Selected objects don't have cgmTags to swap")
 
 
 
@@ -1476,7 +1483,7 @@ def doBreakConnection(obj,attr=None):
             sourceBuffer = sourceBuffer[0]
             
         if not sourceBuffer:
-            return guiFactory.warning("No source for '%s.%s' found!"%(obj,attr))
+            return log.warning("No source for '%s.%s' found!"%(obj,attr))
         try:
             drivenAttr = '%s.%s'%(obj,attr)
             if family and family.get('parent'):
@@ -1505,7 +1512,7 @@ def doBreakConnection(obj,attr=None):
             
             return sourceBuffer
         except:
-            guiFactory.warning('Unable to break connection. See script dump')
+            log.warning('Unable to break connection. See script dump')
     else:
         return False
 
@@ -1815,7 +1822,7 @@ def repairMessageToReferencedTarget(obj,attr,debug=False):
     assert mc.objectType(objTest[0]) == 'reference',"'%s' isn't returning a reference. Aborted"%targetAttr 
     
     ref = objTest[0].split('RN.')[0] #Get to the ref
-    if debug:guiFactory.report("Reference connection found, attempting to fix...")
+    if debug:log.info("Reference connection found, attempting to fix...")
         
     messageConnectionsOut =  mc.listConnections("%s.message"%(obj), p=1)
     if messageConnectionsOut and ref:
@@ -1823,10 +1830,10 @@ def repairMessageToReferencedTarget(obj,attr,debug=False):
             if ref in plug:
                 matchObj = plug.split('.')[0]#Just get to the object
                 doConnectAttr("%s.message"%matchObj,targetAttr)
-                if debug: guiFactory.report("'%s' restored to '%s'"%(targetAttr,matchObj))
+                if debug: log.info("'%s' restored to '%s'"%(targetAttr,matchObj))
                 
                 if len(messageConnectionsOut)>1:#fix to first, report other possibles
-                    if debug: guiFactory.warning("Found more than one possible connection. Candidates are:'%s'"%"','".join(messageConnectionsOut))
+                    if debug: log.warning("Found more than one possible connection. Candidates are:'%s'"%"','".join(messageConnectionsOut))
                 return True
     return False
         
@@ -1959,7 +1966,7 @@ def addRotateOrderAttr (obj,name):
         mc.setAttr((obj+'.'+name),e = True, keyable = True )
         return ("%s.%s"%(obj,name))
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,name))
+        log.warning("'%s' failed to add '%s'"%(obj,name))
         
 def addPickAxisAttr(obj,name):
     """ 
@@ -1974,7 +1981,7 @@ def addPickAxisAttr(obj,name):
         mc.setAttr((obj+'.'+name),e = True, keyable = True )
         return ("%s.%s"%(obj,name))
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,name))
+        log.warning("'%s' failed to add '%s'"%(obj,name))
         
 def addAttributesToObj (obj, attributeTypesDict):
     """ 
@@ -2036,7 +2043,7 @@ def addStringAttributeToObj (obj,attr,*a, **kw ):
         mc.addAttr (obj, ln = attr, dt = 'string',*a, **kw)
         return ("%s.%s"%(obj,attr))
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2061,7 +2068,7 @@ def addIntegerAttributeToObj (obj,attr,*a, **kw ):
         mc.addAttr (obj, ln = attr, at = 'long',*a, **kw)
         return ("%s.%s"%(obj,attr))
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def addMessageAttributeToObj (obj,attr,*a, **kw ):
@@ -2085,7 +2092,7 @@ def addMessageAttributeToObj (obj,attr,*a, **kw ):
         mc.addAttr (obj, ln = attr, at = 'message',*a, **kw )
         return ("%s.%s"%(obj,attr))
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False   
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def addVectorAttributeToObj (obj,attr,*a, **kw):
@@ -2110,7 +2117,7 @@ def addVectorAttributeToObj (obj,attr,*a, **kw):
         return ("%s.%s"%(obj,attr))
     
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
 
 
@@ -2164,7 +2171,7 @@ def addFloatAttributeToObject (obj, attr,*a, **kw):
         mc.addAttr (obj, ln = attr, at = 'float',*a, **kw)
         return ("%s.%s"%(obj,attr))
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -2191,7 +2198,7 @@ def addEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
         mc.setAttr ((obj+'.'+attr),e=True,keyable=True)
         return ("%s.%s"%(obj,attr))
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
     
 
@@ -2242,7 +2249,7 @@ def addBoolAttrToObject(obj, attr, *a, **kw):
 
         return True
     except:
-        guiFactory.warning("'%s' failed to add '%s'"%(obj,attr))
+        log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2317,13 +2324,13 @@ def storeObjectToMessage (obj, storageObj, messageName):
     attrCache = (storageObj+'.'+messageName)
     objLong = mc.ls(obj,long=True)
     if len(objLong)>1:
-        guiFactory.warning("Can't find long name for storage, found '%s'"%objLong)
+        log.warning("Can't find long name for storage, found '%s'"%objLong)
         return False 
     objLong = objLong[0]
     
     storageLong = mc.ls(storageObj,long=True)
     if len(storageLong)>1:
-        guiFactory.warning("Can't find long name for storage, found '%s'"%storageLong)
+        log.warning("Can't find long name for storage, found '%s'"%storageLong)
         return False
     storageLong = storageLong[0]
         
@@ -2331,19 +2338,19 @@ def storeObjectToMessage (obj, storageObj, messageName):
         if  mc.objExists (attrCache):
             if queryIfMessage(storageObj,messageName):
                 if returnMessageObject(storageObj,messageName) != obj:
-                    guiFactory.report(attrCache+' already exists. Adding to existing message node.')
+                    log.debug(attrCache+' already exists. Adding to existing message node.')
                     doBreakConnection(attrCache)
                     mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
                     return True 
                 else:
-                    guiFactory.report("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
+                    log.info("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
             else:
                 connections = returnDrivenAttribute(attrCache)
                 if connections:
                     for c in connections:
                         doBreakConnection(c)
                         
-                guiFactory.warning("'%s' already exists. Not a message attr, converting."%attrCache)
+                log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
                 doDeleteAttr(storageObj,messageName)
                 
                 buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
@@ -2451,6 +2458,6 @@ def reorderAttributes(obj,attrs,direction = 0):
                 mc.setAttr(attrBuffer,lock=True)
                 
         except:
-            guiFactory.warning("'%s' Failed to reorder"%attr)
+            log.warning("'%s' Failed to reorder"%attr)
         
 

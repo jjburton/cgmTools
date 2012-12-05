@@ -43,6 +43,13 @@ settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
 cgmNameTags = 'cgmName','cgmNameModifier','cgmPosition','cgmDirection','cgmDirectionModifier','cgmIterator','cgmType','cgmTypeModifier'
 
+#>>>Debug chunk===================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=================================================================
+
 class NameFactory():
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -174,7 +181,7 @@ class NameFactory():
         
         #Get a list of objects in the scene that match the name object
         if len(self.objGeneratedNameDict.keys()) <= 1 and 'cgmType' in self.objGeneratedNameDict.keys():
-            guiFactory.warning("There's only a type tag, ignoring match check")
+            log.debug("There's only a type tag, ignoring match check")
         else:
             if not self.sceneObjectsNameDictMap:
                 self.generateSceneDictMap()            
@@ -1000,7 +1007,7 @@ def doNameObject(obj,sceneUnique = False,fastIterate = True):
     nameFactory = NameFactory(obj)
     
     if nameFactory.amIMe(name):
-        guiFactory.warning("'%s' is already named correctly."%nameFactory.nameBase)
+        log.debug("'%s' is already named correctly."%nameFactory.nameBase)
         return name
     else:
         objLong = mc.ls(obj,long=True)
