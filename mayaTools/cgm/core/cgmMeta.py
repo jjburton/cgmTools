@@ -13,9 +13,9 @@ from cgm.lib import (lists,
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================      
-from cgm.lib.Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_Meta as r9Meta
 reload(r9Meta)
-from cgm.lib.Red9.core.Red9_Meta import *
+from Red9.core.Red9_Meta import *
 
 r9Meta.registerMClassInheritanceMapping()    
 #=========================================================================
@@ -34,14 +34,17 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-class cgmMetaClass(MetaClass):#Should we do this?
+class cgmMetaNode(MetaClass):#Should we do this?
     def __init__(self,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
-        super(cgmMetaClass, self).__init__(*args,**kws) 
+        super(cgmMetaNode, self).__init__(*args,**kws) 
         #MetaClass.__init__(self, *args,**kws)
         self.update(self.mNode)
+        
+    def __bindData__(self):
+        pass
          
     #=========================================================================      
     # Get Info
@@ -49,7 +52,7 @@ class cgmMetaClass(MetaClass):#Should we do this?
     def update(self,obj):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        super(cgmMetaClass, self).__init__(node = obj)         
+        super(cgmMetaNode, self).__init__(node = obj)         
         
         self.getRefState()
 
@@ -149,9 +152,8 @@ class cgmMetaClass(MetaClass):#Should we do this?
                 didSomething = True
         return didSomething
     
-
-class cgmObject(cgmMetaClass):
-    def __init__(self,obj='', autoCreate = True,*args,**kws):
+class cgmObject(cgmMetaNode):
+    def __init__(self,obj = '',*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
         creates an empty transform
@@ -161,15 +163,15 @@ class cgmObject(cgmMetaClass):
         autoCreate(bool) - whether to create a transforum if need be
         """
         ### input check
-        if not mc.objExists(obj):
-            if autoCreate:#If the object doesn't exist, create a transform
-                buffer = mc.group(empty=True)
-                if len(list(obj)) < 1:
-                    obj = buffer            
+
+        if not mc.objExists(obj):#If the object doesn't exist
+            buffer = mc.group(empty=True)#create a group
+            if 'name' in kws.keys():
+                obj = kws['name']
                 obj = mc.rename(buffer,obj)
-                log.info("'%s' created as a null." %obj)
-            else:#Fails
-                log.error("No object specified and no auto create option set")
+            else:
+                obj = buffer
+            log.info("'%s' created as a null." %obj)
             
         super(cgmObject, self).__init__(node=obj,*args,**kws)
         #cgmMetaClass.__init__(self, node=obj) 
@@ -177,20 +179,22 @@ class cgmObject(cgmMetaClass):
         if len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
             log.error("'%s' has no transform"%self.mNode)  
         self.update(self.mNode)#Get intial info
-    
+        
+    def __bindData__(self):
+        self.addAttr('test',2)
     #=========================================================================      
     # Get Info
     #=========================================================================                   
     def update(self,obj):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        cgmMetaClass.update(self,obj=obj)
+        cgmMetaNode.update(self,obj=obj)
         
         try:
             self.getFamily()
             self.transformAttrs = []
             for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
-                if mc.objExists(self.nameLong+'.'+attr):
+                if mc.objExists(self.mNode+'.'+attr):
                     self.transformAttrs.append(attr)
             return True
         except:
