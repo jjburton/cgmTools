@@ -5,6 +5,11 @@ import os
 import re
 import sys
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
 try:
     #try to connect to wing - otherwise don't worry
     import wingdbstub
@@ -24,6 +29,7 @@ from cgm.lib import guiFactory
 from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
+import Red9
 
 
 def setupCGMScriptPaths():
@@ -33,7 +39,7 @@ def setupCGMScriptPaths():
     mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
 
-    for path in '/cgm/mel','/cgm/images','/cgm/lib/zoo':
+    for path in '/cgm/mel','/cgm/images','/cgm/lib/zoo','/Red9':
         fullPath = thisPath / path
         if fullPath not in mayaScriptPathsSet:
             mayaScriptPaths.append( fullPath )
@@ -43,7 +49,7 @@ def setupCGMScriptPaths():
             newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
     
             maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
-
+	    
         
 
 def setupCGMPlugins():
@@ -238,6 +244,11 @@ def loadTDTools( *a ):
     from cgm.tools import tdTools
     reload(tdTools)
     tdTools.run()
+    
+def loadRed9( *a ):
+    import Red9
+    reload(Red9)
+    Red9.start()
 
 def loadAttrTools( *a ):
     from cgm.tools import attrTools
@@ -280,7 +291,6 @@ def connectToWingIDE( *a ):
         from cgm.lib import cgmDeveloperLib
     cgmDeveloperLib.connectToWing()	
 
-
 #Zoo stuff
 def loadSkinPropagation( *a ):
     from zooPyMaya import refPropagation
@@ -307,6 +317,8 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                               loadLocinator),
                              ('cgm.SetTools', " Set tools",
                               loadSetTools),
+                             ('red9.studioTools', "Launch Red 9's tools - hit it twice for now",
+                              loadRed9),                             
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
                               loadXferAnim), 
                              ('zoo.Keymaster', "from Hamish McKenzie's zooToolbox - keymaster gives you a heap of tools to manipulate keyframes - scaling around curve pivots, min/max scaling of curves/keys etc...",
