@@ -52,6 +52,9 @@ class cgmMetaNode(MetaClass):#Should we do this?
         #Overloading until the functionality is what we need. For now, just handling locking
         try:
             MetaClass.__setattr__(self,attr,value)
+            if attributes.doGetAttr(self.mNode,attr) != value  and self.hasAttr(attr):
+                log.info("Setting '%s.%s' with MetaClass failed to set, attempting with cgm"%(self.mNode,attr) )               
+                a = cgmAttr(self.mNode,attr,value = value)                
         except:
             if attr not in self.UNMANAGED and not attr=='UNMANAGED': 
                 log.info("Setting '%s.%s' with MetaClass failed, attempting with cgm"%(self.mNode,attr) )               
@@ -299,7 +302,10 @@ class cgmObject(cgmMetaNode):
 
         Keyword arguments:
         parent(string) -- Target parent
-        """        
+        """       
+        if parent == self.parent:
+            return True
+        
         if parent: #if we have a target parent
             try:
                 #If we have an Object Factory instance, link it
@@ -309,7 +315,7 @@ class cgmObject(cgmMetaNode):
                 #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
                 assert mc.objExists(parent) is True, "'%s' - parent object doesn't exist" %parent    
             
-            log.info("Parent is '%s'"%parent)
+            log.debug("Parent is '%s'"%parent)
             try:
                 mc.parent(self.mNode,parent)
             except:
