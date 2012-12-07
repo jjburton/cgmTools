@@ -50,6 +50,7 @@ class cgmPuppet(cgmMetaNode):
         ##If nothing is provided, just make one
         if name is not None:
             if puppets:##If we have puppets, check em
+                log.debug("Found the following puppets: '%s'"%"','".join(puppets))
                 for p in puppets:
                     if attributes.doGetAttr(p,'cgmName') == name:
                         log.info("Puppet tagged '%s' exists. Checking '%s'..."%(name,p))
@@ -70,13 +71,14 @@ class cgmPuppet(cgmMetaNode):
         
         if not name:
             name = search.returnRandomName()  
-            
+        
+        log.info("Puppet is '%s'"%puppet)
         super(cgmPuppet, self).__init__(node = puppet, name = name,**kws)  
+        self.doStore('cgmName',name,True)
             
         #>>> Puppet Network Initialization Procedure ==================       
         if self.refState or initializeOnly:
             log.info("'%s' Initializing only..."%name)
-            raise NotImplementedError
             if not self.initialize():
                 guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 return     
@@ -84,9 +86,12 @@ class cgmPuppet(cgmMetaNode):
         else:
             if not self.verify():
                 log.critical("'%s' failed to verify!"%name)
-                return      
+                return    
+        
+        
+        log.info("'%s' Checks out!"%name)
+
             
-        self.doStore('cgmName',name,True)
         
     def __bindData__(self):
         #Default to creation of a var as an int value of 0
@@ -98,7 +103,48 @@ class cgmPuppet(cgmMetaNode):
         #self.addAttr('noTransformGroup',type='messageSimple')
         #self.addAttr('geoGroup',type='messageSimple')
         
-    #==================================================================
+    #====================================================================================
+    def initialize(self):
+        """ 
+        Initializes the various components a masterNull for a character/asset.
+        
+        RETURNS:
+        success(bool)
+        """            
+        #Puppet Network Node
+        #==============
+        if self.mClass != 'cgmPuppet':
+            return False    
+        
+        #>>>Master null
+        if self.masterNull:
+            self.PuppetNull = cgmObject(self.masterNull[0])
+            log.info("'%s' initialized as master null"%self.masterNull[0])
+        else:
+            log.error("MasterNull missing. Go back to unreferenced file")
+            return False
+        
+        #>>>Info Nulls
+        ## Initialize the info nodes
+        for attr in 'settings','geo','parts':
+            if attr in  self.__dict__.keys():
+                try:
+                    self.__dict__[attr.capitalize()] = cgmMetaNode( self.__getattribute__(attr)[0] )
+                    log.info("'%s' initialized as %s info null"%(self.__getattribute__(attr)[0],attr))                    
+                except:
+                    log.error("'%s' info node failed. Please verify puppet."%attr)                    
+                    return False
+                
+        self.optionAimAxis= AttrFactory(self.Settings,'axisAim') 
+        self.optionUpAxis= AttrFactory(self.Settings,'axisUp') 
+        self.optionOutAxis= AttrFactory(self.Settings,'axisOut')  
+        
+        #>>>Geo Nulls
+
+
+                
+        return True
+    
     def verify(self):
         """"""
         """ 
@@ -107,30 +153,34 @@ class cgmPuppet(cgmMetaNode):
         RETURNS:
         success(bool)
         """ 
-        #>>> Puppet Network Node =====================================        
-        if self.mClass != 'cgmPuppet':
-            log.error("'%s' is not a puppet. It's mClass is '%s'"%(name,self.mClass))
+        #Puppet Network Node
+        #==============    
+        if attributes.doGetAttr(self.mNode,'mClass') != 'cgmPuppet':
+            log.error("'%s' is not a puppet. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
+            return False
         self.doName() #See if it's named properly. Need to loop back after scene stuff is querying properly
         
         self.doStore('cgmType','puppetNetwork')
-        AttrFactory(self,'version',initialValue = 1.0)  
-        AttrFactory(self,'masterNull',attrType = 'msg')  
-        AttrFactory(self,'settings',attrType = 'msg')  
-        AttrFactory(self,'geo',attrType = 'msg')  
-        AttrFactory(self,'parts',attrType = 'msg')  
+        self.addAttr('version',initialValue = 1.0,lock=True)  
+        self.addAttr('masterNull',attrType = 'msg')  
+        self.addAttr('settings',attrType = 'msg')  
+        self.addAttr('geo',attrType = 'msg')  
+        self.addAttr('parts',attrType = 'msg')  
 
         self.doName()
         self.getAttrs()
         log.debug("Network good...")
+
         
-        #>>> Nulls ==================================================     
-        if self.masterNull and mc.objExists(self.masterNull[0]):#If we don't have a masterNull, make one
-            log.info('Master null exists. Initializig')
+        #MasterNull
+        #==============   
+        if mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
+            log.info('Master null exists. Initializing')
             self.PuppetNull = cgmMasterNull(self.masterNull[0])
         else:
-            log.info('Master created.')            
             self.PuppetNull = cgmMasterNull(puppet = self)
             self.doStore('masterNull',self.PuppetNull.mNode)               
+            log.info('Master created.')            
                      
         if self.PuppetNull.mNode != self.cgmName:
             self.PuppetNull.doName(False)
@@ -138,10 +188,13 @@ class cgmPuppet(cgmMetaNode):
         attributes.doSetLockHideKeyableAttr(self.PuppetNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         log.debug("Master Null good...")
         
-        #>>> Info Nulls ==============================================
-        
-        #>> Settings 
-        if 'settings' in self.__dict__.keys() and self.settings:
+    
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Info Nodes
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
+        #Settings
+        #==============
+        if mc.objExists( attributes.returnMessageObject(self.mNode,'settings') ):
             log.info("Initializing '%s'"%self.settings[0])                                    
             self.Settings  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'settings'))#Initialize if exists           
         else:
@@ -152,12 +205,14 @@ class cgmPuppet(cgmMetaNode):
         defaultFont = modules.returnSettingsData('defaultTextFont')
         self.Settings.doStore('font',defaultFont)
                 
-        AttrFactory(self.Settings,'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=2) 
-        AttrFactory(self.Settings,'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=1) 
-        AttrFactory(self.Settings,'axisOut','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=0)         
+        cgmAttr(self.Settings,'axisAim','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=2) 
+        cgmAttr(self.Settings,'axisUp','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=1) 
+        cgmAttr(self.Settings,'axisOut','enum',enum = 'x+:y+:z+:x-:y-:z-',initialValue=0) 
         
-        #>> Geo
-        if 'geo' in self.__dict__.keys() and self.geo:
+        
+        #Geo
+        #==============
+        if mc.objExists( attributes.returnMessageObject(self.mNode,'geo') ):
             log.info("Initializing '%s'"%self.geo[0])                                    
             self.Geo  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'geo'), infoType = 'geo')#Initialize if exists           
         else:
@@ -165,61 +220,68 @@ class cgmPuppet(cgmMetaNode):
             self.Geo = cgmInfoNode(puppet = self, infoType = 'geo')#Create and initialize
             self.doStore('geo',self.Geo.mNode)
             
-        #>> Parts
-        if 'parts' in self.__dict__.keys() and self.parts:
+        #Parts
+        #==============
+        if mc.objExists( attributes.returnMessageObject(self.mNode,'parts') ):
             log.info("Initializing '%s'"%self.parts[0])                                    
             self.Parts  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'parts'), infoType = 'parts')#Initialize if exists           
         else:
             log.info('Creating parts')                                    
             self.Parts = cgmInfoNode(puppet = self, infoType = 'parts')#Create and initialize
             self.doStore('parts',self.Parts.mNode)   
-        
-        #>>> Groups  ==============================================
-        created = False        
-        self.msgNoTransformGroup = AttrFactory(self.PuppetNull,'noTransformGroup','message')
-        if not self.msgNoTransformGroup.get():
-            self.NoTransformGroup = ObjectFactory(mc.group(empty=True))
-            self.msgNoTransformGroup.doStore(self.NoTransformGroup.nameShort)
-            created = True
+            
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Groups
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
+        # No Transform
+        #==============
+        if mc.objExists( attributes.returnMessageObject(self.PuppetNull.mNode,'noTransformGroup') ):
+            #If we have a connected group, initialize it
+            log.info("Initializing '%s'"%self.PuppetNull.noTransformGroup[0])                                    
+            self.NoTransformGroup  = cgmObject( attributes.returnMessageObject(self.PuppetNull.mNode,'noTransformGroup'))#Initialize if exists           
         else:
-            self.NoTransformGroup = ObjectFactory(self.msgNoTransformGroup.get())
+            #If not, make it
+            log.info('Creating noTransformGroup')                                    
+            self.NoTransformGroup = cgmObject(name='noTransform')#Create and initialize
+            self.NoTransformGroup.doName()
+            self.NoTransformGroup.doParent(self.PuppetNull)
+            self.PuppetNull.doStore('noTransformGroup',self.NoTransformGroup.mNode)
             
-        self.NoTransformGroup.store('cgmName','noTransform')   
-        self.NoTransformGroup.store('cgmType','group')
-        
-        self.NoTransformGroup.doParent(self.PuppetNull.nameShort)
-        
-        if created:
-            self.NoTransformGroup.doName(False)
+        attributes.doSetLockHideKeyableAttr(self.NoTransformGroup.mNode)
+
             
-        self.msgNoTransformGroup.updateData()   
-            
-        attributes.doSetLockHideKeyableAttr(self.NoTransformGroup.nameShort)
-         
-            
-        #Checks our geo container null
-        created = False        
-        self.msgGeoGroup = AttrFactory(self.PuppetNull,'geoGroup','message')
-        if not self.msgGeoGroup.get():
-            self.GeoGroup = ObjectFactory(mc.group(empty=True))
-            self.msgGeoGroup.doStore(self.GeoGroup.nameShort)            
-            created = True
+        # Geo group
+        #==============
+        if mc.objExists( attributes.returnMessageObject(self.PuppetNull.mNode,'geoGroup') ):
+            #If we have a connected group, initialize it
+            log.info("Initializing '%s'"%self.PuppetNull.geoGroup[0])                                    
+            self.GeoGroup  = cgmObject( attributes.returnMessageObject(self.PuppetNull.mNode,'geoGroup'))#Initialize if exists           
         else:
-            self.GeoGroup = ObjectFactory(self.msgGeoGroup.get())
+            #If not, make it
+            log.info('Creating geoGroup')                                    
+            self.GeoGroup = cgmObject(name='geo')#Create and initialize
+            self.GeoGroup.doName()
+            self.GeoGroup.doParent(self.NoTransformGroup)
+            self.PuppetNull.doStore('geoGroup',self.GeoGroup.mNode)
             
-        self.GeoGroup.store('cgmName','geo')   
-        self.GeoGroup.store('cgmType','group')
+        attributes.doSetLockHideKeyableAttr(self.GeoGroup.mNode)
+
+        # Parts group
+        #==============
+        if mc.objExists( attributes.returnMessageObject(self.PuppetNull.mNode,'partsGroup') ):
+            #If we have a connected group, initialize it
+            log.info("Initializing '%s'"%self.PuppetNull.partsGroup[0])                                    
+            self.PartsGroup  = cgmObject( attributes.returnMessageObject(self.PuppetNull.mNode,'partsGroup'))#Initialize if exists           
+        else:
+            #If not, make it
+            log.info('Creating partsGroup')                                    
+            self.PartsGroup = cgmObject(name='parts')#Create and initialize
+            self.PartsGroup.doName()
+            self.PartsGroup.doParent(self.PuppetNull)
+            self.PuppetNull.doStore('partsGroup',self.PartsGroup.mNode)
+            
+        attributes.doSetLockHideKeyableAttr(self.PartsGroup.mNode)
         
-        self.GeoGroup.doParent(self.msgNoTransformGroup.get())
-        
-        if created:
-            self.GeoGroup.doName(False)
-            
-        self.msgGeoGroup.updateData()   
-            
-        attributes.doSetLockHideKeyableAttr(self.GeoGroup.nameShort)        
-        
-            
         return True
             
     def changeName(self,name = ''):
@@ -255,9 +317,14 @@ class cgmMasterNull(cgmObject):
         RETURNS:
         success(bool)
         """ 
-        AttrFactory(self,'cgmName',initialValue = '')
-        AttrFactory(self,'cgmType',initialValue = 'ignore')
-        AttrFactory(self,'cgmModuleType',value = 'master')   
+        cgmAttr(self,'cgmName',initialValue = '')
+        cgmAttr(self,'cgmType',initialValue = 'ignore')
+        cgmAttr(self,'cgmModuleType',value = 'master')   
+        cgmAttr(self,'partsGroup',attrType = 'msg')   
+        cgmAttr(self,'noTransformGroup',attrType = 'msg')   
+        cgmAttr(self,'geoGroup',attrType = 'msg')   
+        
+        
         
         #See if it's named properly. Need to loop back after scene stuff is querying properly
         self.doName()
@@ -275,7 +342,7 @@ class cgmInfoNode(cgmMetaNode):
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
         
-        AttrFactory(self,'cgmName',initialValue = '')
+        cgmAttr(self,'cgmName',initialValue = '')
         self.doStore('cgmTypeModifier',infoType)
         self.doStore('cgmType','info')     
         
@@ -291,12 +358,7 @@ class cgmInfoNode(cgmMetaNode):
         """ 
         
         #See if it's named properly. Need to loop back after scene stuff is querying properly
-        self.doName()
-
-        
-        
-        
-        
+        self.doName()        
         
         
 def simplePuppetReturn():
