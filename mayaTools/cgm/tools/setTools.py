@@ -34,6 +34,13 @@ from cgm.lib import guiFactory
 reload(setToolsLib)
 reload(guiFactory)
 
+#>>>Debug chunk===================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=================================================================
+
 def run():
     cgmSetToolsWin = setToolsClass()
 
@@ -59,7 +66,7 @@ class setToolsClass(BaseMelWindow):
         self.website = 'www.cgmonks.com'
         self.version =  __version__ 
         self.optionVars = []
-        self.dockCnt = 'cgmPuppetBoxDoc'			
+        self.dockCnt = 'cgmSetToolsDock'			
 
 
         self.setTypes = ['NONE',
@@ -105,7 +112,7 @@ class setToolsClass(BaseMelWindow):
         if self.dockOptionVar.value:
             try:
                 allowedAreas = ['right', 'left']
-                mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=False, allowedArea=allowedAreas, width=275)
+                mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=False, allowedArea=allowedAreas, width=300)
             except:
                 #Dock failed, opening standard Window	
                 self.show()
