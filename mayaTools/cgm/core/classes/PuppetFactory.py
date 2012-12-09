@@ -33,9 +33,11 @@ initDicts = ['Module','moduleParents','moduleChildren','moduleStates']
 initStores = []
 
 ########################################################################
-class cgmPuppet(cgmMetaNode):
+class cgmPuppet(cgmNode):
     """"""
     #----------------------------------------------------------------------
+    def __new__(self):
+        pass
     def __init__(self,*args,**kws):
         """Constructor"""
         #>>>Keyword args
@@ -67,7 +69,7 @@ class cgmPuppet(cgmMetaNode):
                 ##If we're here, there's a node named our master null.
                 ##We need to get the network from that.
                 log.info("Trying to find network from '%s'"%args[0])
-                tmp = cgmMetaNode(args[0])
+                tmp = cgmNode(args[0])
                 if attributes.doGetAttr(tmp.mNode,'mClass') == 'cgmPuppet':#If it's a puppet network
                     puppet = args[0]
                 else:
@@ -144,14 +146,14 @@ class cgmPuppet(cgmMetaNode):
             if attr in  self.__dict__.keys():
                 try:
                     Attr = attr[0].capitalize() + attr[1:]#Get a better attribute store string, capitalize doesn't maintain mixed case 'noTransform'                  
-                    self.__dict__[Attr] = cgmMetaNode( self.__getattribute__(attr)[0] )
+                    self.__dict__[Attr] = cgmNode( self.__getattribute__(attr)[0] )
                     log.info("'%s' initialized as %s info null"%(self.__getattribute__(attr)[0],attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
         
-                self.optionPuppetMode = AttrFactory(self.SettingsInfoNull,'optionPuppetTemplateMode','int',initialValue = 0)      
         
+        self.optionPuppetMode = cgmAttr(self.Settings,'optionPuppetTemplateMode','int',initialValue = 0)      
         self.optionAimAxis= cgmAttr(self.Settings,'axisAim') 
         self.optionUpAxis= cgmAttr(self.Settings,'axisUp') 
         self.optionOutAxis= cgmAttr(self.Settings,'axisOut')  
@@ -382,7 +384,7 @@ class cgmMasterNull(cgmObject):
         #See if it's named properly. Need to loop back after scene stuff is querying properly
         self.doName()
         
-class cgmInfoNode(cgmMetaNode):
+class cgmInfoNode(cgmNode):
     """"""
     def __init__(self, *args,**kws):
         """Constructor"""

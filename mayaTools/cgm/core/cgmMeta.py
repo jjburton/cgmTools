@@ -36,13 +36,86 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-class cgmMetaNode(MetaClass):#Should we do this?
-    def __init__(self,*args,**kws):
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
+#=========================================================================    
+class cgmMeta(MetaClass):
+    def __new__(cls, node = None, name = None, nodeType = None,*args,**kws):
+        '''
+        Idea here is if a MayaNode is passed in and has the mClass attr
+        we pass that into the super(__new__) such that an object of that class
+        is then instantiated and returned.
+        '''
+        doName = None
+        objectFlags = ['cgmObject','object','obj','transform']
+            
+        if not node and name: 
+            node = name
+        if not node and nodeType:
+            node = True # Yes, make the sucker
+        if node and not name:
+            doName = node
+            
+        #If the node doesn't exists, make one 
+        #==============           
+        if node and not mc.objExists(node):#If we have a node and it exists, we'll initialize. Otherwise, we need to figure out what to make
+            if nodeType in objectFlags:
+                node = mc.createNode('transform')
+                log.info("Created a transform")
+            elif nodeType != 'network':
+                log.info("Trying to make a node of this type '%s'"%nodeType)
+                node = mc.createNode(nodeType)
+            else:
+                log.info("Make default node")
+                
+        if name and node != name:
+            node = mc.rename(node, name)
+        elif doName:
+            node = mc.rename(node,doName)
+            
+        log.debug("In MetaFactory.__new__ Node is '%s'"%node)
+        log.debug("In MetaFactory.__new__ Name is '%s'"%name) 
+        log.debug("In MetaFactory.__new__ nodeType is '%s'"%nodeType)   
+        
+        #Process what to do with it
+        #==============             
+        mClass = attributes.doGetAttr(node,'mClass')
+        if mClass:
+            log.info("Appears to be a '%s'"%mClass)
+            log.error("Specialized processing not implemented, initializing as...")
+            
+        if mc.ls(node,type='transform'):
+            log.info("Appears to be a transform, initializing as cgmObject")
+            return cgmObject(name = name, node = node)          
+        else:
+            log.info("Appears to be a '%s'. Initializing as cgmNode"%search.returnObjectType(node))  
+            return cgmNode(name = name, node = node)    
+          
+        return False
+            
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgm Node
+#=========================================================================    
+class cgmNode(MetaClass):#Should we do this?
+    def __asdfasdfasdf__(cls, node = None, name = None, *args, **kws):        
+        if not node and name: 
+            node = name
+        if node and not name:
+            name = node
+
+        if name and node != name:
+            node = mc.rename(node, name)
+                
+        return super(cls.__class__, cls).__new__(cls)    
+    
+    def __init__(self,node = None, name = None,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
-        super(cgmMetaNode, self).__init__(*args,**kws) 
-        #MetaClass.__init__(self, *args,**kws)
+        log.debug("In cgmNode.__init__ Node is '%s'"%node)
+        log.debug("In cgmNode.__init__ Name is '%s'"%name) 
+        
+        super(cgmNode, self).__init__(node=node, name = name)
         self.update(self.mNode)
         
     def __bindData__(self):
@@ -64,19 +137,17 @@ class cgmMetaNode(MetaClass):#Should we do this?
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':            
             cgmAttr(self.mNode, attrName = attr, attrType = attrType, value = value, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
             object.__setattr__(self, attr, value)
-            #super(cgmMetaNode, self).__init__(node = self.mNode)         
+            #super(cgmNode, self).__init__(node = self.mNode)         
             return True
         return False
-        
-    #except StandardError,error:
-        #raise StandardError(error)        
+            
     #=========================================================================      
     # Get Info
     #========================================================================= 
     def update(self,obj):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        super(cgmMetaNode, self).__init__(node = obj)         
+        super(cgmNode, self).__init__(node = obj)         
         
         self.getRefState()
 
@@ -153,8 +224,7 @@ class cgmMetaNode(MetaClass):#Should we do this?
             attributes.doDeleteAttr(self.mNode,attr)
         except:
             guiFactory.warning("'%s.%s' not found"%(self.mNode,attr))
-            
-            
+             
     def copyNameTagsFromObject(self,target,ignore=[False]):
         """
         Get name tags from a target object (connected)
@@ -176,8 +246,34 @@ class cgmMetaNode(MetaClass):#Should we do this?
                 didSomething = True
         return didSomething
     
-class cgmObject(cgmMetaNode):
-    def __init__(self,obj = '',*args,**kws):
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmObject
+#=========================================================================        
+class cgmObject(cgmNode):
+    def __new__(cls, node = None, name = None, *args, **kws):
+        created = False
+        
+        if not node and name: 
+            node = name
+        if node and not name:
+            name = node
+
+        #If the node doesn't exists, make one 
+        #==============           
+        if node and not mc.objExists(node):#If we have a node and it exists, we'll initialize. Otherwise, we need to figure out what to make
+            node = mc.createNode('transform')
+            created = True
+        if name and node != name:
+            node = mc.rename(node, name)
+        if not node:
+            raise Exception, 'Logic broken must have an error by here'
+        
+        if created:log.info("Transform '%s' created!"%node)
+        
+        return super(cls.__class__, cls).__new__(cls)    
+        
+                
+    def __init__(self,node = None, name = None,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
         creates an empty transform
@@ -187,32 +283,28 @@ class cgmObject(cgmMetaNode):
         autoCreate(bool) - whether to create a transforum if need be
         """
         ### input check
-
-        if not mc.objExists(obj):#If the object doesn't exist
-            buffer = mc.group(empty=True)#create a group
-            if 'name' in kws.keys():
-                obj = kws['name']
-                obj = mc.rename(buffer,obj)
-            else:
-                obj = buffer
-            log.info("'%s' created as a null." %obj)
+        assert node is not None, "Must have node assigned"
+        assert mc.objExists(node), "Node must exist"
+               
+        #log.info("'%s' created as a null." %obj)
             
-        super(cgmObject, self).__init__(node=obj,*args,**kws)
-        #cgmMetaClass.__init__(self, node=obj) 
+        super(cgmObject, self).__init__(node=node, name = name)
         
         if len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
-            log.error("'%s' has no transform"%self.mNode)  
+            log.error("'%s' has no transform"%self.mNode)
+            raise StandardError, "The class was designed to work with objects with transforms"
+        
         self.update(self.mNode)#Get intial info
         
-    def __bindData__(self):
-        self.addAttr('test',2)
+    def __bindData__(self):pass
+        #self.addAttr('test',2)
     #=========================================================================      
     # Get Info
     #=========================================================================                   
     def update(self,obj):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        cgmMetaNode.update(self,obj=obj)
+        cgmNode.update(self,obj=obj)
         
         try:
             self.getFamily()
@@ -373,6 +465,9 @@ class cgmObject(cgmMetaNode):
                         guiFactory.warning("'%s.%s' doesn't exist"%(t,a))       
                         
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmAttr
+#=========================================================================    
 class cgmAttr(object):
     """ 
     Initializes a maya attribute as a class obj
@@ -411,7 +506,7 @@ class cgmAttr(object):
         except:
             #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
             assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
-            catch = cgmMetaNode(objName)
+            catch = cgmNode(objName)
             self.obj = catch
         
         self.form = attributes.validateRequestedAttrType(attrType)
