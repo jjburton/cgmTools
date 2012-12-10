@@ -103,7 +103,7 @@ class cgmMeta(object):
         objectType = search.returnObjectType(node)
 	if objectType == 'objectSet':
             log.info("'%s' Appears to be an objectSet, initializing as objectSet"%node)	    
-	    return cgmObjectSet(setName = name,*args,**kws)
+	    return cgmObjectSet(node,*args,**kws)
         if mc.ls(node,type='transform'):
             log.info("'%s' Appears to be a transform, initializing as cgmObject"%node)
             return cgmObject(name = name, node = node)          
@@ -125,11 +125,8 @@ class cgmNode(MetaClass):#Should we do this?
         log.debug("In cgmNode.__init__ Name is '%s'"%name) 
         
         super(cgmNode, self).__init__(node=node, name = name)
-	#self.UNMANAGED.extend(['referencePrefix'])
-        
-    def __bindData__(self):
-        pass
-    
+	self.UNMANAGED.extend(['referencePrefix'])
+            
     def __setattr__(self, attr, value):
         #Overloading until the functionality is what we need. For now, just handling locking
         try:
@@ -156,12 +153,9 @@ class cgmNode(MetaClass):#Should we do this?
     #Reference Prefix
     #==============    
     def getReferencePrefix(self):
-	return search.returnReferencePrefix(self.mNode) or False
-    def setReferencePrefix(self):
-	log.warning('This is not how you set a reference prefix, not implemented')
-	raise NotImplementedError
+	return search.returnReferencePrefix(self.mNode)
     
-    referencePrefix = property(getReferencePrefix,setReferencePrefix)
+    referencePrefix = property(getReferencePrefix)
     
     #=========================================================================      
     # Get Info
@@ -268,36 +262,25 @@ class cgmObject(cgmNode):
         ### input check
         assert node is not None, "Must have node assigned"
         assert mc.objExists(node), "Node must exist"
-                           
+	
         super(cgmObject, self).__init__(node=node, name = name)
         
         if len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
             log.error("'%s' has no transform"%self.mNode)
             raise StandardError, "The class was designed to work with objects with transforms"
-        
-        self.update(self.mNode)#Get intial info
-        
+                
     def __bindData__(self):pass
         #self.addAttr('test',2)
     #=========================================================================      
     # Get Info
-    #=========================================================================                   
-    def update(self,obj):
-        """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
-        assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        cgmNode.update(self,obj=obj)
-        
-        try:
-            self.getFamily()
-            self.transformAttrs = []
-            for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
-                if mc.objExists(self.mNode+'.'+attr):
-                    self.transformAttrs.append(attr)
-            return True
-        except:
-            log.debug("Failed to update '%s'"%self.mNode)
-            return False
-        
+    #========================================================================= 
+    def getTransformAttrs(self):
+	self.transformAttrs = []
+	for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
+	    if mc.objExists(self.mNode+'.'+attr):
+		self.transformAttrs.append(attr)
+	return self.transformAttrs
+    
     def getFamily(self):
         """ Get the parent, child and shapes of the object."""
         self.parent = self.getParent()
@@ -1350,7 +1333,7 @@ class cgmObjectSet(cgmNode):
     Set Class handler
     
     """             
-    def __init__(self,setName = None,setType = False,qssState = False,**kws):
+    def __init__(self,setName = None,setType = False,qssState = None,**kws):
         """ 
         Intializes an set factory class handler
         
@@ -1364,8 +1347,7 @@ class cgmObjectSet(cgmNode):
         log.info("In cgmObjectSet.__init__ setType is '%s'"%setType) 
         log.info("In cgmObjectSet.__init__ qssState is '%s'"%qssState) 
 	
-	self.UNMANAGED.extend(['objectSetType','mayaSetState'])
-	self.updateData()
+	self.UNMANAGED.extend(['objectSetType','qssState','mayaSetState'])
 	
 	#Maya Set?
 	#==============
@@ -1379,11 +1361,14 @@ class cgmObjectSet(cgmNode):
 		if check in self.mNode and not self.qssState:
 			self.mayaSetState = True
 			
-	#Set setType on call
+	#Set on call options
 	#==============
 	if setType:
 	    self.doSetType(setType)
-	
+	    
+	if qssState is not None:
+	    self.makeQss(qssState)
+	    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -1418,7 +1403,7 @@ class cgmObjectSet(cgmNode):
     #ObjectSet Type
     #==============  
     def isSetType(self):
-	buffer = self.cgmType or False
+	buffer = search.returnTagInfo(self.mNode,'cgmType')
 	if buffer:
 	    if buffer in setTypes.keys():
 		return setTypes.get(buffer)
@@ -1436,7 +1421,7 @@ class cgmObjectSet(cgmNode):
             doSetType = setType
             if setType in setTypes.keys():
                 doSetType = setTypes.get(setType)
-	    if self.cgmType != doSetType:
+	    if search.returnTagInfo(self.mNode,'cgmType') != doSetType:
 		if attributes.storeInfo(self.mNode,'cgmType',doSetType,True):
 		    self.doName()
 		    log.warning("'%s' renamed!"%(self.mNode))  
@@ -1455,32 +1440,20 @@ class cgmObjectSet(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    def list(self):
-	return mc.sets(self.mNode, q = True)
+    def setList(self):
+	return mc.sets(self.mNode, q = True) or []
     
 		
-    def updateData(self,*a,**kw):
+    def getParents(self):
         """ 
         Updates the stored data
         
         Stores basic data, qss state and type
         
         """
-        self.list_setItems = mc.sets(self.mNode, q = True)
-        if not self.list_setItems:
-            self.list_setItems = []
-            
-        self.parents = mc.listSets(o=self.mNode)
-                
-        typeBuffer = search.returnTagInfo(self.mNode,'cgmType')
-        if typeBuffer:
-            for t in setTypes.keys():
-                if setTypes.get(t) == typeBuffer:
-                    self.setType = t
-            if not self.cgmType:
-                self.setType = typeBuffer
+        return mc.listSets(o=self.mNode) or False
                                   
-    def store(self,info,*a,**kw):
+    def add(self,info,*a,**kw):
         """ 
         Store information to a set in maya via case specific attribute.
         
@@ -1492,17 +1465,16 @@ class cgmObjectSet(cgmNode):
         if info == self.mNode:
             return False
         
-        if info in self.list_setItems:
-            log.warning("'%s' is already stored on '%s'"%(info,self.mNode))    
+        if info in self.setList():
+            log.info("'%s' is already stored on '%s'"%(info,self.mNode))    
             return
-        
         try:
             mc.sets(info,add = self.mNode)
-            self.list_setItems.append(info)
+            log.info("'%s' added to '%s'!"%(info,self.mNode))  	    
         except:
             log.warning("'%s' failed to add to '%s'"%(info,self.mNode))    
             
-    def doStoreSelected(self): 
+    def addSelected(self): 
         """ Store selected objects """
         # First look for attributes in the channel box
         SelectCheck = False
@@ -1511,38 +1483,33 @@ class cgmObjectSet(cgmNode):
         if channelBoxCheck:
             SelectCheck = True
             for item in channelBoxCheck:
-                self.store(item)
+                self.add(item)
             return
         
         # Otherwise add the objects themselves
         toStore = mc.ls(sl=True,flatten=True) or []
+	#log.info("Storing : %s"%toStore)
         for item in toStore:
-            try:
-                self.store(item)
-                SelectCheck = True                
-            except:
-                log.warning("Couldn't store '%s'"%(item))   
-                
+	    self.add(item)
+	    SelectCheck = True 
+
         if not SelectCheck:
             log.warning("No selection found")   
             
-        
     def remove(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
-        if info not in self.list_setItems:
+        if info not in self.setList():
             log.warning("'%s' isn't already stored '%s'"%(info,self.mNode))    
             return
         
         try:
             mc.sets(info,rm = self.mNode)    
-            log.warning("'%s' removed!"%(info))  
-            self.updateData()
+            log.warning("'%s' removed from '%s'!"%(info,self.mNode))  
             
         except:
             log.warning("'%s' failed to remove from '%s'"%(info,self.mNode))    
             
-        
-    def doRemoveSelected(self): 
+    def removeSelected(self): 
         """ Store elected objects """
         SelectCheck = False
         
@@ -1571,7 +1538,6 @@ class cgmObjectSet(cgmNode):
         
         try:
             mc.sets( clear = self.mNode)
-            self.list_setItems = []
             log.warning("'%s' purged!"%(self.mNode))     
         except:
             log.warning("'%s' failed to purge"%(self.mNode)) 
@@ -1594,8 +1560,8 @@ class cgmObjectSet(cgmNode):
         """ 
         Select set members or connected objects
         """ 
-        if self.list_setItems:
-            mc.select(self.list_setItems)
+        if self.setList():
+            mc.select(self.setList())
             return
         
         log.warning("'%s' has no data"%(self.mNode))  
@@ -1609,8 +1575,8 @@ class cgmObjectSet(cgmNode):
     
     def key(self,*a,**kw):
         """ Select the seted objects """        
-        if self.list_setItems:
-            mc.select(self.list_setItems)
+        if self.setList():
+            mc.select(self.setList())
             mc.setKeyframe(*a,**kw)
             return True
         
@@ -1619,8 +1585,8 @@ class cgmObjectSet(cgmNode):
     
     def reset(self,*a,**kw):
         """ Reset the set objects """        
-        if self.list_setItems:
-            mc.select(self.list_setItems)
+        if self.setList():
+            mc.select(self.setList())
             ml_resetChannels.resetChannels()        
             return True
         
@@ -1629,8 +1595,8 @@ class cgmObjectSet(cgmNode):
     
     def deleteKey(self,*a,**kw):
         """ Select the seted objects """        
-        if self.list_setItems:
-            mc.select(self.list_setItems)
+        if self.setList():
+            mc.select(self.setList())
             mc.cutKey(*a,**kw)
             return True
         
@@ -1639,8 +1605,8 @@ class cgmObjectSet(cgmNode):
     
     def deleteCurrentKey(self,*a,**kw):
         """ Select the seted objects """        
-        if self.list_setItems:
-            mc.select(self.list_setItems)
+        if self.setList():
+            mc.select(self.setList())
             mel.eval('timeSliderClearKey;')
             return True
         
