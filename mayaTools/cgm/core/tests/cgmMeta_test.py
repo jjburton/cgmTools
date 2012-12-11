@@ -23,6 +23,12 @@ from cgm.core.cgmMeta import *
 
 import maya.cmds as mc
 
+def TestAllTheThings():
+    """"
+    Catch all test for meta stuff
+    """
+    cgmMeta_Test()
+
 class cgmMeta_Test():
     def __init__(self):
         start = time.clock()
