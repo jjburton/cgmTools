@@ -31,7 +31,6 @@ from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 import Red9
 
-
 def setupCGMScriptPaths():
     thisFile = Path( __file__ )
     thisPath = thisFile.up()
@@ -273,7 +272,12 @@ def loadSetTools( *a ):
 def loadPuppetBox( *a ):
     from cgm.tools import puppetBox
     reload(puppetBox)
-    cgmPuppetBoxWin = puppetBox.run()		
+    cgmPuppetBoxWin = puppetBox.run()
+    
+def loadPuppetBox2( *a ):
+    from cgm.tools import puppetBox2
+    reload(puppetBox2)
+    cgmPuppetBoxWin = puppetBox2.run()	
 
 def loadPolyUniteTool( *a ):
     from cgm.tools import polyUniteTool
@@ -289,8 +293,13 @@ def connectToWingIDE( *a ):
         reload(cgmDeveloperLib) 
     except:
         from cgm.lib import cgmDeveloperLib
-    cgmDeveloperLib.connectToWing()	
-
+    cgmDeveloperLib.connectToWing()
+    
+def testCGMCore( *a ):
+    from cgm.core.tests import cgmMeta_test as testCGM
+    reload(testCGM)
+    testCGM.TestAllTheThings()
+    
 #Zoo stuff
 def loadSkinPropagation( *a ):
     from zooPyMaya import refPropagation
@@ -373,8 +382,11 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                        ('Connect to Wing IDE', " Attempts to connect to Wing IDE",
                                                connectToWingIDE),                         
                        ('cgm.PuppetBox', " WIP - Modular Rigger",
-                        loadPuppetBox)
-
+                        loadPuppetBox),
+                       ('cgm.PuppetBox2', " WIP - Modular Rigger",
+                        loadPuppetBox2),
+                       ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
+                        testCGMCore)                       
                        ))
 
               )
