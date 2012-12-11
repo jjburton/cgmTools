@@ -56,7 +56,7 @@ class testClass(MetaClass):
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #=========================================================================    
 class cgmMeta(object):
-    def __new__(self, node = None, name = None, nodeType = 'transform',*args,**kws):
+    def __new__(self, node = None, name = 'metaNullMade', nodeType = 'transform',*args,**kws):
         '''
         Idea here is if a MayaNode is passed in and has the mClass attr
         we pass that into the super(__new__) such that an object of that class
@@ -83,6 +83,7 @@ class cgmMeta(object):
                 node = mc.createNode(nodeType)
             else:
                 log.info("Make default node")
+                node = mc.createNode('network')
                 
         if name and node != name:
             node = mc.rename(node, name)
@@ -117,15 +118,20 @@ class cgmMeta(object):
 # cgmNode - subclass to Red9.MetaClass
 #=========================================================================    
 class cgmNode(MetaClass):#Should we do this?    
-    def __init__(self,node = None, name = None,*args,**kws):
+    def __init__(self,node = None, name = 'node',nodeType = 'network',*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
         log.debug("In cgmNode.__init__ Node is '%s'"%node)
         log.debug("In cgmNode.__init__ Name is '%s'"%name) 
+	
+	if node == None:
+	    catch = cgmMeta(name = name, nodeType = nodeType)
+	    node = catch.mNode	
         
-        super(cgmNode, self).__init__(node=node, name = name)
+        super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
 	self.UNMANAGED.extend(['referencePrefix'])
+	self.__dict__['__name__'] = self.mNode
             
     def __setattr__(self, attr, value):
         #Overloading until the functionality is what we need. For now, just handling locking
@@ -185,10 +191,25 @@ class cgmNode(MetaClass):#Should we do this?
         for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
             if mc.objExists(self.mNode+'.'+attr):
                 self.transformAttrs.append(attr)
-
+		
+    def getTransform(self):
+	"""Find the transform of the object"""
+	buffer = mc.ls(self.mNode, type = 'transform') or False
+	if buffer:
+	    return buffer[0]
+	else:
+	    buffer = mc.listRelatives(self.mNode,parent=True,type='transform') or False
+	if buffer:
+	    return buffer[0]
+	return False
+    
     def getMayaType(self):
         """ get the type of the object """
         return search.returnObjectType(self.mNode)
+    
+    def getShortName(self):
+        buffer = mc.ls(self.mNode,shortNames=True)        
+        return buffer[0]
     
     def doName(self,sceneUnique=False,nameChildren=False):
         """
@@ -209,6 +230,7 @@ class cgmNode(MetaClass):#Should we do this?
         else:
             NameFactory.doNameObject(self.mNode,sceneUnique)
 	    self.update(self.mNode)
+	    
     #=========================================================================                   
     # Attribute Functions
     #=========================================================================                   
@@ -250,7 +272,7 @@ class cgmNode(MetaClass):#Should we do this?
 # cgmObject - sublass to cgmNode
 #=========================================================================        
 class cgmObject(cgmNode):                  
-    def __init__(self,node = None, name = None,*args,**kws):
+    def __init__(self,node = None, name = 'null',*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
         creates an empty transform
@@ -260,9 +282,10 @@ class cgmObject(cgmNode):
         autoCreate(bool) - whether to create a transforum if need be
         """
         ### input check
-        assert node is not None, "Must have node assigned"
-        assert mc.objExists(node), "Node must exist"
-	
+	if node == None:
+	    catch = cgmMeta(name = name, nodeType = 'transform')
+	    node = catch.mNode
+
         super(cgmObject, self).__init__(node=node, name = name)
         
         if len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
@@ -305,7 +328,6 @@ class cgmObject(cgmNode):
             return matchObject
         return False
 
-    
     #=========================================================================  
     # Rigging Functions
     #=========================================================================  
@@ -357,8 +379,7 @@ class cgmObject(cgmNode):
 
         Keyword arguments:
         parent(string) -- Target parent
-        """       
-        raise StandardError,"This command is no longer necessary. Remove this call"
+        """
         if parent == self.parent:
             return True
         
@@ -1314,10 +1335,7 @@ class cgmAttr(object):
                               copyAttrSettings = True, connectSourceToTarget = False)
         self.doDelete()
 
-            
-
-        
-                                  
+                  
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
@@ -1330,8 +1348,7 @@ setTypes = {'animation':'animSet',
 
 class cgmObjectSet(cgmNode):
     """ 
-    Set Class handler
-    
+    Maya Object Set Class handler
     """             
     def __init__(self,setName = None,setType = False,qssState = None,**kws):
         """ 
