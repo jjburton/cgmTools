@@ -15,6 +15,8 @@ from cgm.lib import (lists,
                      settings,
                      guiFactory)
 
+reload(attributes)
+
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================      
@@ -56,7 +58,7 @@ class testClass(MetaClass):
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #=========================================================================    
 class cgmMeta(object):
-    def __new__(self, node = None, name = 'metaNullMade', nodeType = 'transform',*args,**kws):
+    def __new__(self, node = None, name = None, nodeType = 'transform',*args,**kws):
         '''
         Idea here is if a MayaNode is passed in and has the mClass attr
         we pass that into the super(__new__) such that an object of that class
@@ -85,9 +87,9 @@ class cgmMeta(object):
                 log.info("Make default node")
                 node = mc.createNode('network')
                 
-        if name and node != name:
+        if name and node != name and node != True:
             node = mc.rename(node, name)
-        elif doName:
+        elif doName and doName != True:
             node = mc.rename(node,doName)
             
         log.debug("In MetaFactory.__new__ Node is '%s'"%node)
@@ -118,7 +120,7 @@ class cgmMeta(object):
 # cgmNode - subclass to Red9.MetaClass
 #=========================================================================    
 class cgmNode(MetaClass):#Should we do this?    
-    def __init__(self,node = None, name = 'node',nodeType = 'network',*args,**kws):
+    def __init__(self,node = None, name = None,nodeType = 'network',*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
@@ -126,7 +128,7 @@ class cgmNode(MetaClass):#Should we do this?
         log.debug("In cgmNode.__init__ Name is '%s'"%name) 
 	
 	if node == None:
-	    catch = cgmMeta(name = name, nodeType = nodeType)
+	    catch = cgmMeta(nodeType = nodeType)
 	    node = catch.mNode	
         
         super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
@@ -135,21 +137,45 @@ class cgmNode(MetaClass):#Should we do this?
             
     def __setattr__(self, attr, value):
         #Overloading until the functionality is what we need. For now, just handling locking
-        try:
-            MetaClass.__setattr__(self,attr,value)
-            if attributes.doGetAttr(self.mNode,attr) != value  and self.hasAttr(attr):
-                log.info("Setting '%s.%s' with MetaClass failed to set, attempting with cgm"%(self.mNode,attr) )               
-                a = cgmAttr(self.mNode,attr,value = value)                
-        except:
-            if attr not in self.UNMANAGED and not attr=='UNMANAGED': 
-                log.info("Setting '%s.%s' with MetaClass failed, attempting with cgm"%(self.mNode,attr) )               
-                a = cgmAttr(self.mNode,attr,value = value)
+	attrBuffer = '%s.%s'%(self.mNode,attr)
+	#Lock handling
+	wasLocked = False
+	if (mc.objExists(attrBuffer)) == True:
+	    attrType = mc.getAttr(attrBuffer,type=True)
+	    if mc.getAttr(attrBuffer,lock=True) == True:
+		wasLocked = True
+                mc.setAttr(attrBuffer,lock=False)
+		
+	MetaClass.__setattr__(self,attr,value)
+	
+	if wasLocked == True:
+	    mc.setAttr(attrBuffer,lock=True)
 
-    def addAttr(self, attr,attrType = False,value = None,enum = False,initialValue = None,lock = None,keyable = None, hidden = None,**kws):
-        if attr not in self.UNMANAGED and not attr=='UNMANAGED':            
-            cgmAttr(self.mNode, attrName = attr, attrType = attrType, value = value, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
-            object.__setattr__(self, attr, value)
-            #super(cgmNode, self).__init__(node = self.mNode)         
+    def addAttr(self, attr,value = None, attrType = False,enum = False,initialValue = None,lock = None,keyable = None, hidden = None,**kws):
+        if attr not in self.UNMANAGED and not attr=='UNMANAGED':
+	    if self.hasAttr(attr):#Quick create check for initial value
+		initialCreate = False
+	    else:
+		initialCreate = True
+		
+	    #If type is double3, handle with out own setup as Red's doesn't have it
+	    #==============    
+	    if attributes.validateRequestedAttrType(attrType) == 'double3':
+		cgmAttr(self.mNode, attrName = attr, value = value, attrType = attrType, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
+		object.__setattr__(self, attr, value)		
+	    else:
+		if attrType == 'enum':
+		    MetaClass.addAttr(self,attr,value,type='enum')				    
+		else:
+		    MetaClass.addAttr(self,attr,value)		
+
+	    if initialValue is not None and initialCreate:
+		self.__setattr__(attr,initialValue)
+		
+	    #Easy carry for flag handling - until implemented
+	    #==============  
+	    cgmAttr(self.mNode, attrName = attr, attrType = attrType, lock=lock,keyable=keyable,hidden = hidden)
+		
             return True
         return False
     
@@ -343,7 +369,6 @@ class cgmObject(cgmNode):
         except:	
             log.debug("Target is not an instance")
             assert mc.objExists(targetObject) is True, "'%s' - target object doesn't exist" %targetObject    
-        assert self.transform ,"'%s' has no transform"%obj	
         assert mc.ls(targetObject,type = 'transform'),"'%s' has no transform"%targetObject
         buffer = mc.getAttr(targetObject + '.rotateOrder')
         attributes.doSetAttr(self.mNode, 'rotateOrder', buffer) 
@@ -431,13 +456,11 @@ class cgmObject(cgmNode):
     
             if type(attrs) is dict:
                 for a in attrs.keys():
-                    if a in drawingOverrideAttrsDict:
-                        try:
-                            attributes.doSetAttr(t,a,attrs[a])
-                        except:
-                            raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
-                    else:
-                        log.warning("'%s.%s' doesn't exist"%(t,a))
+		    try:
+			attributes.doSetAttr(t,a,attrs[a])
+		    except:
+			raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
+
                         
             if type(attrs) is list:
                 for a in attrs:
@@ -505,7 +528,7 @@ class cgmAttr(object):
             currentType = mc.getAttr('%s.%s'%(self.obj.mNode,attrName),type=True)
             log.debug("Current type is '%s'"%currentType)
             if not attributes.validateAttrTypeMatch(attrType,currentType) and self.form is not False:
-                if self.obj.refState:
+                if self.obj.isReferenced():
                     log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,attrName,attrType))                   
                 self.doConvert(attrType)             
                 
@@ -599,7 +622,7 @@ class cgmAttr(object):
         self.siblings = mc.attributeQuery(self.attr, node = self.obj.mNode, listSiblings=True)
         if self.siblings is None:
             self.siblings = False    
-        self.enum = False
+        self.enumCommand = False
         
         self.userAttrs = mc.listAttr(self.obj.mNode, userDefined = True) or []
         
@@ -644,7 +667,7 @@ class cgmAttr(object):
                 self.softRangeValue = False               
                            
         if self.form == 'enum':
-            self.enum = standardFlagsBuffer.get('enum')
+            self.enumCommand = standardFlagsBuffer.get('enum')
                 
     
     def doConvert(self,attrType):
@@ -655,7 +678,7 @@ class cgmAttr(object):
         attrType(string)        
         """
         self.updateData()
-        if self.obj.refState:
+        if self.obj.isReferenced():
             log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,self.attr,attrType))                           
 
         if self.children:
@@ -783,9 +806,9 @@ class cgmAttr(object):
         """   
         try:
             if self.form == 'enum':
-                if self.enum != enumCommand:
+                if self.enumCommand != enumCommand:
                     mc.addAttr ((self.obj.mNode+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
-                    self.enum = enumCommand
+                    self.enumCommand = enumCommand
                     log.info("'%s.%s' has been updated!"%(self.obj.mNode,self.attr))
                 
             else:
