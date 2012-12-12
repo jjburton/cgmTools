@@ -848,7 +848,9 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     connectSourceToTarget = kw.pop('connectSourceToTarget',False)
     connectTargetToSource = kw.pop('connectTargetToSource',False) 
     
-    assert mc.objExists('%s.%s'%(fromObject,fromAttr)) is True,"Source '%s.%s' doesn't exist"%(fromObject,fromAttr)
+    if not mc.objExists('%s.%s'%(fromObject,fromAttr)):
+        log.warning("Source '%s.%s' doesn't exist"%(fromObject,fromAttr))
+        return False
     assert mc.objExists(toObject) is True,"Target '%s' doesn't exist"%toObject
     
     # Gather info   
@@ -1489,7 +1491,7 @@ def doBreakConnection(obj,attr=None):
             if family and family.get('parent'):
                 drivenAttr = '%s.%s'%(obj,family.get('parent'))
                 
-            print ("Breaking '%s' to '%s'"%(sourceBuffer,drivenAttr))
+            log.info ("Breaking '%s' to '%s'"%(sourceBuffer,drivenAttr))
             
             #>>>See if stuff is locked
             drivenLock = False
