@@ -31,23 +31,25 @@ def TestAllTheThings():
 
 class cgmMeta_Test():
     def __init__(self):
+        function = 'cgmMeta_Test'        
+        log.info(">"*20  + "  Testing '%s' "%function + "<"*20 )         
         start = time.clock()
-        self.test_Setup()
+        self.setup()
         self.test_attributeHandling()
         
         self.test_cgmNode()
         self.test_cgmObject()
+        self.test_cgmObjectSet()
         
-        log.info('Initialization time =  %0.3f' % (time.clock()-start))       
+        log.info(">"*10  + '   cgmMeta_Test time =  %0.3f seconds  ' % (time.clock()-start) + '<'*10)       
         self.MetaInstance.select()
     
-    
-    def test_Setup(self):
+    def setup(self):
         '''
         Tests proper creation of objects from flag calls
         '''        
         mc.file(new=True,f=True)
-        function = 'test_Setup'
+        function = 'setup'
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
         start = time.clock()
         
@@ -79,7 +81,7 @@ class cgmMeta_Test():
         assert mc.objExists(self.MetaInstance.mNode)
         assert self.MetaInstance.getShortName() == 'cgmTransform'
         
-        log.info(">"*20 + "  Node creation test complete")         
+        log.info(">"*5 + "  Node creation test complete")         
         log.info('Simple name logic =  %0.3f' % (time.clock()-start))
         
         #Create nodeType
@@ -105,7 +107,7 @@ class cgmMeta_Test():
         
         self.setup = True
         
-        log.info(">"*20  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
         
     def test_attributeHandling(self):
         '''
@@ -192,7 +194,7 @@ class cgmMeta_Test():
         assert not node.hasAttr('boolTest')
         assert not mc.attributeQuery('boolTest',node=node.mNode,exists=True)
         
-        log.info(">"*20  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
         
     def test_functionCalls(self):
@@ -223,7 +225,7 @@ class cgmMeta_Test():
         self.MetaInstance.delete()
         assert not mc.objExists(name)
         
-        log.info(">"*20  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
         
     def test_cgmNode(self):
@@ -252,7 +254,7 @@ class cgmMeta_Test():
         self.MetaNode.doRemove('stored')
         assert self.MetaNode.hasAttr('stored') is False
         
-        log.info(">"*20  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
     
     def test_cgmObject(self):
         function = 'test_cgmObject'
@@ -280,6 +282,8 @@ class cgmMeta_Test():
         self.nCube.rotateOrder = random.choice(range(1,5))
         
         #Parent and assert relationship
+        log.info('>'*3 + " Testing parenting...")        
+        
         mc.parent(self.pCube.mNode,self.nCube.mNode)#parent pCube to nCube
         assert self.pCube.getParent() == self.nCube.mNode,"nCube is not parent"
         assert self.pCube.getShortName() in self.nCube.getChildren(),"pCube is not in children - %s"%self.nCube.getChildren()
@@ -287,7 +291,7 @@ class cgmMeta_Test():
         assert self.nCube.getTransformAttrs() == self.pCube.getTransformAttrs(), "Transform attribute lists don't match"
         
         #Roate order match
-        log.info("Testing rotate order match function")        
+        log.info('>'*3 + " Testing rotate order match function")        
         self.MetaObject.copyRotateOrder(self.pCube.mNode)
         assert self.MetaObject.rotateOrder == self.pCube.rotateOrder,"Copy rotate order failed"
         
@@ -302,7 +306,7 @@ class cgmMeta_Test():
         assert self.pCube.getParent() != self.nCube.mNode,"nCube shouldn't be the parent"
         
         #setDrawingOverrideSettings
-        log.info("Testing drawing override functions")   
+        log.info('>'*3 + " Testing drawing override functions")   
         self.pCube.overrideEnabled = 1     
         TestDict = {'overrideColor':20,'overrideVisibility':1}
         self.pCube.setDrawingOverrideSettings(TestDict, pushToShapes=True)
@@ -321,19 +325,89 @@ class cgmMeta_Test():
 
         #Let's move our test objects around and and see what we get
         #----------------------------------------------------------           
-        log.info(">"*20  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
+    def test_cgmObjectSet(self):
+        function = 'test_cgmObjectSet'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
+        
+        self.ObjectSet = cgmMeta(name = 'cgmObjectAnimationSet',nodeType = 'objectSet',setType = 'animation', qssState = True)
+        self.MayaDefaultSet = cgmMeta(node = 'defaultObjectSet')    
+        
+        #Assert some info
+        #---------------- 
+        log.info('>'*3 + " Checking object Set States...")
+        assert self.MayaDefaultSet.mayaSetState == True
+        assert self.ObjectSet.mayaSetState == False
+        
+        assert self.MayaDefaultSet.qssState == False
+        assert self.ObjectSet.qssState == True
+        self.ObjectSet.qssState = False
+        assert self.ObjectSet.qssState == False
+        
+        assert self.ObjectSet.objectSetType == 'animation',"Type is '%s'"%self.ObjectSet.objectSetType
+        self.ObjectSet.objectSetType = 'modeling'
+        assert self.ObjectSet.objectSetType == 'modeling'
+        
+        
+        #Adding and removing
+        #-------------------
+        log.info('>'*3 + " Adding and removing...")
+        assert not self.ObjectSet.setList()
+        
+        self.ObjectSet.addObj(self.pCube.mNode)
+        self.ObjectSet.addObj(self.nCube.mNode)
+        self.ObjectSet.addObj(self.pCube.mNode+'.tx') # Add an attribute
+        
+        assert self.ObjectSet.doesContain(self.pCube.mNode)
+        assert self.ObjectSet.doesContain(self.nCube.mNode)
+        assert '%s.translateX'%self.pCube.getShortName() in self.ObjectSet.setList(),"%s"%self.ObjectSet.setList()
+        
+        self.ObjectSet.removeObj(self.pCube.mNode)
+        self.ObjectSet.removeObj(self.nCube.mNode)
+        log.info("%s"%self.pCube.getShortName() )
+        
+        assert not self.ObjectSet.doesContain(self.pCube.mNode),"%s"%self.ObjectSet.setList()
+        assert not self.ObjectSet.doesContain(self.nCube.mNode),"%s"%self.ObjectSet.setList()
 
+        #Selecting/purging/copying
+        #-------------------------
+        log.info('>'*3 + " Selecting, purging, copying...")        
+        mc.select(cl=True)
+        self.ObjectSet.select()#Select set
+        assert mc.ls(sl = True) == self.ObjectSet.setList()
+        
+        mc.select(cl=True)
+        self.ObjectSet.selectSelf() # Select Self
+        assert mc.ls(sl = True) == [self.ObjectSet.mNode]
+        
+        #Copy set
+        catch = self.ObjectSet.copy()
+        self.ObjectSetCopy = cgmMeta(catch) #Initialize copy
+        assert self.ObjectSet.setList() == self.ObjectSetCopy.setList(),"Sets don't match"
+        assert self.ObjectSet.objectSetType == self.ObjectSetCopy.objectSetType,"Object Set types don't match"
+        assert self.ObjectSet.qssState == self.ObjectSetCopy.qssState,"qssStates don't match"
+        
+        #Purge
+        self.ObjectSetCopy.purge()
+        assert not self.ObjectSetCopy.setList(),"Dup set failed to purge"
+        
+        #Keying, deleting keys, reseting
+        #------------------------------- 
+        log.info('>'*3 + " Keying, deleting keys, reseting...")        
+        
+        self.pCube.tx = 2
+        
+        self.ObjectSet.key()#Key    
+        assert mc.findKeyframe( self.pCube.mNode, curve=True, at='translateX' ),"translateX should have a key"
+        assert mc.findKeyframe( self.pCube.mNode, curve=True, at='translateY' ) is None,"translateY shouldn't have a key"
+        
+        self.ObjectSet.deleteKey()#Delete key
+        assert mc.findKeyframe( self.pCube.mNode, curve=True, at='translateX' ) is None
 
-
-
-
-
-
-
-
-
-
+        self.ObjectSet.reset()
+        assert self.pCube.tx == 0
 
 
 
