@@ -71,8 +71,7 @@ class cgmMeta(object):
             node = name
         if not node and nodeType:
             node = True # Yes, make the sucker
-        if node and not name:
-            doName = node
+
             
         #If the node doesn't exists, make one 
         #==============           
@@ -86,11 +85,10 @@ class cgmMeta(object):
             else:
                 log.info("Make default node")
                 node = mc.createNode('network')
-                
+		
+	    
         if name and node != name and node != True:
             node = mc.rename(node, name)
-        elif doName and doName != True:
-            node = mc.rename(node,doName)
             
         log.debug("In MetaFactory.__new__ Node is '%s'"%node)
         log.debug("In MetaFactory.__new__ Name is '%s'"%name) 
@@ -130,7 +128,7 @@ class cgmNode(MetaClass):#Should we do this?
 	if node == None:
 	    catch = cgmMeta(nodeType = nodeType)
 	    node = catch.mNode	
-        
+	    
         super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
 	self.UNMANAGED.extend(['referencePrefix'])
 	self.__dict__['__name__'] = self.mNode
@@ -1381,11 +1379,16 @@ class cgmObjectSet(cgmNode):
         setName(string) -- name for the set
         
         """
-        ### input check   
-	super(cgmObjectSet, self).__init__(node = setName, **kws)  
-        log.info("In cgmObjectSet.__init__ setName is '%s'"%setName)
-        log.info("In cgmObjectSet.__init__ setType is '%s'"%setType) 
-        log.info("In cgmObjectSet.__init__ qssState is '%s'"%qssState) 
+        ### input check  
+	if setName is not None and mc.objExists(setName):
+	    assert search.returnObjectType(setName) == 'objectSet',"Not an object set"    
+	    super(cgmObjectSet, self).__init__(node = setName)  
+	else:
+	    super(cgmObjectSet, self).__init__(node = setName,nodeType = 'objectSet')
+	    
+        log.debug("In cgmObjectSet.__init__ setName is '%s'"%setName)
+        log.debug("In cgmObjectSet.__init__ setType is '%s'"%setType) 
+        log.debug("In cgmObjectSet.__init__ qssState is '%s'"%qssState) 
 	
 	self.UNMANAGED.extend(['objectSetType','qssState','mayaSetState'])
 	
@@ -1445,8 +1448,10 @@ class cgmObjectSet(cgmNode):
     def isSetType(self):
 	buffer = search.returnTagInfo(self.mNode,'cgmType')
 	if buffer:
-	    if buffer in setTypes.keys():
-		return setTypes.get(buffer)
+	    for k in setTypes.keys():
+		if buffer == setTypes[k]:
+		    log.info('Found match')
+		    return k
 	    else:
 		return buffer
 	else:return False
@@ -1483,6 +1488,14 @@ class cgmObjectSet(cgmNode):
     def setList(self):
 	return mc.sets(self.mNode, q = True) or []
     
+    def doesContain(self,obj):
+	assert mc.objExists(obj),"'%s' doesn't exist"%obj
+        buffer = mc.ls(obj,shortNames=True)        
+        
+	for o in self.setList():
+	    if str(o) ==  buffer[0]:
+		return True
+	return False
 		
     def getParents(self):
         """ 
@@ -1493,7 +1506,7 @@ class cgmObjectSet(cgmNode):
         """
         return mc.listSets(o=self.mNode) or False
                                   
-    def add(self,info,*a,**kw):
+    def addObj(self,info,*a,**kw):
         """ 
         Store information to a set in maya via case specific attribute.
         
@@ -1536,12 +1549,14 @@ class cgmObjectSet(cgmNode):
         if not SelectCheck:
             log.warning("No selection found")   
             
-    def remove(self,info,*a,**kw):
+    def removeObj(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
-        if info not in self.setList():
+        buffer = mc.ls(info,shortNames=True)   
+	info = buffer[0]
+	
+        if not self.doesContain(info):
             log.warning("'%s' isn't already stored '%s'"%(info,self.mNode))    
             return
-        
         try:
             mc.sets(info,rm = self.mNode)    
             log.warning("'%s' removed from '%s'!"%(info,self.mNode))  
