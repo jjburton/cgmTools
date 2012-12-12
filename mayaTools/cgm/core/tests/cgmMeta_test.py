@@ -40,6 +40,7 @@ class cgmMeta_Test():
         self.test_cgmNode()
         self.test_cgmObject()
         self.test_cgmObjectSet()
+        self.test_cgmOptionVar()
         
         log.info(">"*10  + '   cgmMeta_Test time =  %0.3f seconds  ' % (time.clock()-start) + '<'*10)       
         self.MetaInstance.select()
@@ -66,17 +67,17 @@ class cgmMeta_Test():
         self.test_functionCalls()
         #Initial instance deleted at end of function call
         
-        log.info("Testing name 'Hogwarts' being passed")
+        log.info('>'*3 + " Testing name 'Hogwarts' being passed")
         self.MetaInstance = cgmMeta(name = 'Hogwarts')
         assert mc.objExists(self.MetaInstance.mNode)        
         assert self.MetaInstance.getShortName() == 'Hogwarts'     
         
-        log.info("Pass node, no name...")        
+        log.info('>'*3 + " Pass node, no name...")        
         self.MetaInstance = cgmMeta(node = 'Hogwarts')
         assert mc.objExists(self.MetaInstance.mNode)                
         assert self.MetaInstance.getShortName() == 'Hogwarts'     
         
-        log.info("Testing existing 'Hogwarts' node, new 'cgmTransform' name")
+        log.info('>'*3 + " Testing existing 'Hogwarts' node, new 'cgmTransform' name")
         self.MetaInstance = cgmMeta(node = 'Hogwarts', name = 'cgmTransform')
         assert mc.objExists(self.MetaInstance.mNode)
         assert self.MetaInstance.getShortName() == 'cgmTransform'
@@ -107,7 +108,7 @@ class cgmMeta_Test():
         
         self.setup = True
         
-        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
         
     def test_attributeHandling(self):
         '''
@@ -129,6 +130,8 @@ class cgmMeta_Test():
         node.addAttr('intTest', 3)            #create a int attribute
         node.addAttr('boolTest', False)       #create a bool attribute
         node.addAttr('enumTest','A:B:D:E:F', attrType ='enum') #create an enum attribute
+        #node.addAttr('double3Test', attrType ='double3') #create a double3
+        node.addAttr('vecTest', (('vecTestX','vecTestY','vecTestZ'),(0,0,0)), attrType ='double3') #create a double3
         
         #create a string attr with JSON serialized data
         testDict={'jsonFloat':1.05,'jsonInt':3,'jsonString':'string says hello','jsonBool':True}
@@ -141,6 +144,7 @@ class cgmMeta_Test():
         assert node.hasAttr('boolTest')
         assert node.hasAttr('enumTest')
         assert node.hasAttr('jsonTest')
+        assert node.hasAttr('vecTest')
         
         #test the actual Maya node attributes
         #------------------------------------
@@ -157,7 +161,7 @@ class cgmMeta_Test():
         assert mc.getAttr('%s.boolTest' % node.mNode)==False
         assert mc.getAttr('%s.enumTest' % node.mNode)==0
         assert mc.getAttr('%s.jsonTest' % node.mNode)=='{"jsonFloat": 1.05, "jsonBool": true, "jsonString": "string says hello", "jsonInt": 3}',"Value is '%s'%"%self.jsonTest
-        
+        assert mc.getAttr('%s.vecTest' % node.mNode)== [(0.0, 0.0, 0.0)]
         #now check the MetaClass __getattribute__ and __setattr__ calls
         #--------------------------------------------------------------
         assert node.intTest==3       
@@ -181,6 +185,15 @@ class cgmMeta_Test():
         assert node.enumTest==1
         node.enumTest=2
         assert node.enumTest==2
+        #double3
+        assert node.vecTestX==0
+        node.vecTestX = 1
+        assert node.vecTestX==1
+        node.vecTest = 2,2,2
+        assert node.vecTestX==2
+        assert node.vecTest == [(2.0, 2.0, 2.0)]
+        
+        
         #json string handlers
         assert type(node.jsonTest)==dict
         assert node.jsonTest=={'jsonFloat':1.05,'jsonInt':3,'jsonString':'string says hello','jsonBool':True}
@@ -194,7 +207,7 @@ class cgmMeta_Test():
         assert not node.hasAttr('boolTest')
         assert not mc.attributeQuery('boolTest',node=node.mNode,exists=True)
         
-        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
         
     def test_functionCalls(self):
@@ -254,7 +267,7 @@ class cgmMeta_Test():
         self.MetaNode.doRemove('stored')
         assert self.MetaNode.hasAttr('stored') is False
         
-        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
     
     def test_cgmObject(self):
         function = 'test_cgmObject'
@@ -322,10 +335,8 @@ class cgmMeta_Test():
         #Copy pivot
         log.info("Testing copy pivot function")        
         self.MetaObject.copyPivot(self.pCube.mNode)
-
-        #Let's move our test objects around and and see what we get
-        #----------------------------------------------------------           
-        log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+       
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
     def test_cgmObjectSet(self):
         function = 'test_cgmObjectSet'
@@ -409,9 +420,135 @@ class cgmMeta_Test():
         self.ObjectSet.reset()
         assert self.pCube.tx == 0
 
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
+    def test_cgmOptionVar(self):
+        function = 'test_cgmOptionVar'
+        log.info("-"*20  + "  test_cgmOptionVar '%s' "%function + "-"*20 ) 
+        start = time.clock()
+        
+        #Purge the optionVars
+        for var in 'cgmVar_intTest','cgmVar_stringTest','cgmVar_floatTest':
+            if mc.optionVar(exists = var):
+                mc.optionVar(remove = var)
 
+        # Testing creation/conversion of ine optionVar
+        #-------------------------
+        log.info('>'*3 + " Testing creation/conversion of ine optionVar...")   
+        
+        self.OptionVarInt = cgmOptionVar('cgmVar_intTest')#No arg should default to int
+        
+        assert self.OptionVarInt.varType == 'int',"Form should be int by default"
+        assert self.OptionVarInt.value == 0,"Value should be 0"
+        
+        self.OptionVarInt.value = 3
+        assert self.OptionVarInt.value == 3,"Value should be 3"
+        
+        self.OptionVarInt.varType = 'float'
+        assert self.OptionVarInt.value == 3.0,"Value should be 3.0"
+        assert self.OptionVarInt.varType == 'float',"Form should be float after conversion"
+        
+        self.OptionVarInt.varType = 'string'
+        assert self.OptionVarInt.value == '3.0',"Value should be 3.0"
+        assert self.OptionVarInt.varType == 'string',"Form should be string after conversion"
+        
+        self.OptionVarInt.varType = 'int'
+        assert self.OptionVarInt.value == 3,"Value should be 3, found %s"%self.OptionVarInt.value
+        assert self.OptionVarInt.varType == 'int',"Form should be string after conversion"
+        
+        self.OptionVarInt.value = 0
+        self.OptionVarInt.toggle()
+        assert self.OptionVarInt.value == 1
+        
+        
+        # String varType test and initValue Test
+        #-------------------------
+        log.info('>'*3 + " String varType test and initValue Test...")   
+        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
+        
+        self.OptionVarString.varType = 'string'
+        assert self.OptionVarString.value == 'batman',"Value should be 'batman, found %s on %s'"%(self.OptionVarString.value,self.OptionVarString.name)
+        assert self.OptionVarString.varType == 'string',"Form should be string after conversion"
+        
+        self.OptionVarString.value = 'testing'
+        assert self.OptionVarString.value == 'testing',"Value should be 'testing'"
+        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
+        assert self.OptionVarString.value == 'testing',"Value should be 'testing' after reinitializaton"
+        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', value = 'cats', defaultValue='batman')#String type
+        assert self.OptionVarString.value == 'cats',"Value should be 'cats' after reinitializaton"
+        
+        self.OptionVarString.value = [self.nCube.mNode,self.pCube.mNode]#Set via list
+        log.info(self.OptionVarString.value)
+        assert len(self.OptionVarString.value) == 2,"Len is %s"%len(self.OptionVarString.value)
+        assert type(self.OptionVarString.value) is list,"Type is %s"%type(self.OptionVarString.value)
+        
+        self.OptionVarString.value = (self.nCube.mNode,self.pCube.mNode,'test3')#set via tuple
+        log.info(self.OptionVarString.value)
+        assert len(self.OptionVarString.value) == 3,"Len is %s"%len(self.OptionVarString.value)
+        assert type(self.OptionVarString.value) is list,"Type is %s"%type(self.OptionVarString.value)
+        
+        # Appending to string, removing, select and exist check testing
+        #-------------------------
+        log.info('>'*3 + " Appending to string, removing, select and exist check testing...")   
+        
+        self.OptionVarString.append('test4')# append a string
+        assert self.OptionVarString.value[3] == 'test4'
+        
+        self.OptionVarString.append(3)# append a number as a string
+        assert self.OptionVarString.value[4] == '3'
+        
+        self.OptionVarString.append(3.0)# append a float as a string
+        assert self.OptionVarString.value[5] == '3.0'
+        
+        self.OptionVarString.remove('3.0')# remove an item
+        log.info(self.OptionVarString.value)        
+        assert len(self.OptionVarString.value) == 5,"Len is %s"%len(self.OptionVarString.value)
+        
+        self.OptionVarString.select() # Try to select our stuff
+        len(mc.ls(sl=True)) == 2
+        self.OptionVarString.existCheck()#Remove maya objects that don't exist
+        log.info(self.OptionVarString.value)        
+        len(self.OptionVarString.value) == 2
+        
+        # Float testing and translation testing
+        #-------------------------
+        log.info('>'*3 + " Float testing and translation testing...")   
+        
+        self.OptionVarFloat = cgmOptionVar('cgmVar_floatTest',value = 1.0,varType = 'float')#Float type
+        
+        assert self.OptionVarFloat.varType == 'float'
+        assert self.OptionVarFloat.value == 1
+        
+        self.OptionVarFloat.append(2)
+        log.info(self.OptionVarFloat.value)                
+        assert self.OptionVarFloat.value[1] == 2.0
+        
+        self.OptionVarFloat.varType = 'int' #Convert to int
+        log.info(self.OptionVarFloat.value)                
+        
+        
+        
+        
+        
+        
+        # Delete checking
+        #-------------------------
+        log.info('>'*3 + " Delete checking...") 
+        
+        #Because option vars are not local. We need to delete them all...
+        del self.OptionVarInt.value #Deletion from property
+        assert not mc.optionVar(exists = 'cgmVar_intTest')
+        
+        self.OptionVarString.purge() #Deletion via purge
+        assert not mc.optionVar(exists = 'cgmVar_stringTest')
+        
+        # Float varType test and initValue Test
+        #-------------------------
+        log.info('>'*3 + " String varType test and initValue Test...")   
+        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
+        
 
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
 class Test_MetaClass():
     def testAll(self):

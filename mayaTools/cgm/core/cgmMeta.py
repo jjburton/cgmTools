@@ -103,7 +103,7 @@ class cgmMeta(object):
         
         objectType = search.returnObjectType(node)
 	if objectType == 'objectSet':
-            log.info("'%s' Appears to be an objectSet, initializing as objectSet"%node)	    
+            log.info("'%s' Appears to be an objectSet, initializing as cgmObjectSet"%node)	    
 	    return cgmObjectSet(node,*args,**kws)
         if mc.ls(node,type='transform'):
             log.info("'%s' Appears to be a transform, initializing as cgmObject"%node)
@@ -158,14 +158,10 @@ class cgmNode(MetaClass):#Should we do this?
 		
 	    #If type is double3, handle with out own setup as Red's doesn't have it
 	    #==============    
-	    if attributes.validateRequestedAttrType(attrType) == 'double3':
-		cgmAttr(self.mNode, attrName = attr, value = value, attrType = attrType, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
-		object.__setattr__(self, attr, value)		
-	    else:
-		if attrType == 'enum':
-		    MetaClass.addAttr(self,attr,value,type='enum')				    
-		else:
-		    MetaClass.addAttr(self,attr,value)		
+	    #if attributes.validateRequestedAttrType(attrType) == 'double3':
+		#cgmAttr(self.mNode, attrName = attr, value = value, attrType = attrType, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
+		#object.__setattr__(self, attr, value)		
+	    MetaClass.addAttr(self,attr,value)		
 
 	    if initialValue is not None and initialCreate:
 		self.__setattr__(attr,initialValue)
@@ -472,7 +468,7 @@ class cgmObject(cgmNode):
                         
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-# cgmAttr 
+# cgmAttr - separate class
 #=========================================================================    
 class cgmAttr(object):
     """ 
@@ -731,7 +727,7 @@ class cgmAttr(object):
                 
                 for i,c in enumerate(self.children):
                     try:
-                        cInstance = AttrFactory(self.obj.mNode,c)                        
+                        cInstance = cgmAttr(self.obj.mNode,c)                        
                         if type(value) is list and len(self.children) == len(value): #if we have the same length of values in our list as we have children, use them
                             attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value[i], *a, **kw)
                             cInstance.value = value[i]
@@ -864,7 +860,7 @@ class cgmAttr(object):
                 if self.children:
                     log.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                     for c in self.children:
-                        cInstance = AttrFactory(self.obj.mNode,c)                        
+                        cInstance = cgmAttr(self.obj.mNode,c)                        
                         try:
                             mc.addAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,defaultValue = value)
                             cInstance.defaultValue = value                                                        
@@ -985,7 +981,7 @@ class cgmAttr(object):
             if self.children:
                 log.info("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.mNode,c)                                            
+                    cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.locked:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = True) 
                         log.warning("'%s.%s' locked!"%(cInstance.obj.mNode,cInstance.attr))
@@ -1001,7 +997,7 @@ class cgmAttr(object):
             if self.children:
                 log.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.mNode,c)                                            
+                    cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.locked:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = False) 
                         log.warning("'%s.%s' unlocked!"%(cInstance.obj.mNode,cInstance.attr))
@@ -1025,7 +1021,7 @@ class cgmAttr(object):
             if self.children:
                 log.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.mNode,c)                                            
+                    cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.hidden:
                         if cInstance.keyable:
                             cInstance.doKeyable(False)
@@ -1045,7 +1041,7 @@ class cgmAttr(object):
             if self.children:
                 log.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.mNode,c)                                            
+                    cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.hidden:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = True) 
                         log.info("'%s.%s' unhidden!"%(cInstance.obj.mNode,cInstance.attr))
@@ -1069,7 +1065,7 @@ class cgmAttr(object):
             if self.children:
                 log.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.mNode,c)                                            
+                    cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.keyable:
                         mc.setAttr(cInstance.nameCombined,e=True,keyable = True) 
                         log.info("'%s.%s' keyable!"%(cInstance.obj.mNode,cInstance.attr))
@@ -1088,7 +1084,7 @@ class cgmAttr(object):
             if self.children:
                 log.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
                 for c in self.children:
-                    cInstance = AttrFactory(self.obj.mNode,c)                                            
+                    cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.keyable:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,keyable = False) 
                         log.info("'%s.%s' unkeyable!"%(cInstance.obj.mNode,cInstance.attr))
@@ -1671,6 +1667,601 @@ class cgmObjectSet(cgmNode):
     
 
 
+        
+
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmOptionVar - class wrapper for optionVariables in Maya
+#=========================================================================
+optionVarTypeDict = {'int':['int','i','integer',1,0],
+                             'float':['f','float','fl',1.0,0.0],
+                             'string':['string','str','s']}  
+class cgmOptionVar(object):  
+    """ 
+    OptionVar Class handler
+    
+    """
+    def __init__(self,varName = None,varType = None,value = None, defaultValue = None):
+        """ 
+        Intializes an optionVar class handler
+        
+        Keyword arguments:
+        varName(string) -- name for the optionVar
+        varType(string) -- 'int','float','string' (default 'int')
+        value() -- will attempt to set the optionVar with the value
+        defaultValue() -- will ONLY use if the optionVar doesn't exist
+        
+        """
+        #Default to creation of a var as an int value of 0
+	if varName is None:
+	    raise StandardError,"You must have a optionVar name on call even if it's creating one"
+        ### input check
+        self.name = varName
+        
+        #>>> If it doesn't exist, create, else update
+        if not mc.optionVar(exists = self.name):
+            if varType is not None:
+                requestVarType = self.returnVarTypeFromCall(varType)
+            elif defaultValue is not None:
+                requestVarType = search.returnDataType(defaultValue)                
+            elif value is not None:
+                requestVarType = search.returnDataType(value)
+            else:
+                requestVarType = 'int'
+                
+            if requestVarType:
+                self.create(requestVarType)
+                if defaultValue is not None:
+                    self.initialStore(defaultValue)
+                elif value is not None:
+                    self.initialStore(value)
+                                    
+            else:
+                log.warning("'%s' is not a valid variable type"%varType)
+            
+        else:               
+            self.update(varType)
+            
+            #Attempt to set a value on call
+            if value is not None:           
+                self.initialStore(value)
+		
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Properties
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #value
+    #==============    
+    def getValue(self):
+	if mc.optionVar(exists = self.name):
+	    return mc.optionVar(q=self.name)
+	else:
+	    log.debug("'%s' no longer exists as an option var!"%self.name)
+	    raise StandardError, "'%s' no longer exists as an option var!"%self.name
+		
+    def setValue(self,value):
+	if type(value) is list or type(value) is tuple:
+	    self.__init__(self.name,self.varType,value = value[0])#Reinitialize
+	    for v in value[1:]:
+		self.append(v)
+	else:
+	    if self.varType == 'int':
+		try:
+		    mc.optionVar(iv = (self.name,int(float(value))))
+		except:
+		    log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+		
+	    elif self.varType == 'float':
+		try:
+		    mc.optionVar(fv = (self.name,float(value)))
+		    
+		except:
+		    log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+		
+	    elif self.varType == 'string':
+		try:
+		    mc.optionVar(sv = (self.name,str(value)))
+		except:
+		    log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+	    
+    def purge(self):
+        """ 
+        Purge an optionVar from maya
+        """
+        try:
+            mc.optionVar(remove = self.name)     
+        except:
+            log.warning("'%s' doesn't exist"%(self.name))
+	    
+    value = property(getValue, setValue, purge)#get,set,del
+    
+    #varType
+    #==============    
+    def getType(self):
+	dataBuffer = mc.optionVar(q=self.name)                                         
+        typeBuffer = search.returnDataType(dataBuffer) or False
+	if not typeBuffer:
+	    log.warning("I don't know what this is!")
+	    return False
+	return typeBuffer
+
+    
+    def setType(self,varType = None):
+	if not mc.optionVar(exists = self.name):
+	    if varType is not None:
+		requestVarType = self.returnVarTypeFromCall(varType)             
+	    else:
+		log.info("Not sure what '%s' is, making as int"%varType)
+		requestVarType = 'int'
+		
+	    if requestVarType:
+		self.create(requestVarType)	    
+	    else:
+		log.warning("'%s' is not a valid variable type"%varType) 
+	else:
+	    self.update(varType)
+    
+    varType = property(getType, setType)
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Base Functions
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+    def initialStore(self,value):
+        if type(value) is list:
+            self.extend(value)
+        else:
+            if type(self.value) is list:
+                self.append(value)                            
+            else:
+                if value != self.value:
+                    self.setValue(value)
+                        
+    def returnVarTypeFromCall(self, varTypeCheck):    
+        for option in optionVarTypeDict.keys():
+            if varTypeCheck in optionVarTypeDict.get(option):
+                return option
+        return 'int'
+    
+    def update(self,varType = None):
+        """ 
+        Update the data in case some other process has changed on optionVar
+        """
+        dataBuffer = self.value 
+        requestVarType = self.returnVarTypeFromCall(varType)
+	                                            
+        if not mc.optionVar(exists = self.name):
+            if requestVarType:
+                self.create(self.form)
+                return
+            else:
+                return log.warning("'%s' is not a valid variable type"%varType)  
+        
+        else:
+            #If it exists, first check for data buffer
+            typeBuffer = search.returnDataType(dataBuffer) or False
+            if not typeBuffer:
+                log.info('Changing to int!')
+                typeBuffer = 'int'
+            
+            if varType is not None:    
+                if typeBuffer == requestVarType:
+		    log.info("Checks out")
+                    return                
+                else:
+		    log.warning("Converting optionVar type...")
+                    self.create(requestVarType)
+		    if dataBuffer is not None:
+			log.info("Attempting to set with: %s"%dataBuffer)
+			self.value = dataBuffer
+			log.info("Value : %s"%self.value)
+                    return  
+
+    def create(self,doType):
+        """ 
+        Makes an optionVar.
+        """
+        log.info( "Creating '%s' as '%s'"%(self.name,doType) )
+            
+        if doType == 'int':
+            mc.optionVar(iv=(self.name,0))
+        elif doType == 'float':
+            mc.optionVar(fv=(self.name,0))
+        elif doType == 'string':
+            mc.optionVar(sv=(self.name,''))
+              
+    def clear(self):
+        """
+        Clear the data from an option var
+        """
+        doName = self.name
+        doType = self.varType
+        self.purge()
+        self.__init__(doName,doType)
+            
+    def append(self,value): 
+        if type(self.value) is list or type(self.value) is tuple:
+            if value in self.value:
+                return log.warning("'%s' already added"%(value))
+
+        if self.varType == 'int':
+            try:
+                mc.optionVar(iva = (self.name,int(value)))
+                log.info("'%s' added to '%s'"%(value,self.name))
+                
+            except:
+                log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+            
+        elif self.varType == 'float':
+            try:
+                mc.optionVar(fva = (self.name,float(value)))
+                log.info("'%s' added to '%s'"%(value,self.name))
+                
+            except:
+                log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+            
+        elif self.varType == 'string':
+            try:
+                mc.optionVar(sva = (self.name,str(value)))
+                for i in "",'':
+                    if i in self.value:
+                        self.remove(i)
+
+                log.info("'%s' added to '%s'"%(value,self.name))
+                             
+                
+            except:
+                log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+
+    def remove(self,value):
+        if value in self.value:
+            try:         
+                i = self.value.index(value)
+                mc.optionVar(removeFromArray = (self.name,i))
+                self.update(self.form)
+                log.info("'%s' removed from '%s'"%(value,self.name))
+            except:
+                log.info("'%s' failed to remove '%s'"%(value,self.name))
+        else:
+            log.info("'%s' wasn't found in '%s'"%(value,self.name))
+            
+                            
+    def extend(self,valuesList):
+        assert type(valuesList) is list,"'%s' not a list"%(valuesList)
+        
+        for v in valuesList:
+            if type(self.value) is list:
+                if v not in self.value:
+                    self.append(v)
+            else:
+                if v != self.value:
+                    self.append(v)
+    
+    def toggle(self):
+        """
+        Toggles an int type variable
+        """
+        assert self.varType == 'int',"'%s' not an int type var"%(self.name)
+        
+        self.value = not self.value
+        log.info("'%s':%s"%(self.name,self.value))
+        
+        
+    def select(self):
+        """
+        Attempts to select the items of a optionVar buffer
+        """
+        selectList = []
+        if self.value:
+            for item in self.value:
+                if mc.objExists(item):
+                    if '.' in item:
+                        buffer = mc.ls(item,o=True)
+                        if mc.objExists(buffer[0]):
+                            selectList.append(buffer[0])
+                    else:
+                        selectList.append(item)
+                
+        if selectList:
+            mc.select(selectList)
+        else:
+            log.warning("'%s' is empty!"%self.name)
+             
+    def existCheck(self):
+        """
+        Removes non existing items
+        """
+        for item in self.value:
+	    if not mc.objExists(item):
+		self.remove(item)
+		log.warning("'%s' removed from '%s'"%(item,self.name))
+		
+class cgmOptionVar2(object):
+    """ 
+    OptionVar Class handler
+    
+    """
+    def __init__(self,varName,varType = None,value = None, defaultValue = None):
+        """ 
+        Intializes an optionVar class handler
+        
+        Keyword arguments:
+        varName(string) -- name for the optionVar
+        varType(string) -- 'int','float','string' (default 'int')
+        value() -- will attempt to set the optionVar with the value
+        defaultValue() -- will ONLY use if the optionVar doesn't exist
+        
+        """
+        #Default to creation of a var as an int value of 0
+        ### input check   
+        self.name = varName
+        self.form = ''
+        self.value = ''
+        
+        #>>> If it doesn't exist, create, else update
+        if not mc.optionVar(exists = self.name):
+            if varType is not None:
+                requestVarType = self.returnVarTypeFromCall(varType)
+            elif defaultValue is not None:
+                requestVarType = search.returnDataType(defaultValue)                
+            elif value is not None:
+                requestVarType = search.returnDataType(value)
+            else:
+                requestVarType = 'int'
+                
+            if requestVarType:
+                self.form = requestVarType
+                self.create(self.form)
+                if defaultValue is not None:
+                    self.initialStore(defaultValue)
+                elif value is not None:
+                    self.initialStore(value)
+                    
+                self.value = mc.optionVar(q=self.name)
+                
+            else:
+                guiFactory.warning("'%s' is not a valid variable type"%varType)
+            
+        else:               
+            self.update(varType)
+            
+            #Attempt to set a value on call
+            if value is not None:           
+                self.initialStore(value)
+            
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Base Functions
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+    def initialStore(self,value):
+        if type(value) is list:
+            self.extend(value)
+        else:
+            if type(self.value) is list:
+                self.append(value)                            
+            else:
+                if value != self.value:
+                    self.set(value)
+                        
+    def returnVarTypeFromCall(self, varTypeCheck):    
+        for option in optionVarTypeDict.keys():
+            if varTypeCheck in optionVarTypeDict.get(option):
+                return option
+        return 'int'
+    
+    def update(self,varType = None):
+        """ 
+        Update the data in case some other process has changed on optionVar
+        """
+        dataBuffer = mc.optionVar(q=self.name)   
+        
+        requestVarType = self.returnVarTypeFromCall(varType)
+        
+        if not mc.optionVar(exists = self.name):
+            if requestVarType:
+                self.form = requestVarType
+                self.create(self.form)
+                self.value = mc.optionVar(q=self.name)
+                return
+            else:
+                return guiFactory.warning("'%s' is not a valid variable type"%varType)  
+        
+        else:
+            #If it exists, first check for data buffer
+            typeBuffer = search.returnDataType(dataBuffer) or False
+            if not typeBuffer:
+                print'changing to int!'
+                typeBuffer = 'int'
+            
+            if varType is not None:    
+                if typeBuffer == requestVarType:
+                    self.form = typeBuffer
+                    self.value = dataBuffer
+                    return                
+                else:
+                    self.form = requestVarType
+                    self.create(self.form)
+                    self.value = mc.optionVar(q=self.name)
+                    return  
+            else:
+                self.form = typeBuffer
+                self.value = mc.optionVar(q=self.name)
+                return                  
+            
+
+    def create(self,doType):
+        """ 
+        Makes an optionVar.
+        """
+        print "Creating '%s' as '%s'"%(self.name,self.form)
+            
+        if doType == 'int':
+            mc.optionVar(iv=(self.name,0))
+        elif doType == 'float':
+            mc.optionVar(fv=(self.name,0))
+        elif doType == 'string':
+            mc.optionVar(sv=(self.name,''))
+
+  
+    def purge(self):
+        """ 
+        Purge an optionVar from maya
+        """
+        try:
+            mc.optionVar(remove = self.name)
+            self.name = ''
+            self.form = ''
+            self.value = ''
+            
+        except:
+            guiFactory.warning("'%s' doesn't exist"%(self.name))
+            
+    def clear(self):
+        """
+        Clear the data from an option var
+        """
+        doName = self.name
+        doType = self.form
+        self.purge()
+        self.__init__(doName,doType)
+            
+            
+    def set(self,value):
+        if self.form == 'int':
+            try:
+                mc.optionVar(iv = (self.name,value))
+                self.value = value
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'float':
+            try:
+                mc.optionVar(fv = (self.name,value))
+                self.value = value
+                
+            except:
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'string':
+            try:
+                mc.optionVar(sv = (self.name,str(value)))
+                self.value = value
+                
+            except:
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+    def append(self,value): 
+        if type(self.value) is list:
+            if value in self.value:
+                return guiFactory.warning("'%s' already added"%(value))
+
+        if self.form == 'int':
+            try:
+                mc.optionVar(iva = (self.name,int(value)))
+                self.update(self.form)
+                guiFactory.report("'%s' added to '%s'"%(value,self.name))
+                
+            except:
+                guiFactory.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'float':
+            try:
+                mc.optionVar(fva = (self.name,value))
+                self.update(self.form)
+                guiFactory.report("'%s' added to '%s'"%(value,self.name))
+                
+            except:
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+            
+        elif self.form == 'string':
+            try:
+                mc.optionVar(sva = (self.name,str(value)))
+                for i in "",'':
+                    if i in self.value:
+                        self.remove(i)
+
+                self.update(self.form)
+                guiFactory.report("'%s' added to '%s'"%(value,self.name))
+                             
+                
+            except:
+                guiFactory.report("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.form))
+
+            
+
+    def remove(self,value):
+        if value in self.value:
+            try:         
+                i = self.value.index(value)
+                mc.optionVar(removeFromArray = (self.name,i))
+                self.update(self.form)
+                guiFactory.report("'%s' removed from '%s'"%(value,self.name))
+            except:
+                guiFactory.report("'%s' failed to remove '%s'"%(value,self.name))
+        else:
+            guiFactory.report("'%s' wasn't found in '%s'"%(value,self.name))
+            
+
+                            
+    def extend(self,valuesList):
+        assert type(valuesList) is list,"'%s' not a list"%(valuesList)
+        
+        for v in valuesList:
+            if type(self.value) is list:
+                if v not in self.value:
+                    self.append(v)
+            else:
+                if v != self.value:
+                    self.append(v)
+    
+    def toggle(self):
+        """
+        Toggles an int type variable
+        """
+        assert self.form == 'int',"'%s' not an int type var"%(self.name)
+        
+        mc.optionVar(iv = (self.name,not self.value))
+        self.value = not self.value
+        guiFactory.report("'%s':%s"%(self.name,self.value))
+        
+        
+        
+    def select(self):
+        """
+        Attempts to select the items of a optionVar buffer
+        """
+        selectList = []
+        if self.value:
+            for item in self.value:
+                if mc.objExists(item):
+                    if '.' in item:
+                        buffer = mc.ls(item,o=True)
+                        if mc.objExists(buffer[0]):
+                            selectList.append(buffer[0])
+                    else:
+                        selectList.append(item)
+                
+        if selectList:
+            mc.select(selectList)
+        else:
+            guiFactory.warning("'%s' is empty!"%self.name)
+            
+            
+    def existCheck(self):
+        """
+        Attempts to select the items of a optionVar buffer
+        """
+        bufferList = self.value
+        existsList = []
+        if bufferList:
+            for item in bufferList:
+                if mc.objExists(item):
+                        existsList.append(item)
+                        
+        mc.optionVar(clearArray = self.name)
+        if existsList:
+            existsList = lists.returnListNoDuplicates(existsList)
+            self.extend(existsList)
+                
+                        
+                        
         
 
     
