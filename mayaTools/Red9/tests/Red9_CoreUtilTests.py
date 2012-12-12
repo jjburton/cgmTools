@@ -1,7 +1,11 @@
 '''
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 This is the main unittest for the Red9_CoreUtils module and a good
@@ -306,12 +310,15 @@ class Test_FilterNode():
                                             '|World_Root2_chSet|joint4|joint5_AttrMarked']
 
     def test_SelectionSetHandler(self):
+        #TODO: Fill Test
         pass
     
     def test_AnimCurveHandler(self):
+        #TODO: Fill Test
         pass
     
     def test_MetaRig(self):
+        #TODO: Fill Test
         pass
        
     def test_FilterPriority(self):
@@ -335,3 +342,22 @@ class Test_FilterNode():
                                             '|World_Root|Spine_Ctrl|R_Wrist_Ctrl|R_Pole_AttrMarked_Ctrl']
     
         
+class Test_Matching_CoreFuncs(object):
+    
+#    def setup(self):
+#        cmds.file(os.path.join(r9Setup.red9ModulePath(),'tests','testFiles','FilterNode_baseTests.ma'),open=True,f=True)
+#        self.filterNode=r9Core.FilterNode(['World_Root'])
+#        assert self.filterNode.rootNodes==['World_Root']
+#    
+#    def teardown(self):
+#        self.filterNode.settings.resetFilters()
+        
+    def test_processMatchedNodes(self):
+        #TODO: Fill Test
+        pass
+    def test_matchNodeLists(self):
+        #TODO: Fill Test
+        pass#
+    def test_MatchedNodeInputs(self):
+        #TODO: Fill Test
+        pass#          

@@ -1,8 +1,11 @@
 '''
-
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 This is the General library of utils used throughout the modules
@@ -160,7 +163,7 @@ def Timer(func):
 
 def runProfile(func):
     '''
-
+    run the profiler - only ever used when debugging /optimizing function call speeds
     '''
     import cProfile
     from time import gmtime, strftime
@@ -173,6 +176,7 @@ def runProfile(func):
         profile = cProfile.runctx("command()",globals(),locals(),dumpFileName)
         return profile
     return wrapper
+    
     
 class AnimationContext(object):
     """
@@ -199,7 +203,7 @@ class AnimationContext(object):
         # If this was false, it would re-raise the exception when complete
         return True 
 
-    
+
 class HIKContext(object):
     """
     Simple Context Manager for restoring HIK Animation settings and managing HIK callbacks
@@ -237,7 +241,113 @@ class HIKContext(object):
         cmds.select(self.objs)
         return True 
                 
-                
+    
+class SceneRestoreContext(object):
+    """
+    Simple Context Manager for restoring Scene Global settings
+    Basically we store the state of all the modelPanels and timeLine
+    setups. Think of it like this, you export a scene, file -new, then reimport it
+    but you've now lost all the UI sceneSetup. This is capable of returning the UI
+    to the previous state. Maybe this could be a tool in it's own write?
+    """
+    def __init__(self):
+        self.gPlayBackSlider=mel.eval("string $temp=$gPlayBackSlider")
+        self.dataStore={}
+
+    def __enter__(self):
+        self.storeSettings()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.restoreSettings()
+        if exc_type:
+            log.exception('%s : %s'%(exc_type, exc_value))
+        return True
+    
+    def storeSettings(self):
+        '''
+        main work function, store all UI settings
+        '''
+        self.dataStore['autoKey']=cmds.autoKeyframe(query=True,state=True)
+        
+        #timeline management
+        self.dataStore['currentTime']=cmds.currentTime(q=True)
+        self.dataStore['minTime'] = cmds.playbackOptions(q=True,min=True)
+        self.dataStore['maxTime'] = cmds.playbackOptions(q=True,max=True)
+        self.dataStore['startTime']=cmds.playbackOptions(q=True,ast=True)
+        self.dataStore['endTime'] = cmds.playbackOptions(q=True,aet=True)    
+        self.dataStore['playSpeed']=cmds.playbackOptions(query=True, playbackSpeed=True) 
+        
+        #unit management       
+        self.dataStore['timeUnit'] = cmds.currentUnit(q=True, fullName=True, time=True)
+        self.dataStore['sceneUnits']=cmds.currentUnit(q=True, fullName=True, linear=True)     
+        self.dataStore['upAxis'] = cmds.upAxis( q=True, axis=True )
+        
+        #panel management
+        self.dataStore['panelStore']={}
+        for panel in ['modelPanel1','modelPanel2','modelPanel3','modelPanel4']:
+            self.dataStore['panelStore'][panel]={}
+            self.dataStore['panelStore'][panel]['settings']=cmds.modelEditor(panel, q=True, sts=True)
+            activeCam=cmds.modelPanel(panel, q=True, camera=True)
+            if not cmds.nodeType(activeCam)=='camera': 
+                activeCam=cmds.listRelatives(activeCam)[0]
+            self.dataStore['panelStore'][panel]['activeCam']=activeCam
+                        
+        #camera management
+        self.dataStore['cameraTransforms']={}
+        for cam in ['persp','top','side','front']:
+            self.dataStore['cameraTransforms'][cam]=[cmds.getAttr('%s.translate' % cam),
+                                                     cmds.getAttr('%s.rotate' % cam),
+                                                     cmds.getAttr('%s.scale' % cam)]
+            
+        #sound management
+        self.dataStore['activeSound']  = cmds.timeControl(self.gPlayBackSlider, q=True, s=1)
+        self.dataStore['displaySound'] = cmds.timeControl(self.gPlayBackSlider, q=True, ds=1)
+    
+    def restoreSettings(self):
+        '''
+        restore all UI settings
+        '''
+        cmds.autoKeyframe(state=self.dataStore['autoKey'])  
+        
+        #timeline management
+        cmds.currentTime(self.dataStore['currentTime'])
+        cmds.playbackOptions(min=self.dataStore['minTime'])
+        cmds.playbackOptions(max=self.dataStore['maxTime'])
+        cmds.playbackOptions(ast=self.dataStore['startTime'])
+        cmds.playbackOptions(aet=self.dataStore['endTime'])
+        cmds.playbackOptions(ps=self.dataStore['playSpeed']) 
+        
+        #unit management
+        cmds.currentUnit(time=self.dataStore['timeUnit'])
+        cmds.currentUnit(linear=self.dataStore['sceneUnits'])
+        cmds.upAxis(axis=self.dataStore['upAxis'])
+        
+        log.info('Restored PlayBack / Timeline setup')
+        
+        #panel management
+        for panel,data in self.dataStore['panelStore'].items():
+            cmdString=data['settings'].replace('$editorName',panel)
+            mel.eval(cmdString)
+            log.info( "Restored Panel Settings Data >> %s" % panel)
+            mel.eval('lookThroughModelPanel("%s","%s")' % (data['activeCam'],panel))
+            log.info( "Restored Panel Active Camera Data >> %s >> cam : %s" % (panel,data['activeCam']))
+            
+        #camera management
+        for cam,settings in self.dataStore['cameraTransforms'].items():       
+            cmds.setAttr('%s.translate' % cam, settings[0][0][0], settings[0][0][1], settings[0][0][2])
+            cmds.setAttr('%s.rotate' % cam, settings[1][0][0], settings[1][0][1], settings[1][0][2])            
+            cmds.setAttr('%s.scale' % cam, settings[2][0][0], settings[2][0][1], settings[2][0][2])     
+            log.info('Restored Default Camera Transform Data : % s' % cam)         
+
+        #sound management
+        if self.dataStore['displaySound']:
+            cmds.timeControl(self.gPlayBackSlider, e=True, ds=1, sound=self.dataStore['activeSound'])
+            log.info('Restored Audio setup')
+        else:
+            cmds.timeControl(self.gPlayBackSlider, e=True, ds=0)
+        return True
+    
+                    
 # General
 #---------------------------------------------------------------------------------
   
@@ -321,10 +431,8 @@ class Clipboard:
     '''
     Get or Set data to the Windows clipboard...Used in the inspect code to grab the 
     ScriptEditor's selected history
+    CURRENTLY NOT BEING CALLED - switched to pyperclip.py module
     '''
-#    def __init__(self):
-#        import sys
-#        import ctypes
 
     @staticmethod
     def getText():
@@ -386,10 +494,38 @@ class Clipboard:
             return True
 
 
-def pivotSnap(source, destination):
-    rpPiv=cmds.xform(source,q=True,ws=True,rp=True)
-    spPiv=cmds.xform(source,q=True,ws=True,rp=True)
-    cmds.xform(destination,ws=True,rp=rpPiv)
-    cmds.xform(destination,ws=True,rp=spPiv)
-
+def os_OpenFileDirectory(path):
+    '''
+    open the given folder in the default os browser
+    '''
+    import subprocess
+    path=os.path.abspath(path)
+    if sys.platform == 'win32':
+        subprocess.Popen('explorer /select, "%s"' % path)
+    elif sys.platform == 'darwin': #macOS
+        subprocess.Popen(['open', path])
+    else: #linux
+        try:
+            subprocess.Popen(['xdg-open', path])
+        except OSError:
+            raise OSError('unsupported xdg-open call??')
     
+def os_OpenFile(filePath):
+    '''
+    open the given file in the default program
+    '''
+    import subprocess
+    filePath=os.path.abspath(filePath)
+    if sys.platform == 'win32':
+        os.startfile(file)
+    elif sys.platform == 'darwin': #macOS
+        subprocess.Popen(['open', filePath])
+    else: #linux
+        try:
+            subprocess.Popen(['xdg-open', filePath])
+        except OSError:
+            raise OSError('unsupported xdg-open call??')
+        
+
+        
+        

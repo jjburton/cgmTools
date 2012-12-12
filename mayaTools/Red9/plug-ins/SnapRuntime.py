@@ -14,6 +14,7 @@ flags:  -s / -source
         -d / -destination
         -te/ -timeEnabled
 
+TODO: add flags for just rotate or translate processing
 '''
 
 import maya.OpenMayaAnim as apiAnim
@@ -31,6 +32,7 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
     kDestinationLongFlag = "-destination" 
     kTimeFlag = "-te"
     kTimeLongFlag = "-timeEnabled" 
+
     
     def __init__(self):
         OpenMayaMPx.MPxCommand.__init__(self)  

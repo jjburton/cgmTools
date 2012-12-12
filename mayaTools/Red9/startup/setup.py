@@ -1,14 +1,20 @@
 '''
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 This is the heart of the Red9 StudioPack's boot sequence, managing folder structures, 
 dependencies and menuItems.
+
+THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
-
+__author__ = 'Mark Jackson'
 
 import sys
 import os
@@ -69,7 +75,10 @@ def mayaUpAxis():
         return 'z'
     if vect.y:
         return 'y'
-      
+    
+    
+# Menu Builders ------------------------------------------------------------------------
+   
 def menuSetup():
     
     #if exists remove all items, means we can update on the fly by restarting the Red9 pack
@@ -100,6 +109,14 @@ def menuSetup():
     cmds.menuItem('redNineMoCapItem',l="MouseMoCap",ann="Record the Mouse Input to selected object",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="import Red9.core.Red9_Tools as r9Tools;r9Tools.RecordAttrs.show()")  
+    cmds.menuItem('redNineRandomizerItem',l="Randomize Keyframes",
+                  ann="Randomize selected Keys - also available in the GraphEditor>curve menu",
+                  p='redNineMenuItemRoot', echoCommand=True,
+                  c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()")  
+    cmds.menuItem(divider=True)
+    cmds.menuItem('redNineAnimBndItem',l="Animation Binder",ann="My Autodesk MasterClass toolset",
+                  p='redNineMenuItemRoot', echoCommand=True,
+                  c="import Red9.core.AnimationBinder as animBnd;animBnd.AnimBinderUI()._UI()")  
     cmds.menuItem(divider=True)
     cmds.menuItem('redNineHelpItem',l="Red9_Help",ann="Boot the Help Files",
                   p='redNineMenuItemRoot', echoCommand=True,
@@ -112,6 +129,22 @@ def menuSetup():
                   echoCommand=True, c="Red9.core._setlogginglevel_debug()")
     cmds.menuItem('redNineInfoItem',l="systems INFO",ann="Turn all the logging to Info only",
                   echoCommand=True, c="Red9.core._setlogginglevel_info()")
+    cmds.menuItem('redNineReloadItem',l="systems reload",ann="Force a complete reload on the core of Red9",
+                  echoCommand=True, c="Red9.core._reload()")
+    
+def addToMayaMenus():
+    try:
+        mainFileMenu=mel.eval("string $f=$gMainFileMenu")
+        if not cmds.menu(mainFileMenu,q=True,ni=True):
+            mel.eval('buildFileMenu()')
+        cmds.menuItem(divider=True)
+        cmds.menuItem('redNineOpenFolderItem',l="Red9.OpenSceneFolder",ann="Open the folder containing the current Maya Scene",
+                      p='mainFileMenu', echoCommand=True,
+                      c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
+    except:
+        log.debug('gMainFileMenu not found >> catch for unitTesting')
+
+# General Pack Data --------------------------------------------------------------------  
 
 def red9ButtonBGC(colour):
     '''
@@ -149,10 +182,9 @@ def help():
     '''
     open up the Red9 help docs
     '''
-    #import webbrowser;
-    #webbrowser.open('%s\docs\Red9-StudioTools Help.pdf' % Red9_ModulesPath())
     helpFile=os.path.join(red9ModulePath(),'docs',r'Red9-StudioTools Help.pdf')
     try:
+        #Windows Only
         os.startfile(helpFile)
     except StandardError, error:
         #fails on linux, need to use os.system(('acroread'+helpFile))
@@ -162,13 +194,15 @@ def blog():
     '''
     open up the Red9 Blog
     '''
-    #import webbrowser;
-    #webbrowser.open('http://red9-consultancy.blogspot.com/') 
     try:
+        #Windows Only
         os.startfile('http://red9-consultancy.blogspot.com/')
     except:
         os.system('firefox http://red9-consultancy.blogspot.com/')
         log.exception('os.startfile call failed to open Blog')  
+        
+    
+# BOOT FUNCTS - Add and Build --------------------------------------------------------------
     
 def addScriptsPath(path):
     '''
@@ -234,11 +268,18 @@ def sourceMelFolderContents(path):
     for script in [file for file in os.listdir(path) if file.lower().endswith('.mel')]:
         log.info('Sourcing mel script : %s' % script)
         mel.eval('source %s' % script)
-            
-       
-def start(Menu=True):
+
+
+
+#=========================================================================================
+# BOOT CALL ------------------------------------------------------------------------------            
+#========================================================================================= 
+    
+def start(Menu=True, MayaUIHooks=True):
     '''
     Main entry point for the StudioPack
+    @param Menu: Add the Red9 Menu to the Maya Main Menus
+    @param MayUIHooks: Add the Red9 hooks to Maya Native UI's
     '''
     log.info('Red9 StudioPack Setup Calls')
     if Menu:
@@ -257,15 +298,20 @@ def start(Menu=True):
     #Add the Packages folder
     #AddPythonPackages()
     
-    #Source Maya Hacked mel files
-    hacked=red9MayaNativePath()
-    if hacked:
-        addScriptsPath(hacked)
-        try:
-            mel.eval('source Red9_MelCore' ) 
-            sourceMelFolderContents(hacked)
-        except StandardError, error:
-            log.info(error)
+    if MayaUIHooks:
+        #Source Maya Hacked Mel files
+        hacked=red9MayaNativePath()
+        if hacked:
+            addScriptsPath(hacked)
+            try:
+                mel.eval('source Red9_MelCore' ) 
+                sourceMelFolderContents(hacked)
+            except StandardError, error:
+                log.info(error)
+    
+        #Add custom items to standard built Maya menus       
+        addToMayaMenus()
+        
     log.info('Red9 StudioPack Complete!')
 
     

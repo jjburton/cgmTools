@@ -33,6 +33,7 @@ Node AND the class object. All attributes are managed
 #standard attribute handling
 node.addAttr('stringTest', "this_is_a_string")  #create a string attribute
 node.addAttr('fltTest', 1.333)        #create a float attribute
+node.addAttr('fltTest2', 2.0, hidden=False, min=0, max=10) #create a float attribute with additional flags
 node.addAttr('intTest', 3)            #create a int attribute
 node.addAttr('boolTest', False)       #create a bool attribute
 
@@ -66,6 +67,11 @@ node.enum   #>>2
 data=dict(node.__dict__)        #make a new test dict for this demo
 node.addAttr('jsonTest', data)  #create a string attr with JSON serialized data
 node.jsonTest['stringTest']     #will deserialize the MayaNode jsonTest attr back to a dict and return its key['stringTest']
+
+#double handling
+#adds a double3 attr with subAttrs 'dblA,dblB,dblC', sets them as doubles with min/max vaules, 
+#sets their values to 1,2,10, then exposes them to the channelBox!
+node.addAttr('doubleTest', attrType='double3', value=(('dblA','dblB','dblC'),(1.0,2.0,10.0)), min=1, max=15, hidden=False)
 
 
 #message attribute handling:

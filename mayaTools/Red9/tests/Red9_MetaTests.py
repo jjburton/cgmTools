@@ -1,8 +1,12 @@
 '''
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
--------------------------------------------
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
+------------------------------------------
 
 This is the main unittest for the Red9_Meta module and a good
 example of what's expected and what the systems can do on simple data
@@ -120,7 +124,7 @@ class Test_MetaClass():
         #connect something else to Singluar
         self.MClass.connectChild(cube2,'Singluar')
         assert self.MClass.Singluar==[cube2]
-        assert not cmds.attributeQuery('Singluar',node=cube1,exists=True) #cleaned up after ourselves?
+        assert not cmds.attributeQuery('MetaClassTest',node=cube1,exists=True) #cleaned up after ourselves?
         
         self.MClass.connectChildren([cube3,cube4],'Singluar')
         assert sorted(self.MClass.Singluar)==[cube2,cube3,cube4]
@@ -129,7 +133,7 @@ class Test_MetaClass():
         try:
             #still thinking about this....if the attr isn't a multi then
             #the __setattr__ will fail if you pass in a lots of nodes
-            self.MClass.Singular=[cube1,cube2,cube3]
+            self.MClass.Singluar=[cube1,cube2,cube3]
         except:
             assert True
         
@@ -137,6 +141,7 @@ class Test_MetaClass():
         assert sorted(self.MClass.Multiple)==[cube1,cube4]
         
     def test_connectParent(self):
+        #TODO: Fill Test
         pass
     
     def test_attributeHandling(self):
@@ -148,10 +153,13 @@ class Test_MetaClass():
         #standard attribute handling
         node.addAttr('stringTest', "this_is_a_string")  #create a string attribute
         node.addAttr('fltTest', 1.333)        #create a float attribute
+        node.addAttr('fltTest2', 10.5, min=0,max=15)  #create a float attribute with min/max
         node.addAttr('intTest', 3)            #create a int attribute
         node.addAttr('boolTest', False)       #create a bool attribute
-        node.addAttr('enum', 'A:B:D:E:F', type='enum') #create an enum attribute
-        
+        node.addAttr('enum', 'A:B:D:E:F', attrType='enum') #create an enum attribute
+        node.addAttr('doubleTest', attrType='double3', value=(('dblA','dblB','dblC'),(1.12,2.55,5.0)))
+        node.addAttr('doubleTest2', attrType='double3', value=(('dbl2A','dbl2B','dbl2C'),(1.0,2.0,10.0)),min=1,max=15)
+                     
         #create a string attr with JSON serialized data
         testDict={'jsonFloat':1.05,'jsonInt':3,'jsonString':'string says hello','jsonBool':True}
         node.addAttr('jsonTest',testDict)
@@ -159,26 +167,48 @@ class Test_MetaClass():
         #test the hasAttr call in the baseClass
         assert node.hasAttr('stringTest')
         assert node.hasAttr('fltTest')
+        assert node.hasAttr('fltTest2')
         assert node.hasAttr('intTest')
         assert node.hasAttr('boolTest')
         assert node.hasAttr('enum')
         assert node.hasAttr('jsonTest')
+        assert node.hasAttr('doubleTest')   #compound3 so it adds 3 child attrs
+        assert node.hasAttr('dblA')
+        assert node.hasAttr('dblB')
+        assert node.hasAttr('dblC')
+        assert node.hasAttr('doubleTest2')
         
         #test the actual Maya node attributes
         #------------------------------------
         assert cmds.getAttr('%s.stringTest' % node.mNode, type=True)=='string'
         assert cmds.getAttr('%s.fltTest' % node.mNode, type=True)=='double'
+        assert cmds.getAttr('%s.fltTest2' % node.mNode, type=True)=='double'
         assert cmds.getAttr('%s.intTest' % node.mNode, type=True)=='long'
         assert cmds.getAttr('%s.boolTest' % node.mNode, type=True)=='bool'
         assert cmds.getAttr('%s.enum' % node.mNode, type=True)=='enum'
         assert cmds.getAttr('%s.jsonTest' % node.mNode, type=True)=='string'
+        assert cmds.getAttr('%s.doubleTest' % node.mNode, type=True)=='double3'
+        assert cmds.getAttr('%s.dblA' % node.mNode, type=True)=='double'
+        assert cmds.getAttr('%s.dblB' % node.mNode, type=True)=='double'
+        assert cmds.getAttr('%s.dblC' % node.mNode, type=True)=='double'
         
         assert cmds.getAttr('%s.stringTest' % node.mNode)=='this_is_a_string'
         assert cmds.getAttr('%s.fltTest' % node.mNode)==1.333
+        assert cmds.getAttr('%s.fltTest2' % node.mNode)==10.5
         assert cmds.getAttr('%s.intTest' % node.mNode)==3
         assert cmds.getAttr('%s.boolTest' % node.mNode)==False
         assert cmds.getAttr('%s.enum' % node.mNode)==0
         assert cmds.getAttr('%s.jsonTest' % node.mNode)=='{"jsonFloat": 1.05, "jsonBool": true, "jsonString": "string says hello", "jsonInt": 3}'
+        assert cmds.getAttr('%s.doubleTest' % node.mNode)==[(1.12,2.55,5.0)]
+        assert cmds.getAttr('%s.dblA' % node.mNode)==1.12
+        assert cmds.getAttr('%s.dblB' % node.mNode)==2.55
+        assert cmds.getAttr('%s.dblC' % node.mNode)==5.0
+        
+        assert cmds.attributeQuery('fltTest2',node=node.mNode, max=True)==[15.0]
+        assert cmds.attributeQuery('dbl2A',node=node.mNode, min=True)==[1.0]
+        assert cmds.attributeQuery('dbl2A',node=node.mNode, max=True)==[15.0]
+
+
         
         #now check the MetaClass __getattribute__ and __setattr__ calls
         #--------------------------------------------------------------
@@ -189,6 +219,19 @@ class Test_MetaClass():
         assert node.fltTest==1.333
         node.fltTest=3.55   #set the float attr
         assert node.fltTest==3.55
+        #float with min, max kws passed
+        try: 
+            #try setting the value past it's max
+            node.fltTest2=22
+            assert False
+        except:
+            assert True
+        try: 
+            #try setting the value past it's min
+            node.fltTest2=-5
+            assert False
+        except:
+            assert True    
         #string
         assert node.stringTest=='this_is_a_string'
         node.stringTest="change the text"   #set the string attr
@@ -210,7 +253,26 @@ class Test_MetaClass():
         assert node.jsonTest['jsonInt']==3 
         assert node.jsonTest['jsonString']=='string says hello'
         assert node.jsonTest['jsonBool']==True 
-       
+        #double3
+        assert node.doubleTest==[(1.12,2.55,5.0)]
+        assert node.dblA==1.12
+        assert node.dblB==2.55
+        assert node.dblC==5.0
+        node.doubleTest=(2.0,44.2,22.0)
+        assert node.doubleTest==[(2.0,44.2,22.0)]
+        try: 
+            #try setting the value past it's max
+            node.doubleTest2=(0,1,22)
+            assert False
+        except:
+            assert True
+        try: 
+            #try setting the value past it's max
+            node.dblA=-10
+            assert False
+        except:
+            assert True
+            
         del(node.boolTest)
         assert cmds.objExists(node.mNode)
         assert not node.hasAttr('boolTest')
@@ -251,8 +313,8 @@ class Test_MetaClass():
         cube5=cmds.ls(cmds.polyCube()[0],l=True)[0]
         cube6=cmds.ls(cmds.polyCube()[0],l=True)[0]
  
-        node.addAttr('msgMultiTest', value=[cube1,cube2], type='message')   #multi Message attr
-        node.addAttr('msgSingleTest', value=cube3, type='messageSimple')    #non-multi message attr
+        node.addAttr('msgMultiTest', value=[cube1,cube2], attrType='message')   #multi Message attr
+        node.addAttr('msgSingleTest', value=cube3, attrType='messageSimple')    #non-multi message attr
         
         assert node.hasAttr('msgMultiTest')
         assert node.hasAttr('msgSingleTest')
@@ -307,11 +369,11 @@ class Test_SearchCalls():
     
     def setup(self):
         cmds.file(new=True,f=True)
-        self.MClass=r9Meta.MetaClass(name='MetaClass_Test')
-        self.MClass=r9Meta.MetaRig(name='MetaRig_Test')
-        self.MClass=r9Meta.MetaRigSupport(name='MetaRigSupport_Test')
-        self.MClass=r9Meta.MetaFacialRig(name='MetaFacialRig_Test')
-        self.MClass=r9Meta.MetaFacialRigSupport(name='MetaFacialRigSupport_Test')
+        r9Meta.MetaClass(name='MetaClass_Test')
+        r9Meta.MetaRig(name='MetaRig_Test')
+        r9Meta.MetaRigSupport(name='MetaRigSupport_Test')
+        r9Meta.MetaFacialRig(name='MetaFacialRig_Test')
+        r9Meta.MetaFacialRigSupport(name='MetaFacialRigSupport_Test')
 
     def teardown(self):
         self.setup()    
@@ -324,6 +386,11 @@ class Test_SearchCalls():
         assert not r9Meta.isMetaNode('MetaRig_Test', mTypes='MetaFacialRigSupport_Test')
         cube1=cmds.ls(cmds.polyCube()[0],l=True)[0]
         assert not r9Meta.isMetaNode(cube1)
+        
+    def test_isMetaNodeInherited(self):
+        assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaRig')
+        assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaClass')
+        assert not r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaRigSubSystem')
     
     def test_getMetaNodes(self):
         nodes=sorted(r9Meta.getMetaNodes(),key=lambda x: x.mClass.upper())
@@ -334,15 +401,27 @@ class Test_SearchCalls():
         
         nodes=r9Meta.getMetaNodes(dataType=None, mTypes=['MetaRig'])
         assert nodes==['MetaRig_Test']
-     
+        
+        #mInstances tests
+        nodes=r9Meta.getMetaNodes(dataType=None, mInstances=['MetaRig'])
+        assert nodes==['MetaFacialRig_Test', 'MetaRig_Test']
+        nodes=r9Meta.getMetaNodes(mInstances=['MetaRig'])
+        assert [n.mNodeID for n in nodes]==['MetaFacialRig_Test', 'MetaRig_Test']
+        nodes=r9Meta.getMetaNodes(mInstances=['MetaClass'])
+        assert sorted([n.mNode for n in nodes])==['MetaClass_Test',
+                                                  'MetaFacialRigSupport_Test',
+                                                  'MetaFacialRig_Test',
+                                                  'MetaRigSupport_Test',
+                                                  'MetaRig_Test']  
+          
     def test_getConnectedMetaNodes(self):
         #nodes, source=True, destination=True, dataType='mClass', mTypes=[]):
+        #TODO: Fill Test
         pass
         
-    def test_getConnectedMetaRig(self):
-        pass
     
     def test_getConnectedMetaSystemRoot(self):
+        #TODO: Fill Test
         pass
     
     

@@ -1,8 +1,11 @@
 '''
-
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 This is the Core library of utils used throughout the modules
@@ -19,6 +22,10 @@ import maya.OpenMaya as OpenMaya
 from functools import partial
 import re
 import random
+#import ConfigParser
+
+#import sys
+#import os
 
 import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup
@@ -72,8 +79,8 @@ def prioritizeNodeList(nList,priorityList,regex=True):
                 stripped.pop(index)
 
     reordered.extend(nList)  
-    [log.debug('Prioritized Index: %i = %s  <: ORIGINALLY :>  %s' % (i,nodeNameStrip(reordered[i]),n))\
-         for i,n in enumerate(stripped)]
+    #[log.debug('Prioritized Index: %i = %s  <: ORIGINALLY :>  %s' % (i,nodeNameStrip(reordered[i]),n))\
+    #     for i,n in enumerate(stripped)]
     return reordered  
 
      
@@ -151,10 +158,10 @@ def validateString(strText):
     '''
     Function to validate that a string has no illegal characters
     '''
-    numerics=['1','2','3','4','5','6','7','8','9','0']
+    #numerics=['1','2','3','4','5','6','7','8','9','0']
     illegals=['-']
-    if strText[0] in numerics:
-        raise ValueError('Strings must NOT start with a numeric! >> %s' % strText)
+    #if strText[0] in numerics:
+    #    raise ValueError('Strings must NOT start with a numeric! >> %s' % strText)
     illegal=[i for i in illegals if i in strText]
     if illegal:
         raise ValueError('String contains illegal characters "%s" <in> "%s"' % (','.join(illegal),strText))
@@ -1057,7 +1064,7 @@ class FilterNode(object):
     # Main Search Call which uses the Settings Object
     #---------------------------------------------------------------------------------
     
-    @r9General.Timer  
+    @r9General.Timer    
     def ProcessFilter(self):
             '''
             Uses intersection to allow you to process multiple search flags for 
@@ -1072,7 +1079,6 @@ class FilterNode(object):
             
             @return: all nodes which match ALL the given keyword filter searches
             '''
-            
             log.debug(self.settings.__dict__)
             self.intersectionData=[]
             
@@ -1262,8 +1268,8 @@ class MatchedNodeInputs(object):
         @param settings.incRoots: bool - include the original root nodes in the filter
             
     NOTE: with all the search and hierarchy keywords OFF the code performs
-    a Dumb copy, no matching and no Hierarchy filtering, just copy using 
-    selected pairs obj[0]>obj[1], obj[2]>obj[3] etc 
+    a Dumb zip, no matching and no Hierarchy filtering, just zip the given nodes 
+    into selected pairs obj[0]>obj[1], obj[2]>obj[3] etc 
 
     @return: list of matched pairs [(a1,b2),[(a2,b2)]
     '''
@@ -1560,7 +1566,7 @@ class LockChannels(object):
     def saveChannelMap(self,filepath=None,nodes=None,hierarchy=True,serializeNode=None):
         '''
         WE HAVE TO LOCK THE ATTRIBUTE!! why, 32k Maya string character Limits kick in and 
-        truncate the data unless the attr is locked out        
+        truncates the data unless the attr is locked out        
         '''
         if not nodes:
             nodes=cmds.ls(sl=True,l=True)

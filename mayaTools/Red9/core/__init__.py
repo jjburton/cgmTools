@@ -1,7 +1,11 @@
 '''
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 Core is the library of Python modules that make the backbone of the Red9 Pack
@@ -31,6 +35,7 @@ def _reload():
     reload(Red9_PoseSaver)
         
     Red9_Meta.registerMClassInheritanceMapping()
+    print('Red9 Core Reloaded and META REGISTRY updated') 
     
 def _setlogginglevel_debug():
     '''
@@ -62,6 +67,7 @@ def _setlogginglevel_info():
 # picks up all inherited subclasses when Red9.core is imported
 #========================================================================   
 Red9_Meta.registerMClassInheritanceMapping()
+Red9_Meta.registerMClassNodeMapping()
 
 
 

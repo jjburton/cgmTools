@@ -1,7 +1,11 @@
 '''
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 This is a new implementation of the PoseSaver core, same file format
@@ -17,6 +21,7 @@ import Red9.startup.setup as r9Setup
 import Red9_CoreUtils as r9Core
 import Red9_General as r9General
 import Red9_AnimationUtils as r9Anim
+import Red9_Meta as r9Meta
 
 import maya.cmds as cmds
 import os
@@ -41,16 +46,12 @@ class PoseData(object):
     poseDict['TestCtr']['attrs']['translateY']=1.0
     poseDict['TestCtr']['attrs']['translateZ']=22
     
-    Then we use the shortName key as a lookup for the destination hierarchy
-    do a matchNodes on it and if found match the attrs and apply
+    if MetaData:
+    poseDict['TestCtr']['metaData']['metaAttr']=CTRL_L_Thing    = the attr that wires this node to the MetaSubsystem
+    poseDict['TestCtr']['metaData']['metaNodeID']=L_Arm_System  = the metaNode this node is wired to via the above attr
     
-    Pose=r9Core.PoseData(NoodesToStore)
-    Pose.BuildPoseDict()
-    Pose.writePose('C://Pose.pose')
-    
-    Pose=r9Core.PoseData()
-    Pose.readPose('C://Pose.pose')
-    Pose.applyPose(NodeToLoadData)
+    Matching of nodes against this dict is via either the nodeName, node Index or
+    the metaData block.
     '''
     
     def __init__(self, filterSettings=None):
@@ -64,6 +65,7 @@ class PoseData(object):
         self.posePointCloudNodes=[]
         self.mayaUpAxis=r9Setup.mayaUpAxis()
         self.thumbnailRes=[128,128]
+        self.metaPose=False
            
         # make sure we have a settings object
         if filterSettings:
@@ -73,51 +75,56 @@ class PoseData(object):
                 raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
         else:
             self.settings=r9Core.FilterNode_Settings()
+            
+        self.metaPose=self.settings.metaRig
         self.settings.printSettings()
     
     # Build the poseDict data ---------------------------------------------
     
-    def __getNodeMetaDataMap(self, node, mTypes=[]):
+    def _getNodeMetaDataMap(self, node, mTypes=[]):
         '''
         This is a generic wrapper to extract metaData connection info for any given node
         used to build the pose dict up, and compare / match the data on load 
         '''
-        import Red9.core.Red9_Meta as r9Meta
         mNodes={}
-        connections=cmds.listConnections(node,type='network',s=True,d=False,c=True)
+        connections=cmds.listConnections(node,type='network',s=True,d=False,c=True,p=True)
         if not connections:
             return connections
-        for attr,node in zip(connections[::2],connections[1::2]):
-            if r9Meta.isMetaNode(node,mTypes=mTypes):
-                attrData=attr.split('.')
-                mNodes['metaAttr']=attrData[1]
-                mNodes['metaNode']=node
-                #mNodes['metaSide']=cmds.getAttr('%s.mirrorSide' % node)
-                #mNodes['metaSystem']=cmds.getAttr('%s.systemType' % node)
+#        for attr,node in zip(connections[::2],connections[1::2]):
+#            if r9Meta.isMetaNode(node,mTypes=mTypes):
+#                attrData=attr.split('.')
+#                mNodes['metaAttr']=attrData[1]
+#                mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % node)
+        data=connections[-1].split('.')
+        if r9Meta.isMetaNode(data[0],mTypes=mTypes):
+            mNodes['metaAttr']=data[1]
+            mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
         return mNodes          
 
-    def __buildInfoBlock(self):
+    def _buildInfoBlock(self):
         '''
-        TODO: if MetaRig push some of the hard coded attrs to the info block
-        ie, characterType, version etc
+        Basic info for the pose file, this could do with expanding
         '''
         self.infoDict['author']=getpass.getuser()
         self.infoDict['date']=time.ctime()
+        self.infoDict['metaPose']=self.metaPose
         
-    def __buildPoseDict(self, nodes):  
+    def _buildPoseDict(self, nodes):  
         '''
         Build the internal poseDict up from the given nodes. This is the 
         core of the Pose System 
         '''   
+        if self.metaPose:
+            getMetaDict=self._getNodeMetaDataMap #optimisation
+
         for i,node in enumerate(nodes):
             key=r9Core.nodeNameStrip(node)
             self.poseDict[key]={}
             self.poseDict[key]['ID']=i          #selection order index
             self.poseDict[key]['longName']=node #longNode name
-            #self.poseDict[key]['mirrorIndex']=??
             
-            if self.settings.metaRig:
-                self.poseDict[key]['metaData']=self.__getNodeMetaDataMap(node)   #metaSystem the node is wired too
+            if self.metaPose:
+                self.poseDict[key]['metaData']=getMetaDict(node)   #metaSystem the node is wired too
 
             channels=r9Anim.getSettableChannels(node,incStatics=True)
             if channels:
@@ -129,56 +136,11 @@ class PoseData(object):
                         log.debug('%s : attr is invalid in this instance' % attr)
 
 
-#Nice dict and nice idea, but slower to search and less flexible                        
-#    def __buildPoseMetaDict(self, nodes):  
-#        '''
-#        Build the internal poseDict up from the given nodes. This is the 
-#        core of the Pose System 
-#        '''   
-#        import Red9.core.Red9_Meta as r9Meta
-#        mRig=r9Meta.MetaClass(nodes)
-#        childMetaNodes=[mRig]
-#        childMetaNodes.extend([node for node in mRig.getChildMetaNodes(walk=True)])
-#        for mNode in childMetaNodes:
-#            log.debug('MetaNode : %s' % mNode.mNode)
-#            ctrlAttrs=cmds.listAttr(mNode.mNode,ud=True,st='%s_*' % mRig.CTRL_Prefix)
-#            
-#            if ctrlAttrs:
-#                systemKey=r9Core.nodeNameStrip(mNode.mNode)
-#                self.poseDict[systemKey]={} #metaSubsystem level
-#    
-#                for attrWire in ctrlAttrs:
-#                    control=mNode.__getattribute__(attrWire) 
-#                    if not control:
-#                        log.warning('%s is unlinked and invalid' % attrWire)
-#                    else:
-#                        node=control[0]
-#                        self.poseDict[systemKey][attrWire]={}
-#                        self.poseDict[systemKey][attrWire]['longName']=node
-#                        self.poseDict[systemKey][attrWire]['shortName']=r9Core.nodeNameStrip(node)
-#                        channels=r9Anim.getSettableChannels(node,incStatics=True) 
-#                        if channels:
-#                            self.poseDict[systemKey][attrWire]['attrs']={}
-#                            for attr in channels:
-#                                try:
-#                                    self.poseDict[systemKey][attrWire]['attrs'][attr]=cmds.getAttr('%s.%s' % (node,attr))
-#                                except:
-#                                    log.debug('%s : attr is invalid in this instance' % attr)
-                        
-                        
     # Process the data -------------------------------------------------
                                               
-    def writePose(self, filepath):
+    def _writePose(self, filepath):
         '''
-        config = ConfigParser.RawConfigParser()
-        config.optionxform=str #prevent options being converted to lowerCase
-        config.add_section('PoseData')
-        for key, val in self.poseDict.items():
-            config.set('PoseData',key, val)
-    
-        # Writing our configuration file to 'example.cfg'
-        with open(filepath, 'wb') as configfile:
-            config.write(configfile)
+        Write the Pose ConfigObj to file
         '''
         ConfigObj = configobj.ConfigObj(indent_type='\t')
         ConfigObj['filterNode_settings']=self.settings.__dict__
@@ -187,7 +149,7 @@ class PoseData(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
 
-    def readPose(self, filename):
+    def _readPose(self, filename):
         '''
         Read the pose file and build up the internal poseDict
         TODO: do we allow the data to be filled from the pose filter thats stored???????
@@ -197,12 +159,14 @@ class PoseData(object):
                 #for key, val in configobj.ConfigObj(filename)['filterNode_settings'].items():
                 #    self.settings.__dict__[key]=decodeString(val)
                 self.poseDict=configobj.ConfigObj(filename)['poseData']
+                if configobj.ConfigObj(filename).has_key('info'):
+                    self.infoDict=configobj.ConfigObj(filename)['info']
             else:
                 raise StandardError('Given filepath doesnt not exist : %s' % filename)
         else:
             raise StandardError('No FilePath given to read the pose from')
     
-    def matchNodesToPoseData(self, nodes, matchMethod='name'):
+    def _matchNodesToPoseData(self, nodes, matchMethod='name'):
         '''
         Main filter to extract matching data pairs prior to processing
         return : tuple such that :  (poseDict[key], destinationNode)
@@ -219,16 +183,23 @@ class PoseData(object):
                         matchedPairs.append((key,node))
                         print 'poseKey : %s ' % key, self.poseDict[key]['ID'], 'matchedSource : %s' % node, i
                         break 
-        if matchMethod=='metaData':
+        if matchMethod=='metaData':               
+            getMetaDict=self._getNodeMetaDataMap #optimisation
+            poseKeys=dict(self.poseDict)          #optimisation
             for node in nodes:
-                metaDict=self.__getNodeMetaDataMap(node)
-                for key in self.poseDict.keys():
-                    if self.poseDict[key]['metaData']==metaDict:
-                        matchedPairs.append((key,node))
-            
+                try:
+                    metaDict=getMetaDict(node)
+                    for key in poseKeys:
+                        if poseKeys[key]['metaData']==metaDict:
+                            matchedPairs.append((key,node))
+                            poseKeys.pop(key)
+                            break
+                except:
+                    log.info('FAILURE to load MetaData pose blocks - Reverting to Name')
+                    matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes)    
         return matchedPairs   
         
-    def applyPose(self, matchedPairs):
+    def _applyPose(self, matchedPairs):
         '''
         @param matchedPairs: pre-matched tuples of (poseDict[key], node in scene)
         '''
@@ -251,8 +222,8 @@ class PoseData(object):
                          
     def matchInternalPoseObjects(self, nodes=None, fromFilter=True):
         '''
-        from a given poseFile return or select the internal stored objects 
         This is a throw-away and only used in the UI to select for debugging!
+        from a given poseFile return or select the internal stored objects 
         '''
         InternalNodes=[]
         if not fromFilter:
@@ -274,7 +245,7 @@ class PoseData(object):
         return InternalNodes
   
   
-    #PosePoint Cloud ------------------------------------  
+    #Pose Point Cloud (PPC) ------------------------------------  
     
     def _buildOffsetCloud(self,nodes,rootReference=None,raw=False):
         '''
@@ -321,8 +292,9 @@ class PoseData(object):
             r9Anim.AnimFunctions.snap([pnt,node])   
     
     
-    #Main Calls ----------------------------------------   
-               
+    #Main Calls ----------------------------------------  
+     
+    @r9General.Timer              
     def PoseSave(self, nodes, filepath, useFilter=True):
         '''
         Entry point for the generic PoseSave
@@ -333,23 +305,22 @@ class PoseData(object):
         nodesToStore=nodes
         if self.settings.filterIsActive() and useFilter:
             log.info('Filter is Active')
-        #if not self.settings.metaRig:
             nodesToStore=r9Core.FilterNode(nodes,self.settings).ProcessFilter()
             
-        self.__buildPoseDict(nodesToStore)
-        #else:
-        #    self.__buildPoseMetaDict(nodes)
-                
-        self.__buildInfoBlock()
-        self.writePose(filepath)
+        self._buildInfoBlock()    
+        self._buildPoseDict(nodesToStore) 
+        self._writePose(filepath)
+        
         sel=cmds.ls(sl=True,l=True)
         cmds.select(cl=True)
         r9General.thumbNailScreen(filepath,self.thumbnailRes[0],self.thumbnailRes[1])
+        
         if sel:
             cmds.select(sel)
         log.info('Pose Saved Successfully to : %s' % filepath)
         
-
+        
+    @r9General.Timer
     def PoseLoad(self, nodes, filepath, useFilter=True, matchMethod='name', \
                  relativePose=False, relativeRots='projected',relativeTrans='projected'):
         '''
@@ -372,13 +343,17 @@ class PoseData(object):
         if not nodesToLoad:
             raise StandardError('Nothing selected or returned by the filter to load the pose onto')
            
-        self.readPose(filepath)
-                
+        self._readPose(filepath)
+
+        if self.metaPose:
+            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']):
+                matchMethod='metaData'
+            else:
+                log.debug('Warning, trying to load a NON metaPose to a MRig - switching to NameMatching')  
+                 
         #Build the master list of matched nodes that we're going to apply data to
         #Note: this is built up from matching keys in the poseDict to the given nodes
-        if self.settings.metaRig:
-            matchMethod='metaData'
-        matchedPairs=self.matchNodesToPoseData(nodesToLoad,matchMethod=matchMethod)
+        matchedPairs=self._matchNodesToPoseData(nodesToLoad,matchMethod=matchMethod)
         
         if not matchedPairs:
             raise StandardError('No Matching Nodes found in the PoseFile!')    
@@ -391,7 +366,7 @@ class PoseData(object):
                 self._buildOffsetCloud(nodesToLoad,reference,raw=True)
                 resetCache=[cmds.getAttr('%s.translate' % self.posePointRoot), cmds.getAttr('%s.rotate' % self.posePointRoot)]  
             
-            self.applyPose(matchedPairs)
+            self._applyPose(matchedPairs)
             log.info('Pose Read Successfully from : %s' % filepath)
 
             if relativePose:
@@ -431,11 +406,6 @@ class PoseData(object):
                 self._snapNodestoPosePnts()  
                 cmds.delete(self.posePointRoot)
                 cmds.select(reference)
-            #loaded=cmds.spaceLocator()[0]
-            #cmds.SnapTransforms(source=sourceNode, destination=loaded)
-            #Matrix=MatrixOffset()
-            #Matrix.setOffsetMatrix(originalRef,loaded)        
-            #Matrix.ApplyOffsetMatrixToNodes(nodesToLoad)
 
 
 class PosePointCloud(object):

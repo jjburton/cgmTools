@@ -1,7 +1,11 @@
 '''
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 This is the Core of the MetaNode implementation of the systems. 
@@ -27,6 +31,7 @@ your inherited class.
     ..\Red9\tests
 '''
 
+
 import maya.cmds as cmds
 import maya.mel as mel
 import maya.OpenMaya as OpenMaya
@@ -37,13 +42,12 @@ import Red9.startup.setup as r9Setup
 
 '''
 #=============================================
-NOTE: we can't import anything else that imports this
+NOTE: we can't import anything else here that imports this
 Module as it screw the Class Registry and we get Cyclic imports
 hence the r9Anim is LazyLoaded where needed
 import Red9_AnimationUtils as r9Anim 
 #=============================================
 '''
-
 
 import logging
 logging.basicConfig()
@@ -67,18 +71,38 @@ global RED9_META_REGISTERY
 '''     
 def registerMClassInheritanceMapping():
     global RED9_META_REGISTERY
-    #if not RED9_META_REGISTERY:
     RED9_META_REGISTERY={}
     RED9_META_REGISTERY['MetaClass']=MetaClass
     for mclass in r9General.itersubclasses(MetaClass):
         RED9_META_REGISTERY[mclass.__name__]=mclass
-        #RED9_META_REGISTERY[mclass.__name__]='%s.%s' % (mclass.__module__,mclass.__name__)
-    
+  
 def printSubClassRegistry():
     for m in RED9_META_REGISTERY:print m
+    
+def registerMClassNodeMapping(nodeTypes='network'):
+    '''
+    Hook to allow you to extend the type of nodes included in all the
+    getMeta searches. Allows you to expand into using nodes of any type
+    as metaNodes
+    @param nodeTypes: allows you to expand metaData and use any nodeType
+                    default is always 'network'
+    '''
+    global RED9_META_NODETYPE_REGISTERY
+    RED9_META_NODETYPE_REGISTERY=['network']
+    if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
+    for nType in nodeTypes:
+        if not nType in RED9_META_NODETYPE_REGISTERY:
+            log.debug('nodeType : %s : added to NODETYPE_REGISTRY')
+            RED9_META_NODETYPE_REGISTERY.append(nType)
+  
+def printMetaTypeRegistry():
+    for t in RED9_META_NODETYPE_REGISTERY:print t
+    
+def getMClassNodeTypes():
+    return RED9_META_NODETYPE_REGISTERY
 
-
-
+#------------------------------------------------------------------------------   
+    
 def attributeDataType(val):
     '''
     Validate the attribute type for all the cmds handling
@@ -108,6 +132,8 @@ def attributeDataType(val):
 def isMetaNode(node, mTypes=[]):
     '''
     Simple bool, Maya Node is or isn't an mNode
+    NOTE: this does not instantiate the mClass to query it like the
+    isMetaNodeInherited which has to figure the subclass mapping
     @param node: Maya node to test
     @param mTypes: only match given MetaClass's
     '''
@@ -127,7 +153,23 @@ def isMetaNode(node, mTypes=[]):
             return False
     else:
         return False
-    
+
+def isMetaNodeInherited(node, mInstances=[]):
+    '''
+    unlike isMetaNode which checks the node against a particular MetaClass,
+    this expands the check to see if the node is inherited from or a subclass of
+    a given Meta base class, ie, part of a system
+    TODO : we COULD return the instantiated metaClass object here rather than just a bool??
+    '''
+    if not type(mInstances)==list:mInstances=[mInstances]
+    if isMetaNode(node):
+        mClass=MetaClass(node) #instantiate the metaClass so we can work out subclass mapping
+        for inst in mInstances:
+            print inst, RED9_META_REGISTERY[inst],type(mClass)
+            if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
+                log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
+                return True
+                  
 def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
@@ -135,20 +177,25 @@ def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
                 the correct class object. If not then return the Maya node itself
     @param mTypes: only return meta nodes of a given type
     @param mInstances: idea - this will check subclass inheritance, ie, MetaRig would
-            return ALL nodes whos class is inherited from MetaRig. Allows you to 
-            group the data more efficiently
+            return ALL nodes who's class is inherited from MetaRig. Allows you to 
+            group the data more efficiently by base classes and their inheritance
     '''
     mNodes=[]
     if mTypes and not type(mTypes)==list:mTypes=[mTypes]
-    for node in cmds.ls(type='network'):
-        if isMetaNode(node, mTypes=mTypes):
-            mNodes.append(node)
+    for node in cmds.ls(type=RED9_META_NODETYPE_REGISTERY,l=True):
+        if not mInstances:
+            if isMetaNode(node, mTypes=mTypes):
+                mNodes.append(node)
+        else:
+            if isMetaNodeInherited(node,mInstances):
+                mNodes.append(node)
+
     if dataType=='mClass':
         return[MetaClass(node) for node in mNodes]
     else:
         return mNodes
             
-def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass', mTypes=[]):
+def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass', mTypes=[], mInstances=[]):
     '''
     From a given set of Maya Nodes return all connected mNodes
     Default return is mClass objects
@@ -158,20 +205,35 @@ def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass
     @param dataType: default='mClass' return the nodes already instantiated to 
                     the correct class object. If not then return the Maya node
     @param mTypes: return only given MetaClass's
+    @param mInstances: idea - this will check subclass inheritance, ie, MetaRig would
+            return ALL nodes who's class is inherited from MetaRig. Allows you to 
+            group the data more efficiently by base classes and their inheritance
     '''
     mNodes=[]
     if mTypes and not type(mTypes)==list:mTypes=[mTypes]
-    nodes=cmds.listConnections(nodes,type='network',s=source,d=destination)
-    if not nodes:
+    #nodes=cmds.listConnections(nodes,type='network',s=source,d=destination)
+    connections=[]
+    for nType in RED9_META_NODETYPE_REGISTERY:
+        con=cmds.listConnections(nodes,type=nType,s=source,d=destination)
+        if con:
+            connections.extend(con)
+    
+    if not connections:
         return mNodes
-    for node in nodes:
-        if isMetaNode(node,mTypes=mTypes):
-            mNodes.append(node)
+    for node in connections:
+        if not mInstances:
+            if isMetaNode(node, mTypes=mTypes):
+                mNodes.append(node)
+        else:
+            if isMetaNodeInherited(node,mInstances):
+                mNodes.append(node)
+            
     if dataType=='mClass':
         return [MetaClass(node) for node in set(mNodes)]
     else:
         return set(mNodes)
-
+    
+    
 def getConnectedMetaRig(node):
     '''
     just in case anybody is running this, will help the transition to the new func
@@ -208,7 +270,8 @@ class MClassNodeUI():
     '''
     Simple UI to display all MetaNodes in the scene
     '''
-    def __init__(self, mNodeTypes=None, closeOnSelect=False, funcOnSelection=None, sortBy='byClass', allowMulti=True):
+    def __init__(self, mTypes=None, mInstances=None, closeOnSelect=False, \
+                 funcOnSelection=None, sortBy='byClass', allowMulti=True):
         '''
         @param mNodeType: MetaNode class to search and display 'MetaRig'
         @param closeOnSelect: on text select close the UI
@@ -217,7 +280,8 @@ class MClassNodeUI():
             selected in the UI cmds.select(item) is run. Basically used as a dynamic callback
         @param sortBy: Sort the nodes found 'byClass' or 'byName' 
         '''
-        self.mNodeTypes=mNodeTypes
+        self.mInstances=mInstances
+        self.mTypes=mTypes
         self.closeOnSelect=closeOnSelect
         self.func=funcOnSelection #Given Function to run on the selected node when UI selected
         self.sortBy=sortBy
@@ -236,8 +300,8 @@ class MClassNodeUI():
 
         cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=15, style='none')
-        txt=self.mNodeTypes
-        if not self.mNodeTypes:
+        txt=self.mTypes
+        if not self.mTypes:
                 txt='All'
         cmds.text(label='Scene MetaNodes of type : %s' % txt)
         cmds.separator(h=15, style='none')
@@ -245,7 +309,7 @@ class MClassNodeUI():
             cmds.textScrollList('slMetaNodeList',font="fixedWidthFont")
         else:
             cmds.textScrollList('slMetaNodeList',font="fixedWidthFont", allowMultiSelection=True)
-        cmds.popupMenu()
+        cmds.popupMenu('r9MetaNodeUI_Popup')
         cmds.menuItem(label='SortBy : ClassName', command=partial(self.fillScroll,'byClass'))
         cmds.menuItem(label='SortBy : NodeName', command=partial(self.fillScroll,'byName'))
         #cmds.menuItem(label='SortBy : SystemTree', command=partial(self.fillScroll,'bySystemTree'))
@@ -296,11 +360,14 @@ class MClassNodeUI():
         
     def fillScroll(self, sortBy=None, mClassToShow=None, *args):
         cmds.textScrollList('slMetaNodeList', edit=True, ra=True)
-        if not mClassToShow: mClassToShow=self.mNodeTypes
+        if mClassToShow:
+            self.mNodes=getMetaNodes(mTypes=mClassToShow,mInstances=None)
+        else:
+            mClassToShow=self.mTypes
+            self.mNodes=getMetaNodes(mTypes=mClassToShow,mInstances=self.mInstances)
+            
         if not sortBy: sortBy=self.sortBy
-        
-        self.mNodes=getMetaNodes(mTypes=mClassToShow)
-   
+          
         if sortBy=='byClass':
             self.mNodes=sorted(self.mNodes, key=lambda x: x.mClass.upper())
         elif sortBy=='byName':
@@ -411,7 +478,7 @@ class MetaClass(object):
             log.debug("mClass not found or Registered")
             return super(cls.__class__, cls).__new__(cls)    
     
-    def __init__(self, node=None, name=None, autofill='all'):
+    def __init__(self, node=None, name=None, nodeType='network', autofill='all'):
         '''
         Base Class for Meta support. This manages all the attribute
         and class management for all subsequent inherited classes
@@ -419,6 +486,9 @@ class MetaClass(object):
                     we initialize a class of that type and return. If not passed in then we 
                     make a new network node for the type given. 
         @param name: only used on create, name to set for the new Maya Node (self.mNode) 
+        @param nodeType: allows you to specify a node of type to create as a new mClass node.
+                        default is 'network', not that for any node to show up in the get
+                        calls that type MUST be registered in the RED9_META_NODETYPE_REGISTERY
         @param autofill: 'str' cast all the MayaNode attrs into the class dict by default. 
                     Updated: modes: 'all' or 'messageOnly'. all casts every attr, messageOnly 
                     fills the node with just message linked attrs (designed for MetaClass work 
@@ -434,34 +504,45 @@ class MetaClass(object):
         if not node: 
             if not name:
                 name=str(self.__class__.__name__)
-            #no MayaNode passed in so make a fresh network node
-            node=cmds.createNode('network',name=name)
+            #no MayaNode passed in so make a fresh network node (default)
+            node=cmds.createNode(nodeType,name=name)
             self.mNode=node
-            self.addAttr('mClass', value=str(self.__class__.__name__))
+            self.addAttr('mClass', value=str(self.__class__.__name__)) #! MAIN ATTR !: used to know what class to instantiate.
+            self.addAttr('mNodeID', value=name)                        #! MAIN NODE ID !: used by pose systems to ID the node.
+            
             log.debug('New Meta Node Created')
-            cmds.setAttr('%s.%s' % (self.mNode,'mClass'),e=True,l=True)  #lock it
-         
-            self.__bindData__()
+            cmds.setAttr('%s.%s' % (self.mNode,'mClass'), e=True,l=True) #lock it
+            cmds.setAttr('%s.%s' % (self.mNode,'mNodeID'),e=True,l=True) #lock it
         else:
             self.mNode=node
             if isMetaNode(node):
                 log.debug('Meta Node Passed in : %s' % node)
             else:
                 log.debug('Standard Maya Node being metaManaged')
-
+                
+        #bind any default attrs up - note this should be overloaded where required
+        self.__bindData__()
+        
         #This is useful! so we have a node with a lot of attrs, or just a simple node
         #this block if activated will auto-fill the object.__dict__ with all the available
         #Maya node attrs, so you get autocomplete on ALL attrs in the script editor!
         if autofill=='all' or autofill=='messageOnly':
-            self.__autoFillAttrs(autofill)
+            self.fillAttrCache(autofill)
      
      
     def __bindData__(self):
         '''
-        This is intended as an entry point to allow you to bind whatever attrs or extras you 
-        need at a class level. It's only called in the __init__, and only on create of the node.
+        This is intended as an entry point to allow you to bind whatever attrs or extras 
+        you need at a class level. It's only called by the __init__ once the node is made.
         Intended to be overloaded as and when needed when inheriting from MetaClass
+        NOTE:
+            #to bind a new attr and serilaize it to the self.mNode (Maya node)
+            self.addAttr('newDefaultAttr',attrType='string') 
+            
+            #to bind a new attribute to the python object only, not serialized to Maya node
+            self.newClassAttr=None  :or:   self.__setattr__('newAttr',None)      
         '''
+
         pass    
      
     #Cast the mNode attr to the actual MObject so it's no longer limited by string dagpaths       
@@ -495,11 +576,11 @@ class MetaClass(object):
         else:
             return "%s(Wrapped Standard MayaNode, node: '%s')"  % (self.__class__, self.mNode.split('|')[-1])
         
-    def __autoFillAttrs(self, level):
+    def fillAttrCache(self, level):
         '''
-        go through all the attributes on the given node and cast each one
-        off them into the main object.__dict__ this means they all show in
-        the scriptEditor and autocomplete!
+        go through all the attributes on the given node and cast each one of them into 
+        the main object.__dict__ this means they all show in the scriptEditor and autocomplete!
+        This is ONLY for ease of use when dot complete in Maya, nothing more
         '''
         if level=='messageOnly':
             attrs=[attr for attr in cmds.listAttr(self.mNode) if cmds.getAttr('%s.%s' % (self.mNode,attr),type=True)=='message']
@@ -516,11 +597,6 @@ class MetaClass(object):
     def __setattr__(self, attr, value):
         '''
         Overload the base setattr to manage the MayaNode itself
-        
-        #TODO : Ideally lets test the attr valueType first, then compare it to the 
-        value valueType. Currently for compound attrs like translate this fails. Really
-        I think compounds should be set with a tuple, ie, node.translate=(10,20,30)
-        and the code should cope with that.
         '''
         object.__setattr__(self, attr, value)
 
@@ -579,8 +655,9 @@ class MetaClass(object):
                     try:
                         log.debug('set %s attribute' % attrType)
                         cmds.setAttr(attrString, value[0], value[1], value[2])
-                    except:
-                        raise ValueError('to set a %s attr you need to pass in a List or Tuple with 3 values' % attrType)
+                    except ValueError, error:
+                        raise ValueError(error)
+                        #raise ValueError('to set a %s attr you need to pass in a List or Tuple with 3 values' % attrType)
                 else:# not valueType=='message':
                     #can't set Message attrs like this
                     cmds.setAttr(attrString, value)
@@ -673,33 +750,40 @@ class MetaClass(object):
           
     def hasAttr(self, attr):
         '''
-        simple wrapper check, mimics Pymels func. Note this is not run
-        through some of the core internal calls in this baseClass
+        simple wrapper check for attrs on the mNode itself.
+        Note this is not run in some of the core internal calls in this baseClass
         '''
-        if cmds.attributeQuery(attr, exists=True, node=self.mNode):
-            return True
-        else:
-            return False      
-                                                                  
-    def addAttr(self, attr, value=None, type=False, hidden=True):
+        return cmds.attributeQuery(attr, exists=True, node=self.mNode)
+                                                              
+    def addAttr(self, attr, value=None, attrType=None, hidden=True, **kws):
         '''
         this is a simplified managed version of a Maya addAttr it manages
         the basic type flags for you whilst also setting the attr on the 
-        class object itself
+        MayaNode/class object itself. If attr exists it is not then set with value.
+        I now also merge in **kws to the dict I pass to the add command so you can 
+        specify all standard cmds.addAttr flags in the same call.
         @param attr:  attribute name to add
         @param value: value to set, if given the attribute type is automatically set for you
-        @param type: specify the exact type of attr to add.  
+        @param type: specify the exact type of attr to add. By default I try and resolve
+                    this for you from the type of value passed in.
+        @param hidden: whether the attr is set available in the channelBox (only applies keyable attrs)
+        NOTE: specific attr management for given types below:
+            double3: self.addAttr(attr='attrName', attrType='double3',value=((subAttr1,subAttr2,subAttr3),(value1,value2,value3))
+            float3:  self.addAttr(attr='attrName', attrType='float3', value=((subAttr1,subAttr2,subAttr3),(value1,value2,value3))
+            enum:    self.addAttr(attr='attrName', attrType='enum', value='Centre:Left:Right') 
         '''
         DataTypeKws={'string': {'longName':attr,'dt':'string'},\
                      'int':    {'longName':attr,'at':'long'},\
                      'bool':   {'longName':attr,'at':'bool'},\
                      'float':  {'longName':attr,'at':'double'},\
+                     'float3': {'longName':attr,'at':'float3'},\
+                     'double3':{'longName':attr,'at':'double3'},\
                      'enum':   {'longName':attr,'at':'enum','enumName':value},\
                      'complex':{'longName':attr,'dt':'string'},\
                      'message':{'longName':attr,'at':'message','m':True,'im':False},\
-                     'messageSimple':{'longName':attr,'at':'message','m':False}}
+                     'messageSimple':{'longName':attr,'at':'message','m':False}}      
         
-        Keyable=['int','float','bool','enum']  
+        Keyable=['int','float','bool','enum','double3']  
              
         if cmds.attributeQuery(attr, exists=True, node=self.mNode):
             log.debug('"%s" :  Attr already exists on the Node' % attr)
@@ -710,21 +794,44 @@ class MetaClass(object):
             return
         else:
             try:
-                if not type:
-                    type=attributeDataType(value)
-                log.debug('valueType : %s > dataType kws: %s' % (type,DataTypeKws[type]))
+                if not attrType:
+                    attrType=attributeDataType(value)
+                    
+                DataTypeKws[attrType].update(kws) #merge in **kws, allows you to pass in all the standard addAttr kws   
+                log.debug('valueType : %s > dataType kws: %s' % (attrType,DataTypeKws[attrType]))
                 log.debug('nMode : %s' % self.mNode)
-                cmds.addAttr(self.mNode, **DataTypeKws[type])
+                cmds.addAttr(self.mNode, **DataTypeKws[attrType])
 
-                if type in Keyable and not hidden:
-                    cmds.setAttr('%s.%s' % (self.mNode, attr),e=True,keyable=True)
-                if value and not type=='enum':
-                    #for enum we're using the value passed in to setup the enum list
-                    #so can't subsequently then use it to set the value
-                    self.__setattr__(attr, value)
+                #double3's
+                if attrType=='double3' or attrType=='float3':
+                    cmds.addAttr(self.mNode,longName=value[0][0],at='double',parent=attr,**kws)
+                    cmds.addAttr(self.mNode,longName=value[0][1],at='double',parent=attr,**kws)
+                    cmds.addAttr(self.mNode,longName=value[0][2],at='double',parent=attr,**kws)
+                    object.__setattr__(self, value[0][0], None) #don't set it, just add it to the object
+                    object.__setattr__(self, value[0][1], None) #don't set it, just add it to the object
+                    object.__setattr__(self, value[0][2], None) #don't set it, just add it to the object    
+                               
+                    if attrType in Keyable and not hidden:
+                        cmds.setAttr('%s.%s' % (self.mNode, value[0][0]),e=True,keyable=True) 
+                        cmds.setAttr('%s.%s' % (self.mNode, value[0][1]),e=True,keyable=True)
+                        cmds.setAttr('%s.%s' % (self.mNode, value[0][2]),e=True,keyable=True)
+                    if value[1]:
+                        log.debug('setting double3 : %s = %s' %(attr,value[1]))
+                        self.__setattr__(attr, value[1]) #set the compound values here
+                    else:
+                        #bind the attr to the object if no value passed in
+                        object.__setattr__(self, attr, None)
+                #everything else
                 else:
-                    #bind the attr to the object if no value passed in
-                    object.__setattr__(self, attr, None)
+                    if attrType in Keyable and not hidden:
+                        cmds.setAttr('%s.%s' % (self.mNode, attr),e=True,keyable=True)
+                    if value and not attrType=='enum':
+                        #for enum we're using the value passed in to setup the enum list
+                        #so can't subsequently then use it to set the value
+                        self.__setattr__(attr, value)
+                    else:
+                        #bind the attr to the object if no value passed in
+                        object.__setattr__(self, attr, None)
             except StandardError,error:
                 raise StandardError(error)
                    
@@ -756,8 +863,16 @@ class MetaClass(object):
             return MetaClass(self.mNode)
         else:
             raise StandardError('given class is not in the mClass Registry : %s' % newMClass)
-        
 
+    def isReferenced(self):
+        '''
+        is node.mNode referenced?
+        '''
+        return cmds.referenceQuery(self.mNode,inr=True)
+    
+    def nameSpace(self):
+        return self.mNode.split(':')[:-1]
+    
     # Connection Management Block
     #---------------------------------------------------------------------------------
     
@@ -771,29 +886,20 @@ class MetaClass(object):
         if not issubclass(type(nodes),list):
             nodes=[nodes]
         #make sure we have the attr on the mNode
-        self.addAttr(attr, type='message')
+        self.addAttr(attr, attrType='message')
         if cleanCurrent:
             #disconnect and cleanup any current plugs to this meaage attr
             self.__disconnectCurrentAttrPlugs(attr)  
             
+        srcAttr=attr  #attr on the nodes source side for the child connection
         for node in nodes:
-            if not cmds.attributeQuery(attr, exists=True, node=node):
-                cmds.addAttr(node,longName=attr,at='message',m=True,im=False)
+            if not cmds.attributeQuery(srcAttr, exists=True, node=node):
+                cmds.addAttr(node,longName=srcAttr,at='message',m=True,im=False)
             try:
-                cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,attr),f=cleanCurrent)
+                cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr),f=True)
             except StandardError,error:
                 log.warning(error)
                 
-    def searchJsonAttr(self):
-        '''
-        Franco's fault again! {piss:flap,jizz:knockers}
-        search attr(piss=flap)
-        '''
-        if dict():
-            pass
-        if list():
-            pass
-           
     def connectChild(self, node, attr, cleanCurrent=True):
         '''
         Fast method of connecting message links to the mNode as child
@@ -805,17 +911,18 @@ class MetaClass(object):
         '''
         #make sure we have the attr on the mNode, if we already have a MULIT-message
         #should we throw a warning here???
-        self.addAttr(attr, type='messageSimple')
+        self.addAttr(attr, attrType='messageSimple')
         if issubclass(type(node), MetaClass):
             node=node.mNode 
         try:
             if cleanCurrent:
-                #disconnect and cleanup any current plugs to this meaage attr
-                self.__disconnectCurrentAttrPlugs(attr)            
-                             
-            if not cmds.attributeQuery(attr, exists=True, node=node):
-                cmds.addAttr(node,longName=attr, at='message', m=False)
-            cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,attr), f=cleanCurrent)
+                #disconnect and cleanup any current plugs to this message attr
+                self.__disconnectCurrentAttrPlugs(attr)      
+                      
+            srcAttr=attr  #attr on the nodes source side for the child connection
+            if not cmds.attributeQuery(srcAttr, exists=True, node=node):
+                cmds.addAttr(node,longName=srcAttr, at='message', m=False)
+            cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=True)
         except StandardError,error:
             log.warning(error)
                           
@@ -825,7 +932,7 @@ class MetaClass(object):
         @param nodes: Maya nodes to connect to this mNode
         @param attr: Name for the message attribute  
         '''
-        self.addAttr(attr, type='message')
+        self.addAttr(attr, attrType='message')
         if issubclass(type(node), MetaClass):
             node=node.mNode 
         try:
@@ -879,12 +986,14 @@ class MetaClass(object):
                 if deleteSourcePlug:
                     try:
                         #del(sPlug)
+                        log.debug('Deleting Source Attr %s' % (sPlug))
                         cmds.deleteAttr(sPlug)
                     except:
                         log.warning('Failed to Remove mNode Connection Attr')
                 if deleteDestPlug:
                     try:
                         #del(dPlug)
+                        log.debug('Deleting Dest Attr %s' % (sPlug))
                         cmds.deleteAttr(dPlug)
                     except:
                         log.warning('Failed to Remove Node Connection Attr')
@@ -1005,7 +1114,7 @@ class MetaRig(MetaClass):
     def __bindData__(self):
         self.addAttr('version',1.0) #ensure these are added by default
         self.addAttr('rigType', '') #ensure these are added by default  
-        self.addAttr('renderMeshes', type='message')
+        self.addAttr('renderMeshes', attrType='message')
            
     def addGenericCtrls(self, nodes):
         '''
@@ -1192,8 +1301,8 @@ class MetaRigSubSystem(MetaRig):
         super(MetaRigSubSystem, self).__init__(*args,**kws)  
 
     def __bindData__(self):
-        self.addAttr('systemType', type='string')
-        self.addAttr('mirrorSide','Centre:Left:Right',type='enum')  
+        self.addAttr('systemType', attrType='string')
+        self.addAttr('mirrorSide','Centre:Left:Right',attrType='enum')  
  
  
 class MetaRigSupport(MetaClass):

@@ -4,7 +4,9 @@ Hacked popup menu for the Script Editor. Added the Red9_Inspect item
 original source file scriptEditorPanel.mel from C:\Program...\scripts\startup\
 */
 
+//==================================================
 //HACKED FROM: scripts/startup/scriptEditorPanel.mel
+//==================================================
 
 global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryPopup)
 //
@@ -24,12 +26,14 @@ global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryP
 			 -parent $parent 
 			 -label (uiRes("m_scriptEditorPanel.kSelectNextTab"))
 			 -command "handleScriptEditorAction \"selectNextExecuterTab\"";	 
-	//HACKED
+			 
+//HACKED ===================================================================
 	menuItem -radialPosition "SW" 
 			 -parent $parent 
-			 -label "Red9 InspectFunction"
+			 -label "Red9.InspectFunction"
 			 -command "handleScriptEditorAction \"copy\";red9_InspectCode";	 
-	//HACK_END	
+//HACK_END =================================================================	
+
 	$deleteSM = `menuItem -radialPosition "SE" 
 			 -parent $parent 
 			 -subMenu true

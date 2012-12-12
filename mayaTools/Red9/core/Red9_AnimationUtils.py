@@ -1,7 +1,11 @@
 '''
 ------------------------------------------
-Red9 Studio Pack : Maya Pipeline Solutions
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
 email: rednineinfo@gmail.com
+
+Red9 blog : http://red9-consultancy.blogspot.co.uk/
+MarkJ blog: http://markj3d.blogspot.co.uk
 ------------------------------------------
 
 This is the core of the Animation Toolset Lib, a suite of tools 
@@ -64,6 +68,7 @@ import Red9_Meta as r9Meta
 
 from functools import partial
 import os
+import random
 
 import Red9.packages.configobj as configobj
 #import configobj
@@ -235,10 +240,19 @@ class AnimationUI(object):
         self.filterSettings = r9Core.FilterNode_Settings()
         self.filterSettings.transformClamp=True
         self.presetDir = os.path.join(r9Setup.red9ModulePath(), 'presets')
-        self.PosePath=None
-        self.PoseSelected=None
-        self.PoseGridMode='thumb'
-        self.PoseRootMode='RootNode' # or MetaRig
+        
+        #Pose Management variables
+        self.posePath=None #working variable
+        self.posePathLocal='Local Pose Path not yet set' 
+        self.posePathProject='Project Pose Path not yet set'
+        self.posePathMode='localPoseMode' # or 'project' : mode of the PosePath field and UI
+        self.poseSelected=None 
+        self.poseGridMode='thumb'  # or text
+        self.poseRootMode='RootNode' # or MetaRig
+        self.poses=None
+        #self.poseButtonHighLight=[0.9,0.4,0.4]
+        self.poseButtonBGC=[0.27,0.3,0.3]         #[0.2,0.25,0.25] 
+        self.poseButtonHighLight=[0.7,0.95,0.75]  #[0.6, 0.9,0.65]
         
         #Internal config file setup for the UI state
         if self.internalConfigPath:
@@ -452,6 +466,7 @@ class AnimationUI(object):
         cmds.setParent(self.AnimLayout) 
         cmds.setParent(self.tabs)
         
+    
         #TAB2: ####################################################################
         
         #=====================================================================
@@ -539,14 +554,14 @@ class AnimationUI(object):
         cmds.setParent(self.FilterLayout)
         cmds.setParent(self.tabs)
         
-        
+
         #TAB3: ####################################################################
         
         #=====================================================================
         # Pose Saver Tab
         #=====================================================================
         
-        self.PoseUILayout = cmds.columnLayout(adjustableColumn=True)
+        self.poseUILayout = cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=10, style='none')
         self.uitfgPosePath = cmds.textFieldButtonGrp('uitfgPosePath', 
                                             ann='PosePath', 
@@ -554,38 +569,70 @@ class AnimationUI(object):
                                             bl='PosePath',
                                             bc=lambda * x: self.__uiCB_setPosePath(fileDialog=True),
                                             cc=lambda * x:self.__uiCB_setPosePath(),
-                                            cw=[(1,250),(2,50)])
+                                            cw=[(1,260),(2,40)])
+        
+        cmds.rowColumnLayout(nc=2,columnWidth=[(1, 120), (2, 120)],columnSpacing=[(1, 10)])
+        self.uircbPosePathMethod = cmds.radioCollection('posePathMode')
+        cmds.radioButton('localPoseMode', label='Local Poses',
+                                        ann='local mode gives you full control to save,delete and load the library',
+                                        onc=partial(self.__uiCB_switchPosePathMode,'local'),
+                                        ofc=partial(self.__uiCB_switchPosePathMode,'project'))
+        cmds.radioButton('projectPoseMode',label='Project Poses' ,
+                                        ann='Project mode disables all but the load functionality of the library',
+                                        onc=partial(self.__uiCB_switchPosePathMode,'project'),
+                                        ofc=partial(self.__uiCB_switchPosePathMode,'local'))
+        cmds.setParent(self.poseUILayout)
+        cmds.separator(h=10, style='in')
+        
+        if r9Setup.mayaVersion()>2012: #tcc flag not supported in earlier versions
+            self.searchFilter=cmds.textFieldGrp('tfPoseSearchFilter', label='searchFilter : ',text='', 
+                                                cw=((1,87),(2,160)),
+                                                tcc=lambda x:self.__uiCB_fillPoses(searchFilter=cmds.textFieldGrp('tfPoseSearchFilter',q=True,text=True)))         
+        else :
+            self.searchFilter=cmds.textFieldGrp('tfPoseSearchFilter', label='searchFilter : ',text='', 
+                                                cw=((1,87),(2,160)),
+                                                fcc=True,
+                                                cc=lambda x:self.__uiCB_fillPoses(searchFilter=cmds.textFieldGrp('tfPoseSearchFilter',q=True,text=True)))
         cmds.separator(h=10, style='none')
         
         #Main PoseFields
         self.uitslPoses = cmds.textScrollList('uitslPoses',numberOfRows=8, allowMultiSelection=False, 
                                                selectCommand=partial(self.__uiPresetSelection), \
                                                height=350,vis=False)
-        self.uiglPoseScroll = cmds.scrollLayout('uiglPoseScroll', height=350, hst=16,  vst=16, vis=False)
-        #TODO: on 2009 the scroll size/gridLayout size needs setting!
+        
+        self.uiglPoseScroll = cmds.scrollLayout('uiglPoseScroll', 
+                                                cr=True, 
+                                                height=350, 
+                                                hst=16,  
+                                                vst=16, 
+                                                vis=False, 
+                                                rc=lambda * x:self.__uiCB_gridResize())
         self.uiglPoses = cmds.gridLayout('uiglPoses', cwh=(100,100), cr=False, ag=True)
 
-        cmds.setParent(self.PoseUILayout)
+        cmds.setParent(self.poseUILayout)
         cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 162), (2, 162)])
-        cmds.button(label='Load Pose', bgc=self.buttonBgc, 
+        cmds.button('loadPoseButton',label='Load Pose', bgc=self.buttonBgc, 
                      ann='Load Pose data for the given Hierarchy or Selections', 
                      command=partial(self.__uiCall, 'PoseLoad')) 
-        cmds.button(label='Save Pose', bgc=self.buttonBgc, 
+        cmds.button('savePoseButton',label='Save Pose', bgc=self.buttonBgc, 
                      ann='Save Pose data for the given Hierarchy or Selections', 
                      command=partial(self.__uiCall, 'PoseSave')) 
-        cmds.setParent(self.PoseUILayout)
-        cmds.separator(h=10, style='none')
+        cmds.setParent(self.poseUILayout)
+        cmds.separator(h=10, style='in')
+        cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 80), (2, 250)])
+        self.uicbPoseHierarchy = cmds.checkBox('uicbPoseHierarchy', 
+                                            l='Hierarchy', al='left', en=True, v=False, 
+                                            ann="Hierarchy: if OFF during Load then the pose will load to the selected nodes IF they're in the pose file",
+                                            cc=lambda x:self.__uiCache_addCheckbox('uicbPoseHierarchy'))
         self.uitfgPoseRootNode = cmds.textFieldButtonGrp('uitfgPoseRootNode', 
                                             ann='Hierarchy Root Node for the Pose', 
                                             text="", 
                                             bl='SetRootNode',
                                             bc=lambda * x: self.__uiCB_setPoseRootNode(),
-                                            cw=[(1,250),(2,50)])
-        self.uicbPoseHierarchy = cmds.checkBox('uicbPoseHierarchy', 
-                                            l='Hierarchy', al='left', en=True, v=False, 
-                                            ann="Hierarchy: if OFF during Load then the pose will load to the selected nodes IF they're in the pose file",
-                                            cc=lambda x:self.__uiCache_addCheckbox('uicbPoseHierarchy'))
-        cmds.separator(h=15,style='in')
+                                            cw=[(1,180),(2,60)])
+
+        cmds.setParent(self.poseUILayout)
+        cmds.separator(h=10,style='in')
         self.uicbPoseRelative = cmds.checkBox('uicbPoseRelative', 
                                             l='RelativePose', al='left', en=True, v=False, 
                                             cc=lambda x:self.__uiCB_enableRelativeSwitches())
@@ -602,7 +649,7 @@ class AnimationUI(object):
         cmds.text(label='Translate Method')
         cmds.radioButton('tranProjected', label='projected' )
         cmds.radioButton('tranAbsolute', label='absolute' )
-        cmds.setParent(self.PoseUILayout)
+        cmds.setParent(self.poseUILayout)
         
         cmds.radioCollection(self.uircbPoseRotMethod, edit=True, select='rotProjected' )
         cmds.radioCollection(self.uircbPoseTranMethod, edit=True, select='tranProjected')
@@ -621,12 +668,12 @@ class AnimationUI(object):
         cmds.button(label='Update PPC', bgc=self.buttonBgc, 
                      ann='Update the PPC to the RIGS current pose', 
                      command=partial(self.__uiCall, 'PosePC_Update')) 
-        cmds.setParent(self.PoseUILayout)        
+        cmds.setParent(self.poseUILayout)        
         #====================
         #TabsEnd
         #====================
         cmds.tabLayout(self.tabs, edit=True, tabLabel=((self.AnimLayout, 'Animation_Toolkit'), 
-                                                       (self.PoseUILayout,'PoseManager'),
+                                                       (self.poseUILayout,'PoseManager'),
                                                        (self.FilterLayout, 'Hierarchy_Control')))
         #====================
         # Header
@@ -636,10 +683,8 @@ class AnimationUI(object):
         cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp', 
                              c=lambda * args:(r9Setup.red9ContactInfo()), h=22, w=200)
         
-        #Set the initial Interface up
-        self.__uiPresetsUpdate()
-        self.__uiPresetReset() 
-        self.__uiCache_loadUIElements()
+        #needed for 2009
+        cmds.scrollLayout('uiglPoseScroll',e=True,h=350)
         
         #====================
         # Show and Dock
@@ -657,6 +702,11 @@ class AnimationUI(object):
             cmds.showWindow(animwindow)
             cmds.window(self.win, edit=True, widthHeight=(355, 600))
             
+        #Set the initial Interface up
+        self.__uiPresetsUpdate()
+        self.__uiPresetReset() 
+        self.__uiCache_loadUIElements()
+          
 
     # UI Callbacks
     #------------------------------------------------------------------------------
@@ -694,26 +744,25 @@ class AnimationUI(object):
             cmds.checkBox(self.uicbTimeOffsetFlocking, e=True, en=True)
             cmds.checkBox(self.uicbTimeOffsetRandom, e=True, en=True)
         
-    def __uiCB_addToNodeTypes(self, type, *args):
+    def __uiCB_addToNodeTypes(self, nodeType, *args):
         '''
         Manage the RMB PopupMenu entries for easy adding nodeTypes to the UI
         '''
         nodeTypes = []
-        if type == 'clearAll':
+        if nodeType == 'clearAll':
             cmds.textFieldGrp('uitfgSpecificNodeTypes', e=True, text="")
             return
         current = cmds.textFieldGrp('uitfgSpecificNodeTypes', q=True, text=True)    
         if current:
             nodeTypes = current.split(',')
-            if type not in nodeTypes:
-                nodeTypes.append(type)
+            if nodeType not in nodeTypes:
+                nodeTypes.append(nodeType)
             else:
-                nodeTypes.remove(type)
+                nodeTypes.remove(nodeType)
         else:
-            nodeTypes.append(type)
+            nodeTypes.append(nodeType)
         cmds.textFieldGrp('uitfgSpecificNodeTypes', e=True, text=','.join(nodeTypes))
  
-
 
     # Preset FilterSettings Object Management
     #------------------------------------------------------------------------------    
@@ -863,24 +912,78 @@ class AnimationUI(object):
         '''
         set the PoseSelected cache for the UI calls
         '''
-        if not self.PoseGridMode=='thumb':
-            self.PoseSelected=cmds.textScrollList(self.uitslPoses, q=True,si=True)[0]
+        if not self.poseGridMode=='thumb':
+            self.poseSelected=cmds.textScrollList(self.uitslPoses, q=True,si=True)[0]
         else:
-            self.PoseSelected=val
-        log.debug('PoseSelected : %s' % self.PoseSelected)
+            self.poseSelected=val
+        log.debug('PoseSelected : %s' % self.poseSelected)
         
     def getPoseSelected(self):
-        if not self.PoseSelected:
+        if not self.poseSelected:
             raise StandardError('No Pose Selected in the UI')
-        return self.PoseSelected
+        return self.poseSelected
 
+    def buildPoseList(self):
+        '''
+        get a list of poses from the PoseRootDir, this then
+        allows us to filter if needed
+        '''
+        self.poses=[]
+        if not os.path.exists(self.posePath):
+            log.debug('posePath is invalid')
+            return self.poses
+        files=os.listdir(self.posePath)
+        files.sort()
+        for f in files:
+            if f.lower().endswith('.pose'):
+                self.poses.append(f.split('.pose')[0])
+        return self.poses
+  
+    def buildFilteredPoseList(self,searchFilter):
+        filteredPoses=[]
+        for pose in self.poses:
+            if searchFilter and not searchFilter.upper() in pose.upper():
+                continue
+            filteredPoses.append(pose)
+        return filteredPoses
+    
+    def __validatePoseFunc(self,func):
+        '''
+        called in some of the funcs so that they raise an error when called in 'Project' mode
+        '''
+        if self.posePathMode=='projectPoseMode':
+            raise StandardError('%s : function disabled in Project Pose Mode!' % func)
+        else:
+            return True
+         
     def __uiCB_selectPose(self,pose):
         if pose:
-            if not self.PoseGridMode=='thumb':
+            if not self.poseGridMode=='thumb':
                 cmds.textScrollList(self.uitslPoses, e=True,si=pose)
             else:
                 self.__uiCB_iconGridSelection(pose)
 
+    def __uiCB_switchPosePathMode(self,mode,*args):
+        '''
+        Switch the Pose mode from Project to Local. In project mode save is disabled.
+        Both have different caches to store the 2 mapped root paths
+        @param mode: 'local' or 'project', in project the poses are load only, save=disabled
+        '''
+        if mode=='local':
+            self.posePath=self.posePathLocal
+            self.posePathMode='localPoseMode'
+            cmds.button('savePoseButton',e=True,en=True,bgc=r9Setup.red9ButtonBGC(1))
+        elif mode=='project':
+            self.posePath=self.posePathProject
+            self.posePathMode='projectPoseMode'
+            cmds.button('savePoseButton',e=True,en=False,bgc=r9Setup.red9ButtonBGC(2))      
+        cmds.textFieldButtonGrp('uitfgPosePath',e=True,text=self.posePath)
+        cmds.scrollLayout('uiglPoseScroll',e=True,sp='up')
+        
+        self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode  
+        self.__uiCB_fillPoses(rebuildFileList=True)
+
+            
     def __uiCB_setPosePath(self,path=None,fileDialog=False):
         '''
         Manage the PosePath textfield and build the PosePath
@@ -888,25 +991,34 @@ class AnimationUI(object):
         if fileDialog:
             try:
                 if r9Setup.mayaVersion()>=2011:
-                    self.PosePath=cmds.fileDialog2(fileMode=3,dir=self.PosePath)[0]
+                    self.posePath=cmds.fileDialog2(fileMode=3,dir=self.posePath)[0]
                 else:
                     print 'Sorry Maya2009 and Maya2010 support is being dropped'
                     def setPosePath( fileName, fileType):
-                        self.PosePath=fileName
+                        self.posePath=fileName
                     cmds.fileBrowserDialog( m=4, fc=setPosePath, ft='image', an='setPoseFolder', om='Import' )
             except:
                 log.warning('No Folder Selected or Given')
         else:
             if not path:
-                self.PosePath=cmds.textFieldButtonGrp('uitfgPosePath',q=True,text=True)
+                self.posePath=cmds.textFieldButtonGrp('uitfgPosePath',q=True,text=True)
             else:
-                self.PosePath=path
+                self.posePath=path
                 
-        cmds.textFieldButtonGrp('uitfgPosePath',e=True,text=self.PosePath)    
-        self.__uiCB_fillPoses()
-        
+        #internal cache for the 2 path modes        
+        if self.posePathMode=='localPoseMode':
+            self.posePathLocal=self.posePath
+        else:
+            self.posePathProject=self.posePath
+            
+        cmds.textFieldButtonGrp('uitfgPosePath',e=True,text=self.posePath)                   
+        self.__uiCB_fillPoses(rebuildFileList=True)
+    
         #fill the cache up for the ini file
-        self.ANIM_UI_OPTVARS['AnimationUI']['posePath']=self.PosePath
+        self.ANIM_UI_OPTVARS['AnimationUI']['posePath']=self.posePath
+        self.ANIM_UI_OPTVARS['AnimationUI']['posePathLocal']=self.posePathLocal
+        self.ANIM_UI_OPTVARS['AnimationUI']['posePathProject']=self.posePathProject
+        self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode
         self.__uiCache_storeUIElements()
         
     def __uiCB_getPosePath(self):
@@ -923,29 +1035,38 @@ class AnimationUI(object):
         return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),\
                             '%s.bmp' % self.getPoseSelected())
     
-    def __uiCB_fillPoses(self):
+      
+                              
+    def __uiCB_fillPoses(self, rebuildFileList=False, searchFilter=None ):
         '''
         Fill the Pose List/Grid from the given directory
         '''
-        #self.PoseSelected=None
-        files=os.listdir(self.PosePath)
-        files.sort()
+
         #Store the current mode to the Cache File
-        self.ANIM_UI_OPTVARS['AnimationUI']['poseMode'] = self.PoseGridMode 
+        self.ANIM_UI_OPTVARS['AnimationUI']['poseMode'] = self.poseGridMode 
         self.__uiCache_storeUIElements()
+        searchFilter=cmds.textFieldGrp('tfPoseSearchFilter',q=True,text=True)
+        
+        if rebuildFileList:
+            self.buildPoseList()
+            log.debug('Rebuilt Pose internal Lists')        
+        log.debug( 'searchFilter  : %s : rebuildFileList : %s' %(searchFilter, rebuildFileList))
+
         
         #TextScroll Layout
         #================================ 
-        if not self.PoseGridMode=='thumb':
+        if not self.poseGridMode=='thumb':
             popupBind=self.uitslPoses
             cmds.textScrollList(self.uitslPoses, edit=True, vis=True)
             cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=False)
             cmds.textScrollList(self.uitslPoses, edit=True, ra=True)
-            for file in files:
-                if file.lower().endswith('.pose'):
-                    f=file.split('.pose')[0]
-                    cmds.textScrollList(self.uitslPoses, edit=True, \
-                                        append=f,\
+            
+            if searchFilter:
+                cmds.scrollLayout('uiglPoseScroll',e=True,sp='up')
+                
+            for pose in self.buildFilteredPoseList(searchFilter):
+                cmds.textScrollList(self.uitslPoses, edit=True, 
+                                        append=pose,
                                         sc=partial(self.setPoseSelected))
         #Grid Layout
         #================================ 
@@ -953,53 +1074,69 @@ class AnimationUI(object):
             popupBind=self.uiglPoseScroll
             cmds.textScrollList(self.uitslPoses, edit=True, vis=False)
             cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=True)
+            self.__uiCB_gridResize()
+            
+                
             #Clear the Grid if it's already filled
             try:
                 [cmds.deleteUI(button) for button in cmds.gridLayout(self.uiglPoses,q=True,ca=True)]
             except:
                 pass
-            for file in files:
-                if file.lower().endswith('.pose'):
-                    f=file.split('.pose')[0]
-                    try:
-                        #:NOTE we prefix the buttons to get over the issue of non-numeric 
-                        #first characters which are stripped my Maya!
-                        cmds.iconTextCheckBox( '_%s' % f, style='iconAndTextVertical', \
-                                                image=os.path.join(self.PosePath,'%s.bmp' % f), \
-                                                #image1=os.path.join(self.PosePath,'%ssm.bmp' % f), \
-                                                #image2=os.path.join(self.PosePath,'%smed.bmp' % f), \
-                                                #image3=os.path.join(self.PosePath,'%slrg.bmp' % f), \
-                                                label=f,\
-                                                parent=self.uiglPoses,\
-                                                onc=partial(self.__uiCB_iconGridSelection,f),\
-                                                ofc="import maya.cmds as cmds;cmds.iconTextCheckBox('_%s', e=True, v=True)" % f) #we DONT allow you to deselect
-                                                #ofc=partial(self.__uiCB_iconGridSelection,None))
-                    except StandardError,error:
-                        raise StandardError(error)
+            for pose in self.buildFilteredPoseList(searchFilter):
+                try:
+                    #:NOTE we prefix the buttons to get over the issue of non-numeric 
+                    #first characters which are stripped my Maya!
+                    cmds.iconTextCheckBox( '_%s' % pose, style='iconAndTextVertical', \
+                                            image=os.path.join(self.posePath,'%s.bmp' % pose), \
+                                            label=pose,\
+                                            bgc=self.poseButtonBGC,\
+                                            parent=self.uiglPoses,\
+                                            onc=partial(self.__uiCB_iconGridSelection, pose),\
+                                            ofc="import maya.cmds as cmds;cmds.iconTextCheckBox('_%s', e=True, v=True)" % pose) #we DONT allow you to deselect
+                except StandardError,error:
+                    raise StandardError(error)
+             
+            if searchFilter:
+                #with search scroll the list to the top as results may seem blank otherwise
+                cmds.scrollLayout('uiglPoseScroll',e=True,sp='up')   
                     
         #Finally Bind the Popup-menu                
         self.__uiCB_PosePopup(popupBind)
-    
+  
+  
+    def __uiCB_gridResize(self):
+        if r9Setup.mayaVersion()>=2010:
+            cells=int(cmds.scrollLayout('uiglPoseScroll',q=True,w=True)/cmds.gridLayout('uiglPoses',q=True,cw=True))
+            cmds.gridLayout('uiglPoses',e=True,nc=cells)
+        else:
+            log.debug('this call FAILS in 2009???')
+        
     def __uiCB_PosePopup(self,parentUI):
         '''
         RMB popup menu for the Pose functions
         '''
         try:
-            cmds.deleteUI(self.PosePopup)
+            cmds.deleteUI(self.posePopup)
         except:
-            pass             
-        self.PosePopup = cmds.popupMenu(parent=parentUI)                    
-        cmds.menuItem(label='Delete Pose', command=partial(self.__uiCB_deletePose))
-        cmds.menuItem(label='Rename Pose', command=partial(self.__uiCB_renamePose))
-        cmds.menuItem(label='Update Pose', command=partial(self.__uiCB_updatePose))
+            pass 
+        enableState=True  
+        if self.posePathMode=='projectPoseMode':
+            enableState=False
+
+        self.posePopup = cmds.popupMenu(parent=parentUI)                    
+        cmds.menuItem(label='Delete Pose', en=enableState, command=partial(self.__uiCB_deletePose))
+        cmds.menuItem(label='Rename Pose', en=enableState, command=partial(self.__uiCB_renamePose))
+        cmds.menuItem(label='Update Pose', en=enableState, command=partial(self.__uiCB_updatePose))
         cmds.menuItem(label='Select IntenalPose Objects', command=partial(self.__uiCB_selectPoseObjects))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Debug: Open Pose File', command=partial(self.__uiCB_openPoseFile))
         cmds.menuItem(label='Debug: Open Pose Directory', command=partial(self.__uiCB_openPoseDir))
         cmds.menuItem(divider=True)
+        cmds.menuItem(label='Copy Pose >> Project Poses', en=enableState,command=partial(self.__uiCB_copyPoseToProject))     
+        cmds.menuItem(divider=True)
         cmds.menuItem(label='Switch Pose Mode - Thumb/Text', command=partial(self.__uiCB_switchPoseMode))
 
-        if self.PoseGridMode=='thumb':
+        if self.poseGridMode=='thumb':
             cmds.menuItem(divider=True)
             cmds.menuItem(label='Update Thumb', command=partial(self.__uiCB_updateThumb))
             cmds.menuItem(label='Grid Size: Small', command=partial(self.__uiCB_setPoseGrid,'small'))
@@ -1015,9 +1152,10 @@ class AnimationUI(object):
         if size=='medium':
             cmds.gridLayout(self.uiglPoses,e=True,cwh=(100,90),nc=3)
         if size=='large':
-            cmds.gridLayout(self.uiglPoses,e=True,cwh=(150,120),nc=2)
+            cmds.gridLayout(self.uiglPoses,e=True,cwh=(150,120),nc=2)     
         self.__uiCB_fillPoses()
-    
+        self.__uiCB_selectPose(self.poseSelected) 
+        
     def __uiCB_iconGridSelection(self,current=None,*args):
         '''
         Unselect all other iconTextCheckboxes than the currently selected
@@ -1028,21 +1166,21 @@ class AnimationUI(object):
         '''
         for button in cmds.gridLayout(self.uiglPoses,q=True,ca=True):
             if current and not button[1:]==current:
-                cmds.iconTextCheckBox(button,e=True,v=False,bgc=[0.3,0.3,0.3])#,fn='plainLabelFont',)
+                cmds.iconTextCheckBox(button,e=True,v=False,bgc=self.poseButtonBGC)
             else:
-                cmds.iconTextCheckBox(button,e=True,v=True,bgc=[0.9,0.4,0.4])#,fn='boldLabelFont')
+                cmds.iconTextCheckBox(button,e=True,v=True,bgc=self.poseButtonHighLight)
         self.setPoseSelected(current) 
     
     def __uiCB_switchPoseMode(self,*args):
         '''
         Toggle PoseField mode between Grid mode and TextScroll
         '''
-        if self.PoseGridMode=='thumb':
-            self.PoseGridMode='text'
+        if self.poseGridMode=='thumb':
+            self.poseGridMode='text'
         else:
-            self.PoseGridMode='thumb'
+            self.poseGridMode='thumb'
         self.__uiCB_fillPoses()
-        self.__uiCB_selectPose(self.PoseSelected) 
+        self.__uiCB_selectPose(self.poseSelected) 
           
     def __uiCB_savePosePath(self,existingText=None):
         '''
@@ -1065,10 +1203,11 @@ class AnimationUI(object):
                 raise ValueError(error)
                 
     def __uiCB_deletePose(self,*args):
+        self.__validatePoseFunc('DeletePose')
         result = cmds.confirmDialog(
                 title='Confirm Pose Delete',
                 button=['Yes', 'Cancel'],
-                message='confirm deletion of pose file: "%s"' % self.PoseSelected,
+                message='confirm deletion of pose file: "%s"' % self.poseSelected,
                 defaultButton='Yes',
                 cancelButton='Cancel',
                 dismissString='Cancel')
@@ -1081,7 +1220,7 @@ class AnimationUI(object):
                 os.remove(self.__uiCB_getIconPath())
             except:
                 log.info('Failed to Delete PoseIcon')
-            self.__uiCB_fillPoses()
+            self.__uiCB_fillPoses(rebuildFileList=True)
         
     def __uiCB_renamePose(self,*args):
         try:
@@ -1093,7 +1232,7 @@ class AnimationUI(object):
             os.rename(self.__uiCB_getIconPath(), '%s.bmp' % newName.split('.pose')[0])
         except:
             log.info('Failed to Rename Pose')
-        self.__uiCB_fillPoses()  
+        self.__uiCB_fillPoses(rebuildFileList=True)  
         pose=os.path.basename(newName.split('.pose')[0])
         self.__uiCB_selectPose(pose)   
         
@@ -1108,9 +1247,10 @@ class AnimationUI(object):
         subprocess.Popen('explorer "%s"' % path)
      
     def __uiCB_updatePose(self,*args):
+        self.__validatePoseFunc('UpdatePose')
         result = cmds.confirmDialog(
                 title='PoseUpdate',
-                message=('<< Replace & Update Pose file >>\n\n%s' % self.PoseSelected),
+                message=('<< Replace & Update Pose file >>\n\n%s' % self.poseSelected),
                 button=['OK', 'Cancel'],
                 defaultButton='OK',
                 cancelButton='Cancel',
@@ -1121,7 +1261,7 @@ class AnimationUI(object):
             except:
                 log.debug('unable to delete the Pose Icon file')
             self.__PoseSave(self.__uiCB_getPosePath())
-            self.__uiCB_selectPose(self.PoseSelected)   
+            self.__uiCB_selectPose(self.poseSelected)   
     
     def __uiCB_updateThumb(self,*args):
         sel=cmds.ls(sl=True,l=True)
@@ -1136,7 +1276,7 @@ class AnimationUI(object):
         if sel:
             cmds.select(sel)
         self.__uiCB_fillPoses()
-        self.__uiCB_selectPose(self.PoseSelected)   
+        self.__uiCB_selectPose(self.poseSelected)   
 
     def __uiCB_selectPoseObjects(self,*args): 
         '''
@@ -1165,11 +1305,11 @@ class AnimationUI(object):
             #bound to a function so it can be passed onto the MetaNoode selector UI
             cmds.textFieldButtonGrp('uitfgPoseRootNode',e=True,text=text)
             
-        if self.PoseRootMode=='RootNode':
+        if self.poseRootMode=='RootNode':
             if not rootNode:
                 raise StandardError('Warning nothing selected')
             fillTextField(rootNode[0])        
-        elif self.PoseRootMode=='MetaRoot':
+        elif self.poseRootMode=='MetaRoot':
             if rootNode:
                 #metaRig=r9Meta.getConnectedMetaNodes(rootNode[0])
                 metaRig=r9Meta.getConnectedMetaSystemRoot(rootNode[0])
@@ -1181,7 +1321,7 @@ class AnimationUI(object):
                 if metaRigs:
                     r9Meta.MClassNodeUI(closeOnSelect=True,\
                                         funcOnSelection=fillTextField,\
-                                        mNodeTypes=['MetaRig','MetaFacialRig'],\
+                                        mInstances=['MetaRig'],\
                                         allowMulti=False)._showUI()
                 else:
                     
@@ -1195,11 +1335,11 @@ class AnimationUI(object):
         Manage the PoseRootNode method, either switch to standard rootNode or MetaNode
         '''
         if cmds.checkBox('uicbMetaRig',q=True,v=True):
-            self.PoseRootMode='MetaRoot'
+            self.poseRootMode='MetaRoot'
             cmds.textFieldButtonGrp('uitfgPoseRootNode',e=True,bl='MetaRoot')
         else: 
-            self.PoseRootMode='RootNode'  
-            cmds.textFieldButtonGrp('uitfgPoseRootNode',e=True,bl='SetRootNode')
+            self.poseRootMode='RootNode'  
+            cmds.textFieldButtonGrp('uitfgPoseRootNode',e=True,bl='SetRoot')
         #self.__uiCache_addCheckbox('uicbMetaRig')
         self.__uiCache_storeUIElements()
         
@@ -1222,6 +1362,20 @@ class AnimationUI(object):
     def __uiCB_enableRelativeSwitches(self):
         self.__uiCache_addCheckbox('uicbPoseRelative')
         cmds.frameLayout(self.uiflPoseRelativeFrame, e=True,en=cmds.checkBox(self.uicbPoseRelative,q=True,v=True))
+    
+    def __uiCB_copyPoseToProject(self,*args):
+        '''
+        Copy local pose to the Project Pose Folder
+        '''
+        import shutil
+        if not os.path.exists(self.posePathProject):
+            raise StandardError('Project Pose Path is inValid')
+        log.info('Copying Local Pose: %s >> ' % (self.poseSelected,self.posePathProject))
+        try:
+            shutil.copy2(self.__uiCB_getPosePath(),self.posePathProject)
+            shutil.copy2(self.__uiCB_getIconPath(),self.posePathProject)
+        except:
+            raise StandardError('Unable to copy pose : %s > to Project dirctory' % self.poseSelected)
         
     #------------------------------------------------------------------------------
     #UI Elements ConfigStore Callbacks --------------------------------------------  
@@ -1230,47 +1384,67 @@ class AnimationUI(object):
         '''
         Store some of the main components of the UI out to an ini file
         '''
-        log.debug('UI configFile being written')
-        ConfigObj = configobj.ConfigObj(indent_type='\t')
-        self.__uiPresetFillFilter() #fill the internal filterSettings obj
-        
-        ConfigObj['filterNode_settings']=self.filterSettings.__dict__
-        ConfigObj['AnimationUI']=self.ANIM_UI_OPTVARS['AnimationUI']
-        ConfigObj.filename = self.ui_optVarConfig
-        ConfigObj.write()
+        if not self.uiBoot:
+            log.debug('UI configFile being written')
+            ConfigObj = configobj.ConfigObj(indent_type='\t')
+            self.__uiPresetFillFilter() #fill the internal filterSettings obj
+            
+            ConfigObj['filterNode_settings']=self.filterSettings.__dict__
+            ConfigObj['AnimationUI']=self.ANIM_UI_OPTVARS['AnimationUI']
+            ConfigObj.filename = self.ui_optVarConfig
+            ConfigObj.write()
         
     
     def __uiCache_loadUIElements(self):
         '''
         Restore the main UI elements from the ini file
         '''
-        def __uiCache_LoadCheckboxes():
-            if self.ANIM_UI_OPTVARS['AnimationUI'].has_key('checkboxes'):
-                for cb,status in self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes'].items():
-                    cmds.checkBox(cb,e=True,v=r9Core.decodeString(status))
-            
-        AnimationUI=self.ANIM_UI_OPTVARS['AnimationUI']
-        try:
+        self.uiBoot=True
+        try: 
+            log.debug('Loading UI Elements from the config file')
+            def __uiCache_LoadCheckboxes():
+                if self.ANIM_UI_OPTVARS['AnimationUI'].has_key('checkboxes'):
+                    for cb,status in self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes'].items():
+                        cmds.checkBox(cb,e=True,v=r9Core.decodeString(status))
+                
+            AnimationUI=self.ANIM_UI_OPTVARS['AnimationUI']
+
             if AnimationUI.has_key('filterNode_preset') and AnimationUI['filterNode_preset']:
                 cmds.textScrollList(self.uitslPresets, e=True, si=AnimationUI['filterNode_preset'])
                 self.__uiPresetSelection(Read=True)   ###not sure on this yet????
             if AnimationUI.has_key('poseMode') and AnimationUI['poseMode']:
-                self.PoseGridMode=AnimationUI['poseMode']
-            if AnimationUI.has_key('posePath') and AnimationUI['posePath']:
-                self.__uiCB_setPosePath(path=AnimationUI['posePath'])
+                self.poseGridMode=AnimationUI['poseMode']
+                
+            if AnimationUI.has_key('posePathMode') and AnimationUI['posePathMode']:
+                self.posePathMode=AnimationUI['posePathMode']
+            
+            if AnimationUI.has_key('posePathLocal') and AnimationUI['posePathLocal']:
+                self.posePathLocal=AnimationUI['posePathLocal']
+            if AnimationUI.has_key('posePathProject') and AnimationUI['posePathProject']:
+                self.posePathProject=AnimationUI['posePathProject']                
+        
+            #if AnimationUI.has_key('posePath') and AnimationUI['posePath']:
+            #    self.__uiCB_setPosePath(path=AnimationUI['posePath'])
             if AnimationUI.has_key('poseRoot') and AnimationUI['poseRoot']:
                 if cmds.objExists(AnimationUI['poseRoot']):
                     cmds.textFieldButtonGrp('uitfgPoseRootNode',e=True,text=AnimationUI['poseRoot'])
                     
             __uiCache_LoadCheckboxes()
-
+            
             #callbacks
-            self.__uiCB_enableRelativeSwitches()
-            self.__uiCB_managePoseRootMethod()
+            cmds.radioCollection(self.uircbPosePathMethod, edit=True, select=self.posePathMode)
+            self.__uiCB_enableRelativeSwitches()              # relativePose switch enables
+            self.__uiCB_managePoseRootMethod()                # metaRig or SetRootNode for Pose Root
+            self.__uiCB_switchPosePathMode(self.posePathMode) # pose Mode - 'local' or 'project'
+            
+            
         except StandardError,err:
             log.debug('failed to complete UIConfig load')
             log.warning(err)
-        
+        finally:
+            self.uiBoot=False
+             
+             
     def __uiCache_readUIElements(self):
         '''
         read the config ini file for the initial state of the ui
@@ -1413,7 +1587,7 @@ class AnimationUI(object):
                                                       path,
                                                       useFilter=poseHierarchy)
         log.info('Pose Stored to : %s' % path)
-        self.__uiCB_fillPoses()
+        self.__uiCB_fillPoses(rebuildFileList=True)
             
     def __PoseLoad(self):  
         poseHierarchy=cmds.checkBox('uicbPoseHierarchy',q=True,v=True)
@@ -1953,22 +2127,194 @@ class AnimFunctions(object):
         
     @staticmethod    
     def inverseAnimChannels(node, channels, time=None):
+        '''
+        really basic method used in the Mirror calls
+        '''
         #for chan in channels:
             #cmds.scaleKey('%s_%s' % (node,chan),vs=-1)
         if time:
             cmds.scaleKey(node,valueScale=-1,attribute=channels,time=time)
         else:
-            cmds.scaleKey(node,vs=-1,attribute=channels)
+            cmds.scaleKey(node,valueScale=-1,attribute=channels)
             
     @staticmethod
     def inverseAttributes(node, channels):
+        '''
+        really basic method used in the Mirror calls
+        '''
         for chan in channels:
             try:
                 cmds.setAttr('%s.%s' % (node,chan), cmds.getAttr('%s.%s' % (node,chan))*-1)
             except:
                 log.debug('failed to inverse %s attr' % chan)
   
-  
+
+
+class RandomizeKeys(object):
+    '''
+    This is a simple implementation of a Key Randomizer, designed to add
+    noise to animations    
+    '''
+    def __init__(self):
+        self.win='KeyRandomizerOptions' 
+        
+    def noiseFunc(self,initialValue,randomRange,damp):
+        '''
+        really simple noise func, maybe I'll flesh this out at somepoint
+        '''
+        return initialValue + (random.uniform(randomRange[0],randomRange[1])*damp)
+    
+    @classmethod
+    def showOptions(cls):
+        cls()._showUI()
+        
+    def _showUI(self):
+                 
+            if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
+            window = cmds.window(self.win, title="KeyRandomizer", s=False, widthHeight=(260,300))
+            
+            cmds.columnLayout(adjustableColumn=True,columnAttach=('both',5))
+            cmds.separator(h=15, style='none')
+
+            cmds.floatFieldGrp('ffg_rand_damping', label='strength : value', v1=1, precision=2)
+            cmds.floatFieldGrp('ffg_rand_frmStep', label='frameStep', v1=1, en=False, precision=2)
+            cmds.separator(h=15, style='in')
+            cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,125),(2,125)])
+            cmds.checkBox('cb_rand_current',
+                          l='Current Keys Only',v=True,
+                          cc=lambda x:self.__uicb_currentKeysCallback()) 
+            cmds.checkBox('cb_rand_percent',
+                          l='Pre-Normalize Curves', v=True,
+                          ann='Pre-Normalize: process based on value percentage range auto-calculated from curves',
+                          cc=lambda x:self.__uicb_percentageCallback()) 
+            cmds.setParent('..')
+            cmds.separator(h=15,style='none')  
+            cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,125),(2,125)])
+            cmds.button(label='Apply', bgc=r9Setup.red9ButtonBGC(1),
+                         command=lambda *args:(RandomizeKeys().curveMenuFunc()))   
+            cmds.button(label='SavePref', bgc=r9Setup.red9ButtonBGC(1),
+                         command=lambda *args:(self.__storePrefs()))
+            cmds.setParent('..')
+            cmds.separator(h=15,style='none')  
+            cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
+                                 c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
+            cmds.showWindow(window)
+            self.__loadPrefsToUI()
+    
+    def __uicb_currentKeysCallback(self):
+        if cmds.checkBox('cb_rand_current',q=True,v=True):
+            cmds.floatFieldGrp('ffg_rand_frmStep',e=True,en=False)
+        else:
+            cmds.floatFieldGrp('ffg_rand_frmStep',e=True,en=True)
+
+    def __uicb_percentageCallback(self):
+        if not cmds.checkBox('cb_rand_percent',q=True,v=True):
+            cmds.floatFieldGrp('ffg_rand_damping',e=True, label='strength : value')
+        else: 
+            cmds.floatFieldGrp('ffg_rand_damping',e=True, label='strength : normalized %')
+            
+    def __storePrefs(self):
+        if cmds.window(self.win, exists=True):
+            cmds.optionVar(floatValue=('red9_randomizer_damp',cmds.floatFieldGrp('ffg_rand_damping',q=True,v1=True)))
+            cmds.optionVar(intValue=('red9_randomizer_current',cmds.checkBox('cb_rand_current',q=True,v=True)))
+            cmds.optionVar(intValue=('red9_randomizer_percent',cmds.checkBox('cb_rand_percent',q=True,v=True)))
+            cmds.optionVar(floatValue=('red9_randomizer_frmStep',cmds.floatFieldGrp('ffg_rand_frmStep',q=True,v1=True)))
+            log.debug('stored out ramdomizer prefs')
+        
+    def __loadPrefsToUI(self):
+        if cmds.optionVar(exists='red9_randomizer_damp'):
+            cmds.floatFieldGrp('ffg_rand_damping',e=True,v1=cmds.optionVar(q='red9_randomizer_damp'))
+        if cmds.optionVar(exists='red9_randomizer_current'):
+            cmds.checkBox('cb_rand_current',e=True,v=cmds.optionVar(q='red9_randomizer_current'))
+        if cmds.optionVar(exists='red9_randomizer_percent'):
+            cmds.checkBox('cb_rand_percent',e=True,v=cmds.optionVar(q='red9_randomizer_percent'))
+        if cmds.optionVar(exists='red9_randomizer_frmStep'):
+            cmds.floatFieldGrp('ffg_rand_frmStep',e=True,v1=cmds.optionVar(q='red9_randomizer_frmStep'))
+        self.__uicb_currentKeysCallback()
+        self.__uicb_percentageCallback()
+    
+    def __calcualteRangeValue(self,keyValues):
+        vals=sorted(keyValues)
+        rng=abs(vals[0]-vals[-1])/2
+        if rng>1.0:
+            return [-rng,rng]
+        else:
+            return [-1,1]
+                           
+    def addNoise(self, curves, time=(), step=1, currentKeys=True, randomRange=[-1,1], damp=1, percent=False):
+        '''
+        Simple noise function designed to add noise to keyframed animation data
+        @param curves: Maya animCurves to process
+        @param time: timeRange to process
+        @param step: frame step used in the processor
+        @param currentKeys: ONLY randomize keys that already exists 
+        @param randomRange: range [upper, lower] bounds passed to teh randomizer
+        @param damp: damping passed into the randomizer
+        '''
+        if percent:
+            damp=damp/100
+        if currentKeys:
+            for curve in curves:
+                #if keys/curves are already selected, process those only
+                selectedKeys=cmds.keyframe(curve, q=True,vc=True,tc=True,sl=True)
+                if selectedKeys:
+                    keyData=selectedKeys
+                else:   
+                    #else process all keys inside the time
+                    keyData=cmds.keyframe(curve, q=True,vc=True,tc=True,t=time)
+                for t,v in zip(keyData[::2],keyData[1::2]):
+                    if percent:
+                        #figure the upper and lower value bounds
+                        randomRange=self.__calcualteRangeValue(keyData[1::2])
+                        log.info('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
+                    value=self.noiseFunc(v,randomRange,damp)
+                    cmds.setKeyframe(curve, v=value,t=t)
+        else:
+            if not time:
+                selectedKeyTimes=sorted(list(set(cmds.keyframe(q=True,tc=True))))
+                if selectedKeyTimes:
+                    time=(selectedKeyTimes[0],selectedKeyTimes[-1])
+            for curve in curves:  
+                if percent:    
+                    #figure the upper and lower value bounds
+                    randomRange=self.__calcualteRangeValue(cmds.keyframe(curve, q=True,vc=True,t=time))
+                    log.info('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
+                connection=cmds.listConnections(curve,source=False,d=True,p=True)[0]
+                for t in timeLineRangeProcess(time[0], time[1]+1, step):
+                    value=self.noiseFunc(cmds.getAttr(connection,t=t),randomRange,damp)
+                    cmds.setKeyframe(connection, v=value,t=t)
+                    
+    @classmethod
+    def curveMenuFunc(cls):
+        randomizer=cls()
+        randomizer.__storePrefs()
+        frmStep=1
+        damping=1
+        percent=False
+        currentKeys=True
+        
+        if cmds.window(randomizer.win, exists=True):
+            currentKeys=cmds.checkBox('cb_rand_current',q=True,v=True)
+            damping=cmds.floatFieldGrp('ffg_rand_damping',q=True,v1=True)
+            frmStep=cmds.floatFieldGrp('ffg_rand_frmStep',q=True,v1=True)
+            percent=cmds.checkBox('cb_rand_percent',q=True,v=True)
+        else:
+            if cmds.optionVar(exists='red9_randomizer_damp'):
+                damping=cmds.optionVar(q='red9_randomizer_damp')
+            if cmds.optionVar(exists='red9_randomizer_percent'):
+                percent=cmds.optionVar(q='red9_randomizer_percent')
+            if cmds.optionVar(exists='red9_randomizer_current'):
+                currentKeys=cmds.optionVar(q='red9_randomizer_current')
+            if cmds.optionVar(exists='red9_randomizer_frmStep'):
+                frmStep=cmds.optionVar(q='red9_randomizer_frmStep')
+        
+        selectedCurves=cmds.keyframe(q=True, sl=True, n=True)
+        if not selectedCurves:
+            raise StandardError('No Keys or Anim curves selected!')
+        randomizer.addNoise(curves=selectedCurves,step=frmStep,damp=damping,currentKeys=currentKeys,percent=percent)  
+                            
+        
+        
 class MirrorHierarchy(object):
     
     '''
@@ -2038,21 +2384,25 @@ class MirrorHierarchy(object):
         @param axis: eg 'translateX','rotateY','rotateZ' simple comma separated string
             If this is set then it overrides the default mirror axis. 
             These are the channels who have their attribute/animCurve values inversed 
-            during mirror    
+            during mirror. NOT we allow axis to have a null string 'None' so it can be
+            passed in blank when needed   
         NOTE: slot index can't be ZERO
         '''
         #Note using the MetaClass as all the type checking
         #and attribute handling is done for us
         mClass=r9Meta.MetaClass(node)
         if self._validateMirrorEnum(side):
-            mClass.addAttr(self.mirrorSide,'Centre:Left:Right',type='enum') 
+            mClass.addAttr(self.mirrorSide,'Centre:Left:Right',attrType='enum') 
             mClass.__setattr__(self.mirrorSide,side) 
         if slot:
             mClass.addAttr(self.mirrorIndex ,slot, hidden=True)
             mClass.__setattr__(self.mirrorIndex,slot) 
         if axis:
-            mClass.addAttr(self.mirrorAxis, axis)
-            mClass.__setattr__(self.mirrorAxis,axis) 
+            if axis=='None':
+                mClass.addAttr(self.mirrorAxis, attrType='string')
+            else:
+                mClass.addAttr(self.mirrorAxis, axis)
+                mClass.__setattr__(self.mirrorAxis,axis) 
     
     def deleteMirrorIDs(self,node):
         '''
