@@ -21,6 +21,9 @@ from cgm.core import cgmMeta
 reload(cgmMeta)
 from cgm.core.cgmMeta import *
 
+from cgm.core.classes import cgmPuppet
+reload(cgmPuppet)
+
 import maya.cmds as mc
 
 def TestAllTheThings():
@@ -41,6 +44,7 @@ class cgmMeta_Test():
         self.test_cgmObject()
         self.test_cgmObjectSet()
         self.test_cgmOptionVar()
+        self.test_cgmPuppet() #Puppet test
         
         log.info(">"*10  + '   cgmMeta_Test time =  %0.3f seconds  ' % (time.clock()-start) + '<'*10)       
         self.MetaInstance.select()
@@ -57,7 +61,6 @@ class cgmMeta_Test():
         #Make a few objects
         #==============              
   
-        
         #Test name and node argument passing
         #==============      
         log.info("Testing no arguments passed")
@@ -129,8 +132,8 @@ class cgmMeta_Test():
         node.addAttr('fltTest', 1.333)        #create a float attribute
         node.addAttr('intTest', 3)            #create a int attribute
         node.addAttr('boolTest', False)       #create a bool attribute
-        node.addAttr('enumTest','A:B:D:E:F', attrType ='enum') #create an enum attribute
-        node.addAttr('vecTest', (('vecTestX','vecTestY','vecTestZ'),(0,0,0)), attrType ='double3') #create a double3
+        node.addAttr('enumTest',enum='A:B:D:E:F', attrType ='enum',value = 1) #create an enum attribute
+        node.addAttr('vecTest', [0,0,0], attrType ='double3') #create a double3
 
         #testAttrs with no value flags but attr flag to use default 
         node.addAttr('stringTestNoValue', attrType = 'string')  #create a string attribute
@@ -173,9 +176,10 @@ class cgmMeta_Test():
         assert mc.getAttr('%s.fltTest' % node.mNode)==1.333,"Value is %s"%mc.getAttr('%s.fltTest' % node.mNode)
         assert mc.getAttr('%s.intTest' % node.mNode)==3
         assert mc.getAttr('%s.boolTest' % node.mNode)==False
-        assert mc.getAttr('%s.enumTest' % node.mNode)==0
+        assert mc.getAttr('%s.enumTest' % node.mNode)==1
         assert mc.getAttr('%s.jsonTest' % node.mNode)=='{"jsonFloat": 1.05, "jsonBool": true, "jsonString": "string says hello", "jsonInt": 3}',"Value is '%s'%"%self.jsonTest
-        assert mc.getAttr('%s.vecTest' % node.mNode)== [(0.0, 0.0, 0.0)]
+        assert mc.getAttr('%s.vecTest' % node.mNode)== [(0, 0, 0)]
+        
         
         assert mc.getAttr('%s.stringTestNoValue' % node.mNode)==None
         assert mc.getAttr('%s.fltTestNoValue' % node.mNode)==0
@@ -203,9 +207,9 @@ class cgmMeta_Test():
         node.boolTest=True  #set bool
         assert node.boolTest==True
         #enum
-        assert node.enumTest==0
-        node.enumTest='B'
         assert node.enumTest==1
+        node.enumTest='A'
+        assert node.enumTest==0
         node.enumTest=2
         assert node.enumTest==2
         #double3
@@ -214,7 +218,7 @@ class cgmMeta_Test():
         assert node.vecTestX==1
         node.vecTest = 2,2,2
         assert node.vecTestX==2
-        assert node.vecTest == [(2.0, 2.0, 2.0)]
+        assert node.vecTest == [(2.0, 2.0, 2.0)],'%s'%node.vecTest
         
         
         #json string handlers
@@ -320,11 +324,19 @@ class cgmMeta_Test():
         #Parent and assert relationship
         log.info('>'*3 + " Testing parenting...")        
         
-        mc.parent(self.pCube.mNode,self.nCube.mNode)#parent pCube to nCube
+        #mc.parent(self.pCube.mNode,self.nCube.mNode)#parent pCube to nCube
+        self.pCube.parent = self.nCube.mNode
         assert self.pCube.getParent() == self.nCube.mNode,"nCube is not parent"
+        assert self.pCube.parent == self.nCube.mNode,"nCube is not parent"
         assert self.pCube.getShortName() in self.nCube.getChildren(),"pCube is not in children - %s"%self.nCube.getChildren()
         assert self.pCube.getShapes() is not None,"No Shapes found on pCube" #Check for shapes on nurbs
         assert self.nCube.getTransformAttrs() == self.pCube.getTransformAttrs(), "Transform attribute lists don't match"
+        
+        self.pCube.parent = False #Unparent
+        assert self.pCube.parent == False #Verify 
+        self.pCube.doAddChild(self.nCube.mNode)#Parent by adding as child
+        assert self.nCube.getShortName() in self.pCube.getChildren(),"Not in the children : %s"%self.pCube.getChildren()
+        
         
         #Roate order match
         log.info('>'*3 + " Testing rotate order match function")        
@@ -384,11 +396,24 @@ class cgmMeta_Test():
         self.ObjectSet.objectSetType = 'modeling'
         assert self.ObjectSet.objectSetType == 'modeling'
         
+        #Adding and removing
+        #-------------------
+        log.info('>'*3 + " Adding and removing by property...")
+        assert not self.ObjectSet.getList()
         
+        self.ObjectSet.value = [self.pCube.mNode, self.nCube.mNode,(self.pCube.mNode+'.tx')] # Add an attribute
+        
+        assert self.ObjectSet.doesContain(self.pCube.mNode)
+        assert self.ObjectSet.doesContain(self.nCube.mNode)
+        assert '%s.translateX'%self.pCube.getShortName() in self.ObjectSet.getList(),"%s"%self.ObjectSet.getList()
+        
+        self.ObjectSet.value = False
+        assert not self.ObjectSet.value
+
         #Adding and removing
         #-------------------
         log.info('>'*3 + " Adding and removing...")
-        assert not self.ObjectSet.setList()
+        assert not self.ObjectSet.getList()
         
         self.ObjectSet.addObj(self.pCube.mNode)
         self.ObjectSet.addObj(self.nCube.mNode)
@@ -396,21 +421,21 @@ class cgmMeta_Test():
         
         assert self.ObjectSet.doesContain(self.pCube.mNode)
         assert self.ObjectSet.doesContain(self.nCube.mNode)
-        assert '%s.translateX'%self.pCube.getShortName() in self.ObjectSet.setList(),"%s"%self.ObjectSet.setList()
+        assert '%s.translateX'%self.pCube.getShortName() in self.ObjectSet.getList(),"%s"%self.ObjectSet.getList()
         
         self.ObjectSet.removeObj(self.pCube.mNode)
         self.ObjectSet.removeObj(self.nCube.mNode)
         log.info("%s"%self.pCube.getShortName() )
         
-        assert not self.ObjectSet.doesContain(self.pCube.mNode),"%s"%self.ObjectSet.setList()
-        assert not self.ObjectSet.doesContain(self.nCube.mNode),"%s"%self.ObjectSet.setList()
+        assert not self.ObjectSet.doesContain(self.pCube.mNode),"%s"%self.ObjectSet.getList()
+        assert not self.ObjectSet.doesContain(self.nCube.mNode),"%s"%self.ObjectSet.getList()
 
         #Selecting/purging/copying
         #-------------------------
         log.info('>'*3 + " Selecting, purging, copying...")        
         mc.select(cl=True)
         self.ObjectSet.select()#Select set
-        assert mc.ls(sl = True) == self.ObjectSet.setList()
+        assert mc.ls(sl = True) == self.ObjectSet.getList()
         
         mc.select(cl=True)
         self.ObjectSet.selectSelf() # Select Self
@@ -419,13 +444,13 @@ class cgmMeta_Test():
         #Copy set
         catch = self.ObjectSet.copy()
         self.ObjectSetCopy = cgmMeta(catch) #Initialize copy
-        assert self.ObjectSet.setList() == self.ObjectSetCopy.setList(),"Sets don't match"
+        assert self.ObjectSet.getList() == self.ObjectSetCopy.getList(),"Sets don't match"
         assert self.ObjectSet.objectSetType == self.ObjectSetCopy.objectSetType,"Object Set types don't match"
         assert self.ObjectSet.qssState == self.ObjectSetCopy.qssState,"qssStates don't match"
         
         #Purge
         self.ObjectSetCopy.purge()
-        assert not self.ObjectSetCopy.setList(),"Dup set failed to purge"
+        assert not self.ObjectSetCopy.getList(),"Dup set failed to purge"
         
         #Keying, deleting keys, reseting
         #------------------------------- 
@@ -569,7 +594,111 @@ class cgmMeta_Test():
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
+    def test_cgmPuppet(self):
+        function = 'test_cgmPuppet'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
+        
+        self.Puppet = cgmPuppet.cgmPuppet(name = 'Kermit')
+        Puppet = self.Puppet
+        
+        #Assertions on the network null
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the network null...")    
+        assert mc.nodeType(Puppet.mNode) == 'network'
+        
+        puppetDefaultValues = {'cgmName':['string','Kermit'],
+                               'cgmType':['string','puppetNetwork'],
+                               'mClass':['string','cgmPuppet'],
+                               'version':['double',1.0],
+                               'masterNull':['message'],
+                               'settings':['message'],
+                               'geo':['message'],
+                               'parts':['message']}
+        
+        for attr in puppetDefaultValues.keys():
+            assert Puppet.hasAttr(attr),("'%s' missing attr:%s"%(self.Puppet.mNode,attr))
+            assert mc.getAttr('%s.%s'%(Puppet.mNode,attr), type=True) == puppetDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.mNode,attr), type=True))
+            if len(puppetDefaultValues.get(attr)) > 1:#assert that value
+                log.debug("%s"% attributes.doGetAttr(Puppet.mNode,attr))                
+                assert attributes.doGetAttr(Puppet.mNode,attr) == puppetDefaultValues.get(attr)[1]
+                
+                
+        #Assertions on the settings null
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the settings null...")
+        assert mc.objExists(Puppet.Settings.mNode),"No Settings object found"
+        assert mc.nodeType(Puppet.Settings.mNode) == 'network'
+        
+        
+        settingsDefaultValues = {'cgmName':['string','Kermit'],
+                                 'cgmType':['string','info'],
+                                 'cgmTypeModifier':['string','settings'],
+                                 'font':['string','Arial'],
+                                 'puppetType':['long',0],
+                                 'axisAim':['enum',2],
+                                 'axisUp':['enum',1],
+                                 'axisOut':['enum',0]}        
+        
+        for attr in settingsDefaultValues.keys():
+            assert Puppet.Settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.Settings.mNode,attr))
+            assert mc.getAttr('%s.%s'%(Puppet.Settings.mNode,attr), type=True) == settingsDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.Settings.mNode,attr), type=True))
+            if len(settingsDefaultValues.get(attr)) > 1:#assert that value
+                log.debug("%s"% attributes.doGetAttr(Puppet.Settings.mNode,attr))
+                assert attributes.doGetAttr(Puppet.Settings.mNode,attr) == settingsDefaultValues.get(attr)[1]
+        
+                
+        #Assertions on the masterNull
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the masterNull...")
+        assert Puppet.PuppetNull.getShortName() == Puppet.cgmName
+        assert Puppet.PuppetNull.puppet[0] == Puppet.mNode
+        
+        masterDefaultValues = {'cgmType':['string','ignore'],
+                               'cgmModuleType':['string','master']}       
+        
+        for attr in masterDefaultValues.keys():
+            assert Puppet.PuppetNull.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.PuppetNull.mNode,attr))
+            assert mc.getAttr('%s.%s'%(Puppet.PuppetNull.mNode,attr), type=True) == masterDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.PuppetNull.mNode,attr), type=True))
+            if len(masterDefaultValues.get(attr)) > 1:#assert that value
+                log.debug("%s"% attributes.doGetAttr(Puppet.PuppetNull.mNode,attr))
+                assert attributes.doGetAttr(Puppet.PuppetNull.mNode,attr) == masterDefaultValues.get(attr)[1]
+        
 
+        #Initializing only mode to compare
+        #----------------------------------------------------------
+        log.info('>'*3 + " Initializing only mode to compare...")
+        
+        self.PuppetIO = cgmPuppet.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
+        Puppet2 = self.PuppetIO
+        
+        for attr in puppetDefaultValues.keys():
+            assert Puppet2.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
+            assert attributes.doGetAttr(Puppet2.mNode,attr) == attributes.doGetAttr(Puppet.mNode,attr)
+        
+        for attr in settingsDefaultValues.keys():
+            assert Puppet2.Settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet2.mNode,attr))
+            assert attributes.doGetAttr(Puppet2.Settings.mNode,attr) == attributes.doGetAttr(Puppet.Settings.mNode,attr)
+        for attr in masterDefaultValues.keys():
+            assert Puppet2.PuppetNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
+            assert attributes.doGetAttr(Puppet2.PuppetNull.mNode,attr) == attributes.doGetAttr(Puppet.PuppetNull.mNode,attr)
+                 
+                
+        #Assertions on the settings null
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the settings null  on IOPuppet...")
+        assert Puppet.Settings.mNode == Puppet2.Settings.mNode
+
+                
+        #Assertions on the masterNull
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the masterNull on IOPuppet...")
+        assert Puppet.PuppetNull.getShortName() == Puppet2.PuppetNull.getShortName()
+        assert Puppet.PuppetNull.puppet[0] == Puppet2.PuppetNull.puppet[0]
+        
+
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+    
 
 
 

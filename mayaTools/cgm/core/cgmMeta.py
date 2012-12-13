@@ -155,18 +155,29 @@ class cgmNode(MetaClass):#Should we do this?
 	if wasLocked == True:
 	    mc.setAttr(attrBuffer,lock=True)
 
-    def addAttr(self, attr,value = None, attrType = False,enum = False,initialValue = None,lock = None,keyable = None, hidden = None,**kws):
+    def addAttr(self, attr,value = None, attrType = None,enum = None,initialValue = None,lock = None,keyable = None, hidden = None,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
+	    #enum special handling
+	    valueCarry = None #Special handling for enum and value at the same time
+	    if enum is not None:
+		valueCarry = value
+		value = enum	    
+	    
 	    if self.hasAttr(attr):#Quick create check for initial value
 		initialCreate = False
 	    else:
 		initialCreate = True
 		
+		if value is None and initialValue is not None:#If no value and initial value, use it
+		    value = initialValue
+		    	    
 	    #If type is double3, handle with out own setup as Red's doesn't have it
 	    #==============    
 	    #if attributes.validateRequestedAttrType(attrType) == 'double3':
 		#cgmAttr(self.mNode, attrName = attr, value = value, attrType = attrType, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
 		#object.__setattr__(self, attr, value)	
+
+
 
 	
 	    #Catch for no value flags
@@ -176,20 +187,30 @@ class cgmNode(MetaClass):#Should we do this?
 	                      'float': 0,
 	                      'float3': [0,0,0],
 	                      'double3':[0,0,0],
-	                      'enum': "off:on"} 
+	                      'enum': "off:on",
+	                      'message':''} 
 	    
 	    if value is None and attrType is not None:
 		value = DataTypeDefaults.get(attrType)
-		
+	    
+	    log.debug("In mNode.addAttr attr is '%s'"%attr)
+	    log.debug("In mNode.addAttr attrType is '%s'"%str(attrType))	    
+	    log.debug("In mNode.addAttr value is '%s'"%str(value)) 		
+	    if valueCarry is not None:log.debug("In mNode.addAttr valueCarry is '%s'"%str(valueCarry)) 		
+	    
 	    #Pass to Red9
-	    MetaClass.addAttr(self,attr,value)		
+	    MetaClass.addAttr(self,attr,value,attrType = attrType)		
 
+	    if valueCarry is not None:
+		self.__setattr__(attr,valueCarry)
+		
 	    if initialValue is not None and initialCreate:
+		log.info("In mNode.addAttr, setting initialValue of '%s'"%str(initialValue)) 
 		self.__setattr__(attr,initialValue)
 		
 	    #Easy carry for flag handling - until implemented
 	    #==============  
-	    cgmAttr(self.mNode, attrName = attr, attrType = attrType, lock=lock,keyable=keyable,hidden = hidden)
+	    cgmAttr(self.mNode, attrName = attr, lock=lock,keyable=keyable,hidden = hidden)
 		
             return True
         return False
@@ -221,17 +242,18 @@ class cgmNode(MetaClass):#Should we do this?
             self.cgm[tag] = search.findRawTagInfo(self.mNode,tag)
         return self.cgm    
         
-    def getAttrs(self):
-        """ Stores the dictionary of userAttrs of an object."""
-        self.userAttrsDict = attributes.returnUserAttrsToDict(self.mNode) or {}
-        self.userAttrs = mc.listAttr(self.mNode, userDefined = True) or []
-        self.attrs = mc.listAttr(self.mNode) or []
-        self.keyableAttrs = mc.listAttr(self.mNode, keyable = True) or []
+    def getAttrs(self,**kws):
+        return mc.listAttr(self.mNode,**kws) or []
+	
+    def getKeyableAttrs(self):
+	return mc.listAttr(self.mNode, keyable = True) or []
+	
 
-        self.transformAttrs = []
-        for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
-            if mc.objExists(self.mNode+'.'+attr):
-                self.transformAttrs.append(attr)
+    def getUserAttrs(self):
+	return mc.listAttr(self.mNode, userDefined = True) or []
+	
+    def getUserAttrsAsDict(self):
+	return attributes.returnUserAttrsToDict(self.mNode) or {}
 		
     def getTransform(self):
 	"""Find the transform of the object"""
@@ -335,6 +357,46 @@ class cgmObject(cgmNode):
                 
     def __bindData__(self):pass
         #self.addAttr('test',2)
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Properties
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #parent
+    #==============    
+    def getParent(self):
+        return search.returnParentObject(self.mNode) or False
+		
+    def doParent(self,parent = False):
+        """
+        Function for parenting a maya instanced object while maintaining a correct object instance.
+
+        Keyword arguments:
+        parent(string) -- Target parent
+        """
+        if parent == self.getParent():
+            return True
+        
+        if parent: #if we have a target parent
+            try:
+                #If we have an Object Factory instance, link it
+                parent = parent.mNode
+                log.debug("Parent is an instance")
+            except:
+                #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+                assert mc.objExists(parent) is True, "'%s' - parent object doesn't exist" %parent    
+            
+            log.debug("Parent is '%s'"%parent)
+            try:
+                mc.parent(self.mNode,parent)
+            except:
+                log.debug("'%s' already has target as parent"%self.mNode)
+                return False
+            
+        else:#If not, do so to world
+            rigging.doParentToWorld(self.mNode)
+            log.debug("'%s' parented to world"%self.mNode)   
+		
+    parent = property(getParent, doParent)
     #=========================================================================      
     # Get Info
     #========================================================================= 
@@ -345,18 +407,18 @@ class cgmObject(cgmNode):
 		self.transformAttrs.append(attr)
 	return self.transformAttrs
     
-    def getFamily(self):
+    def getFamilyDict(self):
         """ Get the parent, child and shapes of the object."""
-        self.parent = self.getParent()
-        self.children = self.getChildren()
-        self.shapes = self.getShapes()
-        return {'parent':self.parent,'children':self.children,'shapes':self.shapes}
-        
-    def getParent(self):
-        return search.returnParentObject(self.mNode) or False
+        return {'parent':self.parent,'children':self.children,'shapes':self.shapes} or {}
+    
+    def getAllParents(self):
+        return search.returnAllParents(self.mNode) or False
     
     def getChildren(self):
         return search.returnChildrenObjects(self.mNode) or []
+    
+    def getAllChildren(self):
+        return search.returnAllChildrenObjects(self.mNode) or []    
     
     def getShapes(self):
         return mc.listRelatives(self.mNode,shapes=True) or []
@@ -410,39 +472,27 @@ class cgmObject(cgmNode):
         maintain(bool) -- whether to parent the maya object in place or not (default False)
 
         """
-        assert mc.ls(self.mNode,type='transform'),"'%s' has no transform"%self.mNode	
-        rigging.groupMeObject(self.mNode,True,maintain)    
-
-    def doParent(self,parent = False):
+        return rigging.groupMeObject(self.mNode,True,maintain)    
+                     
+    def doAddChild(self,child = False):
         """
-        Function for parenting a maya instanced object while maintaining a correct object instance.
+        Function for adding a child
 
         Keyword arguments:
-        parent(string) -- Target parent
+        child(string) -- Target child
         """
-        if parent == self.parent:
+        if child in self.getChildren():
             return True
         
-        if parent: #if we have a target parent
+        if child: #if we have a target child
+            log.debug("Child is '%s'"%child)
             try:
-                #If we have an Object Factory instance, link it
-                parent = parent.mNode
-                log.debug("Parent is an instance")
+                mc.parent(child,self.mNode)
             except:
-                #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
-                assert mc.objExists(parent) is True, "'%s' - parent object doesn't exist" %parent    
-            
-            log.debug("Parent is '%s'"%parent)
-            try:
-                mc.parent(self.mNode,parent)
-            except:
-                log.debug("'%s' already has target as parent"%self.mNode)
+                log.debug("'%s' already has target as child"%self.mNode)
                 return False
-            
-        else:#If not, do so to world
-            rigging.doParentToWorld(self.mNode)
-            log.debug("'%s' parented to world"%self.mNode)                        
-            
+             
+	    
     def setDrawingOverrideSettings(self, attrs = None, pushToShapes = False):
         """
         Function for changing drawing override settings on on object
@@ -1443,14 +1493,20 @@ class cgmObjectSet(cgmNode):
     #Qss
     #==============    
     def isQss(self):
+	"""
+	Returns if an object set is a qss set or not
+	"""
 	if mc.sets(self.mNode,q=True,text=True)== 'gCharacterSet':
-	    self.qssState = True
 	    return True
 	else:
-	    self.qssState = False
 	    return False
 		
     def makeQss(self,arg):
+	"""
+	Makes an object set a qss set (if possible)
+	"""
+	assert not self.mayaSetState,"'%s' is a maya set and may not be changed to a qss"%(self.mNode)  
+	
         if arg:
             if mc.sets(self.mNode,q=True,text=True)!= 'gCharacterSet':
                 mc.sets(self.mNode, edit = True, text = 'gCharacterSet')
@@ -1471,6 +1527,9 @@ class cgmObjectSet(cgmNode):
     #ObjectSet Type
     #==============  
     def isSetType(self):
+	"""
+	Returns the objectSet type as defined by CG Monks
+	"""
 	buffer = search.returnTagInfo(self.mNode,'cgmType')
 	if buffer:
 	    for k in setTypes.keys():
@@ -1482,7 +1541,9 @@ class cgmObjectSet(cgmNode):
 	else:return False
     
     def doSetType(self,setType = None):
-        """ Set a set's type """
+        """
+	Set a an objectSet's type
+	"""
 	assert type(setType) is str, "Set type must be a string command. '%s'"%setType
 	assert not self.isReferenced(), "Cannot change the type of a referenced set"
 	assert not self.mayaSetState, "Cannot change type of a maya default set"
@@ -1507,21 +1568,33 @@ class cgmObjectSet(cgmNode):
 
     objectSetType = property(isSetType, doSetType)
     
-    #Contains?
+    #Value
     #==============  
-    #def isSetType(self):
+    def getList(self):
+	return mc.sets(self.mNode, q = True) or []    
+    
+    def doSetList(self, objectList = []):
+	"""
+	Reset the list with the objects provided
+	"""
+	self.purge()
+	if type(objectList) is list:
+	    for o in objectList:
+		self.addObj(o)
+	else:
+	    self.addObj(objectList)
+	    
+	return self.getList()
+    
+    value = property(getList, doSetList)
 	
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    def setList(self):
-	return mc.sets(self.mNode, q = True) or []
-    
     def doesContain(self,obj):
 	assert mc.objExists(obj),"'%s' doesn't exist"%obj
         buffer = mc.ls(obj,shortNames=True)        
-        
-	for o in self.setList():
+	for o in self.getList():
 	    if str(o) ==  buffer[0]:
 		return True
 	return False
@@ -1543,11 +1616,13 @@ class cgmObjectSet(cgmNode):
         info(string) -- must be an object in the scene
         
         """
-        assert mc.objExists(info) is True, "'%s' doesn't exist"%info
+        if not mc.objExists(info):
+	    log.warning("'%s' doesn't exist"%info)
+	    return False
         if info == self.mNode:
             return False
         
-        if info in self.setList():
+        if info in self.getList():
             log.info("'%s' is already stored on '%s'"%(info,self.mNode))    
             return
         try:
@@ -1619,7 +1694,6 @@ class cgmObjectSet(cgmNode):
                     
     def purge(self):
         """ Purge all set memebers from a set """
-        
         try:
             mc.sets( clear = self.mNode)
             log.warning("'%s' purged!"%(self.mNode))     
@@ -1644,8 +1718,8 @@ class cgmObjectSet(cgmNode):
         """ 
         Select set members or connected objects
         """ 
-        if self.setList():
-            mc.select(self.setList())
+        if self.getList():
+            mc.select(self.getList())
             return
         
         log.warning("'%s' has no data"%(self.mNode))  
@@ -1659,8 +1733,8 @@ class cgmObjectSet(cgmNode):
     
     def key(self,*a,**kw):
         """ Select the seted objects """        
-        if self.setList():
-            mc.select(self.setList())
+        if self.getList():
+            mc.select(self.getList())
             mc.setKeyframe(*a,**kw)
             return True
         
@@ -1669,8 +1743,8 @@ class cgmObjectSet(cgmNode):
     
     def reset(self,*a,**kw):
         """ Reset the set objects """        
-        if self.setList():
-            mc.select(self.setList())
+        if self.getList():
+            mc.select(self.getList())
             ml_resetChannels.resetChannels()        
             return True
         
@@ -1679,8 +1753,8 @@ class cgmObjectSet(cgmNode):
     
     def deleteKey(self,*a,**kw):
         """ Select the seted objects """        
-        if self.setList():
-            mc.select(self.setList())
+        if self.getList():
+            mc.select(self.getList())
             mc.cutKey(*a,**kw)
             return True
         
@@ -1689,8 +1763,8 @@ class cgmObjectSet(cgmNode):
     
     def deleteCurrentKey(self,*a,**kw):
         """ Select the seted objects """        
-        if self.setList():
-            mc.select(self.setList())
+        if self.getList():
+            mc.select(self.getList())
             mel.eval('timeSliderClearKey;')
             return True
         
