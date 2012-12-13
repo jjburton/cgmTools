@@ -130,8 +130,16 @@ class cgmMeta_Test():
         node.addAttr('intTest', 3)            #create a int attribute
         node.addAttr('boolTest', False)       #create a bool attribute
         node.addAttr('enumTest','A:B:D:E:F', attrType ='enum') #create an enum attribute
-        #node.addAttr('double3Test', attrType ='double3') #create a double3
         node.addAttr('vecTest', (('vecTestX','vecTestY','vecTestZ'),(0,0,0)), attrType ='double3') #create a double3
+
+        #testAttrs with no value flags but attr flag to use default 
+        node.addAttr('stringTestNoValue', attrType = 'string')  #create a string attribute
+        node.addAttr('fltTestNoValue', attrType = 'float')  #create a string attribute
+        node.addAttr('intTestNoValue', attrType = 'int')  #create a string attribute
+        node.addAttr('boolTestNoValue', attrType = 'bool')  #create a string attribute
+        node.addAttr('enumTestNoValue', attrType = 'enum')  #create a string attribute
+        #node.addAttr('vecTestNoValue', attrType ='double3') #create a double3
+        
         
         #create a string attr with JSON serialized data
         testDict={'jsonFloat':1.05,'jsonInt':3,'jsonString':'string says hello','jsonBool':True}
@@ -145,6 +153,12 @@ class cgmMeta_Test():
         assert node.hasAttr('enumTest')
         assert node.hasAttr('jsonTest')
         assert node.hasAttr('vecTest')
+        assert node.hasAttr('stringTestNoValue')
+        assert node.hasAttr('fltTestNoValue')
+        assert node.hasAttr('intTestNoValue')
+        assert node.hasAttr('boolTestNoValue')
+        assert node.hasAttr('enumTestNoValue')
+        
         
         #test the actual Maya node attributes
         #------------------------------------
@@ -162,6 +176,15 @@ class cgmMeta_Test():
         assert mc.getAttr('%s.enumTest' % node.mNode)==0
         assert mc.getAttr('%s.jsonTest' % node.mNode)=='{"jsonFloat": 1.05, "jsonBool": true, "jsonString": "string says hello", "jsonInt": 3}',"Value is '%s'%"%self.jsonTest
         assert mc.getAttr('%s.vecTest' % node.mNode)== [(0.0, 0.0, 0.0)]
+        
+        assert mc.getAttr('%s.stringTestNoValue' % node.mNode)==None
+        assert mc.getAttr('%s.fltTestNoValue' % node.mNode)==0
+        assert mc.getAttr('%s.intTestNoValue' % node.mNode)==0
+        assert mc.getAttr('%s.boolTestNoValue' % node.mNode)==0
+        assert mc.getAttr('%s.enumTestNoValue' % node.mNode)==0
+        
+        
+        
         #now check the MetaClass __getattribute__ and __setattr__ calls
         #--------------------------------------------------------------
         assert node.intTest==3       
@@ -527,10 +550,6 @@ class cgmMeta_Test():
         log.info(self.OptionVarFloat.value)                
         
         
-        
-        
-        
-        
         # Delete checking
         #-------------------------
         log.info('>'*3 + " Delete checking...") 
@@ -549,6 +568,24 @@ class cgmMeta_Test():
         
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Test_MetaClass():
     def testAll(self):
