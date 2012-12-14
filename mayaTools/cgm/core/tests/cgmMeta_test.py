@@ -379,7 +379,13 @@ class cgmMeta_Test():
         start = time.clock()
         
         self.ObjectSet = cgmMeta(name = 'cgmObjectAnimationSet',nodeType = 'objectSet',setType = 'animation', qssState = True)
-        self.MayaDefaultSet = cgmMeta(node = 'defaultObjectSet')    
+        self.MayaDefaultSet = cgmMeta(node = 'defaultObjectSet')   
+        
+        from cgm.core.cgmMeta import *
+        self.ObjectSet2 = cgmObjectSet(setName = 'cgmObjectAnimationSet2',value = self.ObjectSet.value )
+        #Initialize another set with a value on call
+        assert self.ObjectSet2.value == self.ObjectSet.value
+        del self.ObjectSet2.value        
         
         #Assert some info
         #---------------- 
@@ -432,7 +438,8 @@ class cgmMeta_Test():
 
         #Selecting/purging/copying
         #-------------------------
-        log.info('>'*3 + " Selecting, purging, copying...")        
+        log.info('>'*3 + " Selecting, purging, copying...") 
+        
         mc.select(cl=True)
         self.ObjectSet.select()#Select set
         assert mc.ls(sl = True) == self.ObjectSet.getList()

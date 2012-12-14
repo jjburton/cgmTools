@@ -79,13 +79,14 @@ class cgmMeta(object):
             if nodeType in objectFlags:
                 node = mc.createNode('transform')
                 log.info("Created a transform")
+	    elif nodeType == 'optionVar':
+		return cgmOptionVar(varName=name,*args,**kws)
             elif nodeType != 'network':
                 log.info("Trying to make a node of this type '%s'"%nodeType)
                 node = mc.createNode(nodeType)
             else:
                 log.info("Make default node")
                 node = mc.createNode('network')
-		
 	    
         if name and node != name and node != True:
             node = mc.rename(node, name)
@@ -99,13 +100,13 @@ class cgmMeta(object):
         mClass = attributes.doGetAttr(node,'mClass')
         if mClass:
             log.info("Appears to be a '%s'"%mClass)
-            log.error("Specialized processing not implemented, initializing as...")
-        
+            log.error("Specialized processing not implemented, initializing as...") 
+	    
         objectType = search.returnObjectType(node)
 	if objectType == 'objectSet':
             log.info("'%s' Appears to be an objectSet, initializing as cgmObjectSet"%node)	    
 	    return cgmObjectSet(node,*args,**kws)
-        if mc.ls(node,type='transform'):
+        elif mc.ls(node,type='transform'):
             log.info("'%s' Appears to be a transform, initializing as cgmObject"%node)
             return cgmObject(name = name, node = node)          
         else:
@@ -132,8 +133,10 @@ class cgmNode(MetaClass):#Should we do this?
         log.debug("In cgmNode.__init__ Name is '%s'"%name) 
 	
 	if node == None:
-	    catch = cgmMeta(name = name, nodeType = nodeType)
-	    node = catch.mNode	
+	    log.info("Creating node of type '%s'"%nodeType)
+	    catch = cgmMeta(name = name, nodeType = nodeType,*args,**kws)
+	    node = catch.mNode
+	    log.info(node)
 	    
         super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
 	#self.UNMANAGED.extend(['referencePrefix'])
@@ -1437,16 +1440,8 @@ setTypes = {'animation':'animSet',
 class cgmObjectSet(cgmNode):
     """ 
     Maya Object Set Class handler
-    """ 
-    def __bind__(self):
-	"""
-	Setup before maya object initialization
-	"""
-	self.objectSetType = None
-	self.qssState = None
-	self.mayaSetState = False
-	
-    def __init__(self,setName = None,setType = False,qssState = None,**kws):
+    """ 	
+    def __init__(self,setName = None,setType = False,qssState = None,value = None,**kws):
         """ 
         Intializes an set factory class handler
         
@@ -1455,9 +1450,12 @@ class cgmObjectSet(cgmNode):
         
         """
         ### input check  
-	if setName is not None and mc.objExists(setName):
-	    assert search.returnObjectType(setName) == 'objectSet',"Not an object set"    
-	    super(cgmObjectSet, self).__init__(node = setName)  
+	if setName is not None:
+	    if mc.objExists(setName):
+		assert search.returnObjectType(setName) == 'objectSet',"Not an object set"    
+		super(cgmObjectSet, self).__init__(node = setName)  
+	    else:
+		super(cgmObjectSet, self).__init__(node = None,name = setName,nodeType = 'objectSet')
 	else:
 	    super(cgmObjectSet, self).__init__(node = setName,nodeType = 'objectSet')
 	    
@@ -1465,7 +1463,7 @@ class cgmObjectSet(cgmNode):
         log.debug("In cgmObjectSet.__init__ setType is '%s'"%setType) 
         log.debug("In cgmObjectSet.__init__ qssState is '%s'"%qssState) 
 	
-	#self.UNMANAGED.extend(['objectSetType','qssState','mayaSetState'])
+	self.UNMANAGED.extend(['objectSetType','qssState','mayaSetState'])
 	self.mayaSetState = False
 	
 	#Maya Set?
@@ -1486,6 +1484,10 @@ class cgmObjectSet(cgmNode):
 	    
 	if qssState is not None:
 	    self.makeQss(qssState)
+	    
+	#Attempt to set a value on call
+	if value is not None:           
+	    self.value = value	
 	    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
@@ -1526,7 +1528,7 @@ class cgmObjectSet(cgmNode):
     
     #ObjectSet Type
     #==============  
-    def isSetType(self):
+    def getSetType(self):
 	"""
 	Returns the objectSet type as defined by CG Monks
 	"""
@@ -1566,7 +1568,7 @@ class cgmObjectSet(cgmNode):
             log.warning("'%s' renamed!"%(self.mNode))  
             return self.mNode
 
-    objectSetType = property(isSetType, doSetType)
+    objectSetType = property(getSetType, doSetType)
     
     #Value
     #==============  
@@ -1585,8 +1587,11 @@ class cgmObjectSet(cgmNode):
 	    self.addObj(objectList)
 	    
 	return self.getList()
+    def deleteSet(self):
+	if not self.isReferenced():
+	    del(self)	    
     
-    value = property(getList, doSetList)
+    value = property(getList, doSetList, deleteSet)
 	
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
@@ -1741,7 +1746,7 @@ class cgmObjectSet(cgmNode):
         log.warning("'%s' has no data"%(self.mNode))  
         return False
     
-    def reset(self,*a,**kw):
+    def reset(self):
         """ Reset the set objects """        
         if self.getList():
             mc.select(self.getList())
@@ -1761,7 +1766,7 @@ class cgmObjectSet(cgmNode):
         log.warning("'%s' has no data"%(self.mNode))  
         return False   
     
-    def deleteCurrentKey(self,*a,**kw):
+    def deleteCurrentKey(self):
         """ Select the seted objects """        
         if self.getList():
             mc.select(self.getList())
@@ -1831,7 +1836,7 @@ class cgmOptionVar(object):
             
             #Attempt to set a value on call
             if value is not None:           
-                self.initialStore(value)
+                self.value = value
 		
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
