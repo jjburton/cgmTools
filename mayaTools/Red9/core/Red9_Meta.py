@@ -86,12 +86,19 @@ def registerMClassNodeMapping(nodeTypes='network'):
     as metaNodes
     @param nodeTypes: allows you to expand metaData and use any nodeType
                     default is always 'network'
+    NOTE: 
+        this now validates 'nodeTypes' against Maya registered nodeTypes before being 
+        allowed into the registry. Why, well lets say you have a new nodeType from a 
+        plugin but that plugin isn't currently loaded, this now stops that type being 
+        generically added by any custom boot sequence.
     '''
     global RED9_META_NODETYPE_REGISTERY
+    MayaRegisteredNodes=cmds.allNodeTypes()
+    
     RED9_META_NODETYPE_REGISTERY=['network']
     if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
     for nType in nodeTypes:
-        if not nType in RED9_META_NODETYPE_REGISTERY:
+        if not nType in RED9_META_NODETYPE_REGISTERY and nType in MayaRegisteredNodes:
             log.debug('nodeType : %s : added to NODETYPE_REGISTRY')
             RED9_META_NODETYPE_REGISTERY.append(nType)
   
@@ -100,11 +107,10 @@ def printMetaTypeRegistry():
     
 def getMClassNodeTypes():
     '''
-    why??? need to validate the nodetypes, for example if you're registering
-    a nodeType that requires a plugin and that plugin isn't loaded during
-    unittesting then it will fail the get calls and give erratic results.
+    Generic getWrapper for all nodeTypes registered in the Meta_NodeType global
     '''    
-    return [nType for nType in RED9_META_NODETYPE_REGISTERY if nType in cmds.allNodeTypes()]
+    return RED9_META_NODETYPE_REGISTERY 
+
 
 #------------------------------------------------------------------------------   
     
@@ -174,7 +180,8 @@ def isMetaNodeInherited(node, mInstances=[]):
             if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
                 log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
                 return True
-                  
+            
+@r9General.Timer                 
 def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
@@ -199,7 +206,8 @@ def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
         return[MetaClass(node) for node in mNodes]
     else:
         return mNodes
-            
+ 
+@r9General.Timer           
 def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass', mTypes=[], mInstances=[]):
     '''
     From a given set of Maya Nodes return all connected mNodes
@@ -520,6 +528,8 @@ class MetaClass(object):
             cmds.setAttr('%s.%s' % (self.mNode,'mNodeID'),e=True,l=True) #lock it
         else:
             self.mNode=node
+            if not self.hasAttr('mNodeID'):
+                self.mNodeID=node.split('|')[-1].split(':')[-1]
             if isMetaNode(node):
                 log.debug('Meta Node Passed in : %s' % node)
             else:
@@ -716,6 +726,8 @@ class MetaClass(object):
                                 #return self.LinkedDict([self,attr],attrVal)
                         except:
                             log.debug('string is not JSON deserializable')
+                    elif attrType=='double3' or attrType=='float3':
+                        return attrVal[0]
                 else:
                     attrVal=object.__getattribute__(self, attr)
             else:
@@ -878,11 +890,13 @@ class MetaClass(object):
     # Connection Management Block
     #---------------------------------------------------------------------------------
     
-    def connectChildren(self, nodes, attr, cleanCurrent=False):
+    def connectChildren(self, nodes, attr, srcAttr=None, cleanCurrent=False):
         '''
         Fast method of connecting message links to the mNode as children
         @param nodes: Maya nodes to connect to this mNode
         @param attr: Name for the message attribute 
+        @param srcAttr: If given this becomes the attr on the child node which connects it 
+                        to self.mNode. If NOT given this attr is set to self.mNodeID
         @param cleanCurrent: Disconnect and clean any currently connected nodes to this attr 
         '''
         if not issubclass(type(nodes),list):
@@ -892,8 +906,8 @@ class MetaClass(object):
         if cleanCurrent:
             #disconnect and cleanup any current plugs to this meaage attr
             self.__disconnectCurrentAttrPlugs(attr)  
-            
-        srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
+        if not srcAttr:
+            srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
         for node in nodes:
             if not cmds.attributeQuery(srcAttr, exists=True, node=node):
                 cmds.addAttr(node,longName=srcAttr,at='message',m=True,im=False)
@@ -902,14 +916,17 @@ class MetaClass(object):
             except StandardError,error:
                 log.warning(error)
                 
-    def connectChild(self, node, attr, cleanCurrent=True):
+    def connectChild(self, node, attr, srcAttr=None, cleanCurrent=True):
         '''
         Fast method of connecting message links to the mNode as child
         NOTE: this call by default manages the attr to only ONE CHILD to
         avoid this use cleanCurrent=False
         @param node: Maya node to connect to this mNode
         @param attr: Name for the message attribute  
+        @param srcAttr: If given this becomes the attr on the child node which connects it 
+                        to self.mNode. If NOT given this attr is set to self.mNodeID
         @param cleanCurrent: Disconnect and clean any currently connected nodes to this attr
+        
         '''
         #make sure we have the attr on the mNode, if we already have a MULIT-message
         #should we throw a warning here???
@@ -920,28 +937,35 @@ class MetaClass(object):
             if cleanCurrent:
                 #disconnect and cleanup any current plugs to this message attr
                 self.__disconnectCurrentAttrPlugs(attr)      
-                      
-            srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
+            if not srcAttr:          
+                srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
             if not cmds.attributeQuery(srcAttr, exists=True, node=node):
                 cmds.addAttr(node,longName=srcAttr, at='message', m=False)
             cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=True)
         except StandardError,error:
             log.warning(error)
                           
-    def connectParent(self, node, attr):
+    def connectParent(self, node, attr, srcAttr=None):
         '''
         Fast method of connecting message links to the mNode as parents
         @param nodes: Maya nodes to connect to this mNode
-        @param attr: Name for the message attribute  
-        TODO: sort the attr naming out, aka the change to the connectChild/ren
+        @param attr: Name for the message attribute on eth PARENT!
+        @param srcAttr: If given this becomes the attr on the node which connects it 
+                        to the parent. If NOT given this attr is set to parents shortName
+
         '''
-        self.addAttr(attr, attrType='message')
         if issubclass(type(node), MetaClass):
-            node=node.mNode 
+            if not srcAttr:
+                srcAttr=node.mNodeID
+            node=node.mNode        
+        if not srcAttr:
+            srcAttr=node.split('|')[-1].split(':')[-1]
+        self.addAttr(srcAttr, attrType='message')
         try:
             if not cmds.attributeQuery(attr, exists=True, node=node):
+                #add to parent node
                 cmds.addAttr(node,longName=attr, at='message', m=False)
-            cmds.connectAttr('%s.%s' % (node,attr),'%s.%s' % (self.mNode,attr))
+            cmds.connectAttr('%s.%s' % (node,attr),'%s.%s' % (self.mNode,srcAttr))
         except StandardError,error:
                 log.warning(error)
     
@@ -1027,10 +1051,32 @@ class MetaClass(object):
         if not walk:
             return getConnectedMetaNodes(self.mNode,source=False,destination=True)
         else:
-            metaNodes=getConnectedMetaNodes(self.mNode,source=False,destination=True)
-            if metaNodes:
-                for child in metaNodes:
-                    metaNodes.extend(child.getChildMetaNodes(walk=True))
+            metaNodes=[]
+            children=getConnectedMetaNodes(self.mNode,source=False,destination=True)
+            if children:
+                runaways=0
+                depth=0
+                processed=[]
+                extendedChildren=[]
+                
+                while children and runaways<=1000:
+                    for child in children:
+                        if child.mNode not in processed:
+                            metaNodes.append(child)
+                            #log.info('mNode added to metaNodes : %s' % child.mNode)
+                        children.remove(child)
+                        processed.append(child.mNode)                
+                        #log.info( 'connections too : %s' % child.mNode)
+                        extendedChildren.extend(getConnectedMetaNodes(child.mNode,source=False,destination=True))
+                        #log.info('left to process : %s' % ','.join([c.mNode for c in children]))
+                        if not children:
+                            if extendedChildren:
+                                log.info('Child MetaNode depth extended %i' % depth)
+                                log.info('Extended Depth child List: %s' % ','.join([c.mNode for c in extendedChildren]))
+                                children.extend(extendedChildren)
+                                extendedChildren=[]
+                                depth+=1
+                        runaways+=1           
                 return metaNodes
         return []
     

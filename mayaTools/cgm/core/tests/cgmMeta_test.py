@@ -218,7 +218,7 @@ class cgmMeta_Test():
         assert node.vecTestX==1
         node.vecTest = 2,2,2
         assert node.vecTestX==2
-        assert node.vecTest == [(2.0, 2.0, 2.0)],'%s'%node.vecTest
+        assert node.vecTest == (2.0, 2.0, 2.0),'%s'%node.vecTest
         
         
         #json string handlers
@@ -285,7 +285,7 @@ class cgmMeta_Test():
         self.MetaNode.doName()
         assert self.MetaNode.hasAttr('cgmName') is True
         
-        self.MetaObject.copyNameTagsFromObject(self.MetaNode.mNode)
+        self.MetaObject.doCopyNameTagsFromObject(self.MetaNode.mNode)
         assert self.MetaObject.cgmName == self.MetaNode.cgmName,"CGM Name copying faild"
         
         self.MetaNode.doStore('stored',self.nCube.mNode)
@@ -340,11 +340,11 @@ class cgmMeta_Test():
         
         #Roate order match
         log.info('>'*3 + " Testing rotate order match function")        
-        self.MetaObject.copyRotateOrder(self.pCube.mNode)
+        self.MetaObject.doCopyRotateOrder(self.pCube.mNode)
         assert self.MetaObject.rotateOrder == self.pCube.rotateOrder,"Copy rotate order failed"
         
-        self.MetaObject.copyRotateOrder = self.nCube.rotateOrder #Just set it
-        assert self.MetaObject.copyRotateOrder == self.nCube.rotateOrder
+        self.MetaObject.doCopyRotateOrder = self.nCube.rotateOrder #Just set it
+        assert self.MetaObject.doCopyRotateOrder == self.nCube.rotateOrder
         
         #Group
         log.info("Testing grouping function")
@@ -369,7 +369,7 @@ class cgmMeta_Test():
             
         #Copy pivot
         log.info("Testing copy pivot function")        
-        self.MetaObject.copyPivot(self.pCube.mNode)
+        self.MetaObject.doCopyPivot(self.pCube.mNode)
        
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
 
