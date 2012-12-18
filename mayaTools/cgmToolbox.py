@@ -300,6 +300,11 @@ def testCGMCore( *a ):
     reload(testCGM)
     testCGM.TestAllTheThings()
     
+def testMorpheus( *a ):
+    from cgm.core.tests import cgmMeta_test as testCGM
+    reload(testCGM)
+    testCGM.MorpheusBase_Test()
+    
 #Zoo stuff
 def loadSkinPropagation( *a ):
     from zooPyMaya import refPropagation
@@ -386,7 +391,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                        ('cgm.PuppetBox2', " WIP - Modular Rigger",
                         loadPuppetBox2),
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
-                        testCGMCore)                       
+                        testCGMCore),
+                       ('Debug Morpheus Start', " WARNING - Opens new file...Unit test base morpheus stuff",
+                        testMorpheus)                           
                        ))
 
               )
