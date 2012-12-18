@@ -31,6 +31,30 @@ def TestAllTheThings():
     Catch all test for meta stuff
     """
     cgmMeta_Test()
+    
+    
+class MorpheusBase_Test():
+    def __init__(self):
+        function = 'Morpheus_Test'    
+        log.info(">"*20  + "  Testing '%s' "%function + "<"*20 )         
+        start = time.clock()
+        self.setup()
+        
+    def setup(self):
+        '''
+        Tests proper creation of objects from flag calls
+        '''        
+        mc.file(new=True,f=True)
+        function = 'setup'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()       
+  
+        #Test name and node argument passing
+        #==============      
+        log.info("Testing no arguments passed")
+        self.Morpheus = cgmPuppet.cgmPuppet(name = 'Morpheus')
+        
+        
 
 class cgmMeta_Test():
     def __init__(self):
@@ -39,7 +63,7 @@ class cgmMeta_Test():
         start = time.clock()
         self.setup()
         self.test_attributeHandling()
-        
+        #self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
         self.test_cgmNode()
         self.test_cgmObject()
         self.test_cgmObjectSet()
@@ -235,7 +259,69 @@ class cgmMeta_Test():
         assert not mc.attributeQuery('boolTest',node=node.mNode,exists=True)
         
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
-
+        
+    def test_messageAttrHandling(self):
+        '''
+        test the messageLink handling in the __setattr__ block
+        '''
+        function = 'test_functionCalls'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        
+        start = time.clock()   
+        
+        #if not self.MetaInstance:
+            #self.MetaInstance = cgmMeta() 
+            
+        node=MetaClass()
+                
+        #make sure we collect LONG names for these as all wrappers deal with longName
+        cube1=mc.ls(mc.polyCube()[0],l=True)[0]
+        cube2=mc.ls(mc.polyCube()[0],l=True)[0]
+        cube3=mc.ls(mc.polyCube()[0],l=True)[0]
+        cube4=mc.ls(mc.polyCube()[0],l=True)[0]
+        cube5=mc.ls(mc.polyCube()[0],l=True)[0]
+        cube6=mc.ls(mc.polyCube()[0],l=True)[0]
+ 
+        node.addAttr('msgMultiTest', value=[cube1,cube2], attrType='message')   #multi Message attr
+        node.addAttr('msgSingleTest', value=cube3, attrType='messageSimple')    #non-multi message attr
+        node.addAttr('msgSingleTest2', value=cube3, attrType='messageSimple')    #non-multi message attr
+        
+        assert node.hasAttr('msgMultiTest')
+        assert node.hasAttr('msgSingleTest')
+        assert node.hasAttr('msgSingleTest2')
+        
+        assert mc.getAttr('%s.msgMultiTest' % node.mNode, type=True)=='message'
+        assert mc.getAttr('%s.msgSingleTest' % node.mNode, type=True)=='message'
+        assert mc.attributeQuery('msgMultiTest',node=node.mNode, multi=True)==True
+        assert mc.attributeQuery('msgSingleTest',node=node.mNode, multi=True)==False
+        
+        #NOTE : cmds returns shortName, but all MetaClass attrs are always longName
+        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==['pCube1','pCube2']
+        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==['pCube3'] 
+        assert mc.listConnections('%s.msgSingleTest2' % node.mNode)==['pCube3'] 
+   
+        assert sorted(node.msgMultiTest)==[cube1,cube2]
+        assert node.msgSingleTest==[cube3]
+        
+        #test the reconnect handler via the setAttr
+        node.msgMultiTest=[cube5,cube6]
+        assert sorted(node.msgMultiTest)==[cube5,cube6]
+        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==['pCube5','pCube6']
+        
+        node.msgMultiTest=[cube1,cube2,cube4,cube6]
+        assert sorted(node.msgMultiTest)==[cube1,cube2,cube4,cube6]
+        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==['pCube1','pCube2','pCube4','pCube6']
+        
+        node.msgSingleTest=cube4
+        assert node.msgSingleTest==[cube4] 
+        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==['pCube4'] #cmds returns a list
+        node.msgSingleTest=cube3
+        assert node.msgSingleTest==[cube3] 
+        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==['pCube3'] #cmds returns a list
+        
+        
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        
         
     def test_functionCalls(self):
         function = 'test_functionCalls'
@@ -634,8 +720,8 @@ class cgmMeta_Test():
         #Assertions on the settings null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the settings null...")
-        assert mc.objExists(Puppet.Settings.mNode),"No Settings object found"
-        assert mc.nodeType(Puppet.Settings.mNode) == 'network'
+        assert mc.objExists(Puppet.i_settings.mNode),"No Settings object found"
+        assert mc.nodeType(Puppet.i_settings.mNode) == 'network'
         
         
         settingsDefaultValues = {'cgmName':['string','Kermit'],
@@ -648,28 +734,28 @@ class cgmMeta_Test():
                                  'axisOut':['enum',0]}        
         
         for attr in settingsDefaultValues.keys():
-            assert Puppet.Settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.Settings.mNode,attr))
-            assert mc.getAttr('%s.%s'%(Puppet.Settings.mNode,attr), type=True) == settingsDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.Settings.mNode,attr), type=True))
+            assert Puppet.i_settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.i_settings.mNode,attr))
+            assert mc.getAttr('%s.%s'%(Puppet.i_settings.mNode,attr), type=True) == settingsDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.i_settings.mNode,attr), type=True))
             if len(settingsDefaultValues.get(attr)) > 1:#assert that value
-                log.debug("%s"% attributes.doGetAttr(Puppet.Settings.mNode,attr))
-                assert attributes.doGetAttr(Puppet.Settings.mNode,attr) == settingsDefaultValues.get(attr)[1]
+                log.debug("%s"% attributes.doGetAttr(Puppet.i_settings.mNode,attr))
+                assert attributes.doGetAttr(Puppet.i_settings.mNode,attr) == settingsDefaultValues.get(attr)[1]
         
                 
         #Assertions on the masterNull
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the masterNull...")
-        assert Puppet.PuppetNull.getShortName() == Puppet.cgmName
-        assert Puppet.PuppetNull.puppet[0] == Puppet.mNode
+        assert Puppet.i_masterNull.getShortName() == Puppet.cgmName
+        assert Puppet.i_masterNull.puppet[0] == Puppet.mNode
         
         masterDefaultValues = {'cgmType':['string','ignore'],
                                'cgmModuleType':['string','master']}       
         
         for attr in masterDefaultValues.keys():
-            assert Puppet.PuppetNull.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.PuppetNull.mNode,attr))
-            assert mc.getAttr('%s.%s'%(Puppet.PuppetNull.mNode,attr), type=True) == masterDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.PuppetNull.mNode,attr), type=True))
+            assert Puppet.i_masterNull.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.i_masterNull.mNode,attr))
+            assert mc.getAttr('%s.%s'%(Puppet.i_masterNull.mNode,attr), type=True) == masterDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.i_masterNull.mNode,attr), type=True))
             if len(masterDefaultValues.get(attr)) > 1:#assert that value
-                log.debug("%s"% attributes.doGetAttr(Puppet.PuppetNull.mNode,attr))
-                assert attributes.doGetAttr(Puppet.PuppetNull.mNode,attr) == masterDefaultValues.get(attr)[1]
+                log.debug("%s"% attributes.doGetAttr(Puppet.i_masterNull.mNode,attr))
+                assert attributes.doGetAttr(Puppet.i_masterNull.mNode,attr) == masterDefaultValues.get(attr)[1]
         
 
         #Initializing only mode to compare
@@ -684,24 +770,24 @@ class cgmMeta_Test():
             assert attributes.doGetAttr(Puppet2.mNode,attr) == attributes.doGetAttr(Puppet.mNode,attr)
         
         for attr in settingsDefaultValues.keys():
-            assert Puppet2.Settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet2.mNode,attr))
-            assert attributes.doGetAttr(Puppet2.Settings.mNode,attr) == attributes.doGetAttr(Puppet.Settings.mNode,attr)
+            assert Puppet2.i_settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet2.mNode,attr))
+            assert attributes.doGetAttr(Puppet2.i_settings.mNode,attr) == attributes.doGetAttr(Puppet.i_settings.mNode,attr)
         for attr in masterDefaultValues.keys():
-            assert Puppet2.PuppetNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
-            assert attributes.doGetAttr(Puppet2.PuppetNull.mNode,attr) == attributes.doGetAttr(Puppet.PuppetNull.mNode,attr)
+            assert Puppet2.i_masterNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
+            assert attributes.doGetAttr(Puppet2.i_masterNull.mNode,attr) == attributes.doGetAttr(Puppet.i_masterNull.mNode,attr)
                  
                 
         #Assertions on the settings null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the settings null  on IOPuppet...")
-        assert Puppet.Settings.mNode == Puppet2.Settings.mNode
+        assert Puppet.i_settings.mNode == Puppet2.i_settings.mNode
 
                 
         #Assertions on the masterNull
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the masterNull on IOPuppet...")
-        assert Puppet.PuppetNull.getShortName() == Puppet2.PuppetNull.getShortName()
-        assert Puppet.PuppetNull.puppet[0] == Puppet2.PuppetNull.puppet[0]
+        assert Puppet.i_masterNull.getShortName() == Puppet2.i_masterNull.getShortName()
+        assert Puppet.i_masterNull.puppet[0] == Puppet2.i_masterNull.puppet[0]
         
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
