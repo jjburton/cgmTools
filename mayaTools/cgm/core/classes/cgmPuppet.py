@@ -135,7 +135,7 @@ class cgmPuppet(cgmNode):
         
         #>>>Master null
         if self.masterNull:
-            self.PuppetNull = cgmObject(self.masterNull[0])
+            self.i_masterNull = cgmObject(self.masterNull[0])
             log.info("'%s' initialized as master null"%self.masterNull[0])
         else:
             log.error("MasterNull missing. Go back to unreferenced file")
@@ -146,28 +146,28 @@ class cgmPuppet(cgmNode):
         for attr in 'settings','geo','parts':
             if attr in  self.__dict__.keys():
                 try:
-                    Attr = attr[0].capitalize() + attr[1:]#Get a better attribute store string, capitalize doesn't maintain mixed case 'noTransform'                  
+                    Attr = 'i_'+ attr
                     self.__dict__[Attr] = cgmNode( self.__getattribute__(attr)[0] )
-                    log.info("'%s' initialized as %s info null"%(self.__getattribute__(attr)[0],attr))                    
+                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr)[0],Attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
         
         
-        self.optionPuppetMode = cgmAttr(self.Settings,'optionPuppetTemplateMode','int',initialValue = 0)      
-        self.optionAimAxis= cgmAttr(self.Settings,'axisAim') 
-        self.optionUpAxis= cgmAttr(self.Settings,'axisUp') 
-        self.optionOutAxis= cgmAttr(self.Settings,'axisOut')  
+        self.optionPuppetMode = cgmAttr(self.i_settings,'optionPuppetTemplateMode','int',initialValue = 0)      
+        self.optionAimAxis= cgmAttr(self.i_settings,'axisAim') 
+        self.optionUpAxis= cgmAttr(self.i_settings,'axisUp') 
+        self.optionOutAxis= cgmAttr(self.i_settings,'axisOut')  
         
         
         #>>>Groups 
         ## Initialize the info nodes
         for attr in 'partsGroup','noTransformGroup','geoGroup':
-            if attr in self.PuppetNull.__dict__.keys():
+            if attr in self.i_masterNull.__dict__.keys():
                 try:
-                    Attr = str(attr[0].capitalize() + attr[1:])#Get a better attribute store string
-                    self.__dict__[Attr] = cgmObject( self.PuppetNull.__getattribute__(attr)[0] )
-                    log.info("'%s' initialized to 'self.%s'"%(self.PuppetNull.__getattribute__(attr)[0],Attr))                    
+                    Attr = 'i_'+ attr
+                    self.__dict__[Attr] = cgmObject( self.i_masterNull.__getattribute__(attr)[0] )
+                    log.info("'%s' initialized as 'self.%s'"%(self.i_masterNull.__getattribute__(attr)[0],Attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
@@ -192,32 +192,31 @@ class cgmPuppet(cgmNode):
         
         self.addAttr('cgmType','puppetNetwork')
         self.addAttr('version',initialValue = 1.0, lock=True)  
-        self.addAttr('masterNull',attrType = 'message')  
-        self.addAttr('settings',attrType = 'message')  
-        self.addAttr('geo',attrType = 'message')  
-        self.addAttr('parts',attrType = 'message')  
+        self.addAttr('masterNull',attrType = 'messageSimple')  
+        self.addAttr('settings',attrType = 'messageSimple')  
+        self.addAttr('geo',attrType = 'messageSimple')  
+        self.addAttr('parts',attrType = 'messageSimple')  
 
         self.doName()
         self.getAttrs()
         log.debug("Network good...")
 
-
         #MasterNull
         #==============   
         if mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
             log.info('Master null exists. Initializing')
-            self.PuppetNull = cgmMasterNull(self.masterNull[0])
+            self.i_masterNull = cgmMasterNull(self.masterNull[0])
         else:
-            self.PuppetNull = cgmMasterNull(puppet = self)
-            self.doStore('masterNull',self.PuppetNull.mNode)               
+            self.i_masterNull = cgmMasterNull(puppet = self)
+            self.doStore('masterNull',self.i_masterNull.mNode)               
             log.info('Master created.')            
                      
-        if self.PuppetNull.getShortName() != self.cgmName:
-            self.PuppetNull.doName(False)
-            if self.PuppetNull.getShortName() != self.cgmName:
+        if self.i_masterNull.getShortName() != self.cgmName:
+            self.i_masterNull.doName(False)
+            if self.i_masterNull.getShortName() != self.cgmName:
                 log.warning("Master Null name still doesn't match what it should be.")
                 return False
-        attributes.doSetLockHideKeyableAttr(self.PuppetNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+        attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         log.debug("Master Null good...")
         
         
@@ -229,53 +228,53 @@ class cgmPuppet(cgmNode):
         #==============
         if mc.objExists( attributes.returnMessageObject(self.mNode,'settings') ):
             log.info("Initializing '%s'"%self.settings[0])                                    
-            self.Settings  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'settings'))#Initialize if exists           
+            self.i_settings  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'settings'))#Initialize if exists           
         else:
             log.info('Creating settings')                                    
-            self.Settings = cgmInfoNode(puppet = self, infoType = 'settings')#Create and initialize
-            self.doStore('settings',self.Settings.mNode)
+            self.i_settings = cgmInfoNode(puppet = self, infoType = 'settings')#Create and initialize
+            self.doStore('settings',self.i_settings.mNode)
         
         defaultFont = modules.returnSettingsData('defaultTextFont')
-        #self.Settings.doStore('font',defaultFont)
+        #self.i_settings.doStore('font',defaultFont)
         
-        self.Settings.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
-        self.Settings.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)   
-        self.Settings.addAttr('axisAim',enum = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
-        self.Settings.addAttr('axisUp',enum = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
-        self.Settings.addAttr('axisOut',enum = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
+        self.i_settings.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
+        self.i_settings.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)   
+        self.i_settings.addAttr('axisAim',enum = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
+        self.i_settings.addAttr('axisUp',enum = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
+        self.i_settings.addAttr('axisOut',enum = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
         
         #Geo
         #==============
         if mc.objExists( attributes.returnMessageObject(self.mNode,'geo') ):
             log.info("Initializing '%s'"%self.geo[0])                                    
-            self.Geo  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'geo'), infoType = 'geo')#Initialize if exists           
+            self.i_geo  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'geo'), infoType = 'geo')#Initialize if exists           
         else:
             log.info('Creating geo')                                    
-            self.Geo = cgmInfoNode(puppet = self, infoType = 'geo')#Create and initialize
-            self.doStore('geo',self.Geo.mNode)
+            self.i_geo = cgmInfoNode(puppet = self, infoType = 'geo')#Create and initialize
+            self.doStore('geo',self.i_geo.mNode)
             
         #Parts
         #==============
         if mc.objExists( attributes.returnMessageObject(self.mNode,'parts') ):
             log.info("Initializing '%s'"%self.parts[0])                                    
-            self.Parts  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'parts'), infoType = 'parts')#Initialize if exists           
+            self.i_parts  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'parts'), infoType = 'parts')#Initialize if exists           
         else:
             log.info('Creating parts')                                    
-            self.Parts = cgmInfoNode(puppet = self, infoType = 'parts')#Create and initialize
-            self.doStore('parts',self.Parts.mNode)   
+            self.i_parts = cgmInfoNode(puppet = self, infoType = 'parts')#Create and initialize
+            self.doStore('parts',self.i_parts.mNode)   
             
             
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
         for attr in 'noTransform','geo','parts':
-            grp = attributes.returnMessageObject(self.PuppetNull.mNode,attr+'Group')# Find the group
-            Attr = str(attr[0].capitalize() + attr[1:]+'Group')#Get a better attribute store string           
+            grp = attributes.returnMessageObject(self.i_masterNull.mNode,attr+'Group')# Find the group
+            Attr = 'i_' + attr+'Group'#Get a better attribute store string           
             if mc.objExists( grp ):
                 #If exists, initialize it
                 try:     
                     self.__dict__[Attr]  = cgmObject(grp)#Initialize if exists           
-                    log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                    log.info("'%s' initialized as 'self.%s'"%(grp,Attr))                    
                 except:
                     log.error("'%s' group failed. Please verify puppet."%attr)                    
                     return False   
@@ -284,16 +283,16 @@ class cgmPuppet(cgmNode):
                 log.info('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmObject(name=attr)#Create and initialize
                 self.__dict__[Attr].doName()
-                self.PuppetNull.doStore(attr+'Group', self.__dict__[Attr].mNode) 
-                log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                self.i_masterNull.doStore(attr+'Group', self.__dict__[Attr].mNode) 
+                log.info("Initialized as 'self.%s'"%(Attr))                    
                 
            
             # Few Case things
             #==============            
             if attr == 'geo':
-                self.__dict__[Attr].doParent(self.NoTransformGroup)
+                self.__dict__[Attr].doParent(self.i_noTransformGroup)
             else:    
-                self.__dict__[Attr].doParent(self.PuppetNull)
+                self.__dict__[Attr].doParent(self.i_masterNull)
         
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
         
@@ -319,28 +318,11 @@ class cgmPuppet(cgmNode):
         """
         Delete the Puppet
         """
-        mc.delete(self.PuppetNull.mNode)
+        mc.delete(self.i_masterNull.mNode)
         mc.delete(self.mNode)        
-        del(self.PuppetNull)
+        del(self.i_masterNull)
         del(self)
-        
-    def getState(self):
-        """
-        Return a Puppet's state
-        
-        Returns:
-        state/False -- (int)/(bool)
-        """
-        checkList = []
-        if self.getModuleStates() is False:
-            return False
-        for k in self.moduleStates.keys():
-            checkList.append(self.moduleStates[k])
-        return min(checkList) 
-    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Module Utilities
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>       
+   
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
@@ -369,12 +351,12 @@ class cgmMasterNull(cgmObject):
         RETURNS:
         success(bool)
         """ 
-        cgmAttr(self,'cgmName',initialValue = '',lock=True)
-        cgmAttr(self,'cgmType',initialValue = 'ignore',lock=True)
-        cgmAttr(self,'cgmModuleType',value = 'master',lock=True)   
-        cgmAttr(self,'partsGroup',attrType = 'message',lock=True)   
-        cgmAttr(self,'noTransformGroup',attrType = 'message',lock=True)   
-        cgmAttr(self,'geoGroup',attrType = 'message',lock=True)   
+        self.addAttr('cgmName',initialValue = '',lock=True)
+        self.addAttr('cgmType',initialValue = 'ignore',lock=True)
+        self.addAttr('cgmModuleType',value = 'master',lock=True)   
+        self.addAttr('partsGroup',attrType = 'messageSimple',lock=True)   
+        self.addAttr('noTransformGroup',attrType = 'messageSimple',lock=True)   
+        self.addAttr('geoGroup',attrType = 'messageSimple',lock=True)   
         
         #See if it's named properly. Need to loop back after scene stuff is querying properly
         self.doName()
@@ -410,6 +392,250 @@ class cgmInfoNode(cgmNode):
         #See if it's named properly. Need to loop back after scene stuff is querying properly
         self.doName()        
         
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# MODULE Base class
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+InfoNullsNames = ['settings',
+                  'setupOptions',
+                  'templatePosObjects',
+                  'visibilityOptions',
+                  'templateControlObjects',
+                  'coreNames',
+                  'templateStarterData',
+                  'templateControlObjectsData',
+                  'skinJoints',
+                  'rotateOrders']
+
+moduleStates = ['template','deform','rig']
+
+initLists = []
+initDicts = ['infoNulls','parentTagDict']
+initStores = ['ModuleNull','refState']
+initNones = ['refPrefix','moduleClass']
+
+defaultSettings = {'partType':'none'}
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Modules
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+moduleNulls_toMake = 'rig','template' #These will be created and connected to a module and parented under them    
+
+rigNullAttrs_toMake = {'fk':'bool',#Attributes to be initialzed for any module
+                       'ik':'bool',
+                       'stretchy':'bool',
+                       'bendy':'bool',
+                       'handles':'int',
+                       'skinJoints':'message'}
+templateNullAttrs_toMake = {'rollJoints':'int',
+                            'stiffIndex':'int',
+                            'curveDegree':'int',
+                            'templatePosObjects':'message',
+                            'templateControlObjects':'message',
+                            'templateStarterData':'string',
+                            'templateControlObjectData':'string'}
+                
+class cgmModule(cgmObject):
+    def __init__(self,*args,**kws):
+        """ 
+        Intializes an module master class handler
+        Args:
+        node = existing module in scene
+        name = treated as a base name
+        
+        Keyword arguments:
+        moduleName(string) -- either base name or the name of an existing module in scene
+        moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
+        
+        Naming and template tags. All Default to False
+        position(string) -- position tag
+        direction(string) -- direction
+        directionModifier(string)
+        nameModifier(string)
+        forceNew(bool) --whether to force the creation of another if the object exists
+        """
+        start = time.clock()
+        
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Figure out the node
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>          
+        ##If a node is provided, use it
+        ##If a name is provided, see if there's node for it
+        ##If nothing is provided, just make one     
+
+
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Verify or Initialize
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
+        super(cgmModule, self).__init__(*args,**kws) 
+        
+        #Keywords - need to set after the super call
+        #==============         
+        self.kw_name= kws.pop('name',False)        
+        self.kw_moduleParent = kws.pop('moduleParent',False)
+        self.kw_position = kws.pop('position',False)
+        self.kw_direction = kws.pop('direction',False)
+        self.kw_directionModifier = kws.pop('directionModifier',False)
+        self.kw_nameModifier = kws.pop('nameModifier',False)
+        self.kw_forceNew = kws.pop('forceNew',False)
+        self.kw_initializeOnly = kws.pop('initializeOnly',False)  
+        self.kw_handles = kws.pop('handles',1) # can't have self handles  
+        
+        if self.kw_name:#If we have a name, store it
+            self.doStore('cgmName',self.kw_name,True)
+         
+        self.kw_callNameTags = {'cgmPosition':self.kw_position, 
+                                'cgmDirection':self.kw_direction, 
+                                'cgmDirectionModifier':self.kw_directionModifier,
+                                'cgmNameModifier':self.kw_nameModifier}
+        
+        #>>> Initialization Procedure ==================   
+        if self.isReferenced() or self.kw_initializeOnly:
+            log.info("'%s' Initializing only..."%self.kw_name)
+            if not self.initialize():
+                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.kw_name)
+                return          
+        else:
+            if not self.verify():
+                log.critical("'%s' failed to verify!"%self.kw_name)
+                return  
+            
+        log.info("'%s' Checks out!"%self.kw_name)
+        log.info('Time taken =  %0.3f' % (time.clock()-start))
+        
+
+    def __bindData__(self,**kws):        
+        #Variables
+        #==============      
+        self.addAttr('mClass', initialValue='cgmModule',lock=True) 
+        self.addAttr('cgmName', value = '',lock=True)
+        self.addAttr('cgmType',value = 'module',lock=True)
+
+        
+    def initialize(self):
+        """ 
+        Initializes the various components a moduleNull for a character/asset.
+        
+        RETURNS:
+        success(bool)
+        """  
+        #Puppet Network Node
+        #==============
+        if self.cgmType != 'module':
+            return False    
+        
+        for attr in moduleNulls_toMake:
+            if attr + 'Null' in self.__dict__.keys():
+                try:
+                    Attr = 'i_' + attr+'Null'#Get a better attribute store string           
+                    self.__dict__[Attr] = cgmObject( self.__getattribute__(attr+'Null')[0] )
+                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr+'Null')[0],Attr))  
+                except:    
+                    log.error("'%s' info node failed. Please verify puppet."%attr)                    
+                    return False
+                    
+        return True
+             
+        
+    def verify(self):
+        """"""
+        """ 
+        Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
+        
+        RETURNS:
+        success(bool)
+        """
+        #>>> Module Null ==================           
+  
+        if attributes.doGetAttr(self.mNode,'cgmType') != 'module':
+            log.error("'%s' is not a module. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
+            return False
+        
+        #Store tags from init call
+        #==============  
+        for k in self.kw_callNameTags.keys():
+            if self.kw_callNameTags.get(k):
+                self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
+            #elif k in self.parentTagDict.keys():
+             #   self.store(k,'%s.%s'%(self.msgModuleParent.value,k))  
+        
+        #Attributes
+        #==============  
+        self.addAttr('moduleType',value = 'segment',lock=True)
+        
+        self.addAttr('moduleParent',attrType='messageSimple')
+        self.addAttr('modulePuppet',attrType='messageSimple')
+        
+        stateDict = {'templateState':0,'rigState':0,'skeletonState':0} #Initial dict
+        self.addAttr('moduleStates',attrType = 'string', initialValue=stateDict, lock = True)
+        
+        self.addAttr('rigNull',attrType='messageSimple',lock=True)
+        self.addAttr('templateNull',attrType='messageSimple',lock=True)
+
+        log.debug("Module null good...")
+        
+        #>>> Rig/Template Nulls ==================   
+        
+        #Initialization
+        #==============      
+        for attr in moduleNulls_toMake:
+            log.info(attr)
+            grp = attributes.returnMessageObject(self.mNode,attr+'Null')# Find the group
+            Attr = 'i_' + attr+'Null'#Get a better attribute store string           
+            if mc.objExists( grp ):
+                #If exists, initialize it
+                try:     
+                    self.__dict__[Attr]  = cgmObject(grp)#Initialize if exists           
+                    log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                except:
+                    log.error("'%s' group failed. Please verify puppet."%attr)                    
+                    return False   
+                
+            else:#Make it
+                log.info('Creating %s'%attr)                                    
+                self.__dict__[Attr]= cgmObject(name=attr)#Create and initialize
+                self.doStore(attr+'Null', self.__dict__[Attr].mNode)
+                self.__dict__[Attr].doStore('cgmType',attr+'Null')
+                log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                
+            self.__dict__[Attr].doParent(self.mNode)
+            self.__dict__[Attr].doName()
+        
+            attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
+            
+        #Attrbute checking
+        #=================
+        for attr in rigNullAttrs_toMake.keys():#See table just above cgmModule
+            log.info("Checking '%s' on rig Null"%attr)
+            self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
+            if attr == 'handles':
+                log.info('handles case, setting min')
+                a = cgmAttr(self.i_rigNull.mNode,'handles')
+                a.doMin(1)#Make this check that the value is not below the min when set
+                a.value = a.value
+                
+        for attr in templateNullAttrs_toMake.keys():#See table just above cgmModule
+            log.info("Checking '%s' on template Null"%attr)
+            self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )
+        
+        
+        self.doName() 
+        self.doName()#Figure out why this needs to happen twice to run 
+        #See if it's named properly. Need to loop back after scene stuff is querying properly         
+        return True        
+    
+    def setParentModule(self,moduleParent):
+        assert mc.objExists(moduleParent),"'%s' doesn't exists! Can't be module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort)
+        if search.returnTagInfo(moduleParent,'cgmType') == 'module':
+            if self.msgModuleParent.value != moduleParent:
+                self.moduleParent = moduleParent
+                log.repport("'%s' is not the module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort))
+            else:
+                log.warning("'%s' already this module's parent. Moving on..."%moduleParent)
+                return True
+        else:
+            log.warning("'%s' isn't tagged as a module."%moduleParent)
+            return False
+            
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
