@@ -85,16 +85,19 @@ class PoseData(object):
         '''
         This is a generic wrapper to extract metaData connection info for any given node
         used to build the pose dict up, and compare / match the data on load 
+        TODO: Maybe this should go into the MetaRig class then it could be over-loaded
+              by others using different wiring setups?
         '''
         mNodes={}
-        connections=cmds.listConnections(node,type='network',s=True,d=False,c=True,p=True)
+        #why not use the r9Meta.getConnectedMetaNodes ?? > well here we're using 
+        #the c=True flag to get both plugs back in one go to process later
+        connections=[]
+        for nType in r9Meta.getMClassNodeTypes():
+            con=cmds.listConnections(node,type=nType,s=True,d=False,c=True,p=True)
+            if con:
+                connections.extend(con)
         if not connections:
             return connections
-#        for attr,node in zip(connections[::2],connections[1::2]):
-#            if r9Meta.isMetaNode(node,mTypes=mTypes):
-#                attrData=attr.split('.')
-#                mNodes['metaAttr']=attrData[1]
-#                mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % node)
         data=connections[-1].split('.')
         if r9Meta.isMetaNode(data[0],mTypes=mTypes):
             mNodes['metaAttr']=data[1]

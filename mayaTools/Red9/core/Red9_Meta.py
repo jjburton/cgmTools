@@ -86,19 +86,12 @@ def registerMClassNodeMapping(nodeTypes='network'):
     as metaNodes
     @param nodeTypes: allows you to expand metaData and use any nodeType
                     default is always 'network'
-    NOTE: 
-        this now validates 'nodeTypes' against Maya registered nodeTypes before being 
-        allowed into the registry. Why, well lets say you have a new nodeType from a 
-        plugin but that plugin isn't currently loaded, this now stops that type being 
-        generically added by any custom boot sequence.
     '''
     global RED9_META_NODETYPE_REGISTERY
-    MayaRegisteredNodes=cmds.allNodeTypes()
-    
     RED9_META_NODETYPE_REGISTERY=['network']
     if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
     for nType in nodeTypes:
-        if not nType in RED9_META_NODETYPE_REGISTERY and nType in MayaRegisteredNodes:
+        if not nType in RED9_META_NODETYPE_REGISTERY:
             log.debug('nodeType : %s : added to NODETYPE_REGISTRY')
             RED9_META_NODETYPE_REGISTERY.append(nType)
   
@@ -107,10 +100,11 @@ def printMetaTypeRegistry():
     
 def getMClassNodeTypes():
     '''
-    Generic getWrapper for all nodeTypes registered in the Meta_NodeType global
+    why??? need to validate the nodetypes, for example if you're registering
+    a nodeType that requires a plugin and that plugin isn't loaded during
+    unittesting then it will fail the get calls and give erratic results.
     '''    
-    return RED9_META_NODETYPE_REGISTERY 
-
+    return [nType for nType in RED9_META_NODETYPE_REGISTERY if nType in cmds.allNodeTypes()]
 
 #------------------------------------------------------------------------------   
     
@@ -180,8 +174,7 @@ def isMetaNodeInherited(node, mInstances=[]):
             if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
                 log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
                 return True
-            
-@r9General.Timer                 
+                  
 def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
@@ -206,8 +199,7 @@ def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
         return[MetaClass(node) for node in mNodes]
     else:
         return mNodes
- 
-@r9General.Timer           
+            
 def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass', mTypes=[], mInstances=[]):
     '''
     From a given set of Maya Nodes return all connected mNodes

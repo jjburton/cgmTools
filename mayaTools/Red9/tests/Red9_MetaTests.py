@@ -74,11 +74,10 @@ class Test_MetaClass():
         newMFacial=self.MClass.addChildMetaNode('MetaFacialRig',attr='Facial',nodeName='FacialNode') 
         assert isinstance(newMFacial,r9Meta.MetaFacialRig)
         assert newMFacial.mNode=='FacialNode'
-        assert cmds.listConnections('%s.Facial' % self.MClass.mNode)==['FacialNode'] 
+        assert cmds.listConnections('%s.Facial' % self.MClass.mNode,c=True,p=True)==['MetaClass_Test.Facial',
+                                                                                     'FacialNode.MetaClass_Test'] 
         assert isinstance(self.MClass.Facial,r9Meta.MetaFacialRig)
-        
-    def test_getChildMetaNodes(self):
-        pass    
+        assert self.MClass.Facial.mNode=='FacialNode'
         
     def test_connectionsToMetaNodes(self):   
         '''
@@ -90,14 +89,23 @@ class Test_MetaClass():
         assert self.MClass.Facial.mNode=='FacialNode'
         assert isinstance(self.MClass.Facial, r9Meta.MetaFacialRig)
         assert self.MClass.hasAttr('Facial')
-        assert facialNode.hasAttr('Facial')
-        assert cmds.listConnections('%s.Facial' % self.MClass.mNode)==['FacialNode']
+        assert not facialNode.hasAttr('Facial')
+        assert facialNode.hasAttr('MetaClass_Test')
+        assert cmds.listConnections('%s.Facial' % self.MClass.mNode,c=True,p=True)==['MetaClass_Test.Facial', 
+                                                                                     'FacialNode.MetaClass_Test'] 
         
         self.MClass.disconnectChild(self.MClass.Facial, deleteSourcePlug=True, deleteDestPlug=True)
         assert not self.MClass.hasAttr('Facial')
-        assert not facialNode.hasAttr('Facial')       
-    
-    
+        assert not facialNode.hasAttr('MetaClass_Test')       
+        
+        #test the additional attr flag
+        self.MClass.connectChild(facialNode,'parentAttr','childAttr')  
+        assert cmds.listConnections('%s.parentAttr' % self.MClass.mNode,c=True,p=True)==['MetaClass_Test.parentAttr', 
+                                                                                     'FacialNode.childAttr']
+        self.MClass.disconnectChild(self.MClass.parentAttr, deleteSourcePlug=True, deleteDestPlug=True)
+        assert not self.MClass.hasAttr('parentAttr')
+        assert not facialNode.hasAttr('childAttr')  
+        
     def test_connectionsToMayaNode(self):
         '''
         Test how the code handles connections to standard MayaNodes
@@ -157,8 +165,8 @@ class Test_MetaClass():
         node.addAttr('intTest', 3)            #create a int attribute
         node.addAttr('boolTest', False)       #create a bool attribute
         node.addAttr('enum', 'A:B:D:E:F', attrType='enum') #create an enum attribute
-        node.addAttr('doubleTest', attrType='double3', value=(('dblA','dblB','dblC'),(1.12,2.55,5.0)))
-        node.addAttr('doubleTest2', attrType='double3', value=(('dbl2A','dbl2B','dbl2C'),(1.0,2.0,10.0)),min=1,max=15)
+        node.addAttr('doubleTest', attrType='double3', value=(1.12,2.55,5.0))
+        node.addAttr('doubleTest2', attrType='double3', value=(1.0,2.0,10.0), min=1,max=15)
                      
         #create a string attr with JSON serialized data
         testDict={'jsonFloat':1.05,'jsonInt':3,'jsonString':'string says hello','jsonBool':True}
@@ -173,9 +181,9 @@ class Test_MetaClass():
         assert node.hasAttr('enum')
         assert node.hasAttr('jsonTest')
         assert node.hasAttr('doubleTest')   #compound3 so it adds 3 child attrs
-        assert node.hasAttr('dblA')
-        assert node.hasAttr('dblB')
-        assert node.hasAttr('dblC')
+        assert node.hasAttr('doubleTestX')
+        assert node.hasAttr('doubleTestY')
+        assert node.hasAttr('doubleTestZ')
         assert node.hasAttr('doubleTest2')
         
         #test the actual Maya node attributes
@@ -188,9 +196,9 @@ class Test_MetaClass():
         assert cmds.getAttr('%s.enum' % node.mNode, type=True)=='enum'
         assert cmds.getAttr('%s.jsonTest' % node.mNode, type=True)=='string'
         assert cmds.getAttr('%s.doubleTest' % node.mNode, type=True)=='double3'
-        assert cmds.getAttr('%s.dblA' % node.mNode, type=True)=='double'
-        assert cmds.getAttr('%s.dblB' % node.mNode, type=True)=='double'
-        assert cmds.getAttr('%s.dblC' % node.mNode, type=True)=='double'
+        assert cmds.getAttr('%s.doubleTestX' % node.mNode, type=True)=='double'
+        assert cmds.getAttr('%s.doubleTestY' % node.mNode, type=True)=='double'
+        assert cmds.getAttr('%s.doubleTestZ' % node.mNode, type=True)=='double'
         
         assert cmds.getAttr('%s.stringTest' % node.mNode)=='this_is_a_string'
         assert cmds.getAttr('%s.fltTest' % node.mNode)==1.333
@@ -200,13 +208,13 @@ class Test_MetaClass():
         assert cmds.getAttr('%s.enum' % node.mNode)==0
         assert cmds.getAttr('%s.jsonTest' % node.mNode)=='{"jsonFloat": 1.05, "jsonBool": true, "jsonString": "string says hello", "jsonInt": 3}'
         assert cmds.getAttr('%s.doubleTest' % node.mNode)==[(1.12,2.55,5.0)]
-        assert cmds.getAttr('%s.dblA' % node.mNode)==1.12
-        assert cmds.getAttr('%s.dblB' % node.mNode)==2.55
-        assert cmds.getAttr('%s.dblC' % node.mNode)==5.0
+        assert cmds.getAttr('%s.doubleTestX' % node.mNode)==1.12
+        assert cmds.getAttr('%s.doubleTestY' % node.mNode)==2.55
+        assert cmds.getAttr('%s.doubleTestZ' % node.mNode)==5.0
         
         assert cmds.attributeQuery('fltTest2',node=node.mNode, max=True)==[15.0]
-        assert cmds.attributeQuery('dbl2A',node=node.mNode, min=True)==[1.0]
-        assert cmds.attributeQuery('dbl2A',node=node.mNode, max=True)==[15.0]
+        assert cmds.attributeQuery('doubleTest2X',node=node.mNode, min=True)==[1.0]
+        assert cmds.attributeQuery('doubleTest2Y',node=node.mNode, max=True)==[15.0]
 
 
         
@@ -254,12 +262,12 @@ class Test_MetaClass():
         assert node.jsonTest['jsonString']=='string says hello'
         assert node.jsonTest['jsonBool']==True 
         #double3
-        assert node.doubleTest==[(1.12,2.55,5.0)]
-        assert node.dblA==1.12
-        assert node.dblB==2.55
-        assert node.dblC==5.0
+        assert node.doubleTest==(1.12,2.55,5.0)
+        assert node.doubleTestX==1.12
+        assert node.doubleTestY==2.55
+        assert node.doubleTestZ==5.0
         node.doubleTest=(2.0,44.2,22.0)
-        assert node.doubleTest==[(2.0,44.2,22.0)]
+        assert node.doubleTest==(2.0,44.2,22.0)
         try: 
             #try setting the value past it's max
             node.doubleTest2=(0,1,22)
@@ -268,7 +276,7 @@ class Test_MetaClass():
             assert True
         try: 
             #try setting the value past it's max
-            node.dblA=-10
+            node.doubleTest2X=-10
             assert False
         except:
             assert True
@@ -294,7 +302,7 @@ class Test_MetaClass():
         cmds.file(save=True,type='mayaAscii')
         cmds.file(new=True,f=True)
         cmds.file(os.path.join(r9Setup.red9ModulePath(),'tests','testFiles','deleteMe.ma'),open=True,f=True)
-        
+
         mClass=r9Meta.getMetaNodes()[0]
         assert len(mClass.json_test)
 
@@ -325,8 +333,12 @@ class Test_MetaClass():
         assert cmds.attributeQuery('msgSingleTest',node=node.mNode, multi=True)==False
         
         #NOTE : cmds returns shortName, but all MetaClass attrs are always longName
-        assert sorted(cmds.listConnections('%s.msgMultiTest' % node.mNode))==['pCube1','pCube2']
-        assert cmds.listConnections('%s.msgSingleTest' % node.mNode)==['pCube3'] 
+        assert cmds.listConnections('%s.msgMultiTest' % node.mNode,c=True,p=True)==['MetaClass_Test.msgMultiTest',
+                                                                 'pCube2.MetaClass_Test',
+                                                                 'MetaClass_Test.msgMultiTest',
+                                                                 'pCube1.MetaClass_Test']
+        assert cmds.listConnections('%s.msgSingleTest' % node.mNode,c=True,p=True)==['MetaClass_Test.msgSingleTest', 
+                                                                                     'pCube3.MetaClass_Test']
    
         assert sorted(node.msgMultiTest)==[cube1,cube2]
         assert node.msgSingleTest==[cube3]
@@ -334,8 +346,11 @@ class Test_MetaClass():
         #test the reconnect handler via the setAttr
         node.msgMultiTest=[cube5,cube6]
         assert sorted(node.msgMultiTest)==[cube5,cube6]
-        assert sorted(cmds.listConnections('%s.msgMultiTest' % node.mNode))==['pCube5','pCube6']
-        
+        assert not cmds.attributeQuery('MetaClass_Test',node=cube1, exists=True) #disconnect should delete the old connection attr 
+        assert cmds.listConnections('%s.msgMultiTest' % node.mNode,c=True,p=True)==['MetaClass_Test.msgMultiTest',
+                                                                 'pCube6.MetaClass_Test',
+                                                                 'MetaClass_Test.msgMultiTest',
+                                                                 'pCube5.MetaClass_Test']                                                          
         node.msgMultiTest=[cube1,cube2,cube4,cube6]
         assert sorted(node.msgMultiTest)==[cube1,cube2,cube4,cube6]
         assert sorted(cmds.listConnections('%s.msgMultiTest' % node.mNode))==['pCube1','pCube2','pCube4','pCube6']
@@ -357,11 +372,11 @@ class Test_MetaClass():
         assert '%0.2f' % cmds.getAttr('lambert1.diffuse')=='0.77'
         
         mLambert.color=(0.5, 0.5, 0.5)
-        assert mLambert.color==[(0.5,0.5,0.5)]
+        assert mLambert.color==(0.5,0.5,0.5)
         assert cmds.getAttr('lambert1.color')==[(0.5, 0.5, 0.5)]
         mLambert.color=(1.0, 0.0, 0.5)
         print mLambert.color
-        assert mLambert.color==[(1.0, 0.0, 0.5)]
+        assert mLambert.color==(1.0, 0.0, 0.5)
         assert cmds.getAttr('lambert1.color')==[(1.0, 0.0, 0.5)]
 
 
@@ -394,6 +409,7 @@ class Test_SearchCalls():
     
     def test_getMetaNodes(self):
         nodes=sorted(r9Meta.getMetaNodes(),key=lambda x: x.mClass.upper())
+        print nodes
         assert [n.mClass for n in nodes]==['MetaClass','MetaFacialRig','MetaFacialRigSupport','MetaRig','MetaRigSupport']
         
         nodes=sorted(r9Meta.getMetaNodes(mTypes=['MetaRig','MetaFacialRig']),key=lambda x: x.mClass.upper())
@@ -413,18 +429,7 @@ class Test_SearchCalls():
                                                   'MetaFacialRig_Test',
                                                   'MetaRigSupport_Test',
                                                   'MetaRig_Test']  
-          
-    def test_getConnectedMetaNodes(self):
-        #nodes, source=True, destination=True, dataType='mClass', mTypes=[]):
-        #TODO: Fill Test
-        pass
-        
-    
-    def test_getConnectedMetaSystemRoot(self):
-        #TODO: Fill Test
-        pass
-    
-    
+              
 class Test_MetaRig():
     
     def setup(self):
@@ -448,6 +453,14 @@ class Test_MetaRig():
         lArm.addRigCtrl('L_Wrist_Ctrl','L_Wrist', mirrorData={'side':'Left','slot':1})
         lArm.addRigCtrl('L_Elbow_Ctrl','L_Elbow', mirrorData={'side':'Left','slot':2})
         lArm.addRigCtrl('L_Clav_Ctrl','L_Clav', mirrorData={'side':'Left','slot':3})
+        #Left Arm Fingers ---------------------------------
+        lArm.addMetaSubSystem('Fingers','Left')
+        lArm.L_Fingers_System.addRigCtrl('Character1_LeftHandThumb1','ThumbRoot')
+        lArm.L_Fingers_System.addRigCtrl('Character1_LeftHandIndex1','IndexRoot')
+        lArm.L_Fingers_System.addRigCtrl('Character1_LeftHandMiddle1','MiddleRoot')
+        lArm.L_Fingers_System.addRigCtrl('Character1_LeftHandRing1','RingRoot')
+        lArm.L_Fingers_System.addRigCtrl('Character1_LeftHandPinky1','PinkyRoot')
+        
         #Left Leg SubMeta Systems --------------------------
         lLeg= mRig.addMetaSubSystem('Leg', 'Left', nodeName='L_LegSystem')
         lLeg.addRigCtrl('L_Foot_Ctrl','L_Foot', mirrorData={'side':'Left','slot':4})
@@ -458,6 +471,14 @@ class Test_MetaRig():
         rArm.addRigCtrl('R_Wrist_Ctrl','R_Wrist', mirrorData={'side':'Right','slot':1})
         rArm.addRigCtrl('R_Elbow_Ctrl','R_Elbow', mirrorData={'side':'Right','slot':2})
         rArm.addRigCtrl('R_Clav_Ctrl','R_Clav', mirrorData={'side':'Right', 'slot':3})
+        #Right Arm Fingers ----------------------------------
+        rArm.addMetaSubSystem('Fingers','Right')
+        rArm.R_Fingers_System.addRigCtrl('Character1_RightHandThumb1','ThumbRoot')
+        rArm.R_Fingers_System.addRigCtrl('Character1_RightHandIndex1','IndexRoot')
+        rArm.R_Fingers_System.addRigCtrl('Character1_RightHandMiddle1','MiddleRoot')
+        rArm.R_Fingers_System.addRigCtrl('Character1_RightHandRing1','RingRoot')
+        rArm.R_Fingers_System.addRigCtrl('Character1_RightHandPinky1','PinkyRoot')
+        
         #Right Leg SubMeta System --------------------------
         rLeg= mRig.addMetaSubSystem('Leg', 'Right', nodeName='R_LegSystem', attr='R_LegSystem')
         rLeg.addRigCtrl('R_Foot_Ctrl','R_Foot', mirrorData={'side':'Right','slot':4})
@@ -469,7 +490,8 @@ class Test_MetaRig():
         spine.addRigCtrl('Hips_Ctrl','Hips', mirrorData={'side':'Centre','slot':3})  
         spine.addRigCtrl('Chest_Ctrl','Chest', mirrorData={'side':'Centre','slot':4})
         spine.addRigCtrl('Head_Ctrl','Head',  mirrorData={'side':'Centre','slot':5})
-        
+
+
         #add SupportMeta Nodes ------------------------------
         #this is a really basic demo, for the sake of this you could
         #just wire all the support nodes to one MetaSupport, but this 
@@ -549,27 +571,117 @@ class Test_MetaRig():
         
     def test_getRigCtrls(self):
         assert self.mRig.getRigCtrls()==['|World_Ctrl']
-        assert self.mRig.getRigCtrls(walk=True)==['|World_Ctrl', 
-                                                  '|World_Ctrl|R_Foot_Ctrl', 
-                                                  '|World_Ctrl|R_Knee_Ctrl',
-                                                  '|World_Ctrl|COG__Ctrl', 
-                                                  '|World_Ctrl|COG__Ctrl|Hips_Ctrl',
-                                                  '|World_Ctrl|COG__Ctrl|Chest_Ctrl', 
-                                                  '|World_Ctrl|COG__Ctrl|Chest_Ctrl|Head_Ctrl', 
-                                                  '|World_Ctrl|L_Wrist_Ctrl', 
-                                                  '|World_Ctrl|COG__Ctrl|L_Elbow_Ctrl',
-                                                  '|World_Ctrl|COG__Ctrl|Chest_Ctrl|L_Clav_Ctrl', 
-                                                  '|World_Ctrl|L_Foot_Ctrl',
-                                                  '|World_Ctrl|L_Knee_Ctrl', 
-                                                  '|World_Ctrl|R_Wrist_Ctrl', 
-                                                  '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl', 
-                                                  '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl'] 
-        
+        assert self.mRig.getRigCtrls(walk=True)==['|World_Ctrl',
+                                                '|World_Ctrl|R_Foot_Ctrl',
+                                                '|World_Ctrl|R_Knee_Ctrl',
+                                                '|World_Ctrl|L_Wrist_Ctrl',
+                                                '|World_Ctrl|COG__Ctrl|L_Elbow_Ctrl',
+                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl|L_Clav_Ctrl',
+                                                '|World_Ctrl|R_Wrist_Ctrl',
+                                                '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl',
+                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl',
+                                                '|World_Ctrl|COG__Ctrl',
+                                                '|World_Ctrl|COG__Ctrl|Hips_Ctrl',
+                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl',
+                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl|Head_Ctrl',
+                                                '|World_Ctrl|L_Foot_Ctrl',
+                                                '|World_Ctrl|L_Knee_Ctrl',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandThumb1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandIndex1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandMiddle1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandRing1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandPinky1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandThumb1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandIndex1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandMiddle1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandRing1',
+                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandPinky1']       
+       
         assert self.mRig.R_ArmSystem.getRigCtrls()==['|World_Ctrl|R_Wrist_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl']
-
-        assert self.mRig.R_ArmSystem.getChildren()==['|World_Ctrl|R_Wrist_Ctrl', 
+        assert self.mRig.R_ArmSystem.getRigCtrls(walk=True)==['|World_Ctrl|R_Wrist_Ctrl',
+                                                 '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl',
+                                                 '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl',
+                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandThumb1',
+                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandIndex1',
+                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandMiddle1',
+                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandRing1',
+                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandPinky1']
+        assert self.mRig.R_ArmSystem.getChildren(walk=False)==['|World_Ctrl|R_Wrist_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl']  
         
+        
+class Test_MetaNetworks():
+    '''
+    Test the network walking and get commands on a larger network
+    '''
+    def setup(self):
+        cmds.file(os.path.join(r9Setup.red9ModulePath(),'tests','testFiles','Meta_Network_WalkTest.ma'),open=True,f=True)
+        self.mRig=r9Meta.getMetaNodes(mTypes='MetaRig')[0]
+               
+    def teardown(self):
+        self.setup()   
+
+    def buildNetwork(self):
+        '''
+        code that built the test scene above
+        '''
+        mRig=r9Meta.MetaRig()
+        mRig.addMetaSubSystem('Spine','Centre')
+        mRig.C_Spine_System.addMetaSubSystem('Arm','Left')
+        mRig.C_Spine_System.L_Arm_System.addMetaSubSystem('other','Left')
+        mRig.C_Spine_System.L_Arm_System.addSupportMetaNode('L_Arm_Support')
+        mRig.C_Spine_System.L_Arm_System.L_other_System.addMetaSubSystem('Fingers','Left')
+        
+        mRig.C_Spine_System.addMetaSubSystem('Arm','Right')
+        mRig.C_Spine_System.R_Arm_System.addMetaSubSystem('other','Right')
+        mRig.C_Spine_System.R_Arm_System.addSupportMetaNode('R_Arm_Support')
+        mRig.C_Spine_System.R_Arm_System.R_other_System.addMetaSubSystem('Fingers','Right')
+        
+        mRig.addMetaSubSystem('Leg','Right')
+        mRig.R_Leg_System.addMetaSubSystem('Toes','Right')
+        mRig.addMetaSubSystem('Leg','Left')
+        mRig.R_Leg_System.addMetaSubSystem('Toes','Left')
+        
+    def test_getChildMetaNodes(self):
+        '''
+        note that the order of this is important as the return is
+        managed by the depth of the connections
+        '''
+        nodes=self.mRig.getChildMetaNodes(walk=True)
+        assert [node.mNodeID for node in nodes]==['R_Leg_System',
+                                                 'L_Leg_System',
+                                                 'C_Spine_System',
+                                                 'L_Toes_System',
+                                                 'L_Arm_System',
+                                                 'R_Toes_System',
+                                                 'R_Arm_System',
+                                                 'L_other_System',
+                                                 'R_other_System',
+                                                 'L_Arm_Support',
+                                                 'R_Arm_Support',
+                                                 'R_Fingers_System',
+                                                 'L_Fingers_System'] 
+        
+        nodes=self.mRig.C_Spine_System.getChildMetaNodes(walk=True)
+        assert [node.mNodeID for node in nodes]==['R_Arm_System',
+                                                 'L_Arm_System',
+                                                 'R_other_System',
+                                                 'L_other_System',
+                                                 'R_Arm_Support',
+                                                 'L_Arm_Support',
+                                                 'L_Fingers_System',
+                                                 'R_Fingers_System'] 
+                                                  
+        nodes=self.mRig.C_Spine_System.getChildMetaNodes(walk=False) 
+        assert [node.mNodeID for node in nodes]==['R_Arm_System','L_Arm_System']
+        
+    def test_getParentSystems(self):
+        assert r9Meta.getConnectedMetaSystemRoot('L_Fingers_System').mNode=='MetaRig'
+        assert r9Meta.getConnectedMetaSystemRoot('L_Toes_System').mNode=='MetaRig'
+        
+        assert self.mRig.C_Spine_System.L_Arm_System.getParentMetaNode().mNodeID=='C_Spine_System'
+        assert self.mRig.C_Spine_System.L_Arm_System.L_Arm_Support.getParentMetaNode().mNodeID=='L_Arm_System'
+     

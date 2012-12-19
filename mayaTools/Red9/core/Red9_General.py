@@ -293,6 +293,7 @@ class SceneRestoreContext(object):
             self.dataStore['panelStore'][panel]['activeCam']=activeCam
                         
         #camera management
+        #TODO : store the camera field of view etc also
         self.dataStore['cameraTransforms']={}
         for cam in ['persp','top','side','front']:
             self.dataStore['cameraTransforms'][cam]=[cmds.getAttr('%s.translate' % cam),

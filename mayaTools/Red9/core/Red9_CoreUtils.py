@@ -1049,14 +1049,15 @@ class FilterNode(object):
             if meta not in metaNodes:
                 metaNodes.append(meta)  
                 
-        #Find all controllers hanging of these given metaSystems     
+        #Find all controllers hanging off these given metaSystems     
         if metaNodes:
             log.debug('processing found MetaSystsem Nodes : %s' % ','.join([x.mNode for x in metaNodes]))
             for meta in metaNodes:
                 ctrls=meta.getChildren(walk=walk)
-                if ctrls and not incMain and meta.hasAttr('CTRL_Main'):
-                    if meta.CTRL_Main[0] in ctrls:
-                        ctrls.remove(meta.CTRL_Main[0])
+                if ctrls and not incMain and meta.hasAttr(meta.rigGlobalCtrlAttr):
+                    ctrl_main=meta.__getattribute__(meta.rigGlobalCtrlAttr)[0]
+                    if ctrl_main in ctrls:
+                        ctrls.remove(ctrl_main)
                 rigCtrls.extend(ctrls)
         return rigCtrls
             
