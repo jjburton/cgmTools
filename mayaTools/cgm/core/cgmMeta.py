@@ -691,10 +691,9 @@ class cgmAttr(object):
         value(varied)   
         *a, **kw
         """
-	if mc.attributeQuery(self.attr, exists=True, node=self.obj.mNode):
+	if self.obj.hasAttr(self.attr):
 	    if self.attrType == 'message':
-		if value != self.value:
-		    self.doStore(value)	    
+		self.doStore(value)	    
 	    elif self.children:
 		log.info("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
 		for i,c in enumerate(self.children):
@@ -710,7 +709,7 @@ class cgmAttr(object):
 	    elif value != self.value:
 		attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)
 		    
-	object.__setattr__(self, self.attr, value)
+	object.__setattr__(self, self.attr, self.value)
         
         
     def get(self,*a, **kw):
@@ -719,21 +718,14 @@ class cgmAttr(object):
         
         Keyword arguments:
         *a, **kw
-        """     
+        """    
 	try:
 	    if self.attrType == 'message':
-		msgLinks=mc.listConnections('%s.%s' % (self.obj.mNode,self.attr),destination=True,source=True) #CHANGE : Source=True		
-		returnList = []
-		if msgLinks:
-		    for msg in msgLinks:
-			returnList.append(str(mc.ls(msg,l=True)[0]))#cast to longNames!
-		    return returnList 
-		return False
-		    
+		return attributes.returnMessageData(self.obj.mNode,self.attr)
 	    else:
 		return attributes.doGetAttr(self.obj.mNode,self.attr)
         except:
-            log.info("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
+            log.error("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
 	    
     def doDelete(self):
         """ 
@@ -748,6 +740,29 @@ class cgmAttr(object):
             log.error("'%s.%s' failed to delete"%(self.obj.mNode,self.attr))  
 	      
     value = property(get, set, doDelete)#get,set,del
+    
+    #properties to do
+    #dynamic
+    #numeric    
+    #minValue
+    #maxValue
+    #defaultValue
+    #nameNice
+    #nameLong
+    #nameAlias
+    #parent
+    #children
+    #siblings
+    #enum
+    #driver
+    #driven
+    #minValue
+    #locked
+    #keyable
+    #hidden
+    #softMax
+    #softMin
+    #nameCombined
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions

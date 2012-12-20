@@ -1729,6 +1729,9 @@ def returnMessageObject(storageObject, messageAttr):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrBuffer = (storageObject+'.'+messageAttr)
+    if mc.addAttr(attrBuffer,q=True,m=True):
+	log.warning("'%s' is a multi message attr. Use returnMessageData")
+	return False
     if mc.objExists(attrBuffer) == True:
         messageObject = (mc.listConnections (attrBuffer))
         if messageObject != None:
@@ -1740,6 +1743,36 @@ def returnMessageObject(storageObject, messageAttr):
             return False
     else:
         return False
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnMessageData(storageObject, messageAttr,longNames=True):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Better message date return
+
+    ARGUMENTS:
+    storageObject(string) - object holding the message attr
+    messageAttr(string) - name of the message attr
+
+    RETURNS:
+    messageObject(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    attrBuffer = (storageObject+'.'+messageAttr)
+    if mc.objExists(attrBuffer) == True:
+	msgLinks=mc.listConnections(attrBuffer,destination=True,source=True) #CHANGE : Source=True		
+	returnList = []
+	if msgLinks:
+	    for msg in msgLinks:
+		if longNames:
+		    returnList.append(str(mc.ls(msg,l=True)[0]))#cast to longNames!
+		else:
+		    returnList.append(str(mc.ls(msg,shortNames=True)[0]))#cast to shortNames!    
+	    return returnList 
+        else:
+            return False
+    else:
+        return False    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnObjAttrSplit(attr):
     """ 
@@ -2355,7 +2388,7 @@ def storeObjectToMessage (obj, storageObj, messageName):
         
     try:
         if  mc.objExists (attrCache):
-            if mc.attributeQuery (messageName,node=storageObj,msg=True):
+            if mc.attributeQuery (messageName,node=storageObj,msg=True) and not mc.addAttr(attrCache,q=True,m=True):
                 if returnMessageObject(storageObj,messageName) != obj:
                     log.debug(attrCache+' already exists. Adding to existing message node.')
                     doBreakConnection(attrCache)
@@ -2407,16 +2440,18 @@ def storeObjectsToMessage (objects, storageObj, messageName):
     
     try:
         if mc.objExists (attrCache):
-            log.debug(attrCache+' already exists. Adding to existing message node.')                
+            log.info(attrCache+' already exists. Adding to existing message node.')                
             doDeleteAttr(storageObj,messageName)
             mc.addAttr (storageObj, ln=messageName, at= 'message',m=True,im=False) 
             for obj in objects:
                 mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
+	    mc.setAttr(attrCache,lock=True)
             return True                       
         else:
             mc.addAttr(storageObj, ln=messageName, at= 'message',m=True,im=False) 
             for obj in objects:
                 mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
+	    mc.setAttr(attrCache,lock=True)
             return True 
     except:
         log.error("Storing '%s' to '%s.%s' failed!"%(objects,storageObj,messageName))

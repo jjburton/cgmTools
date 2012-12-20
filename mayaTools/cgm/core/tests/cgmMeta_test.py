@@ -180,32 +180,44 @@ class cgmMeta_Test():
         assert self.cgmIntAttr.get() == 3,self.cgmIntAttr.intTest
         assert self.cgmIntAttr.keyable == True     
         
-        #self.cgmIntAttr.doConvert('float')#Convert to a float
-        #assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
-        #assert self.cgmIntAttr.intTest == 3.0
+        self.cgmIntAttr.doConvert('float')#Convert to a float
+        assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
+        assert self.cgmIntAttr.intTest == 3.0
         
-        #self.cgmIntAttr.doConvert('int')#Convert back
-        #assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
-        #assert self.cgmIntAttr.locked == True
-        #assert self.cgmIntAttr.intTest == 3    
+        self.cgmIntAttr.doConvert('int')#Convert back
+        assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
+        assert self.cgmIntAttr.locked == True
+        assert self.cgmIntAttr.intTest == 3    
         
         #Message test
         #---------------- 
         log.info('>'*3 + " Message test...")
         self.cgmSingleMsgAttr = cgmMeta.cgmAttr(node,'messageTest',value = self.pCube.mNode,lock=True) 
-        log.info(self.cgmSingleMsgAttr.value)
-        #assert self.pCube.getShortName() in self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
-        self.cgmSingleMsgAttr.value = self.nCube.mNode
+        self.cgmSingleMsgAttr2 = cgmMeta.cgmAttr(node,'messageTest2',value = self.pCube.mNode,lock=True)         
+        assert [self.pCube.getLongName()] == self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
+        assert [self.pCube.getLongName()] == self.cgmSingleMsgAttr2.value, self.cgmSingleMsgAttr.value
+        assert self.cgmSingleMsgAttr.value == self.cgmSingleMsgAttr2.value #These should be the same thing
+        
+        self.cgmSingleMsgAttr.value = self.nCube.mNode#change value
         assert self.nCube.getLongName() in self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
         
         self.cgmMultiMsgAttr = cgmMeta.cgmAttr(node,'multiMessageTest',value = [self.nCube.mNode, self.pCube.mNode],lock=True) 
-        log.info(self.cgmMultiMsgAttr.value)
         assert self.cgmMultiMsgAttr.isMulti()
         assert not self.cgmMultiMsgAttr.isIndexMatters()
-        #assert len(self.cgmSingleMsgAttr.value) == 2,self.cgmSingleMsgAttr.value
-        #assert self.nCube.getLongName() in self.cgmSingleMsgAttr.value
+        assert len(self.cgmMultiMsgAttr.value) == 2,self.cgmMultiMsgAttr.value
+        assert self.nCube.getLongName() in self.cgmMultiMsgAttr.value
         
-        reload(attributes)
+        self.cgmMultiMsgAttr.value = self.nCube.mNode #make a simple message by declaration of content
+        assert not self.cgmMultiMsgAttr.isMulti(),self.cgmMultiMsgAttr.value       
+        
+        self.cgmMultiMsgAttr.value = [self.nCube.mNode]#Reassign value
+        assert len(self.cgmMultiMsgAttr.value) == 1,self.cgmMultiMsgAttr.value        
+        assert self.cgmMultiMsgAttr.isMulti(),self.cgmMultiMsgAttr.value
+        assert self.cgmMultiMsgAttr.value == [self.nCube.getLongName()]
+        
+        self.cgmMultiMsgAttr.value = [self.nCube.mNode, self.pCube.mNode]#And again to what we started with
+        assert self.cgmMultiMsgAttr.value == [self.nCube.mNode, self.pCube.mNode]      
+        
         #attributes.storeInfo(node.mNode,'multiMessageTest',[self.nCube.mNode, self.pCube.mNode])
         
         #Enum test
