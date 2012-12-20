@@ -23,7 +23,6 @@ reload(attributes)
 from Red9.core import Red9_Meta as r9Meta
 reload(r9Meta)
 from Red9.core.Red9_Meta import *
-
 r9Meta.registerMClassInheritanceMapping()    
 #=========================================================================
 
@@ -45,7 +44,7 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #=========================================================================    
-class testClass(MetaClass):
+class testClass(r9Meta.MetaClass):
     def __bindData__(self):              
         self.addAttr('testing',2.0)
         self.addAttr('testString','asdf')
@@ -118,7 +117,7 @@ class cgmMeta(object):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmNode - subclass to Red9.MetaClass
 #=========================================================================    
-class cgmNode(MetaClass):#Should we do this? 
+class cgmNode(r9Meta.MetaClass):#Should we do this? 
     def __bind__(self):
 	"""
 	Setup before maya object initialization
@@ -153,12 +152,12 @@ class cgmNode(MetaClass):#Should we do this?
 		wasLocked = True
                 mc.setAttr(attrBuffer,lock=False)
 		
-	MetaClass.__setattr__(self,attr,value)
+	r9Meta.MetaClass.__setattr__(self,attr,value)
 	
 	if wasLocked == True:
 	    mc.setAttr(attrBuffer,lock=True)
 
-    def addAttr(self, attr,value = None, attrType = None,enum = None,initialValue = None,lock = None,keyable = None, hidden = None,**kws):
+    def addAttr(self, attr,value = None, attrType = None,enum = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
 	    #enum special handling
 	    valueCarry = None #Special handling for enum and value at the same time
@@ -200,7 +199,7 @@ class cgmNode(MetaClass):#Should we do this?
 	    if valueCarry is not None:log.debug("In mNode.addAttr valueCarry is '%s'"%str(valueCarry)) 		
 	    
 	    #Pass to Red9
-	    MetaClass.addAttr(self,attr,value,attrType = attrType)		
+	    r9Meta.MetaClass.addAttr(self,attr,value,attrType = attrType,*args,**kws)		
 
 	    if valueCarry is not None:
 		self.__setattr__(attr,valueCarry)
@@ -211,7 +210,7 @@ class cgmNode(MetaClass):#Should we do this?
 	    
 	    if value and attrType is not 'enum':#Want to be able to really set attr on addAttr call if attr exists
 		self.__setattr__(attr,value)
-
+	    
 	    #Easy carry for flag handling - until implemented
 	    #==============  
 	    cgmAttr(self.mNode, attrName = attr, lock=lock,keyable=keyable,hidden = hidden)
@@ -232,10 +231,10 @@ class cgmNode(MetaClass):#Should we do this?
     #=========================================================================      
     # Get Info
     #========================================================================= 
-    def update(self,obj):
+    def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
-        assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-        super(cgmNode, self).__init__(node = obj) #Forces a reinitialization        
+        assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
+        super(cgmNode, self).__init__(node = self.mNode) #Forces a reinitialization        
         	
     def getCGMNameTags(self):
         """
@@ -269,7 +268,7 @@ class cgmNode(MetaClass):#Should we do this?
 	if buffer:
 	    return buffer[0]
 	return False
-    
+	
     def getMayaType(self):
         """ get the type of the object """
         return search.returnObjectType(self.mNode)
@@ -277,6 +276,9 @@ class cgmNode(MetaClass):#Should we do this?
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
         return buffer[0]
+    def getLongName(self):
+        buffer = mc.ls(self.mNode,l=True)        
+        return buffer[0]    
     
     def doName(self,sceneUnique=False,nameChildren=False):
         """
@@ -292,11 +294,11 @@ class cgmNode(MetaClass):#Should we do this?
 
         if nameChildren:
             NameFactory.doRenameHeir(self.mNode,sceneUnique)
-	    self.update(self.mNode)
+	    self.update()
 
         else:
             NameFactory.doNameObject(self.mNode,sceneUnique)
-	    self.update(self.mNode)
+	    self.update()
 	    
     #=========================================================================                   
     # Attribute Functions
@@ -304,6 +306,7 @@ class cgmNode(MetaClass):#Should we do this?
     def doStore(self,attr,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
         attributes.storeInfo(self.mNode,attr,info,*a,**kw)
+	self.update()
 
     def doRemove(self,attr):
         """ Removes an attr from the maya object instanced. """
@@ -557,6 +560,8 @@ class cgmAttr(object):
                      'enum':['enum','options','e'],
                      'double3':['vector','vec','v','double3','d3']}    
     
+
+    
     def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,lock = None,keyable = None, hidden = None, *a, **kw):
         """ 
         Asserts object's existance then initializes. If 
@@ -575,7 +580,9 @@ class cgmAttr(object):
         *a, **kw
         
         """
+	
         ### input check
+        #>>> Initialization ==================   	
         try:
             #If we have an Object Factory instance, link it
             objName.mNode
@@ -583,10 +590,27 @@ class cgmAttr(object):
         except:
             #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
             assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
-            catch = cgmNode(objName)
-            self.obj = catch
-        
-        self.form = attributes.validateRequestedAttrType(attrType)
+            self.obj = cgmNode(objName)
+	    
+	#value/attr type logic check
+	#==============  	    
+	if value and attrType is False:
+	    if type(value) is list:
+		for o in value:
+		    if mc.objExists(o):
+			self.attrType = 'message'		
+			log.warning('Multi message mode!')
+			break	    
+	    elif mc.objExists(value):
+		log.info("'%s' exists. creating as message."%value)
+		self.attrType = 'message'		
+	    else:
+		dataReturn = search.returnDataType(value)
+		log.info("Trying to create attr of type '%s'"%dataReturn)
+		self.attrType = attributes.validateRequestedAttrType(dataReturn)
+	else:
+	    self.attrType = attributes.validateRequestedAttrType(attrType)
+	    
         self.attr = attrName
         self.children = False
         initialCreate = False
@@ -595,37 +619,37 @@ class cgmAttr(object):
         if mc.objExists('%s.%s'%(self.obj.mNode,attrName)):
             log.debug("'%s.%s' exists"%(self.obj.mNode,attrName))
             currentType = mc.getAttr('%s.%s'%(self.obj.mNode,attrName),type=True)
-            log.debug("Current type is '%s'"%currentType)
-            if not attributes.validateAttrTypeMatch(attrType,currentType) and self.form is not False:
+            log.info("Current type is '%s'"%currentType)
+            if not attributes.validateAttrTypeMatch(self.attrType,currentType) and self.attrType is not False:
                 if self.obj.isReferenced():
                     log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,attrName,attrType))                   
-                self.doConvert(attrType)             
+                self.doConvert(self.attrType)             
                 
             else:
                 self.attr = attrName
-                self.form = currentType
+                self.attrType = currentType
                 
         else:
             try:
-                if self.form == False:
-                    self.form = 'string'
+                if self.attrType == False:
+                    self.attrType = 'string'
                     attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.form == 'double':
+                elif self.attrType == 'double':
                     attributes.addFloatAttributeToObject(self.obj.mNode,attrName,*a, **kw)
-                elif self.form == 'string':
+                elif self.attrType == 'string':
                     attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.form == 'long':
+                elif self.attrType == 'long':
                     attributes.addIntegerAttributeToObj(self.obj.mNode,attrName,*a, **kw) 
-                elif self.form == 'double3':
+                elif self.attrType == 'double3':
                     attributes.addVectorAttributeToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.form == 'enum':
+                elif self.attrType == 'enum':
                     attributes.addEnumAttrToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.form == 'bool':
+                elif self.attrType == 'bool':
                     attributes.addBoolAttrToObject(self.obj.mNode,attrName,*a, **kw)
-                elif self.form == 'message':
+                elif self.attrType == 'message':
                     attributes.addMessageAttributeToObj(self.obj.mNode,attrName,*a, **kw)
                 else:
-                    log.error("'%s' is an unknown form to this class"%(self.form))
+                    log.error("'%s' is an unknown form to this class"%(self.attrType))
                 
                 initialCreate = True
                 
@@ -654,9 +678,76 @@ class cgmAttr(object):
             
         if type(lock) is bool:
             self.doLocked(lock)
-                  
-    def __call__(self):
-        return self.get()
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Properties
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #value
+    #==============    
+    def set(self,value,*a, **kw):
+        """ 
+        Set attr value based on attr type
+        
+        Keyword arguments:
+        value(varied)   
+        *a, **kw
+        """
+	if mc.attributeQuery(self.attr, exists=True, node=self.obj.mNode):
+	    if self.attrType == 'message':
+		if value != self.value:
+		    self.doStore(value)	    
+	    elif self.children:
+		log.info("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
+		for i,c in enumerate(self.children):
+		    try:
+			cInstance = cgmAttr(self.obj.mNode,c)                        
+			if type(value) is list and len(self.children) == len(value): #if we have the same length of values in our list as we have children, use them
+			    attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value[i], *a, **kw)
+			    cInstance.value = value[i]
+			else:    
+			    attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
+		    except:
+			log.debug("'%s' failed to set"%c)	
+	    elif value != self.value:
+		attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)
+		    
+	object.__setattr__(self, self.attr, value)
+        
+        
+    def get(self,*a, **kw):
+        """ 
+        Get and store attribute value based on attr type
+        
+        Keyword arguments:
+        *a, **kw
+        """     
+	try:
+	    if self.attrType == 'message':
+		msgLinks=mc.listConnections('%s.%s' % (self.obj.mNode,self.attr),destination=True,source=True) #CHANGE : Source=True		
+		returnList = []
+		if msgLinks:
+		    for msg in msgLinks:
+			returnList.append(str(mc.ls(msg,l=True)[0]))#cast to longNames!
+		    return returnList 
+		return False
+		    
+	    else:
+		return attributes.doGetAttr(self.obj.mNode,self.attr)
+        except:
+            log.info("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
+	    
+    def doDelete(self):
+        """ 
+        Deletes an attribute
+        """   
+        try:
+            attributes.doDeleteAttr(self.obj.mNode,self.attr)
+            log.warning("'%s.%s' deleted"%(self.obj.mNode,self.attr))
+	    del(self)
+        
+        except:
+            log.error("'%s.%s' failed to delete"%(self.obj.mNode,self.attr))  
+	      
+    value = property(get, set, doDelete)#get,set,del
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
@@ -735,7 +826,7 @@ class cgmAttr(object):
                 self.rangeValue = False
                 self.softRangeValue = False               
                            
-        if self.form == 'enum':
+        if self.attrType == 'enum':
             self.enumCommand = standardFlagsBuffer.get('enum')
                 
     
@@ -783,64 +874,15 @@ class cgmAttr(object):
                 self.doMax(maximum)
             if default is not False:
                 self.doDefault(default)
-            
+        
+        self.attrType = mc.getAttr(self.nameCombined,type=True)    
         log.info("'%s.%s' converted to '%s'"%(self.obj.mNode,self.attr,attrType))
-            
-    
-    def set(self,value,*a, **kw):
-        """ 
-        Set attr value based on attr type
-        
-        Keyword arguments:
-        value(varied)   
-        *a, **kw
-        """
-        
-        try:
-            if self.children:
-                log.info("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))
-                
-                for i,c in enumerate(self.children):
-                    try:
-                        cInstance = cgmAttr(self.obj.mNode,c)                        
-                        if type(value) is list and len(self.children) == len(value): #if we have the same length of values in our list as we have children, use them
-                            attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value[i], *a, **kw)
-                            cInstance.value = value[i]
-                            self.value = value
-                        else:    
-                            attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
-                            self.value = value
-                    except:
-                        log.debug("'%s' failed to set"%c)
                         
-            elif self.form == 'message':
-                if value != self.value:
-                    self.doStore(value)
-            elif value != self.value:
-                attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)
-                self.value = value
-        
-        except:
-            log.error("'%s.%s' failed to set '%s'"%(self.obj.mNode,self.attr,value))
-        
-        
-    def get(self,*a, **kw):
-        """ 
-        Get and store attribute value based on attr type
-        
-        Keyword arguments:
-        *a, **kw
-        """     
-        try:
-            if self.form == 'message':
-                self.value = attributes.returnMessageObject(self.obj.mNode,self.attr)
-            else:
-                self.value =  attributes.doGetAttr(self.obj.mNode,self.attr)
-            return self.value
-        except:
-            log.info("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
-            
-            
+    def isMulti(self):
+	return mc.addAttr("%s.%s"%(self.obj.mNode,self.attr),q=True,m=True)
+    def isIndexMatters(self):
+	return mc.addAttr("%s.%s"%(self.obj.mNode,self.attr),q=True,im=True)
+    
     def getMessage(self,*a, **kw):
         """ 
         Get and store attribute value as if they were messages. Used for bufferFactory to use a connected
@@ -850,13 +892,13 @@ class cgmAttr(object):
         *a, **kw
         """   
         try:
-            if self.form == 'message':
-                self.value = attributes.returnMessageObject(self.obj.mNode,self.attr)
+            if self.attrType == 'message':
+                return attributes.returnMessageObject(self.obj.mNode,self.attr)
                 if search.returnObjectType(self.value) == 'reference':
                     if attributes.repairMessageToReferencedTarget(self.obj.mNode,self.attr,*a,**kw):
-                        self.value = attributes.returnMessageObject(self.obj.mNode,self.attr)                        
+                        return attributes.returnMessageObject(self.obj.mNode,self.attr)                        
             else:
-                self.value = attributes.returnDriverAttribute("%s.%s"%(self.obj.mNode,self.attr))
+                return attributes.returnDriverAttribute("%s.%s"%(self.obj.mNode,self.attr))
 
             log.info("'%s.%s' >Message> '%s'"%(self.obj.mNode,self.attr,self.value))
             return self.value
@@ -874,7 +916,7 @@ class cgmAttr(object):
         enumCommand(string) -- 'off:on', 'off=0:on=2', etc
         """   
         try:
-            if self.form == 'enum':
+            if self.attrType == 'enum':
                 if self.enumCommand != enumCommand:
                     mc.addAttr ((self.obj.mNode+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
                     self.enumCommand = enumCommand
@@ -896,30 +938,16 @@ class cgmAttr(object):
         """   
         assert self.children is False,"This attribute has children. Can't store."
 
-        if self.form == 'message':
+        if self.attrType == 'message':
             self.obj.doStore(self.attr,infoToStore)
-            self.value = infoToStore
         elif convertIfNecessary:
             self.doConvert('message')
             self.updateData()
             self.obj.doStore(self.attr,infoToStore)                
-            self.value = infoToStore
             
         #except:
           #  log.error("'%s.%s' failed to store '%s'"%(self.obj.mNode,self.attr,infoToStore))
             
-    def doDelete(self):
-        """ 
-        Deletes an attribute
-        """   
-        try:
-            attributes.doDeleteAttr(self.obj.mNode,self.attr)
-            log.warning("'%s.%s' deleted"%(self.obj.mNode,self.attr))
-            self.value = None
-            return self.value
-        
-        except:
-            log.error("'%s.%s' failed to delete"%(self.obj.mNode,self.attr))  
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Set Options
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>                       
@@ -1135,7 +1163,13 @@ class cgmAttr(object):
         Keyword arguments:
         arg(bool)
         """         
-        assert type(arg) is bool, "doLocked arg must be a bool!"        
+	KeyableTypes = ['long','float','bool','enum','double3']  
+        assert type(arg) is bool, "doLocked arg must be a bool!" 
+	
+	if self.attrType not in KeyableTypes:
+	    log.warning("'%s' not a keyable attrType"%self.attrType)
+	    return False
+	
         if arg:
             if self.children:
                 log.warning("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.children)))

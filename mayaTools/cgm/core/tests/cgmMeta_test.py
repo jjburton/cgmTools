@@ -2,7 +2,7 @@
 #=========================================================================         
 from Red9.core import Red9_Meta as r9Meta
 reload(r9Meta)
-from Red9.core.Red9_Meta import *
+#from Red9.core.Red9_Meta import *
 r9Meta.registerMClassInheritanceMapping()    
 #========================================================================
 import random
@@ -11,7 +11,7 @@ import copy
 import time
 import logging
 
-from cgm.lib import distance
+from cgm.lib import (distance,attributes)
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -19,9 +19,9 @@ log.setLevel(logging.INFO)
 
 from cgm.core import cgmMeta
 reload(cgmMeta)
-from cgm.core.cgmMeta import *
+#from cgm.core.cgmMeta import *
 
-from cgm.core.classes import cgmPuppet
+from cgm.core.rigger import cgmPuppet
 reload(cgmPuppet)
 
 import maya.cmds as mc
@@ -54,24 +54,25 @@ class MorpheusBase_Test():
         log.info("Testing no arguments passed")
         self.Morpheus = cgmPuppet.cgmPuppet(name = 'Morpheus')
         
-        
-
 class cgmMeta_Test():
     def __init__(self):
         function = 'cgmMeta_Test'        
         log.info(">"*20  + "  Testing '%s' "%function + "<"*20 )         
         start = time.clock()
         self.setup()
-        self.test_attributeHandling()
+        self.test_cgmAttr()
+        #self.test_attributeHandling()
         #self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
-        self.test_cgmNode()
-        self.test_cgmObject()
-        self.test_cgmObjectSet()
-        self.test_cgmOptionVar()
-        self.test_cgmPuppet() #Puppet test
+        #self.test_cgmNode()
+        #self.test_cgmObject()
+        #self.test_cgmObjectSet()
+        #self.test_cgmOptionVar()
+        #self.test_cgmPuppet() #Puppet test
+        #self.test_cgmModule()
         
-        log.info(">"*10  + '   cgmMeta_Test time =  %0.3f seconds  ' % (time.clock()-start) + '<'*10)       
         self.MetaInstance.select()
+        
+        log.info(">"*10  + '   cgmMeta_Test time =  %0.3f seconds  ' % (time.clock()-start) + '<'*10)    
     
     def setup(self):
         '''
@@ -88,24 +89,24 @@ class cgmMeta_Test():
         #Test name and node argument passing
         #==============      
         log.info("Testing no arguments passed")
-        self.MetaInstance = cgmMeta()
+        self.MetaInstance = cgmMeta.cgmMeta()
         assert mc.objExists(self.MetaInstance.mNode)        
         
         self.test_functionCalls()
         #Initial instance deleted at end of function call
         
         log.info('>'*3 + " Testing name 'Hogwarts' being passed")
-        self.MetaInstance = cgmMeta(name = 'Hogwarts')
+        self.MetaInstance = cgmMeta.cgmMeta(name = 'Hogwarts')
         assert mc.objExists(self.MetaInstance.mNode)        
         assert self.MetaInstance.getShortName() == 'Hogwarts'     
         
         log.info('>'*3 + " Pass node, no name...")        
-        self.MetaInstance = cgmMeta(node = 'Hogwarts')
+        self.MetaInstance = cgmMeta.cgmMeta(node = 'Hogwarts')
         assert mc.objExists(self.MetaInstance.mNode)                
         assert self.MetaInstance.getShortName() == 'Hogwarts'     
         
         log.info('>'*3 + " Testing existing 'Hogwarts' node, new 'cgmTransform' name")
-        self.MetaInstance = cgmMeta(node = 'Hogwarts', name = 'cgmTransform')
+        self.MetaInstance = cgmMeta.cgmMeta(node = 'Hogwarts', name = 'cgmTransform')
         assert mc.objExists(self.MetaInstance.mNode)
         assert self.MetaInstance.getShortName() == 'cgmTransform'
         
@@ -116,13 +117,13 @@ class cgmMeta_Test():
         #============== 
         #Need to create a Node and an object for separate tests
         
-        self.MetaNode = cgmMeta(name = 'cgmNetwork', nodeType = 'network')
+        self.MetaNode = cgmMeta.cgmMeta(name = 'cgmNetwork', nodeType = 'network')
         assert mc.nodeType(self.MetaNode.mNode)=='network'
         
-        self.MetaObject = cgmMeta(name = 'cgmTransform',nodeType = 'transform')
+        self.MetaObject = cgmMeta.cgmMeta(name = 'cgmTransform',nodeType = 'transform')
         assert mc.nodeType(self.MetaObject.mNode)=='transform'
         
-        self.ObjectSet = cgmMeta(name = 'cgmObjectSet',nodeType = 'objectSet')
+        self.ObjectSet = cgmMeta.cgmMeta(name = 'cgmObjectSet',nodeType = 'objectSet')
         assert mc.nodeType(self.ObjectSet.mNode)=='objectSet'
         
         #Create Test Objects and initialize
@@ -130,12 +131,93 @@ class cgmMeta_Test():
         nurbsCubeCatch = mc.nurbsCube()
         polyCubeCatch = mc.polyCube()  
         
-        self.pCube = cgmMeta(polyCubeCatch[0],name = 'pCube')
-        self.nCube = cgmMeta(nurbsCubeCatch[0],name = 'nCube')
+        self.pCube = cgmMeta.cgmMeta(polyCubeCatch[0],name = 'pCube')
+        self.nCube = cgmMeta.cgmMeta(nurbsCubeCatch[0],name = 'nCube')
         
         self.setup = True
         
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)  
+        
+    def test_cgmAttr(self):
+        '''
+        Modified from Mark Jackson's testing for Red9
+        This tests the standard attribute handing in the MetaClass.__setattr__ 
+        '''
+        
+        self.cgmAttrNull = cgmMeta.cgmObject(name = 'cgmAttrNull',nodeType = 'transform')
+
+        function = 'test_cgmAttr'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
+        
+        node=self.cgmAttrNull
+        
+        #String test
+        #---------------- 
+        log.info('>'*3 + " String test...")
+        self.cgmString = cgmMeta.cgmAttr(node,'stringTest',value = 'testing', keyable = True, lock=True)
+        assert self.cgmString.obj.mNode == node.mNode 
+        assert self.cgmString.attrType == 'string'        
+        assert self.cgmString.locked == True
+        assert self.cgmString.stringTest == 'testing'
+        assert self.cgmString.get() == 'testing'
+        
+        self.cgmString.value = 'catRatDog' #Change via declaration   
+        assert self.cgmString.stringTest == 'catRatDog'
+        
+        assert self.cgmString.keyable == False
+        
+        #Int test
+        #---------------- 
+        log.info('>'*3 + " Int test and conversion to float...")
+        self.cgmIntAttr = cgmMeta.cgmAttr(node,'intTest',value = 3, keyable = True, lock=True)
+        assert self.cgmIntAttr.obj.mNode == node.mNode 
+        assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
+        assert self.cgmIntAttr.locked == True
+        assert self.cgmIntAttr.intTest == 3
+        assert attributes.doGetAttr(node.mNode,'intTest') == 3
+        assert self.cgmIntAttr.get() == 3,self.cgmIntAttr.intTest
+        assert self.cgmIntAttr.keyable == True     
+        
+        #self.cgmIntAttr.doConvert('float')#Convert to a float
+        #assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
+        #assert self.cgmIntAttr.intTest == 3.0
+        
+        #self.cgmIntAttr.doConvert('int')#Convert back
+        #assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
+        #assert self.cgmIntAttr.locked == True
+        #assert self.cgmIntAttr.intTest == 3    
+        
+        #Message test
+        #---------------- 
+        log.info('>'*3 + " Message test...")
+        self.cgmSingleMsgAttr = cgmMeta.cgmAttr(node,'messageTest',value = self.pCube.mNode,lock=True) 
+        log.info(self.cgmSingleMsgAttr.value)
+        #assert self.pCube.getShortName() in self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
+        self.cgmSingleMsgAttr.value = self.nCube.mNode
+        assert self.nCube.getLongName() in self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
+        
+        self.cgmMultiMsgAttr = cgmMeta.cgmAttr(node,'multiMessageTest',value = [self.nCube.mNode, self.pCube.mNode],lock=True) 
+        log.info(self.cgmMultiMsgAttr.value)
+        assert self.cgmMultiMsgAttr.isMulti()
+        assert not self.cgmMultiMsgAttr.isIndexMatters()
+        #assert len(self.cgmSingleMsgAttr.value) == 2,self.cgmSingleMsgAttr.value
+        #assert self.nCube.getLongName() in self.cgmSingleMsgAttr.value
+        
+        reload(attributes)
+        #attributes.storeInfo(node.mNode,'multiMessageTest',[self.nCube.mNode, self.pCube.mNode])
+        
+        #Enum test
+        #---------------- 
+        #log.info('>'*3 + " Enum test and conversion to float...")
+        #log.info(node.mNode)
+        #self.cgmEnumAttr = cgmMeta.cgmAttr(node,'intTest',value = 3, keyable = True, lock=True)        
+        
+        
+        
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)    
         
     def test_attributeHandling(self):
         '''
@@ -143,7 +225,7 @@ class cgmMeta_Test():
         This tests the standard attribute handing in the MetaClass.__setattr__ 
         '''
         if not self.MetaInstance:
-            self.MetaInstance = cgmMeta()
+            self.MetaInstance = cgmMeta.cgmMeta()
             
         function = 'test_attributeHandling'
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
@@ -259,6 +341,7 @@ class cgmMeta_Test():
         assert not mc.attributeQuery('boolTest',node=node.mNode,exists=True)
         
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
         
     def test_messageAttrHandling(self):
         '''
@@ -270,9 +353,9 @@ class cgmMeta_Test():
         start = time.clock()   
         
         #if not self.MetaInstance:
-            #self.MetaInstance = cgmMeta() 
+            #self.MetaInstance = cgmMeta.cgmMeta() 
             
-        node=MetaClass()
+        node=r9Meta.MetaClass()
                 
         #make sure we collect LONG names for these as all wrappers deal with longName
         cube1=mc.ls(mc.polyCube()[0],l=True)[0]
@@ -282,7 +365,7 @@ class cgmMeta_Test():
         cube5=mc.ls(mc.polyCube()[0],l=True)[0]
         cube6=mc.ls(mc.polyCube()[0],l=True)[0]
  
-        node.addAttr('msgMultiTest', value=[cube1,cube2], attrType='message')   #multi Message attr
+        node.addAttr('msgMultiTest', value=[cube1,cube2,cube3], attrType='message')   #multi Message attr
         node.addAttr('msgSingleTest', value=cube3, attrType='messageSimple')    #non-multi message attr
         node.addAttr('msgSingleTest2', value=cube3, attrType='messageSimple')    #non-multi message attr
         
@@ -296,9 +379,9 @@ class cgmMeta_Test():
         assert mc.attributeQuery('msgSingleTest',node=node.mNode, multi=True)==False
         
         #NOTE : cmds returns shortName, but all MetaClass attrs are always longName
-        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==['pCube1','pCube2']
-        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==['pCube3'] 
-        assert mc.listConnections('%s.msgSingleTest2' % node.mNode)==['pCube3'] 
+        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==[cube1],"%s"%mc.listConnections('%s.msgSingleTest' % node.mNode)
+        assert mc.listConnections('%s.msgSingleTest2' % node.mNode)==[cube2],"%s"%mc.listConnections('%s.msgSingleTest2' % node.mNode)
+        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==[cube1,cube2,cube3]
    
         assert sorted(node.msgMultiTest)==[cube1,cube2]
         assert node.msgSingleTest==[cube3]
@@ -321,6 +404,7 @@ class cgmMeta_Test():
         
         
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
         
         
     def test_functionCalls(self):
@@ -352,6 +436,7 @@ class cgmMeta_Test():
         assert not mc.objExists(name)
         
         log.info(">"*5  +"Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
 
         
     def test_cgmNode(self):
@@ -360,7 +445,7 @@ class cgmMeta_Test():
         start = time.clock()
         
         if not self.MetaNode:
-            self.MetaNode = cgmMeta(name = 'cgmNode',nodeType = 'network')
+            self.MetaNode = cgmMeta.cgmMeta(name = 'cgmNode',nodeType = 'network')
             
         #Assert some info
         #----------------------------------------------------------   
@@ -381,6 +466,7 @@ class cgmMeta_Test():
         assert self.MetaNode.hasAttr('stored') is False
         
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
     
     def test_cgmObject(self):
         function = 'test_cgmObject'
@@ -458,17 +544,18 @@ class cgmMeta_Test():
         self.MetaObject.doCopyPivot(self.pCube.mNode)
        
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
 
     def test_cgmObjectSet(self):
         function = 'test_cgmObjectSet'
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
         start = time.clock()
         
-        self.ObjectSet = cgmMeta(name = 'cgmObjectAnimationSet',nodeType = 'objectSet',setType = 'animation', qssState = True)
-        self.MayaDefaultSet = cgmMeta(node = 'defaultObjectSet')   
+        self.ObjectSet = cgmMeta.cgmMeta(name = 'cgmObjectAnimationSet',nodeType = 'objectSet',setType = 'animation', qssState = True)
+        self.MayaDefaultSet = cgmMeta.cgmMeta(node = 'defaultObjectSet')   
         
-        from cgm.core.cgmMeta import *
-        self.ObjectSet2 = cgmObjectSet(setName = 'cgmObjectAnimationSet2',value = self.ObjectSet.value )
+        #from cgm.core.cgmMeta import *
+        self.ObjectSet2 = cgmMeta.cgmObjectSet(setName = 'cgmObjectAnimationSet2',value = self.ObjectSet.value )
         #Initialize another set with a value on call
         assert self.ObjectSet2.value == self.ObjectSet.value
         del self.ObjectSet2.value        
@@ -536,7 +623,7 @@ class cgmMeta_Test():
         
         #Copy set
         catch = self.ObjectSet.copy()
-        self.ObjectSetCopy = cgmMeta(catch) #Initialize copy
+        self.ObjectSetCopy = cgmMeta.cgmMeta(catch) #Initialize copy
         assert self.ObjectSet.getList() == self.ObjectSetCopy.getList(),"Sets don't match"
         assert self.ObjectSet.objectSetType == self.ObjectSetCopy.objectSetType,"Object Set types don't match"
         assert self.ObjectSet.qssState == self.ObjectSetCopy.qssState,"qssStates don't match"
@@ -562,6 +649,7 @@ class cgmMeta_Test():
         assert self.pCube.tx == 0
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
 
     def test_cgmOptionVar(self):
         function = 'test_cgmOptionVar'
@@ -577,7 +665,7 @@ class cgmMeta_Test():
         #-------------------------
         log.info('>'*3 + " Testing creation/conversion of ine optionVar...")   
         
-        self.OptionVarInt = cgmOptionVar('cgmVar_intTest')#No arg should default to int
+        self.OptionVarInt = cgmMeta.cgmOptionVar('cgmVar_intTest')#No arg should default to int
         
         assert self.OptionVarInt.varType == 'int',"Form should be int by default"
         assert self.OptionVarInt.value == 0,"Value should be 0"
@@ -605,7 +693,7 @@ class cgmMeta_Test():
         # String varType test and initValue Test
         #-------------------------
         log.info('>'*3 + " String varType test and initValue Test...")   
-        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
+        self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
         
         self.OptionVarString.varType = 'string'
         assert self.OptionVarString.value == 'batman',"Value should be 'batman, found %s on %s'"%(self.OptionVarString.value,self.OptionVarString.name)
@@ -613,9 +701,9 @@ class cgmMeta_Test():
         
         self.OptionVarString.value = 'testing'
         assert self.OptionVarString.value == 'testing',"Value should be 'testing'"
-        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
+        self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
         assert self.OptionVarString.value == 'testing',"Value should be 'testing' after reinitializaton"
-        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', value = 'cats', defaultValue='batman')#String type
+        self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', value = 'cats', defaultValue='batman')#String type
         assert self.OptionVarString.value == 'cats',"Value should be 'cats' after reinitializaton"
         
         self.OptionVarString.value = [self.nCube.mNode,self.pCube.mNode]#Set via list
@@ -655,7 +743,7 @@ class cgmMeta_Test():
         #-------------------------
         log.info('>'*3 + " Float testing and translation testing...")   
         
-        self.OptionVarFloat = cgmOptionVar('cgmVar_floatTest',value = 1.0,varType = 'float')#Float type
+        self.OptionVarFloat = cgmMeta.cgmOptionVar('cgmVar_floatTest',value = 1.0,varType = 'float')#Float type
         
         assert self.OptionVarFloat.varType == 'float'
         assert self.OptionVarFloat.value == 1
@@ -682,10 +770,11 @@ class cgmMeta_Test():
         # Float varType test and initValue Test
         #-------------------------
         log.info('>'*3 + " String varType test and initValue Test...")   
-        self.OptionVarString = cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
+        self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
         
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
 
     def test_cgmPuppet(self):
         function = 'test_cgmPuppet'
@@ -791,8 +880,77 @@ class cgmMeta_Test():
         
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)                         
     
+    def test_cgmModule(self):
+        function = 'test_cgmPuppet'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
+        
+        if not self.Puppet:
+            self.Puppet = cgmPuppet.cgmPuppet(name = 'Kermit')
+        Puppet = self.Puppet
+        
+        Module1 = cgmPuppet.cgmModule(name = 'moduleTest',position = 'front',direction = 'right', handles = 3)
+        Module1IO = cgmPuppet.cgmModule(Module1.mNode) #Should equal that of the reg process
+        #Assertions on the module null
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the module null...")    
+        assert Module1.cgmType == 'module'
+        assert Module1.mClass == 'cgmModule'
+        assert Module1.cgmName == 'moduleTest'
+        assert Module1.cgmPosition == 'front'
+        assert Module1.cgmDirection == 'right'
+        
+        assert Module1.cgmType == Module1.cgmType
+        assert Module1.mClass == Module1.mClass
+        assert Module1.cgmType == Module1.cgmType
+        assert Module1.cgmPosition == Module1.cgmPosition
+        assert Module1.cgmDirection == Module1.cgmDirection        
+        
+        
+        #Assertions on the rig null
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the rig null...")   
+        assert Module1.i_rigNull.hasAttr('cgmType')
+        log.info(Module1.i_rigNull.cgmType)
+        
+        assert Module1.i_rigNull.cgmType == 'rigNull','%s'%Module1.i_rigNull.cgmType
+        assert Module1.i_rigNull.handles == 3,'%s'%Module1.i_rigNull.handles
+        assert Module1.i_rigNull.ik == False
+        assert Module1.i_rigNull.fk == False
+        assert Module1.i_rigNull.bendy == False
+        assert Module1.i_rigNull.stretchy == False
+        
+        
+        #Assertions on the template null
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the rig null...")   
+        assert Module1.i_rigNull.hasAttr('cgmType')
+        log.info(Module1.i_rigNull.cgmType)
+        
+        
+        
+        
+        
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)    
+        
+    def test_Template(self):
+        function = 'test_Template'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
+        
+        
+        #Assertions on the module null
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the module null...")    
+        assert asdfasdfasdfasdf
 
+        
+        
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)              
 
 
 

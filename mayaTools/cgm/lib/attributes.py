@@ -392,19 +392,28 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
     attrTypes = returnObjectsAttributeTypes(obj)    
     goodToGo = False
     infoData = 0
+	
+    #Figure out the data type
+    #==============      
+    if type(info) is list:
+        for o in info:
+            if mc.objExists(o) and not overideMessageCheck:
+                infoData = 'multiMessage'
+                log.warning('Multi message mode!')
+                break
+    elif mc.objExists(info) and not overideMessageCheck:
+        infoData = 'message'
+        
+    elif mc.objExists(info) and '.' in list(info):
+        if '[' not in info:
+            infoData = 'attribute'
+        else:
+            infoData = 'string'
 
     #Force leave  unlocked to be on in the case of referenced objects.
     if mc.referenceQuery(obj, isNodeReferenced=True):
         leaveUnlocked = True
 
-    if mc.objExists(info):
-        if overideMessageCheck == False:
-            infoData = 'message'
-    if mc.objExists(info) and '.' in list(info):
-        if '[' not in info:
-            infoData = 'attribute'
-        else:
-            infoData = 'string'
     if infoType in settingsDictionary:
         infoTypeName = settingsDictionary.get(infoType)
         goodToGo = True
@@ -431,6 +440,8 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
             storeObjectToMessage(info,obj,infoType)
             if leaveUnlocked != True:
                 mc.setAttr(('%s%s%s' % (obj,'.',infoType)),lock=True)
+        elif infoData == 'multiMessage':
+            storeObjectsToMessage(info,obj,infoType)#Multi message!
         else:
             """ 
             if we get this far and it's a message node we're trying
@@ -1721,7 +1732,10 @@ def returnMessageObject(storageObject, messageAttr):
     if mc.objExists(attrBuffer) == True:
         messageObject = (mc.listConnections (attrBuffer))
         if messageObject != None:
-            return messageObject[0]
+            if mc.objExists(messageObject[0]) and not mc.objectType(messageObject[0])=='reference':
+                return messageObject[0]
+            else:#Try to repair it
+                return repairMessageToReferencedTarget(storageObject,messageAttr)
         else:
             return False
     else:
@@ -1805,7 +1819,7 @@ def returnMessageAttrs(obj):
     else:
         return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def repairMessageToReferencedTarget(obj,attr,debug=False):
+def repairMessageToReferencedTarget(obj,attr):
     """
     To be repairable, there must have been a message connection both directions.
     
@@ -1824,19 +1838,22 @@ def repairMessageToReferencedTarget(obj,attr,debug=False):
     assert mc.objectType(objTest[0]) == 'reference',"'%s' isn't returning a reference. Aborted"%targetAttr 
     
     ref = objTest[0].split('RN.')[0] #Get to the ref
-    if debug:log.info("Reference connection found, attempting to fix...")
+    log.info("Reference connection found, attempting to fix...")
         
     messageConnectionsOut =  mc.listConnections("%s.message"%(obj), p=1)
     if messageConnectionsOut and ref:
         for plug in messageConnectionsOut:
             if ref in plug:
+                log.info("Checking '%s'"%plug)                
                 matchObj = plug.split('.')[0]#Just get to the object
                 doConnectAttr("%s.message"%matchObj,targetAttr)
-                if debug: log.info("'%s' restored to '%s'"%(targetAttr,matchObj))
+                log.info("'%s' restored to '%s'"%(targetAttr,matchObj))
                 
                 if len(messageConnectionsOut)>1:#fix to first, report other possibles
-                    if debug: log.warning("Found more than one possible connection. Candidates are:'%s'"%"','".join(messageConnectionsOut))
-                return True
+                    log.warning("Found more than one possible connection. Candidates are:'%s'"%"','".join(messageConnectionsOut))
+                    return False
+                return matchObj
+    log.warning("No message connections and reference found")
     return False
         
 def returnMessageAttrsAsList(obj):
@@ -2338,7 +2355,7 @@ def storeObjectToMessage (obj, storageObj, messageName):
         
     try:
         if  mc.objExists (attrCache):
-            if queryIfMessage(storageObj,messageName):
+            if mc.attributeQuery (messageName,node=storageObj,msg=True):
                 if returnMessageObject(storageObj,messageName) != obj:
                     log.debug(attrCache+' already exists. Adding to existing message node.')
                     doBreakConnection(attrCache)
@@ -2367,7 +2384,44 @@ def storeObjectToMessage (obj, storageObj, messageName):
     except:
         return False
     
+def storeObjectsToMessage (objects, storageObj, messageName):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Adds the obj name as a mulit message attribute to the storage object with
+    a custom message attribute name. Reminder - multi message attrs are invisible
 
+    ARGUMENTS:
+    objects(list) - object to store
+    storageObject(string) - object to store the info to
+    messageName(string) - message name to store it as
+
+    RETURNS:
+    Success
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    for obj in objects:
+        assert mc.objExists(obj) is True,"'%s' doesn't exist"%(obj)
+    assert mc.objExists(storageObj) is True,"'%s' doesn't exist"%(storageObj)
+    attrCache = (storageObj+'.'+messageName)
+    
+    try:
+        if mc.objExists (attrCache):
+            log.debug(attrCache+' already exists. Adding to existing message node.')                
+            doDeleteAttr(storageObj,messageName)
+            mc.addAttr (storageObj, ln=messageName, at= 'message',m=True,im=False) 
+            for obj in objects:
+                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
+            return True                       
+        else:
+            mc.addAttr(storageObj, ln=messageName, at= 'message',m=True,im=False) 
+            for obj in objects:
+                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
+            return True 
+    except:
+        log.error("Storing '%s' to '%s.%s' failed!"%(objects,storageObj,messageName))
+        return False
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def storeObjListNameToMessage (objList, storageObj):
     """ 
@@ -2389,16 +2443,11 @@ def storeObjListNameToMessage (objList, storageObj):
 def queryIfMessage(obj,attr):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Pass an object into it with messages, it will return a nested list in terms of [[attrName, target],[etc][etc]]
-
-    ARGUMENTS:
-    obj(string) - obj with message attrs
-
-    RETURNS:
-    messageList - nested list in terms of [[attrName, target],[etc][etc]]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    log.warning('!'*50)
+    log.warning("Please get rid of this in your code")
+    log.warning('!'*50)    
     if mc.objExists(obj+'.'+attr) != False:
         try:
             messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
