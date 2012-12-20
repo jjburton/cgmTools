@@ -61,7 +61,7 @@ class cgmMeta_Test():
         start = time.clock()
         self.setup()
         self.test_cgmAttr()
-        #self.test_attributeHandling()
+        self.test_attributeHandling()
         #self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
         #self.test_cgmNode()
         #self.test_cgmObject()
@@ -70,7 +70,7 @@ class cgmMeta_Test():
         #self.test_cgmPuppet() #Puppet test
         #self.test_cgmModule()
         
-        self.MetaInstance.select()
+        #self.MetaInstance.select()
         
         log.info(">"*10  + '   cgmMeta_Test time =  %0.3f seconds  ' % (time.clock()-start) + '<'*10)    
     
@@ -159,35 +159,78 @@ class cgmMeta_Test():
         self.cgmString = cgmMeta.cgmAttr(node,'stringTest',value = 'testing', keyable = True, lock=True)
         assert self.cgmString.obj.mNode == node.mNode 
         assert self.cgmString.attrType == 'string'        
-        assert self.cgmString.locked == True
+        assert self.cgmString.p_locked == True
         assert self.cgmString.stringTest == 'testing'
         assert self.cgmString.get() == 'testing'
         
         self.cgmString.value = 'catRatDog' #Change via declaration   
         assert self.cgmString.stringTest == 'catRatDog'
         
-        assert self.cgmString.keyable == False
+        assert self.cgmString.p_keyable == False
         
         #Int test
         #---------------- 
         log.info('>'*3 + " Int test and conversion to float...")
-        self.cgmIntAttr = cgmMeta.cgmAttr(node,'intTest',value = 3, keyable = True, lock=True)
+        self.cgmIntAttr = cgmMeta.cgmAttr(node,'intTest',value = 7, keyable = True, lock=True)
         assert self.cgmIntAttr.obj.mNode == node.mNode 
         assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
-        assert self.cgmIntAttr.locked == True
-        assert self.cgmIntAttr.intTest == 3
-        assert attributes.doGetAttr(node.mNode,'intTest') == 3
-        assert self.cgmIntAttr.get() == 3,self.cgmIntAttr.intTest
-        assert self.cgmIntAttr.keyable == True     
+        assert self.cgmIntAttr.p_locked == True
+        self.cgmIntAttr.p_hidden == False #Unhide        
+        assert self.cgmIntAttr.intTest == 7
+        assert attributes.doGetAttr(node.mNode,'intTest') == 7
+        assert self.cgmIntAttr.get() == 7,self.cgmIntAttr.intTest
+        assert self.cgmIntAttr.p_keyable == True   
+        assert self.cgmIntAttr.p_hidden == False   
         
+        
+        #Assert some knowns
+        assert self.cgmIntAttr.isDynamic()#Should be true
+        assert self.cgmIntAttr.isNumeric()
+        assert self.cgmIntAttr.isReadable()
+        assert self.cgmIntAttr.isStorable()
+        assert self.cgmIntAttr.isWritable()
+        
+        #mins, defaults, maxes
+        log.info('>'*3 + " Int test --max,min,range...")        
+        self.cgmIntAttr.p_defaultValue = 5
+        assert self.cgmIntAttr.p_defaultValue == 5,self.cgmIntAttr.p_defaultValue
+        self.cgmIntAttr.p_minValue = 1
+        self.cgmIntAttr.p_maxValue = 6
+        assert self.cgmIntAttr.value == 6,self.cgmIntAttr.value#new max should have cut it off 
+        assert self.cgmIntAttr.p_minValue == 1
+        assert self.cgmIntAttr.p_maxValue == 6
+        assert self.cgmIntAttr.getRange() == [1,6],self.cgmIntAttr.getRange()
+        
+        log.info('>'*3 + " Int test -- conversion to float and back...")                
         self.cgmIntAttr.doConvert('float')#Convert to a float
         assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
-        assert self.cgmIntAttr.intTest == 3.0
+        assert self.cgmIntAttr.intTest == 6.0
+        #ssert self.cgmIntAttr.getRange() == [1.0,6.0],self.cgmIntAttr.getRange()#should have converted min/max as well
         
         self.cgmIntAttr.doConvert('int')#Convert back
         assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
-        assert self.cgmIntAttr.locked == True
-        assert self.cgmIntAttr.intTest == 3    
+        assert self.cgmIntAttr.p_locked == True
+        assert self.cgmIntAttr.intTest == 6  
+        
+        #Float test
+        #---------------- 
+        log.info('>'*3 + " Float and softMin/softMax...")
+        self.cgmFloatAttr = cgmMeta.cgmAttr(node,'floatTest',value = 1.333, keyable = True, lock=True)
+        assert self.cgmFloatAttr.obj.mNode == node.mNode 
+        assert self.cgmFloatAttr.attrType == 'double', self.cgmFloatAttr.attrType 
+        
+        self.cgmFloatAttr.p_maxValue = 6       
+        self.cgmFloatAttr.p_softMax = 5.5
+        assert self.cgmFloatAttr.p_softMax == 5.5
+        self.cgmFloatAttr.p_softMin = .5
+        self.cgmFloatAttr.p_minValue = 0      
+        assert self.cgmFloatAttr.p_softMin == .5
+        assert self.cgmFloatAttr.getSoftRange() == [.5,5.5],self.cgmFloatAttr.getSoftRange()
+        assert self.cgmFloatAttr.getRange() == [0,6.0],self.cgmFloatAttr.getRange()
+        
+        self.cgmFloatAttr.p_keyable = False
+        assert self.cgmFloatAttr.p_keyable == False
+
         
         #Message test
         #---------------- 
@@ -222,12 +265,24 @@ class cgmMeta_Test():
         
         #Enum test
         #---------------- 
-        #log.info('>'*3 + " Enum test and conversion to float...")
-        #log.info(node.mNode)
-        #self.cgmEnumAttr = cgmMeta.cgmAttr(node,'intTest',value = 3, keyable = True, lock=True)        
+        log.info('>'*3 + " Enum test and connection to float...")
+        self.cgmEnumAttr = cgmMeta.cgmAttr(node,'enumTest',value = 3, enum = '1:2:3:red:4:5:6')        
+        assert self.cgmEnumAttr.value == 3
+        assert self.cgmEnumAttr.p_hidden == False
+        self.cgmEnumAttr.doConnectOut(self.cgmFloatAttr.p_combinedName)#Connect 
+        assert self.cgmEnumAttr.getDriven() == [self.cgmFloatAttr.p_combinedName]," %s not equal to [%s]"%(self.cgmEnumAttr.getDriven(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
         
+        #To test
+        #Doulble3 test
+        #---------------- 
+        #Copying test
+        #----------------     
+        #Transferring test
+        #----------------    
+        #NameFlags
+        #----------------         
         
-        
+        node.select()
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
         log.info("="*70)    
         

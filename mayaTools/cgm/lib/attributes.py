@@ -447,7 +447,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
             if we get this far and it's a message node we're trying
             to store other data to we need to delete it
             """
-            if queryIfMessage(obj,infoTypeName) == True:
+            if mc.attributeQuery (infoTypeName,node=obj,msg=True):
                 doDeleteAttr(obj,infoTypeName)
             """
             Make our new string attribute if it doesn't exist
@@ -722,7 +722,7 @@ def doConvertAttrType(targetAttrName,attrType):
         # get data connection and data to transfer after we make our new attr
         # see if it's a message attribute to copy    
         connection = ''
-        if queryIfMessage(targetObj,targetAttr):
+        if mc.attributeQuery (targetAttr,node=targetObj,msg=True):
             dataBuffer = (returnMessageObject(targetObj,targetAttr))
         else:
             connection = returnDriverAttribute(targetAttrName)            
@@ -1149,9 +1149,9 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
     messageAttrs = {}
     if len(matchAttrs)>0:
         for attr in matchAttrs:
-            # see if it's a message attribute to copy    
-            if queryIfMessage(fromObject,attr):
-                messageAttrs[attr] = (returnMessageObject(fromObject,attr))
+            # see if it's a message attribute to copy  
+            if mc.attributeQuery (attr,node=fromObject,msg=True):
+		messageAttrs[attr] = (returnMessageObject(fromObject,attr))
                 
             """ see if it was locked, unlock it and store that it was locked """
             if mc.getAttr((fromObject+'.'+attr),lock=True) == True:
@@ -1531,7 +1531,7 @@ def doBreakConnection(obj,attr=None):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def returnDriverAttribute(attribute,skipConversionNodes = False):
+def returnDriverAttribute(attribute,skipConversionNodes = False,longNames = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1550,11 +1550,14 @@ def returnDriverAttribute(attribute,skipConversionNodes = False):
         if not sourceBuffer:
             sourceBuffer = [mc.connectionInfo (attribute,sourceFromDestination=True)]   
         if sourceBuffer:
-            return sourceBuffer[0]
+	    if longNames:		    
+		return str(mc.ls(sourceBuffer[0],l=True)[0])#cast to longNames!
+	    else:
+		return str(mc.ls(sourceBuffer[0],shortNames=True)[0])#cast to shortnames!		    
         return False
     return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDriverObject(attribute,skipConversionNodes = False):
+def returnDriverObject(attribute,skipConversionNodes = False,longNames = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1570,9 +1573,12 @@ def returnDriverObject(attribute,skipConversionNodes = False):
     objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, s = True, plugs = False)
     if not objectBuffer:
         return False
-    return objectBuffer[0]
+    if longNames:		    
+	return str(mc.ls(objectBuffer[0],l=True)[0])#cast to longNames!
+    else:
+	return str(mc.ls(objectBuffer[0],shortNames=True)[0])#cast to shortnames!
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDrivenAttribute(attribute,skipConversionNodes = False):
+def returnDrivenAttribute(attribute,skipConversionNodes = False,longNames = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1591,11 +1597,17 @@ def returnDrivenAttribute(attribute,skipConversionNodes = False):
         if not destinationBuffer:
             destinationBuffer = mc.connectionInfo (attribute,destinationFromSource=True) 
         if destinationBuffer:
-            return destinationBuffer
+	    returnList = []
+	    for lnk in destinationBuffer:
+		if longNames:		    
+		    returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
+		else:
+		    returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!		    
+            return returnList
         return False
     return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnDrivenObject(attribute,skipConversionNodes = True):
+def returnDrivenObject(attribute,skipConversionNodes = True,longNames = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1611,11 +1623,16 @@ def returnDrivenObject(attribute,skipConversionNodes = True):
     objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, d = True, plugs = False)
     if not objectBuffer:
         return False
-    
     if attribute in objectBuffer:
         objectBuffer.remove(attribute)
-
-    return objectBuffer
+    
+    returnList = []
+    for lnk in objectBuffer:
+	if longNames:		    
+	    returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
+	else:
+	    returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!	
+    return returnList    
 
 
 
@@ -2481,7 +2498,7 @@ def queryIfMessage(obj,attr):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     log.warning('!'*50)
-    log.warning("Please get rid of this in your code")
+    log.warning("Please get rid of 'attributes.queryIfMessage' in your code")
     log.warning('!'*50)    
     if mc.objExists(obj+'.'+attr) != False:
         try:
