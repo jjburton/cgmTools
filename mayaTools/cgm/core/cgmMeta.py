@@ -1676,7 +1676,8 @@ class cgmAttr(object):
 		    if mc.objExists(o):
 			self.attrType = 'message'		
 			log.warning('Multi message mode!')
-			break	    
+			break
+		    self.attrType = 'double3'#Need better detection here for json and what not
 	    elif mc.objExists(value):
 		log.info("'%s' exists. creating as message."%value)
 		self.attrType = 'message'		
@@ -1751,6 +1752,8 @@ class cgmAttr(object):
             
         if type(lock) is bool:
             self.doLocked(lock)
+	    
+	log.info("'%s' initialized. Value: '%s'"%(self.p_combinedName,self.value))
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -1768,18 +1771,17 @@ class cgmAttr(object):
 	    if self.attrType == 'message':
 		self.doStore(value)	    
 	    elif self.getChildren():
-		log.info("'%s' has children, running set command on '%s'"%(self.nameCombined,"','".join(self.getChildren())))
+		log.info("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
 		for i,c in enumerate(self.getChildren()):
 		    try:
 			cInstance = cgmAttr(self.obj.mNode,c)                        
 			if type(value) is list and len(self.getChildren()) == len(value): #if we have the same length of values in our list as we have children, use them
-			    attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value[i], *a, **kw)
 			    cInstance.value = value[i]
 			else:    
 			    attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
 		    except:
 			log.debug("'%s' failed to set"%c)	
-	    elif value != self.value:
+	    else:
 		attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)
 		    
 	object.__setattr__(self, self.attr, self.value)
@@ -1862,7 +1864,7 @@ class cgmAttr(object):
                 log.info("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if not cInstance.locked:
+                    if not cInstance.p_locked:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = True) 
                         log.warning("'%s.%s' locked!"%(cInstance.obj.mNode,cInstance.attr))
                 
@@ -1875,7 +1877,7 @@ class cgmAttr(object):
                 log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if cInstance.locked:
+                    if cInstance.p_locked:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = False) 
                         log.warning("'%s.%s' unlocked!"%(cInstance.obj.mNode,cInstance.attr))
                 
@@ -2106,8 +2108,9 @@ class cgmAttr(object):
 	if not self.isNumeric():
 	    log.warn("'%s' is not a numberic attribute"%self.p_combinedName)
 	    return False
+
+	minValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, minimum=True)
 	try:
-	    minValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, minimum=True)
 	    if minValue is not False:
 		return minValue[0]
 	    return False
@@ -2155,7 +2158,6 @@ class cgmAttr(object):
 		return minValue[0]
 	    return False
 	except:
-	    log.error("'%s' failed to query min value" %self.p_combinedName)
 	    return False
 	
     def doSoftMin(self,value = None):
@@ -2193,7 +2195,6 @@ class cgmAttr(object):
 		return maxValue[0]
 	    return False
 	except:
-	    log.error("'%s' failed to query max value" %self.p_combinedName)
 	    return False
 	
     def doSoftMax(self,value = None):
@@ -2472,7 +2473,7 @@ class cgmAttr(object):
 
  
                 
-    def doConnectIn(self,source,*a, **kw):
+    def doConnectIn(self,source,childIndex = False,*a, **kw):
         """ 
         Attempts to make a connection from a source to our instanced attribute
         
@@ -2500,7 +2501,7 @@ class cgmAttr(object):
             else:
                 print "Source object doesn't have this particular attribute"
                 
-    def doCopyTo(self,target, targetAttrName = None,  debug = True,*a,**kw):
+    def doCopyTo(self,target, targetAttrName = None, *a,**kw):
         """                                     
         Replacement for Maya's since maya's can't handle shapes....blrgh...
         Copy attributes from one object to another as well as other options. If the attribute already
@@ -2535,22 +2536,19 @@ class cgmAttr(object):
         connectSourceToTarget = kw.pop('connectSourceToTarget',False)
         connectTargetToSource = kw.pop('connectTargetToSource',False)  
         
-        if debug:
-            guiFactory.doPrintReportStart(functionName)
-            log.info("AttrFactory instance: '%s'"%self.p_combinedName)
-            log.info("convertToMatch: '%s'"%convertToMatch)
-            log.info("targetAttrName: '%s'"%targetAttrName)
-            log.info("incomingConnections: '%s'"%incomingConnections)
-            log.info("outgoingConnections: '%s'"%outgoingConnections)
-            log.info("keepSourceConnections: '%s'"%keepSourceConnections)
-            log.info("copyAttrSettings: '%s'"%copyAttrSettings)
-            log.info("connectSourceToTarget: '%s'"%connectSourceToTarget)
-            log.info("keepSourceConnections: '%s'"%keepSourceConnections)
-            log.info("connectTargetToSource: '%s'"%connectTargetToSource)
-            guiFactory.doPrintReportBreak()
+	guiFactory.doPrintReportStart(functionName)
+	log.info("AttrFactory instance: '%s'"%self.p_combinedName)
+	log.info("convertToMatch: '%s'"%convertToMatch)
+	log.info("targetAttrName: '%s'"%targetAttrName)
+	log.info("incomingConnections: '%s'"%incomingConnections)
+	log.info("outgoingConnections: '%s'"%outgoingConnections)
+	log.info("keepSourceConnections: '%s'"%keepSourceConnections)
+	log.info("copyAttrSettings: '%s'"%copyAttrSettings)
+	log.info("connectSourceToTarget: '%s'"%connectSourceToTarget)
+	log.info("keepSourceConnections: '%s'"%keepSourceConnections)
+	log.info("connectTargetToSource: '%s'"%connectTargetToSource)
+	guiFactory.doPrintReportBreak()
             
-
-                
         copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
         
         if sum(copyTest) < 1:
@@ -2579,9 +2577,7 @@ class cgmAttr(object):
                                   convertToMatch = convertToMatch,
                                   values=values, incomingConnections = incomingConnections,
                                   outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
-                                  copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)                                                 
-        if debug:
-            guiFactory.doPrintReportEnd(functionName)        
+                                  copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)                                                      
         #except:
         #    log.warning("'%s' failed to copy to '%s'!"%(target,self.p_combinedName))          
             

@@ -61,7 +61,7 @@ class cgmMeta_Test():
         start = time.clock()
         self.setup()
         self.test_cgmAttr()
-        self.test_attributeHandling()
+        #self.test_attributeHandling()
         #self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
         #self.test_cgmNode()
         #self.test_cgmObject()
@@ -157,6 +157,7 @@ class cgmMeta_Test():
         #---------------- 
         log.info('>'*3 + " String test...")
         self.cgmString = cgmMeta.cgmAttr(node,'stringTest',value = 'testing', keyable = True, lock=True)
+        assert node.hasAttr('stringTest')
         assert self.cgmString.obj.mNode == node.mNode 
         assert self.cgmString.attrType == 'string'        
         assert self.cgmString.p_locked == True
@@ -172,6 +173,7 @@ class cgmMeta_Test():
         #---------------- 
         log.info('>'*3 + " Int test and conversion to float...")
         self.cgmIntAttr = cgmMeta.cgmAttr(node,'intTest',value = 7, keyable = True, lock=True)
+        assert node.hasAttr('intTest')        
         assert self.cgmIntAttr.obj.mNode == node.mNode 
         assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
         assert self.cgmIntAttr.p_locked == True
@@ -200,13 +202,14 @@ class cgmMeta_Test():
         assert self.cgmIntAttr.p_minValue == 1
         assert self.cgmIntAttr.p_maxValue == 6
         assert self.cgmIntAttr.getRange() == [1,6],self.cgmIntAttr.getRange()
-        
+      
         log.info('>'*3 + " Int test -- conversion to float and back...")                
         self.cgmIntAttr.doConvert('float')#Convert to a float
         assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
         assert self.cgmIntAttr.intTest == 6.0
         #ssert self.cgmIntAttr.getRange() == [1.0,6.0],self.cgmIntAttr.getRange()#should have converted min/max as well
-        
+
+       
         self.cgmIntAttr.doConvert('int')#Convert back
         assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
         assert self.cgmIntAttr.p_locked == True
@@ -216,6 +219,7 @@ class cgmMeta_Test():
         #---------------- 
         log.info('>'*3 + " Float and softMin/softMax...")
         self.cgmFloatAttr = cgmMeta.cgmAttr(node,'floatTest',value = 1.333, keyable = True, lock=True)
+        assert node.hasAttr('floatTest')                
         assert self.cgmFloatAttr.obj.mNode == node.mNode 
         assert self.cgmFloatAttr.attrType == 'double', self.cgmFloatAttr.attrType 
         
@@ -236,7 +240,9 @@ class cgmMeta_Test():
         #---------------- 
         log.info('>'*3 + " Message test...")
         self.cgmSingleMsgAttr = cgmMeta.cgmAttr(node,'messageTest',value = self.pCube.mNode,lock=True) 
-        self.cgmSingleMsgAttr2 = cgmMeta.cgmAttr(node,'messageTest2',value = self.pCube.mNode,lock=True)         
+        self.cgmSingleMsgAttr2 = cgmMeta.cgmAttr(node,'messageTest2',value = self.pCube.mNode,lock=True) 
+        assert node.hasAttr('messageTest')                
+        assert node.hasAttr('messageTest2')                        
         assert [self.pCube.getLongName()] == self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
         assert [self.pCube.getLongName()] == self.cgmSingleMsgAttr2.value, self.cgmSingleMsgAttr.value
         assert self.cgmSingleMsgAttr.value == self.cgmSingleMsgAttr2.value #These should be the same thing
@@ -245,6 +251,7 @@ class cgmMeta_Test():
         assert self.nCube.getLongName() in self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
         
         self.cgmMultiMsgAttr = cgmMeta.cgmAttr(node,'multiMessageTest',value = [self.nCube.mNode, self.pCube.mNode],lock=True) 
+        assert node.hasAttr('multiMessageTest')                                
         assert self.cgmMultiMsgAttr.isMulti()
         assert not self.cgmMultiMsgAttr.isIndexMatters()
         assert len(self.cgmMultiMsgAttr.value) == 2,self.cgmMultiMsgAttr.value
@@ -266,15 +273,28 @@ class cgmMeta_Test():
         #Enum test
         #---------------- 
         log.info('>'*3 + " Enum test and connection to float...")
-        self.cgmEnumAttr = cgmMeta.cgmAttr(node,'enumTest',value = 3, enum = '1:2:3:red:4:5:6')        
+        self.cgmEnumAttr = cgmMeta.cgmAttr(node,'enumTest',value = 3, enum = '1:2:3:red:4:5:6')
+        assert node.hasAttr('enumTest')                                        
         assert self.cgmEnumAttr.value == 3
         assert self.cgmEnumAttr.p_hidden == False
         self.cgmEnumAttr.doConnectOut(self.cgmFloatAttr.p_combinedName)#Connect 
         assert self.cgmEnumAttr.getDriven() == [self.cgmFloatAttr.p_combinedName]," %s not equal to [%s]"%(self.cgmEnumAttr.getDriven(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
         
-        #To test
-        #Doulble3 test
+        #Double3 test
         #---------------- 
+        log.info('>'*3 + " Double3 and connection from float...")        
+        self.cgmVectorAttr = cgmMeta.cgmAttr(node,'vecTest',value = [3,1,2])
+        self.cgmVectorXAttr = cgmMeta.cgmAttr(node,'vecTestX')                
+        assert node.hasAttr('vecTest')  
+        assert node.hasAttr('vecTestX')
+        assert self.cgmVectorAttr.value == [3.0,1.0,2.0],self.cgmVectorAttr.value
+        log.info(self.cgmVectorXAttr.value)
+        assert self.cgmVectorXAttr.value == self.cgmVectorAttr.value[0],self.cgmVectorXAttr.value
+        self.cgmVectorAttr.value = [1,44,7]#Don't currently support () args
+        assert self.cgmVectorAttr.value == [1.0,44.0,7.0],self.cgmVectorAttr.value
+        self.cgmVectorXAttr.doConnectIn(self.cgmFloatAttr.p_combinedName)
+        assert self.cgmVectorXAttr.getDriver() == self.cgmFloatAttr.p_combinedName," %s not equal to [%s]"%(self.cgmVectorXAttr.getDriver(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
+        
         #Copying test
         #----------------     
         #Transferring test

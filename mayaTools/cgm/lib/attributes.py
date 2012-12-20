@@ -518,11 +518,7 @@ def doGetAttr(obj,attr,*a, **kw):
             return dataBuffer
         elif attrType == 'double':
             parentAttr = mc.attributeQuery(attr, node =obj, listParent = True)
-            if parentAttr:
-                if parentAttr[0] not in objAttributes:
-                    attrDict[attr] = (mc.getAttr((obj+'.'+attr)))
-            else:
-                return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+	    return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
 
         else:
             return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
