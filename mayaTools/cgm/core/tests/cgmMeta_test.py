@@ -60,10 +60,10 @@ class cgmMeta_Test():
         log.info(">"*20  + "  Testing '%s' "%function + "<"*20 )         
         start = time.clock()
         self.setup()
-        self.test_cgmAttr()
+        #self.test_cgmAttr()
         #self.test_attributeHandling()
         #self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
-        #self.test_cgmNode()
+        self.test_cgmNode()
         #self.test_cgmObject()
         #self.test_cgmObjectSet()
         #self.test_cgmOptionVar()
@@ -339,7 +339,7 @@ class cgmMeta_Test():
         node.addAttr('fltTest', 1.333)        #create a float attribute
         node.addAttr('intTest', 3)            #create a int attribute
         node.addAttr('boolTest', False)       #create a bool attribute
-        node.addAttr('enumTest',enum='A:B:D:E:F', attrType ='enum',value = 1) #create an enum attribute
+        node.addAttr('enumTest',enumName='A:B:D:E:F', attrType ='enum',value = 1) #create an enum attribute
         node.addAttr('vecTest', [0,0,0], attrType ='double3') #create a double3
 
         #testAttrs with no value flags but attr flag to use default 
@@ -448,7 +448,7 @@ class cgmMeta_Test():
         '''
         test the messageLink handling in the __setattr__ block
         '''
-        function = 'test_functionCalls'
+        function = 'test_messageAttrHandling'
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
         
         start = time.clock()   
@@ -456,19 +456,19 @@ class cgmMeta_Test():
         #if not self.MetaInstance:
             #self.MetaInstance = cgmMeta.cgmMeta() 
             
-        node=r9Meta.MetaClass()
+        node=cgmMeta.cgmObject(name='MessageCatcher')
                 
         #make sure we collect LONG names for these as all wrappers deal with longName
-        cube1=mc.ls(mc.polyCube()[0],l=True)[0]
-        cube2=mc.ls(mc.polyCube()[0],l=True)[0]
-        cube3=mc.ls(mc.polyCube()[0],l=True)[0]
-        cube4=mc.ls(mc.polyCube()[0],l=True)[0]
-        cube5=mc.ls(mc.polyCube()[0],l=True)[0]
-        cube6=mc.ls(mc.polyCube()[0],l=True)[0]
+        cube1= cgmMeta.cgmNode(mc.polyCube()[0])
+        cube2= cgmMeta.cgmNode(mc.polyCube()[0])
+        cube3= cgmMeta.cgmNode(mc.polyCube()[0])
+        cube4= cgmMeta.cgmNode(mc.polyCube()[0])
+        cube5= cgmMeta.cgmNode(mc.polyCube()[0])
+        cube6= cgmMeta.cgmNode(mc.polyCube()[0])
  
-        node.addAttr('msgMultiTest', value=[cube1,cube2,cube3], attrType='message')   #multi Message attr
-        node.addAttr('msgSingleTest', value=cube3, attrType='messageSimple')    #non-multi message attr
-        node.addAttr('msgSingleTest2', value=cube3, attrType='messageSimple')    #non-multi message attr
+        node.addAttr('msgMultiTest', value=[cube1.mNode,cube2.mNode,cube3.mNode], attrType='message')   #multi Message attr
+        node.addAttr('msgSingleTest', value=cube3.mNode, attrType='messageSimple')    #non-multi message attr
+        node.addAttr('msgSingleTest2', value=cube3.mNode, attrType='messageSimple')    #non-multi message attr
         
         assert node.hasAttr('msgMultiTest')
         assert node.hasAttr('msgSingleTest')
@@ -480,29 +480,16 @@ class cgmMeta_Test():
         assert mc.attributeQuery('msgSingleTest',node=node.mNode, multi=True)==False
         
         #NOTE : cmds returns shortName, but all MetaClass attrs are always longName
-        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==[cube1],"%s"%mc.listConnections('%s.msgSingleTest' % node.mNode)
-        assert mc.listConnections('%s.msgSingleTest2' % node.mNode)==[cube2],"%s"%mc.listConnections('%s.msgSingleTest2' % node.mNode)
-        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==[cube1,cube2,cube3]
-   
-        assert sorted(node.msgMultiTest)==[cube1,cube2]
-        assert node.msgSingleTest==[cube3]
+        log.info(mc.ls( mc.listConnections('%s.msgSingleTest' % node.mNode),l=True))
+        assert attributes.returnMessageData(node.mNode,'msgSingleTest') == [cube3.getLongName()],"%s is not [%s]"%(attributes.returnMessageData(node.mNode,'msgSingleTest'),cube3.getLongName())
+        assert node.msgSingleTest2==[cube3.getLongName()]
+        log.info(node.msgMultiTest)
+        assert node.msgMultiTest ==[cube1.mNode,cube2.mNode,cube3.mNode],"%s is not [%s,%s,%s]"%(node.__getattribute__('msgMultiTest',False),cube1.mNode,cube2.mNode,cube3.mNode)        
+        assert node.__getattribute__('msgMultiTest',False) ==[cube1.getShortName(),cube2.getShortName(),cube3.getShortName()],"%s is not [%s,%s,%s]"%(node.__getattribute__('msgMultiTest',False),cube1.mNode,cube2.mNode,cube3.mNode)
         
-        #test the reconnect handler via the setAttr
-        node.msgMultiTest=[cube5,cube6]
-        assert sorted(node.msgMultiTest)==[cube5,cube6]
-        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==['pCube5','pCube6']
-        
-        node.msgMultiTest=[cube1,cube2,cube4,cube6]
-        assert sorted(node.msgMultiTest)==[cube1,cube2,cube4,cube6]
-        assert sorted(mc.listConnections('%s.msgMultiTest' % node.mNode))==['pCube1','pCube2','pCube4','pCube6']
-        
-        node.msgSingleTest=cube4
-        assert node.msgSingleTest==[cube4] 
-        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==['pCube4'] #cmds returns a list
-        node.msgSingleTest=cube3
-        assert node.msgSingleTest==[cube3] 
-        assert mc.listConnections('%s.msgSingleTest' % node.mNode)==['pCube3'] #cmds returns a list
-        
+        log.info(cube1.mNode)
+        node.msgSingleTest2 = cube1.mNode
+        assert node.msgSingleTest2 == [cube1.mNode],node.msgSingleTest2
         
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
         log.info("="*70)                         

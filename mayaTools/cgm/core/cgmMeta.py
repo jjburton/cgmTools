@@ -141,7 +141,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	#self.UNMANAGED.extend(['referencePrefix'])
 	self.__dict__['__name__'] = self.mNode
             
-    def __setattr__(self, attr, value):
+    def __setattr2__(self, attr, value):
         #Overloading until the functionality is what we need. For now, just handling locking
 	attrBuffer = '%s.%s'%(self.mNode,attr)
 	#Lock handling
@@ -156,14 +156,44 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
 	if wasLocked == True:
 	    mc.setAttr(attrBuffer,lock=True)
-
-    def addAttr(self, attr,value = None, attrType = None,enum = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
+	    
+    def __getattribute__(self, attr, longNames = True, ignoreOverload = False):
+	"""Overload just on message attributes
+	longnames currently only for my overload.
+	"""
+	try:
+	    mNode=object.__getattribute__(self, "_mNode")
+	    if mc.objExists(mNode):
+		if mc.attributeQuery(attr, exists=True, node=mNode):
+		    if mc.getAttr('%s.%s' % (mNode,attr),type=True)  == 'message' and not ignoreOverload:
+			return attributes.returnMessageData(self.mNode,attr,longNames)
+		    else:
+			return r9Meta.MetaClass.__getattribute__(self,attr)
+		else:
+		    return object.__getattribute__(self, attr)
+	    return object.__getattribute__(self, attr)
+	except StandardError,error:
+	    raise StandardError(error)
+	    
+    def __setMessageAttr__(self,attr,value, force = True, ignoreOverload = False,**kws):
+	"""Overload for our own purposes to allow multiple connections"""
+	log.debug("In cgmNode.__setMessageAttr__...")
+	if ignoreOverload:#just use Mark's
+	    log.info("sending cgmNode.__setMessageAttr__ to MetaClass...")
+	    r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
+	elif type(value) is list:
+	    log.info("Multi message mode from cgmNode!")
+	    attributes.storeObjectsToMessage(value,self.mNode,attr)
+	else:
+	    attributes.storeObjectToMessage(value,self.mNode,attr)
+	
+    def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
 	    #enum special handling
-	    valueCarry = None #Special handling for enum and value at the same time
-	    if enum is not None:
-		valueCarry = value
-		value = enum	    
+	    #valueCarry = None #Special handling for enum and value at the same time
+	    #if enum is not None:
+		#valueCarry = value
+		#value = enum	    
 	    
 	    if self.hasAttr(attr):#Quick create check for initial value
 		initialCreate = False
@@ -179,37 +209,42 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		#cgmAttr(self.mNode, attrName = attr, value = value, attrType = attrType, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
 		#object.__setattr__(self, attr, value)	
 
-
 	    #Catch for no value flags
-	    DataTypeDefaults={'string': "",
-	                      'int': 0,
-	                      'bool': False,
-	                      'float': 0,
-	                      'float3': [0,0,0],
-	                      'double3':[0,0,0],
-	                      'enum': "off:on",
-	                      'message':''} 
+	    #DataTypeDefaults={'string': "",
+	                      #'int': 0,
+	                      #'bool': False,
+	                      #'float': 0,
+	                      #'float3': [0,0,0],
+	                      #'double3':[0,0,0],
+	                      #'enum': "off:on",
+	                      #'message':''} 
 	    
-	    if value is None and attrType is not None:
-		value = DataTypeDefaults.get(attrType)
-	    
+	    #if value is None and attrType is not None:
+		#value = DataTypeDefaults.get(attrType)
+	    if enumName is None and attrType is 'enum':
+		enumName = "off:on"
 	    log.debug("In mNode.addAttr attr is '%s'"%attr)
 	    log.debug("In mNode.addAttr attrType is '%s'"%str(attrType))	    
 	    log.debug("In mNode.addAttr value is '%s'"%str(value)) 		
-	    if valueCarry is not None:log.debug("In mNode.addAttr valueCarry is '%s'"%str(valueCarry)) 		
+	    #if valueCarry is not None:log.debug("In mNode.addAttr valueCarry is '%s'"%str(valueCarry)) 		
 	    
 	    #Pass to Red9
-	    r9Meta.MetaClass.addAttr(self,attr,value,attrType = attrType,*args,**kws)		
-
-	    if valueCarry is not None:
-		self.__setattr__(attr,valueCarry)
+	    #r9Meta.MetaClass.addAttr(self,attr=attr,value=value,attrType = attrType,*args,**kws)
+	    if attrType == 'enum':
+		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType,enumName = enumName, *args,**kws)
+	    else:
+		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType, *args,**kws)
 		
-	    if initialValue is not None and initialCreate:
-		log.info("In mNode.addAttr, setting initialValue of '%s'"%str(initialValue)) 
-		self.__setattr__(attr,initialValue)
+
+	    #if valueCarry is not None:
+		#self.__setattr__(attr,valueCarry)
+		
+	    #if initialValue is not None and initialCreate:
+		#log.info("In mNode.addAttr, setting initialValue of '%s'"%str(initialValue)) 
+		#self.__setattr__(attr,initialValue)
 	    
-	    if value and attrType is not 'enum':#Want to be able to really set attr on addAttr call if attr exists
-		self.__setattr__(attr,value)
+	    #if value and attrType is not 'enum':#Want to be able to really set attr on addAttr call if attr exists
+		#self.__setattr__(attr,value)
 	    
 	    #Easy carry for flag handling - until implemented
 	    #==============  
