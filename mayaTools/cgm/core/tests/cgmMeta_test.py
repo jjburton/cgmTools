@@ -169,6 +169,20 @@ class cgmMeta_Test():
         
         assert self.cgmString.p_keyable == False
         
+        #NameFlags
+        #----------------   
+        log.info('>'*3 + " name flag tests...")
+        assert self.cgmString.p_nameLong == 'stringTest'
+        self.cgmString.p_nameNice = 'strTst'
+        assert self.cgmString.p_nameNice == 'strTst'
+        self.cgmString.p_nameLong = 'stringTestChanged'
+        assert self.cgmString.p_nameLong == 'stringTestChanged'
+        self.cgmString.p_nameNice = 'stringTestChanged'
+        
+        self.cgmTx = cgmMeta.cgmAttr(node,'tx')
+        self.cgmTx.p_nameAlias = 'thatWay'
+        assert self.cgmTx.p_nameAlias == 'thatWay'
+        
         #Int test
         #---------------- 
         log.info('>'*3 + " Int test and conversion to float...")
@@ -295,12 +309,12 @@ class cgmMeta_Test():
         self.cgmVectorXAttr.doConnectIn(self.cgmFloatAttr.p_combinedName)
         assert self.cgmVectorXAttr.getDriver() == self.cgmFloatAttr.p_combinedName," %s not equal to [%s]"%(self.cgmVectorXAttr.getDriver(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
         
+        
+        
         #Copying test
         #----------------     
         #Transferring test
-        #----------------    
-        #NameFlags
-        #----------------         
+        #----------------          
         
         node.select()
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
