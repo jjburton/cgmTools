@@ -115,10 +115,10 @@ class Test_MetaClass():
         cube3=cmds.ls(cmds.polyCube()[0],l=True)[0]
         cube4=cmds.ls(cmds.polyCube()[0],l=True)[0]
         
-        #Singular Child
+        #add singular Child
         self.MClass.connectChild(cube1,'Singluar')
         assert self.MClass.Singluar==[cube1]
-        #Multi Children
+        #add multiple Children
         self.MClass.connectChildren([cube2,cube3],'Multiple')
         assert sorted(self.MClass.Multiple)==[cube2,cube3]
         
@@ -129,13 +129,14 @@ class Test_MetaClass():
         assert found.mClass=='MetaClass'
         assert sorted(found.Multiple)==[cube2,cube3]
     
-        #connect something else to Singluar
+        #connect something else to Singluar - cleanCurrent=True by default so unhook cube1
         self.MClass.connectChild(cube2,'Singluar')
         assert self.MClass.Singluar==[cube2]
         assert not cmds.attributeQuery('MetaClassTest',node=cube1,exists=True) #cleaned up after ourselves?
-        
         self.MClass.connectChildren([cube3,cube4],'Singluar')
         assert sorted(self.MClass.Singluar)==[cube2,cube3,cube4]
+        
+        #setAttr has cleanCurrent and force set to true so remove all current connections to this attr
         self.MClass.Singluar=cube1
         assert self.MClass.Singluar==[cube1]
         try:
@@ -147,6 +148,62 @@ class Test_MetaClass():
         
         self.MClass.Multiple=[cube1,cube4]
         assert sorted(self.MClass.Multiple)==[cube1,cube4]
+        
+    def test_messageConnectionManagement(self):
+        '''
+        This is more to sanity check the connection management, when and how nodes get
+        removed from current connections, when multiples are allowed etc. Also check the
+        flags 'srcAttr' & 'force'
+        '''
+        cube1=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        cube2=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        cube3=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        cube4=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        cube5=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        cube6=cmds.ls(cmds.polyCube()[0],l=True)[0]
+
+        #test the fact that connectChildren allows multiples, cleanCurrent=False
+        self.MClass.connectChildren([cube1,cube2,cube3],'con1')
+        assert sorted(self.MClass.con1)==[cube1,cube2,cube3]
+        self.MClass.connectChildren([cube4,cube5],'con1')
+        assert sorted(self.MClass.con1)==[cube1,cube2,cube3,cube4,cube5]
+        #test the cleanCurrent flag, deletes all current connections before  doing the hookup
+        self.MClass.connectChildren([cube6,cube2],'con1',cleanCurrent=True)
+        assert sorted(self.MClass.con1)==[cube2,cube6]
+        
+        #unhook manager for cleanCurrent, no 'srcAttr' flag given so the attr on the node
+        #used to connect to mNode is the same default for all, mNode.mNodeID. This means 
+        #the node can't be connected to the same mNode more than once by default
+        self.MClass.connectChild(cube1,'singleAttr1')
+        assert self.MClass.singleAttr1==[cube1]
+        self.MClass.connectChild(cube1,'singleAttr2')
+        assert self.MClass.singleAttr2==[cube1]
+        assert not self.MClass.singleAttr1==[cube1]
+        
+        #test multiple connections to the same mNode by specifying the srcAttr used on the 
+        #node itself, stops the node getting mNode.mNodeID attr which is the default
+        self.MClass.connectChild(cube1, 'singleAttr1', srcAttr='newScrAttr')
+        assert self.MClass.singleAttr1==[cube1]
+        assert self.MClass.singleAttr2==[cube1] #is still connected
+        assert cmds.listConnections('%s.singleAttr1' % self.MClass.mNode,c=True,p=True)==['MetaClass_Test.singleAttr1',
+                                                                                          'pCube1.newScrAttr']
+        
+        #force Flag test
+        try:
+            #should fail as cube2 is still connected to the mNode via the 'con1' attr
+            self.MClass.connectChild(cube2,'singleAttr',force=False)
+            assert False
+        except:
+            assert True
+        #force cube2's removal from previous attr
+        self.MClass.connectChild(cube2,'singleAttr',force=True)
+        assert self.MClass.singleAttr==[cube2]
+        #addAttr failure hook. cube2 already connected so addAttr now hard coded to fail with warning
+        try:
+            self.MClass.addAttr('newAttr',attrType='message', value=cube2)
+            assert False
+        except:
+            assert True
         
     def test_connectParent(self):
         #TODO: Fill Test
@@ -164,7 +221,7 @@ class Test_MetaClass():
         node.addAttr('fltTest2', 10.5, min=0,max=15)  #create a float attribute with min/max
         node.addAttr('intTest', 3)            #create a int attribute
         node.addAttr('boolTest', False)       #create a bool attribute
-        node.addAttr('enum', 'A:B:D:E:F', attrType='enum') #create an enum attribute
+        node.addAttr('enum', attrType='enum', enumName='A:B:D:E:F') #create an enum attribute
         node.addAttr('doubleTest', attrType='double3', value=(1.12,2.55,5.0))
         node.addAttr('doubleTest2', attrType='double3', value=(1.0,2.0,10.0), min=1,max=15)
                      
@@ -309,7 +366,8 @@ class Test_MetaClass():
  
     def test_messageAttrHandling(self):
         '''
-        test the messageLink handling in the __setattr__ block
+        test the messageLink handling in the __setattr__ block and addAttr
+        this doesn't do any connectChild/children testing
         '''
         node=self.MClass
                 

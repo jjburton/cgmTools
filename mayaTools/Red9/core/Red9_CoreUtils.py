@@ -159,7 +159,7 @@ def validateString(strText):
     Function to validate that a string has no illegal characters
     '''
     #numerics=['1','2','3','4','5','6','7','8','9','0']
-    illegals=['-']
+    illegals=['-','#']
     #if strText[0] in numerics:
     #    raise ValueError('Strings must NOT start with a numeric! >> %s' % strText)
     illegal=[i for i in illegals if i in strText]

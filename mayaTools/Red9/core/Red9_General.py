@@ -32,9 +32,8 @@ log.setLevel(logging.INFO)
 
 
 
-# Generic Utility Functions
+# Generic Utility Functions ---
 #---------------------------------------------------------------------------------
-
 
 def forceToString(text):    
     '''
@@ -143,9 +142,9 @@ def getScriptEditorSelection():
         log.info('command caught: %s ' % func)
         return func
 
-        
 
-# Context Managers and Decorators
+
+# Context Managers and Decorators ---
 #---------------------------------------------------------------------------------
 
 def Timer(func):
@@ -156,7 +155,7 @@ def Timer(func):
         t1 = time.time()
         res=func(*args,**kws) 
         t2 = time.time()
-        log.debug('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
+        log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper  
 
@@ -349,7 +348,7 @@ class SceneRestoreContext(object):
         return True
     
                     
-# General
+# General ---
 #---------------------------------------------------------------------------------
   
 def thumbNailScreen(filepath,width,height):
@@ -427,6 +426,8 @@ def thumbnailApiFromView(filename, width, height, compression='bmp', modelPanel=
     image.writeToFile(filename, compression)
     
     
+# OS functions ---
+#---------------------------------------------------------------------------------
 
 class Clipboard:
     '''

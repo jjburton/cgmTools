@@ -78,13 +78,16 @@ class PoseData(object):
             
         self.metaPose=self.settings.metaRig
         self.settings.printSettings()
-    
+           
+        
     # Build the poseDict data ---------------------------------------------
-    
+    #@r9General.Timer
     def _getNodeMetaDataMap(self, node, mTypes=[]):
         '''
         This is a generic wrapper to extract metaData connection info for any given node
         used to build the pose dict up, and compare / match the data on load 
+        @param node: node to inspect and get the connection data back from
+        @return: mNodes={} which is directly pushed into the PoseFile under the [metaData] key
         TODO: Maybe this should go into the MetaRig class then it could be over-loaded
               by others using different wiring setups?
         '''
@@ -101,7 +104,10 @@ class PoseData(object):
         data=connections[-1].split('.')
         if r9Meta.isMetaNode(data[0],mTypes=mTypes):
             mNodes['metaAttr']=data[1]
-            mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
+            try:
+                mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
+            except:
+                mNodes['metaNodeID']=node.split(':')[-1].split('|')[-1]
         return mNodes          
 
     def _buildInfoBlock(self):
@@ -168,7 +174,8 @@ class PoseData(object):
                 raise StandardError('Given filepath doesnt not exist : %s' % filename)
         else:
             raise StandardError('No FilePath given to read the pose from')
-    
+        
+    @r9General.Timer 
     def _matchNodesToPoseData(self, nodes, matchMethod='name'):
         '''
         Main filter to extract matching data pairs prior to processing
@@ -188,7 +195,7 @@ class PoseData(object):
                         break 
         if matchMethod=='metaData':               
             getMetaDict=self._getNodeMetaDataMap #optimisation
-            poseKeys=dict(self.poseDict)          #optimisation
+            poseKeys=dict(self.poseDict)         #optimisation
             for node in nodes:
                 try:
                     metaDict=getMetaDict(node)
@@ -411,6 +418,7 @@ class PoseData(object):
                 cmds.select(reference)
 
 
+
 class PosePointCloud(object):
     '''
     PosePointCloud is the technique inside the PoseSaver used to snap the pose into 
@@ -469,5 +477,114 @@ class PosePointCloud(object):
         
     def delete(self):
         cmds.delete(self.poseObject.posePointRoot)
+        
+
+class PoseCompare(object):
+    '''
+    This is aimed at comparing the current pose with a given one, be that a 
+    pose file on disc, a pose class object. It will compare the main [poseData].keys 
+    and for key in keys compare, with tolerance, the [attrs] block. With tolerance
+    so it handles float data correctly.
+    
+    fNode=r9Core.FilterNode(cmds.ls(sl=True)[0])
+    fNode.settings.metaRig=True
+    nodes=fNode.ProcessFilter()
+    
+    #build an mPose object and fill the internal poseDict
+    mPoseA=r9Pose.PoseData()
+    mPoseA._buildPoseDict(nodes)
+
+    mPoseB=r9Pose.PoseData()
+    mPoseB._buildPoseDict(nodes)
+    
+    compare=r9Pose.PoseCompare(mPoseA,mPoseB)
+    .... or .... 
+    compare=r9Pose.PoseCompare(mPoseA,'H:/Red9PoseTests/thisPose.pose')
+    .... or ....
+    compare=r9Pose.PoseCompare('H:/Red9PoseTests/thisPose.pose','H:/Red9PoseTests/thatPose.pose')
+        
+    compare.compare() #>> bool, True = same
+    compare.fails['failedAttrs']
+    '''
+    def __init__(self, currentPose, referencePose):
+        '''
+        make sure we have 2 PoseData objects to compare
+        @param currentPose: either a PoseData object or a valid pose file
+        @param referencePose: either a PoseData object or a valid pose file
+        '''
+        if isinstance(currentPose,PoseData):
+            self.currentPose=currentPose
+        elif os.path.exists(currentPose):
+            self.currentPose=PoseData()
+            self.currentPose._readPose(currentPose)
+            
+        if isinstance(referencePose,PoseData):    
+            self.referencePose=referencePose
+        elif os.path.exists(referencePose):
+            self.referencePose=PoseData()
+            self.referencePose._readPose(referencePose)
+
+    def __addFailedAttr(self,key,attr):
+        '''
+        add failed attrs data to the dict
+        '''
+        if not self.fails.has_key('failedAttrs'):
+            self.fails['failedAttrs']={}
+        if not self.fails['failedAttrs'].has_key(key):
+            self.fails['failedAttrs'][key]={}
+        if not self.fails['failedAttrs'][key].has_key('attrMismatch'):
+            self.fails['failedAttrs'][key]['attrMismatch']=[]
+        self.fails['failedAttrs'][key]['attrMismatch'].append(attr)
+       
+    def compare(self, tolerance=0.001):
+        '''
+        Compare the 2 PoseData objects via their internal [key][attrs] blocks
+        return a bool. After processing self.fails is a dict holding all the fails
+        for processing later if required
+        @param tolerance: tolerance by which floats are matched
+        '''
+        self.fails={}
+        
+        for key, attrBlock in self.currentPose.poseDict.items():
+            if self.referencePose.poseDict.has_key(key):
+                referenceAttrBlock=self.referencePose.poseDict[key]
+            else:
+                log.info('Key Mismatch : %s' % key)
+                if not self.fails.has_key('missingKeys'):
+                    self.fails['missingKeys']=[]
+                self.fails['missingKeys'].append(key)
+                
+            for attr, value in attrBlock['attrs'].items():
+                #attr missing completely from the key
+                if not referenceAttrBlock['attrs'].has_key(attr):
+                    if not self.fails['failedAttrs'].has_key(key):
+                        self.fails['failedAttrs'][key]={}
+                    if not self.fails['failedAttrs'][key].has_key('missingAttrs'):
+                        self.fails['failedAttrs'][key]['missingAttrs']=[]
+                    self.fails['failedAttrs'][key]['missingAttrs'].append(attr)
+                    continue
+                
+                #test the attrs value matches
+                value=r9Core.decodeString(value)                                 #decode as this may be a configObj
+                refValue=r9Core.decodeString(referenceAttrBlock['attrs'][attr])  #decode as this may be a configObj
+                
+                if type(value)==float:
+                    if not r9Core.floatIsEqual(value, refValue, tolerance):
+                        self.__addFailedAttr(key, attr)
+                        log.info('AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                        continue    
+                elif not value==refValue:
+                    self.__addFailedAttr(key, attr)
+                    log.info('AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                    continue                 
+                
+        if self.fails.has_key('missingKeys') or self.fails.has_key('failedAttrs'):
+            return False
+        return True
+
+        
+        
+        
+        
         
         

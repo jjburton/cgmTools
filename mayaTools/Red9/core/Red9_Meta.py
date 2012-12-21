@@ -86,12 +86,19 @@ def registerMClassNodeMapping(nodeTypes='network'):
     as metaNodes
     @param nodeTypes: allows you to expand metaData and use any nodeType
                     default is always 'network'
+    NOTE: 
+        this now validates 'nodeTypes' against Maya registered nodeTypes before being 
+        allowed into the registry. Why, well lets say you have a new nodeType from a 
+        plugin but that plugin isn't currently loaded, this now stops that type being 
+        generically added by any custom boot sequence.
     '''
     global RED9_META_NODETYPE_REGISTERY
+    MayaRegisteredNodes=cmds.allNodeTypes()
+    
     RED9_META_NODETYPE_REGISTERY=['network']
     if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
     for nType in nodeTypes:
-        if not nType in RED9_META_NODETYPE_REGISTERY:
+        if not nType in RED9_META_NODETYPE_REGISTERY and nType in MayaRegisteredNodes:
             log.debug('nodeType : %s : added to NODETYPE_REGISTRY')
             RED9_META_NODETYPE_REGISTERY.append(nType)
   
@@ -100,11 +107,10 @@ def printMetaTypeRegistry():
     
 def getMClassNodeTypes():
     '''
-    why??? need to validate the nodetypes, for example if you're registering
-    a nodeType that requires a plugin and that plugin isn't loaded during
-    unittesting then it will fail the get calls and give erratic results.
+    Generic getWrapper for all nodeTypes registered in the Meta_NodeType global
     '''    
-    return [nType for nType in RED9_META_NODETYPE_REGISTERY if nType in cmds.allNodeTypes()]
+    return RED9_META_NODETYPE_REGISTERY 
+
 
 #------------------------------------------------------------------------------   
     
@@ -174,7 +180,8 @@ def isMetaNodeInherited(node, mInstances=[]):
             if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
                 log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
                 return True
-                  
+            
+@r9General.Timer                 
 def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
@@ -199,7 +206,8 @@ def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
         return[MetaClass(node) for node in mNodes]
     else:
         return mNodes
-            
+ 
+@r9General.Timer           
 def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass', mTypes=[], mInstances=[]):
     '''
     From a given set of Maya Nodes return all connected mNodes
@@ -521,6 +529,7 @@ class MetaClass(object):
         else:
             self.mNode=node
             if not self.hasAttr('mNodeID'):
+                #for casting None MetaData, standard Maya nodes into the api
                 self.mNodeID=node.split('|')[-1].split(':')[-1]
             if isMetaNode(node):
                 log.debug('Meta Node Passed in : %s' % node)
@@ -534,13 +543,13 @@ class MetaClass(object):
         #this block if activated will auto-fill the object.__dict__ with all the available
         #Maya node attrs, so you get autocomplete on ALL attrs in the script editor!
         if autofill=='all' or autofill=='messageOnly':
-            self.fillAttrCache(autofill)
+            self.__fillAttrCache__(autofill)
      
      
     def __bindData__(self):
         '''
         This is intended as an entry point to allow you to bind whatever attrs or extras 
-        you need at a class level. It's only called by the __init__ once the node is made.
+        you need at a class level. It's called by the __init__ ...
         Intended to be overloaded as and when needed when inheriting from MetaClass
         NOTE:
             #to bind a new attr and serilaize it to the self.mNode (Maya node)
@@ -549,7 +558,6 @@ class MetaClass(object):
             #to bind a new attribute to the python object only, not serialized to Maya node
             self.newClassAttr=None  :or:   self.__setattr__('newAttr',None)      
         '''
-
         pass    
      
     #Cast the mNode attr to the actual MObject so it's no longer limited by string dagpaths       
@@ -583,7 +591,7 @@ class MetaClass(object):
         else:
             return "%s(Wrapped Standard MayaNode, node: '%s')"  % (self.__class__, self.mNode.split('|')[-1])
         
-    def fillAttrCache(self, level):
+    def __fillAttrCache__(self, level):
         '''
         go through all the attributes on the given node and cast each one of them into 
         the main object.__dict__ this means they all show in the scriptEditor and autocomplete!
@@ -600,74 +608,88 @@ class MetaClass(object):
                 object.__setattr__(self, attr, None)
             except:
                 pass
-            
-    def __setattr__(self, attr, value):
+    
+    
+    # Attribuite Management block 
+    #-----------------------------------------------------------------------------------    
+           
+    def __setEnumAttr__(self,attr,value):
+        '''
+        Enums : I'm allowing you to set value by either the index or the display text
+        '''
+        if attributeDataType(value)=='string':
+            log.debug('set enum attribute by string :  %s' % value)
+            enums=cmds.attributeQuery(attr, node=self.mNode, listEnum=True)[0].split(':')
+            try:
+                value=enums.index(value)
+            except:
+                raise ValueError('Invalid enum string passed in: string is not in enum keys')
+        log.debug('set enum attribute by index :  %s' % value)
+        cmds.setAttr('%s.%s' % (self.mNode, attr), value)
+    
+    def __setMessageAttr__(self,attr,value,force=True):
+        '''
+        Message : by default in the __setattr_ I'm assuming that the nodes you pass in are to be 
+        the ONLY connections to that msgLink and all other current connections will be deleted
+        hence cleanCurrent=True
+        '''
+        if cmds.attributeQuery(attr, node=self.mNode, multi=True)==False: 
+            if attributeDataType(value)=='complex':
+                raise ValueError("You can't connect multiple nodes to a singluar message plug via __setattr__")
+            log.debug('set singular message attribute connection:  %s' % value)
+            self.connectChild(value, attr, cleanCurrent=True, force=force)
+        else:
+            log.debug('set multi-message attribute connection:  %s' % value)
+            self.connectChildren(value, attr, cleanCurrent=True, force=force)
+                   
+    def __setattr__(self, attr, value, force=True, **kws):
         '''
         Overload the base setattr to manage the MayaNode itself
         '''
         object.__setattr__(self, attr, value)
-
+        
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
             if cmds.attributeQuery(attr, exists=True, node=self.mNode):
-                
-                attrString='%s.%s' % (self.mNode, attr)     #'mayaNode.attribute' for cmds.get/set calls
-                valueType=attributeDataType(value)          #DataType passed in to be set as Value
-                log.debug('valueType : %s' % valueType)
-                
-                #Enums Handling 
-                #==============
-                #Note: I'm allowing you to set by either the index or the display text
-                if cmds.attributeQuery(attr, node=self.mNode, enum=True):
-                    if valueType=='string':
-                        log.debug('set enum attribute by string :  %s' % value)
-                        enums=cmds.attributeQuery(attr, node=self.mNode, listEnum=True)[0].split(':')
-                        try:
-                            value=enums.index(value)
-                        except:
-                            raise ValueError('Invalid enum string passed in: string is not in enum keys')
-                    log.debug('set enum attribute by index :  %s' % value)
-                    cmds.setAttr(attrString, value)
-                    return
+                locked=False
+                if self.attrIsLocked(attr) and force:
+                    self.attrSetLocked(attr,False)
+                    locked=True
                     
-                #Message Link handling    
-                #=====================
-                #with the setattr I'm assuming that the nodes you pass in are to be the ONLY 
-                #connections to the attr and all other current connections will be deleted
-                if cmds.attributeQuery(attr, node=self.mNode, message=True) :                               
-                    if cmds.attributeQuery(attr, node=self.mNode, multi=True)==False: 
-                        if valueType=='complex':
-                            raise ValueError("You can't connect multiple nodes to a singluar message plug via __setattr__")
-                        log.debug('set singular message attribute connection:  %s' % value)
-                        self.connectChild(value, attr, cleanCurrent=True)
-                        return
-                    else:
-                        log.debug('set multi-message attribute connection:  %s' % value)
-                        self.connectChildren(value, attr, cleanCurrent=True)
-                        return
-
+                #Enums Handling
+                if cmds.attributeQuery(attr, node=self.mNode, enum=True):
+                    self.__setEnumAttr__(attr, value)
+                          
+                #Message Link handling
+                elif cmds.attributeQuery(attr, node=self.mNode, message=True):          
+                    self.__setMessageAttr__(attr, value, force)     
+                          
                 #Standard Attribute
-                #==================
-                attrType=cmds.getAttr(attrString, type=True) #the MayaNode attribute valueType
-                compound3Attrs=['double3','float3']
-                if attrType=='string':
-                    if valueType=='string':
-                        log.debug('set string attribute:  %s' % value)
-                        cmds.setAttr(attrString, value, type='string')
-                        return
-                    elif valueType=='complex':
-                        log.debug('set string attribute to complex :  %s' % self.__serializeComplex(value))
-                        cmds.setAttr(attrString, self.__serializeComplex(value), type='string')
-                        return
-                elif attrType in compound3Attrs and valueType=='complex':
-                    try:
-                        log.debug('set %s attribute' % attrType)
-                        cmds.setAttr(attrString, value[0], value[1], value[2])
-                    except ValueError, error:
-                        raise ValueError(error)
-                        #raise ValueError('to set a %s attr you need to pass in a List or Tuple with 3 values' % attrType)
-                else:# not valueType=='message':
-                    #can't set Message attrs like this
-                    cmds.setAttr(attrString, value)
+                else:
+                    attrString='%s.%s' % (self.mNode, attr)      # mayaNode.attribute for cmds.get/set calls
+                    attrType=cmds.getAttr(attrString, type=True) # the MayaNode attribute valueType
+                    valueType=attributeDataType(value)           # DataType passed in to be set as Value
+                    log.debug('valueType : %s' % valueType)
+                    
+                    if attrType=='string':
+                        if valueType=='string':
+                            log.debug('set string attribute:  %s' % value)
+                            cmds.setAttr(attrString, value, type='string')
+                            return
+                        elif valueType=='complex':
+                            log.debug('set string attribute to complex :  %s' % self.__serializeComplex(value))
+                            cmds.setAttr(attrString, self.__serializeComplex(value), type='string')
+                            return
+                    elif attrType in ['double3','float3'] and valueType=='complex':
+                        try:
+                            log.debug('set %s attribute' % attrType)
+                            cmds.setAttr(attrString, value[0], value[1], value[2])
+                        except ValueError, error:
+                            raise ValueError(error)
+                    else:
+                        cmds.setAttr(attrString, value)
+                    
+                if locked:
+                    self.attrSetLocked(attr,True)
             else:
                 log.debug('attr : %s doesnt exist on MayaNode > class attr only' % attr)  
              
@@ -677,7 +699,7 @@ class MetaClass(object):
         attribute if it's been serialized to the MayaNode
         '''  
         try:
-            #this stop recursion, do not getAttr on mNode here
+            #this stops recursion, do not getAttr on mNode here
             mNode=object.__getattribute__(self, "_mNode")
             
             #MayaNode processing - retrieve attr from the MayaNode if we can
@@ -719,7 +741,7 @@ class MetaClass(object):
                         except:
                             log.debug('string is not JSON deserializable')
                     elif attrType=='double3' or attrType=='float3':
-                        return attrVal[0]
+                        return attrVal[0] #return (x,x,x) not [(x,x,x)]
                 else:
                     attrVal=object.__getattribute__(self, attr)
             else:
@@ -765,23 +787,33 @@ class MetaClass(object):
         Note this is not run in some of the core internal calls in this baseClass
         '''
         return cmds.attributeQuery(attr, exists=True, node=self.mNode)
-                                                                       
-    def addAttr(self, attr, value=None, attrType=None, hidden=True, **kws):
+    
+    def attrIsLocked(self,attr):
+        return cmds.getAttr('%s.%s' % (self.mNode,attr),l=True)
+   
+    def attrSetLocked(self,attr,state):
+        try:
+            if not self.isReferenced():
+                cmds.setAttr('%s.%s' % (self.mNode,attr),l=state)
+        except StandardError,error:
+            log.debug(error)
+                                                                               
+    def addAttr(self, attr, value=None, attrType=None, hidden=False, **kws):
         '''
-        this is a simplified managed version of a Maya addAttr it manages
-        the basic type flags for you whilst also setting the attr on the 
-        MayaNode/class object itself. If attr exists it is not then set with value.
-        I now also merge in **kws to the dict I pass to the add command so you can 
+        Wrapped version of Maya addAttr that manages the basic type flags for you 
+        whilst also setting the attr on the MayaNode/class object itself. 
+        I now merge in **kws to the dict I pass to the add command so you can 
         specify all standard cmds.addAttr flags in the same call.
-        @param attr:  attribute name to add
-        @param value: value to set, if given the attribute type is automatically set for you
-        @param type: specify the exact type of attr to add. By default I try and resolve
+        @param attr:  attribute name to add (standard 'longName' flag)
+        @param value: initial value to set, if given the attribute type is automatically set for you
+        @param attrType: specify the exact type of attr to add. By default I try and resolve
                     this for you from the type of value passed in.
         @param hidden: whether the attr is set available in the channelBox (only applies keyable attrs)
+
         NOTE: specific attr management for given types below:
-            double3: self.addAttr(attr='attrName', attrType='double3',value=(value1,value2,value3)
-            float3:  self.addAttr(attr='attrName', attrType='float3', value=(value1,value2,value3)
-            enum:    self.addAttr(attr='attrName', attrType='enum', value='Centre:Left:Right') 
+            double3: self.addAttr(attr='attrName', attrType='double3',value=(value1,value2,value3))
+            float3:  self.addAttr(attr='attrName', attrType='float3', value=(value1,value2,value3))
+            enum:    self.addAttr(attr='attrName', attrType='enum',   value=1, enumName='Centre:Left:Right') 
         '''
         DataTypeKws={'string': {'longName':attr,'dt':'string'},\
                      'int':    {'longName':attr,'at':'long'},\
@@ -789,28 +821,34 @@ class MetaClass(object):
                      'float':  {'longName':attr,'at':'double'},\
                      'float3': {'longName':attr,'at':'float3'},\
                      'double3':{'longName':attr,'at':'double3'},\
-                     'enum':   {'longName':attr,'at':'enum','enumName':value},\
+                     'enum':   {'longName':attr,'at':'enum'},\
                      'complex':{'longName':attr,'dt':'string'},\
                      'message':{'longName':attr,'at':'message','m':True,'im':False},\
                      'messageSimple':{'longName':attr,'at':'message','m':False}}      
         
         Keyable=['int','float','bool','enum','double3']  
-             
+
+        if attrType and attrType=='enum' and not kws.has_key('enumName'):
+            raise ValueError('enum attrType must be passed with "enumName" keyword in args')       
+        
         if cmds.attributeQuery(attr, exists=True, node=self.mNode):
+            #if attr exists do we force the value here?? NOOOO as I'm using this 
+            #to ensure that when we initialize certain classes base attrs exist. 
             log.debug('"%s" :  Attr already exists on the Node' % attr)
-            #if it exists do we force the value here?? NOOOO as I'm using this to
-            #ensure that when we initialize certain classes base attrs exist. I guess
-            #we could just check for Null values before setting though?
-            #self.__setattr__(attr, value)
+            if attrType=='enum':
+                #enum handler this means you can use the addAttr to force changes/updates
+                #to enumName setups, forcing possible updates via self.__bindData__
+                log.debug('enum strings being updated to : %s' % kws['enumName'])
+                cmds.addAttr('%s.%s' % (self.mNode,attr),e=True,enumName=kws['enumName'])
+            #TODO: allow min, max, hidden, keyable attrs all to be modified here?
             return
         else:
             try:
                 if not attrType:
                     attrType=attributeDataType(value)
-                    
+                           
                 DataTypeKws[attrType].update(kws) #merge in **kws, allows you to pass in all the standard addAttr kws   
                 log.debug('valueType : %s > dataType kws: %s' % (attrType,DataTypeKws[attrType]))
-                log.debug('nMode : %s' % self.mNode)
                 cmds.addAttr(self.mNode, **DataTypeKws[attrType])
 
                 if attrType=='double3' or attrType=='float3':
@@ -830,17 +868,19 @@ class MetaClass(object):
                 else:
                     if attrType in Keyable and not hidden:
                         cmds.setAttr('%s.%s' % (self.mNode, attr),e=True,keyable=True)
-                        
-                if value and not attrType=='enum':
-                    #for enum we're using the value passed in to setup the enum list
-                    #so can't subsequently then use it to set the value
-                    self.__setattr__(attr, value)
+                                   
+                if value:
+                    self.__setattr__(attr, value, force=False)
                 else:
-                    #bind the attr to the object if no value passed in
+                    #bind the attr to the python object if no value passed in
                     object.__setattr__(self, attr, None)
             except StandardError,error:
                 raise StandardError(error)
-                   
+     
+    
+    # Utity Functions
+    #-------------------------------------------------------------------------------------
+                  
     def select(self):
         cmds.select(self.mNode)
         
@@ -877,26 +917,37 @@ class MetaClass(object):
         return cmds.referenceQuery(self.mNode,inr=True)
     
     def nameSpace(self):
+        '''
+        If the namespace is nested this will return a list where 
+        [-1] is the direct namespace of the node
+        '''
         return self.mNode.split(':')[:-1]
     
-    # Connection Management Block
+    
+    # Connection Management Block 
     #---------------------------------------------------------------------------------
     
-    def connectChildren(self, nodes, attr, srcAttr=None, cleanCurrent=False):
+    def connectChildren(self, nodes, attr, srcAttr=None, cleanCurrent=False, force=True):
         '''
         Fast method of connecting message links to the mNode as children
         @param nodes: Maya nodes to connect to this mNode
         @param attr: Name for the message attribute 
         @param srcAttr: If given this becomes the attr on the child node which connects it 
                         to self.mNode. If NOT given this attr is set to self.mNodeID
-        @param cleanCurrent: Disconnect and clean any currently connected nodes to this attr 
+        @param cleanCurrent:  Disconnect and clean any currently connected nodes to this attr.
+                        Note this is operating on the mNode side of the connection, removing
+                        any currently connected nodes to this attr prior to making the new ones
+        @param force: Maya's default connectAttr 'force' flag, if the srcAttr is already connected 
+                        to another node force the connection to the new attr 
+        TODO: do we move the cleanCurrent to the end so that if the connect fails you're not left 
+        with a half run setup?
         '''
         if not issubclass(type(nodes),list):
             nodes=[nodes]
         #make sure we have the attr on the mNode
         self.addAttr(attr, attrType='message')
         if cleanCurrent:
-            #disconnect and cleanup any current plugs to this meaage attr
+            #disconnect and cleanup any current plugs to this message attr
             self.__disconnectCurrentAttrPlugs(attr)  
         if not srcAttr:
             srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
@@ -904,11 +955,11 @@ class MetaClass(object):
             if not cmds.attributeQuery(srcAttr, exists=True, node=node):
                 cmds.addAttr(node,longName=srcAttr,at='message',m=True,im=False)
             try:
-                cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr),f=True)
+                cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=force)
             except StandardError,error:
                 log.warning(error)
                 
-    def connectChild(self, node, attr, srcAttr=None, cleanCurrent=True):
+    def connectChild(self, node, attr, srcAttr=None, cleanCurrent=True, force=True):
         '''
         Fast method of connecting message links to the mNode as child
         NOTE: this call by default manages the attr to only ONE CHILD to
@@ -917,7 +968,13 @@ class MetaClass(object):
         @param attr: Name for the message attribute  
         @param srcAttr: If given this becomes the attr on the child node which connects it 
                         to self.mNode. If NOT given this attr is set to self.mNodeID
-        @param cleanCurrent: Disconnect and clean any currently connected nodes to this attr
+        @param cleanCurrent: Disconnect and clean any currently connected nodes to this attr.
+                        Note this is operating on the mNode side of the connection, removing
+                        any currently connected nodes to this attr prior to making the new ones
+        @param force: Maya's default connectAttr 'force' flag, if the srcAttr is already connected 
+                        to another node force the connection to the new attr
+        TODO: do we move the cleanCurrent to the end so that if the connect fails you're not left 
+        with a half run setup?
         
         '''
         #make sure we have the attr on the mNode, if we already have a MULIT-message
@@ -933,7 +990,7 @@ class MetaClass(object):
                 srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
             if not cmds.attributeQuery(srcAttr, exists=True, node=node):
                 cmds.addAttr(node,longName=srcAttr, at='message', m=False)
-            cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=True)
+            cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=force)
         except StandardError,error:
             log.warning(error)
                           
@@ -1344,7 +1401,7 @@ class MetaRigSubSystem(MetaRig):
 
     def __bindData__(self):
         self.addAttr('systemType', attrType='string')
-        self.addAttr('mirrorSide','Centre:Left:Right',attrType='enum')  
+        self.addAttr('mirrorSide',enumName='Centre:Left:Right',attrType='enum')  
  
  
 class MetaRigSupport(MetaClass):
