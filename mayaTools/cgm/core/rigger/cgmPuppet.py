@@ -5,7 +5,6 @@
 #=========================================================================         
 from Red9.core import Red9_Meta as r9Meta
 reload(r9Meta)
-from Red9.core.Red9_Meta import *
 r9Meta.registerMClassInheritanceMapping()    
 #========================================================================
 import logging
@@ -99,12 +98,12 @@ class cgmPuppet(cgmNode):
         if self.isReferenced() or initializeOnly:
             log.info("'%s' Initializing only..."%name)
             if not self.initialize():
-                guiFactory.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
-                return          
+                #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
+                raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
         else:
             if not self.verify():
-                log.critical("'%s' failed to verify!"%name)
-                return  
+                #log.critical("'%s' failed to verify!"%name)
+                raise StandardError,"'%s' failed to verify!"%name
             
         log.info("'%s' Checks out!"%name)
         log.info('Time taken =  %0.3f' % (time.clock()-start))
@@ -200,7 +199,7 @@ class cgmPuppet(cgmNode):
         self.doName()
         self.getAttrs()
         log.debug("Network good...")
-
+        
         #MasterNull
         #==============   
         if mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
@@ -239,9 +238,9 @@ class cgmPuppet(cgmNode):
         
         self.i_settings.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
         self.i_settings.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)   
-        self.i_settings.addAttr('axisAim',enum = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
-        self.i_settings.addAttr('axisUp',enum = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
-        self.i_settings.addAttr('axisOut',enum = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
+        self.i_settings.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
+        self.i_settings.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
+        self.i_settings.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
         
         #Geo
         #==============
@@ -338,6 +337,9 @@ class cgmMasterNull(cgmObject):
         super(cgmMasterNull, self).__init__(node=node, name = name)
         
         if puppet:
+            log.info("Puppet provided!")
+            log.info(puppet.cgmName)
+            log.info(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.doStore('puppet',puppet.mNode)
             
@@ -370,7 +372,7 @@ class cgmInfoNode(cgmNode):
         
         #>>>Keyword args
         super(cgmInfoNode, self).__init__(node=node, name = name,*args,**kws)
-        
+        log.info("puppet :%s"%puppet)
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             
@@ -557,6 +559,8 @@ class cgmModule(cgmObject):
                 self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
             #elif k in self.parentTagDict.keys():
              #   self.store(k,'%s.%s'%(self.msgModuleParent.value,k))  
+        self.doName()
+        self.doName()#Why isn't it catching all tags on first pass?
         
         #Attributes
         #==============  
@@ -584,7 +588,7 @@ class cgmModule(cgmObject):
             if mc.objExists( grp ):
                 #If exists, initialize it
                 try:     
-                    self.__dict__[Attr]  = cgmObject(grp)#Initialize if exists           
+                    self.__dict__[Attr]  = cgmObject(grp)#Initialize if exists  
                     log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
                 except:
                     log.error("'%s' group failed. Please verify puppet."%attr)                    
@@ -594,7 +598,7 @@ class cgmModule(cgmObject):
                 log.info('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmObject(name=attr)#Create and initialize
                 self.doStore(attr+'Null', self.__dict__[Attr].mNode)
-                self.__dict__[Attr].doStore('cgmType',attr+'Null')
+                self.__dict__[Attr].addAttr('cgmType',attr+'Null',lock=True)
                 log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
                 
             self.__dict__[Attr].doParent(self.mNode)
@@ -606,21 +610,27 @@ class cgmModule(cgmObject):
         #=================
         for attr in rigNullAttrs_toMake.keys():#See table just above cgmModule
             log.info("Checking '%s' on rig Null"%attr)
-            self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
             if attr == 'handles':
+                self.i_rigNull.addAttr(attr,value = self.kw_handles, attrType = rigNullAttrs_toMake[attr],lock = True )                
+                log.info('%'*55)
                 log.info('handles case, setting min')
-                a = cgmAttr(self.i_rigNull.mNode,'handles')
-                a.doMin(1)#Make this check that the value is not below the min when set
-                a.value = a.value
+                a = cgmAttr(self.i_rigNull.mNode,'handles',value=self.kw_handles)
+                log.info(self.kw_handles)                
+                log.info(self.i_rigNull.handles)                
+                #a.doMin(1)#Make this check that the value is not below the min when set
+                #a.set(self.kw_handles)
+                self.i_rigNull.handles = self.kw_handles            
+            else:
+                self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
+                
+        #self.i_rigNull.update()
                 
         for attr in templateNullAttrs_toMake.keys():#See table just above cgmModule
             log.info("Checking '%s' on template Null"%attr)
             self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )
+        #self.i_templateNull.update()
         
-        
-        self.doName() 
-        self.doName()#Figure out why this needs to happen twice to run 
-        #See if it's named properly. Need to loop back after scene stuff is querying properly         
+      
         return True        
     
     def setParentModule(self,moduleParent):

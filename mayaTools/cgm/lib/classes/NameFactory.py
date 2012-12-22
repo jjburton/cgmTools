@@ -220,7 +220,7 @@ class NameFactory():
         self.isObjectNameLinked = False
         if self.objGeneratedNameDict:
             if 'cgmName' in self.objGeneratedNameDict.keys():
-                if attributes.queryIfMessage(self.nameLong,'cgmName'):
+                if mc.objExists('%s.cgmName'%self.nameLong) and mc.attributeQuery ('cgmName',node=self.nameLong,msg=True):
                     buffer = attributes.returnMessageObject(self.nameLong,'cgmName')
                     self.nameLinkObject = buffer
                     self.isObjectNameLinked = True
@@ -762,7 +762,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
             buffer = updatedNamesDict.get(item)
             # Check for short name
             buffer = search.returnTagInfoShortName(buffer,item)
-            if buffer > 0 and buffer != 'ignore':
+            if buffer and buffer != 'ignore':
                 nameBuilder.append(buffer)
 
         return divider.join(nameBuilder)

@@ -60,14 +60,14 @@ class cgmMeta_Test():
         log.info(">"*20  + "  Testing '%s' "%function + "<"*20 )         
         start = time.clock()
         self.setup()
-        #self.test_cgmAttr()
-        #self.test_attributeHandling()
-        #self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
+        self.test_cgmAttr()
+        self.test_attributeHandling()
+        self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
         self.test_cgmNode()
-        #self.test_cgmObject()
-        #self.test_cgmObjectSet()
-        #self.test_cgmOptionVar()
-        #self.test_cgmPuppet() #Puppet test
+        self.test_cgmObject()
+        self.test_cgmObjectSet()
+        self.test_cgmOptionVar()
+        self.test_cgmPuppet() #Puppet test
         #self.test_cgmModule()
         
         #self.MetaInstance.select()
@@ -308,6 +308,10 @@ class cgmMeta_Test():
         assert self.cgmVectorAttr.value == [1.0,44.0,7.0],self.cgmVectorAttr.value
         self.cgmVectorXAttr.doConnectIn(self.cgmFloatAttr.p_combinedName)
         assert self.cgmVectorXAttr.getDriver() == self.cgmFloatAttr.p_combinedName," %s not equal to [%s]"%(self.cgmVectorXAttr.getDriver(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
+        
+        
+        #store tests
+        #----------------         
         
         
         
@@ -891,7 +895,7 @@ class cgmMeta_Test():
             assert mc.getAttr('%s.%s'%(Puppet.mNode,attr), type=True) == puppetDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.mNode,attr), type=True))
             if len(puppetDefaultValues.get(attr)) > 1:#assert that value
                 log.debug("%s"% attributes.doGetAttr(Puppet.mNode,attr))                
-                assert attributes.doGetAttr(Puppet.mNode,attr) == puppetDefaultValues.get(attr)[1]
+                assert attributes.doGetAttr(Puppet.mNode,attr) == puppetDefaultValues.get(attr)[1],"%s is not %s"%(attributes.doGetAttr(Puppet.mNode,attr),puppetDefaultValues.get(attr)[1])
                 
                 
         #Assertions on the settings null
@@ -915,7 +919,7 @@ class cgmMeta_Test():
             assert mc.getAttr('%s.%s'%(Puppet.i_settings.mNode,attr), type=True) == settingsDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.i_settings.mNode,attr), type=True))
             if len(settingsDefaultValues.get(attr)) > 1:#assert that value
                 log.debug("%s"% attributes.doGetAttr(Puppet.i_settings.mNode,attr))
-                assert attributes.doGetAttr(Puppet.i_settings.mNode,attr) == settingsDefaultValues.get(attr)[1]
+                assert attributes.doGetAttr(Puppet.i_settings.mNode,attr) == settingsDefaultValues.get(attr)[1],"attr:'%s', %s is not %s"%(attr,attributes.doGetAttr(Puppet.i_settings.mNode,attr),settingsDefaultValues.get(attr)[1])
         
                 
         #Assertions on the masterNull

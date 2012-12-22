@@ -377,15 +377,17 @@ def returnTagInfo(obj,tag,debug = False):
     if (mc.objExists('%s.%s' %(obj,tag))) == True:
         messageQuery = (mc.attributeQuery (tag,node=obj,msg=True))
         if messageQuery == True:
-            returnBuffer = attributes.returnMessageObject(obj,tag)
-	    if returnObjectType(returnBuffer) == 'reference':
+            returnBuffer = attributes.returnMessageData(obj,tag)
+	    if not returnBuffer:
+		return False
+	    elif returnObjectType(returnBuffer[0]) == 'reference':
 		if attributes.repairMessageToReferencedTarget(obj,tag, debug):
 		    return attributes.returnMessageObject(obj,tag)
-		return returnBuffer
-	    return returnBuffer
+		return returnBuffer[0]
+	    return returnBuffer[0]
         else:
             infoBuffer = mc.getAttr('%s.%s' % (obj,tag))
-            if len(list(infoBuffer)) > 0:
+            if infoBuffer and len(list(infoBuffer)) > 0:
                 return infoBuffer
             else:
                 return False
@@ -878,7 +880,10 @@ def returnObjectType(obj):
     type(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    intialCheck = mc.objectType(obj)
+    try:
+	intialCheck = mc.objectType(obj)
+    except:
+	raise ValueError,obj
     if intialCheck == 'objectSet':
         return 'objectSet'
     

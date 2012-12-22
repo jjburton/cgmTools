@@ -401,7 +401,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
                 infoData = 'multiMessage'
                 log.warning('Multi message mode!')
                 break
-    elif mc.objExists(info) and not overideMessageCheck:
+    elif mc.objExists(info) and not overideMessageCheck and not '.' in list(info):#attribute check
         infoData = 'message'
         
     elif mc.objExists(info) and '.' in list(info):
@@ -447,7 +447,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
             if we get this far and it's a message node we're trying
             to store other data to we need to delete it
             """
-            if mc.attributeQuery (infoTypeName,node=obj,msg=True):
+            if mc.objExists(attributeBuffer) and mc.attributeQuery (infoTypeName,node=obj,msg=True):
                 doDeleteAttr(obj,infoTypeName)
             """
             Make our new string attribute if it doesn't exist
