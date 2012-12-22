@@ -1,6 +1,7 @@
 import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib.classes import NameFactory
+reload(NameFactory)
 
 from cgm.lib.ml import (ml_resetChannels)
 reload(ml_resetChannels)
@@ -16,6 +17,7 @@ from cgm.lib import (lists,
                      guiFactory)
 
 reload(attributes)
+reload(search)
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
@@ -248,7 +250,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    
 	    #Easy carry for flag handling - until implemented
 	    #==============  
-	    cgmAttr(self.mNode, attrName = attr, lock=lock,keyable=keyable,hidden = hidden)
+	    if keyable or lock or hidden:
+		cgmAttr(self.mNode, attrName = attr, lock=lock,keyable=keyable,hidden = hidden)
 		
             return True
         return False
