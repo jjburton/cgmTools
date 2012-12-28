@@ -110,49 +110,49 @@ class NameFactory():
         self.getMatchedChildren() 
         self.returnIterator()
            
-        print (guiFactory.doPrintReportStart())
-        print ("baseName is '%s'" %self.nameBase)
-        print ("shortName is '%s'" %self.nameShort)
-        print ("longName is '%s'" %self.nameLong)
-        print(guiFactory.doPrintReportBreak())
+        log.info (guiFactory.doPrintReportStart())
+        log.info ("baseName is '%s'" %self.nameBase)
+        log.info ("shortName is '%s'" %self.nameShort)
+        log.info ("longName is '%s'" %self.nameLong)
+        log.info(guiFactory.doPrintReportBreak())
         if self.parentNameCnt:
-            print ('%i parents found:' %self.parentNameCnt)
+            log.info ('%i parents found:' %self.parentNameCnt)
             for o in self.matchedParents:
-                print ("'%s'" % o)
+                log.info ("'%s'" % o)
         else:
-            print ('No name parents')
+            log.info ('No name parents')
             
-        print(guiFactory.doPrintReportBreak())
+        log.info(guiFactory.doPrintReportBreak())
         
         if self.childNameCnt:
-            print ('%i children found:' %self.childNameCnt)
+            log.info ('%i children found:' %self.childNameCnt)
             for o in self.matchedChildren:
-                print ("'%s'" % o)
+                log.info ("'%s'" % o)
         else:
-            print ('No name children')
+            log.info ('No name children')
             
-        print(guiFactory.doPrintReportBreak())
+        log.info(guiFactory.doPrintReportBreak())
 
         if self.isObjectNameLinked:
-            print ("Name link object is %s" %self.nameLinkObject)
+            log.info ("Name link object is %s" %self.nameLinkObject)
             
         if self.matchObjectList:
-            print ("%i match objects: "%len(self.matchObjectList))
+            log.info ("%i match objects: "%len(self.matchObjectList))
             for o in self.matchObjectList:
-                print ("'%s'" % o)
+                log.info ("'%s'" % o)
         else:
-            print ('No match objects found') 
+            log.info ('No match objects found') 
             
-        print(guiFactory.doPrintReportBreak())
+        log.info(guiFactory.doPrintReportBreak())
         
         if self.claimedIterators:
-            print ("%s are claimed iterators" %self.claimedIterators)            
+            log.info ("%s are claimed iterators" %self.claimedIterators)            
 
-        print ("Object's Base iterator is %i" %self.baseIterator)
-        print ('First open iterator is %i' %self.firstOpenIterator)
-        print ("Final iterator is %i" %self.iterator )
+        log.info ("Object's Base iterator is %i" %self.baseIterator)
+        log.info ('First open iterator is %i' %self.firstOpenIterator)
+        log.info ("Final iterator is %i" %self.iterator )
 
-        print (guiFactory.doPrintReportEnd())
+        log.info (guiFactory.doPrintReportEnd())
         
             
     def amIMe(self,nameCandidate):
@@ -289,7 +289,7 @@ class NameFactory():
                     if cnt == (cnt+self.parentNameCnt+self.childNameCnt+1):
                         foundAvailableRange = True
 
-            #print ('Starting number with a range of %i names is : %i' %(rangeTargetNumber,cnt))   
+            #log.info ('Starting number with a range of %i names is : %i' %(rangeTargetNumber,cnt))   
 
         else:
             ### Scene search for our first open number
@@ -325,7 +325,7 @@ class NameFactory():
                     for o in sceneObjectsNameDictMap.keys():
                         if objGeneratedNameCandidateDict == sceneObjectsNameDictMap.get(o):
                             if not self.amIMe(o):
-                                #print ("%s has conflicting dictionary to %s" %(o,self.nameShort))
+                                #log.info ("%s has conflicting dictionary to %s" %(o,self.nameShort))
                                 cnt+=1
                             else:
                                 foundAvailableNumber = True 
@@ -431,7 +431,7 @@ class NameFactory():
                 if self.amIMe(returnCombinedNameFromDict(objGeneratedNameCandidateDictBuffer)):
                     cnt = self.parentNameCnt +1
                     self.selfCheck = True
-                    print ("Object's parent has '1' and child is named right")
+                    log.info ("Object's parent has '1' and child is named right")
                     self.firstOpenIterator = cnt
                     self.firstOpenChecked = True
                     return cnt
@@ -675,8 +675,8 @@ def returnIterateNumber(obj):
             if bufferName not in objToQuery.matchedChildren and bufferName in parentToQuery.matchedChildren:
                 attributes.storeInfo(obj,'cgmNameModifier','branched')
                 attributes.storeInfo(obj,'cgmIterator',str(cnt))
-                print ("%s has a duplicate in the same heirarchy!" %obj)
-        #print ("Count after checking name parent is %i" %cnt)
+                log.info ("%s has a duplicate in the same heirarchy!" %obj)
+        #log.info ("Count after checking name parent is %i" %cnt)
         return cnt
     #otherwise, we process it by itself
     else:
