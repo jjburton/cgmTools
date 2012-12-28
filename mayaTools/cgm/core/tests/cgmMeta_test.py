@@ -3,7 +3,7 @@
 from Red9.core import Red9_Meta as r9Meta
 reload(r9Meta)
 #from Red9.core.Red9_Meta import *
-r9Meta.registerMClassInheritanceMapping()    
+#r9Meta.registerMClassInheritanceMapping()    
 #========================================================================
 import random
 import re
@@ -67,7 +67,7 @@ class cgmMeta_Test():
         self.test_cgmObject()
         self.test_cgmObjectSet()
         self.test_cgmOptionVar()
-        self.test_cgmPuppet() #Puppet test
+        #self.test_cgmPuppet() #Puppet test
         #self.test_cgmModule()
         
         #self.MetaInstance.select()
@@ -400,7 +400,7 @@ class cgmMeta_Test():
         
         
         
-        #now check the MetaClass __getattribute__ and __setattr__ calls
+        #now check the MetaClass getMessage and __setattr__ calls
         #--------------------------------------------------------------
         assert node.intTest==3       
         node.intTest=10     #set back to the MayaNode
@@ -488,8 +488,8 @@ class cgmMeta_Test():
         assert attributes.returnMessageData(node.mNode,'msgSingleTest') == [cube3.getLongName()],"%s is not [%s]"%(attributes.returnMessageData(node.mNode,'msgSingleTest'),cube3.getLongName())
         assert node.msgSingleTest2==[cube3.getLongName()]
         log.info(node.msgMultiTest)
-        assert node.msgMultiTest ==[cube1.mNode,cube2.mNode,cube3.mNode],"%s is not [%s,%s,%s]"%(node.__getattribute__('msgMultiTest',False),cube1.mNode,cube2.mNode,cube3.mNode)        
-        assert node.__getattribute__('msgMultiTest',False) ==[cube1.getShortName(),cube2.getShortName(),cube3.getShortName()],"%s is not [%s,%s,%s]"%(node.__getattribute__('msgMultiTest',False),cube1.mNode,cube2.mNode,cube3.mNode)
+        assert node.msgMultiTest ==[cube1.mNode,cube2.mNode,cube3.mNode],"%s is not [%s,%s,%s]"%(node.getMessage('msgMultiTest',False),cube1.mNode,cube2.mNode,cube3.mNode)        
+        assert node.getMessage('msgMultiTest',False) ==[cube1.getShortName(),cube2.getShortName(),cube3.getShortName()],"%s is not [%s,%s,%s]"%(node.getMessage('msgMultiTest',False),cube1.mNode,cube2.mNode,cube3.mNode)
         
         log.info(cube1.mNode)
         node.msgSingleTest2 = cube1.mNode

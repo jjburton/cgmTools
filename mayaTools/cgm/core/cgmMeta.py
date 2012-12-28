@@ -19,14 +19,6 @@ from cgm.lib import (lists,
 reload(attributes)
 reload(search)
 
-#=========================================================================      
-# R9 Stuff - We force the update on the Red9 internal registry  
-#=========================================================================      
-from Red9.core import Red9_Meta as r9Meta
-reload(r9Meta)
-from Red9.core.Red9_Meta import *
-r9Meta.registerMClassInheritanceMapping()    
-#=========================================================================
 
 #Mark, any thoughts on where to store important defaults
 drawingOverrideAttrsDict = {'overrideEnabled':0,
@@ -37,11 +29,20 @@ drawingOverrideAttrsDict = {'overrideEnabled':0,
                             'overridePlayback':1,
                             'overrideVisibility':1}
 
+#=========================================================================      
+# Logger snippet  
+#=========================================================================
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+#=========================================================================
 
+#=========================================================================      
+# R9 Stuff - We force the update on the Red9 internal registry  
+#=========================================================================      
+from Red9.core import Red9_Meta as r9Meta
+#=========================================================================
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
@@ -53,6 +54,9 @@ class testClass(r9Meta.MetaClass):
 
     def __init__(self,*args,**kws):
         super(testClass, self).__init__(*args,**kws)
+	
+    def passThingy(self):
+	print "asdfasdfasdfasdf"
 
                     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
@@ -64,7 +68,7 @@ class cgmMeta(object):
         Idea here is if a MayaNode is passed in and has the mClass attr
         we pass that into the super(__new__) such that an object of that class
         is then instantiated and returned.
-        '''
+        '''	
         doName = None
         objectFlags = ['cgmObject','object','obj','transform']
             
@@ -126,22 +130,24 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""
 	self.referencePrefix = False
 	
-    def __init__(self,node = None, name = None,nodeType = 'network',*args,**kws):
+    def __init__(self,node = None, name = None,nodeType = 'network',*args,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
         log.debug("In cgmNode.__init__ Node is '%s'"%node)
         log.debug("In cgmNode.__init__ Name is '%s'"%name) 
 	
-	if node == None:
-	    log.info("Creating node of type '%s'"%nodeType)
-	    catch = cgmMeta(name = name, nodeType = nodeType,*args,**kws)
-	    node = catch.mNode
-	    log.info(node)
-	    
+	#if node == None:
+	    #log.info("Creating node of type '%s'"%nodeType)
+	    #catch = cgmMeta(name = name, nodeType = nodeType,*args,**kws)
+	    #node = catch.mNode
+	    #log.info(node)
+	        
         super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
+	#r9Meta.registerMClassInheritanceMapping() 	
+	
 	#self.UNMANAGED.extend(['referencePrefix'])
-	self.__dict__['__name__'] = self.mNode
+	#self.__dict__['__name__'] = self.mNode
             
     def __setattr2__(self, attr, value):
         #Overloading until the functionality is what we need. For now, just handling locking
@@ -159,7 +165,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if wasLocked == True:
 	    mc.setAttr(attrBuffer,lock=True)
 	    
-    def __getattribute__(self, attr, longNames = True, ignoreOverload = False):
+    def __getattributeBACK__(self, attr, longNames = True, ignoreOverload = True):
 	"""Overload just on message attributes
 	longnames currently only for my overload.
 	"""
@@ -188,6 +194,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    attributes.storeObjectsToMessage(value,self.mNode,attr)
 	else:
 	    attributes.storeObjectToMessage(value,self.mNode,attr)
+	    
+    def getMessage(self,attr,longNames = True):
+	if mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
+	    return attributes.returnMessageData(self.mNode,attr,longNames)
+	return False
 	
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
@@ -231,7 +242,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    #if valueCarry is not None:log.debug("In mNode.addAttr valueCarry is '%s'"%str(valueCarry)) 		
 	    
 	    #Pass to Red9
-	    #r9Meta.MetaClass.addAttr(self,attr=attr,value=value,attrType = attrType,*args,**kws)
+	    #MetaClass.addAttr(self,attr=attr,value=value,attrType = attrType,*args,**kws)
 	    if attrType == 'enum':
 		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType,enumName = enumName, *args,**kws)
 	    else:
@@ -289,7 +300,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def getKeyableAttrs(self):
 	return mc.listAttr(self.mNode, keyable = True) or []
 	
-
     def getUserAttrs(self):
 	return mc.listAttr(self.mNode, userDefined = True) or []
 	
@@ -390,11 +400,11 @@ class cgmObject(cgmNode):
         autoCreate(bool) - whether to create a transforum if need be
         """
         ### input check
-	if node == None:
-	    catch = cgmMeta(name = name, nodeType = 'transform')
-	    node = catch.mNode
+	#if node == None:
+	    #catch = cgmMeta(name = name, nodeType = 'transform')
+	    #node = catch.mNode
 
-        super(cgmObject, self).__init__(node=node, name = name)
+        super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
         
         if len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
             log.error("'%s' has no transform"%self.mNode)
@@ -2644,3 +2654,8 @@ class cgmAttr(object):
                               outgoingConnections = True, keepSourceConnections = False,
                               copyAttrSettings = True, connectSourceToTarget = False)
         self.doDelete()
+	
+#=========================================================================      
+# R9 Stuff - We force the update on the Red9 internal registry  
+#=========================================================================      
+r9Meta.registerMClassInheritanceMapping()   
