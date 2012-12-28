@@ -248,7 +248,6 @@ def loadRed9( *a ):
     import Red9
     reload(Red9)
     Red9.start()
-
 def loadAttrTools( *a ):
     from cgm.tools import attrTools
     reload(attrTools)
