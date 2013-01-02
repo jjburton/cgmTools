@@ -21,8 +21,8 @@ from cgm.core import cgmMeta
 reload(cgmMeta)
 #from cgm.core.cgmMeta import *
 
-from cgm.core.rigger import cgmPuppet
-reload(cgmPuppet)
+from cgm.core.rigger import cgmPuppetModule
+reload(cgmPuppetModule)
 
 import maya.cmds as mc
 
@@ -52,7 +52,7 @@ class MorpheusBase_Test():
         #Test name and node argument passing
         #==============      
         log.info("Testing no arguments passed")
-        self.Morpheus = cgmPuppet.cgmPuppet(name = 'Morpheus')
+        self.Morpheus = cgmPuppetModule.cgmPuppet(name = 'Morpheus')
         
 class cgmMeta_Test():
     def __init__(self):
@@ -67,7 +67,7 @@ class cgmMeta_Test():
         self.test_cgmObject()
         self.test_cgmObjectSet()
         self.test_cgmOptionVar()
-        #self.test_cgmPuppet() #Puppet test
+        self.test_cgmPuppet() #Puppet test
         #self.test_cgmModule()
         
         #self.MetaInstance.select()
@@ -89,24 +89,24 @@ class cgmMeta_Test():
         #Test name and node argument passing
         #==============      
         log.info("Testing no arguments passed")
-        self.MetaInstance = cgmMeta.cgmMeta()
+        self.MetaInstance = cgmMeta.cgmMetaFactory()
         assert mc.objExists(self.MetaInstance.mNode)        
         
         self.test_functionCalls()
         #Initial instance deleted at end of function call
         
         log.info('>'*3 + " Testing name 'Hogwarts' being passed")
-        self.MetaInstance = cgmMeta.cgmMeta(name = 'Hogwarts')
+        self.MetaInstance = cgmMeta.cgmMetaFactory(name = 'Hogwarts')
         assert mc.objExists(self.MetaInstance.mNode)        
         assert self.MetaInstance.getShortName() == 'Hogwarts'     
         
         log.info('>'*3 + " Pass node, no name...")        
-        self.MetaInstance = cgmMeta.cgmMeta(node = 'Hogwarts')
+        self.MetaInstance = cgmMeta.cgmMetaFactory(node = 'Hogwarts')
         assert mc.objExists(self.MetaInstance.mNode)                
         assert self.MetaInstance.getShortName() == 'Hogwarts'     
         
         log.info('>'*3 + " Testing existing 'Hogwarts' node, new 'cgmTransform' name")
-        self.MetaInstance = cgmMeta.cgmMeta(node = 'Hogwarts', name = 'cgmTransform')
+        self.MetaInstance = cgmMeta.cgmMetaFactory(node = 'Hogwarts', name = 'cgmTransform')
         assert mc.objExists(self.MetaInstance.mNode)
         assert self.MetaInstance.getShortName() == 'cgmTransform'
         
@@ -117,13 +117,13 @@ class cgmMeta_Test():
         #============== 
         #Need to create a Node and an object for separate tests
         
-        self.MetaNode = cgmMeta.cgmMeta(name = 'cgmNetwork', nodeType = 'network')
+        self.MetaNode = cgmMeta.cgmMetaFactory(name = 'cgmNetwork', nodeType = 'network')
         assert mc.nodeType(self.MetaNode.mNode)=='network'
         
-        self.MetaObject = cgmMeta.cgmMeta(name = 'cgmTransform',nodeType = 'transform')
+        self.MetaObject = cgmMeta.cgmMetaFactory(name = 'cgmTransform',nodeType = 'transform')
         assert mc.nodeType(self.MetaObject.mNode)=='transform'
         
-        self.ObjectSet = cgmMeta.cgmMeta(name = 'cgmObjectSet',nodeType = 'objectSet')
+        self.ObjectSet = cgmMeta.cgmMetaFactory(name = 'cgmObjectSet',nodeType = 'objectSet')
         assert mc.nodeType(self.ObjectSet.mNode)=='objectSet'
         
         #Create Test Objects and initialize
@@ -131,8 +131,8 @@ class cgmMeta_Test():
         nurbsCubeCatch = mc.nurbsCube()
         polyCubeCatch = mc.polyCube()  
         
-        self.pCube = cgmMeta.cgmMeta(polyCubeCatch[0],name = 'pCube')
-        self.nCube = cgmMeta.cgmMeta(nurbsCubeCatch[0],name = 'nCube')
+        self.pCube = cgmMeta.cgmMetaFactory(polyCubeCatch[0],name = 'pCube')
+        self.nCube = cgmMeta.cgmMetaFactory(nurbsCubeCatch[0],name = 'nCube')
         
         self.setup = True
         
@@ -330,7 +330,7 @@ class cgmMeta_Test():
         This tests the standard attribute handing in the MetaClass.__setattr__ 
         '''
         if not self.MetaInstance:
-            self.MetaInstance = cgmMeta.cgmMeta()
+            self.MetaInstance = cgmMeta.cgmMetaFactory()
             
         function = 'test_attributeHandling'
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
@@ -458,7 +458,7 @@ class cgmMeta_Test():
         start = time.clock()   
         
         #if not self.MetaInstance:
-            #self.MetaInstance = cgmMeta.cgmMeta() 
+            #self.MetaInstance = cgmMeta.cgmMetaFactory() 
             
         node=cgmMeta.cgmObject(name='MessageCatcher')
                 
@@ -537,7 +537,7 @@ class cgmMeta_Test():
         start = time.clock()
         
         if not self.MetaNode:
-            self.MetaNode = cgmMeta.cgmMeta(name = 'cgmNode',nodeType = 'network')
+            self.MetaNode = cgmMeta.cgmMetaFactory(name = 'cgmNode',nodeType = 'network')
             
         #Assert some info
         #----------------------------------------------------------   
@@ -643,8 +643,8 @@ class cgmMeta_Test():
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
         start = time.clock()
         
-        self.ObjectSet = cgmMeta.cgmMeta(name = 'cgmObjectAnimationSet',nodeType = 'objectSet',setType = 'animation', qssState = True)
-        self.MayaDefaultSet = cgmMeta.cgmMeta(node = 'defaultObjectSet')   
+        self.ObjectSet = cgmMeta.cgmMetaFactory(name = 'cgmObjectAnimationSet',nodeType = 'objectSet',setType = 'animation', qssState = True)
+        self.MayaDefaultSet = cgmMeta.cgmMetaFactory(node = 'defaultObjectSet')   
         
         #from cgm.core.cgmMeta import *
         self.ObjectSet2 = cgmMeta.cgmObjectSet(setName = 'cgmObjectAnimationSet2',value = self.ObjectSet.value )
@@ -715,7 +715,7 @@ class cgmMeta_Test():
         
         #Copy set
         catch = self.ObjectSet.copy()
-        self.ObjectSetCopy = cgmMeta.cgmMeta(catch) #Initialize copy
+        self.ObjectSetCopy = cgmMeta.cgmMetaFactory(catch) #Initialize copy
         assert self.ObjectSet.getList() == self.ObjectSetCopy.getList(),"Sets don't match"
         assert self.ObjectSet.objectSetType == self.ObjectSetCopy.objectSetType,"Object Set types don't match"
         assert self.ObjectSet.qssState == self.ObjectSetCopy.qssState,"qssStates don't match"
@@ -873,7 +873,7 @@ class cgmMeta_Test():
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
         start = time.clock()
         
-        self.Puppet = cgmPuppet.cgmPuppet(name = 'Kermit')
+        self.Puppet = cgmPuppetModule.cgmPuppet(name = 'Kermit')
         Puppet = self.Puppet
         
         #Assertions on the network null
@@ -943,7 +943,7 @@ class cgmMeta_Test():
         #----------------------------------------------------------
         log.info('>'*3 + " Initializing only mode to compare...")
         
-        self.PuppetIO = cgmPuppet.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
+        self.PuppetIO = cgmPuppetModule.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
         Puppet2 = self.PuppetIO
         
         for attr in puppetDefaultValues.keys():
@@ -980,11 +980,11 @@ class cgmMeta_Test():
         start = time.clock()
         
         if not self.Puppet:
-            self.Puppet = cgmPuppet.cgmPuppet(name = 'Kermit')
+            self.Puppet = cgmPuppetModule.cgmPuppet(name = 'Kermit')
         Puppet = self.Puppet
         
-        Module1 = cgmPuppet.cgmModule(name = 'moduleTest',position = 'front',direction = 'right', handles = 3)
-        Module1IO = cgmPuppet.cgmModule(Module1.mNode) #Should equal that of the reg process
+        Module1 = cgmPuppetModule.cgmModule(name = 'moduleTest',position = 'front',direction = 'right', handles = 3)
+        Module1IO = cgmPuppetModule.cgmModule(Module1.mNode) #Should equal that of the reg process
         #Assertions on the module null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the module null...")    

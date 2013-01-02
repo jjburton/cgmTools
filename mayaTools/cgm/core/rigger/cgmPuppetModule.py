@@ -4,21 +4,20 @@
 # >>
 #=========================================================================         
 from Red9.core import Red9_Meta as r9Meta
-reload(r9Meta)
-r9Meta.registerMClassInheritanceMapping()    
 #========================================================================
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+import maya.cmds as mc
+
 from cgm.lib.classes import NameFactory
 
 from cgm.core import cgmMeta
 reload(cgmMeta)
-from cgm.core.cgmMeta import *
 
-from cgm.lib import (modules)
+from cgm.lib import (modules,attributes,search)
 
 import random
 import re
@@ -32,7 +31,7 @@ initDicts = ['Module','moduleParents','moduleChildren','moduleStates']
 initStores = []
 
 ########################################################################
-class cgmPuppet(cgmNode):
+class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
     def __init__(self,puppet = None, name = None, initializeOnly = False, *args,**kws):
@@ -69,7 +68,7 @@ class cgmPuppet(cgmNode):
                     ##If we're here, there's a node named our master null.
                     ##We need to get the network from that.
                     log.info("Trying to find network from '%s'"%args[0])
-                    tmp = cgmNode(args[0])
+                    tmp = cgmMeta.cgmNode(args[0])
                     if attributes.doGetAttr(tmp.mNode,'mClass') == 'cgmPuppet':#If it's a puppet network
                         puppet = args[0]
                     else:
@@ -89,9 +88,8 @@ class cgmPuppet(cgmNode):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
         log.info("Puppet is '%s'"%name)
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
-        
+
         self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
-        
         self.doStore('cgmName',name,True)
         
         #>>> Puppet Network Initialization Procedure ==================       
@@ -112,7 +110,7 @@ class cgmPuppet(cgmNode):
     def __bindData__(self):
         #Default to creation of a var as an int value of 0
         ### input check   
-        pass     
+        log.info('>>'*5+ "cgmPuppet Bind data")     
         #self.addAttr('masterNull',type='messageSimple')        
         #self.addAttr('puppetGroup',type='messageSimple')
         #self.addAttr('modulesGroup',type='messageSimple')
@@ -134,39 +132,31 @@ class cgmPuppet(cgmNode):
         
         #>>>Master null
         if self.masterNull:
-            self.i_masterNull = cgmObject(self.masterNull[0])
-            log.info("'%s' initialized as master null"%self.masterNull[0])
+            self.i_masterNull = self.masterNull#link it
+            log.info("'%s' initialized as master null"%self.masterNull.mNode)
         else:
             log.error("MasterNull missing. Go back to unreferenced file")
             return False
-        
         #>>>Info Nulls
         ## Initialize the info nodes
         for attr in 'settings','geo','parts':
             if attr in  self.__dict__.keys():
                 try:
                     Attr = 'i_'+ attr
-                    self.__dict__[Attr] = cgmNode( self.__getattribute__(attr)[0] )
-                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr)[0],Attr))                    
+                    self.__dict__[Attr] = cgmMeta.cgmMetaFactory( self.__getattribute__(attr).mNode )
+                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr).mNode,Attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
-        
-        
-        self.optionPuppetMode = cgmAttr(self.i_settings,'optionPuppetTemplateMode','int',initialValue = 0)      
-        self.optionAimAxis= cgmAttr(self.i_settings,'axisAim') 
-        self.optionUpAxis= cgmAttr(self.i_settings,'axisUp') 
-        self.optionOutAxis= cgmAttr(self.i_settings,'axisOut')  
-        
-        
+
         #>>>Groups 
         ## Initialize the info nodes
         for attr in 'partsGroup','noTransformGroup','geoGroup':
             if attr in self.i_masterNull.__dict__.keys():
                 try:
                     Attr = 'i_'+ attr
-                    self.__dict__[Attr] = cgmObject( self.i_masterNull.__getattribute__(attr)[0] )
-                    log.info("'%s' initialized as 'self.%s'"%(self.i_masterNull.__getattribute__(attr)[0],Attr))                    
+                    self.__dict__[Attr] = cgmMeta.cgmMetaFactory( self.i_masterNull.__getattribute__(attr).mNode )
+                    log.info("'%s' initialized as 'self.%s'"%(self.i_masterNull.__getattribute__(attr).mNode,Attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
@@ -191,10 +181,10 @@ class cgmPuppet(cgmNode):
         
         self.addAttr('cgmType','puppetNetwork')
         self.addAttr('version',initialValue = 1.0, lock=True)  
-        self.addAttr('masterNull',attrType = 'messageSimple')  
-        self.addAttr('settings',attrType = 'messageSimple')  
-        self.addAttr('geo',attrType = 'messageSimple')  
-        self.addAttr('parts',attrType = 'messageSimple')  
+        self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
+        self.addAttr('settings',attrType = 'messageSimple',lock=True)  
+        self.addAttr('geo',attrType = 'messageSimple',lock=True)  
+        self.addAttr('parts',attrType = 'messageSimple',lock=True)  
 
         self.doName()
         self.getAttrs()
@@ -202,22 +192,21 @@ class cgmPuppet(cgmNode):
         
         #MasterNull
         #==============   
-        if mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
-            log.info('Master null exists. Initializing')
-            self.i_masterNull = cgmMasterNull(self.masterNull[0])
-        else:
+        if not mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
             self.i_masterNull = cgmMasterNull(puppet = self)
-            self.doStore('masterNull',self.i_masterNull.mNode)               
-            log.info('Master created.')            
-                     
+            #self.connectChild(self.i_masterNull.mNode, 'masterNull','puppet')               
+            log.info('Master created.')
+        else:
+            log.info('Master null exists. linking....')            
+            self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
+            
         if self.i_masterNull.getShortName() != self.cgmName:
             self.i_masterNull.doName(False)
             if self.i_masterNull.getShortName() != self.cgmName:
                 log.warning("Master Null name still doesn't match what it should be.")
                 return False
-        attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+        attributes.doSetLockHideKeyableAttr(self.masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         log.debug("Master Null good...")
-        
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Info Nodes
@@ -225,19 +214,17 @@ class cgmPuppet(cgmNode):
         
         #Settings
         #==============
-        if mc.objExists( attributes.returnMessageObject(self.mNode,'settings') ):
-            log.info("Initializing '%s'"%self.settings[0])                                    
-            self.i_settings  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'settings'))#Initialize if exists           
-        else:
+        if not mc.objExists( attributes.returnMessageObject(self.mNode,'settings') ):
             log.info('Creating settings')                                    
             self.i_settings = cgmInfoNode(puppet = self, infoType = 'settings')#Create and initialize
-            self.doStore('settings',self.i_settings.mNode)
+        else:
+            log.info('settings infoNode exists. linking....')                        
+            self.i_settings = self.settings #Linking to instance for faster processing. Good idea?
         
         defaultFont = modules.returnSettingsData('defaultTextFont')
-        #self.i_settings.doStore('font',defaultFont)
         
         self.i_settings.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
-        self.i_settings.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)   
+        self.i_settings.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)
         self.i_settings.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
         self.i_settings.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
         self.i_settings.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
@@ -245,23 +232,20 @@ class cgmPuppet(cgmNode):
         #Geo
         #==============
         if mc.objExists( attributes.returnMessageObject(self.mNode,'geo') ):
-            log.info("Initializing '%s'"%self.geo[0])                                    
-            self.i_geo  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'geo'), infoType = 'geo')#Initialize if exists           
+            log.info('geo infoNode exists. linking....')                        
+            self.i_geo  = self.geo #Linking to instance for faster processing. Good idea?         
         else:
             log.info('Creating geo')                                    
             self.i_geo = cgmInfoNode(puppet = self, infoType = 'geo')#Create and initialize
-            self.doStore('geo',self.i_geo.mNode)
             
         #Parts
         #==============
         if mc.objExists( attributes.returnMessageObject(self.mNode,'parts') ):
-            log.info("Initializing '%s'"%self.parts[0])                                    
-            self.i_parts  = cgmInfoNode( attributes.returnMessageObject(self.mNode,'parts'), infoType = 'parts')#Initialize if exists           
+            log.info('parts infoNode exists. linking....')                        
+            self.i_parts  = self.parts #Linking to instance for faster processing. Good idea?          
         else:
             log.info('Creating parts')                                    
             self.i_parts = cgmInfoNode(puppet = self, infoType = 'parts')#Create and initialize
-            self.doStore('parts',self.i_parts.mNode)   
-            
             
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
@@ -271,21 +255,22 @@ class cgmPuppet(cgmNode):
             Attr = 'i_' + attr+'Group'#Get a better attribute store string           
             if mc.objExists( grp ):
                 #If exists, initialize it
-                try:     
-                    self.__dict__[Attr]  = cgmObject(grp)#Initialize if exists           
-                    log.info("'%s' initialized as 'self.%s'"%(grp,Attr))                    
-                except:
-                    log.error("'%s' group failed. Please verify puppet."%attr)                    
-                    return False   
+                log.info(self.i_masterNull.__dict__[attr+'Group'])
+                #self.__dict__[Attr]  = self.i_masterNull.__dict__[attr+'Group']#link it, can't link it
+                self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
+                log.info("'%s' initialized as 'self.%s'"%(grp,Attr))
+                log.info(self.__dict__[Attr].mNode)
+                #except:
+                    #log.error("'%s' group failed. Please verify puppet."%attr)                    
+                    #return False   
                 
             else:#Make it
                 log.info('Creating %s'%attr)                                    
-                self.__dict__[Attr]= cgmObject(name=attr)#Create and initialize
+                self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
                 self.__dict__[Attr].doName()
-                self.i_masterNull.doStore(attr+'Group', self.__dict__[Attr].mNode) 
+                self.i_masterNull.connectChild(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
                 log.info("Initialized as 'self.%s'"%(Attr))                    
                 
-           
             # Few Case things
             #==============            
             if attr == 'geo':
@@ -296,14 +281,14 @@ class cgmPuppet(cgmNode):
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
         
         return True
-            
+    
     def changeName(self,name = ''):
         if name == self.cgmName:
             log.error("Puppet already named '%s'"%self.cgmName)
             return
         if name != '' and type(name) is str:
             log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
-            self.doStore('cgmName',name)
+            self.cgmName = name
             self.verify()
             
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -322,11 +307,12 @@ class cgmPuppet(cgmNode):
         del(self.i_masterNull)
         del(self)
    
+   
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
-class cgmMasterNull(cgmObject):
+class cgmMasterNull(cgmMeta.cgmObject):
     """"""
     #----------------------------------------------------------------------
     def __init__(self,node = None, name = 'master',*args,**kws):
@@ -341,7 +327,8 @@ class cgmMasterNull(cgmObject):
             log.info(puppet.cgmName)
             log.info(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
-            self.doStore('puppet',puppet.mNode)
+            #self.doStore('puppet',puppet.mNode)
+            self.connectParent(puppet, 'masterNull','puppet')               
             
         self.verify()
         
@@ -353,6 +340,7 @@ class cgmMasterNull(cgmObject):
         RETURNS:
         success(bool)
         """ 
+        self.addAttr('mClass',value = 'cgmMasterNull',lock=True)
         self.addAttr('cgmName',initialValue = '',lock=True)
         self.addAttr('cgmType',initialValue = 'ignore',lock=True)
         self.addAttr('cgmModuleType',value = 'master',lock=True)   
@@ -363,7 +351,10 @@ class cgmMasterNull(cgmObject):
         #See if it's named properly. Need to loop back after scene stuff is querying properly
         self.doName()
         
-class cgmInfoNode(cgmNode):
+    def __bindData__(self):
+        pass
+    
+class cgmInfoNode(cgmMeta.cgmNode):
     """"""
     def __init__(self,node = None, name = 'info',*args,**kws):
         """Constructor"""
@@ -375,7 +366,8 @@ class cgmInfoNode(cgmNode):
         log.info("puppet :%s"%puppet)
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
-            
+            self.connectParent(puppet, infoType, 'puppet')               
+              
         self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
         self.addAttr('cgmTypeModifier',infoType,lock=True)
         self.addAttr('cgmType','info',lock=True)
@@ -390,10 +382,12 @@ class cgmInfoNode(cgmNode):
         RETURNS:
         success(bool)
         """ 
-        
+        log.info(">"*10 + " cgmInfoNode.verify.... " + "<"*10)
         #See if it's named properly. Need to loop back after scene stuff is querying properly
-        self.doName()        
+        self.doName()  
         
+    def __bindData__(self):
+        pass
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # MODULE Base class
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
@@ -436,7 +430,7 @@ templateNullAttrs_toMake = {'rollJoints':'int',
                             'templateStarterData':'string',
                             'templateControlObjectData':'string'}
                 
-class cgmModule(cgmObject):
+class cgmModule(cgmMeta.cgmObject):
     def __init__(self,*args,**kws):
         """ 
         Intializes an module master class handler
@@ -611,25 +605,20 @@ class cgmModule(cgmObject):
         for attr in rigNullAttrs_toMake.keys():#See table just above cgmModule
             log.info("Checking '%s' on rig Null"%attr)
             if attr == 'handles':
-                self.i_rigNull.addAttr(attr,value = self.kw_handles, attrType = rigNullAttrs_toMake[attr],lock = True )                
+                self.i_rigNull.addAttr(attr,initialValue = self.kw_handles, attrType = rigNullAttrs_toMake[attr],lock = True )                
                 log.info('%'*55)
                 log.info('handles case, setting min')
-                a = cgmAttr(self.i_rigNull.mNode,'handles',value=self.kw_handles)
+                a = cgmAttr(self.i_rigNull.mNode,'handles',initialValue=self.kw_handles)
                 log.info(self.kw_handles)                
                 log.info(self.i_rigNull.handles)                
-                #a.doMin(1)#Make this check that the value is not below the min when set
+                a.doMin(1)#Make this check that the value is not below the min when set
                 #a.set(self.kw_handles)
-                self.i_rigNull.handles = self.kw_handles            
             else:
                 self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
-                
-        #self.i_rigNull.update()
-                
+                                
         for attr in templateNullAttrs_toMake.keys():#See table just above cgmModule
             log.info("Checking '%s' on template Null"%attr)
-            self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )
-        #self.i_templateNull.update()
-        
+            self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
       
         return True        
     
@@ -657,4 +646,15 @@ def simplePuppetReturn():
             if attributes.doGetAttr(o,'mClass') == 'cgmPuppet':
                 returnList.append(o)
     return returnList
+
+
+
+#=========================================================================      
+# R9 Stuff - We force the update on the Red9 internal registry  
+#=========================================================================      
+r9Meta.registerMClassInheritanceMapping()   
+print '============================================='  
+r9Meta.printSubClassRegistry()  
+print '============================================='
+#=========================================================================
           

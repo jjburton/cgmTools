@@ -62,7 +62,7 @@ class testClass(r9Meta.MetaClass):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #=========================================================================    
-class cgmMeta(object):
+class cgmMetaFactory(object):
     def __new__(self, node = None, name = None, nodeType = 'transform',*args,**kws):
         '''
         Idea here is if a MayaNode is passed in and has the mClass attr
@@ -262,7 +262,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    #Easy carry for flag handling - until implemented
 	    #==============  
 	    if keyable or lock or hidden:
-		cgmAttr(self.mNode, attrName = attr, lock=lock,keyable=keyable,hidden = hidden)
+		cgmAttr(self, attrName = attr, lock=lock,keyable=keyable,hidden = hidden)
 		
             return True
         return False
