@@ -794,11 +794,6 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
     return returnCombinedNameFromDict(updatedNamesDict)
 
 
-
-
-
-
-
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnRawGeneratedName(obj,ignore=[False]):
     """  
@@ -914,7 +909,6 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         if namesDict.get('cgmTypeModifier') != None:
             namesDict.pop('cgmTypeModifier')   
 
-
     #>>> checks if the names exist as objects or it's a shape node
     ChildNameObj = False
     nameObj = search.returnTagInfo(obj,'cgmName')
@@ -930,6 +924,8 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         else:
             groupNamesDict['cgmName'] = nameObj
         groupNamesDict['cgmType'] = typesDictionary.get('transform')
+        if namesDict.get('cgmPosition') != None:
+            groupNamesDict['cgmPosition'] = namesDict.get('cgmPosition')        
         if namesDict.get('cgmDirection') != None:
             groupNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
         if namesDict.get('cgmDirectionModifier') != None:
@@ -945,6 +941,8 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             childNamesDict = {}
             childNamesDict['cgmName'] = namesDict.get('cgmName')
             childNamesDict['cgmType'] = namesDict.get('cgmType')
+            if namesDict.get('cgmPosition') != None:
+                childNamesDict['cgmPosition'] = namesDict.get('cgmPosition')            
             if namesDict.get('cgmDirection') != None:
                 childNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
             if namesDict.get('cgmNameModifier') != None:
