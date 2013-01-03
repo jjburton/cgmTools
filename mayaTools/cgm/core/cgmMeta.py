@@ -246,9 +246,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    if attrType == 'enum':
 		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType,enumName = enumName, *args,**kws)
 	    else:
-		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType, *args,**kws)
+		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType, *args,**kws)	
 		
-
+	    if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value:
+		log.warning("'%s.%s' Value was not properly set during creation, setting"%(self.mNode,attr))
+		self.__setattr__(attr,value)
+		#cgmAttr(self, attrName = attr, value=value)
+	    
 	    #if valueCarry is not None:
 		#self.__setattr__(attr,valueCarry)
 		
@@ -305,6 +309,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
     def getUserAttrsAsDict(self):
 	return attributes.returnUserAttrsToDict(self.mNode) or {}
+    
+    def getNameDict(self):
+	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}    
 		
     def getTransform(self):
 	"""Find the transform of the object"""
@@ -335,7 +342,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         Keyword arguments:
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
 
-        """       
+        """   
+	log.info('Name dict: %s"'%self.getNameDict())
         if self.isReferenced():
             log.error("'%s' is referenced. Cannot change name"%self.mNode)
             return False
@@ -1743,7 +1751,7 @@ class cgmAttr(object):
         if mc.objExists('%s.%s'%(self.obj.mNode,attrName)):
             log.debug("'%s.%s' exists"%(self.obj.mNode,attrName))
             currentType = mc.getAttr('%s.%s'%(self.obj.mNode,attrName),type=True)
-            log.info("Current type is '%s'"%currentType)
+            log.debug("Current type is '%s'"%currentType)
             if not attributes.validateAttrTypeMatch(self.attrType,currentType) and self.attrType is not False:
                 if self.obj.isReferenced():
                     log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,attrName,attrType))                   
@@ -1801,7 +1809,7 @@ class cgmAttr(object):
         if type(lock) is bool:
             self.doLocked(lock)
 	    
-	log.info("'%s' initialized. Value: '%s'"%(self.p_combinedName,self.value))
+	log.debug("'%s' initialized. Value: '%s'"%(self.p_combinedName,self.value))
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -1914,24 +1922,24 @@ class cgmAttr(object):
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.p_locked:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = True) 
-                        log.warning("'%s.%s' locked!"%(cInstance.obj.mNode,cInstance.attr))
+                        log.debug("'%s.%s' locked!"%(cInstance.obj.mNode,cInstance.attr))
                 
             elif not self.p_locked:
                 mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,lock = True) 
-                log.warning("'%s.%s' locked!"%(self.obj.mNode,self.attr))
+                log.debug("'%s.%s' locked!"%(self.obj.mNode,self.attr))
                 
         else:
             if self.getChildren():
-                log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.p_locked:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = False) 
-                        log.warning("'%s.%s' unlocked!"%(cInstance.obj.mNode,cInstance.attr))
+                        log.debug("'%s.%s' unlocked!"%(cInstance.obj.mNode,cInstance.attr))
                 
             elif self.p_locked:
                 mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,lock = False)           
-                log.warning("'%s.%s' unlocked!"%(self.obj.mNode,self.attr))
+                log.debug("'%s.%s' unlocked!"%(self.obj.mNode,self.attr))
 		
     p_locked = property (isLocked,doLocked)
     

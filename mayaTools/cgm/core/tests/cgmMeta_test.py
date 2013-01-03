@@ -21,8 +21,8 @@ from cgm.core import cgmMeta
 reload(cgmMeta)
 #from cgm.core.cgmMeta import *
 
-from cgm.core.rigger import cgmPuppetModule
-reload(cgmPuppetModule)
+from cgm.core.rigger import cgmPuppetModule as cgmPM
+reload(cgmPM)
 
 import maya.cmds as mc
 
@@ -52,7 +52,7 @@ class MorpheusBase_Test():
         #Test name and node argument passing
         #==============      
         log.info("Testing no arguments passed")
-        self.Morpheus = cgmPuppetModule.cgmPuppet(name = 'Morpheus')
+        self.Morpheus = cgmPM.cgmPuppet(name = 'Morpheus')
         
 class cgmMeta_Test():
     def __init__(self):
@@ -68,7 +68,7 @@ class cgmMeta_Test():
         self.test_cgmObjectSet()
         self.test_cgmOptionVar()
         self.test_cgmPuppet() #Puppet test
-        #self.test_cgmModule()
+        self.test_cgmModule()
         
         #self.MetaInstance.select()
         
@@ -873,7 +873,7 @@ class cgmMeta_Test():
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
         start = time.clock()
         
-        self.Puppet = cgmPuppetModule.cgmPuppet(name = 'Kermit')
+        self.Puppet = cgmPM.cgmPuppet(name = 'Kermit')
         Puppet = self.Puppet
         
         #Assertions on the network null
@@ -943,7 +943,7 @@ class cgmMeta_Test():
         #----------------------------------------------------------
         log.info('>'*3 + " Initializing only mode to compare...")
         
-        self.PuppetIO = cgmPuppetModule.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
+        self.PuppetIO = cgmPM.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
         Puppet2 = self.PuppetIO
         
         for attr in puppetDefaultValues.keys():
@@ -975,20 +975,22 @@ class cgmMeta_Test():
         log.info("="*70)                         
     
     def test_cgmModule(self):
-        function = 'test_cgmPuppet'
+        function = 'test_cgmModule'
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
         start = time.clock()
         
-        if not self.Puppet:
-            self.Puppet = cgmPuppetModule.cgmPuppet(name = 'Kermit')
+        try:
+            self.Puppet
+        except:
+            self.Puppet = cgmPM.cgmPuppet(name = 'Kermit')
         Puppet = self.Puppet
         
-        Module1 = cgmPuppetModule.cgmModule(name = 'moduleTest',position = 'front',direction = 'right', handles = 3)
-        Module1IO = cgmPuppetModule.cgmModule(Module1.mNode) #Should equal that of the reg process
+        Module1 = cgmPM.cgmModule(name = 'moduleTest',position = 'front',direction = 'right', handles = 3)
+        Module1IO = cgmPM.cgmModule(Module1.mNode,initializeOnly = True) #Should equal that of the reg process
         #Assertions on the module null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the module null...")    
-        assert Module1.cgmType == 'module'
+        assert Module1.cgmType == 'module',str(Module1.cgmType)
         assert Module1.mClass == 'cgmModule'
         assert Module1.cgmName == 'moduleTest'
         assert Module1.cgmPosition == 'front'
@@ -998,8 +1000,8 @@ class cgmMeta_Test():
         assert Module1.mClass == Module1.mClass
         assert Module1.cgmType == Module1.cgmType
         assert Module1.cgmPosition == Module1.cgmPosition
-        assert Module1.cgmDirection == Module1.cgmDirection        
-        
+        assert Module1.cgmDirection == Module1.cgmDirection       
+                
         
         #Assertions on the rig null
         #----------------------------------------------------------
@@ -1014,13 +1016,16 @@ class cgmMeta_Test():
         assert Module1.i_rigNull.bendy == False
         assert Module1.i_rigNull.stretchy == False
         
+        assert Module1.i_rigNull.mNode == Module1.rigNull.mNode
+        
         
         #Assertions on the template null
         #----------------------------------------------------------
-        log.info('>'*3 + " Assertions on the rig null...")   
+        log.info('>'*3 + " Assertions on the template null...")   
         assert Module1.i_rigNull.hasAttr('cgmType')
-        log.info(Module1.i_rigNull.cgmType)
+        log.info(Module1.i_templateNull.cgmType)
         
+        assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
         
         
         
