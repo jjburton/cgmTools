@@ -21,7 +21,7 @@ from cgm.core import cgmMeta
 reload(cgmMeta)
 #from cgm.core.cgmMeta import *
 
-from cgm.core.rigger import cgmPuppetModule as cgmPM
+from cgm.core.rigger import PuppetModule as cgmPM
 reload(cgmPM)
 
 import maya.cmds as mc
