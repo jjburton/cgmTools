@@ -14,9 +14,7 @@ import maya.cmds as mc
 
 from cgm.lib.classes import NameFactory
 
-from cgm.core import cgmMeta
-reload(cgmMeta)
-
+from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (modules,attributes,search)
 
 import random
@@ -658,7 +656,24 @@ class cgmModule(cgmMeta.cgmObject):
             log.warning("'%s' isn't tagged as a module."%moduleParent)
             return False
         
+    def changeNameTag(self,tag,value = False,*a,**kw):
+        if tag not in NameFactory.cgmNameTags:
+            log.warning("'%s' is not a valid cgm name tag."%(tag))         
+            return False
         
+        if value in [None,False,'None','none']:
+            log.warning("Removing '%s.%s'"%(self.getShortName(),tag))            
+            self.doRemove(tag)
+            self.doName(True,True)            
+            return True
+            
+        elif self.__dict__[tag] == value:
+            log.warning("'%s.%s' already has base name of '%s'."%(self.getShortName(),tag,string))
+            return False
+        else:
+            self.doStore(tag,value,True,*a,**kw)
+            self.doName(True,True)
+            return True
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
@@ -677,9 +692,6 @@ def simplePuppetReturn():
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================      
-r9Meta.registerMClassInheritanceMapping()   
-print '============================================='  
-r9Meta.printSubClassRegistry()  
-print '============================================='
+r9Meta.registerMClassInheritanceMapping()
 #=========================================================================
           

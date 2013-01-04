@@ -1,8 +1,66 @@
+'''
+------------------------------------------
+cgm.core
+Author: Josh Burton
+email: jjburton@cgmonks.com
+
+Site : http://www.cgmonks.com
+------------------------------------------
+
+Core is the library of Python modules that make the backbone of the cgm.core. 
+It is built heavily and modeled on Mark Jackson (Red 9)'s great wwork.
+    
+===============================================================================
+'''
+import Red9.core
+from Red9.core import (Red9_General,
+                       Red9_Meta,
+                       Red9_Tools,
+                       Red9_CoreUtils,
+                       Red9_AnimationUtils,
+                       Red9_PoseSaver) 
+import cgm_Meta
+import cgm_PuppetMeta
+
 import os
 from cgm.lib.zoo.zooPy.path import Path
 
-""" From http://stackoverflow.com/questions/1057431/loading-all-modules-in-a-folder-in-python"""
+def _reload():
+    '''
+    reload carefully and re-register the RED9_META_REGISTRY
+    '''
+    Red9.core._reload()
+    reload(cgm_Meta)
+    reload(cgm_PuppetMeta)
+    
+    #Red9_Meta.registerMClassInheritanceMapping()#shouldn't be necessary as they do this per mdodule
+    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for    
 
+    print('CGM Core Reloaded and META REGISTRY updated') 
+    print '============================================='  
+    Red9_Meta.printSubClassRegistry()  
+    print '============================================='    
+    
+def _setlogginglevel_debug():
+    '''
+    Dev wrapper to set the logging level to debug
+    '''
+    Red9.core._setlogginglevel_debug()
+        
+def _setlogginglevel_info():
+    '''
+    Dev wrapper to set the logging to Info, usual state
+    '''
+    Red9.core._setlogginglevel_info()
+
+
+
+#========================================================================
+# This HAS to be at the END of this module so that the RED9_META_REGISTRY
+# picks up all inherited subclasses when Red9.core is imported
+#========================================================================   
+Red9_Meta.registerMClassInheritanceMapping()#Pushes our classes in
+Red9_Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for
 
 def returnPyFilesFromFolder():
         import os
