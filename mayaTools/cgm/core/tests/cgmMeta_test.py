@@ -1,7 +1,9 @@
 #=========================================================================      
-#=========================================================================         
+#=========================================================================
+import cgm.core
+cgm.core._reload()
+
 from Red9.core import Red9_Meta as r9Meta
-reload(r9Meta)
 #from Red9.core.Red9_Meta import *
 #r9Meta.registerMClassInheritanceMapping()    
 #========================================================================
@@ -17,12 +19,8 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-from cgm.core import cgmMeta
-reload(cgmMeta)
-#from cgm.core.cgmMeta import *
-
-from cgm.core.rigger import PuppetModule as cgmPM
-reload(cgmPM)
+from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_PuppetMeta as cgmPM
 
 import maya.cmds as mc
 
@@ -1027,6 +1025,11 @@ class cgmMeta_Test():
         
         assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
         
+        
+        #Module Functions
+        #----------------------------------------------------------
+        log.info('>'*3 + " Module Functions...")   
+
         
         
         
