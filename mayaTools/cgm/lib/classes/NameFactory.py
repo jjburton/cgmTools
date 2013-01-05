@@ -37,6 +37,8 @@ from cgm.lib import settings
 from cgm.lib import lists
 from cgm.lib import guiFactory
 
+from Red9.core import Red9_General as r9General
+
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
@@ -985,6 +987,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions that do stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+@r9General.Timer   
 def doNameObject(obj,sceneUnique = False,fastIterate = True):
     """ 
     Names an object

@@ -4,6 +4,8 @@
 # >>
 #=========================================================================         
 from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_General as r9General
+
 #========================================================================
 import logging
 logging.basicConfig()
@@ -24,10 +26,6 @@ import time
 
 #Initial settings to setup
 #=========================    
-initLists = ['modules','rootModules','orderedModules','orderedParentModules','nodes']
-initDicts = ['Module','moduleParents','moduleChildren','moduleStates']
-initStores = []
-
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
@@ -147,7 +145,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             return False
         #>>>Info Nulls
         ## Initialize the info nodes
-        for attr in 'settings','geo','parts':
+        for attr in 'settings','geo':
             if attr in  self.__dict__.keys():
                 try:
                     Attr = 'i_'+ attr
@@ -159,7 +157,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 
         #>>>Groups 
         ## Initialize the info nodes
-        for attr in 'partsGroup','noTransformGroup','geoGroup':
+        for attr in 'deformGroup','partsGroup','noTransformGroup','geoGroup':
             if attr in self.i_masterNull.__dict__.keys():
                 try:
                     Attr = 'i_'+ attr
@@ -192,7 +190,9 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
         self.addAttr('settings',attrType = 'messageSimple',lock=True)  
         self.addAttr('geo',attrType = 'messageSimple',lock=True)  
-        self.addAttr('parts',attrType = 'messageSimple',lock=True)  
+        self.addAttr('parts',attrType = 'messageSimple',lock=True)
+        self.addAttr('moduleChildren',attrType = 'message',lock=True)  
+	
 
         self.doName()
         self.getAttrs()
@@ -246,19 +246,10 @@ class cgmPuppet(cgmMeta.cgmNode):
             log.info('Creating geo')                                    
             self.i_geo = cgmInfoNode(puppet = self, infoType = 'geo')#Create and initialize
             
-        #Parts
-        #==============
-        if mc.objExists( attributes.returnMessageObject(self.mNode,'parts') ):
-            log.info('parts infoNode exists. linking....')                        
-            self.i_parts  = self.parts #Linking to instance for faster processing. Good idea?          
-        else:
-            log.info('Creating parts')                                    
-            self.i_parts = cgmInfoNode(puppet = self, infoType = 'parts')#Create and initialize
-            
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-        for attr in 'noTransform','geo','parts':
+        for attr in 'deform','noTransform','geo','parts':
             grp = attributes.returnMessageObject(self.i_masterNull.mNode,attr+'Group')# Find the group
             Attr = 'i_' + attr+'Group'#Get a better attribute store string           
             if mc.objExists( grp ):
@@ -317,7 +308,58 @@ class cgmPuppet(cgmMeta.cgmNode):
         mc.delete(self.i_settings.mNode)
         del(self)
    
-    
+    def addModule(self,module,force = False,*a,**kw):
+	"""
+	Adds a module to a puppet
+	
+	module(string)
+	"""
+	#See if it's connected
+	#If exists, connect
+        #Get instance
+        #==============	
+	buffer = copy.copy(self.moduleChildren) or []#Buffer till we have have append functionality	
+	
+	try:
+	    module.mNode#see if we have an instance
+	    if module.mNode in buffer and force != True:
+		 log.warning("'%s' already connnected to '%s'"%(module.getShortName(),self.i_masterNull.getShortName()))
+		 return False 	    
+	except:
+	    if mc.objExists(module):
+		if mc.ls(module,long=True)[0] in buffer and force != True:
+		    log.warning("'%s' already connnected to '%s'"%(module,self.i_masterNull.getShortName()))
+		    return False
+		
+		module = r9Meta.MetaClass(module)#initialize
+	    else:
+		log.warning("'%s' doesn't exist"%module)#if it doesn't initialize, nothing is there		
+		return False	
+	    
+	#Logic checks
+	#==============	
+	if not module.hasAttr('mClass'):
+	    log.warning("'%s' lacks an mClass attr"%module.mNode)	    
+	    return False
+	
+	elif module.mClass not in ['cgmModule']:
+	    log.warning("'%s' is not a recognized module type"%module.mClass)
+	    return False
+	
+        #Connect
+        #==============	
+	else:
+	    log.info("Current children: %s"%buffer)
+	    log.info("Adding '%s'!"%module.getShortName())    
+	    
+	    buffer.append(module.mNode)
+	    del self.moduleChildren
+	    self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)
+	    
+	module.moduleParent = self.mNode
+	module.parent = (self.i_partsGroup.mNode)
+	return True
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
@@ -348,20 +390,19 @@ class cgmMasterNull(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """ 
+        #See if it's named properly. Need to loop back after scene stuff is querying properly
+        self.doName()
+        
+    def __bindData__(self):
         self.addAttr('mClass',value = 'cgmMasterNull',lock=True)
         self.addAttr('cgmName',initialValue = '',lock=True)
         self.addAttr('cgmType',initialValue = 'ignore',lock=True)
         self.addAttr('cgmModuleType',value = 'master',lock=True)   
         self.addAttr('partsGroup',attrType = 'messageSimple',lock=True)   
+        self.addAttr('deformGroup',attrType = 'messageSimple',lock=True)   	
         self.addAttr('noTransformGroup',attrType = 'messageSimple',lock=True)   
         self.addAttr('geoGroup',attrType = 'messageSimple',lock=True)   
         
-        #See if it's named properly. Need to loop back after scene stuff is querying properly
-        self.doName()
-        
-    def __bindData__(self):
-        pass
-    
 class cgmInfoNode(cgmMeta.cgmNode):
     """"""
     def __init__(self,node = None, name = None,*args,**kws):
@@ -402,6 +443,25 @@ class cgmInfoNode(cgmMeta.cgmNode):
         
     def __bindData__(self):
         pass
+    
+class cgmInfoNodeBind(cgmMeta.cgmNode):
+    """"""
+    def __bindData__(self):              
+	log.info(self.puppet)
+	log.info(self.infoType)
+
+    def __init__(self,*args,**kws):	
+        puppet = kws.pop('puppet',False)#to pass a puppet instance in 
+        infoType = kws.pop('infoType','')
+	
+	super(cgmInfoNodeBind, self).__init__(*args,**kws)
+	self.object.puppet = 'p'
+	self.object.infoType = 'info'
+	
+	#self.__setattr__('infoType',None)	
+    
+	  
+        
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # MODULE Base class
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
@@ -509,7 +569,7 @@ class cgmModule(cgmMeta.cgmObject):
                 log.critical("'%s' failed to verify!"%self.kw_name)
                 return  
             
-        log.info("'%s' Checks out!"%self.kw_name)
+        log.info("'%s' Checks out!"%self.getShortName())
         log.info('Time taken =  %0.3f' % (time.clock()-start))
         
 
@@ -656,28 +716,11 @@ class cgmModule(cgmMeta.cgmObject):
             log.warning("'%s' isn't tagged as a module."%moduleParent)
             return False
         
-    def changeNameTag(self,tag,value = False,*a,**kw):
-        if tag not in NameFactory.cgmNameTags:
-            log.warning("'%s' is not a valid cgm name tag."%(tag))         
-            return False
-        
-        if value in [None,False,'None','none']:
-            log.warning("Removing '%s.%s'"%(self.getShortName(),tag))            
-            self.doRemove(tag)
-            self.doName(True,True)            
-            return True
-            
-        elif self.__dict__[tag] == value:
-            log.warning("'%s.%s' already has base name of '%s'."%(self.getShortName(),tag,string))
-            return False
-        else:
-            self.doStore(tag,value,True,*a,**kw)
-            self.doName(True,True)
-            return True
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>        
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+@r9General.Timer   
 def simplePuppetReturn():
     catch = mc.ls(type='network')
     returnList = []

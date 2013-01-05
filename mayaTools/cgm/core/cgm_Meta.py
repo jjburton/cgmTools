@@ -50,7 +50,8 @@ from Red9.core import Red9_Meta as r9Meta
 class testClass(r9Meta.MetaClass):
     def __bindData__(self):              
         self.addAttr('testing',2.0)
-        self.addAttr('testString','asdf')
+        self.addAttr('testString','mow')
+	self.testString = 'mow'
 
     def __init__(self,*args,**kws):
         super(testClass, self).__init__(*args,**kws)
@@ -370,6 +371,37 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
             attributes.doDeleteAttr(self.mNode,attr)
         except:
             log.warning("'%s.%s' not found"%(self.mNode,attr))
+	    
+    def doChangeNameTag(self,tag,value = False,sceneUnique=False,nameChildren=False,**kw):
+	"""
+	For changing a tag and renaming in one go
+	@ Tag(string)
+	Must be a cgm naming tag
+	@ Value(string)
+	what to change it to
+	@ sceneUnique(bool)
+	@ nameChildren(bool)
+	"""
+        if self.isReferenced():
+            return log.warning("'%s' is referenced. Cannot change name architecture"%self.mNode)   
+	
+        if tag not in NameFactory.cgmNameTags:
+            log.debug("'%s' is not a valid cgm name tag."%(tag))         
+            return False
+        
+        if value in [None,False,'None','none']:
+            log.debug("Removing '%s.%s'"%(self.getShortName(),tag))            
+            self.doRemove(tag)
+            self.doName(sceneUnique,nameChildren)            
+            return True
+            
+        elif tag in self.__dict__.keys() and self.__dict__[tag] == value:
+            log.debug("'%s.%s' already has base name of '%s'."%(self.getShortName(),tag,string))
+            return False
+        else:
+            self.doStore(tag,value,True,**kw)
+	    self.doName(sceneUnique,nameChildren)            
+            return True
              
     def doCopyNameTagsFromObject(self,target,ignore=[False]):
         """
