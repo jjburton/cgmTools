@@ -525,11 +525,10 @@ class MetaClass(object):
         NOTE: mNode is now a wrap on the MObject so will always be in sync even if the node is renamed/parented
         '''
         #data that will not get pushed to the Maya node 
-        object.__setattr__(self, '_mNode', '')
         object.__setattr__(self, '_MObject', '')
         object.__setattr__(self, 'UNMANAGED', ['mNode',
-                                               '_MObject',
-                                               '_mNode']) 
+                                               '_MObject'])
+
         if not node: 
             if not name:
                 name=str(self.__class__.__name__)
@@ -579,14 +578,15 @@ class MetaClass(object):
     #Cast the mNode attr to the actual MObject so it's no longer limited by string dagpaths       
     #yes I know Pymel does this for us but I don't want the overhead!  
     def __get_mNode(self):
-        if self._MObject: 
+        mobj=object.__getattribute__(self, "_MObject")
+        if mobj:
             #if we have an object thats a dagNode, ensure we return FULL Path
-            if OpenMaya.MObject.hasFn(self._MObject, OpenMaya.MFn.kDagNode):
+            if OpenMaya.MObject.hasFn(mobj, OpenMaya.MFn.kDagNode):
                 dPath = OpenMaya.MDagPath()
-                OpenMaya.MDagPath.getAPathTo(self._MObject, dPath)
+                OpenMaya.MDagPath.getAPathTo(mobj,dPath)
                 return dPath.fullPathName()
             else:
-                depNodeFunc = OpenMaya.MFnDependencyNode(self._MObject)
+                depNodeFunc = OpenMaya.MFnDependencyNode(mobj)
                 return depNodeFunc.name()    
     
     def __set_mNode(self, node):
@@ -595,8 +595,7 @@ class MetaClass(object):
             selList=OpenMaya.MSelectionList()
             selList.add(node)
             selList.getDependNode(0,mobj)
-            self._mNode=node
-            self._MObject=mobj             
+            object.__setattr__(self, '_MObject', mobj)           
                 
     mNode = property(__get_mNode, __set_mNode)
     
@@ -714,10 +713,14 @@ class MetaClass(object):
         Overload the method to always return the MayaNode
         attribute if it's been serialized to the MayaNode
         '''  
+        if callable(attr):
+            log.debug("callable attr, bypassing tests : %s" % attr)
+            return attr
         try:
             #this stops recursion, do not getAttr on mNode here
-            mNode=object.__getattribute__(self, "_mNode")
-            
+            mNode=object.__getattribute__(self, "mNode")
+            #log.debug('called __getattribute__ : %s',attr)
+
             #MayaNode processing - retrieve attr from the MayaNode if we can
             if cmds.objExists(mNode):
                 if cmds.attributeQuery(attr, exists=True, node=mNode):
@@ -839,7 +842,8 @@ class MetaClass(object):
                      'double3':{'longName':attr,'at':'double3'},\
                      'enum':   {'longName':attr,'at':'enum'},\
                      'complex':{'longName':attr,'dt':'string'},\
-                     'message':{'longName':attr,'at':'message','m':True,'im':False},\
+                     #'message':{'longName':attr,'at':'message','m':True,'im':False},\  
+                     'message':{'longName':attr,'at':'message','m':True,'im':True},\
                      'messageSimple':{'longName':attr,'at':'message','m':False}}      
         
         Keyable=['int','float','bool','enum','double3']  
@@ -943,18 +947,31 @@ class MetaClass(object):
     # Connection Management Block 
     #---------------------------------------------------------------------------------
     
-    def _getNextArrayIndex(self):
+    def _getNextArrayIndex(self,node, attr):
         '''
-        need to flesh this out ASAP!!
+        get the next available index in a multiMessage array
         '''
-        pass
+        ind=cmds.getAttr('%s.%s' % (node,attr),multiIndices=True)
+        if not ind:
+            return 0
+        else:
+            for i in ind:
+                if not cmds.listConnections('%s.%s[%i]' % (node,attr,i)):
+                    return i
+            return ind[-1]+1
     
+    def isAlreadyChild(self, node, attr, srcAttr):
+        pass
+        
     def connectChildren(self, nodes, attr, srcAttr=None, cleanCurrent=False, force=True):
         '''
-        Fast method of connecting message links to the mNode as children
+        Fast method of connecting multiple nodes to the mNode via a message attr link. 
+        This call generates a MULTI message on both sides of the connection and is designed 
+        for more complex parent child relationships
+        
         @param nodes: Maya nodes to connect to this mNode
         @param attr: Name for the message attribute 
-        @param srcAttr: If given this becomes the attr on the child node which connects it 
+        @param srcAttr: if given this becomes the attr on the child node which connects it 
                         to self.mNode. If NOT given this attr is set to self.mNodeID
         @param cleanCurrent:  Disconnect and clean any currently connected nodes to this attr.
                         Note this is operating on the mNode side of the connection, removing
@@ -963,28 +980,47 @@ class MetaClass(object):
                         to another node force the connection to the new attr 
         TODO: do we move the cleanCurrent to the end so that if the connect fails you're not left 
         with a half run setup?
+        TODO: check if the node is already connected to self.mNode via the given attr and abort if True
         TODO: Manage the index so we can connect to multiple parents where required!
         '''
         if not issubclass(type(nodes),list):
             nodes=[nodes]
         #make sure we have the attr on the mNode
         self.addAttr(attr, attrType='message')
-        if cleanCurrent:
-            #disconnect and cleanup any current plugs to this message attr
-            self.__disconnectCurrentAttrPlugs(attr)  
+        
+        if cleanCurrent:       
+            self.__disconnectCurrentAttrPlugs(attr)  #disconnect/cleanup current plugs to this attr
         if not srcAttr:
             srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
+            
         for node in nodes:
+            #deal with node if it's an mNode
+            ismeta=isMetaNode(node)
+            if issubclass(type(node), MetaClass): #allows you to pass in an metaClass
+                node=node.mNode 
+                
             if not cmds.attributeQuery(srcAttr, exists=True, node=node):
-                cmds.addAttr(node,longName=srcAttr,at='message',m=True,im=False)
+                if ismeta:
+                    cmds.addAttr(node,longName=srcAttr,at='message',m=True,im=True)
+                else:        
+                    cmds.addAttr(node,longName=srcAttr,at='message',m=True,im=False)
             try:
-                cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=force)
+                if ismeta:
+                    cmds.connectAttr('%s.%s[%i]' % (self.mNode, attr, self._getNextArrayIndex(self.mNode,attr)),
+                                 '%s.%s[%i]' % (node, srcAttr, self._getNextArrayIndex(node,srcAttr)), f=force)
+                else:
+                    #cmds.connectAttr('%s.%s[%i]' % (self.mNode, attr, self._getNextArrayIndex(self.mNode,attr)),
+                    #                 '%s.%s' % (node,srcAttr), f=force)
+                    cmds.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=force)
             except StandardError,error:
                 log.warning(error)
                 
     def connectChild(self, node, attr, srcAttr=None, cleanCurrent=True, force=True):
         '''
-        Fast method of connecting message links to the mNode as child
+        Fast method of connecting a node to the mNode via a message attr link. This call
+        generates a NONE-MULTI message on both sides of the connection and is designed 
+        for simple parent child relationships.
+        
         NOTE: this call by default manages the attr to only ONE CHILD to
         avoid this use cleanCurrent=False
         @param node: Maya node to connect to this mNode
@@ -1007,8 +1043,7 @@ class MetaClass(object):
             node=node.mNode 
         try:
             if cleanCurrent:
-                #disconnect and cleanup any current plugs to this message attr
-                self.__disconnectCurrentAttrPlugs(attr)      
+                self.__disconnectCurrentAttrPlugs(attr) #disconnect/cleanup current plugs to this attr     
             if not srcAttr:          
                 srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
             if not cmds.attributeQuery(srcAttr, exists=True, node=node):
@@ -1115,17 +1150,18 @@ class MetaClass(object):
             self.connectChild(mChild, attr)
             return mChild
     
-    def getChildMetaNodes(self, walk=False):
+    def getChildMetaNodes(self, walk=False, mAttrs=None):
         '''
         Find any connected Child MetaNodes to this mNode
         @param walk: walk the connected network and return ALL children conntected in the tree
-        TODO: pass the mAttrs flag into this so you can walk a given attribute chain
+        @param mAttrs: only return connected nodes that pass the given attribute filter
+        NOTE: mAttrs is only searching attrs on the mNodes themselves, not all children
         '''
         if not walk:
-            return getConnectedMetaNodes(self.mNode,source=False,destination=True)
+            return getConnectedMetaNodes(self.mNode,source=False,destination=True, mAttrs=mAttrs)
         else:
             metaNodes=[]
-            children=getConnectedMetaNodes(self.mNode,source=False,destination=True)
+            children=getConnectedMetaNodes(self.mNode,source=False,destination=True, mAttrs=mAttrs)
             if children:
                 runaways=0
                 depth=0
@@ -1140,7 +1176,7 @@ class MetaClass(object):
                         children.remove(child)
                         processed.append(child.mNode)                
                         #log.info( 'connections too : %s' % child.mNode)
-                        extendedChildren.extend(getConnectedMetaNodes(child.mNode,source=False,destination=True))
+                        extendedChildren.extend(getConnectedMetaNodes(child.mNode,source=False,destination=True,mAttrs=mAttrs))
                         #log.info('left to process : %s' % ','.join([c.mNode for c in children]))
                         if not children:
                             if extendedChildren:
@@ -1161,7 +1197,7 @@ class MetaClass(object):
         if mNodes:
             return mNodes[0]
                                
-    def getChildren(self, walk=True):
+    def getChildren(self, walk=True, mAttrs=None):
         '''
         This finds all UserDefined attrs of type message and returns all connected nodes
         This is now being run in the MetaUI on doubleClick. This is a generic call, implemented 
@@ -1169,12 +1205,13 @@ class MetaClass(object):
         mRig.getRigCtrls() in the call, but it means that we don't call .mRig.getRigCtrls()
         in generic meta functions.
         @param walk: walk all subMeta connections and include all their children too
-        TODO: pass the mAttrs flag into this so you can walk a given attribute chain
+        @param mAttrs: only return connected nodes that pass the given attribute filter
+        NOTE: mAttrs is only searching attrs on the mNodes themselves, not all children
         '''
         childMetaNodes=[self]
         children=[]
         if walk:
-            childMetaNodes.extend([node for node in self.getChildMetaNodes(walk=True)])
+            childMetaNodes.extend([node for node in self.getChildMetaNodes(walk=True, mAttrs=mAttrs)])
         for node in childMetaNodes:
             log.debug('MetaNode : %s' % node.mNode)
             for attr in cmds.listAttr(self.mNode,ud=True):
@@ -1280,17 +1317,19 @@ class MetaRig(MetaClass):
                     log.debug('Adding boundData to node : %s:%s' %(key,value))
                     MetaClass(node).addAttr(key, value=value)
                          
-    def getRigCtrls(self, walk=False):
+    def getRigCtrls(self, walk=False, mAttrs=None):
         '''
         Find all connected controllers for this node. Note, if you've added
         them using the .addRigCtrl() then this function will return only those,
         else it'll return those added by the addGenericCtrls() call
         @param walk: step into all child MetaSystems and return their Ctrls too
+        @param mAttrs: only return connected nodes that pass the given attribute filter
+        NOTE: mAttrs is only searching attrs on the mNodes themselves, not all children
         '''
         controllers=[]
         childMetaNodes=[self]
         if walk:
-            childMetaNodes.extend([node for node in self.getChildMetaNodes(walk=True)])
+            childMetaNodes.extend([node for node in self.getChildMetaNodes(walk=True, mAttrs=mAttrs)])
         for node in childMetaNodes:
             log.debug('MetaNode : %s' % node.mNode)
             ctrlAttrs=cmds.listAttr(node.mNode,ud=True,st='%s_*' % self.CTRL_Prefix)
@@ -1305,8 +1344,8 @@ class MetaRig(MetaClass):
                 controllers.extend(node.RigCtrls)
         return controllers
 
-    def getChildren(self, walk=False):
-        return self.getRigCtrls(walk=walk)
+    def getChildren(self, walk=False, mAttrs=None):
+        return self.getRigCtrls(walk=walk, mAttrs=mAttrs)
         
 
     #Do we supply a few generic presets?

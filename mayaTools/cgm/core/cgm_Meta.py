@@ -344,8 +344,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
 
         """   
-	log.info("Before doName = " + self.mNode)
-	log.info('Name dict: %s"'%self.getNameDict())
+	log.debug("Before doName = " + self.mNode)
+	log.debug('Name dict: %s"'%self.getNameDict())
         if self.isReferenced():
             log.error("'%s' is referenced. Cannot change name"%self.mNode)
             return False
@@ -357,7 +357,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         else:
             NameFactory.doNameObject(self.mNode,sceneUnique)
 	    #self.update()
-	log.info("After doName = " + self.mNode)
+	log.debug("After doName = " + self.mNode)
 	
 	    
     #=========================================================================                   
@@ -474,33 +474,22 @@ class cgmObject(cgmNode):
         Keyword arguments:
         parent(string) -- Target parent
         """
-	if self.hasAttr('mClass'):
-	    log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))   	
         if target == self.getParent():
             return True
+	log.debug("Parenting '%s' to '%s'"%(self.mNode,target))
 
         if target: #if we have a target parent
             try:
                 #If we have an Object Factory instance, link it
                 self.parent = target.mNode
-                log.debug("Parent is an instance")
-		if self.hasAttr('mClass'):
-		    log.info("instance parenting >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))   		
+                log.debug("Parent is an instance")   		
             except:
                 #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
                 assert mc.objExists(target) is True, "'%s' - parent object doesn't exist" %target    
             
             log.debug("Parent is '%s'"%target)
-            try:
-		if self.hasAttr('mClass'):
-		    log.info("mc parent before >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mNode))
-		    log.info("mc parent before _mNode>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self._mNode))   				    		    
-		    log.info("mc parent before >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))  		
+            try: 		
                 mc.parent(self.mNode,target)
-		if self.hasAttr('mClass'):
-		    log.info("mc parent after >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mNode))
-		    log.info("mc parent after _mNode >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self._mNode))   				    		    		    
-		    log.info("mc parent after >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass)) 
             except:
                 log.debug("'%s' already has target as parent"%self.mNode)
                 return False
@@ -508,8 +497,7 @@ class cgmObject(cgmNode):
         else:#If not, do so to world
             rigging.doParentToWorld(self.mNode)
             log.debug("'%s' parented to world"%self.mNode) 
-	if self.hasAttr('mClass'):
-	    log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))             
+           
 	
 		
     parent = property(getParent, doParent)

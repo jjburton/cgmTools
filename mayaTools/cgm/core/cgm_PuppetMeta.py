@@ -421,13 +421,14 @@ class cgmMasterNull(cgmMeta.cgmObject):
         
 class cgmInfoNode(cgmMeta.cgmNode):
     """"""
-    def __init__(self,node = None, name = None,*args,**kws):
+    def __init__(self,node = None, name = 'info',*args,**kws):
         """Constructor"""
         puppet = kws.pop('puppet',False)#to pass a puppet instance in 
         infoType = kws.pop('infoType','')
         
         #>>>Keyword args
         super(cgmInfoNode, self).__init__(node=node, name = name,*args,**kws)
+	
         log.info("puppet :%s"%puppet)
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
