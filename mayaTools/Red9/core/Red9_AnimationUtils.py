@@ -250,7 +250,6 @@ class AnimationUI(object):
         self.poseGridMode='thumb'  # or text
         self.poseRootMode='RootNode' # or MetaRig
         self.poses=None
-        #self.poseButtonHighLight=[0.9,0.4,0.4]
         self.poseButtonBGC=[0.27,0.3,0.3]         #[0.2,0.25,0.25] 
         self.poseButtonHighLight=[0.7,0.95,0.75]  #[0.6, 0.9,0.65]
         
@@ -684,7 +683,7 @@ class AnimationUI(object):
                              c=lambda * args:(r9Setup.red9ContactInfo()), h=22, w=200)
         
         #needed for 2009
-        cmds.scrollLayout('uiglPoseScroll',e=True,h=350)
+        cmds.scrollLayout('uiglPoseScroll',e=True,h=330)
         
         #====================
         # Show and Dock
@@ -1370,7 +1369,7 @@ class AnimationUI(object):
         import shutil
         if not os.path.exists(self.posePathProject):
             raise StandardError('Project Pose Path is inValid')
-        log.info('Copying Local Pose: %s >> ' % (self.poseSelected,self.posePathProject))
+        log.info('Copying Local Pose: %s >> %s' % (self.poseSelected,self.posePathProject))
         try:
             shutil.copy2(self.__uiCB_getPosePath(),self.posePathProject)
             shutil.copy2(self.__uiCB_getIconPath(),self.posePathProject)

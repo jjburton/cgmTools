@@ -56,7 +56,7 @@ node.boolTest   #>>True
 
 #enum handling, settable via the string or the index
 #note that we need to specifically pass the type in here
-node.addAttr('enum', 'A:B:D:E:F', type='enum')
+node.addAttr('enum', enumName='A:B:D:E:F', attrType='enum')
 node.enum='A'
 node.enum   #>>0 always returns the actual index
 node.enum=2
@@ -71,19 +71,19 @@ node.jsonTest['stringTest']     #will deserialize the MayaNode jsonTest attr bac
 #double handling
 #adds a double3 attr with subAttrs 'dblA,dblB,dblC', sets them as doubles with min/max vaules, 
 #sets their values to 1,2,10, then exposes them to the channelBox!
-node.addAttr('doubleTest', attrType='double3', value=(('dblA','dblB','dblC'),(1.0,2.0,10.0)), min=1, max=15, hidden=False)
+node.addAttr('doubleTest', attrType='double3', value=(1.0,2.0,10.0), min=1, max=15, hidden=False)
 
 
 #message attribute handling:
 #----------------------------
 #create a non multi-message attr and wire pCube1 to it     
-node.addAttr('msgSingleTest', value='pCube1', type='messageSimple')
+node.addAttr('msgSingleTest', value='pCube1', attrType='messageSimple')
 node.msgSingleTest  #>> ['pCube1']   
 node.msgSingleTest='pCube2'
 node.msgSingleTest  #>> ['pCube2'] # NOTE pCube1 had now been disconnected and the msg connected to Cube2
 
 #create a multi-message attr and wire pCube1 to it, indexMatters=False
-node.addAttr('msgMultiTest', value=['pCube1','pCube2','pCube3'], type='message')  
+node.addAttr('msgMultiTest', value=['pCube1','pCube2','pCube3'], attrType='message')  
 node.msgMultiTest   #>> ['pCube1','pCube2','pCube3'] 
 node.msgMultiTest='pCube1'
 node.msgMultiTest   #>> ['pCube1'] #pCube2 and pCube3 have now been disconnected
@@ -103,7 +103,7 @@ on the node once cast to the MetaClass. Very useful for managing large nodes.
 mLambert=r9Meta.MetaClass('lambert1')
 #mLambert is just a Python MetaNode and doesn't exist as a MayaNode
 mLambert.diffuse     #>>0.5
-mLambert.color       #>>[(0.5, 0.5, 0.5)]
+mLambert.color       #>>(0.5, 0.5, 0.5)
 mLambert.color=(1,0.2,0.2) #sets the compound float3 attr
 
 mLambert.diffuse=0.7 #sets the diffuse directly

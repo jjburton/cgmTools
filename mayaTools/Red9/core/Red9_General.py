@@ -517,9 +517,11 @@ def os_OpenFile(filePath):
     open the given file in the default program
     '''
     import subprocess
-    filePath=os.path.abspath(filePath)
+    #log.debug('filePath : %s' % filePath)
+    #filePath=os.path.abspath(filePath)
+    #log.debug('abspath : %s' % filePath)
     if sys.platform == 'win32':
-        os.startfile(file)
+        os.startfile(filePath)
     elif sys.platform == 'darwin': #macOS
         subprocess.Popen(['open', filePath])
     else: #linux

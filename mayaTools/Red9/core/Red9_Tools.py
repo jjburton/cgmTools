@@ -135,7 +135,7 @@ class SceneReviewer(object):
         exist once, and is managed in that way internally
         '''
         self.dataRepository=r9Meta.MetaClass('time1')
-        self.dataRepository.addAttr('sceneReport',type="string")
+        self.dataRepository.addAttr('sceneReport',attrType="string")
         self.sceneScriptNode="sceneReviewData"
         self.storedDataDict={'author':"",'date':"",'comment':"",'history':""}
         self.getReportData()

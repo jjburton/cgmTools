@@ -181,7 +181,8 @@ class PoseData(object):
         Main filter to extract matching data pairs prior to processing
         return : tuple such that :  (poseDict[key], destinationNode)
         @param nodes: nodes to try and match from the poseDict
-        @param matchMethod: how to match the nodes to the poseDict data
+        @param matchMethod: how to match the nodes to the poseDict data, maybe this should 
+                be passed directly in to the matchNodeLists call so we can deal with prefix etc?
         '''
         matchedPairs=[]
         if matchMethod=='name':
@@ -553,7 +554,8 @@ class PoseCompare(object):
                 if not self.fails.has_key('missingKeys'):
                     self.fails['missingKeys']=[]
                 self.fails['missingKeys'].append(key)
-                
+                continue
+            
             for attr, value in attrBlock['attrs'].items():
                 #attr missing completely from the key
                 if not referenceAttrBlock['attrs'].has_key(attr):

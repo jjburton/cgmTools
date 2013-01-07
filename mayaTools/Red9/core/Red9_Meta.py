@@ -182,15 +182,16 @@ def isMetaNodeInherited(node, mInstances=[]):
                 return True
             
 @r9General.Timer                 
-def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
+def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass'):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
-    @param dataType: default='mClass' return the nodes already instantiated to 
-                the correct class object. If not then return the Maya node itself
     @param mTypes: only return meta nodes of a given type
     @param mInstances: idea - this will check subclass inheritance, ie, MetaRig would
             return ALL nodes who's class is inherited from MetaRig. Allows you to 
             group the data more efficiently by base classes and their inheritance
+    @param mAttrs: uses the FilterNode.lsSearchAttributes call to match nodes via given attrs
+    @param dataType: default='mClass' return the nodes already instantiated to 
+                the correct class object. If not then return the Maya node itself
     '''
     mNodes=[]
     if mTypes and not type(mTypes)==list:mTypes=[mTypes]
@@ -201,26 +202,31 @@ def getMetaNodes(dataType='mClass', mTypes=[], mInstances=[]):
         else:
             if isMetaNodeInherited(node,mInstances):
                 mNodes.append(node)
-
+    if mAttrs:
+        #lazy to avoid cyclic imports
+        import Red9_CoreUtils as r9Core 
+        mNodes=r9Core.FilterNode().lsSearchAttributes(mAttrs, nodes=mNodes)
     if dataType=='mClass':
         return[MetaClass(node) for node in mNodes]
     else:
         return mNodes
  
 @r9General.Timer           
-def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass', mTypes=[], mInstances=[]):
+def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInstances=[], mAttrs=None, \
+                          dataType='mClass'):
     '''
     From a given set of Maya Nodes return all connected mNodes
     Default return is mClass objects
     @param nodes: nodes to inspect for connected meta data 
     @param source: `bool` clamp the search to the source side of the graph
     @param destination: `bool` clamp the search to the destination side of the graph
-    @param dataType: default='mClass' return the nodes already instantiated to 
-                    the correct class object. If not then return the Maya node
     @param mTypes: return only given MetaClass's
     @param mInstances: idea - this will check subclass inheritance, ie, MetaRig would
             return ALL nodes who's class is inherited from MetaRig. Allows you to 
             group the data more efficiently by base classes and their inheritance
+    @param mAttrs: uses the FilterNode.lsSearchAttributes call to match nodes via given attrs
+    @param dataType: default='mClass' return the nodes already instantiated to 
+                    the correct class object. If not then return the Maya node
     '''
     mNodes=[]
     if mTypes and not type(mTypes)==list:mTypes=[mTypes]
@@ -240,7 +246,10 @@ def getConnectedMetaNodes(nodes, source=True, destination=True, dataType='mClass
         else:
             if isMetaNodeInherited(node,mInstances):
                 mNodes.append(node)
-            
+    if mAttrs:
+        #lazy to avoid cyclic imports
+        import Red9_CoreUtils as r9Core 
+        mNodes=r9Core.FilterNode().lsSearchAttributes(mAttrs, nodes=mNodes)        
     if dataType=='mClass':
         return [MetaClass(node) for node in set(mNodes)]
     else:
@@ -286,12 +295,15 @@ class MClassNodeUI():
     def __init__(self, mTypes=None, mInstances=None, closeOnSelect=False, \
                  funcOnSelection=None, sortBy='byClass', allowMulti=True):
         '''
-        @param mNodeType: MetaNode class to search and display 'MetaRig'
+        @param mTypes: MetaNode class to search and display 'MetaRig'
+        @param mInstances: MetaNode inheritance map, ie show all subclass of mType..
         @param closeOnSelect: on text select close the UI
         @param funcOnSelection: function to run where the selected mNode is expected
             as first arg, ie funcOnSelection=cmd.select so that when run the item is 
             selected in the UI cmds.select(item) is run. Basically used as a dynamic callback
         @param sortBy: Sort the nodes found 'byClass' or 'byName' 
+        @param allowMulti: allow multiple selection in the UI
+        TODO: bolt the bottom of the scrollField to the bottom of the UI so it resizes
         '''
         self.mInstances=mInstances
         self.mTypes=mTypes
@@ -325,7 +337,7 @@ class MClassNodeUI():
         cmds.popupMenu('r9MetaNodeUI_Popup')
         cmds.menuItem(label='SortBy : ClassName', command=partial(self.fillScroll,'byClass'))
         cmds.menuItem(label='SortBy : NodeName', command=partial(self.fillScroll,'byName'))
-        #cmds.menuItem(label='SortBy : SystemTree', command=partial(self.fillScroll,'bySystemTree'))
+
         cmds.menuItem(label='Graph Selected Networks', command=partial(self.graphNetwork))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Class : All Registered', command=partial(self.fillScroll,'byName'))
@@ -347,6 +359,10 @@ class MClassNodeUI():
             #mel.eval('hyperGraphWindow( "", "DG")')
         
     def selectCmd(self,*args):
+        '''
+        callback run on select in the UI, allows you to run the func passed 
+        in by the funcOnSelection arg
+        '''
         indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)      
         if indexes:
             cmds.select(cl=True)
@@ -568,12 +584,10 @@ class MetaClass(object):
             if OpenMaya.MObject.hasFn(self._MObject, OpenMaya.MFn.kDagNode):
                 dPath = OpenMaya.MDagPath()
                 OpenMaya.MDagPath.getAPathTo(self._MObject, dPath)
-                self._mNode = dPath.fullPathName()
-                return self._mNode 
+                return dPath.fullPathName()
             else:
                 depNodeFunc = OpenMaya.MFnDependencyNode(self._MObject)
-                self._mNode = depNodeFunc.name() 
-                return self._mNode  
+                return depNodeFunc.name()    
     
     def __set_mNode(self, node):
         if node:
@@ -929,6 +943,12 @@ class MetaClass(object):
     # Connection Management Block 
     #---------------------------------------------------------------------------------
     
+    def _getNextArrayIndex(self):
+        '''
+        need to flesh this out ASAP!!
+        '''
+        pass
+    
     def connectChildren(self, nodes, attr, srcAttr=None, cleanCurrent=False, force=True):
         '''
         Fast method of connecting message links to the mNode as children
@@ -943,6 +963,7 @@ class MetaClass(object):
                         to another node force the connection to the new attr 
         TODO: do we move the cleanCurrent to the end so that if the connect fails you're not left 
         with a half run setup?
+        TODO: Manage the index so we can connect to multiple parents where required!
         '''
         if not issubclass(type(nodes),list):
             nodes=[nodes]
@@ -1052,7 +1073,7 @@ class MetaClass(object):
         searchConnection=self.mNode
         if attr:
             searchConnection='%s.%s' % (self.mNode,attr)
-        if isMetaNode(node): 
+        if isMetaNode(node) and issubclass(type(node),MetaClass): 
             node=node.mNode
         cons=cmds.listConnections(node,s=True,d=False,p=True,c=True)
         if not cons:
@@ -1098,6 +1119,7 @@ class MetaClass(object):
         '''
         Find any connected Child MetaNodes to this mNode
         @param walk: walk the connected network and return ALL children conntected in the tree
+        TODO: pass the mAttrs flag into this so you can walk a given attribute chain
         '''
         if not walk:
             return getConnectedMetaNodes(self.mNode,source=False,destination=True)
@@ -1147,6 +1169,7 @@ class MetaClass(object):
         mRig.getRigCtrls() in the call, but it means that we don't call .mRig.getRigCtrls()
         in generic meta functions.
         @param walk: walk all subMeta connections and include all their children too
+        TODO: pass the mAttrs flag into this so you can walk a given attribute chain
         '''
         childMetaNodes=[self]
         children=[]

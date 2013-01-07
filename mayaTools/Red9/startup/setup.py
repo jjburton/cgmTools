@@ -118,12 +118,15 @@ def menuSetup():
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="import Red9.core.AnimationBinder as animBnd;animBnd.AnimBinderUI()._UI()")  
     cmds.menuItem(divider=True)
-    cmds.menuItem('redNineHelpItem',l="Red9_Help",ann="Boot the Help Files",
-                  p='redNineMenuItemRoot', echoCommand=True,
-                  c="Red9.setup.help()")
+    #cmds.menuItem('redNineHelpItem',l="Red9_Help",ann="Boot the Help Files",
+    #              p='redNineMenuItemRoot', echoCommand=True,
+    #              c="Red9.setup.red9_help()")
     cmds.menuItem('redNineBlogItem',l="Red9_Blog",ann="Open Red9Blog",
                   p='redNineMenuItemRoot', echoCommand=True,
-                  c="Red9.setup.blog()")
+                  c="Red9.setup.red9_blog()")
+    cmds.menuItem('redNineVimeoItem',l="Red9_Vimeo Channel",ann="Open Red9Vimeo Channel",
+                  p='redNineMenuItemRoot', echoCommand=True,
+                  c="Red9.setup.red9_vimeo()")
     cmds.menuItem('redNineDebuggerItem',l='Red9 Debugger',sm=True)
     cmds.menuItem('redNineDebugItem',l="systems DEBUG",ann="Turn all the logging to Debug",
                   echoCommand=True, c="Red9.core._setlogginglevel_debug()")
@@ -178,29 +181,28 @@ def red9MayaNativePath():
     else:
         log.info('Red9MayaHacked Folder not found for this build of Maya : %s' % path)
   
-def help():
+def red9_help():
     '''
     open up the Red9 help docs
     '''
+    import Red9.core.Red9_General as r9General #lazy load
     helpFile=os.path.join(red9ModulePath(),'docs',r'Red9-StudioTools Help.pdf')
-    try:
-        #Windows Only
-        os.startfile(helpFile)
-    except StandardError, error:
-        #fails on linux, need to use os.system(('acroread'+helpFile))
-        raise StandardError(error)
+    r9General.os_OpenFile(helpFile)
     
-def blog():
+def red9_blog():
     '''
     open up the Red9 Blog
     '''
-    try:
-        #Windows Only
-        os.startfile('http://red9-consultancy.blogspot.com/')
-    except:
-        os.system('firefox http://red9-consultancy.blogspot.com/')
-        log.exception('os.startfile call failed to open Blog')  
-        
+    import Red9.core.Red9_General as r9General #lazy load
+    r9General.os_OpenFile('http://red9-consultancy.blogspot.com/')
+
+def red9_vimeo():
+    '''
+    open up the Red9 Vimeo Channel
+    '''
+    import Red9.core.Red9_General as r9General #lazy load
+    r9General.os_OpenFile('https://vimeo.com/user9491246')
+      
     
 # BOOT FUNCTS - Add and Build --------------------------------------------------------------
     

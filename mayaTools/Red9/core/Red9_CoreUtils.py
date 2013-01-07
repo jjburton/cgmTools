@@ -813,6 +813,8 @@ class FilterNode(object):
         excluded from the filter. Also you can now do 'myAttr=2.33' to only pass if the attr is equal
         similarly 'NOT:myAttr=2.33' will exclude if the value is equal
         see the ..\Red9\tests\Red9_CoreUtilTests.py for live unittest examples
+        
+        TODO: space removal in the args before it's split in case somebody's done 'myAttr = xx'
         '''
         
         self.foundAttributes = []
@@ -861,7 +863,7 @@ class FilterNode(object):
             #Main test block, does the node get through the filter?
             for attr,val in includeAttrs.items(): # INCLUDE TESTS
                 if cmds.attributeQuery(attr, exists=True, node=node):
-                    if val[0]: 
+                    if val[0]: # value test
                         if not type(val[1])==float:
                             if cmds.getAttr('%s.%s' % (node, attr))==val[1]:
                                 add=True
@@ -887,9 +889,9 @@ class FilterNode(object):
                         log.debug('attr Include : Value Mismatch found : <BREAKOUT>')
                         break
                     
-            for attr,val in excludeAttrs.items(): # EXCLUDE TESTS (NOT:)
+            for attr,val in excludeAttrs.items(): # EXCLUDE TESTS ('NOT:' operator)
                 if cmds.attributeQuery(attr,exists=True,node=node):
-                    if val[0]:
+                    if val[0]: # value Test
                         if not type(val[1])==float:
                             if cmds.getAttr('%s.%s' % (node, attr))==val[1]:
                                 add=False
