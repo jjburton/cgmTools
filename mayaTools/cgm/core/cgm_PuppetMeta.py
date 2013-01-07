@@ -1,8 +1,23 @@
-#=========================================================================      
-#Pupper requirements- We force the update on the Red9 internal registry  
-# Puppet - network node
-# >>
-#=========================================================================         
+"""
+------------------------------------------
+cgm_PuppetMeta: cgm.core
+Author: Josh Burton
+email: jjburton@cgmonks.com
+
+Website : http://www.cgmonks.com
+------------------------------------------
+
+This is the core MetaClass structure for cgm's modular rigger.
+================================================================
+"""
+import maya.cmds as mc
+
+import random
+import re
+import copy
+import time
+
+# From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 
@@ -11,21 +26,19 @@ import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+#========================================================================
 
-import maya.cmds as mc
-
+# From cgm ==============================================================
 from cgm.lib.classes import NameFactory
+from cgm.core.rigger import ModuleFactory as mFactory
+reload(mFactory)
+from cgm.core.rigger import PuppetFactory as pFactory
+reload(pFactory)
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (modules,attributes,search)
 
-import random
-import re
-import copy
-import time
 
-#Initial settings to setup
-#=========================    
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
@@ -40,7 +53,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         start = time.clock()
               
         #Need a simple return of
-        puppets = simplePuppetReturn()
+        puppets = pFactory.simplePuppetReturn()
         
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Finding the network node and name info from the provided information
@@ -193,7 +206,6 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.addAttr('parts',attrType = 'messageSimple',lock=True)
         self.addAttr('moduleChildren',attrType = 'message',lock=True)  
 	
-
         self.doName()
         self.getAttrs()
         log.debug("Network good...")
@@ -362,7 +374,8 @@ class cgmPuppet(cgmMeta.cgmNode):
 	module.doParent(self.i_partsGroup.mNode)
 		
 	return True
-
+    def getGeo(self):
+	return pFactory.getGeo(self)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
@@ -397,7 +410,7 @@ class cgmMasterNull(cgmMeta.cgmObject):
         self.doName()
         
     def __bindData__(self):
-        #self.addAttr('mClass',value = 'cgmMasterNull',lock=True)
+        self.addAttr('mClass',value = 'cgmMasterNull',lock=True)
         self.addAttr('cgmName',initialValue = '',lock=True)
         self.addAttr('cgmType',initialValue = 'ignore',lock=True)
         self.addAttr('cgmModuleType',value = 'master',lock=True)   
@@ -499,13 +512,15 @@ rigNullAttrs_toMake = {'fk':'bool',#Attributes to be initialzed for any module
                        'bendy':'bool',
                        'handles':'int',
                        'skinJoints':'message'}
+
 templateNullAttrs_toMake = {'rollJoints':'int',
                             'stiffIndex':'int',
                             'curveDegree':'int',
                             'templatePosObjects':'message',
                             'templateControlObjects':'message',
                             'templateStarterData':'string',
-                            'templateControlObjectData':'string'}
+                            'templateControlObjectData':'string',
+                            'coreNames':'string'}
                 
 class cgmModule(cgmMeta.cgmObject):
     def __init__(self,*args,**kws):
@@ -551,7 +566,8 @@ class cgmModule(cgmMeta.cgmObject):
         self.kw_nameModifier = kws.pop('nameModifier',False)
         self.kw_forceNew = kws.pop('forceNew',False)
         self.kw_initializeOnly = kws.pop('initializeOnly',False)  
-        self.kw_handles = kws.pop('handles',1) # can't have self handles  
+        self.kw_handles = kws.pop('handles',1) # can't have 0 handles  
+        self.kw_rollJoints = kws.pop('rollJoints',0) # can't have 0 handles  
         
         if self.kw_name:#If we have a name, store it
             self.doStore('cgmName',self.kw_name,True)
@@ -568,7 +584,7 @@ class cgmModule(cgmMeta.cgmObject):
                 log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.kw_name)
                 return          
         else:
-            if not self.verify():
+            if not self.verify(**kws):
                 log.critical("'%s' failed to verify!"%self.kw_name)
                 return  
             
@@ -609,7 +625,7 @@ class cgmModule(cgmMeta.cgmObject):
         return True
              
         
-    def verify(self):
+    def verify(self,**kws):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -637,7 +653,7 @@ class cgmModule(cgmMeta.cgmObject):
         
         #Attributes
         #==============  
-        self.addAttr('moduleType',value = 'segment',lock=True)
+        self.addAttr('moduleType',initialValue = 'segment',lock=True)
         
         self.addAttr('moduleParent',attrType='messageSimple')
         self.addAttr('modulePuppet',attrType='messageSimple')
@@ -696,29 +712,21 @@ class cgmModule(cgmMeta.cgmObject):
                 log.info(self.kw_handles)                
                 log.info(self.i_rigNull.handles)                
                 a.doMin(1)#Make this check that the value is not below the min when set
-                #a.set(self.kw_handles)
             else:
                 self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
                                 
         for attr in templateNullAttrs_toMake.keys():#See table just above cgmModule
-            log.info("Checking '%s' on template Null"%attr)
-            self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
+	    log.info("Checking '%s' on template Null"%attr)	
+	    if attr == 'rollJoints':
+		log.info(self.kw_rollJoints)
+		if self.kw_rollJoints == 0:
+		    self.i_templateNull.addAttr(attr,initialValue = self.kw_rollJoints, attrType = templateNullAttrs_toMake[attr],lock = True )                
+		else:
+		    self.i_templateNull.addAttr(attr,value = self.kw_rollJoints, attrType = templateNullAttrs_toMake[attr],lock = True )                		    	    
+            else:
+		self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
       
         return True        
-    
-    def doSetParentModule2(self,moduleParent):
-        assert mc.objExists(moduleParent),"'%s' doesn't exists! Can't be module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort)
-        if search.returnTagInfo(moduleParent,'cgmType') == 'module':
-            if self.moduleParent != moduleParent:
-                self.moduleParent = moduleParent
-                self.connectParent(moduleParent, 'masterNull','puppet')                               
-                log.repport("'%s' is not the module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort))
-            else:
-                log.warning("'%s' already this module's parent. Moving on..."%moduleParent)
-                return True
-        else:
-            log.warning("'%s' isn't tagged as a module."%moduleParent)
-            return False
 	
     def doSetParentModule(self,moduleParent,force = False,):
 	"""
@@ -726,69 +734,92 @@ class cgmModule(cgmMeta.cgmObject):
 	
 	module(string)
 	"""
-	#See if parent exists and is a module, if so...
-	#>>>buffer children
-	#>>>see if already connected
-	#>>Check existance
-        #==============	
-	#Get our instance
-	try:
-	    moduleParent.mNode#See if we have an instance
-	    
-	except:
-	    if mc.objExists(moduleParent):
-		moduleParent = r9Meta.MetaClass(moduleParent)#initialize
-	    else:
-		log.warning("'%s' doesn't exist"%moduleParent)#if it doesn't initialize, nothing is there		
-		return False	
+	mFactory.doSetParentModule(self,moduleParent,force)
+    
+    def getGeneratedCoreNames(self):
+	return mFactory.getGeneratedCoreNames(self)
+    
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Limb stuff
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
+limbTypes = {'segment':{'handles':3,'stiffIndex':0,'curveDegree':1,'rollJoints':3},
+             'finger':{'handles':5,'stiffIndex':1,'curveDegree':0,'rollJoints':0},
+             'clavicle':{'handles':1,'stiffIndex':0,'curveDegree':0,'rollJoints':0},
+             'arm':{'handles':3,'stiffIndex':0,'curveDegree':0,'rollJoints':3},
+             'leg':{'handles':3,'stiffIndex':0,'curveDegree':0,'rollJoints':3},
+             'torso':{'handles':5,'stiffIndex':-1,'curveDegree':1,'rollJoints':2},
+             'tail':{'handles':5,'stiffIndex':0,'curveDegree':1,'rollJoints':3},
+             'head':{'handles':1,'stiffIndex':0,'curveDegree':0,'rollJoints':0},
+             'neckHead':{'handles':4,'stiffIndex':-1,'curveDegree':1,'rollJoints':3},
+             'foot':{'handles':3,'stiffIndex':0,'curveDegree':0,'rollJoints':0}
+             }  
+class cgmLimb(cgmModule):
+    def __init__(self,*args,**kws):
+        """ 
+        Intializes an module master class handler
+        Args:
+        node = existing module in scene
+        name = treated as a base name
+        
+        Keyword arguments:
+        moduleName(string) -- either base name or the name of an existing module in scene
+        moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
+        
+        Naming and template tags. All Default to False
+        position(string) -- position tag
+        direction(string) -- direction
+        directionModifier(string)
+        nameModifier(string)
+        forceNew(bool) --whether to force the creation of another if the object exists
+        """
+        start = time.clock()	
+	log.info(kws)
+        super(cgmLimb, self).__init__(*args,**kws) 
 	
-	#Logic checks
-	#==============
-	#if not moduleParent.hasAttr('mClass'):
-	    #log.warning("'%s' lacks an mClass attr"%module.mNode)	    
-	    #return False
+	return
+
 	
-	#if moduleParent.mClass not in ['cgmModule']:
-	    #log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
-	    #return False
+    def verify(self,**kws):
+	cgmModule.verify(self,**kws)
 	
-	if not moduleParent.hasAttr('moduleChildren'):#Quick check
-	    log.warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
-	    return False	
-	
-	buffer = copy.copy(moduleParent.moduleChildren) or []#Buffer till we have have append functionality	
-	
-	if self.mNode in buffer:
-	    log.warning("'%s' already connnected to '%s'"%(module,moduleParent.getShortName()))
-	    return False
-		    
-        #Connect
-        #==============	
+	if 'moduleType' not in kws.keys() and self.moduleType in limbTypes.keys():
+	    log.info("'%s' type checks out."%self.moduleType)	    
+	    moduleType = self.moduleType
+	elif 'name' in kws.keys():
+	    moduleType = kws['name']
 	else:
-	    log.info("Current children: %s"%buffer)
-	    log.info("Adding '%s'!"%self.getShortName())    
+	    moduleType = kws.pop('moduleType','segment')	
+	
+	if not moduleType in limbTypes.keys():
+	    log.info("'%s' type is unknown. Using segment type"%moduleType)
+	    moduleType = 'segment'
+
+	if self.moduleType != moduleType:
+	    log.info("Changing type to '%s' type"%moduleType)
+	    self.moduleType = moduleType
+	    settings = limbTypes[moduleType] 
+	    self.rigNull.addAttr('handles', value = settings['handles'],lock = True) 
+	    self.templateNull.addAttr('rollJoints', value = settings['rollJoints'],lock = True) 
+	    self.templateNull.addAttr('curveDegree', value = settings['curveDegree'],lock = True) 
+	    self.templateNull.addAttr('stiffIndex', value = settings['stiffIndex'],lock = True) 	    
+	
+	else:
+	    self.moduleType = moduleType
+	    settings = limbTypes[moduleType] 
+	    self.rigNull.addAttr('handles', initialValue = settings['handles'],lock = True) 
+	    self.templateNull.addAttr('rollJoints', initialValue = settings['rollJoints'],lock = True) 
+	    self.templateNull.addAttr('curveDegree', initialValue = settings['curveDegree'],lock = True) 
+	    self.templateNull.addAttr('stiffIndex', initialValue = settings['stiffIndex'],lock = True) 
 	    
-	    buffer.append(self.mNode) #Revist when children has proper add/remove handling
-	    del moduleParent.moduleChildren #Revist when children has proper add/remove handling
-	    moduleParent.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
-	    #self.__setMessageAttr__('modulePuppet',moduleParent.modulePuppet)#Connect puppet to 
-	    
-	self.parent = moduleParent.parent
 	return True
+
+        
         
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-@r9General.Timer   
-def simplePuppetReturn():
-    catch = mc.ls(type='network')
-    returnList = []
-    if catch:
-        for o in catch:
-            if attributes.doGetAttr(o,'mClass') == 'cgmPuppet':
-                returnList.append(o)
-    return returnList
+
 
 
 

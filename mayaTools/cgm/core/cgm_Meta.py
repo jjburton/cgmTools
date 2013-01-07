@@ -1,12 +1,31 @@
+"""
+------------------------------------------
+cgm_Meta: cgm.core
+Author: Josh Burton
+email: jjburton@cgmonks.com
+
+Website : http://www.cgmonks.com
+------------------------------------------
+
+This is the Core of the MetaNode implementation of the systems.
+It is uses Mark Jackson (Red 9)'s as a base.
+================================================================
+"""
+
 import maya.cmds as mc
 import maya.mel as mel
+import copy
+
+# From Red9 =============================================================
+from Red9.core import Red9_Meta as r9Meta
+
+
+# From cgm ==============================================================
 from cgm.lib.classes import NameFactory
 reload(NameFactory)
 
 from cgm.lib.ml import (ml_resetChannels)
 reload(ml_resetChannels)
-
-import copy
 
 from cgm.lib import (lists,
                      search,
@@ -20,7 +39,7 @@ reload(attributes)
 reload(search)
 
 
-#Mark, any thoughts on where to store important defaults
+# Shared Defaults ========================================================
 drawingOverrideAttrsDict = {'overrideEnabled':0,
                             'overrideDisplayType':0,
                             'overrideLevelOfDetail':0,
@@ -29,35 +48,12 @@ drawingOverrideAttrsDict = {'overrideEnabled':0,
                             'overridePlayback':1,
                             'overrideVisibility':1}
 
-#=========================================================================      
-# Logger snippet  
 #=========================================================================
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
-
-#=========================================================================      
-# R9 Stuff - We force the update on the Red9 internal registry  
-#=========================================================================      
-from Red9.core import Red9_Meta as r9Meta
-#=========================================================================
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-# cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
-#=========================================================================    
-class testClass(r9Meta.MetaClass):
-    def __bindData__(self):              
-        self.addAttr('testing',2.0)
-        self.addAttr('testString','mow')
-	self.testString = 'mow'
-
-    def __init__(self,*args,**kws):
-        super(testClass, self).__init__(*args,**kws)
-	
-    def passThingy(self):
-	print "asdfasdfasdfasdf"
       
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
@@ -291,6 +287,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	#buffer = copy.copy(self.mNode)
 	#object.__setattr__(self, "_mNode", self.mNode) #Forces an update of mNode
 	#self.__fillAttrCache__('')
+	log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Old tag, remove this .update()")
 	
         	
     def getCGMNameTags(self):
@@ -355,11 +352,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 
         if nameChildren:
             NameFactory.doRenameHeir(self.mNode,sceneUnique)
-	    self.update()
+	    #self.update()
 
         else:
             NameFactory.doNameObject(self.mNode,sceneUnique)
-	    self.update()
+	    #self.update()
 	log.info("After doName = " + self.mNode)
 	
 	    
@@ -370,7 +367,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """ Store information to an object in maya via case specific attribute. """
         attributes.storeInfo(self.mNode,attr,info,*a,**kw)
 	object.__setattr__(self, attr, info)
-	self.update()
+	#self.update()
 
     def doRemove(self,attr):
         """ Removes an attr from the maya object instanced. """
@@ -405,7 +402,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
             return True
             
         elif tag in self.__dict__.keys() and self.__dict__[tag] == value:
-            log.debug("'%s.%s' already has base name of '%s'."%(self.getShortName(),tag,string))
+            log.debug("'%s.%s' already has base name of '%s'."%(self.getShortName(),tag,value))
             return False
         else:
             self.doStore(tag,value,True,**kw)
@@ -432,7 +429,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
                 attributes.doCopyAttr(target,tag,
                                       self.mNode,connectTargetToSource=False)
                 didSomething = True
-	self.update()
+	#self.update()
         return didSomething
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
