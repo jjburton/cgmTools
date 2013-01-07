@@ -286,7 +286,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
-        super(cgmNode, self).__init__(node = self.mNode) #Forces a reinitialization        
+	#self.__init__(self.mNode)
+        #super(cgmNode, self).__init__(node = self.mNode) #Forces a reinitialization 
+	#buffer = copy.copy(self.mNode)
+	#object.__setattr__(self, "_mNode", self.mNode) #Forces an update of mNode
+	#self.__fillAttrCache__('')
+	
         	
     def getCGMNameTags(self):
         """
@@ -342,6 +347,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
 
         """   
+	log.info("Before doName = " + self.mNode)
 	log.info('Name dict: %s"'%self.getNameDict())
         if self.isReferenced():
             log.error("'%s' is referenced. Cannot change name"%self.mNode)
@@ -354,6 +360,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         else:
             NameFactory.doNameObject(self.mNode,sceneUnique)
 	    self.update()
+	log.info("After doName = " + self.mNode)
+	
 	    
     #=========================================================================                   
     # Attribute Functions
@@ -361,6 +369,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def doStore(self,attr,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
         attributes.storeInfo(self.mNode,attr,info,*a,**kw)
+	object.__setattr__(self, attr, info)
 	self.update()
 
     def doRemove(self,attr):
@@ -418,10 +427,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         didSomething = False
         
         for tag in targetCGM.keys():
+	    log.info("..."+tag)
             if tag not in ignore and targetCGM[tag] is not None or False:
                 attributes.doCopyAttr(target,tag,
-                                      self.mNode,connectTargetToSource=True)
+                                      self.mNode,connectTargetToSource=False)
                 didSomething = True
+	self.update()
         return didSomething
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
@@ -459,40 +470,55 @@ class cgmObject(cgmNode):
     def getParent(self):
         return search.returnParentObject(self.mNode) or False
 		
-    def doParent(self,parent = False):
+    def doParent(self,target = False):
         """
         Function for parenting a maya instanced object while maintaining a correct object instance.
 
         Keyword arguments:
         parent(string) -- Target parent
         """
-        if parent == self.getParent():
+	if self.hasAttr('mClass'):
+	    log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))   	
+        if target == self.getParent():
             return True
-        
-        if parent: #if we have a target parent
+
+        if target: #if we have a target parent
             try:
                 #If we have an Object Factory instance, link it
-                parent = parent.mNode
+                self.parent = target.mNode
                 log.debug("Parent is an instance")
+		if self.hasAttr('mClass'):
+		    log.info("instance parenting >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))   		
             except:
                 #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
-                assert mc.objExists(parent) is True, "'%s' - parent object doesn't exist" %parent    
+                assert mc.objExists(target) is True, "'%s' - parent object doesn't exist" %target    
             
-            log.debug("Parent is '%s'"%parent)
+            log.debug("Parent is '%s'"%target)
             try:
-                mc.parent(self.mNode,parent)
+		if self.hasAttr('mClass'):
+		    log.info("mc parent before >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mNode))
+		    log.info("mc parent before _mNode>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self._mNode))   				    		    
+		    log.info("mc parent before >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))  		
+                mc.parent(self.mNode,target)
+		if self.hasAttr('mClass'):
+		    log.info("mc parent after >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mNode))
+		    log.info("mc parent after _mNode >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self._mNode))   				    		    		    
+		    log.info("mc parent after >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass)) 
             except:
                 log.debug("'%s' already has target as parent"%self.mNode)
                 return False
-            
+	
         else:#If not, do so to world
             rigging.doParentToWorld(self.mNode)
-            log.debug("'%s' parented to world"%self.mNode)   
+            log.debug("'%s' parented to world"%self.mNode) 
+	if self.hasAttr('mClass'):
+	    log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + str(self.mClass))             
+	
 		
     parent = property(getParent, doParent)
     #=========================================================================      
     # Get Info
-    #========================================================================= 
+    #========================================================================= 	
     def getTransformAttrs(self):
 	self.transformAttrs = []
 	for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
@@ -1077,6 +1103,8 @@ class cgmOptionVar(object):
 		    mc.optionVar(sv = (self.name,str(value)))
 		except:
 		    log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+	object.__setattr__(self, self.name, value)
+	
 	    
     def purge(self):
         """ 

@@ -547,7 +547,7 @@ class cgmMeta_Test():
         assert self.MetaNode.hasAttr('cgmName') is True
         
         self.MetaObject.doCopyNameTagsFromObject(self.MetaNode.mNode)
-        assert self.MetaObject.cgmName == self.MetaNode.cgmName,"CGM Name copying faild"
+        assert self.MetaObject.cgmName == self.MetaNode.cgmName,"CGM Name copying failed"
         
         self.MetaNode.doStore('stored',self.nCube.mNode)
         assert self.MetaNode.stored[0] == self.nCube.mNode,"'%s' is stored"%self.MetaNode.stored
@@ -983,24 +983,26 @@ class cgmMeta_Test():
             self.Puppet = cgmPM.cgmPuppet(name = 'Kermit')
         Puppet = self.Puppet
         
-        Module1 = cgmPM.cgmModule(name = 'moduleTest',position = 'front',direction = 'right', handles = 3)
+        Module1 = cgmPM.cgmModule(name = 'arm',position = 'front',direction = 'right', handles = 3)
         Module1IO = cgmPM.cgmModule(Module1.mNode,initializeOnly = True) #Should equal that of the reg process
+        Module2 = cgmPM.cgmModule(name = 'hand',position = 'front',direction = 'right', handles = 1)
+
         #Assertions on the module null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the module null...")    
         assert Module1.cgmType == 'module',str(Module1.cgmType)
         assert Module1.mClass == 'cgmModule'
-        assert Module1.cgmName == 'moduleTest'
+        assert Module1.cgmName == 'arm'
         assert Module1.cgmPosition == 'front'
         assert Module1.cgmDirection == 'right'
         
-        assert Module1.cgmType == Module1.cgmType
-        assert Module1.mClass == Module1.mClass
-        assert Module1.cgmType == Module1.cgmType
-        assert Module1.cgmPosition == Module1.cgmPosition
-        assert Module1.cgmDirection == Module1.cgmDirection       
+        assert Module1.cgmType == Module1IO.cgmType
+        assert Module1.mClass == Module1IO.mClass
+        assert Module1.cgmType == Module1IO.cgmType
+        assert Module1.cgmPosition == Module1IO.cgmPosition
+        assert Module1.cgmDirection == Module1IO.cgmDirection       
                 
-        
+      
         #Assertions on the rig null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the rig null...")   
@@ -1015,21 +1017,26 @@ class cgmMeta_Test():
         assert Module1.i_rigNull.stretchy == False
         
         assert Module1.i_rigNull.mNode == Module1.rigNull.mNode
-        
-        
+      
         #Assertions on the template null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the template null...")   
         assert Module1.i_rigNull.hasAttr('cgmType')
         log.info(Module1.i_templateNull.cgmType)
-        
         assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
         
-        
-        #Module Functions
+         
+        #Connect Modules
         #----------------------------------------------------------
-        log.info('>'*3 + " Module Functions...")   
-
+        log.info('>'*3 + " Connect Modules...")   
+        self.Puppet.addModule(Module1)
+        log.info(Module1.mClass)
+        log.info(Module2.mClass)  
+                   
+        log.info("Connecting '%s' to '%s'"%(Module2.getShortName(),Module1.getShortName()))
+        log.info(Module1.mClass)
+        log.info(Module2.mClass)        
+        Module2.doSetParentModule(Module1)
         
         
         

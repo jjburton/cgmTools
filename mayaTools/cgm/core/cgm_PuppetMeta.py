@@ -332,6 +332,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 		    return False
 		
 		module = r9Meta.MetaClass(module)#initialize
+		
 	    else:
 		log.warning("'%s' doesn't exist"%module)#if it doesn't initialize, nothing is there		
 		return False	
@@ -354,10 +355,12 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    
 	    buffer.append(module.mNode)
 	    del self.moduleChildren
-	    self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)
+	    self.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
+	    module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
 	    
-	module.moduleParent = self.mNode
-	module.parent = (self.i_partsGroup.mNode)
+	#module.parent = self.i_partsGroup.mNode
+	module.doParent(self.i_partsGroup.mNode)
+		
 	return True
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -394,7 +397,7 @@ class cgmMasterNull(cgmMeta.cgmObject):
         self.doName()
         
     def __bindData__(self):
-        self.addAttr('mClass',value = 'cgmMasterNull',lock=True)
+        #self.addAttr('mClass',value = 'cgmMasterNull',lock=True)
         self.addAttr('cgmName',initialValue = '',lock=True)
         self.addAttr('cgmType',initialValue = 'ignore',lock=True)
         self.addAttr('cgmModuleType',value = 'master',lock=True)   
@@ -638,6 +641,7 @@ class cgmModule(cgmMeta.cgmObject):
         
         self.addAttr('moduleParent',attrType='messageSimple')
         self.addAttr('modulePuppet',attrType='messageSimple')
+        self.addAttr('moduleChildren',attrType='message')
         
         stateDict = {'templateState':0,'rigState':0,'skeletonState':0} #Initial dict
         self.addAttr('moduleStates',attrType = 'string', initialValue=stateDict, lock = True)
@@ -702,7 +706,7 @@ class cgmModule(cgmMeta.cgmObject):
       
         return True        
     
-    def doSetParentModule(self,moduleParent):
+    def doSetParentModule2(self,moduleParent):
         assert mc.objExists(moduleParent),"'%s' doesn't exists! Can't be module parent of '%s'"%(moduleParent,self.ModuleNull.nameShort)
         if search.returnTagInfo(moduleParent,'cgmType') == 'module':
             if self.moduleParent != moduleParent:
@@ -715,6 +719,62 @@ class cgmModule(cgmMeta.cgmObject):
         else:
             log.warning("'%s' isn't tagged as a module."%moduleParent)
             return False
+	
+    def doSetParentModule(self,moduleParent,force = False,):
+	"""
+	Set a module parent of a module
+	
+	module(string)
+	"""
+	#See if parent exists and is a module, if so...
+	#>>>buffer children
+	#>>>see if already connected
+	#>>Check existance
+        #==============	
+	#Get our instance
+	try:
+	    moduleParent.mNode#See if we have an instance
+	    
+	except:
+	    if mc.objExists(moduleParent):
+		moduleParent = r9Meta.MetaClass(moduleParent)#initialize
+	    else:
+		log.warning("'%s' doesn't exist"%moduleParent)#if it doesn't initialize, nothing is there		
+		return False	
+	
+	#Logic checks
+	#==============
+	#if not moduleParent.hasAttr('mClass'):
+	    #log.warning("'%s' lacks an mClass attr"%module.mNode)	    
+	    #return False
+	
+	#if moduleParent.mClass not in ['cgmModule']:
+	    #log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
+	    #return False
+	
+	if not moduleParent.hasAttr('moduleChildren'):#Quick check
+	    log.warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
+	    return False	
+	
+	buffer = copy.copy(moduleParent.moduleChildren) or []#Buffer till we have have append functionality	
+	
+	if self.mNode in buffer:
+	    log.warning("'%s' already connnected to '%s'"%(module,moduleParent.getShortName()))
+	    return False
+		    
+        #Connect
+        #==============	
+	else:
+	    log.info("Current children: %s"%buffer)
+	    log.info("Adding '%s'!"%self.getShortName())    
+	    
+	    buffer.append(self.mNode) #Revist when children has proper add/remove handling
+	    del moduleParent.moduleChildren #Revist when children has proper add/remove handling
+	    moduleParent.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
+	    #self.__setMessageAttr__('modulePuppet',moduleParent.modulePuppet)#Connect puppet to 
+	    
+	self.parent = moduleParent.parent
+	return True
         
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

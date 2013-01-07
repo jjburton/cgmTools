@@ -568,10 +568,12 @@ class MetaClass(object):
             if OpenMaya.MObject.hasFn(self._MObject, OpenMaya.MFn.kDagNode):
                 dPath = OpenMaya.MDagPath()
                 OpenMaya.MDagPath.getAPathTo(self._MObject, dPath)
-                return dPath.fullPathName()
+                self._mNode = dPath.fullPathName()
+                return self._mNode 
             else:
                 depNodeFunc = OpenMaya.MFnDependencyNode(self._MObject)
-                return depNodeFunc.name()    
+                self._mNode = depNodeFunc.name() 
+                return self._mNode  
     
     def __set_mNode(self, node):
         if node:
