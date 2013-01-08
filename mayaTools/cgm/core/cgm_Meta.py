@@ -140,25 +140,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    #log.info(node)
 	        
         super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
-	
-	#self.UNMANAGED.extend(['referencePrefix'])
-	#self.__dict__['__name__'] = self.mNode
+	self.update()
+	self.__dict__['__name__'] = self.getShortName()
             
-    def __setattr2__(self, attr, value):
-        #Overloading until the functionality is what we need. For now, just handling locking
-	attrBuffer = '%s.%s'%(self.mNode,attr)
-	#Lock handling
-	wasLocked = False
-	if (mc.objExists(attrBuffer)) == True:
-	    attrType = mc.getAttr(attrBuffer,type=True)
-	    if mc.getAttr(attrBuffer,lock=True) == True:
-		wasLocked = True
-                mc.setAttr(attrBuffer,lock=False)
-		
-	r9Meta.MetaClass.__setattr__(self,attr,value)
-	
-	if wasLocked == True:
-	    mc.setAttr(attrBuffer,lock=True)
 	    
     def __getattributeBACK__(self, attr, longNames = True, ignoreOverload = True):
 	"""Overload just on message attributes
@@ -282,14 +266,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
-	#self.__init__(self.mNode)
-        #super(cgmNode, self).__init__(node = self.mNode) #Forces a reinitialization 
-	#buffer = copy.copy(self.mNode)
-	#object.__setattr__(self, "_mNode", self.mNode) #Forces an update of mNode
-	#self.__fillAttrCache__('')
-	log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Old tag, remove this .update()")
+	if self.hasAttr('mNodeID'):#experiment
+	    log.info("setting mNodeID to '%s'"%self.getShortName())
+	    log.info(self.mNodeID)
+	    attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
 	
-        	
     def getCGMNameTags(self):
         """
         Get the cgm name tags of an object.
@@ -352,11 +333,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 
         if nameChildren:
             NameFactory.doRenameHeir(self.mNode,sceneUnique)
-	    #self.update()
+	    self.update()
 
         else:
             NameFactory.doNameObject(self.mNode,sceneUnique)
-	    #self.update()
+	    self.update()
 	log.debug("After doName = " + self.mNode)
 	
 	    
@@ -497,7 +478,6 @@ class cgmObject(cgmNode):
         else:#If not, do so to world
             rigging.doParentToWorld(self.mNode)
             log.debug("'%s' parented to world"%self.mNode) 
-           
 	
 		
     parent = property(getParent, doParent)
@@ -585,6 +565,10 @@ class cgmObject(cgmNode):
         Keyword arguments:
         child(string) -- Target child
         """
+	if not mc.objExists(child):
+	    log.warning("Specified child '%s' doesn't exist"%child)
+	    return False
+	
         if child in self.getChildren():
             return True
         

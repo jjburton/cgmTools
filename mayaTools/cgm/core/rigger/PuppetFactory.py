@@ -38,7 +38,7 @@ def getGeo(self):
     """    
     geo = []
     
-    for o in self.i_geoGroup.getChildren():
+    for o in self.i_geoGroup.getAllChildren():
         if search.returnObjectType(o) in geoTypes:
             buff = mc.ls(o,long=True)
             geo.append(buff[0])

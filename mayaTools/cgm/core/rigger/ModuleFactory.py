@@ -12,12 +12,81 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 from cgm.lib import modules
 from cgm.lib.classes import NameFactory
+from cgm.core.classes import DraggerContextFactory as dragFactory
+reload(dragFactory)
 
 ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+@r9General.Timer   
+def isSized(self):
+    """
+    Return if a moudle is sized or not
+    """
+    handles = self.rigNull.handles
+    if self.templateNull.templateStarterData:
+        if len(self.templateNull.templateStarterData) == handles:
+            for i in range(handles):
+                if not self.templateNull.templateStarterData[i][1]:
+                    log.warning("%s has no data"%(self.templateNull.templateStarterData[i]))                    
+                    return False
+            return True
+        else:
+            log.warning("%i is not == %i handles necessary"%(len(self.templateNull.templateStarterData),handles))
+            return False
+    else:
+        log.warning("No template starter data found for '%s'"%self.getShortName())        
+    return False
+    
+    
+    
+def doSize(self,mode='all',geo = []):
+    """
+    Size a module
+    1) Determine what points we need to gather
+    2) Initiate draggerContextFactory
+    3) Prompt user per point
+    4) at the end of the day have a pos list the length of the handle list
+    
+    TODO:
+    Add option for other modes
+    Add geo argument that can be passed for speed
+    """
+    handles = self.rigNull.handles
+    names = getGeneratedCoreNames(self)
+    geo = self.modulePuppet.getGeo()
+    posBuffer = []
+    log.info("Handles: %s"%handles)
+    log.info("Names: %s"%names)
+    log.info("Puppet: %s"%self.getMessage('modulePuppet'))
+    log.info("Geo: %s"%geo)
+    i_module = self #Bridge holder for our module class to go into our sizer class
+    
+    class moduleSizer(dragFactory.clickMesh):
+        """Sublass to get the functs we need in there"""
+        def __init__(self,i_module = i_module,**kws):
+            super(moduleSizer, self).__init__(**kws)
+            self.i_module = i_module
+            
+        def finalize(self):
+            log.info(self.returnList)
+            log.info(self.createdList)   
+            log.info(self.i_module.mNode)
+            self.i_module.templateNull.templateStarterData = self.returnList#need to ensure it's storing properly
+            
+            dragFactory.clickMesh.finalize(self)
+        
+    #Start up our sizer    
+    moduleSizer(mode = 'midPoint',
+                mesh = geo,
+                create = 'locator',
+                toCreate = names)
+    
+
+
+
 @r9General.Timer   
 def doSetParentModule(self,moduleParent,force = False):
     """
@@ -86,6 +155,9 @@ def getGeneratedCoreNames(self):
 
     RETURNS:
     generatedNames(list)
+    
+    TODO:
+    Where to store names?
     """
     log.info("Generating core names via ModuleFactory - '%s'"%self.getShortName())
 
@@ -121,7 +193,18 @@ def getGeneratedCoreNames(self):
     else:
         return settingsCoreNames[:self.rigNull.handles]
 
+    #figure out what to do with the names
+    if not self.templateNull.templateStarterData:
+        buffer = []
+        for n in generatedNames:
+            buffer.append([str(n),[]])
+        self.templateNull.templateStarterData = buffer
+    else:
+        for i,pair in enumerate(self.templateNull.templateStarterData):
+            pair[0] = generatedNames[i]      
+        
     return generatedNames
+
 
 
 
