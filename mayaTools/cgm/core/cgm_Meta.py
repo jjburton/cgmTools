@@ -267,7 +267,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
 	if self.hasAttr('mNodeID'):#experiment
-	    log.info("setting mNodeID to '%s'"%self.getShortName())
 	    log.info(self.mNodeID)
 	    attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
 	

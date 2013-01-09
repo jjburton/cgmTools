@@ -5,12 +5,15 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+# From Maya =============================================================
+import maya.cmds as mc
+
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
-from cgm.lib import modules
+from cgm.lib import (modules,curves,distance)
 from cgm.lib.classes import NameFactory
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
@@ -42,7 +45,7 @@ def isSized(self):
     
     
     
-def doSize(self,mode='all',geo = []):
+def doSize(self,sizeMode='normal',geo = []):
     """
     Size a module
     1) Determine what points we need to gather
@@ -50,42 +53,87 @@ def doSize(self,mode='all',geo = []):
     3) Prompt user per point
     4) at the end of the day have a pos list the length of the handle list
     
+    @ sizeMode
+    'all' - pick every handle position
+    'normal' - first/last, if child, will use last position of parent as first
+    
     TODO:
     Add option for other modes
     Add geo argument that can be passed for speed
     """
+    clickMode = {"heel":"surface"}    
+    
+    #Gather info
+    #==============      
     handles = self.rigNull.handles
     names = getGeneratedCoreNames(self)
     geo = self.modulePuppet.getGeo()
-    posBuffer = []
-    log.info("Handles: %s"%handles)
-    log.info("Names: %s"%names)
-    log.info("Puppet: %s"%self.getMessage('modulePuppet'))
-    log.info("Geo: %s"%geo)
+    log.debug("Handles: %s"%handles)
+    log.debug("Names: %s"%names)
+    log.debug("Puppet: %s"%self.getMessage('modulePuppet'))
+    log.debug("Geo: %s"%geo)
     i_module = self #Bridge holder for our module class to go into our sizer class
     
+    #Variables
+    #==============      
+    if sizeMode == 'normal':
+        if names > 1:
+            namesToCreate = names[0],names[-1]
+        else:
+            namesToCreate = names
+        log.info("Names: %s"%names)
+    else:
+        namesToCreate = names        
+        sizeMode = 'all'
+       
     class moduleSizer(dragFactory.clickMesh):
         """Sublass to get the functs we need in there"""
         def __init__(self,i_module = i_module,**kws):
             super(moduleSizer, self).__init__(**kws)
             self.i_module = i_module
+            log.info("Please place '%s'"%self.toCreate[0])
+            
+        def release(self):
+            if len(self.returnList)< len(self.toCreate)-1:#If we have a prompt left
+                log.info("Please place '%s'"%self.toCreate[len(self.returnList)+1])            
+            dragFactory.clickMesh.release(self)
+
             
         def finalize(self):
-            log.info(self.returnList)
-            log.info(self.createdList)   
-            log.info(self.i_module.mNode)
-            self.i_module.templateNull.templateStarterData = self.returnList#need to ensure it's storing properly
+            log.debug("returnList: %s"% self.returnList)
+            log.debug("createdList: %s"% self.createdList)   
+            buffer = self.i_module.templateNull.templateStarterData
+            log.debug("starting data: %s"% buffer)
             
+            #Make sure we have enough points
+            #==============  
+            handles = self.i_module.rigNull.handles
+            if len(self.returnList) < handles:
+                log.warning("Creating curve to get enough points")                
+                curve = curves.curveFromPosList(self.returnList)
+                mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
+                self.returnList = curves.returnCVsPosList('curve1')#Get the pos of the cv's
+                mc.delete(curve)
+
+            #Store info
+            #==============                  
+            for i,p in enumerate(self.returnList):
+                buffer[i][1] = p#need to ensure it's storing properly
+                log.info('[%s,%s]'%(buffer[i],p))
+                
+            #Store locs
+            #==============  
+            log.debug("finish data: %s"% buffer)
+            self.i_module.templateNull.templateStarterData = buffer#store it
+            log.info("'%s' sized!"%self.i_module.getShortName())
             dragFactory.clickMesh.finalize(self)
         
     #Start up our sizer    
-    moduleSizer(mode = 'midPoint',
-                mesh = geo,
-                create = 'locator',
-                toCreate = names)
+    return moduleSizer(mode = 'midPoint',
+                       mesh = geo,
+                       create = 'locator',
+                       toCreate = namesToCreate)
     
-
-
 
 @r9General.Timer   
 def doSetParentModule(self,moduleParent,force = False):
@@ -191,7 +239,7 @@ def getGeneratedCoreNames(self):
             generatedNames.append(name) 
 
     else:
-        return settingsCoreNames[:self.rigNull.handles]
+        generatedNames = settingsCoreNames[:self.rigNull.handles]
 
     #figure out what to do with the names
     if not self.templateNull.templateStarterData:

@@ -158,8 +158,12 @@ class clickMesh(ContextualPick):
     clampIntersections(False/int) -- clamp number of interactions
     dragStore(bool) -- whether to force store data during drag
     toCreate(list) -- list of items names to make, sets's max as well
+    
     Stores
     self.posList(list) -- points on the surface selected in world space
+    
+    TODO:
+    Add depth option
     """  
     def __init__(self,
                  mode = 'surface',
@@ -348,7 +352,7 @@ class clickMesh(ContextualPick):
                     for pos in self.returnList:                             
                         self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = 1) )
                                 
-        log.info( self.createdList)
+        log.debug( self.createdList)
         self.reset()        
         
     def release(self,debugReport = False):
@@ -363,13 +367,13 @@ class clickMesh(ContextualPick):
             self.createdList.extend(self.createModeBuffer)
             
         if self.posBuffer:
-            log.info("Position data : %s "%(self.returnList))
+            log.debug("Position data : %s "%(self.returnList))
         if self.createModeBuffer:
-            log.info("Created : %s "%(self.createModeBuffer))
+            log.debug("Created : %s "%(self.createModeBuffer))
             mc.select(cl=True)
         
         if self.maxStore and len(self.returnList) == self.maxStore:
-            log.info("Max hit, finalizing")
+            log.debug("Max hit, finalizing")
             self.dropTool()
     
     def drag(self):
@@ -605,7 +609,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, debugRepor
         
         uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
         vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-        log.info("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
+        log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
         if uValue and vValue:
             return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':[uValue,vValue]}                
         else:

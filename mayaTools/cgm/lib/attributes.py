@@ -612,7 +612,7 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
             
             if wasLocked == True or forceLock == True:
                 mc.setAttr(attrBuffer,lock=True)
-            log.info("'%s' set to '%s'"%(attrBuffer,value))
+            log.debug("'%s' set to '%s'"%(attrBuffer,value))
         except:
             log.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
 

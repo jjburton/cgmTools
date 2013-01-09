@@ -53,19 +53,19 @@ class MorpheusBase_Test():
         #==============      
         log.info("Testing no arguments passed")
         self.Morpheus = cgmPM.cgmPuppet(name = 'Morpheus')
-        self.Morpheus.addModule(mClass = 'cgmLimb',mType = 'torso')
+        self.Morpheus.addModule(mClass = 'cgmLimb',mType = 'torso',handles = 4)
 
     def getMesh(self):
         mFile = 'J:/Dropbox/MRv2Dev/Assets/Morphy/maya/scenes/Morphy_JoshTesting.ma'
         mc.file(mFile, i = True, pr = True, force = True,prompt = False) # prompt means no error message
         
     def sizeTest(self):
-        spine = cgmPM.cgmLimb(self.Morpheus.moduleChildren[0])
+        spine = cgmPM.cgmLimb(self.Morpheus.moduleChildren[0],handles = 4)
         log.info(self.Morpheus.i_geoGroup.mNode)
         log.info(self.Morpheus.i_geoGroup)        
         self.Morpheus.i_geoGroup.doAddChild('Morphy_GRP')
         log.info(spine.isSized())
-        log.info(spine.templateNull.templateStarterData)
+        spine.getGeneratedCoreNames()
         spine.doSize()
         
         

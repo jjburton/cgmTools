@@ -37,6 +37,13 @@ from cgm.lib import (distance,
                      position)
 
 import re
+#========================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#========================================================================
+from Red9.core import Red9_General as r9General
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -960,8 +967,12 @@ def returnCurveInfo(crvName,type = 'all'):
     return curveReturnDict
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 def returnCurveCVs(crvShape):
+    log.warning("Remove this 'returnCurveCVs' call, renamed to returnCVsPosList")
+    return returnCVsPosList(crvShape)
+
+@r9General.Timer   
+def returnCVsPosList(crvShape):
     """
     Pythonized from http://nccastaff.bournemouth.ac.uk/jmacey/RobTheBloke/www/mel/DATA_ncurve.html
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -975,8 +986,12 @@ def returnCurveCVs(crvShape):
     CVPositions(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    parentBuffer = mc.listRelatives(crvShape,parent=True,type='transform')
-    crvName = parentBuffer[0]
+    if search.returnObjectType(crvShape) == 'shape':
+        parentBuffer = mc.listRelatives(crvShape,parent=True,type='transform')
+        crvName = parentBuffer[0]
+    else:
+        crvName = crvShape
+    assert search.returnObjectType(crvName) == 'nurbsCurve',"'%s' not a nurbs curve"%crvName
     spans = mc.getAttr(crvShape + '.spans')
     degree = mc.getAttr(crvShape + '.degree')
     numCVs = spans + degree
