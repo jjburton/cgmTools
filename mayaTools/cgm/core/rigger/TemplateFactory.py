@@ -30,7 +30,6 @@ class go(object):
         #==============	        
         #>>> module null data 
         assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
-        self.clsType
         self.m = module# Link for shortness
         
         self.moduleNullData = attributes.returnUserAttrsToDict(self.m.mNode)
@@ -54,7 +53,6 @@ class go(object):
         log.info("moduleNullData: %s"%self.moduleNullData)
         log.info("partType: %s"%self.partType)
         log.info("direction: %s"%self.direction) 
-        
         
         
         if self.m.mClass == 'cgmLimb':

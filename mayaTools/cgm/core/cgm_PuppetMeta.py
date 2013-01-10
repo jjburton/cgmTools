@@ -162,8 +162,9 @@ class cgmPuppet(cgmMeta.cgmNode):
             if attr in  self.__dict__.keys():
                 try:
                     Attr = 'i_'+ attr
-                    self.__dict__[Attr] = cgmMeta.cgmMetaFactory( self.__getattribute__(attr).mNode )
-                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr).mNode,Attr))                    
+                    buffer = self.getMessage(attr)[0]                    
+                    self.__dict__[Attr] = cgmMeta.cgmMetaFactory( buffer )
+                    log.info("'%s' initialized as self.%s"%(buffer,Attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
@@ -174,8 +175,9 @@ class cgmPuppet(cgmMeta.cgmNode):
             if attr in self.i_masterNull.__dict__.keys():
                 try:
                     Attr = 'i_'+ attr
-                    self.__dict__[Attr] = cgmMeta.cgmMetaFactory( self.i_masterNull.__getattribute__(attr).mNode )
-                    log.info("'%s' initialized as 'self.%s'"%(self.i_masterNull.__getattribute__(attr).mNode,Attr))                    
+                    buffer = self.i_masterNull.getMessage(attr)[0]                                        
+                    self.__dict__[Attr] = cgmMeta.cgmMetaFactory( buffer )
+                    log.info("'%s' initialized as 'self.%s'"%(buffer,Attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
@@ -477,7 +479,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
     def __bindData__(self):
         pass
     
-class cgmModuleBuffer(cgmMeta.cgmBuffer):
+class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
     def __init__(self,node = None, name = 'buffer',*args,**kws):
         """Constructor"""
@@ -485,8 +487,8 @@ class cgmModuleBuffer(cgmMeta.cgmBuffer):
         bufferType = kws.get('bufferType') or ''
 
         #>>> Keyword args
-        super(cgmModuleBuffer, self).__init__(node=node, name = name,*args,**kws)
-        log.debug(">"*10 + " cgmModuleBuffer.init.... " + "<"*10)
+        super(cgmModuleBufferNode, self).__init__(node=node, name = name,*args,**kws)
+        log.debug(">"*10 + " cgmModuleBufferNode.init.... " + "<"*10)
         log.debug(args)
         log.debug(kws)        
         
@@ -548,7 +550,8 @@ class cgmInfoNodeBind(cgmMeta.cgmNode):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # MODULE Base class
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+"""
 InfoNullsNames = ['settings',
                   'setupOptions',
                   'templatePosObjects',
@@ -558,7 +561,7 @@ InfoNullsNames = ['settings',
                   'templateStarterData',
                   'templateControlObjectsData',
                   'skinJoints',
-                  'rotateOrders']
+                  'rotateOrders']"""
 
 moduleStates = ['define','template','deform','rig']
 
@@ -588,8 +591,7 @@ templateNullAttrs_toMake = {'rollJoints':'int',
                             'templatePosObjects':'message',
                             'templateControlObjects':'message',
                             'templateStarterData':'string',
-                            'templateControlObjectData':'string',
-                            'coreNames':'string'}
+                            'templateControlObjectData':'string'}
 
 class cgmModule(cgmMeta.cgmObject):
     def __init__(self,*args,**kws):
@@ -685,9 +687,10 @@ class cgmModule(cgmMeta.cgmObject):
         for attr in moduleNulls_toMake:
             if attr + 'Null' in self.__dict__.keys():
                 try:
-                    Attr = 'i_' + attr+'Null'#Get a better attribute store string           
-                    self.__dict__[Attr] = r9Meta.MetaClass( self.__getattribute__(attr+'Null').mNode  )
-                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr+'Null').mNode,Attr))  
+                    Attr = 'i_' + attr+'Null'#Get a better attribute store string   
+                    buffer = self.getMessage(attr)[0]
+                    self.__dict__[Attr] = r9Meta.MetaClass( buffer )
+                    log.info("'%s' initialized as self.%s"%(buffer))
                 except:    
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
@@ -695,9 +698,10 @@ class cgmModule(cgmMeta.cgmObject):
         for attr in moduleBuffers_toMake:
             if attr in self.__dict__.keys():
                 try:
-                    Attr = 'i_' + attr#Get a better attribute store string           
-                    self.__dict__[Attr] = r9Meta.MetaClass( self.__getattribute__(attr).mNode  )
-                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr).mNode,Attr))  
+                    Attr = 'i_' + attr#Get a better attribute store string
+                    buffer = self.getMessage(attr)[0]                    
+                    self.__dict__[Attr] = r9Meta.MetaClass( buffer)
+                    log.info("'%s' initialized as self.%s"%(buffer))  
                 except:    
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
@@ -799,7 +803,7 @@ class cgmModule(cgmMeta.cgmObject):
                     return False               
             else:#Make it
                 log.info('Creating %s'%attr)                                    
-                self.__dict__[Attr]= cgmModuleBuffer(module = self, bufferType = attr, messageOverride = True)#Create and initialize
+                self.__dict__[Attr]= cgmModuleBufferNode(module = self, bufferType = attr, overideMessageCheck = True)#Create and initialize
                 #self.connectChild(self.__dict__[Attr].mNode, attr,'module') #Connect the child to the holder                
                 #self.__dict__[Attr].addAttr('cgmName',attr+'Null',lock=True)
                 log.info("'%s' initialized to 'self.%s'"%(attr,Attr))    

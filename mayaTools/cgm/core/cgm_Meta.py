@@ -174,6 +174,15 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	else:
 	    attributes.storeObjectToMessage(value,self.mNode,attr)
 	    
+    def __setattr__(self,attr,value, force = True, lock = None, **kws):
+	"""Overload for our own purposes to allow multiple connections"""
+	log.debug("In cgmNode.__setattr__...")
+	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
+	
+	if lock is not None:
+	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)		
+	    
+	    
     def getMessage(self,attr,longNames = True):
 	if mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
 	    return attributes.returnMessageData(self.mNode,attr,longNames)
@@ -229,7 +238,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		
 	    if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value:
 		log.warning("'%s.%s' Value was not properly set during creation, setting"%(self.mNode,attr))
-		self.__setattr__(attr,value)
+		self.__setattr__(attr,value,**kws)
 		#cgmAttr(self, attrName = attr, value=value)
 	    
 	    #if valueCarry is not None:
@@ -244,8 +253,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    
 	    #Easy carry for flag handling - until implemented
 	    #==============  
-	    if keyable or lock or hidden:
-		cgmAttr(self, attrName = attr, lock=lock,keyable=keyable,hidden = hidden)
+	    if keyable or hidden:
+		cgmAttr(self, attrName = attr, keyable=keyable,hidden = hidden)
+	    if lock is not None:
+		mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	
+		
 		
             return True
         return False
@@ -1287,7 +1299,7 @@ class cgmOptionVar(object):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
-class cgmBuffer(cgmNode):
+class cgmBufferNode(cgmNode):
     def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,*args,**kws):
         """ 
         Intializes an set factory class handler
@@ -1301,7 +1313,7 @@ class cgmBuffer(cgmNode):
         ### input check  
         log.debug("In cgmBuffer.__init__ node is '%s'"%node)
 
-	super(cgmBuffer, self).__init__(node = node,name = name,nodeType = nodeType) 
+	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
 	self.UNMANAGED.extend(['bufferList','bufferDict'])	
 	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
 	

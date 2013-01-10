@@ -81,6 +81,7 @@ class cgmMeta_Test():
         self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
         self.test_cgmNode()
         self.test_cgmObject()
+        self.test_cgmBufferNode()
         self.test_cgmObjectSet()
         self.test_cgmOptionVar()
         self.test_cgmPuppet() #Puppet test
@@ -882,8 +883,34 @@ class cgmMeta_Test():
 
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
-        log.info("="*70)                         
+        log.info("="*70)   
+        
+    def test_cgmBufferNode(self):
+        function = 'test_cgmBufferNode'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
 
+        #Purge the optionVars
+
+
+        # Testing creation/conversion of ine optionVar
+        #-------------------------
+        log.info('>'*3 + " Testing creation,basics of cgmBufferNode...")   
+
+        self.BufferNode = cgmMeta.cgmBufferNode(name = 'testBuffer',value = ['test1','test2'],overideMessageCheck = True)#No arg should default to int
+
+        assert self.BufferNode.value == ['test1','test2'],"Value should be ['test1','test2'], is %s"%self.BufferNode.value
+        assert self.BufferNode.hasAttr('messageOverride'),"Missing message override"
+        assert self.BufferNode.messageOverride == True,"Message Override should be True. Is %s"%self.BufferNode.messageOverride
+        assert self.BufferNode.returnNextAvailableCnt() == 2
+        self.BufferNode.messageOverride = False
+        self.BufferNode.store(self.BufferNode.mNode)
+        assert self.BufferNode.value[2]==self.BufferNode.mNode
+        
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)   
+        
+        
     def test_cgmPuppet(self):
         function = 'test_cgmPuppet'
         log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
