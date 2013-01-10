@@ -267,7 +267,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
 	if self.hasAttr('mNodeID'):#experiment
-	    log.info(self.mNodeID)
+	    log.debug(self.mNodeID)
 	    attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
 	
     def getCGMNameTags(self):
@@ -1288,7 +1288,7 @@ class cgmOptionVar(object):
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
 class cgmBuffer(cgmNode):
-    def __init__(self,node = None, name = None,nodeType = 'network',*args,**kws):
+    def __init__(self,node = None, name = None,nodeType = 'network',messageOverride = False,*args,**kws):
         """ 
         Intializes an set factory class handler
         
@@ -1299,6 +1299,7 @@ class cgmBuffer(cgmNode):
         ### input check  
 	super(cgmBuffer, self).__init__(node = node,name = name,nodeType = nodeType) 
         log.debug("In cgmBuffer.__init__ node is '%s'"%node)
+	self.addAttr('messageOverride',initialValue = messageOverride)
 	
         self.bufferList = []
         self.bufferDict = {}	
@@ -1316,7 +1317,7 @@ class cgmBuffer(cgmNode):
 	self.purge()#wipe it to reset it
 	if type(value) is list or type(value) is tuple:
 	    for i in value:
-		self.store(i)
+		self.store(i,overideMessageCheck = self.messageOverride)
 	else:
 	   self.store(value) 
 	    
@@ -1379,7 +1380,7 @@ class cgmBuffer(cgmNode):
             return
         
         cnt = self.returnNextAvailableCnt()    
-        attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,*a,**kw)
+        attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)
         self.bufferList.append(info)
         self.bufferDict['item_'+str(cnt)] = info
         
@@ -1389,14 +1390,14 @@ class cgmBuffer(cgmNode):
         channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             for item in channelBoxCheck:
-                self.store(item)
+                self.store(item,overideMessageCheck = self.messageOverride)
             return
         
         # Otherwise add the objects themselves
         toStore = mc.ls(sl=True,flatten=True) or []
         for item in toStore:
             try:
-                self.store(item)
+                self.store(item,overideMessageCheck = self.messageOverride)
             except:
                 log.warning("Couldn't store '%s'"%(item))     
         

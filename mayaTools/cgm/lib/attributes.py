@@ -1743,7 +1743,7 @@ def returnMessageObject(storageObject, messageAttr):
     """
     attrBuffer = (storageObject+'.'+messageAttr)
     if mc.addAttr(attrBuffer,q=True,m=True):
-	log.warning("'%s' is a multi message attr. Use returnMessageData")
+	log.warning("'%s' is a multi message attr. Use returnMessageData"%attrBuffer)
 	return False
     if mc.objExists(attrBuffer) == True:
         messageObject = (mc.listConnections (attrBuffer))
@@ -1954,7 +1954,7 @@ def returnUserAttrsToDict(obj):
             messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
             attrType = attrTypes.get(attr)
             if messageQuery == True:
-                query = returnMessageObject(obj,attr)
+                query = returnMessageData(obj,attr)
                 if query:
                     attrDict[attr] = (query)
             elif attrType == 'double3':
