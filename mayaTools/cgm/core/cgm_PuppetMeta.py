@@ -203,7 +203,6 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
         self.addAttr('settings',attrType = 'messageSimple',lock=True)  
         self.addAttr('geo',attrType = 'messageSimple',lock=True)  
-        self.addAttr('parts',attrType = 'messageSimple',lock=True)
         self.addAttr('moduleChildren',attrType = 'message',lock=True)  
 
         self.doName()
@@ -618,7 +617,7 @@ class cgmModule(cgmMeta.cgmObject):
         self.addAttr('mClass', initialValue='cgmModule',lock=True) 
         self.addAttr('cgmType',value = 'module',lock=True)
 
-    def initialize(self):
+    def initialize(self,**kws):
         """ 
         Initializes the various components a moduleNull for a character/asset.
 

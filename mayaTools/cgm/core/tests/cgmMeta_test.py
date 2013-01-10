@@ -903,8 +903,7 @@ class cgmMeta_Test():
                                'version':['double',1.0],
                                'masterNull':['message'],
                                'settings':['message'],
-                               'geo':['message'],
-                               'parts':['message']}
+                               'geo':['message']}
 
         for attr in puppetDefaultValues.keys():
             assert Puppet.hasAttr(attr),("'%s' missing attr:%s"%(self.Puppet.mNode,attr))

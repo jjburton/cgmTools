@@ -26,9 +26,11 @@ reload(dragFactory)
 class go(object):
     @r9General.Timer
     def __init__(self,module): 
-        #>>> Get our base info
+        # Get our base info
+        #==============	        
         #>>> module null data 
         assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
+        self.clsType
         self.m = module# Link for shortness
         
         self.moduleNullData = attributes.returnUserAttrsToDict(self.m.mNode)
@@ -52,6 +54,8 @@ class go(object):
         log.info("moduleNullData: %s"%self.moduleNullData)
         log.info("partType: %s"%self.partType)
         log.info("direction: %s"%self.direction) 
+        
+        
         
         if self.m.mClass == 'cgmLimb':
             log.info("mode: cgmLimb Template")
@@ -283,7 +287,10 @@ def doTemplate(self):
     
 
 
-def makeLimbTemplate (moduleNull):  
+def makeLimbTemplate(self):  
+    """
+    Self should be a TemplateFactoryG
+    """
     #>>>Curve degree finder
     if curveDegree == 0:
         doCurveDegree = 1

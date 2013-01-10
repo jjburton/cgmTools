@@ -18,6 +18,7 @@ import copy
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_General as r9General
 
 
 # From cgm ==============================================================
@@ -1288,38 +1289,44 @@ class cgmOptionVar(object):
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
 class cgmBuffer(cgmNode):
-    def __init__(self,node = None, name = None,nodeType = 'network',messageOverride = False,*args,**kws):
+    def __init__(self,node = None, name = None, value = None, nodeType = 'network', messageOverride = False,*args,**kws):
         """ 
         Intializes an set factory class handler
         
         Keyword arguments:
         setName(string) -- name for the set
         
+        To Do:
+	Add extend,append, replace, remove functions
         """
         ### input check  
-	super(cgmBuffer, self).__init__(node = node,name = name,nodeType = nodeType) 
         log.debug("In cgmBuffer.__init__ node is '%s'"%node)
-	self.addAttr('messageOverride',initialValue = messageOverride)
-	
-        self.bufferList = []
-        self.bufferDict = {}	
+
+	super(cgmBuffer, self).__init__(node = node,name = name,nodeType = nodeType) 
+	self.UNMANAGED.extend(['bufferList','bufferDict'])	
+	self.addAttr('messageOverride',initialValue = messageOverride,lock=True)
 	
 	self.updateData()
+	
+	if value is not None:
+	    self.value = value
+	    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     #value
     #==============    
     def getValue(self):
-	return self.bufferDict
-		
+	return self.bufferList
+    
+    @r9General.Timer   
     def setValue(self,value):
 	self.purge()#wipe it to reset it
 	if type(value) is list or type(value) is tuple:
 	    for i in value:
 		self.store(i,overideMessageCheck = self.messageOverride)
 	else:
-	   self.store(value) 
+	    self.store(value,overideMessageCheck = self.messageOverride) 
 	    
     value = property(getValue, setValue)#get,set
     
@@ -1351,8 +1358,8 @@ class cgmBuffer(cgmNode):
 	
         for attr in self.getUserAttrs():
             if 'item_' in attr:
-                a = cgmAttr(self.mNode,attr)
-                data = a.getMessage()
+                dataBuffer = self.__getattribute__(attr)
+		data = dataBuffer
                 if data:
                     self.bufferList.append(data)
                     self.bufferDict[attr] = data
@@ -1441,7 +1448,7 @@ class cgmBuffer(cgmNode):
         for attr in userAttrs:
             if 'item_' in attr:
                 attributes.doDeleteAttr(self.mNode,attr)
-                log.warning("Deleted: '%s.%s'"%(self.mNode,attr))  
+                log.debug("Deleted: '%s.%s'"%(self.mNode,attr))  
                 
         self.bufferList = []
         self.bufferDict = {}        

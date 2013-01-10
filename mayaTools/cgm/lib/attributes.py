@@ -1498,7 +1498,7 @@ def doBreakConnection(obj,attr=None):
             if family and family.get('parent'):
                 drivenAttr = '%s.%s'%(obj,family.get('parent'))
                 
-            log.info ("Breaking '%s' to '%s'"%(sourceBuffer,drivenAttr))
+            log.debug ("Breaking '%s' to '%s'"%(sourceBuffer,drivenAttr))
             
             #>>>See if stuff is locked
             drivenLock = False
