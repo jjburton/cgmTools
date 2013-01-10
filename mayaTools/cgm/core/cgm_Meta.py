@@ -39,7 +39,6 @@ from cgm.lib import (lists,
 reload(attributes)
 reload(search)
 
-
 # Shared Defaults ========================================================
 drawingOverrideAttrsDict = {'overrideEnabled':0,
                             'overrideDisplayType':0,
@@ -317,7 +316,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         buffer = mc.ls(self.mNode,l=True)        
         return buffer[0]    
     
-    def doName(self,sceneUnique=False,nameChildren=False):
+    def doName(self,sceneUnique=False,nameChildren=False,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
 
@@ -1289,7 +1288,7 @@ class cgmOptionVar(object):
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
 class cgmBuffer(cgmNode):
-    def __init__(self,node = None, name = None, value = None, nodeType = 'network', messageOverride = False,*args,**kws):
+    def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,*args,**kws):
         """ 
         Intializes an set factory class handler
         
@@ -1304,7 +1303,7 @@ class cgmBuffer(cgmNode):
 
 	super(cgmBuffer, self).__init__(node = node,name = name,nodeType = nodeType) 
 	self.UNMANAGED.extend(['bufferList','bufferDict'])	
-	self.addAttr('messageOverride',initialValue = messageOverride,lock=True)
+	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
 	
 	self.updateData()
 	
@@ -1378,7 +1377,7 @@ class cgmBuffer(cgmNode):
         info(string) -- must be an object in the scene
         
         """
-        if not mc.objExists(info):
+        if not mc.objExists(info) and self.messageOverride != True:
 	    log.warning("'%s' doesn't exist"%info)
 	    return
         

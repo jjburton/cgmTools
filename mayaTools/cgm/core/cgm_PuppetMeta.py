@@ -476,7 +476,58 @@ class cgmInfoNode(cgmMeta.cgmNode):
 
     def __bindData__(self):
         pass
+    
+class cgmModuleBuffer(cgmMeta.cgmBuffer):
+    """"""
+    def __init__(self,node = None, name = 'buffer',*args,**kws):
+        """Constructor"""
+        module = kws.get('module') or False
+        bufferType = kws.get('bufferType') or ''
 
+        #>>> Keyword args
+        super(cgmModuleBuffer, self).__init__(node=node, name = name,*args,**kws)
+        log.debug(">"*10 + " cgmModuleBuffer.init.... " + "<"*10)
+        log.debug(args)
+        log.debug(kws)        
+        
+        #>>> Attr check    
+        self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
+        self.addAttr('cgmTypeModifier',initialValue = bufferType,lock=True)
+        self.addAttr('cgmType','buffer',lock=True)
+        self.addAttr('module',attrType = 'messageSimple')
+        
+        #>>> Buffer type set    
+        if bufferType == '':
+            if self.hasAttr('cgmTypeModifier'):
+                bufferType = self.cgmTypeModifier
+            else:
+                bufferType = 'buffer'        
+
+        #>>> Module stuff   
+        if module:
+            self.connectParent(module, bufferType, 'module') 
+            
+        if self.getMessage('module'):
+            self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
+            
+        self.verify(*args,**kws)
+
+    def verify(self,*args,**kws):
+        """"""
+        """ 
+        Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
+
+        RETURNS:
+        success(bool)
+        """ 
+        module = kws.get('module') or False
+        bufferType = kws.get('bufferType') or ''        
+
+        self.doName(**kws)  
+
+    def __bindData__(self):
+        pass
+    
 class cgmInfoNodeBind(cgmMeta.cgmNode):
     """"""
     def __bindData__(self):              
@@ -522,6 +573,7 @@ defaultSettings = {'partType':'none'}
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 moduleNulls_toMake = 'rig','template' #These will be created and connected to a module and parented under them    
+moduleBuffers_toMake = ['coreNames']
 
 rigNullAttrs_toMake = {'fk':'bool',#Attributes to be initialzed for any module
                        'ik':'bool',
@@ -639,6 +691,17 @@ class cgmModule(cgmMeta.cgmObject):
                 except:    
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
+                
+        for attr in moduleBuffers_toMake:
+            if attr in self.__dict__.keys():
+                try:
+                    Attr = 'i_' + attr#Get a better attribute store string           
+                    self.__dict__[Attr] = r9Meta.MetaClass( self.__getattribute__(attr).mNode  )
+                    log.info("'%s' initialized as self.%s"%(self.__getattribute__(attr).mNode,Attr))  
+                except:    
+                    log.error("'%s' info node failed. Please verify puppet."%attr)                    
+                    return False
+        
 
         return True
 
@@ -682,6 +745,7 @@ class cgmModule(cgmMeta.cgmObject):
 
         self.addAttr('rigNull',attrType='messageSimple',lock=True)
         self.addAttr('templateNull',attrType='messageSimple',lock=True)
+        self.addAttr('coreNames',attrType='messageSimple',lock=True)
 
         log.debug("Module null good...")
 
@@ -713,8 +777,33 @@ class cgmModule(cgmMeta.cgmObject):
             self.__dict__[Attr].doName()
 
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
-
-
+        """    
+        if not mc.objExists( attributes.returnMessageObject(self.mNode,'settings') ):
+            log.info('Creating settings')                                    
+            self.i_settings = cgmInfoNode(puppet = self, infoType = 'settings')#Create and initialize
+        else:
+            log.info('settings infoNode exists. linking....')                        
+            self.i_settings = self.settings #Linking to instance for faster processing. Good idea?   
+        """
+        for attr in moduleBuffers_toMake:
+            log.info(attr)
+            obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
+            Attr = 'i_' + attr#Get a better attribute store string           
+            if mc.objExists( obj ):
+                #If exists, initialize it
+                try:     
+                    self.__dict__[Attr]  = r9Meta.MetaClass(obj)#Initialize if exists  
+                    log.info("'%s' initialized to 'self.%s'"%(obj,Attr))                    
+                except:
+                    log.error("'%s' null failed. Please verify puppet."%attr)                    
+                    return False               
+            else:#Make it
+                log.info('Creating %s'%attr)                                    
+                self.__dict__[Attr]= cgmModuleBuffer(module = self, bufferType = attr, messageOverride = True)#Create and initialize
+                #self.connectChild(self.__dict__[Attr].mNode, attr,'module') #Connect the child to the holder                
+                #self.__dict__[Attr].addAttr('cgmName',attr+'Null',lock=True)
+                log.info("'%s' initialized to 'self.%s'"%(attr,Attr))    
+                
         #Attrbute checking
         #=================
         for attr in rigNullAttrs_toMake.keys():#See table just above cgmModule
