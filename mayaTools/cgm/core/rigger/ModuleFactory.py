@@ -139,7 +139,6 @@ def doSize(self,sizeMode='normal',geo = []):
                        create = 'locator',
                        toCreate = namesToCreate)
     
-
 @r9General.Timer   
 def doSetParentModule(self,moduleParent,force = False):
     """

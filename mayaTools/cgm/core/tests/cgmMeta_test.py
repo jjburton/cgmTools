@@ -1045,7 +1045,6 @@ class cgmMeta_Test():
         assert Module1.cgmPosition == Module1IO.cgmPosition
         assert Module1.cgmDirection == Module1IO.cgmDirection       
 
-
         #Assertions on the rig null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the rig null...")   
@@ -1068,6 +1067,10 @@ class cgmMeta_Test():
         log.info(Module1.i_templateNull.cgmType)
         assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
 
+        #Assertions on the coreNames bufferNode
+        #----------------------------------------------------------
+        log.info('>'*3 + " Assertions on the coreNames bufferNode...") 
+        assert Module1.coreNames.mClass == 'cgmModuleBufferNode'
 
         #Connect Modules
         #----------------------------------------------------------

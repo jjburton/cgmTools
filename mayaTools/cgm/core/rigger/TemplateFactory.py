@@ -1,6 +1,11 @@
 import copy
 import re
 
+#TEMP
+import cgm.core
+cgm.core._reload()
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -14,6 +19,7 @@ from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
+from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (modules,curves,distance,attributes)
 reload(attributes)
 from cgm.lib.classes import NameFactory
@@ -30,19 +36,27 @@ class go(object):
         #==============	        
         #>>> module null data 
         assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
+        log.info(">>> go.__init__")
+        self.cls = "TemplateFactory.go"
         self.m = module# Link for shortness
         
         self.moduleNullData = attributes.returnUserAttrsToDict(self.m.mNode)
-        self.templateNull = self.m.templateNull.mNode or False
-        self.rigNull = self.m.rigNull.mNode or false
-    
+        self.templateNull = self.m.getMessage('templateNull')[0] or False
+        self.rigNull = self.m.getMessage('rigNull')[0] or False
+        self.moduleParent = self.moduleNullData.get('moduleParent')
+        self.moduleColors = self.m.getModuleColors()
+        self.coreNames = self.m.coreNames.value
+        self.corePosList = self.m.templateNull.templateStarterData
+        
+        assert len(self.coreNames) == len(self.corePosList),"coreNames length and corePosList doesn't match"
+        
         #>>> part name 
         self.partName = NameFactory.returnUniqueGeneratedName(self.m.mNode, ignore = 'cgmType')
         self.partType = self.m.moduleType or False
         
-        self.direction = False
+        self.direction = None
         if self.m.hasAttr('cgmDirection'):
-            direction = self.m.cgmDirection or False
+            self.direction = self.m.cgmDirection or None
         
         #>>> template null 
         self.templateNullData = attributes.returnUserAttrsToDict(self.templateNull)
@@ -53,12 +67,16 @@ class go(object):
         log.info("moduleNullData: %s"%self.moduleNullData)
         log.info("partType: %s"%self.partType)
         log.info("direction: %s"%self.direction) 
+        log.info("colors: %s"%self.moduleColors)
+        log.info("coreNames: %s"%self.coreNames)
+        log.info("corePosList: %s"%self.corePosList)
         
-        
+
         if self.m.mClass == 'cgmLimb':
             log.info("mode: cgmLimb Template")
+            doMakeLimbTemplate(self)
         else:
-            raise NotImplementedError,"haven't implemented %s templatizing yet"%self.m.mClass
+            raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
         
         
 @r9General.Timer
@@ -282,31 +300,16 @@ def doTemplate(self):
     attributes.doConnectAttr((visControl+'.controlHelpers'),(templateNull+'.visControlHelpers'))
     #>>> Run a rename on the module to make sure everything is named properly
     #NameFactory.doRenameHeir(moduleNull)
+
     
 
-
-def makeLimbTemplate(self):  
+@r9General.Timer
+def returnModuleBaseSize(self):
+    assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"    
+    log.info(">>> returnModuleSize")
+    log.warning(">>>>>>This function isn't done")
     """
-    Self should be a TemplateFactoryG
-    """
-    #>>>Curve degree finder
-    if curveDegree == 0:
-        doCurveDegree = 1
-    else:
-        if len(corePositionList) <= 3:
-            doCurveDegree = 1
-        else:
-            doCurveDegree = len(corePositionList) - 1
-    
-    returnList = []
-    templObjNameList = []
-    templHandleList = []
-    
-    moduleColors = modules.returnModuleColors(moduleNull)
-    
-    #>>>Scale stuff
-    moduleParent = attributes.returnMessageObject(moduleNull,'moduleParent')
-    if moduleParent == masterNull:
+        if moduleParent == masterNull:
         length = (distance.returnDistanceBetweenPoints (corePositionList[0],corePositionList[-1]))
         size = length / len(coreNamesAttrs)
     else:
@@ -333,58 +336,82 @@ def makeLimbTemplate(self):
             size = size * 2
         
     cnt = 0
-    lastCountSizeMatch = len(corePositionList) -1
+    """
+    return 20 
+
+@r9General.Timer
+def doMakeLimbTemplate(self):  
+    """
+    Self should be a TemplateFactory.go
+    """
+    """
+    returnList = []
+    templObjNameList = []
+    templHandleList = []
+    """
+    log.info(">>> doMakeLimbTemplate")
+    assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
+    
+    #Gather limb specific data and check
+    #==============
+    doCurveDegree = getGoodCurveDegree(self)
+    if not doCurveDegree:raise ValueError,"Curve degree didn't query"
+    
+    #>>>Scale stuff
+    size = returnModuleBaseSize(self)
+    
+    lastCountSizeMatch = len(self.corePosList) -1
+    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Making the template objects
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    for pos in corePositionList:
-        if cnt == 0:
+    templHandleList = []
+    for i,pos in enumerate(self.corePosList):# Don't like this sizing method but it is what it is for now
+        #Make each of our base handles
+        #=============================        
+        if i == 0:
             sizeMultiplier = 1
-        elif cnt == lastCountSizeMatch:
+        elif i == lastCountSizeMatch:
             sizeMultiplier = .8
         else:
             sizeMultiplier = .5
-        """make a sphere and move it"""
-        createBuffer = curves.createControlCurve('sphere',(size * sizeMultiplier))
-        curves.setCurveColorByName(createBuffer,moduleColors[0])
-        attributes.storeInfo(createBuffer,'cgmName',coreNamesAttrs[cnt])
-        if direction != None:
-            attributes.storeInfo(createBuffer,'cgmDirection',direction)
-        attributes.storeInfo(createBuffer,'cgmType','templateObject')
-        tmpObjName = NameFactory.doNameObject(createBuffer)
-        mc.move (pos[0], pos[1], pos[2], [tmpObjName], a=True)
-                    
-        """adds it to the list"""
-        templObjNameList.append (tmpObjName)
-        templHandleList.append (tmpObjName)  
-        """ replaces the message node locator objects with the new template ones """  
-        attributes.storeObjectToMessage (tmpObjName, templatePosObjectsInfoNull, NameFactory.returnUniqueGeneratedName(tmpObjName,ignore='cgmType'))  
         
-        cnt +=1
+        #>>> Create and set attributes on the object
+        o = cgmMeta.cgmObject( curves.createControlCurve('sphere',(size * sizeMultiplier)) )
+        curves.setCurveColorByName(o.mNode,self.moduleColors[0])
+        
+        o.addAttr('cgmName',value = str(self.coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+        if self.direction != None:
+            o.addAttr('cgmDirection',value = self.direction,attrType = 'string',lock=True)  
+        o.addAttr('cgmType',value = 'templateObject', attrType = 'string',lock=True) 
+        o.doName()#Name it
+        
+        mc.move (pos[0], pos[1], pos[2], [o.mNode], a=True)
+                    
+        #templObjNameList.append (tmpObjName)
+        templHandleList.append (o)
+        
+        #""" replaces the message node locator objects with the new template ones """  
+        #attributes.storeObjectToMessage (tmpObjName, templatePosObjectsInfoNull, NameFactory.returnUniqueGeneratedName(tmpObjName,ignore='cgmType'))  
+    
+    #Make the curve
+    #=============================     
+    crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
+    crv.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+    if self.direction != None:
+        crv.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
 
-    """Makes our curve"""    
-    crvName = mc.curve (d=doCurveDegree, p = corePositionList , os=True, n=('%s%s%s' %(partName,'_',(typesDictionary.get('templateCurve')))))            
-    if direction != None:
-            attributes.storeInfo(crvName,'cgmDirection',direction)
-    attributes.storeInfo(crvName,'cgmType','templateCurve')
-    curves.setCurveColorByName(crvName,moduleColors[1])
-    curveLocs = []
-    
+    crv.addAttr('cgmType',value = 'templateCurve', attrType = 'string', lock=True)
+    curves.setCurveColorByName(crv.mNode,self.moduleColors[0])
+    crv.doName()
+        
     cnt = 0
-    for obj in templObjNameList:
-        pointLoc = locators.locMeObject (obj)
-        attributes.storeInfo(pointLoc,'cgmName',templObjNameList[cnt])
-        if direction != None:
-            attributes.storeInfo(pointLoc,'cgmDirection',direction)
-        mc.setAttr ((pointLoc+'.visibility'),0)
-        mc.parentConstraint ([obj],[pointLoc],mo=False)
-        mc.connectAttr ( (pointLoc+'.translate') , ('%s%s%i%s' % (crvName, '.controlPoints[', cnt, ']')), f=True )
-        curveLocs.append (pointLoc)
-        cnt+=1
-    
-    #>>> Direction and size Stuff
-    
-    """ Directional data derived from joints """
+    for i,obj in enumerate(templHandleList):#Connect each of our handles ot the cv's of the curve we just made
+        mc.connectAttr ( (obj.mNode+'.translate') , ('%s%s%i%s' % (crv.mNode, '.controlPoints[', i, ']')), f=True )
+        
+    return
+    #>>> Directional data derived from joints
+    """
     generalDirection = locators.returnHorizontalOrVertical(templObjNameList)
     if generalDirection == 'vertical' and 'leg' not in partType:
         worldUpVector = [0,0,-1]
@@ -392,6 +419,7 @@ def makeLimbTemplate(self):
         worldUpVector = [0,0,1]
     else:
         worldUpVector = [0,1,0]
+    """
     
     """ Create root control"""
     moduleNullData = attributes.returnUserAttrsToDict(moduleNull)
@@ -920,6 +948,25 @@ def doTemplate2(masterNull, moduleNull):
     #>>> Run a rename on the module to make sure everything is named properly
     #NameFactory.doRenameHeir(moduleNull)
 
-
-
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Utilities
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+def getGoodCurveDegree(self):
+    log.info(">>> getGoodCurveDegree")
+    try:
+        doCurveDegree = self.m.templateNull.curveDegree
+    except:
+        raise ValueError,"Failed to get module curve degree"
+    
+    if doCurveDegree == 0:
+        doCurveDegree = 1
+    else:
+        if len(self.corePosList) <= 3:
+            doCurveDegree = 1
+        else:
+            doCurveDegree = len(self.corePosList) - 1
+    
+    if doCurveDegree > 0:        
+        return doCurveDegree
+    return False
 

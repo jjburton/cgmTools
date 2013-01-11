@@ -267,7 +267,6 @@ class cgmPuppet(cgmMeta.cgmNode):
             Attr = 'i_' + attr+'Group'#Get a better attribute store string           
             if mc.objExists( grp ):
                 #If exists, initialize it
-                log.info(self.i_masterNull.__dict__[attr+'Group'])
                 #self.__dict__[Attr]  = self.i_masterNull.__dict__[attr+'Group']#link it, can't link it
                 self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
                 log.info("'%s' initialized as 'self.%s'"%(grp,Attr))
@@ -578,7 +577,8 @@ defaultSettings = {'partType':'none'}
 moduleNulls_toMake = 'rig','template' #These will be created and connected to a module and parented under them    
 moduleBuffers_toMake = ['coreNames']
 
-rigNullAttrs_toMake = {'fk':'bool',#Attributes to be initialzed for any module
+rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any module
+                       'fk':'bool',
                        'ik':'bool',
                        'stretchy':'bool',
                        'bendy':'bool',
@@ -612,6 +612,10 @@ class cgmModule(cgmMeta.cgmObject):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
+        log.info("In cgmModule.__init__")
+        #if args:log.info("args: %s"%args)            
+        if kws:log.info("kws: %s"%kws)    
+        
         start = time.clock()
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -625,7 +629,6 @@ class cgmModule(cgmMeta.cgmObject):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-        log.info("cgmModule__init__ kws: %s"%kws)    
         
         super(cgmModule, self).__init__(*args,**kws) 
 
@@ -838,7 +841,13 @@ class cgmModule(cgmMeta.cgmObject):
                 self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
 
         return True        
-
+    def getModuleColors(self):
+        direction = search.returnTagInfo(self.mNode,'cgmDirection')
+        if not direction:
+            return modules.returnSettingsData('colorCenter',True)
+        else:
+            return modules.returnSettingsData(('color'+direction.capitalize()),True)
+        
     def doSetParentModule(self,moduleParent,force = False,):
         """
         Set a module parent of a module
@@ -896,8 +905,12 @@ class cgmLimb(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
+        log.info("In cgmLimb.__init__")
+        #log.info("args: %s"%args)            
+        log.info("kws: %s"%kws)  
+        
         start = time.clock()	
-        log.info("cgmLimb.__init__ kws: %s"%kws)
+        
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
             
