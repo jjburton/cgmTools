@@ -505,7 +505,7 @@ def screenToWorld(startX,startY):
     return [posMPoint.x,posMPoint.y,posMPoint.z],[vecMVector.x,vecMVector.y,vecMVector.z]
 
 
-def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, debugReport = False):
+def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
@@ -591,7 +591,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, debugRepor
     else:
         return None    
         
-def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, debugReport = False):
+def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
