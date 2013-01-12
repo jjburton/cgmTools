@@ -31,18 +31,22 @@ def isSized(self):
     Return if a moudle is sized or not
     """
     handles = self.rigNull.handles
+    if len(self.coreNames.value) != handles:
+        log.warning("Not enough names for handles")
+        return False
+    
     if self.templateNull.templateStarterData:
         if len(self.templateNull.templateStarterData) == handles:
-            for i in range(handles):
-                if not self.templateNull.templateStarterData[i][1]:
-                    log.warning("%s has no data"%(self.templateNull.templateStarterData[i]))                    
+            for i,pos in enumerate(self.templateNull.templateStarterData):
+                if not pos:
+                    log.warning("[%s] has no data"%(i))                    
                     return False
             return True
         else:
             log.warning("%i is not == %i handles necessary"%(len(self.templateNull.templateStarterData),handles))
             return False
     else:
-        log.warning("No template starter data found for '%s'"%self.getShortName())        
+        log.warning("No template starter data found for '%s'"%self.getShortName())  
     return False
     
     

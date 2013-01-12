@@ -44,11 +44,13 @@ class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
     def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
+        log.info(">>> cgmPuppet.__init__")
+        if kws:log.info("kws: %s"%str(kws))
+        if args:log.info("args: %s"%str(args))
+        
         """Constructor"""
         #>>>Keyword args
         puppet = kws.pop('puppet',None)
-        #puppet = kws.pop('puppet',None)
-        #initializeOnly = kws.pop('initializeOnly',False)
 
         start = time.clock()
 
@@ -79,24 +81,25 @@ class cgmPuppet(cgmMeta.cgmNode):
                             name = attributes.doGetAttr(p,'cgmName')
                             break
 
-
-        #if puppet == None:#If we still don't have a puppet
-            #if args and args[0]:
-                #log.info("Checking args")
-                #if mc.objExists(args[0]):
+        """
+        if puppet == None:#If we still don't have a puppet
+            if args and args[0]:
+                log.info("Checking args")
+                if mc.objExists(args[0]):
                     ##If we're here, there's a node named our master null.
                     ##We need to get the network from that.
-                    #log.info("Trying to find network from '%s'"%args[0])
-                    #tmp = r9Meta.MetaClass(args[0])
-                    #if attributes.doGetAttr(tmp.mNode,'mClass') == 'cgmPuppet':#If it's a puppet network
-                        #puppet = args[0]
-                    #else:
-                        #puppet = tmp.puppet.mNode#If its a root
-                    #name = tmp.cgmName
-                #else:
-                    #log.info("Not Puppet object found, creating '%s'"%args[0])
-                    #puppet = None
-                    #name = args[0]              
+                    log.info("Trying to find network from '%s'"%args[0])
+                    tmp = r9Meta.MetaClass(args[0])
+                    if attributes.doGetAttr(tmp.mNode,'mClass') == 'cgmPuppet':#If it's a puppet network
+                        puppet = args[0]
+                    else:
+                        puppet = tmp.puppet.mNode#If its a root
+                    name = tmp.cgmName
+                else:
+                    log.info("Not Puppet object found, creating '%s'"%args[0])
+                    puppet = None
+                    name = args[0]   
+                    """
 
         if not name:
             log.warning("No puppet name found")
@@ -108,9 +111,6 @@ class cgmPuppet(cgmMeta.cgmNode):
         log.info("Puppet is '%s'"%name)
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
 
-        self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
-        self.doStore('cgmName',name,True)
-
         #>>> Puppet Network Initialization Procedure ==================       
         if self.isReferenced() or initializeOnly:
             log.info("'%s' Initializing only..."%name)
@@ -118,7 +118,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
         else:
-            if not self.verify():
+            if not self.verify(name):
                 #log.critical("'%s' failed to verify!"%name)
                 raise StandardError,"'%s' failed to verify!"%name
 
@@ -126,18 +126,8 @@ class cgmPuppet(cgmMeta.cgmNode):
         log.info('Time taken =  %0.3f' % (time.clock()-start))
 
 
-    def __bindData__(self):
-        #Default to creation of a var as an int value of 0
-        ### input check   
-        log.info('>>'*5+ "cgmPuppet Bind data")     
-        #self.addAttr('masterNull',type='messageSimple')        
-        #self.addAttr('puppetGroup',type='messageSimple')
-        #self.addAttr('modulesGroup',type='messageSimple')
-        #self.addAttr('noTransformGroup',type='messageSimple')
-        #self.addAttr('geoGroup',type='messageSimple')
-
     #====================================================================================
-    def initialize(self):
+    def initialize(self,name = ''):
         """ 
         Initializes the various components a masterNull for a character/asset.
 
@@ -150,7 +140,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             return False    
 
         #>>>Master null
-        if self.masterNull:
+        if self.getMessage('masterNull'):
             self.i_masterNull = self.masterNull#link it
             log.info("'%s' initialized as master null"%self.masterNull.mNode)
         else:
@@ -185,7 +175,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 
         return True
 
-    def verify(self):
+    def verify(self,name = ''):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -194,7 +184,10 @@ class cgmPuppet(cgmMeta.cgmNode):
         success(bool)
         """             
         #Puppet Network Node
-        #==============    
+        #============== 
+        self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
+        self.doStore('cgmName',name,True)
+        
         if attributes.doGetAttr(self.mNode,'mClass') != 'cgmPuppet':
             log.error("'%s' is not a puppet. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
             return False
@@ -406,14 +399,16 @@ class cgmMasterNull(cgmMeta.cgmObject):
 
         super(cgmMasterNull, self).__init__(node=node, name = name)
 
-        if puppet:
+        if puppet and not self.isReferenced():
             log.info("Puppet provided!")
             log.info(puppet.cgmName)
             log.info(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
-            self.connectParent(puppet, 'masterNull','puppet')               
-
-        self.verify()
+            self.connectParent(puppet, 'masterNull','puppet') 
+        
+        if not self.isReferenced():   
+            if not self.verify():
+                raise StandardError,"Failed!"
 
     def verify(self):
         """"""
@@ -423,10 +418,6 @@ class cgmMasterNull(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """ 
-        #See if it's named properly. Need to loop back after scene stuff is querying properly
-        self.doName()
-
-    def __bindData__(self):
         self.addAttr('mClass',value = 'cgmMasterNull',lock=True)
         self.addAttr('cgmName',initialValue = '',lock=True)
         self.addAttr('cgmType',initialValue = 'ignore',lock=True)
@@ -435,11 +426,21 @@ class cgmMasterNull(cgmMeta.cgmObject):
         self.addAttr('deformGroup',attrType = 'messageSimple',lock=True)   	
         self.addAttr('noTransformGroup',attrType = 'messageSimple',lock=True)   
         self.addAttr('geoGroup',attrType = 'messageSimple',lock=True)   
+        
+        #See if it's named properly. Need to loop back after scene stuff is querying properly
+        self.doName()
+        return True
+
+    def __bindData__(self):
+        pass
 
 class cgmInfoNode(cgmMeta.cgmNode):
     """"""
-    def __init__(self,node = None, name = 'info',*args,**kws):
+    def __init__(self,node = None, name = 'info', *args,**kws):
         """Constructor"""
+        log.info(">>> cgmInfoNode.__init__")
+        if kws:log.info("kws: %s"%kws)
+        
         puppet = kws.pop('puppet',False)#to pass a puppet instance in 
         infoType = kws.pop('infoType','')
 
@@ -460,8 +461,10 @@ class cgmInfoNode(cgmMeta.cgmNode):
 
         self.addAttr('cgmTypeModifier',infoType,lock=True)
         self.addAttr('cgmType','info',lock=True)
-
-        self.verify()
+        
+        if not self.isReferenced():   
+            if not self.verify():
+                raise StandardError,"Failed!"
 
     def verify(self):
         """"""
@@ -474,13 +477,18 @@ class cgmInfoNode(cgmMeta.cgmNode):
         log.info(">"*10 + " cgmInfoNode.verify.... " + "<"*10)
         #See if it's named properly. Need to loop back after scene stuff is querying properly
         self.doName()  
+        return True
+        
 
     def __bindData__(self):
         pass
     
 class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
-    def __init__(self,node = None, name = 'buffer',*args,**kws):
+    def __init__(self,node = None, name = 'buffer',initializeOnly = False,*args,**kws):
+        log.info(">>> cgmModuleBufferNode.__init__")
+        if kws:log.info("kws: %s"%kws)    
+        
         """Constructor"""
         module = kws.get('module') or False
         bufferType = kws.get('bufferType') or ''
@@ -490,6 +498,21 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         log.debug(">"*10 + " cgmModuleBufferNode.init.... " + "<"*10)
         log.debug(args)
         log.debug(kws)        
+        
+        if not self.isReferenced():   
+            if not self.verify():
+                raise StandardError,"Failed!"
+
+    def verify(self,*args,**kws):
+        """"""
+        """ 
+        Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
+
+        RETURNS:
+        success(bool)
+        """ 
+        module = kws.get('module') or False
+        bufferType = kws.get('bufferType') or ''
         
         #>>> Attr check    
         self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
@@ -510,41 +533,14 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
             
         if self.getMessage('module'):
             self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
-            
-        self.verify(*args,**kws)
-
-    def verify(self,*args,**kws):
-        """"""
-        """ 
-        Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
-
-        RETURNS:
-        success(bool)
-        """ 
-        module = kws.get('module') or False
-        bufferType = kws.get('bufferType') or ''        
+              
 
         self.doName(**kws)  
+        return True
 
     def __bindData__(self):
         pass
     
-class cgmInfoNodeBind(cgmMeta.cgmNode):
-    """"""
-    def __bindData__(self):              
-        log.info(self.puppet)
-        log.info(self.infoType)
-
-    def __init__(self,*args,**kws):	
-        puppet = kws.pop('puppet',False)#to pass a puppet instance in 
-        infoType = kws.pop('infoType','')
-
-        super(cgmInfoNodeBind, self).__init__(*args,**kws)
-        self.object.puppet = 'p'
-        self.object.infoType = 'info'
-
-        #self.__setattr__('infoType',None)	
-
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -585,11 +581,14 @@ rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any mo
                        'handles':'int',
                        'skinJoints':'message'}
 
-templateNullAttrs_toMake = {'rollJoints':'int',
+templateNullAttrs_toMake = {'version':'float',
+                            'rollJoints':'int',
                             'stiffIndex':'int',
                             'curveDegree':'int',
                             'templatePosObjects':'message',
                             'templateControlObjects':'message',
+                            'root':'messageSimple',
+                            'curve':'messageSimple',
                             'templateStarterData':'string',
                             'templateControlObjectData':'string'}
 
@@ -612,9 +611,9 @@ class cgmModule(cgmMeta.cgmObject):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        log.info("In cgmModule.__init__")
-        #if args:log.info("args: %s"%args)            
-        if kws:log.info("kws: %s"%kws)    
+        log.info(">>> cgmModule.__init__")
+        if kws:log.info("kws: %s"%str(kws))         
+        if args:log.info("args: %s"%str(args))            
         
         start = time.clock()
 
@@ -905,9 +904,9 @@ class cgmLimb(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        log.info("In cgmLimb.__init__")
-        #log.info("args: %s"%args)            
-        log.info("kws: %s"%kws)  
+        log.info(">>> cgmLimb.__init__")
+        if kws:log.info("kws: %s"%str(kws))         
+        if args:log.info("args: %s"%str(args))  
         
         start = time.clock()	
         
@@ -916,7 +915,7 @@ class cgmLimb(cgmModule):
             
         super(cgmLimb, self).__init__(*args,**kws) 
 
-        return
+        
 
 
     def verify(self,**kws):
@@ -952,14 +951,6 @@ class cgmLimb(cgmModule):
             self.templateNull.addAttr('stiffIndex', initialValue = settings['stiffIndex'],lock = True) 
 
         return True
-
-
-
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Utilities
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-
 
 
 

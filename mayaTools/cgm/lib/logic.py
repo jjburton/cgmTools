@@ -18,9 +18,13 @@
 # CHANGELOG:
 #	0.1 - 02/09/2011 - added documenation
 #=================================================================================================================================================
-
 import maya.cmds as mc
 
+# From Red9 =============================================================
+from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_General as r9General
+
+# From cgm ==============================================================
 from cgm.lib import (locators,
                      distance,
                      rigging,
@@ -166,7 +170,7 @@ def returnLinearDirection(rootObj,aimObj):
     else:
         return (direction)
 
-
+@r9General.Timer
 def returnHorizontalOrVertical(objList):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

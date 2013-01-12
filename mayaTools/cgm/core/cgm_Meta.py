@@ -109,10 +109,10 @@ class cgmMetaFactory(object):
 	    return cgmObjectSet(node,*args,**kws)
         elif mc.ls(node,type='transform'):
             log.info("'%s' Appears to be a transform, initializing as cgmObject"%node)
-            return cgmObject(name = name, node = node)          
+            return cgmObject(name = name, node = node,**kws)          
         else:
             log.info("Appears to be a '%s'. Initializing as cgmNode"%objectType)  
-            return cgmNode(name = name, node = node)    
+            return cgmNode(name = name, node = node,**kws)    
           
         return False
             
@@ -179,7 +179,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	log.debug("In cgmNode.__setattr__...")
 	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
 	
-	if lock is not None:
+	if lock is not None and not self.isReferenced():
 	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)		
 	    
 	    
@@ -278,7 +278,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
-	if self.hasAttr('mNodeID'):#experiment
+	if self.hasAttr('mNodeID') and not self.isReferenced():#experiment
 	    log.debug(self.mNodeID)
 	    attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
 	

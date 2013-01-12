@@ -20,7 +20,12 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.lib import (modules,curves,distance,attributes)
+from cgm.lib import (modules,
+                     curves,
+                     distance,
+                     attributes,
+                     position,
+                     logic)
 reload(attributes)
 from cgm.lib.classes import NameFactory
 from cgm.core.classes import DraggerContextFactory as dragFactory
@@ -337,7 +342,7 @@ def returnModuleBaseSize(self):
         
     cnt = 0
     """
-    return 20 
+    return 10 
 
 @r9General.Timer
 def doMakeLimbTemplate(self):  
@@ -366,6 +371,7 @@ def doMakeLimbTemplate(self):
     # Making the template objects
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     templHandleList = []
+    templHandleInstances = []
     for i,pos in enumerate(self.corePosList):# Don't like this sizing method but it is what it is for now
         #Make each of our base handles
         #=============================        
@@ -377,72 +383,69 @@ def doMakeLimbTemplate(self):
             sizeMultiplier = .5
         
         #>>> Create and set attributes on the object
-        o = cgmMeta.cgmObject( curves.createControlCurve('sphere',(size * sizeMultiplier)) )
-        curves.setCurveColorByName(o.mNode,self.moduleColors[0])
+        i_obj = cgmMeta.cgmObject( curves.createControlCurve('sphere',(size * sizeMultiplier)) )
+        curves.setCurveColorByName(i_obj.mNode,self.moduleColors[0])
         
-        o.addAttr('cgmName',value = str(self.coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+        i_obj.addAttr('cgmName',value = str(self.coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
         if self.direction != None:
-            o.addAttr('cgmDirection',value = self.direction,attrType = 'string',lock=True)  
-        o.addAttr('cgmType',value = 'templateObject', attrType = 'string',lock=True) 
-        o.doName()#Name it
+            i_obj.addAttr('cgmDirection',value = self.direction,attrType = 'string',lock=True)  
+        i_obj.addAttr('cgmType',value = 'templateObject', attrType = 'string',lock=True) 
+        i_obj.doName()#Name it
         
-        mc.move (pos[0], pos[1], pos[2], [o.mNode], a=True)
+        mc.move (pos[0], pos[1], pos[2], [i_obj.mNode], a=True)
                     
         #templObjNameList.append (tmpObjName)
-        templHandleList.append (o)
+        templHandleList.append (i_obj.mNode)
+        templHandleInstances.append(i_obj)
         
         #""" replaces the message node locator objects with the new template ones """  
         #attributes.storeObjectToMessage (tmpObjName, templatePosObjectsInfoNull, NameFactory.returnUniqueGeneratedName(tmpObjName,ignore='cgmType'))  
     
     #Make the curve
     #=============================     
-    crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
-    crv.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+    i_crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
+    i_crv.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
     if self.direction != None:
-        crv.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+        i_crv.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
 
-    crv.addAttr('cgmType',value = 'templateCurve', attrType = 'string', lock=True)
-    curves.setCurveColorByName(crv.mNode,self.moduleColors[0])
-    crv.doName()
+    i_crv.addAttr('cgmType',value = 'templateCurve', attrType = 'string', lock=True)
+    curves.setCurveColorByName(i_crv.mNode,self.moduleColors[0])
+    i_crv.doName()
         
-    cnt = 0
-    for i,obj in enumerate(templHandleList):#Connect each of our handles ot the cv's of the curve we just made
-        mc.connectAttr ( (obj.mNode+'.translate') , ('%s%s%i%s' % (crv.mNode, '.controlPoints[', i, ']')), f=True )
+    for i,i_obj in enumerate(templHandleInstances):#Connect each of our handles ot the cv's of the curve we just made
+        mc.connectAttr ( (i_obj.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
         
-    return
-    #>>> Directional data derived from joints
-    """
-    generalDirection = locators.returnHorizontalOrVertical(templObjNameList)
-    if generalDirection == 'vertical' and 'leg' not in partType:
-        worldUpVector = [0,0,-1]
-    elif generalDirection == 'vertical' and 'leg' in partType:
-        worldUpVector = [0,0,1]
+    
+    directions = returnGeneralDirections(self,templHandleList)
+    log.info("directions: %s"%directions )
+    
+    # Create root control
+    #=============================  
+    rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0])*1.25)
+    i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
+    curves.setCurveColorByName(i_rootControl.mNode,self.moduleColors[0])
+    i_rootControl.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
+    i_rootControl.addAttr('cgmType',value = 'templateRoot', attrType = 'string', lock=True)
+    if self.direction != None:
+        i_rootControl.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+    i_rootControl.doName()
+
+    #>>> Position it
+    if self.m.moduleType in ['clavicle']:
+        
+        position.movePointSnap(i_rootControl.mNode,templHandleList[0])
     else:
-        worldUpVector = [0,1,0]
-    """
+        position.movePointSnap(i_rootControl.mNode,templHandleList[0])
     
-    """ Create root control"""
-    moduleNullData = attributes.returnUserAttrsToDict(moduleNull)
-    templateNull = moduleNullData.get('templateNull')
-    
-    rootSize = (distance.returnBoundingBoxSizeToAverage(templObjNameList[0])*1.5)
-    createBuffer = curves.createControlCurve('cube',rootSize)
-    curves.setCurveColorByName(createBuffer,moduleColors[0])
-    
-    if partType == 'clavicle' or partType == 'clavicle':
-        position.movePointSnap(createBuffer,templObjNameList[0])
-    else:
-        position.movePointSnap(createBuffer,templObjNameList[0])
-    constBuffer = mc.aimConstraint(templObjNameList[-1],createBuffer,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
+    #See if there's a better way to do this    
+    constBuffer = mc.aimConstraint(templHandleList[-1],i_rootControl.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.worldUpVector, worldUpType = 'vector' )
     mc.delete (constBuffer[0])
-    attributes.storeInfo(createBuffer,'cgmType','templateRoot')
-    if direction != None:
-        attributes.storeInfo(createBuffer,'cgmDirection',direction)
-    rootCtrl = NameFactory.doNameObject(createBuffer)
     
-    rootGroup = rigging.groupMeObject(rootCtrl)
-    rootGroup = rigging.doParentReturnName(rootGroup,templateNull)
-    
+    i_rootControl.parent = self.templateNull
+    i_rootControl.doGroup(maintain=True)
+    #rootGroup = i_rootControl.doGroup()
+    #self.m.templateNull.doAddChild(rootGroup)
+    return
     templObjNameList.append (crvName)
     templObjNameList += curveLocs
     
@@ -969,4 +972,20 @@ def getGoodCurveDegree(self):
     if doCurveDegree > 0:        
         return doCurveDegree
     return False
+
+@r9General.Timer
+def returnGeneralDirections(self,objList):
+    """
+    Get general direction of a list of objects in a module
+    """
+    log.info(">>> returnGeneralDirections")
+
+    self.generalDirection = logic.returnHorizontalOrVertical(objList)
+    if self.generalDirection == 'vertical' and 'leg' not in self.m.moduleType:
+        self.worldUpVector = [0,0,-1]
+    elif self.generalDirection == 'vertical' and 'leg' in self.m.moduleType:
+        self.worldUpVector = [0,0,1]
+    else:
+        self.worldUpVector = [0,1,0]    
+    return [self.generalDirection,self.worldUpVector]
 
