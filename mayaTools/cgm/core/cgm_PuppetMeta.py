@@ -537,8 +537,8 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
                 module = module
             self.connectParent(module, bufferType, 'module') 
             
-        elif not self.getMessage('module'):
-            raise ValueError,"every module buffer needs a module, none found"
+        if self.getMessage('module'):
+            self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
             #self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
               
         self.doName(**kws)  
