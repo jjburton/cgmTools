@@ -384,6 +384,8 @@ def doMakeLimbTemplate(self):
         
         #>>> Create and set attributes on the object
         i_obj = cgmMeta.cgmObject( curves.createControlCurve('sphere',(size * sizeMultiplier)) )
+        i_obj.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+        
         curves.setCurveColorByName(i_obj.mNode,self.moduleColors[0])
         
         i_obj.addAttr('cgmName',value = str(self.coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
@@ -404,6 +406,8 @@ def doMakeLimbTemplate(self):
     #Make the curve
     #=============================     
     i_crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
+    i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+    
     i_crv.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
     if self.direction != None:
         i_crv.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
@@ -421,8 +425,10 @@ def doMakeLimbTemplate(self):
     
     # Create root control
     #=============================  
-    rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0])*1.25)
+    rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0])*1.25)    
     i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
+    i_rootControl.addAttr('mClass','cgmObject',lock=True)
+    
     curves.setCurveColorByName(i_rootControl.mNode,self.moduleColors[0])
     i_rootControl.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
     i_rootControl.addAttr('cgmType',value = 'templateRoot', attrType = 'string', lock=True)
@@ -446,30 +452,18 @@ def doMakeLimbTemplate(self):
     
     # Store objects
     #=============================      
-    log.info(self.m.tempateNull.curve)
-    log.info(self.m.tempateNull.root)
-    log.info(self.m.tempateNull.templateControlObjects)
+    self.m.templateNull.connectChild(i_crv.mNode,'curve','owner')
+    self.m.templateNull.connectChild(i_rootControl.mNode,'root','owner')
+    self.m.templateNull.connectChildren(templHandleList,'controlObjects','owner')
     
+    log.info(self.m.templateNull.curve)
+    log.info(self.m.templateNull.root)
+    log.info(self.m.templateNull.controlObjects)  
     
+    log.info(self.m.templateNull.getMessage('curve'))
+    log.info(self.m.templateNull.getMessage('root'))
+    log.info(self.m.templateNull.getMessage('controlObjects'))    
     return
-
-    
-    """ replaces the message node locator objects with the new template ones """                          
-    attributes.storeObjectToMessage (crvName, templatePosObjectsInfoNull, 'curve')
-    attributes.storeObjectToMessage (rootCtrl, templatePosObjectsInfoNull, 'root')  
-    
-    """Get our modules group, parents our part null there and connects it to the info null"""
-    modulesGroup = attributes.returnMessageObject(masterNull,'modulesGroup')
-    modulesInfoNull = modules.returnInfoTypeNull(masterNull,'modules')
-    
-    attributes.storeObjectToMessage (moduleNull, modulesInfoNull, (NameFactory.returnUniqueGeneratedName(moduleNull,ignore='cgmType')))
-    
-    """ parenting of the modules group if necessary"""
-    moduleNullBuffer = rigging.doParentReturnName(moduleNull,modulesGroup)
-    if moduleNullBuffer == False:
-        moduleNull = moduleNull
-    else:
-        moduleNull = moduleNullBuffer
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>> Orientation helpers

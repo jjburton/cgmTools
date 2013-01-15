@@ -339,7 +339,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
 
         """   
-	log.debug("Before doName = " + self.mNode)
 	log.debug('Name dict: %s"'%self.getNameDict())
         if self.isReferenced():
             log.error("'%s' is referenced. Cannot change name"%self.mNode)
@@ -352,7 +351,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         else:
             NameFactory.doNameObject(self.mNode,sceneUnique)
 	    self.update()
-	log.debug("After doName = " + self.mNode)
 	
 	    
     #=========================================================================                   

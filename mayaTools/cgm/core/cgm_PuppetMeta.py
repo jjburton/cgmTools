@@ -587,15 +587,17 @@ rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any mo
                        'skinJoints':'message'}
 
 templateNullAttrs_toMake = {'version':'float',
-                            'rollJoints':'int',
-                            'stiffIndex':'int',
-                            'curveDegree':'int',
-                            'templatePosObjects':'message',
-                            'templateControlObjects':'message',
-                            'root':'messageSimple',
-                            'curve':'messageSimple',
-                            'templateStarterData':'string',
-                            'templateControlObjectData':'string'}
+                            'rollJoints':'int',#How many splits per segement
+                            'stiffIndex':'int',#Stiff index has to do with which segments to not split, maybe make it an argument
+                            'curveDegree':'int',#Degree of the template curve, 0 for purely point to point curve
+                            'posObjects':'message',#Not 100% on this one
+                            'controlObjects':'message',#Controls for setting the template
+                            'root':'messageSimple',#The module root
+                            'curve':'messageSimple',#Module curve
+                            'orientHelpers':'messageSimple',#Orientation helper controls
+                            'orientRootHelper':'messageSimple',#Root orienation helper
+                            'templateStarterData':'string',#this will be a json dict
+                            'controlObjectTemplatePose':'string'}
 
 class cgmModule(cgmMeta.cgmObject):
     def __init__(self,*args,**kws):
@@ -927,8 +929,6 @@ class cgmLimb(cgmModule):
             kws['name'] = kws['mType']
             
         super(cgmLimb, self).__init__(*args,**kws) 
-
-        
 
 
     def verify(self,**kws):
