@@ -22,6 +22,7 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (modules,
                      curves,
+                     lists,
                      distance,
                      attributes,
                      position,
@@ -52,6 +53,7 @@ class go(object):
         self.moduleColors = self.m.getModuleColors()
         self.coreNames = self.m.coreNames.value
         self.corePosList = self.m.templateNull.templateStarterData
+        self.foundDirections = False #Placeholder to see if we have it
         
         assert len(self.coreNames) == len(self.corePosList),"coreNames length and corePosList doesn't match"
         
@@ -373,7 +375,7 @@ def doMakeLimbTemplate(self):
     templHandleList = []
     templHandleInstances = []
     for i,pos in enumerate(self.corePosList):# Don't like this sizing method but it is what it is for now
-        #Make each of our base handles
+        #>> Make each of our base handles
         #=============================        
         if i == 0:
             sizeMultiplier = 1
@@ -396,14 +398,10 @@ def doMakeLimbTemplate(self):
         
         mc.move (pos[0], pos[1], pos[2], [i_obj.mNode], a=True)
                     
-        #templObjNameList.append (tmpObjName)
         templHandleList.append (i_obj.mNode)
         templHandleInstances.append(i_obj)
         
-        #""" replaces the message node locator objects with the new template ones """  
-        #attributes.storeObjectToMessage (tmpObjName, templatePosObjectsInfoNull, NameFactory.returnUniqueGeneratedName(tmpObjName,ignore='cgmType'))  
-    
-    #Make the curve
+    #>> Make the curve
     #=============================     
     i_crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
     i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
@@ -420,10 +418,10 @@ def doMakeLimbTemplate(self):
         mc.connectAttr ( (i_obj.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
         
     
-    directions = returnGeneralDirections(self,templHandleList)
-    log.info("directions: %s"%directions )
+    self.foundDirections = returnGeneralDirections(self,templHandleList)
+    log.info("directions: %s"%self.foundDirections )
     
-    # Create root control
+    #>> Create root control
     #=============================  
     rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0])*1.25)    
     i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
@@ -450,26 +448,18 @@ def doMakeLimbTemplate(self):
     i_rootControl.parent = self.templateNull
     i_rootControl.doGroup(maintain=True)
     
-    # Store objects
+    #>> Store objects
     #=============================      
     self.m.templateNull.connectChild(i_crv.mNode,'curve','owner')
     self.m.templateNull.connectChild(i_rootControl.mNode,'root','owner')
     self.m.templateNull.connectChildren(templHandleList,'controlObjects','owner')
-    
-    log.info(self.m.templateNull.curve)
-    log.info(self.m.templateNull.root)
-    log.info(self.m.templateNull.controlObjects)  
-    
-    log.info(self.m.templateNull.getMessage('curve'))
-    log.info(self.m.templateNull.getMessage('root'))
-    log.info(self.m.templateNull.getMessage('controlObjects'))    
-    return
 
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
     #>> Orientation helpers
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #=============================      
     """ Make our Orientation Helpers """
-    orientHelpersReturn = addOrientationHelpers(templHandleList,rootCtrl,moduleNull,partType,(templateNull+'.visOrientHelpers'))
+    doCreateOrientationHelpers(self)
+    return True
     masterOrient = orientHelpersReturn[0]
     orientObjects = orientHelpersReturn[1]
     
@@ -526,6 +516,133 @@ def doMakeLimbTemplate(self):
     returnList.append(templHandleList)
     returnList.append(rootCtrl)
     return returnList
+
+def doCreateOrientationHelpers(self):
+    """ 
+    
+    """
+    log.info(">>> addOrientationHelpers")
+    assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
+    assert mc.objExists(self.m.mNode),"module no longer exists"
+    #Gather limb specific data and check
+    #===================================
+    #'orientHelpers':'messageSimple',#Orientation helper controls
+    #'orientRootHelper':'messageSimple',#Root orienation helper
+
+    helperObjects = []
+    helperObjectGroups = []
+    returnBuffer = []
+    root = self.m.templateNull.getMessage('root')[0]
+    objects =  self.m.templateNull.getMessage('controlObjects')
+    log.info(root)
+    log.info(objects)
+    
+    log.info(self.foundDirections)
+    
+    #>> Create orient root control
+    #=============================     
+    orientRootSize = (distance.returnBoundingBoxSizeToAverage(root)*2)    
+    i_orientRootControl = cgmMeta.cgmObject( curves.createControlCurve('circleArrow1',orientRootSize) )
+    i_orientRootControl.addAttr('mClass','cgmObject',lock=True)
+    
+    curves.setCurveColorByName(i_orientRootControl.mNode,self.moduleColors[0])
+    i_orientRootControl.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
+    i_orientRootControl.addAttr('cgmType',value = 'templateOrientRoot', attrType = 'string', lock=True)
+    i_orientRootControl.doName()
+    
+    #>>> Position and set up follow groups
+    position.moveParentSnap(i_orientRootControl.mNode,root)    
+    i_orientRootControl.parent = root #parent it to the root
+    i_orientRootControl.doGroup(maintain = True)#group while maintainting position
+    
+    mc.pointConstraint(objects[0],i_orientRootControl.parent,maintainOffset = False)#Point contraint orient control to the first helper object
+    mc.aimConstraint(objects[-1],i_orientRootControl.parent,maintainOffset = True, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpObject = root, worldUpType = 'objectRotation' )
+    attributes.doSetLockHideKeyableAttr(i_orientRootControl.mNode,True,False,False,['tx','ty','tz','rz','ry','sx','sy','sz','v'])
+    
+    
+    #>> Sub controls
+    #============================= 
+    pairList = lists.parseListToPairs(objects)
+
+    helperObjectInstances = []#we're gonna store the instances so we can get them all after parenting and what not
+    for pair in pairList:
+        #>>> Create and color      
+        size = (distance.returnBoundingBoxSizeToAverage(pair[0])*2) # Get size
+        i_obj = cgmMeta.cgmObject(curves.createControlCurve('circleArrow2Axis',size))#make the curve
+        
+        i_obj.addAttr('mClass','cgmObject',lock=True)
+        curves.setCurveColorByName(i_obj.mNode,self.moduleColors[1])
+        
+        #>>> Tag and name
+        i_obj.doCopyNameTagsFromObject(pair[0])
+        i_obj.doStore('cgmType','templateOrientObject',True)        
+        i_obj.doName()
+        
+        #>>> Link it to it's object and append list for full store
+        i_obj.connectParent(pair[0],'helper','owner')#Connect it to it's object      
+        helperObjectInstances.append(i_obj)
+        log.info(i_obj.owner)
+        #>>> initial snapping """
+        position.movePointSnap(i_obj.mNode,pair[0])
+        #constBuffer = mc.aimConstraint(pair[1],i_obj.mNode,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = self.foundDirections[1], worldUpType = 'vector' )
+        constBuffer = mc.aimConstraint(pair[1],i_obj.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.foundDirections[1], worldUpType = 'vector' )
+        mc.delete (constBuffer)
+        return
+        """ follow groups """
+        helperGroupBuffer = rigging.groupMeObject(helperObj)
+        helperGroup = NameFactory.doNameObject(helperGroupBuffer)
+        helperGroup = rigging.doParentReturnName(helperGroup,pair[0])
+        helperObjectGroups.append(helperGroup)
+        
+        """ set up constraints """
+        mc.aimConstraint(pair[1],helperGroup,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mainOrientHelperObj, worldUpType = 'objectrotation' )
+
+        """ lock and hide stuff """
+        helperObj = attributes.returnMessageObject(pair[0],'orientHelper')
+        mc.connectAttr((visAttr),(helperObj+'.v'))
+        attributes.doSetLockHideKeyableAttr(helperObj,True,False,False,['tx','ty','tz','ry','rz','sx','sy','sz','v'])
+    
+    #>>> For the last object in the chain
+    for obj in objects[-1:]:
+        """ Get Size """
+        size = (distance.returnBoundingBoxSizeToAverage(obj)*2)
+        
+        """ make the curve"""
+        createBuffer = curves.createControlCurve('circleArrow2Axis',size,'y-')
+        curves.setCurveColorByName(createBuffer,moduleColors[1])
+        """ copy the name attr"""
+        attributes.copyUserAttrs(obj,createBuffer,['cgmName'])
+        attributes.storeInfo(createBuffer,'cgmType','templateOrientObject')
+        helperObj = NameFactory.doNameObject(createBuffer)
+        
+        """ store the object to it's respective  object """
+        attributes.storeObjectToMessage (helperObj, obj, 'orientHelper')
+        
+        """ initial snapping """
+        position.movePointSnap(helperObj,obj)
+        constBuffer = mc.aimConstraint(objects[-2],helperObj,maintainOffset = False, weight = 1, aimVector = [1,0,0], upVector = [0,1,0], worldUpVector = worldUpVector, worldUpType = 'vector' )
+        mc.delete (constBuffer[0])
+        
+        """ follow groups """
+        helperGroupBuffer = rigging.groupMeObject(helperObj)
+        helperGroup = NameFactory.doNameObject(helperGroupBuffer)
+        helperGroup = rigging.doParentReturnName(helperGroup,obj)
+        helperObjectGroups.append(helperGroup)
+        
+        """ set up constraints """
+        secondToLastHelperObject = attributes.returnMessageObject(objects[-2],'orientHelper')
+        mc.orientConstraint(secondToLastHelperObject,helperGroup,maintainOffset = False, weight = 1)
+        
+        """ lock and hide stuff """
+        helperObj = attributes.returnMessageObject(obj,'orientHelper')
+        mc.connectAttr((visAttr),(helperObj+'.v'))
+        attributes.doSetLockHideKeyableAttr(helperObj,True,False,False,['tx','ty','tz','sx','sy','sz','v'])
+        helperObjects.append(helperObj)
+   
+    
+    returnBuffer.append(helperObjects)
+    returnBuffer.append(helperObjectGroups)
+    return returnBuffer
 
 def doTemplate2(masterNull, moduleNull):
     def makeLimbTemplate (moduleNull):  
