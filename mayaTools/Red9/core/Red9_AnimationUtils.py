@@ -1130,6 +1130,7 @@ class AnimationUI(object):
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Debug: Open Pose File', command=partial(self.__uiCB_openPoseFile))
         cmds.menuItem(label='Debug: Open Pose Directory', command=partial(self.__uiCB_openPoseDir))
+        cmds.menuItem(label='Debug: Pose Compare with current', command=partial(self.__uiCB_poseCompare))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Copy Pose >> Project Poses', en=enableState,command=partial(self.__uiCB_copyPoseToProject))     
         cmds.menuItem(divider=True)
@@ -1276,6 +1277,25 @@ class AnimationUI(object):
             cmds.select(sel)
         self.__uiCB_fillPoses()
         self.__uiCB_selectPose(self.poseSelected)   
+
+    def __uiCB_poseCompare(self,*args):
+
+        mPoseA=r9Pose.PoseData()
+        mPoseA.metaPose=True
+        mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
+        compare=r9Pose.PoseCompare(mPoseA,self.__uiCB_getPosePath(),compareDict='skeletonDict')
+        
+        if not compare.compare():
+            info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
+        else:
+            info='Poses are the same'
+        cmds.confirmDialog( title='Pose Compare Results',
+                            button=['Close'],
+                            message=info,
+                            defaultButton='Close',
+                            cancelButton='Close',
+                            dismissString='Close')
+        
 
     def __uiCB_selectPoseObjects(self,*args): 
         '''

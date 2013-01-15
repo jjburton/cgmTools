@@ -163,6 +163,7 @@ def Timer(func):
 def runProfile(func):
     '''
     run the profiler - only ever used when debugging /optimizing function call speeds
+    using 'runsnakerun' to view the profiles and debug
     '''
     import cProfile
     from time import gmtime, strftime

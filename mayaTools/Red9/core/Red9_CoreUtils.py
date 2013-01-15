@@ -144,14 +144,21 @@ def decodeString(val):
     log.debug('Decoded as type(string)')
     return val
 
-def floatIsEqual(a,b,threshold=0.001):
+def floatIsEqual(a,b,tolerance=0.001,allowGimbal=True):
     '''
-    compare 2 floats with threshold
+    compare 2 floats with tolerance
+    @param a: value 1
+    @param b: value 2
+    @param tolerance: compare with this tolerance default=0.001
+    @param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips
     '''
-    if abs(a-b)<threshold:
+    if abs(a-b)<tolerance:
         return 1
     else:
-        return 0
+        if allowGimbal:
+            if abs(a-b)%180<tolerance:
+                return 1
+    return 0
     
     
 def validateString(strText):
@@ -1047,8 +1054,9 @@ class FilterNode(object):
             if r9Meta.isMetaNode(root):
                 meta=r9Meta.MetaClass(root)
             else:
-                meta=r9Meta.getConnectedMetaNodes(root)[0]
-            if meta not in metaNodes:
+                mnodes=r9Meta.getConnectedMetaNodes(root)
+                if mnodes: meta=mnodes[0]
+            if meta and meta not in metaNodes:
                 metaNodes.append(meta)  
                 
         #Find all controllers hanging off these given metaSystems     
@@ -1945,13 +1953,13 @@ class MatrixOffset(object):
 
 
 
-class MetaCoreUtil_TestClass(r9Meta.MetaClass):
-    '''
-    SubClass of the Meta, this is here for me to test the ittersubclass function which
-    works out the full inheritance map of r9Meta.MetaClass for all modules
-    This class should get added to the RED9_META_REGISTERY
-    '''
-    def __init__(self,*args,**kws):
-        super(MetaCoreUtil_TestClass, self).__init__(*args,**kws) 
+#class MetaCoreUtil_TestClass(r9Meta.MetaClass):
+#    '''
+#    SubClass of the Meta, this is here for me to test the ittersubclass function which
+#    works out the full inheritance map of r9Meta.MetaClass for all modules
+#    This class should get added to the RED9_META_REGISTERY
+#    '''
+#    def __init__(self,*args,**kws):
+#        super(MetaCoreUtil_TestClass, self).__init__(*args,**kws) 
         
 

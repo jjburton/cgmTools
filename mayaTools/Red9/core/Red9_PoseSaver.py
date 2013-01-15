@@ -62,53 +62,72 @@ class PoseData(object):
         '''
         self.poseDict={}
         self.infoDict={}
+        self.skeletonDict={}
         self.posePointCloudNodes=[]
         self.mayaUpAxis=r9Setup.mayaUpAxis()
         self.thumbnailRes=[128,128]
-        self.metaPose=False
-           
+        self._metaPose=False
+        self.metaRig=None
+
         # make sure we have a settings object
         if filterSettings:
             if issubclass(type(filterSettings), r9Core.FilterNode_Settings):
                 self.settings=filterSettings
+                self._metaPose=self.settings.metaRig
             else:
                 raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
         else:
             self.settings=r9Core.FilterNode_Settings()
-            
-        self.metaPose=self.settings.metaRig
+            self._metaPose=self.settings.metaRig
+    
         self.settings.printSettings()
-           
-        
+    
+    #Property so we sync the settings metaRig bool to the class metaPose bool
+    def __get_metaPose(self):
+        return self._metaPose
+    
+    def __set_metaPose(self, val):
+        self._metaPose=val
+        self.settings.metaRig=val  
+                
+    metaPose = property(__get_metaPose, __set_metaPose)
+    
+    def setMetaRig(self,nodes):
+        if r9Meta.isMetaNodeInherited(nodes[0],'MetaRig'):
+            self.metaRig=r9Meta.MetaClass(nodes[0])
+        else:
+            self.metaRig=r9Meta.getConnectedMetaSystemRoot(nodes)
+        return self.metaRig
+                   
     # Build the poseDict data ---------------------------------------------
     #@r9General.Timer
-    def _getNodeMetaDataMap(self, node, mTypes=[]):
-        '''
-        This is a generic wrapper to extract metaData connection info for any given node
-        used to build the pose dict up, and compare / match the data on load 
-        @param node: node to inspect and get the connection data back from
-        @return: mNodes={} which is directly pushed into the PoseFile under the [metaData] key
-        TODO: Maybe this should go into the MetaRig class then it could be over-loaded
-              by others using different wiring setups?
-        '''
-        mNodes={}
-        #why not use the r9Meta.getConnectedMetaNodes ?? > well here we're using 
-        #the c=True flag to get both plugs back in one go to process later
-        connections=[]
-        for nType in r9Meta.getMClassNodeTypes():
-            con=cmds.listConnections(node,type=nType,s=True,d=False,c=True,p=True)
-            if con:
-                connections.extend(con)
-        if not connections:
-            return connections
-        data=connections[-1].split('.')
-        if r9Meta.isMetaNode(data[0],mTypes=mTypes):
-            mNodes['metaAttr']=data[1]
-            try:
-                mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
-            except:
-                mNodes['metaNodeID']=node.split(':')[-1].split('|')[-1]
-        return mNodes          
+#    def _getNodeMetaDataMap(self, node, mTypes=[]):
+#        '''
+#        This is a generic wrapper to extract metaData connection info for any given node
+#        used to build the pose dict up, and compare / match the data on load 
+#        @param node: node to inspect and get the connection data back from
+#        @return: mNodes={} which is directly pushed into the PoseFile under the [metaData] key
+#        TODO: Maybe this should go into the MetaRig class then it could be over-loaded
+#              by others using different wiring setups?
+#        '''
+#        mNodes={}
+#        #why not use the r9Meta.getConnectedMetaNodes ?? > well here we're using 
+#        #the c=True flag to get both plugs back in one go to process later
+#        connections=[]
+#        for nType in r9Meta.getMClassNodeTypes():
+#            con=cmds.listConnections(node,type=nType,s=True,d=False,c=True,p=True)
+#            if con:
+#                connections.extend(con)
+#        if not connections:
+#            return connections
+#        data=connections[-1].split('.')
+#        if r9Meta.isMetaNode(data[0],mTypes=mTypes):
+#            mNodes['metaAttr']=data[1]
+#            try:
+#                mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
+#            except:
+#                mNodes['metaNodeID']=node.split(':')[-1].split('|')[-1]
+#        return mNodes          
 
     def _buildInfoBlock(self):
         '''
@@ -117,6 +136,11 @@ class PoseData(object):
         self.infoDict['author']=getpass.getuser()
         self.infoDict['date']=time.ctime()
         self.infoDict['metaPose']=self.metaPose
+        if self.metaRig:
+            self.infoDict['metaRigNode']  =self.metaRig.mNode
+            self.infoDict['metaRigNodeID']=self.metaRig.mNodeID
+        if self.rootJnt:
+            self.infoDict['skeletonRootJnt']=self.rootJnt
         
     def _buildPoseDict(self, nodes):  
         '''
@@ -124,7 +148,7 @@ class PoseData(object):
         core of the Pose System 
         '''   
         if self.metaPose:
-            getMetaDict=self._getNodeMetaDataMap #optimisation
+            getMetaDict=self.metaRig.getNodeConnectionMetaDataMap #optimisation
 
         for i,node in enumerate(nodes):
             key=r9Core.nodeNameStrip(node)
@@ -144,7 +168,55 @@ class PoseData(object):
                     except:
                         log.debug('%s : attr is invalid in this instance' % attr)
 
+    def _buildSkeletonData(self, rootJnt):
+        '''
+        @param rootNode: root of the skeleton to process
+        '''
+        self.skeletonDict={}
+        if not rootJnt:
+            log.info('skeleton rootJnt joint was not found')
+            return
+        
+        fn=r9Core.FilterNode(rootJnt)
+        fn.settings.nodeTypes='joint'
+        fn.settings.incRoots=False
+        skeleton=fn.ProcessFilter()
+        
+        for jnt in skeleton:
+            key=r9Core.nodeNameStrip(jnt)
+            self.skeletonDict[key]={}
+            self.skeletonDict[key]['attrs']={}
+            for attr in ['translateX','translateY','translateZ', 'rotateX','rotateY','rotateZ']:
+                try:
+                    self.skeletonDict[key]['attrs'][attr]=cmds.getAttr('%s.%s' % (jnt,attr))
+                except:
+                    log.debug('%s : attr is invalid in this instance' % attr)
 
+    def buildInternalPoseData(self, nodes, useFilter=True):
+        '''
+        build the internal pose dict's, useful as a separate func so it
+        can be used in the PoseCompare class easily. This is the main internal call
+        for managing the actual pose data for save
+        '''
+        nodesToStore=nodes
+        self.metaRig=None
+        self.rootJnt=None
+        
+        if self.settings.filterIsActive() and useFilter:
+            nodesToStore=r9Core.FilterNode(nodes,self.settings).ProcessFilter() #main node filter
+            
+            if not type(nodes)==list: nodes=[nodes]
+            if self.metaPose:
+                if self.setMetaRig(nodes):
+                    self.rootJnt=self.metaRig.getSkeletonRoot()
+            else:
+                if cmds.attributeQuery('animSkeletonRoot',node=nodes[0],exists=True):
+                    self.rootJnt=cmds.listConnections('%s.%s' % (nodes[0],'animSkeletonRoot'),destination=True,source=True)[0]
+                     
+        self._buildInfoBlock()    
+        self._buildPoseDict(nodesToStore) 
+        self._buildSkeletonData(self.rootJnt)
+        
     # Process the data -------------------------------------------------
                                               
     def _writePose(self, filepath):
@@ -155,9 +227,12 @@ class PoseData(object):
         ConfigObj['filterNode_settings']=self.settings.__dict__
         ConfigObj['poseData']=self.poseDict
         ConfigObj['info']=self.infoDict
+        if self.skeletonDict:
+            ConfigObj['skeletonDict']=self.skeletonDict
         ConfigObj.filename = filepath
         ConfigObj.write()
 
+    @r9General.Timer 
     def _readPose(self, filename):
         '''
         Read the pose file and build up the internal poseDict
@@ -170,6 +245,8 @@ class PoseData(object):
                 self.poseDict=configobj.ConfigObj(filename)['poseData']
                 if configobj.ConfigObj(filename).has_key('info'):
                     self.infoDict=configobj.ConfigObj(filename)['info']
+                if configobj.ConfigObj(filename).has_key('skeletonDict'):
+                    self.skeletonDict=configobj.ConfigObj(filename)['skeletonDict']
             else:
                 raise StandardError('Given filepath doesnt not exist : %s' % filename)
         else:
@@ -195,7 +272,7 @@ class PoseData(object):
                         print 'poseKey : %s ' % key, self.poseDict[key]['ID'], 'matchedSource : %s' % node, i
                         break 
         if matchMethod=='metaData':               
-            getMetaDict=self._getNodeMetaDataMap #optimisation
+            getMetaDict=self.metaRig.getNodeConnectionMetaDataMap #optimisation
             poseKeys=dict(self.poseDict)         #optimisation
             for node in nodes:
                 try:
@@ -209,7 +286,8 @@ class PoseData(object):
                     log.info('FAILURE to load MetaData pose blocks - Reverting to Name')
                     matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes)    
         return matchedPairs   
-        
+    
+    @r9General.Timer     
     def _applyPose(self, matchedPairs):
         '''
         @param matchedPairs: pre-matched tuples of (poseDict[key], node in scene)
@@ -304,22 +382,18 @@ class PoseData(object):
     
     
     #Main Calls ----------------------------------------  
-     
+  
     @r9General.Timer              
     def PoseSave(self, nodes, filepath, useFilter=True):
         '''
         Entry point for the generic PoseSave
-        @param nodes: nodes to store the data against
+        @param nodes: nodes to store the data against OR the rootNode if the filter is active
         @param filepath: path to save the posefile too  
+        @param useFilter: use the filterSettings or not
         '''   
         log.debug('PosePath given : %s' % filepath)             
-        nodesToStore=nodes
-        if self.settings.filterIsActive() and useFilter:
-            log.info('Filter is Active')
-            nodesToStore=r9Core.FilterNode(nodes,self.settings).ProcessFilter()
-            
-        self._buildInfoBlock()    
-        self._buildPoseDict(nodesToStore) 
+
+        self.buildInternalPoseData(nodes, useFilter)
         self._writePose(filepath)
         
         sel=cmds.ls(sl=True,l=True)
@@ -344,6 +418,8 @@ class PoseData(object):
         @param relativeRots: 'projected' or 'absolute' - how to calculate the offset
         @param relativeTrans: 'projected' or 'absolute' - how to calculate the offset
         '''
+        if not type(nodes)==list:nodes=[nodes]
+        
         nodesToLoad=nodes
         if not os.path.exists(filepath):
             raise StandardError('Given Path does not Exist')
@@ -357,7 +433,7 @@ class PoseData(object):
         self._readPose(filepath)
 
         if self.metaPose:
-            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']):
+            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']) and self.setMetaRig(nodes):
                 matchMethod='metaData'
             else:
                 log.debug('Warning, trying to load a NON metaPose to a MRig - switching to NameMatching')  
@@ -487,18 +563,17 @@ class PoseCompare(object):
     and for key in keys compare, with tolerance, the [attrs] block. With tolerance
     so it handles float data correctly.
     
-    fNode=r9Core.FilterNode(cmds.ls(sl=True)[0])
-    fNode.settings.metaRig=True
-    nodes=fNode.ProcessFilter()
-    
     #build an mPose object and fill the internal poseDict
     mPoseA=r9Pose.PoseData()
-    mPoseA._buildPoseDict(nodes)
-
+    mPoseA.metaPose=True
+    mPoseA.buildInternalPoseData(cmds.ls(sl=True))
+    
     mPoseB=r9Pose.PoseData()
-    mPoseB._buildPoseDict(nodes)
+    mPoseB.metaPose=True
+    mPoseB.buildInternalPoseData(cmds.ls(sl=True))
     
     compare=r9Pose.PoseCompare(mPoseA,mPoseB)
+    
     .... or .... 
     compare=r9Pose.PoseCompare(mPoseA,'H:/Red9PoseTests/thisPose.pose')
     .... or ....
@@ -507,12 +582,27 @@ class PoseCompare(object):
     compare.compare() #>> bool, True = same
     compare.fails['failedAttrs']
     '''
-    def __init__(self, currentPose, referencePose):
+    def __init__(self, currentPose, referencePose, angularTolerance=0.001, linearTolerance=0.01, compareDict='poseDict'):
         '''
         make sure we have 2 PoseData objects to compare
         @param currentPose: either a PoseData object or a valid pose file
         @param referencePose: either a PoseData object or a valid pose file
+        @param tolerance: tolerance by which floats are matched
+        @param angularTolerance: the tolerance used to check rotate attr float values
+        @param linearTolerance: the tolerance used to check all other float attrs
+        @param compareDict: the internal main dict in the pose file to compare the data with
+                    NOTE in the new setup if the skeletonRoot jnt is found we add a whole 
+                    new dict to serialize the current skeleton data to the pose, this means that
+                    we can compare a pose on a rig via the internal skeleton transforms as well
+                    as the actual rig controllers...makes validation a lot more accurate for export
         '''
+        self.compareDict=compareDict
+        self.angularTolerance=angularTolerance
+        self.angularAttrs=['rotateX','rotateY','rotateZ']
+        
+        self.linearTolerance=linearTolerance
+        self.linearAttrs=['translateX','translateY','translateZ']
+        
         if isinstance(currentPose,PoseData):
             self.currentPose=currentPose
         elif os.path.exists(currentPose):
@@ -537,33 +627,45 @@ class PoseCompare(object):
             self.fails['failedAttrs'][key]['attrMismatch']=[]
         self.fails['failedAttrs'][key]['attrMismatch'].append(attr)
        
-    def compare(self, tolerance=0.001):
+    def compare(self):
         '''
         Compare the 2 PoseData objects via their internal [key][attrs] blocks
         return a bool. After processing self.fails is a dict holding all the fails
         for processing later if required
-        @param tolerance: tolerance by which floats are matched
+        TODO: still need better Eular flip handling. Also need to separate the tolerance
+        for transforms and rotates as rotates needs a much finer tolerance than transforms do.
         '''
         self.fails={}
+        logprint='PoseCompare returns : ========================================\n'
+        currentDic = getattr(self.currentPose, self.compareDict) 
+        referenceDic=getattr(self.referencePose, self.compareDict) 
         
-        for key, attrBlock in self.currentPose.poseDict.items():
-            if self.referencePose.poseDict.has_key(key):
-                referenceAttrBlock=self.referencePose.poseDict[key]
+        if not currentDic or not referenceDic:
+            raise StandardError('missing pose section <<%s>> compare aborted' % self.compareDict)
+        
+        for key, attrBlock in currentDic.items():
+            if referenceDic.has_key(key):
+                referenceAttrBlock=referenceDic[key]
             else:
-                log.info('Key Mismatch : %s' % key)
+                #log.info('Key Mismatch : %s' % key)
+                logprint+='ERROR: Key Mismatch : %s\n' % key
                 if not self.fails.has_key('missingKeys'):
                     self.fails['missingKeys']=[]
                 self.fails['missingKeys'].append(key)
                 continue
-            
+
             for attr, value in attrBlock['attrs'].items():
                 #attr missing completely from the key
                 if not referenceAttrBlock['attrs'].has_key(attr):
+                    if not self.fails.has_key('failedAttrs'):
+                        self.fails['failedAttrs']={}
                     if not self.fails['failedAttrs'].has_key(key):
                         self.fails['failedAttrs'][key]={}
                     if not self.fails['failedAttrs'][key].has_key('missingAttrs'):
                         self.fails['failedAttrs'][key]['missingAttrs']=[]
                     self.fails['failedAttrs'][key]['missingAttrs'].append(attr)
+                    #log.info('missing attribute in data : "%s.%s"' % (key,attr))
+                    logprint+='ERROR: Missing attribute in data : "%s.%s"\n' % (key,attr)
                     continue
                 
                 #test the attrs value matches
@@ -571,16 +673,25 @@ class PoseCompare(object):
                 refValue=r9Core.decodeString(referenceAttrBlock['attrs'][attr])  #decode as this may be a configObj
                 
                 if type(value)==float:
-                    if not r9Core.floatIsEqual(value, refValue, tolerance):
+                    matched=False
+                    if attr in self.angularAttrs:
+                        matched=r9Core.floatIsEqual(value, refValue, self.angularTolerance, allowGimbal=True)
+                    else:
+                        matched=r9Core.floatIsEqual(value, refValue, self.linearTolerance, allowGimbal=False)
+                    if not matched:
                         self.__addFailedAttr(key, attr)
-                        log.info('AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                        #log.info('AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                        logprint+='ERROR: AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s\n' % (key,attr,value,refValue)
                         continue    
                 elif not value==refValue:
                     self.__addFailedAttr(key, attr)
-                    log.info('AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                    #log.info('AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                    logprint+='ERROR: AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s\n' % (key,attr,value,refValue)
                     continue                 
                 
         if self.fails.has_key('missingKeys') or self.fails.has_key('failedAttrs'):
+            logprint+='PoseCompare returns : ========================================'
+            print logprint
             return False
         return True
 
