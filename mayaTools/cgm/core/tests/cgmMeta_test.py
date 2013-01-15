@@ -993,24 +993,24 @@ class cgmMeta_Test():
             assert attributes.doGetAttr(Puppet2.mNode,attr) == attributes.doGetAttr(Puppet.mNode,attr)
 
         for attr in settingsDefaultValues.keys():
-            assert Puppet2.i_settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet2.mNode,attr))
-            assert attributes.doGetAttr(Puppet2.i_settings.mNode,attr) == attributes.doGetAttr(Puppet.i_settings.mNode,attr)
+            assert Puppet2.settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet2.mNode,attr))
+            assert attributes.doGetAttr(Puppet2.settings.mNode,attr) == attributes.doGetAttr(Puppet.settings.mNode,attr)
         for attr in masterDefaultValues.keys():
-            assert Puppet2.i_masterNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
-            assert attributes.doGetAttr(Puppet2.i_masterNull.mNode,attr) == attributes.doGetAttr(Puppet.i_masterNull.mNode,attr)
+            assert Puppet2.masterNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
+            assert attributes.doGetAttr(Puppet2.masterNull.mNode,attr) == attributes.doGetAttr(Puppet.masterNull.mNode,attr)
 
 
         #Assertions on the settings null
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the settings null  on IOPuppet...")
-        assert Puppet.i_settings.mNode == Puppet2.i_settings.mNode
+        assert Puppet.settings.mNode == Puppet2.settings.mNode
 
 
         #Assertions on the masterNull
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the masterNull on IOPuppet...")
-        assert Puppet.i_masterNull.getShortName() == Puppet2.i_masterNull.getShortName()
-        assert Puppet.i_masterNull.puppet[0] == Puppet2.i_masterNull.puppet[0]
+        assert Puppet.masterNull.getShortName() == Puppet2.masterNull.getShortName()
+        assert Puppet.masterNull.puppet[0] == Puppet2.masterNull.puppet[0]
 
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))

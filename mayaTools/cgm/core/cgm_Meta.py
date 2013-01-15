@@ -198,6 +198,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    
 	    if self.hasAttr(attr):#Quick create check for initial value
 		initialCreate = False
+		if self.isReferenced():
+		    log.warning('This is a referenced node, cannot add attr')
+		    return False		
 	    else:
 		initialCreate = True
 		
@@ -1314,7 +1317,8 @@ class cgmBufferNode(cgmNode):
         log.debug("In cgmBuffer.__init__ node is '%s'"%node)
 
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
-	self.UNMANAGED.extend(['bufferList','bufferDict'])	
+	self.UNMANAGED.extend(['bufferList','bufferDict'])
+	
 	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
 	
 	self.updateData()
@@ -1332,6 +1336,9 @@ class cgmBufferNode(cgmNode):
     
     @r9General.Timer   
     def setValue(self,value):
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
 	self.purge()#wipe it to reset it
 	if type(value) is list or type(value) is tuple:
 	    for i in value:
@@ -1377,6 +1384,9 @@ class cgmBufferNode(cgmNode):
                     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False	
 	listCopy = copy.copy(self.bufferList)
 	self.value = listCopy
 	self.updateData()
@@ -1389,6 +1399,10 @@ class cgmBufferNode(cgmNode):
         info(string) -- must be an object in the scene
         
         """
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
+	
         if not mc.objExists(info) and self.messageOverride != True:
 	    log.warning("'%s' doesn't exist"%info)
 	    return
@@ -1405,6 +1419,10 @@ class cgmBufferNode(cgmNode):
     def doStoreSelected(self): 
         """ Store elected objects """
         # First look for attributes in the channel box
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
+	
         channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             for item in channelBoxCheck:
@@ -1421,6 +1439,10 @@ class cgmBufferNode(cgmNode):
         
     def remove(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
+	
         if info not in self.bufferList:
             guiFactory.warning("'%s' isn't already stored '%s'"%(info,self.mNode))    
             return
@@ -1438,6 +1460,10 @@ class cgmBufferNode(cgmNode):
     def doRemoveSelected(self): 
         """ Store elected objects """
         # First look for attributes in the channel box
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
+	
         channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             for item in channelBoxCheck:
@@ -1454,7 +1480,10 @@ class cgmBufferNode(cgmNode):
                 
     def purge(self):
         """ Purge all buffer attributes from an object """
-        
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
+	
         userAttrs = mc.listAttr(self.mNode,userDefined = True) or []
         for attr in userAttrs:
             if 'item_' in attr:

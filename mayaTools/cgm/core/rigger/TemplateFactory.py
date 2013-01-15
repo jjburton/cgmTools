@@ -443,11 +443,16 @@ def doMakeLimbTemplate(self):
     
     i_rootControl.parent = self.templateNull
     i_rootControl.doGroup(maintain=True)
-    #rootGroup = i_rootControl.doGroup()
-    #self.m.templateNull.doAddChild(rootGroup)
+    
+    # Store objects
+    #=============================      
+    log.info(self.m.tempateNull.curve)
+    log.info(self.m.tempateNull.root)
+    log.info(self.m.tempateNull.templateControlObjects)
+    
+    
     return
-    templObjNameList.append (crvName)
-    templObjNameList += curveLocs
+
     
     """ replaces the message node locator objects with the new template ones """                          
     attributes.storeObjectToMessage (crvName, templatePosObjectsInfoNull, 'curve')

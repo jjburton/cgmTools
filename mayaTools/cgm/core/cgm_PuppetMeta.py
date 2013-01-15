@@ -137,7 +137,9 @@ class cgmPuppet(cgmMeta.cgmNode):
         #Puppet Network Node
         #==============
         if self.mClass != 'cgmPuppet':
-            return False    
+            return False  
+        
+        return True
 
         #>>>Master null
         if self.getMessage('masterNull'):
@@ -500,7 +502,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         log.debug(kws)        
         
         if not self.isReferenced():   
-            if not self.verify():
+            if not self.verify(**kws):
                 raise StandardError,"Failed!"
 
     def verify(self,*args,**kws):
@@ -513,28 +515,31 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         """ 
         module = kws.get('module') or False
         bufferType = kws.get('bufferType') or ''
-        
-        #>>> Attr check    
-        self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
-        self.addAttr('cgmTypeModifier',initialValue = bufferType,lock=True)
-        self.addAttr('cgmType','buffer',lock=True)
-        self.addAttr('module',attrType = 'messageSimple')
-        
+               
         #>>> Buffer type set    
         if bufferType == '':
             if self.hasAttr('cgmTypeModifier'):
                 bufferType = self.cgmTypeModifier
             else:
-                bufferType = 'buffer'        
+                bufferType = 'buffer'   
+                
+        #>>> Attr check    
+        self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
+        self.addAttr('cgmTypeModifier',initialValue = bufferType,lock=True)
+        self.addAttr('cgmType','buffer',lock=True)
+        self.addAttr('module',attrType = 'messageSimple')
 
         #>>> Module stuff   
         if module:
+            try:
+                module = module.mNode
+            except:
+                module = module
             self.connectParent(module, bufferType, 'module') 
             
         if self.getMessage('module'):
             self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
               
-
         self.doName(**kws)  
         return True
 
@@ -633,24 +638,22 @@ class cgmModule(cgmMeta.cgmObject):
 
         #Keywords - need to set after the super call
         #==============         
-        self.kw_name= kws.pop('name',False)        
-        self.kw_moduleParent = kws.pop('moduleParent',False)
-        self.kw_position = kws.pop('position',False)
-        self.kw_direction = kws.pop('direction',False)
-        self.kw_directionModifier = kws.pop('directionModifier',False)
-        self.kw_nameModifier = kws.pop('nameModifier',False)
-        self.kw_forceNew = kws.pop('forceNew',False)
-        self.kw_initializeOnly = kws.pop('initializeOnly',False)  
-        self.kw_handles = kws.pop('handles',1) # can't have 0 handles  
-        self.kw_rollJoints = kws.pop('rollJoints',0) # can't have 0 handles  
+        self.kw_name= kws.get('name') or self.cgmName or False        
+        self.kw_moduleParent = kws.get('moduleParent') or False
+        #self.kw_position = kws.get('position') or False
+        #self.kw_direction = kws.get('direction') or False
+        #self.kw_directionModifier = kws.get('directionModifier') or False
+        #self.kw_nameModifier = kws.get('nameModifier') or False
+        self.kw_forceNew = kws.get('forceNew') or False
+        self.kw_initializeOnly = kws.get('initializeOnly') or False  
+        self.kw_handles = kws.get('handles') or 1 # can't have 0 handles  
+        self.kw_rollJoints = kws.get('rollJoints') or 0 # can't have 0 handles  
 
-        if self.kw_name:#If we have a name, store it
-            self.doStore('cgmName',self.kw_name,True)
 
-        self.kw_callNameTags = {'cgmPosition':self.kw_position, 
-                                'cgmDirection':self.kw_direction, 
-                                'cgmDirectionModifier':self.kw_directionModifier,
-                                'cgmNameModifier':self.kw_nameModifier}
+        self.kw_callNameTags = {'cgmPosition':kws.get('position') or False, 
+                                'cgmDirection':kws.get('direction') or False, 
+                                'cgmDirectionModifier':kws.get('directionModifier') or False,
+                                'cgmNameModifier':kws.get('nameModifier') or False}
 
         #>>> Initialization Procedure ==================   
         if self.isReferenced() or self.kw_initializeOnly:
@@ -669,9 +672,10 @@ class cgmModule(cgmMeta.cgmObject):
 
     def __bindData__(self,**kws):        
         #Variables
-        #==============      
-        self.addAttr('mClass', initialValue='cgmModule',lock=True) 
-        self.addAttr('cgmType',value = 'module',lock=True)
+        #==============   
+        log.info("In bind data")
+        #self.addAttr('mClass', initialValue='cgmModule',lock=True) 
+        #self.addAttr('cgmType',value = 'module',lock=True)
 
     def initialize(self,**kws):
         """ 
@@ -685,16 +689,19 @@ class cgmModule(cgmMeta.cgmObject):
         if self.cgmType != 'module':
             log.warning("cgmType not '%s'"%self.cgmType)
             return False    
-
+        return True # Experimetning, Don't know that we need to check this stuff as it's for changing info, not to be used in process
         for attr in moduleNulls_toMake:
-            if attr + 'Null' in self.__dict__.keys():
+            attr = attr + 'Null'
+            if attr in self.__dict__.keys():
                 try:
                     Attr = 'i_' + attr+'Null'#Get a better attribute store string   
                     buffer = self.getMessage(attr)[0]
+                    log.info(Attr)
+                    log.info(buffer)
                     self.__dict__[Attr] = r9Meta.MetaClass( buffer )
                     log.info("'%s' initialized as self.%s"%(buffer))
                 except:    
-                    log.error("'%s' info node failed. Please verify puppet."%attr)                    
+                    log.error("'%s' null failed. Please verify puppet."%attr)                    
                     return False
                 
         for attr in moduleBuffers_toMake:
@@ -720,8 +727,13 @@ class cgmModule(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """
-        #>>> Module Null ==================           
-
+        #>>> Module Null ==================                   
+        self.addAttr('mClass', initialValue='cgmModule',lock=True) 
+        self.addAttr('cgmType',value = 'module',lock=True)
+        
+        if self.kw_name:#If we have a name, store it
+            self.doStore('cgmName',self.kw_name,True)        
+        
         if attributes.doGetAttr(self.mNode,'cgmType') != 'module':
             log.error("'%s' is not a module. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
             return False
@@ -801,7 +813,7 @@ class cgmModule(cgmMeta.cgmObject):
                     self.__dict__[Attr]  = r9Meta.MetaClass(obj)#Initialize if exists  
                     log.info("'%s' initialized to 'self.%s'"%(obj,Attr))                    
                 except:
-                    log.error("'%s' null failed. Please verify puppet."%attr)                    
+                    log.error("'%s' null failed. Please verify modules."%attr)                    
                     return False               
             else:#Make it
                 log.info('Creating %s'%attr)                                    
@@ -839,7 +851,8 @@ class cgmModule(cgmMeta.cgmObject):
             else:
                 self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
 
-        return True        
+        return True
+    
     def getModuleColors(self):
         direction = search.returnTagInfo(self.mNode,'cgmDirection')
         if not direction:
