@@ -26,10 +26,42 @@ reload(dragFactory)
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 @r9General.Timer   
+def isTemplated(self):
+    """
+    Return if a module is templated or not
+    """
+    log.info(">>> isTemplated")
+    coreNamesValue = self.coreNames.value
+    if not coreNamesValue:
+        log.warning("No core names found")
+        return False
+    if not self.templateNull.getChildren():
+        log.warning("No children found in template null")
+        return False   
+    
+    for attr in 'controlObjects','root','curve','orientHelpers','orientRootHelper':
+        if not self.templateNull.getMessage(attr):
+            log.warning("No data found on '%s'"%attr)
+            return False    
+        
+    if len(coreNamesValue) != len(self.templateNull.getMessage('controlObjects')):
+        log.warning("Not enough handles.")
+        return False    
+        
+    for i_obj in self.templateNull.controlObjects:#check for helpers
+        if not i_obj.getMessage('helper'):
+            log.warning("'%s' missing it's helper"%i_obj.getShortName())
+            return False
+    
+    #self.moduleStates['templateState'] = True #Not working yet
+    return True
+    
+@r9General.Timer   
 def isSized(self):
     """
     Return if a moudle is sized or not
     """
+    log.info(">>> isSized")    
     handles = self.rigNull.handles
     if len(self.coreNames.value) != handles:
         log.warning("Not enough names for handles")
@@ -67,6 +99,8 @@ def doSize(self,sizeMode='normal',geo = []):
     Add geo argument that can be passed for speed
     Add clamp on value
     """
+    log.info(">>> doSize")    
+    
     clickMode = {"heel":"surface"}    
     
     #Gather info
@@ -97,6 +131,9 @@ def doSize(self,sizeMode='normal',geo = []):
     class moduleSizer(dragFactory.clickMesh):
         """Sublass to get the functs we need in there"""
         def __init__(self,i_module = i_module,**kws):
+            log.info(">>> moduleSizer.__init__")    
+            if kws:log.info("kws: %s"%str(kws))
+            
             super(moduleSizer, self).__init__(**kws)
             self.i_module = i_module
             log.info("Please place '%s'"%self.toCreate[0])
@@ -156,6 +193,8 @@ def doSetParentModule(self,moduleParent,force = False):
     #>>Check existance
         #==============	
     #Get our instance
+    log.info(">>> doSetParentModule")
+    
     try:
         moduleParent.mNode#See if we have an instance
 
@@ -195,8 +234,8 @@ def doSetParentModule(self,moduleParent,force = False):
         buffer.append(self.mNode) #Revist when children has proper add/remove handling
         del moduleParent.moduleChildren #Revist when children has proper add/remove handling
         moduleParent.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
-        if moduleParent.modulePuppet.mNode:
-            self.__setMessageAttr__('modulePuppet',moduleParent.modulePuppet.mNode)#Connect puppet to 
+        #if moduleParent.modulePuppet.mNode:
+            #self.__setMessageAttr__('modulePuppet',moduleParent.modulePuppet.mNode)#Connect puppet to 
 
     self.parent = moduleParent.parent
     return True
@@ -215,6 +254,7 @@ def getGeneratedCoreNames(self):
     TODO:
     Where to store names?
     """
+    log.info(">>> getGeneratedCoreNames")    
     log.info("Generating core names via ModuleFactory - '%s'"%self.getShortName())
 
     ### check the settings first ###
