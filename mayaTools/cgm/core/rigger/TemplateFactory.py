@@ -24,10 +24,12 @@ from cgm.lib import (modules,
                      curves,
                      lists,
                      distance,
+                     constraints,
                      attributes,
                      position,
                      logic)
 reload(attributes)
+reload(constraints)
 from cgm.lib.classes import NameFactory
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
@@ -38,6 +40,12 @@ reload(dragFactory)
 class go(object):
     @r9General.Timer
     def __init__(self,module): 
+        """
+        To do:
+        Add rotation order settting
+        Add module parent check to make sure parent is templated to be able to move forward, or to constrain
+        Add any other piece meal data necessary
+        """
         # Get our base info
         #==============	        
         #>>> module null data 
@@ -373,7 +381,8 @@ def doMakeLimbTemplate(self):
     # Making the template objects
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     templHandleList = []
-    templHandleInstances = []
+    self.i_controlObjects = []
+    self.i_locs = []
     for i,pos in enumerate(self.corePosList):# Don't like this sizing method but it is what it is for now
         #>> Make each of our base handles
         #=============================        
@@ -397,9 +406,24 @@ def doMakeLimbTemplate(self):
         i_obj.doName()#Name it
         
         mc.move (pos[0], pos[1], pos[2], [i_obj.mNode], a=True)
+        i_obj.parent = self.templateNull
+        
+        #>>> Loc it and store the loc
+        i_loc = cgmMeta.cgmObject( i_obj.doLoc() )
+        i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+        i_loc.addAttr('cgmName',value = self.m.getShortName(), attrType = 'string', lock=True) #Add name tag
+        i_loc.addAttr('cgmType',value = 'templateCurveLoc', attrType = 'string', lock=True) #Add Type
+        i_loc.v = False # Turn off visibility
+        i_loc.doName()
+        
+        self.i_locs.append(i_loc)
+        i_obj.connectChild(i_loc.mNode,'curveLoc','owner')
+        i_loc.parent = self.templateNull#parent to the templateNull
+        
+        mc.pointConstraint(i_obj.mNode,i_loc.mNode,maintainOffset = False)#Point contraint loc to the object
                     
         templHandleList.append (i_obj.mNode)
-        templHandleInstances.append(i_obj)
+        self.i_controlObjects.append(i_obj)
         
     #>> Make the curve
     #=============================     
@@ -412,10 +436,12 @@ def doMakeLimbTemplate(self):
 
     i_crv.addAttr('cgmType',value = 'templateCurve', attrType = 'string', lock=True)
     curves.setCurveColorByName(i_crv.mNode,self.moduleColors[0])
+    i_crv.parent = self.templateNull    
     i_crv.doName()
+    i_crv.setDrawingOverrideSettings({'overrideEnabled':1,'overrideDisplayType':2},True)
         
-    for i,i_obj in enumerate(templHandleInstances):#Connect each of our handles ot the cv's of the curve we just made
-        mc.connectAttr ( (i_obj.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
+    for i,i_obj in enumerate(self.i_controlObjects):#Connect each of our handles ot the cv's of the curve we just made
+        mc.connectAttr ( (i_obj.curveLoc.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
         
     
     self.foundDirections = returnGeneralDirections(self,templHandleList)
@@ -453,28 +479,24 @@ def doMakeLimbTemplate(self):
     self.m.templateNull.connectChild(i_crv.mNode,'curve','owner')
     self.m.templateNull.connectChild(i_rootControl.mNode,'root','owner')
     self.m.templateNull.connectChildren(templHandleList,'controlObjects','owner')
-
+    
+    self.i_rootControl = i_rootControl#link to carry
 
     #>> Orientation helpers
     #=============================      
     """ Make our Orientation Helpers """
     doCreateOrientationHelpers(self)
-    return True
-    masterOrient = orientHelpersReturn[0]
-    orientObjects = orientHelpersReturn[1]
-    
+    doParentControlObjects(self)
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>> Control helpers
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    print orientObjects
-    print moduleNull
-    print (templateNull+'.visControlHelpers')
-    controlHelpersReturn = addControlHelpers(orientObjects,moduleNull,(templateNull+'.visControlHelpers'))
+    #controlHelpersReturn = addControlHelpers(orientObjects,moduleNull,(templateNull+'.visControlHelpers'))
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>> Input the saved values if there are any
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    """ Orientation Helpers """
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    # Orientation Helpers 
     rotBuffer = coreRotationList[-1]
     #actualName = mc.spaceLocator (n= wantedName)
     rotCheck = sum(rotBuffer)
@@ -489,7 +511,7 @@ def doMakeLimbTemplate(self):
             mc.rotate(rotBuffer[0],rotBuffer[1],rotBuffer[2],obj,os=True)
         cnt +=1 
             
-    """ Control Helpers """
+    # Control Helpers 
     controlHelpers = controlHelpersReturn[0]
     cnt = 0
     for obj in controlHelpers:
@@ -508,14 +530,8 @@ def doMakeLimbTemplate(self):
         if scaleCheck != 0:
             mc.scale(scaleBuffer[0],scaleBuffer[1],scaleBuffer[2],obj,absolute=True)
         cnt +=1 
-    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    #>> Final stuff
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    returnList.append(templObjNameList)
-    returnList.append(templHandleList)
-    returnList.append(rootCtrl)
-    return returnList
+    """
+    return True
 
 def doCreateOrientationHelpers(self):
     """ 
@@ -564,10 +580,7 @@ def doCreateOrientationHelpers(self):
     
     #>> Sub controls
     #============================= 
-    pairList = lists.parseListToPairs(objects)
-
-    helperObjectInstances = []#we're gonna store the instances so we can get them all after parenting and what not
-    
+    self.i_orientHelpers = []#we're gonna store the instances so we can get them all after parenting and what not
     for i,obj in enumerate(objects):
         log.info("on "+obj)
         #>>> Create and color      
@@ -579,12 +592,12 @@ def doCreateOrientationHelpers(self):
         
         #>>> Tag and name
         i_obj.doCopyNameTagsFromObject(obj)
-        i_obj.doStore('cgmType','templateOrientObject',True)        
+        i_obj.doStore('cgmType','templateOrientHelper',True)        
         i_obj.doName()
         
         #>>> Link it to it's object and append list for full store
         i_obj.connectParent(obj,'helper','owner')#Connect it to it's object      
-        helperObjectInstances.append(i_obj)
+        self.i_orientHelpers.append(i_obj)
         log.info(i_obj.owner)
         #>>> initial snapping """
         position.movePointSnap(i_obj.mNode,obj)
@@ -611,17 +624,155 @@ def doCreateOrientationHelpers(self):
         #mc.connectAttr((visAttr),(helperObj+'.v'))
         attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','rx','ry','sx','sy','sz','v'])
     
-    #>>> For the last object in the chain
+    #>>> Get data ready to go forward
     bufferList = []
-    for o in helperObjectInstances:
+    for o in self.i_orientHelpers:
         bufferList.append(o.mNode)
     self.m.templateNull.orientHelpers = bufferList
-    
+    self.i_orientRootHelper = i_orientRootControl
     log.info("orientRootHelper: [%s]"%self.m.templateNull.orientRootHelper.getShortName())   
     log.info("orientHelpers: %s"%self.m.templateNull.getMessage('orientHelpers'))
 
     return True
 
+@r9General.Timer
+def doParentControlObjects(self):
+    log.info(">>> addOrientationHelpers")
+    assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
+    assert mc.objExists(self.m.mNode),"module no longer exists"    
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    #>> Parent objects
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    for i_obj in self.i_controlObjects:
+        i_obj.parent = self.i_rootControl.mNode
+        
+    self.i_controlObjects[0].doGroup(maintain=True)#Group to zero out
+    self.i_controlObjects[-1].doGroup(maintain=True)  
+    
+    log.info(self.m.templateNull.getMessage('controlObjects',False))
+    
+    constraintGroups = constraints.doLimbSegmentListParentConstraint(self.m.templateNull.getMessage('controlObjects',False))    
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    #>> Transform groups and Handles...handling
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #I don't remember why I had this handle stuff here...:)
+    """
+    root = modules.returnInfoNullObjects(moduleNull,'templatePosObjects',types='templateRoot')
+    
+    handles = templateObjects[1]
+    #>>> Break up the handles into the sets we need 
+    if stiffIndex == 0:
+        splitHandles = False
+        handlesToSplit = handles
+        handlesRemaining = [handles[0],handles[-1]]
+    elif stiffIndex < 0:
+        splitHandles = True
+        handlesToSplit = handles[:stiffIndex]
+        handlesRemaining = handles[stiffIndex:]
+        handlesRemaining.append(handles[0])
+    elif stiffIndex > 0:
+        splitHandles = True
+        handlesToSplit = handles[stiffIndex:]
+        handlesRemaining = handles[:stiffIndex]
+        handlesRemaining.append(handles[-1])
+    
+    # makes our mid transform groups
+    if len(handlesToSplit)>2:
+        constraintGroups = constraints.doLimbSegmentListParentConstraint(handlesToSplit)
+        print 'Constraint groups created...'
+        
+        for group in constraintGroups:
+            mc.parent(group,root[0])
+        
+    # zero out the first and last
+    for handle in [handles[0],handles[-1]]:
+        groupBuffer = (rigging.groupMeObject(handle,maintainParent=True))
+        mc.parent(groupBuffer,root[0])
+        
+    #>>> Break up the handles into the sets we need 
+    if stiffIndex < 0:
+        for handle in handles[(stiffIndex+-1):-1]:
+            groupBuffer = (rigging.groupMeObject(handle,maintainParent=True))
+            mc.parent(groupBuffer,handles[-1])
+    elif stiffIndex > 0:
+        for handle in handles[1:(stiffIndex+1)]:
+            groupBuffer = (rigging.groupMeObject(handle,maintainParent=True))
+            mc.parent(groupBuffer,handles[0])
+            
+    print 'Constraint groups parented...'
+    
+    rootName = NameFactory.doNameObject(root[0])
+    
+    for obj in handles:
+        attributes.doSetLockHideKeyableAttr(obj,True,False,False,['sx','sy','sz','v'])
+    """
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Parenting constrainging parts
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    return
+    moduleParent = attributes.returnMessageObject(moduleNull,'moduleParent')
+    if moduleParent != masterNull:
+        if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
+            moduleParent = attributes.returnMessageObject(moduleParent,'moduleParent')
+        parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
+        parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
+        parentTemplateObjects = []
+        for key in parentTemplatePosObjectsInfoData.keys():
+            if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
+                if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
+                    parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
+        closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
+        if (search.returnTagInfo(moduleNull,'cgmModuleType')) != 'foot':
+            constraintGroup = rigging.groupMeObject(rootName,maintainParent=True)
+            constraintGroup = NameFactory.doNameObject(constraintGroup)
+            mc.pointConstraint(closestParentObject,constraintGroup, maintainOffset=True)
+            mc.scaleConstraint(closestParentObject,constraintGroup, maintainOffset=True)
+        else:
+            constraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
+            constraintGroup = NameFactory.doNameObject(constraintGroup)
+            mc.parentConstraint(rootName,constraintGroup, maintainOffset=True)
+            
+    """ grab the last clavicle piece if the arm has one and connect it to the arm  """
+    moduleParent = attributes.returnMessageObject(moduleNull,'moduleParent')
+    if moduleParent != masterNull:
+        if (search.returnTagInfo(moduleNull,'cgmModuleType')) == 'arm':
+            if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
+                print '>>>>>>>>>>>>>>>>>>>>> YOU FOUND ME'
+                parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
+                parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
+                parentTemplateObjects = []
+                for key in parentTemplatePosObjectsInfoData.keys():
+                    if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
+                        if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
+                            parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
+                closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
+                endConstraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
+                endConstraintGroup = NameFactory.doNameObject(endConstraintGroup)
+                mc.pointConstraint(handles[0],endConstraintGroup, maintainOffset=True)
+                mc.scaleConstraint(handles[0],endConstraintGroup, maintainOffset=True)
+        
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    #>> Final stuff
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #>>> Set our new module rig process state
+    #mc.setAttr ((moduleNull+'.templateState'), 1)
+    #mc.setAttr ((moduleNull+'.skeletonState'), 0)
+    
+    #>>> Tag our objects for easy deletion
+    #children = mc.listRelatives (templateNull, allDescendents = True,type='transform')
+    #for obj in children:
+        #attributes.storeInfo(obj,'cgmOwnedBy',templateNull)
+        
+    #>>> Visibility Connection
+    #masterControl = attributes.returnMessageObject(masterNull,'controlMaster')
+    #visControl = attributes.returnMessageObject(masterControl,'childControlVisibility')
+    #attributes.doConnectAttr((visControl+'.orientHelpers'),(templateNull+'.visOrientHelpers'))
+    #attributes.doConnectAttr((visControl+'.controlHelpers'),(templateNull+'.visControlHelpers'))
+    #>>> Run a rename on the module to make sure everything is named properly
+    #NameFactory.doRenameHeir(moduleNull)
+    
 def doTemplate2(masterNull, moduleNull):
     def makeLimbTemplate (moduleNull):  
         #>>>Curve degree finder

@@ -216,7 +216,7 @@ def doPointAimConstraintObjectGroup(targets,object,mode=0):
     mc.xform(upLoc,t=upVector,r=True,os=True)
     
     """group constraint"""
-    objGroup = rigging.groupMeObject(object,True)
+    objGroup = rigging.groupMeObject(object,True,True)
     attributes.storeInfo(objGroup,'cgmName',object)
     attributes.storeInfo(objGroup,'cgmTypeModifier','follow')
     objGroup = NameFactory.doNameObject(objGroup)
@@ -307,7 +307,7 @@ def doParentConstraintObjectGroup(targets,object,mode=0):
     group(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """    
-    objGroup = rigging.groupMeObject(object,True)
+    objGroup = rigging.groupMeObject(object,True,True)
     constraint = mc.parentConstraint (targets,objGroup, maintainOffset=True)
     if mode == 1:
         weights = returnNormalizedWeightsByDistance(object,targets)
@@ -375,7 +375,7 @@ def doPointConstraintObjectGroup(targets,object,mode=0):
     group(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """    
-    objGroup = rigging.groupMeObject(object,True)
+    objGroup = rigging.groupMeObject(object,True,True)
     constraint = mc.pointConstraint (targets,objGroup, maintainOffset=True)
     if mode == 1:
         distances = []

@@ -34,7 +34,8 @@ from cgm.lib import (lists,
                      dictionary,
                      rigging,
                      settings,
-                     guiFactory)
+                     guiFactory,
+                     locators)
 
 reload(attributes)
 reload(search)
@@ -592,7 +593,15 @@ class cgmObject(cgmNode):
                 log.debug("'%s' already has target as child"%self.mNode)
                 return False
              
-	    
+    def doLoc(self,forceBBCenter = False):
+        """
+        Create a locator from an object
+
+        Keyword arguments:
+        forceBBCenter(bool) -- whether to force a bounding box center (default False)
+        """
+        return locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
+    
     def setDrawingOverrideSettings(self, attrs = None, pushToShapes = False):
         """
         Function for changing drawing override settings on on object
