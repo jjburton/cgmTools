@@ -125,35 +125,35 @@ class Test_MetaClass():
         master1.connectChildren([child1,child2,cube],'modules','puppet')
         assert cmds.attributeQuery('modules', node=master1.mNode, m=True)
         assert cmds.attributeQuery('modules', node=master1.mNode, im=True)
-        assert master1.modules==['|pCube1','child1','child2']
-        assert child1.puppet==['master1']
-        assert child2.puppet==['master1']
+        assert master1.modules==['|pCube1',child1,child2]
+        assert child1.puppet==[master1]
+        assert child2.puppet==[master1]
         assert cmds.attributeQuery('puppet', node=cube, m=True)
         assert not cmds.attributeQuery('puppet', node=cube, im=True)
         assert cmds.listConnections('%s.puppet' % cube)==['master1'] 
         
         #mClass mNode being passed in
         master2.connectChildren([child1.mNode,child2.mNode,cube],'time','master',force=True)
-        assert master2.time==['|pCube1', 'child1', 'child2']
-        assert child1.master==['master2']
-        assert child2.master==['master2']
+        assert master2.time==['|pCube1', child1, child2]
+        assert child1.master==[master2]
+        assert child2.master==[master2]
         assert cmds.listConnections('%s.master' % cube)==['master2'] 
         #check previous
-        assert master1.modules==['|pCube1','child1','child2']
-        assert child1.puppet==['master1']
-        assert child2.puppet==['master1']
+        assert master1.modules==['|pCube1',child1,child2]
+        assert child1.puppet==[master1]
+        assert child2.puppet==[master1]
         assert cmds.listConnections('%s.puppet' % cube)==['master1'] 
         
         master1.connectChildren([child1,child2],'time','master',cleanCurrent=True)
-        assert master1.time==['child1', 'child2']
-        assert sorted(child1.master)== ['master1', 'master2'] 
-        assert sorted(child2.master)== ['master1', 'master2'] 
+        assert master1.time==[child1, child2]
+        assert sorted(child1.master,key=lambda x:x.mNode)== [master1, master2] 
+        assert sorted(child2.master,key=lambda x:x.mNode)== [master1, master2] 
         #check previous
-        assert master2.time==['|pCube1', 'child1', 'child2']
+        assert master2.time==['|pCube1', child1, child2]
         assert cmds.listConnections('%s.master' % cube)==['master2'] 
-        assert master1.modules==['|pCube1','child1','child2']
-        assert child1.puppet==['master1']
-        assert child2.puppet==['master1']
+        assert master1.modules==['|pCube1', child1, child2]
+        assert child1.puppet==[master1]
+        assert child2.puppet==[master1]
         assert cmds.listConnections('%s.puppet' % cube)==['master1'] 
         
         try:
@@ -163,21 +163,21 @@ class Test_MetaClass():
             assert True
             
         master1.disconnectChild(child2,'time')
-        assert master1.time==['child1']
-        assert child2.master==['master2']
+        assert master1.time==[child1]
+        assert child2.master==[master2]
         #check previous
-        assert master1.modules==['|pCube1','child1','child2']
-        assert master2.time==['|pCube1', 'child1', 'child2']
+        assert master1.modules==['|pCube1',child1,child2]
+        assert master2.time==['|pCube1', child1, child2]
         
         master1.disconnectChild(child1)
-        assert master1.modules==['|pCube1','child2']
+        assert master1.modules==['|pCube1',child2]
         assert not master1.hasAttr('time') #cleaned the plug
-        assert child1.master==['master2']
+        assert child1.master==[master2]
         assert child1.hasAttr('puppet') #???? FIXME: this is wrong, it should have been cleaned as it's now empty!
         #assert not child1.puppet
         
         #check previous
-        assert master2.time==['|pCube1', 'child1', 'child2']
+        assert master2.time==['|pCube1', child1, child2]
         
         #isChildNode test calls
         assert master1.isChildNode(child2.mNode)

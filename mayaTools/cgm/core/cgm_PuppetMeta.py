@@ -331,8 +331,8 @@ class cgmPuppet(cgmMeta.cgmNode):
         
         self.connectModule(tmpModule)
 
-
-    def connectModule(self,module,force = False,**kws):
+    @r9General.Timer
+    def connectModule(self,module,force = True,**kws):
         """
         Connects a module to a puppet
 
@@ -406,6 +406,7 @@ class cgmMasterNull(cgmMeta.cgmObject):
             log.info(puppet.cgmName)
             log.info(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
+            self.addAttr('puppet',attrType = 'messageSimple')
             self.connectParent(puppet, 'masterNull','puppet') 
         
         if not self.isReferenced():   
@@ -717,7 +718,6 @@ class cgmModule(cgmMeta.cgmObject):
                 except:    
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
-        
 
         return True
 
@@ -885,7 +885,13 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.isSized)
         """
         return mFactory.isSized(self,**kws)       
-
+    def isTemplated(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.isTemplated)
+        """
+        return mFactory.isTemplated(self)
+        
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      

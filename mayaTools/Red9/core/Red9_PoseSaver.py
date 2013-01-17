@@ -100,34 +100,7 @@ class PoseData(object):
         return self.metaRig
                    
     # Build the poseDict data ---------------------------------------------
-    #@r9General.Timer
-#    def _getNodeMetaDataMap(self, node, mTypes=[]):
-#        '''
-#        This is a generic wrapper to extract metaData connection info for any given node
-#        used to build the pose dict up, and compare / match the data on load 
-#        @param node: node to inspect and get the connection data back from
-#        @return: mNodes={} which is directly pushed into the PoseFile under the [metaData] key
-#        TODO: Maybe this should go into the MetaRig class then it could be over-loaded
-#              by others using different wiring setups?
-#        '''
-#        mNodes={}
-#        #why not use the r9Meta.getConnectedMetaNodes ?? > well here we're using 
-#        #the c=True flag to get both plugs back in one go to process later
-#        connections=[]
-#        for nType in r9Meta.getMClassNodeTypes():
-#            con=cmds.listConnections(node,type=nType,s=True,d=False,c=True,p=True)
-#            if con:
-#                connections.extend(con)
-#        if not connections:
-#            return connections
-#        data=connections[-1].split('.')
-#        if r9Meta.isMetaNode(data[0],mTypes=mTypes):
-#            mNodes['metaAttr']=data[1]
-#            try:
-#                mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
-#            except:
-#                mNodes['metaNodeID']=node.split(':')[-1].split('|')[-1]
-#        return mNodes          
+       
 
     def _buildInfoBlock(self):
         '''

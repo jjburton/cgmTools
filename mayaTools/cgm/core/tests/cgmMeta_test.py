@@ -967,8 +967,9 @@ class cgmMeta_Test():
         #Assertions on the masterNull
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the masterNull...")
-        assert Puppet.i_masterNull.getShortName() == Puppet.cgmName
-        assert Puppet.i_masterNull.puppet[0] == Puppet.mNode
+        assert Puppet.masterNull.getShortName() == Puppet.cgmName
+        assert Puppet.masterNull.puppet.mNode == Puppet.mNode,Puppet.masterNull.puppet
+        
 
         masterDefaultValues = {'cgmType':['string','ignore'],
                                'cgmModuleType':['string','master']}       
@@ -1010,7 +1011,7 @@ class cgmMeta_Test():
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the masterNull on IOPuppet...")
         assert Puppet.masterNull.getShortName() == Puppet2.masterNull.getShortName()
-        assert Puppet.masterNull.puppet[0] == Puppet2.masterNull.puppet[0]
+        assert Puppet.masterNull.puppet == Puppet2.masterNull.puppet
 
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
@@ -1076,21 +1077,20 @@ class cgmMeta_Test():
         #----------------------------------------------------------
         log.info('>'*3 + " Connect Modules...")   
         self.Puppet.connectModule(Module1)
-        log.info(Module1.mClass)
-        assert Module1.moduleParent[0] == self.Puppet.mNode
+         
+        assert Module1.moduleParent[0].mNode == self.Puppet.mNode
         assert Module1.getMessage('modulePuppet')[0] == self.Puppet.mNode,"'%s' != '%s'"%(Module1.getMessage('modulePuppet'),self.Puppet.mNode)
 
 
-
         log.info('>'*3 + " Creating Limb module with moduleParent Flag...")           
-        Module2 = cgmPM.cgmLimb(name = 'hand',moduleParent = Module1)        
-        log.info(Module2.mClass)  
+        Module2 = cgmPM.cgmLimb(name = 'hand',moduleParent = Module1)
+        #assert Module2.getMessage('moduleParent')[0] == Module1.mNode #connection via flag isn't working yet
 
         log.info("Connecting '%s' to '%s'"%(Module2.getShortName(),Module1.getShortName()))
         log.info(Module1.mClass)
         log.info(Module2.mClass)        
         Module2.doSetParentModule(Module1)
-
+        assert Module2.getMessage('moduleParent')[0] == Module1.mNode
 
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))

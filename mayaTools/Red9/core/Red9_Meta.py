@@ -609,6 +609,21 @@ class MetaClass(object):
             return "%s(mClass: '%s', node: '%s')"  % (self.__class__, self.mClass, self.mNode.split('|')[-1])
         else:
             return "%s(Wrapped Standard MayaNode, node: '%s')"  % (self.__class__, self.mNode.split('|')[-1])
+    
+    def __eq__(self, obj):
+        '''
+        Equals calls are handled via the MObject cache
+        '''
+        if isinstance(obj, self.__class__):
+            if obj._MObject and self._MObject:
+                if obj._MObject == self._MObject:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False 
         
     def __fillAttrCache__(self, level):
         '''
@@ -737,23 +752,19 @@ class MetaClass(object):
                     if attrType=='message':
                         msgLinks=cmds.listConnections('%s.%s' % (mNode,attr),destination=True,source=True)
                         if msgLinks:
-                            msgLinks=cmds.ls(msgLinks,l=True) #cast to longNames!
-                            if cmds.attributeQuery(attr, node=mNode, m=True): #multi message
-                                log.debug('getattr for multi-message attr: connections =[%s]' % ','.join(msgLinks))
-                                return msgLinks
-                            else:
-                                #FIXME : is this questionable? if the attr has multi connects we need to deal with that
-                                #and return all connected metaNodes as a list here, however if we do then the simple
-                                #mNode.subsystem.CTRL_thingy will fail you'd have to do mNode.subsystem[0].CTRL_thingy
+                            msgLinks=cmds.ls(msgLinks,l=True)
+                            for i,link in enumerate(msgLinks):
+                                if isMetaNode(link):
+                                    msgLinks[i]=MetaClass(link)
+                                    log.debug('%s :  Connected data is an mClass Object, returning the Class' % link)
+                            if not cmds.attributeQuery(attr, node=mNode, m=True): #singular message
+                                #log.debug('getattr for multi-message attr: connections =[%s]' % ','.join(msgLinks))
                                 if isMetaNode(msgLinks[0]):
-                                    #we have a linked MClass node so instantiate the class object
-                                    log.debug('%s :  Connected data is an mClass Object, returning the Class' % msgLinks[0])
-                                    return MetaClass(msgLinks[0])
-                                else:
-                                    return msgLinks #[0] Modified, all message links now return a list of connections
+                                    return msgLinks[0] #MetaClass(msgLinks[0])
+                            return msgLinks
                         else:
                             log.debug('nothing connected to msgLink %s.%s' % (mNode,attr))
-                            return
+                            return []
                     #Standard Maya Attr handling
                     #===========================
                     attrVal=cmds.getAttr('%s.%s' % (mNode,attr))

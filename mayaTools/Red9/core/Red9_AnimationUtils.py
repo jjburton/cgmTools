@@ -804,7 +804,9 @@ class AnimationUI(object):
         if result == 'OK':
             self.__uiPresetFillFilter() #Fill the internal filterSettings object from the UI elements 
             self.filterSettings.printSettings()
-            self.filterSettings.write('%s\%s.cfg' % (self.presetDir, cmds.promptDialog(query=True, text=True)))
+            path=os.path.join(self.presetDir, '%s.cfg' % cmds.promptDialog(query=True, text=True))
+            self.filterSettings.write(path)
+            #self.filterSettings.write('%s\%s.cfg' % (self.presetDir, cmds.promptDialog(query=True, text=True)))
             self.__uiPresetsUpdate() 
     
     def __uiPresetDelete(self, *args):
@@ -1198,7 +1200,8 @@ class AnimationUI(object):
             name=cmds.promptDialog(query=True, text=True)
             try:
                 if r9Core.validateString(name):
-                    return '%s\%s.pose' %  (cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True), name)
+                    return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),'%s.pose' % name)
+                    #return '%s\%s.pose' %  (cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True), name)
             except ValueError,error:
                 raise ValueError(error)
                 
@@ -2411,7 +2414,7 @@ class MirrorHierarchy(object):
         #and attribute handling is done for us
         mClass=r9Meta.MetaClass(node)
         if self._validateMirrorEnum(side):
-            mClass.addAttr(self.mirrorSide,attrType='enum',enumName='Centre:Left:Right') 
+            mClass.addAttr(self.mirrorSide,attrType='enum',enumName='Centre:Left:Right', hidden=True) 
             mClass.__setattr__(self.mirrorSide,side) 
         if slot:
             mClass.addAttr(self.mirrorIndex ,slot, hidden=True)
