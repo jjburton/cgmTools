@@ -27,6 +27,11 @@
 #=================================================================================================================================================
 import copy as copy
 import random
+import logging
+
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -588,7 +593,7 @@ def returnMatchedTagsFromObjectList(objList,tagToMatch,infoToMatch):
     """
     returnList = []
     for obj in objList:
-        tagInfo = findRawTagInfoTagInfo(obj,tagToMatch)
+        tagInfo = findRawTagInfo(obj,tagToMatch)
         if tagInfo == infoToMatch:
             returnList.append(obj)
     return returnList
@@ -1301,8 +1306,8 @@ def returnAimUpOutVectorsFromOrientation(orientation):
     orientationValues = {'x':[1,0,0],'y':[0,1,0],'z':[0,0,1]}
     infoList = []
     if not orientation in orientationOptions:
-        print (orientation + ' is not an acceptable orientation. Expected one of the following:')
-        print orientationOptions
+        log.info (orientation + ' is not an acceptable orientation. Expected one of the following:')
+        log.info ( orientationOptions )
         return False
     else:
         orientationKeys = list(orientation)

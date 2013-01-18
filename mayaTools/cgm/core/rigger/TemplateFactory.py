@@ -39,18 +39,26 @@ reload(dragFactory)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
     @r9General.Timer
-    def __init__(self,module): 
+    def __init__(self,module,forceNew = False): 
         """
         To do:
         Add rotation order settting
         Add module parent check to make sure parent is templated to be able to move forward, or to constrain
         Add any other piece meal data necessary
+        Add a cleaner to force a rebuild
         """
         # Get our base info
         #==============	        
         #>>> module null data 
+        log.info(">>> go.__init__")        
         assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
-        log.info(">>> go.__init__")
+        if module.isTemplated():
+            if not forceNew:
+                log.error("'%s' has already been templated"%module.getShortName())
+                raise StandardError,"'%s' has already been templated"%module.getShortName()
+            else:
+                raise NotImplementedError,"Need to make a cleaner"
+        
         self.cls = "TemplateFactory.go"
         self.m = module# Link for shortness
         
@@ -315,8 +323,6 @@ def doTemplate(self):
     attributes.doConnectAttr((visControl+'.controlHelpers'),(templateNull+'.visControlHelpers'))
     #>>> Run a rename on the module to make sure everything is named properly
     #NameFactory.doRenameHeir(moduleNull)
-
-    
 
 @r9General.Timer
 def returnModuleBaseSize(self):
@@ -1211,8 +1217,8 @@ def getGoodCurveDegree(self):
     else:
         if len(self.corePosList) <= 3:
             doCurveDegree = 1
-        else:
-            doCurveDegree = len(self.corePosList) - 1
+        #else:
+            #doCurveDegree = len(self.corePosList) - 1
     
     if doCurveDegree > 0:        
         return doCurveDegree
