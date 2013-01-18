@@ -891,7 +891,12 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.isTemplated)
         """
         return mFactory.isTemplated(self)
-        
+    def isSkeletonized(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.isSkeletonized)
+        """
+        return mFactory.isSkeletonized(self)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      

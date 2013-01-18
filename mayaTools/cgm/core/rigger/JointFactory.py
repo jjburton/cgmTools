@@ -24,6 +24,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (joints,
                      rigging,
                      attributes,
+                     locators,
                      distance,
                      autoname,
                      search,
@@ -105,7 +106,7 @@ class go(object):
         else:
             raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
         
-@r9General.Timer
+#@r9General.Timer
 def doSkeletonize(self, stiffIndex=None):
     """ 
     DESCRIPTION:
@@ -199,8 +200,6 @@ def doSkeletonize(self, stiffIndex=None):
                 for joint in rolledJoints:
                     l_limbJoints.append(joint)
                     
-     
-
     #>>> Naming
     #=========== 
     """ 
@@ -225,58 +224,25 @@ def doSkeletonize(self, stiffIndex=None):
 
     l_limbJointsBuffer = NameFactory.doRenameHeir(l_limbJoints[0],True)
     
-
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
     #>>> Orientation    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    return
-    l_limbJoints = orientSegment(l_limbJoints,self.i_templateNull.getMessage('controlObjects'),self.jointOrientation)
+    #=============== 
+    if not doOrientSegment(self):
+        raise StandardError,"segment orientation failed"
     
     #>>> Set its radius and toggle axis visbility on
     #averageDistance = distance.returnAverageDistanceBetweenObjects (l_limbJoints)
+    l_limbJoints = self.i_rigNull.getMessage('skinJoints')
     jointSize = (distance.returnDistanceBetweenObjects (l_limbJoints[0],l_limbJoints[-1])/6)
-    for jnt in l_limbJoints:
-        mc.setAttr ((jnt+'.radi'),jointSize*.2)
-        #>>>>>>> TEMP
-        joints.toggleJntLocalAxisDisplay (jnt)     
+    reload(attributes)
+    #jointSize*.2
+    attributes.doMultiSetAttr(l_limbJoints,'radi',3)
     
-    print 'to orientation'
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-    #>>> Storing data    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    skinJointsNull = modules.returnInfoTypeNull(moduleNull,'skinJoints')
-    skinJointsNullData = attributes.returnUserAttrsToList(skinJointsNull)
-    existingSkinJoints = lists.removeMatchedIndexEntries(skinJointsNullData,'cgm')
-    print existingSkinJoints
-    if len(existingSkinJoints) > 0:
-        for entry in existingSkinJoints:
-            attrBuffer = (skinJointsNull+'.'+entry[0])
-            print attrBuffer
-            attributes.doDeleteAttr(skinJointsNull,entry[0])
-            
-    
-    for i in range(len(l_limbJoints)):
-        buffer = ('%s%s' % ('joint_',i))
-        attributes.storeInfo(skinJointsNull,buffer,l_limbJoints[i])
-                
-        
-        
-    return l_limbJoints 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> OLD stuff
+    return True 
+
+#@r9General.Timer
 def doOrientSegment(self):
     """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Basic limb skeletonizer
-    
-    ARGUMENTS:
-    l_limbJoints(list)
-    templeateObjects(list)
-    orientation(string) - ['xyz','yzx','zxy','xzy','yxz','zyx']
-    
-    RETURNS:
-    l_limbJoints(list)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    Segement orienter. Must have a JointFactory Instance
     """ 
     log.info(">>> doOrientSegment")
     # Get our base info
@@ -284,29 +250,21 @@ def doOrientSegment(self):
     assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
     assert mc.objExists(self.m.mNode),"module no longer exists"
     
+    self.i_rigNull = self.m.rigNull#refresh
+    
     #>>> orientation vectors
     #=======================    
     reload(search)
     orientationVectors = search.returnAimUpOutVectorsFromOrientation(self.jointOrientation)
     wantedAimVector = orientationVectors[0]
-    wantedUpVector = orientationVectors[1]    
+    wantedUpVector = orientationVectors[1]  
+    log.debug("wantedAimVector: %s"%wantedAimVector)
+    log.debug("wantedUpVector: %s"%wantedUpVector)
     
     #>>> Put objects in order of closeness to root
     #l_limbJoints = distance.returnDistanceSortedList(l_limbJoints[0],l_limbJoints)
     
     #>>> Segment our joint list by cgmName, prolly a better way to optimize this
-    """
-    jointSegmentsList = []
-    cullList = []
-    cullList = copy.copy(l_limbJoints)
-    
-    while len(cullList) > 0:
-        matchTerm = search.returnTagInfo(cullList[0],'cgmName')
-        objSet = search.returnMatchedTagsFromObjectList(cullList,'cgmName',matchTerm)
-        jointSegmentsList.append(objSet)
-        for obj in objSet:
-            cullList.remove(obj)
-    """
     l_cull = copy.copy(self.i_rigNull.getMessage('skinJoints'))    
     self.l_jointSegmentIndexSets= []
     while l_cull:
@@ -318,60 +276,53 @@ def doOrientSegment(self):
         self.l_jointSegmentIndexSets.append(buffer)
         for obj in objSet:
             l_cull.remove(obj)
-    
-    return self.l_jointSegmentIndexSets       
-    #>>> get our orientation helpers
-    """
-    l_helperObjects = []
-    for obj in posTemplateObjects:
-        templateObj = attributes.returnMessageObject(obj,'cgmName')
-        helperObjects.append(attributes.returnMessageObject(templateObj,'helper'))
-    """
-    
+        
     #>>> un parenting the chain
-    for joint in l_limbJoints[1:]:
-        mc.parent(joint,world=True)
-    
+    for i_jnt in self.i_rigNull.skinJoints:
+        i_jnt.parent = False
+        i_jnt.displayLocalAxis = 1#tmp
+
     #>>>per segment stuff
+    assert len(self.l_jointSegmentIndexSets) == len(self.m.coreNames.value)#quick check to make sure we've got the stuff we need
     cnt = 0
-    for segment in jointSegmentsList:
+    for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
+        segmentHelper = self.i_templateNull.controlObjects[cnt].getMessage('helper')[0]
+        helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True)
+        upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[1],30)        
+        if not mc.objExists(segmentHelper) and search.returnObjectType(segmentHelper) != 'nurbsCurve':
+            log.error("No helper found")
+            return False
+
         if len(segment) > 1:
-            """ creat our up object from from the helper object """
-            helperObjectCurvesShapes =  mc.listRelatives(helperObjects[cnt],shapes=True)
-            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)
-            print upLoc
-            """ make a pair list"""
+            #>>> Create our up object from from the helper object 
+            #>>> make a pair list
             pairList = lists.parseListToPairs(segment)
             for pair in pairList:
-                """ set up constraints """
-                constraintBuffer = mc.aimConstraint(pair[1],pair[0],maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+                #>>> Set up constraints """
+                constraintBuffer = mc.aimConstraint(self.i_rigNull.skinJoints[pair[1]].mNode,self.i_rigNull.skinJoints[pair[0]].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
                 mc.delete(constraintBuffer[0])
-            for obj in segment[-1:]:
-                constraintBuffer = mc.orientConstraint(segment[-2],obj,maintainOffset = False, weight = 1)
+            for index in segment[-1:]:
+                constraintBuffer = mc.orientConstraint(self.i_rigNull.skinJoints[segment[-2]].mNode,self.i_rigNull.skinJoints[index].mNode,maintainOffset = False, weight = 1)
                 mc.delete(constraintBuffer[0])
-            """ increment and delete the up loc """
-            cnt+=1
+            #>>>  Increment and delete the up loc """
             mc.delete(upLoc)
         else:
-            helperObjectCurvesShapes =  mc.listRelatives(helperObjects[cnt],shapes=True)
-            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)
-            """ make an aim object """
-            aimLoc = locators.locMeObject(helperObjects[cnt])
+            #>>> Make an aim object and move it """
+            aimLoc = locators.locMeObject(segmentHelper)
             aimLocGroup = rigging.groupMeObject(aimLoc)
-            mc.move (10,0,0, aimLoc, localSpace=True)
-            constraintBuffer = mc.aimConstraint(aimLoc,segment[0],maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+            mc.move (0,0,10, aimLoc, localSpace=True)
+            constraintBuffer = mc.aimConstraint(aimLoc,self.i_rigNull.skinJoints[segment[0]].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
             mc.delete(constraintBuffer[0])
             mc.delete(aimLocGroup)
             mc.delete(upLoc)
-            cnt+=1
+           
     #>>>reconnect the joints
-    pairList = lists.parseListToPairs(l_limbJoints)
-    for pair in pairList:
-        mc.parent(pair[1],pair[0])
+    for cnt,i_jnt in enumerate(self.i_rigNull.skinJoints[1:]):#parent each to the one before it
+        i_jnt.parent = self.i_rigNull.skinJoints[cnt].mNode
         
     """ Freeze the rotations """
-    mc.makeIdentity(l_limbJoints[0],apply=True,r=True)
-    return l_limbJoints
+    mc.makeIdentity(self.i_rigNull.skinJoints[0].mNode,apply=True,r=True)
+    return True
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  

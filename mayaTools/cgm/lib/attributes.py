@@ -616,7 +616,28 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
         except:
             log.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
 
+def doMultiSetAttr(objList, attribute, value, forceLock = False, *a, **kw):
+    """                                     
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Pushes doSetAttr to a list of objects
 
+    ARGUMENTS:
+    objList(list)
+    attribute(string)
+    value() - depends on the attribute type
+    forceLock(bool) = False(default)
+
+    RETURNS:
+    Success
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    for obj in objList:
+	attrBuffer = '%s.%s'%(obj,attribute)
+	if (mc.objExists(attrBuffer)):
+	    doSetAttr(obj,attribute,value,forceLock,**kw)
+	else:
+	    log.warning("'%s' doesn't exist! Skipping..."%attrBuffer)
 
 def doSetStringAttr(attribute,value,forceLock = False):
     """                                     

@@ -55,7 +55,31 @@ def isTemplated(self):
     
     #self.moduleStates['templateState'] = True #Not working yet
     return True
+
+@r9General.Timer   
+def isSkeletonized(self):
+    """
+    Return if a module is skeletonized or not
+    """
+    log.info(">>> isSkeletonized")
+    if not isTemplated(self):
+        log.warning("Not templated, can't be skeletonized yet")
+        return False
     
+    l_coreNames = self.coreNames.value
+    if not l_coreNames:
+        log.warning("No core names found")
+        return False
+    
+    iList_skinJoints = self.rigNull.skinJoints
+    if not iList_skinJoints:
+        log.warning("No skin joints found")
+        return False        
+    #>>> How many joints should we have 
+    
+
+    return True
+
 @r9General.Timer   
 def isSized(self):
     """

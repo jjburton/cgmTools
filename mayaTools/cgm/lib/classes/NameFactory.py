@@ -539,6 +539,7 @@ class NameFactory():
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Unique Name s
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@r9General.Timer   
 def createTempUniqueNames(objList):
     uniqueNames = []
     for obj in objList:
@@ -559,6 +560,7 @@ def createTempUniqueNames(objList):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Search stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@r9General.Timer   
 def returnSceneObjectsNameDictMap(**a):   
     sceneTransformObjects =  mc.ls(shortNames = True,**a)
 
@@ -573,7 +575,7 @@ def returnSceneObjectsNameDictMap(**a):
         return False
     return SceneObjectNameDict
 
-
+#@r9General.Timer   
 def returnMatchedNameParents(obj):
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
@@ -596,7 +598,8 @@ def returnMatchedNameParents(obj):
             return []
     else:
         return []
-
+    
+#@r9General.Timer   
 def returnMatchedNameChildren(obj):
     ### input check
     assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
@@ -620,7 +623,7 @@ def returnMatchedNameChildren(obj):
     else:
         return []
 
-
+#@r9General.Timer   
 def returnFastIterateNumber(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -642,7 +645,7 @@ def returnFastIterateNumber(obj):
     return objToQuery.getFastIterator()
 
     
-    
+#@r9General.Timer   
 def returnIterateNumber(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -686,9 +689,8 @@ def returnIterateNumber(obj):
         return cnt
         
         
-    
 
-
+#@r9General.Timer   
 def returnCGMOrder():
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -724,7 +726,7 @@ def returnCGMDivider():
     return dict.get('nameDivider')
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+#@r9General.Timer   
 def returnCGMSetting(setting):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -742,6 +744,7 @@ def returnCGMSetting(setting):
     return (dict.get(setting))
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@r9General.Timer   
 def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore='none'):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -797,6 +800,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@r9General.Timer   
 def returnRawGeneratedName(obj,ignore=[False]):
     """  
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -826,6 +830,7 @@ def returnRawGeneratedName(obj,ignore=[False]):
     return divider.join(nameBuilder)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@r9General.Timer   
 def returnCombinedNameFromDict(nameDict):
     """  
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -987,7 +992,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions that do stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-@r9General.Timer   
+#@r9General.Timer   
 def doNameObject(obj,sceneUnique = False,fastIterate = True):
     """ 
     Names an object
@@ -1024,7 +1029,7 @@ def doNameObject(obj,sceneUnique = False,fastIterate = True):
         return renameBuffer
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+#@r9General.Timer   
 def doRenameHeir(obj,sceneUnique = False,fastIterate = True):
     """ 
     Names an object's heirarchy below
@@ -1077,6 +1082,7 @@ def doRenameHeir(obj,sceneUnique = False,fastIterate = True):
     return newNames
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@r9General.Timer   
 def doUpdateName(obj,*a, **kw):
     """ 
     Updates the name of an object
