@@ -25,6 +25,8 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 import maya.cmds as mc
+# From Red9 =============================================================
+from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.lib import rigging
@@ -274,7 +276,77 @@ def duplicateJoint (joint):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Joint Curve Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def createJointsFromCurve(curve, name, divideSpans = 0):
+@r9General.Timer
+def createJointsFromCurve(curve, divideSpans = 0):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Creates joint chain from a curve
+
+    ARGUMENTS:
+    curve(string) - the curve
+    name(string) - name you want it iterate on
+    divideSpans(int) - number of roll joints you want, 0 is default
+
+    RETURNS:
+    jointList(string)
+    
+    TO DO:
+    Optimize this, don't think we need loc creation
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    cnt = 0
+    jointChain = []
+    jointPositions = []
+    l_jointUPositions = []
+    tally = 0
+    if mc.objExists (curve):
+        locs = locators.locMeCVsOnCurve(curve)
+        l_spanUPositions = []
+        #>>> Divide stuff
+        for loc in locs:
+            l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(loc,curve)[1])
+        l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
+        if divideSpans > 0:
+            for segment in l_spanSegmentUPositions:
+                #Get our span u value distance
+                log.info("segment: %s"%segment)
+                length = segment[1]-segment[0]
+                div = length / (divideSpans +1)
+                log.info("div: %s"%div)
+                tally = segment[0]
+                l_jointUPositions.append(tally)
+                for i in range(divideSpans +1)[1:]:
+                    log.info(i)
+                    tally = segment[0]+(i*div)
+                    log.info(tally)
+                    l_jointUPositions.append(tally)
+            l_jointUPositions.append(l_spanUPositions[-1])
+            
+        else:
+            l_jointUPositions = l_spanUPositions
+        
+        for u in l_jointUPositions:
+            jointPositions.append(mc.pointPosition("%s.u[%f]"%(curve,u)))
+            
+        #>>> Remove the duplicate positions"""
+        log.info (jointPositions)
+        jointPositions = lists.returnPosListNoDuplicates(jointPositions)
+        log.info (jointPositions )
+        #>>> Actually making the joints
+        for pos in jointPositions:
+            jointChain.append ( mc.joint (p=(pos[0],pos[1],pos[2])))
+        for loc in locs:
+            mc.delete(loc)
+        success = True
+        return jointChain
+    else:
+        log.info ('Curve does not exist')
+        success = False
+        return False
+    
+@r9General.Timer
+def createJointsFromCurveBAK(curve, name, divideSpans = 0):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -350,7 +422,7 @@ def createJointsFromCurve(curve, name, divideSpans = 0):
         return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-def createJointsFromCurveBAK (curve, name):
+def createJointsFromCurveBAK2 (curve, name):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:

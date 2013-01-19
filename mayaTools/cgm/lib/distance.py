@@ -1033,6 +1033,55 @@ def returnClosestUPosition (targetObject,curve):
 
     return positions[matchIndex]
 
+def returnNearestPointOnCurveInfo(targetObject,curve):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Pass target object and curve into it and return the closest U position
+
+    ARGUMENTS:
+    targetObject(string)
+    surface(string)
+
+    RETURNS:
+    [position(list),parameter(float]
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    """ pass target object and surface into it and return the closest UV coordinates"""
+    position = []
+    if search.returnObjectType(curve) == 'shape':
+        shapes = []
+        shapes.append(curve)
+    else:
+        shapes = mc.listRelatives (curve, shapes=True)
+    """ to account for target objects in heirarchies """
+    tmpObj = rigging.locMeObjectStandAlone(targetObject)
+    positions = []
+    uValues = []
+    for shape in shapes:
+        tmpNode = mc.createNode ('nearestPointOnCurve')
+        position = []
+        distances = []
+        mc.connectAttr ((tmpObj+'.translate'),(tmpNode+'.inPosition'))
+        mc.connectAttr ((shape+'.worldSpace'),(tmpNode+'.inputCurve'))
+        position.append (mc.getAttr (tmpNode+'.positionX'))
+        position.append (mc.getAttr (tmpNode+'.positionY'))
+        position.append (mc.getAttr (tmpNode+'.positionZ'))
+        positions.append(position)
+	uValues.append(mc.getAttr (tmpNode+'.parameter'))
+        mc.delete (tmpNode)
+
+    distances = []
+    """ measure distances """
+    locPos = returnWorldSpacePosition (tmpObj)
+    mc.delete (tmpObj)
+    for position in positions:
+        distances.append(returnDistanceBetweenPoints(locPos,position))
+
+    """ find the closest to our object """
+    closestPosition = min(distances)
+    matchIndex = distances.index(closestPosition)
+    return [positions[matchIndex],uValues[matchIndex]]
 
 def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     """

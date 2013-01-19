@@ -2544,7 +2544,6 @@ def reorderAttributes(obj,attrs,direction = 0):
     direction(int) - 0 is is negative (up on the channelbox), 1 is positive (up on the channelbox)
     
     RETURNS:
-    messageList - nested list in terms of [[attrName, target],[etc][etc]]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     assert direction in [0,1],"Direction must be 0 for negative, or 1 for positive movement"
@@ -2557,7 +2556,6 @@ def reorderAttributes(obj,attrs,direction = 0):
     for attr in userAttrs:
         if not mc.attributeQuery(attr, node = obj,listParent = True):
             attrsToMove.append(attr)
-            
             
     lists.reorderListInPlace(attrsToMove,attrs,direction)
     

@@ -276,7 +276,7 @@ def doSegmentAimPointConstraint(objList):
         #first get  our main sets
         mainSet = lists.returnFirstMidLastList(objList)
         constraintGroups.append(doPointAimConstraintObjectGroup([mainSet[0],mainSet[2]],mainSet[1],mode=0))
-        setsToConstrain = lists.returnFactoredList(objList, 3)
+        setsToConstrain = lists.returnFactoredConstraintList(objList, 3)
         for set in setsToConstrain:
             if len(set) == 3:
                 constraintGroups.append(doPointAimConstraintObjectGroup([set[0],set[2]],set[1],mode=0))
@@ -345,7 +345,7 @@ def doLimbSegmentListParentConstraint(objList):
         #first get  our main sets
         mainSet = lists.returnFirstMidLastList(objList)
         constraintGroups.append(doParentConstraintObjectGroup([mainSet[0],mainSet[2]],mainSet[1],mode=0))
-        setsToConstrain = lists.returnFactoredList(objList, 3)
+        setsToConstrain = lists.returnFactoredConstraintList(objList, 3)
         for set in setsToConstrain:
             if len(set) == 3:
                 constraintGroups.append(doParentConstraintObjectGroup([set[0],set[2]],set[1],mode=0))
@@ -419,7 +419,7 @@ def doLimbSegmentListPointConstraint(objList):
         #first get  our main sets
         mainSet = lists.returnFirstMidLastList(objList)
         constraintGroups.append(doPointConstraintObjectGroup([mainSet[0],mainSet[2]],mainSet[1],mode=0))
-        setsToConstrain = lists.returnFactoredList(objList, 3)
+        setsToConstrain = lists.returnFactoredConstraintList(objList, 3)
         for set in setsToConstrain:
             if len(set) == 3:
                 constraintGroups.append(doPointConstraintObjectGroup([set[0],set[2]],set[1],mode=0))

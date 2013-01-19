@@ -86,7 +86,7 @@ def isSized(self):
     Return if a moudle is sized or not
     """
     log.info(">>> isSized")    
-    handles = self.rigNull.handles
+    handles = self.templateNull.handles
     if len(self.coreNames.value) != handles:
         log.warning("Not enough names for handles")
         return False
@@ -129,7 +129,7 @@ def doSize(self,sizeMode='normal',geo = []):
     
     #Gather info
     #==============      
-    handles = self.rigNull.handles
+    handles = self.templateNull.handles
     names = self.coreNames.value or getGeneratedCoreNames(self)
     
     if not geo:
@@ -176,7 +176,7 @@ def doSize(self,sizeMode='normal',geo = []):
             
             #Make sure we have enough points
             #==============  
-            handles = self.i_module.rigNull.handles
+            handles = self.i_module.templateNull.handles
             if len(self.returnList) < handles:
                 log.warning("Creating curve to get enough points")                
                 curve = curves.curveFromPosList(self.returnList)
@@ -285,7 +285,7 @@ def getGeneratedCoreNames(self):
     partType = self.moduleType
     log.debug("%s partType is %s"%(self.getShortName(),partType))
     settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
-    handles = self.rigNull.handles
+    handles = self.templateNull.handles
     partName = NameFactory.returnRawGeneratedName(self.mNode,ignore=['cgmType','cgmTypeModifier'])
 
     ### if there are no names settings, genearate them from name of the limb module###
@@ -296,9 +296,9 @@ def getGeneratedCoreNames(self):
             generatedNames.append('%s%s%i' % (partName,'_',cnt))
             cnt+=1
 
-    elif int(self.rigNull.handles) > (len(settingsCoreNames)):
+    elif int(self.templateNull.handles) > (len(settingsCoreNames)):
         log.info(" We need to make sure that there are enough core names for handles")       
-        cntNeeded = self.rigNull.handles  - len(settingsCoreNames) +1
+        cntNeeded = self.templateNull.handles  - len(settingsCoreNames) +1
         nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
         toIterate = settingsCoreNames[1]
         iterated = []
@@ -311,7 +311,7 @@ def getGeneratedCoreNames(self):
             generatedNames.append(name) 
 
     else:
-        generatedNames = settingsCoreNames[:self.rigNull.handles]
+        generatedNames = settingsCoreNames[:self.templateNull.handles]
 
     #figure out what to do with the names
     self.coreNames.value = generatedNames
