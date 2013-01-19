@@ -130,7 +130,11 @@ def doSize(self,sizeMode='normal',geo = []):
     #Gather info
     #==============      
     handles = self.templateNull.handles
-    names = self.coreNames.value or getGeneratedCoreNames(self)
+    if len(self.coreNames.value) == handles:
+        names = self.coreNames.value
+    else:
+        log.warning("Not enough names. Generating")
+        names = getGeneratedCoreNames(self)
     
     if not geo:
         geo = self.modulePuppet.getGeo()
