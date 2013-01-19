@@ -305,15 +305,14 @@ def createJointsFromCurve(curve, divideSpans = 0):
         l_spanUPositions = []
         #>>> Divide stuff
         for loc in locs:
-            l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(loc,curve)[1])
+            l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(loc,curve)['parameter'])
         l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
         if divideSpans > 0:
             for segment in l_spanSegmentUPositions:
                 #Get our span u value distance
-                log.info("segment: %s"%segment)
+                log.debug("segment: %s"%segment)
                 length = segment[1]-segment[0]
                 div = length / (divideSpans +1)
-                log.info("div: %s"%div)
                 tally = segment[0]
                 l_jointUPositions.append(tally)
                 for i in range(divideSpans +1)[1:]:

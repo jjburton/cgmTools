@@ -1044,8 +1044,8 @@ def returnNearestPointOnCurveInfo(targetObject,curve):
     surface(string)
 
     RETURNS:
-    [position(list),parameter(float]
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    {'position':(list),'parameter':(float},'shape':(string),'object':(string)}
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     """ pass target object and surface into it and return the closest UV coordinates"""
     position = []
@@ -1056,8 +1056,10 @@ def returnNearestPointOnCurveInfo(targetObject,curve):
         shapes = mc.listRelatives (curve, shapes=True)
     """ to account for target objects in heirarchies """
     tmpObj = rigging.locMeObjectStandAlone(targetObject)
-    positions = []
-    uValues = []
+    l_positions = []
+    l_uValues = []
+    l_shapes = []
+    l_objects = []
     for shape in shapes:
         tmpNode = mc.createNode ('nearestPointOnCurve')
         position = []
@@ -1067,21 +1069,23 @@ def returnNearestPointOnCurveInfo(targetObject,curve):
         position.append (mc.getAttr (tmpNode+'.positionX'))
         position.append (mc.getAttr (tmpNode+'.positionY'))
         position.append (mc.getAttr (tmpNode+'.positionZ'))
-        positions.append(position)
-	uValues.append(mc.getAttr (tmpNode+'.parameter'))
+        l_positions.append(position)
+	l_shapes.append(shape)
+	l_uValues.append(mc.getAttr (tmpNode+'.parameter'))
+	l_objects.append("%s.u[%f]"%(shape,mc.getAttr (tmpNode+'.parameter')))
         mc.delete (tmpNode)
 
     distances = []
     """ measure distances """
     locPos = returnWorldSpacePosition (tmpObj)
     mc.delete (tmpObj)
-    for position in positions:
+    for position in l_positions:
         distances.append(returnDistanceBetweenPoints(locPos,position))
 
     """ find the closest to our object """
     closestPosition = min(distances)
     matchIndex = distances.index(closestPosition)
-    return [positions[matchIndex],uValues[matchIndex]]
+    return {'position':l_positions[matchIndex],'parameter':l_uValues[matchIndex],'shape':l_shapes[matchIndex],'object':l_objects[matchIndex]}
 
 def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     """

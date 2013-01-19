@@ -131,16 +131,52 @@ def doSkeletonize(self):
     d_rollJointOverride = self.i_templateNull.rollOverride
     if type(d_rollJointOverride) is not dict:
         d_rollJointOverride = False
-    log.info(self.i_templateNull.rollOverride)   
-    log.info(type(self.i_templateNull.rollOverride))
-    log.info(d_rollJointOverride)
-    log.info(self.i_templateNull.rollOverride.keys())   
+
     
     #>>> Make the limb segment
     #==========================	 
+    l_spanUPositions = []
+    #>>> Divide stuff
+    for i_obj in self.i_controlObjects:#These are our base span u positions on the curve
+        l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(i_obj.mNode,curve)['parameter'])
+    l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
     
-    return
-
+    #>>>Get div per span
+    l_spanDivs = []
+    for segment in l_spanSegmentUPositions:
+        l_spanDivs.append(rollJoints)
+        
+    if d_rollJointOverride:
+        for k in d_rollJointOverride.keys():
+            try:
+                l_spanDivs[int(k)]#If the arg passes
+                l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
+            except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))
+    
+    #>>>Get div per span 
+    l_jointUPositions = []
+    for i,segment in enumerate(l_spanSegmentUPositions):#Split stuff up
+        #Get our span u value distance
+        length = segment[1]-segment[0]
+        div = length / (l_spanDivs[i] +1)
+        tally = segment[0]
+        l_jointUPositions.append(tally)
+        for i in range(l_spanDivs[i] +1)[1:]:
+            tally = segment[0]+(i*div)
+            l_jointUPositions.append(tally)
+    l_jointUPositions.append(l_spanUPositions[-1])
+            
+    l_jointPositions = []
+    for u in l_jointUPositions:
+        l_jointPositions.append(mc.pointPosition("%s.u[%f]"%(curve,u)))
+        
+    #>>> Remove the duplicate positions"""
+    l_jointPositions = lists.returnPosListNoDuplicates(l_jointPositions)
+    #>>> Actually making the joints
+    l_limbJoints = []
+    for pos in l_jointPositions:
+        l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
+    
     """
     if stiffIndex == 0:#If no roll joints
         l_limbJoints = joints.createJointsFromCurve(curve,partName,rollJoints)
