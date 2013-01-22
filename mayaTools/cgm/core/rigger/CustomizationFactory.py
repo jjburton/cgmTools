@@ -15,7 +15,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.lib import (curves,distance,search,lists,attributes)
+from cgm.lib import (curves,distance,search,lists,modules,attributes)
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -157,21 +157,42 @@ class go(object):
         #log.info("corePosList: %s"%self.corePosList)
         
         
-        #Mirror our joints
-        #==================
+        #Mirror our joints, make mirror controls and store them appropriately
+        #====================================================================
+        self.l_leftJoints = self.p.getMessage('leftJoints',False)
         for i_root in self.p.leftRoots:
             l_mirrored = mc.mirrorJoint(i_root.mNode,mirrorBehavior = True, mirrorYZ = True)
             mc.select(cl=True)
             mc.select(i_root.mNode,hi=True)
             l_base = mc.ls( sl=True )
             for i,jnt in enumerate(l_mirrored):
+                log.info("On '%s'..."%jnt)
                 i_jnt = cgmMeta.cgmObject(jnt)
                 i_jnt.cgmDirection = 'right'
                 i_jnt.doName()
                 i_jnt.doStore('cgmMirrorMatch',l_base[i])
                 attributes.storeInfo(l_base[i],'cgmMirrorMatch',i_jnt.mNode)
                 
-        #mel.eval('mirrorJoint -mirrorYZ -mirrorBehavior -searchReplace "l_" "r_" "clavicle_l";')        
+                #>>> Make curve
+                index = self.l_leftJoints.index(l_base[i]) #Find our main index
+                buffer = mc.duplicate(self.p.leftJoints[index].controlCurve.mNode) #Duplicate curve
+                i_crv = cgmMeta.cgmObject( buffer[0] )
+                i_crv.cgmDirection = 'right'#Change direction
+                i_jnt.doStore('controlCurve',i_crv.mNode)#Store new curve to new joint
+                i_crv.doStore('cgmSource',i_jnt.mNode)
+                i_crv.doName()#name it
+                
+                #>>> Mirror the curve
+                s_prntBuffer = i_crv.parent#Shouldn't be necessary later
+                grp = mc.group(em=True)#Group world center
+                i_crv.parent = grp
+                attributes.doSetAttr(grp,'sx',-1)#Set an attr
+                i_crv.parent = s_prntBuffer
+                mc.delete(grp)
+                
+                l_colorRight = modules.returnSettingsData('colorRight',True)                
+                curves.setCurveColorByName(i_crv.mNode,l_colorRight[0])#Color it, need to get secodary indexes
+                
 
         """
         if self.m.mClass == 'cgmLimb':
