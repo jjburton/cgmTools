@@ -15,8 +15,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.lib import (curves,distance,search)
-reload(attributes)
+from cgm.lib import (curves,distance,search,lists,attributes)
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -99,77 +98,85 @@ def doTagCurveFromJoint(curve = None, joint = None):
     i_crv.doName()
     return True
     
-            
-            
-
-        
-        
-    
-
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
     @r9General.Timer
-    def __init__(self,module,forceNew = False): 
+    def __init__(self,customizationNode = 'MorpheusCustomization'): 
         """
         To do:
-        Add rotation order settting
-        Add module parent check to make sure parent is templated to be able to move forward, or to constrain
-        Add any other piece meal data necessary
-        Add a cleaner to force a rebuild
+        1) Gather info, make sure we have everything
+        2) Mirror joints properly
+        3) mirror controls 
+        4) Shape parent controls to their joints
+        5) Setup rig
         """
         # Get our base info
-        #==============	        
-        #>>> module null data 
-        log.info(">>> go.__init__")        
-        assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
-        if module.isTemplated():
-            if not forceNew:
-                log.error("'%s' has already been templated"%module.getShortName())
-                raise StandardError,"'%s' has already been templated"%module.getShortName()
-            else:
-                raise NotImplementedError,"Need to make a cleaner"
+        #==================	        
+        #>>> Customization network node
+        log.info(">>> go.__init__")
+        if mc.objExists('MorpheusCustomization'):
+            p = cgmMeta.cgmNode('MorpheusCustomization')
+        else:
+            p = cgmMeta.cgmNode(name = 'MorpheusCustomization')
         
-        self.cls = "TemplateFactory.go"
-        self.m = module# Link for shortness
+        p.addAttr('cgmType','cgmCustomizationNetwork',lock=True)
+        p.addAttr('leftJoints',attrType = 'message',lock=True)
+        p.addAttr('leftRoots',attrType = 'message',lock=True)
         
-        self.moduleNullData = attributes.returnUserAttrsToDict(self.m.mNode)
-        self.templateNull = self.m.getMessage('templateNull')[0] or False
-        self.rigNull = self.m.getMessage('rigNull')[0] or False
-        self.moduleParent = self.moduleNullData.get('moduleParent')
-        self.moduleColors = self.m.getModuleColors()
-        self.coreNames = self.m.coreNames.value
-        self.corePosList = self.m.templateNull.templateStarterData
-        self.foundDirections = False #Placeholder to see if we have it
+        self.cls = "CustomizationFactory.go"
+        self.p = p# Link for shortness
         
-        assert len(self.coreNames) == len(self.corePosList),"coreNames length and corePosList doesn't match"
+        #>>> Split out the left joints
+        self.l_leftJoints = []
+        self.l_leftRoots = []
+        for i_jnt in self.p.jointList:
+            if i_jnt.hasAttr('cgmDirection') and i_jnt.cgmDirection == 'left':
+               self.l_leftJoints.append(i_jnt.mNode)
+               if i_jnt.parent:#if it has a panent
+                   i_parent = cgmMeta.cgmObject(i_jnt.parent)
+                   log.debug("'%s' child of '%s'"%(i_jnt.getShortName(),i_parent.getShortName()))
+                   if not i_parent.hasAttr('cgmDirection'):
+                       self.l_leftRoots.append(i_jnt.mNode)
+        self.l_leftJoints = lists.returnListNoDuplicates(self.l_leftJoints)
+        self.l_leftRoots = lists.returnListNoDuplicates(self.l_leftRoots)
+        p.leftJoints = self.l_leftJoints
+        p.leftRoots = self.l_leftRoots
+                   
+        #>>> Customization network node
+        log.info("ShaperJoints: %s"%self.p.getMessage('jointList',False))
+        log.info("leftJoints: %s"%self.p.getMessage('leftJoints',False))
+        log.info("leftRoots: %s"%self.p.getMessage('leftRoots',False))
         
-        #>>> part name 
-        self.partName = NameFactory.returnUniqueGeneratedName(self.m.mNode, ignore = 'cgmType')
-        self.partType = self.m.moduleType or False
+        #log.info("partType: %s"%self.partType)
+        #log.info("direction: %s"%self.direction) 
+        #log.info("colors: %s"%self.moduleColors)
+        #log.info("coreNames: %s"%self.coreNames)
+        #log.info("corePosList: %s"%self.corePosList)
         
-        self.direction = None
-        if self.m.hasAttr('cgmDirection'):
-            self.direction = self.m.cgmDirection or None
         
-        #>>> template null 
-        self.templateNullData = attributes.returnUserAttrsToDict(self.templateNull)
-        self.curveDegree = self.m.templateNull.curveDegree
-        self.rollOverride = self.m.templateNull.rollOverride
-        
-        log.info("Module: %s"%self.m.getShortName())
-        log.info("moduleNullData: %s"%self.moduleNullData)
-        log.info("partType: %s"%self.partType)
-        log.info("direction: %s"%self.direction) 
-        log.info("colors: %s"%self.moduleColors)
-        log.info("coreNames: %s"%self.coreNames)
-        log.info("corePosList: %s"%self.corePosList)
-        
+        #Mirror our joints
+        #==================
+        for i_root in self.p.leftRoots:
+            l_mirrored = mc.mirrorJoint(i_root.mNode,mirrorBehavior = True, mirrorYZ = True)
+            mc.select(cl=True)
+            mc.select(i_root.mNode,hi=True)
+            l_base = mc.ls( sl=True )
+            for i,jnt in enumerate(l_mirrored):
+                i_jnt = cgmMeta.cgmObject(jnt)
+                i_jnt.cgmDirection = 'right'
+                i_jnt.doName()
+                i_jnt.doStore('cgmMirrorMatch',l_base[i])
+                attributes.storeInfo(l_base[i],'cgmMirrorMatch',i_jnt.mNode)
+                
+        #mel.eval('mirrorJoint -mirrorYZ -mirrorBehavior -searchReplace "l_" "r_" "clavicle_l";')        
 
+        """
         if self.m.mClass == 'cgmLimb':
             log.info("mode: cgmLimb Template")
             doMakeLimbTemplate(self)
         else:
             raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
+            """
