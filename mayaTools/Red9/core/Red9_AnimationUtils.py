@@ -2168,7 +2168,8 @@ class AnimFunctions(object):
             try:
                 cmds.setAttr('%s.%s' % (node,chan), cmds.getAttr('%s.%s' % (node,chan))*-1)
             except:
-                log.debug('failed to inverse %s attr' % chan)
+                log.debug(cmds.getAttr('%s.%s' % (node,chan))*-1)
+                log.debug('failed to inverse %s.%s attr' % (node,chan))
   
 
 
@@ -2390,8 +2391,11 @@ class MirrorHierarchy(object):
         '''
         if not side:
             return False
-        if type(side)==int and not side in range(0,3):
-            raise ValueError('given mirror side is not a valid int entry: 0, 1 or 2')
+        if type(side)==int:
+            if not side in range(0,3):
+                raise ValueError('given mirror side is not a valid int entry: 0, 1 or 2')
+            else:
+                return True
         if not self.mirrorDict.has_key(side):
             raise ValueError('given mirror side is not a valid key: Left, Right or Centre')
         else:
@@ -2403,7 +2407,7 @@ class MirrorHierarchy(object):
         @param node: nodes to take the attrs
         @param side: valid values are 'Centre','Left' or 'Right' or 0, 1, 2
         @param slot: bool Mainly used to pair up left and right paired controllers
-        @param axis: eg 'translateX','rotateY','rotateZ' simple comma separated string
+        @param axis: eg 'translateX,rotateY,rotateZ' simple comma separated string
             If this is set then it overrides the default mirror axis. 
             These are the channels who have their attribute/animCurve values inversed 
             during mirror. NOT we allow axis to have a null string 'None' so it can be
@@ -2573,15 +2577,182 @@ class MirrorHierarchy(object):
             else:
                 AnimFunctions.inverseAttributes(node, self.getMirrorAxis(node))
                     
-        
-class MetaAnimUtil_TestClass(r9Meta.MetaClass):
-    '''
-    SubClass of the Meta, this is here for me to test the ittersubclass function which
-    works out the full inheritance map of r9Meta.MetaClass for all modules
-    This class should get added to the RED9_META_REGISTERY
-    '''
-    def __init__(self,*args,**kws):
-        super(MetaAnimUtil_TestClass, self).__init__(*args,**kws) 
-        
 
+class MirrorSetup(object):
+    '''
+    DAMN ROUGH Mirror Handler UI for internal use only until I clean it up!
+    '''
+    def __init__(self):
+        self.mirrorClass=MirrorHierarchy()
+        self.mirrorClass.settings.hierarchy=True
+        self.win='MirrorSetup'
+        
+    @classmethod
+    def show(cls):
+        cls()._showUI()
+        
+    def _showUI(self):
+                 
+        if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
+        window = cmds.window(self.win, title="MirrorSetup", s=False, widthHeight=(260,300))
+        
+        cmds.columnLayout(adjustableColumn=True,columnAttach=('both',5))
+        cmds.separator(h=15, style='none')
+        cmds.text(l='MirrorSide')
+        cmds.rowColumnLayout(nc=3,columnWidth=[(1,90), (2,90),(3,90)])
+        self.uircbMirrorSide = cmds.radioCollection('mirrorSide')
+        cmds.radioButton('Right', label='Right')
+        cmds.radioButton('Centre',label='Centre')
+        cmds.radioButton('Left',  label='Left')
+        cmds.setParent('..')
+        cmds.separator(h=15, style='in')
+        cmds.rowColumnLayout(nc=2,columnWidth=[(1,110), (2,60)])
+        cmds.text(label='MirrorIndex')
+        cmds.intField('ifg_mirrorIndex', v=1, min=1,w=50)
+        cmds.setParent('..')
+        cmds.separator(h=15, style='in')
+        cmds.text(l='MirrorAxis')
+        cmds.checkBox('default',l='use default settings', v=True, 
+                      onc=lambda x:self.__uicb_default(False),
+                      ofc=lambda x:self.__uicb_default(True))
+        cmds.separator(h=5, style='none')
+        cmds.rowColumnLayout(ann='attrs', numberOfColumns=3, 
+                                 columnWidth=[(1,90),(2,90),(3,90)])        
+        cmds.checkBox('translateX',l='Translate X', v=False)
+        cmds.checkBox('translateY',l='Translate Y', v=False)
+        cmds.checkBox('translateZ',l='Translate Z', v=False) 
+        cmds.checkBox('rotateX',l='Rotate X', v=False)
+        cmds.checkBox('rotateY',l='Rotate Y', v=False) 
+        cmds.checkBox('rotateZ',l='Rotate Z', v=False)
+        cmds.setParent('..')   
+        cmds.separator(h=15, style='in')
+        cmds.button(label='Refresh from Selected', bgc=r9Setup.red9ButtonBGC(1),
+                     command=lambda *args:(self.__uicb_getMirrorIDsFromNode()))
+        cmds.separator(h=15, style='none')
+        cmds.button(label='Add / Update Mirror Markers', bgc=r9Setup.red9ButtonBGC(1),
+                     ann='add mirrorMarkers - NOTE if multiple selected then the index will increment from the given value',
+                     command=lambda *args:(self.__setMirrorIDs()))
+        cmds.rowColumnLayout(nc=2,columnWidth=[(1,135), (2,135)])
+        cmds.button(label='Print Mirror Debugs', bgc=r9Setup.red9ButtonBGC(1),
+                     ann='print out the hierarchies current setup in the scriptEditor',
+                     command=lambda *args:(self.__printDebugs()))
+        cmds.button(label='Delete from Selected', bgc=r9Setup.red9ButtonBGC(1),
+                     command=lambda *args:(self.__deleteMarkers()))
+        cmds.setParent('..')   
+        cmds.separator(h=15,style='none')  
+        cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
+                             c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
+        cmds.showWindow(window)
+        self.__uicb_default(False)
+        cmds.radioCollection('mirrorSide',e=True,select='Centre')
+
+    def __uicb_getMirrorIDsFromNode(self):
+        node=cmds.ls(sl=True)[0]
+        axis=None
+        index=self.mirrorClass.getMirrorIndex(node) 
+        side=self.mirrorClass.getMirrorSide(node)
+        if cmds.attributeQuery(self.mirrorClass.mirrorAxis,node=node,exists=True):
+            axis=self.mirrorClass.getMirrorAxis(node) 
+            
+        print side,index,axis
+
+        if side and index:
+            cmds.radioCollection('mirrorSide',e=True,select=side)
+            cmds.intField('ifg_mirrorIndex',e=True,v=index)
+        else:
+            raise StandardError('mirror Data not setup on this node')
+        if axis:
+            self.__uicb_default(True)
+            for a in axis:
+                if a=='translateX':  cmds.checkBox('translateX',e=True,v=True)
+                elif a=='translateY':  cmds.checkBox('translateY',e=True,v=True)
+                elif a=='translateZ':  cmds.checkBox('translateZ',e=True,v=True)
+                elif a=='rotateX':  cmds.checkBox('rotateX',e=True,v=True)
+                elif a=='rotateY':  cmds.checkBox('rotateY',e=True,v=True)
+                elif a=='rotateZ':  cmds.checkBox('rotateZ',e=True,v=True)
+        else:
+            cmds.checkBox('default',e=True, v=True) 
+            self.__uicb_default(False)
+        
+    def __printDebugs(self):
+        self.mirrorClass.nodes=cmds.ls(sl=True)
+        self.mirrorClass.printMirrorDict()
+    
+    def __deleteMarkers(self):
+        nodes=cmds.ls(sl=True,l=True)
+        if nodes:
+            for node in nodes:
+                self.mirrorClass.deleteMirrorIDs(node) 
+                log.info('deleted MirrorMarkers from : %s' % r9Core.nodeNameStrip(node))       
+        
+    def __uicb_default(self,mode):
+        cmds.checkBox('translateX',e=True,en=mode,v=False)
+        cmds.checkBox('translateY',e=True,en=mode,v=False)
+        cmds.checkBox('translateZ',e=True,en=mode,v=False)   
+        cmds.checkBox('rotateX',e=True,en=mode,v=False)
+        cmds.checkBox('rotateY',e=True,en=mode,v=False)
+        cmds.checkBox('rotateZ',e=True,en=mode,v=False)
+        #now set
+        if not mode:
+            for axis in self.mirrorClass.defaultMirrorAxis:
+                if axis=='translateX':  cmds.checkBox('translateX',e=True,v=True)
+                elif axis=='translateY':  cmds.checkBox('translateY',e=True,v=True)
+                elif axis=='translateZ':  cmds.checkBox('translateZ',e=True,v=True)
+                elif axis=='rotateX':  cmds.checkBox('rotateX',e=True,v=True)
+                elif axis=='rotateY':  cmds.checkBox('rotateY',e=True,v=True)
+                elif axis=='rotateZ':  cmds.checkBox('rotateZ',e=True,v=True)
+
+    def __ui_getMirrorAxis(self):
+        '''
+        note this is a string
+        '''
+        if cmds.checkBox('default',q=True,v=True):
+            return None
+        else:
+            axis=[]
+            if cmds.checkBox('translateX',q=True,v=True):
+                axis.append('translateX')
+            if cmds.checkBox('translateY',q=True,v=True):
+                axis.append('translateY')
+            if cmds.checkBox('translateZ',q=True,v=True):
+                axis.append('translateZ')
+            if cmds.checkBox('rotateX',q=True,v=True):
+                axis.append('rotateX')
+            if cmds.checkBox('rotateY',q=True,v=True):
+                axis.append('rotateY')
+            if cmds.checkBox('rotateZ',q=True,v=True):
+                axis.append('rotateZ')
+            if axis:
+                return ','.join(axis)
+            else:
+                return 'None'
+                  
+    def __setMirrorIDs(self):
+        nodes=cmds.ls(sl=True)
+        
+        #mirrorSlot
+        index=cmds.intField('ifg_mirrorIndex',q=True,v=True)
+        #mirrorSide
+        side=cmds.radioCollection('mirrorSide',q=True,select=True)
+        #mirrorAxis
+        axis=self.__ui_getMirrorAxis()
+        
+        if len(nodes)>1:
+  
+            result = cmds.confirmDialog(
+                title='Mirror Markers',
+                message='Add incremented Mirror Markers to Muliple selected nodes\n?',
+                button=['OK', 'Cancel'],
+                defaultButton='OK',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+            if result == 'OK':
+                i=index
+                for node in nodes:
+                    self.mirrorClass.setMirrorIDs(node,side=str(side),slot=i,axis=axis)
+                    log.info('MirrorMarkers added to : %s' % r9Core.nodeNameStrip(node))
+                    i+=1
+        else:
+            self.mirrorClass.setMirrorIDs(nodes[0],side=str(side),slot=index,axis=axis)
+            log.info('MirrorMarkers added to : %s' % r9Core.nodeNameStrip(nodes[0]))
         
