@@ -311,7 +311,7 @@ def doParentConstraintObjectGroup(targets,object,mode=0):
     constraint = mc.parentConstraint (targets,objGroup, maintainOffset=True)
     if mode == 1:
         weights = returnNormalizedWeightsByDistance(object,targets)
-        targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True)
+        targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True,maintainOffset=True)
         for cnt,value in enumerate(weights):
             mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )
     return objGroup
