@@ -60,7 +60,7 @@ def autoTagControls(customizationNode = 'MorpheusCustomization',l_controls=None)
             i_closestObject.addAttr('cgmSource',value = i_o.mNode,attrType = 'messageSimple', lock = True)
             i_closestObject.doCopyNameTagsFromObject(i_o.mNode,['cgmType','cgmTypeModifier'])
             
-            i_o.addAttr('cgmTypeModifier','shaper',attrType='string',lock = True)            
+            i_o.addAttr('cgmType','shaper',attrType='string',lock = True)            
             i_closestObject.addAttr('cgmType','bodyShaper',attrType='string',lock = True)
             
             i_o.doName()
@@ -92,8 +92,8 @@ def doTagCurveFromJoint(curve = None, joint = None):
     i_crv.addAttr('cgmSource',value = i_o.mNode,attrType = 'messageSimple', lock = True)
     i_crv.doCopyNameTagsFromObject(i_o.mNode,['cgmType','cgmTypeModifier'])
     
-    i_o.addAttr('cgmTypeModifier','shaper',attrType='string',lock = True)            
-    i_crv.addAttr('cgmType','bodyShaper',attrType='string',lock = True)
+    #i_o.addAttr('cgmTypeModifier','shaper',attrType='string',lock = True)            
+    i_crv.addAttr('cgmType','shaper',attrType='string',lock = True)
     
     i_o.doName()
     i_crv.doName()
@@ -147,6 +147,31 @@ def doTagAimContrainToTargets(obj = None, targets = None):
     i_o.addAttr('mClass','cgmObject',attrType = 'string', lock = True)
     
     i_o.addAttr('constraintAimTargets',attrType='message',value = targets)
+    return True
+
+def doTagPointContrainToTargets(obj = None, targets = None): 
+    """
+    """
+    # Get our base info
+    #==============	        
+    #>>> module null data 
+    if obj is None:
+        obj = mc.ls(sl=True)[-1] or False
+    if targets is None:
+        targets = mc.ls(sl=True)[:-1] or False
+        
+    assert mc.objExists(obj),"'%s' doesn't exist"%obj
+    assert targets,"No targets found"
+    for t in targets:
+	assert mc.objExists(t),"'%s' doesn't exist"%t
+    
+    log.info(">>> doTagContrainToTargets")
+    log.info("obj: %s"%obj)
+    log.info("targets: %s"%targets)
+    i_o = cgmMeta.cgmObject(obj)
+    i_o.addAttr('mClass','cgmObject',attrType = 'string', lock = True)
+    
+    i_o.addAttr('constraintPointTargets',attrType='message',value = targets)
     return True
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
@@ -223,6 +248,7 @@ class go(object):
 	    segmentBuffer = []
 	    d_constraintParentTargets = {}
 	    d_constraintAimTargets = {}
+	    d_constraintPointTargets = {}
 	    
 	    segName = i_root.getShortName()
 	    
@@ -258,8 +284,13 @@ class go(object):
                 i_crv.parent = s_prntBuffer
                 mc.delete(grp)
                 
-                l_colorRight = modules.returnSettingsData('colorRight',True)                
-                curves.setCurveColorByName(i_crv.mNode,l_colorRight[0])#Color it, need to get secodary indexes
+                #color it
+                l_colorRight = modules.returnSettingsData('colorRight',True)
+		if i_crv.hasAttr('cgmTypeModifier') and i_crv.cgmTypeModifier == 'secondary':
+		    colorIndex = 1
+		else:
+		    colorIndex = 0
+                curves.setCurveColorByName(i_crv.mNode,l_colorRight[colorIndex])#Color it, need to get secodary indexes
                 self.l_rightJoints.append(i_jnt.mNode)
 		segmentBuffer.append(i_jnt.mNode)#store to our segment buffer
 		
@@ -293,7 +324,17 @@ class go(object):
 			targets.append(testName)
 		    d_constraintAimTargets[i] = targets	
 		    
-	    #Connect constraintParent/AimTargets when everything is done
+		if i_mirror.hasAttr('constraintPointTargets') and i_mirror.constraintAimTargets:
+		    log.info("constraintPointTargets detected, searching to transfer!")
+		    targets = []
+		    for t in i_mirror.constraintPointTargets:
+			d_search = nFactory.returnObjectGeneratedNameDict(t.mNode)
+			d_search['cgmDirection'] = 'right'
+			testName = nFactory.returnCombinedNameFromDict(d_search)
+			targets.append(testName)
+		    d_constraintPointTargets[i] = targets	
+		    
+	    #Connect constraintParent/Point/AimTargets when everything is done
 	    if d_constraintParentTargets:
 		for k in d_constraintParentTargets.keys():
 		    i_k = r9Meta.MetaClass(segmentBuffer[k])
@@ -302,6 +343,10 @@ class go(object):
 		for k in d_constraintAimTargets.keys():
 		    i_k = r9Meta.MetaClass(segmentBuffer[k])
 		    i_k.addAttr('constraintAimTargets',attrType='message',value = d_constraintAimTargets[k])
+	    if d_constraintPointTargets:
+		for k in d_constraintPointTargets.keys():
+		    i_k = r9Meta.MetaClass(segmentBuffer[k])
+		    i_k.addAttr('constraintPointTargets',attrType='message',value = d_constraintPointTargets[k])
 		     
 	    self.l_rightRoots.append(segmentBuffer[0])#Store the root
 	    guiFactory.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar
@@ -378,7 +423,9 @@ def doRigBody(self):
     self.l_skinJoints = []
     l_constraintParentTargetJoints = []
     l_constraintAimTargetJoints = []    
-    
+    l_constraintPointTargetJoints = []   
+    mc.select(cl=True)
+    i_controlSet = cgmMeta.cgmObjectSet(name = 'customControls',setType = 'tdSet')#Build us a simple quick select set
     for i,i_jnt in enumerate(self.p.jointList):#+ self.p.rightJoints
 	if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 	    break
@@ -388,42 +435,45 @@ def doRigBody(self):
 	    buffer = updateTransform(i_jnt.controlCurve,i_jnt)	  
 	    i_jnt.controlCurve = buffer
 	    i_crv = i_jnt.controlCurve
-	    #i_crv.doCopyPivot(i_jnt.mNode)
 	    i_crv.parent = False
 	    mc.makeIdentity(i_crv.mNode, apply = True, t=True, r = True, s = True)
 	    vBuffer = mc.xform(i_crv.mNode,q=True,sp=True,ws=True)	    
-	    #i_crv.scalePivotY = -vBuffer[1]
 	    i_crv.scalePivotY = 0	    	    	    	    
 	    i_crv.doName()
 	    i_jnt.doGroup(True)
-	    
 	    i_jnt.parent = i_crv.mNode
 	    #mc.parentConstraint(i_crv.mNode,i_jnt.parent, maintainOffset=True)
 	    #mc.scaleConstraint(i_crv.mNode,i_jnt.parent, maintainOffset=True)	    
+	    i_controlSet.addObj(i_crv.mNode)
 	    
 	else:
 	    i_crv = i_jnt.controlCurve
 	    if i_crv:
-		i_jnt.cgmTypeModifier = 'body'
-		i_jnt.addAttr('cgmType','shaper',attrType = 'string')
+		i_jnt.addAttr('cgmType','bodyShaper',attrType = 'string')
 		curves.parentShapeInPlace(i_jnt.mNode,i_crv.mNode)
 		i_jnt.doName()
-		i_jnt.doGroup(True)
+		i_jnt.doGroup(True)	
 		
-		if i_jnt.cgmName in ['hip','neck','shoulders','shoulder']:
+		if i_jnt.cgmName in ['hip','neck','head','shoulders','shoulder']:
 		    pBuffer = i_jnt.parent
 		    i_prnt = cgmMeta.cgmObject(pBuffer)
 		    parentPBuffer = i_prnt.parent
 		    i_prnt.parent = False
-		    mc.pointConstraint(parentPBuffer,i_prnt.mNode, maintainOffset=True)
+		    if i_jnt.cgmName == 'shoulders':
+			mc.pointConstraint(parentPBuffer,i_prnt.mNode, maintainOffset=True)					    	    
+		    else:
+			mc.parentConstraint(parentPBuffer,i_prnt.mNode, maintainOffset=True)
 		    
 		if i_jnt.hasAttr('constraintAimTargets'):
 		    l_constraintAimTargetJoints.append(i_jnt)		    
 		if i_jnt.hasAttr('constraintParentTargets'):
 		    l_constraintParentTargetJoints.append(i_jnt)
-		    
+		if i_jnt.hasAttr('constraintPointTargets'):
+		    l_constraintPointTargetJoints.append(i_jnt)
+	    i_controlSet.addObj(i_jnt.mNode)	    
+		  		
 	self.l_skinJoints.append(i_jnt)
-	
+    
     if l_constraintParentTargetJoints:
 	log.info("Found contraintParentTargetJoints: %i"%len(l_constraintParentTargetJoints))
 	for i_jnt in l_constraintParentTargetJoints:
@@ -437,23 +487,41 @@ def doRigBody(self):
 		constraints.doParentConstraintObjectGroup(i_jnt.getMessage('constraintParentTargets',False),i_prnt.getShortName(),1)
 		mc.scaleConstraint(i_jnt.getMessage('constraintParentTargets',False),i_prnt.getShortName(), maintainOffset=True)	    
 	    else:
-		constraints.doPointConstraintObjectGroup(i_jnt.getMessage('constraintParentTargets',False),i_prnt.getShortName(),1)
-		
+		constraints.doPointConstraintObjectGroup(i_jnt.getMessage('constraintParentTargets',False),i_prnt.getShortName(),0)
+    
+    if l_constraintPointTargetJoints:
+	log.info("Found constraintPointTargets: %i"%len(l_constraintPointTargetJoints))
+	for i_jnt in l_constraintPointTargetJoints:
+	    pBuffer = i_jnt.parent
+	    i_prnt = cgmMeta.cgmObject(pBuffer)
+	    i_prnt.addAttr('cgmTypeModifier','point','string')	    
+	    parentPBuffer = i_prnt.parent
+	    i_prnt.parent = False
+	    i_prnt.doName()	    
+	    log.info(i_jnt.getMessage('constraintPointTargets',False))
+	    log.info(i_prnt.mNode)
+	    
+	    constraints.doPointConstraintObjectGroup(i_jnt.getMessage('constraintPointTargets',False),i_prnt.getShortName(),0)
+
     if l_constraintAimTargetJoints:
 	log.info("Found contraintAimTargetJoints: %i"%len(l_constraintAimTargetJoints))
 	for i_jnt in l_constraintAimTargetJoints:
-	    i_jnt.doGroup(True)	    
-	    pBuffer = i_jnt.parent
-	    i_prnt = cgmMeta.cgmObject(pBuffer)
-	    i_prnt.addAttr('cgmTypeModifier','aim','string')
-	    i_prnt.doName()
-	    log.info(i_jnt.getMessage('constraintAimTargets',False))
-	    log.info(i_prnt.mNode)
-	    constBuffer = mc.aimConstraint(i_jnt.getMessage('constraintAimTargets',False),i_prnt.mNode,maintainOffset = True, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,0,1], worldUpType = 'vector' )    
+	    if i_jnt.cgmName == 'ankleMeat':
+		if i_jnt.cgmDirection == 'left':
+		    constBuffer = mc.aimConstraint(i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = True, weight = 1, aimVector = [0,1,0], upVector = [0,0,1], worldUpVector = [0,0,-1], worldUpType = 'vector' )    		
+		elif i_jnt.cgmDirection == 'right':
+		    constBuffer = mc.aimConstraint(i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = True, weight = 1, aimVector = [0,-1,0], upVector = [0,0,-1], worldUpVector = [0,0,-1], worldUpType = 'vector' )    			    
+	    else:
+		if i_jnt.cgmDirection == 'left':
+		    constBuffer = mc.aimConstraint(i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = True, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,0,1], worldUpType = 'vector' )    
+		elif i_jnt.cgmDirection == 'right':
+		    constBuffer = mc.aimConstraint(i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = True, weight = 1, aimVector = [0,0,-1], upVector = [0,-1,0], worldUpVector = [0,0,1], worldUpType = 'vector' )    
+	    
+	    attributes.doSetLockHideKeyableAttr(i_jnt.mNode,channels = ['rx','ry','rz'])
 		    
 	     
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
-		
+	    
 		
             
     #mc.delete('controlCurves')
