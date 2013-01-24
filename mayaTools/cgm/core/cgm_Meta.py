@@ -1822,13 +1822,13 @@ class cgmAttr(object):
                         if cInstance.keyable:
                             cInstance.doKeyable(False)
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = False) 
-                        log.info("'%s.%s' hidden!"%(cInstance.obj.mNode,cInstance.attr))
+                        log.debug("'%s.%s' hidden!"%(cInstance.obj.mNode,cInstance.attr))
                 
             elif not self.p_hidden:
                 if self.p_keyable:
                     self.doKeyable(False)
                 mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,channelBox = False) 
-                log.info("'%s.%s' hidden!"%(self.obj.mNode,self.attr))
+                log.debug("'%s.%s' hidden!"%(self.obj.mNode,self.attr))
    
         else:
             if self.getChildren():
@@ -1837,11 +1837,11 @@ class cgmAttr(object):
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.hidden:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = True) 
-                        log.info("'%s.%s' unhidden!"%(cInstance.obj.mNode,cInstance.attr))
+                        log.debug("'%s.%s' unhidden!"%(cInstance.obj.mNode,cInstance.attr))
                 
             elif self.p_hidden:
                 mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,channelBox = True)           
-                log.info("'%s.%s' unhidden!"%(self.obj.mNode,self.attr))
+                log.debug("'%s.%s' unhidden!"%(self.obj.mNode,self.attr))
 		
     p_hidden = property (isHidden,doHidden) 
     
@@ -1869,12 +1869,12 @@ class cgmAttr(object):
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.keyable:
                         mc.setAttr(cInstance.nameCombined,e=True,keyable = True) 
-                        log.info("'%s.%s' keyable!"%(cInstance.obj.mNode,cInstance.attr))
+                        log.debug("'%s.%s' keyable!"%(cInstance.obj.mNode,cInstance.attr))
                         cInstance.p_hidden = False
                 
             elif not self.p_keyable:
                 mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,keyable = True) 
-                log.info("'%s.%s' keyable!"%(self.obj.mNode,self.attr))
+                log.debug("'%s.%s' keyable!"%(self.obj.mNode,self.attr))
                 self.p_hidden = False
                     
                 
@@ -1885,13 +1885,13 @@ class cgmAttr(object):
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.keyable:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,keyable = False) 
-                        log.info("'%s.%s' unkeyable!"%(cInstance.obj.mNode,cInstance.attr))
+                        log.debug("'%s.%s' unkeyable!"%(cInstance.obj.mNode,cInstance.attr))
                         if not mc.getAttr(cInstance.nameCombined,channelBox=True):
                             cInstance.doHidden(False)                
                 
             elif self.p_keyable:
                 mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,keyable = False)           
-                log.info("'%s.%s' unkeyable!"%(self.obj.mNode,self.attr))
+                log.debug("'%s.%s' unkeyable!"%(self.obj.mNode,self.attr))
                 if not mc.getAttr(self.p_combinedName,channelBox=True):
                     self.doHidden(False)    
     p_keyable = property (isKeyable,doKeyable) 

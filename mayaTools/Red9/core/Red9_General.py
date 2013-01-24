@@ -285,6 +285,8 @@ class SceneRestoreContext(object):
         #panel management
         self.dataStore['panelStore']={}
         for panel in ['modelPanel1','modelPanel2','modelPanel3','modelPanel4']:
+            if not cmds.modelPanel(panel,q=True,exists=True):
+                continue
             self.dataStore['panelStore'][panel]={}
             self.dataStore['panelStore'][panel]['settings']=cmds.modelEditor(panel, q=True, sts=True)
             activeCam=cmds.modelPanel(panel, q=True, camera=True)

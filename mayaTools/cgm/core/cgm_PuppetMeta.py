@@ -585,12 +585,13 @@ rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any mo
                        'ik':'bool',
                        'stretchy':'bool',
                        'bendy':'bool',
-                       'handles':'int',
                        'skinJoints':'message'}
 
 templateNullAttrs_toMake = {'version':'float',
+                            'handles':'int',                            
                             'rollJoints':'int',#How many splits per segement
-                            'stiffIndex':'int',#Stiff index has to do with which segments to not split, maybe make it an argument
+                            'rollOverride':'string',#Override
+                            #'stiffIndex':'int',#Stiff index has to do with which segments to not split, maybe make it an argument
                             'curveDegree':'int',#Degree of the template curve, 0 for purely point to point curve
                             'posObjects':'message',#Not 100% on this one
                             'controlObjects':'message',#Controls for setting the template
@@ -827,30 +828,31 @@ class cgmModule(cgmMeta.cgmObject):
                 
         #Attrbute checking
         #=================
-        for attr in rigNullAttrs_toMake.keys():#See table just above cgmModule
+        for attr in sorted(rigNullAttrs_toMake.keys()):#See table just above cgmModule
             log.info("Checking '%s' on rig Null"%attr)
-            if attr == 'handles':
-                if self.kw_handles == 1:
-                    self.i_rigNull.addAttr(attr,initialValue = self.kw_handles, attrType = rigNullAttrs_toMake[attr],lock = True )                
-                else:
-                    self.i_rigNull.addAttr(attr,value = self.kw_handles, attrType = rigNullAttrs_toMake[attr],lock = True )                
+            self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
 
-                log.info('handles case, setting min')
-                a = cgmMeta.cgmAttr(self.i_rigNull.mNode,'handles')
-                log.info(self.kw_handles)                
-                log.info(self.i_rigNull.handles)                
-                a.doMin(1)#Make this check that the value is not below the min when set
-            else:
-                self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
-
-        for attr in templateNullAttrs_toMake.keys():#See table just above cgmModule
+        for attr in sorted(templateNullAttrs_toMake.keys()):#See table just above cgmModule
             log.info("Checking '%s' on template Null"%attr)	
             if attr == 'rollJoints':
-                log.info(self.kw_rollJoints)
+                log.debug(self.kw_rollJoints)
                 if self.kw_rollJoints == 0:
                     self.i_templateNull.addAttr(attr,initialValue = self.kw_rollJoints, attrType = templateNullAttrs_toMake[attr],lock = True )                
                 else:
                     self.i_templateNull.addAttr(attr,value = self.kw_rollJoints, attrType = templateNullAttrs_toMake[attr],lock = True )                		    	    
+            elif attr == 'handles':
+                if self.kw_handles == 1:
+                    self.i_templateNull.addAttr(attr,initialValue = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True )                
+                else:
+                    self.i_templateNull.addAttr(attr,value = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True )                
+
+                log.info('handles case, setting min')
+                a = cgmMeta.cgmAttr(self.i_rigNull.mNode,'handles')
+                log.info(self.kw_handles)                
+                log.info(self.i_templateNull.handles)                
+                a.doMin(1)#Make this check that the value is not below the min when set            
+            elif attr == 'rollOverride':
+                self.i_templateNull.addAttr(attr,initialValue = '{}', attrType = templateNullAttrs_toMake[attr],lock = True )                                
             else:
                 self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
 
@@ -891,21 +893,27 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.isTemplated)
         """
         return mFactory.isTemplated(self)
-        
+    def isSkeletonized(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.isSkeletonized)
+        """
+        return mFactory.isSkeletonized(self)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
-limbTypes = {'segment':{'handles':3,'stiffIndex':0,'curveDegree':1,'rollJoints':3},
-             'finger':{'handles':5,'stiffIndex':1,'curveDegree':0,'rollJoints':0},
-             'clavicle':{'handles':1,'stiffIndex':0,'curveDegree':0,'rollJoints':0},
-             'arm':{'handles':3,'stiffIndex':0,'curveDegree':0,'rollJoints':3},
-             'leg':{'handles':3,'stiffIndex':0,'curveDegree':0,'rollJoints':3},
-             'torso':{'handles':5,'stiffIndex':-1,'curveDegree':1,'rollJoints':2},
-             'tail':{'handles':5,'stiffIndex':0,'curveDegree':1,'rollJoints':3},
-             'head':{'handles':1,'stiffIndex':0,'curveDegree':0,'rollJoints':0},
-             'neckHead':{'handles':4,'stiffIndex':-1,'curveDegree':1,'rollJoints':3},
-             'foot':{'handles':3,'stiffIndex':0,'curveDegree':0,'rollJoints':0}
-             }  
+limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
+             'finger':{'handles':5,'rollOverride':'{"0":1}','curveDegree':0,'rollJoints':0},
+             'clavicle':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
+             'arm':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':3},
+             'leg':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':3},
+             'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':1,'rollJoints':2},
+             'tail':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
+             'head':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
+             'neckHead':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
+             'foot':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':0}
+             }
+
 class cgmLimb(cgmModule):
     def __init__(self,*args,**kws):
         """ 
@@ -956,19 +964,28 @@ class cgmLimb(cgmModule):
         if self.moduleType != moduleType:
             log.info("Changing type to '%s' type"%moduleType)
             self.moduleType = moduleType
-            settings = limbTypes[moduleType] 
-            self.rigNull.addAttr('handles', value = settings['handles'],lock = True) 
-            self.templateNull.addAttr('rollJoints', value = settings['rollJoints'],lock = True) 
-            self.templateNull.addAttr('curveDegree', value = settings['curveDegree'],lock = True) 
-            self.templateNull.addAttr('stiffIndex', value = settings['stiffIndex'],lock = True) 	    
+            settings = limbTypes[moduleType]
+            if settings:
+                for attr in settings.keys():
+                    self.templateNull.addAttr(attr, value = settings[attr],lock = True) 
+                    
+            #self.rigNull.addAttr('handles', value = settings['handles'],lock = True) 
+            #self.templateNull.addAttr('rollJoints', value = settings['rollJoints'],lock = True) 
+            #self.templateNull.addAttr('curveDegree', value = settings['curveDegree'],lock = True)
+            #self.templateNull.addAttr('rollOverride', value = settings['rollOverride'],lock = True)             
+            #self.templateNull.addAttr('stiffIndex', value = settings['stiffIndex'],lock = True) 	    
 
         else:
             self.moduleType = moduleType
             settings = limbTypes[moduleType] 
-            self.rigNull.addAttr('handles', initialValue = settings['handles'],lock = True) 
-            self.templateNull.addAttr('rollJoints', initialValue = settings['rollJoints'],lock = True) 
-            self.templateNull.addAttr('curveDegree', initialValue = settings['curveDegree'],lock = True) 
-            self.templateNull.addAttr('stiffIndex', initialValue = settings['stiffIndex'],lock = True) 
+            if settings:
+                for attr in settings.keys():
+                    self.templateNull.addAttr(attr, initialValue = settings[attr],lock = True)             
+            #self.rigNull.addAttr('handles', initialValue = settings['handles'],lock = True) 
+            #self.templateNull.addAttr('rollJoints', initialValue = settings['rollJoints'],lock = True) 
+            #self.templateNull.addAttr('curveDegree', initialValue = settings['curveDegree'],lock = True) 
+            #self.templateNull.addAttr('rollOverride', initialValue = settings['rollOverride'],lock = True)                         
+            #self.templateNull.addAttr('stiffIndex', initialValue = settings['stiffIndex'],lock = True) 
 
         return True
 

@@ -14,7 +14,7 @@ import time
 import logging
 
 from cgm.lib import (distance,attributes)
-
+reload(attributes)
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -60,7 +60,7 @@ class MorpheusBase_Test():
         mc.file(mFile, i = True, pr = True, force = True,prompt = False) # prompt means no error message
         
     def sizeTest(self):
-        spine = cgmPM.cgmLimb(self.Morpheus.moduleChildren[0],handles = 4)
+        spine = cgmPM.cgmLimb(self.Morpheus.getMessage('moduleChildren')[0],handles = 4)
         log.info(self.Morpheus.i_geoGroup.mNode)
         log.info(self.Morpheus.i_geoGroup)        
         self.Morpheus.i_geoGroup.doAddChild('Morphy_GRP')
@@ -1053,7 +1053,6 @@ class cgmMeta_Test():
         log.info(Module1.i_rigNull.cgmType)
 
         assert Module1.i_rigNull.cgmType == 'rigNull','%s'%Module1.i_rigNull.cgmType
-        assert Module1.i_rigNull.handles == 3,'%s'%Module1.i_rigNull.handles
         assert Module1.i_rigNull.ik == False
         assert Module1.i_rigNull.fk == False
         assert Module1.i_rigNull.bendy == False
@@ -1067,6 +1066,7 @@ class cgmMeta_Test():
         assert Module1.i_rigNull.hasAttr('cgmType')
         log.info(Module1.i_templateNull.cgmType)
         assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
+        assert Module1.i_templateNull.handles == 3,'%s'%Module1.i_templateNull.handles
 
         #Assertions on the coreNames bufferNode
         #----------------------------------------------------------

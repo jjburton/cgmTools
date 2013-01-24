@@ -20,7 +20,7 @@
 #=================================================================================================================================================
 
 import maya.cmds as mc
-
+import copy
 
 def returnListChunks(l, n):
     """ 
@@ -137,13 +137,13 @@ def returnFirstMidLastList(list):
     bufferList.append(list[int(round((len(list))*1/2))])
     bufferList.append(list[-1])
     return bufferList
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-def returnFactoredList(listToFactor, factor):
+    
+def returnFactoredConstraintList(listToFactor, factor):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Takes a list and factors it out for constraining purposes
-    ex - returnFactoredList(testList, 3)
+    ex - returnFactoredConstraintList(testList, 3)
     
     ARGUMENTS:
     listToFactor(list) - ex testList = [0,1,2,3,4,5,6,7]

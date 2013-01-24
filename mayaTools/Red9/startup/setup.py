@@ -113,6 +113,10 @@ def menuSetup():
                   ann="Randomize selected Keys - also available in the GraphEditor>curve menu",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()")  
+    cmds.menuItem('redNineMirrorUIItem',l="MirrorSetup",
+                  ann="Temp UI to help setup the Mirror Markers on a rig",
+                  p='redNineMenuItemRoot', echoCommand=True,
+                  c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.MirrorSetup().show()")  
     cmds.menuItem(divider=True)
     cmds.menuItem('redNineAnimBndItem',l="Animation Binder",ann="My Autodesk MasterClass toolset",
                   p='redNineMenuItemRoot', echoCommand=True,

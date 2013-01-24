@@ -1020,7 +1020,7 @@ class MetaClass(object):
                         to another node force the connection to the new attr 
         TODO: do we move the cleanCurrent to the end so that if the connect fails you're not left 
         with a half run setup?
-        TODO: check if the node is already connected to self.mNode via the given attr and abort if True
+        TODO: check the attr type, if attr exists and is a non-multi messgae then don't run the indexBlock
         '''
 
         #make sure we have the attr on the mNode
@@ -1034,7 +1034,6 @@ class MetaClass(object):
             srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
             
         for node in nodes:
-            
             ismeta=False
             if isMetaNode(node):
                 ismeta=True
@@ -1310,12 +1309,11 @@ class MetaClass(object):
             childMetaNodes.extend([node for node in self.getChildMetaNodes(walk=True, mAttrs=mAttrs)])
         for node in childMetaNodes:
             log.debug('MetaNode : %s' % node.mNode)
-            for attr in cmds.listAttr(self.mNode,ud=True):
-                if cmds.getAttr('%s.%s' % (self.mNode,attr),type=True)=='message':
-                    msgLinked=cmds.listConnections('%s.%s' % (self.mNode,attr),destination=True,source=False)
+            for attr in cmds.listAttr(node.mNode,ud=True):
+                if cmds.getAttr('%s.%s' % (node.mNode,attr),type=True)=='message':
+                    msgLinked=cmds.listConnections('%s.%s' % (node.mNode,attr),destination=True,source=False)             
                     if msgLinked:
                         msgLinked=cmds.ls(msgLinked,l=True) #cast to longNames!
-                        #print msgLinked,attr
                         children.extend(msgLinked)
         return children
     
