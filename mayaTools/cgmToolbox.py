@@ -277,7 +277,12 @@ def loadPuppetBox2( *a ):
     from cgm.tools import puppetBox2
     reload(puppetBox2)
     cgmPuppetBoxWin = puppetBox2.run()	
-
+    
+def loadCGMSimpleGUI( *a ):
+    from cgm.core.classes import GuiFactory as uiFactory
+    reload(uiFactory)
+    uiFactory.cgmGUI()
+    
 def loadPolyUniteTool( *a ):
     from cgm.tools import polyUniteTool
     reload(polyUniteTool)
@@ -392,7 +397,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
                         testCGMCore),
                        ('Debug Morpheus Start', " WARNING - Opens new file...Unit test base morpheus stuff",
-                        testMorpheus)                           
+                        testMorpheus),  
+                       ('Simple cgmGUI', " Base cgmGUI",
+                        loadCGMSimpleGUI)                       
                        ))
 
               )
