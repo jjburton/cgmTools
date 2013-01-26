@@ -18,18 +18,6 @@ __author__ = 'Josh Burton'
 __owner__ = 'CG Monks'
 __website__ = 'www.cgmonks.com'
 
-#These feed to Hamish's basemel ui stuff
-USE_Template = 'cgmUITemplate'
-WINDOW_NAME = 'cgmGUI'
-WINDOW_TITLE = '%s - %s'%(__toolName__,__version__)
-DEFAULT_SIZE = 250, 400
-DEFAULT_MENU = None
-RETAIN = True
-MIN_BUTTON = True
-MAX_BUTTON = False
-FORCE_DEFAULT_SIZE = False  #always resets the size of the window when its re-created
-
-
 #>>> From Maya =============================================================
 import maya.cmds as mc
 import maya.mel as mel
@@ -57,26 +45,30 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
 
-#def run():
-    #cgmMorphyMakerWin = morphyMakerClass()
+def run():
+    win = cgmGUI()
 
 class cgmGUI(BaseMelWindow):
     """
     Base CG Monks core gui
     """
-    USE_Template = USE_Template
-    WINDOW_NAME = WINDOW_NAME
-    WINDOW_TITLE = WINDOW_TITLE
-    DEFAULT_SIZE = DEFAULT_SIZE
-    DEFAULT_MENU = DEFAULT_MENU
-    RETAIN = RETAIN
-    MIN_BUTTON =MIN_BUTTON
-    MAX_BUTTON =MAX_BUTTON
-    FORCE_DEFAULT_SIZE = FORCE_DEFAULT_SIZE
-    def __init__( self,*args,**kws):
+    #These feed to Hamish's basemel ui stuff
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmGUI'
+    WINDOW_TITLE = '%s - %s'%(__toolName__,__version__)
+    DEFAULT_SIZE = 250, 300
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = True
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = False  #always resets the size of the window when its re-created
+    allowedDockAreas = ['right', 'left']
+
+    def __init__( self,*args,**kws):       
         log.info(">>> cgmGUI.__init__")
         if kws:log.info("kws: %s"%str(kws))
         if args:log.info("args: %s"%str(args))
+
         initializeTemplates() 
         __toolName__ = 'cgmGUI'
         self.description = 'This is a series of tools for working with cgm Sets'
@@ -90,11 +82,11 @@ class cgmGUI(BaseMelWindow):
         #====================
         self.buildMenus()
         #self.ShowHelpOption = mc.optionVar( q='cgmVar_AnimToolsShowHelp' )
-        
+
         #>>>Body
         #====================        
         self.layout_wapper(self)
-        
+
         #====================
         # Show and Dock
         #====================
@@ -105,23 +97,23 @@ class cgmGUI(BaseMelWindow):
                 mc.deleteUI(self.dockCnt, control=True)  
         except:
             pass
-        
+
         log.info(self.ov_Dock.value)
-        if self.ov_Dock.value:
-            allowedAreas = ['right', 'left']
-            mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=False, allowedArea=allowedAreas, width=400)
             #except:
                 #Dock failed, opening standard Window	
                 #log.warning('Failed to dock')
                 #self.show()
-        else:self.show()
-
-
+        self.show()
+        try:mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.ov_Dock.value, allowedArea=allowedDockAreas, width=DEFAULT_SIZE[0])
+        except:
+            log.warning('Failed to dock')
+            #self.show()
+            
     def setupVariables(self):
         self.doCreateGuiOptionVar('ShowHelp',defaultValue = 0)
         self.doCreateGuiOptionVar('Dock',defaultValue = 1)
         self.doCreateGuiOptionVar('DebugMode',defaultValue = 0)
- 	
+
     def doCreateGuiOptionVar(self,varName,*args,**kws):
         fullName = "cgmVar_%s%s"%(__toolName__,varName)
         if args:args[0] = fullName
@@ -130,20 +122,34 @@ class cgmGUI(BaseMelWindow):
         log.info('ov_%s'%varName)
         if fullName not in self.optionVars:
             self.optionVars.append(fullName)
-            
+
     #=========================================================================
     # Menu Building
     #=========================================================================
     def buildMenus(self):
         self.setupVariables()
+        self.UI_RootMenu = MelMenu( l='Root', pmc=self.buildRootMenu)		        
         self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.buildOptionsMenu)		
         self.UI_HelpMenu = MelMenu( l='Help', pmc=self.buildHelpMenu)   
-        
+
+    def buildRootMenu( self, *a ):
+        self.UI_RootMenu.clear()
+        #>>> Reset Options		
+        MelMenuItemDiv( self.UI_RootMenu )
+        MelMenuItem( self.UI_RootMenu, l="Reload",
+                     c=lambda *a: self.reload())		
+        MelMenuItem( self.UI_RootMenu, l="Reset",
+                     c=lambda *a: self.reset())    
         
     def buildOptionsMenu( self, *a ):
         self.UI_OptionsMenu.clear()
-        MelMenuItem( self.UI_OptionsMenu, l="Force module menu reload",
-                     c=lambda *a:morphyMakerLib.uiForceModuleUpdateUI(self))		
+        #>>> Reset Options		
+        MelMenuItem( self.UI_OptionsMenu, l="Debug",
+                     cb=self.ov_DebugMode.value,
+                     c= lambda *a: self.ov_DebugMode.toggle())			
+        MelMenuItem( self.UI_OptionsMenu, l="Dock",
+                     cb=self.ov_Dock.value,
+                     c= lambda *a: self.do_dockToggle())	      
 
     def buildHelpMenu( self, *a ):
         self.UI_HelpMenu.clear()
@@ -157,21 +163,23 @@ class cgmGUI(BaseMelWindow):
         MelMenuItemDiv( self.UI_HelpMenu )
         MelMenuItem( self.UI_HelpMenu, l="About",
                      c=lambda *a: self.showAbout() )
-        MelMenuItem( self.UI_HelpMenu, l="Debug",
-                     cb=self.ov_DebugMode.value,
-                     c= lambda *a: self.ov_DebugMode.toggle())			
 
     #>> Menu Functions
     #=========================================================================    
     def reset(self):	
-        Callback(guiFactory.resetGuiInstanceOptionVars(self.optionVars,run))
+        Callback(resetGuiInstanceOptionVars(self.optionVars,run))
 
     def reload(self):	
         run()
-        
+
     def do_dockToggle( self):
         self.ov_Dock.toggle()
-        
+        log.info(self.WINDOW_NAME)
+        if self.ov_Dock.value:
+            mc.dockControl(self.dockCnt, edit = True, floating=False)
+        else:
+            mc.dockControl(self.dockCnt, edit = True, floating=True)            
+
     def do_showHelpToggle( self):
         guiFactory.toggleMenuShowState(self.ov_ShowHelp.value,self.helpBlurbs)
         self.ov_ShowHelp.toggle()
@@ -201,7 +209,7 @@ class cgmGUI(BaseMelWindow):
 
     def printReport(self):pass
         #morphyMakerLib.printReport(self)
-    
+
     #=========================================================================
     # Layouts
     #=========================================================================
@@ -314,3 +322,19 @@ def resetGuiInstanceOptionVars(optionVarHolder,commandToRun = False):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Standard functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def purgeOptionVars(varHolder):
+    """
+    Typically self.optionVars
+    """
+    sceneOptionVars = mc.optionVar(list=True)
+    if varHolder:
+        for var in varHolder:
+            if var in sceneOptionVars:
+                purgeOptionVar(var)
+                
+def purgeOptionVar(varName):
+    if mc.optionVar(exists = varName):    
+        mc.optionVar( remove=varName )
+        print "'%s' removed"%varName
+        return True
+    return False
