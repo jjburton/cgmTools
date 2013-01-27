@@ -248,6 +248,7 @@ def loadRed9( *a ):
     import Red9
     reload(Red9)
     Red9.start()
+    
 def loadAttrTools( *a ):
     from cgm.tools import attrTools
     reload(attrTools)
@@ -308,6 +309,14 @@ def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.MorpheusBase_Test()
+    
+def loadMorpheusMaker( *a ):
+    try:
+	from morpheusRigv2.tools import MorpheusMaker as mMaker
+	reload(mMaker)
+	a = mMaker.go()
+    except:
+	log.warning("You appear to be missing the Morpheus pack. Patience...:)")
     
 #Zoo stuff
 def loadSkinPropagation( *a ):
@@ -392,8 +401,8 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                                                connectToWingIDE),                         
                        ('cgm.PuppetBox', " WIP - Modular Rigger",
                         loadPuppetBox),
-                       ('cgm.PuppetBox2', " WIP - Modular Rigger",
-                        loadPuppetBox2),
+                       ('cgm.MorpheusMaker', " Morpheus maker tool",
+                        loadMorpheusMaker),
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
                         testCGMCore),
                        ('Debug Morpheus Start', " WARNING - Opens new file...Unit test base morpheus stuff",
