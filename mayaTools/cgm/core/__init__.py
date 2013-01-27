@@ -46,12 +46,18 @@ def _setlogginglevel_debug():
     Dev wrapper to set the logging level to debug
     '''
     Red9.core._setlogginglevel_debug()
-        
+    cgm_Meta.log.setLevel(cgm_Meta.logging.DEBUG)
+    
+    print('cgm Core set to DEBUG state')
+    
 def _setlogginglevel_info():
     '''
     Dev wrapper to set the logging to Info, usual state
     '''
     Red9.core._setlogginglevel_info()
+    cgm_Meta.log.setLevel(cgm_Meta.logging.INFO)
+        
+    print('cgm Core set to Info state')
 
 
 
