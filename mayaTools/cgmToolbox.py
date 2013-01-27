@@ -401,14 +401,14 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                                                connectToWingIDE),                         
                        ('cgm.PuppetBox', " WIP - Modular Rigger",
                         loadPuppetBox),
-                       ('cgm.MorpheusMaker', " Morpheus maker tool",
-                        loadMorpheusMaker),
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
                         testCGMCore),
                        ('Debug Morpheus Start', " WARNING - Opens new file...Unit test base morpheus stuff",
                         testMorpheus),  
                        ('Simple cgmGUI', " Base cgmGUI",
-                        loadCGMSimpleGUI)                       
+                        loadCGMSimpleGUI),
+                       ('cgm.MorpheusMaker', " Morpheus maker tool",
+                        loadMorpheusMaker),                       
                        ))
 
               )

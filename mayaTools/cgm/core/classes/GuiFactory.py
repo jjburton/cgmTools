@@ -85,10 +85,13 @@ class cgmGUI(BaseMelWindow):
         self.l_oldGenElements = []
 	self.description = __description__
 	
+	self.initializeTemplates() 
+	
 	#>>> Insert our init, overloaded for other tools
 	self.insert_init(*args,**kws)
 	
         #>>> Menu
+        self.setup_Variables()	
         self.build_menus()
 
         #>>> Body
@@ -107,9 +110,9 @@ class cgmGUI(BaseMelWindow):
             pass
 	
 	self.show()
-
+	#log.info(self.l_allowedDockAreas[self.var_DockSide.value])
         if self.var_Dock.value:
-            try:mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
+            try:mc.dockControl(self.dockCnt, area=self.l_allowedDockAreas[self.var_DockSide.value], label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
             except:
                 log.warning('Failed to dock')
 		
@@ -124,7 +127,6 @@ class cgmGUI(BaseMelWindow):
 	log.info("DEFAULT_SIZE: %s"%str(cgmGUI.DEFAULT_SIZE))
 	self.description = 'This is a series of tools for working with cgm Sets'
 	
-	self.initializeTemplates() 
 	self.dockCnt = '%sDock'%__toolName__	
 	self.__toolName__ = __toolName__		
 	self.l_allowedDockAreas = ['right', 'left']
@@ -135,6 +137,7 @@ class cgmGUI(BaseMelWindow):
     def setup_Variables(self):
         self.create_guiOptionVar('ShowHelp',defaultValue = 0)
         self.create_guiOptionVar('Dock',defaultValue = 1)
+        self.create_guiOptionVar('DockSide',defaultValue = 0)	
         self.create_cgmDebugOptionVar(defaultValue = 0)
 
     def create_guiOptionVar(self,varName,*args,**kws):
@@ -155,7 +158,6 @@ class cgmGUI(BaseMelWindow):
     # Menu Building
     #=========================================================================
     def build_menus(self):
-        self.setup_Variables()
         self.uiMenu_FirstMenu = MelMenu( l='Root', pmc=self.buildMenu_first)		        
         self.uiMenu_OptionsMenu = MelMenu( l='Options', pmc=self.buildMenu_options)		
         self.uiMenu_HelpMenu = MelMenu( l='Help', pmc=self.buildMenu_help)   
@@ -214,7 +216,7 @@ class cgmGUI(BaseMelWindow):
     def do_dockToggle( self):
         self.var_Dock.toggle()
         if self.var_Dock.value:
-            mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
+            mc.dockControl(self.dockCnt, area=self.l_allowedDockAreas[self.var_DockSide.value], label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
         else:
             self.reload()            
   
