@@ -14,10 +14,11 @@ Class based ui builder for cgmTools
 __version__ = '0.1.01242013'
 __toolName__ = 'cgmGUI'
 __toolURL__ = 'www.cgmonks.com'
+__description__ = "This is a default cgm gui example"
 __author__ = 'Josh Burton'
 __owner__ = 'CG Monks'
 __website__ = 'www.cgmonks.com'
-__defaultSize__ = 250, 300
+__defaultSize__ = 125, 300
 
 #>>> From Maya =============================================================
 import maya.cmds as mc
@@ -62,7 +63,6 @@ class cgmGUI(BaseMelWindow):
     Base CG Monks core gui
     """
     #These feed to Hamish's basemel ui stuff
-
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = __toolName__
     WINDOW_TITLE = '%s - %s'%(__toolName__,__version__)
@@ -75,43 +75,26 @@ class cgmGUI(BaseMelWindow):
     	
     def __init__( self,*args,**kws):
 	#Check our tool option var for debug mode to set logger level if so
-	#if mc.optionVar(exists = "cgmVar_%sDebugMode"%(__toolName__)) and mc.optionVar(q="cgmVar_%sDebugMode"%(__toolName__)):
-	    #log.setLevel(logging.DEBUG)	    
+	if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
+	    log.setLevel(logging.DEBUG)	
 	    
-        #log.debug(">>> %s.__init__"%__toolName__)
-        log.debug(">>> cgmGUI.__init__")	
-        if kws:log.debug("kws: %s"%str(kws))
-        if args:log.debug("args: %s"%str(args))
-	log.debug(self.__call__(q=True, title=True))
-	log.info("WINDOW_NAME: '%s'"%cgmGUI.WINDOW_NAME)
-	log.info("WINDOW_TITLE: '%s'"%cgmGUI.WINDOW_TITLE)
-	log.info("DEFAULT_SIZE: %s"%str(cgmGUI.DEFAULT_SIZE))
-	
-        self.initializeTemplates() 
-        self.description = 'This is a series of tools for working with cgm Sets'
-        self.dockCnt = '%sDock'%__toolName__	
-	self.__toolName__ = __toolName__		
+	#>>> Standard cgm variables
+	#====================	    
         self.l_optionVars = []
         self.l_helpElements = []
         self.l_oldGenElements = []
-	self.l_allowedDockAreas = ['right', 'left']
-	self.WINDOW_NAME = cgmGUI.WINDOW_NAME
-	self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
-	self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
+	self.description = __description__
+	
+	#>>> Insert our init, overloaded for other tools
+	self.insert_init(*args,**kws)
 	
         #>>> Menu
-        #====================
         self.build_menus()
-        #self.ShowHelpOption = mc.optionVar( q='cgmVar_AnimToolsShowHelp' )
 
         #>>> Body
         #====================        
         self.build_layoutWrapper(self)
 	
-	if self.var_DebugMode.value:
-	    log.setLevel(logging.DEBUG)	
-	else:
-	    log.setLevel(logging.INFO)
         #====================
         # Show and Dock
         #====================
@@ -126,11 +109,30 @@ class cgmGUI(BaseMelWindow):
 	self.show()
 
         if self.var_Dock.value:
-            try:mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=__defaultSize__[0])
+            try:mc.dockControl(self.dockCnt, area='right', label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
             except:
                 log.warning('Failed to dock')
-            
-    def setupVariables(self):
+		
+    def insert_init(self,*args,**kws):
+	""" This is meant to be overloaded per gui """
+	log.debug(">>> cgmGUI.__init__")	
+	if kws:log.debug("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args))
+	log.debug(self.__call__(q=True, title=True))
+	log.info("WINDOW_NAME: '%s'"%cgmGUI.WINDOW_NAME)
+	log.info("WINDOW_TITLE: '%s'"%cgmGUI.WINDOW_TITLE)
+	log.info("DEFAULT_SIZE: %s"%str(cgmGUI.DEFAULT_SIZE))
+	self.description = 'This is a series of tools for working with cgm Sets'
+	
+	self.initializeTemplates() 
+	self.dockCnt = '%sDock'%__toolName__	
+	self.__toolName__ = __toolName__		
+	self.l_allowedDockAreas = ['right', 'left']
+	self.WINDOW_NAME = cgmGUI.WINDOW_NAME
+	self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
+	self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
+	
+    def setup_Variables(self):
         self.create_guiOptionVar('ShowHelp',defaultValue = 0)
         self.create_guiOptionVar('Dock',defaultValue = 1)
         self.create_cgmDebugOptionVar(defaultValue = 0)
@@ -153,42 +155,42 @@ class cgmGUI(BaseMelWindow):
     # Menu Building
     #=========================================================================
     def build_menus(self):
-        self.setupVariables()
-        self.UI_FirstMenu = MelMenu( l='Root', pmc=self.build_firstMenu)		        
-        self.UI_OptionsMenu = MelMenu( l='Options', pmc=self.build_optionsMenu)		
-        self.UI_HelpMenu = MelMenu( l='Help', pmc=self.build_helpMenu)   
+        self.setup_Variables()
+        self.uiMenu_FirstMenu = MelMenu( l='Root', pmc=self.buildMenu_first)		        
+        self.uiMenu_OptionsMenu = MelMenu( l='Options', pmc=self.buildMenu_options)		
+        self.uiMenu_HelpMenu = MelMenu( l='Help', pmc=self.buildMenu_help)   
 
-    def build_firstMenu( self, *a ):
-        self.UI_FirstMenu.clear()
+    def buildMenu_first( self, *args):
+        self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		
-        MelMenuItemDiv( self.UI_FirstMenu )
-        MelMenuItem( self.UI_FirstMenu, l="Reload",
+        MelMenuItemDiv( self.uiMenu_FirstMenu )
+        MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                      c=lambda *a: self.reload())		
-        MelMenuItem( self.UI_FirstMenu, l="Reset",
+        MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                      c=lambda *a: self.reset())    
         
-    def build_optionsMenu( self, *a ):
-        self.UI_OptionsMenu.clear()
+    def buildMenu_options( self, *args):
+        self.uiMenu_OptionsMenu.clear()
         #>>> Reset Options				
-        MelMenuItem( self.UI_OptionsMenu, l="Dock",
+        MelMenuItem( self.uiMenu_OptionsMenu, l="Dock",
                      cb=self.var_Dock.value,
                      c= lambda *a: self.do_dockToggle())	      
 
-    def build_helpMenu( self, *a ):
-        self.UI_HelpMenu.clear()
-        MelMenuItem( self.UI_HelpMenu, l="Show Help",
+    def buildMenu_help( self, *args):
+        self.uiMenu_HelpMenu.clear()
+        MelMenuItem( self.uiMenu_HelpMenu, l="Show Help",
                      cb=self.var_ShowHelp.value,
                      c= lambda *a: self.do_showHelpToggle())
 
-        MelMenuItem( self.UI_HelpMenu, l="Print Tools Help",
+        MelMenuItem( self.uiMenu_HelpMenu, l="Print Tools Help",
                      c=lambda *a: self.printHelp() )
 
-        MelMenuItemDiv( self.UI_HelpMenu )
-        MelMenuItem( self.UI_HelpMenu, l="About",
+        MelMenuItemDiv( self.uiMenu_HelpMenu )
+        MelMenuItem( self.uiMenu_HelpMenu, l="About",
                      c=lambda *a: self.showAbout() )
 	
 	# Update Mode
-	iMenu_loggerMaster = MelMenuItem( self.UI_HelpMenu, l='Logger Level', subMenu=True)
+	iMenu_loggerMaster = MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
 	MelMenuItem( iMenu_loggerMaster, l='Info',
 	             c=lambda *a: self.set_loggingInfo())
 	MelMenuItem( iMenu_loggerMaster, l='Debug',
@@ -230,7 +232,7 @@ class cgmGUI(BaseMelWindow):
 	    #self.log.setLevel(logging.INFO)
 
     def showAbout(self):
-        window = mc.window( title="About", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True )
+        window = mc.window( title="About", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True)
         column = mc.columnLayout( adjustableColumn=True )
         add_Header(self.__toolName__,overrideUpper = True)
         mc.text(label='>>>A Part of the cgmTools Collection<<<', ut = 'cgmUIInstructionsTemplate')
@@ -255,13 +257,14 @@ class cgmGUI(BaseMelWindow):
     def printReport(self):pass
         #morphyMakerLib.printReport(self)
     
-    def doDebugEchoTest(self):
+    def do_DebugEchoTest(self):
 	log.info('#'+'='*25)
 	log.info('Tool: %s'%self.__toolName__)	
 	log.info("Info call")
 	log.debug("Debug call")
 	log.warning("warning call")
-
+	
+    
     #=========================================================================
     # Layouts
     #=========================================================================
@@ -276,7 +279,7 @@ class cgmGUI(BaseMelWindow):
         
 	self.l_helpElements.extend(add_InstructionBlock("Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
         add_Button(MainForm)
-        add_Button(MainForm,'Debug test', lambda *a: self.doDebugEchoTest())
+        add_Button(MainForm,'Debug test', lambda *a: self.do_DebugEchoTest())
 	
     def initializeTemplates(self):
 	guiBackgroundColor = [.45,.45,.45]
