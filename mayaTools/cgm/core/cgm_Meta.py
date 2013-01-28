@@ -178,6 +178,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def __setattr__(self,attr,value, force = True, lock = None, **kws):
 	"""Overload for our own purposes to allow multiple connections"""
 	log.debug("In cgmNode.__setattr__...")
+	if lock is None:
+	    try:
+		if self.attrIsLocked(attr):
+		    lock = True	    
+	    except:pass
 	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
 	
 	if lock is not None and not self.isReferenced():

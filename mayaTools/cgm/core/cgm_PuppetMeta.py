@@ -34,9 +34,9 @@ from cgm.core.rigger import ModuleFactory as mFactory
 reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
 reload(pFactory)
-
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.lib import (modules,attributes,search)
+reload(cgmMeta)
+from cgm.lib import (modules,attributes,search,curves)
 
 cgmModuleTypes = ['cgmModule','cgmLimb']
 ########################################################################
@@ -398,7 +398,8 @@ class cgmMasterNull(cgmMeta.cgmObject):
         """Constructor"""
         #>>>Keyword args
         puppet = kws.pop('puppet',False)
-
+	if mc.objExists(name) and node is None:
+	    node = name
         super(cgmMasterNull, self).__init__(node=node, name = name)
 
         if puppet and not self.isReferenced():
@@ -483,6 +484,131 @@ class cgmInfoNode(cgmMeta.cgmNode):
         return True
         
 
+    def __bindData__(self):
+        pass
+    
+class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
+    """"""
+    def __init__(self,*args,**kws):
+        """Constructor"""
+        log.debug(">>> cgmMorpheusMakerNetwork.__init__")
+	if kws:log.debug("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args)) 
+				
+        #>>>Keyword args
+        super(cgmMorpheusMakerNetwork, self).__init__(*args,**kws)
+   
+        if not self.isReferenced():   
+            if not self.verify():
+                raise StandardError,"Failed!"
+
+    def verify(self):
+        """ 
+        """ 
+	self.addAttr('mClass','cgmMorpheusMakerNetwork',attrType='string',lock=True)
+	self.addAttr('cgmType','customizationNetwork',attrType='string',lock=True)
+	
+	self.addAttr('meshClass',initialValue = 'm1',attrType='string',lock=True)
+	self.addAttr('version',initialValue = 0.0,attrType='float',lock=True)
+	
+	self.addAttr('masterNull',attrType='messageSimple',lock=True)
+	self.addAttr('masterControl',attrType='messageSimple',lock=True)
+
+	#>>> Necessary attributes
+        self.addAttr('controlCurves',attrType = 'message')
+        self.addAttr('leftJoints',attrType = 'message',lock=True)
+        self.addAttr('rightJoints',attrType = 'message',lock=True)	
+        self.addAttr('leftRoots',attrType = 'message',lock=True)
+        self.addAttr('rightRoots',attrType = 'message',lock=True)
+	
+	#>>> Controls
+        self.addAttr('controlsLeft',attrType = 'message',lock=True)
+        self.addAttr('controlsRight',attrType = 'message',lock=True)
+        self.addAttr('controlsCenter',attrType = 'message',lock=True)
+	
+	
+        self.doName()
+	
+	#MasterNull
+	#==============   
+	if not mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
+	    self.i_masterNull = cgmMeta.cgmObject()
+	    self.addAttr('masterNull',self.i_masterNull.mNode,attrType = 'messageSimple',lock=True)
+	    log.debug('Master created.')
+	else:
+	    log.debug('Master null exists. linking....')            
+	    self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
+
+	self.masterNull.doStore('cgmName', self.mNode + '.cgmName')	
+	#self.masterNull.addAttr('cgmName',self.cgmName,attrType = 'string',lock=True)
+	self.masterNull.doName()
+	attributes.doSetLockHideKeyableAttr(self.masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+	log.debug("Master Null good...")
+	
+	# Groups
+	#======================================================================   
+	geoGroups = 'clothesGeo','hairGeo','bsGeo'
+	for attr in 'noTransform','geo','hairGeo','clothesGeo','bsGeo','faceTargets','bodyTargets':
+	    self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
+	    grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
+	    Attr = 'i_' + attr+'Group'#Get a better attribute store string           
+	    if mc.objExists( grp ):
+		#If exists, initialize it
+		self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
+		log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
+		log.debug(self.__dict__[Attr].mNode)
+
+	    else:#Make it
+		log.debug('Creating %s'%attr)                                    
+		self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
+		self.__dict__[Attr].doName()
+		self.i_masterNull.connectChild(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
+		log.debug("Initialized as 'self.%s'"%(Attr))                    
+
+	    # Few Case things
+	    #==============            
+	    if attr == 'geo':
+		self.__dict__[Attr].doParent(self.i_noTransformGroup)
+	    elif attr in geoGroups:
+		self.__dict__[Attr].doParent(self.i_geoGroup)				
+	    elif attr in ['faceTargets','bodyTargets']:
+		self.__dict__[Attr].doParent(self.i_bsGeoGroup)
+	    else:    
+		self.__dict__[Attr].doParent(self.i_masterNull)
+
+	    attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
+	
+	# Master Curve
+	#==================================================================
+	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
+	if mc.objExists( masterControl ):
+	    #If exists, initialize it
+	    pass
+
+	else:#Make it
+	    log.debug('Creating masterControl')                                    
+	    self.i_masterControl = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',25))#Create and initialize
+	    self.i_masterControl.addAttr('mClass','cgmObject')
+	    self.i_masterControl.doStore('cgmName', self.mNode + '.cgmName')	
+	    self.masterControl = self.i_masterControl.mNode
+	    color =  modules.returnSettingsData('colorCenter',True)
+	    curves.setCurveColorByName( self.i_masterControl.mNode,color[0] )
+	    
+	self.masterControl.parent = self.masterNull.mNode
+	self.masterControl.doName()
+	
+        return True
+        
+    def changeName(self,name = ''):
+        if name == self.cgmName:
+            log.error("Network already named '%s'"%self.cgmName)
+            return
+        if name != '' and type(name) is str:
+            log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
+	    self.cgmName = name
+            #self.doStore('cgmName',name,overideMessageCheck = True)
+            self.verify()
+	    
     def __bindData__(self):
         pass
     
