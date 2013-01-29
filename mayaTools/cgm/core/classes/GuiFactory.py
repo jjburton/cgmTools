@@ -18,7 +18,7 @@ __description__ = "This is a default cgm gui example"
 __author__ = 'Josh Burton'
 __owner__ = 'CG Monks'
 __website__ = 'www.cgmonks.com'
-__defaultSize__ = 125, 300
+__defaultSize__ = 200, 300
 
 #>>> From Maya =============================================================
 import maya.cmds as mc
@@ -221,7 +221,7 @@ class cgmGUI(BaseMelWindow):
             self.reload()            
   
     def do_showHelpToggle( self):
-        doToggleMenuShowState(self.var_ShowHelp.value,self.l_helpElements)
+        doToggleInstancedUIItemsShowState(self.var_ShowHelp.value,self.l_helpElements)
         self.var_ShowHelp.toggle()
 	
     def do_DebugModeToggle( self):
@@ -279,9 +279,10 @@ class cgmGUI(BaseMelWindow):
         MainForm = MelColumnLayout(parent)
         SetHeader = add_Header('HI')
         
-	self.l_helpElements.extend(add_InstructionBlock("Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
+	self.l_helpElements.extend(add_InstructionBlock(MainForm,"Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
         add_Button(MainForm)
         add_Button(MainForm,'Debug test', lambda *a: self.do_DebugEchoTest())
+	add_MelLabel(MainForm,'asdfasdfasdf')
 	
     def initializeTemplates(self):
 	guiBackgroundColor = [.45,.45,.45]
@@ -532,11 +533,30 @@ def add_SectionBreak():
     else:
         return mc.separator(style='single')
 
-def add_InstructionBlock(text, align = 'center', vis = False, maxLineLength = 35):
+def add_MelLabel(parent,text,**kws):
+    return MelLabel(parent,label = text,ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True,**kws)
+
+def add_InstructionBlock(parent,text, align = 'center', vis = False, maxLineLength = 35, **kws):
     # yay, accounting for word wrap...
     if currentGenUI:
-        buffer = mc.text(text, ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True, visible = vis)
-        return [buffer]
+        return [MelLabel(parent,label= text, ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True, visible = vis,**kws)]
+
+    else:
+        instructions = []
+        textLines = return_SplitLines(text, maxLineLength)
+        instructions.append(MelSeparator(parent,style='single', visible = vis))
+        for line in textLines:
+            instructions.append(MelLabel(parent,label = line, h = 15, al = align, visible = vis))
+        instructions.append(MelSeparator(parent,style='single', visible = vis))
+
+        return instruction
+    
+def add_InstructionBlockOLD(text, align = 'center', vis = False, maxLineLength = 35):
+    
+    # yay, accounting for word wrap...
+    if currentGenUI:
+        return [mc.text(text, ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True, visible = vis)]
+
     else:
         instructions = []
         textLines = return_SplitLines(text, maxLineLength)
@@ -580,6 +600,26 @@ def return_SplitLines(text, size):
 #=========================================================================
 # OptionVars
 #=========================================================================
+def doToggleInstancedUIItemsShowState(stateToggle,instanceList = None):
+    newstate = not stateToggle
+    for i_item in instanceList:
+	try:
+	    i_item(edit = True, visible = newstate)
+	except:
+	    log.warning("'%s' failed to doToggleInstancedUIItemsShowState"%i_item)
+    return newstate
+
+def doSetInstancedUIItemsEnableState(state = None,instanceList = None):
+    if state is None:
+	log.warning("'%s' not a valid argument for doSetInstancedUIItemsEnableState"%str(state))	
+	return 
+    for i_item in instanceList:
+	try:
+	    i_item(edit = True, enable = state)
+	except:
+	    log.warning("'%s' failed to doSetInstancedUIItemsEnableState"%i_item)
+    return state
+
 def doToggleMenuShowState(stateToggle, listOfItems):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
