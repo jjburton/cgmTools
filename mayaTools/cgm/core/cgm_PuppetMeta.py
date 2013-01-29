@@ -520,6 +520,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('rightJoints',attrType = 'message',lock=True)	
         self.addAttr('leftRoots',attrType = 'message',lock=True)
         self.addAttr('rightRoots',attrType = 'message',lock=True)
+        self.addAttr('jointList',attrType = 'message',lock=True)
 	
 	#>>> Controls
         self.addAttr('controlsLeft',attrType = 'message',lock=True)
@@ -587,7 +588,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 
 	else:#Make it
 	    log.debug('Creating masterControl')                                    
-	    self.i_masterControl = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',25))#Create and initialize
+	    self.i_masterControl = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',121))#Create and initialize
 	    self.i_masterControl.addAttr('mClass','cgmObject')
 	    self.i_masterControl.doStore('cgmName', self.mNode + '.cgmName')	
 	    self.masterControl = self.i_masterControl.mNode

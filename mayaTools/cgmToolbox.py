@@ -312,7 +312,7 @@ def testMorpheus( *a ):
     
 def loadMorpheusMaker( *a ):
     try:
-	from morpheusRigv2.tools import MorpheusMaker as mMaker
+	from morpheusRig_v2.tools import MorpheusMaker as mMaker
 	reload(mMaker)
 	a = mMaker.go()
     except:
