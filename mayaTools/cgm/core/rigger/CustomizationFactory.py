@@ -283,9 +283,16 @@ def doRigBody(self):
     self.l_skinJoints = []
     l_constraintParentTargetJoints = []
     l_constraintAimTargetJoints = []    
-    l_constraintPointTargetJoints = []   
+    l_constraintPointTargetJoints = [] 
+    l_iControlsLeft = []
+    l_iControlsRight = []
+    l_iControlsCentre = []
+    
     mc.select(cl=True)
-    i_controlSet = cgmMeta.cgmObjectSet(name = 'customControls',setType = 'tdSet')#Build us a simple quick select set
+    i_controlSet = cgmMeta.cgmObjectSet(setName = 'customControls',setType = 'tdSet')#Build us a simple quick select set
+    i_controlSetLeft = cgmMeta.cgmObjectSet(setName = 'customControlsLeft',setType = 'tdSet')#Build us a simple quick select set
+    i_controlSetRight = cgmMeta.cgmObjectSet(setName = 'customControlsRight',setType = 'tdSet')#Build us a simple quick select set
+    
     for i,i_jnt in enumerate(self.p.jointList):#+ self.p.rightJoints
 	if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
 	    break
@@ -304,7 +311,12 @@ def doRigBody(self):
 	    i_jnt.parent = i_crv.mNode
 	    #mc.parentConstraint(i_crv.mNode,i_jnt.parent, maintainOffset=True)
 	    #mc.scaleConstraint(i_crv.mNode,i_jnt.parent, maintainOffset=True)	    
-	    i_controlSet.addObj(i_crv.mNode)
+	    i_controlSet.addObj(i_crv.mNode)#Add to our selection set
+	    
+	    if i_crv.cgmDirection == 'left':
+		i_controlSetLeft.addObj(i_crv.mNode)
+	    else:
+		i_controlSetRight.addObj(i_crv.mNode)		
 	    
 	else:
 	    i_crv = i_jnt.controlCurve
@@ -330,8 +342,14 @@ def doRigBody(self):
 		    l_constraintParentTargetJoints.append(i_jnt)
 		if i_jnt.hasAttr('constraintPointTargets'):
 		    l_constraintPointTargetJoints.append(i_jnt)
-	    i_controlSet.addObj(i_jnt.mNode)	    
-		  		
+	    i_controlSet.addObj(i_jnt.mNode)
+	    
+	    if i_jnt.hasAttr('cgmDirection'):
+		if i_jnt.cgmDirection == 'left':
+		    i_controlSetLeft.addObj(i_jnt.mNode)
+		elif i_jnt.cgmDirection == 'right':
+		    i_controlSetRight.addObj(i_jnt.mNode)		    
+			    
 	self.l_skinJoints.append(i_jnt)
     
     if l_constraintParentTargetJoints:
@@ -381,7 +399,8 @@ def doRigBody(self):
 		    
 	     
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
-	    
+    self.p.controlsLeft = i_controlSetLeft.value
+    self.p.controlsRight = i_controlSetRight.value
 		
             
     #mc.delete('controlCurves')
@@ -554,6 +573,8 @@ def updateTransform(i_curve,i_sourceObject):
     i_transform = cgmMeta.cgmObject(transform)
     for attr in i_curve.getUserAttrs():
 	attributes.doCopyAttr(i_curve.mNode,attr,transform)
+    for attr in i_sourceObject.getUserAttrs():
+	attributes.doCopyAttr(i_sourceObject.mNode,attr,transform)
     buffer = curves.parentShapeInPlace(transform,i_curve.mNode)
     mc.delete(i_curve.mNode)
     if childrenToWorld:
