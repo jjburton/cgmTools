@@ -464,11 +464,11 @@ def initializeTemplates():
 #=========================================================================
 def do_resetGuiInstanceOptionVars(optionVarHolder,commandToRun = False):
     if optionVarHolder:
-        do_do_purgeOptionVars(optionVarHolder)
+        do_purgeOptionVars(optionVarHolder)
     if commandToRun:    
         commandToRun()
 
-def do_do_purgeOptionVars(varHolder):
+def do_purgeOptionVars(varHolder):
     """
     Typically self.l_optionVars
     """

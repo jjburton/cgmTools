@@ -110,35 +110,9 @@ class go(object):
         transferCall([self.i_object.mNode,self.mirrorObject])
         #inverse the values
         inverseCall(self.mirrorObject,i_mirrorSystem.getMirrorAxis(self.mirrorObject))
-        #if objs:cmds.select(objs)         
+
         i_mirrorSystem.objs = [self.i_object.mNode,self.mirrorObject]#Overload as it was erroring out
    
-    def doPushToMirrorObject2(self,method='Anim'):
-        objs=mc.ls(sl=True,l=True) or []
-	
-	if not self.isMirrorable():
-	    return False
-	if not mc.objExists(self.mirrorObject):
-	    return False
-	
-	i_mirrorSystem = r9Anim.MirrorHierarchy([self.i_object.mNode,self.mirrorObject])
-	
-        if method=='Anim':
-            transferCall= r9Anim.AnimFunctions().copyKeys
-            inverseCall = r9Anim.AnimFunctions.inverseAnimChannels
-        else:
-            transferCall= r9Anim.AnimFunctions().copyAttributes
-            inverseCall = r9Anim.AnimFunctions.inverseAttributes
-	    
-	    self.mirrorPairData(node,self.mirrorDict['Right'][index],method=mode)
-
-        transferCall([self.i_object.mNode,self.mirrorObject])
-	
-        #inverse the values
-        inverseCall(self.mirrorObject,i_mirrorSystem.getMirrorAxis(self.mirrorObject))
-	
-	i_mirrorSystem.objs = [self.i_object.getShortName(),self.mirrorObject]#Overload as it was erroring out
-        #if objs:mc.select(objs)
 
     
 class  OLDSTUFF():

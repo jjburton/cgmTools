@@ -21,9 +21,19 @@ from cgm.lib.classes import NameFactory as nFactory
 from cgm.lib import (curves,distance,search,lists,modules,constraints,rigging,attributes,joints,guiFactory)
 reload(constraints)
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Modules
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+
+#======================================================================
+# Functions for a cgmMorpheusMakerNetwork
+#======================================================================
+def isCustomizable(self):
+    """
+    Checks if an asset is good to go or not
+    """
+    return True
+
+#======================================================================
+# Processing factory
+#======================================================================
 class go(object):
     @r9General.Timer
     def __init__(self,customizationNode = 'MorpheusCustomization'): 
@@ -289,9 +299,9 @@ def doRigBody(self):
     l_iControlsCentre = []
     
     mc.select(cl=True)
-    i_controlSet = cgmMeta.cgmObjectSet(setName = 'customControls',setType = 'tdSet')#Build us a simple quick select set
-    i_controlSetLeft = cgmMeta.cgmObjectSet(setName = 'customControlsLeft',setType = 'tdSet')#Build us a simple quick select set
-    i_controlSetRight = cgmMeta.cgmObjectSet(setName = 'customControlsRight',setType = 'tdSet')#Build us a simple quick select set
+    i_controlSet = cgmMeta.cgmObjectSet(setName = 'customControls',setType = 'tdSet',qssState=True)#Build us a simple quick select set
+    i_controlSetLeft = cgmMeta.cgmObjectSet(setName = 'customControlsLeft',setType = 'tdSet',qssState=True)#Build us a simple quick select set
+    i_controlSetRight = cgmMeta.cgmObjectSet(setName = 'customControlsRight',setType = 'tdSet',qssState=True)#Build us a simple quick select set
     
     for i,i_jnt in enumerate(self.p.jointList):#+ self.p.rightJoints
 	if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :

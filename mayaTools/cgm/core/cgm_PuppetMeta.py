@@ -521,6 +521,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('leftRoots',attrType = 'message',lock=True)
         self.addAttr('rightRoots',attrType = 'message',lock=True)
         self.addAttr('jointList',attrType = 'message',lock=True)
+        self.addAttr('bodyBlendshapes',attrType = 'messageSimple',lock=True)
+        self.addAttr('faceBlendshapes',attrType = 'messageSimple',lock=True)
 	
 	#>>> Controls
         self.addAttr('controlsLeft',attrType = 'message',lock=True)
@@ -600,15 +602,30 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	
         return True
         
-    def changeName(self,name = ''):
+    def doChangeName(self,name = ''):
+	log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")
+	log.debug("name: '%s'"%name)	
         if name == self.cgmName:
             log.error("Network already named '%s'"%self.cgmName)
             return
-        if name != '' and type(name) is str:
-            log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
+        if name != '':
+	    name = str(name)
+            log.warning("Changing name from '%s' to '%s'"%(self.cgmName,name))
 	    self.cgmName = name
             #self.doStore('cgmName',name,overideMessageCheck = True)
             self.verify()
+	    
+    def isCustomizable(self):
+	"""
+	TODO:
+	Checks if an asset is good to go or not
+	1) Check for controls
+	2) Check for geo
+	--skinned?
+	--blendshaped?
+	"""
+	log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")	
+	return True
 	    
     def __bindData__(self):
         pass
