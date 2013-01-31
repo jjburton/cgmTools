@@ -521,8 +521,12 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('leftRoots',attrType = 'message',lock=True)
         self.addAttr('rightRoots',attrType = 'message',lock=True)
         self.addAttr('jointList',attrType = 'message',lock=True)
-        self.addAttr('bodyBlendshapes',attrType = 'messageSimple',lock=True)
-        self.addAttr('faceBlendshapes',attrType = 'messageSimple',lock=True)
+	
+        self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)	
+        self.addAttr('bodyBlendshapeNodes',attrType = 'messageSimple',lock=True)
+        self.addAttr('faceBlendshapeNodes',attrType = 'messageSimple',lock=True)
+	
+        self.addAttr('skinCluster',attrType = 'messageSimple',lock=True)
 	
 	#>>> Controls
         self.addAttr('controlsLeft',attrType = 'message',lock=True)
@@ -550,8 +554,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	
 	# Groups
 	#======================================================================   
-	geoGroups = 'clothesGeo','hairGeo','bsGeo'
-	for attr in 'noTransform','geo','hairGeo','clothesGeo','bsGeo','faceTargets','bodyTargets':
+	geoGroups = 'clothesGeo','hairGeo','bsGeo','baseGeo'
+	for attr in 'noTransform','geo','hairGeo','clothesGeo','baseGeo','bsGeo','faceTargets','bodyTargets':
 	    self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
 	    grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
 	    Attr = 'i_' + attr+'Group'#Get a better attribute store string           
@@ -625,7 +629,45 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	--blendshaped?
 	"""
 	log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")	
+	controlsLeft = self.getMessage('controlsLeft')
+	if not controlsLeft:
+	    log.warning("No left controls. Aborting check.")
+	    return False
+	
+	controlsRight = self.getMessage('controlsRight')	
+	if not controlsRight:
+	    log.warning("No right controls. Aborting check.")
+	    return False
+	
+	if len(controlsLeft) != len(controlsRight):
+	    log.warning("Control lengths don't match. Left: %i, Right: %i "%(len(controlsLeft),len(controlsRight)))
+	    return False	    
+	
+	#Geo
+	baseBodyGeo = self.getMessage('baseBodyGeo')
+	if not baseBodyGeo:
+	    log.warning("No base geo. Aborting check.")
+	    return False
+	
+	#Skincluster
+	skinCluster = self.getMessage('skinCluster')
+	if not skinCluster:
+	    log.warning("No skinCluster. Aborting check.")
+	    return False
+	
+	#>>> Blendshape nodes
+	if not self.getMessage('bodyBlendshapeNodes'):
+	    log.warning("No body blendshape node. Aborting check.")
+	    return False
+	"""
+	if not self.getMessage('faceBlendshapeNodes'):
+	    log.warning("No face blendshape node. Aborting check.")
+	    return False"""		
+	
 	return True
+    
+    
+    
 	    
     def __bindData__(self):
         pass

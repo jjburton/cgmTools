@@ -18,7 +18,17 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 reload(cgmPM)
 from cgm.lib.classes import NameFactory as nFactory
-from cgm.lib import (curves,distance,search,lists,modules,constraints,rigging,attributes,joints,guiFactory)
+from cgm.lib import (curves,
+                     deformers,
+                     distance,
+                     search,
+                     lists,
+                     modules,
+                     constraints,
+                     rigging,
+                     attributes,
+                     joints,
+                     guiFactory)
 reload(constraints)
 
 
@@ -230,7 +240,40 @@ def doMirrorTemplate(self):
     #doRigBody(self)
     #doSkinBody(self)
 
+@r9General.Timer
+def doBody_bsNode(self):
+    """ 
+    Segement orienter. Must have a JointFactory Instance
+    """ 
+    log.info(">>> doRigBody")
+    # Get our base info
+    #==================	        
+    assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
+    assert mc.objExists(self.p.mNode),"Customization node no longer exists"
+    log.info(">>> go.doSkinIt")      
+    p = self.p
+    
+    #Gather geo
+    targetGeoGroup = p.masterNull.getMessage('bodyTargetsGroup')[0]
+    if not targetGeoGroup:
+	log.warning("No base body target group found")
+	return False
+    bsTargetObjects = search.returnAllChildrenObjects(targetGeoGroup,True)
+    if not bsTargetObjects:
+	log.error("No geo found")
+	return False
+    
+    baseGeo = p.getMessage('baseBodyGeo')[0]
+    
+    bsNode = deformers.buildBlendShapeNode(baseGeo,bsTargetObjects,'tmp')
+    
+    i_bsNode = cgmMeta.cgmNode(bsNode)
+    i_bsNode.addAttr('cgmName','body',attrType='string',lock=True)    
+    i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+    i_bsNode.doName()
+    p.bodyBlendshapeNodes = i_bsNode.mNode
 
+	
 @r9General.Timer
 def doSkinBody(self):
     """ 
@@ -242,6 +285,7 @@ def doSkinBody(self):
     assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
     assert mc.objExists(self.p.mNode),"Customization node no longer exists"
     log.info(">>> go.doSkinIt")      
+    p = self.p
     #Get skin joints
     
     if not self.l_skinJoints:
@@ -252,7 +296,11 @@ def doSkinBody(self):
     for i_jnt in self.l_skinJoints:
 	l_skinJoints.append(i_jnt.mNode)
     #Gather geo and skin
-    geoGroupObjects = search.returnAllChildrenObjects('geo_grp',True)
+    baseGeo = p.masterNull.getMessage('baseGeoGroup')[0]
+    if not baseGeo:
+	log.warning("No base geo group found")
+	return False
+    geoGroupObjects = search.returnAllChildrenObjects(baseGeo,True)
     if not geoGroupObjects:
 	log.error("No geo found")
 	return False	
@@ -263,7 +311,13 @@ def doSkinBody(self):
     if toSkin:
 	for geo in toSkin:
 	    toBind = l_skinJoints + [geo]
-	mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+	cluster = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+	i_cluster = cgmMeta.cgmNode(cluster[0])
+	i_cluster.doCopyNameTagsFromObject(p.mNode,ignore=['cgmType'])
+	i_cluster.addAttr('mClass','cgmNode',attrType='string',lock=True)
+	i_cluster.doName()
+	p.skinCluster = i_cluster.mNode
+	self.bodyGeo = toSkin[0]
     else:
 	log.info("Nothing found to skin")
 	
