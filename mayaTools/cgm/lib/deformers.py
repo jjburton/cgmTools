@@ -1021,7 +1021,7 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
     """
     # Name stuff
     if nameBlendShape != False:
-        blendShapeNodeName = (nameBlendShape + '_bsNode')
+        blendShapeNodeName = (str(nameBlendShape) + '_bsNode')
     else:
         blendShapeNodeName = (targetObject + '_bsNode')
 

@@ -248,6 +248,7 @@ def loadRed9( *a ):
     import Red9
     reload(Red9)
     Red9.start()
+    
 def loadAttrTools( *a ):
     from cgm.tools import attrTools
     reload(attrTools)
@@ -277,7 +278,12 @@ def loadPuppetBox2( *a ):
     from cgm.tools import puppetBox2
     reload(puppetBox2)
     cgmPuppetBoxWin = puppetBox2.run()	
-
+    
+def loadCGMSimpleGUI( *a ):
+    from cgm.core.classes import GuiFactory as uiFactory
+    reload(uiFactory)
+    uiFactory.cgmGUI()
+    
 def loadPolyUniteTool( *a ):
     from cgm.tools import polyUniteTool
     reload(polyUniteTool)
@@ -303,6 +309,16 @@ def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.MorpheusBase_Test()
+    
+def loadMorpheusMaker( *a ):
+    try:
+	from morpheusRig_v2.tools import MorpheusMaker as mMaker
+    except:
+	log.warning("You appear to be missing the Morpheus pack. Patience...:)")
+	return False
+    
+    reload(mMaker)    
+    a = mMaker.go()
     
 #Zoo stuff
 def loadSkinPropagation( *a ):
@@ -387,12 +403,14 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                                                connectToWingIDE),                         
                        ('cgm.PuppetBox', " WIP - Modular Rigger",
                         loadPuppetBox),
-                       ('cgm.PuppetBox2', " WIP - Modular Rigger",
-                        loadPuppetBox2),
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
                         testCGMCore),
                        ('Debug Morpheus Start', " WARNING - Opens new file...Unit test base morpheus stuff",
-                        testMorpheus)                           
+                        testMorpheus),  
+                       ('Simple cgmGUI', " Base cgmGUI",
+                        loadCGMSimpleGUI),
+                       ('cgm.MorpheusMaker', " Morpheus maker tool",
+                        loadMorpheusMaker),                       
                        ))
 
               )
