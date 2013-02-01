@@ -243,14 +243,13 @@ def doMirrorTemplate(self):
 @r9General.Timer
 def doBody_bsNode(self):
     """ 
-    Segement orienter. Must have a JointFactory Instance
+    Sets up body blendshape node
     """ 
-    log.info(">>> doRigBody")
     # Get our base info
     #==================	        
     assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
     assert mc.objExists(self.p.mNode),"Customization node no longer exists"
-    log.info(">>> go.doSkinIt")      
+    log.info(">>> go.doBody_bsNode")      
     p = self.p
     
     #Gather geo
@@ -264,16 +263,49 @@ def doBody_bsNode(self):
 	return False
     
     baseGeo = p.getMessage('baseBodyGeo')[0]
-    
     bsNode = deformers.buildBlendShapeNode(baseGeo,bsTargetObjects,'tmp')
     
     i_bsNode = cgmMeta.cgmNode(bsNode)
     i_bsNode.addAttr('cgmName','body',attrType='string',lock=True)    
     i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+    i_bsNode.addAttr('targetsGroup',targetGeoGroup,attrType='messageSimple',lock=True)
+    
     i_bsNode.doName()
     p.bodyBlendshapeNodes = i_bsNode.mNode
 
-	
+@r9General.Timer
+def doFace_bsNode(self):
+    """ 
+    Sets up face blendshape node
+    """ 
+    # Get our base info
+    #==================	        
+    assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
+    assert mc.objExists(self.p.mNode),"Customization node no longer exists"
+    log.info(">>> go.doFace_bsNode")      
+    p = self.p
+    
+    #Gather geo
+    targetGeoGroup = p.masterNull.getMessage('faceTargetsGroup')[0]
+    if not targetGeoGroup:
+	log.warning("No base face target group found")
+	return False
+    bsTargetObjects = search.returnAllChildrenObjects(targetGeoGroup,True)
+    if not bsTargetObjects:
+	log.error("No geo found")
+	return False
+    
+    baseGeo = p.getMessage('baseBodyGeo')[0]
+    bsNode = deformers.buildBlendShapeNode(baseGeo,bsTargetObjects,'tmp')
+    
+    i_bsNode = cgmMeta.cgmNode(bsNode)
+    i_bsNode.addAttr('cgmName','face',attrType='string',lock=True)    
+    i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+    i_bsNode.addAttr('targetsGroup',targetGeoGroup,attrType='messageSimple',lock=True)
+    
+    i_bsNode.doName()
+    p.faceBlendshapeNodes = i_bsNode.mNode
+    
 @r9General.Timer
 def doSkinBody(self):
     """ 

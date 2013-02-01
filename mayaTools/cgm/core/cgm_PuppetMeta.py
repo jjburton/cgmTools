@@ -501,7 +501,10 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         if not self.isReferenced():   
             if not self.verify():
                 raise StandardError,"Failed!"
-
+	    
+    def __bindData__(self):
+        pass
+    
     def verify(self):
         """ 
         """ 
@@ -665,12 +668,43 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False"""		
 	
 	return True
+	
     
+    @r9General.Timer
+    def doUpdateBlendshapeNode(self,blendshapeAttr):
+	""" 
+	Update a blendshape node by it checking it's source folder
+	""" 
+	log.debug(">>> cgmMorpheusMakerNetwork.doUpdateBlendshapeNode")
+	log.debug("blendshapeAttr: '%s'"%blendshapeAttr)	
+	
+	# Get our base info
+	#==================	        
+	targetGeoGroup = self.masterNull.getMessage(blendshapeAttr)[0]#Targets group
+	if not targetGeoGroup:
+	    log.warning("No group found")
+	    return False
+	
+	bsTargetObjects = search.returnAllChildrenObjects(targetGeoGroup,True)
+	if not bsTargetObjects:
+	    log.error("No geo group found")
+	    return False
+	
+	baseGeo = self.getMessage('baseBodyGeo')[0]
+	if not bsTargetObjects:
+	    log.error("No geo found")
+	    return False	
+	
+	#See if we have a blendshape node
+	
     
-    
-	    
-    def __bindData__(self):
-        pass
+	bsNode = deformers.buildBlendShapeNode(baseGeo,bsTargetObjects,'tmp')
+	
+	i_bsNode = cgmMeta.cgmNode(bsNode)
+	i_bsNode.addAttr('cgmName','body',attrType='string',lock=True)    
+	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+	i_bsNode.doName()
+	p.bodyBlendshapeNodes = i_bsNode.mNode    
     
 class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
