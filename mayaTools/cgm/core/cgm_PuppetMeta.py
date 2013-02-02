@@ -536,6 +536,11 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('controlsRight',attrType = 'message',lock=True)
         self.addAttr('controlsCenter',attrType = 'message',lock=True)
 	
+	#>>> Object Sets
+        self.addAttr('objSetAll',attrType = 'messageSimple',lock=True)
+        self.addAttr('objSetLeft',attrType = 'messageSimple',lock=True)
+        self.addAttr('objSetRight',attrType = 'messageSimple',lock=True)
+	
 	
         self.doName()
 	
