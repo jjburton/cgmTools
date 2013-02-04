@@ -474,14 +474,14 @@ class AnimBinderUI(object):
         cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,120),(2,120)])
         cmds.button(label="Select BindNodes", al="center", \
                     ann="Select Top Group Node of the Source Binder", \
-                    c=lambda x:pm.select(GetBindNodes()))
+                    c=lambda x:pm.select(GetBindNodes(cmds.ls(sl=True,l=True))))
         cmds.button(label="Select BoundControls", al="center", \
                     ann="Select Top Group Node of the Bound Rig", \
-                    c=lambda x:pm.select(GetBoundControls()))
+                    c=lambda x:pm.select(GetBoundControls(cmds.ls(sl=True,l=True))))
         cmds.setParent('..')
         cmds.button(label="Bake Binder", al="center", \
                     ann="Select Top Group Node of the Bound Rig", \
-                    c=lambda x:BakeBinderData())
+                    c=lambda x:BakeBinderData(cmds.ls(sl=True,l=True)))
         cmds.separator (h=15, style="none") 
         cmds.button(label="Link Skeleton Hierarchies", al="center", \
                     ann="Select Root joints of the source and destination skeletons to be connected", \
@@ -496,43 +496,44 @@ class AnimBinderUI(object):
         cls()._UI()
 
 
-def GetBindNodes():
+def GetBindNodes(rootNode=None):
     '''
     From selected root find all BindNodes via the marker attribute 'BindNode'
     Note we're not casting to PyNodes here for speed here
     '''
-    if not cmds.ls(sl=True):
+    if not rootNode:
         raise StandardError('Please Select a node to search from:')
-    return [node for node in cmds.listRelatives(ad=True, f=True) \
+    return [node for node in cmds.listRelatives(rootNode, ad=True, f=True) \
             if cmds.attributeQuery('BindNode', exists=True, node=node)]
 
-def GetBoundControls():
+def GetBoundControls(rootNode=None):
     '''
     From selected root find all BoundControllers via the marker attribute 'BoundCtr'
     Note we're not casting to PyNodes here for speed here
     '''
-    if not cmds.ls(sl=True):
+    if not rootNode:
         raise StandardError('Please Select a node to search from:')
-    return [node for node in cmds.listRelatives(ad=True, f=True)\
+    return [node for node in cmds.listRelatives(rootNode, ad=True, f=True)\
              if cmds.attributeQuery('BoundCtr', exists=True, node=node)]
 
-def BakeBinderData():
+def BakeBinderData(rootNode=None):
     '''
     From a given Root Node search all children for the 'BoundCtr' attr marker. If none
     were found then search for the BindNode attr and use the message links to walk to
     the matching Controller.
     Those found are then baked out and the marker attribute is deleted
     '''
-    BoundCtrls = GetBoundControls()
+    BoundCtrls = GetBoundControls(rootNode)
     
-    #Found no Ctrls, ty and walk the message from the BndNodes
+    #Found no Ctrls, try and walk the message from the BndNodes
     if not BoundCtrls:        
         BndNodes = GetBindNodes()
         for node in BndNodes:
-            try:
-                BoundCtrls.append(cmds.listConnections('%s.BindNode' % node)[0])
-            except:
-                pass
+            cons=cmds.listConnections('%s.BindNode' % node)
+            if cons:
+                BoundCtrls.append(cmds.ls(cons[0],l=True)[0])
+            else:
+                log.info('Nothing connected to %s.BindNode' % node)
             
     if BoundCtrls:
         try:
@@ -548,10 +549,13 @@ def BakeBinderData():
             
             for node in BoundCtrls:
                 #Remove the BindMarker from the baked node
-                cmds.deleteAttr('%s.BoundCtr' % node)
-                
+                try:
+                    cmds.deleteAttr('%s.BoundCtr' % node)
+                except StandardError,error:
+                    log.info(error)
+                    
             cmds.filterCurve(BoundCtrls)
-            cmds.delete(BoundCtrls,sc=True)
+            cmds.delete(BoundCtrls,sc=True) #static channels
         except StandardError,error:
             raise StandardError(error)
     else:

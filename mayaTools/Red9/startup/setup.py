@@ -131,12 +131,14 @@ def menuSetup():
     cmds.menuItem('redNineVimeoItem',l="Red9_Vimeo Channel",ann="Open Red9Vimeo Channel",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="Red9.setup.red9_vimeo()")
+    cmds.menuItem(l="Red9_Contact_Me",c='r9Setup.red9ContactInfo()')    
+    cmds.menuItem(divider=True) 
     cmds.menuItem('redNineDebuggerItem',l='Red9 Debugger',sm=True)
-    cmds.menuItem('redNineDebugItem',l="systems DEBUG",ann="Turn all the logging to Debug",
+    cmds.menuItem('redNineDebugItem',l="systems: DEBUG",ann="Turn all the logging to Debug",
                   echoCommand=True, c="Red9.core._setlogginglevel_debug()")
-    cmds.menuItem('redNineInfoItem',l="systems INFO",ann="Turn all the logging to Info only",
+    cmds.menuItem('redNineInfoItem',l="systems: INFO",ann="Turn all the logging to Info only",
                   echoCommand=True, c="Red9.core._setlogginglevel_info()")
-    cmds.menuItem('redNineReloadItem',l="systems reload",ann="Force a complete reload on the core of Red9",
+    cmds.menuItem('redNineReloadItem',l="systems: reload()",ann="Force a complete reload on the core of Red9",
                   echoCommand=True, c="Red9.core._reload()")
     
 def addToMayaMenus():
@@ -163,8 +165,12 @@ def red9ButtonBGC(colour):
         return [0.5, 0.5, 0.5]
    
 def red9ContactInfo():
-    cmds.confirmDialog(title='Red9Info', 
-                       message="Contact me at rednineinfo@gmail.com for more information\r\rthanks for trying the toolset",
+    cmds.confirmDialog(title='Red9_StudioPack_Info', 
+                       message=("Author: Mark Jackson\r\r"+
+                                "Technical Animation Director\r\r"+
+                                "Contact me at rednineinfo@gmail.com for more information\r\r"+
+                                "thanks for trying the toolset. If you have any\r"+
+                                "suggestions or bugs please let me know!"),
                        button='thankyou',messageAlign='center')   
     
 def red9ModulePath():

@@ -238,7 +238,8 @@ class HIKContext(object):
             log.info('Exit HIK Mode >> HIKContext Manager:')
         if exc_type:
             log.exception('%s : %s'%(exc_type, exc_value))
-        if self.objs:cmds.select(self.objs)
+        if self.objs:
+            cmds.select(self.objs)
         return True 
                 
     

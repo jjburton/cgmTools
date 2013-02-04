@@ -159,7 +159,20 @@ def floatIsEqual(a,b,tolerance=0.001,allowGimbal=True):
             if abs(a-b)%180<tolerance:
                 return 1
     return 0
-    
+
+def valueToMappedRange(value, currentMin, currentMax, givenMin, givenMax):
+    '''
+    we have a min max range, lets say 0.5 - 15 and we want to map the 
+    range to a new range say 0-1 and return where the value given is
+    in that new range
+    '''
+    # Figure out how 'wide' each range is
+    currentSpan = currentMax - currentMin
+    givenSpan = givenMax - givenMin
+    # Convert the left range into a 0-1 range (float)
+    valueScaled = float(value - currentMin) / float(currentSpan)
+    # Convert the 0-1 range into a value in the right range.
+    return givenMin + (valueScaled * givenSpan)    
     
 def validateString(strText):
     '''
@@ -336,8 +349,13 @@ class FilterNode_UI(object):
         self.cbNodeTypes=[] #checkBox store for nodeTypes
         
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win , title="Node Searcher", widthHeight=(400, 360))
-        
+        window = cmds.window(self.win , title="Node Searcher", widthHeight=(400, 380))
+        cmds.menuBarLayout()
+        cmds.menu(l="VimeoHelp")
+        cmds.menuItem(l="Open Vimeo Help File",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/56551684')") 
+        cmds.menuItem(divider=True) 
+        cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))      
         self.MainLayout=cmds.columnLayout(adjustableColumn=True)
         cmds.frameLayout(label='Complex Node Search',cll=True,borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
@@ -408,6 +426,7 @@ class FilterNode_UI(object):
         cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
                              c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
         cmds.showWindow(window)
+        cmds.window(self.win , e=True, widthHeight=(400, 380))
         
         
     def __uiCall(self, mode):
@@ -458,7 +477,8 @@ class FilterNode_UI(object):
             nodes = self._filterNode.lsHierarchy(self._filterNode.settings.incRoots)     
         
         log.info('RootNodes : %s', self._filterNode.rootNodes)   
-        log.info('processMode : %s', self._filterNode.processMode)      
+        log.info('ProcessMode : %s', self._filterNode.processMode)     
+        log.info('Search Returned %i nodes' % len(nodes)) 
         if(nodes): cmds.select(nodes)
             
         
@@ -1361,7 +1381,12 @@ class LockChannels(object):
             
             if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
             window = cmds.window(self.win, title="LockChannels", s=False, widthHeight=(260,300))
-            
+            cmds.menuBarLayout()
+            cmds.menu(l="VimeoHelp")
+            cmds.menuItem(l="Open Vimeo Help File",\
+                          c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/58664502')")
+            cmds.menuItem(divider=True) 
+            cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))
             cmds.columnLayout(adjustableColumn=True,columnAttach=('both',5))
             cmds.separator(h=15, style='none')
             cmds.rowColumnLayout(ann='attrs', numberOfColumns=4, 
