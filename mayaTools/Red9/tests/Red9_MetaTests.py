@@ -319,6 +319,8 @@ class Test_MetaClass():
         node.addAttr('enum', attrType='enum', enumName='A:B:D:E:F') #create an enum attribute
         node.addAttr('doubleTest', attrType='double3', value=(1.12,2.55,5.0))
         node.addAttr('doubleTest2', attrType='double3', value=(1.0,2.0,10.0), min=1,max=15)
+        node.addAttr('doubleArray', attrType='doubleArray', value=(1.0,2.0,10.0))
+        node.addAttr('doubleArray2', attrType='doubleArray')
                      
         #create a string attr with JSON serialized data
         testDict={'jsonFloat':1.05,'jsonInt':3,'jsonString':'string says hello','jsonBool':True}
@@ -337,6 +339,8 @@ class Test_MetaClass():
         assert node.hasAttr('doubleTestY')
         assert node.hasAttr('doubleTestZ')
         assert node.hasAttr('doubleTest2')
+        assert node.hasAttr('doubleArray')
+        assert node.hasAttr('doubleArray2')
         
         #test the actual Maya node attributes
         #------------------------------------
@@ -351,6 +355,8 @@ class Test_MetaClass():
         assert cmds.getAttr('%s.doubleTestX' % node.mNode, type=True)=='double'
         assert cmds.getAttr('%s.doubleTestY' % node.mNode, type=True)=='double'
         assert cmds.getAttr('%s.doubleTestZ' % node.mNode, type=True)=='double'
+        assert cmds.getAttr('%s.doubleArray' % node.mNode, type=True)=='doubleArray'
+        assert cmds.getAttr('%s.doubleArray2' % node.mNode, type=True)=='doubleArray'
         
         assert cmds.getAttr('%s.stringTest' % node.mNode)=='this_is_a_string'
         assert cmds.getAttr('%s.fltTest' % node.mNode)==1.333
@@ -363,6 +369,8 @@ class Test_MetaClass():
         assert cmds.getAttr('%s.doubleTestX' % node.mNode)==1.12
         assert cmds.getAttr('%s.doubleTestY' % node.mNode)==2.55
         assert cmds.getAttr('%s.doubleTestZ' % node.mNode)==5.0
+        assert cmds.getAttr('%s.doubleArray' % node.mNode)==[1.0,2.0,10.0]
+        assert not cmds.getAttr('%s.doubleArray2' % node.mNode) #added with no initial value
         
         assert cmds.attributeQuery('fltTest2',node=node.mNode, max=True)==[15.0]
         assert cmds.attributeQuery('doubleTest2X',node=node.mNode, min=True)==[1.0]
@@ -438,11 +446,23 @@ class Test_MetaClass():
         except:
             assert True
             
+        #doubleArray ======================
+        assert node.doubleArray==[1.0,2.0,10.0]
+        node.doubleArray=[20,5.5,3.1]
+        assert node.doubleArray==[20,5.5,3.1]
+        node.doubleArray=[]
+        assert not node.doubleArray
+        assert not node.doubleArray2
+        node.doubleArray2=[1.1,5,6,7,1.1]
+        assert node.doubleArray2==[1.1,5,6,7,1.1]
+                  
         del(node.boolTest)
         assert cmds.objExists(node.mNode)
         assert not node.hasAttr('boolTest')
         assert not cmds.attributeQuery('boolTest',node=node.mNode,exists=True)
     
+
+        
     def test_attributeHandling_MessageAttr(self):
         '''
         test the messageLink handling in the __setattr__ block and addAttr

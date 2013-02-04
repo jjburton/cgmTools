@@ -148,6 +148,8 @@ class cgmGUI(BaseMelWindow):
         log.info('var_%s'%varName)
         if fullName not in self.l_optionVars:
             self.l_optionVars.append(fullName)
+	return fullName
+	    
 	    
     def create_cgmDebugOptionVar(self,*args,**kws):
         fullName = "cgmVar_guiDebug"
@@ -532,6 +534,15 @@ def add_SectionBreak():
         return mc.separator(ut='cgmUISubTemplate')
     else:
         return mc.separator(style='single')
+
+def add_CheckBox(self,parent,optionVarName,*a,**kw):
+    fullName = self.create_guiOptionVar(optionVarName)    
+
+    return MelCheckBox(parent,
+                       v = mc.optionVar(q=fullName),
+                       onCommand = lambda *a: mc.optionVar(iv=(fullName,1)),
+                       offCommand = lambda *a: mc.optionVar(iv=(fullName,0)),
+                       *a,**kw)
 
 def add_MelLabel(parent,text,**kws):
     return MelLabel(parent,label = text,ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True,**kws)

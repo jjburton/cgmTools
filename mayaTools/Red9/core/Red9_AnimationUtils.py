@@ -275,7 +275,20 @@ class AnimationUI(object):
         
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
         animwindow = cmds.window(self.win , title=self.label)#, widthHeight=(325, 420))
-        
+        cmds.menuBarLayout()
+        cmds.menu(l="VimeoHelp")
+        cmds.menuItem(l="Open Vimeo > WalkThrough",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/56431983')") 
+        cmds.menuItem(l="Open Vimeo > HierarchyControl",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/56551684')") 
+        cmds.menuItem(l="Open Vimeo > Track or Stabilize",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/33440361')") 
+        cmds.menuItem(l="Open Vimeo > CopyKeys & TimeOffsets",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/33440348')") 
+        cmds.menuItem(l="Open Vimeo > MirrorSetups",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/57882801')")         
+        cmds.menuItem(divider=True) 
+        cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))
         self.MainLayout = cmds.columnLayout(adjustableColumn=True)
         
         self.form = cmds.formLayout()
@@ -460,8 +473,14 @@ class AnimationUI(object):
                      command=partial(self.__uiCall, 'MirrorAnim'))  
         cmds.button(label='Mirror Pose', bgc=self.buttonBgc, 
                      ann='Mirror the Current Pose', 
-                     command=partial(self.__uiCall, 'MirrorPose'))  
-
+                     command=partial(self.__uiCall, 'MirrorPose'))
+ 
+        cmds.button(label='Symmetry Animation', bgc=self.buttonBgc, 
+                     ann='Symmetry the Animation - NOTE Layers and Trax are NOT supported yet', 
+                     command=partial(self.__uiCall, 'SymmetryAnim'))  
+        cmds.button(label='Symmetry Pose', bgc=self.buttonBgc, 
+                     ann='Symmetry the Current Pose', 
+                     command=partial(self.__uiCall, 'SymmetryPose'))  
         cmds.setParent(self.AnimLayout) 
         cmds.setParent(self.tabs)
         
@@ -1092,6 +1111,7 @@ class AnimationUI(object):
                                             label=pose,\
                                             bgc=self.poseButtonBGC,\
                                             parent=self.uiglPoses,\
+                                            ann=pose,\
                                             onc=partial(self.__uiCB_iconGridSelection, pose),\
                                             ofc="import maya.cmds as cmds;cmds.iconTextCheckBox('_%s', e=True, v=True)" % pose) #we DONT allow you to deselect
                 except StandardError,error:
@@ -1434,12 +1454,12 @@ class AnimationUI(object):
             if AnimationUI.has_key('filterNode_preset') and AnimationUI['filterNode_preset']:
                 cmds.textScrollList(self.uitslPresets, e=True, si=AnimationUI['filterNode_preset'])
                 self.__uiPresetSelection(Read=True)   ###not sure on this yet????
+                
             if AnimationUI.has_key('poseMode') and AnimationUI['poseMode']:
                 self.poseGridMode=AnimationUI['poseMode']
                 
             if AnimationUI.has_key('posePathMode') and AnimationUI['posePathMode']:
-                self.posePathMode=AnimationUI['posePathMode']
-            
+                self.posePathMode=AnimationUI['posePathMode']        
             if AnimationUI.has_key('posePathLocal') and AnimationUI['posePathLocal']:
                 self.posePathLocal=AnimationUI['posePathLocal']
             if AnimationUI.has_key('posePathProject') and AnimationUI['posePathProject']:
@@ -1677,7 +1697,19 @@ class AnimationUI(object):
         else:
             mirror.mirrorData(mode=mirrorMode)        
 
-               
+    def __SymmetryPoseAnim(self,func):
+        '''
+        Internal UI call for Mirror Animation / Pose
+        '''
+        mirror=MirrorHierarchy(nodes=cmds.ls(sl=True, l=True), filterSettings=self.filterSettings)
+        mirrorMode='Anim'
+        if func=='SymmetryPose':
+            mirrorMode='Pose' 
+        if not cmds.checkBox('uicbMirrorHierarchy',q=True,v=True):
+            mirror.makeSymmetrical(cmds.ls(sl=True, l=True),mode=mirrorMode)   
+        else:
+            mirror.makeSymmetrical(mode=mirrorMode)     
+                      
     # MAIN CALL
     #------------------------------------------------------------------------------                                                                                         
     def __uiCall(self, func, *args):
@@ -1726,6 +1758,10 @@ class AnimationUI(object):
                 self.__MirrorPoseAnim(func)
             elif func =='MirrorPose':
                 self.__MirrorPoseAnim(func)
+            elif func =='SymmetryPose':
+                self.__SymmetryPoseAnim(func)
+            elif func =='SymmetryAnim':
+                self.__SymmetryPoseAnim(func)
 
         except StandardError, error:
             raise StandardError(error)
@@ -2062,7 +2098,6 @@ class AnimFunctions(object):
         for node in nodes[1:]:
             cmds.SnapTransforms(source=nodes[0], destination=node)
  
-
         
     @staticmethod
     def stabilizer(nodes=None, time=(), step=1):
@@ -2147,6 +2182,7 @@ class AnimFunctions(object):
         cmds.autoKeyframe(state=autokeyState)               
         cmds.select(nodes)
         
+        
     @staticmethod    
     def inverseAnimChannels(node, channels, time=None):
         '''
@@ -2154,10 +2190,14 @@ class AnimFunctions(object):
         '''
         #for chan in channels:
             #cmds.scaleKey('%s_%s' % (node,chan),vs=-1)
+        if not channels:
+            log.debug('abort: no animChannels passed in to inverse')
+            return
         if time:
             cmds.scaleKey(node,valueScale=-1,attribute=channels,time=time)
         else:
             cmds.scaleKey(node,valueScale=-1,attribute=channels)
+            
             
     @staticmethod
     def inverseAttributes(node, channels):
@@ -2205,11 +2245,15 @@ class RandomizeKeys(object):
             cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,125),(2,125)])
             cmds.checkBox('cb_rand_current',
                           l='Current Keys Only',v=True,
+                          ann='ONLY randomize selected keys, if OFF the core will add keys to the curve at the frameStep incremenet',
                           cc=lambda x:self.__uicb_currentKeysCallback()) 
             cmds.checkBox('cb_rand_percent',
                           l='Pre-Normalize Curves', v=True,
                           ann='Pre-Normalize: process based on value percentage range auto-calculated from curves',
                           cc=lambda x:self.__uicb_percentageCallback()) 
+            #cmds.checkBox('cb_rand_ignoreBounds',
+            #              l='Ignore Start and End Keys', v=True,
+            #              ann='Remove the first and last key from processing, maintaining any animation cycles') 
             cmds.setParent('..')
             cmds.separator(h=15,style='none')  
             cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,125),(2,125)])
@@ -2263,7 +2307,7 @@ class RandomizeKeys(object):
             return [-rng,rng]
         else:
             return [-1,1]
-                           
+                       
     def addNoise(self, curves, time=(), step=1, currentKeys=True, randomRange=[-1,1], damp=1, percent=False):
         '''
         Simple noise function designed to add noise to keyframed animation data
@@ -2292,7 +2336,7 @@ class RandomizeKeys(object):
                         log.info('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
                     value=self.noiseFunc(v,randomRange,damp)
                     cmds.setKeyframe(curve, v=value,t=t)
-        else:
+        else:  #allow to ADD keys at 'step' frms
             if not time:
                 selectedKeyTimes=sorted(list(set(cmds.keyframe(q=True,tc=True))))
                 if selectedKeyTimes:
@@ -2354,13 +2398,14 @@ class MirrorHierarchy(object):
     TODO: We need to do a UI for managing these marker attrs and the Index lists
     '''
     
-    def __init__(self, nodes=None, filterSettings=None):
+    def __init__(self, nodes=[], filterSettings=None):
         '''
         @param nodes: initial nodes to process
         @param filterSettings: filterSettings object to process hierarchies
         '''
         
         self.nodes=nodes
+        if not type(self.nodes)==list:self.nodes=[self.nodes]
         
         #default Attributes used to define the system
         self.defaultMirrorAxis=['translateX','rotateY','rotateZ']
@@ -2497,9 +2542,18 @@ class MirrorHierarchy(object):
             try:
                 side=self.getMirrorSide(node)
                 index=self.getMirrorIndex(node)
+                axis=self.getMirrorAxis(node)
                 log.debug('Side : %s Index : %s>> node %s' % \
                           ( side, index, r9Core.nodeNameStrip(node)))
-                self.mirrorDict[side][index]=node
+                #self.mirrorDict[side][str(index)]=node #NOTE index is cast to string!
+                self.mirrorDict[side][str(index)]={}
+                self.mirrorDict[side][str(index)]['node']=node
+                self.mirrorDict[side][str(index)]['axis']=axis
+                if cmds.attributeQuery(self.mirrorAxis,node=node,exists=True):
+                    self.mirrorDict[side][str(index)]['axisAttr']=True
+                else:
+                    self.mirrorDict[side][str(index)]['axisAttr']=False
+                
             except StandardError,error:
                 log.debug(error)
                 log.info('Failed to add Node to Mirror System : %s' % r9Core.nodeNameStrip(node))
@@ -2511,35 +2565,33 @@ class MirrorHierarchy(object):
         self.getMirrorSets()
         if not short:
             print '\nCenter MirrorLists ====================================================='
-            for i,node in self.mirrorDict['Centre'].items(): print '%s > %s' % (i,node)
+            for i,data in self.mirrorDict['Centre'].items(): print '%s > %s' % (i,data['node'])
             print '\nRight MirrorLists ======================================================'
-            for i,node in self.mirrorDict['Right'].items(): print '%s > %s' % (i,node)
+            for i,data in self.mirrorDict['Right'].items(): print '%s > %s' % (i,data['node'])
             print '\nLeft MirrorLists ======================================================='
-            for i,node in self.mirrorDict['Left'].items(): print '%s > %s' % (i,node)
+            for i,data in self.mirrorDict['Left'].items(): print '%s > %s' % (i,data['node'])
         else:
             print '\nCenter MirrorLists ====================================================='
-            for i,node in self.mirrorDict['Centre'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(node))
+            for i,data in self.mirrorDict['Centre'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
             print '\nRight MirrorLists ======================================================'
-            for i,node in self.mirrorDict['Right'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(node))
+            for i,data in self.mirrorDict['Right'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
             print '\nLeft MirrorLists ======================================================='
-            for i,node in self.mirrorDict['Left'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(node))
+            for i,data in self.mirrorDict['Left'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
                           
-    def mirrorPairData(self,objA,objB,method='Anim'):
+    def switchPairData(self,objA,objB,mode='Anim'):
         '''
         take the left and right matched pairs and exchange the animData
-        across between them
+        or poseData across between them
         '''
         objs=cmds.ls(sl=True,l=True)
-        if method=='Anim':
+        if mode=='Anim':
             transferCall= AnimFunctions().copyKeys
-            inverseCall = AnimFunctions.inverseAnimChannels
         else:
             transferCall= AnimFunctions().copyAttributes
-            inverseCall = AnimFunctions.inverseAttributes
         
         #switch the anim data over via temp
         cmds.select(objA)
-        cmds.duplicate()
+        cmds.duplicate(name='DELETE_ME_TEMP')
         temp=cmds.ls(sl=True,l=True)[0]
         log.debug('temp %s:' % temp)
         transferCall([objA,temp])
@@ -2547,11 +2599,44 @@ class MirrorHierarchy(object):
         transferCall([temp,objB])
         cmds.delete(temp)
         
-        #inverse the values
-        inverseCall(objA,self.getMirrorAxis(objA))
-        inverseCall(objB,self.getMirrorAxis(objB))
         if objs:cmds.select(objs)
-        
+    
+    def makeSymmetrical(self,nodes=None,mode='Anim',primeAxis='Left'):
+        '''
+        similar to the mirrorData except this is designed to take the data from an object in
+        one side of the mirrorDict and pass that data to the opposite matching node, thus 
+        making the anim/pose symmetrical according to the mirror setups. 
+        Really useful for facial setups!
+        '''
+        self.getMirrorSets(nodes)
+        if mode=='Anim':
+            transferCall= AnimFunctions().copyKeys
+            inverseCall = AnimFunctions.inverseAnimChannels
+        else:
+            transferCall= AnimFunctions().copyAttributes
+            inverseCall = AnimFunctions.inverseAttributes
+            
+        if primeAxis=='Left':
+            masterAxis='Left'
+            slaveAxis = 'Right'
+        else:
+            masterAxis='Right'
+            slaveAxis = 'Left'
+               
+        for index,masterSide in self.mirrorDict[masterAxis].items():
+            if not index in self.mirrorDict[slaveAxis].keys():
+                log.warning('No matching Index Key found for %s mirrorIndex : %s >> %s' % \
+                            (masterAxis,index,r9Core.nodeNameStrip(masterSide['node'])))
+            else:
+                slaveData=self.mirrorDict[slaveAxis][index]
+                log.debug('SymmetricalPairs : %s >> %s' % (r9Core.nodeNameStrip(masterSide['node']),\
+                                     r9Core.nodeNameStrip(slaveData['node'])))
+                transferCall([masterSide['node'],slaveData['node']])
+                
+                log.debug('Symmetrical Axis Inversion: %s' % ','.join(slaveData['axis'])) 
+                if slaveData['axis']:
+                    inverseCall(slaveData['node'], slaveData['axis'])
+             
     def mirrorData(self, nodes=None, mode='Anim'):
         '''
         Using the FilterSettings obj find all nodes in the return that have
@@ -2561,23 +2646,86 @@ class MirrorHierarchy(object):
         '''
         self.getMirrorSets(nodes)
         
+        if mode=='Anim':
+            inverseCall = AnimFunctions.inverseAnimChannels
+        else:
+            inverseCall = AnimFunctions.inverseAttributes
+        
         #Switch Pairs on the Left and Right and inverse the channels
-        for index,node in self.mirrorDict['Left'].items():
+        for index,leftData in self.mirrorDict['Left'].items():
             if not index in self.mirrorDict['Right'].keys():
-                log.warning('No matching Index Key found for Left mirrorIndex : %s >> %s' % (index,r9Core.nodeNameStrip(node)))
+                log.warning('No matching Index Key found for Left mirrorIndex : %s >> %s' % (index,r9Core.nodeNameStrip(leftData['node'])))
             else:
-                log.debug('SwitchingPairs : %s >> %s' % (r9Core.nodeNameStrip(node),\
-                                     r9Core.nodeNameStrip(self.mirrorDict['Right'][index])))
-                self.mirrorPairData(node,self.mirrorDict['Right'][index],method=mode)
+                rightData=self.mirrorDict['Right'][index]
+                log.debug('SwitchingPairs : %s >> %s' % (r9Core.nodeNameStrip(leftData['node']),\
+                                     r9Core.nodeNameStrip(rightData['node'])))
+                self.switchPairData(leftData['node'], rightData['node'],mode=mode)
+                
+                log.debug('Axis Inversions: left: %s' % ','.join(leftData['axis']))
+                log.debug('Axis Inversions: right: %s' % ','.join(rightData['axis']))
+                if leftData['axis']:
+                    inverseCall(leftData['node'],  leftData['axis'])
+                if rightData['axis']:
+                    inverseCall(rightData['node'], rightData['axis'])
                 
         #Inverse the Centre Nodes
-        for node in self.mirrorDict['Centre'].values():
-            if mode=='Anim':
-                AnimFunctions.inverseAnimChannels(node, self.getMirrorAxis(node))
-            else:
-                AnimFunctions.inverseAttributes(node, self.getMirrorAxis(node))
+        for data in self.mirrorDict['Centre'].values():
+            inverseCall(data['node'], data['axis'])
+     
+    def saveMirrorSetups(self,filepath):
+        '''
+        Store the mirrorSetups out to file
+        '''
+        self.getMirrorSets()
+        self.printMirrorDict()
+        ConfigObj = configobj.ConfigObj(indent_type='\t')
+        ConfigObj['mirror']=self.mirrorDict
+        ConfigObj.filename = filepath
+        ConfigObj.write()
+        
+    def loadMirrorSetups(self, filepath, nodes=None, hierarchy=True):
+        if not os.path.exists(filepath):
+            raise IOError('invalid filepath given')
+        self.mirrorDict = configobj.ConfigObj(filepath)['mirror']
+        nodesToMap=nodes
+        
+        if not nodesToMap:
+            nodesToMap=list(self.nodes)
+            nodesToMap.extend(cmds.listRelatives(nodesToMap,ad=True,f=True,type='transform'))
+        #log.debug('nodes to load mirrors onto: %s' % ','.join(nodesToMap))
+        for node in nodesToMap:
+            found=False
+            for index,leftData in self.mirrorDict['Left'].items():
+                print node, leftData['node']
+                if r9Core.matchNodeLists([node],[leftData['node']]):
+                    log.debug('NodeMatched: %s, Side=Left, index=%i, axis=%s' % (node,int(index),leftData['axis']))
+                    if r9Core.decodeString(leftData['axisAttr']):
+                        self.setMirrorIDs(node, side='Left', slot=int(index), axis=leftData['axis'])
+                    else:
+                        self.setMirrorIDs(node, side='Left', slot=int(index))
+                    found=True
+                    break
+            if not found:
+                for index,rightData in self.mirrorDict['Right'].items():
+                    if r9Core.matchNodeLists([node],[rightData['node']]):
+                        log.debug('NodeMatched: %s, Side=Right, index=%i, axis=%s' % (node,int(index),rightData['axis']))
+                        if r9Core.decodeString(rightData['axisAttr']):
+                            self.setMirrorIDs(node, side='Right', slot=int(index), axis=rightData['axis'])
+                        else:
+                            self.setMirrorIDs(node, side='Right', slot=int(index))
+                        found=True
+                        break
+            if not found:
+                for index,centreData in self.mirrorDict['Centre'].items():
+                    if r9Core.matchNodeLists([node],[centreData['node']]):
+                        log.debug('NodeMatched: %s, Side=Centre, index=%i, axis=%s' % (node,int(index),centreData['axis']))
+                        if r9Core.decodeString(centreData['axisAttr']):      
+                            self.setMirrorIDs( node, side='Centre', slot=int(index), axis=centreData['axis'])
+                        else:
+                            self.setMirrorIDs(node, side='Centre', slot=int(index))
+                        break
                     
-
+                   
 class MirrorSetup(object):
     '''
     DAMN ROUGH Mirror Handler UI for internal use only until I clean it up!
@@ -2594,8 +2742,13 @@ class MirrorSetup(object):
     def _showUI(self):
                  
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title="MirrorSetup", s=False, widthHeight=(260,300))
-        
+        window = cmds.window(self.win, title="MirrorSetup", s=False, widthHeight=(260,320))
+        cmds.menuBarLayout()
+        cmds.menu(l="VimeoHelp")
+        cmds.menuItem(l="Open Vimeo Help File",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/57882801')") 
+        cmds.menuItem(divider=True) 
+        cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))    
         cmds.columnLayout(adjustableColumn=True,columnAttach=('both',5))
         cmds.separator(h=15, style='none')
         cmds.text(l='MirrorSide')
@@ -2638,7 +2791,15 @@ class MirrorSetup(object):
                      command=lambda *args:(self.__printDebugs()))
         cmds.button(label='Delete from Selected', bgc=r9Setup.red9ButtonBGC(1),
                      command=lambda *args:(self.__deleteMarkers()))
-        cmds.setParent('..')   
+        cmds.setParent('..')  
+        cmds.checkBox('mirrorSaveLoadHierarchy',l='hierarchy', v=False)
+        cmds.rowColumnLayout(nc=2,columnWidth=[(1,135), (2,135)])
+        cmds.button(label='Save MirrorConfigs', bgc=r9Setup.red9ButtonBGC(1),
+                     ann='Save the current MirrorSetups',
+                     command=lambda *args:(self.__saveMirrorSetups()))
+        cmds.button(label='Load MirrorConfigs', bgc=r9Setup.red9ButtonBGC(1),
+                     command=lambda *args:(self.__loadMirrorSetups()))
+        cmds.setParent('..')  
         cmds.separator(h=15,style='none')  
         cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
                              c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
@@ -2665,8 +2826,8 @@ class MirrorSetup(object):
             self.__uicb_default(True)
             for a in axis:
                 if a=='translateX':  cmds.checkBox('translateX',e=True,v=True)
-                elif a=='translateY':  cmds.checkBox('translateY',e=True,v=True)
-                elif a=='translateZ':  cmds.checkBox('translateZ',e=True,v=True)
+                elif a=='translateY': cmds.checkBox('translateY',e=True,v=True)
+                elif a=='translateZ': cmds.checkBox('translateZ',e=True,v=True)
                 elif a=='rotateX':  cmds.checkBox('rotateX',e=True,v=True)
                 elif a=='rotateY':  cmds.checkBox('rotateY',e=True,v=True)
                 elif a=='rotateZ':  cmds.checkBox('rotateZ',e=True,v=True)
@@ -2741,7 +2902,7 @@ class MirrorSetup(object):
   
             result = cmds.confirmDialog(
                 title='Mirror Markers',
-                message='Add incremented Mirror Markers to Muliple selected nodes\n?',
+                message='Add incremented Mirror Markers to Muliple selected nodes?',
                 button=['OK', 'Cancel'],
                 defaultButton='OK',
                 cancelButton='Cancel',
@@ -2755,4 +2916,20 @@ class MirrorSetup(object):
         else:
             self.mirrorClass.setMirrorIDs(nodes[0],side=str(side),slot=index,axis=axis)
             log.info('MirrorMarkers added to : %s' % r9Core.nodeNameStrip(nodes[0]))
+    
+    def __saveMirrorSetups(self):
+        filepath=cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;",okc='Save')[0]
+        self.mirrorClass.nodes=cmds.ls(sl=True)
+        if cmds.checkBox('mirrorSaveLoadHierarchy',q=True,v=True):
+            self.mirrorClass.settings.hierarchy=True
+        self.mirrorClass.saveMirrorSetups(filepath=filepath)
+
+    def __loadMirrorSetups(self):
+        filepath=cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;",okc='Load')[0]
+        if cmds.checkBox('mirrorSaveLoadHierarchy',q=True,v=True):
+            self.mirrorClass.nodes=cmds.ls(sl=True,l=True)
+            self.mirrorClass.loadMirrorSetups(filepath=filepath)
+        else:
+            self.mirrorClass.loadMirrorSetups(filepath=filepath, nodes=cmds.ls(sl=True,l=True))
+
         

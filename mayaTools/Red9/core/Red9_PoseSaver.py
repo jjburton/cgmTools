@@ -181,7 +181,7 @@ class PoseData(object):
             if not type(nodes)==list: nodes=[nodes]
             if self.metaPose:
                 if self.setMetaRig(nodes):
-                    self.rootJnt=self.metaRig.getSkeletonRoot()
+                    self.rootJnt=self.metaRig.getSkeletonRoots()[0]
             else:
                 if cmds.attributeQuery('animSkeletonRoot',node=nodes[0],exists=True):
                     self.rootJnt=cmds.listConnections('%s.%s' % (nodes[0],'animSkeletonRoot'),destination=True,source=True)[0]
@@ -357,7 +357,7 @@ class PoseData(object):
     #Main Calls ----------------------------------------  
   
     @r9General.Timer              
-    def PoseSave(self, nodes, filepath, useFilter=True):
+    def PoseSave(self, nodes, filepath, useFilter=True, storeThumbnail=True):
         '''
         Entry point for the generic PoseSave
         @param nodes: nodes to store the data against OR the rootNode if the filter is active
@@ -369,9 +369,10 @@ class PoseData(object):
         self.buildInternalPoseData(nodes, useFilter)
         self._writePose(filepath)
         
-        sel=cmds.ls(sl=True,l=True)
-        cmds.select(cl=True)
-        r9General.thumbNailScreen(filepath,self.thumbnailRes[0],self.thumbnailRes[1])
+        if storeThumbnail:
+            sel=cmds.ls(sl=True,l=True)
+            cmds.select(cl=True)
+            r9General.thumbNailScreen(filepath,self.thumbnailRes[0],self.thumbnailRes[1])
         
         if sel:
             cmds.select(sel)
@@ -668,9 +669,33 @@ class PoseCompare(object):
             return False
         return True
 
-        
-        
-        
+         
+
+def batchPatchPoses(posedir,config,poseroot,patchfunc=None):
+    '''
+    whats this?? a fast method to run through all the poses in a given dictionary and update
+    or patch them. If patchfunc isn't given it'll just run through and resave the pose - updating 
+    the systems if needed. If it is then it gets run between the load and save calls.
+    @param posedir: directory of poses to process
+    @param config: hierarchy settings cfg to use to ID the nodes (hierarchy tab preset = filterSettings object)
+    @param poseroot: root node to the filters - poseTab rootNode/MetaRig root
+    @param patchfunc: optional function to run between the load and save call in processing, great for
+            fixing issues on mass with poses.
+    '''
+
+    filterObj=r9Core.FilterNode_Settings()
+    filterObj.read(os.path.join(r9Setup.red9ModulePath(), 'presets','Crytek_New_Meta.cfg'))
+    mPose=PoseData(filterObj)
+    
+    files=os.listdir(posedir)
+    files.sort()
+    for f in files:
+        if f.lower().endswith('.pose'):
+            mPose.PoseLoad(poseroot, os.path.join(posedir,f), useFilter=True, relativePose=False, relativeRots=False, relativeTrans=False) 
+            if patchfunc:
+                patchfunc()
+            mPose.PoseSave(poseroot, os.path.join(posedir,f), useFilter=True, storeThumbnail=False) 
+
         
         
         

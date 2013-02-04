@@ -326,7 +326,7 @@ class MClassNodeUI():
     def _showUI(self):
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
         window = cmds.window(self.win , title=self.win) #, widthHeight=(260, 220))
-
+        cmds.scrollLayout('slMetaNodeScroll',rc=lambda *args:self.fitTextScrollFucker())
         cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=15, style='none')
         txt=self.mTypes
@@ -355,6 +355,13 @@ class MClassNodeUI():
         cmds.showWindow(window)
         self.fillScroll()
  
+    def fitTextScrollFucker(self):
+        '''
+        bodge to resize tghe textScroll as the default Maya control is SHITE!
+        '''
+        cmds.textScrollList('slMetaNodeList',e=True,h=int(cmds.scrollLayout('slMetaNodeScroll',q=True,h=True))-120)
+        cmds.textScrollList('slMetaNodeList',e=True,w=int(cmds.scrollLayout('slMetaNodeScroll',q=True,w=True))-10)
+
     def graphNetwork(self,*args):
         if r9Setup.mayaVersion()<2013:
             mel.eval('hyperGraphWindow( "", "DG")')
@@ -703,6 +710,7 @@ class MetaClass(object):
                     attrType=cmds.getAttr(attrString, type=True) # the MayaNode attribute valueType
                     valueType=attributeDataType(value)           # DataType passed in to be set as Value
                     log.debug('valueType : %s' % valueType)
+                    log.debug('setting %s attribute' % attrType)
                     
                     if attrType=='string':
                         if valueType=='string' or valueType=='unicode':
@@ -713,15 +721,17 @@ class MetaClass(object):
                             log.debug('set string attribute to complex :  %s' % self.__serializeComplex(value))
                             cmds.setAttr(attrString, self.__serializeComplex(value), type='string')
                             return
+                        
                     elif attrType in ['double3','float3'] and valueType=='complex':
                         try:
-                            log.debug('set %s attribute' % attrType)
                             cmds.setAttr(attrString, value[0], value[1], value[2])
                         except ValueError, error:
                             raise ValueError(error)
+                        
+                    elif attrType=='doubleArray':
+                        cmds.setAttr(attrString,value,type='doubleArray')
                     else:
-                        cmds.setAttr(attrString, value)
-                    
+                        cmds.setAttr(attrString, value)  
                 if locked:
                     self.attrSetLocked(attr,True)
             else:
@@ -858,6 +868,7 @@ class MetaClass(object):
                      'float':  {'longName':attr,'at':'double'},\
                      'float3': {'longName':attr,'at':'float3'},\
                      'double3':{'longName':attr,'at':'double3'},\
+                     'doubleArray':{'longName':attr,'dt':'doubleArray'},\
                      'enum':   {'longName':attr,'at':'enum'},\
                      'complex':{'longName':attr,'dt':'string'},\
                      #'message':{'longName':attr,'at':'message','m':True,'im':False},\  
@@ -900,13 +911,15 @@ class MetaClass(object):
                     object.__setattr__(self, attr2, None) #don't set it, just add it to the object
                     object.__setattr__(self, attr3, None) #don't set it, just add it to the object                     
                     if attrType in Keyable and not hidden:
-                        cmds.setAttr('%s.%s' % (self.mNode,attr1),e=True,keyable=True) 
+                        cmds.setAttr('%s.%s' % (self.mNode,attr1),e=True,keyable=True)
                         cmds.setAttr('%s.%s' % (self.mNode,attr2),e=True,keyable=True)
                         cmds.setAttr('%s.%s' % (self.mNode,attr3),e=True,keyable=True)
+                elif attrType=='doubleArray':
+                    #have to initialize this type or Maya doesn't pick the attrType up!
+                    cmds.setAttr('%s.%s' % (self.mNode, attr),[],type='doubleArray')
                 else:
                     if attrType in Keyable and not hidden:
-                        cmds.setAttr('%s.%s' % (self.mNode, attr),e=True,keyable=True)
-                                   
+                        cmds.setAttr('%s.%s' % (self.mNode, attr),e=True,keyable=True)                             
                 if value:
                     self.__setattr__(attr, value, force=False)
                 else:
@@ -1302,6 +1315,9 @@ class MetaClass(object):
         @param walk: walk all subMeta connections and include all their children too
         @param mAttrs: only return connected nodes that pass the given attribute filter
         NOTE: mAttrs is only searching attrs on the mNodes themselves, not all children
+        TODO: Big one here, allow this to accept a second attr search param, 'mConnectionAttrs'
+        that will only return children connected to self via an attr that makes the given search,
+        kind of like the getRigControls already does but more generic.
         '''
         childMetaNodes=[self]
         children=[]
@@ -1472,13 +1488,14 @@ class MetaRig(MetaClass):
     def getChildren(self, walk=False, mAttrs=None):
         return self.getRigCtrls(walk=walk, mAttrs=mAttrs)
        
-    def getSkeletonRoot(self):
+    def getSkeletonRoots(self):
         '''
         get the Skeleton Root, used in the poseSaver. By default this looks
         for a message link via the attr "exportSkeletonRoot" to the skeletons root jnt
+        always returns a list!
         '''
         if self.hasAttr('exportSkeletonRoot'):
-            return self.exportSkeletonRoot[0]
+            return self.exportSkeletonRoot
         
 
     #Do we supply a few generic presets?
