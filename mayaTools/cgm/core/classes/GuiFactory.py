@@ -42,7 +42,7 @@ from cgm.lib import (search,
                      guiFactory,
                      dictionary)
 
-from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
 
 #>>> From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -58,7 +58,7 @@ log.setLevel(logging.INFO)
 def run():
     win = cgmGUI()
     
-class cgmGUI(BaseMelWindow):
+class cgmGUI(mUI.BaseMelWindow):
     """
     Base CG Monks core gui
     """
@@ -160,44 +160,44 @@ class cgmGUI(BaseMelWindow):
     # Menu Building
     #=========================================================================
     def build_menus(self):
-        self.uiMenu_FirstMenu = MelMenu( l='Root', pmc=self.buildMenu_first)		        
-        self.uiMenu_OptionsMenu = MelMenu( l='Options', pmc=self.buildMenu_options)		
-        self.uiMenu_HelpMenu = MelMenu( l='Help', pmc=self.buildMenu_help)   
+        self.uiMenu_FirstMenu = mUI.MelMenu( l='Root', pmc=self.buildMenu_first)		        
+        self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
+        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
 
     def buildMenu_first( self, *args):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		
-        MelMenuItemDiv( self.uiMenu_FirstMenu )
-        MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
-                     c=lambda *a: self.reload())		
-        MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
-                     c=lambda *a: self.reset())    
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
+	                 c=lambda *a: self.reload())		
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+	                 c=lambda *a: self.reset())    
         
     def buildMenu_options( self, *args):
         self.uiMenu_OptionsMenu.clear()
         #>>> Reset Options				
-        MelMenuItem( self.uiMenu_OptionsMenu, l="Dock",
-                     cb=self.var_Dock.value,
-                     c= lambda *a: self.do_dockToggle())	      
+        mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Dock",
+	                 cb=self.var_Dock.value,
+	                 c= lambda *a: self.do_dockToggle())	      
 
     def buildMenu_help( self, *args):
         self.uiMenu_HelpMenu.clear()
-        MelMenuItem( self.uiMenu_HelpMenu, l="Show Help",
-                     cb=self.var_ShowHelp.value,
-                     c= lambda *a: self.do_showHelpToggle())
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Show Help",
+	                 cb=self.var_ShowHelp.value,
+	                 c= lambda *a: self.do_showHelpToggle())
 
-        MelMenuItem( self.uiMenu_HelpMenu, l="Print Tools Help",
-                     c=lambda *a: self.printHelp() )
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Print Tools Help",
+	                 c=lambda *a: self.printHelp() )
 
-        MelMenuItemDiv( self.uiMenu_HelpMenu )
-        MelMenuItem( self.uiMenu_HelpMenu, l="About",
-                     c=lambda *a: self.showAbout() )
+        mUI.MelMenuItemDiv( self.uiMenu_HelpMenu )
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="About",
+	                 c=lambda *a: self.showAbout() )
 	
 	# Update Mode
-	iMenu_loggerMaster = MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
-	MelMenuItem( iMenu_loggerMaster, l='Info',
+	iMenu_loggerMaster = mUI.MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
+	mUI.MelMenuItem( iMenu_loggerMaster, l='Info',
 	             c=lambda *a: self.set_loggingInfo())
-	MelMenuItem( iMenu_loggerMaster, l='Debug',
+	mUI.MelMenuItem( iMenu_loggerMaster, l='Debug',
 	             c=lambda *a: self.set_loggingDebug())
 	
     def set_loggingInfo(self):
@@ -278,7 +278,7 @@ class cgmGUI(BaseMelWindow):
             self.SetToolsModeOptionVar.set( i )
             self.setMode = i
 
-        MainForm = MelColumnLayout(parent)
+        MainForm = mUI.MelColumnLayout(parent)
         SetHeader = add_Header('HI')
         
 	self.l_helpElements.extend(add_InstructionBlock(MainForm,"Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
@@ -491,13 +491,13 @@ def do_purgeOptionVar(varName):
 #=========================================================================
 def add_Button(parent, labelText = 'text', commandText = 'mc.warning("Fix this")',annotationText = '',*a,**kw):
     if currentGenUI:
-        return 	MelButton(parent,l=labelText,ut = 'cgmUITemplate',
+        return 	mUI.MelButton(parent,l=labelText,ut = 'cgmUITemplate',
                                  c= commandText,
                                  height = 20,
                                  align = 'center',
                                  annotation = annotationText,*a,**kw)
     else:
-        return MelButton(parent,l=labelText, backgroundColor = [.75,.75,.75],
+        return mUI.MelButton(parent,l=labelText, backgroundColor = [.75,.75,.75],
                          c= commandText,
                          height = 20,
                          align = 'center',
@@ -538,27 +538,27 @@ def add_SectionBreak():
 def add_CheckBox(self,parent,optionVarName,*a,**kw):
     fullName = self.create_guiOptionVar(optionVarName)    
 
-    return MelCheckBox(parent,
+    return mUI.MelCheckBox(parent,
                        v = mc.optionVar(q=fullName),
                        onCommand = lambda *a: mc.optionVar(iv=(fullName,1)),
                        offCommand = lambda *a: mc.optionVar(iv=(fullName,0)),
                        *a,**kw)
 
 def add_MelLabel(parent,text,**kws):
-    return MelLabel(parent,label = text,ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True,**kws)
+    return mUI.MelLabel(parent,label = text,ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True,**kws)
 
 def add_InstructionBlock(parent,text, align = 'center', vis = False, maxLineLength = 35, **kws):
     # yay, accounting for word wrap...
     if currentGenUI:
-        return [MelLabel(parent,label= text, ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True, visible = vis,**kws)]
+        return [mUI.MelLabel(parent,label= text, ut = 'cgmUIInstructionsTemplate',al = 'center', ww = True, visible = vis,**kws)]
 
     else:
         instructions = []
         textLines = return_SplitLines(text, maxLineLength)
-        instructions.append(MelSeparator(parent,style='single', visible = vis))
+        instructions.append(mUI.MelSeparator(parent,style='single', visible = vis))
         for line in textLines:
-            instructions.append(MelLabel(parent,label = line, h = 15, al = align, visible = vis))
-        instructions.append(MelSeparator(parent,style='single', visible = vis))
+            instructions.append(mUI.MelLabel(parent,label = line, h = 15, al = align, visible = vis))
+        instructions.append(mUI.MelSeparator(parent,style='single', visible = vis))
 
         return instruction
     

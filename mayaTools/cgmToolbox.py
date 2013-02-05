@@ -27,7 +27,7 @@ cgmInitialize.setupContributorPaths()
 
 from cgm.lib import guiFactory
 from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
-from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
 from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 import Red9
 
@@ -44,7 +44,7 @@ def setupCGMScriptPaths():
             mayaScriptPaths.append( fullPath )
             mayaScriptPaths.extend( fullPath.dirs( recursive=True ) )
     
-            mayaScriptPaths = removeDupes( mayaScriptPaths )
+            mayaScriptPaths = mUI.removeDupes( mayaScriptPaths )
             newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
     
             maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
@@ -64,7 +64,7 @@ def setupCGMPlugins():
     if cgmPyPath not in existingPlugPathsSet:
         existingPlugPaths.append( cgmPyPath )
 
-        existingPlugPaths = removeDupes( existingPlugPaths )
+        existingPlugPaths = mUI.removeDupes( existingPlugPaths )
         newPlugPathStr = os.pathsep.join( [ p.unresolved() for p in existingPlugPaths ] )
 
         maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s";' % newPlugPathStr )
@@ -82,10 +82,10 @@ def setupCGMToolBox():
 
 
 def setupCGMMenu():
-    if not cmd.optionVar( ex='cgmVar_ToolboxMainMenu' ):
-        cmd.optionVar( iv=('cgmVar_ToolboxMainMenu', 1) )
+    if not mc.optionVar( ex='cgmVar_ToolboxMainMenu' ):
+        mc.optionVar( iv=('cgmVar_ToolboxMainMenu', 1) )
 
-    if not cmd.optionVar( q='cgmVar_ToolboxMainMenu' ):
+    if not mc.optionVar( q='cgmVar_ToolboxMainMenu' ):
         return
 
     if not hasattr( maya, '_cgmToolboxMenu' ):
@@ -93,7 +93,7 @@ def setupCGMMenu():
             import cgmToolbox
             cgmToolbox.buildCGMMenu( *a )
 
-        menu = MelMainMenu( l='CGM Tools', pmc=cb, tearOff=True )
+        menu = mUI.MelMainMenu( l='CGM Tools', pmc=cb, tearOff=True )
         setattr( maya, '_cgmToolboxMenu', menu )
 
 
@@ -216,20 +216,20 @@ def buildCGMMenu( *a ):
     menu = maya._cgmToolboxMenu
     menu.clear()
 
-    MelMenuItem( menu, l='Open Toolbox Window', c=lambda *a: ToolboxWindow() )
+    mUI.MelMenuItem( menu, l='Open Toolbox Window', c=lambda *a: ToolboxWindow() )
     for toolCatName, toolSetupData in TOOL_CATS:
-        catMenu = MelMenuItem( menu, l=toolCatName, sm=True, tearOff=True )
+        catMenu = mUI.MelMenuItem( menu, l=toolCatName, sm=True, tearOff=True )
         for toolName, toolDesc, toolCB in toolSetupData:
-            MelMenuItem( catMenu, l=toolName, ann=toolDesc, c=toolCB, tearOff=True )
+            mUI.MelMenuItem( catMenu, l=toolName, ann=toolDesc, c=toolCB, tearOff=True )
 
 
 def loadCGMPlugin( pluginName ):
     try:
-        cmd.loadPlugin( pluginName, quiet=True )
+        mc.loadPlugin( pluginName, quiet=True )
     except:
         setupCGMToolBox()
         try:
-            cmd.loadPlugin( pluginName, quiet=True )
+            mc.loadPlugin( pluginName, quiet=True )
         except:
             maya.OpenMaya.MGlobal.displayError( 'Failed to load cgmMirror.py plugin - is it in your plugin path?' )
 
@@ -416,18 +416,18 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
               )
 
 
-class ToolboxTab(MelColumnLayout):
+class ToolboxTab(mUI.MelColumnLayout):
     def __new__( cls, parent, toolTuples ):
-        return MelColumnLayout.__new__( cls, parent )
+        return mUI.MelColumnLayout.__new__( cls, parent )
     def __init__( self, parent, toolTuples ):
-        MelColumnLayout.__init__( self, parent )
+        mUI.MelColumnLayout.__init__( self, parent )
 
         for toolStr, annStr, pressCB in toolTuples:
             assert pressCB is not None
-            MelButton( self, l=toolStr, ann=annStr, c=pressCB,ut = 'cgmUITemplate' )
+            mUI.MelButton( self, l=toolStr, ann=annStr, c=pressCB,ut = 'cgmUITemplate' )
 
 
-class ToolboxTabs(MelTabLayout):
+class ToolboxTabs(mUI.MelTabLayout):
     def __init__( self, parent ):
         n = 0
         for toolCatStr, toolTuples in TOOL_CATS:
@@ -436,7 +436,7 @@ class ToolboxTabs(MelTabLayout):
             n += 1
 
 
-class ToolboxWindow(BaseMelWindow):
+class ToolboxWindow(mUI.BaseMelWindow):
     from  cgm.lib import guiFactory
     guiFactory.initializeTemplates()
     USE_Template = 'cgmUITemplate'
@@ -454,18 +454,18 @@ class ToolboxWindow(BaseMelWindow):
         guiFactory.initializeTemplates()
         USE_Template = 'cgmUITemplate'
 
-        self.UI_menu = MelMenu( l='Setup', pmc=self.buildSetupMenu )
+        self.UI_menu = mUI.MelMenu( l='Setup', pmc=self.buildSetupMenu )
         ToolboxTabs( self )
         self.show()
     def buildSetupMenu( self, *a ):
 
         self.UI_menu.clear()
-        setupMenu = cmd.optionVar( q='cgmVar_ToolboxMainMenu' )
-        MelMenuItem( self.UI_menu, l="Create cgm Tools Menu", cb=setupMenu, c=lambda *a: cmd.optionVar( iv=('cgmVar_ToolboxMainMenu', not setupMenu) ) )
-        MelMenuItemDiv( self.UI_menu )
+        setupMenu = mc.optionVar( q='cgmVar_ToolboxMainMenu' )
+        mUI.MelMenuItem( self.UI_menu, l="Create cgm Tools Menu", cb=setupMenu, c=lambda *a: mc.optionVar( iv=('cgmVar_ToolboxMainMenu', not setupMenu) ) )
+        mUI.MelMenuItemDiv( self.UI_menu )
 
         installer = AutoStartInstaller()
-        MelMenuItem( self.UI_menu, l="Auto-Load On Maya Start", cb=installer.isInstalled(), c=lambda *a: AutoStartInstaller().install() )
+        mUI.MelMenuItem( self.UI_menu, l="Auto-Load On Maya Start", cb=installer.isInstalled(), c=lambda *a: AutoStartInstaller().install() )
 
 
 #always attempt to setup the toolbox on import
