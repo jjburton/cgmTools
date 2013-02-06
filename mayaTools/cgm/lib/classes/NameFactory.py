@@ -1006,7 +1006,9 @@ def doNameObject(obj,sceneUnique = False,fastIterate = True):
     
     """
     ### input check
-    assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+    if not mc.objExists(obj):
+        log.warning("'%s' doesn't exist" %obj)
+        return False
     assert mc.referenceQuery(obj, isNodeReferenced=True) is not True, "'%s' is referenced, can't name!" %obj
     
     name = returnUniqueGeneratedName(obj,sceneUnique, fastIterate)

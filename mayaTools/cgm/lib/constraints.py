@@ -29,6 +29,10 @@ from cgm.lib import cgmMath
 from cgm.lib import search
 from cgm.lib import guiFactory
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Constraint Info
@@ -390,7 +394,69 @@ def doPointConstraintObjectGroup(targets,object,mode=0):
             cnt-=1
     return objGroup
 
-
+def doConstraintObjectGroup(targets,obj = False,constraintTypes = [],group = False, mode=0): 
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Groups an object and constrains that group to the other objects
+    
+    ARGUMENTS:
+    targets(list)
+    object(string)
+    constraintTypes(list)
+    group(string) -- whether to pass a group through
+    mode(int) - 0 - equal influence
+                1 - distance spread
+    
+    RETURNS:
+    group(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    log.debug(">>> doConstraintObjectGroup")
+    log.info("targets: %s"%str(targets))
+    log.debug("obj: %s"%str(obj))
+    log.info("constraintTypes: %s"%str(constraintTypes))
+    log.debug("group: %s"%str(group))
+    log.debug("mode: %s"%str(mode))
+    
+		
+    assert type(targets) is list,"targets must be list"    
+    assert type(constraintTypes) is list,"constraintTypes must be list"
+    normalizedDistances = False
+    if not obj and not group:
+        log.warning("Must have a obj or a group")
+        return False
+    if group and mc.objExists(group):
+        objGroup = group
+    elif obj:
+        objGroup = rigging.groupMeObject(obj,True,True)
+    else:
+        log.warning("Not enough info")        
+        return False
+    
+    for c in constraintTypes:
+        constraint = False
+        if mode == 1:
+            distances = []
+            for target in targets:
+                distances.append(distance.returnDistanceBetweenObjects(target,objGroup))
+            normalizedDistances = cgmMath.normList(distances)        
+        if c == 'point':
+            constraint = mc.pointConstraint(targets,objGroup, maintainOffset=True)
+            targetWeights = mc.pointConstraint(constraint,q=True, weightAliasList=True)            
+        if c == 'parent':
+            constraint = mc.parentConstraint(targets,objGroup, maintainOffset=True)
+            targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True)                        
+        if c == 'orient':
+            constraint = mc.orientConstraint(targets,objGroup, maintainOffset=True)
+            #targetWeights = mc.orientConstraint(constraint,q=True, weightAliasList=True)                                    
+        if c == 'scale':
+            constraint = mc.scaleConstraint(targets,objGroup, maintainOffset=True)
+            targetWeights = mc.scaleConstraint(constraint,q=True, weightAliasList=True)                                    
+        if constraint and normalizedDistances:
+            for cnt,value in enumerate(normalizedDistances):
+                mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )
+    return objGroup
 
 def doLimbSegmentListPointConstraint(objList):
     """ 

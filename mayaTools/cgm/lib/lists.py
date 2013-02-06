@@ -295,7 +295,27 @@ def returnMissingList(baseList,searchList):
             if item not in baseList:
                 missingList.append(item)
     return missingList
+
+def returnDifference(baseList,newList):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns a list new stuff
     
+    ARGUMENTS:
+    baseList(list)
+    newList(list)
+    
+    RETURNS:
+    missingList(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    missingList=[]
+    for item in newList:
+        if item not in baseList:
+            missingList.append(item)
+    return missingList    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnListNoDuplicates(searchList):
     """ 
