@@ -399,7 +399,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
         for o in info:
             if mc.objExists(o) and not overideMessageCheck:
                 infoData = 'multiMessage'
-                log.warning('Multi message mode!')
+                log.debug('Multi message mode!')
                 break
     elif mc.objExists(info) and not overideMessageCheck and not '.' in list(info):#attribute check
         infoData = 'message'
@@ -2471,10 +2471,10 @@ def storeObjectsToMessage (objects, storageObj, messageName):
         assert mc.objExists(obj) is True,"'%s' doesn't exist"%(obj)
     assert mc.objExists(storageObj) is True,"'%s' doesn't exist"%(storageObj)
     attrCache = (storageObj+'.'+messageName)
-    
+    objects = lists.returnListNoDuplicates(objects)
     try:
         if mc.objExists (attrCache):
-            log.info(attrCache+' already exists. Adding to existing message node.')                
+            log.debug(attrCache+' already exists. Adding to existing message node.')                
             doDeleteAttr(storageObj,messageName)
             mc.addAttr (storageObj, ln=messageName, at= 'message',m=True,im=False) 
             for obj in objects:

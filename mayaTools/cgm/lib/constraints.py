@@ -453,9 +453,12 @@ def doConstraintObjectGroup(targets,obj = False,constraintTypes = [],group = Fal
         if c == 'scale':
             constraint = mc.scaleConstraint(targets,objGroup, maintainOffset=True)
             targetWeights = mc.scaleConstraint(constraint,q=True, weightAliasList=True)                                    
-        if constraint and normalizedDistances:
-            for cnt,value in enumerate(normalizedDistances):
-                mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )
+        if constraint:
+            try:mc.setAttr("%s.interpType"%constraint[0],0)#Set to no flip
+            except:pass
+            if normalizedDistances:
+                for cnt,value in enumerate(normalizedDistances):
+                    mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )
     return objGroup
 
 def doLimbSegmentListPointConstraint(objList):

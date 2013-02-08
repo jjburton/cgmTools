@@ -42,6 +42,43 @@ from cgm.lib import (lists,
                      settings,
                      guiFactory)
 
+class cgmMasterControl(cgmMeta.cgmObject):
+    """
+    Make a master control curve
+    """
+    def __init__(self,*args,**kws):
+        """Constructor"""
+        log.debug(">>> cgmMasterControl.__init__")
+	if kws:log.debug("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args)) 
+				
+        #>>>Keyword args
+        super(cgmMasterControl, self).__init__(*args,**kws)
+   
+        if not self.isReferenced():   
+            if not self.verify(*args,**kws):
+                raise StandardError,"Failed!"	
+	    
+    def verify(self,*args,**kws):
+	#Check for shapes, if not, build
+	
+	#>>> Attributes
+	self.addAttr('cgmType','controlMaster',attrType = 'string')
+	self.addAttr('cgmType','controlMaster',attrType = 'string')
+	self.addAttr('axisAim',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = False, hidden=True)
+	self.addAttr('axisUp',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = False, hidden=True)
+	self.addAttr('axisOut',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=0, keyable = False, hidden=True)
+	self.addAttr('setRO',attrType = 'enum', enumName= 'xyz:yzx:zxy:xzy:yxz:zyx',initialValue=0, keyable = True, hidden=False)
+	
+	self.addAttr('setRO',attrType = 'enum', enumName= 'xyz:yzx:zxy:xzy:yxz:zyx',initialValue=0, keyable = True, hidden=False)
+
+	self.addAttr('controlVis', attrType = 'messageSimple',lock=True)
+	self.addAttr('controlSettings', attrType = 'messageSimple',lock=True)
+	
+
+	return True
+    
+    
 class go(object):
     """ 
     Control Factory for 
@@ -94,6 +131,17 @@ class go(object):
 	i_mirror = r9Anim.MirrorHierarchy(self.i_object.mNode,)
 	i_mirror.mirrorPairData(self.i_object.mNode,self.mirrorObject,'')
 	
+    def doPushToMirrorObject2(self,method='Anim'):
+        if not self.isMirrorable():
+            return False
+        log.info(self.i_object.mNode)
+        log.info(self.mirrorObject)
+	
+        i_mirrorSystem = r9Anim.MirrorHierarchy([self.i_object.mNode,self.mirrorObject])
+	#i_mirrorSystem=r9Anim.MirrorHierarchy()
+	i_mirrorSystem.makeSymmetrical(self.i_object.mNode,self.mirrorObject)
+        
+
     def doPushToMirrorObject(self,method='Anim'):
         if not self.isMirrorable():
             return False
@@ -113,7 +161,6 @@ class go(object):
 
         i_mirrorSystem.objs = [self.i_object.mNode,self.mirrorObject]#Overload as it was erroring out
    
-
     
 class  OLDSTUFF():
     def verifyAimControls(self, keyable = False, hidden=True, locked = False):
