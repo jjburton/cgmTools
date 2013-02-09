@@ -36,6 +36,10 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (lists,
                      search,
+                     curves,#tmp
+                     modules,#tmp
+                     distance,#tmp
+                     controlBuilder,
                      attributes,
                      dictionary,
                      rigging,
@@ -47,36 +51,137 @@ class cgmMasterControl(cgmMeta.cgmObject):
     Make a master control curve
     """
     def __init__(self,*args,**kws):
-        """Constructor"""
-        log.debug(">>> cgmMasterControl.__init__")
-	if kws:log.debug("kws: %s"%str(kws))
-	if args:log.debug("args: %s"%str(args)) 
-				
+        """Constructor"""				
         #>>>Keyword args
         super(cgmMasterControl, self).__init__(*args,**kws)
+	
+        log.debug(">>> cgmMasterControl.__init__")
+	if kws:log.info("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args)) 	
    
         if not self.isReferenced():   
             if not self.verify(*args,**kws):
                 raise StandardError,"Failed!"	
-	    
+	
+    @r9General.Timer	
     def verify(self,*args,**kws):
 	#Check for shapes, if not, build
-	
+	self.color =  modules.returnSettingsData('colorMaster',True)
+
 	#>>> Attributes
+	if kws and 'name' in kws.keys():
+	    self.addAttr('cgmName', kws.get('name'), attrType = 'string')
+	    
 	self.addAttr('cgmType','controlMaster',attrType = 'string')
 	self.addAttr('cgmType','controlMaster',attrType = 'string')
 	self.addAttr('axisAim',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = False, hidden=True)
 	self.addAttr('axisUp',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = False, hidden=True)
 	self.addAttr('axisOut',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=0, keyable = False, hidden=True)
 	self.addAttr('setRO',attrType = 'enum', enumName= 'xyz:yzx:zxy:xzy:yxz:zyx',initialValue=0, keyable = True, hidden=False)
-	
-	self.addAttr('setRO',attrType = 'enum', enumName= 'xyz:yzx:zxy:xzy:yxz:zyx',initialValue=0, keyable = True, hidden=False)
+	attributes.doConnectAttr('%s.setRO'%self.mNode,'%s.rotateOrder'%self.mNode,True)
 
 	self.addAttr('controlVis', attrType = 'messageSimple',lock=True)
+	self.addAttr('visControl', attrType = 'bool',keyable = False,initialValue= 1)
+	
 	self.addAttr('controlSettings', attrType = 'messageSimple',lock=True)
+	self.addAttr('settingsControl', attrType = 'bool',keyable = False,initialValue= 1)
+	
+	#Connect and Lock the scale stuff
+	attributes.doConnectAttr(('%s.scaleY'%self.mNode),('%s.scaleX'%self.mNode),True)
+	attributes.doConnectAttr(('%s.scaleY'%self.mNode),('%s.scaleZ'%self.mNode),True)
+	cgmMeta.cgmAttr(self,'scaleX',lock=True,hidden=True)
+	cgmMeta.cgmAttr(self,'scaleZ',lock=True,hidden=True)
+	yAttr = cgmMeta.cgmAttr(self,'scaleY')
+	yAttr.p_nameAlias = 'masterScale'
+	
+	#=====================================================================
+	#>>> Curves!
+	#=====================================================================
+	#>>> Master curves
+	if not self.getShapes() or len(self.getShapes())<3:
+	    log.info("Need to build shapes")
+	    self.rebuildControlCurve(**kws)
+	    
+	#======================
+	#>>> Sub controls
+	visControl = attributes.returnMessageObject(self.mNode,'controlVis')
+	if not mc.objExists( visControl ):
+	    log.info('Creating visControl')
+	    buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 135, controls = ['controlVisibility'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+	    i_c = cgmMeta.cgmObject(buffer.get('controlVisibility'))
+	    i_c.addAttr('mClass','cgmObject')
+	    i_c.doName()	
+	    curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color
+	    self.controlVis = i_c.mNode #Link it
+	    
+	    attributes.doConnectAttr(('%s.visControl'%self.mNode),('%s.v'%i_c.mNode),True)
+	
+	#Vis control attrs
+	self.controlVis.addAttr('controls', attrType = 'bool',keyable = False,initialValue= 1)
+	self.controlVis.addAttr('subControls', attrType = 'bool',keyable = False,initialValue= 1)
+	self.controlVis.addAttr('Rig', attrType = 'bool',keyable = False,initialValue= 1)
+	
+	#>>> Settings Control
+	settingsControl = attributes.returnMessageObject(self.mNode,'controlSettings')
+	if not mc.objExists( settingsControl ):
+	    log.info('Creating settingsControl')
+	    buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 225, controls = ['controlSettings'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+	    i_c = cgmMeta.cgmObject(buffer.get('controlSettings'))
+	    i_c.addAttr('mClass','cgmObject')
+	    i_c.doName()	
+	    curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color	    
+	    self.controlSettings = i_c.mNode #Link it	
+	    
+	    attributes.doConnectAttr(('%s.settingsControl'%self.mNode),('%s.v'%i_c.mNode),True)
 	
 
+	self.doName()
 	return True
+    
+    @r9General.Timer
+    def rebuildControlCurve(self, size = None,font = None,**kws):
+	"""
+	Rebuild the master control curve
+	"""
+	log.debug('>>> rebuildControlCurve')
+	shapes = self.getShapes()
+	
+	#>>> Figure out the control size 	
+	if size == None:#
+	    if shapes:
+		absSize =  distance.returnAbsoluteSizeCurve(self.mNode)
+		size = max(absSize)		
+	    else:size = 125
+	#>>> Figure out font	
+	if font == None:#
+	    if kws and 'font' in kws.keys():font = kws.get('font')		
+	    else:font = 'arial'
+	#>>> Delete shapes
+	if shapes:
+	    for s in shapes:mc.delete(s)	
+		
+	#>>> Build the new
+	i_o = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',size))#Create and initialize
+	curves.setCurveColorByName( i_o.mNode,self.color[0] )
+	curves.setCurveColorByName( i_o.getShapes()[1],self.color[1] )
+	
+	#>>> Build the text curve if cgmName exists
+	if self.hasAttr('cgmName'):
+	    rootShapes = i_o.getShapes()#Get the shapes
+	    nameScaleBuffer = distance.returnAbsoluteSizeCurve(rootShapes[1])#Get the scale
+	    nameScale = max(nameScaleBuffer) * .8#Get the new scale
+	    masterText = curves.createTextCurveObject(self.cgmName,size=nameScale,font=font)
+	    curves.setCurveColorByName(masterText,self.color[0])#Set the color
+	    mc.setAttr((masterText+'.rx'), -90)#Rotate the curve
+	    curves.parentShapeInPlace(self.mNode,masterText)#Shape parent it
+	    mc.delete(masterText)
+	    
+	#>>>Shape parent it
+	curves.parentShapeInPlace(self.mNode,i_o.mNode)
+	mc.delete(i_o.mNode)
+	
+	self.doName()
+	
     
     
 class go(object):

@@ -262,7 +262,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    
 	    #Easy carry for flag handling - until implemented
 	    #==============  
-	    if keyable or hidden:
+	    if keyable is not None or hidden is not None:
 		cgmAttr(self, attrName = attr, keyable=keyable,hidden = hidden)
 	    if lock is not None:
 		mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	
@@ -1809,7 +1809,10 @@ class cgmAttr(object):
     
     #>>> Property - p_hidden ================== 
     def isHidden(self):
-	return mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, hidden=True)
+	hidden = not mc.getAttr(self.p_combinedName,channelBox=True)
+	if self.p_keyable:
+	    hidden = mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, hidden=True)	
+	return hidden
     def doHidden(self,arg = True):
         """ 
         Set hidden state of an attribute
@@ -1860,7 +1863,7 @@ class cgmAttr(object):
         Keyword arguments:
         arg(bool)
         """         
-	KeyableTypes = ['long','float','bool','enum','double3']  
+	KeyableTypes = ['long','float','bool','double','enum','double3']  
         assert type(arg) is bool, "doKeyable arg must be a bool!" 
 	
 	if self.attrType not in KeyableTypes:
@@ -1920,11 +1923,9 @@ class cgmAttr(object):
         assert type(arg) is str or unicode,"Must pass string argument into doAlias"                
         if arg:
             try:
-                if arg != self.p_nameAlias:
-                    return mc.aliasAttr(arg,self.p_combinedName)
-                else:
-                    log.info("'%s.%s' already has that alias!"%(self.obj.mNode,self.attr,arg))
-                    
+		if arg != self.p_nameAlias:
+		    return mc.aliasAttr(arg,self.p_combinedName)
+		else:log.debug("'%s.%s' already has that alias!"%(self.obj.getShortName(),self.attr))
             except:
                 log.warning("'%s.%s' failed to set alias of '%s'!"%(self.obj.mNode,self.attr,arg))
                     
@@ -1949,9 +1950,8 @@ class cgmAttr(object):
         if arg:
             try:
                 mc.addAttr(self.p_combinedName,edit = True, niceName = arg)
-
             except:
-                log.error("'%s.%s' failed to set nice name of '%s'!"%(self.obj.mNode,self.attr,arg))
+                log.error("'%s.%s' failed to set nice name of '%s'!"%(self.obj.mNode,self.p_nameLong,arg))
                     
     p_nameNice = property (getNiceName,doNiceName)
     

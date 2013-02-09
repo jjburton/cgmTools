@@ -55,10 +55,13 @@ log.setLevel(logging.INFO)
 #=========================================================================
 
 class go(r9Pose.PoseData):
+        
     def _buildPoseDict(self, nodes):  
         '''
         Overload for storing blendshape attrs
         '''   
+        self.thumbnailRes=[230,230]
+        
         for i,node in enumerate(nodes):
             key=r9Core.nodeNameStrip(node)
             self.poseDict[key]={}
