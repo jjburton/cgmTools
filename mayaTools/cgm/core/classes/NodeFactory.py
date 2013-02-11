@@ -56,7 +56,12 @@ class build_mdNetwork(object):
     from cgm.core import cgm_Meta as cgmMeta
     arg = [{'result':[i_o,'result'],'drivers':[[i_o,'driver1'],[i_o,'driver2']],'driven':[[i_o,'driven1']]}]
     arg = [{'result':['null1','result'],'drivers':[['null1','driver1'],['null1','driver2']],'driven':[['null1','driven1']]}]
-    arg = {}
+    arg = [{'result':[i_o,'leftSubControls'],'drivers':[[i_o,'left'],[i_o,'sub'],[i_o,'controls']]},
+           {'result':[i_o,'rightSubControls'],'drivers':[[i_o,'right'],[i_o,'sub'],[i_o,'controls']]},
+           {'result':[i_o,'leftControls'],'drivers':[[i_o,'left'],[i_o,'controls']]},
+           {'result':[i_o,'rightControls'],'drivers':[[i_o,'right'],[i_o,'controls']]}
+            ]
+    
     i_o = cgmMeta.cgmNode('null1')
     nf.build_mdNetwork(arg)
     
@@ -93,6 +98,8 @@ class build_mdNetwork(object):
 	#>>>Build network
 	log.info("Building mdNetworks: %s"%self.d_mdNetworksToBuild)
 	log.info("Building mdNetworks indices: %s"%self.l_mdNetworkIndices)
+	for i,k in enumerate(self.l_iAttrs):
+	    log.info("%s >> %s"%(i,self.d_iAttrs[i].p_combinedName))
 	
 	for resultIndex in self.d_mdNetworksToBuild.keys():#For each stored index dict key
 	    #To do, add a check to see if a good network exists before making another
@@ -100,14 +107,11 @@ class build_mdNetwork(object):
 	    
 	    #if iNetwork:
 		#self.d_iAttrs[resultIndex].doConnectIn(iNetwork.)
-    
-	    
+     
 	#a = cgmMeta.cgmAttr()
 	#a.p_combinedName
 	#>>>Connect stuff
 	log.info("Making connections: %s"%self.d_connectionsToMake)	
-	for i,k in enumerate(self.l_iAttrs):
-	    log.info("%s >> %s"%(i,self.d_iAttrs[i].p_combinedName))
 	for sourceIndex in self.d_connectionsToMake.keys():#For each stored index dict key
 	    source = self.d_iAttrs.get(sourceIndex)#Get the source attr's instance
 	    for targetIndex in self.d_connectionsToMake.get(sourceIndex):#for each target of that source
@@ -200,7 +204,7 @@ class build_mdNetwork(object):
 			else:
 			    self.l_mdNetworkIndices.append(iDrivers)#append the drivers
 			    index = self.l_mdNetworkIndices.index(iDrivers)
-			    self.d_mdNetworksToBuild[index] = [buffer]
+			    self.d_mdNetworksToBuild[iResult] = [iDrivers]
 		    else:
 			log.info('asdf')
 			
@@ -209,14 +213,14 @@ class build_mdNetwork(object):
 			if buffer not in self.l_mdNetworkIndices:
 			    self.l_mdNetworkIndices.append(buffer)#append the drivers
 			    index = self.l_mdNetworkIndices.index(buffer)
-			    self.d_mdNetworksToBuild[index] = [buffer]
+			    self.d_mdNetworksToBuild[iResult] = [buffer]
 			for n in iDrivers[2:]:#Figure out the md's to build
 			    buffer = [buffer]
 			    buffer.append(n)
 			    if buffer not in self.l_mdNetworkIndices:
 				self.l_mdNetworkIndices.append(buffer)#append the drivers
 				index = self.l_mdNetworkIndices.index(buffer)
-				self.d_mdNetworksToBuild[index] = buffer
+				self.d_mdNetworksToBuild[iResult] = buffer
  
 		    #>>> network
 		    self.d_resultNetworksToBuild[iResult]=iDrivers
@@ -239,7 +243,11 @@ class build_mdNetwork(object):
 	    source2.doConnectOut("%s.input2X"%i_md.mNode)
 	    
 	    #Name it
-	    i_md.doStore('cgmName',"%s_to_%s"%(source1.p_nameLong,source2.p_nameLong))
+	    source1Name = source1.p_combinedName
+	    source1Name = ''.join(source1Name.split('|')[-1].split(':')[-1].split('_'))
+	    source2Name = source2.p_combinedName
+	    source2Name = ''.join(source2Name.split('|')[-1].split(':')[-1].split('_'))    
+	    i_md.doStore('cgmName',"%s_to_%s"%(source1Name,source2Name))
 	    i_md.doName()
 	    
 	    #Store to our good network and the output attr
@@ -247,7 +255,8 @@ class build_mdNetwork(object):
 	    index = self.l_good_mdNetworks.index(arg[0])#get index
 	    self.d_good_mdNetworks[index]=i_md#store the instance
 	    i_mdBuffer = i_md
-	    i_mdOutAttrIndex = self.register_iAttr(i_md,'outputX')
+	    self.i_mdOutAttrIndex = self.register_iAttr(i_md,'outputX')
+	    log.info("self.i_mdOutAttrIndex: %s"%self.i_mdOutAttrIndex)
 	    
 	log.info(">>> in build_mdNetwork.validateMDNetwork")
 	arg = self.d_mdNetworksToBuild.get(buildNetworkIndex)
@@ -256,15 +265,16 @@ class build_mdNetwork(object):
 	if type(arg) is not list:
 	    log.error("validateMDNetwork args must be a list")
 	    return False
-	if type(arg[0]) is not list and len(arg[0]) == 2:
+	if len(arg)>2 and type(arg[0]) is not list and len(arg[0]) == 2:
 	    log.error("validateMDNetwork arg[0] must be a list with 2 keys")
 	    return False    
 	#Let's get the first mdNode checked
 	i_mdBuffer = False
-	i_mdOutAttrIndex = None
+	self.i_mdOutAttrIndex = None
 	
 	#Need to add check to see if the network exists from sourc
 	if arg[0] not in self.l_good_mdNetworks:
+	    log.info("creating first md node")
 	    createMDNetwork(arg[0][0],arg[0][1])
 	else:
 	    log.info("Finding exsiting network")
@@ -272,20 +282,21 @@ class build_mdNetwork(object):
 	    log.info("nodeIndex: %s"%nodeIndex)
 	    i_md = self.d_good_mdNetworks[nodeIndex]#get the md instance
 	    log.info("i_md: '%s'"%i_md.getShortName())	    
-	    i_mdOutAttrIndex = self.register_iAttr(i_md,'outputX')
+	    self.i_mdOutAttrIndex = self.register_iAttr(i_md,'outputX')
 
 	    
 	for connection in arg[1:]:
+	    log.info("self.i_mdOutAttrIndex: %s"%self.i_mdOutAttrIndex)	    
 	    log.info("...Adding connection: %s"%connection)
-	    if i_mdOutAttrIndex is None:
-		raise ValueError,"i_mdOutAttrIndex is :%s"%i_mdOutAttrIndex
+	    if self.i_mdOutAttrIndex is None:
+		raise ValueError,"self.i_mdOutAttrIndex is :%s"%self.i_mdOutAttrIndex
 	    if connection not in self.d_iAttrs.keys():
 		raise ValueError,"connection index not in self.l_iAttrs: %s"%connection		
-	    createMDNetwork(i_mdOutAttrIndex ,connection)
+	    createMDNetwork(self.i_mdOutAttrIndex ,connection)
 	
-	if i_mdOutAttrIndex is not None:#Register our connection to make
-	    log.info("adding connection: %s = [%s]"%(i_mdOutAttrIndex,buildNetworkIndex))
-	    self.d_connectionsToMake[i_mdOutAttrIndex]=[buildNetworkIndex]
+	if self.i_mdOutAttrIndex is not None:#Register our connection to make
+	    log.info("adding connection: %s = [%s]"%(self.i_mdOutAttrIndex,buildNetworkIndex))
+	    self.d_connectionsToMake[self.i_mdOutAttrIndex]=[buildNetworkIndex]
     
     def register_iAttr(self, i_obj,attr):
 	"""
