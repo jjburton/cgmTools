@@ -88,6 +88,10 @@ class build_mdNetwork(object):
 	log.info("connectionsToMake: %s"%self.d_connectionsToMake)
 	log.info("mdNetworksToBuild: %s"%self.d_mdNetworksToBuild)
 	
+	#>>>Build network
+	
+	#>>>Connect stuff
+	
 	    
     def validateArg(self,arg,defaultAttrType,*args,**kws):
 	assert type(arg) is list,"Argument must be list"
@@ -138,7 +142,10 @@ class build_mdNetwork(object):
 		        log.debug("...Checking 'result'")			
 			obj = a.get('result')[0]
 			attr = a.get('result')[1]
-			iResult = validateObjAttr(obj,attr,defaultAttrType)
+			index = validateObjAttr(obj,attr,defaultAttrType)
+			self.d_iAttrs[index].p_locked = True
+			self.d_iAttrs[index].p_hidden = True			
+			iResult = index
 			log.info("iResult: %s"%iResult)
 		    if type(a.get('drivers')) is list:
 			for pair in a.get('drivers'):
@@ -153,34 +160,43 @@ class build_mdNetwork(object):
 			    if len(pair) == 2:
 				log.debug("driven: %s"%pair)				
 				obj = pair[0]
-				attr = pair[1]		
-				iDriven.append(validateObjAttr(obj,attr,defaultAttrType))
+				attr = pair[1]	
+				index = validateObjAttr(obj,attr,defaultAttrType)
+				self.d_iAttrs[index].p_locked = True
+				self.d_iAttrs[index].p_hidden = True
+				iDriven.append(index)
 			log.info("iDriven %s"%iDriven)
 		
 		if type(iResult) is int and iDrivers:
 		    log.info('Storing arg data')
-		    """
+		    
 		    if len(iDrivers) == 1:
 			self.d_connectionsToMake[iDrivers[0]]=[iResult]		
 		    elif len(iDrivers) == 2:
-			if iDrivers.sort() in self.l_mdNetworkIndices:
-			    l_mdNetworkIndices
+			iDrivers.sort()
+			if iDrivers in self.l_mdNetworkIndices:
+			    log.info("Go ahead and connect it")
 			else:
-			    index = len(self.l_mdNetworkIndices)			
-			    self.d_mdNetworksToBuild[index] = iDrivers.sort()
+			    self.l_mdNetworkIndices.append(iDrivers)#append the drivers
+			    index = self.l_mdNetworkIndices.index(iDrivers)
+			    self.d_mdNetworksToBuild[index] = "md: %s"%buffer
 		    else:
 			log.info('asdf')
-			buffer = iDrivers[:1]
-			if buffer.sort() not in self.d_mdNetworksToBuild:
-			    index = len(self.d_mdNetworksToBuild.keys())
-			    self.d_mdNetworksToBuild[index] = buffer
-			    self.l_mdNetworkIndices.append(index)
 			
-			   
-			cullList = copy.copy(iDrivers)
-			while cullList:
-			    log.info("cull: %s"%cullList[:1])
-			    """    
+			buffer = iDrivers[:2]
+			buffer.sort()
+			if buffer not in self.l_mdNetworkIndices:
+			    self.l_mdNetworkIndices.append(buffer)#append the drivers
+			    index = self.l_mdNetworkIndices.index(buffer)
+			    self.d_mdNetworksToBuild[index] = "md: %s"%buffer
+			for n in iDrivers[2:]:#Figure out the md's to build
+			    buffer = [buffer]
+			    buffer.append(n)
+			    if buffer not in self.l_mdNetworkIndices:
+				self.l_mdNetworkIndices.append(buffer)#append the drivers
+				index = self.l_mdNetworkIndices.index(buffer)
+				self.d_mdNetworksToBuild[index] = "md: %s"%buffer
+ 
 		    #>>> network
 		    self.d_resultNetworksToBuild[iResult]=iDrivers
 		    if iDriven:
