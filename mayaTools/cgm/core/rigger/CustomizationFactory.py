@@ -83,6 +83,8 @@ class go(object):
         doFace_bsNode(self)
         if stopAt == 'bsFace':return		
         doSkinBody(self)
+        if stopAt == 'skin':return
+        doConnectVis(self)
 
 
 @r9General.Timer
@@ -118,6 +120,7 @@ def doMirrorTemplate(self):
                     self.l_leftRoots.append(i_jnt.mNode)  
                     #If a joint is going to be mirrored need to grab snapshot of it's message connections to repair after mirroring
                     #Yay maya... obj.message that is '1_jnt', 'left_2_jnt' becomes '1_jnt', 'left_2_jnt,'right_2_jnt' after mirroring
+            
             if i_jnt.hasAttr('constraintParentTargets') and i_jnt.constraintParentTargets:
                 d_constraintParentTargets[i_jnt.getShortName()] = i_jnt.getMessage('constraintParentTargets',False)
 
@@ -582,7 +585,8 @@ def doRigBody(self):
 
 
             i_controlSet.addObj(i_jnt.mNode)
-
+            if i_crv.hasAttr('cgmTypeModifier') and i_crv.cgmTypeModifier == 'secondary':
+                i_jnt.addAttr('cgmTypeModifier',attrType='string',value = 'sub')
             if i_jnt.hasAttr('cgmDirection'):
                 if i_jnt.cgmDirection == 'left':
                     i_controlSetLeft.addObj(i_jnt.mNode)
@@ -709,6 +713,39 @@ def doAddControlConstraints(self):
 
     mc.delete('controlCurves')
 
+def doConnectVis(self):
+    log.info(">>> doConnectVis")
+    # Get our base info
+    #==================	        
+    assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
+    assert mc.objExists(self.p.mNode),"Customization node no longer exists"
+    p = self.p
+    
+    iVis = p.masterControl.controlVis
+    
+    for c in self.p.objSetAll.value:
+        i_c = cgmMeta.cgmNode(c)
+        i_attr = cgmMeta.cgmAttr(i_c,'visibility',hidden = True,lock = True)
+        
+        if i_c.hasAttr('cgmTypeModifier') and i_c.cgmTypeModifier == 'sub':
+            if i_c.hasAttr('cgmDirection'):
+                if i_c.cgmDirection == 'left':
+                    i_attr.doConnectIn("%s.leftSubControls_out"%iVis.mNode)
+                if i_c.cgmDirection == 'right':
+                    i_attr.doConnectIn("%s.rightSubControls_out"%iVis.mNode)
+            else:
+                i_attr.doConnectIn("%s.subControls"%iVis.mNode)
+                
+        else:
+            if i_c.hasAttr('cgmDirection'):
+                if i_c.cgmDirection == 'left':
+                    i_attr.doConnectIn("%s.leftControls_out"%iVis.mNode)
+                if i_c.cgmDirection == 'right':
+                    i_attr.doConnectIn("%s.rightControls_out"%iVis.mNode)
+            else:
+                i_attr.doConnectIn("%s.controls"%iVis.mNode)
+                
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
