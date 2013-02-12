@@ -52,6 +52,8 @@ typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFil
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
 
+from Red9.core import Red9_General as r9General
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Joysticks
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -266,7 +268,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     
     return controlsReturn
 
-
+@r9General.Timer
 def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['incremental',90], baseAim = [0,0,1], baseUp = [0,1,0], offset = 0, localRotationOffset = [0,0,0], scaleMultiplier = .15, distanceMultiplier = 1, aimChildren=False, zeroGroups = False, lockHide = True,getFont = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
@@ -377,7 +379,6 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
     aimConstraintBuffer = mc.aimConstraint(aimLoc,baseControlTransformGroup,maintainOffset = False, weight = 1, aimVector = baseAim, upVector = baseUp )
     mc.delete(aimConstraintBuffer[0])
     
-    
     for loc in locs:
         mc.delete(loc)
     
@@ -442,8 +443,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
         if lockHide == True:
             attributes.doSetLockHideKeyableAttr(control)
             
-    mc.delete(baseControlTransformGroup)
-                
+    mc.delete(baseControlTransformGroup)     
     
     return controlsMade
             
