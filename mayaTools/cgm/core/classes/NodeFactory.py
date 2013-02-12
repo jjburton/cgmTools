@@ -76,18 +76,18 @@ class build_mdNetwork(object):
 		
         #>>>Keyword args	
         log.debug(">>> visNetwork.__init__")
-	if kws:log.info("kws: %s"%str(kws))
+	if kws:log.debug("kws: %s"%str(kws))
 	if args:log.debug("args: %s"%str(args))
 	
 	#>>>Check arg
 	self.validateArg(arg,defaultAttrType = defaultAttrType,*args,**kws)
-	log.info("resultNetworks: %s"%self.d_resultNetworksToBuild)
+	log.debug("resultNetworks: %s"%self.d_resultNetworksToBuild)
 	
 	#>>>Build network
-	log.info("Building mdNetworks: %s"%self.d_mdNetworksToBuild)
-	log.info("Building mdNetworks indices: %s"%self.l_mdNetworkIndices)
+	log.debug("Building mdNetworks: %s"%self.d_mdNetworksToBuild)
+	log.debug("Building mdNetworks indices: %s"%self.l_mdNetworkIndices)
 	for i,k in enumerate(self.l_iAttrs):
-	    log.info("%s >> %s"%(i,self.d_iAttrs[i].p_combinedName))
+	    log.debug("%s >> %s"%(i,self.d_iAttrs[i].p_combinedName))
 	
 	for resultIndex in self.d_mdNetworksToBuild.keys():#For each stored index dict key
 	    #To do, add a check to see if a good network exists before making another
@@ -99,7 +99,7 @@ class build_mdNetwork(object):
 	#a = cgmMeta.cgmAttr()
 	#a.p_combinedName
 	#>>>Connect stuff
-	log.info("Making connections: %s"%self.d_connectionsToMake)	
+	log.debug("Making connections: %s"%self.d_connectionsToMake)	
 	for sourceIndex in self.d_connectionsToMake.keys():#For each stored index dict key
 	    source = self.d_iAttrs.get(sourceIndex)#Get the source attr's instance
 	    for targetIndex in self.d_connectionsToMake.get(sourceIndex):#for each target of that source
@@ -130,7 +130,7 @@ class build_mdNetwork(object):
 	    #Check attr
 	    if not i_obj.hasAttr(attr):
 		log.debug("...making attr: '%s'"%attr)
-		i_obj.addAttr(attr,attrType = defaultAttrType)
+		i_obj.addAttr(attr,attrType = defaultAttrType,initialValue=1)
 	    
 	    return self.register_iAttr(i_obj,attr)
 	#========================================================
@@ -139,7 +139,7 @@ class build_mdNetwork(object):
 	    iDriven = []
 	    iResult = False
 	    bufferArg = {}
-	    log.info("Checking: %s"%a)
+	    log.debug("Checking: %s"%a)
 	    if type(a) is dict:
 		log.debug("...is dict")
 		if 'result' and 'drivers' in a.keys():
@@ -152,7 +152,7 @@ class build_mdNetwork(object):
 			self.d_iAttrs[index].p_locked = True
 			self.d_iAttrs[index].p_hidden = True			
 			iResult = index
-			log.info("iResult: %s"%iResult)
+			log.debug("iResult: %s"%iResult)
 		    if type(a.get('drivers')) is list:
 			for pair in a.get('drivers'):
 			    if len(pair) == 2:
@@ -160,7 +160,7 @@ class build_mdNetwork(object):
 				obj = pair[0]
 				attr = pair[1]		
 				iDrivers.append(validateObjAttr(obj,attr,defaultAttrType))
-			log.info("iDrivers: %s"%iDrivers)
+			log.debug("iDrivers: %s"%iDrivers)
 		    if type(a.get('driven')) is list:
 			for pair in a.get('driven'):
 			    if len(pair) == 2:
@@ -171,26 +171,24 @@ class build_mdNetwork(object):
 				self.d_iAttrs[index].p_locked = True
 				self.d_iAttrs[index].p_hidden = True
 				iDriven.append(index)
-			log.info("iDriven %s"%iDriven)
+			log.debug("iDriven %s"%iDriven)
 		
 		if type(iResult) is int and iDrivers:
-		    log.info('Storing arg data')
+		    log.debug('Storing arg data')
 		    
 		    if len(iDrivers) == 1:
 			self.d_connectionsToMake[iDrivers[0]]=[iResult]		
 		    elif len(iDrivers) == 2:
-			iDrivers.sort()
 			if iDrivers in self.l_mdNetworkIndices:
-			    log.info("Go ahead and connect it")
+			    log.debug("Go ahead and connect it")
 			else:
 			    self.l_mdNetworkIndices.append(iDrivers)#append the drivers
 			    index = self.l_mdNetworkIndices.index(iDrivers)
 			    self.d_mdNetworksToBuild[iResult] = [iDrivers]
 		    else:
-			log.info('asdf')
+			log.debug('asdf')
 			
 			buffer = iDrivers[:2]
-			buffer.sort()
 			if buffer not in self.l_mdNetworkIndices:
 			    self.l_mdNetworkIndices.append(buffer)#append the drivers
 			    index = self.l_mdNetworkIndices.index(buffer)
