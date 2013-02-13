@@ -1863,7 +1863,7 @@ class cgmAttr(object):
         Keyword arguments:
         arg(bool)
         """         
-	KeyableTypes = ['long','float','bool','double','enum','double3']  
+	KeyableTypes = ['long','float','bool','double','enum','double3','doubleAngle','doubleLinear']  
         assert type(arg) is bool, "doKeyable arg must be a bool!" 
 	
 	if self.attrType not in KeyableTypes:
