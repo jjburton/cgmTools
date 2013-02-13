@@ -47,13 +47,19 @@ from cgm.lib import settings
 
 import re
 import math
+import time
 
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
 
 from Red9.core import Red9_General as r9General
-
+#=========================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Joysticks
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -269,7 +275,7 @@ def createMasterControl(characterName,controlScale,font, controlVis = False, con
     return controlsReturn
 
 @r9General.Timer
-def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['incremental',90], baseAim = [0,0,1], baseUp = [0,1,0], offset = 0, localRotationOffset = [0,0,0], scaleMultiplier = .15, distanceMultiplier = 1, aimChildren=False, zeroGroups = False, lockHide = True,getFont = False):
+def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['incremental',90], baseAim = [0,0,1], baseUp = [0,1,0], offset = 0, localRotationOffset = [0,0,0], scaleMultiplier = .15, distanceMultiplier = 1, aimChildren=False, zeroGroups = False, lockHide = True,getFont = False,color = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
     DESCRIPTION:
@@ -307,6 +313,7 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
     # Get info
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     controlTypes = {'controlSettings':'gear','controlVisibility':'eye'}
+    start = time.clock()       
 
     if getFont:
         masterNull = search.returnObjectMasterNull(baseControl)
@@ -316,10 +323,14 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
         font = mc.getAttr(settingsInfoNull+'.font')
     else:
         font = 'Arial'
+        
+    log.debug('font =  %0.3f' % (time.clock()-start))
     
     """ our size """
-    absSize = distance.returnAbsoluteSizeCurve(baseControl)
+    #absSize = distance.returnAbsoluteSizeCurve(baseControl)
+    absSize = distance.returnBoundingBoxSize(baseControl)
     controlScale = max(absSize) * scaleMultiplier
+    log.debug('size =  %0.3f' % (time.clock()-start))
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Make Controls 
@@ -345,6 +356,8 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
             attributes.storeInfo(baseControl,('childControl'+ (control.capitalize())), controlBuffer)
             attributes.storeInfo(controlBuffer,"textFont",(settingsInfoNull+'.font'))
             controlsMade[control] = controlBuffer 
+    log.debug('build control =  %0.3f' % (time.clock()-start))
+    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Prepping the transform group
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -381,6 +394,8 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
     
     for loc in locs:
         mc.delete(loc)
+        
+    log.debug('locators =  %0.3f' % (time.clock()-start))
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Positioning of controls
@@ -422,26 +437,33 @@ def childControlMaker(baseControl, controls = ['controlVisibility'], mode = ['in
         
         mc.parent(control,baseControlTransformGroup)
         
+    log.debug('position =  %0.3f' % (time.clock()-start))
+        
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Finish Out
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """ get colors from the master """
-    baseColors = curves.returnColorsFromCurve(baseControl)
-    if len(baseColors) > 1:
-        controlColor = baseColors[1]
-    else:
-        controlColor = baseColors[0]
+    #Pulling out of main function coloring because it slowed everything way down
+    if color:
+        baseColors = curves.returnColorsFromCurve(baseControl)
+        if len(baseColors) > 1:
+            controlColor = baseColors[1]
+        else:
+            controlColor = baseColors[0]
+            
+        log.debug('color =  %0.3f' % (time.clock()-start))
         
     position.moveParentSnap(baseControlTransformGroup,baseControl)
     
     for c in controlsMade.keys():
         control = controlsMade.get(c)
         mc.parent(control,baseControl)
-        curves.setColorByIndex(control,controlColor)
+        if color:curves.setColorByIndex(control,controlColor)
         if zeroGroups == True:
             rigging.groupMeObject(control,True,True)
         if lockHide == True:
             attributes.doSetLockHideKeyableAttr(control)
+    log.debug('finish =  %0.3f' % (time.clock()-start))
             
     mc.delete(baseControlTransformGroup)     
     
