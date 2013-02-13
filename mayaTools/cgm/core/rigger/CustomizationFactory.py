@@ -85,6 +85,8 @@ class go(object):
         doSkinBody(self)
         if stopAt == 'skin':return
         doConnectVis(self)
+	if stopAt == 'vis':return
+	doLockNHide(self,p)
 
 
 @r9General.Timer
@@ -753,7 +755,117 @@ def doConnectVis(self):
                 else:
                     i_attr.doConnectIn("%s.controls"%iVis.mNode)
                     
+def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = False):
+    """
+    Lock and hides for a Morpheus customization asset
+    """
+    log.info(">>> doLockNHide")
+    # Get our base info
+    #==================	        
+    assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
+    try:
+	customizationNode.mNode
+	p = customizationNode
+    except:
+	if mc.objExists(customizationNode):
+	    p = r9Meta.MetaClass(customizationNode)
+	else:
+	    p = cgmPM.cgmMorpheusMakerNetwork(name = customizationNode)
     
+    mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.p.objSetAll.value))    
+    for c in self.p.objSetAll.value:        
+        if '.' not in c and mc.ls(c, type='transform'):
+            i_c = cgmMeta.cgmNode(c)
+            if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+                break
+            mc.progressBar(mayaMainProgressBar, edit=True, status = "LockNHide: '%s'"%i_c.getShortName(), step=1)            
+            
+            if unlock:
+                for c in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+                    cgmMeta.cgmAttr(i_c,c,lock=False,keyable=True,hidden=False)
+                
+            elif i_c.hasAttr('cgmName'):
+                #Special Stuff
+                if i_c.cgmName in ['arm','hand','head','face','eye','mouth']:
+		    attributes.doConnectAttr(('%s.scaleZ'%i_c.mNode),('%s.scaleX'%i_c.mNode),True)
+		    attributes.doConnectAttr(('%s.scaleZ'%i_c.mNode),('%s.scaleY'%i_c.mNode),True)
+		    cgmMeta.cgmAttr(i_c,'scaleX',lock=True,hidden=True)
+		    cgmMeta.cgmAttr(i_c,'scaleY',lock=True,hidden=True)		    
+		    zAttr = cgmMeta.cgmAttr(i_c,'scaleZ')
+		    zAttr.p_nameAlias = '%sScale'%i_c.cgmName                    
+                
+                
+                #>>>All translates/rotates
+                if i_c.cgmName in ['ankleMeat','kneeMeat','hipMeat','arm','shoulderMeat','head','face']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['tx','ty','tz','rx','ry','rz'])                 
+
+		    
+                
+                #>>> Translates ==================================================== 
+                #>>> all
+                if i_c.cgmName in ['upr_arm']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['tx','ty','tz'])	 		
+                #>>> tx
+                if i_c.cgmName in ['quad','hamstring','pelvis','sternum','shoulders','trapezius',
+		                   'lwr_leg','foreArm','lwr_arm','hand','neck',
+		                   'thumb_1', 'thumb_mid', 'thumb_2',
+		                   'index_1', 'index_mid', 'index_2',
+		                   'middle_1', 'middle_mid', 'middle_2',
+		                   'ring_1', 'ring_mid', 'ring_2',
+		                   'pinky_1', 'pinky_mid', 'pinky_2',
+		                   'noseTop', 'noseMid', 'noseBase', 'noseTip',
+		                   'brow', 'forehead', 'headTop','mouth', 'underLip','underNose',
+		                   'mouthCavity', 'lwrFace', 'chin', 'headBack']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['tx'])	                 
+                #>>> ty
+                if i_c.cgmName in ['ankle','toes','ball','heel','lwr_leg','bicep','tricep',
+		                   'foreArm','elbowMeat','lwr_arm','hand','neck','pectoral'
+		                   'thumb_1', 'thumb_mid', 'thumb_2',
+		                   'index_1', 'index_mid', 'index_2',
+		                   'middle_1', 'middle_mid', 'middle_2',
+		                   'ring_1', 'ring_mid', 'ring_2',
+		                   'pinky_1', 'pinky_mid', 'pinky_2']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['ty'])	
+                #>>> tz
+                if i_c.cgmName in ['torsoMid','pelvis','sternum','shoulders','trapezius','elbowMeat']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['tz'])	
+		#>>> Rotates ========================================================
+                #> All rotates
+                if i_c.cgmName in ['ankle','toes','ball','heel','calf','lwr_leg','upr_leg',
+                                   'hamstring','quad','sternum','shoulders','upr_arm','lwr_arm',
+                                   'shoulderBlade','trapezius','bicep','tricep','foreArm',
+		                   'elbowMeat','hand', 'neck','pectoral'
+		                   'thumb_1', 'thumb_mid', 'thumb_2',
+		                   'index_1', 'index_mid', 'index_2',
+		                   'middle_1', 'middle_mid', 'middle_2',
+		                   'ring_1', 'ring_mid', 'ring_2',
+		                   'pinky_1', 'pinky_mid', 'pinky_2',
+		                   'brow', 'eyeOrb', 'eye', 'mouth', 'mouthCavity',
+		                   'jaw']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['rx','ry','rz'])	
+		#> rx
+                if i_c.cgmName in ['asdf']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['rx'])
+		#> ry
+		if i_c.cgmName in ['forehead']:
+		    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['ry'])
+		#> rz
+		if i_c.cgmName in ['forehead']:
+		    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['rz'])			    
+                #>>> Scales ========================================================
+                #>>>sx
+                if i_c.cgmName in ['trapezius','arm','hand']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sx'])                           
+                #>>>sy
+                if i_c.cgmName in ['ankleMeat','quad','hamstring','torsoMid','shoulders','arm','hand']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sy'])            
+                #>>>sz
+                if i_c.cgmName in ['lwr_leg','hipMeat','trapezius']:
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sz'])     
+    guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+    mc.cycleCheck(e=False)
+    log.warning("Cycle check turned off")
+                
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
