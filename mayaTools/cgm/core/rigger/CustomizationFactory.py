@@ -78,9 +78,9 @@ class go(object):
         if stopAt == 'rig':return		
         doAddControlConstraints(self)
         if stopAt == 'constraints':return		
-        doBody_bsNode(self)
+        #doBody_bsNode(self)
         if stopAt == 'bsBody':return		
-        doFace_bsNode(self)
+        #doFace_bsNode(self)
         if stopAt == 'bsFace':return		
         doSkinBody(self)
         if stopAt == 'skin':return
@@ -685,7 +685,7 @@ def doAddControlConstraints(self):
 			"""
                     mode = 0
                     if i_jnt.controlPart == 'face':
-                        constraints.doConstraintObjectGroup(targets,group = i_prnt.mNode,constraintTypes=pair,mode=mode)		                        
+                        constraints.doConstraintObjectGroup(targets,group = i_prnt.mNode,constraintTypes=pair,mode=1)		                        
                         i_prnt.parent = parentPBuffer
                     else:
                         constraints.doConstraintObjectGroup(targets,group = i_prnt.mNode,constraintTypes=pair,mode=mode)		
@@ -697,10 +697,17 @@ def doAddControlConstraints(self):
                     constBuffer = mc.aimConstraint( i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = False, weight = 1, aimVector = [0,1,0], upVector = [0,0,1], worldUpVector = [0,0,-1], worldUpType = 'vector' )    		
                 elif i_jnt.cgmDirection == 'right':
                     constBuffer = mc.aimConstraint( i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = False, weight = 1, aimVector = [0,-1,0], upVector = [0,0,-1], worldUpVector = [0,0,-1], worldUpType = 'vector' )    			    
+                   
+           
             elif i_jnt.controlPart == 'face':
-                if i_jnt.cgmDirection == 'left':
+                """
+                a  = cgmMeta.cgmObject()
+                a.doGroup(True)
+                i_jnt.doGroup(True)
+                """
+                if i_jnt.hasAttr('cgmDirection') and i_jnt.cgmDirection == 'left':
                     constBuffer = mc.aimConstraint( i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = True, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpType = 'vector' )    
-                elif i_jnt.cgmDirection == 'right':
+                elif i_jnt.hasAttr('cgmDirection') and i_jnt.cgmDirection == 'right':
                     constBuffer = mc.aimConstraint( i_jnt.getMessage('constraintAimTargets',False),i_jnt.mNode,maintainOffset = True, weight = 1, aimVector = [0,0,-1], upVector = [0,-1,0], worldUpVector = [0,1,0], worldUpType = 'vector' )    		
             else:
                 if i_jnt.cgmDirection == 'left':
@@ -724,27 +731,28 @@ def doConnectVis(self):
     iVis = p.masterControl.controlVis
     
     for c in self.p.objSetAll.value:
-        i_c = cgmMeta.cgmNode(c)
-        i_attr = cgmMeta.cgmAttr(i_c,'visibility',hidden = True,lock = True)
-        
-        if i_c.hasAttr('cgmTypeModifier') and i_c.cgmTypeModifier == 'sub':
-            if i_c.hasAttr('cgmDirection'):
-                if i_c.cgmDirection == 'left':
-                    i_attr.doConnectIn("%s.leftSubControls_out"%iVis.mNode)
-                if i_c.cgmDirection == 'right':
-                    i_attr.doConnectIn("%s.rightSubControls_out"%iVis.mNode)
+        if '.' not in c:
+            i_c = cgmMeta.cgmNode(c)
+            i_attr = cgmMeta.cgmAttr(i_c,'visibility',hidden = True,lock = True)
+            
+            if i_c.hasAttr('cgmTypeModifier') and i_c.cgmTypeModifier == 'sub':
+                if i_c.hasAttr('cgmDirection'):
+                    if i_c.cgmDirection == 'left':
+                        i_attr.doConnectIn("%s.leftSubControls_out"%iVis.mNode)
+                    if i_c.cgmDirection == 'right':
+                        i_attr.doConnectIn("%s.rightSubControls_out"%iVis.mNode)
+                else:
+                    i_attr.doConnectIn("%s.subControls_out"%iVis.mNode)
+                    
             else:
-                i_attr.doConnectIn("%s.subControls"%iVis.mNode)
-                
-        else:
-            if i_c.hasAttr('cgmDirection'):
-                if i_c.cgmDirection == 'left':
-                    i_attr.doConnectIn("%s.leftControls_out"%iVis.mNode)
-                if i_c.cgmDirection == 'right':
-                    i_attr.doConnectIn("%s.rightControls_out"%iVis.mNode)
-            else:
-                i_attr.doConnectIn("%s.controls"%iVis.mNode)
-                
+                if i_c.hasAttr('cgmDirection'):
+                    if i_c.cgmDirection == 'left':
+                        i_attr.doConnectIn("%s.leftControls_out"%iVis.mNode)
+                    if i_c.cgmDirection == 'right':
+                        i_attr.doConnectIn("%s.rightControls_out"%iVis.mNode)
+                else:
+                    i_attr.doConnectIn("%s.controls"%iVis.mNode)
+                    
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
