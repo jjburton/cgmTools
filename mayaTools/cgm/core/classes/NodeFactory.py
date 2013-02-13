@@ -243,15 +243,15 @@ class build_mdNetwork(object):
 	    if i_md is None:
 		i_md = cgmMeta.cgmNode(name = 'test',nodeType = 'multiplyDivide')#make the node	
 		
-	    source1.doConnectOut("%s.input1X"%i_md.mNode)
-	    source2.doConnectOut("%s.input2X"%i_md.mNode)
-	    #Name it
-	    source1Name = source1.p_combinedName
-	    source1Name = ''.join(source1Name.split('|')[-1].split(':')[-1].split('_'))
-	    source2Name = source2.p_combinedName
-	    source2Name = ''.join(source2Name.split('|')[-1].split(':')[-1].split('_'))    
-	    i_md.doStore('cgmName',"%s_to_%s"%(source1Name,source2Name))
-	    i_md.doName()
+		source1.doConnectOut("%s.input1X"%i_md.mNode)
+		source2.doConnectOut("%s.input2X"%i_md.mNode)
+		#Name it
+		source1Name = source1.p_combinedName
+		source1Name = ''.join(source1Name.split('|')[-1].split(':')[-1].split('_'))
+		source2Name = source2.p_combinedName
+		source2Name = ''.join(source2Name.split('|')[-1].split(':')[-1].split('_'))    
+		i_md.doStore('cgmName',"%s_to_%s"%(source1Name,source2Name))
+		i_md.doName()
 	    
 	    #Store to our good network and the output attr
 	    self.l_good_mdNetworks.append(arg[0])#append it to get our index lib
