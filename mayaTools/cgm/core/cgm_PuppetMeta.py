@@ -532,9 +532,12 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('rightRoots',attrType = 'message',lock=True)
         self.addAttr('jointList',attrType = 'message',lock=True)
 	
-        self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)	
+        self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeBodyGeo',attrType = 'messageSimple',lock=True)	
+	
         self.addAttr('bodyBlendshapeNodes',attrType = 'messageSimple',lock=True)
         self.addAttr('faceBlendshapeNodes',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeBlendshapeNode',attrType = 'messageSimple',lock=True)
 	
         self.addAttr('skinCluster',attrType = 'messageSimple',lock=True)
 	
@@ -568,9 +571,21 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	log.debug("Master Null good...")
 	
 	# Groups
-	#======================================================================   
-	geoGroups = 'clothesGeo','hairGeo','bsGeo','baseGeo'
-	for attr in 'noTransform','geo','hairGeo','clothesGeo','baseGeo','bsGeo','faceTargets','bodyTargets':
+	#======================================================================
+	l_baseGroups = ['noTransform','geo','customGeo','hairGeo',
+	                'clothesGeo','baseGeo','bsGeo']
+	l_geoGroups = ['customGeo','bsGeo','baseGeo']
+	l_customGeoGroups = ['clothesGeo','hairGeo','earGeo','eyeballGeo','eyebrowGeo']
+	l_earGeoGroups = ['left_earGeo','right_earGeo']
+	l_eyeGeoGroups = ['left_eyeGeo','right_eyeGeo']	
+	l_bsTargetGroups = ['faceTargets','bodyTargets']
+	l_bsFaceTargets = ['mouthTargets','noseTargets','browTargets','fullFaceTargets']
+	l_bsBodyTargets = ['torsoTargets','fullBodyTargets',
+	                   'left_armTargets','right_armTargets','left_handTargets','right_handTargets',
+	                   'left_legTargets','right_legTargets']
+	
+	for attr in l_baseGroups + l_customGeoGroups+ l_bsTargetGroups + l_bsBodyTargets + l_bsFaceTargets + l_earGeoGroups + l_eyeGeoGroups:
+	    log.debug('On attr: %s'%attr)
 	    self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
 	    grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
 	    Attr = 'i_' + attr+'Group'#Get a better attribute store string           
@@ -585,16 +600,52 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
 		self.__dict__[Attr].doName()
 		self.i_masterNull.connectChild(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
-		log.debug("Initialized as 'self.%s'"%(Attr))                    
-
+		log.debug("Initialized as 'self.%s'"%(Attr))         
+		
+	    #>>> Special data parsing to get things named how we want
+	    if 'left' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('left_')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmDirection','left')
+	    if 'right' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('right_')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmDirection','right')
+		
+	    if 'Targets' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier') and self.__dict__[Attr].typeModifier != 'targets':
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('Targets')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmTypeModifier','targets',overideMessageCheck = True)
+		self.__dict__[Attr].doName()
+		
+	    if 'Geo' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier') and self.__dict__[Attr].typeModifier != 'geo':
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('Geo')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmTypeModifier','geo',overideMessageCheck = True)
+		self.__dict__[Attr].doName()
+		
 	    # Few Case things
 	    #==============            
 	    if attr == 'geo':
 		self.__dict__[Attr].doParent(self.i_noTransformGroup)
-	    elif attr in geoGroups:
-		self.__dict__[Attr].doParent(self.i_geoGroup)				
-	    elif attr in ['faceTargets','bodyTargets']:
+	    elif attr in l_geoGroups:
+		self.__dict__[Attr].doParent(self.i_geoGroup)	
+	    elif attr in l_customGeoGroups:
+		self.__dict__[Attr].doParent(self.i_customGeoGroup)
+	    elif attr in l_earGeoGroups:
+		self.__dict__[Attr].doParent(self.i_earGeoGroup)
+	    elif attr in l_eyeGeoGroups:
+		self.__dict__[Attr].doParent(self.i_eyeballGeoGroup)	    
+	    elif attr in l_bsTargetGroups:
 		self.__dict__[Attr].doParent(self.i_bsGeoGroup)
+	    elif attr in l_bsFaceTargets:
+		self.__dict__[Attr].doParent(self.i_faceTargetsGroup)
+	    elif attr in l_bsBodyTargets:
+		self.__dict__[Attr].doParent(self.i_bodyTargetsGroup)	    
 	    else:    
 		self.__dict__[Attr].doParent(self.i_masterNull)
 
@@ -723,7 +774,6 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False	
 	
 	#See if we have a blendshape node
-	
     
 	bsNode = deformers.buildBlendShapeNode(baseGeo,bsTargetObjects,'tmp')
 	
@@ -812,24 +862,24 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	    
 	    attributes.doConnectAttr(('%s.visControl'%self.mNode),('%s.v'%i_c.mNode),True)
 	
-	#Vis control attrs
-	self.controlVis.addAttr('controls', attrType = 'bool',keyable = False,initialValue= 1)
-	self.controlVis.addAttr('subControls', attrType = 'bool',keyable = False,initialValue= 1)
-	self.controlVis.addAttr('skeleton', attrType = 'bool',keyable = False,initialValue= 1)
-	self.controlVis.addAttr('geo', attrType = 'bool',keyable = False,initialValue= 1)
-	
-	#>>> Settings Control
-	settingsControl = attributes.returnMessageObject(self.mNode,'controlSettings')
-	if not mc.objExists( settingsControl ):
-	    log.info('Creating settingsControl')
-	    buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 225, controls = ['controlSettings'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
-	    i_c = cgmMeta.cgmObject(buffer.get('controlSettings'))
-	    i_c.addAttr('mClass','cgmObject')
-	    i_c.doName()	
-	    curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color	    
-	    self.controlSettings = i_c.mNode #Link it	
+	    #Vis control attrs
+	    self.controlVis.addAttr('controls', attrType = 'bool',keyable = False,initialValue= 1)
+	    self.controlVis.addAttr('subControls', attrType = 'bool',keyable = False,initialValue= 1)
+	    self.controlVis.addAttr('skeleton', attrType = 'bool',keyable = False,initialValue= 1)
+	    self.controlVis.addAttr('geo', attrType = 'bool',keyable = False,initialValue= 1)
 	    
-	    attributes.doConnectAttr(('%s.settingsControl'%self.mNode),('%s.v'%i_c.mNode),True)
+	    #>>> Settings Control
+	    settingsControl = attributes.returnMessageObject(self.mNode,'controlSettings')
+	    if not mc.objExists( settingsControl ):
+		log.info('Creating settingsControl')
+		buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 225, controls = ['controlSettings'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+		i_c = cgmMeta.cgmObject(buffer.get('controlSettings'))
+		i_c.addAttr('mClass','cgmObject')
+		i_c.doName()	
+		curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color	    
+		self.controlSettings = i_c.mNode #Link it	
+		
+		attributes.doConnectAttr(('%s.settingsControl'%self.mNode),('%s.v'%i_c.mNode),True)
 	
 
 	self.doName()
