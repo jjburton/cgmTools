@@ -533,7 +533,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('jointList',attrType = 'message',lock=True)
 	
         self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)
-        self.addAttr('bridgeBodyGeo',attrType = 'messageSimple',lock=True)	
+        self.addAttr('bGeo',attrType = 'messageSimple',lock=True)	
 	
         self.addAttr('bodyBlendshapeNodes',attrType = 'messageSimple',lock=True)
         self.addAttr('faceBlendshapeNodes',attrType = 'messageSimple',lock=True)
@@ -614,14 +614,14 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
 		self.__dict__[Attr].doStore('cgmDirection','right')
 		
-	    if 'Targets' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier') and self.__dict__[Attr].typeModifier != 'targets':
+	    if 'Targets' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
 		buffer = self.__dict__[Attr].cgmName
 		buffer = buffer.split('Targets')
 		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
 		self.__dict__[Attr].doStore('cgmTypeModifier','targets',overideMessageCheck = True)
 		self.__dict__[Attr].doName()
 		
-	    if 'Geo' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier') and self.__dict__[Attr].typeModifier != 'geo':
+	    if 'Geo' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
 		buffer = self.__dict__[Attr].cgmName
 		buffer = buffer.split('Geo')
 		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
