@@ -78,10 +78,12 @@ class go(object):
         if stopAt == 'rig':return		
         doAddControlConstraints(self)
         if stopAt == 'constraints':return		
+	doBridge_bsNode(self.p)
+	if stopAt == 'bsBridge':return
         #doBody_bsNode(self)
-        if stopAt == 'bsBody':return		
+        #if stopAt == 'bsBody':return		
         #doFace_bsNode(self)
-        if stopAt == 'bsFace':return		
+        #if stopAt == 'bsFace':return		
         doSkinBody(self)
         if stopAt == 'skin':return
         doConnectVis(self)
@@ -461,13 +463,56 @@ def doFace_bsNode(self):
     attrs = deformers.returnBlendShapeAttributes(i_bsNode.mNode)
     for a in attrs:
         p.objSetAll.addObj("%s.%s"%(i_bsNode.mNode,a))
+	
+@r9General.Timer
+def doBridge_bsNode(customizationNode = 'MorpheusCustomization'):
+    """ 
+    Sets up body blendshape node
+    """ 
+    # Get our base info
+    #==================	        
+    log.info(">>> go.doBridge_bsNode") 
+    try:
+	customizationNode.mNode
+	p = customizationNode
+    except:
+	if mc.objExists(customizationNode):
+	    p = r9Meta.MetaClass(customizationNode)
+	else:
+	    p = cgmPM.cgmMorpheusMakerNetwork(name = customizationNode)
+	    
+    #See if we have a bridge yet
+    bridgeBlendshapeNode = p.getMessage('bridgeBlendshapeNode')
+    bridgeBody = p.getMessage('bridgeBodyGeo')
+    
+    if bridgeBlendshapeNode and bridgeBody:#if we have one, we're good to go
+	return True
+    else:
+	baseGeo = p.getMessage('baseBodyGeo')[0]#Get the base geo
+	newMesh = mc.duplicate(baseGeo)
+	i_target = cgmMeta.cgmObject(newMesh[0])
+	i_target.addAttr('cgmName','bodyBridge',attrType='string',lock=True)
+	i_target.doName()
+	i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
+	p.bridgeBodyGeo = i_target.mNode
+	
+	#Blendshape	
+	bsNode = deformers.buildBlendShapeNode(baseGeo,[i_target.mNode],'tmp')
+    
+	i_bsNode = cgmMeta.cgmNode(bsNode)
+	i_bsNode.addAttr('cgmName','bridge',attrType='string',lock=True)    
+	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+	#i_bsNode.addAttr('targetsGroup',targetGeoGroup,attrType='messageSimple',lock=True)
+	i_bsNode.doName()
+	p.bodyBlendshapeNodes = i_bsNode.mNode	
+	return True
 
 @r9General.Timer
 def doSkinBody(self):
     """ 
     Segement orienter. Must have a JointFactory Instance
     """ 
-    log.info(">>> doRigBody")
+    log.info(">>> doSkinBody")
     # Get our base info
     #==================	        
     assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
@@ -480,14 +525,77 @@ def doSkinBody(self):
         return False	
         #if not returnSkinJoints(self):
             #log.error("No skinJoints found")
+	    
+
+    
     l_skinJoints = []
+    i_jntEyeLeft = False
+    i_jntEyeRight = False
+    i_jntEarLeft = False
+    i_jntEarRight = False
+    
     for i_jnt in self.l_skinJoints:
-        l_skinJoints.append(i_jnt.mNode)
-    #Gather geo and skin
+	if i_jnt.cgmName not in ['ear']:
+	    l_skinJoints.append(i_jnt.mNode)
+	if i_jnt.cgmName == 'ear':
+	    if i_jnt.cgmDirection == 'left':
+		i_jntEarLeft = i_jnt
+	    else:
+		i_jntEarRight = i_jnt		
+	elif i_jnt.cgmName == 'eye':
+	    if i_jnt.cgmDirection == 'left':
+		i_jntEyeLeft = i_jnt
+	    else:
+		i_jntEyeRight = i_jnt
+		
+    d_skinJoints = {'body':l_skinJoints,
+                    'earLeft':[i_jntEarLeft.mNode],
+                    'earRight':[i_jntEarRight.mNode],
+                    'eyeLeft':[i_jntEyeLeft.mNode],
+                    'eyeRight':[i_jntEyeRight.mNode]}	
+    
+    #>>> Main skin 
+    #> Gather geo and skin
     baseGeo = p.masterNull.getMessage('baseGeoGroup')[0]
     if not baseGeo:
         log.warning("No base geo group found")
         return False
+    
+    d_geoGroups = {'body':p.masterNull.baseGeoGroup,
+                   'earLeft':p.masterNull.left_earGeoGroup,
+                   'earRight':p.masterNull.right_earGeoGroup,
+                   'eyeLeft':p.masterNull.left_eyeGeoGroup,
+                   'eyeRight':p.masterNull.right_eyeGeoGroup}
+    
+    for key in d_geoGroups.keys():
+	log.info("Working to skin: %s"%key)
+	groupName = d_geoGroups[key].getShortName()
+	geoGroupObjects = d_geoGroups[key].getAllChildren(True)
+	if not geoGroupObjects:
+	    log.warning("Empty group: %s"%groupName)
+	else:
+	    toSkin = []
+	    for o in geoGroupObjects:
+		if search.returnObjectType(o) in ['mesh','nurbsSurface']:
+		    toSkin.append(o) 
+	    if not toSkin:
+		log.warning("No skinnable objects found in: %s"%groupName)		
+	    else:
+		if not d_skinJoints[key]:
+		    log.warning("No skin joints for : %s"%key)		    
+		else:
+		    for geo in toSkin:
+			log.info("Skinning: '%s'"%geo)
+			toBind = d_skinJoints[key] + [geo]
+			cluster = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+			i_cluster = cgmMeta.cgmNode(cluster[0])
+			i_cluster.doCopyNameTagsFromObject(groupName,ignore=['cgmTypeModifier','cgmType'])
+			i_cluster.addAttr('mClass','cgmNode',attrType='string',lock=True)
+			i_cluster.doName()
+			#p.skinCluster = i_cluster.mNode
+			#self.bodyGeo = toSkin[0]
+		
+    """
     geoGroupObjects = search.returnAllChildrenObjects(baseGeo,True)
     if not geoGroupObjects:
         log.error("No geo found")
@@ -508,7 +616,12 @@ def doSkinBody(self):
         self.bodyGeo = toSkin[0]
     else:
         log.info("Nothing found to skin")
+	
+    #>>> Ears
 
+    
+    #>>> Eyes
+    """
 @r9General.Timer
 def returnSkinJoints(self):
     assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
@@ -530,7 +643,7 @@ def doRigBody(self):
     #==================	        
     assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
     assert mc.objExists(self.p.mNode),"Customization node no longer exists"
-
+    p = self.p
     mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.p.jointList))
     self.l_skinJoints = []
 
@@ -543,6 +656,20 @@ def doRigBody(self):
         if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
             break
         mc.progressBar(mayaMainProgressBar, edit=True, status = "On: '%s'"%i_jnt.getShortName(), step=1)
+
+	""" Only need this if we're gonna constrain rather than skin eyes/ears
+	if i_jnt.cgmName =='ear':#update the group
+	    if i_jnt.cgmDirection == 'left':
+		p.masterNull.left_earGeoGroup.doCopyTransform(i_jnt.mNode)
+	    else:
+		p.masterNull.right_earGeoGroup.doCopyTransform(i_jnt.mNode)
+		
+	if i_jnt.cgmName =='eye':#update the group
+	    if i_jnt.cgmDirection == 'left':
+		p.masterNull.left_eyeGeoGroup.doCopyTransform(i_jnt.mNode)
+	    else:
+		p.masterNull.right_eyeGeoGroup.doCopyTransform(i_jnt.mNode)
+	"""
 
         if i_jnt.cgmName == 'ankle':
             buffer = updateTransform(i_jnt.controlCurve,i_jnt)	  
@@ -584,7 +711,6 @@ def doRigBody(self):
                         mc.pointConstraint(parentPBuffer,i_prnt.mNode, maintainOffset=True)					    	    
                     else:
                         mc.parentConstraint(parentPBuffer,i_prnt.mNode, maintainOffset=True)
-
 
             i_controlSet.addObj(i_jnt.mNode)
             if i_crv.hasAttr('cgmTypeModifier') and i_crv.cgmTypeModifier == 'secondary':
