@@ -519,8 +519,8 @@ class cgmObject(cgmNode):
     def getChildren(self):
         return search.returnChildrenObjects(self.mNode) or []
     
-    def getAllChildren(self):
-        return search.returnAllChildrenObjects(self.mNode) or []    
+    def getAllChildren(self,fullPath = False):
+        return search.returnAllChildrenObjects(self.mNode,fullPath) or []    
     
     def getShapes(self):
         return mc.listRelatives(self.mNode,shapes=True) or []
@@ -566,6 +566,23 @@ class cgmObject(cgmNode):
         assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
         rigging.copyPivot(self.mNode,sourceObject)
 
+
+    def doCopyTransform(self,sourceObject):
+        """ Copy the pivot from a source object to the current instanced maya object. """
+        try:
+            #If we have an Object Factory instance, link it
+            sourceObject.mNode
+            sourceObject = sourceObject.mNode
+            log.debug("Source is an instance")                        
+        except:
+            #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+            assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
+
+        assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
+	objRot = mc.xform (sourceObject, q=True, ws=True, ro=True)
+	self.doCopyPivot(sourceObject)
+	self.rotateAxis = objRot
+	
     def doGroup(self,maintain=False):
         """
         Grouping function for a maya instanced object.
