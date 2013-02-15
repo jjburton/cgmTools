@@ -777,7 +777,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
     updatedNamesDict = returnObjectGeneratedNameDict(obj,ignore)
     order = returnCGMOrder()
     
-    if 'cgmName' not in updatedNamesDict.keys():
+    if 'cgmName' not in updatedNamesDict.keys() and search.returnObjectType(obj) !='group':
         buffer = mc.ls(obj,shortNames = True)
         attributes.storeInfo(obj,'cgmName',buffer[0],True)
         updatedNamesDict = returnObjectGeneratedNameDict(obj,ignore)
@@ -923,7 +923,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     isType = search.returnObjectType(obj)
     childrenObjects = search.returnChildrenObjects(obj)
     """first see if it's a group """
-    if childrenObjects > 0 and isType == 'transform' and typeTag == False:
+    if isType == 'group' and typeTag == False:
         """ if it's a transform group """
         groupNamesDict = {}
         if not nameObj:
