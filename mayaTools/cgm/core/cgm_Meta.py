@@ -313,8 +313,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	return attributes.returnUserAttrsToDict(self.mNode) or {}
     
     def getNameDict(self):
-	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}    
-		
+	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}  
+    
+    
     def getTransform(self):
 	"""Find the transform of the object"""
 	buffer = mc.ls(self.mNode, type = 'transform') or False
@@ -358,7 +359,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
             NameFactory.doNameObject(self.mNode,sceneUnique)
 	    self.update()
 	
-	    
+    def getChildrenNodes(self, walk=True, mAttrs=None):
+	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""
+	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)	    
     #=========================================================================                   
     # Attribute Functions
     #=========================================================================                   
@@ -516,8 +519,8 @@ class cgmObject(cgmNode):
     def getAllParents(self):
         return search.returnAllParents(self.mNode) or False
     
-    def getChildren(self):
-        return search.returnChildrenObjects(self.mNode) or []
+    def getChildren(self,fullPath=False):
+        return search.returnChildrenObjects(self.mNode,fullPath) or []
     
     def getAllChildren(self,fullPath = False):
         return search.returnAllChildrenObjects(self.mNode,fullPath) or []    
