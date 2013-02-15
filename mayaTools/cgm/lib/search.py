@@ -939,7 +939,8 @@ def returnObjectType(obj):
                     return 'isoparm'
             if '.ep[' in obj:
                 return 'editPoint'
-
+	    if returnAllChildrenObjects(obj):
+		return 'group'
 
             return mc.objectType(obj)
         return mc.objectType(objShapes[0])
