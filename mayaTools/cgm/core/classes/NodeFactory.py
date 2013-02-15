@@ -366,7 +366,8 @@ class build_conditionNetworkFromGroup(object):
 	
 	#Make our attr
 	if len(children) == 2:
-	    self.i_attr.setEnum('off:on')
+	    self.i_attr.doConvert('bool')#Like bool better
+	    #self.i_attr.setEnum('off:on')
 	else:
 	    self.i_attr.setEnum(':'.join(children))
 	
@@ -379,10 +380,10 @@ class build_conditionNetworkFromGroup(object):
 	    else:
 		if mc.objExists('%s_condNode'%c):
 		    mc.delete('%s_condNode'%c)
-		i_node = cgmMeta.cgmNode(name = (('%s_picker')%str(c)), nodeType = 'condition') #Make our node
+		i_node = cgmMeta.cgmNode(name = 'tmp', nodeType = 'condition') #Make our node
 	    
 	    i_node.addAttr('cgmName', i_c.getShortName(), attrType = 'string')
-	    i_node.addAttr('cgmType','picker')
+	    i_node.addAttr('cgmType','condNode')
 	    i_node.doName()
 	    i_node.secondTerm = i+1
 	    attributes.doSetAttr(i_node.mNode,'colorIfTrueR',1)
