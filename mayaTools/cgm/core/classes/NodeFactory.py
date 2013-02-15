@@ -31,6 +31,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (lists,
                      search,
                      attributes)
+reload(search)
 
 class build_mdNetwork(object):
     """
@@ -318,3 +319,118 @@ class build_mdNetwork(object):
 	return self.l_iAttrs.index(combinedName)
 
 
+class build_conditionNetworkFromGroup(object):
+    def __init__(self, group, chooseAttr = 'switcher', controlObject = None, connectTo = 'visibility',*args,**kws):
+	"""Constructor"""
+	self.d_iAttrs = {}#attr instances stores as {index:instance}
+	self.l_iAttrs = []#Indices for iAttrs
+	self.d_resultNetworksToBuild = {}#Index desctiptions of networks to build {target:[[1,2],3]}
+	self.i_group = False
+	self.i_control = False
+	self.connectToAttr = connectTo
+	self.i_attr = False
+	
+        #>>>Keyword args	
+        log.debug(">>> build_conditionNetworkFromGroup.__init__")
+	if kws:log.debug("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args))
+	
+	#Check our group
+	if not mc.objExists(group):
+	    log.error("Group doesn't exist: '%s'"%group)
+	    return
+	elif not search.returnObjectType(group) == 'group':
+	    log.error("Object is not a group: '%s'"%search.returnObjectType(group))
+	    return
+	self.i_group = cgmMeta.cgmObject(group)
+	if not self.i_group.getChildren():
+	    log.error("No children detected: '%s'"%group)
+	    return	
+	
+	#Check our control
+	if controlObject is None or not mc.objExists(controlObject):
+	    log.error("No suitable control object found: '%s'"%controlObject)
+	    return
+	else:
+	    i_controlObject = cgmMeta.cgmNode(controlObject)
+	    self.i_attr = cgmMeta.cgmAttr(i_controlObject,chooseAttr,attrType = 'enum',initialValue = 1)
+	if self.buildNetwork(*args,**kws):
+	    log.info("Chooser Network good to go")
+	
+    def buildNetwork(self,*args,**kws):
+	if kws:log.info("kws: %s"%str(kws))
+	if args:log.info("args: %s"%str(args))
+	
+	children = self.i_group.getChildren()
+	children.insert(0,'none')
+	
+	#Make our attr
+	if len(children) == 2:
+	    self.i_attr.setEnum('off:on')
+	else:
+	    self.i_attr.setEnum(':'.join(children))
+	
+	for i,c in enumerate(children[1:]):
+	    i_c = cgmMeta.cgmNode(c)
+	    #see if the node exists
+	    condNodeTest = attributes.returnDriverObject('%s.%s'%(c,self.connectToAttr))
+	    if condNodeTest:
+		i_node = cgmMeta.cgmNode(condNodeTest)
+	    else:
+		if mc.objExists('%s_condNode'%c):
+		    mc.delete('%s_condNode'%c)
+		i_node = cgmMeta.cgmNode(name = (('%s_picker')%str(c)), nodeType = 'condition') #Make our node
+	    
+	    i_node.addAttr('cgmName', i_c.getShortName(), attrType = 'string')
+	    i_node.addAttr('cgmType','picker')
+	    i_node.doName()
+	    i_node.secondTerm = i+1
+	    attributes.doSetAttr(i_node.mNode,'colorIfTrueR',1)
+	    attributes.doSetAttr(i_node.mNode,'colorIfFalseR',0)
+	    #i_node.colorIfTrueR = 1
+	    #i_node.colorIfTrueR = 0
+	    
+	    self.i_attr.doConnectOut('%s.firstTerm'%i_node.mNode)
+	    attributes.doConnectAttr('%s.outColorR'%i_node.mNode,'%s.%s'%(c,self.connectToAttr))
+	
+	return True
+		
+def groupToConditionNodeSet(group,chooseAttr = 'switcher', controlObject = None, connectTo = 'visibility'):
+    """
+    Hack job for the gig to make a visibility switcher for all the first level of children of a group
+    """
+    children = search.returnChildrenObjects(group) #Check for children
+
+    if not children: #If none, break out
+	guiFactory("'%s' has no children! Aborted."%group)
+	return False
+    if controlObject is None:
+	controlObject = group
+    
+    #Make our attr
+    a = AttrFactory.AttrFactory(controlObject,chooseAttr,'enum')
+    children.insert(0,'none')
+    print children
+    if len(children) == 2:
+	a.setEnum('off:on')
+    else:
+	a.setEnum(':'.join(children))
+    
+    for i,c in enumerate(children[1:]):
+	print i
+	print c
+	#see if the node exists
+	condNodeTest = attributes.returnDriverObject('%s.%s'%(c,connectTo))
+	if condNodeTest:
+	    buffer = condNodeTest
+	else:
+	    if mc.objExists('%s_condNode'%c):
+		mc.delete('%s_condNode'%c)
+	    buffer = nodes.createNamedNode('%s_picker'%c,'condition') #Make our node
+	print buffer
+	attributes.doSetAttr(buffer,'secondTerm',i+1)
+	attributes.doSetAttr(buffer,'colorIfTrueR',1)
+	attributes.doSetAttr(buffer,'colorIfFalseR',0)
+	
+	a.doConnectOut('%s.firstTerm'%buffer)
+	attributes.doConnectAttr('%s.outColorR'%buffer,'%s.%s'%(c,connectTo))
