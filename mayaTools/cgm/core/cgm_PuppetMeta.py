@@ -40,6 +40,7 @@ from cgm.core.classes import NodeFactory as nf
 reload(nf)
 from cgm.lib import (modules,
                      distance,
+                     deformers,
                      controlBuilder,
                      attributes,
                      search,
@@ -525,6 +526,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	self.addAttr('masterControl',attrType='messageSimple',lock=True)
 
 	#>>> Necessary attributes
+	#===============================================================
+	#> Curves and joints
         self.addAttr('controlCurves',attrType = 'message')
         self.addAttr('leftJoints',attrType = 'message',lock=True)
         self.addAttr('rightJoints',attrType = 'message',lock=True)	
@@ -532,26 +535,33 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('rightRoots',attrType = 'message',lock=True)
         self.addAttr('jointList',attrType = 'message',lock=True)
 	
+	#>>> Geo =======================================================
         self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)
-        self.addAttr('bGeo',attrType = 'messageSimple',lock=True)	
+	#>>> Bridges
+        self.addAttr('bridgeMainGeo',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeFaceGeo',attrType = 'messageSimple',lock=True)	
+	self.addAttr('bridgeBodyGeo',attrType = 'messageSimple',lock=True)	
 	
+	#>>> Nodes =====================================================
         self.addAttr('bodyBlendshapeNodes',attrType = 'messageSimple',lock=True)
         self.addAttr('faceBlendshapeNodes',attrType = 'messageSimple',lock=True)
-        self.addAttr('bridgeBlendshapeNode',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeMainBlendshapeNode',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeFaceBlendshapeNode',attrType = 'messageSimple',lock=True)
+	self.addAttr('bridgeBodyBlendshapeNode',attrType = 'messageSimple',lock=True)
 	
-        self.addAttr('skinCluster',attrType = 'messageSimple',lock=True)
+        #self.addAttr('skinCluster',attrType = 'messageSimple',lock=True)
 	
-	#>>> Controls
+	#>>> Controls ==================================================
         self.addAttr('controlsLeft',attrType = 'message',lock=True)
         self.addAttr('controlsRight',attrType = 'message',lock=True)
         self.addAttr('controlsCenter',attrType = 'message',lock=True)
 	
-	#>>> Object Sets
+	#>>> Object Sets ===============================================
         self.addAttr('objSetAll',attrType = 'messageSimple',lock=True)
         self.addAttr('objSetLeft',attrType = 'messageSimple',lock=True)
         self.addAttr('objSetRight',attrType = 'messageSimple',lock=True)
 	
-	#>>> Storage
+	#>>> Watch groups
         self.addAttr('autoPickerWatchGroups',attrType = 'message',lock=True)#These groups will setup pickers for all sub groups of them	
 	
         self.doName()
@@ -738,13 +748,13 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False
 	
 	#Skincluster
-	skinCluster = self.getMessage('skinCluster')
-	if not skinCluster:
+	#skinCluster = self.getMessage('skinCluster')
+	if not deformers.returnObjectDeformers(baseBodyGeo[0],'skinCluster'):
 	    log.warning("No skinCluster. Aborting check.")
 	    return False
 	
 	#>>> Blendshape nodes
-	if not self.getMessage('bodyBlendshapeNodes'):
+	if not self.getMessage('bridgeMainBlendshapeNode'):
 	    log.warning("No body blendshape node. Aborting check.")
 	    return False
 	"""
