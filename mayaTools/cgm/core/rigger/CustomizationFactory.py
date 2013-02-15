@@ -35,6 +35,7 @@ from cgm.lib import (curves,
 reload(constraints)
 reload(rigging)
 reload(nFactory)
+reload(search)
 #======================================================================
 # Functions for a cgmMorpheusMakerNetwork
 #======================================================================
@@ -101,7 +102,6 @@ def doMirrorTemplate(self):
     #==================	        
     assert self.cls == 'CustomizationFactory.go',"Not a CustomizationFactory.go instance!"
     assert mc.objExists(self.p.mNode),"Customization node no longer exists"
-    log.info(">>> go.doSkinIt")      
     p = self.p
     d_constraintParentTargets = {}
     d_constraintAimTargets = {}
@@ -467,7 +467,7 @@ def doFace_bsNode(self):
 @r9General.Timer
 def doBridge_bsNode(customizationNode = 'MorpheusCustomization'):
     """ 
-    Sets up body blendshape node
+    Sets up main,face and body blendshape bridges
     """ 
     # Get our base info
     #==================	        
@@ -481,20 +481,23 @@ def doBridge_bsNode(customizationNode = 'MorpheusCustomization'):
 	else:
 	    p = cgmPM.cgmMorpheusMakerNetwork(name = customizationNode)
 	    
-    #See if we have a bridge yet
-    bridgeBlendshapeNode = p.getMessage('bridgeBlendshapeNode')
-    bridgeBody = p.getMessage('bridgeBodyGeo')
+    baseGeo = p.getMessage('baseBodyGeo')[0]#Get the base geo    
+    assert baseGeo,"No base geo connected to attr!"	    
+    #>>> Check Main bridge
+    #=================================================
+    bridgeMainBlendshapeNode = p.getMessage('bridgeMainBlendshapeNode')
+    bridgeBody = p.getMessage('bridgeMainGeo')
     
-    if bridgeBlendshapeNode and bridgeBody:#if we have one, we're good to go
-	return True
+    if bridgeMainBlendshapeNode and bridgeBody:#if we have one, we're good to go
+	log.info('Main Bridge exists!')
     else:
-	baseGeo = p.getMessage('baseBodyGeo')[0]#Get the base geo
 	newMesh = mc.duplicate(baseGeo)
 	i_target = cgmMeta.cgmObject(newMesh[0])
-	i_target.addAttr('cgmName','bodyBridge',attrType='string',lock=True)
+	i_target.addAttr('cgmName','mainBridge',attrType='string',lock=True)
 	i_target.doName()
 	i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-	p.bridgeBodyGeo = i_target.mNode
+	p.bridgeMainGeo = i_target.mNode
+	i_target.visibility = False
 	
 	#Blendshape	
 	bsNode = deformers.buildBlendShapeNode(baseGeo,[i_target.mNode],'tmp')
@@ -504,8 +507,63 @@ def doBridge_bsNode(customizationNode = 'MorpheusCustomization'):
 	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
 	#i_bsNode.addAttr('targetsGroup',targetGeoGroup,attrType='messageSimple',lock=True)
 	i_bsNode.doName()
-	p.bodyBlendshapeNodes = i_bsNode.mNode	
-	return True
+	attributes.doSetAttr(i_bsNode.mNode,i_target.getShortName(),1)
+	p.bridgeMainBlendshapeNode = i_bsNode.mNode	
+	log.info('Main Bridge good!')
+	
+    #>>> Check Body Bridge
+    #================================================= 
+    bridgeBodyBlendshapeNode = p.getMessage('bridgeBodyBlendshapeNode')
+    bridgeBody= p.getMessage('bridgeBodyGeo')
+    if bridgeBodyBlendshapeNode and bridgeBody:#if we have one, we're good to go
+	log.info('Body Bridge exists!') 
+    else:
+	newMesh = mc.duplicate(baseGeo)
+	i_target = cgmMeta.cgmObject(newMesh[0])
+	i_target.addAttr('cgmName','bodyBridge',attrType='string',lock=True)
+	i_target.doName()
+	i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
+	p.bridgeBodyGeo = i_target.mNode
+	i_target.visibility = False
+	#Blendshape	
+	bsNode = deformers.buildBlendShapeNode(p.bridgeMainGeo,[i_target.mNode],'tmp')
+    
+	i_bsNode = cgmMeta.cgmNode(bsNode)
+	i_bsNode.addAttr('cgmName','bodyBridge',attrType='string',lock=True)    
+	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+	i_bsNode.doName()
+	p.bridgeBodyBlendshapeNode = i_bsNode.mNode	
+	attributes.doSetAttr(i_bsNode.mNode,i_target.getShortName(),1)#Turn it on
+	log.info('Body Bridge good!')
+	
+    #>>> Check Face Bridge
+    #================================================= 
+    bridgeFaceBlendshapeNode = p.getMessage('bridgeFaceBlendshapeNode')
+    bridgeFace= p.getMessage('bridgeFaceGeo')
+    if bridgeFaceBlendshapeNode and bridgeFace:#if we have one, we're good to go
+	log.info('Face Bridge exists!') 
+    else:
+	newMesh = mc.duplicate(baseGeo)
+	i_target = cgmMeta.cgmObject(newMesh[0])
+	i_target.addAttr('cgmName','faceBridge',attrType='string',lock=True)
+	i_target.doName()
+	i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
+	p.bridgeFaceGeo = i_target.mNode
+	i_target.visibility = False
+	
+	#Blendshape	
+	bsNode = deformers.buildBlendShapeNode(p.bridgeMainGeo,[i_target.mNode],'tmp')
+    
+	i_bsNode = cgmMeta.cgmNode(bsNode)
+	i_bsNode.addAttr('cgmName','faceBridge',attrType='string',lock=True)    
+	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+	i_bsNode.doName()
+	p.bridgeFaceBlendshapeNode = i_bsNode.mNode
+	attributes.doSetAttr(i_bsNode.mNode,i_target.getShortName(),1)#Turn it on	
+	log.info('Face Bridge good!')
+	
+    return True
+    
 
 @r9General.Timer
 def doSkinBody(self):
@@ -526,8 +584,6 @@ def doSkinBody(self):
         #if not returnSkinJoints(self):
             #log.error("No skinJoints found")
 	    
-
-    
     l_skinJoints = []
     i_jntEyeLeft = False
     i_jntEyeRight = False
@@ -909,7 +965,10 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
             if unlock:
                 for c in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
                     cgmMeta.cgmAttr(i_c,c,lock=False,keyable=True,hidden=False)
-                
+		    
+		if i_c.hasAttr('radius'):
+		    cgmMeta.cgmAttr(i_c,'radius',value = 5, hidden = False, keyable = False)
+		    
             elif i_c.hasAttr('cgmName'):
                 #Special Stuff
                 if i_c.cgmName in ['arm','hand','head','face','eye','mouth']:
@@ -932,7 +991,7 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
                 if i_c.cgmName in ['upr_arm']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['tx','ty','tz'])	 		
                 #>>> tx
-                if i_c.cgmName in ['quad','hamstring','pelvis','sternum','shoulders','trapezius',
+                if i_c.cgmName in ['quad','hamstring','torsoMid','pelvis','sternum','shoulders','trapezius',
 		                   'lwr_leg','foreArm','lwr_arm','hand','neck',
 		                   'thumb_1', 'thumb_mid', 'thumb_2',
 		                   'index_1', 'index_mid', 'index_2',
@@ -983,11 +1042,14 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
                 if i_c.cgmName in ['trapezius','arm','hand']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sx'])                           
                 #>>>sy
-                if i_c.cgmName in ['ankleMeat','quad','hamstring','torsoMid','shoulders','arm','hand']:
+                if i_c.cgmName in ['ankleMeat','quad','hamstring','torsoMid','arm','hand']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sy'])            
                 #>>>sz
                 if i_c.cgmName in ['lwr_leg','hipMeat','trapezius']:
-                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sz'])     
+                    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sz']) 
+		    
+		if i_c.hasAttr('radius'):
+		    cgmMeta.cgmAttr(i_c,'radius',value = 0, hidden = True, keyable = False)
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
     mc.cycleCheck(e=False)
     log.warning("Cycle check turned off")
