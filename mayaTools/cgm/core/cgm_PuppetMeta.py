@@ -551,6 +551,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('objSetLeft',attrType = 'messageSimple',lock=True)
         self.addAttr('objSetRight',attrType = 'messageSimple',lock=True)
 	
+	#>>> Storage
+        self.addAttr('autoPickerWatchGroups',attrType = 'message',lock=True)#These groups will setup pickers for all sub groups of them	
 	
         self.doName()
 	
@@ -583,7 +585,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	l_bsBodyTargets = ['torsoTargets','fullBodyTargets',
 	                   'left_armTargets','right_armTargets','left_handTargets','right_handTargets',
 	                   'left_legTargets','right_legTargets']
-	
+	l_autoPickerWatchAttrs = ['left_earGeo','right_earGeo','left_eyeGeo','right_eyeGeo']
+	l_autoPickerWatchGroups = []
 	for attr in l_baseGroups + l_customGeoGroups+ l_bsTargetGroups + l_bsBodyTargets + l_bsFaceTargets + l_earGeoGroups + l_eyeGeoGroups:
 	    log.debug('On attr: %s'%attr)
 	    self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
@@ -648,9 +651,13 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		self.__dict__[Attr].doParent(self.i_bodyTargetsGroup)	    
 	    else:    
 		self.__dict__[Attr].doParent(self.i_masterNull)
+		
+	    if attr in l_autoPickerWatchAttrs:#append to our list to store
+		l_autoPickerWatchGroups.append(self.__dict__[Attr].mNode)
 
 	    attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
 	
+	self.autoPickerWatchGroups = l_autoPickerWatchGroups#store them
 	# Master Curve
 	#==================================================================
 	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
@@ -746,7 +753,30 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False"""		
 	
 	return True
+    
+    @r9General.Timer
+    def doUpdate_pickerGroups(self):
+	"""
+	Update the groups that are stored to self.autoPickerWatchGroups. By that, we mean
+	setup a condition node network for each child of that group
+	"""
+	pickerGroups = self.getMessage('autoPickerWatchGroups')
+	if not pickerGroups:
+	    log.warning("No autoPickerWatchGroups detected")
+	    return False
+	log.info( pickerGroups )
+	#nf.build_conditionNetworkFromGroup('group1',controlObject = 'settings')
+	i_settingsControl = self.masterControl.controlSettings
+	settingsControl = i_settingsControl.getShortName()
 	
+	log.info( i_settingsControl.mNode )
+	for i_grp in self.autoPickerWatchGroups:
+	    shortName = i_grp.getShortName()
+	    log.info(shortName)
+	    #Let's get basic info for a good attr name
+	    d = NameFactory.returnObjectGeneratedNameDict(shortName,ignore=['cgmTypeModifier','cgmType'])
+	    n = NameFactory.returnCombinedNameFromDict(d)
+	    nf.build_conditionNetworkFromGroup(shortName, chooseAttr = n, controlObject = settingsControl)
     
     @r9General.Timer
     def doUpdateBlendshapeNode(self,blendshapeAttr):
