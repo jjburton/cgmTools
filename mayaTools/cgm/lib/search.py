@@ -939,10 +939,12 @@ def returnObjectType(obj):
                     return 'isoparm'
             if '.ep[' in obj:
                 return 'editPoint'
-	    if returnAllChildrenObjects(obj):
+	    
+            buffer =  mc.objectType(obj)
+	    if buffer == 'transform' and returnAllChildrenObjects(obj):#if just a tranform with children, it's a group
 		return 'group'
-
-            return mc.objectType(obj)
+	    else:
+		return buffer
         return mc.objectType(objShapes[0])
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Joint Search stuff
