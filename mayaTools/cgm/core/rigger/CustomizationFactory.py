@@ -968,7 +968,7 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
 		    
 		if i_c.hasAttr('radius'):
 		    cgmMeta.cgmAttr(i_c,'radius',value = 5, hidden = False, keyable = False)
-		    
+		    i_c.drawStyle = 0
             elif i_c.hasAttr('cgmName'):
                 #Special Stuff
                 if i_c.cgmName in ['arm','hand','head','face','eye','mouth']:
@@ -992,7 +992,7 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['tx','ty','tz'])	 		
                 #>>> tx
                 if i_c.cgmName in ['quad','hamstring','torsoMid','pelvis','sternum','shoulders','trapezius',
-		                   'lwr_leg','foreArm','lwr_arm','hand','neck',
+		                   'foreArm','lwr_arm','hand','neck',
 		                   'thumb_1', 'thumb_mid', 'thumb_2',
 		                   'index_1', 'index_mid', 'index_2',
 		                   'middle_1', 'middle_mid', 'middle_2',
@@ -1032,24 +1032,26 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
                 if i_c.cgmName in ['asdf']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['rx'])
 		#> ry
-		if i_c.cgmName in ['forehead']:
+		if i_c.cgmName in ['forehead','noseBase']:
 		    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['ry'])
 		#> rz
-		if i_c.cgmName in ['forehead']:
+		if i_c.cgmName in ['forehead','noseBase']:
 		    attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['rz'])			    
                 #>>> Scales ========================================================
                 #>>>sx
-                if i_c.cgmName in ['trapezius','arm','hand']:
+                if i_c.cgmName in ['arm','hand']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sx'])                           
                 #>>>sy
                 if i_c.cgmName in ['ankleMeat','quad','hamstring','torsoMid','arm','hand']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sy'])            
                 #>>>sz
-                if i_c.cgmName in ['lwr_leg','hipMeat','trapezius']:
+                if i_c.cgmName in ['lwr_leg','hipMeat','lwr_arm']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sz']) 
 		    
 		if i_c.hasAttr('radius'):
-		    cgmMeta.cgmAttr(i_c,'radius',value = 0, hidden = True, keyable = False)
+		    cgmMeta.cgmAttr(i_c,'radius',value = 0, hidden = True, lock=True, keyable = False)
+		    i_c.drawStyle = 7#make it a square so we can hide it
+    
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
     mc.cycleCheck(e=False)
     log.warning("Cycle check turned off")
