@@ -45,6 +45,8 @@ from Red9.core import Red9_General as r9General
 from Red9.core import Red9_AnimationUtils as r9Anim
 from Red9.core import Red9_CoreUtils as r9Core
 from Red9.core import Red9_PoseSaver as r9Pose
+import Red9.startup.setup as r9Setup
+
 import Red9.packages.configobj as configobj
 
 #>>>======================================================================
@@ -55,12 +57,35 @@ log.setLevel(logging.INFO)
 #=========================================================================
 
 class go(r9Pose.PoseData):
+    def __init__(self, filterSettings=None):
+        super(r9Pose.PoseData, self).__init__()
+        self.poseDict={}
+        self.infoDict={}
+        self.skeletonDict={}
+        self.posePointCloudNodes=[]
+        self.mayaUpAxis=r9Setup.mayaUpAxis()
+        self._metaPose=False
+        self.metaRig=None        
+        self.thumbnailRes=[230,230]
+        
+        # make sure we have a settings object
+        if filterSettings:
+            if issubclass(type(filterSettings), r9Core.FilterNode_Settings):
+                self.settings=filterSettings
+                self._metaPose=self.settings.metaRig
+            else:
+                raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
+        else:
+            self.settings=r9Core.FilterNode_Settings()
+            self._metaPose=self.settings.metaRig
+    
+        self.settings.printSettings()
+        
         
     def _buildPoseDict(self, nodes):  
         '''
         Overload for storing blendshape attrs
         '''   
-        self.thumbnailRes=[230,230]
         
         for i,node in enumerate(nodes):
             key=r9Core.nodeNameStrip(node)
