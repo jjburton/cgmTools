@@ -754,7 +754,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False
 	
 	#>>> Blendshape nodes
-	if not self.getMessage('bridgeMainBlendshapeNode'):
+	if not deformers.returnObjectDeformers(baseBodyGeo[0],'blendShape'):
 	    log.warning("No body blendshape node. Aborting check.")
 	    return False
 	"""
