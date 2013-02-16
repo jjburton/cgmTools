@@ -36,7 +36,15 @@ from cgm.core.rigger import PuppetFactory as pFactory
 reload(pFactory)
 from cgm.core import cgm_Meta as cgmMeta
 reload(cgmMeta)
-from cgm.lib import (modules,attributes,search,curves)
+from cgm.core.classes import NodeFactory as nf
+reload(nf)
+from cgm.lib import (modules,
+                     distance,
+                     deformers,
+                     controlBuilder,
+                     attributes,
+                     search,
+                     curves)
 
 cgmModuleTypes = ['cgmModule','cgmLimb']
 ########################################################################
@@ -518,6 +526,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	self.addAttr('masterControl',attrType='messageSimple',lock=True)
 
 	#>>> Necessary attributes
+	#===============================================================
+	#> Curves and joints
         self.addAttr('controlCurves',attrType = 'message')
         self.addAttr('leftJoints',attrType = 'message',lock=True)
         self.addAttr('rightJoints',attrType = 'message',lock=True)	
@@ -525,22 +535,34 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('rightRoots',attrType = 'message',lock=True)
         self.addAttr('jointList',attrType = 'message',lock=True)
 	
-        self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)	
+	#>>> Geo =======================================================
+        self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)
+	#>>> Bridges
+        self.addAttr('bridgeMainGeo',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeFaceGeo',attrType = 'messageSimple',lock=True)	
+	self.addAttr('bridgeBodyGeo',attrType = 'messageSimple',lock=True)	
+	
+	#>>> Nodes =====================================================
         self.addAttr('bodyBlendshapeNodes',attrType = 'messageSimple',lock=True)
         self.addAttr('faceBlendshapeNodes',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeMainBlendshapeNode',attrType = 'messageSimple',lock=True)
+        self.addAttr('bridgeFaceBlendshapeNode',attrType = 'messageSimple',lock=True)
+	self.addAttr('bridgeBodyBlendshapeNode',attrType = 'messageSimple',lock=True)
 	
-        self.addAttr('skinCluster',attrType = 'messageSimple',lock=True)
+        #self.addAttr('skinCluster',attrType = 'messageSimple',lock=True)
 	
-	#>>> Controls
+	#>>> Controls ==================================================
         self.addAttr('controlsLeft',attrType = 'message',lock=True)
         self.addAttr('controlsRight',attrType = 'message',lock=True)
         self.addAttr('controlsCenter',attrType = 'message',lock=True)
 	
-	#>>> Object Sets
+	#>>> Object Sets ===============================================
         self.addAttr('objSetAll',attrType = 'messageSimple',lock=True)
         self.addAttr('objSetLeft',attrType = 'messageSimple',lock=True)
         self.addAttr('objSetRight',attrType = 'messageSimple',lock=True)
 	
+	#>>> Watch groups
+        self.addAttr('autoPickerWatchGroups',attrType = 'message',lock=True)#These groups will setup pickers for all sub groups of them	
 	
         self.doName()
 	
@@ -561,9 +583,22 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	log.debug("Master Null good...")
 	
 	# Groups
-	#======================================================================   
-	geoGroups = 'clothesGeo','hairGeo','bsGeo','baseGeo'
-	for attr in 'noTransform','geo','hairGeo','clothesGeo','baseGeo','bsGeo','faceTargets','bodyTargets':
+	#======================================================================
+	l_baseGroups = ['noTransform','geo','customGeo','hairGeo',
+	                'clothesGeo','baseGeo','bsGeo']
+	l_geoGroups = ['customGeo','bsGeo','baseGeo']
+	l_customGeoGroups = ['clothesGeo','hairGeo','earGeo','eyeballGeo','eyebrowGeo']
+	l_earGeoGroups = ['left_earGeo','right_earGeo']
+	l_eyeGeoGroups = ['left_eyeGeo','right_eyeGeo']	
+	l_bsTargetGroups = ['faceTargets','bodyTargets']
+	l_bsFaceTargets = ['mouthTargets','noseTargets','browTargets','fullFaceTargets']
+	l_bsBodyTargets = ['torsoTargets','fullBodyTargets',
+	                   'left_armTargets','right_armTargets','left_handTargets','right_handTargets',
+	                   'left_legTargets','right_legTargets']
+	l_autoPickerWatchAttrs = ['left_earGeo','right_earGeo','left_eyeGeo','right_eyeGeo']
+	l_autoPickerWatchGroups = []
+	for attr in l_baseGroups + l_customGeoGroups+ l_bsTargetGroups + l_bsBodyTargets + l_bsFaceTargets + l_earGeoGroups + l_eyeGeoGroups:
+	    log.debug('On attr: %s'%attr)
 	    self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
 	    grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
 	    Attr = 'i_' + attr+'Group'#Get a better attribute store string           
@@ -578,39 +613,93 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
 		self.__dict__[Attr].doName()
 		self.i_masterNull.connectChild(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
-		log.debug("Initialized as 'self.%s'"%(Attr))                    
-
+		log.debug("Initialized as 'self.%s'"%(Attr))         
+		
+	    #>>> Special data parsing to get things named how we want
+	    if 'left' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('left_')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmDirection','left')
+	    if 'right' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('right_')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmDirection','right')
+		
+	    if 'Targets' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('Targets')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmTypeModifier','targets',overideMessageCheck = True)
+		self.__dict__[Attr].doName()
+		
+	    if 'Geo' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
+		buffer = self.__dict__[Attr].cgmName
+		buffer = buffer.split('Geo')
+		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
+		self.__dict__[Attr].doStore('cgmTypeModifier','geo',overideMessageCheck = True)
+		self.__dict__[Attr].doName()
+		
 	    # Few Case things
 	    #==============            
 	    if attr == 'geo':
 		self.__dict__[Attr].doParent(self.i_noTransformGroup)
-	    elif attr in geoGroups:
-		self.__dict__[Attr].doParent(self.i_geoGroup)				
-	    elif attr in ['faceTargets','bodyTargets']:
+	    elif attr in l_geoGroups:
+		self.__dict__[Attr].doParent(self.i_geoGroup)	
+	    elif attr in l_customGeoGroups:
+		self.__dict__[Attr].doParent(self.i_customGeoGroup)
+	    elif attr in l_earGeoGroups:
+		self.__dict__[Attr].doParent(self.i_earGeoGroup)
+	    elif attr in l_eyeGeoGroups:
+		self.__dict__[Attr].doParent(self.i_eyeballGeoGroup)	    
+	    elif attr in l_bsTargetGroups:
 		self.__dict__[Attr].doParent(self.i_bsGeoGroup)
+	    elif attr in l_bsFaceTargets:
+		self.__dict__[Attr].doParent(self.i_faceTargetsGroup)
+	    elif attr in l_bsBodyTargets:
+		self.__dict__[Attr].doParent(self.i_bodyTargetsGroup)	    
 	    else:    
 		self.__dict__[Attr].doParent(self.i_masterNull)
+		
+	    if attr in l_autoPickerWatchAttrs:#append to our list to store
+		l_autoPickerWatchGroups.append(self.__dict__[Attr].mNode)
 
 	    attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
 	
+	self.autoPickerWatchGroups = l_autoPickerWatchGroups#store them
 	# Master Curve
 	#==================================================================
 	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
 	if mc.objExists( masterControl ):
 	    #If exists, initialize it
-	    pass
+	    self.i_masterControl = self.masterControl
+	    self.i_masterControl.mClass = 'cgmMasterControl'
 
 	else:#Make it
 	    log.debug('Creating masterControl')                                    
-	    self.i_masterControl = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',121))#Create and initialize
-	    self.i_masterControl.addAttr('mClass','cgmObject')
-	    self.i_masterControl.doStore('cgmName', self.mNode + '.cgmName')	
-	    self.masterControl = self.i_masterControl.mNode
-	    color =  modules.returnSettingsData('colorCenter',True)
-	    curves.setCurveColorByName( self.i_masterControl.mNode,color[0] )
+	    self.i_masterControl = cgmMasterControl(puppet = self)#Create and initialize
+	    #self.masterControl = self.i_masterControl.mNode
 	    
 	self.masterControl.parent = self.masterNull.mNode
 	self.masterControl.doName()
+	
+	# Vis setup
+	# Setup the vis network
+	#====================================================================
+	#self.i_masterControl.controlVis.addAttr('controls',attrType = 'bool',keyable = False, locked = True)
+	if not self.i_masterControl.hasAttr('controlVis') or not self.i_masterControl.getMessage('controlVis'):
+	    log.error("This is an old master control or the vis control has been deleted. rebuild")
+	else:
+	    iVis = self.i_masterControl.controlVis
+	    visControls = 'left','right','sub','main'
+	    visArg = [{'result':[iVis,'leftSubControls_out'],'drivers':[[iVis,'left'],[iVis,'subControls'],[iVis,'controls']]},
+		      {'result':[iVis,'rightSubControls_out'],'drivers':[[iVis,'right'],[iVis,'subControls'],[iVis,'controls']]},
+		      {'result':[iVis,'subControls_out'],'drivers':[[iVis,'subControls'],[iVis,'controls']]},		      
+		      {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
+		      {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
+		       ]
+	    nf.build_mdNetwork(visArg)
 	
         return True
         
@@ -626,6 +715,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    self.cgmName = name
             #self.doStore('cgmName',name,overideMessageCheck = True)
             self.verify()
+	    self.masterControl.rebuildControlCurve()
 	    
     def isCustomizable(self):
 	"""
@@ -658,13 +748,13 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False
 	
 	#Skincluster
-	skinCluster = self.getMessage('skinCluster')
-	if not skinCluster:
+	#skinCluster = self.getMessage('skinCluster')
+	if not deformers.returnObjectDeformers(baseBodyGeo[0],'skinCluster'):
 	    log.warning("No skinCluster. Aborting check.")
 	    return False
 	
 	#>>> Blendshape nodes
-	if not self.getMessage('bodyBlendshapeNodes'):
+	if not deformers.returnObjectDeformers(baseBodyGeo[0],'blendShape'):
 	    log.warning("No body blendshape node. Aborting check.")
 	    return False
 	"""
@@ -673,7 +763,30 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False"""		
 	
 	return True
+    
+    @r9General.Timer
+    def doUpdate_pickerGroups(self):
+	"""
+	Update the groups that are stored to self.autoPickerWatchGroups. By that, we mean
+	setup a condition node network for each child of that group
+	"""
+	pickerGroups = self.getMessage('autoPickerWatchGroups')
+	if not pickerGroups:
+	    log.warning("No autoPickerWatchGroups detected")
+	    return False
+	log.info( pickerGroups )
+	#nf.build_conditionNetworkFromGroup('group1',controlObject = 'settings')
+	i_settingsControl = self.masterControl.controlSettings
+	settingsControl = i_settingsControl.getShortName()
 	
+	log.info( i_settingsControl.mNode )
+	for i_grp in self.autoPickerWatchGroups:
+	    shortName = i_grp.getShortName()
+	    log.info(shortName)
+	    #Let's get basic info for a good attr name
+	    d = NameFactory.returnObjectGeneratedNameDict(shortName,ignore=['cgmTypeModifier','cgmType'])
+	    n = NameFactory.returnCombinedNameFromDict(d)
+	    nf.build_conditionNetworkFromGroup(shortName, chooseAttr = n, controlObject = settingsControl)
     
     @r9General.Timer
     def doUpdateBlendshapeNode(self,blendshapeAttr):
@@ -701,7 +814,6 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    return False	
 	
 	#See if we have a blendshape node
-	
     
 	bsNode = deformers.buildBlendShapeNode(baseGeo,bsTargetObjects,'tmp')
 	
@@ -709,8 +821,153 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	i_bsNode.addAttr('cgmName','body',attrType='string',lock=True)    
 	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
 	i_bsNode.doName()
-	p.bodyBlendshapeNodes = i_bsNode.mNode    
+	p.bodyBlendshapeNodes = i_bsNode.mNode  
+	
+class cgmMasterControl(cgmMeta.cgmObject):
+    """
+    Make a master control curve
+    """
+    def __init__(self,*args,**kws):
+        """Constructor"""				
+        #>>>Keyword args
+        super(cgmMasterControl, self).__init__(*args,**kws)
+	
+        log.debug(">>> cgmMasterControl.__init__")
+	if kws:log.info("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args)) 	
+        puppet = kws.pop('puppet',False)
+	
+        if puppet and not self.isReferenced():
+            log.info("Puppet provided!")
+            log.info(puppet.cgmName)
+            log.info(puppet.mNode)
+            self.doStore('cgmName',puppet.mNode+'.cgmName')
+            self.addAttr('puppet',attrType = 'messageSimple')
+            self.connectParent(puppet, 'masterControl','puppet') 
+	    
+        if not self.isReferenced():   
+            if not self.verify(*args,**kws):
+                raise StandardError,"Failed!"	
+	
+    @r9General.Timer	
+    def verify(self,*args,**kws):
+	#Check for shapes, if not, build
+	self.color =  modules.returnSettingsData('colorMaster',True)
+
+	#>>> Attributes
+	if kws and 'name' in kws.keys():
+	    self.addAttr('cgmName', kws.get('name'), attrType = 'string')
+	    
+	self.addAttr('cgmType','controlMaster',attrType = 'string')
+	self.addAttr('cgmType','controlMaster',attrType = 'string')
+	self.addAttr('axisAim',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = False, hidden=True)
+	self.addAttr('axisUp',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = False, hidden=True)
+	self.addAttr('axisOut',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=0, keyable = False, hidden=True)
+	self.addAttr('setRO',attrType = 'enum', enumName= 'xyz:yzx:zxy:xzy:yxz:zyx',initialValue=0, keyable = True, hidden=False)
+	attributes.doConnectAttr('%s.setRO'%self.mNode,'%s.rotateOrder'%self.mNode,True)
+
+	self.addAttr('controlVis', attrType = 'messageSimple',lock=True)
+	self.addAttr('visControl', attrType = 'bool',keyable = False,initialValue= 1)
+	
+	self.addAttr('controlSettings', attrType = 'messageSimple',lock=True)
+	self.addAttr('settingsControl', attrType = 'bool',keyable = False,initialValue= 1)
+	
+	#Connect and Lock the scale stuff
+	attributes.doConnectAttr(('%s.scaleY'%self.mNode),('%s.scaleX'%self.mNode),True)
+	attributes.doConnectAttr(('%s.scaleY'%self.mNode),('%s.scaleZ'%self.mNode),True)
+	cgmMeta.cgmAttr(self,'scaleX',lock=True,hidden=True)
+	cgmMeta.cgmAttr(self,'scaleZ',lock=True,hidden=True)
+	yAttr = cgmMeta.cgmAttr(self,'scaleY')
+	yAttr.p_nameAlias = 'masterScale'
+	
+	#=====================================================================
+	#>>> Curves!
+	#=====================================================================
+	#>>> Master curves
+	if not self.getShapes() or len(self.getShapes())<3:
+	    log.info("Need to build shapes")
+	    self.rebuildControlCurve(**kws)
+	    
+	#======================
+	#>>> Sub controls
+	visControl = attributes.returnMessageObject(self.mNode,'controlVis')
+	if not mc.objExists( visControl ):
+	    log.info('Creating visControl')
+	    buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 135, controls = ['controlVisibility'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+	    i_c = cgmMeta.cgmObject(buffer.get('controlVisibility'))
+	    i_c.addAttr('mClass','cgmObject')
+	    i_c.doName()	
+	    curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color
+	    self.controlVis = i_c.mNode #Link it
+	    
+	    attributes.doConnectAttr(('%s.visControl'%self.mNode),('%s.v'%i_c.mNode),True)
+	
+	    #Vis control attrs
+	    self.controlVis.addAttr('controls', attrType = 'bool',keyable = False,initialValue= 1)
+	    self.controlVis.addAttr('subControls', attrType = 'bool',keyable = False,initialValue= 1)
+	    self.controlVis.addAttr('skeleton', attrType = 'bool',keyable = False,initialValue= 1)
+	    self.controlVis.addAttr('geo', attrType = 'bool',keyable = False,initialValue= 1)
+	    
+	    #>>> Settings Control
+	    settingsControl = attributes.returnMessageObject(self.mNode,'controlSettings')
+	    if not mc.objExists( settingsControl ):
+		log.info('Creating settingsControl')
+		buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 225, controls = ['controlSettings'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+		i_c = cgmMeta.cgmObject(buffer.get('controlSettings'))
+		i_c.addAttr('mClass','cgmObject')
+		i_c.doName()	
+		curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color	    
+		self.controlSettings = i_c.mNode #Link it	
+		
+		attributes.doConnectAttr(('%s.settingsControl'%self.mNode),('%s.v'%i_c.mNode),True)
+	
+
+	self.doName()
+	return True
     
+    @r9General.Timer
+    def rebuildControlCurve(self, size = None,font = None,**kws):
+	"""
+	Rebuild the master control curve
+	"""
+	log.debug('>>> rebuildControlCurve')
+	shapes = self.getShapes()
+	
+	#>>> Figure out the control size 	
+	if size == None:#
+	    if shapes:
+		absSize =  distance.returnAbsoluteSizeCurve(self.mNode)
+		size = max(absSize)		
+	    else:size = 125
+	#>>> Figure out font	
+	if font == None:#
+	    if kws and 'font' in kws.keys():font = kws.get('font')		
+	    else:font = 'arial'
+	#>>> Delete shapes
+	if shapes:
+	    for s in shapes:mc.delete(s)	
+		
+	#>>> Build the new
+	i_o = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',size))#Create and initialize
+	curves.setCurveColorByName( i_o.mNode,self.color[0] )
+	curves.setCurveColorByName( i_o.getShapes()[1],self.color[1] )
+	
+	#>>> Build the text curve if cgmName exists
+	if self.hasAttr('cgmName'):
+	    rootShapes = i_o.getShapes()#Get the shapes
+	    nameScaleBuffer = distance.returnAbsoluteSizeCurve(rootShapes[1])#Get the scale
+	    nameScale = max(nameScaleBuffer) * .8#Get the new scale
+	    masterText = curves.createTextCurveObject(self.cgmName,size=nameScale,font=font)
+	    curves.setCurveColorByName(masterText,self.color[0])#Set the color
+	    mc.setAttr((masterText+'.rx'), -90)#Rotate the curve
+	    curves.parentShapeInPlace(self.mNode,masterText)#Shape parent it
+	    mc.delete(masterText)
+	    
+	#>>>Shape parent it
+	curves.parentShapeInPlace(self.mNode,i_o.mNode)
+	mc.delete(i_o.mNode)
+	
+	self.doName()    
 class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
     def __init__(self,node = None, name = 'buffer',initializeOnly = False,*args,**kws):

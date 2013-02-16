@@ -36,12 +36,17 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (lists,
                      search,
+                     curves,#tmp
+                     modules,#tmp
+                     distance,#tmp
+                     controlBuilder,
                      attributes,
                      dictionary,
                      rigging,
                      settings,
                      guiFactory)
 
+      
 class go(object):
     """ 
     Control Factory for 
@@ -94,6 +99,17 @@ class go(object):
 	i_mirror = r9Anim.MirrorHierarchy(self.i_object.mNode,)
 	i_mirror.mirrorPairData(self.i_object.mNode,self.mirrorObject,'')
 	
+    def doPushToMirrorObject2(self,method='Anim'):
+        if not self.isMirrorable():
+            return False
+        log.info(self.i_object.mNode)
+        log.info(self.mirrorObject)
+	
+        i_mirrorSystem = r9Anim.MirrorHierarchy([self.i_object.mNode,self.mirrorObject])
+	#i_mirrorSystem=r9Anim.MirrorHierarchy()
+	i_mirrorSystem.makeSymmetrical(self.i_object.mNode,self.mirrorObject)
+        
+
     def doPushToMirrorObject(self,method='Anim'):
         if not self.isMirrorable():
             return False
@@ -113,7 +129,6 @@ class go(object):
 
         i_mirrorSystem.objs = [self.i_object.mNode,self.mirrorObject]#Overload as it was erroring out
    
-
     
 class  OLDSTUFF():
     def verifyAimControls(self, keyable = False, hidden=True, locked = False):

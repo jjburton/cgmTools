@@ -262,7 +262,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    
 	    #Easy carry for flag handling - until implemented
 	    #==============  
-	    if keyable or hidden:
+	    if keyable is not None or hidden is not None:
 		cgmAttr(self, attrName = attr, keyable=keyable,hidden = hidden)
 	    if lock is not None:
 		mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	
@@ -313,8 +313,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	return attributes.returnUserAttrsToDict(self.mNode) or {}
     
     def getNameDict(self):
-	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}    
-		
+	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}  
+    
+    
     def getTransform(self):
 	"""Find the transform of the object"""
 	buffer = mc.ls(self.mNode, type = 'transform') or False
@@ -358,7 +359,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
             NameFactory.doNameObject(self.mNode,sceneUnique)
 	    self.update()
 	
-	    
+    def getChildrenNodes(self, walk=True, mAttrs=None):
+	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""
+	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)	    
     #=========================================================================                   
     # Attribute Functions
     #=========================================================================                   
@@ -516,11 +519,11 @@ class cgmObject(cgmNode):
     def getAllParents(self):
         return search.returnAllParents(self.mNode) or False
     
-    def getChildren(self):
-        return search.returnChildrenObjects(self.mNode) or []
+    def getChildren(self,fullPath=False):
+        return search.returnChildrenObjects(self.mNode,fullPath) or []
     
-    def getAllChildren(self):
-        return search.returnAllChildrenObjects(self.mNode) or []    
+    def getAllChildren(self,fullPath = False):
+        return search.returnAllChildrenObjects(self.mNode,fullPath) or []    
     
     def getShapes(self):
         return mc.listRelatives(self.mNode,shapes=True) or []
@@ -566,6 +569,23 @@ class cgmObject(cgmNode):
         assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
         rigging.copyPivot(self.mNode,sourceObject)
 
+
+    def doCopyTransform(self,sourceObject):
+        """ Copy the pivot from a source object to the current instanced maya object. """
+        try:
+            #If we have an Object Factory instance, link it
+            sourceObject.mNode
+            sourceObject = sourceObject.mNode
+            log.debug("Source is an instance")                        
+        except:
+            #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+            assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
+
+        assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
+	objRot = mc.xform (sourceObject, q=True, ws=True, ro=True)
+	self.doCopyPivot(sourceObject)
+	self.rotateAxis = objRot
+	
     def doGroup(self,maintain=False):
         """
         Grouping function for a maya instanced object.
@@ -1809,7 +1829,10 @@ class cgmAttr(object):
     
     #>>> Property - p_hidden ================== 
     def isHidden(self):
-	return mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, hidden=True)
+	hidden = not mc.getAttr(self.p_combinedName,channelBox=True)
+	if self.p_keyable:
+	    hidden = mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, hidden=True)	
+	return hidden
     def doHidden(self,arg = True):
         """ 
         Set hidden state of an attribute
@@ -1860,7 +1883,7 @@ class cgmAttr(object):
         Keyword arguments:
         arg(bool)
         """         
-	KeyableTypes = ['long','float','bool','enum','double3']  
+	KeyableTypes = ['long','float','bool','double','enum','double3','doubleAngle','doubleLinear']  
         assert type(arg) is bool, "doKeyable arg must be a bool!" 
 	
 	if self.attrType not in KeyableTypes:
@@ -1920,11 +1943,9 @@ class cgmAttr(object):
         assert type(arg) is str or unicode,"Must pass string argument into doAlias"                
         if arg:
             try:
-                if arg != self.p_nameAlias:
-                    return mc.aliasAttr(arg,self.p_combinedName)
-                else:
-                    log.info("'%s.%s' already has that alias!"%(self.obj.mNode,self.attr,arg))
-                    
+		if arg != self.p_nameAlias:
+		    return mc.aliasAttr(arg,self.p_combinedName)
+		else:log.debug("'%s.%s' already has that alias!"%(self.obj.getShortName(),self.attr))
             except:
                 log.warning("'%s.%s' failed to set alias of '%s'!"%(self.obj.mNode,self.attr,arg))
                     
@@ -1949,9 +1970,8 @@ class cgmAttr(object):
         if arg:
             try:
                 mc.addAttr(self.p_combinedName,edit = True, niceName = arg)
-
             except:
-                log.error("'%s.%s' failed to set nice name of '%s'!"%(self.obj.mNode,self.attr,arg))
+                log.error("'%s.%s' failed to set nice name of '%s'!"%(self.obj.mNode,self.p_nameLong,arg))
                     
     p_nameNice = property (getNiceName,doNiceName)
     
