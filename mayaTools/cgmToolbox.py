@@ -321,6 +321,10 @@ def loadMorpheusMaker( *a ):
     a = mMaker.go()
     
 #Zoo stuff
+def loadZooToolbox( *a ):
+    import zooToolbox
+    zooToolbox.ToolboxWindow()
+
 def loadSkinPropagation( *a ):
     from zooPyMaya import refPropagation
     refPropagation.propagateWeightChangesToModel_confirm()
@@ -410,7 +414,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                        ('Simple cgmGUI', " Base cgmGUI",
                         loadCGMSimpleGUI),
                        ('cgm.MorpheusMaker', " Morpheus maker tool",
-                        loadMorpheusMaker),                       
+                        loadMorpheusMaker),
+                        ('zooToolbox', " Open zooToolbox Window",
+                        loadZooToolbox),                       
                        ))
 
               )
