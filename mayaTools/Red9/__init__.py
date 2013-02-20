@@ -13,15 +13,13 @@
     add it to the system path UNLESS the Red9 folder is already on a Maya script path.
     
     import sys
-    sys.path.append('P:\Red9_Pipeline\Red9_Release1.26')
+    sys.path.append('P:\Red9_Pipeline\Red9_Release1.28')
     
     import Red9
     Red9.start()
     
     ===============================================================================
 '''
-
-
 
 
 #Initialize the RED9_META_REGISTRY which is used by the MetaClass baseclass to 
@@ -41,7 +39,6 @@ def start(Menu=True):
     #Import the core, not this is on LowPriority to make sure it 
     #happens after the main setups have finished above
     cmds.evalDeferred("import Red9.core",lp=True)
-
 
 
 

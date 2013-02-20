@@ -2474,7 +2474,8 @@ class MirrorHierarchy(object):
             else:
                 mClass.addAttr(self.mirrorAxis, axis)
                 mClass.__setattr__(self.mirrorAxis,axis) 
-    
+        del(mClass) #cleanup
+        
     def deleteMirrorIDs(self,node):
         '''
         Remove the given node from the MirrorSystems
@@ -2492,7 +2493,8 @@ class MirrorHierarchy(object):
             mClass.__delattr__(self.mirrorAxis)
         except:
             pass
-             
+        del(mClass)
+        
     def getNodes(self):
         '''
         Get the list of nodes to start processing
@@ -2538,6 +2540,8 @@ class MirrorHierarchy(object):
         self.mirrorDict={'Centre':{},'Left':{},'Right':{}}
         if not nodes:
             nodes=self.getNodes()
+        if not nodes:
+            raise StandardError('no mirrorMarkers found in node list/hierarchy')
         for node in nodes:
             try:
                 side=self.getMirrorSide(node)
@@ -2565,18 +2569,24 @@ class MirrorHierarchy(object):
         self.getMirrorSets()
         if not short:
             print '\nCenter MirrorLists ====================================================='
-            for i,data in self.mirrorDict['Centre'].items(): print '%s > %s' % (i,data['node'])
+            for i,data in sorted(self.mirrorDict['Centre'].items()): 
+                print '%s > %s' % (i,data['node'])
             print '\nRight MirrorLists ======================================================'
-            for i,data in self.mirrorDict['Right'].items(): print '%s > %s' % (i,data['node'])
+            for i,data in sorted(self.mirrorDict['Right'].items()): 
+                print '%s > %s' % (i,data['node'])
             print '\nLeft MirrorLists ======================================================='
-            for i,data in self.mirrorDict['Left'].items(): print '%s > %s' % (i,data['node'])
+            for i,data in sorted(self.mirrorDict['Left'].items()): 
+                print '%s > %s' % (i,data['node'])
         else:
             print '\nCenter MirrorLists ====================================================='
-            for i,data in self.mirrorDict['Centre'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
+            for i,data in sorted(self.mirrorDict['Centre'].items()): 
+                print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
             print '\nRight MirrorLists ======================================================'
-            for i,data in self.mirrorDict['Right'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
+            for i,data in sorted(self.mirrorDict['Right'].items()): 
+                print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
             print '\nLeft MirrorLists ======================================================='
-            for i,data in self.mirrorDict['Left'].items(): print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
+            for i,data in sorted(self.mirrorDict['Left'].items()): 
+                print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
                           
     def switchPairData(self,objA,objB,mode='Anim'):
         '''
@@ -2742,7 +2752,7 @@ class MirrorSetup(object):
     def _showUI(self):
                  
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title="MirrorSetup", s=False, widthHeight=(260,320))
+        window = cmds.window(self.win, title="MirrorSetup", s=False, widthHeight=(260,410))
         cmds.menuBarLayout()
         cmds.menu(l="VimeoHelp")
         cmds.menuItem(l="Open Vimeo Help File",\
@@ -2792,6 +2802,7 @@ class MirrorSetup(object):
         cmds.button(label='Delete from Selected', bgc=r9Setup.red9ButtonBGC(1),
                      command=lambda *args:(self.__deleteMarkers()))
         cmds.setParent('..')  
+        cmds.separator(h=15, style='in')
         cmds.checkBox('mirrorSaveLoadHierarchy',l='hierarchy', v=False)
         cmds.rowColumnLayout(nc=2,columnWidth=[(1,135), (2,135)])
         cmds.button(label='Save MirrorConfigs', bgc=r9Setup.red9ButtonBGC(1),
@@ -2824,6 +2835,7 @@ class MirrorSetup(object):
             raise StandardError('mirror Data not setup on this node')
         if axis:
             self.__uicb_default(True)
+            cmds.checkBox('default',e=True, v=False) 
             for a in axis:
                 if a=='translateX':  cmds.checkBox('translateX',e=True,v=True)
                 elif a=='translateY': cmds.checkBox('translateY',e=True,v=True)
@@ -2918,14 +2930,14 @@ class MirrorSetup(object):
             log.info('MirrorMarkers added to : %s' % r9Core.nodeNameStrip(nodes[0]))
     
     def __saveMirrorSetups(self):
-        filepath=cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;",okc='Save')[0]
+        filepath=cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;",okc='Save',cap='Save MirrorSetups')[0]
         self.mirrorClass.nodes=cmds.ls(sl=True)
         if cmds.checkBox('mirrorSaveLoadHierarchy',q=True,v=True):
             self.mirrorClass.settings.hierarchy=True
         self.mirrorClass.saveMirrorSetups(filepath=filepath)
 
     def __loadMirrorSetups(self):
-        filepath=cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;",okc='Load')[0]
+        filepath=cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;",okc='Load',cap='Load MirrorSetups')[0]
         if cmds.checkBox('mirrorSaveLoadHierarchy',q=True,v=True):
             self.mirrorClass.nodes=cmds.ls(sl=True,l=True)
             self.mirrorClass.loadMirrorSetups(filepath=filepath)

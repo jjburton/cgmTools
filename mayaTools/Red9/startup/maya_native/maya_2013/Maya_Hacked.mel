@@ -30,7 +30,7 @@ global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryP
 //HACKED ===================================================================
 	menuItem -radialPosition "SW" 
 			 -parent $parent 
-			 -label "Red9.InspectFunction" 
+			 -label "Red9:InspectFunction" 
 			 -command "handleScriptEditorAction \"copy\";red9_InspectCode";	 
 //HACKED_END ===============================================================	
   
@@ -342,7 +342,7 @@ buildCurvesMenu (string $editor, string $animEditor, string $parentMenu, string 
 		
 		
 //HACKED ===================================================================
-	menuItem -label "Red9.AddNoise"
+	menuItem -label "Red9:AddNoise"
 		-annotation "Add Noise to Curves"	
 		-sourceType "python"			
 		-c "import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()"

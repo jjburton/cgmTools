@@ -349,7 +349,7 @@ class FilterNode_UI(object):
         self.cbNodeTypes=[] #checkBox store for nodeTypes
         
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win , title="Node Searcher", widthHeight=(400, 380))
+        window = cmds.window(self.win , title="Node Searcher", widthHeight=(400, 400))
         cmds.menuBarLayout()
         cmds.menu(l="VimeoHelp")
         cmds.menuItem(l="Open Vimeo Help File",\
@@ -785,7 +785,7 @@ class FilterNode(object):
         return self.lsSearchNodeTypes('parentConstraint')
       
     @staticmethod  
-    def lsAnimCurves(nodes=None):
+    def lsAnimCurves(nodes=None,safe=False):
         '''
         Search for animationCurves. If no nodes are passed in to process then this 
         is a simple one liner, BUT if you pass in a selection of nodes to process 
@@ -795,7 +795,8 @@ class FilterNode(object):
         Note that this has no filter for excluding curves of type 
         eg: setDrivens etc will need post filtering from the returns in many cases
         @param nodes: optional given node list, return animData in the nodes history 
-        
+        @param safe: optional 'bool', only return animCurves which are safe to modify, this 
+                     will strip out SetDrivens, Clips curves etc..        
         '''
         animCurves=[]
         treeDepth=1
@@ -803,7 +804,7 @@ class FilterNode(object):
             animCurves=cmds.ls(type='animCurve',r=True)
         else:
             try:
-                #fucking AnimLayers!! if present them we up the depth of the history search
+                #fucking AnimLayers!! if present then we up the depth of the history search
                 #in-order to walk over the animBlendNodes to the actual animCurves. 
                 if r9Anim.getAnimLayersFromGivenNodes(nodes):
                     treeDepth=3
@@ -813,7 +814,30 @@ class FilterNode(object):
                                            if cmds.nodeType(curve,i=True)[0]=='animCurve']
             except:
                 pass
-        return list(set(animCurves))
+        if not safe:
+            return list(set(animCurves))
+        else:
+            safeCurves=list(animCurves)
+            for animCurve in animCurves:
+                #ignore referenced animCurves
+                if cmds.referenceQuery(animCurve,inr=True): 
+                    safeCurves.remove(animCurve)
+                    continue 
+                #ignore setDrivens : animCurve have input connections
+                if cmds.listConnections(animCurve,s=True,d=False):
+                    safeCurves.remove(animCurve)
+                    continue
+                #ignore animClip curve data : animCurve is part of a TraxClip
+                if cmds.nodeType(cmds.listConnections(animCurve))=='clipLibrary': 
+                    safeCurves.remove(animCurve)
+                    continue 
+                #cmds.nodeType(cmds.listConnections(animCurve))=='animBlendInOut':
+                    #safeCurves.remove(animCurve)
+                    #continue 
+                
+                #if curve.keyTimeValue.isLocked(): return False
+            return safeCurves
+                
             
             
     # Attribute Management Block
@@ -1188,14 +1212,14 @@ class FilterNode(object):
 
 #Node Matching -------------------------------------------------------------------------
             
-def matchNodeLists(nodeListA, nodeListB, matchMethod='StripPrefix'):
+def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
     '''
     Matches 2 given NODE LISTS by node name via various methods. 
     
     @keyword matchMethod:
-        BaseMatch: =  Match each element by exact name (shortName)
+        base: =  Match each element by exact name (shortName)
         such that Spine==Spine or REF1:Spine==REF2:Spine
-        StripPrefix: = Match each element by a relaxed naming convention
+        stripPrefix: = Match each element by a relaxed naming convention
         allowing for prefixes such that RigX_Spine == Spine
     @rtype: list of tuple pairs
     @return: matched pairs of lists for processing [(a1,b2),[(a2,b2)]
@@ -1215,7 +1239,7 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='StripPrefix'):
             strippedB = nodeNameStrip(nodeB)
             
             #BaseMatch is a direct compare ONLY
-            if matchMethod == 'Base':
+            if matchMethod == 'base':
                 if strippedA.upper() == strippedB.upper():
                     infoPrint += '\nMatch Method : %s : %s == %s' % \
                             (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
@@ -1224,7 +1248,7 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='StripPrefix'):
                     break
                 
             #Compare allowing for prefixing which is stripped off
-            elif matchMethod == 'StripPrefix':
+            elif matchMethod == 'stripPrefix':
                 if strippedA.upper().endswith(strippedB.upper()) \
                     or strippedB.upper().endswith(strippedA.upper()):
                     infoPrint += '\nMatch Method : %s : %s == %s' % \
@@ -1305,7 +1329,7 @@ class MatchedNodeInputs(object):
     @return: list of matched pairs [(a1,b2),[(a2,b2)]
     '''
     
-    def __init__(self, nodes=None, filterSettings=None, matchMethod='StripPrefix'):
+    def __init__(self, nodes=None, filterSettings=None, matchMethod='stripPrefix'):
            
         self.MatchedPairs=[]    #Main Result Tuple of Pairs
         
@@ -1380,7 +1404,7 @@ class LockChannels(object):
         def _showUI(self):
             
             if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-            window = cmds.window(self.win, title="LockChannels", s=False, widthHeight=(260,300))
+            window = cmds.window(self.win, title="LockChannels", s=False, widthHeight=(260,410))
             cmds.menuBarLayout()
             cmds.menu(l="VimeoHelp")
             cmds.menuItem(l="Open Vimeo Help File",\
@@ -1818,27 +1842,11 @@ class TimeOffset(object):
         Shift Animation curves. If nodes are fed in to process then we do
         a number of aggressive searches to find all linked animation data
         '''
-        animCurves=FilterNode.lsAnimCurves(nodes)
+        safeCurves=FilterNode.lsAnimCurves(nodes,safe=True)
 
-        if animCurves:  
-            safeCurves=list(animCurves)
+        if safeCurves:  
             log.debug('AnimCurve Offset = %s ============================' % offset)
-            #log.debug(''.join([('offset: %s\n' % curve) for curve in animCurves]))
-            for animCurve in animCurves:
-                #ignore setDrivens : animCurve have input connections
-                if cmds.listConnections(animCurve,s=True,d=False):
-                    safeCurves.remove(animCurve)
-                    #log.debug('CurveRemoved : %s' % animCurve)
-                    continue
-                #ignore animClip data : animCurve is part of a TraxClip
-                if cmds.nodeType(cmds.listConnections(animCurve))=='clipLibrary': 
-                    safeCurves.remove(animCurve)
-                    #log.debug('CurveRemoved : %s' % animCurve)
-                    continue 
-                #if cmds.nodeType(cmds.listConnections(animCurve))=='animBlendInOut':
-                #    safeCurves.remove(animCurve)
-                #    #log.debug('CurveRemoved : %s' % animCurve)
-                #    continue 
+            log.debug(''.join([('offset: %s\n' % curve) for curve in safeCurves]))
             try:
                 cmds.keyframe(safeCurves,edit=True,r=True,timeChange=offset)
                 log.debug(''.join([('offset: %s\n' % curve) for curve in safeCurves]))

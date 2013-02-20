@@ -23,7 +23,28 @@ import os
 import Red9.core.Red9_Meta as r9Meta
 import Red9.startup.setup as r9Setup
 
-
+class Test_MetaRegistryCalls():
+    
+    def test_registerMClassNodeMapping(self):
+        '''
+        test the registry functions for nodeTypes
+        '''
+        cmds.file(new=True,f=True)
+        r9Meta.MetaClass(name='standardNetworkMetaNode')
+        assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()]==['network']   
+         
+        #register transforms to the NodeTypes
+        r9Meta.registerMClassNodeMapping(nodeTypes='transform')
+        assert r9Meta.getMClassNodeTypes()==['network', 'transform']
+        new=r9Meta.MetaClass(name='newTransformMetaNode', nodeType='transform')
+        assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()]==['network','transform']  
+        
+        #reset the NodeTypes
+        r9Meta.resetMClassNodeTypes()
+        assert r9Meta.getMClassNodeTypes()==['network']
+        assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()]==['network'] 
+        
+    
 class Test_MetaClass():
     
     def setup(self):

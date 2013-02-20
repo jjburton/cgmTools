@@ -15,6 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
+__buildVersionID__=1.282 
 
 import sys
 import os
@@ -131,7 +132,7 @@ def menuSetup():
     cmds.menuItem('redNineVimeoItem',l="Red9_Vimeo Channel",ann="Open Red9Vimeo Channel",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="Red9.setup.red9_vimeo()")
-    cmds.menuItem(l="Red9_Contact_Me",c='r9Setup.red9ContactInfo()')    
+    cmds.menuItem(l="Red9_Details",c='Red9.setup.red9ContactInfo()')    
     cmds.menuItem(divider=True) 
     cmds.menuItem('redNineDebuggerItem',l='Red9 Debugger',sm=True)
     cmds.menuItem('redNineDebugItem',l="systems: DEBUG",ann="Turn all the logging to Debug",
@@ -147,7 +148,7 @@ def addToMayaMenus():
         if not cmds.menu(mainFileMenu,q=True,ni=True):
             mel.eval('buildFileMenu()')
         cmds.menuItem(divider=True)
-        cmds.menuItem('redNineOpenFolderItem',l="Red9.OpenSceneFolder",ann="Open the folder containing the current Maya Scene",
+        cmds.menuItem('redNineOpenFolderItem',l="Red9:OpenSceneFolder",ann="Open the folder containing the current Maya Scene",
                       p='mainFileMenu', echoCommand=True,
                       c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
     except:
@@ -165,7 +166,7 @@ def red9ButtonBGC(colour):
         return [0.5, 0.5, 0.5]
    
 def red9ContactInfo():
-    cmds.confirmDialog(title='Red9_StudioPack_Info', 
+    cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(), 
                        message=("Author: Mark Jackson\r\r"+
                                 "Technical Animation Director\r\r"+
                                 "Contact me at rednineinfo@gmail.com for more information\r\r"+
@@ -213,7 +214,14 @@ def red9_vimeo():
     import Red9.core.Red9_General as r9General #lazy load
     r9General.os_OpenFile('https://vimeo.com/user9491246')
       
-    
+
+def red9_getVersion():
+    return __buildVersionID__
+
+def red9_getAuthor():
+    return __author__
+
+  
 # BOOT FUNCTS - Add and Build --------------------------------------------------------------
     
 def addScriptsPath(path):

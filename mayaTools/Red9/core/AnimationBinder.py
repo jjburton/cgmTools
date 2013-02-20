@@ -3,9 +3,9 @@
 
     Autodesk MasterClass 2011 - Live Animation Binding
     --------------------------------------------------
-    Author : Mark Jackson : Eurocom Entertainment
+    Author : Mark Jackson :
     Email  : markj3d@gmail.com
-    Blog   : http://markj3d.blogspot.com
+    Blog   : http://markj3d.blogspot.com 
     
     This is designed to run on Maya2011 / 2012 with native PyMel support
     If you're interested in running this under previous versions of Maya 
@@ -418,22 +418,26 @@ class AnimBinderUI(object):
     
     @staticmethod
     def _contactDetails(type='email'):
-        if type == 'email':
+        if type=='email':
             cmds.confirmDialog(title='Contact', \
                            message=("Autodesk MasterClass - Live Animation Binding\n" + 
-                                    "Mark Jackson : Eurocom Entertainment\n" + 
+                                    "Mark Jackson\n" + 
                                     "____________________________________________\n\n" + 
                                     "Contact: markj3d@gmail.com"), \
                            button='thankyou', messageAlign='center')  
-        elif type == 'blog':
+        elif type=='blog':
             import webbrowser
             webbrowser.open_new("http://markj3d.blogspot.com/")
+        elif type=='vimeo':
+            import webbrowser
+            webbrowser.open_new("https://vimeo.com/31046583")
  
     def _UI(self):	
         if cmds.window(self.win, exists=True):cmds.deleteUI(self.win, window=True)
         window = cmds.window(self.win, title=self.win, menuBar=True, sizeable=True,width=250)
         
         cmds.menu(label='Help')
+        cmds.menuItem(label='Watch MasterClass Video', c=lambda x:self._contactDetails(type='vimeo'))
         cmds.menuItem(label='Contact', c=lambda x:self._contactDetails(type='email'))
         cmds.menuItem(label='Blog' , c=lambda x:self._contactDetails(type='blog'))
 

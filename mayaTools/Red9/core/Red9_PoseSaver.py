@@ -226,7 +226,7 @@ class PoseData(object):
             raise StandardError('No FilePath given to read the pose from')
         
     @r9General.Timer 
-    def _matchNodesToPoseData(self, nodes, matchMethod='name'):
+    def _matchNodesToPoseData(self, nodes, matchMethod='stripPrefix'):
         '''
         Main filter to extract matching data pairs prior to processing
         return : tuple such that :  (poseDict[key], destinationNode)
@@ -235,8 +235,10 @@ class PoseData(object):
                 be passed directly in to the matchNodeLists call so we can deal with prefix etc?
         '''
         matchedPairs=[]
-        if matchMethod=='name':
-            matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes)
+        print 'matchMethod',matchMethod
+        if matchMethod=='stripPrefix' or matchMethod=='base':
+            print 'matchMethodStandard',matchMethod
+            matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes, matchMethod=matchMethod)
         if matchMethod=='index':
             for i, node in enumerate(nodes):
                 for key in self.poseDict.keys():
@@ -380,7 +382,7 @@ class PoseData(object):
         
         
     @r9General.Timer
-    def PoseLoad(self, nodes, filepath, useFilter=True, matchMethod='name', \
+    def PoseLoad(self, nodes, filepath, useFilter=True, matchMethod='base', \
                  relativePose=False, relativeRots='projected',relativeTrans='projected'):
         '''
         Entry point for the generic PoseLoad

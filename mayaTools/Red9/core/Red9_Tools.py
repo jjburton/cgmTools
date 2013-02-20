@@ -18,6 +18,7 @@ import maya.cmds as cmds
 from functools import partial
 import time
 import getpass
+import os
 
 import Red9.startup.setup as r9Setup
 import Red9_Meta as r9Meta
@@ -48,7 +49,10 @@ class SceneReviewerUI(object):
         
         reportData=self.SceneReviewer.getReportData()  
         allowEdit=False
+        sceneName=None
         date=reportData['date']
+        if reportData.has_key('sceneName'):
+            sceneName=reportData['sceneName']
         author=None
         
         if not reportData['author']:
@@ -65,16 +69,19 @@ class SceneReviewerUI(object):
             author=reportData['author']
         if not date:
             date=time.ctime()
+        if not sceneName:
+            sceneName=self.getSceneName()
             
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title=self.win, s=False, widthHeight=(260,300))
-  
+        window = cmds.window(self.win, title=self.win, s=True, widthHeight=(260,300))
+        cmds.scrollLayout('reviewScrollLayout',rc=lambda *args:self.resizeTextScrollers())
         cmds.columnLayout(adjustableColumn=True,columnAttach=('both',5))
         cmds.textFieldGrp('author',label='Author', ed=False, text=author)#, tcc=partial(self.updateInternalDict))
         cmds.textFieldGrp('date', label='Date', ed=False, text=date)#, tcc=partial(self.updateInternalDict))
+        cmds.textFieldGrp('sceneName', label='SceneName', ed=False, text=sceneName)
         cmds.separator(h=15,style='none')
         cmds.text(label='Comment')
-        cmds.scrollField('comment', text=reportData['comment'], ed=allowEdit, h=200,
+        cmds.scrollField('comment', text=reportData['comment'], ed=allowEdit, h=200, wordWrap=False,
                          kpc=partial(self.updateInternalDict),
                          cc=partial(self.updateInternalDict))  
         cmds.button(label='New Comment',bgc=r9Setup.red9ButtonBGC(1),c=partial(self.addNewComment))
@@ -82,7 +89,7 @@ class SceneReviewerUI(object):
         cmds.text(label='History')
         cmds.scrollField('history', editable=False, en=True, wordWrap=False, h=200,text=reportData['history'])
         cmds.separator(h=15,style='none')  
-        cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,200),(2,200)])
+        cmds.rowColumnLayout('SceneNodeActivatorRC',numberOfColumns=2,columnWidth=[(1,200),(2,200)])
         cmds.button('setReviewActive',label='Activate Live Review',bgc=r9Setup.red9ButtonBGC(1),c=lambda x:self._setReviewStatus('active'))
         cmds.button('setReviewInActive',label='Disable Live Review',bgc=r9Setup.red9ButtonBGC(1),c=lambda x:self._setReviewStatus('inactive'))
         cmds.setParent('..')
@@ -95,11 +102,15 @@ class SceneReviewerUI(object):
             self._setReviewStatus('active')
         else:
             self._setReviewStatus('inactive')
+    
+    def getSceneName(self):
+        return os.path.basename(cmds.file(q=True,sn=True))
                 
     def updateInternalDict(self,*args):
         if cmds.scrollField('comment',q=True, ed=True):
             self.SceneReviewer.storedDataDict['author'] = cmds.textFieldGrp('author',q=True, text=True)
         self.SceneReviewer.storedDataDict['date']   = cmds.textFieldGrp('date',q=True, text=True)
+        self.SceneReviewer.storedDataDict['sceneName']= cmds.textFieldGrp('sceneName',q=True, text=True)
         self.SceneReviewer.storedDataDict['comment']= cmds.scrollField('comment',q=True, text=True)
         print self.SceneReviewer.storedDataDict
         self.SceneReviewer.storeReportData()
@@ -108,6 +119,7 @@ class SceneReviewerUI(object):
         self.SceneReviewer.pushCommentToHistory()
         cmds.textFieldGrp('author',e=True, text=getpass.getuser())
         cmds.textFieldGrp('date', e=True, text=time.ctime())
+        cmds.textFieldGrp('sceneName',e=True, text=self.getSceneName())
         cmds.scrollField('comment',e=True, ed=True, text='')
         cmds.scrollField('history',e=True, text=self.SceneReviewer.storedDataDict['history'])
         self.updateInternalDict()
@@ -124,6 +136,14 @@ class SceneReviewerUI(object):
             cmds.button('setReviewActive', e=True, bgc=r9Setup.red9ButtonBGC(1))
             cmds.button('setReviewInActive',e=True,bgc=r9Setup.red9ButtonBGC(2))
             
+    def resizeTextScrollers(self):  
+        width=cmds.scrollLayout('reviewScrollLayout',q=True,w=True)-20
+        height=cmds.scrollLayout('reviewScrollLayout',q=True,h=True)
+        cmds.scrollField('comment',e=True,h=(height/2)-120)
+        cmds.scrollField('comment',e=True,w=width)     
+        cmds.scrollField('history',e=True,h=(height/2)-120)
+        cmds.scrollField('history',e=True,w=width) 
+        cmds.rowColumnLayout('SceneNodeActivatorRC', e=True, columnWidth=[(1,(width/2)-1),(2,(width/2)-1)])
     
 class SceneReviewer(object):
     
@@ -137,7 +157,7 @@ class SceneReviewer(object):
         self.dataRepository=r9Meta.MetaClass('time1')
         self.dataRepository.addAttr('sceneReport',attrType="string")
         self.sceneScriptNode="sceneReviewData"
-        self.storedDataDict={'author':"",'date':"",'comment':"",'history':""}
+        self.storedDataDict={'author':"",'date':"",'sceneName':"",'comment':"",'history':""}
         self.getReportData()
         self.__deleteImportedScriptNodes()
     
@@ -152,6 +172,8 @@ class SceneReviewer(object):
     def getReportData(self):
         if issubclass(type(self.dataRepository.sceneReport),dict):
             self.storedDataDict=self.dataRepository.sceneReport
+            if not self.storedDataDict.has_key('sceneName'):
+                self.storedDataDict['sceneName']=""
             return self.dataRepository.sceneReport
         else:
             return self.storedDataDict
@@ -160,9 +182,10 @@ class SceneReviewer(object):
         self.dataRepository.sceneReport=self.storedDataDict
     
     def pushCommentToHistory(self):
-        self.storedDataDict['history']+='author:%s\rdate:%s\rcomment:\r%s\r------------------------------------------------\r' \
+        self.storedDataDict['history']+='author:\t%s\rdate:\t%s\rsceneName:\t%s\rcomment:\r%s\r------------------------------------------------\r' \
                     % (self.storedDataDict['author'],
                        self.storedDataDict['date'],
+                       self.storedDataDict['sceneName'],
                        self.storedDataDict['comment'])
         self.storeReportData()
         
@@ -282,3 +305,14 @@ class RecordAttrs(object):
             cmds.showWindow('MouseMoCap')
             cmds.window('MouseMoCap',e=True,widthHeight=(260, 180))
                
+
+def monitorAttrs():
+    cmds.headsUpDisplay(
+                        section = 0,
+                        block=8,
+                        blockSize="small",
+                        label ="Blends:",
+                        labelFontSize ="large",
+                        dataFontSize="large",
+                        command ="BlendCounter ",
+                        atr= ("HUDBlendCounter"))

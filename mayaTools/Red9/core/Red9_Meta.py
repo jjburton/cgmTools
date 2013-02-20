@@ -93,15 +93,20 @@ def registerMClassNodeMapping(nodeTypes='network'):
         plugin but that plugin isn't currently loaded, this now stops that type being 
         generically added by any custom boot sequence.
     '''
-    global RED9_META_NODETYPE_REGISTERY
-    MayaRegisteredNodes=cmds.allNodeTypes()
-    
-    RED9_META_NODETYPE_REGISTERY=['network']
-    if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
-    for nType in nodeTypes:
-        if not nType in RED9_META_NODETYPE_REGISTERY and nType in MayaRegisteredNodes:
-            log.debug('nodeType : %s : added to NODETYPE_REGISTRY')
-            RED9_META_NODETYPE_REGISTERY.append(nType)
+    global RED9_META_NODETYPE_REGISTERY    
+    RED9_META_NODETYPE_REGISTERY=['network']   
+    try:
+        MayaRegisteredNodes=cmds.allNodeTypes()
+        if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
+        for nType in nodeTypes:
+            if not nType in RED9_META_NODETYPE_REGISTERY and nType in MayaRegisteredNodes:
+                log.debug('nodeType : "%s" : added to NODETYPE_REGISTRY' % nType)
+                RED9_META_NODETYPE_REGISTERY.append(nType)
+            #else:
+            #    raise StandardError('nType: "%s" is an invalid Maya NodeType')
+    except:
+        log.warning('registerMClassNodeMapping failure - seems to have issues in Maya2009')
+        #raise StandardError('registerMClassNodeMapping failure - seems to have issues in Maya2009')
   
 def printMetaTypeRegistry():
     for t in RED9_META_NODETYPE_REGISTERY:print t
@@ -112,6 +117,9 @@ def getMClassNodeTypes():
     '''    
     return RED9_META_NODETYPE_REGISTERY 
 
+def resetMClassNodeTypes():
+    global RED9_META_NODETYPE_REGISTERY    
+    RED9_META_NODETYPE_REGISTERY=['network']
 
 #------------------------------------------------------------------------------   
     
@@ -339,12 +347,15 @@ class MClassNodeUI():
         else:
             cmds.textScrollList('slMetaNodeList',font="fixedWidthFont", allowMultiSelection=True)
         cmds.popupMenu('r9MetaNodeUI_Popup')
+        cmds.menuItem(label='Select Children', ann='NOTE doubleClick on the UI also runs the selectChildren call"',
+                      command=partial(self.doubleClick))
+        cmds.menuItem(divider=True)
         cmds.menuItem(label='SortBy : ClassName', command=partial(self.fillScroll,'byClass'))
         cmds.menuItem(label='SortBy : NodeName', command=partial(self.fillScroll,'byName'))
-
         cmds.menuItem(label='Graph Selected Networks', command=partial(self.graphNetwork))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Class : All Registered', command=partial(self.fillScroll,'byName'))
+        cmds.menuItem(divider=True)
         for mCls in sorted(RED9_META_REGISTERY):
             cmds.menuItem(label='Class : %s' % mCls, command=partial(self.fillScroll,'byName', mCls))
         
@@ -367,7 +378,6 @@ class MClassNodeUI():
             mel.eval('hyperGraphWindow( "", "DG")')
         else:
             mel.eval('NodeEditorWindow;NodeEditorGraphUpDownstream;')
-            #mel.eval('hyperGraphWindow( "", "DG")')
         
     def selectCmd(self,*args):
         '''
@@ -391,12 +401,16 @@ class MClassNodeUI():
         if self.closeOnSelect:
             cmds.deleteUI('MetaClassFinder',window=True)
         
-    def doubleClick(self):
+    def doubleClick(self,*args):
         '''
         run the generic meta.getChildren call and select the results
         '''
         cmds.select(cl=True)
-        cmds.select(self.mNodes[cmds.textScrollList('slMetaNodeList',q=True,sii=True)[0]-1].getChildren(walk=True))
+        nodes=[]
+        for i in cmds.textScrollList('slMetaNodeList',q=True,sii=True):
+            nodes.extend(self.mNodes[i-1].getChildren(walk=True))
+        cmds.select(nodes)
+        #cmds.select(self.mNodes[cmds.textScrollList('slMetaNodeList',q=True,sii=True)[0]-1].getChildren(walk=True))
         
     def fillScroll(self, sortBy=None, mClassToShow=None, *args):
         cmds.textScrollList('slMetaNodeList', edit=True, ra=True)
@@ -945,6 +959,8 @@ class MetaClass(object):
     def delete(self):
         '''
         delete the mNode and this class instance
+        FIXME: Looks like there's a bug in the Network node in that deletion of a node
+        will also delete all other connected networks...BIG DEAL. AD are looking into this for us
         '''
         cmds.delete(self.mNode)
         del(self)
