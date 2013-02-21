@@ -1019,12 +1019,7 @@ class cgmObjectSet(cgmNode):
         
         log.warning("'%s' has no data"%(self.mNode))  
         return False
-                  
-    
-
-
-        
-
+                    
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmOptionVar - class wrapper for optionVariables in Maya
@@ -2546,6 +2541,27 @@ class cgmAttr(object):
                               outgoingConnections = True, keepSourceConnections = False,
                               copyAttrSettings = True, connectSourceToTarget = False)
         self.doDelete()
+
+#=========================================================================      
+# R9 Stuff - We force the update on the Red9 internal registry  
+#=========================================================================  
+def getMetaNodesInitializeOnly(types = ['network'],mTypes = ['cgmMorpheusMakerNetwork']):
+    """
+    Meant to be a faster get command than Mark's for nodes we only want initializeOnly mode
+    """
+    checkList = []
+    returnList = []
+    for t in types:
+	buffer = mc.ls(type=t) or []
+	if buffer:checkList.extend(buffer)
+    for o in buffer:
+	i_o = False
+	try:i_o = cgmNode(o,initializeOnly = True)
+	except:log.warning("'%s' can't take initializeOnly kw"%o)
+	if i_o.hasAttr and i_o.mClass in mTypes:
+	    returnList.append(i_o)
+    return returnList
+
 	
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
