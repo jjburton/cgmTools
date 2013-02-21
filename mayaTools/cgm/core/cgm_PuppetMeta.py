@@ -502,14 +502,17 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         log.debug(">>> cgmMorpheusMakerNetwork.__init__")
 	if kws:log.debug("kws: %s"%str(kws))
 	if args:log.debug("args: %s"%str(args)) 
-				
         #>>>Keyword args
         super(cgmMorpheusMakerNetwork, self).__init__(*args,**kws)
-   
-        if not self.isReferenced():   
-            if not self.verify():
-                raise StandardError,"Failed!"
-	    
+	if not 'initializeOnly' in kws.keys():initializeOnly = False
+	else:initializeOnly = kws.get('initializeOnly')
+	log.debug("initOnly: '%s'"%initializeOnly)
+	
+        if self.isReferenced() or initializeOnly: 
+	    log.info("'%s' initialized!"%self.mNode)
+	elif not self.verify():
+	    raise StandardError,"Failed!"
+
     def __bindData__(self):
         pass
     
@@ -701,6 +704,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		       ]
 	    nf.build_mdNetwork(visArg)
 	
+	log.info("Verified: '%s'"%self.cgmName)
         return True
         
     def doChangeName(self,name = ''):
