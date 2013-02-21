@@ -449,7 +449,7 @@ def doConstraintObjectGroup(targets,obj = False,constraintTypes = [],group = Fal
             targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True)                        
         if c == 'orient':
             constraint = mc.orientConstraint(targets,objGroup, maintainOffset=True)
-            #targetWeights = mc.orientConstraint(constraint,q=True, weightAliasList=True)                                    
+            targetWeights = mc.orientConstraint(constraint,q=True, weightAliasList=True)                                    
         if c == 'scale':
             constraint = mc.scaleConstraint(targets,objGroup, maintainOffset=True)
             targetWeights = mc.scaleConstraint(constraint,q=True, weightAliasList=True)                                    
