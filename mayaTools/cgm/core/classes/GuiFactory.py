@@ -671,6 +671,39 @@ def doToggleMenuShowState(stateToggle, listOfItems):
             warning('%s%s%s' %('No idea what ', item, ' is'))
     return newState
 
+def doToggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers,forceInt = False):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    This connects to a cgm rework of tabs in maya gui's. Mainly to be used with a form layout is needed
+    with tabs. Tabs and form layouts don't work well together. This is a work around
+
+    ARGUMENTS:
+    optionSelection(string) - this should point to the variable holding a (int) value
+    optionList(list) - the option selection must be in the optionList
+    OptionVarName(string)
+    ListOfContainers(list) -- list of containers
+    forceInt -- forces the optionVar to set
+    
+    RETURNS:
+    locatorName(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    visOn = OptionList.index(OptionSelection)
+    if forceInt:
+        mc.optionVar(iv=(OptionVarName,int(visOn)))
+    else:
+        mc.optionVar(sv=(OptionVarName,OptionSelection))
+
+    for cnt,Container in enumerate(ListOfContainers):
+        if cnt == visOn:
+            Container(e=True,vis=True)
+            #doToggleMenuShowState(Container,True)
+        else:
+            Container(e=True,vis=False)
+            #doToggleMenuShowState(Container,False)
+        cnt+=1
+	
 def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
