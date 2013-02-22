@@ -312,13 +312,13 @@ def testMorpheus( *a ):
     
 def loadMorpheusMaker( *a ):
     try:
-	from morpheusRig_v2.tools import MorpheusMaker as mMaker
+	from morpheusRig_v2.core.tools import MorpheusMaker as mMaker
     except:
 	log.warning("You appear to be missing the Morpheus pack. Patience...:)")
 	return False
     
     reload(mMaker)    
-    a = mMaker.go()
+    mMaker.go()
     
 #Zoo stuff
 def loadZooToolbox( *a ):
