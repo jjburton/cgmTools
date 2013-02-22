@@ -198,7 +198,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
         self.doStore('cgmName',name,True)
         
-        if attributes.doGetAttr(self.mNode,'mClass') != 'cgmPuppet':
+        if attributes.doGetAttr(self.mNode,'mClass') not in [ 'cgmPuppet','cgmMorpheusPuppet']:
             log.error("'%s' is not a puppet. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
             return False
         self.doName() #See if it's named properly. Need to loop back after scene stuff is querying properly
@@ -396,6 +396,12 @@ class cgmPuppet(cgmMeta.cgmNode):
         return True
     def getGeo(self):
         return pFactory.getGeo(self)
+class cgmMorpheusPuppet(cgmPuppet):
+    pass
+    """
+    def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
+	cgmPuppet.__init__(self, node = node, name = name, initializeOnly = initializeOnly, *args,**kws)
+        """
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           

@@ -190,7 +190,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    
 	    
     def getMessage(self,attr,longNames = True):
-	if mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
+	if mc.objExists('%s.%s' % (self.mNode,attr)) and mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
 	    return attributes.returnMessageData(self.mNode,attr,longNames)
 	return False
 	
@@ -2558,7 +2558,7 @@ def getMetaNodesInitializeOnly(types = ['network'],mTypes = ['cgmMorpheusMakerNe
 	i_o = False
 	try:i_o = cgmNode(o,initializeOnly = True)
 	except:log.warning("'%s' can't take initializeOnly kw"%o)
-	if i_o.hasAttr and i_o.mClass in mTypes:
+	if i_o and i_o.hasAttr('mClass') and i_o.mClass in mTypes:
 	    returnList.append(i_o)
     return returnList
 
