@@ -61,6 +61,7 @@ class MorpheusBase_Test():
         
     def sizeTest(self):
         spine = cgmPM.cgmLimb(self.Morpheus.getMessage('moduleChildren')[0],handles = 4)
+        spine.templateNull.curveDegree = 2
         log.info(self.Morpheus.i_geoGroup.mNode)
         log.info(self.Morpheus.i_geoGroup)        
         self.Morpheus.i_geoGroup.doAddChild('Morphy_GRP')
@@ -1078,7 +1079,7 @@ class cgmMeta_Test():
         log.info('>'*3 + " Connect Modules...")   
         self.Puppet.connectModule(Module1)
          
-        assert Module1.moduleParent[0].mNode == self.Puppet.mNode
+        assert Module1.modulePuppet[0].mNode == self.Puppet.mNode
         assert Module1.getMessage('modulePuppet')[0] == self.Puppet.mNode,"'%s' != '%s'"%(Module1.getMessage('modulePuppet'),self.Puppet.mNode)
 
 
