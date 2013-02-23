@@ -106,7 +106,7 @@ def isSized(self):
     return False
     
     
-def doSize(self,sizeMode='normal',geo = []):
+def doSize(self,sizeMode='normal',geo = [],posList = []):
     """
     Size a module
     1) Determine what points we need to gather
@@ -117,6 +117,7 @@ def doSize(self,sizeMode='normal',geo = []):
     @ sizeMode
     'all' - pick every handle position
     'normal' - first/last, if child, will use last position of parent as first
+    'manual' - provide a pos list to size from
     
     TODO:
     Add option for other modes
@@ -142,11 +143,29 @@ def doSize(self,sizeMode='normal',geo = []):
     log.debug("Names: %s"%names)
     log.debug("Puppet: %s"%self.getMessage('modulePuppet'))
     log.debug("Geo: %s"%geo)
+    log.debug("sizeMode: %s"%sizeMode)
+    
     i_module = self #Bridge holder for our module class to go into our sizer class
     
     #Variables
-    #==============      
-    if sizeMode == 'normal':
+    #============== 
+    if sizeMode == 'manual':#To allow for a pos list to be input
+        if not posList:
+            log.error("Must have posList arg with 'manual' sizeMode!")
+            return False
+        
+        if len(posList) < handles:
+            log.warning("Creating curve to get enough points")                
+            curve = curves.curveFromPosList(posList)
+            mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
+            posList = curves.returnCVsPosList(curve)#Get the pos of the cv's
+            mc.delete(curve) 
+            
+        self.i_module.templateNull.__setattr__('templateStarterData',posList,lock=True)
+        log.info("'%s' manually sized!"%self.i_module.getShortName())
+        return True
+            
+    elif sizeMode == 'normal':
         if names > 1:
             namesToCreate = names[0],names[-1]
         else:
@@ -185,7 +204,7 @@ def doSize(self,sizeMode='normal',geo = []):
                 log.warning("Creating curve to get enough points")                
                 curve = curves.curveFromPosList(self.returnList)
                 mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
-                self.returnList = curves.returnCVsPosList('curve1')#Get the pos of the cv's
+                self.returnList = curves.returnCVsPosList(curve)#Get the pos of the cv's
                 mc.delete(curve)
 
             #Store info
@@ -239,7 +258,7 @@ def doSetParentModule(self,moduleParent,force = False):
         log.warning("'%s' lacks an mClass attr"%module.mNode)	    
         return False
 
-    if moduleParent.mClass not in ['cgmModule']:
+    if moduleParent.mClass not in ['cgmModule','cgmLimb']:
         log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
         return False
 
