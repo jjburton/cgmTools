@@ -413,9 +413,12 @@ def doMakeLimbTemplate(self):
     
     #>> Store objects
     #=============================      
-    self.m.templateNull.connectChild(i_crv.mNode,'curve','owner')
-    self.m.templateNull.connectChild(i_rootControl.mNode,'root','owner')
-    self.m.templateNull.connectChildren(templHandleList,'controlObjects','owner')
+    #self.m.templateNull.connectChild(i_crv.mNode,'curve','owner')
+    #self.m.templateNull.connectChild(i_rootControl.mNode,'root','owner')
+    #self.m.templateNull.connectChildren(templHandleList,'controlObjects','owner')
+    self.m.templateNull.curve = i_crv.mNode
+    self.m.templateNull.root = i_rootControl.mNode
+    self.m.templateNull.controlObjects = templHandleList
     
     self.i_rootControl = i_rootControl#link to carry
 
@@ -591,6 +594,12 @@ def doParentControlObjects(self):
     
     constraintGroups = constraints.doLimbSegmentListParentConstraint(self.m.templateNull.getMessage('controlObjects',False))    
     
+    
+    for i_obj in self.i_controlObjects:
+         i_parent = cgmMeta.cgmObject(i_obj.parent)
+         i_parent.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+         i_obj.addAttr('owner',i_parent.mNode,attrType = 'messageSimple',lock=True)
+         
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Parenting constrainging parts
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
