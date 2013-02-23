@@ -60,8 +60,6 @@ class cgmPuppet(cgmMeta.cgmNode):
         #>>>Keyword args
         puppet = kws.pop('puppet',None)
 
-        start = time.clock()
-
         #Need a simple return of
         puppets = pFactory.simplePuppetReturn()
 
@@ -89,26 +87,6 @@ class cgmPuppet(cgmMeta.cgmNode):
                             name = attributes.doGetAttr(p,'cgmName')
                             break
 
-        """
-        if puppet == None:#If we still don't have a puppet
-            if args and args[0]:
-                log.info("Checking args")
-                if mc.objExists(args[0]):
-                    ##If we're here, there's a node named our master null.
-                    ##We need to get the network from that.
-                    log.info("Trying to find network from '%s'"%args[0])
-                    tmp = r9Meta.MetaClass(args[0])
-                    if attributes.doGetAttr(tmp.mNode,'mClass') == 'cgmPuppet':#If it's a puppet network
-                        puppet = args[0]
-                    else:
-                        puppet = tmp.puppet.mNode#If its a root
-                    name = tmp.cgmName
-                else:
-                    log.info("Not Puppet object found, creating '%s'"%args[0])
-                    puppet = None
-                    name = args[0]   
-                    """
-
         if not name:
             log.warning("No puppet name found")
             name = search.returnRandomName()  
@@ -129,9 +107,6 @@ class cgmPuppet(cgmMeta.cgmNode):
             if not self.verify(name):
                 #log.critical("'%s' failed to verify!"%name)
                 raise StandardError,"'%s' failed to verify!"%name
-
-        log.info("'%s' Checks out!"%name)
-        log.info('Time taken =  %0.3f' % (time.clock()-start))
 
 
     #====================================================================================
@@ -328,6 +303,12 @@ class cgmPuppet(cgmMeta.cgmNode):
         Create and connect a new module
         
         moduleType(string) - type of module to create
+	
+	p = cgmPM.cgmPuppet(name='Morpheus')
+	p.addModule(mClass = 'cgmLimb',mType = 'torso')
+	p.addModule(mClass = 'cgmLimb',mType = 'neck', moduleParent = 'spine_part')
+	p.addModule(mClass = 'cgmLimb',mType = 'head', moduleParent = 'neck_part')
+	p.addModule(mClass = 'cgmLimb',mType = 'arm',direction = 'left', moduleParent = 'spine_part')
         """   
         if mClass == 'cgmModule':
             tmpModule = cgmModule(**kws)   
@@ -387,15 +368,23 @@ class cgmPuppet(cgmMeta.cgmNode):
 
             buffer.append(module.mNode)
             del self.moduleChildren
-            self.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
-            module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
+            self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)#Connect
+            #module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
 
         #module.parent = self.i_partsGroup.mNode
         module.doParent(self.i_partsGroup.mNode)
 
         return True
+    
     def getGeo(self):
         return pFactory.getGeo(self)
+    
+    def getModules(self):
+	"""
+	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+	"""
+	return pFactory.getOrderedModules(self)
+    
 class cgmMorpheusPuppet(cgmPuppet):
     pass
     """
@@ -533,6 +522,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	
 	self.addAttr('masterNull',attrType='messageSimple',lock=True)
 	self.addAttr('masterControl',attrType='messageSimple',lock=True)
+	
+	self.addAttr('mPuppet',attrType='messageSimple',lock=True)
+	
 
 	#>>> Necessary attributes
 	#===============================================================
@@ -981,8 +973,8 @@ class cgmMasterControl(cgmMeta.cgmObject):
 class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
     def __init__(self,node = None, name = 'buffer',initializeOnly = False,*args,**kws):
-        log.info(">>> cgmModuleBufferNode.__init__")
-        if kws:log.info("kws: %s"%kws)    
+        log.debug(">>> cgmModuleBufferNode.__init__")
+        if kws:log.debug("kws: %s"%kws)    
         
         """Constructor"""
         module = kws.get('module') or False
@@ -1113,9 +1105,9 @@ class cgmModule(cgmMeta.cgmObject):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        log.info(">>> cgmModule.__init__")
-        if kws:log.info("kws: %s"%str(kws))         
-        if args:log.info("args: %s"%str(args))            
+        log.debug(">>> cgmModule.__init__")
+        if kws:log.debug("kws: %s"%str(kws))         
+        if args:log.debug("args: %s"%str(args))            
         
         start = time.clock()
 
@@ -1154,7 +1146,7 @@ class cgmModule(cgmMeta.cgmObject):
 
         #>>> Initialization Procedure ==================   
         if self.isReferenced() or self.kw_initializeOnly:
-            log.info("'%s' Initializing only..."%self.kw_name)
+            log.debug("'%s' Initializing only..."%self.kw_name)
             if not self.initialize():
                 log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.kw_name)
                 return          
@@ -1163,14 +1155,14 @@ class cgmModule(cgmMeta.cgmObject):
                 log.critical("'%s' failed to verify!"%self.kw_name)
                 return  
 
-        log.info("'%s' Checks out!"%self.getShortName())
-        log.info('Time taken =  %0.3f' % (time.clock()-start))
+        log.debug("'%s' Checks out!"%self.getShortName())
+        log.debug('Time taken =  %0.3f' % (time.clock()-start))
 
 
     def __bindData__(self,**kws):        
         #Variables
         #==============   
-        log.info("In bind data")
+        log.debug("In bind data")
         #self.addAttr('mClass', initialValue='cgmModule',lock=True) 
         #self.addAttr('cgmType',value = 'module',lock=True)
 
@@ -1193,10 +1185,10 @@ class cgmModule(cgmMeta.cgmObject):
                 try:
                     Attr = 'i_' + attr+'Null'#Get a better attribute store string   
                     buffer = self.getMessage(attr)[0]
-                    log.info(Attr)
-                    log.info(buffer)
+                    log.debug(Attr)
+                    log.debug(buffer)
                     self.__dict__[Attr] = r9Meta.MetaClass( buffer )
-                    log.info("'%s' initialized as self.%s"%(buffer))
+                    log.debug("'%s' initialized as self.%s"%(buffer))
                 except:    
                     log.error("'%s' null failed. Please verify puppet."%attr)                    
                     return False
@@ -1207,11 +1199,14 @@ class cgmModule(cgmMeta.cgmObject):
                     Attr = 'i_' + attr#Get a better attribute store string
                     buffer = self.getMessage(attr)[0]                    
                     self.__dict__[Attr] = r9Meta.MetaClass( buffer)
-                    log.info("'%s' initialized as self.%s"%(buffer))  
+                    log.debug("'%s' initialized as self.%s"%(buffer))  
                 except:    
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
-
+		
+	if self.kw_moduleParent:
+	    log.warning("Can't set moduleParent in initialize mode")
+	    
         return True
 
 
@@ -1238,10 +1233,10 @@ class cgmModule(cgmMeta.cgmObject):
         #==============  
         for k in self.kw_callNameTags.keys():
             if self.kw_callNameTags.get(k):
-                log.info(k + " : " + str(self.kw_callNameTags.get(k)))                
+                log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
                 self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-                log.info(str(self.getNameDict()))
-                log.info(self.__dict__[k])
+                log.debug(str(self.getNameDict()))
+                log.debug(self.__dict__[k])
             #elif k in self.parentTagDict.keys():
                 #   self.store(k,'%s.%s'%(self.msgModuleParent.value,k))
         self.doName()        
@@ -1251,7 +1246,7 @@ class cgmModule(cgmMeta.cgmObject):
         self.addAttr('moduleType',initialValue = 'segment',lock=True)
 
         self.addAttr('moduleParent',attrType='message')#Changed to message for now till Mark decides if we can use single
-        self.addAttr('modulePuppet',attrType='messageSimple')
+        self.addAttr('modulePuppet',attrType='message')
         self.addAttr('moduleChildren',attrType='message')
 
         stateDict = {'templateState':0,'rigState':0,'skeletonState':0} #Initial dict
@@ -1268,24 +1263,24 @@ class cgmModule(cgmMeta.cgmObject):
         #Initialization
         #==============      
         for attr in moduleNulls_toMake:
-            log.info(attr)
+            log.debug(attr)
             grp = attributes.returnMessageObject(self.mNode,attr+'Null')# Find the group
             Attr = 'i_' + attr+'Null'#Get a better attribute store string           
             if mc.objExists( grp ):
                 #If exists, initialize it
                 try:     
                     self.__dict__[Attr]  = r9Meta.MetaClass(grp)#Initialize if exists  
-                    log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                    log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
                 except:
                     log.error("'%s' group failed. Please verify puppet."%attr)                    
                     return False   
 
             else:#Make it
-                log.info('Creating %s'%attr)                                    
+                log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
                 self.connectChild(self.__dict__[Attr].mNode, attr+'Null','module') #Connect the child to the holder                
                 self.__dict__[Attr].addAttr('cgmType',attr+'Null',lock=True)
-                log.info("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
 
             self.__dict__[Attr].doParent(self.mNode)
             self.__dict__[Attr].doName()
@@ -1293,39 +1288,39 @@ class cgmModule(cgmMeta.cgmObject):
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
         """    
         if not mc.objExists( attributes.returnMessageObject(self.mNode,'settings') ):
-            log.info('Creating settings')                                    
+            log.debug('Creating settings')                                    
             self.i_settings = cgmInfoNode(puppet = self, infoType = 'settings')#Create and initialize
         else:
-            log.info('settings infoNode exists. linking....')                        
+            log.debug('settings infoNode exists. linking....')                        
             self.i_settings = self.settings #Linking to instance for faster processing. Good idea?   
         """
         for attr in moduleBuffers_toMake:
-            log.info(attr)
+            log.debug(attr)
             obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
             Attr = 'i_' + attr#Get a better attribute store string           
             if mc.objExists( obj ):
                 #If exists, initialize it
                 try:     
                     self.__dict__[Attr]  = r9Meta.MetaClass(obj)#Initialize if exists  
-                    log.info("'%s' initialized to 'self.%s'"%(obj,Attr))                    
+                    log.debug("'%s' initialized to 'self.%s'"%(obj,Attr))                    
                 except:
                     log.error("'%s' null failed. Please verify modules."%attr)                    
                     return False               
             else:#Make it
-                log.info('Creating %s'%attr)                                    
+                log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmModuleBufferNode(module = self, bufferType = attr, overideMessageCheck = True)#Create and initialize
                 #self.connectChild(self.__dict__[Attr].mNode, attr,'module') #Connect the child to the holder                
                 #self.__dict__[Attr].addAttr('cgmName',attr+'Null',lock=True)
-                log.info("'%s' initialized to 'self.%s'"%(attr,Attr))    
+                log.debug("'%s' initialized to 'self.%s'"%(attr,Attr))    
                 
         #Attrbute checking
         #=================
         for attr in sorted(rigNullAttrs_toMake.keys()):#See table just above cgmModule
-            log.info("Checking '%s' on rig Null"%attr)
+            log.debug("Checking '%s' on rig Null"%attr)
             self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
 
         for attr in sorted(templateNullAttrs_toMake.keys()):#See table just above cgmModule
-            log.info("Checking '%s' on template Null"%attr)	
+            log.debug("Checking '%s' on template Null"%attr)	
             if attr == 'rollJoints':
                 log.debug(self.kw_rollJoints)
                 if self.kw_rollJoints == 0:
@@ -1338,16 +1333,21 @@ class cgmModule(cgmMeta.cgmObject):
                 else:
                     self.i_templateNull.addAttr(attr,value = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True )                
 
-                log.info('handles case, setting min')
+                log.debug('handles case, setting min')
                 a = cgmMeta.cgmAttr(self.i_rigNull.mNode,'handles')
-                log.info(self.kw_handles)                
-                log.info(self.i_templateNull.handles)                
+                log.debug(self.kw_handles)                
+                log.debug(self.i_templateNull.handles)                
                 a.doMin(1)#Make this check that the value is not below the min when set            
             elif attr == 'rollOverride':
                 self.i_templateNull.addAttr(attr,initialValue = '{}', attrType = templateNullAttrs_toMake[attr],lock = True )                                
             else:
                 self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
 
+	#Set Module Parent if we have that kw
+	#=================		
+	if self.kw_moduleParent:
+	    self.doSetParentModule(self.kw_moduleParent)
+	    
         return True
     
     def getModuleColors(self):
@@ -1357,7 +1357,7 @@ class cgmModule(cgmMeta.cgmObject):
         else:
             return modules.returnSettingsData(('color'+direction.capitalize()),True)
         
-    def doSetParentModule(self,moduleParent,force = False,):
+    def doSetParentModule(self,moduleParent,force = False):
         """
         Set a module parent of a module
 
@@ -1367,6 +1367,7 @@ class cgmModule(cgmMeta.cgmObject):
 
     def getGeneratedCoreNames(self):
         return mFactory.getGeneratedCoreNames(self)
+    
     def doSize(self,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -1399,7 +1400,7 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              'clavicle':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'arm':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':3},
              'leg':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':3},
-             'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':1,'rollJoints':2},
+             'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':2},
              'tail':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'head':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'neckHead':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
@@ -1426,9 +1427,9 @@ class cgmLimb(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        log.info(">>> cgmLimb.__init__")
-        if kws:log.info("kws: %s"%str(kws))         
-        if args:log.info("args: %s"%str(args))  
+        log.debug(">>> cgmLimb.__init__")
+        if kws:log.debug("kws: %s"%str(kws))         
+        if args:log.debug("args: %s"%str(args))  
         
         start = time.clock()	
         
@@ -1442,7 +1443,7 @@ class cgmLimb(cgmModule):
         cgmModule.verify(self,**kws)
 
         if 'mType' not in kws.keys() and self.moduleType in limbTypes.keys():
-            log.info("'%s' type checks out."%self.moduleType)	    
+            log.debug("'%s' type checks out."%self.moduleType)	    
             moduleType = self.moduleType
         elif 'name' in kws.keys():
             moduleType = kws['name']
@@ -1450,11 +1451,11 @@ class cgmLimb(cgmModule):
             moduleType = kws.pop('mType','segment')	
 
         if not moduleType in limbTypes.keys():
-            log.info("'%s' type is unknown. Using segment type"%moduleType)
+            log.debug("'%s' type is unknown. Using segment type"%moduleType)
             moduleType = 'segment'
 
         if self.moduleType != moduleType:
-            log.info("Changing type to '%s' type"%moduleType)
+            log.debug("Changing type to '%s' type"%moduleType)
             self.moduleType = moduleType
             settings = limbTypes[moduleType]
             if settings:

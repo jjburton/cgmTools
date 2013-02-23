@@ -101,18 +101,18 @@ class cgmMetaFactory(object):
         #==============             
         mClass = attributes.doGetAttr(node,'mClass')
         if mClass:
-            log.info("Appears to be a '%s'"%mClass)
-            log.error("Specialized processing not implemented, initializing as...") 
+            log.debug("Appears to be a '%s'"%mClass)
+            log.debug("Specialized processing not implemented, initializing as...") 
 	    
         objectType = search.returnObjectType(node)
 	if objectType == 'objectSet':
-            log.info("'%s' Appears to be an objectSet, initializing as cgmObjectSet"%node)	    
+            log.debug("'%s' Appears to be an objectSet, initializing as cgmObjectSet"%node)	    
 	    return cgmObjectSet(node,*args,**kws)
         elif mc.ls(node,type='transform'):
-            log.info("'%s' Appears to be a transform, initializing as cgmObject"%node)
+            log.debug("'%s' Appears to be a transform, initializing as cgmObject"%node)
             return cgmObject(name = name, node = node,**kws)          
         else:
-            log.info("Appears to be a '%s'. Initializing as cgmNode"%objectType)  
+            log.debug("Appears to be a '%s'. Initializing as cgmNode"%objectType)  
             return cgmNode(name = name, node = node,**kws)    
           
         return False
@@ -2000,7 +2000,7 @@ class cgmAttr(object):
     #>>> Property - p_defaultValue ==================  
     def getDefault(self):
 	if not self.isNumeric():
-	    log.warn("'%s' is not a numberic attribute"%self.p_combinedName)
+	    log.debug("'%s' is not a numeric attribute"%self.p_combinedName)
 	    return False
 	try:
 	    defaultValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, listDefault=True)
@@ -2041,7 +2041,7 @@ class cgmAttr(object):
     #>>> Property - p_minValue ==================       
     def getMinValue(self):
 	if not self.isNumeric():
-	    log.warn("'%s' is not a numberic attribute"%self.p_combinedName)
+	    log.debug("'%s' is not a numeric attribute"%self.p_combinedName)
 	    return False
 
 	minValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, minimum=True)
@@ -2077,7 +2077,7 @@ class cgmAttr(object):
 		self.value = value
 		log.warning("Value changed due to new min. Value is now %s"%value)
 	else:
-	    log.warn("'%s' is not a numberic attribute"%self.p_combinedName)	    
+	    log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
 	    return False
 		    
     p_minValue = property (getMinValue,doMin)
@@ -2085,7 +2085,7 @@ class cgmAttr(object):
     #>>> Property - p_softMin ==================  
     def getSoftMin(self):
 	if not self.isNumeric():
-	    log.warn("'%s' is not a numberic attribute"%self.p_combinedName)
+	    log.debug("'%s' is not a numeric attribute"%self.p_combinedName)
 	    return False
 	try:
 	    minValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, softMin=True)
@@ -2115,14 +2115,14 @@ class cgmAttr(object):
                 except:
                     log.error("'%s.%s' failed to set a soft max value"%(self.obj.mNode,self.attr))
 	    else:
-		log.warn("'%s' is not a numberic attribute"%self.p_combinedName)	    
+		log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
 		return False
     p_softMin = property (getSoftMin,doSoftMin)
     
     #>>> Property - p_softMax ==================  
     def getSoftMax(self):
 	if not self.isNumeric():
-	    log.warn("'%s' is not a numberic attribute"%self.p_combinedName)
+	    log.debug("'%s' is not a numeric attribute"%self.p_combinedName)
 	    return False
 	try:
 	    maxValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, softMax=True)
@@ -2152,14 +2152,14 @@ class cgmAttr(object):
                 except:
                     log.error("'%s.%s' failed to set a soft max value"%(self.obj.mNode,self.attr))
 	    else:
-		log.warn("'%s' is not a numberic attribute"%self.p_combinedName)	    
+		log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
 		return False
     p_softMax = property (getSoftMax,doSoftMax)
     
     #>>> Property - p_maxValue ==================         
     def getMaxValue(self):
 	if not self.isNumeric():
-	    log.warn("'%s' is not a numberic attribute"%self.p_combinedName)
+	    log.debug("'%s' is not a numeric attribute"%self.p_combinedName)
 	    return False
 	try:
 	    maxValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, maximum=True)
@@ -2193,7 +2193,7 @@ class cgmAttr(object):
 		self.value = value
 		log.warning("Value changed due to new max. Value is now %s"%value)
 	else:
-	    log.error("'%s' is not a numberic attribute"%self.p_combinedName)	    
+	    log.error("'%s' is not a numeric attribute"%self.p_combinedName)	    
 	    return False
 		    
     p_maxValue = property (getMaxValue,doMax)
