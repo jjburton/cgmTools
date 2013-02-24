@@ -80,7 +80,7 @@ def getOrderedModules(self):
     for i_m in self.moduleChildren:
         log.debug("%s.moduleParent: %s"%(i_m.getShortName(),i_m.getMessage('moduleParent')))
         log.debug("%s.modulePuppet: %s"%(i_m.getShortName(),i_m.getMessage('modulePuppet')))        
-        if i_m.getMessage('modulePuppet') and not i_m.getMessage('moduleParent'):
+        if i_m.getMessage('modulePuppet') == [self.mNode] and not i_m.getMessage('moduleParent'):
             log.info("Root found: %s"%(i_m.getShortName()))
             moduleRoots.append(i_m) 
             
@@ -97,13 +97,14 @@ def getOrderedModules(self):
     cnt = 0
     #Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
     while len(l_childrenList)>0 and cnt < 100:#While we still have a cull list
+        log.info(cnt)
         cnt+=1                        
         if cnt == 99:
             log.error('max count')
         for i_Parent in l_orderedParentModules:
             for i_child in l_childrenList:#for each ordered parent module we've found (starting with root)
                 log.debug("i_child: %s"%i_Parent.getShortName())
-                if i_child.moduleParent == [i_Parent]:
+                if i_child.moduleParent == i_Parent:
                     log.debug('Match found!')
                     l_orderedParentModules.append(i_child)
                     l_childrenList.remove(i_child)   

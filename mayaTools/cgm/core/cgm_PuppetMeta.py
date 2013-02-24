@@ -331,7 +331,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         #If exists, connect
         #Get instance
         #==============	
-        buffer = copy.copy(self.moduleChildren) or []#Buffer till we have have append functionality	
+        buffer = copy.copy(self.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
 
         try:
             module.mNode#see if we have an instance
@@ -363,12 +363,14 @@ class cgmPuppet(cgmMeta.cgmNode):
         #Connect
         #==============	
         else:
-            log.info("Current children: %s"%buffer)
+            log.info("Current children: %s"%self.getMessage('moduleChildren'))
             log.info("Adding '%s'!"%module.getShortName())    
 
             buffer.append(module.mNode)
-            del self.moduleChildren
-            self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)#Connect
+	    self.__setMessageAttr__('moduleChildren',buffer) #Going to manually maintaining these so we can use simpleMessage attr  parents
+	    module.modulePuppet = self.mNode
+            #del self.moduleChildren
+            #self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)#Connect	    
             #module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
 
         #module.parent = self.i_partsGroup.mNode
@@ -1245,8 +1247,8 @@ class cgmModule(cgmMeta.cgmObject):
         #==============  
         self.addAttr('moduleType',initialValue = 'segment',lock=True)
 
-        self.addAttr('moduleParent',attrType='message')#Changed to message for now till Mark decides if we can use single
-        self.addAttr('modulePuppet',attrType='message')
+        self.addAttr('moduleParent',attrType='messageSimple')#Changed to message for now till Mark decides if we can use single
+        self.addAttr('modulePuppet',attrType='messageSimple')
         self.addAttr('moduleChildren',attrType='message')
 
         stateDict = {'templateState':0,'rigState':0,'skeletonState':0} #Initial dict

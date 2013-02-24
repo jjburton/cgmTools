@@ -266,23 +266,29 @@ def doSetParentModule(self,moduleParent,force = False):
         log.warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
         return False	
 
-    buffer = copy.copy(moduleParent.moduleChildren) or []#Buffer till we have have append functionality	
+    buffer = copy.copy(moduleParent.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
 
     if self.mNode in buffer:
-        log.warning("'%s' already connnected to '%s'"%(module,moduleParent.getShortName()))
+        log.warning("'%s' already connnected to '%s'"%(self.mNode,moduleParent.getShortName()))
         return False
 
         #Connect
         #==============	
     else:
-        log.info("Current children: %s"%buffer)
+        log.info("Current children: %s"%moduleParent.getMessage('moduleChildren'))
         log.info("Adding '%s'!"%self.getShortName())    
 
         buffer.append(self.mNode) #Revist when children has proper add/remove handling
-        del moduleParent.moduleChildren #Revist when children has proper add/remove handling
-        moduleParent.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
-        #if moduleParent.modulePuppet.mNode:
-            #self.__setMessageAttr__('modulePuppet',moduleParent.modulePuppet.mNode)#Connect puppet to 
+        moduleParent.moduleChildren = buffer
+        self.moduleParent = moduleParent.mNode
+        #if moduleParent.getMessage('modulePuppet'):
+            #moduleParent.modulePuppet.connectModule(self.mNode) 
+            
+        #del moduleParent.moduleChildren #Revist when children has proper add/remove handling
+        #moduleParent.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
+        #if moduleParent.getMessage('modulePuppet'):
+            #moduleParent.modulePuppet[0].connectModule(self)
+            ##self.__setMessageAttr__('modulePuppet',moduleParent.getMessage('modulePuppet')[0])#Connect puppet to 
 
     self.parent = moduleParent.parent
     return True

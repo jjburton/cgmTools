@@ -1079,8 +1079,8 @@ class cgmMeta_Test():
         log.info('>'*3 + " Connect Modules...")   
         self.Puppet.connectModule(Module1)
          
-        assert Module1.modulePuppet[0].mNode == self.Puppet.mNode
-        assert Module1.getMessage('modulePuppet')[0] == self.Puppet.mNode,"'%s' != '%s'"%(Module1.getMessage('modulePuppet'),self.Puppet.mNode)
+        assert Module1.modulePuppet.mNode == self.Puppet.mNode
+        assert Module1.getMessage('modulePuppet') == [self.Puppet.mNode],"'%s' != '%s'"%(Module1.getMessage('modulePuppet'),self.Puppet.mNode)
 
 
         log.info('>'*3 + " Creating Limb module with moduleParent Flag...")           
@@ -1091,7 +1091,7 @@ class cgmMeta_Test():
         log.info(Module1.mClass)
         log.info(Module2.mClass)        
         Module2.doSetParentModule(Module1)
-        assert Module2.getMessage('moduleParent')[0] == Module1.mNode
+        assert Module2.getMessage('moduleParent') == [Module1.mNode]
 
 
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
