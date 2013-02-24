@@ -179,7 +179,7 @@ def validateString(strText):
     Function to validate that a string has no illegal characters
     '''
     #numerics=['1','2','3','4','5','6','7','8','9','0']
-    illegals=['-','#']
+    illegals=['-','#','!']
     #if strText[0] in numerics:
     #    raise ValueError('Strings must NOT start with a numeric! >> %s' % strText)
     illegal=[i for i in illegals if i in strText]
@@ -556,10 +556,10 @@ class FilterNode(object):
     def __set_processMode(self, mode):
         if mode=='Selected':
             self._processMode=mode
-            log.info('Switching to SELECTED ROOTNODE HIERARCHY Processing Mode')
+            log.debug('Switching to SELECTED ROOTNODE HIERARCHY Processing Mode')
         elif mode=='Scene':
             self._processMode=mode
-            log.info('Switching to SCENE or GIVEN NODE Processing Mode') 
+            log.debug('Switching to SCENE or GIVEN NODE Processing Mode') 
             
     processMode = property(__get_processMode, __set_processMode)
     
@@ -633,7 +633,7 @@ class FilterNode(object):
     # Node Management Block
     #---------------------------------------------------------------------------------
     
-    @r9General.Timer   
+    #@r9General.Timer   
     def lsSearchNodeTypes(self, nodeTypes, nodes=None, incRoots=True, transformClamp=False):
         '''
         Main filter function wraps the cmds.listRelatives but replicates
@@ -843,7 +843,7 @@ class FilterNode(object):
     # Attribute Management Block
     #---------------------------------------------------------------------------------
 
-    @r9General.Timer
+    #@r9General.Timer
     def lsSearchAttributes(self, searchAttrs, nodes=None, incRoots=True, returnValues=False):
         '''
         Search for nodes that have a given attr or any attrs from a given list[]
@@ -981,7 +981,7 @@ class FilterNode(object):
     # Name Management Block 
     #---------------------------------------------------------------------------------
     
-    @r9General.Timer
+    #@r9General.Timer
     def lsSearchNamePattern(self, searchPattern, nodes=None, incRoots=True): 
         '''
         Search for nodes who's name match the given search patterns
@@ -1119,7 +1119,7 @@ class FilterNode(object):
     # Main Search Call which uses the Settings Object
     #---------------------------------------------------------------------------------
     
-    @r9General.Timer    
+    #@r9General.Timer    
     def ProcessFilter(self):
             '''
             Uses intersection to allow you to process multiple search flags for 
@@ -1262,7 +1262,7 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
     return matchedData
 
 
-def processMatchedNodes( nodes=None, filterSettings=None, toMany=False):
+def processMatchedNodes( nodes=None, filterSettings=None, toMany=False, matchMethod='stripPrefix'):
     '''
     =================================================
     HUGELY IMPORTANT CALL FOR ALL ANIMATION FUNCTIONS
@@ -1277,6 +1277,7 @@ def processMatchedNodes( nodes=None, filterSettings=None, toMany=False):
     @param toMany: Return a MatchedPairs where the first node in each
     tuple is the first selected node, ie, used to cast data from the first 
     node to all subsequent nodes [(ObjA,ObjB),(ObjA,ObjC),(ObjA,ObjD) ....
+    @param matchMethod: method used in the name matchProcess
     
     @return: MatchNodeInputs class object
     '''     
@@ -1292,7 +1293,7 @@ def processMatchedNodes( nodes=None, filterSettings=None, toMany=False):
         log.debug('filterSettings Passed To MatchedNodeInputs : %s' , filterSettings.__dict__)
     
     #make an instance of the MatchedNodeInputs object
-    nodeList = MatchedNodeInputs(nodes, filterSettings=filterSettings)
+    nodeList = MatchedNodeInputs(nodes, filterSettings=filterSettings, matchMethod=matchMethod)
     
     if not toMany:
         nodeList.processMatchedPairs()

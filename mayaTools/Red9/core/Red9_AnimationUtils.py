@@ -176,7 +176,7 @@ def timeLineRangeGet():
         playbackRange = (cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True))
     return playbackRange
 
-def timeLineRangeProcess(start, end, step):
+def timeLineRangeProcess(start, end, step, incEnds=True):
     '''
     Simple wrapper function to take a given framerange and return
     a list[] containing the actual keys required for processing.
@@ -188,7 +188,10 @@ def timeLineRangeProcess(start, end, step):
     if step < 0:
         startFrm = end
         endFrm = start
-    return [time for time in range(int(startFrm), int(endFrm), int(step))]
+    rng=[time for time in range(int(startFrm), int(endFrm), int(step))]
+    if incEnds:
+        rng.append(end)
+    return rng
  
     
 #def timeLineRangeSet(time):
@@ -225,6 +228,8 @@ def eulerSelected():
     '''
     cmds.filterCurve(cmds.ls(sl=True,l=True))
     cmds.delete(cmds.ls(sl=True,l=True),sc=True)
+
+
 
 class AnimationUI(object):
     
@@ -554,13 +559,19 @@ class AnimationUI(object):
         cmds.menuItem(label='OpenPresetDir', command=partial(self.__uiPresetOpenDir))
         
         cmds.separator(h=10, style='none')
+        cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 140), (2, 162)])
         self.uicbIncRoots = cmds.checkBox('uicbIncRoots',
                                             ann='include RootNodes in the Filter', 
                                             l='Include Roots', 
                                             al='left', v=True,
-                                            cc=lambda x:self.__uiCache_storeUIElements())
-                                            #cc=lambda x:self.__uiCache_addCheckbox('uicbIncRoots'))
-       
+                                            cc=lambda x:self.__uiCache_storeUIElements())   
+            
+        self.uicbMatchMethod = cmds.checkBox('uicbMatchMethod',
+                                            ann='Match method allow prefix stripping?', 
+                                            l='MatchMethod = stripPrefixes', 
+                                            al='left', v=True,
+                                            cc=lambda x:self.__uiCache_addCheckbox('uicbMatchMethod'))
+        cmds.setParent(self.FilterLayout)
         cmds.separator(h=10, style='none')
         cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 162), (2, 162)])
         cmds.button(label='Test Filter', bgc=self.buttonBgc, 
@@ -585,8 +596,8 @@ class AnimationUI(object):
                                             ann='PosePath', 
                                             text="", 
                                             bl='PosePath',
-                                            bc=lambda * x: self.__uiCB_setPosePath(fileDialog=True),
-                                            cc=lambda * x:self.__uiCB_setPosePath(),
+                                            bc=lambda *x: self.__uiCB_setPosePath(fileDialog=True),
+                                            cc=lambda *x: self.__uiCB_setPosePath(fileDialog=False),
                                             cw=[(1,260),(2,40)])
         
         cmds.rowColumnLayout(nc=2,columnWidth=[(1, 120), (2, 120)],columnSpacing=[(1, 10)])
@@ -600,6 +611,21 @@ class AnimationUI(object):
                                         onc=partial(self.__uiCB_switchPosePathMode,'project'),
                                         ofc=partial(self.__uiCB_switchPosePathMode,'local'))
         cmds.setParent(self.poseUILayout)
+        
+        cmds.rowColumnLayout(nc=2,columnWidth=[(1, 260), (2, 60)])       
+        cmds.textFieldButtonGrp('uitfgPoseSubPath', 
+                                            ann='PosePath SubFolders', 
+                                            text="", 
+                                            bl='SubFolders',
+                                            bc=lambda * x:self.__switchSubFolders(),
+                                            #cc=lambda * x:self.__setSubFolder(),
+                                            ed=False,
+                                            cw=[(1,190),(2,40)])
+        cmds.button(label='Clear', 
+                     ann='Load Pose data for the given Hierarchy or Selections', 
+                     command=partial(self.__uiCB_clearSubFolders)) 
+        cmds.setParent(self.poseUILayout)
+         
         cmds.separator(h=10, style='in')
         
         if r9Setup.mayaVersion()>2012: #tcc flag not supported in earlier versions
@@ -613,10 +639,15 @@ class AnimationUI(object):
                                                 cc=lambda x:self.__uiCB_fillPoses(searchFilter=cmds.textFieldGrp('tfPoseSearchFilter',q=True,text=True)))
         cmds.separator(h=10, style='none')
         
-        #Main PoseFields
+        #SubFolder Scroller
+        self.uitslPoseSubFolders = cmds.textScrollList('uitslPoseSubFolders',numberOfRows=8, 
+                                                       allowMultiSelection=False, 
+                                                       height=350,vis=False)
+        
+        #Main PoseFields       
         self.uitslPoses = cmds.textScrollList('uitslPoses',numberOfRows=8, allowMultiSelection=False, 
-                                               selectCommand=partial(self.__uiPresetSelection), \
-                                               height=350,vis=False)
+                                               #selectCommand=partial(self.__uiPresetSelection), \
+                                               height=350, vis=False)
         
         self.uiglPoseScroll = cmds.scrollLayout('uiglPoseScroll', 
                                                 cr=True, 
@@ -945,8 +976,8 @@ class AnimationUI(object):
 
     def buildPoseList(self):
         '''
-        get a list of poses from the PoseRootDir, this then
-        allows us to filter if needed
+        Get a list of poses from the PoseRootDir, this allows us to 
+        filter much faster as it stops all the os calls, cached list instead
         '''
         self.poses=[]
         if not os.path.exists(self.posePath):
@@ -977,6 +1008,9 @@ class AnimationUI(object):
             return True
          
     def __uiCB_selectPose(self,pose):
+        '''
+        select the pose in the UI from the name
+        '''
         if pose:
             if not self.poseGridMode=='thumb':
                 cmds.textScrollList(self.uitslPoses, e=True,si=pose)
@@ -992,17 +1026,17 @@ class AnimationUI(object):
         if mode=='local':
             self.posePath=self.posePathLocal
             self.posePathMode='localPoseMode'
-            cmds.button('savePoseButton',e=True,en=True,bgc=r9Setup.red9ButtonBGC(1))
+            cmds.button('savePoseButton',edit=True,en=True,bgc=r9Setup.red9ButtonBGC(1))
+            cmds.textFieldButtonGrp('uitfgPosePath',edit=True,text=self.posePathLocal)
         elif mode=='project':
             self.posePath=self.posePathProject
             self.posePathMode='projectPoseMode'
-            cmds.button('savePoseButton',e=True,en=False,bgc=r9Setup.red9ButtonBGC(2))      
-        cmds.textFieldButtonGrp('uitfgPosePath',e=True,text=self.posePath)
-        cmds.scrollLayout('uiglPoseScroll',e=True,sp='up')
+            cmds.button('savePoseButton',edit=True,en=False,bgc=r9Setup.red9ButtonBGC(2))      
+            cmds.textFieldButtonGrp('uitfgPosePath',edit=True,text=self.posePathProject)
+        cmds.scrollLayout('uiglPoseScroll',edit=True,sp='up')
         
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode  
         self.__uiCB_fillPoses(rebuildFileList=True)
-
             
     def __uiCB_setPosePath(self,path=None,fileDialog=False):
         '''
@@ -1011,7 +1045,7 @@ class AnimationUI(object):
         if fileDialog:
             try:
                 if r9Setup.mayaVersion()>=2011:
-                    self.posePath=cmds.fileDialog2(fileMode=3,dir=self.posePath)[0]
+                    self.posePath=cmds.fileDialog2(fileMode=3,dir=cmds.textFieldButtonGrp('uitfgPosePath',q=True,text=True))[0]
                 else:
                     print 'Sorry Maya2009 and Maya2010 support is being dropped'
                     def setPosePath( fileName, fileType):
@@ -1025,27 +1059,78 @@ class AnimationUI(object):
             else:
                 self.posePath=path
                 
+        cmds.textFieldButtonGrp('uitfgPosePath',edit=True,text=self.posePath)    
+        cmds.textFieldButtonGrp('uitfgPoseSubPath',edit=True,text="") 
         #internal cache for the 2 path modes        
         if self.posePathMode=='localPoseMode':
             self.posePathLocal=self.posePath
         else:
             self.posePathProject=self.posePath
-            
-        cmds.textFieldButtonGrp('uitfgPosePath',e=True,text=self.posePath)                   
+        self.__uiCB_pathSwitchInternals()
+          
+    def __uiCB_pathSwitchInternals(self):           
+    
         self.__uiCB_fillPoses(rebuildFileList=True)
     
         #fill the cache up for the ini file
         self.ANIM_UI_OPTVARS['AnimationUI']['posePath']=self.posePath
+        self.ANIM_UI_OPTVARS['AnimationUI']['poseSubPath']=self.__uiCB_getsubFolderFromUI()
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathLocal']=self.posePathLocal
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathProject']=self.posePathProject
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode
         self.__uiCache_storeUIElements()
+ 
+ 
+    #SubFolder Pose Calls ----------   
+    def __switchSubFolders(self,*args):
+        '''
+        note we prefix the folder with '/' to help denote it's a folder in the UI
+        '''
+        basePath=cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True)
+        dirs=[subdir for subdir in os.listdir(basePath) if os.path.isdir(os.path.join(basePath, subdir))]
+        if not dirs:
+            raise StandardError('Folder has no subFolders for pose scanning')
+        #turn OFF the 2 main poseScrollers
+        cmds.textScrollList(self.uitslPoses, edit=True, vis=False)
+        cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=False)
+        #turn ON the subFodler scroller
+        cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=True)
+        cmds.textScrollList(self.uitslPoseSubFolders, edit=True, ra=True)
         
+        for subdir in dirs:
+            cmds.textScrollList(self.uitslPoseSubFolders, edit=True, 
+                                            append='/%s' % subdir,
+                                            sc=partial(self.__setSubFolder))
+            
+    def __setSubFolder(self,*args):
+        basePath=cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True)
+        subFolder=cmds.textScrollList(self.uitslPoseSubFolders, q=True,si=True)[0].split('/')[-1]
+        
+        cmds.textFieldButtonGrp('uitfgPoseSubPath',edit=True,text=subFolder)
+        cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)
+        self.posePath=os.path.join(basePath,subFolder)
+        self.__uiCB_pathSwitchInternals()
+          
+    def __uiCB_clearSubFolders(self,*args):
+        cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)
+        self.__uiCB_setPosePath()
+               
+    def __uiCB_getsubFolderFromUI(self):
+        '''
+        why??? means we can modify the folder display name without worries.
+        '''
+        try:
+            return cmds.textFieldButtonGrp('uitfgPoseSubPath',q=True,text=True)
+        except:
+            return ""
+                  
+    #Main Management Calls ---------
     def __uiCB_getPosePath(self):
         '''
         Return the full posePath for loading
         '''
         return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),\
+                            self.__uiCB_getsubFolderFromUI(),
                             '%s.pose' % self.getPoseSelected())
         
     def __uiCB_getIconPath(self):
@@ -1053,8 +1138,8 @@ class AnimationUI(object):
         Return the full posePath for loading
         '''
         return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),\
-                            '%s.bmp' % self.getPoseSelected())
-    
+                            self.__uiCB_getsubFolderFromUI(),
+                            '%s.bmp' % self.getPoseSelected())   
       
                               
     def __uiCB_fillPoses(self, rebuildFileList=False, searchFilter=None ):
@@ -1082,7 +1167,7 @@ class AnimationUI(object):
             cmds.textScrollList(self.uitslPoses, edit=True, ra=True)
             
             if searchFilter:
-                cmds.scrollLayout('uiglPoseScroll',e=True,sp='up')
+                cmds.scrollLayout('uiglPoseScroll',edit=True,sp='up')
                 
             for pose in self.buildFilteredPoseList(searchFilter):
                 cmds.textScrollList(self.uitslPoses, edit=True, 
@@ -1119,19 +1204,12 @@ class AnimationUI(object):
              
             if searchFilter:
                 #with search scroll the list to the top as results may seem blank otherwise
-                cmds.scrollLayout('uiglPoseScroll',e=True,sp='up')   
+                cmds.scrollLayout('uiglPoseScroll',edit=True,sp='up')   
                     
         #Finally Bind the Popup-menu                
         self.__uiCB_PosePopup(popupBind)
   
-  
-    def __uiCB_gridResize(self):
-        if r9Setup.mayaVersion()>=2010:
-            cells=int(cmds.scrollLayout('uiglPoseScroll',q=True,w=True)/cmds.gridLayout('uiglPoses',q=True,cw=True))
-            cmds.gridLayout('uiglPoses',e=True,nc=cells)
-        else:
-            log.debug('this call FAILS in 2009???')
-        
+          
     def __uiCB_PosePopup(self,parentUI):
         '''
         RMB popup menu for the Pose functions
@@ -1192,7 +1270,16 @@ class AnimationUI(object):
             else:
                 cmds.iconTextCheckBox(button,e=True,v=True,bgc=self.poseButtonHighLight)
         self.setPoseSelected(current) 
+        
+    def __uiCB_gridResize(self):
+        if r9Setup.mayaVersion()>=2010:
+            cells=int(cmds.scrollLayout('uiglPoseScroll',q=True,w=True)/cmds.gridLayout('uiglPoses',q=True,cw=True))
+            cmds.gridLayout('uiglPoses',e=True,nc=cells)
+        else:
+            log.debug('this call FAILS in 2009???') 
     
+    
+    #Main Function Wrappers ------------        
     def __uiCB_switchPoseMode(self,*args):
         '''
         Toggle PoseField mode between Grid mode and TextScroll
@@ -1202,8 +1289,8 @@ class AnimationUI(object):
         else:
             self.poseGridMode='thumb'
         self.__uiCB_fillPoses()
-        self.__uiCB_selectPose(self.poseSelected) 
-          
+        self.__uiCB_selectPose(self.poseSelected)     
+              
     def __uiCB_savePosePath(self,existingText=None):
         '''
         Build the path for the pose to be saved too
@@ -1220,8 +1307,10 @@ class AnimationUI(object):
             name=cmds.promptDialog(query=True, text=True)
             try:
                 if r9Core.validateString(name):
-                    return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),'%s.pose' % name)
-                    #return '%s\%s.pose' %  (cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True), name)
+                    #return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),'%s.pose' % name)
+                    return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),
+                                        self.__uiCB_getsubFolderFromUI(),
+                                        '%s.pose' % name)
             except ValueError,error:
                 raise ValueError(error)
                 
@@ -1266,7 +1355,9 @@ class AnimationUI(object):
         
     def __uiCB_openPoseDir(self,*args):
         import subprocess
-        path=os.path.normpath(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True))
+        #path=os.path.normpath(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True))
+        path=os.path.normpath(os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),
+                              self.__uiCB_getsubFolderFromUI()))
         subprocess.Popen('explorer "%s"' % path)
      
     def __uiCB_updatePose(self,*args):
@@ -1464,9 +1555,9 @@ class AnimationUI(object):
                 self.posePathLocal=AnimationUI['posePathLocal']
             if AnimationUI.has_key('posePathProject') and AnimationUI['posePathProject']:
                 self.posePathProject=AnimationUI['posePathProject']                
-        
-            #if AnimationUI.has_key('posePath') and AnimationUI['posePath']:
-            #    self.__uiCB_setPosePath(path=AnimationUI['posePath'])
+            #if AnimationUI.has_key('poseSubPath') and AnimationUI['poseSubPath']:
+            #    cmds.textFieldButtonGrp('uitfgPoseSubPath',edit=True,text=AnimationUI['poseSubPath'])
+                
             if AnimationUI.has_key('poseRoot') and AnimationUI['poseRoot']:
                 if cmds.objExists(AnimationUI['poseRoot']):
                     cmds.textFieldButtonGrp('uitfgPoseRootNode',e=True,text=AnimationUI['poseRoot'])
@@ -1522,14 +1613,14 @@ class AnimationUI(object):
             self.kws['attributes'] = getChannelBoxSelection()   
         if cmds.checkBox(self.uicbCAttrHierarchy, q=True, v=True): 
             if self.kws['toMany']:
-                AnimFunctions().copyAttrs_ToMultiHierarchy(cmds.ls(sl=True, l=True), 
+                AnimFunctions(matchMethod=self.matchMethod).copyAttrs_ToMultiHierarchy(cmds.ls(sl=True, l=True), 
                                                           filterSettings=self.filterSettings, 
                                                           **self.kws)
             else:
-                AnimFunctions().copyAttributes(nodes=None, filterSettings=self.filterSettings, **self.kws)
+                AnimFunctions(matchMethod=self.matchMethod).copyAttributes(nodes=None, filterSettings=self.filterSettings, **self.kws)
         else:
             print self.kws
-            AnimFunctions().copyAttributes(nodes=None, **self.kws) 
+            AnimFunctions(matchMethod=self.matchMethod).copyAttributes(nodes=None, **self.kws) 
             
     def __CopyKeys(self):
         '''
@@ -1542,13 +1633,13 @@ class AnimationUI(object):
             self.kws['attributes'] = getChannelBoxSelection()   
         if cmds.checkBox(self.uicbCKeyHierarchy, q=True, v=True):  
             if self.kws['toMany']:
-                AnimFunctions().copyKeys_ToMultiHierarchy(cmds.ls(sl=True, l=True), 
+                AnimFunctions(matchMethod=self.matchMethod).copyKeys_ToMultiHierarchy(cmds.ls(sl=True, l=True), 
                                                           filterSettings=self.filterSettings, 
                                                           **self.kws)
             else:
-                AnimFunctions().copyKeys(nodes=None, filterSettings=self.filterSettings, **self.kws)
+                AnimFunctions(matchMethod=self.matchMethod).copyKeys(nodes=None, filterSettings=self.filterSettings, **self.kws)
         else:
-            AnimFunctions().copyKeys(nodes=None, **self.kws)
+            AnimFunctions(matchMethod=self.matchMethod).copyKeys(nodes=None, **self.kws)
     
     def __Snap(self):
         '''
@@ -1566,9 +1657,9 @@ class AnimationUI(object):
         if cmds.checkBox(self.uicbSnapPreCopyAttrs, q=True, v=True):
             self.kws['preCopyAttrs'] = True  
         if cmds.checkBox(self.uicbSnapHierarchy, q=True, v=True):
-            AnimFunctions().snapTransform(nodes=None, filterSettings=self.filterSettings, **self.kws)     
+            AnimFunctions(matchMethod=self.matchMethod).snapTransform(nodes=None, filterSettings=self.filterSettings, **self.kws)     
         else:
-            AnimFunctions().snapTransform(nodes=None, **self.kws)   
+            AnimFunctions(matchMethod=self.matchMethod).snapTransform(nodes=None, **self.kws)   
     
     def __Stabilize(self):
         '''
@@ -1727,6 +1818,10 @@ class AnimationUI(object):
             
         # Main Hierarchy Filters ============= 
         self.__uiPresetFillFilter() #fill the filterSettings Object
+        if cmds.checkBox('uicbMatchMethod',q=True,v=True):
+            self.matchMethod='stripPrefix'
+        else:
+            self.matchMethod='base'
         #self.filterSettings.transformClamp = True
          
         try:
@@ -1780,52 +1875,51 @@ class AnimationUI(object):
        
 class AnimFunctions(object):
     
-    def __init__(self):
-        pass
+    def __init__(self,**kws):
+        kws.setdefault('matchMethod','stripPrefix')
+        
+        self.matchMethod=kws['matchMethod'] #gives you the ability to modify the nameMatching method
               
-            
     #===========================================================================
     # Copy Keys
     #===========================================================================
 
     def copyKeys_ToMultiHierarchy(self, nodes=None, time=(), pasteKey='replace', 
-                 attributes=None, filterSettings=None,**kws):
+                 attributes=None, filterSettings=None, matchMethod=None, **kws):
         '''
         This isn't the best way by far to do this, but as a quick wrapper
         it works well enough. Really we need to process the nodes more intelligently
         prior to sending data to the copyKeys calls
-        '''
+        '''            
         for node in nodes[1:]:
             self.copyKeys(nodes=[nodes[0], node], 
                           time=time, 
                           attributes=attributes, 
                           pasteKey=pasteKey,
                           filterSettings=filterSettings,
-                          toMany=False)
+                          toMany=False,
+                          matchMethod=matchMethod)
                
 
-    def copyKeys(self, nodes=None, time=(), pasteKey='replace', 
-                 attributes=None, filterSettings=None, toMany=False, **kws):
+    def copyKeys(self, nodes=None, time=(), pasteKey='replace', attributes=None, 
+                 filterSettings=None, toMany=False, matchMethod=None, **kws):
         '''
         Copy Keys is a Hi-Level wrapper function to copy animation data between
         filtered nodes, either in hierarchies or just selected pairs. 
                 
         @param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call, 
-            making it capable of powerful hierarchy filtering and node matching methods.
-        
+            making it capable of powerful hierarchy filtering and node matching methods.  
         @param filterSettings: Passed into the decorator and onto the FilterNode code
-            to setup the hierarchy filters - See docs on the FilterNode_Settings class
-        
+            to setup the hierarchy filters - See docs on the FilterNode_Settings class   
         @param pasteKey: Uses the standard pasteKey option methods - merge,replace,
             insert etc. This is fed to the internal pasteKey method. Default=replace
-       
         @param time: Copy over a given timerange - time=(start,end). Default is
             to use no timeRange. If time is passed in via the timeLineRange() function
             then it will consider the current timeLine PlaybackRange, OR if you have a
             highlighted range of time selected(in red) it'll use this instead.
-       
         @param attributes: Only copy the given attributes[]
+        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
         
         Generic filters passed into r9Core.MatchedNodeInputs class:
         -----------------------------------------------------------------
@@ -1840,12 +1934,15 @@ class AnimFunctions(object):
         selected pairs obj[0]>obj[1], obj[2]>obj[3] etc 
         -----------------------------------------------------------------
         '''
-
-        log.debug('CopyKey params : nodes=%s : time=%s : pasteKey=%s : attributes=%s : filterSettings=%s' \
-                   % (nodes, time, pasteKey, attributes, filterSettings))
-
+        if not matchMethod:matchMethod=self.matchMethod
+        log.debug('CopyKey params : nodes=%s\n : time=%s\n : pasteKey=%s\n : attributes=%s\n : filterSettings=%s\n : matchMethod=%s\n'\
+                   % (nodes, time, pasteKey, attributes, filterSettings, matchMethod))
+                
         #Build up the node pairs to process
-        nodeList = r9Core.processMatchedNodes(nodes, filterSettings, toMany).MatchedPairs
+        nodeList = r9Core.processMatchedNodes(nodes, 
+                                              filterSettings, 
+                                              toMany,
+                                              matchMethod=matchMethod).MatchedPairs
         
         if nodeList:       
             with r9General.HIKContext([d for _,d in nodeList]):
@@ -1871,7 +1968,7 @@ class AnimFunctions(object):
     #===========================================================================
 
     def copyAttrs_ToMultiHierarchy(self, nodes=None, attributes=None, skipAttrs=None, \
-                       filterSettings=None,**kws):
+                       filterSettings=None, matchMethod=None, **kws):
         '''
         This isn't the best way by far to do this, but as a quick wrapper
         it works well enough. Really we need to process the nodes more intelligently
@@ -1882,25 +1979,25 @@ class AnimFunctions(object):
                           attributes=attributes, 
                           filterSettings=filterSettings,
                           skipAttrs=skipAttrs,
-                          toMany=False)
+                          toMany=False,
+                          matchMethod=matchMethod)
             
 
     def copyAttributes(self, nodes=None, attributes=None, skipAttrs=None, 
-                       filterSettings=None, toMany=False, **kws):
+                       filterSettings=None, toMany=False, matchMethod=None,**kws):
         '''
         Copy Attributes is a Hi-Level wrapper function to copy Attribute data between
         filtered nodes, either in hierarchies or just selected pairs. 
                 
         @param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call, 
-            making it capable of powerful hierarchy filtering and node matching methods.
-        
+            making it capable of powerful hierarchy filtering and node matching methods.      
         @param filterSettings: Passed into the decorator and onto the FilterNode code
             to setup the hierarchy filters - See docs on the FilterNode_Settings class
-
         @param attributes: Only copy the given attributes[]
         @param skipAttrs: Copy all Settable Attributes OTHER than the given, not
             used if an attributes list is passed
+        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
         
         Generic filters passed into r9Core.MatchedNodeInputs class:
         -----------------------------------------------------------------
@@ -1916,12 +2013,15 @@ class AnimFunctions(object):
         -----------------------------------------------------------------
 
         '''
-        
-        log.debug('CopyAttributes params : nodes=%s : attributes=%s : filterSettings=%s' 
-                   % (nodes, attributes, filterSettings))
+        if not matchMethod:matchMethod=self.matchMethod
+        log.debug('CopyAttributes params : nodes=%s\n : attributes=%s\n : filterSettings=%s\n : matchMethod=%s\n' 
+                   % (nodes, attributes, filterSettings, matchMethod))
         
         #Build up the node pairs to process
-        nodeList = r9Core.processMatchedNodes(nodes, filterSettings, toMany).MatchedPairs
+        nodeList = r9Core.processMatchedNodes(nodes, 
+                                              filterSettings, 
+                                              toMany, 
+                                              matchMethod=matchMethod).MatchedPairs
         
         if nodeList:       
             with r9General.HIKContext([d for _,d in nodeList]):
@@ -1958,7 +2058,7 @@ class AnimFunctions(object):
     
     #@processInputNodes 
     def snapTransform(self, nodes=None, time=(), step=1, preCopyKeys=1, preCopyAttrs=1, 
-                      filterSettings=None, iterations=1, **kws):
+                      filterSettings=None, iterations=1, matchMethod=None,**kws):
         '''
         Snap objects over a timeRange. This wraps the default hierarchy filters
         so it's capable of multiple hierarchy filtering and matching methods.
@@ -1968,25 +2068,20 @@ class AnimFunctions(object):
         @param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call, 
             making it capable of powerful hierarchy filtering and node matching methods.
-        
         @param filterSettings: Passed into the decorator and onto the FilterNode code
-            to setup the hierarchy filters - See docs on the FilterNode_Settings class
-                   
+            to setup the hierarchy filters - See docs on the FilterNode_Settings class         
         @param time: Copy over a given timerange - time=(start,end). Default is
             to use no timeRange. If time is passed in via the timeLineRange() function
             then it will consider the current timeLine PlaybackRange, OR if you have a
             highlighted range of time selected(in red) it'll use this instead.
-
         @param step: Time Step between processing when using kws['time'] range
             this accepts negative values to run the time backwards if required
-        
         @param preCopyKeys: Run a CopyKeys pass prior to snap - this means that
-            all channels that are keyed have their data taken across
-            
+            all channels that are keyed have their data taken across         
         @param preCopyAttrs: Run a CopyAttrs pass prior to snap - this means that
-            all channel Values on all nodes will have their data taken across
-        
+            all channel Values on all nodes will have their data taken across    
         @param iterations: Number of times to process the frame.
+        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
          
         NOTE: you can also pass the CopyKey kws in to the preCopy call, see copyKeys above
         
@@ -2005,23 +2100,26 @@ class AnimFunctions(object):
         '''
         self.snapCacheData = {} #TO DO - Cache the data and check after first run data is all valid
         skipAttrs = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']
-        
+        if not matchMethod:matchMethod=self.matchMethod
         try:
             checkRunTimeCmds()
         except StandardError, error:
             raise StandardError(error)
             
-        log.debug('snapTransform params : nodes=%s : time=%s : step=%s : preCopyKeys=%s : preCopyAttrs=%s : filterSettings=%s' \
-                   % (nodes, time, step, preCopyKeys, preCopyAttrs, filterSettings))
+        log.debug('snapTransform params : nodes=%s : time=%s : step=%s : preCopyKeys=%s : \
+                    preCopyAttrs=%s : filterSettings=%s : matchMethod=%s' \
+                   % (nodes, time, step, preCopyKeys, preCopyAttrs, filterSettings, matchMethod))
         
         #Build up the node pairs to process
-        nodeList = r9Core.processMatchedNodes(nodes, filterSettings)
+        nodeList = r9Core.processMatchedNodes(nodes, 
+                                              filterSettings, 
+                                              matchMethod=matchMethod)
         
         if nodeList.MatchedPairs:    
             nodeList.MatchedPairs.reverse() #reverse order so we're dealing with children before their parents
             
             if preCopyAttrs:
-                self.copyAttributes(nodes=nodeList, skipAttrs=skipAttrs, filterSettings=filterSettings)
+                self.copyAttributes(nodes=nodeList, skipAttrs=skipAttrs, filterSettings=filterSettings, **kws)
             
             if time:
                 with r9General.AnimationContext(): #Context manager to restore settings
@@ -2032,7 +2130,7 @@ class AnimFunctions(object):
                     if preCopyKeys: 
                         self.copyKeys(nodes=nodeList, time=time, filterSettings=filterSettings, **kws)
                            
-                    for t in timeLineRangeProcess(time[0], time[1]+1, step):
+                    for t in timeLineRangeProcess(time[0], time[1], step, incEnds=True):
                         dataAligned = False
                         processRepeat = iterations
                        
@@ -2129,7 +2227,7 @@ class AnimFunctions(object):
             raise StandardError(error)
         
         if time:
-            timeRange = timeLineRangeProcess(time[0], time[1]+1, step)
+            timeRange = timeLineRangeProcess(time[0], time[1], step, incEnds=True)
             cmds.currentTime(timeRange[0], e=True) #ensure that the initial time is updated 
         else:
             timeRange = [cmds.currentTime(q=True) + step]  
@@ -2183,6 +2281,54 @@ class AnimFunctions(object):
         cmds.select(nodes)
         
         
+    def bindNodes(self, nodes=None, attributes=None, filterSettings=None, 
+                  bindMethod='connect', matchMethod=None, **kws):
+        '''
+        Copy Keys is a Hi-Level wrapper function to copy animation data between
+        filtered nodes, either in hierarchies or just selected pairs. 
+                
+        @param nodes: List of Maya nodes to process. This combines the filterSettings
+            object and the MatchedNodeInputs.processMatchedPairs() call, 
+            making it capable of powerful hierarchy filtering and node matching methods.
+        @param filterSettings: Passed into the decorator and onto the FilterNode code
+            to setup the hierarchy filters - See docs on the FilterNode_Settings class    
+        @param attributes: Only copy the given attributes[]
+        @param bindMethod: method of binding the data
+        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
+        '''
+        
+        if not matchMethod:matchMethod=self.matchMethod
+        log.debug('bindNodes params : nodes=%s : attributes=%s : filterSettings=%s : matchMethod=%s' \
+                   % (nodes,  attributes, filterSettings, matchMethod))
+
+        #Build up the node pairs to process
+        nodeList = r9Core.processMatchedNodes(nodes, 
+                                              filterSettings, 
+                                              toMany=False, 
+                                              matchMethod=matchMethod).MatchedPairs
+        if nodeList:       
+            for src, dest in nodeList: 
+                try:
+                    if bindMethod=='connect':
+                        if not attributes:
+                            attributes = ['rotateX', 'rotateY', 'rotateZ', 'translateX', 'translateY', 'translateZ']   
+                        #Bind only specific attributes
+                        for attr in attributes:
+                            log.info('Attr %s bindNode from %s to>> %s' %(attr,r9Core.nodeNameStrip(src), 
+                                                                          r9Core.nodeNameStrip(dest))) 
+                            try:
+                                cmds.connectAttr('%s.%s' % (src, attr), '%s.%s' % (dest, attr), f=True)
+                            except:
+                                log.info('bindNode from %s to>> %s' %(r9Core.nodeNameStrip(src), 
+                                                                      r9Core.nodeNameStrip(dest))) 
+                    if bindMethod=='constraint':
+                        cmds.parentConstraint(src,dest,mo=True)
+                except:
+                    pass
+        else:
+            raise StandardError('Nothing found by the Hierarchy Code to process')
+        return True 
+          
     @staticmethod    
     def inverseAnimChannels(node, channels, time=None):
         '''
@@ -2347,7 +2493,7 @@ class RandomizeKeys(object):
                     randomRange=self.__calcualteRangeValue(cmds.keyframe(curve, q=True,vc=True,t=time))
                     log.info('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
                 connection=cmds.listConnections(curve,source=False,d=True,p=True)[0]
-                for t in timeLineRangeProcess(time[0], time[1]+1, step):
+                for t in timeLineRangeProcess(time[0], time[1], step, incEnds=True):
                     value=self.noiseFunc(cmds.getAttr(connection,t=t),randomRange,damp)
                     cmds.setKeyframe(connection, v=value,t=t)
                     
@@ -2944,4 +3090,100 @@ class MirrorSetup(object):
         else:
             self.mirrorClass.loadMirrorSetups(filepath=filepath, nodes=cmds.ls(sl=True,l=True))
 
+
+class CameraTracker():
+    
+    def __init__(self, fixed=True):
+        self.win='CameraTrackOptions'
+        self.fixed=fixed
+    
+    @staticmethod   
+    def cameraTrackView(start=None, end=None, step=None, fixed=True, keepOffset=True):
+        '''
+        CameraTracker is a simple wrap over the internal viewFit call but this manages the data
+        over time. Works by taking the current camera, in the current 3dView, and fitting it to
+        frame the currently selected objects per frame, or rather per frameStep.
+        @param start: start frame
+        @param end: end frame
+        @param step: frame step to increment between fit
+        @param fixed: switch between tracking or panning framing fit
+        @param keepOffset: keep the current camera offset rather than doing a full viewFit
+        TODO: add option for cloning the camera rather than using the current directly
+        '''
+        if not cmds.ls(sl=True):
+            raise StandardError('Nothing selected to Track!')
+        cam = cmds.modelEditor(cmds.playblast(ae=True).split('|')[-1],q=True,camera=True) 
+        cmds.cutKey(cam,cl=True,t=(),f=())
+        if not start:
+            start=timeLineRangeGet()[0]
+        if not end:
+            end=timeLineRangeGet()[1]
+        if not step:
+            if cmds.optionVar(exists='red9_cameraTrackStep'):
+                step=cmds.optionVar(q='red9_cameraTrackStep')
+            else:
+                step=10
+            
+        if keepOffset:    
+            if fixed:
+                cachedTransform=cmds.getAttr('%s.translate' % cam)[0]
+            else:
+                cachedTransform=cmds.getAttr('%s.translate' % cam)[0]
+                cmds.viewFit(cam,animate=False)
+                shifted=cmds.getAttr('%s.translate' % cam)[0]
+                offset=[(cachedTransform[0]-shifted[0]),(cachedTransform[1]-shifted[1]),(cachedTransform[2]-shifted[2])]
+            
+        for i in timeLineRangeProcess(start,end,step,incEnds=True):
+            cmds.currentTime(i)
+            if fixed:
+                #fixed transform, panning camera
+                cmds.viewLookAt(cam)
+                if keepOffset:
+                    cmds.setAttr('%s.translate' % cam, cachedTransform[0],cachedTransform[1],cachedTransform[2])
+            else:
+                #transform tracking camera
+                cmds.viewFit(cam,animate=False)
+                if keepOffset:
+                    cmds.move(offset[0],offset[1],offset[2],cam, r=True)
+                    cmds.refresh()
+            cmds.setKeyframe(cam,t=i)
+
+    @classmethod
+    def show(cls):
+        cls()._showUI()
+    
+    def _showUI(self):
+        if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
+        cmds.window(self.win , title=self.win, widthHeight=(263, 160))
         
+        cmds.columnLayout(adjustableColumn=True)
+        cmds.separator(h=15,style='none')
+        cmds.intFieldGrp('CameraFrameStep',numberOfFields=1, 
+                         label='TrackerStep: ', value1=10,
+                         extraLabel='frames',
+                         cw=(1,100),
+                         cc=partial(self.__storePrefs))   
+        cmds.separator(h=15,style='none')
+        cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,130),(2,130)])
+        cmds.button('cameraTrackTrack', label='Track', command=partial(self.__runTracker))  
+        cmds.button('cameraTrackAppy', label='Apply', command=partial(self.__storePrefs))   
+        cmds.setParent('..')
+        cmds.separator(h=15,style='none')
+        cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
+                             c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
+        cmds.showWindow(self.win)
+        cmds.window(self.win,e=True,widthHeight=(263, 130))
+        self.__loadPrefsToUI()
+
+    def __storePrefs(self,*args):
+        if cmds.window(self.win, exists=True):
+            cmds.optionVar(intValue=('red9_cameraTrackStep',cmds.intFieldGrp('CameraFrameStep',q=True,v1=True)))
+            log.debug('stored out cameraTracker prefs')
+        
+    def __loadPrefsToUI(self):
+        if cmds.optionVar(exists='red9_cameraTrackStep'):
+            cmds.intFieldGrp('CameraFrameStep',e=True,v1=cmds.optionVar(q='red9_cameraTrackStep'))
+        
+    def __runTracker(self,*args):
+        self.__storePrefs()
+        self.cameraTrackView(fixed=self.fixed)

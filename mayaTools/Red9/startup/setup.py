@@ -15,7 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__=1.282 
+__buildVersionID__=1.284
 
 import sys
 import os
@@ -117,24 +117,43 @@ def menuSetup():
     cmds.menuItem('redNineMirrorUIItem',l="MirrorSetup",
                   ann="Temp UI to help setup the Mirror Markers on a rig",
                   p='redNineMenuItemRoot', echoCommand=True,
-                  c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.MirrorSetup().show()")  
-    cmds.menuItem(divider=True)
+                  c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.MirrorSetup().show()")
+    
+    cmds.menuItem('redNineCameraTrackItem',l='CameraTracker',sm=True,p='redNineMenuItemRoot')  
+    cmds.menuItem('redNineCamerTrackFixedItem',l="CameraTracker > panning",
+                  ann="Panning Camera : CameraTrack the current view with the current camera",
+                  p='redNineCameraTrackItem', echoCommand=True, 
+                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.cameraTrackView(fixed=True)") 
+    if not mayaVersion()<=2009:
+        cmds.menuItem(optionBox=True,
+                  ann="setup the tracker step and tightness",
+                  p='redNineCameraTrackItem', echoCommand=True, 
+                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.show()")      
+    cmds.menuItem('redNineCamerTrackFreeItem',l="CameraTracker > tracking",
+                  ann="Tracking Camera : CameraTrack the current view with the current camera",
+                  p='redNineCameraTrackItem', echoCommand=True,
+                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.cameraTrackView(fixed=False)") 
+    if not mayaVersion()<=2009:
+        cmds.menuItem(optionBox=True,
+                  ann="setup the tracker step and tightness",
+                  p='redNineCameraTrackItem', echoCommand=True, 
+                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.show()")    
+    
+    cmds.menuItem(divider=True,p='redNineMenuItemRoot')
     cmds.menuItem('redNineAnimBndItem',l="Animation Binder",ann="My Autodesk MasterClass toolset",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="import Red9.core.AnimationBinder as animBnd;animBnd.AnimBinderUI()._UI()")  
-    cmds.menuItem(divider=True)
-    #cmds.menuItem('redNineHelpItem',l="Red9_Help",ann="Boot the Help Files",
-    #              p='redNineMenuItemRoot', echoCommand=True,
-    #              c="Red9.setup.red9_help()")
+    cmds.menuItem(divider=True,p='redNineMenuItemRoot')
     cmds.menuItem('redNineBlogItem',l="Red9_Blog",ann="Open Red9Blog",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="Red9.setup.red9_blog()")
     cmds.menuItem('redNineVimeoItem',l="Red9_Vimeo Channel",ann="Open Red9Vimeo Channel",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="Red9.setup.red9_vimeo()")
-    cmds.menuItem(l="Red9_Details",c='Red9.setup.red9ContactInfo()')    
-    cmds.menuItem(divider=True) 
-    cmds.menuItem('redNineDebuggerItem',l='Red9 Debugger',sm=True)
+    cmds.menuItem(l="Red9_Details",c='Red9.setup.red9ContactInfo()',p='redNineMenuItemRoot')    
+    cmds.menuItem(divider=True,p='redNineMenuItemRoot') 
+    
+    cmds.menuItem('redNineDebuggerItem',l='Red9 Debugger',sm=True,p='redNineMenuItemRoot')
     cmds.menuItem('redNineDebugItem',l="systems: DEBUG",ann="Turn all the logging to Debug",
                   echoCommand=True, c="Red9.core._setlogginglevel_debug()")
     cmds.menuItem('redNineInfoItem',l="systems: INFO",ann="Turn all the logging to Info only",

@@ -194,7 +194,7 @@ def isMetaNodeInherited(node, mInstances=[]):
                 return True
             
 @r9General.Timer                 
-def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass'):
+def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
     @param mTypes: only return meta nodes of a given type
@@ -225,7 +225,7 @@ def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass'):
  
 @r9General.Timer           
 def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInstances=[], mAttrs=None, \
-                          dataType='mClass'):
+                          dataType='mClass', **kws):
     '''
     From a given set of Maya Nodes return all connected mNodes
     Default return is mClass objects
@@ -275,7 +275,7 @@ def getConnectedMetaRig(node):
     raise DeprecationWarning('Deprecated function, replaced with a more generic "getConnectedMetaSystemRoot()"')
 
     
-def getConnectedMetaSystemRoot(node):
+def getConnectedMetaSystemRoot(node, **kws):
     '''
     From a given node see if it's part of a MetaData system, if so
     walk up the parent tree till you get to top meta node and return the class. 
