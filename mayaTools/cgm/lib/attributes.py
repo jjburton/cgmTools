@@ -2426,7 +2426,8 @@ def storeObjectToMessage (obj, storageObj, messageName):
                 if returnMessageObject(storageObj,messageName) != obj:
                     log.debug(attrCache+' already exists. Adding to existing message node.')
                     doBreakConnection(attrCache)
-                    mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+		    #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+		    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
                     return True 
                 else:
                     log.info("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
@@ -2440,16 +2441,18 @@ def storeObjectToMessage (obj, storageObj, messageName):
                 doDeleteAttr(storageObj,messageName)
                 
                 buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
-                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-                
+                #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+		doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
                         
                 return True
         else:
             mc.addAttr (storageObj, ln=messageName, at= 'message')
-            mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+            #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+	    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
             return True
-    except:
-        return False
+    except StandardError,error:
+	log.warning(error)
+	return False
     
 def storeObjectsToMessage (objects, storageObj, messageName):
     """ 

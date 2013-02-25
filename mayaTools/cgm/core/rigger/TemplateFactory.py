@@ -354,7 +354,7 @@ def doMakeLimbTemplate(self):
         i_loc.doName()
         
         self.i_locs.append(i_loc)
-        i_obj.connectChild(i_loc.mNode,'curveLoc','owner')
+        i_obj.connectChildNode(i_loc.mNode,'curveLoc','owner')
         i_loc.parent = self.templateNull#parent to the templateNull
         
         mc.pointConstraint(i_obj.mNode,i_loc.mNode,maintainOffset = False)#Point contraint loc to the object

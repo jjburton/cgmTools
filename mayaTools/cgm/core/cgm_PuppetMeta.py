@@ -193,7 +193,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         #==============   
         if not mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
             self.i_masterNull = cgmMasterNull(puppet = self)
-            #self.connectChild(self.i_masterNull.mNode, 'masterNull','puppet')               
+            #self.connectChildNode(self.i_masterNull.mNode, 'masterNull','puppet')               
             log.info('Master created.')
         else:
             log.info('Master null exists. linking....')            
@@ -206,7 +206,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 return False
         attributes.doSetLockHideKeyableAttr(self.masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         log.debug("Master Null good...")
-
+	
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Info Nodes
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>             
@@ -257,9 +257,10 @@ class cgmPuppet(cgmMeta.cgmNode):
                 log.info('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
                 self.__dict__[Attr].doName()
-                self.i_masterNull.connectChild(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
+                #self.i_masterNull.connectChildNode(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
+		self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
                 log.info("Initialized as 'self.%s'"%(Attr))                    
-
+		
             # Few Case things
             #==============            
             if attr == 'geo':
@@ -319,6 +320,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             return False
         
         self.connectModule(tmpModule)
+	return tmpModule
 
     @r9General.Timer
     def connectModule(self,module,force = True,**kws):
@@ -381,11 +383,18 @@ class cgmPuppet(cgmMeta.cgmNode):
     def getGeo(self):
         return pFactory.getGeo(self)
     
+    def getModuleFromDict(self,checkDict):
+	"""
+	Pass a check dict of attrsibutes and arguments. If that module is found, it returns it.
+	checkDict = {'moduleType':'torso',etc}
+	"""
+	return pFactory.getModuleFromDict(self,checkDict)
+    
     def getModules(self):
 	"""
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
-	return pFactory.getOrderedModules(self)
+	return pFactory.getModuleFromDict(self)    
     
 class cgmMorpheusPuppet(cgmPuppet):
     pass
@@ -413,7 +422,8 @@ class cgmMasterNull(cgmMeta.cgmObject):
             log.info(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.addAttr('puppet',attrType = 'messageSimple')
-            self.connectParent(puppet, 'masterNull','puppet') 
+            if not self.connectParentNode(puppet,'puppet','masterNull'):
+                raise StandardError,"Failed to connect masterNull to puppet network!"		
         
         if not self.isReferenced():   
             if not self.verify():
@@ -459,7 +469,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
         log.info("puppet :%s"%puppet)
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
-            self.connectParent(puppet, infoType, 'puppet')               
+            self.connectParentNode(puppet, 'puppet',infoType)               
 
         self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
         if infoType == '':
@@ -615,7 +625,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		log.debug('Creating %s'%attr)                                    
 		self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
 		self.__dict__[Attr].doName()
-		self.i_masterNull.connectChild(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
+		#self.i_masterNull.connectChildNode(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
+		self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
+		
 		log.debug("Initialized as 'self.%s'"%(Attr))         
 		
 	    #>>> Special data parsing to get things named how we want
@@ -847,7 +859,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
             log.info(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.addAttr('puppet',attrType = 'messageSimple')
-            self.connectParent(puppet, 'masterControl','puppet') 
+            self.connectParentNode(puppet,'puppet','masterControl') 
 	    
         if not self.isReferenced():   
             if not self.verify(*args,**kws):
@@ -1022,7 +1034,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
                 module = module.mNode
             except:
                 module = module
-            self.connectParent(module, bufferType, 'module') 
+            self.connectParentNode(module,'module',bufferType) 
             
         if self.getMessage('module'):
             self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
@@ -1280,7 +1292,8 @@ class cgmModule(cgmMeta.cgmObject):
             else:#Make it
                 log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
-                self.connectChild(self.__dict__[Attr].mNode, attr+'Null','module') #Connect the child to the holder                
+                #self.connectChildNode(self.__dict__[Attr].mNode, attr+'Null','module') #Connect the child to the holder                
+		self.__dict__[Attr].connectParentNode(self.mNode,'module', attr+'Null')                
                 self.__dict__[Attr].addAttr('cgmType',attr+'Null',lock=True)
                 log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
 
@@ -1311,7 +1324,7 @@ class cgmModule(cgmMeta.cgmObject):
             else:#Make it
                 log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmModuleBufferNode(module = self, bufferType = attr, overideMessageCheck = True)#Create and initialize
-                #self.connectChild(self.__dict__[Attr].mNode, attr,'module') #Connect the child to the holder                
+                #self.connectChildNode(self.__dict__[Attr].mNode, attr,'module') #Connect the child to the holder                
                 #self.__dict__[Attr].addAttr('cgmName',attr+'Null',lock=True)
                 log.debug("'%s' initialized to 'self.%s'"%(attr,Attr))    
                 

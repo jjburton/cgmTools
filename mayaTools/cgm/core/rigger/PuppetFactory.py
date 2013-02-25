@@ -56,6 +56,24 @@ def getModules(self):
     self.i_modules = self.getChildMetaNodes(mAttrs = ['moduleChildren'])
     return self.i_modules
 
+@r9General.Timer   
+def getModuleFromDict(self,checkDict):
+    """
+    Pass a check dict of attrsibutes and arguments. If that module is found, it returns it.
+    
+    checkDict = {'moduleType':'torso',etc}
+    """
+    assert type(checkDict) is dict,"Arg must be dictionary"
+    for i_m in self.moduleChildren:
+        matchBuffer = 0
+        for key in checkDict.keys():
+            if i_m.hasAttr(key) and i_m.__dict__[key] == checkDict.get(key):
+                matchBuffer +=1
+        if matchBuffer == len(checkDict.keys()):
+            log.info("Found Morpheus Module: '%s'"%i_m.getShortName())
+            return i_m
+    return False
+
 @r9General.Timer  
 def getOrderedModules(self):
     """ 
@@ -97,7 +115,6 @@ def getOrderedModules(self):
     cnt = 0
     #Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
     while len(l_childrenList)>0 and cnt < 100:#While we still have a cull list
-        log.info(cnt)
         cnt+=1                        
         if cnt == 99:
             log.error('max count')

@@ -186,14 +186,92 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
 	
 	if lock is not None and not self.isReferenced():
-	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)		
-	    
+	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	  
 	    
     def getMessage(self,attr,longNames = True):
 	if mc.objExists('%s.%s' % (self.mNode,attr)) and mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
 	    return attributes.returnMessageData(self.mNode,attr,longNames)
 	return False
+    
+    def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
+        """
+        Fast method of connecting a node to the mNode via a message attr link. This call
+        generates a NONE-MULTI message on both sides of the connection and is designed 
+        for simple parent child relationships.
+        
+        NOTE: this call by default manages the attr to only ONE CHILD to
+        avoid this use cleanCurrent=False
+        @param node: Maya node to connect to this mNode
+        @param attr: Name for the message attribute  
+        @param srcAttr: If given this becomes the attr on the child node which connects it 
+                        to self.mNode. If NOT given this attr is set to self.mNodeID
+        @param cleanCurrent: Disconnect and clean any currently connected nodes to this attr.
+                        Note this is operating on the mNode side of the connection, removing
+                        any currently connected nodes to this attr prior to making the new ones
+        @param force: Maya's default connectAttr 'force' flag, if the srcAttr is already connected 
+                        to another node force the connection to the new attr
+        TODO: do we move the cleanCurrent to the end so that if the connect fails you're not left 
+        with a half run setup?
 	
+	Usage Example:
+        from cgm.core import cgm_Meta as cgmMeta
+	cgmO = cgmMeta.cgmObject()
+	cgm02 = cgmMeta.cgmObject()
+	cgmO.connectChildNode(cgm02.mNode,'childNode','parentNode')
+        """
+        #make sure we have the attr on the mNode, if we already have a MULIT-message
+        #should we throw a warning here???
+        #self.addAttr(attr, attrType='messageSimple')
+        try:
+            if not srcAttr:          
+                srcAttr=self.message  #attr on the nodes source side for the child connection         
+	    """
+            if r9Meta.isMetaNode(node):
+                if not issubclass(type(node), r9Meta.MetaClass): #allows you to pass in an metaClass
+                    r9Meta.MetaClass(node).addAttr(srcAttr,attrType='messageSimple')
+                else:
+                    node.addAttr(srcAttr,attrType='messageSimple')
+                    node=node.mNode 
+            elif not mc.attributeQuery(srcAttr, exists=True, node=node):
+                mc.addAttr(node,longName=srcAttr, at='message', m=False)  
+		"""
+            #if not self.isChildNode(node, attr, srcAttr): 
+	    #mc.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=force)
+	    attributes.storeObjectToMessage(node,self.mNode,attr)
+	    if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
+        except StandardError,error:
+            log.warning(error)
+	    
+    def connectParentNode(self, node, attr, connectBack = None, srcAttr=None):
+        """
+	Replacing Mark's connect Parent with our own which connects to .message connections.
+	
+        Fast method of connecting message links to the mNode as parents
+        @param node: Maya nodes to connect to this mNode
+        @param attr: Name for the message attribute on self to connec to the parent
+	
+        @param srcAttr: If given this becomes the attr on the node which connects it 
+                        to the parent. If NOT given the connection attr is the parent.message
+        """
+        log.info(connectBack)
+        if issubclass(type(node), r9Meta.MetaClass):
+            #if not srcAttr:
+                #srcAttr=node.message
+            node=node.mNode        
+        try:
+            #if connectBack and not mc.attributeQuery(connectBack, exists=True, node=node):
+                #add to parent node
+                #mc.addAttr(node,longName=connectBack, at='message', m=False)
+	    attributes.storeObjectToMessage(node,self.mNode,attr)
+	    if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)
+	    #attributes.storeObjectToMessage(node,self.mNode,attr)
+	    
+	    #if srcAttr:attributes.storeObjectToMessage(node,self.mNode,srcAttr)
+	    return True
+	    
+        except StandardError,error:
+                log.warning(error)
+		
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
 	    #enum special handling
@@ -2545,18 +2623,16 @@ class cgmAttr(object):
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================  
-def getMetaNodesInitializeOnly(types = ['network'],mTypes = ['cgmMorpheusMakerNetwork']):
+def getMetaNodesInitializeOnly(mTypes = ['cgmMorpheusMakerNetwork']):
     """
     Meant to be a faster get command than Mark's for nodes we only want initializeOnly mode
     """
-    checkList = []
+    checkList = r9Meta.getMetaNodes(mAttrs = 'mClass', mTypes=mTypes,dataType = '')
+
     returnList = []
-    for t in types:
-	buffer = mc.ls(type=t) or []
-	if buffer:checkList.extend(buffer)
-    for o in buffer:
+    for o in checkList:
 	i_o = False
-	try:i_o = cgmNode(o,initializeOnly = True)
+	try:i_o = r9Meta.MetaClass(o,initializeOnly = True)
 	except:log.warning("'%s' can't take initializeOnly kw"%o)
 	if i_o and i_o.hasAttr('mClass') and i_o.mClass in mTypes:
 	    returnList.append(i_o)
