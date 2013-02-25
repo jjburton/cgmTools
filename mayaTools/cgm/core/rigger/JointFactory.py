@@ -2,9 +2,6 @@
 import copy
 import re
 
-#TEMP
-import cgm.core
-cgm.core._reload()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging
@@ -140,7 +137,6 @@ def doSkeletonize(self):
     for i_obj in self.i_controlObjects:#These are our base span u positions on the curve
         l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(i_obj.mNode,curve)['parameter'])
     l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
-    
     #>>>Get div per span
     l_spanDivs = []
     for segment in l_spanSegmentUPositions:
@@ -152,6 +148,9 @@ def doSkeletonize(self):
                 l_spanDivs[int(k)]#If the arg passes
                 l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
             except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))
+    
+    log.debug("l_spanSegmentUPositions: %s"%l_spanSegmentUPositions)
+    log.debug("l_spanDivs: %s"%l_spanDivs)
     
     #>>>Get div per span 
     l_jointUPositions = []

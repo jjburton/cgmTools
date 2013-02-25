@@ -1136,7 +1136,6 @@ class cgmModule(cgmMeta.cgmObject):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-        
         super(cgmModule, self).__init__(*args,**kws) 
 
         #Keywords - need to set after the super call
@@ -1382,7 +1381,8 @@ class cgmModule(cgmMeta.cgmObject):
 
     def getGeneratedCoreNames(self):
         return mFactory.getGeneratedCoreNames(self)
-    
+    #>>> Sizing
+    #===========================================================
     def doSize(self,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -1394,19 +1394,46 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isSized)
         """
-        return mFactory.isSized(self,**kws)       
+        return mFactory.isSized(self,**kws)  
+    
+    #>>> Templates
+    #===========================================================    
     def isTemplated(self):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isTemplated)
         """
         return mFactory.isTemplated(self)
+    
+    def doTemplate(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.doTemplate)
+        """
+        return mFactory.doTemplated(self)
+    
+    def deleteTemplate(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.deleteTemplate)
+        """
+        return mFactory.deleteTemplate(self) 
+    
+    #>>> Skeletonize
+    #===========================================================  
     def isSkeletonized(self):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isSkeletonized)
         """
         return mFactory.isSkeletonized(self)
+    
+    def doSkeletonized(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.doSkeletonized)
+        """
+        return mFactory.doSkeletonized(self)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      

@@ -19,67 +19,17 @@ reload(attributes)
 from cgm.lib.classes import NameFactory
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
+from cgm.core.rigger import TemplateFactory as tFactory
+reload(tFactory)
+from cgm.core.rigger import JointFactory as jFactory
+reload(jFactory)
+
 
 ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-@r9General.Timer   
-def isTemplated(self):
-    """
-    Return if a module is templated or not
-    """
-    log.info(">>> isTemplated")
-    coreNamesValue = self.coreNames.value
-    if not coreNamesValue:
-        log.warning("No core names found")
-        return False
-    if not self.templateNull.getChildren():
-        log.warning("No children found in template null")
-        return False   
-    
-    for attr in 'controlObjects','root','curve','orientHelpers','orientRootHelper':
-        if not self.templateNull.getMessage(attr):
-            log.warning("No data found on '%s'"%attr)
-            return False    
-        
-    if len(coreNamesValue) != len(self.templateNull.getMessage('controlObjects')):
-        log.warning("Not enough handles.")
-        return False    
-        
-    for i_obj in self.templateNull.controlObjects:#check for helpers
-        if not i_obj.getMessage('helper'):
-            log.warning("'%s' missing it's helper"%i_obj.getShortName())
-            return False
-    
-    #self.moduleStates['templateState'] = True #Not working yet
-    return True
-
-@r9General.Timer   
-def isSkeletonized(self):
-    """
-    Return if a module is skeletonized or not
-    """
-    log.info(">>> isSkeletonized")
-    if not isTemplated(self):
-        log.warning("Not templated, can't be skeletonized yet")
-        return False
-    
-    l_coreNames = self.coreNames.value
-    if not l_coreNames:
-        log.warning("No core names found")
-        return False
-    
-    iList_skinJoints = self.rigNull.skinJoints
-    if not iList_skinJoints:
-        log.warning("No skin joints found")
-        return False        
-    #>>> How many joints should we have 
-    
-
-    return True
-
 @r9General.Timer   
 def isSized(self):
     """
@@ -161,8 +111,8 @@ def doSize(self,sizeMode='normal',geo = [],posList = []):
             posList = curves.returnCVsPosList(curve)#Get the pos of the cv's
             mc.delete(curve) 
             
-        self.i_module.templateNull.__setattr__('templateStarterData',posList,lock=True)
-        log.info("'%s' manually sized!"%self.i_module.getShortName())
+        self.templateNull.__setattr__('templateStarterData',posList,lock=True)
+        log.info("'%s' manually sized!"%self.getShortName())
         return True
             
     elif sizeMode == 'normal':
@@ -216,7 +166,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = []):
             #Store locs
             #==============  
             log.debug("finish data: %s"% buffer)
-            self.i_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
+            self.templateNull.__setattr__('templateStarterData',buffer,lock=True)
             #self.i_module.templateNull.templateStarterData = buffer#store it
             log.info("'%s' sized!"%self.i_module.getShortName())
             dragFactory.clickMesh.finalize(self)
@@ -357,3 +307,96 @@ def getGeneratedCoreNames(self):
         
     return generatedNames
 
+#=====================================================================================================
+#>>> Template
+#=====================================================================================================
+@r9General.Timer   
+def isTemplated(self):
+    """
+    Return if a module is templated or not
+    """
+    log.info(">>> isTemplated")
+    coreNamesValue = self.coreNames.value
+    if not coreNamesValue:
+        log.warning("No core names found")
+        return False
+    if not self.templateNull.getChildren():
+        log.warning("No children found in template null")
+        return False   
+    
+    for attr in 'controlObjects','root','curve','orientHelpers','orientRootHelper':
+        if not self.templateNull.getMessage(attr):
+            log.warning("No data found on '%s'"%attr)
+            return False    
+        
+    if len(coreNamesValue) != len(self.templateNull.getMessage('controlObjects')):
+        log.warning("Not enough handles.")
+        return False    
+        
+    for i_obj in self.templateNull.controlObjects:#check for helpers
+        if not i_obj.getMessage('helper'):
+            log.warning("'%s' missing it's helper"%i_obj.getShortName())
+            return False
+    
+    #self.moduleStates['templateState'] = True #Not working yet
+    return True
+
+@r9General.Timer   
+def doTemplate(self):
+    try:
+        if not isSized(self):
+            log.warning("Not sized: '%s'"%self.getShortName())
+            return False      
+        tFactory.go(self)      
+        if not isTemplated(self):
+            log.warning("Template failed: '%s'"%self.getShortName())
+            return False
+    except StandardError,error:
+        log.warning(error)    
+    
+@r9General.Timer   
+def deleteTemplate(self):
+    try:
+        if self.templateNull.getAllChildren():
+            mc.delete(self.templateNull.getAllChildren())
+        return True
+    except StandardError,error:
+        log.warning(error)
+        
+#=====================================================================================================
+#>>> Skeleton
+#=====================================================================================================
+@r9General.Timer   
+def isSkeletonized(self):
+    """
+    Return if a module is skeletonized or not
+    """
+    log.info(">>> isSkeletonized")
+    if not isTemplated(self):
+        log.warning("Not templated, can't be skeletonized yet")
+        return False
+    
+    l_coreNames = self.coreNames.value
+    if not l_coreNames:
+        log.warning("No core names found")
+        return False
+    
+    iList_skinJoints = self.rigNull.skinJoints
+    if not iList_skinJoints:
+        log.warning("No skin joints found")
+        return False        
+    #>>> How many joints should we have 
+    return True
+
+@r9General.Timer   
+def doSkeletonize(self):
+    try:
+        if not isTemplated(self):
+            log.warning("Not templated: '%s'"%self.getShortName())
+            return False      
+        jFactory.go(self)      
+        if not isSkeletonized(self):
+            log.warning("Skeleton build failed: '%s'"%self.getShortName())
+            return False
+    except StandardError,error:
+        log.warning(error) 

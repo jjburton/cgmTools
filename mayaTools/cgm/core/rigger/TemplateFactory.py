@@ -1,9 +1,6 @@
 import copy
 import re
 
-#TEMP
-import cgm.core
-cgm.core._reload()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging
@@ -37,9 +34,10 @@ reload(dragFactory)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+
 class go(object):
     @r9General.Timer
-    def __init__(self,module,forceNew = False): 
+    def __init__(self,module,forceNew = True): 
         """
         To do:
         Add rotation order settting
@@ -52,12 +50,12 @@ class go(object):
         #>>> module null data 
         log.info(">>> go.__init__")        
         assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
+        module.deleteTemplate()        
         if module.isTemplated():
-            if not forceNew:
-                log.error("'%s' has already been templated"%module.getShortName())
-                raise StandardError,"'%s' has already been templated"%module.getShortName()
+            if forceNew:
+                module.deleteTemplate()
             else:
-                raise NotImplementedError,"Need to make a cleaner"
+                raise StandardError,"'%s' has already been templated"%module.getShortName()
         
         self.cls = "TemplateFactory.go"
         self.m = module# Link for shortness
