@@ -1381,14 +1381,21 @@ class cgmModule(cgmMeta.cgmObject):
 
     def getGeneratedCoreNames(self):
         return mFactory.getGeneratedCoreNames(self)
+    
+    def getState(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.getState)
+        """
+        return mFactory.getState(self)	
     #>>> Sizing
     #===========================================================
-    def doSize(self,**kws):
+    def doSize(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doSize)
         """
-        return mFactory.doSize(self,**kws)
+        return mFactory.doSize(self,*args,**kws)
     def isSized(self,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -1410,7 +1417,7 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doTemplate)
         """
-        return mFactory.doTemplated(self)
+        return mFactory.doTemplate(self)
     
     def deleteTemplate(self):
         """

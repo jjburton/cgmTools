@@ -26,7 +26,11 @@ reload(jFactory)
 
 
 ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Shared libraries
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+l_moduleStates = ['define','size','template','skeleton','rig']
+l_modulesClasses = ['cgmModule','cgmLimb']
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -35,7 +39,7 @@ def isSized(self):
     """
     Return if a moudle is sized or not
     """
-    log.info(">>> isSized")    
+    log.debug(">>> isSized")    
     handles = self.templateNull.handles
     if len(self.coreNames.value) != handles:
         log.warning("Not enough names for handles")
@@ -56,7 +60,7 @@ def isSized(self):
     return False
     
     
-def doSize(self,sizeMode='normal',geo = [],posList = []):
+def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     """
     Size a module
     1) Determine what points we need to gather
@@ -74,7 +78,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = []):
     Add geo argument that can be passed for speed
     Add clamp on value
     """
-    log.info(">>> doSize")    
+    log.debug(">>> doSize")    
     
     clickMode = {"heel":"surface"}    
     
@@ -128,8 +132,8 @@ def doSize(self,sizeMode='normal',geo = [],posList = []):
     class moduleSizer(dragFactory.clickMesh):
         """Sublass to get the functs we need in there"""
         def __init__(self,i_module = i_module,**kws):
-            log.info(">>> moduleSizer.__init__")    
-            if kws:log.info("kws: %s"%str(kws))
+            log.debug(">>> moduleSizer.__init__")    
+            if kws:log.debug("kws: %s"%str(kws))
             
             super(moduleSizer, self).__init__(**kws)
             self.i_module = i_module
@@ -190,7 +194,7 @@ def doSetParentModule(self,moduleParent,force = False):
     #>>Check existance
         #==============	
     #Get our instance
-    log.info(">>> doSetParentModule")
+    log.debug(">>> doSetParentModule")
     
     try:
         moduleParent.mNode#See if we have an instance
@@ -225,8 +229,8 @@ def doSetParentModule(self,moduleParent,force = False):
         #Connect
         #==============	
     else:
-        log.info("Current children: %s"%moduleParent.getMessage('moduleChildren'))
-        log.info("Adding '%s'!"%self.getShortName())    
+        log.debug("Current children: %s"%moduleParent.getMessage('moduleChildren'))
+        log.debug("Adding '%s'!"%self.getShortName())    
 
         buffer.append(self.mNode) #Revist when children has proper add/remove handling
         moduleParent.moduleChildren = buffer
@@ -257,8 +261,8 @@ def getGeneratedCoreNames(self):
     TODO:
     Where to store names?
     """
-    log.info(">>> getGeneratedCoreNames")    
-    log.info("Generating core names via ModuleFactory - '%s'"%self.getShortName())
+    log.debug(">>> getGeneratedCoreNames")    
+    log.debug("Generating core names via ModuleFactory - '%s'"%self.getShortName())
 
     ### check the settings first ###
     partType = self.moduleType
@@ -276,7 +280,7 @@ def getGeneratedCoreNames(self):
             cnt+=1
 
     elif int(self.templateNull.handles) > (len(settingsCoreNames)):
-        log.info(" We need to make sure that there are enough core names for handles")       
+        log.debug(" We need to make sure that there are enough core names for handles")       
         cntNeeded = self.templateNull.handles  - len(settingsCoreNames) +1
         nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
         toIterate = settingsCoreNames[1]
@@ -315,7 +319,7 @@ def isTemplated(self):
     """
     Return if a module is templated or not
     """
-    log.info(">>> isTemplated")
+    log.debug(">>> isTemplated")
     coreNamesValue = self.coreNames.value
     if not coreNamesValue:
         log.warning("No core names found")
@@ -371,7 +375,7 @@ def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
     """
-    log.info(">>> isSkeletonized")
+    log.debug(">>> isSkeletonized")
     if not isTemplated(self):
         log.warning("Not templated, can't be skeletonized yet")
         return False
@@ -400,3 +404,53 @@ def doSkeletonize(self):
             return False
     except StandardError,error:
         log.warning(error) 
+#=====================================================================================================
+#>>> States
+#=====================================================================================================        
+@r9General.Timer   
+def isModule(self):
+    """
+    Simple module check
+    """
+    if not self.hasAttr('mClass'):
+        log.warning("Has no 'mClass', not a module: '%s'"%self.getShortName())
+        return False
+    if self.mClass not in l_modulesClasses:
+        log.warning("Class not a known module type: '%s'"%self.mClass)
+        return False  
+    log.debug("Is a module: : '%s'"%self.getShortName())
+    return True
+
+@r9General.Timer   
+def getState(self):
+    """ 
+    Check module state ONLY from the state check attributes
+    
+    RETURNS:
+    state(int) -- indexed to ModuleFactory.l_moduleStates
+    
+    Possible states:
+    define
+    sized
+    templated
+    skeletonized
+    rigged
+    """
+    if not isModule(self):
+        return False
+    
+    d_CheckList = {'size':isSized,
+                   'template':isTemplated,
+                   'skeleton':isSkeletonized
+                   }
+    goodState = 0
+    for i,state in enumerate(l_moduleStates):
+        if state in d_CheckList.keys():
+            if d_CheckList[state](self):
+                goodState = i
+            else:break
+        elif i != 0:
+            log.warning("Need test for: '%s'"%state)
+    log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
+    return goodState
+    
