@@ -346,7 +346,7 @@ def isTemplated(self):
     return True
 
 @r9General.Timer   
-def doTemplate(self):
+def doTemplate(self,*args,**kws):
     try:
         if not isSized(self):
             log.warning("Not sized: '%s'"%self.getShortName())
@@ -355,18 +355,30 @@ def doTemplate(self):
         if not isTemplated(self):
             log.warning("Template failed: '%s'"%self.getShortName())
             return False
+        return True
     except StandardError,error:
         log.warning(error)    
     
 @r9General.Timer   
-def deleteTemplate(self):
+def deleteTemplate(self,*args,**kws):
     try:
-        if self.templateNull.getAllChildren():
-            mc.delete(self.templateNull.getAllChildren())
+        objList = returnTemplateObjects(self)
+        if objList:
+            mc.delete(objList)
         return True
     except StandardError,error:
         log.warning(error)
-        
+@r9General.Timer   
+def returnTemplateObjects(self):
+    try:
+        templateNull = self.templateNull.getShortName()
+        returnList = []
+        for obj in mc.ls(type = 'transform'):
+            if attributes.doGetAttr(obj,'templateOwner') == templateNull:
+                returnList.append(obj)
+        return returnList
+    except StandardError,error:
+        log.warning(error)        
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
@@ -393,7 +405,7 @@ def isSkeletonized(self):
     return True
 
 @r9General.Timer   
-def doSkeletonize(self):
+def doSkeletonize(self,*args,**kws):
     try:
         if not isTemplated(self):
             log.warning("Not templated: '%s'"%self.getShortName())
@@ -402,8 +414,14 @@ def doSkeletonize(self):
         if not isSkeletonized(self):
             log.warning("Skeleton build failed: '%s'"%self.getShortName())
             return False
+        return True
     except StandardError,error:
         log.warning(error) 
+        
+@r9General.Timer   
+def deleteSkeleton(self,*args,**kws):  
+    log.info("deleteSkeleton: Not implemented")
+    return True
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
@@ -451,6 +469,86 @@ def getState(self):
             else:break
         elif i != 0:
             log.warning("Need test for: '%s'"%state)
-    log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
+    log.info("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
     return goodState
+
+@r9General.Timer   
+def setState(self,stateArg,*args,**kws):
+    """ 
+    Set a module's state
+    
+    RETURNS:
+    generatedNames(list)
+    """
+    d_upStateFunctions = {'size':doSize,
+                           'template':doTemplate,
+                           'skeleton':doSkeletonize
+                           }
+    d_downStateFunctions = {'size':deleteTemplate,
+                           'template':deleteSkeleton
+                           }
+    if not isModule(self):
+        return False
+    
+    #>>> Validate argument
+    if type(stateArg) in [str,unicode]:
+        if stateArg in l_moduleStates:
+            stateIndex = l_moduleStates.index(stateArg)
+            stateName = stateArg
+        else:
+            log.warning("Bad stateArg: %s"%stateArg)
+            return False
+    elif type(stateArg) is int:
+        if stateArg<= len(l_moduleStates):
+            stateIndex = stateArg
+            stateName = l_moduleStates[stateArg]         
+        else:
+            log.warning("Bad stateArg: %s"%stateArg)
+            return False        
+    else:
+        log.warning("Bad stateArg: %s"%stateArg)
+        return False
+    
+    log.info("stateIndex: %s | stateName: '%s'"%(stateIndex,stateName))
+    
+    #>>> Meat
+    #========================================================================
+    currentState = getState(self) 
+    if currentState == stateIndex:
+        log.info("'%s' already has state: %s"%(self.getShortName(),stateName))
+        return True
+    #If we're here, we're going to move through the set states till we get to our spot
+    if stateIndex > currentState:
+        startState = currentState+1        
+        log.debug(' up stating...')        
+        log.debug("Starting doState: '%s'"%l_moduleStates[startState])
+        doStates = l_moduleStates[startState:stateIndex+1]
+        log.info("doStates: %s"%doStates)        
+        for doState in doStates:
+            if doState in d_upStateFunctions.keys():
+                if not d_upStateFunctions[doState](self,*args,**kws):return False
+                else:log.info("Comleted: %s"%doState)
+            else:
+                log.info("No up state function for: %s"%doState)
+    else:#Going down
+        log.debug('down stating...')        
+        l_reverseModuleStates = copy.copy(l_moduleStates)
+        l_reverseModuleStates.reverse()
+        startState = currentState      
+        log.debug(' up stating...')     
+        log.debug("l_reverseModuleStates: %s"%l_reverseModuleStates)
+        log.debug("Starting downState: '%s'"%l_moduleStates[startState])
+        rev_start = l_reverseModuleStates.index( l_moduleStates[startState] )+1
+        rev_end = l_reverseModuleStates.index( l_moduleStates[stateIndex] )+1
+        doStates = l_reverseModuleStates[rev_start:rev_end]
+        log.info("toDo: %s"%doStates)
+        
+        for doState in doStates:
+            log.debug("doState: %s"%doState)
+            if doState in d_downStateFunctions.keys():
+                if not d_downStateFunctions[doState](self,*args,**kws):return False
+                else:log.info("Comleted: %s"%doState)
+            else:
+                log.info("No down state function for: %s"%doState)            
+    
     

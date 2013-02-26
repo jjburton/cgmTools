@@ -75,6 +75,22 @@ def getModuleFromDict(self,checkDict):
     return False
 
 @r9General.Timer  
+def getState(self):
+    i_modules = self.moduleChildren
+    if not i_modules:
+        log.warning("'%s' has no modules"%self.cgmName)
+        return False
+    
+    l_states = []
+    for i_m in i_modules:
+        l_states.append(i_m.getState())
+        
+    log.info("'%s' states: %s"%(self.getShortName(),l_states))
+    return min(l_states)
+    
+    
+    
+@r9General.Timer  
 def getOrderedModules(self):
     """ 
     Returns ordered modules of a character

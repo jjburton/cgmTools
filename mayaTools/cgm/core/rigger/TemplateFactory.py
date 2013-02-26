@@ -96,9 +96,18 @@ class go(object):
         if self.m.mClass == 'cgmLimb':
             log.info("mode: cgmLimb Template")
             doMakeLimbTemplate(self)
+            doTagChildren(self)
         else:
             raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
         
+@r9General.Timer
+def doTagChildren(self): 
+    try:
+        for obj in self.m.templateNull.getAllChildren():
+            i_obj = cgmMeta.cgmNode(obj)
+            i_obj.doStore('templateOwner',self.templateNull)
+    except StandardError,error:
+        log.warning(error) 
         
 @r9General.Timer
 def doTemplate(self):

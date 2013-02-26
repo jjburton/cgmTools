@@ -394,7 +394,13 @@ class cgmPuppet(cgmMeta.cgmNode):
 	"""
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
-	return pFactory.getModuleFromDict(self)    
+	return pFactory.getModuleFromDict(self)
+    
+    def getState(self):
+	"""
+	Returns puppet state. That is the minimum state of it's modules
+	"""
+	return pFactory.getState(self)       
     
 class cgmMorpheusPuppet(cgmPuppet):
     pass
@@ -1382,12 +1388,21 @@ class cgmModule(cgmMeta.cgmObject):
     def getGeneratedCoreNames(self):
         return mFactory.getGeneratedCoreNames(self)
     
+    #>>> States
+    #===========================================================
     def getState(self):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.getState)
         """
         return mFactory.getState(self)	
+    def setState(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.setState)
+        """
+        return mFactory.setState(self,*args,**kws)	
+    
     #>>> Sizing
     #===========================================================
     def doSize(self,*args,**kws):
