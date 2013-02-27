@@ -21,6 +21,7 @@ from cgm.lib import (modules,
                      curves,
                      lists,
                      distance,
+                     locators,
                      constraints,
                      attributes,
                      position,
@@ -264,39 +265,77 @@ def doTemplate(self):
 
 @r9General.Timer
 def returnModuleBaseSize(self):
-    assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"    
     log.info(">>> returnModuleSize")
     log.warning(">>>>>>This function isn't done")
-    """
-        if moduleParent == masterNull:
-        length = (distance.returnDistanceBetweenPoints (corePositionList[0],corePositionList[-1]))
-        size = length / len(coreNamesAttrs)
+    size = 10
+    if self.getState() < 1:
+        log.error("'%s' has not been sized. Cannot find base size"%self.getShortName())
+        return False
+    
+    if not self.getMessage('moduleParent') and self.getMessage('modulePuppet'):
+        log.info("Sizing from modulePuppet")
+        return size
+    elif self.getMessage('moduleParent'):#If it has a parent
+        log.info("Sizing from moduleParent")
+        i_templateNull = self.templateNull #Link
+        i_parent = self.moduleParent #Link
+        parentState = i_parent.getState()
+        if i_parent.isTemplated():#If the parent has been templated, it makes things easy
+            log.info("Parent has been templated...")
+            nameCount = len(self.coreNames.value) or 1
+            parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
+            log.info("parentTemplateObjects: %s"%parentTemplateObjects)
+            log.info("firstPos: %s"%i_templateNull.templateStarterData[0])
+            closestObj = distance.returnClosestObjectFromPos(i_templateNull.templateStarterData[0],parentTemplateObjects)
+            #Find the closest object from the parent's template object
+            log.info("closestObj: %s"%closestObj)
+            
+            boundingBoxSize = distance.returnBoundingBoxSize (closestObj)
+            size = max(boundingBoxSize) *.25
+            if self.moduleType == 'clavicle':
+                return size * .5
+            elif self.moduleType == 'head':
+                return size * .75
+            if i_parent.moduleType == 'clavicle':
+                return size * 2            
+        else:
+            log.info("Parent has not been templated...")          
     else:
-        parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
-        parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
-        parentTemplateObjects = []
-        for key in parentTemplatePosObjectsInfoData.keys():
-            if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
-                if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
-                    parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
-        createBuffer = curves.createControlCurve('sphere',1)
-        pos = corePositionList[0]
-        mc.move (pos[0], pos[1], pos[2], createBuffer, a=True)
-        closestParentObject = distance.returnClosestObject(createBuffer,parentTemplateObjects)
-        boundingBoxSize = distance.returnBoundingBoxSize (closestParentObject)
-        maxSize = max(boundingBoxSize)
-        size = maxSize *.25
-        mc.delete(createBuffer)
-        if partType == 'clavicle':
-            size = size * .5
-        elif partType == 'head':
-            size = size * .75
-        if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
-            size = size * 2
-        
-    cnt = 0
+        pass
+    return size 
+
+def constrainToParentModule(self):
     """
-    return 10 
+    Pass a module class. Constrains template root to parent's closest template object
+    """
+    log.info(">>> constrainToParentModule")
+    if not self.isTemplated():
+        log.error("Must be template state to contrainToParentModule: '%s' "%self.getShortName())
+        return False
+    
+    if not self.getMessage('moduleParent'):
+        return False
+    else:
+        log.info("looking for moduleParent info")
+        i_templateNull = self.templateNull #Link
+        i_parent = self.moduleParent #Link
+        parentState = i_parent.getState()
+        if i_parent.isTemplated():#If the parent has been templated, it makes things easy
+            log.info("Parent has been templated...")
+            parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
+            log.info("parentTemplateObjects: %s"%parentTemplateObjects)
+            closestObj = distance.returnClosestObject(i_templateNull.getMessage('root')[0],parentTemplateObjects)
+            #Find the closest object from the parent's template object
+            log.info("closestObj: %s"%closestObj)
+            
+            if cgmMeta.cgmNode(i_templateNull.root.parent).isConstrainedBy(closestObj):
+                log.info("Already constrained!")
+                return True
+            else:
+                return constraints.doConstraintObjectGroup(closestObj,group = i_templateNull.root.parent,constraintTypes=['point'])
+        else:
+            log.info("Parent has not been templated...")           
+            return False
 
 @r9General.Timer
 def doMakeLimbTemplate(self):  
@@ -317,7 +356,7 @@ def doMakeLimbTemplate(self):
     if not doCurveDegree:raise ValueError,"Curve degree didn't query"
     
     #>>>Scale stuff
-    size = returnModuleBaseSize(self)
+    size = returnModuleBaseSize(self.m)
     
     lastCountSizeMatch = len(self.corePosList) -1
     

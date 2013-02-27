@@ -887,8 +887,10 @@ def returnObjectType(obj):
     """
     try:
 	intialCheck = mc.objectType(obj)
-    except:
-	raise ValueError,obj
+    except StandardError,error:
+        log.warning(error) 
+	return False
+	
     if intialCheck == 'objectSet':
         return 'objectSet'
     

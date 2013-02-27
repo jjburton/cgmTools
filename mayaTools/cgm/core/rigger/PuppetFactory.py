@@ -88,8 +88,6 @@ def getState(self):
     log.info("'%s' states: %s"%(self.getShortName(),l_states))
     return min(l_states)
     
-    
-    
 @r9General.Timer  
 def getOrderedModules(self):
     """ 

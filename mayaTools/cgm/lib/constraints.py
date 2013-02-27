@@ -121,16 +121,26 @@ def aim(*a, **kw):
         return returnList
     else:
         return False
-
-
-
+        
 def returnObjectConstraints(object):
-    buffer = mc.listRelatives(object,type='constraint')
-    if buffer:
-        return buffer
+    buffer = mc.listRelatives(object,type='constraint',fullPath=True) or []
+    if buffer:return lists.returnListNoDuplicates(buffer)
     else:
-        guiFactory.warning('%s has no constraints' %object)
+        log.warning('%s has no constraints' %object)
+        return []
+    
+def returnObjectDrivenConstraints(obj):
+    """
+    Returns constraints that this object is a target of
+    """
+    constraintsBuffer = mc.listConnections(obj,source = False,destination = True,skipConversionNodes = True, type='constraint') or []
+    constraintsBuffer = lists.returnListNoDuplicates(constraintsBuffer)
+    objectConstraints = returnObjectConstraints(obj)
+    for c in objectConstraints:
+        if c in constraintsBuffer:constraintsBuffer.remove(c)
 
+    return constraintsBuffer
+    
 def returnConstraintTargets(constraint):
     objType = search.returnObjectType(constraint)
     targetsDict = {}
@@ -144,6 +154,9 @@ def returnConstraintTargets(constraint):
         cmd = constaintCmdDict.get(objType)
         #>>> Get targets
         targetList = cmd(constraint,q=True,targetList=True)
+    else:
+        log.warning("Unknown constraint type for returnConstraintTargets: '%s'"%objType)
+        return False
 
     if not targetList:
         guiFactory.warning('%s has no targets' %constraint)
@@ -418,10 +431,9 @@ def doConstraintObjectGroup(targets,obj = False,constraintTypes = [],group = Fal
     log.info("constraintTypes: %s"%str(constraintTypes))
     log.debug("group: %s"%str(group))
     log.debug("mode: %s"%str(mode))
+    if targets and not type(targets)==list:targets=[targets]#thanks Mark, for this syntax
+    if constraintTypes and not type(constraintTypes)==list:constraintTypes=[constraintTypes]
     
-		
-    assert type(targets) is list,"targets must be list"    
-    assert type(constraintTypes) is list,"constraintTypes must be list"
     normalizedDistances = False
     if not obj and not group:
         log.warning("Must have a obj or a group")

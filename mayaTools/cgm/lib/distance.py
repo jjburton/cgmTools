@@ -865,6 +865,26 @@ def returnClosestObject(targetObject, objectList):
         distanceList.append (distance)
     return objectList[(distanceList.index ((min(distanceList))))]
 
+def returnClosestObjectFromPos(startPoint, objectList):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Get the closest object from an list to a target object
+
+    ARGUMENTS:
+    targetObject(string) - object you want to check distance to
+    objectList(list) - list of objects to pick from
+
+    RETURNS:
+    closestObject(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    distanceList = []
+    for obj in objectList:
+        pos = returnWorldSpacePosition(obj)
+	distanceList.append (returnDistanceBetweenPoints(startPoint, pos))
+    return objectList[(distanceList.index ((min(distanceList))))]
+
 def returnClosestPoint(startPoint, posList):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

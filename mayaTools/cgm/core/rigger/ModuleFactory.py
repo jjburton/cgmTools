@@ -477,8 +477,10 @@ def setState(self,stateArg,*args,**kws):
     """ 
     Set a module's state
     
-    RETURNS:
-    generatedNames(list)
+    TODO:
+    Make template info be stored when leaving
+    
+    
     """
     d_upStateFunctions = {'size':doSize,
                            'template':doTemplate,

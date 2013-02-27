@@ -31,6 +31,7 @@ reload(ml_resetChannels)
 from cgm.lib import (lists,
                      search,
                      attributes,
+                     constraints,
                      dictionary,
                      rigging,
                      settings,
@@ -104,15 +105,15 @@ class cgmMetaFactory(object):
             log.debug("Appears to be a '%s'"%mClass)
             log.debug("Specialized processing not implemented, initializing as...") 
 	    
-        objectType = search.returnObjectType(node)
-	if objectType == 'objectSet':
+        objType = search.returnObjectType(node)
+	if objType == 'objectSet':
             log.debug("'%s' Appears to be an objectSet, initializing as cgmObjectSet"%node)	    
 	    return cgmObjectSet(node,*args,**kws)
         elif mc.ls(node,type='transform'):
             log.debug("'%s' Appears to be a transform, initializing as cgmObject"%node)
             return cgmObject(name = name, node = node,**kws)          
         else:
-            log.debug("Appears to be a '%s'. Initializing as cgmNode"%objectType)  
+            log.debug("Appears to be a '%s'. Initializing as cgmNode"%objType)  
             return cgmNode(name = name, node = node,**kws)    
           
         return False
@@ -393,7 +394,36 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def getNameDict(self):
 	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}  
     
+    def getConstraintsTo(self):	
+	return constraints.returnObjectConstraints(self.mNode)
+
+    def getConstraintsFrom(self):
+	return constraints.returnObjectDrivenConstraints(self.mNode)
     
+    def isConstrainedBy(self,obj):
+	l_constraints = self.getConstraintsTo()
+	if not l_constraints:
+	    return False
+	else:
+	    try:
+		#If we have an Object Factory instance, link it
+		obj.mNode
+		i_obj = obj
+	    except:
+		#If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+		assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+		i_obj = cgmNode(obj)
+	    log.info("l_constraints: %s"%l_constraints)
+	    log.info("obj: %s"%i_obj.getShortName())
+	    #for i_c in [r9Meta.MetaClass(c) for c in l_constraints]:
+	    for c in l_constraints:
+		targets = constraints.returnConstraintTargets(c)
+		log.info("%s : %s"%(c,targets))
+		if i_obj.getShortName() in targets:
+		    return c
+	return False
+	    
+
     def getTransform(self):
 	"""Find the transform of the object"""
 	buffer = mc.ls(self.mNode, type = 'transform') or False
