@@ -1482,7 +1482,8 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              'tail':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'head':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'neckHead':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
-             'foot':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':0}
+             'foot':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
+             'hand':{'handles':0,'rollOverride':'{}','curveDegree':0,'rollJoints':0}             
              }
 
 class cgmLimb(cgmModule):
