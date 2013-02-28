@@ -1441,6 +1441,20 @@ class cgmModule(cgmMeta.cgmObject):
         """
         return mFactory.deleteTemplate(self) 
     
+    def storeTemplatePose(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.storePose_templateSettings)
+        """
+        return mFactory.storePose_templateSettings(self)   
+    
+    def loadTemplatePose(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.readPose_templateSettings)
+        """
+        return mFactory.readPose_templateSettings(self)   
+    
     #>>> Skeletonize
     #===========================================================  
     def isSkeletonized(self):

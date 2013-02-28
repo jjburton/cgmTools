@@ -12,6 +12,8 @@ import maya.cmds as mc
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
+from Red9.core import Red9_CoreUtils as r9Core
+from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.lib import (modules,curves,distance,attributes)
@@ -353,7 +355,7 @@ def doTemplate(self,*args,**kws):
         if not isSized(self):
             log.warning("Not sized: '%s'"%self.getShortName())
             return False      
-        tFactory.go(self)      
+        tFactory.go(self,*args,**kws)      
         if not isTemplated(self):
             log.warning("Template failed: '%s'"%self.getShortName())
             return False
@@ -391,17 +393,17 @@ def isSkeletonized(self):
     """
     log.debug(">>> isSkeletonized")
     if not isTemplated(self):
-        log.warning("Not templated, can't be skeletonized yet")
+        log.debug("Not templated, can't be skeletonized yet")
         return False
     
     l_coreNames = self.coreNames.value
     if not l_coreNames:
-        log.warning("No core names found")
+        log.debug("No core names found")
         return False
     
     iList_skinJoints = self.rigNull.skinJoints
     if not iList_skinJoints:
-        log.warning("No skin joints found")
+        log.debug("No skin joints found")
         return False        
     #>>> How many joints should we have 
     return True
@@ -516,7 +518,7 @@ def setState(self,stateArg,rebuildFrom = None, *args,**kws):
         
     
 #@r9General.Timer   
-def changeState(self,stateArg, rebuildFrom = None, *args,**kws):
+def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws):
     """ 
     Changes a module state
     
@@ -534,12 +536,21 @@ def changeState(self,stateArg, rebuildFrom = None, *args,**kws):
                             'size':deleteTemplate,
                             'template':deleteSkeleton
                             }
+    d_deleteStateFunctions = {'size':deleteSizeInfo,
+                              'template':deleteTemplate,
+                              'skeleton':deleteSkeleton,
+                              }    
+    log.info(">>> In ModuleFactory.changeState")
+    log.info("stateArg: %s"%stateArg)
+    log.info("rebuildFrom: %s"%rebuildFrom)
+    log.info("forceNew: %s"%forceNew)
+    
     if not isModule(self):
         return False
     
     stateArgs = validateStateArg(stateArg)
     if not stateArgs:
-        log.warning("Bad stateArg: %s"%stateArg)
+        log.warning("Bad stateArg from changeState: %s"%stateArg)
         return False
     
     stateIndex = stateArgs[0]
@@ -550,10 +561,11 @@ def changeState(self,stateArg, rebuildFrom = None, *args,**kws):
     #>>> Meat
     #========================================================================
     currentState = getState(self) 
-    if currentState == stateIndex and rebuildFrom is not None:
+    if currentState == stateIndex and rebuildFrom is None and not forceNew:
         log.info("'%s' already has state: %s"%(self.getShortName(),stateName))
         return True
     #If we're here, we're going to move through the set states till we get to our spot
+    log.info("Changing states now...")
     if stateIndex > currentState:
         startState = currentState+1        
         log.debug(' up stating...')        
@@ -566,7 +578,7 @@ def changeState(self,stateArg, rebuildFrom = None, *args,**kws):
                 else:log.info("'%s' completed: %s"%(self.getShortName(),doState))
             else:
                 log.info("No up state function for: %s"%doState)
-    else:#Going down
+    elif stateIndex < currentState:#Going down
         log.debug('down stating...')        
         l_reverseModuleStates = copy.copy(l_moduleStates)
         l_reverseModuleStates.reverse()
@@ -585,6 +597,108 @@ def changeState(self,stateArg, rebuildFrom = None, *args,**kws):
                 if not d_downStateFunctions[doState](self,*args,**kws):return False
                 else:log.info("'%s': %s"%(self.getShortName(),doState))
             else:
-                log.info("No down state function for: %s"%doState)            
+                log.info("No down state function for: %s"%doState)  
+    else:
+        log.info('Forcing recreate')
+        if stateName in d_upStateFunctions.keys():
+            d_deleteStateFunctions[stateName](self)
+            if not d_upStateFunctions[stateName](self,*args,**kws):return False
+            return True
+        
     
+@r9General.Timer
+def storePose_templateSettings(self):
+    """
+    Builds a template's data settings for reconstruction.
     
+    exampleDict = {'root':{'test':[0,1,0]},
+                'controlObjects':{0:[1,1,1]}}
+    """    
+    def buildDict_AnimAttrsOfObject(node,ignore = ['visibility']):
+        attrDict = {}
+        attrs = r9Anim.getSettableChannels(node,incStatics=True)
+        if attrs:
+            for attr in attrs:
+                if attr not in ignore:
+                    try:attrDict[attr]=mc.getAttr('%s.%s' % (node,attr))
+                    except:log.debug('%s : attr is invalid in this instance' % attr)
+        return attrDict
+        
+    exampleDict = {'root':{'test':[0,1,0]},
+                   'orientRootHelper':{'test':[0,1,0]},
+                   'controlObjects':{0:[1,1,1]},
+                   'helperObjects':{0:[]}}    
+    if not isModule(self):return False
+    if not isTemplated(self):return False
+    
+    poseDict = {}
+    i_templateNull = self.templateNull
+    i_templateNull.addAttr('controlObjectTemplatePose',attrType = 'string')#make sure attr exists
+    #>>> Get the root
+    poseDict['root'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('root')[0])
+    poseDict['orientRootHelper'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('orientRootHelper')[0])
+    poseDict['controlObjects'] = {}
+    poseDict['helperObjects'] = {}
+    
+    for i,i_node in enumerate(i_templateNull.controlObjects):
+        poseDict['controlObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.mNode)
+        if i_node.getMessage('helper'):
+            poseDict['helperObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.helper.mNode)
+    
+    #Store it        
+    i_templateNull.controlObjectTemplatePose = poseDict
+    return poseDict
+
+@r9General.Timer
+def readPose_templateSettings(self):
+    """
+    Builds a template's data settings for reconstruction.
+    
+    exampleDict = {'root':{'test':[0,1,0]},
+                'controlObjects':{0:[1,1,1]}}
+    """   
+    if not isModule(self):return False
+    if not isTemplated(self):return False
+    
+    i_templateNull = self.templateNull    
+    poseDict = i_templateNull.controlObjectTemplatePose
+    assert type(poseDict) is dict,"poseDict isn't a dict!"
+    
+    #>>> Get the root
+    for key in ['root','orientRootHelper']:
+        if poseDict[key]:
+            for attr, val in poseDict[key].items():
+                try:
+                    val=eval(val)
+                except:
+                    pass            
+                try:
+                    mc.setAttr('%s.%s' % (i_templateNull.getMessage(key)[0],attr), val)
+                except StandardError,err:
+                    log.info(err)   
+                    
+    for key in poseDict['controlObjects']:
+        for attr, val in poseDict['controlObjects'][key].items():
+            try:
+                val=eval(val)
+            except:
+                pass            
+            try:
+                mc.setAttr('%s.%s' % (i_templateNull.getMessage('controlObjects')[int(key)], attr), val)
+            except StandardError,err:
+                log.info(err) 
+                
+    for key in poseDict['helperObjects']:
+        for attr, val in poseDict['helperObjects'][key].items():
+            try:
+                val=eval(val)
+            except:
+                pass            
+            try:
+                if i_templateNull.controlObjects[int(key)].getMessage('helper'):
+                    log.debug(i_templateNull.controlObjects[int(key)].getMessage('helper')[0])
+                    mc.setAttr('%s.%s' % (i_templateNull.controlObjects[int(key)].getMessage('helper')[0], attr), val)
+            except StandardError,err:
+                log.info(err)    
+                
+    return True
