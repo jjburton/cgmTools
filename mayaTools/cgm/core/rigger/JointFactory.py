@@ -278,6 +278,9 @@ def doSkeletonize(self):
     #jointSize*.2
     attributes.doMultiSetAttr(l_limbJoints,'radi',3)
     
+    #Connect to parent
+    if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+        connectToParentModule(self.m)    
     return True 
 
 #@r9General.Timer
@@ -364,6 +367,59 @@ def doOrientSegment(self):
     """ Freeze the rotations """
     mc.makeIdentity(self.i_rigNull.skinJoints[0].mNode,apply=True,r=True)
     return True
+
+
+@r9General.Timer
+def connectToParentModule(self):
+    """
+    Pass a module class. Constrains template root to parent's closest template object
+    """
+    log.debug(">>> constrainToParentModule")
+    if not self.isSkeletonized():
+        log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
+        return False
+    if not self.getMessage('moduleParent'):
+        return False
+    else:
+        #>>> Get some info
+        i_rigNull = self.rigNull #Link
+        i_parent = self.moduleParent #Link
+        parentState = i_parent.getState() 
+        if i_parent.isSkeletonized():#>> If we have a module parent
+            #>> If we have another anchor
+            parentSkinJoints = i_parent.rigNull.getMessage('skinJoints')
+            closestObj = distance.returnClosestObject(i_rigNull.getMessage('skinJoints')[0],parentSkinJoints)
+            i_rigNull.skinJoints[0].parent = closestObj
+            
+        else:
+            log.debug("Parent has not been skeletonized...")           
+            return False            
+        """
+        log.debug("looking for moduleParent info")
+        i_templateNull = self.templateNull #Link
+        i_parent = self.moduleParent #Link
+        parentState = i_parent.getState()
+        if i_parent.isTemplated():#If the parent has been templated, it makes things easy
+            log.debug("Parent has been templated...")
+            parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
+            log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
+            closestObj = distance.returnClosestObject(i_templateNull.getMessage('root')[0],parentTemplateObjects)
+            #Find the closest object from the parent's template object
+            log.debug("closestObj: %s"%closestObj)
+            
+            if cgmMeta.cgmObject(i_templateNull.root.parent).isConstrainedBy(closestObj):
+                log.debug("Already constrained!")
+                return True
+            else:
+                return constraints.doConstraintObjectGroup(closestObj,group = i_templateNull.root.parent,constraintTypes=['point'])
+        else:
+            log.debug("Parent has not been templated...")           
+            return False
+            """
+
+
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
