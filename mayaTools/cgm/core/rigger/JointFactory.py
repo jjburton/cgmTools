@@ -60,6 +60,10 @@ class go(object):
         self.cls = "JointFactory.go"
         self.m = moduleInstance# Link for shortness
         
+        #>>> store template settings
+        self.m.storeTemplatePose()
+        
+        
         self.rigNull = self.m.getMessage('rigNull')[0] or False
         self.i_rigNull = self.m.rigNull
         self.moduleColors = self.m.getModuleColors()
