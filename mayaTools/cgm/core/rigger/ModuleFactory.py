@@ -59,6 +59,8 @@ def isSized(self):
         log.warning("No template starter data found for '%s'"%self.getShortName())  
     return False
     
+def deleteSizeInfo(self,*args,**kws):
+    self.templateNull.__setattr__('templateStarterData','',lock=True)
     
 def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     """
@@ -124,7 +126,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
             namesToCreate = names[0],names[-1]
         else:
             namesToCreate = names
-        log.info("Names: %s"%names)
+        log.debug("Names: %s"%names)
     else:
         namesToCreate = names        
         sizeMode = 'all'
@@ -248,7 +250,7 @@ def doSetParentModule(self,moduleParent,force = False):
     return True
 
 
-@r9General.Timer   
+#@r9General.Timer   
 def getGeneratedCoreNames(self):
     """ 
     Generate core names for a module and return them
@@ -314,7 +316,7 @@ def getGeneratedCoreNames(self):
 #=====================================================================================================
 #>>> Template
 #=====================================================================================================
-@r9General.Timer   
+#@r9General.Timer   
 def isTemplated(self):
     """
     Return if a module is templated or not
@@ -345,7 +347,7 @@ def isTemplated(self):
     #self.moduleStates['templateState'] = True #Not working yet
     return True
 
-@r9General.Timer   
+#@r9General.Timer   
 def doTemplate(self,*args,**kws):
     try:
         if not isSized(self):
@@ -359,7 +361,7 @@ def doTemplate(self,*args,**kws):
     except StandardError,error:
         log.warning(error)    
     
-@r9General.Timer   
+#@r9General.Timer   
 def deleteTemplate(self,*args,**kws):
     try:
         objList = returnTemplateObjects(self)
@@ -368,7 +370,7 @@ def deleteTemplate(self,*args,**kws):
         return True
     except StandardError,error:
         log.warning(error)
-@r9General.Timer   
+#@r9General.Timer   
 def returnTemplateObjects(self):
     try:
         templateNull = self.templateNull.getShortName()
@@ -382,7 +384,7 @@ def returnTemplateObjects(self):
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
-@r9General.Timer   
+#@r9General.Timer   
 def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
@@ -421,11 +423,35 @@ def doSkeletonize(self,*args,**kws):
 @r9General.Timer   
 def deleteSkeleton(self,*args,**kws):  
     log.info("deleteSkeleton: Not implemented")
+    if isSkeletonized(self):
+        mc.delete(self.i_rigNull.getMessage('skinJoints'))
     return True
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
 @r9General.Timer   
+def validateStateArg(stateArg):
+    #>>> Validate argument
+    if type(stateArg) in [str,unicode]:
+        if stateArg in l_moduleStates:
+            stateIndex = l_moduleStates.index(stateArg)
+            stateName = stateArg
+        else:
+            log.warning("Bad stateArg: %s"%stateArg)
+            return False
+    elif type(stateArg) is int:
+        if stateArg<= len(l_moduleStates):
+            stateIndex = stateArg
+            stateName = l_moduleStates[stateArg]         
+        else:
+            log.warning("Bad stateArg: %s"%stateArg)
+            return False        
+    else:
+        log.warning("Bad stateArg: %s"%stateArg)
+        return False
+    return [stateIndex,stateName]
+    
+#@r9General.Timer   
 def isModule(self):
     """
     Simple module check
@@ -439,7 +465,7 @@ def isModule(self):
     log.debug("Is a module: : '%s'"%self.getShortName())
     return True
 
-@r9General.Timer   
+#@r9General.Timer   
 def getState(self):
     """ 
     Check module state ONLY from the state check attributes
@@ -473,12 +499,30 @@ def getState(self):
     return goodState
 
 @r9General.Timer   
-def setState(self,stateArg,*args,**kws):
+def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     """ 
     Set a module's state
     
+    @rebuild -- force it to rebuild each step
     TODO:
     Make template info be stored when leaving
+    """
+    rebuildArgs = validateStateArg(rebuildFrom)
+    if rebuildArgs:
+        log.info("'%s' rebuilding from: '%s'"%(self.getShortName(),rebuildArgs[1]))
+        changeState(self,rebuildArgs[1],*args,**kws)
+        
+    changeState(self, stateArg, *args,**kws)
+        
+    
+#@r9General.Timer   
+def changeState(self,stateArg, rebuildFrom = None, *args,**kws):
+    """ 
+    Changes a module state
+    
+    TODO:
+    Make template info be stored skeleton builds
+    Make template builder read and use pose data stored
     
     
     """
@@ -486,37 +530,27 @@ def setState(self,stateArg,*args,**kws):
                            'template':doTemplate,
                            'skeleton':doSkeletonize
                            }
-    d_downStateFunctions = {'size':deleteTemplate,
-                           'template':deleteSkeleton
-                           }
+    d_downStateFunctions = {'define':deleteSizeInfo,
+                            'size':deleteTemplate,
+                            'template':deleteSkeleton
+                            }
     if not isModule(self):
         return False
     
-    #>>> Validate argument
-    if type(stateArg) in [str,unicode]:
-        if stateArg in l_moduleStates:
-            stateIndex = l_moduleStates.index(stateArg)
-            stateName = stateArg
-        else:
-            log.warning("Bad stateArg: %s"%stateArg)
-            return False
-    elif type(stateArg) is int:
-        if stateArg<= len(l_moduleStates):
-            stateIndex = stateArg
-            stateName = l_moduleStates[stateArg]         
-        else:
-            log.warning("Bad stateArg: %s"%stateArg)
-            return False        
-    else:
+    stateArgs = validateStateArg(stateArg)
+    if not stateArgs:
         log.warning("Bad stateArg: %s"%stateArg)
         return False
     
-    log.info("stateIndex: %s | stateName: '%s'"%(stateIndex,stateName))
+    stateIndex = stateArgs[0]
+    stateName = stateArgs[1]
+    
+    log.debug("stateIndex: %s | stateName: '%s'"%(stateIndex,stateName))
     
     #>>> Meat
     #========================================================================
     currentState = getState(self) 
-    if currentState == stateIndex:
+    if currentState == stateIndex and rebuildFrom is not None:
         log.info("'%s' already has state: %s"%(self.getShortName(),stateName))
         return True
     #If we're here, we're going to move through the set states till we get to our spot
@@ -525,11 +559,11 @@ def setState(self,stateArg,*args,**kws):
         log.debug(' up stating...')        
         log.debug("Starting doState: '%s'"%l_moduleStates[startState])
         doStates = l_moduleStates[startState:stateIndex+1]
-        log.info("doStates: %s"%doStates)        
+        log.debug("doStates: %s"%doStates)        
         for doState in doStates:
             if doState in d_upStateFunctions.keys():
                 if not d_upStateFunctions[doState](self,*args,**kws):return False
-                else:log.info("Comleted: %s"%doState)
+                else:log.info("'%s' completed: %s"%(self.getShortName(),doState))
             else:
                 log.info("No up state function for: %s"%doState)
     else:#Going down
@@ -543,13 +577,13 @@ def setState(self,stateArg,*args,**kws):
         rev_start = l_reverseModuleStates.index( l_moduleStates[startState] )+1
         rev_end = l_reverseModuleStates.index( l_moduleStates[stateIndex] )+1
         doStates = l_reverseModuleStates[rev_start:rev_end]
-        log.info("toDo: %s"%doStates)
+        log.debug("toDo: %s"%doStates)
         
         for doState in doStates:
             log.debug("doState: %s"%doState)
             if doState in d_downStateFunctions.keys():
                 if not d_downStateFunctions[doState](self,*args,**kws):return False
-                else:log.info("Comleted: %s"%doState)
+                else:log.info("'%s': %s"%(self.getShortName(),doState))
             else:
                 log.info("No down state function for: %s"%doState)            
     
