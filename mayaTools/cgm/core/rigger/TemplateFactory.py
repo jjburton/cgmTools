@@ -38,7 +38,7 @@ reload(dragFactory)
 
 class go(object):
     @r9General.Timer
-    def __init__(self,module,forceNew = True): 
+    def __init__(self,module,forceNew = True,loadTemplatePose = True,**kws): 
         """
         To do:
         Add rotation order settting
@@ -100,6 +100,9 @@ class go(object):
             doTagChildren(self)
         else:
             raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
+        
+        #>>> store template settings
+        if loadTemplatePose:self.m.loadTemplatePose()
         
 @r9General.Timer
 def doTagChildren(self): 
@@ -266,11 +269,10 @@ def doTemplate(self):
 @r9General.Timer
 def returnModuleBaseSize(self):
     log.debug(">>> returnModuleSize")
-    size = 10
+    size = 12
     if self.getState() < 1:
         log.error("'%s' has not been sized. Cannot find base size"%self.getShortName())
         return False
-    
     if not self.getMessage('moduleParent') and self.getMessage('modulePuppet'):
         log.debug("Sizing from modulePuppet")
         return size
@@ -295,6 +297,8 @@ def returnModuleBaseSize(self):
                 return size * .5
             elif self.moduleType == 'head':
                 return size * .75
+            elif self.moduleType == 'leg':
+                return size * 1.5           
             if i_parent.moduleType == 'clavicle':
                 return size * 2            
         else:
@@ -609,7 +613,10 @@ def doCreateOrientationHelpers(self):
 
         #>>> ConnectVis, lock and hide
         #mc.connectAttr((visAttr),(helperObj+'.v'))
-        attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','rx','ry','sx','sy','sz','v'])
+        if obj == objects[-1]:
+            attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','ry','sx','sy','sz','v'])            
+        else:
+            attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','rx','ry','sx','sy','sz','v'])
     
     #>>> Get data ready to go forward
     bufferList = []
@@ -750,4 +757,6 @@ def returnGeneralDirections(self,objList):
     else:
         self.worldUpVector = [0,1,0]    
     return [self.generalDirection,self.worldUpVector]
+
+
 
