@@ -81,6 +81,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     Add option for other modes
     Add geo argument that can be passed for speed
     Add clamp on value
+    Add a way to pull size info from a mirror module
     """
     log.debug(">>> doSize")    
     
@@ -331,20 +332,24 @@ def isTemplated(self):
     if not self.templateNull.getChildren():
         log.warning("No children found in template null")
         return False   
-    
-    for attr in 'controlObjects','root','curve','orientHelpers','orientRootHelper':
+    controlObjects = self.templateNull.getMessage('controlObjects')
+    for attr in 'controlObjects','root','orientHelpers','curve','orientRootHelper':
         if not self.templateNull.getMessage(attr):
-            log.warning("No data found on '%s'"%attr)
-            return False    
+            if attr == 'orientHelpers' and len(controlObjects)==1:
+                pass
+            else:
+                log.warning("No data found on '%s'"%attr)
+                return False    
         
     if len(coreNamesValue) != len(self.templateNull.getMessage('controlObjects')):
         log.warning("Not enough handles.")
         return False    
         
-    for i_obj in self.templateNull.controlObjects:#check for helpers
-        if not i_obj.getMessage('helper'):
-            log.warning("'%s' missing it's helper"%i_obj.getShortName())
-            return False
+    if len(controlObjects)>1:
+        for i_obj in self.templateNull.controlObjects:#check for helpers
+            if not i_obj.getMessage('helper'):
+                log.warning("'%s' missing it's helper"%i_obj.getShortName())
+                return False
     
     #self.moduleStates['templateState'] = True #Not working yet
     return True
