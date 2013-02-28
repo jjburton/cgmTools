@@ -49,7 +49,7 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data 
-        log.info(">>> go.__init__")        
+        log.debug(">>> go.__init__")        
         assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
         module.deleteTemplate()        
         if module.isTemplated():
@@ -85,17 +85,17 @@ class go(object):
         self.curveDegree = self.m.templateNull.curveDegree
         self.rollOverride = self.m.templateNull.rollOverride
         
-        log.info("Module: %s"%self.m.getShortName())
-        log.info("moduleNullData: %s"%self.moduleNullData)
-        log.info("partType: %s"%self.partType)
-        log.info("direction: %s"%self.direction) 
-        log.info("colors: %s"%self.moduleColors)
-        log.info("coreNames: %s"%self.coreNames)
-        log.info("corePosList: %s"%self.corePosList)
+        log.debug("Module: %s"%self.m.getShortName())
+        log.debug("moduleNullData: %s"%self.moduleNullData)
+        log.debug("partType: %s"%self.partType)
+        log.debug("direction: %s"%self.direction) 
+        log.debug("colors: %s"%self.moduleColors)
+        log.debug("coreNames: %s"%self.coreNames)
+        log.debug("corePosList: %s"%self.corePosList)
         
 
         if self.m.mClass == 'cgmLimb':
-            log.info("mode: cgmLimb Template")
+            log.debug("mode: cgmLimb Template")
             doMakeLimbTemplate(self)
             doTagChildren(self)
         else:
@@ -133,10 +133,10 @@ def doTemplate(self):
     curveDegree = self.templateNull.curveDegree
     rollOverride = self.templateNull.rollOverride
     
-    log.info("Module: %s"%self.getShortName())
-    log.info("moduleNullData: %s"%moduleNullData)
-    log.info("partType: %s"%partType)
-    log.info("direction: %s"%direction)
+    log.debug("Module: %s"%self.getShortName())
+    log.debug("moduleNullData: %s"%moduleNullData)
+    log.debug("partType: %s"%partType)
+    log.debug("direction: %s"%direction)
     
     
     """ template object nulls """
@@ -159,9 +159,9 @@ def doTemplate(self):
             coreRotationList.append(set[1])
         elif re.match('scale',set[0]):
             coreScaleList.append(set[1])
-    log.info(corePositionList)
-    log.info( coreRotationList )
-    log.info( coreScaleList )
+    log.debug(corePositionList)
+    log.debug( coreRotationList )
+    log.debug( coreScaleList )
     """
     #template control objects stuff
     #==============	    
@@ -265,30 +265,29 @@ def doTemplate(self):
 
 @r9General.Timer
 def returnModuleBaseSize(self):
-    log.info(">>> returnModuleSize")
-    log.warning(">>>>>>This function isn't done")
+    log.debug(">>> returnModuleSize")
     size = 10
     if self.getState() < 1:
         log.error("'%s' has not been sized. Cannot find base size"%self.getShortName())
         return False
     
     if not self.getMessage('moduleParent') and self.getMessage('modulePuppet'):
-        log.info("Sizing from modulePuppet")
+        log.debug("Sizing from modulePuppet")
         return size
     elif self.getMessage('moduleParent'):#If it has a parent
-        log.info("Sizing from moduleParent")
+        log.debug("Sizing from moduleParent")
         i_templateNull = self.templateNull #Link
         i_parent = self.moduleParent #Link
         parentState = i_parent.getState()
         if i_parent.isTemplated():#If the parent has been templated, it makes things easy
-            log.info("Parent has been templated...")
+            log.debug("Parent has been templated...")
             nameCount = len(self.coreNames.value) or 1
             parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
-            log.info("parentTemplateObjects: %s"%parentTemplateObjects)
-            log.info("firstPos: %s"%i_templateNull.templateStarterData[0])
+            log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
+            log.debug("firstPos: %s"%i_templateNull.templateStarterData[0])
             closestObj = distance.returnClosestObjectFromPos(i_templateNull.templateStarterData[0],parentTemplateObjects)
             #Find the closest object from the parent's template object
-            log.info("closestObj: %s"%closestObj)
+            log.debug("closestObj: %s"%closestObj)
             
             boundingBoxSize = distance.returnBoundingBoxSize (closestObj)
             size = max(boundingBoxSize) *.25
@@ -299,16 +298,17 @@ def returnModuleBaseSize(self):
             if i_parent.moduleType == 'clavicle':
                 return size * 2            
         else:
-            log.info("Parent has not been templated...")          
+            log.debug("Parent has not been templated...")          
     else:
         pass
     return size 
 
+@r9General.Timer
 def constrainToParentModule(self):
     """
     Pass a module class. Constrains template root to parent's closest template object
     """
-    log.info(">>> constrainToParentModule")
+    log.debug(">>> constrainToParentModule")
     if not self.isTemplated():
         log.error("Must be template state to contrainToParentModule: '%s' "%self.getShortName())
         return False
@@ -316,25 +316,25 @@ def constrainToParentModule(self):
     if not self.getMessage('moduleParent'):
         return False
     else:
-        log.info("looking for moduleParent info")
+        log.debug("looking for moduleParent info")
         i_templateNull = self.templateNull #Link
         i_parent = self.moduleParent #Link
         parentState = i_parent.getState()
         if i_parent.isTemplated():#If the parent has been templated, it makes things easy
-            log.info("Parent has been templated...")
+            log.debug("Parent has been templated...")
             parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
-            log.info("parentTemplateObjects: %s"%parentTemplateObjects)
+            log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
             closestObj = distance.returnClosestObject(i_templateNull.getMessage('root')[0],parentTemplateObjects)
             #Find the closest object from the parent's template object
-            log.info("closestObj: %s"%closestObj)
+            log.debug("closestObj: %s"%closestObj)
             
-            if cgmMeta.cgmNode(i_templateNull.root.parent).isConstrainedBy(closestObj):
-                log.info("Already constrained!")
+            if cgmMeta.cgmObject(i_templateNull.root.parent).isConstrainedBy(closestObj):
+                log.debug("Already constrained!")
                 return True
             else:
                 return constraints.doConstraintObjectGroup(closestObj,group = i_templateNull.root.parent,constraintTypes=['point'])
         else:
-            log.info("Parent has not been templated...")           
+            log.debug("Parent has not been templated...")           
             return False
 
 @r9General.Timer
@@ -347,7 +347,7 @@ def doMakeLimbTemplate(self):
     templObjNameList = []
     templHandleList = []
     """
-    log.info(">>> doMakeLimbTemplate")
+    log.debug(">>> doMakeLimbTemplate")
     assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
     
     #Gather limb specific data and check
@@ -428,7 +428,7 @@ def doMakeLimbTemplate(self):
         
     
     self.foundDirections = returnGeneralDirections(self,templHandleList)
-    log.info("directions: %s"%self.foundDirections )
+    log.debug("directions: %s"%self.foundDirections )
     
     #>> Create root control
     #=============================  
@@ -517,13 +517,14 @@ def doMakeLimbTemplate(self):
             mc.scale(scaleBuffer[0],scaleBuffer[1],scaleBuffer[2],obj,absolute=True)
         cnt +=1 
     """
+    if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+        constrainToParentModule(self.m)
     return True
 
 def doCreateOrientationHelpers(self):
     """ 
-    
     """
-    log.info(">>> addOrientationHelpers")
+    log.debug(">>> addOrientationHelpers")
     assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
     assert mc.objExists(self.m.mNode),"module no longer exists"
     #Gather limb specific data and check
@@ -536,10 +537,10 @@ def doCreateOrientationHelpers(self):
     returnBuffer = []
     root = self.m.templateNull.getMessage('root')[0]
     objects =  self.m.templateNull.getMessage('controlObjects')
-    log.info(root)
-    log.info(objects)
+    log.debug(root)
+    log.debug(objects)
     
-    log.info(self.foundDirections)
+    log.debug(self.foundDirections)
     
     #>> Create orient root control
     #=============================     
@@ -568,7 +569,7 @@ def doCreateOrientationHelpers(self):
     #============================= 
     self.i_orientHelpers = []#we're gonna store the instances so we can get them all after parenting and what not
     for i,obj in enumerate(objects):
-        log.info("on "+obj)
+        log.debug("on "+obj)
         #>>> Create and color      
         size = (distance.returnBoundingBoxSizeToAverage(obj)*2) # Get size
         i_obj = cgmMeta.cgmObject(curves.createControlCurve('circleArrow2Axis',size))#make the curve
@@ -584,12 +585,12 @@ def doCreateOrientationHelpers(self):
         #>>> Link it to it's object and append list for full store
         i_obj.connectParent(obj,'helper','owner')#Connect it to it's object      
         self.i_orientHelpers.append(i_obj)
-        log.info(i_obj.owner)
+        log.debug(i_obj.owner)
         #>>> initial snapping """
         position.movePointSnap(i_obj.mNode,obj)
         
-        log.info(i)
-        log.info(len(objects))
+        log.debug(i)
+        log.debug(len(objects))
         if i < len(objects)-1:#If we have a pair for it, aim at that pairs aim, otherwise, aim at the second to last object
             constBuffer = mc.aimConstraint(objects[i+1],i_obj.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.foundDirections[1], worldUpType = 'vector' )
         else:
@@ -616,14 +617,14 @@ def doCreateOrientationHelpers(self):
         bufferList.append(o.mNode)
     self.m.templateNull.orientHelpers = bufferList
     self.i_orientRootHelper = i_orientRootControl
-    log.info("orientRootHelper: [%s]"%self.m.templateNull.orientRootHelper.getShortName())   
-    log.info("orientHelpers: %s"%self.m.templateNull.getMessage('orientHelpers'))
+    log.debug("orientRootHelper: [%s]"%self.m.templateNull.orientRootHelper.getShortName())   
+    log.debug("orientHelpers: %s"%self.m.templateNull.getMessage('orientHelpers'))
 
     return True
 
 @r9General.Timer
 def doParentControlObjects(self):
-    log.info(">>> addOrientationHelpers")
+    log.debug(">>> addOrientationHelpers")
     assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
     assert mc.objExists(self.m.mNode),"module no longer exists"    
     
@@ -636,7 +637,7 @@ def doParentControlObjects(self):
     self.i_controlObjects[0].doGroup(maintain=True)#Group to zero out
     self.i_controlObjects[-1].doGroup(maintain=True)  
     
-    log.info(self.m.templateNull.getMessage('controlObjects',False))
+    log.debug(self.m.templateNull.getMessage('controlObjects',False))
     
     constraintGroups = constraints.doLimbSegmentListParentConstraint(self.m.templateNull.getMessage('controlObjects',False))    
     
@@ -716,7 +717,7 @@ def doParentControlObjects(self):
 # Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 def getGoodCurveDegree(self):
-    log.info(">>> getGoodCurveDegree")
+    log.debug(">>> getGoodCurveDegree")
     try:
         doCurveDegree = self.m.templateNull.curveDegree
     except:
@@ -739,7 +740,7 @@ def returnGeneralDirections(self,objList):
     """
     Get general direction of a list of objects in a module
     """
-    log.info(">>> returnGeneralDirections")
+    log.debug(">>> returnGeneralDirections")
 
     self.generalDirection = logic.returnHorizontalOrVertical(objList)
     if self.generalDirection == 'vertical' and 'leg' not in self.m.moduleType:
