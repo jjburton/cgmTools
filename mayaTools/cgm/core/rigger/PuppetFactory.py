@@ -67,10 +67,10 @@ def getModuleFromDict(self,checkDict):
     for i_m in self.moduleChildren:
         matchBuffer = 0
         for key in checkDict.keys():
-            if i_m.hasAttr(key) and i_m.__dict__[key] == checkDict.get(key):
+            if i_m.hasAttr(key) and attributes.doGetAttr(i_m.mNode,key) == checkDict.get(key):
                 matchBuffer +=1
         if matchBuffer == len(checkDict.keys()):
-            log.info("Found Morpheus Module: '%s'"%i_m.getShortName())
+            log.debug("Found Morpheus Module: '%s'"%i_m.getShortName())
             return i_m
     return False
 
