@@ -393,37 +393,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     
     def getNameDict(self):
 	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}  
-    
-    def getConstraintsTo(self):	
-	return constraints.returnObjectConstraints(self.mNode)
-
-    def getConstraintsFrom(self):
-	return constraints.returnObjectDrivenConstraints(self.mNode)
-    
-    def isConstrainedBy(self,obj):
-	l_constraints = self.getConstraintsTo()
-	if not l_constraints:
-	    return False
-	else:
-	    try:
-		#If we have an Object Factory instance, link it
-		obj.mNode
-		i_obj = obj
-	    except:
-		#If it fails, check that the object name exists and if so, initialize a new Object Factory instance
-		assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
-		i_obj = cgmNode(obj)
-	    log.info("l_constraints: %s"%l_constraints)
-	    log.info("obj: %s"%i_obj.getShortName())
-	    #for i_c in [r9Meta.MetaClass(c) for c in l_constraints]:
-	    for c in l_constraints:
-		targets = constraints.returnConstraintTargets(c)
-		log.info("%s : %s"%(c,targets))
-		if i_obj.getShortName() in targets:
-		    return c
-	return False
 	    
-
     def getTransform(self):
 	"""Find the transform of the object"""
 	buffer = mc.ls(self.mNode, type = 'transform') or False
@@ -777,7 +747,39 @@ class cgmObject(cgmNode):
                         except:
                             raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
                     else:
-                        log.warning("'%s.%s' doesn't exist"%(t,a))       
+                        log.warning("'%s.%s' doesn't exist"%(t,a))      
+    #>>> Constraints
+    #==============================================================
+    def getConstraintsTo(self):	
+	return constraints.returnObjectConstraints(self.mNode)
+
+    def getConstraintsFrom(self):
+	return constraints.returnObjectDrivenConstraints(self.mNode)
+    
+    def isConstrainedBy(self,obj):
+	l_constraints = self.getConstraintsTo()
+	if not l_constraints:
+	    return False
+	else:
+	    try:
+		#If we have an Object Factory instance, link it
+		obj.mNode
+		i_obj = obj
+	    except:
+		#If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+		assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+		i_obj = cgmNode(obj)
+	    log.info("l_constraints: %s"%l_constraints)
+	    log.info("obj: %s"%i_obj.getShortName())
+	    #for i_c in [r9Meta.MetaClass(c) for c in l_constraints]:
+	    returnList = []
+	    for c in l_constraints:
+		targets = constraints.returnConstraintTargets(c)
+		log.info("%s : %s"%(c,targets))
+		if i_obj.getShortName() in targets:
+		    returnList.append(c)
+	    if returnList:return returnList	
+	return False
                                        
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
