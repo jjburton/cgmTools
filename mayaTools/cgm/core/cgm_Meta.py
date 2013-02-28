@@ -499,12 +499,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         Returns
         success(bool)
         """
+	log.debug(">>> cgmNode.doCopyNametagsFromObject")
         assert mc.objExists(target),"Target doesn't exist"
         targetCGM = NameFactory.returnObjectGeneratedNameDict(target,ignore = ignore)
         didSomething = False
         
         for tag in targetCGM.keys():
-	    log.info("..."+tag)
+	    log.debug("..."+tag)
             if tag not in ignore and targetCGM[tag] is not None or False:
                 attributes.doCopyAttr(target,tag,
                                       self.mNode,connectTargetToSource=False)
