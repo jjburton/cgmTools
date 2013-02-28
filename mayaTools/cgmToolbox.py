@@ -409,14 +409,14 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                         loadPuppetBox),
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
                         testCGMCore),
-                       ('Debug Morpheus Start', " WARNING - Opens new file...Unit test base morpheus stuff",
-                        testMorpheus),  
                        ('Simple cgmGUI', " Base cgmGUI",
                         loadCGMSimpleGUI),
                        ('cgm.MorpheusMaker', " Morpheus maker tool",
                         loadMorpheusMaker),
                         ('zooToolbox', " Open zooToolbox Window",
-                        loadZooToolbox),                       
+                        loadZooToolbox),     
+                        ('This is for Josh. It will not work for you', " WARNING - Opens new file...Unit test base morpheus stuff",
+                         testMorpheus),                          
                        ))
 
               )
