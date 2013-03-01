@@ -57,6 +57,9 @@ def _setlogginglevel_debug():
     '''
     Red9.core._setlogginglevel_debug()
     cgm_Meta.log.setLevel(cgm_Meta.logging.DEBUG)
+    cgm_PuppetMeta.log.setLevel(cgm_PuppetMeta.logging.DEBUG)
+    rigger.ModuleFactory.log.setLevel(rigger.ModuleFactory.logging.DEBUG)
+    rigger.JointFactory.log.setLevel(rigger.JointFactory.logging.DEBUG)
     
     print('cgm Core set to DEBUG state')
     
@@ -66,7 +69,10 @@ def _setlogginglevel_info():
     '''
     Red9.core._setlogginglevel_info()
     cgm_Meta.log.setLevel(cgm_Meta.logging.INFO)
-        
+    cgm_PuppetMeta.log.setLevel(cgm_PuppetMeta.logging.INFO)
+    rigger.ModuleFactory.log.setLevel(rigger.ModuleFactory.logging.INFO)
+    rigger.JointFactory.log.setLevel(rigger.JointFactory.logging.INFO)
+    
     print('cgm Core set to Info state')
 
 
