@@ -143,7 +143,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	        
         super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
 	self.update()
-	self.__dict__['__name__'] = self.getShortName()
+	#self.__dict__['__name__'] = self.getShortName()
             
 	    
     def __getattributeBACK__(self, attr, longNames = True, ignoreOverload = True):
@@ -273,6 +273,17 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         except StandardError,error:
                 log.warning(error)
 		
+    def connectChildrenNodes(self, nodes, attr, connectBack = None, force=True):
+        """
+	Replacement connector using .msg connections
+        """
+	attributes.storeObjectsToMessage(nodes,self.mNode,attr)
+	for node in nodes:
+	    try:
+		if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
+	    except StandardError,error:
+		log.warning(error)
+	    
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
 	    #enum special handling
