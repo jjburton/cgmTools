@@ -940,7 +940,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                 
         elif doAddAttr(toObject,toAttr,sourceType):
             #If it doesn't exist, make it
-            log.info("'%s.%s' created!"%(toObject,toAttr))            
+            log.debug("'%s.%s' created!"%(toObject,toAttr))            
         else:
             return False
             
@@ -977,7 +977,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             
         elif doAddAttr(toObject,fromAttr,sourceType):
             toAttr = fromAttr
-            log.info("'%s.%s' created!"%(toObject,fromAttr))   
+            log.debug("'%s.%s' created!"%(toObject,fromAttr))   
             
     if not goodToGo:
         log.warning("'%s.%s' may not copy well to '%s.%s'. Source type is '%s', target type is '%s'. Conversion mode is off"%(fromObject,fromAttr,toObject,toAttr,sourceType,targetType))
@@ -2430,7 +2430,7 @@ def storeObjectToMessage (obj, storageObj, messageName):
 		    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
                     return True 
                 else:
-                    log.info("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
+                    log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
             else:
                 connections = returnDrivenAttribute(attrCache)
                 if connections:
