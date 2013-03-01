@@ -127,7 +127,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         #>>>Master null
         if self.getMessage('masterNull'):
             self.i_masterNull = self.masterNull#link it
-            log.info("'%s' initialized as master null"%self.masterNull.mNode)
+            log.debug("'%s' initialized as master null"%self.masterNull.mNode)
         else:
             log.error("MasterNull missing. Go back to unreferenced file")
             return False
@@ -152,7 +152,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                     Attr = 'i_'+ attr
                     buffer = self.i_masterNull.getMessage(attr)[0]                                        
                     self.__dict__[Attr] = cgmMeta.cgmMetaFactory( buffer )
-                    log.info("'%s' initialized as 'self.%s'"%(buffer,Attr))                    
+                    log.debug("'%s' initialized as 'self.%s'"%(buffer,Attr))                    
                 except:
                     log.error("'%s' info node failed. Please verify puppet."%attr)                    
                     return False
@@ -247,7 +247,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 #If exists, initialize it
                 #self.__dict__[Attr]  = self.i_masterNull.__dict__[attr+'Group']#link it, can't link it
                 self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
-                log.info("'%s' initialized as 'self.%s'"%(grp,Attr))
+                log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
                 log.info(self.__dict__[Attr].mNode)
                 #except:
                     #log.error("'%s' group failed. Please verify puppet."%attr)                    
@@ -1128,7 +1128,6 @@ class cgmModule(cgmMeta.cgmObject):
         log.debug(">>> cgmModule.__init__")
         if kws:log.debug("kws: %s"%str(kws))         
         if args:log.debug("args: %s"%str(args))            
-        
         start = time.clock()
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1146,7 +1145,7 @@ class cgmModule(cgmMeta.cgmObject):
 
         #Keywords - need to set after the super call
         #==============         
-        self.kw_name= kws.get('name') or self.cgmName or False        
+        self.kw_name= kws.get('name') or False        
         self.kw_moduleParent = kws.get('moduleParent') or False
         #self.kw_position = kws.get('position') or False
         #self.kw_direction = kws.get('direction') or False
@@ -1242,7 +1241,9 @@ class cgmModule(cgmMeta.cgmObject):
         self.addAttr('cgmType',value = 'module',lock=True)
         
         if self.kw_name:#If we have a name, store it
-            self.doStore('cgmName',self.kw_name,True)        
+            self.doStore('cgmName',self.kw_name,True)
+	elif 'mType' in kws.keys():
+	    self.doStore('cgmName',kws['mType'])
         
         if attributes.doGetAttr(self.mNode,'cgmType') != 'module':
             log.error("'%s' is not a module. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
@@ -1477,13 +1478,14 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              'finger':{'handles':5,'rollOverride':'{"0":1}','curveDegree':0,'rollJoints':0},
              'clavicle':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'arm':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':3},
-             'leg':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':3},
+             'leg':{'handles':3,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
              'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':2},
              'tail':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'head':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'neckHead':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'foot':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
-             'hand':{'handles':0,'rollOverride':'{}','curveDegree':0,'rollJoints':0}             
+             'hand':{'handles':0,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
+             'thumb':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0}                          
              }
 
 class cgmLimb(cgmModule):
@@ -1524,6 +1526,8 @@ class cgmLimb(cgmModule):
         if 'mType' not in kws.keys() and self.moduleType in limbTypes.keys():
             log.debug("'%s' type checks out."%self.moduleType)	    
             moduleType = self.moduleType
+	elif 'mType' in kws.keys():
+	    moduleType = kws['mType']
         elif 'name' in kws.keys():
             moduleType = kws['name']
         else:
