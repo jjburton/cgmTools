@@ -529,7 +529,7 @@ def returnAbsoluteSizeCurve(curve):
         return distances
 
 
-def returnBoundingBoxSize (meshGrp):
+def returnBoundingBoxSize (meshGrp,objOnly = False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -544,7 +544,14 @@ def returnBoundingBoxSize (meshGrp):
     """
     returnList = []
     boundingBoxSize = []
-    box = mc.exactWorldBoundingBox (meshGrp)
+    if objOnly:
+	buffer= mc.duplicate(meshGrp,returnRootsOnly=True)
+	mc.delete(mc.listRelatives(buffer[0],allDescendents = True,fullPath = True,type = 'transform'))  
+	box = mc.exactWorldBoundingBox (buffer[0]) 
+	mc.delete(buffer)
+    #box = mc.exactWorldBoundingBox (meshGrp)
+    else:
+	box = mc.exactWorldBoundingBox (meshGrp)   
     rawBuffer =  [(box[3] - box[0]), (box[4] - box[1]), (box[5] - box[2])]
     for number in rawBuffer:
         if mayaVersion >= 2010:

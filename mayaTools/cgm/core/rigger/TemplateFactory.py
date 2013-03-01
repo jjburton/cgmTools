@@ -49,7 +49,7 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data 
-        log.debug(">>> go.__init__")        
+        log.debug(">>> TemplateFactory.go.__init__")        
         assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
         module.deleteTemplate()        
         if module.isTemplated():
@@ -292,14 +292,17 @@ def returnModuleBaseSize(self):
             #Find the closest object from the parent's template object
             log.debug("closestObj: %s"%closestObj)
             
-            boundingBoxSize = distance.returnBoundingBoxSize (closestObj)
-            size = max(boundingBoxSize) *.25
+            boundingBoxSize = distance.returnBoundingBoxSize(closestObj,True)
+            log.info("bbSize = %s"%max(boundingBoxSize))
+            size = max(boundingBoxSize) *.75
             if self.moduleType == 'clavicle':
                 return size * .5
             elif self.moduleType == 'head':
                 return size * .75
             elif self.moduleType == 'leg':
-                return size * 1.5           
+                return size * 1
+            elif self.moduleType in ['finger','thumb']:
+                return size * .75                
             if i_parent.moduleType == 'clavicle':
                 return size * 2            
         else:
