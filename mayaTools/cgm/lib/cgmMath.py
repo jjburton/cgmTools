@@ -138,4 +138,27 @@ def divideLength(length, points):
     
     pointsList.append(length)
     return pointsList
+
+
+def isFloatEquivalent(f1,f2,places=7):
+    """
+    Compare two floats, returns if equivalent
+    """ 
+    if round(f1,places)==round(f2,places):
+        return True
+    return False 
+    
+def isVectorEquivalent(v1,v2,places=7):
+    """
+    Compare two vectors, returns if equivalent
+    """ 
+    if type(v1) not in [list,tuple]:return False
+    if type(v2) not in [list,tuple]:return False
+    if len(v1)!= len(v2):return False 
+    
+    for i,n in enumerate(v1):
+        if not isFloatEquivalent(n,v2[i],places):
+            return False
+    return True
+
     
