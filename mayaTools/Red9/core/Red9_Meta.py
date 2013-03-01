@@ -219,7 +219,7 @@ def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws
         import Red9_CoreUtils as r9Core 
         mNodes=r9Core.FilterNode().lsSearchAttributes(mAttrs, nodes=mNodes)
     if dataType=='mClass':
-        return[MetaClass(node) for node in mNodes]
+        return[MetaClass(node,**kws) for node in mNodes]
     else:
         return mNodes
  
@@ -263,7 +263,7 @@ def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInst
         import Red9_CoreUtils as r9Core 
         mNodes=r9Core.FilterNode().lsSearchAttributes(mAttrs, nodes=mNodes)        
     if dataType=='mClass':
-        return [MetaClass(node) for node in set(mNodes)]
+        return [MetaClass(node,**kws) for node in set(mNodes)]
     else:
         return set(mNodes)
     
@@ -280,7 +280,7 @@ def getConnectedMetaSystemRoot(node, **kws):
     From a given node see if it's part of a MetaData system, if so
     walk up the parent tree till you get to top meta node and return the class. 
     '''
-    mNodes=getConnectedMetaNodes(node)
+    mNodes=getConnectedMetaNodes(node,**kws)
     if not mNodes:
         return
     else:
@@ -522,7 +522,7 @@ class MetaClass(object):
                 _registeredMClass=RED9_META_REGISTERY[mClass]
                 try:
                     log.debug('Instantiating existing mClass : %s >> %s' % (mClass,_registeredMClass))
-                    return super(cls.__class__, cls).__new__(_registeredMClass)
+                    return super(cls.__class__, cls).__new__(_registeredMClass,*args,**kws) 
                 except:
                     log.debug('Failed to initialize mClass : %s' % _registeredMClass)
                     pass
@@ -532,7 +532,7 @@ class MetaClass(object):
             log.debug("mClass not found or Registered")
             return super(cls.__class__, cls).__new__(cls)    
     
-    def __init__(self, node=None, name=None, nodeType='network', autofill='all'):
+    def __init__(self, node=None, name=None, nodeType='network', autofill='all', **kws):
         '''
         Base Class for Meta support. This manages all the attribute
         and class management for all subsequent inherited classes
@@ -965,7 +965,7 @@ class MetaClass(object):
         cmds.delete(self.mNode)
         del(self)
     
-    def convertMClassType(self,newMClass):
+    def convertMClassType(self,newMClass,**kws):
         '''
         change the current mClass type of the node and re-initialize the object
         '''
@@ -973,7 +973,7 @@ class MetaClass(object):
             cmds.setAttr('%s.%s' % (self.mNode,'mClass'),e=True,l=False) 
             self.mClass=newMClass
             cmds.setAttr('%s.%s' % (self.mNode,'mClass'),e=True,l=True) 
-            return MetaClass(self.mNode)
+            return MetaClass(self.mNode, **kws)
         else:
             raise StandardError('given class is not in the mClass Registry : %s' % newMClass)
 
@@ -1258,7 +1258,7 @@ class MetaClass(object):
     # Get Nodes Management Block
     #---------------------------------------------------------------------------------
     
-    def addChildMetaNode(self, mClass, attr, srcAttr=None, nodeName=None):
+    def addChildMetaNode(self, mClass, attr, srcAttr=None, nodeName=None, **kws):
         '''
         Generic call to add a MetaNode as a Child of self
         @param mClass: mClass to generate, given as a valid key to the RED9_META_REGISTERY ie 'MetaRig'
@@ -1267,11 +1267,11 @@ class MetaClass(object):
         '''
         if RED9_META_REGISTERY.has_key(mClass):
             childClass=RED9_META_REGISTERY[mClass]
-            mChild=childClass(name=nodeName)
+            mChild=childClass(name=nodeName,**kws)
             self.connectChild(mChild, attr, srcAttr=srcAttr)
             return mChild
     
-    def getChildMetaNodes(self, walk=False, mAttrs=None):
+    def getChildMetaNodes(self, walk=False, mAttrs=None, **kws):
         '''
         Find any connected Child MetaNodes to this mNode
         @param walk: walk the connected network and return ALL children conntected in the tree
@@ -1282,10 +1282,10 @@ class MetaClass(object):
         TODO: The mAttrs handler here doesn't support the walk flag correctly, needs looking at
         '''
         if not walk:
-            return getConnectedMetaNodes(self.mNode,source=False,destination=True, mAttrs=mAttrs)
+            return getConnectedMetaNodes(self.mNode,source=False,destination=True, mAttrs=mAttrs,**kws)
         else:
             metaNodes=[]
-            children=getConnectedMetaNodes(self.mNode,source=False,destination=True, mAttrs=mAttrs)
+            children=getConnectedMetaNodes(self.mNode,source=False,destination=True, mAttrs=mAttrs,**kws)
             if children:
                 runaways=0
                 depth=0
@@ -1300,7 +1300,7 @@ class MetaClass(object):
                         children.remove(child)
                         processed.append(child.mNode)                
                         #log.info( 'connections too : %s' % child.mNode)
-                        extendedChildren.extend(getConnectedMetaNodes(child.mNode,source=False,destination=True,mAttrs=mAttrs))
+                        extendedChildren.extend(getConnectedMetaNodes(child.mNode,source=False,destination=True,mAttrs=mAttrs,**kws))
                         #log.info('left to process : %s' % ','.join([c.mNode for c in children]))
                         if not children:
                             if extendedChildren:
@@ -1313,11 +1313,11 @@ class MetaClass(object):
                 return metaNodes
         return []
     
-    def getParentMetaNode(self):
+    def getParentMetaNode(self, **kws):
         '''
         Find any connected Parent MetaNode to this mNode
         '''
-        mNodes=getConnectedMetaNodes(self.mNode,source=True,destination=False)
+        mNodes=getConnectedMetaNodes(self.mNode,source=True,destination=False, **kws)
         if mNodes:
             return mNodes[0]
                                
@@ -1703,3 +1703,121 @@ class MetaFacialRigSupport(MetaClass):
                     log.debug('Adding boundData to node : %s:%s' %(key,value))
                     MetaClass(node).addAttr(key, value=value)  
 
+
+class MetaHUDNode(MetaClass):
+    '''
+    SubClass of the MetaClass, designed as a simple interface 
+    for HUD management in Maya. Any monitored attrs added to the MetaNode
+    will show in the HUD when drawn.
+    '''
+    def __init__(self,*args,**kws):
+        super(MetaHUDNode, self).__init__(*args,**kws)     
+        self.monitorAttrs=[]
+        self.hudGroupActive=False
+        self.eventTriggers=cmds.headsUpDisplay(le=True)
+        self.size='small'
+        self.addAttr('section', 1)
+        self.addAttr('block', 1)  
+        self.addAttr('eventTrigger', attrType='enum', value=5,enumName=':'.join(self.eventTriggers))
+        
+        #self.addMonitoredAttr('doubleMon', (0,0,0), attrType='double3')
+        #self.addMonitoredAttr('stringMon', 'ffffff bbbbbbbbbbb',attrType='string')
+            
+    def addMonitoredAttr(self, attr, value=None, attrType=None): 
+        '''
+        wrapper that not only adds an attr to the metaNode, but also adds it
+        to the internal list of attributes that are monitored and added
+        to the HUD when drawn
+        '''
+        self.addAttr(attr, value=value, attrType=attrType)
+        self.monitorAttrs.append(attr)
+        if self.hudGroupActive==True:
+            self.refreshHud()
+    
+    def removeMonitoredAttr(self,attr):
+        '''
+        Remove an attr from the MetaNode and refresh the HUD to reflect the removal
+        '''
+        self.__delattr__(attr)
+        
+    def getEventTrigger(self,*args):
+        return self.eventTriggers[self.eventTrigger]
+    
+    def getHudDisplays(self):
+        '''
+        each line ing the HUD is actually a separate HUD in itself so we need
+        to carefully manage this list
+        '''
+        return ['MetaHUDConnector%s' % attr for attr in self.monitorAttrs]
+    
+    def drawHUD(self):
+        #Attributes:
+        #
+        #        - Section 1, block 0, represents the top second slot of the view.
+        #        - Set the blockSize to "medium", instead of the default "small"
+        #        - Assigned the HUD the label: "Position"
+        #        - Defined the label font size to be large
+        #        - Assigned the HUD a command to run on a SelectionChanged trigger
+        #        - Attached the attributeChange node change to the SelectionChanged trigger
+        #          to allow the update of the data on attribute changes.
+            
+        for i,attr in enumerate(self.monitorAttrs):
+            if self.eventTrigger==5:
+                cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
+                                     section=self.section, 
+                                     block=self.block + i, 
+                                     blockSize=self.size,
+                                     label=attr, 
+                                     labelFontSize=self.size, 
+                                     command=partial(getattr,self,attr),
+                                     event='timeChanged')
+                                     #event=lambda *x:self.getEventTrigger())
+            elif self.eventTrigger==22:
+                cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
+                                     section=self.section, 
+                                     block=self.block + i, 
+                                     blockSize=self.size,
+                                     label=attr, 
+                                     labelFontSize=self.size, 
+                                     command=partial(getattr,self,attr), 
+                                     event=partial(self.getEventTrigger), 
+                                     nodeChanges='attributeChange' )
+        self.hudGroupActive=True
+                             
+    def hideHud(self):
+        for hud in self.getHudDisplays():
+            cmds.headsUpDisplay(hud,edit=True,visible=False)
+        
+    def showHud(self):
+        for hud in self.getHudDisplays():
+            cmds.headsUpDisplay(hud,edit=True,visible=True)  
+             
+    def killHud(self):
+        for hud in self.getHudDisplays():
+            cmds.headsUpDisplay(hud,remove=True)
+        self.hudGroupActive=False
+    
+    def refreshHud(self):
+        self.killHud()
+        self.drawHUD()
+            
+    def delete(self):
+        '''
+        full cleanup, remove the metaNode and all HUDs in the process
+        '''
+        self.killHud()
+        super(MetaHUDNode, self).delete()
+
+    def __delattr__(self, attr):
+        '''
+        delete an attr on the metaNode and remove it from the monitored list
+        '''
+        wasActive=False
+        if self.hudGroupActive==True:
+            self.killHud()
+            wasActive=True
+        self.monitorAttrs.remove(attr)
+        super(MetaHUDNode, self).__delattr__(attr)
+        if wasActive==True:
+            self.drawHUD()
+        

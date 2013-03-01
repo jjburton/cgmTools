@@ -22,7 +22,7 @@ import os
 import time
 import inspect
 import sys
-import ctypes
+#import ctypes
 
 
 import logging
@@ -151,11 +151,28 @@ def Timer(func):
     '''
     Simple timer decorator    
     '''
+
     def wrapper( *args, **kws):
         t1 = time.time()
         res=func(*args,**kws) 
         t2 = time.time()
-        log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
+
+        functionTrace=''
+        try:
+            #module if found
+            mod = inspect.getmodule(args[0])
+            functionTrace+='%s >>' % mod.__name__.split('.')[-1]
+        except:
+            log.debug('function module inspect failure')
+        try:
+            #class function is part of, if found
+            cls = args[0].__class__
+            functionTrace+='%s.' % args[0].__class__.__name__
+        except:
+            log.debug('function class inspect failure')
+        functionTrace+=func.__name__ 
+        log.info('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
+        #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper  
 
@@ -439,12 +456,13 @@ class Clipboard:
     ScriptEditor's selected history
     CURRENTLY NOT BEING CALLED - switched to pyperclip.py module
     '''
-
+    
     @staticmethod
     def getText():
         '''
         Get clipboard text if available
         '''
+        import ctypes
         
         # declare win32 API
         user32 = ctypes.windll.user32
@@ -472,6 +490,8 @@ class Clipboard:
         '''
         Set clipbard text
         '''
+        import ctypes
+        
         if not isinstance(value, str):
             raise TypeError('value should be of str type')
 
