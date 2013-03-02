@@ -51,10 +51,11 @@ cgmModuleTypes = ['cgmModule','cgmLimb']
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
-    def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
-        log.info(">>> cgmPuppet.__init__")
-        if kws:log.info("kws: %s"%str(kws))
-        if args:log.info("args: %s"%str(args))
+    @r9General.Timer
+    def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
+        log.debug(">>> cgmPuppet.__init__")
+        if kws:log.debug("kws: %s"%str(kws))
+        if args:log.debug("args: %s"%str(args))
         
         """Constructor"""
         #>>>Keyword args
@@ -70,11 +71,11 @@ class cgmPuppet(cgmMeta.cgmNode):
         ##If a name is provided, see if there's a puppet with that name, 
         ##If nothing is provided, just make one
         if node is None and name is None and args:
-            log.info("Checking '%s'"%args[0])
+            log.debug("Checking '%s'"%args[0])
             node = args[0]
 
         if puppets:#If we have puppets, check em
-            log.info("Found the following puppets: '%s'"%"','".join(puppets))            
+            log.debug("Found the following puppets: '%s'"%"','".join(puppets))            
             if name is not None or node is not None:    
                 if node is not None and node in puppets:
                     puppet = node
@@ -82,7 +83,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 else:
                     for p in puppets:
                         if attributes.doGetAttr(p,'cgmName') in [node,name]:
-                            log.info("Puppet tagged '%s' exists. Checking '%s'..."%(attributes.doGetAttr(p,'cgmName'),p))
+                            log.debug("Puppet tagged '%s' exists. Checking '%s'..."%(attributes.doGetAttr(p,'cgmName'),p))
                             puppet = p
                             name = attributes.doGetAttr(p,'cgmName')
                             break
@@ -94,16 +95,18 @@ class cgmPuppet(cgmMeta.cgmNode):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
-        log.info("Puppet is '%s'"%name)
+        log.debug("Puppet is '%s'"%name)
+	if puppet is None:puppetCreatedState = True
+	else:puppetCreatedState = False
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
 
         #>>> Puppet Network Initialization Procedure ==================       
         if self.isReferenced() or initializeOnly:
-            log.info("'%s' Initializing only..."%name)
+            log.debug("'%s' Initializing only..."%name)
             if not self.initialize():
                 #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
-        else:
+	elif self.__justCreatedState__ or doVerify:
             if not self.verify(name):
                 #log.critical("'%s' failed to verify!"%name)
                 raise StandardError,"'%s' failed to verify!"%name
@@ -160,7 +163,8 @@ class cgmPuppet(cgmMeta.cgmNode):
 
 
         return True
-
+    
+    @r9General.Timer
     def verify(self,name = ''):
         """"""
         """ 
@@ -294,10 +298,10 @@ class cgmPuppet(cgmMeta.cgmNode):
         """
         Delete the Puppet
         """
-        mc.delete(self.i_masterNull.mNode)
-        mc.delete(self.i_geo.mNode)
-        mc.delete(self.i_parts.mNode)
-        mc.delete(self.i_settings.mNode)
+        mc.delete(self.masterNull.mNode)
+        mc.delete(self.geo.mNode)
+        mc.delete(self.parts.mNode)
+        mc.delete(self.settings.mNode)
         del(self)
 
     def addModule(self,mClass = 'cgmModule',**kws):
@@ -335,7 +339,8 @@ class cgmPuppet(cgmMeta.cgmNode):
         #Get instance
         #==============	
         buffer = copy.copy(self.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
-
+	self.i_masterNull = self.masterNull
+	
         try:
             module.mNode#see if we have an instance
             if module.mNode in buffer and force != True:
@@ -377,7 +382,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             #module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
 
         #module.parent = self.i_partsGroup.mNode
-        module.doParent(self.i_partsGroup.mNode)
+        module.doParent(self.masterNull.partsGroup.mNode)
 
         return True
     
@@ -413,31 +418,37 @@ class cgmMorpheusPuppet(cgmPuppet):
 	return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
 class cgmMasterNull(cgmMeta.cgmObject):
     """"""
     #----------------------------------------------------------------------
-    def __init__(self,node = None, name = 'master',*args,**kws):
+    @r9General.Timer    
+    def __init__(self,node = None, name = 'Master',doVerify = False, *args,**kws):
         """Constructor"""
         #>>>Keyword args
         puppet = kws.pop('puppet',False)
 	if mc.objExists(name) and node is None:
 	    node = name
+		
+	log.debug("node: '%s'"%node)
+	log.debug("name: '%s'"%name)	
         super(cgmMasterNull, self).__init__(node=node, name = name)
-
+	
         if puppet and not self.isReferenced():
-            log.info("Puppet provided!")
-            log.info(puppet.cgmName)
-            log.info(puppet.mNode)
+            log.debug("Puppet provided!")
+            log.debug(puppet.cgmName)
+            log.debug(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.addAttr('puppet',attrType = 'messageSimple')
             if not self.connectParentNode(puppet,'puppet','masterNull'):
                 raise StandardError,"Failed to connect masterNull to puppet network!"		
         
         if not self.isReferenced():   
-            if not self.verify():
-                raise StandardError,"Failed!"
+	    if self.__justCreatedState__ or doVerify:
+		if not self.verify():
+		    raise StandardError,"Failed!"
 
+    @r9General.Timer    
     def verify(self):
         """"""
         """ 
@@ -464,10 +475,10 @@ class cgmMasterNull(cgmMeta.cgmObject):
 
 class cgmInfoNode(cgmMeta.cgmNode):
     """"""
-    def __init__(self,node = None, name = 'info', *args,**kws):
+    def __init__(self,node = None, name = 'info', doVerify = False, *args,**kws):
         """Constructor"""
-        log.info(">>> cgmInfoNode.__init__")
-        if kws:log.info("kws: %s"%kws)
+        log.debug(">>> cgmInfoNode.__init__")
+        if kws:log.debug("kws: %s"%kws)
         
         puppet = kws.pop('puppet',False)#to pass a puppet instance in 
         infoType = kws.pop('infoType','')
@@ -475,7 +486,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
         #>>>Keyword args
         super(cgmInfoNode, self).__init__(node=node, name = name,*args,**kws)
 
-        log.info("puppet :%s"%puppet)
+        log.debug("puppet :%s"%puppet)
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.connectParentNode(puppet, 'puppet',infoType)               
@@ -490,10 +501,12 @@ class cgmInfoNode(cgmMeta.cgmNode):
         self.addAttr('cgmTypeModifier',infoType,lock=True)
         self.addAttr('cgmType','info',lock=True)
         
-        if not self.isReferenced():   
-            if not self.verify():
-                raise StandardError,"Failed!"
-
+        if not self.isReferenced():
+	    if self.__justCreatedState__ or doVerify:
+		if not self.verify():
+		    raise StandardError,"Failed!"
+		
+    @r9General.Timer
     def verify(self):
         """"""
         """ 
@@ -517,7 +530,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         """Constructor"""
         log.debug(">>> cgmMorpheusMakerNetwork.__init__")
 	if kws:log.debug("kws: %s"%str(kws))
-	if args:log.debug("args: %s"%str(args)) 
+	if args:log.debug("args: %s"%str(args))
+	doVerify = kws.get('doVerify') or False
+	
         #>>>Keyword args
         super(cgmMorpheusMakerNetwork, self).__init__(*args,**kws)
 	if not 'initializeOnly' in kws.keys():initializeOnly = False
@@ -526,8 +541,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	
         if self.isReferenced() or initializeOnly: 
 	    log.info("'%s' initialized!"%self.mNode)
-	elif not self.verify():
-	    raise StandardError,"Failed!"
+	elif self.__justCreatedState__ or doVerify:
+	    if not self.verify():
+		raise StandardError,"Failed!"
 
     def __bindData__(self):
         pass
@@ -861,6 +877,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	if kws:log.info("kws: %s"%str(kws))
 	if args:log.debug("args: %s"%str(args)) 	
         puppet = kws.pop('puppet',False)
+	doVerify = kws.get('doVerify') or False
 	
         if puppet and not self.isReferenced():
             log.info("Puppet provided!")
@@ -870,9 +887,10 @@ class cgmMasterControl(cgmMeta.cgmObject):
             self.addAttr('puppet',attrType = 'messageSimple')
             self.connectParentNode(puppet,'puppet','masterControl') 
 	    
-        if not self.isReferenced():   
-            if not self.verify(*args,**kws):
-                raise StandardError,"Failed!"	
+        if not self.isReferenced():
+	    if self.__justCreatedState__ or doVerify:
+		if not self.verify(*args,**kws):
+		    raise StandardError,"Failed!"	
 	
     @r9General.Timer	
     def verify(self,*args,**kws):
@@ -1002,16 +1020,18 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         """Constructor"""
         module = kws.get('module') or False
         bufferType = kws.get('bufferType') or ''
-
+	doVerify = kws.get('doVerify') or False
+	
         #>>> Keyword args
         super(cgmModuleBufferNode, self).__init__(node=node, name = name,*args,**kws)
         log.debug(">"*10 + " cgmModuleBufferNode.init.... " + "<"*10)
         log.debug(args)
         log.debug(kws)        
         
-        if not self.isReferenced():   
-            if not self.verify(**kws):
-                raise StandardError,"Failed!"
+        if not self.isReferenced(): 
+	    if self.__justCreatedState__ or doVerify:	    
+		if not self.verify(**kws):
+		    raise StandardError,"Failed!"
 
     def verify(self,*args,**kws):
         """"""
@@ -1148,6 +1168,7 @@ class cgmModule(cgmMeta.cgmObject):
 
         #Keywords - need to set after the super call
         #==============         
+	doVerify = kws.get('doVerify') or False
         self.kw_name= kws.get('name') or False        
         self.kw_moduleParent = kws.get('moduleParent') or False
         #self.kw_position = kws.get('position') or False
@@ -1172,9 +1193,10 @@ class cgmModule(cgmMeta.cgmObject):
                 log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.kw_name)
                 return          
         else:
-            if not self.verify(**kws):
-                log.critical("'%s' failed to verify!"%self.kw_name)
-                return  
+	    if self.__justCreatedState__ or doVerify:	    
+		if not self.verify(**kws):
+		    log.critical("'%s' failed to verify!"%self.kw_name)
+		    return  
 
         log.debug("'%s' Checks out!"%self.getShortName())
         log.debug('Time taken =  %0.3f' % (time.clock()-start))

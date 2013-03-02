@@ -140,11 +140,15 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    #catch = cgmMeta(name = name, nodeType = nodeType,*args,**kws)
 	    #node = catch.mNode
 	    #log.info(node)
-	        
-        super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
+	if node is None or name is not None and mc.objExists(name):
+	    createdState = True
+	else:createdState = False
+	
+	super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
+	self.__dict__['__justCreatedState__'] = createdState  
+	
 	self.update()
-	#self.__dict__['__name__'] = self.getShortName()
-            
+	
 	    
     def __getattributeBACK__(self, attr, longNames = True, ignoreOverload = True):
 	"""Overload just on message attributes
@@ -380,6 +384,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if self.hasAttr('mNodeID') and not self.isReferenced():#experiment
 	    log.debug(self.mNodeID)
 	    attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
+	self.__dict__['__name__'] = self.getShortName()
 	
     def getCGMNameTags(self):
         """
@@ -2497,8 +2502,7 @@ class cgmAttr(object):
         assert mc.objExists(target),"'%s' doesn't exist"%target
         
         return attributes.returnCompatibleAttrs(self.obj.mNode,self.p_nameLong,target,*a, **kw)
-        
-            
+         
     
     def doConnectOut(self,target,*a, **kw):
         """ 
