@@ -1137,10 +1137,12 @@ def returnParentsFromObjectToParent(obj,parentObject,fullpath=True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Returns parents of the input object
+    Returns parents of the input object between that object and another parent
 
     ARGUMENTS:
     obj(string)
+    parentObj(string)
+    fullPath(bool) -- what you want returned
 
     RETURNS:
     parents(list)
