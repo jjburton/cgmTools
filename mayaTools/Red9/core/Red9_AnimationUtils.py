@@ -1024,12 +1024,22 @@ class AnimationUI(object):
         @param mode: 'local' or 'project', in project the poses are load only, save=disabled
         '''
         if mode=='local':
-            self.posePath=self.posePathLocal
+            self.posePath=os.path.join(self.posePathLocal,self.__uiCB_getsubFolderFromUI())
+            if not os.path.exists(self.posePath):
+                log.warning('No Matching Local SubFolder path found - Reverting to Root')
+                self.__uiCB_clearSubFolders()
+                self.posePath=self.posePathLocal
+                
             self.posePathMode='localPoseMode'
             cmds.button('savePoseButton',edit=True,en=True,bgc=r9Setup.red9ButtonBGC(1))
             cmds.textFieldButtonGrp('uitfgPosePath',edit=True,text=self.posePathLocal)
         elif mode=='project':
-            self.posePath=self.posePathProject
+            self.posePath=os.path.join(self.posePathProject,self.__uiCB_getsubFolderFromUI())
+            if not os.path.exists(self.posePath):
+                log.warning('No Matching Project SubFolder path found - Reverting to Root')
+                self.__uiCB_clearSubFolders()
+                self.posePath=self.posePathProject
+                
             self.posePathMode='projectPoseMode'
             cmds.button('savePoseButton',edit=True,en=False,bgc=r9Setup.red9ButtonBGC(2))      
             cmds.textFieldButtonGrp('uitfgPosePath',edit=True,text=self.posePathProject)
@@ -1500,13 +1510,38 @@ class AnimationUI(object):
         '''
         Copy local pose to the Project Pose Folder
         '''
-        import shutil
+        import shutil      
+        syncSubFolder=True  
+        projectPath=self.posePathProject
         if not os.path.exists(self.posePathProject):
-            raise StandardError('Project Pose Path is inValid')
-        log.info('Copying Local Pose: %s >> %s' % (self.poseSelected,self.posePathProject))
+            raise StandardError('Project Pose Path is inValid or not yet set')
+        if syncSubFolder:
+            subFolder=self.__uiCB_getsubFolderFromUI()
+            projectPath=os.path.join(projectPath,subFolder)
+            
+            if not os.path.exists(projectPath):
+                result = cmds.confirmDialog(
+                    title='Add Project Sub Folder',
+                    message='Add a matching subFolder to the project pose path?',
+                    button=['Make', 'CopyToRoot', 'Cancel'],
+                    defaultButton='OK',
+                    cancelButton='Cancel',
+                    dismissString='Cancel')
+                if result == 'Make':
+                    try:
+                        os.mkdir(projectPath)
+                        log.debug('New Folder Added to ProjectPosePath: %s' % projectPath)
+                    except:
+                        raise StandardError('Failed to make the SubFolder path')
+                elif result =='CopyToRoot':
+                    projectPath=self.posePathProject
+                else:
+                    return
+            
+        log.info('Copying Local Pose: %s >> %s' % (self.poseSelected,projectPath))
         try:
-            shutil.copy2(self.__uiCB_getPosePath(),self.posePathProject)
-            shutil.copy2(self.__uiCB_getIconPath(),self.posePathProject)
+            shutil.copy2(self.__uiCB_getPosePath(),projectPath)
+            shutil.copy2(self.__uiCB_getIconPath(),projectPath)
         except:
             raise StandardError('Unable to copy pose : %s > to Project dirctory' % self.poseSelected)
         

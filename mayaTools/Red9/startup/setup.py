@@ -15,7 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__=1.284
+__buildVersionID__=1.285
 
 import sys
 import os
@@ -150,6 +150,9 @@ def menuSetup():
     cmds.menuItem('redNineVimeoItem',l="Red9_Vimeo Channel",ann="Open Red9Vimeo Channel",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="Red9.setup.red9_vimeo()")
+    cmds.menuItem('redNineFacebookItem',l="Red9_Facebook",ann="Open Red9Facebook page",
+                  p='redNineMenuItemRoot', echoCommand=True,
+                  c="Red9.setup.red9_facebook()")
     cmds.menuItem(l="Red9_Details",c='Red9.setup.red9ContactInfo()',p='redNineMenuItemRoot')    
     cmds.menuItem(divider=True,p='redNineMenuItemRoot') 
     
@@ -158,6 +161,7 @@ def menuSetup():
                   echoCommand=True, c="Red9.core._setlogginglevel_debug()")
     cmds.menuItem('redNineInfoItem',l="systems: INFO",ann="Turn all the logging to Info only",
                   echoCommand=True, c="Red9.core._setlogginglevel_info()")
+    cmds.menuItem(divider=True,p='redNineDebuggerItem')
     cmds.menuItem('redNineReloadItem',l="systems: reload()",ann="Force a complete reload on the core of Red9",
                   echoCommand=True, c="Red9.core._reload()")
     
@@ -226,6 +230,13 @@ def red9_blog():
     import Red9.core.Red9_General as r9General #lazy load
     r9General.os_OpenFile('http://red9-consultancy.blogspot.com/')
 
+def red9_facebook():
+    '''
+    open up the Red9 Facebook Page
+    '''
+    import Red9.core.Red9_General as r9General #lazy load
+    r9General.os_OpenFile('http://www.facebook.com/Red9StudioPack/')   
+    
 def red9_vimeo():
     '''
     open up the Red9 Vimeo Channel
