@@ -1133,6 +1133,39 @@ def returnAllParents(obj,shortNames=False):
             noParent = True
     return parentList
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnParentsFromObjectToParent(obj,parentObject,fullpath=True):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns parents of the input object
+
+    ARGUMENTS:
+    obj(string)
+
+    RETURNS:
+    parents(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    assert mc.objExists(obj)
+    assert mc.objExists(parentObject)
+    
+    parentsList = []
+    allParents = returnAllParents(obj,shortNames = False)#Get all the parents
+    str_parentlong = mc.ls(parentObject, long = True)[0]#Get the parent object arg's long name
+    
+    if str_parentlong not in allParents or not allParents:#if our parentObj argument isn't a parent, return False
+	return False
+    #It is a parent, so let's get what's between
+    index = allParents.index(str_parentlong)#get index
+    parentsList = allParents[:index]
+    shortNameBuffer = []
+    for p in parentsList:
+	shortName = mc.ls(p,shortNames=True)[0]
+	log.info(shortName)
+	shortNameBuffer.append(shortName)
+    if not fullpath:
+	return shortNameBuffer
+    return parentsList
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Stuff with brackets!
