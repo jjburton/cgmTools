@@ -119,7 +119,8 @@ class cgmPuppet(cgmMeta.cgmNode):
         """  
         #Puppet Network Node
         #==============
-        if self.mClass != 'cgmPuppet':
+        if self.mClass not in ['cgmPuppet','cgmMorpheusPuppet']:
+	    log.warning("mClass is wrong")
             return False  
         
         return True
@@ -408,6 +409,8 @@ class cgmMorpheusPuppet(cgmPuppet):
     def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
 	cgmPuppet.__init__(self, node = node, name = name, initializeOnly = initializeOnly, *args,**kws)
         """
+    def isCustomizable(self):
+	return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
@@ -1389,6 +1392,12 @@ class cgmModule(cgmMeta.cgmObject):
     def getGeneratedCoreNames(self):
         return mFactory.getGeneratedCoreNames(self)
     
+    def isModule(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.isModule)
+        """
+        return mFactory.isModule(self)
     #>>> States
     #===========================================================
     def getState(self):
@@ -1428,12 +1437,12 @@ class cgmModule(cgmMeta.cgmObject):
         """
         return mFactory.isTemplated(self)
     
-    def doTemplate(self):
+    def doTemplate(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doTemplate)
         """
-        return mFactory.doTemplate(self)
+        return mFactory.doTemplate(self,*args,**kws)
     
     def deleteTemplate(self):
         """

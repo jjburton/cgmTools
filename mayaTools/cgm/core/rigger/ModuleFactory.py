@@ -36,7 +36,7 @@ l_modulesClasses = ['cgmModule','cgmLimb']
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-@r9General.Timer   
+#@r9General.Timer   
 def isSized(self):
     """
     Return if a moudle is sized or not
@@ -542,7 +542,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
                             'template':deleteSkeleton
                             }
     d_deleteStateFunctions = {'size':deleteSizeInfo,
-                              'template':deleteTemplate,
+                              #'template':deleteTemplate,#handle from factory now
                               'skeleton':deleteSkeleton,
                               }    
     log.info(">>> In ModuleFactory.changeState")
@@ -606,7 +606,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     else:
         log.info('Forcing recreate')
         if stateName in d_upStateFunctions.keys():
-            d_deleteStateFunctions[stateName](self)
+            #d_deleteStateFunctions[stateName](self)
             if not d_upStateFunctions[stateName](self,*args,**kws):return False
             return True
         

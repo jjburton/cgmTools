@@ -2,6 +2,7 @@ import copy
 import re
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+__version__ = 0.03012013
 
 import logging
 logging.basicConfig()
@@ -25,6 +26,7 @@ from cgm.lib import (modules,
                      constraints,
                      attributes,
                      position,
+                     search,
                      logic)
 reload(attributes)
 reload(constraints)
@@ -35,10 +37,9 @@ reload(dragFactory)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-
 class go(object):
     @r9General.Timer
-    def __init__(self,module,forceNew = True,loadTemplatePose = True,**kws): 
+    def __init__(self,module,forceNew = True,loadTemplatePose = True,tryTemplateUpdate = False, **kws): 
         """
         To do:
         Add rotation order settting
@@ -50,13 +51,18 @@ class go(object):
         #==============	        
         #>>> module null data 
         log.debug(">>> TemplateFactory.go.__init__")        
-        assert module.mClass in ['cgmModule','cgmLimb'],"Not a module"
-        module.deleteTemplate()        
+        assert module.isModule(),"Not a module"
+        if tryTemplateUpdate:
+            if updateTemplate(module):
+                if loadTemplatePose:module.loadTemplatePose()                
+                return
+            
         if module.isTemplated():
             if forceNew:
                 module.deleteTemplate()
             else:
-                raise StandardError,"'%s' has already been templated"%module.getShortName()
+                log.warning("'%s' has already been templated"%module.getShortName())
+                return
         
         self.cls = "TemplateFactory.go"
         self.m = module# Link for shortness
@@ -68,7 +74,7 @@ class go(object):
         self.moduleParent = self.moduleNullData.get('moduleParent')
         self.moduleColors = self.m.getModuleColors()
         self.coreNames = self.m.coreNames.value
-        self.corePosList = self.i_templateNull .templateStarterData
+        self.corePosList = self.i_templateNull.templateStarterData
         self.foundDirections = False #Placeholder to see if we have it
         
         assert len(self.coreNames) == len(self.corePosList),"coreNames length and corePosList doesn't match"
@@ -83,8 +89,8 @@ class go(object):
         
         #>>> template null 
         self.templateNullData = attributes.returnUserAttrsToDict(self.templateNull)
-        self.curveDegree = self.i_templateNull .curveDegree
-        self.rollOverride = self.i_templateNull .rollOverride
+        self.curveDegree = self.i_templateNull.curveDegree
+        self.rollOverride = self.i_templateNull.rollOverride
         
         log.debug("Module: %s"%self.m.getShortName())
         log.debug("moduleNullData: %s"%self.moduleNullData)
@@ -108,7 +114,7 @@ class go(object):
 @r9General.Timer
 def doTagChildren(self): 
     try:
-        for obj in self.i_templateNull .getAllChildren():
+        for obj in self.i_templateNull.getAllChildren():
             i_obj = cgmMeta.cgmNode(obj)
             i_obj.doStore('templateOwner',self.templateNull)
     except StandardError,error:
@@ -476,9 +482,9 @@ def doMakeLimbTemplate(self):
     
     #>> Store objects
     #=============================      
-    self.i_templateNull .curve = i_crv.mNode
-    self.i_templateNull .root = i_rootControl.mNode
-    self.i_templateNull .controlObjects = templHandleList
+    self.i_templateNull.curve = i_crv.mNode
+    self.i_templateNull.root = i_rootControl.mNode
+    self.i_templateNull.controlObjects = templHandleList
     
     self.i_rootControl = i_rootControl#link to carry
 
@@ -486,12 +492,13 @@ def doMakeLimbTemplate(self):
     #=============================      
     """ Make our Orientation Helpers """
     doCreateOrientationHelpers(self)
-    doParentControlObjects(self)
+    doParentControlObjects(self.m)
 
     if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
         constrainToParentModule(self.m)
     return True
 
+@r9General.Timer
 def doCreateOrientationHelpers(self):
     """ 
     """
@@ -506,8 +513,8 @@ def doCreateOrientationHelpers(self):
     helperObjects = []
     helperObjectGroups = []
     returnBuffer = []
-    root = self.i_templateNull .getMessage('root')[0]
-    objects =  self.i_templateNull .getMessage('controlObjects')
+    root = self.i_templateNull.getMessage('root')[0]
+    objects =  self.i_templateNull.getMessage('controlObjects')
     log.debug(root)
     log.debug(objects)
     log.debug(self.foundDirections)
@@ -592,103 +599,80 @@ def doCreateOrientationHelpers(self):
     bufferList = []
     for o in self.i_orientHelpers:
         bufferList.append(o.mNode)
-    self.i_templateNull .orientHelpers = bufferList
+    self.i_templateNull.orientHelpers = bufferList
     self.i_orientRootHelper = i_orientRootControl
-    log.debug("orientRootHelper: [%s]"%self.i_templateNull .orientRootHelper.getShortName())   
-    log.debug("orientHelpers: %s"%self.i_templateNull .getMessage('orientHelpers'))
+    log.debug("orientRootHelper: [%s]"%self.i_templateNull.orientRootHelper.getShortName())   
+    log.debug("orientHelpers: %s"%self.i_templateNull.getMessage('orientHelpers'))
 
     return True
 
 @r9General.Timer
 def doParentControlObjects(self):
+    """
+    Needs instanced module
+    """
     log.debug(">>> addOrientationHelpers")
-    assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
-    assert mc.objExists(self.m.mNode),"module no longer exists"    
+    i_templateNull = self.templateNull#link for speed
+    i_root = i_templateNull.root
+    i_controlObjects = i_templateNull.controlObjects
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>> Parent objects
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    for i_obj in self.i_controlObjects:
-        i_obj.parent = self.i_rootControl.mNode
+    for i_obj in i_controlObjects:
+        i_obj.parent = i_root.mNode
         
-    self.i_controlObjects[0].doGroup(maintain=True)#Group to zero out
-    self.i_controlObjects[-1].doGroup(maintain=True)  
+    i_controlObjects[0].doGroup(maintain=True)#Group to zero out
+    i_controlObjects[-1].doGroup(maintain=True)  
     
-    log.debug(self.i_templateNull .getMessage('controlObjects',False))
+    log.debug(self.i_templateNull.getMessage('controlObjects',False))
     
-    constraintGroups = constraints.doLimbSegmentListParentConstraint(self.i_templateNull .getMessage('controlObjects',False))    
+    constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.getMessage('controlObjects',False))    
     
-    
-    for i_obj in self.i_controlObjects:
+    for i_obj in i_controlObjects:
          i_parent = cgmMeta.cgmObject(i_obj.parent)
          i_parent.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
          i_obj.addAttr('owner',i_parent.mNode,attrType = 'messageSimple',lock=True)
          
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Parenting constrainging parts
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     return
-    moduleParent = attributes.returnMessageObject(moduleNull,'moduleParent')
-    if moduleParent != masterNull:
-        if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
-            moduleParent = attributes.returnMessageObject(moduleParent,'moduleParent')
-        parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
-        parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
-        parentTemplateObjects = []
-        for key in parentTemplatePosObjectsInfoData.keys():
-            if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
-                if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
-                    parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
-        closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
-        if (search.returnTagInfo(moduleNull,'cgmModuleType')) != 'foot':
-            constraintGroup = rigging.groupMeObject(rootName,maintainParent=True)
-            constraintGroup = NameFactory.doNameObject(constraintGroup)
-            mc.pointConstraint(closestParentObject,constraintGroup, maintainOffset=True)
-            mc.scaleConstraint(closestParentObject,constraintGroup, maintainOffset=True)
-        else:
-            constraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
-            constraintGroup = NameFactory.doNameObject(constraintGroup)
-            mc.parentConstraint(rootName,constraintGroup, maintainOffset=True)
-            
-    """ grab the last clavicle piece if the arm has one and connect it to the arm  """
-    moduleParent = attributes.returnMessageObject(moduleNull,'moduleParent')
-    if moduleParent != masterNull:
-        if (search.returnTagInfo(moduleNull,'cgmModuleType')) == 'arm':
-            if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
-                print '>>>>>>>>>>>>>>>>>>>>> YOU FOUND ME'
-                parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
-                parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
-                parentTemplateObjects = []
-                for key in parentTemplatePosObjectsInfoData.keys():
-                    if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
-                        if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
-                            parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
-                closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
-                endConstraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
-                endConstraintGroup = NameFactory.doNameObject(endConstraintGroup)
-                mc.pointConstraint(handles[0],endConstraintGroup, maintainOffset=True)
-                mc.scaleConstraint(handles[0],endConstraintGroup, maintainOffset=True)
-        
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    #>> Final stuff
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    #>>> Set our new module rig process state
-    #mc.setAttr ((moduleNull+'.templateState'), 1)
-    #mc.setAttr ((moduleNull+'.skeletonState'), 0)
+
+@r9General.Timer
+def updateTemplate(self):
+    """
+    Function to update a skeleton if it's been resized
+    """
+    if not self.isSized():
+        log.warning("'%s' not sized. Can't update"%self.getShortName())
+        return False
+    if not self.isTemplated():
+        log.warning("'%s' not templated. Can't update"%self.getShortName())
+        return False
     
-    #>>> Tag our objects for easy deletion
-    #children = mc.listRelatives (templateNull, allDescendents = True,type='transform')
-    #for obj in children:
-        #attributes.storeInfo(obj,'cgmOwnedBy',templateNull)
-        
-    #>>> Visibility Connection
-    #masterControl = attributes.returnMessageObject(masterNull,'controlMaster')
-    #visControl = attributes.returnMessageObject(masterControl,'childControlVisibility')
-    #attributes.doConnectAttr((visControl+'.orientHelpers'),(templateNull+'.visOrientHelpers'))
-    #attributes.doConnectAttr((visControl+'.controlHelpers'),(templateNull+'.visControlHelpers'))
-    #>>> Run a rename on the module to make sure everything is named properly
-    #NameFactory.doRenameHeir(moduleNull)
+    i_templateNull = self.templateNull#link for speed
+    corePosList = i_templateNull.templateStarterData
+    i_root = i_templateNull.root
+    i_controlObjects = i_templateNull.controlObjects
     
+    mc.xform(i_root.parent, translation = corePosList[0],worldSpace = True)
+    
+    for i,i_obj in enumerate(i_controlObjects[1:]):
+        log.info(i_obj.getShortName())
+        objConstraints = constraints.returnObjectConstraints(i_obj.parent)
+        if objConstraints:
+            mc.delete(objConstraints) 
+        buffer = search.returnParentsFromObjectToParent(i_obj.mNode,i_root.mNode)
+        i_obj.parent = False
+        mc.delete(buffer)
+        mc.xform(i_obj.mNode, translation = corePosList[1:][i],worldSpace = True) 
+        
+    buffer = search.returnParentsFromObjectToParent(i_controlObjects[0].mNode,i_root.mNode)
+    i_controlObjects[0].parent = False
+    mc.delete(buffer)
+    
+    doParentControlObjects(self)
+    return True
+
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utilities
@@ -696,7 +680,7 @@ def doParentControlObjects(self):
 def getGoodCurveDegree(self):
     log.debug(">>> getGoodCurveDegree")
     try:
-        doCurveDegree = self.i_templateNull .curveDegree
+        doCurveDegree = self.i_templateNull.curveDegree
     except:
         raise ValueError,"Failed to get module curve degree"
     
