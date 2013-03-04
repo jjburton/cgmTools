@@ -56,7 +56,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         log.debug(">>> cgmPuppet.__init__")
         if kws:log.debug("kws: %s"%str(kws))
         if args:log.debug("args: %s"%str(args))
-        
+	
         """Constructor"""
         #>>>Keyword args
         puppet = kws.pop('puppet',None)
@@ -107,8 +107,8 @@ class cgmPuppet(cgmMeta.cgmNode):
                 #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
 	elif self.__justCreatedState__ or doVerify:
-            if not self.verify(name):
-                #log.critical("'%s' failed to verify!"%name)
+            if not self.__verify__(name,**kws):
+                #log.critical("'%s' failed to __verify__!"%name)
                 raise StandardError,"'%s' failed to verify!"%name
 
 
@@ -165,7 +165,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         return True
     
     @r9General.Timer
-    def verify(self,name = ''):
+    def __verify__(self,name = ''):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -203,7 +203,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         else:
             log.info('Master null exists. linking....')            
             self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
-
+	    self.i_masterNull.__verify__()
         if self.i_masterNull.getShortName() != self.cgmName:
             self.i_masterNull.doName(False)
             if self.i_masterNull.getShortName() != self.cgmName:
@@ -224,7 +224,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         else:
             log.info('settings infoNode exists. linking....')                        
             self.i_settings = self.settings #Linking to instance for faster processing. Good idea?
-
+	    self.i_settings.__verify__()
         defaultFont = modules.returnSettingsData('defaultTextFont')
 
         self.i_settings.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
@@ -241,7 +241,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         else:
             log.info('Creating geo')                                    
             self.i_geo = cgmInfoNode(puppet = self, infoType = 'geo')#Create and initialize
-
+	    self.i_geo.__verify__()
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
@@ -255,7 +255,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
                 log.info(self.__dict__[Attr].mNode)
                 #except:
-                    #log.error("'%s' group failed. Please verify puppet."%attr)                    
+                    #log.error("'%s' group failed. Please __verify__ puppet."%attr)                    
                     #return False   
 
             else:#Make it
@@ -265,7 +265,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 #self.i_masterNull.connectChildNode(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
 		self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
                 log.info("Initialized as 'self.%s'"%(Attr))                    
-		
+		self.__dict__[Attr].__verify__()
             # Few Case things
             #==============            
             if attr == 'geo':
@@ -284,7 +284,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         if name != '' and type(name) is str:
             log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
             self.cgmName = name
-            self.verify()
+            self.__verify__()
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Puppet Utilities
@@ -445,11 +445,11 @@ class cgmMasterNull(cgmMeta.cgmObject):
         
         if not self.isReferenced():   
 	    if self.__justCreatedState__ or doVerify:
-		if not self.verify():
+		if not self.__verify__():
 		    raise StandardError,"Failed!"
 
     @r9General.Timer    
-    def verify(self):
+    def __verify__(self):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -503,11 +503,11 @@ class cgmInfoNode(cgmMeta.cgmNode):
         
         if not self.isReferenced():
 	    if self.__justCreatedState__ or doVerify:
-		if not self.verify():
+		if not self.__verify__():
 		    raise StandardError,"Failed!"
 		
     @r9General.Timer
-    def verify(self):
+    def __verify__(self):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -542,13 +542,13 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         if self.isReferenced() or initializeOnly: 
 	    log.info("'%s' initialized!"%self.mNode)
 	elif self.__justCreatedState__ or doVerify:
-	    if not self.verify():
+	    if not self.__verify__():
 		raise StandardError,"Failed!"
 
     def __bindData__(self):
         pass
     
-    def verify(self):
+    def __verify__(self):
         """ 
         """ 
 	self.addAttr('mClass','cgmMorpheusMakerNetwork',attrType='string',lock=True)
@@ -755,7 +755,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
             log.warning("Changing name from '%s' to '%s'"%(self.cgmName,name))
 	    self.cgmName = name
             #self.doStore('cgmName',name,overideMessageCheck = True)
-            self.verify()
+            self.__verify__()
 	    self.masterControl.rebuildControlCurve()
 	    
     def isCustomizable(self):
@@ -889,11 +889,11 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	    
         if not self.isReferenced():
 	    if self.__justCreatedState__ or doVerify:
-		if not self.verify(*args,**kws):
+		if not self.__verify__(*args,**kws):
 		    raise StandardError,"Failed!"	
 	
     @r9General.Timer	
-    def verify(self,*args,**kws):
+    def __verify__(self,*args,**kws):
 	#Check for shapes, if not, build
 	self.color =  modules.returnSettingsData('colorMaster',True)
 
@@ -1030,10 +1030,10 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         
         if not self.isReferenced(): 
 	    if self.__justCreatedState__ or doVerify:	    
-		if not self.verify(**kws):
+		if not self.__verify__(**kws):
 		    raise StandardError,"Failed!"
 
-    def verify(self,*args,**kws):
+    def __verify__(self,*args,**kws):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -1194,7 +1194,7 @@ class cgmModule(cgmMeta.cgmObject):
                 return          
         else:
 	    if self.__justCreatedState__ or doVerify:	    
-		if not self.verify(**kws):
+		if not self.__verify__(**kws):
 		    log.critical("'%s' failed to verify!"%self.kw_name)
 		    return  
 
@@ -1253,7 +1253,7 @@ class cgmModule(cgmMeta.cgmObject):
         return True
 
 
-    def verify(self,**kws):
+    def __verify__(self,**kws):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -1551,8 +1551,8 @@ class cgmLimb(cgmModule):
         super(cgmLimb, self).__init__(*args,**kws) 
 
 
-    def verify(self,**kws):
-        cgmModule.verify(self,**kws)
+    def __verify__(self,**kws):
+        cgmModule.__verify__(self,**kws)
 
         if 'mType' not in kws.keys() and self.moduleType in limbTypes.keys():
             log.debug("'%s' type checks out."%self.moduleType)	    

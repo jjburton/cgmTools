@@ -54,9 +54,9 @@ class go(object):
         assert module.isModule(),"Not a module"
         if tryTemplateUpdate:
             if updateTemplate(module):
-                if loadTemplatePose:module.loadTemplatePose()                
+                if loadTemplatePose:self.m.loadTemplatePose()                
                 return
-            
+        
         if module.isTemplated():
             if forceNew:
                 module.deleteTemplate()
@@ -611,7 +611,7 @@ def doParentControlObjects(self):
     """
     Needs instanced module
     """
-    log.debug(">>> addOrientationHelpers")
+    log.info(">>> doParentControlObjects")
     i_templateNull = self.templateNull#link for speed
     i_root = i_templateNull.root
     i_controlObjects = i_templateNull.controlObjects
@@ -625,7 +625,7 @@ def doParentControlObjects(self):
     i_controlObjects[0].doGroup(maintain=True)#Group to zero out
     i_controlObjects[-1].doGroup(maintain=True)  
     
-    log.debug(self.i_templateNull.getMessage('controlObjects',False))
+    log.debug(i_templateNull.getMessage('controlObjects',False))
     
     constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.getMessage('controlObjects',False))    
     

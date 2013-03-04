@@ -431,7 +431,7 @@ def doSkeletonize(self,*args,**kws):
 def deleteSkeleton(self,*args,**kws):  
     log.info("deleteSkeleton: Not implemented")
     if isSkeletonized(self):
-        mc.delete(self.i_rigNull.getMessage('skinJoints'))
+        mc.delete(self.rigNull.getMessage('skinJoints'))
     return True
 #=====================================================================================================
 #>>> States

@@ -149,6 +149,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
 	self.update()
 	
+    def __verify__(self):
+	""" For overload"""
+	pass
 	    
     def __getattributeBACK__(self, attr, longNames = True, ignoreOverload = True):
 	"""Overload just on message attributes
