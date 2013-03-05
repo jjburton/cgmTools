@@ -863,8 +863,9 @@ class MetaClass(object):
         '''
         Wrapped version of Maya addAttr that manages the basic type flags for you 
         whilst also setting the attr on the MayaNode/class object itself. 
-        I now merge in **kws to the dict I pass to the add command so you can 
-        specify all standard cmds.addAttr flags in the same call.
+        I now merge in **kws to the dict I pass to the add and set commands here so you 
+        can specify all standard cmds.addAttr, setAttr flags in the same call.
+        ie:/ min, max, l, k, cb,
         @param attr:  attribute name to add (standard 'longName' flag)
         @param value: initial value to set, if given the attribute type is automatically set for you
         @param attrType: specify the exact type of attr to add. By default I try and resolve
@@ -875,6 +876,7 @@ class MetaClass(object):
             double3: self.addAttr(attr='attrName', attrType='double3',value=(value1,value2,value3))
             float3:  self.addAttr(attr='attrName', attrType='float3', value=(value1,value2,value3))
             enum:    self.addAttr(attr='attrName', attrType='enum',   value=1, enumName='Centre:Left:Right') 
+
         '''
         DataTypeKws={'string': {'longName':attr,'dt':'string'},\
                      'int':    {'longName':attr,'at':'long'},\
@@ -894,17 +896,33 @@ class MetaClass(object):
         if attrType and attrType=='enum' and not kws.has_key('enumName'):
             raise ValueError('enum attrType must be passed with "enumName" keyword in args')       
         
+        #ATTR EXSISTS - EDIT CURRENT
+        #---------------------------
         if cmds.attributeQuery(attr, exists=True, node=self.mNode):
             #if attr exists do we force the value here?? NOOOO as I'm using this 
             #to ensure that when we initialize certain classes base attrs exist. 
             log.debug('"%s" :  Attr already exists on the Node' % attr)
-            if attrType=='enum':
-                #enum handler this means you can use the addAttr to force changes/updates
-                #to enumName setups, forcing possible updates via self.__bindData__
-                log.debug('enum strings being updated to : %s' % kws['enumName'])
-                cmds.addAttr('%s.%s' % (self.mNode,attr),e=True,enumName=kws['enumName'])
-            #TODO: allow min, max, hidden, keyable attrs all to be modified here?
+
+            #allow some of the standard edit flags to be run
+            addCmdEditFlags=['min','minValue','max','maxValue','defaultValue','df','enumName']
+            setCmdEditFlags=['keyable','k','lock','l','channelBox','cb']
+            addkwsToEdit={}
+            setKwsToEdit={}
+            if kws:
+                for kw,v in kws.items():
+                    if kw in addCmdEditFlags:
+                        addkwsToEdit[kw]=v
+                    elif kw in setCmdEditFlags:
+                        setKwsToEdit[kw]=v      
+                if addkwsToEdit:
+                    cmds.addAttr('%s.%s' % (self.mNode,attr),e=True,**addkwsToEdit)
+                    log.debug('addAttr Edit flags run : %s = %s' % (attr, addkwsToEdit))
+                if setKwsToEdit:
+                    cmds.setAttr('%s.%s' % (self.mNode,attr),**setKwsToEdit)
+                    log.debug('setAttr Edit flags run : %s = %s' % (attr, setKwsToEdit))
             return
+        #ATTR IS NEW, CREATE IT
+        #----------------------
         else:
             try:
                 if not attrType:
