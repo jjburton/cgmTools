@@ -356,17 +356,16 @@ def isTemplated(self):
 
 #@r9General.Timer   
 def doTemplate(self,*args,**kws):
-    try:
-        if not isSized(self):
-            log.warning("Not sized: '%s'"%self.getShortName())
-            return False      
-        tFactory.go(self,*args,**kws)      
-        if not isTemplated(self):
-            log.warning("Template failed: '%s'"%self.getShortName())
-            return False
-        return True
-    except StandardError,error:
-        log.warning(error)    
+    if not isSized(self):
+        log.warning("Not sized: '%s'"%self.getShortName())
+        return False      
+    tFactory.go(self,*args,**kws)      
+    if not isTemplated(self):
+        log.warning("Template failed: '%s'"%self.getShortName())
+        return False
+    return True
+    #except StandardError,error:
+        #log.warning(error)    
     
 #@r9General.Timer   
 def deleteTemplate(self,*args,**kws):
@@ -502,7 +501,7 @@ def getState(self):
             else:break
         elif i != 0:
             log.warning("Need test for: '%s'"%state)
-    log.info("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
+    log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
     return goodState
 
 @r9General.Timer   
@@ -542,13 +541,13 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
                             'template':deleteSkeleton
                             }
     d_deleteStateFunctions = {'size':deleteSizeInfo,
-                              #'template':deleteTemplate,#handle from factory now
+                              'template':deleteTemplate,#handle from factory now
                               'skeleton':deleteSkeleton,
                               }    
-    log.info(">>> In ModuleFactory.changeState")
-    log.info("stateArg: %s"%stateArg)
-    log.info("rebuildFrom: %s"%rebuildFrom)
-    log.info("forceNew: %s"%forceNew)
+    log.debug(">>> In ModuleFactory.changeState")
+    log.debug("stateArg: %s"%stateArg)
+    log.debug("rebuildFrom: %s"%rebuildFrom)
+    log.debug("forceNew: %s"%forceNew)
     
     if not isModule(self):
         return False
@@ -567,10 +566,10 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     #========================================================================
     currentState = getState(self) 
     if currentState == stateIndex and rebuildFrom is None and not forceNew:
-        log.info("'%s' already has state: %s"%(self.getShortName(),stateName))
+        log.debug("'%s' already has state: %s"%(self.getShortName(),stateName))
         return True
     #If we're here, we're going to move through the set states till we get to our spot
-    log.info("Changing states now...")
+    log.debug("Changing states now...")
     if stateIndex > currentState:
         startState = currentState+1        
         log.debug(' up stating...')        
@@ -580,7 +579,8 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
         for doState in doStates:
             if doState in d_upStateFunctions.keys():
                 if not d_upStateFunctions[doState](self,*args,**kws):return False
-                else:log.info("'%s' completed: %s"%(self.getShortName(),doState))
+                else:
+                    log.debug("'%s' completed: %s"%(self.getShortName(),doState))
             else:
                 log.info("No up state function for: %s"%doState)
     elif stateIndex < currentState:#Going down
@@ -600,7 +600,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
             log.debug("doState: %s"%doState)
             if doState in d_downStateFunctions.keys():
                 if not d_downStateFunctions[doState](self,*args,**kws):return False
-                else:log.info("'%s': %s"%(self.getShortName(),doState))
+                else:log.debug("'%s': %s"%(self.getShortName(),doState))
             else:
                 log.info("No down state function for: %s"%doState)  
     else:
@@ -667,7 +667,8 @@ def readPose_templateSettings(self):
     
     i_templateNull = self.templateNull    
     poseDict = i_templateNull.controlObjectTemplatePose
-    assert type(poseDict) is dict,"poseDict isn't a dict!"
+    if type(poseDict) is not dict:
+        return False
     
     #>>> Get the root
     for key in ['root','orientRootHelper']:
@@ -675,35 +676,34 @@ def readPose_templateSettings(self):
             for attr, val in poseDict[key].items():
                 try:
                     val=eval(val)
-                except:
-                    pass            
+                except:pass      
                 try:
                     mc.setAttr('%s.%s' % (i_templateNull.getMessage(key)[0],attr), val)
                 except StandardError,err:
-                    log.info(err)   
+                    log.error(err)   
                     
     for key in poseDict['controlObjects']:
         for attr, val in poseDict['controlObjects'][key].items():
             try:
                 val=eval(val)
-            except:
-                pass            
+            except:pass      
+        
             try:
                 mc.setAttr('%s.%s' % (i_templateNull.getMessage('controlObjects')[int(key)], attr), val)
             except StandardError,err:
-                log.info(err) 
+                log.error(err) 
                 
     for key in poseDict['helperObjects']:
         for attr, val in poseDict['helperObjects'][key].items():
             try:
                 val=eval(val)
-            except:
-                pass            
+            except:pass      
+        
             try:
                 if i_templateNull.controlObjects[int(key)].getMessage('helper'):
                     log.debug(i_templateNull.controlObjects[int(key)].getMessage('helper')[0])
                     mc.setAttr('%s.%s' % (i_templateNull.controlObjects[int(key)].getMessage('helper')[0], attr), val)
             except StandardError,err:
-                log.info(err)    
+                log.error(err)    
                 
     return True

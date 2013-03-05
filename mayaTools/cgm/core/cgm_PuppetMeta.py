@@ -253,7 +253,6 @@ class cgmPuppet(cgmMeta.cgmNode):
                 #self.__dict__[Attr]  = self.i_masterNull.__dict__[attr+'Group']#link it, can't link it
                 self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
                 log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
-                log.info(self.__dict__[Attr].mNode)
                 #except:
                     #log.error("'%s' group failed. Please __verify__ puppet."%attr)                    
                     #return False   

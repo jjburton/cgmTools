@@ -159,7 +159,7 @@ def returnConstraintTargets(constraint):
         return False
 
     if not targetList:
-        guiFactory.warning('%s has no targets' %constraint)
+        log.warning('%s has no targets' %constraint)
         return False
     else:
         return targetList

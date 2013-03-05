@@ -52,6 +52,8 @@ class go(object):
         #>>> module null data 
         log.debug(">>> TemplateFactory.go.__init__")        
         assert module.isModule(),"Not a module"
+        self.m = module# Link for shortness
+                
         if tryTemplateUpdate:
             if updateTemplate(module):
                 if loadTemplatePose:self.m.loadTemplatePose()                
@@ -65,7 +67,6 @@ class go(object):
                 return
         
         self.cls = "TemplateFactory.go"
-        self.m = module# Link for shortness
         
         self.moduleNullData = attributes.returnUserAttrsToDict(self.m.mNode)
         self.templateNull = self.m.getMessage('templateNull')[0] or False
@@ -300,17 +301,22 @@ def returnModuleBaseSize(self):
             
             boundingBoxSize = distance.returnBoundingBoxSize(closestObj,True)
             log.info("bbSize = %s"%max(boundingBoxSize))
-            size = max(boundingBoxSize) *.75
+            
+            size = max(boundingBoxSize) *.6
+            if i_parent.moduleType == 'clavicle':
+                return size * 2   
+            
             if self.moduleType == 'clavicle':
                 return size * .5
             elif self.moduleType == 'head':
                 return size * .75
+            elif self.moduleType == 'neck':
+                return size * .5
             elif self.moduleType == 'leg':
-                return size * 1
+                return size * 1.5
             elif self.moduleType in ['finger','thumb']:
                 return size * .75                
-            if i_parent.moduleType == 'clavicle':
-                return size * 2            
+
         else:
             log.debug("Parent has not been templated...")          
     else:
@@ -339,14 +345,20 @@ def constrainToParentModule(self):
             parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
             log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
             closestObj = distance.returnClosestObject(i_templateNull.getMessage('root')[0],parentTemplateObjects)
+            log.debug("closestObj: %s"%closestObj)
+            if parentTemplateObjects.index(closestObj) == 0:#if it's the first object, connect to the root
+                log.info('Use root for parent object')
+                closestObj = i_parent.templateNull.root.mNode
+                
             #Find the closest object from the parent's template object
             log.debug("closestObj: %s"%closestObj)
-            
+            l_constraints = cgmMeta.cgmObject(i_templateNull.root.parent).getConstraintsTo()
             if cgmMeta.cgmObject(i_templateNull.root.parent).isConstrainedBy(closestObj):
                 log.debug("Already constrained!")
                 return True
-            else:
-                return constraints.doConstraintObjectGroup(closestObj,group = i_templateNull.root.parent,constraintTypes=['point'])
+            elif l_constraints:mc.delete(l_constraints)
+                
+            return constraints.doConstraintObjectGroup(closestObj,group = i_templateNull.root.parent,constraintTypes=['point'])
         else:
             log.debug("Parent has not been templated...")           
             return False
@@ -446,7 +458,7 @@ def doMakeLimbTemplate(self):
     
     #>> Create root control
     #=============================  
-    rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0])*1.25)    
+    rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0],True)*1.25)    
     i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
     i_rootControl.addAttr('mClass','cgmObject',lock=True)
     
@@ -464,8 +476,9 @@ def doMakeLimbTemplate(self):
         position.movePointSnap(i_rootControl.mNode,templHandleList[0])
     
     #See if there's a better way to do this
-    log.info("templHandleList: %s"%templHandleList)
+    log.debug("templHandleList: %s"%templHandleList)
     if len(templHandleList)>1:
+        log.debug("setting up constraints...")        
         constBuffer = mc.aimConstraint(templHandleList[-1],i_rootControl.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.worldUpVector, worldUpType = 'vector' )
         mc.delete (constBuffer[0])    
     elif self.m.getMessage('moduleParent'):
@@ -494,8 +507,8 @@ def doMakeLimbTemplate(self):
     doCreateOrientationHelpers(self)
     doParentControlObjects(self.m)
 
-    if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
-        constrainToParentModule(self.m)
+    #if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+        #constrainToParentModule(self.m)
     return True
 
 @r9General.Timer
@@ -521,7 +534,7 @@ def doCreateOrientationHelpers(self):
     
     #>> Create orient root control
     #=============================     
-    orientRootSize = (distance.returnBoundingBoxSizeToAverage(root)*2.5)    
+    orientRootSize = (distance.returnBoundingBoxSizeToAverage(root,True)*2.5)    
     i_orientRootControl = cgmMeta.cgmObject( curves.createControlCurve('circleArrow1',orientRootSize) )
     i_orientRootControl.addAttr('mClass','cgmObject',lock=True)
     
@@ -550,14 +563,12 @@ def doCreateOrientationHelpers(self):
         position.moveOrientSnap(objects[0],root)
     else:
         for i,obj in enumerate(objects):
-            log.debug("on "+obj)
+            log.debug("on %s"%(mc.ls(obj,shortNames=True)[0]))
             #>>> Create and color      
-            size = (distance.returnBoundingBoxSizeToAverage(obj)*2) # Get size
+            size = (distance.returnBoundingBoxSizeToAverage(obj,True)*2) # Get size
             i_obj = cgmMeta.cgmObject(curves.createControlCurve('circleArrow2Axis',size))#make the curve
-            
             i_obj.addAttr('mClass','cgmObject',lock=True)
             curves.setCurveColorByName(i_obj.mNode,self.moduleColors[1])
-            
             #>>> Tag and name
             i_obj.doCopyNameTagsFromObject(obj)
             i_obj.doStore('cgmType','templateOrientHelper',True)        
@@ -570,14 +581,12 @@ def doCreateOrientationHelpers(self):
             #>>> initial snapping """
             position.movePointSnap(i_obj.mNode,obj)
             
-            log.debug(i)
-            log.debug(len(objects))
             if i < len(objects)-1:#If we have a pair for it, aim at that pairs aim, otherwise, aim at the second to last object
                 constBuffer = mc.aimConstraint(objects[i+1],i_obj.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.foundDirections[1], worldUpType = 'vector' )
             else:
                 constBuffer = mc.aimConstraint(objects[-2],i_obj.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,-1], upVector = [0,1,0], worldUpVector = self.foundDirections[1], worldUpType = 'vector' )
     
-            mc.delete (constBuffer)
+            if constBuffer:mc.delete(constBuffer)
         
             #>>> follow groups
             i_obj.parent = obj
@@ -594,7 +603,6 @@ def doCreateOrientationHelpers(self):
                 attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','ry','sx','sy','sz','v'])            
             else:
                 attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','rx','ry','sx','sy','sz','v'])
-        
     #>>> Get data ready to go forward
     bufferList = []
     for o in self.i_orientHelpers:
@@ -626,7 +634,6 @@ def doParentControlObjects(self):
     i_controlObjects[-1].doGroup(maintain=True)  
     
     log.debug(i_templateNull.getMessage('controlObjects',False))
-    
     constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.getMessage('controlObjects',False))    
     
     for i_obj in i_controlObjects:
@@ -647,7 +654,8 @@ def updateTemplate(self):
     if not self.isTemplated():
         log.warning("'%s' not templated. Can't update"%self.getShortName())
         return False
-    
+    self.storeTemplatePose()#Save our pose before destroying anything
+        
     i_templateNull = self.templateNull#link for speed
     corePosList = i_templateNull.templateStarterData
     i_root = i_templateNull.root
@@ -658,18 +666,18 @@ def updateTemplate(self):
     for i,i_obj in enumerate(i_controlObjects[1:]):
         log.info(i_obj.getShortName())
         objConstraints = constraints.returnObjectConstraints(i_obj.parent)
-        if objConstraints:
-            mc.delete(objConstraints) 
+        if objConstraints:mc.delete(objConstraints) 
         buffer = search.returnParentsFromObjectToParent(i_obj.mNode,i_root.mNode)
         i_obj.parent = False
-        mc.delete(buffer)
+        if buffer:mc.delete(buffer)
         mc.xform(i_obj.mNode, translation = corePosList[1:][i],worldSpace = True) 
         
     buffer = search.returnParentsFromObjectToParent(i_controlObjects[0].mNode,i_root.mNode)
     i_controlObjects[0].parent = False
-    mc.delete(buffer)
+    if buffer:mc.delete(buffer)
     
     doParentControlObjects(self)
+    self.loadTemplatePose()#Restore the pose
     return True
 
 

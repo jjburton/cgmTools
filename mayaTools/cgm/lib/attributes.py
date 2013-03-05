@@ -613,7 +613,8 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
             if wasLocked == True or forceLock == True:
                 mc.setAttr(attrBuffer,lock=True)
             log.debug("'%s' set to '%s'"%(attrBuffer,value))
-        except:
+	except StandardError,error:
+	    log.error(error)
             log.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
 
 def doMultiSetAttr(objList, attribute, value, forceLock = False, *a, **kw):

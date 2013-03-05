@@ -146,7 +146,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
 	super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
 	self.__dict__['__justCreatedState__'] = createdState  
-	
 	self.update()
 	
     def __verify__(self):
@@ -178,7 +177,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    log.info("sending cgmNode.__setMessageAttr__ to MetaClass...")
 	    r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
 	elif type(value) is list:
-	    log.info("Multi message mode from cgmNode!")
+	    log.debug("Multi message mode from cgmNode: '%s.%s"%(self.getShortName(),attr))
 	    attributes.storeObjectsToMessage(value,self.mNode,attr)
 	else:
 	    attributes.storeObjectToMessage(value,self.mNode,attr)
@@ -342,8 +341,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    else:
 		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType, *args,**kws)	
 		
-	    if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value:
-		log.warning("'%s.%s' Value was not properly set during creation, setting"%(self.mNode,attr))
+	    if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value: 
+		log.debug("'%s.%s' Value (%s) was not properly set during creation to: %s"%(self.getShortName(),attr,r9Meta.MetaClass.__getattribute__(self,attr),value))
 		self.__setattr__(attr,value,**kws)
 		#cgmAttr(self, attrName = attr, value=value)
 	    
@@ -789,13 +788,13 @@ class cgmObject(cgmNode):
 		#If it fails, check that the object name exists and if so, initialize a new Object Factory instance
 		assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
 		i_obj = cgmNode(obj)
-	    log.info("l_constraints: %s"%l_constraints)
-	    log.info("obj: %s"%i_obj.getShortName())
+	    log.debug("obj: %s"%i_obj.getShortName())
+	    log.debug("l_constraints: %s"%l_constraints)
 	    #for i_c in [r9Meta.MetaClass(c) for c in l_constraints]:
 	    returnList = []
 	    for c in l_constraints:
 		targets = constraints.returnConstraintTargets(c)
-		log.info("%s : %s"%(c,targets))
+		log.debug("%s : %s"%(cgmNode(c).getShortName(),targets))
 		if i_obj.getShortName() in targets:
 		    returnList.append(c)
 	    if returnList:return returnList	
@@ -2174,12 +2173,13 @@ class cgmAttr(object):
 	    log.debug("'%s' is not a numeric attribute"%self.p_combinedName)
 	    return False
 
-	minValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, minimum=True)
 	try:
+	    minValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, minimum=True)	    
 	    if minValue is not False:
 		return minValue[0]
 	    return False
-	except:
+	except StandardError,error:
+	    log.error(error)
 	    log.error("'%s' failed to query min value" %self.p_combinedName)
 	    return False
 	

@@ -32,6 +32,11 @@ import maya.OpenMaya as om
 import maya.mel as mel
 import copy
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
 from cgm.lib import (nodes,
                      rigging,
                      lists,
@@ -250,7 +255,7 @@ def returnAverageDistanceBetweenPositionList (posList):
     average = float(sum(distanceList)) / len(distanceList)
     return average
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnBoundingBoxSizeToAverage (meshGrp):
+def returnBoundingBoxSizeToAverage (meshGrp,objOnly = False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -264,7 +269,7 @@ def returnBoundingBoxSizeToAverage (meshGrp):
     returnList(list) - [xLength,yLength,zLength]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    boundingBoxSizeList = returnBoundingBoxSize (meshGrp)
+    boundingBoxSizeList = returnBoundingBoxSize (meshGrp,objOnly)
     return float(sum(boundingBoxSizeList)) / len(boundingBoxSizeList)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -542,13 +547,20 @@ def returnBoundingBoxSize (meshGrp,objOnly = False):
     returnList(list) - [xLength,yLength,zLength]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    if type(meshGrp) is list:
+	for o in meshGrp: assert mc.objExists(o),"returnBoundingBoxSize: meshGrp object doesn't exist: '%s'"%meshGrp
+    else:
+	assert mc.objExists(meshGrp),"returnBoundingBoxSize: meshGrp doesn't exist: '%s'"%meshGrp
     returnList = []
     boundingBoxSize = []
+    
     if objOnly:
 	buffer= mc.duplicate(meshGrp,returnRootsOnly=True)
-	mc.delete(mc.listRelatives(buffer[0],allDescendents = True,fullPath = True,type = 'transform'))  
+	l_relatives = mc.listRelatives(buffer[0],allDescendents = True,fullPath = True,type = 'transform')
+	if l_relatives:mc.delete(l_relatives)  
 	box = mc.exactWorldBoundingBox (buffer[0]) 
-	mc.delete(buffer)
+	if buffer:mc.delete(buffer)
+	
     #box = mc.exactWorldBoundingBox (meshGrp)
     else:
 	box = mc.exactWorldBoundingBox (meshGrp)   
@@ -558,6 +570,7 @@ def returnBoundingBoxSize (meshGrp,objOnly = False):
             returnList.append(float('{0:f}'.format(number)))
         else:
             returnList.append(float(number))
+    
     return returnList
 
 def returnCenterPivotPosition (meshGrp):
