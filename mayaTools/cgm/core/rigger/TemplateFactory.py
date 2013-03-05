@@ -53,10 +53,13 @@ class go(object):
         log.debug(">>> TemplateFactory.go.__init__")        
         assert module.isModule(),"Not a module"
         self.m = module# Link for shortness
-                
+        log.info("loadTemplatePose: %s"%loadTemplatePose)    
         if tryTemplateUpdate:
-            if updateTemplate(module):
-                if loadTemplatePose:self.m.loadTemplatePose()                
+            log.info("Trying template update...")
+            if updateTemplate(module,**kws):
+                if loadTemplatePose:
+                    log.info("Trying loadTemplatePose...")                                    
+                    self.m.loadTemplatePose()                
                 return
         
         if module.isTemplated():
@@ -101,7 +104,6 @@ class go(object):
         log.debug("coreNames: %s"%self.coreNames)
         log.debug("corePosList: %s"%self.corePosList)
         
-
         if self.m.mClass == 'cgmLimb':
             log.debug("mode: cgmLimb Template")
             doMakeLimbTemplate(self)
@@ -644,7 +646,7 @@ def doParentControlObjects(self):
     return
 
 @r9General.Timer
-def updateTemplate(self):
+def updateTemplate(self,saveTemplatePose = False,**kws):
     """
     Function to update a skeleton if it's been resized
     """
@@ -654,7 +656,8 @@ def updateTemplate(self):
     if not self.isTemplated():
         log.warning("'%s' not templated. Can't update"%self.getShortName())
         return False
-    self.storeTemplatePose()#Save our pose before destroying anything
+    
+    if saveTemplatePose:self.storeTemplatePose()#Save our pose before destroying anything
         
     i_templateNull = self.templateNull#link for speed
     corePosList = i_templateNull.templateStarterData
@@ -677,7 +680,7 @@ def updateTemplate(self):
     if buffer:mc.delete(buffer)
     
     doParentControlObjects(self)
-    self.loadTemplatePose()#Restore the pose
+    #self.loadTemplatePose()#Restore the pose
     return True
 
 

@@ -1071,6 +1071,14 @@ class MelRadioCollection(unicode):
 		for item in self._items:
 			if str( item ) == selItemStr:
 				return item
+	def getSelectedIndex( self ):
+		'''
+		returns the selected MelRadio button instance
+		'''
+		selItemStr = self.WIDGET_CMD( self, q=True, sl=True )
+		for i,item in enumerate(self._items):
+			if str( item ) == selItemStr:
+				return i
 			
 class MelIconRadioButton(BaseMelWidget, _Image):
 	WIDGET_CMD = cmd.iconTextRadioButton

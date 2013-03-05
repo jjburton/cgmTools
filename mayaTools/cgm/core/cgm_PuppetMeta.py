@@ -34,8 +34,12 @@ from cgm.core.rigger import ModuleFactory as mFactory
 reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
 reload(pFactory)
+from cgm.core.rigger import MorpheusFactory as morphyF
+reload(morphyF)
 from cgm.core import cgm_Meta as cgmMeta
 reload(cgmMeta)
+from cgm.core import cgm_Meta as cgmMeta
+
 from cgm.core.classes import NodeFactory as nf
 reload(nf)
 from cgm.lib import (modules,
@@ -99,14 +103,14 @@ class cgmPuppet(cgmMeta.cgmNode):
 	if puppet is None:puppetCreatedState = True
 	else:puppetCreatedState = False
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
-
+	
         #>>> Puppet Network Initialization Procedure ==================       
         if self.isReferenced() or initializeOnly:
             log.debug("'%s' Initializing only..."%name)
             if not self.initialize():
                 #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
-	elif self.__justCreatedState__ or doVerify:
+	elif puppetCreatedState or doVerify:
             if not self.__verify__(name,**kws):
                 #log.critical("'%s' failed to __verify__!"%name)
                 raise StandardError,"'%s' failed to verify!"%name
@@ -299,7 +303,6 @@ class cgmPuppet(cgmMeta.cgmNode):
         """
         mc.delete(self.masterNull.mNode)
         mc.delete(self.geo.mNode)
-        mc.delete(self.parts.mNode)
         mc.delete(self.settings.mNode)
         del(self)
 
@@ -405,16 +408,17 @@ class cgmPuppet(cgmMeta.cgmNode):
 	"""
 	Returns puppet state. That is the minimum state of it's modules
 	"""
-	return pFactory.getState(self)       
+	return pFactory.getState(self) 
+    
+    def isCustomizable(self):
+	return False    
     
 class cgmMorpheusPuppet(cgmPuppet):
     pass
     """
     def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
 	cgmPuppet.__init__(self, node = node, name = name, initializeOnly = initializeOnly, *args,**kws)
-        """
-    def isCustomizable(self):
-	return False
+        """	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
@@ -804,6 +808,28 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	
 	return True
     
+    def verifyPuppet(self):
+	"""
+	Verify a Morpheus Puppet, creates one if not exists, otherwise make sure it's intact
+	"""
+	if not self.hasAttr('mPuppet'):
+	    self.__verify__()
+	    
+	self.mPuppet = cgmMorpheusPuppet(name = str(self.cgmName),doVerify=True).mNode
+        morphyF.verifyMorpheusNodeStructure(self.mPuppet)
+	return True
+	
+    def verify_customizationData(self): 
+	return morphyF.verify_customizationData(self)
+    
+    def setState(self,**kws):
+	if self.verifyPuppet():
+	    return morphyF.setState(self,**kws)
+	return False
+	
+    def updateTemplate(self,**kws):
+	return morphyF.updateTemplate(self,saveTemplatePose = True,**kws)  
+	
     @r9General.Timer
     def doUpdate_pickerGroups(self):
 	"""
@@ -862,6 +888,15 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
 	i_bsNode.doName()
 	p.bodyBlendshapeNodes = i_bsNode.mNode  
+
+    def delete(self):
+        """
+        Delete the Puppet
+        """
+        if self.getMessage('mPuppet'):self.mPuppet.delete()
+        mc.delete(self.masterNull.mNode)
+	#mc.delete(self.mNode)
+        del(self)
 	
 class cgmMasterControl(cgmMeta.cgmObject):
     """

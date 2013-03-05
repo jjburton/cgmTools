@@ -44,21 +44,21 @@ def isSized(self):
     log.debug(">>> isSized")    
     handles = self.templateNull.handles
     if len(self.coreNames.value) != handles:
-        log.warning("Not enough names for handles")
+        log.debug("Not enough names for handles")
         return False
     
     if self.templateNull.templateStarterData:
         if len(self.templateNull.templateStarterData) == handles:
             for i,pos in enumerate(self.templateNull.templateStarterData):
                 if not pos:
-                    log.warning("[%s] has no data"%(i))                    
+                    log.debug("[%s] has no data"%(i))                    
                     return False
             return True
         else:
-            log.warning("%i is not == %i handles necessary"%(len(self.templateNull.templateStarterData),handles))
+            log.debug("%i is not == %i handles necessary"%(len(self.templateNull.templateStarterData),handles))
             return False
     else:
-        log.warning("No template starter data found for '%s'"%self.getShortName())  
+        log.debug("No template starter data found for '%s'"%self.getShortName())  
     return False
     
 def deleteSizeInfo(self,*args,**kws):
@@ -327,10 +327,10 @@ def isTemplated(self):
     log.debug(">>> isTemplated")
     coreNamesValue = self.coreNames.value
     if not coreNamesValue:
-        log.warning("No core names found")
+        log.debug("No core names found")
         return False
     if not self.templateNull.getChildren():
-        log.warning("No children found in template null")
+        log.debug("No children found in template null")
         return False   
     controlObjects = self.templateNull.getMessage('controlObjects')
     for attr in 'controlObjects','root','orientHelpers','curve','orientRootHelper':
@@ -342,13 +342,13 @@ def isTemplated(self):
                 return False    
         
     if len(coreNamesValue) != len(self.templateNull.getMessage('controlObjects')):
-        log.warning("Not enough handles.")
+        log.debug("Not enough handles.")
         return False    
         
     if len(controlObjects)>1:
         for i_obj in self.templateNull.controlObjects:#check for helpers
             if not i_obj.getMessage('helper'):
-                log.warning("'%s' missing it's helper"%i_obj.getShortName())
+                log.debug("'%s' missing it's helper"%i_obj.getShortName())
                 return False
     
     #self.moduleStates['templateState'] = True #Not working yet
@@ -439,6 +439,7 @@ def deleteSkeleton(self,*args,**kws):
 def validateStateArg(stateArg):
     #>>> Validate argument
     if type(stateArg) in [str,unicode]:
+        stateArg = stateArg.lower()
         if stateArg in l_moduleStates:
             stateIndex = l_moduleStates.index(stateArg)
             stateName = stateArg
