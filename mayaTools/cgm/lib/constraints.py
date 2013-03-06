@@ -308,7 +308,7 @@ def doSegmentAimPointConstraint(objList):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Parent Constraints
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def doParentConstraintObjectGroup(targets,object,mode=0): 
+def doParentConstraintObjectGroup(targets,obj,mode=0): 
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -324,10 +324,10 @@ def doParentConstraintObjectGroup(targets,object,mode=0):
     group(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """    
-    objGroup = rigging.groupMeObject(object,True,True)
+    objGroup = rigging.groupMeObject(obj,True,True)
     constraint = mc.parentConstraint (targets,objGroup, maintainOffset=True)
     if mode == 1:
-        weights = returnNormalizedWeightsByDistance(object,targets)
+        weights = returnNormalizedWeightsByDistance(obj,targets)
         targetWeights = mc.parentConstraint(constraint,q=True, weightAliasList=True)
         for cnt,value in enumerate(weights):
             mc.setAttr(('%s%s%s' % (constraint[0],'.',targetWeights[cnt])),value )

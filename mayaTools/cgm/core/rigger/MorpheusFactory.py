@@ -16,6 +16,7 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib.classes import NameFactory as nFactory
+from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 
 from cgm.lib import (curves,
@@ -33,9 +34,8 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso','neck',
+l_modulesToDoOrder = ['torso',
                       'leg_left','foot_left',
-                      'arm_left','hand_left',
                       ]
 l_modulesToDoOrderBAK = ['torso',
                       'neck',
@@ -76,7 +76,7 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
 d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':2},
                             'neck':{'handles':2,'rollOverride':'{}','curveDegree':2,'rollJoints':2},
                             'leg':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
-                            'foot':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
+                            'foot':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
                             'hand':{'handles':1,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'thumb':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
@@ -89,7 +89,7 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'head':['head_bodyShaper','headTop_bodyShaper'],
                     'leg_left':['l_upr_leg_bodyShaper','l_lwr_leg_bodyShaper','l_ankle_bodyShaper'],                    
                     'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper'],                    
-                    'foot_left':['l_heel_bodyShaper','l_ball_bodyShaper','l_toes_bodyShaper'],                    
+                    'foot_left':['l_ankle_bodyShaper','l_heel_bodyShaper','l_ball_bodyShaper','l_toes_bodyShaper'],                    
                     'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_wristMeat_bodyShaper'],
                     'hand_left':['l_wristMeat_bodyShaper'],
                     'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper'],
@@ -178,7 +178,13 @@ def verifyMorpheusNodeStructure(i_Morpheus):
     
     # Create the modules
     #=====================================================================
+    mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
+    
     for moduleKey in l_modulesToDoOrder:
+        if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+            break
+        mc.progressBar(mayaMainProgressBar, edit=True, status = "On segment '%s'..."%(moduleKey), step=1)
+        
         if moduleKey not in d_moduleParents.keys():#Make sure we have a parent
             log.info("Missing parent info for: '%s'"%moduleKey)
             return False
@@ -241,6 +247,7 @@ def verifyMorpheusNodeStructure(i_Morpheus):
         
     # For each module
     #=====================================================================
+    gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
     #i_limb.getGeneratedCoreNames()    
     return i_Morpheus
 
@@ -268,7 +275,14 @@ def setState(i_customizationNetwork,
     if not d_customizationData:
         return False
     
+    mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
+    
     for moduleKey in l_modulesToDoOrder:
+        if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+            break
+        mc.progressBar(mayaMainProgressBar, edit=True, status = "Setting:'%s'..."%(moduleKey), step=1)
+        
+        
         i_module = i_Morpheus.getModuleFromDict(d_moduleCheck[moduleKey])
         if not i_module:
             log.warning("Cannot find Module: '%s'"%moduleKey)
@@ -281,6 +295,7 @@ def setState(i_customizationNetwork,
         
         #i_module.doSize('manual', posList = d_customizationData.get(moduleKey))
         #i_module.doTemplate()
+    gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         
 @r9General.Timer
 def updateTemplate(i_customizationNetwork,**kws):  
@@ -293,7 +308,13 @@ def updateTemplate(i_customizationNetwork,**kws):
     if not d_customizationData:
         return False
     
+    mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
+    
     for moduleKey in l_modulesToDoOrder:
+        if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+            break
+        mc.progressBar(mayaMainProgressBar, edit=True, status = "Setting:'%s'..."%(moduleKey), step=1)
+        
         i_module = i_Morpheus.getModuleFromDict(d_moduleCheck[moduleKey])
         if not i_module:
             log.warning("Cannot find Module: '%s'"%moduleKey)
@@ -303,3 +324,5 @@ def updateTemplate(i_customizationNetwork,**kws):
                         posList = d_customizationData.get(moduleKey))
         i_module.doTemplate(tryTemplateUpdate = True,
                             **kws)        
+    gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+        

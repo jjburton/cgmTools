@@ -1027,8 +1027,11 @@ def doNameObject(obj,sceneUnique = False,fastIterate = True):
                 if not mc.referenceQuery(shape, isNodeReferenced=True):
                     name = returnUniqueGeneratedName(shape,sceneUnique, fastIterate)
                     mc.rename(shape,name)
-    
-        return renameBuffer
+        #log.info("renameBuffer: '%s'"%renameBuffer)
+        #log.info("renameBuffer long: '%s'"%mc.ls(renameBuffer,long=True))        
+        #return renameBuffer
+        return mc.ls(renameBuffer,long=True)[0]
+        
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   

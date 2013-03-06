@@ -31,6 +31,7 @@ from cgm.lib import (modules,
 reload(attributes)
 reload(constraints)
 from cgm.lib.classes import NameFactory
+reload(NameFactory)
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
 
@@ -53,7 +54,8 @@ class go(object):
         log.debug(">>> TemplateFactory.go.__init__")        
         assert module.isModule(),"Not a module"
         self.m = module# Link for shortness
-        log.info("loadTemplatePose: %s"%loadTemplatePose)    
+        log.info("loadTemplatePose: %s"%loadTemplatePose)     
+            
         if tryTemplateUpdate:
             log.info("Trying template update...")
             if updateTemplate(module,**kws):
@@ -479,17 +481,18 @@ def doMakeLimbTemplate(self):
     
     #See if there's a better way to do this
     log.debug("templHandleList: %s"%templHandleList)
-    if len(templHandleList)>1:
-        log.debug("setting up constraints...")        
-        constBuffer = mc.aimConstraint(templHandleList[-1],i_rootControl.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.worldUpVector, worldUpType = 'vector' )
-        mc.delete (constBuffer[0])    
-    elif self.m.getMessage('moduleParent'):
-        #parentTemplateObjects =  self.m.moduleParent.templateNull.getMessage('controlObjects')
-        helper = self.m.moduleParent.templateNull.controlObjects[-1].helper.mNode
-        if helper:
-            log.info("helper: %s"%helper)
-            constBuffer = mc.orientConstraint( helper,i_rootControl.mNode,maintainOffset = False)
+    if self.m.moduleType not in ['foot']:
+        if len(templHandleList)>1:
+            log.info("setting up constraints...")        
+            constBuffer = mc.aimConstraint(templHandleList[-1],i_rootControl.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.worldUpVector, worldUpType = 'vector' )
             mc.delete (constBuffer[0])    
+        elif self.m.getMessage('moduleParent'):
+            #parentTemplateObjects =  self.m.moduleParent.templateNull.getMessage('controlObjects')
+            helper = self.m.moduleParent.templateNull.controlObjects[-1].helper.mNode
+            if helper:
+                log.info("helper: %s"%helper)
+                constBuffer = mc.orientConstraint( helper,i_rootControl.mNode,maintainOffset = False)
+                mc.delete (constBuffer[0])    
     
     i_rootControl.parent = self.templateNull
     i_rootControl.doGroup(maintain=True)
@@ -636,7 +639,8 @@ def doParentControlObjects(self):
     i_controlObjects[-1].doGroup(maintain=True)  
     
     log.debug(i_templateNull.getMessage('controlObjects',False))
-    constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.getMessage('controlObjects',False))    
+    if self.moduleType not in ['foot']:
+        constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.getMessage('controlObjects',False))    
     
     for i_obj in i_controlObjects:
          i_parent = cgmMeta.cgmObject(i_obj.parent)

@@ -69,8 +69,7 @@ def copyPivot(obj,sourceObject):
     """
     pos = mc.xform(sourceObject, q=True, ws=True, rp = True)
     mc.xform(obj,ws=True,piv = pos)
-
-
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Locator Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -294,7 +293,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if maintainParent == True:
-        oldParent = mc.listRelatives(obj,parent=True)
+        oldParent = mc.listRelatives(obj,parent=True,fullPath = True)
         if oldParent:oldParent = oldParent[0]
     returnBuffer = []
     rotationOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5,'none':6}
@@ -332,7 +331,7 @@ def zeroTransformMeObject(obj,scaleZero=False):
     groupName(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    parent = mc.listRelatives(obj,parent=True)
+    parent = mc.listRelatives(obj,parent=True,fullPath = True)
 
     group = groupMeObject(obj,True,True)
     group2 = ''

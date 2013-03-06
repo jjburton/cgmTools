@@ -43,22 +43,25 @@ def isSized(self):
     """
     log.debug(">>> isSized")    
     handles = self.templateNull.handles
-    if len(self.coreNames.value) != handles:
-        log.debug("Not enough names for handles")
+    if len(self.coreNames.value) < handles:
+        log.warning("Not enough names for handles")
+        return False
+    if len(self.coreNames.value) > handles:
+        log.warning("Not enough handles for names")
         return False
     
     if self.templateNull.templateStarterData:
         if len(self.templateNull.templateStarterData) == handles:
             for i,pos in enumerate(self.templateNull.templateStarterData):
                 if not pos:
-                    log.debug("[%s] has no data"%(i))                    
+                    log.warning("[%s] has no data"%(i))                    
                     return False
             return True
         else:
-            log.debug("%i is not == %i handles necessary"%(len(self.templateNull.templateStarterData),handles))
+            log.warning("%i is not == %i handles necessary"%(len(self.templateNull.templateStarterData),handles))
             return False
     else:
-        log.debug("No template starter data found for '%s'"%self.getShortName())  
+        log.warning("No template starter data found for '%s'"%self.getShortName())  
     return False
     
 def deleteSizeInfo(self,*args,**kws):
@@ -283,9 +286,8 @@ def getGeneratedCoreNames(self):
         for handle in range(handles):
             generatedNames.append('%s%s%i' % (partName,'_',cnt))
             cnt+=1
-
     elif int(self.templateNull.handles) > (len(settingsCoreNames)):
-        log.debug(" We need to make sure that there are enough core names for handles")       
+        log.info(" We need to make sure that there are enough core names for handles")       
         cntNeeded = self.templateNull.handles  - len(settingsCoreNames) +1
         nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
         toIterate = settingsCoreNames[1]
@@ -299,6 +301,7 @@ def getGeneratedCoreNames(self):
             generatedNames.append(name) 
 
     else:
+        log.info(" Culling from settingsCoreNames")        
         generatedNames = settingsCoreNames[:self.templateNull.handles]
 
     #figure out what to do with the names
@@ -373,9 +376,12 @@ def deleteTemplate(self,*args,**kws):
         objList = returnTemplateObjects(self)
         if objList:
             mc.delete(objList)
+        for obj in self.templateNull.getChildren():
+            mc.delete(obj)
         return True
     except StandardError,error:
         log.warning(error)
+        
 #@r9General.Timer   
 def returnTemplateObjects(self):
     try:
