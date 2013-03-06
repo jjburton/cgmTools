@@ -422,9 +422,9 @@ def isSkeletonized(self):
 def doSkeletonize(self,*args,**kws):
     try:
         if not isTemplated(self):
-            log.warning("Not templated: '%s'"%self.getShortName())
+            log.warning("Not templated, can't skeletonize: '%s'"%self.getShortName())
             return False      
-        jFactory.go(self)      
+        jFactory.go(self,*args,**kws)      
         if not isSkeletonized(self):
             log.warning("Skeleton build failed: '%s'"%self.getShortName())
             return False
@@ -432,11 +432,9 @@ def doSkeletonize(self,*args,**kws):
     except StandardError,error:
         log.warning(error) 
         
-@r9General.Timer   
 def deleteSkeleton(self,*args,**kws):  
-    log.info("deleteSkeleton: Not implemented")
     if isSkeletonized(self):
-        mc.delete(self.rigNull.getMessage('skinJoints'))
+        jFactory.deleteSkeleton(self,*args,**kws)
     return True
 #=====================================================================================================
 #>>> States
@@ -520,10 +518,14 @@ def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     TODO:
     Make template info be stored when leaving
     """
-    rebuildArgs = validateStateArg(rebuildFrom)
-    if rebuildArgs:
-        log.info("'%s' rebuilding from: '%s'"%(self.getShortName(),rebuildArgs[1]))
-        changeState(self,rebuildArgs[1],*args,**kws)
+    log.info("stateArg: %s"%stateArg)
+    log.info("rebuildFrom: %s"%rebuildFrom)
+    
+    if rebuildFrom is not None:
+        rebuildArgs = validateStateArg(rebuildFrom)
+        if rebuildArgs:
+            log.info("'%s' rebuilding from: '%s'"%(self.getShortName(),rebuildArgs[1]))
+            changeState(self,rebuildArgs[1],*args,**kws)
         
     changeState(self, stateArg, *args,**kws)
         
@@ -573,7 +575,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     #========================================================================
     currentState = getState(self) 
     if currentState == stateIndex and rebuildFrom is None and not forceNew:
-        log.debug("'%s' already has state: %s"%(self.getShortName(),stateName))
+        if not forceNew:log.warning("'%s' already has state: %s"%(self.getShortName(),stateName))
         return True
     #If we're here, we're going to move through the set states till we get to our spot
     log.debug("Changing states now...")

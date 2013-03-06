@@ -822,9 +822,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
     def verify_customizationData(self): 
 	return morphyF.verify_customizationData(self)
     
-    def setState(self,state = False,**kws):
+    def setState(self,state,**kws):
 	if self.verifyPuppet():
-	    return morphyF.setState(self,state = state,**kws)
+	    return morphyF.setState(self,state,**kws)
 	return False
 	
     def updateTemplate(self,**kws):
@@ -1461,7 +1461,8 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.getState)
         """
-        return mFactory.getState(self)	
+        return mFactory.getState(self)
+    
     def setState(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory

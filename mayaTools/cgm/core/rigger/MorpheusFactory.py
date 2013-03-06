@@ -252,7 +252,7 @@ def verifyMorpheusNodeStructure(i_Morpheus):
     return i_Morpheus
 
 @r9General.Timer
-def setState(i_customizationNetwork,
+def setState(i_customizationNetwork,state = False,
              **kws):
     """"
     Returns a defined Morpheus asset
@@ -263,7 +263,6 @@ def setState(i_customizationNetwork,
     assert i_customizationNetwork.mPuppet.mClass == 'cgmMorpheusPuppet',"Puppet isn't there"
     
     #>>>Kw defaults
-    state = kws.get('state') or False
     rebuildFrom = kws.get('rebuildFrom') or None
     forceNew =  kws.get('forceNew') or False
     tryTemplateUpdate = kws.get('tryTemplateUpdate') or True

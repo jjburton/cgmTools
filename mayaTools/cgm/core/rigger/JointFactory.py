@@ -43,7 +43,7 @@ settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictio
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
     @r9General.Timer
-    def __init__(self,moduleInstance): 
+    def __init__(self,moduleInstance,forceNew = True,saveTemplatePose = True,**kws): 
         """
         To do:
         Add rotation order settting
@@ -62,9 +62,17 @@ class go(object):
         self.cls = "JointFactory.go"
         self.m = moduleInstance# Link for shortness
         
-        #>>> store template settings
-        self.m.storeTemplatePose()
+        if moduleInstance.isSkeletonized():
+            if forceNew:
+                deleteSkeleton(moduleInstance)
+            else:
+                log.warning("'%s' has already been skeletonized"%moduleInstance.getShortName())
+                return        
         
+        #>>> store template settings
+        if saveTemplatePose:
+            log.info("Saving template pose in JointFactory.go")
+            self.m.storeTemplatePose()
         
         self.rigNull = self.m.getMessage('rigNull')[0] or False
         self.i_rigNull = self.m.rigNull
@@ -136,35 +144,43 @@ def doSkeletonize(self):
     if type(d_rollJointOverride) is not dict:
         d_rollJointOverride = False
     
+    #>>> See if we have have a suitable parent joint to use
+    # We'll know it is if the first template position shares an equivalent position with it's parentModule
+    #======================================================
+    i_parentJointToUse = False
+    
+    pos = distance.returnWorldSpacePosition( self.i_templateNull.getMessage('controlObjects')[0] )
+    log.info("pos: %s"%pos)
+    #Get parent position, if we have one
+    if self.m.getMessage('moduleParent'):
+        log.info("Found moduleParent, checking joints...")
+        i_parentRigNull = self.m.moduleParent.rigNull
+        parentJoints = i_parentRigNull.getMessage('skinJoints',False)
+        log.info(parentJoints)
+        if parentJoints:
+            parent_pos = distance.returnWorldSpacePosition( parentJoints[-1] )
+            log.info("parentPos: %s"%parent_pos)  
+            
+        log.info("Equivalent: %s"%cgmMath.isVectorEquivalent(pos,parent_pos))
+        if cgmMath.isVectorEquivalent(pos,parent_pos):#if they're equivalent
+            i_parentJointToUse = cgmMeta.cgmObject(parentJoints[-1])
+            
     #>>> Make if our segment only has one handle
     #==========================================	
     if len(self.i_controlObjects) == 1:
-        #Get the position
-        pos = distance.returnWorldSpacePosition( self.i_templateNull.getMessage('controlObjects')[0] )
-        log.info("pos: %s"%pos)
-        #Get parent position, if we have one
-        parent_pos = False
-        if self.m.getMessage('moduleParent'):
-            log.info("Found moduleParent, checking joints...")
-            i_parentRigNull = self.m.moduleParent.rigNull
-            parentJoints = i_parentRigNull.getMessage('skinJoints')
-            log.info(parentJoints)
-            if parentJoints:
-                parent_pos = distance.returnWorldSpacePosition( parentJoints[-1] )
-                log.info("parentPos: %s"%parent_pos)
-        #Need to figure out if we can use a parent joint
-        log.info("Equivalent: %s"%cgmMath.isVectorEquivalent(pos,parent_pos))
-        if cgmMath.isVectorEquivalent(pos,parent_pos):#if they're equivalent
+        if i_parentJointToUse:
             log.info("Single joint: moduleParent mode")
             #Need to grab the last joint for this module
             l_limbJoints = [parentJoints[-1]]
             i_parentRigNull.connectChildrenNodes(parentJoints[:-1],'skinJoints','module')
-            #parentJoints[:-1]
-            
         else:
             log.info("Single joint: no parent mode")
             l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
     else:
+        if i_parentJointToUse:
+            i_parentRigNull.connectChildrenNodes(parentJoints[:-1],'skinJoints','module')
+            mc.delete(i_parentJointToUse.mNode)
+            
         #>>> Make the limb segment
         #==========================	 
         l_spanUPositions = []
@@ -210,7 +226,6 @@ def doSkeletonize(self):
         for pos in l_jointPositions:
             l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
                
-     
     #>>> Naming
     #=========== 
     """ 
@@ -352,67 +367,54 @@ def doOrientSegment(self):
         #>>>Reconnect the joints
         for cnt,i_jnt in enumerate(self.i_rigNull.skinJoints[1:]):#parent each to the one before it
             i_jnt.parent = self.i_rigNull.skinJoints[cnt].mNode
+    
+    if self.m.moduleType in ['foot']:
+        log.info("Special case orient")
+        if len(self.i_rigNull.getMessage('skinJoints')) > 1:
+            helper = self.i_templateNull.orientRootHelper.mNode
+            if helper:
+                log.info("Root joint fix...")                
+                rootJoint = self.i_rigNull.getMessage('skinJoints')[0]
+                self.i_rigNull.skinJoints[1].parent = False #unparent the first child
+                constBuffer = mc.orientConstraint( helper,rootJoint,maintainOffset = False)
+                mc.delete (constBuffer[0])   
+                self.i_rigNull.skinJoints[1].parent = rootJoint
         
     """ Freeze the rotations """
     mc.makeIdentity(self.i_rigNull.skinJoints[0].mNode,apply=True,r=True)
     return True
 
 
-@r9General.Timer
-def connectToParentModule(self):
-    """
-    Pass a module class. Constrains template root to parent's closest template object
-    """
-    log.debug(">>> constrainToParentModule")
-    if not self.isSkeletonized():
-        log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
-        return False
-    if not self.getMessage('moduleParent'):
-        return False
-    else:
-        #>>> Get some info
-        i_rigNull = self.rigNull #Link
-        i_parent = self.moduleParent #Link
-        parentState = i_parent.getState() 
-        if i_parent.isSkeletonized():#>> If we have a module parent
-            #>> If we have another anchor
-            parentSkinJoints = i_parent.rigNull.getMessage('skinJoints')
-            closestObj = distance.returnClosestObject(i_rigNull.getMessage('skinJoints')[0],parentSkinJoints)
-            i_rigNull.skinJoints[0].parent = closestObj
-            
-        else:
-            log.debug("Parent has not been skeletonized...")           
-            return False            
-        """
-        log.debug("looking for moduleParent info")
-        i_templateNull = self.templateNull #Link
-        i_parent = self.moduleParent #Link
-        parentState = i_parent.getState()
-        if i_parent.isTemplated():#If the parent has been templated, it makes things easy
-            log.debug("Parent has been templated...")
-            parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
-            log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
-            closestObj = distance.returnClosestObject(i_templateNull.getMessage('root')[0],parentTemplateObjects)
-            #Find the closest object from the parent's template object
-            log.debug("closestObj: %s"%closestObj)
-            
-            if cgmMeta.cgmObject(i_templateNull.root.parent).isConstrainedBy(closestObj):
-                log.debug("Already constrained!")
-                return True
-            else:
-                return constraints.doConstraintObjectGroup(closestObj,group = i_templateNull.root.parent,constraintTypes=['point'])
-        else:
-            log.debug("Parent has not been templated...")           
-            return False
-            """
-
-
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+@r9General.Timer
+def deleteSkeleton(i_module,*args,**kws):  
+    if not i_module.isSkeletonized():
+        log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%i_module.getShortName())
+        return False
+    
+    #We need to see if any of or skinJoints have children
+    l_strayChildren = []
+    l_moduleJoints = i_module.rigNull.getMessage('skinJoints',longNames = True)
+    for i_jnt in i_module.rigNull.skinJoints:
+        buffer = i_jnt.getChildren(True)
+        for c in buffer:
+            if c not in l_moduleJoints:
+                try:
+                    i_c = cgmMeta.cgmObject(c)
+                    i_c.parent = False
+                    l_strayChildren.append(i_c.mNode)
+                except StandardError,error:
+                    log.warning(error)     
+    log.info("l_strayChildren: %s"%l_strayChildren)
+    mc.delete(i_module.rigNull.getMessage('skinJoints'))
+    return True
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-#@r9General.Timer
 def doSkeletonize2(self, stiffIndex=None):
     """ 
     DESCRIPTION:
@@ -935,10 +937,3 @@ def orientSegment(l_limbJoints,posTemplateObjects,orientation):
 
 
 
-@r9General.Timer
-def template(self):
-    log.info(">>> functionname")
-    assert self.cls == 'JointFactory.go',"Not a TemlateFactory.go instance!"
-    assert mc.objExists(self.m.mNode),"module no longer exists"
-
-    return 10 
