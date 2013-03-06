@@ -434,6 +434,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         buffer = mc.ls(self.mNode,l=True)        
         return buffer[0]    
     
+    #@r9General.Timer
     def doName(self,sceneUnique=False,nameChildren=False,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
@@ -441,19 +442,41 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         Keyword arguments:
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
 
-        """   
+        """  
+	def doNameChildren(self):
+	    if not len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
+		childrenObjects = search.returnAllChildrenObjects(self.mNode) or []
+		for c in childrenObjects:
+		    i_c = r9Meta.MetaClass(c)
+		    name = NameFactory.returnUniqueGeneratedName(i_c.mNode,sceneUnique =sceneUnique,**kws)
+		    mc.rename(i_c.mNode,name)  		    
+	    
 	log.debug('Name dict: %s"'%self.getNameDict())
         if self.isReferenced():
             log.error("'%s' is referenced. Cannot change name"%self.mNode)
             return False
 
-        if nameChildren:
-            NameFactory.doRenameHeir(self.mNode,sceneUnique)
-	    self.update()
-
-        else:
-            NameFactory.doNameObject(self.mNode,sceneUnique)
-	    self.update()
+	name = NameFactory.returnUniqueGeneratedName(self.mNode,sceneUnique = sceneUnique,**kws)
+	currentShortName = self.getShortName()
+	
+	if currentShortName == name:
+	    log.debug("'%s' is already named correctly."%currentShortName)
+	    if nameChildren:
+		doNameChildren(self)
+	    return currentShortName
+	else:
+	    mc.rename(self.mNode,name)
+	    shapes = mc.listRelatives(self.mNode,shapes=True,fullPath=True)
+	    if shapes:
+		for shape in shapes:
+		    if not mc.referenceQuery(shape, isNodeReferenced=True):
+			i_shape = r9Meta.MetaClass(shape)
+			name = NameFactory.returnUniqueGeneratedName(i_shape.mNode,sceneUnique =sceneUnique,**kws)
+			mc.rename(i_shape.mNode,name)  
+	    if nameChildren:
+		doNameChildren(self)
+		
+	    return self.getShortName()
 	
     def getChildrenNodes(self, walk=True, mAttrs=None):
 	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""

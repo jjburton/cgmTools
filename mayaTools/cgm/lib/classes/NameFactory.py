@@ -745,7 +745,7 @@ def returnCGMSetting(setting):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
-def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore='none'):
+def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore='none',**kws):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -760,6 +760,10 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    log.debug("sceneUnique: %s"%sceneUnique)
+    log.debug("fastIterate: %s"%fastIterate)
+    log.debug("ignore: %s"%ignore)
+    
     #>>> Dictionary driven order first build
     def doBuildName():
         nameBuilder=[]
@@ -795,7 +799,8 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
         if iterator > 0:
             updatedNamesDict['cgmIterator'] = str(iterator)
             coreName = doBuildName()
-    
+            
+    log.debug(returnCombinedNameFromDict(updatedNamesDict))
     return returnCombinedNameFromDict(updatedNamesDict)
 
 
@@ -1029,8 +1034,8 @@ def doNameObject(obj,sceneUnique = False,fastIterate = True):
                     mc.rename(shape,name)
         #log.info("renameBuffer: '%s'"%renameBuffer)
         #log.info("renameBuffer long: '%s'"%mc.ls(renameBuffer,long=True))        
-        #return renameBuffer
-        return mc.ls(renameBuffer,long=True)[0]
+        return renameBuffer
+        #return mc.ls(renameBuffer,long=True)[0]
         
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
