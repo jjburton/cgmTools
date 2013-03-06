@@ -249,6 +249,11 @@ def loadRed9( *a ):
     reload(Red9)
     Red9.start()
     
+def startWingServer( *a ):
+    from cgm.core.lib.wing import mayaWingServer as mWingServer
+    reload(mWingServer)
+    mWingServer.startServer()
+    
 def loadAttrTools( *a ):
     from cgm.tools import attrTools
     reload(attrTools)
@@ -404,7 +409,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
               ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
                         purgeCGMOptionVars),
                        ('Connect to Wing IDE', " Attempts to connect to Wing IDE",
-                                               connectToWingIDE),                         
+                                               connectToWingIDE), 
+                       ('Start Wing Server', " Opens a command port for Wing IDE",
+                                               startWingServer),                          
                        ('cgm.PuppetBox', " WIP - Modular Rigger",
                         loadPuppetBox),
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
