@@ -822,9 +822,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
     def verify_customizationData(self): 
 	return morphyF.verify_customizationData(self)
     
-    def setState(self,**kws):
+    def setState(self,state = False,**kws):
 	if self.verifyPuppet():
-	    return morphyF.setState(self,**kws)
+	    return morphyF.setState(self,state = state,**kws)
 	return False
 	
     def updateTemplate(self,**kws):
