@@ -17,6 +17,34 @@ def getWingText():
    txt = doc.GetCharRange(start, end)
    return txt
 
+def getWingTextPython():
+   """
+   Josh Burton mod
+   Based on the Wing API, get the selected text, and return it
+   Thanks to:http://wingware.com/pipermail/wingide-users/2009-December/007332.html for insignt for mod
+   """
+   editor = wingapi.gApplication.GetActiveEditor()
+   if editor is None:
+      return
+   
+   doc = editor.GetDocument()
+   start, end = editor.GetSelection()
+   start_lineno = doc.GetLineNumberFromPosition(start)
+   end_lineno = doc.GetLineNumberFromPosition(end)
+   returnText = []
+   for i in range(start_lineno,end_lineno):
+      line_start = doc.GetLineStart(i)
+      line_end = doc.GetLineEnd(i)
+      line_text = doc.GetCharRange(line_start, line_end)
+      checkState = True
+      for key in ['from','import','=']:
+         if key in line_text:
+            checkState = False
+      if checkState:
+         line_text = 'log.info('+line_text+')'
+      returnText.append(line_text)   
+   return returnText
+
 def send_to_maya(language):
    """
    Send the selected code to be executed in Maya
@@ -31,15 +59,30 @@ def send_to_maya(language):
 
    # Save the text to a temp file.  If we're dealing with mel, make sure it
    # ends with a semicolon, or Maya could become angered!
-   txt = getWingText()
    if language == 'mel':
+      txt = getWingText()      
       if not txt.endswith(';'):
          txt += ';'
+   if language == 'python':
+      txt = getWingTextPython()
+         
    # This saves a temp file on Window.  Mac\Linux will probably need to
    # change this to support their OS.
    tempFile = os.path.join(os.environ['TMP'], 'wingData.txt')
    f = open(tempFile, "w")
-   f.write(txt)
+   if language == 'mel':
+      f.write(txt)
+   # Edit -- (Josh Burton) added logger and mc initialization and use our python grabber    
+   if language == 'python':
+      f.write('import maya.cmds as mc\n')
+      f.write('import logging\n')
+      f.write('logging.basicConfig()\n')
+      f.write('log = logging.getLogger(__name__)\n')
+      f.write('log.setLevel(logging.INFO)\n')      
+      f.write('mc.undoInfo(openChunk=True)\n')
+      for l in txt:
+         f.write(l+'\n')           
+      f.write('mc.undoInfo(openChunk=False)\n')   
    f.close()
 
    # Create the socket that will connect to Maya,  Opening a socket can vary from
