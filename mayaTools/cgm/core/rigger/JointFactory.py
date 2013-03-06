@@ -178,6 +178,7 @@ def doSkeletonize(self):
             l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
     else:
         if i_parentJointToUse:
+            #We're going to reconnect all but the last joint back to the parent module and delete the last parent joint which we're replacing
             i_parentRigNull.connectChildrenNodes(parentJoints[:-1],'skinJoints','module')
             mc.delete(i_parentJointToUse.mNode)
             

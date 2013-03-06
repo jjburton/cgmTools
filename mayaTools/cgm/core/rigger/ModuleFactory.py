@@ -406,16 +406,18 @@ def isSkeletonized(self):
         log.debug("Not templated, can't be skeletonized yet")
         return False
     
-    l_coreNames = self.coreNames.value
-    if not l_coreNames:
-        log.debug("No core names found")
-        return False
-    
-    iList_skinJoints = self.rigNull.skinJoints
-    if not iList_skinJoints:
+    l_skinJoints = self.rigNull.getMessage('skinJoints')
+    #iList_skinJoints = self.rigNull.skinJoints
+    if not l_skinJoints:
         log.debug("No skin joints found")
-        return False        
+        return False  
+    
     #>>> How many joints should we have 
+    goodCount = returnExpectedJointCount(self)
+    currentCount = len(l_skinJoints)
+    if  currentCount < (goodCount-1):
+        log.warning("Expected at least %s joints. %s found: '%s'"%(goodCount-1,currentCount,self.getShortName()))
+        return False
     return True
 
 @r9General.Timer   
@@ -436,6 +438,37 @@ def deleteSkeleton(self,*args,**kws):
     if isSkeletonized(self):
         jFactory.deleteSkeleton(self,*args,**kws)
     return True
+
+@r9General.Timer
+def returnExpectedJointCount(self):
+    """
+    Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
+    """
+    handles = self.templateNull.handles
+    if handles == 0:
+        log.warning("Can't count expected joints. 0 handles: '%s'"%self.getShortName())
+        return False
+    
+    rollJoints = self.templateNull.rollJoints 
+    d_rollJointOverride = self.templateNull.rollOverride 
+    
+    l_spanDivs = []
+    for i in range(0,handles-1):
+        l_spanDivs.append(rollJoints)    
+
+    if type(d_rollJointOverride) is dict:
+        for k in d_rollJointOverride.keys():
+            try:
+                l_spanDivs[int(k)]#If the arg passes
+                l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
+            except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))    
+    
+    int_count = 0
+    for i,n in enumerate(l_spanDivs):
+        int_count +=1
+        int_count +=n
+    int_count+=1#add the last handle back
+    return int_count
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
