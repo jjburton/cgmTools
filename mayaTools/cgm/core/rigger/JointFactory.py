@@ -243,23 +243,26 @@ def doSkeletonize(self):
         """Then we copy it"""
         attributes.copyUserAttrs(i_obj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
        
-    #>>>Store these joints and rename the heirarchy
-    log.info("Metaclassing our objects")    
-    for o in l_limbJoints:
-        i_o = cgmMeta.cgmObject(o)
-        i_o.addAttr('mClass','cgmObject',lock=True)    
     
     #>>>Store it
     #self.i_rigNull.connectChildren(l_limbJoints,'skinJoints','module')
     self.i_rigNull.connectChildrenNodes(l_limbJoints,'skinJoints','module')
-    log.info(self.i_rigNull.skinJoints)   
+    log.info(self.i_rigNull.skinJoints)       
+
+    #>>>Store these joints and rename the heirarchy
+    log.info("Metaclassing our objects")    
+    for o in l_limbJoints:
+        i_o = cgmMeta.cgmObject(o)
+        i_o.addAttr('mClass','cgmObject',lock=True)  
+        i_o.doName(True)
     
+    """
     log.info("Renaming heir")
     if len(l_limbJoints) == 1:
-        NameFactory.doNameObject(l_limbJoints[0],True)
+        #NameFactory.doNameObject(l_limbJoints[0],True)
     else:
         l_limbJointsBuffer = NameFactory.doRenameHeir(l_limbJoints[0],True)
-    
+    """
     #>>> Orientation    
     #=============== 
     if not doOrientSegment(self):
