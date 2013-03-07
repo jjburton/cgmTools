@@ -31,18 +31,33 @@ def getWingTextPython():
    start, end = editor.GetSelection()
    start_lineno = doc.GetLineNumberFromPosition(start)
    end_lineno = doc.GetLineNumberFromPosition(end)
+   fullText = doc.GetCharRange(start, end)
    returnText = []
-   for i in range(start_lineno,end_lineno):
+   #returnText.append("#fullText: %s"%fullText)
+   #returnText.append("#start: %s"%start)
+   #returnText.append("#end: %s"%end)
+   # We want to process lines so that we can add log.info to things we want info on
+   for i in range(start_lineno,end_lineno+1):
+      checkState = False      
       line_start = doc.GetLineStart(i)
       line_end = doc.GetLineEnd(i)
       line_text = doc.GetCharRange(line_start, line_end)
-      checkState = True
-      for key in ['from','import','=']:
-         if key in line_text:
-            checkState = False
-      if checkState:
-         line_text = 'log.info('+line_text+')'
-      returnText.append(line_text)   
+      returnText.append("#line_text: %s"%line_text)
+      #returnText.append("#line_start: %s"%line_start)
+      #returnText.append("#line_end: %s"%line_end)   
+      #Only do something if the entire line is in our selection
+      #mc.ls(i_obj.mNode,type = 'transform',long = True)
+      if line_start in range(start,end+1) and line_end in range(start,end+1) and line_start!=end:
+         if len(list(line_text))>1:#Finding check for empty lines
+            checkState = True         
+            for key in ['from','import','def','=','   ','class',':']:
+               #returnText.append("#[:3]: %s"%line_text[:3])               
+               if key in line_text and line_text[:3] != 'mc.':
+                  checkState = False
+         if checkState:
+            line_text = 'log.info('+line_text+')'
+            #line_text = 'print('+line_text+')'
+         returnText.append(line_text)   
    return returnText
 
 def send_to_maya(language):
@@ -79,12 +94,11 @@ def send_to_maya(language):
       f.write('logging.basicConfig()\n')
       f.write('log = logging.getLogger(__name__)\n')
       f.write('log.setLevel(logging.INFO)\n')      
-      f.write('mc.undoInfo(openChunk=True)\n')
+      #f.write('mc.undoInfo(openChunk=True)\n')
       for l in txt:
          f.write(l+'\n')           
-      f.write('mc.undoInfo(openChunk=False)\n')   
+      #f.write('mc.undoInfo(openChunk=False)\n')   
    f.close()
-
    # Create the socket that will connect to Maya,  Opening a socket can vary from
    # machine to machine, so if one way doesn't work, try another... :-S
    mSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # works in 2013...
