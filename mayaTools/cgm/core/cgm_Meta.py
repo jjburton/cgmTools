@@ -31,6 +31,7 @@ reload(ml_resetChannels)
 from cgm.lib import (lists,
                      search,
                      attributes,
+                     distance,
                      constraints,
                      dictionary,
                      rigging,
@@ -49,6 +50,7 @@ drawingOverrideAttrsDict = {'overrideEnabled':0,
                             'overrideTexturing':1,
                             'overridePlayback':1,
                             'overrideVisibility':1}
+l_componentTypes = ['polyVertex','curveCV','surfaceCV','polyEdge','editPoint','isoparm','polyFace','polyUV','curvePoint','surfacePatch','nurbsUV']
 
 #=========================================================================
 import logging
@@ -74,8 +76,7 @@ class cgmMetaFactory(object):
             node = name
         if not node and nodeType:
             node = True # Yes, make the sucker
-
-            
+ 
         #If the node doesn't exists, make one 
         #==============           
         if node and not mc.objExists(node):#If we have a node and it exists, we'll initialize. Otherwise, we need to figure out what to make
@@ -144,10 +145,21 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    createdState = True
 	else:createdState = False
 	
-	super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
-	self.__dict__['__justCreatedState__'] = createdState  
-	self.update()
+	#ComponentMode
+	if node is not None and search.returnObjectType(node) in l_componentTypes:
+	    componentMode = True
+	    component = node.split('.')[-1]
+	else:
+	    componentMode = False
+	    component = False
 	
+	super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
+	self.__dict__['__justCreatedState__'] = createdState
+	self.__dict__['__componentMode__'] = componentMode
+	self.__dict__['__component__'] = component
+	
+	self.update()
+        
     def __verify__(self):
 	""" For overload"""
 	pass
@@ -199,6 +211,22 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if mc.objExists('%s.%s' % (self.mNode,attr)) and mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
 	    return attributes.returnMessageData(self.mNode,attr,longNames)
 	return False
+    
+    def getComponent(self):
+	if self.__componentMode__ and self.__component__:
+	    buffer = '%s.%s'%(self.mNode,self.__component__)
+	    if mc.objExists(buffer):return buffer
+	    else:log.warning("Component no longer exists: %s"%self.__component__)
+	    return self.mNode
+	return self.mNode
+    
+    def isComponent(self):
+	if self.__componentMode__ and self.__component__:
+	    buffer = '%s.%s'%(self.mNode,self.__component__)
+	    if mc.objExists(buffer):return True
+	    else:log.warning("Component no longer exists: %s"%self.__component__)
+	    return False
+	return False 
     
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
@@ -425,7 +453,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
     def getMayaType(self):
         """ get the type of the object """
-        return search.returnObjectType(self.mNode)
+        return search.returnObjectType(self.getComponent())
     
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
@@ -560,6 +588,33 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	#self.update()
         return didSomething
     
+    def getPosition(self,worldSpace = True):
+	if self.isComponent():
+	    log.info("Component position mode")
+	    objType = self.getMayaType()	    
+	    if objType in ['polyVertex','polyUV','surfaceCV','curveCV','editPoint','nurbsUV','curvePoint']:
+		if worldSpace:return mc.pointPosition(self.getComponent(),world = True)
+		return mc.pointPosition(self.getComponent(),local = True)
+	    elif objType in ['polyFace','polyEdge']:
+		    mc.select(cl=True)
+		    mc.select(self.getComponent())
+		    mel.eval("PolySelectConvert 3")
+		    verts = mc.ls(sl=True,fl=True)
+		    posList = []
+		    for vert in verts:
+			if worldSpace:posList.append( mc.pointPosition(vert,world = True) )
+			else:posList.append( mc.pointPosition(vert,local = True) )			    
+		    pos = distance.returnAveragePointPosition(posList)
+		    mc.select(cl=True)
+		    return pos
+	    else:
+		raise NotImplementedError,"Don't know how to position '%s's componentType: %s"%(self.getShortName,objType)
+	    
+	else:
+	    #if kws and 'ws' in kws.keys():ws = kws.pop('ws')
+	    if worldSpace:return mc.xform(self.mNode, q=True, ws=True, rp=True)    
+	    return mc.xform(self.mNode, q=True, os=True, t=True) 
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
 #=========================================================================        
@@ -828,7 +883,15 @@ class cgmObject(cgmNode):
 		    returnList.append(c)
 	    if returnList:return returnList	
 	return False
-                                       
+    
+    #>>> Transforms
+    #==============================================================
+    def getPosition(self,**kws):
+	if self.isComponent:
+	    return mc.pointPosition(self.getComponent(),**kws)
+	else:
+	    return mc.xform(a.mNode, q=True, ws=True, rp=True,**kws)
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
