@@ -432,7 +432,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         return buffer[0]
     def getLongName(self):
         buffer = mc.ls(self.mNode,l=True)        
-        return buffer[0]    
+        return buffer[0]  
+    
+    def isTransform(self):
+        buffer = mc.ls(self.mNode,type = 'transform',long = True)
+	if buffer and buffer[0]==self.getLongName():
+	    return True
+        return False
     
     #@r9General.Timer
     def doName(self,sceneUnique=False,nameChildren=False,**kws):
