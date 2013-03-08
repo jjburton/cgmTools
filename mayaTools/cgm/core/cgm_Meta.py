@@ -202,8 +202,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		if self.attrIsLocked(attr):
 		    lock = True	    
 	    except:pass
-	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
-	
+	try:r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
+	except StandardError,error:
+	    log.warning(error)
 	if lock is not None and not self.isReferenced():
 	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	  
 	    

@@ -126,7 +126,8 @@ class cgmPuppet(cgmMeta.cgmNode):
         """  
         #Puppet Network Node
         #==============
-        if self.mClass not in ['cgmPuppet','cgmMorpheusPuppet']:
+        #if self.mClass not in ['cgmPuppet','cgmMorpheusPuppet']:
+	if not issubclass(type(self), cgmPuppet):
 	    log.warning("mClass is wrong")
             return False  
         
@@ -190,9 +191,17 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.addAttr('cgmType','puppetNetwork')
         self.addAttr('version',initialValue = 1.0, lock=True)  
         self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
-        self.addAttr('settings',attrType = 'messageSimple',lock=True)  
-        self.addAttr('geo',attrType = 'messageSimple',lock=True)  
-        self.addAttr('moduleChildren',attrType = 'message',lock=True)  
+        self.addAttr('moduleChildren',attrType = 'message',lock=True) 
+	
+	#Settings
+	#==============
+	defaultFont = modules.returnSettingsData('defaultTextFont')
+	self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
+	self.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)
+	self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
+	self.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
+	self.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
+
 
         self.doName()
         self.getAttrs()
@@ -220,32 +229,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         # Info Nodes
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>             
 
-        #Settings
-        #==============
-        if not mc.objExists( attributes.returnMessageObject(self.mNode,'settings') ):
-            log.info('Creating settings')                                    
-            self.i_settings = cgmInfoNode(puppet = self, infoType = 'settings')#Create and initialize
-        else:
-            log.info('settings infoNode exists. linking....')                        
-            self.i_settings = self.settings #Linking to instance for faster processing. Good idea?
-	    self.i_settings.__verify__()
-        defaultFont = modules.returnSettingsData('defaultTextFont')
 
-        self.i_settings.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
-        self.i_settings.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)
-        self.i_settings.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
-        self.i_settings.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
-        self.i_settings.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
-
-        #Geo
-        #==============
-        if mc.objExists( attributes.returnMessageObject(self.mNode,'geo') ):
-            log.info('geo infoNode exists. linking....')                        
-            self.i_geo  = self.geo #Linking to instance for faster processing. Good idea?         
-        else:
-            log.info('Creating geo')                                    
-            self.i_geo = cgmInfoNode(puppet = self, infoType = 'geo')#Create and initialize
-	    self.i_geo.__verify__()
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
@@ -302,8 +286,6 @@ class cgmPuppet(cgmMeta.cgmNode):
         Delete the Puppet
         """
         mc.delete(self.masterNull.mNode)
-        mc.delete(self.geo.mNode)
-        mc.delete(self.settings.mNode)
         del(self)
 
     def addModule(self,mClass = 'cgmModule',**kws):
@@ -1409,15 +1391,9 @@ class cgmModule(cgmMeta.cgmObject):
                     self.i_templateNull.addAttr(attr,value = self.kw_rollJoints, attrType = templateNullAttrs_toMake[attr],lock = True )                		    	    
             elif attr == 'handles':
                 if self.kw_handles == 1:
-                    self.i_templateNull.addAttr(attr,initialValue = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True )                
+                    self.i_templateNull.addAttr(attr,initialValue = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True,min = 1 )                
                 else:
-                    self.i_templateNull.addAttr(attr,value = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True )                
-
-                log.debug('handles case, setting min')
-                a = cgmMeta.cgmAttr(self.i_rigNull.mNode,'handles')
-                log.debug(self.kw_handles)                
-                log.debug(self.i_templateNull.handles)                
-                a.doMin(1)#Make this check that the value is not below the min when set            
+                    self.i_templateNull.addAttr(attr,value = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True,min = 1 )                
             elif attr == 'rollOverride':
                 self.i_templateNull.addAttr(attr,initialValue = '{}', attrType = templateNullAttrs_toMake[attr],lock = True )                                
             else:

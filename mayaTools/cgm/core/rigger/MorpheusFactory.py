@@ -34,7 +34,7 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso',
+l_modulesToDoOrder = ['torso','clavicle_left',
                       'leg_left','foot_left',
                       ]
 l_modulesToDoOrderBAK = ['torso',
@@ -50,6 +50,7 @@ d_moduleParents = {'torso':False,
                    'leg_left':'torso',
                    'leg_right':'torso',
                    'foot_left':'leg_left',
+                   'clavicle_left':'torso',
                    'arm_left':'torso',
                    'hand_left':'arm_left',
                    'thumb_left':'hand_left',
@@ -69,7 +70,8 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
                  'index_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'index'}, 
                  'middle_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'middle'}, 
                  'ring_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'ring'}, 
-                 'pinky_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'pinky'}, 
+                 'pinky_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'pinky'},
+                 'clavicle_left':{'moduleType':'clavicle','cgmDirection':'left'}
                  }
 
 #This is the template settings info
@@ -80,7 +82,8 @@ d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}'
                             'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
                             'hand':{'handles':1,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'thumb':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
-                            'finger':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
+                            'finger':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
+                            'clavicle':{'handles':2,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             }                            
 
 #This dict is for which controls map to which keys
@@ -91,13 +94,13 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper'],                    
                     'foot_left':['l_ankle_bodyShaper','l_heel_bodyShaper','l_ball_bodyShaper','l_toes_bodyShaper'],                    
                     'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_wristMeat_bodyShaper'],
-                    'hand_left':['l_wristMeat_bodyShaper'],
+                    'hand_left':['l_hand_bodyShaper'],
                     'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper'],
                     'index_left':['l_index_1_bodyShaper','l_index_mid_bodyShaper','l_index_2_bodyShaper'], 
                     'middle_left':['l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper'], 
                     'ring_left':['l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper'], 
                     'pinky_left':['l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper'],                     
-                    }
+                    'clavicle_left':['Morphy_Body_GEO.f[1648]','l_upr_arm_bodyShaper']}
 
 #=====================================================================================
 #>>> Utilities
@@ -171,10 +174,7 @@ def verifyMorpheusNodeStructure(i_Morpheus):
                 return i_m
         return False
  
-    #i_Morpheus = cgmPM.cgmMorpheusPuppet(name = name)
- 
     d_moduleInstances = {}
-    #d_morpheusMirrorLimbs = {'arm':{'handles':4,'rollOverride':'{}','curveDegree':2,'rollJoints':3}}
     
     # Create the modules
     #=====================================================================
@@ -225,8 +225,8 @@ def verifyMorpheusNodeStructure(i_Morpheus):
             if i_templateNull.hasAttr(key):
                 log.debug("attr: '%s'"%key)  
                 log.debug("setting: '%s'"%d_settingsDict.get(key))                  
-                i_templateNull.__setattr__(key,d_settingsDict.get(key)) 
- 
+                try:i_templateNull.__setattr__(key,d_settingsDict.get(key)) 
+                except:log.warning("attr failed: %s"%key)
         #>>>Parent stuff        
         if d_moduleParents.get(moduleKey):#If we should be looking for a module parent
             if d_moduleParents.get(moduleKey) in d_moduleInstances.keys():

@@ -930,8 +930,11 @@ class cgmMeta_Test():
                                'mClass':['string','cgmPuppet'],
                                'version':['double',1.0],
                                'masterNull':['message'],
-                               'settings':['message'],
-                               'geo':['message']}
+                               'font':['string','Arial'],
+                               'puppetType':['long',0],
+                               'axisAim':['enum',2],
+                               'axisUp':['enum',1],
+                               'axisOut':['enum',0]}                                   
 
         for attr in puppetDefaultValues.keys():
             assert Puppet.hasAttr(attr),("'%s' missing attr:%s"%(self.Puppet.mNode,attr))
@@ -939,31 +942,6 @@ class cgmMeta_Test():
             if len(puppetDefaultValues.get(attr)) > 1:#assert that value
                 log.debug("%s"% attributes.doGetAttr(Puppet.mNode,attr))                
                 assert attributes.doGetAttr(Puppet.mNode,attr) == puppetDefaultValues.get(attr)[1],"%s is not %s"%(attributes.doGetAttr(Puppet.mNode,attr),puppetDefaultValues.get(attr)[1])
-
-
-        #Assertions on the settings null
-        #----------------------------------------------------------
-        log.info('>'*3 + " Assertions on the settings null...")
-        assert mc.objExists(Puppet.i_settings.mNode),"No Settings object found"
-        assert mc.nodeType(Puppet.i_settings.mNode) == 'network'
-
-
-        settingsDefaultValues = {'cgmName':['string','Kermit'],
-                                 'cgmType':['string','info'],
-                                 'cgmTypeModifier':['string','settings'],
-                                 'font':['string','Arial'],
-                                 'puppetType':['long',0],
-                                 'axisAim':['enum',2],
-                                 'axisUp':['enum',1],
-                                 'axisOut':['enum',0]}        
-
-        for attr in settingsDefaultValues.keys():
-            assert Puppet.i_settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.i_settings.mNode,attr))
-            assert mc.getAttr('%s.%s'%(Puppet.i_settings.mNode,attr), type=True) == settingsDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.i_settings.mNode,attr), type=True))
-            if len(settingsDefaultValues.get(attr)) > 1:#assert that value
-                log.debug("%s"% attributes.doGetAttr(Puppet.i_settings.mNode,attr))
-                assert attributes.doGetAttr(Puppet.i_settings.mNode,attr) == settingsDefaultValues.get(attr)[1],"attr:'%s', %s is not %s"%(attr,attributes.doGetAttr(Puppet.i_settings.mNode,attr),settingsDefaultValues.get(attr)[1])
-
 
         #Assertions on the masterNull
         #----------------------------------------------------------
@@ -994,19 +972,9 @@ class cgmMeta_Test():
             assert Puppet2.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
             assert attributes.doGetAttr(Puppet2.mNode,attr) == attributes.doGetAttr(Puppet.mNode,attr)
 
-        for attr in settingsDefaultValues.keys():
-            assert Puppet2.settings.hasAttr(attr),("'%s' missing attr:%s"%(Puppet2.mNode,attr))
-            assert attributes.doGetAttr(Puppet2.settings.mNode,attr) == attributes.doGetAttr(Puppet.settings.mNode,attr)
         for attr in masterDefaultValues.keys():
             assert Puppet2.masterNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
             assert attributes.doGetAttr(Puppet2.masterNull.mNode,attr) == attributes.doGetAttr(Puppet.masterNull.mNode,attr)
-
-
-        #Assertions on the settings null
-        #----------------------------------------------------------
-        log.info('>'*3 + " Assertions on the settings null  on IOPuppet...")
-        assert Puppet.settings.mNode == Puppet2.settings.mNode
-
 
         #Assertions on the masterNull
         #----------------------------------------------------------
