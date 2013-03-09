@@ -16,6 +16,7 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib.classes import NameFactory as nFactory
+from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 
@@ -34,14 +35,15 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso','clavicle_left',
-                      'leg_left','foot_left',
-                      ]
+l_modulesToDoOrder = ['torso']
+l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
+                          'clavicle_right','arm_right',
+                          ]
 l_modulesToDoOrderBAK = ['torso',
                       'neck',
                       'leg_left','foot_left',
                       'leg_right',
-                      'arm_left','hand_left',
+                      'clavicle_left','arm_left','hand_left',
                       'thumb_left','index_left','middle_left','ring_left','pinky_left']
 
 #This is the parent info for each module
@@ -51,27 +53,31 @@ d_moduleParents = {'torso':False,
                    'leg_right':'torso',
                    'foot_left':'leg_left',
                    'clavicle_left':'torso',
-                   'arm_left':'torso',
+                   'arm_left':'clavicle_left',
                    'hand_left':'arm_left',
                    'thumb_left':'hand_left',
                    'index_left':'hand_left',
                    'middle_left':'hand_left',
                    'ring_left':'hand_left',
-                   'pinky_left':'hand_left'}
+                   'pinky_left':'hand_left',
+                   'clavicle_right':'torso',
+                   'arm_right':'clavicle_right',                   }
 
 d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
                  'neck':{'moduleType':'segment','cgmName':'neck'},
                  'leg_left':{'moduleType':'leg','cgmDirection':'left'},
                  'leg_right':{'moduleType':'leg','cgmDirection':'right'},
                  'foot_left':{'moduleType':'foot','cgmDirection':'left'},                 
-                 'arm_left':{'moduleType':'arm','cgmDirection':'left'},                 
+                 'arm_left':{'moduleType':'arm','cgmDirection':'left'},
+                 'clavicle_left':{'moduleType':'clavicle','cgmDirection':'left'},
                  'hand_left':{'moduleType':'hand','cgmDirection':'left'},
                  'thumb_left':{'moduleType':'thumb','cgmDirection':'left'},
                  'index_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'index'}, 
                  'middle_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'middle'}, 
                  'ring_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'ring'}, 
                  'pinky_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'pinky'},
-                 'clavicle_left':{'moduleType':'clavicle','cgmDirection':'left'}
+                 'arm_right':{'moduleType':'arm','cgmDirection':'right'},
+                 'clavicle_right':{'moduleType':'clavicle','cgmDirection':'right'},
                  }
 
 #This is the template settings info
@@ -100,13 +106,16 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'middle_left':['l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper'], 
                     'ring_left':['l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper'], 
                     'pinky_left':['l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper'],                     
-                    'clavicle_left':['Morphy_Body_GEO.f[1648]','l_upr_arm_bodyShaper']}
+                    'clavicle_left':['Morphy_Body_GEO.f[1648]','l_upr_arm_bodyShaper'],
+                    'clavicle_right':['Morphy_Body_GEO.f[4433]','r_upr_arm_bodyShaper'],
+                    'arm_right':['r_upr_arm_bodyShaper','r_lwr_arm_bodyShaper','r_wristMeat_bodyShaper'],
+                    }
 
 #=====================================================================================
 #>>> Utilities
 #=====================================================================================
 @r9General.Timer
-def verify_customizationData(i_network):
+def verify_customizationData(i_network, skinDepth = 2.5):
     """
     Gather info from customization asset
     
@@ -141,12 +150,22 @@ def verify_customizationData(i_network):
         controls = d_moduleControls.get(moduleKey)
         posBuffer = []
         for c in controls:
-            if c not in controlBuffer:
+            if not mc.objExists(c):
                 log.warning("Necessary positioning control not found: '%s'"%c)
                 return False
             else:
                 log.debug("Found: '%s'"%c)
-                posBuffer.append(distance.returnWorldSpacePosition(c))
+                i_c = cgmMeta.cgmNode(c)
+                if i_c.isComponent():#If it's a component
+                    i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#make a loc
+                    Snap.go(i_loc.mNode,targets = c,move = True, orient = True)#Snap to the surface
+                    i_loc.tz -= skinDepth#Offset on z by skin depth
+                    pos = i_loc.getPosition()#get position
+                    i_loc.delete()
+                else:
+                    pos = i_c.getPosition()
+                if not pos:return False
+                posBuffer.append(pos)
         d_initialData[moduleKey] = posBuffer
         
     return d_initialData
@@ -291,7 +310,6 @@ def setState(i_customizationNetwork,state = False,
                           sizeMode = 'manual',
                           posList = d_customizationData.get(moduleKey),
                           **kws)
-        
         #i_module.doSize('manual', posList = d_customizationData.get(moduleKey))
         #i_module.doTemplate()
     gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
