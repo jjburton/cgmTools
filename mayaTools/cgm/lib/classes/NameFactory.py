@@ -760,6 +760,7 @@ def returnUniqueGeneratedName(obj,sceneUnique = False,fastIterate = True, ignore
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    if type(ignore) is not list:ignore = [ignore]
     log.debug("sceneUnique: %s"%sceneUnique)
     log.debug("fastIterate: %s"%fastIterate)
     log.debug("ignore: %s"%ignore)
@@ -895,6 +896,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     namesDict(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    if type(ignore) is not list:ignore = [ignore]    
     typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
     namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
     settingsDictionary = dictionary.initializeDictionary(settingsDictionaryFile)
