@@ -16,17 +16,34 @@ objList = []
 #>>> Modules
 #=======================================================
 i_obj = cgmMeta.cgmObject(mc.spaceLocator()[0])
+i_obj = cgmMeta.cgmNode(obj)
+a = i_obj
 i_obj.mNode
 i_obj.isTransform()
 Snap.go(i_obj)
-Snap.go(i_obj.mNode,targets = 'Morphy_Body_GEO.vtx[2072]')
+mc.xform(q_object, q=True, os=True, t = True)
+mc.xform(a.getComponent(), q=True, ws=True, rp=True)
+mc.pointPosition(a.getComponent())
+cgmMeta.cgmNode(q_object).getPosition(True)
+cgmMeta.cgmNode(q_object).getPosition(False)
+i_obj = cgmMeta.cgmObject(mc.spaceLocator()[0])
+
+Snap.go(i_obj.mNode,targets = q_object,orient = True)
+
+q_object = mc.ls(sl=True)[0] or False
 q_object = 'Morphy_Body_GEO.vtx[2072]'
 q_object = 'locator1'
-q_object = 'r_arm_bodyShaper_shape1.cv[6]'
+q_object = 'Morphy_Body_GEO.e[8198]'
+q_object = 'nurbsCircle1.ep[0]'
+q_object = 'Morphy_Body_GEO.map[5603]'
+q_object = 'Morphy_Body_GEO.f[2015]'
+q_object = 'nurbsCircle1.cv[2]'
 mc.ls(i_obj.mNode,type = 'transform',long = True)
 mc.ls('Morphy_Body_GEO.vtx[2072]',type = 'transform',long = True)
 a = cgmMeta.cgmNode(q_object)
 a.getComponent()
+a.isComponent()
+a.getMayaType()
 mc.select('%s.%s'%(a.mNode,a.__component__))
 a.getShortName()
 cgmMeta.cgmNode(i_obj.mNode)
