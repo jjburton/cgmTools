@@ -531,8 +531,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
             return log.warning("'%s' is referenced. Cannot delete attrs"%self.mNode)    	
         try:
             attributes.doDeleteAttr(self.mNode,attr)
-        except:
-            log.warning("'%s.%s' not found"%(self.mNode,attr))
+	except StandardError,error:
+	    log.error(error)	
+            log.warning("'%s.%s' not found"%(self.mNode,attr))	    
+	    return False
 	    
     def doChangeNameTag(self,tag,value = False,sceneUnique=False,nameChildren=False,**kw):
 	"""
@@ -544,27 +546,31 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	@ sceneUnique(bool)
 	@ nameChildren(bool)
 	"""
-        if self.isReferenced():
-            return log.warning("'%s' is referenced. Cannot change name architecture"%self.mNode)   
+	try:
+	    if self.isReferenced():
+		return log.warning("'%s' is referenced. Cannot change name architecture"%self.mNode)   
+	    
+	    if tag not in NameFactory.cgmNameTags:
+		log.debug("'%s' is not a valid cgm name tag."%(tag))         
+		return False
+	    
+	    if value in [None,False,'None','none']:
+		log.debug("Removing '%s.%s'"%(self.getShortName(),tag))            
+		self.doRemove(tag)
+		self.doName(sceneUnique,nameChildren)            
+		return True
+		
+	    elif tag in self.__dict__.keys() and self.__dict__[tag] == value:
+		log.debug("'%s.%s' already has base name of '%s'."%(self.getShortName(),tag,value))
+		return False
+	    else:
+		self.doStore(tag,value,True,**kw)
+		self.doName(sceneUnique,nameChildren)            
+		return True
+	except StandardError,error:
+	    log.error(error)	
+	    return False
 	
-        if tag not in NameFactory.cgmNameTags:
-            log.debug("'%s' is not a valid cgm name tag."%(tag))         
-            return False
-        
-        if value in [None,False,'None','none']:
-            log.debug("Removing '%s.%s'"%(self.getShortName(),tag))            
-            self.doRemove(tag)
-            self.doName(sceneUnique,nameChildren)            
-            return True
-            
-        elif tag in self.__dict__.keys() and self.__dict__[tag] == value:
-            log.debug("'%s.%s' already has base name of '%s'."%(self.getShortName(),tag,value))
-            return False
-        else:
-            self.doStore(tag,value,True,**kw)
-	    self.doName(sceneUnique,nameChildren)            
-            return True
-             
     def doCopyNameTagsFromObject(self,target,ignore=[False]):
         """
         Get name tags from a target object (connected)
@@ -575,47 +581,55 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         Returns
         success(bool)
         """
-	log.debug(">>> cgmNode.doCopyNametagsFromObject")
-        assert mc.objExists(target),"Target doesn't exist"
-        targetCGM = NameFactory.returnObjectGeneratedNameDict(target,ignore = ignore)
-        didSomething = False
-        
-        for tag in targetCGM.keys():
-	    log.debug("..."+tag)
-            if tag not in ignore and targetCGM[tag] is not None or False:
-                attributes.doCopyAttr(target,tag,
-                                      self.mNode,connectTargetToSource=False)
-                didSomething = True
-	#self.update()
-        return didSomething
+	try:
+	    log.debug(">>> cgmNode.doCopyNametagsFromObject")
+	    assert mc.objExists(target),"Target doesn't exist"
+	    targetCGM = NameFactory.returnObjectGeneratedNameDict(target,ignore = ignore)
+	    didSomething = False
+	    
+	    for tag in targetCGM.keys():
+		log.debug("..."+tag)
+		if tag not in ignore and targetCGM[tag] is not None or False:
+		    attributes.doCopyAttr(target,tag,
+			                  self.mNode,connectTargetToSource=False)
+		    didSomething = True
+	    #self.update()
+	    return didSomething
+	except StandardError,error:
+	    log.error(error)	
+	    return False	
     
     def getPosition(self,worldSpace = True):
-	if self.isComponent():
-	    log.info("Component position mode")
-	    objType = self.getMayaType()	    
-	    if objType in ['polyVertex','polyUV','surfaceCV','curveCV','editPoint','nurbsUV','curvePoint']:
-		if worldSpace:return mc.pointPosition(self.getComponent(),world = True)
-		return mc.pointPosition(self.getComponent(),local = True)
-	    elif objType in ['polyFace','polyEdge']:
-		    mc.select(cl=True)
-		    mc.select(self.getComponent())
-		    mel.eval("PolySelectConvert 3")
-		    verts = mc.ls(sl=True,fl=True)
-		    posList = []
-		    for vert in verts:
-			if worldSpace:posList.append( mc.pointPosition(vert,world = True) )
-			else:posList.append( mc.pointPosition(vert,local = True) )			    
-		    pos = distance.returnAveragePointPosition(posList)
-		    mc.select(cl=True)
-		    return pos
+	try:
+	    if self.isComponent():
+		log.info("Component position mode")
+		objType = self.getMayaType()	    
+		if objType in ['polyVertex','polyUV','surfaceCV','curveCV','editPoint','nurbsUV','curvePoint']:
+		    if worldSpace:return mc.pointPosition(self.getComponent(),world = True)
+		    return mc.pointPosition(self.getComponent(),local = True)
+		elif objType in ['polyFace','polyEdge']:
+			mc.select(cl=True)
+			mc.select(self.getComponent())
+			mel.eval("PolySelectConvert 3")
+			verts = mc.ls(sl=True,fl=True)
+			posList = []
+			for vert in verts:
+			    if worldSpace:posList.append( mc.pointPosition(vert,world = True) )
+			    else:posList.append( mc.pointPosition(vert,local = True) )			    
+			pos = distance.returnAveragePointPosition(posList)
+			mc.select(cl=True)
+			return pos
+		else:
+		    raise NotImplementedError,"Don't know how to position '%s's componentType: %s"%(self.getShortName,objType)
+		
 	    else:
-		raise NotImplementedError,"Don't know how to position '%s's componentType: %s"%(self.getShortName,objType)
-	    
-	else:
-	    #if kws and 'ws' in kws.keys():ws = kws.pop('ws')
-	    if worldSpace:return mc.xform(self.mNode, q=True, ws=True, rp=True)    
-	    return mc.xform(self.mNode, q=True, os=True, t=True) 
-	
+		#if kws and 'ws' in kws.keys():ws = kws.pop('ws')
+		log.debug('Standard self.getPosition()')
+		if worldSpace:return mc.xform(self.mNode, q=True, ws=True, rp=True)    
+		return mc.xform(self.mNode, q=True, os=True, t=True) 
+	except StandardError,error:
+	    log.error("cgmNode.getPosition: %s"%error)	
+	    return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
 #=========================================================================        
@@ -885,13 +899,6 @@ class cgmObject(cgmNode):
 	    if returnList:return returnList	
 	return False
     
-    #>>> Transforms
-    #==============================================================
-    def getPosition(self,**kws):
-	if self.isComponent:
-	    return mc.pointPosition(self.getComponent(),**kws)
-	else:
-	    return mc.xform(a.mNode, q=True, ws=True, rp=True,**kws)
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
