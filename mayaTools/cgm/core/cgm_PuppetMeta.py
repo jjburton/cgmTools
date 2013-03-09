@@ -197,14 +197,14 @@ class cgmPuppet(cgmMeta.cgmNode):
 	#==============
 	defaultFont = modules.returnSettingsData('defaultTextFont')
 	self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
-	self.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)
+	#self.addAttr('puppetType',attrType = 'int',initialValue=0,lock=True)
 	self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
 	self.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
 	self.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
-
-
+	self.addAttr('skinDepth',attrType = 'float',initialValue=5,lock=True)   
+	
         self.doName()
-        self.getAttrs()
+        #self.getAttrs()
         log.debug("Network good...")
 
         #MasterNull
@@ -1412,7 +1412,10 @@ class cgmModule(cgmMeta.cgmObject):
             return modules.returnSettingsData('colorCenter',True)
         else:
             return modules.returnSettingsData(('color'+direction.capitalize()),True)
-        
+    
+    def getPartNameBase(self):
+        return NameFactory.returnUniqueGeneratedName(self.mNode, ignore = ['cgmType'])
+	
     def doSetParentModule(self,moduleParent,force = False):
         """
         Set a module parent of a module
