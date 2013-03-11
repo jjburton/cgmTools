@@ -86,9 +86,9 @@ def createLocFromObject(obj):
 	"""
 	# make it
 	nameBuffer = mc.spaceLocator()
-
+	buffer = mc.ls(obj,shortNames=True)        	
 	#store info
-	attributes.storeInfo(nameBuffer[0],'cgmName',obj,False)
+	attributes.storeInfo(nameBuffer[0],'cgmName',buffer[0],False)
 	attributes.storeInfo(nameBuffer[0],'cgmLocMode','fromObject',False)
 
 	return ( NameFactory.doNameObject(nameBuffer[0]) )
