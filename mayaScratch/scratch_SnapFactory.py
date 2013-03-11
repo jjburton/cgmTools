@@ -4,7 +4,7 @@ import maya.cmds as mc
 
 import Red9.core.Red9_Meta as r9Meta
 reload(r9Meta)
-
+from cgm.lib import curves
 from cgm.core.classes import SnapFactory as Snap
 reload(Snap)
 from cgm.core import cgm_Meta as cgmMeta
@@ -17,6 +17,9 @@ objList = []
 #=======================================================
 i_obj = cgmMeta.cgmObject(mc.spaceLocator()[0])
 i_obj = cgmMeta.cgmNode(obj)
+i_obj = cgmMeta.cgmNode(mc.ls(sl=True)[0])
+i_obj.getComponents()
+i_obj.getComponent()
 a = i_obj
 i_obj.mNode
 i_obj.isTransform()
@@ -28,10 +31,12 @@ cgmMeta.cgmNode(q_object).getPosition(True)
 cgmMeta.cgmNode(q_object).getPosition(False)
 i_obj = cgmMeta.cgmObject(mc.spaceLocator()[0])
 
-Snap.go(i_obj.mNode,targets = q_object,orient = True)
+Snap.go(i_obj.getComponent(),targets = q_object,orient = False,snapToSurface=True,snapComponents=True)
+Snap.go(i_obj.mNode,targets = q_object,orient = True,snapToSurface=True)
+Snap.go(i_obj,targets = q_object,orient = True,snapToSurface=True)
 
 q_object = mc.ls(sl=True)[0] or False
-q_object = 'Morphy_Body_GEO.vtx[2072]'
+q_object = 'Morphy_Body_GEO'
 q_object = 'locator1'
 q_object = 'Morphy_Body_GEO.e[8198]'
 q_object = 'nurbsCircle1.ep[0]'
@@ -52,3 +57,12 @@ from cgm.lib import search
 search.returnObjectType('')
 l_componentTypes = ['polyVertex','curveCV','surfaceCV','polyEdge','editPoint','isoparm','polyFace','polyUV','curvePoint','surfacePatch','nurbsUV']
 q_object.split('.')[-1]
+
+
+
+i_root = cgmMeta.cgmObject(curves.createControlCurve('circle',20))
+
+pos = 
+mc.move (pos[0],pos[1],pos[2], i_root.mNode, rpr=True)
+
+from cgm.lib import locators

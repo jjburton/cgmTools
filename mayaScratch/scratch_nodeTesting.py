@@ -11,14 +11,20 @@ reload(nameF)
 import cgm.core
 cgm.core._reload()
 
+from cgm.lib import locators
+reload(locators)
+
 obj = mc.ls(sl=True)[0] or False
 obj = 'Morphy_Body_GEO.f[1648]'
 obj = 'pelvis_bodyShaper'
 objList = []
 
 cgmMeta.cgmNode(name = 'test',nodeType='transform')
-i_obj = cgmMeta.cgmNode(obj)
 i_obj.getPosition(True)
+
+i_obj = cgmMeta.cgmNode(obj)
+i_obj.doLoc()
+
 i_obj.mNode
 i_obj.isComponent()
 i_obj.doName(sceneUnique=True,nameChildren=True,fastIterate = False)
