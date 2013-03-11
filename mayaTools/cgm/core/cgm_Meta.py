@@ -214,6 +214,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	return False
     
     def getComponent(self):
+	"""
+	Replacement mNode call for component mode
+	"""
 	if self.__componentMode__ and self.__component__:
 	    buffer = '%s.%s'%(self.mNode,self.__component__)
 	    if mc.objExists(buffer):return buffer
@@ -222,6 +225,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	return self.mNode
     
     def isComponent(self):
+	"""
+	Returns if what is stored is a component
+	"""
 	if self.__componentMode__ and self.__component__:
 	    buffer = '%s.%s'%(self.mNode,self.__component__)
 	    if mc.objExists(buffer):return True
@@ -229,6 +235,50 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return False
 	return False 
     
+    def getComponents(self,arg = False):
+	"""
+	@arg
+	pass an arg through an mc.ls flatten call
+	"""
+	if arg:
+	    try:return mc.ls(['%s.%s[*]'%(self.mNode,arg)],flatten=True)
+	    except StandardError,error:
+		log.error(error)
+		return False
+	else:
+	    try:
+		objType = self.getMayaType()
+		if objType in ['mesh','polyVertex','polyEdge','polyFace','nurbsCurve',
+			       'nurbsSurface','shape','surfaceCV']:
+		    if objType == 'mesh':
+			return mc.ls([self.mNode+'.vtx[*]'],flatten=True)
+		    elif objType == 'polyVertex':
+			return self.getComponent()
+		    elif objType in ['polyEdge','polyFace']:
+			mc.select(cl=True)
+			mc.select(self.mNode)
+			mel.eval("PolySelectConvert 3")
+			return mc.ls(sl=True,fl=True)
+		    elif objType in ['nurbsCurve','nurbsSurface']:
+			l_components = []
+			shapes = mc.listRelatives(self.mNode,shapes=True,fullPath=True)
+			if shapes:
+			    for shape in shapes:
+				l_components.extend(mc.ls ([shape+'.cv[*]'],flatten=True))
+			    return l_components
+			else:
+			    return mc.ls([self.mNode+'.cv[*]'],flatten=True)
+		    elif objType == 'shape':
+			return mc.ls ([self.mNode+'.cv[*]'],flatten=True)
+		    elif objType == 'surfaceCV':
+			return self.getComponent()
+		    else:
+			return self.getComponent()
+		return False 
+	    except StandardError,error:
+		log.warning(error)	
+		return False
+	    
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
         Fast method of connecting a node to the mNode via a message attr link. This call
@@ -630,6 +680,27 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    log.error("cgmNode.getPosition: %s"%error)	
 	    return False
+    def doLoc(self,forceBBCenter = False):
+        """
+        Create a locator from an object
+
+        Keyword arguments:
+        forceBBCenter(bool) -- whether to force a bounding box center (default False)
+        """
+	buffer = False
+	if self.isComponent():
+	    buffer =  locators.locMeObject(self.getComponent(),forceBBCenter = forceBBCenter)
+	elif self.isTransform():
+	    buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
+	
+	if not buffer:
+	    return False
+	log.info(buffer)
+	i_loc = cgmObject(buffer)
+	i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
+	i_loc.doName()
+	return i_loc
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
 #=========================================================================        
@@ -650,7 +721,7 @@ class cgmObject(cgmNode):
 
         super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
         
-        if len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
+        if not self.isTransform():
             log.error("'%s' has no transform"%self.mNode)
             raise StandardError, "The class was designed to work with objects with transforms"
                 
@@ -814,15 +885,6 @@ class cgmObject(cgmNode):
                 log.debug("'%s' already has target as child"%self.mNode)
                 return False
              
-    def doLoc(self,forceBBCenter = False):
-        """
-        Create a locator from an object
-
-        Keyword arguments:
-        forceBBCenter(bool) -- whether to force a bounding box center (default False)
-        """
-        return locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
-    
     def setDrawingOverrideSettings(self, attrs = None, pushToShapes = False):
         """
         Function for changing drawing override settings on on object
