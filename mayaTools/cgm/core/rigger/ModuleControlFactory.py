@@ -23,7 +23,9 @@ from cgm.core.classes import SnapFactory as Snap
 
 from cgm.lib import (cgmMath,
                      locators,
+                     modules,
                      distance,
+                     rigging,
                      search,
                      curves,
                      lists,
@@ -164,10 +166,9 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
     i_templateNull = self.m.templateNull
     bodyGeo = self.m.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic
     returnControls = {}
-    i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#Make a loc
     
     if 'segmentControls' in controlTypes:
-        segmentControls = []
+        l_segmentControls = []
         l_controlObjects = []
         for i_obj in i_templateNull.controlObjects:
             l_controlObjects.append(i_obj.helper.mNode)
@@ -176,10 +177,11 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
         for i,seg in enumerate(l_segments):
             log.info("segment: %s"%seg)
             log.info("indices: %s"%l_indexPairs[i])
+            i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#Make a loc            
             #>>> Get a base distance
             distanceToMove = distance.returnDistanceBetweenObjects(seg[0],seg[1])
             log.info("distanceToMove: %s"%distanceToMove)
-            
+            l_groupsBuffer = []
             #Need to do more to get a better size
             
             #>>> Build curves
@@ -229,64 +231,48 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
                 i_end.sz = 1    
                 #> Now we're gonna strink wrap it
                 for i_crv in [i_root,i_end]:
+                    Snap.go(i_crv ,targets = bodyGeo[0],orient = False,snapToSurface=True,snapComponents=True)                    
                     log.info(i_crv.getShortName())
-            
-            #rootSizeBuffer = distance.returnAbsoluteSizeCurve(segment[0])
-            #mc.setAttr((rootCurve+'.sx'),rootSizeBuffer[0])
-            #mc.setAttr((rootCurve+'.sy'),rootSizeBuffer[1])
-            #mc.setAttr((rootCurve+'.sz'),1)            
-            
-            """
+                    i_crv.sx *= 1.3
+                    i_crv.sy *= 1.3
+                    
             #> Side Curves
             l_rootPos = []
             l_endPos = []
+            l_curvesToCombine = []
             for cv in [0,3,5,7]:
                 l_posBuffer = []
-                l_posBuffer.append(cgmMeta.cgmNode('%s.cv[%i]'%(i_root.mNode,cv)).getPosition())
-                l_posBuffer.append(cgmMeta.cgmNode('%s.cv[%i]'%(i_end.mNode,cv)).getPosition())
-                mc.curve(d=1,p=l_posBuffer,os =True)#Make the cruve
-            """
+                #>>> Need to get u positions for more accuracy
+                l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_root.mNode,cv-1)).getPosition())
+                l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_end.mNode,cv-1)).getPosition())
+                l_curvesToCombine.append( mc.curve(d=1,p=l_posBuffer,os =True) )#Make the curve
             
-            """
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            #>>> Side curves
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # make side curves#
-            sideCrv1 = mc.curve (d=1, p = side1PosSet , os=True)
-            sideCrv2 = mc.curve (d=1, p = side2PosSet , os=True)
-            frontCrv = mc.curve (d=1, p = frontPosSet , os=True)
-            backCrv = mc.curve (d=1, p = backPosSet , os=True)
-            
-            # combine curves #
-            mc.makeIdentity(rootCurve,apply=True,translate =True, rotate = True, scale=True)
-            mc.makeIdentity(endCurve,apply=True,translate =True, rotate = True, scale=True)
-            segmentCurveBuffer = curves.combineCurves([sideCrv1,sideCrv2,frontCrv,backCrv,rootCurve,endCurve])
-            
-            # delete locs #
-            for loc in side1Locs,side2Locs,frontLocs,backLocs:
-                mc.delete(loc)
-                
-            # make our transform #
-            transform = rigging.groupMeObject(segment[0],False)
-            
-            # connects shape #
-            curves.parentShapeInPlace(transform,segmentCurveBuffer)
-            mc.delete(segmentCurveBuffer)
+            #>>>Store groups
+            l_groupsBuffer.append( i_end.parent )
+            l_groupsBuffer.append( i_root.parent )
 
+            #>>>Combine the curves
+            l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
+            newCurve = curves.combineCurves(l_curvesToCombine) 
+            i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+            curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+            mc.delete(newCurve)
+            
+            #>>Copy tags and name
+            i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+            i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+            i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'fk')            
+            i_crv.doName()
+            
+            #>>>Clean up groups
+            for g in l_groupsBuffer:
+                if mc.objExists(g):
+                    mc.delete(g)
+            
+            #Store for return
+            l_segmentControls.append( i_crv.mNode )
 
-            # copy over the pivot we want #
-            rigging.copyPivot(transform,orientationSegment[0])
-              
-            # Store data and name#
-            attributes.copyUserAttrs(segment[0],transform,attrsToCopy=['cgmName'])
-            attributes.storeInfo(transform,'cgmType','controlAnim')
-            attributes.storeInfo(transform,'cgmTypeModifier','fk')
-            segmentCurveBuffer = NameFactory.doNameObject(transform)
-            segmentControls.append(segmentCurveBuffer)
-            """
-
-        returnControls['segmentControls'] = segmentControls
-    return True
+        returnControls['segmentControls'] = l_segmentControls
     return returnControls
 
 def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
