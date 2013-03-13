@@ -264,12 +264,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 			shapes = mc.listRelatives(self.mNode,shapes=True,fullPath=True)
 			if shapes:
 			    for shape in shapes:
-				l_components.extend(mc.ls ([shape+'.cv[*]'],flatten=True))
+				l_components.extend(mc.ls ([shape+'.ep[*]'],flatten=True))
 			    return l_components
 			else:
-			    return mc.ls([self.mNode+'.cv[*]'],flatten=True)
+			    return mc.ls([self.mNode+'.ep[*]'],flatten=True)
 		    elif objType == 'shape':
-			return mc.ls ([self.mNode+'.cv[*]'],flatten=True)
+			return mc.ls ([self.mNode+'.ep[*]'],flatten=True)
 		    elif objType == 'surfaceCV':
 			return self.getComponent()
 		    else:
