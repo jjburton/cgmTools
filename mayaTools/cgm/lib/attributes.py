@@ -964,7 +964,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                 if sourceDynamic and convertToMatch:
                     toAttr = fromAttr                    
                     #f the match attr doesnt' type as well, convert
-                    log.info("Match is '%s', needs to be '%s'"%(targetType,sourceType))  
+                    log.debug("Match is '%s', needs to be '%s'"%(targetType,sourceType))  
                     if targetLock:
                         mc.setAttr('%s.%s'%(toObject,toAttr),lock = False)
                         relockSource = True                        
