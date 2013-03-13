@@ -20,11 +20,12 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
-
+from cgm.core.lib import rayCaster as RayCast
 from cgm.lib import (cgmMath,
                      locators,
                      modules,
                      distance,
+                     dictionary,
                      rigging,
                      search,
                      curves,
@@ -141,6 +142,68 @@ class go(object):
         
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 @r9General.Timer
+def returnBaseControlSize(i_obj,mesh,axis=True):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Figure out the base size for a control from a point in space within a mesh
+
+    ARGUMENTS:
+    i_obj(cgmObject instance)
+    mesh(obj) = ['option1','option2']
+    axis(list) -- what axis to check
+    
+    RETURNS:
+    axisDistances(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """ 
+    #if type(l_mesh) not in [list,tuple]:l_mesh = [l_mesh]
+    if not issubclass(type(i_obj),cgmMeta.cgmObject):
+        log.error("Not a cgmObject: '%s'"%i_obj)
+        return     
+    #Make some locs
+    #i_loc = i_obj.doLoc()
+    #i_targetLoc = i_obj.doLoc()
+    
+    #>>>Figure out the axis to do
+    d_axisToDo = {}
+    if axis == True:
+        axis = ['x','y','z']
+    if type(axis) in [list,tuple]:
+        for a in axis:
+            if a in dictionary.stringToVectorDict.keys():
+                if list(a)[0] in d_axisToDo.keys():
+                    d_axisToDo[list(a)[0]].append( a )
+                else:
+                    d_axisToDo[list(a)[0]] = [ a ]
+                     
+            elif type(a) is str and a.lower() in ['x','y','z']:
+                buffer = []
+                buffer.append('%s+'%a.lower())
+                buffer.append('%s-'%a.lower())  
+                d_axisToDo[a.lower()] = buffer
+            else:
+                log.warning("Don't know what with: '%s'"%a)
+    
+    log.info(d_axisToDo)
+    if not d_axisToDo:return False
+    #>>>
+    d_returnDistances = {}
+    for axis in d_axisToDo:
+        log.info("Checking: %s"%axis)
+        directions = d_axisToDo[axis]
+        if len(directions) == 1:#gonna multiply our distance 
+            info = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,directions[0])
+            d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['hit'],i_obj.getPosition()) *2)
+        else:
+            info1 = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,directions[0])
+            info2 = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,directions[1])
+            if info1 and info2:
+                d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['hit'],info2['hit'])                    
+    log.info(d_returnDistances) 
+    return d_returnDistances
+    
+@r9General.Timer
 def limbControlMaker(goInstance,controlTypes = ['cog']):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -165,115 +228,190 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
     self = goInstance
     i_templateNull = self.m.templateNull
     bodyGeo = self.m.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic
-    returnControls = {}
-    
+    skinDepth = 2.5
+    d_returnControls = {}
     if 'segmentControls' in controlTypes:
-        l_segmentControls = []
-        l_controlObjects = []
-        for i_obj in i_templateNull.controlObjects:
-            l_controlObjects.append(i_obj.helper.mNode)
-        l_indexPairs = lists.parseListToPairs(list(range(len(l_controlObjects))))
-        l_segments = lists.parseListToPairs(l_controlObjects)
-        for i,seg in enumerate(l_segments):
-            log.info("segment: %s"%seg)
-            log.info("indices: %s"%l_indexPairs[i])
-            i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#Make a loc            
-            #>>> Get a base distance
-            distanceToMove = distance.returnDistanceBetweenObjects(seg[0],seg[1])
-            log.info("distanceToMove: %s"%distanceToMove)
-            l_groupsBuffer = []
-            #Need to do more to get a better size
-            
-            #>>> Build curves
-            #=================================================================
-            #> Root curve #
-            i_root = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
-            Snap.go(i_root.mNode,seg[0],move = True, orient = True)#Snap it
-            i_root.doGroup()
-            i_root.tz = (distanceToMove*.1)#Offset it
-            
-            #> End Curve
-            i_end = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
-            Snap.go(i_end.mNode,seg[1],move = True, orient = True)#Snap it
-            i_end.doGroup()
-            i_end.tz = -(distanceToMove*.1)#Offset it  
-            
-            #> Figure out a base scale and set it
-            if bodyGeo:
-                multiplier = 1.25
-                log.info("Shrinkwrap mode")
-                Snap.go(i_loc.mNode,i_root.parent,move = True, orient = True)#Snap
-                i_loc.parent = i_root.parent#parent
-                #> First y
-                i_loc.ty = distanceToMove*multiplier#Move
-                d_yPos1 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#Get Data
-                i_loc.ty = -distanceToMove*multiplier#Move
-                d_yPos2 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#GetData
-                #> Now x
-                i_loc.ty = 0
-                i_loc.tx = distanceToMove*multiplier#Move                
-                d_xPos1 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#Get Data
-                i_loc.tx = -distanceToMove*multiplier#Move
-                d_xPos2 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#GetData
-                #> Now distance
-                f_yScale = distance.returnDistanceBetweenPoints(d_yPos1['position'],d_yPos2['position'])
-                f_xScale = distance.returnDistanceBetweenPoints(d_xPos1['position'],d_xPos2['position'])
+            l_segmentControls = []
+            l_controlObjects = []
+            for i_obj in i_templateNull.controlObjects:
+                l_controlObjects.append(i_obj.helper.mNode)
+            l_indexPairs = lists.parseListToPairs(list(range(len(l_controlObjects))))
+            l_segments = lists.parseListToPairs(l_controlObjects)
+            for i,seg in enumerate(l_segments):
+                log.info("segment: %s"%seg)
+                log.info("indices: %s"%l_indexPairs[i])
+                i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#Make a loc            
+                #>>> Get a base distance
+                distanceToMove = distance.returnDistanceBetweenObjects(seg[0],seg[1])
+                log.info("distanceToMove: %s"%distanceToMove)
+                l_groupsBuffer = []
+                #Need to do more to get a better size
                 
-                log.info("f_xScale: %s"%f_xScale)
-                log.info("f_yScale: %s"%f_yScale)                
-                #> Now our first pass of scaling
-                i_root.sx = f_xScale*1.25
-                i_root.sy = f_yScale*1.25
-                i_root.sz = 1
+                #>>> Build curves
+                #=================================================================
+                #> Root curve #
+                i_root = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
+                Snap.go(i_root.mNode,seg[0],move = True, orient = True)#Snap it
+                i_root.doGroup()
+                i_root.tz = (distanceToMove*.1)#Offset it
                 
-                i_end.sx = f_xScale*1.25
-                i_end.sy = f_yScale*1.25
-                i_end.sz = 1    
-                #> Now we're gonna strink wrap it
-                for i_crv in [i_root,i_end]:
-                    Snap.go(i_crv ,targets = bodyGeo[0],orient = False,snapToSurface=True,snapComponents=True)                    
-                    log.info(i_crv.getShortName())
-                    i_crv.sx *= 1.3
-                    i_crv.sy *= 1.3
+                #> End Curve
+                i_end = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
+                Snap.go(i_end.mNode,seg[1],move = True, orient = True)#Snap it
+                i_end.doGroup()
+                i_end.tz = -(distanceToMove*.1)#Offset it  
+                
+                #> Figure out a base scale and set it
+                if bodyGeo:
+                    multiplier = 1.25
+                    log.info("Shrinkwrap mode")
+                    Snap.go(i_loc.mNode,i_root.parent,move = True, orient = True)#Snap
+                    i_loc.parent = i_root.parent#parent
+                    """
+                    #> First y
+                    i_loc.ty = distanceToMove*multiplier#Move
+                    d_yPos1 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#Get Data
+                    i_loc.ty = -distanceToMove*multiplier#Move
+                    d_yPos2 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#GetData
+                    #> Now x
+                    i_loc.ty = 0
+                    i_loc.tx = distanceToMove*multiplier#Move                
+                    d_xPos1 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#Get Data
+                    i_loc.tx = -distanceToMove*multiplier#Move
+                    d_xPos2 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#GetData
+                    #> Now distance
+                    f_yScale = distance.returnDistanceBetweenPoints(d_yPos1['position'],d_yPos2['position'])
+                    f_xScale = distance.returnDistanceBetweenPoints(d_xPos1['position'],d_xPos2['position'])
+                    """
+                    d_info = returnBaseControlSize(i_loc,bodyGeo[0],axis = ['x','y'])
+                    xScale = d_info['x']
+                    yScale = d_info['y']
+                    log.info("x: %s"%xScale)
+                    log.info("y: %s"%yScale)                
+                    #> Now our first pass of scaling
+                    i_root.sx = xScale*1.25
+                    i_root.sy = yScale*1.25
+                    i_root.sz = 1
                     
-            #> Side Curves
-            l_rootPos = []
-            l_endPos = []
-            l_curvesToCombine = []
-            for cv in [0,3,5,7]:
-                l_posBuffer = []
-                #>>> Need to get u positions for more accuracy
-                l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_root.mNode,cv-1)).getPosition())
-                l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_end.mNode,cv-1)).getPosition())
-                l_curvesToCombine.append( mc.curve(d=1,p=l_posBuffer,os =True) )#Make the curve
+                    i_end.sx = xScale*1.25
+                    i_end.sy = yScale*1.25
+                    i_end.sz = 1    
+                    #> Now we're gonna strink wrap it
+                    for i_crv in [i_root,i_end]:
+                        Snap.go(i_crv ,targets = bodyGeo[0],orient = False,snapToSurface=True,snapComponents=True,posOffset=[0,0,skinDepth])                    
+                        log.info(i_crv.getShortName())
+    
+                #> Side Curves
+                l_rootPos = []
+                l_endPos = []
+                l_curvesToCombine = []
+                for cv in [0,3,5,7]:
+                    l_posBuffer = []
+                    #>>> Need to get u positions for more accuracy
+                    l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_root.mNode,cv-1)).getPosition())
+                    l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_end.mNode,cv-1)).getPosition())
+                    l_curvesToCombine.append( mc.curve(d=1,p=l_posBuffer,os =True) )#Make the curve
+                
+                #>>>Store groups
+                l_groupsBuffer.append( i_end.parent )
+                l_groupsBuffer.append( i_root.parent )
+    
+                #>>>Combine the curves
+                l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
+                newCurve = curves.combineCurves(l_curvesToCombine) 
+                i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+                curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+                mc.delete(newCurve)
+                
+                #>>Copy tags and name
+                i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+                i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+                i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'fk')            
+                i_crv.doName()
+                
+                #>>>Clean up groups
+                for g in l_groupsBuffer:
+                    if mc.objExists(g):
+                        mc.delete(g)
+                
+                #Store for return
+                l_segmentControls.append( i_crv.mNode )
+    
+            d_returnControls['segmentControls'] = l_segmentControls 
             
-            #>>>Store groups
-            l_groupsBuffer.append( i_end.parent )
-            l_groupsBuffer.append( i_root.parent )
+    if 'cog' in controlTypes:
+        if 'segmentControls' not in d_returnControls.keys():
+            log.warn("Don't have cog creation without segment controls at present")
+            return False
+        
+        i_crv = cgmMeta.cgmObject( curves.createControlCurve('cube',1))
+        Snap.go(i_crv, d_returnControls['segmentControls'][0]) #Snap it
+        size = distance.returnBoundingBoxSize(d_returnControls['segmentControls'][0],True)#Get size
+        log.info(size)
+        mc.scale(size[0],size[1],size[2],i_crv.mNode,relative = True)
+        
+        #>>Copy tags and name
+        i_crv.addAttr('cgmName',attrType='string',value = 'cog')        
+        i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+        i_crv.doName()        
+        """
+        cogControl = curves.createControlCurve('cube',1)
+        rootSizeBuffer = controlTemplateObjectsSizes[0]
+        mc.setAttr((cogControl+'.sx'),rootSizeBuffer[0]*1.05)
+        mc.setAttr((cogControl+'.sy'),rootSizeBuffer[1]*1.05)
+        mc.setAttr((cogControl+'.sz'),rootSizeBuffer[0]*.25)
+        position.moveParentSnap(cogControl,controlTemplateObjects[0])
+        
+        mc.makeIdentity(cogControl,apply=True, scale=True)
+        
+        # Store data and name#
+        attributes.storeInfo(cogControl,'cgmName','cog')
+        attributes.storeInfo(cogControl,'cgmType','controlAnim')
+        cogControl = NameFactory.doNameObject(cogControl)
+        returnControls['cog'] = cogControl
+        """    
 
-            #>>>Combine the curves
-            l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
-            newCurve = curves.combineCurves(l_curvesToCombine) 
-            i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
-            curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
-            mc.delete(newCurve)
+        d_returnControls['cog'] = i_crv.mNode
+    """
+    if 'hips' in controlTypes:
+        i_hips = cgmMeta.cgmObject(curves.createControlCurve('semiSphere',1,'y+'))
+        #>>> Size 
+        rootSizeBuffer = controlTemplateObjectsSizes[0]
+        mc.setAttr((hipsCurve+'.sx'),rootSizeBuffer[0])
+        mc.setAttr((hipsCurve+'.sy'),rootSizeBuffer[1])
+        mc.setAttr((hipsCurve+'.sz'),rootSizeBuffer[0])
+        position.moveParentSnap(hipsCurve,controlTemplateObjects[0])
+        
+        # make our transform #
+        transform = rigging.groupMeObject(controlTemplateObjects[0],False)
+        
+        # connects shape #
+        curves.parentShapeInPlace(transform,hipsCurve)
+        mc.delete(hipsCurve)
+        
+        # Store data and name#
+        attributes.storeInfo(transform,'cgmName','hips')
+        attributes.storeInfo(transform,'cgmType','controlAnim')
+        hips = NameFactory.doNameObject(transform)
+        returnControls['hips'] = hips
             
-            #>>Copy tags and name
-            i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
-            i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-            i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'fk')            
-            i_crv.doName()
-            
-            #>>>Clean up groups
-            for g in l_groupsBuffer:
-                if mc.objExists(g):
-                    mc.delete(g)
-            
-            #Store for return
-            l_segmentControls.append( i_crv.mNode )
-
-        returnControls['segmentControls'] = l_segmentControls
-    return returnControls
+    if 'cog' in controlTypes:
+        cogControl = curves.createControlCurve('cube',1)
+        rootSizeBuffer = controlTemplateObjectsSizes[0]
+        mc.setAttr((cogControl+'.sx'),rootSizeBuffer[0]*1.05)
+        mc.setAttr((cogControl+'.sy'),rootSizeBuffer[1]*1.05)
+        mc.setAttr((cogControl+'.sz'),rootSizeBuffer[0]*.25)
+        position.moveParentSnap(cogControl,controlTemplateObjects[0])
+        
+        mc.makeIdentity(cogControl,apply=True, scale=True)
+        
+        # Store data and name#
+        attributes.storeInfo(cogControl,'cgmName','cog')
+        attributes.storeInfo(cogControl,'cgmType','controlAnim')
+        cogControl = NameFactory.doNameObject(cogControl)
+        returnControls['cog'] = cogControl
+        """    
+    return d_returnControls
 
 def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
     """ 
