@@ -51,7 +51,10 @@ class go(object):
     Control Factory for 
     """
     def __init__(self,obj,targets = [],move = True, orient = False, aim = False, pos = [],
-                 snapToSurface = False, snapComponents = False, mode = None,**kws):
+                 snapToSurface = False, snapComponents = False,
+                 posOffset = False,
+                 aimVector = [0,0,1],upVector = [0,1,0], worldUpType = 'scene',
+                 mode = None,**kws):
         """ 
         Asserts objects existance and that it has a transform. Then initializes. 
 
@@ -74,9 +77,14 @@ class go(object):
 	    else :
 		self.i_obj = cgmMeta.cgmObject(obj)
 	assert self.i_obj.isTransform() or self.i_obj.isComponent(),"Not a snappable object. Not a transform: '%s"%self.i_obj.getShortName()      
-	#>>> Pass through commands
+	
+	#>>> Pass through args
 	self.b_snaptoSurface = snapToSurface
 	self.b_snapComponents = snapComponents
+	self.posOffset = posOffset
+	self.aimVector = aimVector
+	self.upVector = upVector
+	self.worldUpType = worldUpType
 	
 	#>>> Check our targets
 	if targets and not type(targets)==list:targets=[targets]
@@ -125,6 +133,9 @@ class go(object):
 			mc.move (pos[0],pos[1],pos[2], targetLoc[0])
 
 			closestLoc = locators.locClosest([targetLoc[0]],i_target.mNode)
+			if self.posOffset:
+			    self.doOrientObjToSurface(i_target.mNode,closestLoc)
+			    mc.move (self.posOffset[0],self.posOffset[1],self.posOffset[2], [closestLoc], r=True, rpr = True, os = True, wd = True)								
 			position.movePointSnap(c,closestLoc)
 			mc.delete([targetLoc[0],closestLoc])
 			
@@ -135,7 +146,17 @@ class go(object):
 		if self.b_snaptoSurface:#>>> If our target is surface we can use
 		    if targetType in ['mesh','nurbsCurve','nurbsSurface']:
 			i_locObj = self.i_obj.doLoc()#Get our position loc
-			i_locTarget = cgmMeta.cgmNode( locators.locClosest([i_locObj.mNode],i_target.mNode) )#Loc closest
+			i_locTarget = cgmMeta.cgmObject( locators.locClosest([i_locObj.mNode],i_target.mNode) )#Loc closest
+			#i_locObj.rename('objLoc')
+			#i_locTarget.rename('targetLoc')
+			if self.posOffset:
+			    try:
+				self.doOrientObjToSurface(i_target.mNode,i_locTarget.mNode)
+				mc.move (self.posOffset[0],self.posOffset[1],self.posOffset[2], [i_locTarget.mNode], r=True, rpr = True, os = True, wd = True)								
+			    except StandardError,error:
+				log.warn("self.posOffset failure!")
+				log.error(error)
+			
 			pos = i_locTarget.getPosition(True)
 			i_locObj.delete()
 			i_locTarget.delete()
@@ -154,21 +175,37 @@ class go(object):
 	    i_target = cgmMeta.cgmNode(self.l_targets[0])
 	    if i_target.isComponent():
 		if 'poly' in i_target.getMayaType():
-		    aimVector = [0,0,1]
-		    upVector = [0,1,0]
-		    worldUpType = 'scene'
-		    constBuffer = mc.normalConstraint(i_target.mNode,self.i_obj.mNode,
-		                                      aimVector=aimVector,
-		                                      upVector=upVector,
-		                                      worldUpType = worldUpType)
-		    mc.delete(constBuffer)
+		    self.doOrientObjToSurface(i_target.mNode,self.i_obj.mNode)
 		else:
-		    raise NotImplementedError,"Haven't set orient for type: %s"%i_target.getMayaType()			    
+		    raise NotImplementedError,"Haven't set orient for type: %s"%i_target.getMayaType()			   
+	    elif i_target.getMayaType() == 'mesh':
+		self.doOrientObjToSurface(i_target.mNode,self.i_obj.mNode)		
+
 	    else:
 		objRot = mc.xform (i_target.mNode, q=True, ws=True, ro=True)		
 		mc.rotate (objRot[0], objRot[1], objRot[2], [self.i_obj.mNode], ws=True)    
 	else:
 	    raise NotImplementedError,"Haven't set up: doOrient multi"	
+	
+    def doOrientObjToSurface(self,l_targets,obj,deleteConstraint = True):
+	"""
+	constraint
+	"""
+	if type(l_targets) is not list:l_targets = [l_targets]
+	try:
+	    constBuffer = mc.normalConstraint(l_targets,obj,
+                                              aimVector=self.aimVector,
+                                              upVector=self.upVector,
+                                              worldUpType = self.worldUpType)
+	    if deleteConstraint:
+		mc.delete(constBuffer)
+		return True
+	    return constBuffer
+	    
+	except StandardError,error:
+	    log.error(error)	
+	    return False
+	
 	
     def registerTarget(self,target):
 	"""
