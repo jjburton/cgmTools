@@ -273,7 +273,7 @@ class clickMesh(ContextualPick):
         if self.createMode == 'follicle':#Only get uv intersection for follicles
             self.getUV = True            
         
-    def setDragStoreMode(self,mode,debugReport = False):
+    def setDragStoreMode(self,mode):
         """
         Set drag update mode
         """
@@ -281,7 +281,7 @@ class clickMesh(ContextualPick):
         self.dragStoreMode = mode
         log.warning("Drag store is %s!"%mode)
         
-    def reset(self,debugReport = False):
+    def reset(self):
         """
         Reset data
         """
@@ -355,7 +355,7 @@ class clickMesh(ContextualPick):
         log.debug( self.createdList)
         self.reset()        
         
-    def release(self,debugReport = False):
+    def release(self):
         """
         Store current data to return buffers
         """                
@@ -400,7 +400,7 @@ class clickMesh(ContextualPick):
             returnList.append( distance.returnMayaSpaceFromWorldSpace(f))
         return returnList
         
-    def updatePos(self,debugReport = False):
+    def updatePos(self):
         """
         Get updated position data via shooting rays
         """
@@ -531,7 +531,7 @@ def screenToWorld(startX,startY):
     return [posMPoint.x,posMPoint.y,posMPoint.z],[vecMVector.x,vecMVector.y,vecMVector.z]
 
 
-def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, debugReport = False):
+def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
@@ -617,7 +617,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, debugRepor
     else:
         return None    
         
-def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, debugReport = False):
+def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     
