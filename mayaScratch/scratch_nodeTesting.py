@@ -23,6 +23,7 @@ cgmMeta.cgmNode(name = 'test',nodeType='transform')
 i_obj.getPosition(True)
 
 i_obj = cgmMeta.cgmNode(obj)
+i_obj.getComponents('cv')
 i_obj.doLoc()
 
 i_obj.mNode
