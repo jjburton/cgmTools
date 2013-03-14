@@ -48,12 +48,13 @@ from cgm.lib import (lists,
 #>>>>>>>>>>>>>>>>>>>>>>>      
 class go(object):
     """ 
-    Control Factory for 
+    Control Factory for snapping objects around in maya
     """
     def __init__(self,obj,targets = [],move = True, orient = False, aim = False, pos = [],
-                 snapToSurface = False, snapComponents = False,
+                 snapToSurface = False,
                  posOffset = False,
                  aimVector = [0,0,1],upVector = [0,1,0], worldUpType = 'scene',
+                 snapComponents = False,softSelection = False, softSelectDistance = 20,                 
                  mode = None,**kws):
         """ 
         Asserts objects existance and that it has a transform. Then initializes. 
@@ -63,7 +64,13 @@ class go(object):
 	targets(list) -- target objects
 	
 	snapToSurface -- if target is a snappable surface will try to do that
+	posOffset
 	snapComponents(bool) -- will try to use components if True
+	aimVector(vector) -- aim vector for object
+	upVector(vector) -- up vector for object
+	worldUpType(string) -- arg for various modes (aim, orient, etc)
+	softSelection(bool) -- soft select mode for component objects only
+	softSelectDistance(float) -- arg for mc.softSelect
         """
 	#>>> Check our obj
 	log.debug("obj: %s"%obj)
@@ -81,6 +88,8 @@ class go(object):
 	#>>> Pass through args
 	self.b_snaptoSurface = snapToSurface
 	self.b_snapComponents = snapComponents
+	self.b_softSelection = softSelection
+	self.softSelectionDistance = softSelectDistance,
 	self.posOffset = posOffset
 	self.aimVector = aimVector
 	self.upVector = upVector
@@ -98,6 +107,10 @@ class go(object):
 	    log.error("No existing targets found")
 	    return
 	
+	if self.b_softSelection:
+	    #Should we save soft select info before changing?
+	    mc.softSelect(softSelectDistance = softSelectDistance)
+	    mc.softSelect(softSelectFalloff = 0)	    
 	log.info("targetTypes: %s"%self.d_targetTypes)
 	if move:
 	    log.info("Moving")
@@ -164,7 +177,13 @@ class go(object):
 		    pos = cgmMeta.cgmNode(i_target.mNode).getPosition(True)	    
 		if pos:
 		    if self.i_obj.isComponent():
-			mc.move (pos[0],pos[1],pos[2], self.i_obj.getComponent(), rpr=True)	    		    
+			if self.b_softSelection:#Only need to do this if soft select is on
+			    mc.softSelect(softSelectEnabled = True)
+			    mc.select(self.i_obj.getComponent())
+			    mc.move (pos[0],pos[1],pos[2],rpr=True)
+			    mc.select(cl=True)
+			else:
+			    mc.move (pos[0],pos[1],pos[2], self.i_obj.getComponent())	    		    
 		    else:
 			mc.move (pos[0],pos[1],pos[2], self.i_obj.mNode, rpr=True)	    
 	else:
@@ -223,50 +242,3 @@ class go(object):
 	return True
     
     
-    """
-    targetType = i_target.getMayaType()
-    #>>> If our target is surface we can use
-    if targetType in ['mesh','nurbsCurve','nurbsSurface','shape']:
-	# Type check to get our Components to move
-	if objType == 'mesh':
-	    componentsToMove = (mc.ls ([i_target.mNode+'.vtx[*]'],flatten=True))
-	elif targetType == 'polyVertex':
-	    componentsToMove = [i_target.mNode]
-	elif targetType in ['polyEdge','polyFace']:
-	    mc.select(cl=True)
-	    mc.select(i_target.mNode)
-	    mel.eval("PolySelectConvert 3")
-	    componentsToMove = mc.ls(sl=True,fl=True)
-	elif targetType in ['nurbsCurve','nurbsSurface']:
-	    componentsToMove = []
-	    shapes = mc.listRelatives(i_target.mNode,shapes=True,fullPath=True)
-	    if shapes:
-		for shape in shapes:
-		    componentsToMove.extend(mc.ls ([shape+'.cv[*]'],flatten=True))
-	    else:
-		componentsToMove = (mc.ls ([i_target.mNode+'.cv[*]'],flatten=True))
-	elif targetType == 'shape':
-	    componentsToMove = (mc.ls ([i_target.mNode+'.cv[*]'],flatten=True))
-	elif targetType == 'surfaceCV':
-	    componentsToMove = [i_target.mNode]
-	else:
-	    componentsToMove = [i_target.mNode]
-
-	#>> Let's move it
-	for c in componentsToMove:
-	    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-		break
-	    mc.progressBar(mayaMainProgressBar, edit=True, status = ("wrapping '%s'"%c), step=1)
-
-	    if sourceType in ['mesh','nurbsSurface','nurbsCurve']:
-		pos = distance.returnWorldSpacePosition(c)
-		targetLoc = mc.spaceLocator()
-		mc.move (pos[0],pos[1],pos[2], targetLoc[0])
-
-		closestLoc = locators.locClosest([targetLoc[0]],sourceObject)
-		position.movePointSnap(c,closestLoc)
-		mc.delete([targetLoc[0],closestLoc])
-
-	    else:
-		guiFactory.warning('The source object must be a poly,nurbs curve or nurbs surface')
-    """
