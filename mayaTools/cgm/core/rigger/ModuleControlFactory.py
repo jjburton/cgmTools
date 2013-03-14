@@ -326,7 +326,6 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
                 #>>Copy tags and name
                 i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
                 i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-                i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'fk')            
                 i_crv.doName()
                 
                 #>>>Clean up groups
@@ -354,24 +353,31 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
         i_crv.addAttr('cgmName',attrType='string',value = 'cog')        
         i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
         i_crv.doName()        
-        """
-        cogControl = curves.createControlCurve('cube',1)
-        rootSizeBuffer = controlTemplateObjectsSizes[0]
-        mc.setAttr((cogControl+'.sx'),rootSizeBuffer[0]*1.05)
-        mc.setAttr((cogControl+'.sy'),rootSizeBuffer[1]*1.05)
-        mc.setAttr((cogControl+'.sz'),rootSizeBuffer[0]*.25)
-        position.moveParentSnap(cogControl,controlTemplateObjects[0])
-        
-        mc.makeIdentity(cogControl,apply=True, scale=True)
-        
-        # Store data and name#
-        attributes.storeInfo(cogControl,'cgmName','cog')
-        attributes.storeInfo(cogControl,'cgmType','controlAnim')
-        cogControl = NameFactory.doNameObject(cogControl)
-        returnControls['cog'] = cogControl
-        """    
+
 
         d_returnControls['cog'] = i_crv.mNode
+        
+    if 'hips' in controlTypes:
+        if 'segmentControls' not in d_returnControls.keys():
+            log.warn("Don't have hip creation without segment controls at present")
+            return False
+        
+        i_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',1,'y+'))
+        Snap.go(i_crv, d_returnControls['segmentControls'][0]) #Snap it
+        size = distance.returnBoundingBoxSize(d_returnControls['segmentControls'][0],True)#Get size
+        i_obj = cgmMeta.cgmObject(d_returnControls['segmentControls'][0])
+        d_size = returnBaseControlSize(i_obj,bodyGeo[0],['z-'])      
+        log.info(size)
+        mc.scale(size[0],size[1],(size[2]),i_crv.mNode,relative = True)
+        i_crv.sy = - d_size['z'] * 1.25
+        
+        #>>Copy tags and name
+        i_crv.addAttr('cgmName',attrType='string',value = 'hips')        
+        i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+        i_crv.doName()        
+
+        d_returnControls['hips'] = i_crv.mNode
+        
     """
     if 'hips' in controlTypes:
         i_hips = cgmMeta.cgmObject(curves.createControlCurve('semiSphere',1,'y+'))
