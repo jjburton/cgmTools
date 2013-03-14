@@ -32,8 +32,11 @@ cgmMeta.cgmNode(q_object).getPosition(False)
 i_obj = cgmMeta.cgmObject(mc.spaceLocator()[0])
 
 Snap.go(i_obj.getComponent(),targets = q_object,orient = False,snapToSurface=True,snapComponents=True)
-Snap.go(i_obj.mNode,targets = q_object,orient = True,snapToSurface=True)
-Snap.go(i_obj,targets = q_object,orient = True,snapToSurface=True)
+Snap.go(i_obj.mNode,targets = q_object,move = False, orient = True,snapToSurface=True)
+Snap.go(i_obj,targets = q_object,orient = False,snapToSurface=True)
+Snap.go(i_obj,targets = q_object,snapToSurface=True,posOffset=[0,0,10])
+Snap.go(i_obj,targets = q_object,orient = True, snapToSurface=True,posOffset=[0,0,1.5])
+Snap.go(i_obj, q_object,snapComponents=True,posOffset=[0,0,2.5])
 
 q_object = mc.ls(sl=True)[0] or False
 q_object = 'Morphy_Body_GEO'
@@ -58,7 +61,8 @@ search.returnObjectType('')
 l_componentTypes = ['polyVertex','curveCV','surfaceCV','polyEdge','editPoint','isoparm','polyFace','polyUV','curvePoint','surfacePatch','nurbsUV']
 q_object.split('.')[-1]
 
-
+offset = [0,0,10]
+mc.move (offset[0],offset[1],offset[2], [i_obj.mNode], r=True, rpr = True, os = True, wd = True)								
 
 i_root = cgmMeta.cgmObject(curves.createControlCurve('circle',20))
 

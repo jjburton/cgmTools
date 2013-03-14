@@ -7,7 +7,7 @@ from cgm.core import cgm_PuppetMeta as cgmPM
 import Red9.core.Red9_Meta as r9Meta
 
 from cgm.core.classes import SnapFactory as Snap
-
+reload(Snap)
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 reload(mControlFactory)
 
@@ -19,9 +19,23 @@ objList = []
 #=======================================================
 m1 = cgmPM.cgmModule(name = 'test')
 m1 = r9Meta.MetaClass('spine_part')
+m1.setState('skeleton')
 m1.getPartNameBase()
 m1.modulePuppet.getGeo()
 mControlFactory.go(m1)
+mesh = 'Morphy_Body_GEO'
+i_obj = cgmMeta.cgmObject('pelvis_templateOrientHelper')
+mControlFactory.returnBaseControlSize(i_obj, mesh,axis = ['x','y','z-'])
+mControlFactory.returnBaseControlSize(i_obj, mesh,axis = ['x+'])
+
+mc.softSelect(softSelectEnabled = True)
+mc.softSelect(q = True, softSelectDistance = True)
+mc.softSelect(q = True, softSelectUVDistance = True)
+mc.softSelect(q = True, softSelectFalloff = 2)
+mc.softSelect(softSelectFalloff = 1)
+mc.softSelect(softSelectDistance = 20)
+mc.softSelect(softSelectUVDistance = 1)
+
 #252ms
 m1.isSkeletonized()
 mControlFactory.go(obj)
