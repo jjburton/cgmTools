@@ -28,7 +28,7 @@ import maya.cmds as mc
 import maya.mel as mel
 import subprocess
 
-from cgm.lib.classes import DraggerContextFactory
+from cgm.core.classes import DraggerContextFactory
 reload(DraggerContextFactory)
 
 from cgm.lib.zoo.zooPyMaya import skinWeights
@@ -252,7 +252,6 @@ def uiClickMesh_setClamp(self):
     Keyword arguments:
     selectAttr(string) -- Name of an attr (False ignores)
     """
-    print "asdfasdfasdfasdfasdfasdf"
     buffer = self.ClickMeshClampIntField(q=True, value=True)
     
     if buffer >= 0:
