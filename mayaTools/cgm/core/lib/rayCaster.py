@@ -226,26 +226,27 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     else:
         return None   
 
-def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', maxDistance = 1000):
+def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, maxDistance = 1000):
     """
     Find mesh intersections for an object's axis
     """
-    d_matrixVectorIndices = {'x':[0,1,2],
-                             'y': [4,5,6],
-                             'z' : [8,9,10]}
-    matrix = mc.xform(obj, q=True,  matrix=True, worldSpace=True)
-    
-    #>>> Figure out our vector
-    if axis not in dictionary.stringToVectorDict.keys():
-        raise ValueError,"findMeshIntersectionFromObjectAxis axis arg not valid: '%s'"%axis
-        return False
-    if list(axis)[0] not in d_matrixVectorIndices.keys():
-        raise ValueError,"findMeshIntersectionFromObjectAxis axis arg not in d_matrixVectorIndices: '%s'"%axis
-        return False  
-    vector = [matrix[i] for i in d_matrixVectorIndices.get(list(axis)[0])]
-    if list(axis)[1] == '-':
-        for i,v in enumerate(vector):
-            vector[i]=-v
+    if not vector or type(vector) not in [list,tuple]:
+        d_matrixVectorIndices = {'x':[0,1,2],
+                                 'y': [4,5,6],
+                                 'z' : [8,9,10]}
+        matrix = mc.xform(obj, q=True,  matrix=True, worldSpace=True)
+        
+        #>>> Figure out our vector
+        if axis not in dictionary.stringToVectorDict.keys():
+            raise ValueError,"findMeshIntersectionFromObjectAxis axis arg not valid: '%s'"%axis
+            return False
+        if list(axis)[0] not in d_matrixVectorIndices.keys():
+            raise ValueError,"findMeshIntersectionFromObjectAxis axis arg not in d_matrixVectorIndices: '%s'"%axis
+            return False  
+        vector = [matrix[i] for i in d_matrixVectorIndices.get(list(axis)[0])]
+        if list(axis)[1] == '-':
+            for i,v in enumerate(vector):
+                vector[i]=-v
     return findMeshIntersection(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
 
     
