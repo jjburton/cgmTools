@@ -13,6 +13,8 @@ reload(Rig)
 from cgm.lib import curves
 from cgm.lib import distance
 from cgm.lib import locators
+from cgm.lib import attributes
+
 reload(distance)
 from cgm.lib import nodes
 reload(nodes)
@@ -22,8 +24,16 @@ objList = []
 
 #>>> Modules
 #=======================================================
-curves.createControlCurve('semiSphere',10,'z-')
 
+Rig.go(m1)
+l_joints = mc.ls(sl=True)
+Rig.createControlSurfaceSegment(l_joints)
+mControlFactory.limbControlMaker(m1,['cog','segmentControls','hips'])
+
+
+curves.createControlCurve('semiSphere',10,'z-')
+attributes.doSetAttr('closestPointOnSurface1','inPostionX',5)
+mc.setAttr('closestPointOnSurface1.inPostionX',5)
 m1 = cgmPM.cgmModule(name = 'test')
 m1 = r9Meta.MetaClass('spine_part')
 m1.setState('skeleton')
@@ -31,18 +41,13 @@ m1.rigNull.skinJoints
 m1.getModuleColors()
 m1.getPartNameBase()
 m1.modulePuppet.getGeo()
-f = cgmMeta.cgmNode('test_foll')
-f.parameterU
-f = cgmMeta.cgmNode('follicle2')
-a = distance.returnClosestUV(mc.ls(sl=True)[0],'test_controlSurface')
+targetObj = mc.ls(sl=True)[0]
+distance.returnClosestPointOnSurfaceInfo(targetObj,'test_controlSurface')
+distance.returnClosestUV(targetObj,'test_controlSurface')
 log.info(a)
 nodes.createFollicleOnMesh('spine_controlSurface','test')
 locators.locMeClosestUVOnSurface(mc.ls(sl=True)[0], 'test_controlSurface', pivotOnSurfaceOnly = False)
 
-Rig.go(m1)
-l_joints = mc.ls(sl=True)
-Rig.createControlSurfaceSegment(l_joints)
-mControlFactory.limbControlMaker(m1,['cog','segmentControls','hips'])
 
 mesh = 'Morphy_Body_GEO'
 i_obj = cgmMeta.cgmObject('hips_anim')
