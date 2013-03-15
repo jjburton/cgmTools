@@ -23,6 +23,9 @@ m1.setState('skeleton')
 m1.getPartNameBase()
 m1.modulePuppet.getGeo()
 mControlFactory.go(m1)
+
+mControlFactory.limbControlMaker(m1,['cog','segmentControls','hips'])
+
 mesh = 'Morphy_Body_GEO'
 i_obj = cgmMeta.cgmObject('pelvis_templateOrientHelper')
 mControlFactory.returnBaseControlSize(i_obj, mesh,axis = ['x','y','z-'])
