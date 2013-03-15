@@ -931,7 +931,6 @@ class cgmMeta_Test():
                                'version':['double',1.0],
                                'masterNull':['message'],
                                'font':['string','Arial'],
-                               'puppetType':['long',0],
                                'axisAim':['enum',2],
                                'axisUp':['enum',1],
                                'axisOut':['enum',0]}                                   
