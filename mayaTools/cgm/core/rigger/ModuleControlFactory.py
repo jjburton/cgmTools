@@ -37,110 +37,6 @@ from cgm.lib.classes import NameFactory
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-class go(object):
-    @r9General.Timer
-    def __init__(self,moduleInstance,forceNew = True,**kws): 
-        """
-        To do:
-        Add rotation order settting
-        Add module parent check to make sure parent is templated to be able to move forward, or to constrain
-        Add any other piece meal data necessary
-        Add a cleaner to force a rebuild
-        """
-        # Get our base info
-        #==============	        
-        #>>> module null data
-        if not issubclass(type(moduleInstance),cgmPM.cgmModule):
-            log.error("Not a cgmModule: '%s'"%moduleInstance)
-            return 
-        
-        assert moduleInstance.mClass in ['cgmModule','cgmLimb'],"Not a module"
-        assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
-        assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
-        
-        log.info(">>> ModuleControlFactory.go.__init__")
-        self.m = moduleInstance# Link for shortness
-        """
-        if moduleInstance.hasControls():
-            if forceNew:
-                deleteControls(moduleInstance)
-            else:
-                log.warning("'%s' has already been skeletonized"%moduleInstance.getShortName())
-                return        
-        """
-        #>>> Gather info
-        #=========================================================
-        self.l_moduleColors = self.m.getModuleColors()
-        self.l_coreNames = self.m.coreNames.value
-                
-        #>>> part name 
-        self.partName = self.m.getPartNameBase()
-        self.partType = self.m.moduleType or False
-        
-        self.direction = None
-        if self.m.hasAttr('cgmDirection'):
-            self.direction = self.m.cgmDirection or None
-               
-        #>>> Instances and joint stuff
-        self.jointOrientation = modules.returnSettingsData('jointOrientation')
-        #self.i_root = self.i_templateNull.root
-        #self.i_orientRootHelper = self.i_templateNull.orientRootHelper
-        #self.i_curve = self.i_templateNull.curve
-        #self.i_controlObjects = self.i_templateNull.controlObjects
-        
-        
-        #>>> We need to figure out which control to make
-        self.l_controlsToMakeArg = ['cog']            
-        if self.m.rigNull.ik:
-            self.l_controlsToMakeArg.extend(['vectorHandles'])
-            if self.partType == 'torso':#Maybe move to a dict?
-                self.l_controlsToMakeArg.append('spineIKHandle')            
-        if self.m.rigNull.fk:
-            self.l_controlsToMakeArg.extend(['segmentControls'])
-            if self.partType == 'torso':#Maybe move to a dict?
-                self.l_controlsToMakeArg.append('hips')
-        log.info("l_controlsToMakeArg: %s"%self.l_controlsToMakeArg)
-        
-        """
-        fk = templateNullData.get('fk')
-        ik = templateNullData.get('ik')
-        stretch = templateNullData.get('stretch')
-        bend = templateNullData.get('bend')
-        
-        controlsToMake =[]
-        controlsToMake.append('cog')
-        
-        if fk == True:
-            controlsToMake.append('segmentControls')
-            controlsToMake.append('hips')
-            
-        if ik == True:
-            controlsToMake.append('vectorHandles')
-            controlsToMake.append('spineIKHandle')  
-            
-        controlsDict = modules.limbControlMaker(moduleNull,controlsToMake)
-        
-        print controlsDict
-        #>>> Organize em
-        segmentControls = controlsDict.get('segmentControls')
-        spineIKHandle = controlsDict.get('spineIKHandle')
-        cog = controlsDict.get('cog')
-        hips = controlsDict.get('hips')
-        vectorHandles = controlsDict.get('vectorHandles')
-        for handle in vectorHandles[-1:]:
-            mc.delete(handle)
-            vectorHandles.remove(handle)        
-        """
-        
-        #Make our stuff
-        if issubclass(type(self.m), cgmPM.cgmLimb):
-            log.info("mode: cgmLimb control building")
-            if not limbControlMaker(self,self.l_controlsToMakeArg):
-                raise StandardError,"limbControlMaker failed!"
-        else:
-            raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
-        
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 @r9General.Timer
 def returnBaseControlSize(i_obj,mesh,axis=True):
     """ 
@@ -204,7 +100,7 @@ def returnBaseControlSize(i_obj,mesh,axis=True):
     return d_returnDistances
     
 @r9General.Timer
-def limbControlMaker(goInstance,controlTypes = ['cog']):
+def limbControlMaker(moduleInstance,controlTypes = ['cog']):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -222,21 +118,52 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """ 
     if type(controlTypes) is not list:controlTypes = [controlTypes]
-    if not issubclass(type(goInstance),go):
-        log.error("Not a ModuleControlFactory.go instance: '%s'"%goInstance.getShortName())
-        return False        
-    self = goInstance
-    i_templateNull = self.m.templateNull
-    bodyGeo = self.m.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic
+    if not issubclass(type(moduleInstance),cgmPM.cgmModule):
+        log.error("Not a cgmModule: '%s'"%moduleInstance)
+        return 
+    
+    assert moduleInstance.mClass in ['cgmModule','cgmLimb'],"Not a module"
+    assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
+    assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
+    
+    log.info(">>> ModuleControlFactory.go.__init__")
+    i_m = moduleInstance# Link for shortness
+    """
+    if moduleInstance.hasControls():
+        if forceNew:
+            deleteControls(moduleInstance)
+        else:
+            log.warning("'%s' has already been skeletonized"%moduleInstance.getShortName())
+            return        
+    """
+    #>>> Gather info
+    #=========================================================
+    l_moduleColors = i_m.getModuleColors()
+    l_coreNames = i_m.coreNames.value
+            
+    #>>> part name 
+    partName = i_m.getPartNameBase()
+    partType = i_m.moduleType or False
+    
+    direction = None
+    if i_m.hasAttr('cgmDirection'):
+        direction = i_m.cgmDirection or None
+        
+    
+    #Gether information 
+    i_templateNull = i_m.templateNull
+    bodyGeo = i_m.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic
+    l_controlSnapObjects = []
+    for i_obj in i_templateNull.controlObjects:
+        l_controlSnapObjects.append(i_obj.helper.mNode)  
+        
     skinDepth = 2.5
-    d_returnControls = {}
+    d_returnControls = {}    
+    
     if 'segmentControls' in controlTypes:
             l_segmentControls = []
-            l_controlObjects = []
-            for i_obj in i_templateNull.controlObjects:
-                l_controlObjects.append(i_obj.helper.mNode)
-            l_indexPairs = lists.parseListToPairs(list(range(len(l_controlObjects))))
-            l_segments = lists.parseListToPairs(l_controlObjects)
+            l_indexPairs = lists.parseListToPairs(list(range(len(l_controlSnapObjects))))
+            l_segments = lists.parseListToPairs(l_controlSnapObjects)
             for i,seg in enumerate(l_segments):
                 log.info("segment: %s"%seg)
                 log.info("indices: %s"%l_indexPairs[i])
@@ -328,6 +255,9 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
                 i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
                 i_crv.doName()
                 
+                #>>> Color
+                curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])                    
+                
                 #>>>Clean up groups
                 for g in l_groupsBuffer:
                     if mc.objExists(g):
@@ -347,14 +277,16 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
         Snap.go(i_crv, d_returnControls['segmentControls'][0]) #Snap it
         size = distance.returnBoundingBoxSize(d_returnControls['segmentControls'][0],True)#Get size
         log.info(size)
-        mc.scale(size[0],size[1],size[2],i_crv.mNode,relative = True)
+        mc.scale(size[0]*1.1,size[1],size[2]*1.1,i_crv.mNode,relative = True)
         
         #>>Copy tags and name
         i_crv.addAttr('cgmName',attrType='string',value = 'cog')        
         i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
         i_crv.doName()        
 
-
+        #>>> Color
+        curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])    
+        
         d_returnControls['cog'] = i_crv.mNode
         
     if 'hips' in controlTypes:
@@ -362,61 +294,43 @@ def limbControlMaker(goInstance,controlTypes = ['cog']):
             log.warn("Don't have hip creation without segment controls at present")
             return False
         
-        i_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',1,'y+'))
-        Snap.go(i_crv, d_returnControls['segmentControls'][0]) #Snap it
+        #>>>Create the curve
+        i_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',1,'z-'))
+        Snap.go(i_crv, d_returnControls['segmentControls'][0],orient = True) #Snap it
+        i_crv.doGroup()
+        if len(l_controlSnapObjects)>2:
+            distanceToMove = distance.returnDistanceBetweenObjects(l_controlSnapObjects[0],l_controlSnapObjects[1])
+            i_crv.tz = -(distanceToMove*.1)#Offset it
+        
+        #>Clean up group
+        g = i_crv.parent
+        i_crv.parent = False
+        mc.delete(g)
+        
+        #>Size it
         size = distance.returnBoundingBoxSize(d_returnControls['segmentControls'][0],True)#Get size
         i_obj = cgmMeta.cgmObject(d_returnControls['segmentControls'][0])
-        d_size = returnBaseControlSize(i_obj,bodyGeo[0],['z-'])      
+        d_size = returnBaseControlSize(i_crv,bodyGeo[0],['z-'])      
         log.info(size)
-        mc.scale(size[0],size[1],(size[2]),i_crv.mNode,relative = True)
-        i_crv.sy = - d_size['z'] * 1.25
+        mc.scale(size[0],size[2],(size[1]),i_crv.mNode,os = True, relative = True)
+        i_crv.sz = d_size['z'] * 1.25
+        mc.makeIdentity(i_crv.mNode,apply=True, scale=True)
         
         #>>Copy tags and name
         i_crv.addAttr('cgmName',attrType='string',value = 'hips')        
         i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-        i_crv.doName()        
+        i_crv.doName()  
+        
+        #>>> Color
+        curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])        
 
         d_returnControls['hips'] = i_crv.mNode
         
     """
-    if 'hips' in controlTypes:
-        i_hips = cgmMeta.cgmObject(curves.createControlCurve('semiSphere',1,'y+'))
-        #>>> Size 
-        rootSizeBuffer = controlTemplateObjectsSizes[0]
-        mc.setAttr((hipsCurve+'.sx'),rootSizeBuffer[0])
-        mc.setAttr((hipsCurve+'.sy'),rootSizeBuffer[1])
-        mc.setAttr((hipsCurve+'.sz'),rootSizeBuffer[0])
-        position.moveParentSnap(hipsCurve,controlTemplateObjects[0])
-        
-        # make our transform #
-        transform = rigging.groupMeObject(controlTemplateObjects[0],False)
-        
-        # connects shape #
-        curves.parentShapeInPlace(transform,hipsCurve)
-        mc.delete(hipsCurve)
-        
-        # Store data and name#
-        attributes.storeInfo(transform,'cgmName','hips')
-        attributes.storeInfo(transform,'cgmType','controlAnim')
-        hips = NameFactory.doNameObject(transform)
-        returnControls['hips'] = hips
-            
-    if 'cog' in controlTypes:
-        cogControl = curves.createControlCurve('cube',1)
-        rootSizeBuffer = controlTemplateObjectsSizes[0]
-        mc.setAttr((cogControl+'.sx'),rootSizeBuffer[0]*1.05)
-        mc.setAttr((cogControl+'.sy'),rootSizeBuffer[1]*1.05)
-        mc.setAttr((cogControl+'.sz'),rootSizeBuffer[0]*.25)
-        position.moveParentSnap(cogControl,controlTemplateObjects[0])
         
         mc.makeIdentity(cogControl,apply=True, scale=True)
-        
-        # Store data and name#
-        attributes.storeInfo(cogControl,'cgmName','cog')
-        attributes.storeInfo(cogControl,'cgmType','controlAnim')
-        cogControl = NameFactory.doNameObject(cogControl)
-        returnControls['cog'] = cogControl
-        """    
+        """
+    
     return d_returnControls
 
 def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
@@ -659,102 +573,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         cogControl = NameFactory.doNameObject(cogControl)
         returnControls['cog'] = cogControl
     
-    if 'segmentControls' in controlTypes:
-        segmentControls = []
-        segments = lists.parseListToPairs(controlTemplateObjects)
-        orientationSegments = lists.parseListToPairs(orientationTemplateObjects)
-        cnt = 0
-        for segment in segments:
-            """ get our orientation segment buffer """
-            orientationSegment = orientationSegments[cnt]
-            
-            """move distance """
-            distanceToMove = distance.returnDistanceBetweenObjects(segment[0],segment[1])
 
-            """ root curve """
-            rootCurve = curves.createControlCurve('circle',1)
-            rootSizeBuffer = distance.returnAbsoluteSizeCurve(segment[0])
-            mc.setAttr((rootCurve+'.sx'),rootSizeBuffer[0])
-            mc.setAttr((rootCurve+'.sy'),rootSizeBuffer[1])
-            mc.setAttr((rootCurve+'.sz'),1)
-            position.moveParentSnap(rootCurve,segment[0])
-            mc.move(0, 0, (distanceToMove * .1), rootCurve, r=True,os=True,wd=True)
-            
-            """ end curve """
-            endCurve = curves.createControlCurve('circle',1)
-            rootSizeBuffer = distance.returnAbsoluteSizeCurve(segment[1])
-            mc.setAttr((endCurve+'.sx'),rootSizeBuffer[0])
-            mc.setAttr((endCurve+'.sy'),rootSizeBuffer[1])
-            mc.setAttr((endCurve+'.sz'),1)
-            position.moveParentSnap(endCurve,segment[1])
-            mc.move(0, 0, -(distanceToMove * .1), endCurve, r=True,os=True,wd=True)
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            #>>> Side curves
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            """ locators on curve"""
-            side1Locs = []
-            side2Locs = []
-            frontLocs = []
-            backLocs = []
-            side1Locs.append(locators.locMeCvFromCvIndex(rootCurve,3))
-            side1Locs.append(locators.locMeCvFromCvIndex(endCurve,3))
-            side2Locs.append(locators.locMeCvFromCvIndex(rootCurve,7))
-            side2Locs.append(locators.locMeCvFromCvIndex(endCurve,7))
-            frontLocs.append(locators.locMeCvFromCvIndex(rootCurve,5))
-            frontLocs.append(locators.locMeCvFromCvIndex(endCurve,5))
-            backLocs.append(locators.locMeCvFromCvIndex(rootCurve,0))
-            backLocs.append(locators.locMeCvFromCvIndex(endCurve,0))
-            
-            """ get u positions for new curves"""
-            side1PosSet = []
-            side2PosSet = []
-            frontPosSet = []
-            backPosSet = []
-            side1PosSet.append(distance.returnClosestUPosition(side1Locs[0],rootCurve))
-            side1PosSet.append(distance.returnClosestUPosition(side1Locs[1],endCurve))
-            side2PosSet.append(distance.returnClosestUPosition(side2Locs[0],rootCurve))
-            side2PosSet.append(distance.returnClosestUPosition(side2Locs[1],endCurve))
-            frontPosSet.append(distance.returnClosestUPosition(frontLocs[0],rootCurve))
-            frontPosSet.append(distance.returnClosestUPosition(frontLocs[1],endCurve))
-            backPosSet.append(distance.returnClosestUPosition(backLocs[0],rootCurve))
-            backPosSet.append(distance.returnClosestUPosition(backLocs[1],endCurve))
-
-            """ make side curves"""
-            sideCrv1 = mc.curve (d=1, p = side1PosSet , os=True)
-            sideCrv2 = mc.curve (d=1, p = side2PosSet , os=True)
-            frontCrv = mc.curve (d=1, p = frontPosSet , os=True)
-            backCrv = mc.curve (d=1, p = backPosSet , os=True)
-            
-            """ combine curves """
-            mc.makeIdentity(rootCurve,apply=True,translate =True, rotate = True, scale=True)
-            mc.makeIdentity(endCurve,apply=True,translate =True, rotate = True, scale=True)
-            segmentCurveBuffer = curves.combineCurves([sideCrv1,sideCrv2,frontCrv,backCrv,rootCurve,endCurve])
-            
-            """ delete locs """
-            for loc in side1Locs,side2Locs,frontLocs,backLocs:
-                mc.delete(loc)
-                
-            """ make our transform """
-            transform = rigging.groupMeObject(segment[0],False)
-            
-            """ connects shape """
-            curves.parentShapeInPlace(transform,segmentCurveBuffer)
-            mc.delete(segmentCurveBuffer)
-
-
-            """ copy over the pivot we want """
-            rigging.copyPivot(transform,orientationSegment[0])
-              
-            """ Store data and name"""
-            attributes.copyUserAttrs(segment[0],transform,attrsToCopy=['cgmName'])
-            attributes.storeInfo(transform,'cgmType','controlAnim')
-            attributes.storeInfo(transform,'cgmTypeModifier','fk')
-            segmentCurveBuffer = NameFactory.doNameObject(transform)
-            segmentControls.append(segmentCurveBuffer)
-            
-            cnt+=1
-        returnControls['segmentControls'] = segmentControls
-        
     if 'limbControls' in controlTypes:
         limbControls = []
         controlSegments = lists.parseListToPairs(controlTemplateObjects)
