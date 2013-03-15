@@ -1199,6 +1199,63 @@ def returnClosestPointOnMeshInfo(targetObj, mesh):
     mc.delete(closestPointNode)
     return pointInfo
 
+def returnClosestPointOnSurfaceInfo(targetObj, surface):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns pertinent info of the closest point of a mesh to a target object -
+    position, normal, parameterU,parameterV,closestFaceIndex,closestVertexIndex
+
+    ARGUMENTS:
+    targetObj(string)
+    mesh(string)
+
+    RETURNS:
+    closestPointInfo(dict)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """   
+    # make the closest point node #
+    closestPointNode = mc.createNode ('closestPointOnSurface')
+    pointOnSurfaceNode = mc.createNode ('pointOnSurfaceInfo')
+    controlSurface = mc.listRelatives(surface,shapes=True)
+        
+    #>>>Surface Info
+    #Thanks - http://www.kylenikolich.com/scripting/lod/parentToSurface.mel
+    f_minU = attributes.doGetAttr(controlSurface[0],'mnu')
+    f_maxU = attributes.doGetAttr(controlSurface[0],'mxu')
+    f_sizeU = f_maxU - f_minU
+    f_minV = attributes.doGetAttr(controlSurface[0],'mnv')
+    f_maxV = attributes.doGetAttr(controlSurface[0],'mxv')
+    f_sizeV = f_maxV - f_minV    
+
+    # to account for target objects in heirarchies #
+    log.info(returnWorldSpacePosition(targetObj))
+    pos = returnWorldSpacePosition(targetObj)
+    attributes.doSetAttr(closestPointNode,'inPositionX',pos[0])
+    attributes.doSetAttr(closestPointNode,'inPositionY',pos[1])
+    attributes.doSetAttr(closestPointNode,'inPositionZ',pos[2])
+    
+    attributes.doConnectAttr((controlSurface[0]+'.worldSpace'),(closestPointNode+'.inputSurface'))
+    # Connect the info node to the surface #
+    attributes.doConnectAttr  ((controlSurface[0]+'.local'),(pointOnSurfaceNode+'.inputSurface'))
+    # Contect the pos group to the info node#
+    attributes.doConnectAttr ((closestPointNode+'.parameterU'),(pointOnSurfaceNode+'.parameterU'))
+    attributes.doConnectAttr  ((closestPointNode+'.parameterV'),(pointOnSurfaceNode+'.parameterV'))
+
+    pointInfo = {}
+    pointInfo['position']=attributes.doGetAttr(pointOnSurfaceNode,'position')
+    pointInfo['normal']=attributes.doGetAttr(pointOnSurfaceNode,'normal')
+    pointInfo['parameterU']=mc.getAttr(pointOnSurfaceNode+'.parameterU')
+    pointInfo['parameterV']=mc.getAttr(pointOnSurfaceNode+'.parameterV')
+    pointInfo['normalizedU'] = (pointInfo['parameterU'] + f_minU)/f_sizeU
+    pointInfo['normalizedV'] =  (pointInfo['parameterV'] + f_minV)/f_sizeV  
+    pointInfo['tangentU']=mc.getAttr(pointOnSurfaceNode+'.tangentU')
+    pointInfo['tangentV']=mc.getAttr(pointOnSurfaceNode+'.tangentV')
+    
+    mc.delete(closestPointNode)
+    mc.delete(pointOnSurfaceNode)
+    log.info(pointInfo)
+    return pointInfo
 
 def returnClosestUVToPos(mesh, pos):
     """   
@@ -1250,13 +1307,6 @@ def returnClosestUVToPos(mesh, pos):
         return [uValue,vValue]
     return False
     
-
-
-
-
-
-
-
-
-
-
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#>>> 
+#=====================================================================
