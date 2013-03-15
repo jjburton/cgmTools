@@ -191,7 +191,8 @@ def createFollicleOnMesh(mesh, name = 'follicle'):
     [follicleNode,follicleTransform]
     """
     assert mc.objExists(mesh),"'%s' doesn't exist!"%mesh
-    assert search.returnObjectType(mesh) == 'mesh',("'%s' isn't a mesh"%mesh)
+    objType = search.returnObjectType(mesh)
+    assert objType in ['mesh','nurbsSurface'],("'%s' isn't a mesh"%mesh)
         
     follicleNode = createNamedNode((name),'follicle')
     
@@ -201,8 +202,11 @@ def createFollicleOnMesh(mesh, name = 'follicle'):
     follicleTransform = mc.listRelatives(follicleNode,p=True)[0]
     
     attributes.doConnectAttr((controlSurface+'.worldMatrix[0]'),(follicleNode+'.inputWorldMatrix'))#surface to follicle node 
-    attributes.doConnectAttr((controlSurface+'.outMesh'),(follicleNode+'.inputMesh'))    #surface mesh to follicle input mesh
-    
+    if objType == 'mesh': 
+        attributes.doConnectAttr((controlSurface+'.outMesh'),(follicleNode+'.inputMesh'))    #surface mesh to follicle input mesh
+    else:
+        attributes.doConnectAttr((controlSurface+'.local'),(follicleNode+'.inputSurface'))    #surface mesh to follicle input mesh
+        
     attributes.doConnectAttr((follicleNode+'.outTranslate'),(follicleTransform+'.translate'))
     attributes.doConnectAttr((follicleNode+'.outRotate'),(follicleTransform+'.rotate'))    
     
