@@ -631,6 +631,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         Returns
         success(bool)
         """
+	if type(ignore) not in [list,tuple]:ignore = [ignore]
 	try:
 	    log.debug(">>> cgmNode.doCopyNametagsFromObject")
 	    assert mc.objExists(target),"Target doesn't exist"
