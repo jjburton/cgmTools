@@ -30,7 +30,10 @@ mc.pointPosition(a.getComponent())
 cgmMeta.cgmNode(q_object).getPosition(True)
 cgmMeta.cgmNode(q_object).getPosition(False)
 i_obj = cgmMeta.cgmObject(mc.spaceLocator()[0])
-
+Snap.go('hips_anim_shape1.ep[3]',targets = q_object,orient = False,posOffset=[0,0,2],
+        snapToSurface=True,softSelection=True,softSelectDistance=20)
+Snap.go(i_obj.getComponent(),targets = q_object,orient = False,posOffset=[0,0,2],
+        snapToSurface=True,softSelection=True,softSelectDistance=20)
 Snap.go(i_obj.getComponent(),targets = q_object,orient = False,snapToSurface=True,snapComponents=True)
 Snap.go(i_obj.mNode,targets = q_object,move = False, orient = True,snapToSurface=True)
 Snap.go(i_obj,targets = q_object,orient = False,snapToSurface=True)
