@@ -530,9 +530,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """  
 	def doNameChildren(self):
 	    if not len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
-		childrenObjects = search.returnAllChildrenObjects(self.mNode) or []
+		childrenObjects = search.returnAllChildrenObjects(self.mNode,True) or []
+		i_children = []
 		for c in childrenObjects:
-		    i_c = r9Meta.MetaClass(c)
+		    i_children.append( r9Meta.MetaClass(c) )
+		for i_c in i_children:
 		    name = NameFactory.returnUniqueGeneratedName(i_c.mNode,sceneUnique =sceneUnique,**kws)
 		    mc.rename(i_c.mNode,name)  		    
 	    
