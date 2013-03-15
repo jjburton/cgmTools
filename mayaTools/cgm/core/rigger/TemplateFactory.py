@@ -19,6 +19,7 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (modules,
+                     cgmMath,
                      curves,
                      lists,
                      distance,
@@ -86,7 +87,7 @@ class go(object):
         assert len(self.coreNames) == len(self.corePosList),"coreNames length and corePosList doesn't match"
         
         #>>> part name 
-        self.partName = NameFactory.returnUniqueGeneratedName(self.m.mNode, ignore = 'cgmType')
+        self.partName = self.m.getPartNameBase()
         self.partType = self.m.moduleType or False
         
         self.direction = None
@@ -422,7 +423,8 @@ def doMakeLimbTemplate(self):
         i_obj.parent = self.templateNull
         
         #>>> Loc it and store the loc
-        i_loc = cgmMeta.cgmObject( i_obj.doLoc() )
+        #i_loc = cgmMeta.cgmObject( i_obj.doLoc() )
+        i_loc =  i_obj.doLoc()
         i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
         i_loc.addAttr('cgmName',value = self.m.getShortName(), attrType = 'string', lock=True) #Add name tag
         i_loc.addAttr('cgmType',value = 'templateCurveLoc', attrType = 'string', lock=True) #Add Type
@@ -668,6 +670,11 @@ def updateTemplate(self,saveTemplatePose = False,**kws):
     i_root = i_templateNull.root
     i_controlObjects = i_templateNull.controlObjects
     
+    
+    if not cgmMath.isVectorEquivalent(i_templateNull.controlObjects[0].translate,[0,0,0]):
+        raise StandardError,"updateTemplate: doesn't currently support having a moved first template object"
+        return False
+    
     mc.xform(i_root.parent, translation = corePosList[0],worldSpace = True)
     
     for i,i_obj in enumerate(i_controlObjects[1:]):
@@ -684,7 +691,7 @@ def updateTemplate(self,saveTemplatePose = False,**kws):
     if buffer:mc.delete(buffer)
     
     doParentControlObjects(self)
-    #self.loadTemplatePose()#Restore the pose
+    self.loadTemplatePose()#Restore the pose
     return True
 
 
