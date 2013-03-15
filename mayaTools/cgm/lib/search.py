@@ -364,7 +364,7 @@ def returnObjectsOwnedByModuleNull(moduleNull):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tag stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnTagInfo(obj,tag,debug = False):
+def returnTagInfo(obj,tag):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -386,7 +386,7 @@ def returnTagInfo(obj,tag,debug = False):
 	    if not returnBuffer:
 		return False
 	    elif returnObjectType(returnBuffer[0]) == 'reference':
-		if attributes.repairMessageToReferencedTarget(obj,tag, debug):
+		if attributes.repairMessageToReferencedTarget(obj,tag):
 		    return attributes.returnMessageObject(obj,tag)
 		return returnBuffer[0]
 	    return returnBuffer[0]
@@ -888,7 +888,7 @@ def returnObjectType(obj):
     try:
 	intialCheck = mc.objectType(obj)
     except StandardError,error:
-        log.warning(error) 
+        log.warning("returnObjectType: %s"%error) 
 	return False
 	
     if intialCheck == 'objectSet':
