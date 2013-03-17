@@ -85,8 +85,8 @@ class cgmMeta_Test():
         self.test_cgmBufferNode()
         self.test_cgmObjectSet()
         self.test_cgmOptionVar()
-        self.test_cgmPuppet() #Puppet test
-        self.test_cgmModule()
+        #self.test_cgmPuppet() #Puppet test
+        #self.test_cgmModule()
 
         #self.MetaInstance.select()
 
@@ -953,11 +953,11 @@ class cgmMeta_Test():
                                'cgmModuleType':['string','master']}       
 
         for attr in masterDefaultValues.keys():
-            assert Puppet.i_masterNull.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.i_masterNull.mNode,attr))
-            assert mc.getAttr('%s.%s'%(Puppet.i_masterNull.mNode,attr), type=True) == masterDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.i_masterNull.mNode,attr), type=True))
+            assert Puppet.masterNull.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.masterNull.mNode,attr))
+            assert mc.getAttr('%s.%s'%(Puppet.masterNull.mNode,attr), type=True) == masterDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.masterNull.mNode,attr), type=True))
             if len(masterDefaultValues.get(attr)) > 1:#assert that value
-                log.debug("%s"% attributes.doGetAttr(Puppet.i_masterNull.mNode,attr))
-                assert attributes.doGetAttr(Puppet.i_masterNull.mNode,attr) == masterDefaultValues.get(attr)[1]
+                log.debug("%s"% attributes.doGetAttr(Puppet.masterNull.mNode,attr))
+                assert attributes.doGetAttr(Puppet.masterNull.mNode,attr) == masterDefaultValues.get(attr)[1]
 
 
         #Initializing only mode to compare

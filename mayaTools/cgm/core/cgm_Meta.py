@@ -22,8 +22,8 @@ from Red9.core import Red9_General as r9General
 
 
 # From cgm ==============================================================
-from cgm.lib.classes import NameFactory
-reload(NameFactory)
+from cgm.lib.classes import NameFactory as OLD_Name
+reload(OLD_Name)
 
 from cgm.lib.ml import (ml_resetChannels)
 reload(ml_resetChannels)
@@ -58,7 +58,11 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
-      
+
+namesDictionaryFile = settings.getNamesDictionaryFile()
+typesDictionaryFile = settings.getTypesDictionaryFile()
+settingsDictionaryFile = settings.getSettingsDictionaryFile()
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #=========================================================================    
@@ -163,7 +167,16 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def __verify__(self):
 	""" For overload"""
 	pass
-	    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Properties
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    #parent
+    #==============    
+    def getParent(self):
+        return search.returnParentObject(self.mNode) or False
+				
+    parent = property(getParent)
+    
     def __getattributeBACK__(self, attr, longNames = True, ignoreOverload = True):
 	"""Overload just on message attributes
 	longnames currently only for my overload.
@@ -301,8 +314,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
 	Usage Example:
         from cgm.core import cgm_Meta as cgmMeta
-	cgmO = cgmMeta.cgmObject()
-	cgm02 = cgmMeta.cgmObject()
+	cgmO = cgmObject()
+	cgm02 = cgmObject()
 	cgmO.connectChildNode(cgm02.mNode,'childNode','parentNode')
         """
         #make sure we have the attr on the mNode, if we already have a MULIT-message
@@ -339,7 +352,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         @param srcAttr: If given this becomes the attr on the node which connects it 
                         to the parent. If NOT given the connection attr is the parent.message
         """
-        log.info(connectBack)
+        #log.info(connectBack)
         if issubclass(type(node), r9Meta.MetaClass):
             #if not srcAttr:
                 #srcAttr=node.message
@@ -472,7 +485,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         Get the cgm name tags of an object.
         """
         self.cgm = {}
-        for tag in NameFactory.cgmNameTags:
+        for tag in OLD_Name.cgmNameTags:
             self.cgm[tag] = search.findRawTagInfo(self.mNode,tag)
         return self.cgm    
         
@@ -489,7 +502,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	return attributes.returnUserAttrsToDict(self.mNode) or {}
     
     def getNameDict(self):
-	return NameFactory.returnObjectGeneratedNameDict(self.mNode) or {}  
+	return OLD_Name.returnObjectGeneratedNameDict(self.mNode) or {}  
 	    
     def getTransform(self):
 	"""Find the transform of the object"""
@@ -509,6 +522,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
         return buffer[0]
+    
+    def getBaseName(self):
+        buffer = self.mNode     
+        return buffer.split('|')[-1].split(':')[-1] 
+    
     def getLongName(self):
         buffer = mc.ls(self.mNode,l=True)        
         return buffer[0]  
@@ -527,15 +545,35 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         Keyword arguments:
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
 
+        """
+	if sceneUnique:
+	    log.error("Remove this sceneUniqueCall")
+	if self.isReferenced():
+	    log.error("'%s' is referenced. Cannot change name"%self.mNode)
+	    return False	
+	
+	#Name it
+	NameFactory(self).doName(nameChildren = nameChildren)
+		
+	
+    def doName2(self,sceneUnique=False,nameChildren=False,**kws):
+        """
+        Function for naming a maya instanced object using the cgm.NameFactory class.
+
+        Keyword arguments:
+        sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
+
         """  
 	def doNameChildren(self):
 	    if not len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
 		childrenObjects = search.returnAllChildrenObjects(self.mNode,True) or []
 		i_children = []
 		for c in childrenObjects:
-		    i_children.append( r9Meta.MetaClass(c) )
+		    i_c =  r9Meta.MetaClass(c)
+		    i_c.rename('xxx')
+		    i_children.append(i_c )
 		for i_c in i_children:
-		    name = NameFactory.returnUniqueGeneratedName(i_c.mNode,sceneUnique =sceneUnique,**kws)
+		    name = OLD_Name.returnUniqueGeneratedName(i_c.mNode,sceneUnique =sceneUnique,**kws)
 		    mc.rename(i_c.mNode,name)  		    
 	    
 	log.debug('Name dict: %s"'%self.getNameDict())
@@ -543,7 +581,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
             log.error("'%s' is referenced. Cannot change name"%self.mNode)
             return False
 
-	name = NameFactory.returnUniqueGeneratedName(self.mNode,sceneUnique = sceneUnique,**kws)
+	name = OLD_Name.returnUniqueGeneratedName(self.mNode,sceneUnique = sceneUnique,**kws)
 	currentShortName = self.getShortName()
 	
 	if currentShortName == name:
@@ -558,7 +596,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		for shape in shapes:
 		    if not mc.referenceQuery(shape, isNodeReferenced=True):
 			i_shape = r9Meta.MetaClass(shape)
-			name = NameFactory.returnUniqueGeneratedName(i_shape.mNode,sceneUnique =sceneUnique,**kws)
+			name = OLD_Name.returnUniqueGeneratedName(i_shape.mNode,sceneUnique =sceneUnique,**kws)
 			mc.rename(i_shape.mNode,name)  
 	    if nameChildren:
 		doNameChildren(self)
@@ -567,7 +605,38 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
     def getChildrenNodes(self, walk=True, mAttrs=None):
 	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""
-	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)	    
+	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)
+    
+    
+    def getSiblings(self):
+	"""Function to get siblings of an object"""
+	l_siblings = []
+	if not self.getTransform():
+	    #See if there are more maya nodes of the same type
+	    objType = mc.objectType(self.mNode)
+	    l_buffer = mc.ls(type = objType)
+	    log.info("typeCheck: '%s'"%objType)
+	    log.info("l_buffer: %s"%l_buffer)
+	    if l_buffer:
+		for o in l_buffer:
+		    if str(o) != self.getLongName():
+			l_siblings.append(o)
+			log.debug("Sibling found: '%s'"%o)
+		return l_siblings
+	elif self.getMayaType() == 'shape':
+	    for s in mc.listRelatives(self.parent,shapes = True,fullPath = True):
+		if str(s) != self.getLongName():#str() for stupid unicode return
+		    l_siblings.append(s)
+		    log.info("Shape Sibling found: '%s'"%s)
+	    return l_siblings
+	elif self.parent:
+	    #i_p = cgmObject(self.parent)#Initialize the parent
+	    for c in search.returnChildrenObjects(self.parent,True):
+		if c != self.getLongName():
+		    l_siblings.append(c)
+		    log.info("Sibling found: '%s'"%c)
+	log.info(l_siblings)
+	return l_siblings   
     #=========================================================================                   
     # Attribute Functions
     #=========================================================================                   
@@ -602,7 +671,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    if self.isReferenced():
 		return log.warning("'%s' is referenced. Cannot change name architecture"%self.mNode)   
 	    
-	    if tag not in NameFactory.cgmNameTags:
+	    if tag not in OLD_Name.cgmNameTags:
 		log.debug("'%s' is not a valid cgm name tag."%(tag))         
 		return False
 	    
@@ -637,7 +706,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	try:
 	    log.debug(">>> cgmNode.doCopyNametagsFromObject")
 	    assert mc.objExists(target),"Target doesn't exist"
-	    targetCGM = NameFactory.returnObjectGeneratedNameDict(target,ignore = ignore)
+	    targetCGM = OLD_Name.returnObjectGeneratedNameDict(target,ignore = ignore)
 	    didSomething = False
 	    
 	    for tag in targetCGM.keys():
@@ -683,6 +752,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    log.error("cgmNode.getPosition: %s"%error)	
 	    return False
+	
     def doLoc(self,forceBBCenter = False):
         """
         Create a locator from an object
@@ -2835,6 +2905,323 @@ class cgmAttr(object):
                               outgoingConnections = True, keepSourceConnections = False,
                               copyAttrSettings = True, connectSourceToTarget = False)
         self.doDelete()
+
+class NameFactory(object):
+    """ 
+    New Name Factory. Finds a 
+    """
+    def __init__(self,node,doName = False):
+        """ 
+        """
+        if issubclass(type(node),r9Meta.MetaClass):
+            self.i_node = node
+        elif mc.objExists(node):
+            self.i_node = cgmNode(node)
+        else:
+            raise StandardError,"NameFactory.go >> node doesn't exist: '%s'"%node
+        
+        #Initial Data        
+	self.i_nameParents = []
+	self.i_nameChildren = []
+	self.i_nameSiblings = []
+        
+    def isNameLinked(self):   
+	if node is None:
+	    i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):
+	    i_node = node
+	elif mc.objExists(node):
+	    i_node = cgmNode(node)
+	else:
+	    raise StandardError,"NameFactory.isNameLinked >> node doesn't exist: '%s'"%node
+	
+        if i_node.hasAttr('cgmName') and i_node.getMessage('cgmName'):
+            return True
+        return False
+    
+    #@r9General.Timer
+    def getMatchedParents(self, node = None):  
+	if node is None:
+	    i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):
+	    i_node = node
+	elif mc.objExists(node):
+	    i_node = cgmNode(node)
+	else:
+	    raise StandardError,"NameFactory.getMatchedParents >> node doesn't exist: '%s'"%node
+	
+        parents = search.returnAllParents(i_node.mNode)
+        self.i_nameParents = []
+        if parents:
+            parents.reverse()
+            d_nameDict = i_node.getNameDict()
+            for p in parents :
+                i_p = cgmNode(p)
+                if i_p.getNameDict() == d_nameDict:
+                    self.i_nameParents.append(i_p)
+                    log.debug("Name parent found: '%s'"%i_p.mNode)
+        return self.i_nameParents
+
+    def getMatchedChildren(self, node = None):  
+	if node is None:
+	    i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):
+	    i_node = node
+	elif mc.objExists(node):
+	    i_node = cgmNode(node)
+	else:
+	    raise StandardError,"NameFactory.getMatchedChildren >> node doesn't exist: '%s'"%node
+	
+        #>>> Count our matched name children range
+        children = mc.listRelatives (i_node.mNode, allDescendents=True,type='transform',fullPath=True)
+        self.i_nameChildren = []        
+        if children:
+            children.reverse()
+            d_nameDict = i_node.getNameDict()            
+            for c in children :
+                i_c = cgmNode(c)
+                if i_c.getNameDict() == d_nameDict:
+                    self.i_nameChildren.append(i_c)
+                    log.debug("Name child found: '%s'"%i_c.mNode)
+        return self.i_nameChildren
+    
+    def getMatchedSiblings(self, node = None):
+	if node is None:
+	    i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):
+	    i_node = node
+	elif mc.objExists(node):
+	    i_node = cgmNode(node)
+	else:
+	    raise StandardError,"NameFactory.getMatchedSiblings >> node doesn't exist: '%s'"%node
+	
+        self.i_nameSiblings = []
+        d_nameDict = i_node.getNameDict()        
+        for s in i_node.getSiblings():                    
+            i_c = cgmNode(s)
+            if i_c.getNameDict() == d_nameDict and i_c.mNode != i_node.mNode:
+                self.i_nameSiblings.append(i_c)
+                log.debug("Name sibling found: '%s'"%i_c.mNode)                
+
+        return self.i_nameSiblings        
+    
+    def getBaseIterator(self, node = None):
+	if node is None:
+	    i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):
+	    i_node = node
+	elif mc.objExists(node):
+	    i_node = cgmNode(node)
+	else:
+	    raise StandardError,"NameFactory.getBaseIterator >> node doesn't exist: '%s'"%node
+	
+        self.int_baseIterator = 0
+        #If we have an assigned iterator, start with that
+	d_nameDict = i_node.getNameDict()
+        if 'cgmIterator' in d_nameDict.keys():
+            return int(d_nameDict.get('cgmIterator'))
+	    
+	#Gather info
+	i_nameParents = self.getMatchedParents(i_node)
+	i_nameChildren = self.getMatchedChildren(i_node)
+	i_nameSiblings = self.getMatchedSiblings(i_node)
+	
+        if i_nameParents:#If we have parents 
+            self.int_baseIterator =  len(i_nameParents) + 1
+        elif i_nameChildren or i_nameSiblings:#If we have children, we can't be 0
+            self.int_baseIterator = 1
+	    
+	#Now that we have a start, we're gonna see if that name is taken by a sibling or not
+        if i_nameSiblings:#check siblings
+	    def getNewNameCandidate(self):
+		self.int_baseIterator+=1#add one
+		log.info("Counting in getBaseIterator: %s"%self.int_baseIterator)				
+		self.d_nameCandidate['cgmIterator'] = str(self.int_baseIterator)
+		self.bufferName = OLD_Name.returnCombinedNameFromDict(self.d_nameCandidate)
+		log.debug("Checking: '%s'"%self.bufferName)
+		return self.bufferName	    
+	    
+	    self.d_nameCandidate = i_node.getNameDict()
+	    if self.int_baseIterator:
+		self.d_nameCandidate['cgmIterator'] = str(self.int_baseIterator)
+	    self.bufferName = OLD_Name.returnCombinedNameFromDict(self.d_nameCandidate)
+	    
+            l_siblingShortNames = [i_s.getBaseName() for i_s in i_nameSiblings]
+            log.debug("Checking sibblings: %s"%l_siblingShortNames)
+	    log.debug("Checking: '%s'"%self.bufferName)	    
+            while self.bufferName in l_siblingShortNames and self.int_baseIterator <100:
+                getNewNameCandidate(self)	
+	
+	log.debug("baseIterator: %s"%self.int_baseIterator)
+        return self.int_baseIterator
+    
+    #@r9General.Timer    
+    def getIterator(self,node = None):
+        """
+        """
+	if node is None:
+	    i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):
+	    i_node = node
+	elif mc.objExists(node):
+	    i_node = cgmNode(node)
+	else:
+	    raise StandardError,"NameFactory.getIterator >> node doesn't exist: '%s'"%node
+	    
+        self.int_iterator = 0
+        
+        def getNewNameCandidate(self):
+            self.int_iterator+=1#add one
+	    log.info("Counting in getIterator: %s"%self.int_iterator)	    
+            self.d_nameCandidate['cgmIterator'] = str(self.int_iterator)
+            self.bufferName = OLD_Name.returnCombinedNameFromDict(self.d_nameCandidate)
+            return self.bufferName
+            
+        if 'cgmIterator' in i_node.getNameDict().keys():
+            return int(self.objGeneratedNameDict.get('cgmIterator'))
+        
+        #Gather info
+        i_nameParents = self.getMatchedParents(node = node)
+        i_nameChildren = self.getMatchedChildren(node = node)
+        i_nameSiblings = self.getMatchedSiblings(node = node)
+        
+        if i_nameParents:#If we have parents 
+            self.int_iterator = self.getBaseIterator(i_nameParents[0]) + len(i_nameParents)
+	else:
+	    self.int_iterator = self.getBaseIterator(node = node)
+            
+        #Now that we have a start, we're gonna see if that name is taken by a sibling or not
+        self.d_nameCandidate = i_node.getNameDict()
+        if self.int_iterator:
+            self.d_nameCandidate['cgmIterator'] = str(self.int_iterator)
+        self.bufferName = OLD_Name.returnCombinedNameFromDict(self.d_nameCandidate)
+        
+        log.debug("bufferName: '%s'"%self.bufferName)
+        if not mc.objExists(self.bufferName):
+            log.debug('Good name candidate')
+            return self.int_iterator
+        else:#if there is only one
+            for obj in mc.ls(self.bufferName):
+                i_bufferName = cgmNode(obj)
+                if i_node.mNode == i_bufferName.mNode:
+                    log.debug("I'm me! : %s"%self.int_iterator)
+                    return self.int_iterator
+                
+        if i_nameSiblings:#check siblings
+            l_siblingShortNames = [i_s.getBaseName() for i_s in i_nameSiblings]
+            log.debug("Checking sibblings: %s"%l_siblingShortNames)
+            while self.bufferName in l_siblingShortNames and self.int_iterator <100:
+                getNewNameCandidate(self)
+            """
+            for i_s in i_nameSiblings:
+                if i_node.getShortName() == self.bufferName:
+                    log.debug("I'm me! : %s"%self.int_iterator)
+                    return self.int_iterator                    
+                elif i_s.getShortName() == self.bufferName:
+                    log.debug("Sibling has this")
+                    getNewNameCandidate(self)
+                else:
+                    getNewNameCandidate(self)                    
+            """
+        log.debug("getIterator: %s"%self.int_iterator)
+        return self.int_iterator
+    
+    #@r9General.Timer
+    def returnUniqueGeneratedName(self, ignore='none',node = None,**kws):
+        """ 
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        DESCRIPTION:
+        Returns a generated name with iteration for heirarchy objects with the same tag info
+    
+        ARGUMENTS:
+        ignore(string) - default is 'none', only culls out cgmtags that are 
+                         generated via returnCGMOrder() function
+    
+        RETURNS:
+        name(string)
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        """
+	if node is None:i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):i_node = node
+	elif mc.objExists(node):i_node = cgmNode(node)
+	else:raise StandardError,"NameFactory.getIterator >> node doesn't exist: '%s'"%node
+	
+        if type(ignore) is not list:ignore = [ignore]
+        log.debug("ignore: %s"%ignore)
+        
+        #>>> Dictionary driven order first build
+        d_updatedNamesDict = OLD_Name.returnObjectGeneratedNameDict(i_node.mNode,ignore)
+        
+        if 'cgmName' not in d_updatedNamesDict.keys() and search.returnObjectType(i_node.mNode) !='group':
+            i_node.addAttr('cgmName',i_node.getShortName(),attrType = 'string',lock = True)
+            d_updatedNamesDict = OLD_Name.returnObjectGeneratedNameDict(i_node.mNode,ignore)
+            
+        iterator = self.getIterator(node = i_node)        
+        if iterator:
+            d_updatedNamesDict['cgmIterator'] = str(iterator)
+                
+        log.debug(OLD_Name.returnCombinedNameFromDict(d_updatedNamesDict))
+        return OLD_Name.returnCombinedNameFromDict(d_updatedNamesDict)
+    
+    #@r9General.Timer
+    def doNameObject(self,node = None,**kws):
+	if node is None:i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):i_node = node
+	elif mc.objExists(node):i_node = cgmNode(node)
+	else:raise StandardError,"NameFactory.doNameObject >> node doesn't exist: '%s'"%node
+	log.info("Naming: '%s'"%i_node.getShortName())
+        nameCandidate = self.returnUniqueGeneratedName(node = node,**kws)
+	mc.rename(i_node.mNode,nameCandidate)
+        #i_node.rename(nameCandidate)
+	
+        str_baseName = i_node.getBaseName()
+        if  str_baseName != nameCandidate:
+            log.warning("'%s' not named to: '%s'"%(str_baseName,nameCandidate))
+            
+        return str_baseName
+    
+    @r9General.Timer    
+    def doName(self,nameChildren=False,node = None,**kws):
+	if node is None:i_node = self.i_node
+	elif issubclass(type(node),r9Meta.MetaClass):i_node = node
+	elif mc.objExists(node):i_node = cgmNode(node)
+	else:raise StandardError,"NameFactory.doName >> node doesn't exist: '%s'"%node
+	
+	#Try naming object
+	try:self.doNameObject(node = i_node,**kws)
+	except StandardError,error:
+	    raise StandardError,"NameFactory.doName.doNameObject failed: '%s'|%s"%(i_node.mNode,error)
+	
+	i_rootObject = i_node
+	
+	shapes = mc.listRelatives(i_rootObject.mNode,shapes=True,fullPath=True) or []
+	if shapes:
+	    l_iShapes = []
+	    for s in shapes:
+		if not mc.referenceQuery(s, isNodeReferenced=True):
+		    l_iShapes.append(cgmNode(s))
+	    for i_s in l_iShapes:
+		log.debug("on shape: '%s'"%i_s.mNode)
+		try:self.doNameObject(node = i_s, **kws)
+		except StandardError,error:
+		    raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
+		    
+	#Then the children
+	if nameChildren:#Initialize them all so we don't lose them
+	    l_iChildren = []
+	    for o in mc.listRelatives(i_rootObject.mNode, allDescendents = True,type='transform',fullPath=True) or []:
+		l_iChildren.append(cgmNode(o))
+	    
+	    if l_iChildren:
+		l_iChildren.reverse()
+		for i_c in l_iChildren:
+		    log.debug("on child: '%s'"%i_c.mNode)		    
+		    try:self.doNameObject(node = i_c,**kws)
+		    except StandardError,error:
+			raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
+
+
+
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
