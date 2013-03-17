@@ -59,9 +59,9 @@ class cgmPuppet(cgmMeta.cgmNode):
     #----------------------------------------------------------------------
     @r9General.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
-        log.debug(">>> cgmPuppet.__init__")
-        if kws:log.debug("kws: %s"%str(kws))
-        if args:log.debug("args: %s"%str(args))
+        log.info(">>> cgmPuppet.__init__")
+        if kws:log.info("kws: %s"%str(kws))
+        if args:log.info("args: %s"%str(args))
 	
         """Constructor"""
         #>>>Keyword args
@@ -77,11 +77,11 @@ class cgmPuppet(cgmMeta.cgmNode):
         ##If a name is provided, see if there's a puppet with that name, 
         ##If nothing is provided, just make one
         if node is None and name is None and args:
-            log.debug("Checking '%s'"%args[0])
+            log.info("Checking '%s'"%args[0])
             node = args[0]
 
         if puppets:#If we have puppets, check em
-            log.debug("Found the following puppets: '%s'"%"','".join(puppets))            
+            log.info("Found the following puppets: '%s'"%"','".join(puppets))            
             if name is not None or node is not None:    
                 if node is not None and node in puppets:
                     puppet = node
@@ -89,7 +89,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 else:
                     for p in puppets:
                         if attributes.doGetAttr(p,'cgmName') in [node,name]:
-                            log.debug("Puppet tagged '%s' exists. Checking '%s'..."%(attributes.doGetAttr(p,'cgmName'),p))
+                            log.info("Puppet tagged '%s' exists. Checking '%s'..."%(attributes.doGetAttr(p,'cgmName'),p))
                             puppet = p
                             name = attributes.doGetAttr(p,'cgmName')
                             break
@@ -101,18 +101,18 @@ class cgmPuppet(cgmMeta.cgmNode):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
-        log.debug("Puppet is '%s'"%name)
+        log.info("Puppet is '%s'"%name)
 	if puppet is None:puppetCreatedState = True
 	else:puppetCreatedState = False
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
-	
+	self.__justCreatedState__ = puppetCreatedState
         #>>> Puppet Network Initialization Procedure ==================       
         if self.isReferenced() or initializeOnly:
-            log.debug("'%s' Initializing only..."%name)
+            log.info("'%s' Initializing only..."%name)
             if not self.initialize():
                 #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
-	elif puppetCreatedState or doVerify:
+	elif self.__justCreatedState__ or doVerify:
             if not self.__verify__(name,**kws):
                 #log.critical("'%s' failed to __verify__!"%name)
                 raise StandardError,"'%s' failed to verify!"%name
@@ -182,14 +182,13 @@ class cgmPuppet(cgmMeta.cgmNode):
         """             
         #Puppet Network Node
         #============== 
-        self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
-        self.doStore('cgmName',name,True)
-        
-        if attributes.doGetAttr(self.mNode,'mClass') not in [ 'cgmPuppet','cgmMorpheusPuppet']:
+	if not issubclass(type(self),cgmPuppet):
             log.error("'%s' is not a puppet. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
             return False
-        self.doName() #See if it's named properly. Need to loop back after scene stuff is querying properly
-
+	
+        self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
+        self.addAttr('cgmName',name, attrType='string', lock = True)
+        
         self.addAttr('cgmType','puppetNetwork')
         self.addAttr('version',initialValue = 1.0, lock=True)  
         self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
@@ -206,7 +205,6 @@ class cgmPuppet(cgmMeta.cgmNode):
 	self.addAttr('skinDepth',attrType = 'float',initialValue=5,lock=True)   
 	
         self.doName()
-        #self.getAttrs()
         log.debug("Network good...")
 
         #MasterNull
@@ -283,6 +281,19 @@ class cgmPuppet(cgmMeta.cgmNode):
         #self.nodes_list.append()
         raise NotImplementedError
 
+    def doName(self,sceneUnique=False,nameChildren=False,**kws):
+        """
+	Cause puppets are stupid
+        """
+	#if not self.getTransform() and self.__justCreatedState__:
+	    #log.error("Naming just created nodes, causes recursive issues. Name after creation")
+	    #return False
+	if self.isReferenced():
+	    log.error("'%s' is referenced. Cannot change name"%self.mNode)
+	    return False
+	
+	self.rename(nameTools.returnCombinedNameFromDict(self.getNameDict()))
+	    
     def delete(self):
         """
         Delete the Puppet
@@ -462,7 +473,7 @@ class cgmMasterNull(cgmMeta.cgmObject):
 
 class cgmInfoNode(cgmMeta.cgmNode):
     """"""
-    def __init__(self,node = None, name = 'info', doVerify = False, *args,**kws):
+    def __init__(self,node = None, name = None, doVerify = False, *args,**kws):
         """Constructor"""
         log.debug(">>> cgmInfoNode.__init__")
         if kws:log.debug("kws: %s"%kws)
@@ -1032,7 +1043,8 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	
 class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
-    def __init__(self,node = None, name = 'cgmBuffer',initializeOnly = False,*args,**kws):
+    def __init__(self,node = None, name = None ,initializeOnly = False,*args,**kws):
+	#DO NOT PUT A DEFAULT NAME IN THE DEFINITION...RECURSIVE HELL
         log.debug(">>> cgmModuleBufferNode.__init__")
         if kws:log.debug("kws: %s"%kws)    
         
@@ -1087,7 +1099,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         if self.getMessage('module'):
             self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
 	    #self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
-        self.doName()       
+        #self.doName()       
         #self.doName(**kws)  
         return True
 
@@ -1373,7 +1385,7 @@ class cgmModule(cgmMeta.cgmObject):
                     return False               
             else:#Make it
                 log.debug('Creating %s'%attr)                                    
-                self.__dict__[Attr]= cgmModuleBufferNode(module = self, bufferType = attr, overideMessageCheck = True)#Create and initialize
+                self.__dict__[Attr]= cgmModuleBufferNode(module = self, name = attr, bufferType = attr, overideMessageCheck = True)#Create and initialize
                 #self.connectChildNode(self.__dict__[Attr].mNode, attr,'module') #Connect the child to the holder                
                 #self.__dict__[Attr].addAttr('cgmName',attr+'Null',lock=True)
                 log.debug("'%s' initialized to 'self.%s'"%(attr,Attr))    

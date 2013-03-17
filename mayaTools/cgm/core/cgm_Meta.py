@@ -548,9 +548,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
 
         """
-	if not self.getTransform() and self.__justCreatedState__:
-	    log.error("Naming just created nodes, causes recursive issues. Name after creation")
-	    return False
+	#if not self.getTransform() and self.__justCreatedState__:
+	    #log.error("Naming just created nodes, causes recursive issues. Name after creation")
+	    #return False
 	if sceneUnique:
 	    log.error("Remove this cgmNode.doName sceneUnique call")
 	if self.isReferenced():
@@ -558,7 +558,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return False	
 	
 	#Name it
-	NameFactory(self).doName(nameChildren = nameChildren)
+	NameFactory(self).doName(nameChildren = nameChildren,**kws)
 		
 	
     def doName2(self,sceneUnique=False,nameChildren=False,**kws):
@@ -2924,7 +2924,7 @@ class NameFactory(object):
             self.i_node = cgmNode(node)
         else:
             raise StandardError,"NameFactory.go >> node doesn't exist: '%s'"%node
-        
+        log.debug("self.i_node: '%s'"%self.i_node)
         #Initial Data        
 	self.i_nameParents = []
 	self.i_nameChildren = []
@@ -2958,15 +2958,17 @@ class NameFactory(object):
         parents = search.returnAllParents(i_node.mNode)
         self.i_nameParents = []
         if parents:
-            parents.reverse()
+            #parents.reverse()
             d_nameDict = i_node.getNameDict()
             for p in parents :
                 i_p = cgmNode(p)
                 if i_p.getNameDict() == d_nameDict:
                     self.i_nameParents.append(i_p)
                     log.debug("Name parent found: '%s'"%i_p.mNode)
+		else:break
         return self.i_nameParents
-
+    
+    @r9General.Timer
     def getMatchedChildren(self, node = None):  
 	if node is None:
 	    i_node = self.i_node
@@ -2981,13 +2983,14 @@ class NameFactory(object):
         children = mc.listRelatives (i_node.mNode, allDescendents=True,type='transform',fullPath=True)
         self.i_nameChildren = []        
         if children:
-            children.reverse()
+            #children.reverse()
             d_nameDict = i_node.getNameDict()            
             for c in children :
                 i_c = cgmNode(c)
                 if i_c.getNameDict() == d_nameDict:
                     self.i_nameChildren.append(i_c)
                     log.debug("Name child found: '%s'"%i_c.mNode)
+		else:break
         return self.i_nameChildren
     
     def getMatchedSiblings(self, node = None):
@@ -3086,14 +3089,14 @@ class NameFactory(object):
             return int(self.objGeneratedNameDict.get('cgmIterator'))
         
         #Gather info
-        i_nameParents = self.getMatchedParents(node = node)
-        i_nameChildren = self.getMatchedChildren(node = node)
-        i_nameSiblings = self.getMatchedSiblings(node = node)
+        i_nameParents = self.getMatchedParents(node = i_node)
+        i_nameChildren = self.getMatchedChildren(node = i_node)
+        i_nameSiblings = self.getMatchedSiblings(node = i_node)
         
         if i_nameParents:#If we have parents 
-            self.int_iterator = self.getBaseIterator(i_nameParents[0]) + len(i_nameParents)
+            self.int_iterator = self.getBaseIterator(i_nameParents[-1]) + len(i_nameParents)
 	else:
-	    self.int_iterator = self.getBaseIterator(node = node)
+	    self.int_iterator = self.getBaseIterator(node = i_node)
             
         #Now that we have a start, we're gonna see if that name is taken by a sibling or not
         self.d_nameCandidate = i_node.getNameDict()
@@ -3132,7 +3135,7 @@ class NameFactory(object):
         return self.int_iterator
     
     #@r9General.Timer
-    def returnUniqueGeneratedName(self, ignore='none',node = None,**kws):
+    def returnUniqueGeneratedName(self, ignore='none',node = None,iterate = True, **kws):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         DESCRIPTION:
@@ -3160,15 +3163,16 @@ class NameFactory(object):
         if 'cgmName' not in d_updatedNamesDict.keys() and search.returnObjectType(i_node.mNode) !='group':
             i_node.addAttr('cgmName',i_node.getShortName(),attrType = 'string',lock = True)
             d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
-            
-        iterator = self.getIterator(node = i_node)        
-        if iterator:
-            d_updatedNamesDict['cgmIterator'] = str(iterator)
+        
+        if iterate:    
+	    iterator = self.getIterator(node = i_node)        
+	    if iterator:
+		d_updatedNamesDict['cgmIterator'] = str(iterator)
                 
         log.debug(nameTools.returnCombinedNameFromDict(d_updatedNamesDict))
         return nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
     
-    #@r9General.Timer
+    @r9General.Timer
     def doNameObject(self,node = None,**kws):
 	if node is None:i_node = self.i_node
 	elif issubclass(type(node),cgmNode):i_node = node
@@ -3185,7 +3189,7 @@ class NameFactory(object):
             
         return str_baseName
     
-    @r9General.Timer    
+    #@r9General.Timer    
     def doName(self,nameChildren=False,node = None,**kws):
 	if node is None:i_node = self.i_node
 	elif issubclass(type(node),cgmNode):i_node = node
