@@ -29,7 +29,9 @@ log.setLevel(logging.INFO)
 #========================================================================
 
 # From cgm ==============================================================
-from cgm.lib.classes import NameFactory
+#from cgm.lib.classes import NameFactory
+from cgm.core.lib import nameTools
+reload(nameTools)
 from cgm.core.rigger import ModuleFactory as mFactory
 reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
@@ -832,8 +834,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    shortName = i_grp.getShortName()
 	    log.info(shortName)
 	    #Let's get basic info for a good attr name
-	    d = NameFactory.returnObjectGeneratedNameDict(shortName,ignore=['cgmTypeModifier','cgmType'])
-	    n = NameFactory.returnCombinedNameFromDict(d)
+	    d = nameTools.returnObjectGeneratedNameDict(shortName,ignore=['cgmTypeModifier','cgmType'])
+	    n = nameTools.returnCombinedNameFromDict(d)
 	    nf.build_conditionNetworkFromGroup(shortName, chooseAttr = n, controlObject = settingsControl)
     
     @r9General.Timer
@@ -1027,9 +1029,10 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	mc.delete(i_o.mNode)
 	
 	self.doName()    
+	
 class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
-    def __init__(self,node = None, name = 'buffer',initializeOnly = False,*args,**kws):
+    def __init__(self,node = None, name = 'cgmBuffer',initializeOnly = False,*args,**kws):
         log.debug(">>> cgmModuleBufferNode.__init__")
         if kws:log.debug("kws: %s"%kws)    
         
@@ -1046,8 +1049,8 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         
         if not self.isReferenced(): 
 	    if self.__justCreatedState__ or doVerify:	    
-		if not self.__verify__(**kws):
-		    raise StandardError,"Failed!"
+		if not self.__verify__(**kws):pass
+		    #raise StandardError,"Failed!"
 
     def __verify__(self,*args,**kws):
         """"""
@@ -1065,12 +1068,12 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
             if self.hasAttr('cgmTypeModifier'):
                 bufferType = self.cgmTypeModifier
             else:
-                bufferType = 'buffer'   
+                bufferType = 'cgmBuffer'   
                 
         #>>> Attr check    
         self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
         self.addAttr('cgmTypeModifier',initialValue = bufferType,lock=True)
-        self.addAttr('cgmType','buffer',lock=True)
+        self.addAttr('cgmType','cgmBuffer',lock=True)
         self.addAttr('module',attrType = 'messageSimple')
 
         #>>> Module stuff   
@@ -1083,9 +1086,9 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
             
         if self.getMessage('module'):
             self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
-            #self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
-              
-        self.doName(**kws)  
+	    #self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
+        self.doName()       
+        #self.doName(**kws)  
         return True
 
     def __bindData__(self):
@@ -1414,8 +1417,9 @@ class cgmModule(cgmMeta.cgmObject):
             return modules.returnSettingsData(('color'+direction.capitalize()),True)
     
     def getPartNameBase(self):
-        return NameFactory.returnUniqueGeneratedName(self.mNode, ignore = ['cgmType'])
+	return nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
 	
+    
     def doSetParentModule(self,moduleParent,force = False):
         """
         Set a module parent of a module
