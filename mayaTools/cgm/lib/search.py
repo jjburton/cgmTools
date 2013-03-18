@@ -872,6 +872,23 @@ def returnReferencePrefix(obj):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Object search
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def returnRootTransforms():
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Asks maya what the object type is
+
+    ARGUMENTS:
+    obj(string) - object
+
+    RETURNS:
+    type(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    l_objects = [str(o).split('|') for o in mc.ls(type = 'transform', l=True)]
+    return [o[1] for o in l_objects if len(o)==2] or []
+
+    
 def returnObjectType(obj):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
