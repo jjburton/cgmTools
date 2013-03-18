@@ -238,10 +238,10 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
         
         #>>> Figure out our vector
         if axis not in dictionary.stringToVectorDict.keys():
-            raise ValueError,"findMeshIntersectionFromObjectAxis axis arg not valid: '%s'"%axis
+            log.error("findMeshIntersectionFromObjectAxis axis arg not valid: '%s'"%axis)
             return False
         if list(axis)[0] not in d_matrixVectorIndices.keys():
-            raise ValueError,"findMeshIntersectionFromObjectAxis axis arg not in d_matrixVectorIndices: '%s'"%axis
+            log.error("findMeshIntersectionFromObjectAxis axis arg not in d_matrixVectorIndices: '%s'"%axis)
             return False  
         vector = [matrix[i] for i in d_matrixVectorIndices.get(list(axis)[0])]
         if list(axis)[1] == '-':
