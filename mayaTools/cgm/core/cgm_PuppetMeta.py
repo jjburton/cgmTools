@@ -106,6 +106,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	else:puppetCreatedState = False
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
 	self.__justCreatedState__ = puppetCreatedState
+	
         #>>> Puppet Network Initialization Procedure ==================       
         if self.isReferenced() or initializeOnly:
             log.info("'%s' Initializing only..."%name)
@@ -113,6 +114,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
 	elif self.__justCreatedState__ or doVerify:
+	    log.info("Verifying...")
             if not self.__verify__(name,**kws):
                 #log.critical("'%s' failed to __verify__!"%name)
                 raise StandardError,"'%s' failed to verify!"%name
@@ -128,11 +130,10 @@ class cgmPuppet(cgmMeta.cgmNode):
         """  
         #Puppet Network Node
         #==============
-        #if self.mClass not in ['cgmPuppet','cgmMorpheusPuppet']:
-	if not issubclass(type(self), cgmPuppet):
-	    log.warning("mClass is wrong")
-            return False  
-        
+        if self.mClass not in ['cgmPuppet','cgmMorpheusPuppet']:
+	    #if not issubclass(type(self), cgmPuppet):
+		#log.warning("mClass is wrong")
+	    return False          
         return True
 
         #>>>Master null
@@ -1161,6 +1162,7 @@ templateNullAttrs_toMake = {'version':'float',
                             'controlObjectTemplatePose':'string'}
 
 class cgmModule(cgmMeta.cgmObject):
+    @r9General.Timer
     def __init__(self,*args,**kws):
         """ 
         Intializes an module master class handler
@@ -1239,7 +1241,8 @@ class cgmModule(cgmMeta.cgmObject):
         log.debug("In bind data")
         #self.addAttr('mClass', initialValue='cgmModule',lock=True) 
         #self.addAttr('cgmType',value = 'module',lock=True)
-
+	
+    @r9General.Timer
     def initialize(self,**kws):
         """ 
         Initializes the various components a moduleNull for a character/asset.
@@ -1283,7 +1286,7 @@ class cgmModule(cgmMeta.cgmObject):
 	    
         return True
 
-
+    @r9General.Timer
     def __verify__(self,**kws):
         """"""
         """ 

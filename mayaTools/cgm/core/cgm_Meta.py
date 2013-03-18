@@ -540,7 +540,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         return False
     
     #@r9General.Timer
-    def doName(self,sceneUnique=False,nameChildren=False,**kws):
+    def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
 
@@ -558,7 +558,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return False	
 	
 	#Name it
-	NameFactory(self).doName(nameChildren = nameChildren,**kws)
+	NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)
 		
 	
     def doName2(self,sceneUnique=False,nameChildren=False,**kws):
@@ -2968,7 +2968,6 @@ class NameFactory(object):
 		else:break
         return self.i_nameParents
     
-    @r9General.Timer
     def getMatchedChildren(self, node = None):  
 	if node is None:
 	    i_node = self.i_node
@@ -3011,8 +3010,51 @@ class NameFactory(object):
                 self.i_nameSiblings.append(i_c)
                 log.debug("Name sibling found: '%s'"%i_c.mNode)                
 
-        return self.i_nameSiblings        
+        return self.i_nameSiblings
     
+    #@r9General.Timer    
+    def getFastIterator(self, node = None):
+	"""
+	Fast iterate finder
+	"""
+	if node is None:i_node = self.i_node
+	elif issubclass(type(node),cgmNode):i_node = node
+	elif mc.objExists(node):i_node = cgmNode(node)
+	else:raise StandardError,"NameFactory.getBaseIterator >> node doesn't exist: '%s'"%node
+		
+        self.int_fastIterator = 0
+        #If we have an assigned iterator, start with that
+	d_nameDict = i_node.getNameDict()	
+        if 'cgmIterator' in d_nameDict.keys():
+            return int(d_nameDict.get('cgmIterator'))
+			      
+	self.d_nameCandidate = d_nameDict
+	self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)  
+	
+	#Now that we have a start, we're gonna see if that name is taken by a sibling or not
+	def getNewNameCandidate(self):
+	    self.int_fastIterator+=1#add one
+	    log.debug("Counting in getBaseIterator: %s"%self.int_fastIterator)				
+	    self.d_nameCandidate['cgmIterator'] = str(self.int_fastIterator)
+	    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+	    log.debug("Checking: '%s'"%self.bufferName)
+	    return self.bufferName
+	
+	mc.rename(i_node.mNode,self.bufferName)#Name it
+	log.debug("Checking: '%s'"%self.bufferName)
+	if self.bufferName != i_node.getShortName():
+	    self.int_fastIterator = 1
+	    self.d_nameCandidate['cgmIterator'] = str(self.int_fastIterator)
+	    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+	    mc.rename(i_node.mNode,self.bufferName)#Name it
+	    while self.bufferName != i_node.getShortName() and self.int_fastIterator <100:
+		getNewNameCandidate(self)	
+		mc.rename(i_node.mNode,self.bufferName)#Name it
+	
+	log.debug("fastIterator: %s"%self.int_fastIterator)
+        return self.int_fastIterator
+    
+    #@r9General.Timer    
     def getBaseIterator(self, node = None):
 	if node is None:
 	    i_node = self.i_node
@@ -3135,7 +3177,7 @@ class NameFactory(object):
         return self.int_iterator
     
     #@r9General.Timer
-    def returnUniqueGeneratedName(self, ignore='none',node = None,iterate = True, **kws):
+    def returnUniqueGeneratedName(self, ignore='none',node = None,fastIterate = True, **kws):
         """ 
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         DESCRIPTION:
@@ -3164,22 +3206,25 @@ class NameFactory(object):
             i_node.addAttr('cgmName',i_node.getShortName(),attrType = 'string',lock = True)
             d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
         
-        if iterate:    
-	    iterator = self.getIterator(node = i_node)        
-	    if iterator:
-		d_updatedNamesDict['cgmIterator'] = str(iterator)
+        if fastIterate:  
+	    iterator = self.getFastIterator(node = i_node)
+	else:
+	    iterator = self.getIterator(node = i_node)  
+	    
+	if iterator:
+	    d_updatedNamesDict['cgmIterator'] = str(iterator)
                 
         log.debug(nameTools.returnCombinedNameFromDict(d_updatedNamesDict))
         return nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
     
-    @r9General.Timer
-    def doNameObject(self,node = None,**kws):
+    #@r9General.Timer
+    def doNameObject(self,node = None,fastIterate = True, **kws):
 	if node is None:i_node = self.i_node
 	elif issubclass(type(node),cgmNode):i_node = node
 	elif mc.objExists(node):i_node = cgmNode(node)
 	else:raise StandardError,"NameFactory.doNameObject >> node doesn't exist: '%s'"%node
-	log.info("Naming: '%s'"%i_node.getShortName())
-        nameCandidate = self.returnUniqueGeneratedName(node = i_node,**kws)
+	log.debug("Naming: '%s'"%i_node.getShortName())
+        nameCandidate = self.returnUniqueGeneratedName(node = i_node, fastIterate=fastIterate,**kws)
 	mc.rename(i_node.mNode,nameCandidate)
         #i_node.rename(nameCandidate)
 	
@@ -3190,14 +3235,14 @@ class NameFactory(object):
         return str_baseName
     
     #@r9General.Timer    
-    def doName(self,nameChildren=False,node = None,**kws):
+    def doName(self,nameChildren=False,fastIterate = True,node = None,**kws):
 	if node is None:i_node = self.i_node
 	elif issubclass(type(node),cgmNode):i_node = node
 	elif mc.objExists(node):i_node = cgmNode(node)
 	else:raise StandardError,"NameFactory.doName >> node doesn't exist: '%s'"%node
 	
 	#Try naming object
-	try:self.doNameObject(node = i_node,**kws)
+	try:self.doNameObject(node = i_node,fastIterate=fastIterate,**kws)
 	except StandardError,error:
 	    raise StandardError,"NameFactory.doName.doNameObject failed: '%s'|%s"%(i_node.mNode,error)
 	
@@ -3211,7 +3256,7 @@ class NameFactory(object):
 		    l_iShapes.append(cgmNode(s))
 	    for i_s in l_iShapes:
 		log.debug("on shape: '%s'"%i_s.mNode)
-		try:self.doNameObject(node = i_s, **kws)
+		try:self.doNameObject(node = i_s, fastIterate=fastIterate,**kws)
 		except StandardError,error:
 		    raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
 		    
@@ -3225,7 +3270,7 @@ class NameFactory(object):
 		l_iChildren.reverse()
 		for i_c in l_iChildren:
 		    log.debug("on child: '%s'"%i_c.mNode)		    
-		    try:self.doNameObject(node = i_c,**kws)
+		    try:self.doNameObject(node = i_c,fastIterate=fastIterate,**kws)
 		    except StandardError,error:
 			raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
 
@@ -3235,19 +3280,21 @@ class NameFactory(object):
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================  
-def getMetaNodesInitializeOnly(mTypes = ['cgmMorpheusMakerNetwork']):
+def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMorpheusMakerNetwork'],dataType = ''):
     """
     Meant to be a faster get command than Mark's for nodes we only want initializeOnly mode
     """
     checkList = r9Meta.getMetaNodes(mAttrs = 'mClass', mTypes=mTypes,dataType = '')
-
     returnList = []
     for o in checkList:
 	i_o = False
 	try:i_o = r9Meta.MetaClass(o,initializeOnly = True)
 	except:log.warning("'%s' can't take initializeOnly kw"%o)
 	if i_o and i_o.hasAttr('mClass') and i_o.mClass in mTypes:
-	    returnList.append(i_o)
+	    if dataType == 'metaClass':
+		returnList.append(i_o)
+	    else:
+		returnList.append(i_o.mNode)
     return returnList
 
 	
