@@ -25,8 +25,10 @@ objList = []
 #>>> Modules
 #=======================================================
 m1 = cgmPM.cgmModule(name = 'test')
-m1 = cgmPM.cgmModule('hand_part')
-cgmPM.cgmModule('hand_part').__verify__()
+m1 = cgmPM.cgmModule('spine_part',initializeOnly = True)
+m1 = cgmPM.cgmModule('spine_part')
+m1.i_coreNames.value
+cgmPM.cgmModule('spine_part').__verify__()
 m1.coreNames.__verify__()
 #518 w doStore
 m1.initialize()

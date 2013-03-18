@@ -11,6 +11,18 @@ reload(nameF)
 import cgm.core
 cgm.core._reload()
 
+mc.ls(type = 'transform', l=True).split('|')[0]
+mc.ls(type = 'transform', l=True)
+
+log.info([str(o).split('|') for o in mc.ls(type = 'transform', l=True)])
+log.info([str(o).split('|') for o in mc.ls(exactType = 'transform', l=True)])
+from cgm.lib import search
+reload(search)
+search.returnRootTransforms()
+
+l_objects = [str(o).split('|') for o in mc.ls(type = 'transform', l=True)]
+l_rootObjects = [o[1] for o in l_objects if len(o)==2]
+log.info(l_rootObjects)
 from cgm.lib import locators
 reload(locators)
 
