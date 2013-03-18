@@ -540,7 +540,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return True
         return False
     
-    @r9General.Timer
+    #@r9General.Timer
     def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
@@ -560,10 +560,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
 	#Name it
 	NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)
-	log.info("Named: '%s'"%self.getShortName())
+	log.debug("Named: '%s'"%self.getShortName())
 		
 	
-    def doNameOld(self,sceneUnique=False,nameChildren=False,**kws):
+    def doNameOLD(self,sceneUnique=False,nameChildren=False,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
 
@@ -614,6 +614,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""
 	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)
     
+    @r9General.Timer
     def getSiblings(self):
 	"""Function to get siblings of an object"""
 	l_siblings = []
@@ -641,6 +642,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		if c != self.getLongName():
 		    l_siblings.append(c)
 		    log.debug("Sibling found: '%s'"%c)
+	else:#We have a root transform
+	    l_rootTransforms = search.returnRootTransforms() or []
+	    typeBuffer = self.getMayaType()
+	    for c in l_rootTransforms:
+		if c != self.getShortName() and search.returnObjectType(c) == typeBuffer:
+		    l_siblings.append(c)
 	log.debug(l_siblings)
 	return l_siblings   
     
@@ -3287,6 +3294,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
     """
     Meant to be a faster get command than Mark's for nodes we only want initializeOnly mode
     """
+    """
     checkList = r9Meta.getMetaNodes(mAttrs = 'mClass', mTypes=mTypes,dataType = '')
     returnList = []
     for o in checkList:
@@ -3298,6 +3306,12 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 		returnList.append(i_o)
 	    else:
 		returnList.append(i_o.mNode)
+    """
+    checkList = mc.ls(type='network')
+    returnList = []
+    for o in checkList:
+	if attributes.doGetAttr(o,'mClass') in mTypes:
+	    returnList.append(o)
     return returnList
 
 	
