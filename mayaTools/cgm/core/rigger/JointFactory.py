@@ -33,8 +33,7 @@ from cgm.lib import (cgmMath,
                      modules)
 reload(joints)
 reload(cgmMath)
-from cgm.lib.classes import NameFactory
-
+from cgm.core.lib import nameTools
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
@@ -77,11 +76,11 @@ class go(object):
         self.rigNull = self.m.getMessage('rigNull')[0] or False
         self.i_rigNull = self.m.rigNull
         self.moduleColors = self.m.getModuleColors()
-        self.coreNames = self.m.coreNames.value
+        self.l_coreNames = self.m.i_coreNames.value
         self.foundDirections = False #Placeholder to see if we have it
                 
         #>>> part name 
-        self.partName = NameFactory.returnUniqueGeneratedName(self.m.mNode, ignore = 'cgmType')
+        self.partName = nameTools.returnRawGeneratedName(self.m.mNode, ignore = 'cgmType')
         self.partType = self.m.moduleType or False
         
         self.direction = None
@@ -103,7 +102,7 @@ class go(object):
         log.debug("partType: %s"%self.partType)
         log.debug("direction: %s"%self.direction) 
         log.debug("colors: %s"%self.moduleColors)
-        log.debug("coreNames: %s"%self.coreNames)
+        log.debug("coreNames: %s"%self.l_coreNames)
         log.debug("root: %s"%self.i_root.getShortName())
         log.debug("curve: %s"%self.i_curve.getShortName())
         log.debug("orientRootHelper: %s"%self.i_orientRootHelper.getShortName())
@@ -250,19 +249,13 @@ def doSkeletonize(self):
     log.info(self.i_rigNull.skinJoints)       
 
     #>>>Store these joints and rename the heirarchy
-    log.info("Metaclassing our objects")    
-    for o in l_limbJoints:
+    log.info("Metaclassing our objects") 
+    for i,o in enumerate(l_limbJoints):
         i_o = cgmMeta.cgmObject(o)
         i_o.addAttr('mClass','cgmObject',lock=True)  
-        i_o.doName(True)
+        if i == 0:i_o.doName(nameChildren=True,fastIterate=False)
+        
     
-    """
-    log.info("Renaming heir")
-    if len(l_limbJoints) == 1:
-        #NameFactory.doNameObject(l_limbJoints[0],True)
-    else:
-        l_limbJointsBuffer = NameFactory.doRenameHeir(l_limbJoints[0],True)
-    """
     #>>> Orientation    
     #=============== 
     if not doOrientSegment(self):
@@ -335,7 +328,7 @@ def doOrientSegment(self):
             i_jnt.displayLocalAxis = 1#tmp
     
         #>>>per segment stuff
-        assert len(self.l_jointSegmentIndexSets) == len(self.m.coreNames.value)#quick check to make sure we've got the stuff we need
+        assert len(self.l_jointSegmentIndexSets) == len(self.m.i_coreNames.value)#quick check to make sure we've got the stuff we need
         cnt = 0
         for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
             segmentHelper = self.i_templateNull.controlObjects[cnt].getMessage('helper')[0]
@@ -448,137 +441,7 @@ def connectToParentModule(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-def doSkeletonize2(self, stiffIndex=None):
-    """ 
-    DESCRIPTION:
-    Basic limb skeletonizer
-    
-    ARGUMENTS:
-    stiffIndex(int) - the index of the template objects you want to not have roll joints
-                      For example, a value of -1 will let the chest portion of a spine 
-                      segment be solid instead of having a roll segment. Default is the modules setting
-    RETURNS:
-    l_limbJoints(list)
-    """
-    log.info(">>> doSkeletonize")
-    # Get our base info
-    #==================	        
-    assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
-    assert mc.objExists(self.m.mNode),"module no longer exists"
-    curve = self.i_curve.mNode
-    partName = self.partName
-    rollJoints = self.i_templateNull.rollJoints
-    
-    #>>> Stiff index    
-    if stiffIndex is not None:
-        stiffIndex = stiffIndex
-    else:
-        stiffIndex = self.i_templateNull.stiffIndex
-        
-    #>>> Make the limb segement
-    #==========================	 
-    if stiffIndex == 0:#If no roll joints
-        l_limbJoints = joints.createJointsFromCurve(curve,partName,rollJoints)
-    else:
-        rolledJoints = joints.createJointsFromCurve(curve,partName,rollJoints)
-        if rollJoints == 0:#If no roll joints, we're done
-            l_limbJoints = rolledJoints            
-        else:
-            if stiffIndex < 0:
-                searchIndex = (int('%s%s' %('-',(rollJoints+1)))*abs(stiffIndex))
-                toDelete = rolledJoints[searchIndex:]
-                
-                #>>>  delete out the roll joints we don't want
-                mc.delete(toDelete[0])
-                for name in toDelete:
-                    rolledJoints.remove(name)
-                
-                #>>>  make our stiff joints 
-                jointPositions = []
-                if abs(stiffIndex) == 1:    
-                    jointPositions.append(distance.returnClosestUPosition (self.i_templateNull.getMessage('controlObjects')[stiffIndex],curve))
-                else:    
-                    for obj in posTemplateObjects[stiffIndex:]:
-                        jointPositions.append(distance.returnClosestUPosition (obj,curve))
-                
-                stiffJoints = joints.createJointsFromPosListName (jointPositions,'partName')
-                
-                #>>>  connect em up 
-                mc.parent(stiffJoints[0],rolledJoints[-1])
-                l_limbJoints = []
-                for joint in rolledJoints:
-                    l_limbJoints.append(joint)
-                for joint in stiffJoints:
-                    l_limbJoints.append(joint)
-            
-            else:
-                #>>>  if it's not negative, it's positive....
-                searchIndex = ((rollJoints+1)*abs(stiffIndex))
-                toDelete = rolledJoints[:searchIndex]
-                toKeep = rolledJoints[searchIndex:]
-    
-                #>>>  delete out the roll joints we don't want
-                mc.parent(toKeep[0],world=True)
-                mc.delete(toDelete[0])
-                for name in toDelete:
-                    rolledJoints.remove(name)
-                
-                #>>>  make our stiff joints 
-                jointPositions = []
-                if abs(stiffIndex) == 1:    
-                    jointPositions.append(distance.returnClosestUPosition (self.i_templateNull.getMessage('controlObjects')[stiffIndex-1],curve))
-                else:
-                    for obj in posTemplateObjects[:stiffIndex]:
-                        jointPositions.append(distance.returnClosestUPosition (obj,curve))
-                
-                stiffJoints = joints.createJointsFromPosListName (jointPositions,'partName')
-                
-                #>>>  connect em up 
-                mc.parent(rolledJoints[0],stiffJoints[-1])
-                l_limbJoints = []
-                for joint in stiffJoints:
-                    l_limbJoints.append(joint)
-                for joint in rolledJoints:
-                    l_limbJoints.append(joint)
-                    
-    #>>> Naming
-    #=========== 
-    """ 
-    Copy naming information from template objects to the joints closest to them
-    copy over a cgmNameModifier tag from the module first
-    """
-    #attributes.copyUserAttrs(moduleNull,l_limbJoints[0],attrsToCopy=['cgmNameModifier'])
-    
-    #>>>First we need to find our matches
-    for i_obj in self.i_controlObjects:
-        closestJoint = distance.returnClosestObject(i_obj.mNode,l_limbJoints)
-        #transferObj = attributes.returnMessageObject(obj,'cgmName')
-        """Then we copy it"""
-        attributes.copyUserAttrs(i_obj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
-    
-    #>>>Store these joints and rename the heirarchy
-    for o in l_limbJoints:
-        i_o = cgmMeta.cgmObject(o)
-        i_o.addAttr('mClass','cgmObject',lock=True)
-    self.i_rigNull.connectChildren(l_limbJoints,'skinJoints','module')
-    log.info(self.i_rigNull.skinJoints)
 
-    l_limbJointsBuffer = NameFactory.doRenameHeir(l_limbJoints[0],True)
-    
-    #>>> Orientation    
-    #=============== 
-    if not doOrientSegment(self):
-        raise StandardError,"segment orientation failed"
-    
-    #>>> Set its radius and toggle axis visbility on
-    #averageDistance = distance.returnAverageDistanceBetweenObjects (l_limbJoints)
-    l_limbJoints = self.i_rigNull.getMessage('skinJoints')
-    jointSize = (distance.returnDistanceBetweenObjects (l_limbJoints[0],l_limbJoints[-1])/6)
-    reload(attributes)
-    #jointSize*.2
-    attributes.doMultiSetAttr(l_limbJoints,'radi',3)
-    
-    return True 
 def skeletonizeCharacter(masterNull):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -681,200 +544,6 @@ def storeTemplateRootParent(moduleNull):
     return False
 
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Skeletonize tools
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-def skeletonize(moduleNull, stiffIndex=0):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Basic limb skeletonizer
-    
-    ARGUMENTS:
-    moduleNull(string)
-    stiffIndex(int) - the index of the template objects you want to not have roll joints
-                      For example, a value of -1 will let the chest portion of a spine 
-                      segment be solid instead of having a roll segment. Default is '0'
-                      which will put roll joints in every segment
-    
-    RETURNS:
-    l_limbJoints(list)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    #>>>Get our info
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    partName = NameFactory.returnUniqueGeneratedName(moduleNull, ignore = 'cgmType')
-    
-    """ template null """
-    templateNull = modules.returnTemplateNull(moduleNull)
-    templateNullData = attributes.returnUserAttrsToDict (templateNull)
-    
-    
-    """ template object nulls """
-    templatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleNull,'templatePosObjects')
-    templateControlObjectsNull = modules.returnInfoTypeNull(moduleNull,'templateControlObjects')
-    templatePosObjectsInfoData = attributes.returnUserAttrsToDict (templatePosObjectsInfoNull)
-    templateControlObjectsData = attributes.returnUserAttrsToDict (templateControlObjectsNull)
-
-    jointOrientation = modules.returnSettingsData('jointOrientation')
-    moduleRootBuffer =  modules.returnInfoNullObjects(moduleNull,'templatePosObjects',types='templateRoot')
-    moduleRoot =  moduleRootBuffer[0]
-    stiffIndex = templateNullData.get('stiffIndex')
-    rollJoints = templateNullData.get('rollJoints')
-
-    """ AutonameStuff """
-    divider = NameFactory.returnCGMDivider()
-    skinJointsNull = modules.returnInfoTypeNull(moduleNull,'skinJoints')
-    
-    templateObjects = []
-    coreNamesArray = [] 
-    
-    #>>>TemplateInfo
-    for key in templatePosObjectsInfoData.keys():
-        if (mc.attributeQuery (key,node=templatePosObjectsInfoNull,msg=True)) == True:
-            templateObjects.append (templatePosObjectsInfoData[key])
-        coreNamesArray.append (key)
-    
-    posTemplateObjects = []
-    """ Get the positional template objects"""
-    for obj in templateObjects:
-        bufferList = obj.split(divider)
-        if (typesDictionary.get('templateObject')) in bufferList:
-            posTemplateObjects.append(obj+divider+typesDictionary.get('locator'))
-    
-    """put objects in order of closeness to root"""
-    posTemplateObjects = distance.returnDistanceSortedList(moduleRoot,posTemplateObjects)
-    curve = (templatePosObjectsInfoData['curve'])
-    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    #>>> Actually making the skeleton with consideration for roll joints and the stiffIndex!
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    if stiffIndex == 0:
-        """ If no roll joints """
-        l_limbJoints = joints.createJointsFromCurve(curve,partName,rollJoints)
-    else:          
-        rolledJoints = joints.createJointsFromCurve(curve,partName,rollJoints)
-        if rollJoints == 0:
-            l_limbJoints = rolledJoints            
-        else:
-            if stiffIndex < 0:
-                """ Get our to delete number in a rolledJoints[-4:] format"""
-                #searchIndex = (int('%s%s' %('-',(rollJoints+1)))*abs(stiffIndex)-1)
-                searchIndex = (int('%s%s' %('-',(rollJoints+1)))*abs(stiffIndex))
-                toDelete = rolledJoints[searchIndex:]
-                
-                """ delete out the roll joints we don't want"""
-                mc.delete(toDelete[0])
-                for name in toDelete:
-                    rolledJoints.remove(name)
-                
-                """ make our stiff joints """
-                jointPositions = []
-                if abs(stiffIndex) == 1:    
-                    jointPositions.append(distance.returnClosestUPosition (posTemplateObjects[stiffIndex],curve))
-                else:    
-                    for obj in posTemplateObjects[stiffIndex:]:
-                        jointPositions.append(distance.returnClosestUPosition (obj,curve))
-                
-                stiffJoints = joints.createJointsFromPosListName (jointPositions,'partName')
-                
-                """ connect em up """
-                mc.parent(stiffJoints[0],rolledJoints[-1])
-                l_limbJoints = []
-                for joint in rolledJoints:
-                    l_limbJoints.append(joint)
-                for joint in stiffJoints:
-                    l_limbJoints.append(joint)
-            
-            else:
-                """ if it's not negative, it's positive...."""
-                searchIndex = ((rollJoints+1)*abs(stiffIndex))
-                toDelete = rolledJoints[:searchIndex]
-                toKeep = rolledJoints[searchIndex:]
-    
-                """ delete out the roll joints we don't want"""
-                mc.parent(toKeep[0],world=True)
-                mc.delete(toDelete[0])
-                for name in toDelete:
-                    rolledJoints.remove(name)
-                
-                """ make our stiff joints """
-                jointPositions = []
-                if abs(stiffIndex) == 1:    
-                    jointPositions.append(distance.returnClosestUPosition (posTemplateObjects[stiffIndex-1],curve))
-                else:
-                    for obj in posTemplateObjects[:stiffIndex]:
-                        jointPositions.append(distance.returnClosestUPosition (obj,curve))
-                
-                stiffJoints = joints.createJointsFromPosListName (jointPositions,'partName')
-                
-                """ connect em up """
-                mc.parent(rolledJoints[0],stiffJoints[-1])
-                l_limbJoints = []
-                for joint in stiffJoints:
-                    l_limbJoints.append(joint)
-                for joint in rolledJoints:
-                    l_limbJoints.append(joint)
-                
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    #>>> Naming
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """ 
-    Copy naming information from template objects to the joints closest to them
-    copy over a cgmNameModifier tag from the module first
-    """
-    attributes.copyUserAttrs(moduleNull,l_limbJoints[0],attrsToCopy=['cgmNameModifier'])
-    
-    """
-    First we need to find our matches
-    """
-    for obj in posTemplateObjects:
-        closestJoint = distance.returnClosestObject(obj,l_limbJoints)
-        transferObj = attributes.returnMessageObject(obj,'cgmName')
-        """Then we copy it"""
-        attributes.copyUserAttrs(transferObj,closestJoint,attrsToCopy=['cgmNameModifier','cgmDirection','cgmName'])
-    
-    l_limbJointsBuffer = NameFactory.doRenameHeir(l_limbJoints[0])
-    l_limbJoints = []
-    l_limbJoints.append(l_limbJointsBuffer[0])
-    for joint in l_limbJointsBuffer[1]:
-        l_limbJoints.append(joint)
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-    #>>> Orientation    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    l_limbJoints = orientSegment(l_limbJoints,posTemplateObjects,jointOrientation)
-     
-    #>>> Set its radius and toggle axis visbility on
-    #averageDistance = distance.returnAverageDistanceBetweenObjects (l_limbJoints)
-    jointSize = (distance.returnDistanceBetweenObjects (l_limbJoints[0],l_limbJoints[-1])/6)
-    for jnt in l_limbJoints:
-        mc.setAttr ((jnt+'.radi'),jointSize*.2)
-        #>>>>>>> TEMP
-        joints.toggleJntLocalAxisDisplay (jnt)     
-    
-    print 'to orientation'
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-    #>>> Storing data    
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    skinJointsNull = modules.returnInfoTypeNull(moduleNull,'skinJoints')
-    skinJointsNullData = attributes.returnUserAttrsToList(skinJointsNull)
-    existingSkinJoints = lists.removeMatchedIndexEntries(skinJointsNullData,'cgm')
-    print existingSkinJoints
-    if len(existingSkinJoints) > 0:
-        for entry in existingSkinJoints:
-            attrBuffer = (skinJointsNull+'.'+entry[0])
-            print attrBuffer
-            attributes.doDeleteAttr(skinJointsNull,entry[0])
-            
-    
-    for i in range(len(l_limbJoints)):
-        buffer = ('%s%s' % ('joint_',i))
-        attributes.storeInfo(skinJointsNull,buffer,l_limbJoints[i])
-                
-        
-        
-    return l_limbJoints
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
 #>>> Tools    

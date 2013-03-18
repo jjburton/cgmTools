@@ -31,8 +31,7 @@ from cgm.lib import (modules,
                      logic)
 reload(attributes)
 reload(constraints)
-from cgm.lib.classes import NameFactory
-reload(NameFactory)
+from cgm.core.lib import nameTools
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
 
@@ -80,11 +79,11 @@ class go(object):
         self.rigNull = self.m.getMessage('rigNull')[0] or False
         self.moduleParent = self.moduleNullData.get('moduleParent')
         self.moduleColors = self.m.getModuleColors()
-        self.coreNames = self.m.coreNames.value
+        self.l_coreNames = self.m.i_coreNames.value
         self.corePosList = self.i_templateNull.templateStarterData
         self.foundDirections = False #Placeholder to see if we have it
         
-        assert len(self.coreNames) == len(self.corePosList),"coreNames length and corePosList doesn't match"
+        assert len(self.l_coreNames) == len(self.corePosList),"coreNames length and corePosList doesn't match"
         
         #>>> part name 
         self.partName = self.m.getPartNameBase()
@@ -104,7 +103,7 @@ class go(object):
         log.debug("partType: %s"%self.partType)
         log.debug("direction: %s"%self.direction) 
         log.debug("colors: %s"%self.moduleColors)
-        log.debug("coreNames: %s"%self.coreNames)
+        log.debug("coreNames: %s"%self.l_coreNames)
         log.debug("corePosList: %s"%self.corePosList)
         
         if self.m.mClass == 'cgmLimb':
@@ -127,159 +126,6 @@ def doTagChildren(self):
         log.warning(error) 
         
 @r9General.Timer
-def doTemplate(self):
-    #Meat of the template process
-    #==============	
-    #>>> Get our base info
-    """ module null data """
-    moduleNullData = attributes.returnUserAttrsToDict(self.mNode)
-    templateNull = self.templateNull.mNode or False
-    rigNull = self.rigNull.mNode or false
-
-    """ part name """
-    partName = NameFactory.returnUniqueGeneratedName(self.mNode, ignore = 'cgmType')
-    partType = self.moduleType or False
-    
-    direction = False
-    if self.hasAttr('cgmDirection'):
-        direction = self.cgmDirection or False
-    
-    """ template null """
-    templateNullData = attributes.returnUserAttrsToDict(templateNull)
-    curveDegree = self.templateNull.curveDegree
-    rollOverride = self.templateNull.rollOverride
-    
-    log.debug("Module: %s"%self.getShortName())
-    log.debug("moduleNullData: %s"%moduleNullData)
-    log.debug("partType: %s"%partType)
-    log.debug("direction: %s"%direction)
-    
-    
-    """ template object nulls """
-    #templatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleNull,'templatePosObjects')
-    #templateControlObjectsNull = modules.returnInfoTypeNull(moduleNull,'templateControlObjects')
-        
-    
-    """ Start objects stuff """
-    #templateStarterDataInfoNull = modules.returnInfoTypeNull(moduleNull,'templateStarterData')
-    #initialObjectsTemplateDataBuffer = attributes.returnUserAttrsToList(templateStarterDataInfoNull)
-    #initialObjectsPosData = lists.removeMatchedIndexEntries(initialObjectsTemplateDataBuffer,'cgm')
-    """
-    corePositionList = []
-    coreRotationList = []
-    coreScaleList = []
-    for set in initialObjectsPosData:
-        if re.match('pos',set[0]):
-            corePositionList.append(set[1])
-        elif re.match('rot',set[0]):
-            coreRotationList.append(set[1])
-        elif re.match('scale',set[0]):
-            coreScaleList.append(set[1])
-    log.debug(corePositionList)
-    log.debug( coreRotationList )
-    log.debug( coreScaleList )
-    """
-    #template control objects stuff
-    #==============	    
-    """
-    templateControlObjectsDataNull = modules.returnInfoTypeNull(moduleNull,'templateControlObjectsData')
-    templateControlObjectsDataNullBuffer = attributes.returnUserAttrsToList(templateControlObjectsDataNull)
-    templateControlObjectsData = lists.removeMatchedIndexEntries(templateControlObjectsDataNullBuffer,'cgm')
-    controlPositionList = []
-    controlRotationList = []
-    controlScaleList = []
-    print templateControlObjectsData
-    for set in templateControlObjectsData:
-        if re.match('pos',set[0]):
-            controlPositionList.append(set[1])
-        elif re.match('rot',set[0]):
-            controlRotationList.append(set[1])
-        elif re.match('scale',set[0]):
-            controlScaleList.append(set[1])
-    print controlPositionList
-    print controlRotationList
-    print controlScaleList
-    """
-    # Names Info
-    #==============	       
-    """
-    coreNamesInfoNull = modules.returnInfoTypeNull(moduleNull,'coreNames')
-    coreNamesBuffer = attributes.returnUserAttrsToList(coreNamesInfoNull)
-    coreNames = lists.removeMatchedIndexEntries(coreNamesBuffer,'cgm')
-    coreNamesAttrs = []
-    for set in coreNames:
-        coreNamesAttrs.append(coreNamesInfoNull+'.'+set[0])
-    divider = NameFactory.returnCGMDivider()
-    
-    print ('%s%s'% (moduleNull,' data aquired...'))
-    """
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    #>> make template objects
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    return
-
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Parenting constrainging parts
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    moduleParent = attributes.returnMessageObject(moduleNull,'moduleParent')
-    if moduleParent != masterNull:
-        if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
-            moduleParent = attributes.returnMessageObject(moduleParent,'moduleParent')
-        parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
-        parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
-        parentTemplateObjects = []
-        for key in parentTemplatePosObjectsInfoData.keys():
-            if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
-                if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
-                    parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
-        closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
-        if (search.returnTagInfo(moduleNull,'cgmModuleType')) != 'foot':
-            constraintGroup = rigging.groupMeObject(rootName,maintainParent=True)
-            constraintGroup = NameFactory.doNameObject(constraintGroup)
-            mc.pointConstraint(closestParentObject,constraintGroup, maintainOffset=True)
-            mc.scaleConstraint(closestParentObject,constraintGroup, maintainOffset=True)
-        else:
-            constraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
-            constraintGroup = NameFactory.doNameObject(constraintGroup)
-            mc.parentConstraint(rootName,constraintGroup, maintainOffset=True)
-            
-    """ grab the last clavicle piece if the arm has one and connect it to the arm  """
-    moduleParent = attributes.returnMessageObject(moduleNull,'moduleParent')
-    if moduleParent != masterNull:
-        if (search.returnTagInfo(moduleNull,'cgmModuleType')) == 'arm':
-            if (search.returnTagInfo(moduleParent,'cgmModuleType')) == 'clavicle':
-                print '>>>>>>>>>>>>>>>>>>>>> YOU FOUND ME'
-                parentTemplatePosObjectsInfoNull = modules.returnInfoTypeNull(moduleParent,'templatePosObjects')
-                parentTemplatePosObjectsInfoData = attributes.returnUserAttrsToDict (parentTemplatePosObjectsInfoNull)
-                parentTemplateObjects = []
-                for key in parentTemplatePosObjectsInfoData.keys():
-                    if (mc.attributeQuery (key,node=parentTemplatePosObjectsInfoNull,msg=True)) == True:
-                        if search.returnTagInfo((parentTemplatePosObjectsInfoData[key]),'cgmType') != 'templateCurve':
-                            parentTemplateObjects.append (parentTemplatePosObjectsInfoData[key])
-                closestParentObject = distance.returnClosestObject(rootName,parentTemplateObjects)
-                endConstraintGroup = rigging.groupMeObject(closestParentObject,maintainParent=True)
-                endConstraintGroup = NameFactory.doNameObject(endConstraintGroup)
-                mc.pointConstraint(handles[0],endConstraintGroup, maintainOffset=True)
-                mc.scaleConstraint(handles[0],endConstraintGroup, maintainOffset=True)
-        
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    #>> Final stuff
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-        
-    #>>> Tag our objects for easy deletion
-    children = mc.listRelatives (templateNull, allDescendents = True,type='transform')
-    for obj in children:
-        attributes.storeInfo(obj,'cgmOwnedBy',templateNull)
-        
-    #>>> Visibility Connection
-    masterControl = attributes.returnMessageObject(masterNull,'controlMaster')
-    visControl = attributes.returnMessageObject(masterControl,'childControlVisibility')
-    attributes.doConnectAttr((visControl+'.orientHelpers'),(templateNull+'.visOrientHelpers'))
-    attributes.doConnectAttr((visControl+'.controlHelpers'),(templateNull+'.visControlHelpers'))
-    #>>> Run a rename on the module to make sure everything is named properly
-    #NameFactory.doRenameHeir(moduleNull)
-
-@r9General.Timer
 def returnModuleBaseSize(self):
     log.debug(">>> returnModuleSize")
     size = 12
@@ -296,7 +142,7 @@ def returnModuleBaseSize(self):
         parentState = i_parent.getState()
         if i_parent.isTemplated():#If the parent has been templated, it makes things easy
             log.debug("Parent has been templated...")
-            nameCount = len(self.coreNames.value) or 1
+            nameCount = len(self.l_coreNames.value) or 1
             parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
             log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
             log.debug("firstPos: %s"%i_templateNull.templateStarterData[0])
@@ -413,7 +259,7 @@ def doMakeLimbTemplate(self):
         
         curves.setCurveColorByName(i_obj.mNode,self.moduleColors[0])
         
-        i_obj.addAttr('cgmName',value = str(self.coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+        i_obj.addAttr('cgmName',value = str(self.l_coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
         if self.direction != None:
             i_obj.addAttr('cgmDirection',value = self.direction,attrType = 'string',lock=True)  
         i_obj.addAttr('cgmType',value = 'templateObject', attrType = 'string',lock=True) 

@@ -12,7 +12,6 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.lib import (search,attributes)
-from cgm.lib.classes import NameFactory
 
 #Shared Settings
 #========================= 

@@ -18,7 +18,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 # From cgm ==============================================================
 from cgm.lib import (modules,curves,distance,attributes)
 reload(attributes)
-from cgm.lib.classes import NameFactory
+from cgm.core.lib import nameTools
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
 from cgm.core.rigger import TemplateFactory as tFactory
@@ -43,10 +43,10 @@ def isSized(self):
     """
     log.debug(">>> isSized")    
     handles = self.templateNull.handles
-    if len(self.coreNames.value) < handles:
+    if len(self.i_coreNames.value) < handles:
         log.warning("Not enough names for handles")
         return False
-    if len(self.coreNames.value) > handles:
+    if len(self.i_coreNames.value) > handles:
         log.warning("Not enough handles for names")
         return False
     
@@ -93,8 +93,8 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     #Gather info
     #==============      
     handles = self.templateNull.handles
-    if len(self.coreNames.value) == handles:
-        names = self.coreNames.value
+    if len(self.i_coreNames.value) == handles:
+        names = self.i_coreNames.value
     else:
         log.warning("Not enough names. Generating")
         names = getGeneratedCoreNames(self)
@@ -277,7 +277,7 @@ def getGeneratedCoreNames(self):
     log.debug("%s partType is %s"%(self.getShortName(),partType))
     settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
     handles = self.templateNull.handles
-    partName = NameFactory.returnRawGeneratedName(self.mNode,ignore=['cgmType','cgmTypeModifier'])
+    partName = nameTools.returnRawGeneratedName(self.mNode,ignore=['cgmType','cgmTypeModifier'])
 
     ### if there are no names settings, genearate them from name of the limb module###
     generatedNames = []
@@ -305,7 +305,7 @@ def getGeneratedCoreNames(self):
         generatedNames = settingsCoreNames[:self.templateNull.handles]
 
     #figure out what to do with the names
-    self.coreNames.value = generatedNames
+    self.i_coreNames.value = generatedNames
     """
     if not self.templateNull.templateStarterData:
         buffer = []
@@ -328,7 +328,7 @@ def isTemplated(self):
     Return if a module is templated or not
     """
     log.debug(">>> isTemplated")
-    coreNamesValue = self.coreNames.value
+    coreNamesValue = self.i_coreNames.value
     if not coreNamesValue:
         log.debug("No core names found")
         return False
@@ -439,7 +439,6 @@ def deleteSkeleton(self,*args,**kws):
         jFactory.deleteSkeleton(self,*args,**kws)
     return True
 
-@r9General.Timer
 def returnExpectedJointCount(self):
     """
     Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check

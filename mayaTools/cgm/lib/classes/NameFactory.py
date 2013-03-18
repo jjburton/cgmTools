@@ -917,6 +917,9 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     for tag in order:
         tagInfo = search.findRawTagInfo(obj,tag)
         if tagInfo is not False:
+            #if mc.objExists(tagInfo):
+                #tagInfo = mc.ls(tagInfo,sn=True)[0]
+                #log.info("shortening")
             namesDict[tag] = (tagInfo)
     """ remove tags up stream that we don't want if they don't exist on the actual object"""
     if mc.objExists(obj+'.cgmTypeModifier') != True:
