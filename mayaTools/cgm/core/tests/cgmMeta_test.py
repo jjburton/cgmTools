@@ -30,7 +30,6 @@ def TestAllTheThings():
     """
     cgmMeta_Test()
 
-
 class MorpheusBase_Test():
     def __init__(self):
         function = 'Morpheus_Test'    
@@ -77,16 +76,19 @@ class cgmMeta_Test():
         log.info(">"*20  + "  Testing '%s' "%function + "<"*20 )         
         start = time.clock()
         self.setup()
+        
+        self.test_NameFactory()
         self.test_cgmAttr()
         self.test_attributeHandling()
-        self.test_messageAttrHandling() #On hold while deciding how to proceed with Mark
+        self.test_messageAttrHandling() 
         self.test_cgmNode()
         self.test_cgmObject()
         self.test_cgmBufferNode()
         self.test_cgmObjectSet()
         self.test_cgmOptionVar()
-        #self.test_cgmPuppet() #Puppet test
-        #self.test_cgmModule()
+        
+        self.test_cgmPuppet() #Puppet test
+        self.test_cgmModule()
 
         #self.MetaInstance.select()
 
@@ -909,8 +911,57 @@ class cgmMeta_Test():
         assert self.BufferNode.value[2]==self.BufferNode.mNode
         
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
-        log.info("="*70)   
+        log.info("="*70)  
         
+    def test_NameFactory(self):
+        function = 'test_NameFactory'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
+        
+        nf = cgmMeta.NameFactory
+        #>>> Create some nodes
+        i_net1 = cgmMeta.cgmNode(name = 'net',nodeType = 'network')        
+        i_net1.addAttr('cgmName','net', attrType = 'string')
+        assert nf(i_net1).getBaseIterator() == 0,"baseIterator: %s"%nf(i_net1).getBaseIterator()
+        
+        i_net2 = cgmMeta.cgmNode( mc.duplicate(i_net1.mNode)[0] )
+        assert nf(i_net1).getMatchedSiblings() == [i_net2],"%s"%nf(i_net1).getMatchedSiblings()
+        assert nf(i_net2).getMatchedSiblings() == [i_net1],"%s"%nf(i_net2).getMatchedSiblings()
+        assert nf(i_net1).getBaseIterator() == 1,"%s"%"baseIterator: %s"%nf(i_net1).getBaseIterator()
+        assert i_net1.getNameDict() == i_net2.getNameDict(),"Name dicts not equal"
+        assert nf(i_net1).getIterator() == 1
+        i_net1.doName(fastIterate = False)
+        assert nf(i_net2).getIterator() == 2
+        nf(i_net2).doNameObject(fastIterate = False)
+        assert '2' in list(i_net2.mNode),"2 not in : '%s'"%i_net2.mNode
+        
+        #Transform nodes
+        i_trans1a = cgmMeta.cgmObject(name = 'trans')
+        i_parent = cgmMeta.cgmObject(name = 'parent')
+        i_parent.addAttr('cgmName','nameParent', attrType = 'string')
+        
+        i_trans1b = cgmMeta.cgmObject(mc.duplicate(i_trans1a.mNode)[0] )
+        i_trans1a.parent = i_parent.mNode
+        i_trans1b.parent = i_parent.mNode
+        assert i_trans1b.mNode in i_trans1a.getSiblings(),"%s"%i_trans1a.getSiblings()
+        assert nf(i_trans1a).getMatchedSiblings() == [i_trans1b],"%s"%nf(i_trans1a).getMatchedSiblings()
+        assert nf(i_trans1b).getMatchedSiblings() == [i_trans1a],"%s"%nf(i_trans1b).getMatchedSiblings()        
+        assert nf(i_trans1b).returnUniqueGeneratedName(fastIterate = False) == nf(i_trans1a).returnUniqueGeneratedName(fastIterate = False),"Not returning same name buffer"
+        
+        #Name different ways
+        bufferName =  nf(i_trans1a).returnUniqueGeneratedName(fastIterate = False)
+        nf(i_trans1a).doNameObject(i_trans1b,fastIterate = False)#name second object from firsts call
+        assert i_trans1b.getShortName() == bufferName,"Not the expected name after alternate naming method"
+        buffer1Name =  nf(i_trans1a).returnUniqueGeneratedName(fastIterate = False)
+        buffer2Name = i_trans1b.getShortName()
+        nf(i_parent).doName(nameChildren = True,fastIterate = False)#Name Heir
+        assert i_trans1b.getShortName() == buffer2Name,"%s != %s"%(i_trans1b.getShortName(),buffer2Name)
+        
+        for i_n in [i_net1,i_net2,i_trans1a,i_trans1b,i_parent]:
+            assert issubclass(type(i_n),cgmMeta.cgmNode),"%s not a cgmNode"%i_n
+        
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)   
         
     def test_cgmPuppet(self):
         function = 'test_cgmPuppet'
@@ -1018,7 +1069,7 @@ class cgmMeta_Test():
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the rig null...")   
         assert Module1.i_rigNull.hasAttr('cgmType')
-        log.info(Module1.i_rigNull.cgmType)
+        log.debug(Module1.i_rigNull.cgmType)
 
         assert Module1.i_rigNull.cgmType == 'rigNull','%s'%Module1.i_rigNull.cgmType
         assert Module1.i_rigNull.ik == False
@@ -1032,7 +1083,7 @@ class cgmMeta_Test():
         #----------------------------------------------------------
         log.info('>'*3 + " Assertions on the template null...")   
         assert Module1.i_rigNull.hasAttr('cgmType')
-        log.info(Module1.i_templateNull.cgmType)
+        log.debug(Module1.i_templateNull.cgmType)
         assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
         assert Module1.i_templateNull.handles == 3,'%s'%Module1.i_templateNull.handles
 
