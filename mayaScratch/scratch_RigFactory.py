@@ -24,7 +24,8 @@ objList = []
 
 #>>> Modules
 #=======================================================
-
+m1 = r9Meta.MetaClass('spine_part')
+m1
 Rig.go(m1)
 l_joints = mc.ls(sl=True)
 Rig.createControlSurfaceSegment(l_joints)

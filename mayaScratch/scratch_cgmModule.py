@@ -24,7 +24,13 @@ objList = []
 
 #>>> Modules
 #=======================================================
-a = cgmPM.cgmModule(name = 'test')
+m1 = cgmPM.cgmModule(name = 'test')
+m1 = cgmPM.cgmModule('hand_part')
+cgmPM.cgmModule('hand_part').__verify__()
+m1.coreNames.__verify__()
+#518 w doStore
+m1.initialize()
+m1.getPartNameBase()
 a.getState()
 a.templateNull.handles = 1
 a.templateNull.__setattr__('handles',0)
@@ -34,10 +40,14 @@ mFactory.deleteSkeleton(m1)
 mFactory.returnExpectedJointCount(m1)
 m1.isSized()
 m1 = r9Meta.MetaClass(str_m1)
-m1.setState('skeleton',forceNew = True)
+m1.setState('template',forceNew = True)
+m1.storeTemplatePose()
+m1.loadTemplatePose()
 m1.isSkeletonized()
 m1.getGeneratedCoreNames()
-tFactory.updateTemplate(m2)
+tFactory.updateTemplate(m1,False)
+
+r9Meta.MetaClass('pelvis_tmplObj').translate
 
 m1.setState('size')
 m1.setState('skeleton',forceNew = True)
