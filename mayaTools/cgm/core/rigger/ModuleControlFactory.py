@@ -33,7 +33,7 @@ from cgm.lib import (cgmMath,
                      )
 
 from cgm.lib.classes import NameFactory
-
+from cgm.core.lib import nameTools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -332,9 +332,9 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
         """
     
     return d_returnControls
-
+"""
 def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
-    """ 
+    # 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     * Save the new positional information from the template objects
@@ -349,26 +349,26 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
     RETURNS:
     limbJoints(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
+    #   
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Gather data
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """ control helper objects - distance sorted"""
+    # control helper objects - distance sorted#
     templateRoot =  modules.returnInfoNullObjects(moduleNull,'templatePosObjects',types='templateRoot')
     controlTemplateObjects =  modules.returnInfoNullObjects(moduleNull,'templateControlObjects',types='all')
     controlTemplateObjects = distance.returnDistanceSortedList(templateRoot,controlTemplateObjects)
 
-    """size list of template control objects """
+    #size list of template control objects #
     controlTemplateObjectsSizes = []
     for obj in controlTemplateObjects:
         controlTemplateObjectsSizes.append(distance.returnAbsoluteSizeCurve(obj))
     
-    """ pos objects - distance sorted """
+    # pos objects - distance sorted #
     posTemplateObjects =  modules.returnInfoNullObjects(moduleNull,'templatePosObjects',types='templateObject')
     posTemplateObjects = distance.returnDistanceSortedList(templateRoot,posTemplateObjects)
 
     
-    """ orientation objects - distance sorted """
+    # orientation objects - distance sorted #
     orientationTemplateObjects = []
     for obj in posTemplateObjects:
         orientationTemplateObjects.append(attributes.returnMessageObject(obj,'orientHelper'))
@@ -381,7 +381,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
     #>>> Control Maker
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     if 'spineIKHandle' in controlTypes:
-        """ initial create"""
+        # initial create#
         ikHandleCurve = curves.createControlCurve('circleArrow2',1)
         mc.setAttr((ikHandleCurve+'.rz'),90)
         mc.setAttr((ikHandleCurve+'.ry'),90)
@@ -394,17 +394,17 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         position.moveParentSnap(ikHandleCurve,controlTemplateObjects[-1])
         position.movePointSnap(ikHandleCurve,orientationTemplateObjects[-1])
         
-        """ make our transform """
+        # make our transform #
         transform = rigging.groupMeObject(controlTemplateObjects[-1],False)
         
-        """ connects shape """
+        # connects shape #
         curves.parentShapeInPlace(transform,ikHandleCurve)
         mc.delete(ikHandleCurve)
         
-        """ copy over the pivot we want """
+        # copy over the pivot we want #
         rigging.copyPivot(transform,orientationTemplateObjects[-1])
         
-        """ Store data and name"""
+        # Store data and name#
         attributes.copyUserAttrs(controlTemplateObjects[-1],transform,attrsToCopy=['cgmName'])
         attributes.storeInfo(transform,'cgmType','controlAnim')
         attributes.storeInfo(transform,'cgmTypeModifier','ik')
@@ -412,7 +412,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         returnControls['spineIKHandle'] = transform
     
     if 'ikHandle' in controlTypes:
-        """ initial create"""
+        # initial create#
         ikHandleCurve = curves.createControlCurve('cube',1)
         endSizeBuffer = controlTemplateObjectsSizes[-1]
         mc.setAttr((ikHandleCurve+'.sx'),endSizeBuffer[0])
@@ -421,17 +421,17 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         position.moveParentSnap(ikHandleCurve,controlTemplateObjects[-1])
         position.movePointSnap(ikHandleCurve,orientationTemplateObjects[-1])
         
-        """ make our transform """
+        # make our transform #
         transform = rigging.groupMeObject(controlTemplateObjects[-1],False)
         
-        """ connects shape """
+        # connects shape #
         curves.parentShapeInPlace(transform,ikHandleCurve)
         mc.delete(ikHandleCurve)
         
-        """ copy over the pivot we want """
+        # copy over the pivot we want #
         rigging.copyPivot(transform,orientationTemplateObjects[-1])
         
-        """ Store data and name"""
+        # Store data and name#
         attributes.copyUserAttrs(controlTemplateObjects[-1],transform,attrsToCopy=['cgmName'])
         attributes.storeInfo(transform,'cgmType','controlAnim')
         attributes.storeInfo(transform,'cgmTypeModifier','ik')
@@ -439,7 +439,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         returnControls['ikHandle'] = transform
         
     if 'twistFix' in controlTypes:
-        """ initial create"""
+        # initial create#
         twistCurve = curves.createControlCurve('circleArrow1',1,'y+')
         startSizeBuffer = controlTemplateObjectsSizes[0]
         scaleFactor = startSizeBuffer[0] * 1.25
@@ -448,17 +448,17 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         mc.setAttr((twistCurve+'.sz'),scaleFactor)
         position.moveParentSnap(twistCurve,orientationTemplateObjects[0])
 
-        """ make our transform """
+        # make our transform #
         transform = rigging.groupMeObject(controlTemplateObjects[0],False)
         
-        """ connects shape """
+        # connects shape #
         curves.parentShapeInPlace(transform,twistCurve)
         mc.delete(twistCurve)
         
-        """ copy over the pivot we want """
+        # copy over the pivot we want #
         rigging.copyPivot(transform,orientationTemplateObjects[0])
         
-        """ Store data and name"""
+        # Store data and name#
         attributes.copyUserAttrs(controlTemplateObjects[0],transform,attrsToCopy=['cgmName'])
         attributes.storeInfo(transform,'cgmType','controlAnim')
         attributes.storeInfo(transform,'cgmTypeModifier','twist')
@@ -478,17 +478,17 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             mc.setAttr((vectorHandleCurve+'.sz'),scaleFactor)
             position.moveParentSnap(vectorHandleCurve,orientationTemplateObjects[currentIndex])
             
-            """ make our transform """
+            # make our transform #
             transform = rigging.groupMeObject(obj,False)
             
-            """ connects shape """
+            # connects shape #
             curves.parentShapeInPlace(transform,vectorHandleCurve)
             mc.delete(vectorHandleCurve)
             
-            """ copy over the pivot we want """
+            # copy over the pivot we want #
             rigging.copyPivot(transform,orientationTemplateObjects[currentIndex])
             
-            """ Store data and name"""
+            # Store data and name#
             attributes.copyUserAttrs(obj,transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','ik')
@@ -514,17 +514,17 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             position.moveParentSnap(vectorHandleCurve,controlTemplateObjects[currentIndex])
             position.movePointSnap(vectorHandleCurve,orientationTemplateObjects[currentIndex])
             
-            """ make our transform """
+            # make our transform #
             transform = rigging.groupMeObject(obj,False)
             
-            """ connects shape """
+            # connects shape #
             curves.parentShapeInPlace(transform,vectorHandleCurve)
             mc.delete(vectorHandleCurve)
             
-            """ copy over the pivot we want """
+            # copy over the pivot we want #
             rigging.copyPivot(transform,orientationTemplateObjects[currentIndex])
             
-            """ Store data and name"""
+            # Store data and name#
             attributes.copyUserAttrs(obj,transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','ik')
@@ -544,14 +544,14 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         mc.setAttr((hipsCurve+'.sz'),rootSizeBuffer[0])
         position.moveParentSnap(hipsCurve,controlTemplateObjects[0])
         
-        """ make our transform """
+        # make our transform #
         transform = rigging.groupMeObject(controlTemplateObjects[0],False)
         
-        """ connects shape """
+        # connects shape #
         curves.parentShapeInPlace(transform,hipsCurve)
         mc.delete(hipsCurve)
         
-        """ Store data and name"""
+        # Store data and name#
         attributes.storeInfo(transform,'cgmName','hips')
         attributes.storeInfo(transform,'cgmType','controlAnim')
         hips = NameFactory.doNameObject(transform)
@@ -567,7 +567,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         
         mc.makeIdentity(cogControl,apply=True, scale=True)
         
-        """ Store data and name"""
+        # Store data and name#
         attributes.storeInfo(cogControl,'cgmName','cog')
         attributes.storeInfo(cogControl,'cgmType','controlAnim')
         cogControl = NameFactory.doNameObject(cogControl)
@@ -580,12 +580,12 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         orientationSegments = lists.parseListToPairs(orientationTemplateObjects)
         cnt = 0
         for segment in controlSegments:
-            """ get our orientation segment buffer """
+            # get our orientation segment buffer #
             orientationSegment = orientationSegments[cnt]
-            """move distance """
+            #move distance #
             distanceToMove = distance.returnDistanceBetweenObjects(orientationSegment[0],orientationSegment[1])
 
-            """ root curve """
+            # root curve #
             rootCurve = curves.createControlCurve('circle',1)
             rootSizeBuffer = distance.returnAbsoluteSizeCurve(segment[0])
             mc.setAttr((rootCurve+'.sx'),rootSizeBuffer[0])
@@ -594,7 +594,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             position.moveParentSnap(rootCurve,segment[0])
             #mc.move(0, 0, (distanceToMove * .15), rootCurve, r=True,os=True,wd=True)
             
-            """ end curve """
+            # end curve #
             endCurve = curves.createControlCurve('circle',1)
             rootSizeBuffer = distance.returnAbsoluteSizeCurve(segment[1])
             mc.setAttr((endCurve+'.sx'),rootSizeBuffer[0])
@@ -607,7 +607,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             #>>> Side curves
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            """ locators on curve"""
+            # locators on curve#
             side1Locs = []
             side2Locs = []
             frontLocs = []
@@ -621,7 +621,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             backLocs.append(locators.locMeCvFromCvIndex(rootCurve,0))
             backLocs.append(locators.locMeCvFromCvIndex(endCurve,0))
             
-            """ get u positions for new curves"""
+            # get u positions for new curves#
             side1PosSet = []
             side2PosSet = []
             frontPosSet = []
@@ -635,33 +635,33 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             backPosSet.append(distance.returnClosestUPosition(backLocs[0],rootCurve))
             backPosSet.append(distance.returnClosestUPosition(backLocs[1],endCurve))
 
-            """ make side curves"""
+            # make side curves#
             sideCrv1 = mc.curve (d=1, p = side1PosSet , os=True)
             sideCrv2 = mc.curve (d=1, p = side2PosSet , os=True)
             frontCrv = mc.curve (d=1, p = frontPosSet , os=True)
             backCrv = mc.curve (d=1, p = backPosSet , os=True)
             
-            """ combine curves """
+            # combine curves #
             mc.makeIdentity(rootCurve,apply=True,translate =True, rotate = True, scale=True)
             mc.makeIdentity(endCurve,apply=True,translate =True, rotate = True, scale=True)
             segmentCurveBuffer = curves.combineCurves([sideCrv1,sideCrv2,frontCrv,backCrv,rootCurve,endCurve])
             
-            """ delete locs """
+            # delete locs #
             for loc in side1Locs,side2Locs,frontLocs,backLocs:
                 mc.delete(loc)
                 
-            """ make our transform """
+            # make our transform #
             transform = rigging.groupMeObject(segment[0],False)
             
-            """ connects shape """
+            # connects shape #
             curves.parentShapeInPlace(transform,segmentCurveBuffer)
             mc.delete(segmentCurveBuffer)
             
-            """ copy over the pivot we want """
+            # copy over the pivot we want #
             rigging.copyPivot(transform,orientationSegment[0])
 
                 
-            """ Store data and name"""
+            # Store data and name#
             attributes.copyUserAttrs(segment[0],transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','fk')
@@ -675,17 +675,17 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
         headControls = []
         controlSegments = lists.parseListToPairs(controlTemplateObjects)
         orientationSegments = lists.parseListToPairs(orientationTemplateObjects)
-        """ figure out our second to last segment to do something a bit different """
+        # figure out our second to last segment to do something a bit different #
         secondToLastCheck = (len(controlSegments)-2)
         print secondToLastCheck  
         cnt = 0
         for segment in controlSegments:
-            """ get our orientation segment buffer """
+            # get our orientation segment buffer #
             orientationSegment = orientationSegments[cnt]            
-            """move distance """
+            #move distance #
             distanceToMove = distance.returnDistanceBetweenObjects(segment[0],segment[1])
 
-            """ root curve """
+            # root curve #
             rootCurve = curves.createControlCurve('circle',1)
             rootSizeBuffer = distance.returnAbsoluteSizeCurve(segment[0])
             mc.setAttr((rootCurve+'.sx'),rootSizeBuffer[0])
@@ -694,7 +694,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             position.moveParentSnap(rootCurve,segment[0])
             mc.move(0, 0, (distanceToMove * .05), rootCurve, r=True,os=True,wd=True)
             
-            """ end curve """
+            # end curve #
             endCurve = curves.createControlCurve('circle',1)
             if cnt != secondToLastCheck:
                 rootSizeBuffer = distance.returnAbsoluteSizeCurve(segment[1])
@@ -709,7 +709,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             #>>> Side curves
             #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            """ locators on curve"""
+            # locators on curve#
             side1Locs = []
             side2Locs = []
             frontLocs = []
@@ -723,7 +723,7 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             backLocs.append(locators.locMeCvFromCvIndex(rootCurve,0))
             backLocs.append(locators.locMeCvFromCvIndex(endCurve,0))
             
-            """ get u positions for new curves"""
+            # get u positions for new curves#
             side1PosSet = []
             side2PosSet = []
             frontPosSet = []
@@ -737,32 +737,32 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             backPosSet.append(distance.returnClosestUPosition(backLocs[0],rootCurve))
             backPosSet.append(distance.returnClosestUPosition(backLocs[1],endCurve))
 
-            """ make side curves"""
+            # make side curves#
             sideCrv1 = mc.curve (d=1, p = side1PosSet , os=True)
             sideCrv2 = mc.curve (d=1, p = side2PosSet , os=True)
             frontCrv = mc.curve (d=1, p = frontPosSet , os=True)
             backCrv = mc.curve (d=1, p = backPosSet , os=True)
             
-            """ combine curves """
+            # combine curves #
             mc.makeIdentity(rootCurve,apply=True,translate =True, rotate = True, scale=True)
             mc.makeIdentity(endCurve,apply=True,translate =True, rotate = True, scale=True)
             segmentCurveBuffer = curves.combineCurves([sideCrv1,sideCrv2,frontCrv,backCrv,rootCurve,endCurve])
             
-            """ delete locs """
+            # delete locs #
             for loc in side1Locs,side2Locs,frontLocs,backLocs:
                 mc.delete(loc)
                 
-            """ make our transform """
+            # make our transform #
             transform = rigging.groupMeObject(segment[0],False)
             
-            """ connects shape """
+            # connects shape #
             curves.parentShapeInPlace(transform,segmentCurveBuffer)
             mc.delete(segmentCurveBuffer)
             
-            """ copy over the pivot we want """
+            # copy over the pivot we want #
             rigging.copyPivot(transform,orientationSegment[0])
               
-            """ Store data and name"""
+            # Store data and name#
             attributes.copyUserAttrs(segment[0],transform,attrsToCopy=['cgmName'])
             attributes.storeInfo(transform,'cgmType','controlAnim')
             attributes.storeInfo(transform,'cgmTypeModifier','fk')
@@ -772,6 +772,5 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
             cnt+=1
         returnControls['headControls'] = headControls
 
-
     
-    return returnControls
+    return returnControls"""
