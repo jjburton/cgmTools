@@ -183,9 +183,9 @@ class cgmPuppet(cgmMeta.cgmNode):
         """             
         #Puppet Network Node
         #============== 
-	if not issubclass(type(self),cgmPuppet):
-            log.error("'%s' is not a puppet. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
-            return False
+	#if not issubclass(type(self),cgmPuppet):
+            #log.error("'%s' is not a puppet. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
+            #return False
 	
         self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
         self.addAttr('cgmName',name, attrType='string', lock = True)
@@ -546,7 +546,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 
     def __bindData__(self):
         pass
-    
+    @r9General.Timer
     def __verify__(self):
         """ 
         """ 
@@ -1100,7 +1100,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         if self.getMessage('module'):
             self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
 	    #self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
-        #self.doName()       
+        self.doName()       
         #self.doName(**kws)  
         return True
 

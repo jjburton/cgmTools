@@ -60,6 +60,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
+from cgm.lib.classes import NameFactory as Old_Name#   TMP<<<<<<<<<<<<<<<<<<<<<<<<
 
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
@@ -539,7 +540,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return True
         return False
     
-    #@r9General.Timer
+    @r9General.Timer
     def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
@@ -559,9 +560,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
 	#Name it
 	NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)
+	log.info("Named: '%s'"%self.getShortName())
 		
 	
-    def doName2(self,sceneUnique=False,nameChildren=False,**kws):
+    def doNameOld(self,sceneUnique=False,nameChildren=False,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
 
@@ -578,7 +580,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		    i_c.rename('xxx')
 		    i_children.append(i_c )
 		for i_c in i_children:
-		    name = nameTools.returnUniqueGeneratedName(i_c.mNode,sceneUnique =sceneUnique,**kws)
+		    name = Old_Name.returnUniqueGeneratedName(i_c.mNode,sceneUnique =sceneUnique,**kws)
 		    mc.rename(i_c.mNode,name)  		    
 	    
 	log.debug('Name dict: %s"'%self.getNameDict())
@@ -586,7 +588,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
             log.error("'%s' is referenced. Cannot change name"%self.mNode)
             return False
 
-	name = nameTools.returnUniqueGeneratedName(self.mNode,sceneUnique = sceneUnique,**kws)
+	name = Old_Name.returnUniqueGeneratedName(self.mNode,sceneUnique = sceneUnique,**kws)
 	currentShortName = self.getShortName()
 	
 	if currentShortName == name:
@@ -601,7 +603,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		for shape in shapes:
 		    if not mc.referenceQuery(shape, isNodeReferenced=True):
 			i_shape = r9Meta.MetaClass(shape)
-			name = nameTools.returnUniqueGeneratedName(i_shape.mNode,sceneUnique =sceneUnique,**kws)
+			name = Old_Name.returnUniqueGeneratedName(i_shape.mNode,sceneUnique =sceneUnique,**kws)
 			mc.rename(i_shape.mNode,name)  
 	    if nameChildren:
 		doNameChildren(self)
@@ -3235,7 +3237,7 @@ class NameFactory(object):
         return str_baseName
     
     #@r9General.Timer    
-    def doName(self,nameChildren=False,fastIterate = True,node = None,**kws):
+    def doName(self,fastIterate = True,nameChildren=False,nameShapes = False,node = None,**kws):
 	if node is None:i_node = self.i_node
 	elif issubclass(type(node),cgmNode):i_node = node
 	elif mc.objExists(node):i_node = cgmNode(node)
@@ -3248,18 +3250,19 @@ class NameFactory(object):
 	
 	i_rootObject = i_node
 	
-	shapes = mc.listRelatives(i_rootObject.mNode,shapes=True,fullPath=True) or []
-	if shapes:
-	    l_iShapes = []
-	    for s in shapes:
-		if not mc.referenceQuery(s, isNodeReferenced=True):
-		    l_iShapes.append(cgmNode(s))
-	    for i_s in l_iShapes:
-		log.debug("on shape: '%s'"%i_s.mNode)
-		try:self.doNameObject(node = i_s, fastIterate=fastIterate,**kws)
-		except StandardError,error:
-		    raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
-		    
+	if nameShapes:
+	    shapes = mc.listRelatives(i_rootObject.mNode,shapes=True,fullPath=True) or []
+	    if shapes:
+		l_iShapes = []
+		for s in shapes:
+		    if not mc.referenceQuery(s, isNodeReferenced=True):
+			l_iShapes.append(cgmNode(s))
+		for i_s in l_iShapes:
+		    log.debug("on shape: '%s'"%i_s.mNode)
+		    try:self.doNameObject(node = i_s, fastIterate=fastIterate,**kws)
+		    except StandardError,error:
+			raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
+			
 	#Then the children
 	if nameChildren:#Initialize them all so we don't lose them
 	    l_iChildren = []
