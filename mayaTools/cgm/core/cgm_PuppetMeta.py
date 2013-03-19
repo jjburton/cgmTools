@@ -104,6 +104,8 @@ class cgmPuppet(cgmMeta.cgmNode):
 	if puppet is None:puppetCreatedState = True
 	else:puppetCreatedState = False
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
+	self.UNMANAGED.extend(['__justCreatedState__','i_masterNull'])	
+	
 	self.__justCreatedState__ = puppetCreatedState
 	
         #>>> Puppet Network Initialization Procedure ==================       
