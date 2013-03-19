@@ -161,6 +161,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    component = False
 	
 	super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
+	self.UNMANAGED.extend(['__justCreatedState__','__componentMode__','__component__'])	
 	self.__dict__['__justCreatedState__'] = createdState
 	self.__dict__['__componentMode__'] = componentMode
 	self.__dict__['__component__'] = component
@@ -614,7 +615,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""
 	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)
     
-    @r9General.Timer
+    #@r9General.Timer
     def getSiblings(self):
 	"""Function to get siblings of an object"""
 	l_siblings = []
@@ -654,9 +655,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     #=========================================================================                   
     # Attribute Functions
     #=========================================================================                   
-    def doStore(self,attr,info,*a,**kw):
+    def doStore(self,attr,info,overideMessageCheck = False,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
-        attributes.storeInfo(self.mNode,attr,info,*a,**kw)
+        attributes.storeInfo(self.mNode,attr,info,overideMessageCheck = overideMessageCheck,*a,**kw)
 	object.__setattr__(self, attr, info)
 	#self.update()
 
@@ -1722,7 +1723,7 @@ class cgmBufferNode(cgmNode):
         log.debug("In cgmBuffer.__init__ node is '%s'"%node)
 
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
-	self.UNMANAGED.extend(['bufferList','bufferDict'])
+	self.UNMANAGED.extend(['bufferList','bufferDict','value'])
 	
 	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
 	
@@ -1778,14 +1779,19 @@ class cgmBufferNode(cgmNode):
         """ Updates the stored data """
         self.bufferList = []
         self.bufferDict = {}
-	
+	l_itemAttrs = []
+	d_indexToAttr = {}
         for attr in self.getUserAttrs():
             if 'item_' in attr:
-                dataBuffer = self.__getattribute__(attr)
+		dataBuffer = attributes.doGetAttr(self.mNode,attr)
 		data = dataBuffer
-                if data:
-                    self.bufferList.append(data)
-                    self.bufferDict[attr] = data
+		self.bufferDict[attr] = data
+		d_indexToAttr[int(attr.split('item_')[-1])] = attr
+		self.bufferList.append(data)
+		
+	#verify data order
+	for key in d_indexToAttr.keys():
+	    self.bufferList[key] = self.bufferDict[d_indexToAttr[key]]
                     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
@@ -1796,7 +1802,7 @@ class cgmBufferNode(cgmNode):
 	self.value = listCopy
 	self.updateData()
                     
-    def store(self,info,*a,**kw):
+    def store(self,info,index = None,allowDuplicates = True,*a,**kw):
         """ 
         Store information to an object in maya via case specific attribute.
         
@@ -1812,14 +1818,24 @@ class cgmBufferNode(cgmNode):
 	    log.warning("'%s' doesn't exist"%info)
 	    return
         
-        if info in self.bufferList:
+        if not allowDuplicates and info in self.bufferList:
             log.info("'%s' is already stored on '%s'"%(info,self.mNode))    
             return
         
-        cnt = self.returnNextAvailableCnt()    
-        attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)
-        self.bufferList.append(info)
-        self.bufferDict['item_'+str(cnt)] = info
+
+	if index is not None and index < len(self.bufferList):
+	    cnt = index
+	else:
+	    cnt = self.returnNextAvailableCnt()
+	if self.messageOverride:
+	    cgmAttr(self.mNode,('item_'+str(cnt)),value = info,lock=True)	    
+	else:
+	    attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)	    
+        
+        #attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)
+	self.updateData()
+        #self.bufferList.append(info)
+        #self.bufferDict['item_'+str(cnt)] = info
         
     def doStoreSelected(self): 
         """ Store elected objects """
@@ -1934,6 +1950,7 @@ class cgmBufferNode(cgmNode):
         
         log.warning("'%s' has no data"%(self.mNode))  
         return False
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmAttr - separate class
 #=========================================================================    
