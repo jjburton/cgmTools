@@ -382,12 +382,12 @@ def returnTagInfo(obj,tag):
     if (mc.objExists('%s.%s' %(obj,tag))) == True:
         messageQuery = (mc.attributeQuery (tag,node=obj,msg=True))
         if messageQuery == True:
-            returnBuffer = attributes.returnMessageData(obj,tag)
+            returnBuffer = attributes.returnMessageData(obj,tag,False)
 	    if not returnBuffer:
 		return False
 	    elif returnObjectType(returnBuffer[0]) == 'reference':
 		if attributes.repairMessageToReferencedTarget(obj,tag):
-		    return attributes.returnMessageObject(obj,tag)
+		    return attributes.returnMessageData(obj,tag,False)[0]
 		return returnBuffer[0]
 	    return returnBuffer[0]
         else:
@@ -464,7 +464,6 @@ def findRawTagInfo(obj,tag):
         if tag == 'cgmType':
             """ get the type info and see if there's a short hand name for it """
             return returnType(obj)
-
         else:
             """ check up stream """
             upCheck = returnTagUp(obj,tag)
@@ -876,17 +875,13 @@ def returnRootTransforms():
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
-    Asks maya what the object type is
-
-    ARGUMENTS:
-    obj(string) - object
+    Returns maya root transforms
 
     RETURNS:
-    type(string)
+    listOfRoots(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    l_objects = [str(o).split('|') for o in mc.ls(type = 'transform', l=True)]
-    return [o[1] for o in l_objects if len(o)==2] or []
+    return [str(o)for o in mc.ls(assemblies=True, dag = True)]
 
     
 def returnObjectType(obj):
