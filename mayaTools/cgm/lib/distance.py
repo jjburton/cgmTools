@@ -1229,7 +1229,7 @@ def returnClosestPointOnSurfaceInfo(targetObj, surface):
     f_sizeV = f_maxV - f_minV    
 
     # to account for target objects in heirarchies #
-    log.info(returnWorldSpacePosition(targetObj))
+    log.debug(returnWorldSpacePosition(targetObj))
     pos = returnWorldSpacePosition(targetObj)
     attributes.doSetAttr(closestPointNode,'inPositionX',pos[0])
     attributes.doSetAttr(closestPointNode,'inPositionY',pos[1])
@@ -1254,7 +1254,7 @@ def returnClosestPointOnSurfaceInfo(targetObj, surface):
     
     mc.delete(closestPointNode)
     mc.delete(pointOnSurfaceNode)
-    log.info(pointInfo)
+    log.debug(pointInfo)
     return pointInfo
 
 def returnClosestUVToPos(mesh, pos):
