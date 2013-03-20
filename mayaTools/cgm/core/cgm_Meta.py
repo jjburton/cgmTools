@@ -1723,7 +1723,7 @@ class cgmBufferNode(cgmNode):
         log.debug("In cgmBuffer.__init__ node is '%s'"%node)
 
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
-	self.UNMANAGED.extend(['bufferList','bufferDict','value'])
+	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr'])
 	
 	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
 	
@@ -1738,7 +1738,7 @@ class cgmBufferNode(cgmNode):
     #value
     #==============    
     def getValue(self):
-	return self.bufferList
+	return self.l_buffer
     
     @r9General.Timer   
     def setValue(self,value):
@@ -1777,28 +1777,30 @@ class cgmBufferNode(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def updateData(self,*a,**kw):
         """ Updates the stored data """
-        self.bufferList = []
-        self.bufferDict = {}
+        self.l_buffer = []
+        self.d_buffer = {}
+	self.d_indexToAttr = {}
 	l_itemAttrs = []
 	d_indexToAttr = {}
         for attr in self.getUserAttrs():
             if 'item_' in attr:
+		index = int(attr.split('item_')[-1])
 		dataBuffer = attributes.doGetAttr(self.mNode,attr)
 		data = dataBuffer
-		self.bufferDict[attr] = data
-		d_indexToAttr[int(attr.split('item_')[-1])] = attr
-		self.bufferList.append(data)
+		self.d_buffer[attr] = data
+		self.d_indexToAttr[index] = attr
+		self.l_buffer.append(data)
 		
 	#verify data order
-	for key in d_indexToAttr.keys():
-	    self.bufferList[key] = self.bufferDict[d_indexToAttr[key]]
+	for key in self.d_indexToAttr.keys():
+	    self.l_buffer[key] = self.d_buffer[self.d_indexToAttr[key]]
                     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
 	if self.isReferenced():
 	    log.warning('This function is not designed for referenced buffer nodes')
 	    return False	
-	listCopy = copy.copy(self.bufferList)
+	listCopy = copy.copy(self.l_buffer)
 	self.value = listCopy
 	self.updateData()
                     
@@ -1818,12 +1820,12 @@ class cgmBufferNode(cgmNode):
 	    log.warning("'%s' doesn't exist"%info)
 	    return
         
-        if not allowDuplicates and info in self.bufferList:
+        if not allowDuplicates and info in self.l_buffer:
             log.info("'%s' is already stored on '%s'"%(info,self.mNode))    
             return
         
 
-	if index is not None and index < len(self.bufferList):
+	if index is not None and index < len(self.l_buffer):
 	    cnt = index
 	else:
 	    cnt = self.returnNextAvailableCnt()
@@ -1834,8 +1836,8 @@ class cgmBufferNode(cgmNode):
         
         #attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)
 	self.updateData()
-        #self.bufferList.append(info)
-        #self.bufferDict['item_'+str(cnt)] = info
+        #self.l_buffer.append(info)
+        #self.d_buffer['item_'+str(cnt)] = info
         
     def doStoreSelected(self): 
         """ Store elected objects """
@@ -1864,15 +1866,15 @@ class cgmBufferNode(cgmNode):
 	    log.warning('This function is not designed for referenced buffer nodes')
 	    return False
 	
-        if info not in self.bufferList:
+        if info not in self.l_buffer:
             guiFactory.warning("'%s' isn't already stored '%s'"%(info,self.mNode))    
             return
         
-        for key in self.bufferDict.keys():
-            if self.bufferDict.get(key) == info:
+        for key in self.d_buffer.keys():
+            if self.d_buffer.get(key) == info:
                 attributes.doDeleteAttr(self.mNode,key)
-                self.bufferList.remove(info)
-                self.bufferDict.pop(key)
+                self.l_buffer.remove(info)
+                self.d_buffer.pop(key)
                 
         log.warning("'%s' removed!"%(info))  
                 
@@ -1911,26 +1913,26 @@ class cgmBufferNode(cgmNode):
                 attributes.doDeleteAttr(self.mNode,attr)
                 log.debug("Deleted: '%s.%s'"%(self.mNode,attr))  
                 
-        self.bufferList = []
-        self.bufferDict = {}        
+        self.l_buffer = []
+        self.d_buffer = {}        
          
     def select(self):
         """ 
         Select the buffered objects. Need to work out nested searching better
         only goes through two nexts now
         """        
-        if self.bufferList:
+        if self.l_buffer:
             selectList = []
             # Need to dig down through the items
-            for item in self.bufferList:
+            for item in self.l_buffer:
                 if search.returnTagInfo(item,'cgmType') == 'objectBuffer':
                     tmpFactory = cgmBuffer(item)
-                    selectList.extend(tmpFactory.bufferList)
+                    selectList.extend(tmpFactory.l_buffer)
                     
-                    for item in tmpFactory.bufferList:
+                    for item in tmpFactory.l_buffer:
                         if search.returnTagInfo(item,'cgmType') == 'objectBuffer':
                             subTmpFactory = cgmBuffer(item)   
-                            selectList.extend(subTmpFactory.bufferList)
+                            selectList.extend(subTmpFactory.l_buffer)
                             
                 else:
                     selectList.append(item)
@@ -1943,8 +1945,8 @@ class cgmBufferNode(cgmNode):
     
     def key(self,*a,**kw):
         """ Select the buffered objects """        
-        if self.bufferList:
-            mc.select(self.bufferList)
+        if self.l_buffer:
+            mc.select(self.l_buffer)
             mc.setKeyframe(*a,**kw)
             return True
         
@@ -2013,7 +2015,7 @@ class cgmAttr(object):
 		self.attrType = 'message'		
 	    else:
 		dataReturn = search.returnDataType(value)
-		log.info("Trying to create attr of type '%s'"%dataReturn)
+		log.debug("Trying to create attr of type '%s'"%dataReturn)
 		self.attrType = attributes.validateRequestedAttrType(dataReturn)
 	else:
 	    self.attrType = attributes.validateRequestedAttrType(attrType)
