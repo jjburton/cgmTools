@@ -66,7 +66,7 @@ def returnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
     attrType1(string)  
     attrType1(string)  
     """
-    assert mc.objExists('%s.%s'%(sourceObj,sourceAttr)) is True,"'%s.%s' doesn't exist."%(sourceObj,sourceAttr)
+    assert mc.objExists('%s.%s'%(sourceObj,sourceAttr)) is True,"returnCompatibleAttrs error. '%s.%s' doesn't exist."%(sourceObj,sourceAttr)
     assert mc.objExists(target) is True,"'%s' doesn't exist."%(target)
     
     sourceType = validateRequestedAttrType( mc.getAttr((sourceObj+'.'+sourceAttr),type=True) )
@@ -878,7 +878,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     connectTargetToSource = kw.pop('connectTargetToSource',False) 
     
     if not mc.objExists('%s.%s'%(fromObject,fromAttr)):
-        log.warning("Source '%s.%s' doesn't exist"%(fromObject,fromAttr))
+        log.debug("doCopyAttr error. Source '%s.%s' doesn't exist"%(fromObject,fromAttr))
         return False
     assert mc.objExists(toObject) is True,"Target '%s' doesn't exist"%toObject
     
@@ -2552,7 +2552,7 @@ def reorderAttributes(obj,attrs,direction = 0):
     """
     assert direction in [0,1],"Direction must be 0 for negative, or 1 for positive movement"
     for attr in attrs:
-        assert mc.objExists(obj+'.'+attr) is True, "'%s.%s' doesn't exist. Swing and a miss..."%(obj,atr)
+        assert mc.objExists(obj+'.'+attr) is True, "reorderAttributes error. '%s.%s' doesn't exist. Swing and a miss..."%(obj,atr)
         
     userAttrs = mc.listAttr(obj,userDefined = True)
     
