@@ -19,6 +19,8 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
@@ -59,6 +61,8 @@ class go(object):
         if not issubclass(type(moduleInstance),cgmPM.cgmModule):
             log.error("Not a cgmModule: '%s'"%moduleInstance)
             return 
+	if not mc.objExists(moduleInstance.mNode):
+	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
         
         assert moduleInstance.mClass in ['cgmModule','cgmLimb'],"Not a module"
         assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
@@ -173,7 +177,7 @@ def rigSpine(goInstance):
             l_iInfluenceJoints.append(i_new)
     
     
-    createControlSurfaceSegment(l_surfaceJoints)
+    createControlSurfaceSegment(l_surfaceJoints,moduleInstance=self.m)
     return l_surfaceJoints
     
 
@@ -181,15 +185,28 @@ def rigSpine(goInstance):
 #>>> Utilities
 #===================================================================
 @r9General.Timer
-def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test'):
+def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test', moduleInstance = None):
     """
     """
     #Good way to verify an instance list?
     #validate orientation
     outChannel = orientation[2]
     upChannel = '%sup'%orientation[1]
-    log.info("out: '%s'"%outChannel)
-    log.info("up: '%s'"%upChannel)
+    
+    i_module = False
+    i_rigNull = False
+    if moduleInstance is not None:
+	if issubclass(type(moduleInstance),cgmPM.cgmModule):
+	    i_module = moduleInstance
+	    i_rigNull = i_module.rigNull
+	else:
+	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    
+    #Create our group
+    i_grp = cgmMeta.cgmObject(name = 'newgroup')
+    i_grp.addAttr('cgmName', name, lock=True)
+    i_grp.addAttr('cgmTypeModifier','surfaceFollow', lock=True)
+    i_grp.doName()
     
     #Create surface
     l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
@@ -198,6 +215,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test'):
     i_controlSurface.addAttr('cgmName',name,attrType='string',lock=True)    
     i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
     i_controlSurface.doName()
+    i_controlSurface.addAttr('mClass','cgmObject')
     
     l_iJointList = [cgmMeta.cgmObject(j) for j in jointList]
     #Create folicles
@@ -221,6 +239,9 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test'):
         
         l_iFollicleShapes.append(i_follicleShape)
         l_iFollicleTransforms.append(i_follicleTrans)
+	
+	i_follicleTrans.parent = i_grp.mNode	
+	
         #>> Surface Anchor ===================================================
         
         """
@@ -245,9 +266,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test'):
         #>>> Connect the joint
         #attributes.doConnectAttr('%s.translate'%i_grpPos.mNode,'%s.translate'%i_jnt.mNode)
         
-    #>>>Create distance nodes
     #>>>Create scale stuff
-    #>>>Create IK effectors
+    #>>>Create IK effectors,Create distance nodes
     l_iIK_effectors = []
     l_iIK_handles = []  
     l_iDistanceObjects = []
@@ -272,8 +292,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test'):
         l_iIK_effectors.append(i_IK_Effector)
         
         #>> create up loc
-        i_loc = i_jnt.doLoc()
-        mc.move(0, 10, 0, i_loc.mNode, r=True,os=True,wd=True)
+        #i_loc = i_jnt.doLoc()
+        #mc.move(0, 10, 0, i_loc.mNode, r=True,os=True,wd=True)
         
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
@@ -281,21 +301,82 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test'):
         i_distanceObject.doStore('cgmName',i_jnt.mNode)
         i_distanceObject.addAttr('cgmType','measureNode',lock=True)
         i_distanceObject.doName(nameShapes = True)
-        
+	i_distanceObject.parent = i_grp.mNode#parent it
+        i_distanceObject.overrideEnabled = 1
+        i_distanceObject.overrideVisibility = 0
+	
         #Connect things
         mc.connectAttr ((l_iFollicleTransforms[i].mNode+'.translate'),(i_distanceShape.mNode+'.startPoint'))
         mc.connectAttr ((l_iFollicleTransforms[i+1].mNode+'.translate'),(i_distanceShape.mNode+'.endPoint'))
         
         l_iDistanceObjects.append(i_distanceObject)
         l_iDistanceShapes.append(i_distanceShape)
-        
-        #Connect joint to follicle
-        #constraint = mc.pointConstraint(l_iFollicleTransforms[i].mNode,i_jnt.mNode, maintainOffset=True)
-    
+            
     #Connect the first joint's position since an IK handle isn't controlling it    
     attributes.doConnectAttr('%s.translate'%l_iFollicleTransforms[0].mNode,'%s.translate'%l_iJointList[0].mNode)
     
+    #>>>Hook up scales
+    #World scale
+    
+    #Buffer
+    i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = name,overideMessageCheck=True)
+    i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
+    i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
+    i_jntScaleBufferNode.doName()
+    
+    i_jntScaleBufferNode.connectParentNode(i_controlSurface.mNode,'surface','scaleBuffer')
+    
+    for i,i_jnt in enumerate(l_iJointList[:-1]):
+	#Store our distance base to our buffer
+        try:i_jntScaleBufferNode.store(l_iDistanceShapes[i].distance)#Store to our buffer
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to store joint distance: %s"%l_iDistanceShapes[i].mNode
+	
+	#Create the mdNode
+	i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_md.operation = 2
+	i_md.doStore('cgmName',i_jnt.mNode)
+	i_md.addAttr('cgmTypeModifier','masterScale')
+	i_md.doName()
+	attributes.doConnectAttr('%s.%s'%(l_iDistanceShapes[i].mNode,'distance'),#>>
+	                         '%s.%s'%(i_md.mNode,'input1X'))
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	                         '%s.%s'%(i_md.mNode,'input2X'))
+	
+	#Connect to the joint
+	try:
+	    attributes.doConnectAttr('%s.%s'%(i_md.mNode,'output.outputX'),#>>
+		                     '%s.s%s'%(i_jnt.mNode,orientation[0]))
+	    for axis in orientation[1:]:
+		attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
+		                         '%s.s%s'%(i_jnt.mNode,axis))	    
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
+	
+	"""
+	mdArg = [{'result':[i_jnt.mNode,'sy'],'drivers':[[l_iDistanceShapes[i].mNode,'distance'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],'driven':[]},
+	         {'result':[i_jnt.mNode,'sx'],'drivers':[[l_iDistanceShapes[i].mNode,'distance'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],'driven':[]}]
+	#mdArg = [{'drivers':[[i_jntScaleBufferNode,'masterScale'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],
+	          #'driven':[[i_jnt.mNode,'sy'],[i_jnt.mNode,'sx']]}]
         
+        try:NodeF.build_mdNetwork(mdArg, defaultAttrType='float',operation=2)
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to build network: %s"%mdArg 
+	"""
+	
+    #Connect last joint scale to second to last
+    for axis in ['scaleX','scaleY','scaleZ']:
+	attributes.doConnectAttr('%s.%s'%(l_iJointList[-2].mNode,axis),#>>
+                                 '%s.%s'%(l_iJointList[-1].mNode,axis))	 
+	
+    log.info(i_rigNull)    
+    #Add squash and stretch
+    
+    #Figure out what to return
+    
     """
     # connect joints to surface#
     surfaceConnectReturn = joints.attachJointChainToSurface(surfaceJoints,controlSurface,jointOrientation,upChannel,'animCrv')
