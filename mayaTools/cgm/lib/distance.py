@@ -744,8 +744,35 @@ def returnDirectionSortedDict(targetObject,objectList):
             returnDict[direction] = directionObjsBuffer
     return returnDict
 
+def returnLinearDirection(rootObj,aimObj):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns a linear direction
 
+    ARGUMENTS:
+    rootObj(string)
+    aimObj(string)
 
+    RETURNS:
+    direction(string) - 'x,y,z,-x,-y,-z'
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    #make locators in case we're using something like joints
+    axis = {0:'x',1:'y',2:'z'}
+    rootPos = mc.xform (rootObj,q=True, ws=True, rp=True)
+    aimPos = mc.xform (aimObj,q=True, ws=True, rp=True)
+
+    rawDifferenceList = [(aimPos[0]-rootPos[0]),(aimPos[1]-rootPos[1]),(aimPos[2]-rootPos[2])]
+    absDifferenceList = [abs(rawDifferenceList[0]),abs(rawDifferenceList[1]),abs(rawDifferenceList[2])]
+
+    biggestNumberIndex = absDifferenceList.index(max(absDifferenceList))
+    direction = axis.get(biggestNumberIndex)
+    if rawDifferenceList[biggestNumberIndex] < 0:
+        return ('%s%s' %('-',direction))
+    else:
+        return (direction)
+    
 def returnClosestObjectsFromAim(targetObject,objectList):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -799,7 +826,47 @@ def returnClosestObjectsFromAim(targetObject,objectList):
 
     #>>> distances
 
+def returnLocalAimDirection(rootObj,aimObj):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns a local aim direction
 
+    ARGUMENTS:
+    rootObj(string)
+    aimObj(string)
+
+    RETURNS:
+    direction(list) - [0,0,0]
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    directionalLocArray = []
+    locGroups = []
+    directions = ['+x','-x','+y','-y','+z','-z']
+    returnDirections = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]
+    distanceBuffer = returnDistanceBetweenObjects(rootObj,aimObj)
+
+    #distanceValues = distanceBuffer /2
+    cnt = 0
+    for direction in directions:
+	locBuffer = mc.spaceLocator()[0]
+	pos = returnWorldSpacePosition(locBuffer)
+	mc.move (pos[0],pos[1],pos[2], locBuffer)	
+        locGroups.append(rigging.groupMeObject(locBuffer))
+        directionBuffer = list(direction)
+        if directionBuffer[0] == '-':
+            mc.setAttr((locBuffer+'.t'+directionBuffer[1]), -1)
+        else:
+            mc.setAttr((locBuffer+'.t'+directionBuffer[1]), 1)
+        directionalLocArray.append(locBuffer)
+        cnt+=1
+    closestLoc = returnClosestObject(aimObj, directionalLocArray)
+    matchIndex = directionalLocArray.index(closestLoc)
+
+    for grp in locGroups:
+        mc.delete(grp)
+
+    return returnDirections[matchIndex]
 
 def returnDistanceSortedList(targetObject, objectList):
     """
