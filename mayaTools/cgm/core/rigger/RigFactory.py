@@ -27,6 +27,7 @@ from cgm.core.lib import nameTools
 reload(mControlFactory)
 from cgm.lib import (cgmMath,
                      attributes,
+                     deformers,
                      locators,
                      constraints,
                      modules,
@@ -34,6 +35,7 @@ from cgm.lib import (cgmMath,
                      distance,
                      dictionary,
                      joints,
+                     skinning,
                      rigging,
                      search,
                      curves,
@@ -97,7 +99,7 @@ class go(object):
             self.direction = self.m.cgmDirection or None
                
         #>>> Instances and joint stuff
-        self.jointOrientation = modules.returnSettingsData('jointOrientation')        
+        self.jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
         
         #>>> We need to figure out which control to make
         self.l_controlsToMakeArg = []
@@ -176,16 +178,56 @@ def rigSpine(goInstance):
             i_new.doName()
             l_iInfluenceJoints.append(i_new)
     
+    #Control Surface
+    #====================================================================================
+    #Create surface
+    surfaceReturn = createControlSurfaceSegment(l_surfaceJoints,
+                                                self.jointOrientation,
+                                                self.partName,
+                                                moduleInstance=self.m)
+    #Add squash
+    addSquashAndStretchToControlSurfaceSetup(surfaceReturn['surfaceScaleBuffer'],l_surfaceJoints,moduleInstance=self.m)
+    log.info(surfaceReturn)
+
+    #surface influence joints cluster#
+    i_controlSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in l_iInfluenceJoints],
+                                                              surfaceReturn['i_controlSurface'].mNode,
+                                                              tsb=True,
+                                                              maximumInfluences = 3,
+                                                              normalizeWeights = 1,dropoffRate=1)[0])
     
-    createControlSurfaceSegment(l_surfaceJoints,moduleInstance=self.m)
-    return l_surfaceJoints
+    i_controlSurfaceCluster.addAttr('cgmName', str(self.partName), lock=True)
+    i_controlSurfaceCluster.addAttr('cgmTypeModifier','controlSurface', lock=True)
+    i_controlSurfaceCluster.doName()
+    
+    log.info(i_controlSurfaceCluster.mNode)
+    # smooth skin weights #
+    #skinning.simpleControlSurfaceSmoothWeights(i_controlSurfaceCluster.mNode)   
     
 
 
 #>>> Utilities
 #===================================================================
 @r9General.Timer
-def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test', moduleInstance = None):
+def controlSurfaceSmoothWeights(controlSurface):
+    if issubclass(type(controlSurface),cgmMeta.cgmNode):
+	i_surface = controlSurface
+    elif mc.objExists(controlSurface):
+	i_surface = cgmMeta.cgmNode(controlSurface)
+    else:
+	raise StandardError,"controlSurfaceSmoothWeights failed. Surface doesn't exist: '%s'"%controlSurface
+    l_cvs = i_surface.getComponents('cv')
+    l_skinClusters = deformers.returnObjectDeformers(i_surface.mNode,deformerTypes = 'skinCluster')
+    i_skinCluster = cgmMeta.cgmNode(l_skinClusters[0])
+    l_influenceObjects = skinning.queryInfluences(i_skinCluster.mNode)
+    
+    log.info("l_skinClusters: '%s'"%l_skinClusters)
+    log.info("i_skinCluster: '%s'"%i_skinCluster)
+    log.info("l_influenceObjects: '%s'"%l_influenceObjects)
+    
+    
+@r9General.Timer
+def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
     """
     """
     #Good way to verify an instance list?
@@ -204,7 +246,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test', modul
     
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
-    i_grp.addAttr('cgmName', name, lock=True)
+    i_grp.addAttr('cgmName', str(baseName), lock=True)
     i_grp.addAttr('cgmTypeModifier','surfaceFollow', lock=True)
     i_grp.doName()
     
@@ -212,7 +254,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test', modul
     l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
     
     i_controlSurface = cgmMeta.cgmObject( l_surfaceReturn[0] )
-    i_controlSurface.addAttr('cgmName',name,attrType='string',lock=True)    
+    i_controlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
     i_controlSurface.doName()
     i_controlSurface.addAttr('mClass','cgmObject')
@@ -319,7 +361,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test', modul
     #World scale
     
     #Buffer
-    i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = name,overideMessageCheck=True)
+    i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
     i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
     i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
     i_jntScaleBufferNode.doName()
@@ -372,24 +414,120 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',name='test', modul
 	attributes.doConnectAttr('%s.%s'%(l_iJointList[-2].mNode,axis),#>>
                                  '%s.%s'%(l_iJointList[-1].mNode,axis))	 
 	
-    log.info(i_rigNull)    
-    #Add squash and stretch
-    
-    #Figure out what to return
-    
+    return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':l_iJointList}
     """
     # connect joints to surface#
     surfaceConnectReturn = joints.attachJointChainToSurface(surfaceJoints,controlSurface,jointOrientation,upChannel,'animCrv')
-    print surfaceConnectReturn
-    # surface influence joints skinning#
-    surfaceSkinCluster = mc.skinCluster (influenceJoints,controlSurface,tsb=True, n=(controlSurface+'_skinCluster'),maximumInfluences = 3, normalizeWeights = 1,dropoffRate=1)
-    #surfaceSkinCluster = mc.skinCluster (influenceJoints,controlSurface,tsb=True, n=(controlSurface+'_skinCluster'),maximumInfluences = 3, normalizeWeights = 1, dropoffRate=1,smoothWeights=.5,obeyMaxInfluences=True, weight = 1)
-    controlSurfaceSkinCluster = surfaceSkinCluster[0]
-    
-    # smooth skin weights #
-    skinning.simpleControlSurfaceSmoothWeights(controlSurface)    
+    print surfaceConnectReturn 
     """
     
+@r9General.Timer
+def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,orientation = 'zyx', moduleInstance = None):
+    """
+    """
+    #Good way to verify an instance list?
+    #validate orientation
+    outChannel = orientation[2].capitalize()
+    upChannel = orientation[1].capitalize()
+    aimChannel = orientation[0].capitalize()
+    
+    #moduleInstance
+    i_module = False
+    i_rigNull = False
+    if moduleInstance is not None:
+	if issubclass(type(moduleInstance),cgmPM.cgmModule):
+	    i_module = moduleInstance
+	    i_rigNull = i_module.rigNull
+	else:
+	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    #attributeHolder
+    i_holder = cgmMeta.cgmNode(attributeHolder)
+    
+    #Initialize joint list
+    l_iJointList = [cgmMeta.cgmObject(j) for j in jointList]
+    
+    l_iScaleNodes = []
+    l_iSqrtNodes = []
+    l_iAttrs = []
+    for i,i_jnt in enumerate(l_iJointList[:-1]):
+	#make sure attr exists
+	i_attr = cgmMeta.cgmAttr(i_holder,"scaleMult_%s"%i,attrType = 'float',initialValue=1)
+	outScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%outChannel)
+	upScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%upChannel)
+	
+	#Create the multScale
+	i_mdScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdScale.operation = 2
+	i_mdScale.doStore('cgmName',i_jnt.mNode)
+	i_mdScale.addAttr('cgmTypeModifier','multScale')
+	i_mdScale.doName()
+	for channel in [outChannel,upChannel]:
+	    attributes.doConnectAttr('%s.scale%s'%(i_jnt.mNode,aimChannel),#>>
+		                     '%s.input1%s'%(i_mdScale.mNode,channel))
+	    attributes.doConnectAttr('%s'%(outScalePlug),#>>
+		                     '%s.input2%s'%(i_mdScale.mNode,channel))
+	    
+	#Create the sqrtNode
+	i_sqrtScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_sqrtScale.operation = 3#set to power
+	i_sqrtScale.doStore('cgmName',i_jnt.mNode)
+	i_sqrtScale.addAttr('cgmTypeModifier','sqrtScale')
+	i_sqrtScale.doName()
+	for channel in [outChannel,upChannel]:
+	    attributes.doConnectAttr('%s.output%s'%(i_mdScale.mNode,channel),#>>
+	                             '%s.input1%s'%(i_sqrtScale.mNode,channel))
+	    mc.setAttr("%s.input2"%(i_sqrtScale.mNode)+channel,.5)
+	    
+	#Create the invScale
+	i_invScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_invScale.operation = 2
+	i_invScale.doStore('cgmName',i_jnt.mNode)
+	i_invScale.addAttr('cgmTypeModifier','invScale')
+	i_invScale.doName()
+	for channel in [outChannel,upChannel]:
+	    mc.setAttr("%s.input1"%(i_invScale.mNode)+channel,1)	    
+	    attributes.doConnectAttr('%s.output%s'%(i_sqrtScale.mNode,channel),#>>
+	                             '%s.input2%s'%(i_invScale.mNode,channel))
+	
+	#Create the powScale
+	i_powScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_powScale.operation = 3
+	i_powScale.doStore('cgmName',i_jnt.mNode)
+	i_powScale.addAttr('cgmTypeModifier','powScale')
+	i_powScale.doName()
+	for channel in [outChannel,upChannel]:
+	    attributes.doConnectAttr('%s.output%s'%(i_invScale.mNode,channel),#>>
+		                     '%s.input1%s'%(i_powScale.mNode,channel))
+	    attributes.doConnectAttr('%s'%(i_attr.p_combinedName),#>>
+		                     '%s.input2%s'%(i_powScale.mNode,channel))
+	
+	#Create the worldScale multiplier node
+	i_worldScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_worldScale.operation = 1
+	i_worldScale.doStore('cgmName',i_jnt.mNode)
+	i_worldScale.addAttr('cgmTypeModifier','worldScale')
+	i_worldScale.doName()
+	for channel in [outChannel,upChannel]:
+	    mc.setAttr("%s.input1"%(i_worldScale.mNode)+channel,1)
+	    #Connect powScale to the worldScale
+	    attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,channel),#>>
+	                             '%s.input1%s'%(i_worldScale.mNode,channel))
+	#Connect original plugs
+	attributes.doConnectAttr('%s'%(outScalePlug),#>>
+                                 '%s.input2%s'%(i_worldScale.mNode,outChannel))  
+	attributes.doConnectAttr('%s'%(upScalePlug),#>>
+                                 '%s.input2%s'%(i_worldScale.mNode,upChannel)) 
+	
+	#Connect to joint
+	attributes.doConnectAttr('%s.output%s'%(i_worldScale.mNode,outChannel),#>>
+                                 '%s.scale%s'%(i_jnt.mNode,outChannel))  
+	attributes.doConnectAttr('%s.output%s'%(i_worldScale.mNode,upChannel),#>>
+                                 '%s.scale%s'%(i_jnt.mNode,upChannel)) 	
+	
+	l_iAttrs.append(i_attr)
+
+#>>> Register rig functions
+#=====================================================================
 d_moduleRigFunctions = {'torso':rigSpine,
                         }
     
