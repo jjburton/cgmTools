@@ -28,14 +28,20 @@ import maya.cmds as mc
 import maya.mel as mel
 
 from cgm.lib import distance
+from cgm.lib import locators
 from cgm.lib import rigging
 from cgm.lib import cgmMath
 from cgm.lib import guiFactory
+from cgm.lib import logic
 
 from zooPyMaya import apiExtensions
 from maya.OpenMayaAnim import MFnSkinCluster
 from maya.OpenMaya import MIntArray, MDagPathArray
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 reload (distance)
 
