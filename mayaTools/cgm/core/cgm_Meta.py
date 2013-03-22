@@ -780,10 +780,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    buffer =  locators.locMeObject(self.getComponent(),forceBBCenter = forceBBCenter)
 	elif self.isTransform():
 	    buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
-	
 	if not buffer:
 	    return False
-	log.info(buffer)
 	i_loc = cgmObject(buffer)
 	i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
 	i_loc.doName()
