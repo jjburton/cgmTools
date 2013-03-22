@@ -1485,7 +1485,7 @@ def doBreakConnection(obj,attr=None):
     attr(string) - the attribute to break the connection on
 
     RETURNS:
-    True/False depending if it found anything to break
+    source buffer or False
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if '.' in obj:
