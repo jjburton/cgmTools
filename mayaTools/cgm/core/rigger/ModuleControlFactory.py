@@ -152,15 +152,93 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
     
     #Gether information 
     i_templateNull = i_m.templateNull
-    bodyGeo = i_m.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic
+    bodyGeo = i_m.modulePuppet.getGeo() or ['Morphy_Body_GEO1'] #>>>>>>>>>>>>>>>>>this needs better logic
     l_controlSnapObjects = []
     for i_obj in i_templateNull.controlObjects:
         l_controlSnapObjects.append(i_obj.helper.mNode)  
         
     skinDepth = 2.5
-    d_returnControls = {}    
+    d_returnControls = {}   
     
     if 'segmentControls' in controlTypes:
+        l_segmentControls = []
+        l_indexPairs = lists.parseListToPairs(list(range(len(l_controlSnapObjects))))
+        l_segments = lists.parseListToPairs(l_controlSnapObjects)
+        for i,seg in enumerate(l_segments):
+            #> Figure out a base scale and set it
+            if not bodyGeo:
+                raise StandardError,"NO BODY GEO"
+	    
+            log.info("segment: %s"%seg)
+            log.info("indices: %s"%l_indexPairs[i])
+	    distanceMult = .2
+	    
+            #>>> Get a base distance
+            distanceToMove = distance.returnDistanceBetweenObjects(seg[0],seg[1])
+            log.info("distanceToMove: %s"%distanceToMove)
+            l_groupsBuffer = []
+            #Need to do more to get a better size
+            
+            #>>> Build curves
+            #=================================================================
+	    points = 8
+            #> Root curve #
+            i_rootLoc = cgmMeta.cgmNode(seg[0]).doLoc()
+            i_rootLoc.doGroup()
+            i_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
+            
+            i_root = cgmMeta.cgmObject( createMeshSliceCurve(bodyGeo[0],i_rootLoc,posOffset = [0,0,skinDepth],points = points) )
+            
+            #> End Curve
+            i_endLoc = cgmMeta.cgmNode(seg[1]).doLoc()
+            i_endLoc.doGroup()
+            i_endLoc.tz = -(distanceToMove*distanceMult)#Offset it  
+            i_end = cgmMeta.cgmObject( createMeshSliceCurve(bodyGeo[0],i_endLoc,posOffset = [0,0,skinDepth],points=points) )
+                        
+            
+            #> Side Curves
+            l_rootPos = []
+            l_endPos = []
+            l_curvesToCombine = []
+	    """
+            for cv in [0,3,5,7]:
+                l_posBuffer = []
+                #>>> Need to get u positions for more accuracy
+                l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_root.mNode,cv-1)).getPosition())
+                l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_end.mNode,cv-1)).getPosition())
+                l_curvesToCombine.append( mc.curve(d=1,ep=l_posBuffer,os =True) )#Make the curve
+            """
+            #>>>Store groups
+            l_groupsBuffer.append( i_endLoc.parent )
+            l_groupsBuffer.append( i_rootLoc.parent )
+
+            #>>>Combine the curves
+            l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
+            newCurve = curves.combineCurves(l_curvesToCombine) 
+            i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+            curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+            mc.delete(newCurve)
+            
+            #>>Copy tags and name
+            i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+            i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+            i_crv.doName()
+            
+            #>>> Color
+            curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])                    
+            
+            #>>>Clean up groups
+            for g in l_groupsBuffer:
+                if mc.objExists(g):
+                    mc.delete(g)
+            
+            #Store for return
+            l_segmentControls.append( i_crv.mNode )
+            
+
+        d_returnControls['segmentControls'] = l_segmentControls 
+            
+    if 'segmentControls2' in controlTypes:
             l_segmentControls = []
             l_indexPairs = lists.parseListToPairs(list(range(len(l_controlSnapObjects))))
             l_segments = lists.parseListToPairs(l_controlSnapObjects)
@@ -194,22 +272,7 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
                     log.info("Shrinkwrap mode")
                     Snap.go(i_loc.mNode,i_root.parent,move = True, orient = True)#Snap
                     i_loc.parent = i_root.parent#parent
-                    """
-                    #> First y
-                    i_loc.ty = distanceToMove*multiplier#Move
-                    d_yPos1 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#Get Data
-                    i_loc.ty = -distanceToMove*multiplier#Move
-                    d_yPos2 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#GetData
-                    #> Now x
-                    i_loc.ty = 0
-                    i_loc.tx = distanceToMove*multiplier#Move                
-                    d_xPos1 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#Get Data
-                    i_loc.tx = -distanceToMove*multiplier#Move
-                    d_xPos2 = distance.returnClosestPointOnMeshInfo(i_loc.mNode,bodyGeo[0])#GetData
-                    #> Now distance
-                    f_yScale = distance.returnDistanceBetweenPoints(d_yPos1['position'],d_yPos2['position'])
-                    f_xScale = distance.returnDistanceBetweenPoints(d_xPos1['position'],d_xPos2['position'])
-                    """
+
                     d_info = returnBaseControlSize(i_loc,bodyGeo[0],axis = ['x','y'])
                     xScale = d_info['x']
                     yScale = d_info['y']
@@ -774,3 +837,60 @@ def limbControlMakerBAK(moduleNull,controlTypes = ['cog']):
 
     
     return returnControls"""
+
+@r9General.Timer
+def createMeshSliceCurve(mesh, i_obj,latheAxis = 'z',aimAxis = 'y+', points = 12,posOffset = 0, markHits = False):
+    if issubclass(type(i_obj),cgmMeta.cgmObject):
+        i_obj = i_obj
+    else:
+        try:
+	    i_obj = cgmMeta.cgmObject(i_obj)
+	except StandardError,error:
+		log.error(error) 
+		return False
+	    
+    if type(mesh) in [list,tuple]:
+	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
+	mesh = mesh[0]
+    i_loc = i_obj.doLoc()
+    i_loc.doGroup()
+    l_pos = []
+    rotateValue = 360/points
+    for i in range(points):
+	d_castReturn = {}
+	hit = False
+	#shoot our ray, store the hit
+	log.debug("Casting: %i>>%f"%(i,rotateValue*i))
+	i_loc.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue*i)	
+	try:
+	    d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, i_loc.mNode, axis=aimAxis)
+	    try:hit = d_castReturn.get('hit')
+	    except:hit = False	
+	except StandardError,error:
+		log.error(error) 
+	if hit:
+	    if markHits or posOffset:
+		i_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator()[0])
+		mc.move (hit[0],hit[1],hit[2], i_tmpLoc.mNode)	
+		if posOffset:
+		    constBuffer = mc.normalConstraint(mesh,i_tmpLoc.mNode,
+			                              aimVector=[0,0,1],
+			                              upVector=[0,1,0],
+			                              worldUpType = 'scene')
+		    mc.delete(constBuffer)
+		    mc.move(posOffset[0],posOffset[1],posOffset[2], [i_tmpLoc.mNode], r=True, rpr = True, os = True, wd = True)
+		    hit = i_tmpLoc.getPosition()
+		if not markHits:
+		    i_tmpLoc.delete()
+		
+	    l_pos.append(hit)
+		    
+    mc.delete(i_loc.parent)
+    if len(l_pos)>3:
+	buffer = l_pos[0]
+	l_finalPos = l_pos.append(buffer)
+	return mc.curve (d=3, ep = l_pos, os=True)
+    
+    return False    
+    
+    
