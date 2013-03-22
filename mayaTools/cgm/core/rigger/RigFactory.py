@@ -81,14 +81,16 @@ class go(object):
                 return        
         """
         #>>> Gather info
-        #=========================================================
+        #=========================================================	
         self.l_moduleColors = self.m.getModuleColors()
         self.l_coreNames = self.m.coreNames.value
-        self.i_templateNull = self.m.templateNull
+        self.i_templateNull = self.m.templateNull#speed link
+	self.i_rigNull = self.m.rigNull#speed link
         self.bodyGeo = self.m.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
+        
         #Joints
-        self.l_skinJoints = self.m.rigNull.getMessage('skinJoints')
-        self.l_iSkinJoints = self.m.rigNull.skinJoints
+        self.l_skinJoints = self.i_rigNull.getMessage('skinJoints')
+        self.l_iSkinJoints = self.i_rigNull.skinJoints
         
         #>>> part name 
         self.partName = self.m.getPartNameBase()
@@ -105,18 +107,21 @@ class go(object):
         self.l_controlsToMakeArg = []
         if not self.m.getMessage('moduleParent'):
             self.l_controlsToMakeArg.append('cog')
-        if self.m.rigNull.ik:
-            self.l_controlsToMakeArg.extend(['vectorHandles'])
-            if self.partType == 'torso':#Maybe move to a dict?
-                self.l_controlsToMakeArg.append('spineIKHandle')            
-        if self.m.rigNull.fk:
+        #if self.i_rigNull.ik:
+            #self.l_controlsToMakeArg.extend(['vectorHandles'])
+            #if self.partType == 'torso':#Maybe move to a dict?
+                #self.l_controlsToMakeArg.append('spineIKHandle')            
+        if self.i_rigNull.fk:
             self.l_controlsToMakeArg.extend(['segmentControls'])
             if self.partType == 'torso':#Maybe move to a dict?
                 self.l_controlsToMakeArg.append('hips')
         log.info("l_controlsToMakeArg: %s"%self.l_controlsToMakeArg)
         
-        #self.d_controls = mControlFactory.limbControlMaker(self.m,self.l_controlsToMakeArg)
-        
+        self.d_controlShapes = mControlFactory.limbControlMaker(self.m,self.l_controlsToMakeArg)
+        for key in self.l_controlsToMakeArg:
+	    if key not in self.d_controlShapes:
+		log.warning("Necessary control shape(s) was not built: '%s'"%key)
+	    
         #Make our stuff
         if self.partType in d_moduleRigFunctions.keys():
             log.info("mode: cgmLimb control building")
@@ -125,13 +130,50 @@ class go(object):
                 #raise StandardError,"limbControlMaker failed!"
         else:
             raise NotImplementedError,"haven't implemented '%s' rigging yet"%self.m.mClass
+
+@r9General.Timer
+def registerControl(controlObject,typeModifier = None,copyTransform = None):
+    """ Function to register a control and get it ready for the rig"""
+    if issubclass(type(controlObject),cgmMeta.cgmObject):
+	i_control = controlObject
+    elif mc.objExists(controlObject):
+	i_control = cgmMeta.cgmObject(controlObject)
+    else:
+	raise StandardError,"Not a cgmObject or not an existing object: '%s'"%controlObject
     
+    #Name stuff
+    i_control.addAttr('mClass','cgmObject',lock=True)
+    i_control.addAttr('cgmType','controlAnim',lock=True)    
+    if typeModifier is not None:
+	i_control.addAttr('cgmTypeModifier',str(typeModifier),lock=True)
+    i_control.doName()
+    
+    #Freeze stuff
+    i_control.doGroup(True)   
+    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)	
+
+    
+    return i_control
+
+def rig_segmentFK(d_controlShapes):
+    l_fkControls = mc.duplicate(d_controlShapes.get('segmentControls'),po=False,ic=True,rc=True)
+    il_fkCcontrols = [cgmMeta.cgmObject(o) for o in l_fkControls]#instance the list    
+    
+    #Parent to heirarchy
+    rigging.parentListToHeirarchy(l_fkControls)
+    
+    for i_obj in il_fkCcontrols:
+	registerControl(i_obj,typeModifier='fk')
+	
+	
 @r9General.Timer
 def rigSpine(goInstance):
-    """ 
+    """
+    Rotate orders
+    hips = 3
     """ 
     if not issubclass(type(goInstance),go):
-        log.error("Not a RigFactory.go instance: '%s'"%goInstance.getShortName())
+        log.error("Not a RigFactory.go instance: '%s'"%goInstance)
         return False        
     self = goInstance#Link
     
@@ -139,12 +181,14 @@ def rigSpine(goInstance):
     #Add some checks like at least 3 handles
     
     #>>>Build our controls
+    log.info(self.d_controlShapes)
+  
     
     #>>>Set up structure
     
     #>>>Create joint chains
     #=============================================================
-    #>>Surface chain
+    #>>Surface chain    
     l_surfaceJoints = mc.duplicate(self.l_skinJoints[:-1],po=True,ic=True,rc=True)
     l_iSurfaceJoints = []
     for i,j in enumerate(l_surfaceJoints):
@@ -194,7 +238,7 @@ def rigSpine(goInstance):
                                                               surfaceReturn['i_controlSurface'].mNode,
                                                               tsb=True,
                                                               maximumInfluences = 3,
-                                                              normalizeWeights = 1,dropoffRate=1)[0])
+                                                              normalizeWeights = 1,dropoffRate=4.0)[0])
     
     i_controlSurfaceCluster.addAttr('cgmName', str(self.partName), lock=True)
     i_controlSurfaceCluster.addAttr('cgmTypeModifier','controlSurface', lock=True)
@@ -219,11 +263,16 @@ def controlSurfaceSmoothWeights(controlSurface):
     l_cvs = i_surface.getComponents('cv')
     l_skinClusters = deformers.returnObjectDeformers(i_surface.mNode,deformerTypes = 'skinCluster')
     i_skinCluster = cgmMeta.cgmNode(l_skinClusters[0])
-    l_influenceObjects = skinning.queryInfluences(i_skinCluster.mNode)
+    l_influenceObjects = skinning.queryInfluences(i_skinCluster.mNode) or []
     
     log.info("l_skinClusters: '%s'"%l_skinClusters)
     log.info("i_skinCluster: '%s'"%i_skinCluster)
     log.info("l_influenceObjects: '%s'"%l_influenceObjects)
+    
+    if not i_skinCluster and l_influenceObjects:
+	raise StandardError,"controlSurfaceSmoothWeights failed. Not enough info found"
+	
+    
     
     
 @r9General.Timer
