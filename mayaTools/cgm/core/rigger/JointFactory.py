@@ -252,8 +252,9 @@ def doSkeletonize(self):
     log.info("Metaclassing our objects") 
     for i,o in enumerate(l_limbJoints):
         i_o = cgmMeta.cgmObject(o)
-        i_o.addAttr('mClass','cgmObject',lock=True)  
-        if i == 0:i_o.doName(nameChildren=True,fastIterate=False)
+        i_o.addAttr('mClass','cgmObject',lock=True) 
+        
+    self.i_rigNull.skinJoints[0].doName(nameChildren=True,fastIterate=False)
         
     
     #>>> Orientation    
