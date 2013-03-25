@@ -102,7 +102,7 @@ class go(object):
                
         #>>> Instances and joint stuff
         self.jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
-        
+        """
         #>>> We need to figure out which control to make
         self.l_controlsToMakeArg = []
         if not self.m.getMessage('moduleParent'):
@@ -121,7 +121,7 @@ class go(object):
         for key in self.l_controlsToMakeArg:
 	    if key not in self.d_controlShapes:
 		log.warning("Necessary control shape(s) was not built: '%s'"%key)
-	    
+	"""    
         #Make our stuff
         if self.partType in d_moduleRigFunctions.keys():
             log.info("mode: cgmLimb control building")
@@ -181,74 +181,113 @@ def rigSpine(goInstance):
     #Add some checks like at least 3 handles
     
     #>>>Build our controls
-    log.info(self.d_controlShapes)
   
-    
     #>>>Set up structure
     
     #>>>Create joint chains
     #=============================================================
-    #>>Surface chain    
-    l_surfaceJoints = mc.duplicate(self.l_skinJoints[:-1],po=True,ic=True,rc=True)
-    l_iSurfaceJoints = []
-    for i,j in enumerate(l_surfaceJoints):
-        i_j = cgmMeta.cgmObject(j)
-        i_j.addAttr('cgmType','surfaceJoint',attrType='string')
-        i_j.doName()
-        l_surfaceJoints[i] = i_j.mNode
-        l_iSurfaceJoints.append(i_j)
-        
-    #Start
-    i_startJnt = cgmMeta.cgmObject(mc.duplicate(self.l_skinJoints[0],po=True,ic=True,rc=True)[0])
-    i_startJnt.addAttr('cgmType','deformationJoint',attrType='string',lock=True)
-    i_startJnt.doName()
-    
-    #End
-    l_endJoints = mc.duplicate(self.l_skinJoints[-2],ic=True,rc=True)
-    i_endJnt = cgmMeta.cgmObject(l_endJoints[0])
-    for j in l_endJoints:
-        i_j = cgmMeta.cgmObject(j)
-        i_j.addAttr('cgmType','deformationJoint',attrType='string',lock=True)
-        i_j.doName()
-    i_endJnt.parent = False
-    
-    #Influence chain for influencing the surface
-    l_iInfluenceJoints = []
-    for i_jnt in self.l_iSkinJoints:
-        if i_jnt.hasAttr('cgmName') and i_jnt.cgmName in self.l_coreNames:
-            i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
-            i_new.addAttr('cgmType','influenceJoint',attrType='string',lock=True)
-            i_new.parent = False
-            i_new.doName()
-            l_iInfluenceJoints.append(i_new)
-    
+    try:
+	#>>Surface chain    
+	l_surfaceJoints = mc.duplicate(self.l_skinJoints[1:-1],po=True,ic=True,rc=True)
+	log.info(l_surfaceJoints)
+	l_iSurfaceJoints = []
+	for i,j in enumerate(l_surfaceJoints):
+	    i_j = cgmMeta.cgmObject(j)
+	    i_j.addAttr('cgmType','surfaceJoint',attrType='string')
+	    i_j.doName()
+	    l_surfaceJoints[i] = i_j.mNode
+	    l_iSurfaceJoints.append(i_j)
+	l_iSurfaceJoints[0].parent = False#Parent to world
+	    
+	#Start
+	i_startJnt = cgmMeta.cgmObject(mc.duplicate(self.l_skinJoints[0],po=True,ic=True,rc=True)[0])
+	i_startJnt.addAttr('cgmType','deformationJoint',attrType='string',lock=True)
+	i_startJnt.doName()
+	
+	#End
+	l_endJoints = mc.duplicate(self.l_skinJoints[-2],ic=True,rc=True)
+	i_endJnt = cgmMeta.cgmObject(l_endJoints[0])
+	for j in l_endJoints:
+	    i_j = cgmMeta.cgmObject(j)
+	    i_j.addAttr('cgmType','deformationJoint',attrType='string',lock=True)
+	    i_j.doName()
+	i_endJnt.parent = False
+	
+	#Influence chain for influencing the surface
+	l_iInfluenceJoints = []
+	for i_jnt in self.l_iSkinJoints[:-1]:
+	    if i_jnt.hasAttr('cgmName') and i_jnt.cgmName in self.l_coreNames:
+		i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
+		i_new.addAttr('cgmType','influenceJoint',attrType='string',lock=True)
+		i_new.parent = False
+		i_new.doName()
+		if l_iInfluenceJoints:#if we have data, parent to last
+		    i_new.parent = l_iInfluenceJoints[-1]
+		else:i_new.parent = False
+		
+		l_iInfluenceJoints.append(i_new)
+		
+	l_influenceJoints = [i_jnt.mNode for i_jnt in l_iInfluenceJoints]    
+    except StandardError,error:
+	log.error("rigSpine>>Build rig joints fail!")
+	raise StandardError,error    
+    #>>>Create a constraint surface for the influence joints
+    #====================================================================================    
+    try:
+	d_constraintSurfaceReturn = createConstraintSurfaceSegment(l_influenceJoints[1:],
+	                                                           self.jointOrientation,
+	                                                           self.partName+'_constraint',
+	                                                           moduleInstance=self.m)    
+	for i_jnt in l_iInfluenceJoints:
+	    i_jnt.parent = False#Parent to world
+	    
+	for i_jnt in l_iInfluenceJoints[1:-1]:#Snap our ones with follow groups to them
+	    if i_jnt.getMessage('snapToGroup'):
+		i_jnt.parent = i_jnt.getMessage('snapToGroup')[0]
+	
+	#Skin cluster to first and last influence joints
+	i_constraintSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([l_iInfluenceJoints[0].mNode,l_iInfluenceJoints[-1].mNode],
+	                                                             d_constraintSurfaceReturn['i_controlSurface'].mNode,
+	                                                             tsb=True,
+	                                                             maximumInfluences = 3,
+	                                                             normalizeWeights = 1,dropoffRate=4.0)[0])
+	i_constraintSurfaceCluster.addAttr('cgmName', str(self.partName), lock=True)
+	i_constraintSurfaceCluster.addAttr('cgmTypeModifier','constraintSurface', lock=True)
+	i_constraintSurfaceCluster.doName()   
+    except StandardError,error:
+	log.error("rigSpine>>Constraint surface build fail")
+	raise StandardError,error
+ 
     #Control Surface
     #====================================================================================
-    #Create surface
-    surfaceReturn = createControlSurfaceSegment(l_surfaceJoints,
-                                                self.jointOrientation,
-                                                self.partName,
-                                                moduleInstance=self.m)
-    #Add squash
-    addSquashAndStretchToControlSurfaceSetup(surfaceReturn['surfaceScaleBuffer'],l_surfaceJoints,moduleInstance=self.m)
-    log.info(surfaceReturn)
-
-    #surface influence joints cluster#
-    i_controlSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in l_iInfluenceJoints],
-                                                              surfaceReturn['i_controlSurface'].mNode,
-                                                              tsb=True,
-                                                              maximumInfluences = 3,
-                                                              normalizeWeights = 1,dropoffRate=4.0)[0])
+    try:
+	#Create surface
+	surfaceReturn = createControlSurfaceSegment([i_jnt.mNode for i_jnt in l_iSurfaceJoints],
+	                                            self.jointOrientation,
+	                                            self.partName,
+	                                            moduleInstance=self.m)
+	#Add squash
+	addSquashAndStretchToControlSurfaceSetup(surfaceReturn['surfaceScaleBuffer'],[i_jnt.mNode for i_jnt in l_iSurfaceJoints],moduleInstance=self.m)
+	log.info(surfaceReturn)
     
-    i_controlSurfaceCluster.addAttr('cgmName', str(self.partName), lock=True)
-    i_controlSurfaceCluster.addAttr('cgmTypeModifier','controlSurface', lock=True)
-    i_controlSurfaceCluster.doName()
-    
-    log.info(i_controlSurfaceCluster.mNode)
-    # smooth skin weights #
-    #skinning.simpleControlSurfaceSmoothWeights(i_controlSurfaceCluster.mNode)   
-    
-
+	#Surface influence joints cluster#
+	i_controlSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in l_iInfluenceJoints],
+	                                                          surfaceReturn['i_controlSurface'].mNode,
+	                                                          tsb=True,
+	                                                          maximumInfluences = 3,
+	                                                          normalizeWeights = 1,dropoffRate=4.0)[0])
+	
+	i_controlSurfaceCluster.addAttr('cgmName', str(self.partName), lock=True)
+	i_controlSurfaceCluster.addAttr('cgmTypeModifier','controlSurface', lock=True)
+	i_controlSurfaceCluster.doName()
+	
+	log.info(i_controlSurfaceCluster.mNode)
+	# smooth skin weights #
+	#skinning.simpleControlSurfaceSmoothWeights(i_controlSurfaceCluster.mNode)   
+	
+    except StandardError,error:
+	log.error("rigSpine>>Control surface build fail")
+	raise StandardError,error
 
 #>>> Utilities
 #===================================================================
@@ -272,8 +311,101 @@ def controlSurfaceSmoothWeights(controlSurface):
     if not i_skinCluster and l_influenceObjects:
 	raise StandardError,"controlSurfaceSmoothWeights failed. Not enough info found"
 	
+@r9General.Timer
+def createConstraintSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
+    """
+    """
+    #Good way to verify an instance list?
+    #validate orientation
+    outChannel = orientation[2]
+    upChannel = '%sup'%orientation[1]
     
+    i_module = False
+    i_rigNull = False
+    if moduleInstance is not None:
+	if issubclass(type(moduleInstance),cgmPM.cgmModule):
+	    i_module = moduleInstance
+	    i_rigNull = i_module.rigNull
+	else:
+	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
     
+    #Create our group
+    i_grp = cgmMeta.cgmObject(name = 'newgroup')
+    i_grp.addAttr('cgmName', str(baseName), lock=True)
+    i_grp.addAttr('cgmTypeModifier','surfaceFollow', lock=True)
+    i_grp.doName()
+    
+    #Create surface
+    l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
+    
+    i_controlSurface = cgmMeta.cgmObject( l_surfaceReturn[0] )
+    i_controlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
+    i_controlSurface.doName()
+    i_controlSurface.addAttr('mClass','cgmObject')
+    
+    l_iJointList = [cgmMeta.cgmObject(j) for j in jointList]
+    #Create folicles
+    l_iFollicleTransforms = []
+    l_iFollicleShapes = []
+    l_snapToGroups = []
+    il_snapToGroups = []
+    il_upLocs = []
+    
+    #First thing we're going to do is create our follicles
+    for i_jnt in l_iJointList:       
+        l_closestInfo = distance.returnClosestPointOnSurfaceInfo(i_jnt.mNode,i_controlSurface.mNode)
+        log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
+        #>>> Follicle =======================================================
+        l_follicleInfo = nodes.createFollicleOnMesh(i_controlSurface.mNode)
+        i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1])
+        i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
+        #> Name
+        i_follicleTrans.doStore('cgmName',i_jnt.mNode)
+        i_follicleTrans.doName()
+        #>Set follicle value
+        i_follicleShape.parameterU = l_closestInfo['normalizedU']
+        i_follicleShape.parameterV = l_closestInfo['normalizedV']
+        
+        l_iFollicleShapes.append(i_follicleShape)
+        l_iFollicleTransforms.append(i_follicleTrans)
+	
+	i_follicleTrans.parent = i_grp.mNode	
+	
+        #>> Surface Anchor ===================================================
+        i_grpPos = cgmMeta.cgmObject( rigging.groupMeObject(i_jnt.mNode,False) )
+        i_grpPos.doStore('cgmName',i_jnt.mNode)        
+        i_grpOrient = cgmMeta.cgmObject( mc.duplicate(i_grpPos.mNode,returnRootsOnly=True,ic=True)[0] )
+        i_grpPos.addAttr('cgmType','surfaceAnchor',attrType='string',lock=True)
+        i_grpOrient.addAttr('cgmType','surfaceOrient',attrType='string',lock=True)
+        i_grpPos.doName()
+        i_grpOrient.doName()
+        i_grpOrient.parent = i_grpPos.mNode
+	
+	i_jnt.connectParentNode(i_grpOrient.mNode,'snapToGroup','snapTarget')	
+	
+	#Contrain pos group
+        constraint = mc.parentConstraint(i_follicleTrans.mNode,i_grpPos.mNode, maintainOffset=False)
+	
+	i_upLoc = i_jnt.doLoc()#Make up Loc
+	i_upLoc.parent = i_grpPos.mNode
+	mc.move(0,2,0,i_upLoc.mNode,os=True)
+	
+	#mc.aimConstraint(l_iJointList[],objGroup,maintainOffset = False, weight = 1, aimVector = aimVector, upVector = upVector, worldUpObject = upLoc, worldUpType = 'object' )        
+        l_snapToGroups.append(i_grpOrient.mNode)
+	il_snapToGroups.append(i_grpOrient)
+	il_upLocs.append(i_upLoc)
+	
+    for i,i_grp in enumerate(il_snapToGroups[:-1]):
+	mc.aimConstraint(il_snapToGroups[i+1].mNode,i_grp.mNode,
+	                 maintainOffset = False, weight = 1,
+	                 aimVector = [0,0,1], upVector = [0,1,0],
+	                 worldUpObject = il_upLocs[i].mNode,
+	                 worldUpType = 'object' )        
+	
+	
+    return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,
+            'il_snapToGroups':il_snapToGroups,'l_snapToGroups':l_snapToGroups}
     
 @r9General.Timer
 def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
@@ -334,7 +466,6 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
 	i_follicleTrans.parent = i_grp.mNode	
 	
         #>> Surface Anchor ===================================================
-        
         """
         i_grpPos = cgmMeta.cgmObject( rigging.groupMeObject(i_jnt.mNode,False) )
         i_grpPos.doStore('cgmName',i_jnt.mNode)        
@@ -464,11 +595,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
                                  '%s.%s'%(l_iJointList[-1].mNode,axis))	 
 	
     return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':l_iJointList}
-    """
-    # connect joints to surface#
-    surfaceConnectReturn = joints.attachJointChainToSurface(surfaceJoints,controlSurface,jointOrientation,upChannel,'animCrv')
-    print surfaceConnectReturn 
-    """
+    
     
 @r9General.Timer
 def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,orientation = 'zyx', moduleInstance = None):
