@@ -28,6 +28,7 @@ import os
 import Red9.packages.configobj as configobj
 import time
 import getpass
+import sys
 
 import logging
 logging.basicConfig()
@@ -64,11 +65,16 @@ class PoseData(object):
         self.infoDict={}
         self.skeletonDict={}
         self.posePointCloudNodes=[]
+        self.filepath=''
         self.mayaUpAxis=r9Setup.mayaUpAxis()
         self.thumbnailRes=[128,128]
         self._metaPose=False
         self.metaRig=None
-
+        self.matchMethod='base' #method used to match nodes internally in the poseDict
+        self.relativePose=False
+        self.relativeRots='projected'
+        self.relativeTrans='projected'
+        
         # make sure we have a settings object
         if filterSettings:
             if issubclass(type(filterSettings), r9Core.FilterNode_Settings):
@@ -88,20 +94,57 @@ class PoseData(object):
     
     def __set_metaPose(self, val):
         self._metaPose=val
-        self.settings.metaRig=val  
-                
+        self.settings.metaRig=val          
+          
     metaPose = property(__get_metaPose, __set_metaPose)
     
-    def setMetaRig(self,nodes):
-        if r9Meta.isMetaNodeInherited(nodes[0],'MetaRig'):
-            self.metaRig=r9Meta.MetaClass(nodes[0])
+    def setMetaRig(self,node):
+        if r9Meta.isMetaNodeInherited(node,'MetaRig'):
+            self.metaRig=r9Meta.MetaClass(node)
         else:
-            self.metaRig=r9Meta.getConnectedMetaSystemRoot(nodes)
+            self.metaRig=r9Meta.getConnectedMetaSystemRoot(node)
         return self.metaRig
-                   
+    
+    def hasFolderOverload(self):    
+        posedir=os.path.dirname(self.filepath)
+        return os.path.exists(os.path.join(posedir,'poseHandler.py'))
+    
+    def getNodesFromFolderConfig(self,rootNode,mode):
+        '''
+        if the poseFolder has a poseHandler.py file use that to
+        return the nodes to use for the pose instead
+        '''
+        import imp
+        log.debug('getNodesFromFolderConfig - useFilter=True : custom poseHandler running')
+        posedir=os.path.dirname(self.filepath)      
+        tempPoseFuncs = imp.load_source('poseHandler', os.path.join(posedir,'poseHandler.py'))
+        
+        if mode=='load':
+            nodes=tempPoseFuncs.poseGetNodesLoad(self,rootNode)
+        if mode=='save':
+            nodes=tempPoseFuncs.poseGetNodesSave(self,rootNode)
+        del(tempPoseFuncs)
+
+        return nodes
+                    
+    def getNodes(self, nodes, useFilter=True):
+        '''
+        get the nodes to process
+        This is designed to allow for specific hooks to be used from user
+        code stored in the pose folder itself.
+        '''
+        if not type(nodes)==list: nodes=[nodes]
+        if useFilter:
+            log.debug('getNodes - useFilter=True : no custom poseHandler')
+            if self.settings.filterIsActive():
+                return r9Core.FilterNode(nodes,self.settings).ProcessFilter() #main node filter
+        else:
+            log.debug('getNodes - useFilter=False : no custom poseHandler')
+            return nodes
+        
+                      
     # Build the poseDict data ---------------------------------------------
        
-
     def _buildInfoBlock(self):
         '''
         Basic info for the pose file, this could do with expanding
@@ -171,24 +214,32 @@ class PoseData(object):
         can be used in the PoseCompare class easily. This is the main internal call
         for managing the actual pose data for save
         '''
-        nodesToStore=nodes
         self.metaRig=None
         self.rootJnt=None
+        if not type(nodes)==list: nodes=[nodes] #cast to list for consistency
+        rootNode=nodes[0]
+        
+        if self.hasFolderOverload() and useFilter:
+            nodesToStore=self.getNodesFromFolderConfig(rootNode,mode='save')
+        else:
+            nodesToStore=self.getNodes(nodes, useFilter)
         
         if self.settings.filterIsActive() and useFilter:
-            nodesToStore=r9Core.FilterNode(nodes,self.settings).ProcessFilter() #main node filter
-            
-            if not type(nodes)==list: nodes=[nodes]
             if self.metaPose:
-                if self.setMetaRig(nodes):
-                    self.rootJnt=self.metaRig.getSkeletonRoots()[0]
+                if self.setMetaRig(rootNode):
+                    self.rootJnt=self.metaRig.getSkeletonRoots()
+                    if self.rootJnt:
+                        self.rootJnt=self.rootJnt[0]
             else:
-                if cmds.attributeQuery('animSkeletonRoot',node=nodes[0],exists=True):
-                    self.rootJnt=cmds.listConnections('%s.%s' % (nodes[0],'animSkeletonRoot'),destination=True,source=True)[0]
-                     
+                if cmds.attributeQuery('animSkeletonRoot',node=rootNode,exists=True):
+                    connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'animSkeletonRoot'),destination=True,source=True)
+                    if connectedSkel:
+                        self.rootJnt=connectedSkel[0]
+                 
         self._buildInfoBlock()    
         self._buildPoseDict(nodesToStore) 
         self._buildSkeletonData(self.rootJnt)
+        
         
     # Process the data -------------------------------------------------
                                               
@@ -224,44 +275,7 @@ class PoseData(object):
                 raise StandardError('Given filepath doesnt not exist : %s' % filename)
         else:
             raise StandardError('No FilePath given to read the pose from')
-        
-    @r9General.Timer 
-    def _matchNodesToPoseData(self, nodes, matchMethod='stripPrefix'):
-        '''
-        Main filter to extract matching data pairs prior to processing
-        return : tuple such that :  (poseDict[key], destinationNode)
-        @param nodes: nodes to try and match from the poseDict
-        @param matchMethod: how to match the nodes to the poseDict data, maybe this should 
-                be passed directly in to the matchNodeLists call so we can deal with prefix etc?
-        '''
-        matchedPairs=[]
-        print 'matchMethod',matchMethod
-        if matchMethod=='stripPrefix' or matchMethod=='base':
-            print 'matchMethodStandard',matchMethod
-            matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes, matchMethod=matchMethod)
-        if matchMethod=='index':
-            for i, node in enumerate(nodes):
-                for key in self.poseDict.keys():
-                    if int(self.poseDict[key]['ID'])==i:
-                        matchedPairs.append((key,node))
-                        print 'poseKey : %s ' % key, self.poseDict[key]['ID'], 'matchedSource : %s' % node, i
-                        break 
-        if matchMethod=='metaData':               
-            getMetaDict=self.metaRig.getNodeConnectionMetaDataMap #optimisation
-            poseKeys=dict(self.poseDict)         #optimisation
-            for node in nodes:
-                try:
-                    metaDict=getMetaDict(node)
-                    for key in poseKeys:
-                        if poseKeys[key]['metaData']==metaDict:
-                            matchedPairs.append((key,node))
-                            poseKeys.pop(key)
-                            break
-                except:
-                    log.info('FAILURE to load MetaData pose blocks - Reverting to Name')
-                    matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes)    
-        return matchedPairs   
-    
+      
     @r9General.Timer     
     def _applyPose(self, matchedPairs):
         '''
@@ -282,28 +296,63 @@ class PoseData(object):
                         log.debug(err)
             except:
                 log.debug('Pose Object Key : %s : has no Attr block data' % key)  
-
-                         
+                  
+    @r9General.Timer 
+    def _matchNodesToPoseData(self, nodes):
+        '''
+        Main filter to extract matching data pairs prior to processing
+        return : tuple such that :  (poseDict[key], destinationNode)
+        NOTE: I've changed this so that matchMethod is now an internal PoseData attr
+        @param nodes: nodes to try and match from the poseDict
+        '''
+        matchedPairs=[]
+        print 'matchMethod',self.matchMethod
+        if self.matchMethod=='stripPrefix' or self.matchMethod=='base':
+            log.info( 'matchMethodStandard : %s' % self.matchMethod)
+            matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes, matchMethod=self.matchMethod)
+        if self.matchMethod=='index':
+            for i, node in enumerate(nodes):
+                for key in self.poseDict.keys():
+                    if int(self.poseDict[key]['ID'])==i:
+                        matchedPairs.append((key,node))
+                        log.info('poseKey : %s %s >> matchedSource : %s %i' % (key, self.poseDict[key]['ID'], node, i))
+                        break 
+        if self.matchMethod=='metaData':               
+            getMetaDict=self.metaRig.getNodeConnectionMetaDataMap #optimisation
+            poseKeys=dict(self.poseDict)         #optimisation
+            for node in nodes:
+                try:
+                    metaDict=getMetaDict(node)
+                    for key in poseKeys:
+                        if poseKeys[key]['metaData']==metaDict:
+                            matchedPairs.append((key,node))
+                            poseKeys.pop(key)
+                            break
+                except:
+                    log.info('FAILURE to load MetaData pose blocks - Reverting to Name')
+                    matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes)  
+        return matchedPairs   
+                             
     def matchInternalPoseObjects(self, nodes=None, fromFilter=True):
         '''
         This is a throw-away and only used in the UI to select for debugging!
         from a given poseFile return or select the internal stored objects 
         '''
         InternalNodes=[]
-        if not fromFilter:
+#        if not fromFilter:
             #no filter, we just pass in the longName thats stored
-            for key in self.poseDict.keys():
-                if cmds.objExists(self.poseDict[key]['longName']):
-                    InternalNodes.append(self.poseDict[key]['longName'])
-        else:
-            #use the internal Poses filter and then Match against scene nodes
-            if self.settings.filterIsActive():
-                filterData=r9Core.FilterNode(nodes,self.settings).ProcessFilter()
-                
-                matchedPairs=r9Core.matchNodeLists([self.poseDict[key]['longName'] \
-                                         for key in self.poseDict.keys()], filterData)
-                if matchedPairs:
-                    InternalNodes=filterData
+        for key in self.poseDict.keys():
+            if cmds.objExists(self.poseDict[key]['longName']):
+                InternalNodes.append(self.poseDict[key]['longName'])
+#        else:
+#            #use the internal Poses filter and then Match against scene nodes
+#            if self.settings.filterIsActive():
+#                filterData=r9Core.FilterNode(nodes,self.settings).ProcessFilter()
+#                
+#                matchedPairs=r9Core.matchNodeLists([self.poseDict[key]['longName'] \
+#                                         for key in self.poseDict.keys()], filterData)
+#                if matchedPairs:
+#                    InternalNodes=filterData
         if not InternalNodes:
             raise StandardError('No Matching Nodes found!!')
         return InternalNodes
@@ -367,7 +416,8 @@ class PoseData(object):
         @param useFilter: use the filterSettings or not
         '''   
         log.debug('PosePath given : %s' % filepath)             
-
+        self.filepath=filepath
+        
         self.buildInternalPoseData(nodes, useFilter)
         self._writePose(filepath)
         
@@ -382,11 +432,10 @@ class PoseData(object):
         
         
     @r9General.Timer
-    def PoseLoad(self, nodes, filepath, useFilter=True, matchMethod='base', \
-                 relativePose=False, relativeRots='projected',relativeTrans='projected'):
+    def PoseLoad(self, nodes, filepath, useFilter=True, relativePose=False, relativeRots='projected',relativeTrans='projected'):
         '''
         Entry point for the generic PoseLoad
-        @param nodes:  if given load the data to only these. If given and filter=True this is the root of the filter
+        @param nodes:  if given load the data to only these. If given and filter=True this is the rootNode for the filter
         @param filepath: path to the posefile to load
         @param useFilter: If the pose has an active Filter_Settings block and this 
                         is True then use the filter on the destination hierarchy
@@ -394,29 +443,37 @@ class PoseData(object):
         @param relativeRots: 'projected' or 'absolute' - how to calculate the offset
         @param relativeTrans: 'projected' or 'absolute' - how to calculate the offset
         '''
-        if not type(nodes)==list:nodes=[nodes]
-        
-        nodesToLoad=nodes
         if not os.path.exists(filepath):
             raise StandardError('Given Path does not Exist')
         if relativePose and not cmds.ls(sl=True):
             raise StandardError('Nothing selected to align Relative Pose too')
-        if self.settings.filterIsActive() and useFilter:
-            nodesToLoad=r9Core.FilterNode(nodes,self.settings).ProcessFilter()
+        if not type(nodes)==list:nodes=[nodes] #cast to list for consistency
+        rootNode=nodes[0]
+        
+        #push args to object
+        self.relativePose=relativePose
+        self.relativeRots=relativeRots
+        self.relativeTrans=relativeTrans
+        self.filepath=filepath
+        
+        if self.hasFolderOverload() and useFilter:
+            nodesToLoad=self.getNodesFromFolderConfig(rootNode,mode='load')
+        else:
+            nodesToLoad=self.getNodes(nodes, useFilter)
         if not nodesToLoad:
             raise StandardError('Nothing selected or returned by the filter to load the pose onto')
            
         self._readPose(filepath)
 
         if self.metaPose:
-            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']) and self.setMetaRig(nodes):
-                matchMethod='metaData'
+            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']) and self.setMetaRig(rootNode):
+                self.matchMethod='metaData'
             else:
                 log.debug('Warning, trying to load a NON metaPose to a MRig - switching to NameMatching')  
                  
         #Build the master list of matched nodes that we're going to apply data to
         #Note: this is built up from matching keys in the poseDict to the given nodes
-        matchedPairs=self._matchNodesToPoseData(nodesToLoad,matchMethod=matchMethod)
+        matchedPairs=self._matchNodesToPoseData(nodesToLoad)
         
         if not matchedPairs:
             raise StandardError('No Matching Nodes found in the PoseFile!')    
@@ -424,7 +481,7 @@ class PoseData(object):
             nodesToLoad.reverse() #for the snapping operations
             
             #make the reference posePointCloud and cache it's initial xforms
-            if relativePose:
+            if self.relativePose:
                 reference=cmds.ls(sl=True,l=True)[0]
                 self._buildOffsetCloud(nodesToLoad,reference,raw=True)
                 resetCache=[cmds.getAttr('%s.translate' % self.posePointRoot), cmds.getAttr('%s.rotate' % self.posePointRoot)]  
@@ -432,13 +489,13 @@ class PoseData(object):
             self._applyPose(matchedPairs)
             log.info('Pose Read Successfully from : %s' % filepath)
 
-            if relativePose:
+            if self.relativePose:
                 #snap the poseCloud to the new xform of the referenced node, snap the cloud
                 #to the pose, reset the clouds parent to the cached xform and then snap the 
                 #nodes back to the cloud
                 r9Anim.AnimFunctions.snap([reference,self.posePointRoot])
                  
-                if relativeRots=='projected':
+                if self.relativeRots=='projected':
                     if self.mayaUpAxis=='y':
                         cmds.setAttr('%s.rx' % self.posePointRoot,0)
                         cmds.setAttr('%s.rz' % self.posePointRoot,0)
@@ -448,17 +505,17 @@ class PoseData(object):
                     
                 self._snapPosePntstoNodes()
                 
-                if not relativeTrans=='projected':
+                if not self.relativeTrans=='projected':
                     cmds.setAttr('%s.translate' % self.posePointRoot,resetCache[0][0][0],resetCache[0][0][1],resetCache[0][0][2])
-                if not relativeRots=='projected':
+                if not self.relativeRots=='projected':
                     cmds.setAttr('%s.rotate' % self.posePointRoot,resetCache[1][0][0],resetCache[1][0][1],resetCache[1][0][2])
                
-                if relativeRots=='projected':
+                if self.relativeRots=='projected':
                     if self.mayaUpAxis=='y':
                         cmds.setAttr('%s.ry' % self.posePointRoot,resetCache[1][0][1])
                     elif self.mayaUpAxis=='z': # fucking Z!!!!!!
                         cmds.setAttr('%s.rz' % self.posePointRoot,resetCache[1][0][2])
-                if relativeTrans=='projected':
+                if self.relativeTrans=='projected':
                     if self.mayaUpAxis=='y':
                         cmds.setAttr('%s.tx' % self.posePointRoot,resetCache[0][0][0])
                         cmds.setAttr('%s.tz' % self.posePointRoot,resetCache[0][0][2])
@@ -608,8 +665,7 @@ class PoseCompare(object):
         Compare the 2 PoseData objects via their internal [key][attrs] blocks
         return a bool. After processing self.fails is a dict holding all the fails
         for processing later if required
-        TODO: still need better Eular flip handling. Also need to separate the tolerance
-        for transforms and rotates as rotates needs a much finer tolerance than transforms do.
+        TODO: still need better Eular flip handling. 
         '''
         self.fails={}
         logprint='PoseCompare returns : ========================================\n'
@@ -673,7 +729,8 @@ class PoseCompare(object):
 
          
 
-def batchPatchPoses(posedir,config,poseroot,patchfunc=None):
+def batchPatchPoses(posedir, config, poseroot, patchfunc=None, resave=True,\
+                    relativePose=False, relativeRots=False, relativeTrans=False):
     '''
     whats this?? a fast method to run through all the poses in a given dictionary and update
     or patch them. If patchfunc isn't given it'll just run through and resave the pose - updating 
@@ -682,21 +739,23 @@ def batchPatchPoses(posedir,config,poseroot,patchfunc=None):
     @param config: hierarchy settings cfg to use to ID the nodes (hierarchy tab preset = filterSettings object)
     @param poseroot: root node to the filters - poseTab rootNode/MetaRig root
     @param patchfunc: optional function to run between the load and save call in processing, great for
-            fixing issues on mass with poses.
+            fixing issues on mass with poses. Note we now pass pose file back into this func as an arg
     '''
 
     filterObj=r9Core.FilterNode_Settings()
-    filterObj.read(os.path.join(r9Setup.red9ModulePath(), 'presets','Crytek_New_Meta.cfg'))
+    filterObj.read(os.path.join(r9Setup.red9ModulePath(), 'presets', config))#'Crytek_New_Meta.cfg'))
     mPose=PoseData(filterObj)
     
     files=os.listdir(posedir)
     files.sort()
     for f in files:
         if f.lower().endswith('.pose'):
-            mPose.PoseLoad(poseroot, os.path.join(posedir,f), useFilter=True, relativePose=False, relativeRots=False, relativeTrans=False) 
+            mPose.PoseLoad(poseroot, os.path.join(posedir,f), useFilter=True, relativePose=relativePose, relativeRots=relativeRots, relativeTrans=relativeTrans) 
             if patchfunc:
-                patchfunc()
-            mPose.PoseSave(poseroot, os.path.join(posedir,f), useFilter=True, storeThumbnail=False) 
+                patchfunc(f)
+            if resave:
+                mPose.PoseSave(poseroot, os.path.join(posedir,f), useFilter=True, storeThumbnail=False) 
+            log.info('Processed Pose File :  %s' % f)
 
         
         

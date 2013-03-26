@@ -15,7 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__=1.285
+__buildVersionID__=1.292
 
 import sys
 import os
@@ -128,7 +128,7 @@ def menuSetup():
         cmds.menuItem(optionBox=True,
                   ann="setup the tracker step and tightness",
                   p='redNineCameraTrackItem', echoCommand=True, 
-                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.show()")      
+                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack(fixed=True)._showUI()")      
     cmds.menuItem('redNineCamerTrackFreeItem',l="CameraTracker > tracking",
                   ann="Tracking Camera : CameraTrack the current view with the current camera",
                   p='redNineCameraTrackItem', echoCommand=True,
@@ -137,7 +137,7 @@ def menuSetup():
         cmds.menuItem(optionBox=True,
                   ann="setup the tracker step and tightness",
                   p='redNineCameraTrackItem', echoCommand=True, 
-                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.show()")    
+                  c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack(fixed=False)._showUI()")    
     
     cmds.menuItem(divider=True,p='redNineMenuItemRoot')
     cmds.menuItem('redNineAnimBndItem',l="Animation Binder",ann="My Autodesk MasterClass toolset",
@@ -167,13 +167,14 @@ def menuSetup():
     
 def addToMayaMenus():
     try:
-        mainFileMenu=mel.eval("string $f=$gMainFileMenu")
-        if not cmds.menu(mainFileMenu,q=True,ni=True):
-            mel.eval('buildFileMenu()')
-        cmds.menuItem(divider=True)
-        cmds.menuItem('redNineOpenFolderItem',l="Red9:OpenSceneFolder",ann="Open the folder containing the current Maya Scene",
-                      p='mainFileMenu', echoCommand=True,
-                      c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
+        if not cmds.menuItem('redNineOpenFolderItem',q=True,ex=True):
+            mainFileMenu=mel.eval("string $f=$gMainFileMenu")
+            if not cmds.menu(mainFileMenu,q=True,ni=True):
+                mel.eval('buildFileMenu()')
+            cmds.menuItem(divider=True)
+            cmds.menuItem('redNineOpenFolderItem',l="Red9:OpenSceneFolder",ann="Open the folder containing the current Maya Scene",
+                          p='mainFileMenu', echoCommand=True,
+                          c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
     except:
         log.debug('gMainFileMenu not found >> catch for unitTesting')
 
@@ -244,7 +245,6 @@ def red9_vimeo():
     import Red9.core.Red9_General as r9General #lazy load
     r9General.os_OpenFile('https://vimeo.com/user9491246')
       
-
 def red9_getVersion():
     return __buildVersionID__
 

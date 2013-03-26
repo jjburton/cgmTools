@@ -371,8 +371,18 @@ class SceneRestoreContext(object):
                     
 # General ---
 #---------------------------------------------------------------------------------
-  
-def thumbNailScreen(filepath,width,height):
+
+def thumbNailScreen(filepath,width,height,mode='api'):
+    path='%s.bmp' % os.path.splitext(filepath)[0]  
+    if mode=='api':
+        thumbnailApiFromView(path,width,height)
+        log.debug('API Thumb > path : %s' % path)
+    else:
+        thumbnailFromPlayBlast(path,width,height)
+        log.debug('Playblast Thumb > path : %s' % path)
+    
+
+def thumbnailFromPlayBlast(filepath,width,height):
     '''
     Generate a ThumbNail of the screen
     Note: 'cf' flag is broken in 2012
@@ -395,8 +405,9 @@ def thumbNailScreen(filepath,width,height):
     
     cmds.setAttr('defaultRenderGlobals.imageFormat', 20)
     cmds.setAttr('%s.filmFit' % cam, 2) #set to Vertical so we don't get so much overscan
-    cmds.playblast( startTime=cmds.currentTime(q=True),
-                          endTime=cmds.currentTime(q=True),
+    
+    cmds.playblast( frame=cmds.currentTime(q=True),# startTime=cmds.currentTime(q=True),
+                          #endTime=cmds.currentTime(q=True),
                           format="image", 
                           filename=filepath,
                           width=width,
@@ -439,13 +450,14 @@ def thumbnailApiFromView(filename, width, height, compression='bmp', modelPanel=
     else:
         view = OpenMayaUI.M3dView()
         OpenMayaUI.M3dView.getM3dViewFromModelEditor(modelPanel, view)
-    
+
     #read the color buffer from the view, and save the MImage to disk
     image = OpenMaya.MImage()
     view.readColorBuffer(image, True)
     image.resize(width, height, True)
     image.writeToFile(filename, compression)
-    
+    log.info('API Thumbname call path : %s' % filename)
+
     
 # OS functions ---
 #---------------------------------------------------------------------------------

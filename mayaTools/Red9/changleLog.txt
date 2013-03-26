@@ -1,0 +1,24 @@
+Red9 Studio Pack ChangeLog:
+===========================
+
+v1.29:
+
+- Red9_Anim - PoseLib now supports subfolders in the UI
+- Red9_Anim - CameraTracker now in the Red9 Menu - generates an auto tracked, or panned, camera focusing on the selected node - very usefuyl for visualizing moCap
+- Red9_Meta - metaHUDNode added - designed as a debug tool to enable you to easily monitor attributes in a managed HUD in the Maya viewports. Any attrs added to the mNode is monitored and added to the drawHud call. This is work in progress
+- Red9_Anim - AnimtionFunctions now has a function for bindNodes, uses the same filtering and matching setups as all the rest of the code and allows you to bind full filtered hierarchies together, either direct connects or parentConstraints
+- Red9_Anim - All animFunctions now accept matchMethod as an arg, this allows you to either accept 'prefix stripping' in any node matches or use 'base' = name for name exact match.
+- Red9_Anim - PoseLib subfolders bug fixes so that you can sync subfolders to project libraries with the 'CopyLocal>>Project Pose' RMB call. This makes the missing subFolder if it's missing in the Project structure
+- Red9_General - Timer decorator now shows module/class and func in the report feedback
+- Red9_Meta - Added **KWS update support to the addAttr call, if the attr exists and you've passed in kws then these will get synced and updated if in the internal 'valid edit kws' list. Great for use in the __bindData__ call to sync properties.
+- Red9_Core - Added more logic to the main MatchedNodeInputs call. Now allows you to pass in 2 hierarchies directly for processing. This means you can by-pass the filter processing in all animation Functions and pass 2 hierarchies directly in for processing!
+
+1.291:
+- Red9_Meta - type 'unicode' value's weren't being supported correctly in the setAttr func
+- Red9_Anim - MirrorSetup - loadMirror was failing to load custom Axis correctly
+
+1.292:
+- Red9_Meta - isChildNode() wasn't ealing with longNames correctly
+- Red9_PoseSaver - batchPatchPoses() modified to make it more flexible. added arg to stop it always resaving the pose after patchfunc has been run. also now passing poseFile back into patchfunc
+- Red9_PoseSaver - poseHandler.py support added! - This is a BIG deal for TD's out there as it gives you access to all the internal node handling at a sub-folder level. Allows you to fully customize the pose behaviour on a folder basis!
+

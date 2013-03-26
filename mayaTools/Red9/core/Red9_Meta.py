@@ -123,6 +123,7 @@ def resetMClassNodeTypes():
 
 #------------------------------------------------------------------------------   
     
+    
 def attributeDataType(val):
     '''
     Validate the attribute type for all the cmds handling
@@ -297,8 +298,7 @@ def getConnectedMetaSystemRoot(node, **kws):
                 return mNode
             runaways+=1
             mNode=parent
-        
-         
+            
 
 class MClassNodeUI():
     '''
@@ -349,6 +349,8 @@ class MClassNodeUI():
         cmds.popupMenu('r9MetaNodeUI_Popup')
         cmds.menuItem(label='Select Children', ann='NOTE doubleClick on the UI also runs the selectChildren call"',
                       command=partial(self.doubleClick))
+        cmds.menuItem(label='Delete Selected mNodes', ann='call self.delete() on the selected nModes',
+                      command=partial(self.deleteCall))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='SortBy : ClassName', command=partial(self.fillScroll,'byClass'))
         cmds.menuItem(label='SortBy : NodeName', command=partial(self.fillScroll,'byName'))
@@ -400,7 +402,26 @@ class MClassNodeUI():
                 
         if self.closeOnSelect:
             cmds.deleteUI('MetaClassFinder',window=True)
-        
+    
+    def deleteCall(self,*args):
+        result = cmds.confirmDialog(
+                title='Confirm metaNode Delete',
+                button=['Yes', 'Cancel'],
+                message='Confirm deletion of metaNode\nare you absolutely\n\nSURE\n\nyou meant to do this?',
+                defaultButton='Cancel',
+                bgc=(0.5,0.1,0.1),
+                cancelButton='Cancel',
+                dismissString='Cancel')
+        if result == 'Yes':
+            try:
+                indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)      
+                if indexes:
+                    for i in indexes:
+                        self.mNodes[i - 1].delete()
+                self.fillScroll()
+            except:
+                log.warning('delete failed')
+            
     def doubleClick(self,*args):
         '''
         run the generic meta.getChildren call and select the results
@@ -440,6 +461,40 @@ class MClassNodeUI():
                                         append=('{0:<%i}:{1:}' % width).format(meta.mNode, meta.mClass),
                                         sc=lambda *args:self.selectCmd(),
                                         dcc=lambda *x:self.doubleClick() )   
+
+
+def nodeLockManager(func):
+    '''
+    Simple decorator to manage meatNodes which are locked. Why lock??
+    Currently just the metaRig and therefore any subclasses of that are locked. 
+    The reason is that the Maya 'network' node I use has issues when certain 
+    connections are deleted, the node itself can get deleted and cleanup, removing 
+    the entire network! Try it, make a metaNode and key an attr on it, then run
+    cutKeys...the node will be deleted. 
+    
+    This decorator is used to manage the unlocking of self for all calls that
+    require change access rights to the 'network' node itself.
+    '''
+    def wrapper( *args, **kws):
+        res=None
+        try:
+            mNode=args[0]
+            #log.debug('nodeLockManager > func : %s : metaNode / self: %s' % (func.__name__,mNode.mNode))
+            locked=False
+            if mNode.mNode and mNode._lockState:
+            #if mNode.mNode and cmds.lockNode(mNode.mNode,q=True)[0]:
+                locked=True
+                cmds.lockNode(mNode.mNode,lock=False) 
+                #log.debug( 'nodeLockManager > func : %s : node being unlocked' % func.__name__)
+            res=func(*args, **kws)
+        except:
+            log.debug('nodeLockManager > function module inspect failure')
+        finally:
+            if locked:
+                #log.debug( 'nodeLockManager > func : %s : node being relocked' % func.__name__)
+                cmds.lockNode(mNode.mNode, lock=True) 
+            return res
+    return wrapper 
 
 
 class MetaClass(object):
@@ -552,8 +607,11 @@ class MetaClass(object):
         #data that will not get pushed to the Maya node 
         object.__setattr__(self, '_MObject', '')
         object.__setattr__(self, 'UNMANAGED', ['mNode',
-                                               '_MObject'])
-
+                                               '_MObject',
+                                               '_lockState',
+                                               'lockState'])
+        object.__setattr__(self,'_lockState',False)
+        
         if not node: 
             if not name:
                 name=self.__class__.__name__
@@ -576,6 +634,8 @@ class MetaClass(object):
             else:
                 log.debug('Standard Maya Node being metaManaged')
                 
+        self.lockState=False        
+        
         #bind any default attrs up - note this should be overloaded where required
         self.__bindData__()
         
@@ -612,8 +672,7 @@ class MetaClass(object):
                 return dPath.fullPathName()
             else:
                 depNodeFunc = OpenMaya.MFnDependencyNode(mobj)
-                return depNodeFunc.name()    
-    
+                return depNodeFunc.name()       
     def __set_mNode(self, node):
         if node:
             mobj=OpenMaya.MObject()
@@ -621,10 +680,21 @@ class MetaClass(object):
             selList.add(node)
             selList.getDependNode(0,mobj)
             object.__setattr__(self, '_MObject', mobj)           
-                
+               
     mNode = property(__get_mNode, __set_mNode)
     
-    
+    #property managing the lockNode state of the mNode
+    def __get_lockState(self):
+        return self._lockState
+    def __set_lockState(self, state):
+        try:
+            cmds.lockNode(self.mNode, lock=state)
+            self._lockState=state
+        except:
+            log.debug("can't set the nodeState for : %s" % self.mNode)
+    lockState = property(__get_lockState, __set_lockState)   
+
+
     def __repr__(self):
         if self.hasAttr('mClass'):
             return "%s(mClass: '%s', node: '%s')"  % (self.__class__, self.mClass, self.mNode.split('|')[-1])
@@ -696,7 +766,8 @@ class MetaClass(object):
         else:
             log.debug('set multi-message attribute connection:  %s' % value)
             self.connectChildren(value, attr, cleanCurrent=True, force=force)
-                   
+    
+    @nodeLockManager                 
     def __setattr__(self, attr, value, force=True, **kws):
         '''
         Overload the base setattr to manage the MayaNode itself
@@ -833,12 +904,15 @@ class MetaClass(object):
         if type(data) == unicode:
             return json.loads(str(data)) 
         return json.loads(data)  
-      
+    
+    @nodeLockManager      
     def __delattr__(self, attr): 
         try:
+            log.debug('attribute delete  : %s , %s' % (self,attr))
             object.__delattr__(self, attr)
             if cmds.attributeQuery(attr, exists=True, node=self.mNode):
                 cmds.deleteAttr('%s.%s' % (self.mNode, attr))
+                
         except StandardError,error:
             raise StandardError(error)
           
@@ -851,14 +925,16 @@ class MetaClass(object):
     
     def attrIsLocked(self,attr):
         return cmds.getAttr('%s.%s' % (self.mNode,attr),l=True)
-   
+    
+    @nodeLockManager    
     def attrSetLocked(self,attr,state):
         try:
             if not self.isReferenced():
                 cmds.setAttr('%s.%s' % (self.mNode,attr),l=state)
         except StandardError,error:
             log.debug(error)
-                                                                               
+            
+    @nodeLockManager                                                                          
     def addAttr(self, attr, value=None, attrType=None, hidden=False, **kws):
         '''
         Wrapped version of Maya addAttr that manages the basic type flags for you 
@@ -879,6 +955,7 @@ class MetaClass(object):
 
         '''
         DataTypeKws={'string': {'longName':attr,'dt':'string'},\
+                     'unicode': {'longName':attr,'dt':'string'},\
                      'int':    {'longName':attr,'at':'long'},\
                      'bool':   {'longName':attr,'at':'bool'},\
                      'float':  {'longName':attr,'at':'double'},\
@@ -899,13 +976,15 @@ class MetaClass(object):
         #ATTR EXSISTS - EDIT CURRENT
         #---------------------------
         if cmds.attributeQuery(attr, exists=True, node=self.mNode):
-            #if attr exists do we force the value here?? NOOOO as I'm using this 
-            #to ensure that when we initialize certain classes base attrs exist. 
+            #if attr exists do we force the value here?? NOOOO as I'm using this only
+            #to ensure that when we initialize certain classes base attrs exist with certain properties. 
             log.debug('"%s" :  Attr already exists on the Node' % attr)
 
-            #allow some of the standard edit flags to be run
-            addCmdEditFlags=['min','minValue','max','maxValue','defaultValue','df','enumName']
+            #allow some of the standard edit flags to be run even if the attr exists
+            addCmdEditFlags=['min','minValue','max','maxValue','defaultValue','dv',
+                             'softMinValue','smn','softMaxValue','smx','enumName']
             setCmdEditFlags=['keyable','k','lock','l','channelBox','cb']
+            
             addkwsToEdit={}
             setKwsToEdit={}
             if kws:
@@ -921,15 +1000,15 @@ class MetaClass(object):
                     cmds.setAttr('%s.%s' % (self.mNode,attr),**setKwsToEdit)
                     log.debug('setAttr Edit flags run : %s = %s' % (attr, setKwsToEdit))
             return
+        
         #ATTR IS NEW, CREATE IT
         #----------------------
         else:
             try:
                 if not attrType:
-                    attrType=attributeDataType(value)
-                           
+                    attrType=attributeDataType(value)         
                 DataTypeKws[attrType].update(kws) #merge in **kws, allows you to pass in all the standard addAttr kws   
-                log.debug('valueType : %s > dataType kws: %s' % (attrType,DataTypeKws[attrType]))
+                log.debug('addAttr : valueType : %s > dataType kws: %s' % (attrType,DataTypeKws[attrType]))
                 cmds.addAttr(self.mNode, **DataTypeKws[attrType])
 
                 if attrType=='double3' or attrType=='float3':
@@ -967,6 +1046,7 @@ class MetaClass(object):
     def select(self):
         cmds.select(self.mNode)
         
+    @nodeLockManager        
     def rename(self,name):
         '''
         rename the mNode itself
@@ -974,15 +1054,19 @@ class MetaClass(object):
         cmds.rename(self.mNode,name)
         self.mNode=name
         
+    @nodeLockManager        
     def delete(self):
         '''
         delete the mNode and this class instance
         FIXME: Looks like there's a bug in the Network node in that deletion of a node
         will also delete all other connected networks...BIG DEAL. AD are looking into this for us
         '''
+        if cmds.lockNode(self.mNode, q=True):
+            cmds.lockNode(self.mNode,lock=False)
         cmds.delete(self.mNode)
         del(self)
     
+    @nodeLockManager    
     def convertMClassType(self,newMClass,**kws):
         '''
         change the current mClass type of the node and re-initialize the object
@@ -1037,19 +1121,20 @@ class MetaClass(object):
         if issubclass(type(node), MetaClass):
             node=node.mNode
         if attr:
-            cons=cmds.listConnections('%s.%s' % (self.mNode,attr),s=False,d=True,p=True)
+            cons=cmds.ls(cmds.listConnections('%s.%s' % (self.mNode,attr),s=False,d=True,p=True),l=True)
         else:
-            cons=cmds.listConnections(self.mNode,s=False,d=True,p=True)
+            cons=cmds.ls(cmds.listConnections(self.mNode,s=False,d=True,p=True),l=True)
         if cons:
             for con in cons:
                 if srcAttr:
-                    if '%s.%s' % (node,srcAttr) in con:
+                    if '%s.%s' % (cmds.ls(node,l=True)[0],srcAttr) in con:
                         return True
                 else:
-                    if '%s.' % node in con:
+                    if '%s.' % cmds.ls(node,l=True)[0] in con:
                         return True  
+        return False
         
-        
+    @nodeLockManager        
     def connectChildren(self, nodes, attr, srcAttr=None, cleanCurrent=False, force=True):
         '''
         Fast method of connecting multiple nodes to the mNode via a message attr link. 
@@ -1107,6 +1192,7 @@ class MetaClass(object):
             except StandardError,error:
                 log.warning(error)
                 
+    @nodeLockManager                 
     def connectChild(self, node, attr, srcAttr=None, cleanCurrent=True, force=True):
         '''
         Fast method of connecting a node to the mNode via a message attr link. This call
@@ -1153,7 +1239,8 @@ class MetaClass(object):
                 raise StandardError('%s is already connected to metaNode' % node)
         except StandardError,error:
             log.warning(error)
-                          
+    
+    @nodeLockManager                          
     def connectParent(self, node, attr, srcAttr=None):
         '''
         Fast method of connecting message links to the mNode as parents
@@ -1179,7 +1266,8 @@ class MetaClass(object):
             cmds.connectAttr('%s.%s' % (node,attr),'%s.%s' % (self.mNode,srcAttr))
         except StandardError,error:
                 log.warning(error)
-    
+                
+    @nodeLockManager    
     def __disconnectCurrentAttrPlugs(self, attr):
         '''
         from a given attr on the mNode disconnect any current connections and 
@@ -1195,7 +1283,8 @@ class MetaClass(object):
                     self.disconnectChild(connection, attr=attr, deleteSourcePlug=True, deleteDestPlug=False)
                 except:
                     log.warning('Failed to unconnect current message link')
-                                           
+                    
+    @nodeLockManager                                           
     def disconnectChild(self, node, attr=None, deleteSourcePlug=True, deleteDestPlug=True):
         '''
         disconnect a given child node from the mNode. Default is to remove
@@ -1224,11 +1313,13 @@ class MetaClass(object):
         '''
         sPlug=None
         dPlug=None
+        sPlugMeta=None
         searchConnection='%s.' % self.mNode
         if attr:
             searchConnection='%s.%s' % (self.mNode,attr)
         if isMetaNode(node) and issubclass(type(node),MetaClass): 
-            node=node.mNode
+            sPlugMeta=node
+            node=node.mNode      
         cons=cmds.listConnections(node,s=True,d=False,p=True,c=True)
 
         if not cons:
@@ -1239,7 +1330,7 @@ class MetaClass(object):
                 log.debug('Disconnecting %s >> %s as %s found in dPlug' % (dPlug,sPlug,searchConnection))
                 cmds.disconnectAttr(dPlug,sPlug)
 
-        if deleteSourcePlug:
+        if deleteSourcePlug: # child node
             try:
                 allowDelete=True
                 attr=sPlug.split('[')[0] #split any multi-indexing from the plug ie node.attr[0]
@@ -1249,13 +1340,16 @@ class MetaClass(object):
                               ','.join(cmds.listConnections(attr)))
                 if allowDelete:
                     log.debug('Deleting deleteSourcePlug Attr %s' % (attr))
-                    cmds.deleteAttr(attr)
+                    if sPlugMeta:
+                        delattr(sPlugMeta,attr.split('.')[-1])
+                    else:
+                        cmds.deleteAttr(attr)
                 else:
                     log.debug('deleteSourcePlug attr aborted as node still has connections')
             except StandardError,error:
                 log.warning('Failed to Remove mNode Connection Attr')
                 log.debug(error)
-        if deleteDestPlug:
+        if deleteDestPlug: # self
             try:
                 allowDelete=True
                 attr=dPlug.split('[')[0] #split any multi-indexing from the plug ie node.attr[0]
@@ -1265,7 +1359,8 @@ class MetaClass(object):
                               ','.join(cmds.listConnections(attr)))
                 if allowDelete:
                     log.debug('Deleting deleteDestPlug Attr %s' % (attr))
-                    cmds.deleteAttr(attr)
+                    delattr(self,attr.split('.')[-1])
+                    #cmds.deleteAttr(attr)
                 else:
                     log.debug('deleteDestPlug attr aborted as node still has connections')
             except StandardError,error:
@@ -1282,6 +1377,8 @@ class MetaClass(object):
         @param mClass: mClass to generate, given as a valid key to the RED9_META_REGISTERY ie 'MetaRig'
         @param attr: message attribute to wire the new node too
         @param name: optional name to give the new name
+        TODO: allow us to pass in a class directly, not just a string to find in the Registry
+        this will make it easier as you'll be able to get dot complete on available subclasses
         '''
         if RED9_META_REGISTERY.has_key(mClass):
             childClass=RED9_META_REGISTERY[mClass]
@@ -1446,11 +1543,13 @@ class MetaRig(MetaClass):
         super(MetaRig, self).__init__(*args,**kws)
         self.CTRL_Prefix='CTRL' #prefix for all connected CTRL_ links added
         self.rigGlobalCtrlAttr='CTRL_Main' #attribute linked to the top globalCtrl in the rig
-    
+        #cmds.lockNode(self.mNode, lock=True) #lock the node to avoid accidental removal
+        self.lockState=True
+        
     def __bindData__(self):
         self.addAttr('version',1.0) #ensure these are added by default
         self.addAttr('rigType', '') #ensure these are added by default  
-        self.addAttr('renderMeshes', attrType='message')
+        self.addAttr('renderMeshes', attrType='message') 
            
     def addGenericCtrls(self, nodes):
         '''
@@ -1530,6 +1629,7 @@ class MetaRig(MetaClass):
         '''
         if self.hasAttr('exportSkeletonRoot'):
             return self.exportSkeletonRoot
+        return None
         
 
     #Do we supply a few generic presets?
@@ -1706,6 +1806,7 @@ class MetaFacialRigSupport(MetaClass):
     '''
     def __init__(self,*args,**kws):
         super(MetaFacialRigSupport, self).__init__(*args,**kws)       
+        self.CTRL_Prefix='SUP'
         
     def addSupportNode(self, node, attr, boundData=None):
         '''
@@ -1714,7 +1815,7 @@ class MetaFacialRigSupport(MetaClass):
         @param attr: Attr name to assign this too  
         @param boundData: {} Data to set on the given node as attrs 
         '''
-        self.connectChild(node,'SUP_%s' % attr)  
+        self.connectChild(node,'%s_%s' % (self.CTRL_Prefix,attr))  
         if boundData:
             if issubclass(type(boundData),dict):  
                 for key, value in boundData.iteritems():
@@ -1727,30 +1828,38 @@ class MetaHUDNode(MetaClass):
     SubClass of the MetaClass, designed as a simple interface 
     for HUD management in Maya. Any monitored attrs added to the MetaNode
     will show in the HUD when drawn.
+    TODO: Look if we can link the Section and Block attrs to the refresh func 
+    via an attrChange callback
     '''
     def __init__(self,*args,**kws):
         super(MetaHUDNode, self).__init__(*args,**kws)     
-        self.monitorAttrs=[]
         self.hudGroupActive=False
         self.eventTriggers=cmds.headsUpDisplay(le=True)
         self.size='small'
+        self.addAttr('monitorAttrCache', value='[]', attrType='string')
+        self.monitorAttrs=self.monitorAttrCache
         self.addAttr('section', 1)
         self.addAttr('block', 1)  
-        self.addAttr('eventTrigger', attrType='enum', value=5,enumName=':'.join(self.eventTriggers))
-        
+        self.addAttr('eventTrigger', attrType='enum', value=5,enumName=':'.join(self.eventTriggers))        
+
         #self.addMonitoredAttr('doubleMon', (0,0,0), attrType='double3')
         #self.addMonitoredAttr('stringMon', 'ffffff bbbbbbbbbbb',attrType='string')
-            
+      
     def addMonitoredAttr(self, attr, value=None, attrType=None): 
         '''
         wrapper that not only adds an attr to the metaNode, but also adds it
         to the internal list of attributes that are monitored and added
         to the HUD when drawn
         '''
-        self.addAttr(attr, value=value, attrType=attrType)
-        self.monitorAttrs.append(attr)
-        if self.hudGroupActive==True:
-            self.refreshHud()
+        if not attr in self.monitorAttrs:
+            self.addAttr(attr, value=value, attrType=attrType)
+            self.monitorAttrs.append(attr)
+            #serialize back to the node
+            self.monitorAttrCache=self.monitorAttrs
+            if self.hudGroupActive==True:
+                self.refreshHud()
+        else:
+            log.info('Hud attr already exists on metaHud Node')
     
     def removeMonitoredAttr(self,attr):
         '''
@@ -1780,35 +1889,43 @@ class MetaHUDNode(MetaClass):
         #          to allow the update of the data on attribute changes.
             
         for i,attr in enumerate(self.monitorAttrs):
-            if self.eventTrigger==5:
+            if self.eventTrigger==5: #timeChanged
                 cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
                                      section=self.section, 
                                      block=self.block + i, 
                                      blockSize=self.size,
                                      label=attr, 
                                      labelFontSize=self.size, 
+                                     allowOverlap=True,
                                      command=partial(getattr,self,attr),
                                      event='timeChanged')
                                      #event=lambda *x:self.getEventTrigger())
-            elif self.eventTrigger==22:
+            elif self.eventTrigger==22: #SelectionChanged
                 cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
                                      section=self.section, 
                                      block=self.block + i, 
                                      blockSize=self.size,
                                      label=attr, 
                                      labelFontSize=self.size, 
+                                     allowOverlap=True,
                                      command=partial(getattr,self,attr), 
                                      event=partial(self.getEventTrigger), 
                                      nodeChanges='attributeChange' )
+            else:
+                cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
+                                     section=self.section, 
+                                     block=self.block + i, 
+                                     blockSize=self.size,
+                                     label=attr, 
+                                     labelFontSize=self.size, 
+                                     allowOverlap=True,
+                                     command=partial(getattr,self,attr), 
+                                     attributeChange='%s.%s' % (self.mNode,attr))
         self.hudGroupActive=True
-                             
-    def hideHud(self):
+                                     
+    def showHud(self,value):
         for hud in self.getHudDisplays():
-            cmds.headsUpDisplay(hud,edit=True,visible=False)
-        
-    def showHud(self):
-        for hud in self.getHudDisplays():
-            cmds.headsUpDisplay(hud,edit=True,visible=True)  
+            cmds.headsUpDisplay(hud,edit=True,visible=value)  
              
     def killHud(self):
         for hud in self.getHudDisplays():
@@ -1835,6 +1952,8 @@ class MetaHUDNode(MetaClass):
             self.killHud()
             wasActive=True
         self.monitorAttrs.remove(attr)
+        #serialize back to the node
+        self.monitorAttrCache=self.monitorAttrs
         super(MetaHUDNode, self).__delattr__(attr)
         if wasActive==True:
             self.drawHUD()

@@ -1429,7 +1429,7 @@ class AnimationUI(object):
         if rootNode and cmds.objExists(rootNode):  
             self.__uiPresetFillFilter() #fill the filterSettings Object
             pose=r9Pose.PoseData(self.filterSettings)
-            pose.readPose(self.__uiCB_getPosePath())
+            pose._readPose(self.__uiCB_getPosePath())
             nodes=pose.matchInternalPoseObjects(rootNode)
             if nodes:
                 cmds.select(cl=True)
@@ -2887,11 +2887,11 @@ class MirrorHierarchy(object):
         for node in nodesToMap:
             found=False
             for index,leftData in self.mirrorDict['Left'].items():
-                print node, leftData['node']
+                #print node, leftData['node']
                 if r9Core.matchNodeLists([node],[leftData['node']]):
                     log.debug('NodeMatched: %s, Side=Left, index=%i, axis=%s' % (node,int(index),leftData['axis']))
                     if r9Core.decodeString(leftData['axisAttr']):
-                        self.setMirrorIDs(node, side='Left', slot=int(index), axis=leftData['axis'])
+                        self.setMirrorIDs(node, side='Left', slot=int(index), axis=','.join(leftData['axis']))
                     else:
                         self.setMirrorIDs(node, side='Left', slot=int(index))
                     found=True
@@ -2901,7 +2901,7 @@ class MirrorHierarchy(object):
                     if r9Core.matchNodeLists([node],[rightData['node']]):
                         log.debug('NodeMatched: %s, Side=Right, index=%i, axis=%s' % (node,int(index),rightData['axis']))
                         if r9Core.decodeString(rightData['axisAttr']):
-                            self.setMirrorIDs(node, side='Right', slot=int(index), axis=rightData['axis'])
+                            self.setMirrorIDs(node, side='Right', slot=int(index), axis=','.join(rightData['axis']))
                         else:
                             self.setMirrorIDs(node, side='Right', slot=int(index))
                         found=True
@@ -2911,7 +2911,7 @@ class MirrorHierarchy(object):
                     if r9Core.matchNodeLists([node],[centreData['node']]):
                         log.debug('NodeMatched: %s, Side=Centre, index=%i, axis=%s' % (node,int(index),centreData['axis']))
                         if r9Core.decodeString(centreData['axisAttr']):      
-                            self.setMirrorIDs( node, side='Centre', slot=int(index), axis=centreData['axis'])
+                            self.setMirrorIDs( node, side='Centre', slot=int(index), axis=','.join(centreData['axis']))
                         else:
                             self.setMirrorIDs(node, side='Centre', slot=int(index))
                         break
@@ -3007,7 +3007,7 @@ class MirrorSetup(object):
         if cmds.attributeQuery(self.mirrorClass.mirrorAxis,node=node,exists=True):
             axis=self.mirrorClass.getMirrorAxis(node) 
             
-        print side,index,axis
+        #print side,index,axis
 
         if side and index:
             cmds.radioCollection('mirrorSide',e=True,select=side)
@@ -3133,7 +3133,7 @@ class CameraTracker():
         self.fixed=fixed
     
     @staticmethod   
-    def cameraTrackView(start=None, end=None, step=None, fixed=True, keepOffset=True):
+    def cameraTrackView(start=None, end=None, step=None, fixed=True, keepOffset=False):
         '''
         CameraTracker is a simple wrap over the internal viewFit call but this manages the data
         over time. Works by taking the current camera, in the current 3dView, and fitting it to
@@ -3149,6 +3149,7 @@ class CameraTracker():
             raise StandardError('Nothing selected to Track!')
         cam = cmds.modelEditor(cmds.playblast(ae=True).split('|')[-1],q=True,camera=True) 
         cmds.cutKey(cam,cl=True,t=(),f=())
+        
         if not start:
             start=timeLineRangeGet()[0]
         if not end:
@@ -3158,11 +3159,18 @@ class CameraTracker():
                 step=cmds.optionVar(q='red9_cameraTrackStep')
             else:
                 step=10
-            
-        if keepOffset:    
-            if fixed:
+        if not keepOffset:
+            if cmds.optionVar(exists='red9_cameraTrackKeepOffset'):
+                keepOffset=cmds.optionVar(q='red9_cameraTrackKeepOffset') 
+                   
+        if fixed:
+            if keepOffset:
                 cachedTransform=cmds.getAttr('%s.translate' % cam)[0]
             else:
+                #not sure about this?
+                cmds.viewFit(cam,animate=False)
+        else:
+            if keepOffset:
                 cachedTransform=cmds.getAttr('%s.translate' % cam)[0]
                 cmds.viewFit(cam,animate=False)
                 shifted=cmds.getAttr('%s.translate' % cam)[0]
@@ -3182,6 +3190,7 @@ class CameraTracker():
                     cmds.move(offset[0],offset[1],offset[2],cam, r=True)
                     cmds.refresh()
             cmds.setKeyframe(cam,t=i)
+        cmds.filterCurve(cam)
 
     @classmethod
     def show(cls):
@@ -3189,36 +3198,49 @@ class CameraTracker():
     
     def _showUI(self):
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        cmds.window(self.win , title=self.win, widthHeight=(263, 160))
-        
+        cmds.window(self.win , title=self.win, widthHeight=(263, 180))
+        cmds.menuBarLayout()
+        cmds.menu(l="VimeoHelp")
+        cmds.menuItem(l="Open Vimeo Help File",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/60960492')") 
+        cmds.menuItem(divider=True) 
+        cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))    
         cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=15,style='none')
         cmds.intFieldGrp('CameraFrameStep',numberOfFields=1, 
                          label='TrackerStep: ', value1=10,
                          extraLabel='frames',
                          cw=(1,100),
-                         cc=partial(self.__storePrefs))   
+                         cc=partial(self.__storePrefs)) 
+        cmds.separator(h=15,style='none')  
+        cmds.checkBox('CBMaintainCurrent',l='MaintainCurrentFraming', v=True, cc=partial(self.__storePrefs))
         cmds.separator(h=15,style='none')
         cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,130),(2,130)])
-        cmds.button('cameraTrackTrack', label='Track', command=partial(self.__runTracker))  
+        if self.fixed:
+            cmds.button('cameraTrackTrack', label='Pan', command=partial(self.__runTracker)) 
+        else:
+            cmds.button('cameraTrackTrack', label='Track', command=partial(self.__runTracker))
         cmds.button('cameraTrackAppy', label='Apply', command=partial(self.__storePrefs))   
         cmds.setParent('..')
         cmds.separator(h=15,style='none')
         cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
                              c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
         cmds.showWindow(self.win)
-        cmds.window(self.win,e=True,widthHeight=(263, 130))
+        cmds.window(self.win,e=True,widthHeight=(263, 180))
         self.__loadPrefsToUI()
 
     def __storePrefs(self,*args):
         if cmds.window(self.win, exists=True):
             cmds.optionVar(intValue=('red9_cameraTrackStep',cmds.intFieldGrp('CameraFrameStep',q=True,v1=True)))
+            cmds.optionVar(intValue=('red9_cameraTrackKeepOffset',cmds.checkBox('CBMaintainCurrent',q=True,v=True)))
             log.debug('stored out cameraTracker prefs')
-        
+
     def __loadPrefsToUI(self):
         if cmds.optionVar(exists='red9_cameraTrackStep'):
             cmds.intFieldGrp('CameraFrameStep',e=True,v1=cmds.optionVar(q='red9_cameraTrackStep'))
-        
+        if cmds.optionVar(exists='red9_cameraTrackKeepOffset'):
+            cmds.checkBox('CBMaintainCurrent',e=True, v=cmds.optionVar(q='red9_cameraTrackKeepOffset'))
+            
     def __runTracker(self,*args):
-        self.__storePrefs()
+        self.__storePrefs()  
         self.cameraTrackView(fixed=self.fixed)

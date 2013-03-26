@@ -866,6 +866,8 @@ class FilterNode(object):
         see the ..\Red9\tests\Red9_CoreUtilTests.py for live unittest examples
         
         TODO: space removal in the args before it's split in case somebody's done 'myAttr = xx'
+        TODO: current Implementation DOES NOT allow multiple attr tests as only 1 val per key 
+        in the excludeAttrs and includeAttrs is currently supported!!!!!!
         '''
         
         self.foundAttributes = []
@@ -883,10 +885,13 @@ class FilterNode(object):
         for pattern in searchAttrs:
             val=[None,None] # why?? so that a value of False or 0 is still a value and not ignored!
             attr=pattern
+            #print 'pattern : ',pattern
             if '=' in pattern:
+                #print 'pattern has ='
                 val=[True,decodeString(pattern.split('=')[-1])]
                 attr=pattern.split('=')[0]
             if 'NOT:' in pattern:
+                #print 'pattern NOT ='
                 excludeAttrs[(attr.split('NOT:')[-1])]=val
             else:
                 includeAttrs[attr]=val
@@ -1232,10 +1237,10 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
     hierarchyB=list(nodeListB)
     
     for nodeA in nodeListA:
+        strippedA = nodeNameStrip(nodeA)
         for nodeB in hierarchyB:
-            
             #strip the path off for the compare
-            strippedA = nodeNameStrip(nodeA)
+            #strippedA = nodeNameStrip(nodeA)
             strippedB = nodeNameStrip(nodeB)
             
             #BaseMatch is a direct compare ONLY
@@ -1372,13 +1377,16 @@ class MatchedNodeInputs(object):
         else:
             if not len(self.roots)>=2:
                 raise StandardError('Please select 2 or more matching base objects')
-        
-            #No matching, just take roots as selected and substring them with step
-            #so that (roots[0],roots[1])(roots[2],roots[3])
-            self.MatchedPairs=zip(self.roots[0::2],self.roots[1::2])
-            for a,b in self.MatchedPairs:
-                log.debug( 'Blind Selection Matched  : %s == %s' % (a,b))
-      
+            if len(self.roots)==2 and type(self.roots[0])==list and type(self.roots[1])==list:
+                log.debug('<<2 lists passed in as roots - Assuming these are 2 hierarchies to process>>')
+                self.MatchedPairs=matchNodeLists(self.roots[0],self.roots[1],self.matchMethod) 
+            else:
+                #No matching, just take roots as selected and substring them with step
+                #so that (roots[0],roots[1])(roots[2],roots[3])
+                self.MatchedPairs=zip(self.roots[0::2],self.roots[1::2])
+                for a,b in self.MatchedPairs:
+                    log.debug( 'Blind Selection Matched  : %s == %s' % (a,b))
+          
         return self.MatchedPairs
 
 
@@ -1606,7 +1614,7 @@ class LockChannels(object):
                 if newAttrs:
                     for a in newAttrs.split(','):
                         self.attrs.add(a)
-                    print self.attrs
+                    #print self.attrs
             LockChannels.processState(cmds.ls(sl=True,l=True), self.attrs, mode, self.hierarchy, self.userDefined)
             
             
@@ -1740,7 +1748,7 @@ class LockChannels(object):
         if not type(attrs)==set:
             attrs=set(attrs)
             
-        print('Base attrs : ',attrs)
+        #print('Base attrs : ',attrs)
         attrKws={}
         
         if mode=='lock':
@@ -1985,15 +1993,5 @@ class MatrixOffset(object):
             else:
                 OpenMaya.MFnTransform(dag).set(OpenMaya.MTransformationMatrix(initialMatrix*offsetMatrix.inverse()))
 
-
-
-#class MetaCoreUtil_TestClass(r9Meta.MetaClass):
-#    '''
-#    SubClass of the Meta, this is here for me to test the ittersubclass function which
-#    works out the full inheritance map of r9Meta.MetaClass for all modules
-#    This class should get added to the RED9_META_REGISTERY
-#    '''
-#    def __init__(self,*args,**kws):
-#        super(MetaCoreUtil_TestClass, self).__init__(*args,**kws) 
-        
+       
 
