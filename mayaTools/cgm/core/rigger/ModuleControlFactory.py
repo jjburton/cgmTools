@@ -84,7 +84,7 @@ class go(object):
         self.l_coreNames = self.m.coreNames.value
         self.i_templateNull = self.m.templateNull#speed link
 	self.i_rigNull = self.m.rigNull#speed link
-        self.__targetMesh = self.m.modulePuppet.getGeo() or 'Morphy_Body_GEO'#>>>>>>>>>>>>>>>>>this needs better logic   
+        self.__targetMesh = self.m.modulePuppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
                
         #>>> part name 
         self.partName = self.m.getPartNameBase()
@@ -224,7 +224,7 @@ class go(object):
 		returnBuffer = createWrapControlShape(seg,self.__targetMesh,
 		                                      points = 8,
 		                                      curveDegree=1,
-		                                      distanceMult = .3,
+		                                      insetMult = .3,
 		                                      posOffset = [0,0,self.__skinOffset],
 		                                      joinMode=True,
 		                                      extendMode='segment')
@@ -250,7 +250,7 @@ class go(object):
 		returnBuffer = createWrapControlShape(seg,self.__targetMesh,
 		                                      points = 8,
 		                                      curveDegree=3,
-		                                      distanceMult = .2,
+		                                      insetMult = .2,
 		                                      posOffset = [0,0,self.__skinOffset*1.5],
 		                                      joinMode=True,
 		                                      extendMode='radial')
@@ -265,17 +265,21 @@ class go(object):
 		
 	    self.d_returnControls['segmentIK'] = l_segmentControls 
 	    
+	    if len(self.l_segments)>2:
+		objects = self.l_controlSnapObjects[-2:]
+	    else:
+		objects = self.l_segments[-1]
 	    returnBuffer = createWrapControlShape(self.l_segments[-1],self.__targetMesh,
 	                                          points = 8,
 	                                          curveDegree=3,
-	                                          distanceMult = .3,
 	                                          posOffset = [0,0,self.__skinOffset],
 	                                          joinMode=True,
 	                                          extendMode='segment')
 	    i_crv = returnBuffer['instance']	    
 	    #>>> Color
 	    curves.setCurveColorByName(i_crv.mNode,self.l_moduleColors[0])                    
-	    i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'ik')	
+	    i_crv.doCopyNameTagsFromObject(self.l_controlSnapObjects[-1],ignore = ['cgmType'])
+	    i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'ik')	    
 	    i_crv.doName()
 		
 	    self.d_returnControls['segmentIKEnd'] = i_crv.mNode 		
@@ -359,7 +363,7 @@ def createWrapControlShape(targetObjects,
                            latheAxis = 'z',aimAxis = 'y+',
                            points = 8,
                            curveDegree = 1,
-                           distanceMult = None,
+                           insetMult = None,#Inset multiplier
                            posOffset = [],
                            joinMode = False,
                            extendMode = None):#'segment,radial' 
@@ -376,7 +380,8 @@ def createWrapControlShape(targetObjects,
     assert type(points) is int,"Points must be int: %s"%points
     assert type(curveDegree) is int,"Points must be int: %s"%points
     assert curveDegree > 0,"Curve degree must be greater than 1: %s"%curveDegree
-    if distanceMult is None:distanceMult = 1
+    
+    log.debug("targetObjects: %s"%targetObjects)
     
     #>>> Info
     l_groupsBuffer = []
@@ -391,21 +396,30 @@ def createWrapControlShape(targetObjects,
     #>>> Root
     i_rootLoc.doGroup()#Group to zero    
     if extendMode == 'segment':
-	if len(targetObjects) != 2:
-	    log.warning("Segment build mode only works with the first two objects.")    
+	if len(targetObjects) < 2:
+	    log.warning("Segment build mode only works with two objects or more")    
 	else:
-	    distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[0],targetObjects[1])
-	    i_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
+	    if insetMult is not None:
+		rootDistanceToMove = distance.returnDistanceBetweenObjects(targetObjects[0],targetObjects[1])
+		log.debug("rootDistanceToMove: %s"%rootDistanceToMove)
+		i_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
 	    
-	    #> End Curve
-	    i_endLoc = cgmMeta.cgmNode(targetObjects[1]).doLoc()
-	    i_endLoc.doGroup()
-	    i_endLoc.tz = -(distanceToMove*distanceMult)#Offset it  
-	    d_endCastInfo = createMeshSliceCurve(targetGeo,i_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True) 
-	    l_sliceReturns.append(d_endCastInfo)
-	    i_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
-	    il_curvesToCombine.append(i_end)
-	    mc.delete(i_endLoc.parent)#delete the loc
+	    for i,obj in enumerate(targetObjects[1:]):
+		log.debug(i)
+		log.debug(len(targetObjects[1:]))
+		#> End Curve
+		i_endLoc = cgmMeta.cgmNode(obj).doLoc()
+		i_endLoc.doGroup()
+		if i == len(targetObjects[1:])-1:
+		    if insetMult is not None:
+			distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[-1],targetObjects[0])
+			log.debug("distanceToMove: %s"%distanceToMove)
+			i_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
+		d_endCastInfo = createMeshSliceCurve(targetGeo,i_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True) 
+		l_sliceReturns.append(d_endCastInfo)
+		i_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
+		il_curvesToCombine.append(i_end)
+		mc.delete(i_endLoc.parent)#delete the loc
 	    
     elif extendMode == 'radial':
 	d_handleOuterInfo = createMeshSliceCurve(targetGeo,i_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True) 
@@ -415,7 +429,7 @@ def createWrapControlShape(targetObjects,
 	
     #Now cast our root since we needed to move it with segment mode before casting 
     d_rootCastInfo = createMeshSliceCurve(targetGeo,i_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True)  
-    l_sliceReturns.append(d_rootCastInfo)
+    l_sliceReturns.insert(0,d_rootCastInfo)
     i_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])#instance curve
     il_curvesToCombine.append(i_root)    
     
@@ -429,12 +443,11 @@ def createWrapControlShape(targetObjects,
 	    l_pos = []	    
 	    for d in l_sliceReturns:
 		l_pos.append( d['processedHits'].get(degree) or False )
-	    for p in l_pos:
-		if not p:
-		    log.warning("Failed to find side data on: %s"%(seg))
-		    break
+	    if False in l_pos:
+		l_pos.remove(False)
 	    log.debug("l_pos: %s"%l_pos)
-	    l_curvesToCombine.append( mc.curve(d=1,ep=l_pos,os =True) )#Make the curve
+	    if len(l_pos)>=2:
+		l_curvesToCombine.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve
 		
     #>>>Combine the curves
     newCurve = curves.combineCurves(l_curvesToCombine) 
