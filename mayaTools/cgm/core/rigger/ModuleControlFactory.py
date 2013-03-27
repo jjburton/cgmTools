@@ -68,8 +68,8 @@ class go(object):
         assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
         assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
         
-        log.info(">>> ModuleControlFactory.go.__init__")
-        self.m = moduleInstance# Link for shortness	
+        log.debug(">>> ModuleControlFactory.go.__init__")
+        self._mi_module = moduleInstance# Link for shortness	
         """
         if moduleInstance.hasControls():
             if forceNew:
@@ -80,31 +80,32 @@ class go(object):
         """
         #>>> Gather info
         #=========================================================	
-        self.l_moduleColors = self.m.getModuleColors()
-        self.l_coreNames = self.m.coreNames.value
-        self.i_templateNull = self.m.templateNull#speed link
-	self.i_rigNull = self.m.rigNull#speed link
-        self.__targetMesh = self.m.modulePuppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+        self.l_moduleColors = self._mi_module.getModuleColors()
+        self.l_coreNames = self._mi_module.coreNames.value
+        self.mi_templateNull = self._mi_module.templateNull#speed link
+	self.mi_rigNull = self._mi_module.rigNull#speed link
+        self._targetMesh = self._mi_module.modulePuppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
                
         #>>> part name 
-        self.partName = self.m.getPartNameBase()
-        self.partType = self.m.moduleType or False
+        self._partName = self._mi_module.getPartNameBase()
+        self._partType = self._mi_module.moduleType or False
 	
-        self.direction = None
-        if self.m.hasAttr('cgmDirection'):
-            self.direction = self.m.cgmDirection or None
+        self._direction = None
+        if self._mi_module.hasAttr('cgmDirection'):
+            self._direction = self._mi_module.cgmDirection or None
                
         #>>> Instances and joint stuff
-        self.jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
+        self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
 	self.l_controlSnapObjects = []
-	for i_obj in self.i_templateNull.controlObjects:
-	    self.l_controlSnapObjects.append(i_obj.helper.mNode)  
-	self.__skinOffset = 3 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	for mi_obj in self.mi_templateNull.controlObjects:
+	    self.l_controlSnapObjects.append(mi_obj.helper.mNode)  
+	self._skinOffset = 3 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	self.l_segmentControls = []
 	self.l_segmentHandles = []
 	self.l_indexPairs = lists.parseListToPairs(list(range(len(self.l_controlSnapObjects))))
 	self.l_segments = lists.parseListToPairs(self.l_controlSnapObjects)		
 	self.d_returnControls = {}	
+	self.md_ReturnControls = {}	
         
         #>>> We need to figure out which control to make
 	#===================================================================================
@@ -115,18 +116,18 @@ class go(object):
 		if self.validateControlArg(c):
 		    self.l_controlsToMakeArg.append(c)
 	else:
-	    if not self.m.getMessage('moduleParent'):
+	    if not self._mi_module.getMessage('moduleParent'):
 		self.l_controlsToMakeArg.append('cog')
-	    #if self.i_rigNull.ik:
+	    #if self.mi_rigNull.ik:
 		#self.l_controlsToMakeArg.extend(['vectorHandles'])
-		#if self.partType == 'torso':#Maybe move to a dict?
+		#if self._partType == 'torso':#Maybe move to a dict?
 		    #self.l_controlsToMakeArg.append('spineIKHandle')            
-	    if self.i_rigNull.fk:
+	    if self.mi_rigNull.fk:
 		self.l_controlsToMakeArg.extend(['segmentFK','segmentIK'])
-		if self.partType == 'torso':#Maybe move to a dict?
+		if self._partType == 'torso':#Maybe move to a dict?
 		    self.l_controlsToMakeArg.append('hips')
 		    
-	log.info("l_controlsToMakeArg: %s"%self.l_controlsToMakeArg)
+	log.debug("l_controlsToMakeArg: %s"%self.l_controlsToMakeArg)
 	    
 	#self.d_controlShapes = mControlFactory.limbControlMaker(self.m,self.l_controlsToMakeArg)
 	
@@ -137,7 +138,8 @@ class go(object):
 		raise StandardError,"Did not get all necessary controls built"
 	if storageInstance:
 	    try:
-		storageInstance.d_returnControls = self.d_returnControls
+		storageInstance._d_controlShapes = self.d_returnControls
+		storageInstance._md_controlShapes = self.md_ReturnControls
 	    except StandardError,error:
 		log.error("storage fail! | %s"%storageInstance) 
 		raise StandardError,"Did not get all necessary controls built"
@@ -153,25 +155,25 @@ class go(object):
     def build_cog(self):
 	try:
 	    multiplier = 1.1
-	    orientRoot = self.i_templateNull.orientRootHelper.mNode
-	    i_loc = cgmMeta.cgmNode(orientRoot).doLoc()#make loc for sizing
-	    i_loc.doGroup()#group to zero
-	    sizeReturn = returnBaseControlSize(i_loc,self.__targetMesh,axis=['x','y'])#Get size
-	    l_size = [sizeReturn['x']+(self.__skinOffset*2),sizeReturn['y']+(self.__skinOffset*2)]
-	    mc.delete(i_loc.parent)#delete loc
+	    orientRoot = self.mi_templateNull.orientRootHelper.mNode
+	    mi_loc = cgmMeta.cgmNode(orientRoot).doLoc()#make loc for sizing
+	    mi_loc.doGroup()#group to zero
+	    sizeReturn = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
+	    l_size = [sizeReturn['x']+(self._skinOffset*2),sizeReturn['y']+(self._skinOffset*2)]
+	    mc.delete(mi_loc.parent)#delete loc
 	    
-	    i_crv = cgmMeta.cgmObject( curves.createControlCurve('circleArrow',direction = 'y+',size = max(l_size),absoluteSize=False))
-	    Snap.go(i_crv, orientRoot) #Snap it
+	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('circleArrow',direction = 'y+',size = max(l_size),absoluteSize=False))
+	    Snap.go(mi_crv, orientRoot) #Snap it
 	    
 	    #>>Copy tags and name
-	    i_crv.addAttr('cgmName',attrType='string',value = 'cog')        
-	    i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-	    i_crv.doName()        
+	    mi_crv.addAttr('cgmName',attrType='string',value = 'cog')        
+	    mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+	    mi_crv.doName()        
     
 	    #>>> Color
-	    curves.setCurveColorByName(i_crv.mNode,self.l_moduleColors[0])    
-	    self.d_returnControls['cog'] = i_crv.mNode
-	    
+	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+	    self.d_returnControls['cog'] = mi_crv.mNode
+	    self.md_ReturnControls['cog'] = mi_crv
 	except StandardError,error:
 		log.error("build_cog fail! | %s"%error) 
 		return False
@@ -180,37 +182,38 @@ class go(object):
 	try:
 	    distanceMult = .5	    
 	    orientHelper = self.l_controlSnapObjects[0]
-	    log.info(orientHelper)
-	    i_loc = cgmMeta.cgmNode(orientHelper).doLoc()#make loc for sizing
-	    i_loc.doGroup()#group to zero
-	    d_size = returnBaseControlSize(i_loc,self.__targetMesh,axis=['x','y','z-'])#Get size
-	    l_size = [d_size['x']+(self.__skinOffset*2),d_size['y']+(self.__skinOffset*2),d_size['z']+(self.__skinOffset*2)]
+	    log.debug(orientHelper)
+	    mi_loc = cgmMeta.cgmNode(orientHelper).doLoc()#make loc for sizing
+	    mi_loc.doGroup()#group to zero
+	    d_size = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y','z-'])#Get size
+	    l_size = [d_size['x']+(self._skinOffset*2),d_size['y']+(self._skinOffset*2),d_size['z']+(self._skinOffset*2)]
 	    
-	    i_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',direction = 'y-',size = 1))
-	    i_crv.doGroup()
-	    mc.scale(l_size[0],l_size[2],l_size[1],i_crv.mNode,os = True, relative = True)
-	    i_crv.sy = d_size['z'] * 1.25
+	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',direction = 'y-',size = 1))
+	    mi_crv.doGroup()
+	    mc.scale(l_size[0],l_size[2],l_size[1],mi_crv.mNode,os = True, relative = True)
+	    mi_crv.sy = d_size['z'] * 1.25
 	    
 	    if len(self.l_controlSnapObjects)>2:#offset
 		distanceToMove = distance.returnDistanceBetweenObjects(orientHelper,self.l_controlSnapObjects[1])
-		i_loc.tz = -(distanceToMove*distanceMult)#Offset it	
+		mi_loc.tz = -(distanceToMove*distanceMult)#Offset it	
 	    
-	    mc.makeIdentity(i_crv.mNode,apply=True, scale=True)
-	    Snap.go(i_crv, i_loc.mNode)#Snap it	    
-	    mc.delete(i_loc.parent)#delete loc
+	    mc.makeIdentity(mi_crv.mNode,apply=True, scale=True)
+	    Snap.go(mi_crv, mi_loc.mNode)#Snap it	    
+	    mc.delete(mi_loc.parent)#delete loc
 	    
-	    pBuffer = i_crv.parent
-	    i_crv.parent = False
+	    pBuffer = mi_crv.parent
+	    mi_crv.parent = False
 	    mc.delete(pBuffer)
 	    
 	    #>>Copy tags and name
-	    i_crv.addAttr('cgmName',attrType='string',value = 'hips')        
-	    i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-	    i_crv.doName()        
+	    mi_crv.addAttr('cgmName',attrType='string',value = 'hips')        
+	    mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+	    mi_crv.doName()        
 	    
 	    #>>> Color
-	    curves.setCurveColorByName(i_crv.mNode,self.l_moduleColors[0])    
-	    self.d_returnControls['hips'] = i_crv.mNode
+	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+	    self.d_returnControls['hips'] = mi_crv.mNode
+	    self.md_ReturnControls['hips'] = mi_crv
 	    	    
 	except StandardError,error:
 		log.error("build_hips fail! | %s"%error) 
@@ -220,24 +223,28 @@ class go(object):
     def build_segmentFKHandles(self):
 	try:
 	    l_segmentControls = []
+	    l_iSegmentControls = []
 	    for i,seg in enumerate(self.l_segments):
-		returnBuffer = createWrapControlShape(seg,self.__targetMesh,
+		returnBuffer = createWrapControlShape(seg,self._targetMesh,
 		                                      points = 8,
 		                                      curveDegree=1,
 		                                      insetMult = .3,
-		                                      posOffset = [0,0,self.__skinOffset],
+		                                      posOffset = [0,0,self._skinOffset],
 		                                      joinMode=True,
 		                                      extendMode='segment')
-		i_crv = returnBuffer['instance']	    
+		mi_crv = returnBuffer['instance']	    
 		#>>> Color
-		curves.setCurveColorByName(i_crv.mNode,self.l_moduleColors[0])                    
-		i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'segFK')	
-		i_crv.doName()
+		curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
+		mi_crv.addAttr('cgmTypeModifier',attrType='string',value = 'segFK')	
+		mi_crv.doName()
 		
 		#Store for return
-		l_segmentControls.append( i_crv.mNode )
+		l_segmentControls.append( mi_crv.mNode )
+		l_iSegmentControls.append( mi_crv )
 		
 	    self.d_returnControls['segmentFK'] = l_segmentControls 
+	    self.md_ReturnControls['segmentFK'] = l_iSegmentControls
+	    
 	except StandardError,error:
 		log.error("build_segmentIKHandles fail! | %s"%error) 
 		return False
@@ -246,56 +253,60 @@ class go(object):
     def build_segmentIKHandles(self):
 	try:
 	    l_segmentControls = []
+	    l_iSegmentControls = []	    
 	    for i,seg in enumerate(self.l_segments):
-		returnBuffer = createWrapControlShape(seg,self.__targetMesh,
+		returnBuffer = createWrapControlShape(seg,self._targetMesh,
 		                                      points = 8,
 		                                      curveDegree=3,
 		                                      insetMult = .2,
-		                                      posOffset = [0,0,self.__skinOffset*1.5],
+		                                      posOffset = [0,0,self._skinOffset*1.5],
 		                                      joinMode=True,
 		                                      extendMode='radial')
-		i_crv = returnBuffer['instance']	    
+		mi_crv = returnBuffer['instance']	    
 		#>>> Color
-		curves.setCurveColorByName(i_crv.mNode,self.l_moduleColors[1])                    
-		i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'segIK')	
-		i_crv.doName()
+		curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])                    
+		mi_crv.addAttr('cgmTypeModifier',attrType='string',value = 'segIK')	
+		mi_crv.doName()
 		
 		#Store for return
-		l_segmentControls.append( i_crv.mNode )
+		l_segmentControls.append( mi_crv.mNode )
+		l_iSegmentControls.append( mi_crv )
 		
 	    self.d_returnControls['segmentIK'] = l_segmentControls 
+	    self.md_ReturnControls['segmentIK'] = l_iSegmentControls
 	    
 	    if len(self.l_segments)>2:
 		objects = self.l_controlSnapObjects[-2:]
 	    else:
 		objects = self.l_segments[-1]
-	    returnBuffer = createWrapControlShape(self.l_segments[-1],self.__targetMesh,
+	    returnBuffer = createWrapControlShape(self.l_segments[-1],self._targetMesh,
 	                                          points = 8,
 	                                          curveDegree=3,
-	                                          posOffset = [0,0,self.__skinOffset],
+	                                          posOffset = [0,0,self._skinOffset],
 	                                          joinMode=True,
 	                                          extendMode='segment')
-	    i_crv = returnBuffer['instance']	    
+	    mi_crv = returnBuffer['instance']	    
 	    #>>> Color
-	    curves.setCurveColorByName(i_crv.mNode,self.l_moduleColors[0])                    
-	    i_crv.doCopyNameTagsFromObject(self.l_controlSnapObjects[-1],ignore = ['cgmType'])
-	    i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'ik')	    
-	    i_crv.doName()
+	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
+	    mi_crv.doCopyNameTagsFromObject(self.l_controlSnapObjects[-1],ignore = ['cgmType'])
+	    mi_crv.addAttr('cgmTypeModifier',attrType='string',value = 'ik')	    
+	    mi_crv.doName()
 		
-	    self.d_returnControls['segmentIKEnd'] = i_crv.mNode 		
+	    self.d_returnControls['segmentIKEnd'] = mi_crv.mNode 		
+	    self.md_ReturnControls['segmentIKEnd'] = mi_crv
 		
 	except StandardError,error:
 		log.error("build_segmentIKHandles! | %s"%error) 
 		return False
 	    
-def returnBaseControlSize(i_obj,mesh,axis=True):
+def returnBaseControlSize(mi_obj,mesh,axis=True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Figure out the base size for a control from a point in space within a mesh
 
     ARGUMENTS:
-    i_obj(cgmObject instance)
+    mi_obj(cgmObject instance)
     mesh(obj) = ['option1','option2']
     axis(list) -- what axis to check
     
@@ -304,17 +315,17 @@ def returnBaseControlSize(i_obj,mesh,axis=True):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """ 
     #if type(l_mesh) not in [list,tuple]:l_mesh = [l_mesh]
-    if mc.objExists(i_obj):
+    if mc.objExists(mi_obj):
 	try:
-	    i_obj = cgmMeta.cgmObject(i_obj)
+	    mi_obj = cgmMeta.cgmObject(mi_obj)
 	except StandardError,error:
-		log.error("returnBaseControlSize Failed to initialize i_obj! | %s"%error) 
+		log.error("returnBaseControlSize Failed to initialize mi_obj! | %s"%error) 
 		raise StandardError    
-    elif not issubclass(type(i_obj),cgmMeta.cgmObject):
+    elif not issubclass(type(mi_obj),cgmMeta.cgmObject):
 	try:
-	    i_obj = cgmMeta.cgmObject(i_obj.mNode)
+	    mi_obj = cgmMeta.cgmObject(mi_obj.mNode)
 	except StandardError,error:
-		log.error("returnBaseControlSize Failed to initialize existing instance as i_obj! | %s"%error) 
+		log.error("returnBaseControlSize Failed to initialize existing instance as mi_obj! | %s"%error) 
 		raise StandardError  
 	    
    	   
@@ -338,22 +349,22 @@ def returnBaseControlSize(i_obj,mesh,axis=True):
             else:
                 log.warning("Don't know what with: '%s'"%a)
     
-    log.info(d_axisToDo)
+    log.debug(d_axisToDo)
     if not d_axisToDo:return False
     #>>>
     d_returnDistances = {}
     for axis in d_axisToDo:
-        log.info("Checking: %s"%axis)
+        log.debug("Checking: %s"%axis)
         directions = d_axisToDo[axis]
         if len(directions) == 1:#gonna multiply our distance 
-            info = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,directions[0])
-            d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['hit'],i_obj.getPosition()) *2)
+            info = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
+            d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['hit'],mi_obj.getPosition()) *2)
         else:
-            info1 = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,directions[0])
-            info2 = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,directions[1])
+            info1 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
+            info2 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[1])
             if info1 and info2:
                 d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['hit'],info2['hit'])                    
-    log.info(d_returnDistances) 
+    log.debug(d_returnDistances) 
     return d_returnDistances
 
   
@@ -392,9 +403,9 @@ def createWrapControlShape(targetObjects,
     #>>> Build curves
     #=================================================================
     #> Root curve #
-    i_rootLoc = cgmMeta.cgmNode(targetObjects[0]).doLoc()
+    mi_rootLoc = cgmMeta.cgmNode(targetObjects[0]).doLoc()
     #>>> Root
-    i_rootLoc.doGroup()#Group to zero    
+    mi_rootLoc.doGroup()#Group to zero    
     if extendMode == 'segment':
 	if len(targetObjects) < 2:
 	    log.warning("Segment build mode only works with two objects or more")    
@@ -402,40 +413,40 @@ def createWrapControlShape(targetObjects,
 	    if insetMult is not None:
 		rootDistanceToMove = distance.returnDistanceBetweenObjects(targetObjects[0],targetObjects[1])
 		log.debug("rootDistanceToMove: %s"%rootDistanceToMove)
-		i_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
+		mi_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
 	    
 	    for i,obj in enumerate(targetObjects[1:]):
 		log.debug(i)
 		log.debug(len(targetObjects[1:]))
 		#> End Curve
-		i_endLoc = cgmMeta.cgmNode(obj).doLoc()
-		i_endLoc.doGroup()
+		mi_endLoc = cgmMeta.cgmNode(obj).doLoc()
+		mi_endLoc.doGroup()
 		if i == len(targetObjects[1:])-1:
 		    if insetMult is not None:
 			distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[-1],targetObjects[0])
 			log.debug("distanceToMove: %s"%distanceToMove)
-			i_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
-		d_endCastInfo = createMeshSliceCurve(targetGeo,i_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True) 
+			mi_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
+		d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True) 
 		l_sliceReturns.append(d_endCastInfo)
-		i_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
-		il_curvesToCombine.append(i_end)
-		mc.delete(i_endLoc.parent)#delete the loc
+		mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
+		il_curvesToCombine.append(mi_end)
+		mc.delete(mi_endLoc.parent)#delete the loc
 	    
     elif extendMode == 'radial':
-	d_handleOuterInfo = createMeshSliceCurve(targetGeo,i_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True) 
-	i_buffer = cgmMeta.cgmObject(d_handleOuterInfo['curve'])#instance curve	
+	d_handleOuterInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True) 
+	mi_buffer = cgmMeta.cgmObject(d_handleOuterInfo['curve'])#instance curve	
 	l_sliceReturns.append(d_handleOuterInfo)
-	il_curvesToCombine.append(i_buffer)    
+	il_curvesToCombine.append(mi_buffer)    
 	
     #Now cast our root since we needed to move it with segment mode before casting 
-    d_rootCastInfo = createMeshSliceCurve(targetGeo,i_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True)  
+    d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True)  
     l_sliceReturns.insert(0,d_rootCastInfo)
-    i_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])#instance curve
-    il_curvesToCombine.append(i_root)    
+    mi_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])#instance curve
+    il_curvesToCombine.append(mi_root)    
     
-    mc.delete(i_rootLoc.parent)#delete the loc
+    mc.delete(mi_rootLoc.parent)#delete the loc
     
-    l_curvesToCombine = [i_obj.mNode for i_obj in il_curvesToCombine]#Build our combine list before adding connectors         
+    l_curvesToCombine = [mi_obj.mNode for mi_obj in il_curvesToCombine]#Build our combine list before adding connectors         
     
     if joinMode and len(l_sliceReturns)>1:
 	#> Side Curves
@@ -451,20 +462,20 @@ def createWrapControlShape(targetObjects,
 		
     #>>>Combine the curves
     newCurve = curves.combineCurves(l_curvesToCombine) 
-    i_crv = cgmMeta.cgmObject( rigging.groupMeObject(targetObjects[0],False) )
-    curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+    mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(targetObjects[0],False) )
+    curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
     mc.delete(newCurve)
     
     #>>Copy tags and name
-    i_crv.doCopyNameTagsFromObject(targetObjects[0],ignore = ['cgmType'])
-    i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-    i_crv.doName()                
+    mi_crv.doCopyNameTagsFromObject(targetObjects[0],ignore = ['cgmType'])
+    mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+    mi_crv.doName()                
         
     #Store for return
-    return {'curve':i_crv.mNode,'instance':i_crv}  
+    return {'curve':mi_crv.mNode,'instance':mi_crv}  
  
 #@r9General.Timer
-def createMeshSliceCurve(mesh, i_obj,latheAxis = 'z',aimAxis = 'y+',
+def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                          points = 12, curveDegree = 3,
                          posOffset = 0, markHits = False,
                          initialRotate = 0,offsetMode = 'vector',
@@ -474,7 +485,7 @@ def createMeshSliceCurve(mesh, i_obj,latheAxis = 'z',aimAxis = 'y+',
     it then uses this information to build a curve shape.
     
     @Paremeters
-    i_obj(string instance) -- object to use as base
+    mi_obj(string instance) -- object to use as base
     latheAxis(str) -- axis of the objec to lathe TODO: add validation
     aimAxis(str) -- axis to shoot out of
     points(int) -- how many points you want in the curve
@@ -482,21 +493,21 @@ def createMeshSliceCurve(mesh, i_obj,latheAxis = 'z',aimAxis = 'y+',
     markHits(bool) -- whether to keep the hit markers
     returnDict(bool) -- whether you want all the infomation from the process.
     """
-    if issubclass(type(i_obj),cgmMeta.cgmObject):
-        i_obj = i_obj
+    if issubclass(type(mi_obj),cgmMeta.cgmObject):
+        mi_obj = mi_obj
     else:
         try:
-	    i_obj = cgmMeta.cgmObject(i_obj)
+	    mi_obj = cgmMeta.cgmObject(mi_obj)
 	except StandardError,error:
 		log.error(error) 
 		return False
-    log.debug("Casting: '%s"%i_obj.mNode)
+    log.debug("Casting: '%s"%mi_obj.mNode)
     if type(mesh) in [list,tuple]:
 	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
 	mesh = mesh[0]
     assert mc.objExists(mesh),"Mesh doesn't exist: '%s'"%mesh
-    i_loc = i_obj.doLoc()
-    i_loc.doGroup()
+    mi_loc = mi_obj.doLoc()
+    mi_loc.doGroup()
     l_pos = []
     d_returnDict = {}
     d_hitReturnFromValue = {}
@@ -508,9 +519,9 @@ def createMeshSliceCurve(mesh, i_obj,latheAxis = 'z',aimAxis = 'y+',
 	rotateValue = (rotateBaseValue*i) + initialRotate
 	#shoot our ray, store the hit
 	log.debug("Casting: %i>>%f"%(i,rotateValue))
-	i_loc.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)	
+	mi_loc.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)	
 	try:
-	    d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, i_loc.mNode, axis=aimAxis)
+	    d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis)
 	    d_hitReturnFromValue[rotateValue] = d_castReturn	    
 	    try:hit = d_castReturn.get('hit')
 	    except:hit = False	
@@ -518,29 +529,29 @@ def createMeshSliceCurve(mesh, i_obj,latheAxis = 'z',aimAxis = 'y+',
 		log.error(error) 
 	if hit:
 	    if markHits or posOffset:
-		i_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator()[0])
-		mc.move (hit[0],hit[1],hit[2], i_tmpLoc.mNode)	
+		mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator()[0])
+		mc.move (hit[0],hit[1],hit[2], mi_tmpLoc.mNode)	
 		if posOffset:
 		    if offsetMode =='vector':
-			constBuffer = mc.aimConstraint(i_obj.mNode,i_tmpLoc.mNode,
+			constBuffer = mc.aimConstraint(mi_obj.mNode,mi_tmpLoc.mNode,
 			                                  aimVector=[0,0,-1],
 			                                  upVector=[0,1,0],
 			                                  worldUpType = 'scene')
 		    else:
-			constBuffer = mc.normalConstraint(mesh,i_tmpLoc.mNode,
+			constBuffer = mc.normalConstraint(mesh,mi_tmpLoc.mNode,
 			                                  aimVector=[0,0,1],
 			                                  upVector=[0,1,0],
 			                                  worldUpType = 'scene')
 		    mc.delete(constBuffer)
-		    mc.move(posOffset[0],posOffset[1],posOffset[2], [i_tmpLoc.mNode], r=True, rpr = True, os = True, wd = True)
-		    hit = i_tmpLoc.getPosition()
+		    mc.move(posOffset[0],posOffset[1],posOffset[2], [mi_tmpLoc.mNode], r=True, rpr = True, os = True, wd = True)
+		    hit = mi_tmpLoc.getPosition()
 		if not markHits:
-		    i_tmpLoc.delete()
+		    mi_tmpLoc.delete()
 		
 	    l_pos.append(hit)
 	    d_processedHitFromValue[rotateValue] = hit
 		
-    mc.delete(i_loc.parent)
+    mc.delete(mi_loc.parent)
     if len(l_pos)>3:
 	buffer = l_pos[0]
 	l_finalPos = l_pos.append(buffer)
@@ -583,7 +594,7 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
     assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
     
     log.info(">>> ModuleControlFactory.go.__init__")
-    i_m = moduleInstance# Link for shortness    
+    mi_m = moduleInstance# Link for shortness    
     """
     if moduleInstance.hasControls():
         if forceNew:
@@ -594,24 +605,24 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
     """
     #>>> Gather info
     #=========================================================
-    l_moduleColors = i_m.getModuleColors()
-    l_coreNames = i_m.coreNames.value
+    l_moduleColors = mi_m.getModuleColors()
+    l_coreNames = mi_m.coreNames.value
             
     #>>> part name 
-    partName = i_m.getPartNameBase()
-    partType = i_m.moduleType or False
+    partName = mi_m.getPartNameBase()
+    partType = mi_m.moduleType or False
     
     direction = None
-    if i_m.hasAttr('cgmDirection'):
-        direction = i_m.cgmDirection or None
+    if mi_m.hasAttr('cgmDirection'):
+        direction = mi_m.cgmDirection or None
         
     
     #Gether information 
-    i_templateNull = i_m.templateNull
-    bodyGeo = i_m.modulePuppet.getGeo() or ['Morphy_Body_GEO1'] #>>>>>>>>>>>>>>>>>this needs better logic
+    mi_templateNull = mi_m.templateNull
+    bodyGeo = mi_m.modulePuppet.getGeo() or ['Morphy_Body_GEO1'] #>>>>>>>>>>>>>>>>>this needs better logic
     l_controlSnapObjects = []
-    for i_obj in i_templateNull.controlObjects:
-        l_controlSnapObjects.append(i_obj.helper.mNode)  
+    for mi_obj in mi_templateNull.controlObjects:
+        l_controlSnapObjects.append(mi_obj.helper.mNode)  
     skinDepth = 2.5
     d_returnControls = {}
     if 'fkSegmentControls' in controlTypes:
@@ -640,21 +651,21 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 		curveDegree = 1
 		posOffset = [0,0,skinDepth*1.25]
 		#> Root curve #
-		i_rootLoc = cgmMeta.cgmNode(seg[0]).doLoc()
+		mi_rootLoc = cgmMeta.cgmNode(seg[0]).doLoc()
 			    
 		#>>> Root
-		i_rootLoc.doGroup()
-		i_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
+		mi_rootLoc.doGroup()
+		mi_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
 		
-		d_rootCastInfo = createMeshSliceCurve(bodyGeo[0],i_rootLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
-		i_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])
+		d_rootCastInfo = createMeshSliceCurve(bodyGeo[0],mi_rootLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
+		mi_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])
 		    
 		#> End Curve
-		i_endLoc = cgmMeta.cgmNode(seg[1]).doLoc()
-		i_endLoc.doGroup()
-		i_endLoc.tz = -(distanceToMove*distanceMult)#Offset it  
-		d_endCastInfo = createMeshSliceCurve(bodyGeo[0],i_endLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
-		i_end = cgmMeta.cgmObject(d_endCastInfo['curve'])          
+		mi_endLoc = cgmMeta.cgmNode(seg[1]).doLoc()
+		mi_endLoc.doGroup()
+		mi_endLoc.tz = -(distanceToMove*distanceMult)#Offset it  
+		d_endCastInfo = createMeshSliceCurve(bodyGeo[0],mi_endLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
+		mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])          
 		
 		#> Side Curves
 		l_rootPos = []
@@ -669,24 +680,24 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 			log.warning("Failed to find side data on: %s"%(seg))
     
 		#>>>Store groups
-		l_groupsBuffer.append( i_endLoc.parent )
-		l_groupsBuffer.append( i_rootLoc.parent )
+		l_groupsBuffer.append( mi_endLoc.parent )
+		l_groupsBuffer.append( mi_rootLoc.parent )
     
 		#>>>Combine the curves
-		l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
+		l_curvesToCombine.extend([mi_root.mNode,mi_end.mNode])            
 		newCurve = curves.combineCurves(l_curvesToCombine) 
-		i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
-		curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+		mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+		curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
 		mc.delete(newCurve)
 		
 		#>>Copy tags and name
-		i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
-		i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-		i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'fk')				
-		i_crv.doName()
+		mi_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+		mi_crv.addAttr('cgmTypeModifier',attrType='string',value = 'fk')				
+		mi_crv.doName()
 		
 		#>>> Color
-		curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])                    
+		curves.setCurveColorByName(mi_crv.mNode,l_moduleColors[0])                    
 		
 		#>>>Clean up groups
 		for g in l_groupsBuffer:
@@ -694,7 +705,7 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 			mc.delete(g)
 		
 		#Store for return
-		l_segmentControls.append( i_crv.mNode )
+		l_segmentControls.append( mi_crv.mNode )
 	    d_returnControls['fkSegmentControls'] = l_segmentControls 
 	    
     if 'ikSegmentControls' in controlTypes:
@@ -723,19 +734,19 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 		#>>> Build curves
 		#=================================================================
 		#> Root curve #
-		i_rootLoc = cgmMeta.cgmNode(seg[0]).doLoc()
+		mi_rootLoc = cgmMeta.cgmNode(seg[0]).doLoc()
 			    
 		#>>> Root
-		i_rootLoc.doGroup()
-		i_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
+		mi_rootLoc.doGroup()
+		mi_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
 		
-		d_rootCastInfo = createMeshSliceCurve(bodyGeo[0],i_rootLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
-		i_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])
+		d_rootCastInfo = createMeshSliceCurve(bodyGeo[0],mi_rootLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
+		mi_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])
 		    
 		#> End Curve
-		i_rootLoc.tz = -(distanceToMove*distanceMult)#Offset it  
-		d_endCastInfo = createMeshSliceCurve(bodyGeo[0],i_rootLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
-		i_end = cgmMeta.cgmObject(d_endCastInfo['curve'])          
+		mi_rootLoc.tz = -(distanceToMove*distanceMult)#Offset it  
+		d_endCastInfo = createMeshSliceCurve(bodyGeo[0],mi_rootLoc,curveDegree=curveDegree,posOffset = posOffset,points = points,returnDict=True) 
+		mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])          
 		
 		#> Side Curves
 		l_rootPos = []
@@ -750,23 +761,23 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 			log.warning("Failed to find side data on: %s"%(seg))
     
 		#>>>Store groups
-		l_groupsBuffer.append( i_rootLoc.parent )
+		l_groupsBuffer.append( mi_rootLoc.parent )
     
 		#>>>Combine the curves
-		l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
+		l_curvesToCombine.extend([mi_root.mNode,mi_end.mNode])            
 		newCurve = curves.combineCurves(l_curvesToCombine) 
-		i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
-		curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+		mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+		curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
 		mc.delete(newCurve)
 		
 		#>>Copy tags and name
-		i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
-		i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-		i_crv.addAttr('cgmTypeModifier',attrType='string',value = 'ik')		
-		i_crv.doName()
+		mi_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+		mi_crv.addAttr('cgmTypeModifier',attrType='string',value = 'ik')		
+		mi_crv.doName()
 		
 		#>>> Color
-		curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])                    
+		curves.setCurveColorByName(mi_crv.mNode,l_moduleColors[0])                    
 		
 		#>>>Clean up groups
 		for g in l_groupsBuffer:
@@ -774,7 +785,7 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 			mc.delete(g)
 		
 		#Store for return
-		l_segmentControls.append( i_crv.mNode )
+		l_segmentControls.append( mi_crv.mNode )
 	    d_returnControls['ikSegmentControls'] = l_segmentControls 
 	    
     if 'segmentControlsNEW' in controlTypes:
@@ -801,14 +812,14 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
             #=================================================================
 	    points = 8
             #> Root curve #
-            i_rootLoc = cgmMeta.cgmNode(seg[0]).doLoc()
+            mi_rootLoc = cgmMeta.cgmNode(seg[0]).doLoc()
 	    
 	    #>>> Handle
-	    d_handleInnerInfo = createMeshSliceCurve(bodyGeo[0],i_rootLoc,posOffset = [0,0,skinDepth],points = points,returnDict=True) 
-	    d_handleOuterInfo = createMeshSliceCurve(bodyGeo[0],i_rootLoc,posOffset = [0,0,skinDepth*2],points = points,returnDict=True) 
+	    d_handleInnerInfo = createMeshSliceCurve(bodyGeo[0],mi_rootLoc,posOffset = [0,0,skinDepth],points = points,returnDict=True) 
+	    d_handleOuterInfo = createMeshSliceCurve(bodyGeo[0],mi_rootLoc,posOffset = [0,0,skinDepth*2],points = points,returnDict=True) 
             l_handleCurvesToCombine = [d_handleInnerInfo['curve'],d_handleOuterInfo['curve']]    
 	    
-            i_handle = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+            mi_handle = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
 	    
 	    for degree in [0,90,180,270]:
 		rootPoint = d_handleInnerInfo['processedHits'].get(degree) or False
@@ -819,33 +830,33 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 		    log.warning("Failed to find side data on: %s"%(seg))
 	    
 	    newCurve = curves.combineCurves(l_handleCurvesToCombine)   
-            curves.parentShapeInPlace(i_handle.mNode,newCurve)#Parent shape
+            curves.parentShapeInPlace(mi_handle.mNode,newCurve)#Parent shape
 	    mc.delete(newCurve)
             
 	    
             #>>Copy tags and name
-            i_handle.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
-            i_handle.addAttr('cgmType',attrType='string',value = 'controlAnim')
-            i_handle.addAttr('cgmTypeModifier',attrType='string',value = 'handle')	    
-            i_handle.doName()
+            mi_handle.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+            mi_handle.addAttr('cgmType',attrType='string',value = 'controlAnim')
+            mi_handle.addAttr('cgmTypeModifier',attrType='string',value = 'handle')	    
+            mi_handle.doName()
             
             #>>> Color
-            curves.setCurveColorByName(i_handle.mNode,l_moduleColors[1]) 	    
+            curves.setCurveColorByName(mi_handle.mNode,l_moduleColors[1]) 	    
 	    
 	    #>>> Main Curve =====================================================
 	    #>>> Root
-            i_rootLoc.doGroup()
-            i_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
+            mi_rootLoc.doGroup()
+            mi_rootLoc.tz = (distanceToMove*distanceMult)#Offset it
             
-	    d_rootCastInfo = createMeshSliceCurve(bodyGeo[0],i_rootLoc,posOffset = [0,0,skinDepth],points = points,returnDict=True) 
-            i_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])
+	    d_rootCastInfo = createMeshSliceCurve(bodyGeo[0],mi_rootLoc,posOffset = [0,0,skinDepth],points = points,returnDict=True) 
+            mi_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])
 	        
             #> End Curve
-            i_endLoc = cgmMeta.cgmNode(seg[1]).doLoc()
-            i_endLoc.doGroup()
-            i_endLoc.tz = -(distanceToMove*distanceMult)#Offset it  
-	    d_endCastInfo = createMeshSliceCurve(bodyGeo[0],i_endLoc,posOffset = [0,0,skinDepth],points = points,returnDict=True) 
-            i_end = cgmMeta.cgmObject(d_endCastInfo['curve'])          
+            mi_endLoc = cgmMeta.cgmNode(seg[1]).doLoc()
+            mi_endLoc.doGroup()
+            mi_endLoc.tz = -(distanceToMove*distanceMult)#Offset it  
+	    d_endCastInfo = createMeshSliceCurve(bodyGeo[0],mi_endLoc,posOffset = [0,0,skinDepth],points = points,returnDict=True) 
+            mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])          
             
             #> Side Curves
             l_rootPos = []
@@ -860,23 +871,23 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 		    log.warning("Failed to find side data on: %s"%(seg))
 
             #>>>Store groups
-            l_groupsBuffer.append( i_endLoc.parent )
-            l_groupsBuffer.append( i_rootLoc.parent )
+            l_groupsBuffer.append( mi_endLoc.parent )
+            l_groupsBuffer.append( mi_rootLoc.parent )
 
             #>>>Combine the curves
-            l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
+            l_curvesToCombine.extend([mi_root.mNode,mi_end.mNode])            
             newCurve = curves.combineCurves(l_curvesToCombine) 
-            i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
-            curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+            mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+            curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
             mc.delete(newCurve)
             
             #>>Copy tags and name
-            i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
-            i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-            i_crv.doName()
+            mi_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+            mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+            mi_crv.doName()
             
             #>>> Color
-            curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])                    
+            curves.setCurveColorByName(mi_crv.mNode,l_moduleColors[0])                    
             
             #>>>Clean up groups
             for g in l_groupsBuffer:
@@ -884,8 +895,8 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
                     mc.delete(g)
             
             #Store for return
-            l_segmentControls.append( i_crv.mNode )
-	    l_segmentHandles.append( i_handle.mNode )
+            l_segmentControls.append( mi_crv.mNode )
+	    l_segmentHandles.append( mi_handle.mNode )
         d_returnControls['segmentControls'] = l_segmentControls 
         d_returnControls['segmentHandles'] = l_segmentHandles 
             
@@ -896,7 +907,7 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
             for i,seg in enumerate(l_segments):
                 log.debug("segment: %s"%seg)
                 log.debug("indices: %s"%l_indexPairs[i])
-                i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#Make a loc            
+                mi_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#Make a loc            
                 #>>> Get a base distance
                 distanceToMove = distance.returnDistanceBetweenObjects(seg[0],seg[1])
                 log.debug("distanceToMove: %s"%distanceToMove)
@@ -906,41 +917,41 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
                 #>>> Build curves
                 #=================================================================
                 #> Root curve #
-                i_root = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
-                Snap.go(i_root.mNode,seg[0],move = True, orient = True)#Snap it
-                i_root.doGroup()
-                i_root.tz = (distanceToMove*.1)#Offset it
+                mi_root = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
+                Snap.go(mi_root.mNode,seg[0],move = True, orient = True)#Snap it
+                mi_root.doGroup()
+                mi_root.tz = (distanceToMove*.1)#Offset it
                 
                 #> End Curve
-                i_end = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
-                Snap.go(i_end.mNode,seg[1],move = True, orient = True)#Snap it
-                i_end.doGroup()
-                i_end.tz = -(distanceToMove*.1)#Offset it  
+                mi_end = cgmMeta.cgmObject(curves.createControlCurve('circle',1))
+                Snap.go(mi_end.mNode,seg[1],move = True, orient = True)#Snap it
+                mi_end.doGroup()
+                mi_end.tz = -(distanceToMove*.1)#Offset it  
                 
                 #> Figure out a base scale and set it
                 if bodyGeo:
                     multiplier = 1.25
                     log.debug("Shrinkwrap mode")
-                    Snap.go(i_loc.mNode,i_root.parent,move = True, orient = True)#Snap
-                    i_loc.parent = i_root.parent#parent
+                    Snap.go(mi_loc.mNode,mi_root.parent,move = True, orient = True)#Snap
+                    mi_loc.parent = mi_root.parent#parent
 
-                    d_info = returnBaseControlSize(i_loc,bodyGeo[0],axis = ['x','y'])
+                    d_info = returnBaseControlSize(mi_loc,bodyGeo[0],axis = ['x','y'])
                     xScale = d_info['x']
                     yScale = d_info['y']
                     log.debug("x: %s"%xScale)
                     log.debug("y: %s"%yScale)                
                     #> Now our first pass of scaling
-                    i_root.sx = xScale*1.25
-                    i_root.sy = yScale*1.25
-                    i_root.sz = 1
+                    mi_root.sx = xScale*1.25
+                    mi_root.sy = yScale*1.25
+                    mi_root.sz = 1
                     
-                    i_end.sx = xScale*1.25
-                    i_end.sy = yScale*1.25
-                    i_end.sz = 1    
+                    mi_end.sx = xScale*1.25
+                    mi_end.sy = yScale*1.25
+                    mi_end.sz = 1    
                     #> Now we're gonna strink wrap it
-                    for i_crv in [i_root,i_end]:
-                        Snap.go(i_crv ,targets = bodyGeo[0],orient = False,snapToSurface=True,snapComponents=True,posOffset=[0,0,skinDepth])                    
-                        log.debug(i_crv.getShortName())
+                    for mi_crv in [mi_root,mi_end]:
+                        Snap.go(mi_crv ,targets = bodyGeo[0],orient = False,snapToSurface=True,snapComponents=True,posOffset=[0,0,skinDepth])                    
+                        log.debug(mi_crv.getShortName())
     
                 #> Side Curves
                 l_rootPos = []
@@ -949,28 +960,28 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
                 for cv in [0,3,5,7]:
                     l_posBuffer = []
                     #>>> Need to get u positions for more accuracy
-                    l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_root.mNode,cv-1)).getPosition())
-                    l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(i_end.mNode,cv-1)).getPosition())
+                    l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(mi_root.mNode,cv-1)).getPosition())
+                    l_posBuffer.append(cgmMeta.cgmNode('%s.ep[%i]'%(mi_end.mNode,cv-1)).getPosition())
                     l_curvesToCombine.append( mc.curve(d=1,p=l_posBuffer,os =True) )#Make the curve
                 
                 #>>>Store groups
-                l_groupsBuffer.append( i_end.parent )
-                l_groupsBuffer.append( i_root.parent )
+                l_groupsBuffer.append( mi_end.parent )
+                l_groupsBuffer.append( mi_root.parent )
     
                 #>>>Combine the curves
-                l_curvesToCombine.extend([i_root.mNode,i_end.mNode])            
+                l_curvesToCombine.extend([mi_root.mNode,mi_end.mNode])            
                 newCurve = curves.combineCurves(l_curvesToCombine) 
-                i_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
-                curves.parentShapeInPlace(i_crv.mNode,newCurve)#Parent shape
+                mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(seg[0],False) )
+                curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
                 mc.delete(newCurve)
                 
                 #>>Copy tags and name
-                i_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
-                i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-                i_crv.doName()
+                mi_crv.doCopyNameTagsFromObject(seg[0],ignore = ['cgmType'])
+                mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+                mi_crv.doName()
                 
                 #>>> Color
-                curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])                    
+                curves.setCurveColorByName(mi_crv.mNode,l_moduleColors[0])                    
                 
                 #>>>Clean up groups
                 for g in l_groupsBuffer:
@@ -978,7 +989,7 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
                         mc.delete(g)
                 
                 #Store for return
-                l_segmentControls.append( i_crv.mNode )
+                l_segmentControls.append( mi_crv.mNode )
     
             d_returnControls['segmentControls'] = l_segmentControls 
 	    
@@ -987,42 +998,42 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
             log.warn("Don't have cog creation without segment controls at present")
             return False
         
-        i_crv = cgmMeta.cgmObject( curves.createControlCurve('circleArrow',direction = 'y+',absoluteSize=False))
-        Snap.go(i_crv, d_returnControls['segmentControls'][0]) #Snap it
+        mi_crv = cgmMeta.cgmObject( curves.createControlCurve('circleArrow',direction = 'y+',absoluteSize=False))
+        Snap.go(mi_crv, d_returnControls['segmentControls'][0]) #Snap it
         size = distance.returnBoundingBoxSize(d_returnControls['segmentControls'][0],True)#Get size
         log.debug(size)
-        mc.scale(size[0]*1.1,size[1],size[2]*1.1,i_crv.mNode,relative = True)
+        mc.scale(size[0]*1.1,size[1],size[2]*1.1,mi_crv.mNode,relative = True)
         
         #>>Copy tags and name
-        i_crv.addAttr('cgmName',attrType='string',value = 'cog')        
-        i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-        i_crv.doName()        
+        mi_crv.addAttr('cgmName',attrType='string',value = 'cog')        
+        mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+        mi_crv.doName()        
 
         #>>> Color
-        curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])    
+        curves.setCurveColorByName(mi_crv.mNode,l_moduleColors[0])    
         
-        d_returnControls['cog'] = i_crv.mNode
+        d_returnControls['cog'] = mi_crv.mNode
 	
     if 'cog2' in controlTypes:
         if 'segmentControls' not in d_returnControls.keys():
             log.warn("Don't have cog creation without segment controls at present")
             return False
         
-        i_crv = cgmMeta.cgmObject( curves.createControlCurve('cube',1))
-        Snap.go(i_crv, d_returnControls['segmentControls'][0]) #Snap it
+        mi_crv = cgmMeta.cgmObject( curves.createControlCurve('cube',1))
+        Snap.go(mi_crv, d_returnControls['segmentControls'][0]) #Snap it
         size = distance.returnBoundingBoxSize(d_returnControls['segmentControls'][0],True)#Get size
         log.debug(size)
-        mc.scale(size[0]*1.1,size[1],size[2]*1.1,i_crv.mNode,relative = True)
+        mc.scale(size[0]*1.1,size[1],size[2]*1.1,mi_crv.mNode,relative = True)
         
         #>>Copy tags and name
-        i_crv.addAttr('cgmName',attrType='string',value = 'cog')        
-        i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-        i_crv.doName()        
+        mi_crv.addAttr('cgmName',attrType='string',value = 'cog')        
+        mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+        mi_crv.doName()        
 
         #>>> Color
-        curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])    
+        curves.setCurveColorByName(mi_crv.mNode,l_moduleColors[0])    
         
-        d_returnControls['cog'] = i_crv.mNode
+        d_returnControls['cog'] = mi_crv.mNode
         
     if 'hips' in controlTypes:
         if 'segmentControls' not in d_returnControls.keys():
@@ -1032,36 +1043,36 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
 	distanceMult = .3
         
         #>>>Create the curve
-        i_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',1,'z-'))
-        Snap.go(i_crv, d_returnControls['segmentControls'][0],orient = True) #Snap it
-        i_crv.doGroup()
+        mi_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',1,'z-'))
+        Snap.go(mi_crv, d_returnControls['segmentControls'][0],orient = True) #Snap it
+        mi_crv.doGroup()
         if len(l_controlSnapObjects)>2:
             distanceToMove = distance.returnDistanceBetweenObjects(l_controlSnapObjects[0],l_controlSnapObjects[1])
-            i_crv.tz = -(distanceToMove*distanceMult)#Offset it
+            mi_crv.tz = -(distanceToMove*distanceMult)#Offset it
         
         #>Clean up group
-        g = i_crv.parent
-        i_crv.parent = False
+        g = mi_crv.parent
+        mi_crv.parent = False
         mc.delete(g)
         
         #>Size it
         size = distance.returnBoundingBoxSize(d_returnControls['segmentControls'][0],True)#Get size
-        i_obj = cgmMeta.cgmObject(d_returnControls['segmentControls'][0])
-        d_size = returnBaseControlSize(i_crv,bodyGeo[0],['z-'])      
+        mi_obj = cgmMeta.cgmObject(d_returnControls['segmentControls'][0])
+        d_size = returnBaseControlSize(mi_crv,bodyGeo[0],['z-'])      
         log.debug(size)
-        mc.scale(size[0],size[2],(size[1]),i_crv.mNode,os = True, relative = True)
-        i_crv.sz = d_size['z'] * 1.25
-        mc.makeIdentity(i_crv.mNode,apply=True, scale=True)
+        mc.scale(size[0],size[2],(size[1]),mi_crv.mNode,os = True, relative = True)
+        mi_crv.sz = d_size['z'] * 1.25
+        mc.makeIdentity(mi_crv.mNode,apply=True, scale=True)
         
         #>>Copy tags and name
-        i_crv.addAttr('cgmName',attrType='string',value = 'hips')        
-        i_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
-        i_crv.doName()  
+        mi_crv.addAttr('cgmName',attrType='string',value = 'hips')        
+        mi_crv.addAttr('cgmType',attrType='string',value = 'controlAnim')
+        mi_crv.doName()  
         
         #>>> Color
-        curves.setCurveColorByName(i_crv.mNode,l_moduleColors[0])        
+        curves.setCurveColorByName(mi_crv.mNode,l_moduleColors[0])        
 
-        d_returnControls['hips'] = i_crv.mNode
+        d_returnControls['hips'] = mi_crv.mNode
         
     """
         
