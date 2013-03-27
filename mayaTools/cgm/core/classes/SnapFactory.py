@@ -111,12 +111,12 @@ class go(object):
 	    #Should we save soft select info before changing?
 	    mc.softSelect(softSelectDistance = softSelectDistance)
 	    mc.softSelect(softSelectFalloff = 0)	    
-	log.info("targetTypes: %s"%self.d_targetTypes)
+	log.debug("targetTypes: %s"%self.d_targetTypes)
 	if move:
-	    log.info("Moving")
+	    log.debug("Moving")
 	    self.doMove(**kws)
 	if orient:
-	    log.info("orienting")
+	    log.debug("orienting")
 	    self.doOrient(**kws)	
 	
     #======================================================================
