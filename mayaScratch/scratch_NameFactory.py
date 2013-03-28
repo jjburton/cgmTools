@@ -67,6 +67,8 @@ i_obj = cgmMeta.cgmNode(mc.ls(sl=True)[0])
 cgmMeta.NameFactory(i_obj).getBaseIterator()
 NewName(i_obj).getBaseIterator()
 cgmMeta.cgmNode(mc.ls(sl=True)[0]).doName()
+log.info(cgmMeta.cgmNode(mc.ls(sl=True)[0]).translate)
+
 i_obj.doName()
 i_obj.mNode
 i_obj.getBaseName()
@@ -75,6 +77,7 @@ cgmMeta.cgmNode(mc.ls(sl=True)[0]).getSiblings()
 cgmMeta.cgmNode(mc.ls(sl=True)[0]).getLongName()
 cgmMeta.cgmNode(mc.ls(sl=True)[0]).getTransform()
 cgmMeta.cgmNode(mc.ls(sl=True)[0]).parent
+log.info( cgmMeta.cgmNode(mc.ls(sl=True)[0]).getNameDict() )
 
 a = cgmMeta.cgmNode(mc.ls(sl=True)[0])
 cgmPM.cgmPuppet('Kermit')

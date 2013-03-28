@@ -10,7 +10,7 @@ from cgm.core.classes import SnapFactory as Snap
 reload(Snap)
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 reload(mControlFactory)
-
+from cgm.lib import search
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
@@ -22,29 +22,19 @@ m1 = r9Meta.MetaClass('spine_part')
 m1.setState('skeleton')
 m1.getPartNameBase()
 m1.modulePuppet.getGeo()
-mControlFactory.go(m1)
-
-mControlFactory.limbControlMaker(m1,['cog','segmentControls','hips'])
-
-mesh = 'Morphy_Body_GEO'
-i_obj = cgmMeta.cgmObject('pelvis_templateOrientHelper')
-mControlFactory.returnBaseControlSize(i_obj, mesh,axis = ['x','y','z-'])
-mControlFactory.returnBaseControlSize(i_obj, mesh,axis = ['x+'])
-
-mc.softSelect(softSelectEnabled = True)
-mc.softSelect(q = True, softSelectDistance = True)
-mc.softSelect(q = True, softSelectUVDistance = True)
-mc.softSelect(q = True, softSelectFalloff = 2)
-mc.softSelect(softSelectFalloff = 0)
-mc.softSelect(softSelectDistance = 20)
-mc.softSelect(softSelectUVDistance = 30)
-
-#252ms
-m1.isSkeletonized()
-mControlFactory.go(obj)
-m1.setState('skeleton')
-tFactory.returnModuleBaseSize(m2)
-m2.rigNull.skinJoints
-m2.moduleParent.rigNull.skinJoints
-m2.templateNull.controlObjects
-m2 = r9Meta.MetaClass('l_hand_part')
+mObj = cgmMeta.cgmObject(control)
+i_loc = mObj.doLoc()
+i_loc.rx = i_loc.rx + 90
+mObj.doCopyTransform(i_loc.mNode)
+mObj.mNode
+mObj.getAttr('asdfasdf')
+#>>> Testing control registering
+control = 'shoulders_ikCurve'
+mControlFactory.registerControl(mc.ls(sl=True)[0])
+mControlFactory.registerControl(control,copyPivot='spine_2_segIKCurve')
+for i in range(2):log.info(i)
+class dataHolder(object):
+    pass
+l_targetObjects = mc.ls(sl=True)
+log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).getNameDict())
+log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).doName())

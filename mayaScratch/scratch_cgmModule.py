@@ -17,10 +17,13 @@ from cgm.core.rigger import JointFactory as jFactory
 reload(mFactory)
 reload(tFactory)
 reload(jFactory)
-
+from cgm.lib import curves
+reload(curves)
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
+curves.createControlCurve('circleArrow',1, absoluteSize=False)
+curves.createCurve('circleArrowInterior')
 
 #>>> Modules
 #=======================================================
@@ -33,6 +36,7 @@ m1.coreNames.__verify__()
 #518 w doStore
 m1.initialize()
 m1.getPartNameBase()
+
 a.getState()
 a.templateNull.handles = 1
 a.templateNull.__setattr__('handles',0)

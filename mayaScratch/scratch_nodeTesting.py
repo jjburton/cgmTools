@@ -13,7 +13,9 @@ cgm.core._reload()
 
 mc.ls(type = 'transform', l=True).split('|')[0]
 mc.ls(type = 'transform', l=True)
-
+a = cgmMeta.cgmObject('spine_1_tmplObj')
+if issubclass(type(a),cgmMeta.cgmControl):log.info('yes')
+a.isComponent()
 log.info([str(o).split('|') for o in mc.ls(type = 'transform', l=True)])
 log.info([str(o).split('|') for o in mc.ls(exactType = 'transform', l=True)])
 from cgm.lib import search
@@ -61,7 +63,10 @@ cgmMeta.cgmBufferNode(name = 'testBuffer')
 
 
 cgm.core._reload()
-cgmMeta.cgmBufferNode(name = 'testBuffer')
+b = cgmMeta.cgmBufferNode(name = 'testBuffer',overideMessageCheck=True)
+b.value = [1.0,2,4]
+b.value
+b.store('cat',0)
 i_n = cgmMeta.cgmMetaFactory(name = 'cgmNode',nodeType = 'network').doName()
 i_n.doName()
 i_obj = cgmMeta.cgmNode(mc.ls(sl=True)[0])
