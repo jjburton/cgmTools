@@ -314,7 +314,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     d_rotateOrderDefaults = {'cog':3,#xzy
                              'master':3,
                              'hips':0,#xyz
-                             'shoulders':5#zyx,
+                             'shoulders':2#zyx,
                              }
     
     if issubclass(type(controlObject),cgmMeta.cgmObject):
