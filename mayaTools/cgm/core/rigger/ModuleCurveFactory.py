@@ -54,7 +54,6 @@ class go(object):
 	                                'hips':self.build_hips,
 	                                'segmentFK':self.build_segmentFKHandles,
 	                                'segmentIK':self.build_segmentIKHandles}
-	
         # Get our base info
         #==============	        
         #>>> module null data
@@ -179,52 +178,60 @@ class go(object):
 		return False
 	
     def build_hips(self):
-	try:
-	    distanceMult = .5	    
-	    orientHelper = self.l_controlSnapObjects[0]
-	    log.debug(orientHelper)
-	    mi_loc = cgmMeta.cgmNode(orientHelper).doLoc()#make loc for sizing
-	    mi_loc.doGroup()#group to zero
-	    d_size = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y','z-'])#Get size
-	    l_size = [d_size['x']+(self._skinOffset*2),d_size['y']+(self._skinOffset*2),d_size['z']+(self._skinOffset*2)]
+	distanceMult = .5	    
+	orientHelper = self.l_controlSnapObjects[1]
+	log.debug(orientHelper)
+	mi_loc = cgmMeta.cgmNode(orientHelper).doLoc()#make loc for sizing
+	mi_loc.doGroup()#group to zero
+	d_size = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y','z-'])#Get size
+	l_size = [d_size['x']+(self._skinOffset*2),d_size['y']+(self._skinOffset*2),d_size['z']+(self._skinOffset*2)]
+	mi_crvShape = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',direction = 'y-',size = 1))
+	if len(self.l_controlSnapObjects)>2:#offset
+	    distanceToMove = distance.returnDistanceBetweenObjects(orientHelper,self.l_controlSnapObjects[1])
+	    mi_loc.tz = -(distanceToMove*distanceMult)#Offset it	
 	    
-	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',direction = 'y-',size = 1))
-	    mi_crv.doGroup()
-	    mc.scale(l_size[0],l_size[2],l_size[1],mi_crv.mNode,os = True, relative = True)
-	    mi_crv.sy = d_size['z']
-	    
-	    if len(self.l_controlSnapObjects)>2:#offset
-		distanceToMove = distance.returnDistanceBetweenObjects(orientHelper,self.l_controlSnapObjects[1])
-		mi_loc.tz = -(distanceToMove*distanceMult)#Offset it	
-	    
-	    mc.makeIdentity(mi_crv.mNode,apply=True, scale=True)
-	    Snap.go(mi_crv, mi_loc.mNode)#Snap it	    
-	    mc.delete(mi_loc.parent)#delete loc
-	    
-	    pBuffer = mi_crv.parent
-	    mi_crv.parent = False
-	    mc.delete(pBuffer)
-	    
-	    #>>Copy tags and name
-	    mi_crv.addAttr('cgmName',attrType='string',value = 'hips',lock=True)        
-	    mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
-	    mi_crv.doName()        
-	    
-	    #>>> Color
-	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
-	    self.d_returnControls['hips'] = mi_crv.mNode
-	    self.md_ReturnControls['hips'] = mi_crv
+	#mc.makeIdentity(mi_crv.mNode,apply=True, scale=True)
+	Snap.go(mi_crvShape.mNode, mi_loc.mNode)#Snap it
+	
+	mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_loc.mNode,False) )	
+	mc.delete(mi_loc.parent)#delete loc
+	
+	curves.parentShapeInPlace(mi_crv.mNode,mi_crvShape.mNode)#Parent shape
+	
+	#mc.delete(mi_crv.mNode)
+	mi_crvShape.delete()	    
+	mc.scale(l_size[0],l_size[1],l_size[2],mi_crv.mNode,os = True, relative = True)
+	#mi_crv.sy = d_size['z']
+	
+	#pBuffer = mi_crv.parent
+	#mi_crv.parent = False
+	#mc.delete(pBuffer)
+	
+	#>>Copy tags and name
+	mi_crv.addAttr('cgmName',attrType='string',value = 'hips',lock=True)        
+	mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
+	mi_crv.doName()        
+	
+	#>>> Color
+	curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+	self.d_returnControls['hips'] = mi_crv.mNode
+	self.md_ReturnControls['hips'] = mi_crv
 	    	    
-	except StandardError,error:
+	"""except StandardError,error:
 		log.error("build_hips fail! | %s"%error) 
-		return False
+		return False"""
     	    
     @r9General.Timer    
     def build_segmentFKHandles(self):
 	try:
 	    l_segmentControls = []
 	    l_iSegmentControls = []
-	    for i,seg in enumerate(self.l_segments):
+	    if self._partType == 'torso':
+		l_segmentsToDo = self.l_segments[1:]
+	    else:
+		l_segmentsToDo = self.l_segments
+		
+	    for i,seg in enumerate(l_segmentsToDo):
 		returnBuffer = createWrapControlShape(seg,self._targetMesh,
 		                                      points = 8,
 		                                      curveDegree=1,
@@ -253,8 +260,14 @@ class go(object):
     def build_segmentIKHandles(self):
 	try:
 	    l_segmentControls = []
-	    l_iSegmentControls = []	    
-	    for i,seg in enumerate(self.l_segments):
+	    l_iSegmentControls = []
+	    
+	    if self._partType == 'torso':
+		l_segmentsToDo = self.l_segments[1:]
+	    else:
+		l_segmentsToDo = self.l_segments
+
+	    for i,seg in enumerate(l_segmentsToDo):
 		returnBuffer = createWrapControlShape(seg,self._targetMesh,
 		                                      points = 8,
 		                                      curveDegree=3,
