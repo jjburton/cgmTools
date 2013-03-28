@@ -523,6 +523,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """ get the type of the object """
         return search.returnObjectType(self.getComponent())
     
+    def getAttr(self,attr,**kws):
+        """ get the type of the object """
+        return attributes.doGetAttr(self.mNode,attr,**kws)    
+    
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
         return buffer[0]
@@ -1048,6 +1052,11 @@ class cgmObject(cgmNode):
 	return False
     
 	
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmObjectSet - subclass to cgmNode
+#=========================================================================  
+class cgmControl(cgmObject):     
+    pass 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
@@ -3051,8 +3060,8 @@ class NameFactory(object):
         self.int_fastIterator = 0
         #If we have an assigned iterator, start with that
 	d_nameDict = i_node.getNameDict()	
-        if 'cgmIterator' in d_nameDict.keys():
-            return int(d_nameDict.get('cgmIterator'))
+        if i_node.getAttr('cgmIterator') is not False:
+            return int(i_node.getAttr('cgmIterator'))
 			      
 	self.d_nameCandidate = d_nameDict
 	self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)  
