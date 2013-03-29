@@ -136,7 +136,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""
 	self.referencePrefix = False
 	
-    def __init__(self,node = None, name = None,nodeType = 'network',*args,**kws):	
+    def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
@@ -165,6 +165,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	self.__dict__['__justCreatedState__'] = createdState
 	self.__dict__['__componentMode__'] = componentMode
 	self.__dict__['__component__'] = component
+	if setClass:
+	    self.addAttr('mClass','cgmNode',lock=True)
 	
 	self.update()
         
@@ -326,6 +328,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         #should we throw a warning here???
         #self.addAttr(attr, attrType='messageSimple')
         try:
+	    if issubclass(type(node), r9Meta.MetaClass):
+		#if not srcAttr:
+		    #srcAttr=node.message
+		node=node.mNode    	    
             if not srcAttr:          
                 srcAttr=self.message  #attr on the nodes source side for the child connection         
 	    """
@@ -344,6 +350,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
         except StandardError,error:
             log.warning(error)
+	    raise StandardError,error
 	    
     def connectParentNode(self, node, attr, connectBack = None, srcAttr=None):
         """
@@ -379,8 +386,18 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """
 	Replacement connector using .msg connections
         """
-	attributes.storeObjectsToMessage(nodes,self.mNode,attr)
+	if type(nodes) not in [list,tuple]:nodes=[nodes]
+	nodesToDo = []
 	for node in nodes:
+	    if issubclass(type(node), r9Meta.MetaClass):
+		nodesToDo.append(node.mNode) 
+	    elif mc.objExists(node):
+		nodesToDo.append(node) 
+	    else:
+		log.info("connectChildrenNodes can't add: '%s'"%node)
+		
+	attributes.storeObjectsToMessage(nodesToDo,self.mNode,attr)
+	for node in nodesToDo:
 	    try:
 		if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
 	    except StandardError,error:
@@ -795,7 +812,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 # cgmObject - sublass to cgmNode
 #=========================================================================        
 class cgmObject(cgmNode):                  
-    def __init__(self,node = None, name = 'null',*args,**kws):
+    def __init__(self,node = None, name = 'null',setClass = False,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
         creates an empty transform
@@ -814,7 +831,9 @@ class cgmObject(cgmNode):
         if not self.isTransform():
             log.error("'%s' has no transform"%self.mNode)
             raise StandardError, "The class was designed to work with objects with transforms"
-                
+	if setClass:
+	    self.addAttr('mClass','cgmObject',lock=True)
+	    
     def __bindData__(self):pass
         #self.addAttr('test',2)
     
