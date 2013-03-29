@@ -91,13 +91,13 @@ class go(object):
         #=========================================================	
         self._l_moduleColors = self._i_module.getModuleColors()
         self._l_coreNames = self._i_module.coreNames.value
-        self._im_templateNull = self._i_module.templateNull#speed link
-	self._im_rigNull = self._i_module.rigNull#speed link
+        self._i_templateNull = self._i_module.templateNull#speed link
+	self._i_rigNull = self._i_module.rigNull#speed link
         self._bodyGeo = self._i_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
         
         #Joints
-        self._l_skinJoints = self._im_rigNull.getMessage('skinJoints')
-        self._ml_skinJoints = self._im_rigNull.skinJoints
+        self._l_skinJoints = self._i_rigNull.getMessage('skinJoints')
+        self._ml_skinJoints = self._i_rigNull.skinJoints
         
         #>>> part name 
         self._partName = self._i_module.getPartNameBase()
@@ -132,7 +132,7 @@ def rig_segmentFK(md_controlShapes):
 	registerControl(i_obj,typeModifier='fk')
 	
 @r9General.Timer
-def build_spine(goInstance,buildSkeleton = True, buildControls = True, buildRig= True):
+def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildRig= False):
     """
     Rotate orders
     hips = 3
@@ -142,7 +142,7 @@ def build_spine(goInstance,buildSkeleton = True, buildControls = True, buildRig=
         raise StandardError
     self = goInstance#Link
     
-    if buildSkeleton: spine.build_skeleton(self)
+    if buildSkeleton: spine.build_rigSkeleton(self)
     if buildControls: spine.build_controls(self)
     if buildRig: spine.build_rig(self)
     
