@@ -132,7 +132,7 @@ def rig_segmentFK(md_controlShapes):
 	registerControl(i_obj,typeModifier='fk')
 	
 @r9General.Timer
-def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildRig= False):
+def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildDeformation = False, buildRig= False):
     """
     Rotate orders
     hips = 3
@@ -144,6 +144,7 @@ def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildRi
     
     if buildSkeleton: spine.build_rigSkeleton(self)
     if buildControls: spine.build_controls(self)
+    if buildDeformation: spine.build_deformation(self)
     if buildRig: spine.build_rig(self)
     
     if buildControls and buildRig:

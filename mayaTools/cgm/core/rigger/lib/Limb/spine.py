@@ -31,6 +31,7 @@ from cgm.lib import (joints,
                      skinning,
                      distance,
                      search,
+                     curves,
                      )
 
 #>>> Utilities
@@ -73,21 +74,21 @@ def build_rigSkeleton(self):
 	    ml_rigJoints.append(i_j)
 	ml_rigJoints[0].parent = False#Parent to world
 	
-	"""    
+	
+	#>>Anchor chain 	    
 	#Start
 	i_startJnt = cgmMeta.cgmObject(mc.duplicate(self._l_skinJoints[0],po=True,ic=True,rc=True)[0])
-	i_startJnt.addAttr('cgmType','rigJoint',attrType='string',lock=True)
+	i_startJnt.addAttr('cgmType','anchorJoint',attrType='string',lock=True)
 	i_startJnt.doName()
 	
 	#End
-	l_endJoints = mc.duplicate(self._l_skinJoints[-2],ic=True,rc=True)
+	l_endJoints = mc.duplicate(self._l_skinJoints[-2],po=True,ic=True,rc=True)
 	i_endJnt = cgmMeta.cgmObject(l_endJoints[0])
 	for j in l_endJoints:
 	    i_j = cgmMeta.cgmObject(j)
-	    i_j.addAttr('cgmType','rigJoint',attrType='string',lock=True)
+	    i_j.addAttr('cgmType','anchorJoint',attrType='string',lock=True)
 	    i_j.doName()
 	i_endJnt.parent = False
-	"""
 	
 	#Influence chain for influencing the surface
 	ml_influenceJoints = []
@@ -108,7 +109,8 @@ def build_rigSkeleton(self):
 	#self._ml_influenceJoints = ml_influenceJoints
 	#self._ml_rigJoints = ml_rigJoints
 	#self._ml_surfaceJoints = ml_surfaceJoints
-	
+	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','module')
+	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','module')	
 	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_surfaceJoints,'surfaceJoints','module')
@@ -129,6 +131,16 @@ def build_controls(self):
     except StandardError,error:
 	log.error("spine.build_rig>>bad self!")
 	raise StandardError,error
+    
+    #>>> Get some special pivot xforms
+    ml_surfaceJoints = self._i_rigNull.surfaceJoints 
+    l_surfaceJoints  = [i_jnt.mNode for i_jnt in ml_surfaceJoints] 
+    tmpCurve = curves.curveFromObjList(l_surfaceJoints)
+    hipPivotPos = distance.returnWorldSpacePosition("%s.u[%f]"%(tmpCurve,.15))
+    shouldersPivotPos = distance.returnWorldSpacePosition("%s.u[%f]"%(tmpCurve,.8))
+    log.info("hipPivotPos : %s"%hipPivotPos)
+    log.info("shouldersPivotPos : %s"%shouldersPivotPos)   
+    mc.delete(tmpCurve)
 	
     #log.info(self.__dict__.keys())
     #>>> Figure out what's what
@@ -193,11 +205,13 @@ def build_controls(self):
 	i_IKEnd = self._md_controlShapes['segmentIKEnd']
 	i_IKEnd.parent = i_cog.mNode
 	i_loc = i_IKEnd.doLoc()#Make loc for a new transform
-	i_loc.rx = i_loc.rx + 90#offset       
-	d_buffer = mControlFactory.registerControl(i_IKEnd,copyTransform=i_loc,
-	                                           copyPivot=ml_segmentsIK[-2].mNode,typeModifier='ik',
+	i_loc.rx = i_loc.rx + 90#offset   
+	mc.move (shouldersPivotPos[0],shouldersPivotPos[1],shouldersPivotPos[2], i_loc.mNode)
+	
+	d_buffer = mControlFactory.registerControl(i_IKEnd,copyTransform=i_loc.mNode,
+	                                           typeModifier='ik',
 	                                           addGroups = 1,addConstraintGroup=True,
-	                                           setRotateOrder=5)
+	                                           setRotateOrder=3)
 	i_IKEnd = d_buffer['instance']	
 	
 	#Parent last handle to IK Handle
@@ -214,11 +228,15 @@ def build_controls(self):
     try:
 	i_hips = self._md_controlShapes['hips']
 	i_hips.parent = i_cog.mNode#parent
+	i_loc = i_hips.doLoc()
+	mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)
+	
 	d_buffer =  mControlFactory.registerControl(i_hips,addGroups = True,
-	                                            copyPivot=ml_segmentsFK[1].mNode,
+	                                            copyPivot=i_loc.mNode,
 	                                            addConstraintGroup=True)
 	self._i_rigNull.connectChildNode(i_hips,'hips','module')
 	i_hips = d_buffer['instance']
+	i_loc.delete()
 	
     except StandardError,error:
 	log.error("build_spine>>Build hips fail!")
@@ -228,7 +246,7 @@ def build_controls(self):
     return True
 
 
-def build_rig(self):
+def build_deformation(self):
     """
     Rotate orders
     hips = 3
@@ -247,8 +265,10 @@ def build_rig(self):
     ml_rigJoints = self._i_rigNull.rigJoints
     
     ml_segmentHandles = self._i_rigNull.segmentHandles
+    
     #>>>Create a constraint surface for the influence joints
     #====================================================================================    
+    
     try:
 	l_influenceJoints = [i_jnt.mNode for i_jnt in ml_influenceJoints] 
 	d_constraintSurfaceReturn = rUtils.createConstraintSurfaceSegment(l_influenceJoints[1:],
@@ -274,10 +294,11 @@ def build_rig(self):
 	i_constraintSurfaceCluster.addAttr('cgmName', str(self._partName), lock=True)
 	i_constraintSurfaceCluster.addAttr('cgmTypeModifier','constraintSurface', lock=True)
 	i_constraintSurfaceCluster.doName()   
+	
     except StandardError,error:
 	log.error("build_spine>>Constraint surface build fail")
 	raise StandardError,error
- 
+	
     #Control Surface
     #====================================================================================
     try:
@@ -309,6 +330,29 @@ def build_rig(self):
 	log.error("build_spine>>Control surface build fail")
 	raise StandardError,error
     
+    
+    return True
+
+def build_rig(self):
+    """
+    Rotate orders
+    hips = 3
+    """ 
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("spine.build_deformationRig>>bad self!")
+	raise StandardError,error
+    
+    #>>>Get data
+    ml_influenceJoints = self._i_rigNull.influenceJoints
+    ml_surfaceJoints = self._i_rigNull.surfaceJoints
+    ml_rigJoints = self._i_rigNull.rigJoints
+    
+    ml_segmentHandles = self._i_rigNull.segmentHandles
+    
     #Parent and constrain
     #====================================================================================
     ml_influenceJoints[0].parent = self._i_rigNull.hips.mNode#parent pelvis influence to hips
@@ -336,7 +380,4 @@ def build_rig(self):
     #mc.scaleConstraint(ml_influenceJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
     mc.connectAttr((ml_influenceJoints[-1].mNode+'.s'),(ml_rigJoints[-2].mNode+'.s'))
     
-    return True
-
-    
- 
+    return True 
