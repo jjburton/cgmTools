@@ -291,7 +291,7 @@ def returnWorldSpacePosition (obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     """ Queries world space loaction. Input - obj(obj).  Return - pos(list) """
-    if 'vtx[' in obj or 'ep[' in obj or 'cv[' in obj:
+    if 'vtx[' in obj or 'ep[' in obj or 'cv[' in obj or 'u[' in obj:
         posBuffer = mc.pointPosition(obj,w=True)
     else:
         posBuffer = mc.xform (obj,q=True, rp=True, ws=True)
@@ -850,8 +850,13 @@ def returnLocalAimDirection(rootObj,aimObj):
     cnt = 0
     for direction in directions:
 	locBuffer = mc.spaceLocator()[0]
-	pos = returnWorldSpacePosition(locBuffer)
-	mc.move (pos[0],pos[1],pos[2], locBuffer)	
+	objTrans = mc.xform (rootObj, q=True, ws=True, sp=True)
+	objRot = mc.xform (rootObj, q=True, ws=True, ro=True)	
+	
+	mc.move (objTrans[0],objTrans[1],objTrans[2], locBuffer)
+	#mc.setAttr ((locatorName+'.rotateOrder'), correctRo)
+	mc.rotate (objRot[0], objRot[1], objRot[2], locBuffer, ws=True)	
+	
         locGroups.append(rigging.groupMeObject(locBuffer))
         directionBuffer = list(direction)
         if directionBuffer[0] == '-':
@@ -865,7 +870,7 @@ def returnLocalAimDirection(rootObj,aimObj):
 
     for grp in locGroups:
         mc.delete(grp)
-
+	
     return returnDirections[matchIndex]
 
 def returnDistanceSortedList(targetObject, objectList):
