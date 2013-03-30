@@ -233,7 +233,7 @@ class go(object):
 		
 	    for i,seg in enumerate(l_segmentsToDo):
 		returnBuffer = createWrapControlShape(seg,self._targetMesh,
-		                                      points = 8,
+		                                      points = 10,
 		                                      curveDegree=1,
 		                                      insetMult = .2,
 		                                      posOffset = [0,0,self._skinOffset*.75],
