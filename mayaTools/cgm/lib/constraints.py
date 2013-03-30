@@ -20,10 +20,12 @@
 #=================================================================================================================================================
 
 import maya.cmds as mc
-
+from cgm.lib import attributes
 from cgm.lib import lists
 from cgm.lib import rigging
 from cgm.lib import distance
+from cgm.lib import locators
+from cgm.lib import logic
 from cgm.lib.classes import NameFactory 
 from cgm.lib import cgmMath
 from cgm.lib import search
@@ -212,8 +214,8 @@ def doPointAimConstraintObjectGroup(targets,object,mode=0):
     """
     returnList = []
     """ figure out which is the aim direction  """
-    aimVector = locators.returnLocalAimDirection(object,targets[-1])
-    upVector = locators.returnLocalUp(aimVector)
+    aimVector = logic.returnLocalAimDirection(object,targets[-1])
+    upVector = logic.returnLocalUp(aimVector)
     
     """ create locators """
     locs = []
