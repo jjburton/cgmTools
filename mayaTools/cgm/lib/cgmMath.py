@@ -22,6 +22,13 @@
 #   1) returnDistanceBetweenPoints (point1, point2)
 #   
 #=================================================================================================================================================
+#=========================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
+
 def multiplyLists(lists,allowZeros = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -139,12 +146,32 @@ def divideLength(length, points):
     pointsList.append(length)
     return pointsList
 
+def test_isFloatEquivalent():
+    assert isFloatEquivalent(-4.11241646134e-07,0.0),"sc>0.0 fail"
+    assert isFloatEquivalent(-4.11241646134e-07,0.00001),"sc>0.00001 fail"
+    assert isFloatEquivalent(-4.11241646134e-07,-0.0),"sc>0.00001 fail"
+    assert isFloatEquivalent(0.0,-0.0),"0.0>-0.0 fail"
+    assert isFloatEquivalent(0.0,0),"0.0>0 fail"
 
-def isFloatEquivalent(f1,f2,places=7):
+    
+def isFloatEquivalent(f1,f2,places=4):
     """
     Compare two floats, returns if equivalent
     """ 
-    if round(f1,places)==round(f2,places):
+    #zeroCheck
+    l_zeros = [-0.0,0.0]
+    zeroState = False
+    
+    if round(f1,places) in l_zeros and round(f2,places) in l_zeros:
+        log.debug("zero match: %s|%s"%(f1,f2))
+        return True
+    
+    #reg check
+    f1_rounded = round(f1,places)
+    f2_rounded = round(f2,places)
+    log.info(f1_rounded)
+    log.info(f2_rounded) 
+    if f1_rounded == f2_rounded:
         return True
     return False 
     
