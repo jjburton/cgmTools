@@ -37,6 +37,7 @@ from cgm.core.lib import nameTools
 from cgm.lib import (distance,
                      attributes,
                      deformers,
+                     lists,
                      rigging,
                      skinning,
                      dictionary,
@@ -198,9 +199,10 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
     #Create folicles
     ml_follicleTransforms = []
     ml_follicleShapes = []
+    ml_upGroups = []
     
     #First thing we're going to do is create our follicles
-    for i_jnt in ml_jointList:       
+    for i,i_jnt in enumerate(ml_jointList):       
         l_closestInfo = distance.returnClosestPointOnSurfaceInfo(i_jnt.mNode,i_controlSurface.mNode)
         log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
         #>>> Follicle =======================================================
@@ -218,6 +220,28 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
         ml_follicleTransforms.append(i_follicleTrans)
 	
 	i_follicleTrans.parent = i_grp.mNode	
+	
+	#>>> loc
+	"""
+	First part of full ribbon wist setup
+	"""
+	if i_jnt != ml_jointList[-1]:
+	    i_upLoc = i_jnt.doLoc()#Make up Loc
+	    i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+	    i_locRotateGroup.parent = i_follicleTrans.mNode
+	    i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
+	    i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
+	    i_locRotateGroup.doName()
+	    
+	    #Store the rotate group to the joint
+	    i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
+	    
+	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)	
+	    
+	    i_upLoc.parent = i_locRotateGroup.mNode
+	    mc.move(0,10,0,i_upLoc.mNode,os=True)	
+	    ml_upGroups.append(i_upLoc)
+	    
 	
         #>> Surface Anchor ===================================================
         """
@@ -270,6 +294,228 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
         #>> create up loc
         #i_loc = i_jnt.doLoc()
         #mc.move(0, 10, 0, i_loc.mNode, r=True,os=True,wd=True)
+	
+        
+        #>> Distance nodes
+        i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+        i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
+        i_distanceObject.doStore('cgmName',i_jnt.mNode)
+        i_distanceObject.addAttr('cgmType','measureNode',lock=True)
+        i_distanceObject.doName(nameShapes = True)
+	i_distanceObject.parent = i_grp.mNode#parent it
+        i_distanceObject.overrideEnabled = 1
+        i_distanceObject.overrideVisibility = 0
+	
+        #Connect things
+        mc.connectAttr ((ml_follicleTransforms[i].mNode+'.translate'),(i_distanceShape.mNode+'.startPoint'))
+        mc.connectAttr ((ml_follicleTransforms[i+1].mNode+'.translate'),(i_distanceShape.mNode+'.endPoint'))
+        
+        l_iDistanceObjects.append(i_distanceObject)
+        i_distanceShapes.append(i_distanceShape)
+            
+    #Connect the first joint's position since an IK handle isn't controlling it    
+    attributes.doConnectAttr('%s.translate'%ml_follicleTransforms[0].mNode,'%s.translate'%ml_jointList[0].mNode)
+    
+    #>> Second part for the full twist setup
+    aimChannel = orientation[0]  
+    fixOptions = [0,90,180,-90,-180]      
+
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	rotBuffer = mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)
+	log.info("rotBuffer: %s"%rotBuffer)
+	#Create the poleVector
+	poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,l_iIK_handles[i].mNode)  	
+	optionCnt = 0
+	while not cgmMath.isFloatEquivalent((mc.getAttr(i_jnt.mNode+'.r'+aimChannel)),0):
+	    log.info("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
+	    log.info ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
+	    attributes.doSetAttr(l_iIK_handles[i].mNode,'twist',fixOptions[optionCnt])
+	    optionCnt += 1
+	    if optionCnt == 4:
+		raise StandardError,"failed to find a good twist value to zero out poleVector: %s"%(i_jnt.getShortName())
+	    
+	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
+	    log.info("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
+
+    #>>>Hook up scales
+    #World scale
+    
+    #Buffer
+    i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
+    i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
+    i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
+    i_jntScaleBufferNode.doName()
+    
+    i_jntScaleBufferNode.connectParentNode(i_controlSurface.mNode,'surface','scaleBuffer')
+    
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	#Store our distance base to our buffer
+        try:i_jntScaleBufferNode.store(i_distanceShapes[i].distance)#Store to our buffer
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to store joint distance: %s"%i_distanceShapes[i].mNode
+	
+	#Create the mdNode
+	i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_md.operation = 2
+	i_md.doStore('cgmName',i_jnt.mNode)
+	i_md.addAttr('cgmTypeModifier','masterScale')
+	i_md.doName()
+	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
+	                         '%s.%s'%(i_md.mNode,'input1X'))
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	                         '%s.%s'%(i_md.mNode,'input2X'))
+	
+	#Connect to the joint
+	try:
+	    attributes.doConnectAttr('%s.%s'%(i_md.mNode,'output.outputX'),#>>
+		                     '%s.s%s'%(i_jnt.mNode,orientation[0]))
+	    for axis in orientation[1:]:
+		attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
+		                         '%s.s%s'%(i_jnt.mNode,axis))	    
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
+	
+	"""
+	mdArg = [{'result':[i_jnt.mNode,'sy'],'drivers':[[i_distanceShapes[i].mNode,'distance'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],'driven':[]},
+	         {'result':[i_jnt.mNode,'sx'],'drivers':[[i_distanceShapes[i].mNode,'distance'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],'driven':[]}]
+	#mdArg = [{'drivers':[[i_jntScaleBufferNode,'masterScale'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],
+	          #'driven':[[i_jnt.mNode,'sy'],[i_jnt.mNode,'sx']]}]
+        
+        try:NodeF.build_mdNetwork(mdArg, defaultAttrType='float',operation=2)
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to build network: %s"%mdArg 
+	"""
+	
+    #Connect last joint scale to second to last
+    for axis in ['scaleX','scaleY','scaleZ']:
+	attributes.doConnectAttr('%s.%s'%(ml_jointList[-2].mNode,axis),#>>
+                                 '%s.%s'%(ml_jointList[-1].mNode,axis))	 
+	
+    return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':ml_jointList}
+    
+@r9General.Timer
+def createControlSurfaceSegmentBAK(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
+    """
+    """
+    #Good way to verify an instance list?
+    #validate orientation
+    outChannel = orientation[2]
+    upChannel = '%sup'%orientation[1]
+    
+    i_module = False
+    i_rigNull = False
+    if moduleInstance is not None:
+	if issubclass(type(moduleInstance),cgmPM.cgmModule):
+	    i_module = moduleInstance
+	    i_rigNull = i_module.rigNull
+	else:
+	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    
+    #Create our group
+    i_grp = cgmMeta.cgmObject(name = 'newgroup')
+    i_grp.addAttr('cgmName', str(baseName), lock=True)
+    i_grp.addAttr('cgmTypeModifier','surfaceFollow', lock=True)
+    i_grp.doName()
+    
+    #Create surface
+    l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
+    
+    i_controlSurface = cgmMeta.cgmObject( l_surfaceReturn[0] )
+    i_controlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
+    i_controlSurface.doName()
+    i_controlSurface.addAttr('mClass','cgmObject')
+    
+    ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
+    #Create folicles
+    ml_follicleTransforms = []
+    ml_follicleShapes = []
+    ml_upGroups = []
+    
+    #First thing we're going to do is create our follicles
+    for i,i_jnt in enumerate(ml_jointList):       
+        l_closestInfo = distance.returnClosestPointOnSurfaceInfo(i_jnt.mNode,i_controlSurface.mNode)
+        log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
+        #>>> Follicle =======================================================
+        l_follicleInfo = nodes.createFollicleOnMesh(i_controlSurface.mNode)
+        i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1])
+        i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
+        #> Name
+        i_follicleTrans.doStore('cgmName',i_jnt.mNode)
+        i_follicleTrans.doName()
+        #>Set follicle value
+        i_follicleShape.parameterU = l_closestInfo['normalizedU']
+        i_follicleShape.parameterV = l_closestInfo['normalizedV']
+        
+        ml_follicleShapes.append(i_follicleShape)
+        ml_follicleTransforms.append(i_follicleTrans)
+	
+	i_follicleTrans.parent = i_grp.mNode	
+	
+	#>>> loc
+	"""
+	i_upLoc = i_jnt.doLoc()#Make up Loc
+	i_upLoc.parent = i_follicleTrans.mNode
+	mc.move(0,2,0,i_upLoc.mNode,os=True)	
+	ml_upGroups.append(i_upLoc)
+	"""
+	
+        #>> Surface Anchor ===================================================
+        """
+        i_grpPos = cgmMeta.cgmObject( rigging.groupMeObject(i_jnt.mNode,False) )
+        i_grpPos.doStore('cgmName',i_jnt.mNode)        
+        i_grpOrient = cgmMeta.cgmObject( mc.duplicate(i_grpPos.mNode,returnRootsOnly=True)[0] )
+        i_grpPos.addAttr('cgmType','surfaceAnchor',attrType='string',lock=True)
+        i_grpOrient.addAttr('cgmType','surfaceOrient',attrType='string',lock=True)
+        i_grpPos.doName()
+        i_grpOrient.doName()
+        i_grpOrient.parent = i_grpPos.mNode
+        
+        constraint = mc.pointConstraint(i_transFollicle.mNode,i_grpPos.mNode, maintainOffset=False)
+        constraint = mc.orientConstraint(i_transFollicle.mNode,i_grpPos.mNode, maintainOffset=False)
+        """
+        
+        #>>>Connect via constraint - no worky
+        #constraint = mc.pointConstraint(i_grpOrient.mNode,i_jnt.mNode, maintainOffset=True)
+        #constraint = mc.orientConstraint(i_grpOrient.mNode,i_jnt.mNode, maintainOffset=True)
+        
+        #constraints.doConstraintObjectGroup(i_transFollicle.mNode,transform,['point','orient'])
+        #>>> Connect the joint
+        #attributes.doConnectAttr('%s.translate'%i_grpPos.mNode,'%s.translate'%i_jnt.mNode)
+        
+    #>>>Create scale stuff
+    #>>>Create IK effectors,Create distance nodes
+    l_iIK_effectors = []
+    l_iIK_handles = []  
+    l_iDistanceObjects = []
+    i_distanceShapes = []  
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+        ik_buffer = mc.ikHandle (startJoint=i_jnt.mNode,
+                                 endEffector = ml_jointList[i+1].mNode,
+                                 setupForRPsolver = True, solver = 'ikRPsolver',
+                                 enableHandles=True )
+        #Handle
+        i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0])
+        i_IK_Handle.parent = ml_follicleTransforms[i+1].mNode
+        i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Handle.doName()
+        
+        #Effector
+        i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
+        #i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Effector.doName()
+        
+        l_iIK_handles.append(i_IK_Handle)
+        l_iIK_effectors.append(i_IK_Effector)
+        
+        #>> create up loc
+        #i_loc = i_jnt.doLoc()
+        #mc.move(0, 10, 0, i_loc.mNode, r=True,os=True,wd=True)
+	
+        """poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,i_IK_Handle.mNode)"""
         
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
@@ -350,7 +596,108 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
 	
     return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':ml_jointList}
     
+        
+@r9General.Timer
+def addRibbonTwistToControlSurfaceSetup(jointList,
+                                        startControlDriver = None, endControlDriver = None,
+                                        rotateGroupAxis = 'rotateY',
+                                        orientation = 'zyx', moduleInstance = None):
+    """
+    Implementing this ribbon method to or control surface setup:
+    http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/
+    """
+    def createAverageNode(driver1,driver2,driven):
+	#Create the mdNode
+	assert type(driver1) is list and len(driver1) == 2,"Driver1 wrong: %s"%driver1
+	assert type(driver2) is list and len(driver1) == 2,"Driver2 wrong: %s"%driver2
+	assert type(driven) is list and len(driver1) == 2,"Driven wrong: %s"%driven
+	driver1Combined = "%s.%s"%(driver1[0],driver1[1])
+	driver2Combined = "%s.%s"%(driver2[0],driver2[1])
+	drivenCombined = "%s.%s"%(driven[0],driven[1])
+	assert mc.objExists(driver1Combined)	
+	assert mc.objExists(driver2Combined)
+	assert mc.objExists(drivenCombined)
+	
+	#Create the node
+	i_pma = cgmMeta.cgmNode(mc.createNode('plusMinusAverage'))
+	i_pma.operation = 3
+	nameBuffer = "%s_to_%s"%(mc.ls(driver1[0],sn = True)[0],mc.ls(driver2[0],sn = True)[0])
+	i_pma.addAttr('cgmName',nameBuffer,lock=True)	
+	#i_pma.doStore('cgmName',i_jnt.mNode)
+	i_pma.addAttr('cgmTypeModifier','asdf')
+	i_pma.doName()
+	
+	#Make our connections
+	attributes.doConnectAttr(driver1Combined,'%s.input1D[0]'%i_pma.mNode)
+	attributes.doConnectAttr(driver2Combined,'%s.input1D[1]'%i_pma.mNode)
+	attributes.doConnectAttr('%s.output1D'%i_pma.mNode,drivenCombined)
+	return i_pma.mNode
+
+    def averageNetwork_four():
+	log.info("averageNetwork_four")
+	
+    #Good way to verify an instance list?
+    #validate orientation
+    outChannel = orientation[2].capitalize()
+    upChannel = orientation[1].capitalize()
+    aimChannel = orientation[0].capitalize()
+    if len(jointList) <3:
+	raise StandardError,"addRibbonTwistToControlSurfaceSetup requires 3 joints to work" 
     
+    #moduleInstance
+    i_module = False
+    i_rigNull = False
+    if moduleInstance is not None:
+	if issubclass(type(moduleInstance),cgmPM.cgmModule):
+	    i_module = moduleInstance
+	    i_rigNull = i_module.rigNull
+	else:
+	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+	    
+    #Initialize joint list
+    ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
+    #Gather info:
+    #d_driverPlugs = {index:['obj'.'r']....}
+    #d_drivenPlugs = {index:['rotateGroup','.r']...}
+    #twistStartPlug,twistEndPlug
+    #For each joint to be connected, we need a connection plug and a rotate group
+    #We need a driver start and end plug    
+    d_drivenPlugs = {}
+    d_driverPlugs = {}
+    d_mi_jointToIndex = {}
+    #make sure all but the last have rotate groups,grab those plugs
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	d_mi_jointToIndex[i_jnt]=i
+	rotateGroupBuffer = i_jnt.getMessage('rotateUpGroup',False)[0]
+	if not rotateGroupBuffer:
+	    raise StandardError,"'%s' lacks a connected rotateUpGroup!"%i_jnt.getShortName()
+	drivenPlug_buffer = '%s.%s'%(rotateGroupBuffer,rotateGroupAxis)
+	if mc.objExists(drivenPlug_buffer):
+	    d_drivenPlugs[i] = drivenPlug_buffer
+	else:
+	    raise StandardError,"Rotate group has no axis: %s!"%rotateGroupAxis
+    log.info("drivenPlugs: %s"%d_drivenPlugs)
+           
+    
+    return
+    #>>>Setup
+    if len(ml_jointList) == 3:
+	#Grab two control drivers, blend between them, drive mid
+    elif len(ml_jointList) == 4:
+	#Grab two control drivers, blend
+	averageNetwork_four()
+    else:#factor and run
+	#Make a factored list    
+	l_factored = lists.returnFactoredConstraintList(jointList,3)
+	for chunk in l_factored:
+	    if len(chunk) == 3:
+		averageNetwork_three()
+	    elif len(chunk) == 4:
+		averageNetwork_three()
+	    else:
+		raise StandardError,"Chunk too long: %s"%chunk
+
+
 @r9General.Timer
 def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,orientation = 'zyx', moduleInstance = None):
     """
