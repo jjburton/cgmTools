@@ -971,7 +971,23 @@ class cgmObject(cgmNode):
 
         """
         return rigging.groupMeObject(self.mNode,True,maintain)    
-                     
+    
+    def duplicateTransform(self,copyAttrs = False):
+        """
+        Duplicates an objects tranform
+
+        Keyword arguments:
+        copyAttrs(bool) -- whether to copy attrs to the new transform (default False)
+
+        """
+	try:
+	    if copyAttrs:
+		raise NotImplemented,"createTransform>>>copyattrs not implemented yet"
+	    return cgmObject( rigging.groupMeObject(self.mNode,parent = False),setClass=True  )  
+	except StandardError,error:
+	    log.error("createTransformFromObj fail! | %s"%error) 
+	    raise StandardError
+	    
     def doAddChild(self,child = False):
         """
         Function for adding a child
