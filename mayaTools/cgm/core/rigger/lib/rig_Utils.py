@@ -207,7 +207,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
         log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
         #>>> Follicle =======================================================
         l_follicleInfo = nodes.createFollicleOnMesh(i_controlSurface.mNode)
-        i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1])
+        i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
         i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
         #> Name
         i_follicleTrans.doStore('cgmName',i_jnt.mNode)
@@ -235,8 +235,15 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
 	    
 	    #Store the rotate group to the joint
 	    i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
+	    i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+	    i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
+	    i_zeroGrp.doName()
+	    #connect some other data
+	    i_locRotateGroup.connectChildNode(i_follicleTrans,'follicle','drivenGroup')
+	    i_locRotateGroup.connectChildNode(i_locRotateGroup.parent,'zeroGroup')
 	    
-	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)	
+	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
+	    
 	    
 	    i_upLoc.parent = i_locRotateGroup.mNode
 	    mc.move(0,10,0,i_upLoc.mNode,os=True)	
@@ -265,7 +272,9 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
         #constraints.doConstraintObjectGroup(i_transFollicle.mNode,transform,['point','orient'])
         #>>> Connect the joint
         #attributes.doConnectAttr('%s.translate'%i_grpPos.mNode,'%s.translate'%i_jnt.mNode)
-        
+    #Orient constrain our last joint to our last follicle
+    #>>>DON'T Like this method --- mc.orientConstraint(ml_follicleTransforms[-1].mNode,ml_jointList[-1].mNode,maintainOffset = True)
+    
     #>>>Create scale stuff
     #>>>Create IK effectors,Create distance nodes
     l_iIK_effectors = []
@@ -315,6 +324,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
             
     #Connect the first joint's position since an IK handle isn't controlling it    
     attributes.doConnectAttr('%s.translate'%ml_follicleTransforms[0].mNode,'%s.translate'%ml_jointList[0].mNode)
+    #attributes.doConnectAttr('%s.translate'%ml_follicleTransforms[-1].mNode,'%s.translate'%ml_jointList[-1].mNode)
     
     #>> Second part for the full twist setup
     aimChannel = orientation[0]  
@@ -377,6 +387,23 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
 	    log.error(error)
 	    raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
 	
+	#If second to last we need to add an extra md
+	if i_jnt == ml_jointList[-2]:
+	    i_mdAdd = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	    i_mdAdd.operation = 2
+	    i_mdAdd.doStore('cgmName',i_jnt.mNode)
+	    i_mdAdd.addAttr('cgmTypeModifier','endScaleFix')
+	    i_mdAdd.doName()	
+	    #Grab the current scale plug
+	    aimScalePlug = attributes.doBreakConnection(i_jnt.mNode,"s%s"%orientation[0])
+	    attributes.doConnectAttr(aimScalePlug,#>>
+		                     '%s.%s'%(i_mdAdd.mNode,'input1X'))
+	    attributes.doConnectAttr('%s.s%s'%(ml_jointList[-3].mNode,orientation[0]),#>>
+		                     '%s.%s'%(i_mdAdd.mNode,'input2X'))	
+	    
+	    attributes.doConnectAttr('%s.%s'%(i_mdAdd.mNode,'output.outputX'),#>>
+		                     '%s.%s'%(i_jnt.mNode,"s%s"%orientation[0]))		    
+	    
 	"""
 	mdArg = [{'result':[i_jnt.mNode,'sy'],'drivers':[[i_distanceShapes[i].mNode,'distance'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],'driven':[]},
 	         {'result':[i_jnt.mNode,'sx'],'drivers':[[i_distanceShapes[i].mNode,'distance'],[i_jntScaleBufferNode,i_jntScaleBufferNode.d_indexToAttr[i]]],'driven':[]}]
@@ -600,23 +627,31 @@ def createControlSurfaceSegmentBAK(jointList,orientation = 'zyx',baseName ='test
 @r9General.Timer
 def addRibbonTwistToControlSurfaceSetup(jointList,
                                         startControlDriver = None, endControlDriver = None,
-                                        rotateGroupAxis = 'rotateY',
+                                        rotateGroupAxis = 'rotateZ',
                                         orientation = 'zyx', moduleInstance = None):
     """
     Implementing this ribbon method to or control surface setup:
     http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/
     """
-    def createAverageNode(driver1,driver2,driven):
+    def createAverageNode(driver1,driver2,driven = None):
 	#Create the mdNode
+	log.info("driver1: %s"%driver1)
+	log.info("driver2: %s"%driver2)
 	assert type(driver1) is list and len(driver1) == 2,"Driver1 wrong: %s"%driver1
 	assert type(driver2) is list and len(driver1) == 2,"Driver2 wrong: %s"%driver2
-	assert type(driven) is list and len(driver1) == 2,"Driven wrong: %s"%driven
 	driver1Combined = "%s.%s"%(driver1[0],driver1[1])
 	driver2Combined = "%s.%s"%(driver2[0],driver2[1])
-	drivenCombined = "%s.%s"%(driven[0],driven[1])
 	assert mc.objExists(driver1Combined)	
 	assert mc.objExists(driver2Combined)
-	assert mc.objExists(drivenCombined)
+	
+	if driven is not None:
+	    assert type(driven) is list and len(driver1) == 2,"Driven wrong: %s"%driven	    
+	    drivenCombined = "%s.%s"%(driven[0],driven[1])
+	    assert mc.objExists(drivenCombined)	    
+	    log.info("drivenCombined: %s"%drivenCombined)
+	    
+	log.info("driver1Combined: %s"%driver1Combined)
+	log.info("driver2Combined: %s"%driver2Combined)
 	
 	#Create the node
 	i_pma = cgmMeta.cgmNode(mc.createNode('plusMinusAverage'))
@@ -624,17 +659,73 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
 	nameBuffer = "%s_to_%s"%(mc.ls(driver1[0],sn = True)[0],mc.ls(driver2[0],sn = True)[0])
 	i_pma.addAttr('cgmName',nameBuffer,lock=True)	
 	#i_pma.doStore('cgmName',i_jnt.mNode)
-	i_pma.addAttr('cgmTypeModifier','asdf')
+	i_pma.addAttr('cgmTypeModifier','twist')
 	i_pma.doName()
 	
 	#Make our connections
 	attributes.doConnectAttr(driver1Combined,'%s.input1D[0]'%i_pma.mNode)
 	attributes.doConnectAttr(driver2Combined,'%s.input1D[1]'%i_pma.mNode)
-	attributes.doConnectAttr('%s.output1D'%i_pma.mNode,drivenCombined)
-	return i_pma.mNode
+	
+	if driven is not None:
+	    attributes.doConnectAttr('%s.output1D'%i_pma.mNode,drivenCombined)
+	    
+	return i_pma
 
-    def averageNetwork_four():
-	log.info("averageNetwork_four")
+    def averageNetwork_three(indices):
+	""" """
+	log.info("averageNetwork_three: %s"%indices)
+	assert len(indices) == 3,"averageNetwork_three requires 3 indices"
+	for i in indices:
+	    if i not in d_drivenPlugs.keys():
+		raise StandardError,"Index doesn't exist in d_drivenPlugs: %s"%i
+	d1 = d_driverPlugs[indices[0]]
+	d2 = d_driverPlugs[indices[-1]]
+	driven = d_drivenPlugs[indices[1]]
+	
+	i_buffer = createAverageNode(d1,d2,driven)
+	#Register network
+	d_driverPlugs[indices[1]] = [i_buffer.mNode,"output1D"]
+	
+    def averageNetwork_four(indices):
+	""" 
+	If we don't have an actual middle object we still need to average
+	ex[0,1,2,3]
+	[0,3]
+	[0,3],1 | [0,3],2
+	"""
+	log.info("averageNetwork_four: %s"%indices)
+	assert len(indices) == 4,"averageNetwork_four requires 4 indices"
+	for i in indices[1:-1]:
+	    if i not in d_drivenPlugs.keys():
+		raise StandardError,"Index doesn't exist in d_drivenPlugs: %s"%i
+	
+	#Get the middle driven
+	driven1 = d_drivenPlugs[indices[1]]	
+	driven2 = d_drivenPlugs[indices[2]]	
+	
+	#Blend average
+	blendDriverIndex = (indices[0],indices[-1])
+	if blendDriverIndex not in d_drivenPlugs.keys():
+	    #If our blend driver isn't in the keys, we need to make it. first check the drivers exist
+	    assert indices[0] in d_drivenPlugs.keys(),"four mode indice not in d_drivenPlugs: %s"%indices[0]
+	    assert indices[-1] in d_drivenPlugs.keys(),"four mode indice not in d_drivenPlugs: %s"%indices[-1]
+	    
+	    i_blendPMA = createAverageNode(startControlDriver,endControlDriver)	    
+
+	
+	d1 = d_driverPlugs[indices[0]]
+	d2 = d_driverPlugs[indices[-1]]	
+	
+	
+	
+	#Hook up first
+	createAverageNode([i_blendPMA.mNode,"output1D"],
+                          startControlDriver,
+                          d_drivenPlugs[1])	
+	#Hook up second
+	createAverageNode([i_blendPMA.mNode,"output1D"],
+                          endControlDriver,
+                          d_drivenPlugs[2])	
 	
     #Good way to verify an instance list?
     #validate orientation
@@ -657,7 +748,7 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     #Initialize joint list
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
     #Gather info:
-    #d_driverPlugs = {index:['obj'.'r']....}
+    #d_driverPlugs = {index:['obj','ry']....}
     #d_drivenPlugs = {index:['rotateGroup','.r']...}
     #twistStartPlug,twistEndPlug
     #For each joint to be connected, we need a connection plug and a rotate group
@@ -665,34 +756,84 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     d_drivenPlugs = {}
     d_driverPlugs = {}
     d_mi_jointToIndex = {}
-    #make sure all but the last have rotate groups,grab those plugs
-    for i,i_jnt in enumerate(ml_jointList[:-1]):
+    #Make sure all but the last have rotate groups,grab those plugs
+    for i,i_jnt in enumerate(ml_jointList):
 	d_mi_jointToIndex[i_jnt]=i
-	rotateGroupBuffer = i_jnt.getMessage('rotateUpGroup',False)[0]
-	if not rotateGroupBuffer:
-	    raise StandardError,"'%s' lacks a connected rotateUpGroup!"%i_jnt.getShortName()
-	drivenPlug_buffer = '%s.%s'%(rotateGroupBuffer,rotateGroupAxis)
-	if mc.objExists(drivenPlug_buffer):
-	    d_drivenPlugs[i] = drivenPlug_buffer
-	else:
-	    raise StandardError,"Rotate group has no axis: %s!"%rotateGroupAxis
+	if i_jnt == ml_jointList[-1]:#If it's the last
+	    d_drivenPlugs[i] = [i_jnt.getShortName(),"rotate%s"%aimChannel]
+	else:   
+	    rotateGroupBuffer = i_jnt.getMessage('rotateUpGroup',False)[0]
+	    if not rotateGroupBuffer:
+		raise StandardError,"'%s' lacks a connected rotateUpGroup!"%i_jnt.getShortName()
+	    if mc.objExists('%s.%s'%(rotateGroupBuffer,rotateGroupAxis)):
+		d_drivenPlugs[i] = [rotateGroupBuffer,rotateGroupAxis]
+		#We need to reparent and point constrain our rotate zero groups
+		i_zeroGroup = i_jnt.rotateUpGroup.zeroGroup#Get zero
+		i_follicle = i_jnt.rotateUpGroup.follicle#get follicle
+		i_zeroGroup.parent = i_follicle.parent#parent zerogroup to follicle
+		mc.pointConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+		                   maintainOffset=False)		
+		"""mc.parentConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+		                    skipRotate = aimChannel,maintainOffset=False)"""
+		
+		
+	    else:
+		raise StandardError,"Rotate group has no axis: %s!"%rotateGroupAxis
+	
+    #replace our start and end with our drivers
+    d_driverPlugs[0] = startControlDriver
+    d_driverPlugs[len(ml_jointList)-1] = endControlDriver
+
     log.info("drivenPlugs: %s"%d_drivenPlugs)
-           
-    
+    log.info("driverPlugs: %s"%d_driverPlugs)
     return
     #>>>Setup
+    #Connect first and last
+    #mc.pointConstraint(i_transFollicle.mNode,i_grpPos.mNode, maintainOffset=False)
+    attributes.doConnectAttr('%s.%s'%(startControlDriver[0],startControlDriver[1]),
+                             '%s.%s'%(d_drivenPlugs[0][0],d_drivenPlugs[0][1]))
+    index = ml_jointList.index(ml_jointList[-1]) 
+    mc.orientConstraint(endControlDriver[0],ml_jointList[-1].mNode, maintainOffset=False)
+    #Direct connect no worky
+    #attributes.doConnectAttr('%s.%s'%(endControlDriver[0],endControlDriver[1]),
+                             #'%s.%s'%(d_drivenPlugs[index][0],d_drivenPlugs[index][1]))
+    
+    #Connect rest
     if len(ml_jointList) == 3:
 	#Grab two control drivers, blend between them, drive mid
+	index = ml_jointList.index(ml_jointList[1])
+	createAverageNode(startControlDriver,endControlDriver,d_drivenPlugs[index])
     elif len(ml_jointList) == 4:
 	#Grab two control drivers, blend
-	averageNetwork_four()
+	i_blendPMA = createAverageNode(startControlDriver,endControlDriver)
+	
+	#Hook up first
+	createAverageNode([i_blendPMA.mNode,"output1D"],
+                          startControlDriver,
+                          d_drivenPlugs[1])	
+	#Hook up second
+	createAverageNode([i_blendPMA.mNode,"output1D"],
+                          endControlDriver,
+                          d_drivenPlugs[2])		
+	"""
+	for i in [1,2]:
+	    index = ml_jointList.index(ml_jointList[i])
+	    createAverageNode("%s.output1D"%i_blendPMA.mNode,
+	                      endControlDriver,
+	                      d_drivenPlugs[index])"""	    
+	
+	#averageNetwork_four()
+	
     else:#factor and run
-	#Make a factored list    
-	l_factored = lists.returnFactoredConstraintList(jointList,3)
+	#Make a factored list
+	l_factored = lists.returnFactoredConstraintList(range(len(jointList)),3)
+	log.info(l_factored)
+	
 	for chunk in l_factored:
 	    if len(chunk) == 3:
-		averageNetwork_three()
+		averageNetwork_three(chunk)
 	    elif len(chunk) == 4:
+		raise NotImplementedError,"4 not implemented!"
 		averageNetwork_three()
 	    else:
 		raise StandardError,"Chunk too long: %s"%chunk
