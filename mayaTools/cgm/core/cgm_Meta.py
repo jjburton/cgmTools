@@ -562,6 +562,21 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return True
         return False
     
+    def compareAttrs(self,target,**kws):
+        """ compare the attributes of one object to another """
+	if not mc.objExists(target):
+	    raise StandardError,"Target doesn't exist! | %s"%target
+	l_targetAttrs = mc.listAttr(target,**kws)
+	for a in mc.listAttr(self.mNode,**kws):
+	    try:
+		selfBuffer = attributes.doGetAttr(self.mNode,a)
+		targetBuffer = attributes.doGetAttr(target,a)
+		if a in l_targetAttrs and selfBuffer != targetBuffer:
+		    log.info("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
+	    except StandardError,error:
+		log.debug(error)	
+		log.warning("'%s.%s'couldn't query"%(self.mNode,a))	    
+	    
     #@r9General.Timer
     def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,**kws):
         """
