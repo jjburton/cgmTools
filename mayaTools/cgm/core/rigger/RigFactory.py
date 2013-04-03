@@ -78,6 +78,7 @@ class go(object):
         
         log.info(">>> RigFactory.go.__init__")
         self._i_module = moduleInstance# Link for shortness
+	self._i_module.__verify__()
 	self._cgmClass = 'RigFactory.go'
         """
         if moduleInstance.hasControls():
