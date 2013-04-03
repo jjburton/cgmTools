@@ -29,6 +29,7 @@ from cgm.core.rigger.lib import rig_Utils as rUtils
 reload(rUtils)
 from cgm.lib import (joints,
                      skinning,
+                     dictionary,
                      distance,
                      search,
                      curves,
@@ -92,7 +93,7 @@ def build_rigSkeleton(self):
 	
 	#Influence chain for influencing the surface
 	ml_influenceJoints = []
-	for i_jnt in self._ml_skinJoints[:-1]:
+	for i_jnt in self._ml_skinJoints[1:-1]:
 	    if i_jnt.hasAttr('cgmName') and i_jnt.cgmName in self._l_coreNames:
 		i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
 		i_new.addAttr('cgmType','influenceJoint',attrType='string',lock=True)
@@ -104,11 +105,7 @@ def build_rigSkeleton(self):
 		
 		ml_influenceJoints.append(i_new)
 		
-	#l_influenceJoints = [i_jnt.mNode for i_jnt in ml_influenceJoints] 
 	#>>> Store em all to our instance
-	#self._ml_influenceJoints = ml_influenceJoints
-	#self._ml_rigJoints = ml_rigJoints
-	#self._ml_surfaceJoints = ml_surfaceJoints
 	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','module')
 	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','module')	
 	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','module')
@@ -157,8 +154,7 @@ def build_controls(self):
 	raise StandardError,error
     
     #>>>Set up structure
-    try:
-	#Cog
+    try:#Cog
 	i_cog = self._md_controlShapes['cog']
 	d_buffer = mControlFactory.registerControl(i_cog,addGroups = True,addConstraintGroup=True,
 	                                           freezeAll=True,
@@ -170,8 +166,7 @@ def build_controls(self):
 	log.error("build_spine>>Build cog fail!")
 	raise StandardError,error
         
-    #>FK Segments
-    try:
+    try:#>FK Segments
 	ml_segmentsFK = self._md_controlShapes['segmentFK']
 	for i,i_obj in enumerate(ml_segmentsFK[1:]):#parent
 	    i_obj.parent = ml_segmentsFK[i].mNode
@@ -186,8 +181,8 @@ def build_controls(self):
 	log.error("build_spine>>Build fk fail!")
 	raise StandardError,error
         
-    #>IK Segments
-    try:    
+    
+    try:#>IK Segments
 	ml_segmentsIK = self._md_controlShapes['segmentIK']
 	#ml_segmentsIK[-1].parent = self._md_controlShapes['segmentIKEnd'].mNode
 	
@@ -200,8 +195,8 @@ def build_controls(self):
 	log.error("build_spine>>Build ik handle fail!")
 	raise StandardError,error
     
-    #>IK Handle
-    try:
+    
+    try:#>IK Handle
 	i_IKEnd = self._md_controlShapes['segmentIKEnd']
 	i_IKEnd.parent = i_cog.mNode
 	i_loc = i_IKEnd.doLoc()#Make loc for a new transform
@@ -224,8 +219,8 @@ def build_controls(self):
 	log.error("build_spine>>Build ik handle fail!")
 	raise StandardError,error   
       
-    #>Hips
-    try:
+    
+    try:#>Hips
 	i_hips = self._md_controlShapes['hips']
 	i_hips.parent = i_cog.mNode#parent
 	i_loc = i_hips.doLoc()
@@ -268,7 +263,7 @@ def build_deformation(self):
     
     #>>>Create a constraint surface for the influence joints
     #====================================================================================    
-    
+    """
     try:
 	l_influenceJoints = [i_jnt.mNode for i_jnt in ml_influenceJoints] 
 	d_constraintSurfaceReturn = rUtils.createConstraintSurfaceSegment(l_influenceJoints[1:],
@@ -298,7 +293,7 @@ def build_deformation(self):
     except StandardError,error:
 	log.error("build_spine>>Constraint surface build fail")
 	raise StandardError,error
-	
+	"""
     #Control Surface
     #====================================================================================
     try:
@@ -309,14 +304,20 @@ def build_deformation(self):
 	                                                   moduleInstance=self._i_module)
 	#Add squash
 	rUtils.addSquashAndStretchToControlSurfaceSetup(surfaceReturn['surfaceScaleBuffer'],[i_jnt.mNode for i_jnt in ml_surfaceJoints],moduleInstance=self._i_module)
+	#Twist
+	log.info(self._jointOrientation)
+	capAim = self._jointOrientation[0].capitalize()
+	log.info("capAim: %s"%capAim)
+	rUtils.addRibbonTwistToControlSurfaceSetup([i_jnt.mNode for i_jnt in ml_surfaceJoints],[ml_influenceJoints[0].mNode,'rotate%s'%capAim],[ml_influenceJoints[-1].mNode,'rotate%s'%capAim])
+	
 	log.info(surfaceReturn)
     
 	#Surface influence joints cluster#
 	i_controlSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in ml_influenceJoints],
 	                                                          surfaceReturn['i_controlSurface'].mNode,
 	                                                          tsb=True,
-	                                                          maximumInfluences = 3,
-	                                                          normalizeWeights = 1,dropoffRate=4.0)[0])
+	                                                          maximumInfluences = 2,
+	                                                          normalizeWeights = 1,dropoffRate=6.0)[0])
 	
 	i_controlSurfaceCluster.addAttr('cgmName', str(self._partName), lock=True)
 	i_controlSurfaceCluster.addAttr('cgmTypeModifier','controlSurface', lock=True)
@@ -350,10 +351,89 @@ def build_rig(self):
     ml_influenceJoints = self._i_rigNull.influenceJoints
     ml_surfaceJoints = self._i_rigNull.surfaceJoints
     ml_rigJoints = self._i_rigNull.rigJoints
-    
     ml_segmentHandles = self._i_rigNull.segmentHandles
+        
+    #Mid follow Setup
+    #====================================================================================    
+    #>>>Create some locs
+    i_midAim = ml_influenceJoints[1].doLoc()
+    i_midAim.doAddAttr('cgmTypeModifier','midAim')
+    i_midAim.doName()
     
-    #Parent and constrain
+    i_midPoint = ml_influenceJoints[1].doLoc()
+    i_midPoint.doAddAttr('cgmTypeModifier','midPoint')
+    i_midPoint.doName()
+
+    i_midUp = ml_influenceJoints[1].doLoc()
+    i_midUp.doAddAttr('cgmTypeModifier','midUp')
+    i_midPoint.doName()
+
+    i_midUp.parent = i_midPoint.mNode
+    
+    #Mid point constraint
+    i_midPointConstraint = cgmMeta.cgmNode(mc.parentConstraint([ml_influenceJoints[0].mNode,
+                                                                ml_influenceJoints[-1].mNode],
+                                                               i_midPoint.mNode,maintainOffset=True)[0])
+    
+    targetWeights = mc.parentConstraint(i_midPointConstraint.mNode,q=True, weightAliasList=True)      
+    mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[0])),.5 )
+    mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[1])),1.0 )
+    
+    #Aim loc constraint
+    i_midAimConstraint = cgmMeta.cgmNode(mc.parentConstraint([ml_influenceJoints[0].mNode,
+                                                              ml_influenceJoints[-1].mNode],
+                                                             i_midAim.mNode,maintainOffset=True)[0])
+    
+    targetWeights = mc.parentConstraint(i_midAimConstraint.mNode,q=True, weightAliasList=True)      
+    mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[0])),.1)
+    mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[1])),1.0 )  
+    
+    #Create an point/aim group
+    i_midFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[1].doGroup(True),setClass=True)
+    i_midFollowGrp.addAttr('cgmTypeModifier','follow')
+    i_midFollowGrp.doName()
+    
+    i_midFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_midPoint.mNode],
+                                                                    i_midFollowGrp.mNode,maintainOffset=True)[0])
+    
+    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+    closestJoint = distance.returnClosestObject(i_followGrp.mNode,[i_jnt.mNode for i_jnt in ml_surfaceJoints])
+    upLoc = cgmMeta.cgmObject(closestJoint).rotateUpGroup.upLoc.mNode
+    log.info("aimVector: '%s'"%aimVector)
+    log.info("upVector: '%s'"%upVector)    
+    log.info("upLoc: '%s'"%upLoc)
+    aimConstraintBuffer = mc.aimConstraint(ml_influenceJoints[-1].mNode,
+                                           i_midFollowGrp.mNode,
+                                           maintainOffset = True, weight = 1,
+                                           aimVector = aimVector,
+                                           upVector = upVector,
+                                           worldUpObject = i_midUp.mNode,
+                                           worldUpType = 'object' )    
+    i_midFollowAimConstraint = cgmMeta.cgmNode(aimConstraintBuffer[0])    
+    
+    #Base follow Setup
+    #====================================================================================    
+    #>>>Create some locs
+    i_baseUp = ml_influenceJoints[0].doLoc()
+    i_baseUp.doAddAttr('cgmTypeModifier','baseUp')
+    i_baseUp.doName()
+    
+    #Create an point/aim group
+    i_baseFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[0].doGroup(True),setClass=True)
+    i_baseFollowGrp.addAttr('cgmTypeModifier','follow')
+    i_baseFollowGrp.doName()
+    
+    i_midFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_midPoint.mNode],
+                                                                    i_baseFollowGrp.mNode,maintainOffset=True)[0])
+    
+    
+    
+    #Connect Twist rotate
+    #Setup add to mid twist pma
+    return
+    
+    #Parent and constrain joints
     #====================================================================================
     ml_influenceJoints[0].parent = self._i_rigNull.hips.mNode#parent pelvis influence to hips
     ml_influenceJoints[-1].parent = self._i_rigNull.segmentHandles[-1].mNode#parent top influence to top
