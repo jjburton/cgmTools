@@ -134,7 +134,7 @@ def setRotationOrderOnJoint (jnt, ro):
     return successRO
 
 # #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def orientJoint (jointToOrient, orientation = 'xyz', up = 'none'):
+def orientJoint (jointToOrient, orientation = 'xyz', up = None):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -156,7 +156,7 @@ def orientJoint (jointToOrient, orientation = 'xyz', up = 'none'):
         log.info (orientation + ' is not an acceptable orientation. Expected one of the following:')
         log.info (orientationOptions)
         return False
-    if not up in secondaryAxisOptions:
+    if up is not None and up in secondaryAxisOptions:
         log.info (up + ' is not an acceptable second axis. Expected one of the following:')
         return False
     else:
@@ -164,8 +164,10 @@ def orientJoint (jointToOrient, orientation = 'xyz', up = 'none'):
         if childJoint != None:
             if len(childJoint) > 0:
                 mc.makeIdentity(jointToOrient,apply=True,r = True)
-                mc.joint (jointToOrient, e=True, orientJoint= orientation, secondaryAxisOrient= up)
-
+                if up is not None in secondaryAxisOptions:
+                    mc.joint (jointToOrient, e=True, orientJoint= orientation, secondaryAxisOrient= up)
+                else:
+                    mc.joint (jointToOrient, e=True, orientJoint= orientation)                    
         else:
             #Child joint. Use the same rotation as the parent.
             parentJoint = mc.listRelatives(jointToOrient, type="joint", p=True) 		
@@ -196,7 +198,7 @@ def freezeJointOrientation(jointToOrient):
     mc.makeIdentity(jointToOrient, apply=True, t=0, r=1, s=0, n=0)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def orientJointChain (jointList, orientation, up):
+def orientJointChain (jointList, orientation, up=None):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
