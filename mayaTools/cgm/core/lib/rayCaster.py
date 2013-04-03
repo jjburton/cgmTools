@@ -249,7 +249,29 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
                 vector[i]=-v
     return findMeshIntersection(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
 
-    
+def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
+                               vector = False, maxDistance = 1000):
+    #>>>Figure out the axis to do
+    if type(axisToCheck) not in [list,tuple]:axisToCheck=[axisToCheck]
+    axis = ['x','y','z']
+    for a in axisToCheck:
+        if a not in axis:
+            raise StandardError,"findMeshMidPointFromObject>>> Not a valid axis : %s not in ['x','y','z']"%axisToCheck
+    l_positions = []
+    for a in axisToCheck:
+        log.info("firing: %s"%a)
+        d_posReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis = '%s+'%a,vector=vector,maxDistance = maxDistance)
+        d_negReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis = '%s-'%a,vector=vector,maxDistance = maxDistance)
+        
+        if 'hit' in d_posReturn.keys() and d_negReturn.keys():
+            l_pos = [d_posReturn.get('hit'),d_negReturn.get('hit')]
+            pos = distance.returnAveragePointPosition(l_pos)          
+            l_positions.append(pos)
+    if len(l_positions) == 1:
+        return l_positions
+    else:
+        return distance.returnAveragePointPosition(l_positions)
+                
     
 
 
