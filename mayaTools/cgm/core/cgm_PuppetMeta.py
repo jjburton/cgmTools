@@ -1103,6 +1103,11 @@ rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any mo
                        'ik':'bool',
                        'stretchy':'bool',
                        'bendy':'bool',
+                       'twist':'bool',
+                       'visJoints':'bool',
+                       'visRig':'bool',
+                       'visLocs':'bool', 
+                       'visSegment':'bool',                                                                     
                        'skinJoints':'message'}
 
 templateNullAttrs_toMake = {'version':'float',
