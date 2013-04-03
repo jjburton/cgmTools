@@ -352,20 +352,22 @@ def build_rig(self):
     ml_surfaceJoints = self._i_rigNull.surfaceJoints
     ml_rigJoints = self._i_rigNull.rigJoints
     ml_segmentHandles = self._i_rigNull.segmentHandles
-        
+    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+    
     #Mid follow Setup
     #====================================================================================    
     #>>>Create some locs
     i_midAim = ml_influenceJoints[1].doLoc()
-    i_midAim.doAddAttr('cgmTypeModifier','midAim')
+    i_midAim.addAttr('cgmTypeModifier','midAim')
     i_midAim.doName()
     
     i_midPoint = ml_influenceJoints[1].doLoc()
-    i_midPoint.doAddAttr('cgmTypeModifier','midPoint')
+    i_midPoint.addAttr('cgmTypeModifier','midPoint')
     i_midPoint.doName()
 
     i_midUp = ml_influenceJoints[1].doLoc()
-    i_midUp.doAddAttr('cgmTypeModifier','midUp')
+    i_midUp.addAttr('cgmTypeModifier','midUp')
     i_midPoint.doName()
 
     i_midUp.parent = i_midPoint.mNode
@@ -396,27 +398,26 @@ def build_rig(self):
     i_midFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_midPoint.mNode],
                                                                     i_midFollowGrp.mNode,maintainOffset=True)[0])
     
-    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
-    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
-    closestJoint = distance.returnClosestObject(i_followGrp.mNode,[i_jnt.mNode for i_jnt in ml_surfaceJoints])
+    closestJoint = distance.returnClosestObject(i_midFollowGrp.mNode,[i_jnt.mNode for i_jnt in ml_surfaceJoints])
     upLoc = cgmMeta.cgmObject(closestJoint).rotateUpGroup.upLoc.mNode
+    log.info("midFollow...")    
     log.info("aimVector: '%s'"%aimVector)
     log.info("upVector: '%s'"%upVector)    
     log.info("upLoc: '%s'"%upLoc)
-    aimConstraintBuffer = mc.aimConstraint(ml_influenceJoints[-1].mNode,
-                                           i_midFollowGrp.mNode,
-                                           maintainOffset = True, weight = 1,
-                                           aimVector = aimVector,
-                                           upVector = upVector,
-                                           worldUpObject = i_midUp.mNode,
-                                           worldUpType = 'object' )    
-    i_midFollowAimConstraint = cgmMeta.cgmNode(aimConstraintBuffer[0])    
+    constraintBuffer = mc.aimConstraint(ml_influenceJoints[-1].mNode,
+                                        i_midFollowGrp.mNode,
+                                        maintainOffset = True, weight = 1,
+                                        aimVector = aimVector,
+                                        upVector = upVector,
+                                        worldUpObject = i_midUp.mNode,
+                                        worldUpType = 'object' )    
+    i_midFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0])    
     
     #Base follow Setup
     #====================================================================================    
     #>>>Create some locs
     i_baseUp = ml_influenceJoints[0].doLoc()
-    i_baseUp.doAddAttr('cgmTypeModifier','baseUp')
+    i_baseUp.addAttr('cgmTypeModifier','baseUp')
     i_baseUp.doName()
     
     #Create an point/aim group
@@ -424,13 +425,25 @@ def build_rig(self):
     i_baseFollowGrp.addAttr('cgmTypeModifier','follow')
     i_baseFollowGrp.doName()
     
-    i_midFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_midPoint.mNode],
-                                                                    i_baseFollowGrp.mNode,maintainOffset=True)[0])
+    i_baseFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([ml_influenceJoints[0].mNode],
+                                                                     i_baseFollowGrp.mNode,maintainOffset=True)[0])
     
     
-    
+    log.info("baseFollow...")
+    log.info("aimVector: '%s'"%aimVector)
+    log.info("upVector: '%s'"%upVector)    
+    constraintBuffer = mc.aimConstraint(i_midAim.mNode,
+                                        i_baseFollowGrp.mNode,
+                                        maintainOffset = True, weight = 1,
+                                        aimVector = aimVector,
+                                        upVector = upVector,
+                                        worldUpObject = i_baseUp.mNode,
+                                        worldUpType = 'object' )    
+    i_midFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0]) 
     #Connect Twist rotate
+    #====================================================================================        
     #Setup add to mid twist pma
+    #====================================================================================        
     return
     
     #Parent and constrain joints
