@@ -66,7 +66,8 @@ def controlSurfaceSmoothWeights(controlSurface):
     if not i_skinCluster and l_influenceObjects:
 	raise StandardError,"controlSurfaceSmoothWeights failed. Not enough info found"
 @r9General.Timer
-def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
+def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = None,
+                                baseName ='test', moduleInstance = None):
     """
     """
     #Good way to verify an instance list?
@@ -98,13 +99,21 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
     i_controlSurface.doName()
     i_controlSurface.addAttr('mClass','cgmObject')
     
+    if i_module:#if we have a module, connect vis
+	i_controlSurface.overrideEnabled = 1		
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideVisibility'))
+    
+    
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
-    for i_jnt in ml_jointList:
-	"""
-	Cannot iterate how important this step is. Lost a day trying to trouble shoot why one joint chain worked and another didn't.
-	WILL NOT connect right without this.
-	"""
-	joints.orientJoint(i_jnt.mNode,orientation,'%sup'%orientation[1])
+    if not moduleInstance:#if it is, we can assume it's right
+	if secondaryAxis is None:
+	    raise StandardError,"createControlSurfaceSegment>>> Must have secondaryAxis arg if no moduleInstance is passed"
+	for i_jnt in ml_jointList:
+	    """
+	    Cannot iterate how important this step is. Lost a day trying to trouble shoot why one joint chain worked and another didn't.
+	    WILL NOT connect right without this.
+	    """
+    	    joints.orientJoint(i_jnt.mNode,orientation,secondaryAxis)
 	
     #Create folicles
     ml_follicleTransforms = []
@@ -131,6 +140,11 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
 	
 	i_follicleTrans.parent = i_grp.mNode	
 	
+	if i_module:#if we have a module, connect vis
+	    i_follicleTrans.overrideEnabled = 1		
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
+	
+	
 	#>>> loc
 	"""
 	First part of full ribbon wist setup
@@ -151,6 +165,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
 	    #connect some other data
 	    i_locRotateGroup.connectChildNode(i_follicleTrans,'follicle','drivenGroup')
 	    i_locRotateGroup.connectChildNode(i_locRotateGroup.parent,'zeroGroup')
+	    i_locRotateGroup.connectChildNode(i_upLoc,'upLoc')
 	    
 	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
 	    
@@ -158,6 +173,10 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
 	    i_upLoc.parent = i_locRotateGroup.mNode
 	    mc.move(0,10,0,i_upLoc.mNode,os=True)	
 	    ml_upGroups.append(i_upLoc)
+	    
+	    if i_module:#if we have a module, connect vis
+		i_upLoc.overrideEnabled = 1		
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
 	    
 	
         #>> Surface Anchor ===================================================
@@ -189,6 +208,9 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
         l_iIK_handles.append(i_IK_Handle)
         l_iIK_effectors.append(i_IK_Effector)
         
+	if i_module:#if we have a module, connect vis
+	    i_IK_Handle.overrideEnabled = 1		
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
         
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
@@ -206,6 +228,10 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',baseName ='test', 
         
         l_iDistanceObjects.append(i_distanceObject)
         i_distanceShapes.append(i_distanceShape)
+	
+	if i_module:#Connect hides if we have a module instance:
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	
             
     #Connect the first joint's position since an IK handle isn't controlling it    
     attributes.doConnectAttr('%s.translate'%ml_follicleTransforms[0].mNode,'%s.translate'%ml_jointList[0].mNode)
@@ -965,10 +991,10 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
 		i_zeroGroup = i_jnt.rotateUpGroup.zeroGroup#Get zero
 		i_follicle = i_jnt.rotateUpGroup.follicle#get follicle
 		i_zeroGroup.parent = i_follicle.parent#parent zerogroup to follicle
-		mc.pointConstraint(i_follicle.mNode,i_zeroGroup.mNode,
-		                   maintainOffset=False)		
-		"""mc.parentConstraint(i_follicle.mNode,i_zeroGroup.mNode,
-		                    skipRotate = aimChannel,maintainOffset=False)"""
+		"""mc.pointConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+		                   maintainOffset=False)"""		
+		mc.parentConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+		                    skipRotate = orientation[0],maintainOffset=True)
 		
 		
 	    else:
