@@ -31,11 +31,13 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import GuiFactory as gui
+from cgm.core.lib import rayCaster as RayCast
 from cgm.lib import (lists,
                      search,
                      curves,#tmp
                      modules,#tmp
                      distance,#tmp
+                     dictionary,
                      controlBuilder,
                      attributes,
                      locators,
@@ -51,7 +53,7 @@ class go(object):
     Control Factory for snapping objects around in maya
     """
     def __init__(self,obj,targets = [],move = True, orient = False, aim = False, pos = [],
-                 snapToSurface = False,
+                 snapToSurface = False, midSurfacePos = False,
                  posOffset = False,
                  aimVector = [0,0,1],upVector = [0,1,0], worldUpType = 'scene',
                  snapComponents = False,softSelection = False, softSelectDistance = 20,                 
@@ -67,10 +69,14 @@ class go(object):
 	posOffset
 	snapComponents(bool) -- will try to use components if True
 	aimVector(vector) -- aim vector for object
-	upVector(vector) -- up vector for object
+	upVector(vector) -- up vector for object (used as lathe axis for midpoint surface snap too)
+	midSurfacePos(bool) -- mid point snap with a surface
 	worldUpType(string) -- arg for various modes (aim, orient, etc)
 	softSelection(bool) -- soft select mode for component objects only
 	softSelectDistance(float) -- arg for mc.softSelect
+	
+	ToDo:
+	1) midSurfacePos
         """
 	#>>> Check our obj
 	log.debug("obj: %s"%obj)
@@ -87,13 +93,15 @@ class go(object):
 	
 	#>>> Pass through args
 	self.b_snaptoSurface = snapToSurface
+	self.b_midSurfacePos = midSurfacePos	
 	self.b_snapComponents = snapComponents
 	self.b_softSelection = softSelection
-	self.softSelectionDistance = softSelectDistance,
-	self.posOffset = posOffset
-	self.aimVector = aimVector
-	self.upVector = upVector
-	self.worldUpType = worldUpType
+	self.b_midSurfacePos = midSurfacePos	
+	self._softSelectionDistance = softSelectDistance,
+	self._posOffset = posOffset
+	self._aimVector = aimVector
+	self._upVector = upVector
+	self._worldUpType = worldUpType
 	
 	#>>> Check our targets
 	if targets and not type(targets)==list:targets=[targets]
@@ -146,9 +154,9 @@ class go(object):
 			mc.move (pos[0],pos[1],pos[2], targetLoc[0])
 
 			closestLoc = locators.locClosest([targetLoc[0]],i_target.mNode)
-			if self.posOffset:
+			if self._posOffset:
 			    self.doOrientObjToSurface(i_target.mNode,closestLoc)
-			    mc.move (self.posOffset[0],self.posOffset[1],self.posOffset[2], [closestLoc], r=True, rpr = True, os = True, wd = True)								
+			    mc.move (self._posOffset[0],self._posOffset[1],self._posOffset[2], [closestLoc], r=True, rpr = True, os = True, wd = True)								
 			position.movePointSnap(c,closestLoc)
 			mc.delete([targetLoc[0],closestLoc])
 			
@@ -162,17 +170,36 @@ class go(object):
 			i_locTarget = cgmMeta.cgmObject( locators.locClosest([i_locObj.mNode],i_target.mNode) )#Loc closest
 			#i_locObj.rename('objLoc')
 			#i_locTarget.rename('targetLoc')
-			if self.posOffset:
+			if self._posOffset:
 			    try:
 				self.doOrientObjToSurface(i_target.mNode,i_locTarget.mNode)
-				mc.move (self.posOffset[0],self.posOffset[1],self.posOffset[2], [i_locTarget.mNode], r=True, rpr = True, os = True, wd = True)								
+				mc.move (self._posOffset[0],self._posOffset[1],self._posOffset[2], [i_locTarget.mNode], r=True, rpr = True, os = True, wd = True)								
 			    except StandardError,error:
-				log.warn("self.posOffset failure!")
+				log.warn("self._posOffset failure!")
 				log.error(error)
 			
 			pos = i_locTarget.getPosition(True)
 			i_locObj.delete()
 			i_locTarget.delete()
+		elif self.b_midSurfacePos:
+		    if targetType not in ['mesh','nurbsCurve','nurbsSurface']:
+			log.warning("Can't do midSurfacPos on targetType: '%s'"%targetType)
+			return False
+		    #Get the axis info
+		    axisToDo = []		    
+		    up = dictionary.returnVectorToString(self._upVector) or False
+		    if not up:
+			raise StandardError,"SnapFactory>>> must have up vector for midSurfaceSnap: %s"%self._upVector
+		    for a in ['x','y','z']:
+			if a != up[0]:
+			    axisToDo.append(a)
+		    if not axisToDo:
+			raise StandardError,"SnapFactory>>> couldn't find any axis to do"
+		    
+		    i_locObj = self.i_obj.doLoc()#Get our position loc		    
+		    pos = RayCast.findMeshMidPointFromObject(i_target.mNode, i_locObj.mNode, axisToCheck=axisToDo)
+		    i_locObj.delete()
+		    
 		else:
 		    pos = cgmMeta.cgmNode(i_target.mNode).getPosition(True)	    
 		if pos:
@@ -213,9 +240,9 @@ class go(object):
 	if type(l_targets) is not list:l_targets = [l_targets]
 	try:
 	    constBuffer = mc.normalConstraint(l_targets,obj,
-                                              aimVector=self.aimVector,
-                                              upVector=self.upVector,
-                                              worldUpType = self.worldUpType)
+                                              aimVector=self._aimVector,
+                                              upVector=self._upVector,
+                                              worldUpType = self._worldUpType)
 	    if deleteConstraint:
 		mc.delete(constBuffer)
 		return True
