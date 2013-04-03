@@ -327,6 +327,11 @@ def doOrientSegment(self):
         for i_jnt in self.i_rigNull.skinJoints:
             i_jnt.parent = False
             i_jnt.displayLocalAxis = 1#tmp
+	    #Set rotateOrder
+            try:
+                i_jnt.rotateOrder = self.jointOrientation
+	    except StandardError,error:
+		log.error("doOrientSegment>>rotate order set fail: %s"%i_jnt.getShortName())
     
         #>>>per segment stuff
         assert len(self.l_jointSegmentIndexSets) == len(self.m.i_coreNames.value)#quick check to make sure we've got the stuff we need
