@@ -818,7 +818,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
 	if not buffer:
 	    return False
-	i_loc = cgmObject(buffer)
+	i_loc = cgmObject(buffer,setClass=True)
 	i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
 	i_loc.doName()
 	return i_loc
