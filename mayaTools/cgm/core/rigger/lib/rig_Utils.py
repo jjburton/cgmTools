@@ -1060,8 +1060,22 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
 	except StandardError,error:
 	    log.error(error)
 	    raise StandardError,"Chunk failed to network: %s"%chunk
-	
-
+    """
+    #Finally build full sum
+    i_pma = cgmMeta.cgmNode(mc.createNode('plusMinusAverage'))
+    i_pma.operation = 1#Sum
+    if moduleInstance:
+	i_pma.addAttr('cgmName',moduleInstance.cgmName,lock=True)	
+    i_pma.addAttr('cgmTypeModifier','sum')
+    i_pma.doName()
+        
+    #Make our connections
+    for key in d_drivenPlugs.keys():
+	log.info(d_drivenPlugs[key])
+	log.info('%s.%s'%(d_drivenPlugs[key][0],d_drivenPlugs[key][1]))
+	log.info('%s.input1D[%s]'%(i_pma.mNode,i))
+	attributes.doConnectAttr('%s.%s'%(d_drivenPlugs[key][0],d_drivenPlugs[key][1]),'%s.input1D[%s]'%(i_pma.mNode,i))
+	"""
 
 @r9General.Timer
 def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,jointList,orientation = 'zyx', moduleInstance = None):
