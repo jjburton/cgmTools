@@ -103,6 +103,8 @@ def build_rigSkeleton(self):
 	    i_j.doName()
 	i_endJnt.parent = False
 	ml_anchors.append(i_endJnt)
+	for i_obj in ml_anchors:
+	    i_obj.rotateOrder = 2#<<<<<<<<<<<<<<<<This would have to change for other orientations
 	
 	#Influence chain for influencing the surface
 	ml_influenceJoints = []
@@ -115,7 +117,7 @@ def build_rigSkeleton(self):
 		if ml_influenceJoints:#if we have data, parent to last
 		    i_new.parent = ml_influenceJoints[-1]
 		else:i_new.parent = False
-		
+		i_new.rotateOrder = 'zxy'#<<<<<<<<<<<<<<<<This would have to change for other orientations
 		ml_influenceJoints.append(i_new)
 		
 	#>>> Store em all to our instance
@@ -184,12 +186,20 @@ def build_controls(self):
 	ml_segmentsFK = self._md_controlShapes['segmentFK']
 	for i,i_obj in enumerate(ml_segmentsFK[1:]):#parent
 	    i_obj.parent = ml_segmentsFK[i].mNode
-	    
 	ml_segmentsFK[0].parent = i_cog.mNode
-	for i_obj in ml_segmentsFK:
-	    d_buffer = mControlFactory.registerControl(i_obj,addGroups=1,setRotateOrder=5,typeModifier='fk',) 
+	for i,i_obj in enumerate(ml_segmentsFK):
+	    if i == 0:
+		i_loc = ml_segmentsFK[i].doLoc()
+		mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)		
+		d_buffer = mControlFactory.registerControl(i_obj,addGroups=1,setRotateOrder=5,
+		                                           copyPivot=i_loc.mNode,typeModifier='fk') 
+		i_loc.delete()
+		
+	    else:
+		d_buffer = mControlFactory.registerControl(i_obj,addGroups=1,setRotateOrder=5,typeModifier='fk',) 
 	    i_obj = d_buffer['instance']
 	self._i_rigNull.connectChildrenNodes(ml_segmentsFK,'controlsFK','module')
+	
     
     except StandardError,error:
 	log.error("build_spine>>Build fk fail!")
@@ -343,6 +353,9 @@ def build_deformation(self):
 	i_controlSurfaceCluster.addAttr('cgmTypeModifier','controlSurface', lock=True)
 	i_controlSurfaceCluster.doName()
 	
+	rUtils.controlSurfaceSmoothWeights(surfaceReturn['i_controlSurface'].mNode,start = ml_influenceJoints[0].mNode,
+	                                    end = ml_influenceJoints[-1].mNode, blendLength = 5)
+	
 	log.info(i_controlSurfaceCluster.mNode)
 	# smooth skin weights #
 	#skinning.simpleControlSurfaceSmoothWeights(i_controlSurfaceCluster.mNode)   
@@ -423,14 +436,18 @@ def build_rig(self):
     i_midPoint.overrideEnabled = 1
     cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_midPoint.mNode,'overrideVisibility'))
     
+    #Mid up constraint
     i_midUp = ml_influenceJoints[1].doLoc()#midUp
     i_midUp.addAttr('cgmTypeModifier','midUp')
     i_midUp.doName()
     i_midUp.parent = ml_controlsFK[1].mNode
     attributes.doSetAttr(i_midUp.mNode,'t%s'%self._jointOrientation[1],dist)
-    i_midUp.parent = False
+    i_midUp.parent = ml_controlsFK[1].mNode
     i_midUp.overrideEnabled = 1
     cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_midUp.mNode,'overrideVisibility'))
+    constBuffer = mc.parentConstraint([mi_handleIK.mNode,ml_controlsFK[1].mNode,ml_controlsFK[-1].mNode],
+                                      i_midUp.mNode,maintainOffset=True)[0]
+    i_midUpConstraint = cgmMeta.cgmNode(constBuffer)
     
     
     #Top Anchor
@@ -456,26 +473,21 @@ def build_rig(self):
     constBuffer = mc.pointConstraint([ml_anchorJoints[0].mNode,
                                       ml_anchorJoints[-1].mNode],
                                       i_midAim.mNode,maintainOffset=True)[0]
-    i_midAimConstraint = cgmMeta.cgmNode(constBuffer)
     #targetWeights = mc.parentConstraint(i_midPointConstraint.mNode,q=True, weightAliasList=True)      
     #mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[0])),.5 )
     #mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[1])),1.0 )
     
     #Aim loc constraint
-    i_midPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_bottomAnchorAttachPivot.mNode,
-                                                               i_topAnchorAttachPivot.mNode],
+    i_midPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_topAnchorAttachPivot.mNode,
+                                                               ml_anchorJoints[1].mNode,
+                                                               ml_anchorJoints[-1].mNode],
                                                               i_midPoint.mNode,maintainOffset=True)[0])
     
     #targetWeights = mc.parentConstraint(i_midAimConstraint.mNode,q=True, weightAliasList=True)      
     #mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[0])),.1)
     #mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[1])),1.0 )  
     
-    #Mid up constraint
-    constBuffer = mc.pointConstraint([ml_anchorJoints[0].mNode,i_topAnchorAttachPivot.mNode,
-                                      i_topAnchorAttachPivot.mNode],
-                                      i_midUp.mNode,maintainOffset=True)[0]
-    i_midUpConstraint = cgmMeta.cgmNode(constBuffer)
-    
+
     #Create an point/aim group
     i_midFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[1].doGroup(True),setClass=True)
     i_midFollowGrp.addAttr('cgmTypeModifier','follow')
@@ -504,21 +516,21 @@ def build_rig(self):
     log.info("upLoc: '%s'"%upLoc)
     log.info("rotDriven: '%s'"%rotDriven)
     
-    #Constrain the group
-    constraintBuffer = mc.aimConstraint(ml_anchorJoints[-1].mNode,
-                                        i_midFollowGrp.mNode,
-                                        maintainOffset = True, weight = 1,
-                                        aimVector = aimVector,
-                                        upVector = upVector,
-                                        worldUpObject = ml_segmentHandles[0].mNode,
-                                        worldUpType = 'objectRotation' )
+    #Constrain the group   
     """constraintBuffer = mc.aimConstraint(ml_anchorJoints[-1].mNode,
                                         i_midFollowGrp.mNode,
                                         maintainOffset = True, weight = 1,
                                         aimVector = aimVector,
                                         upVector = upVector,
+                                        worldUpObject = ml_segmentHandles[0].mNode,
+                                        worldUpType = 'objectRotation' )"""
+    constraintBuffer = mc.aimConstraint(ml_anchorJoints[-1].mNode,
+                                        i_midFollowGrp.mNode,
+                                        maintainOffset = True, weight = 1,
+                                        aimVector = aimVector,
+                                        upVector = upVector,
                                         worldUpObject = i_midUp.mNode,
-                                        worldUpType = 'object' )   """    
+                                        worldUpType = 'object' )       
     i_midFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0]) 
     
     #>>>Twist setup 
@@ -538,13 +550,19 @@ def build_rig(self):
     #Base follow Setup
     #====================================================================================    
     #>>>Create some locs
+    """
     i_baseUp = ml_influenceJoints[0].doLoc()
     i_baseUp.addAttr('cgmTypeModifier','baseUp')
     i_baseUp.doName()
-    i_baseUp.parent = mi_hips.mNode
+    i_baseUp.parent = ml_controlsFK[0].mNode#Fk one
     attributes.doSetAttr(i_baseUp.mNode,'t%s'%self._jointOrientation[1],dist)
     i_baseUp.overrideEnabled = 1
     cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_baseUp.mNode,'overrideVisibility'))
+    
+    constBuffer = mc.parentConstraint([mi_hips.mNode,ml_controlsFK[0].mNode],
+                                      i_baseUp.mNode,maintainOffset=True)[0]
+    i_midUpConstraint = cgmMeta.cgmNode(constBuffer)    
+    """
     
     #Create an point/aim group
     i_baseFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[0].doGroup(True),setClass=True)
@@ -557,15 +575,23 @@ def build_rig(self):
     
     log.info("baseFollow...")
     log.info("aimVector: '%s'"%aimVector)
-    log.info("upVector: '%s'"%upVector)    
-    constraintBuffer = mc.aimConstraint(i_midPoint.mNode,
+    log.info("upVector: '%s'"%upVector)  
+    mc.orientConstraint([mi_hips.mNode,ml_controlsFK[0].mNode],
+                        i_baseFollowGrp.mNode,
+                        maintainOffset = True, weight = 1)    
+    """constraintBuffer = mc.aimConstraint(i_midPoint.mNode,
+                                        i_baseFollowGrp.mNode,
+                                        maintainOffset = True, weight = 1,
+                                        aimVector = aimVector,
+                                        upVector = upVector)"""     
+    """constraintBuffer = mc.aimConstraint(i_midPoint.mNode,
                                         i_baseFollowGrp.mNode,
                                         maintainOffset = True, weight = 1,
                                         aimVector = aimVector,
                                         upVector = upVector,
                                         worldUpObject = i_baseUp.mNode,
-                                        worldUpType = 'object' )    
-    i_baseFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0]) 
+                                        worldUpType = 'object' )"""    
+    #i_baseFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0]) 
     
     #Parent and constrain joints
     #====================================================================================
