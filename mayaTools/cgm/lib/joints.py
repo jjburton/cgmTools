@@ -153,18 +153,18 @@ def orientJoint (jointToOrient, orientation = 'xyz', up = None):
     orientationOptions = ['xyz','yzx','zxy','xzy','yxz','zyx','none']
     secondaryAxisOptions = ['xup','xdown','yup','ydown','zup','zdown','none']
     if not orientation in orientationOptions:
-        log.info (orientation + ' is not an acceptable orientation. Expected one of the following:')
+        log.info (orientation + ' is not an acceptable orientation. Expected one of the following: %s'%orientation)
         log.info (orientationOptions)
         return False
-    if up is not None and up in secondaryAxisOptions:
-        log.info (up + ' is not an acceptable second axis. Expected one of the following:')
+    if up not in secondaryAxisOptions:
+        log.info (up + ' is not an acceptable second axis. Expected one of the following: %s'%secondaryAxisOptions)
         return False
     else:
         childJoint = mc.listRelatives(jointToOrient, type="joint", c=True)
         if childJoint != None:
             if len(childJoint) > 0:
                 mc.makeIdentity(jointToOrient,apply=True,r = True)
-                if up is not None in secondaryAxisOptions:
+                if up is not None and up in secondaryAxisOptions:
                     mc.joint (jointToOrient, e=True, orientJoint= orientation, secondaryAxisOrient= up)
                 else:
                     mc.joint (jointToOrient, e=True, orientJoint= orientation)                    
