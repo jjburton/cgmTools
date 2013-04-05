@@ -19,6 +19,8 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
+from cgm.core.classes import NodeFactory as nodeF
+reload(nodeF)
 
 from cgm.core.rigger import ModuleCurveFactory as mCurveFactory
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
@@ -27,7 +29,8 @@ reload(mCurveFactory)
 reload(mControlFactory)
 from cgm.core.rigger.lib import rig_Utils as rUtils
 reload(rUtils)
-from cgm.lib import (joints,
+from cgm.lib import (attributes,
+                     joints,
                      skinning,
                      dictionary,
                      distance,
@@ -76,11 +79,20 @@ def build_rigSkeleton(self):
 	ml_rigJoints[0].parent = False#Parent to world
 	
 	
-	#>>Anchor chain 	    
+	#>>Anchor chain
+	ml_anchors = []
+	i_rootJnt = cgmMeta.cgmObject(mc.duplicate(self._l_skinJoints[0],po=True,ic=True,rc=True)[0])
+	i_rootJnt.addAttr('cgmType','anchorJoint',attrType='string',lock=True)
+	i_rootJnt.doName()
+	i_rootJnt.parent = False	
+	ml_anchors.append(i_rootJnt)
+	
 	#Start
-	i_startJnt = cgmMeta.cgmObject(mc.duplicate(self._l_skinJoints[0],po=True,ic=True,rc=True)[0])
+	i_startJnt = cgmMeta.cgmObject(mc.duplicate(self._l_skinJoints[1],po=True,ic=True,rc=True)[0])
 	i_startJnt.addAttr('cgmType','anchorJoint',attrType='string',lock=True)
 	i_startJnt.doName()
+	i_startJnt.parent = False
+	ml_anchors.append(i_startJnt)
 	
 	#End
 	l_endJoints = mc.duplicate(self._l_skinJoints[-2],po=True,ic=True,rc=True)
@@ -90,6 +102,7 @@ def build_rigSkeleton(self):
 	    i_j.addAttr('cgmType','anchorJoint',attrType='string',lock=True)
 	    i_j.doName()
 	i_endJnt.parent = False
+	ml_anchors.append(i_endJnt)
 	
 	#Influence chain for influencing the surface
 	ml_influenceJoints = []
@@ -108,6 +121,7 @@ def build_rigSkeleton(self):
 	#>>> Store em all to our instance
 	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','module')
 	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','module')	
+	self._i_rigNull.connectChildrenNodes(ml_anchors,'anchorJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_surfaceJoints,'surfaceJoints','module')
@@ -228,7 +242,7 @@ def build_controls(self):
 	
 	d_buffer =  mControlFactory.registerControl(i_hips,addGroups = True,
 	                                            copyPivot=i_loc.mNode,
-	                                            addConstraintGroup=True)
+	                                            addConstraintGroup=True,setRotateOrder=5)
 	self._i_rigNull.connectChildNode(i_hips,'hips','module')
 	i_hips = d_buffer['instance']
 	i_loc.delete()
@@ -256,10 +270,15 @@ def build_deformation(self):
     
     #>>>Get data
     ml_influenceJoints = self._i_rigNull.influenceJoints
+    ml_controlsFK =  self._i_rigNull.controlsFK    
     ml_surfaceJoints = self._i_rigNull.surfaceJoints
+    ml_anchorJoints = self._i_rigNull.anchorJoints
     ml_rigJoints = self._i_rigNull.rigJoints
-    
     ml_segmentHandles = self._i_rigNull.segmentHandles
+    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+    mi_hips = self._i_rigNull.hips
+    mi_handleIK = self._i_rigNull.handleIK
     
     #>>>Create a constraint surface for the influence joints
     #====================================================================================    
@@ -308,8 +327,9 @@ def build_deformation(self):
 	log.info(self._jointOrientation)
 	capAim = self._jointOrientation[0].capitalize()
 	log.info("capAim: %s"%capAim)
-	rUtils.addRibbonTwistToControlSurfaceSetup([i_jnt.mNode for i_jnt in ml_surfaceJoints],[ml_influenceJoints[0].mNode,'rotate%s'%capAim],[ml_influenceJoints[-1].mNode,'rotate%s'%capAim])
-	
+	rUtils.addRibbonTwistToControlSurfaceSetup([i_jnt.mNode for i_jnt in ml_surfaceJoints],
+	                                           [ml_anchorJoints[1].mNode,'rotate%s'%capAim],#Spine1
+	                                           [ml_anchorJoints[-1].mNode,'rotate%s'%capAim])#Sternum
 	log.info(surfaceReturn)
     
 	#Surface influence joints cluster#
@@ -330,7 +350,35 @@ def build_deformation(self):
     except StandardError,error:
 	log.error("build_spine>>Control surface build fail")
 	raise StandardError,error
+    try:#Setup top twist driver
+	drivers = ["%s.r%s"%(i_obj.mNode,self._jointOrientation[0]) for i_obj in ml_controlsFK]
+	drivers.append("%s.r%s"%(ml_segmentHandles[-1].mNode,self._jointOrientation[0]))
+	drivers.append("%s.ry"%(mi_handleIK.mNode))
+	for d in drivers:
+	    log.info(d)
+	nodeF.createAverageNode(drivers,
+	                        [ml_anchorJoints[-1].mNode,"r%s"%self._jointOrientation[0]],1)
+	
+    except StandardError,error:
+	log.error("build_spine>>Top Twist driver fail")
+	raise StandardError,error
     
+    try:#Setup bottom twist driver
+	log.info("%s.r%s"%(ml_segmentHandles[0].getShortName(),self._jointOrientation[0]))
+	log.info("%s.r%s"%(mi_hips.getShortName(),self._jointOrientation[0]))
+	drivers = ["%s.r%s"%(ml_segmentHandles[0].mNode,self._jointOrientation[0])]
+	drivers.append("%s.r%s"%(mi_hips.mNode,self._jointOrientation[0]))
+	for d in drivers:
+	    log.info(d)
+	log.info("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0])))
+	nodeF.createAverageNode(drivers,
+	                        "%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0]),1)
+	
+    except StandardError,error:
+	log.error("build_spine>>Bottom Twist driver fail")
+	raise StandardError,error
+    
+
     
     return True
 
@@ -350,111 +398,206 @@ def build_rig(self):
     #>>>Get data
     ml_influenceJoints = self._i_rigNull.influenceJoints
     ml_surfaceJoints = self._i_rigNull.surfaceJoints
+    ml_anchorJoints = self._i_rigNull.anchorJoints
     ml_rigJoints = self._i_rigNull.rigJoints
     ml_segmentHandles = self._i_rigNull.segmentHandles
     aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
     upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+    mi_hips = self._i_rigNull.hips
+    mi_handleIK = self._i_rigNull.handleIK
+    ml_controlsFK =  self._i_rigNull.controlsFK    
     
     #Mid follow Setup
-    #====================================================================================    
+    #====================================================================================  
+    dist = distance.returnDistanceBetweenObjects(ml_influenceJoints[-2].mNode,ml_influenceJoints[-1].mNode)/1    
     #>>>Create some locs
     i_midAim = ml_influenceJoints[1].doLoc()
     i_midAim.addAttr('cgmTypeModifier','midAim')
     i_midAim.doName()
+    i_midAim.overrideEnabled = 1
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_midAim.mNode,'overrideVisibility'))
     
-    i_midPoint = ml_influenceJoints[1].doLoc()
+    i_midPoint = ml_influenceJoints[1].doLoc()#midPoint
     i_midPoint.addAttr('cgmTypeModifier','midPoint')
     i_midPoint.doName()
-
-    i_midUp = ml_influenceJoints[1].doLoc()
+    i_midPoint.overrideEnabled = 1
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_midPoint.mNode,'overrideVisibility'))
+    
+    i_midUp = ml_influenceJoints[1].doLoc()#midUp
     i_midUp.addAttr('cgmTypeModifier','midUp')
-    i_midPoint.doName()
-
-    i_midUp.parent = i_midPoint.mNode
+    i_midUp.doName()
+    i_midUp.parent = ml_controlsFK[1].mNode
+    attributes.doSetAttr(i_midUp.mNode,'t%s'%self._jointOrientation[1],dist)
+    i_midUp.parent = False
+    i_midUp.overrideEnabled = 1
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_midUp.mNode,'overrideVisibility'))
+    
+    
+    #Top Anchor
+    i_topAnchorAttachPivot = ml_influenceJoints[1].doLoc()#Top Anchor
+    i_topAnchorAttachPivot.addAttr('cgmTypeModifier','sternumAnchor')
+    i_topAnchorAttachPivot.doName()
+    i_topAnchorAttachPivot.parent =  ml_segmentHandles[-1].mNode
+    mc.move(0,0,dist/2,i_topAnchorAttachPivot.mNode,os=True, r=True)
+    i_topAnchorAttachPivot.overrideEnabled = 1
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_topAnchorAttachPivot.mNode,'overrideVisibility'))
+    
+    #Bottom Anchor 
+    i_bottomAnchorAttachPivot = ml_influenceJoints[1].doLoc()
+    i_bottomAnchorAttachPivot.addAttr('cgmTypeModifier','spine1Anchor')
+    i_bottomAnchorAttachPivot.doName()
+    i_bottomAnchorAttachPivot.parent =  ml_anchorJoints[0].mNode    
+    mc.move(0,0,-dist/2,i_bottomAnchorAttachPivot.mNode,os=True, r=True)
+    i_bottomAnchorAttachPivot.overrideEnabled = 1
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_bottomAnchorAttachPivot.mNode,'overrideVisibility'))
     
     #Mid point constraint
-    i_midPointConstraint = cgmMeta.cgmNode(mc.parentConstraint([ml_influenceJoints[0].mNode,
-                                                                ml_influenceJoints[-1].mNode],
-                                                               i_midPoint.mNode,maintainOffset=True)[0])
-    
-    targetWeights = mc.parentConstraint(i_midPointConstraint.mNode,q=True, weightAliasList=True)      
-    mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[0])),.5 )
-    mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[1])),1.0 )
+    #i_topAnchorAttachPivot.mNode
+    constBuffer = mc.pointConstraint([ml_anchorJoints[0].mNode,
+                                      ml_anchorJoints[-1].mNode],
+                                      i_midAim.mNode,maintainOffset=True)[0]
+    i_midAimConstraint = cgmMeta.cgmNode(constBuffer)
+    #targetWeights = mc.parentConstraint(i_midPointConstraint.mNode,q=True, weightAliasList=True)      
+    #mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[0])),.5 )
+    #mc.setAttr(('%s.%s' % (i_midPointConstraint.mNode,targetWeights[1])),1.0 )
     
     #Aim loc constraint
-    i_midAimConstraint = cgmMeta.cgmNode(mc.parentConstraint([ml_influenceJoints[0].mNode,
-                                                              ml_influenceJoints[-1].mNode],
-                                                             i_midAim.mNode,maintainOffset=True)[0])
+    i_midPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_bottomAnchorAttachPivot.mNode,
+                                                               i_topAnchorAttachPivot.mNode],
+                                                              i_midPoint.mNode,maintainOffset=True)[0])
     
-    targetWeights = mc.parentConstraint(i_midAimConstraint.mNode,q=True, weightAliasList=True)      
-    mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[0])),.1)
-    mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[1])),1.0 )  
+    #targetWeights = mc.parentConstraint(i_midAimConstraint.mNode,q=True, weightAliasList=True)      
+    #mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[0])),.1)
+    #mc.setAttr(('%s.%s' % (i_midAimConstraint.mNode,targetWeights[1])),1.0 )  
+    
+    #Mid up constraint
+    constBuffer = mc.pointConstraint([ml_anchorJoints[0].mNode,i_topAnchorAttachPivot.mNode,
+                                      i_topAnchorAttachPivot.mNode],
+                                      i_midUp.mNode,maintainOffset=True)[0]
+    i_midUpConstraint = cgmMeta.cgmNode(constBuffer)
     
     #Create an point/aim group
     i_midFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[1].doGroup(True),setClass=True)
     i_midFollowGrp.addAttr('cgmTypeModifier','follow')
     i_midFollowGrp.doName()
+    i_midFollowGrp.rotateOrder = 0
     
     i_midFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([i_midPoint.mNode],
                                                                     i_midFollowGrp.mNode,maintainOffset=True)[0])
     
     closestJoint = distance.returnClosestObject(i_midFollowGrp.mNode,[i_jnt.mNode for i_jnt in ml_surfaceJoints])
     upLoc = cgmMeta.cgmObject(closestJoint).rotateUpGroup.upLoc.mNode
-    log.info("midFollow...")    
+    i_midUpGroup = cgmMeta.cgmObject(closestJoint).rotateUpGroup
+    #Twist setup start
+    #grab driver
+    driverNodeAttr = attributes.returnDriverAttribute("%s.r%s"%(i_midUpGroup.mNode,self._jointOrientation[0]),True)    
+    #get driven
+    rotDriven = attributes.returnDrivenAttribute(driverNodeAttr,True)
+    
+    rotPlug = attributes.doBreakConnection(i_midUpGroup.mNode,
+                                           'r%s'%self._jointOrientation[0])
+    #Get the driven so that we can bridge to them 
+    log.info("midFollow...")   
+    log.info("rotPlug: %s"%rotPlug)
     log.info("aimVector: '%s'"%aimVector)
     log.info("upVector: '%s'"%upVector)    
     log.info("upLoc: '%s'"%upLoc)
-    constraintBuffer = mc.aimConstraint(ml_influenceJoints[-1].mNode,
+    log.info("rotDriven: '%s'"%rotDriven)
+    
+    #Constrain the group
+    constraintBuffer = mc.aimConstraint(ml_anchorJoints[-1].mNode,
+                                        i_midFollowGrp.mNode,
+                                        maintainOffset = True, weight = 1,
+                                        aimVector = aimVector,
+                                        upVector = upVector,
+                                        worldUpObject = ml_segmentHandles[0].mNode,
+                                        worldUpType = 'objectRotation' )
+    """constraintBuffer = mc.aimConstraint(ml_anchorJoints[-1].mNode,
                                         i_midFollowGrp.mNode,
                                         maintainOffset = True, weight = 1,
                                         aimVector = aimVector,
                                         upVector = upVector,
                                         worldUpObject = i_midUp.mNode,
-                                        worldUpType = 'object' )    
-    i_midFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0])    
+                                        worldUpType = 'object' )   """    
+    i_midFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0]) 
     
+    #>>>Twist setup 
+    #Connect To follow group
+    #attributes.doConnectAttr(rotPlug,"%s.r%s"%(i_midFollowGrp.mNode,
+     #                                          self._jointOrientation[0]))
+                             
+    #Create the add node
+    i_pmaAdd = nodeF.createAverageNode([driverNodeAttr,
+                                       "%s.r%s"%(self._i_rigNull.segmentHandles[1].mNode,#mid handle
+                                                 self._jointOrientation[0])],
+                                       [i_midUpGroup.mNode,#ml_influenceJoints[1].mNode
+                                        'r%s'%self._jointOrientation[0]],operation=1)
+    for a in rotDriven:#BridgeBack
+	attributes.doConnectAttr("%s.output1D"%i_pmaAdd.mNode,a)
+	
     #Base follow Setup
     #====================================================================================    
     #>>>Create some locs
     i_baseUp = ml_influenceJoints[0].doLoc()
     i_baseUp.addAttr('cgmTypeModifier','baseUp')
     i_baseUp.doName()
+    i_baseUp.parent = mi_hips.mNode
+    attributes.doSetAttr(i_baseUp.mNode,'t%s'%self._jointOrientation[1],dist)
+    i_baseUp.overrideEnabled = 1
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'visLocs',lock=False).doConnectOut("%s.%s"%(i_baseUp.mNode,'overrideVisibility'))
     
     #Create an point/aim group
     i_baseFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[0].doGroup(True),setClass=True)
     i_baseFollowGrp.addAttr('cgmTypeModifier','follow')
     i_baseFollowGrp.doName()
+    i_baseFollowGrp.rotateOrder = 0
     
-    i_baseFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([ml_influenceJoints[0].mNode],
+    i_baseFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([ml_anchorJoints[1].mNode],
                                                                      i_baseFollowGrp.mNode,maintainOffset=True)[0])
-    
     
     log.info("baseFollow...")
     log.info("aimVector: '%s'"%aimVector)
     log.info("upVector: '%s'"%upVector)    
-    constraintBuffer = mc.aimConstraint(i_midAim.mNode,
+    constraintBuffer = mc.aimConstraint(i_midPoint.mNode,
                                         i_baseFollowGrp.mNode,
                                         maintainOffset = True, weight = 1,
                                         aimVector = aimVector,
                                         upVector = upVector,
                                         worldUpObject = i_baseUp.mNode,
                                         worldUpType = 'object' )    
-    i_midFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0]) 
-    #Connect Twist rotate
-    #====================================================================================        
-    #Setup add to mid twist pma
-    #====================================================================================        
-    return
+    i_baseFollowAimConstraint = cgmMeta.cgmNode(constraintBuffer[0]) 
     
     #Parent and constrain joints
     #====================================================================================
-    ml_influenceJoints[0].parent = self._i_rigNull.hips.mNode#parent pelvis influence to hips
-    ml_influenceJoints[-1].parent = self._i_rigNull.segmentHandles[-1].mNode#parent top influence to top
+    #Constrain influence joints
+    for i_jnt in ml_influenceJoints:#unparent influence joints
+	i_jnt.parent = False
+    ml_rigJoints[-2].parent = False
+    mc.parentConstraint(self._i_rigNull.segmentHandles[0].mNode,
+                        ml_influenceJoints[0].mNode,skipRotate = 'z',
+                        maintainOffset = True)        
+    mc.parentConstraint(self._i_rigNull.segmentHandles[-1].mNode,
+                        ml_influenceJoints[-1].mNode,skipRotate = 'z',
+                        maintainOffset = True) 
+    mc.parentConstraint(self._i_rigNull.segmentHandles[1].mNode,
+                        ml_influenceJoints[1].mNode,skipRotate = 'z',
+                        maintainOffset = True)     
+    #constrain Anchors
+    mc.parentConstraint(mi_hips.mNode,
+                        ml_anchorJoints[1].mNode,#pelvis
+                        skipRotate = 'z',
+                        maintainOffset = True)     
+    mc.parentConstraint(mi_handleIK.mNode,#Shoulers
+                        ml_anchorJoints[-1].mNode,
+                        skipRotate = 'z',                        
+                        maintainOffset = True)       
     
-    mc.pointConstraint(ml_influenceJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
-    mc.orientConstraint(ml_influenceJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
-    #mc.scaleConstraint(ml_influenceJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
-    mc.connectAttr((ml_influenceJoints[0].mNode+'.s'),(ml_rigJoints[0].mNode+'.s'))
+    ml_anchorJoints[0].parent = mi_hips.mNode#parent pelvis anchor to hips
+    
+    mc.pointConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
+    mc.orientConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
+    mc.scaleConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
+    #mc.connectAttr((ml_influenceJoints[0].mNode+'.s'),(ml_rigJoints[0].mNode+'.s'))
     
     l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
     
@@ -468,9 +611,9 @@ def build_rig(self):
         #mc.connectAttr((attachJoint+'.r'),(joint+'.r'))
         mc.connectAttr((i_jnt.mNode+'.s'),(attachJoint+'.s'))
 	
-    mc.pointConstraint(ml_influenceJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
-    mc.orientConstraint(ml_influenceJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
+    mc.pointConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
+    mc.orientConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
     #mc.scaleConstraint(ml_influenceJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
-    mc.connectAttr((ml_influenceJoints[-1].mNode+'.s'),(ml_rigJoints[-2].mNode+'.s'))
+    mc.connectAttr((ml_anchorJoints[-1].mNode+'.s'),(ml_rigJoints[-2].mNode+'.s'))
     
     return True 
