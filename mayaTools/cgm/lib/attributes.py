@@ -57,6 +57,28 @@ attrCompatibilityDict = {'message':['message'],
 dataConversionDict = {'long':int,
                       'string':str,
                       'double':float}   
+def validateAttrArg(arg):
+    """
+    Validate an attr arg to usable info
+    """
+    try:
+	if type(arg) in [list,tuple] and len(arg) == 2:
+	    obj = arg[0]
+	    attr = arg[1]
+	    combined = "%s.%s"%(arg[0],arg[1])
+	    if not mc.objExists(combined):
+		raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%combined
+	elif mc.objExists(arg) and '.' in arg:
+	    obj = arg.split('.')[0]
+	    attr = '.'.join(arg.split('.')[1:])
+	    combined = arg
+	else:
+	    raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
+	
+	return {'obj':obj ,'attr':attr ,'combined':combined}
+    except StandardError,error:
+	log.error("validateAttrArg>>Failure")
+	raise StandardError,error
 
 def returnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
     """ 
