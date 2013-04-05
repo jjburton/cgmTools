@@ -519,6 +519,10 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
 	mesh = mesh[0]
     assert mc.objExists(mesh),"Mesh doesn't exist: '%s'"%mesh
+    
+    for axis in ['x','y','z']:
+	if axis in latheAxis:latheAxis = axis
+	
     mi_loc = mi_obj.doLoc()
     mi_loc.doGroup()
     l_pos = []
