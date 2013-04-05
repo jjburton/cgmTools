@@ -329,6 +329,7 @@ def doOrientSegment(self):
             i_jnt.displayLocalAxis = 1#tmp
 	    #Set rotateOrder
             try:
+		#i_jnt.rotateOrder = 2
                 i_jnt.rotateOrder = self.jointOrientation
 	    except StandardError,error:
 		log.error("doOrientSegment>>rotate order set fail: %s"%i_jnt.getShortName())
