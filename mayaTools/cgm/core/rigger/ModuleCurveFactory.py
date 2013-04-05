@@ -227,7 +227,7 @@ class go(object):
 	    l_segmentControls = []
 	    l_iSegmentControls = []
 	    if self._partType == 'torso':
-		l_segmentsToDo = self.l_segments[1:]
+		l_segmentsToDo = self.l_segments[1:-1]
 	    else:
 		l_segmentsToDo = self.l_segments
 		
