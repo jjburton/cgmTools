@@ -32,7 +32,6 @@ from cgm.lib import (lists,
                      search,
                      attributes)
 reload(search)
-
 class build_mdNetwork(object):
     """
     Build a md network. Most useful for for vis networks.
@@ -41,7 +40,7 @@ class build_mdNetwork(object):
     results(list) -- [{resultlist:,drivers:list,driven:list},...]
     >>result(list) -- obj,attr
     >>drivers(nested list) -- [[obj,attr]...]#len must be 2
-    >>drivern(nested list) -- [[obj,attr]...]#can be None
+    >>driven(nested list) -- [[obj,attr]...]#can be None
     [ {'result':obj1,resultAttr,'drivers':[[dObj,dAttr2],[dObj,dAttr2]],'driven' = None} ]
     
     results must have at least one driver
@@ -404,6 +403,41 @@ class build_conditionNetworkFromGroup(object):
 	
 	return True
 		
+def createAverageNode(drivers,driven = None,operation = 3):
+    #Create the mdNode
+    log.info(1)    
+    if type(drivers) not in [list,tuple]:raise StandardError,"createAverageNode>>> drivers arg must be list"
+    l_driverReturns = []
+    for d in drivers:
+	l_driverReturns.append(attributes.validateAttrArg(d))
+    d_driven = False
+    if driven is not None:
+	d_driven = attributes.validateAttrArg(driven)
+    
+    if d_driven:
+	drivenCombined =  d_driven['combined']
+	log.info("drivenCombined: %s"%drivenCombined)
+    log.info(2)
+    #Create the node
+    i_pma = cgmMeta.cgmNode(mc.createNode('plusMinusAverage'))
+    i_pma.operation = operation
+    l_objs = []
+    #Make our connections
+    for i,d in enumerate(l_driverReturns):
+	log.info("Driver %s: %s"%(i,d['combined']))
+	attributes.doConnectAttr(d['combined'],'%s.input1D[%s]'%(i_pma.mNode,i),True)
+	l_objs.append(mc.ls(d['obj'],sn = True)[0])#Get the name
+    log.info(3)
+    
+    i_pma.addAttr('cgmName',"_".join(l_objs),lock=True)	
+    i_pma.addAttr('cgmTypeModifier','twist',lock=True)
+    i_pma.doName()
+
+    if driven is not None:
+	attributes.doConnectAttr('%s.output1D'%i_pma.mNode,drivenCombined,True)
+	
+    return i_pma
+
 def groupToConditionNodeSet(group,chooseAttr = 'switcher', controlObject = None, connectTo = 'visibility'):
     """
     Hack job for the gig to make a visibility switcher for all the first level of children of a group
