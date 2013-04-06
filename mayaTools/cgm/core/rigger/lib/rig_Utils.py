@@ -120,8 +120,7 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
 	    i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
-	    
-    ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
+	baseName = cgmPM.cgmModule.getPartNameBase()
     
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
@@ -129,20 +128,16 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
     i_grp.addAttr('cgmTypeModifier','surfaceFollow', lock=True)
     i_grp.doName()
     
-    #Create Curve
+    """
     l_pos = [i_jnt.getPosition() for i_jnt in ml_jointList]
     curveBuffer =  mc.curve (d=3, ep = l_pos, os=True)
     
-    i_segmentCurve = cgmMeta.cgmObject( curveBuffer[0],setClass=True )
+    i_segmentCurve = cgmMeta.cgmObject( curveBuffer,setClass=True )
     i_segmentCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_segmentCurve.addAttr('cgmType','controlSurface',attrType='string',lock=True)
-    i_segmentCurve.doName()
-    
-    if i_module:#if we have a module, connect vis
-	i_segmentCurve.overrideEnabled = 1		
-	cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))
-    
-    
+    i_segmentCurve.doName()"""
+    ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]#Initialize original joints
+
     if not moduleInstance:#if it is, we can assume it's right
 	if secondaryAxis is None:
 	    raise StandardError,"createControlSurfaceSegment>>> Must have secondaryAxis arg if no moduleInstance is passed"
@@ -152,45 +147,73 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
 	    WILL NOT connect right without this.
 	    """
     	    joints.orientJoint(i_jnt.mNode,orientation,secondaryAxis)
-	
-    #Create folicles
-    ml_follicleTransforms = []
-    ml_follicleShapes = []
+	    
+
+    #Joints
+    #=========================================================================
+    #Create spline IK joints
+    #>>Surface chain    
+    l_splineIKJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
+    ml_splineIKJoints = []
+    for i,j in enumerate(l_splineIKJoints):
+	i_j = cgmMeta.cgmObject(j,setClass=True)
+	i_j.addAttr('cgmName',baseName,lock=True)
+	i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
+	i_j.doName()
+	l_splineIKJoints[i] = i_j.mNode
+	ml_splineIKJoints.append(i_j)
+
+    #Create Curve
+    i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver',setClass=True)
+    buffer = mc.ikHandle( sj=ml_splineIKJoints[0].mNode, ee=ml_splineIKJoints[-1].mNode,
+                          solver = i_splineSolver.mNode, ns = 3, rootOnCurve=True,forceSolver = True,
+                          createCurve = True,snapHandleFlagToggle=True )  
+    
+    i_splineCurve = cgmMeta.cgmObject( buffer[2],setClass=True )
+    i_splineCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    i_splineCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
+    i_splineCurve.doName()
+    if i_module:#if we have a module, connect vis
+	 i_splineCurve.overrideEnabled = 1		
+	 cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_splineCurve.mNode,'overrideVisibility'))    
+
+    i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
+    i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+    
+    #Joints
+    #=========================================================================
+    ml_ = []
+    ml_pointOnCurveInfos = []
     ml_upGroups = []
     
     #First thing we're going to do is create our follicles
-    for i,i_jnt in enumerate(ml_jointList):       
-        l_closestInfo = distance.returnNearestPointOnCurveInfo(i_jnt.mNode,i_segmentCurve.mNode)
+    shape = mc.listRelatives(i_splineCurve.mNode,shapes=True)[0]
+    for i,i_jnt in enumerate(ml_jointList):   
+        l_closestInfo = distance.returnNearestPointOnCurveInfo(i_jnt.mNode,i_splineCurve.mNode)
         log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
-        #>>> Follicle =======================================================
-        l_follicleInfo = nodes.createFollicleOnMesh(i_segmentCurve.mNode)
-        i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-        i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
+        #>>> """Follicle""" =======================================================
+	i_closestPointNode = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+        mc.connectAttr ((shape+'.worldSpace'),(i_closestPointNode.mNode+'.inputCurve'))	
+	
         #> Name
-        i_follicleTrans.doStore('cgmName',i_jnt.mNode)
-        i_follicleTrans.doName()
+        i_closestPointNode.doStore('cgmName',i_jnt.mNode)
+        i_closestPointNode.doName()
         #>Set follicle value
-        i_follicleShape.parameterU = l_closestInfo['normalizedU']
-        i_follicleShape.parameterV = l_closestInfo['normalizedV']
+        i_closestPointNode.parameter = l_closestInfo['parameter']
         
-        ml_follicleShapes.append(i_follicleShape)
-        ml_follicleTransforms.append(i_follicleTrans)
-	
-	i_follicleTrans.parent = i_grp.mNode	
-	
-	if i_module:#if we have a module, connect vis
-	    i_follicleTrans.overrideEnabled = 1		
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
+        ml_pointOnCurveInfos.append(i_closestPointNode)
+		
+	#if i_module:#if we have a module, connect vis
+	    #i_follicleTrans.overrideEnabled = 1		
+	    #cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
 	
 	
 	#>>> loc
-	"""
-	First part of full ribbon wist setup
-	"""
+	#First part of full ribbon wist setup
 	if i_jnt != ml_jointList[-1]:
 	    i_upLoc = i_jnt.doLoc()#Make up Loc
 	    i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
-	    i_locRotateGroup.parent = i_follicleTrans.mNode
+	    i_locRotateGroup.parent = ml_splineIKJoints[i].mNode
 	    i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
 	    i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
 	    i_locRotateGroup.doName()
@@ -201,12 +224,9 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
 	    i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
 	    i_zeroGrp.doName()
 	    #connect some other data
-	    i_locRotateGroup.connectChildNode(i_follicleTrans,'follicle','drivenGroup')
 	    i_locRotateGroup.connectChildNode(i_locRotateGroup.parent,'zeroGroup')
 	    i_locRotateGroup.connectChildNode(i_upLoc,'upLoc')
-	    
 	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
-	    
 	    
 	    i_upLoc.parent = i_locRotateGroup.mNode
 	    mc.move(0,10,0,i_upLoc.mNode,os=True)	
@@ -233,8 +253,8 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
                                  setupForRPsolver = True, solver = 'ikRPsolver',
                                  enableHandles=True )
         #Handle
-        i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0])
-        i_IK_Handle.parent = ml_follicleTransforms[i+1].mNode
+        i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+        i_IK_Handle.parent = ml_splineIKJoints[i+1].mNode
         i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
         i_IK_Handle.doName()
         
@@ -258,11 +278,11 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
         i_distanceObject.doName(nameShapes = True)
 	i_distanceObject.parent = i_grp.mNode#parent it
         i_distanceObject.overrideEnabled = 1
-        i_distanceObject.overrideVisibility = 0
+        i_distanceObject.overrideVisibility = 1
 	
         #Connect things
-        mc.connectAttr ((ml_follicleTransforms[i].mNode+'.translate'),(i_distanceShape.mNode+'.startPoint'))
-        mc.connectAttr ((ml_follicleTransforms[i+1].mNode+'.translate'),(i_distanceShape.mNode+'.endPoint'))
+        mc.connectAttr ((ml_pointOnCurveInfos[i].mNode+'.position'),(i_distanceShape.mNode+'.startPoint'))
+        mc.connectAttr ((ml_pointOnCurveInfos[i+1].mNode+'.position'),(i_distanceShape.mNode+'.endPoint'))
         
         l_iDistanceObjects.append(i_distanceObject)
         i_distanceShapes.append(i_distanceShape)
@@ -270,10 +290,8 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
 	if i_module:#Connect hides if we have a module instance:
 	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
 	
-            
     #Connect the first joint's position since an IK handle isn't controlling it    
-    attributes.doConnectAttr('%s.translate'%ml_follicleTransforms[0].mNode,'%s.translate'%ml_jointList[0].mNode)
-    #attributes.doConnectAttr('%s.translate'%ml_follicleTransforms[-1].mNode,'%s.translate'%ml_jointList[-1].mNode)
+    #attributes.doConnectAttr('%s.translate'%ml_follicleTransforms[0].mNode,'%s.translate'%ml_jointList[0].mNode)
     
     #>> Second part for the full twist setup
     aimChannel = orientation[0]  
@@ -295,23 +313,17 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
 	    
 	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
 	    log.info("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
-
+    
     #>>>Hook up scales
     #==========================================================================
     #Translate scale
-    """
-    for i,i_jnt in enumerate(ml_jointList[1:]):
-	#i is already offset, which we need as we want i to be the partn
-	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
-                                 '%s.t%s'%(i_jnt.mNode,orientation[0]))	   """ 
-    
     #Buffer
     i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
     i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
     i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
     i_jntScaleBufferNode.doName()
     
-    i_jntScaleBufferNode.connectParentNode(i_controlSurface.mNode,'surface','scaleBuffer')
+    i_jntScaleBufferNode.connectParentNode(i_splineCurve.mNode,'splineCurve','scaleBuffer')
     ml_mainMDs = []
     for i,i_jnt in enumerate(ml_jointList[:-1]):
 	
@@ -349,7 +361,9 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
 	
 	#mc.pointConstraint(ml_follicleTransforms[i].mNode,i_jnt.mNode,maintainOffset = False)
 	ml_mainMDs.append(i_md)#store the md
-	
+	for axis in ['scaleX','scaleY','scaleZ']:
+	    attributes.doConnectAttr('%s.%s'%(i_jnt.mNode,axis),#>>
+		                     '%s.%s'%(ml_splineIKJoints[i].mNode,axis))	 	
 
 	
     #Connect last joint scale to second to last
@@ -357,7 +371,7 @@ def createControlCurveSegment(jointList,orientation = 'zyx',secondaryAxis = None
 	attributes.doConnectAttr('%s.%s'%(ml_jointList[-2].mNode,axis),#>>
                                  '%s.%s'%(ml_jointList[-1].mNode,axis))	 
 	
-    return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,
+    return {'i_splineCurve':i_splineCurve,'splineCurve':i_splineCurve.mNode,
             'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,
             'l_joints':jointList,'l_iJoints':ml_jointList}
 
@@ -1285,13 +1299,14 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
 	    if mc.objExists('%s.%s'%(rotateGroupBuffer,rotateGroupAxis)):
 		d_drivenPlugs[i] = [rotateGroupBuffer,rotateGroupAxis]
 		#We need to reparent and point constrain our rotate zero groups
-		i_zeroGroup = i_jnt.rotateUpGroup.zeroGroup#Get zero
-		i_follicle = i_jnt.rotateUpGroup.follicle#get follicle
-		i_zeroGroup.parent = i_follicle.parent#parent zerogroup to follicle
-		"""mc.pointConstraint(i_follicle.mNode,i_zeroGroup.mNode,
-		                   maintainOffset=False)"""	
-		mc.parentConstraint(i_follicle.mNode,i_zeroGroup.mNode,
-		                    maintainOffset=True)
+		if i_jnt.rotateUpGroup.getMessage('zeroGroup') and i_jnt.rotateUpGroup.getMessage('follicle'):
+		    i_zeroGroup = i_jnt.rotateUpGroup.zeroGroup#Get zero
+		    i_follicle = i_jnt.rotateUpGroup.follicle#get follicle
+		    i_zeroGroup.parent = i_follicle.parent#parent zerogroup to follicle
+		    """mc.pointConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+				       maintainOffset=False)"""	
+		    mc.parentConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+			                maintainOffset=True)
 		
 		
 	    else:
