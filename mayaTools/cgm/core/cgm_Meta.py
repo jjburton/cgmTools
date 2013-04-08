@@ -822,6 +822,20 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
 	i_loc.doName()
 	return i_loc
+    
+    def doDuplicate(self,incomingConnections = True):
+        """
+        Return a duplicated object instance
+
+        Keyword arguments:
+        incomingConnections(bool) -- whether to do incoming connections (default True)
+        """
+	if self.isComponent():
+	    log.warning("doDuplicate fail. Cannot duplicate components")
+	    raise StandardError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
+	
+	buffer = mc.duplicate(self.mNode,po=True,ic=incomingConnections)[0]
+	return r9Meta.MetaClass(buffer)    
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
