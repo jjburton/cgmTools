@@ -95,7 +95,7 @@ class go(object):
         self._i_templateNull = self._i_module.templateNull#speed link
 	self._i_rigNull = self._i_module.rigNull#speed link
         self._bodyGeo = self._i_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
-        
+        self._version = self._i_rigNull.version
         #Joints
         self._l_skinJoints = self._i_rigNull.getMessage('skinJoints')
         self._ml_skinJoints = self._i_rigNull.skinJoints
@@ -104,6 +104,15 @@ class go(object):
         self._partName = self._i_module.getPartNameBase()
         self._partType = self._i_module.moduleType or False
         
+        #>>>Version Check
+	#TO DO: move to moduleFactory
+        if self._partType in d_moduleRigVersions.keys():
+	    newVersion = d_moduleRigVersions[self._partType]
+	    if self._version != newVersion:
+		log.warning("RigFactory.go>>> '%s' rig version out of date: %s != %s"%(self._partType,self._version,newVersion))	
+	else:
+	    raise StandardError
+	
         self._direction = None
         if self._i_module.hasAttr('cgmDirection'):
             self._direction = self._i_module.cgmDirection or None
@@ -156,6 +165,8 @@ def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildDe
 #>>> Register rig functions
 #=====================================================================
 d_moduleRigFunctions = {'torso':build_spine,
+                        }
+d_moduleRigVersions = {'torso':spine.__version__,
                         }
     
  
