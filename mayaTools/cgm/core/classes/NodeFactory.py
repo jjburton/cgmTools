@@ -32,6 +32,81 @@ from cgm.lib import (lists,
                      search,
                      attributes)
 reload(search)
+
+def validateAttr(arg,defaultType = 'float',**kws):
+    """
+    Validate an attr arg to usable info
+    Arg should be sting 'obj.attr' or ['obj','attr'] format.
+
+    """
+    try:
+	if type(arg) in [list,tuple] and len(arg) == 2:
+	    obj = arg[0]
+	    attr = arg[1]
+	    combined = "%s.%s"%(arg[0],arg[1])
+	elif '.' in arg:
+	    obj = arg.split('.')[0]
+	    attr = '.'.join(arg.split('.')[1:])
+	    combined = arg
+	else:
+	    raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
+	
+	if not mc.objExists(obj):
+	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
+	    
+	if not mc.objExists(combined):
+	    log.info("validateAttrArg>>> '%s'doesn't exist, creating attr!"%combined)
+	    i_plug = cgmMeta.cgmAttr(obj,attr,attrType=defaultType,**kws)
+	else:
+	    i_plug = cgmMeta.cgmAttr(obj,attr,**kws)	    
+	
+	return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
+    except StandardError,error:
+	log.error("validateAttrArg>>Failure! arg: %s"%arg)
+	raise StandardError,error
+    
+def createSingleBlendNetwork(driver, result1, result2, maxValue = 1,minValue = 0, **kws):
+    """
+    Build a single blend network for things like an FK/IK blend where you want a 1 result for either option
+    Attrs not required to exist, if they don't, it creates them.
+    individual args should be sting 'obj.attr' or 2 len list in ['obj','attr'] format.
+    
+    driver1 attr
+    result1 - attr you want as your 0 is 1
+    result2 - attr you want as your 1
+    """
+    
+    #Create the mdNode
+    d_driver = validateAttr(driver,**kws)
+    d_result1 = validateAttr(result1,lock=True,**kws)    
+    d_result2 = validateAttr(result2,lock=True,**kws) 
+    
+    for d in [d_driver,d_result1,d_result2]:
+	d['mi_plug'].p_maxValue = maxValue
+	d['mi_plug'].p_minValue = minValue
+        
+    #driver 1 is easy as it's a direct connect:
+    d_driver['mi_plug'].doConnectOut(d_result1['combined'])
+    
+    #Create the node
+    i_pma = cgmMeta.cgmNode(mc.createNode('plusMinusAverage'))
+    i_pma.operation = 2#subtraction
+    
+    #Make our connections
+    attributes.doSetAttr(i_pma.mNode,'input1D[0]',maxValue)
+    #d_result1['mi_plug'].doConnectOut("%s.input1D[0]"%i_pma.mNode)    
+    d_driver['mi_plug'].doConnectOut("%s.input1D[1]"%i_pma.mNode)
+    
+    attributes.doConnectAttr("%s.output1D"%i_pma.mNode,d_result2['combined'])
+    
+    i_pma.addAttr('cgmName',"_".join([d_result1['mi_plug'].attr,d_result2['mi_plug'].attr,]),lock=True)	
+    i_pma.addAttr('cgmTypeModifier','blend',lock=True)
+    i_pma.doName()   
+    
+    return {'d_result1':d_result1,'d_result2':d_result2}
+    
+   
+    
 class build_mdNetwork(object):
     """
     Build a md network. Most useful for for vis networks.
