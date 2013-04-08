@@ -25,7 +25,8 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
-from cgm.lib import (cgmMath,
+from cgm.lib import (attributes,
+                     cgmMath,
                      locators,
                      modules,
                      distance,
@@ -301,7 +302,7 @@ class go(object):
 	    
 @r9General.Timer
 def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,
-                    setRotateOrder = None,
+                    setRotateOrder = None, autoLockNHide = True,
                     addGroups = False, addConstraintGroup = False, freezeAll = False,
                     controlType = None, aim = None, up = None, out = None):
     """
@@ -386,29 +387,43 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)		
 	    
     #>>>Grouping
-    #====================================================    
-    if addGroups:
-	for i in range(addGroups):
-	    i_group = (cgmMeta.cgmObject(i_control.doGroup(True)))
-	    if type(addGroups)==int and addGroups>1:#Add iterator if necessary
-		i_group.addAttr('cgmIterator',str(i+1),lock=True)
-		i_group.doName()
-	    ml_groups.append(i_group)
-	    log.info("group %s: '%s'"%(i,i_group.getShortName()))
-	
-    if addConstraintGroup:#ConstraintGroups
-	i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
-	i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
-	i_constraintGroup.doName()
-	ml_constraintGroups.append(i_constraintGroup)
-	log.info("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
-	
+    #====================================================   
+    try:
+	if addGroups:
+	    for i in range(addGroups):
+		i_group = (cgmMeta.cgmObject(i_control.doGroup(True)))
+		if type(addGroups)==int and addGroups>1:#Add iterator if necessary
+		    i_group.addAttr('cgmIterator',str(i+1),lock=True)
+		    i_group.doName()
+		ml_groups.append(i_group)
+		log.info("group %s: '%s'"%(i,i_group.getShortName()))
+	    
+	if addConstraintGroup:#ConstraintGroups
+	    i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+	    i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
+	    i_constraintGroup.doName()
+	    ml_constraintGroups.append(i_constraintGroup)
+	    log.info("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
+    except StandardError,error:
+	log.error("ModuleControlFactory.registerControl>>grouping fail")
+	raise StandardError,error
+    
     #>>>Freeze stuff 
     #====================================================  
-    if not freezeAll:
-	if i_control.getAttr('cgmName') == 'cog' or controlType in l_fullFreezeTypes:
-	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
-	else:
-	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
-    
+    try:
+	if not freezeAll:
+	    if i_control.getAttr('cgmName') == 'cog' or controlType in l_fullFreezeTypes:
+		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
+	    else:
+		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
+    except StandardError,error:
+	log.error("ModuleControlFactory.registerControl>>freeze fail")
+	raise StandardError,error
+	    
+    #>>>Lock and hide
+    #====================================================  
+    if autoLockNHide:
+	if i_control.hasAttr('cgmTypeModifier'):
+	    if i_control.cgmTypeModifier.lower() == 'fk':
+		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['tx','ty','tz','sx','sy','sz'])
     return {'instance':i_control,'mi_groups':ml_groups,'mi_constraintGroups':ml_constraintGroups}
