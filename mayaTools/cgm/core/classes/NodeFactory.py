@@ -28,43 +28,12 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core.classes import cgm_General as cgmGeneral
 from cgm.lib import (lists,
                      search,
                      attributes)
 reload(search)
 
-def validateAttr(arg,defaultType = 'float',**kws):
-    """
-    Validate an attr arg to usable info
-    Arg should be sting 'obj.attr' or ['obj','attr'] format.
-
-    """
-    try:
-	if type(arg) in [list,tuple] and len(arg) == 2:
-	    obj = arg[0]
-	    attr = arg[1]
-	    combined = "%s.%s"%(arg[0],arg[1])
-	elif '.' in arg:
-	    obj = arg.split('.')[0]
-	    attr = '.'.join(arg.split('.')[1:])
-	    combined = arg
-	else:
-	    raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
-	
-	if not mc.objExists(obj):
-	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
-	    
-	if not mc.objExists(combined):
-	    log.info("validateAttrArg>>> '%s'doesn't exist, creating attr!"%combined)
-	    i_plug = cgmMeta.cgmAttr(obj,attr,attrType=defaultType,**kws)
-	else:
-	    i_plug = cgmMeta.cgmAttr(obj,attr,**kws)	    
-	
-	return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
-    except StandardError,error:
-	log.error("validateAttrArg>>Failure! arg: %s"%arg)
-	raise StandardError,error
-    
 def createSingleBlendNetwork(driver, result1, result2, maxValue = 1,minValue = 0, **kws):
     """
     Build a single blend network for things like an FK/IK blend where you want a 1 result for either option
@@ -77,9 +46,9 @@ def createSingleBlendNetwork(driver, result1, result2, maxValue = 1,minValue = 0
     """
     
     #Create the mdNode
-    d_driver = validateAttr(driver,**kws)
-    d_result1 = validateAttr(result1,lock=True,**kws)    
-    d_result2 = validateAttr(result2,lock=True,**kws) 
+    d_driver = cgmGeneral.validateAttrArg(driver,**kws)
+    d_result1 = cgmGeneral.validateAttrArg(result1,lock=True,**kws)    
+    d_result2 = cgmGeneral.validateAttrArg(result2,lock=True,**kws) 
     
     for d in [d_driver,d_result1,d_result2]:
 	d['mi_plug'].p_maxValue = maxValue
@@ -484,10 +453,10 @@ def createAverageNode(drivers,driven = None,operation = 3):
     if type(drivers) not in [list,tuple]:raise StandardError,"createAverageNode>>> drivers arg must be list"
     l_driverReturns = []
     for d in drivers:
-	l_driverReturns.append(attributes.validateAttrArg(d))
+	l_driverReturns.append(cgmGeneral.validateAttrArg(d))
     d_driven = False
     if driven is not None:
-	d_driven = attributes.validateAttrArg(driven)
+	d_driven = cgmGeneral.validateAttrArg(driven)
     
     if d_driven:
 	drivenCombined =  d_driven['combined']
