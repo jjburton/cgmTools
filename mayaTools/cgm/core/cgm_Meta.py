@@ -179,7 +179,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     #parent
     #==============    
     def getParent(self):
-        return search.returnParentObject(self.mNode) or False
+	return search.returnParentObject(self.mNode) or False
+    
+    def getParent_asMObject(self):
+	pBuffer = search.returnParentObject(self.mNode) or False
+	if not pBuffer:
+	    return False
+        return r9Meta.MetaClass(pBuffer)
 				
     parent = property(getParent)
     
@@ -823,7 +829,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	i_loc.doName()
 	return i_loc
     
-    def doDuplicate(self,incomingConnections = True):
+    def doDuplicate(self,parentOnly = True, incomingConnections = True):
         """
         Return a duplicated object instance
 
@@ -834,8 +840,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    log.warning("doDuplicate fail. Cannot duplicate components")
 	    raise StandardError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
 	
-	buffer = mc.duplicate(self.mNode,po=True,ic=incomingConnections)[0]
-	return r9Meta.MetaClass(buffer)    
+	buffer = mc.duplicate(self.mNode,po=parentOnly,ic=incomingConnections)[0]
+	i_obj = r9Meta.MetaClass(buffer)
+	i_obj.rename(self.getShortName()+'_DUPLICATE')
+	return i_obj
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
@@ -871,8 +879,8 @@ class cgmObject(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     #parent
     #==============    
-    def getParent(self):
-        return search.returnParentObject(self.mNode) or False
+    #def getParent(self):
+        #return search.returnParentObject(self.mNode) or False
 		
     def doParent(self,target = False):
         """
@@ -906,7 +914,7 @@ class cgmObject(cgmNode):
             log.debug("'%s' parented to world"%self.mNode) 
 	
 		
-    parent = property(getParent, doParent)
+    parent = property(cgmNode.getParent, doParent)
     #=========================================================================      
     # Get Info
     #========================================================================= 	
@@ -1012,7 +1020,11 @@ class cgmObject(cgmNode):
 	try:
 	    if copyAttrs:
 		raise NotImplemented,"createTransform>>>copyattrs not implemented yet"
-	    return cgmObject( rigging.groupMeObject(self.mNode,parent = False),setClass=True  )  
+	    i_obj = cgmObject( rigging.groupMeObject(self.mNode,parent = False),setClass=True  ) 
+	    if i_obj.hasAttr('cgmName'):
+		i_obj.doRemove('cgmName')
+	    i_obj.rename(self.getShortName()+'_Transform')
+	    return i_obj
 	except StandardError,error:
 	    log.error("createTransformFromObj fail! | %s"%error) 
 	    raise StandardError
@@ -3301,10 +3313,11 @@ class NameFactory(object):
         #>>> Dictionary driven order first build
         d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
         
-        if 'cgmName' not in d_updatedNamesDict.keys() and search.returnObjectType(i_node.mNode) !='group':
+        if 'cgmName' not in d_updatedNamesDict.keys() and search.returnObjectType(i_node.mNode) !='group' and 'cgmName' not in ignore:
             i_node.addAttr('cgmName',i_node.getShortName(),attrType = 'string',lock = True)
-            d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
-        
+            #d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
+	    d_updatedNamesDict['cgmName'] = i_node.getShortName()
+	    
         if fastIterate:  
 	    iterator = self.getFastIterator(node = i_node)
 	else:
