@@ -8,13 +8,23 @@ cgm.core._reload()
 from cgm.core.classes import SnapFactory as Snap
 reload(Snap)
 from cgm.core.rigger import RigFactory as Rig
+from cgm.core.rigger import JointFactory as jFactory
+from cgm.core.classes import  NodeFactory as nodeF
+reload(nodeF)
+reload(jFactory)
 reload(Rig)
+nodeF.validateAttrArg(['spine_1_anchorJoint','rz'])
+
 from cgm.lib import curves
 from cgm.lib import distance
 from cgm.lib import locators
 from cgm.lib import attributes
+from cgm.lib import constraints
 reload(attributes)
 reload(distance)
+from cgm.lib import search
+search.returnAllParents(mc.ls(sl=True)[0])
+mc.listRelatives(mc.ls(sl=True)[0],allParents = True)
 from cgm.lib import nodes
 reload(nodes)
 obj = mc.ls(sl=True)[0] or False
@@ -24,16 +34,42 @@ orientation = ['xyz']
 orientation[1]
 #>>> Modules
 #=======================================================
-m1 = r9Meta.MetaClass('spine_part')
-m1.__dict__.keys()
-m1.rigNull.skinJoints
-i_rig = Rig.go(m1)
+#Get our module
+part = 'spine_part'
+m1 = r9Meta.MetaClass(part)
+i_rig = Rig.go(m1)#call to do general rig
+i_rig = Rig.go(m1,buildSkeleton=True)
+i_rig = Rig.go(m1,buildControls=True)
+i_rig = Rig.go(m1,buildDeformation=True)
+
+i_rig = Rig.go(m1,buildSkeleton=True,buildControls=True)
+i_rig = Rig.go(m1,buildRig=True)
+
+m1.setState('skeleton')
 m1.getState()
+
+distance.returnNearestPointOnCurveInfo('spine_2_ik_anim_loc','curve1')
+mc.duplicate('spine_part_tmplCrv',ic=False)
+from cgm.core.rigger.lib import rig_Utils as rUtils
+reload(rUtils)
+jointList = mc.ls(sl=True)
+rUtils.createControlSurfaceSegment(jointList)
+
+
+#Playing with constraing group for mid group
+targets = mc.ls(sl=True)
+reload(constraints)
+constraints.doPointAimConstraintObjectGroup(targets,'spine_2_ik_anim',0)
+from cgm.lib import logic
+logic.returnLocalAimDirection('spine_2_ik_anim',targets[-1])
+distance.returnLocalAimDirection('spine_2_ik_anim',targets[-1]) 
+
+
+
 i_rig.d_controlShapes
 rig_segmentFK(i_rig.d_controlShapes)
 Rig.registerControl('pelvis_anim')
 l_joints = mc.ls(sl=True)
-
 s = cgmMeta.cgmAttr('pelvis_surfaceJoint','scaleX')
 s.p_hidden = False
 curves.createControlCurve('semiSphere',10,'z-')

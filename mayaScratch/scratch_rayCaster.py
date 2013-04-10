@@ -8,6 +8,9 @@ import Red9.core.Red9_Meta as r9Meta
 
 from cgm.lib import locators
 from cgm.lib import distance
+from cgm.lib import attributes
+reload(attributes)
+attributes.validateAttrArg(['spine_1_anchorJoint','rz'])
 reload(distance)
 from cgm.core.lib import rayCaster as RayCast
 reload(RayCast)
@@ -20,8 +23,9 @@ objList = []
 #=======================================================
 i_obj = cgmMeta.cgmObject(mc.ls(sl=True)[0])
 i_obj.getPosition()
-mesh = 'Morphy_Body_GEO'
+mesh = 'Morphy_Body_GEO1'
 RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode)
+RayCast.findMeshMidPointFromObject(mesh,i_obj.mNode)
 info = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,vector = [0,-1,0])
 log.info(info)
 info = distance.findMeshIntersection(mesh,i_obj.getPosition(), vector)

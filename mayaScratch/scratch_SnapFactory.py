@@ -41,6 +41,9 @@ Snap.go(i_obj,targets = q_object,snapToSurface=True,posOffset=[0,0,10])
 Snap.go(i_obj,targets = q_object,orient = True, snapToSurface=True,posOffset=[0,0,1.5])
 Snap.go(i_obj, q_object,snapComponents=True,posOffset=[0,0,2.5])
 
+#Mid point snap
+Snap.go(i_obj, 'Morphy_Body_GEO1',midSurfacePos=True,upVector=[0,1,0])
+
 q_object = mc.ls(sl=True)[0] or False
 q_object = 'Morphy_Body_GEO'
 q_object = 'locator1'

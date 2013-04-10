@@ -23,7 +23,6 @@ m1.setState('skeleton')
 m1.getPartNameBase()
 m1.modulePuppet.getGeo()
 mCurveFactory.go(m1,['segmentIKHandle'])
-mCurveFactory.go(m1,['segmentIK'])
 mCurveFactory.go(m1,['segmentFK'])
 mCurveFactory.go(m1,['cog'])
 mCurveFactory.go(m1,['hips'])
@@ -36,14 +35,20 @@ mCurveFactory.go(m1,['hips'])
 class dataHolder(object):
     pass
 l_targetObjects = mc.ls(sl=True)
+#Curve Creation demo
 #Extend modes: 'segment','radial
-mCurveFactory.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO1',extendMode='segment',curveDegree=3,joinMode=True,posOffset = [0,0,3],points=8)
-mCurveFactory.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO1',extendMode='segment',curveDegree=3,joinMode=True,posOffset = [0,0,2],points=8)
-mCurveFactory.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO1',extendMode='segment',distanceMult=.1,curveDegree=3,joinMode=False,posOffset = [0,0,2],points=8)
+degree = 3
+points = 8
+extendMode = 'segment'
+joinMode = True
+insetMult = 0
+posOffset = [0,0,3]
+mCurveFactory.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO1',extendMode=extendMode,curveDegree=degree,joinMode=joinMode,insetMult=insetMult,posOffset = posOffset,points=points,latheAxis='y',aimAxis='z+')
 
 target = mc.ls(sl=True)[0]
-info = mCurveFactory.createMeshSliceCurve('Morphy_Body_GEO1',target,curveDegree=3,posOffset = [0,0,3],points=8,returnDict = True)
-info = mCurveFactory.createMeshSliceCurve('Morphy_Body_GEO1',target,curveDegree=3,posOffset = [0,0,3],points=8,returnDict = True)
+
+info = mCurveFactory.createMeshSliceCurve('Morphy_Body_GEO1',target,latheAxis='y+',aimAxis='z+',curveDegree=degree,posOffset = posOffset,points=points,returnDict = True)
+info = mCurveFactory.createMeshSliceCurve('Morphy_Body_GEO1',target,latheAxis='y+',aimAxis='z+',curveDegree=degree,posOffset = posOffset,points=points,returnDict = True)
 
 info = mCurveFactory.createMeshSliceCurve('Morphy_Body_GEO1',mc.ls(sl=True)[0],initialRotate=45,curveDegree=1,posOffset = [0,0,8],points=4,returnDict = True)
 mCurveFactory.BuildControlShapes
