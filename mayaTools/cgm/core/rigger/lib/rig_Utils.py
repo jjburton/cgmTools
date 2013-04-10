@@ -40,6 +40,7 @@ from cgm.core.classes import NodeFactory as nFactory
 reload(nFactory)
 from cgm.lib import (distance,
                      attributes,
+                     curves,
                      deformers,
                      lists,
                      rigging,
@@ -50,177 +51,378 @@ from cgm.lib import (distance,
                      cgmMath)
 #>>> Utilities
 #===================================================================					  
-def addCGMSegmentSubControl(joint=None,segmentCurve = None,baseParent = None, endParent = None,
-                            midControl = None, orientation = 'zyx',addTwist = True, baseName = None, moduleInstance = None):
+def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, endParent = None,
+                            midControls = None, orientation = 'zyx',controlOrientation = None,
+                            addTwist = True, baseName = None, rotateGroupAxis = 'rotateZ',
+                            moduleInstance = None):
     #>>> Check our args
     #====================================================================
-    """
-    try:
-	if midControl is not None:
-	    i_midControl = cgmMeta.cgmObject(midControl)
-	else:i_midControl=False
-    except StandardError,error:
-	log.error("createCGMSegment>>Initial control initialization fail! mid: '%s'|end: '%s'"%(midControl))
-	raise StandardError,error 
+    ml_newJoints = cgmGeneral.validateObjListArg(joints,cgmMeta.cgmObject,noneValid=False)
+    ml_midControls = cgmGeneral.validateObjListArg(midControls,cgmMeta.cgmObject,noneValid=True)
     
-    try:
-	if baseParent is not None:
-	    i_baseParent = cgmMeta.cgmObject(baseParent)
-	else:i_midControl=False
-    except StandardError,error:
-	log.error("createCGMSegment>>Initial control initialization fail! mid: '%s'|end: '%s'"%(midControl))
-	raise StandardError,error 
     
-    i_module = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
-	    if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
+    if ml_midControls and len(ml_midControls) != len(ml_newJoints):
+	raise StandardError,"addCGMSegmentSubControl>>> Enough controls for joints provided! joints: %s | controls: %s"%(len(ml_midControls),len(ml_newJoints))
+    
+    i_baseParent = cgmGeneral.validateObjArg(baseParent,cgmMeta.cgmObject,noneValid=False)
+    i_endParent = cgmGeneral.validateObjArg(endParent,cgmMeta.cgmObject,noneValid=False)
+    i_segmentCurve = cgmGeneral.validateObjArg(segmentCurve,cgmMeta.cgmObject,noneValid=True)
+    i_segmentCurveSkinCluster = cgmGeneral.validateObjArg(deformers.returnObjectDeformers(i_segmentCurve.mNode,'skinCluster')[0],
+                                                          noneValid=True)
+
+    
+    i_module = cgmGeneral.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    if i_module:
+	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
+    if baseName is None:
+	if i_segmentCurve and i_segmentCurve.hasAttr('cgmName'):
+	    baseName = i_segmentCurve.cgmName
 	else:
-	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
-    if baseName is None:baseName = 'midSegment'
+	    baseName = 'midSegment'
+	    
+    log.info('ml_newJoints: %s'%ml_newJoints)
+    log.info('ml_midControls: %s'%ml_midControls)
+    log.info('i_baseParent: %s'%i_baseParent)
+    log.info('i_endParent: %s'%i_endParent)
+    log.info('i_segmentCurve: %s'%i_segmentCurve)
+    log.info('i_module: %s'%i_module)
     
-
-
+    #Gather info
+    aimVector = dictionary.stringToVectorDict.get("%s+"%orientation[0])
+    aimVectorNegative = dictionary.stringToVectorDict.get("%s-"%orientation[0])
+    upVector = dictionary.stringToVectorDict.get("%s+"%orientation[1])    
+    outChannel = orientation[2]
+    upChannel = '%sup'%orientation[1]    
+    
     #====================================================================
-    """
+    try:#Create Constraint  Curve
+	#Spline
+	#====================================================================	
+	if i_segmentCurve:#If we have a curve, duplicate it
+	    i_constraintSplineCurve = i_segmentCurve.doDuplicate(False,False)
+	else:
+	    l_pos = [i_baseParent.getPosition()]
+	    l_pos.expand([i_obj.getPosition() for i_obj in ml_newJoints])
+	    l_pos.append(i_endParent.getPosition())
+	    i_constraintSplineCurve = cgmMeta.cgmObject( mc.curve (d=3, ep = l_pos, os=True))
+	    i_constraintSplineCurve.addAttr('cgmName',baseName)
+	    
+	i_constraintSplineCurve.addAttr('cgmTypeModifier','constraintSpline')
+	i_constraintSplineCurve.doName()
 	
-    i_obj = cgmMeta.cgmObject(jnt)
-    mi_splineCurve = cgmMeta.cgmObject(curve)
-    ml_influenceJoints = [cgmMeta.cgmObject(obj) for obj in influenceJnts]
-    i_controlSurfaceCluster = cgmMeta.cgmNode('testSegment_segmentCurve_skinNode')
+	#Skin it
+	i_constraintSplineCurveCluster = cgmMeta.cgmNode(mc.skinCluster ([i_baseParent.mNode,i_endParent.mNode],
+	                                                           i_constraintSplineCurve.mNode,
+	                                                           tsb=True,
+	                                                           maximumInfluences = 3,
+	                                                           normalizeWeights = 1,dropoffRate=2.5)[0])
+	
+	i_constraintSplineCurveCluster.addAttr('cgmName', baseName)
+	i_constraintSplineCurveCluster.addAttr('cgmTypeModifier','constraint', lock=True)
+	i_constraintSplineCurveCluster.doName()
+	
+	#Linear
+	#====================================================================	
+	i_constraintLinearCurve = cgmMeta.cgmObject( mc.curve (d=1, ep = [i_baseParent.getPosition(),i_endParent.getPosition()], os=True))
+	i_constraintLinearCurve.addAttr('cgmName',baseName)
+	i_constraintLinearCurve.addAttr('cgmTypeModifier','constraintLinear')
+	i_constraintLinearCurve.doName()
+	
+	#Skin it
+	i_constraintLinearCurveCluster = cgmMeta.cgmNode(mc.skinCluster ([i_baseParent.mNode,i_endParent.mNode],
+	                                                           i_constraintLinearCurve.mNode,
+	                                                           tsb=True,
+	                                                           maximumInfluences = 1,
+	                                                           normalizeWeights = 1,dropoffRate=10.0)[0])
+	
+	i_constraintLinearCurveCluster.addAttr('cgmName', baseName)
+	i_constraintLinearCurveCluster.addAttr('cgmTypeModifier','constraint', lock=True)
+	i_constraintLinearCurveCluster.doName()	
+	
+	
     
-    #Create ConstraintCurves
-    i_constraintSplineCurve = mi_splineCurve.doDuplicate(False,False)
-    i_constraintSplineCurve.addAttr('cgmTypeModifier','constraintSpline')
-    i_constraintSplineCurve.doName()
+    except StandardError,error:
+	log.error("addCGMSegmentSubControl>>Curve construction fail!")
+	raise StandardError,error 	    
     
-    l_pos = [i_jnt.getPosition() for i_jnt in ml_influenceJoints]#<<<<<<<<<<<<<<<<
-    i_constraintLinearCurve = cgmMeta.cgmObject(mc.curve (d=1, ep = l_pos, os=True))
-    i_constraintLinearCurve.addAttr('cgmTypeModifier','constraintLinear')
-    i_constraintLinearCurve.doName()    
-    
-    #Skin it
-    i_constraintCurve = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in ml_influenceJoints],
-                                                                i_constraintSplineCurve.mNode,
-                                                                tsb=True,
-                                                                maximumInfluences = 3,
-                                                                normalizeWeights = 1,dropoffRate=2.5)[0])
-    
-    i_constraintCurve.doStore('cgmName', "%s.cgmName"%mi_splineCurve.mNode)
-    i_constraintCurve.addAttr('cgmTypeModifier','constraint', lock=True)
-    i_constraintCurve.doName()
-    
-    i_constLinearCurveCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in ml_influenceJoints],
-                                                                i_constraintLinearCurve.mNode,
-                                                                tsb=True,
-                                                                maximumInfluences = 3,
-                                                                normalizeWeights = 1,dropoffRate=2.5)[0])
-    
-
     ml_pointOnCurveInfos = []
     splineShape = mc.listRelatives(i_constraintSplineCurve.mNode,shapes=True)[0]
+    linearShape = mc.listRelatives(i_constraintLinearCurve.mNode,shapes=True)[0]
     
-    for i_obj in [i_obj]:
-        #Create group
-        grp = i_obj.doGroup()
-        i_followGroup = cgmMeta.cgmObject(grp,setClass=True)
+    try:#Make some up locs for the base and end aim
+	baseDist = distance.returnDistanceBetweenObjects(i_baseParent.mNode,i_endParent.mNode)/4
+	#Start up
+	i_upStart = i_baseParent.duplicateTransform()
+	i_upStart.addAttr('cgmType','midStartAimUp',attrType='string',lock=True)
+	i_upStart.doName()
+	i_upStart.parent = i_baseParent.mNode  
+	attributes.doSetAttr(i_upStart.mNode,'t%s'%orientation[1],baseDist)
 	
-	#>>>Transforms 
+	
+	#End up
+	i_upEnd = i_endParent.duplicateTransform()
+	i_upEnd.addAttr('cgmType','midEndAimUp',attrType='string',lock=True)
+	i_upEnd.doName()    
+	i_upEnd.parent = False    
+	i_upEnd.parent = i_endParent.mNode  
+	attributes.doSetAttr(i_upEnd.mNode,'t%s'%orientation[1],baseDist)
+	
+    except StandardError,error:
+	log.error("addCGMSegmentSubControl>>Up transforms fail!")
+	raise StandardError,error 
+    
+    for i,i_obj in enumerate(ml_newJoints):
+	if ml_midControls and ml_midControls[i]:#if we have a control curve, use it
+	    i_control = ml_midControls[i]
+	else:#else, connect 
+	    i_control = i_obj
+	try:#>>>Transforms     
+	    #Create group
+	    grp = i_obj.doGroup()
+	    i_followGroup = cgmMeta.cgmObject(grp,setClass=True)
+	    i_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
+	    i_followGroup.doName()
+	    
+	    grp = i_obj.doGroup(True)	
+	    i_orientGroup = cgmMeta.cgmObject(grp,setClass=True)
+	    i_orientGroup.addAttr('cgmTypeModifier','orient',lock=True)
+	    i_orientGroup.doName()
+	    
+	    if i_control != i_obj:#Parent our control if we have one
+		i_control.parent = i_orientGroup.mNode
+		i_control.doGroup(True)
+		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
+		i_obj.parent = i_control.mNode
+		
+	    #=============================================================	
+	    #>>>PointTargets
+	    #linear follow
+	    i_linearFollowNull = i_obj.duplicateTransform()
+	    i_linearFollowNull.addAttr('cgmType','linearFollow',attrType='string',lock=True)
+	    i_linearFollowNull.doName()
+	    #i_linearFollowNull.parent = i_anchorStart.mNode     
+	    
+	    #splineFollow
+	    i_splineFollowNull = i_obj.duplicateTransform()
+	    i_splineFollowNull.addAttr('cgmType','splineFollow',attrType='string',lock=True)
+	    i_splineFollowNull.doName()	
+	    
+	    #>>>Orient Targets
+	    #aimstart
+	    i_aimStartNull = i_obj.duplicateTransform()
+	    i_aimStartNull.addAttr('cgmType','aimStart',attrType='string',lock=True)
+	    i_aimStartNull.doName()
+	    i_aimStartNull.parent = i_followGroup.mNode    
+	    
+	    #aimEnd
+	    i_aimEndNull = i_obj.duplicateTransform()
+	    i_aimEndNull.addAttr('cgmType','aimEnd',attrType='string',lock=True)
+	    i_aimEndNull.doName()
+	    i_aimEndNull.parent = i_followGroup.mNode   
+	    
+	    
+	    #>>>Attach 
+	    #=============================================================
+	    #>>>Spline
+	    l_closestInfo = distance.returnNearestPointOnCurveInfo(i_obj.mNode,i_constraintSplineCurve.mNode)
+	    i_closestSplinePointNode = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+	    mc.connectAttr ((splineShape+'.worldSpace'),(i_closestSplinePointNode.mNode+'.inputCurve'))	
+	    
+	    #> Name
+	    i_closestSplinePointNode.doStore('cgmName',i_obj.mNode)
+	    i_closestSplinePointNode.addAttr('cgmTypeModifier','spline',attrType='string',lock=True)	    
+	    i_closestSplinePointNode.doName()
+	    #>Set attachpoint value
+	    i_closestSplinePointNode.parameter = l_closestInfo['parameter']
+	    mc.connectAttr ((i_closestSplinePointNode.mNode+'.position'),(i_splineFollowNull.mNode+'.translate'))
+	    ml_pointOnCurveInfos.append(i_closestSplinePointNode) 
+	    
+	    #>>>Linear
+	    l_closestInfo = distance.returnNearestPointOnCurveInfo(i_obj.mNode,i_constraintLinearCurve.mNode)
+	    i_closestLinearPointNode = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+	    mc.connectAttr ((linearShape+'.worldSpace'),(i_closestLinearPointNode.mNode+'.inputCurve'))	
+	    
+	    #> Name
+	    i_closestLinearPointNode.doStore('cgmName',i_obj.mNode)
+	    i_closestLinearPointNode.addAttr('cgmTypeModifier','linear',attrType='string',lock=True)	    	    
+	    i_closestLinearPointNode.doName()
+	    #>Set attachpoint value
+	    i_closestLinearPointNode.parameter = l_closestInfo['parameter']
+	    mc.connectAttr ((i_closestLinearPointNode.mNode+'.position'),(i_linearFollowNull.mNode+'.translate'))
+	    ml_pointOnCurveInfos.append(i_closestLinearPointNode) 	    
+
+	
+	except StandardError,error:
+	    log.error("addCGMSegmentSubControl>>Build transforms fail! | obj: %s"%i_obj.getShortName())
+	    raise StandardError,error 	
+	
+	 
 	#=============================================================	
-	#>>>PointTargets
-	#linear follow
-	i_linearFollowNull = i_obj.duplicateTransform()
-	i_linearFollowNull.addAttr('cgmType','linearFollow',attrType='string',lock=True)
-	i_linearFollowNull.doName()
-	#i_linearFollowNull.parent = i_anchorStart.mNode     
+	try:#>>> point Constrain
+	    cBuffer = mc.pointConstraint([i_splineFollowNull.mNode,i_linearFollowNull.mNode],
+		                          i_followGroup.mNode,
+		                          maintainOffset = True, weight = 1)[0]
+	    i_pointConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
 	
-	#splineFollow
-	i_splineFollowNull = i_obj.duplicateTransform()
-	i_splineFollowNull.addAttr('cgmType','splineFollow',attrType='string',lock=True)
-	i_splineFollowNull.doName()	
+	    #Blendsetup
+	    log.info("i_pointConstraint: %s"%i_pointConstraint)
+	    log.info("i_control: %s"%i_control)
+	    
+	    targetWeights = mc.pointConstraint(i_pointConstraint.mNode,q=True, weightAliasList=True)
+	    if len(targetWeights)>2:
+		raise StandardError,"addCGMSegmentSubControl>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
+	    
+	    d_midPointBlendReturn = nFactory.createSingleBlendNetwork([i_control.mNode,'linearSplineFollow'],
+	                                                              [i_control.mNode,'resultSplineFollow'],
+	                                                              [i_control.mNode,'resultLinearFollow'],
+	                                                              keyable=True)
+
+	    #Connect                                  
+	    d_midPointBlendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_pointConstraint.mNode,targetWeights[0]))
+	    d_midPointBlendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_pointConstraint.mNode,targetWeights[1]))
+	    
+
 	
-	#>>>Attach 
-	#=============================================================
-        #>>>Spline
-        l_closestInfo = distance.returnNearestPointOnCurveInfo(i_obj.mNode,i_constraintSplineCurve.mNode)
-	i_closestSplinePointNode = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
-        mc.connectAttr ((splineShape+'.worldSpace'),(i_closestSplinePointNode.mNode+'.inputCurve'))	
+	except StandardError,error:
+	    log.error("addCGMSegmentSubControl>>Translate constrain setup fail! | obj: %s"%i_obj.getShortName())
+	    raise StandardError,error 	
 	
-        #> Name
-        i_closestSplinePointNode.doStore('cgmName',i_obj.mNode)
-        i_closestSplinePointNode.doName()
-        #>Set attachpoint value
-        i_closestSplinePointNode.parameter = l_closestInfo['parameter']
-        mc.connectAttr ((i_closestSplinePointNode.mNode+'.position'),(i_splineFollowNull.mNode+'.translate'))
-        ml_pointOnCurveInfos.append(i_closestSplinePointNode) 
+	try:#>>>Aim constraint and blend
+	    cBuffer = mc.aimConstraint(i_baseParent.mNode,
+		                       i_aimStartNull.mNode,
+		                       maintainOffset = True, weight = 1,
+		                       aimVector = aimVectorNegative,
+		                       upVector = upVector,
+		                       worldUpObject = i_upStart.mNode,
+		                       worldUpType = 'object' )[0]
+	    
+	    i_startAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+	    
+	    cBuffer = mc.aimConstraint(i_endParent.mNode,
+		                       i_aimEndNull.mNode,
+		                       maintainOffset = True, weight = 1,
+		                       aimVector = aimVector,
+		                       upVector = upVector,
+		                       worldUpObject = i_upEnd.mNode,
+		                       worldUpType = 'object' )[0]
+	    
+	    i_endAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+	    
+	    cBuffer = mc.orientConstraint([i_aimEndNull.mNode,i_aimStartNull.mNode],
+		                          i_orientGroup.mNode,
+		                          maintainOffset = False, weight = 1)[0]
+	    i_orientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+	    
 	
-        #>>>Linear
-	cBuffer = mc.pointConstraint([ml_influenceJoints[0].mNode,ml_influenceJoints[-1].mNode],
-	                              i_linearFollowNull.mNode,
-	                              maintainOffset = False, weight = 1)[0]
+	    #Blendsetup
+	    log.info("i_orientConstraint: %s"%i_orientConstraint)
+	    log.info("i_control: %s"%i_control)
+	    
+	    targetWeights = mc.orientConstraint(i_orientConstraint.mNode,q=True, weightAliasList=True)
+	    if len(targetWeights)>2:
+		raise StandardError,"addCGMSegmentSubControl>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
+	    
+	    d_midOrientBlendReturn = nFactory.createSingleBlendNetwork([i_control.mNode,'StartEndAim'],
+	                                                              [i_control.mNode,'resultEndAim'],
+	                                                              [i_control.mNode,'resultStartAim'],
+	                                                              keyable=True)
+
+	    #Connect                                  
+	    d_midOrientBlendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_orientConstraint.mNode,targetWeights[0]))
+	    d_midOrientBlendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_orientConstraint.mNode,targetWeights[1]))
+	    
+
 	
+	except StandardError,error:
+	    log.error("addCGMSegmentSubControl>>Orient constrain setup fail! | obj: %s"%i_obj.getShortName())
+	    raise StandardError,error 	
 	
-	#>>>Constrain 
-	#=============================================================	
-	cBuffer = mc.pointConstraint([i_linearFollowNull.mNode,i_splineFollowNull.mNode],
-	                              i_followGroup.mNode,
-	                              maintainOffset = False, weight = 1)[0]
-	i_pointConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+	try:#Skincluster work
+	    if i_segmentCurveSkinCluster:
+		mc.skinCluster(i_segmentCurveSkinCluster.mNode,edit=True,ai=i_obj.mNode,dropoffRate = 2.5)
+		#Smooth the weights
+		controlCurveTightenEndWeights(i_segmentCurve.mNode,i_baseParent.mNode,i_endParent.mNode,2)	
+	except StandardError,error:
+	    log.error("addCGMSegmentSubControl>>Skincluster fix fail! | curve: %s"%i_segmentCurve.getShortName())
+	    raise StandardError,error 
 	
-        #Make aim groups since one will be aiming backwards
-        #Aim
-        #AimBlend        
-        #Add mid to original curve cluster        
-        mc.skinCluster(i_controlSurfaceCluster.mNode,edit=True,ai=i_obj.mNode,dropoffRate = 2.5)
+	try:
+	    if addTwist:#>>>Add Twist
+		if not i_segmentCurve:
+		    raise StandardError,"addCGMSegmentSubControl>>Cannot add twist without a segmentCurve"
+		if not i_segmentCurve.getMessage('drivenJoints'):
+		    raise StandardError,"addCGMSegmentSubControl>>Cannot add twist stored bind joint info on segmentCurve: %s"%i_segmentCurve.getShortName()		    
+		
+		ml_drivenJoints = i_segmentCurve.drivenJoints
+		
+		closestJoint = distance.returnClosestObject(i_obj.mNode,[i_jnt.mNode for i_jnt in ml_drivenJoints])
+		upLoc = cgmMeta.cgmObject(closestJoint).rotateUpGroup.upLoc.mNode
+		i_rotateUpGroup = cgmMeta.cgmObject(closestJoint).rotateUpGroup
+		#Twist setup start
+		#grab driver
+		driverNodeAttr = attributes.returnDriverAttribute("%s.%s"%(i_rotateUpGroup.mNode,rotateGroupAxis),True)    
+		#get driven
+		rotDriven = attributes.returnDrivenAttribute(driverNodeAttr,True)
+		
+		rotPlug = attributes.doBreakConnection(i_rotateUpGroup.mNode,
+		                                       rotateGroupAxis)
+		
+		#Get the driven so that we can bridge to them 
+		log.info("midFollow...")   
+		log.info("rotPlug: %s"%rotPlug)
+		log.info("aimVector: '%s'"%aimVector)
+		log.info("upVector: '%s'"%upVector)    
+		log.info("upLoc: '%s'"%upLoc)
+		log.info("rotDriven: '%s'"%rotDriven)
+		
+		#>>>Twist setup 
+		#Connect To follow group
+		#attributes.doConnectAttr(rotPlug,"%s.r%s"%(i_midFollowGrp.mNode,
+		 #                                          self._jointOrientation[0]))
+					 
+		#Create the add node
+		i_pmaAdd = nFactory.createAverageNode([driverNodeAttr,
+		                                       "%s.r%s"%(i_control.mNode,#mid handle
+		                                                 'y')],
+		                                      operation=1)
+		for a in rotDriven:#BridgeBack
+		    attributes.doConnectAttr("%s.output1D"%i_pmaAdd.mNode,a)	    
+	except StandardError,error:
+	    log.error("addCGMSegmentSubControl>>Add twist fail! | obj: %s"%i_obj.getShortName())
+	    raise StandardError,error 	
+	
+
 	
 
 @r9General.Timer
 def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True, addTwist = True,
-                     startControl = None, endControl = None,
+                     startControl = None, endControl = None, 
                      rotateGroupAxis = 'rotateZ',secondaryAxis = None,
                      baseName = None,
-                     orientation = 'zyx', moduleInstance = None):
+                     orientation = 'zyx',controlOrientation = None, moduleInstance = None):
     """
     CGM Joint Segment setup. Inspiriation from Jason Schleifer's work as well as http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/ on twist methods
 
     """
-    try:
-	if startControl is not None:
-	    i_startControl = cgmMeta.cgmObject(startControl)
-	else:i_startControl=False
-	
-	if endControl is not None:
-	    i_endControl = cgmMeta.cgmObject(endControl)
-	else:i_endControl = False
-    except StandardError,error:
-	log.error("createCGMSegment>>Initial control initialization fail! start: '%s'|end: '%s'"%(startControl,endControl))
-	raise StandardError,error 
+    i_startControl = cgmGeneral.validateObjArg(startControl,cgmMeta.cgmObject,noneValid=True)
+    i_endControl = cgmGeneral.validateObjArg(endControl,cgmMeta.cgmObject,noneValid=True)
     
-    i_module = False
     if type(jointList) not in [list,tuple]:jointList = [jointList]
     if len(jointList)<3:
 	raise StandardError,"createCGMSegment>>> needs at least three joints"
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
-	    if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
-	else:
-	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    
+    i_module = cgmGeneral.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    if i_module:
+	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
     if baseName is None:baseName = 'testSegment'
     
-    ml_influenceJoints = False
-    if influenceJoints is not None:
-	try:ml_influenceJoints = [cgmMeta.cgmObject(jnt,setClass=True) for jnt in influenceJoints]
-	except StandardError,error:
-	    log.error("createCGMSegment>>influence joint metaclassing failed!")
-	    raise StandardError,error 
-	if not i_startControl:i_startControl = ml_influenceJoints[0]
-	if not i_endControl:i_endControl = ml_influenceJoints[-1]
-	
-	
+    ml_influenceJoints = cgmGeneral.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False)
+
+    log.info('i_startControl: %s'%i_startControl)
+    log.info('i_endControl: %s'%i_endControl)
+    log.info('ml_influenceJoints: %s'%ml_influenceJoints)
+    log.info('i_module: %s'%i_module)
+
     #Good way to verify an instance list? #validate orientation
     #Gather info
     aimVector = dictionary.stringToVectorDict.get("%s+"%orientation[0])
@@ -251,8 +453,8 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_anchorEnd.doName()    
 	i_anchorEnd.parent = False
 	
-	if not i_startControl:i_startControl = i_anchorStart
-	if not i_startControl:i_endControl = i_anchorEnd
+	#if not i_startControl:i_startControl = i_anchorStart
+	#if not i_endControl:i_endControl = i_anchorEnd
 
 	#Build locs
 	#=======================================================================================    
@@ -342,6 +544,16 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_aimEndTargetNull.parent = ml_influenceJoints[0].mNode  
 	ml_rigObjects.append(i_aimEndTargetNull)
 	
+	if i_startControl and not i_startControl.parent:
+	    i_startControl.parent = i_attachStartNull.mNode
+	    i_startControl.doGroup(True)
+	    ml_influenceJoints[0].parent = i_startControl.mNode
+	if i_endControl and not i_endControl.parent:
+	    i_endControl.parent = i_attachEndNull.mNode
+	    i_endControl.doGroup(True)
+	    ml_influenceJoints[-1].parent = i_endControl.mNode
+	    
+	
 	if i_module:#if we have a module, connect vis
 	    for i_obj in ml_rigObjects:
 		i_obj.overrideEnabled = 1		
@@ -357,12 +569,12 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     try:#Constrain Nulls
 	cBuffer = mc.orientConstraint([i_anchorStart.mNode,i_aimStartNull.mNode],
 	                              i_attachStartNull.mNode,
-	                              maintainOffset = False, weight = 1)[0]
+	                              maintainOffset = True, weight = 1)[0]
 	i_startOrientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
 	
 	cBuffer = mc.orientConstraint([i_anchorEnd.mNode,i_aimEndNull.mNode],
 	                              i_attachEndNull.mNode,
-	                              maintainOffset = False, weight = 1)[0]
+	                              maintainOffset = True, weight = 1)[0]
 	i_endOrientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
 	
 	
@@ -372,8 +584,13 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     
     #======================================================================================= 
     try:#Build constraint blend
+	#If we don't have our controls by this point, we'll use the joints
+	if not i_startControl:
+	    i_startControl = ml_influenceJoints[0]
+	if not i_endControl:
+	    i_endControl = ml_influenceJoints[-1]
+	    
 	#start blend
-	
 	d_startFollowBlendReturn = nFactory.createSingleBlendNetwork([i_startControl.mNode,'followRoot'],
 	                                                             [i_startControl.mNode,'resultRootFollow'],
 	                                                             [i_startControl.mNode,'resultAimFollow'],
@@ -403,7 +620,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	                                    baseName, moduleInstance)
     
 	mi_splineCurve = d_segmentBuild['mi_segmentCurve']
-	ml_splineIKJoints = d_segmentBuild['ml_splineIKJoints']
+	ml_drivenJoints = d_segmentBuild['ml_drivenJoints']
 	mi_scaleBuffer = d_segmentBuild['mi_scaleBuffer']
 	
 	
@@ -417,21 +634,28 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    i_twistStartPlug = cgmMeta.cgmAttr(mi_splineCurve.mNode,'twistStart',attrType='float',keyable=True) 
 	    i_twistEndPlug = cgmMeta.cgmAttr(mi_splineCurve.mNode,'twistEnd',attrType='float',keyable=True)
 	    capAim = orientation[0].capitalize()
-	    log.info("capAim: %s"%capAim)
+	    log.debug("capAim: %s"%capAim)
 	    d_twistReturn = addRibbonTwistToControlSurfaceSetup([i_jnt.mNode for i_jnt in ml_jointList],
 	                                                        [i_twistStartPlug.obj.mNode,i_twistStartPlug.attr],
 	                                                        [i_twistEndPlug.obj.mNode,i_twistEndPlug.attr]) 
 	    
 	    #Connect resulting full sum to our last spline IK joint to get it's twist
-	    attributes.doConnectAttr(i_twistEndPlug.p_combinedName,"%s.rotate%s"%(ml_splineIKJoints[-1].mNode,capAim))
+	    attributes.doConnectAttr(i_twistEndPlug.p_combinedName,"%s.rotate%s"%(ml_drivenJoints[-1].mNode,capAim))
 	    
 	    d_twistReturn['mi_pmaTwistSum'].mNode
 	    
 	    if i_startControl:
-		i_twistStartPlug.doConnectIn("%s.rotate%s"%(i_startControl.mNode,capAim))
+		if controlOrientation is None:
+		    i_twistStartPlug.doConnectIn("%s.rotate%s"%(i_startControl.mNode,capAim))
+		else:
+		    i_twistStartPlug.doConnectIn("%s.r%s"%(i_startControl.mNode,controlOrientation[0]))
 	    if i_endControl:
-		i_twistEndPlug.doConnectIn("%s.rotate%s"%(i_endControl.mNode,capAim))	
-		
+		if controlOrientation is None:		
+		    i_twistEndPlug.doConnectIn("%s.rotate%s"%(i_endControl.mNode,capAim))
+		else:
+		    i_twistEndPlug.doConnectIn("%s.r%s"%(i_endControl.mNode,controlOrientation[0]))
+		    
+	
     except StandardError,error:
 	log.error("createCGMSegment>>Build segment fail! | start joint: %s"%ml_jointList[0].getShortName())
 	raise StandardError,error     
@@ -529,9 +753,9 @@ def controlSurfaceSmoothWeights(controlSurface,start = None, end = None):
     i_skinCluster = cgmMeta.cgmNode(l_skinClusters[0])
     l_influenceObjects = skinning.queryInfluences(i_skinCluster.mNode) or []
     
-    log.info("l_skinClusters: '%s'"%l_skinClusters)
-    log.info("i_skinCluster: '%s'"%i_skinCluster)
-    log.info("l_influenceObjects: '%s'"%l_influenceObjects)
+    log.debug("l_skinClusters: '%s'"%l_skinClusters)
+    log.debug("i_skinCluster: '%s'"%i_skinCluster)
+    log.debug("l_influenceObjects: '%s'"%l_influenceObjects)
     
     if not i_skinCluster and l_influenceObjects:
 	raise StandardError,"controlSurfaceSmoothWeights failed. Not enough info found"
@@ -541,8 +765,8 @@ def controlSurfaceSmoothWeights(controlSurface,start = None, end = None):
     
     cvStarts = lists.returnListNoDuplicates(cvStarts)
     cvEnds = lists.returnListNoDuplicates(cvEnds)
-    log.info(cvStarts)
-    log.info(cvEnds)  
+    log.debug(cvStarts)
+    log.debug(cvEnds)  
     
     #if len{cvEnds)<4:
 	#raise StandardError,"Must have enough cvEnds. cvEnds: %s"%(cvEnds)
@@ -550,17 +774,17 @@ def controlSurfaceSmoothWeights(controlSurface,start = None, end = None):
 	raise StandardError,"Must have enough cvEnds. blendLength: %s"%(blendLength)	
     
     blendFactor = 1 * ((2+1)*.1)
-    log.info("blendFactor: %s"%blendFactor)
+    log.debug("blendFactor: %s"%blendFactor)
     
     #>>>Tie down tart and ends
     for influence in [start,end]:
 	if influence == start:
 	    cvBlendEnds = cvEnds[:blendLength+2]
-	    log.info("%s: %s"%(influence,cvBlendEnds))
+	    log.debug("%s: %s"%(influence,cvBlendEnds))
 	if influence == end:
 	    cvBlendEnds = cvEnds[-(blendLength+2):]
 	    cvBlendEnds.reverse()
-	    log.info("%s: %s"%(influence,cvBlendEnds))
+	    log.debug("%s: %s"%(influence,cvBlendEnds))
 	for i,endInt in enumerate(cvBlendEnds):
 	    if i in [0,1]:
 		for startInt in cvStarts:
@@ -585,9 +809,9 @@ def controlCurveSkinningTwoJointBlend(curve,start = None, end = None, tightLengt
     i_skinCluster = cgmMeta.cgmNode(l_skinClusters[0])
     l_influenceObjects = skinning.queryInfluences(i_skinCluster.mNode) or []
     
-    log.info("l_skinClusters: '%s'"%l_skinClusters)
-    log.info("i_skinCluster: '%s'"%i_skinCluster)
-    log.info("l_influenceObjects: '%s'"%l_influenceObjects)
+    log.debug("l_skinClusters: '%s'"%l_skinClusters)
+    log.debug("i_skinCluster: '%s'"%i_skinCluster)
+    log.debug("l_influenceObjects: '%s'"%l_influenceObjects)
     
     if not i_skinCluster and l_influenceObjects:
 	raise StandardError,"curveSmoothWeights failed. Not enough info found"
@@ -602,32 +826,32 @@ def controlCurveSkinningTwoJointBlend(curve,start = None, end = None, tightLengt
 	
     #( len(l_cvInts[tightLength:-tightLength] )*.5)
     
-    log.info("blendFactor: %s "%blendFactor)
+    log.debug("blendFactor: %s "%blendFactor)
     
     #>>>Tie down tart and ends
     for influence in [start,end]:
-	log.info("Influence: %s"%influence)
+	log.debug("Influence: %s"%influence)
 	if influence == start:
 	    cvBlendRange = l_cvInts[tightLength:-tightLength]
-	    log.info("%s: %s"%(influence,cvBlendRange))
+	    log.debug("%s: %s"%(influence,cvBlendRange))
 	    for cv in l_cvInts[:tightLength]:
 		mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s]"%(i_curve.mNode,cv)), tv = [influence,1])
 	    
 	if influence == end:
 	    cvBlendRange = l_cvInts[tightLength:-tightLength]
 	    cvBlendRange.reverse()
-	    log.info("%s: %s"%(influence,cvBlendRange))
+	    log.debug("%s: %s"%(influence,cvBlendRange))
 	    for cv in l_cvInts[-tightLength:]:
 		mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s]"%(i_curve.mNode,cv)), tv = [influence,1])
 	
 	if blendLength:	
 	    for i,cv in enumerate(cvBlendRange[:blendLength]):
-		log.info("cv: %s | blendFactor: %s"%(cv,1 - ((i+1)*blendFactor)))
+		log.debug("cv: %s | blendFactor: %s"%(cv,1 - ((i+1)*blendFactor)))
 		mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s]"%(i_curve.mNode,cv)),
 		               tv = [influence,1-((i+1)*blendFactor)])	    
 	else:
 	    for i,cv in enumerate(cvBlendRange):
-		log.info("cv: %s | blendFactor: %s"%(cv,1 - ((i+1)*blendFactor)))
+		log.debug("cv: %s | blendFactor: %s"%(cv,1 - ((i+1)*blendFactor)))
 		mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s]"%(i_curve.mNode,cv)),
 		               tv = [influence,1-((i+1)*blendFactor)])
 @r9General.Timer
@@ -645,9 +869,9 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
     i_skinCluster = cgmMeta.cgmNode(l_skinClusters[0])
     l_influenceObjects = skinning.queryInfluences(i_skinCluster.mNode) or []
     
-    log.info("l_skinClusters: '%s'"%l_skinClusters)
-    log.info("i_skinCluster: '%s'"%i_skinCluster)
-    log.info("l_influenceObjects: '%s'"%l_influenceObjects)
+    log.debug("l_skinClusters: '%s'"%l_skinClusters)
+    log.debug("i_skinCluster: '%s'"%i_skinCluster)
+    log.debug("l_influenceObjects: '%s'"%l_influenceObjects)
     
     if not i_skinCluster and l_influenceObjects:
 	raise StandardError,"curveSmoothWeights failed. Not enough info found"
@@ -662,18 +886,18 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
 	raise StandardError,"Must have enough cvEnds. blendLength: %s"%(blendLength)	
     
     blendFactor = 1 * ((blendLength+1)*.1)
-    log.info("blendFactor: %s"%blendFactor)
+    log.debug("blendFactor: %s"%blendFactor)
     
     #>>>Tie down tart and ends
     for influence in [start,end]:
-	log.info("Influence: %s"%influence)
+	log.debug("Influence: %s"%influence)
 	if influence == start:
 	    cvBlendRange = l_cvInts[:blendLength+2]
-	    log.info("%s: %s"%(influence,cvBlendRange))
+	    log.debug("%s: %s"%(influence,cvBlendRange))
 	if influence == end:
 	    cvBlendRange = l_cvInts[-(blendLength+2):]
 	    cvBlendRange.reverse()
-	    log.info("%s: %s"%(influence,cvBlendRange))
+	    log.debug("%s: %s"%(influence,cvBlendRange))
 	for i,cv in enumerate(cvBlendRange):
 	    if i in [0,1]:
 		mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s]"%(i_curve.mNode,cv)), tv = [influence,1])
@@ -686,6 +910,10 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
 def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
                        baseName ='test', moduleInstance = None):
     """
+    Stored meta data on completed segment:
+    scaleBuffer
+    drivenJoints     
+    driverJoints 
     """
     if type(jointList) not in [list,tuple]:jointList = [jointList]
     
@@ -727,19 +955,19 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     #=========================================================================
     #Create spline IK joints
     #>>Surface chain    
-    l_splineIKJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
-    ml_splineIKJoints = []
-    for i,j in enumerate(l_splineIKJoints):
+    l_driverJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
+    ml_driverJoints = []
+    for i,j in enumerate(l_driverJoints):
 	i_j = cgmMeta.cgmObject(j,setClass=True)
 	i_j.addAttr('cgmName',baseName,lock=True)
 	i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
 	i_j.doName()
-	l_splineIKJoints[i] = i_j.mNode
-	ml_splineIKJoints.append(i_j)
+	l_driverJoints[i] = i_j.mNode
+	ml_driverJoints.append(i_j)
 
     #Create Curve
     i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver',setClass=True)
-    buffer = mc.ikHandle( sj=ml_splineIKJoints[0].mNode, ee=ml_splineIKJoints[-1].mNode,simplifyCurve=False,
+    buffer = mc.ikHandle( sj=ml_driverJoints[0].mNode, ee=ml_driverJoints[-1].mNode,simplifyCurve=False,
                           solver = i_splineSolver.mNode, ns = 4, rootOnCurve=True,forceSolver = True,
                           createCurve = True,snapHandleFlagToggle=True )  
     
@@ -752,6 +980,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	 cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
 
     i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
+    i_ikHandle.doName()
     i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
     
     #Joints
@@ -787,7 +1016,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	if i_jnt != ml_jointList[-1]:
 	    i_upLoc = i_jnt.doLoc()#Make up Loc
 	    i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
-	    i_locRotateGroup.parent = ml_splineIKJoints[i].mNode
+	    i_locRotateGroup.parent = ml_driverJoints[i].mNode
 	    i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
 	    i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
 	    i_locRotateGroup.doName()
@@ -812,7 +1041,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	    
 	
     #Orient constrain our last joint to our splineIK Joint
-    mc.orientConstraint(ml_splineIKJoints[-1].mNode,ml_jointList[-1].mNode,maintainOffset = True)
+    mc.orientConstraint(ml_driverJoints[-1].mNode,ml_jointList[-1].mNode,maintainOffset = True)
     
     #>>>Create scale stuff
     #>>>Create IK effectors,Create distance nodes
@@ -827,7 +1056,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
                                  enableHandles=True )
         #Handle
         i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
-        i_IK_Handle.parent = ml_splineIKJoints[i+1].mNode
+        i_IK_Handle.parent = ml_driverJoints[i+1].mNode
         i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
         i_IK_Handle.doName()
         
@@ -869,20 +1098,20 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 
     for i,i_jnt in enumerate(ml_jointList[:-1]):
 	rotBuffer = mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)
-	log.info("rotBuffer: %s"%rotBuffer)
+	log.debug("rotBuffer: %s"%rotBuffer)
 	#Create the poleVector
 	poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,l_iIK_handles[i].mNode)  	
 	optionCnt = 0
 	while not cgmMath.isFloatEquivalent((mc.getAttr(i_jnt.mNode+'.r'+aimChannel)),0):
-	    log.info("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
-	    log.info ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
+	    log.debug("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
+	    log.debug ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
 	    attributes.doSetAttr(l_iIK_handles[i].mNode,'twist',fixOptions[optionCnt])
 	    optionCnt += 1
 	    if optionCnt == 4:
 		raise StandardError,"failed to find a good twist value to zero out poleVector: %s"%(i_jnt.getShortName())
 	    
 	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
-	    log.info("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
+	    log.debug("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
     
     #>>>Hook up scales
     #==========================================================================
@@ -892,10 +1121,18 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
     i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
     i_jntScaleBufferNode.doName()
+    ml_distanceAttrs = []
+    ml_resultAttrs = []
     
     i_jntScaleBufferNode.connectParentNode(i_segmentCurve.mNode,'segmentCurve','scaleBuffer')
     ml_mainMDs = []
     for i,i_jnt in enumerate(ml_jointList[:-1]):
+	#Make some attrs
+	i_attr = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True)		
+	i_attrResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
+	i_attrTransformedResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
+	
+	#i_attrResultTScale = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleTResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
 	
 	#Store our distance base to our buffer
         try:i_jntScaleBufferNode.store(i_distanceShapes[i].distance)#Store to our buffer
@@ -907,20 +1144,50 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
 	i_md.operation = 2
 	i_md.doStore('cgmName',i_jnt.mNode)
-	i_md.addAttr('cgmTypeModifier','masterScale')
+	i_md.addAttr('cgmTypeModifier','segmentScale')
 	i_md.doName()
 	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
 	                         '%s.%s'%(i_md.mNode,'input1X'))
 	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
 	                         '%s.%s'%(i_md.mNode,'input2X'))
 	
+	#Create the mdNode
+	i_mdNormal = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdNormal.operation = 2
+	i_mdNormal.doStore('cgmName',i_jnt.mNode)
+	i_mdNormal.addAttr('cgmTypeModifier','segmentScaleNormal')
+	i_mdNormal.doName()
+	i_attrResult.doConnectOut('%s.%s'%(i_mdNormal.mNode,'input1X'))
+	attributes.doConnectAttr('%s.masterScale'%(i_jntScaleBufferNode.mNode),#>>
+	                         '%s.%s'%(i_mdNormal.mNode,'input2X'))	
+	i_attrTransformedResult.doConnectIn('%s.%s'%(i_mdNormal.mNode,'output.outputX'))
+	
+	#Create the trans scale mdNode
+	"""
+	i_mdTransScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdTransScale.operation = 1
+	i_mdTransScale.doStore('cgmName',i_jnt.mNode)
+	i_mdTransScale.addAttr('cgmTypeModifier','transScale')
+	i_mdTransScale.doName()
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	                         '%s.%s'%(i_mdTransScale.mNode,'input1X'))
+	attributes.doConnectAttr(i_attrResult.p_combinedName,#>>
+	                         '%s.%s'%(i_mdTransScale.mNode,'input2X'))
+	
+	#TranslateScales
+	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
+	                         "%s.t%s"%(ml_jointList[i+1].mNode,orientation[0]))"""
+	
 	#Connect to the joint
-	i_attr = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True)		
-	i_attrResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
+	ml_distanceAttrs.append(i_attr)
+	ml_resultAttrs.append(i_attrResult)
 	try:
+	    #i_attrResultTScale.doConnectIn('%s.%s'%(i_mdTransScale.mNode,'output.outputX'))	    	    
+	    #i_attrResultTScale.doConnectOut("%s.t%s"%(ml_driverJoints[i+1].mNode,orientation[0]))	    
 	    i_attr.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))
 	    i_attrResult.doConnectIn('%s.%s'%(i_md.mNode,'output.outputX'))
 	    i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
+	    i_attrTransformedResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
 	    
 	    for axis in orientation[1:]:
 		attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
@@ -930,9 +1197,12 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	    raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
 		
 	ml_mainMDs.append(i_md)#store the md
-	for axis in ['scaleX','scaleY','scaleZ']:
-	    attributes.doConnectAttr('%s.%s'%(i_jnt.mNode,axis),#>>
-		                     '%s.%s'%(ml_splineIKJoints[i].mNode,axis))	 	
+    
+	
+	
+	"""for axis in [orientation[1],orientation[2]]:
+	    attributes.doConnectAttr('%s.s%s'%(i_jnt.mNode,axis),#>>
+		                     '%s.s%s'%(ml_driverJoints[i].mNode,axis))"""	 	
 
 	
     #Connect last joint scale to second to last
@@ -940,19 +1210,19 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	attributes.doConnectAttr('%s.%s'%(ml_jointList[-2].mNode,axis),#>>
                                  '%s.%s'%(ml_jointList[-1].mNode,axis))	 
 	
-    mc.pointConstraint(ml_splineIKJoints[0].mNode,ml_jointList[0].mNode,maintainOffset = False)
+    mc.pointConstraint(ml_driverJoints[0].mNode,ml_jointList[0].mNode,maintainOffset = False)
     
     #Store info to the segment curve
     
     #>>> Store em all to our instance
     i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    i_segmentCurve.connectChildrenNodes(ml_jointList,'bindJoints','segmentCurve')       
-    i_segmentCurve.connectChildrenNodes(ml_splineIKJoints,'splineIKJoints','segmentCurve')   
+    i_segmentCurve.connectChildrenNodes(ml_jointList,'drivenJoints','segmentCurve')       
+    i_segmentCurve.connectChildrenNodes(ml_driverJoints,'driverJoints','segmentCurve')   
 	
     return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,
-            'l_splineIKJoints':[i_jnt.getShortName() for i_jnt in ml_splineIKJoints],'ml_splineIKJoints':ml_splineIKJoints,
+            'l_driverJoints':[i_jnt.getShortName() for i_jnt in ml_driverJoints],'ml_driverJoints':ml_driverJoints,
             'scaleBuffer':i_jntScaleBufferNode.mNode,'mi_scaleBuffer':i_jntScaleBufferNode,
-            'l_joints':jointList,'ml_joints':ml_jointList}
+            'l_drivenJoints':jointList,'ml_drivenJoints':ml_jointList}
 
 
 @r9General.Timer
@@ -1133,20 +1403,20 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
 
     for i,i_jnt in enumerate(ml_jointList[:-1]):
 	rotBuffer = mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)
-	log.info("rotBuffer: %s"%rotBuffer)
+	log.debug("rotBuffer: %s"%rotBuffer)
 	#Create the poleVector
 	poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,l_iIK_handles[i].mNode)  	
 	optionCnt = 0
 	while not cgmMath.isFloatEquivalent((mc.getAttr(i_jnt.mNode+'.r'+aimChannel)),0):
-	    log.info("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
-	    log.info ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
+	    log.debug("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
+	    log.debug ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
 	    attributes.doSetAttr(l_iIK_handles[i].mNode,'twist',fixOptions[optionCnt])
 	    optionCnt += 1
 	    if optionCnt == 4:
 		raise StandardError,"failed to find a good twist value to zero out poleVector: %s"%(i_jnt.getShortName())
 	    
 	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
-	    log.info("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
+	    log.debug("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
 
     #>>>Hook up scales
     #==========================================================================
@@ -1463,20 +1733,20 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
 
     for i,i_jnt in enumerate(ml_jointList[:-1]):
 	rotBuffer = mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)
-	log.info("rotBuffer: %s"%rotBuffer)
+	log.debug("rotBuffer: %s"%rotBuffer)
 	#Create the poleVector
 	poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,l_iIK_handles[i].mNode)  	
 	optionCnt = 0
 	while not cgmMath.isFloatEquivalent((mc.getAttr(i_jnt.mNode+'.r'+aimChannel)),0):
-	    log.info("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
-	    log.info ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
+	    log.debug("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
+	    log.debug ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
 	    attributes.doSetAttr(l_iIK_handles[i].mNode,'twist',fixOptions[optionCnt])
 	    optionCnt += 1
 	    if optionCnt == 4:
 		raise StandardError,"failed to find a good twist value to zero out poleVector: %s"%(i_jnt.getShortName())
 	    
 	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
-	    log.info("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
+	    log.debug("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
 
     #>>>Hook up scales
     #===================================================================
@@ -1742,8 +2012,8 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     """
     def createAverageNode(driver1,driver2,driven = None):
 	#Create the mdNode
-	log.info("driver1: %s"%driver1)
-	log.info("driver2: %s"%driver2)
+	log.debug("driver1: %s"%driver1)
+	log.debug("driver2: %s"%driver2)
 	assert type(driver1) is list and len(driver1) == 2,"Driver1 wrong: %s"%driver1
 	assert type(driver2) is list and len(driver1) == 2,"Driver2 wrong: %s"%driver2
 	driver1Combined = "%s.%s"%(driver1[0],driver1[1])
@@ -1755,10 +2025,10 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
 	    assert type(driven) is list and len(driver1) == 2,"Driven wrong: %s"%driven	    
 	    drivenCombined = "%s.%s"%(driven[0],driven[1])
 	    assert mc.objExists(drivenCombined)	    
-	    log.info("drivenCombined: %s"%drivenCombined)
+	    log.debug("drivenCombined: %s"%drivenCombined)
 	    
-	log.info("driver1Combined: %s"%driver1Combined)
-	log.info("driver2Combined: %s"%driver2Combined)
+	log.debug("driver1Combined: %s"%driver1Combined)
+	log.debug("driver2Combined: %s"%driver2Combined)
 	
 	#Create the node
 	i_pma = cgmMeta.cgmNode(mc.createNode('plusMinusAverage'))
@@ -1780,7 +2050,7 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
 
     def averageNetwork_three(indices):
 	""" """
-	log.info("averageNetwork_three: %s"%indices)
+	log.debug("averageNetwork_three: %s"%indices)
 	assert len(indices) == 3,"averageNetwork_three requires 3 indices"
 	for i in indices:
 	    if i not in d_drivenPlugs.keys():
@@ -1800,7 +2070,7 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
 	[0,3]
 	[0,3],1 | [0,3],2
 	"""
-	log.info("averageNetwork_four: %s"%indices)
+	log.debug("averageNetwork_four: %s"%indices)
 	assert len(indices) == 4,"averageNetwork_four requires 4 indices"
 	for i in indices:
 	    if i not in d_drivenPlugs.keys():
@@ -1895,8 +2165,8 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     d_driverPlugs[0] = startControlDriver
     d_driverPlugs[len(ml_jointList)-1] = endControlDriver
 
-    log.info("drivenPlugs: %s"%d_drivenPlugs)
-    log.info("driverPlugs: %s"%d_driverPlugs)
+    log.debug("drivenPlugs: %s"%d_drivenPlugs)
+    log.debug("driverPlugs: %s"%d_driverPlugs)
     
     #>>>Setup
     #Connect first and last
@@ -1937,10 +2207,10 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     else:#factor and run
 	#Make a factored list
 	l_factored = lists.returnFactoredConstraintList(range(len(jointList)),3)
-	log.info(l_factored)
+	log.debug(l_factored)
 	try:
 	    for chunk in l_factored:
-		log.info("On chunk: %s"%chunk)	    
+		log.debug("On chunk: %s"%chunk)	    
 		if len(chunk) == 3:
 		    averageNetwork_three(chunk)
 		elif len(chunk) == 4:
@@ -1961,8 +2231,8 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
         
     #Make our connections
     for i,driver in enumerate([startControlDriver,endControlDriver]):
-	log.info(i)
-	log.info(driver)
+	log.debug(i)
+	log.debug(driver)
 	attributes.doConnectAttr('%s.%s'%(driver[0],driver[1]),'%s.input1D[%s]'%(i_pma.mNode,i))
 	
     #attributes.doConnectAttr('%s.output1D'%(i_pma.mNode),'%s.r%s'%(jointList[-1],orientation[0]))
@@ -1970,9 +2240,9 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     
     """
     for key in d_drivenPlugs.keys():
-	log.info(d_drivenPlugs[key])
-	log.info('%s.%s'%(d_drivenPlugs[key][0],d_drivenPlugs[key][1]))
-	log.info('%s.input1D[%s]'%(i_pma.mNode,i))
+	log.debug(d_drivenPlugs[key])
+	log.debug('%s.%s'%(d_drivenPlugs[key][0],d_drivenPlugs[key][1]))
+	log.debug('%s.input1D[%s]'%(i_pma.mNode,i))
 	attributes.doConnectAttr('%s.%s'%(d_drivenPlugs[key][0],d_drivenPlugs[key][1]),'%s.input1D[%s]'%(i_pma.mNode,i))
 	"""
 
@@ -2088,7 +2358,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
 	#>>>Fix the translate aim scale
 	'''if i>0:
 	    aimTransScalePlug = attributes.doBreakConnection(i_jnt.mNode,"translate%s"%aimChannel)
-	    log.info(aimTransScalePlug)
+	    log.debug(aimTransScalePlug)
 	    i_aimScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
 	    i_aimScale.operation = 2
 	    i_aimScale.doStore('cgmName',i_jnt.mNode)
@@ -2106,7 +2376,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
 	ml_attrs.append(i_attr)
 
 @r9General.Timer
-def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,orientation = 'zyx', moduleInstance = None):
+def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy = 'scale', orientation = 'zyx', moduleInstance = None):
     """
     """
     #Good way to verify an instance list?
@@ -2138,7 +2408,11 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,orientati
 	i_attr = cgmMeta.cgmAttr(i_holder,"scaleMult_%s"%i,attrType = 'float',initialValue=1)
 	outScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%outChannel)
 	upScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%upChannel)
-	
+	if connectBy == 'translate':
+	    mainDriver = '%s.scaleResult_%s'%(i_holder.mNode,i)
+	else:
+	    mainDriver = '%s.scale%s'%(i_jnt.mNode,aimChannel)	
+	    
 	#Create the multScale
 	i_mdScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
 	i_mdScale.operation = 2
@@ -2146,11 +2420,12 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,orientati
 	i_mdScale.addAttr('cgmTypeModifier','multScale')
 	i_mdScale.doName()
 	for channel in [outChannel,upChannel]:
-	    attributes.doConnectAttr('%s.scale%s'%(i_jnt.mNode,aimChannel),#>>
+	    attributes.doConnectAttr(mainDriver,#>>
 		                     '%s.input1%s'%(i_mdScale.mNode,channel))
 	    attributes.doConnectAttr('%s'%(outScalePlug),#>>
 		                     '%s.input2%s'%(i_mdScale.mNode,channel))
-	    
+	#attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+
 	#Create the sqrtNode
 	i_sqrtScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
 	i_sqrtScale.operation = 3#set to power
