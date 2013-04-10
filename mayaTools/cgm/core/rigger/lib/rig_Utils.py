@@ -66,7 +66,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
     
     i_baseParent = cgmGeneral.validateObjArg(baseParent,cgmMeta.cgmObject,noneValid=False)
     i_endParent = cgmGeneral.validateObjArg(endParent,cgmMeta.cgmObject,noneValid=False)
-    i_segmentCurve = cgmGeneral.validateObjArg(segmentCurve,cgmMeta.cgmObject,noneValid=True)
+    i_segmentCurve = cgmGeneral.validateObjArg(segmentCurve,cgmMeta.cgmObject,noneValid=False)
     i_segmentCurveSkinCluster = cgmGeneral.validateObjArg(deformers.returnObjectDeformers(i_segmentCurve.mNode,'skinCluster')[0],
                                                           noneValid=True)
 
@@ -192,7 +192,6 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 		i_control.parent = i_orientGroup.mNode
 		i_control.doGroup(True)
 		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
-		i_obj.parent = i_control.mNode
 		
 	    #=============================================================	
 	    #>>>PointTargets
@@ -383,7 +382,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 		#Create the add node
 		i_pmaAdd = nFactory.createAverageNode([driverNodeAttr,
 		                                       "%s.r%s"%(i_control.mNode,#mid handle
-		                                                 'y')],
+		                                                 orientation[0])],
 		                                      operation=1)
 		for a in rotDriven:#BridgeBack
 		    attributes.doConnectAttr("%s.output1D"%i_pmaAdd.mNode,a)	    
@@ -391,12 +390,16 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    log.error("addCGMSegmentSubControl>>Add twist fail! | obj: %s"%i_obj.getShortName())
 	    raise StandardError,error 	
 	
+	#Parent at very end to keep the joint from moving
+	if i_control != i_obj:
+	    i_obj.parent = i_control.mNode	    
+	
 
 	
 
 @r9General.Timer
 def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True, addTwist = True,
-                     startControl = None, endControl = None, 
+                     startControl = None, endControl = None, segmentType = 'curve',
                      rotateGroupAxis = 'rotateZ',secondaryAxis = None,
                      baseName = None,
                      orientation = 'zyx',controlOrientation = None, moduleInstance = None):
@@ -404,6 +407,9 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     CGM Joint Segment setup. Inspiriation from Jason Schleifer's work as well as http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/ on twist methods
 
     """
+    if segmentType != 'curve':
+	raise NotImplementedError,"createCGMSegment>>>Haven't implemented segmentType: %s"%segmentType
+    
     i_startControl = cgmGeneral.validateObjArg(startControl,cgmMeta.cgmObject,noneValid=True)
     i_endControl = cgmGeneral.validateObjArg(endControl,cgmMeta.cgmObject,noneValid=True)
     
@@ -431,7 +437,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     outChannel = orientation[2]
     upChannel = '%sup'%orientation[1]
     
-    try:ml_jointList = [cgmMeta.cgmObject(jnt,setClass=True) for jnt in jointList]
+    try:ml_jointList = cgmGeneral.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)
     except StandardError,error:
 	log.error("createCGMSegment>>Joint metaclassing failed!")
 	raise StandardError,error 
@@ -465,14 +471,12 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_aimStartNull.addAttr('cgmType','aim',attrType='string',lock=True)
 	i_aimStartNull.doName()
 	i_aimStartNull.parent = i_anchorStart.mNode     
-	ml_rigObjects.append(i_aimStartNull)
 	
 	#End Aim
 	i_aimEndNull = ml_jointList[-1].duplicateTransform()
 	i_aimEndNull.addAttr('cgmType','aim',attrType='string',lock=True)
 	i_aimEndNull.doName()
 	i_aimEndNull.parent = i_anchorEnd.mNode 
-	ml_rigObjects.append(i_aimEndNull)
 			    	
 	#=====================================
 	"""
@@ -499,14 +503,12 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_attachStartNull.addAttr('cgmType','attach',attrType='string',lock=True)
 	i_attachStartNull.doName()
 	i_attachStartNull.parent = i_anchorStart.mNode     
-	ml_rigObjects.append(i_attachStartNull)
 	
 	#End Attach
 	i_attachEndNull = ml_jointList[-1].duplicateTransform()
 	i_attachEndNull.addAttr('cgmType','attach',attrType='string',lock=True)
 	i_attachEndNull.doName()
 	i_attachEndNull.parent = i_anchorEnd.mNode  
-	ml_rigObjects.append(i_attachEndNull)
 	
 	#=====================================	
 	#>>>Up locs
@@ -547,10 +549,13 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	if i_startControl and not i_startControl.parent:
 	    i_startControl.parent = i_attachStartNull.mNode
 	    i_startControl.doGroup(True)
+	    mc.makeIdentity(i_startControl.mNode, apply=True,t=1,r=0,s=1,n=0)
+	    
 	    ml_influenceJoints[0].parent = i_startControl.mNode
 	if i_endControl and not i_endControl.parent:
 	    i_endControl.parent = i_attachEndNull.mNode
 	    i_endControl.doGroup(True)
+	    mc.makeIdentity(i_endControl.mNode, apply=True,t=1,r=0,s=1,n=0)	    
 	    ml_influenceJoints[-1].parent = i_endControl.mNode
 	    
 	
@@ -558,8 +563,6 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    for i_obj in ml_rigObjects:
 		i_obj.overrideEnabled = 1		
 		cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
-	    
-	
 	    
     except StandardError,error:
 	log.error("createCGMSegment>>Joint anchor and loc build fail! | start joint: %s"%ml_jointList[0].getShortName())
@@ -619,20 +622,20 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	d_segmentBuild = createSegmentCurve(jointList,orientation,secondaryAxis,
 	                                    baseName, moduleInstance)
     
-	mi_splineCurve = d_segmentBuild['mi_segmentCurve']
+	mi_segmentCurve = d_segmentBuild['mi_segmentCurve']
 	ml_drivenJoints = d_segmentBuild['ml_drivenJoints']
 	mi_scaleBuffer = d_segmentBuild['mi_scaleBuffer']
 	
 	
 	#Add squash
 	if addSquashStretch:
-	    addSquashAndStretchToControlSurfaceSetup(mi_scaleBuffer.mNode,
-		                                     [i_jnt.mNode for i_jnt in ml_jointList],
-		                                     moduleInstance=moduleInstance)
+	    addSquashAndStretchToSegmentCurveSetup(mi_scaleBuffer.mNode,
+	                                           [i_jnt.mNode for i_jnt in ml_jointList],
+	                                           moduleInstance=moduleInstance)
 	#Twist
 	if addTwist:
-	    i_twistStartPlug = cgmMeta.cgmAttr(mi_splineCurve.mNode,'twistStart',attrType='float',keyable=True) 
-	    i_twistEndPlug = cgmMeta.cgmAttr(mi_splineCurve.mNode,'twistEnd',attrType='float',keyable=True)
+	    i_twistStartPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistStart',attrType='float',keyable=True) 
+	    i_twistEndPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistEnd',attrType='float',keyable=True)
 	    capAim = orientation[0].capitalize()
 	    log.debug("capAim: %s"%capAim)
 	    d_twistReturn = addRibbonTwistToControlSurfaceSetup([i_jnt.mNode for i_jnt in ml_jointList],
@@ -665,7 +668,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	if ml_influenceJoints:#if we have influence joints, we're gonna skin our curve
 	    #Surface influence joints cluster#
 	    i_controlSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in ml_influenceJoints],
-		                                                      mi_splineCurve.mNode,
+		                                                      mi_segmentCurve.mNode,
 		                                                      tsb=True,
 		                                                      maximumInfluences = 3,
 		                                                      normalizeWeights = 1,dropoffRate=2.5)[0])
@@ -675,7 +678,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    i_controlSurfaceCluster.doName()
 	    """
 	    if len(ml_influenceJoints) == 2:
-		controlCurveSkinningTwoJointBlend(mi_splineCurve.mNode,start = ml_influenceJoints[0].mNode,
+		controlCurveSkinningTwoJointBlend(mi_segmentCurve.mNode,start = ml_influenceJoints[0].mNode,
 		                                  end = ml_influenceJoints[-1].mNode,tightLength=1,
 		                                  blendLength = int(len(jointList)/2))"""
 	    
@@ -690,7 +693,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    raise NotImplementedError,"createCGMSegment>>Haven't implemented having more than one mid influence object in a single chain yet!"
 	if ml_midObjects:
 	    #Create a dup constraint curve
-	    i_constraintCurve = mi_splineCurve.doDuplicate(True)
+	    i_constraintCurve = mi_segmentCurve.doDuplicate(True)
 	    i_constraintCurve.addAttr('cgmTypeModifier','constraint')
 	    
 	    #Skin it
@@ -734,7 +737,17 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	log.error("createCGMSegment>>Build aim constraints! | start joint: %s"%ml_jointList[0].getShortName())
 	raise StandardError,error   
     
-    return {'mi_splineCurve':mi_splineCurve,'mi_anchorStart':i_anchorStart,'mi_anchorEnd':i_anchorEnd,
+    #=======================================================================================  
+    try:#Store some necessary info to the segment curve
+	mi_segmentCurve.connectChildNode(i_anchorStart,'anchorStart','segmentCurve')
+	mi_segmentCurve.connectChildNode(i_anchorEnd,'anchorEnd','segmentCurve')
+	mi_segmentCurve.connectChildNode(i_attachStartNull,'attachStart','segmentCurve')
+	mi_segmentCurve.connectChildNode(i_attachEndNull,'attachEnd','segmentCurve')
+	
+    except StandardError,error:
+	log.error("createCGMSegment>>Info storage fail!")
+    
+    return {'mi_segmentCurve':mi_segmentCurve,'mi_anchorStart':i_anchorStart,'mi_anchorEnd':i_anchorEnd,
             'mi_constraintStartAim':i_startAimConstraint,'mi_constraintEndAim':i_endAimConstraint}
       
     
@@ -959,7 +972,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     ml_driverJoints = []
     for i,j in enumerate(l_driverJoints):
 	i_j = cgmMeta.cgmObject(j,setClass=True)
-	i_j.addAttr('cgmName',baseName,lock=True)
+	#i_j.addAttr('cgmName',baseName,lock=True)
 	i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
 	i_j.doName()
 	l_driverJoints[i] = i_j.mNode
@@ -976,8 +989,8 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     i_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
     i_segmentCurve.doName()
     if i_module:#if we have a module, connect vis
-	 i_segmentCurve.overrideEnabled = 1		
-	 cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
+	i_segmentCurve.overrideEnabled = 1		
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
 
     i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
     i_ikHandle.doName()
@@ -1128,7 +1141,9 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     ml_mainMDs = []
     for i,i_jnt in enumerate(ml_jointList[:-1]):
 	#Make some attrs
-	i_attr = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True)		
+	i_attrDist= cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True)
+	i_attrNormalBaseDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedBaseDistance_%s"%i,attrType = 'float',initialValue=0,lock=True)			
+	i_attrNormalDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedDistance_%s"%i,attrType = 'float',initialValue=0,lock=True)		
 	i_attrResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
 	i_attrTransformedResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
 	
@@ -1140,27 +1155,50 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	    log.error(error)
 	    raise StandardError,"Failed to store joint distance: %s"%i_distanceShapes[i].mNode
 	
-	#Create the mdNode
-	i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
-	i_md.operation = 2
-	i_md.doStore('cgmName',i_jnt.mNode)
-	i_md.addAttr('cgmTypeModifier','segmentScale')
-	i_md.doName()
+	#Create the normalized base distance
+	i_mdNormalBaseDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdNormalBaseDist.operation = 1
+	i_mdNormalBaseDist.doStore('cgmName',i_jnt.mNode)
+	i_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
+	i_mdNormalBaseDist.doName()
+	
+	attributes.doConnectAttr('%s.masterScale'%(i_jntScaleBufferNode.mNode),#>>
+	                         '%s.%s'%(i_mdNormalBaseDist.mNode,'input1X'))
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	                         '%s.%s'%(i_mdNormalBaseDist.mNode,'input2X'))	
+	i_attrNormalBaseDist.doConnectIn('%s.%s'%(i_mdNormalBaseDist.mNode,'output.outputX'))
+	
+	
+	
+	#Create the normalized distance
+	i_mdNormalDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdNormalDist.operation = 1
+	i_mdNormalDist.doStore('cgmName',i_jnt.mNode)
+	i_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
+	i_mdNormalDist.doName()
+	
+	attributes.doConnectAttr('%s.masterScale'%(i_jntScaleBufferNode.mNode),#>>
+	                         '%s.%s'%(i_mdNormalDist.mNode,'input1X'))
+	i_attrDist.doConnectOut('%s.%s'%(i_mdNormalDist.mNode,'input2X'))	
+	i_attrNormalDist.doConnectIn('%s.%s'%(i_mdNormalDist.mNode,'output.outputX'))
+	
+	
+	
+	"""
 	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
 	                         '%s.%s'%(i_md.mNode,'input1X'))
 	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
-	                         '%s.%s'%(i_md.mNode,'input2X'))
+	                         '%s.%s'%(i_md.mNode,'input2X'))"""
 	
 	#Create the mdNode
-	i_mdNormal = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
-	i_mdNormal.operation = 2
-	i_mdNormal.doStore('cgmName',i_jnt.mNode)
-	i_mdNormal.addAttr('cgmTypeModifier','segmentScaleNormal')
-	i_mdNormal.doName()
-	i_attrResult.doConnectOut('%s.%s'%(i_mdNormal.mNode,'input1X'))
-	attributes.doConnectAttr('%s.masterScale'%(i_jntScaleBufferNode.mNode),#>>
-	                         '%s.%s'%(i_mdNormal.mNode,'input2X'))	
-	i_attrTransformedResult.doConnectIn('%s.%s'%(i_mdNormal.mNode,'output.outputX'))
+	i_mdSegmentScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdSegmentScale.operation = 2
+	i_mdSegmentScale.doStore('cgmName',i_jnt.mNode)
+	i_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
+	i_mdSegmentScale.doName()
+	i_attrDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input1X'))	
+	i_attrNormalBaseDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input2X'))
+	i_attrResult.doConnectIn('%s.%s'%(i_mdSegmentScale.mNode,'output.outputX'))
 	
 	#Create the trans scale mdNode
 	"""
@@ -1179,30 +1217,28 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	                         "%s.t%s"%(ml_jointList[i+1].mNode,orientation[0]))"""
 	
 	#Connect to the joint
-	ml_distanceAttrs.append(i_attr)
+	ml_distanceAttrs.append(i_attrDist)
 	ml_resultAttrs.append(i_attrResult)
 	try:
+	    i_attrDist.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))		    
 	    #i_attrResultTScale.doConnectIn('%s.%s'%(i_mdTransScale.mNode,'output.outputX'))	    	    
 	    #i_attrResultTScale.doConnectOut("%s.t%s"%(ml_driverJoints[i+1].mNode,orientation[0]))	    
-	    i_attr.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))
-	    i_attrResult.doConnectIn('%s.%s'%(i_md.mNode,'output.outputX'))
 	    i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
-	    i_attrTransformedResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
-	    
-	    for axis in orientation[1:]:
-		attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
-		                         '%s.s%s'%(i_jnt.mNode,axis))	    
+	    i_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
+	    #for axis in orientation[1:]:
+		#i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,axis))	    
+		
 	except StandardError,error:
 	    log.error(error)
 	    raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
 		
-	ml_mainMDs.append(i_md)#store the md
+	ml_mainMDs.append(i_mdSegmentScale)#store the md
     
 	
 	
-	"""for axis in [orientation[1],orientation[2]]:
+	for axis in [orientation[1],orientation[2]]:
 	    attributes.doConnectAttr('%s.s%s'%(i_jnt.mNode,axis),#>>
-		                     '%s.s%s'%(ml_driverJoints[i].mNode,axis))"""	 	
+		                     '%s.s%s'%(ml_driverJoints[i].mNode,axis))	 	
 
 	
     #Connect last joint scale to second to last
@@ -2374,6 +2410,116 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
 		                     '%s.translate%s'%(i_jnt.mNode,aimChannel))	
 	    '''
 	ml_attrs.append(i_attr)
+	
+@r9General.Timer
+def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy = 'scale', orientation = 'zyx', moduleInstance = None):
+    """
+    """
+    #Good way to verify an instance list?
+    #validate orientation
+    outChannel = orientation[2].capitalize()
+    upChannel = orientation[1].capitalize()
+    aimChannel = orientation[0].capitalize()
+    
+    #moduleInstance
+    i_module = cgmGeneral.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    #attributeHolder
+    i_holder = cgmGeneral.validateObjArg(attributeHolder,cgmMeta.cgmBufferNode,noneValid=False)   
+    
+    #Initialize joint list
+    ml_jointList = cgmGeneral.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)   
+    
+    ml_scaleNodes = []
+    ml_sqrtNodes = []
+    ml_attrs = []
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	#make sure attr exists
+	i_attr = cgmMeta.cgmAttr(i_holder,"scaleMult_%s"%i,attrType = 'float',initialValue=1)
+	#outScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%outChannel)
+	#upScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%upChannel)
+	
+	if connectBy == 'translate':
+	    mainDriver = '%s.scaleResult_%s'%(i_holder.mNode,i)
+	else:
+	    mainDriver = '%s.scale%s'%(i_jnt.mNode,aimChannel)	
+	
+	"""    
+	#Create the multScale
+	i_mdScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdScale.operation = 2
+	i_mdScale.doStore('cgmName',i_jnt.mNode)
+	i_mdScale.addAttr('cgmTypeModifier','multScale')
+	i_mdScale.doName()
+	for channel in [outChannel,upChannel]:
+	    attributes.doConnectAttr(mainDriver,#>>
+		                     '%s.input1%s'%(i_mdScale.mNode,channel))
+	    attributes.doConnectAttr('%s'%(outScalePlug),#>>
+		                     '%s.input2%s'%(i_mdScale.mNode,channel))
+	#attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	"""
+	
+	#Create the sqrtNode
+	i_sqrtScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_sqrtScale.operation = 3#set to power
+	i_sqrtScale.doStore('cgmName',i_jnt.mNode)
+	i_sqrtScale.addAttr('cgmTypeModifier','sqrtScale')
+	i_sqrtScale.doName()
+	for channel in [outChannel,upChannel]:
+	    attributes.doConnectAttr(mainDriver,#>>
+	                             '%s.input1%s'%(i_sqrtScale.mNode,channel))	    
+	    """attributes.doConnectAttr('%s.output%s'%(i_mdScale.mNode,channel),#>>
+	                             '%s.input1%s'%(i_sqrtScale.mNode,channel))"""
+	    mc.setAttr("%s.input2"%(i_sqrtScale.mNode)+channel,.5)
+	    
+	#Create the invScale
+	i_invScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_invScale.operation = 2
+	i_invScale.doStore('cgmName',i_jnt.mNode)
+	i_invScale.addAttr('cgmTypeModifier','invScale')
+	i_invScale.doName()
+	for channel in [outChannel,upChannel]:
+	    mc.setAttr("%s.input1"%(i_invScale.mNode)+channel,1)	    
+	    attributes.doConnectAttr('%s.output%s'%(i_sqrtScale.mNode,channel),#>>
+	                             '%s.input2%s'%(i_invScale.mNode,channel))
+	
+	#Create the powScale
+	i_powScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_powScale.operation = 3
+	i_powScale.doStore('cgmName',i_jnt.mNode)
+	i_powScale.addAttr('cgmTypeModifier','powScale')
+	i_powScale.doName()
+	for channel in [outChannel,upChannel]:
+	    attributes.doConnectAttr('%s.output%s'%(i_invScale.mNode,channel),#>>
+		                     '%s.input1%s'%(i_powScale.mNode,channel))
+	    attributes.doConnectAttr('%s'%(i_attr.p_combinedName),#>>
+		                     '%s.input2%s'%(i_powScale.mNode,channel))
+	
+	"""
+	#Create the worldScale multiplier node
+	i_worldScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_worldScale.operation = 1
+	i_worldScale.doStore('cgmName',i_jnt.mNode)
+	i_worldScale.addAttr('cgmTypeModifier','worldScale')
+	i_worldScale.doName()
+	for channel in [outChannel,upChannel]:
+	    mc.setAttr("%s.input1"%(i_worldScale.mNode)+channel,1)
+	    #Connect powScale to the worldScale
+	    attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,channel),#>>
+	                             '%s.input1%s'%(i_worldScale.mNode,channel))
+	#Connect original plugs
+	attributes.doConnectAttr('%s'%(outScalePlug),#>>
+                                 '%s.input2%s'%(i_worldScale.mNode,outChannel))  
+	attributes.doConnectAttr('%s'%(upScalePlug),#>>
+                                 '%s.input2%s'%(i_worldScale.mNode,upChannel))""" 
+	
+	#Connect to joint
+	attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,outChannel),#>>
+                                 '%s.scale%s'%(i_jnt.mNode,outChannel))  
+	attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,upChannel),#>>
+                                 '%s.scale%s'%(i_jnt.mNode,upChannel)) 	
+	
+	ml_attrs.append(i_attr)
+
 
 @r9General.Timer
 def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy = 'scale', orientation = 'zyx', moduleInstance = None):
@@ -2556,5 +2702,277 @@ def copyAxisOptions(self,target):
     doSetUpAxis(self,target.optionUpAxis.get())
     doSetOutAxis(self,target.optionOutAxis.get())
     
+	
+@r9General.Timer
+def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',secondaryAxis = None,
+                               baseName ='test', moduleInstance = None):
+    """
+    """
+    if type(jointList) not in [list,tuple]:jointList = [jointList]
     
+    #Good way to verify an instance list?
+    #validate orientation
+    outChannel = orientation[2]
+    upChannel = '%sup'%orientation[1]
     
+    i_module = False
+    i_rigNull = False
+    if moduleInstance is not None:
+	if issubclass(type(moduleInstance),cgmPM.cgmModule):
+	    i_module = moduleInstance
+	    i_rigNull = i_module.rigNull
+	else:
+	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+	baseName = i_module.getPartNameBase()
+    
+    #Create our group
+    i_grp = cgmMeta.cgmObject(name = 'newgroup')
+    i_grp.addAttr('cgmName', str(baseName), lock=True)
+    i_grp.addAttr('cgmTypeModifier','surfaceFollow', lock=True)
+    i_grp.doName()
+    
+    ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]#Initialize original joints
+
+    if not moduleInstance:#if it is, we can assume it's right
+	if secondaryAxis is None:
+	    raise StandardError,"createControlSurfaceSegment>>> Must have secondaryAxis arg if no moduleInstance is passed"
+	for i_jnt in ml_jointList:
+	    """
+	    Cannot iterate how important this step is. Lost a day trying to trouble shoot why one joint chain worked and another didn't.
+	    WILL NOT connect right without this.
+	    """
+	    joints.orientJoint(i_jnt.mNode,orientation,secondaryAxis)
+	    
+
+    #Joints
+    #=========================================================================
+    #Create spline IK joints
+    #>>Surface chain    
+    l_splineIKJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
+    ml_splineIKJoints = []
+    for i,j in enumerate(l_splineIKJoints):
+	i_j = cgmMeta.cgmObject(j,setClass=True)
+	i_j.addAttr('cgmName',baseName,lock=True)
+	i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
+	i_j.doName()
+	l_splineIKJoints[i] = i_j.mNode
+	ml_splineIKJoints.append(i_j)
+
+    #Create Curve
+    i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver',setClass=True)
+    buffer = mc.ikHandle( sj=ml_splineIKJoints[0].mNode, ee=ml_splineIKJoints[-1].mNode,simplifyCurve=False,
+                          solver = i_splineSolver.mNode, ns = 4, rootOnCurve=True,forceSolver = True,
+                          createCurve = True,snapHandleFlagToggle=True )  
+    
+    i_segmentCurve = cgmMeta.cgmObject( buffer[2],setClass=True )
+    i_segmentCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    i_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
+    i_segmentCurve.doName()
+    if i_module:#if we have a module, connect vis
+	 i_segmentCurve.overrideEnabled = 1             
+	 cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
+
+    i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
+    i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+    
+    #Joints
+    #=========================================================================
+    ml_ = []
+    ml_pointOnCurveInfos = []
+    ml_upGroups = []
+    
+    #First thing we're going to do is create our follicles
+    shape = mc.listRelatives(i_segmentCurve.mNode,shapes=True)[0]
+    for i,i_jnt in enumerate(ml_jointList):   
+	l_closestInfo = distance.returnNearestPointOnCurveInfo(i_jnt.mNode,i_segmentCurve.mNode)
+	log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
+	#>>> """Follicle""" =======================================================
+	i_closestPointNode = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+	mc.connectAttr ((shape+'.worldSpace'),(i_closestPointNode.mNode+'.inputCurve')) 
+	
+	#> Name
+	i_closestPointNode.doStore('cgmName',i_jnt.mNode)
+	i_closestPointNode.doName()
+	#>Set follicle value
+	i_closestPointNode.parameter = l_closestInfo['parameter']
+	
+	ml_pointOnCurveInfos.append(i_closestPointNode)
+		
+	#if i_module:#if we have a module, connect vis
+	    #i_follicleTrans.overrideEnabled = 1                
+	    #cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
+	
+	
+	#>>> loc
+	#First part of full ribbon wist setup
+	if i_jnt != ml_jointList[-1]:
+	    i_upLoc = i_jnt.doLoc()#Make up Loc
+	    i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+	    i_locRotateGroup.parent = ml_splineIKJoints[i].mNode
+	    i_locRotateGroup.doStore('cgmName',i_jnt.mNode)         
+	    i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
+	    i_locRotateGroup.doName()
+	    
+	    #Store the rotate group to the joint
+	    i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
+	    i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+	    i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
+	    i_zeroGrp.doName()
+	    #connect some other data
+	    i_locRotateGroup.connectChildNode(i_locRotateGroup.parent,'zeroGroup')
+	    i_locRotateGroup.connectChildNode(i_upLoc,'upLoc')
+	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
+	    
+	    i_upLoc.parent = i_locRotateGroup.mNode
+	    mc.move(0,10,0,i_upLoc.mNode,os=True)       
+	    ml_upGroups.append(i_upLoc)
+	    
+	    if i_module:#if we have a module, connect vis
+		i_upLoc.overrideEnabled = 1             
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+	    
+	
+    #Orient constrain our last joint to our splineIK Joint
+    mc.orientConstraint(ml_splineIKJoints[-1].mNode,ml_jointList[-1].mNode,maintainOffset = True)
+    
+    #>>>Create scale stuff
+    #>>>Create IK effectors,Create distance nodes
+    l_iIK_effectors = []
+    l_iIK_handles = []  
+    l_iDistanceObjects = []
+    i_distanceShapes = []  
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	ik_buffer = mc.ikHandle (startJoint=i_jnt.mNode,
+                                 endEffector = ml_jointList[i+1].mNode,
+                                 setupForRPsolver = True, solver = 'ikRPsolver',
+                                 enableHandles=True )
+	#Handle
+	i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+	i_IK_Handle.parent = ml_splineIKJoints[i+1].mNode
+	i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+	i_IK_Handle.doName()
+	
+	#Effector
+	i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
+	#i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+	i_IK_Effector.doName()
+	
+	l_iIK_handles.append(i_IK_Handle)
+	l_iIK_effectors.append(i_IK_Effector)
+	
+	if i_module:#if we have a module, connect vis
+	    i_IK_Handle.overrideEnabled = 1             
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	
+	#>> Distance nodes
+	i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+	i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
+	i_distanceObject.doStore('cgmName',i_jnt.mNode)
+	i_distanceObject.addAttr('cgmType','measureNode',lock=True)
+	i_distanceObject.doName(nameShapes = True)
+	i_distanceObject.parent = i_grp.mNode#parent it
+	i_distanceObject.overrideEnabled = 1
+	i_distanceObject.overrideVisibility = 1
+	
+	#Connect things
+	mc.connectAttr ((ml_pointOnCurveInfos[i].mNode+'.position'),(i_distanceShape.mNode+'.startPoint'))
+	mc.connectAttr ((ml_pointOnCurveInfos[i+1].mNode+'.position'),(i_distanceShape.mNode+'.endPoint'))
+	
+	l_iDistanceObjects.append(i_distanceObject)
+	i_distanceShapes.append(i_distanceShape)
+	
+	if i_module:#Connect hides if we have a module instance:
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	
+    #>> Second part for the full twist setup
+    aimChannel = orientation[0]  
+    fixOptions = [0,90,180,-90,-180]      
+
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	rotBuffer = mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)
+	log.info("rotBuffer: %s"%rotBuffer)
+	#Create the poleVector
+	poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,l_iIK_handles[i].mNode)      
+	optionCnt = 0
+	while not cgmMath.isFloatEquivalent((mc.getAttr(i_jnt.mNode+'.r'+aimChannel)),0):
+	    log.info("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
+	    log.info ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
+	    attributes.doSetAttr(l_iIK_handles[i].mNode,'twist',fixOptions[optionCnt])
+	    optionCnt += 1
+	    if optionCnt == 4:
+		raise StandardError,"failed to find a good twist value to zero out poleVector: %s"%(i_jnt.getShortName())
+	    
+	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
+	    log.info("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
+    
+    #>>>Hook up scales
+    #==========================================================================
+    #Translate scale
+    #Buffer
+    i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
+    i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
+    i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
+    i_jntScaleBufferNode.doName()
+    
+    i_jntScaleBufferNode.connectParentNode(i_segmentCurve.mNode,'segmentCurve','scaleBuffer')
+    ml_mainMDs = []
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	
+	#Store our distance base to our buffer
+	try:i_jntScaleBufferNode.store(i_distanceShapes[i].distance)#Store to our buffer
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to store joint distance: %s"%i_distanceShapes[i].mNode
+	
+	#Create the mdNode
+	i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_md.operation = 2
+	i_md.doStore('cgmName',i_jnt.mNode)
+	i_md.addAttr('cgmTypeModifier','masterScale')
+	i_md.doName()
+	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
+                                 '%s.%s'%(i_md.mNode,'input1X'))
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+                                 '%s.%s'%(i_md.mNode,'input2X'))
+	
+	#Connect to the joint
+	i_attr = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True)                
+	i_attrResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)       
+	try:
+	    i_attr.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))
+	    i_attrResult.doConnectIn('%s.%s'%(i_md.mNode,'output.outputX'))
+	    i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
+	    
+	    for axis in orientation[1:]:
+		attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
+	                                 '%s.s%s'%(i_jnt.mNode,axis))       
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
+		
+	ml_mainMDs.append(i_md)#store the md
+	for axis in ['scaleX','scaleY','scaleZ']:
+	    attributes.doConnectAttr('%s.%s'%(i_jnt.mNode,axis),#>>
+	                             '%s.%s'%(ml_splineIKJoints[i].mNode,axis))         
+
+	
+    #Connect last joint scale to second to last
+    for axis in ['scaleX','scaleY','scaleZ']:
+	attributes.doConnectAttr('%s.%s'%(ml_jointList[-2].mNode,axis),#>>
+                                 '%s.%s'%(ml_jointList[-1].mNode,axis))  
+	
+    mc.pointConstraint(ml_splineIKJoints[0].mNode,ml_jointList[0].mNode,maintainOffset = False)
+    
+    #Store info to the segment curve
+    
+    #>>> Store em all to our instance
+    i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
+    i_segmentCurve.connectChildrenNodes(ml_jointList,'bindJoints','segmentCurve')       
+    i_segmentCurve.connectChildrenNodes(ml_splineIKJoints,'splineIKJoints','segmentCurve')   
+	
+    return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,
+            'l_splineIKJoints':[i_jnt.getShortName() for i_jnt in ml_splineIKJoints],'ml_splineIKJoints':ml_splineIKJoints,
+            'scaleBuffer':i_jntScaleBufferNode.mNode,'mi_scaleBuffer':i_jntScaleBufferNode,
+            'l_joints':jointList,'ml_joints':ml_jointList}
+
+
