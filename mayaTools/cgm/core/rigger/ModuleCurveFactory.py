@@ -272,9 +272,9 @@ class go(object):
 		                                      points = 8,
 		                                      curveDegree=3,
 		                                      insetMult = .2,
-		                                      posOffset = [0,0,self._skinOffset*1.8],
+		                                      posOffset = [0,0,self._skinOffset*1.2],
 		                                      joinMode=True,
-		                                      extendMode='radial')
+		                                      extendMode='disc')
 		mi_crv = returnBuffer['instance']	    
 		#>>> Color
 		curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])                    
@@ -295,6 +295,7 @@ class go(object):
 	    returnBuffer = createWrapControlShape(self.l_segments[-1],self._targetMesh,
 	                                          points = 8,
 	                                          curveDegree=3,
+	                                          insetMult = .2,
 	                                          posOffset = [0,0,self._skinOffset],
 	                                          joinMode=True,
 	                                          extendMode='segment')
@@ -397,6 +398,9 @@ def createWrapControlShape(targetObjects,
     2) Get initial curves
     3) Store info
     4) return
+    
+    TODO:
+    Change offsets to use lathe axis rather than 
     """  
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
     if not targetGeo:
@@ -404,7 +408,9 @@ def createWrapControlShape(targetObjects,
     assert type(points) is int,"Points must be int: %s"%points
     assert type(curveDegree) is int,"Points must be int: %s"%points
     assert curveDegree > 0,"Curve degree must be greater than 1: %s"%curveDegree
-    
+    for axis in ['x','y','z']:
+	if axis in latheAxis.lower():latheAxis = axis
+	
     log.debug("targetObjects: %s"%targetObjects)
     
     #>>> Info
@@ -426,7 +432,8 @@ def createWrapControlShape(targetObjects,
 	    if insetMult is not None:
 		rootDistanceToMove = distance.returnDistanceBetweenObjects(targetObjects[0],targetObjects[1])
 		log.debug("rootDistanceToMove: %s"%rootDistanceToMove)
-		mi_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
+		mi_rootLoc.__setattr__('t%s'%latheAxis,rootDistanceToMove*insetMult)
+		#mi_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
 	    
 	    for i,obj in enumerate(targetObjects[1:]):
 		log.debug(i)
@@ -438,7 +445,9 @@ def createWrapControlShape(targetObjects,
 		    if insetMult is not None:
 			distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[-1],targetObjects[0])
 			log.debug("distanceToMove: %s"%distanceToMove)
-			mi_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
+			#mi_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
+			mi_endLoc.__setattr__('t%s'%latheAxis,-(distanceToMove*insetMult))
+			
 		d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True) 
 		l_sliceReturns.append(d_endCastInfo)
 		mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
@@ -446,14 +455,39 @@ def createWrapControlShape(targetObjects,
 		mc.delete(mi_endLoc.parent)#delete the loc
 	    
     elif extendMode == 'radial':
-	d_handleOuterInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True) 
-	mi_buffer = cgmMeta.cgmObject(d_handleOuterInfo['curve'])#instance curve	
-	l_sliceReturns.append(d_handleOuterInfo)
-	il_curvesToCombine.append(mi_buffer)    
+	    d_handleInner = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True) 
+	    mi_buffer = cgmMeta.cgmObject(d_handleInner['curve'])#instance curve	
+	    l_sliceReturns.append(d_handleInner)
+	    il_curvesToCombine.append(mi_buffer)    
+	       
+    elif extendMode == 'disc':
+	log.debug("disc mode")
+	d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
+	discOffset = d_size[ d_size.keys()[0]]*.05
+	log.debug("d_size: %s"%d_size)
+	log.debug("discOffset is: %s"%discOffset)
+	
+	mi_rootLoc.__setattr__('t%s'%latheAxis,discOffset)
+	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True) 
+	mi_buffer = cgmMeta.cgmObject(d_handleInnerUp['curve'])#instance curve	
+	l_sliceReturns.append(d_handleInnerUp)
+	il_curvesToCombine.append(mi_buffer) 
+	
+	mi_rootLoc.__setattr__('t%s'%latheAxis,-discOffset)
+	d_handleInnerDown = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True) 
+	mi_buffer = cgmMeta.cgmObject(d_handleInnerDown['curve'])#instance curve	
+	l_sliceReturns.append(d_handleInnerDown)
+	il_curvesToCombine.append(mi_buffer) 
+	
+	mi_rootLoc.tz = 0
+	
 	
     #Now cast our root since we needed to move it with segment mode before casting 
     d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True)  
-    l_sliceReturns.insert(0,d_rootCastInfo)
+    if extendMode == 'disc':
+	l_sliceReturns.insert(1,d_rootCastInfo)	
+    else:
+	l_sliceReturns.insert(0,d_rootCastInfo)
     mi_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])#instance curve
     il_curvesToCombine.append(mi_root)    
     
