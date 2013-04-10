@@ -416,6 +416,9 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
 	    else:
 		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
+	else:
+	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
+	    
     except StandardError,error:
 	log.error("ModuleControlFactory.registerControl>>freeze fail")
 	raise StandardError,error
