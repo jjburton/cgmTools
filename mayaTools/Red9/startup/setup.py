@@ -15,7 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__=1.292
+__buildVersionID__=1.30
 
 import sys
 import os
@@ -45,6 +45,7 @@ log.setLevel(logging.INFO)
   2013 SP1      .  2013  .  201301  .    2.6.4     4.7.1  .  2013
   2013 SP2      .  2013  .  ??????  .    2.6.4     4.7.1  .  2013
   2013 EXT      .  2013  .  201350  .    2.6.4     4.7.1  .  2013.5  plugin recompile needed
+  2013 EXT2     .  2013  .  201350  .    2.6.4     4.7.1  .  2013.5  plugin recompile needed
   2014          .  2014  .  201400  .    2.6.4     4.8.2  .  2014
 
 -------------------------------------------------------------------
@@ -89,7 +90,8 @@ def menuSetup():
 
     cmds.menu('redNineMenuItemRoot', l="RedNine",p='MayaWindow',tearOff=True, allowOptionBoxes=True)
     #Add the main Menu items
-    cmds.menuItem('redNineAnimItem',l="AnimationToolkit",ann="Main Red9 Animation Toolkit",
+    cmds.menuItem('redNineAnimItem',l="AnimationToolkit",
+                  ann="Main Red9 Animation Toolkit - Note: CTRL+click opens this non-docked",
                   p='redNineMenuItemRoot', echoCommand=True,
                   c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.AnimationUI.show()")
     cmds.menuItem('redNineSnapItem',l="Simple Snap",ann="Simple Snap transforms",

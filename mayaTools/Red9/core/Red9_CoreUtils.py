@@ -22,10 +22,6 @@ import maya.OpenMaya as OpenMaya
 from functools import partial
 import re
 import random
-#import ConfigParser
-
-#import sys
-#import os
 
 import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup
@@ -58,7 +54,6 @@ def prioritizeNodeList(nList,priorityList,regex=True):
     in the given priority list are moved to the front of the list
     @param nList: main input list
     @param priorityList: list which is used to prioritize/order the main nList  
-    TODO: add a method to this to sort by hierarchy depth?
     '''            
     stripped=[nodeNameStrip(node) for node in nList] #stripped back to nodeName
     reordered=[]

@@ -2,23 +2,42 @@ Red9 Studio Pack ChangeLog:
 ===========================
 
 v1.29:
-
-- Red9_Anim - PoseLib now supports subfolders in the UI
-- Red9_Anim - CameraTracker now in the Red9 Menu - generates an auto tracked, or panned, camera focusing on the selected node - very usefuyl for visualizing moCap
-- Red9_Meta - metaHUDNode added - designed as a debug tool to enable you to easily monitor attributes in a managed HUD in the Maya viewports. Any attrs added to the mNode is monitored and added to the drawHud call. This is work in progress
-- Red9_Anim - AnimtionFunctions now has a function for bindNodes, uses the same filtering and matching setups as all the rest of the code and allows you to bind full filtered hierarchies together, either direct connects or parentConstraints
-- Red9_Anim - All animFunctions now accept matchMethod as an arg, this allows you to either accept 'prefix stripping' in any node matches or use 'base' = name for name exact match.
-- Red9_Anim - PoseLib subfolders bug fixes so that you can sync subfolders to project libraries with the 'CopyLocal>>Project Pose' RMB call. This makes the missing subFolder if it's missing in the Project structure
-- Red9_General - Timer decorator now shows module/class and func in the report feedback
-- Red9_Meta - Added **KWS update support to the addAttr call, if the attr exists and you've passed in kws then these will get synced and updated if in the internal 'valid edit kws' list. Great for use in the __bindData__ call to sync properties.
-- Red9_Core - Added more logic to the main MatchedNodeInputs call. Now allows you to pass in 2 hierarchies directly for processing. This means you can by-pass the filter processing in all animation Functions and pass 2 hierarchies directly in for processing!
+------
+New - Red9_Anim - PoseLib now supports subfolders in the UI
+New - Red9_Anim - CameraTracker now in the Red9 Menu - generates an auto tracked, or panned, camera focusing on the selected node - very usefuyl for visualizing moCap
+New - Red9_Meta - metaHUDNode added - designed as a debug tool to enable you to easily monitor attributes in a managed HUD in the Maya viewports. Any attrs added to the mNode is monitored and added to the drawHud call. This is work in progress
+Mod - Red9_Anim - AnimtionFunctions now has a function for bindNodes, uses the same filtering and matching setups as all the rest of the code and allows you to bind full filtered hierarchies together, either direct connects or parentConstraints
+Mod - Red9_Anim - All animFunctions now accept matchMethod as an arg, this allows you to either accept 'prefix stripping' in any node matches or use 'base' = name for name exact match.
+Fix - Red9_Anim - PoseLib subfolders bug fixes so that you can sync subfolders to project libraries with the 'CopyLocal>>Project Pose' RMB call. This makes the missing subFolder if it's missing in the Project structure
+Mod - Red9_General - Timer decorator now shows module/class and func in the report feedback
+Mod - Red9_Meta - Added **KWS update support to the addAttr call, if the attr exists and you've passed in kws then these will get synced and updated if in the internal 'valid edit kws' list. Great for use in the __bindData__ call to sync properties.
+Mod - Red9_Core - Added more logic to the main MatchedNodeInputs call. Now allows you to pass in 2 hierarchies directly for processing. This means you can by-pass the filter processing in all animation Functions and pass 2 hierarchies directly in for processing!
 
 1.291:
-- Red9_Meta - type 'unicode' value's weren't being supported correctly in the setAttr func
-- Red9_Anim - MirrorSetup - loadMirror was failing to load custom Axis correctly
+------
+Fix - Red9_Meta - type 'unicode' value's weren't being supported correctly in the setAttr func
+Fix - Red9_Anim - MirrorSetup - loadMirror was failing to load custom Axis correctly.
 
 1.292:
-- Red9_Meta - isChildNode() wasn't ealing with longNames correctly
-- Red9_PoseSaver - batchPatchPoses() modified to make it more flexible. added arg to stop it always resaving the pose after patchfunc has been run. also now passing poseFile back into patchfunc
-- Red9_PoseSaver - poseHandler.py support added! - This is a BIG deal for TD's out there as it gives you access to all the internal node handling at a sub-folder level. Allows you to fully customize the pose behaviour on a folder basis!
+------
+Fix - Red9_Meta - isChildNode() wasn't dealing with longNames correctly
+Mod - Red9_PoseSaver - batchPatchPoses() modified to make it more flexible. added arg to stop it always resaving the pose after patchfunc has been run. also now passing poseFile back into patchfunc
+New - Red9_PoseSaver - poseHandler.py support added! - This is a BIG deal for TD's out there as it gives you access to all the internal node handling at a sub-folder level. Allows you to fully customize the pose behaviour on a folder basis!
+Fix - Red9_Anim - PoseUI wasn't remembering the last subFolderyou were in.
 
+1.293:
+------
+New - Red9_Anim - PoseUI now has a RMB Make Directory call
+New - Red9_Anim - PoseUI now has a 'Debug:Copy poseHandler.py to Folder'. This is an avanced option for by-passing the node handlers on a folder by folder basis!
+Mod - Red9_Anim - 'Ctrl' click when launching the AnimationUI will boot it non-docked
+Mod - Red9_Meta - Calls that previously only took an mType/mInstance as a [string] arg now also accept the class too... so r9Meta.getMetaNodes('MetaRig') and r9Meta.getMetaRig(r9Meta.MetaRig) both are accepted.
+Mod - Red9_Meta - getChildren now takes an additional arg 'cAttrs' which can be used to only return children connected via a given attr name (this uses wildcards and will take a list)
+
+1.294:
+------
+Fix - Red9_Anim - added full traceback to the error handling in the AnimUI
+Fix - Red9_Meta - added full traceback to the error handling in the nodeLockManager and thus the main class
+Fix - Red9_Meta - setAttr wasn't raising errors due to the decorator. Patched
+Mod - Red9_Meta - updated MetaHUD, simplified event handler, now connected to refresh by default
+New - Red9_Meta - Added HUD wrappers now being called by the ChannelBox RMB menu - gives you access to the MetaHud monitors and makes the setup more integrated
+Fix - Red9_Meta - Bug fix in the getConnectedMetaNodes. This was returning connected mNodes via all attrs, not just those connected via message links. Hence if 2 mNodes were connected via tx that would have passed through, which is wrong!

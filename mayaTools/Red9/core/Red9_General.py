@@ -458,6 +458,19 @@ def thumbnailApiFromView(filename, width, height, compression='bmp', modelPanel=
     image.writeToFile(filename, compression)
     log.info('API Thumbname call path : %s' % filename)
 
+
+def getModifier():
+    '''
+    return the modifier key pressed
+    '''
+    mods = cmds.getModifiers()
+    if (mods & 1) > 0: return 'Shift'
+    if (mods & 2) > 0: return 'CapsLock'
+    if (mods & 4) > 0: return 'Ctrl'
+    if (mods & 8) > 0: return 'Alt'
+    else:
+        return False
+
     
 # OS functions ---
 #---------------------------------------------------------------------------------

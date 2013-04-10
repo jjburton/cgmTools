@@ -69,6 +69,7 @@ import Red9_Meta as r9Meta
 from functools import partial
 import os
 import random
+import sys
 
 import Red9.packages.configobj as configobj
 #import configobj
@@ -234,7 +235,7 @@ def eulerSelected():
 class AnimationUI(object):
     
     def __init__(self, dockUI=True):
-        self.buttonBgc = r9Setup.red9ButtonBGC(1)#[0.6, 0.8, 0.6]
+        self.buttonBgc = r9Setup.red9ButtonBGC(1)
         self.win = 'Red9AnimToolsWin'
         self.dockCnt = 'Red9AnimToolsDoc'
         self.label = 'Red9 AnimationTools'
@@ -255,8 +256,8 @@ class AnimationUI(object):
         self.poseGridMode='thumb'  # or text
         self.poseRootMode='RootNode' # or MetaRig
         self.poses=None
-        self.poseButtonBGC=[0.27,0.3,0.3]         #[0.2,0.25,0.25] 
-        self.poseButtonHighLight=[0.7,0.95,0.75]  #[0.6, 0.9,0.65]
+        self.poseButtonBGC=[0.27,0.3,0.3]        
+        self.poseButtonHighLight=[0.7,0.95,0.75]  
         
         #Internal config file setup for the UI state
         if self.internalConfigPath:
@@ -268,7 +269,11 @@ class AnimationUI(object):
 
     @classmethod
     def show(cls):
-        cls()._showUI() 
+        animUI=cls()
+        if r9General.getModifier()=='Ctrl':
+            print 'False'
+            animUI.dock=False
+        animUI._showUI() 
            
     def _showUI(self):
         try:
@@ -617,8 +622,8 @@ class AnimationUI(object):
                                             ann='PosePath SubFolders', 
                                             text="", 
                                             bl='SubFolders',
-                                            bc=lambda * x:self.__switchSubFolders(),
-                                            #cc=lambda * x:self.__setSubFolder(),
+                                            bc=lambda * x:self.__uiCB_switchSubFolders(),
+                                            #cc=lambda * x:self.__uiCB_setSubFolder(),
                                             ed=False,
                                             cw=[(1,190),(2,40)])
         cmds.button(label='Clear', 
@@ -749,7 +754,7 @@ class AnimationUI(object):
                 cmds.window(self.win, edit=True, widthHeight=(355, 600))
         else:
             cmds.showWindow(animwindow)
-            cmds.window(self.win, edit=True, widthHeight=(355, 600))
+            cmds.window(self.win, edit=True, widthHeight=(355, 720))
             
         #Set the initial Interface up
         self.__uiPresetsUpdate()
@@ -875,8 +880,6 @@ class AnimationUI(object):
     def __uiPresetSelection(self, Read=True):
         '''
         Fill the UI from on config preset file select in the UI
-        TODO: possibly anyway, we could add to the preset.cfg so that the initial posePath came from 
-        the preset file. All we'd have to do would be to fill the self.ANIM_UI_OPTVARS['AnimationUI']['posePath']
         '''
         if Read:
             preset = cmds.textScrollList(self.uitslPresets, q=True, si=True)[0]
@@ -956,8 +959,9 @@ class AnimationUI(object):
         self.__uiPresetFillFilter()
         self.__uiCache_storeUIElements()
     
+    
     #------------------------------------------------------------------------------ 
-    #PoseSaver Callbacks ----------------------------------------------------------
+    #PoseSaver Path Management Callbacks ------------------------------------------
    
     def setPoseSelected(self,val=None,*args):
         '''
@@ -1079,7 +1083,9 @@ class AnimationUI(object):
         self.__uiCB_pathSwitchInternals()
           
     def __uiCB_pathSwitchInternals(self):           
-    
+        '''
+        fill the UI Cache and update the poses in eth UI
+        '''
         self.__uiCB_fillPoses(rebuildFileList=True)
     
         #fill the cache up for the ini file
@@ -1092,8 +1098,9 @@ class AnimationUI(object):
  
  
     #SubFolder Pose Calls ----------   
-    def __switchSubFolders(self,*args):
+    def __uiCB_switchSubFolders(self,*args):
         '''
+        switch the scroller from pose mode to subFolder select mode
         note we prefix the folder with '/' to help denote it's a folder in the UI
         '''
         basePath=cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True)
@@ -1110,9 +1117,12 @@ class AnimationUI(object):
         for subdir in dirs:
             cmds.textScrollList(self.uitslPoseSubFolders, edit=True, 
                                             append='/%s' % subdir,
-                                            sc=partial(self.__setSubFolder))
+                                            sc=partial(self.__uiCB_setSubFolder))
             
-    def __setSubFolder(self,*args):
+    def __uiCB_setSubFolder(self,*args):
+        '''
+        Select a subFolder from the scrollList and update the systems
+        '''
         basePath=cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True)
         subFolder=cmds.textScrollList(self.uitslPoseSubFolders, q=True,si=True)[0].split('/')[-1]
         
@@ -1120,7 +1130,8 @@ class AnimationUI(object):
         cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)
         self.posePath=os.path.join(basePath,subFolder)
         self.__uiCB_pathSwitchInternals()
-          
+
+                  
     def __uiCB_clearSubFolders(self,*args):
         cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)
         self.__uiCB_setPosePath()
@@ -1132,9 +1143,11 @@ class AnimationUI(object):
         try:
             return cmds.textFieldButtonGrp('uitfgPoseSubPath',q=True,text=True)
         except:
-            return ""
-                  
-    #Main Management Calls ---------
+            return ""          
+
+    #------------------------------------------------------------------------------
+    #Build Pose UI calls  -------------------------------------------------------     
+              
     def __uiCB_getPosePath(self):
         '''
         Return the full posePath for loading
@@ -1190,8 +1203,7 @@ class AnimationUI(object):
             cmds.textScrollList(self.uitslPoses, edit=True, vis=False)
             cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=True)
             self.__uiCB_gridResize()
-            
-                
+              
             #Clear the Grid if it's already filled
             try:
                 [cmds.deleteUI(button) for button in cmds.gridLayout(self.uiglPoses,q=True,ca=True)]
@@ -1233,22 +1245,25 @@ class AnimationUI(object):
             enableState=False
 
         self.posePopup = cmds.popupMenu(parent=parentUI)                    
-        cmds.menuItem(label='Delete Pose', en=enableState, command=partial(self.__uiCB_deletePose))
-        cmds.menuItem(label='Rename Pose', en=enableState, command=partial(self.__uiCB_renamePose))
-        cmds.menuItem(label='Update Pose', en=enableState, command=partial(self.__uiCB_updatePose))
-        cmds.menuItem(label='Select IntenalPose Objects', command=partial(self.__uiCB_selectPoseObjects))
+        cmds.menuItem(label='Delete Pose', en=enableState, command=partial(self.__uiPoseDelete))
+        cmds.menuItem(label='Rename Pose', en=enableState, command=partial(self.__uiPoseRename))
+        cmds.menuItem(label='Update Pose', en=enableState, command=partial(self.__uiPoseUpdate))
+        cmds.menuItem(label='Select IntenalPose Objects', command=partial(self.__uiPoseSelectObjects))
+        cmds.menuItem(label='Make Subfolder', en=enableState,command=partial(self.__uiPoseMakeSubFolder))  
         cmds.menuItem(divider=True)
-        cmds.menuItem(label='Debug: Open Pose File', command=partial(self.__uiCB_openPoseFile))
-        cmds.menuItem(label='Debug: Open Pose Directory', command=partial(self.__uiCB_openPoseDir))
-        cmds.menuItem(label='Debug: Pose Compare with current', command=partial(self.__uiCB_poseCompare))
+        cmds.menuItem(label='Debug: Open Pose File', command=partial(self.__uiPoseOpenFile))
+        cmds.menuItem(label='Debug: Open Pose Directory', command=partial(self.__uiPoseOpenDir))
+        cmds.menuItem(label='Debug: Pose Compare with current', command=partial(self.__uiPoseCompare))
+        cmds.menuItem(label='Debug: Copy poseHandler.py to folder', en=enableState,command=partial(self.__uiPoseAddPoseHandler))  
         cmds.menuItem(divider=True)
-        cmds.menuItem(label='Copy Pose >> Project Poses', en=enableState,command=partial(self.__uiCB_copyPoseToProject))     
+        cmds.menuItem(label='Copy Pose >> Project Poses', en=enableState,command=partial(self.__uiPoseCopyToProject))     
+        
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Switch Pose Mode - Thumb/Text', command=partial(self.__uiCB_switchPoseMode))
 
         if self.poseGridMode=='thumb':
             cmds.menuItem(divider=True)
-            cmds.menuItem(label='Update Thumb', command=partial(self.__uiCB_updateThumb))
+            cmds.menuItem(label='Update Thumb', command=partial(self.__uiPoseUpdateThumb))
             cmds.menuItem(label='Grid Size: Small', command=partial(self.__uiCB_setPoseGrid,'small'))
             cmds.menuItem(label='Grid Size: Medium', command=partial(self.__uiCB_setPoseGrid,'medium'))
             cmds.menuItem(label='Grid Size: Large', command=partial(self.__uiCB_setPoseGrid,'large'))
@@ -1289,7 +1304,9 @@ class AnimationUI(object):
             log.debug('this call FAILS in 2009???') 
     
     
-    #Main Function Wrappers ------------        
+    #------------------------------------------------------------------------------
+    #Main Pose Function Wrappers --------------------------------------------------  
+      
     def __uiCB_switchPoseMode(self,*args):
         '''
         Toggle PoseField mode between Grid mode and TextScroll
@@ -1323,120 +1340,7 @@ class AnimationUI(object):
                                         '%s.pose' % name)
             except ValueError,error:
                 raise ValueError(error)
-                
-    def __uiCB_deletePose(self,*args):
-        self.__validatePoseFunc('DeletePose')
-        result = cmds.confirmDialog(
-                title='Confirm Pose Delete',
-                button=['Yes', 'Cancel'],
-                message='confirm deletion of pose file: "%s"' % self.poseSelected,
-                defaultButton='Yes',
-                cancelButton='Cancel',
-                dismissString='Cancel')
-        if result == 'Yes':
-            try:
-                os.remove(self.__uiCB_getPosePath())
-            except:
-                log.info('Failed to Delete PoseFile')
-            try:
-                os.remove(self.__uiCB_getIconPath())
-            except:
-                log.info('Failed to Delete PoseIcon')
-            self.__uiCB_fillPoses(rebuildFileList=True)
-        
-    def __uiCB_renamePose(self,*args):
-        try:
-            newName=self.__uiCB_savePosePath(self.getPoseSelected())
-        except ValueError,error:
-            raise ValueError(error)
-        try:
-            os.rename(self.__uiCB_getPosePath(), newName)
-            os.rename(self.__uiCB_getIconPath(), '%s.bmp' % newName.split('.pose')[0])
-        except:
-            log.info('Failed to Rename Pose')
-        self.__uiCB_fillPoses(rebuildFileList=True)  
-        pose=os.path.basename(newName.split('.pose')[0])
-        self.__uiCB_selectPose(pose)   
-        
-    def __uiCB_openPoseFile(self,*args):
-        import subprocess
-        path=os.path.normpath(self.__uiCB_getPosePath())
-        subprocess.Popen('notepad "%s"' % path)
-        
-    def __uiCB_openPoseDir(self,*args):
-        import subprocess
-        #path=os.path.normpath(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True))
-        path=os.path.normpath(os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),
-                              self.__uiCB_getsubFolderFromUI()))
-        subprocess.Popen('explorer "%s"' % path)
-     
-    def __uiCB_updatePose(self,*args):
-        self.__validatePoseFunc('UpdatePose')
-        result = cmds.confirmDialog(
-                title='PoseUpdate',
-                message=('<< Replace & Update Pose file >>\n\n%s' % self.poseSelected),
-                button=['OK', 'Cancel'],
-                defaultButton='OK',
-                cancelButton='Cancel',
-                dismissString='Cancel')
-        if result == 'OK':
-            try:
-                os.remove(self.__uiCB_getIconPath())
-            except:
-                log.debug('unable to delete the Pose Icon file')
-            self.__PoseSave(self.__uiCB_getPosePath())
-            self.__uiCB_selectPose(self.poseSelected)   
-    
-    def __uiCB_updateThumb(self,*args):
-        sel=cmds.ls(sl=True,l=True)
-        cmds.select(cl=True)
-        thumbPath=self.__uiCB_getIconPath()
-        if os.path.exists(thumbPath):
-            try:
-                os.remove(thumbPath)
-            except:
-                log.error('Unable to delete the Pose Icon file')
-        r9General.thumbNailScreen(thumbPath,128,128)
-        if sel:
-            cmds.select(sel)
-        self.__uiCB_fillPoses()
-        self.__uiCB_selectPose(self.poseSelected)   
-
-    def __uiCB_poseCompare(self,*args):
-
-        mPoseA=r9Pose.PoseData()
-        mPoseA.metaPose=True
-        mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
-        compare=r9Pose.PoseCompare(mPoseA,self.__uiCB_getPosePath(),compareDict='skeletonDict')
-        
-        if not compare.compare():
-            info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
-        else:
-            info='Poses are the same'
-        cmds.confirmDialog( title='Pose Compare Results',
-                            button=['Close'],
-                            message=info,
-                            defaultButton='Close',
-                            cancelButton='Close',
-                            dismissString='Close')
-        
-
-    def __uiCB_selectPoseObjects(self,*args): 
-        '''
-        Select matching internal nodes
-        '''
-        rootNode=cmds.textFieldButtonGrp('uitfgPoseRootNode',q=True,text=True)
-        if rootNode and cmds.objExists(rootNode):  
-            self.__uiPresetFillFilter() #fill the filterSettings Object
-            pose=r9Pose.PoseData(self.filterSettings)
-            pose._readPose(self.__uiCB_getPosePath())
-            nodes=pose.matchInternalPoseObjects(rootNode)
-            if nodes:
-                cmds.select(cl=True)
-                [cmds.select(node,add=True) for node in nodes]
-        else:
-            raise StandardError('RootNode not Set for Hierarchy Processing')
-           
+   
     def __uiCB_setPoseRootNode(self):
         '''
         This changes the mode for the Button that fills in rootPath in the poseUI
@@ -1505,8 +1409,143 @@ class AnimationUI(object):
     def __uiCB_enableRelativeSwitches(self):
         self.__uiCache_addCheckbox('uicbPoseRelative')
         cmds.frameLayout(self.uiflPoseRelativeFrame, e=True,en=cmds.checkBox(self.uicbPoseRelative,q=True,v=True))
+   
+                
+    def __uiPoseDelete(self,*args):
+        self.__validatePoseFunc('DeletePose')
+        result = cmds.confirmDialog(
+                title='Confirm Pose Delete',
+                button=['Yes', 'Cancel'],
+                message='confirm deletion of pose file: "%s"' % self.poseSelected,
+                defaultButton='Yes',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+        if result == 'Yes':
+            try:
+                os.remove(self.__uiCB_getPosePath())
+            except:
+                log.info('Failed to Delete PoseFile')
+            try:
+                os.remove(self.__uiCB_getIconPath())
+            except:
+                log.info('Failed to Delete PoseIcon')
+            self.__uiCB_fillPoses(rebuildFileList=True)
+        
+    def __uiPoseRename(self,*args):
+        try:
+            newName=self.__uiCB_savePosePath(self.getPoseSelected())
+        except ValueError,error:
+            raise ValueError(error)
+        try:
+            os.rename(self.__uiCB_getPosePath(), newName)
+            os.rename(self.__uiCB_getIconPath(), '%s.bmp' % newName.split('.pose')[0])
+        except:
+            log.info('Failed to Rename Pose')
+        self.__uiCB_fillPoses(rebuildFileList=True)  
+        pose=os.path.basename(newName.split('.pose')[0])
+        self.__uiCB_selectPose(pose)   
+        
+    def __uiPoseOpenFile(self,*args):
+        import subprocess
+        path=os.path.normpath(self.__uiCB_getPosePath())
+        subprocess.Popen('notepad "%s"' % path)
+        
+    def __uiPoseOpenDir(self,*args):
+        import subprocess
+        #path=os.path.normpath(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True))
+        path=os.path.normpath(os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),
+                              self.__uiCB_getsubFolderFromUI()))
+        subprocess.Popen('explorer "%s"' % path)
+     
+    def __uiPoseUpdate(self,*args):
+        self.__validatePoseFunc('UpdatePose')
+        result = cmds.confirmDialog(
+                title='PoseUpdate',
+                message=('<< Replace & Update Pose file >>\n\n%s' % self.poseSelected),
+                button=['OK', 'Cancel'],
+                defaultButton='OK',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+        if result == 'OK':
+            try:
+                os.remove(self.__uiCB_getIconPath())
+            except:
+                log.debug('unable to delete the Pose Icon file')
+            self.__PoseSave(self.__uiCB_getPosePath())
+            self.__uiCB_selectPose(self.poseSelected)   
     
-    def __uiCB_copyPoseToProject(self,*args):
+    def __uiPoseUpdateThumb(self,*args):
+        sel=cmds.ls(sl=True,l=True)
+        cmds.select(cl=True)
+        thumbPath=self.__uiCB_getIconPath()
+        if os.path.exists(thumbPath):
+            try:
+                os.remove(thumbPath)
+            except:
+                log.error('Unable to delete the Pose Icon file')
+        r9General.thumbNailScreen(thumbPath,128,128)
+        if sel:
+            cmds.select(sel)
+        self.__uiCB_fillPoses()
+        self.__uiCB_selectPose(self.poseSelected)   
+
+    def __uiPoseCompare(self,*args):
+
+        mPoseA=r9Pose.PoseData()
+        mPoseA.metaPose=True
+        mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
+        compare=r9Pose.PoseCompare(mPoseA,self.__uiCB_getPosePath(),compareDict='skeletonDict')
+        
+        if not compare.compare():
+            info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
+        else:
+            info='Poses are the same'
+        cmds.confirmDialog( title='Pose Compare Results',
+                            button=['Close'],
+                            message=info,
+                            defaultButton='Close',
+                            cancelButton='Close',
+                            dismissString='Close')
+        
+    def __uiPoseSelectObjects(self,*args): 
+        '''
+        Select matching internal nodes
+        '''
+        rootNode=cmds.textFieldButtonGrp('uitfgPoseRootNode',q=True,text=True)
+        if rootNode and cmds.objExists(rootNode):  
+            self.__uiPresetFillFilter() #fill the filterSettings Object
+            pose=r9Pose.PoseData(self.filterSettings)
+            pose._readPose(self.__uiCB_getPosePath())
+            nodes=pose.matchInternalPoseObjects(rootNode)
+            if nodes:
+                cmds.select(cl=True)
+                [cmds.select(node,add=True) for node in nodes]
+        else:
+            raise StandardError('RootNode not Set for Hierarchy Processing')
+      
+    def __uiPoseMakeSubFolder(self,*args):
+        '''
+        Insert a new SubFolder to the posePath, makes the dir and sets 
+        it up in the UI to be the current active path
+        '''
+        basePath=cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True)
+        if not os.path.exists(basePath):
+            raise StandardError('Base Pose Path is inValid or not yet set')
+        result = cmds.promptDialog(
+                title='New Folder Name',
+                message='Enter Name:',
+                button=['OK', 'Cancel'],
+                defaultButton='OK',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+        if result == 'OK':   
+            subFolder=cmds.promptDialog(query=True, text=True)
+            cmds.textFieldButtonGrp('uitfgPoseSubPath',edit=True,text=subFolder)
+            self.posePath=os.path.join(basePath,subFolder)
+            os.mkdir(self.posePath)
+            self.__uiCB_pathSwitchInternals()
+                
+    def __uiPoseCopyToProject(self,*args):
         '''
         Copy local pose to the Project Pose Folder
         '''
@@ -1544,6 +1583,40 @@ class AnimationUI(object):
             shutil.copy2(self.__uiCB_getIconPath(),projectPath)
         except:
             raise StandardError('Unable to copy pose : %s > to Project dirctory' % self.poseSelected)
+                     
+    def __uiPoseAddPoseHandler(self,*args):
+        '''
+        Copy local pose to the Project Pose Folder
+        '''
+        import shutil      
+        if not os.path.exists(self.posePath):
+            raise StandardError('Project Pose Path is inValid or not yet set')
+        if os.path.exists(os.path.join(self.posePath,'poseHandler.py')):
+            raise StandardError('This folder already contains a poseHandler.py file!!')
+        #default template poseHandler.py file
+        poseHandlerTemplate=os.path.join(r9Setup.red9ModulePath(),'examples','poseHandler.py')
+        
+        result = cmds.confirmDialog(
+                    title='Add Template poseHanlder.py?',
+                    message='WARNING : Advanced Option:\
+                            \n===========================\
+                            \n\nThis will copy a template poseHandler.py file into\
+                            \nthe current folder.\
+                            \n\nThis allows you to by-pass the default Node handlers\
+                            \nand gives you full control over how the node handler deals\
+                            \nwith nodes for ALL POSES in this specific folder',
+                    button=['Proceed', 'Abort'],
+                    defaultButton='Abort',
+                    cancelButton='Abort',
+                    dismissString='Abort')
+        if result == 'Proceed':
+            log.info('Copying template poseHandler.py into folder' )
+            try:
+                shutil.copy2(poseHandlerTemplate,self.posePath)
+            except:
+                raise StandardError('Unable to copy poseHandler.py to directory' % self.posePath)
+            
+        
         
     #------------------------------------------------------------------------------
     #UI Elements ConfigStore Callbacks --------------------------------------------  
@@ -1562,7 +1635,6 @@ class AnimationUI(object):
             ConfigObj.filename = self.ui_optVarConfig
             ConfigObj.write()
         
-    
     def __uiCache_loadUIElements(self):
         '''
         Restore the main UI elements from the ini file
@@ -1590,8 +1662,8 @@ class AnimationUI(object):
                 self.posePathLocal=AnimationUI['posePathLocal']
             if AnimationUI.has_key('posePathProject') and AnimationUI['posePathProject']:
                 self.posePathProject=AnimationUI['posePathProject']                
-            #if AnimationUI.has_key('poseSubPath') and AnimationUI['poseSubPath']:
-            #    cmds.textFieldButtonGrp('uitfgPoseSubPath',edit=True,text=AnimationUI['poseSubPath'])
+            if AnimationUI.has_key('poseSubPath') and AnimationUI['poseSubPath']:
+                cmds.textFieldButtonGrp('uitfgPoseSubPath',edit=True,text=AnimationUI['poseSubPath'])
                 
             if AnimationUI.has_key('poseRoot') and AnimationUI['poseRoot']:
                 if cmds.objExists(AnimationUI['poseRoot']):
@@ -1611,8 +1683,7 @@ class AnimationUI(object):
             log.warning(err)
         finally:
             self.uiBoot=False
-             
-             
+                
     def __uiCache_readUIElements(self):
         '''
         read the config ini file for the initial state of the ui
@@ -1634,6 +1705,7 @@ class AnimationUI(object):
             self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes']={}
         self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes'][checkbox]=cmds.checkBox(checkbox,q=True,v=True)
         self.__uiCache_storeUIElements()
+        
         
         
     # MAIN UI FUNCTION CALLS
@@ -1892,9 +1964,12 @@ class AnimationUI(object):
                 self.__SymmetryPoseAnim(func)
             elif func =='SymmetryAnim':
                 self.__SymmetryPoseAnim(func)
-
+                
         except StandardError, error:
-            raise StandardError(error)
+            traceback = sys.exc_info()[2] #get the full traceback
+            raise StandardError, StandardError(error), traceback
+        #except StandardError, error:
+        #    raise StandardError(error)
         
         #close chunk
         if mel.eval('getApplicationVersionAsFloat') < 2011:
@@ -2918,9 +2993,7 @@ class MirrorHierarchy(object):
                     
                    
 class MirrorSetup(object):
-    '''
-    DAMN ROUGH Mirror Handler UI for internal use only until I clean it up!
-    '''
+
     def __init__(self):
         self.mirrorClass=MirrorHierarchy()
         self.mirrorClass.settings.hierarchy=True
@@ -3124,6 +3197,7 @@ class MirrorSetup(object):
             self.mirrorClass.loadMirrorSetups(filepath=filepath)
         else:
             self.mirrorClass.loadMirrorSetups(filepath=filepath, nodes=cmds.ls(sl=True,l=True))
+
 
 
 class CameraTracker():

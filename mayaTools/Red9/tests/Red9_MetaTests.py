@@ -103,6 +103,18 @@ class Test_MetaClass():
         assert isinstance(self.MClass.Facial,r9Meta.MetaFacialRig)
         assert self.MClass.Facial.mNode=='FacialNode'
         
+    def test_addChildMetaNode_ClassAttr(self):
+        '''
+        add a new MetaNode as a child of self, passing in class rather than a string
+        '''
+        newMFacial=self.MClass.addChildMetaNode(r9Meta.MetaFacialRig,attr='Facial',nodeName='FacialNode') 
+        assert isinstance(newMFacial,r9Meta.MetaFacialRig)
+        assert newMFacial.mNode=='FacialNode'
+        assert cmds.listConnections('%s.Facial' % self.MClass.mNode,c=True,p=True)==['MetaClass_Test.Facial',
+                                                                                     'FacialNode.MetaClass_Test'] 
+        assert isinstance(self.MClass.Facial,r9Meta.MetaFacialRig)
+        assert self.MClass.Facial.mNode=='FacialNode'
+             
     def test_connectionsTo_MetaNodes_child(self):   
         '''
         Test how the code handles connections to other MetaNodes
@@ -597,6 +609,8 @@ class Test_Generic_SearchCalls():
         assert r9Meta.isMetaNode('MetaRig_Test', mTypes='MetaRig')
         assert not r9Meta.isMetaNode('MetaRig_Test', mTypes='MonkeyBollox')
         assert not r9Meta.isMetaNode('MetaRig_Test', mTypes='MetaFacialRigSupport_Test')
+        assert r9Meta.isMetaNode('MetaRig_Test', mTypes=[r9Meta.MetaRig])
+        assert r9Meta.isMetaNode('MetaRig_Test', mTypes=r9Meta.MetaRig)
         cube1=cmds.ls(cmds.polyCube()[0],l=True)[0]
         assert not r9Meta.isMetaNode(cube1)
         
@@ -604,7 +618,10 @@ class Test_Generic_SearchCalls():
         assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaRig')
         assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaClass')
         assert not r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaRigSubSystem')
-    
+        assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test',r9Meta.MetaRig)
+        assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test',r9Meta.MetaClass)
+        assert not r9Meta.isMetaNodeInherited('MetaFacialRig_Test',r9Meta.MetaRigSubSystem)
+        
     def test_getMetaNodes(self):
         nodes=sorted(r9Meta.getMetaNodes(),key=lambda x: x.mClass.upper())
         assert [n.mClass for n in nodes]==['MetaClass','MetaFacialRig','MetaFacialRigSupport','MetaRig','MetaRigSupport']
@@ -616,6 +633,15 @@ class Test_Generic_SearchCalls():
         
         nodes=r9Meta.getMetaNodes(dataType=None, mTypes=['MetaRig'])
         assert nodes==['MetaRig_Test']
+    
+    def test_getMetaNodes_mTypesAsClass(self):
+        #mTypes test passing in Class rather than string
+        nodes=sorted(r9Meta.getMetaNodes(mTypes=[r9Meta.MetaRig,r9Meta.MetaFacialRig]),key=lambda x: x.mClass.upper())
+        assert [n.mClass for n in nodes]==['MetaFacialRig','MetaRig']
+        
+        nodes=r9Meta.getMetaNodes(dataType=None, mTypes=[r9Meta.MetaRig])
+        assert nodes==['MetaRig_Test']
+        
         
     def test_getMetaNodes_mInstances(self):
         #mInstances tests
@@ -629,6 +655,19 @@ class Test_Generic_SearchCalls():
                                                   'MetaFacialRig_Test',
                                                   'MetaRigSupport_Test',
                                                   'MetaRig_Test']  
+    def test_getMetaNodes_mInstancesAsClass(self):
+        #mInstances tests passing in Class rather than string
+        nodes=r9Meta.getMetaNodes(dataType=None, mInstances=[r9Meta.MetaRig])
+        assert nodes==['MetaFacialRig_Test', 'MetaRig_Test']
+        nodes=r9Meta.getMetaNodes(mInstances=[r9Meta.MetaRig])
+        assert [n.mNodeID for n in nodes]==['MetaFacialRig_Test', 'MetaRig_Test']
+        nodes=r9Meta.getMetaNodes(mInstances=[r9Meta.MetaClass])
+        assert sorted([n.mNode for n in nodes])==['MetaClass_Test',
+                                                  'MetaFacialRigSupport_Test',
+                                                  'MetaFacialRig_Test',
+                                                  'MetaRigSupport_Test',
+                                                  'MetaRig_Test']  
+        
     def test_getMetaNodes_mAttrs(self):
         assert r9Meta.getMetaNodes(mAttrs='version=1')[0].mNodeID=='MetaRig_Test'
                    
