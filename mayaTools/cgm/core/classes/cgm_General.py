@@ -28,6 +28,7 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core.classes import cgm_General as cgmGeneral
 from cgm.lib import (lists,
                      search,
                      attributes)
@@ -51,7 +52,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	    if arg in [None,False]:
 		raise StandardError,"validateObjArg>>> arg cannot be None"
 	else:
-	    if arg in [None,False]:return True
+	    if arg in [None,False]:return False
 	
 	if issubclass(argType,r9Meta.MetaClass):#we have an instance already
 	    i_arg = arg
@@ -59,21 +60,21 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	    raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg	
 	elif mType is not None:
 	    i_autoInstance = r9Meta.MetaClass(arg)
-	    if issubclass(type(i_autoInstance),mType):
+	    if issubclass(type(i_autoInstance),mType):#if it's a subclass ofour mType, good to go
 		return i_autoInstance
 	    elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
-		raise StandardError,"validateObjArg>>> Not correct mType: mType:%s != %s"%(type(i_autoInstance),mType)	
-	    log.info("validateObjArg>>> Initializing as mType: %s"%mType)	
+		raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)	
+	    log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
 	    i_arg =  mType(arg)
 	else:
-	    log.info("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
+	    log.debug("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
 	    i_arg = default_mType(arg)
 	
 	return i_arg
     except StandardError,error:
 	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
-	raise StandardError,error
-
+	raise StandardError,error    
+    
 def unittest_validateObjArg():
     i_node = cgmMeta.cgmNode(nodeType='transform')
     i_obj = cgmMeta.cgmObject(nodeType='transform')
@@ -108,7 +109,17 @@ def unittest_validateObjArg():
     i_null.delete()
     i_node.delete()
     i_obj.delete()
-
+    
+def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmMeta.cgmNode):
+    try:
+	if type(l_args) not in [list,tuple]:l_args = [l_args]
+	returnList = []
+	for arg in l_args:
+	    returnList.append(validateObjArg(arg,mType,noneValid,default_mType))
+	return returnList
+    except StandardError,error:
+	log.error("validateObjListArg>>Failure! l_args: %s | mType: %s"%(l_args,mType))
+	raise StandardError,error    
 
 def validateAttrArg(arg,defaultType = 'float',**kws):
     """
