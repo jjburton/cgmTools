@@ -25,7 +25,7 @@ from Red9.core import Red9_General as r9General
 #from cgm.lib.classes import NameFactory as OLD_Name
 #reload(OLD_Name)
 from cgm.core.lib import nameTools
-
+reload(nameTools)
 from cgm.lib.ml import (ml_resetChannels)
 reload(ml_resetChannels)
 
@@ -416,15 +416,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    #if enum is not None:
 		#valueCarry = value
 		#value = enum	    
-	    
-	    if self.hasAttr(attr):#Quick create check for initial value
+	    if mc.objExists("%s.%s"%(self.mNode,attr)):#Quick create check for initial value
 		initialCreate = False
 		if self.isReferenced():
 		    log.warning('This is a referenced node, cannot add attr')
 		    return False		
 	    else:
 		initialCreate = True
-		
 		if value is None and initialValue is not None:#If no value and initial value, use it
 		    value = initialValue
 		    	    
@@ -3337,6 +3335,7 @@ class NameFactory(object):
 	else:raise StandardError,"NameFactory.doNameObject >> node doesn't exist: '%s'"%node
 	log.debug("Naming: '%s'"%i_node.getShortName())
         nameCandidate = self.returnUniqueGeneratedName(node = i_node, fastIterate=fastIterate,**kws)
+	log.debug("nameCandidate: %s"%nameCandidate)
 	mc.rename(i_node.mNode,nameCandidate)
         #i_node.rename(nameCandidate)
 	
