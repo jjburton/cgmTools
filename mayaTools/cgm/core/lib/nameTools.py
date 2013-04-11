@@ -166,22 +166,20 @@ def returnCombinedNameFromDict(nameDict):
         buffer = nameDict.get(item)
         buffer = search.returnTagInfoShortName(buffer,item)
         if buffer > 0 and buffer != 'ignore':
-            if '|' or '[' or ']' in buffer:
-                bufferList = list(buffer)
-                for i in buffer:
-                    if i == '[' or i == ']' or i == '|':
-                        bufferList.remove(i) 
-                    elif i == '.':
-                        cnt = buffer.index(i)
-                        bufferList.pop(cnt)
-                        bufferList.insert(cnt,'_')
-                    elif i == ':':
-                        cnt = bufferList.index(i)
-                        bufferList.pop(cnt)
-                        bufferList.insert(cnt,'to')
-                buffer = ''.join(bufferList)
-                
-            nameBuilder.append(buffer)
+            #if '|' or '[' or ']' in buffer:
+            bufferList = list(buffer)
+            #log.info("buffer: %s"%buffer)
+            returnList = []
+            for i,n in enumerate(bufferList):
+                if n == '.':
+                    returnList.append('_')
+                elif n in [';',':']:
+                    returnList.append('to')
+                elif n not in ['[',']','|']:
+                    returnList.append(str(n))
+                else:
+                    log.info("nameTools.returnCombinedNameFromDict>> Not sure what to do with: %s"%n)                
+            nameBuilder.append(''.join(returnList))
     
     return divider.join(nameBuilder)
 
