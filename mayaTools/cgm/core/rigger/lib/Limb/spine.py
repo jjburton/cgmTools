@@ -132,7 +132,8 @@ def build_rigSkeleton(self):
 		else:i_new.parent = False
 		i_new.rotateOrder = 'zxy'#<<<<<<<<<<<<<<<<This would have to change for other orientations
 		ml_influenceJoints.append(i_new)
-		
+	for i_jnt in ml_influenceJoints:
+	    i_jnt.parent = False		
 	#>>> Store em all to our instance
 	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','module')
 	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','module')	
@@ -327,6 +328,18 @@ def build_deformation(self):
 	
 	log.info("curveSegmentReturn: %s"%curveSegmentReturn)
 	self._i_rigNull.connectChildrenNodes([curveSegmentReturn['mi_segmentCurve']],'segmentCurves','module')	
+	
+	"""
+	for o in  [ml_influenceJoints[1].mNode,
+	           curveSegmentReturn['mi_segmentCurve'].mNode,
+	           ml_influenceJoints[0].mNode,
+	           ml_influenceJoints[-1].mNode,
+	           ml_segmentHandles[1].mNode,
+	           self._partName,
+	           self._jointOrientation]:
+	    log.info(o)
+	return"""
+	
 	midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
 	                                           segmentCurve = curveSegmentReturn['mi_segmentCurve'],
 	                                           baseParent=ml_influenceJoints[0],
@@ -437,8 +450,8 @@ def build_rig(self):
     #Connect rig pelvis to anchor pelvis
     mc.pointConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
     mc.orientConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
-    #mc.scaleConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
-    mc.connectAttr((ml_anchorJoints[0].mNode+'.s'),(ml_rigJoints[0].mNode+'.s'))
+    mc.scaleConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)#Maybe hips
+    #mc.connectAttr((ml_anchorJoints[0].mNode+'.s'),(ml_rigJoints[0].mNode+'.s'))
     
     
     l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
@@ -456,6 +469,13 @@ def build_rig(self):
     mc.orientConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
     #mc.scaleConstraint(ml_influenceJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
     mc.connectAttr((ml_anchorJoints[-1].mNode+'.s'),(ml_rigJoints[-2].mNode+'.s'))
+    
+    #Set up heirarchy, connect master scale
+    #====================================================================================
+    #Vis Network, lock and hide
+    #====================================================================================
+    
+    
     
     #Final stuff
     self._i_rigNull.version = __version__
