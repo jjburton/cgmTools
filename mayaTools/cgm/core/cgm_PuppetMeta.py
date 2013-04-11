@@ -137,7 +137,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         return True
     
     #@r9General.Timer
-    def __verify__(self,name = ''):
+    def __verify__(self,name = None):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -149,11 +149,13 @@ class cgmPuppet(cgmMeta.cgmNode):
         #============== 
 	log.debug(1)
         self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
-        self.addAttr('cgmName',name, attrType='string', lock = True)
+        if name is not None and name:
+	    self.addAttr('cgmName',name, attrType='string', lock = True)
         
         self.addAttr('cgmType','puppetNetwork')
         self.addAttr('version',initialValue = 1.0, lock=True)  
         self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
+        self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
         self.addAttr('moduleChildren',attrType = 'message',lock=True) 
 	
 	#Settings
@@ -178,9 +180,11 @@ class cgmPuppet(cgmMeta.cgmNode):
         else:
             log.debug('Master null exists. linking....')            
             self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
+	    log.debug('self.i_masterNull: %s'%self.i_masterNull)
 	    self.i_masterNull.__verify__()
+	    #self.masterNull.__verify__()
         if self.i_masterNull.getShortName() != self.cgmName:
-            self.i_masterNull.doName()
+            self.masterNull.doName()
             if self.i_masterNull.getShortName() != self.cgmName:
                 log.warning("Master Null name still doesn't match what it should be.")
                 return False
@@ -363,7 +367,54 @@ class cgmPuppet(cgmMeta.cgmNode):
 	return pFactory.getState(self) 
     
     def isCustomizable(self):
-	return False    
+	return False 
+    
+    @r9General.Timer
+    def _verifyMasterControl(self,**kws):
+	""" 
+	"""    
+	# Master Curve
+	#==================================================================
+	try:
+	    masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
+	    if mc.objExists( masterControl ):
+		#If exists, initialize it
+		log.debug('masterControl exists')                                    	    
+		i_masterControl = self.masterControl
+	    else:#Make it
+		log.debug('Creating masterControl')                                    
+		i_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
+		#self.masterControl = self.i_masterControl.mNode
+		log.debug('Verifying')
+		i_masterControl.__verify__()
+	    i_masterControl.parent = self.masterNull.mNode
+	    i_masterControl.doName()
+	    
+	except StandardError,error:
+	    log.error("_verifyMasterControl>> masterControl fail! "%error)
+	    raise StandardError,error 
+	
+	# Vis setup
+	# Setup the vis network
+	#====================================================================
+	try:
+	    if not i_masterControl.hasAttr('controlVis') or not i_masterControl.getMessage('controlVis'):
+		log.error("This is an old master control or the vis control has been deleted. rebuild")
+	    else:
+		iVis = i_masterControl.controlVis
+		visControls = 'left','right','sub','main'
+		visArg = [{'result':[iVis,'leftSubControls_out'],'drivers':[[iVis,'left'],[iVis,'subControls'],[iVis,'controls']]},
+		          {'result':[iVis,'rightSubControls_out'],'drivers':[[iVis,'right'],[iVis,'subControls'],[iVis,'controls']]},
+		          {'result':[iVis,'subControls_out'],'drivers':[[iVis,'subControls'],[iVis,'controls']]},		      
+		          {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
+		          {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
+		           ]
+		nf.build_mdNetwork(visArg)
+	except StandardError,error:
+	    log.error("_verifyMasterControl>> visNetwork fail! "%error)
+	    raise StandardError,error 	
+	log.debug("Verified: '%s'"%self.cgmName)  
+	return True
     
 class cgmMorpheusPuppet(cgmPuppet):
     pass
@@ -875,7 +926,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
     def __verify__(self,*args,**kws):
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
-            log.debug("Puppet provided!")
+            log.info("Puppet provided!")
             log.debug(puppet.cgmName)
             log.debug(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
@@ -889,7 +940,6 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	if kws and 'name' in kws.keys():
 	    self.addAttr('cgmName', kws.get('name'), attrType = 'string')
 	    
-	self.addAttr('cgmType','controlMaster',attrType = 'string')
 	self.addAttr('cgmType','controlMaster',attrType = 'string')
 	self.addAttr('axisAim',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = False, hidden=True)
 	self.addAttr('axisUp',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = False, hidden=True)
@@ -938,9 +988,9 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	    self.controlVis.addAttr('subControls', attrType = 'bool',keyable = False,initialValue= 1)
 	    self.controlVis.addAttr('skeleton', attrType = 'bool',keyable = False,initialValue= 1)
 	    self.controlVis.addAttr('geo', attrType = 'bool',keyable = False,initialValue= 1)
-	    
 	    #>>> Settings Control
 	    settingsControl = attributes.returnMessageObject(self.mNode,'controlSettings')
+	    
 	    if not mc.objExists( settingsControl ):
 		log.debug('Creating settingsControl')
 		buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 225, controls = ['controlSettings'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
@@ -951,8 +1001,6 @@ class cgmMasterControl(cgmMeta.cgmObject):
 		self.controlSettings = i_c.mNode #Link it	
 		
 		attributes.doConnectAttr(('%s.settingsControl'%self.mNode),('%s.v'%i_c.mNode),True)
-	
-
 	self.doName()
 	return True
     
@@ -963,6 +1011,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	"""
 	log.debug('>>> rebuildControlCurve')
 	shapes = self.getShapes()
+	self.color =  modules.returnSettingsData('colorMaster',True)
 	
 	#>>> Figure out the control size 	
 	if size == None:#
