@@ -1786,10 +1786,10 @@ def returnMessageObject(storageObject, messageAttr):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     attrBuffer = (storageObject+'.'+messageAttr)
-    if mc.addAttr(attrBuffer,q=True,m=True):
-	log.warning("'%s' is a multi message attr. Use returnMessageData"%attrBuffer)
-	return False
     if mc.objExists(attrBuffer) == True:
+	if mc.addAttr(attrBuffer,q=True,m=True):
+	    log.warning("'%s' is a multi message attr. Use returnMessageData"%attrBuffer)
+	    return False
         messageObject = (mc.listConnections (attrBuffer))
         if messageObject != None:
             if mc.objExists(messageObject[0]) and not mc.objectType(messageObject[0])=='reference':
