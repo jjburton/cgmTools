@@ -1031,8 +1031,13 @@ class cgmMeta_Test():
         log.info('>'*3 + " Assertions on the masterNull on IOPuppet...")
         assert Puppet.masterNull.getShortName() == Puppet2.masterNull.getShortName()
         assert Puppet.masterNull.puppet == Puppet2.masterNull.puppet
-
-
+        
+        try:
+	    Puppet2.__verify__()
+	except StandardError,error:
+		log.error("test_cgmPuppet>>Puppet2.__verify() Failed!  %s"%error)
+		raise StandardError,error 
+			
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
         log.info("="*70)                         
 
