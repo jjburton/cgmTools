@@ -188,11 +188,8 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    i_orientGroup.addAttr('cgmTypeModifier','orient',lock=True)
 	    i_orientGroup.doName()
 	    
-	    if i_control != i_obj:#Parent our control if we have one
-		i_control.parent = i_orientGroup.mNode
-		i_control.doGroup(True)
-		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
-		
+	    i_obj.parent = False#since stuff is gonna move, we'll parent back at end
+	    
 	    #=============================================================	
 	    #>>>PointTargets
 	    #linear follow
@@ -200,6 +197,9 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    i_linearFollowNull.addAttr('cgmType','linearFollow',attrType='string',lock=True)
 	    i_linearFollowNull.doName()
 	    #i_linearFollowNull.parent = i_anchorStart.mNode     
+	    i_linearPosNull = i_obj.duplicateTransform()
+	    i_linearPosNull.addAttr('cgmType','linearPos',attrType='string',lock=True)
+	    i_linearPosNull.doName()
 	    
 	    #splineFollow
 	    i_splineFollowNull = i_obj.duplicateTransform()
@@ -249,16 +249,15 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    i_closestLinearPointNode.parameter = l_closestInfo['parameter']
 	    mc.connectAttr ((i_closestLinearPointNode.mNode+'.position'),(i_linearFollowNull.mNode+'.translate'))
 	    ml_pointOnCurveInfos.append(i_closestLinearPointNode) 	    
-
+	    i_linearPosNull.parent = i_linearFollowNull.mNode#paren the pos obj
 	
 	except StandardError,error:
 	    log.error("addCGMSegmentSubControl>>Build transforms fail! | obj: %s"%i_obj.getShortName())
 	    raise StandardError,error 	
-	
 	 
 	#=============================================================	
 	try:#>>> point Constrain
-	    cBuffer = mc.pointConstraint([i_splineFollowNull.mNode,i_linearFollowNull.mNode],
+	    cBuffer = mc.pointConstraint([i_splineFollowNull.mNode,i_linearPosNull.mNode],
 		                          i_followGroup.mNode,
 		                          maintainOffset = True, weight = 1)[0]
 	    i_pointConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
@@ -391,9 +390,14 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    raise StandardError,error 	
 	
 	#Parent at very end to keep the joint from moving
-	if i_control != i_obj:
-	    i_obj.parent = i_control.mNode	    
 	
+	if i_control != i_obj:#Parent our control if we have one
+	    i_control.parent = i_orientGroup.mNode
+	    i_control.doGroup(True)
+	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
+	    i_obj.parent = i_control.mNode
+	else:
+	    i_obj.parent = i_orientGroup.mNode
 
 	
 
@@ -729,7 +733,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	                           maintainOffset = True, weight = 1,
 	                           aimVector = aimVectorNegative,
 	                           upVector = upVector,
-	                           worldUpObject = i_startUpNull.mNode,
+	                           worldUpObject = i_endUpNull.mNode,
 	                           worldUpType = 'object' ) 
 	i_endAimConstraint = cgmMeta.cgmNode(cBuffer[0],setClass=True)  
 	
