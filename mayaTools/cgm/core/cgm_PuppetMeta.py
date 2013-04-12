@@ -375,24 +375,30 @@ class cgmPuppet(cgmMeta.cgmNode):
 	"""    
 	# Master Curve
 	#==================================================================
-	try:
-	    masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
-	    if mc.objExists( masterControl ):
-		#If exists, initialize it
-		log.debug('masterControl exists')                                    	    
-		i_masterControl = self.masterControl
-	    else:#Make it
-		log.debug('Creating masterControl')                                    
-		i_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
-		#self.masterControl = self.i_masterControl.mNode
-		log.debug('Verifying')
-		i_masterControl.__verify__()
-	    i_masterControl.parent = self.masterNull.mNode
-	    i_masterControl.doName()
-	    
+	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
+	if mc.objExists( masterControl ):
+	    #If exists, initialize it
+	    log.debug('masterControl exists')                                    	    
+	    i_masterControl = self.masterControl
+	else:#Make it
+	    log.debug('Creating masterControl')  
+	    #Get size
+	    if self.getGeo():
+		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
+		log.info("averageBBSize: %s"%averageBBSize)
+		kws['size'] = 100 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TODO - replace when we have full character
+	    elif 'size' not in kws.keys():kws['size'] = 50
+	    log.info("kws['size']: %s"%kws['size'])
+	    i_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
+	    #self.masterControl = self.i_masterControl.mNode
+	    log.debug('Verifying')
+	    i_masterControl.__verify__()
+	i_masterControl.parent = self.masterNull.mNode
+	i_masterControl.doName()
+	"""    
 	except StandardError,error:
 	    log.error("_verifyMasterControl>> masterControl fail! "%error)
-	    raise StandardError,error 
+	    raise StandardError,error """
 	
 	# Vis setup
 	# Setup the vis network
