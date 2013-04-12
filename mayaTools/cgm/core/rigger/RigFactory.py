@@ -80,6 +80,12 @@ class go(object):
         self._i_module = moduleInstance# Link for shortness
 	self._i_module.__verify__()
 	self._cgmClass = 'RigFactory.go'
+	
+	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
+	if not self._i_module.modulePuppet._verifyMasterControl():
+	    raise StandardError,"RigFactory.go.init masterControl failed to verify"
+	
+	self._i_masterControl = self._i_module.modulePuppet.masterControl
         """
         if moduleInstance.hasControls():
             if forceNew:
