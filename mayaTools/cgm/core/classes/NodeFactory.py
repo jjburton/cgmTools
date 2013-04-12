@@ -28,7 +28,6 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core.classes import cgm_General as cgmGeneral
 from cgm.lib import (lists,
                      search,
                      attributes)
@@ -46,9 +45,9 @@ def createSingleBlendNetwork(driver, result1, result2, maxValue = 1,minValue = 0
     """
     
     #Create the mdNode
-    d_driver = cgmGeneral.validateAttrArg(driver,**kws)
-    d_result1 = cgmGeneral.validateAttrArg(result1,lock=True,**kws)    
-    d_result2 = cgmGeneral.validateAttrArg(result2,lock=True,**kws) 
+    d_driver = cgmMeta.validateAttrArg(driver,**kws)
+    d_result1 = cgmMeta.validateAttrArg(result1,lock=True,**kws)    
+    d_result2 = cgmMeta.validateAttrArg(result2,lock=True,**kws) 
     
     for d in [d_driver,d_result1,d_result2]:
 	d['mi_plug'].p_maxValue = maxValue
@@ -453,10 +452,10 @@ def createAverageNode(drivers,driven = None,operation = 3):
     if type(drivers) not in [list,tuple]:raise StandardError,"createAverageNode>>> drivers arg must be list"
     l_driverReturns = []
     for d in drivers:
-	l_driverReturns.append(cgmGeneral.validateAttrArg(d))
+	l_driverReturns.append(cgmMeta.validateAttrArg(d))
     d_driven = False
     if driven is not None:
-	d_driven = cgmGeneral.validateAttrArg(driven)
+	d_driven = cgmMeta.validateAttrArg(driven)
     
     if d_driven:
 	drivenCombined =  d_driven['combined']

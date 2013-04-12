@@ -50,28 +50,64 @@ from cgm.lib import (distance,
                      joints,
                      cgmMath)
 #>>> Utilities
-#===================================================================					  
+#===================================================================
+def addCGMDynamicGroup(target = None, parentTargets = None,
+                       mode = None):
+    
+    #>>> Check our args
+    #====================================================================
+    i_target = cgmMeta.validateObjListArg(target,cgmMeta.cgmObject,noneValid=False)
+    i_parentTargets = cgmMeta.validateObjListArg(parentTargets,cgmMeta.cgmObject,noneValid=True)
+    
+    
+    if ml_midControls and len(ml_midControls) != len(ml_newJoints):
+	raise StandardError,"addCGMSegmentSubControl>>> Enough controls for joints provided! joints: %s | controls: %s"%(len(ml_midControls),len(ml_newJoints))
+    
+    i_baseParent = cgmMeta.validateObjArg(baseParent,cgmMeta.cgmObject,noneValid=False)
+    i_endParent = cgmMeta.validateObjArg(endParent,cgmMeta.cgmObject,noneValid=False)
+    i_segmentCurve = cgmMeta.validateObjArg(segmentCurve,cgmMeta.cgmObject,noneValid=False)
+    i_segmentCurveSkinCluster = cgmMeta.validateObjArg(deformers.returnObjectDeformers(i_segmentCurve.mNode,'skinCluster')[0],
+                                                          noneValid=True)
+
+    
+    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    if i_module:
+	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
+    if baseName is None:
+	if i_segmentCurve and i_segmentCurve.hasAttr('cgmName'):
+	    baseName = i_segmentCurve.cgmName
+	else:
+	    baseName = 'midSegment'
+	    
+    log.info('ml_newJoints: %s'%ml_newJoints)
+    log.info('ml_midControls: %s'%ml_midControls)
+    log.info('i_baseParent: %s'%i_baseParent)
+    log.info('i_endParent: %s'%i_endParent)
+    log.info('i_segmentCurve: %s'%i_segmentCurve)
+    log.info('i_module: %s'%i_module)
+    
+    
 def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, endParent = None,
                             midControls = None, orientation = 'zyx',controlOrientation = None,
                             addTwist = True, baseName = None, rotateGroupAxis = 'rotateZ',
                             moduleInstance = None):
     #>>> Check our args
     #====================================================================
-    ml_newJoints = cgmGeneral.validateObjListArg(joints,cgmMeta.cgmObject,noneValid=False)
-    ml_midControls = cgmGeneral.validateObjListArg(midControls,cgmMeta.cgmObject,noneValid=True)
+    ml_newJoints = cgmMeta.validateObjListArg(joints,cgmMeta.cgmObject,noneValid=False)
+    ml_midControls = cgmMeta.validateObjListArg(midControls,cgmMeta.cgmObject,noneValid=True)
     
     
     if ml_midControls and len(ml_midControls) != len(ml_newJoints):
 	raise StandardError,"addCGMSegmentSubControl>>> Enough controls for joints provided! joints: %s | controls: %s"%(len(ml_midControls),len(ml_newJoints))
     
-    i_baseParent = cgmGeneral.validateObjArg(baseParent,cgmMeta.cgmObject,noneValid=False)
-    i_endParent = cgmGeneral.validateObjArg(endParent,cgmMeta.cgmObject,noneValid=False)
-    i_segmentCurve = cgmGeneral.validateObjArg(segmentCurve,cgmMeta.cgmObject,noneValid=False)
-    i_segmentCurveSkinCluster = cgmGeneral.validateObjArg(deformers.returnObjectDeformers(i_segmentCurve.mNode,'skinCluster')[0],
+    i_baseParent = cgmMeta.validateObjArg(baseParent,cgmMeta.cgmObject,noneValid=False)
+    i_endParent = cgmMeta.validateObjArg(endParent,cgmMeta.cgmObject,noneValid=False)
+    i_segmentCurve = cgmMeta.validateObjArg(segmentCurve,cgmMeta.cgmObject,noneValid=False)
+    i_segmentCurveSkinCluster = cgmMeta.validateObjArg(deformers.returnObjectDeformers(i_segmentCurve.mNode,'skinCluster')[0],
                                                           noneValid=True)
 
     
-    i_module = cgmGeneral.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
     if i_module:
 	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
     if baseName is None:
@@ -414,19 +450,19 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     if segmentType != 'curve':
 	raise NotImplementedError,"createCGMSegment>>>Haven't implemented segmentType: %s"%segmentType
     
-    i_startControl = cgmGeneral.validateObjArg(startControl,cgmMeta.cgmObject,noneValid=True)
-    i_endControl = cgmGeneral.validateObjArg(endControl,cgmMeta.cgmObject,noneValid=True)
+    i_startControl = cgmMeta.validateObjArg(startControl,cgmMeta.cgmObject,noneValid=True)
+    i_endControl = cgmMeta.validateObjArg(endControl,cgmMeta.cgmObject,noneValid=True)
     
     if type(jointList) not in [list,tuple]:jointList = [jointList]
     if len(jointList)<3:
 	raise StandardError,"createCGMSegment>>> needs at least three joints"
     
-    i_module = cgmGeneral.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
     if i_module:
 	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
     if baseName is None:baseName = 'testSegment'
     
-    ml_influenceJoints = cgmGeneral.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False)
+    ml_influenceJoints = cgmMeta.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False)
 
     log.info('i_startControl: %s'%i_startControl)
     log.info('i_endControl: %s'%i_endControl)
@@ -441,7 +477,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     outChannel = orientation[2]
     upChannel = '%sup'%orientation[1]
     
-    try:ml_jointList = cgmGeneral.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)
+    try:ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)
     except StandardError,error:
 	log.error("createCGMSegment>>Joint metaclassing failed!")
 	raise StandardError,error 
@@ -2426,12 +2462,12 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
     aimChannel = orientation[0].capitalize()
     
     #moduleInstance
-    i_module = cgmGeneral.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
     #attributeHolder
-    i_holder = cgmGeneral.validateObjArg(attributeHolder,cgmMeta.cgmBufferNode,noneValid=False)   
+    i_holder = cgmMeta.validateObjArg(attributeHolder,cgmMeta.cgmBufferNode,noneValid=False)   
     
     #Initialize joint list
-    ml_jointList = cgmGeneral.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)   
+    ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)   
     
     ml_scaleNodes = []
     ml_sqrtNodes = []
