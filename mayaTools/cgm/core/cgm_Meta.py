@@ -497,6 +497,22 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     #=========================================================================      
     # Get Info
     #========================================================================= 
+    def returnNextAvailableAttrCnt(self,attr = None):
+	if attr in [None,False,True]:
+	    log.warning("cgmNode.returnNextAvailableAttrCnt>>> bad attr arg: '%s'"%attr)
+	    return False
+        """ Get's the next available item number """        
+        userAttrs = self.getUserAttrsAsDict()
+        countList = []
+        for key in userAttrs.keys():
+            if attr in key:
+                splitBuffer = key.split(attr)
+                countList.append(int(splitBuffer[-1]))
+	for i in range(500):
+	    if i not in countList:
+		return i
+        return False
+    
     def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
@@ -928,7 +944,7 @@ class cgmObject(cgmNode):
         return {'parent':self.parent,'children':self.children,'shapes':self.shapes} or {}
     
     def getAllParents(self):
-        return search.returnAllParents(self.mNode) or False
+        return search.returnAllParents(self.mNode) or []
     
     def getChildren(self,fullPath=False):
         return search.returnChildrenObjects(self.mNode,fullPath) or []
@@ -938,7 +954,29 @@ class cgmObject(cgmNode):
     
     def getShapes(self):
         return mc.listRelatives(self.mNode,shapes=True) or []
-
+    
+    def isChildOf(self,obj):
+	try:
+	    i_obj = validateObjArg(obj,noneValid=False)
+	    for o in self.getAllParents():
+		if i_obj.mNode == cgmObject(o).mNode:
+		    return True
+	    return False
+	except StandardError,error:
+	    log.error("isChildOf>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
+	    raise StandardError,error 
+    
+    def isParentOf(self,obj):
+	try:
+	    i_obj = validateObjArg(obj,noneValid=False)
+	    for o in self.getAllChildren():
+		if i_obj.mNode == cgmObject(o).mNode:
+		    return True
+	    return False
+	except StandardError,error:
+	    log.error("isParentOf>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
+	    raise StandardError,error 
+	
     def getMatchObject(self):
         """ Get match object of the object. """
         matchObject = search.returnTagInfo(self.mNode,'cgmMatchObject')
@@ -1787,13 +1825,202 @@ class cgmOptionVar(object):
 		log.warning("'%s' removed from '%s'"%(item,self.name))
 		
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmDynamicGroup
+#=========================================================================
+class cgmDynParentGroup(cgmObject):
+    def __init__(self,node = None, name = None,
+                 dynTargets = None,dynChild = None,
+                 mode = None, setClass = False,*args,**kws):
+        """ 
+        Dynamic parent group class.
+        
+        Keyword arguments:
+        dynTargets(list) -- list of parent targets
+        mode(list) -- parent/follow/orient
+        """
+        ### input check  
+        log.debug("In cgmDynParentGroup.__init__ node is '%s'"%node)
+	i_dynChild = validateObjArg(dynChild,cgmObject,noneValid=True)
+	log.info("i_dynChild: %s"%i_dynChild)
+	__justMade__ = False
+	if i_dynChild:
+	    pBuffer = i_dynChild.getMessage('dynParentGroup') or False
+	    log.info("pBuffer: %s"%pBuffer)
+	    if pBuffer:
+		node = pBuffer[0]
+	    else:#we're gonna make a group
+		node = i_dynChild.doGroup()
+		__justMade__ = True
+	
+	super(cgmObject, self).__init__(node = node,name = name,nodeType = 'transform') 
+	
+	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
+	self.UNMANAGED.extend(['arg_ml_dynTargets','_mi_dynChild','value','d_indexToAttr'])
+	if i_dynChild:self._mi_dynChild=i_dynChild
+	else:self._mi_dynChild=False
+	    
+	if kws:log.debug("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args)) 	
+	doVerify = kws.get('doVerify') or False
+	
+	arg_ml_dynTargets = validateObjListArg(dynTargets,cgmObject,noneValid=True)
+	log.debug("arg_ml_dynTargets: %s"%arg_ml_dynTargets)
+	
+        if not self.isReferenced():
+	    if not self.__verify__(*args,**kws):
+		raise StandardError,"cgmDynParentGroup.__init__>> failed to verify!"
+	
+	for p in arg_ml_dynTargets:
+	    self.addDynTarget(p)
+	    
+	if __justMade__:
+	    self.addDynChild(i_dynChild)
+	    self.rebuild()
+	
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # functions
+    #======================================================================
+    def __verify__(self,*args,**kws):
+	if self.hasAttr('mClass') and self.mClass!='cgmDynParentGroup':
+	    raise StandardError, "cgmDynParentGroup.__init__>> This object has a another mClass and setClass is not set to True"
+	#Check our attrs
+	if self._mi_dynChild:
+	    self.doStore('cgmName',self._mi_dynChild.mNode)
+	self.addAttr('mClass','cgmDynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
+	self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
+	
+	self.addAttr('dynMode',attrType = 'enum', enumName= 'space:follow:orient',lock = True, keyable = False, hidden=True)
+        self.addAttr('dynChild',attrType = 'messageSimple',lock=True)
+        self.addAttr('dynTargets',attrType = 'message',lock=True)
+	self.addAttr('dynDrivers',attrType = 'message',lock=True)
+	self.addAttr('dynNodes',attrType = 'message',lock=True)
+	
+	#Unlock all transform attriutes
+	for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+	    cgmAttr(self,attr,lock=False)
+	self.doName()
+	return True
+    
+    def rebuild(self,*a,**kw):
+        """ Rebuilds the buffer data cleanly """ 
+	#Must have at least 2 targets
+	if len(self.dynTargets)<2:
+	    log.error("cgmDynParentGroup.rebuild>> Need at least two dynTargets. Build failed: '%s'"%self.getShortName())
+	    return False
+	i_child = self._mi_dynChild #for shorter calls
+	#TODO First scrub nodes and what not
+	
+	#Check our attrs
+	d_attrBuffers = {}
+	for a in ['space','follow','orient']:
+	    if i_child.hasAttr(a):#we probably need to index these to the previous settings in case order changes
+		d_attrBuffers[a] = attributes.doGetAttr(i_child.mNode,a)
+	if d_attrBuffers:log.info("d_attrBuffers: %s"%d_attrBuffers)
+	
+	l_parentShortNames = [cgmNode(o).getShortName() for o in self.getMessage('dynTargets')]
+	log.info("l_parentShortNames: %s"%l_parentShortNames)
+	
+	self._mi_dynChild.addAttr('space',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+	
+    
+    def addDynChild(self,arg):
+	i_child = validateObjArg(arg,cgmObject,noneValid=True)
+	if i_child == self:
+	    raise StandardError, "cgmDynParentGroup.addDynChild>> Cannot add self as dynChild"
+	
+	#Make sure the child is a descendant
+	if not self.isParentOf(i_child):
+	    log.warning("cgmDynParentGroup.addDynChild>> dynChild isn't not heirarchal child: '%s'"%i_child.getShortName())
+	    return False
+	
+	if i_child.hasAttr('dynGroup') and i_child.dynGroup == self:
+	    log.info("cgmDynParentGroup.addDynChild>> dynChild already connected: '%s'"%i_child.getShortName())
+	    return True
+	
+	log.info("cgmDynParentGroup.addDynChild>> Adding dynChild: '%s'"%i_child.getShortName())
+	self.connectChildNode(i_child,'dynChild','dynParentGroup')#Connect the nodes
+	
+	#Must be a descendant
+	#Add attrs per mode
+	#setup per mode
+	#see if it has a dynDriver per target
+	#if we make changes, we have to veriy
+	
+    def addDynTarget(self,arg,index = None):
+	i_target = validateObjArg(arg,cgmObject,noneValid=True)
+	if self == i_target:
+	    raise StandardError, "cgmDynParentGroup.addDynTarget>> Cannot add self as target"
+	if not i_target.isTransform():
+	    raise StandardError, "cgmDynParentGroup.addDynTarget>> Target has no transform: '%s'"%self.getShortName()
+	    
+	ml_dynTargets = self.dynTargets
+	
+	if i_target in ml_dynTargets:
+	    log.info("cgmDynParentGroup.addDynTarget>> Child already connected: %s"%i_target.getShortName())
+	    return True
+	
+	ml_dynTargets.append(i_target)
+	log.info("cgmDynParentGroup.addDynTarget>> Adding target: '%s'"%i_target.getShortName())
+	self.connectChildrenNodes(ml_dynTargets,'dynTargets')#Connect the nodes
+		
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # functions
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Data
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    def updateData(self,*a,**kw):
+        """ Updates the stored data """
+        self.l_buffer = []
+        self.d_buffer = {}
+	self.d_indexToAttr = {}
+	l_itemAttrs = []
+	d_indexToAttr = {}
+        for attr in self.getUserAttrs():
+            if 'item_' in attr:
+		index = int(attr.split('item_')[-1])
+		dataBuffer = attributes.doGetAttr(self.mNode,attr)
+		data = dataBuffer
+		self.d_buffer[attr] = data
+		self.d_indexToAttr[index] = attr
+		self.l_buffer.append(data)
+		
+	#verify data order
+	for key in self.d_indexToAttr.keys():
+	    self.l_buffer[key] = self.d_buffer[self.d_indexToAttr[key]]
+	    
+    def switchSpace(self,arg,*a,**kw):pass
+    def __verify(self):pass
+    def addParent(self):pass
+    def removeParent(self):pass
+    def setChild(self):pass
+    
+                                              
+    def purge(self):
+        """ Purge all buffer attributes from an object """
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
+	
+        userAttrs = mc.listAttr(self.mNode,userDefined = True) or []
+        for attr in userAttrs:
+            if 'item_' in attr:
+                attributes.doDeleteAttr(self.mNode,attr)
+                log.debug("Deleted: '%s.%s'"%(self.mNode,attr))  
+                
+        self.l_buffer = []
+        self.d_buffer = {}        
+         
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
 class cgmBufferNode(cgmNode):
     def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,*args,**kws):
         """ 
-        Intializes an set factory class handler
-        
+	Replacement for a multimessage attribute when you want to be able to link to an attr
+	
         Keyword arguments:
         setName(string) -- name for the set
         
@@ -1840,18 +2067,7 @@ class cgmBufferNode(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def returnNextAvailableCnt(self):
         """ Get's the next available item number """        
-        userAttrs = self.getUserAttrsAsDict()
-        countList = []
-        for key in userAttrs.keys():
-            if 'item_' in key:
-                splitBuffer = key.split('item_')
-                countList.append(int(splitBuffer[-1]))
-        cnt = 0
-        cntBreak = 0
-        while cnt in countList and cntBreak < 500:
-            cnt+=1
-            cntBreak += 1
-        return cnt
+        return self.returnNextAvailableAttrCnt('item_')
         
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
@@ -3416,7 +3632,95 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 	    returnList.append(o)
     return returnList
 
+#=========================================================================      
+# Argument validation
+#=========================================================================  
+def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode):
+    """
+    validate an objArg to be able to get instance of the object
+    
+    arg -- obj or instance
+    mType -- if not None, make sure instance is this type
+    noneValid -- whether none is a valid arg
+    default_mType -- type to intialize as for default
+    """
+    try:
+	argType = type(arg)
+	if argType in [list,tuple]:#make sure it's not a list
+	    raise StandardError,"validateObjArg>>> arg cannot be list or tuple: %s"%arg	
+	if not noneValid:
+	    if arg in [None,False]:
+		raise StandardError,"validateObjArg>>> arg cannot be None"
+	else:
+	    if arg in [None,False]:
+		if arg not in [None,False]:log.warning("validateObjArg>>> arg fail: %s"%arg)
+		return False
 	
+	if issubclass(argType,r9Meta.MetaClass):#we have an instance already
+	    i_arg = arg
+	elif not mc.objExists(arg):
+	    raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg	
+	elif mType is not None:
+	    i_autoInstance = r9Meta.MetaClass(arg)
+	    if issubclass(type(i_autoInstance),mType):#if it's a subclass ofour mType, good to go
+		return i_autoInstance
+	    elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
+		raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)	
+	    log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
+	    i_arg =  mType(arg)
+	else:
+	    log.debug("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
+	    i_arg = default_mType(arg)
+	
+	return i_arg
+    except StandardError,error:
+	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
+	raise StandardError,error    
+    
+def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode):
+    try:
+	if type(l_args) not in [list,tuple]:l_args = [l_args]
+	returnList = []
+	for arg in l_args:
+	    buffer = validateObjArg(arg,mType,noneValid,default_mType)
+	    if buffer:returnList.append(buffer)
+	return returnList
+    except StandardError,error:
+	log.error("validateObjListArg>>Failure! l_args: %s | mType: %s"%(l_args,mType))
+	raise StandardError,error    
+
+def validateAttrArg(arg,defaultType = 'float',**kws):
+    """
+    Validate an attr arg to usable info
+    Arg should be sting 'obj.attr' or ['obj','attr'] format.
+
+    """
+    try:
+	if type(arg) in [list,tuple] and len(arg) == 2:
+	    obj = arg[0]
+	    attr = arg[1]
+	    combined = "%s.%s"%(arg[0],arg[1])
+	elif '.' in arg:
+	    obj = arg.split('.')[0]
+	    attr = '.'.join(arg.split('.')[1:])
+	    combined = arg
+	else:
+	    raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
+	
+	if not mc.objExists(obj):
+	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
+	    
+	if not mc.objExists(combined):
+	    log.info("validateAttrArg>>> '%s'doesn't exist, creating attr!"%combined)
+	    i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
+	else:
+	    i_plug = cgmAttr(obj,attr,**kws)	    
+	
+	return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
+    except StandardError,error:
+	log.error("validateAttrArg>>Failure! arg: %s"%arg)
+	raise StandardError,error
+    
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================      
