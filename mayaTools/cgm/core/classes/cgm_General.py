@@ -75,9 +75,10 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	raise StandardError,error    
     
 def unittest_validateObjArg():
+    null = mc.group(em=True)    
     i_node = cgmMeta.cgmNode(nodeType='transform')
     i_obj = cgmMeta.cgmObject(nodeType='transform')
-    null = mc.group()
+    log.info(i_obj)
     
     try:validateObjArg()
     except:log.info("Empty arg should have failed and did")
@@ -89,10 +90,10 @@ def unittest_validateObjArg():
     
     i_returnObj = validateObjArg(i_obj.mNode,cgmMeta.cgmObject)
     assert issubclass(type(i_returnObj),cgmMeta.cgmObject),"String + mType arg failed!"
-    log.info("String + mType arg failed!")
+    log.info("String + mType arg passed!")
     
     assert i_obj == validateObjArg(i_obj,cgmMeta.cgmObject),"Instance + mType arg failed!"
-    log.info("Instance + mType arg failed!")
+    log.info("Instance + mType arg passed!")
     
     try:validateObjArg(i_node.mNode,cgmMeta.cgmObject)
     except:log.info("Validate cgmNode as cgmObject should have failed and did")

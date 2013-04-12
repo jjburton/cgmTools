@@ -77,6 +77,7 @@ class cgmMeta_Test():
         start = time.clock()
         self.setup()
         
+        self.test_validateObjArg()
         self.test_NameFactory()
         self.test_cgmAttr()
         self.test_attributeHandling()
@@ -344,6 +345,48 @@ class cgmMeta_Test():
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
         log.info("="*70)    
 
+    def test_validateObjArg(self):
+        function = 'test_validateObjArg'
+        log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+        start = time.clock()
+	
+	null = mc.group(em=True)    
+	i_node = cgmMeta.cgmNode(nodeType='transform')
+	i_obj = cgmMeta.cgmObject(nodeType='transform')
+	log.info(i_obj)
+	
+	try:cgmMeta.validateObjArg()
+	except:log.info("Empty arg should have failed and did")
+	
+	assert i_obj == cgmMeta.validateObjArg(i_obj.mNode),"string arg failed"
+	log.info("String arg passed!")
+	assert i_obj == cgmMeta.validateObjArg(i_obj),"instance arg failed"
+	log.info("instance arg passed!")
+	
+	i_returnObj = cgmMeta.validateObjArg(i_obj.mNode,cgmMeta.cgmObject)
+	assert issubclass(type(i_returnObj),cgmMeta.cgmObject),"String + mType arg failed!"
+	log.info("String + mType arg passed!")
+	
+	assert i_obj == cgmMeta.validateObjArg(i_obj,cgmMeta.cgmObject),"Instance + mType arg failed!"
+	log.info("Instance + mType arg passed!")
+	
+	try:validateObjArg(i_node.mNode,cgmMeta.cgmObject)
+	except:log.info("Validate cgmNode as cgmObject should have failed and did")
+	
+	assert issubclass(type(cgmMeta.validateObjArg(null)),cgmMeta.cgmNode),"Null string failed!"
+	log.info("Null string passed!")
+	
+	i_null = cgmMeta.validateObjArg(null,cgmMeta.cgmObject)
+	assert issubclass(type(i_null),cgmMeta.cgmObject),"Null as cgmObject failed!"
+	log.info("Null as cgmObjectpassed!")
+	
+	i_null.delete()
+	i_node.delete()
+	i_obj.delete()    
+	
+        log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
+        log.info("="*70)  
+	
     def test_attributeHandling(self):
         '''
         Modified from Mark Jackson's testing for Red9
