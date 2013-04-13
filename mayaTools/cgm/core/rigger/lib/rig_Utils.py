@@ -1085,7 +1085,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
 	    
 	    i_upLoc.parent = i_locRotateGroup.mNode
-	    mc.move(0,10,0,i_upLoc.mNode,os=True)	
+	    mc.move(0,10,0,i_upLoc.mNode,os=True)#TODO - make dependent on orientation	
 	    ml_upGroups.append(i_upLoc)
 	    
 	    if i_module:#if we have a module, connect vis
