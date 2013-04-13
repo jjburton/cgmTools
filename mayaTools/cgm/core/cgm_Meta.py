@@ -1831,6 +1831,9 @@ class cgmOptionVar(object):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmDynamicGroup
 #=========================================================================
+d_DynParentGroupModeAttrs = {0:['space'],
+                             1:['orientTo'],
+                             2:['orientTo','follow']}
 class cgmDynParentGroup(cgmObject):
     def __init__(self,node = None, name = None, dynGroup = None,
                  dynParents = None,dynChild = None,
@@ -1843,9 +1846,28 @@ class cgmDynParentGroup(cgmObject):
         dynParents(list) -- list of parent targets
         mode(list) -- parent/follow/orient
         """
+	def _isGroupValidForChild(child,group):
+	    """
+	    To pass a group in the initialzation as the group, we need to check a few things
+	    """
+	    i_child = validateObjArg(child,cgmObject,noneValid=True)
+	    i_group = validateObjArg(group,cgmObject,noneValid=True)
+	    if not i_child or not i_group:#1) We need args
+		return False
+	    
+	    if not i_child.isChildOf(i_group):#2) the child has to be a child of the group
+		return False
+	    if i_child.hasAttr('dynParentGroup'):#3) the child is already connected
+		if i_child.dynParentGroup != i_group:
+		    log.info("cgmDynParentGroup.isGroupValidForChild>> Child already has dynParentGroup: '%s'"%i_child.getMessage('dynParentGroup'))
+		    return False
+		else:
+		    return True
+	    return True	
         ### input check  
         log.debug("In cgmDynParentGroup.__init__ node is '%s'"%node)
 	i_dynChild = validateObjArg(dynChild,cgmObject,noneValid=True)
+	i_argDynGroup = validateObjArg(dynGroup,cgmObject,noneValid=True)
 	log.info("i_dynChild: %s"%i_dynChild)
 	__justMade__ = False
 	#TODO allow to set dynGroup
@@ -1854,6 +1876,10 @@ class cgmDynParentGroup(cgmObject):
 	    log.info("pBuffer: %s"%pBuffer)
 	    if pBuffer:
 		node = pBuffer[0]
+	    elif _isGroupValidForChild( i_dynChild,i_argDynGroup):
+		log.info("cgmDynParentGroup.__init__>>Group passed and valid")
+		node = i_argDynGroup.mNode
+		__justMade__ = True		
 	    else:#we're gonna make a group
 		node = i_dynChild.doGroup()
 		__justMade__ = True
@@ -1927,16 +1953,23 @@ class cgmDynParentGroup(cgmObject):
 	for a in ['space','follow','orientTo']:
 	    if i_child.hasAttr(a):#we probably need to index these to the previous settings in case order changes
 		d_attrBuffers[a] = attributes.doGetAttr(i_child.mNode,a)
+	    if a not in d_DynParentGroupModeAttrs[self.dynMode]:
+		attributes.doDeleteAttr(i_child.mNode,a)
 	if d_attrBuffers:log.info("d_attrBuffers: %s"%d_attrBuffers)
 	
 	l_parentShortNames = [cgmNode(o).getShortName() for o in self.getMessage('dynParents')]
 	log.info("parentShortNames: %s"%l_parentShortNames)
+	
+	for a in d_DynParentGroupModeAttrs[self.dynMode]:
+	    i_child.addAttr(a,attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
 	
 	#Make our groups
 	#One per parent, copy parent transform
 	#Make our attrs
 	if self.dynMode == 2:#Follow - needs an extra follow group
 	    self.verifyFollowDriver()
+	elif self.dynFollow:
+	    mc.delete(self.getMessage('dynFollow'))
 	
 	#Verify our parent drivers:
 	for i_p in [cgmObject(o) for o in self.getMessage('dynParents')]:
@@ -1950,8 +1983,7 @@ class cgmDynParentGroup(cgmObject):
 	
 	return 'Done'    
 	#Check constraint
-	
-    
+
     def addDynChild(self,arg):
 	i_child = validateObjArg(arg,cgmObject,noneValid=True)
 	if i_child == self:
@@ -1962,7 +1994,7 @@ class cgmDynParentGroup(cgmObject):
 	    log.warning("cgmDynParentGroup.addDynChild>> dynChild isn't not heirarchal child: '%s'"%i_child.getShortName())
 	    return False
 	
-	if i_child.hasAttr('dynGroup') and i_child.dynGroup == self:
+	if i_child.hasAttr('dynParentGroup') and i_child.dynGroup == self:
 	    log.info("cgmDynParentGroup.addDynChild>> dynChild already connected: '%s'"%i_child.getShortName())
 	    return True
 	
@@ -2027,17 +2059,17 @@ class cgmDynParentGroup(cgmObject):
 	    
 	    if self.dynMode == 0:#Parent
 		cBuffer = mc.parentConstraint(l_dynParents,self.mNode,maintainOffset = True)[0]
-		i_dynParentConst = cgmNode(cBuffer)
+		i_dynConst = cgmNode(cBuffer)
 	    if self.dynMode == 1:#Orient
 		cBuffer = mc.orientConstraint(l_dynParents,self.mNode,maintainOffset = True)[0]
-		i_dynOrientConst = cgmNode(cBuffer)
+		i_dynConst = cgmNode(cBuffer)
 	    if self.dynMode == 2:#Follow - needs an extra follow group
 		cBuffer = mc.parentConstraint(l_dynParents,self.dynFollow.mNode,maintainOffset = True)[0]
 		pBuffer = mc.pointConstraint(self.dynFollow.mNode,self.mNode,maintainOffset = True)[0]
 		oBuffer = mc.orientConstraint(l_dynParents,self.mNode,maintainOffset = True)[0]
-		i_dynParentConst = cgmNode(cBuffer)
+		i_dynFollowConst = cgmNode(cBuffer)
 		i_dynPointConst = cgmNode(pBuffer)
-		i_dynOrientConst = cgmNode(oBuffer)
+		i_dynConst = cgmNode(oBuffer)
 	except StandardError,error:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Build constraints fail! | %s"%(error))
 	try:#Name and store    
@@ -2064,16 +2096,28 @@ class cgmDynParentGroup(cgmObject):
 		mc.setAttr("%s.secondTerm"%i_followCondNode.mNode,i)
 		mc.setAttr("%s.colorIfTrueR"%i_followCondNode.mNode,1)
 		mc.setAttr("%s.colorIfFalseR"%i_followCondNode.mNode,0)
-		mc.connectAttr("%s.outColorR"%i_followCondNode.mNode,"%s.w%s"%(i_dynParentConst.mNode,i))
+		mc.connectAttr("%s.outColorR"%i_followCondNode.mNode,"%s.w%s"%(i_dynFollowConst.mNode,i))
 		
-		i_followCondNode.doStore('cgmName',i_dynChild.mNode) 
-		i_followCondNode.addAttr('cgmType','follow')
+		i_followCondNode.doStore('cgmName',i_p.mNode) 
+		i_followCondNode.addAttr('cgmTypeModifier','dynFollow')
 		i_followCondNode.addAttr('mClass','cgmNode')	
 		i_followCondNode.doName()
-	    
-	
 		
-	i_condNode = cgmNode(nodeType='condition')
+		ml_nodes.append(i_followCondNode)
+		
+	    i_condNode = cgmNode(nodeType='condition')
+	    i_condNode.operation = 0
+	    attr = d_DynParentGroupModeAttrs[self.dynMode][0]
+	    mc.connectAttr("%s.%s"%(i_dynChild.mNode,attr),"%s.firstTerm"%i_condNode.mNode)
+	    mc.setAttr("%s.secondTerm"%i_condNode.mNode,i)
+	    mc.setAttr("%s.colorIfTrueR"%i_condNode.mNode,1)
+	    mc.setAttr("%s.colorIfFalseR"%i_condNode.mNode,0)
+	    mc.connectAttr("%s.outColorR"%i_condNode.mNode,"%s.w%s"%(i_dynConst.mNode,i))
+	    
+	    i_condNode.doStore('cgmName',i_p.mNode) 
+	    i_condNode.addAttr('cgmTypeModifier','dynParent')
+	    i_condNode.addAttr('mClass','cgmNode')	
+	    i_condNode.doName()	    
 
 	"""
 	cBuffer = self.getMessage('dynConstraint')
@@ -2157,7 +2201,35 @@ class cgmDynParentGroup(cgmObject):
 	log.info("dynFollow: '%s'"%self._mi_followDriver.getShortName())
 	
 	self.connectChildNode(self._mi_followDriver,'dynFollow','dynMaster')	 
-    def switchSpace(self,arg,*a,**kw):pass                                    
+    def doSwitchSpace(self,attr,index,deleteLoc = True):
+	#Swich setting shile holding 
+	l_attrs = ['space','follow','orientTo']
+	if attr not in l_attrs:
+	    raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Not a valid attr: %s"%attr	
+	
+	i_child = validateObjArg(self.getMessage('dynChild')[0],cgmObject,True)
+	d_attr = validateAttrArg([i_child.mNode,attr])
+	if not i_child and d_attr:
+	    raise StandardError,"cgmDynParentGroup.doSwitchSpace>> doSwitchSpace doesn't have enough info. Rebuild recommended"
+	if index == i_child.getAttr(attr):
+	    log.info("cgmDynParentGroup.doSwitchSpace>> Already that mode")	    
+	    return True
+	elif index+1 > len(d_attr['mi_plug'].p_enum):
+	    raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Index(%s) greater than options: %s"%(index,d_attr['mi_plug'].getEnum())	
+	    
+	
+	objTrans = mc.xform (i_child.mNode, q=True, ws=True, sp=True)#Get trans
+	objRot = mc.xform (i_child.mNode, q=True, ws=True, ro=True)#Get rot
+	i_loc = i_child.doLoc()#loc
+	
+	attributes.doSetAttr(i_child.mNode,attr,index)#Change it
+	mc.move (objTrans[0],objTrans[1],objTrans[2], [i_child.mNode])#Set trans
+	mc.rotate (objRot[0], objRot[1], objRot[2], [i_child.mNode], ws=True)#Set rot	
+	
+	if deleteLoc:i_loc.delete()
+	
+	
+	
     def purge(self):
         """ Purge all buffer attributes from an object """
 	if self.isReferenced():
@@ -2613,7 +2685,8 @@ class cgmAttr(object):
     
     #>>> Property - p_nameLong ================== 
     def getEnum(self):
-	return mc.attributeQuery(self.attr, node = self.obj.mNode, longName = True) or False	
+	#attributeQuery(attr, node=self.mNode, listEnum=True)[0].split(':')
+	return mc.attributeQuery(self.attr, node = self.obj.mNode, listEnum=True)[0].split(':') or False	
     def setEnum(self,enumCommand):
         """ 
         Set the options for an enum attribute
