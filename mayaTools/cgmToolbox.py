@@ -399,6 +399,10 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ('Snap Tools - snap tools menu',
                             'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
                             ToolCB( "zooHotkeyer cgmSnapMM \"cgmSnapMM;\" \"cgmSnapMMKillUI;\" \"-default t -enableMods 0 -ann Tools for snapping stuff around\";" )),
+                        
+                           ('NEW Set Key Menu - key creation menu',
+                            'cgmPuppet key menu - wip',
+                            ToolCB( "zooHotkeyer cgmPuppetKeyMM \"cgmPuppetKeyMM;\" \"cgmPuppetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
 
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
