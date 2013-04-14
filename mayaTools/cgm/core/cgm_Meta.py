@@ -2222,7 +2222,7 @@ class cgmDynParentGroup(cgmObject):
 	objRot = mc.xform (i_child.mNode, q=True, ws=True, ro=True)#Get rot
 	i_loc = i_child.doLoc()#loc
 	
-	attributes.doSetAttr(i_child.mNode,attr,index)#Change it
+	mc.setAttr("%s.%s"%(i_child.mNode,attr),index)#Change it
 	mc.move (objTrans[0],objTrans[1],objTrans[2], [i_child.mNode])#Set trans
 	mc.rotate (objRot[0], objRot[1], objRot[2], [i_child.mNode], ws=True)#Set rot	
 	
@@ -2231,6 +2231,7 @@ class cgmDynParentGroup(cgmObject):
 	
 	
     def purge(self):
+	raise NotImplementedError,"cgmDynParentGroup.purge>>"
         """ Purge all buffer attributes from an object """
 	if self.isReferenced():
 	    log.warning('This function is not designed for referenced buffer nodes')
