@@ -959,10 +959,11 @@ class cgmObject(cgmNode):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)
 	    for o in self.getAllParents():
-		if i_obj.mNode == cgmObject(o).mNode:
+		if i_obj.mNode == r9Meta.MetaClass(o).mNode:
 		    return True
 	    return False
 	except StandardError,error:
+	    log.error("isChildOf>> error: %s"%error)	    
 	    log.error("isChildOf>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
 	    raise StandardError,error 
     
@@ -970,10 +971,11 @@ class cgmObject(cgmNode):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)
 	    for o in self.getAllChildren():
-		if i_obj.mNode == cgmObject(o).mNode:
+		if i_obj.mNode == r9Meta.MetaClass(o).mNode:
 		    return True
 	    return False
 	except StandardError,error:
+	    log.error("isParentOf>> error: %s"%error)
 	    log.error("isParentOf>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
 	    raise StandardError,error 
 	
@@ -1846,6 +1848,7 @@ class cgmDynParentGroup(cgmObject):
         dynParents(list) -- list of parent targets
         mode(list) -- parent/follow/orient
         """
+
 	def _isGroupValidForChild(child,group):
 	    """
 	    To pass a group in the initialzation as the group, we need to check a few things
@@ -1885,9 +1888,10 @@ class cgmDynParentGroup(cgmObject):
 		__justMade__ = True
 	
 	super(cgmObject, self).__init__(node = node,name = name,nodeType = 'transform') 
+	self.l_dynAttrs = ['space','follow','orientTo']
 	
 	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
-	self.UNMANAGED.extend(['arg_ml_dynParents','_mi_dynChild','_mi_followDriver','d_indexToAttr'])
+	self.UNMANAGED.extend(['arg_ml_dynParents','_mi_dynChild','_mi_followDriver','d_indexToAttr','l_dynAttrs'])
 	if i_dynChild:self._mi_dynChild=i_dynChild
 	else:self._mi_dynChild=False
 	    
@@ -1901,8 +1905,10 @@ class cgmDynParentGroup(cgmObject):
         if not self.isReferenced():
 	    if not self.__verify__(*args,**kws):
 		raise StandardError,"cgmDynParentGroup.__init__>> failed to verify!"
-	
+	    
+	log.info("cgmDynParentGroup.__init__>> dynParents: %s"%self.getMessage('dynParents',False))
 	for p in arg_ml_dynParents:
+	    log.info("Adding dynParent: %s"%p.mNode)
 	    self.addDynParent(p)
 	    
 	if dynMode is not None:
@@ -1950,7 +1956,7 @@ class cgmDynParentGroup(cgmObject):
 	
 	#Check our attrs
 	d_attrBuffers = {}
-	for a in ['space','follow','orientTo']:
+	for a in self.l_dynAttrs:
 	    if i_child.hasAttr(a):#we probably need to index these to the previous settings in case order changes
 		d_attrBuffers[a] = attributes.doGetAttr(i_child.mNode,a)
 	    if a not in d_DynParentGroupModeAttrs[self.dynMode]:
@@ -2009,21 +2015,26 @@ class cgmDynParentGroup(cgmObject):
 	
     def addDynParent(self,arg,index = None):
 	i_dParent = validateObjArg(arg,cgmObject,noneValid=True)
+	if not i_dParent:
+	    raise StandardError, "cgmDynParentGroup.addDynParent>> Failed to validate: %s"%arg	    
 	if self == i_dParent:
 	    raise StandardError, "cgmDynParentGroup.addDynParent>> Cannot add self as target"
 	if not i_dParent.isTransform():
-	    raise StandardError, "cgmDynParentGroup.addDynParent>> Target has no transform: '%s'"%self.getShortName()
+	    raise StandardError, "cgmDynParentGroup.addDynParent>> Target has no transform: '%s'"%i_dParent.getShortName()
 	log.info("cgmDynParentGroup.addDynParent>> '%s'"%i_dParent.getShortName())
 
 	ml_dynParents = [cgmObject(o) for o in self.getMessage('dynParents')]
+	log.info(">>>>>>>>>>>>> Start add %s"%self.getMessage('dynParents',False))
 	
 	if i_dParent in ml_dynParents:
 	    log.info("cgmDynParentGroup.addDynParent>> Child already connected: %s"%i_dParent.getShortName())
 	    return True
 	
-	ml_dynParents.append(i_dParent)
 	log.info("cgmDynParentGroup.addDynParent>> Adding target: '%s'"%i_dParent.getShortName())
+	ml_dynParents.append(i_dParent)	
+	log.info(">>>>>>>>>>>>> data add %s"%ml_dynParents)	
 	self.connectChildrenNodes(ml_dynParents,'dynParents')#Connect the nodes
+	log.info(">>>>>>>>>>>>> after add %s"%self.getMessage('dynParents',False))
 	
     def verifyConstraints(self):
 	"""
@@ -2039,7 +2050,8 @@ class cgmDynParentGroup(cgmObject):
 	    raise StandardError, "cgmDynParentGroup.verifyConstraints>> must have follow driver for follow mode: '%s'"%self.getShortName()
 	try:#initialize parents
 	    ml_dynParents = validateObjListArg(l_dynParents,cgmObject,False)
-	    i_dynChild = validateObjArg(self.dynChild[0],cgmObject,False)	    
+	    l_dynDrivers = [i_obj.getMessage('dynDriver')[0] for i_obj in ml_dynParents]
+	    i_dynChild = validateObjArg(self.getMessage('dynChild')[0],cgmObject,False)	    
 	except StandardError,error:
 	    raise StandardError,"cgmDynParentGroup.verifyConstraints>> dynParent/dynChild initialization failed! | %s"%(error)
 	try:#Check current
@@ -2052,21 +2064,28 @@ class cgmDynParentGroup(cgmObject):
 		if followConstraints:mc.delete(followConstraints)#Delete existing constraints		
 	except StandardError,error:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Delete constraints fail! | %s"%(error))
+	
+	children = self.getChildren()
+	ml_children = [cgmObject(c) for c in children]
+	for i_c in ml_children:
+	    i_c.parent = self.parent
+	
 	try:#Build constraints
 	    i_dynParentConst = False
 	    i_dynPointConst = False
 	    i_dynOrientConst = False
 	    
 	    if self.dynMode == 0:#Parent
-		cBuffer = mc.parentConstraint(l_dynParents,self.mNode,maintainOffset = True)[0]
+		cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
 		i_dynConst = cgmNode(cBuffer)
 	    if self.dynMode == 1:#Orient
-		cBuffer = mc.orientConstraint(l_dynParents,self.mNode,maintainOffset = True)[0]
+		cBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
 		i_dynConst = cgmNode(cBuffer)
 	    if self.dynMode == 2:#Follow - needs an extra follow group
-		cBuffer = mc.parentConstraint(l_dynParents,self.dynFollow.mNode,maintainOffset = True)[0]
 		pBuffer = mc.pointConstraint(self.dynFollow.mNode,self.mNode,maintainOffset = True)[0]
-		oBuffer = mc.orientConstraint(l_dynParents,self.mNode,maintainOffset = True)[0]
+		cBuffer = mc.parentConstraint(l_dynDrivers,self.dynFollow.mNode,maintainOffset = True)[0]
+		oBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
+		
 		i_dynFollowConst = cgmNode(cBuffer)
 		i_dynPointConst = cgmNode(pBuffer)
 		i_dynConst = cgmNode(oBuffer)
@@ -2114,44 +2133,16 @@ class cgmDynParentGroup(cgmObject):
 	    mc.setAttr("%s.colorIfFalseR"%i_condNode.mNode,0)
 	    mc.connectAttr("%s.outColorR"%i_condNode.mNode,"%s.w%s"%(i_dynConst.mNode,i))
 	    
-	    i_condNode.doStore('cgmName',i_p.mNode) 
+	    i_condNode.doStore('cgmName',"%s_to_%s"%(i_dynChild.getShortName(),i_p.getShortName())) 
 	    i_condNode.addAttr('cgmTypeModifier','dynParent')
 	    i_condNode.addAttr('mClass','cgmNode')	
-	    i_condNode.doName()	    
-
-	"""
-	cBuffer = self.getMessage('dynConstraint')
-	if cBuffer:
-	    log.info("dynDriver: found")
-	    i_driver = validateObjArg(cBuffer[0],cgmObject,noneValid=False)
-	else:
-	    log.info("dynDriver: creating")	    
-	    i_driver = i_dParent.doDuplicateTransform()	
-	
-	
-	if not i_dParent:
-	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> arg fail: %s"%arg
-	log.info(self.dynParents)
-	if i_dParent.getLongName() not in self.getMessage('dynParents',True):
-	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> not a dynParent: %s"%i_dParent.getShortName()
+	    i_condNode.doName()	 
 	    
-	gBuffer = i_dParent.getMessage('dynDriver') or False
-	if gBuffer:
-	    log.info("dynDriver: found")
-	    i_driver = validateObjArg(gBuffer[0],cgmObject,noneValid=False)
-	else:
-	    log.info("dynDriver: creating")	    
-	    i_driver = i_dParent.doDuplicateTransform()
+	self.connectChildrenNodes(ml_nodes,'dynNodes','dynMaster')
 	    
-	i_driver.parent = i_dParent.mNode
-	i_driver.doStore('cgmName',i_dParent.mNode) 
-	i_driver.addAttr('cgmType','dynDriver')
-	i_driver.addAttr('mClass','cgmObject')	
-	i_driver.doName()
-	
-	i_driver.rotateOrder = i_dParent.rotateOrder#Match rotate order
-	log.info("dynDriver: '%s' >> '%s'"%(i_dParent.getShortName(),i_driver.getShortName()))
-	i_dParent.connectChildNode(i_driver,'dynDriver','dynMaster')	"""
+	for i_c in ml_children:
+	    i_c.parent = self.mNode
+	    
 	
     def verifyParentDriver(self,arg):
 	"""
@@ -2171,7 +2162,8 @@ class cgmDynParentGroup(cgmObject):
 	    log.info("dynDriver: found")
 	    i_driver = validateObjArg(gBuffer[0],cgmObject,noneValid=False)
 	else:
-	    log.info("dynDriver: creating")	    
+	    log.info("dynDriver: creating")	
+	    #i_driver = self._mi_dynChild.doDuplicateTransform()	    
 	    i_driver = i_dParent.doDuplicateTransform()
 	    
 	i_driver.parent = i_dParent.mNode
@@ -2200,7 +2192,8 @@ class cgmDynParentGroup(cgmObject):
 	self._mi_followDriver.rotateOrder = self._mi_dynChild.rotateOrder#Match rotate order
 	log.info("dynFollow: '%s'"%self._mi_followDriver.getShortName())
 	
-	self.connectChildNode(self._mi_followDriver,'dynFollow','dynMaster')	 
+	self.connectChildNode(self._mi_followDriver,'dynFollow','dynMaster')
+	
     def doSwitchSpace(self,attr,index,deleteLoc = True):
 	#Swich setting shile holding 
 	l_attrs = ['space','follow','orientTo']
@@ -2230,21 +2223,36 @@ class cgmDynParentGroup(cgmObject):
 	
 	
 	
-    def purge(self):
-	raise NotImplementedError,"cgmDynParentGroup.purge>>"
-        """ Purge all buffer attributes from an object """
+    def doPurge(self):
 	if self.isReferenced():
 	    log.warning('This function is not designed for referenced buffer nodes')
 	    return False
+	nodes = self.getMessage('dynNodes') or False
+	if nodes:mc.delete(nodes)
+	l_dynParents = self.getMessage('dynParents') or []
+	for d in l_dynParents:
+	    try:
+		i_driver = cgmObject( cgmObject(d).getMessage('dynDriver')[0] )
+		if not i_driver.getConstraintsFrom():
+		    mc.delete(i_driver.mNode)
+	    except:log.warning("cgmDynParentGroup.doPurge>> found no driver on : %s"%d)
 	
-        userAttrs = mc.listAttr(self.mNode,userDefined = True) or []
-        for attr in userAttrs:
-            if 'item_' in attr:
-                attributes.doDeleteAttr(self.mNode,attr)
-                log.debug("Deleted: '%s.%s'"%(self.mNode,attr))  
-                
-        self.l_buffer = []
-        self.d_buffer = {}        
+	dynFollow = self.getMessage('dynFollow',False)
+	if dynFollow:
+	    try:mc.delete(dynFollow)
+	    except:log.warning("cgmDynParentGroup.doPurge>> dynFollow failed to delete: %s"%dynFollow)
+	
+	currentConstraints = self.getConstraintsTo()
+	if currentConstraints:mc.delete(currentConstraints)#Delete existing constraints	
+	
+	i_child = validateObjArg(self.getMessage('dynChild')[0],cgmObject,noneValid=True)
+	if i_child:
+	    for a in self.l_dynAttrs:
+		if i_child.hasAttr(a):
+		    attributes.doDeleteAttr(i_child.mNode,a)
+	    if i_child.hasAttr('dynParentGroup'):
+		attributes.doDeleteAttr(i_child.mNode,'dynParentGroup')
+		
          
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
