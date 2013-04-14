@@ -111,14 +111,14 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				if i_o.getMessage('dynParentGroup'):
 					i_dynParent = cgmMeta.validateObjArg(i_o.getMessage('dynParentGroup')[0],cgmMeta.cgmDynParentGroup,True)
 					if i_dynParent:
-						MelMenuItem(parent,l="%s switch"%i_o.getShortName(),en=False)
+						MelMenuItem(parent,l=">>%s<<"%i_o.getShortName())
 						for a in cgmMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
-							tmpMenu = MelMenuItem( parent, l=a, subMenu=True)
+							tmpMenu = MelMenuItem( parent, l="Change %s"%a, subMenu=True)
 							v = mc.getAttr("%s.%s"%(i_o.mNode,a))
 							for i,o in enumerate(cgmMeta.cgmAttr(i_o.mNode,a).p_enum):
 								if i == v:b_enable = False
 								else:b_enable = True
-								MelMenuItem(tmpMenu,l = o,en = b_enable,
+								MelMenuItem(tmpMenu,l = "%s"%o,en = b_enable,
 								            c = Callback(i_dynParent.doSwitchSpace,a,i))								
 						MelMenuItemDiv(parent)
 				
@@ -208,7 +208,7 @@ def setKey():
 	if not KeyModeOptionVar.value:#This is default maya keying mode
 		selection = mc.ls(sl=True) or []
 		if not selection:
-			return guiFactory.warning('Nothing selected!')
+			return log.warning('Nothing selected!')
 			
 		if not KeyTypeOptionVar.value:
 			mc.setKeyframe(selection)
