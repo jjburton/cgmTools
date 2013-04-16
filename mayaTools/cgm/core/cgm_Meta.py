@@ -2527,15 +2527,12 @@ class cgmAttr(object):
         """
 	
         ### input check
-        #>>> Initialization ==================   	
-        try:
-            #If we have an Object Factory instance, link it
-            objName.mNode
-            self.obj = objName
-        except:
-            #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+        #>>> Initialization ==================   
+	if issubclass(type(objName),r9Meta.MetaClass):
+	    self.obj = objName
+	else:
             assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
-            self.obj = cgmNode(objName)
+            self.obj = cgmNode(objName)	    
 	    
 	#value/attr type logic check
 	#==============  
