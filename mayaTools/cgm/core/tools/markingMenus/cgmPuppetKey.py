@@ -83,7 +83,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			"""
 			execute a command and let the menu know not do do the default button action but just kill the ui
 			"""			
-			self.mmActionOptionVar.set(1)			
+			self.mmActionOptionVar.value=1			
 			command
 			killUI()
 			
