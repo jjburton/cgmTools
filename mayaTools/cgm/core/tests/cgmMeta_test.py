@@ -21,6 +21,8 @@ log.setLevel(logging.INFO)
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
+from cgm.core.classes import NodeFactory as nodeF
+reload(nodeF)
 
 import maya.cmds as mc
 
@@ -80,6 +82,7 @@ class cgmMeta_Test():
         self.test_validateObjArg()
         self.test_NameFactory()
         self.test_cgmAttr()
+	self.test_argsToNodes()
         self.test_attributeHandling()
         self.test_messageAttrHandling() 
         self.test_cgmNode()
@@ -387,6 +390,28 @@ class cgmMeta_Test():
         log.info(">"*5  +"  Testing call '%s' took =  %0.3f'" % (function,(time.clock()-start)))
         log.info("="*70)  
 	
+    def test_argsToNodes(self):
+	function = 'test_argsToNodes'
+	log.info("-"*20  + "  Testing '%s' "%function + "-"*20 ) 
+	start = time.clock()
+	
+	i_obj = cgmMeta.cgmObject(name = 'awesomeArgObj_loc')
+	
+	for arg in ["awesomeArgObj_loc.tx + awesomeArgObj_loc.ty + awesomeArgObj_loc.tz = awesomeArgObj_loc.sumResult1",
+                    "1 + 2 + 3 = awesomeArgObj_loc.simpleSum",#Working
+                    "1 >< 2 >< 3 = awesomeArgObj_loc.simpleAv",#Working
+                    "3 * -awesomeArgObj_loc.ty = awesomeArgObj_loc.inverseMultThree",#Working
+                    "4 - 2 = awesomeArgObj_loc.simpleMathResult",#Working
+                    "-awesomeArgObj_loc.ty = awesomeArgObj_loc.ty",#Working
+                    "awesomeArgObj_loc.ty * 3 = awesomeArgObj_loc.multResult",#Working
+                    "awesomeArgObj_loc.ty + 3 + awesomeArgObj_loc.ty = awesomeArgObj_loc.sumResult",#Working
+                    "if awesomeArgObj_loc.ty > 3;awesomeArgObj_loc.result2"]:
+	    try:nodeF.argsToNodes(arg).doBuild()
+	    except StandardError,error:
+		log.error("test_argsToNodes>>arg fail! %s"%arg)
+		raise StandardError,error  	
+
+	    
     def test_attributeHandling(self):
         '''
         Modified from Mark Jackson's testing for Red9

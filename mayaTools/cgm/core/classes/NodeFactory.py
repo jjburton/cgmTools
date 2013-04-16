@@ -369,40 +369,76 @@ class build_mdNetwork(object):
 	return self.l_iAttrs.index(combinedName)
     
 
-d_operator_to_NodeType = {'condition':['==','!=','>','<','>=','<='],
-                          'multiplyDivide':['*','/','^'],
-                          'plusMinusAverage':['+','-','><']}
+d_operator_to_NodeType = {'condition':[' == ',' != ',' > ',' < ',' >= ',' <= '],
+                          'multiplyDivide':[' * ',' / ',' ^ '],
+                          'plusMinusAverage':[' + ',' - ',' >< ']}#>< we're using for average
 d_function_to_Operator = {'==':0,'!=':1,'>':2,'>=':3,'<':4,'<=':5,#condition
                           '*':1,'/':2,'^':3,#md
                           '+':1,'-':2,'><':3}#pma
 d_nodeType_to_limits = {'condition':{'maxDrivers':2},
-                        'multiply':{'maxDrivers':2},
+                        'multiplyDivide':{'maxDrivers':2},
                         'plusMinusAverage':{'maxDrivers':False}}
 d_nodeType_to_input = {'condition':['firstTerm','secondTerm'],
-                       'multiply':['input1X','input2X'],
+                       'multiplyDivide':['input1X','input2X'],
                        'plusMinusAverage':'input1D'}
 d_nodeType_to_output = {'condition':'outColorR',
-                       'multiply':'outputX',
+                       'multiplyDivide':'outputX',
                        'plusMinusAverage':'output1D'}
 d_nodeType_to_resultSplit = {'condition':';',
-                             'multiply':'=',
+                             'multiplyDivide':'=',
                              'plusMinusAverage':'='}
-
+d_functionStringSwaps = {'.':'_attr_', ' ':'',
+                         '+':'_add_','-':'_minus_','><':'_avg_',#pma                                                 
+                         '==':'_isEqualTo_','!=':'_isNotEqualTo_','>':'_isGreaterThan_','>=':'_isGreaterOrEqualTo_','<':'_isLessThan_','<=':'_isLessThanOrEqualTo_',#condition
+                         '*':'_multBy_','/':'_divBy_','^':'_pow_',}#md
 l_extraConditionArgs = ['if ','elif ']
+l_NotImplementedTo_NodalArg = ['{','}','(',')']
 
-class verify_simpleNodalArg(object):
+class argsToNodes(object):
     """
-    Build a condition network. 
+    --From the crazy mind of Josh
+    More expression like node building. Syntax is super important.
+    Attributes are validated via cgmMeta.validateAttrArg()
+    
+    Supports:
+    >>Condition nodes -- if,>,<...
+    >>MultiplyDivide -- *,/,etc
+    >>PlusMinusAverage -- +,-,><. >< is our average symbol
+    
+    Split results by ';' for condtion args and with = for others. Separate multiple results with ','
     
     Condtion networks assume a 0 if False, 1 if True setup
     
-    @kws
+    TODO:
+    --Implemented condtion then/else results. It will be by ':' when ready
+    --Implement ()
+    --implement ramps and other things
+    --Node verification like mdNetwork builder so it doesn't rebuild all the time
+    --
+        
+    @Ussage
+    from cgm.core.classes import NodeFactory as nFactory
+    reload(nFactory)
+    
+    nFactory.argsToNodes(arg).doBuild() #Buildd
+    nFactory.argsToNodes(arg)#Logic only
+    
+    Examples. Assuming you have an object called 'worldCenter_loc'
+    arg = "worldCenter_loc.tx + worldCenter_loc.ty + worldCenter_loc.tz = worldCenter_loc.sumResult1"
+    arg = "1 + 2 + 3 = worldCenter_loc.simpleSum"#Working
+    arg = "1 >< 2 >< 3 = worldCenter_loc.simpleAv"#Working
+    arg = "3 * -worldCenter_loc.ty = worldCenter_loc.inverseMultThree"#Working
+    arg = "4 - 2 = worldCenter_loc.simpleMathResult"#Working
+    arg = "-worldCenter_loc.ty = worldCenter_loc.ty"#Working
+    arg = "worldCenter_loc.ty * 3 = worldCenter_loc.multResult"#Working
+    arg = "worldCenter_loc.ty + 3 + worldCenter_loc.ty = worldCenter_loc.sumResult"#Working
+    arg = "if worldCenter_loc.ty > 3;worldCenter_loc.result2"#Working
     """
     compatibleAttrs = ['bool','int','enum']
     def __init__(self, arg, *args,**kws):
         """Constructor"""
 	self.d_iAttrs = {}#attr instances stores as {index:instance}
-	self.l_iAttrs = []#Indices for iAttrs
+	self.l_attrs = []#Indices for iAttrs
 	self.ml_attrs = []
 	self.d_resultNetworksToVerify = {}#Index desctiptions of networks to build {target:[[1,2],3]}
 	self.d_connectionsToMake = {}#Connections to make
@@ -414,144 +450,255 @@ class verify_simpleNodalArg(object):
 	self.l_condNetworkArgs = []
 	self.l_mdNetworkArgs = []
 	self.l_pmaNetworkArgs = []	    
-	    
+	self.d_good_NetworkOuts = {}
 	self.validateArg(arg,*args,**kws)#Validate Arg
 	
-	"""
-	log.info("self.l_good_nodeNetworks: %s"%self.l_good_nodeNetworks)	    
+
+	if self.d_networksToBuild:
+	    log.info(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
 	if self.d_connectionsToMake:
-	    log.info("verify_simpleNodalArg>> d_connectionsToMake: '%s'"%d_connectionsToMake)
-	"""
-    def buildNodes(self,doBuild = True):
+	    log.info(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
+	
+    def doBuild(self):
 	""" doBuild to False for logic only"""
-	if not doBuild:
-	    return self.d_networksToBuild
+	l_args = []
+	ml_outPlugs = []
+	l_outPlugs = []
+	
 	for nodeType in self.d_networksToBuild.keys():
 	    if self.d_networksToBuild[nodeType]:
-		log.info("verify_simpleNodalArg>> d_networksToBuild: '%s'"%nodeType)
+		log.debug("argsToNodes>> d_networksToBuild: '%s'"%nodeType)
 		for n in self.d_networksToBuild[nodeType]:
-		    log.info(">>>> %s"%n)
-		    self.verify_nodalNetwork(n,nodeType)	
-	return self.l_good_nodeNetworks
+		    log.debug(">>>> %s"%n)
+		    self.verify_nodalNetwork(n,nodeType)
+		    
+	for resultKey in self.d_connectionsToMake.keys():
+	    if resultKey not in self.d_good_nodeNetworks.keys():
+		log.warning("resultKey not found: %s"%resultKey)
+	    else:
+		arg = resultKey
+		l_args.append(arg)
+		try:outIndex = self.d_good_NetworkOuts[arg]
+		except:raise StandardError,"Failed to find out network plug for: '%s'"%arg
+		mi_outPlug = self.ml_attrs[outIndex]
+		ml_outPlugs.append(mi_outPlug)
+		l_outPlugs.append(mi_outPlug.p_combinedName)
+		
+		for i in self.d_connectionsToMake[resultKey]['driven']:
+		    self.ml_attrs[i].doConnectIn("%s.%s"%(self.d_good_nodeNetworks[resultKey].mNode,
+			                                  d_nodeType_to_output[self.d_connectionsToMake[resultKey]['nodeType']]))	    
+		
+	#Build our return dict
+	#{l_args:[],l_outPlugs:[]indexed to args
+
+	return {'l_args':l_args,'l_outPlugs':l_outPlugs,'ml_outPlugs':ml_outPlugs}
+    
+    def cleanArg(self,arg):
+	#Clean an are of extra spaces
+	print arg
+	buffer = arg.split(' ')
+	for i,n in enumerate(buffer):
+	    if n != '':
+		start = i
+		break
+	buffer.reverse()    
+	for i,n in enumerate(buffer):
+	    if n != '':
+		end = len(buffer)-i
+		break
+	buffer.reverse()	
+	return  ' '.join(buffer[start:end])
     
     def validateArg(self,arg,*args,**kws):
-	log.info("verify_simpleNodalArg.validateArg>> Arg: '%s'"%(arg))	
+	log.debug("argsToNodes.validateArg>> Arg: '%s'"%(arg))	
 	if type(arg) in [list,tuple]:
-	    raise NotImplementedError,"verify_simpleNodalArg.validateArg>> list type arg not ready"
+	    raise NotImplementedError,"argsToNodes.validateArg>> list type arg not ready"
 	elif type(arg) != str:
-	    raise StandardError,"verify_simpleNodalArg.validateArg>> Arg type must be str. Type: %s"%type(arg)
+	    raise StandardError,"argsToNodes.validateArg>> Arg type must be str. Type: %s"%type(arg)
 	
 	if 'and' in arg:
 	    arg = arg.split('and')[0]	    
-	    log.info("verify_simpleNodalArg.validateArg>> 'and' not implemented. Splitting and processing the former part of arg. New arg: %s"%arg)
+	    log.warning("argsToNodes.validateArg>> 'and' not implemented. Splitting and processing the former part of arg. New arg: %s"%arg)
 	
 	argBuffer = []
 	if ' .' in arg:	#First we need to split if we have periods
 	    splitBuffer = arg.split(' .')
-	    log.info("verify_simpleNodalArg.validateArg>> '.' split: %s"%splitBuffer)
+	    log.debug("argsToNodes.validateArg>> '.' split: %s"%splitBuffer)
 	    argBuffer = splitBuffer
 	else:
 	    argBuffer = [arg]
 	    
-	log.info("verify_simpleNodalArg.validateArg>> argBuffer: %s"%(argBuffer))	
+	log.debug("argsToNodes.validateArg>> argBuffer: %s"%(argBuffer))	
 	for i,a in enumerate(argBuffer):
-	    log.info("verify_simpleNodalArg.validateArg>> On a: %s"%(a))	
+	    for k in l_NotImplementedTo_NodalArg:
+		if k in arg:
+		    raise NotImplementedError,"argsToNodes.validateArg>> '%s' not implemented | '%s'"%(k,a)
+
+	    foundMatch = False
+	    log.debug("argsToNodes.validateArg>> On a: %s"%(a))	
 	    for k in d_operator_to_NodeType['condition'] + l_extraConditionArgs:
 		if k in a:
-		    log.info("verify_simpleNodalArg.validateArg>> cond arg found: %s"%a)	
-		    if self.validate_subArg(a,'condition'):
-			log.info("verify_simpleNodalArg.validateArg>> cond arg verified: %s"%a)				
-			self.l_condNetworkArgs.append(a)
-			break
+		    foundMatch = True
+		    log.debug("argsToNodes.validateArg>> cond arg found: %s"%a)
+		    try:
+			if self.validate_subArg(a,'condition'):
+			    log.debug("argsToNodes.validateArg>> cond arg verified: %s"%a)				
+			    self.l_condNetworkArgs.append(a)
+			    break
+			else:
+			    log.debug("argsToNodes.validateArg>> cond arg failed: %s"%a)							
+		    except StandardError,error:
+			raise StandardError,error  
 	    for k in d_operator_to_NodeType['multiplyDivide']:
 		if k in a:
-		    log.info("verify_simpleNodalArg.validateArg>> md arg found: %s"%a)		
-		    self.l_mdNetworkArgs.append(a)
-		    break
+		    foundMatch = True		    
+		    try:
+			log.debug("argsToNodes.validateArg>> md arg(%s) found: %s"%(k,a))	
+			if self.validate_subArg(a,'multiplyDivide'):
+			    self.l_mdNetworkArgs.append(a)
+			    break
+			else:
+			    log.debug("argsToNodes.validateArg>> md arg failed: %s"%a)				    
+		    except StandardError,error:
+			raise StandardError,error  	   
 	    for k in d_operator_to_NodeType['plusMinusAverage']:
 		if k in a:
-		    log.info("verify_simpleNodalArg.validateArg>> pma arg found: %s"%a)		
-		    self.l_pmaNetworkArgs.append(a)
+		    foundMatch = True		    
+		    try:
+			log.debug("argsToNodes.validateArg>> pma arg(%s) found: %s"%(k,a))				    
+			if self.validate_subArg(a,'plusMinusAverage'):
+			    self.l_pmaNetworkArgs.append(a)
+			    break
+			else:
+			    log.debug("argsToNodes.validateArg>> pma arg found: %s"%a)				    
+		    except StandardError,error:
+			raise StandardError,error  
+	    if not foundMatch and '-' in a:
+		if self.validate_subArg(a,'multiplyDivide'):
+		    self.l_mdNetworkArgs.append(arg)
 		    break
+		else:
+		    log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
+	    if not self.d_networksToBuild:
+		raise StandardError,"argsToNodes.validateArg>> Found nothing to do! | %s"%a
 
-    def verify_attr(self,arg):
+    def verify_attr(self,arg,nodeType = False,originalArg = False):
 	"""
 	Check an arg, return an index to the i_attr list after registering
 	if necessary or the command if it's a valid driver
 	"""
-	d_driver = cgmMeta.validateAttrArg(arg,noneValid=True)
-	if d_driver:#we have an attr
-	    if d_driver['mi_plug'] not in self.ml_attrs:
-		log.info("verify_simpleNodalArg.verify_driver>> Adding: %s"%d_driver['combined'])
+	if '-' in arg:#Looking for inverses
+	    if not originalArg:
+		raise StandardError,"argsToNodes.verify_attr>> original arg required with '-' mode!"	    				
+	    if not nodeType:
+		raise StandardError,"argsToNodes.verify_attr>> nodeType required with '-' mode!"	    		
+	    log.info("argsToNodes.verify_attr>> '-' Mode!: %s"%arg)	    
+	    #We have to make a sub attr connection to inverse this value
+	    #First register the attr
+	    d_driver = cgmMeta.validateAttrArg(arg.split('-')[1],noneValid=True)
+	    
+	    if not d_driver:
+		raise StandardError,"argsToNodes.verify_attr>> '-' Mode fail!"	    
+	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
+		log.info("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
+		self.l_attrs.append(d_driver['mi_plug'].p_combinedName)		
 		self.ml_attrs.append(d_driver['mi_plug'])
-		return len(self.ml_attrs)-1
+		index = len(self.ml_attrs)-1
 	    else:
-		log.info("verify_simpleNodalArg.verify_driver>> Found. Returning index")		
-		return self.ml_attrs.index(d_driver['mi_plug'])#return the index
+		log.info("argsToNodes.verify_attr>> Found. Returning index")		
+		index = self.l_attrs.index(d_driver['mi_plug'].p_combinedName)#return the index
+	    
+	    d_validSubArg = {'arg':self.cleanArg(arg),'callArg':originalArg,'drivers':[index,'-1'],'operation':1}
+	    self.d_networksToBuild['multiplyDivide'].append(d_validSubArg)#append to build
+	    return unicode(self.cleanArg(arg))#unicoding for easy type check on later call
+	
+	d_driver = cgmMeta.validateAttrArg(arg,noneValid=True)
+	log.info(d_driver)
+	if d_driver:#we have an attr
+	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
+		log.info("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
+		self.l_attrs.append(d_driver['mi_plug'].p_combinedName)		
+		self.ml_attrs.append(d_driver['mi_plug'])
+		return len(self.l_attrs)-1
+	    else:
+		log.info("argsToNodes.verify_attr>> Found. Returning index")		
+		return self.l_attrs.index(d_driver['mi_plug'].p_combinedName)#return the index
 	elif type(arg) in [str,unicode]:
 	    for i in range(9):
 		if str(i) in arg:
-		    log.info("verify_simpleNodalArg.verify_driver>> Valid string driver: %s"%arg)				    
-		    return arg
-		
-	log.info("verify_simpleNodalArg.verify_driver>> Invalid Driver: %s"%arg)		
+		    log.info("argsToNodes.verify_driver>> Valid string driver: %s"%arg)				    
+		    return self.cleanArg(arg)
+	log.info("argsToNodes.verify_driver>> Invalid Driver: %s"%arg)		
 	return None
 	
     def validate_subArg(self,arg, nodeType = 'condition'):
-	log.info("verify_simpleNodalArg.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
+	log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
 	#First look for a result connection to register
 	if nodeType not in d_operator_to_NodeType.keys():
-	    raise StandardError,"verify_simpleNodalArg.validate_subArg>> unknown nodeType: %s"%nodeType
+	    raise StandardError,"argsToNodes.validate_subArg>> unknown nodeType: %s"%nodeType
 	resultArg = []
 	splitter = d_nodeType_to_resultSplit[nodeType]
 	if splitter in arg:
 	    spaceSplit = arg.split(' ')
 	    splitBuffer = arg.split(splitter)#split by ';'
 	    if len(splitBuffer)>2:
-		raise StandardError,"verify_simpleNodalArg.validate_subArg>> Too many splits for arg: %s"%splitBuffer		
+		raise StandardError,"argsToNodes.validate_subArg>> Too many splits for arg: %s"%splitBuffer		
 	    resultArg = splitBuffer[1]
 	    arg = splitBuffer[0]
-	    log.info("verify_simpleNodalArg.validate_subArg>> result args: %s"%resultArg)
+	    log.debug("argsToNodes.validate_subArg>> result args: %s"%resultArg)
 	    
-	log.info("verify_simpleNodalArg.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
+	log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
 	splitBuffer = arg.split(' ')#split by space
 	l_funcs = []
 	for function in d_operator_to_NodeType[nodeType]:
 	    if function in arg:#See if we have the function
-		if len(arg.split(function))>2:
-		     raise StandardError,"verify_simpleNodalArg.validate_subArg>> Bad arg. Too many functions in arg: %s"%(function)
+		if len(arg.split(function))>2 and nodeType == 'condition':
+		     raise StandardError,"argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(function)
 		l_funcs.append(function)
+	if not l_funcs and '-' not in arg:
+	    raise StandardError, "argsToNodes.validate_subArg>> No function of type '%s' found: %s"%(nodeType,d_operator_to_NodeType[nodeType])	    
+	elif len(l_funcs)!=1 and '-' not in arg:#this is to grab an simple inversion
+	    log.warning("argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(l_funcs))
+	if l_funcs:l_funcs = [l_funcs[0].split(' ')[1]]
 	
-	if not l_funcs:
-	    raise StandardError, "verify_simpleNodalArg.validate_subArg>> No function of type '%s' found: %s"%(nodeType,d_operator_to_NodeType[nodeType])
-	elif len(l_funcs)!=1: raise StandardError,"verify_simpleNodalArg.validate_subArg>> Bad arg. Too many functions in arg: %s"%(l_funcs)
-	
+	log.debug("validate_subArg>> l_funcs: %s"%l_funcs)
+	log.debug("validate_subArg>> splitBuffer: %s"%splitBuffer)	
 	try:#Validate our function factors
-	    funcIndex = splitBuffer.index(l_funcs[0])
-	    driver1 = splitBuffer[funcIndex-1]
-	    driver2 = splitBuffer[funcIndex+1]
-		    
-	    d_driver1 = self.verify_attr(driver1)
-	    d_driver2 = self.verify_attr(driver2)
-	    
-	    if d_driver1 is None:
-		raise StandardError, "verify_simpleNodalArg.validate_subArg>> driver1 failure: %s"%(driver1)
-	    if d_driver2 is None:
-		raise StandardError, "verify_simpleNodalArg.validate_subArg>> driver2 arg failure: %s"%(driver2)
+	    l_drivers = []
+	    if l_funcs:
+		first = True
+		for i,n in enumerate(splitBuffer):
+		    if n == l_funcs[0]:#if it's our func, grab the one one before and after
+			if first:
+			    l_drivers.append(splitBuffer[i-1])	
+			    first = False			    
+			l_drivers.append(splitBuffer[i+1])
+	    else:
+		l_drivers.append(splitBuffer[0])
 		
+	    l_validDrivers = []
+	    for d in l_drivers:
+		log.debug("Checking driver: %s"%d)
+		d_return = self.verify_attr(d,nodeType,arg)
+		if d_return is None:raise StandardError, "argsToNodes.validate_subArg>> driver failure: %s"%(d)
+		else:l_validDrivers.append(d_return)
+	    
+	    log.debug("l_validDrivers: %s"%l_validDrivers)
 	    #need to rework for more drivers
-	    l_drivers = [driver1,driver2]
 	    maxDrivers = d_nodeType_to_limits[nodeType].get('maxDrivers')
-	    if maxDrivers and len(l_drivers)>maxDrivers:
-		raise StandardError, "verify_simpleNodalArg.validate_subArg>> Too many drivers (max - %s): %s"%(maxDrivers,l_drivers)
-               
-	    d_validArg = {'arg':arg,'drivers':[d_driver1,d_driver2],'operation':d_function_to_Operator[l_funcs[0]]}
-	    log.info("verify_simpleNodalArg.validate_subArg>> Driver1: %s | Driver 2: %s"%(driver1,driver2))	
+	    if maxDrivers and len(l_validDrivers)>maxDrivers:
+		raise StandardError, "argsToNodes.validate_subArg>> Too many drivers (max - %s): %s"%(maxDrivers,l_validDrivers)
+	    
+	    if l_funcs:#we  use normal start
+		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers,'operation':d_function_to_Operator[l_funcs[0]]}
+	    else:#we have a special case
+		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg}		
+	    log.debug("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
 	
 	except StandardError,error:
 	    log.error(error)
-	    raise StandardError, "verify_simpleNodalArg.validate_subArg>> sub arg failure: %s"%(arg)
-	
+	    raise StandardError, "argsToNodes.validate_subArg>> sub arg failure: %s"%(arg)
+    
 	#try:
 	results_indices = []
 	if resultArg:
@@ -562,16 +709,26 @@ class verify_simpleNodalArg(object):
 	    for arg in resultBuffer:
 		#try to validate
 		a_return = self.verify_attr(arg)
-		if a_return:
+		if a_return is not None:
+		    if d_validArg.get('drivers') and a_return in d_validArg['drivers']:
+			raise StandardError,"argsToNodes.validate_subArg>> Same attr cannot be in drivers and driven of same node arg!"
 		    results_indices.append(a_return)
+		else:
+		    log.debug('no')
+		    
 	#Build our arg 
 	if results_indices:
-	    d_validArg['results']=results_indices
-	    log.info("verify_simpleNodalArg.validate_subArg>> Results: %s "%(results_indices))	
+	    if d_validArg.get('drivers'):
+		d_validArg['results']=results_indices
+	    log.debug("argsToNodes.validate_subArg>> Results: %s "%(results_indices))	
+	    self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
+	log.debug("d_validArg: %s"%d_validArg)
 	
-	log.info("d_validArg: %s"%d_validArg)
-	
-	self.d_networksToBuild[nodeType].append(d_validArg)#append to build
+	if d_validArg.get('drivers'):
+	    if len(d_validArg['drivers']) > 1:#just need a connecton mapped
+		self.d_networksToBuild[nodeType].append(d_validArg)#append to build
+	    else:
+		raise StandardError, "argsToNodes.validate_subArg>> Too few drivers : %s"%(l_validDrivers)
 	return True
     
     def verify_nodalNetwork(self,d_arg,nodeType = 'condition'):
@@ -583,17 +740,39 @@ class verify_simpleNodalArg(object):
 	    """
 	    If it doesn't exist, make it, otherwise, register the connection
 	    """
-	    log.info("verify_simpleNodalArg.verifyNode>> Creating: %s | type: %s"%(d_arg,nodeType))
+	    log.debug("argsToNodes.verifyNode>> Creating: %s | type: %s"%(d_arg,nodeType))
 	    ml_drivers = []
-	    for v in d_arg['drivers']:
-		if type(v) == int:
-		    ml_drivers.append(self.ml_attrs[v])
-		elif '.' in v:
-		    ml_drivers.append(float(v))#Float value
-		else:
-		    ml_drivers.append(int(v))#Int value
-	    log.info("verify_simpleNodalArg.verifyNode>> drivers: %s"%ml_drivers )
-	                                                    
+	    if not d_arg.get('drivers'):
+		return False
+	    log.debug("arg from d_arg: %s"%d_arg['arg'])
+	    l_driverNames = []
+	    try:
+		for v in d_arg['drivers']:
+		    if type(v) == unicode:
+			#We should have already done this one
+			if v not in self.d_good_NetworkOuts.keys():
+			    raise StandardError,"Not built yet: '%s'"%v
+			log.debug(v)
+			d = self.ml_attrs[ self.d_good_NetworkOuts[v] ]
+			ml_drivers.append(d)
+			#l_driverNames.append(mc.ls(d.p_combinedName,sn=True)[0])
+			
+		    elif type(v) == int:
+			d = self.ml_attrs[v]
+			ml_drivers.append(d)
+			#l_driverNames.append(mc.ls(d.p_combinedName,sn=True)[0])		    
+		    elif '.' in v:
+			ml_drivers.append(float(v))#Float value
+			#l_driverNames.append('f%s'%float(v))		    		    
+		    else:
+			ml_drivers.append(int(v))#Int value
+			#l_driverNames.append('i%s'%v)		    		    		    
+		log.debug("argsToNodes.verifyNode>> drivers: %s"%ml_drivers )
+		log.debug("argsToNodes.verifyNode>> driversNames: %s"%l_driverNames )
+	    except StandardError,error:
+		log.error("argsToNodes.verifyNode>> arg driver initialiation fail%s")
+		raise StandardError,error    
+	    
 	    i_node= None 
 	    #TODO: add verification
 	    #se if this connection exists now that we know the connectors
@@ -630,35 +809,74 @@ class verify_simpleNodalArg(object):
 		i_node = cgmMeta.cgmNode(nodeType = nodeType)#make the node
 		try:i_node.operation = d_arg['operation']
 		except:raise StandardError,"Failed to set operation!"
+		
+		#Name it  
+		#if d_arg.get('callArg'):key = d_arg.get('callArg')
+		buffer = d_arg['arg']
+		#buffer = "_to_".join(l_driverNames)
+		l_buffer = []
+		for k in d_functionStringSwaps.keys():
+		    if k in buffer:
+			for i,n in enumerate(buffer.split(' ')):
+			    for k in d_functionStringSwaps.keys():
+				if n == k:n = d_functionStringSwaps[k]
+			    if '.' in n:
+				n = '_'.join(n.split('.'))
+			    if '-' in n:
+				b = list(n)
+				for p,k in enumerate(b):
+				    if k == '-':
+					b[p]='_inv'
+				n = ''.join(b)
+			    l_buffer.append(n)
+			
+			break
+		if not l_buffer:l_buffer = buffer
+		try:
+		    if int(l_buffer[0]) in range(9):
+			l_buffer.insert(0,'_')
+		except:pass
+		i_node.doStore('cgmName',"%s"%("".join(l_buffer)))
+		i_node.doStore('creationArg',"%s"%d_arg['arg'])		
+		i_node.doName()
+		
+		
 		if nodeType == 'condition':
 		    i_node.colorIfTrueR = 1
 		    i_node.colorIfFalseR = 0
 		    
+		    
 		#Make our connections
-		l_driverNames = []
 		for i,d in enumerate(ml_drivers):
 		    if issubclass(type(d),cgmMeta.cgmAttr):
-			d.doConnectOut("%s.%s"%(i_node.mNode,d_nodeType_to_input[nodeType][i]))
-			l_driverNames.append(d.p_combinedName)
+			if nodeType == 'plusMinusAverage':
+			    d.doConnectOut("%s.%s[%s]"%(i_node.mNode,d_nodeType_to_input[nodeType],i))			    
+			else:
+			    d.doConnectOut("%s.%s"%(i_node.mNode,d_nodeType_to_input[nodeType][i]))
 		    else:
-			mc.setAttr("%s.%s"%(i_node.mNode,d_nodeType_to_input[nodeType][i]),d)
-			l_driverNames.append(str(d))
+			if nodeType == 'plusMinusAverage':
+			    mc.setAttr("%s.%s[%s]"%(i_node.mNode,d_nodeType_to_input[nodeType],i),d)		
+			else:
+			    mc.setAttr("%s.%s"%(i_node.mNode,d_nodeType_to_input[nodeType][i]),d)
 			
-		#Name it  
-		i_node.doStore('cgmName',"%s"%("_to_".join(l_driverNames)))
-		i_node.doName()
+
 		
-	    if d_arg.get('results'):
-		for i in d_arg['results']:
-		    self.ml_attrs[i].doConnectIn("%s.%s"%(i_node.mNode,d_nodeType_to_output[nodeType]))   
-	    
 	    #Store to our good network and the output attr
-	    self.l_good_nodeNetworks.append(d_arg['arg'])#append it to get our index lib
-	    index = self.l_good_nodeNetworks.index(d_arg['arg'])#get index
-	    self.d_good_nodeNetworks[index]=i_node#store the instance
+	    #if d_arg.get('callArg'):key = d_arg.get('callArg')
+	    key = d_arg.get('arg')
+	    self.l_good_nodeNetworks.append(key)#append it to get our index lib
+	    index = self.l_good_nodeNetworks.index(key)#get index
+	    log.debug("Storing: %s"%i_node)
+	    log.debug("To: %s"%key)
+	    log.debug("self.l_good_nodeNetworks: %s"%self.l_good_nodeNetworks)	    
+	    self.d_good_nodeNetworks[key]=i_node#store the instance
+	    log.debug(self.d_good_nodeNetworks)
 	    
+	    #register our out plug
+	    index = self.verify_attr("%s.%s"%(i_node.mNode,d_nodeType_to_output[nodeType]),key)
+	    self.d_good_NetworkOuts[key] = index
 	    
-	log.info("verify_simpleNodalArg>> verify_nodalNetwork: %s"%d_arg)
+	log.debug("argsToNodes>> verify_nodalNetwork: %s"%d_arg)
 	if type(d_arg) is not dict:
 	    log.error("verify_nodalNetwork args must be a dict")
 	    return False	    
@@ -668,7 +886,7 @@ class verify_simpleNodalArg(object):
 	
 	#Need to add check to see if the network exists from sourc
 	if d_arg not in self.l_good_nodeNetworks:
-	    log.info("verify_simpleNodalArg>> Checking: %s"%d_arg)
+	    log.debug("argsToNodes>> Checking: %s"%d_arg)
 	    verifyNode(d_arg,nodeType)
 	    
 	"""
