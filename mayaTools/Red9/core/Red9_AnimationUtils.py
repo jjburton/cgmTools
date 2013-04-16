@@ -536,6 +536,7 @@ class AnimationUI(object):
         cmds.menuItem(label='nodeType : Meshes', command=partial(self.__uiCB_addToNodeTypes, 'mesh'))
         cmds.menuItem(label='nodeType : Cameras', command=partial(self.__uiCB_addToNodeTypes, 'camera'))
         cmds.menuItem(label='nodeType : hikIKEffector', command=partial(self.__uiCB_addToNodeTypes, 'hikIKEffector'))
+        cmds.menuItem(label='nodeType : blendShape', command=partial(self.__uiCB_addToNodeTypes, 'blendShape'))
         self.uitfgSpecificAttrs = cmds.textFieldGrp('uitfgSpecificAttrs', 
                                             ann='Search for "Specific Attributes" on Nodes in the hierarchy, list separated by ","', 
                                             label='Search Attributes', text="", cw2=(120, 200))
@@ -2949,7 +2950,7 @@ class MirrorHierarchy(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
         
-    def loadMirrorSetups(self, filepath, nodes=None, hierarchy=True):
+    def loadMirrorSetups(self, filepath, nodes=None):
         if not os.path.exists(filepath):
             raise IOError('invalid filepath given')
         self.mirrorDict = configobj.ConfigObj(filepath)['mirror']

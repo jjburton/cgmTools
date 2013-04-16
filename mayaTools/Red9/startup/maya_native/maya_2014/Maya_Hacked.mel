@@ -397,3 +397,110 @@ buildCurvesMenu (string $editor, string $animEditor, string $parentMenu, string 
 		eval (($buildMenuCommand + " " + $editor + " " + $animEditor + " " + $parentMenu));
 	}
 }
+
+
+
+
+
+//===================================================
+//HACKED FROM: scripts/startup/generateChannelMenu.mel
+//===================================================
+
+global proc generateChannelMenu( string $parent, int $popupMenu )
+//
+// Generates the menu on both the menubar and on
+// the RMB, when the user asks for either of these.
+//
+{
+	setParent -m $parent;
+
+	if( 0 != `menu -q -ni $parent` ) {
+		//
+		// The menu already exists - just set the
+		// enable/disable state for
+		// each of the menuItems that operation on
+		// selected channels.
+		//
+		enableDisableChannelMenu $parent;
+
+	} else {
+		//
+		// The menu doesn't exist yet - build it
+		//
+		if( $popupMenu ) {
+			//
+			//	A popup menu is being generated - attach
+			//	a label to the top of the popup
+			//
+			menuItem -label (uiRes("m_generateChannelMenu.kChannels"));
+			menuItem -d true;
+			menuItem -d true;
+		}
+		menuItem -label (uiRes("m_generateChannelMenu.kKeySelected")) -c "channelBoxCommand -key" keyItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kKeyAll")) -c "channelBoxCommand -keyall" keyAllItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kBreakDownSelected")) -c "channelBoxCommand -breakdown" breakdownItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kBreakDownAll")) -c "channelBoxCommand -breakdownall" breakdownAllItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMuteSelected")) -c "channelBoxCommand -mute" muteItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMuteAll")) -c "channelBoxCommand -muteall" muteAllItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kUnmuteSelected")) -c "channelBoxCommand -unmute" unmuteItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kUnmuteAll")) -c "channelBoxCommand -unmuteall" unmuteAllItem;
+
+		menuItem -divider true;
+		
+		menuItem -label (uiRes("m_generateChannelMenu.kSyncGraphEditor"))
+			-cb `optionVar -query keyUseChannelBox`
+			-annotation (uiRes("m_generateChannelMenu.kSyncGraphEditorAnnot"))
+			-c "toggleChannelBoxGraphEdSync" cbGraphEdSyncMenu;
+
+		int $tcDisplay = `timeControl -q -showKeysCombined timeControl1`;
+		menuItem -label (uiRes("m_generateChannelMenu.kSyncTimeline"))
+			-cb $tcDisplay -c "toggleChannelBoxTimelineSync"
+			-annotation (uiRes("m_generateChannelMenu.kSyncTimelineAnnot"))
+			cbTimelineSyncMenu;
+
+		menuItem -divider true;
+
+		menuItem -label (uiRes("m_generateChannelMenu.kCutSelected")) -c "channelBoxCommand -cut" cutItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kCopySelected")) -c "channelBoxCommand -copy" copyItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kPasteSelected")) -c "channelBoxCommand -paste" pasteItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kDeleteSelected")) -c "channelBoxCommand -delete" deleteItem;
+
+		menuItem -d true;
+		
+		menuItem -label (uiRes("m_generateChannelMenu.kDuplicateValues")) -c "copyAttrValues" duplicateAttrValueItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kFreeze")) -subMenu true;
+			menuItem -label (uiRes("m_generateChannelMenu.kTranslate")) -c "channelBoxCommand -freezeTranslate" freezeTranslateItem;
+			menuItem -label (uiRes("m_generateChannelMenu.kRotate")) -c "channelBoxCommand -freezeRotate" freezeRotateItem;
+			menuItem -label (uiRes("m_generateChannelMenu.kScale")) -c "channelBoxCommand -freezeScale" freezeScaleItem;
+			menuItem -label (uiRes("m_generateChannelMenu.kAll")) -c "channelBoxCommand -freezeAll" freezeAllItem;
+		setParent -m ..;
+		
+		menuItem -d true;
+
+		menuItem -label (uiRes("m_generateChannelMenu.kBreakConnections")) -c "channelBoxCommand -break" breakItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kSelectConnection")) -c "channelBoxCommand -selectConnection" selectConnectionItem;
+
+		menuItem -d true;
+
+		menuItem -label (uiRes("m_generateChannelMenu.kLockSelected")) -c "channelBoxCommand -lock" lockItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kUnlockSelected")) -c "channelBoxCommand -unlock" unlockItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kHideSelected")) -c "channelBoxCommand -unkeyable" unkeyableItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kLockHideSelected")) -c "channelBoxCommand -lockUnkeyable" lockUnkeyableItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMakeSelectedNonkeyable")) -c "channelBoxCommand -unkeyableDisplayed" unkeyableDisplayedItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMakeSelectedKeyable")) -c "channelBoxCommand -keyable" keyableItem;		
+		
+		menuItem -d true;
+		
+		menuItem -label (uiRes("m_generateChannelMenu.kAddToSelectedLayers")) -c "channelBoxCommand -addToLayers" addToLayersItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kRemoveFromSelectedLayers")) -c "channelBoxCommand -removeFromLayers" removeFromLayersItem;
+				
+		//HACKED START =============================================================
+		menuItem -d true;
+		menuItem -label ("Red9: HUD add CB selection") -sourceType "python" -c "import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDaddCBAttrs()" red9HUDaddItem;
+		menuItem -label ("Red9: HUD remove CB selection") -sourceType "python" -c "import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDremoveCBAttrs()" red9HUDremoveItem;
+		menuItem -label ("Red9: HUD delete") -sourceType "python" -c "import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDKill()" red9HUDdeleteItem;
+		//HACKED END ===============================================================
+		
+		enableDisableChannelMenu $parent;
+	}
+}

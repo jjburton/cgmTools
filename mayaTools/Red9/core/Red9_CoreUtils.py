@@ -685,10 +685,26 @@ class FilterNode(object):
             #No Nodes passed in, do straight listRelatives Calls
             try:
                 if self.processMode=='Scene':
-                    typeMatched = cmds.ls(type=nodeTypes,r=True,l=True)
+                    nodes = cmds.ls(type=nodeTypes,r=True,l=True)
+                    if nodes:
+                        typeMatched=nodes #ensures we're always dealing with a list and not a null object
                 elif self.processMode=='Selected':
-                    typeMatched = cmds.listRelatives(self.rootNodes, type=nodeTypes, ad=True, f=True)
-            except:
+                    nodes = cmds.listRelatives(self.rootNodes, type=nodeTypes, ad=True, f=True)
+                    if nodes:
+                        typeMatched=nodes #ensures we're always dealing with a list and not a null object
+                        
+                    #Specific handler for blendShapes as these really need to be dealt with, and passed
+                    #in the animation functions but don't show under a standard hierarchy search   
+                    if 'blendShape' in nodeTypes:
+                        meshes=cmds.listRelatives(self.rootNodes, type='mesh', ad=True, f=True)
+                        if meshes:
+                            log.info('processing meshes for blendShapes')
+                            for mesh in meshes:
+                                blendShapes=[node for node in cmds.listHistory(mesh) if cmds.nodeType(node)=='blendShape']
+                                if blendShapes:
+                                    typeMatched.extend(blendShapes)
+            except StandardError,error:
+                log.debug(error)
                 log.warning('UnknownDataType Given in sublist : %s', nodeTypes)
 
         if typeMatched:

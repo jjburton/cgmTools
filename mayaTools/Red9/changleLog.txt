@@ -33,7 +33,7 @@ Mod - Red9_Anim - 'Ctrl' click when launching the AnimationUI will boot it non-d
 Mod - Red9_Meta - Calls that previously only took an mType/mInstance as a [string] arg now also accept the class too... so r9Meta.getMetaNodes('MetaRig') and r9Meta.getMetaRig(r9Meta.MetaRig) both are accepted.
 Mod - Red9_Meta - getChildren now takes an additional arg 'cAttrs' which can be used to only return children connected via a given attr name (this uses wildcards and will take a list)
 
-1.294:
+1.30:
 ------
 Fix - Red9_Anim - added full traceback to the error handling in the AnimUI
 Fix - Red9_Meta - added full traceback to the error handling in the nodeLockManager and thus the main class
@@ -41,3 +41,8 @@ Fix - Red9_Meta - setAttr wasn't raising errors due to the decorator. Patched
 Mod - Red9_Meta - updated MetaHUD, simplified event handler, now connected to refresh by default
 New - Red9_Meta - Added HUD wrappers now being called by the ChannelBox RMB menu - gives you access to the MetaHud monitors and makes the setup more integrated
 Fix - Red9_Meta - Bug fix in the getConnectedMetaNodes. This was returning connected mNodes via all attrs, not just those connected via message links. Hence if 2 mNodes were connected via tx that would have passed through, which is wrong!
+
+1.301:
+------
+New - Red9_Core - added specific handling for blendShape nodetypes in the FilterNode so that in hierarchy mode, blendshpaes attached to meshes in that hierarchy will be returned also
+New - Red9_PoseSaver - added support for blendShapes, now writing the data (using the updated filter above) via the aliasAttr call to extarct the blendTarget channels by name and store as such

@@ -180,7 +180,12 @@ class PoseData(object):
                 self.poseDict[key]['attrs']={}
                 for attr in channels:
                     try:
-                        self.poseDict[key]['attrs'][attr]=cmds.getAttr('%s.%s' % (node,attr))
+                        if cmds.getAttr('%s.%s' % (node,attr),type=True)=='TdataCompound': #blendShape weights support
+                            attrs=cmds.aliasAttr(node, q=True)[::2] #extract the target channels from the multi
+                            for attr in attrs:
+                                self.poseDict[key]['attrs'][attr]=cmds.getAttr('%s.%s' % (node,attr))
+                        else:
+                            self.poseDict[key]['attrs'][attr]=cmds.getAttr('%s.%s' % (node,attr))
                     except:
                         log.debug('%s : attr is invalid in this instance' % attr)
 

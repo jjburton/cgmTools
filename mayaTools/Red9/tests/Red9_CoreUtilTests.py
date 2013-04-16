@@ -98,6 +98,7 @@ class Test_FilterSettings():
         assert self.filter.metaRig==True
         assert self.filter.transformClamp==True
         
+        
 class Test_FilterNode():
      
     def setup(self):
@@ -138,6 +139,10 @@ class Test_FilterNode():
                                             '|World_Root|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl', 
                                             '|World_Root|Spine_Ctrl', 
                                             '|World_Root|nurbsCircle1']  
+        
+        self.filterNode.settings.nodeTypes=['blendShape']
+        assert self.filterNode.ProcessFilter()==['ffff']
+                                                 
     def test_SearchPattern(self):
         self.filterNode.settings.nodeTypes=['nurbsCurve','locator']
         self.filterNode.settings.searchPattern='Ctrl'
@@ -266,6 +271,10 @@ class Test_FilterNode():
         No rootNode so processing at World/Scene level
         '''
         self.filterNode.rootNodes=[]
+        
+        self.filterNode.settings.nodeTypes=['blendShape']
+        assert self.filterNode.ProcessFilter()==['NewBlend','ffff']
+        
         self.filterNode.settings.nodeTypes=['mesh']
         assert self.filterNode.ProcessFilter()==['|World_Root|pCube4_AttrMarked|pCube5',
                                                 '|World_Root2_chSet|pCube4_AttrMarked_Bingo|pCube5',
@@ -273,15 +282,18 @@ class Test_FilterNode():
                                                 '|World_Root2_chSet|joint4|joint5_AttrMarked|joint6_Ctrl|pCube3',
                                                 '|World_Root|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl|pCube2',
                                                 '|World_Root2_chSet|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl|pCube2',
+                                                '|World_Root2_chSet|pCube6',
                                                 '|World_Root|Spine_Ctrl|R_Wrist_Ctrl|R_Pole_AttrMarked_Ctrl|pCube1',
                                                 '|World_Root2_chSet|Spine_Ctrl|R_Wrist_Ctrl|R_Pole_AttrMarked_Ctrl|pCube1',
                                                 '|World_Root2_chSet|pCube4_AttrMarked_Bingo',
                                                 '|World_Root|pCube4_AttrMarked']
+        
         self.filterNode.settings.searchAttrs=['MarkerAttr']
         assert self.filterNode.ProcessFilter()==['|World_Root2_chSet|pCube4_AttrMarked_Bingo',
                                                  '|World_Root|pCube4_AttrMarked']
         self.filterNode.settings.searchPattern=['Bingo']
         assert self.filterNode.ProcessFilter()==['|World_Root2_chSet|pCube4_AttrMarked_Bingo'] 
+        
         
     def test_CharacterSetHandler(self):
         #reset the rootNode to be the chSet and test the chSet hierarchy handler

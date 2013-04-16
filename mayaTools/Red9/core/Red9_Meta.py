@@ -562,8 +562,10 @@ class MetaClass(object):
         '''
         #data that will not get pushed to the Maya node 
         object.__setattr__(self, '_MObject', '')
+        object.__setattr__(self, '_MObjectHandle', '')
         object.__setattr__(self, 'UNMANAGED', ['mNode',
                                                '_MObject',
+                                               '_MObjectHandle',
                                                '_lockState',
                                                'lockState'])
         object.__setattr__(self,'_lockState',False)
@@ -615,27 +617,48 @@ class MetaClass(object):
             self.newClassAttr=None  :or:   self.__setattr__('newAttr',None)      
         '''
         pass    
-     
+    
+    def isValidMObject(self):
+        '''
+        validate the MObject, without this Maya will crash if the pointer is no longer valid
+        TODO: thionking of storing the dagPath when we fill in the mNode to start with and
+        if this test fails, ie the scene has been reloaded, then use the dagPath to refind
+        and refil the mNode property back in.... maybe??
+        '''
+        try:
+            mobjHandle=object.__getattribute__(self, "_MObjectHandle")
+            return mobjHandle.isValid()
+        except:
+            log.info('_MObjectHandle not yet setup')
+         
     #Cast the mNode attr to the actual MObject so it's no longer limited by string dagpaths       
     #yes I know Pymel does this for us but I don't want the overhead!  
     def __get_mNode(self):
         mobj=object.__getattribute__(self, "_MObject")
-        if mobj:
-            #if we have an object thats a dagNode, ensure we return FULL Path
-            if OpenMaya.MObject.hasFn(mobj, OpenMaya.MFn.kDagNode):
-                dPath = OpenMaya.MDagPath()
-                OpenMaya.MDagPath.getAPathTo(mobj,dPath)
-                return dPath.fullPathName()
-            else:
-                depNodeFunc = OpenMaya.MFnDependencyNode(mobj)
-                return depNodeFunc.name()       
+        mobjHandle=object.__getattribute__(self, "_MObjectHandle")
+        if mobj:   
+            try:
+                if not mobjHandle.isValid():
+                    log.info('MObject is no longer valid - object may have been deleted or the scene reloaded?')  
+                    return ''   
+                #if we have an object thats a dagNode, ensure we return FULL Path
+                if OpenMaya.MObject.hasFn(mobj, OpenMaya.MFn.kDagNode):
+                    dPath = OpenMaya.MDagPath()
+                    OpenMaya.MDagPath.getAPathTo(mobj,dPath)
+                    return dPath.fullPathName()
+                else:
+                    depNodeFunc = OpenMaya.MFnDependencyNode(mobj)
+                    return depNodeFunc.name()
+            except StandardError,error:
+                raise StandardError(error)       
     def __set_mNode(self, node):
         if node:
             mobj=OpenMaya.MObject()
             selList=OpenMaya.MSelectionList()
             selList.add(node)
             selList.getDependNode(0,mobj)
-            object.__setattr__(self, '_MObject', mobj)           
+            object.__setattr__(self, '_MObject', mobj)   
+            object.__setattr__(self, '_MObjectHandle',OpenMaya.MObjectHandle(mobj))   
                
     mNode = property(__get_mNode, __set_mNode)
     
@@ -771,11 +794,14 @@ class MetaClass(object):
                         
                     elif attrType=='doubleArray':
                         cmds.setAttr(attrString,value,type='doubleArray')
+                        
+                    #elif attrType=='TdataCompound': #ie blendShape weights = multi data
+                    #    pass
                     else:
                         try:
                             cmds.setAttr(attrString, value)  
                         except StandardError,error:
-                            log.warning('failed to setAttr %s - might be connected' % attrString)
+                            log.debug('failed to setAttr %s - might be connected' % attrString)
                             raise StandardError(error)
                 if locked:
                     self.attrSetLocked(attr,True)
@@ -1905,6 +1931,7 @@ class MetaHUDNode(MetaClass):
             if self.allowExpansion and i>17:
                 section = self.section+5
                 block = block-17
+                i=0
             if self.eventTrigger==1: #timeChanged
                 cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
                                      section=section, 

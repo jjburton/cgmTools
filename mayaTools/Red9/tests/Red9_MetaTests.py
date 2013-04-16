@@ -83,7 +83,7 @@ class Test_MetaClass():
         assert not cmds.objExists('MetaClass_Test')
         
         #isReferenced ?? Why is this failing ??
-        assert not self.isReferenced()
+        assert not self.MClass.isReferenced()
         
     def test_MObject_Handling(self):
         #mNode is now handled via an MObject
