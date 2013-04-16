@@ -3932,7 +3932,7 @@ def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mT
 	log.error("validateObjListArg>>Failure! l_args: %s | mType: %s"%(l_args,mType))
 	raise StandardError,error    
 
-def validateAttrArg(arg,defaultType = 'float',**kws):
+def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
     """
     Validate an attr arg to usable info
     Arg should be sting 'obj.attr' or ['obj','attr'] format.
@@ -3961,8 +3961,11 @@ def validateAttrArg(arg,defaultType = 'float',**kws):
 	
 	return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
     except StandardError,error:
-	log.error("validateAttrArg>>Failure! arg: %s"%arg)
-	raise StandardError,error
+	if noneValid:
+	    return False
+	else:
+	    log.error("validateAttrArg>>Failure! arg: %s"%arg)
+	    raise StandardError,error
     
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
