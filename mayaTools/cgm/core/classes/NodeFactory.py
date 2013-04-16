@@ -378,6 +378,9 @@ d_function_to_Operator = {'==':0,'!=':1,'>':2,'>=':3,'<':4,'<=':5,#condition
 d_nodeType_to_limits = {'condition':{'maxDrivers':2},
                         'multiplyDivide':{'maxDrivers':2},
                         'plusMinusAverage':{'maxDrivers':False}}
+d_nodeType_to_DefaultAttrType = {'condition':'bool',
+                                 'multiplyDivide':'float',
+                                 'plusMinusAverage':'float'}
 d_nodeType_to_input = {'condition':['firstTerm','secondTerm'],
                        'multiplyDivide':['input1X','input2X'],
                        'plusMinusAverage':'input1D'}
@@ -414,7 +417,6 @@ class argsToNodes(object):
     --Implement ()
     --implement ramps and other things
     --Node verification like mdNetwork builder so it doesn't rebuild all the time
-    --
         
     @Ussage
     from cgm.core.classes import NodeFactory as nFactory
@@ -483,15 +485,17 @@ class argsToNodes(object):
 		mi_outPlug = self.ml_attrs[outIndex]
 		ml_outPlugs.append(mi_outPlug)
 		l_outPlugs.append(mi_outPlug.p_combinedName)
-		
+		#let's lock and hide our result attrs
 		for i in self.d_connectionsToMake[resultKey]['driven']:
 		    self.ml_attrs[i].doConnectIn("%s.%s"%(self.d_good_nodeNetworks[resultKey].mNode,
 			                                  d_nodeType_to_output[self.d_connectionsToMake[resultKey]['nodeType']]))	    
-		
+		    self.ml_attrs[i].p_hidden = True
 	#Build our return dict
 	#{l_args:[],l_outPlugs:[]indexed to args
-
-	return {'l_args':l_args,'l_outPlugs':l_outPlugs,'ml_outPlugs':ml_outPlugs}
+	ml_nodes = [self.d_good_nodeNetworks.get(key) for key in self.d_good_nodeNetworks.keys()]
+	l_nodes = [i_node.mNode for i_node in ml_nodes]
+	
+	return {'l_args':l_args,'l_outPlugs':l_outPlugs,'ml_outPlugs':ml_outPlugs,'ml_nodes':ml_nodes,'l_nodes':l_nodes}
     
     def cleanArg(self,arg):
 	#Clean an are of extra spaces
@@ -587,6 +591,13 @@ class argsToNodes(object):
 	Check an arg, return an index to the i_attr list after registering
 	if necessary or the command if it's a valid driver
 	"""
+	if nodeType:
+	    kws = {}
+	    defaultAttrType = d_nodeType_to_DefaultAttrType.get(nodeType) or False
+	    if defaultAttrType:
+		kws['defaultType'] = defaultAttrType
+		log.info("KWS:   %s"%kws)
+		
 	if '-' in arg:#Looking for inverses
 	    if not originalArg:
 		raise StandardError,"argsToNodes.verify_attr>> original arg required with '-' mode!"	    				
@@ -595,7 +606,7 @@ class argsToNodes(object):
 	    log.info("argsToNodes.verify_attr>> '-' Mode!: %s"%arg)	    
 	    #We have to make a sub attr connection to inverse this value
 	    #First register the attr
-	    d_driver = cgmMeta.validateAttrArg(arg.split('-')[1],noneValid=True)
+	    d_driver = cgmMeta.validateAttrArg(arg.split('-')[1],noneValid=True,**kws)
 	    
 	    if not d_driver:
 		raise StandardError,"argsToNodes.verify_attr>> '-' Mode fail!"	    
@@ -612,7 +623,7 @@ class argsToNodes(object):
 	    self.d_networksToBuild['multiplyDivide'].append(d_validSubArg)#append to build
 	    return unicode(self.cleanArg(arg))#unicoding for easy type check on later call
 	
-	d_driver = cgmMeta.validateAttrArg(arg,noneValid=True)
+	d_driver = cgmMeta.validateAttrArg(arg,noneValid=True,**kws)
 	log.info(d_driver)
 	if d_driver:#we have an attr
 	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
@@ -637,29 +648,51 @@ class argsToNodes(object):
 	if nodeType not in d_operator_to_NodeType.keys():
 	    raise StandardError,"argsToNodes.validate_subArg>> unknown nodeType: %s"%nodeType
 	resultArg = []
-	splitter = d_nodeType_to_resultSplit[nodeType]
-	if splitter in arg:
-	    spaceSplit = arg.split(' ')
-	    splitBuffer = arg.split(splitter)#split by ';'
-	    if len(splitBuffer)>2:
-		raise StandardError,"argsToNodes.validate_subArg>> Too many splits for arg: %s"%splitBuffer		
-	    resultArg = splitBuffer[1]
-	    arg = splitBuffer[0]
-	    log.debug("argsToNodes.validate_subArg>> result args: %s"%resultArg)
-	    
-	log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
-	splitBuffer = arg.split(' ')#split by space
-	l_funcs = []
-	for function in d_operator_to_NodeType[nodeType]:
-	    if function in arg:#See if we have the function
-		if len(arg.split(function))>2 and nodeType == 'condition':
-		     raise StandardError,"argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(function)
-		l_funcs.append(function)
-	if not l_funcs and '-' not in arg:
-	    raise StandardError, "argsToNodes.validate_subArg>> No function of type '%s' found: %s"%(nodeType,d_operator_to_NodeType[nodeType])	    
-	elif len(l_funcs)!=1 and '-' not in arg:#this is to grab an simple inversion
-	    log.warning("argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(l_funcs))
-	if l_funcs:l_funcs = [l_funcs[0].split(' ')[1]]
+	thenArg = []
+	
+	try:#Result split
+	    splitter = d_nodeType_to_resultSplit[nodeType]
+	    if splitter in arg:
+		spaceSplit = arg.split(' ')
+		splitBuffer = arg.split(splitter)#split by ';'
+		if len(splitBuffer)>2:
+		    raise StandardError,"argsToNodes.validate_subArg>> Too many splits for arg: %s"%splitBuffer		
+		resultArg = splitBuffer[1]
+		arg = splitBuffer[0]
+		log.debug("argsToNodes.validate_subArg>> result args: %s"%resultArg)
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError, "argsToNodes.validate_subArg>> resultSplit failure: %s"%(arg)
+	
+	try:#If then
+	    if nodeType == 'condition' and ':' in arg:
+		thenSplit = arg.split(':')
+		if len(thenSplit)>2:
+		    raise StandardError,"argsToNodes.validate_subArg>> Too many thenSplits for arg: ':' | %s"%thenSplit	
+		thenArg = thenSplit[1]
+		arg = thenSplit[0]	    
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError, "argsToNodes.validate_subArg>> thenSplit failure: %s"%(arg)
+	
+	try:#Function Split
+	    log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
+	    splitBuffer = arg.split(' ')#split by space
+	    l_funcs = []
+	    for function in d_operator_to_NodeType[nodeType]:
+		if function in arg:#See if we have the function
+		    if len(arg.split(function))>2 and nodeType == 'condition':
+			 raise StandardError,"argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(function)
+		    l_funcs.append(function)
+	    if not l_funcs and '-' not in arg:
+		raise StandardError, "argsToNodes.validate_subArg>> No function of type '%s' found: %s"%(nodeType,d_operator_to_NodeType[nodeType])	    
+	    elif len(l_funcs)!=1 and '-' not in arg:#this is to grab an simple inversion
+		log.warning("argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(l_funcs))
+	    if l_funcs:l_funcs = [l_funcs[0].split(' ')[1]]
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError, "argsToNodes.validate_subArg>> functionSplit failure: %s"%(arg)
+	
 	
 	log.debug("validate_subArg>> l_funcs: %s"%l_funcs)
 	log.debug("validate_subArg>> splitBuffer: %s"%splitBuffer)	
@@ -699,36 +732,61 @@ class argsToNodes(object):
 	    log.error(error)
 	    raise StandardError, "argsToNodes.validate_subArg>> sub arg failure: %s"%(arg)
     
-	#try:
-	results_indices = []
-	if resultArg:
-	    if ',' in resultArg:
-		resultBuffer = resultArg.split(',')
+	then_indices = []
+	if thenArg:
+	    log.info("Then arg: %s"%thenArg)	    
+	    if 'else' in thenArg:
+		thenBuffer = thenArg.split('else')
 	    else:
-		resultBuffer = [resultArg]
-	    for arg in resultBuffer:
+		thenBuffer = [thenArg]
+	    if len(thenBuffer)>2:
+		raise StandardError, "argsToNodes.validate_subArg>> thenBuffer > 2: %s"%(thenBuffer)		
+	    for arg in thenBuffer:
 		#try to validate
-		a_return = self.verify_attr(arg)
+		a_return = self.verify_attr(arg,nodeType)
 		if a_return is not None:
-		    if d_validArg.get('drivers') and a_return in d_validArg['drivers']:
-			raise StandardError,"argsToNodes.validate_subArg>> Same attr cannot be in drivers and driven of same node arg!"
-		    results_indices.append(a_return)
+		    then_indices.append(a_return)
+	    for i,n in enumerate(then_indices):
+		if i==0:
+		    d_validArg['True']=n
 		else:
-		    log.debug('no')
-		    
-	#Build our arg 
-	if results_indices:
+		    d_validArg['False']=n		    
+		
+    
+    
+	try:#Results build
+	    results_indices = []
+	    if resultArg:
+		if ',' in resultArg:
+		    resultBuffer = resultArg.split(',')
+		else:
+		    resultBuffer = [resultArg]
+		for arg in resultBuffer:
+		    #try to validate
+		    a_return = self.verify_attr(arg,nodeType)
+		    if a_return is not None:
+			if d_validArg.get('drivers') and a_return in d_validArg['drivers']:
+			    raise StandardError,"argsToNodes.validate_subArg>> Same attr cannot be in drivers and driven of same node arg!"
+			results_indices.append(a_return)
+			
+	    #Build our arg 
+	    if results_indices:
+		if d_validArg.get('drivers'):
+		    d_validArg['results']=results_indices
+		log.debug("argsToNodes.validate_subArg>> Results: %s "%(results_indices))	
+		self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
+	    log.debug("d_validArg: %s"%d_validArg)
+	    
 	    if d_validArg.get('drivers'):
-		d_validArg['results']=results_indices
-	    log.debug("argsToNodes.validate_subArg>> Results: %s "%(results_indices))	
-	    self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
-	log.debug("d_validArg: %s"%d_validArg)
+		if len(d_validArg['drivers']) > 1:#just need a connecton mapped
+		    self.d_networksToBuild[nodeType].append(d_validArg)#append to build
+		else:
+		    raise StandardError, "argsToNodes.validate_subArg>> Too few drivers : %s"%(l_validDrivers)
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError, "argsToNodes.validate_subArg>> results build failure: %s"%(arg)
+    
 	
-	if d_validArg.get('drivers'):
-	    if len(d_validArg['drivers']) > 1:#just need a connecton mapped
-		self.d_networksToBuild[nodeType].append(d_validArg)#append to build
-	    else:
-		raise StandardError, "argsToNodes.validate_subArg>> Too few drivers : %s"%(l_validDrivers)
 	return True
     
     def verify_nodalNetwork(self,d_arg,nodeType = 'condition'):
@@ -736,6 +794,23 @@ class argsToNodes(object):
 	arg should be in the form of [[int,int],int...int]
 	the first arg should always be a pair as the base md node paring, the remainging ones are daiy chained form that
 	"""
+	def verifyDriver(self,arg):
+	    if type(arg) == unicode:
+		#We should have already done this one
+		if arg not in self.d_good_NetworkOuts.keys():
+		    raise StandardError,"Not built yet: '%s'"%arg
+		log.debug(arg)
+		d = self.ml_attrs[ self.d_good_NetworkOuts[arg] ]
+		return d
+		
+	    elif type(arg) == int:
+		d = self.ml_attrs[arg]
+		return d
+	    elif '.' in arg:
+		return float(arg)#Float value
+	    else:
+		return int(arg)#Int value
+	    
 	def verifyNode(d_arg,nodeType):
 	    """
 	    If it doesn't exist, make it, otherwise, register the connection
@@ -755,18 +830,14 @@ class argsToNodes(object):
 			log.debug(v)
 			d = self.ml_attrs[ self.d_good_NetworkOuts[v] ]
 			ml_drivers.append(d)
-			#l_driverNames.append(mc.ls(d.p_combinedName,sn=True)[0])
 			
 		    elif type(v) == int:
 			d = self.ml_attrs[v]
 			ml_drivers.append(d)
-			#l_driverNames.append(mc.ls(d.p_combinedName,sn=True)[0])		    
 		    elif '.' in v:
 			ml_drivers.append(float(v))#Float value
-			#l_driverNames.append('f%s'%float(v))		    		    
 		    else:
 			ml_drivers.append(int(v))#Int value
-			#l_driverNames.append('i%s'%v)		    		    		    
 		log.debug("argsToNodes.verifyNode>> drivers: %s"%ml_drivers )
 		log.debug("argsToNodes.verifyNode>> driversNames: %s"%l_driverNames )
 	    except StandardError,error:
@@ -842,8 +913,18 @@ class argsToNodes(object):
 		
 		
 		if nodeType == 'condition':
-		    i_node.colorIfTrueR = 1
-		    i_node.colorIfFalseR = 0
+		    if d_arg.get('True'):
+			log.info("True arg: %s"%d_arg.get('True'))
+			log.info("True verified to: %s"%verifyDriver(self,d_arg.get('True')))	
+			mc.setAttr("%s.colorIfTrueR"%(i_node.mNode),verifyDriver(self,d_arg.get('True')))			
+			#i_node.colorIfTrueR = verifyDriver(self,d_arg.get('True'))
+		    else:i_node.colorIfTrueR = 1
+		    if d_arg.get('False'):
+			log.info("False arg: %s"%d_arg.get('False'))
+			log.info("False verified to: %s"%verifyDriver(self,d_arg.get('False')))						
+			mc.setAttr("%s.colorIfFalseR"%(i_node.mNode),verifyDriver(self,d_arg.get('False')))						
+			#i_node.colorIfTrueR = verifyDriver(self,d_arg.get('False'))		    
+		    else:i_node.colorIfFalseR = 0
 		    
 		    
 		#Make our connections
