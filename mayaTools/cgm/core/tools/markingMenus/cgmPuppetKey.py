@@ -5,11 +5,12 @@ from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.core import cgm_Meta as cgmMeta
 
-#from cgm.lib import guiFactory
+from cgm.lib import guiFactory
 from cgm.lib import search
 from cgm.tools.lib import animToolsLib
 from cgm.tools.lib import tdToolsLib
 from cgm.tools.lib import locinatorLib
+
 from cgm.lib import locators
 
 import logging
@@ -72,32 +73,65 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		"""
 		Create the UI
 		"""		
-		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked',value = 0)
-		self.setupVariables()
-		selected = mc.ls(sl=True) or []
-		self.ml_objList = cgmMeta.validateObjListArg(selected,cgmMeta.cgmObject,True)
-		if selected:selCheck = True
-		else:selCheck = False
-		
 		def buttonAction(command):
 			"""
 			execute a command and let the menu know not do do the default button action but just kill the ui
 			"""			
 			self.mmActionOptionVar.value=1			
 			command
-			killUI()
+			killUI()	
 			
-		#ShowMatch = search.matchObjectCheck()
-		
+		def aimObjects(self):
+			for i_obj in self.ml_objList[1:]:
+				if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
+					if i_obj._isAimable():
+						i_obj.doAim(self.i_target)
+						
+		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked',value = 0)
 		IsClickedOptionVar.value = 1
+		
+		
+		#>>>> Sel check
+		#====================================================================
+		self.setupVariables()
+		selected = mc.ls(sl=True) or []
+		self.ml_objList = cgmMeta.validateObjListArg(selected,cgmMeta.cgmObject,True)
+		log.debug("ml_objList: %s"%self.ml_objList)
+		
+		if selected:selCheck = True
+		else:selCheck = False
+		
+		#>>>> Aim check
+		#====================================================================
+		b_aimable = False
+		self.i_target = False
+		if len(self.ml_objList)>=2:
+			for i_obj in self.ml_objList[1:]:
+				if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
+					if i_obj._isAimable():
+						b_aimable = True
+						self.i_target = self.ml_objList[0]
+						break
+					
 
 		
+		#ShsowMatch = search.matchObjectCheck()
+		
+
+		#>>>> Build Menu
+		#====================================================================		
 		mc.menu(parent,e = True, deleteAllItems = True)
 		MelMenuItem(parent,
 		            en = selCheck,
 		            l = 'Reset Selected',
 		            c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCall()),
-		            rp = 'N')            
+		            rp = 'N')  
+		
+		MelMenuItem(parent,
+		            en = b_aimable,
+		            l = 'Aim',
+		            c = lambda *a:buttonAction(aimObjects(self)),
+		            rp = 'E')     		
 		
 		MelMenuItem(parent,
 		            en = selCheck,
@@ -113,13 +147,14 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 					if i_dynParent:
 						MelMenuItem(parent,l=">>%s<<"%i_o.getShortName())
 						for a in cgmMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
-							tmpMenu = MelMenuItem( parent, l="Change %s"%a, subMenu=True)
-							v = mc.getAttr("%s.%s"%(i_o.mNode,a))
-							for i,o in enumerate(cgmMeta.cgmAttr(i_o.mNode,a).p_enum):
-								if i == v:b_enable = False
-								else:b_enable = True
-								MelMenuItem(tmpMenu,l = "%s"%o,en = b_enable,
-								            c = Callback(i_dynParent.doSwitchSpace,a,i))								
+							if i_o.hasAttr(a):
+								tmpMenu = MelMenuItem( parent, l="Change %s"%a, subMenu=True)
+								v = mc.getAttr("%s.%s"%(i_o.mNode,a))
+								for i,o in enumerate(cgmMeta.cgmAttr(i_o.mNode,a).p_enum):
+									if i == v:b_enable = False
+									else:b_enable = True
+									MelMenuItem(tmpMenu,l = "%s"%o,en = b_enable,
+										        c = Callback(i_dynParent.doSwitchSpace,a,i))								
 						MelMenuItemDiv(parent)
 				
 		#>>> Keying Options

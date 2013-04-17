@@ -1173,8 +1173,71 @@ class cgmObject(cgmNode):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
-class cgmControl(cgmObject):     
-    pass 
+class cgmControl(cgmObject): 
+    def __init__(self,node = None, name = 'null',setClass = False,*args,**kws):
+	""" 
+	Class for control specific functions
+    
+	Keyword arguments:
+	obj(string)     
+	autoCreate(bool) - whether to create a transforum if need be
+	"""
+	try: super(cgmControl, self).__init__(node = node, name = name,nodeType = 'transform')
+	except StandardError,error:
+	    raise StandardError, "cgmControl.__init__ fail! | %s"%error
+	
+	if setClass:
+	    self.addAttr('mClass','cgmControl',lock=True)
+	    
+    #>>> Aim stuff
+    #========================================================================
+    def _isAimable(self):
+	try: self._verifyAimable()
+	except StandardError,error:
+	    log.error("cgmControl._verifyAimable>> _verifyAimable fail | %s"%error)
+	    return False
+	
+	if self.axisAim == self.axisUp or self.axisAim == self.axisOut or self.axisUp == self.axisOut:
+	    log.error("cgmControl._verifyAimable>> Axis settings cannot be the same")	    
+	    return False
+	return True
+
+    def _verifyAimable(self):
+	try:
+	    self.addAttr('axisAim', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = True, lock = False, hidden = True) 
+	    self.addAttr('axisUp', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = True, lock = False, hidden = True) 
+	    self.addAttr('axisOut', attrType='enum', enumName = 'x+:y+:z+:x-:y-:z-',initialValue=0, keyable = True, lock = False, hidden = True) 
+	    return True
+	except StandardError,error:
+	    raise StandardError, "cgmControl._verifyAimable fail! | %s"%error	
+	
+    def doAim(self,target = None):
+	try:
+	    if not self._isAimable():
+		log.warning("Not an aimable control: '%s'"%self.getShortName())
+		return False
+	    i_target = validateObjArg(target,cgmObject,noneValid=True)
+	    if not i_target:
+		log.warning("Invalid aim target : '%s'"%target)
+		return False	    
+	    
+	    l_enums = mc.attributeQuery('axisAim', node=self.mNode, listEnum=True)[0].split(':')
+	    
+	    aimVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisAim])
+	    upVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisUp])
+	    outVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisOut])
+	    
+	    log.info("aimVector: %s"%aimVector)
+	    log.info("upVector: %s"%upVector)
+	    log.info("outVector: %s"%outVector)
+	    aimConstraintBuffer = mc.aimConstraint(i_target.mNode,self.mNode,maintainOffset = False, weight = 1, aimVector = aimVector, upVector = upVector, worldUpType = 'scene' )
+	    mc.delete(aimConstraintBuffer)
+	except StandardError,error:
+	    raise StandardError, "%s.doAim fail! | %s"%(self.getShortName(),error)
+
+
+
+	    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
@@ -3899,7 +3962,9 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	if issubclass(argType,r9Meta.MetaClass):#we have an instance already
 	    i_arg = arg
 	elif not mc.objExists(arg):
-	    raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg	
+	    if noneValid: return False
+	    else:
+		raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg	
 	elif mType is not None:
 	    i_autoInstance = r9Meta.MetaClass(arg)
 	    if issubclass(type(i_autoInstance),mType):#if it's a subclass ofour mType, good to go
