@@ -22,7 +22,7 @@ m1 = r9Meta.MetaClass('spine_part')
 m1.setState('skeleton')
 m1.getPartNameBase()
 m1.modulePuppet.getGeo()
-mCurveFactory.go(m1,['segmentIKHandle'])
+mCurveFactory.go(m1,['segmentIK'])
 mCurveFactory.go(m1,['segmentFK'])
 mCurveFactory.go(m1,['cog'])
 mCurveFactory.go(m1,['hips'])
@@ -39,11 +39,11 @@ l_targetObjects = mc.ls(sl=True)
 #Extend modes: 'segment','radial
 degree = 3
 points = 8
-extendMode = 'segment'
+extendMode = 'disc'
 joinMode = True
 insetMult = 0
-posOffset = [0,0,3]
-mCurveFactory.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO1',extendMode=extendMode,curveDegree=degree,joinMode=joinMode,insetMult=insetMult,posOffset = posOffset,points=points,latheAxis='y',aimAxis='z+')
+posOffset = [0,0,6]
+mCurveFactory.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO1',extendMode=extendMode,curveDegree=degree,joinMode=joinMode,insetMult=insetMult,posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
 
 target = mc.ls(sl=True)[0]
 

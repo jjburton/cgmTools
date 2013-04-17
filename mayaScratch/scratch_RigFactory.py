@@ -13,8 +13,8 @@ from cgm.core.classes import  NodeFactory as nodeF
 reload(nodeF)
 reload(jFactory)
 reload(Rig)
-nodeF.validateAttrArg(['spine_1_anchorJoint','rz'])
-
+nodeF.validateAttrArg(['spine_1_anchorJoint','rz'
+assert 1==2
 from cgm.lib import curves
 from cgm.lib import distance
 from cgm.lib import locators
@@ -40,7 +40,9 @@ m1 = r9Meta.MetaClass(part)
 i_rig = Rig.go(m1)#call to do general rig
 i_rig = Rig.go(m1,buildSkeleton=True)
 i_rig = Rig.go(m1,buildControls=True)
+i_rig = Rig.go(m1,buildRig=True)
 i_rig = Rig.go(m1,buildDeformation=True)
+reload(Rig)
 
 i_rig = Rig.go(m1,buildSkeleton=True,buildControls=True)
 i_rig = Rig.go(m1,buildRig=True)

@@ -39,14 +39,33 @@ midControls = ['mid_crv']
 controlOrientation = 'yxz'
 rUtils.addCGMSegmentSubControl(joints,segmentCurve,baseParent, endParent,midControls=midControls,controlOrientation=controlOrientation)
 
+
+rUtils.addCGMSegmentSubControl('spine_2_influenceJoint',
+                               segmentCurve = 'spine_splineIKCurve',
+                               baseParent='spine_1_influenceJoint',
+                               endParent='sternum_influenceJoint',
+                               midControls='spine_2_ik_anim',
+                               baseName='torso',
+                               orientation='zyx')
+rUtils.addCGMSegmentSubControl('spine_2_influenceJoint', segmentCurve = 'spine_splineIKCurve',baseParent='spine_1_influenceJoint',endParent='sternum_influenceJoint',midControls='spine_2_ik_anim',baseName='torso',orientation='zyx')
+
+
 #Build segment stuff
 #==================================================================
+from cgm.core.rigger.lib import rig_Utils as rUtils
+jointList = [u'joint1', u'joint2', u'joint3', u'joint4', u'joint5', u'joint6']
 influenceJoints = ['driverBase','driverTop']
 startControl = 'base_crv'
 endControl = 'top_crv'
 controlOrientation = 'yxz'
 t = rUtils.createCGMSegment(jointList,influenceJoints=influenceJoints, startControl=startControl,endControl=endControl,secondaryAxis = 'zdown',controlOrientation=controlOrientation)
 
+
+#Squashrework
+#=================================================
+scaleBuffer = 'testSegment_distanceBuffer'
+
+rUtils.addSquashAndStretchToControlSurfaceSetup(scaleBuffer, jointList ,moduleInstance=False)
 
 def doMid(jnt='driverMid',curve = 'testSegment_splineIKCurve',influenceJnts = ['driverBase','driverTop']):
     i_obj = cgmMeta.cgmObject(jnt)
