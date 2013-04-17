@@ -42,8 +42,8 @@ from cgm.core import cgm_Meta as cgmMeta
 reload(cgmMeta)
 from cgm.core import cgm_Meta as cgmMeta
 
-from cgm.core.classes import NodeFactory as nf
-reload(nf)
+from cgm.core.classes import NodeFactory as nodeF
+reload(nodeF)
 from cgm.lib import (modules,
                      distance,
                      deformers,
@@ -415,11 +415,34 @@ class cgmPuppet(cgmMeta.cgmNode):
 		          {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
 		          {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
 		           ]
-		nf.build_mdNetwork(visArg)
+		nodeF.build_mdNetwork(visArg)
 	except StandardError,error:
 	    log.error("_verifyMasterControl>> visNetwork fail! "%error)
 	    raise StandardError,error 	
 	log.debug("Verified: '%s'"%self.cgmName)  
+	
+	# Settings setup
+	# Setup the settings network
+	#====================================================================	
+	i_settings = i_masterControl.controlSettings
+	str_nodeShort = str(i_settings.getShortName())
+	#Skeleton/geo settings
+	for attr in ['skeleton','geo',]:
+	    i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+	    nodeF.argsToNodes("if %s.%s > 0; %s.%sVis"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+	    nodeF.argsToNodes("if %s.%s == 2:0 else 2; %s.%sLock"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+	
+	#Geotype
+	i_settings.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+	for i,attr in enumerate(['reg','proxy']):
+	    nodeF.argsToNodes("if %s.geoType == %s:1 else 0; %s.%sVis"%(str_nodeShort,i,str_nodeShort,attr)).doBuild()    
+	
+	#Divider
+	i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+
+	
+	
+	
 	return True
     
 class cgmMorpheusPuppet(cgmPuppet):
@@ -752,7 +775,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		      {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
 		       ]
 	    
-	    nf.build_mdNetwork(visArg)
+	    nodeF.build_mdNetwork(visArg)
 	
 	log.debug("Verified: '%s'"%self.cgmName)
         return True
@@ -851,7 +874,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    log.warning("No autoPickerWatchGroups detected")
 	    return False
 	log.debug( pickerGroups )
-	#nf.build_conditionNetworkFromGroup('group1',controlObject = 'settings')
+	#nodeF.build_conditionNetworkFromGroup('group1',controlObject = 'settings')
 	i_settingsControl = self.masterControl.controlSettings
 	settingsControl = i_settingsControl.getShortName()
 	
@@ -862,7 +885,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    #Let's get basic info for a good attr name
 	    d = nameTools.returnObjectGeneratedNameDict(shortName,ignore=['cgmTypeModifier','cgmType'])
 	    n = nameTools.returnCombinedNameFromDict(d)
-	    nf.build_conditionNetworkFromGroup(shortName, chooseAttr = n, controlObject = settingsControl)
+	    nodeF.build_conditionNetworkFromGroup(shortName, chooseAttr = n, controlObject = settingsControl)
     
     #@r9General.Timer
     def doUpdateBlendshapeNode(self,blendshapeAttr):
@@ -992,8 +1015,6 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	    #Vis control attrs
 	    self.controlVis.addAttr('controls', attrType = 'bool',keyable = False,initialValue= 1)
 	    self.controlVis.addAttr('subControls', attrType = 'bool',keyable = False,initialValue= 1)
-	    self.controlVis.addAttr('skeleton', attrType = 'bool',keyable = False,initialValue= 1)
-	    self.controlVis.addAttr('geo', attrType = 'bool',keyable = False,initialValue= 1)
 	    #>>> Settings Control
 	    settingsControl = attributes.returnMessageObject(self.mNode,'controlSettings')
 	    
