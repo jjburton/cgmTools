@@ -385,10 +385,10 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    #Get size
 	    if self.getGeo():
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
-		log.info("averageBBSize: %s"%averageBBSize)
+		log.debug("averageBBSize: %s"%averageBBSize)
 		kws['size'] = 100 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TODO - replace when we have full character
 	    elif 'size' not in kws.keys():kws['size'] = 50
-	    log.info("kws['size']: %s"%kws['size'])
+	    log.debug("kws['size']: %s"%kws['size'])
 	    i_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
 	    #self.masterControl = self.i_masterControl.mNode
 	    log.debug('Verifying')
@@ -955,7 +955,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
     def __verify__(self,*args,**kws):
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
-            log.info("Puppet provided!")
+            log.debug("Puppet provided!")
             log.debug(puppet.cgmName)
             log.debug(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
@@ -1180,13 +1180,15 @@ rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any mo
                        'stretchy':'bool',
                        'bendy':'bool',
                        'twist':'bool',
-                       'visJoints':'bool',
-                       'visRig':'bool',
-                       'visLocs':'bool', 
-                       'visSegment':'bool',                                                                     
+                       'gutsLock':'int',
+                       'gutsVis':'int',                       
                        'skinJoints':'message'}
 
 templateNullAttrs_toMake = {'version':'float',
+                            'gutsLock':'int',
+                            'gutsVis':'int',
+                            'controlsVis':'int',
+                            'controlsLock':'int',
                             'handles':'int',                            
                             'rollJoints':'int',#How many splits per segement
                             'rollOverride':'string',#Override
