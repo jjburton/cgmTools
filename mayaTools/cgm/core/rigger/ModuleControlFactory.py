@@ -24,7 +24,11 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
+from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core.rigger.lib import rig_Utils as rUtils
+reload(rUtils)
+
 from cgm.lib import (attributes,
                      cgmMath,
                      locators,
@@ -303,27 +307,26 @@ class go(object):
 @r9General.Timer
 def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,
                     setRotateOrder = None, autoLockNHide = True,
-                    addGroups = False, addConstraintGroup = False, freezeAll = False,
-                    controlType = None, aim = None, up = None, out = None):
+                    addDynParentGroup = False, addExtraGroups = False, addConstraintGroup = False, freezeAll = False,
+                    addSpacePivots = False, controlType = None, aim = None, up = None, out = None, makeAimable = False):
     """
     Function to register a control and get it ready for the rig
     toDo: rotate order set?
     
     """
-    assert type(addGroups) in [int,bool]
+    assert type(addExtraGroups) in [int,bool]
+    assert type(addSpacePivots) in [int,bool]
+    
     l_fullFreezeTypes = ['cog']
     d_rotateOrderDefaults = {'cog':3,#xzy
                              'master':3,
                              'hips':0,#xyz
                              'shoulders':2#zyx,
                              }
-    
-    if issubclass(type(controlObject),cgmMeta.cgmObject):
-	i_control = controlObject
-    elif mc.objExists(controlObject):
-	i_control = cgmMeta.cgmObject(controlObject)
-    else:
-	raise StandardError,"Not a cgmObject or not an existing object: '%s'"%controlObject
+    i_obj = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=False)
+    i_obj.addAttr('mClass','cgmControl')
+    i_control = cgmMeta.cgmControl(i_obj.mNode)
+    log.info(i_control)
     
     ml_groups = []#Holder for groups
     ml_constraintGroups = []
@@ -341,7 +344,9 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	#Need to move this to default cgmNode stuff
 	mBuffer = i_control
 	i_newTransform = cgmMeta.cgmObject( rigging.groupMeObject(i_target.mNode,False) )
-	i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
+	for a in mc.listAttr(i_control.mNode, userDefined = True):
+	    attributes.doCopyAttr(i_control.mNode,a,i_newTransform.mNode)
+	#i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
 	curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
 	i_newTransform.parent = i_control.parent#Copy parent
 	i_control = i_newTransform
@@ -362,14 +367,17 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 
     #>>>Name stuff
     #====================================================
-    i_control.addAttr('mClass','cgmControl',lock=True)
     i_control.addAttr('cgmType','controlAnim',lock=True)    
     if typeModifier is not None:
 	i_control.addAttr('cgmTypeModifier',str(typeModifier),lock=True)
     i_control.doName(nameShapes=True)
     str_shortName = i_control.getShortName()
     	
-	
+    #>>>Add aiming info
+    #====================================================
+    if aim is not None or up is not None or makeAimable:
+	i_control._verifyAimable()
+	    
     #>>>Rotate Order
     #====================================================   
     if setRotateOrder is not None:
@@ -381,18 +389,38 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     else:
 	log.info("Need to set rotateOrder: '%s'"%str_shortName)
 	
+	
     #>>>Freeze stuff 
     #====================================================  
     if freezeAll:
 	mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)		
 	    
-    #>>>Grouping
-    #====================================================   
-    try:
-	if addGroups:
-	    for i in range(addGroups):
+    #==================================================== 
+    """ All controls have a master group to zero them """
+    try:#>>>Grouping
+
+	#First our master group:
+	i_masterGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+	i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+	i_masterGroup.doName()
+	i_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+	log.info("masterGroup: '%s'"%i_masterGroup.getShortName())
+	
+	if addDynParentGroup:
+	    i_dynGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+	    i_dynGroup = cgmMeta.cgmDynParentGroup(dynChild=i_control,dynGroup=i_dynGroup)
+	    log.info("dynParentGroup: '%s'"%i_dynGroup.getShortName())
+	    
+	    i_zeroGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+	    i_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
+	    i_zeroGroup.doName()
+	    i_control.connectChildNode(i_masterGroup,'zeroGroup','groupChild')
+	    log.info("zeroGroup: '%s'"%i_zeroGroup.getShortName())	    
+	
+	if addExtraGroups:
+	    for i in range(addExtraGroups):
 		i_group = (cgmMeta.cgmObject(i_control.doGroup(True)))
-		if type(addGroups)==int and addGroups>1:#Add iterator if necessary
+		if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
 		    i_group.addAttr('cgmIterator',str(i+1),lock=True)
 		    i_group.doName()
 		ml_groups.append(i_group)
@@ -403,14 +431,25 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
 	    i_constraintGroup.doName()
 	    ml_constraintGroups.append(i_constraintGroup)
+	    i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	    
 	    log.info("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
+	    
     except StandardError,error:
 	log.error("ModuleControlFactory.registerControl>>grouping fail")
 	raise StandardError,error
     
-    #>>>Freeze stuff 
     #====================================================  
-    try:
+    #try:#>>>Space Pivots
+    if addSpacePivots:
+	ml_spaceLocators = []
+	parent = i_control.getMessage('masterGroup')[0]
+	for i in range(addSpacePivots):
+	    i_pivot = rUtils.create_spaceLocatorForObject(i_control,parent)
+	    ml_spaceLocators.append(i_pivot)
+   
+    
+    #====================================================  
+    try:#>>>Freeze stuff 
 	if not freezeAll:
 	    if i_control.getAttr('cgmName') == 'cog' or controlType in l_fullFreezeTypes:
 		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
@@ -429,4 +468,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if i_control.hasAttr('cgmTypeModifier'):
 	    if i_control.cgmTypeModifier.lower() == 'fk':
 		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['tx','ty','tz','sx','sy','sz'])
+	cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
     return {'instance':i_control,'mi_groups':ml_groups,'mi_constraintGroups':ml_constraintGroups}
+
+    

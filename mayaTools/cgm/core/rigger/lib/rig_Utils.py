@@ -36,8 +36,8 @@ from cgm.core.classes import cgm_General as cgmGeneral
 reload(cgmGeneral)
 
 from cgm.core.lib import nameTools
-from cgm.core.classes import NodeFactory as nFactory
-reload(nFactory)
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
 from cgm.lib import (distance,
                      attributes,
                      curves,
@@ -306,7 +306,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    if len(targetWeights)>2:
 		raise StandardError,"addCGMSegmentSubControl>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
 	    
-	    d_midPointBlendReturn = nFactory.createSingleBlendNetwork([i_control.mNode,'linearSplineFollow'],
+	    d_midPointBlendReturn = NodeF.createSingleBlendNetwork([i_control.mNode,'linearSplineFollow'],
 	                                                              [i_control.mNode,'resultSplineFollow'],
 	                                                              [i_control.mNode,'resultLinearFollow'],
 	                                                              keyable=True)
@@ -356,7 +356,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    if len(targetWeights)>2:
 		raise StandardError,"addCGMSegmentSubControl>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
 	    
-	    d_midOrientBlendReturn = nFactory.createSingleBlendNetwork([i_control.mNode,'StartEndAim'],
+	    d_midOrientBlendReturn = NodeF.createSingleBlendNetwork([i_control.mNode,'StartEndAim'],
 	                                                              [i_control.mNode,'resultEndAim'],
 	                                                              [i_control.mNode,'resultStartAim'],
 	                                                              keyable=True)
@@ -415,7 +415,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 		 #                                          self._jointOrientation[0]))
 					 
 		#Create the add node
-		i_pmaAdd = nFactory.createAverageNode([driverNodeAttr,
+		i_pmaAdd = NodeF.createAverageNode([driverNodeAttr,
 		                                       "%s.r%s"%(i_control.mNode,#mid handle
 		                                                 orientation[0])],
 		                                      operation=1)
@@ -634,7 +634,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    i_endControl = ml_influenceJoints[-1]
 	    
 	#start blend
-	d_startFollowBlendReturn = nFactory.createSingleBlendNetwork([i_startControl.mNode,'followRoot'],
+	d_startFollowBlendReturn = NodeF.createSingleBlendNetwork([i_startControl.mNode,'followRoot'],
 	                                                             [i_startControl.mNode,'resultRootFollow'],
 	                                                             [i_startControl.mNode,'resultAimFollow'],
 	                                                             keyable=True)
@@ -644,7 +644,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	d_startFollowBlendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_startOrientConstraint.mNode,targetWeights[1]))
 	
 	#EndBlend
-	d_endFollowBlendReturn = nFactory.createSingleBlendNetwork([i_endControl.mNode,'followRoot'],
+	d_endFollowBlendReturn = NodeF.createSingleBlendNetwork([i_endControl.mNode,'followRoot'],
 	                                                             [i_endControl.mNode,'resultRootFollow'],
 	                                                             [i_endControl.mNode,'resultAimFollow'],
 	                                                             keyable=True)
@@ -1299,6 +1299,154 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
             'l_driverJoints':[i_jnt.getShortName() for i_jnt in ml_driverJoints],'ml_driverJoints':ml_driverJoints,
             'scaleBuffer':i_jntScaleBufferNode.mNode,'mi_scaleBuffer':i_jntScaleBufferNode,
             'l_drivenJoints':jointList,'ml_drivenJoints':ml_jointList}
+
+
+@r9General.Timer
+def create_spaceLocatorForObject(obj,parentTo = False):
+    #Get size
+    i_obj = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=False)    
+    i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)    
+    bbSize = distance.returnBoundingBoxSize(i_obj.mNode,True)
+    size = max(bbSize)
+    
+    #>>>Create
+    #====================================================
+    i_control = cgmMeta.cgmObject(curves.createControlCurve('pivotLocator',size),setClass=True)
+    l_color = curves.returnColorsFromCurve(i_obj.mNode)
+    log.debug("l_color: %s"%l_color)
+    curves.setColorByIndex(i_control.mNode,l_color[0])
+    
+    #>>>Snap and Lock
+    #====================================================	
+    Snap.go(i_control,i_obj.mNode)
+    
+    #>>>Copy Transform
+    #====================================================   
+    i_newTransform = i_obj.doDuplicateTransform()
+
+    #Need to move this to default cgmNode stuff
+    mBuffer = i_control
+    i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
+    curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
+    i_newTransform.parent = i_control.parent#Copy parent
+    i_control = i_newTransform
+    mc.delete(mBuffer.mNode)
+    
+    #>>>Register
+    #====================================================    
+    #Attr
+    i = i_obj.returnNextAvailableAttrCnt('pivot_')
+    str_pivotAttr = str("pivot_%s"%i)
+    str_objName = str(i_obj.getShortName())
+    str_pivotName = str(i_control.getShortName())
+    
+    #Build the network
+    i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = True, hidden = False)
+    i_control.overrideEnabled = 1
+    NodeF.argsToNodes("if %s.%s > 0; %s.overrideVisibility"%(str_objName,str_pivotAttr,str_pivotName)).doBuild()
+    NodeF.argsToNodes("if %s.%s == 2:0 else 2; %s.overrideDisplayType"%(str_objName,str_pivotAttr,str_pivotName)).doBuild()
+    
+    for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
+	log.debug(shape)
+	mc.connectAttr("%s.overrideVisibility"%i_control.mNode,"%s.overrideVisibility"%shape,force=True)
+	mc.connectAttr("%s.overrideDisplayType"%i_control.mNode,"%s.overrideDisplayType"%shape,force=True)
+	
+    #Vis 
+    #>>>Name stuff
+    #====================================================
+    cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
+    
+    i_control.doStore('cgmName',i_obj.mNode)
+    i_control.addAttr('mClass','cgmControl',lock=True)
+    i_control.addAttr('cgmType','controlAnim',lock=True)    
+    i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
+    i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)
+    i_control.doName(nameShapes=True)
+    
+    
+    #Store on object
+    #====================================================    
+    i_obj.addAttr("spacePivots", attrType = 'message',lock=True)
+    if i_control.getLongName() not in i_obj.getMessage('spacePivots',True):
+	buffer = i_obj.getMessage('spacePivots',True)
+	buffer.append(i_control.mNode)
+	i_obj.connectChildrenNodes(buffer,'spacePivots','controlTarget')
+    log.info("spacePivots: %s"%i_obj.spacePivots)
+    
+    
+    if i_parent:
+	i_control.parent = i_parent.mNode
+	i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
+	i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
+	i_constraintGroup.doName()
+	i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
+	
+	log.info("constraintGroup: '%s'"%i_constraintGroup.getShortName())		
+
+    return i_control
+
+
+def create_traceCurve(control,targetObject,parentTo = False, lock = True):
+    #Get size
+    i_control = cgmMeta.validateObjArg(control,cgmMeta.cgmObject,noneValid=True)    
+    i_target = cgmMeta.validateObjArg(targetObject,cgmMeta.cgmObject,noneValid=True)        
+    i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)  
+    
+    if not i_control:
+	raise StandardError,"create_traceCurve>> No control: '%s"%control
+    if not i_target:
+	raise StandardError,"create_traceCurve>> No targetObject: '%s"%targetObject
+     
+    #>>>Create
+    #====================================================
+    i_crv = cgmMeta.cgmObject( mc.curve (d=1, p = [i_control.getPosition(),i_target.getPosition()] , os=True) )
+    log.info(i_target.getMayaType())
+    if i_target.getMayaType() == 'curve':
+	l_color = curves.returnColorsFromCurve(i_target.mNode)
+	log.debug("l_color: %s"%l_color)
+	curves.setColorByIndex(i_crv.mNode,l_color[0])
+
+    #>>>Connect
+    #====================================================   
+    ml_locs = []
+    for i,i_obj in enumerate([i_control,i_target]):#Connect each of our handles ot the cv's of the curve we just made
+	i_loc = i_obj.doLoc()
+	i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+	i_loc.doStore('cgmName',i_obj.mNode) #Add name tag
+	i_loc.addAttr('cgmTypeModifier',value = 'traceCurve', attrType = 'string', lock=True) #Add Type
+	i_loc.v = False # Turn off visibility
+	i_loc.doName()	
+	ml_locs.append(i_loc)
+	
+	i_obj.connectChildNode(i_loc.mNode,'traceLoc','owner')
+	mc.pointConstraint(i_obj.mNode,i_loc.mNode,maintainOffset = False)#Point contraint loc to the object
+	
+	mc.connectAttr ( (i_loc.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
+	
+    #>>>Name
+    #====================================================  
+    i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+    i_crv.doStore('cgmName',i_target.mNode)
+    i_crv.addAttr('cgmTypeModifier',value = 'trace', attrType = 'string', lock=True)
+    i_crv.doName()
+    
+    i_target.connectChildNode(i_crv.mNode,'traceCurve','owner')
+    
+    if lock:
+	i_crv.overrideEnabled = 1
+	i_crv.overrideDisplayType = 2
+	for shape in mc.listRelatives(i_crv.mNode,shapes=True,fullPath=True):
+	    mc.connectAttr("%s.overrideVisibility"%i_target.mNode,"%s.overrideVisibility"%shape,force=True)
+	    mc.setAttr("%s.overrideDisplayType"%shape,2)
+	    #mc.connectAttr("%s.overrideDisplayType"%i_control.mNode,"%s.overrideDisplayType"%shape,force=True)
+	
+    
+    return {'mi_curve':i_crv,'curve':i_crv.mNode,'ml_locs':ml_locs,'l_locs':[i_loc.mNode for i_loc in ml_locs]}
+    
+    
+
+    
+
 
 
 @r9General.Timer
