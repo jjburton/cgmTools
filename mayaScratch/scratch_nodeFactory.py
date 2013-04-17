@@ -31,27 +31,42 @@ nFactory.createSingleBlendNetwork(driver, result1, result2,keyable=True)
 
 #>>> puppet adding controls
 i_node = a.masterControl.controlSettings
+str_nodeShort = str(i_node.getShortName())
+
 d_attrKWs = {'skeleton':{'value':0,'defaultValue':0},
              'geo':{'value':1,'defaultValue':1}}
 
-l_buildCatch = []             
-for attr in ['skeleton','geo',]:
-    i_node.addAttr(attr,enumName = 'off:referenced:on', attrType = 'enum',keyable = False,hidden = False)
-    a = nFactory.argsToNodes("if %s.%s > 0; %s.%sVis"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
-    l_buildCatch.append(a)
-    a = nFactory.argsToNodes("if %s.%s == 2:0 else 2; %s.%sLock"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
-    l_buildCatch.append(a)
-    
-for l in l_buildCatch:
-    l
-    
-i_node.addAttr('partGuts',enumName = 'proxy:parts:reg', attrType = 'enum',keyable = False,hidden = False)
-    
-i_node.addAttr('geoType',enumName = 'proxy:parts:reg', attrType = 'enum',keyable = False,hidden = False)
-
-
-
+l_buildCatch = []      
+i_node = a.masterControl.controlSettings
 str_nodeShort = str(i_node.getShortName())
+#Skeleton/geo settings
+for attr in ['skeleton','geo',]:
+    i_node.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+    nFactory.argsToNodes("if %s.%s > 0; %s.%sVis"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+    nFactory.argsToNodes("if %s.%s == 2:0 else 2; %s.%sLock"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+
+#Geotype
+i_node.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+for i,attr in enumerate(['reg','proxy']):
+    nFactory.argsToNodes("if %s.geoType == %s:1 else 0; %s.%sVis"%(str_nodeShort,i,str_nodeShort,attr)).doBuild()    
+
+#Divider
+i_node.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+
+#Part
+for part in ['spineRig']:
+    i_node.addAttr(part,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+    nFactory.argsToNodes("if %s.%s > 0; %s.%sVis"%(str_nodeShort,part,str_nodeShort,part)).doBuild()
+    nFactory.argsToNodes("if %s.%s == 2:0 else 2; %s.%sLock"%(str_nodeShort,part,str_nodeShort,part)).doBuild()
+                         
+                         
+
+i_node.addAttr('________', defaultValue = 2, enumName = 'Parts:Parts',attrType = 'enum',keyable = False,hidden = False,lock=True)
+
+i_node.addAttr('partGuts',enumName = 'proxy:parts:reg', attrType = 'enum',keyable = False,hidden = False)
+
+
+
 nFactory.argsToNodes("if %s.skeleton > 0; %s.skeletonVis"%(str_nodeShort,str_nodeShort)).doBuild()
 nFactory.argsToNodes("if %s.skeleton == 2:0 else 2; %s.skeletonLock"%(str_nodeShort,str_nodeShort)).doBuild()
 

@@ -38,3 +38,8 @@ class dataHolder(object):
 l_targetObjects = mc.ls(sl=True)
 log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).getNameDict())
 log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).doName())
+
+str_control = 'hips_controlCurve'
+mControlFactory.registerControl(str_control,addGroups = True,
+                                copyPivot=i_loc.mNode,
+                                addConstraintGroup=True,setRotateOrder=5)

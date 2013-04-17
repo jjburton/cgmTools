@@ -12,6 +12,13 @@ obj = ''
 objList = []
 orientation = ['xyz']
 orientation[1]
+
+#>>>cgmControl
+obj = 'hips_controlCurve'
+i_c = cgmMeta.cgmControl(obj,setClass=True)
+
+
+
 #>>> Dynamic group
 #=======================================================
 parents = mc.ls(sl=True)
@@ -24,7 +31,6 @@ dynGroup = 'hips_anim_grp'
 dynChild = 'hips_anim'
 
 a = cgmMeta.cgmDynParentGroup(dynChild = dynChild,dynParents = dynParents, dynGroup = dynGroup,dynMode = dynMode)
-
 #Shoulders
 dynParents = [ u'spine_2_fk_anim',u'cog_anim',u'worldCenter_loc','pivotAnim']#Shoulderes
 dynParents = [ u'spine_2_fk_anim',u'cog_anim',u'worldCenter_loc']#Shoulderes
