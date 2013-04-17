@@ -29,6 +29,7 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (lists,
+                     cgmMath,
                      search,
                      attributes)
 reload(search)
@@ -596,14 +597,14 @@ class argsToNodes(object):
 	    defaultAttrType = d_nodeType_to_DefaultAttrType.get(nodeType) or False
 	    if defaultAttrType:
 		kws['defaultType'] = defaultAttrType
-		log.info("KWS:   %s"%kws)
+		log.debug("KWS:   %s"%kws)
 		
 	if '-' in arg:#Looking for inverses
 	    if not originalArg:
 		raise StandardError,"argsToNodes.verify_attr>> original arg required with '-' mode!"	    				
 	    if not nodeType:
 		raise StandardError,"argsToNodes.verify_attr>> nodeType required with '-' mode!"	    		
-	    log.info("argsToNodes.verify_attr>> '-' Mode!: %s"%arg)	    
+	    log.debug("argsToNodes.verify_attr>> '-' Mode!: %s"%arg)	    
 	    #We have to make a sub attr connection to inverse this value
 	    #First register the attr
 	    d_driver = cgmMeta.validateAttrArg(arg.split('-')[1],noneValid=True,**kws)
@@ -611,12 +612,12 @@ class argsToNodes(object):
 	    if not d_driver:
 		raise StandardError,"argsToNodes.verify_attr>> '-' Mode fail!"	    
 	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
-		log.info("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
+		log.debug("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
 		self.l_attrs.append(d_driver['mi_plug'].p_combinedName)		
 		self.ml_attrs.append(d_driver['mi_plug'])
 		index = len(self.ml_attrs)-1
 	    else:
-		log.info("argsToNodes.verify_attr>> Found. Returning index")		
+		log.debug("argsToNodes.verify_attr>> Found. Returning index")		
 		index = self.l_attrs.index(d_driver['mi_plug'].p_combinedName)#return the index
 	    
 	    d_validSubArg = {'arg':self.cleanArg(arg),'callArg':originalArg,'drivers':[index,'-1'],'operation':1}
@@ -624,22 +625,22 @@ class argsToNodes(object):
 	    return unicode(self.cleanArg(arg))#unicoding for easy type check on later call
 	
 	d_driver = cgmMeta.validateAttrArg(arg,noneValid=True,**kws)
-	log.info(d_driver)
+	log.debug(d_driver)
 	if d_driver:#we have an attr
 	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
-		log.info("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
+		log.debug("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
 		self.l_attrs.append(d_driver['mi_plug'].p_combinedName)		
 		self.ml_attrs.append(d_driver['mi_plug'])
 		return len(self.l_attrs)-1
 	    else:
-		log.info("argsToNodes.verify_attr>> Found. Returning index")		
+		log.debug("argsToNodes.verify_attr>> Found. Returning index")		
 		return self.l_attrs.index(d_driver['mi_plug'].p_combinedName)#return the index
 	elif type(arg) in [str,unicode]:
 	    for i in range(9):
 		if str(i) in arg:
-		    log.info("argsToNodes.verify_driver>> Valid string driver: %s"%arg)				    
+		    log.debug("argsToNodes.verify_driver>> Valid string driver: %s"%arg)				    
 		    return self.cleanArg(arg)
-	log.info("argsToNodes.verify_driver>> Invalid Driver: %s"%arg)		
+	log.debug("argsToNodes.verify_driver>> Invalid Driver: %s"%arg)		
 	return None
 	
     def validate_subArg(self,arg, nodeType = 'condition'):
@@ -734,7 +735,7 @@ class argsToNodes(object):
     
 	then_indices = []
 	if thenArg:
-	    log.info("Then arg: %s"%thenArg)	    
+	    log.debug("Then arg: %s"%thenArg)	    
 	    if 'else' in thenArg:
 		thenBuffer = thenArg.split('else')
 	    else:
@@ -817,11 +818,12 @@ class argsToNodes(object):
 	    """
 	    log.debug("argsToNodes.verifyNode>> Creating: %s | type: %s"%(d_arg,nodeType))
 	    ml_drivers = []
+	    ml_nodeDrivers = []
 	    if not d_arg.get('drivers'):
 		return False
 	    log.debug("arg from d_arg: %s"%d_arg['arg'])
 	    l_driverNames = []
-	    try:
+	    try:#Get our drivers
 		for v in d_arg['drivers']:
 		    if type(v) == unicode:
 			#We should have already done this one
@@ -830,10 +832,11 @@ class argsToNodes(object):
 			log.debug(v)
 			d = self.ml_attrs[ self.d_good_NetworkOuts[v] ]
 			ml_drivers.append(d)
-			
+			ml_nodeDrivers.append(d)
 		    elif type(v) == int:
 			d = self.ml_attrs[v]
 			ml_drivers.append(d)
+			ml_nodeDrivers.append(d)			
 		    elif '.' in v:
 			ml_drivers.append(float(v))#Float value
 		    else:
@@ -845,36 +848,98 @@ class argsToNodes(object):
 		raise StandardError,error    
 	    
 	    i_node= None 
-	    #TODO: add verification
-	    #se if this connection exists now that we know the connectors
-	    """
-	    l_matchCandidates = []
-	    l_remainingDrivers = []
-	    for i,d in enumerate(ml_drivers):
-		if issubclass(type(d),cgmMeta.cgmAttr):
-		    l_driven = d.getDriven(obj=True)
-		if l_driven:
-		    for c in l_driven:
-			if search.returnObjectType(c) == nodeType:
-			    l_matchCandidates.append(c)
-		if l_matchCandidates:
-		    l_remainingDrivers = ml_drivers[i+1:]
-		    break
-	    if l_remainingDrivers:pass
 	    
-		
-	    source2Driven = source2.getDriven(obj=True)
-	    if matchCandidates and source2Driven:
-		log.debug("matchCandidates: %s"%matchCandidates)		
-		log.debug("2Driven: %s"%source2Driven)		
-		for c in source2Driven:
-		    if c in matchCandidates:
-			log.debug("Found existing md node: %s"%c)
-			i_md = cgmMeta.cgmNode(c)#Iniitalize the match
-			if i_md.operation != self.kw_operation:
-			    i_md.operation = self.kw_operation
-			    log.warning("Operation of existing node '%s' has been changed: %s"%(i_md.getShortName(),self.kw_operation))
-			break"""
+	    #TODO: add verification
+	    #See if this connection exists now that we know the connectors.
+	    #The goal is to run the exact same command twice and not get new nodes.
+	    #First see if we have at least one node type driver to check from as it's fastest
+	    l_matchCandidates = {}
+	    l_remainingDrivers = []
+	    
+	    if ml_nodeDrivers:
+		for i,d in enumerate(ml_nodeDrivers):
+		    if issubclass(type(d),cgmMeta.cgmAttr):
+			l_driven = mc.listConnections(d.p_combinedName,type = nodeType)
+			if l_driven:#if we have some driven
+			    l_matchCandidates = l_driven
+			    break
+	    if not l_matchCandidates:
+		l_matchCandidates = mc.ls(type=nodeType)
+	    log.debug("argsToNodes.verifyNode>> l_matchCandidates: %s"%l_matchCandidates)
+	    
+	    if l_matchCandidates:
+		matchFound = False
+		for cnt,n in enumerate(l_matchCandidates):
+		    falseCnt = []
+		    i_nodeTmp = cgmMeta.cgmNode(n)
+		    log.debug('i_nodeTmp: %s'%i_nodeTmp)
+		    if i_nodeTmp.operation != d_arg['operation']:
+			log.warning("argsToNodes.verifyNode>> match fail:operation: %s != %s"%(i_nodeTmp.operation,d_arg['operation']))					    					    			
+			matchFound = False	
+			falseCnt.append(1)			
+			#break
+		    for i,d in enumerate(ml_drivers):
+			log.debug("Checking driver: %s"%d)
+			if issubclass(type(d),cgmMeta.cgmAttr):
+			    if nodeType == 'plusMinusAverage':
+				plugCall = mc.listConnections("%s.%s[%s]"%(i_nodeTmp.mNode,d_nodeType_to_input[nodeType],i),plugs=True)				
+				log.debug("pma plugCall: %s"%plugCall)				
+				if plugCall:
+				    i_plug = cgmMeta.validateAttrArg(plugCall[0])
+				    if i_plug.get('mi_plug'):
+					if i_plug['mi_plug'].obj.mNode != d.obj.mNode:
+					    log.warning("argsToNodes.verifyNode>> match fail: obj.mNode: %s != %s"%(i_plug['mi_plug'].obj.mNode,d.obj.mNode))					    					    
+					    falseCnt.append(1)					    
+					    #break
+					if i_plug['mi_plug'].p_nameLong != d.p_nameLong:
+					    log.warning("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    					    
+					    matchFound = False	
+					    falseCnt.append(1)					    
+					    #break
+			    else:
+				plugCall = mc.listConnections("%s.%s"%(i_nodeTmp.mNode,d_nodeType_to_input[nodeType][i]),plugs=True)
+				log.debug("plugCall: %s"%plugCall)
+				if plugCall:
+				    i_plug = cgmMeta.validateAttrArg(plugCall[0])
+				    if i_plug.get('mi_plug'):
+					if i_plug['mi_plug'].obj.mNode != d.obj.mNode:
+					    log.warning("argsToNodes.verifyNode>> match fail: obj.mNode: %s != %s"%(i_plug['mi_plug'].obj.mNode,d.obj.mNode))					    
+					    matchFound = False					    					    
+					    #break
+					if i_plug['mi_plug'].p_nameLong != d.p_nameLong:
+					    log.warning("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    
+					    matchFound = False	
+					    falseCnt.append(1)					    
+					    #break			    
+			    
+				#d.doConnectOut("%s.%s"%(i_node.mNode,d_nodeType_to_input[nodeType][i]))
+			else:
+			    if nodeType == 'plusMinusAverage':
+				v = mc.getAttr("%s.input1D[%s]"%(i_nodeTmp.mNode,i))
+				log.debug("%s.input1D[%s]"%(i_nodeTmp.mNode,i))
+				log.debug("d: %s"%d)												
+				log.debug("pma v: %s"%v)
+				if not cgmMath.isFloatEquivalent(v,d):
+				    log.warning("argsToNodes.verifyNode>> match fail: getAttr: %s != %s"%(v,d))
+				    matchFound = False	
+				    falseCnt.append(1)				    
+				    #break
+			    else:
+				v = mc.getAttr("%s.%s"%(i_nodeTmp.mNode,d_nodeType_to_input[nodeType][i]))
+				log.debug("d: %s"%d)								
+				log.debug("v: %s"%v)				
+				if not cgmMath.isFloatEquivalent(v,d):
+				    log.warning("argsToNodes.verifyNode>> match fail: getAttr: %s != %s"%(v,d))
+				    matchFound = False	
+				    falseCnt.append(1)				    
+				    #break	
+		    log.debug("falseCnt: %s"%falseCnt)
+		    if not falseCnt:
+			matchFound=True
+			break#If we got this point, we're good
+		if matchFound:
+		    log.info("Match found: %s"%i_nodeTmp.mNode)
+		    i_node = i_nodeTmp
 			
 	    if i_node is None:
 		i_node = cgmMeta.cgmNode(nodeType = nodeType)#make the node
@@ -914,14 +979,14 @@ class argsToNodes(object):
 		
 		if nodeType == 'condition':
 		    if d_arg.get('True'):
-			log.info("True arg: %s"%d_arg.get('True'))
-			log.info("True verified to: %s"%verifyDriver(self,d_arg.get('True')))	
+			log.debug("True arg: %s"%d_arg.get('True'))
+			log.debug("True verified to: %s"%verifyDriver(self,d_arg.get('True')))	
 			mc.setAttr("%s.colorIfTrueR"%(i_node.mNode),verifyDriver(self,d_arg.get('True')))			
 			#i_node.colorIfTrueR = verifyDriver(self,d_arg.get('True'))
 		    else:i_node.colorIfTrueR = 1
 		    if d_arg.get('False'):
-			log.info("False arg: %s"%d_arg.get('False'))
-			log.info("False verified to: %s"%verifyDriver(self,d_arg.get('False')))						
+			log.debug("False arg: %s"%d_arg.get('False'))
+			log.debug("False verified to: %s"%verifyDriver(self,d_arg.get('False')))						
 			mc.setAttr("%s.colorIfFalseR"%(i_node.mNode),verifyDriver(self,d_arg.get('False')))						
 			#i_node.colorIfTrueR = verifyDriver(self,d_arg.get('False'))		    
 		    else:i_node.colorIfFalseR = 0
