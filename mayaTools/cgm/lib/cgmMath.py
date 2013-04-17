@@ -169,8 +169,8 @@ def isFloatEquivalent(f1,f2,places=4):
     #reg check
     f1_rounded = round(f1,places)
     f2_rounded = round(f2,places)
-    log.info(f1_rounded)
-    log.info(f2_rounded) 
+    #log.info(f1_rounded)
+    #log.info(f2_rounded) 
     if f1_rounded == f2_rounded:
         return True
     return False 
