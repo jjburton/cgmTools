@@ -86,6 +86,7 @@ class go(object):
 	    raise StandardError,"RigFactory.go.init masterControl failed to verify"
 	
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
+	self._i_masterSettings = self._i_masterControl.controlSettings
         """
         if moduleInstance.hasControls():
             if forceNew:
@@ -125,7 +126,12 @@ class go(object):
                
         #>>> Instances and joint stuff
         self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
-
+	
+	#>>>Connect switches
+	try: verify_moduleRigToggles(self)
+	except StandardError,error:
+	    raise StandardError,"init.verify_moduleRigToggles>> fail: %s"%error	
+	
         #Make our stuff
         if self._partType in d_moduleRigFunctions.keys():
 	    self._md_controlShapes = {}
@@ -136,16 +142,30 @@ class go(object):
         else:
             raise NotImplementedError,"haven't implemented '%s' rigging yet"%self._i_module.mClass
 
+@r9General.Timer
+def verify_moduleRigToggles(goInstance):
+    """
+    Rotate orders
+    hips = 3
+    """    
+    if not issubclass(type(goInstance),go):
+	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+	raise StandardError
+    self = goInstance#Link
+    
+    str_settings = str(self._i_masterSettings.getShortName())
+    str_partBase = str(self._partName + '_rig')
+    str_moduleRigNull = str(self._i_rigNull.getShortName())
+    
+    self._i_masterSettings.addAttr(str_partBase,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+    try:NodeF.argsToNodes("if %s.%s > 0; %s.gutsVis"%(str_settings,str_partBase,str_moduleRigNull)).doBuild()
+    except StandardError,error:
+	raise StandardError,"verify_moduleRigToggles>> vis arg fail: %s"%error
+    try:NodeF.argsToNodes("if %s.%s == 2:0 else 2; %s.gutsLock"%(str_settings,str_partBase,str_moduleRigNull)).doBuild()
+    except StandardError,error:
+	raise StandardError,"verify_moduleRigToggles>> lock arg fail: %s"%error
 
-def rig_segmentFK(md_controlShapes):
-    ml_fkControls = mc.duplicate(md_controlShapes.get('segmentControls'),po=False,ic=True,rc=True)
-    l_fkCcontrols = [mObj.mNode for mObj in ml_fkControls ]#instance the list    
-    
-    #Parent to heirarchy
-    rigging.parentListToHeirarchy(l_fkControls)
-    
-    for i_obj in il_fkCcontrols:
-	registerControl(i_obj,typeModifier='fk')
+    return True
 	
 @r9General.Timer
 def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildDeformation = False, buildRig= False):
@@ -167,6 +187,7 @@ def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildDe
 	log.info('Can connect')
     
     return 
+
 
 #>>> Register rig functions
 #=====================================================================
