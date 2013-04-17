@@ -379,7 +379,7 @@ d_function_to_Operator = {'==':0,'!=':1,'>':2,'>=':3,'<':4,'<=':5,#condition
 d_nodeType_to_limits = {'condition':{'maxDrivers':2},
                         'multiplyDivide':{'maxDrivers':2},
                         'plusMinusAverage':{'maxDrivers':False}}
-d_nodeType_to_DefaultAttrType = {'condition':'bool',
+d_nodeType_to_DefaultAttrType = {'condition':'int',
                                  'multiplyDivide':'float',
                                  'plusMinusAverage':'float'}
 d_nodeType_to_input = {'condition':['firstTerm','secondTerm'],
@@ -458,9 +458,9 @@ class argsToNodes(object):
 	
 
 	if self.d_networksToBuild:
-	    log.info(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
+	    log.debug(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
 	if self.d_connectionsToMake:
-	    log.info(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
+	    log.debug(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
 	
     def doBuild(self):
 	""" doBuild to False for logic only"""
@@ -491,6 +491,8 @@ class argsToNodes(object):
 		    self.ml_attrs[i].doConnectIn("%s.%s"%(self.d_good_nodeNetworks[resultKey].mNode,
 			                                  d_nodeType_to_output[self.d_connectionsToMake[resultKey]['nodeType']]))	    
 		    self.ml_attrs[i].p_hidden = True
+		    self.ml_attrs[i].p_locked = True
+		    
 	#Build our return dict
 	#{l_args:[],l_outPlugs:[]indexed to args
 	ml_nodes = [self.d_good_nodeNetworks.get(key) for key in self.d_good_nodeNetworks.keys()]
@@ -500,7 +502,7 @@ class argsToNodes(object):
     
     def cleanArg(self,arg):
 	#Clean an are of extra spaces
-	print arg
+	#print arg
 	buffer = arg.split(' ')
 	for i,n in enumerate(buffer):
 	    if n != '':
@@ -519,7 +521,9 @@ class argsToNodes(object):
 	if type(arg) in [list,tuple]:
 	    raise NotImplementedError,"argsToNodes.validateArg>> list type arg not ready"
 	elif type(arg) != str:
-	    raise StandardError,"argsToNodes.validateArg>> Arg type must be str. Type: %s"%type(arg)
+	    try: arg = str(arg)
+	    except:
+		raise StandardError,"argsToNodes.validateArg>> Arg type must be str. Couldn't convert Type: %s"%type(arg)
 	
 	if 'and' in arg:
 	    arg = arg.split('and')[0]	    
@@ -874,7 +878,7 @@ class argsToNodes(object):
 		    i_nodeTmp = cgmMeta.cgmNode(n)
 		    log.debug('i_nodeTmp: %s'%i_nodeTmp)
 		    if i_nodeTmp.operation != d_arg['operation']:
-			log.warning("argsToNodes.verifyNode>> match fail:operation: %s != %s"%(i_nodeTmp.operation,d_arg['operation']))					    					    			
+			log.debug("argsToNodes.verifyNode>> match fail:operation: %s != %s"%(i_nodeTmp.operation,d_arg['operation']))					    					    			
 			matchFound = False	
 			falseCnt.append(1)			
 			#break
@@ -888,11 +892,11 @@ class argsToNodes(object):
 				    i_plug = cgmMeta.validateAttrArg(plugCall[0])
 				    if i_plug.get('mi_plug'):
 					if i_plug['mi_plug'].obj.mNode != d.obj.mNode:
-					    log.warning("argsToNodes.verifyNode>> match fail: obj.mNode: %s != %s"%(i_plug['mi_plug'].obj.mNode,d.obj.mNode))					    					    
+					    log.debug("argsToNodes.verifyNode>> match fail: obj.mNode: %s != %s"%(i_plug['mi_plug'].obj.mNode,d.obj.mNode))					    					    
 					    falseCnt.append(1)					    
 					    #break
 					if i_plug['mi_plug'].p_nameLong != d.p_nameLong:
-					    log.warning("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    					    
+					    log.debug("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    					    
 					    matchFound = False	
 					    falseCnt.append(1)					    
 					    #break
@@ -903,11 +907,11 @@ class argsToNodes(object):
 				    i_plug = cgmMeta.validateAttrArg(plugCall[0])
 				    if i_plug.get('mi_plug'):
 					if i_plug['mi_plug'].obj.mNode != d.obj.mNode:
-					    log.warning("argsToNodes.verifyNode>> match fail: obj.mNode: %s != %s"%(i_plug['mi_plug'].obj.mNode,d.obj.mNode))					    
+					    log.debug("argsToNodes.verifyNode>> match fail: obj.mNode: %s != %s"%(i_plug['mi_plug'].obj.mNode,d.obj.mNode))					    
 					    matchFound = False					    					    
 					    #break
 					if i_plug['mi_plug'].p_nameLong != d.p_nameLong:
-					    log.warning("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    
+					    log.debug("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    
 					    matchFound = False	
 					    falseCnt.append(1)					    
 					    #break			    
@@ -920,7 +924,7 @@ class argsToNodes(object):
 				log.debug("d: %s"%d)												
 				log.debug("pma v: %s"%v)
 				if not cgmMath.isFloatEquivalent(v,d):
-				    log.warning("argsToNodes.verifyNode>> match fail: getAttr: %s != %s"%(v,d))
+				    log.debug("argsToNodes.verifyNode>> match fail: getAttr: %s != %s"%(v,d))
 				    matchFound = False	
 				    falseCnt.append(1)				    
 				    #break
@@ -929,7 +933,7 @@ class argsToNodes(object):
 				log.debug("d: %s"%d)								
 				log.debug("v: %s"%v)				
 				if not cgmMath.isFloatEquivalent(v,d):
-				    log.warning("argsToNodes.verifyNode>> match fail: getAttr: %s != %s"%(v,d))
+				    log.debug("argsToNodes.verifyNode>> match fail: getAttr: %s != %s"%(v,d))
 				    matchFound = False	
 				    falseCnt.append(1)				    
 				    #break	
@@ -1174,8 +1178,8 @@ def groupToConditionNodeSet(group,chooseAttr = 'switcher', controlObject = None,
 	a.setEnum(':'.join(children))
     
     for i,c in enumerate(children[1:]):
-	print i
-	print c
+	#print i
+	#print c
 	#see if the node exists
 	condNodeTest = attributes.returnDriverObject('%s.%s'%(c,connectTo))
 	if condNodeTest:
@@ -1184,7 +1188,7 @@ def groupToConditionNodeSet(group,chooseAttr = 'switcher', controlObject = None,
 	    if mc.objExists('%s_condNode'%c):
 		mc.delete('%s_condNode'%c)
 	    buffer = nodes.createNamedNode('%s_picker'%c,'condition') #Make our node
-	print buffer
+	#print buffer
 	attributes.doSetAttr(buffer,'secondTerm',i+1)
 	attributes.doSetAttr(buffer,'colorIfTrueR',1)
 	attributes.doSetAttr(buffer,'colorIfFalseR',0)
