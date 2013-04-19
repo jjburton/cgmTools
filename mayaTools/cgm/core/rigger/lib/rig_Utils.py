@@ -105,7 +105,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
     i_segmentCurve = cgmMeta.validateObjArg(segmentCurve,cgmMeta.cgmObject,noneValid=False)
     i_segmentCurveSkinCluster = cgmMeta.validateObjArg(deformers.returnObjectDeformers(i_segmentCurve.mNode,'skinCluster')[0],
                                                           noneValid=True)
-
+    i_segmentGroup = i_segmentCurve.segmentGroup
     
     i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
     if i_module:
@@ -434,6 +434,15 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    i_obj.parent = i_control.mNode
 	else:
 	    i_obj.parent = i_orientGroup.mNode
+	    
+	#Parent pieces
+	i_segmentCurve.parent = i_segmentGroup.mNode	
+	i_constraintLinearCurve.parent = i_segmentGroup.mNode
+	i_constraintSplineCurve.parent = i_segmentGroup.mNode
+	i_followGroup.parent = i_segmentGroup.mNode	
+	i_linearFollowNull.parent = i_segmentGroup.mNode	
+	i_splineFollowNull.parent = i_segmentGroup.mNode	
+
 
 	
 
@@ -602,7 +611,8 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	if i_module:#if we have a module, connect vis
 	    for i_obj in ml_rigObjects:
 		i_obj.overrideEnabled = 1		
-		cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
 	    
     except StandardError,error:
 	log.error("createCGMSegment>>Joint anchor and loc build fail! | start joint: %s"%ml_jointList[0].getShortName())
@@ -665,7 +675,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	mi_segmentCurve = d_segmentBuild['mi_segmentCurve']
 	ml_drivenJoints = d_segmentBuild['ml_drivenJoints']
 	mi_scaleBuffer = d_segmentBuild['mi_scaleBuffer']
-	
+	mi_segmentGroup = d_segmentBuild['mi_segmentGroup']
 	
 	#Add squash
 	if addSquashStretch:
@@ -988,7 +998,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
     i_grp.addAttr('cgmName', str(baseName), lock=True)
-    i_grp.addAttr('cgmTypeModifier','surfaceFollow', lock=True)
+    i_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
     i_grp.doName()
     
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]#Initialize original joints
@@ -1030,11 +1040,15 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     i_segmentCurve.doName()
     if i_module:#if we have a module, connect vis
 	i_segmentCurve.overrideEnabled = 1		
-	cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideDisplayType'))    
 
     i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
     i_ikHandle.doName()
     i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+    i_ikHandle.parent = i_grp.mNode
+    
+    i_segmentCurve.connectChildNode(i_grp,'segmentGroup','owner')
     
     #Joints
     #=========================================================================
@@ -1090,7 +1104,8 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	    
 	    if i_module:#if we have a module, connect vis
 		i_upLoc.overrideEnabled = 1		
-		cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideDisplayType'))    
 	    
 	
     #Orient constrain our last joint to our splineIK Joint
@@ -1123,7 +1138,8 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         
 	if i_module:#if we have a module, connect vis
 	    i_IK_Handle.overrideEnabled = 1		
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideDisplayType'))    
         
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
@@ -1143,7 +1159,8 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         i_distanceShapes.append(i_distanceShape)
 	
 	if i_module:#Connect hides if we have a module instance:
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideDisplayType'))    
 	
     #>> Second part for the full twist setup
     aimChannel = orientation[0]  
@@ -1295,7 +1312,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     i_segmentCurve.connectChildrenNodes(ml_jointList,'drivenJoints','segmentCurve')       
     i_segmentCurve.connectChildrenNodes(ml_driverJoints,'driverJoints','segmentCurve')   
 	
-    return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,
+    return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,'mi_ikHandle':i_ikHandle,'mi_segmentGroup':i_grp,
             'l_driverJoints':[i_jnt.getShortName() for i_jnt in ml_driverJoints],'ml_driverJoints':ml_driverJoints,
             'scaleBuffer':i_jntScaleBufferNode.mNode,'mi_scaleBuffer':i_jntScaleBufferNode,
             'l_drivenJoints':jointList,'ml_drivenJoints':ml_jointList}
@@ -1318,7 +1335,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     
     #>>>Snap and Lock
     #====================================================	
-    Snap.go(i_control,i_obj.mNode)
+    Snap.go(i_control,i_obj.mNode,move=True, orient = True)
     
     #>>>Copy Transform
     #====================================================   
@@ -1341,7 +1358,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     str_pivotName = str(i_control.getShortName())
     
     #Build the network
-    i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = True, hidden = False)
+    i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
     i_control.overrideEnabled = 1
     NodeF.argsToNodes("if %s.%s > 0; %s.overrideVisibility"%(str_objName,str_pivotAttr,str_pivotName)).doBuild()
     NodeF.argsToNodes("if %s.%s == 2:0 else 2; %s.overrideDisplayType"%(str_objName,str_pivotAttr,str_pivotName)).doBuild()
@@ -1485,7 +1502,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
     
     if i_module:#if we have a module, connect vis
 	i_controlSurface.overrideEnabled = 1		
-	cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideDisplayType'))    
     
     
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
@@ -1526,7 +1544,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
 	
 	if i_module:#if we have a module, connect vis
 	    i_follicleTrans.overrideEnabled = 1		
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideDisplayType'))    
 	
 	
 	#>>> loc
@@ -1560,7 +1579,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
 	    
 	    if i_module:#if we have a module, connect vis
 		i_upLoc.overrideEnabled = 1		
-		cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideDisplayType'))    
 	    
 	
         #>> Surface Anchor ===================================================
@@ -1594,7 +1614,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
         
 	if i_module:#if we have a module, connect vis
 	    i_IK_Handle.overrideEnabled = 1		
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideDisplayType'))    
         
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
@@ -1614,7 +1635,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
         i_distanceShapes.append(i_distanceShape)
 	
 	if i_module:#Connect hides if we have a module instance:
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideDisplayType'))    
 	
             
     #Connect the first joint's position since an IK handle isn't controlling it    
@@ -2958,7 +2980,8 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
     i_segmentCurve.doName()
     if i_module:#if we have a module, connect vis
 	 i_segmentCurve.overrideEnabled = 1             
-	 cgmMeta.cgmAttr(i_module.rigNull.mNode,'visSegment',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
+	 cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
+	 cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideDisplayType'))    
 
     i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
     i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
@@ -3017,7 +3040,8 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
 	    
 	    if i_module:#if we have a module, connect vis
 		i_upLoc.overrideEnabled = 1             
-		cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideDisplayType'))    
 	    
 	
     #Orient constrain our last joint to our splineIK Joint
@@ -3050,7 +3074,8 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
 	
 	if i_module:#if we have a module, connect vis
 	    i_IK_Handle.overrideEnabled = 1             
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideDisplayType'))    
 	
 	#>> Distance nodes
 	i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
@@ -3070,7 +3095,8 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
 	i_distanceShapes.append(i_distanceShape)
 	
 	if i_module:#Connect hides if we have a module instance:
-	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideDisplayType'))    
 	
     #>> Second part for the full twist setup
     aimChannel = orientation[0]  
