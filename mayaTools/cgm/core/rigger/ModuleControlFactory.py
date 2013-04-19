@@ -324,8 +324,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
                              'shoulders':2#zyx,
                              }
     i_obj = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=False)
-    i_obj.addAttr('mClass','cgmControl')
-    i_control = cgmMeta.cgmControl(i_obj.mNode)
+    i_control = cgmMeta.cgmControl(i_obj.mNode,setClass=True)
     log.info(i_control)
     
     ml_groups = []#Holder for groups
@@ -349,7 +348,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	#i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
 	curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
 	i_newTransform.parent = i_control.parent#Copy parent
-	i_control = i_newTransform
+	i_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
 	mc.delete(mBuffer.mNode)
 	
     #>>>Copy Pivot
@@ -394,13 +393,16 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     #====================================================  
     if freezeAll:
 	mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)		
-	    
+	
+    if addDynParentGroup or addSpacePivots or i_control.cgmName.lower() == 'cog':
+	i_control.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+	
     #==================================================== 
     """ All controls have a master group to zero them """
     try:#>>>Grouping
 
 	#First our master group:
-	i_masterGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+	i_masterGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
 	i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
 	i_masterGroup.doName()
 	i_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
@@ -419,7 +421,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	
 	if addExtraGroups:
 	    for i in range(addExtraGroups):
-		i_group = (cgmMeta.cgmObject(i_control.doGroup(True)))
+		i_group = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
 		if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
 		    i_group.addAttr('cgmIterator',str(i+1),lock=True)
 		    i_group.doName()
@@ -427,7 +429,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		log.info("group %s: '%s'"%(i,i_group.getShortName()))
 	    
 	if addConstraintGroup:#ConstraintGroups
-	    i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+	    i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
 	    i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
 	    i_constraintGroup.doName()
 	    ml_constraintGroups.append(i_constraintGroup)
@@ -468,6 +470,8 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if i_control.hasAttr('cgmTypeModifier'):
 	    if i_control.cgmTypeModifier.lower() == 'fk':
 		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['tx','ty','tz','sx','sy','sz'])
+	    if i_control.cgmName.lower() == 'cog':
+		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['sx','sy','sz'])
 	cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
     return {'instance':i_control,'mi_groups':ml_groups,'mi_constraintGroups':ml_constraintGroups}
 
