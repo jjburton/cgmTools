@@ -440,9 +440,11 @@ class cgmPuppet(cgmMeta.cgmNode):
 	#Divider
 	i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
 
-	
-	
-	
+	#>>> Deform group
+	#=====================================================================	
+	if self.masterNull.getMessage('deformGroup'):
+	    self.masterNull.deformGroup.parent = i_masterControl.mNode
+	    
 	return True
     
 class cgmMorpheusPuppet(cgmPuppet):
@@ -1029,6 +1031,8 @@ class cgmMasterControl(cgmMeta.cgmObject):
 		
 		attributes.doConnectAttr(('%s.settingsControl'%self.mNode),('%s.v'%i_c.mNode),True)
 	self.doName()
+	
+	
 	return True
     
     #@r9General.Timer
