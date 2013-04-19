@@ -67,12 +67,10 @@ class go(object):
 	    log.error("RigFactory.go.__init__>>module instance isn't working!")
 	    raise StandardError,error    
 	"""
-        if not issubclass(type(moduleInstance),cgmPM.cgmModule):
-            log.error("Not a cgmModule: '%s'"%moduleInstance)
-            return 
-	if not mc.objExists(moduleInstance.mNode):
+	i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)
+	if not i_module:
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
-        
+
         assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
         assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
         
@@ -87,6 +85,8 @@ class go(object):
 	
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
+	self._i_deformGroup = self._i_module.modulePuppet.masterNull.deformGroup
+	
         """
         if moduleInstance.hasControls():
             if forceNew:
@@ -136,7 +136,8 @@ class go(object):
         if self._partType in d_moduleRigFunctions.keys():
 	    self._md_controlShapes = {}
             log.info("mode: cgmLimb control building")
-            d_moduleRigFunctions[self._partType](self,**kws)
+            #d_moduleRigFunctions[self._partType](self,**kws)
+	    self.doBuild = d_moduleRigFunctions[self._partType]
             #if not limbControlMaker(self,self.l_controlsToMakeArg):
                 #raise StandardError,"limbControlMaker failed!"
         else:
@@ -168,7 +169,7 @@ def verify_moduleRigToggles(goInstance):
     return True
 	
 @r9General.Timer
-def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildDeformation = False, buildRig= False):
+def build_spine(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False):
     """
     Rotate orders
     hips = 3
@@ -178,13 +179,14 @@ def build_spine(goInstance,buildSkeleton = False, buildControls = False, buildDe
         raise StandardError
     self = goInstance#Link
     
+    if buildShapes: spine.build_shapes(self)
+    if buildControls: spine.build_controls(self)    
     if buildSkeleton: spine.build_rigSkeleton(self)
-    if buildControls: spine.build_controls(self)
+    if buildRig: spine.build_rig(self)    
     if buildDeformation: spine.build_deformation(self)
-    if buildRig: spine.build_rig(self)
     
-    if buildControls and buildRig:
-	log.info('Can connect')
+    #if buildControls and buildRig:
+	#log.info('Can connect')
     
     return 
 
