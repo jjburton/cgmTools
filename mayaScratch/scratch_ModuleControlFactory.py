@@ -28,6 +28,7 @@ i_loc.rx = i_loc.rx + 90
 mObj.doCopyTransform(i_loc.mNode)
 mObj.mNode
 mObj.getAttr('asdfasdf')
+
 #>>> Testing control registering
 control = 'shoulders_ikCurve'
 mControlFactory.registerControl(mc.ls(sl=True)[0])
@@ -40,6 +41,13 @@ log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).getNameDict())
 log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).doName())
 
 str_control = 'hips_controlCurve'
-mControlFactory.registerControl(str_control,addGroups = True,
+mControlFactory.registerControl(str_control,addExtraGroups = True,
                                 copyPivot=i_loc.mNode,
                                 addConstraintGroup=True,setRotateOrder=5)
+
+mControlFactory.registerControl(str_control, addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
+                                makeAimable = True, setRotateOrder=5)
+
+
+
+

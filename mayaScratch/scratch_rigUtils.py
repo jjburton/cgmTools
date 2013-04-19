@@ -16,6 +16,19 @@ obj = ''
 objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
+
+#>>>Trace curve
+#=======================================================
+start = 'hips_anim'
+end = 'hips_anim_spacePivot_1_anim'
+rUtils.create_traceCurve(start,end)
+
+#>>>space Pivot
+#=======================================================
+str_control = 'shoulders_ikCurve'
+rUtils.create_spaceLocatorForObj(str_control)
+
+
 #>>> Middle constraint obj
 #=======================================================
 i_obj = cgmMeta.cgmObject('driverMid')

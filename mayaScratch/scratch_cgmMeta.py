@@ -32,6 +32,19 @@ dynChild = 'hips_anim'
 
 a = cgmMeta.cgmDynParentGroup(dynChild = dynChild,dynParents = dynParents, dynGroup = dynGroup,dynMode = dynMode)
 #Shoulders
+c1 = r9Meta.MetaClass('shoulders_ik_anim')
+c1.dynParentGroup
+c1.dynParentGroup.dynChild
+c1.dynParentGroup.addDynChild('shoulders_ik_anim')
+c1.dynParentGroup.rebuild()
+
+dynParents = ['spine_2_fk_anim','cog_anim','|Morphy|Morphy_1_masterAnim','shoulders_ik_anim_spacePivot_anim','shoulders_ik_anim_spacePivot_1_anim']
+for o in dynParents:
+    c1.dynParentGroup.addDynParent(o)
+c1.dynParentGroup.rebuild()
+
+
+spineFK,cog,world,pivots
 dynParents = [ u'spine_2_fk_anim',u'cog_anim',u'worldCenter_loc','pivotAnim']#Shoulderes
 dynParents = [ u'spine_2_fk_anim',u'cog_anim',u'worldCenter_loc']#Shoulderes
 dynParents = [ u'spine_2_fk_anim',u'cog_anim','hips_anim',u'worldCenter_loc']#Shoulderes

@@ -32,13 +32,13 @@ log.info(a)
 #=======================================================
 import cgm.core
 cgm.core._reload()
-a = cgmPM.cgmPuppet(name = 'Kermit')
+a = cgmPM.cgmPuppet(name = 'Morphy')
 a.masterControl.controlSettings.mNode
 a.masterControl.controlSettings.addAttr('skeleton',enumName = 'off:referenced:on', attrType = 'enum', defaultValue = 2, keyable = False,hidden = False)
 
 
 
-a._verifyMasterControl(size=50)
+a._verifyMasterControl()
 a = cgmPM.cgmPuppet(name = 'Kermit',initializeOnly=True)
 a = cgmPM.cgmPuppet(name = 'Morphy')
 a._verifyMasterControl()

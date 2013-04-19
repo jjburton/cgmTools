@@ -66,7 +66,14 @@ from cgm.lib import logic
 logic.returnLocalAimDirection('spine_2_ik_anim',targets[-1])
 distance.returnLocalAimDirection('spine_2_ik_anim',targets[-1]) 
 
-
+#>>> Scale buffer
+#============================================================================
+i_curve = cgmMeta.cgmObject('spine_splineIKCurve')
+i_dBuffer = i_curve.scaleBuffer
+for k in i_dBuffer.d_indexToAttr.keys():
+    attrName = 'spine_%s'%k
+    cgmMeta.cgmAttr(i_dBuffer.mNode,'scaleMult_%s'%k).doCopyTo('cog_anim',attrName,connectSourceToTarget = True)
+    cgmMeta.cgmAttr('cog_anim',attrName, keyable =True, lock = False)
 
 i_rig.d_controlShapes
 rig_segmentFK(i_rig.d_controlShapes)
