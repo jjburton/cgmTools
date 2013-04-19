@@ -2014,7 +2014,7 @@ class cgmDynParentGroup(cgmObject):
 	if len(self.dynParents)<2:
 	    log.error("cgmDynParentGroup.rebuild>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
 	    return False
-	i_child = self._mi_dynChild #for shorter calls
+	i_child = self.dynChild #for shorter calls
 	#TODO First scrub nodes and what not
 	
 	#Check our attrs
@@ -2063,7 +2063,7 @@ class cgmDynParentGroup(cgmObject):
 	    log.warning("cgmDynParentGroup.addDynChild>> dynChild isn't not heirarchal child: '%s'"%i_child.getShortName())
 	    return False
 	
-	if i_child.hasAttr('dynParentGroup') and i_child.dynGroup == self:
+	if i_child.hasAttr('dynParentGroup') and i_child.dynParentGroup == self:
 	    log.info("cgmDynParentGroup.addDynChild>> dynChild already connected: '%s'"%i_child.getShortName())
 	    return True
 	
