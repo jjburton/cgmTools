@@ -908,7 +908,8 @@ class argsToNodes(object):
 				    if i_plug.get('mi_plug'):
 					if i_plug['mi_plug'].obj.mNode != d.obj.mNode:
 					    log.debug("argsToNodes.verifyNode>> match fail: obj.mNode: %s != %s"%(i_plug['mi_plug'].obj.mNode,d.obj.mNode))					    
-					    matchFound = False					    					    
+					    matchFound = False	
+					    falseCnt.append(1)					    					    
 					    #break
 					if i_plug['mi_plug'].p_nameLong != d.p_nameLong:
 					    log.debug("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    
