@@ -462,7 +462,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.debug("'%s.%s' Value (%s) was not properly set during creation to: %s"%(self.getShortName(),attr,r9Meta.MetaClass.__getattribute__(self,attr),value))
 		self.__setattr__(attr,value,**kws)
 		#cgmAttr(self, attrName = attr, value=value)
-	    
+	    validatedAttrType = attributes.validateRequestedAttrType(attrType)
+	    if attrType is not None and validatedAttrType in ['string','float','long']:
+		currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
+		if currentType != validatedAttrType:
+		    log.info("cgmNode.addAttr >> %s != %s : %s.%s. Converting."%(validatedAttrType,currentType,self.getShortName(),attr))
+		    cgmAttr(self, attrName = attr, attrType=validatedAttrType)
+		    
 	    #if valueCarry is not None:
 		#self.__setattr__(attr,valueCarry)
 		
@@ -1192,7 +1198,10 @@ class cgmControl(cgmObject):
     #>>> Aim stuff
     #========================================================================
     def _isAimable(self):
-	try: self._verifyAimable()
+	try:
+	    if self.hasAttr('axisAim') and self.hasAttr('axisUp'):
+		return self._verifyAimable()
+	    return False
 	except StandardError,error:
 	    log.error("cgmControl._verifyAimable>> _verifyAimable fail | %s"%error)
 	    return False
@@ -1992,7 +2001,8 @@ class cgmDynParentGroup(cgmObject):
 	    raise StandardError, "cgmDynParentGroup.__verify__>> This object has a another mClass and setClass is not set to True"
 	#Check our attrs
 	if self._mi_dynChild:
-	    self.doStore('cgmName',self._mi_dynChild.mNode)
+	    self.addDynChild(self._mi_dynChild)
+	    #self.doStore('cgmName',self._mi_dynChild.mNode)
 	self.addAttr('mClass','cgmDynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
 	self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
 	
@@ -2157,7 +2167,7 @@ class cgmDynParentGroup(cgmObject):
 	try:#Name and store    
 	    for i_const in [i_dynParentConst,i_dynPointConst,i_dynOrientConst]:
 		if i_const:
-		    i_const.doStore('cgmName',self._mi_dynChild.mNode) 
+		    i_const.doStore('cgmName',i_dynChild.mNode) 
 		    i_const.addAttr('cgmTypeModifier','dynDriver')
 		    i_const.addAttr('mClass','cgmNode')	
 		    i_const.doName()
@@ -2241,18 +2251,22 @@ class cgmDynParentGroup(cgmObject):
 	
 	
     def verifyFollowDriver(self):
+	i_dynChild = validateObjArg(self.getMessage('dynChild')[0],cgmObject,True)
+	if not i_dynChild:
+	    raise StandardError, "cgmDynParentGroup.verifyFollowDriver>> no dynChild found"
+	
 	gBuffer = self.getMessage('dynFollow') or False
 	if gBuffer:
 	    self._mi_followDriver = validateObjArg(gBuffer[0],cgmObject,noneValid=True)
 	else:
-	    self._mi_followDriver = self._mi_dynChild.doDuplicateTransform()
+	    self._mi_followDriver = i_dynChild.doDuplicateTransform()
 	    
-	self._mi_followDriver.doStore('cgmName',self._mi_dynChild.mNode) 
+	self._mi_followDriver.doStore('cgmName',i_dynChild.mNode) 
 	self._mi_followDriver.addAttr('cgmType','dynFollow')
 	self._mi_followDriver.addAttr('mClass','cgmObject')		
 	self._mi_followDriver.doName()
 	
-	self._mi_followDriver.rotateOrder = self._mi_dynChild.rotateOrder#Match rotate order
+	self._mi_followDriver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
 	log.info("dynFollow: '%s'"%self._mi_followDriver.getShortName())
 	
 	self.connectChildNode(self._mi_followDriver,'dynFollow','dynMaster')
@@ -2596,7 +2610,8 @@ class cgmAttr(object):
 	else:
             assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
             self.obj = cgmNode(objName)	    
-	    
+	
+	if attrType:attrType = attributes.validateRequestedAttrType(attrType)
 	#value/attr type logic check
 	#==============  
 	if enum is not False:
@@ -2660,8 +2675,9 @@ class cgmAttr(object):
                 
                 initialCreate = True
                 
-            except:
-                log.error("'%s.%s' failed to add"%(self.obj.mNode,attrName))
+	    except StandardError,error:
+		log.error("addAttr>>Failure! '%s' failed to add '%s' | type: '%s'"%(self.obj.mNode,attrName,self.attrType))
+		raise StandardError,error                  
                      
         if enum:
             try:
@@ -3227,7 +3243,12 @@ class cgmAttr(object):
 	if not self.isDynamic():
 	    log.warning("'%s' is not a dynamic attribute. 'usedAsColor' not relevant"%self.p_combinedName)	    
 	    return False
-	return mc.addAttr(self.p_combinedName,q=True,usedAsColor=True) or False   
+	return mc.addAttr(self.p_combinedName,q=True,usedAsColor=True) or False  
+    
+    def isUserDefined(self):
+	if self.p_nameLong in mc.listAttr(self.obj.mNode, userDefined = True):
+	    return True
+	return False
     
     def getRange(self):
 	if not self.isNumeric():
@@ -4016,7 +4037,8 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
 	    
 	if not mc.objExists(combined):
-	    log.info("validateAttrArg>>> '%s'doesn't exist, creating attr!"%combined)
+	    log.info("validateAttrArg>>> '%s'doesn't exist, creating attr (%s)!"%(combined,defaultType))
+	    if kws:log.info("kws: %s"%kws)
 	    i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
 	else:
 	    i_plug = cgmAttr(obj,attr,**kws)	    
