@@ -427,15 +427,17 @@ class argsToNodes(object):
     nFactory.argsToNodes(arg)#Logic only
     
     Examples. Assuming you have an object called 'worldCenter_loc'
-    arg = "worldCenter_loc.tx + worldCenter_loc.ty + worldCenter_loc.tz = worldCenter_loc.sumResult1"
-    arg = "1 + 2 + 3 = worldCenter_loc.simpleSum"#Working
-    arg = "1 >< 2 >< 3 = worldCenter_loc.simpleAv"#Working
-    arg = "3 * -worldCenter_loc.ty = worldCenter_loc.inverseMultThree"#Working
-    arg = "4 - 2 = worldCenter_loc.simpleMathResult"#Working
-    arg = "-worldCenter_loc.ty = worldCenter_loc.ty"#Working
-    arg = "worldCenter_loc.ty * 3 = worldCenter_loc.multResult"#Working
-    arg = "worldCenter_loc.ty + 3 + worldCenter_loc.ty = worldCenter_loc.sumResult"#Working
-    arg = "if worldCenter_loc.ty > 3;worldCenter_loc.result2"#Working
+    arg = "worldCenter_loc.sumResult1 = worldCenter_loc.tx + worldCenter_loc.ty + worldCenter_loc.tz"
+    arg = "worldCenter_loc.simpleSum = 1 + 2 + 3"#Working
+    arg = "worldCenter_loc.simpleAv = 1 >< 2 >< 3 "#Working
+    arg = "worldCenter_loc.inverseMultThree = 3 * -worldCenter_loc.ty"#Working
+    arg = "worldCenter_loc.simpleMathResult = 4 - 2"#Working
+    arg = "worldCenter_loc.ty = -worldCenter_loc.ty "#Working
+    arg = "worldCenter_loc.multResult = worldCenter_loc.ty * 3"#Working
+    arg = "worldCenter_loc.sumResult = worldCenter_loc.ty + 3 + worldCenter_loc.ty"#Working
+    arg = "worldCenter_loc.result2 = if worldCenter_loc.ty > 3"#Working
+    
+    
     """
     compatibleAttrs = ['bool','int','enum']
     def __init__(self, arg, *args,**kws):
@@ -447,12 +449,16 @@ class argsToNodes(object):
 	self.d_connectionsToMake = {}#Connections to make
 	self.d_networksToBuild = {'condition':[],
 	                          'multiplyDivide':[],
-	                          'plusMinusAverage':[]}#indexed to l_mdNetworkIndices
+	                          'plusMinusAverage':[],
+	                          }#indexed to l_mdNetworkIndices
 	self.l_good_nodeNetworks = []#good md networks by arg [1,2]
 	self.d_good_nodeNetworks = {}#md instances indexed to l_good_mdNetworks
+	self.d_good_connections= {}#connections 
+	
 	self.l_condNetworkArgs = []
 	self.l_mdNetworkArgs = []
-	self.l_pmaNetworkArgs = []	    
+	self.l_pmaNetworkArgs = []
+	self.l_directConnectArgs = []
 	self.d_good_NetworkOuts = {}
 	self.validateArg(arg,*args,**kws)#Validate Arg
 	
@@ -463,7 +469,6 @@ class argsToNodes(object):
 	    log.debug(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
 	
     def doBuild(self):
-	""" doBuild to False for logic only"""
 	l_args = []
 	ml_outPlugs = []
 	l_outPlugs = []
@@ -476,22 +481,40 @@ class argsToNodes(object):
 		    self.verify_nodalNetwork(n,nodeType)
 		    
 	for resultKey in self.d_connectionsToMake.keys():
-	    if resultKey not in self.d_good_nodeNetworks.keys():
-		log.warning("resultKey not found: %s"%resultKey)
-	    else:
-		arg = resultKey
-		l_args.append(arg)
-		try:outIndex = self.d_good_NetworkOuts[arg]
-		except:raise StandardError,"Failed to find out network plug for: '%s'"%arg
-		mi_outPlug = self.ml_attrs[outIndex]
-		ml_outPlugs.append(mi_outPlug)
-		l_outPlugs.append(mi_outPlug.p_combinedName)
-		#let's lock and hide our result attrs
+	    if self.d_connectionsToMake[resultKey].get('nodeType') == 'directConnect':
+		log.debug("direct Connect mode!")
+		if type(self.d_connectionsToMake[resultKey].get('driver')) is not int:
+		    raise StandardError,"Cannot make a connection. No driver indexed: %s"%self.d_connectionsToMake[resultKey]
 		for i in self.d_connectionsToMake[resultKey]['driven']:
-		    self.ml_attrs[i].doConnectIn("%s.%s"%(self.d_good_nodeNetworks[resultKey].mNode,
-			                                  d_nodeType_to_output[self.d_connectionsToMake[resultKey]['nodeType']]))	    
-		    self.ml_attrs[i].p_hidden = True
-		    self.ml_attrs[i].p_locked = True
+		    driverIndex = self.d_connectionsToMake[resultKey].get('driver')
+		    self.ml_attrs[i].doConnectIn(self.ml_attrs[driverIndex].p_combinedName)
+		    if self.ml_attrs[i].isUserDefined():
+			self.ml_attrs[i].p_hidden = True
+		    self.ml_attrs[i].p_locked = True	
+		    
+	    else:#Reg mode
+		if resultKey not in self.d_good_nodeNetworks.keys():
+		    log.warning("resultKey not found: %s"%resultKey)
+		else:
+		    arg = resultKey
+		    l_args.append(arg)
+		    try:outIndex = self.d_good_NetworkOuts[arg]
+		    except:raise StandardError,"Failed to find out network plug for: '%s'"%arg
+		    mi_outPlug = self.ml_attrs[outIndex]
+		    ml_outPlugs.append(mi_outPlug)
+		    l_outPlugs.append(mi_outPlug.p_combinedName)
+		    #let's lock and hide our result attrs
+		    for i in self.d_connectionsToMake[resultKey]['driven']:
+			log.debug(i)
+			log.debug(self.d_good_nodeNetworks[resultKey].mNode)
+			log.debug(self.d_connectionsToMake[resultKey])		    
+			log.debug(d_nodeType_to_output[self.d_connectionsToMake[resultKey]['nodeType']])
+			self.ml_attrs[i].doConnectIn("%s.%s"%(self.d_good_nodeNetworks[resultKey].mNode,
+			                                      d_nodeType_to_output[self.d_connectionsToMake[resultKey]['nodeType']]))	    
+			
+			if self.ml_attrs[i].isUserDefined():
+			    self.ml_attrs[i].p_hidden = True
+			self.ml_attrs[i].p_locked = True
 		    
 	#Build our return dict
 	#{l_args:[],l_outPlugs:[]indexed to args
@@ -504,6 +527,8 @@ class argsToNodes(object):
 	#Clean an are of extra spaces
 	#print arg
 	buffer = arg.split(' ')
+	start = 0
+	end = len(list(arg))
 	for i,n in enumerate(buffer):
 	    if n != '':
 		start = i
@@ -583,8 +608,16 @@ class argsToNodes(object):
 		    except StandardError,error:
 			raise StandardError,error  
 	    if not foundMatch and '-' in a:
+		foundMatch = True
 		if self.validate_subArg(a,'multiplyDivide'):
 		    self.l_mdNetworkArgs.append(arg)
+		    break
+		else:
+		    log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
+	    if not foundMatch and '=' in a:
+		log.debug("Finding direct connect...")
+		if self.validate_subArg(a,'directConnect'):
+		    self.l_directConnectArgs.append(arg)
 		    break
 		else:
 		    log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
@@ -596,6 +629,7 @@ class argsToNodes(object):
 	Check an arg, return an index to the i_attr list after registering
 	if necessary or the command if it's a valid driver
 	"""
+	arg = self.cleanArg(arg)#get rid of pesky spaces that may have made it through
 	if nodeType:
 	    kws = {}
 	    defaultAttrType = d_nodeType_to_DefaultAttrType.get(nodeType) or False
@@ -648,22 +682,23 @@ class argsToNodes(object):
 	return None
 	
     def validate_subArg(self,arg, nodeType = 'condition'):
-	log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
+	log.debug("argsToNodes.validate_subArg>> '%s' validate: '%s'"%(nodeType,arg))
 	#First look for a result connection to register
-	if nodeType not in d_operator_to_NodeType.keys():
-	    raise StandardError,"argsToNodes.validate_subArg>> unknown nodeType: %s"%nodeType
+	if nodeType != 'directConnect' and nodeType not in d_operator_to_NodeType.keys():
+	    raise StandardError,"argsToNodes.validate_subArg>> unknown nodeType: '%s'"%nodeType
 	resultArg = []
 	thenArg = []
-	
+	log.debug(1)
 	try:#Result split
-	    splitter = d_nodeType_to_resultSplit[nodeType]
+	    #splitter = d_nodeType_to_resultSplit[nodeType]
+	    splitter = ' = '
 	    if splitter in arg:
 		spaceSplit = arg.split(' ')
 		splitBuffer = arg.split(splitter)#split by ';'
 		if len(splitBuffer)>2:
 		    raise StandardError,"argsToNodes.validate_subArg>> Too many splits for arg: %s"%splitBuffer		
-		resultArg = splitBuffer[1]
-		arg = splitBuffer[0]
+		resultArg = splitBuffer[0]
+		arg = splitBuffer[1]
 		log.debug("argsToNodes.validate_subArg>> result args: %s"%resultArg)
 	except StandardError,error:
 	    log.error(error)
@@ -680,18 +715,25 @@ class argsToNodes(object):
 	    log.error(error)
 	    raise StandardError, "argsToNodes.validate_subArg>> thenSplit failure: %s"%(arg)
 	
+	    
 	try:#Function Split
 	    log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
-	    splitBuffer = arg.split(' ')#split by space
+	    l_buffer = arg.split(' ')#split by space
+	    splitBuffer = []
+	    for n in l_buffer:
+		if n !='':
+		    splitBuffer.append(n)#get rid of ''
 	    l_funcs = []
-	    for function in d_operator_to_NodeType[nodeType]:
-		if function in arg:#See if we have the function
-		    if len(arg.split(function))>2 and nodeType == 'condition':
-			 raise StandardError,"argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(function)
-		    l_funcs.append(function)
-	    if not l_funcs and '-' not in arg:
+	    if nodeType != 'directConnect':
+		for function in d_operator_to_NodeType[nodeType]:
+		    if function in arg:#See if we have the function
+			if len(arg.split(function))>2 and nodeType == 'condition':
+			     raise StandardError,"argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(function)
+			l_funcs.append(function)
+			
+	    if not l_funcs and '-' not in arg and nodeType != 'directConnect':
 		raise StandardError, "argsToNodes.validate_subArg>> No function of type '%s' found: %s"%(nodeType,d_operator_to_NodeType[nodeType])	    
-	    elif len(l_funcs)!=1 and '-' not in arg:#this is to grab an simple inversion
+	    elif len(l_funcs)!=1 and '-' not in arg and nodeType != 'directConnect':#this is to grab an simple inversion
 		log.warning("argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(l_funcs))
 	    if l_funcs:l_funcs = [l_funcs[0].split(' ')[1]]
 	except StandardError,error:
@@ -700,7 +742,7 @@ class argsToNodes(object):
 	
 	
 	log.debug("validate_subArg>> l_funcs: %s"%l_funcs)
-	log.debug("validate_subArg>> splitBuffer: %s"%splitBuffer)	
+	log.debug("validate_subArg>> splitBuffer: %s"%splitBuffer)
 	try:#Validate our function factors
 	    l_drivers = []
 	    if l_funcs:
@@ -723,12 +765,15 @@ class argsToNodes(object):
 	    
 	    log.debug("l_validDrivers: %s"%l_validDrivers)
 	    #need to rework for more drivers
-	    maxDrivers = d_nodeType_to_limits[nodeType].get('maxDrivers')
-	    if maxDrivers and len(l_validDrivers)>maxDrivers:
-		raise StandardError, "argsToNodes.validate_subArg>> Too many drivers (max - %s): %s"%(maxDrivers,l_validDrivers)
+	    if nodeType != 'directConnect':
+		maxDrivers = d_nodeType_to_limits[nodeType].get('maxDrivers')
+		if maxDrivers and len(l_validDrivers)>maxDrivers:
+		    raise StandardError, "argsToNodes.validate_subArg>> Too many drivers (max - %s): %s"%(maxDrivers,l_validDrivers)
 	    
 	    if l_funcs:#we  use normal start
 		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers,'operation':d_function_to_Operator[l_funcs[0]]}
+	    elif nodeType == 'directConnect':
+		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers}		
 	    else:#we have a special case
 		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg}		
 	    log.debug("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
@@ -758,7 +803,6 @@ class argsToNodes(object):
 		    d_validArg['False']=n		    
 		
     
-    
 	try:#Results build
 	    results_indices = []
 	    if resultArg:
@@ -783,8 +827,12 @@ class argsToNodes(object):
 	    log.debug("d_validArg: %s"%d_validArg)
 	    
 	    if d_validArg.get('drivers'):
-		if len(d_validArg['drivers']) > 1:#just need a connecton mapped
+		if len(d_validArg['drivers']) > 1 and nodeType:#just need a connecton mapped
 		    self.d_networksToBuild[nodeType].append(d_validArg)#append to build
+		elif nodeType == 'directConnect' and len(d_validArg['drivers']) == 1:
+		    self.d_connectionsToMake[d_validArg['arg']]['driver'] = d_validArg['drivers'][0]
+		    #self.d_networksToBuild[nodeType].append(d_validArg)#append to build		    
+		    #self.d_good_connections[d_validArg['arg']]=self.ml_attrs[d_validArg['drivers'][0]]#store the instance		    
 		else:
 		    raise StandardError, "argsToNodes.validate_subArg>> Too few drivers : %s"%(l_validDrivers)
 	except StandardError,error:
@@ -943,7 +991,7 @@ class argsToNodes(object):
 			matchFound=True
 			break#If we got this point, we're good
 		if matchFound:
-		    log.info("Match found: %s"%i_nodeTmp.mNode)
+		    log.debug("Match found: %s"%i_nodeTmp.mNode)
 		    i_node = i_nodeTmp
 			
 	    if i_node is None:
@@ -1045,6 +1093,146 @@ class argsToNodes(object):
 	    log.debug("adding connection: %s = [%s]"%(self.i_mdOutAttrIndex,buildNetworkIndex))
 	    self.d_connectionsToMake[self.i_mdOutAttrIndex]=[buildNetworkIndex]"""
 	   
+
+def test_argsToNodes(deleteObj = True):
+    """
+    arg = "worldCenter_loc.condResult = if worldCenter_loc.ty == 3:5 else 2"#Working
+    """
+    i_obj = cgmMeta.cgmObject(name = 'awesomeArgObj_loc')
+    str_obj = i_obj.getShortName()
+    
+    try:#Logic
+	arg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+	d_return = argsToNodes(arg).doBuild()
+	log.debug(d_return['ml_outPlugs'])
+	assert d_return['l_nodes'], "Should have made something"
+	assert len(d_return['l_nodes']) == 1, "Only one nodes should be made. Found: %s"%len(d_return['l_nodes'])
+	assert d_return['ml_nodes'][0].getMayaType() == 'condition',"%s != condition"%d_return['ml_nodes'][0].getMayaType()
+	
+	plugCall = mc.listConnections("%s.condResult"%(i_obj.mNode),plugs=True,scn = True)
+	assert d_return['ml_nodes'][0].operation == 0, "Operation not 1"	
+	combinedName = d_return['ml_outPlugs'][0].p_combinedName
+	assert str(plugCall[0]) == d_return['ml_outPlugs'][0].p_combinedName,"Connections don't match: %s | %s"%(plugCall[0],combinedName)
+	
+	i_obj.ty = 3
+	assert i_obj.condResult == 5,"condResult should be 5"
+	i_obj.ty = 1
+	assert i_obj.condResult == 1,"condResult should be 1"
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>Condition Failure! '%s'"%(error))
+	raise StandardError,error  
+    
+    try:#Mult inversion
+	arg = "%s.inverseMultThree = 3 * -%s.tx"%(str_obj,str_obj)
+	d_return = argsToNodes(arg).doBuild()
+	log.debug(d_return['ml_outPlugs'])
+	assert d_return['l_nodes'], "Should have made something"
+	assert len(d_return['l_nodes']) == 2, "Only two nodes should be made. Found: %s"%len(d_return['l_nodes'])
+	assert d_return['ml_nodes'][0].getMayaType() == 'multiplyDivide',"%s != md"%d_return['ml_nodes'][0].getMayaType()
+	assert d_return['ml_nodes'][1].getMayaType() == 'multiplyDivide',"%s != md"%d_return['ml_nodes'][1].getMayaType()
+	
+	plugCall = mc.listConnections("%s.inverseMultThree"%(i_obj.mNode),plugs=True,scn = True)
+	assert d_return['ml_nodes'][-1].operation == 1, "Operation not 1"	
+	combinedName = d_return['ml_outPlugs'][-1].p_combinedName
+	assert str(plugCall[0]) == d_return['ml_outPlugs'][-1].p_combinedName,"Connections don't match: %s | %s"%(plugCall[0],combinedName)
+	assert i_obj.inverseMultThree == 3* -i_obj.tx,"Inversion doesn't match"
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>Inversion mult 3 Failure! '%s'"%(error))
+	raise StandardError,error      
+    
+    try:#Simple inversion 
+	arg = "%s.simpleInversion = -%s.tx"%(str_obj,str_obj)
+	d_return = argsToNodes(arg).doBuild()
+	log.debug(d_return['ml_outPlugs'])
+	assert d_return['l_nodes'], "Should have made something"
+	assert len(d_return['l_nodes']) == 1, "Only one node should be made. Found: %s"%len(d_return['l_nodes'])
+	assert d_return['ml_outPlugs'][0].obj.getMayaType() == 'multiplyDivide',"%s != pma"%d_return['ml_outPlugs'][0].obj.getMayaType()
+	plugCall = mc.listConnections("%s.simpleInversion"%(i_obj.mNode),plugs=True,scn = True)
+	assert d_return['ml_nodes'][0].operation == 1, "Operation not 1"	
+	combinedName = d_return['ml_outPlugs'][0].p_combinedName
+	assert str(plugCall[0]) == d_return['ml_outPlugs'][0].p_combinedName,"Connections don't match: %s | %s"%(plugCall[0],combinedName)
+	assert i_obj.simpleInversion == -i_obj.tx,"Inversion doesn't match"
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>Simple inversion Failure! '%s'"%(error))
+	raise StandardError,error  
+    
+    try:#Simple Average 
+	arg = "%s.sumAverage1 = 4 >< 4 >< 4"%(str_obj)
+	d_return = argsToNodes(arg).doBuild()
+	assert d_return['l_nodes'], "Should have made something"
+	assert len(d_return['l_nodes']) == 1, "Only one node should be made. Found: %s"%len(d_return['l_nodes'])
+	assert d_return['ml_outPlugs'][0].obj.getMayaType() == 'plusMinusAverage',"%s != pma"%d_return['ml_outPlugs'][0].obj.getMayaType()
+	assert d_return['ml_nodes'][0].operation == 3, "Operation not 3"
+	
+	assert i_obj.sumAverage1 == 4,"Average is wrong: 4 != %s"%i_obj.sumAverage1
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>Simple sum Failure! '%s'"%(error))
+	raise StandardError,error      
+    
+    try:#Test direct connect
+	arg = "%s.directConnect = %s.ty"%(str_obj,str_obj)
+	argsToNodes(arg).doBuild()
+	log.debug(mc.listConnections("%s.directConnect"%str_obj,source = True))
+	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True)	
+	assert plugCall[0] == '%s.translateY'%i_obj.getShortName(),log.error("Direct connect failed")
+    except StandardError,error:
+	log.error("test_argsToNodes>>Single Connect Failure! '%s'"%(error))
+	raise StandardError,error   
+    
+    try:#Multi direct connect
+	arg = "%s.directConnect, %s.ry = %s.ty"%(str_obj,str_obj,str_obj)
+	argsToNodes(arg).doBuild()
+	log.debug(mc.listConnections("%s.directConnect"%str_obj,source = True))
+	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True)	
+	assert plugCall[0] == '%s.translateY'%i_obj.getShortName(),log.error("Direct connect failed: directConnect")
+	plugCall = mc.listConnections("%s.rotateY"%(i_obj.mNode),plugs=True,scn = True)	
+	log.debug(plugCall)
+	assert plugCall[0] == '%s.translateY'%i_obj.getShortName(),log.error("Direct connect failed: rotateY")
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>Multi Connect Failure! '%s'"%(error))
+	raise StandardError,error  
+    
+    try:#Simple sum 
+	i_obj.tx = 1
+	i_obj.ty = 2
+	i_obj.tz = 3
+	arg = "%s.sumResult1 = %s.tx - %s.ty - %s.tz"%(str_obj,str_obj,str_obj,str_obj)
+	d_return = argsToNodes(arg).doBuild()
+	log.debug(d_return['ml_outPlugs'])
+	assert d_return['l_nodes'], "Should have made something"
+	assert len(d_return['l_nodes']) == 1, "Only one node should be made. Found: %s"%len(d_return['l_nodes'])
+	assert d_return['ml_outPlugs'][0].obj.getMayaType() == 'plusMinusAverage',"%s != pma"%d_return['ml_outPlugs'][0].obj.getMayaType()
+	plugCall = mc.listConnections("%s.sumResult1"%(i_obj.mNode),plugs=True,scn = True)
+	assert d_return['ml_nodes'][0].operation == 2, "Operation not 2"	
+	combinedName = d_return['ml_outPlugs'][0].p_combinedName
+	assert str(plugCall[0]) == d_return['ml_outPlugs'][0].p_combinedName,"Connections don't match: %s | %s"%(plugCall[0],combinedName)
+	assert i_obj.sumResult1 == i_obj.tx - i_obj.ty - i_obj.tz,"Sum doesn't match"
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>Simple sum Failure! '%s'"%(error))
+	raise StandardError,error   
+    
+    if deleteObj:i_obj.delete()
+    """
+    for arg in ["awesomeArgObj_loc.tx + awesomeArgObj_loc.ty + awesomeArgObj_loc.tz = awesomeArgObj_loc.sumResult1",
+                "1 + 2 + 3 = awesomeArgObj_loc.simpleSum",#Working
+                "1 >< 2 >< 3 = awesomeArgObj_loc.simpleAv",#Working
+                "3 * -awesomeArgObj_loc.ty = awesomeArgObj_loc.inverseMultThree",#Working
+                "4 - 2 = awesomeArgObj_loc.simpleMathResult",#Working
+                "-awesomeArgObj_loc.ty = awesomeArgObj_loc.ty",#Working
+                "awesomeArgObj_loc.ty * 3 = awesomeArgObj_loc.multResult",#Working
+                "awesomeArgObj_loc.ty + 3 + awesomeArgObj_loc.ty = awesomeArgObj_loc.sumResult",#Working
+                "if awesomeArgObj_loc.ty > 3;awesomeArgObj_loc.result2"]:
+	try:nodeF.argsToNodes(arg).doBuild()
+	except StandardError,error:
+	    log.error("test_argsToNodes>>arg fail! %s"%arg)
+	    raise StandardError,error  """
+
 class build_conditionNetworkFromGroup(object):
     def __init__(self, group, chooseAttr = 'switcher', controlObject = None, connectTo = 'visibility',*args,**kws):
 	"""Constructor"""
