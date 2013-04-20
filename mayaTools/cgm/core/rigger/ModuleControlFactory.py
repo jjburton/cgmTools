@@ -470,8 +470,8 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if i_control.hasAttr('cgmTypeModifier'):
 	    if i_control.cgmTypeModifier.lower() == 'fk':
 		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['tx','ty','tz','sx','sy','sz'])
-	    if i_control.cgmName.lower() == 'cog':
-		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['sx','sy','sz'])
+	if i_control.cgmName.lower() == 'cog':
+	    attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['sx','sy','sz'])
 	cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
     return {'instance':i_control,'mi_groups':ml_groups,'mi_constraintGroups':ml_constraintGroups}
 
