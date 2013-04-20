@@ -439,9 +439,10 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	i_segmentCurve.parent = i_segmentGroup.mNode	
 	i_constraintLinearCurve.parent = i_segmentGroup.mNode
 	i_constraintSplineCurve.parent = i_segmentGroup.mNode
-	i_followGroup.parent = i_segmentGroup.mNode	
 	i_linearFollowNull.parent = i_segmentGroup.mNode	
-	i_splineFollowNull.parent = i_segmentGroup.mNode	
+	i_splineFollowNull.parent = i_segmentGroup.mNode
+	
+	return {'ml_followGroups':[i_followGroup]}
 
 
 	
