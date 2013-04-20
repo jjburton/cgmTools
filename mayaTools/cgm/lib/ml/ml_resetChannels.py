@@ -38,6 +38,50 @@ __revision__ = 4
 import maya.cmds as mc
 import maya.mel as mm
 
+def resetChannelsMod(transformOnly = False):
+    '''
+    Resets selected channels in the channel box to default, or if nothing's
+    selected, resets all keyable channels to default.
+    '''
+    gChannelBoxName = mm.eval('$temp=$gChannelBoxName')
+    
+    sel = mc.ls(sl=True)
+    if not sel:
+        return
+    
+    chans = mc.channelBox(gChannelBoxName, query=True, sma=True)
+    
+    for obj in sel:
+        #Check if object is an attribute, Morgan, this is the section I added
+        if '.' in obj:
+            splitBuffer = obj.split('.')
+            if splitBuffer and mc.attributeQuery (splitBuffer[-1], node = ''.join(splitBuffer[:-1]), exists = True ):
+                attrs = [splitBuffer[-1]]
+                obj = ''.join(splitBuffer[:-1])
+        
+        else:
+            attrs = chans
+            if not chans:
+                attrs = mc.listAttr(obj, keyable=True, unlocked=True)
+        
+        if transformOnly:
+            l_buffer = []
+            for attr in attrs:
+                str_longAttr = mc.attributeQuery(attr, node = obj, longName = True)
+                if str_longAttr in [u'visibility', u'translateX', u'translateY', u'translateZ',
+                                    u'rotateX', u'rotateY', u'rotateZ', u'scaleX', u'scaleY', u'scaleZ']:
+                    l_buffer.append(attr)
+            attrs = l_buffer
+
+        for attr in attrs:
+            try:
+                default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
+                mc.setAttr(obj+'.'+attr, default)
+            except StandardError:
+                pass
+                
+    _deselectChannels()
+
 def resetChannels():
     '''
     Resets selected channels in the channel box to default, or if nothing's

@@ -10,7 +10,7 @@ from cgm.lib import search
 from cgm.tools.lib import animToolsLib
 from cgm.tools.lib import tdToolsLib
 from cgm.tools.lib import locinatorLib
-
+reload(animToolsLib)
 from cgm.lib import locators
 
 import logging
@@ -68,7 +68,10 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		
 		self.mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
 		
+		self.ResetModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)		
+		guiFactory.appendOptionVarList(self,self.ResetModeOptionVar.name)
 
+		
 	def createUI(self,parent):
 		"""
 		Create the UI
@@ -86,7 +89,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
 					if i_obj._isAimable():
 						i_obj.doAim(self.i_target)
-						
+		
 		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked',value = 0)
 		IsClickedOptionVar.value = 1
 		
@@ -124,7 +127,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		MelMenuItem(parent,
 		            en = selCheck,
 		            l = 'Reset Selected',
-		            c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCall()),
+		            c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCallMod(self.ResetModeOptionVar.value)),
 		            rp = 'N')  
 		
 		MelMenuItem(parent,
@@ -193,6 +196,25 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		                               c= Callback(self.toggleVarAndReset,self.KeyModeOptionVar),
 		                               rb= cbModeOption )		
 		
+		
+		#>>> Reset Mode
+		ResetMenu = MelMenuItem( parent, l='Reset Mode', subMenu=True)
+		ResetMenuCollection = MelRadioMenuCollection()
+	
+		if self.ResetModeOptionVar.value == 0:
+			regModeOption = True
+			cbModeOption = False
+		else:
+			regModeOption = False
+			cbModeOption = True
+	
+		ResetMenuCollection.createButton(ResetMenu,l=' Default ',
+		                               c= Callback(self.toggleVarAndReset,self.ResetModeOptionVar),
+		                               rb= regModeOption )
+		ResetMenuCollection.createButton(ResetMenu,l=' Transform Attrs ',
+		                               c= Callback(self.toggleVarAndReset,self.ResetModeOptionVar),
+		                               rb= cbModeOption )			
+		
 		MelMenuItemDiv(parent)
 		"""
 		MelMenuItem(parent,l = 'autoTangent',
@@ -217,6 +239,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			
 	def toggleVarAndReset(self, optionVar):
 		try:
+			self.mmActionOptionVar.value=1						
 			optionVar.toggle()
 			self.reload()
 		except:
@@ -250,7 +273,6 @@ def setKey():
 		else:
 			mc.setKeyframe(breakdown = True)
 	else:#Let's check the channel box for objects
-		print 'cb mode'
 		selection = search.returnSelectedAttributesFromChannelBox(False) or []
 		if not selection:
 			selection = mc.ls(sl=True) or []
@@ -260,5 +282,6 @@ def setKey():
 		if not KeyTypeOptionVar.value:
 			mc.setKeyframe(selection)
 		else:
-			mc.setKeyframe(selection,breakdown = True)		
+			mc.setKeyframe(selection,breakdown = True)	
+			
 

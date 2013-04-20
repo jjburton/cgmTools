@@ -34,6 +34,7 @@ from cgm.lib.ml import (ml_breakdownDragger,
                         ml_copyAnim)
 
 reload(ml_arcTracer)
+reload(ml_resetChannels)
 """
 
 """
@@ -42,7 +43,10 @@ def ml_breakdownDraggerCall():
     
 def ml_resetChannelsCall():
     ml_resetChannels.resetChannels()
-
+    
+def ml_resetChannelsCallMod(transformOnly = False):
+    ml_resetChannels.resetChannelsMod(transformOnly)
+    
 def ml_deleteKeyCall():
     ml_deleteKey.ui()
     
