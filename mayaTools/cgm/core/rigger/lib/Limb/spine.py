@@ -73,7 +73,6 @@ def build_rigSkeleton(self):
     try:
 	#>>Segment chain    
 	l_segmentJoints = mc.duplicate(self._l_skinJoints[1:-1],po=True,ic=True,rc=True)
-	log.info(l_segmentJoints)
 	ml_segmentJoints = []
 	for i,j in enumerate(l_segmentJoints):
 	    i_j = cgmMeta.cgmObject(j)
@@ -85,7 +84,6 @@ def build_rigSkeleton(self):
 	
 	#>>Deformation chain    
 	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
-	log.info(l_segmentJoints)
 	ml_rigJoints = []
 	for i,j in enumerate(l_rigJoints):
 	    i_j = cgmMeta.cgmObject(j)
@@ -144,10 +142,26 @@ def build_rigSkeleton(self):
 	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','module')
+	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints')#Restore our list since duplication extendes message attrs
 	
     except StandardError,error:
 	log.error("build_spine>>Build rig joints fail!")
 	raise StandardError,error   
+    
+    ml_jointsToConnect = [i_startJnt,i_endJnt]
+    ml_jointsToConnect.extend(ml_anchors)
+    ml_jointsToConnect.extend(ml_rigJoints)
+    ml_jointsToConnect.extend(ml_influenceJoints)
+    ml_jointsToConnect.extend(ml_segmentJoints)
+    
+    for i_jnt in ml_jointsToConnect:
+	i_jnt.overrideEnabled = 1		
+	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
+
+    
+    
+    
 @r9General.Timer
 def build_shapes(self):
     """
@@ -309,10 +323,6 @@ def build_controls(self):
 	log.error("build_spine>>Build hips fail!")
 	raise StandardError,error
     
-    #Setup Cog vis control for fk controls
-    i_cog.addAttr('visFK', defaultValue = 1, attrType = 'bool',keyable = True,hidden = False, initialValue = 1)
-    cgmMeta.cgmAttr( ml_segmentsFK[0].mNode,'visibility').doConnectIn('%s.%s'%(i_cog.mNode,'visFK'))    
-    #cgmMeta.cgmAttr( ml_segmentsFK[0].mNode,'visibility').doConnectIn(i_cog.mNode,'visFK')
     return True
 
 
@@ -387,6 +397,9 @@ def build_deformation(self):
 	                                           baseName=self._partName,
 	                                           orientation=self._jointOrientation)
 	
+	for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
+	    i_grp.parent = self._i_deformGroup.mNode
+	    
     except StandardError,error:
 	log.error("build_spine>>Control Segment build fail")
 	raise StandardError,error
@@ -569,6 +582,10 @@ def build_rig(self):
     #====================================================================================
     #Cog control fk hide
     
+    #Setup Cog vis control for fk controls
+    mi_cog.addAttr('visFK', defaultValue = 1, attrType = 'bool',keyable = False,hidden = False, initialValue = 1)
+    cgmMeta.cgmAttr( ml_controlsFK[0].mNode,'visibility').doConnectIn('%s.%s'%(mi_cog.mNode,'visFK'))    
+    #cgmMeta.cgmAttr( ml_segmentsFK[0].mNode,'visibility').doConnectIn(i_cog.mNode,'visFK')
     
     #Final stuff
     self._i_rigNull.version = str(__version__)
