@@ -158,7 +158,7 @@ def verify_moduleRigToggles(goInstance):
     str_partBase = str(self._partName + '_rig')
     str_moduleRigNull = str(self._i_rigNull.getShortName())
     
-    self._i_masterSettings.addAttr(str_partBase,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+    self._i_masterSettings.addAttr(str_partBase,enumName = 'off:lock:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
     try:NodeF.argsToNodes("if %s.%s > 0; %s.gutsVis"%(str_settings,str_partBase,str_moduleRigNull)).doBuild()
     except StandardError,error:
 	raise StandardError,"verify_moduleRigToggles>> vis arg fail: %s"%error
@@ -166,6 +166,40 @@ def verify_moduleRigToggles(goInstance):
     except StandardError,error:
 	raise StandardError,"verify_moduleRigToggles>> lock arg fail: %s"%error
 
+    self._i_rigNull.overrideEnabled = 1		
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideVisibility'))
+    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideDisplayType'))    
+
+
+
+
+    return True
+
+def bindJoints_connect(goInstance):
+    if not issubclass(type(goInstance),go):
+	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+	raise StandardError
+    self = goInstance#Link
+    
+    l_rigJoints = self._i_rigNull.getMessage('rigJoints') or False
+    l_skinJoints = self._i_rigNull.getMessage('skinJoints') or False
+    if len(l_skinJoints)!=len(l_rigJoints):
+	raise StandardError,"connect_ToBind>> Rig/Skin joint chain lengths don't match: %s"%self._i_module.getShortName()
+    
+    for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
+	log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
+	#pntConstBuffer = mc.parentConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
+	#scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
+        pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
+        orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
+        #scConstBuffer = mc.scaleConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)        
+        #mc.connectAttr((attachJoint+'.t'),(joint+'.t'))
+        #mc.connectAttr((attachJoint+'.r'),(joint+'.r'))
+        #attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.t'),(i_jnt.mNode+'.t'))
+	#attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.r'),(i_jnt.mNode+'.r'))	
+        attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+    
+    
     return True
 	
 @r9General.Timer
