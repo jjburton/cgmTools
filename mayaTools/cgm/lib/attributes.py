@@ -2074,9 +2074,10 @@ def addRotateOrderAttr (obj,name):
         mc.addAttr(obj, ln=name, at = 'enum',en = 'xyz:yzx:zxy:xzy:yxz:zyx')
         mc.setAttr((obj+'.'+name),e = True, keyable = True )
         return ("%s.%s"%(obj,name))
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,name))
-        
+    except StandardError,error:
+	log.error("addRotateOrderAttr>>Failure! '%s' failed to add '%s'"%(obj,name))
+	raise StandardError,error       
+    
 def addPickAxisAttr(obj,name):
     """ 
     Add an axis picker attr
@@ -2279,9 +2280,9 @@ def addFloatAttributeToObject (obj, attr,*a, **kw):
     try: 
         mc.addAttr (obj, ln = attr, at = 'float',*a, **kw)
         return ("%s.%s"%(obj,attr))
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,attr))
-        return False
+    except StandardError,error:
+	log.error("addFloatAttributeToObject>>Failure! '%s' failed to add '%s'"%(obj,attr))
+	raise StandardError,error  
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def addEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
