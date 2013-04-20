@@ -1178,7 +1178,7 @@ defaultSettings = {'partType':'none'}
 moduleNulls_toMake = 'rig','template' #These will be created and connected to a module and parented under them    
 moduleBuffers_toMake = ['coreNames']
 
-rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any module
+rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
                        'fk':'bool',
                        'ik':'bool',
                        'stretchy':'bool',
@@ -1188,7 +1188,7 @@ rigNullAttrs_toMake = {'version':'float',#Attributes to be initialzed for any mo
                        'gutsVis':'int',                       
                        'skinJoints':'message'}
 
-templateNullAttrs_toMake = {'version':'float',
+templateNullAttrs_toMake = {'version':'string',
                             'gutsLock':'int',
                             'gutsVis':'int',
                             'controlsVis':'int',
