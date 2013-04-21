@@ -159,10 +159,10 @@ def verify_moduleRigToggles(goInstance):
     str_moduleRigNull = str(self._i_rigNull.getShortName())
     
     self._i_masterSettings.addAttr(str_partBase,enumName = 'off:lock:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
-    try:NodeF.argsToNodes("if %s.%s > 0; %s.gutsVis"%(str_settings,str_partBase,str_moduleRigNull)).doBuild()
+    try:NodeF.argsToNodes("%s.gutsVis = if %s.%s > 0"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
     except StandardError,error:
 	raise StandardError,"verify_moduleRigToggles>> vis arg fail: %s"%error
-    try:NodeF.argsToNodes("if %s.%s == 2:0 else 2; %s.gutsLock"%(str_settings,str_partBase,str_moduleRigNull)).doBuild()
+    try:NodeF.argsToNodes("%s.gutsLock = if %s.%s == 2:0 else 2"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
     except StandardError,error:
 	raise StandardError,"verify_moduleRigToggles>> lock arg fail: %s"%error
 
