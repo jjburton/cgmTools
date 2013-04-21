@@ -467,7 +467,8 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     if len(jointList)<3:
 	raise StandardError,"createCGMSegment>>> needs at least three joints"
     
-    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=False)   
+    
     if i_module:
 	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
     if baseName is None:baseName = 'testSegment'
@@ -478,6 +479,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     log.info('i_endControl: %s'%i_endControl)
     log.info('ml_influenceJoints: %s'%ml_influenceJoints)
     log.info('i_module: %s'%i_module)
+    log.info("baseName: %s"%baseName)
 
     #Good way to verify an instance list? #validate orientation
     #Gather info
@@ -671,7 +673,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     #======================================================================================= 
     try:#Build segment
 	d_segmentBuild = createSegmentCurve(jointList,orientation,secondaryAxis,
-	                                    baseName, moduleInstance)
+	                                    baseName, moduleInstance = moduleInstance)
     
 	mi_segmentCurve = d_segmentBuild['mi_segmentCurve']
 	ml_drivenJoints = d_segmentBuild['ml_drivenJoints']
@@ -971,8 +973,8 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
 		               tv = [influence,1-(i*blendFactor)])
     
 @r9General.Timer
-def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
-                       baseName ='test', moduleInstance = None):
+def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None, 
+                       baseName ='test', connectBy = 'trans', moduleInstance = None):
     """
     Stored meta data on completed segment:
     scaleBuffer
@@ -980,7 +982,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     driverJoints 
     """
     if type(jointList) not in [list,tuple]:jointList = [jointList]
-    
+
     #Good way to verify an instance list?
     #validate orientation
     outChannel = orientation[2]
@@ -992,9 +994,11 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	if issubclass(type(moduleInstance),cgmPM.cgmModule):
 	    i_module = moduleInstance
 	    i_rigNull = i_module.rigNull
+	    baseName = i_module.getPartNameBase()
+	    log.info('baseName set to module: %s'%baseName)	    
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
-	baseName = i_module.getPartNameBase()
+
     
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
@@ -1186,7 +1190,6 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     
     #>>>Hook up scales
     #==========================================================================
-    #Translate scale
     #Buffer
     i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
     i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
@@ -1199,11 +1202,11 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     ml_mainMDs = []
     for i,i_jnt in enumerate(ml_jointList[:-1]):
 	#Make some attrs
-	i_attrDist= cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True)
-	i_attrNormalBaseDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedBaseDistance_%s"%i,attrType = 'float',initialValue=0,lock=True)			
-	i_attrNormalDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedDistance_%s"%i,attrType = 'float',initialValue=0,lock=True)		
-	i_attrResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
-	i_attrTransformedResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
+	i_attrDist= cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)
+	i_attrNormalBaseDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedBaseDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)			
+	i_attrNormalDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)		
+	i_attrResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
+	i_attrTransformedResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
 	
 	#i_attrResultTScale = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleTResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
 	
@@ -1277,23 +1280,31 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	#Connect to the joint
 	ml_distanceAttrs.append(i_attrDist)
 	ml_resultAttrs.append(i_attrResult)
-	try:
-	    i_attrDist.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))		    
-	    #i_attrResultTScale.doConnectIn('%s.%s'%(i_mdTransScale.mNode,'output.outputX'))	    	    
-	    #i_attrResultTScale.doConnectOut("%s.t%s"%(ml_driverJoints[i+1].mNode,orientation[0]))	    
-	    i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
-	    i_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
-	    #for axis in orientation[1:]:
-		#i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,axis))	    
+	    
+	if connectBy == 'translate':
+	    #Still not liking the way this works with translate scale. looks fine till you add squash and stretch
+	    try:
+		i_attrDist.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))		        
+		i_attrNormalDist.doConnectOut('%s.t%s'%(ml_jointList[i+1].mNode,orientation[0]))
+		i_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,orientation[0]))    
+		    
+	    except StandardError,error:
+		log.error(error)
+		raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
 		
-	except StandardError,error:
-	    log.error(error)
-	    raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
-		
+	
+	else:
+	    try:
+		i_attrDist.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))		        
+		i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
+		i_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
+
+	    except StandardError,error:
+		log.error(error)
+		raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
+	    
 	ml_mainMDs.append(i_mdSegmentScale)#store the md
     
-	
-	
 	for axis in [orientation[1],orientation[2]]:
 	    attributes.doConnectAttr('%s.s%s'%(i_jnt.mNode,axis),#>>
 		                     '%s.s%s'%(ml_driverJoints[i].mNode,axis))	 	
@@ -1361,8 +1372,8 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     #Build the network
     i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
     i_control.overrideEnabled = 1
-    NodeF.argsToNodes("if %s.%s > 0; %s.overrideVisibility"%(str_objName,str_pivotAttr,str_pivotName)).doBuild()
-    NodeF.argsToNodes("if %s.%s == 2:0 else 2; %s.overrideDisplayType"%(str_objName,str_pivotAttr,str_pivotName)).doBuild()
+    NodeF.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
+    NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
     
     for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
 	log.debug(shape)
@@ -2650,10 +2661,10 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
 	#upScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%upChannel)
 	
 	if connectBy == 'translate':
-	    mainDriver = '%s.scaleResult_%s'%(i_holder.mNode,i)
+	    mainDriver = '%s.scaleResult_%s'%(i_holder.mNode,(i))
 	else:
 	    mainDriver = '%s.scale%s'%(i_jnt.mNode,aimChannel)	
-	
+	log.info(mainDriver)
 	"""    
 	#Create the multScale
 	i_mdScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
