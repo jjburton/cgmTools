@@ -34,8 +34,8 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
-from cgm.core.classes import NodeFactory as nodeF
-reload(nodeF)
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
 
 from cgm.core.rigger import ModuleCurveFactory as mCurveFactory
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
@@ -149,7 +149,7 @@ def build_rigSkeleton(self):
 	raise StandardError,error   
     
     ml_jointsToConnect = [i_startJnt,i_endJnt]
-    ml_jointsToConnect.extend(ml_anchors)
+    #ml_jointsToConnect.extend(ml_anchors)
     ml_jointsToConnect.extend(ml_rigJoints)
     ml_jointsToConnect.extend(ml_influenceJoints)
     ml_jointsToConnect.extend(ml_segmentJoints)
@@ -406,14 +406,26 @@ def build_deformation(self):
     
     
     try:#Setup top twist driver
-	drivers = ["%s.r%s"%(i_obj.mNode,self._jointOrientation[0]) for i_obj in ml_controlsFK]
+	#Create an fk additive attributes
+	str_curve = curveSegmentReturn['mi_segmentCurve'].getShortName()
+	fk_drivers = ["%s.r%s"%(i_obj.mNode,self._jointOrientation[0]) for i_obj in ml_controlsFK]
+	NodeF.createAverageNode(fk_drivers,
+	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistSum"],1)#Raw fk twist
+	
+	try:NodeF.argsToNodes("%s.fkTwistResult = %s.fkTwistSum * %s.fkTwistInfluence"%(str_curve,str_curve,str_curve)).doBuild()
+	except StandardError,error:
+	    raise StandardError,"verify_moduleRigToggles>> fkwistResult node arg fail: %s"%error	
+	
+	
+	drivers = ["%s.%s"%(curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistResult")]
 	drivers.append("%s.r%s"%(ml_segmentHandles[-1].mNode,self._jointOrientation[0]))
 	drivers.append("%s.ry"%(mi_handleIK.mNode))
 	for d in drivers:
 	    log.info(d)
-	nodeF.createAverageNode(drivers,
+	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
-	#Old driven[ml_anchorJoints[-1].mNode,"r%s"%self._jointOrientation[0]]
+	
+	
     
     except StandardError,error:
 	log.error("build_spine>>Top Twist driver fail")
@@ -427,7 +439,7 @@ def build_deformation(self):
 	for d in drivers:
 	    log.info(d)
 	log.info("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0])))
-	nodeF.createAverageNode(drivers,
+	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistStart"],1)
     
     except StandardError,error:
@@ -508,7 +520,7 @@ def build_rig(self):
 	log.error("spine.build_rig>> shoulder dynamic parent setup fail!")
 	raise StandardError,error
     
-    try:#>>>> Shoulder dynamicParent
+    try:#>>>> Hips dynamicParent
 	ml_hipsDynParents = [mi_cog]
 	ml_hipsDynParents.extend(mi_hips.spacePivots)
 	ml_hipsDynParents.append(self._i_masterControl)
@@ -524,6 +536,12 @@ def build_rig(self):
 	log.error("spine.build_rig>> hips dynamic parent setup fail!")
 	raise StandardError,error
     
+    #FK influence on twist from the space it's in
+    try:
+	str_curve = mi_segmentCurve.getShortName()
+	NodeF.argsToNodes("%s.fkTwistInfluence = if %s.space == 0:1 else 0"%(str_curve,mi_handleIK.getShortName())).doBuild()
+    except StandardError,error:
+	raise StandardError,"verify_moduleRigToggles>> fkTwistInfluencecond node arg fail: %s"%error    
     
     #Parent and constrain joints
     #====================================================================================
@@ -735,7 +753,7 @@ def build_rigOLDSurface(self):
      #                                          self._jointOrientation[0]))
                              
     #Create the add node
-    i_pmaAdd = nodeF.createAverageNode([driverNodeAttr,
+    i_pmaAdd = NodeF.createAverageNode([driverNodeAttr,
                                        "%s.r%s"%(self._i_rigNull.segmentHandles[1].mNode,#mid handle
                                                  self._jointOrientation[0])],
                                        [i_midUpGroup.mNode,#ml_influenceJoints[1].mNode
@@ -947,7 +965,7 @@ def build_deformationOLDSurface(self):
 	drivers.append("%s.ry"%(mi_handleIK.mNode))
 	for d in drivers:
 	    log.info(d)
-	nodeF.createAverageNode(drivers,
+	NodeF.createAverageNode(drivers,
 	                        [ml_anchorJoints[-1].mNode,"r%s"%self._jointOrientation[0]],1)
 	
     except StandardError,error:
@@ -962,7 +980,7 @@ def build_deformationOLDSurface(self):
 	for d in drivers:
 	    log.info(d)
 	log.info("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0])))
-	nodeF.createAverageNode(drivers,
+	NodeF.createAverageNode(drivers,
 	                        "%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0]),1)
 	
     except StandardError,error:
