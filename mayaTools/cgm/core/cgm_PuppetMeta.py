@@ -444,7 +444,8 @@ class cgmPuppet(cgmMeta.cgmNode):
 	#=====================================================================	
 	if self.masterNull.getMessage('deformGroup'):
 	    self.masterNull.deformGroup.parent = i_masterControl.mNode
-	    
+	
+	i_masterControl.addAttr('cgmAlias','world',lock = True)
 	return True
     
 class cgmMorpheusPuppet(cgmPuppet):
