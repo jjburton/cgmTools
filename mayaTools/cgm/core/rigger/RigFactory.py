@@ -105,7 +105,7 @@ class go(object):
         self._version = self._i_rigNull.version
         #Joints
         self._l_skinJoints = self._i_rigNull.getMessage('skinJoints')
-        self._ml_skinJoints = self._i_rigNull.skinJoints
+        self._ml_skinJoints = self._i_rigNull.skinJoints #We buffer this because when joints are duplicated, the multiAttrs extend with duplicates
         
         #>>> part name 
         self._partName = self._i_module.getPartNameBase()
@@ -117,6 +117,8 @@ class go(object):
 	    newVersion = d_moduleRigVersions[self._partType]
 	    if self._version != newVersion:
 		log.warning("RigFactory.go>>> '%s' rig version out of date: %s != %s"%(self._partType,self._version,newVersion))	
+	    else:
+		log.warning("RigFactory.go>>> '%s' rig version up to date !"%(self._partType))	
 	else:
 	    raise StandardError
 	
@@ -188,16 +190,17 @@ def bindJoints_connect(goInstance):
     
     for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
 	log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
-	#pntConstBuffer = mc.parentConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
-	#scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
-        pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
-        orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
-        #scConstBuffer = mc.scaleConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)        
-        #mc.connectAttr((attachJoint+'.t'),(joint+'.t'))
-        #mc.connectAttr((attachJoint+'.r'),(joint+'.r'))
-        #attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.t'),(i_jnt.mNode+'.t'))
-	#attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.r'),(i_jnt.mNode+'.r'))	
+	pntConstBuffer = mc.parentConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+	#pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
+	#orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
         attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+	
+	#scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)                
+        
+
+	#pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
+	#orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
+        
     
     
     return True
