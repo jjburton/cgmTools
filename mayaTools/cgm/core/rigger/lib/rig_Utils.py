@@ -467,7 +467,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     if len(jointList)<3:
 	raise StandardError,"createCGMSegment>>> needs at least three joints"
     
-    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=False)   
+    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)   
     
     if i_module:
 	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
@@ -610,13 +610,13 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    mc.makeIdentity(i_endControl.mNode, apply=True,t=1,r=0,s=1,n=0)	    
 	    ml_influenceJoints[-1].parent = i_endControl.mNode
 	    
-	
+	"""
 	if i_module:#if we have a module, connect vis
 	    for i_obj in ml_rigObjects:
 		i_obj.overrideEnabled = 1		
 		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
 		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
-	    
+		"""
     except StandardError,error:
 	log.error("createCGMSegment>>Joint anchor and loc build fail! | start joint: %s"%ml_jointList[0].getShortName())
 	raise StandardError,error 
@@ -1043,11 +1043,12 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     i_segmentCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
     i_segmentCurve.doName()
+    
     if i_module:#if we have a module, connect vis
 	i_segmentCurve.overrideEnabled = 1		
 	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
 	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideDisplayType'))    
-
+        
     i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
     i_ikHandle.doName()
     i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
@@ -1078,10 +1079,6 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         
         ml_pointOnCurveInfos.append(i_closestPointNode)
 		
-	#if i_module:#if we have a module, connect vis
-	    #i_follicleTrans.overrideEnabled = 1		
-	    #cgmMeta.cgmAttr(i_module.rigNull.mNode,'visRig',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
-	
 	
 	#>>> loc
 	#First part of full ribbon wist setup
@@ -1106,6 +1103,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	    i_upLoc.parent = i_locRotateGroup.mNode
 	    mc.move(0,10,0,i_upLoc.mNode,os=True)#TODO - make dependent on orientation	
 	    ml_upGroups.append(i_upLoc)
+	    
 	    
 	    if i_module:#if we have a module, connect vis
 		i_upLoc.overrideEnabled = 1		
@@ -1141,6 +1139,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         l_iIK_handles.append(i_IK_Handle)
         l_iIK_effectors.append(i_IK_Effector)
         
+        
 	if i_module:#if we have a module, connect vis
 	    i_IK_Handle.overrideEnabled = 1		
 	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
@@ -1162,6 +1161,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         
         l_iDistanceObjects.append(i_distanceObject)
         i_distanceShapes.append(i_distanceShape)
+	
 	
 	if i_module:#Connect hides if we have a module instance:
 	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
@@ -1390,8 +1390,10 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     i_control.addAttr('cgmType','controlAnim',lock=True)    
     i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
     i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)
+    
     i_control.doName(nameShapes=True)
     
+    i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_pivot_%s'%i),lock=True)
     
     #Store on object
     #====================================================    
