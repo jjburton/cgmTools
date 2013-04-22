@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 spine rig builder
 ================================================================
 """
-__version__ = 0.04062013
+__version__ = 0.04222013
 
 
 # From Python =============================================================
@@ -49,6 +49,7 @@ from cgm.lib import (attributes,
                      skinning,
                      dictionary,
                      distance,
+                     modules,
                      search,
                      curves,
                      )
@@ -171,6 +172,7 @@ def build_shapes(self):
     Rotate orders
     hips = 3
     """ 
+    
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -193,6 +195,7 @@ def build_controls(self):
     Rotate orders
     hips = 3
     """ 
+    
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -469,6 +472,8 @@ def build_rig(self):
 	raise StandardError,error
     
     try:#>>>Get data
+	orientation = modules.returnSettingsData('jointOrientation')
+	
 	mi_segmentCurve = self._i_rigNull.segmentCurves[0]
 	mi_segmentAnchorStart = mi_segmentCurve.anchorStart
 	mi_segmentAnchorEnd = mi_segmentCurve.anchorEnd
@@ -562,13 +567,19 @@ def build_rig(self):
     mi_segmentAnchorEnd.parent = mi_cog.mNode#Anchor end to cog
     mc.parentConstraint(ml_anchorJoints[-1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset=True)
     mc.scaleConstraint(ml_anchorJoints[-1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset=True)
-    #mi_segmentAnchorEnd.parent = ml_anchorJoints[-1].mNode#Sternum
+    
+    #method 1
+    ml_rigJoints[-2].parent = ml_anchorJoints[-1].mNode
     
     #mi_segmentAnchorStart.parent = ml_anchorJoints[1].mNode#Pelvis
     #mi_segmentAnchorEnd.parent = ml_anchorJoints[-1].mNode#Sternum
-    ml_rigJoints[-2].parent = ml_anchorJoints[-1].mNode
     #mc.parentConstraint(ml_anchorJoints[-1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset=True)
     #mc.scaleConstraint(ml_rigJoints[0].mNode,mi_segmentAnchorStart.mNode,maintainOffset=True)
+    
+    ##method 2
+    #ml_rigJoints[-2].parent = mi_cog.mNode
+    #mc.parentConstraint(mi_handleIK.mNode,ml_rigJoints[-2].mNode,maintainOffset=True)
+    #mc.scaleConstraint(mi_handleIK.mNode,ml_rigJoints[-2].mNode,maintainOffset=True)    
     
     
     #Parent the influence joints
@@ -587,6 +598,7 @@ def build_rig(self):
     
     l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
     for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
+	#Don't try scale constraints in here, they're not viable
         attachJoint = distance.returnClosestObject(i_jnt.mNode,l_rigJoints)
 	log.debug("'%s'>>drives>>'%s'"%(i_jnt.getShortName(),attachJoint))
         pntConstBuffer = mc.pointConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)
@@ -595,6 +607,7 @@ def build_rig(self):
 	
     mc.pointConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
     mc.orientConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
+    #mc.scaleConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=True)
     mc.connectAttr((ml_anchorJoints[-1].mNode+'.s'),(ml_rigJoints[-2].mNode+'.s'))
     
     #Set up heirarchy, connect master scale
@@ -610,6 +623,20 @@ def build_rig(self):
     mi_cog.addAttr('visFK', defaultValue = 1, attrType = 'bool',keyable = False,hidden = False, initialValue = 1)
     cgmMeta.cgmAttr( ml_controlsFK[0].mNode,'visibility').doConnectIn('%s.%s'%(mi_cog.mNode,'visFK'))    
     
+    #Segment handles need to lock
+    for i_obj in ml_segmentHandles:
+	attributes.doSetLockHideKeyableAttr(i_obj.mNode,lock=True, visible=False, keyable=False, channels=['s%s'%orientation[1],'s%s'%orientation[2]])
+    
+    #Lock and hide hips and shoulders
+    attributes.doSetLockHideKeyableAttr(mi_hips.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
+    attributes.doSetLockHideKeyableAttr(mi_handleIK.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
+     
+    #Setup a breath control
+    #====================================================================================
+    mi_handleIK.addAttr('breathe', 1.0, defaultValue = 1,keyable = True)
+    for o in orientation[1:]:#for both out and up axis
+	cgmMeta.cgmAttr(ml_rigJoints[-2].mNode, "s%s"%o).doConnectIn("%s.breathe"%mi_handleIK.mNode)
+     
     #Final stuff
     self._i_rigNull.version = str(__version__)
     return True 
