@@ -550,7 +550,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     
     def getNameDict(self):
 	return nameTools.returnObjectGeneratedNameDict(self.mNode) or {}  
-	    
+    
+    def getNameAlias(self):
+	if self.hasAttr('cgmAlias'):
+	    return self.cgmAlias
+	return nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
+    
     def getTransform(self):
 	"""Find the transform of the object"""
 	buffer = mc.ls(self.mNode, type = 'transform') or False
@@ -2024,7 +2029,8 @@ class cgmDynParentGroup(cgmObject):
 	if len(self.dynParents)<2:
 	    log.error("cgmDynParentGroup.rebuild>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
 	    return False
-	i_child = self.dynChild #for shorter calls
+	i_child = validateObjArg(self.getMessage('dynChild')[0],cgmObject,noneValid=False)
+	
 	#TODO First scrub nodes and what not
 	
 	#Check our attrs
@@ -2036,7 +2042,7 @@ class cgmDynParentGroup(cgmObject):
 		attributes.doDeleteAttr(i_child.mNode,a)
 	if d_attrBuffers:log.info("d_attrBuffers: %s"%d_attrBuffers)
 	
-	l_parentShortNames = [cgmNode(o).getShortName() for o in self.getMessage('dynParents')]
+	l_parentShortNames = [cgmNode(o).getNameAlias() for o in self.getMessage('dynParents')]
 	log.info("parentShortNames: %s"%l_parentShortNames)
 	
 	for a in d_DynParentGroupModeAttrs[self.dynMode]:
@@ -2086,7 +2092,7 @@ class cgmDynParentGroup(cgmObject):
 	#see if it has a dynDriver per target
 	#if we make changes, we have to veriy
 	
-    def addDynParent(self,arg,index = None):
+    def addDynParent(self,arg,index = None, alias = None):
 	i_dParent = validateObjArg(arg,cgmObject,noneValid=True)
 	if not i_dParent:
 	    raise StandardError, "cgmDynParentGroup.addDynParent>> Failed to validate: %s"%arg	    
@@ -2102,6 +2108,9 @@ class cgmDynParentGroup(cgmObject):
 	if i_dParent in ml_dynParents:
 	    log.info("cgmDynParentGroup.addDynParent>> Child already connected: %s"%i_dParent.getShortName())
 	    return True
+	
+	if alias is not None:
+	    i_dynParent.addAttr('cgmAlias', str(alias),lock = True)
 	
 	log.info("cgmDynParentGroup.addDynParent>> Adding target: '%s'"%i_dParent.getShortName())
 	ml_dynParents.append(i_dParent)	
