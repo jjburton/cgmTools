@@ -96,14 +96,17 @@ def build_rigSkeleton(self):
 	#>>Anchor chain
 	ml_anchors = []
 	i_rootJnt = cgmMeta.cgmObject(mc.duplicate(self._l_skinJoints[0],po=True,ic=True,rc=True)[0])
-	i_rootJnt.addAttr('cgmTypeModifier','anchor',attrType='string',lock=True)
+	#i_rootJnt = self._ml_skinJoints[0].doDuplicateTransform(False)
+	
+	i_rootJnt.addAttr('cgmType','anchor',attrType='string',lock=True)
 	i_rootJnt.doName()
 	i_rootJnt.parent = False	
 	ml_anchors.append(i_rootJnt)
 	
 	#Start
 	i_startJnt = cgmMeta.cgmObject(mc.duplicate(self._l_skinJoints[1],po=True,ic=True,rc=True)[0])
-	i_startJnt.addAttr('cgmTypeModifier','anchor',attrType='string',lock=True)
+	#i_startJnt = self._ml_skinJoints[1].doDuplicateTransform(False)	
+	i_startJnt.addAttr('cgmType','anchor',attrType='string',lock=True)
 	i_startJnt.doName()
 	i_startJnt.parent = False
 	ml_anchors.append(i_startJnt)
@@ -111,9 +114,11 @@ def build_rigSkeleton(self):
 	#End
 	l_endJoints = mc.duplicate(self._l_skinJoints[-2],po=True,ic=True,rc=True)
 	i_endJnt = cgmMeta.cgmObject(l_endJoints[0])
+	#i_endJnt = self._ml_skinJoints[-2].doDuplicateTransform(False)
 	for j in l_endJoints:
+	    #for i_j in [i_endJnt]:
 	    i_j = cgmMeta.cgmObject(j)
-	    i_j.addAttr('cgmTypeModifier','anchor',attrType='string',lock=True)
+	    i_j.addAttr('cgmType','anchor',attrType='string',lock=True)
 	    i_j.doName()
 	i_endJnt.parent = False
 	ml_anchors.append(i_endJnt)
@@ -149,18 +154,16 @@ def build_rigSkeleton(self):
 	raise StandardError,error   
     
     ml_jointsToConnect = [i_startJnt,i_endJnt]
-    #ml_jointsToConnect.extend(ml_anchors)
+    ml_jointsToConnect.extend(ml_anchors)
     ml_jointsToConnect.extend(ml_rigJoints)
     ml_jointsToConnect.extend(ml_influenceJoints)
     ml_jointsToConnect.extend(ml_segmentJoints)
-    
+
     for i_jnt in ml_jointsToConnect:
 	i_jnt.overrideEnabled = 1		
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
-
-    
-    
+	
     
 @r9General.Timer
 def build_shapes(self):
@@ -180,7 +183,7 @@ def build_shapes(self):
     #=============================================================
     try:
 	mCurveFactory.go(self._i_module,storageInstance=self)#This will store controls to a dict called    
-	log.info(self._md_controlShapes)
+	log.debug(self._md_controlShapes)
     except StandardError,error:
 	log.error("build_spine>>Build shapes fail!")
 	raise StandardError,error    
@@ -209,11 +212,11 @@ def build_controls(self):
     tmpCurve = curves.curveFromObjList(l_segmentJoints)
     hipPivotPos = distance.returnWorldSpacePosition("%s.u[%f]"%(tmpCurve,.15))
     shouldersPivotPos = distance.returnWorldSpacePosition("%s.u[%f]"%(tmpCurve,.8))
-    log.info("hipPivotPos : %s"%hipPivotPos)
-    log.info("shouldersPivotPos : %s"%shouldersPivotPos)   
+    log.debug("hipPivotPos : %s"%hipPivotPos)
+    log.debug("shouldersPivotPos : %s"%shouldersPivotPos)   
     mc.delete(tmpCurve)
 	
-    #log.info(self.__dict__.keys())
+    #log.debug(self.__dict__.keys())
     #>>> Figure out what's what
     #Add some checks like at least 3 handles
     
@@ -261,7 +264,6 @@ def build_controls(self):
     #==================================================================    
     try:#>>>> IK Segments
 	ml_segmentsIK = self._md_controlShapes['segmentIK']
-	#ml_segmentsIK[-1].parent = self._md_controlShapes['segmentIKEnd'].mNode
 	
 	for i_obj in ml_segmentsIK:
 	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='ik',
@@ -358,9 +360,9 @@ def build_deformation(self):
     #Control Segment
     #====================================================================================
     try:#Control Segment
-	log.info(self._jointOrientation)
+	log.debug(self._jointOrientation)
 	capAim = self._jointOrientation[0].capitalize()
-	log.info("capAim: %s"%capAim)
+	log.debug("capAim: %s"%capAim)
 	i_startControl = ml_segmentHandles[0]
 	i_endControl = ml_segmentHandles[-1]
 	#Create segment
@@ -374,10 +376,9 @@ def build_deformation(self):
 	                                             baseName=self._partName,
 	                                             moduleInstance=self._i_module)
 	
-	log.info("curveSegmentReturn: %s"%curveSegmentReturn)
 	i_curve = curveSegmentReturn['mi_segmentCurve']
 	self._i_rigNull.connectChildrenNodes([i_curve],'segmentCurves','module')	
-	i_curve.segmentGroup.parent = self._i_rigNull
+	i_curve.segmentGroup.parent = self._i_rigNull.mNode
 	"""
 	for o in  [ml_influenceJoints[1].mNode,
 	           curveSegmentReturn['mi_segmentCurve'].mNode,
@@ -386,7 +387,7 @@ def build_deformation(self):
 	           ml_segmentHandles[1].mNode,
 	           self._partName,
 	           self._jointOrientation]:
-	    log.info(o)
+	    log.debug(o)
 	return"""
 	
 	midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
@@ -398,7 +399,7 @@ def build_deformation(self):
 	                                           orientation=self._jointOrientation)
 	
 	for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
-	    i_grp.parent = self._i_deformGroup.mNode
+	    i_grp.parent = mi_cog.mNode
 	    
     except StandardError,error:
 	log.error("build_spine>>Control Segment build fail")
@@ -420,8 +421,7 @@ def build_deformation(self):
 	drivers = ["%s.%s"%(curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistResult")]
 	drivers.append("%s.r%s"%(ml_segmentHandles[-1].mNode,self._jointOrientation[0]))
 	drivers.append("%s.ry"%(mi_handleIK.mNode))
-	for d in drivers:
-	    log.info(d)
+
 	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
 	
@@ -432,13 +432,12 @@ def build_deformation(self):
 	raise StandardError,error
     
     try:#Setup bottom twist driver
-	log.info("%s.r%s"%(ml_segmentHandles[0].getShortName(),self._jointOrientation[0]))
-	log.info("%s.r%s"%(mi_hips.getShortName(),self._jointOrientation[0]))
+	log.debug("%s.r%s"%(ml_segmentHandles[0].getShortName(),self._jointOrientation[0]))
+	log.debug("%s.r%s"%(mi_hips.getShortName(),self._jointOrientation[0]))
 	drivers = ["%s.r%s"%(ml_segmentHandles[0].mNode,self._jointOrientation[0])]
 	drivers.append("%s.r%s"%(mi_hips.mNode,self._jointOrientation[0]))
-	for d in drivers:
-	    log.info(d)
-	log.info("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0])))
+
+	log.debug("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0])))
 	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistStart"],1)
     
@@ -477,11 +476,11 @@ def build_rig(self):
 	mi_segmentAttachEnd = mi_segmentCurve.attachEnd 
 	mi_distanceBuffer = mi_segmentCurve.scaleBuffer
     
-	log.info("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
-	log.info("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
-	log.info("mi_segmentAttachStart: %s"%mi_segmentAttachStart.mNode)
-	log.info("mi_segmentAttachEnd: %s"%mi_segmentAttachEnd.mNode)
-	log.info("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
+	log.debug("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
+	log.debug("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
+	log.debug("mi_segmentAttachStart: %s"%mi_segmentAttachStart.mNode)
+	log.debug("mi_segmentAttachEnd: %s"%mi_segmentAttachEnd.mNode)
+	log.debug("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
 	
 	ml_influenceJoints = self._i_rigNull.influenceJoints
 	ml_segmentJoints = mi_segmentCurve.drivenJoints
@@ -508,8 +507,8 @@ def build_rig(self):
 	ml_shoulderDynParents = [ml_controlsFK[-1], mi_cog,]
 	ml_shoulderDynParents.extend(mi_handleIK.spacePivots)
 	ml_shoulderDynParents.append(self._i_masterControl)
-	log.info(ml_shoulderDynParents)
-	log.info([i_obj.getShortName() for i_obj in ml_shoulderDynParents])
+	log.debug(ml_shoulderDynParents)
+	log.debug([i_obj.getShortName() for i_obj in ml_shoulderDynParents])
 	
 	#Add our parents
 	i_dynGroup = mi_handleIK.dynParentGroup
@@ -524,8 +523,8 @@ def build_rig(self):
 	ml_hipsDynParents = [mi_cog]
 	ml_hipsDynParents.extend(mi_hips.spacePivots)
 	ml_hipsDynParents.append(self._i_masterControl)
-	log.info(ml_hipsDynParents)
-	log.info([i_obj.getShortName() for i_obj in ml_hipsDynParents])  
+	log.debug(ml_hipsDynParents)
+	log.debug([i_obj.getShortName() for i_obj in ml_hipsDynParents])  
 	
 	#Add our parents
 	i_dynGroup = mi_hips.dynParentGroup
@@ -545,18 +544,32 @@ def build_rig(self):
     
     #Parent and constrain joints
     #====================================================================================
-    ml_segmentJoints[0].parent = mi_cog.mNode
-    ml_segmentSplineJoints[0].parent = mi_cog.mNode
-    
+    ml_segmentJoints[0].parent = mi_cog.mNode#Segment to cog
+    ml_segmentSplineJoints[0].parent = mi_cog.mNode#Spline Segment to cog
     
     #Put the start and end controls in the heirarchy
     mc.parent(ml_segmentHandles[0].parent,mi_segmentAttachStart.mNode)
     mc.parent(ml_segmentHandles[-1].parent,mi_segmentAttachEnd.mNode)
     
     #parent the segment anchors
-    mi_segmentAnchorStart.parent = ml_anchorJoints[1].mNode#Pelvis
-    mi_segmentAnchorEnd.parent = ml_anchorJoints[-1].mNode#Sternum
+    #mi_segmentAnchorStart.parent = ml_anchorJoints[1].mNode#Pelvis
+    
+    
+    mi_segmentAnchorStart.parent = mi_cog.mNode#Anchor start to cog
+    mc.parentConstraint(ml_rigJoints[0].mNode,mi_segmentAnchorStart.mNode,maintainOffset=True)#constrain
+    mc.scaleConstraint(ml_rigJoints[0].mNode,mi_segmentAnchorStart.mNode,maintainOffset=True)#Constrain
+    
+    mi_segmentAnchorEnd.parent = mi_cog.mNode#Anchor end to cog
+    mc.parentConstraint(ml_anchorJoints[-1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset=True)
+    mc.scaleConstraint(ml_anchorJoints[-1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset=True)
+    #mi_segmentAnchorEnd.parent = ml_anchorJoints[-1].mNode#Sternum
+    
+    #mi_segmentAnchorStart.parent = ml_anchorJoints[1].mNode#Pelvis
+    #mi_segmentAnchorEnd.parent = ml_anchorJoints[-1].mNode#Sternum
     ml_rigJoints[-2].parent = ml_anchorJoints[-1].mNode
+    #mc.parentConstraint(ml_anchorJoints[-1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset=True)
+    #mc.scaleConstraint(ml_rigJoints[0].mNode,mi_segmentAnchorStart.mNode,maintainOffset=True)
+    
     
     #Parent the influence joints
     ml_influenceJoints[0].parent = ml_segmentHandles[0].mNode
@@ -570,31 +583,24 @@ def build_rig(self):
     #Connect rig pelvis to anchor pelvis
     mc.pointConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
     mc.orientConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)
-    mc.scaleConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)#Maybe hips
-    #mc.connectAttr((ml_anchorJoints[0].mNode+'.s'),(ml_rigJoints[0].mNode+'.s'))
-    
+    mc.scaleConstraint(ml_anchorJoints[0].mNode,ml_rigJoints[0].mNode,maintainOffset=False)#Maybe hips    
     
     l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
     for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
         attachJoint = distance.returnClosestObject(i_jnt.mNode,l_rigJoints)
-	log.info("'%s'>>drives>>'%s'"%(i_jnt.getShortName(),attachJoint))
+	log.debug("'%s'>>drives>>'%s'"%(i_jnt.getShortName(),attachJoint))
         pntConstBuffer = mc.pointConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)
         orConstBuffer = mc.orientConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)
-        #scConstBuffer = mc.scaleConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)        
-        #mc.connectAttr((attachJoint+'.t'),(joint+'.t'))
-        #mc.connectAttr((attachJoint+'.r'),(joint+'.r'))
         mc.connectAttr((i_jnt.mNode+'.s'),(attachJoint+'.s'))
 	
     mc.pointConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
     mc.orientConstraint(ml_anchorJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
-    #mc.scaleConstraint(ml_influenceJoints[-1].mNode,ml_rigJoints[-2].mNode,maintainOffset=False)
     mc.connectAttr((ml_anchorJoints[-1].mNode+'.s'),(ml_rigJoints[-2].mNode+'.s'))
     
     #Set up heirarchy, connect master scale
     #====================================================================================
     #>>>Connect master scale
     cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn("%s.%s"%(self._i_masterControl.mNode,'scaleY'))    
-    #cgmMeta.cgmAttr(self._i_masterControl,'scaleY',lock=False).doConnectOut("%s.%s"%(mi_distanceBuffer.mNode,'masterScale'))    
     
     #Vis Network, lock and hide
     #====================================================================================
@@ -603,11 +609,20 @@ def build_rig(self):
     #Setup Cog vis control for fk controls
     mi_cog.addAttr('visFK', defaultValue = 1, attrType = 'bool',keyable = False,hidden = False, initialValue = 1)
     cgmMeta.cgmAttr( ml_controlsFK[0].mNode,'visibility').doConnectIn('%s.%s'%(mi_cog.mNode,'visFK'))    
-    #cgmMeta.cgmAttr( ml_segmentsFK[0].mNode,'visibility').doConnectIn(i_cog.mNode,'visFK')
     
     #Final stuff
     self._i_rigNull.version = str(__version__)
     return True 
+
+
+
+#===================================================================================
+#===================================================================================
+#===================================================================================
+#===================================================================================
+#===================================================================================
+#===================================================================================
+#===================================================================================
 
 def build_rigOLDSurface(self):
     """
@@ -723,12 +738,12 @@ def build_rigOLDSurface(self):
     rotPlug = attributes.doBreakConnection(i_midUpGroup.mNode,
                                            'r%s'%self._jointOrientation[0])
     #Get the driven so that we can bridge to them 
-    log.info("midFollow...")   
-    log.info("rotPlug: %s"%rotPlug)
-    log.info("aimVector: '%s'"%aimVector)
-    log.info("upVector: '%s'"%upVector)    
-    log.info("upLoc: '%s'"%upLoc)
-    log.info("rotDriven: '%s'"%rotDriven)
+    log.debug("midFollow...")   
+    log.debug("rotPlug: %s"%rotPlug)
+    log.debug("aimVector: '%s'"%aimVector)
+    log.debug("upVector: '%s'"%upVector)    
+    log.debug("upLoc: '%s'"%upLoc)
+    log.debug("rotDriven: '%s'"%rotDriven)
     
     #Constrain the group   
     """constraintBuffer = mc.aimConstraint(ml_anchorJoints[-1].mNode,
@@ -787,9 +802,9 @@ def build_rigOLDSurface(self):
     i_baseFollowPointConstraint = cgmMeta.cgmNode(mc.pointConstraint([ml_anchorJoints[1].mNode],
                                                                      i_baseFollowGrp.mNode,maintainOffset=True)[0])
     
-    log.info("baseFollow...")
-    log.info("aimVector: '%s'"%aimVector)
-    log.info("upVector: '%s'"%upVector)  
+    log.debug("baseFollow...")
+    log.debug("aimVector: '%s'"%aimVector)
+    log.debug("upVector: '%s'"%upVector)  
     mc.orientConstraint([mi_hips.mNode,ml_controlsFK[0].mNode],
                         i_baseFollowGrp.mNode,
                         maintainOffset = True, weight = 1)    
@@ -843,7 +858,7 @@ def build_rigOLDSurface(self):
     
     for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
         attachJoint = distance.returnClosestObject(i_jnt.mNode,l_rigJoints)
-	log.info("'%s'>>drives>>'%s'"%(i_jnt.getShortName(),attachJoint))
+	log.debug("'%s'>>drives>>'%s'"%(i_jnt.getShortName(),attachJoint))
         pntConstBuffer = mc.pointConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)
         orConstBuffer = mc.orientConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)
         #scConstBuffer = mc.scaleConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)        
@@ -858,7 +873,6 @@ def build_rigOLDSurface(self):
     
     #Final stuff
     self._i_rigNull.version = __version__
-    
     
     return True 
 def build_deformationOLDSurface(self):
@@ -930,13 +944,13 @@ def build_deformationOLDSurface(self):
 	#Add squash
 	rUtils.addSquashAndStretchToControlSurfaceSetup(surfaceReturn['surfaceScaleBuffer'],[i_jnt.mNode for i_jnt in ml_segmentJoints],moduleInstance=self._i_module)
 	#Twist
-	log.info(self._jointOrientation)
+	log.debug(self._jointOrientation)
 	capAim = self._jointOrientation[0].capitalize()
-	log.info("capAim: %s"%capAim)
+	log.debug("capAim: %s"%capAim)
 	rUtils.addRibbonTwistToControlSurfaceSetup([i_jnt.mNode for i_jnt in ml_segmentJoints],
 	                                           [ml_anchorJoints[1].mNode,'rotate%s'%capAim],#Spine1
 	                                           [ml_anchorJoints[-1].mNode,'rotate%s'%capAim])#Sternum
-	log.info(surfaceReturn)
+	log.debug(surfaceReturn)
     
 	#Surface influence joints cluster#
 	i_controlSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in ml_influenceJoints],
@@ -952,7 +966,7 @@ def build_deformationOLDSurface(self):
 	rUtils.controlSurfaceSmoothWeights(surfaceReturn['i_controlSurface'].mNode,start = ml_influenceJoints[0].mNode,
 	                                    end = ml_influenceJoints[-1].mNode, blendLength = 5)
 	
-	log.info(i_controlSurfaceCluster.mNode)
+	log.debug(i_controlSurfaceCluster.mNode)
 	# smooth skin weights #
 	#skinning.simpleControlSurfaceSmoothWeights(i_controlSurfaceCluster.mNode)   
 	
@@ -964,7 +978,7 @@ def build_deformationOLDSurface(self):
 	drivers.append("%s.r%s"%(ml_segmentHandles[-1].mNode,self._jointOrientation[0]))
 	drivers.append("%s.ry"%(mi_handleIK.mNode))
 	for d in drivers:
-	    log.info(d)
+	    log.debug(d)
 	NodeF.createAverageNode(drivers,
 	                        [ml_anchorJoints[-1].mNode,"r%s"%self._jointOrientation[0]],1)
 	
@@ -973,13 +987,13 @@ def build_deformationOLDSurface(self):
 	raise StandardError,error
     
     try:#Setup bottom twist driver
-	log.info("%s.r%s"%(ml_segmentHandles[0].getShortName(),self._jointOrientation[0]))
-	log.info("%s.r%s"%(mi_hips.getShortName(),self._jointOrientation[0]))
+	log.debug("%s.r%s"%(ml_segmentHandles[0].getShortName(),self._jointOrientation[0]))
+	log.debug("%s.r%s"%(mi_hips.getShortName(),self._jointOrientation[0]))
 	drivers = ["%s.r%s"%(ml_segmentHandles[0].mNode,self._jointOrientation[0])]
 	drivers.append("%s.r%s"%(mi_hips.mNode,self._jointOrientation[0]))
 	for d in drivers:
-	    log.info(d)
-	log.info("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0])))
+	    log.debug(d)
+	log.debug("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0])))
 	NodeF.createAverageNode(drivers,
 	                        "%s.r%s"%(ml_anchorJoints[1].mNode,self._jointOrientation[0]),1)
 	
