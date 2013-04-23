@@ -17,6 +17,8 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.lib import (modules,curves,distance,attributes)
+from cgm.lib.ml import ml_resetChannels
+
 reload(attributes)
 from cgm.core.lib import nameTools
 from cgm.core.classes import DraggerContextFactory as dragFactory
@@ -25,7 +27,6 @@ from cgm.core.rigger import TemplateFactory as tFactory
 reload(tFactory)
 from cgm.core.rigger import JointFactory as jFactory
 reload(jFactory)
-
 
 ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -318,6 +319,149 @@ def getGeneratedCoreNames(self):
     """
         
     return generatedNames
+#=====================================================================================================
+#>>> Rig
+#=====================================================================================================
+@r9General.Timer   
+def isRigged(self):
+    """
+    Return if a module is rigged or not
+    """
+    log.debug(">>> isRigged")
+    coreNamesValue = self.i_coreNames.value
+    i_rigNull = self.rigNull
+    str_shortName = self.getShortName()
+    
+    l_skinJoints = i_rigNull.getMessage('skinJoints',False)
+    l_rigJoints = i_rigNull.getMessage('rigJoints',False)
+    if not l_rigJoints:
+        log.info("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
+        return False
+        
+    if len( l_skinJoints ) != len( l_rigJoints ):
+        log.info("moduleFactory.isRigged('%s')>>>> %s != %s. Joint lengths don't match"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
+        return False
+    
+    for attr in ['controlsFK','controlsAll']:
+        if not i_rigNull.getMessage(attr):
+            log.warning("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
+            return False    
+            
+    return True
+
+#@r9General.Timer   
+def deleteRig(self,*args,**kws):
+    #1 zero out controls
+    #2 see if connected, if so break connection
+    #3 delete everything but the rig - rigNull, deform stuff
+    #Data get
+    str_shortName = self.getShortName()
+    
+    if not isRigged(self):
+        raise StandardError,"moduleFactory.deleteRig('%s')>>>> Module not rigged"%(str_shortName)
+    
+    if isRigConnected(self):
+	rigDisconnect(self)#Disconnect
+    """
+    try:
+        objList = returnTemplateObjects(self)
+        if objList:
+            mc.delete(objList)
+        for obj in self.templateNull.getChildren():
+            mc.delete(obj)
+        return True
+    except StandardError,error:
+        log.warning(error)"""
+    i_rigNull = self.rigNull
+    rigNullStuff = i_rigNull.getAllChildren()
+    #Build a control master group List
+    l_masterGroups = []
+    for i_obj in i_rigNull.controlsAll:
+	if i_obj.hasAttr('masterGroup'):
+	    l_masterGroups.append(i_obj.getMessage('masterGroup',False)[0])
+	    
+    log.info("moduleFactory.rigDisconnect('%s')>> masterGroups found: %s"%(str_shortName,l_masterGroups))
+	    
+    for obj in l_masterGroups:
+	if mc.objExists(obj):
+	    mc.delete(obj)
+    
+    return True
+
+@r9General.Timer
+def isRigConnected(self,*args,**kws):
+    str_shortName = self.getShortName()
+    if not isRigged(self):
+        raise StandardError,"moduleFactory.isRigConnected('%s')>>>> Module not rigged"%(str_shortName)
+    
+    i_rigNull = self.rigNull
+    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
+    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+    
+    for i,i_jnt in enumerate(i_rigNull.skinJoints):
+	try:
+	    if not i_jnt.isConstrainedBy(i_rigNull.rigJoints[i].mNode):
+		log.info("'%s'>>not constraining>>'%s'"%(i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
+		return False
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"moduleFactory.isRigConnected('%s')>> Joint failed: %s"%(str_shortName,i_jnt.getShortName())
+
+    return True
+
+@r9General.Timer
+def rigConnect(self,*args,**kws):
+    str_shortName = self.getShortName()
+    if not isRigged(self):
+        raise StandardError,"moduleFactory.rigConnect('%s')>>>> Module not rigged"%(str_shortName)
+    if isRigConnected(self):
+        raise StandardError,"moduleFactory.rigConnect('%s')>>>> Module already connected"%(str_shortName)
+    
+    i_rigNull = self.rigNull
+    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
+    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+
+    if len(l_skinJoints)!=len(l_rigJoints):
+	raise StandardError,"moduleFactory.rigConnect('%s')>> Rig/Skin joint chain lengths don't match"%self.getShortName()
+    
+    for i,i_jnt in enumerate(i_rigNull.skinJoints):
+	try:
+	    log.info("'%s'>>drives>>'%s'"%(i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
+	    pntConstBuffer = mc.parentConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
+	    attributes.doConnectAttr((i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+	except:
+	    raise StandardError,"moduleFactory.rigConnect('%s')>> Joint failed: %s"%i_jnt.getShortName()
+
+    return True
+
+def rigDisconnect(self,*args,**kws):
+    """
+    See if rigged and connected. Zero. Gather constraints, delete, break connections
+    """
+    str_shortName = self.getShortName()
+    if not isRigged(self):
+        raise StandardError,"moduleFactory.rigDisconnect('%s')>>>> Module not rigged"%(str_shortName)
+    if not isRigConnected(self):
+        raise StandardError,"moduleFactory.rigDisconnect('%s')>>>> Module not connected"%(str_shortName)
+    
+    mc.select(cl=True)
+    mc.select(self.rigNull.getMessage('controlsAll'))
+    ml_resetChannels.main(transformsOnly = False)
+    
+    i_rigNull = self.rigNull
+    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
+    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+    l_constraints = []
+    for i,i_jnt in enumerate(i_rigNull.skinJoints):
+	try:
+	    l_constraints.extend( i_jnt.getConstraintsTo() )
+	    attributes.doBreakConnection("%s.scale"%i_jnt.mNode)
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"moduleFactory.rigDisconnect('%s')>> Joint failed: %s"%(str_shortName,i_jnt.getShortName())
+    log.info("moduleFactory.rigDisconnect('%s')>> constraints found: %s"%(str_shortName,l_constraints))
+    mc.delete(l_constraints)
+    return True
 
 #=====================================================================================================
 #>>> Template
@@ -528,7 +672,8 @@ def getState(self):
     
     d_CheckList = {'size':isSized,
                    'template':isTemplated,
-                   'skeleton':isSkeletonized
+                   'skeleton':isSkeletonized,
+                   'rig':isRigged
                    }
     goodState = 0
     for i,state in enumerate(l_moduleStates):
