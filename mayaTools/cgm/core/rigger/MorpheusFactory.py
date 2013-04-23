@@ -35,16 +35,16 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso']
+l_modulesToDoOrder = ['torso','neck']
 l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
                           'clavicle_right','arm_right',
                           ]
 l_modulesToDoOrderBAK = ['torso',
-                      'neck',
-                      'leg_left','foot_left',
-                      'leg_right',
-                      'clavicle_left','arm_left','hand_left',
-                      'thumb_left','index_left','middle_left','ring_left','pinky_left']
+                         'neck',
+                         'leg_left','foot_left',
+                         'leg_right',
+                         'clavicle_left','arm_left','hand_left',
+                         'thumb_left','index_left','middle_left','ring_left','pinky_left']
 
 #This is the parent info for each module
 d_moduleParents = {'torso':False,
@@ -82,7 +82,7 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
 
 #This is the template settings info
 d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':1},
-                            'neck':{'handles':2,'rollOverride':'{}','curveDegree':2,'rollJoints':2},
+                            'neck':{'handles':2,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
                             'leg':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
                             'foot':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
@@ -139,14 +139,14 @@ def verify_customizationData(i_network, skinDepth = 2.5):
     #>> Collect our positional info
     #====================================================================
     i_objSet = i_network.objSetAll#Should I use this or the message info
-    log.debug(i_objSet.value)
+    log.info(i_objSet.value)
     
     controlBuffer = i_network.objSetAll.value
     for moduleKey in l_modulesToDoOrder:
         if moduleKey not in d_moduleControls.keys():
             log.warning("Missing controls info for: '%s'"%moduleKey)
             return False
-        log.debug("On moduleKey: '%s'"%moduleKey)
+        log.info("On moduleKey: '%s'"%moduleKey)
         controls = d_moduleControls.get(moduleKey)
         posBuffer = []
         for c in controls:
@@ -154,7 +154,7 @@ def verify_customizationData(i_network, skinDepth = 2.5):
                 log.warning("Necessary positioning control not found: '%s'"%c)
                 return False
             else:
-                log.debug("Found: '%s'"%c)
+                log.info("Found: '%s'"%c)
                 i_c = cgmMeta.cgmNode(c)
                 if i_c.isComponent():#If it's a component
                     i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#make a loc
