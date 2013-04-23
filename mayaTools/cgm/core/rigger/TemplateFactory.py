@@ -32,6 +32,8 @@ from cgm.lib import (modules,
 reload(attributes)
 reload(constraints)
 from cgm.core.lib import nameTools
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
 
@@ -55,7 +57,7 @@ class go(object):
         assert module.isModule(),"Not a module"
         self.m = module# Link for shortness
         log.info("loadTemplatePose: %s"%loadTemplatePose)     
-            
+	self._i_module = self.m
         if tryTemplateUpdate:
             log.info("Trying template update...")
             if updateTemplate(module,**kws):
@@ -75,6 +77,7 @@ class go(object):
         
         self.moduleNullData = attributes.returnUserAttrsToDict(self.m.mNode)
         self.templateNull = self.m.getMessage('templateNull')[0] or False
+	self._i_templateNull = self.m.templateNull#link
         self.i_templateNull = self.m.templateNull#link
         self.rigNull = self.m.getMessage('rigNull')[0] or False
         self.moduleParent = self.moduleNullData.get('moduleParent')
@@ -88,11 +91,20 @@ class go(object):
         #>>> part name 
         self.partName = self.m.getPartNameBase()
         self.partType = self.m.moduleType or False
+        self._partName = self.m.getPartNameBase()
         
         self.direction = None
         if self.m.hasAttr('cgmDirection'):
             self.direction = self.m.cgmDirection or None
-        
+	    
+	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
+	if not self._i_module.modulePuppet._verifyMasterControl():
+	    raise StandardError,"RigFactory.go.init masterControl failed to verify"
+	
+	self._i_masterControl = self._i_module.modulePuppet.masterControl
+	self._i_masterSettings = self._i_masterControl.controlSettings
+	self._i_deformGroup = self._i_module.modulePuppet.masterNull.deformGroup        
+
         #>>> template null 
         self.templateNullData = attributes.returnUserAttrsToDict(self.templateNull)
         self.curveDegree = self.i_templateNull.curveDegree
@@ -106,6 +118,11 @@ class go(object):
         log.debug("coreNames: %s"%self.l_coreNames)
         log.debug("corePosList: %s"%self.corePosList)
         
+	#>>>Connect switches
+	try: verify_moduleTemplateToggles(self)
+	except StandardError,error:
+	    raise StandardError,"init.verify_moduleTemplateToggles>> fail: %s"%error	
+        
         if self.m.mClass == 'cgmLimb':
             log.debug("mode: cgmLimb Template")
             doMakeLimbTemplate(self)
@@ -113,9 +130,45 @@ class go(object):
         else:
             raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
         
+        """
+	self._i_templateNull.overrideEnabled = 1		
+	cgmMeta.cgmAttr(self._i_masterSettings.mNode,'templateVis',lock=False).doConnectOut("%s.%s"%(self._i_templateNull.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(self._i_masterSettings.mNode,'templateLock',lock=False).doConnectOut("%s.%s"%(self._i_templateNull.mNode,'overrideDisplayType'))    
+	"""
+        
         #>>> store template settings
         if loadTemplatePose:self.m.loadTemplatePose()
-        
+		
+@r9General.Timer
+def verify_moduleTemplateToggles(goInstance):
+    """
+    Rotate orders
+    hips = 3
+    """    
+    if not issubclass(type(goInstance),go):
+	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+	raise StandardError
+    self = goInstance#Link
+    
+    str_settings = str(self._i_masterSettings.getShortName())
+    str_partBase = str(self._partName + '_tmpl')
+    str_moduleTemplateNull = str(self._i_templateNull.getShortName())
+    
+    self._i_masterSettings.addAttr(str_partBase,enumName = 'off:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+    try:NodeF.argsToNodes("%s.tmplVis = if %s.%s > 0"%(str_moduleTemplateNull,str_settings,str_partBase)).doBuild()
+    except StandardError,error:
+	raise StandardError,"verify_moduleTemplateToggles>> vis arg fail: %s"%error
+    try:NodeF.argsToNodes("%s.tmplLock = if %s.%s == 1:0 else 2"%(str_moduleTemplateNull,str_settings,str_partBase)).doBuild()
+    except StandardError,error:
+	raise StandardError,"verify_moduleTemplateToggles>> lock arg fail: %s"%error
+
+    self._i_templateNull.overrideEnabled = 1		
+    cgmMeta.cgmAttr(self._i_templateNull.mNode,'tmplVis',lock=False).doConnectOut("%s.%s"%(self._i_templateNull.mNode,'overrideVisibility'))
+    cgmMeta.cgmAttr(self._i_templateNull.mNode,'tmplLock',lock=False).doConnectOut("%s.%s"%(self._i_templateNull.mNode,'overrideDisplayType'))    
+    #nodeF.argsToNodes("%s.templateLock = if %s.templateStuff == 1:0 else 2"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()	
+
+    return True
+
 @r9General.Timer
 def doTagChildren(self): 
     try:
@@ -142,7 +195,7 @@ def returnModuleBaseSize(self):
         parentState = i_parent.getState()
         if i_parent.isTemplated():#If the parent has been templated, it makes things easy
             log.debug("Parent has been templated...")
-            nameCount = len(self.l_coreNames.value) or 1
+            nameCount = len(self.coreNames.value) or 1
             parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
             log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
             log.debug("firstPos: %s"%i_templateNull.templateStarterData[0])
@@ -455,7 +508,9 @@ def doCreateOrientationHelpers(self):
             if obj == objects[-1]:
                 attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','ry','sx','sy','sz','v'])            
             else:
-                attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','rx','ry','sx','sy','sz','v'])
+                attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','ry','sx','sy','sz','v'])
+	    i_obj.rotateOrder = 4
+	    
     #>>> Get data ready to go forward
     bufferList = []
     for o in self.i_orientHelpers:
