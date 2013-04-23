@@ -340,7 +340,7 @@ def doOrientSegment(self):
         for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
             segmentHelper = self.i_templateNull.controlObjects[cnt].getMessage('helper')[0]
             helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True)
-            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[1],30)        
+            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)        
             if not mc.objExists(segmentHelper) and search.returnObjectType(segmentHelper) != 'nurbsCurve':
                 log.error("No helper found")
                 return False
