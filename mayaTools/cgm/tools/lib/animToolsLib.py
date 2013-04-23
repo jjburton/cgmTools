@@ -41,10 +41,10 @@ reload(ml_resetChannels)
 def ml_breakdownDraggerCall():
     ml_breakdownDragger.drag()
     
-def ml_resetChannelsCall():
-    ml_resetChannels.resetChannels()
+def ml_resetChannelsCall(transformsOnly = False):
+    ml_resetChannels.main(transformsOnly = transformsOnly)
     
-def ml_resetChannelsCallMod(transformOnly = False):
+def ml_resetChannelsCallMod(transformsOnly = False):
     ml_resetChannels.resetChannelsMod(transformOnly)
     
 def ml_deleteKeyCall():

@@ -127,7 +127,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		MelMenuItem(parent,
 		            en = selCheck,
 		            l = 'Reset Selected',
-		            c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCallMod(self.ResetModeOptionVar.value)),
+		            c = lambda *a:buttonAction(animToolsLib.ml_resetChannelsCall(transformsOnly = self.ResetModeOptionVar.value)),
 		            rp = 'N')  
 		
 		MelMenuItem(parent,
