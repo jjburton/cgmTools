@@ -83,7 +83,7 @@ class go(object):
         self.l_coreNames = self._mi_module.coreNames.value
         self.mi_templateNull = self._mi_module.templateNull#speed link
 	self.mi_rigNull = self._mi_module.rigNull#speed link
-        self._targetMesh = self._mi_module.modulePuppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+        self._targetMesh = self._mi_module.modulePuppet.getGeo()[0] or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
                
         #>>> part name 
         self._partName = self._mi_module.getPartNameBase()
@@ -382,7 +382,7 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
     return d_returnDistances
 
   
-@r9General.Timer    
+#@r9General.Timer    
 def createWrapControlShape(targetObjects,
                            targetGeo = None,
                            latheAxis = 'z',aimAxis = 'y+',
