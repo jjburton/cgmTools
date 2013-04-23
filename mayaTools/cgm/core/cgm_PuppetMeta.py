@@ -439,6 +439,13 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
 	#Divider
 	i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+	
+	#i_settings.addAttr('templateVis',attrType = 'float',lock=True,hidden = True)
+	#i_settings.addAttr('templateLock',attrType = 'float',lock=True,hidden = True)	
+	#i_settings.addAttr('templateStuff',enumName = 'off:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+	#nodeF.argsToNodes("%s.templateVis = if %s.templateStuff > 0"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()
+	#nodeF.argsToNodes("%s.templateLock = if %s.templateStuff == 1:0 else 2"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()	
+	
 
 	#>>> Deform group
 	#=====================================================================	
@@ -446,6 +453,15 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    self.masterNull.deformGroup.parent = i_masterControl.mNode
 	
 	i_masterControl.addAttr('cgmAlias','world',lock = True)
+	
+	#>>>Connect some flags
+	#=====================================================================
+	i_geoGroup = self.masterNull.geoGroup
+	i_geoGroup.overrideEnabled = 1		
+	cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))    
+	
+	
 	return True
     
 class cgmMorpheusPuppet(cgmPuppet):
