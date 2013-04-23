@@ -223,6 +223,8 @@ def build_controls(self):
     #>>> Figure out what's what
     #Add some checks like at least 3 handles
     
+    l_controlsAll = []#we'll append to this list and connect them all at the end 
+    
     #>>>Build our controls
     #=============================================================
     #>>>Set up structure
@@ -232,6 +234,7 @@ def build_controls(self):
 	                                           freezeAll=True,makeAimable=True,autoLockNHide=True,
 	                                           controlType='cog')
 	i_cog = d_buffer['instance']
+	l_controlsAll.append(i_cog)
 	self._i_rigNull.connectChildNode(i_cog,'cog','module')#Store
 	i_cog.masterGroup.parent = self._i_deformGroup.mNode
 	#Set aims
@@ -258,7 +261,7 @@ def build_controls(self):
 		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',) 
 	    i_obj = d_buffer['instance']
 	self._i_rigNull.connectChildrenNodes(ml_segmentsFK,'controlsFK','module')
-	
+	l_controlsAll.extend(ml_segmentsFK)	
     
     except StandardError,error:
 	log.error("build_spine>>Build fk fail!")
@@ -274,6 +277,7 @@ def build_controls(self):
 	    i_obj = d_buffer['instance']
 	    i_obj.masterGroup.parent = self._i_deformGroup.mNode
 	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','module')
+	l_controlsAll.extend(ml_segmentsIK)	
 	
 	
     except StandardError,error:
@@ -298,7 +302,8 @@ def build_controls(self):
 	
 	i_loc.delete()#delete
 	self._i_rigNull.connectChildNode(i_IKEnd,'handleIK','module')#connect
-	
+	l_controlsAll.append(i_IKEnd)	
+
 	#Set aims
 	#Default currently working
 	
@@ -319,6 +324,7 @@ def build_controls(self):
 	self._i_rigNull.connectChildNode(i_hips,'hips','module')
 	i_hips = d_buffer['instance']
 	i_loc.delete()
+	l_controlsAll.append(i_hips)	
 	
 	#Set aims
 	i_hips.axisAim = 'y-'
@@ -327,6 +333,10 @@ def build_controls(self):
     except StandardError,error:
 	log.error("build_spine>>Build hips fail!")
 	raise StandardError,error
+    
+    #Connect all controls
+    self._i_rigNull.connectChildrenNodes(l_controlsAll,'controlsAll')
+    
     
     return True
 
@@ -454,6 +464,7 @@ def build_deformation(self):
     for k in i_buffer.d_indexToAttr.keys():
 	attrName = 'spine_%s'%k
 	cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_cog.mNode,attrName,connectSourceToTarget = True)
+	cgmMeta.cgmAttr(mi_cog.mNode,attrName,defaultValue = 1)
 	cgmMeta.cgmAttr('cog_anim',attrName, keyable =True, lock = False)    
     
     return True
