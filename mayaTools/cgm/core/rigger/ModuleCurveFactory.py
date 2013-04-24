@@ -25,6 +25,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
+reload(RayCast)
 from cgm.lib import (cgmMath,
                      locators,
                      modules,
@@ -523,9 +524,9 @@ def createWrapControlShape(targetObjects,
  
 #@r9General.Timer
 def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
-                         points = 12, curveDegree = 3,
-                         posOffset = 0, markHits = False,
-                         initialRotate = 0,offsetMode = 'vector',
+                         points = 12, curveDegree = 3, minRotate = None, maxRotate = None, rotateRange = None,
+                         posOffset = 0, markHits = False,rotateBank = None, closedCurve = True, maxDistance = 1000,
+                         initialRotate = 0, offsetMode = 'vector', l_specifiedRotates = None, closestInRange = True,
                          returnDict = False):
     """
     This function lathes an axis of an object, shoot rays out the aim axis at the provided mesh and returning hits. 
@@ -539,6 +540,12 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     posOffset(vector) -- transformational offset for the hit from a normalized locator at the hit. Oriented to the surface
     markHits(bool) -- whether to keep the hit markers
     returnDict(bool) -- whether you want all the infomation from the process.
+    rotateBank (float) -- let's you add a bank to the rotation object
+    minRotate(float) -- let's you specify a valid range to shoot
+    maxRotate(float) -- let's you specify a valid range to shoot
+    l_specifiedRotates(list of values) -- specify where to shoot relative to an object. Ignores some other settings
+    maxDistance(float) -- max distance to cast rays
+    closestInRange(bool) -- True by default. If True, takes first hit. Else take the furthest away hit in range.
     """
     if issubclass(type(mi_obj),cgmMeta.cgmObject):
         mi_obj = mi_obj
@@ -548,34 +555,100 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	except StandardError,error:
 		log.error(error) 
 		return False
+
     log.debug("Casting: '%s"%mi_obj.mNode)
     if type(mesh) in [list,tuple]:
 	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
 	mesh = mesh[0]
     assert mc.objExists(mesh),"Mesh doesn't exist: '%s'"%mesh
     
-    for axis in ['x','y','z']:
-	if axis in latheAxis:latheAxis = axis
-	
+    #>>>> Info
+    #================================================================
     mi_loc = mi_obj.doLoc()
     mi_loc.doGroup()
     l_pos = []
     d_returnDict = {}
     d_hitReturnFromValue = {}
     d_processedHitFromValue = {}
-    rotateBaseValue = 360/points
-    for i in range(points):
+
+    for axis in ['x','y','z']:
+	if axis in latheAxis:latheAxis = axis
+	
+
+    if rotateBank is not None:#we need a bank  axis
+	l_axisCull = ['x','y','z']
+	l_axisCull.remove(latheAxis)
+	log.info(latheAxis)
+	if len(aimAxis) == 2: aimCull = aimAxis[0].lower()
+	else: aimCull = aimAxis.lower()
+	l_axisCull.remove(aimCull)
+	log.info(aimCull)	
+	log.info("Bank rotate: %s"%l_axisCull)
+	bankAxis = l_axisCull[0]
+	
+    #Rotate obj 
+    mi_rotObj = mi_loc
+    if rotateBank is not None:
+	rotateGroup = mi_loc.doGroup(True)
+	mi_rotObj = cgmMeta.cgmObject(rotateGroup)
+	mi_loc.__setattr__('rotate%s'%bankAxis.capitalize(),rotateBank)
+	    
+    #Figure out the rotateBaseValue
+    if minRotate is not None:
+	rotateFloor = minRotate
+    else:
+	rotateFloor = 0
+    if maxRotate is not None:
+	rotateCeiling = maxRotate
+    else:
+	rotateCeiling = 360
+	
+    #>>>> Get our rotate info
+    #================================================================
+    l_rotateSettings = []
+    
+    if l_specifiedRotates and type(l_specifiedRotates) in [list,tuple]:
+	#See if it's good
+	for f in l_specifiedRotates:
+	    if type(f) in [int,float]:
+		l_rotateSettings.append(f) 
+	
+    if not l_rotateSettings or len(l_rotateSettings) < 2:
+	#If we don't have data, we're gonna build it
+	if minRotate is not None or maxRotate is not None:
+	    #add a point if we don't have a full loop
+	    points = points+1	
+	rotateBaseValue = len(range(rotateFloor,rotateCeiling+1))/points
+	log.info("rotateBaseValue: %s"%rotateBaseValue)
+	    
+	#Build our rotate values
+	for i in range(points):
+	    l_rotateSettings.append( (rotateBaseValue*(i)) + initialRotate +rotateFloor)
+	    
+    #>>>> Pew, pew !
+    #================================================================
+    for i,rotateValue in enumerate(l_rotateSettings):
 	d_castReturn = {}
 	hit = False
-	rotateValue = (rotateBaseValue*i) + initialRotate
+	
 	#shoot our ray, store the hit
-	log.debug("Casting: %i>>%f"%(i,rotateValue))
-	mi_loc.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)	
+	log.info("Casting: %i>>%f"%(i,rotateValue))
+	mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)	
 	try:
-	    d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis)
-	    d_hitReturnFromValue[rotateValue] = d_castReturn	    
+	    if closestInRange:
+		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance)
+		d_hitReturnFromValue[rotateValue] = d_castReturn	
+		log.info("From %s: %s" %(rotateValue,d_castReturn))
+		    
+	    else:
+		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance,singleReturn=False)
+		closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
+		d_castReturn['hit'] = closestPoint
+		log.info("From %s: %s" %(rotateValue,d_castReturn))
+		
 	    try:hit = d_castReturn.get('hit')
-	    except:hit = False	
+	    except:hit = False
+
 	except StandardError,error:
 		log.error(error) 
 	if hit:
@@ -585,14 +658,14 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		if posOffset:
 		    if offsetMode =='vector':
 			constBuffer = mc.aimConstraint(mi_obj.mNode,mi_tmpLoc.mNode,
-			                                  aimVector=[0,0,-1],
-			                                  upVector=[0,1,0],
-			                                  worldUpType = 'scene')
+		                                          aimVector=[0,0,-1],
+		                                          upVector=[0,1,0],
+		                                          worldUpType = 'scene')
 		    else:
 			constBuffer = mc.normalConstraint(mesh,mi_tmpLoc.mNode,
-			                                  aimVector=[0,0,1],
-			                                  upVector=[0,1,0],
-			                                  worldUpType = 'scene')
+		                                          aimVector=[0,0,1],
+		                                          upVector=[0,1,0],
+		                                          worldUpType = 'scene')
 		    mc.delete(constBuffer)
 		    mc.move(posOffset[0],posOffset[1],posOffset[2], [mi_tmpLoc.mNode], r=True, rpr = True, os = True, wd = True)
 		    hit = mi_tmpLoc.getPosition()
@@ -602,10 +675,12 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    l_pos.append(hit)
 	    d_processedHitFromValue[rotateValue] = hit
 		
-    mc.delete(mi_loc.parent)
-    if len(l_pos)>3:
-	buffer = l_pos[0]
-	l_finalPos = l_pos.append(buffer)
+    mc.delete(mi_loc.getAllParents()[-1])#delete top group
+    log.info("pos list: %s"%l_pos)    
+    if len(l_pos)>=3:
+	if closedCurve:
+	    buffer = l_pos[0]
+	    l_finalPos = l_pos.append(buffer)
 	curveBuffer =  mc.curve (d=curveDegree, ep = l_pos, os=True)
 	if returnDict:
 	    return {'curve':curveBuffer,

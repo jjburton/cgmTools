@@ -80,12 +80,14 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
 
     #Create an empty MFloatPoint to receive the hit point from the call.
     hitPoint = om.MFloatPoint()
+    
+    log.info("maxDistance: %s"%maxDistance)
 
     #Set up a variable for each remaining parameter in the
     #MFnMesh::closestIntersection call. We could have supplied these as
     #literal values in the call, but this makes the example more readable.
     sortIds = False
-    maxDist = om.MDistance.internalToUI(1000000)# This needs work    
+    maxDist = maxDistance#om.MDistance.internalToUI(1000000)# This needs work    
     #maxDist = om.MDistance.internalToUI(maxDistance) # This needs work
     bothDirections = False
     noFaceIds = None
@@ -171,7 +173,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     #MFnMesh::allIntersections call. We could have supplied these as
     #literal values in the call, but this makes the example more readable.
     sortIds = False
-    maxDist = om.MDistance.internalToUI(1000000)# This needs work    
+    maxDist = maxDistance#om.MDistance.internalToUI(1000000)# This needs work    
     bothDirections = False
     noFaceIds = None
     noTriangleIds = None
@@ -226,7 +228,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     else:
         return None   
 
-def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, maxDistance = 1000):
+def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, maxDistance = 1000, singleReturn = True):
     """
     Find mesh intersections for an object's axis
     """
@@ -247,8 +249,11 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
         if list(axis)[1] == '-':
             for i,v in enumerate(vector):
                 vector[i]=-v
-    return findMeshIntersection(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
-
+    if singleReturn:
+        return findMeshIntersection(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+    else:
+        return findMeshIntersections(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+    
 def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
                                vector = False, maxDistance = 1000):
     #>>>Figure out the axis to do
