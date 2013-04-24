@@ -995,6 +995,25 @@ def returnClosestPoint(startPoint, posList):
     for pos in posList:
         distanceList.append (returnDistanceBetweenPoints(startPoint, pos))
     return posList[(distanceList.index ((min(distanceList))))]
+
+def returnFurthestPoint(startPoint, posList):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Get closest point from a start point
+
+    ARGUMENTS:
+    startPoint(double3) - 
+    posList(double3List) - list of positions to pick from
+
+    RETURNS:
+    closestPosition(double3)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    distanceList = []
+    for pos in posList:
+        distanceList.append (returnDistanceBetweenPoints(startPoint, pos))
+    return posList[(distanceList.index ((max(distanceList))))]
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def returnClosestCV (targetObject, surface):
