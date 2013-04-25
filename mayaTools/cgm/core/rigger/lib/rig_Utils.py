@@ -1372,8 +1372,10 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     #Build the network
     i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
     i_control.overrideEnabled = 1
-    NodeF.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
-    NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
+    d_ret = NodeF.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
+    log.info(d_ret)
+    d_ret = NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
+    log.info(d_ret)
     
     for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
 	log.debug(shape)
