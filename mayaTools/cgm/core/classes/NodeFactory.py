@@ -550,9 +550,10 @@ class argsToNodes(object):
 	    except:
 		raise StandardError,"argsToNodes.validateArg>> Arg type must be str. Couldn't convert Type: %s"%type(arg)
 	
-	if 'and' in arg:
-	    arg = arg.split('and')[0]	    
-	    log.warning("argsToNodes.validateArg>> 'and' not implemented. Splitting and processing the former part of arg. New arg: %s"%arg)
+	if ' and ' in arg:#I was a moron and had 'and' before. Lots of things have 'and' like 'handle'....
+	    log.warning("argsToNodes.validateArg>> ' and ' not implemented. Splitting and processing the former part of arg. arg: %s"%arg)	    
+	    arg = arg.split(' and ')[0]	    
+	    log.warning("argsToNodes.validateArg>> New arg: %s"%arg)
 	
 	argBuffer = []
 	if ' .' in arg:	#First we need to split if we have periods
@@ -662,9 +663,18 @@ class argsToNodes(object):
 	    self.d_networksToBuild['multiplyDivide'].append(d_validSubArg)#append to build
 	    return unicode(self.cleanArg(arg))#unicoding for easy type check on later call
 	
-	d_driver = cgmMeta.validateAttrArg(arg,noneValid=True,**kws)
-	log.debug(d_driver)
-	if d_driver:#we have an attr
+	arg_isNumber = True#Simple check to see if this part of the arg is a number
+	try:float(arg)
+	except:arg_isNumber = False
+	
+	if arg_isNumber:
+	    for i in range(9):
+		if str(i) in arg:
+		    log.debug("argsToNodes.verify_driver>> Valid string driver: %s"%arg)				    
+		    return self.cleanArg(arg)
+	else:
+	    d_driver = cgmMeta.validateAttrArg(arg,noneValid=False,**kws)
+	    log.debug("verify_attr>> d_driver: %s"%d_driver)
 	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
 		log.debug("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
 		self.l_attrs.append(d_driver['mi_plug'].p_combinedName)		
@@ -673,11 +683,7 @@ class argsToNodes(object):
 	    else:
 		log.debug("argsToNodes.verify_attr>> Found. Returning index")		
 		return self.l_attrs.index(d_driver['mi_plug'].p_combinedName)#return the index
-	elif type(arg) in [str,unicode]:
-	    for i in range(9):
-		if str(i) in arg:
-		    log.debug("argsToNodes.verify_driver>> Valid string driver: %s"%arg)				    
-		    return self.cleanArg(arg)
+	
 	log.debug("argsToNodes.verify_driver>> Invalid Driver: %s"%arg)		
 	return None
 	
@@ -822,7 +828,7 @@ class argsToNodes(object):
 	    if results_indices:
 		if d_validArg.get('drivers'):
 		    d_validArg['results']=results_indices
-		log.debug("argsToNodes.validate_subArg>> Results: %s "%(results_indices))	
+		log.debug("argsToNodes.validate_subArg>> Results indices: %s "%(results_indices))	
 		self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
 	    log.debug("d_validArg: %s"%d_validArg)
 	    
@@ -948,6 +954,11 @@ class argsToNodes(object):
 					    matchFound = False	
 					    falseCnt.append(1)					    
 					    #break
+				else:
+				    #We should have had a driver connection for a match
+				    log.debug("argsToNodes.verifyNode>> should have had connections")					    					    					    
+				    matchFound = False	
+				    falseCnt.append(1)					    
 			    else:
 				plugCall = mc.listConnections("%s.%s"%(i_nodeTmp.mNode,d_nodeType_to_input[nodeType][i]),plugs=True)
 				log.debug("plugCall: %s"%plugCall)
@@ -963,8 +974,12 @@ class argsToNodes(object):
 					    log.debug("argsToNodes.verifyNode>> match fail: p_nameLong: %s != %s"%(i_plug['mi_plug'].p_nameLong,d.p_nameLong))					    					    
 					    matchFound = False	
 					    falseCnt.append(1)					    
-					    #break			    
-			    
+					    #break
+				else:
+				    #We should have had a driver connection for a match
+				    log.debug("argsToNodes.verifyNode>> should have had connections")					    					    					    
+				    matchFound = False	
+				    falseCnt.append(1)	
 				#d.doConnectOut("%s.%s"%(i_node.mNode,d_nodeType_to_input[nodeType][i]))
 			else:
 			    if nodeType == 'plusMinusAverage':
@@ -987,6 +1002,8 @@ class argsToNodes(object):
 				    falseCnt.append(1)				    
 				    #break	
 		    log.debug("falseCnt: %s"%falseCnt)
+		    if falseCnt:
+			log.debug("Driver %s failed for '%s'"%(d,i_nodeTmp.getShortName()))
 		    if not falseCnt:
 			matchFound=True
 			break#If we got this point, we're good
