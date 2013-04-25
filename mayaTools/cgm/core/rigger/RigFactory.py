@@ -28,8 +28,9 @@ from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 reload(mControlFactory)
 
-from cgm.core.rigger.lib.Limb import (spine)
+from cgm.core.rigger.lib.Limb import (spine,neckHead)
 reload(spine)
+reload(neckHead)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -120,7 +121,7 @@ class go(object):
 	    else:
 		log.warning("RigFactory.go>>> '%s' rig version up to date !"%(self._partType))	
 	else:
-	    raise StandardError
+	    raise StandardError,"PartType ('%s') not in d_moduleRigVersions.keys: %s"%(self._partType,d_moduleRigVersions.keys())
 	
         self._direction = None
         if self._i_module.hasAttr('cgmDirection'):
@@ -172,9 +173,6 @@ def verify_moduleRigToggles(goInstance):
     cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideVisibility'))
     cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideDisplayType'))    
 
-
-
-
     return True
 
 def bindJoints_connect(goInstance):
@@ -216,20 +214,35 @@ def build_spine(goInstance,buildShapes = False, buildControls = False,buildSkele
     if buildShapes: spine.build_shapes(self)
     if buildControls: spine.build_controls(self)    
     if buildSkeleton: spine.build_rigSkeleton(self)
-    if buildRig: spine.build_rig(self)    
     if buildDeformation: spine.build_deformation(self)
-    
-    #if buildControls and buildRig:
-	#log.info('Can connect')
-    
+    if buildRig: spine.build_rig(self)    
+        
     return 
 
+@r9General.Timer
+def build_neckHead(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False):
+    """
+    Rotate orders
+    hips = 3
+    """    
+    if not issubclass(type(goInstance),go):
+        log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+        raise StandardError
+    self = goInstance#Link
+    
+    if buildShapes: neckHead.build_shapes(self)
+    if buildSkeleton: neckHead.build_rigSkeleton(self)    
+    if buildControls: neckHead.build_controls(self)    
+    if buildDeformation: neckHead.build_deformation(self)
+    if buildRig: neckHead.build_rig(self)    
+        
+    return 
 
 #>>> Register rig functions
 #=====================================================================
-d_moduleRigFunctions = {'torso':build_spine,
+d_moduleRigFunctions = {'torso':build_spine,'neckHead':build_neckHead,
                         }
-d_moduleRigVersions = {'torso':spine.__version__,
+d_moduleRigVersions = {'torso':str(spine.__version__),'neckHead':str(neckHead.__version__)
                         }
     
  
