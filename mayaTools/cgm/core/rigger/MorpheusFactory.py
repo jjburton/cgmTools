@@ -35,12 +35,12 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso','neck']
+l_modulesToDoOrder = ['torso','neckHead']
 l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
                           'clavicle_right','arm_right',
                           ]
 l_modulesToDoOrderBAK = ['torso',
-                         'neck',
+                         'neckHead',
                          'leg_left','foot_left',
                          'leg_right',
                          'clavicle_left','arm_left','hand_left',
@@ -48,7 +48,7 @@ l_modulesToDoOrderBAK = ['torso',
 
 #This is the parent info for each module
 d_moduleParents = {'torso':False,
-                   'neck':'torso',
+                   'neckHead':'torso',
                    'leg_left':'torso',
                    'leg_right':'torso',
                    'foot_left':'leg_left',
@@ -64,7 +64,7 @@ d_moduleParents = {'torso':False,
                    'arm_right':'clavicle_right',                   }
 
 d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
-                 'neck':{'moduleType':'segment','cgmName':'neck'},
+                 'neckHead':{'moduleType':'segment','cgmName':'neck'},
                  'leg_left':{'moduleType':'leg','cgmDirection':'left'},
                  'leg_right':{'moduleType':'leg','cgmDirection':'right'},
                  'foot_left':{'moduleType':'foot','cgmDirection':'left'},                 
@@ -82,7 +82,7 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
 
 #This is the template settings info
 d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':1},
-                            'neck':{'handles':2,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
+                            'neckHead':{'handles':2,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
                             'leg':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
                             'foot':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
@@ -94,7 +94,7 @@ d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}'
 
 #This dict is for which controls map to which keys
 d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
-                    'neck':['neck_bodyShaper','head_bodyShaper'],
+                    'neckHead':['neck_bodyShaper','head_bodyShaper'],
                     'head':['head_bodyShaper','headTop_bodyShaper'],
                     'leg_left':['l_upr_leg_bodyShaper','l_lwr_leg_bodyShaper','l_ankle_bodyShaper'],                    
                     'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper'],                    
