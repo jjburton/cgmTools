@@ -1575,7 +1575,7 @@ class cgmObjectSet(cgmNode):
         """ Reset the set objects """        
         if self.getList():
             mc.select(self.getList())
-            ml_resetChannels.resetChannels()        
+            ml_resetChannels.main()        
             return True
         
         log.warning("'%s' has no data"%(self.mNode))  
