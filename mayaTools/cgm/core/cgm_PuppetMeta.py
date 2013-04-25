@@ -1305,13 +1305,6 @@ class cgmModule(cgmMeta.cgmObject):
 		    raise StandardError,"'%s' failed to verify!"%self.kw_name  
 	"""
         log.debug("'%s' Checks out!"%self.getShortName())
-
-    def __bindData__(self,**kws):        
-        #Variables
-        #==============   
-        log.debug("In bind data")
-        #self.addAttr('mClass', initialValue='cgmModule',lock=True) 
-        #self.addAttr('cgmType',value = 'module',lock=True)
 	
     #@r9General.Timer
     def initialize(self,**kws):
@@ -1597,7 +1590,7 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':2},
              'tail':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'head':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
-             'neckHead':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
+             'neckHead':{'handles':2,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'foot':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'hand':{'handles':0,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'thumb':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0}                          
