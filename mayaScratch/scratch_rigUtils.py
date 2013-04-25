@@ -25,8 +25,8 @@ rUtils.create_traceCurve(start,end)
 
 #>>>space Pivot
 #=======================================================
-str_control = 'shoulders_ikCurve'
-rUtils.create_spaceLocatorForObj(str_control)
+str_control = 'neck_2_loliHandle'
+rUtils.create_spaceLocatorForObject(str_control)
 
 
 #>>> Middle constraint obj
@@ -39,8 +39,12 @@ r9Meta.isMetaNode(i_obj,'cgmObject')
 #segment curve creation
 #=================================================================
 jointList = mc.ls(sl=True)
+
+reload(rUtils)
 rUtils.createSegmentCurve(jointList,secondaryAxis='zdown')
 
+scaleBuffer = 'test_distanceBuffer'
+rUtils.addSquashAndStretchToControlSurfaceSetup(scaleBuffer, jointList ,moduleInstance=False,connectBy='translate')
 
 #Mid group sguff
 #=================================================================

@@ -33,10 +33,15 @@ log.info(a)
 import cgm.core
 cgm.core._reload()
 a = cgmPM.cgmPuppet(name = 'Morphy')
+a.getGeo()
 a.masterControl.controlSettings.mNode
 a.masterControl.controlSettings.addAttr('skeleton',enumName = 'off:referenced:on', attrType = 'enum', defaultValue = 2, keyable = False,hidden = False)
-
-
+a.masterNull.geoGroup.getAllChildren()
+from cgm.lib import search
+reload(search)
+search.returnObjectType('Morphy_Body_GEO')
+for o in a.masterNull.geoGroup.getAllChildren():
+    search.returnObjectType(o)
 
 a._verifyMasterControl()
 a = cgmPM.cgmPuppet(name = 'Kermit',initializeOnly=True)

@@ -8,8 +8,8 @@ import maya.cmds as mc
 from cgm.lib import locators
 from cgm.lib import distance
 reload(distance)
-from cgm.core.classes import NodeFactory as nFactory
-reload(nFactory)
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
 from cgm.lib import cgmMath
 reload(cgmMath)
 cgmMath.isFloatEquivalent(3,3.0)
@@ -26,7 +26,7 @@ cgmMeta.cgmObject(obj).createTransformFromObj()
 driver = 'null1.FKIK'
 result1 = 'null1.resultFK'
 result2 = 'null1.resultIK'
-nFactory.createSingleBlendNetwork(driver, result1, result2,keyable=True)
+NodeF.createSingleBlendNetwork(driver, result1, result2,keyable=True)
 
 
 #>>> puppet adding controls
@@ -42,13 +42,13 @@ str_nodeShort = str(i_node.getShortName())
 #Skeleton/geo settings
 for attr in ['skeleton','geo',]:
     i_node.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
-    nFactory.argsToNodes("if %s.%s > 0; %s.%sVis"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
-    nFactory.argsToNodes("if %s.%s == 2:0 else 2; %s.%sLock"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+    NodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+    NodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
 
 #Geotype
 i_node.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
 for i,attr in enumerate(['reg','proxy']):
-    nFactory.argsToNodes("if %s.geoType == %s:1 else 0; %s.%sVis"%(str_nodeShort,i,str_nodeShort,attr)).doBuild()    
+    NodeF.argsToNodes("%s.%sVis = if %s.geoType == %s:1 else 0"%(str_nodeShort,attr,str_nodeShort,i)).doBuild()    
 
 #Divider
 i_node.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
@@ -56,8 +56,8 @@ i_node.addAttr('________________',attrType = 'int',keyable = False,hidden = Fals
 #Part
 for part in ['spineRig']:
     i_node.addAttr(part,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
-    nFactory.argsToNodes("if %s.%s > 0; %s.%sVis"%(str_nodeShort,part,str_nodeShort,part)).doBuild()
-    nFactory.argsToNodes("if %s.%s == 2:0 else 2; %s.%sLock"%(str_nodeShort,part,str_nodeShort,part)).doBuild()
+    NodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,part,str_nodeShort,part)).doBuild()
+    NodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,part,str_nodeShort,part)).doBuild()
                          
                          
 
@@ -67,8 +67,8 @@ i_node.addAttr('partGuts',enumName = 'proxy:parts:reg', attrType = 'enum',keyabl
 
 
 
-nFactory.argsToNodes("if %s.skeleton > 0; %s.skeletonVis"%(str_nodeShort,str_nodeShort)).doBuild()
-nFactory.argsToNodes("if %s.skeleton == 2:0 else 2; %s.skeletonLock"%(str_nodeShort,str_nodeShort)).doBuild()
+NodeF.argsToNodes("%s.skeletonVis = if %s.skeleton > 0"%(str_nodeShort,str_nodeShort)).doBuild()
+NodeF.argsToNodes("%s.skeletonLock = if %s.skeleton == 2:0 else 2"%(str_nodeShort,str_nodeShort)).doBuild()
 
 
 'if %s.skeleton == 2:0 else 2; %s.skeletonUnlock'
@@ -76,7 +76,7 @@ nFactory.argsToNodes("if %s.skeleton == 2:0 else 2; %s.skeletonLock"%(str_nodeSh
 
 #>>> validateNodeArg
 #=======================================================
-reload(nFactory)
+reload(NodeF)
 """
 valideateNodeArg theory....
 need, default types per node type, reult connections per nodeType
@@ -99,38 +99,61 @@ arg = "if worldCenter_loc.ty > 3;worldCenter_loc.result2"#Working
 arg = "if worldCenter_loc.ty == 1, result = %s.result1"%obj
 #TODO
 
+arg = "worldCenter_loc.ty = worldCenter_loc.tz "#Working
 
-arg = "worldCenter_loc.tx + worldCenter_loc.ty + worldCenter_loc.tz = worldCenter_loc.sumResult1"
-arg = "1 + 2 + 3 = worldCenter_loc.simpleSum"#Working
-arg = "1 + 2 + 7 = worldCenter_loc.simpleSum"#Working
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
+a = NodeF.argsToNodes(arg).doBuild()
+a = NodeF.argsToNodes(arg)
 
-arg = "1 >< 2 >< 3 = worldCenter_loc.simpleAv"#Working
-arg = "3 * -worldCenter_loc.ty = worldCenter_loc.inverseMultThree"#Working
-arg = "4 - 2 = worldCenter_loc.simpleMathResult"#Working
-arg = "-worldCenter_loc.ty = worldCenter_loc.tz"#Working
-arg = "worldCenter_loc.ty * 3 = worldCenter_loc.multResult"#Working
-arg = "worldCenter_loc.ty + 3 + worldCenter_loc.ty = worldCenter_loc.sumResult"#Working
-arg = "if worldCenter_loc.ty < 3;worldCenter_loc.result2"#Working
-arg = "(1+2)"
-arg = "worldCenter_loc.ty + worldCenter_loc.tz = worldCenter_loc.sumResult"#Working
+arg = "worldCenter_loc.sumResult1 = worldCenter_loc.tx + worldCenter_loc.ty + worldCenter_loc.tz"#Working
+arg = "worldCenter_loc.simpleSum = 1 + 2 + 3"#Working
+arg = "worldCenter_loc.simpleSum = 1 + 2 + 7"#Working
+arg = "worldCenter_loc.simpleAv = 1 >< worldCenter_loc.ty  >< 3"#Working
+arg = "worldCenter_loc.inverseMultThree = 3 * -worldCenter_loc.ty"#Working
+arg = "worldCenter_loc.simpleMathResult = 4 - 2 "#Working
+arg = "worldCenter_loc.tz = -worldCenter_loc.ty "#Working
+arg = "worldCenter_loc.multResult = worldCenter_loc.ty * 3"#Working
+arg = "worldCenter_loc.sumResult = worldCenter_loc.ty + 3 + worldCenter_loc.tx"#Working
+arg = "worldCenter_loc.result2 = if worldCenter_loc.ty < 3"#Working
+arg = "worldCenter_loc.result23, worldCenter_loc.result2 = if worldCenter_loc.ty < 2:5 "#Working
+arg = "worldCenter_loc.directConnect, worldCenter_loc.directConnectY = worldCenter_loc.ty"#Working
 
+cgm.core._reload()
 
-arg = "if worldCenter_loc.ty > 3;worldCenter_loc.result2,worldCenter_loc.result2copy"#Working
+#Example
+for attr in ['skeleton','geo',]:
+    i_node.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+    NodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+    NodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+#Demo
+arg = "worldCenter_loc.simpleSum = 1 + 2 + 3"#Working
+arg = "worldCenter_loc.simpleAv = 1 >< 2 >< 3"#Working
+arg = "worldCenter_loc.inverseTY = -worldCenter_loc.ty"#Working
+arg = "worldCenter_loc.result2 = if worldCenter_loc.ty <= 2:5 else 20"#Working
 
-from cgm.core.classes import NodeFactory as nFactory
-reload(nFactory)
-a = nFactory.argsToNodes(arg)
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
+a = NodeF.argsToNodes(arg).doBuild()
 for b in a.ml_attrs:
     b.p_combinedName
+#TO DO:
+#negative number values catch
+#sometimes plug connecteor on invers isn't working
 
 mc.ls(a.ml_attrs[0].p_combinedName,sn=True)[0]
-nFactory.argsToNodes(arg).d_networksToBuild
-nFactory.argsToNodes(arg).d_connectionsToMake
-
-nFactory.argsToNodes(arg).doBuild()
-nFactory.argsToNodes(arg,defaultAttrType='bool',keyable=False, hidden = True, lock = True).buildNodes()
+NodeF.argsToNodes(arg).d_networksToBuild
+NodeF.argsToNodes(arg).d_connectionsToMake
+NodeF.argsToNodes(arg)
 
 
+NodeF.argsToNodes(arg).doBuild()
+NodeF.argsToNodes(arg,defaultAttrType='bool',keyable=False, hidden = True, lock = True).buildNodes()
+
+str_pivotName = 'neck_2_ik_1_anim_spacePivot_2_anim'
+str_objName = 'neck_2_ik_1_anim'
+str_pivotAttr = 'pivot_0'
+arg = "%s.overrideVisibility = if %s.%s > 0"%(str_pivotName,str_objName,str_pivotAttr)
 
        awesomeArgObj_loc
 arg = "awesomeArgObj_loc.tx + awesomeArgObj_loc.ty + awesomeArgObj_loc.tz = awesomeArgObj_loc.sumResult1"

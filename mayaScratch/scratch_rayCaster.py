@@ -27,7 +27,9 @@ mesh = 'Morphy_Body_GEO1'
 RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode)
 RayCast.findMeshMidPointFromObject(mesh,i_obj.mNode)
 info = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,vector = [0,-1,0])
-log.info(info)
+RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,'z+',singleReturn=False)
+l
+og.info(info)
 info = distance.findMeshIntersection(mesh,i_obj.getPosition(), vector)
 vector = [matrix[9],matrix[10],matrix[11]]
 vector = [matrix[8],matrix[9],matrix[10]]#Z

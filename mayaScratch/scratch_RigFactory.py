@@ -44,8 +44,14 @@ i_rig = Rig.go(m1,buildRig=True)
 i_rig = Rig.go(m1,buildDeformation=True)
 reload(Rig)
 
-i_rig = Rig.go(m1,buildSkeleton=True,buildControls=True)
-i_rig = Rig.go(m1,buildRig=True)
+Rig.d_moduleRigVersions[m1.moduleType]
+
+i_rig.doBuild(m1,buildSkeleton=True)
+i_rig.doBuild(m1,buildControls=True)
+i_rig.doBuild(m1,buildRig=True)
+i_rig.doBuild(m1,buildDeformation=True)
+i_rig.doBuild(m1,buildSkeleton=True,buildControls=True)
+i_rig.doBuild(m1,buildRig=True)
 
 m1.setState('skeleton')
 m1.getState()
@@ -71,7 +77,7 @@ distance.returnLocalAimDirection('spine_2_ik_anim',targets[-1])
 i_curve = cgmMeta.cgmObject('spine_splineIKCurve')
 i_dBuffer = i_curve.scaleBuffer
 for k in i_dBuffer.d_indexToAttr.keys():
-    attrName = 'spine_%s'%k
+    attrName = 'spineMult_%s'%k
     cgmMeta.cgmAttr(i_dBuffer.mNode,'scaleMult_%s'%k).doCopyTo('cog_anim',attrName,connectSourceToTarget = True)
     cgmMeta.cgmAttr('cog_anim',attrName, keyable =True, lock = False)
 

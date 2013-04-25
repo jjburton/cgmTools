@@ -17,11 +17,6 @@ reload(mFactory)
 reload(tFactory)
 reload(jFactory)
 
-import logging
-logging.basicConfig()
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
@@ -32,13 +27,17 @@ cgm.core._reload()
 #=======================================================
 p = cgmPM.cgmMorpheusMakerNetwork('Morphy_customizationNetwork')
 p.setState('skeleton',forceNew = True)
+p.setState('template',forceNew = True)
+
 p.mNode
 p.mNode
-morphyF.verify_customizationData(p)['clavicle_right'][0]
+morphyF.verify_customizationData(p)['neck']
 cgmPM.cgmPuppet('Morphy_puppetNetwork')
 k = cgmPM.cgmMorpheusMakerNetwork('Morphy_customizationNetwork')
 k.mNode
 str_m1 = 'spine_part'
+part = 'neck_part'
+m2 = r9Meta.MetaClass(part)
 #[2.4872662425041199, 132.08547973632812, 11.861419200897217] #
 m1 = r9Meta.MetaClass(str_m1)
 p.setState('skeleton')
@@ -47,7 +46,7 @@ m1.getGeneratedCoreNames()
 tFactory.updateTemplate(m2)
 m2.setState('size')
 m2.setState('skeleton',forceNew = True)
-m2.setState('template',forceNew = True)
+m2.setState('template',forceNew = False)
 tFactory.returnModuleBaseSize(m2)
 m2.rigNull.skinJoints
 m2.moduleParent.rigNull.skinJoints
