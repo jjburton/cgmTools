@@ -1386,6 +1386,7 @@ class cgmModule(cgmMeta.cgmObject):
 
         self.addAttr('rigNull',attrType='messageSimple',lock=True)
         self.addAttr('templateNull',attrType='messageSimple',lock=True)
+        self.addAttr('deformNull',attrType='messageSimple',lock=True)	
         self.addAttr('coreNames',attrType='messageSimple',lock=True)
 
         log.debug("Module null good...")
