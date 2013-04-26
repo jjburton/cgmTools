@@ -86,8 +86,9 @@ class go(object):
 	
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
-	self._i_deformGroup = self._i_module.modulePuppet.masterNull.deformGroup
+	self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup
 	
+
         """
         if moduleInstance.hasControls():
             if forceNew:
@@ -134,6 +135,20 @@ class go(object):
 	try: verify_moduleRigToggles(self)
 	except StandardError,error:
 	    raise StandardError,"init.verify_moduleRigToggles>> fail: %s"%error	
+	
+	#>>> Deform group for the module
+	#=========================================================	
+	if not self._i_module.getMessage('deformNull'):
+	    #Make it and link it
+	    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+	    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+	    i_grp.addAttr('cgmName',self._partName,lock=True)
+	    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+	    i_grp.doName()
+	    i_grp.parent = self._i_masterDeformGroup.mNode
+	    self._i_module.connectChildNode(i_grp,'deformNull','module')
+	    
+	self._i_deformNull = self._i_module.deformNull
 	
         #Make our stuff
         if self._partType in d_moduleRigFunctions.keys():
