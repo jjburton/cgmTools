@@ -411,6 +411,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if addDynParentGroup:
 	    i_dynGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
 	    i_dynGroup = cgmMeta.cgmDynParentGroup(dynChild=i_control,dynGroup=i_dynGroup)
+	    i_dynGroup.doName()
 	    log.info("dynParentGroup: '%s'"%i_dynGroup.getShortName())
 	    
 	    i_zeroGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
