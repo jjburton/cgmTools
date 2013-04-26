@@ -1945,7 +1945,7 @@ class cgmDynParentGroup(cgmObject):
 		    return True
 	    return True	
         ### input check  
-        log.debug("In cgmDynParentGroup.__init__ node is '%s'"%node)
+        log.info("In cgmDynParentGroup.__init__ node is '%s'"%node)
 	i_dynChild = validateObjArg(dynChild,cgmObject,noneValid=True)
 	i_argDynGroup = validateObjArg(dynGroup,cgmObject,noneValid=True)
 	log.info("i_dynChild: %s"%i_dynChild)
@@ -1959,7 +1959,7 @@ class cgmDynParentGroup(cgmObject):
 	    elif _isGroupValidForChild( i_dynChild,i_argDynGroup):
 		log.info("cgmDynParentGroup.__init__>>Group passed and valid")
 		node = i_argDynGroup.mNode
-		__justMade__ = True		
+		__justMade__ = False		
 	    else:#we're gonna make a group
 		node = i_dynChild.doGroup()
 		__justMade__ = True
@@ -1972,8 +1972,8 @@ class cgmDynParentGroup(cgmObject):
 	if i_dynChild:self._mi_dynChild=i_dynChild
 	else:self._mi_dynChild=False
 	    
-	if kws:log.debug("kws: %s"%str(kws))
-	if args:log.debug("args: %s"%str(args)) 	
+	if kws:log.info("kws: %s"%str(kws))
+	if args:log.info("args: %s"%str(args)) 	
 	doVerify = kws.get('doVerify') or False
 	
 	arg_ml_dynParents = validateObjListArg(dynParents,cgmObject,noneValid=True)
@@ -1994,7 +1994,7 @@ class cgmDynParentGroup(cgmObject):
 	    except StandardError,error:
 		log.error("cgmDynParentGroup.__init__>>mode set fal! | dynMode: %s | error: "%(dynMode,error))
 	    
-	if __justMade__:
+	if __justMade__ and i_dynChild and arg_ml_dynParents:
 	    self.addDynChild(i_dynChild)
 	    self.rebuild()
 	
@@ -2025,6 +2025,7 @@ class cgmDynParentGroup(cgmObject):
     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
+	log.info("rebuild>>>")
 	#Must have at least 2 targets
 	if len(self.dynParents)<2:
 	    log.error("cgmDynParentGroup.rebuild>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
@@ -2085,7 +2086,7 @@ class cgmDynParentGroup(cgmObject):
 	
 	log.info("cgmDynParentGroup.addDynChild>> Adding dynChild: '%s'"%i_child.getShortName())
 	self.connectChildNode(i_child,'dynChild','dynParentGroup')#Connect the nodes
-	
+	self.doStore('cgmName',i_child.mNode)
 	#Must be a descendant
 	#Add attrs per mode
 	#setup per mode
@@ -2132,7 +2133,8 @@ class cgmDynParentGroup(cgmObject):
 	    raise StandardError, "cgmDynParentGroup.verifyConstraints>> must have follow driver for follow mode: '%s'"%self.getShortName()
 	try:#initialize parents
 	    ml_dynParents = validateObjListArg(l_dynParents,cgmObject,False)
-	    l_dynDrivers = [i_obj.getMessage('dynDriver')[0] for i_obj in ml_dynParents]
+	    #l_dynDrivers = [i_obj.getMessage('dynDriver')[0] for i_obj in ml_dynParents]
+	    l_dynDrivers = self.getMessage('dynDrivers')
 	    i_dynChild = validateObjArg(self.getMessage('dynChild')[0],cgmObject,False)	    
 	except StandardError,error:
 	    raise StandardError,"cgmDynParentGroup.verifyConstraints>> dynParent/dynChild initialization failed! | %s"%(error)
@@ -2225,8 +2227,57 @@ class cgmDynParentGroup(cgmObject):
 	for i_c in ml_children:
 	    i_c.parent = self.mNode
 	    
-	
     def verifyParentDriver(self,arg):
+	"""
+	1) if arg is a dynParent
+	2) check it's driver
+	3) Make if necesary
+	"""
+	i_dynChild = validateObjArg(self.getMessage('dynChild')[0],cgmObject,noneValid=True) 
+	if not i_dynChild:
+	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> Must have dynChild. None found"	    
+	i_dParent = validateObjArg(arg,cgmObject,noneValid=True)
+	if not i_dParent:
+	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> arg fail: %s"%arg
+	log.info(self.dynParents)
+	if i_dParent.getLongName() not in self.getMessage('dynParents',True):
+	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> not a dynParent: %s"%i_dParent.getShortName()
+	
+	index = self.getMessage('dynParents',True).index(i_dParent.getLongName())
+	log.info("cgmDynParentGroup.verifyParentDriver>> dynParents index: %s"%index)
+	#dBuffer = self.getMessage('dyDriver_%s'%index)
+	l_dynDrivers = self.getMessage('dynDrivers',True)
+	
+	#See if we have a good driver
+	foundMatch = False
+	if l_dynDrivers and len(l_dynDrivers) > index:
+	    buffer = l_dynDrivers[index]
+	    log.info("buffer: %s"%cgmObject( buffer ).getMessage('dynTarget',True))
+	    log.info("child: %s"%i_dynChild.getLongName())
+	    if cgmObject( buffer ).getMessage('dynTarget',True) == [i_dynChild.getLongName()]:
+		log.info("dynDriver: found")
+		i_driver = validateObjArg(l_dynDrivers[index],cgmObject,noneValid=False)
+		foundMatch = True
+	if not foundMatch:
+	    log.info("dynDriver: creating")	
+	    i_driver = i_dynChild.doDuplicateTransform()
+	    l_dynDrivers.insert(index,i_driver.mNode)
+	    self.connectChildrenNodes(l_dynDrivers,'dynDrivers','dynMaster')
+	    #i_driver = i_dParent.doDuplicateTransform()
+	    
+	i_driver.parent = i_dParent.mNode
+	i_driver.doStore('cgmName',"%s_driving_%s"%(i_dParent.getNameAlias(),i_dynChild.getNameAlias())) 
+	i_driver.addAttr('cgmType','dynDriver')
+	i_driver.addAttr('mClass','cgmObject')	
+	i_driver.doName()
+
+	i_driver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
+	log.info("dynDriver: '%s' >> '%s'"%(i_dParent.getShortName(),i_driver.getShortName()))
+	
+	#self.connectChildNode(i_driver,'dynDriver_%s'%index,'dynMaster')	
+	i_driver.connectChildNode(i_dynChild,'dynTarget')	
+	
+    def verifyParentDriver2(self,arg):
 	"""
 	1) if arg is a dynParent
 	2) check it's driver
@@ -2266,19 +2317,20 @@ class cgmDynParentGroup(cgmObject):
 	
 	gBuffer = self.getMessage('dynFollow') or False
 	if gBuffer:
-	    self._mi_followDriver = validateObjArg(gBuffer[0],cgmObject,noneValid=True)
+	    i_followDriver = validateObjArg(gBuffer[0],cgmObject,noneValid=True)
 	else:
-	    self._mi_followDriver = i_dynChild.doDuplicateTransform()
+	    i_followDriver = i_dynChild.doDuplicateTransform()
 	    
-	self._mi_followDriver.doStore('cgmName',i_dynChild.mNode) 
-	self._mi_followDriver.addAttr('cgmType','dynFollow')
-	self._mi_followDriver.addAttr('mClass','cgmObject')		
-	self._mi_followDriver.doName()
+	i_followDriver.doStore('cgmName',i_dynChild.mNode) 
+	i_followDriver.addAttr('cgmType','dynFollow')
+	i_followDriver.addAttr('mClass','cgmObject')		
+	i_followDriver.doName()
 	
-	self._mi_followDriver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
-	log.info("dynFollow: '%s'"%self._mi_followDriver.getShortName())
+	i_followDriver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
+	log.info("dynFollow: '%s'"%i_followDriver.getShortName())
 	
-	self.connectChildNode(self._mi_followDriver,'dynFollow','dynMaster')
+	self.connectChildNode(i_followDriver,'dynFollow','dynMaster')
+	self._mi_followDriver = i_followDriver
 	
     def doSwitchSpace(self,attr,index,deleteLoc = True):
 	#Swich setting shile holding 
