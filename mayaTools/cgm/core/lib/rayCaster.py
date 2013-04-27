@@ -81,7 +81,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     #Create an empty MFloatPoint to receive the hit point from the call.
     hitPoint = om.MFloatPoint()
     
-    log.info("maxDistance: %s"%maxDistance)
+    log.debug("maxDistance: %s"%maxDistance)
 
     #Set up a variable for each remaining parameter in the
     #MFnMesh::closestIntersection call. We could have supplied these as
@@ -264,7 +264,7 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
             raise StandardError,"findMeshMidPointFromObject>>> Not a valid axis : %s not in ['x','y','z']"%axisToCheck
     l_positions = []
     for a in axisToCheck:
-        log.info("firing: %s"%a)
+        log.debug("firing: %s"%a)
         d_posReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis = '%s+'%a,vector=vector,maxDistance = maxDistance)
         d_negReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis = '%s-'%a,vector=vector,maxDistance = maxDistance)
         
@@ -273,7 +273,7 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
             pos = distance.returnAveragePointPosition(l_pos)          
             l_positions.append(pos)
     if len(l_positions) == 1:
-        return l_positions
+        return l_positions[0]
     else:
         return distance.returnAveragePointPosition(l_positions)
                 
