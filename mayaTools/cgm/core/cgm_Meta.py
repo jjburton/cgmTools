@@ -89,14 +89,14 @@ class cgmMetaFactory(object):
         if node and not mc.objExists(node):#If we have a node and it exists, we'll initialize. Otherwise, we need to figure out what to make
             if nodeType in objectFlags:
                 node = mc.createNode('transform')
-                log.info("Created a transform")
+                log.debug("Created a transform")
 	    elif nodeType == 'optionVar':
 		return cgmOptionVar(varName=name,*args,**kws)
             elif nodeType != 'network':
-                log.info("Trying to make a node of this type '%s'"%nodeType)
+                log.debug("Trying to make a node of this type '%s'"%nodeType)
                 node = mc.createNode(nodeType)
             else:
-                log.info("Make default node")
+                log.debug("Make default node")
                 node = mc.createNode('network')
 	    
         if name and node != name and node != True:
@@ -211,7 +211,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""Overload for our own purposes to allow multiple connections"""
 	log.debug("In cgmNode.__setMessageAttr__...")
 	if ignoreOverload:#just use Mark's
-	    log.info("sending cgmNode.__setMessageAttr__ to MetaClass...")
+	    log.debug("sending cgmNode.__setMessageAttr__ to MetaClass...")
 	    r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
 	elif type(value) is list:
 	    log.debug("Multi message mode from cgmNode: '%s.%s"%(self.getShortName(),attr))
@@ -229,7 +229,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    except:pass
 	try:r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
 	except StandardError,error:
-	    log.warning(error)
+	    raise StandardError, "__setattr__: %s"%(error)
 	if lock is not None and not self.isReferenced():
 	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	  
 	    
@@ -301,7 +301,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 			return self.getComponent()
 		return False 
 	    except StandardError,error:
-		log.warning(error)	
+		log.warning("getComponents: %s"%error)	
 		return False
 	    
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
@@ -355,7 +355,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    attributes.storeObjectToMessage(node,self.mNode,attr)
 	    if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
         except StandardError,error:
-            log.warning(error)
+            log.warning("connectChildNode: %s"%error)
 	    raise StandardError,error
 	    
     def connectParentNode(self, node, attr, connectBack = None, srcAttr=None):
@@ -386,7 +386,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return True
 	    
         except StandardError,error:
-                log.warning(error)
+                log.warning("connectParentNode: %s"%error)
 		
     def connectChildrenNodes(self, nodes, attr, connectBack = None, force=True):
         """
@@ -400,14 +400,14 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    elif mc.objExists(node):
 		nodesToDo.append(node) 
 	    else:
-		log.info("connectChildrenNodes can't add: '%s'"%node)
+		log.warning("connectChildrenNodes can't add: '%s'"%node)
 		
 	attributes.storeObjectsToMessage(nodesToDo,self.mNode,attr)
 	for node in nodesToDo:
 	    try:
 		if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
 	    except StandardError,error:
-		log.warning(error)
+		log.warning("connectChildrenNodes: %s"%error)
 	    
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
@@ -603,7 +603,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		selfBuffer = attributes.doGetAttr(self.mNode,a)
 		targetBuffer = attributes.doGetAttr(target,a)
 		if a in l_targetAttrs and selfBuffer != targetBuffer:
-		    log.info("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
+		    log.debug("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
 	    except StandardError,error:
 		log.debug(error)	
 		log.warning("'%s.%s'couldn't query"%(self.mNode,a))	    
@@ -645,7 +645,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		i_children = []
 		for c in childrenObjects:
 		    i_c =  r9Meta.MetaClass(c)
-		    i_c.rename('xxx')
+		    mc.rename(i_c.mNode,rename('xxx'))
 		    i_children.append(i_c )
 		for i_c in i_children:
 		    name = Old_Name.returnUniqueGeneratedName(i_c.mNode,sceneUnique =sceneUnique,**kws)
@@ -806,7 +806,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def getPosition(self,worldSpace = True):
 	try:
 	    if self.isComponent():
-		log.info("Component position mode")
+		log.debug("Component position mode")
 		objType = self.getMayaType()	    
 		if objType in ['polyVertex','polyUV','surfaceCV','curveCV','editPoint','nurbsUV','curvePoint']:
 		    if worldSpace:return mc.pointPosition(self.getComponent(),world = True)
@@ -866,8 +866,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    raise StandardError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
 	
 	buffer = mc.duplicate(self.mNode,po=parentOnly,ic=incomingConnections)[0]
+	log.debug("doDuplicate>> buffer: %s"%buffer)
 	i_obj = r9Meta.MetaClass(buffer)
-	i_obj.rename(self.getShortName()+'_DUPLICATE')
+	mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
+	log.debug("doDuplicate>> i_obj: %s"%i_obj)	
 	return i_obj
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
@@ -1072,7 +1074,7 @@ class cgmObject(cgmNode):
 	    i_obj = cgmObject( rigging.groupMeObject(self.mNode,parent = False),setClass=True  ) 
 	    if i_obj.hasAttr('cgmName'):
 		i_obj.doRemove('cgmName')
-	    i_obj.rename(self.getShortName()+'_Transform')
+	    mc.rename(i_obj.mNode, self.getShortName()+'_Transform')
 	    return i_obj
 	except StandardError,error:
 	    log.error("doDuplicateTransform fail! | %s"%error) 
@@ -1196,7 +1198,6 @@ class cgmControl(cgmObject):
 	try: super(cgmControl, self).__init__(node = node, name = name,nodeType = 'transform')
 	except StandardError,error:
 	    raise StandardError, "cgmControl.__init__ fail! | %s"%error
-	
 	if setClass:
 	    self.addAttr('mClass','cgmControl',lock=True)
 	    
@@ -1241,9 +1242,9 @@ class cgmControl(cgmObject):
 	    upVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisUp])
 	    outVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisOut])
 	    
-	    log.info("aimVector: %s"%aimVector)
-	    log.info("upVector: %s"%upVector)
-	    log.info("outVector: %s"%outVector)
+	    log.debug("aimVector: %s"%aimVector)
+	    log.debug("upVector: %s"%upVector)
+	    log.debug("outVector: %s"%outVector)
 	    aimConstraintBuffer = mc.aimConstraint(i_target.mNode,self.mNode,maintainOffset = False, weight = 1, aimVector = aimVector, upVector = upVector, worldUpType = 'scene' )
 	    mc.delete(aimConstraintBuffer)
 	except StandardError,error:
@@ -1361,7 +1362,7 @@ class cgmObjectSet(cgmNode):
 	if buffer:
 	    for k in setTypes.keys():
 		if buffer == setTypes[k]:
-		    log.info('Found match')
+		    log.debug('Found match')
 		    return k
 	    else:
 		return buffer
@@ -1453,11 +1454,11 @@ class cgmObjectSet(cgmNode):
             return False
         
         if info in self.getList():
-            log.info("'%s' is already stored on '%s'"%(info,self.mNode))    
+            log.debug("'%s' is already stored on '%s'"%(info,self.mNode))    
             return
         try:
             mc.sets(info,add = self.mNode)
-            log.info("'%s' added to '%s'!"%(info,self.mNode))  	    
+            log.debug("'%s' added to '%s'!"%(info,self.mNode))  	    
         except:
             log.warning("'%s' failed to add to '%s'"%(info,self.mNode))    
             
@@ -1773,27 +1774,27 @@ class cgmOptionVar(object):
             #If it exists, first check for data buffer
             typeBuffer = search.returnDataType(dataBuffer) or False
             if not typeBuffer:
-                log.info('Changing to int!')
+                log.debug('Changing to int!')
                 typeBuffer = 'int'
             
             if varType is not None:    
                 if typeBuffer == requestVarType:
-		    log.info("Checks out")
+		    log.debug("Checks out")
                     return                
                 else:
 		    log.warning("Converting optionVar type...")
                     self.create(requestVarType)
 		    if dataBuffer is not None:
-			log.info("Attempting to set with: %s"%dataBuffer)
+			log.debug("Attempting to set with: %s"%dataBuffer)
 			self.value = dataBuffer
-			log.info("Value : %s"%self.value)
+			log.debug("Value : %s"%self.value)
                     return  
 
     def create(self,doType):
         """ 
         Makes an optionVar.
         """
-        log.info( "Creating '%s' as '%s'"%(self.name,doType) )
+        log.debug( "Creating '%s' as '%s'"%(self.name,doType) )
             
         if doType == 'int':
             mc.optionVar(iv=(self.name,0))
@@ -1819,7 +1820,7 @@ class cgmOptionVar(object):
         if self.varType == 'int':
             try:
                 mc.optionVar(iva = (self.name,int(value)))
-                log.info("'%s' added to '%s'"%(value,self.name))
+                log.debug("'%s' added to '%s'"%(value,self.name))
                 
             except:
                 log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
@@ -1875,7 +1876,7 @@ class cgmOptionVar(object):
         assert self.varType == 'int',"'%s' not an int type var"%(self.name)
         
         self.value = not self.value
-        log.info("'%s':%s"%(self.name,self.value))
+        log.debug("'%s':%s"%(self.name,self.value))
         
         
     def select(self):
@@ -1939,25 +1940,25 @@ class cgmDynParentGroup(cgmObject):
 		return False
 	    if i_child.hasAttr('dynParentGroup'):#3) the child is already connected
 		if i_child.dynParentGroup != i_group:
-		    log.info("cgmDynParentGroup.isGroupValidForChild>> Child already has dynParentGroup: '%s'"%i_child.getMessage('dynParentGroup'))
+		    log.debug("cgmDynParentGroup.isGroupValidForChild>> Child already has dynParentGroup: '%s'"%i_child.getMessage('dynParentGroup'))
 		    return False
 		else:
 		    return True
 	    return True	
         ### input check  
-        log.info("In cgmDynParentGroup.__init__ node is '%s'"%node)
+        log.debug("In cgmDynParentGroup.__init__ node is '%s'"%node)
 	i_dynChild = validateObjArg(dynChild,cgmObject,noneValid=True)
 	i_argDynGroup = validateObjArg(dynGroup,cgmObject,noneValid=True)
-	log.info("i_dynChild: %s"%i_dynChild)
+	log.debug("i_dynChild: %s"%i_dynChild)
 	__justMade__ = False
 	#TODO allow to set dynGroup
 	if i_dynChild:
 	    pBuffer = i_dynChild.getMessage('dynParentGroup') or False
-	    log.info("pBuffer: %s"%pBuffer)
+	    log.debug("pBuffer: %s"%pBuffer)
 	    if pBuffer:
 		node = pBuffer[0]
 	    elif _isGroupValidForChild( i_dynChild,i_argDynGroup):
-		log.info("cgmDynParentGroup.__init__>>Group passed and valid")
+		log.debug("cgmDynParentGroup.__init__>>Group passed and valid")
 		node = i_argDynGroup.mNode
 		__justMade__ = False		
 	    else:#we're gonna make a group
@@ -1972,20 +1973,20 @@ class cgmDynParentGroup(cgmObject):
 	if i_dynChild:self._mi_dynChild=i_dynChild
 	else:self._mi_dynChild=False
 	    
-	if kws:log.info("kws: %s"%str(kws))
-	if args:log.info("args: %s"%str(args)) 	
+	if kws:log.debug("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args)) 	
 	doVerify = kws.get('doVerify') or False
 	
 	arg_ml_dynParents = validateObjListArg(dynParents,cgmObject,noneValid=True)
-	log.info("arg_ml_dynParents: %s"%arg_ml_dynParents)
+	log.debug("arg_ml_dynParents: %s"%arg_ml_dynParents)
 	
         if not self.isReferenced():
 	    if not self.__verify__(*args,**kws):
 		raise StandardError,"cgmDynParentGroup.__init__>> failed to verify!"
 	    
-	log.info("cgmDynParentGroup.__init__>> dynParents: %s"%self.getMessage('dynParents',False))
+	log.debug("cgmDynParentGroup.__init__>> dynParents: %s"%self.getMessage('dynParents',False))
 	for p in arg_ml_dynParents:
-	    log.info("Adding dynParent: %s"%p.mNode)
+	    log.debug("Adding dynParent: %s"%p.mNode)
 	    self.addDynParent(p)
 	    
 	if dynMode is not None:
@@ -2025,7 +2026,7 @@ class cgmDynParentGroup(cgmObject):
     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
-	log.info("rebuild>>>")
+	log.debug("rebuild>>>")
 	#Must have at least 2 targets
 	if len(self.dynParents)<2:
 	    log.error("cgmDynParentGroup.rebuild>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
@@ -2041,10 +2042,10 @@ class cgmDynParentGroup(cgmObject):
 		d_attrBuffers[a] = attributes.doGetAttr(i_child.mNode,a)
 	    if a not in d_DynParentGroupModeAttrs[self.dynMode]:
 		attributes.doDeleteAttr(i_child.mNode,a)
-	if d_attrBuffers:log.info("d_attrBuffers: %s"%d_attrBuffers)
+	if d_attrBuffers:log.debug("d_attrBuffers: %s"%d_attrBuffers)
 	
 	l_parentShortNames = [cgmNode(o).getNameAlias() for o in self.getMessage('dynParents')]
-	log.info("parentShortNames: %s"%l_parentShortNames)
+	log.debug("parentShortNames: %s"%l_parentShortNames)
 	
 	for a in d_DynParentGroupModeAttrs[self.dynMode]:
 	    i_child.addAttr(a,attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
@@ -2059,7 +2060,7 @@ class cgmDynParentGroup(cgmObject):
 	
 	#Verify our parent drivers:
 	for i_p in [cgmObject(o) for o in self.getMessage('dynParents')]:
-	    log.info("verifyParentDriver: %s"%i_p.getShortName())
+	    log.debug("verifyParentDriver: %s"%i_p.getShortName())
 	    self.verifyParentDriver(i_p)
 	
 	#i_child.addAttr('space',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
@@ -2081,10 +2082,10 @@ class cgmDynParentGroup(cgmObject):
 	    return False
 	
 	if i_child.hasAttr('dynParentGroup') and i_child.dynParentGroup == self:
-	    log.info("cgmDynParentGroup.addDynChild>> dynChild already connected: '%s'"%i_child.getShortName())
+	    log.debug("cgmDynParentGroup.addDynChild>> dynChild already connected: '%s'"%i_child.getShortName())
 	    return True
 	
-	log.info("cgmDynParentGroup.addDynChild>> Adding dynChild: '%s'"%i_child.getShortName())
+	log.debug("cgmDynParentGroup.addDynChild>> Adding dynChild: '%s'"%i_child.getShortName())
 	self.connectChildNode(i_child,'dynChild','dynParentGroup')#Connect the nodes
 	self.doStore('cgmName',i_child.mNode)
 	#Must be a descendant
@@ -2101,23 +2102,23 @@ class cgmDynParentGroup(cgmObject):
 	    raise StandardError, "cgmDynParentGroup.addDynParent>> Cannot add self as target"
 	if not i_dParent.isTransform():
 	    raise StandardError, "cgmDynParentGroup.addDynParent>> Target has no transform: '%s'"%i_dParent.getShortName()
-	log.info("cgmDynParentGroup.addDynParent>> '%s'"%i_dParent.getShortName())
+	log.debug("cgmDynParentGroup.addDynParent>> '%s'"%i_dParent.getShortName())
 
 	ml_dynParents = [cgmObject(o) for o in self.getMessage('dynParents')]
-	log.info(">>>>>>>>>>>>> Start add %s"%self.getMessage('dynParents',False))
+	log.debug(">>>>>>>>>>>>> Start add %s"%self.getMessage('dynParents',False))
 	
 	if i_dParent in ml_dynParents:
-	    log.info("cgmDynParentGroup.addDynParent>> Child already connected: %s"%i_dParent.getShortName())
+	    log.debug("cgmDynParentGroup.addDynParent>> Child already connected: %s"%i_dParent.getShortName())
 	    return True
 	
 	if alias is not None:
 	    i_dynParent.addAttr('cgmAlias', str(alias),lock = True)
 	
-	log.info("cgmDynParentGroup.addDynParent>> Adding target: '%s'"%i_dParent.getShortName())
+	log.debug("cgmDynParentGroup.addDynParent>> Adding target: '%s'"%i_dParent.getShortName())
 	ml_dynParents.append(i_dParent)	
-	log.info(">>>>>>>>>>>>> data add %s"%ml_dynParents)	
+	log.debug(">>>>>>>>>>>>> data add %s"%ml_dynParents)	
 	self.connectChildrenNodes(ml_dynParents,'dynParents')#Connect the nodes
-	log.info(">>>>>>>>>>>>> after add %s"%self.getMessage('dynParents',False))
+	log.debug(">>>>>>>>>>>>> after add %s"%self.getMessage('dynParents',False))
 	
     def verifyConstraints(self):
 	"""
@@ -2140,11 +2141,11 @@ class cgmDynParentGroup(cgmObject):
 	    raise StandardError,"cgmDynParentGroup.verifyConstraints>> dynParent/dynChild initialization failed! | %s"%(error)
 	try:#Check current
 	    currentConstraints = self.getConstraintsTo()
-	    log.info("currentConstraints: %s"%currentConstraints)
+	    log.debug("currentConstraints: %s"%currentConstraints)
 	    if currentConstraints:mc.delete(currentConstraints)#Delete existing constraints
 	    if self.dynMode == 2:
 		followConstraints = self.dynFollow.getConstraintsTo()
-		log.info("followConstraints: %s"%followConstraints)		
+		log.debug("followConstraints: %s"%followConstraints)		
 		if followConstraints:mc.delete(followConstraints)#Delete existing constraints		
 	except StandardError,error:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Delete constraints fail! | %s"%(error))
@@ -2239,12 +2240,12 @@ class cgmDynParentGroup(cgmObject):
 	i_dParent = validateObjArg(arg,cgmObject,noneValid=True)
 	if not i_dParent:
 	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> arg fail: %s"%arg
-	log.info(self.dynParents)
+	log.debug(self.dynParents)
 	if i_dParent.getLongName() not in self.getMessage('dynParents',True):
 	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> not a dynParent: %s"%i_dParent.getShortName()
 	
 	index = self.getMessage('dynParents',True).index(i_dParent.getLongName())
-	log.info("cgmDynParentGroup.verifyParentDriver>> dynParents index: %s"%index)
+	log.debug("cgmDynParentGroup.verifyParentDriver>> dynParents index: %s"%index)
 	#dBuffer = self.getMessage('dyDriver_%s'%index)
 	l_dynDrivers = self.getMessage('dynDrivers',True)
 	
@@ -2252,14 +2253,14 @@ class cgmDynParentGroup(cgmObject):
 	foundMatch = False
 	if l_dynDrivers and len(l_dynDrivers) > index:
 	    buffer = l_dynDrivers[index]
-	    log.info("buffer: %s"%cgmObject( buffer ).getMessage('dynTarget',True))
-	    log.info("child: %s"%i_dynChild.getLongName())
+	    log.debug("buffer: %s"%cgmObject( buffer ).getMessage('dynTarget',True))
+	    log.debug("child: %s"%i_dynChild.getLongName())
 	    if cgmObject( buffer ).getMessage('dynTarget',True) == [i_dynChild.getLongName()]:
-		log.info("dynDriver: found")
+		log.debug("dynDriver: found")
 		i_driver = validateObjArg(l_dynDrivers[index],cgmObject,noneValid=False)
 		foundMatch = True
 	if not foundMatch:
-	    log.info("dynDriver: creating")	
+	    log.debug("dynDriver: creating")	
 	    i_driver = i_dynChild.doDuplicateTransform()
 	    l_dynDrivers.insert(index,i_driver.mNode)
 	    self.connectChildrenNodes(l_dynDrivers,'dynDrivers','dynMaster')
@@ -2272,7 +2273,7 @@ class cgmDynParentGroup(cgmObject):
 	i_driver.doName()
 
 	i_driver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
-	log.info("dynDriver: '%s' >> '%s'"%(i_dParent.getShortName(),i_driver.getShortName()))
+	log.debug("dynDriver: '%s' >> '%s'"%(i_dParent.getShortName(),i_driver.getShortName()))
 	
 	#self.connectChildNode(i_driver,'dynDriver_%s'%index,'dynMaster')	
 	i_driver.connectChildNode(i_dynChild,'dynTarget')	
@@ -2286,16 +2287,16 @@ class cgmDynParentGroup(cgmObject):
 	i_dParent = validateObjArg(arg,cgmObject,noneValid=True)
 	if not i_dParent:
 	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> arg fail: %s"%arg
-	log.info(self.dynParents)
+	log.debug(self.dynParents)
 	if i_dParent.getLongName() not in self.getMessage('dynParents',True):
 	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> not a dynParent: %s"%i_dParent.getShortName()
 	    
 	gBuffer = i_dParent.getMessage('dynDriver') or False
 	if gBuffer:
-	    log.info("dynDriver: found")
+	    log.debug("dynDriver: found")
 	    i_driver = validateObjArg(gBuffer[0],cgmObject,noneValid=False)
 	else:
-	    log.info("dynDriver: creating")	
+	    log.debug("dynDriver: creating")	
 	    #i_driver = self._mi_dynChild.doDuplicateTransform()	    
 	    i_driver = i_dParent.doDuplicateTransform()
 	    
@@ -2306,7 +2307,7 @@ class cgmDynParentGroup(cgmObject):
 	i_driver.doName()
 	
 	i_driver.rotateOrder = i_dParent.rotateOrder#Match rotate order
-	log.info("dynDriver: '%s' >> '%s'"%(i_dParent.getShortName(),i_driver.getShortName()))
+	log.debug("dynDriver: '%s' >> '%s'"%(i_dParent.getShortName(),i_driver.getShortName()))
 	i_dParent.connectChildNode(i_driver,'dynDriver','dynMaster')	
 	
 	
@@ -2327,7 +2328,7 @@ class cgmDynParentGroup(cgmObject):
 	i_followDriver.doName()
 	
 	i_followDriver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
-	log.info("dynFollow: '%s'"%i_followDriver.getShortName())
+	log.debug("dynFollow: '%s'"%i_followDriver.getShortName())
 	
 	self.connectChildNode(i_followDriver,'dynFollow','dynMaster')
 	self._mi_followDriver = i_followDriver
@@ -2343,7 +2344,7 @@ class cgmDynParentGroup(cgmObject):
 	if not i_child and d_attr:
 	    raise StandardError,"cgmDynParentGroup.doSwitchSpace>> doSwitchSpace doesn't have enough info. Rebuild recommended"
 	if index == i_child.getAttr(attr):
-	    log.info("cgmDynParentGroup.doSwitchSpace>> Already that mode")	    
+	    log.debug("cgmDynParentGroup.doSwitchSpace>> Already that mode")	    
 	    return True
 	elif index+1 > len(d_attr['mi_plug'].p_enum):
 	    raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Index(%s) greater than options: %s"%(index,d_attr['mi_plug'].getEnum())	
@@ -2498,7 +2499,7 @@ class cgmBufferNode(cgmNode):
 	    return
         
         if not allowDuplicates and info in self.l_buffer:
-            log.info("'%s' is already stored on '%s'"%(info,self.mNode))    
+            log.debug("'%s' is already stored on '%s'"%(info,self.mNode))    
             return
         
 
@@ -2686,7 +2687,7 @@ class cgmAttr(object):
 			break
 		    self.attrType = 'double3'#Need better detection here for json and what not
 	    elif mc.objExists(value):
-		log.info("'%s' exists. creating as message."%value)
+		log.debug("'%s' exists. creating as message."%value)
 		self.attrType = 'message'		
 	    else:
 		dataReturn = search.returnDataType(value)
@@ -2779,7 +2780,7 @@ class cgmAttr(object):
 	    if self.attrType == 'message':
 		self.doStore(value)	    
 	    elif self.getChildren():
-		log.info("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+		log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
 		for i,c in enumerate(self.getChildren()):
 		    try:
 			cInstance = cgmAttr(self.obj.mNode,c)                        
@@ -2870,7 +2871,7 @@ class cgmAttr(object):
         assert type(arg) is bool, "doLocked arg must be a bool!"
         if arg:
             if self.getChildren():
-                log.info("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.p_locked:
@@ -3411,7 +3412,7 @@ class cgmAttr(object):
             else:
                 return attributes.returnDriverAttribute("%s.%s"%(self.obj.mNode,self.attr))
 
-            log.info("'%s.%s' >Message> '%s'"%(self.obj.mNode,self.attr,self.value))
+            log.debug("'%s.%s' >Message> '%s'"%(self.obj.mNode,self.attr,self.value))
             return self.value
             
         except:
@@ -3551,16 +3552,16 @@ class cgmAttr(object):
         connectTargetToSource = kw.pop('connectTargetToSource',False)  
         
 	guiFactory.doPrintReportStart(functionName)
-	log.info("AttrFactory instance: '%s'"%self.p_combinedName)
-	log.info("convertToMatch: '%s'"%convertToMatch)
-	log.info("targetAttrName: '%s'"%targetAttrName)
-	log.info("incomingConnections: '%s'"%incomingConnections)
-	log.info("outgoingConnections: '%s'"%outgoingConnections)
-	log.info("keepSourceConnections: '%s'"%keepSourceConnections)
-	log.info("copyAttrSettings: '%s'"%copyAttrSettings)
-	log.info("connectSourceToTarget: '%s'"%connectSourceToTarget)
-	log.info("keepSourceConnections: '%s'"%keepSourceConnections)
-	log.info("connectTargetToSource: '%s'"%connectTargetToSource)
+	log.debug("AttrFactory instance: '%s'"%self.p_combinedName)
+	log.debug("convertToMatch: '%s'"%convertToMatch)
+	log.debug("targetAttrName: '%s'"%targetAttrName)
+	log.debug("incomingConnections: '%s'"%incomingConnections)
+	log.debug("outgoingConnections: '%s'"%outgoingConnections)
+	log.debug("keepSourceConnections: '%s'"%keepSourceConnections)
+	log.debug("copyAttrSettings: '%s'"%copyAttrSettings)
+	log.debug("connectSourceToTarget: '%s'"%connectSourceToTarget)
+	log.debug("keepSourceConnections: '%s'"%keepSourceConnections)
+	log.debug("connectTargetToSource: '%s'"%connectTargetToSource)
 	guiFactory.doPrintReportBreak()
             
         copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
@@ -4098,8 +4099,8 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
 	    
 	if not mc.objExists(combined):
-	    log.info("validateAttrArg>>> '%s'doesn't exist, creating attr (%s)!"%(combined,defaultType))
-	    if kws:log.info("kws: %s"%kws)
+	    log.debug("validateAttrArg>>> '%s'doesn't exist, creating attr (%s)!"%(combined,defaultType))
+	    if kws:log.debug("kws: %s"%kws)
 	    i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
 	else:
 	    i_plug = cgmAttr(obj,attr,**kws)	    
