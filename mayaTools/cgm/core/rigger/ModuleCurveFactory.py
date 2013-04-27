@@ -129,7 +129,7 @@ class go(object):
 	    if self.mi_rigNull.fk:
 		self.l_controlsToMakeArg.extend(['segmentFK','segmentIK'])
 		if self._partType == 'torso':#Maybe move to a dict?
-		    self.l_controlsToMakeArg.append('hips','torsoIK')
+		    self.l_controlsToMakeArg.extend(['hips','torsoIK'])
 		    if 'segmentIK' in self.l_controlsToMakeArg:self.l_controlsToMakeArg.remove('segmentIK')
 		    #We don't need segmentIK because we have special torsoIK handles
 		    
@@ -139,9 +139,9 @@ class go(object):
 	
 	for key in self.l_controlsToMakeArg:
 	    self.d_controlBuildFunctions[key]()#Run it
-	    if key not in self.d_returnControls:
-		log.warning("Necessary control shape(s) was not built: '%s'"%key)
-		raise StandardError,"Did not get all necessary controls built"
+	    #if key not in self.d_returnControls:
+		#log.warning("Necessary control shape(s) was not built: '%s'"%key)
+		#raise StandardError,"Did not get all necessary controls built"
 	if storageInstance:
 	    try:
 		storageInstance._d_controlShapes = self.d_returnControls
@@ -159,6 +159,65 @@ class go(object):
     
     @r9General.Timer    
     def build_cog(self):
+	try:
+	    multiplier = 1.1
+	    tmplRoot = self.mi_templateNull.root.mNode
+	    mi_loc = cgmMeta.cgmNode(tmplRoot).doLoc()#make loc for sizing
+	    mi_loc.doGroup()#group to zero
+	    sizeReturn = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
+	    l_size = [sizeReturn['x']+(self._skinOffset*2),sizeReturn['y']+(self._skinOffset*2)]
+	    mc.delete(mi_loc.parent)#delete loc
+	    
+	    size = max(l_size)/2.5
+	    ml_curvesToCombine = []
+	    mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),setClass=True)
+	    mi_crvBase.scaleY = 2
+	    mi_crvBase.scaleZ = .75
+	    Snap.go(mi_crvBase, tmplRoot) #Snap it
+	    i_grp = cgmMeta.cgmObject( mi_crvBase.doGroup() )
+	    
+	    for i,rot in enumerate([0,90,90,90]):
+		#rot, shoot, move, dup
+		log.debug("curve: %s | rot int: %s | grp: %s"%(mi_crvBase.mNode,i, i_grp.mNode))
+		i_grp.rotateY = i_grp.rotateY + rot
+		#Shoot
+		d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_crvBase.mNode)
+		if not d_return.get('hit'):
+		    raise StandardError,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
+		log.debug("hitDict: %s"%d_return)
+		dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self._skinOffset*3)
+		log.debug("dist: %s"%dist)
+		log.debug("crv: %s"%mi_crvBase.mNode)
+		mi_crvBase.__setattr__("tz",dist)
+		mi_tmp = mi_crvBase.doDuplicate(parentOnly=False)
+		log.debug(mi_tmp)
+		mi_tmp.parent = False
+		ml_curvesToCombine.append(mi_tmp)
+		mi_crvBase.__setattr__("tz",0)
+	    
+	    i_grp.delete()
+	    mi_crv = cgmMeta.cgmObject( curves.combineCurves([i_obj.mNode for i_obj in ml_curvesToCombine]) )
+	    log.debug("mi_crv: %s"%mi_crv.mNode)
+	    #>>Copy tags and name
+	    mi_crv.addAttr('cgmName',attrType='string',value = 'cog',lock=True)        
+	    mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
+	    mi_crv.doName()        
+    
+	    mc.xform(mi_crv.mNode, cp=True)
+	    mc.makeIdentity(mi_crv.mNode, apply=True,s=1,n=0)	
+    
+	    #>>> Color
+	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+	    self.d_returnControls['cog'] = mi_crv.mNode
+	    self.md_ReturnControls['cog'] = mi_crv
+	    
+	    
+	except StandardError,error:
+		log.error("build_cog fail! | %s"%error) 
+		return False
+    
+    @r9General.Timer    
+    def build_cog2(self):
 	try:
 	    multiplier = 1.1
 	    tmplRoot = self.mi_templateNull.root.mNode
@@ -190,12 +249,66 @@ class go(object):
 	log.debug(orientHelper)
 	mi_loc = cgmMeta.cgmNode(orientHelper).doLoc()#make loc for sizing
 	mi_loc.doGroup()#group to zero
+	
+	d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_loc.mNode,'z-')
+	if not d_return.get('hit'):
+	    raise StandardError,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
+	dist = distance.returnDistanceBetweenPoints(mi_loc.getPosition(),d_return['hit'])
+	mi_loc.tz = -dist *.2	
+	
+	returnBuffer = createWrapControlShape(mi_loc.mNode,self._targetMesh,
+                                              curveDegree=3,
+                                              insetMult = .2,
+                                              closedCurve=True,
+	                                      points = 8,
+                                              posOffset = [0,0,self._skinOffset*1.2],
+                                              extendMode='')
+	mi_crvRound = returnBuffer['instance']
+	
+	str_traceCrv = createMeshSliceCurve(self._targetMesh,mi_loc.mNode,
+	                                    latheAxis='x',aimAxis='y+',
+	                                    curveDegree=3,
+	                                    closedCurve=False,
+	                                    l_specifiedRotates=[0,-30,-60,-90,-120,-150,-180],
+	                                    posOffset = [0,0,self._skinOffset*1.2],
+	                                    )
+	
+	mi_crv = cgmMeta.cgmObject ( curves.combineCurves([mi_crvRound.mNode,str_traceCrv]) )
+	
+	mc.delete(mi_loc.getAllParents()[-1])
+	
+	#>>Copy tags and name
+	mi_crv.addAttr('cgmName',attrType='string',value = 'hips',lock=True)        
+	mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
+	mi_crv.doName()        
+	
+	#>>> Color
+	curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+	self.d_returnControls['hips'] = mi_crv.mNode
+	self.md_ReturnControls['hips'] = mi_crv
+	
+	
+	
+    def build_hips2(self):
+	distanceMult = .5	    
+	orientHelper = self.l_controlSnapObjects[1]
+	log.debug(orientHelper)
+	mi_loc = cgmMeta.cgmNode(orientHelper).doLoc()#make loc for sizing
+	mi_loc.doGroup()#group to zero
+	
+	d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_loc.mNode,'z-')
+	if not d_return.get('hit'):
+	    raise StandardError,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
+	dist = distance.returnDistanceBetweenPoints(mi_loc.getPosition(),d_return['hit'])
+	mi_loc.tz = -dist *.2
+	
+	
 	d_size = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y','z-'])#Get size
 	l_size = [d_size['x']+(self._skinOffset*2),d_size['y']+(self._skinOffset*2),d_size['z']+(self._skinOffset*2)]
 	mi_crvShape = cgmMeta.cgmObject( curves.createControlCurve('semiSphere',direction = 'y-',size = 1))
 	if len(self.l_controlSnapObjects)>2:#offset
 	    distanceToMove = distance.returnDistanceBetweenObjects(orientHelper,self.l_controlSnapObjects[1])
-	    mi_loc.tz = -(distanceToMove*distanceMult)#Offset it	
+	    mi_loc.tz = mi_loc.tz-(distanceToMove*distanceMult)#Offset it	
 	    
 	#mc.makeIdentity(mi_crv.mNode,apply=True, scale=True)
 	Snap.go(mi_crvShape.mNode, mi_loc.mNode)#Snap it
@@ -208,11 +321,6 @@ class go(object):
 	#mc.delete(mi_crv.mNode)
 	mi_crvShape.delete()	    
 	mc.scale(l_size[0],l_size[1],l_size[2],mi_crv.mNode,os = True, relative = True)
-	#mi_crv.sy = d_size['z']
-	
-	#pBuffer = mi_crv.parent
-	#mi_crv.parent = False
-	#mc.delete(pBuffer)
 	
 	#>>Copy tags and name
 	mi_crv.addAttr('cgmName',attrType='string',value = 'hips',lock=True)        
@@ -278,8 +386,8 @@ class go(object):
 		l_size = [d_size[self._jointOrientation[1]],d_size[self._jointOrientation[2]]]
 		size = sum(l_size)/1.5
 		
-		log.info("loli size return: %s"%d_size)
-		log.info("loli size: %s"%size)
+		log.debug("loli size return: %s"%d_size)
+		log.debug("loli size: %s"%size)
 		i_ball = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = size/4))
 		Snap.go(i_ball,obj,True, True)#Snap to main object
 		
@@ -294,8 +402,8 @@ class go(object):
 		mi_crv = returnBuffer['instance']
 		l_eps = mi_crv.getComponents('ep')
 		midIndex = int(len(l_eps)/2)
-		log.info("eps: %s"%l_eps)
-		log.info("mid: %s"%midIndex)
+		log.debug("eps: %s"%l_eps)
+		log.debug("mid: %s"%midIndex)
 		
 		#Move the ball
 		pos = distance.returnWorldSpacePosition(l_eps[midIndex])
@@ -338,8 +446,8 @@ class go(object):
 		l_size = [d_size[self._jointOrientation[1]],d_size[self._jointOrientation[2]]]
 		size = sum(l_size)/1.5
 		
-		log.info("loli size return: %s"%d_size)
-		log.info("loli size: %s"%size)
+		log.debug("loli size return: %s"%d_size)
+		log.debug("loli size: %s"%size)
 		i_ball = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = size/4))
 		Snap.go(i_ball,i_target.mNode,True, True)#Snap to main object
 		
@@ -354,8 +462,8 @@ class go(object):
 		mi_crv = returnBuffer['instance']
 		l_eps = mi_crv.getComponents('ep')
 		midIndex = int(len(l_eps)/2)
-		log.info("eps: %s"%l_eps)
-		log.info("mid: %s"%midIndex)
+		log.debug("eps: %s"%l_eps)
+		log.debug("mid: %s"%midIndex)
 		
 		#Move the ball
 		pos = distance.returnWorldSpacePosition(l_eps[midIndex])
@@ -692,7 +800,7 @@ def createWrapControlShape(targetObjects,
 		try:
 		    l_curvesToCombine.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve
 		except:
-		    log.info("createWrapControlShape>>>> skipping curve fail: %s"%(degree))
+		    log.debug("createWrapControlShape>>>> skipping curve fail: %s"%(degree))
 		    
     #>>>Combine the curves
     newCurve = curves.combineCurves(l_curvesToCombine) 
@@ -760,16 +868,16 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     for axis in ['x','y','z']:
 	if axis in latheAxis:latheAxis = axis
 	
-
+    log.debug("latheAxis: %s"%latheAxis)
     if rotateBank is not None:#we need a bank  axis
 	l_axisCull = ['x','y','z']
 	l_axisCull.remove(latheAxis)
-	log.info(latheAxis)
+	log.debug(latheAxis)
 	if len(aimAxis) == 2: aimCull = aimAxis[0].lower()
 	else: aimCull = aimAxis.lower()
 	l_axisCull.remove(aimCull)
-	log.info(aimCull)	
-	log.info("Bank rotate: %s"%l_axisCull)
+	log.debug(aimCull)	
+	log.debug("Bank rotate: %s"%l_axisCull)
 	bankAxis = l_axisCull[0]
 	
     #Rotate obj 
@@ -805,7 +913,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    #add a point if we don't have a full loop
 	    points = points+1	
 	rotateBaseValue = len(range(rotateFloor,rotateCeiling+1))/points
-	log.info("rotateBaseValue: %s"%rotateBaseValue)
+	log.debug("rotateBaseValue: %s"%rotateBaseValue)
 	    
 	#Build our rotate values
 	for i in range(points):
@@ -818,25 +926,35 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	hit = False
 	
 	#shoot our ray, store the hit
-	log.info("Casting: %i>>%f"%(i,rotateValue))
-	mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)	
+	log.debug("Casting: %i>>%f"%(i,rotateValue))
+	mc.setAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize()),rotateValue)
+	log.debug(mc.getAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize())) )
+	#mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)	
 	try:
+	    log.debug("mesh: %s"%mesh)
+	    log.debug("mi_loc.mNode: %s"%mi_loc.mNode)
+	    log.debug("aimAxis: %s"%aimAxis)
+	    log.debug("latheAxis: %s"%latheAxis)
+	    log.debug("maxDistance: %s"%maxDistance)
+	    
 	    if closestInRange:
 		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance)
+		log.debug("closest in range castReturn: %s"%d_castReturn)		
 		d_hitReturnFromValue[rotateValue] = d_castReturn	
-		log.info("From %s: %s" %(rotateValue,d_castReturn))
+		log.debug("From %s: %s" %(rotateValue,d_castReturn))
 		    
 	    else:
-		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance,singleReturn=False)
+		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, singleReturn=False)
+		log.debug("castReturn: %s"%d_castReturn)
 		closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
 		d_castReturn['hit'] = closestPoint
-		log.info("From %s: %s" %(rotateValue,d_castReturn))
+		log.debug("From %s: %s" %(rotateValue,d_castReturn))
 		
 	    try:hit = d_castReturn.get('hit')
 	    except:hit = False
 
 	except StandardError,error:
-		log.error(error) 
+		raise StandardError,"createMeshSliceCurve>>> error: %s"%error 
 	if hit:
 	    if markHits or posOffset:
 		mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator()[0])
@@ -862,7 +980,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    d_processedHitFromValue[rotateValue] = hit
 	
     mc.delete(mi_loc.getAllParents()[-1])#delete top group
-    log.info("pos list: %s"%l_pos)    
+    log.debug("pos list: %s"%l_pos)    
     if not l_pos:raise StandardError,"createMeshSliceCurve>> Not hits found. Nothing to do"
     if len(l_pos)>=3:
 	if closedCurve:
@@ -906,7 +1024,7 @@ def limbControlMaker(moduleInstance,controlTypes = ['cog']):
     assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
     assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
     
-    log.info(">>> ModuleControlFactory.go.__init__")
+    log.debug(">>> ModuleControlFactory.go.__init__")
     mi_m = moduleInstance# Link for shortness    
     """
     if moduleInstance.hasControls():
