@@ -92,7 +92,7 @@ def build_rigSkeleton(self):
 	    i_j.doName()
 	    l_rigJoints[i] = i_j.mNode
 	    ml_rigJoints.append(i_j)
-	ml_rigJoints[0].parent = self._i_deformGroup.mNode#Parent to deformGroup
+	ml_rigJoints[0].parent = self._i_deformNull.mNode#Parent to deformGroup
 	
 	#>>Anchor chain
 	ml_anchors = []
@@ -230,13 +230,16 @@ def build_controls(self):
     #>>>Set up structure
     try:#>>>> Cog
 	i_cog = self._md_controlShapes['cog']
-	d_buffer = mControlFactory.registerControl(i_cog,addExtraGroups = True,addConstraintGroup=True,
+	log.info(i_cog)
+	d_buffer = mControlFactory.registerControl(i_cog.mNode,addExtraGroups = True,addConstraintGroup=True,
 	                                           freezeAll=True,makeAimable=True,autoLockNHide=True,
 	                                           controlType='cog')
 	i_cog = d_buffer['instance']
 	l_controlsAll.append(i_cog)
 	self._i_rigNull.connectChildNode(i_cog,'cog','module')#Store
-	i_cog.masterGroup.parent = self._i_deformGroup.mNode
+	log.info(i_cog)
+	log.info(i_cog.masterGroup)
+	i_cog.masterGroup.parent = self._i_deformNull.mNode
 	#Set aims
 	
     except StandardError,error:
@@ -275,7 +278,7 @@ def build_controls(self):
 	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='ik',
 		                                       setRotateOrder=2)       
 	    i_obj = d_buffer['instance']
-	    i_obj.masterGroup.parent = self._i_deformGroup.mNode
+	    i_obj.masterGroup.parent = self._i_deformNull.mNode
 	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','module')
 	l_controlsAll.extend(ml_segmentsIK)	
 	
