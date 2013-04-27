@@ -780,7 +780,10 @@ def combineCurves(curvesToCombine):
     curveShapes = []
     for curve in curvesToCombine:
         mc.delete(curve, ch=True)
-
+        
+    for curve in curvesToCombine[1:]:
+        parentShapeInPlace(curvesToCombine[0],curve)
+    """
     for curve in curvesToCombine[1:]:
         shapeBuffer = mc.listRelatives (curve, f= True,shapes=True,fullPath=True)
         for shape in shapeBuffer:
@@ -788,7 +791,7 @@ def combineCurves(curvesToCombine):
 
     for shape in curveShapes:
         parentShapeInPlace(curvesToCombine[0],shape)
-
+    """
     for curve in curvesToCombine[1:]:
         mc.delete(curve)
 
