@@ -253,7 +253,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    log.error("'%s' is referenced. Cannot change name"%self.mNode)
 	    return False
 	
-	self.rename(nameTools.returnCombinedNameFromDict(self.getNameDict()))
+	mc.rename(self.mNode,nameTools.returnCombinedNameFromDict(self.getNameDict()))
 	    
     def delete(self):
         """
