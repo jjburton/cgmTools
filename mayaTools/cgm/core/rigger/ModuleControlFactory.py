@@ -324,6 +324,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
                              'shoulders':2#zyx,
                              }
     i_obj = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=False)
+    i_obj.addAttr('mClass','cgmControl',lock=True)
     i_control = cgmMeta.cgmControl(i_obj.mNode,setClass=True)
     log.info(i_control)
     
