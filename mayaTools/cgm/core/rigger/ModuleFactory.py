@@ -45,24 +45,24 @@ def isSized(self):
     log.debug(">>> isSized")    
     handles = self.templateNull.handles
     if len(self.i_coreNames.value) < handles:
-        log.warning("Not enough names for handles")
+        log.warning("%s.isSized>>> Not enough names for handles"%self.getShortName())
         return False
     if len(self.i_coreNames.value) > handles:
-        log.warning("Not enough handles for names")
+        log.warning("%s.isSized>>> Not enough handles for names"%self.getShortName())	
         return False
     
     if self.templateNull.templateStarterData:
         if len(self.templateNull.templateStarterData) == handles:
             for i,pos in enumerate(self.templateNull.templateStarterData):
                 if not pos:
-                    log.warning("[%s] has no data"%(i))                    
+		    log.warning("%s.isSized>>> [%s] has no data"%(self.getShortName(),i))			    
                     return False
             return True
         else:
-            log.warning("%i is not == %i handles necessary"%(len(self.templateNull.templateStarterData),handles))
+	    log.warning("%s.isSized>>> %i is not == %i handles necessary"%(self.getShortName(),len(self.templateNull.templateStarterData),handles))			    	    
             return False
     else:
-        log.warning("No template starter data found for '%s'"%self.getShortName())  
+        log.warning("%s.isSized>>> No template starter data found"%self.getShortName())	
     return False
     
 def deleteSizeInfo(self,*args,**kws):
