@@ -276,6 +276,29 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
         return l_positions[0]
     else:
         return distance.returnAveragePointPosition(l_positions)
+    
+    
+def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
+                                       vector = False, maxDistance = 1000):
+    """ Find the furthest point in range on an axis. Useful for getting to the outershell of a mesh """
+    #>>>First cast to get our initial range
+    d_firstcast = findMeshIntersectionFromObjectAxis(mesh, obj, axis = axis, vector=vector, maxDistance = maxDistance)
+    if not d_firstcast.get('hit'):
+	    raise StandardError,"findFurthestPointInRangeFromObject>>> first cast failed to hit"
+    
+    baseDistance = distance.returnDistanceBetweenPoints(distance.returnWorldSpacePosition(obj),d_firstcast['hit'])
+    log.info("findFurthestPointInRangeFromObject>>>baseDistance: %s"%baseDistance)
+    castDistance = baseDistance + pierceDepth
+    log.info("findFurthestPointInRangeFromObject>>>castDistance: %s"%castDistance)
+    
+    l_positions = []
+
+    d_castReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis=axis, maxDistance = castDistance, singleReturn=False) or {}
+    log.info("2nd castReturn: %s"%d_castReturn)
+    if d_castReturn.get('hits'):
+	    closestPoint = distance.returnFurthestPoint(distance.returnWorldSpacePosition(obj),d_castReturn.get('hits')) or False
+	    d_castReturn['hit'] = closestPoint
+    return d_castReturn
                 
     
 
