@@ -35,7 +35,9 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso','neckHead']
+#l_modulesToDoOrder = ['torso','neckHead']
+l_modulesToDoOrder = ['torso','neckHead','leg_left','foot_left']
+
 l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
                           'clavicle_right','arm_right',
                           ]
@@ -64,7 +66,7 @@ d_moduleParents = {'torso':False,
                    'arm_right':'clavicle_right',                   }
 
 d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
-                 'neckHead':{'moduleType':'segment','cgmName':'neck'},
+                 'neckHead':{'moduleType':'neckHead','cgmName':'neck'},
                  'leg_left':{'moduleType':'leg','cgmDirection':'left'},
                  'leg_right':{'moduleType':'leg','cgmDirection':'right'},
                  'foot_left':{'moduleType':'foot','cgmDirection':'left'},                 
@@ -84,7 +86,7 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
 d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':1},
                             'neckHead':{'handles':2,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
                             'leg':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
-                            'foot':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
+                            'foot':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
                             'hand':{'handles':1,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'thumb':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
@@ -98,7 +100,7 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'head':['head_bodyShaper','headTop_bodyShaper'],
                     'leg_left':['l_upr_leg_bodyShaper','l_lwr_leg_bodyShaper','l_ankle_bodyShaper'],                    
                     'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper'],                    
-                    'foot_left':['l_ankle_bodyShaper','l_heel_bodyShaper','l_ball_bodyShaper','l_toes_bodyShaper'],                    
+                    'foot_left':['l_ankle_bodyShaper','l_ball_bodyShaper','l_toes_bodyShaper'],                    
                     'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_wristMeat_bodyShaper'],
                     'hand_left':['l_hand_bodyShaper'],
                     'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper'],
