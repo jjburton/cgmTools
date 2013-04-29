@@ -37,7 +37,7 @@ def getGeo(self):
     Returns geo in a puppets geo folder, ALL geo to be used by a puppet should be in there
     """    
     geo = []
-    for o in self.masterNull.geoGroup.getAllChildren():
+    for o in self.masterNull.geoGroup.getAllChildren(True):
         if search.returnObjectType(o) in geoTypes:
             buff = mc.ls(o,long=True)
             geo.append(buff[0])
