@@ -897,11 +897,12 @@ def returnObjectType(obj):
     type(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    try:
-	intialCheck = mc.objectType(obj)
-    except StandardError,error:
-        log.warning("returnObjectType: %s"%error) 
+    if len(mc.ls(obj))>1:
+	log.error("returnObjectType>> There is more than one object named '%s'. Please specify which"%obj)
 	return False
+    
+    intialCheck = mc.objectType(obj)
+
 	
     if intialCheck == 'objectSet':
         return 'objectSet'
