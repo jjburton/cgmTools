@@ -28,9 +28,10 @@ from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 reload(mControlFactory)
 
-from cgm.core.rigger.lib.Limb import (spine,neckHead)
+from cgm.core.rigger.lib.Limb import (spine,neckHead,leg)
 reload(spine)
 reload(neckHead)
+reload(leg)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -227,8 +228,8 @@ def build_spine(goInstance,buildShapes = False, buildControls = False,buildSkele
     self = goInstance#Link
     
     if buildShapes: spine.build_shapes(self)
+    if buildSkeleton: spine.build_rigSkeleton(self)    
     if buildControls: spine.build_controls(self)    
-    if buildSkeleton: spine.build_rigSkeleton(self)
     if buildDeformation: spine.build_deformation(self)
     if buildRig: spine.build_rig(self)    
         
@@ -253,11 +254,33 @@ def build_neckHead(goInstance,buildShapes = False, buildControls = False,buildSk
         
     return 
 
+@r9General.Timer
+def build_leg(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False):
+    """
+    Rotate orders
+    hips = 3
+    """    
+    if not issubclass(type(goInstance),go):
+        log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+        raise StandardError
+    self = goInstance#Link
+    
+    if buildShapes: leg.build_shapes(self)
+    if buildSkeleton: leg.build_rigSkeleton(self)    
+    if buildControls: leg.build_controls(self)    
+    if buildDeformation: leg.build_deformation(self)
+    if buildRig: leg.build_rig(self)    
+        
+    return 
 #>>> Register rig functions
 #=====================================================================
-d_moduleRigFunctions = {'torso':build_spine,'neckHead':build_neckHead,
+d_moduleRigFunctions = {'torso':build_spine,
+                        'neckHead':build_neckHead,
+                        'leg':build_leg,
                         }
-d_moduleRigVersions = {'torso':str(spine.__version__),'neckHead':str(neckHead.__version__)
+d_moduleRigVersions = {'torso':str(spine.__version__),
+                       'neckHead':str(neckHead.__version__),
+                       'leg':str(neckHead.__version__),
                         }
     
  
