@@ -36,7 +36,9 @@ reload(constraints)
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
 #l_modulesToDoOrder = ['torso','neckHead']
-l_modulesToDoOrder = ['torso','neckHead','leg_left','foot_left']
+l_modulesToDoOrder = ['torso','neckHead',
+                      'leg_left','foot_left',
+                      'leg_right','foot_right']
 
 l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
                           'clavicle_right','arm_right',
@@ -54,6 +56,7 @@ d_moduleParents = {'torso':False,
                    'leg_left':'torso',
                    'leg_right':'torso',
                    'foot_left':'leg_left',
+                   'foot_right':'leg_right',                   
                    'clavicle_left':'torso',
                    'arm_left':'clavicle_left',
                    'hand_left':'arm_left',
@@ -69,7 +72,8 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
                  'neckHead':{'moduleType':'neckHead','cgmName':'neck'},
                  'leg_left':{'moduleType':'leg','cgmDirection':'left'},
                  'leg_right':{'moduleType':'leg','cgmDirection':'right'},
-                 'foot_left':{'moduleType':'foot','cgmDirection':'left'},                 
+                 'foot_left':{'moduleType':'foot','cgmDirection':'left'}, 
+                 'foot_right':{'moduleType':'foot','cgmDirection':'right'},                                  
                  'arm_left':{'moduleType':'arm','cgmDirection':'left'},
                  'clavicle_left':{'moduleType':'clavicle','cgmDirection':'left'},
                  'hand_left':{'moduleType':'hand','cgmDirection':'left'},
@@ -101,6 +105,7 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'leg_left':['l_upr_leg_bodyShaper','l_lwr_leg_bodyShaper','l_ankle_bodyShaper'],                    
                     'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper'],                    
                     'foot_left':['l_ankle_bodyShaper','l_ball_bodyShaper','l_toes_bodyShaper'],                    
+                    'foot_right':['r_ankle_bodyShaper','r_ball_bodyShaper','r_toes_bodyShaper'],                                        
                     'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_wristMeat_bodyShaper'],
                     'hand_left':['l_hand_bodyShaper'],
                     'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper'],
@@ -207,10 +212,9 @@ def verifyMorpheusNodeStructure(i_Morpheus):
         mc.progressBar(mayaMainProgressBar, edit=True, status = "On segment '%s'..."%(moduleKey), step=1)
         
         if moduleKey not in d_moduleParents.keys():#Make sure we have a parent
-            log.info("Missing parent info for: '%s'"%moduleKey)
-            return False
+            raise StandardError, "Missing parent info for: '%s'"%moduleKey
         if moduleKey not in d_moduleCheck.keys():#Make sure we have a parent
-            log.info("Missing check info for: '%s'"%moduleKey)
+            raise StandardError, "Missing check info for: '%s'"%moduleKey
             return False  
 
         if moduleKey in d_moduleTemplateSettings.keys():#Make sure we have settings
