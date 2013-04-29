@@ -96,7 +96,8 @@ class go(object):
 	self.b_midSurfacePos = midSurfacePos	
 	self.b_snapComponents = snapComponents
 	self.b_softSelection = softSelection
-	self.b_midSurfacePos = midSurfacePos	
+	self.b_midSurfacePos = midSurfacePos
+	self.b_aim = aim		
 	self._softSelectionDistance = softSelectDistance,
 	self._posOffset = posOffset
 	self._aimVector = aimVector
@@ -125,7 +126,10 @@ class go(object):
 	    self.doMove(**kws)
 	if orient:
 	    log.debug("orienting")
-	    self.doOrient(**kws)	
+	    self.doOrient(**kws)
+	if aim:
+	    log.debug("orienting")
+	    self.doAim(**kws)	    
 	
     #======================================================================
     # Move
@@ -252,6 +256,25 @@ class go(object):
 	    log.error(error)	
 	    return False
 	
+    def doAim(self):
+	"""
+	constraint
+	"""
+	if not self.l_targets:
+	    raise StandardError, "doAim>> must have targets"
+	try:
+	    constBuffer = mc.aimConstraint(self.l_targets,self.i_obj.mNode,
+	                                   maintainOffset = False, weight = 1,
+	                                   aimVector=self._aimVector,
+	                                   upVector=self._upVector,
+	                                   worldUpType = self._worldUpType)
+	    
+	    mc.delete(constBuffer)
+	    return True
+	    
+	except StandardError,error:
+	    log.error(error)	
+	    return False
 	
     def registerTarget(self,target):
 	"""
