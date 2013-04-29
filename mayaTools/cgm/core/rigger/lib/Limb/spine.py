@@ -183,12 +183,11 @@ def build_shapes(self):
     
     #>>>Build our Shapes
     #=============================================================
-    try:
-	mCurveFactory.go(self._i_module,storageInstance=self)#This will store controls to a dict called    
-	log.debug(self._md_controlShapes)
-    except StandardError,error:
-	log.error("build_spine>>Build shapes fail!")
-	raise StandardError,error    
+    mCurveFactory.go(self._i_module,['cog','hips','torsoIK','segmentFK'],storageInstance=self)#This will store controls to a dict called    
+    log.debug(self._md_controlShapes)
+    #except StandardError,error:
+	#log.error("build_spine>>Build shapes fail!")
+	#raise StandardError,error    
     
 def build_controls(self):
     """
