@@ -166,12 +166,14 @@ def doSkeletonize(self):
             
     #>>> Make if our segment only has one handle
     #==========================================	
+    self.b_parentStole = False
     if len(self.i_controlObjects) == 1:
         if i_parentJointToUse:
             log.info("Single joint: moduleParent mode")
             #Need to grab the last joint for this module
             l_limbJoints = [parentJoints[-1]]
             i_parentRigNull.connectChildrenNodes(parentJoints[:-1],'skinJoints','module')
+	    self.b_parentStole = True	    
         else:
             log.info("Single joint: no parent mode")
             l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
@@ -180,6 +182,7 @@ def doSkeletonize(self):
             #We're going to reconnect all but the last joint back to the parent module and delete the last parent joint which we're replacing
             i_parentRigNull.connectChildrenNodes(parentJoints[:-1],'skinJoints','module')
             mc.delete(i_parentJointToUse.mNode)
+	    self.b_parentStole = True
             
         #>>> Make the limb segment
         #==========================	 
@@ -241,7 +244,15 @@ def doSkeletonize(self):
         #transferObj = attributes.returnMessageObject(obj,'cgmName')
         """Then we copy it"""
         attributes.copyUserAttrs(i_obj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
-       
+	i_obj.connectChildNode(closestJoint,'handleJoint')
+	
+    #>>>If we stole our parents anchor joint, we need to to reconnect it
+    log.info("STOLEN>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s"%self.b_parentStole)
+    if self.b_parentStole:
+	i_parentControl = self.m.moduleParent.templateNull.controlObjects[-1]
+	log.info("parentControl: %s"%i_parentControl.getShortName())
+        closestJoint = distance.returnClosestObject(i_parentControl.mNode,l_limbJoints)	
+	i_parentControl.connectChildNode(closestJoint,'handleJoint')
     
     #>>>Store it
     #self.i_rigNull.connectChildren(l_limbJoints,'skinJoints','module')
