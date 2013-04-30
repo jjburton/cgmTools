@@ -114,7 +114,11 @@ class go(object):
 	self.l_segments = lists.parseListToPairs(self.l_controlSnapObjects)		
 	self.d_returnControls = {}	
 	self.md_ReturnControls = {}	
-        
+	self.d_returnPivots = {}		
+	self.md_returnPivots = {}   
+	self.md_fkControls = {}
+	self.md_segmentHandles = {}
+	
         #>>> We need to figure out which control to make
 	#===================================================================================
 	self.l_controlsToMakeArg = []	
@@ -150,6 +154,10 @@ class go(object):
 	    try:
 		storageInstance._d_controlShapes = self.d_returnControls
 		storageInstance._md_controlShapes = self.md_ReturnControls
+		storageInstance._md_fkControls = self.md_fkControls
+		storageInstance._md_controlPivots = self.md_returnPivots
+		
+		
 	    except StandardError,error:
 		log.error("storage fail! | %s"%storageInstance) 
 		raise StandardError,"Did not get all necessary controls built"
@@ -471,11 +479,11 @@ class go(object):
 	    l_segmentControls.append( mi_newCurve.mNode )
 	    ml_segmentControls.append( mi_newCurve )		
 		
-	    self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
-	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
+	    self.d_returnControls['midIK'] = mi_newCurve.mNode 
+	    self.md_ReturnControls['midIK'] = mi_newCurve
 	    
 	except StandardError,error:
-		log.error("build_segmentIKHandles fail! | %s"%error) 
+		log.error("build_midIKHandle fail! | %s"%error) 
 		return False
 	    
     @r9General.Timer	
@@ -640,7 +648,8 @@ class go(object):
 	i_gear.doCopyPivot(i_target.mNode)
 	#>>> Color
 	curves.setCurveColorByName(i_gear.mNode,self.l_moduleColors[0])                    
-	i_gear.doCopyNameTagsFromObject(i_target.mNode,ignore = ['cgmType'])
+	#i_gear.doCopyNameTagsFromObject(i_target.mNode,ignore = ['cgmType'])
+	i_gear.addAttr(self._partName,attrType='string',value = 'settings',lock=True)	    
 	i_gear.addAttr('cgmType',attrType='string',value = 'settings',lock=True)	    
 	i_gear.doName()
 	    
@@ -648,6 +657,9 @@ class go(object):
 	self.md_ReturnControls['settings'] = i_gear		
 	
     def build_footShape(self):
+	"""
+	build foot shape and pivot locs at the same time
+	"""
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_footModule = False
@@ -694,17 +706,93 @@ class go(object):
 	
 	#Get our helper objects
 	#============================================================================
-
 	mi_heelLoc = mi_ankle.doLoc()
 	mi_ballLoc = mi_ball.doLoc()
+	mi_heelLoc.__setattr__('r%s'%self._jointOrientation[2],0)
+	mi_heelLoc.__setattr__('t%s'%self._jointOrientation[1],mi_ballLoc.getAttr('t%s'%self._jointOrientation[1]))
 	
 	#Get our distance for our front cast
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self._jointOrientation[0]+'+',pierceDepth=self._skinOffset*10) or {}
+	
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self._jointOrientation[0]+'+',pierceDepth=self._skinOffset*15) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get hit to measure first distance"
-	dist = distance.returnDistanceBetweenPoints(mi_ballLoc.getPosition(),d_return['hit'])
+	dist = distance.returnDistanceBetweenPoints(mi_ballLoc.getPosition(),d_return['hit']) *1.5
 	log.info("go.build_footShape>>front distance: %s"%dist)
 	
+	#Pivots
+	#===================================================================================
+	#Ball pivot
+	mi_ballPivot = mi_ballLoc.doLoc()
+	mi_ballPivot.__setattr__('r%s'%self._jointOrientation[2],0)
+	mi_ballPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_ballPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_ballPivot.doName()
+	self.d_returnPivots['ball'] = mi_ballPivot.mNode 		
+	self.md_returnPivots['ball'] = mi_ballPivot	
+	
+	#Toe pivot
+	mi_toePivot =  mi_ballLoc.doLoc()
+	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_toePivot.mNode)
+	mi_toePivot.__setattr__('r%s'%self._jointOrientation[2],0)
+	mi_toePivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_toePivot.addAttr('cgmName','toe',lock=True)	
+	mi_toePivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_toePivot.doName()	
+	#mc.rotate (objRot[0], objRot[1], objRot[2], str_pivotToe, ws=True)	
+	self.d_returnPivots['toe'] = mi_toePivot.mNode 		
+	self.md_returnPivots['toe'] = mi_toePivot	
+	
+	#Inner bank pivots
+	if self._direction == 'left':
+	    innerAim = self._jointOrientation[2]+'-'
+	    outerAim = self._jointOrientation[2]+'+'
+	    
+	else:
+	    innerAim = self._jointOrientation[2]+'+'
+	    outerAim = self._jointOrientation[2]+'-'
+	    
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,innerAim,pierceDepth=self._skinOffset*5) or {}
+	if not d_return.get('hit'):
+	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
+	mi_innerPivot =  mi_ballLoc.doLoc()
+	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_innerPivot.mNode)
+	mi_innerPivot.__setattr__('r%s'%self._jointOrientation[2],0)
+	mi_innerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_innerPivot.addAttr('cgmName','inner',lock=True)	
+	mi_innerPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_innerPivot.doName()		
+	self.d_returnPivots['inner'] = mi_innerPivot.mNode 		
+	self.md_returnPivots['inner'] = mi_innerPivot	
+	
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,outerAim,pierceDepth=self._skinOffset*5) or {}
+	if not d_return.get('hit'):
+	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
+	mi_outerPivot =  mi_ballLoc.doLoc()
+	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_outerPivot.mNode)
+	mi_outerPivot.__setattr__('r%s'%self._jointOrientation[2],0)
+	mi_outerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_outerPivot.addAttr('cgmName','outer',lock=True)	
+	mi_outerPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_outerPivot.doName()	
+	self.d_returnPivots['outer'] = mi_outerPivot.mNode 		
+	self.md_returnPivots['outer'] = mi_outerPivot	
+	
+	#Heel pivot
+	mi_heelPivot =  mi_heelLoc.doLoc()
+	mi_heelPivot.__setattr__('r%s'%self._jointOrientation[2],0)
+	mi_heelPivot.__setattr__('t%s'%self._jointOrientation[1],.25)
+	
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_heelPivot.mNode,self._jointOrientation[0]+'-',pierceDepth=self._skinOffset*5) or {}
+	if not d_return.get('hit'):
+	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
+	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_heelPivot.mNode)
+	mi_heelPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_heelPivot.addAttr('cgmName','heel',lock=True)	
+	mi_heelPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_heelPivot.doName()		
+	self.d_returnPivots['heel'] = mi_heelPivot.mNode 		
+	self.md_returnPivots['heel'] = mi_heelPivot		
+    
 	#Cast our stuff
 	#============================================================================
 	self.posOffset = [0,0,self._skinOffset*3]
@@ -717,16 +805,14 @@ class go(object):
 	else:
 	    l_specifiedRotates = [40,20,0,-20,-60,-80]
 	    
-	d_return = createMeshSliceCurve(self._targetMesh,mi_ballLoc.mNode,offsetMode='vector',maxDistance = dist*1.5,l_specifiedRotates = l_specifiedRotates,
+	d_return = createMeshSliceCurve(self._targetMesh,mi_ballLoc.mNode,offsetMode='vector',maxDistance = dist,l_specifiedRotates = l_specifiedRotates,
 	                                closedCurve = False,curveDegree=1,posOffset = self.posOffset,returnDict = True,
 	                                latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
 	str_frontCurve = d_return['curve']
 	
 	
 	#Heel cast
-	mi_heelLoc.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_heelLoc.__setattr__('t%s'%self._jointOrientation[1],mi_ballLoc.getAttr('t%s'%self._jointOrientation[1]))
-	
+
 	self.aimAxis = self._jointOrientation[0] + '-'	
 	if self._direction == 'left':
 	    l_specifiedRotates = [-90,-60,-20,-10,0,10,20,40,60,80]#foot back, closed false, closest in range false
