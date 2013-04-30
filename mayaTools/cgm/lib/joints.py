@@ -177,6 +177,49 @@ def orientJoint (jointToOrient, orientation = 'xyz', up = None):
                     freezeJointOrientation(jointToOrient)
     return success
 
+def doCopyJointOrient(sourceJoint,targetJoints):
+    """
+    Copies joint orietnations from one joint to others
+    """
+    if type(targetJoints) not in [list,tuple]:targetJoints=[targetJoints]
+    if not mc.objExists(sourceJoint):
+        raise StandardError,"doCopyJointOrient>> source doesn't exist: '%s'"%sourceJoint
+    if len(mc.ls(sourceJoint))>1:
+        raise StandardError,"doCopyJointOrient>> More than one sourcejoint found by that name: '%s'"%mc.ls(sourceJoint)        
+    if mc.objectType(sourceJoint) != 'joint':
+        raise StandardError,"doCopyJointOrient>> Source joint isn't a joint: '%s'"%mc.objectType(sourceJoint)         
+    for jnt in targetJoints:
+        if not mc.objExists(jnt):
+            log.warning("doCopyJointOrient>> target joint doesn't exist. Culling from targets: '%s'"%jnt)
+            targetJoints.remove(jnt)
+        if mc.listRelatives(jnt,c=True,type='constraint'):
+            log.warning("doCopyJointOrient>> target joint has constraints. Can't change orientation. Culling from targets: '%s'"%jnt)
+            targetJoints.remove(jnt) 
+        if mc.objectType(jnt) != 'joint':
+            log.warning("doCopyJointOrient>> target joint is not a joint. Can't change orientation. Culling from targets: '%s'"%jnt)
+            targetJoints.remove(jnt)             
+    if not targetJoints:
+        raise StandardError,"doCopyJointOrient>> No targets"
+    
+    #buffer parents and children of 
+    d_children = {}
+    for jnt in targetJoints:
+        d_children[jnt] = mc.listRelatives(jnt, c=True) or []
+        for c in d_children[jnt]:
+            log.info("doCopyJointOrient>> parented '%s' to world to orient parent"%c)
+            mc.parent(c,world = True)
+            
+    #Orient
+    for jnt in targetJoints:
+        mc.delete(mc.orientConstraint(sourceJoint, jnt, w=1, o=(0,0,0)))
+        freezeJointOrientation(jnt)   
+       
+    #reparent
+    for jnt in targetJoints:
+        for c in d_children[jnt]:
+            log.info("doCopyJointOrient>> parented '%s' back"%c)
+            mc.parent(c,jnt)        
+   
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def freezeJointOrientation(jointToOrient):
     """ 
