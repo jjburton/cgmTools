@@ -22,6 +22,9 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core.rigger import PuppetFactory as PuppetF
+reload(PuppetF)
+
 from cgm.core.rigger import ModuleCurveFactory as mCurveFactory
 reload(mCurveFactory)
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
@@ -113,6 +116,7 @@ class go(object):
         #>>> part name 
         self._partName = self._i_module.getPartNameBase()
         self._partType = self._i_module.moduleType or False
+        self._strShortName = self._i_module.getShortName() or False
         
         #>>>Version Check
 	#TO DO: move to moduleFactory
@@ -162,6 +166,37 @@ class go(object):
         else:
             raise NotImplementedError,"haven't implemented '%s' rigging yet"%self._i_module.mClass
 
+    def isShaped(self):
+	"""
+	Return if a module is shaped or not
+	"""
+	if self._partType in d_moduleShapeKeys.keys():
+	    checkShapes = d_moduleShapeKeys.get(self._partType)
+	else:
+	    log.error("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
+	    return True
+	for key in checkShapes.keys():
+	    for subkey in checkShapes[key]:
+		if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
+		    log.error("%s.isShaped>>> Missing key %s_%s "%(self._strShortName,key,subkey))
+		    return False		
+	return True
+    
+    def isRigSkeletonized(self):
+	"""
+	Return if a module is rig skeletonized or not
+	"""
+	if self._partType in d_moduleJointAttrs.keys():
+	    checkShapes = d_moduleJointAttrs.get(self._partType)
+	else:
+	    log.error("%s.isShaped>>> Don't have a jointList, can't check. Passing..."%(self._strShortName))	    
+	    return True
+	for key in checkShapes:
+	    if not self._i_rigNull.getMessage('%s'%(key)):
+		log.error("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
+		return False		
+	return True
+    
 @r9General.Timer
 def verify_moduleRigToggles(goInstance):
     """
@@ -282,5 +317,7 @@ d_moduleRigVersions = {'torso':str(spine.__version__),
                        'neckHead':str(neckHead.__version__),
                        'leg':str(neckHead.__version__),
                         }
-    
- 
+d_moduleShapeKeys = {'leg':leg.__shapeDict__,
+                     }
+d_moduleJointAttrs = {'leg':leg.__jointList__,
+                     } 
