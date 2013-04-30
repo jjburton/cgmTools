@@ -166,7 +166,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
 	self.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
 	self.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
-	self.addAttr('skinDepth',attrType = 'float',initialValue=2,lock=True)   
+	self.addAttr('skinDepth',attrType = 'float',initialValue=.75,lock=True)   
 	
         self.doName()
         log.debug("Network good...")
@@ -1587,7 +1587,8 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              'finger':{'handles':5,'rollOverride':'{"0":1}','curveDegree':0,'rollJoints':0},
              'clavicle':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'arm':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':3},
-             'leg':{'handles':3,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
+             'leg':{'handles':4,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
+             'legSimple':{'handles':3,'rollOverride':'{}','curveDegree':2,'rollJoints':3},             
              'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':2},
              'tail':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'head':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
