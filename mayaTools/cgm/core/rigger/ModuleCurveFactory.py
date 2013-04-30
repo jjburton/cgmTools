@@ -59,6 +59,7 @@ class go(object):
 	                                'segmentFK_Loli':self.build_segmentFKLoliHandles,
 	                                'torsoIK':self.build_torsoIKHandles,
 	                                'loliHandles':self.build_loliHandles,
+	                                'midIK':self.build_midIKHandle,
 	                                'foot':self.build_footShape,
 	                                'settings':self.build_settings}
         # Get our base info
@@ -303,14 +304,15 @@ class go(object):
 		l_segmentsToDo = self.l_segments[1:-1]
 	    else:
 		l_segmentsToDo = self.l_segments
-		
+	    log.info("segments: %s"%l_segmentsToDo)
 	    for i,seg in enumerate(l_segmentsToDo):	
 		returnBuffer = createWrapControlShape(seg,self._targetMesh,
 		                                      points = 10,
 		                                      curveDegree=1,
 		                                      insetMult = .2,
 		                                      posOffset = [0,0,self._skinOffset*3],
-		                                      joinMode=False,
+		                                      joinMode=True,
+		                                      joinHits = [0,2,4,6,8],
 		                                      extendMode='segment')
 		mi_crv = returnBuffer['instance']	    
 		#>>> Color
@@ -321,12 +323,13 @@ class go(object):
 		#Store for return
 		l_segmentControls.append( mi_crv.mNode )
 		l_iSegmentControls.append( mi_crv )
+		if i ==1:raise StandardError
 		
 	    self.d_returnControls['segmentFK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK'] = l_iSegmentControls
 	    
 	except StandardError,error:
-		log.error("build_segmentIKHandles fail! | %s"%error) 
+		log.error("build_segmentFKHandles fail! | %s"%error) 
 		return False
 	    
     @r9General.Timer    
@@ -341,41 +344,69 @@ class go(object):
 	    #figure out our settings
 	    #================================================================
 	    #defaults first
-	    posOffset = []
-	    l_specifiedRotates = None
-	    joinMode = False
-	    closedCurve = False
-	    rotateBank = None
-	    latheAxis = 'z'
-	    aimAxis = 'y+'
-	    rotateBank = None	
-	    d_specificRotates = {}
+	    d_kws = {}
+	    self.posOffset = []
+	    self.l_specifiedRotates = None
+	    self.joinMode = False
+	    self.closedCurve = False
+	    self.rotateBank = None
+	    self.latheAxis = 'z'
+	    self.aimAxis = 'y+'
+	    self.rotateBank = None	
+	    self.rootOffset = None
+	    self.rootRotate = None
 	    if 'neck' in self._partType:
 		posOffset = [0,0,self._skinOffset*5]
 		l_specifiedRotates = [-30,-10,0,10,30]
 		latheAxis = 'z'
 		aimAxis = 'y+'
 	    elif 'leg' in self._partType:
-		posOffset = [0,0,self._skinOffset*5]
-		l_specifiedRotates = [-40,-20,0,20,40]
-		d_specificRotates = {0:[-110,-90,-60,-30,0,30,60,90,110]}
+		d_kws = {'default':{'closedCurve':False,
+		                    'latheAxis':'z',
+		                    'l_specifiedRotates':[-60,-40,-20,0,20,40,60],
+		                    'rootOffset':[],
+		                    'rootRotate':None},
+		         0:{},
+		         -2:{}}	
+		d_kws[0]['l_specifiedRotates'] = [-110,-90,-60,-30,0,30,60,90,110]
+		d_kws[0]['rootOffset'] = [0,0,self._skinOffset*8]	
+		
+		self.posOffset = [0,0,self._skinOffset*3]
 		if self._direction == 'left':
-		    aimAxis = 'x+'
-		else:aimAxis = 'x-'
+		    self.aimAxis = 'x+'
+		else:self.aimAxis = 'x-'
+		
 		
 	    log.info("Snap Objects: %s"%self.l_controlSnapObjects)
 	    for i,obj in enumerate(self.l_controlSnapObjects):			
 		#make ball
-		if d_specificRotates.get(i):use_rotates = d_specificRotates.get(i)
-		else:use_rotates = l_specifiedRotates
+		if d_kws:
+		    if d_kws.get(i):
+			for k in d_kws[i].keys():
+			    self.__dict__[k] = d_kws[i].get(k)
+		    elif i == len(self.l_controlSnapObjects)-1 and d_kws.get(-1):
+			log.info('last mode')
+			for k in d_kws[-1].keys():
+			    self.__dict__[k] = d_kws[-1].get(k)
+		    else:
+			for k in d_kws['default'].keys():
+			    self.__dict__[k] = d_kws['default'].get(k)
+			    
+		#Few more special cases
+		if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle']:
+		    log.info('Special rotate mode')
+		    self.rootRotate = [0,0,0]
+		    self.latheAxis = 'y'
 		returnBuffer = createWrapControlShape(obj,self._targetMesh,
 	                                              curveDegree=3,
 	                                              insetMult = .2,
-		                                      closedCurve=closedCurve,
-		                                      aimAxis = aimAxis,
-		                                      latheAxis = latheAxis,
-		                                      l_specifiedRotates = use_rotates,
-	                                              posOffset = posOffset,
+		                                      closedCurve= self.closedCurve,
+		                                      aimAxis = self.aimAxis,
+		                                      latheAxis = self.latheAxis,
+		                                      l_specifiedRotates = self.l_specifiedRotates,
+	                                              posOffset = self.posOffset,
+		                                      rootOffset = self.rootOffset,
+		                                      rootRotate = self.rootRotate,
 	                                              extendMode='loliwrap')
 		mi_newCurve = returnBuffer['instance']
 		mi_newCurve.doCopyPivot(obj)
@@ -387,6 +418,58 @@ class go(object):
 		#Store for return
 		l_segmentControls.append( mi_newCurve.mNode )
 		ml_segmentControls.append( mi_newCurve )		
+		
+	    self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
+	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
+	    
+	except StandardError,error:
+		log.error("build_segmentIKHandles fail! | %s"%error) 
+		return False
+	    
+    @r9General.Timer	
+    def build_midIKHandle(self):
+	try:
+	    l_segmentControls = []
+	    ml_segmentControls = []
+
+	    mi_mid = False
+	    if 'arm' in self._partType:
+		for obj in self.l_controlSnapObjects:
+		    if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'elbow':
+			mi_mid = cgmMeta.cgmObject(obj)
+			break
+	    if 'leg' in self._partType:
+		for obj in self.l_controlSnapObjects:
+		    if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'knee':
+			mi_mid = cgmMeta.cgmObject(obj)
+			break   
+	    if not mi_mid:
+		raise StandardError, "build_midIKHandle>>> currently needs an arm or leg"
+		
+	    #figure out our settings
+	    #================================================================
+	    #defaults first
+
+
+	    returnBuffer = createWrapControlShape(mi_mid.mNode,self._targetMesh,
+	                                          points = 10,
+	                                          curveDegree=3,
+	                                          insetMult = .5,
+	                                          posOffset = [0,0,self._skinOffset*3],
+	                                          joinMode=True,
+	                                          joinHits = [0,5],
+	                                          extendMode='cylinder')
+	    
+	    mi_newCurve = returnBuffer['instance']
+	    mi_newCurve.doCopyPivot(obj)
+	    #>>> Color
+	    curves.setCurveColorByName(mi_newCurve.mNode,self.l_moduleColors[0])                    
+	    mi_newCurve.addAttr('cgmType',attrType='string',value = 'loliHandle',lock=True)	
+	    mi_newCurve.doName()
+	    
+	    #Store for return
+	    l_segmentControls.append( mi_newCurve.mNode )
+	    ml_segmentControls.append( mi_newCurve )		
 		
 	    self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
@@ -489,10 +572,11 @@ class go(object):
 	    else:
 		objects = self.l_segments[-1]
 	    returnBuffer = createWrapControlShape(self.l_segments[-1],self._targetMesh,
-	                                          points = 8,
+	                                          points = 10,
 	                                          curveDegree=3,
 	                                          insetMult = .05,
 	                                          posOffset = [0,0,self._skinOffset*3],
+	                                          joinHits = [0,2,4,6,8],	                                          
 	                                          joinMode=True,
 	                                          extendMode='segment')
 	    mi_crv = returnBuffer['instance']	    
@@ -520,16 +604,17 @@ class go(object):
 	self.aimAxis = self._jointOrientation[1] + '-'
 	self.outAxis = self._jointOrientation[2]
 	self.posOffset = [0,0,self._skinOffset*6]
-	
+	self.gearVector = [0,0,-1]
 	if self._partType == 'leg':
-	    index = -1
+	    index = -2
+	    self.settingsVector = [0,0,-1]	    
 	else:
 	    index = -1
 	
 	i_target = cgmMeta.cgmObject( self.l_controlSnapObjects[index] )
 	mi_rootLoc = i_target.doLoc()
 	
-	d_size = returnBaseControlSize(mi_rootLoc,self._targetMesh,axis=[self.aimAxis])#Get size
+	d_size = returnBaseControlSize(mi_rootLoc,self._targetMesh,axis=[self.outAxis])#Get size
 	baseSize = d_size.get(d_size.keys()[0])*.75
 	log.info("build_settings>>> baseSize: %s"%baseSize)
 		
@@ -539,7 +624,7 @@ class go(object):
 	Snap.go(i_gear.mNode,mi_rootLoc.mNode,True, False)#Snap to main object
 	
 	#Move the ball
-	d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_rootLoc.mNode,self.aimAxis,singleReturn=True)
+	d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_rootLoc.mNode,vector = self.settingsVector,singleReturn=True)
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_settings>>failed to get hit to measure distance"
 	
@@ -566,12 +651,14 @@ class go(object):
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_footModule = False
+	mi_ball = False
+	mi_ankle = False
 	
 	#Find our foot
 	#============================================================================	
 	if self._partType == 'foot':
 	    raise NotImplementedError,"haven't implemented foot"
-	elif 'leg' in self._partType:
+	elif self._partType == 'legSimple':
 	    #find the foot. 1) Build search dict
 	    d_search = {'moduleType':'foot'}
 	    for key in ['cgmDirection','cgmPosition']:
@@ -581,22 +668,35 @@ class go(object):
 	    #Find it
 	    mi_footModule = self._mi_module.modulePuppet.getModuleFromDict(d_search)
 	    ml_children = self._mi_module.moduleChildren
-	    if mi_footModule in ml_children:log.info("found match modules: %s"%mi_footModule)	
-	
-	if not mi_footModule:
+	    if mi_footModule in ml_children:log.info("found match modules: %s"%mi_footModule)
+	    
+	    ml_controlSnapObjects = []
+	    for mi_obj in mi_footModule.templateNull.controlObjects:
+		ml_controlSnapObjects.append(mi_obj.helper)  
+	    log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
+	    if ml_controlSnapObjects[1].cgmName != 'ball':
+		raise StandardError,"go.build_footShape>>> Expected second snap object to be 'ball'. Found: %s"%ml_controlSnapObjects[1].mNode
+	    mi_ball = ml_controlSnapObjects[1]
+	    mi_ankle = ml_controlSnapObjects[0]
+	    
+	elif self._partType == 'leg':
+	    for obj in self.l_controlSnapObjects:
+		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'ankle':
+		    mi_ankle = cgmMeta.cgmObject(obj)
+		    break
+	    for obj in self.l_controlSnapObjects:
+		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'ball':
+		    mi_ball = cgmMeta.cgmObject(obj)
+		    break
+		
+	if not mi_ball and not mi_ankle:
 	    raise StandardError,"go.build_footShape>>> Haven't found a foot module to build from"
 	
 	#Get our helper objects
 	#============================================================================
-	ml_controlSnapObjects = []
-	for mi_obj in mi_footModule.templateNull.controlObjects:
-	    ml_controlSnapObjects.append(mi_obj.helper)  
-	log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
-	if ml_controlSnapObjects[1].cgmName != 'ball':
-	    raise StandardError,"go.build_footShape>>> Expected second snap object to be 'ball'. Found: %s"%ml_controlSnapObjects[1].mNode
-	
-	mi_heelLoc = ml_controlSnapObjects[0].doLoc()
-	mi_ballLoc = ml_controlSnapObjects[1].doLoc()
+
+	mi_heelLoc = mi_ankle.doLoc()
+	mi_ballLoc = mi_ball.doLoc()
 	
 	#Get our distance for our front cast
 	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self._jointOrientation[0]+'+',pierceDepth=self._skinOffset*10) or {}
@@ -640,7 +740,6 @@ class go(object):
 	
 	#side cast
 	self.aimAxis = self._jointOrientation[0] + '+'
-	self.aimAxis = self._jointOrientation[0] + '-'	
 	if self._direction == 'left':
 	    l_specifiedRotates = [-100,-80,-50]#foot front closest, closed false, closest in range true
 	    
@@ -676,17 +775,15 @@ class go(object):
 	newCrv = curves.combineCurves([topCrv,baseCrv])
 	mi_crv = cgmMeta.cgmObject(newCrv)
 	
-	mi_crv.doCopyPivot(ml_controlSnapObjects[0].mNode)
+	mi_crv.doCopyPivot(mi_ankle.mNode)
 	#>>> Color
 	curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
-	mi_crv.doCopyNameTagsFromObject(ml_controlSnapObjects[0].mNode,ignore = ['cgmType'])
+	mi_crv.doCopyNameTagsFromObject(mi_ankle.mNode,ignore = ['cgmType'])
 	mi_crv.addAttr('cgmType',attrType='string',value = 'foot',lock=True)	    
 	mi_crv.doName()
 	    
 	self.d_returnControls['foot'] = mi_crv.mNode 		
 	self.md_ReturnControls['foot'] = mi_crv	
-	
-
 	
 	
     def build_segmentIKHandles(self):
@@ -704,7 +801,11 @@ class go(object):
 	self.latheAxis = 'z'
 	self.insetMult = .1
 	self.points = 8
+	self.rootRotate = None
+	self.rootOffset = None
 	d_kws = {}
+	l_objectsToDo = []
+	
 	#Figure out some flag stuff
 	if 'neck' in self._partType:
 	    self.maxDistance = 1000
@@ -718,15 +819,19 @@ class go(object):
 	             0:{'rotateBank':10},
 	             -1:{'closedCurve':False,'l_specifiedRotates':[-90,-60,-30,0,30,60,90],'rotateBank':-10}}
 	    
-	elif 'leg' in self._partType:
+	elif self._partType == 'leg':
+	    l_objectsToDo = self.l_controlSnapObjects[:-1]
 	    self.posOffset = [0,0,self._skinOffset*2]
 	    self.points = 12
 	    d_kws = {'default':{'closedCurve':True,
-	                        'l_specifiedRotates':None,
+	                        'l_specifiedRotates':[],
 	                        'insetMult':.15,
-	                        'rotateBank':None},
-	             0:{'closedCurve':False},
-	             -1:{'rotateBank':-10}}
+	                        'rootRotate':None,
+	                        'rootOffset':[],
+	                        'rotateBank':[]},
+	             0:{'closedCurve':False,
+	                'rootOffset':[0,0,self._skinOffset*4]},
+	             -1:{'rootOffset':[0,self._skinOffset*4,0]}}
 	    
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
@@ -739,26 +844,32 @@ class go(object):
 		d_kws[0]['l_specifiedRotates']=[-90,-60,-30,0,30,60,90]
 		d_kws[0]['rotateBank'] = 10
 
-	    
-	for i,obj in enumerate(self.l_controlSnapObjects):
+	if not l_objectsToDo:l_objectsToDo = self.l_controlSnapObjects
+	for i,obj in enumerate(l_objectsToDo):
 	    log.info(obj)
 	    if d_kws:
+		for k in d_kws['default'].keys():
+		    self.__dict__[k] = d_kws['default'].get(k)		
+
 		if d_kws.get(i):
 		    for k in d_kws[i].keys():
 			self.__dict__[k] = d_kws[i].get(k)
-		elif i == len(self.l_controlSnapObjects)-1 and d_kws.get(-1):
+		elif i == len(l_objectsToDo)-1 and d_kws.get(-1):
 		    log.info('last mode')
 		    for k in d_kws[-1].keys():
 			self.__dict__[k] = d_kws[-1].get(k)
-		else:
-		    for k in d_kws['default'].keys():
-			self.__dict__[k] = d_kws['default'].get(k)
+
 		    
 	    log.info(">>>>>>>>>>>aim: %s"%self.aimAxis)
 	    log.info(">>>>>>>>>> lathe: %s"%self.latheAxis)
 	    log.info(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
 	    log.info(">>>>>>>>>> distance: %s"%self.maxDistance)
-
+	    #Few more special cases
+	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle']:
+		log.info('Special rotate mode')
+		self.rootRotate = [0,0,0]
+		self.latheAxis = 'y'	 
+		
 	    returnBuffer = createWrapControlShape(obj,self._targetMesh,
 	                                          points = 8,
 	                                          curveDegree=3,
@@ -768,6 +879,8 @@ class go(object):
 	                                          maxDistance = self.maxDistance,
 	                                          rotateBank = self.rotateBank,
 	                                          posOffset = self.posOffset,
+	                                          rootRotate = self.rootRotate,
+	                                          rootOffset = self.rootOffset,
 	                                          closedCurve = self.closedCurve,
 	                                          l_specifiedRotates = self.l_specifiedRotates,
 	                                          joinMode=self.joinMode,
@@ -866,6 +979,8 @@ def createWrapControlShape(targetObjects,
                            curveDegree = 1,
                            insetMult = None,#Inset multiplier
                            posOffset = [],
+                           rootOffset = [],#offset root before cast
+                           rootRotate = None,
                            joinMode = False,
                            extendMode = None,
                            closedCurve = True,
@@ -873,6 +988,7 @@ def createWrapControlShape(targetObjects,
                            maxDistance = 1000,
                            closestInRange = True,
                            rotateBank = None,
+                           joinHits = None,#keys to processed hits to see what to join
                            ):#'segment,radial,disc' 
     """
     Function for creating control curves from other objects. Currently assumes z aim, y up
@@ -890,12 +1006,15 @@ def createWrapControlShape(targetObjects,
     assert type(points) is int,"Points must be int: %s"%points
     assert type(curveDegree) is int,"Points must be int: %s"%points
     assert curveDegree > 0,"Curve degree must be greater than 1: %s"%curveDegree
-    if posOffset and len(posOffset)!=3:raise StandardError, "posOffset must be len(3): %s | len: %s"%(posOffset,len(posOffset))
+    if posOffset is not None and len(posOffset) and len(posOffset)!=3:raise StandardError, "posOffset must be len(3): %s | len: %s"%(posOffset,len(posOffset))
+    if rootOffset is not None and len(rootOffset) and len(rootOffset)!=3:raise StandardError, "rootOffset must be len(3): %s | len: %s"%(rootOffset,len(rootOffset))
+    if rootRotate is not None and len(rootRotate) and len(rootRotate)!=3:raise StandardError, "rootRotate must be len(3): %s | len: %s"%(rootRotate,len(rootRotate))
+    
     if insetMult is None:insetMult = 1
     for axis in ['x','y','z']:
 	if axis in latheAxis.lower():latheAxis = axis
     
-    log.debug("targetObjects: %s"%targetObjects)
+    log.info("targetObjects: %s"%targetObjects)
     
     if len(aimAxis) == 2:single_aimAxis = aimAxis[0]
     else:single_aimAxis = aimAxis
@@ -909,38 +1028,49 @@ def createWrapControlShape(targetObjects,
     #>>> Build curves
     #=================================================================
     #> Root curve #
+    log.info("RootRotate: %s"%rootRotate)
     mi_rootLoc = cgmMeta.cgmNode(targetObjects[0]).doLoc()
+    if rootOffset:
+	mc.move(rootOffset[0],rootOffset[1],rootOffset[2], [mi_rootLoc.mNode], r=True, rpr = True, os = True, wd = True)
+    if rootRotate is not None and len(rootRotate):
+	mc.rotate(rootRotate[0],rootRotate[1],rootRotate[2], [mi_rootLoc.mNode], os = True)
+
+	    
     #>>> Root
     mi_rootLoc.doGroup()#Group to zero    
     if extendMode == 'segment':
-	if len(targetObjects) < 2:
-	    log.warning("Segment build mode only works with two objects or more")    
-	else:
-	    if insetMult is not None:
-		rootDistanceToMove = distance.returnDistanceBetweenObjects(targetObjects[0],targetObjects[1])
-		log.debug("rootDistanceToMove: %s"%rootDistanceToMove)
-		mi_rootLoc.__setattr__('t%s'%latheAxis,rootDistanceToMove*insetMult)
-		#mi_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
-	    
-	    for i,obj in enumerate(targetObjects[1:]):
-		log.debug(i)
-		log.debug(len(targetObjects[1:]))
-		#> End Curve
-		mi_endLoc = cgmMeta.cgmNode(obj).doLoc()
-		mi_endLoc.doGroup()
-		if i == len(targetObjects[1:])-1:
-		    if insetMult is not None:
-			distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[-1],targetObjects[0])
-			log.debug("distanceToMove: %s"%distanceToMove)
-			#mi_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
-			mi_endLoc.__setattr__('t%s'%latheAxis,-(distanceToMove*insetMult))
+	try:
+	    if len(targetObjects) < 2:
+		log.warning("Segment build mode only works with two objects or more")    
+	    else:
+		if insetMult is not None:
+		    rootDistanceToMove = distance.returnDistanceBetweenObjects(targetObjects[0],targetObjects[1])
+		    log.info("rootDistanceToMove: %s"%rootDistanceToMove)
+		    mi_rootLoc.__setattr__('t%s'%latheAxis,rootDistanceToMove*insetMult)
+		    #mi_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
 		
-		d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  	
-		l_sliceReturns.append(d_endCastInfo)
-		mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
-		il_curvesToCombine.append(mi_end)
-		mc.delete(mi_endLoc.parent)#delete the loc
-	    
+		for i,obj in enumerate(targetObjects[1:]):
+		    log.info(i)
+		    log.info(len(targetObjects[1:]))
+		    #> End Curve
+		    mi_endLoc = cgmMeta.cgmNode(obj).doLoc()
+		    aimVector = dictionary.returnStringToVectors(latheAxis+'+')
+		    Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,aim=True,aimVector=aimVector)
+		    mi_endLoc.doGroup()
+		    if i == len(targetObjects[1:])-1:
+			if insetMult is not None:
+			    distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[-1],targetObjects[0])
+			    log.info("distanceToMove: %s"%distanceToMove)
+			    #mi_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
+			    mi_endLoc.__setattr__('t%s'%latheAxis,(distanceToMove*insetMult))
+		    d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  	
+		    l_sliceReturns.append(d_endCastInfo)
+		    mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
+		    il_curvesToCombine.append(mi_end)
+		    mc.delete(mi_endLoc.parent)#delete the loc
+	except StandardError,error:
+	    raise StandardError,"createWrapControlShape>>> segment wrap fail! | %s"%error
+	
     elif extendMode == 'radial':
 	    d_handleInner = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  
 	    mi_buffer = cgmMeta.cgmObject(d_handleInner['curve'])#instance curve	
@@ -948,19 +1078,19 @@ def createWrapControlShape(targetObjects,
 	    il_curvesToCombine.append(mi_buffer)    
 	       
     elif extendMode == 'disc':
-	log.debug("disc mode")
+	log.info("disc mode")
 	d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
 	#discOffset = d_size[ d_size.keys()[0]]*insetMult
 	l_absSize = [abs(i) for i in posOffset]
 	size = max(l_absSize) 
 	if not size:
 	    d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
-	    log.debug("d_size: %s"%d_size)
+	    log.info("d_size: %s"%d_size)
 	    size = d_size[ d_size.keys()[0]]*insetMult	
 	    
 	discOffset = size
-	log.debug("d_size: %s"%d_size)
-	log.debug("discOffset is: %s"%discOffset)
+	log.info("d_size: %s"%d_size)
+	log.info("discOffset is: %s"%discOffset)
 	
 	mi_rootLoc.__setattr__('t%s'%latheAxis,discOffset)
 	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates) 
@@ -977,11 +1107,11 @@ def createWrapControlShape(targetObjects,
 	mi_rootLoc.tz = 0
 	
     elif extendMode == 'cylinder':
-	log.debug("cylinder mode")
+	log.info("cylinder mode")
 	d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
 	discOffset = d_size[ d_size.keys()[0]]*insetMult
-	log.debug("d_size: %s"%d_size)
-	log.debug("discOffset is: %s"%discOffset)
+	log.info("d_size: %s"%d_size)
+	log.info("discOffset is: %s"%discOffset)
 	
 	mi_rootLoc.__setattr__('t%s'%latheAxis,discOffset)
 	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  
@@ -992,15 +1122,15 @@ def createWrapControlShape(targetObjects,
 	mi_rootLoc.__setattr__('t%s'%latheAxis,0)
 	
     elif extendMode == 'loliwrap':
-	log.debug("lolipop mode")
+	log.info("lolipop mode")
 	l_absSize = [abs(i) for i in posOffset]
-	size = max(l_absSize) 
+	size = max(l_absSize)*1.25
 	if not size:
 	    d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
-	    log.debug("d_size: %s"%d_size)
+	    log.info("d_size: %s"%d_size)
 	    l_size = d_size[single_aimAxis]
-	    size = l_size/2#/1.5
-	log.debug("loli size: %s"%size)
+	    size = l_size#/1.5
+	log.info("loli size: %s"%size)
 	i_ball = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = size))
 	
     #Now cast our root since we needed to move it with segment mode before casting
@@ -1019,8 +1149,8 @@ def createWrapControlShape(targetObjects,
 	mi_crv = cgmMeta.cgmObject( d_rootCastInfo['curve'] )
 	l_eps = mi_crv.getComponents('ep')
 	midIndex = int(len(l_eps)/2)
-	log.debug("eps: %s"%l_eps)
-	log.debug("mid: %s"%midIndex)
+	log.info("eps: %s"%l_eps)
+	log.info("mid: %s"%midIndex)
 	
 	#Move the ball
 	pos = distance.returnWorldSpacePosition(l_eps[midIndex])
@@ -1029,7 +1159,7 @@ def createWrapControlShape(targetObjects,
 	Snap.go(i_ball.mNode,mi_rootLoc.mNode,move = False, orient = False, aim=True, aimVector=[0,0,-1])
 	
 	if posOffset:
-	    mc.move(posOffset[0]*1.5,posOffset[1]*1.5,posOffset[2]*1.5, [i_ball.mNode], r = True, rpr = True, os = True, wd = True)
+	    mc.move(posOffset[0]*2,posOffset[1]*2,posOffset[2]*2, [i_ball.mNode], r = True, rpr = True, os = True, wd = True)
 	
 	#Make the curve between the two 
 	mi_traceCrv = cgmMeta.cgmObject( mc.curve(degree = 1, ep = [pos,i_ball.getPosition()]) )
@@ -1043,21 +1173,33 @@ def createWrapControlShape(targetObjects,
     mc.delete(mi_rootLoc.parent)#delete the loc
     
     l_curvesToCombine = [mi_obj.mNode for mi_obj in il_curvesToCombine]#Build our combine list before adding connectors         
-
+    log.info(d_rootCastInfo['processedHits'])
     if joinMode and extendMode is not 'loliwrap' and len(l_sliceReturns)>1:
+	if joinHits:
+	    keys = d_rootCastInfo['processedHits'].keys()
+	    keys.sort()
+	    #goodDegrees = []
+	    #for i,key in enumerate(keys):
+		#if i in joinHits:
+		#goodDegrees.append(key)
+	    goodDegrees = [key for i,key in enumerate(keys) if i in joinHits]
+	    log.info("joinHits: %s"%joinHits)
+	    log.info("goodDegrees: %s"%goodDegrees)	    
+	else:
+	    goodDegrees = [key for key in d_rootCastInfo['processedHits'].keys()]
 	#> Side Curves
-	for degree in d_rootCastInfo['processedHits'].keys():
+	for degree in goodDegrees:
 	    l_pos = []	    
 	    for d in l_sliceReturns:
 		l_pos.append( d['processedHits'].get(degree) or False )
 	    while False in l_pos:
 		l_pos.remove(False)
-	    log.debug("l_pos: %s"%l_pos)
+	    log.info("l_pos: %s"%l_pos)
 	    if len(l_pos)>=2:
 		try:
 		    l_curvesToCombine.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve
 		except:
-		    log.debug("createWrapControlShape>>>> skipping curve fail: %s"%(degree))
+		    log.info("createWrapControlShape>>>> skipping curve fail: %s"%(degree))
 		    
     #>>>Combine the curves
     newCurve = curves.combineCurves(l_curvesToCombine) 
@@ -1139,7 +1281,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	
     #Rotate obj 
     mi_rotObj = mi_loc
-    if rotateBank is not None:
+    if rotateBank is not None and type(rotateBank) is not list:
 	rotateGroup = mi_loc.doGroup(True)
 	mi_rotObj = cgmMeta.cgmObject(rotateGroup)
 	mi_loc.__setattr__('rotate%s'%bankAxis.capitalize(),rotateBank)
