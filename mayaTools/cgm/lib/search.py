@@ -1028,7 +1028,7 @@ def returnJointHeirarchy(startJoint):
         heirarchyJoints.append(joint)
     return heirarchyJoints
 
-def returnChildrenJoints(root, allDescendents=True):
+def returnChildrenJoints(root, allDescendents=True,fullPath = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1042,7 +1042,7 @@ def returnChildrenJoints(root, allDescendents=True):
     childrenJoints(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    heirarchyJoints = mc.listRelatives (root, allDescendents=True, type = 'joint')
+    heirarchyJoints = mc.listRelatives (root, allDescendents=True, type = 'joint',fullPath=fullPath)
     heirarchyJoints.reverse()
     return heirarchyJoints
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
