@@ -4033,7 +4033,10 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
     try:
 	argType = type(arg)
 	if argType in [list,tuple]:#make sure it's not a list
-	    raise StandardError,"validateObjArg>>> arg cannot be list or tuple: %s"%arg	
+	    if len(arg) ==1:
+		arg = arg[0]
+	    else:
+		raise StandardError,"validateObjArg>>> arg cannot be list or tuple: %s"%arg	
 	if not noneValid:
 	    if arg in [None,False]:
 		raise StandardError,"validateObjArg>>> arg cannot be None"
