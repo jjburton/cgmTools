@@ -35,9 +35,9 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-#l_modulesToDoOrder = ['torso','neckHead']
-l_modulesToDoOrder = ['torso','neckHead',
-                      'leg_left','leg_right']
+l_modulesToDoOrder = ['torso']
+"""l_modulesToDoOrder = ['torso',
+                      'leg_left','leg_right']"""
 
 l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
                           'clavicle_right','arm_right',
@@ -101,10 +101,10 @@ d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}'
 d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'neckHead':['neck_bodyShaper','head_bodyShaper'],
                     'head':['head_bodyShaper','headTop_bodyShaper'],
-                    'leg_left':['l_upr_leg_bodyShaper','l_lwr_leg_bodyShaper','l_ankle_bodyShaper','l_ball_bodyShaper'],                    
-                    'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper','r_ball_bodyShaper'],                    
-                    'foot_left':['l_ankle_bodyShaper','l_ball_bodyShaper','l_toes_bodyShaper'],                    
-                    'foot_right':['r_ankle_bodyShaper','r_ball_bodyShaper','r_toes_bodyShaper'],                                        
+                    'leg_left':['l_upr_leg_bodyShaper','l_lwr_leg_bodyShaper','l_ankle_bodyShaper','l_ball_loc'],                    
+                    'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper','r_ball_loc'],                    
+                    'foot_left':['l_ankle_bodyShaper','l_ball_loc','l_toes_bodyShaper'],                    
+                    'foot_right':['r_ankle_bodyShaper','r_ball_loc','r_toes_bodyShaper'],                                        
                     'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_wristMeat_bodyShaper'],
                     'hand_left':['l_hand_bodyShaper'],
                     'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper'],
@@ -272,7 +272,8 @@ def verifyMorpheusNodeStructure(i_Morpheus):
     # For each module
     #=====================================================================
     gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
-    #i_limb.getGeneratedCoreNames()    
+    #i_limb.getGeneratedCoreNames()   
+        
     return i_Morpheus
 
 @r9General.Timer
@@ -294,6 +295,10 @@ def setState(i_customizationNetwork,state = False,
     
     i_Morpheus = i_customizationNetwork.mPuppet
     d_customizationData = verify_customizationData(i_customizationNetwork)
+    
+    #connect our geo to our unified mesh geo
+    if i_customizationNetwork.getMessage('baseBodyGeo'):
+        i_Morpheus.connectChildNode(i_customizationNetwork.getMessage('baseBodyGeo')[0],'unifiedGeo')
     
     if not d_customizationData:
         return False
