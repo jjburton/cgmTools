@@ -36,13 +36,15 @@ from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
+from cgm.core.rigger import ModuleShapeCaster as mShapeCast
+reload(mShapeCast)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
     @r9General.Timer
-    def __init__(self,module,forceNew = True,loadTemplatePose = True,tryTemplateUpdate = False, **kws): 
+    def __init__(self,module,forceNew = True,loadTemplatePose = True,tryTemplateUpdate = False, geo = None, **kws): 
         """
         To do:
         Add rotation order settting
@@ -55,6 +57,11 @@ class go(object):
         #>>> module null data 
         log.debug(">>> TemplateFactory.go.__init__")        
         assert module.isModule(),"Not a module"
+	
+	if geo is None:
+	    if not module.modulePuppet.getUnifiedGeo():raise StandardError, "go>>> Module puppet missing geo"
+	    else:geo = module.modulePuppet.getUnifiedGeo()[0]
+	    
         self.m = module# Link for shortness
         log.info("loadTemplatePose: %s"%loadTemplatePose)     
 	self._i_module = self.m
@@ -83,6 +90,7 @@ class go(object):
         self.moduleParent = self.moduleNullData.get('moduleParent')
         self.moduleColors = self.m.getModuleColors()
         self.l_coreNames = self.m.i_coreNames.value
+	self.d_coreNamesAttrs = self.m.coreNames.d_indexToAttr
         self.corePosList = self.i_templateNull.templateStarterData
         self.foundDirections = False #Placeholder to see if we have it
         
@@ -126,7 +134,12 @@ class go(object):
         if self.m.mClass == 'cgmLimb':
             log.debug("mode: cgmLimb Template")
             doMakeLimbTemplate(self)
+	    
+	    if 'ball' in self.l_coreNames and 'ankle' in self.l_coreNames:
+		doCastPivots(self._i_module)
+		
             doTagChildren(self)
+	    
         else:
             raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
         
@@ -154,7 +167,7 @@ def verify_moduleTemplateToggles(goInstance):
     str_partBase = str(self._partName + '_tmpl')
     str_moduleTemplateNull = str(self._i_templateNull.getShortName())
     
-    self._i_masterSettings.addAttr(str_partBase, defaultValue = 0, attrType = 'bool',keyable = False,hidden = False)
+    self._i_masterSettings.addAttr(str_partBase, defaultValue = 0, value = 1, attrType = 'bool',keyable = False,hidden = False)
     try:NodeF.argsToNodes("%s.tmplVis = if %s.%s > 0"%(str_moduleTemplateNull,str_settings,str_partBase)).doBuild()
     except StandardError,error:
 	raise StandardError,"verify_moduleTemplateToggles>> vis arg fail: %s"%error
@@ -168,6 +181,56 @@ def verify_moduleTemplateToggles(goInstance):
     #nodeF.argsToNodes("%s.templateLock = if %s.templateStuff == 1:0 else 2"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()	
 
     return True
+
+
+
+#>>>> Pivots stuff 
+#==========================================================================================
+d_pivotAttrs = {'foot':['pivot_toe','pivot_heel','pivot_ball','pivot_inner','pivot_outer']}
+
+@r9General.Timer
+def hasPivots(self):
+    """
+    If a module needs pivots and has them, returns them. Checks if a module has necessary pivots.
+    """
+    assert self.isModule(),"%s.hasPivots>>> not a module"%self.getShortName()
+    l_coreNames = self.coreNames.value
+    i_templateNull = self.templateNull
+    l_found = []
+    l_missing = []  
+    
+    if 'ball' in l_coreNames and 'ankle' in l_coreNames:
+	for attr in d_pivotAttrs['foot']:
+	    buffer = i_templateNull.getMessage(attr)
+	    if buffer:l_found.append(buffer[0])
+	    else:
+		l_missing.append(attr)
+		log.warning("%s.hasPivots>>> missing : '%s'"%(self.getShortName(),attr))
+	if l_missing:
+	    log.error("%s.hasPivots>>> found: '%s' | missing: '%s'"%(self.getShortName(),l_found,l_missing))
+	    return False
+	return l_found
+    log.error("%s.hasPivots>>> not a known module that needs pivots! |"%(self.getShortName()))
+    return False  
+
+@r9General.Timer
+def doCastPivots(self):
+    assert self.isModule(),"%s.doCastPivots>>> not a module"%self.getShortName()
+    l_coreNames = self.coreNames.value
+    
+    pivotCheck = hasPivots(self)#If we already have pivots
+    if pivotCheck:
+	for o in pivotCheck:mc.delete(o)#delete
+    
+    if 'ball' in l_coreNames and 'ankle' in l_coreNames:
+	log.warning("Need to cast pivots!")
+	try:
+	    mShapeCast.go(self,['footPivots'])
+	except StandardError,error:
+	    raise StandardError,"%s.doCastPivots>>> failure! | %s"%(self.getShortName(),error)
+	
+    log.error("%s.doCastPivots>>> not a known module that needs pivots! |"%(self.getShortName()))
+    return False
 
 @r9General.Timer
 def doTagChildren(self): 
@@ -311,8 +374,9 @@ def doMakeLimbTemplate(self):
         i_obj.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
         
         curves.setCurveColorByName(i_obj.mNode,self.moduleColors[0])
-        
-        i_obj.addAttr('cgmName',value = str(self.l_coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+	
+	i_obj.doStore('cgmName','%s.%s'%(self.m.coreNames.mNode,self.d_coreNamesAttrs[i]))        
+        #i_obj.addAttr('cgmName',value = str(self.l_coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
         if self.direction != None:
             i_obj.addAttr('cgmDirection',value = self.direction,attrType = 'string',lock=True)  
         i_obj.addAttr('cgmType',value = 'templateObject', attrType = 'string',lock=True) 
@@ -509,7 +573,7 @@ def doCreateOrientationHelpers(self):
                 attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','ry','sx','sy','sz','v'])            
             else:
                 attributes.doSetLockHideKeyableAttr(i_obj.mNode,True,False,False,['tx','ty','tz','ry','sx','sy','sz','v'])
-	    i_obj.rotateOrder = 4
+	    i_obj.rotateOrder = 5
 	    
     #>>> Get data ready to go forward
     bufferList = []
@@ -538,17 +602,18 @@ def doParentControlObjects(self):
     for i_obj in i_controlObjects:
         i_obj.parent = i_root.mNode
         
-    i_controlObjects[0].doGroup(maintain=True)#Group to zero out
-    i_controlObjects[-1].doGroup(maintain=True)  
+    #i_controlObjects[0].doGroup(maintain=True)#Group to zero out
+    #i_controlObjects[-1].doGroup(maintain=True)  
     
     log.debug(i_templateNull.getMessage('controlObjects',False))
+    """
     if self.moduleType not in ['foot']:
         constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.getMessage('controlObjects',False))    
-    
+	"""
     for i_obj in i_controlObjects:
-         i_parent = cgmMeta.cgmObject(i_obj.parent)
-         i_parent.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
-         i_obj.addAttr('owner',i_parent.mNode,attrType = 'messageSimple',lock=True)
+	pBuffer = i_obj.doGroup(maintain=True)
+	i_parent = cgmMeta.cgmObject(i_obj.parent,setClass=True)
+	i_obj.addAttr('owner',i_parent.mNode,attrType = 'messageSimple',lock=True)
          
     return
 
@@ -571,20 +636,20 @@ def updateTemplate(self,saveTemplatePose = False,**kws):
     i_root = i_templateNull.root
     i_controlObjects = i_templateNull.controlObjects
     
-    
-    if not cgmMath.isVectorEquivalent(i_templateNull.controlObjects[0].translate,[0,0,0]):
-        raise StandardError,"updateTemplate: doesn't currently support having a moved first template object"
-        return False
+    #if not cgmMath.isVectorEquivalent(i_templateNull.controlObjects[0].translate,[0,0,0]):
+        #raise StandardError,"updateTemplate: doesn't currently support having a moved first template object"
+        #return False
     
     mc.xform(i_root.parent, translation = corePosList[0],worldSpace = True)
+    mc.xform(i_controlObjects[0].parent, translation = corePosList[0],worldSpace = True)
     
     for i,i_obj in enumerate(i_controlObjects[1:]):
         log.info(i_obj.getShortName())
-        objConstraints = constraints.returnObjectConstraints(i_obj.parent)
-        if objConstraints:mc.delete(objConstraints) 
-        buffer = search.returnParentsFromObjectToParent(i_obj.mNode,i_root.mNode)
-        i_obj.parent = False
-        if buffer:mc.delete(buffer)
+        #objConstraints = constraints.returnObjectConstraints(i_obj.parent)
+        #if objConstraints:mc.delete(objConstraints) 
+        #buffer = search.returnParentsFromObjectToParent(i_obj.mNode,i_root.mNode)
+        #i_obj.parent = False
+        #if buffer:mc.delete(buffer)
         mc.xform(i_obj.mNode, translation = corePosList[1:][i],worldSpace = True) 
         
     buffer = search.returnParentsFromObjectToParent(i_controlObjects[0].mNode,i_root.mNode)
@@ -592,6 +657,8 @@ def updateTemplate(self,saveTemplatePose = False,**kws):
     if buffer:mc.delete(buffer)
     
     doParentControlObjects(self)
+    doCastPivots(self)
+    
     self.loadTemplatePose()#Restore the pose
     return True
 

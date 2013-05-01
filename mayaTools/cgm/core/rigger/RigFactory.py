@@ -25,8 +25,8 @@ from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger import PuppetFactory as PuppetF
 reload(PuppetF)
 
-from cgm.core.rigger import ModuleCurveFactory as mCurveFactory
-reload(mCurveFactory)
+from cgm.core.rigger import ModuleShapeCaster as mShapeCast
+reload(mShapeCast)
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 reload(mControlFactory)

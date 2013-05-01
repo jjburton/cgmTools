@@ -37,10 +37,10 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
 
-from cgm.core.rigger import ModuleCurveFactory as mCurveFactory
+from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
-reload(mCurveFactory)
+reload(mShapeCast)
 reload(mControlFactory)
 from cgm.core.rigger.lib import rig_Utils as rUtils
 reload(rUtils)
@@ -183,7 +183,7 @@ def build_shapes(self):
     
     #>>>Build our Shapes
     #=============================================================
-    mCurveFactory.go(self._i_module,['cog','hips','torsoIK','segmentFK'],storageInstance=self)#This will store controls to a dict called    
+    mShapeCast.go(self._i_module,['cog','hips','torsoIK','segmentFK'],storageInstance=self)#This will store controls to a dict called    
     log.debug(self._md_controlShapes)
     #except StandardError,error:
 	#log.error("build_spine>>Build shapes fail!")
