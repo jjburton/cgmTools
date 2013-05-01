@@ -20,7 +20,6 @@ geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-@r9General.Timer   
 def simplePuppetReturn():
     catch = mc.ls(type='network')
     returnList = []
@@ -30,6 +29,16 @@ def simplePuppetReturn():
                 returnList.append(o)
     return returnList
 
+
+@r9General.Timer   
+def getUnifiedGeo(self):
+    """
+    Returns geo in a puppets geo folder, ALL geo to be used by a puppet should be in there
+    """
+    buffer = self.getMessage('unifiedGeo')
+    if buffer and len(buffer) == 1 and search.returnObjectType(buffer[0]) in geoTypes:
+        return buffer[0]
+    return False
 
 @r9General.Timer   
 def getGeo(self):

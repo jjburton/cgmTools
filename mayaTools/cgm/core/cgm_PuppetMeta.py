@@ -157,6 +157,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
         self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
         self.addAttr('moduleChildren',attrType = 'message',lock=True) 
+        self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
 	
 	#Settings
 	#==============
@@ -346,6 +347,8 @@ class cgmPuppet(cgmMeta.cgmNode):
     
     def getGeo(self):
         return pFactory.getGeo(self)
+    def getUnifiedGeo(self):
+        return pFactory.getUnifiedGeo(self)
     
     def getModuleFromDict(self,checkDict):
 	"""
