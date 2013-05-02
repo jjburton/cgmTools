@@ -972,6 +972,7 @@ class cgmObject(cgmNode):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)
 	    for o in self.getAllParents():
+		log.info("o: %s"%o)
 		if i_obj.mNode == r9Meta.MetaClass(o).mNode:
 		    return True
 	    return False
@@ -4031,6 +4032,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
     default_mType -- type to intialize as for default
     """
     try:
+	i_arg = False
 	argType = type(arg)
 	if argType in [list,tuple]:#make sure it's not a list
 	    if len(arg) ==1:
@@ -4044,7 +4046,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	    if arg in [None,False]:
 		if arg not in [None,False]:log.warning("validateObjArg>>> arg fail: %s"%arg)
 		return False
-	log.info("validateObjArg>>> arg: %s"%arg)
+	log.debug("validateObjArg>>> arg: %s"%arg)
 	if issubclass(argType,r9Meta.MetaClass):#we have an instance already
 	    i_arg = arg
 	elif not mc.objExists(arg):
@@ -4052,20 +4054,20 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	    else:
 		raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg	
 	    
-	if mType is not None:
-	    log.info("validateObjArg>>> mType arg: '%s'"%mType)
+	elif mType is not None:
+	    log.debug("validateObjArg>>> mType arg: '%s'"%mType)
 	    if i_arg:
 		i_autoInstance = i_arg
 	    else:
 		i_autoInstance = r9Meta.MetaClass(arg)
 	    if type(mType) in [unicode,str]:
-		log.info("validateObjArg>>> string mType: '%s'"%mType)
+		log.debug("validateObjArg>>> string mType: '%s'"%mType)
 		if i_autoInstance.getAttr('mClass') == mType:
 		    return i_autoInstance
 		else:
 		    raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)			    
 	    else:
-		log.info("validateObjArg>>> class mType: '%s'"%mType)		
+		log.debug("validateObjArg>>> class mType: '%s'"%mType)		
 		if issubclass(type(i_autoInstance),mType):#if it's a subclass ofour mType, good to go
 		    return i_autoInstance
 		elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
