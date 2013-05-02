@@ -30,7 +30,6 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import cgm_General as cgmGeneral
 reload(cgmGeneral)
@@ -70,7 +69,12 @@ def addCGMDynamicGroup(target = None, parentTargets = None,
                                                           noneValid=True)
 
     
-    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+    except:pass
     if i_module:
 	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
     if baseName is None:
@@ -107,7 +111,12 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                                                           noneValid=True)
     i_segmentGroup = i_segmentCurve.segmentGroup
     
-    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+    except:pass
     if i_module:
 	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
     if baseName is None:
@@ -467,7 +476,12 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     if len(jointList)<3:
 	raise StandardError,"createCGMSegment>>> needs at least three joints"
     
-    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)   
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance  
+    except:pass
     
     if i_module:
 	if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
@@ -990,14 +1004,17 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     
     i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
-	    baseName = i_module.getPartNameBase()
-	    log.info('baseName set to module: %s'%baseName)	    
-	else:
-	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+		i_module = moduleInstance
+		i_rigNull = i_module.rigNull
+		baseName = i_module.getPartNameBase()
+		log.info('baseName set to module: %s'%baseName)	    
+    except:
+	log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
 
     
     #Create our group
@@ -1494,13 +1511,17 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
     
     i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
+    
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+		i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
-    
+    except:pass
+
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
     i_grp.addAttr('cgmName', str(baseName), lock=True)
@@ -1753,12 +1774,15 @@ def createConstraintSurfaceSegmentTranslatePosition(jointList,orientation = 'zyx
     
     i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
 	    i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    except:pass
     
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
@@ -1849,12 +1873,15 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
     
     i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+		i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    except:pass
     
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
@@ -2073,13 +2100,15 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
     
     i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+		i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
-    
+    except:pass
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
     i_grp.addAttr('cgmName', str(baseName), lock=True)
@@ -2380,13 +2409,16 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     #moduleInstance
     i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+		i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
-	    
+    except:pass
+    
     #Initialize joint list
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
     #Gather info:
@@ -2519,14 +2551,17 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
     aimChannel = orientation[0].capitalize()
     
     #moduleInstance
-    i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
 	    i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    except:pass
+    
     #attributeHolder
     i_holder = cgmMeta.cgmNode(attributeHolder)
     
@@ -2648,7 +2683,13 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
     aimChannel = orientation[0].capitalize()
     
     #moduleInstance
-    i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)    
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+    except:pass
+
     #attributeHolder
     i_holder = cgmMeta.validateObjArg(attributeHolder,cgmMeta.cgmBufferNode,noneValid=False)   
     
@@ -2758,14 +2799,17 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy
     aimChannel = orientation[0].capitalize()
     
     #moduleInstance
-    i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
 	    i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+    except:pass
+    
     #attributeHolder
     i_holder = cgmMeta.cgmNode(attributeHolder)
     
@@ -2941,15 +2985,17 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
     outChannel = orientation[2]
     upChannel = '%sup'%orientation[1]
     
-    i_module = False
     i_rigNull = False
-    if moduleInstance is not None:
-	if issubclass(type(moduleInstance),cgmPM.cgmModule):
-	    i_module = moduleInstance
-	    i_rigNull = i_module.rigNull
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+		i_rigNull = i_module.rigNull
 	else:
 	    log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
 	baseName = i_module.getPartNameBase()
+    except:pass
     
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
