@@ -27,6 +27,8 @@ from cgm.core.rigger import TemplateFactory as tFactory
 reload(tFactory)
 from cgm.core.rigger import JointFactory as jFactory
 reload(jFactory)
+from cgm.core.rigger import RigFactory as mRig
+reload(mRig)
 
 ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -322,7 +324,26 @@ def getGeneratedCoreNames(self):
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
-@r9General.Timer   
+
+def doRig(self,*args,**kws):
+    if not isSkeletonized(self):
+        log.warning("%s.doRig>>> Not not skeletonized"%self.getShortName())
+        return False      
+    if self.moduleParent and not isRigged(self.moduleParent):
+	log.warning("%s.doRig>>> Parent module is not rigged: '%s'"%(self.getShortName(),self.moduleParent.getShortName()))
+        return False    
+    mRig.go(self,*args,**kws)      
+    if not isRigged(self):
+	log.warning("%s.doRig>>> Failed To Rig"%self.getShortName())
+        return False
+    
+    rigConnect(self)
+    
+    return True
+    #except StandardError,error:
+        #log.warning(error)    
+
+#@r9General.Timer   
 def isRigged(self):
     """
     Return if a module is rigged or not
@@ -335,16 +356,16 @@ def isRigged(self):
     l_skinJoints = i_rigNull.getMessage('skinJoints',False)
     l_rigJoints = i_rigNull.getMessage('rigJoints',False)
     if not l_rigJoints:
-        log.info("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
+        log.error("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
         return False
         
     if len( l_skinJoints ) != len( l_rigJoints ):
-        log.info("moduleFactory.isRigged('%s')>>>> %s != %s. Joint lengths don't match"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
+        log.error("moduleFactory.isRigged('%s')>>>> %s != %s. Joint lengths don't match"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
         return False
     
     for attr in ['controlsFK','controlsAll']:
         if not i_rigNull.getMessage(attr):
-            log.warning("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
+            log.error("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
             return False    
             
     return True
@@ -357,8 +378,8 @@ def deleteRig(self,*args,**kws):
     #Data get
     str_shortName = self.getShortName()
     
-    if not isRigged(self):
-        raise StandardError,"moduleFactory.deleteRig('%s')>>>> Module not rigged"%(str_shortName)
+    #if not isRigged(self):
+        #raise StandardError,"moduleFactory.deleteRig('%s')>>>> Module not rigged"%(str_shortName)
     
     if isRigConnected(self):
 	rigDisconnect(self)#Disconnect
@@ -380,20 +401,24 @@ def deleteRig(self,*args,**kws):
 	if i_obj.hasAttr('masterGroup'):
 	    l_masterGroups.append(i_obj.getMessage('masterGroup',False)[0])
 	    
-    log.info("moduleFactory.rigDisconnect('%s')>> masterGroups found: %s"%(str_shortName,l_masterGroups))
-	    
+    log.info("moduleFactory.rigDisconnect('%s')>> masterGroups found: %s"%(str_shortName,l_masterGroups))  
     for obj in l_masterGroups:
 	if mc.objExists(obj):
 	    mc.delete(obj)
+	    
+    if self.getMessage('deformNull'):
+	mc.delete(self.getMessage('deformNull'))
+    
+    i_rigNull.version == ''#clear the version
     
     return True
 
-@r9General.Timer
+#@r9General.Timer
 def isRigConnected(self,*args,**kws):
     str_shortName = self.getShortName()
     if not isRigged(self):
-        raise StandardError,"moduleFactory.isRigConnected('%s')>>>> Module not rigged"%(str_shortName)
-    
+        log.info("moduleFactory.isRigConnected('%s')>>>> Module not rigged"%(str_shortName))
+	return False
     i_rigNull = self.rigNull
     l_rigJoints = i_rigNull.getMessage('rigJoints') or False
     l_skinJoints = i_rigNull.getMessage('skinJoints') or False
@@ -409,7 +434,7 @@ def isRigConnected(self,*args,**kws):
 
     return True
 
-@r9General.Timer
+#@r9General.Timer
 def rigConnect(self,*args,**kws):
     str_shortName = self.getShortName()
     if not isRigged(self):
@@ -673,7 +698,7 @@ def getState(self):
     d_CheckList = {'size':isSized,
                    'template':isTemplated,
                    'skeleton':isSkeletonized,
-                   'rig':isRigged
+                   'rig':isRigged,
                    }
     goodState = 0
     for i,state in enumerate(l_moduleStates):
@@ -683,7 +708,7 @@ def getState(self):
             else:break
         elif i != 0:
             log.warning("Need test for: '%s'"%state)
-    log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
+    log.info("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
     return goodState
 
 @r9General.Timer   
@@ -720,15 +745,18 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     """
     d_upStateFunctions = {'size':doSize,
                            'template':doTemplate,
-                           'skeleton':doSkeletonize
+                           'skeleton':doSkeletonize,
+                           'rig':doRig,
                            }
     d_downStateFunctions = {'define':deleteSizeInfo,
                             'size':deleteTemplate,
-                            'template':deleteSkeleton
+                            'template':deleteSkeleton,
+                            'skeleton':deleteRig,
                             }
     d_deleteStateFunctions = {'size':deleteSizeInfo,
                               'template':deleteTemplate,#handle from factory now
                               'skeleton':deleteSkeleton,
+                              'rig':deleteRig,
                               }    
     log.debug(">>> In ModuleFactory.changeState")
     log.debug("stateArg: %s"%stateArg)
