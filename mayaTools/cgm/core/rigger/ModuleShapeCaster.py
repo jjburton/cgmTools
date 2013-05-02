@@ -180,10 +180,8 @@ class go(object):
 	l_lengths = [d_return[k] for k in d_return.keys()]
 	average = (sum(l_lengths))/len(l_lengths)
 	
-	return average *1.5
+	return average
 	
-	
-    
     @r9General.Timer    
     def build_cog(self):
 	try:
