@@ -4044,19 +4044,32 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	    if arg in [None,False]:
 		if arg not in [None,False]:log.warning("validateObjArg>>> arg fail: %s"%arg)
 		return False
-	
+	log.info("validateObjArg>>> arg: %s"%arg)
 	if issubclass(argType,r9Meta.MetaClass):#we have an instance already
 	    i_arg = arg
 	elif not mc.objExists(arg):
 	    if noneValid: return False
 	    else:
 		raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg	
-	elif mType is not None:
-	    i_autoInstance = r9Meta.MetaClass(arg)
-	    if issubclass(type(i_autoInstance),mType):#if it's a subclass ofour mType, good to go
-		return i_autoInstance
-	    elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
-		raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)	
+	    
+	if mType is not None:
+	    log.info("validateObjArg>>> mType arg: '%s'"%mType)
+	    if i_arg:
+		i_autoInstance = i_arg
+	    else:
+		i_autoInstance = r9Meta.MetaClass(arg)
+	    if type(mType) in [unicode,str]:
+		log.info("validateObjArg>>> string mType: '%s'"%mType)
+		if i_autoInstance.getAttr('mClass') == mType:
+		    return i_autoInstance
+		else:
+		    raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)			    
+	    else:
+		log.info("validateObjArg>>> class mType: '%s'"%mType)		
+		if issubclass(type(i_autoInstance),mType):#if it's a subclass ofour mType, good to go
+		    return i_autoInstance
+		elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
+		    raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)	
 	    log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
 	    i_arg =  mType(arg)
 	else:
