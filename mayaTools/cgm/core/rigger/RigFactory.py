@@ -47,7 +47,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 
-l_modulesDone  = ['']
+l_modulesDone  = ['torso']
 
 #>>> Register rig functions
 #=====================================================================
@@ -55,19 +55,19 @@ l_modulesDone  = ['']
                        'neckHead':str(neckHead.__version__),
                        'leg':str(neckHead.__version__),
                         }
-d_moduleShapeKeys = {'leg':leg.__shapeDict__,
-                     'torso':spine.__shapeDict__,
+d_moduleShapeKeys = {'leg':leg.__d_controlShapes__,
+                     'torso':spine.__d_controlShapes__,
                      }
-d_moduleJointAttrs = {'leg':leg.__jointAttrList__,
-                      'torso':spine.__jointAttrList__,
+d_moduleJointAttrs = {'leg':leg.__l_jointAttrs__,
+                      'torso':spine.__l_jointAttrs__,
                      } """
+
 d_moduleTypeToBuildModule = {'leg':leg,
                              'torso':spine,
                             } 
 #>>> Main class function
 #=====================================================================
 class go(object):
-    @r9General.Timer
     def __init__(self,moduleInstance,forceNew = True,**kws): 
         """
         To do:
@@ -92,14 +92,20 @@ class go(object):
 	    raise StandardError,"RigFactory.go.init. Module call failure. Probably not a module: '%s'"%error	    
 	if not i_module:
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
-
+	
         assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
         assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
         
         log.info(">>> RigFactory.go.__init__")
+        log.info(">>> forceNew: %s"%forceNew)	
         self._i_module = moduleInstance# Link for shortness
 	self._i_module.__verify__()
 	self._cgmClass = 'RigFactory.go'
+	
+	#First we want to see if we have a moduleParent to see if it's rigged yet
+	if self._i_module.getMessage('moduleParent'):
+	    if not self._i_module.moduleParent.isRigged():
+		raise StandardError,"RigFactory.go.init>>> '%s's module parent is not rigged yet: '%s'"%(self.getShortName(),self.moduleParent.getShortName())
 	
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
 	if not self._i_module.modulePuppet._verifyMasterControl():
@@ -109,15 +115,6 @@ class go(object):
 	self._i_masterSettings = self._i_masterControl.controlSettings
 	self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup
 	
-
-        """
-        if moduleInstance.hasControls():
-            if forceNew:
-                deleteControls(moduleInstance)
-            else:
-                log.warning("'%s' has already been skeletonized"%moduleInstance.getShortName())
-                return        
-        """
         #>>> Gather info
         #=========================================================	
         self._l_moduleColors = self._i_module.getModuleColors()
@@ -135,17 +132,21 @@ class go(object):
         self._partType = self._i_module.moduleType or False
         self._strShortName = self._i_module.getShortName() or False
         
+        #>>> See if we have a buildable module -- do we have a builder
+	if not isBuildable(self):
+	    raise StandardError,"The builder for module type '%s' is not ready"%self._partType
+	
         #>>>Version Check
 	#TO DO: move to moduleFactory
-        if self._partType in d_moduleRigVersions.keys():
-	    newVersion = d_moduleRigVersions[self._partType]
-	    if self._version != newVersion:
-		log.warning("RigFactory.go>>> '%s' rig version out of date: %s != %s"%(self._partType,self._version,newVersion))	
-	    else:
-		log.warning("RigFactory.go>>> '%s' rig version up to date !"%(self._partType))	
+	self._outOfDate = False
+	if self._version != self._buildVersion:
+	    self._outOfDate = True	    
+	    log.warning("RigFactory.go>>> '%s' rig version out of date: %s != %s"%(self._partType,self._version,self._buildVersion))	
 	else:
-	    raise StandardError,"PartType ('%s') not in d_moduleRigVersions.keys: %s"%(self._partType,d_moduleRigVersions.keys())
-	
+	    if forceNew and self._i_module.isRigged():
+		self._i_module.deleteRig()
+	    log.info("RigFactory.go>>> '%s' rig version up to date !"%(self._partType))	
+
         self._direction = None
         if self._i_module.hasAttr('cgmDirection'):
             self._direction = self._i_module.cgmDirection or None
@@ -173,25 +174,21 @@ class go(object):
 	self._i_deformNull = self._i_module.deformNull
 	
         #Make our stuff
-        if self._partType in d_moduleRigFunctions.keys():
-	    self._md_controlShapes = {}
-            log.info("mode: cgmLimb control building")
-	    if self._partType in l_modulesDone:
-		d_moduleRigFunctions[self._partType](self,**kws)
+	self._md_controlShapes = {}
+	if self._partType in l_modulesDone:
+	    if self._outOfDate:
+		self.build(self,**kws)
 	    else:
-		log.info("'%s' not in done modules list. Pushing build functions to testing .doBuild"%self._strShortName)
-		self.doBuild = d_moduleRigFunctions[self._partType]
-            #if not limbControlMaker(self,self.l_controlsToMakeArg):
-                #raise StandardError,"limbControlMaker failed!"
-        else:
-            raise NotImplementedError,"haven't implemented '%s' rigging yet"%self._i_module.mClass
+		log.info("'%s' Up to date. No force."%self._strShortName)
+	else:
+	    log.error("'%s' not in done modules list. No auto build"%self._strShortName)
 
     def isShaped(self):
 	"""
 	Return if a module is shaped or not
 	"""
 	if self._partType in d_moduleTypeToBuildModule.keys():
-	    checkShapes = d_moduleTypeToBuildModule[self._partType].__shapeDict__
+	    checkShapes = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__
 	else:
 	    log.error("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
 	    return True
@@ -206,41 +203,53 @@ class go(object):
 	"""
 	Return if a module is rig skeletonized or not
 	"""
-	if self._partType in d_moduleJointAttrs.keys():
-	    checkShapes = d_moduleJointAttrs.get(self._partType)
-	else:
-	    log.error("%s.isShaped>>> Don't have a jointList, can't check. Passing..."%(self._strShortName))	    
-	    return True
-	for key in checkShapes:
+	for key in self._l_jointAttrs:
 	    if not self._i_rigNull.getMessage('%s'%(key)):
 		log.error("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
 		return False		
 	return True
+    
+    def cleanTempAttrs(self):
+	for key in self._shapesDict.keys():
+	    for subkey in self._shapesDict[key]:
+		self._i_rigNull.doRemove('%s_%s'%(key,subkey))
+	return True
 
-def isRigable(goInstance):
+def isBuildable(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
 	raise StandardError
     self = goInstance#Link
     
     if self._partType not in d_moduleTypeToBuildModule.keys():
-	log.error("%s.isRigable>>> Not in d_moduleTypeToBuildModule"%(self._strShortName))	
+	log.error("%s.isBuildable>>> Not in d_moduleTypeToBuildModule"%(self._strShortName))	
 	return False
     
-    try:#Shapes dict
-	d_moduleTypeToBuildModule[self._partType].__shapeDict__    
+    try:#Version
+	self._buildVersion = d_moduleTypeToBuildModule[self._partType].__version__    
     except:
-	log.error("%s.isRigable>>> Missing shape dict in module"%(self._strShortName))	
+	log.error("%s.isBuildable>>> Missing version"%(self._strShortName))	
+	return False	
+    try:#Shapes dict
+	self._shapesDict = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__    
+    except:
+	log.error("%s.isBuildable>>> Missing shape dict in module"%(self._strShortName))	
 	return False	
     try:#Joints list
-	d_moduleTypeToBuildModule[self._partType].__jointAttrList__    
+	self._l_jointAttrs = d_moduleTypeToBuildModule[self._partType].__l_jointAttrs__    
     except:
-	log.error("%s.isRigable>>> Missing joint attr list in module"%(self._strShortName))	
+	log.error("%s.isBuildable>>> Missing joint attr list in module"%(self._strShortName))	
+	return False
+    try:#Joints list
+	self.build = d_moduleTypeToBuildModule[self._partType].__build__
+	self.buildModule = d_moduleTypeToBuildModule[self._partType]
+    except:
+	log.error("%s.isBuildable>>> Missing Build Function"%(self._strShortName))	
 	return False	
     
     return True
     
-@r9General.Timer
+#@r9General.Timer
 def verify_moduleRigToggles(goInstance):
     """
     Rotate orders
@@ -293,13 +302,10 @@ def bindJoints_connect(goInstance):
     
     
     return True
-	
+
+"""	
 @r9General.Timer
-def build_spine(goInstance, buildTo='',):
-    """
-    Rotate orders
-    hips = 3
-    """    
+def build_spine(goInstance, buildTo='',): 
     if not issubclass(type(goInstance),go):
         log.error("Not a RigFactory.go instance: '%s'"%goInstance)
         raise StandardError
@@ -317,11 +323,7 @@ def build_spine(goInstance, buildTo='',):
     return 
 
 @r9General.Timer
-def build_neckHead(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False):
-    """
-    Rotate orders
-    hips = 3
-    """    
+def build_neckHead(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False): 
     if not issubclass(type(goInstance),go):
         log.error("Not a RigFactory.go instance: '%s'"%goInstance)
         raise StandardError
@@ -337,10 +339,8 @@ def build_neckHead(goInstance,buildShapes = False, buildControls = False,buildSk
 
 @r9General.Timer
 def build_leg(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False):
-    """
     Rotate orders
     hips = 3
-    """    
     if not issubclass(type(goInstance),go):
         log.error("Not a RigFactory.go instance: '%s'"%goInstance)
         raise StandardError
@@ -352,7 +352,7 @@ def build_leg(goInstance,buildShapes = False, buildControls = False,buildSkeleto
     if buildDeformation: leg.build_deformation(self)
     if buildRig: leg.build_rig(self)    
         
-    return 
+    return """
 
 d_moduleRigFunctions = {'torso':build_spine,
                         'neckHead':build_neckHead,
