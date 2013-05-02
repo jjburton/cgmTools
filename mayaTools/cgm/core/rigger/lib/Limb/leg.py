@@ -54,7 +54,7 @@ from cgm.lib import (attributes,
 
 #>>> Shapes
 #===================================================================
-__shapeDict__ = {'shape':['controlsFK','midIK','settings','foot'],
+__d_controlShapes__ = {'shape':['controlsFK','midIK','settings','foot'],
                  'pivot':['toe','heel','heel','ball','inner','outer']}
 
 def build_shapes(self):
@@ -89,7 +89,7 @@ def build_shapes(self):
 	log.error("build_neckHead>>Build shapes fail!")
 	raise StandardError,error   
     
-__jointAttrList__ = ['anchorJoints','rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
+__l_jointAttrs__ = ['anchorJoints','rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
 @r9General.Timer
 def build_rigSkeleton(self):
     
@@ -286,9 +286,9 @@ def build_controls(self):
     if not self.isRigSkeletonized():
 	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
     """
-    __shapeDict__ = {'shape':['controlsFK','midIK','settings','foot'],
+    __d_controlShapes__ = {'shape':['controlsFK','midIK','settings','foot'],
 	             'pivot':['toe','heel','ball','inner','outer
-    for shape in __shapeDict__['shape']:
+    for shape in __d_controlShapes__['shape']:
 	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_%s'%shape),noneValid=False)
 	log.info(self.__dict__['mi_%s'%shape] )"""
     
