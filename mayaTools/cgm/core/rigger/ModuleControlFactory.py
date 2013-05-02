@@ -22,7 +22,6 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
@@ -63,9 +62,12 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data
-        if not issubclass(type(moduleInstance),cgmPM.cgmModule):
-            log.error("Not a cgmModule: '%s'"%moduleInstance)
-            return 
+	try:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance
+	except StandardError,error:
+	    raise StandardError,"RigFactory.go.init. Module call failure. Probably not a module: '%s'"%error	    
+		
 	if not mc.objExists(moduleInstance.mNode):
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
 	

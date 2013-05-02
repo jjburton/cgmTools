@@ -17,19 +17,13 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
 from cgm.core.lib import rayCaster as RayCast
-from cgm.core.rigger import PuppetFactory as PuppetF
-reload(PuppetF)
-
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 reload(mShapeCast)
-from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
-reload(mControlFactory)
 
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg)
 reload(spine)
@@ -53,6 +47,25 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 
+l_modulesDone  = ['']
+
+#>>> Register rig functions
+#=====================================================================
+"""d_moduleRigVersions = {'torso':str(spine.__version__),
+                       'neckHead':str(neckHead.__version__),
+                       'leg':str(neckHead.__version__),
+                        }
+d_moduleShapeKeys = {'leg':leg.__shapeDict__,
+                     'torso':spine.__shapeDict__,
+                     }
+d_moduleJointAttrs = {'leg':leg.__jointAttrList__,
+                      'torso':spine.__jointAttrList__,
+                     } """
+d_moduleTypeToBuildModule = {'leg':leg,
+                             'torso':spine,
+                            } 
+#>>> Main class function
+#=====================================================================
 class go(object):
     @r9General.Timer
     def __init__(self,moduleInstance,forceNew = True,**kws): 
@@ -72,7 +85,11 @@ class go(object):
 	    log.error("RigFactory.go.__init__>>module instance isn't working!")
 	    raise StandardError,error    
 	"""
-	i_module = cgmMeta.validateObjArg(moduleInstance,cgmPM.cgmModule,noneValid=True)
+	try:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance
+	except StandardError,error:
+	    raise StandardError,"RigFactory.go.init. Module call failure. Probably not a module: '%s'"%error	    
 	if not i_module:
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
 
@@ -159,8 +176,11 @@ class go(object):
         if self._partType in d_moduleRigFunctions.keys():
 	    self._md_controlShapes = {}
             log.info("mode: cgmLimb control building")
-            #d_moduleRigFunctions[self._partType](self,**kws)
-	    self.doBuild = d_moduleRigFunctions[self._partType]
+	    if self._partType in l_modulesDone:
+		d_moduleRigFunctions[self._partType](self,**kws)
+	    else:
+		log.info("'%s' not in done modules list. Pushing build functions to testing .doBuild"%self._strShortName)
+		self.doBuild = d_moduleRigFunctions[self._partType]
             #if not limbControlMaker(self,self.l_controlsToMakeArg):
                 #raise StandardError,"limbControlMaker failed!"
         else:
@@ -170,15 +190,15 @@ class go(object):
 	"""
 	Return if a module is shaped or not
 	"""
-	if self._partType in d_moduleShapeKeys.keys():
-	    checkShapes = d_moduleShapeKeys.get(self._partType)
+	if self._partType in d_moduleTypeToBuildModule.keys():
+	    checkShapes = d_moduleTypeToBuildModule[self._partType].__shapeDict__
 	else:
 	    log.error("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
 	    return True
 	for key in checkShapes.keys():
 	    for subkey in checkShapes[key]:
 		if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
-		    log.error("%s.isShaped>>> Missing key %s_%s "%(self._strShortName,key,subkey))
+		    log.error("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
 		    return False		
 	return True
     
@@ -196,6 +216,29 @@ class go(object):
 		log.error("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
 		return False		
 	return True
+
+def isRigable(goInstance):
+    if not issubclass(type(goInstance),go):
+	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+	raise StandardError
+    self = goInstance#Link
+    
+    if self._partType not in d_moduleTypeToBuildModule.keys():
+	log.error("%s.isRigable>>> Not in d_moduleTypeToBuildModule"%(self._strShortName))	
+	return False
+    
+    try:#Shapes dict
+	d_moduleTypeToBuildModule[self._partType].__shapeDict__    
+    except:
+	log.error("%s.isRigable>>> Missing shape dict in module"%(self._strShortName))	
+	return False	
+    try:#Joints list
+	d_moduleTypeToBuildModule[self._partType].__jointAttrList__    
+    except:
+	log.error("%s.isRigable>>> Missing joint attr list in module"%(self._strShortName))	
+	return False	
+    
+    return True
     
 @r9General.Timer
 def verify_moduleRigToggles(goInstance):
@@ -252,7 +295,7 @@ def bindJoints_connect(goInstance):
     return True
 	
 @r9General.Timer
-def build_spine(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False):
+def build_spine(goInstance, buildTo='',):
     """
     Rotate orders
     hips = 3
@@ -262,11 +305,14 @@ def build_spine(goInstance,buildShapes = False, buildControls = False,buildSkele
         raise StandardError
     self = goInstance#Link
     
-    if buildShapes: spine.build_shapes(self)
-    if buildSkeleton: spine.build_rigSkeleton(self)    
-    if buildControls: spine.build_controls(self)    
-    if buildDeformation: spine.build_deformation(self)
-    if buildRig: spine.build_rig(self)    
+    spine.build_shapes(self)
+    if buildTo.lower() == 'shapes':return
+    spine.build_rigSkeleton(self)  
+    if buildTo.lower() == 'skeleton':return
+    return 'pickle'
+    spine.build_controls(self)    
+    spine.build_deformation(self)
+    spine.build_rig(self)    
         
     return 
 
@@ -307,17 +353,8 @@ def build_leg(goInstance,buildShapes = False, buildControls = False,buildSkeleto
     if buildRig: leg.build_rig(self)    
         
     return 
-#>>> Register rig functions
-#=====================================================================
+
 d_moduleRigFunctions = {'torso':build_spine,
                         'neckHead':build_neckHead,
                         'leg':build_leg,
                         }
-d_moduleRigVersions = {'torso':str(spine.__version__),
-                       'neckHead':str(neckHead.__version__),
-                       'leg':str(neckHead.__version__),
-                        }
-d_moduleShapeKeys = {'leg':leg.__shapeDict__,
-                     }
-d_moduleJointAttrs = {'leg':leg.__jointList__,
-                     } 

@@ -8,6 +8,17 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 spine rig builder
+
+The basics of a module rig build are as follows:
+1) Skeleton build - necessary joints for arig
+2) Shapes build - build the control shapes for the rig
+3) Deformation build - build the deformation parts of the rig
+4) Rig build - finally connects everything
+
+Necessary variables:
+1) __version__
+2) __shapeDict__
+3) __jointAttrList__
 ================================================================
 """
 __version__ = 0.04222013
@@ -32,7 +43,6 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
@@ -54,8 +64,9 @@ from cgm.lib import (attributes,
                      curves,
                      )
 
-#>>> Utilities
+#>>> Skeleton
 #===================================================================
+#__jointAttrList__ = ['startAnchor','endAnchor','anchorJoints','rigJoints','influenceJoints','segmentJoints']   
 @r9General.Timer
 def build_rigSkeleton(self):
     """
@@ -164,8 +175,11 @@ def build_rigSkeleton(self):
 	i_jnt.overrideEnabled = 1		
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
-	
-    
+
+#>>> Shapes
+#===================================================================
+__shapeDict__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
+
 @r9General.Timer
 def build_shapes(self):
     """

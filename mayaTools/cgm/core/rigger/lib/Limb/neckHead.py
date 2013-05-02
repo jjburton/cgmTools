@@ -10,7 +10,8 @@ Website : http://www.cgmonks.com
 neckHead rig builder
 ================================================================
 """
-__version__ = 0.04292013
+__version__ = 0.04242013
+
 
 # From Python =============================================================
 import copy
@@ -52,50 +53,13 @@ from cgm.lib import (attributes,
                      curves,
                      )
 
-#>>> Shapes
+#>>> Utilities
 #===================================================================
-__shapeDict__ = {'shape':['controlsFK','midIK','settings','foot'],
-                 'pivot':['toe','heel','heel','ball','inner','outer']}
-
-def build_shapes(self):
-    """
-    """ 
-    try:
-	if not self._cgmClass == 'RigFactory.go':
-	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
-	log.error("neckHead.build_rig>>bad self!")
-	raise StandardError,error
-    
-    #>>>Build our Shapes
-    #=============================================================
-    try:
-	l_toBuild = ['segmentIK','segmentFK_Loli','settings','midIK','foot']
-	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
-	log.info(self._md_controlShapes)
-	log.info(self._md_controlPivots)
-	self._i_rigNull.connectChildrenNodes(self._md_controlShapes['segmentFK_Loli'],'shape_controlsFK','module')	
-	self._i_rigNull.connectChildNode(self._md_controlShapes['midIK'],'shape_midIK','module')
-	self._i_rigNull.connectChildNode(self._md_controlShapes['settings'],'shape_settings','module')		
-	self._i_rigNull.connectChildNode(self._md_controlShapes['foot'],'shape_foot','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['toe'],'pivot_toe','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['heel'],'pivot_heel','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['ball'],'pivot_ball','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['inner'],'pivot_inner','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['outer'],'pivot_outer','module')
-	
-    except StandardError,error:
-	log.error("build_neckHead>>Build shapes fail!")
-	raise StandardError,error   
-    
-__jointAttrList__ = ['anchorJoints','rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
 @r9General.Timer
 def build_rigSkeleton(self):
-    
     """
     """
-    try:#===================================================
+    try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
@@ -103,17 +67,22 @@ def build_rigSkeleton(self):
 	log.error("neckHead.build_deformationRig>>bad self!")
 	raise StandardError,error
     
-    if not self.isShaped():
-	raise StandardError,"%s.build_rigSkeleton>>> needs shapes to build rig skeleton"%self._strShortName
-    
-    mi_toePivot = self._i_rigNull.pivot_toe or False 
-    if not mi_toePivot:
-	raise StandardError,"%s.build_rigSkeleton>>> missing our toe pivot"%self._strShortName
-	
     #>>>Create joint chains
     #=============================================================    
     try:
-	#>>Rig chain  
+	#>>Segment chain    
+	"""
+	l_segmentJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
+	ml_segmentJoints = []
+	for i,j in enumerate(l_segmentJoints):
+	    i_j = cgmMeta.cgmObject(j)
+	    i_j.addAttr('cgmTypeModifier','segment',attrType='string')
+	    i_j.doName()
+	    l_segmentJoints[i] = i_j.mNode
+	    ml_segmentJoints.append(i_j)
+	ml_segmentJoints[0].parent = False#Parent to world
+	"""
+	#>>Deformation chain  
 	#=====================================================================	
 	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
 	ml_rigJoints = []
@@ -125,104 +94,6 @@ def build_rigSkeleton(self):
 	    ml_rigJoints.append(i_j)
 	ml_rigJoints[0].parent = False#Parent to deformGroup
 	
-	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','module')
-	
-	#>>FK chain
-	#=====================================================================		
-	ml_fkJoints = []
-	for i,i_ctrl in enumerate(self._i_templateNull.controlObjects):
-	    if not i_ctrl.getMessage('handleJoint'):
-		raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
-	    i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
-	    i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
-	    i_new.doName()
-	    if ml_fkJoints:#if we have data, parent to last
-		i_new.parent = ml_fkJoints[-1]
-	    else:i_new.parent = False
-	    i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
-	    ml_fkJoints.append(i_new)	
-	    
-	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'fkJoints','module')
-	
-	#>>Blend chain
-	#=====================================================================	
-	ml_blendJoints = []
-	for i_jnt in ml_fkJoints:
-	    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
-	    i_new.addAttr('cgmTypeModifier','blend',attrType='string',lock=True)
-	    i_new.doName()
-	    if ml_blendJoints:#if we have data, parent to last
-		i_new.parent = ml_blendJoints[-1]
-	    ml_blendJoints.append(i_new)	
-	    
-	self._i_rigNull.connectChildrenNodes(ml_blendJoints,'blendJoints','module')
-
-	#>>IK chain
-	#=====================================================================	
-	ml_ikJoints = []
-	for i_jnt in ml_fkJoints:
-	    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
-	    i_new.addAttr('cgmTypeModifier','ik',attrType='string',lock=True)
-	    i_new.doName()
-	    if ml_ikJoints:#if we have data, parent to last
-		i_new.parent = ml_ikJoints[-1]
-	    ml_ikJoints.append(i_new)	
-	
-	#Do the toe
-	i_toeJoint = ml_ikJoints[-1].doDuplicate()
-	Snap.go(i_toeJoint, mi_toePivot.mNode,True,False)
-	joints.doCopyJointOrient(ml_ikJoints[-1].mNode,i_toeJoint.mNode)
-	i_toeJoint.addAttr('cgmName','toe',attrType='string',lock=True)	
-	i_toeJoint.addAttr('cgmTypeModifier','ik',attrType='string',lock=True)
-	i_toeJoint.doName()
-	
-	i_toeJoint.parent = ml_ikJoints[-1].mNode
-	ml_ikJoints.append(i_toeJoint)	
-	
-	self._i_rigNull.connectChildrenNodes(ml_ikJoints,'ikJoints','module')
-		
-	#>>Influence chain
-	#=====================================================================		
-	ml_influenceJoints = []
-	for i_ctrl in self._i_templateNull.controlObjects:
-	    if i_ctrl.getAttr('cgmName') in ['hip','knee','ankle']:
-		if not i_ctrl.getMessage('handleJoint'):
-		    raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
-		i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
-		i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)
-		i_new.parent = False
-		i_new.doName()
-		#if ml_influenceJoints:#if we have data, parent to last
-		    #i_new.parent = ml_influenceJoints[-1]
-		#else:i_new.parent = False
-		i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
-		ml_influenceJoints.append(i_new)
-	
-	joints.doCopyJointOrient(ml_influenceJoints[-2].mNode,ml_influenceJoints[-1].mNode)
-	    
-	if len(ml_influenceJoints)!=3:
-	    raise StandardError,"%s.build_rigSkeleton>>> don't have 3 influence joints: '%s'"%(self._i_module.getShortName(),ml_influenceJoints)
-	    
-	for i_jnt in ml_influenceJoints:
-	    i_jnt.parent = False
-	    
-	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
-
-	#>>Anchor chain
-	#=====================================================================	
-	ml_anchors = []
-	for i_jnt in ml_influenceJoints:
-	    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
-	    i_new.addAttr('cgmTypeModifier','anchor',attrType='string',lock=True)
-	    i_new.parent = False
-	    i_new.doName()
-
-	    ml_anchors.append(i_new)	 
-	    
-	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'anchorJoints','module')
-
-	return
-    
 	#>>Segment chain  
 	#=====================================================================
 	l_segmentJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
@@ -233,11 +104,48 @@ def build_rigSkeleton(self):
 	    i_j.doName()
 	    l_rigJoints[i] = i_j.mNode
 	    ml_segmentJoints.append(i_j)
-	ml_segmentJoints[0].parent = False#Parent to deformGroup
-	return
-	"""
+	ml_segmentJoints[0].parent = False#Parent to deformGroup	
+	
+	#>>Anchor chain
+	#=====================================================================	
+	ml_anchors = []
+	
+	#Start
+	i_startJnt = cgmMeta.cgmObject(mc.duplicate(self._l_skinJoints[0],po=True,ic=True,rc=True)[0])
+	i_startJnt.addAttr('cgmType','anchor',attrType='string',lock=True)
+	i_startJnt.doName()
+	i_startJnt.parent = False
+	ml_anchors.append(i_startJnt)
+	
+	#End
+	l_endJoints = mc.duplicate(self._l_skinJoints[-1],po=True,ic=True,rc=True)
+	i_endJnt = cgmMeta.cgmObject(l_endJoints[0])
+	for j in l_endJoints:
+	    #for i_j in [i_endJnt]:
+	    i_j = cgmMeta.cgmObject(j)
+	    i_j.addAttr('cgmType','anchor',attrType='string',lock=True)
+	    i_j.doName()
+	i_endJnt.parent = False
+	ml_anchors.append(i_endJnt)
+	for i_obj in ml_anchors:
+	    i_obj.rotateOrder = 2#<<<<<<<<<<<<<<<<This would have to change for other orientations
+	
+	#Influence chain for influencing the surface
+	ml_influenceJoints = []
+	for i_jnt in self._ml_skinJoints:
+	    if i_jnt.hasAttr('cgmName') and i_jnt.cgmName in self._l_coreNames:
+		i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
+		i_new.addAttr('cgmType','influenceJoint',attrType='string',lock=True)
+		i_new.parent = False
+		i_new.doName()
+		if ml_influenceJoints:#if we have data, parent to last
+		    i_new.parent = ml_influenceJoints[-1]
+		else:i_new.parent = False
+		i_new.rotateOrder = 'zxy'#<<<<<<<<<<<<<<<<This would have to change for other orientations
+		ml_influenceJoints.append(i_new)
+	for i_jnt in ml_influenceJoints:
+	    i_jnt.parent = False		
 	#>>> Store em all to our instance
-	#=====================================================================			
 	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','module')
 	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','module')	
 	self._i_rigNull.connectChildrenNodes(ml_anchors,'anchorJoints','module')
@@ -253,12 +161,12 @@ def build_rigSkeleton(self):
 	log.info("segmentJoints>> %s"%self._i_rigNull.getMessage('segmentJoints',False))
 	log.info("influenceJoints>> %s"%self._i_rigNull.getMessage('influenceJoints',False))
 	log.info("skinJoints>> %s"%self._i_rigNull.getMessage('skinJoints',False))
-	"""
+	
 	
     except StandardError,error:
 	log.error("build_neckHead>>Build rig joints fail!")
 	raise StandardError,error   
-    """
+    
     ml_jointsToConnect = [i_startJnt,i_endJnt]
     ml_jointsToConnect.extend(ml_rigJoints)
     ml_jointsToConnect.extend(ml_segmentJoints)    
@@ -268,7 +176,32 @@ def build_rigSkeleton(self):
 	i_jnt.overrideEnabled = 1		
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
-	"""
+	
+    
+@r9General.Timer
+def build_shapes(self):
+    """
+    """ 
+    try:
+	
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("neckHead.build_rig>>bad self!")
+	raise StandardError,error
+    
+    #>>>Build our Shapes
+    #=============================================================
+    try:
+	l_toBuild = ['segmentFK_Loli','segmentIK']
+	
+	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
+	log.info(self._md_controlShapes)
+	
+    except StandardError,error:
+	log.error("build_neckHead>>Build shapes fail!")
+	raise StandardError,error    
     
 def build_controls(self):
     """
@@ -278,62 +211,87 @@ def build_controls(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("leg.build_rig>>bad self!")
+	log.error("neckHead.build_rig>>bad self!")
 	raise StandardError,error
     
-    if not self.isShaped():
-	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
-    if not self.isRigSkeletonized():
-	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
-    """
-    __shapeDict__ = {'shape':['controlsFK','midIK','settings','foot'],
-	             'pivot':['toe','heel','ball','inner','outer
-    for shape in __shapeDict__['shape']:
-	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_%s'%shape),noneValid=False)
-	log.info(self.__dict__['mi_%s'%shape] )"""
+    try: self._md_controlShapes['segmentIK']
+    except StandardError,error:    
+	log.warning("neckHead.build_controls>>>Shapes issue, rebuilding. Error: %s"%error)
+	build_shapes(self)
+	
+    #>>> Get some special pivot xforms
+    ml_segmentJoints = self._i_rigNull.rigJoints 
+    l_segmentJoints  = [i_jnt.mNode for i_jnt in ml_segmentJoints] 
+    tmpCurve = curves.curveFromObjList(l_segmentJoints)
+    midPivotPos = distance.returnWorldSpacePosition("%s.u[%f]"%(tmpCurve,.5))
+    log.info("midPivotPos : %s"%midPivotPos)   
+    mc.delete(tmpCurve)
+	    
+    l_controlsAll = []#we'll append to this list and connect them all at the end 
     
-    ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_controlsFK'),cgmMeta.cgmObject)
-    mi_midIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
-    mi_settings= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
-    mi_foot= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_foot'),cgmMeta.cgmObject)
-    mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
-    mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
-    mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
-    mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
-    mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)
-    
-    l_controlsAll = []
     #==================================================================
     try:#>>>> FK Segments
-	if len( ml_controlsFK )<3:
-	    raise StandardError,"%s.build_controls>>> Must have at least three fk controls"%self._strShortName	    
+	if len( self._md_controlShapes['segmentFK_Loli'] )<2:
+	    raise StandardError,"build_controls>> Must have at least two fk controls"
 	
+	ml_shapes = self._md_controlShapes['segmentFK_Loli']
+	ml_segmentsFK = ml_shapes[:-1]
+	log.info(ml_segmentsFK)
 	
-	for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
-	    i_obj.parent = ml_controlsFK[i].mNode
+	for i,i_obj in enumerate(ml_segmentsFK[1:]):#parent
+	    i_obj.parent = ml_segmentsFK[i].mNode
+	    	
+	for i,i_obj in enumerate(ml_segmentsFK):
+	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',) 	    
+	    #if i == 0:
+		#i_loc = ml_segmentsFK[i].doLoc()
+		#mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)		
+		#d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,
+		                                           #copyPivot=i_loc.mNode,typeModifier='fk') 
+		#i_loc.delete()
 		
-	ml_controlsFK[0].parent = self._i_deformNull.mNode
-	
-	for i,i_obj in enumerate(ml_controlsFK):
-	    d_buffer = mControlFactory.registerControl(i_obj,addConstraintGroup=True,setRotateOrder=5,typeModifier='fk',) 	    
 	    i_obj = d_buffer['instance']
 	
-	self._i_rigNull.connectChildrenNodes(ml_controlsFK,'controlsFK','module')
-	l_controlsAll.extend(ml_controlsFK)	
+	self._i_rigNull.connectChildrenNodes(ml_segmentsFK,'controlsFK','module')
+	l_controlsAll.extend(ml_segmentsFK)	
+	ml_segmentsFK[0].masterGroup.parent = self._i_deformNull.mNode
     
-    except StandardError,error:	
-	log.error("%s.build_controls>>> Build fk fail!"%self._strShortName)
+    except StandardError,error:
+	log.error("build_neckHead>>Build fk fail!")
 	raise StandardError,error
     
     #==================================================================    
+    try:#>>>> IK Segments
+	ml_segmentsIK = self._md_controlShapes['segmentIK']
+	
+	for i_obj in ml_segmentsIK:
+	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='ik',
+		                                       setRotateOrder=2)       
+	    i_obj = d_buffer['instance']
+	    i_obj.masterGroup.parent = self._i_deformNull.mNode
+	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','module')
+	l_controlsAll.extend(ml_segmentsIK)	
+	
+	
+    except StandardError,error:
+	log.error("build_neckHead>>Build ik handle fail!")
+	raise StandardError,error
+    
+    #==================================================================
     try:#>>>> IK Handle
-	i_IKEnd = mi_foot
+	i_IKEnd = ml_shapes[-1]
 	i_IKEnd.parent = False
+	"""
+	i_loc = i_IKEnd.doLoc()#Make loc for a new transform
+	i_loc.rx = i_loc.rx + 90#offset   
+	mc.move (shouldersPivotPos[0],shouldersPivotPos[1],shouldersPivotPos[2], i_loc.mNode)
+	"""
 	d_buffer = mControlFactory.registerControl(i_IKEnd,
-	                                           typeModifier='ik',addSpacePivots = 0, addDynParentGroup = True, addConstraintGroup=True,
+	                                           typeModifier='ik',addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
 	                                           makeAimable = True,setRotateOrder=4)
 	i_IKEnd = d_buffer['instance']	
-	#i_IKEnd.masterGroup.parent = self._i_deformNull.mNode
+
+	i_IKEnd.masterGroup.parent = self._i_deformNull.mNode
 	
 	#i_loc.delete()#delete
 	self._i_rigNull.connectChildNode(i_IKEnd,'handleIK','module')#connect
@@ -343,26 +301,12 @@ def build_controls(self):
 	i_IKEnd.axisAim = 4
 	i_IKEnd.axisUp= 2
 	
+	
     except StandardError,error:
-	log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
+	log.error("build_neckHead>>Build ik handle fail!")
 	raise StandardError,error   
+      
     
-    return  
-    #==================================================================
-    try:#>>>> Settings
-	d_buffer = mControlFactory.registerControl(mi_settings,addExtraGroups=0,typeModifier='settings',autoLockNHide=True,
-                                                   setRotateOrder=2)       
-	i_obj = d_buffer['instance']
-	i_obj.masterGroup.parent = self._i_deformNull.mNode
-	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','module')
-	l_controlsAll.extend(ml_segmentsIK)	
-	
-	
-    except StandardError,error:
-	log.error("%s.build_controls>>> Build settings fail!"%self._strShortName)		
-	raise StandardError,error
-    
-    #==================================================================
     #Connect all controls
     self._i_rigNull.connectChildrenNodes(l_controlsAll,'controlsAll')
     
@@ -370,7 +314,6 @@ def build_controls(self):
 
 
 def build_deformation(self):
-    raise NotImplementedError
     """
     Rotate orders
     hips = 3
@@ -483,7 +426,6 @@ def build_deformation(self):
     return True
 
 def build_rig(self):
-    raise NotImplementedError    
     """
     Rotate orders
     hips = 3

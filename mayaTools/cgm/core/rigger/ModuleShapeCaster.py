@@ -22,7 +22,6 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
 reload(RayCast)
@@ -66,7 +65,7 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data
-        if not issubclass(type(moduleInstance),cgmPM.cgmModule):
+        if not moduleInstance.isModule():
             log.error("Not a cgmModule: '%s'"%moduleInstance)
             return 
 	if not mc.objExists(moduleInstance.mNode):
@@ -119,7 +118,8 @@ class go(object):
 	self.md_returnPivots = {}   
 	self.md_fkControls = {}
 	self.md_segmentHandles = {}
-	
+	self._baseModuleDistance = self.returnBaseThickness()
+	log.info("_baseModuleDistance: %s"%self._baseModuleDistance)
         #>>> We need to figure out which control to make
 	#===================================================================================
 	self.l_controlsToMakeArg = []	
@@ -128,6 +128,7 @@ class go(object):
 	    for c in controlTypes:
 		if self.validateControlArg(c):
 		    self.l_controlsToMakeArg.append(c)
+	"""	
 	else:
 	    if not self._mi_module.getMessage('moduleParent'):
 		self.l_controlsToMakeArg.append('cog')
@@ -141,11 +142,12 @@ class go(object):
 		    self.l_controlsToMakeArg.extend(['hips','torsoIK'])
 		    if 'segmentIK' in self.l_controlsToMakeArg:self.l_controlsToMakeArg.remove('segmentIK')
 		    #We don't need segmentIK because we have special torsoIK handles
-		    
+		    """
 	log.debug("l_controlsToMakeArg: %s"%self.l_controlsToMakeArg)
 	    
 	#self.d_controlShapes = mControlFactory.limbControlMaker(self.m,self.l_controlsToMakeArg)
-	
+	if not self.l_controlsToMakeArg:
+	    log.info("No arguments for shapes to cast.Initializing only.")
 	for key in self.l_controlsToMakeArg:
 	    self.d_controlBuildFunctions[key]()#Run it
 	    #if key not in self.d_returnControls:
@@ -169,6 +171,18 @@ class go(object):
 	    return True
 	log.warning("validateControlArg couldn't find: %s"%arg)
 	return False
+    
+    def returnBaseThickness(self):
+	#We're going to cast from the middle of our limb segment to reduce the chance of firing to nowhere
+	#Start by casting along template up and out
+	midIndex = int(len(self.l_controlSnapObjects)/2)
+	d_return = returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])
+	l_lengths = [d_return[k] for k in d_return.keys()]
+	average = (sum(l_lengths))/len(l_lengths)
+	
+	return average *1.5
+	
+	
     
     @r9General.Timer    
     def build_cog(self):
@@ -223,7 +237,7 @@ class go(object):
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
 	    self.d_returnControls['cog'] = mi_crv.mNode
 	    self.md_ReturnControls['cog'] = mi_crv
-	    
+	    self.mi_rigNull.connectChildNode(mi_crv,'shape_cog','owner')
 	    
 	except StandardError,error:
 		log.error("build_cog fail! | %s"%error) 
@@ -299,16 +313,14 @@ class go(object):
 	curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
 	self.d_returnControls['hips'] = mi_crv.mNode
 	self.md_ReturnControls['hips'] = mi_crv
+	self.mi_rigNull.connectChildNode(mi_crv,'shape_hips','owner')
 	
-	
-	
-    
     	    
     @r9General.Timer    
     def build_segmentFKHandles(self):
 	try:
 	    l_segmentControls = []
-	    l_iSegmentControls = []
+	    ml_segmentControls = []
 	    if self._partType == 'torso':
 		l_segmentsToDo = self.l_segments[1:-1]
 	    else:
@@ -321,6 +333,7 @@ class go(object):
 		                                      insetMult = .2,
 		                                      posOffset = [0,0,self._skinOffset*3],
 		                                      joinMode=True,
+		                                      maxDistance=self._baseModuleDistance,		                                      
 		                                      joinHits = [0,2,4,6,8],
 		                                      extendMode='segment')
 		mi_crv = returnBuffer['instance']	    
@@ -331,11 +344,11 @@ class go(object):
 		
 		#Store for return
 		l_segmentControls.append( mi_crv.mNode )
-		l_iSegmentControls.append( mi_crv )
-		if i ==1:raise StandardError
+		ml_segmentControls.append( mi_crv )
 		
 	    self.d_returnControls['segmentFK'] = l_segmentControls 
-	    self.md_ReturnControls['segmentFK'] = l_iSegmentControls
+	    self.md_ReturnControls['segmentFK'] = ml_segmentControls
+	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_segmentFK','owner')
 	    
 	except StandardError,error:
 		log.error("build_segmentFKHandles fail! | %s"%error) 
@@ -430,6 +443,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
+	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_segmentFKLoli','owner')
 	    
 	except StandardError,error:
 		log.error("build_segmentIKHandles fail! | %s"%error) 
@@ -482,6 +496,7 @@ class go(object):
 		
 	    self.d_returnControls['midIK'] = mi_newCurve.mNode 
 	    self.md_ReturnControls['midIK'] = mi_newCurve
+	    self.mi_rigNull.connectChildNode(mi_newCurve,'shape_midIK','owner')
 	    
 	except StandardError,error:
 		log.error("build_midIKHandle fail! | %s"%error) 
@@ -511,6 +526,7 @@ class go(object):
 	                                              curveDegree=3,
 	                                              insetMult = .2,
 		                                      closedCurve=False,
+		                                      maxDistance=self._baseModuleDistance,		                                      
 		                                      l_specifiedRotates = [-30,-10,0,10,30],
 	                                              posOffset = [0,0,self._skinOffset*1.2],
 	                                              extendMode='')
@@ -551,7 +567,7 @@ class go(object):
     def build_torsoIKHandles(self):
 	try:
 	    l_segmentControls = []
-	    l_iSegmentControls = []
+	    ml_segmentControls = []
 	    
 	    l_segmentsToDo = self.l_segments[1:]
 
@@ -562,6 +578,7 @@ class go(object):
 		                                      insetMult = .05,
 		                                      posOffset = [0,0,self._skinOffset*3],
 		                                      joinMode=True,
+		                                      maxDistance=self._baseModuleDistance,		                                      
 		                                      extendMode='disc')
 		mi_crv = returnBuffer['instance']	    
 		#>>> Color
@@ -571,10 +588,11 @@ class go(object):
 		
 		#Store for return
 		l_segmentControls.append( mi_crv.mNode )
-		l_iSegmentControls.append( mi_crv )
+		ml_segmentControls.append( mi_crv )
 		
 	    self.d_returnControls['segmentIK'] = l_segmentControls 
-	    self.md_ReturnControls['segmentIK'] = l_iSegmentControls
+	    self.md_ReturnControls['segmentIK'] = ml_segmentControls
+	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_segmentIK','owner')
 	    
 	    if len(self.l_segments)>2:
 		objects = self.l_controlSnapObjects[-2:]
@@ -587,6 +605,7 @@ class go(object):
 	                                          posOffset = [0,0,self._skinOffset*3],
 	                                          joinHits = [0,2,4,6,8],	                                          
 	                                          joinMode=True,
+	                                          maxDistance=self._baseModuleDistance,
 	                                          extendMode='segment')
 	    mi_crv = returnBuffer['instance']	    
 	    #>>> Color
@@ -597,6 +616,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentIKEnd'] = mi_crv.mNode 		
 	    self.md_ReturnControls['segmentIKEnd'] = mi_crv
+	    self.mi_rigNull.connectChildNode(mi_crv,'shape_handleIK','owner')
 		
 	except StandardError,error:
 		log.error("build_torsoIKHandles! | %s"%error) 
@@ -656,6 +676,7 @@ class go(object):
 	    
 	self.d_returnControls['settings'] = i_gear.mNode 		
 	self.md_ReturnControls['settings'] = i_gear		
+	self.mi_rigNull.connectChildNode(i_gear,'shape_settings','owner')
 	
     def build_footPivots(self):
 	"""
@@ -1022,6 +1043,7 @@ class go(object):
 	    
 	self.d_returnControls['foot'] = mi_crv.mNode 		
 	self.md_ReturnControls['foot'] = mi_crv	
+	self.mi_rigNull.connectChildNode(mi_crv,'shape_foot','owner')
 	
 	
     def build_segmentIKHandles(self):
@@ -1135,6 +1157,7 @@ class go(object):
 	    
 	self.d_returnControls['segmentIK'] = l_segmentControls 
 	self.md_ReturnControls['segmentIK'] = ml_SegmentControls
+	self.mi_rigNull.connectChildrenNodes(ml_SegmentControls,'shape_segmentIK','owner')
 	    
 	#except StandardError,error:
 	#	log.error("build_segmentIKHandles! | %s"%error) 
@@ -1212,7 +1235,7 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
 #@r9General.Timer    
 def createWrapControlShape(targetObjects,
                            targetGeo = None,
-                           latheAxis = 'z',aimAxis = 'y+',
+                           latheAxis = 'z',aimAxis = 'y+',objectUp = 'y+',
                            points = 8,
                            curveDegree = 1,
                            insetMult = None,#Inset multiplier
@@ -1248,7 +1271,7 @@ def createWrapControlShape(targetObjects,
     if rootOffset is not None and len(rootOffset) and len(rootOffset)!=3:raise StandardError, "rootOffset must be len(3): %s | len: %s"%(rootOffset,len(rootOffset))
     if rootRotate is not None and len(rootRotate) and len(rootRotate)!=3:raise StandardError, "rootRotate must be len(3): %s | len: %s"%(rootRotate,len(rootRotate))
     
-    if insetMult is None:insetMult = 1
+    if extendMode in ['loliwrap'] and insetMult is None:insetMult = 1
     for axis in ['x','y','z']:
 	if axis in latheAxis.lower():latheAxis = axis
     
@@ -1256,6 +1279,7 @@ def createWrapControlShape(targetObjects,
     
     if len(aimAxis) == 2:single_aimAxis = aimAxis[0]
     else:single_aimAxis = aimAxis
+    log.info("Single aim: %s"%single_aimAxis)
     
     #>>> Info
     l_groupsBuffer = []
@@ -1269,14 +1293,17 @@ def createWrapControlShape(targetObjects,
     log.info("RootRotate: %s"%rootRotate)
     mi_rootLoc = cgmMeta.cgmNode(targetObjects[0]).doLoc()
     if rootOffset:
+	log.info("rootOffset: %s"%rootOffset)
 	mc.move(rootOffset[0],rootOffset[1],rootOffset[2], [mi_rootLoc.mNode], r=True, rpr = True, os = True, wd = True)
     if rootRotate is not None and len(rootRotate):
+	log.info("rootOffset: %s"%rootRotate)	
 	mc.rotate(rootRotate[0],rootRotate[1],rootRotate[2], [mi_rootLoc.mNode], os = True)
 
 	    
     #>>> Root
     mi_rootLoc.doGroup()#Group to zero    
     if extendMode == 'segment':
+	log.info("segment mode. Target len: %s"%len(targetObjects[1:]))	
 	try:
 	    if len(targetObjects) < 2:
 		log.warning("Segment build mode only works with two objects or more")    
@@ -1287,25 +1314,39 @@ def createWrapControlShape(targetObjects,
 		    mi_rootLoc.__setattr__('t%s'%latheAxis,rootDistanceToMove*insetMult)
 		    #mi_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
 		
+		#Notes -- may need to play with up object for aim snapping
+		#mi_upLoc = cgmMeta.cgmNode(targetObjects[0]).doLoc()
+		#mi_upLoc.doGroup()#To zero
+		objectUpVector = dictionary.returnStringToVectors(objectUp)
+		log.info("objectUpVector: %s"%objectUpVector)		    
+		#mi_uploc
+		
 		for i,obj in enumerate(targetObjects[1:]):
-		    log.info(i)
-		    log.info(len(targetObjects[1:]))
+		    log.info("i: %s"%i)
 		    #> End Curve
 		    mi_endLoc = cgmMeta.cgmNode(obj).doLoc()
-		    aimVector = dictionary.returnStringToVectors(latheAxis+'+')
-		    Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,aim=True,aimVector=aimVector)
+		    aimVector = dictionary.returnStringToVectors(latheAxis+'-')
+		    log.info("segment aimback: %s"%aimVector)		    
+		    #Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,aim=True,aimVector=aimVector,upVector=objectUpVector)
+		    Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,orient=True)		    
 		    mi_endLoc.doGroup()
+		    
 		    if i == len(targetObjects[1:])-1:
 			if insetMult is not None:
+			    log.info("segment insetMult: %s"%insetMult)			    
 			    distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[-1],targetObjects[0])
 			    log.info("distanceToMove: %s"%distanceToMove)
 			    #mi_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
-			    mi_endLoc.__setattr__('t%s'%latheAxis,(distanceToMove*insetMult))
+			    mi_endLoc.__setattr__('t%s'%latheAxis,-(distanceToMove*insetMult))
+		    log.info("segment lathe: %s"%latheAxis)
+		    log.info("segment aim: %s"%aimAxis)
+		    log.info("segment rotateBank: %s"%rotateBank)		    
 		    d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  	
 		    l_sliceReturns.append(d_endCastInfo)
 		    mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
 		    il_curvesToCombine.append(mi_end)
 		    mc.delete(mi_endLoc.parent)#delete the loc
+		    
 	except StandardError,error:
 	    raise StandardError,"createWrapControlShape>>> segment wrap fail! | %s"%error
 	
@@ -1381,6 +1422,7 @@ def createWrapControlShape(targetObjects,
     else:
 	l_sliceReturns.insert(0,d_rootCastInfo)
     
+    #Special loli stuff
     if extendMode == 'loliwrap':
 	Snap.go(i_ball.mNode,mi_rootLoc.mNode,True, True)#Snap to main object
 	
@@ -1397,7 +1439,7 @@ def createWrapControlShape(targetObjects,
 	Snap.go(i_ball.mNode,mi_rootLoc.mNode,move = False, orient = False, aim=True, aimVector=[0,0,-1])
 	
 	if posOffset:
-	    mc.move(posOffset[0]*2,posOffset[1]*2,posOffset[2]*2, [i_ball.mNode], r = True, rpr = True, os = True, wd = True)
+	    mc.move(posOffset[0]*4,posOffset[1]*4,posOffset[2]*4, [i_ball.mNode], r = True, rpr = True, os = True, wd = True)
 	
 	#Make the curve between the two 
 	mi_traceCrv = cgmMeta.cgmObject( mc.curve(degree = 1, ep = [pos,i_ball.getPosition()]) )
