@@ -14,11 +14,12 @@ The basics of a module rig build are as follows:
 2) Shapes build - build the control shapes for the rig
 3) Deformation build - build the deformation parts of the rig
 4) Rig build - finally connects everything
+5) doBuild -- the final func to build the module rig
 
 Necessary variables:
 1) __version__
-2) __shapeDict__
-3) __jointAttrList__
+2) __d_controlShapes__
+3) __l_jointAttrs__
 ================================================================
 """
 __version__ = 0.04222013
@@ -66,7 +67,8 @@ from cgm.lib import (attributes,
 
 #>>> Skeleton
 #===================================================================
-#__jointAttrList__ = ['startAnchor','endAnchor','anchorJoints','rigJoints','influenceJoints','segmentJoints']   
+__l_jointAttrs__ = ['startAnchor','endAnchor','anchorJoints','rigJoints','influenceJoints','segmentJoints']   
+
 @r9General.Timer
 def build_rigSkeleton(self):
     """
@@ -178,8 +180,7 @@ def build_rigSkeleton(self):
 
 #>>> Shapes
 #===================================================================
-__shapeDict__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
-
+__d_controlShapes__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
 @r9General.Timer
 def build_shapes(self):
     """
@@ -217,10 +218,8 @@ def build_controls(self):
 	log.error("spine.build_rig>>bad self!")
 	raise StandardError,error
     
-    try: self._md_controlShapes['cog']
-    except StandardError,error:    
-	log.warning("spine.build_controls>>>Shapes issue, rebuilding. Error: %s"%error)
-	build_shapes(self)
+    if not self.isShaped():	
+	raise StandardError,"%s.build_controls>>> No shapes found connected"%(self._strShortName)
 	
     #>>> Get some special pivot xforms
     ml_segmentJoints = self._i_rigNull.segmentJoints 
@@ -231,18 +230,26 @@ def build_controls(self):
     log.debug("hipPivotPos : %s"%hipPivotPos)
     log.debug("shouldersPivotPos : %s"%shouldersPivotPos)   
     mc.delete(tmpCurve)
-	
-    #log.debug(self.__dict__.keys())
-    #>>> Figure out what's what
-    #Add some checks like at least 3 handles
+    
+    #>>> Get our shapes
+    #__d_controlShapes__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
+    
+    mi_cogShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_cog'),cgmMeta.cgmObject)
+    mi_hipsShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_hips'),cgmMeta.cgmObject)
+    ml_segmentFKShapes = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_segmentFK'),cgmMeta.cgmObject)
+    ml_segmentIKShapes = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_segmentIK'),cgmMeta.cgmObject)
+    mi_handleIKShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_handleIK'),cgmMeta.cgmObject)
+    
+    log.info('>'*50)
+    log.info(mi_handleIKShape)
+    log.info(mi_handleIKShape.mNode)
     
     l_controlsAll = []#we'll append to this list and connect them all at the end 
-    
     #>>>Build our controls
     #=============================================================
     #>>>Set up structure
     try:#>>>> Cog
-	i_cog = self._md_controlShapes['cog']
+	i_cog = mi_cogShape
 	log.info(i_cog)
 	d_buffer = mControlFactory.registerControl(i_cog.mNode,addExtraGroups = True,addConstraintGroup=True,
 	                                           freezeAll=True,makeAimable=True,autoLockNHide=True,
@@ -261,7 +268,7 @@ def build_controls(self):
     
     #==================================================================
     try:#>>>> FK Segments
-	ml_segmentsFK = self._md_controlShapes['segmentFK']
+	ml_segmentsFK = ml_segmentFKShapes
 	for i,i_obj in enumerate(ml_segmentsFK[1:]):#parent
 	    i_obj.parent = ml_segmentsFK[i].mNode
 	ml_segmentsFK[0].parent = i_cog.mNode
@@ -285,7 +292,7 @@ def build_controls(self):
         
     #==================================================================    
     try:#>>>> IK Segments
-	ml_segmentsIK = self._md_controlShapes['segmentIK']
+	ml_segmentsIK = ml_segmentIKShapes
 	
 	for i_obj in ml_segmentsIK:
 	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='ik',
@@ -302,7 +309,7 @@ def build_controls(self):
     
     #==================================================================
     try:#>>>> IK Handle
-	i_IKEnd = self._md_controlShapes['segmentIKEnd']
+	i_IKEnd = mi_handleIKShape
 	i_IKEnd.parent = i_cog.mNode
 	i_loc = i_IKEnd.doLoc()#Make loc for a new transform
 	i_loc.rx = i_loc.rx + 90#offset   
@@ -330,7 +337,7 @@ def build_controls(self):
       
     #==================================================================
     try:#>>>> Hips
-	i_hips = self._md_controlShapes['hips']
+	i_hips = mi_hipsShape
 	i_hips.parent = i_cog.mNode#parent
 	i_loc = i_hips.doLoc()
 	mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)
@@ -667,6 +674,28 @@ def build_rig(self):
     #Final stuff
     self._i_rigNull.version = str(__version__)
     return True 
+
+@r9General.Timer
+def __build__(self, buildTo='',): 
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("spine.build_deformationRig>>bad self!")
+	raise StandardError,error
+    
+    if not self.isShaped():
+	build_shapes(self)
+    if buildTo.lower() == 'shapes':return True
+    if not self.isRigSkeletonized():
+	build_rigSkeleton(self)  
+    if buildTo.lower() == 'skeleton':return True
+    build_controls(self)    
+    build_deformation(self)
+    build_rig(self)    
+            
+    return True
 
 
 
