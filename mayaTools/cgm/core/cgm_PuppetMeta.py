@@ -1583,6 +1583,44 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.doSkeletonized)
         """
         return mFactory.doSkeletonized(self)
+    
+    #>>> Rig
+    #===========================================================
+    def doRig(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.doRig)
+        """
+        return mFactory.doRig(self,*args,**kws)
+    
+    def isRigged(self,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.isRigged)
+        """
+        return mFactory.isRigged(self,**kws)  
+    
+    def isRigConnected(self,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.isRigConnected)
+        """
+        return mFactory.isRigConnected(self,**kws)  
+    
+    def rigConnect(self,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.rigConnect)
+        """
+        return mFactory.rigConnect(self,**kws) 
+    
+    def rigDisconnect(self,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.rigDisconnect)
+        """
+        return mFactory.rigDisconnect(self,**kws)   
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
