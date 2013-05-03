@@ -1,0 +1,65 @@
+/*
+Created on 2 May 2013
+
+------------------------------------------
+Red9 Studio Pack: Maya Pipeline Solutions
+Author: Mark Jackson
+email: rednineinfo@gmail.com
+------------------------------------------
+
+These are simple procs that the hacked scripts call to add to 
+their menu's. These are here so that I'm not hacking each script
+separately, means I have 1 place to modify the calls for the future
+
+Note to self!: menu calls should NOT use '-sourceType "python"' 
+as this would then mean managing versions, 2011 and below has no
+such arg in the menu calls
+================================================================
+*/
+
+
+global proc red9HackChannelBox(string $parent)
+{
+	 //hack the ChannelBox RMB popup menu
+	
+	 menuItem -p $parent -d true;
+	 menuItem -label ("Red9: HUD add CB selection") 
+		-p $parent
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDaddCBAttrs()\")" red9HUDaddItem;
+	 menuItem -label ("Red9: HUD remove CB selection") 
+		-p $parent
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDremoveCBAttrs()\")" red9HUDremoveItem;
+	 menuItem -label ("Red9: HUD delete") 
+		-p $parent
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDKill()\")" red9HUDdeleteItem;		
+}
+
+
+global proc red9HackGraphCurveMenu(string $parent)
+{
+	 //hack the GraphEditor 'curve' menu
+	 
+	 menuItem -label "Red9:AddNoise"
+		-annotation "Add Noise to Curves"	
+		-p $parent			
+		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()\")"
+		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()\")"
+		noiseItem;
+	 menuItem -optionBox true
+		-annotation "Noise Settings" 
+		-p $parent
+		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
+		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
+		noiseOptionsItem;
+}
+
+
+global proc red9HackScriptEditorPopup(string $parent)
+{
+	 //hack the ScriptEditor marking menu
+	 
+	 menuItem -radialPosition "SW" 
+		 -parent $parent 
+	 	 -label "Red9:InspectFunction"
+	 	 -command "handleScriptEditorAction \"copy\";red9_InspectCode";
+}

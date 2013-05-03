@@ -81,7 +81,22 @@ def registerMClassInheritanceMapping():
   
 def printSubClassRegistry():
     for m in RED9_META_REGISTERY:print m
-    
+
+def getMClassInstances(mInstances):
+    '''
+    return a list of Registered metaClasses that are subclassed from the given
+    classes. This is so in code/UI's you can group metaClasses by their
+    inheritance . . . ie, give me all export metaClasses that are registered
+    @param mInstanes: given metaClass to test inheritance - cls or [cls]
+    '''
+    subClasses=[]
+    if not type(mInstances)==list:mInstances=[mInstances]
+    for mClass in RED9_META_REGISTERY.values():
+        for instance in mInstances:
+            if issubclass(mClass, instance):
+                subClasses.append(mClass)
+    return subClasses
+
 def registerMClassNodeMapping(nodeTypes='network'):
     '''
     Hook to allow you to extend the type of nodes included in all the
@@ -137,7 +152,7 @@ def mTypesToRegistryKey(mTypes):
         except:
             keys.append(cls)
     return keys
-    
+
     
 #------------------------------------------------------------------------------   
     
@@ -344,6 +359,19 @@ class MClassNodeUI():
     def _showUI(self):
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
         window = cmds.window(self.win , title=self.win) #, widthHeight=(260, 220))
+        cmds.menuBarLayout()
+        cmds.menu(l="VimeoHelp")
+        cmds.menuItem(l="Vimeo Help: MetaData-Part1",
+                      ann='Part1 goes through the main attribute handling inside Meta',
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/61841345')")
+        cmds.menuItem(l="Vimeo Help: MetaData-Part2",
+                       ann='Part2 goes through the class structures and the basic factory aspect of Meta',
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/62546103')")
+        cmds.menuItem(l="Vimeo Help: MetaData-Part3",
+                       ann='Part3 shows how to add metaRig to your systems, all the connectChild and addRigCtrl calls',
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/64258996')")
+        cmds.menuItem(divider=True) 
+        cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))
         cmds.scrollLayout('slMetaNodeScroll',rc=lambda *args:self.fitTextScrollFucker())
         cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=15, style='none')
@@ -567,7 +595,7 @@ class MetaClass(object):
                                                '_MObject',
                                                '_MObjectHandle',
                                                '_lockState',
-                                               'lockState'])
+                                               'lockState'])  #note - UNMANAGED bypasses the Maya node in setattr calls
         object.__setattr__(self,'_lockState',False)
         
         if not node: 
@@ -618,6 +646,16 @@ class MetaClass(object):
         '''
         pass    
     
+    def isValid(self):
+        '''
+        a metaNode in this case is valid if it has connections, if not it's classed invalid
+        '''
+        if not self.isValidMObject():
+            return False
+        if self.hasAttr('mClass') and not cmds.listConnections(self.mNode):
+            return False
+        return True
+        
     def isValidMObject(self):
         '''
         validate the MObject, without this Maya will crash if the pointer is no longer valid
@@ -634,14 +672,15 @@ class MetaClass(object):
     #Cast the mNode attr to the actual MObject so it's no longer limited by string dagpaths       
     #yes I know Pymel does this for us but I don't want the overhead!  
     def __get_mNode(self):
-        mobj=object.__getattribute__(self, "_MObject")
-        mobjHandle=object.__getattribute__(self, "_MObjectHandle")
-        if mobj:   
+        mobjHandle=object.__getattribute__(self, "_MObjectHandle") 
+        if mobjHandle:   
             try:
                 if not mobjHandle.isValid():
-                    log.info('MObject is no longer valid - object may have been deleted or the scene reloaded?')  
-                    return ''   
+                    log.info('MObject is no longer valid - %s - object may have been deleted or the scene reloaded?'\
+                              % object.__getattribute__(self,'mNodeID')) 
+                    return   
                 #if we have an object thats a dagNode, ensure we return FULL Path
+                mobj=object.__getattribute__(self, "_MObject")
                 if OpenMaya.MObject.hasFn(mobj, OpenMaya.MFn.kDagNode):
                     dPath = OpenMaya.MDagPath()
                     OpenMaya.MDagPath.getAPathTo(mobj,dPath)

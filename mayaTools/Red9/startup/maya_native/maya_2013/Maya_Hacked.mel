@@ -26,13 +26,6 @@ global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryP
 			 -parent $parent 
 			 -label (uiRes("m_scriptEditorPanel.kSelectNextTab"))
 			 -command "handleScriptEditorAction \"selectNextExecuterTab\"";	
-			  
-//HACKED ===================================================================
-	menuItem -radialPosition "SW" 
-			 -parent $parent 
-			 -label "Red9:InspectFunction" 
-			 -command "handleScriptEditorAction \"copy\";red9_InspectCode";	 
-//HACKED_END ===============================================================	
   
 	$deleteSM = `menuItem -radialPosition "SE" 
 			 -parent $parent 
@@ -106,6 +99,11 @@ global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryP
 				 -parent $parent
 				 -command "handleScriptEditorAction \"clearAll\"";						
 	}
+		
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackScriptEditorPopup $parent;	
+	//HACK END ================================================================
 }
 
 
@@ -339,23 +337,6 @@ buildCurvesMenu (string $editor, string $animEditor, string $parentMenu, string 
 		-annotation (uiRes("m_loadAnimMenuLibrary.kResampleCurveOptions")) 
 		-c ("performResample " + ($performBase + 1) + " " + $selectionConnection)
 		resampleOptionsItem;
-		
-		
-//HACKED ===================================================================
-	menuItem -label "Red9:AddNoise"
-		-annotation "Add Noise to Curves"	
-		-sourceType "python"			
-		-c "import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()"
-		-dragMenuCommand "import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()"
-		noiseItem;
-	menuItem -optionBox true
-		-annotation "Noise Settings" 
-		-sourceType "python"	
-		-c "import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()"
-		-dragMenuCommand "import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()"
-		noiseOptionsItem;
-//HACKED END ===============================================================
-
 
 	menuItem -label (uiRes("m_loadAnimMenuLibrary.kSpreadsheet")) 
 		-annotation (uiRes("m_loadAnimMenuLibrary.kSpreadsheetAnnot")) 
@@ -396,6 +377,12 @@ buildCurvesMenu (string $editor, string $animEditor, string $parentMenu, string 
 	if ($buildMenuCommand != "") {
 		eval (($buildMenuCommand + " " + $editor + " " + $animEditor + " " + $parentMenu));
 	}
+		
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackGraphCurveMenu $parentMenu;
+	//HACK END ================================================================
+	
 }
 
 
@@ -493,14 +480,12 @@ global proc generateChannelMenu( string $parent, int $popupMenu )
 		
 		menuItem -label (uiRes("m_generateChannelMenu.kAddToSelectedLayers")) -c "channelBoxCommand -addToLayers" addToLayersItem;
 		menuItem -label (uiRes("m_generateChannelMenu.kRemoveFromSelectedLayers")) -c "channelBoxCommand -removeFromLayers" removeFromLayersItem;
-		
-		//HACKED START =============================================================
-		menuItem -d true;
-		menuItem -label ("Red9: HUD add CB selection") -sourceType "python" -c "import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDaddCBAttrs()" red9HUDaddItem;
-		menuItem -label ("Red9: HUD remove CB selection") -sourceType "python" -c "import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDremoveCBAttrs()" red9HUDremoveItem;
-		menuItem -label ("Red9: HUD delete") -sourceType "python" -c "import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDKill()" red9HUDdeleteItem;
-		//HACKED END ===============================================================
-		
+				
+		//ADD HACKS ===============================================================
+		source red9MayaHacks;
+		red9HackChannelBox $parent;
+		//HACK END ================================================================
+				
 		enableDisableChannelMenu $parent;
 	}
 }

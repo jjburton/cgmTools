@@ -26,13 +26,6 @@ global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryP
 			 -parent $parent 
 			 -label (uiRes("m_scriptEditorPanel.kSelectNextTab"))
 			 -command "handleScriptEditorAction \"selectNextExecuterTab\"";	 
-			 
-//HACKED ===================================================================
-	menuItem -radialPosition "SW" 
-			 -parent $parent 
-			 -label "Red9:InspectFunction"
-			 -command "handleScriptEditorAction \"copy\";red9_InspectCode";	 
-//HACK_END =================================================================	
 	 
 	$deleteSM = `menuItem -radialPosition "SE" 
 			 -parent $parent 
@@ -102,4 +95,9 @@ global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryP
 				 -parent $parent
 				 -command "handleScriptEditorAction \"clearAll\"";						
 	}
+		
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackScriptEditorPopup $parent;	
+	//HACK END ================================================================
 }
