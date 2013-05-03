@@ -135,7 +135,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	Setup before maya object initialization
 	"""
 	self.referencePrefix = False
-	
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
@@ -1070,12 +1069,15 @@ class cgmObject(cgmNode):
 
         """
 	try:
-	    if copyAttrs:
-		raise NotImplemented,"doDuplicateTransform>>>copyattrs not implemented yet"
 	    i_obj = cgmObject( rigging.groupMeObject(self.mNode,parent = False),setClass=True  ) 
-	    if i_obj.hasAttr('cgmName'):
+	    if copyAttrs:
+		for attr in self.getUserAttrs():
+		    cgmAttr(self,attr).doCopyTo(i_obj.mNode,attr,connectSourceToTarget = False)	    
+		self.addAttr('cgmType','null',lock=True)
+		i_obj.doName()
+	    elif i_obj.hasAttr('cgmName'):
 		i_obj.doRemove('cgmName')
-	    mc.rename(i_obj.mNode, self.getShortName()+'_Transform')
+		mc.rename(i_obj.mNode, self.getShortName()+'_Transform')
 	    return i_obj
 	except StandardError,error:
 	    log.error("doDuplicateTransform fail! | %s"%error) 
@@ -3552,7 +3554,6 @@ class cgmAttr(object):
         connectSourceToTarget = kw.pop('connectSourceToTarget',False)
         connectTargetToSource = kw.pop('connectTargetToSource',False)  
         
-	guiFactory.doPrintReportStart(functionName)
 	log.debug("AttrFactory instance: '%s'"%self.p_combinedName)
 	log.debug("convertToMatch: '%s'"%convertToMatch)
 	log.debug("targetAttrName: '%s'"%targetAttrName)
@@ -3563,7 +3564,6 @@ class cgmAttr(object):
 	log.debug("connectSourceToTarget: '%s'"%connectSourceToTarget)
 	log.debug("keepSourceConnections: '%s'"%keepSourceConnections)
 	log.debug("connectTargetToSource: '%s'"%connectTargetToSource)
-	guiFactory.doPrintReportBreak()
             
         copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
         
