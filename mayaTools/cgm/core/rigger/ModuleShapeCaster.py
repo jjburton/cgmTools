@@ -373,13 +373,13 @@ class go(object):
 	    self.latheAxis = 'z'
 	    self.aimAxis = 'y+'
 	    self.rotateBank = None	
-	    self.rootOffset = None
+	    self.rootOffset = []
 	    self.rootRotate = None
 	    if 'neck' in self._partType:
-		posOffset = [0,0,self._skinOffset*5]
-		l_specifiedRotates = [-30,-10,0,10,30]
-		latheAxis = 'z'
-		aimAxis = 'y+'
+		self.posOffset = [0,0,self._skinOffset*5]
+		self.l_specifiedRotates = [-30,-10,0,10,30]
+		self.latheAxis = 'z'
+		self.aimAxis = 'y+'
 	    elif 'leg' in self._partType:
 		d_kws = {'default':{'closedCurve':False,
 		                    'latheAxis':'z',
@@ -427,6 +427,7 @@ class go(object):
 	                                              posOffset = self.posOffset,
 		                                      rootOffset = self.rootOffset,
 		                                      rootRotate = self.rootRotate,
+		                                      maxDistance=self._baseModuleDistance,
 	                                              extendMode='loliwrap')
 		mi_newCurve = returnBuffer['instance']
 		mi_newCurve.doCopyPivot(obj)
@@ -444,7 +445,7 @@ class go(object):
 	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_segmentFKLoli','owner')
 	    
 	except StandardError,error:
-		log.error("build_segmentIKHandles fail! | %s"%error) 
+		log.error("build_segmentFKLoliHandles fail! | %s"%error) 
 		return False
 	    
     @r9General.Timer	
@@ -485,7 +486,7 @@ class go(object):
 	    mi_newCurve.doCopyPivot(obj)
 	    #>>> Color
 	    curves.setCurveColorByName(mi_newCurve.mNode,self.l_moduleColors[0])                    
-	    mi_newCurve.addAttr('cgmType',attrType='string',value = 'loliHandle',lock=True)	
+	    mi_newCurve.addAttr('cgmType',attrType='string',value = 'midIK',lock=True)	
 	    mi_newCurve.doName()
 	    
 	    #Store for return
@@ -743,7 +744,7 @@ class go(object):
 	mi_ballPivot = mi_ballLoc.doLoc()
 	mi_ballPivot.__setattr__('r%s'%self._jointOrientation[2],0)
 	mi_ballPivot.__setattr__('t%s'%self._jointOrientation[1],0)
-	mi_ballPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_ballPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_ballPivot.doName()
 	self.d_returnPivots['ball'] = mi_ballPivot.mNode 		
 	self.md_returnPivots['ball'] = mi_ballPivot	
@@ -754,7 +755,7 @@ class go(object):
 	mi_toePivot.__setattr__('r%s'%self._jointOrientation[2],0)
 	mi_toePivot.__setattr__('t%s'%self._jointOrientation[1],0)
 	mi_toePivot.addAttr('cgmName','toe',lock=True)	
-	mi_toePivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_toePivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_toePivot.doName()	
 	#mc.rotate (objRot[0], objRot[1], objRot[2], str_pivotToe, ws=True)	
 	self.d_returnPivots['toe'] = mi_toePivot.mNode 		
@@ -778,7 +779,7 @@ class go(object):
 	mi_innerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
 	mi_innerPivot.addAttr('cgmName','ball',lock=True)	
 	mi_innerPivot.addAttr('cgmDirectionModifier','inner',lock=True)		    
-	mi_innerPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_innerPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_innerPivot.doName()		
 	self.d_returnPivots['inner'] = mi_innerPivot.mNode 		
 	self.md_returnPivots['inner'] = mi_innerPivot	
@@ -792,7 +793,7 @@ class go(object):
 	mi_outerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
 	mi_outerPivot.addAttr('cgmName','ball',lock=True)	
 	mi_outerPivot.addAttr('cgmDirectionModifier','outer',lock=True)		    	    
-	mi_outerPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_outerPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_outerPivot.doName()	
 	self.d_returnPivots['outer'] = mi_outerPivot.mNode 		
 	self.md_returnPivots['outer'] = mi_outerPivot	
@@ -808,7 +809,7 @@ class go(object):
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_heelPivot.mNode)
 	mi_heelPivot.__setattr__('t%s'%self._jointOrientation[1],0)
 	mi_heelPivot.addAttr('cgmName','heel',lock=True)	
-	mi_heelPivot.addAttr('cgmTypeModifier','pivot',lock=True)
+	mi_heelPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_heelPivot.doName()		
 	self.d_returnPivots['heel'] = mi_heelPivot.mNode 		
 	self.md_returnPivots['heel'] = mi_heelPivot		
@@ -892,6 +893,7 @@ class go(object):
 	
 	#Pivots
 	#===================================================================================
+	"""
 	#Ball pivot
 	mi_ballPivot = mi_ballLoc.doLoc()
 	mi_ballPivot.__setattr__('r%s'%self._jointOrientation[2],0)
@@ -963,7 +965,7 @@ class go(object):
 	mi_heelPivot.doName()		
 	self.d_returnPivots['heel'] = mi_heelPivot.mNode 		
 	self.md_returnPivots['heel'] = mi_heelPivot		
-    
+	"""
 	#Cast our stuff
 	#============================================================================
 	self.posOffset = [0,0,self._skinOffset*3]
@@ -1358,8 +1360,9 @@ def createWrapControlShape(targetObjects,
 	log.info("disc mode")
 	d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
 	#discOffset = d_size[ d_size.keys()[0]]*insetMult
+	size = False
 	l_absSize = [abs(i) for i in posOffset]
-	size = max(l_absSize) 
+	if l_absSize:size = max(l_absSize) 
 	if not size:
 	    d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
 	    log.info("d_size: %s"%d_size)
@@ -1401,7 +1404,10 @@ def createWrapControlShape(targetObjects,
     elif extendMode == 'loliwrap':
 	log.info("lolipop mode")
 	l_absSize = [abs(i) for i in posOffset]
-	size = max(l_absSize)*1.25
+	size = False
+	if l_absSize:
+	    log.info("l_absSize: %s"%l_absSize)
+	    size = max(l_absSize)*1.25
 	if not size:
 	    d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
 	    log.info("d_size: %s"%d_size)
@@ -1423,24 +1429,37 @@ def createWrapControlShape(targetObjects,
     #Special loli stuff
     if extendMode == 'loliwrap':
 	Snap.go(i_ball.mNode,mi_rootLoc.mNode,True, True)#Snap to main object
-	
+	log.info("hitReturns: %s"%d_rootCastInfo['hitReturns'])
 	mi_crv = cgmMeta.cgmObject( d_rootCastInfo['curve'] )
-	l_eps = mi_crv.getComponents('ep')
-	midIndex = int(len(l_eps)/2)
-	log.info("eps: %s"%l_eps)
-	log.info("mid: %s"%midIndex)
+	#l_eps = mi_crv.getComponents('ep')
+	#midIndex = int(len(l_eps)/2)
+	#log.info("eps: %s"%l_eps)
+	#log.info("mid: %s"%midIndex)
 	
+	#Pos data
+	pos = distance.returnWorldSpacePosition("%s"%distance.returnMidU(mi_crv.mNode))
+	dist = distance.returnDistanceBetweenPoints(i_ball.getPosition(),pos)
+	if '-' in aimAxis:
+	    distM = -dist
+	else:
+	    distM = dist
+	log.info("distM: %s"%distM)
 	#Move the ball
-	pos = distance.returnWorldSpacePosition(l_eps[midIndex])
-	mc.xform( i_ball.mNode, translation = pos, ws = True)#Snap to the mid ep
-	mc.move(pos[0],pos[1],pos[2],i_ball.mNode,absolute = True,ws=True)
+	pBuffer = i_ball.doGroup()
+	i_ball.__setattr__('t%s'%single_aimAxis,distM)
+	i_ball.parent = False
+	mc.delete(pBuffer)
+	uPos = distance.returnClosestUPosition(i_ball.mNode,mi_crv.mNode)
+
+	#pos = distance.returnWorldSpacePosition(l_eps[midIndex])
+	#mc.xform( i_ball.mNode, translation = pos, ws = True)#Snap to the mid ep
+	#mc.move(pos[0],pos[1],pos[2],i_ball.mNode,absolute = True,ws=True)
 	Snap.go(i_ball.mNode,mi_rootLoc.mNode,move = False, orient = False, aim=True, aimVector=[0,0,-1])
 	
 	if posOffset:
 	    mc.move(posOffset[0]*4,posOffset[1]*4,posOffset[2]*4, [i_ball.mNode], r = True, rpr = True, os = True, wd = True)
-	
 	#Make the curve between the two 
-	mi_traceCrv = cgmMeta.cgmObject( mc.curve(degree = 1, ep = [pos,i_ball.getPosition()]) )
+	mi_traceCrv = cgmMeta.cgmObject( mc.curve(degree = 1, ep = [uPos,i_ball.getPosition()]) )
 	
 	#Combine
 	il_curvesToCombine.extend([i_ball,mi_traceCrv])
