@@ -47,23 +47,13 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 
-l_modulesDone  = ['torso']
+l_modulesDone  = ['torso','neckHead']
 
 #>>> Register rig functions
 #=====================================================================
-"""d_moduleRigVersions = {'torso':str(spine.__version__),
-                       'neckHead':str(neckHead.__version__),
-                       'leg':str(neckHead.__version__),
-                        }
-d_moduleShapeKeys = {'leg':leg.__d_controlShapes__,
-                     'torso':spine.__d_controlShapes__,
-                     }
-d_moduleJointAttrs = {'leg':leg.__l_jointAttrs__,
-                      'torso':spine.__l_jointAttrs__,
-                     } """
-
 d_moduleTypeToBuildModule = {'leg':leg,
                              'torso':spine,
+                             'neckHead':neckHead,
                             } 
 #>>> Main class function
 #=====================================================================
@@ -181,7 +171,7 @@ class go(object):
 	    else:
 		log.info("'%s' Up to date. No force."%self._strShortName)
 	else:
-	    log.error("'%s' not in done modules list. No auto build"%self._strShortName)
+	    log.warning("'%s' module type not in done list. No auto build"%self._partType)
 
     def isShaped(self):
 	"""
@@ -354,7 +344,3 @@ def build_leg(goInstance,buildShapes = False, buildControls = False,buildSkeleto
         
     return """
 
-d_moduleRigFunctions = {'torso':build_spine,
-                        'neckHead':build_neckHead,
-                        'leg':build_leg,
-                        }

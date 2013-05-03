@@ -53,8 +53,10 @@ from cgm.lib import (attributes,
                      curves,
                      )
 
-#>>> Utilities
+#>>> Skeleton
 #===================================================================
+__l_jointAttrs__ = ['startAnchor','endAnchor','anchorJoints','rigJoints','influenceJoints','segmentJoints']   
+
 @r9General.Timer
 def build_rigSkeleton(self):
     """
@@ -177,7 +179,9 @@ def build_rigSkeleton(self):
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 	
-    
+#>>> Shapes
+#===================================================================
+__d_controlShapes__ = {'shape':['segmentFKLoli','segmentIK']}
 @r9General.Timer
 def build_shapes(self):
     """
@@ -574,6 +578,28 @@ def build_rig(self):
 
     #Final stuff
     self._i_rigNull.version = str(__version__)
+    
     return True 
 
 
+@r9General.Timer
+def __build__(self, buildTo='',*args,**kws): 
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("spine.build_deformationRig>>bad self!")
+	raise StandardError,error
+    
+    if not self.isShaped():
+	build_shapes(self)
+    if buildTo.lower() == 'shapes':return True
+    if not self.isRigSkeletonized():
+	build_rigSkeleton(self)  
+    if buildTo.lower() == 'skeleton':return True
+    build_controls(self)    
+    build_deformation(self)
+    build_rig(self)    
+    
+    return True
