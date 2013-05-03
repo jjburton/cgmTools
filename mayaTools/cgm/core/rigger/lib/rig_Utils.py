@@ -779,9 +779,10 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	raise StandardError,error     
     #=======================================================================================  
     try:#Aim constraints
-	startAimTarget = i_aimStartTargetNull.mNode
-	endAimTarget = i_aimEndTargetNull.mNode
-	
+	#startAimTarget = i_aimStartTargetNull.mNode
+	#endAimTarget = i_aimEndTargetNull.mNode
+	startAimTarget = i_anchorEnd.mNode
+	endAimTarget = i_anchorStart.mNode	
 	cBuffer = mc.aimConstraint(startAimTarget,
 	                           i_aimStartNull.mNode,
 	                           maintainOffset = True, weight = 1,
