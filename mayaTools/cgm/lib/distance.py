@@ -729,6 +729,37 @@ def returnCurveLength(curve):
         mc.delete(infoNode)
     return sum(shapeLengths)
 
+def returnMidU(curve):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns the mid u point of a curve
+    
+    ARGUMENTS:
+    curve(string)
+
+    RETURNS:
+    uPosition(float)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    uReturn = mc.ls('%s.u[*]'%curve,flatten = True) or []
+    if not uReturn:
+	raise StandardError, "returnMidU>>> No u return "
+    if len(uReturn)>1:
+	raise StandardError, "returnMidU>>> Can only currently do single curves: %s"%uReturn
+    if ':' not in uReturn[0]:
+	raise StandardError, "returnMidU>>> No ':' in return: %s"%uReturn
+    bracketEnd_split = uReturn[0].split(']')[0]
+    bracketStart_split = bracketEnd_split.split('[')[1]
+    log.debug("bracket: %s"%bracketStart_split)
+    colonSplit = bracketStart_split.split(':')
+    l_floats = [float(i) for i in colonSplit]
+    log.debug("l_floats: %s"%l_floats)
+    midU = (l_floats[1]-l_floats[0]) /2
+    return "%s.u[%s]"%(curve,midU)
+    
+
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Proximity Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
