@@ -47,24 +47,24 @@ def isSized(self):
     log.debug(">>> isSized")    
     handles = self.templateNull.handles
     if len(self.i_coreNames.value) < handles:
-        log.warning("%s.isSized>>> Not enough names for handles"%self.getShortName())
+        log.debug("%s.isSized>>> Not enough names for handles"%self.getShortName())
         return False
     if len(self.i_coreNames.value) > handles:
-        log.warning("%s.isSized>>> Not enough handles for names"%self.getShortName())	
+        log.debug("%s.isSized>>> Not enough handles for names"%self.getShortName())	
         return False
     
     if self.templateNull.templateStarterData:
         if len(self.templateNull.templateStarterData) == handles:
             for i,pos in enumerate(self.templateNull.templateStarterData):
                 if not pos:
-		    log.warning("%s.isSized>>> [%s] has no data"%(self.getShortName(),i))			    
+		    log.debug("%s.isSized>>> [%s] has no data"%(self.getShortName(),i))			    
                     return False
             return True
         else:
-	    log.warning("%s.isSized>>> %i is not == %i handles necessary"%(self.getShortName(),len(self.templateNull.templateStarterData),handles))			    	    
+	    log.debug("%s.isSized>>> %i is not == %i handles necessary"%(self.getShortName(),len(self.templateNull.templateStarterData),handles))			    	    
             return False
     else:
-        log.warning("%s.isSized>>> No template starter data found"%self.getShortName())	
+        log.debug("%s.isSized>>> No template starter data found"%self.getShortName())	
     return False
     
 def deleteSizeInfo(self,*args,**kws):
@@ -356,16 +356,19 @@ def isRigged(self):
     l_skinJoints = i_rigNull.getMessage('skinJoints',False)
     l_rigJoints = i_rigNull.getMessage('rigJoints',False)
     if not l_rigJoints:
-        log.error("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
+        log.debug("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
+	i_rigNull.version = ''#clear the version	
         return False
         
     if len( l_skinJoints ) != len( l_rigJoints ):
-        log.error("moduleFactory.isRigged('%s')>>>> %s != %s. Joint lengths don't match"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
+        log.debug("moduleFactory.isRigged('%s')>>>> %s != %s. Joint lengths don't match"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
+	i_rigNull.version = ''#clear the version        
         return False
     
     for attr in ['controlsFK','controlsAll']:
         if not i_rigNull.getMessage(attr):
-            log.error("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
+            log.debug("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
+	    i_rigNull.version = ''#clear the version            
             return False    
             
     return True
@@ -409,7 +412,7 @@ def deleteRig(self,*args,**kws):
     if self.getMessage('deformNull'):
 	mc.delete(self.getMessage('deformNull'))
     
-    i_rigNull.version == ''#clear the version
+    i_rigNull.version = ''#clear the version
     
     return True
 
@@ -708,7 +711,7 @@ def getState(self):
             else:break
         elif i != 0:
             log.warning("Need test for: '%s'"%state)
-    log.info("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
+    log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
     return goodState
 
 @r9General.Timer   
