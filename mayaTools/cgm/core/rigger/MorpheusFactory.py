@@ -35,7 +35,7 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso']
+l_modulesToDoOrder = ['torso','neckHead','leg_left']
 """l_modulesToDoOrder = ['torso',
                       'leg_left','leg_right']"""
 
@@ -316,10 +316,14 @@ def setState(i_customizationNetwork,state = False,
             log.warning("Cannot find Module: '%s'"%moduleKey)
             return False
         log.debug("Building: '%s'"%moduleKey)
-        i_module.setState(state,
-                          sizeMode = 'manual',
-                          posList = d_customizationData.get(moduleKey),
-                          **kws)
+        try:
+            i_module.setState(state,
+                              sizeMode = 'manual',
+                              posList = d_customizationData.get(moduleKey),
+                              **kws)
+        except StandardError,error:
+            log.error("Set state fail: '%s'"%i_module.getShortName())
+            raise StandardError,error
         #i_module.doSize('manual', posList = d_customizationData.get(moduleKey))
         #i_module.doTemplate()
     gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
