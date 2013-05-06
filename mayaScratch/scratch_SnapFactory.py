@@ -13,6 +13,12 @@ obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
 
+#>>>aim
+Snap.go(i_obj,target,False,orient = False, aim = True,aimVector=[0,0,-1],upVector=[0,0,-1])
+Snap.go(i_obj,target,False,orient = True)
+
+target = mc.ls(sl=True)[0] or []
+
 #>>> Modules
 #=======================================================
 i_obj = cgmMeta.cgmObject(mc.spaceLocator()[0])

@@ -23,12 +23,13 @@ i_c = cgmMeta.cgmControl(obj,setClass=True)
 #=======================================================
 parents = mc.ls(sl=True)
 dParents = [u'parent1', u'parent2', u'parent3']
-mode = 'space'
-a = cgmMeta.cgmDynParentGroup(dynChild = 'dynChild',dynParents = dParents)
+dynMode = 'follow'
+a = cgmMeta.cgmDynParentGroup(dynChild = 'dynChild',dynParents = dParents,dynMode = dynMode)
+a.rebuild()
 #Hips
 dynParents = [ u'cog_anim',u'worldCenter_loc']#hips
 dynGroup = 'hips_anim_grp'
-dynChild = 'hips_anim'
+dynChild = 'dynChild'
 
 a = cgmMeta.cgmDynParentGroup(dynChild = dynChild,dynParents = dynParents, dynGroup = dynGroup,dynMode = dynMode)
 #Shoulders

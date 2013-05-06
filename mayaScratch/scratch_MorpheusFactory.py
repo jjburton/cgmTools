@@ -5,6 +5,7 @@ reload(r9Meta)
 from cgm.lib.classes import NameFactory as nameF
 reload(nameF)
 nameF.doNameObject()
+from cgm.core.rigger import PuppetFactory as pFactory
 from cgm.core.rigger import MorpheusFactory as morphyF
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import TemplateFactory as tFactory
@@ -12,6 +13,12 @@ from cgm.core.rigger import JointFactory as jFactory
 
 from cgm.core import cgm_PuppetMeta as cgmPM
 
+from morpheusRig_v2.core import CustomizationFactory as CustomF
+reload(CustomF)
+reload(morphyF)
+CustomF.go()
+
+reload(pFactory)
 reload(morphyF)
 reload(mFactory)
 reload(tFactory)
@@ -23,11 +30,22 @@ objList = []
 
 import cgm.core
 cgm.core._reload()
+
+#>>> Generate Morpheus asset Template
+CustomF.go('Morphy_customizationNetwork')
+p = cgmPM.cgmMorpheusMakerNetwork(name = customizationNode)
+p.jointList
+p.leftJoints
+
 #>>> Morpheus
 #=======================================================
 p = cgmPM.cgmMorpheusMakerNetwork('Morphy_customizationNetwork')
+p.baseBodyGeo
+p.connectChildNode('Morphy_puppetNetwork','mPuppet')
+p = cgmPM.cgmPuppet("Morphy_puppetNetwork")
 p.setState('skeleton',forceNew = True)
 p.setState('template',forceNew = True)
+p.setState('size',forceNew = True)
 
 p.mNode
 p.mNode

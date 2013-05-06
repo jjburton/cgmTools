@@ -30,9 +30,9 @@ mObj.mNode
 mObj.getAttr('asdfasdf')
 
 #>>> Testing control registering
-control = 'shoulders_ikCurve'
+control = 'cog_controlCurve'
 mControlFactory.registerControl(mc.ls(sl=True)[0])
-mControlFactory.registerControl(control,copyPivot='spine_2_segIKCurve')
+mControlFactory.registerControl(control)
 for i in range(2):log.info(i)
 class dataHolder(object):
     pass
@@ -40,9 +40,8 @@ l_targetObjects = mc.ls(sl=True)
 log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).getNameDict())
 log.info(cgmMeta.cgmObject(mc.ls(sl=True)[0]).doName())
 
-str_control = 'hips_controlCurve'
-mControlFactory.registerControl(str_control,addExtraGroups = True,
-                                copyPivot=i_loc.mNode,
+str_control = 'neck_2_anim'
+mControlFactory.registerControl(str_control,addExtraGroups = True,addDynParentGroup=True,
                                 addConstraintGroup=True,setRotateOrder=5)
 
 mControlFactory.registerControl(str_control, addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,

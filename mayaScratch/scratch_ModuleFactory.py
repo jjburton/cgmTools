@@ -47,6 +47,7 @@ mFactory.isRigConnected(m1)
 mFactory.isRigged(m1)
 mFactory.rigConnect(m1)
 mFactory.rigDisconnect(m1)
+mFactory.doRig(m1)
 
 mFactory.deleteRig(m1)
 

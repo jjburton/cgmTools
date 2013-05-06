@@ -71,7 +71,9 @@ rUtils.addCGMSegmentSubControl('spine_2_influenceJoint', segmentCurve = 'spine_s
 #==================================================================
 from cgm.core.rigger.lib import rig_Utils as rUtils
 jointList = [u'joint1', u'joint2', u'joint3', u'joint4', u'joint5', u'joint6']
+jointList = mc.ls(sl=True)
 influenceJoints = ['driverBase','driverTop']
+influenceJoints = mc.ls
 startControl = 'base_crv'
 endControl = 'top_crv'
 controlOrientation = 'yxz'
@@ -189,7 +191,7 @@ jointList = mc.ls(sl=True)
 joints.orientJointChain(jointList,'zyx','zdown')
 rUtils.createCGMSegment(jointList)
 
-rUtils.createControlCurveSegment(jointList,secondaryAxis='zdown')
+rUtils.createSegmentCurve(jointList,secondaryAxis='zdown'moduleInstance=m1,connectBy='scale')
 rUtils.createCGMSegment(jointList,influenceJoints = ['driverBase','driverTop'],secondaryAxis = 'zdown')
 
 rUtils.createControlCurveSegment(jointList,secondaryAxis='zdown')
