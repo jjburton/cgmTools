@@ -1500,6 +1500,106 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
 
 
 
+
+def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
+    """
+    @kws
+    l_jointChain1(list) -- blend list 1
+    l_jointChain2(list) -- blend list 2
+    l_blendChain(list) -- result chain
+
+    driver(attr arg) -- driver attr
+    channels(list) -- channels to blend
+    
+    """
+    ml_jointChain1 = cgmMeta.validateObjListArg(l_jointChain1,cgmMeta.cgmObject,noneValid=False)
+    ml_jointChain2 = cgmMeta.validateObjListArg(l_jointChain2,cgmMeta.cgmObject,noneValid=False)
+    ml_blendChain = cgmMeta.validateObjListArg(l_blendChain,cgmMeta.cgmObject,noneValid=False)
+    d_driver = cgmMeta.validateAttrArg(driver,noneValid=True)
+    mi_driver = False
+    if d_driver:mi_driver = d_driver.get('mi_plug') or False
+    
+    if not len(ml_jointChain1) >= len(ml_blendChain) or not len(ml_jointChain2) >= len(ml_blendChain):
+	raise StandardError,"connectBlendJointChain>>> Joint chains aren't equal lengths: l_jointChain1: %s | l_jointChain2: %s | l_blendChain: %s"%(len(l_jointChain1),len(l_jointChain2),len(l_blendChain))
+    """
+    for i,i_jnt in enumerate(ml_blendChain):
+	if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain1[i].getPosition() ):
+	    raise StandardError,"connectBlendJointChain>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
+	if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain2[i].getPosition() ):
+	    raise StandardError,"connectBlendJointChain>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
+    """
+    l_channels = [c for c in channels if c in ['translate','rotate','scale']]
+    if not channels:
+	raise StandardError,"connectBlendJointChain>>> Need valid channels: %s")%channels)
+
+    ml_nodes = []
+    
+    #>>> Actual meat
+    #===========================================================
+    for i,i_jnt in enumerate(ml_blendChain):
+	for channel in l_channels:
+	    i_node = cgmMeta.cgmNode(nodeType = 'blendColors')
+	    i_node.addAttr('cgmName',"%s_to_%s"%(ml_jointChain1[i].getShortName(),ml_jointChain2[i].getShortName()))
+	    i_node.addAttr('cgmTypeModifier',channel)
+	    i_node.doName()
+	    log.info("connectBlendJointChain>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),ml_jointChain2[i].getShortName(),ml_blendChain[i].getShortName()),channel)
+	    cgmMeta.cgmAttr(i_node,'color1').doConnectIn("%s.%s"%(ml_jointChain1[i].mNode,channel))
+	    cgmMeta.cgmAttr(i_node,'color2').doConnectIn("%s.%s"%(ml_jointChain2[i].mNode,channel))
+	    cgmMeta.cgmAttr(i_node,'output').doConnectOut("%s.%s"%(i_jnt.mNode,channel))
+	    
+	    if mi_driver:
+		cgmMeta.cgmAttr(i_node,'blender').doConnectIn(mi_driver.p_combinedName)
+	    
+	    ml_nodes.append(i_node)
+	    
+    return ml_nodes
+
+def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation = 'zyx'):
+    """
+    @kws
+    joint -- joint to add length to
+    attrArg -- the attr to connect this to. If none is provided, it adds to the joint
+    connectBy -- mode
+    orienation(str) -- joint orientation
+    
+    """
+    mi_joint = cgmMeta.validateObjArg(joint,cgmMeta.cgmObject)
+    
+    d_driver = cgmMeta.validateAttrArg(attrArg,noneValid=True)
+    mi_driver = False
+    if d_driver:mi_driver = d_driver.get('mi_plug') or False
+    
+    if not mi_driver:#If we still don't have one, make one
+	mi_driver = cgmMeta.cgmAttr(mi_joint,'length',attrType = 'float')
+	
+    #CHeck the settings
+    mi_driver.p_defaultValue = 1
+    mi_driver.p_minValue = 0
+    mi_driver.value = 1
+    mi_driver.p_hidden = False
+    mi_driver.p_keyable = True
+    
+    #>>> Actual meat
+    #===========================================================
+    if connectBy == 'translate':
+	#Find the child joint
+	cBuffer = mc.listRelatives(mi_joint.mNode,type='joint') or False
+	if len(cBuffer)>1:
+	    raise NotImplementedError,"addJointLengthAttr('%s')>>> Too many child joints to know which is length: %s"%(mi_joint.getShortName(),len(cBuffer))
+	elif not cBuffer:
+	    raise NotImplementedError,"addJointLengthAttr('%s')>>> No chidren joints found"%(mi_joint.getShortName(),len(cBuffer))
+	
+	mi_childJoint = cgmMeta.validateObjArg(cBuffer[0],cgmMeta.cgmObject)
+	#Get the length
+	length = mi_childJoint.__getattribute__('t%s'%orientation[0].lower())
+	mi_baseAttr = cgmMeta.cgmAttr(mi_childJoint,'baseLength',value=length,lock=True)
+	return NodeF.argsToNodes("%s.t%s = %s * %s"%(mi_childJoint.getShortName(),orientation[0].lower(),
+	                                             mi_driver.p_combinedShortName,mi_baseAttr.p_combinedShortName)).doBuild()
+	
+    else:
+	raise NotImplementedError,"addJointLengthAttr('%s')>>> connectBy '%s' not available"%(mi_joint.getShortName(),connectBy)
+    
+
 @r9General.Timer
 def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = None,
                                 baseName ='test', moduleInstance = None):
