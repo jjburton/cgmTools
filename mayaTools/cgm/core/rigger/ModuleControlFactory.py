@@ -307,7 +307,7 @@ class go(object):
 		return False
 	    
 @r9General.Timer
-def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,
+def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,shapeParentTo = None,
                     setRotateOrder = None, autoLockNHide = True,
                     addDynParentGroup = False, addExtraGroups = False, addConstraintGroup = False, freezeAll = False,
                     addSpacePivots = False, controlType = None, aim = None, up = None, out = None, makeAimable = False):
@@ -353,6 +353,18 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	i_newTransform.parent = i_control.parent#Copy parent
 	i_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
 	mc.delete(mBuffer.mNode)
+	
+    #====================================================  
+    try:#>>>Shape Parent
+	if shapeParentTo:
+	    i_target = cgmMeta.validateObjArg(shapeParentTo,cgmMeta.cgmObject)
+	    curves.parentShapeInPlace(i_target.mNode,i_control.mNode)
+	    #i_control.delete()
+	    i_control = i_target#replace the control with the joint
+	    
+    except StandardError,error:
+	log.error("ModuleControlFactory.registerControl>> '%s' shapeParent fail"%str_shortName)
+	raise StandardError,error   
 	
     #>>>Copy Pivot
     #====================================================    
@@ -403,45 +415,48 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     #==================================================== 
     """ All controls have a master group to zero them """
     try:#>>>Grouping
-
-	#First our master group:
-	i_masterGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
-	i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
-	i_masterGroup.doName()
-	i_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
-	log.info("masterGroup: '%s'"%i_masterGroup.getShortName())
-	
-	if addDynParentGroup:
-	    i_dynGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
-	    i_dynGroup = cgmMeta.cgmDynParentGroup(dynChild=i_control,dynGroup=i_dynGroup)
-	    i_dynGroup.doName()
-	    log.info("dynParentGroup: '%s'"%i_dynGroup.getShortName())
+	if not shapeParentTo:
+	    #First our master group:
+	    i_masterGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
+	    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+	    i_masterGroup.doName()
+	    i_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+	    log.info("masterGroup: '%s'"%i_masterGroup.getShortName())
 	    
-	    i_zeroGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
-	    i_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
-	    i_zeroGroup.doName()
-	    i_control.connectChildNode(i_masterGroup,'zeroGroup','groupChild')
-	    log.info("zeroGroup: '%s'"%i_zeroGroup.getShortName())	    
-	
-	if addExtraGroups:
-	    for i in range(addExtraGroups):
-		i_group = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
-		if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
-		    i_group.addAttr('cgmIterator',str(i+1),lock=True)
-		    i_group.doName()
-		ml_groups.append(i_group)
-		log.info("group %s: '%s'"%(i,i_group.getShortName()))
+	    if addDynParentGroup:
+		log.info("addDynParentGroup...")
+		i_dynGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+		i_dynGroup = cgmMeta.cgmDynParentGroup(dynChild=i_control,dynGroup=i_dynGroup)
+		i_dynGroup.doName()
+		log.info("dynParentGroup: '%s'"%i_dynGroup.getShortName())
+		
+		i_zeroGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
+		i_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
+		i_zeroGroup.doName()
+		i_control.connectChildNode(i_masterGroup,'zeroGroup','groupChild')
+		log.info("zeroGroup: '%s'"%i_zeroGroup.getShortName())	    
 	    
-	if addConstraintGroup:#ConstraintGroups
-	    i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
-	    i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
-	    i_constraintGroup.doName()
-	    ml_constraintGroups.append(i_constraintGroup)
-	    i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	    
-	    log.info("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
-	    
+	    if addExtraGroups:
+		log.info("addExtraGroups...")	    
+		for i in range(addExtraGroups):
+		    i_group = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
+		    if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
+			i_group.addAttr('cgmIterator',str(i+1),lock=True)
+			i_group.doName()
+		    ml_groups.append(i_group)
+		    log.info("group %s: '%s'"%(i,i_group.getShortName()))
+		
+	    if addConstraintGroup:#ConstraintGroups
+		log.info("addConstraintGroup...")	    
+		i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
+		i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
+		i_constraintGroup.doName()
+		ml_constraintGroups.append(i_constraintGroup)
+		i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	    
+		log.info("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
+		
     except StandardError,error:
-	log.error("ModuleControlFactory.registerControl>>grouping fail")
+	log.error("ModuleControlFactory.registerControl>>grouping fail: '%s'"%i_control.getShortName())
 	raise StandardError,error
     
     #====================================================  
@@ -465,9 +480,9 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
 	    
     except StandardError,error:
-	log.error("ModuleControlFactory.registerControl>>freeze fail")
-	raise StandardError,error
-	    
+	log.error("ModuleControlFactory.registerControl>>freeze fail: '%s'"%str_shortName)
+	raise StandardError,error 
+    
     #>>>Lock and hide
     #====================================================  
     if autoLockNHide:
