@@ -459,8 +459,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		
 	    if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value: 
 		log.debug("'%s.%s' Value (%s) was not properly set during creation to: %s"%(self.getShortName(),attr,r9Meta.MetaClass.__getattribute__(self,attr),value))
-		self.__setattr__(attr,value,**kws)
-		#cgmAttr(self, attrName = attr, value=value)
+		#self.__setattr__(attr,value,**kws)
+		cgmAttr(self, attrName = attr, value=value,**kws)#Swictched back to cgmAttr to deal with connected attrs
 	    validatedAttrType = attributes.validateRequestedAttrType(attrType)
 	    if attrType is not None and validatedAttrType in ['string','float','long']:
 		currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
@@ -2833,6 +2833,10 @@ class cgmAttr(object):
 	return '%s.%s'%(self.obj.mNode,self.attr)  
     p_combinedName = property(isCombinedName)
     
+    def isCombinedShortName(self):
+	return '%s.%s'%(self.obj.getShortName(),self.attr)  
+    p_combinedShortName = property(isCombinedShortName) 
+    
     #>>> Property - p_nameLong ================== 
     def getEnum(self):
 	#attributeQuery(attr, node=self.mNode, listEnum=True)[0].split(':')
@@ -2919,8 +2923,8 @@ class cgmAttr(object):
                 log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if not cInstance.hidden:
-                        if cInstance.keyable:
+                    if not cInstance.p_hidden:
+                        if cInstance.p_keyable:
                             cInstance.doKeyable(False)
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = False) 
                         log.debug("'%s.%s' hidden!"%(cInstance.obj.mNode,cInstance.attr))
@@ -2936,7 +2940,7 @@ class cgmAttr(object):
                 log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if cInstance.hidden:
+                    if cInstance.p_hidden:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = True) 
                         log.debug("'%s.%s' unhidden!"%(cInstance.obj.mNode,cInstance.attr))
                 
@@ -2968,7 +2972,7 @@ class cgmAttr(object):
                 log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if not cInstance.keyable:
+                    if not cInstance.p_keyable:
                         mc.setAttr(cInstance.nameCombined,e=True,keyable = True) 
                         log.debug("'%s.%s' keyable!"%(cInstance.obj.mNode,cInstance.attr))
                         cInstance.p_hidden = False
@@ -2984,7 +2988,7 @@ class cgmAttr(object):
                 log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if cInstance.keyable:
+                    if cInstance.p_keyable:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,keyable = False) 
                         log.debug("'%s.%s' unkeyable!"%(cInstance.obj.mNode,cInstance.attr))
                         if not mc.getAttr(cInstance.nameCombined,channelBox=True):
