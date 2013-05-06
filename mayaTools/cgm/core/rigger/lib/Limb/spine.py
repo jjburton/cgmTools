@@ -24,7 +24,6 @@ Necessary variables:
 """
 __version__ = 0.04222013
 
-
 # From Python =============================================================
 import copy
 import re
@@ -676,7 +675,7 @@ def build_rig(self):
     return True 
 
 @r9General.Timer
-def __build__(self, buildTo='',): 
+def __build__(self, buildTo='',*args,**kws): 
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
