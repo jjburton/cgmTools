@@ -1,13 +1,13 @@
 """
 ------------------------------------------
-cgm.core.rigger: Limb.neckHead
+cgm.core.rigger: Limb.leg
 Author: Josh Burton
 email: jjburton@cgmonks.com
 
 Website : http://www.cgmonks.com
 ------------------------------------------
 
-neckHead rig builder
+leg rig builder
 ================================================================
 """
 __version__ = 0.04292013
@@ -55,7 +55,7 @@ from cgm.lib import (attributes,
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['controlsFK','midIK','settings','foot'],
-                 'pivot':['toe','heel','heel','ball','inner','outer']}
+                 'pivot':['toe','heel','ball','inner','outer']}
 
 def build_shapes(self):
     """
@@ -65,9 +65,23 @@ def build_shapes(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("neckHead.build_rig>>bad self!")
+	log.error("leg.build_rig>>bad self!")
 	raise StandardError,error
     
+    
+    #>>> Get our pivots
+    #=============================================================
+    for pivot in __d_controlShapes__['pivot']:
+	l_buffer = self._i_templateNull.getMessage("pivot_%s"%pivot,False)
+	if not l_buffer:
+	    raise StandardError, "%s.build_shapes>>> Template null missing pivot: '%s'"%(self._strShortName,pivot)
+	log.info("pivot (%s) from template: %s"%(pivot,l_buffer))
+	#Duplicate and store the nulls
+	i_pivot = cgmMeta.validateObjArg(l_buffer)
+	i_trans = i_pivot.doDuplicateTransform(True)
+	i_trans.parent = False
+	self._i_rigNull.connectChildNode(i_trans,"pivot_%s"%pivot,'module')
+	   
     #>>>Build our Shapes
     #=============================================================
     try:
@@ -79,17 +93,13 @@ def build_shapes(self):
 	self._i_rigNull.connectChildNode(self._md_controlShapes['midIK'],'shape_midIK','module')
 	self._i_rigNull.connectChildNode(self._md_controlShapes['settings'],'shape_settings','module')		
 	self._i_rigNull.connectChildNode(self._md_controlShapes['foot'],'shape_foot','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['toe'],'pivot_toe','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['heel'],'pivot_heel','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['ball'],'pivot_ball','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['inner'],'pivot_inner','module')
-	self._i_rigNull.connectChildNode(self._md_controlPivots['outer'],'pivot_outer','module')
 	
     except StandardError,error:
-	log.error("build_neckHead>>Build shapes fail!")
+	log.error("build_leg>>Build shapes fail!")
 	raise StandardError,error   
     
 __l_jointAttrs__ = ['anchorJoints','rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
+
 @r9General.Timer
 def build_rigSkeleton(self):
     
@@ -100,7 +110,7 @@ def build_rigSkeleton(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("neckHead.build_deformationRig>>bad self!")
+	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
     if not self.isShaped():
@@ -141,8 +151,6 @@ def build_rigSkeleton(self):
 	    else:i_new.parent = False
 	    i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
 	    ml_fkJoints.append(i_new)	
-	    
-	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'fkJoints','module')
 	
 	#>>Blend chain
 	#=====================================================================	
@@ -155,8 +163,6 @@ def build_rigSkeleton(self):
 		i_new.parent = ml_blendJoints[-1]
 	    ml_blendJoints.append(i_new)	
 	    
-	self._i_rigNull.connectChildrenNodes(ml_blendJoints,'blendJoints','module')
-
 	#>>IK chain
 	#=====================================================================	
 	ml_ikJoints = []
@@ -179,7 +185,6 @@ def build_rigSkeleton(self):
 	i_toeJoint.parent = ml_ikJoints[-1].mNode
 	ml_ikJoints.append(i_toeJoint)	
 	
-	self._i_rigNull.connectChildrenNodes(ml_ikJoints,'ikJoints','module')
 		
 	#>>Influence chain
 	#=====================================================================		
@@ -206,7 +211,6 @@ def build_rigSkeleton(self):
 	for i_jnt in ml_influenceJoints:
 	    i_jnt.parent = False
 	    
-	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
 
 	#>>Anchor chain
 	#=====================================================================	
@@ -219,10 +223,8 @@ def build_rigSkeleton(self):
 
 	    ml_anchors.append(i_new)	 
 	    
-	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'anchorJoints','module')
 
-	return
-    
+	"""
 	#>>Segment chain  
 	#=====================================================================
 	l_segmentJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
@@ -234,29 +236,24 @@ def build_rigSkeleton(self):
 	    l_rigJoints[i] = i_j.mNode
 	    ml_segmentJoints.append(i_j)
 	ml_segmentJoints[0].parent = False#Parent to deformGroup
-	return
+	
 	"""
 	#>>> Store em all to our instance
-	#=====================================================================			
-	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','module')
-	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','module')	
-	self._i_rigNull.connectChildrenNodes(ml_anchors,'anchorJoints','module')
-	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','module')
-	self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','module')	
+	#=====================================================================	
+	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'fkJoints','module')
+	self._i_rigNull.connectChildrenNodes(ml_blendJoints,'blendJoints','module')
+	self._i_rigNull.connectChildrenNodes(ml_ikJoints,'ikJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
-	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints')#Restore our list since duplication extendes message attrs
+	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'anchorJoints','module')
 	
-	log.info("startAnchor>> %s"%i_startJnt.getShortName())
-	log.info("endAnchor>> %s"%i_endJnt.getShortName())
 	log.info("anchorJoints>> %s"%self._i_rigNull.getMessage('anchorJoints',False))
-	log.info("rigJoints>> %s"%self._i_rigNull.getMessage('rigJoints',False))
-	log.info("segmentJoints>> %s"%self._i_rigNull.getMessage('segmentJoints',False))
+	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
+	log.info("ikJoints>> %s"%self._i_rigNull.getMessage('ikJoints',False))
+	log.info("blendJoints>> %s"%self._i_rigNull.getMessage('blendJoints',False))
 	log.info("influenceJoints>> %s"%self._i_rigNull.getMessage('influenceJoints',False))
-	log.info("skinJoints>> %s"%self._i_rigNull.getMessage('skinJoints',False))
-	"""
 	
     except StandardError,error:
-	log.error("build_neckHead>>Build rig joints fail!")
+	log.error("build_leg>>Build rig joints fail!")
 	raise StandardError,error   
     """
     ml_jointsToConnect = [i_startJnt,i_endJnt]
@@ -269,6 +266,51 @@ def build_rigSkeleton(self):
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 	"""
+    
+@r9General.Timer
+def build_FKIK(self):
+    """
+    """
+    try:#===================================================
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("leg.build_FKIK>>bad self!")
+	raise StandardError,error
+    
+    #>>>Get data
+    ml_controlsFK =  self._i_rigNull.controlsFK    
+    ml_rigJoints = self._i_rigNull.rigJoints
+    ml_blendJoints = self._i_rigNull.blendJoints
+    ml_fkJoints = self._i_rigNull.fkJoints
+    ml_ikJoints = self._i_rigNull.ikJoints
+    mi_settings = self._i_rigNull.settings
+    
+    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+    mi_handleIK = self._i_rigNull.handleIK
+    
+    for chain in [ml_fkJoints,ml_ikJoints,ml_blendJoints]:
+	chain[0].parent = self._i_deformNull.mNode
+    
+    #>>>Connect Blend Chain
+    #=============================================================    
+    try:
+	rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,driver = "%s.state"%mi_settings.mNode,channels=['translate','rotate'])
+	
+    except StandardError,error:
+	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
+    
+    #>>>Connect Blend Chain
+    #=============================================================    
+    try:
+	for i,i_jnt in enumerate(ml_fkJoints[:-1]):
+	    rUtils.addJointLengthAttr(i_jnt,orientation=self._jointOrientation)
+	
+    except StandardError,error:
+	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
+    
     
 def build_controls(self):
     """
@@ -291,7 +333,6 @@ def build_controls(self):
     for shape in __d_controlShapes__['shape']:
 	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_%s'%shape),noneValid=False)
 	log.info(self.__dict__['mi_%s'%shape] )"""
-    
     ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_controlsFK'),cgmMeta.cgmObject)
     mi_midIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
     mi_settings= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
@@ -301,6 +342,7 @@ def build_controls(self):
     mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
     mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
     mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)
+    ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('fkJoints'),cgmMeta.cgmObject)
     
     l_controlsAll = []
     #==================================================================
@@ -308,18 +350,20 @@ def build_controls(self):
 	if len( ml_controlsFK )<3:
 	    raise StandardError,"%s.build_controls>>> Must have at least three fk controls"%self._strShortName	    
 	
-	
-	for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
-	    i_obj.parent = ml_controlsFK[i].mNode
+	#for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
+	    #i_obj.parent = ml_controlsFK[i].mNode
 		
-	ml_controlsFK[0].parent = self._i_deformNull.mNode
-	
 	for i,i_obj in enumerate(ml_controlsFK):
-	    d_buffer = mControlFactory.registerControl(i_obj,addConstraintGroup=True,setRotateOrder=5,typeModifier='fk',) 	    
+	    d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],setRotateOrder=5,typeModifier='fk',) 	    
 	    i_obj = d_buffer['instance']
+	    
+	for i_obj in ml_controlsFK:
+	    i_obj.delete()
+	    
+	#ml_controlsFK[0].masterGroup.parent = self._i_deformNull.mNode
 	
-	self._i_rigNull.connectChildrenNodes(ml_controlsFK,'controlsFK','module')
-	l_controlsAll.extend(ml_controlsFK)	
+	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'controlsFK','module')
+	l_controlsAll.extend(ml_fkJoints)	
     
     except StandardError,error:	
 	log.error("%s.build_controls>>> Build fk fail!"%self._strShortName)
@@ -333,7 +377,7 @@ def build_controls(self):
 	                                           typeModifier='ik',addSpacePivots = 0, addDynParentGroup = True, addConstraintGroup=True,
 	                                           makeAimable = True,setRotateOrder=4)
 	i_IKEnd = d_buffer['instance']	
-	#i_IKEnd.masterGroup.parent = self._i_deformNull.mNode
+	i_IKEnd.masterGroup.parent = self._i_deformNull.mNode
 	
 	#i_loc.delete()#delete
 	self._i_rigNull.connectChildNode(i_IKEnd,'handleIK','module')#connect
@@ -347,15 +391,35 @@ def build_controls(self):
 	log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
 	raise StandardError,error   
     
-    return  
+    #==================================================================    
+    try:#>>>> midIK Handle
+	i_IKmid = mi_midIK
+	i_IKmid.parent = False
+	d_buffer = mControlFactory.registerControl(i_IKmid,
+	                                           typeModifier='ik',addDynParentGroup = True, addConstraintGroup=True,
+	                                           makeAimable = False,setRotateOrder=4)
+	i_IKmid = d_buffer['instance']	
+	i_IKmid.masterGroup.parent = self._i_deformNull.mNode
+	i_IKmid.addAttr('scale',lock=True,hidden=True)
+	#i_loc.delete()#delete
+	self._i_rigNull.connectChildNode(i_IKmid,'midIK','module')#connect
+	l_controlsAll.append(i_IKmid)	
+	
+    except StandardError,error:
+	log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
+	raise StandardError,error   
+    
     #==================================================================
     try:#>>>> Settings
 	d_buffer = mControlFactory.registerControl(mi_settings,addExtraGroups=0,typeModifier='settings',autoLockNHide=True,
                                                    setRotateOrder=2)       
 	i_obj = d_buffer['instance']
 	i_obj.masterGroup.parent = self._i_deformNull.mNode
-	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','module')
-	l_controlsAll.extend(ml_segmentsIK)	
+	self._i_rigNull.connectChildNode(mi_settings,'settings','module')
+	l_controlsAll.append(mi_settings)
+	
+	#Add our attrs
+	mi_settings.addAttr('state',enumName = 'fk:ik', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False,lock=True)
 	
 	
     except StandardError,error:
@@ -380,7 +444,7 @@ def build_deformation(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("neckHead.build_deformationRig>>bad self!")
+	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
     #>>>Get data
@@ -433,7 +497,7 @@ def build_deformation(self):
 	    i_grp.parent = self._i_deformNull.mNode"""
 	    
     except StandardError,error:
-	log.error("build_neckHead>>Control Segment build fail")
+	log.error("build_leg>>Control Segment build fail")
 	raise StandardError,error
     
     
@@ -456,7 +520,7 @@ def build_deformation(self):
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
 	
     except StandardError,error:
-	log.error("build_neckHead>>Top Twist driver fail")
+	log.error("build_leg>>Top Twist driver fail")
 	raise StandardError,error
     
     try:#Setup bottom twist driver
@@ -468,7 +532,7 @@ def build_deformation(self):
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistStart"],1)
     
     except StandardError,error:
-	log.error("build_neckHead>>Bottom Twist driver fail")
+	log.error("build_leg>>Bottom Twist driver fail")
 	raise StandardError,error
     
         
@@ -476,7 +540,7 @@ def build_deformation(self):
     i_buffer = i_curve.scaleBuffer
     
     for k in i_buffer.d_indexToAttr.keys():
-	attrName = 'neckHead_%s'%k
+	attrName = 'leg_%s'%k
 	cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_handleIK.mNode,attrName,connectSourceToTarget = True)
 	cgmMeta.cgmAttr(mi_handleIK.mNode,attrName,defaultValue = 1,keyable=True)
     
@@ -493,7 +557,7 @@ def build_rig(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("neckHead.build_deformationRig>>bad self!")
+	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
     try:#>>>Get data
@@ -528,7 +592,7 @@ def build_rig(self):
 	ml_controlsFK =  self._i_rigNull.controlsFK    
 	
     except StandardError,error:
-	log.error("neckHead.build_rig>> Gather data fail!")
+	log.error("leg.build_rig>> Gather data fail!")
 	raise StandardError,error
     
     #Dynamic parent groups
@@ -558,7 +622,7 @@ def build_rig(self):
 	
 	i_dynGroup.dynFollow.parent = self._i_masterDeformGroup.mNode
     except StandardError,error:
-	log.error("neckHead.build_rig>> head dynamic parent setup fail!")
+	log.error("leg.build_rig>> head dynamic parent setup fail!")
 	raise StandardError,error
 
 	
@@ -635,3 +699,26 @@ def build_rig(self):
     return True 
 
 
+@r9General.Timer
+def __build__(self, buildTo='',*args,**kws): 
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("spine.build_deformationRig>>bad self!")
+	raise StandardError,error
+    
+    if not self.isShaped():
+	build_shapes(self)
+    if buildTo.lower() == 'shapes':return True
+    if not self.isRigSkeletonized():
+	build_rigSkeleton(self)  
+    if buildTo.lower() == 'skeleton':return True
+    build_controls(self)
+    if buildTo.lower() == 'controls':return True    
+    
+    #build_deformation(self)
+    #build_rig(self)    
+    
+    return True
