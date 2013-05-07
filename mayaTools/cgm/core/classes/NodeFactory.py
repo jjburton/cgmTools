@@ -25,6 +25,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -467,7 +468,7 @@ class argsToNodes(object):
 	    log.debug(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
 	if self.d_connectionsToMake:
 	    log.debug(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
-	
+    @r9General.Timer
     def doBuild(self):
 	l_args = []
 	ml_outPlugs = []
@@ -848,10 +849,11 @@ class argsToNodes(object):
 	
 	return True
     
-    def verify_nodalNetwork(self,d_arg,nodeType = 'condition'):
+    def verify_nodalNetwork(self,d_arg,nodeType = 'condition',fastCheck = True):
 	"""
 	arg should be in the form of [[int,int],int...int]
 	the first arg should always be a pair as the base md node paring, the remainging ones are daiy chained form that
+	#Fast check only checks connected nodes and not all nodes of that type
 	"""
 	def verifyDriver(self,arg):
 	    if type(arg) == unicode:
@@ -921,7 +923,7 @@ class argsToNodes(object):
 			if l_driven:#if we have some driven
 			    l_matchCandidates = l_driven
 			    break
-	    if not l_matchCandidates:
+	    if not l_matchCandidates and not fastCheck:
 		l_matchCandidates = mc.ls(type=nodeType)
 	    log.debug("argsToNodes.verifyNode>> l_matchCandidates: %s"%l_matchCandidates)
 	    
