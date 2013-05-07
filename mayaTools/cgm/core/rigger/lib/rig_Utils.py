@@ -1501,6 +1501,50 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
 
 
 
+
+@r9General.Timer
+def create_IKHandle(startJoint,endJoint, baseName = 'ikChain', solverType = 'ikRPsolver'):
+    """
+    @kws
+    l_jointChain1(list) -- blend list 1
+    l_jointChain2(list) -- blend list 2
+    l_blendChain(list) -- result chain
+
+    driver(attr arg) -- driver attr
+    channels(list) -- channels to blend
+    
+    """
+    mi_start = cgmMeta.validateObjArg(startJoint,cgmMeta.cgmObject,noneValid=False)
+    mi_end = cgmMeta.validateObjArg(endJoint,cgmMeta.cgmObject,noneValid=False)
+    
+    #Create Curve
+    try:
+	i_ikSolver = cgmMeta.cgmNode(nodeType = solverType,setClass=True)
+    except:
+	raise StandardError,"create_IKHandle>>> solver type is probably no good: %s"%solverType
+    
+    buffer = mc.ikHandle( sj=mi_start.mNode, ee=mi_end.mNode,
+                          solver = i_ikSolver.mNode,forceSolver = True,
+                          snapHandleFlagToggle=True )  
+    
+    log.info(buffer)
+    i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+    i_ik_handle.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    #i_ik_handle.addAttr('cgmType','solver',attrType='string',lock=True)
+    i_ik_handle.doName()
+    
+    i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+    i_ik_effector.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    #i_ikSolver.addAttr('cgmType','solver',attrType='string',lock=True)
+    i_ik_effector.doName()
+    
+    i_ikSolver.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    i_ikSolver.addAttr('cgmType','solver',attrType='string',lock=True)
+    i_ikSolver.doName()
+    
+    return {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver}
+    
+    
 def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
     """
     @kws
@@ -1530,7 +1574,7 @@ def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = No
     """
     l_channels = [c for c in channels if c in ['translate','rotate','scale']]
     if not channels:
-	raise StandardError,"connectBlendJointChain>>> Need valid channels: %s")%channels)
+	raise StandardError,"connectBlendJointChain>>> Need valid channels: %s"%channels
 
     ml_nodes = []
     
@@ -1542,7 +1586,9 @@ def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = No
 	    i_node.addAttr('cgmName',"%s_to_%s"%(ml_jointChain1[i].getShortName(),ml_jointChain2[i].getShortName()))
 	    i_node.addAttr('cgmTypeModifier',channel)
 	    i_node.doName()
-	    log.info("connectBlendJointChain>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),ml_jointChain2[i].getShortName(),ml_blendChain[i].getShortName()),channel)
+	    log.info("connectBlendJointChain>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
+	                                                             ml_jointChain2[i].getShortName(),
+	                                                             ml_blendChain[i].getShortName(),channel))
 	    cgmMeta.cgmAttr(i_node,'color1').doConnectIn("%s.%s"%(ml_jointChain1[i].mNode,channel))
 	    cgmMeta.cgmAttr(i_node,'color2').doConnectIn("%s.%s"%(ml_jointChain2[i].mNode,channel))
 	    cgmMeta.cgmAttr(i_node,'output').doConnectOut("%s.%s"%(i_jnt.mNode,channel))
@@ -1554,6 +1600,7 @@ def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = No
 	    
     return ml_nodes
 
+@r9General.Timer
 def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation = 'zyx'):
     """
     @kws
@@ -1591,7 +1638,9 @@ def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation 
 	
 	mi_childJoint = cgmMeta.validateObjArg(cBuffer[0],cgmMeta.cgmObject)
 	#Get the length
-	length = mi_childJoint.__getattribute__('t%s'%orientation[0].lower())
+	#length = mi_childJoint.__getattribute__('t%s'%orientation[0].lower())
+	length = mc.getAttr("%s.t%s"%(mi_childJoint.mNode,orientation[0].lower()))
+	
 	mi_baseAttr = cgmMeta.cgmAttr(mi_childJoint,'baseLength',value=length,lock=True)
 	return NodeF.argsToNodes("%s.t%s = %s * %s"%(mi_childJoint.getShortName(),orientation[0].lower(),
 	                                             mi_driver.p_combinedShortName,mi_baseAttr.p_combinedShortName)).doBuild()

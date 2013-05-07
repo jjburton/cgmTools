@@ -291,8 +291,8 @@ def build_FKIK(self):
     upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
     mi_handleIK = self._i_rigNull.handleIK
     
-    for chain in [ml_fkJoints,ml_ikJoints,ml_blendJoints]:
-	chain[0].parent = self._i_deformNull.mNode
+    #for chain in [ml_fkJoints,ml_ikJoints,ml_blendJoints]:
+	#chain[0].parent = self._i_deformNull.mNode
     
     #>>>Connect Blend Chain
     #=============================================================    
@@ -302,15 +302,25 @@ def build_FKIK(self):
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
     
-    #>>>Connect Blend Chain
+    #>>>FK Length connector
     #=============================================================    
     try:
 	for i,i_jnt in enumerate(ml_fkJoints[:-1]):
 	    rUtils.addJointLengthAttr(i_jnt,orientation=self._jointOrientation)
 	
     except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
+	raise StandardError,"%s.build_FKIK>>> fk length connect error: %s"%(self._strShortName,error)
     
+    #>>>IK Chain Builds
+    #=============================================================    
+    try:
+	#Create ankle IK
+	d_ankleReturn = rUtils.create_IKHandle(ml_ikJoints[0].mNode,ml_ikJoints[2].mNode,baseName=ml_ikJoints[2].cgmName)
+
+	
+	
+    except StandardError,error:
+	raise StandardError,"%s.build_FKIK>>> IK Chains error: %s"%(self._strShortName,error)
     
 def build_controls(self):
     """
@@ -352,6 +362,7 @@ def build_controls(self):
 	
 	#for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
 	    #i_obj.parent = ml_controlsFK[i].mNode
+	ml_fkJoints[0].parent = self._i_deformNull.mNode
 		
 	for i,i_obj in enumerate(ml_controlsFK):
 	    d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],setRotateOrder=5,typeModifier='fk',) 	    
@@ -361,7 +372,6 @@ def build_controls(self):
 	    i_obj.delete()
 	    
 	#ml_controlsFK[0].masterGroup.parent = self._i_deformNull.mNode
-	
 	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'controlsFK','module')
 	l_controlsAll.extend(ml_fkJoints)	
     
