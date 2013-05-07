@@ -480,9 +480,9 @@ class argsToNodes(object):
 	self.validateArg(arg,*args,**kws)#Validate Arg
 
 	if self.d_networksToBuild:
-	    log.info(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
+	    log.debug(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
 	if self.d_connectionsToMake:
-	    log.info(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
+	    log.debug(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
 	    
     #@r9General.Timer
     def doBuild(self):
@@ -733,13 +733,13 @@ class argsToNodes(object):
 	return None
 	
     def validate_subArg(self,arg, nodeType = 'condition'):
-	log.info("argsToNodes.validate_subArg>> '%s' validate: '%s'"%(nodeType,arg))
+	log.debug("argsToNodes.validate_subArg>> '%s' validate: '%s'"%(nodeType,arg))
 	#First look for a result connection to register
 	if nodeType != 'directConnect' and nodeType not in d_operator_to_NodeType.keys():
 	    raise StandardError,"argsToNodes.validate_subArg>> unknown nodeType: '%s'"%nodeType
 	resultArg = []
 	thenArg = []
-	log.info(1)
+	log.debug(1)
 	try:#Result split
 	    #splitter = d_nodeType_to_resultSplit[nodeType]
 	    splitter = ' = '
@@ -750,7 +750,7 @@ class argsToNodes(object):
 		    raise StandardError,"argsToNodes.validate_subArg>> Too many splits for arg: %s"%splitBuffer		
 		resultArg = splitBuffer[0]
 		arg = splitBuffer[1]
-		log.info("argsToNodes.validate_subArg>> result args: %s"%resultArg)
+		log.debug("argsToNodes.validate_subArg>> result args: %s"%resultArg)
 	except StandardError,error:
 	    log.error(error)
 	    raise StandardError, "argsToNodes.validate_subArg>> resultSplit failure: %s"%(arg)
@@ -774,9 +774,9 @@ class argsToNodes(object):
 	
 	    
 	try:#Function Split
-	    log.info("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
+	    log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
 	    l_buffer = arg.split(' ')#split by space
-	    log.info("l_buffer: %s"%l_buffer)
+	    log.debug("l_buffer: %s"%l_buffer)
 	    splitBuffer = []
 	    for n in l_buffer:
 		if n !='':
@@ -790,7 +790,7 @@ class argsToNodes(object):
 			l_funcs.append(function)
 	    elif nodeType in ['clamp','setRange']:
 		splitBuffer = arg.split(',')
-		log.info("clamp type split: %s"%splitBuffer)	
+		log.debug("clamp type split: %s"%splitBuffer)	
 	    if not l_funcs and '-' not in arg and nodeType not in ['directConnect','setRange','clamp']:
 		raise StandardError, "argsToNodes.validate_subArg>> No function of type '%s' found: %s"%(nodeType,d_operator_to_NodeType[nodeType])	    
 	    elif len(l_funcs)!=1 and '-' not in arg and nodeType not in ['directConnect','setRange','clamp']:#this is to grab an simple inversion
@@ -800,8 +800,8 @@ class argsToNodes(object):
 	    log.error(error)
 	    raise StandardError, "argsToNodes.validate_subArg>> functionSplit failure: %s"%(arg)
 	
-	log.info("validate_subArg>> l_funcs: %s"%l_funcs)
-	log.info("validate_subArg>> splitBuffer: %s"%splitBuffer)
+	log.debug("validate_subArg>> l_funcs: %s"%l_funcs)
+	log.debug("validate_subArg>> splitBuffer: %s"%splitBuffer)
 	try:#Validate our function factors
 	    l_drivers = []
 	    if l_funcs:
@@ -819,12 +819,12 @@ class argsToNodes(object):
 		
 	    l_validDrivers = []
 	    for d in l_drivers:
-		log.info("Checking driver: %s"%d)
+		log.debug("Checking driver: %s"%d)
 		d_return = self.verify_attr(d,nodeType,arg)
 		if d_return is None:raise StandardError, "argsToNodes.validate_subArg>> driver failure: %s"%(d)
 		else:l_validDrivers.append(d_return)
 	    
-	    log.info("l_validDrivers: %s"%l_validDrivers)
+	    log.debug("l_validDrivers: %s"%l_validDrivers)
 	    #need to rework for more drivers
 	    if nodeType != 'directConnect':
 		maxDrivers = d_nodeType_to_limits[nodeType].get('maxDrivers')
@@ -837,7 +837,7 @@ class argsToNodes(object):
 		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers}		
 	    else:#we have a special case
 		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg}		
-	    log.info("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
+	    log.debug("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
 	
 	except StandardError,error:
 	    log.error(error)
@@ -845,7 +845,7 @@ class argsToNodes(object):
     
 	then_indices = []
 	if thenArg:
-	    log.info("Then arg: %s"%thenArg)	    
+	    log.debug("Then arg: %s"%thenArg)	    
 	    if 'else' in thenArg:
 		thenBuffer = thenArg.split('else')
 	    else:
@@ -882,9 +882,9 @@ class argsToNodes(object):
 	    if results_indices:
 		if d_validArg.get('drivers'):
 		    d_validArg['results']=results_indices
-		log.info("argsToNodes.validate_subArg>> Results indices: %s "%(results_indices))	
+		log.debug("argsToNodes.validate_subArg>> Results indices: %s "%(results_indices))	
 		self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
-	    log.info("d_validArg: %s"%d_validArg)
+	    log.debug("d_validArg: %s"%d_validArg)
 	    
 	    if d_validArg.get('drivers'):
 		if len(d_validArg['drivers']) > 1 and nodeType:#just need a connecton mapped
@@ -1094,7 +1094,7 @@ class argsToNodes(object):
 			    l_buffer.append(n)
 			
 			break
-		log.info(l_buffer)
+		log.debug(l_buffer)
 		if not l_buffer:l_buffer = buffer
 		try:
 		    if int(l_buffer[0]) in range(10):
