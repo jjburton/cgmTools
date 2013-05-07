@@ -596,6 +596,12 @@ def isKeyed(arg):
     if mc.keyframe(d_valid['combined'], query=True):return True
     return False
 
+def isConnected(arg):
+    """passes to validateAttrArg for validation. Returns if obj attr is keyed"""
+    d_valid = validateAttrArg(arg)
+    if mc.connectionInfo(d_valid['combined'], isDestination=True):return True
+    return False
+
 def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
     """                                     
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
