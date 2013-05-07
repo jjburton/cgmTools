@@ -590,6 +590,11 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
     if wasLocked == True or forceLock == True:
         mc.setAttr(toAttr,lock=True)
 
+def isKeyed(arg):
+    """passes to validateAttrArg for validation. Returns if obj attr is keyed"""
+    d_valid = validateAttrArg(arg)
+    if mc.keyframe(d_valid['combined'], query=True):return True
+    return False
 
 def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
     """                                     
@@ -619,9 +624,10 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
             if mc.getAttr(attrBuffer,lock=True) == True:
                 wasLocked = True
                 mc.setAttr(attrBuffer,lock=False)
-                
-            if doBreakConnection(obj,attribute):
-                log.warning("'%s' connection broken"%(attrBuffer))
+	    
+	    if not isKeyed([obj,attribute]):
+		if doBreakConnection(obj,attribute):
+		    log.warning("'%s' connection broken"%(attrBuffer))
             
             if validateRequestedAttrType(attrType) == 'long':
                 mc.setAttr(attrBuffer,int(float(value)), *a, **kw)
