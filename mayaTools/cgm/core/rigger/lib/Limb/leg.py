@@ -68,6 +68,8 @@ def build_shapes(self):
 	log.error("leg.build_rig>>bad self!")
 	raise StandardError,error
     
+    if self._i_templateNull.handles > 4:
+	raise StandardError, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._strShortName)
     
     #>>> Get our pivots
     #=============================================================
@@ -287,41 +289,170 @@ def build_FKIK(self):
     ml_ikJoints = self._i_rigNull.ikJoints
     mi_settings = self._i_rigNull.settings
     
+    mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
+    mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
+    mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
+    mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
+    mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)
+    
+    for pivot in [mi_pivToe,mi_pivHeel,mi_pivBall,mi_pivInner,mi_pivOuter]:
+	pivot.rotateOrder = 0
+    
     aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
     upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
     mi_handleIK = self._i_rigNull.handleIK
     
-    #for chain in [ml_fkJoints,ml_ikJoints,ml_blendJoints]:
-	#chain[0].parent = self._i_deformNull.mNode
+    for chain in [ml_fkJoints,ml_ikJoints,ml_blendJoints]:
+	chain[0].parent = self._i_deformNull.mNode
     
-    #>>>Connect Blend Chain
+    
     #=============================================================    
-    try:
+    try:#>>>Connect Blend Chain
 	rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,driver = "%s.state"%mi_settings.mNode,channels=['translate','rotate'])
 	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
     
-    #>>>FK Length connector
+    
     #=============================================================    
-    try:
+    try:#>>>FK Length connector
 	for i,i_jnt in enumerate(ml_fkJoints[:-1]):
 	    rUtils.addJointLengthAttr(i_jnt,orientation=self._jointOrientation)
 	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> fk length connect error: %s"%(self._strShortName,error)
     
-    #>>>IK Chain Builds
+    
     #=============================================================    
-    try:
+    try:#>>>IK Chain Builds
 	#Create ankle IK
 	d_ankleReturn = rUtils.create_IKHandle(ml_ikJoints[0].mNode,ml_ikJoints[2].mNode,baseName=ml_ikJoints[2].cgmName)
-
+	mi_ankleIKHandle = d_ankleReturn['mi_handle']
 	
+	#Create ankle IK
+	d_ballReturn = rUtils.create_IKHandle(ml_ikJoints[2].mNode,ml_ikJoints[3].mNode,baseName=ml_ikJoints[3].cgmName)
+	mi_ballIKHandle = d_ballReturn['mi_handle']
+	
+	#Create ankle IK
+	d_toeReturn = rUtils.create_IKHandle(ml_ikJoints[3].mNode,ml_ikJoints[4].mNode,baseName=ml_ikJoints[4].cgmName)
+	mi_toeIKHandle = d_toeReturn['mi_handle']
+
+	#return {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver}
 	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> IK Chains error: %s"%(self._strShortName,error)
     
+    #=============================================================    
+    #try:#>>>Foot setup
+    mi_pivHeel.parent = mi_handleIK.mNode#heel to foot
+    mi_pivOuter.parent = mi_pivHeel.mNode#outer to heel
+    mi_pivInner.parent = mi_pivOuter.mNode#inner to outer
+    
+    mi_pivToe.parent = mi_pivInner.mNode#toe to inner
+    mi_ballIKHandle.parent = mi_pivToe.mNode#ballIK to toe
+    mi_toeIKHandle.parent = mi_pivToe.mNode#toeIK to toe
+    mi_pivBall.parent = mi_pivToe.mNode#pivBall to toe
+    mi_ankleIKHandle.parent = mi_pivBall.mNode#ankleIK to ball
+    
+    #Add driving attrs
+    mi_plug_roll = cgmMeta.cgmAttr(mi_handleIK,'roll',attrType='float',defaultValue = 0,keyable = True)
+    mi_plug_toeLift = cgmMeta.cgmAttr(mi_handleIK,'toeLift',attrType='float',defaultValue = 30,keyable = True)
+    mi_plug_toeStaighten = cgmMeta.cgmAttr(mi_handleIK,'toeStaighten',attrType='float',defaultValue = 70,keyable = True)
+    mi_plug_lean = cgmMeta.cgmAttr(mi_handleIK,'lean',attrType='float',defaultValue = 0,keyable = True)
+    mi_plug_side = cgmMeta.cgmAttr(mi_handleIK,'side',attrType='float',defaultValue = 0,keyable = True)
+    
+    """
+    $roll = l_ankle_ik_anim.roll;
+    $toeLift = l_ankle_ik_anim.toeLift;
+    $toeStraight = l_ankle_ik_anim.toeStaighten;
+    $lean =l_ankle_ik_anim.lean;
+    $side = l_ankle_ik_anim.side;
+    
+    
+    l_heel_pivot_null.rotateX = min($roll,0);
+    l_ball_pivot_null.rotateX = (linstep(0,$toeLift, $roll) * (1-(linstep( $toeLift, $toeStraight, $roll)))) * $roll;
+    l_toe_pivot_null.rotateX = linstep($toeLift, $toeStraight,$roll) * $roll;
+
+    """
+    try:#heel setup
+	#Add driven attrs
+	mi_plug_heelClampResult = cgmMeta.cgmAttr(mi_handleIK,'result_clamp_heel',attrType='float',keyable = False,hidden=True)
+	#mi_plug_heelResult = cgmMeta.cgmAttr(mi_handleIK,'result_heel',attrType='float',keyable = False,hidden=True)
+	
+	#Setup the heel roll
+	#Clamp
+	NodeF.argsToNodes("%s = clamp(%s,0,%s)"%(mi_plug_heelClampResult.p_combinedShortName,
+	                                         mi_plug_roll.p_combinedShortName,
+	                                         mi_plug_roll.p_combinedShortName)).doBuild()
+	#Inversion
+	#NodeF.argsToNodes("%s = -%s"%(mi_plug_heelResult.p_combinedShortName,mi_plug_heelClampResult.p_combinedShortName)).doBuild()
+	mi_plug_heelClampResult.doConnectOut("%s.r%s"%(mi_pivHeel.mNode,self._jointOrientation[2].lower()))
+    except StandardError,error:
+	raise StandardError,"verify_moduleRigToggles>> heel setup fail: %s"%error    
+    
+    #ball setup
+    """
+    Schleifer's
+    ball_loc.rx = (linstep(0,$toeLift, $roll) * (1-(linstep( $toeLift, $toeStraight, $roll))) * $roll;
+		    ballToeLiftRoll        md   ( pma   toeToeStraightRoll                    md  
+		            1               4       3             2                            5
+    """
+    mi_plug_ballToeLiftRollResult = cgmMeta.cgmAttr(mi_handleIK,'result_range_ballToeLiftRoll',attrType='float',keyable = False,hidden=True)
+    mi_plug_toeStraightRollResult = cgmMeta.cgmAttr(mi_handleIK,'result_range_toeStraightRoll',attrType='float',keyable = False,hidden=True)
+    mi_plug_oneMinusToeResultResult = cgmMeta.cgmAttr(mi_handleIK,'result_pma_one_minus_toeStraitRollRange',attrType='float',keyable = False,hidden=True)
+    mi_plug_ball_x_toeResult = cgmMeta.cgmAttr(mi_handleIK,'result_md_roll_x_toeResult',attrType='float',keyable = False,hidden=True)
+    mi_plug_all_x_rollResult = cgmMeta.cgmAttr(mi_handleIK,'result_md_all_x_rollResult',attrType='float',keyable = False,hidden=True)
+    
+    arg1 = "%s = setRange(0,1,0,%s,%s)"%(mi_plug_ballToeLiftRollResult.p_combinedShortName,
+                                         mi_plug_toeLift.p_combinedShortName,
+                                         mi_plug_roll.p_combinedShortName)
+    arg2 = "%s = setRange(0,1,%s,%s,%s)"%(mi_plug_toeStraightRollResult.p_combinedShortName,
+                                          mi_plug_toeLift.p_combinedShortName,
+                                          mi_plug_toeStaighten.p_combinedShortName,
+                                          mi_plug_roll.p_combinedShortName)
+    arg3 = "%s = 1 - %s"%(mi_plug_oneMinusToeResultResult.p_combinedShortName,
+                          mi_plug_toeStraightRollResult.p_combinedShortName)
+    
+    arg4 = "%s = %s * %s"%(mi_plug_ball_x_toeResult.p_combinedShortName,
+                           mi_plug_oneMinusToeResultResult.p_combinedShortName,
+                           mi_plug_ballToeLiftRollResult.p_combinedShortName)
+    
+    arg5 = "%s = %s * %s"%(mi_plug_all_x_rollResult.p_combinedShortName,
+                           mi_plug_ball_x_toeResult.p_combinedShortName,
+                           mi_plug_roll.p_combinedShortName)
+    
+    for arg in [arg1,arg2,arg3,arg4,arg5]:
+	NodeF.argsToNodes(arg).doBuild()
+	
+    mi_plug_all_x_rollResult.doConnectOut("%s.r%s"%(mi_pivBall.mNode,self._jointOrientation[2].lower()))
+    
+    #except StandardError,error:
+	#raise StandardError,"verify_moduleRigToggles>> vis arg fail: %s"%error   
+	
+    #ball setup
+    """
+    Schleifer's
+    toe_loc.rotateX = linstep($toeLift, $toeStraight,$roll) * $roll;
+                          setRange                           md
+			     1                                2
+    """
+    mi_plug_toeRangeResult = cgmMeta.cgmAttr(mi_handleIK,'result_range_toeLiftStraightRoll',attrType='float',keyable = False,hidden=True)
+    mi_plug_toe_x_rollResult = cgmMeta.cgmAttr(mi_handleIK,'result_md_toeRange_x_roll',attrType='float',keyable = False,hidden=True)
+    
+    arg1 = "%s = setRange(0,1,%s,%s,%s)"%(mi_plug_toeRangeResult.p_combinedShortName,
+                                         mi_plug_toeLift.p_combinedShortName,
+                                         mi_plug_toeStaighten.p_combinedShortName,                                         
+                                         mi_plug_roll.p_combinedShortName)
+    arg2 = "%s = %s * %s"%(mi_plug_toe_x_rollResult.p_combinedShortName,
+                                          mi_plug_toeRangeResult.p_combinedShortName,
+                                          mi_plug_roll.p_combinedShortName)
+    for arg in [arg1,arg2]:
+	NodeF.argsToNodes(arg).doBuild()    
+    
+    mi_plug_toe_x_rollResult.doConnectOut("%s.r%s"%(mi_pivToe.mNode,self._jointOrientation[2].lower()))
+    
+	
+	
 def build_controls(self):
     """
     """    
