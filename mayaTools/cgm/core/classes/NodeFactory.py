@@ -371,7 +371,9 @@ class build_mdNetwork(object):
 	return self.l_iAttrs.index(combinedName)
     
 
-d_operator_to_NodeType = {'condition':[' == ',' != ',' > ',' < ',' >= ',' <= '],
+d_operator_to_NodeType = {'clamp':['clamp('],
+                          'setRange':['setRange('],
+                          'condition':[' == ',' != ',' > ',' < ',' >= ',' <= '],
                           'multiplyDivide':[' * ',' / ',' ^ '],
                           'plusMinusAverage':[' + ',' - ',' >< ']}#>< we're using for average
 d_function_to_Operator = {'==':0,'!=':1,'>':2,'>=':3,'<':4,'<=':5,#condition
@@ -379,25 +381,35 @@ d_function_to_Operator = {'==':0,'!=':1,'>':2,'>=':3,'<':4,'<=':5,#condition
                           '+':1,'-':2,'><':3}#pma
 d_nodeType_to_limits = {'condition':{'maxDrivers':2},
                         'multiplyDivide':{'maxDrivers':2},
+                        'clamp':{'maxDrivers':3,'minDrivers':2},
+                        'setRange':{'maxDrivers':5,'minDrivers':5},
                         'plusMinusAverage':{'maxDrivers':False}}
 d_nodeType_to_DefaultAttrType = {'condition':'int',
                                  'multiplyDivide':'float',
+                                 'clamp':'float',
+                                 'setRange':'float',
                                  'plusMinusAverage':'float'}
 d_nodeType_to_input = {'condition':['firstTerm','secondTerm'],
                        'multiplyDivide':['input1X','input2X'],
+                       'clamp':['minR','maxR','inputR'],
+                       'setRange':['minX','maxX','oldMinX','oldMaxX','valueX'],
                        'plusMinusAverage':'input1D'}
 d_nodeType_to_output = {'condition':'outColorR',
                        'multiplyDivide':'outputX',
+                       'clamp':'outputR',
+                       'setRange':'outValueX',
                        'plusMinusAverage':'output1D'}
 d_nodeType_to_resultSplit = {'condition':';',
                              'multiplyDivide':'=',
-                             'plusMinusAverage':'='}
-d_functionStringSwaps = {'.':'_attr_', ' ':'',
+                             'plusMinusAverage':'=',
+                             'setRange':'=',
+                             'clamp':'='}
+d_functionStringSwaps = {'.':'_attr_', ' ':'',',':'_',
                          '+':'_add_','-':'_minus_','><':'_avg_',#pma                                                 
                          '==':'_isEqualTo_','!=':'_isNotEqualTo_','>':'_isGreaterThan_','>=':'_isGreaterOrEqualTo_','<':'_isLessThan_','<=':'_isLessThanOrEqualTo_',#condition
                          '*':'_multBy_','/':'_divBy_','^':'_pow_',}#md
 l_extraConditionArgs = ['if ','elif ']
-l_NotImplementedTo_NodalArg = ['{','}','(',')']
+l_NotImplementedTo_NodalArg = ['{','}']
 
 class argsToNodes(object):
     """
@@ -451,24 +463,28 @@ class argsToNodes(object):
 	self.d_networksToBuild = {'condition':[],
 	                          'multiplyDivide':[],
 	                          'plusMinusAverage':[],
+	                          'clamp':[],
+	                          'setRange':[],
 	                          }#indexed to l_mdNetworkIndices
 	self.l_good_nodeNetworks = []#good md networks by arg [1,2]
 	self.d_good_nodeNetworks = {}#md instances indexed to l_good_mdNetworks
 	self.d_good_connections= {}#connections 
 	
+	self.l_clampNetworkArgs = []
+	self.l_setRangeNetworkArgs = []	
 	self.l_condNetworkArgs = []
 	self.l_mdNetworkArgs = []
 	self.l_pmaNetworkArgs = []
 	self.l_directConnectArgs = []
 	self.d_good_NetworkOuts = {}
 	self.validateArg(arg,*args,**kws)#Validate Arg
-	
 
 	if self.d_networksToBuild:
-	    log.debug(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
+	    log.info(">> d_networksToBuild: '%s'"%self.d_networksToBuild)	    
 	if self.d_connectionsToMake:
-	    log.debug(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
-    @r9General.Timer
+	    log.info(">> d_connectionsToMake: '%s'"%self.d_connectionsToMake)
+	    
+    #@r9General.Timer
     def doBuild(self):
 	l_args = []
 	ml_outPlugs = []
@@ -564,68 +580,96 @@ class argsToNodes(object):
 	else:
 	    argBuffer = [arg]
 	    
-	log.debug("argsToNodes.validateArg>> argBuffer: %s"%(argBuffer))	
-	for i,a in enumerate(argBuffer):
-	    for k in l_NotImplementedTo_NodalArg:
-		if k in arg:
-		    raise NotImplementedError,"argsToNodes.validateArg>> '%s' not implemented | '%s'"%(k,a)
-
-	    foundMatch = False
-	    log.debug("argsToNodes.validateArg>> On a: %s"%(a))	
-	    for k in d_operator_to_NodeType['condition'] + l_extraConditionArgs:
-		if k in a:
+	log.debug("argsToNodes.validateArg>> argBuffer: %s"%(argBuffer))
+	try:#Arg checks
+	    for i,a in enumerate(argBuffer):
+		for k in l_NotImplementedTo_NodalArg:
+		    if k in arg:
+			raise NotImplementedError,"argsToNodes.validateArg>> '%s' not implemented | '%s'"%(k,a)
+    
+		foundMatch = False
+		log.debug("argsToNodes.validateArg>> On a: %s"%(a))
+		for k in d_operator_to_NodeType['setRange']:
+		    if k in a:
+			foundMatch = True
+			log.debug("argsToNodes.validateArg>> setRange arg found: %s"%a)
+			try:
+			    if self.validate_subArg(a,'setRange'):
+				log.debug("argsToNodes.validateArg>> setRange arg verified: %s"%a)				
+				self.l_clampNetworkArgs.append(a)
+				break
+			    else:
+				log.debug("argsToNodes.validateArg>> setRange arg failed: %s"%a)							
+			except StandardError,error:
+			    raise StandardError,error 	    
+		for k in d_operator_to_NodeType['clamp']:
+		    if k in a:
+			foundMatch = True
+			log.debug("argsToNodes.validateArg>> clamp arg found: %s"%a)
+			try:
+			    if self.validate_subArg(a,'clamp'):
+				log.debug("argsToNodes.validateArg>> clamp arg verified: %s"%a)				
+				self.l_clampNetworkArgs.append(a)
+				break
+			    else:
+				log.debug("argsToNodes.validateArg>> clamp arg failed: %s"%a)							
+			except StandardError,error:
+			    raise StandardError,error  	    
+		for k in d_operator_to_NodeType['condition'] + l_extraConditionArgs:
+		    if k in a:
+			foundMatch = True
+			log.debug("argsToNodes.validateArg>> cond arg found: %s"%a)
+			try:
+			    if self.validate_subArg(a,'condition'):
+				log.debug("argsToNodes.validateArg>> cond arg verified: %s"%a)				
+				self.l_condNetworkArgs.append(a)
+				break
+			    else:
+				log.debug("argsToNodes.validateArg>> cond arg failed: %s"%a)							
+			except StandardError,error:
+			    raise StandardError,error  
+		for k in d_operator_to_NodeType['multiplyDivide']:
+		    if k in a:
+			foundMatch = True		    
+			try:
+			    log.debug("argsToNodes.validateArg>> md arg(%s) found: %s"%(k,a))	
+			    if self.validate_subArg(a,'multiplyDivide'):
+				self.l_mdNetworkArgs.append(a)
+				break
+			    else:
+				log.debug("argsToNodes.validateArg>> md arg failed: %s"%a)				    
+			except StandardError,error:
+			    raise StandardError,error  	   
+		for k in d_operator_to_NodeType['plusMinusAverage']:
+		    if k in a:
+			foundMatch = True		    
+			try:
+			    log.debug("argsToNodes.validateArg>> pma arg(%s) found: %s"%(k,a))				    
+			    if self.validate_subArg(a,'plusMinusAverage'):
+				self.l_pmaNetworkArgs.append(a)
+				break
+			    else:
+				log.debug("argsToNodes.validateArg>> pma arg found: %s"%a)				    
+			except StandardError,error:
+			    raise StandardError,error  
+		if not foundMatch and '-' in a:
 		    foundMatch = True
-		    log.debug("argsToNodes.validateArg>> cond arg found: %s"%a)
-		    try:
-			if self.validate_subArg(a,'condition'):
-			    log.debug("argsToNodes.validateArg>> cond arg verified: %s"%a)				
-			    self.l_condNetworkArgs.append(a)
-			    break
-			else:
-			    log.debug("argsToNodes.validateArg>> cond arg failed: %s"%a)							
-		    except StandardError,error:
-			raise StandardError,error  
-	    for k in d_operator_to_NodeType['multiplyDivide']:
-		if k in a:
-		    foundMatch = True		    
-		    try:
-			log.debug("argsToNodes.validateArg>> md arg(%s) found: %s"%(k,a))	
-			if self.validate_subArg(a,'multiplyDivide'):
-			    self.l_mdNetworkArgs.append(a)
-			    break
-			else:
-			    log.debug("argsToNodes.validateArg>> md arg failed: %s"%a)				    
-		    except StandardError,error:
-			raise StandardError,error  	   
-	    for k in d_operator_to_NodeType['plusMinusAverage']:
-		if k in a:
-		    foundMatch = True		    
-		    try:
-			log.debug("argsToNodes.validateArg>> pma arg(%s) found: %s"%(k,a))				    
-			if self.validate_subArg(a,'plusMinusAverage'):
-			    self.l_pmaNetworkArgs.append(a)
-			    break
-			else:
-			    log.debug("argsToNodes.validateArg>> pma arg found: %s"%a)				    
-		    except StandardError,error:
-			raise StandardError,error  
-	    if not foundMatch and '-' in a:
-		foundMatch = True
-		if self.validate_subArg(a,'multiplyDivide'):
-		    self.l_mdNetworkArgs.append(arg)
-		    break
-		else:
-		    log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
-	    if not foundMatch and '=' in a:
-		log.debug("Finding direct connect...")
-		if self.validate_subArg(a,'directConnect'):
-		    self.l_directConnectArgs.append(arg)
-		    break
-		else:
-		    log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
-	    if not self.d_networksToBuild:
-		raise StandardError,"argsToNodes.validateArg>> Found nothing to do! | %s"%a
-
+		    if self.validate_subArg(a,'multiplyDivide'):
+			self.l_mdNetworkArgs.append(arg)
+			break
+		    else:
+			log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
+		if not foundMatch and '=' in a:
+		    log.debug("Finding direct connect...")
+		    if self.validate_subArg(a,'directConnect'):
+			self.l_directConnectArgs.append(arg)
+			break
+		    else:
+			log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
+		if not self.d_networksToBuild:
+		    raise StandardError,"argsToNodes.validateArg>> Found nothing to do! | %s"%a
+	except StandardError,error:
+	    raise StandardError,"argsToNodes.validateArg>> arg get error | %s"%error
     def verify_attr(self,arg,nodeType = False,originalArg = False):
 	"""
 	Check an arg, return an index to the i_attr list after registering
@@ -689,13 +733,13 @@ class argsToNodes(object):
 	return None
 	
     def validate_subArg(self,arg, nodeType = 'condition'):
-	log.debug("argsToNodes.validate_subArg>> '%s' validate: '%s'"%(nodeType,arg))
+	log.info("argsToNodes.validate_subArg>> '%s' validate: '%s'"%(nodeType,arg))
 	#First look for a result connection to register
 	if nodeType != 'directConnect' and nodeType not in d_operator_to_NodeType.keys():
 	    raise StandardError,"argsToNodes.validate_subArg>> unknown nodeType: '%s'"%nodeType
 	resultArg = []
 	thenArg = []
-	log.debug(1)
+	log.info(1)
 	try:#Result split
 	    #splitter = d_nodeType_to_resultSplit[nodeType]
 	    splitter = ' = '
@@ -706,12 +750,18 @@ class argsToNodes(object):
 		    raise StandardError,"argsToNodes.validate_subArg>> Too many splits for arg: %s"%splitBuffer		
 		resultArg = splitBuffer[0]
 		arg = splitBuffer[1]
-		log.debug("argsToNodes.validate_subArg>> result args: %s"%resultArg)
+		log.info("argsToNodes.validate_subArg>> result args: %s"%resultArg)
 	except StandardError,error:
 	    log.error(error)
 	    raise StandardError, "argsToNodes.validate_subArg>> resultSplit failure: %s"%(arg)
 	
 	try:#If then
+	    for nodeT in ['clamp','setRange']:
+		if nodeType == nodeT:
+		    firstSplit = arg.split('%s('%nodeT)
+		    arg = firstSplit[1]
+		    secondSplit = arg.split(')')
+		    arg = secondSplit[0]
 	    if nodeType == 'condition' and ':' in arg:
 		thenSplit = arg.split(':')
 		if len(thenSplit)>2:
@@ -724,32 +774,34 @@ class argsToNodes(object):
 	
 	    
 	try:#Function Split
-	    log.debug("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
+	    log.info("argsToNodes.validate_subArg>> %s validate: '%s'"%(nodeType,arg))
 	    l_buffer = arg.split(' ')#split by space
+	    log.info("l_buffer: %s"%l_buffer)
 	    splitBuffer = []
 	    for n in l_buffer:
 		if n !='':
 		    splitBuffer.append(n)#get rid of ''
 	    l_funcs = []
-	    if nodeType != 'directConnect':
+	    if nodeType not in ['directConnect','clamp','setRange']:
 		for function in d_operator_to_NodeType[nodeType]:
 		    if function in arg:#See if we have the function
 			if len(arg.split(function))>2 and nodeType == 'condition':
 			     raise StandardError,"argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(function)
 			l_funcs.append(function)
-			
-	    if not l_funcs and '-' not in arg and nodeType != 'directConnect':
+	    elif nodeType in ['clamp','setRange']:
+		splitBuffer = arg.split(',')
+		log.info("clamp type split: %s"%splitBuffer)	
+	    if not l_funcs and '-' not in arg and nodeType not in ['directConnect','setRange','clamp']:
 		raise StandardError, "argsToNodes.validate_subArg>> No function of type '%s' found: %s"%(nodeType,d_operator_to_NodeType[nodeType])	    
-	    elif len(l_funcs)!=1 and '-' not in arg and nodeType != 'directConnect':#this is to grab an simple inversion
+	    elif len(l_funcs)!=1 and '-' not in arg and nodeType not in ['directConnect','setRange','clamp']:#this is to grab an simple inversion
 		log.warning("argsToNodes.validate_subArg>> Bad arg. Too many functions in arg: %s"%(l_funcs))
 	    if l_funcs:l_funcs = [l_funcs[0].split(' ')[1]]
 	except StandardError,error:
 	    log.error(error)
 	    raise StandardError, "argsToNodes.validate_subArg>> functionSplit failure: %s"%(arg)
 	
-	
-	log.debug("validate_subArg>> l_funcs: %s"%l_funcs)
-	log.debug("validate_subArg>> splitBuffer: %s"%splitBuffer)
+	log.info("validate_subArg>> l_funcs: %s"%l_funcs)
+	log.info("validate_subArg>> splitBuffer: %s"%splitBuffer)
 	try:#Validate our function factors
 	    l_drivers = []
 	    if l_funcs:
@@ -760,17 +812,19 @@ class argsToNodes(object):
 			    l_drivers.append(splitBuffer[i-1])	
 			    first = False			    
 			l_drivers.append(splitBuffer[i+1])
+	    elif nodeType in ['clamp','setRange']:
+		l_drivers = splitBuffer
 	    else:
 		l_drivers.append(splitBuffer[0])
 		
 	    l_validDrivers = []
 	    for d in l_drivers:
-		log.debug("Checking driver: %s"%d)
+		log.info("Checking driver: %s"%d)
 		d_return = self.verify_attr(d,nodeType,arg)
 		if d_return is None:raise StandardError, "argsToNodes.validate_subArg>> driver failure: %s"%(d)
 		else:l_validDrivers.append(d_return)
 	    
-	    log.debug("l_validDrivers: %s"%l_validDrivers)
+	    log.info("l_validDrivers: %s"%l_validDrivers)
 	    #need to rework for more drivers
 	    if nodeType != 'directConnect':
 		maxDrivers = d_nodeType_to_limits[nodeType].get('maxDrivers')
@@ -779,11 +833,11 @@ class argsToNodes(object):
 	    
 	    if l_funcs:#we  use normal start
 		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers,'operation':d_function_to_Operator[l_funcs[0]]}
-	    elif nodeType == 'directConnect':
+	    elif nodeType in ['directConnect','clamp','setRange']:
 		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers}		
 	    else:#we have a special case
 		d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg}		
-	    log.debug("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
+	    log.info("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
 	
 	except StandardError,error:
 	    log.error(error)
@@ -791,7 +845,7 @@ class argsToNodes(object):
     
 	then_indices = []
 	if thenArg:
-	    log.debug("Then arg: %s"%thenArg)	    
+	    log.info("Then arg: %s"%thenArg)	    
 	    if 'else' in thenArg:
 		thenBuffer = thenArg.split('else')
 	    else:
@@ -809,7 +863,6 @@ class argsToNodes(object):
 		else:
 		    d_validArg['False']=n		    
 		
-    
 	try:#Results build
 	    results_indices = []
 	    if resultArg:
@@ -829,9 +882,9 @@ class argsToNodes(object):
 	    if results_indices:
 		if d_validArg.get('drivers'):
 		    d_validArg['results']=results_indices
-		log.debug("argsToNodes.validate_subArg>> Results indices: %s "%(results_indices))	
+		log.info("argsToNodes.validate_subArg>> Results indices: %s "%(results_indices))	
 		self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
-	    log.debug("d_validArg: %s"%d_validArg)
+	    log.info("d_validArg: %s"%d_validArg)
 	    
 	    if d_validArg.get('drivers'):
 		if len(d_validArg['drivers']) > 1 and nodeType:#just need a connecton mapped
@@ -846,7 +899,6 @@ class argsToNodes(object):
 	    log.error(error)
 	    raise StandardError, "argsToNodes.validate_subArg>> results build failure: %s"%(arg)
     
-	
 	return True
     
     def verify_nodalNetwork(self,d_arg,nodeType = 'condition',fastCheck = True):
@@ -933,7 +985,7 @@ class argsToNodes(object):
 		    falseCnt = []
 		    i_nodeTmp = cgmMeta.cgmNode(n)
 		    log.debug('i_nodeTmp: %s'%i_nodeTmp)
-		    if i_nodeTmp.operation != d_arg['operation']:
+		    if d_arg.get('operation') and i_nodeTmp.operation != d_arg['operation']:
 			log.debug("argsToNodes.verifyNode>> match fail:operation: %s != %s"%(i_nodeTmp.operation,d_arg['operation']))					    					    			
 			matchFound = False	
 			falseCnt.append(1)			
@@ -1015,7 +1067,8 @@ class argsToNodes(object):
 			
 	    if i_node is None:
 		i_node = cgmMeta.cgmNode(nodeType = nodeType)#make the node
-		try:i_node.operation = d_arg['operation']
+		try:
+		    if d_arg.get('operation'):i_node.operation = d_arg['operation']
 		except:raise StandardError,"Failed to set operation!"
 		
 		#Name it  
@@ -1030,18 +1083,21 @@ class argsToNodes(object):
 				if n == k:n = d_functionStringSwaps[k]
 			    if '.' in n:
 				n = '_'.join(n.split('.'))
+			    if ',' in n:
+				n = '_'.join(n.split(','))
 			    if '-' in n:
 				b = list(n)
 				for p,k in enumerate(b):
 				    if k == '-':
-					b[p]='_inv'
+					b[p]='_inv'				    
 				n = ''.join(b)
 			    l_buffer.append(n)
 			
 			break
+		log.info(l_buffer)
 		if not l_buffer:l_buffer = buffer
 		try:
-		    if int(l_buffer[0]) in range(9):
+		    if int(l_buffer[0]) in range(10):
 			l_buffer.insert(0,'_')
 		except:pass
 		i_node.doStore('cgmName',"%s"%("".join(l_buffer)))
@@ -1234,6 +1290,44 @@ def test_argsToNodes(deleteObj = True):
 	
     except StandardError,error:
 	log.error("test_argsToNodes>>Simple sum Failure! '%s'"%(error))
+	raise StandardError,error   
+    
+    try:#clamp 
+	i_obj.tz = 3
+	arg = "%s.clampResult = clamp(0,1,%s.tz"%(str_obj,str_obj)
+	d_return = argsToNodes(arg).doBuild()
+	log.debug(d_return['ml_outPlugs'])
+	assert d_return['l_nodes'], "Should have made something"
+	assert len(d_return['l_nodes']) == 1, "Only one node should be made. Found: %s"%len(d_return['l_nodes'])
+	assert d_return['ml_outPlugs'][0].obj.getMayaType() == 'clamp',"%s != clamp"%d_return['ml_outPlugs'][0].obj.getMayaType()
+	plugCall = mc.listConnections("%s.clampResult"%(i_obj.mNode),plugs=True,scn = True)
+	combinedName = d_return['ml_outPlugs'][0].p_combinedName
+	assert str(plugCall[0]) == d_return['ml_outPlugs'][0].p_combinedName,"Connections don't match: %s | %s"%(plugCall[0],combinedName)
+	assert i_obj.clampResult == 1,"Value 1 fail"
+	i_obj.tz = .5
+	assert i_obj.clampResult == .5,"Value 2 fail"
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>Clamp fail! '%s'"%(error))
+	raise StandardError,error       
+    
+    try:#setRange 
+	i_obj.tz = 5
+	arg = "%s.setRangeResult = setRange(0,1,0,10,%s.tz"%(str_obj,str_obj)
+	d_return = argsToNodes(arg).doBuild()
+	log.debug(d_return['ml_outPlugs'])
+	assert d_return['l_nodes'], "Should have made something"
+	assert len(d_return['l_nodes']) == 1, "Only one node should be made. Found: %s"%len(d_return['l_nodes'])
+	assert d_return['ml_outPlugs'][0].obj.getMayaType() == 'setRange',"%s != setRange"%d_return['ml_outPlugs'][0].obj.getMayaType()
+	plugCall = mc.listConnections("%s.setRangeResult"%(i_obj.mNode),plugs=True,scn = True)
+	combinedName = d_return['ml_outPlugs'][0].p_combinedName
+	assert str(plugCall[0]) == d_return['ml_outPlugs'][0].p_combinedName,"Connections don't match: %s | %s"%(plugCall[0],combinedName)
+	assert i_obj.setRangeResult == .5,"Value 1 fail"
+	i_obj.tz = 10
+	assert i_obj.setRangeResult == 1,"Value 2 fail"
+	
+    except StandardError,error:
+	log.error("test_argsToNodes>>setRangeResult failure! '%s'"%(error))
 	raise StandardError,error   
     
     if deleteObj:i_obj.delete()
