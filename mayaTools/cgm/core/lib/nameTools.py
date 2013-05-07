@@ -170,12 +170,16 @@ def returnCombinedNameFromDict(nameDict):
             bufferList = list(buffer)
             #log.info("buffer: %s"%buffer)
             returnList = []
+            try:
+                if int(bufferList[0]) in range(10):
+                    bufferList.insert(0,'_')
+            except:pass
             for i,n in enumerate(bufferList):
                 if n == '.':
                     returnList.append('_')
                 elif n in [';',':']:
                     returnList.append('to')
-                elif n not in ['[',']','|']:
+                elif n not in ['[',']','|',',']:
                     returnList.append(str(n))
                 else:
                     log.info("nameTools.returnCombinedNameFromDict>> Not sure what to do with: %s"%n)                
