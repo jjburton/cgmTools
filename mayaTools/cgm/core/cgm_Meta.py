@@ -259,6 +259,17 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return False
 	return False 
     
+    def isAttrKeyed(self,attr):
+	"""
+	Returns if attribute is keyed
+	"""	
+	return attributes.isKeyed([self.mNode,attr])
+    def isAttrConnected(self,attr):
+	"""
+	Returns if attribute is connected
+	"""		
+	return attributes.isConnected([self.mNode,attr])
+    
     def getComponents(self,arg = False):
 	"""
 	@arg
@@ -459,8 +470,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		
 	    if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value: 
 		log.debug("'%s.%s' Value (%s) was not properly set during creation to: %s"%(self.getShortName(),attr,r9Meta.MetaClass.__getattribute__(self,attr),value))
-		#self.__setattr__(attr,value,**kws)
-		cgmAttr(self, attrName = attr, value=value,**kws)#Swictched back to cgmAttr to deal with connected attrs
+		if attributes.isConnected([self.mNode,attr]):
+		    attributes.doBreakConnection(self.mNode,attr)
+		self.__setattr__(attr,value,**kws)
+		#attributes.doSetAttr(self.mNode,attr,value)
+		#cgmAttr(self, attrName = attr, value=value)#Swictched back to cgmAttr to deal with connected attrs
 	    validatedAttrType = attributes.validateRequestedAttrType(attrType)
 	    if attrType is not None and validatedAttrType in ['string','float','long']:
 		currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
@@ -484,7 +498,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		cgmAttr(self, attrName = attr, keyable=keyable,hidden = hidden)
 	    if lock is not None:
 		mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	
-		
 		
             return True
         return False
@@ -4026,6 +4039,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 #=========================================================================      
 # Argument validation
 #=========================================================================  
+@r9General.Timer
 def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode):
     """
     validate an objArg to be able to get instance of the object
