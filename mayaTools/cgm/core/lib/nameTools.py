@@ -171,7 +171,7 @@ def returnCombinedNameFromDict(nameDict):
             #log.info("buffer: %s"%buffer)
             returnList = []
             try:
-                if int(bufferList[0]) in range(10):
+                if int(bufferList[0]) == 0:
                     bufferList.insert(0,'_')
             except:pass
             for i,n in enumerate(bufferList):
