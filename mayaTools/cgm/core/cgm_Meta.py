@@ -968,8 +968,8 @@ class cgmObject(cgmNode):
         """ Get the parent, child and shapes of the object."""
         return {'parent':self.parent,'children':self.children,'shapes':self.shapes} or {}
     
-    def getAllParents(self):
-        return search.returnAllParents(self.mNode) or []
+    def getAllParents(self,fullPath = False):
+        return search.returnAllParents(self.mNode,not fullPath) or []
     
     def getChildren(self,fullPath=False):
         return search.returnChildrenObjects(self.mNode,fullPath) or []
@@ -984,7 +984,6 @@ class cgmObject(cgmNode):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)
 	    for o in self.getAllParents():
-		log.info("o: %s"%o)
 		if i_obj.mNode == r9Meta.MetaClass(o).mNode:
 		    return True
 	    return False
@@ -1003,6 +1002,40 @@ class cgmObject(cgmNode):
 	except StandardError,error:
 	    log.error("isParentOf>> error: %s"%error)
 	    log.error("isParentOf>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
+	    raise StandardError,error 
+	
+    def getListPathTo(self,obj):
+	try:
+	    i_obj = validateObjArg(obj,noneValid=False)	    
+	    l_path = []
+	    if self.isParentOf(i_obj):
+		l_parents = i_obj.getAllParents()
+		l_parents.reverse()
+		log.info(l_parents)
+		#l_path.append(self.getShortName())
+		for o in l_parents:
+		    i_o = r9Meta.MetaClass(o)
+		    l_path.append(i_o.getShortName())		    
+		    if i_obj.mNode == i_o.mNode:
+			break	
+		l_path.append(i_obj.getShortName())
+		
+			
+	    elif self.isChildOf(obj):
+		l_parents = self.getAllParents()
+		#l_parents.reverse()
+		l_path.append(self.getShortName())
+		for o in l_parents:
+		    i_o = r9Meta.MetaClass(o)
+		    l_path.append(i_o.getShortName())		    
+		    if i_obj.mNode == i_o.mNode:
+			break	
+	    else:
+		return False
+	    return l_path
+	except StandardError,error:
+	    log.error("getPathTo>> error: %s"%error)	    
+	    log.error("getPathTo>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
 	    raise StandardError,error 
 	
     def getMatchObject(self):
@@ -1071,7 +1104,20 @@ class cgmObject(cgmNode):
         maintain(bool) -- whether to parent the maya object in place or not (default False)
 
         """
-        return rigging.groupMeObject(self.mNode,True,maintain)    
+        return rigging.groupMeObject(self.mNode,True,maintain)   
+    
+    def doZeroGroup(self,connect=True):
+        """
+        Zero Grouping function for a maya instanced object.
+
+        Keyword arguments:
+        maintain(bool) -- whether to parent the maya object in place or not (default False)
+        """
+	i_group = validateObjArg(self.doGroup(True), cgmObject)
+	i_group.addAttr('cgmTypeModifier','zero')
+	if connect:self.connectChildNode(i_group,'zeroGroup','cgmName')
+	i_group.doName()	
+	return i_group
     
     def doDuplicateTransform(self,copyAttrs = False):
         """
@@ -4039,7 +4085,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 #=========================================================================      
 # Argument validation
 #=========================================================================  
-@r9General.Timer
+#@r9General.Timer
 def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode):
     """
     validate an objArg to be able to get instance of the object
