@@ -45,9 +45,11 @@ from cgm.lib import (distance,
                      rigging,
                      skinning,
                      dictionary,
+                     search,
                      nodes,
                      joints,
                      cgmMath)
+reload(distance)
 #>>> Utilities
 #===================================================================
 def addCGMDynamicGroup(target = None, parentTargets = None,
@@ -1502,8 +1504,40 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
 
 
 
+
+def create_distanceMeasure(start = None, end = None, baseName = None):
+    mi_start = cgmMeta.validateObjArg(start, cgmMeta.cgmObject, noneValid=True)
+    mi_end = cgmMeta.validateObjArg(end, cgmMeta.cgmObject, noneValid=True)
+    
+    i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+    i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
+    
+    #Connect things
+    if mi_start:
+	buffer = mi_start.returnPositionOutPlug()
+	if buffer:
+	    mc.connectAttr (buffer,
+		            (i_distanceShape.mNode+'.startPoint'))    
+    if mi_end:  
+	buffer = mi_end.returnPositionOutPlug()
+	if buffer:
+	    mc.connectAttr (buffer,
+		            (i_distanceShape.mNode+'.endPoint'))  
+
+    if not baseName and mi_start and mi_end:
+	baseName = "%s_to_%s"%(mi_start.getBaseName(),mi_end.getBaseName())
+    if baseName:
+	i_distanceObject.addAttr('cgmName', baseName,lock = True)
+    i_distanceObject.addAttr('cgmType','measureNode',lock = True)
+    i_distanceObject.doName(nameShapes = True)
+    
+    return {'mi_shape':i_distanceShape , 'mi_object':i_distanceObject}
+	
 @r9General.Timer
-def create_IKHandle(startJoint,endJoint, baseName = 'ikChain', solverType = 'ikRPsolver'):
+def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = True,
+                    solverType = 'ikRPsolver',stretch = False,
+                    handles = [],#If one given, assumed to be mid, can't have more than length of joints
+                    moduleInstance = None):
     """
     @kws
     l_jointChain1(list) -- blend list 1
@@ -1512,12 +1546,42 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain', solverType = 'ikR
 
     driver(attr arg) -- driver attr
     channels(list) -- channels to blend
+    stretch(bool/string) -- stretch options - translate/scale
     
     """
+    #>>> Data gather and arg check
+    if solverType not in ['ikRPsolver','ikSCsolver']:
+	raise StandardError,"create_IKHandle>>> solver type no good: %s"%solverType
     mi_start = cgmMeta.validateObjArg(startJoint,cgmMeta.cgmObject,noneValid=False)
     mi_end = cgmMeta.validateObjArg(endJoint,cgmMeta.cgmObject,noneValid=False)
+    if not mi_end.isChildOf(mi_start):
+	raise StandardError,"create_IKHandle>>> %s not a parent of %s"%(mi_start.getShortName(),mi_end.getShortName())	
+    l_jointChain = mi_start.getListPathTo(mi_end)
+    ml_jointChain = cgmMeta.validateObjListArg(l_jointChain,cgmMeta.cgmObject,noneValid=False)
+    if len(l_jointChain)>3:
+	raise StandardError,"create_IKHandle>>> Haven't tested for more than a three joint chain. Len: %s"%(len(l_jointChain))	
+	
+    log.info("create_IKHandle>>> chain: %s"%l_jointChain)    
     
-    #Create Curve
+    
+    #Handles
+    ml_handles = cgmMeta.validateObjListArg(handles,cgmMeta.cgmObject,noneValid=True)
+    if len(ml_handles)>len(l_jointChain):#Check handle length to joint list
+	raise StandardError,"create_IKHandle>>> More handles than joins: joints:%s | handles:%s"%(len(l_jointChain),len(ml_handles))	
+    
+    i_module = False
+    i_rigNull = False
+    try:#Module instance
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance
+		i_rigNull = i_module.rigNull
+		baseName = i_module.getPartNameBase()
+		log.info('baseName set to module: %s'%baseName)	    
+    except:
+	log.error("Not a module instance, ignoring: '%s'"%moduleInstance)    
+    #=============================================================================
+    #Create IK handle
     try:
 	i_ikSolver = cgmMeta.cgmNode(nodeType = solverType,setClass=True)
     except:
@@ -1527,20 +1591,125 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain', solverType = 'ikR
                           solver = i_ikSolver.mNode,forceSolver = True,
                           snapHandleFlagToggle=True )  
     
+    #Name
     log.info(buffer)
     i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
     i_ik_handle.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
-    #i_ik_handle.addAttr('cgmType','solver',attrType='string',lock=True)
     i_ik_handle.doName()
     
     i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
     i_ik_effector.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
-    #i_ikSolver.addAttr('cgmType','solver',attrType='string',lock=True)
     i_ik_effector.doName()
     
     i_ikSolver.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_ikSolver.addAttr('cgmType','solver',attrType='string',lock=True)
     i_ikSolver.doName()
+    
+    #=============================================================================
+    #>>>Do Handles
+    mi_midHandle = False   
+    if ml_handles:
+	if len(ml_handles) == 1:
+	    mi_midHandle = ml_handles[0]
+	else:
+	    mid = int((len(ml_handles))/2)
+	    mi_midHandle = ml_handles[mid]
+	log.info("create_IKHandle>>> mid handle: %s"%mi_midHandle.getShortName())
+
+    if solverType == 'ikRPsolver' and rpHandleSetup:
+	if not mi_midHandle:
+	    raise NotImplementedError, "nope"
+	log.info("create_IKHandle>>> rp setup mode!")
+	cBuffer = mc.poleVectorConstraint(mi_midHandle.mNode,i_ik_handle.mNode)
+	    
+    #>>>Stetch
+    #===============================================================================
+    """
+    1)Build overall stretch setup
+    2)Build per segment stretch setup
+    3)connect by 'translate' or 'scale'
+    """
+    if stretch:
+	log.info("create_IKHandle>>> stretch mode!")
+	#Figure out our aimaxis
+	v_localAim = distance.returnLocalAimDirection(ml_jointChain[0].mNode,ml_jointChain[1].mNode)
+	str_localAim = dictionary.returnVectorToString(v_localAim)
+	str_localAimSingle = str_localAim[0]
+	log.info("create_IKHandle>>> vector aim: %s | str aim: %s"%(v_localAim,str_localAim))
+	
+	#Check our handles for stretching
+	if len(ml_handles)!= len(ml_jointChain):#we need a handle per joint for measuring purposes
+	    log.info("create_IKHandle>>> Making handles")
+	    ml_buffer = ml_handles
+	    ml_handles = []
+	    for j in ml_jointChain:
+		m_match = False
+		for h in ml_buffer:
+		    if cgmMath.isVectorEquivalent(j.getPosition(),h.getPosition()):
+			log.info("create_IKHandle>>> '%s' handle matches: '%s'"%(h.getShortName(),j.getShortName()))
+			m_match = h
+		if not m_match:#make one
+		    m_match = j.doLoc()
+		ml_handles.append(m_match)
+	
+	log.info("create_IKHandle>>> handles: %s"%[o.getShortName() for o in ml_handles])
+		    
+	#Overall stretch
+	mPlug_global = cgmMeta.cgmAttr(i_ik_handle.mNode,'worldScale',value = 1.0, lock =True, hidden = True)
+	
+	"""
+	mi_baseLenCurve = cgmMeta.cgmObject( mc.curve (d=1, ep = [ml_jointChain[0].getPosition(),ml_jointChain[-1].getPosition()], os=True))
+	mi_baseLenCurve.addAttr('cgmName',baseName)
+	mi_baseLenCurve.addAttr('cgmTypeModifier','baseMeasure')
+	mi_baseLenCurve.doName()
+        mi_baseArcLen = cgmMeta.cgmNode( distance.createCurveLengthNode(mi_baseLenCurve.mNode) )
+	log.info("create_IKHandle>>> '%s' length : %s"%(mi_baseArcLen.getShortName(),mi_baseArcLen.arcLength))
+	"""
+	md_baseDistReturn = create_distanceMeasure(ml_handles[0].mNode,ml_handles[-1].mNode)
+	mPlug_baseDistRaw = cgmMeta.cgmAttr(i_ik_handle.mNode,'baseLength' , value = 1.0 , lock =True , hidden = True)
+	mPlug_baseDistRaw.doConnectIn("%s.distance"%md_baseDistReturn['mi_shape'].mNode)
+	mPlug_baseDistNormalized = cgmMeta.cgmAttr(i_ik_handle.mNode,'result_baseLengthNormal',value = 1.0, lock =True, hidden = True)
+	
+	arg = "%s = %s / %s"%(mPlug_baseDistNormalized.p_combinedShortName,
+	                      mPlug_baseDistRaw.p_combinedShortName,
+	                      mPlug_global.p_combinedShortName)
+	NodeF.argsToNodes(arg).doBuild()
+	
+	
+	return
+	
+	l_segments = lists.parseListToPairs(ml_handles)
+	for seg in l_segments:
+	    buffer = distance.createDistanceNodeBetweenObjects(seg[0].mNode,seg[-1].mNode)
+	    	
+	"""
+	#>>> create our distance nodes
+	l_iDistanceObjects = []
+	i_distanceShapes = []
+	for i,i_jnt in enumerate(ml_jointList[:-1]):	    
+	    #>> Distance nodes
+	    i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+	    i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
+	    i_distanceObject.doStore('cgmName',i_jnt.mNode)
+	    i_distanceObject.addAttr('cgmType','measureNode',lock=True)
+	    i_distanceObject.doName(nameShapes = True)
+	    i_distanceObject.parent = i_grp.mNode#parent it
+	    i_distanceObject.overrideEnabled = 1
+	    i_distanceObject.overrideVisibility = 1
+	    
+	    #Connect things
+	    mc.connectAttr ((ml_pointOnCurveInfos[i].mNode+'.position'),(i_distanceShape.mNode+'.startPoint'))
+	    mc.connectAttr ((ml_pointOnCurveInfos[i+1].mNode+'.position'),(i_distanceShape.mNode+'.endPoint'))
+	    
+	    l_iDistanceObjects.append(i_distanceObject)
+	    i_distanceShapes.append(i_distanceShape)
+	    
+	    
+	    if i_module:#Connect hides if we have a module instance:
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideDisplayType'))    
+	"""
+	
     
     return {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver}
     
