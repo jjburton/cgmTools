@@ -813,8 +813,23 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return didSomething
 	except StandardError,error:
 	    log.error(error)	
-	    return False	
-    
+	    return False
+	
+    def returnPositionOutPlug(self):
+	"""
+	Finds out plug of a node for connection to a distance node for example
+	"""
+	try:
+	    l_elibiblePlugs = ['worldPosition','position'] 
+	    d_plugTypes= {'worldPosition':'worldPosition[0]','position':'position'}
+	    for attr in l_elibiblePlugs:
+		if self.hasAttr(attr):
+		    return "%s.%s"%(self.mNode,d_plugTypes.get(attr))
+	    return False
+	except StandardError,error:
+	    log.error("returnPositionOutPlug>> Failed. error: %s"%error)	    
+	    raise StandardError,error 
+	
     def getPosition(self,worldSpace = True):
 	try:
 	    if self.isComponent():
@@ -1004,6 +1019,22 @@ class cgmObject(cgmNode):
 	    log.error("isParentOf>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
 	    raise StandardError,error 
 	
+    def returnPositionOutPlug(self,autoLoc=True):
+	try:
+	    if self.getMayaType() == 'locator':
+		return cgmNode(mc.listRelatives(self.mNode,shapes=True)[0]).returnPositionOutPlug()	    
+	    else:
+		buffer = cgmNode.returnPositionOutPlug(self)
+		if not buffer and autoLoc:
+		    i_loc = self.doLoc()
+		    i_loc.parent = self.mNode
+		    self.connectChildNode(i_loc,'positionLoc','owner')
+		    return cgmNode(mc.listRelatives(i_loc.mNode,shapes=True)[0]).returnPositionOutPlug()	    		    
+		else:return buffer
+	except StandardError,error:
+	    log.error("returnPositionOutPlug(cgmObject overload)>> error: %s"%error)
+	    raise StandardError,error 
+	
     def getListPathTo(self,obj):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)	    
@@ -1037,7 +1068,7 @@ class cgmObject(cgmNode):
 	    log.error("getPathTo>> error: %s"%error)	    
 	    log.error("getPathTo>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
 	    raise StandardError,error 
-	
+    
     def getMatchObject(self):
         """ Get match object of the object. """
         matchObject = search.returnTagInfo(self.mNode,'cgmMatchObject')
