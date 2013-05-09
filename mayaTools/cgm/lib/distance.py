@@ -382,8 +382,10 @@ def createDistanceNodeBetweenObjects (obj1,obj2):
     locAttr2Stripped = '.'.join(locAttr2connection.split('.')[0:-1])
     loc1Buffer = (mc.listRelatives (locAttr1Stripped,parent=True))
     loc2Buffer = (mc.listRelatives (locAttr2Stripped,parent=True))
-    distObj1 = mc.rename (loc1Buffer, (obj1+'_distLoc') )
-    distObj2 = mc.rename (loc2Buffer, (obj2+'_distLoc') )
+    #distObj1 = mc.rename (loc1Buffer, (obj1+'_distLoc') )
+    #distObj2 = mc.rename (loc2Buffer, (obj2+'_distLoc') )
+    
+    return distanceObj
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
