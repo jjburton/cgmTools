@@ -1026,9 +1026,13 @@ class cgmObject(cgmNode):
 	    else:
 		buffer = cgmNode.returnPositionOutPlug(self)
 		if not buffer and autoLoc:
-		    i_loc = self.doLoc()
-		    i_loc.parent = self.mNode
-		    self.connectChildNode(i_loc,'positionLoc','owner')
+		    #See if we have one
+		    if self.getMessage('positionLoc'):
+			i_loc = cgmObject(self.getMessage('positionLoc')[0])		    
+		    else:
+			i_loc = self.doLoc()
+			i_loc.parent = self.mNode
+			self.connectChildNode(i_loc,'positionLoc','owner')
 		    return cgmNode(mc.listRelatives(i_loc.mNode,shapes=True)[0]).returnPositionOutPlug()	    		    
 		else:return buffer
 	except StandardError,error:
