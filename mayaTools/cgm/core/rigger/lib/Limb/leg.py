@@ -116,7 +116,7 @@ def build_shapes(self):
 	raise StandardError,error   
     
 __l_jointAttrs__ = ['anchorJoints','rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
-
+__d_preferredAngles__ = {'hip':[0,0,-10],'knee':[0,0,10]}#In terms of aim up out for orientation relative values
 @r9General.Timer
 def build_rigSkeleton(self):
     
@@ -182,11 +182,16 @@ def build_rigSkeleton(self):
 	    
 	#>>IK chain
 	#=====================================================================	
+	"""Important - we're going to set our preferred angles on the main ik joints so ik works as expected"""
 	ml_ikJoints = []
 	for i_jnt in ml_fkJoints:
 	    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
 	    i_new.addAttr('cgmTypeModifier','ik',attrType='string',lock=True)
 	    i_new.doName()
+	    if i_new.cgmName in __d_preferredAngles__.keys():
+		log.info("preferred angles>>> %s"%__d_preferredAngles__.get(i_new.cgmName))
+		for i,v in enumerate(__d_preferredAngles__.get(i_new.cgmName)):	  
+		    i_new.__setattr__('preferredAngle%s'%self._jointOrientation[i].upper(),v)
 	    if ml_ikJoints:#if we have data, parent to last
 		i_new.parent = ml_ikJoints[-1]
 	    ml_ikJoints.append(i_new)	
@@ -359,7 +364,7 @@ def build_FKIK(self):
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
     
-    return
+    
     #=============================================================    
     try:#>>>FK Length connector
 	for i,i_jnt in enumerate(ml_fkJoints[:-1]):
@@ -371,10 +376,16 @@ def build_FKIK(self):
     
     #=============================================================    
     try:#>>>IK Chain Builds
-	#Create leg IK
-	d_ankleReturn = rUtils.create_IKHandle(ml_ikJoints[0].mNode,ml_ikJoints[2].mNode,baseName=ml_ikJoints[2].cgmName)
+	#Create no flip leg IK
+	d_ankleReturn = rUtils.create_IKHandle(ml_ikNoFlipJoints[0].mNode,ml_ikNoFlipJoints[-1].mNode,baseName=ml_ikJoints[2].cgmName,
+	                                       stretch='translate',moduleInstance=self._i_module)
 	mi_ankleIKHandle = d_ankleReturn['mi_handle']
+	ml_distHandles = d_ankleReturn['ml_distHandles']
+	#no flip poleVector
+	i_noFlipLoc = ml_ikNoFlipJoints[-1].doLoc()
 	
+	
+	return
 	#Create foot IK
 	d_ballReturn = rUtils.create_IKHandle(ml_ikJoints[2].mNode,ml_ikJoints[3].mNode,baseName=ml_ikJoints[3].cgmName)
 	mi_ballIKHandle = d_ballReturn['mi_handle']
