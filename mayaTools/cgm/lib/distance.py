@@ -878,16 +878,18 @@ def returnLocalAimDirection(rootObj,aimObj):
     directions = ['+x','-x','+y','-y','+z','-z']
     returnDirections = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]
     distanceBuffer = returnDistanceBetweenObjects(rootObj,aimObj)
+    rotationOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5,'none':6}
 
     #distanceValues = distanceBuffer /2
     cnt = 0
     for direction in directions:
 	locBuffer = mc.spaceLocator()[0]
 	objTrans = mc.xform (rootObj, q=True, ws=True, sp=True)
-	objRot = mc.xform (rootObj, q=True, ws=True, ro=True)	
+	objRot = mc.xform (rootObj, q=True, ws=True, ro=True)
+	objRoo = mc.xform (rootObj, q=True, roo=True )
 	
 	mc.move (objTrans[0],objTrans[1],objTrans[2], locBuffer)
-	#mc.setAttr ((locatorName+'.rotateOrder'), correctRo)
+	mc.setAttr ((locBuffer+'.rotateOrder'), rotationOrderDictionary[objRoo])
 	mc.rotate (objRot[0], objRot[1], objRot[2], locBuffer, ws=True)	
 	
         locGroups.append(rigging.groupMeObject(locBuffer))
