@@ -1041,27 +1041,29 @@ class cgmObject(cgmNode):
 	
     def getListPathTo(self,obj):
 	try:
-	    i_obj = validateObjArg(obj,noneValid=False)	    
+	    i_obj = validateObjArg(obj,cgmObject,noneValid=False)
+	    log.debug("getListPathTo>>> target object: %s" %i_obj)
 	    l_path = []
 	    if self.isParentOf(i_obj):
-		l_parents = i_obj.getAllParents()
+		l_parents = i_obj.getAllParents(True)
+		self_index = l_parents.index(self.mNode)
+		l_parents = l_parents[:self_index+1]
 		l_parents.reverse()
 		log.info(l_parents)
 		#l_path.append(self.getShortName())
 		for o in l_parents:
-		    i_o = r9Meta.MetaClass(o)
+		    i_o = cgmObject(o)
 		    l_path.append(i_o.getShortName())		    
 		    if i_obj.mNode == i_o.mNode:
 			break	
 		l_path.append(i_obj.getShortName())
-		
 			
 	    elif self.isChildOf(obj):
-		l_parents = self.getAllParents()
+		l_parents = self.getAllParents(True)
 		#l_parents.reverse()
 		l_path.append(self.getShortName())
 		for o in l_parents:
-		    i_o = r9Meta.MetaClass(o)
+		    i_o = cgmObject(o)
 		    l_path.append(i_o.getShortName())		    
 		    if i_obj.mNode == i_o.mNode:
 			break	
@@ -1069,8 +1071,8 @@ class cgmObject(cgmNode):
 		return False
 	    return l_path
 	except StandardError,error:
-	    log.error("getPathTo>> error: %s"%error)	    
-	    log.error("getPathTo>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
+	    log.error("getListPathTo>> error: %s"%error)	    
+	    log.error("getListPathTo>> Failed. self: '%s' | obj: '%s'"%(self.mNode,obj))
 	    raise StandardError,error 
     
     def getMatchObject(self):
