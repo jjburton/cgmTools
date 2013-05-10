@@ -182,7 +182,7 @@ def returnCombinedNameFromDict(nameDict):
                 elif n not in ['[',']','|',',']:
                     returnList.append(str(n))
                 else:
-                    log.info("nameTools.returnCombinedNameFromDict>> Not sure what to do with: %s"%n)                
+                    log.debug("nameTools.returnCombinedNameFromDict>> Not sure what to do with: %s"%n)                
             nameBuilder.append(''.join(returnList))
     
     return divider.join(nameBuilder)
