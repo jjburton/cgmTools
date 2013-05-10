@@ -1532,10 +1532,105 @@ def create_distanceMeasure(start = None, end = None, baseName = None):
     i_distanceObject.doName(nameShapes = True)
     
     return {'mi_shape':i_distanceShape , 'mi_object':i_distanceObject}
-	
+
 @r9General.Timer
-def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = False,controlObject = None,
-                    solverType = 'ikRPsolver',stretch = False,
+def matchValue_iterator(source = None, sourceAttr = None, target = None, targetAttr = None, driverAttr = None, minIn = -180, maxIn = 180, maxIterations = 50, matchValue = None,):
+    """
+    Modified version of Jason Schleifer's afr js_iterator
+    """
+    if type(minIn) not in [float,int]:raise StandardError,"matchValue_iterator>>> bad minIn: %s"%minIn
+    if type(maxIn) not in [float,int]:raise StandardError,"matchValue_iterator>>> bad maxIn: %s"%maxIn
+
+    __sourceMode__ = False
+    #>>> Data gather and arg check        
+    mi_source = cgmMeta.validateObjArg(source,cgmMeta.cgmObject,noneValid=True)
+    d_sourceAttr = cgmMeta.validateAttrArg(sourceAttr,noneValid=True)
+    if mi_source:
+	__sourceMode__ = 'object'
+    elif d_sourceAttr:
+	__sourceMode__ = 'attr'
+    elif matchValue is not None:
+	__sourceMode__ = 'value'
+    else:
+	raise StandardError,"matchValue_iterator>>> No source given. No matchValue given"
+	
+    __targetMode__ = False
+    mi_target = cgmMeta.validateObjArg(target,cgmMeta.cgmObject,noneValid=True)
+    d_targetAttr = cgmMeta.validateAttrArg(targetAttr,noneValid=True)    
+    if mi_target:#not an object match but a value
+	__targetMode__ = 'object'
+    elif d_targetAttr:
+	__targetMode__ = 'attr'
+	mPlug_target = d_targetAttr['mi_plug']
+    else:
+	raise StandardError,"matchValue_iterator>>> No target given"
+
+    d_driverAttr = cgmMeta.validateAttrArg(driverAttr,noneValid=False)
+    mPlug_driver = d_driverAttr['mi_plug']
+    if not mPlug_driver:
+	raise StandardError,"matchValue_iterator>>> No driver"	
+    
+    log.info("matchValue_iterator>>> Source mode: %s | Target mode: %s | Driver: %s"%(__sourceMode__,__targetMode__,mPlug_driver.p_combinedShortName))  
+    #===========================================================================================================
+    #>>>>>>> Meat
+    #>>> Check autokey
+    b_autoFrameState = mc.autoKeyframe(q=True, state = True)
+    if b_autoFrameState:
+	mc.autoKeyframe(state = False)
+    
+    minValue = minIn
+    maxValue = maxIn
+    #Source type: value
+    for i in range(maxIterations):
+	if __sourceMode__ == 'value':
+	    if __targetMode__ == 'attr':
+		log.info("matchValue_iterator>>> Step : %s | min: %s | max: %s | current: %s"%(i,minValue,maxValue,mPlug_target.value))  					
+		if cgmMath.isFloatEquivalent(mPlug_target.value,matchValue):
+		    log.info("matchValue_iterator>>> Match found: %s == %s"%(mPlug_target.p_combinedShortName,matchValue,))  
+		    break
+		
+		
+	else:
+	    log.warning("matchValue_iterator>>> sourceMode not implemented: %s"%__sourceMode__)
+
+    
+    #>>> Check autokey back on
+    if b_autoFrameState:
+	mc.autoKeyframe(state = True)    
+    
+@r9General.Timer
+def IKHandle_fixTwist(ikHandle):
+    #>>> Data gather and arg check    
+    mi_ikHandle = cgmMeta.validateObjArg(ikHandle,cgmMeta.cgmObject,noneValid=False)
+    if mi_ikHandle.getMayaType() != 'ikHandle':
+	raise StandardError,"IKHandle_fixTwist>>> '%s' object not 'ikHandle'. Found tpe: %s"%(mi_ikHandle.getShortName(),mi_ikHandle.getMayaType())
+    
+    startJoint = mi_ikHandle.getMessage('startJoint')
+    if not startJoint:
+	raise StandardError,"IKHandle_fixTwist>>> '%s' ikHandle missing start joint: %s"%(mi_ikHandle.getShortName())
+    mi_startJoint = cgmMeta.validateObjArg(startJoint[0],cgmMeta.cgmObject,noneValid=False)
+    
+    #Find the aim axis
+    v_localAim = distance.returnLocalAimDirection(mi_startJoint.mNode,mi_startJoint.getChildren()[0])
+    str_localAim = dictionary.returnVectorToString(v_localAim)
+    str_localAimSingle = str_localAim[0]
+    log.info("IKHandle_fixTwist>>> vector aim: %s | str aim: %s"%(v_localAim,str_localAim))  
+    
+    #Check rotation:
+    rotValue = mi_startJoint.getAttr('r%s'%str_localAimSingle)    
+    if not cgmMath.isFloatEquivalent(rotValue,0):#if we have a value, we need to fix it
+	newValue = (rotValue) * -1
+	mi_ikHandle.twist = newValue
+	log.info("IKHandle_fixTwist>>> Fixing '%s' twist value to : %s"%(mi_ikHandle.getShortName(),newValue)) 
+	if not cgmMath.isFloatEquivalent(mi_startJoint.getAttr('r%s'%str_localAimSingle) ,0):
+	    raise StandardError,"IKHandle_fixTwist>>> '%s' Failed to fix. start joint rotation: %s"%(mi_ikHandle.getShortName(),mi_startJoint.getAttr('r%s'%str_localAimSingle))
+    return True
+
+
+
+@r9General.Timer
+def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,controlObject = None,
+                    solverType = 'ikRPsolver',stretch = False, globalScaleAttr = None,
                     handles = [],#If one given, assumed to be mid, can't have more than length of joints
                     moduleInstance = None):
     """
@@ -1552,6 +1647,7 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = Fa
     #>>> Data gather and arg check
     if solverType not in ['ikRPsolver','ikSCsolver']:
 	raise StandardError,"create_IKHandle>>> solver type no good: %s"%solverType
+    #Joint chain
     mi_start = cgmMeta.validateObjArg(startJoint,cgmMeta.cgmObject,noneValid=False)
     mi_end = cgmMeta.validateObjArg(endJoint,cgmMeta.cgmObject,noneValid=False)
     if not mi_end.isChildOf(mi_start):
@@ -1560,18 +1656,33 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = Fa
     ml_jointChain = cgmMeta.validateObjListArg(l_jointChain,cgmMeta.cgmObject,noneValid=False)
     if len(l_jointChain)>3:
 	raise StandardError,"create_IKHandle>>> Haven't tested for more than a three joint chain. Len: %s"%(len(l_jointChain))	
-	
-    log.info("create_IKHandle>>> chain: %s"%l_jointChain)    
+    log.info("create_IKHandle>>> chain: %s"%l_jointChain)
     
+    _foundPrerred = False
+    for i_jnt in ml_jointChain:
+	for attr in ['preferredAngleX','preferredAngleY','preferredAngleZ']:
+	    if i_jnt.getAttr(attr):
+		_foundPrerred = True
+		break
+
+    #Master global control
+    d_MasterGlobalScale = cgmMeta.validateAttrArg(globalScaleAttr,noneValid=True)
+    
+    #Stretch
     if stretch and stretch not in ['translate','scale']:
 	log.info("create_IKHandle>>> Invalid stretch arg: %s. Using default: 'translate'."%(stretch))
 	stretch = 'translate'
     if stretch == 'scale':
 	raise NotImplementedError,"create_IKHandle>>> scale method not implmented %s"
+    
     #Handles
     ml_handles = cgmMeta.validateObjListArg(handles,cgmMeta.cgmObject,noneValid=True)
     if len(ml_handles)>len(l_jointChain):#Check handle length to joint list
 	raise StandardError,"create_IKHandle>>> More handles than joins: joints:%s | handles:%s"%(len(l_jointChain),len(ml_handles))	
+    
+    mi_rpHandle = cgmMeta.validateObjArg(rpHandle,cgmMeta.cgmObject,noneValid=True)
+    if mi_rpHandle and mi_rpHandle in ml_handles:
+	raise StandardError,"create_IKHandle>>> rpHandle can't be a measure handle to: '%s'"%(mi_rpHandle.getShortName())		
     
     i_module = False
     i_rigNull = False
@@ -1606,19 +1717,16 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = Fa
     i_ik_effector.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_ik_effector.doName()
     
-    i_ikSolver.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
-    i_ikSolver.addAttr('cgmType','solver',attrType='string',lock=True)
-    i_ikSolver.doName()
-    
     #>>> Control
     if controlObject:
 	mi_control = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=True)
     else:
 	mi_control = i_ik_handle
 	
-    mPlug_lockMid = cgmMeta.cgmAttr(mi_control,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
-    mPlug_autoStretch = cgmMeta.cgmAttr(mi_control,'autoStretch',initialValue = 1, defaultValue = 1, keyable = True, attrType = 'float', minValue = 0, maxValue = 1)
-        
+    #>>> Store our start and end
+    i_ik_handle.connectChildNode(mi_start,'jointStart','ikOwner')
+    i_ik_handle.connectChildNode(mi_end,'jointEnd','ikOwner')
+	
     #=============================================================================
     #>>>Do Handles
     mi_midHandle = False   
@@ -1629,12 +1737,6 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = Fa
 	    mid = int((len(ml_handles))/2)
 	    mi_midHandle = ml_handles[mid]
 	log.info("create_IKHandle>>> mid handle: %s"%mi_midHandle.getShortName())
-
-    if solverType == 'ikRPsolver' and rpHandleSetup:
-	if not mi_midHandle:
-	    raise NotImplementedError, "nope"
-	log.info("create_IKHandle>>> rp setup mode!")
-	cBuffer = mc.poleVectorConstraint(mi_midHandle.mNode,i_ik_handle.mNode)
     
     #>>>Stetch
     #===============================================================================
@@ -1644,6 +1746,9 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = Fa
     3)connect by 'translate' or 'scale'
     """
     if stretch:
+	mPlug_lockMid = cgmMeta.cgmAttr(mi_control,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
+	mPlug_autoStretch = cgmMeta.cgmAttr(mi_control,'autoStretch',initialValue = 1, defaultValue = 1, keyable = True, attrType = 'float', minValue = 0, maxValue = 1)
+	
 	log.info("create_IKHandle>>> stretch mode!")
 	#Figure out our aimaxis
 	v_localAim = distance.returnLocalAimDirection(ml_jointChain[0].mNode,ml_jointChain[1].mNode)
@@ -1809,13 +1914,28 @@ def create_IKHandle(startJoint,endJoint, baseName = 'ikChain',rpHandleSetup = Fa
 					 '%s.s%s'%(ml_driverJoints[i].mNode,axis))	 	
 
 	"""
+    #>>> rpSetup
+    if solverType == 'ikRPsolver' and rpHandle:
+	if not mi_rpHandle:
+	    #Make one
+	    mi_rpHandle = mi_midHandle.doLoc()
+	    mi_rpHandle.addAttr('cgmTypeModifier','noFlip')
+	    mi_rpHandle.doName()
+	log.info("create_IKHandle>>> rp setup mode!")
+	cBuffer = mc.poleVectorConstraint(mi_rpHandle.mNode,i_ik_handle.mNode)
 	
+    #>>> Plug in global scale
+    if d_MasterGlobalScale:
+	d_MasterGlobalScale['mi_plug'].doConnectOut(mPlug_globalScale.p_combinedName)
+        
     #>>> Return dict
-    d_return = {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver,'ml_handles':ml_handles }
+    d_return = {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver,'ml_distHandles':ml_handles }
     if stretch:
 	d_return['mPlug_lockMid'] = mPlug_lockMid
 	d_return['mPlug_autoStretch'] = mPlug_autoStretch
 	
+    if not _foundPrerred:log.error("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected")
+
     return d_return   
     
 def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
