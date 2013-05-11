@@ -27,6 +27,7 @@ import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+import math
 #=========================================================================
 
 def multiplyLists(lists,allowZeros = True):
@@ -86,6 +87,16 @@ def multiplyList(listToMultiply):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     return reduce(lambda x,y: x*y, listToMultiply)
+
+def list_subtract(l1,l2):
+    """ 
+    """
+    if len(l1)!=len(l2):
+        raise StandardError,"list_subtract>>> lists must be same length! l1: %s | l2: %s"%(l1,l2)
+    l_return = []
+    for i,x in enumerate(l1):
+        l_return.append( x-l2[i])
+    return l_return
 # ====================================================================================================================
 # FUNCTION - 1
 # From - http://code.activestate.com/recipes/278258-list-tools/
@@ -146,6 +157,13 @@ def divideLength(length, points):
     pointsList.append(length)
     return pointsList
 
+def mag(v):
+    assert type(v) in [list,tuple],"mag>>> arg must be vector"
+    try:
+        return math.sqrt(sum(i**2 for i in v))
+    except:
+        raise StandardError,"mag>>> Failure: %s"%v
+    
 def test_isFloatEquivalent():
     assert isFloatEquivalent(-4.11241646134e-07,0.0),"sc>0.0 fail"
     assert isFloatEquivalent(-4.11241646134e-07,0.00001),"sc>0.00001 fail"
@@ -153,7 +171,6 @@ def test_isFloatEquivalent():
     assert isFloatEquivalent(0.0,-0.0),"0.0>-0.0 fail"
     assert isFloatEquivalent(0.0,0),"0.0>0 fail"
 
-    
 def isFloatEquivalent(f1,f2,places=4):
     """
     Compare two floats, returns if equivalent
