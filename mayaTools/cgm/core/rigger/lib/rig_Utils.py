@@ -1534,7 +1534,8 @@ def create_distanceMeasure(start = None, end = None, baseName = None):
     return {'mi_shape':i_distanceShape , 'mi_object':i_distanceObject}
 
 @r9General.Timer
-def matchValue_iterator(source = None, sourceAttr = None, target = None, targetAttr = None, driverAttr = None, minIn = -180, maxIn = 180, maxIterations = 50, matchValue = None,):
+def matchValue_iterator(source = None, sourceAttr = None, target = None, targetAttr = None, driverAttr = None, 
+                        minIn = -180, maxIn = 180, maxIterations = 40, matchValue = None,):
     """
     Modified version of Jason Schleifer's afr js_iterator
     """
@@ -1562,6 +1563,10 @@ def matchValue_iterator(source = None, sourceAttr = None, target = None, targetA
     elif d_targetAttr:
 	__targetMode__ = 'attr'
 	mPlug_target = d_targetAttr['mi_plug']
+	f_baseValue = mPlug_target.value
+	log.debug("matchValue_iterator>>> Attr mode. Attr: %s  | baseValue: %s "%(mPlug_target.p_combinedShortName,f_baseValue))					
+	
+	mPlug_target
     else:
 	raise StandardError,"matchValue_iterator>>> No target given"
 
@@ -1570,7 +1575,7 @@ def matchValue_iterator(source = None, sourceAttr = None, target = None, targetA
     if not mPlug_driver:
 	raise StandardError,"matchValue_iterator>>> No driver"	
     
-    log.info("matchValue_iterator>>> Source mode: %s | Target mode: %s | Driver: %s"%(__sourceMode__,__targetMode__,mPlug_driver.p_combinedShortName))  
+    log.debug("matchValue_iterator>>> Source mode: %s | Target mode: %s | Driver: %s"%(__sourceMode__,__targetMode__,mPlug_driver.p_combinedShortName))  
     #===========================================================================================================
     #>>>>>>> Meat
     #>>> Check autokey
@@ -1578,25 +1583,101 @@ def matchValue_iterator(source = None, sourceAttr = None, target = None, targetA
     if b_autoFrameState:
 	mc.autoKeyframe(state = False)
     
-    minValue = minIn
-    maxValue = maxIn
+    #minValue = float(minIn)
+    #maxValue = float(maxIn)
+    minValue = float(f_baseValue - 10)
+    maxValue = float(f_baseValue + 10)    
+    f_lastClosest = None
+    f_lastValue = None
+    cnt_sameValue = 0
+    b_matchFound = None
+    
     #Source type: value
     for i in range(maxIterations):
 	if __sourceMode__ == 'value':
 	    if __targetMode__ == 'attr':
-		log.info("matchValue_iterator>>> Step : %s | min: %s | max: %s | current: %s"%(i,minValue,maxValue,mPlug_target.value))  					
-		if cgmMath.isFloatEquivalent(mPlug_target.value,matchValue):
-		    log.info("matchValue_iterator>>> Match found: %s == %s"%(mPlug_target.p_combinedShortName,matchValue,))  
+		log.debug("matchValue_iterator>>> Step : %s | min: %s | max: %s | baseValue: %s | current: %s"%(i,minValue,maxValue,f_baseValue,mPlug_target.value))  					
+		if cgmMath.isFloatEquivalent(mPlug_target.value,matchValue,3):
+		    log.info("matchValue_iterator>>> Match found: %s == %s | %s: %s | step: %s"%(mPlug_target.p_combinedShortName,matchValue,mPlug_driver.p_combinedShortName,minValue,i))  			    
+		    b_matchFound = minValue
 		    break
 		
+		mPlug_driver.value = minValue#Set to min
+		f_minDist = abs(matchValue-mPlug_target.value)#get Dif
+		f_minSetValue = mPlug_target.value
+		mPlug_driver.value = maxValue#Set to max
+		f_maxDist = abs(matchValue-mPlug_target.value)#Get dif
+		f_maxSetValue = mPlug_target.value
 		
+		f_half = ((maxValue-minValue)/2.0) + minValue#get half	
+		
+		#First find range
+		if f_minSetValue > matchValue or f_maxSetValue < matchValue:
+		    log.debug("matchValue_iterator>>> Finding Range....")		    
+		    if matchValue < mPlug_target.value:
+			#Need to shift our range down
+			log.debug("matchValue_iterator>>> Down range: minSetValue: %s"%f_minSetValue)
+			f_baseValue = f_maxDist		    
+			minValue = f_baseValue - f_minDist
+			maxValue = f_baseValue + f_minDist
+			f_closest = f_minDist			
+		    elif matchValue > mPlug_target.value:
+			#Need to shift our range up
+			log.debug("matchValue_iterator>>> Up range: minSetValue: %s"%f_maxSetValue)  
+			f_baseValue = f_maxDist		    
+			minValue = f_baseValue - f_maxDist
+			maxValue = f_baseValue + f_maxDist
+			f_closest = f_maxDist			
+		else:	
+		    if f_minDist>f_maxDist:#if min dif greater, use half as new min
+			minValue = f_half
+			#log.debug("matchValue_iterator>>>Going up")
+			f_closest = f_minDist
+		    else:
+			maxValue = f_half
+			#log.debug("matchValue_iterator>>>Going down")  
+			f_closest = f_maxDist
+		    
+		log.debug("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
+		log.debug("#"+'-'*50)
+		"""
+		mPlug_driver.value = minValue#Set to min
+		f_minDist = abs(matchValue-mPlug_target.value)#get Dif
+		mPlug_driver.value = maxValue#Set to max
+		f_maxDist = abs(matchValue-mPlug_target.value)#Get dif
+		f_half = ((maxValue-minValue)/2.0) + minValue#get half
+		#if f_half<0:
+		    #f_half = -f_half
+		log.debug("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
+		
+		if f_minDist>f_maxDist:#if min dif greater, use half as new min
+		    minValue = f_half
+		    #log.debug("matchValue_iterator>>>Going up")
+		    f_closest = f_minDist
+		else:
+		    maxValue = f_half
+		    #log.debug("matchValue_iterator>>>Going down")  
+		    f_closest = f_maxDist
+		"""	
+		if f_closest == f_lastClosest:
+		    cnt_sameValue +=1
+		    if cnt_sameValue >3:
+			raise StandardError,"matchValue_iterator>>> Value unchanged. Bad Driver. lastValue: %s | currentValue: %s"%(f_lastValue,mPlug_target.value)		
+		else:
+		    cnt_sameValue = 0 
+		f_lastClosest = f_closest
+		    		
 	else:
 	    log.warning("matchValue_iterator>>> sourceMode not implemented: %s"%__sourceMode__)
 
     
     #>>> Check autokey back on
     if b_autoFrameState:
-	mc.autoKeyframe(state = True)    
+	mc.autoKeyframe(state = True) 
+	
+    if b_matchFound is not None:
+	return b_matchFound
+    return False
     
 @r9General.Timer
 def IKHandle_fixTwist(ikHandle):
@@ -1619,11 +1700,9 @@ def IKHandle_fixTwist(ikHandle):
     #Check rotation:
     rotValue = mi_startJoint.getAttr('r%s'%str_localAimSingle)    
     if not cgmMath.isFloatEquivalent(rotValue,0):#if we have a value, we need to fix it
-	newValue = (rotValue) * -1
-	mi_ikHandle.twist = newValue
-	log.info("IKHandle_fixTwist>>> Fixing '%s' twist value to : %s"%(mi_ikHandle.getShortName(),newValue)) 
-	if not cgmMath.isFloatEquivalent(mi_startJoint.getAttr('r%s'%str_localAimSingle) ,0):
-	    raise StandardError,"IKHandle_fixTwist>>> '%s' Failed to fix. start joint rotation: %s"%(mi_ikHandle.getShortName(),mi_startJoint.getAttr('r%s'%str_localAimSingle))
+	matchValue_iterator(targetAttr="%s.r%s"%(mi_startJoint.mNode,str_localAimSingle),
+	                    driverAttr="%s.twist"%mi_ikHandle.mNode,
+	                    matchValue=0.0)
     return True
 
 
@@ -1684,6 +1763,14 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     if mi_rpHandle and mi_rpHandle in ml_handles:
 	raise StandardError,"create_IKHandle>>> rpHandle can't be a measure handle to: '%s'"%(mi_rpHandle.getShortName())		
     
+    
+    #Figure out our aimaxis
+    v_localAim = distance.returnLocalAimDirection(ml_jointChain[0].mNode,ml_jointChain[1].mNode)
+    str_localAim = dictionary.returnVectorToString(v_localAim)
+    str_localAimSingle = str_localAim[0]
+    log.info("create_IKHandle>>> vector aim: %s | str aim: %s"%(v_localAim,str_localAim))
+    
+    
     i_module = False
     i_rigNull = False
     try:#Module instance
@@ -1724,9 +1811,9 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 	mi_control = i_ik_handle
 	
     #>>> Store our start and end
-    i_ik_handle.connectChildNode(mi_start,'jointStart','ikOwner')
-    i_ik_handle.connectChildNode(mi_end,'jointEnd','ikOwner')
-	
+    #i_ik_handle.connectChildNode(mi_start,'jointStart','ikOwner')
+    #i_ik_handle.connectChildNode(mi_end,'jointEnd','ikOwner')
+    	
     #=============================================================================
     #>>>Do Handles
     mi_midHandle = False   
@@ -1750,11 +1837,6 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 	mPlug_autoStretch = cgmMeta.cgmAttr(mi_control,'autoStretch',initialValue = 1, defaultValue = 1, keyable = True, attrType = 'float', minValue = 0, maxValue = 1)
 	
 	log.info("create_IKHandle>>> stretch mode!")
-	#Figure out our aimaxis
-	v_localAim = distance.returnLocalAimDirection(ml_jointChain[0].mNode,ml_jointChain[1].mNode)
-	str_localAim = dictionary.returnVectorToString(v_localAim)
-	str_localAimSingle = str_localAim[0]
-	log.info("create_IKHandle>>> vector aim: %s | str aim: %s"%(v_localAim,str_localAim))
 	
 	#Check our handles for stretching
 	if len(ml_handles)!= len(ml_jointChain):#we need a handle per joint for measuring purposes
@@ -1924,6 +2006,12 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 	log.info("create_IKHandle>>> rp setup mode!")
 	cBuffer = mc.poleVectorConstraint(mi_rpHandle.mNode,i_ik_handle.mNode)
 	
+	#Fix rp
+	#rotValue = mi_start.getAttr('r%s'%str_localAimSingle)    
+	#if not cgmMath.isFloatEquivalent(rotValue,0):#if we have a value, we need to fix it
+	    #IKHandle_fixTwist(i_ik_handle)	
+	
+	
     #>>> Plug in global scale
     if d_MasterGlobalScale:
 	d_MasterGlobalScale['mi_plug'].doConnectOut(mPlug_globalScale.p_combinedName)
@@ -1933,6 +2021,9 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     if stretch:
 	d_return['mPlug_lockMid'] = mPlug_lockMid
 	d_return['mPlug_autoStretch'] = mPlug_autoStretch
+    if mi_rpHandle:
+	d_return['hi_rpHandle'] = mi_rpHandle
+	
 	
     if not _foundPrerred:log.error("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected")
 
