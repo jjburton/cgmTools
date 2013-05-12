@@ -17,6 +17,25 @@ objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
 
+#>>>ikHandle
+#=======================================================
+start = 'l_hip_ik_jnt'
+end = 'l_ankle_ik_jnt'
+rUtils.create_IKHandle(start,end)
+
+#>>>Connect joint length
+#=======================================================
+joint = 'l_hip_fk_jnt'
+control = 'l_hip_loliHandle.length'
+rUtils.addJointLengthAttr(joint,control)
+
+#>>>Connect blend chain
+#=======================================================
+chain1 = mc.ls(sl=True)
+chain2 = mc.ls(sl=True)
+blendChain = mc.ls(sl=True)
+rUtils.connectBlendJointChain(chain1,chain2,blendChain)
+
 #>>>Trace curve
 #=======================================================
 start = 'hips_anim'

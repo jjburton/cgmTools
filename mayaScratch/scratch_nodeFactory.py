@@ -131,9 +131,19 @@ arg = "worldCenter_loc.simpleSum = 1 + 2 + 3"#Working
 arg = "worldCenter_loc.simpleAv = 1 >< 2 >< 3"#Working
 arg = "worldCenter_loc.inverseTY = -worldCenter_loc.ty"#Working
 arg = "worldCenter_loc.result2 = if worldCenter_loc.ty <= 2:5 else 20"#Working
+arg = "worldCenter_loc.clampResult = clamp(0, 1, worldCenter_loc.tx)"#working
+arg = "worldCenter_loc.setRangeResult = setRange(0,1,1,10,worldCenter_loc.tx)"
+arg = "worldCenter_loc.clampResult = clamp(0, 1, worldCenter_loc.tx)"#working
+arg = "worldCenter_loc.clamp2Result = clamp(worldCenter_loc.tx, 0, worldCenter_loc.tx)"#working
+arg = "worldCenter_loc.clamp1Result = clamp(0, worldCenter_loc.tx, worldCenter_loc.tx)"#working
 
+#ToDo
+
+from cgm.core.lib import nameTools
+reload(nameTools)
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
+NodeF.argsToNodes(arg)
 a = NodeF.argsToNodes(arg).doBuild()
 for b in a.ml_attrs:
     b.p_combinedName
@@ -168,3 +178,23 @@ arg = "awesomeArgObj_loc.tx + awesomeArgObj_loc.ty + awesomeArgObj_loc.tz = awes
 "if awesomeArgObj_loc.ty > 3;awesomeArgObj_loc.result2",#Working
 
 "(1+2)"
+
+#>>> setRange
+#======================================================================
+"""
+linstep 1 3 2;
+// Result: 0.5 //
+linstep 1 3 5;
+// Result: 1 //
+linstep 1 3 2.5;
+// Result: 0.75 //
+"""
+mi_setRange = cgmMeta.cgmNode(nodeType='setRange')
+cgmMeta.cgmAttr(mi_setRange,'result',attrType='float').doConnectIn("%s.%s."%(mi_setRange.mNode,'outValueX'))
+
+mi_remap = cgmMeta.cgmNode(nodeType='remapValue')
+cgmMeta.cgmAttr(mi_remap,'result',attrType='float').doConnectIn("%s.%s."%(mi_remap.mNode,'outColorR'))
+
+mi_clamp = cgmMeta.cgmNode(nodeType='clamp')
+cgmMeta.cgmAttr(mi_clamp,'result',attrType='float').doConnectIn("%s.%s."%(mi_clamp.mNode,'outputR'))
+
