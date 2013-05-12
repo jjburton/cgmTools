@@ -1566,11 +1566,11 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
     elif d_drivenAttr:
 	__drivenMode__ = 'attr'
 	mPlug_driven = d_drivenAttr['mi_plug']
-	log.debug("matchValue_iterator>>> Attr mode. Attr: %s  | baseValue: %s "%(mPlug_driven.p_combinedShortName,f_baseValue))					
 	f_baseValue = mPlug_driven.value	
 	minValue = float(f_baseValue - 10)
-	maxValue = float(f_baseValue + 10)  	
+	maxValue = float(f_baseValue + 10)  
 	mPlug_driven
+	log.debug("matchValue_iterator>>> Attr mode. Attr: %s  | baseValue: %s "%(mPlug_driven.p_combinedShortName,f_baseValue))						
     else:
 	raise StandardError,"matchValue_iterator>>> No driven given"
 
@@ -1598,7 +1598,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
     for i in range(maxIterations):
 	if __matchMode__ == 'value':
 	    if __drivenMode__ == 'attr':
-		log.debug("matchValue_iterator>>> Step : %s | min: %s | max: %s | baseValue: %s | current: %s"%(i,minValue,maxValue,f_baseValue,mPlug_driven.value))  					
+		log.info("matchValue_iterator>>> Step : %s | min: %s | max: %s | baseValue: %s | current: %s"%(i,minValue,maxValue,f_baseValue,mPlug_driven.value))  					
 		if cgmMath.isFloatEquivalent(mPlug_driven.value,matchValue,3):
 		    log.info("matchValue_iterator>>> Match found: %s == %s | %s: %s | step: %s"%(mPlug_driven.p_combinedShortName,matchValue,mPlug_driver.p_combinedShortName,minValue,i))  			    
 		    b_matchFound = minValue
@@ -1615,33 +1615,35 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 		
 		#First find range
 		if f_minSetValue > matchValue or f_maxSetValue < matchValue:
-		    log.debug("matchValue_iterator>>> Finding Range....")		    
+		    log.info("matchValue_iterator>>> Finding Range....")		    
 		    if matchValue < mPlug_driven.value:
 			#Need to shift our range down
-			log.debug("matchValue_iterator>>> Down range: minSetValue: %s"%f_minSetValue)
+			log.info("matchValue_iterator>>> Down range: minSetValue: %s"%f_minSetValue)
 			f_baseValue = f_maxDist		    
 			minValue = f_baseValue - f_minDist
 			maxValue = f_baseValue + f_minDist
 			f_closest = f_minDist			
 		    elif matchValue > mPlug_driven.value:
 			#Need to shift our range up
-			log.debug("matchValue_iterator>>> Up range: minSetValue: %s"%f_maxSetValue)  
-			f_baseValue = f_maxDist		    
+			log.info("matchValue_iterator>>> Up range: minSetValue: %s"%f_maxSetValue)  
+			f_baseValue = f_minDist		    
 			minValue = f_baseValue - f_maxDist
 			maxValue = f_baseValue + f_maxDist
 			f_closest = f_maxDist			
 		else:	
 		    if f_minDist>f_maxDist:#if min dif greater, use half as new min
+			if f_half < minIn:f_half = minIn
 			minValue = f_half
-			#log.debug("matchValue_iterator>>>Going up")
+			#log.info("matchValue_iterator>>>Going up")
 			f_closest = f_minDist
 		    else:
+			if f_half > maxIn:f_half = maxIn			
 			maxValue = f_half
-			#log.debug("matchValue_iterator>>>Going down")  
+			#log.info("matchValue_iterator>>>Going down")  
 			f_closest = f_maxDist
 		    
-		log.debug("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
-		log.debug("#"+'-'*50)
+		log.info("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
+		log.info("#"+'-'*50)
 
 		if f_closest == f_lastClosest:
 		    cnt_sameValue +=1
@@ -1701,6 +1703,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 	
     if b_matchFound is not None:
 	return b_matchFound
+    log.warning("matchValue_iterator>>> Failed to find value for: %s"%mPlug_driven.p_combinedShortName)    
     return False
     
 @r9General.Timer
@@ -1724,8 +1727,10 @@ def IKHandle_fixTwist(ikHandle):
     #Check rotation:
     rotValue = mi_startJoint.getAttr('r%s'%str_localAimSingle)    
     if not cgmMath.isFloatEquivalent(rotValue,0):#if we have a value, we need to fix it
-	matchValue_iterator(targetAttr="%s.r%s"%(mi_startJoint.mNode,str_localAimSingle),
+	matchValue_iterator(drivenAttr="%s.r%s"%(mi_startJoint.mNode,str_localAimSingle),
 	                    driverAttr="%s.twist"%mi_ikHandle.mNode,
+	                    minIn = -180, maxIn = 180,
+	                    maxIterations = 75,
 	                    matchValue=0.0)
     return True
 
@@ -1787,13 +1792,16 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     if mi_rpHandle and mi_rpHandle in ml_handles:
 	raise StandardError,"create_IKHandle>>> rpHandle can't be a measure handle to: '%s'"%(mi_rpHandle.getShortName())		
     
+    #Control object
+    mi_control = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=True)
+    if mi_control:log.info("create_IKHandle>>> mi_control from arg: %s"%mi_control.getShortName())
+    
     
     #Figure out our aimaxis
     v_localAim = distance.returnLocalAimDirection(ml_jointChain[0].mNode,ml_jointChain[1].mNode)
     str_localAim = dictionary.returnVectorToString(v_localAim)
     str_localAimSingle = str_localAim[0]
     log.info("create_IKHandle>>> vector aim: %s | str aim: %s"%(v_localAim,str_localAim))
-    
     
     i_module = False
     i_rigNull = False
@@ -1829,9 +1837,7 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     i_ik_effector.doName()
     
     #>>> Control
-    if controlObject:
-	mi_control = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=True)
-    else:
+    if not mi_control:
 	mi_control = i_ik_handle
 	
     #>>> Store our start and end
@@ -1839,15 +1845,6 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     #i_ik_handle.connectChildNode(mi_end,'jointEnd','ikOwner')
     	
     #=============================================================================
-    #>>>Do Handles
-    mi_midHandle = False   
-    if ml_handles:
-	if len(ml_handles) == 1:
-	    mi_midHandle = ml_handles[0]
-	else:
-	    mid = int((len(ml_handles))/2)
-	    mi_midHandle = ml_handles[mid]
-	log.info("create_IKHandle>>> mid handle: %s"%mi_midHandle.getShortName())
     
     #>>>Stetch
     #===============================================================================
@@ -1874,9 +1871,21 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 			log.info("create_IKHandle>>> '%s' handle matches: '%s'"%(h.getShortName(),j.getShortName()))
 			m_match = h
 		if not m_match:#make one
-		    m_match = j.doLoc()
+		    m_match = j.doLoc(nameLink = True)
+		    m_match.addAttr('cgmTypeModifier','stretchMeasure')
+		    m_match.doName()
 		ml_handles.append(m_match)
 	    #>>>TODO Add hide stuff
+	
+	#>>>Do Handles
+	mi_midHandle = False   
+	if ml_handles:
+	    if len(ml_handles) == 1:
+		mi_midHandle = ml_handles[0]
+	    else:
+		mid = int((len(ml_handles))/2)
+		mi_midHandle = ml_handles[mid]
+	    log.info("create_IKHandle>>> mid handle: %s"%mi_midHandle.getShortName())
 	
 	log.info("create_IKHandle>>> handles: %s"%[o.getShortName() for o in ml_handles])
 		    
@@ -2025,7 +2034,7 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 	if not mi_rpHandle:
 	    #Make one
 	    mi_rpHandle = mi_midHandle.doLoc()
-	    mi_rpHandle.addAttr('cgmTypeModifier','noFlip')
+	    mi_rpHandle.addAttr('cgmTypeModifier','poleVector')
 	    mi_rpHandle.doName()
 	log.info("create_IKHandle>>> rp setup mode!")
 	cBuffer = mc.poleVectorConstraint(mi_rpHandle.mNode,i_ik_handle.mNode)
