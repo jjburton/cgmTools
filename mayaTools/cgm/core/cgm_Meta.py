@@ -436,6 +436,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		if value is None and initialValue is not None:#If no value and initial value, use it
 		    value = initialValue
 		    	    
+	    validatedAttrType = attributes.validateRequestedAttrType(attrType)
+	    if attrType is not None and validatedAttrType in ['string','float','long'] and mc.objExists("%s.%s"%(self.mNode,attr)):
+		currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
+		if currentType != validatedAttrType:
+		    log.info("cgmNode.addAttr >> %s != %s : %s.%s. Converting."%(validatedAttrType,currentType,self.getShortName(),attr))
+		    cgmAttr(self, attrName = attr, attrType=validatedAttrType)
+		    	    
 	    #If type is double3, handle with out own setup as Red's doesn't have it
 	    #==============    
 	    #if attributes.validateRequestedAttrType(attrType) == 'double3':
@@ -475,12 +482,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		self.__setattr__(attr,value,**kws)
 		#attributes.doSetAttr(self.mNode,attr,value)
 		#cgmAttr(self, attrName = attr, value=value)#Swictched back to cgmAttr to deal with connected attrs
-	    validatedAttrType = attributes.validateRequestedAttrType(attrType)
-	    if attrType is not None and validatedAttrType in ['string','float','long']:
-		currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
-		if currentType != validatedAttrType:
-		    log.info("cgmNode.addAttr >> %s != %s : %s.%s. Converting."%(validatedAttrType,currentType,self.getShortName(),attr))
-		    cgmAttr(self, attrName = attr, attrType=validatedAttrType)
 		    
 	    #if valueCarry is not None:
 		#self.__setattr__(attr,valueCarry)
@@ -862,12 +863,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    log.error("cgmNode.getPosition: %s"%error)	
 	    return False
 	
-    def doLoc(self,forceBBCenter = False):
+    def doLoc(self,forceBBCenter = False,nameLink = False):
         """
         Create a locator from an object
 
         Keyword arguments:
         forceBBCenter(bool) -- whether to force a bounding box center (default False)
+	nameLink(bool) -- whether to copy name tags or link the object to cgmName
         """
 	buffer = False
 	if self.isComponent():
@@ -877,7 +879,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if not buffer:
 	    return False
 	i_loc = cgmObject(buffer,setClass=True)
-	i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
+	if nameLink:
+	    i_loc.connectChildNode(self,'cgmName')
+	else:
+	    i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
 	i_loc.doName()
 	return i_loc
     
@@ -2745,7 +2750,7 @@ class cgmAttr(object):
                      'enum':['enum','options','e'],
                      'double3':['vector','vec','v','double3','d3']}    
     
-    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,lock = None,keyable = None, hidden = None, *a, **kw):
+    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,lock = None,keyable = None, hidden = None, minValue = None, maxValue = None, defaultValue = None,*a, **kw):
         """ 
         Asserts object's existance then initializes. If 
         an existing attribute name on an object is called and the attribute type is different,it converts it. All functions
@@ -2851,7 +2856,25 @@ class cgmAttr(object):
           
         elif value is not None:
             self.set(value)
-        
+	    
+	if minValue is not None:
+	    try:
+		self.p_minValue = minValue
+	    except:
+		log.error("addAttr>>minValue on call Failure! %s"%minValue)
+		
+	if maxValue is not None:
+	    try:
+		self.p_maxValue = maxValue
+	    except:
+		log.error("addAttr>>minValue on call Failure! %s"%maxValue)
+		
+	if defaultValue is not None:
+	    try:
+		self.p_defaultValue = defaultValue
+	    except:
+		log.error("addAttr>>minValue on call Failure! %s"%defaultValue)
+		
         if type(keyable) is bool:
             self.doKeyable(keyable)   
             
