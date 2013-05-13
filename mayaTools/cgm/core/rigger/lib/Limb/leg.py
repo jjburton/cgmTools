@@ -560,7 +560,7 @@ def build_FKIK(self):
     mi_controlIK = self._i_rigNull.controlIK
     mi_controlMidIK = self._i_rigNull.midIK
     
-    for chain in [ml_fkJoints,ml_ikJoints,ml_blendJoints,ml_ikNoFlipJoints,ml_ikPVJoints]:
+    for chain in [ml_ikJoints,ml_blendJoints,ml_ikNoFlipJoints,ml_ikPVJoints]:
 	chain[0].parent = self._i_deformNull.mNode
 	
     #for more stable ik, we're gonna lock off the lower channels degrees of freedom
@@ -594,7 +594,7 @@ def build_FKIK(self):
 	
 	#No Flip RP handle
 	Snap.go(mi_rpHandleNF,i_tmpLoc.mNode,True)#Snape to foot control, then move it out...
-	#i_tmpLoc.delete()
+	i_tmpLoc.delete()
 	
 	mi_rpHandleNF.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])
 	mi_rpHandleNF.addAttr('cgmName','kneePoleVector',attrType = 'string')
@@ -696,7 +696,7 @@ def build_FKIK(self):
 	mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool',defaultValue = 0,keyable = True)	
 	mPlug_showKnee.doConnectOut("%s.visibility"%mi_controlMidIK.mNode)	
 	
-	#Main blend
+	#>>> Main blend
 	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',lock=False,keyable=True)
 	
 	rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,
@@ -704,7 +704,18 @@ def build_FKIK(self):
 	rUtils.connectBlendJointChain(ml_ikNoFlipJoints,ml_ikPVJoints,ml_ikJoints[:3],
 	                              driver = mPlug_showKnee.p_combinedName,channels=['translate','rotate'])	
 	
-		
+	#>>> Settings - constrain
+	mc.parentConstraint(ml_blendJoints[2].mNode, mi_settings.masterGroup.mNode, maintainOffset = True)
+	
+	#>>> Setup a vis blend result
+	mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=False)	
+	mPlug_IKon = cgmMeta.cgmAttr(mi_settings,'result_IKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=False)	
+	
+	NodeF.createSingleBlendNetwork(mPlug_FKIK.p_combinedName,mPlug_IKon.p_combinedName,mPlug_FKon.p_combinedName)
+	
+	mPlug_FKon.doConnectOut("%s.visibility"%self._i_deformNull.controlsFK.mNode)
+	mPlug_IKon.doConnectOut("%s.visibility"%self._i_deformNull.controlsIK.mNode)
+	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
     
@@ -741,6 +752,15 @@ def build_controls(self):
     mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)
     ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('fkJoints'),cgmMeta.cgmObject)
     
+    #>>>Make a few extra groups for storing controls and what not to in the deform group
+    for grp in ['controlsFK','controlsIK']:
+	i_dup = self._i_deformNull.doDuplicateTransform(True)
+	i_dup.parent = self._i_deformNull.mNode
+	i_dup.addAttr('cgmTypeModifier',grp,lock=True)
+	i_dup.doName()
+	
+	self._i_deformNull.connectChildNode(i_dup,grp,'owner')
+	
     l_controlsAll = []
     #==================================================================
     try:#>>>> FK Segments
@@ -749,7 +769,7 @@ def build_controls(self):
 	
 	#for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
 	    #i_obj.parent = ml_controlsFK[i].mNode
-	ml_fkJoints[0].parent = self._i_deformNull.mNode
+	ml_fkJoints[0].parent = self._i_deformNull.controlsFK.mNode
 		
 	for i,i_obj in enumerate(ml_controlsFK):
 	    d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],setRotateOrder=5,typeModifier='fk',) 	    
@@ -774,7 +794,7 @@ def build_controls(self):
 	                                           typeModifier='ik',addSpacePivots = 0, addDynParentGroup = True, addConstraintGroup=True,
 	                                           makeAimable = True,setRotateOrder=4)
 	i_IKEnd = d_buffer['instance']	
-	i_IKEnd.masterGroup.parent = self._i_deformNull.mNode
+	i_IKEnd.masterGroup.parent = self._i_deformNull.controlsIK.mNode
 	
 	#i_loc.delete()#delete
 	self._i_rigNull.connectChildNode(i_IKEnd,'controlIK','module')#connect
@@ -796,7 +816,7 @@ def build_controls(self):
 	                                           typeModifier='ik',addDynParentGroup = True, addConstraintGroup=True,
 	                                           makeAimable = False,setRotateOrder=4)
 	i_IKmid = d_buffer['instance']	
-	i_IKmid.masterGroup.parent = self._i_deformNull.mNode
+	i_IKmid.masterGroup.parent = self._i_deformNull.controlsIK.mNode
 	i_IKmid.addAttr('scale',lock=True,hidden=True)
 	#i_loc.delete()#delete
 	self._i_rigNull.connectChildNode(i_IKmid,'midIK','module')#connect
