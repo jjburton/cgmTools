@@ -1759,7 +1759,9 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     moduleInstance -- instance to connect stuff to
     
     """
-    ml_rigObjects = []
+    ml_rigObjectsToConnect = []
+    ml_rigObjectsToParent = []
+    
     #>>> Data gather and arg check
     if solverType not in ['ikRPsolver','ikSCsolver']:
 	raise StandardError,"create_IKHandle>>> solver type no good: %s"%solverType
@@ -1838,15 +1840,13 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     except:
 	raise StandardError,"create_IKHandle>>> solver type is probably no good: %s"%solverType
     
-
-    
     #>>> Name
     log.info(buffer)
     i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
     i_ik_handle.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_ik_handle.doName()
     
-    ml_rigObjects.append(i_ik_handle)
+    ml_rigObjectsToConnect.append(i_ik_handle)
     
     i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
     i_ik_effector.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
@@ -1894,7 +1894,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 		    m_match = j.doLoc(nameLink = True)
 		    m_match.addAttr('cgmTypeModifier','stretchMeasure')
 		    m_match.doName()
-		    ml_rigObjects.append(j)
+		    ml_rigObjectsToConnect.append(j)
 		ml_handles.append(m_match)
 	    #>>>TODO Add hide stuff
 	
@@ -1922,7 +1922,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	log.info("create_IKHandle>>> '%s' length : %s"%(mi_baseArcLen.getShortName(),mi_baseArcLen.arcLength))
 	"""
 	md_baseDistReturn = create_distanceMeasure(ml_handles[0].mNode,ml_handles[-1].mNode)
-	ml_rigObjects.append(md_baseDistReturn['mi_object'])
+	ml_rigObjectsToParent.append(md_baseDistReturn['mi_object'])
 	mPlug_baseDist = cgmMeta.cgmAttr(i_ik_handle.mNode,'ikDistBase' , attrType = 'float', value = md_baseDistReturn['mi_shape'].distance , lock =True , hidden = True)	
 	mPlug_baseDistRaw = cgmMeta.cgmAttr(i_ik_handle.mNode,'ikDistRaw' , value = 1.0 , lock =True , hidden = True)
 	mPlug_baseDistRaw.doConnectIn("%s.distance"%md_baseDistReturn['mi_shape'].mNode)
@@ -1974,7 +1974,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	    ml_distanceShapes.append(buffer['mi_shape'])
 	    ml_distanceObjects.append(buffer['mi_object'])
 	    #>>>TODO Add hide stuff
-	ml_rigObjects.extend(ml_distanceObjects)
+	ml_rigObjectsToParent.extend(ml_distanceObjects)
 	
 	for i,i_jnt in enumerate(ml_jointChain[:-1]):
 	    #Make some attrs
@@ -2065,7 +2065,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	    mi_rpHandle = mi_midHandle.doLoc()
 	    mi_rpHandle.addAttr('cgmTypeModifier','poleVector')
 	    mi_rpHandle.doName()
-	    ml_rigObjects.append(mi_rpHandle)
+	    ml_rigObjectsToConnect.append(mi_rpHandle)
 	log.info("create_IKHandle>>> rp setup mode!")
 	cBuffer = mc.poleVectorConstraint(mi_rpHandle.mNode,i_ik_handle.mNode)
 	
@@ -2081,13 +2081,13 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
         
     #>>> Connect our iModule vis stuff
     if i_module:#if we have a module, connect vis
-	for i_obj in ml_rigObjects:
+	for i_obj in ml_rigObjectsToConnect:
 	    i_obj.overrideEnabled = 1		
 	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
 	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
+	for i_obj in ml_rigObjectsToParent:
+	    i_obj.parent = i_module.rigNull.mNode
 	    
-        
-        
     #>>> Return dict
     d_return = {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector}
     if stretch:
