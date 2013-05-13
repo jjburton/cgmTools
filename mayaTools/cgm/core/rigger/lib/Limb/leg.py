@@ -370,8 +370,8 @@ def build_foot(self):
     
     #Add driving attrs
     mPlug_roll = cgmMeta.cgmAttr(mi_controlIK,'roll',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_toeLift = cgmMeta.cgmAttr(mi_controlIK,'toeLift',attrType='float',defaultValue = 35,keyable = True)
-    mPlug_toeStaighten = cgmMeta.cgmAttr(mi_controlIK,'toeStaighten',attrType='float',defaultValue = 70,keyable = True)
+    mPlug_toeLift = cgmMeta.cgmAttr(mi_controlIK,'toeLift',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
+    mPlug_toeStaighten = cgmMeta.cgmAttr(mi_controlIK,'toeStaighten',attrType='float',initialValue = 70,defaultValue = 70,keyable = True)
     mPlug_toeWiggle= cgmMeta.cgmAttr(mi_controlIK,'toeWiggle',attrType='float',defaultValue = 0,keyable = True)
     mPlug_toeSpin = cgmMeta.cgmAttr(mi_controlIK,'toeSpin',attrType='float',defaultValue = 0,keyable = True)
     mPlug_lean = cgmMeta.cgmAttr(mi_controlIK,'lean',attrType='float',defaultValue = 0,keyable = True)
@@ -380,6 +380,8 @@ def build_foot(self):
     mPlug_lockMid = cgmMeta.cgmAttr(mi_controlIK,'lockMid',attrType='float',defaultValue = 0,keyable = True)
     mPlug_stretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch',attrType='float',defaultValue = 1,keyable = True)
     mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool',defaultValue = 0,keyable = True)
+    mPlug_lengthUpr= cgmMeta.cgmAttr(mi_controlIK,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
+    mPlug_lengthLwr = cgmMeta.cgmAttr(mi_controlIK,'lengthLwr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
     
     try:#heel setup
 	#Add driven attrs
@@ -577,26 +579,27 @@ def build_FKIK(self):
 	raise StandardError,"%s.build_FKIK>>> fk length connect error: %s"%(self._strShortName,error)
     
     #=============================================================    
-    try:#>>>IK Chain Builds
+    try:#>>>IK No Flip Chain
 	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')    
 	i_tmpLoc = ml_ikNoFlipJoints[-1].doLoc()
 	mc.move(outVector[0]*100,outVector[1]*100,outVector[2]*100,i_tmpLoc.mNode,r=True, rpr = True, os = True, wd = True)	
 	
 	#Create no flip leg IK
-	d_ankleReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[0].mNode,ml_ikNoFlipJoints[-1].mNode,baseName=ml_ikJoints[2].cgmName,rpHandle=True,controlObject=mi_controlIK,
-	                                       globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
-	mi_ankleIKHandle = d_ankleReturn['mi_handle']
-	ml_distHandles = d_ankleReturn['ml_distHandles']
-	mi_rpHandle = d_ankleReturn['hi_rpHandle']
+	d_ankleNoFlipReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[0].mNode,ml_ikNoFlipJoints[-1].mNode, nameSuffix = 'noFlip',
+	                                             rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
+	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
+	mi_ankleIKHandleNF = d_ankleNoFlipReturn['mi_handle']
+	ml_distHandlesNF = d_ankleNoFlipReturn['ml_distHandles']
+	mi_rpHandleNF = d_ankleNoFlipReturn['mi_rpHandle']
 	
 	#No Flip RP handle
-	Snap.go(mi_rpHandle,i_tmpLoc.mNode,True)#Snape to foot control, then move it out...
+	Snap.go(mi_rpHandleNF,i_tmpLoc.mNode,True)#Snape to foot control, then move it out...
 	#i_tmpLoc.delete()
 	
-	mi_rpHandle.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])
-	mi_rpHandle.addAttr('cgmName','kneePoleVector',attrType = 'string')
-	mi_rpHandle.addAttr('cgmTypeModifier','noFlip')
-	mi_rpHandle.doName()
+	mi_rpHandleNF.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])
+	mi_rpHandleNF.addAttr('cgmName','kneePoleVector',attrType = 'string')
+	mi_rpHandleNF.addAttr('cgmTypeModifier','noFlip')
+	mi_rpHandleNF.doName()
 	
 	#Knee spin
 	#=========================================================================================
@@ -608,46 +611,99 @@ def build_FKIK(self):
 	
 	i_spinGroup.parent = mi_pivBall.mNode
 	i_spinGroup.doZeroGroup()
-	mi_rpHandle.parent = i_spinGroup.mNode
+	mi_rpHandleNF.parent = i_spinGroup.mNode
 		
-	#setup arg
+	#Setup arg
 	mPlug_kneeSpin = cgmMeta.cgmAttr(mi_controlIK,'kneeSpin')
 	mPlug_kneeSpin.doConnectOut("%s.rotateY"%i_spinGroup.mNode)
 	
 	#>>>Parent IK handles
-	mi_ankleIKHandle.parent = mi_pivBallJoint.mNode#ankleIK to ball		
-	ml_distHandles[-1].parent = mi_pivBallJoint.mNode#ankle distance handle to ball	
-	ml_distHandles[0].parent = self._i_deformNull.mNode#hip distance handle to deform group
-	ml_distHandles[1].parent = mi_controlMidIK.mNode#knee distance handle to midIK
+	mi_ankleIKHandleNF.parent = mi_pivBallJoint.mNode#ankleIK to ball		
+	ml_distHandlesNF[-1].parent = mi_pivBallJoint.mNode#ankle distance handle to ball	
+	ml_distHandlesNF[0].parent = self._i_deformNull.mNode#hip distance handle to deform group
+	ml_distHandlesNF[1].parent = mi_controlMidIK.mNode#knee distance handle to midIK
 	
 	#>>> Fix our ik_handle twist at the end of all of the parenting
-	rUtils.IKHandle_fixTwist(mi_ankleIKHandle)#Fix the twist
+	rUtils.IKHandle_fixTwist(mi_ankleIKHandleNF)#Fix the twist
 	
-	return
+    except StandardError,error:
+	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
     
+    #=============================================================    
+    try:#>>>IK PV Chain
+	#Create no flip leg IK
+	#We're gonna use the no flip stuff for the most part
+	d_anklePVReturn = rUtils.IKHandle_create(ml_ikPVJoints[0].mNode,ml_ikPVJoints[-1].mNode,nameSuffix = 'PV',
+	                                         rpHandle=ml_distHandlesNF[1],controlObject=mi_controlIK,
+	                                         moduleInstance=self._i_module)
+	
+	mi_ankleIKHandlePV = d_anklePVReturn['mi_handle']
+	mi_rpHandlePV = d_anklePVReturn['mi_rpHandle']
+	
+	#Stretch -- grab our translate aims from
+	for i,i_j in enumerate(ml_ikPVJoints[1:]):
+	    driverAttr = attributes.returnDriverAttribute("%s.t%s"%(ml_ikNoFlipJoints[i+1].mNode,self._jointOrientation[0].lower()))
+	    d_driverPlug = cgmMeta.validateAttrArg(driverAttr,noneValid=False)#Validdate
+	    d_driverPlug['mi_plug'].doConnectOut("%s.t%s"%(i_j.mNode,self._jointOrientation[0].lower()))#Connect the plug to our joint
+	
+	#RP handle	
+	mi_rpHandlePV.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])
+	mi_rpHandlePV.addAttr('cgmName','kneePoleVector',attrType = 'string')
+	mi_rpHandlePV.doName()
+	
+	#>>>Parent IK handles
+	mi_ankleIKHandlePV.parent = mi_pivBallJoint.mNode#ankleIK to ball	
+	
+	#Mid fix
+	#=========================================================================================			
+	mc.move(0,0,25,mi_controlMidIK.mNode,r=True, rpr = True, ws = True, wd = True)#move out the midControl to fix the twist from
+	
+	#>>> Fix our ik_handle twist at the end of all of the parenting
+	rUtils.IKHandle_fixTwist(mi_ankleIKHandlePV)#Fix the twist
+	
+	#>>> Reset the translations
+	mi_controlMidIK.tx = 0
+	mi_controlMidIK.ty = 0
+	mi_controlMidIK.tz = 0
+	
+    except StandardError,error:
+	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
     
+    #=============================================================    
+    try:#>>>Foot chains and connection
 	#Create foot IK
-	d_ballReturn = rUtils.IKHandle_create(ml_ikJoints[2].mNode,ml_ikJoints[3].mNode,baseName=ml_ikJoints[3].cgmName)
+	d_ballReturn = rUtils.IKHandle_create(ml_ikJoints[2].mNode,ml_ikJoints[3].mNode,solverType='ikSCsolver',
+	                                      baseName=ml_ikJoints[3].cgmName)
 	mi_ballIKHandle = d_ballReturn['mi_handle']
 	
 	#Create toe IK
-	d_toeReturn = rUtils.IKHandle_create(ml_ikJoints[3].mNode,ml_ikJoints[4].mNode,baseName=ml_ikJoints[4].cgmName)
+	d_toeReturn = rUtils.IKHandle_create(ml_ikJoints[3].mNode,ml_ikJoints[4].mNode,solverType='ikSCsolver',
+	                                     baseName=ml_ikJoints[4].cgmName)
 	mi_toeIKHandle = d_toeReturn['mi_handle']
-
+    
 	#return {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver}
 	
 	mi_ballIKHandle.parent = mi_pivInner.mNode#ballIK to toe
 	mi_toeIKHandle.parent = mi_pivBallWiggle.mNode#toeIK to wiggle
-	mi_ankleIKHandle.parent = mi_pivBallJoint.mNode#ankleIK to ball		
 	
     except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> IK Chains error: %s"%(self._strShortName,error)
+	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
     
     #=============================================================    
-    try:#>>>Connect Blend Chains
+    try:#>>>Connect Blend Chains and connections
+	#Connect Vis of knee
+	#=========================================================================================
+	mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool',defaultValue = 0,keyable = True)	
+	mPlug_showKnee.doConnectOut("%s.visibility"%mi_controlMidIK.mNode)	
+	
 	#Main blend
-	rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,driver = "%s.state"%mi_settings.mNode,channels=['translate','rotate'])
-	rUtils.connectBlendJointChain(ml_ikNoFlipJoints,ml_ikPVJoints,ml_ikJoints[:3],driver = "%s.kneeVis"%mi_settings.mNode,channels=['translate','rotate'])	
+	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',lock=False,keyable=True)
+	
+	rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+	                              driver = mPlug_FKIK.p_combinedName,channels=['translate','rotate'])
+	rUtils.connectBlendJointChain(ml_ikNoFlipJoints,ml_ikPVJoints,ml_ikJoints[:3],
+	                              driver = mPlug_showKnee.p_combinedName,channels=['translate','rotate'])	
+	
 		
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
@@ -760,8 +816,9 @@ def build_controls(self):
 	l_controlsAll.append(mi_settings)
 	
 	#Add our attrs
-	mi_settings.addAttr('state',enumName = 'fk:ik', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False,lock=True)
-	mi_settings.addAttr('kneeVis', defaultValue = 0, attrType = 'bool',keyable = False,hidden = False,lock=True)
+	mi_settings.addAttr('blend_FKIK', defaultValue = 0, attrType = 'float', minValue = 0, maxValue = 1, keyable = False,hidden = False,lock=True)
+	#mi_settings.addAttr('state',enumName = 'fk:ik', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False,lock=True)
+	#mi_settings.addAttr('kneeVis', defaultValue = 0, attrType = 'bool',keyable = False,hidden = False,lock=True)
 	
 	
     except StandardError,error:
