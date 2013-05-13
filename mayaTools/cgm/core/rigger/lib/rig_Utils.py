@@ -1737,8 +1737,8 @@ def IKHandle_fixTwist(ikHandle):
 
 
 @r9General.Timer
-def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,controlObject = None,
-                    solverType = 'ikRPsolver',stretch = False, globalScaleAttr = None,
+def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = False, addLengthMulti = False,
+                    stretch = False, globalScaleAttr = None, controlObject = None, baseName = 'ikChain', nameSuffix = None,
                     handles = [],#If one given, assumed to be mid, can't have more than length of joints
                     moduleInstance = None):
     """
@@ -1746,12 +1746,20 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     l_jointChain1(list) -- blend list 1
     l_jointChain2(list) -- blend list 2
     l_blendChain(list) -- result chain
-
+    solverType -- 'ikRPsolver','ikSCsolver'
+    baseName -- 
+    nameSuffix -- add to nameBase
+    rpHandle(bool/string) -- whether to have rphandle setup, object to use if string or MetaClass
     driver(attr arg) -- driver attr
+    globalScaleAttr(string/cgmAttr) -- global scale attr to connect in
+    addLengthMulti(bool) -- whether to setup lengthMultipliers
+    controlObject(None/string) -- whether to have control to put attrs on, object to use if string or MetaClass OR will use ikHandle
     channels(list) -- channels to blend
     stretch(bool/string) -- stretch options - translate/scale
+    moduleInstance -- instance to connect stuff to
     
     """
+    ml_rigObjects = []
     #>>> Data gather and arg check
     if solverType not in ['ikRPsolver','ikSCsolver']:
 	raise StandardError,"create_IKHandle>>> solver type no good: %s"%solverType
@@ -1811,26 +1819,34 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 		i_module = moduleInstance
 		i_rigNull = i_module.rigNull
 		baseName = i_module.getPartNameBase()
+		if nameSuffix is not None:
+		    baseName = "%s_%s"%(baseName,nameSuffix)
 		log.info('baseName set to module: %s'%baseName)	    
     except:
 	log.error("Not a module instance, ignoring: '%s'"%moduleInstance)    
-	
+    
+    if not i_module:
+	if nameSuffix is not None:
+	    baseName = "%s_%s"%(baseName,nameSuffix)	
     #=============================================================================
     #Create IK handle
+    
     try:
-	i_ikSolver = cgmMeta.cgmNode(nodeType = solverType,setClass=True)
+	buffer = mc.ikHandle( sj=mi_start.mNode, ee=mi_end.mNode,
+	                      solver = solverType, forceSolver = True,
+	                      snapHandleFlagToggle=True )  	
     except:
 	raise StandardError,"create_IKHandle>>> solver type is probably no good: %s"%solverType
     
-    buffer = mc.ikHandle( sj=mi_start.mNode, ee=mi_end.mNode,
-                          solver = i_ikSolver.mNode,forceSolver = True,
-                          snapHandleFlagToggle=True )  
+
     
     #>>> Name
     log.info(buffer)
     i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
     i_ik_handle.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_ik_handle.doName()
+    
+    ml_rigObjects.append(i_ik_handle)
     
     i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
     i_ik_effector.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
@@ -1856,7 +1872,11 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     if stretch:
 	mPlug_lockMid = cgmMeta.cgmAttr(mi_control,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
 	mPlug_autoStretch = cgmMeta.cgmAttr(mi_control,'autoStretch',initialValue = 1, defaultValue = 1, keyable = True, attrType = 'float', minValue = 0, maxValue = 1)
-	
+	if addLengthMulti:
+	    mPlug_lengthUpr= cgmMeta.cgmAttr(mi_control,'lengthUpr',attrType='float',value = 1, defaultValue = 1,minValue=0,keyable = True)
+	    mPlug_lengthLwr = cgmMeta.cgmAttr(mi_control,'lengthLwr',attrType='float',value = 1, defaultValue = 1,minValue=0,keyable = True)	
+	    ml_multiPlugs = [mPlug_lengthUpr,mPlug_lengthLwr]
+	    
 	log.info("create_IKHandle>>> stretch mode!")
 	
 	#Check our handles for stretching
@@ -1874,6 +1894,7 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 		    m_match = j.doLoc(nameLink = True)
 		    m_match.addAttr('cgmTypeModifier','stretchMeasure')
 		    m_match.doName()
+		    ml_rigObjects.append(j)
 		ml_handles.append(m_match)
 	    #>>>TODO Add hide stuff
 	
@@ -1901,6 +1922,7 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 	log.info("create_IKHandle>>> '%s' length : %s"%(mi_baseArcLen.getShortName(),mi_baseArcLen.arcLength))
 	"""
 	md_baseDistReturn = create_distanceMeasure(ml_handles[0].mNode,ml_handles[-1].mNode)
+	ml_rigObjects.append(md_baseDistReturn['mi_object'])
 	mPlug_baseDist = cgmMeta.cgmAttr(i_ik_handle.mNode,'ikDistBase' , attrType = 'float', value = md_baseDistReturn['mi_shape'].distance , lock =True , hidden = True)	
 	mPlug_baseDistRaw = cgmMeta.cgmAttr(i_ik_handle.mNode,'ikDistRaw' , value = 1.0 , lock =True , hidden = True)
 	mPlug_baseDistRaw.doConnectIn("%s.distance"%md_baseDistReturn['mi_shape'].mNode)
@@ -1952,6 +1974,7 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 	    ml_distanceShapes.append(buffer['mi_shape'])
 	    ml_distanceObjects.append(buffer['mi_object'])
 	    #>>>TODO Add hide stuff
+	ml_rigObjects.extend(ml_distanceObjects)
 	
 	for i,i_jnt in enumerate(ml_jointChain[:-1]):
 	    #Make some attrs
@@ -2006,29 +2029,35 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 		#Base Normal, Dist Normal
 		mPlug_stretchNormalDist.doConnectOut("%s.input[0]"%mi_blend.mNode)
 		mPlug_normalDist.doConnectOut("%s.input[1]"%mi_blend.mNode)
-		
 		attributes.doConnectAttr("%s.output"%mi_blend.mNode,"%s.t%s"%(ml_jointChain[i+1].mNode,str_localAimSingle))
 	    
+    #>>> addLengthMulti
+    if addLengthMulti:
+	log.info("create_IKHandle>>> addLengthMulti!")		
+	if len(ml_jointChain[:-1]) == 2:
+	    #grab the plug
+	    
+	    i_mdLengthMulti = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	    i_mdLengthMulti.operation = 1
+	    i_mdLengthMulti.doStore('cgmName',baseName)
+	    i_mdLengthMulti.addAttr('cgmTypeModifier','lengthMulti')
+	    i_mdLengthMulti.doName()
 
-	"""	           		
-		    
-	    else:
-		try:
-		    i_attrDist.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))		        
-		    i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
-		    i_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
-    
-		except StandardError,error:
-		    log.error(error)
-		    raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
+	    l_mdAxis = ['X','Y','Z']
+	    for i,i_jnt in enumerate(ml_jointChain[:-1]):
+		#grab the plug
+		mPlug_driven = cgmMeta.cgmAttr(ml_jointChain[i+1],'t%s'%str_localAimSingle)
+		plug = attributes.doBreakConnection(mPlug_driven.p_combinedName)
+		if not plug:raise StandardError,"create_IKHandle>>> Should have found a plug on: %s.t%s"%(ml_jointChain[i+1].mNode,str_localAimSingle)
 		
-	    ml_mainMDs.append(i_mdSegmentScale)#store the md
-	
-	    for axis in [orientation[1],orientation[2]]:
-		attributes.doConnectAttr('%s.s%s'%(i_jnt.mNode,axis),#>>
-					 '%s.s%s'%(ml_driverJoints[i].mNode,axis))	 	
+		attributes.doConnectAttr(plug,#>>
+		                         '%s.input1%s'%(i_mdLengthMulti.mNode,l_mdAxis[i]))#Connect the old plug data
+		ml_multiPlugs[i].doConnectOut('%s.input2%s'%(i_mdLengthMulti.mNode,l_mdAxis[i]))#Connect in the mutliDriver	
+		mPlug_driven.doConnectIn('%s.output.output%s'%(i_mdLengthMulti.mNode,l_mdAxis[i]))#Connect it back to our driven
+		
+	else:
+	    log.error("create_IKHandle>>> addLengthMulti only currently supports 2 segments. Found: %s"%len(ml_jointChain[:-1]) )
 
-	"""
     #>>> rpSetup
     if solverType == 'ikRPsolver' and rpHandle:
 	if not mi_rpHandle:
@@ -2036,6 +2065,7 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
 	    mi_rpHandle = mi_midHandle.doLoc()
 	    mi_rpHandle.addAttr('cgmTypeModifier','poleVector')
 	    mi_rpHandle.doName()
+	    ml_rigObjects.append(mi_rpHandle)
 	log.info("create_IKHandle>>> rp setup mode!")
 	cBuffer = mc.poleVectorConstraint(mi_rpHandle.mNode,i_ik_handle.mNode)
 	
@@ -2049,14 +2079,26 @@ def IKHandle_create(startJoint,endJoint, baseName = 'ikChain',rpHandle = False,c
     if d_MasterGlobalScale:
 	d_MasterGlobalScale['mi_plug'].doConnectOut(mPlug_globalScale.p_combinedName)
         
+    #>>> Connect our iModule vis stuff
+    if i_module:#if we have a module, connect vis
+	for i_obj in ml_rigObjects:
+	    i_obj.overrideEnabled = 1		
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
+	    
+        
+        
     #>>> Return dict
-    d_return = {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver,'ml_distHandles':ml_handles }
+    d_return = {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector}
     if stretch:
 	d_return['mPlug_lockMid'] = mPlug_lockMid
 	d_return['mPlug_autoStretch'] = mPlug_autoStretch
+	d_return['ml_measureObjects']=ml_distanceObjects
+	d_return['ml_distHandles']=ml_handles
     if mi_rpHandle:
-	d_return['hi_rpHandle'] = mi_rpHandle
-	
+	d_return['mi_rpHandle'] = mi_rpHandle
+    if addLengthMulti:
+	d_return['ml_lengthMultiPlugs'] = ml_multiPlugs
 	
     if not _foundPrerred:log.error("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected")
 
@@ -2106,8 +2148,8 @@ def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = No
 	    log.info("connectBlendJointChain>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
 	                                                             ml_jointChain2[i].getShortName(),
 	                                                             ml_blendChain[i].getShortName(),channel))
-	    cgmMeta.cgmAttr(i_node,'color1').doConnectIn("%s.%s"%(ml_jointChain1[i].mNode,channel))
-	    cgmMeta.cgmAttr(i_node,'color2').doConnectIn("%s.%s"%(ml_jointChain2[i].mNode,channel))
+	    cgmMeta.cgmAttr(i_node,'color2').doConnectIn("%s.%s"%(ml_jointChain1[i].mNode,channel))
+	    cgmMeta.cgmAttr(i_node,'color1').doConnectIn("%s.%s"%(ml_jointChain2[i].mNode,channel))
 	    cgmMeta.cgmAttr(i_node,'output').doConnectOut("%s.%s"%(i_jnt.mNode,channel))
 	    
 	    if mi_driver:
