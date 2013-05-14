@@ -1894,8 +1894,9 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 		    m_match = j.doLoc(nameLink = True)
 		    m_match.addAttr('cgmTypeModifier','stretchMeasure')
 		    m_match.doName()
-		    ml_rigObjectsToConnect.append(j)
 		ml_handles.append(m_match)
+		ml_rigObjectsToConnect.append(m_match)
+		
 	    #>>>TODO Add hide stuff
 	
 	#>>>Do Handles
@@ -1975,6 +1976,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	    ml_distanceObjects.append(buffer['mi_object'])
 	    #>>>TODO Add hide stuff
 	ml_rigObjectsToParent.extend(ml_distanceObjects)
+	ml_rigObjectsToConnect.extend(ml_handles)
 	
 	for i,i_jnt in enumerate(ml_jointChain[:-1]):
 	    #Make some attrs
