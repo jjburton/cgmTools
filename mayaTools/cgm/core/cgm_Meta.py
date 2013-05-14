@@ -1003,7 +1003,7 @@ class cgmObject(cgmNode):
     def isChildOf(self,obj):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)
-	    for o in self.getAllParents():
+	    for o in self.getAllParents(True):
 		if i_obj.mNode == r9Meta.MetaClass(o).mNode:
 		    return True
 	    return False
@@ -1015,7 +1015,7 @@ class cgmObject(cgmNode):
     def isParentOf(self,obj):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)
-	    for o in self.getAllChildren():
+	    for o in self.getAllChildren(True):
 		if i_obj.mNode == r9Meta.MetaClass(o).mNode:
 		    return True
 	    return False
