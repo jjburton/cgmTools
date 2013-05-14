@@ -662,14 +662,14 @@ class go(object):
 	mc.move(self.posOffset[0]*1.5,self.posOffset[1]*1.5,self.posOffset[2]*1.5, [i_gear.mNode], r = True, rpr = True, os = True, wd = True)
     
 	mi_rootLoc.delete()
+	
 	#Combine and finale
 	#============================================================================
-	
 	i_gear.doCopyPivot(i_target.mNode)
 	#>>> Color
 	curves.setCurveColorByName(i_gear.mNode,self.l_moduleColors[0])                    
 	#i_gear.doCopyNameTagsFromObject(i_target.mNode,ignore = ['cgmType'])
-	i_gear.addAttr(self._partName,attrType='string',value = 'settings',lock=True)	    
+	i_gear.addAttr('cgmName',self._partName,attrType='string',lock=True)	    
 	i_gear.addAttr('cgmType',attrType='string',value = 'settings',lock=True)	    
 	i_gear.doName()
 	    
@@ -1264,6 +1264,8 @@ def createWrapControlShape(targetObjects,
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
     if not targetGeo:
 	raise NotImplementedError, "Must have geo for now"
+    if len(mc.ls(targetGeo))>1:
+	raise StandardError,"createWrapControlShape>>> More than one mesh named: %s"%targetGeo  
     assert type(points) is int,"Points must be int: %s"%points
     assert type(curveDegree) is int,"Points must be int: %s"%points
     assert curveDegree > 0,"Curve degree must be greater than 1: %s"%curveDegree
@@ -1550,6 +1552,8 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     if type(mesh) in [list,tuple]:
 	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
 	mesh = mesh[0]
+	if len(mc.ls(mesh))>1:
+	    raise StandardError,"createMeshSliceCurve>>> More than one mesh named: %s"%mesh
     assert mc.objExists(mesh),"Mesh doesn't exist: '%s'"%mesh
     
     #>>>> Info
