@@ -55,6 +55,9 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     
     returns hitpoint(double3)
     """    
+    if len(mc.ls(mesh))>1:
+	raise StandardError,"findMeshIntersection>>> More than one mesh named: %s"%mesh    
+    
     #Create an empty selection list.
     selectionList = om.MSelectionList()
 
@@ -143,6 +146,8 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     
     returns hitpoints(list) -- [pos1,pos2...]
     """    
+    if len(mc.ls(mesh))>1:
+	raise StandardError,"findMeshIntersections>>> More than one mesh named: %s"%mesh       
     #Create an empty selection list.
     selectionList = om.MSelectionList()
 
@@ -232,6 +237,8 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
     """
     Find mesh intersections for an object's axis
     """
+    if len(mc.ls(mesh))>1:
+	raise StandardError,"findMeshIntersectionFromObjectAxis>>> More than one mesh named: %s"%mesh    
     if not vector or type(vector) not in [list,tuple]:
         d_matrixVectorIndices = {'x':[0,1,2],
                                  'y': [4,5,6],
@@ -257,6 +264,8 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
 def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
                                vector = False, maxDistance = 1000):
     #>>>Figure out the axis to do
+    if len(mc.ls(mesh))>1:
+	raise StandardError,"findMeshMidPointFromObject>>> More than one mesh named: %s"%mesh      
     if type(axisToCheck) not in [list,tuple]:axisToCheck=[axisToCheck]
     axis = ['x','y','z']
     for a in axisToCheck:
@@ -281,6 +290,8 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
 def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
                                        vector = False, maxDistance = 1000):
     """ Find the furthest point in range on an axis. Useful for getting to the outershell of a mesh """
+    if len(mc.ls(mesh))>1:
+	raise StandardError,"findFurthestPointInRangeFromObject>>> More than one mesh named: %s"%mesh      
     #>>>First cast to get our initial range
     d_firstcast = findMeshIntersectionFromObjectAxis(mesh, obj, axis = axis, vector=vector, maxDistance = maxDistance)
     if not d_firstcast.get('hit'):
