@@ -32,6 +32,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.lib import rayCaster as RayCast
+reload(RayCast)
 from cgm.lib import (lists,
                      search,
                      curves,#tmp
@@ -136,6 +137,7 @@ class go(object):
     #======================================================================    
     @r9General.Timer    
     def doMove(self,**kws):
+	if kws:log.info("Snap.doMove>>> kws: %s"%kws)
 	if len(self.l_targets) == 1:
 	    #>>> Check our target	    
 	    i_target = cgmMeta.cgmNode( self.l_targets[0] )
@@ -190,19 +192,21 @@ class go(object):
 			log.warning("Can't do midSurfacPos on targetType: '%s'"%targetType)
 			return False
 		    #Get the axis info
-		    axisToDo = []		    
-		    up = dictionary.returnVectorToString(self._upVector) or False
-		    if not up:
-			raise StandardError,"SnapFactory>>> must have up vector for midSurfaceSnap: %s"%self._upVector
-		    for a in ['x','y','z']:
-			if a != up[0]:
-			    axisToDo.append(a)
-		    if not axisToDo:
-			raise StandardError,"SnapFactory>>> couldn't find any axis to do"
-		    
-		    i_locObj = self.i_obj.doLoc()#Get our position loc		    
-		    pos = RayCast.findMeshMidPointFromObject(i_target.mNode, i_locObj.mNode, axisToCheck=axisToDo)
-		    i_locObj.delete()
+		    axisToCheck = kws.pop('axisToCheck',False)
+		    if not axisToCheck:
+			axisToCheck = []		    
+			up = dictionary.returnVectorToString(self._upVector) or False
+			if not up:
+			    raise StandardError,"SnapFactory>>> must have up vector for midSurfaceSnap: %s"%self._upVector
+			for a in ['x','y','z']:
+			    if a != up[0]:
+				axisToCheck.append(a)
+			if not axisToCheck:
+			    raise StandardError,"SnapFactory>>> couldn't find any axis to do"
+		    #i_locObj = self.i_obj.doLoc()#Get our position loc		
+		    log.info(axisToCheck)
+		    pos = RayCast.findMeshMidPointFromObject(i_target.mNode, self.i_obj.mNode, axisToCheck=axisToCheck,**kws)
+		    #i_locObj.delete()
 		    
 		else:
 		    pos = cgmMeta.cgmNode(i_target.mNode).getPosition(True)	    
