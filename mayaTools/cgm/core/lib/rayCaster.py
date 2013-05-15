@@ -28,6 +28,8 @@ from cgm.lib.classes import NameFactory
 
 from cgm.lib import (locators,
                      dictionary,
+                     cgmMath,
+                     lists,
                      geo,
                      distance)
 import os
@@ -262,7 +264,7 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
         return findMeshIntersections(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
     
 def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
-                               vector = False, maxDistance = 1000):
+                               vector = False, maxDistance = 1000, maxIterations = 10,**kws):
     #>>>Figure out the axis to do
     if len(mc.ls(mesh))>1:
 	raise StandardError,"findMeshMidPointFromObject>>> More than one mesh named: %s"%mesh      
@@ -271,22 +273,35 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
     for a in axisToCheck:
         if a not in axis:
             raise StandardError,"findMeshMidPointFromObject>>> Not a valid axis : %s not in ['x','y','z']"%axisToCheck
-    l_positions = []
-    for a in axisToCheck:
-        log.debug("firing: %s"%a)
-        d_posReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis = '%s+'%a,vector=vector,maxDistance = maxDistance)
-        d_negReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis = '%s-'%a,vector=vector,maxDistance = maxDistance)
-        
-        if 'hit' in d_posReturn.keys() and d_negReturn.keys():
-            l_pos = [d_posReturn.get('hit'),d_negReturn.get('hit')]
-            pos = distance.returnAveragePointPosition(l_pos)          
-            l_positions.append(pos)
-    if len(l_positions) == 1:
-        return l_positions[0]
-    else:
-        return distance.returnAveragePointPosition(l_positions)
-    
-    
+    l_lastPos = []
+    loc = locators.locMeObjectStandAlone(obj)
+    for i in range(maxIterations):
+	l_positions = []
+	for a in axisToCheck:
+	    log.debug("firing: %s"%a)
+	    d_posReturn = findMeshIntersectionFromObjectAxis(mesh, loc, axis = '%s+'%a,vector=vector,maxDistance = maxDistance)
+	    d_negReturn = findMeshIntersectionFromObjectAxis(mesh, loc, axis = '%s-'%a,vector=vector,maxDistance = maxDistance)
+	    
+	    if 'hit' in d_posReturn.keys() and d_negReturn.keys():
+		l_pos = [d_posReturn.get('hit'),d_negReturn.get('hit')]
+		pos = distance.returnAveragePointPosition(l_pos)          
+		l_positions.append(pos)
+	if len(l_positions) == 1:
+	    l_pos =  l_positions[0]
+	else:
+	    l_pos =  distance.returnAveragePointPosition(l_positions)
+	if l_lastPos:dif = cgmMath.mag( cgmMath.list_subtract(l_pos,l_lastPos) )
+	else:dif = 'No last'
+	log.info("findMeshMidPointFromObject>>> Step : %s | dif: %s | last: %s | pos: %s "%(i,dif,l_lastPos,l_pos)) 					
+	if l_lastPos and cgmMath.isVectorEquivalent(l_lastPos,l_pos,2):
+	    log.info("findMeshMidPointFromObject>>> Match found step: %s"%(i))
+	    mc.delete(loc)
+	    return l_pos
+	mc.move(l_pos[0],l_pos[1],l_pos[2],loc,ws=True)
+	l_lastPos = l_pos#If we get to here, add the current
+    mc.delete(loc)    
+    return l_pos
+	    
 def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
                                        vector = False, maxDistance = 1000):
     """ Find the furthest point in range on an axis. Useful for getting to the outershell of a mesh """
