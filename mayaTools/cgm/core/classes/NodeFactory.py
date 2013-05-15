@@ -35,6 +35,66 @@ from cgm.lib import (lists,
                      attributes)
 reload(search)
 
+
+def createAndConnectBlendColors(driverObj1, driverObj2, l_drivenObjs, driver = None, channels = ['translate','rotate']):
+    """
+    @kws
+    driverObj1(string) -- 
+    driverObj2(string) -- 
+    l_drivenObj(list) -- result chain
+
+    driver(attr arg) -- driver attr
+    channels(list) -- channels to blend
+    
+    """
+    mi_driverObj1 = cgmMeta.validateObjArg(driverObj1,cgmMeta.cgmObject,noneValid=False)
+    mi_driverObj2 = cgmMeta.validateObjArg(driverObj2,cgmMeta.cgmObject,noneValid=False)
+    ml_drivenObjs = cgmMeta.validateObjListArg(l_drivenObjs,cgmMeta.cgmObject,noneValid=False)
+    d_driver = cgmMeta.validateAttrArg(driver,noneValid=True)
+    mi_driver = False
+    if d_driver:mi_driver = d_driver.get('mi_plug') or False
+    if type(channels) not in [list,tuple]:channels = [channels]
+    log.info('driver1: %s'%mi_driverObj1.getShortName())
+    log.info('driver2: %s'%mi_driverObj2.getShortName())
+    log.info('driven: %s'%[i_o.getShortName() for i_o in ml_drivenObjs])
+
+    log.info('driver: %s'%mi_driver.p_combinedShortName)
+    
+    """
+    if not len(mi_driverObj1) >= len(ml_drivenObj) or not len(mi_driverObj2) >= len(ml_drivenObj):
+	raise StandardError,"createAndConnectBlendColors>>> Joint chains aren't equal lengths: i_driverObj1: %s | i_driverObj2: %s | l_drivenObj: %s"%(len(i_driverObj1),len(i_driverObj2),len(l_drivenObj))
+    """
+    l_channels = [c for c in channels if c in ['translate','rotate','scale']]
+    if not l_channels:
+	raise StandardError,"createAndConnectBlendColors>>> Need valid channels: %s"%channels
+
+    ml_nodes = []
+    
+    #>>> Actual meat
+    #===========================================================
+    for i,i_obj in enumerate(ml_drivenObjs):
+	log.info(i_obj)
+	for channel in l_channels:
+	    i_node = cgmMeta.cgmNode(nodeType = 'blendColors')
+	    i_node.addAttr('cgmName',"%s_to_%s"%(mi_driverObj1.getShortName(),mi_driverObj2.getShortName()))
+	    i_node.addAttr('cgmTypeModifier',channel)
+	    i_node.doName()
+	    log.info("createAndConnectBlendColors>>> %s || %s = %s | %s"%(mi_driverObj1.getShortName(),
+	                                                             mi_driverObj2.getShortName(),
+	                                                             i_obj.getShortName(),channel))
+	    cgmMeta.cgmAttr(i_node,'color2').doConnectIn("%s.%s"%(mi_driverObj1.mNode,channel))
+	    cgmMeta.cgmAttr(i_node,'color1').doConnectIn("%s.%s"%(mi_driverObj2.mNode,channel))
+	    cgmMeta.cgmAttr(i_node,'output').doConnectOut("%s.%s"%(i_obj.mNode,channel))
+	    
+	    if mi_driver:
+		cgmMeta.cgmAttr(i_node,'blender').doConnectIn(mi_driver.p_combinedName)
+	    
+	    ml_nodes.append(i_node)
+	    
+    return ml_nodes
+
+
+
 def createSingleBlendNetwork(driver, result1, result2, maxValue = 1,minValue = 0, **kws):
     """
     Build a single blend network for things like an FK/IK blend where you want a 1 result for either option
