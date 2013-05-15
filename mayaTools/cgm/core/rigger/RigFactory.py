@@ -121,7 +121,7 @@ class go(object):
         self._partName = self._i_module.getPartNameBase()
         self._partType = self._i_module.moduleType or False
         self._strShortName = self._i_module.getShortName() or False
-        
+	
         #>>> See if we have a buildable module -- do we have a builder
 	if not isBuildable(self):
 	    raise StandardError,"The builder for module type '%s' is not ready"%self._partType
@@ -180,12 +180,12 @@ class go(object):
 	if self._partType in d_moduleTypeToBuildModule.keys():
 	    checkShapes = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__
 	else:
-	    log.error("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
+	    log.debug("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
 	    return True
 	for key in checkShapes.keys():
 	    for subkey in checkShapes[key]:
 		if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
-		    log.error("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
+		    log.debug("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
 		    return False		
 	return True
     
@@ -195,7 +195,7 @@ class go(object):
 	"""
 	for key in self._l_jointAttrs:
 	    if not self._i_rigNull.getMessage('%s'%(key)):
-		log.error("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
+		log.debug("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
 		return False		
 	return True
     
