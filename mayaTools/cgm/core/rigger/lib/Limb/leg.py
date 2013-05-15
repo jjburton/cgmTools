@@ -45,13 +45,14 @@ reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,
+                     lists,
                      dictionary,
                      distance,
                      modules,
                      search,
                      curves,
                      )
-
+reload(joints)
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','foot'],
@@ -71,6 +72,10 @@ def build_shapes(self):
     if self._i_templateNull.handles > 4:
 	raise StandardError, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._strShortName)
     
+    if not self.isRigSkeletonized():
+	raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
+    
+    """    
     #>>> Get our pivots
     #=============================================================
     for pivot in __d_controlShapes__['pivot']:
@@ -98,7 +103,22 @@ def build_shapes(self):
     i_ballWigglePivot.cgmName = 'ballWiggle'
     i_ballWigglePivot.doName()
     self._i_rigNull.connectChildNode(i_ballWigglePivot,"pivot_ballWiggle",'module')    
-	   
+	""" 
+    #>>> Build our Mid Handle Shapes
+    #=============================================================    
+    l_influenceChains = []
+    ml_influenceChains = []
+    for i in range(50):
+	buffer = self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i)
+	if buffer:
+	    l_influenceChains.append(buffer)
+	    ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	else:
+	    break    
+	
+    log.info("%s.build_shapes>>> Influence Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_influenceChains),l_influenceChains))
+    
+    return
     #>>>Build our Shapes
     #=============================================================
     try:
@@ -115,6 +135,7 @@ def build_shapes(self):
 	log.error("build_leg>>Build shapes fail!")
 	raise StandardError,error   
     
+
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['anchorJoints','rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
@@ -133,8 +154,33 @@ def build_rigSkeleton(self):
 	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
-    if not self.isShaped():
-	raise StandardError,"%s.build_rigSkeleton>>> needs shapes to build rig skeleton"%self._strShortName
+    #>>> Get our pivots
+    #=============================================================
+    for pivot in __d_controlShapes__['pivot']:
+	l_buffer = self._i_templateNull.getMessage("pivot_%s"%pivot,False)
+	if not l_buffer:
+	    raise StandardError, "%s.build_shapes>>> Template null missing pivot: '%s'"%(self._strShortName,pivot)
+	log.info("pivot (%s) from template: %s"%(pivot,l_buffer))
+	#Duplicate and store the nulls
+	i_pivot = cgmMeta.validateObjArg(l_buffer)
+	i_trans = i_pivot.doDuplicateTransform(True)
+	i_trans.parent = False
+	self._i_rigNull.connectChildNode(i_trans,"pivot_%s"%pivot,'module')
+	
+    #Ball Joint pivot
+    i_ballJointPivot = self._i_module.rigNull.skinJoints[-1].doDuplicateTransform(True)#dup ball in place
+    i_ballJointPivot.parent = False
+    i_ballJointPivot.cgmName = 'ballJoint'
+    i_ballJointPivot.addAttr('cgmTypeModifier','pivot')
+    i_ballJointPivot.doName()
+    self._i_rigNull.connectChildNode(i_ballJointPivot,"pivot_ballJoint",'module')
+    
+    #Ball wiggle pivot
+    i_ballWigglePivot = i_ballJointPivot.doDuplicate(True)#dup ball in place
+    i_ballWigglePivot.parent = False
+    i_ballWigglePivot.cgmName = 'ballWiggle'
+    i_ballWigglePivot.doName()
+    self._i_rigNull.connectChildNode(i_ballWigglePivot,"pivot_ballWiggle",'module') 
     
     mi_toePivot = self._i_rigNull.pivot_toe or False 
     if not mi_toePivot:
@@ -210,6 +256,7 @@ def build_rigSkeleton(self):
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build ik joints fail!")
 	raise StandardError,error   
+    
     try:#>>IK PV chain
 	#=====================================================================	
 	ml_ikPVJoints = []
@@ -244,7 +291,8 @@ def build_rigSkeleton(self):
 	i_toeJoint.doName()
 	
 	i_toeJoint.parent = ml_ikJoints[-1].mNode
-	ml_ikJoints.append(i_toeJoint)	
+	ml_ikJoints.append(i_toeJoint)
+	
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build ik no flip joints fail!")
 	raise StandardError,error   
@@ -263,17 +311,38 @@ def build_rigSkeleton(self):
 		i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)
 		i_new.parent = False
 		i_new.doName()
-		#if ml_influenceJoints:#if we have data, parent to last
-		    #i_new.parent = ml_influenceJoints[-1]
-		#else:i_new.parent = False
 		i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
 		ml_influenceJoints.append(i_new)
-	
 	joints.doCopyJointOrient(ml_influenceJoints[-2].mNode,ml_influenceJoints[-1].mNode)
-	    
 	if len(ml_influenceJoints)!=3:
 	    raise StandardError,"%s.build_rigSkeleton>>> don't have 3 influence joints: '%s'"%(self._i_module.getShortName(),ml_influenceJoints)
 	    
+	#Make influence joints
+	l_influencePairs = lists.parseListToPairs(ml_influenceJoints)
+	ml_influenceChains = []
+	log.info(l_influencePairs)
+	for i,m_pair in enumerate(l_influencePairs):
+	    tmp_chain = [m_pair[0]]
+	    startIndex = ml_influenceJoints.index(m_pair[0])#index our start so we an insert our new joints
+	    log.info("%s.build_rigSkeleton>>> Splitting influence segment: 2 |'%s' >> '%s'"%(self._i_module.getShortName(),m_pair[0].getShortName(),m_pair[1].getShortName()))
+	    m_pair[1].parent = m_pair[0].mNode
+	    l_new_chain = joints.insertRollJointsSegment(m_pair[0].mNode,m_pair[1].mNode,1)
+	    log.info("%s.build_rigSkeleton>>> split chain: %s"%(self._i_module.getShortName(),l_new_chain))
+	    #Let's name our new joints
+	    for ii,jnt in enumerate(l_new_chain):
+		i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
+		i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
+		i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
+		i_jnt.doName()
+		tmp_chain.append(i_jnt)
+		ml_influenceJoints.insert(startIndex + ii + 1,i_jnt)
+	    tmp_chain.append(m_pair[1])#append to running list
+	    ml_influenceChains.append(tmp_chain)#append to influence chains
+	
+	for i_j in ml_influenceJoints:
+	    log.info(i_j.getShortName())
+		
+	#Figure out how we wanna store this, ml_influence joints 
 	for i_jnt in ml_influenceJoints:
 	    i_jnt.parent = False
     except StandardError,error:
@@ -333,8 +402,11 @@ def build_rigSkeleton(self):
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'anchorJoints','module')
 	for i,ml_chain in enumerate(ml_segmentChains):
-	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%sJoints'%i,'module')
-	    log.info("segment%sJoints>> %s"%(i,self._i_rigNull.getMessage('segment%sJoints'%i,False)))
+	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_Joints'%i,'module')
+	    log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.getMessage('segment%sJoints'%i,False)))
+	for i,ml_chain in enumerate(ml_influenceChains):
+	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_InfluenceJoints'%i,'module')
+	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.getMessage('segment%sInfluenceJoints'%i,False)))
 	    
 	log.info("anchorJoints>> %s"%self._i_rigNull.getMessage('anchorJoints',False))
 	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
@@ -946,7 +1018,7 @@ def build_deformation(self):
     l_segmentChains = []
     ml_segmentChains = []
     for i in range(50):
-	buffer = self._i_rigNull.getMessage('segment%sJoints'%i)
+	buffer = self._i_rigNull.getMessage('segment%s_Joints'%i)
 	if buffer:
 	    l_segmentChains.append(buffer)
 	    ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -1204,6 +1276,9 @@ def build_rig(self):
 
 @r9General.Timer
 def __build__(self, buildTo='',*args,**kws): 
+    """
+    For the leg, build order is skeleton first as we need our mid segment handle joints created to cast from
+    """
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1212,12 +1287,12 @@ def __build__(self, buildTo='',*args,**kws):
 	log.error("spine.build_deformationRig>>bad self!")
 	raise StandardError,error
     
+    if not self.isRigSkeletonized():
+	build_rigSkeleton(self)  
+    if buildTo.lower() == 'skeleton':return True    
     if not self.isShaped():
 	build_shapes(self)
     if buildTo.lower() == 'shapes':return True
-    if not self.isRigSkeletonized():
-	build_rigSkeleton(self)  
-    if buildTo.lower() == 'skeleton':return True
     build_controls(self)
     if buildTo.lower() == 'controls':return True    
     
