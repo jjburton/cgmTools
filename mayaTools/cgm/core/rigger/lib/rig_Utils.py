@@ -538,13 +538,15 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_aimStartNull = ml_jointList[0].duplicateTransform()
 	i_aimStartNull.addAttr('cgmType','aim',attrType='string',lock=True)
 	i_aimStartNull.doName()
-	i_aimStartNull.parent = i_anchorStart.mNode     
+	i_aimStartNull.parent = i_anchorStart.mNode   
+	i_aimStartNull.rotateOrder = 0
 	
 	#End Aim
 	i_aimEndNull = ml_jointList[-1].duplicateTransform()
 	i_aimEndNull.addAttr('cgmType','aim',attrType='string',lock=True)
 	i_aimEndNull.doName()
 	i_aimEndNull.parent = i_anchorEnd.mNode 
+	i_aimEndNull.rotateOrder = 0
 			    	
 	#=====================================
 	"""
@@ -589,11 +591,19 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	
 	#End
 	i_endUpNull = ml_jointList[-1].duplicateTransform()
-	i_endUpNull.parent = i_anchorEnd.mNode     
+	i_endUpNull.parent = i_anchorEnd.mNode     	
 	i_endUpNull.addAttr('cgmType','up',attrType='string',lock=True)
 	i_endUpNull.doName()
 	ml_rigObjects.append(i_endUpNull)
 	attributes.doSetAttr(i_endUpNull.mNode,'t%s'%orientation[1],baseDist)
+	
+	#Make our endorient fix
+	i_endUpOrientNull = i_anchorEnd.doDuplicateTransform(True)
+	i_endUpOrientNull.parent = i_anchorEnd.mNode
+	i_endUpOrientNull.addAttr('cgmType','upOrient',attrType='string',lock=True)
+	i_endUpOrientNull.doName()
+	i_endUpNull.parent = i_endUpOrientNull.mNode   
+	mc.orientConstraint(i_anchorStart.mNode,i_endUpOrientNull.mNode,maintainOffset = True, skip = [axis for axis in orientation[:-1]])
 	
 	#Parent the influenceJoints
 	ml_influenceJoints[0].parent = i_attachStartNull.mNode
@@ -636,18 +646,21 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     except StandardError,error:
 	log.error("createCGMSegment>>Joint anchor and loc build fail! | start joint: %s"%ml_jointList[0].getShortName())
 	raise StandardError,error 
-     
+    
+
     #======================================================================================= 
     try:#Constrain Nulls
 	cBuffer = mc.orientConstraint([i_anchorStart.mNode,i_aimStartNull.mNode],
 	                              i_attachStartNull.mNode,
 	                              maintainOffset = True, weight = 1)[0]
 	i_startOrientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+	i_startOrientConstraint.interpType = 0
 	
 	cBuffer = mc.orientConstraint([i_anchorEnd.mNode,i_aimEndNull.mNode],
 	                              i_attachEndNull.mNode,
 	                              maintainOffset = True, weight = 1)[0]
 	i_endOrientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+	i_endOrientConstraint.interpType = 0
 	
 	
     except StandardError,error:
