@@ -1063,6 +1063,8 @@ class go(object):
 	self.points = 8
 	self.rootRotate = None
 	self.rootOffset = None
+	self.midMeshCast = True
+	self.axisToCheck = [self._jointOrientation[1]]
 	d_kws = {}
 	l_objectsToDo = []
 	
@@ -1080,6 +1082,7 @@ class go(object):
 	             -1:{'closedCurve':False,'l_specifiedRotates':[-90,-60,-30,0,30,60,90],'rotateBank':-10}}
 	    
 	elif self._partType == 'leg':
+	    """Use influence joints to cast these"""
 	    l_objectsToDo = self.l_controlSnapObjects[:-1]
 	    self.posOffset = [0,0,self._skinOffset*2]
 	    self.points = 12
@@ -1091,26 +1094,29 @@ class go(object):
 	                        'rotateBank':[]},
 	             0:{'closedCurve':False,
 	                'rootOffset':[0,0,self._skinOffset*4]},
-	             -1:{'rootOffset':[0,self._skinOffset*4,0]}}
+	             -1:{'rootOffset':[0,0,-self._skinOffset*4]}}
 	    
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
 		d_kws['default']['aimAxis']= 'x+'			
 		d_kws[0]['l_specifiedRotates']=[-90,-60,-30,0,30,60,90]
-		d_kws[0]['rotateBank'] = -10
+		d_kws[0]['rotateBank'] = -5
 	    else:
 		self.aimAxis = 'x-'		
 		d_kws['default']['aimAxis']= 'x-'	
 		d_kws[0]['l_specifiedRotates']=[-90,-60,-30,0,30,60,90]
-		d_kws[0]['rotateBank'] = 10
-
-	if not l_objectsToDo:l_objectsToDo = self.l_controlSnapObjects
+		d_kws[0]['rotateBank'] = 5
+		
+	if self.ml_targetObjects:
+	    l_objectsToDo = [i_o.mNode for i_o in self.ml_targetObjects]
+	elif not l_objectsToDo:
+	    l_objectsToDo = self.l_controlSnapObjects
+	    
 	for i,obj in enumerate(l_objectsToDo):
 	    log.info(obj)
 	    if d_kws:
 		for k in d_kws['default'].keys():
 		    self.__dict__[k] = d_kws['default'].get(k)		
-
 		if d_kws.get(i):
 		    for k in d_kws[i].keys():
 			self.__dict__[k] = d_kws[i].get(k)
@@ -1125,11 +1131,11 @@ class go(object):
 	    log.info(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
 	    log.info(">>>>>>>>>> distance: %s"%self.maxDistance)
 	    #Few more special cases
-	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle']:
+	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle'] and not self.ml_targetObjects:
 		log.info('Special rotate mode')
 		self.rootRotate = [0,0,0]
 		self.latheAxis = 'y'	 
-		
+
 	    returnBuffer = createWrapControlShape(obj,self._targetMesh,
 	                                          points = 8,
 	                                          curveDegree=3,
@@ -1142,9 +1148,11 @@ class go(object):
 	                                          rootRotate = self.rootRotate,
 	                                          rootOffset = self.rootOffset,
 	                                          closedCurve = self.closedCurve,
+	                                          midMeshCast = self.midMeshCast,
 	                                          l_specifiedRotates = self.l_specifiedRotates,
 	                                          joinMode=self.joinMode,
-	                                          extendMode='disc')
+	                                          extendMode='disc',
+	                                          axisToCheck = self.axisToCheck)
 	    mi_crv = returnBuffer['instance']	    
 	    #>>> Color
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])                    
@@ -1248,8 +1256,10 @@ def createWrapControlShape(targetObjects,
                            l_specifiedRotates = None,
                            maxDistance = 1000,
                            closestInRange = True,
+                           midMeshCast = False,
                            rotateBank = None,
                            joinHits = None,#keys to processed hits to see what to join
+                           axisToCheck = ['x','y'],
                            ):#'segment,radial,disc' 
     """
     Function for creating control curves from other objects. Currently assumes z aim, y up
@@ -1282,7 +1292,8 @@ def createWrapControlShape(targetObjects,
     if len(aimAxis) == 2:single_aimAxis = aimAxis[0]
     else:single_aimAxis = aimAxis
     log.info("Single aim: %s"%single_aimAxis)
-    
+    log.info("createWrapControlShape>>> midMeshCast: %s"%midMeshCast)
+        
     #>>> Info
     l_groupsBuffer = []
     il_curvesToCombine = []
@@ -1300,7 +1311,7 @@ def createWrapControlShape(targetObjects,
     if rootRotate is not None and len(rootRotate):
 	log.info("rootOffset: %s"%rootRotate)	
 	mc.rotate(rootRotate[0],rootRotate[1],rootRotate[2], [mi_rootLoc.mNode], os = True)
-
+    
 	    
     #>>> Root
     mi_rootLoc.doGroup()#Group to zero    
@@ -1343,7 +1354,7 @@ def createWrapControlShape(targetObjects,
 		    log.info("segment lathe: %s"%latheAxis)
 		    log.info("segment aim: %s"%aimAxis)
 		    log.info("segment rotateBank: %s"%rotateBank)		    
-		    d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  	
+		    d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,midMeshCast=midMeshCast,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  	
 		    l_sliceReturns.append(d_endCastInfo)
 		    mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
 		    il_curvesToCombine.append(mi_end)
@@ -1353,7 +1364,7 @@ def createWrapControlShape(targetObjects,
 	    raise StandardError,"createWrapControlShape>>> segment wrap fail! | %s"%error
 	
     elif extendMode == 'radial':
-	    d_handleInner = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  
+	    d_handleInner = createMeshSliceCurve(targetGeo,mi_rootLoc,midMeshCast=midMeshCast,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
 	    mi_buffer = cgmMeta.cgmObject(d_handleInner['curve'])#instance curve	
 	    l_sliceReturns.append(d_handleInner)
 	    il_curvesToCombine.append(mi_buffer)    
@@ -1375,13 +1386,15 @@ def createWrapControlShape(targetObjects,
 	log.info("discOffset is: %s"%discOffset)
 	
 	mi_rootLoc.__setattr__('t%s'%latheAxis,discOffset)
-	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates) 
+	if posOffset:
+	    tmp_posOffset = [posOffset[0]*.5,posOffset[1]*.5,posOffset[2]*.5]
+	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,midMeshCast=midMeshCast,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = tmp_posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck) 
 	mi_buffer = cgmMeta.cgmObject(d_handleInnerUp['curve'])#instance curve	
 	l_sliceReturns.append(d_handleInnerUp)
 	il_curvesToCombine.append(mi_buffer) 
 	
 	mi_rootLoc.__setattr__('t%s'%latheAxis,-discOffset)
-	d_handleInnerDown = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank,  l_specifiedRotates = l_specifiedRotates) 
+	d_handleInnerDown = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,midMeshCast=midMeshCast,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = tmp_posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank,  l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck) 
 	mi_buffer = cgmMeta.cgmObject(d_handleInnerDown['curve'])#instance curve	
 	l_sliceReturns.append(d_handleInnerDown)
 	il_curvesToCombine.append(mi_buffer) 
@@ -1396,7 +1409,7 @@ def createWrapControlShape(targetObjects,
 	log.info("discOffset is: %s"%discOffset)
 	
 	mi_rootLoc.__setattr__('t%s'%latheAxis,discOffset)
-	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  
+	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,midMeshCast=midMeshCast,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
 	mi_buffer = cgmMeta.cgmObject(d_handleInnerUp['curve'])#instance curve	
 	l_sliceReturns.append(d_handleInnerUp)
 	il_curvesToCombine.append(mi_buffer) 
@@ -1422,7 +1435,7 @@ def createWrapControlShape(targetObjects,
     if extendMode == 'cylinder':
 	mi_rootLoc.__setattr__('t%s'%latheAxis,-discOffset)
 	
-    d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates)  
+    d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,midMeshCast=midMeshCast,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
     if extendMode == 'disc':
 	l_sliceReturns.insert(1,d_rootCastInfo)	
     else:
@@ -1518,8 +1531,9 @@ def createWrapControlShape(targetObjects,
 def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                          points = 12, curveDegree = 3, minRotate = None, maxRotate = None, rotateRange = None,
                          posOffset = 0, markHits = False,rotateBank = None, closedCurve = True, maxDistance = 1000,
-                         initialRotate = 0, offsetMode = 'vector', l_specifiedRotates = None, closestInRange = True,
-                         returnDict = False):
+                         initialRotate = 0, offsetMode = 'vector', midMeshCast = False,
+                         l_specifiedRotates = None, closestInRange = True,
+                         returnDict = False,axisToCheck = ['x','y'],**kws):
     """
     This function lathes an axis of an object, shoot rays out the aim axis at the provided mesh and returning hits. 
     it then uses this information to build a curve shape.
@@ -1549,6 +1563,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		return False
 
     log.debug("Casting: '%s"%mi_obj.mNode)
+    log.info("createMeshSliceCurve>>> midMeshCast: %s"%midMeshCast)    
     if type(mesh) in [list,tuple]:
 	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
 	mesh = mesh[0]
@@ -1580,13 +1595,18 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	log.debug("Bank rotate: %s"%l_axisCull)
 	bankAxis = l_axisCull[0]
 	
+    #midMeshCast
+    if midMeshCast:
+	axisToCheck = kws.get('axisToCheck') or [a for a in ['x','y','z'] if a != latheAxis]
+	Snap.go(mi_loc.parent,mesh,True,False,midSurfacePos=True, axisToCheck = axisToCheck)
+    
     #Rotate obj 
     mi_rotObj = mi_loc
     if rotateBank is not None and type(rotateBank) is not list:
 	rotateGroup = mi_loc.doGroup(True)
 	mi_rotObj = cgmMeta.cgmObject(rotateGroup)
 	mi_loc.__setattr__('rotate%s'%bankAxis.capitalize(),rotateBank)
-	    
+     
     #Figure out the rotateBaseValue
     if minRotate is not None:
 	rotateFloor = minRotate
