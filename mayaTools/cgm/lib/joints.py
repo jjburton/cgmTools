@@ -1515,15 +1515,21 @@ def makeJointControlSurfaceFish(startJoint,controlJointList,outChannel,name):
 
 
 def insertRollJointsSegment (start, end, number):
-    #props for this function go to John Doublestein who
-    #was the author in mel, I simply translated to python
-    #www.johndoublestein.com
-    cnt=1
-    i=0
+    """
+    props for this original idea of this go to John Doublestein who
+    was the author in mel, I simply translated to python
+    www.johndoublestein.com
+    
+    Heavily modified over time
+    """
+    if not number or type(number) not in [int,float]:
+        raise StandardError,"insertRollJointsSegment>>> must have an number. Arg: %s"%number
     rollChain = []
     """checks to see if 'end' is child of 'start'"""
-    checkChild = mc.listRelatives (start, c= True,type= 'joint' )
-    if end == checkChild[0]:
+    checkChild = search.returnChildrenJoints(start,False,True)
+    #checkChild = mc.listRelatives (start, c= True,type= 'joint' )
+    log.info("insertRollJointsSegment>>> childCheck: %s"%checkChild)
+    if mc.ls(end,l=True) == checkChild:
         """If it exists, get's the radius"""
         if mc.objExists (start+'.radi'):
             radius = mc.getAttr (start+'.radi')
@@ -1531,35 +1537,37 @@ def insertRollJointsSegment (start, end, number):
         """Creates curve between two joints to be recreated and from which our new positions will come"""
         startPos = mc.xform (start,q=True, ws=True, rp=True)
         endPos = mc.xform (end,q=True, ws=True, rp=True)
-        crvName = mc.curve (d=1, p = [(startPos[0], startPos[1], startPos[2]),(endPos[0], endPos[1], endPos[2])], k= [0,1], n=(start+'_to_'+end+'_crv'))
-
-        mc.rebuildCurve (crvName, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=(number+1), d=1, tol=0.001)
+        crvName = curves.curveFromObjList([start,end])
         mc.parent (crvName, start)
-
+        f_maxLen = float(mc.ls('%s.u[*]'%crvName,flatten=True)[0].split(':')[-1].split(']')[0])
+        f_factor = f_maxLen/(float(number) +1)
+        log.info("insertRollJointsSegment>>> maxLen: %s | factor: %s"%(f_maxLen,f_factor))
+        
         currentJoint = start
-        """While loop making joints for every cv except the last"""
-        while mc.objExists ('%s%s%i%s' % (crvName,'.cv[',cnt,']')):
-            jointPos = mc.pointPosition ('%s%s%i%s' % (crvName,'.cv[',cnt,']'),l=True)
-            """Checks for non '1' scales"""
+        
+        for i in range(number):
+            tmp_factor = (i+1)*f_factor
+            log.info("insertRollJointsSegment>>> i: %s | tmp factor: %s"%(i+1,tmp_factor))
+            jointPos = mc.pointPosition ('%s.u[%s]'%(crvName,tmp_factor),l=True)
+            #"""Checks for non '1' scales"""
             if mc.getAttr(currentJoint+'.scale')[0] != (1, 1, 1):        
                 mc.setAttr ('%s%s' % (currentJoint,'.sx'),1) 
                 mc.setAttr ('%s%s' % (currentJoint,'.sy'),1)         
                 mc.setAttr ('%s%s' % (currentJoint,'.sz'),1)     
                 log.info (currentJoint +' had scale value other that 1. Fixed.')
-            """Inserts our new joint, names it and positions it"""
+            #"""Inserts our new joint, names it and positions it"""
             catchName = mc.insertJoint (currentJoint)
             newName = mc.rename (catchName,('%s%s%i' % (start,'_Roll_',i)))
             mc.joint (newName, e=True,co=True,p=(jointPos[0],jointPos[1],jointPos[2]))
-            """Sets the radius of the joint and adds it to our return joint list"""
+            #"""Sets the radius of the joint and adds it to our return joint list"""
             if mc.objExists (newName):
                 mc.setAttr ((newName+'.radi'), radius)
-                currentJoint = ('%s%s%i' % (start,'_Roll_',i))
+                currentJoint = newName
                 rollChain.append (currentJoint)
-            cnt+=1
-            if (cnt == number+1):
-                break
-            i+=1
-        #mc.delete ('tempRollCrv')
+            #Copy the orientation
+            doCopyJointOrient(start,currentJoint)
+                
+        mc.delete (crvName)
         success = True
     else:
         log.info ('There can be no joints between your start and end')
