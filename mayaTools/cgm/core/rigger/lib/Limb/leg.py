@@ -118,11 +118,14 @@ def build_shapes(self):
 	
     log.info("%s.build_shapes>>> Influence Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_influenceChains),l_influenceChains))
     
-    return
+    
     #>>>Build our Shapes
     #=============================================================
     try:
-	l_toBuild = ['segmentIK','segmentFK_Loli','settings','midIK','foot']
+	mShapeCast.go(self._i_module,['segmentIK'],targetObjects = self._i_rigNull.influenceJoints , storageInstance=self)#This will store controls to a dict called    
+	
+	
+	l_toBuild = ['segmentFK_Loli','settings','midIK','foot']
 	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
 	log.info(self._md_controlShapes)
 	log.info(self._md_controlPivots)
@@ -130,6 +133,7 @@ def build_shapes(self):
 	self._i_rigNull.connectChildNode(self._md_controlShapes['midIK'],'shape_midIK','module')
 	self._i_rigNull.connectChildNode(self._md_controlShapes['settings'],'shape_settings','module')		
 	self._i_rigNull.connectChildNode(self._md_controlShapes['foot'],'shape_foot','module')
+	
 	
     except StandardError,error:
 	log.error("build_leg>>Build shapes fail!")
@@ -965,16 +969,14 @@ def build_controls(self):
 	raise StandardError,error
     
     #==================================================================    
-    try:#>>>> IK Segments
-	ml_segmentsIK = ml_segmentIKShapes
-	
-	for i_obj in ml_segmentsIK:
+    try:#>>>> IK Segments	
+	for i_obj in ml_segmentIK:
 	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='ik',
 		                                       setRotateOrder=2)       
 	    i_obj = d_buffer['instance']
 	    i_obj.masterGroup.parent = self._i_deformNull.mNode
-	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','module')
-	l_controlsAll.extend(ml_segmentsIK)	
+	self._i_rigNull.connectChildrenNodes(ml_segmentIK,'segmentHandles','module')
+	l_controlsAll.extend(ml_segmentIK)	
 	
 	
     except StandardError,error:
