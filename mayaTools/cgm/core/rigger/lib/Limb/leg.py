@@ -104,7 +104,7 @@ def build_shapes(self):
     i_ballWigglePivot.doName()
     self._i_rigNull.connectChildNode(i_ballWigglePivot,"pivot_ballWiggle",'module')    
 	""" 
-    #>>> Build our Mid Handle Shapes
+    #>>> Get our segment influence joints
     #=============================================================    
     l_influenceChains = []
     ml_influenceChains = []
@@ -122,9 +122,18 @@ def build_shapes(self):
     #>>>Build our Shapes
     #=============================================================
     try:
-	mShapeCast.go(self._i_module,['segmentIK'],targetObjects = self._i_rigNull.influenceJoints , storageInstance=self)#This will store controls to a dict called    
+	#Segment IK
+	ml_segmentIKShapes = []
+	for i,ml_chain in enumerate(ml_influenceChains):
+	    mShapeCast.go(self._i_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self)#This will store controls to a dict called    
+	    log.info("%s.build_shapes>>> segmentIK chain %s: %s"%(self._strShortName,i,self._md_controlShapes))
+	    ml_segmentIKShapes.extend(self._md_controlShapes['segmentIK'])
+	    
+	    self._i_rigNull.connectChildrenNodes(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,'module')		
 	
+	self._i_rigNull.connectChildrenNodes(ml_segmentIKShapes,'shape_segmentIK','module')		
 	
+	#Rest of it
 	l_toBuild = ['segmentFK_Loli','settings','midIK','foot']
 	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
 	log.info(self._md_controlShapes)
@@ -133,7 +142,6 @@ def build_shapes(self):
 	self._i_rigNull.connectChildNode(self._md_controlShapes['midIK'],'shape_midIK','module')
 	self._i_rigNull.connectChildNode(self._md_controlShapes['settings'],'shape_settings','module')		
 	self._i_rigNull.connectChildNode(self._md_controlShapes['foot'],'shape_foot','module')
-	
 	
     except StandardError,error:
 	log.error("build_leg>>Build shapes fail!")
@@ -303,7 +311,6 @@ def build_rigSkeleton(self):
 		
     try:#>>Influence chain
 	#=====================================================================		
-	ml_influenceJoints = []
 	ml_segmentHandleJoints = []#To use later as well
 	for i_ctrl in self._i_templateNull.controlObjects:
 	    if i_ctrl.getAttr('cgmName') in ['hip','knee','ankle']:
@@ -311,44 +318,60 @@ def build_rigSkeleton(self):
 		    raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
 		i_handle = i_ctrl.handleJoint
 		ml_segmentHandleJoints.append(i_handle)
-		i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
-		i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)
-		i_new.parent = False
-		i_new.doName()
-		i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
-		ml_influenceJoints.append(i_new)
-	joints.doCopyJointOrient(ml_influenceJoints[-2].mNode,ml_influenceJoints[-1].mNode)
-	if len(ml_influenceJoints)!=3:
-	    raise StandardError,"%s.build_rigSkeleton>>> don't have 3 influence joints: '%s'"%(self._i_module.getShortName(),ml_influenceJoints)
+
+	if len(ml_segmentHandleJoints)!=3:
+	    raise StandardError,"%s.build_rigSkeleton>>> don't have 3 influence joints: '%s'"%(self._i_module.getShortName(),ml_segmentHandleJoints)
 	    
 	#Make influence joints
-	l_influencePairs = lists.parseListToPairs(ml_influenceJoints)
+	l_influencePairs = lists.parseListToPairs(ml_segmentHandleJoints)
+	ml_influenceJoints = []
 	ml_influenceChains = []
 	log.info(l_influencePairs)
 	for i,m_pair in enumerate(l_influencePairs):
-	    tmp_chain = [m_pair[0]]
-	    startIndex = ml_influenceJoints.index(m_pair[0])#index our start so we an insert our new joints
+	    str_nameModifier = 'seg_%s'%i	    
+	    #tmp_chain = [m_pair[0]]
+	    tmp_chain = []
+	    #Make our base joints
+	    for ii,i_jnt in enumerate(m_pair):
+		i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
+		i_new.parent = False
+		i_new.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)
+		i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
+		if tmp_chain:
+		    i_new.parent = tmp_chain[-1].mNode
+		i_new.doName()
+		i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations    
+		tmp_chain.append(i_new)
+		
 	    log.info("%s.build_rigSkeleton>>> Splitting influence segment: 2 |'%s' >> '%s'"%(self._i_module.getShortName(),m_pair[0].getShortName(),m_pair[1].getShortName()))
-	    m_pair[1].parent = m_pair[0].mNode
-	    l_new_chain = joints.insertRollJointsSegment(m_pair[0].mNode,m_pair[1].mNode,1)
+	    l_new_chain = joints.insertRollJointsSegment(tmp_chain[0].mNode,tmp_chain[1].mNode,1)
 	    log.info("%s.build_rigSkeleton>>> split chain: %s"%(self._i_module.getShortName(),l_new_chain))
+	    ml_midJoints = []
 	    #Let's name our new joints
 	    for ii,jnt in enumerate(l_new_chain):
 		i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
 		i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
 		i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
+		i_jnt.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)		
+		i_jnt.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
 		i_jnt.doName()
-		tmp_chain.append(i_jnt)
-		ml_influenceJoints.insert(startIndex + ii + 1,i_jnt)
-	    tmp_chain.append(m_pair[1])#append to running list
-	    ml_influenceChains.append(tmp_chain)#append to influence chains
-	
+		ml_midJoints.append(i_jnt)
+		#ml_influenceJoints.insert(startIndex + ii + 1,i_jnt)
+	    ml_segmentChain = [tmp_chain[0]]
+	    ml_segmentChain.extend(ml_midJoints)
+	    ml_segmentChain.append(tmp_chain[-1])
+	    for i_j in ml_segmentChain:ml_influenceJoints.append(i_j)
+	    ml_influenceChains.append(ml_segmentChain)#append to influence chains
+    
 	for i_j in ml_influenceJoints:
 	    log.info(i_j.getShortName())
-		
+	    
+	joints.doCopyJointOrient(ml_influenceChains[-1][-2].mNode,ml_influenceChains[-1][-1].mNode)
+	
 	#Figure out how we wanna store this, ml_influence joints 
 	for i_jnt in ml_influenceJoints:
 	    i_jnt.parent = False
+    
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build influence joints fail!")
 	raise StandardError,error    
@@ -406,11 +429,13 @@ def build_rigSkeleton(self):
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'anchorJoints','module')
 	for i,ml_chain in enumerate(ml_segmentChains):
+	    log.info("segment chain: %s"%[i_j.getShortName() for i_j in ml_chain])
 	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_Joints'%i,'module')
-	    log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.getMessage('segment%sJoints'%i,False)))
+	    log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.getMessage('segment%s_Joints'%i,False)))
 	for i,ml_chain in enumerate(ml_influenceChains):
+	    log.info("influence chain: %s"%[i_j.getShortName() for i_j in ml_chain])	    
 	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_InfluenceJoints'%i,'module')
-	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.getMessage('segment%sInfluenceJoints'%i,False)))
+	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i,False)))
 	    
 	log.info("anchorJoints>> %s"%self._i_rigNull.getMessage('anchorJoints',False))
 	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
@@ -864,7 +889,17 @@ def build_controls(self):
 	log.info(self.__dict__['mi_%s'%shape] )"""
     ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_controlsFK'),cgmMeta.cgmObject)
     ml_segmentIK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_segmentIK'),cgmMeta.cgmObject)
-
+    #self._i_rigNull.connectChildrenNodes(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,'module')		
+    l_segmentIKChains = []
+    ml_segmentIKChains = []
+    for i in range(50):
+	buffer = self._i_rigNull.getMessage('shape_segmentIK_%s'%i)
+	if buffer:
+	    l_segmentIKChains.append(buffer)
+	    ml_segmentIKChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	else:
+	    break  
+	 
     mi_midIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
     mi_settings= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
     mi_foot= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_foot'),cgmMeta.cgmObject)
@@ -969,23 +1004,23 @@ def build_controls(self):
 	raise StandardError,error
     
     #==================================================================    
-    try:#>>>> IK Segments	
-	for i_obj in ml_segmentIK:
-	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='ik',
-		                                       setRotateOrder=2)       
-	    i_obj = d_buffer['instance']
-	    i_obj.masterGroup.parent = self._i_deformNull.mNode
-	self._i_rigNull.connectChildrenNodes(ml_segmentIK,'segmentHandles','module')
-	l_controlsAll.extend(ml_segmentIK)	
+    try:#>>>> IK Segments
+	for i,chain in enumerate(ml_segmentIKChains):
+	    ml_controlChain =[]
+	    for i_obj in chain:
+		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='ik',
+		                                           setRotateOrder=2)       
+		i_obj = d_buffer['instance']
+		i_obj.masterGroup.parent = self._i_deformNull.mNode
+		ml_controlChain.append(i_obj)
+	    self._i_rigNull.connectChildrenNodes(ml_controlChain,'segmentHandles_%s'%i,'module')
+	    l_controlsAll.extend(ml_controlChain)	
 	
 	
     except StandardError,error:
 	log.error("build_spine>>Build ik handle fail!")
 	raise StandardError,error
-    
-    
-    
-    
+
     #==================================================================
     #Connect all controls
     self._i_rigNull.connectChildrenNodes(l_controlsAll,'controlsAll')
@@ -1006,113 +1041,314 @@ def build_deformation(self):
 	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
-    #>>>Get data
-    ml_influenceJoints = self._i_rigNull.influenceJoints
-    ml_controlsFK =  self._i_rigNull.controlsFK    
-    ml_rigJoints = self._i_rigNull.rigJoints
-    ml_anchorJoints = self._i_rigNull.anchorJoints
-    #ml_segmentHandles = self._i_rigNull.segmentHandles
-
-    mi_controlIK = self._i_rigNull.controlIK
-    mi_controlMidIK = self._i_rigNull.midIK
+    #==========================================================================
+    try:#Info gathering
+	#segmentHandles_%s
+	#Get our segment controls
+	l_segmentHandleChains = []
+	ml_segmentHandleChains = []
+	for i in range(50):
+	    buffer = self._i_rigNull.getMessage('segmentHandles_%s'%i,False)
+	    if buffer:
+		l_segmentHandleChains.append(buffer)
+		ml_segmentHandleChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break    
+	log.info("%s.build_deformation>>> Segment Handles -- cnt: %s | lists: %s"%(self._strShortName,len(ml_segmentHandleChains),l_segmentHandleChains))
+	
+	#Get our segment joints
+	l_segmentChains = []
+	ml_segmentChains = []
+	for i in range(50):
+	    buffer = self._i_rigNull.getMessage('segment%s_Joints'%i)
+	    if buffer:
+		l_segmentChains.append(buffer)
+		ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break
+	log.info("%s.build_deformation>>> Segment Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_segmentChains),l_segmentChains))
+	if len(l_segmentChains)>2:
+	    raise StandardError, "%s.build_deformation>>> Too many segment chains, not a regular leg."%(self._strShortName)
+	
+	#>>>Influence Joints
+	l_influenceChains = []
+	ml_influenceChains = []
+	for i in range(50):
+	    buffer = self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i)
+	    if buffer:
+		l_influenceChains.append(buffer)
+		ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break  
+	log.info("%s.build_deformation>>> Influence Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_influenceChains),l_influenceChains))
+	if len(l_segmentChains)!=len(l_influenceChains):
+	    raise StandardError, "%s.build_deformation>>> Segment chains don't equal segment influence chains"%(self._strShortName)
+	
+	#>>>Get data
+	ml_controlsFK =  self._i_rigNull.controlsFK    
+	ml_rigJoints = self._i_rigNull.rigJoints
+	ml_anchorJoints = self._i_rigNull.anchorJoints
+	ml_blendJoints = self._i_rigNull.blendJoints
+	mi_settings = self._i_rigNull.settings
     
-    #Get our segment joints
-    l_segmentChains = []
-    ml_segmentChains = []
-    for i in range(50):
-	buffer = self._i_rigNull.getMessage('segment%s_Joints'%i)
-	if buffer:
-	    l_segmentChains.append(buffer)
-	    ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
-	else:
-	    break
-    log.info("%s.build_deformation>>> Segment Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_segmentChains),l_segmentChains))
-    if len(l_segmentChains)>2:
-	raise StandardError, "%s.build_deformation>>> Too many segment chains, not a regular leg."%(self._strShortName)
+	mi_controlIK = self._i_rigNull.controlIK
+	mi_controlMidIK = self._i_rigNull.midIK
+	
+	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+	
+    except StandardError,error:
+	log.error("%s.build_deformation>>> data gather fail!"%(self._strShortName))
+	raise StandardError,error
     
-    
-    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
-    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
-    
-    return
-
     #Control Segment
     #====================================================================================
+    ml_segmentCurves = []
+    ml_segmentReturns = []
+    ml_segmentJointChainsReset = []
     try:#Control Segment
 	log.info(self._jointOrientation)
 	capAim = self._jointOrientation[0].capitalize()
 	log.info("capAim: %s"%capAim)
-	i_startControl = ml_segmentHandles[0]
-	i_endControl = ml_segmentHandles[-1]
-	#Create segment
-	curveSegmentReturn = rUtils.createCGMSegment([i_jnt.mNode for i_jnt in ml_segmentJoints],
-	                                             addSquashStretch=True,
-	                                             addTwist=True,
-	                                             influenceJoints=[ml_influenceJoints[0],ml_influenceJoints[-1]],
-	                                             startControl=ml_segmentHandles[0],
-	                                             endControl=ml_segmentHandles[-1],
-	                                             orientation=self._jointOrientation,
-	                                             baseName=self._partName,
-	                                             moduleInstance=self._i_module)
-	
-	i_curve = curveSegmentReturn['mi_segmentCurve']
-	i_curve.parent = self._i_rigNull.mNode
-	self._i_rigNull.connectChildrenNodes([i_curve],'segmentCurves','module')
-	self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','module')	#Reconnect to reset. Duplication from createCGMSegment causes issues	
-	i_curve.segmentGroup.parent = self._i_rigNull.mNode
-	
-	"""
-	midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
-	                                           segmentCurve = i_curve,
-	                                           baseParent=ml_influenceJoints[0],
-	                                           endParent=ml_influenceJoints[-1],
-	                                           midControls=ml_segmentHandles[1],
-	                                           baseName=self._partName,
-	                                           orientation=self._jointOrientation)
-	
-	for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
-	    i_grp.parent = self._i_deformNull.mNode"""
+	for i,ml_segmentHandles in enumerate(ml_segmentHandleChains):
+	    i_startControl = ml_segmentHandles[0]
+	    i_endControl = ml_segmentHandles[-1]
+	    l_jointChain = [i_jnt.mNode for i_jnt in ml_segmentChains[i]]
+	    l_infuenceJoints = [ml_influenceChains[i][0].getShortName(),ml_influenceChains[i][-1].getShortName()]
+	    log.info("startControl: %s"%i_startControl.getShortName())
+	    log.info("endControl: %s"%i_endControl.getShortName())
+	    log.info("jointChain: %s"%l_jointChain)
+	    log.info("influenceJoints: %s"%l_infuenceJoints)
+	    str_baseName = self._partName+"_seg%s"%i
+	    str_segCount = "seg%s"%i
+	    #Create segment
+	    curveSegmentReturn = rUtils.createCGMSegment(l_jointChain,
+		                                         addSquashStretch=True,
+		                                         addTwist=True,
+		                                         influenceJoints=[l_infuenceJoints[0],l_infuenceJoints[-1]],
+		                                         startControl= i_startControl,
+		                                         endControl= i_endControl,
+		                                         orientation=self._jointOrientation,
+		                                         baseName = str_baseName,
+	                                                 moduleInstance=self._i_module)
 	    
-    except StandardError,error:
-	log.error("build_leg>>Control Segment build fail")
-	raise StandardError,error
-    
-    
-    try:#Setup top twist driver
-	#Create an fk additive attributes
-	str_curve = curveSegmentReturn['mi_segmentCurve'].getShortName()
-	#fk_drivers = ["%s.r%s"%(i_obj.mNode,self._jointOrientation[0]) for i_obj in ml_controlsFK]
-	"""fk_drivers = ["%s.r%s"%(i_obj.mNode,self._jointOrientation[0]) for i_obj in ml_controlsFK]	
-	NodeF.createAverageNode(fk_drivers,
-	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistSum"],1)#Raw fk twist
-	
-	try:NodeF.argsToNodes("%s.fkTwistResult = %s.fkTwistSum * %s.fkTwistInfluence"%(str_curve,str_curve,str_curve)).doBuild()
-	except StandardError,error:
-	    raise StandardError,"verify_moduleRigToggles>> fkwistResult node arg fail: %s"%error"""	
-	
-	drivers = ["%s.r%s"%(ml_segmentHandles[-1].mNode,self._jointOrientation[0])]
-	drivers.append("%s.r%s"%(mi_controlIK.mNode,self._jointOrientation[0]))
+	    ml_segmentReturns.append(curveSegmentReturn)
+	    
+	    i_curve = curveSegmentReturn['mi_segmentCurve']
+	    i_curve.parent = self._i_rigNull.mNode
+	    i_curve.segmentGroup.parent = self._i_rigNull.mNode
+	    ml_segmentCurves.append(i_curve)
+	    
+	    midReturn = rUtils.addCGMSegmentSubControl(ml_influenceChains[i][1],
+						       segmentCurve = i_curve,
+						       baseParent = l_infuenceJoints[0],
+						       endParent = l_infuenceJoints[-1],
+						       midControls = ml_segmentHandles[1].mNode,
+						       baseName = str_baseName,
+						       orientation = self._jointOrientation,
+	                                               moduleInstance=self._i_module)
+	    
+	    for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
+		i_grp.parent = self._i_deformNull.mNode
+		
+	    
+	    try:#We're gonna attach to the blend chain
+		mi_segmentAnchorStart = i_curve.anchorStart
+		mi_segmentAnchorEnd = i_curve.anchorEnd
+		mi_segmentAttachStart = i_curve.attachStart
+		mi_segmentAttachEnd = i_curve.attachEnd 
+		mi_distanceBuffer = i_curve.scaleBuffer
+	    
+		log.debug("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
+		log.debug("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
+		log.debug("mi_segmentAttachStart: %s"%mi_segmentAttachStart.mNode)
+		log.debug("mi_segmentAttachEnd: %s"%mi_segmentAttachEnd.mNode)
+		log.debug("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
+		
+		#>>> parent the anchors to the deform null
+		mi_segmentAnchorStart.parent =  self._i_deformNull.mNode
+		mi_segmentAnchorEnd.parent =  self._i_deformNull.mNode	
+		
+		#>>> parent constrain 
+		mc.parentConstraint( ml_blendJoints[i].mNode,mi_segmentAnchorStart.mNode,maintainOffset = True)
+		mc.parentConstraint( ml_blendJoints[i+1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset = True)
+		
+		#segment handles to influence parents
+		i_startControl.masterGroup.parent = ml_influenceChains[i][0].parent
+		i_endControl.masterGroup.parent = ml_influenceChains[i][-1].parent
+		
+		#Influence joint to segment handles		
+		ml_influenceChains[i][0].parent = i_startControl.mNode
+		ml_influenceChains[i][-1].parent = i_endControl.mNode	  
+		
+	    except StandardError,error:
+		log.error("%s.build_deformation>>> Failed to connect anchor: %s"%(self._strShortName,mi_segmentAnchorStart.getShortName()))
+		raise StandardError,error
+	    
 
-	NodeF.createAverageNode(drivers,
-	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
+	    str_twistOrientation = "r%s"%self._jointOrientation[0]
+	    #>>> Build fk and ik drivers
+	    """
+	    fk result = fk1 + fk2 + fk3 + -fk4
+	    ik result = ik.y + knee twist?
+	    Need sums, multiply by the fk/ikon
+	    """
+	    #>>> Setup a vis blend result
+	    mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon')	
+	    mPlug_IKon = cgmMeta.cgmAttr(mi_settings,'result_IKon')	
+	    
+	    #>>>Attrs
+	    mPlug_TwistStartResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStart'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    mPlug_TwistEndResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEnd'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    
+	    mPlug_TwistStartFKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStartFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    mPlug_TwistEndFKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEndFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    mPlug_TwistStartFKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistStartFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    mPlug_TwistEndFKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistEndFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    
+	    mPlug_TwistStartIKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStartIK'%str_segCount ,hidden=False, attrType='float' , defaultValue = 1 , lock = True)
+	    mPlug_TwistEndIKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEndIK'%str_segCount ,hidden=False, attrType='float' , defaultValue = 1 , lock = True)
+	    mPlug_TwistStartIKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistStartIK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    mPlug_TwistEndIKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistEndIK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+	    
+	    mPlug_InvertedAnkle = cgmMeta.cgmAttr(mi_settings,"result_invertAnkle" , attrType='float' , lock = True)
+	    mPlug_InvertedIKFoot = cgmMeta.cgmAttr(mi_settings,"result_invertIKFoot" , attrType='float' , lock = True)	    
+	    mPlug_InvertedKneeSpin = cgmMeta.cgmAttr(mi_settings,"result_invertKneeSpin" , attrType='float' , lock = True)
+	    mPlug_KneeSpinResult = cgmMeta.cgmAttr(mi_settings,"result_kneeSpinInfluence" , attrType='float' , lock = True,hidden=False)
+	    
+	    #Existing
+	    mPlug_kneeSpin = cgmMeta.cgmAttr(mi_controlIK,'kneeSpin',attrType='float')
+	    mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool')
+	    
+	    NodeF.argsToNodes("%s = -%s"%(mPlug_InvertedKneeSpin.p_combinedShortName,
+	                                  mPlug_kneeSpin.p_combinedShortName)).doBuild()    
+	    NodeF.argsToNodes("%s = -%s"%(mPlug_InvertedIKFoot.p_combinedShortName,
+	                                  "%s.ry"%(mi_controlIK.getShortName()))).doBuild()  
+	    
+	    NodeF.argsToNodes("%s = if %s == 0: %s else 0 "%(mPlug_KneeSpinResult.p_combinedShortName,
+	                                                     mPlug_showKnee.p_combinedShortName,
+	                                                     mPlug_InvertedKneeSpin.p_combinedShortName)).doBuild()    
+	    
+	    #Mid IK
+	    mPlug_midIKResult = cgmMeta.cgmAttr(mi_settings,'result_midIK',attrType='float',defaultValue = 0,keyable = True,hidden=False, lock = True)
+	    NodeF.argsToNodes("%s = %s * %s"%(mPlug_midIKResult.p_combinedShortName,
+	                                      mPlug_showKnee.p_combinedShortName,
+	                                      "%s.%s"%(mi_controlMidIK.getShortName(),str_twistOrientation))).doBuild()    
+	    
+	    #start twist driver
+	    l_startDrivers = ["%s.%s"%(i_startControl.getShortName(),str_twistOrientation)]
+	    l_startDrivers.append("%s"%mPlug_TwistStartFKResult.p_combinedShortName )
+	    l_startDrivers.append("%s"%mPlug_TwistStartIKResult.p_combinedShortName )	    
+	    l_fkStartDrivers = []
+	    l_ikStartDrivers = []
+	    for ii in range(i+1):
+		l_fkStartDrivers.append("%s.%s"%(ml_controlsFK[ii].getShortName(),str_twistOrientation))
+	    
+	    #end twist driver
+	    l_endDrivers = ["%s.%s"%(i_endControl.getShortName(),str_twistOrientation)]	    
+	    l_endDrivers.append("%s"%mPlug_TwistEndFKResult.p_combinedShortName )
+	    l_endDrivers.append("%s"%mPlug_TwistEndIKResult.p_combinedShortName )		    
+	    l_fkEndDrivers = []
+	    l_ikEndDrivers = []	    
+	    for ii in range(i+2):
+		if ml_controlsFK[ii].getAttr('cgmName') == 'ankle':
+		    #We need to invert our fk ankle
+		    arg = "%s = -%s.%s"%(mPlug_InvertedAnkle.p_combinedShortName,ml_controlsFK[ii].getShortName(),"r%s"%self._jointOrientation[1])
+		    NodeF.argsToNodes(arg).doBuild()
+		    l_fkEndDrivers.append("%s"%mPlug_InvertedAnkle.p_combinedShortName)
+		    #l_fkEndDrivers.append("%s.%s"%(ml_controlsFK[ii].getShortName(),"r%s"%self._jointOrientation[1]))
+		else:
+		    l_fkEndDrivers.append("%s.%s"%(ml_controlsFK[ii].getShortName(),str_twistOrientation))
+	    
+	    if i == 0:#if seg 0
+		l_ikEndDrivers.append(mPlug_midIKResult.p_combinedShortName)
+		l_ikEndDrivers.append(mPlug_KneeSpinResult.p_combinedShortName)
+		l_ikEndDrivers.append(mPlug_InvertedIKFoot.p_combinedShortName)		
+	    if i == 1:#if seg 1
+		l_ikStartDrivers.append(mPlug_midIKResult.p_combinedShortName)
+		l_ikStartDrivers.append(mPlug_KneeSpinResult.p_combinedShortName)
+		l_ikStartDrivers.append(mPlug_InvertedIKFoot.p_combinedShortName)##		
+		l_ikEndDrivers.append(mPlug_InvertedIKFoot.p_combinedShortName)
+		
+	    log.info("#>>> %s "%str_segCount+"="*70)
+	    log.info("startDrivers %s: %s"%(i,l_startDrivers))
+	    str_ArgStartDrivers_Result = "%s = %s"%(mPlug_TwistStartResult.p_combinedShortName," + ".join(l_startDrivers))
+	    log.info("start sum arg: '%s'"%(str_ArgStartDrivers_Result))
+	    NodeF.argsToNodes(str_ArgStartDrivers_Result).doBuild()		
+	    
+	    log.info("ikStart Drivers %s: %s"%(i,l_ikStartDrivers))
+	    if l_ikStartDrivers:
+		str_ArgIKStart_Sum = "%s = %s"%(mPlug_TwistStartIKSum.p_combinedShortName," + ".join(l_ikStartDrivers))
+		log.info("start IK sum arg: '%s'"%(str_ArgIKStart_Sum))
+		NodeF.argsToNodes(str_ArgIKStart_Sum).doBuild()		
+		str_ArgIKStart_Result = "%s = %s * %s"%(mPlug_TwistStartIKResult.p_combinedShortName,mPlug_TwistStartIKSum.p_combinedShortName,mPlug_IKon.p_combinedShortName)
+		log.info("start IK result arg: '%s'"%(str_ArgIKStart_Result))
+		NodeF.argsToNodes(str_ArgIKStart_Result).doBuild()		
+		
+	    log.info("fkStart Drivers %s: %s"%(i,l_fkStartDrivers))
+	    if l_fkStartDrivers:
+		str_ArgFKStart_Sum = "%s = %s"%(mPlug_TwistStartFKSum.p_combinedShortName," + ".join(l_fkStartDrivers))
+		log.info("start FK sum arg: '%s'"%(str_ArgFKStart_Sum))
+		NodeF.argsToNodes(str_ArgFKStart_Sum).doBuild()		
+		str_ArgFKStart_Result = "%s = %s * %s"%(mPlug_TwistStartFKResult.p_combinedShortName,mPlug_TwistStartFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
+		log.info("start FK result arg: '%s'"%(str_ArgFKStart_Result))
+		NodeF.argsToNodes(str_ArgFKStart_Result).doBuild()		
+		
+	    #><
+	    log.info("#"+"-"*70)
+	    log.info("endDrivers %s: %s"%(i,l_endDrivers))	    
+	    str_ArgEndDrivers = "%s = %s"%(mPlug_TwistEndResult.p_combinedShortName," + ".join(l_endDrivers))
+	    log.info("end sum arg: '%s'"%(str_ArgEndDrivers))	    
+	    log.info("ikEnd Drivers %s: %s"%(i,l_ikEndDrivers))
+	    NodeF.argsToNodes(str_ArgEndDrivers).doBuild()		
+	    
+	    if l_ikEndDrivers:
+		str_ArgIKEnd_Sum = "%s = %s"%(mPlug_TwistEndIKSum.p_combinedShortName," + ".join(l_ikEndDrivers))
+		log.info("end IK sum arg: '%s'"%(str_ArgIKEnd_Sum))
+		NodeF.argsToNodes(str_ArgIKEnd_Sum).doBuild()				
+		str_ArgIKEnd_Result = "%s = %s * %s"%(mPlug_TwistEndIKResult.p_combinedShortName,mPlug_TwistEndIKSum.p_combinedShortName,mPlug_IKon.p_combinedShortName)
+		log.info("end IK result arg: '%s'"%(str_ArgIKEnd_Result))
+		NodeF.argsToNodes(str_ArgIKEnd_Result).doBuild()				
+	    
+	    log.info("fkEnd Drivers %s: %s"%(i,l_fkEndDrivers))
+	    if l_fkEndDrivers:
+		str_ArgFKEnd_Sum = "%s = %s"%(mPlug_TwistEndFKSum.p_combinedShortName," + ".join(l_fkEndDrivers))
+		log.info("end FK sum arg: '%s'"%(str_ArgFKEnd_Sum))
+		NodeF.argsToNodes(str_ArgFKEnd_Sum).doBuild()				
+		str_ArgFKEnd_Result = "%s = %s * %s"%(mPlug_TwistEndFKResult.p_combinedShortName,mPlug_TwistEndFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
+		log.info("end FK result arg: '%s'"%(str_ArgFKEnd_Result))
+		NodeF.argsToNodes(str_ArgFKEnd_Result).doBuild()				
+	    
+	    log.info("#"+"="*70)
+	    mPlug_TwistStartResult.doConnectOut("%s.twistStart"%i_curve.mNode)
+	    mPlug_TwistEndResult.doConnectOut("%s.twistEnd"%i_curve.mNode)
+	    
+	    
+	    """
+	    NodeF.createAverageNode(l_endDrivers,
+		                    [i_curve.mNode,"twistEnd"],1)"""
+	return
+    except StandardError,error:
+	log.error("%s.build_deformation>>> Segment fail!"%(self._strShortName))
+	raise StandardError,error	    
+    #TODO
 	
-    except StandardError,error:
-	log.error("build_leg>>Top Twist driver fail")
-	raise StandardError,error
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+    #self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','module')	#Reconnect to reset. Duplication from createCGMSegment causes issues	
+    #self._i_rigNull.connectChildrenNodes(ml_segmentCurves,'segmentCurves','module')
     
-    try:#Setup bottom twist driver
-	log.info("%s.r%s"%(ml_segmentHandles[0].getShortName(),self._jointOrientation[0]))
-	drivers = ["%s.r%s"%(ml_segmentHandles[0].mNode,self._jointOrientation[0])]
-	drivers.append("%s.r%s"%(ml_controlsFK[0].mNode,self._jointOrientation[0]))
-
-	NodeF.createAverageNode(drivers,
-	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistStart"],1)
-    
-    except StandardError,error:
-	log.error("build_leg>>Bottom Twist driver fail")
-	raise StandardError,error
-    
-        
+    return
     #Push squash and stretch multipliers to head
     i_buffer = i_curve.scaleBuffer
     
