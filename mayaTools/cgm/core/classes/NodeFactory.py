@@ -54,11 +54,11 @@ def createAndConnectBlendColors(driverObj1, driverObj2, l_drivenObjs, driver = N
     mi_driver = False
     if d_driver:mi_driver = d_driver.get('mi_plug') or False
     if type(channels) not in [list,tuple]:channels = [channels]
-    log.info('driver1: %s'%mi_driverObj1.getShortName())
-    log.info('driver2: %s'%mi_driverObj2.getShortName())
-    log.info('driven: %s'%[i_o.getShortName() for i_o in ml_drivenObjs])
+    log.debug('driver1: %s'%mi_driverObj1.getShortName())
+    log.debug('driver2: %s'%mi_driverObj2.getShortName())
+    log.debug('driven: %s'%[i_o.getShortName() for i_o in ml_drivenObjs])
 
-    log.info('driver: %s'%mi_driver.p_combinedShortName)
+    log.debug('driver: %s'%mi_driver.p_combinedShortName)
     
     """
     if not len(mi_driverObj1) >= len(ml_drivenObj) or not len(mi_driverObj2) >= len(ml_drivenObj):
@@ -73,13 +73,13 @@ def createAndConnectBlendColors(driverObj1, driverObj2, l_drivenObjs, driver = N
     #>>> Actual meat
     #===========================================================
     for i,i_obj in enumerate(ml_drivenObjs):
-	log.info(i_obj)
+	log.debug(i_obj)
 	for channel in l_channels:
 	    i_node = cgmMeta.cgmNode(nodeType = 'blendColors')
 	    i_node.addAttr('cgmName',"%s_to_%s"%(mi_driverObj1.getShortName(),mi_driverObj2.getShortName()))
 	    i_node.addAttr('cgmTypeModifier',channel)
 	    i_node.doName()
-	    log.info("createAndConnectBlendColors>>> %s || %s = %s | %s"%(mi_driverObj1.getShortName(),
+	    log.debug("createAndConnectBlendColors>>> %s || %s = %s | %s"%(mi_driverObj1.getShortName(),
 	                                                             mi_driverObj2.getShortName(),
 	                                                             i_obj.getShortName(),channel))
 	    cgmMeta.cgmAttr(i_node,'color2').doConnectIn("%s.%s"%(mi_driverObj1.mNode,channel))
@@ -1166,16 +1166,25 @@ class argsToNodes(object):
 		
 		
 		if nodeType == 'condition':
+		    log.debug("d_arg: %s"%d_arg)
 		    if d_arg.get('True'):
+			d = verifyDriver(self,d_arg.get('True'))			
 			log.debug("True arg: %s"%d_arg.get('True'))
-			log.debug("True verified to: %s"%verifyDriver(self,d_arg.get('True')))	
-			mc.setAttr("%s.colorIfTrueR"%(i_node.mNode),verifyDriver(self,d_arg.get('True')))			
+			log.debug("True verified to: %s"%verifyDriver(self,d_arg.get('True')))
+			if issubclass(type(d),cgmMeta.cgmAttr):
+			    d.doConnectOut("%s.colorIfTrueR"%(i_node.mNode))			    			    
+			else:
+			    mc.setAttr("%s.colorIfTrueR"%(i_node.mNode),d)			
 			#i_node.colorIfTrueR = verifyDriver(self,d_arg.get('True'))
 		    else:i_node.colorIfTrueR = 1
 		    if d_arg.get('False'):
+			d = verifyDriver(self,d_arg.get('False'))
 			log.debug("False arg: %s"%d_arg.get('False'))
-			log.debug("False verified to: %s"%verifyDriver(self,d_arg.get('False')))						
-			mc.setAttr("%s.colorIfFalseR"%(i_node.mNode),verifyDriver(self,d_arg.get('False')))						
+			log.debug("False verified to: %s"%verifyDriver(self,d_arg.get('False')))	
+			if issubclass(type(d),cgmMeta.cgmAttr):
+			    d.doConnectOut("%s.colorIfFalseR"%(i_node.mNode))			    			    
+			else:
+			    mc.setAttr("%s.colorIfFalseR"%(i_node.mNode),d)						
 			#i_node.colorIfTrueR = verifyDriver(self,d_arg.get('False'))		    
 		    else:i_node.colorIfFalseR = 0
 		    
@@ -1442,11 +1451,11 @@ class build_conditionNetworkFromGroup(object):
 	    i_controlObject = cgmMeta.cgmNode(controlObject)
 	    self.i_attr = cgmMeta.cgmAttr(i_controlObject,chooseAttr,attrType = 'enum',initialValue = 1)
 	if self.buildNetwork(*args,**kws):
-	    log.info("Chooser Network good to go")
+	    log.debug("Chooser Network good to go")
 	
     def buildNetwork(self,*args,**kws):
-	if kws:log.info("kws: %s"%str(kws))
-	if args:log.info("args: %s"%str(args))
+	if kws:log.debug("kws: %s"%str(kws))
+	if args:log.debug("args: %s"%str(args))
 	
 	children = self.i_group.getChildren()
 	children.insert(0,'none')
@@ -1485,7 +1494,7 @@ class build_conditionNetworkFromGroup(object):
 		
 def createAverageNode(drivers,driven = None,operation = 3):
     #Create the mdNode
-    log.info(1)    
+    log.debug(1)    
     if type(drivers) not in [list,tuple]:raise StandardError,"createAverageNode>>> drivers arg must be list"
     l_driverReturns = []
     for d in drivers:
@@ -1496,18 +1505,18 @@ def createAverageNode(drivers,driven = None,operation = 3):
     
     if d_driven:
 	drivenCombined =  d_driven['combined']
-	log.info("drivenCombined: %s"%drivenCombined)
-    log.info(2)
+	log.debug("drivenCombined: %s"%drivenCombined)
+    log.debug(2)
     #Create the node
     i_pma = cgmMeta.cgmNode(mc.createNode('plusMinusAverage'))
     i_pma.operation = operation
     l_objs = []
     #Make our connections
     for i,d in enumerate(l_driverReturns):
-	log.info("Driver %s: %s"%(i,d['combined']))
+	log.debug("Driver %s: %s"%(i,d['combined']))
 	attributes.doConnectAttr(d['combined'],'%s.input1D[%s]'%(i_pma.mNode,i),True)
 	l_objs.append(mc.ls(d['obj'],sn = True)[0])#Get the name
-    log.info(3)
+    log.debug(3)
     
     i_pma.addAttr('cgmName',"_".join(l_objs),lock=True)	
     i_pma.addAttr('cgmTypeModifier','twist',lock=True)
