@@ -1092,20 +1092,19 @@ class go(object):
 	                        'rootRotate':None,
 	                        'rootOffset':[],
 	                        'rotateBank':[]},
-	             0:{'closedCurve':False,
-	                'rootOffset':[0,0,self._skinOffset*4]},
+	             0:{'rootOffset':[0,0,self._skinOffset*4]},
 	             -1:{'rootOffset':[0,0,-self._skinOffset*4]}}
 	    
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
-		d_kws['default']['aimAxis']= 'x+'			
-		d_kws[0]['l_specifiedRotates']=[-90,-60,-30,0,30,60,90]
-		d_kws[0]['rotateBank'] = -5
+		d_kws['default']['aimAxis']= 'x+'
+		#d_kws[0]['l_specifiedRotates']=[-60,-30,0,30,60]
+		d_kws[0]['rotateBank'] = -10
 	    else:
 		self.aimAxis = 'x-'		
-		d_kws['default']['aimAxis']= 'x-'	
-		d_kws[0]['l_specifiedRotates']=[-90,-60,-30,0,30,60,90]
-		d_kws[0]['rotateBank'] = 5
+		d_kws['default']['aimAxis']= 'x-'
+		#d_kws[0]['l_specifiedRotates']=[-60,-30,0,30,60]
+		d_kws[0]['rotateBank'] = 10
 		
 	if self.ml_targetObjects:
 	    l_objectsToDo = [i_o.mNode for i_o in self.ml_targetObjects]
@@ -1125,7 +1124,6 @@ class go(object):
 		    for k in d_kws[-1].keys():
 			self.__dict__[k] = d_kws[-1].get(k)
 
-		    
 	    log.info(">>>>>>>>>>>aim: %s"%self.aimAxis)
 	    log.info(">>>>>>>>>> lathe: %s"%self.latheAxis)
 	    log.info(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
@@ -1135,7 +1133,10 @@ class go(object):
 		log.info('Special rotate mode')
 		self.rootRotate = [0,0,0]
 		self.latheAxis = 'y'	 
-
+		
+	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['hip']:
+		self.l_specifiedRotates = [-40,-30,-15,0,15,30,40]
+		self.closedCurve = False
 	    returnBuffer = createWrapControlShape(obj,self._targetMesh,
 	                                          points = 8,
 	                                          curveDegree=3,
@@ -1520,8 +1521,8 @@ def createWrapControlShape(targetObjects,
     mc.delete(newCurve)
     
     #>>Copy tags and name
-    mi_crv.doCopyNameTagsFromObject(targetObjects[0],ignore = ['cgmType'])
-    mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve')
+    mi_crv.doCopyNameTagsFromObject(targetObjects[0],ignore = ['cgmType','cgmTypeModifier'])
+    mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
     mi_crv.doName()                
         
     #Store for return
