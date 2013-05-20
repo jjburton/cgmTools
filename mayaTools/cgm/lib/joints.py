@@ -39,7 +39,8 @@ from cgm.lib import nodes
 from cgm.lib import lists
 from cgm.lib.classes import NameFactory 
 from cgm.lib import curves
-
+from cgm.lib import cgmMath
+reload(cgmMath)
 
 def connectJointScalingBlendToMasterScale(mainDriverAttribute,jointList):
     import attributes
@@ -134,7 +135,7 @@ def setRotationOrderOnJoint (jnt, ro):
     return successRO
 
 # #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def orientJoint (jointToOrient, orientation = 'xyz', up = None):
+def orientJoint (jointToOrient, orientation = 'xyz', up = 'none'):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -153,11 +154,11 @@ def orientJoint (jointToOrient, orientation = 'xyz', up = None):
     orientationOptions = ['xyz','yzx','zxy','xzy','yxz','zyx','none']
     secondaryAxisOptions = ['xup','xdown','yup','ydown','zup','zdown','none']
     if not orientation in orientationOptions:
-        log.info (orientation + ' is not an acceptable orientation. Expected one of the following: %s'%orientation)
+        log.info (str(orientation) + ' is not an acceptable orientation. Expected one of the following: %s'%orientationOptions)
         log.info (orientationOptions)
         return False
     if up not in secondaryAxisOptions:
-        log.info (up + ' is not an acceptable second axis. Expected one of the following: %s'%secondaryAxisOptions)
+        log.info (str(up) + ' is not an acceptable second axis. Expected one of the following: %s'%secondaryAxisOptions)
         return False
     else:
         childJoint = mc.listRelatives(jointToOrient, type="joint", c=True)
@@ -211,21 +212,73 @@ def doCopyJointOrient(sourceJoint,targetJoints):
             
     #Orient
     for jnt in targetJoints:
+        mc.setAttr("%s.jointOrient"%jnt,0,0,0)
+        
         mc.delete(mc.orientConstraint(sourceJoint, jnt, w=1, o=(0,0,0)))
-        freezeJointOrientation(jnt)   
-       
+        rotate = mc.getAttr("%s.rotate"%jnt)
+        mc.setAttr("%s.jointOrient"%jnt,rotate[0][0],rotate[0][1],rotate[0][2])
+        mc.setAttr("%s.rotate"%jnt,0,0,0)
+        #freezeJointOrientation(jnt)   
+        
     #reparent
     for jnt in targetJoints:
         for c in d_children[jnt]:
             log.info("doCopyJointOrient>> parented '%s' back"%c)
             mc.parent(c,jnt)        
-   
+            
+def freezeJointOrientation(targetJoints):
+    """
+    Copies joint orietnations from one joint to others
+    """
+    if type(targetJoints) not in [list,tuple]:targetJoints=[targetJoints]
+
+    for jnt in targetJoints:
+        if not mc.objExists(jnt):
+            log.warning("freezeJointOrientation>> target joint doesn't exist. Culling from targets: '%s'"%jnt)
+            targetJoints.remove(jnt)
+        if mc.listRelatives(jnt,c=True,type='constraint'):
+            log.warning("freezeJointOrientation>> target joint has constraints. Can't change orientation. Culling from targets: '%s'"%jnt)
+            targetJoints.remove(jnt) 
+        if mc.objectType(jnt) != 'joint':
+            log.warning("freezeJointOrientation>> target joint is not a joint. Can't change orientation. Culling from targets: '%s'"%jnt)
+            targetJoints.remove(jnt)             
+    if not targetJoints:
+        raise StandardError,"freezeJointOrientation>> No targets"
+    
+    #buffer parents and children of 
+    d_children = {}
+    for jnt in targetJoints:
+        d_children[jnt] = mc.listRelatives(jnt, c=True) or []
+        for c in d_children[jnt]:
+            log.info("freezeJointOrientation>> parented '%s' to world to orient parent"%c)
+            mc.parent(c,world = True)      
+    #Orient
+    for jnt in targetJoints:
+        buffer = mc.duplicate(jnt,po=True,ic=False)[0]#Duplicate the 
+        #mc.joint(jnt, e=True, zeroScaleOrient=True)
+        #mc.makeIdentity(jnt, apply=True, t=0, r=1, s=0, n=0) 
+        
+        orientJoint(jnt,'zyx','yup')
+        l_rValue = [v for v in mc.getAttr("%s.rotate"%buffer)[0]]
+        l_joValue = [v for v in mc.getAttr("%s.jointOrient"%buffer)[0]]
+        l_added = cgmMath.list_add(l_rValue,l_joValue)
+        attributes.doSetAttr("%s"%jnt,"jointOrientX",l_added[0])
+        attributes.doSetAttr("%s"%jnt,"jointOrientY",l_added[1])
+        attributes.doSetAttr("%s"%jnt,"jointOrientZ",l_added[2])
+        mc.delete(buffer)
+
+    #reparent
+    for jnt in targetJoints:
+        for c in d_children[jnt]:
+            log.info("freezeJointOrientation>> parented '%s' back"%c)
+            mc.parent(c,jnt)   
+            
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def freezeJointOrientation(jointToOrient):
+def freezeJointOrientationOLD(jointToOrient):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     ACKNOWLEDGE:
-    Jose Antonio Martin Martin - JoseAntonioMartinMartin@gmail.com
+    Maya is infuriating
 
     DESCRIPTION:
     Freezes the joint orientation.
@@ -241,7 +294,7 @@ def freezeJointOrientation(jointToOrient):
     mc.makeIdentity(jointToOrient, apply=True, t=0, r=1, s=0, n=0)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def orientJointChain (jointList, orientation, up=None):
+def orientJointChain (jointList, orientation, up='none'):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
