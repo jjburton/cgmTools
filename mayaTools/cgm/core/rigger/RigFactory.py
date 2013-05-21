@@ -163,6 +163,20 @@ class go(object):
 	    
 	self._i_deformNull = self._i_module.deformNull
 	
+	#>>> Constrain Deform group for the module
+	#=========================================================	
+	if not self._i_module.getMessage('constrainNull'):
+	    #Make it and link it
+	    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+	    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+	    i_grp.addAttr('cgmName',self._partName,lock=True)
+	    i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
+	    i_grp.doName()
+	    i_grp.parent = self._i_deformNull.mNode
+	    self._i_module.connectChildNode(i_grp,'constrainNull','module')
+	    
+	self._i_constrainNull = self._i_module.constrainNull
+	
         #Make our stuff
 	self._md_controlShapes = {}
 	if self._partType in l_modulesDone:
@@ -204,6 +218,49 @@ class go(object):
 	    for subkey in self._shapesDict[key]:
 		self._i_rigNull.doRemove('%s_%s'%(key,subkey))
 	return True
+    
+    def getInfluenceChains(self):
+	#>>>Influence Joints
+	l_influenceChains = []
+	ml_influenceChains = []
+	for i in range(100):
+	    buffer = self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i)
+	    if buffer:
+		l_influenceChains.append(buffer)
+		ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break 
+	log.info("%s.getInfluenceChains>>> Segment Influence Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_influenceChains),l_influenceChains)) 		
+	return ml_influenceChains
+	
+    def getSegmentHandleChains(self):
+	l_segmentHandleChains = []
+	ml_segmentHandleChains = []
+	for i in range(50):
+	    buffer = self._i_rigNull.getMessage('segmentHandles_%s'%i,False)
+	    if buffer:
+		l_segmentHandleChains.append(buffer)
+		ml_segmentHandleChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break
+	log.info("%s.getSegmentHandleChains>>> Segment Handle Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_segmentHandleChains),l_segmentHandleChains)) 	
+	return ml_segmentHandleChains
+	
+    def getSegmentChains(self):
+	#Get our segment joints
+	l_segmentChains = []
+	ml_segmentChains = []
+	for i in range(50):
+	    buffer = self._i_rigNull.getMessage('segment%s_Joints'%i)
+	    if buffer:
+		l_segmentChains.append(buffer)
+		ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break
+	log.info("%s.getSegmentChains>>> Segment Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_segmentChains),l_segmentChains)) 
+	return ml_segmentChains
+
+
 
 def isBuildable(goInstance):
     if not issubclass(type(goInstance),go):
@@ -288,8 +345,29 @@ def bindJoints_connect(goInstance):
         attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
 	#scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
         #Scale constraint connect doesn't work
-
     
+    return True
+
+def bindJoints_connectToBlend(goInstance):
+    if not issubclass(type(goInstance),go):
+	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+	raise StandardError
+    self = goInstance#Link
+    
+    l_rigJoints = self._i_rigNull.getMessage('blendJoints') or False
+    l_skinJoints = self._i_rigNull.getMessage('skinJoints') or False
+    if len(l_skinJoints)!=len(l_rigJoints):
+	raise StandardError,"bindJoints_connectToBlend>> Blend/Skin joint chain lengths don't match: %s"%self._i_module.getShortName()
+    
+    for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
+	log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.blendJoints[i].getShortName(),i_jnt.getShortName()))
+	pntConstBuffer = mc.parentConstraint(self._i_rigNull.blendJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+	#pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
+	#orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
+        
+        attributes.doConnectAttr((self._i_rigNull.blendJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+	#scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
+        #Scale constraint connect doesn't work
     
     return True
 
