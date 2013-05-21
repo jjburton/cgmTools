@@ -720,9 +720,9 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    i_twistEndPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistEnd',attrType='float',keyable=True)
 	    capAim = orientation[0].capitalize()
 	    log.debug("capAim: %s"%capAim)
-	    d_twistReturn = addRibbonTwistToControlSurfaceSetup([i_jnt.mNode for i_jnt in ml_jointList],
-	                                                        [i_twistStartPlug.obj.mNode,i_twistStartPlug.attr],
-	                                                        [i_twistEndPlug.obj.mNode,i_twistEndPlug.attr]) 
+	    d_twistReturn = addRibbonTwistToControlSetup([i_jnt.mNode for i_jnt in ml_jointList],
+	                                                 [i_twistStartPlug.obj.mNode,i_twistStartPlug.attr],
+	                                                 [i_twistEndPlug.obj.mNode,i_twistEndPlug.attr],moduleInstance=moduleInstance) 
 	    
 	    #Connect resulting full sum to our last spline IK joint to get it's twist
 	    attributes.doConnectAttr(i_twistEndPlug.p_combinedName,"%s.rotate%s"%(ml_drivenJoints[-1].mNode,capAim))
@@ -1004,7 +1004,7 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
     
 @r9General.Timer
 def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None, 
-                       baseName ='test', connectBy = 'trans', moduleInstance = None):
+                       baseName = None, connectBy = 'trans', moduleInstance = None):
     """
     Stored meta data on completed segment:
     scaleBuffer
@@ -1027,11 +1027,14 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 		i_module = moduleInstance    
 		i_module = moduleInstance
 		i_rigNull = i_module.rigNull
-		baseName = i_module.getPartNameBase()
-		log.info('baseName set to module: %s'%baseName)	    
     except:
 	log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
 
+    if i_module:
+	if baseName is None:
+	    baseName = i_module.getPartNameBase()#Get part base name	    
+	    log.info('baseName set to module: %s'%baseName)	    	    
+    if baseName is None:baseName = 'testSegmentCurve'
     
     #Create our group
     i_grp = cgmMeta.cgmObject(name = 'newgroup')
@@ -1060,6 +1063,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     ml_driverJoints = []
     for i,j in enumerate(l_driverJoints):
 	i_j = cgmMeta.cgmObject(j,setClass=True)
+	i_j.doCopyNameTagsFromObject(ml_jointList[i].mNode,ignore=['cgmTypeModifier','cgmType'])
 	#i_j.addAttr('cgmName',baseName,lock=True)
 	i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
 	i_j.doName()
@@ -1209,6 +1213,8 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	log.debug("rotBuffer: %s"%rotBuffer)
 	#Create the poleVector
 	poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,l_iIK_handles[i].mNode)  	
+	IKHandle_fixTwist(l_iIK_handles[i])
+	"""
 	optionCnt = 0
 	while not cgmMath.isFloatEquivalent((mc.getAttr(i_jnt.mNode+'.r'+aimChannel)),0):
 	    log.debug("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
@@ -1217,7 +1223,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 	    optionCnt += 1
 	    if optionCnt == 4:
 		raise StandardError,"failed to find a good twist value to zero out poleVector: %s"%(i_jnt.getShortName())
-	    
+	    """
 	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
 	    log.debug("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
     
@@ -3017,10 +3023,10 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
     
         
 @r9General.Timer
-def addRibbonTwistToControlSurfaceSetup(jointList,
-                                        startControlDriver = None, endControlDriver = None,
-                                        rotateGroupAxis = 'rotateZ',
-                                        orientation = 'zyx', moduleInstance = None):
+def addRibbonTwistToControlSetup(jointList,
+                                 startControlDriver = None, endControlDriver = None,
+                                 rotateGroupAxis = 'rotateZ',
+                                 orientation = 'zyx', moduleInstance = None):
     """
     Implementing this ribbon method to or control surface setup:
     http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/
@@ -3128,7 +3134,7 @@ def addRibbonTwistToControlSurfaceSetup(jointList,
     upChannel = orientation[1].capitalize()
     aimChannel = orientation[0].capitalize()
     if len(jointList) <3:
-	raise StandardError,"addRibbonTwistToControlSurfaceSetup requires 3 joints to work" 
+	raise StandardError,"addRibbonTwistToControlSetup requires 3 joints to work" 
     
     #moduleInstance
     i_module = False
