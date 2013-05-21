@@ -247,31 +247,39 @@ def freezeJointOrientation(targetJoints):
     
     #buffer parents and children of 
     d_children = {}
+    targetJoints.reverse()
     for jnt in targetJoints:
         d_children[jnt] = mc.listRelatives(jnt, c=True) or []
-        for c in d_children[jnt]:
+        for i,c in enumerate(d_children[jnt]):
             log.info("freezeJointOrientation>> parented '%s' to world to orient parent"%c)
-            mc.parent(c,world = True)      
+            buffer = mc.parent(c,world = True)[0]#catch name
+            d_children[jnt][i] = buffer#push back
     #Orient
     for jnt in targetJoints:
         buffer = mc.duplicate(jnt,po=True,ic=False)[0]#Duplicate the 
-        #mc.joint(jnt, e=True, zeroScaleOrient=True)
-        #mc.makeIdentity(jnt, apply=True, t=0, r=1, s=0, n=0) 
-        
-        orientJoint(jnt,'zyx','yup')
-        l_rValue = [v for v in mc.getAttr("%s.rotate"%buffer)[0]]
-        l_joValue = [v for v in mc.getAttr("%s.jointOrient"%buffer)[0]]
+        mc.joint(jnt, e=True, zeroScaleOrient=True)
+        mc.makeIdentity(jnt, apply=True, t=0, r=1, s=0, n=0)
+        mc.delete(mc.orientConstraint(buffer, jnt, w=1, o=(0,0,0)))        
+        l_rValue = [v for v in mc.getAttr("%s.rotate"%jnt)[0]]
+        l_joValue = [v for v in mc.getAttr("%s.jointOrient"%jnt)[0]]
         l_added = cgmMath.list_add(l_rValue,l_joValue)
         attributes.doSetAttr("%s"%jnt,"jointOrientX",l_added[0])
         attributes.doSetAttr("%s"%jnt,"jointOrientY",l_added[1])
         attributes.doSetAttr("%s"%jnt,"jointOrientZ",l_added[2])
+        attributes.doSetAttr("%s"%jnt,"rotateX",0)
+        attributes.doSetAttr("%s"%jnt,"rotateY",0)
+        attributes.doSetAttr("%s"%jnt,"rotateZ",0)        
         mc.delete(buffer)
 
     #reparent
     for jnt in targetJoints:
         for c in d_children[jnt]:
             log.info("freezeJointOrientation>> parented '%s' back"%c)
-            mc.parent(c,jnt)   
+            mc.parent(c,jnt)
+            #Verify inverse scale
+            attributes.doConnectAttr("%s.scale"%jnt,"%s.inverseScale"%c)
+            
+    mc.select(targetJoints)
             
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def freezeJointOrientationOLD(jointToOrient):
