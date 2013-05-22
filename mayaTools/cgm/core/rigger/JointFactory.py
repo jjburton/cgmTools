@@ -266,10 +266,14 @@ def doSkeletonize(self):
         i_o.addAttr('mClass','cgmObject',lock=True) 
 	
     self.i_rigNull.skinJoints[0].doName(nameChildren=True,fastIterate=False)
+    
     #>>> Orientation    
     #=============== 
-    if not doOrientSegment(self):
-        raise StandardError,"Segment orientation failed"    
+    try:
+	if not doOrientSegment(self):
+	    raise StandardError, "Orient failed"
+    except StandardError,error:
+        raise StandardError,"Segment orientation failed: %s"%error    
     
     #>>> Set its radius and toggle axis visbility on
     #averageDistance = distance.returnAverageDistanceBetweenObjects (l_limbJoints)
@@ -320,8 +324,8 @@ def doOrientSegment(self):
             mc.delete (constBuffer[0])  
 	    #Push rotate to jointOrient
 	    i_jnt = cgmMeta.cgmObject(l_cull[0])
-	    i_jnt.jointOrient = i_jnt.rotate
-	    i_jnt.rotate = [0,0,0]
+	    ##i_jnt.jointOrient = i_jnt.rotate
+	    ##i_jnt.rotate = [0,0,0]
 	    
     else:#Normal mode
         log.debug('Normal orient mode')        
@@ -341,7 +345,7 @@ def doOrientSegment(self):
             i_jnt.parent = False
             i_jnt.displayLocalAxis = 1#tmp
 	    #Reset the jointRotate before orientating
-	    i_jnt.jointOrient = [0,0,0]	    
+	    ##i_jnt.jointOrient = [0,0,0]	    
 	    #Set rotateOrder
             try:
 		#i_jnt.rotateOrder = 2
@@ -375,8 +379,7 @@ def doOrientSegment(self):
 			ml_skinJoints[index].parent = ml_skinJoints[index-1].mNode
 			ml_skinJoints[index].rotate  = [0,0,0]			
 			ml_skinJoints[index].jointOrient  = [0,0,0]
-			#mc.makeIdentity(ml_skinJoints[index].mNode,apply=True,r=True,jointOrient=True)
-			#joints.freezeJointOrientation(ml_skinJoints[index].mNode)
+
 		    log.debug("%s aim to %s"%(ml_skinJoints[index].mNode,ml_skinJoints[index+1].mNode))
 		    constraintBuffer = mc.aimConstraint(ml_skinJoints[index+1].mNode,ml_skinJoints[index].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
 		    mc.delete(constraintBuffer[0])
@@ -396,9 +399,7 @@ def doOrientSegment(self):
 		i_jnt.parent = self.i_rigNull.skinJoints[segment[0]-1].mNode
 		i_jnt.jointOrient  = [0,0,0]
 		ml_skinJoints[index].rotate  = [0,0,0]					
-		#joints.freezeJointOrientation(i_jnt.mNode)
-		#mc.makeIdentity(i_jnt.mNode,apply=True,r=True,jointOrient=True)
-		
+
                 aimLoc = locators.locMeObject(segmentHelper)
                 aimLocGroup = rigging.groupMeObject(aimLoc)
                 mc.move (0,0,10, aimLoc, localSpace=True)
@@ -411,11 +412,12 @@ def doOrientSegment(self):
 		i_jnt.rotate = [0,0,0]		
                	
         #>>>Reconnect the joints
-	"""
         for cnt,i_jnt in enumerate(self.i_rigNull.skinJoints[1:]):#parent each to the one before it
-            i_jnt.parent = self.i_rigNull.skinJoints[cnt].mNode"""
+            i_jnt.parent = self.i_rigNull.skinJoints[cnt].mNode
+	    i_p = cgmMeta.cgmObject(i_jnt.parent)
+	    #Verify inverse scale connection
+	    cgmMeta.cgmAttr(i_jnt,"inverseScale").doConnectIn("%s.scale"%i_p.mNode)
 
-    
     if self.m.moduleType in ['foot']:
         log.debug("Special case orient")
         if len(self.i_rigNull.getMessage('skinJoints')) > 1:
@@ -431,8 +433,14 @@ def doOrientSegment(self):
 		self.i_rigNull.skinJoints[1].rotate = [0,0,0]        
     
     """ Freeze the rotations """
-    joints.freezeJointOrientation(self.i_rigNull.getMessage('skinJoints',False))    
-    #mc.makeIdentity(self.i_rigNull.skinJoints[0].mNode,apply=True,r=True)
+    #Copy 
+    metaFreezeJointOrientation(self.i_rigNull.skinJoints,self.jointOrientation)   
+    
+    for i,i_jnt in enumerate(self.i_rigNull.skinJoints):
+	log.info(i_jnt.getAttr('cgmName'))
+	if i_jnt.getAttr('cgmName') in ['ankle']:
+	    log.info("Copy orient from parent mode: %s"%i_jnt.getShortName())
+	    joints.doCopyJointOrient(i_jnt.parent,i_jnt.mNode)    
     return True
 
 
@@ -602,6 +610,58 @@ def storeTemplateRootParent(moduleNull):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
 #>>> Tools    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def metaFreezeJointOrientation(targetJoints,orientation):
+    """
+    Copies joint orietnations from one joint to others
+    """
+    if type(targetJoints) not in [list,tuple]:targetJoints=[targetJoints]
+
+    ml_targetJoints = cgmMeta.validateObjListArg(targetJoints,cgmMeta.cgmObject)
+    for i_jnt in ml_targetJoints:
+	if i_jnt.getConstraintsTo():
+            log.warning("freezeJointOrientation>> target joint has constraints. Can't change orientation. Culling from targets: '%s'"%i_jnt.getShortName())
+	    return False
+	if i_jnt.getMayaType() != 'joint':
+            log.warning("freezeJointOrientation>> target joint is not a joint. Can't change orientation. Culling from targets: '%s'"%i_jnt.getShortName())
+	    return False
+	
+    #buffer parents and children of 
+    d_children = {}
+    for i_jnt in ml_targetJoints:
+        d_children[i_jnt] = cgmMeta.validateObjListArg( mc.listRelatives(i_jnt.mNode, path=True, c=True),cgmMeta.cgmObject,True) or []
+        for i,i_c in enumerate(d_children[i_jnt]):
+	    log.info(i_c.getShortName())
+            log.info("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
+            i_c.parent = False
+	    
+    #Orient
+    for i_jnt in ml_targetJoints:
+	buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the 
+	i_dup = cgmMeta.cgmObject(buffer)
+        mc.delete(mc.orientConstraint(buffer, i_jnt.mNode, w=1, o=(0,0,0)))        
+	
+        l_rValue = i_dup.rotate
+	l_joValue = i_dup.jointOrient
+        l_added = cgmMath.list_add(l_rValue,l_joValue)
+	i_jnt.jointOrientX = l_added[0]
+	i_jnt.jointOrientY = l_added[1]
+	i_jnt.jointOrientZ = l_added[2]
+	i_jnt.rotate = [0,0,0]
+        i_dup.delete()
+	
+    
+    #reparent
+    for i_jnt in ml_targetJoints:
+        for i_c in d_children[i_jnt]:
+            log.info("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
+            i_c.parent = i_jnt.mNode 
+	    cgmMeta.cgmAttr(i_c,"inverseScale").doConnectIn("%s.scale"%i_jnt.mNode )
+
+
+
+
+
+
 def orientSegment(l_limbJoints,posTemplateObjects,orientation):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
