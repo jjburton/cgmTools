@@ -457,6 +457,28 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
 	i_masterControl.addAttr('cgmAlias','world',lock = True)
 	
+	
+	#>>> Skeleton Group
+	#=====================================================================	
+	if not self.masterNull.getMessage('skeletonGroup'):
+	    #Make it and link it
+	    i_grp = i_masterControl.doDuplicateTransform()
+	    i_grp.doRemove('cgmName')
+	    i_grp.addAttr('mClass','cgmObject',lock=True)	    
+	    i_grp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+	    i_grp.parent = i_masterControl.mNode
+	    self.masterNull.connectChildNode(i_grp,'skeletonGroup','module')
+	    
+	    i_grp.doName()
+	    
+	self._i_skeletonGroup = self.masterNull.skeletonGroup	
+
+	#Verify the connections
+	self._i_skeletonGroup.overrideEnabled = 1             
+	cgmMeta.cgmAttr(i_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(self._i_skeletonGroup.mNode,'overrideVisibility'))    
+	cgmMeta.cgmAttr(i_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(self._i_skeletonGroup.mNode,'overrideDisplayType'))    
+	    
+	
 	#>>>Connect some flags
 	#=====================================================================
 	i_geoGroup = self.masterNull.geoGroup
