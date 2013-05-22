@@ -359,6 +359,8 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if shapeParentTo:
 	    i_target = cgmMeta.validateObjArg(shapeParentTo,cgmMeta.cgmObject)
 	    curves.parentShapeInPlace(i_target.mNode,i_control.mNode)
+	    i_target.addAttr('mClass','cgmControl',lock=True)
+	    i_target = cgmMeta.cgmControl(i_target.mNode)
 	    #i_control.delete()
 	    i_control = i_target#replace the control with the joint
 	    
@@ -389,9 +391,12 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     	
     #>>>Add aiming info
     #====================================================
-    if aim is not None or up is not None or makeAimable:
-	i_control._verifyAimable()
-	    
+    try:
+	if aim is not None or up is not None or makeAimable:
+	    i_control._verifyAimable()
+    except StandardError,error:
+	log.error("ModuleControlFactory.registerControl>> '%s' make aimable fail"%str_shortName)
+	raise StandardError,error   
     #>>>Rotate Order
     #====================================================   
     if setRotateOrder is not None:
