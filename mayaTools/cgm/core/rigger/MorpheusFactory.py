@@ -88,9 +88,9 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
 #This is the template settings info
 d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':1},
                             'neckHead':{'handles':2,'rollOverride':'{}','curveDegree':2,'rollJoints':3},
-                            'leg':{'handles':4,'rollOverride':'{"-1":0}','curveDegree':1,'rollJoints':2},
+                            'leg':{'handles':4,'rollOverride':'{"-1":0}','curveDegree':1,'rollJoints':3},
                             'foot':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
-                            'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':2},
+                            'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
                             'hand':{'handles':1,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'thumb':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
                             'finger':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
