@@ -237,6 +237,16 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return attributes.returnMessageData(self.mNode,attr,longNames) or []
 	return []
     
+    def getMessageInstance(self,attr):
+	"""
+	This is for when you need to build a attr name in 
+	"""
+	buffer = self.getMessage(attr)
+	if len(buffer) == 1:
+	    return validateObjArg(self.getMessage(attr)) or False
+	else:
+	    return validateObjListArg(self.getMessage(attr)) or False	    
+    
     def getComponent(self):
 	"""
 	Replacement mNode call for component mode
@@ -565,10 +575,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	return nameTools.returnObjectGeneratedNameDict(self.mNode) or {}  
     
     def getNameAlias(self):
-	if self.hasAttr('cgmAlias'):
+	if self.getAttr('cgmAlias'):
 	    return self.cgmAlias
-	return nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
-    
+	buffer =  nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
+	if buffer:return buffer
+	else:return self.getBaseName()
+	
     def getTransform(self):
 	"""Find the transform of the object"""
 	buffer = mc.ls(self.mNode, type = 'transform') or False
@@ -613,13 +625,15 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	l_targetAttrs = mc.listAttr(target,**kws)
 	for a in mc.listAttr(self.mNode,**kws):
 	    try:
+		#log.info("Checking %s"%a)
 		selfBuffer = attributes.doGetAttr(self.mNode,a)
 		targetBuffer = attributes.doGetAttr(target,a)
 		if a in l_targetAttrs and selfBuffer != targetBuffer:
 		    log.debug("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
 	    except StandardError,error:
 		log.debug(error)	
-		log.warning("'%s.%s'couldn't query"%(self.mNode,a))	    
+		log.warning("'%s.%s'couldn't query"%(self.mNode,a))
+	return True
 	    
     #@r9General.Timer
     def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,**kws):
@@ -2013,7 +2027,344 @@ class cgmOptionVar(object):
 		log.warning("'%s' removed from '%s'"%(item,self.name))
 		
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-# cgmDynamicGroup
+# cgmDynamicMatch
+#=========================================================================
+class cgmDynamicMatch(cgmObject):
+    def __init__(self,node = None, name = None, dynNull = None,dynSuffix = None,
+                 dynMatchTargets = None, dynObject = None,
+                 dynMode = None, setClass = False,*args,**kws):
+        """ 
+        Dynamic Match Setup. Inspiration for this comes from Jason Schleifer's great AFR work. Retooling for our own purposes.
+        The basic idea is a class based match setup for matching fk ik or whatever kind of matching that needs to happen.
+	
+	There are two kinds of match types: MatchTargets and SnapTargets.
+	A MatchTarget setup creates a match object from our dynObject to match to,
+	a SnapTarget is just a mappting to give an exisitng transform to snap to
+        
+        Keyword arguments:
+        dynMatchTargets(list) -- list of match targets
+        mode(list) -- parent/follow/orient
+        """
+	if dynSuffix is not None:
+	    str_dynMatchDriverPlug = 'dynMatchDriver_%s'%str(dynSuffix)    
+	    str_suffix = str(dynSuffix)
+	else:
+	    str_dynMatchDriverPlug = 'dynMatchDriver'  
+	
+    
+	def _isNullValidForObject(obj,null):
+	    """
+	    To pass a null in the initialzation as the null, we need to check a few things
+	    """
+	    i_object = validateObjArg(obj,cgmObject,noneValid=True)
+	    i_null = validateObjArg(null,cgmDynamicMatch,noneValid=True)
+	    if not i_object or not i_null:#1) We need args
+		return False
+	    if i_object.hasAttr(str_dynMatchDriverPlug):#3) the object is already connected
+		if i_obj.getMessageInstance(str_dynMatchDriverPlug) != i_null:
+		    log.info("cgmDynamicMatch.isNullValidForObject>> Object already has dynMatchDriver: '%s'"%i_object.getMessage(str_dynMatchDriverPlug))
+		    return False
+		else:
+		    return True
+	    return True	
+	
+        ### input check  
+        log.info("In cgmDynamicMatch.__init__ node is '%s'"%node)
+	i_dynObject = validateObjArg(dynObject,cgmObject,noneValid=True)
+	i_argDynNull = validateObjArg(dynNull,cgmDynamicMatch,noneValid=True)
+	log.info("i_dynObject: %s"%i_dynObject)
+	__justMade__ = False
+	
+	#TODO allow to set dynNull
+	if i_dynObject:
+	    pBuffer = i_dynObject.getMessage(str_dynMatchDriverPlug) or False
+	    log.info("pBuffer: %s"%pBuffer)
+	    if pBuffer:
+		node = pBuffer[0]
+	    elif _isNullValidForObject( i_dynObject,i_argDynNull):
+		log.info("cgmDynamicMatch.__init__>>Null passed and valid")
+		node = i_argDynNull.mNode
+		__justMade__ = False		
+	    else:#we're gonna make a null
+		i_node = i_dynObject.doDuplicateTransform()
+		i_node.addAttr('mClass','cgmDynamicMatch')
+		node = i_node.mNode
+		__justMade__ = True
+	
+	super(cgmDynamicMatch, self).__init__(node = node,name = name,nodeType = 'transform') 
+	
+	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
+	self.UNMANAGED.extend(['arg_ml_dynMatchTargets','_mi_dynObject','_str_dynMatchDriverPlug','d_indexToAttr','l_dynAttrs'])
+	if i_dynObject:self._mi_dynObject = i_dynObject
+	else:self._mi_dynObject = False
+	    
+	if kws:log.info("kws: %s"%str(kws))
+	if args:log.info("args: %s"%str(args)) 	
+	doVerify = kws.get('doVerify') or False
+	self._str_dynMatchDriverPlug = str_dynMatchDriverPlug
+	
+	arg_ml_dynMatchTargets = validateObjListArg(dynMatchTargets,cgmObject,noneValid=True)
+	log.info("arg_ml_dynMatchTargets: %s"%arg_ml_dynMatchTargets)
+	
+        if not self.isReferenced():
+	    if not self.__verify__(*args,**kws):
+		raise StandardError,"cgmDynamicMatch.__init__>> failed to verify!"
+	    
+	log.info("cgmDynamicMatch.__init__>> dynMatchTargets: %s"%self.getMessage('dynMatchTargets',False))
+	for p in arg_ml_dynMatchTargets:
+	    log.info("Adding dynMatchTarget: %s"%p.mNode)
+	    self.addDynMatchTarget(p)
+	    
+	if __justMade__ and i_dynObject and arg_ml_dynMatchTargets:
+	    self.addDynObject(i_dynObject)
+	    #self.rebuild()
+	    
+	log.info("self._str_dynMatchDriverPlug>> '%s'"%self._str_dynMatchDriverPlug)
+	
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # functions
+    #======================================================================
+    def __verify__(self,*args,**kws):
+	if self.hasAttr('mClass') and self.mClass!='cgmDynamicMatch':
+	    raise StandardError, "cgmDynamicMatch.__verify__>> This object has a another mClass and setClass is not set to True"
+	#Check our attrs
+	if self._mi_dynObject:
+	    self.addDynObject(self._mi_dynObject)
+	self.addAttr('mClass','cgmDynamicMatch',lock=True)#We're gonna set the class because it's necessary for this to work
+	self.addAttr('cgmType','dynMatchDriver',lock=True)#We're gonna set the class because it's necessary for this to work
+	
+        self.addAttr('dynObject',attrType = 'messageSimple',lock=True)
+        self.addAttr('dynMatchTargets',attrType = 'message',lock=True)
+	self.addAttr('dynDrivers',attrType = 'message',lock=True)
+	self.addAttr('dynHiddenSwitch',attrType = 'bool')
+	self.addAttr('dynPrematch',attrType = 'string',lock=True)
+	self.addAttr('dynIterate',attrType = 'string',lock=True)
+	
+	#Unlock all transform attriutes
+	for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+	    cgmAttr(self,attr,lock=False)
+	self.doName()
+	return True
+    
+    def rebuild(self,*a,**kw):
+        """ Rebuilds the buffer data cleanly """ 
+	log.info("rebuild>>>")
+	#Must have at least 2 targets
+	if len(self.dynMatchTargets)<2:
+	    log.error("cgmDynamicMatch.rebuild>> Need at least two dynMatchTargets. Build failed: '%s'"%self.getShortName())
+	    return False
+	i_object = validateObjArg(self.getMessage('dynObject')[0],cgmObject,noneValid=False)
+	
+	#TODO First scrub nodes and what not
+	
+	#Check our attrs
+	d_attrBuffers = {}
+	for a in self.l_dynAttrs:
+	    if i_object.hasAttr(a):#we probably need to index these to the previous settings in case order changes
+		d_attrBuffers[a] = attributes.doGetAttr(i_object.mNode,a)
+	    if a not in d_DynMatchTargetNullModeAttrs[self.dynMode]:
+		attributes.doDeleteAttr(i_object.mNode,a)
+	if d_attrBuffers:log.info("d_attrBuffers: %s"%d_attrBuffers)
+	
+	l_parentShortNames = [cgmNode(o).getNameAlias() for o in self.getMessage('dynMatchTargets')]
+	log.info("parentShortNames: %s"%l_parentShortNames)
+	
+	for a in d_DynMatchTargetNullModeAttrs[self.dynMode]:
+	    i_object.addAttr(a,attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+	
+	#Make our nulls
+	#One per parent, copy parent transform
+	#Make our attrs
+	if self.dynMode == 2:#Follow - needs an extra follow null
+	    self.verifyFollowDriver()
+	elif self.dynFollow:
+	    mc.delete(self.getMessage('dynFollow'))
+	
+	#Verify our parent drivers:
+	for i_p in [cgmObject(o) for o in self.getMessage('dynMatchTargets')]:
+	    log.info("verifyMatchTargetDriver: %s"%i_p.getShortName())
+	    self.verifyMatchTargetDriver(i_p)
+	
+	#i_object.addAttr('space',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+	
+	#Verify constraints    
+	self.verifyConstraints()
+	
+	return 'Done'    
+	#Check constraint
+
+    def addDynObject(self,arg):
+	i_object = validateObjArg(arg,cgmObject,noneValid=False)
+	if i_object == self:
+	    raise StandardError, "cgmDynamicMatch.addDynObject>> Cannot add self as dynObject"
+	
+	if i_object.hasAttr(self._str_dynMatchDriverPlug) and i_object.getMessageInstance(self._str_dynMatchDriverPlug) == self:
+	    log.info("cgmDynamicMatch.addDynObject>> dynObject already connected: '%s'"%i_object.getShortName())
+	    return True
+	
+	log.info("cgmDynamicMatch.addDynObject>> Adding dynObject: '%s'"%i_object.getShortName())
+	self.connectChildNode(i_object,'dynObject',self._str_dynMatchDriverPlug)#Connect the nodes
+	self.doStore('cgmName',i_object.mNode)
+	
+	if not self.parent:#If we're not parented, parent to dynObject, otherwise, it doen't really matter where this is
+	    self.parent = i_object.mNode
+	    
+    def setPrematch(self,d_arg):pass
+	
+    def addDynMatchTarget(self,arg, alias = None, l_matchAttrs = None):
+	"""
+	
+	"""
+	#>>> Validate
+	i_dMatchTarget = validateObjArg(arg,cgmObject,noneValid=True)
+	if not i_dMatchTarget:raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> Failed to validate: %s"%arg	    
+	if self == i_dMatchTarget:
+	    raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> Cannot add self as target"
+	if not i_dMatchTarget.isTransform():
+	    raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> MatchTarget has no transform: '%s'"%i_dMatchTarget.getShortName()
+	log.info("cgmDynamicMatch.addDynMatchTarget>> '%s'"%i_dMatchTarget.getShortName())
+
+	ml_dynMatchTargets = [cgmObject(o) for o in self.getMessage('dynMatchTargets')]
+	log.info(">>>>>>>>>>>>> Start add %s"%self.getMessage('dynMatchTargets',False))
+	
+	if i_dMatchTarget in ml_dynMatchTargets:
+	    log.info("cgmDynamicMatch.addDynMatchTarget>> Object already connected: %s"%i_dMatchTarget.getShortName())
+	    self.verifyMatchTargetDriver(i_dMatchTarget,l_matchAttrs)	    
+	    return True
+	
+	if alias is not None:
+	    i_dynMatchTarget.addAttr('cgmAlias', str(alias),lock = True)
+	
+	#>>> Connect it
+	log.info("cgmDynamicMatch.addDynMatchTarget>> Adding target: '%s'"%i_dMatchTarget.getShortName())
+	ml_dynMatchTargets.append(i_dMatchTarget)	
+	log.info(">>>>>>>>>>>>> data add %s"%ml_dynMatchTargets)	
+	self.connectChildrenNodes(ml_dynMatchTargets,'dynMatchTargets')#Connect the nodes
+	log.info(">>>>>>>>>>>>> after add %s"%self.getMessage('dynMatchTargets',False))
+	
+	#Verify our driver for the target
+	self.verifyMatchTargetDriver(i_dMatchTarget,l_matchAttrs)
+	    
+    def verifyMatchTargetDriver(self,arg,l_matchAttrs = None):
+	"""
+	1) if arg is a dynMatchTarget
+	2) check it's driver
+	3) Make if necesary
+	"""	
+	i_dynObject = validateObjArg(self.getMessage('dynObject')[0],cgmObject,noneValid=True) 
+	if not i_dynObject:raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> Must have dynObject. None found"	    
+	i_dMatchTarget = validateObjArg(arg,cgmObject,noneValid=True)
+	if not i_dMatchTarget:
+	    raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> arg fail: %s"%arg
+	log.info(self.dynMatchTargets)
+	if i_dMatchTarget.getLongName() not in self.getMessage('dynMatchTargets',True):
+	    raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> not a dynMatchTarget: %s"%i_dMatchTarget.getShortName()
+	
+	index = self.getMessage('dynMatchTargets',True).index(i_dMatchTarget.getLongName())
+	log.info("cgmDynamicMatch.verifyMatchTargetDriver>> dynMatchTargets index: %s"%index)
+	l_dynDrivers = self.getMessage('dynDrivers',True)
+	
+	#See if we have a good driver
+	foundMatch = False
+	if l_dynDrivers and len(l_dynDrivers) > index:
+	    buffer = l_dynDrivers[index]
+	    log.info("buffer: %s"%cgmObject( buffer ).getMessage('dynMatchTarget',True))
+	    log.info("object: %s"%i_dynObject.getLongName())
+	    if cgmObject( buffer ).getMessage('dynMatchTarget',True) == [i_dynObject.getLongName()]:
+		log.info("dynDriver: found")
+		i_driver = validateObjArg(l_dynDrivers[index],cgmObject,noneValid=False)
+		foundMatch = True
+	if not foundMatch:
+	    log.info("dynDriver: creating")	
+	    i_driver = i_dynObject.doDuplicateTransform()
+	    l_dynDrivers.insert(index,i_driver.mNode)
+	    self.connectChildrenNodes(l_dynDrivers,'dynDrivers','dynMaster')
+	    
+	i_driver.parent = i_dMatchTarget.mNode
+	i_driver.doStore('cgmName',"%s_toMatch_%s"%(i_dMatchTarget.getNameAlias(),i_dynObject.getNameAlias())) 
+	i_driver.addAttr('cgmType','dynDriver')
+	i_driver.addAttr('mClass','cgmObject')	
+	i_driver.addAttr('dynMatchAttrs',attrType='string',lock=True)	
+	i_driver.doName()
+
+	i_driver.rotateOrder = i_dynObject.rotateOrder#Match rotate order
+	log.info("dynDriver: '%s' >> '%s'"%(i_dMatchTarget.getShortName(),i_driver.getShortName()))
+	
+	#self.connectChildNode(i_driver,'dynDriver_%s'%index,'dynMaster')	
+	i_driver.connectChildNode(i_dynObject,'dynMatchTarget')
+	
+	
+	#>>> Match attr setting
+	if l_matchAttrs is None and not i_driver.getAttr('dynMatchAttrs'):
+	    #Only preload this if we have no arg and none are set
+	    log.info("Preloading attrs....")
+	    l_matchAttrs = ['translate','rotate']
+	    
+	if l_matchAttrs:
+	    for attr in l_matchAttrs:
+		if not i_dynObject.hasAttr(attr) and i_dMatchTarget.hasAttr(attr):
+		    log.warning("cgmDynamicMatch.verifyMatchTargetDriver>> both object and target lack attribute, removing: '%s'"%attr)
+		    l_matchAttrs.remove(attr)
+		    
+	    i_driver.addAttr("dynMatchAttrs",value = l_matchAttrs, attrType='string', lock = True)    
+	
+    def doMatch(self,index,deleteLoc = True):
+	#>>>Initial info
+	i_object = self.getMessageInstance('dynObject')
+	log.info("cgmDynamicMatch.doMatch>> Object : %s"%i_object.getShortName())
+		
+	if index > len(self.dynMatchTargets):
+	    raise StandardError,"cgmDynamicMatch.doMatch>> Index(%s) greater than targets: %s"%(index,self.getMessage('dynMatchTargets',False))	
+	
+	i_driver = self.dynDrivers[index]
+	i_target = validateObjArg(self.dynMatchTargets[index],cgmObject)
+	log.info("cgmDynamicMatch.doMatch>> Driver on : %s"%i_driver.getShortName())
+	
+	#>>>Prematch attr set
+	
+	i_loc = i_driver.doLoc()#loc
+	
+	if i_driver.getAttr('dynMatchAttrs'):#if we have something
+	    for attr in i_driver.dynMatchAttrs:
+		if attr.lower() in ['translate','t']:
+		    objTrans = mc.xform (i_driver.mNode, q=True, ws=True, rp=True)#Get trans		    
+		    log.info("cgmDynamicMatch.doMatch>> match translate! %s"%objTrans)		    
+		    mc.move (objTrans[0],objTrans[1],objTrans[2], [i_object.mNode])#Set trans
+		if attr.lower() in ['rotate','r']:
+		    objRot = mc.xform (i_driver.mNode, q=True, ws=True, ro=True)#Get rot
+		    log.info("cgmDynamicMatch.doMatch>> match rotate! %s"%objRot)		    
+		    mc.rotate (objRot[0], objRot[1], objRot[2], [i_object.mNode], ws=True)#Set rot	
+		if attr.lower() in ['scale']:
+		    objScale = [v for v in mc.getAttr ("%s.scale"%i_target.mNode)[0]]#Get rot
+		    log.info("cgmDynamicMatch.doMatch>> match scale! %s"%objScale)		    		    
+		    mc.scale (objScale[0], objScale[1], objScale[2], [i_object.mNode], os=True)#Set rot	
+	else:
+	    raise NotImplementedError,"cgmDynamicMatch.doMatch>> no attrs found: %s"%i_driver.getAttr('dynMatchAttrs')
+	if deleteLoc:i_loc.delete()
+	
+    def doPurge(self):
+	if self.isReferenced():
+	    log.warning('This function is not designed for referenced buffer nodes')
+	    return False
+	
+	l_dynDrivers = self.getMessage('dynDrivers') or []
+	for d in l_dynDrivers:
+	    try:
+		i_driver = cgmObject(d)
+		if not i_driver.getConstraintsFrom():
+		    mc.delete(i_driver.mNode)
+	    except:log.warning("cgmDynamicMatch.doPurge>> found no driver on : %s"%d)
+	
+	i_object = validateObjArg(self.getMessage('dynObject')[0],cgmObject,noneValid=True)
+	if i_object:
+	    for a in self.l_dynAttrs:
+		if i_object.hasAttr(a):
+		    attributes.doDeleteAttr(i_object.mNode,a)
+	    if i_object.hasAttr('dynMatchTargetNull'):
+		attributes.doDeleteAttr(i_object.mNode,'dynMatchTargetNull')
+		
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmDynParentGroup
 #=========================================================================
 d_DynParentGroupModeAttrs = {0:['space'],
                              1:['orientTo'],
@@ -2454,7 +2805,7 @@ class cgmDynParentGroup(cgmObject):
 	    raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Index(%s) greater than options: %s"%(index,d_attr['mi_plug'].getEnum())	
 	    
 	
-	objTrans = mc.xform (i_child.mNode, q=True, ws=True, sp=True)#Get trans
+	objTrans = mc.xform (i_child.mNode, q=True, ws=True, rp=True)#Get trans
 	objRot = mc.xform (i_child.mNode, q=True, ws=True, ro=True)#Get rot
 	i_loc = i_child.doLoc()#loc
 	
