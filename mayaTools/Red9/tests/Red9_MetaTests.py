@@ -777,7 +777,7 @@ class Test_MetaRig():
         assert mRig.R_LegSystem.mNode=='R_LegSystem'
         assert mRig.R_LegSystem.systemType=='Leg'
         assert mRig.R_LegSystem.mirrorSide==2
-        assert mRig.R_LegSystem.CTRL_R_Foot[0]=='|World_Ctrl|R_Foot_Ctrl'
+        assert mRig.R_LegSystem.CTRL_R_Foot[0]=='|World_Ctrl|R_Foot_grp|R_Foot_Ctrl'
         assert mRig.R_LegSystem.CTRL_R_Knee[0]=='|World_Ctrl|R_Knee_Ctrl'
         ctrl=r9Meta.MetaClass(mRig.R_LegSystem.CTRL_R_Foot[0])
         assert ctrl.mirrorSide==2 #?????? consistency of attrs on node and metaSubsystems!!!!!!!
@@ -806,48 +806,52 @@ class Test_MetaRig():
         assert type(mRig.L_ArmSystem.L_ArmSupport)==r9Meta.MetaRigSupport
         assert mRig.L_ArmSystem.L_ArmSupport.mNode=='L_ArmSupport'
         assert mRig.L_ArmSystem.L_ArmSupport.SUP_IKHandle[0]=='|World_Ctrl|L_Wrist_Ctrl|ikHandle1'
-        assert mRig.SpineSystem.SpineSupport.SUP_NeckIK[0]=='|World_Ctrl|COG__Ctrl|Chest_Ctrl|Head_Ctrl|ikHandle3'
+        assert mRig.SpineSystem.SpineSupport.SUP_NeckIK[0]=='|World_Ctrl|COG__Ctrl|Chest_Ctrl|Head_grp|Head_Ctrl|ikHandle3'
         assert mRig.SpineSystem.SpineSupport.SUP_SpineIK[0]=='|World_Ctrl|COG__Ctrl|Chest_Ctrl|ikHandle4'
              
     def test_getRigCtrls(self):
+        
         assert self.mRig.getRigCtrls()==['|World_Ctrl']
+        
         assert self.mRig.getRigCtrls(walk=True)==['|World_Ctrl',
-                                                '|World_Ctrl|R_Foot_Ctrl',
-                                                '|World_Ctrl|R_Knee_Ctrl',
-                                                '|World_Ctrl|L_Wrist_Ctrl',
-                                                '|World_Ctrl|COG__Ctrl|L_Elbow_Ctrl',
-                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl|L_Clav_Ctrl',
-                                                '|World_Ctrl|R_Wrist_Ctrl',
-                                                '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl',
-                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl',
-                                                '|World_Ctrl|COG__Ctrl',
-                                                '|World_Ctrl|COG__Ctrl|Hips_Ctrl',
-                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl',
-                                                '|World_Ctrl|COG__Ctrl|Chest_Ctrl|Head_Ctrl',
-                                                '|World_Ctrl|L_Foot_Ctrl',
-                                                '|World_Ctrl|L_Knee_Ctrl',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandThumb1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandIndex1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandMiddle1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandRing1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandPinky1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandThumb1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandIndex1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandMiddle1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandRing1',
-                                                '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandPinky1']       
+                                    '|World_Ctrl|R_Foot_grp|R_Foot_Ctrl',
+                                    '|World_Ctrl|R_Knee_Ctrl',
+                                    '|World_Ctrl|L_Wrist_Ctrl',
+                                    '|World_Ctrl|COG__Ctrl|L_Elbow_Ctrl',
+                                    '|World_Ctrl|COG__Ctrl|Chest_Ctrl|L_Clav_Ctrl',
+                                    '|World_Ctrl|R_Wrist_Ctrl',
+                                    '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl',
+                                    '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl',
+                                    '|World_Ctrl|COG__Ctrl',
+                                    '|World_Ctrl|COG__Ctrl|Hips_Ctrl',
+                                    '|World_Ctrl|COG__Ctrl|Chest_Ctrl',
+                                    '|World_Ctrl|COG__Ctrl|Chest_Ctrl|Head_grp|Head_Ctrl',
+                                    '|World_Ctrl|L_Foot_grp|L_Foot_Ctrl',
+                                    '|World_Ctrl|L_Knee_Ctrl',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandThumb1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandIndex1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandMiddle1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandRing1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandPinky1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandThumb1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandIndex1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandMiddle1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandRing1',
+                                    '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_LeftShoulder|Character1_LeftArm|Character1_LeftForeArm|Character1_LeftHand|Character1_LeftHandPinky1']       
        
         assert self.mRig.R_ArmSystem.getRigCtrls()==['|World_Ctrl|R_Wrist_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl']
+
         assert self.mRig.R_ArmSystem.getRigCtrls(walk=True)==['|World_Ctrl|R_Wrist_Ctrl',
                                                  '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl',
                                                  '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl',
-                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandThumb1',
-                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandIndex1',
-                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandMiddle1',
-                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandRing1',
-                                                 '|Character1_Hips|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandPinky1']
+                                                 '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandThumb1',
+                                                 '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandIndex1',
+                                                 '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandMiddle1',
+                                                 '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandRing1',
+                                                 '|Character1_Pelvis|Character1_Spine|Character1_Spine2|Character1_RightShoulder|Character1_RightArm|Character1_RightForeArm|Character1_RightHand|Character1_RightHandPinky1']
+       
         assert self.mRig.R_ArmSystem.getChildren(walk=False)==['|World_Ctrl|R_Wrist_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl']  

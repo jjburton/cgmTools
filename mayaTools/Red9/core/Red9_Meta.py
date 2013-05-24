@@ -81,6 +81,12 @@ def registerMClassInheritanceMapping():
   
 def printSubClassRegistry():
     for m in RED9_META_REGISTERY:print m
+    
+def getMClassMetaRegistry():
+    '''
+    Generic getWrapper to return the Registry from the global
+    '''    
+    return RED9_META_REGISTERY 
 
 def getMClassInstances(mInstances):
     '''
@@ -96,6 +102,24 @@ def getMClassInstances(mInstances):
             if issubclass(mClass, instance):
                 subClasses.append(mClass)
     return subClasses
+
+def mTypesToRegistryKey(mTypes):
+    '''
+    make sure we're dealing with a list of class keys to process
+    against the registry. Allows us to pass in str 'MetaRig' or
+    r9Meta.MetaRig to the args for type checking
+    '''
+    if not type(mTypes)==list:mTypes=[mTypes]
+    keys=[]
+    for cls in mTypes:
+        try:
+            keys.append(cls.__name__)
+        except:
+            keys.append(cls)
+    return keys
+
+
+# NodeType Management ---------------------------
 
 def registerMClassNodeMapping(nodeTypes='network'):
     '''
@@ -138,23 +162,9 @@ def resetMClassNodeTypes():
     global RED9_META_NODETYPE_REGISTERY    
     RED9_META_NODETYPE_REGISTERY=['network']
 
-def mTypesToRegistryKey(mTypes):
-    '''
-    make sure we're dealing with a list of class keys to process
-    against the registry. Allows us to pass in str 'MetaRig' or
-    r9Meta.MetaRig to the args for type checking
-    '''
-    if not type(mTypes)==list:mTypes=[mTypes]
-    keys=[]
-    for cls in mTypes:
-        try:
-            keys.append(cls.__name__)
-        except:
-            keys.append(cls)
-    return keys
-
     
-#------------------------------------------------------------------------------   
+# ====================================================================================   
+    
     
     
 def attributeDataType(val):
@@ -659,7 +669,7 @@ class MetaClass(object):
     def isValidMObject(self):
         '''
         validate the MObject, without this Maya will crash if the pointer is no longer valid
-        TODO: thionking of storing the dagPath when we fill in the mNode to start with and
+        TODO: thinking of storing the dagPath when we fill in the mNode to start with and
         if this test fails, ie the scene has been reloaded, then use the dagPath to refind
         and refil the mNode property back in.... maybe??
         '''
@@ -1082,7 +1092,7 @@ class MetaClass(object):
     def delete(self):
         '''
         delete the mNode and this class instance
-        FIXME: Looks like there's a bug in the Network node in that deletion of a node
+        WORKAROUND: Looks like there's a bug in the Network node in that deletion of a node
         will also delete all other connected networks...BIG DEAL. AD are looking into this for us
         '''
         if cmds.lockNode(self.mNode, q=True):
@@ -1547,12 +1557,12 @@ def deleteEntireMetaRigStructure(searchNode=None):
             r9Anim.MirrorHierarchy().deleteMirrorIDs(child)
             #For the time being I'm adding the OLD mirror markers to this 
             #call for the sake of cleanup on old rigs
-            if cmds.attributeQuery('MirrorMarker', exists=True, node=child):
-                cmds.deleteAttr('%s.MirrorMarker' % child)
-            if cmds.attributeQuery('MirrorList', exists=True, node=child):
-                cmds.deleteAttr('%s.MirrorList' % child)
-            if cmds.attributeQuery('MirrorAxis', exists=True, node=child):
-                cmds.deleteAttr('%s.MirrorAxis' % child)
+            if cmds.attributeQuery('mirrorSide', exists=True, node=child):
+                cmds.deleteAttr('%s.mirrorSide' % child)
+            if cmds.attributeQuery('mirrorIndex', exists=True, node=child):
+                cmds.deleteAttr('%s.mirrorIndex' % child)
+            if cmds.attributeQuery('mirrorAxis', exists=True, node=child):
+                cmds.deleteAttr('%s.mirrorAxis' % child)
         metaChild.delete()
     
 
@@ -1574,6 +1584,7 @@ class MetaRig(MetaClass):
         self.addAttr('version',1.0) #ensure these are added by default
         self.addAttr('rigType', '') #ensure these are added by default  
         self.addAttr('renderMeshes', attrType='message') 
+        self.addAttr('exportSkeletonRoot', attrType='messageSimple') 
            
     def addGenericCtrls(self, nodes):
         '''

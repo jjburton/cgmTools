@@ -42,11 +42,19 @@ Mod - Red9_Meta - updated MetaHUD, simplified event handler, now connected to re
 New - Red9_Meta - Added HUD wrappers now being called by the ChannelBox RMB menu - gives you access to the MetaHud monitors and makes the setup more integrated
 Fix - Red9_Meta - Bug fix in the getConnectedMetaNodes. This was returning connected mNodes via all attrs, not just those connected via message links. Hence if 2 mNodes were connected via tx that would have passed through, which is wrong!
 
-1.301:
+1.30:
 ------
 New - Red9_Core - added specific handling for blendShape nodetypes in the FilterNode so that in hierarchy mode, blendshpaes attached to meshes in that hierarchy will be returned also
 New - Red9_PoseSaver - added support for blendShapes, now writing the data (using the updated filter above) via the aliasAttr call to extarct the blendTarget channels by name and store as such
 Fix - Red9_Meta - MASSIVE BUG FIX!!! Found a way to check if the internal MObject is valid before being used (in the mNode property) This is what was crashing Maya if you had an mNode in the scene and had deleted it, or reloaded the scene etc. The pointer is now validated before being used
 Mod - Red9_Meta - added isValid func, considered inValid if not linked to anything else.
+
+1.31:
+------
 New - Red9_Meta - added a getMClassInstances() function which returns registered metaClass that are subclasses of the given arg. Good for grouping classes based on core base classes
 Mod - Red9_setup - modified the way I hack the native menu's, pulled the main calls and menu's out into a single mel file for all Maya versions to make things easier
+Fix - Red9_PoseSaver - the buildInternalDict call wasn't resetting the poseDict before running, this meant that if you were running this in a batch mode, the dict would just keep getting extended
+Mod - Red9_PoseSaver - modified the poseHandler.py setup, now allows you to directly hack into the RMB popup menu in the poseUI and add your own items via the 'posePopupAdditions' func
+Mod - Red9_PoseSaver - modified the posePath handler, if either the 'local' or 'project' main folders contain no poses then the UI switches straight to the subFolder handler
+New - Red9_General - added 'Red9_Sound' menu and functions to the TraxEditor!
+

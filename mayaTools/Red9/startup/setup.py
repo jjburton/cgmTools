@@ -15,7 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__=1.302
+__buildVersionID__=1.31
 
 import sys
 import os
@@ -338,7 +338,7 @@ def start(Menu=True, MayaUIHooks=True):
     @param Menu: Add the Red9 Menu to the Maya Main Menus
     @param MayUIHooks: Add the Red9 hooks to Maya Native UI's
     '''
-    log.info('Red9 StudioPack Setup Calls')
+    log.info('Red9 StudioPack Setup Calls :: Booting from >> %s' % red9ModulePath())
     if Menu:
         try:
             menuSetup()

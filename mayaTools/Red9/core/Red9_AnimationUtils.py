@@ -136,7 +136,7 @@ def getSettableChannels(node=None, incStatics=True):
     @param node: node to inspect
     @param incStatics: whether to include non-keyable static channels (On by default)
     
-    FIXME: BUG some Compund attrs such as constraints return invalid data for some of the
+    FIXME: BUG some Compound attrs such as constraints return invalid data for some of the
     base functions using this as they can't be simply set. Do we strip them here?
     ie: pointConstraint.target.targetWeight
     '''
@@ -1048,7 +1048,7 @@ class AnimationUI(object):
             self.posePathMode='projectPoseMode'
             cmds.button('savePoseButton',edit=True,en=False,bgc=r9Setup.red9ButtonBGC(2))      
             cmds.textFieldButtonGrp('uitfgPosePath',edit=True,text=self.posePathProject)
-        cmds.scrollLayout('uiglPoseScroll',edit=True,sp='up')
+        cmds.scrollLayout('uiglPoseScroll',edit=True,sp='up') #scroll the layout to the top!
         
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode  
         self.__uiCB_fillPoses(rebuildFileList=True)
@@ -1111,7 +1111,7 @@ class AnimationUI(object):
         #turn OFF the 2 main poseScrollers
         cmds.textScrollList(self.uitslPoses, edit=True, vis=False)
         cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=False)
-        #turn ON the subFodler scroller
+        #turn ON the subFolder scroller
         cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=True)
         cmds.textScrollList(self.uitslPoseSubFolders, edit=True, ra=True)
         
@@ -1148,25 +1148,27 @@ class AnimationUI(object):
 
     #------------------------------------------------------------------------------
     #Build Pose UI calls  -------------------------------------------------------     
-              
+             
+    def __uiCB_getPoseDir(self):
+        '''
+        Return the poseDir including subPath
+        '''
+        return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),\
+                            self.__uiCB_getsubFolderFromUI()) 
+        
     def __uiCB_getPosePath(self):
         '''
         Return the full posePath for loading
         '''
-        return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),\
-                            self.__uiCB_getsubFolderFromUI(),
-                            '%s.pose' % self.getPoseSelected())
+        return os.path.join(self.__uiCB_getPoseDir(), '%s.pose' % self.getPoseSelected())
         
     def __uiCB_getIconPath(self):
         '''
         Return the full posePath for loading
         '''
-        return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),\
-                            self.__uiCB_getsubFolderFromUI(),
-                            '%s.bmp' % self.getPoseSelected())   
-      
-                              
-    def __uiCB_fillPoses(self, rebuildFileList=False, searchFilter=None ):
+        return os.path.join(self.__uiCB_getPoseDir(), '%s.bmp' % self.getPoseSelected())   
+                           
+    def __uiCB_fillPoses(self, rebuildFileList=False, searchFilter=None, *args):
         '''
         Fill the Pose List/Grid from the given directory
         '''
@@ -1178,7 +1180,11 @@ class AnimationUI(object):
         
         if rebuildFileList:
             self.buildPoseList()
-            log.debug('Rebuilt Pose internal Lists')        
+            log.debug('Rebuilt Pose internal Lists') 
+            if not self.poses:
+                log.warning('no poses found in root directory, switching to subFolder pickers')
+                self.__uiCB_switchSubFolders()
+                return
         log.debug( 'searchFilter  : %s : rebuildFileList : %s' %(searchFilter, rebuildFileList))
 
         
@@ -1186,9 +1192,10 @@ class AnimationUI(object):
         #================================ 
         if not self.poseGridMode=='thumb':
             popupBind=self.uitslPoses
-            cmds.textScrollList(self.uitslPoses, edit=True, vis=True)
-            cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=False)
-            cmds.textScrollList(self.uitslPoses, edit=True, ra=True)
+            cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False) #subfolder scroll OFF
+            cmds.textScrollList(self.uitslPoses, edit=True, vis=True)           #pose TexScroll ON
+            cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=False)        #pose Grid OFF
+            cmds.textScrollList(self.uitslPoses, edit=True, ra=True)            #clear textScroller
             
             if searchFilter:
                 cmds.scrollLayout('uiglPoseScroll',edit=True,sp='up')
@@ -1201,8 +1208,9 @@ class AnimationUI(object):
         #================================ 
         else:
             popupBind=self.uiglPoseScroll
-            cmds.textScrollList(self.uitslPoses, edit=True, vis=False)
-            cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=True)
+            cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False) #subfolder scroll OFF
+            cmds.textScrollList(self.uitslPoses, edit=True, vis=False)          #pose TexScroll OFF
+            cmds.scrollLayout(self.uiglPoseScroll, edit=True, vis=True)         #pose Grid ON
             self.__uiCB_gridResize()
               
             #Clear the Grid if it's already filled
@@ -1248,9 +1256,17 @@ class AnimationUI(object):
         self.posePopup = cmds.popupMenu(parent=parentUI)                    
         cmds.menuItem(label='Delete Pose', en=enableState, command=partial(self.__uiPoseDelete))
         cmds.menuItem(label='Rename Pose', en=enableState, command=partial(self.__uiPoseRename))
-        cmds.menuItem(label='Update Pose', en=enableState, command=partial(self.__uiPoseUpdate))
         cmds.menuItem(label='Select IntenalPose Objects', command=partial(self.__uiPoseSelectObjects))
+        
+        cmds.menuItem(divider=True)
+        cmds.menuItem(label='Update : Pose Only', en=enableState, command=partial(self.__uiPoseUpdate,False))
+        cmds.menuItem(label='Update : Pose and Thumb', en=enableState, command=partial(self.__uiPoseUpdate,True))
+        if self.poseGridMode=='thumb':
+            cmds.menuItem(label='Update : Thumb Only', command=partial(self.__uiPoseUpdateThumb))
+            
+        cmds.menuItem(divider=True)
         cmds.menuItem(label='Make Subfolder', en=enableState,command=partial(self.__uiPoseMakeSubFolder))  
+        cmds.menuItem(label='Refresh List', en=True,command=lambda x: self.__uiCB_fillPoses(rebuildFileList=True))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Debug: Open Pose File', command=partial(self.__uiPoseOpenFile))
         cmds.menuItem(label='Debug: Open Pose Directory', command=partial(self.__uiPoseOpenDir))
@@ -1264,11 +1280,33 @@ class AnimationUI(object):
 
         if self.poseGridMode=='thumb':
             cmds.menuItem(divider=True)
-            cmds.menuItem(label='Update Thumb', command=partial(self.__uiPoseUpdateThumb))
             cmds.menuItem(label='Grid Size: Small', command=partial(self.__uiCB_setPoseGrid,'small'))
             cmds.menuItem(label='Grid Size: Medium', command=partial(self.__uiCB_setPoseGrid,'medium'))
             cmds.menuItem(label='Grid Size: Large', command=partial(self.__uiCB_setPoseGrid,'large'))
 
+        if self.hasFolderOverload():
+            print 'Adding to menus From PoseHandler File!!!!'
+            self.addPopupMenusFromFolderConfig(self.posePopup)
+                                    
+
+    def hasFolderOverload(self):    
+        '''
+        current folder has a poseHandler.py file
+        '''
+        return os.path.exists(os.path.join(self.__uiCB_getPoseDir(),'poseHandler.py'))
+    
+    def addPopupMenusFromFolderConfig(self,parentPopup):
+        '''
+        if the poseFolder has a poseHandler.py file see if it has the 'posePopupAdditions' func
+        and if so, use that to extend the standard menu's
+        '''
+        import imp,inspect
+        tempPoseFuncs = imp.load_source('poseHandler', os.path.join(self.__uiCB_getPoseDir(),'poseHandler.py'))
+        if [func for name,func in inspect.getmembers(tempPoseFuncs, inspect.isfunction) if name=='posePopupAdditions']:
+            tempPoseFuncs.posePopupAdditions(parentPopup)
+        del(tempPoseFuncs)
+
+    
     def __uiCB_setPoseGrid(self,size,*args):
         '''
         Set size of the Thumnails used in the PoseGrid Layout
@@ -1335,10 +1373,7 @@ class AnimationUI(object):
             name=cmds.promptDialog(query=True, text=True)
             try:
                 if r9Core.validateString(name):
-                    #return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),'%s.pose' % name)
-                    return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),
-                                        self.__uiCB_getsubFolderFromUI(),
-                                        '%s.pose' % name)
+                    return os.path.join(self.__uiCB_getPoseDir(), '%s.pose' % name)
             except ValueError,error:
                 raise ValueError(error)
    
@@ -1453,12 +1488,10 @@ class AnimationUI(object):
         
     def __uiPoseOpenDir(self,*args):
         import subprocess
-        #path=os.path.normpath(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True))
-        path=os.path.normpath(os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),
-                              self.__uiCB_getsubFolderFromUI()))
+        path=os.path.normpath(self.__uiCB_getPoseDir())
         subprocess.Popen('explorer "%s"' % path)
      
-    def __uiPoseUpdate(self,*args):
+    def __uiPoseUpdate(self, storeThumbnail, *args):
         self.__validatePoseFunc('UpdatePose')
         result = cmds.confirmDialog(
                 title='PoseUpdate',
@@ -1467,12 +1500,13 @@ class AnimationUI(object):
                 defaultButton='OK',
                 cancelButton='Cancel',
                 dismissString='Cancel')
-        if result == 'OK':
-            try:
-                os.remove(self.__uiCB_getIconPath())
-            except:
-                log.debug('unable to delete the Pose Icon file')
-            self.__PoseSave(self.__uiCB_getPosePath())
+        if result=='OK':
+            if storeThumbnail:
+                try:
+                    os.remove(self.__uiCB_getIconPath())
+                except:
+                    log.debug('unable to delete the Pose Icon file')
+            self.__PoseSave(self.__uiCB_getPosePath(),storeThumbnail)
             self.__uiCB_selectPose(self.poseSelected)   
     
     def __uiPoseUpdateThumb(self,*args):
@@ -1621,7 +1655,7 @@ class AnimationUI(object):
         
     #------------------------------------------------------------------------------
     #UI Elements ConfigStore Callbacks --------------------------------------------  
-        
+
     def __uiCache_storeUIElements(self):
         '''
         Store some of the main components of the UI out to an ini file
@@ -1813,7 +1847,7 @@ class AnimationUI(object):
         else:
             raise StandardError('No Root Node selected for Filter Testing')             
     
-    def __PoseSave(self,path=None):
+    def __PoseSave(self,path=None,storeThumbnail=True):
         '''
         Internal UI call for PoseLibrary
         '''
@@ -1822,11 +1856,12 @@ class AnimationUI(object):
                 path=self.__uiCB_savePosePath()
             except ValueError,error:
                 raise ValueError(error)
-
         poseHierarchy=cmds.checkBox('uicbPoseHierarchy',q=True,v=True)
+        
         r9Pose.PoseData(self.filterSettings).PoseSave(self.__uiCB_getPoseInputNodes(), 
                                                       path,
-                                                      useFilter=poseHierarchy)
+                                                      useFilter=poseHierarchy,
+                                                      storeThumbnail=storeThumbnail)
         log.info('Pose Stored to : %s' % path)
         self.__uiCB_fillPoses(rebuildFileList=True)
             
@@ -1861,7 +1896,7 @@ class AnimationUI(object):
         ref=objs[0]
         mesh=None
         mRef=r9Meta.MetaClass(self.__uiCB_getPoseInputNodes())
-        if mRef.hasAttr('renderMeshes'):
+        if mRef.hasAttr('renderMeshes') and mRef.renderMeshes:
             mesh=mRef.renderMeshes[0]
         elif len(objs)==2:
             if cmds.nodeType(cmds.listRelatives(objs[1])[0])=='mesh':
@@ -1872,7 +1907,12 @@ class AnimationUI(object):
             if cmds.ls('*posePointCloud',r=True):
                 raise StandardError('PosePointCloud already exists in scsne')
             if not mesh:
-                cmds.modelEditor(cmds.getPanel(wf=True), e=True, locators=True)
+                #turn on locator visibility
+                panel=cmds.getPanel(wf=True)
+                if 'modelPanel' in panel:
+                    cmds.modelEditor(cmds.getPanel(wf=True), e=True, locators=True)
+                else:
+                    cmds.modelEditor('modelPanel4', e=True, locators=True)
             self.ppc=r9Pose.PosePointCloud(ref,self.__uiCB_getPoseInputNodes(),
                                            self.filterSettings,
                                            mesh=mesh)
@@ -2044,6 +2084,8 @@ class AnimFunctions(object):
         a Dumb copy, no matching and no Hierarchy filtering, copies using 
         selected pairs obj[0]>obj[1], obj[2]>obj[3] etc 
         -----------------------------------------------------------------
+        
+        TODO: add support in the UI for 'replaceCompletely' paste method....
         '''
         if not matchMethod:matchMethod=self.matchMethod
         log.debug('CopyKey params : nodes=%s\n : time=%s\n : pasteKey=%s\n : attributes=%s\n : filterSettings=%s\n : matchMethod=%s\n'\
@@ -2473,7 +2515,9 @@ class AnimFunctions(object):
 class RandomizeKeys(object):
     '''
     This is a simple implementation of a Key Randomizer, designed to add
-    noise to animations    
+    noise to animations  
+    TODO: add in methods to generate secades type of flicking randomization, current
+    implementation is too regular.  
     '''
     def __init__(self):
         self.win='KeyRandomizerOptions' 
@@ -2849,6 +2893,10 @@ class MirrorHierarchy(object):
         '''
         take the left and right matched pairs and exchange the animData
         or poseData across between them
+        
+        FIXME: there's an issue here, if left has keys at 0,5 and right has keys 0,10
+        we'll end up with right having keys at 0,5,10 as the copyKeys is a replace
+        not a replaceComplete? Do we add a flag for that situation?
         '''
         objs=cmds.ls(sl=True,l=True)
         if mode=='Anim':

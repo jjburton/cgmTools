@@ -68,12 +68,14 @@ class PoseData(object):
         self.filepath=''
         self.mayaUpAxis=r9Setup.mayaUpAxis()
         self.thumbnailRes=[128,128]
+        
         self._metaPose=False
-        self.metaRig=None
+        self.metaRig=None # filled by the code as we process
         self.matchMethod='base' #method used to match nodes internally in the poseDict
         self.relativePose=False
         self.relativeRots='projected'
         self.relativeTrans='projected'
+        self.useFilter=True
         
         # make sure we have a settings object
         if filterSettings:
@@ -99,6 +101,7 @@ class PoseData(object):
     metaPose = property(__get_metaPose, __set_metaPose)
     
     def setMetaRig(self,node):
+        log.info('setting internal metaRig from given node : %s' % node)
         if r9Meta.isMetaNodeInherited(node,'MetaRig'):
             self.metaRig=r9Meta.MetaClass(node)
         else:
@@ -127,14 +130,14 @@ class PoseData(object):
 
         return nodes
                     
-    def getNodes(self, nodes, useFilter=True):
+    def getNodes(self, nodes): # useFilter=True):
         '''
         get the nodes to process
         This is designed to allow for specific hooks to be used from user
         code stored in the pose folder itself.
         '''
         if not type(nodes)==list: nodes=[nodes]
-        if useFilter:
+        if self.useFilter:
             log.debug('getNodes - useFilter=True : no custom poseHandler')
             if self.settings.filterIsActive():
                 return r9Core.FilterNode(nodes,self.settings).ProcessFilter() #main node filter
@@ -213,7 +216,7 @@ class PoseData(object):
                 except:
                     log.debug('%s : attr is invalid in this instance' % attr)
 
-    def buildInternalPoseData(self, nodes, useFilter=True):
+    def buildInternalPoseData(self, nodes):
         '''
         build the internal pose dict's, useful as a separate func so it
         can be used in the PoseCompare class easily. This is the main internal call
@@ -223,24 +226,32 @@ class PoseData(object):
         self.rootJnt=None
         if not type(nodes)==list: nodes=[nodes] #cast to list for consistency
         rootNode=nodes[0]
-        
-        if self.hasFolderOverload() and useFilter:
-            nodesToStore=self.getNodesFromFolderConfig(rootNode,mode='save')
-        else:
-            nodesToStore=self.getNodes(nodes, useFilter)
-        
-        if self.settings.filterIsActive() and useFilter:
+
+        if self.settings.filterIsActive() and self.useFilter:
             if self.metaPose:
                 if self.setMetaRig(rootNode):
                     self.rootJnt=self.metaRig.getSkeletonRoots()
                     if self.rootJnt:
                         self.rootJnt=self.rootJnt[0]
             else:
+                if cmds.attributeQuery('exportSkeletonRoot',node=rootNode,exists=True):
+                    connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'exportSkeletonRoot'),destination=True,source=True)
+                    if connectedSkel:
+                        self.rootJnt=connectedSkel[0]
                 if cmds.attributeQuery('animSkeletonRoot',node=rootNode,exists=True):
                     connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'animSkeletonRoot'),destination=True,source=True)
                     if connectedSkel:
                         self.rootJnt=connectedSkel[0]
-                 
+        else:
+            if self.metaPose:
+                self.setMetaRig(rootNode)
+                
+        if self.hasFolderOverload():# and self.useFilter:
+            nodesToStore=self.getNodesFromFolderConfig(nodes,mode='save')
+        else:
+            nodesToStore=self.getNodes(nodes)
+                    
+        self.poseDict={}         
         self._buildInfoBlock()    
         self._buildPoseDict(nodesToStore) 
         self._buildSkeletonData(self.rootJnt)
@@ -311,7 +322,7 @@ class PoseData(object):
         @param nodes: nodes to try and match from the poseDict
         '''
         matchedPairs=[]
-        print 'matchMethod',self.matchMethod
+        log.info('using matchMethod : %s' % self.matchMethod)
         if self.matchMethod=='stripPrefix' or self.matchMethod=='base':
             log.info( 'matchMethodStandard : %s' % self.matchMethod)
             matchedPairs=r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes, matchMethod=self.matchMethod)
@@ -349,6 +360,8 @@ class PoseData(object):
         for key in self.poseDict.keys():
             if cmds.objExists(self.poseDict[key]['longName']):
                 InternalNodes.append(self.poseDict[key]['longName'])
+            elif cmds.objExists(key):
+                InternalNodes.append(key)
 #        else:
 #            #use the internal Poses filter and then Match against scene nodes
 #            if self.settings.filterIsActive():
@@ -420,19 +433,20 @@ class PoseData(object):
         @param filepath: path to save the posefile too  
         @param useFilter: use the filterSettings or not
         '''   
-        log.debug('PosePath given : %s' % filepath)             
+        log.debug('PosePath given : %s' % filepath)  
+        #push args to object - means that any poseHandler.py file has access to them           
         self.filepath=filepath
+        self.useFilter=useFilter
         
-        self.buildInternalPoseData(nodes, useFilter)
+        self.buildInternalPoseData(nodes)
         self._writePose(filepath)
         
         if storeThumbnail:
             sel=cmds.ls(sl=True,l=True)
             cmds.select(cl=True)
-            r9General.thumbNailScreen(filepath,self.thumbnailRes[0],self.thumbnailRes[1])
-        
-        if sel:
-            cmds.select(sel)
+            r9General.thumbNailScreen(filepath,self.thumbnailRes[0],self.thumbnailRes[1])    
+            if sel:
+                cmds.select(sel)
         log.info('Pose Saved Successfully to : %s' % filepath)
         
         
@@ -455,23 +469,27 @@ class PoseData(object):
         if not type(nodes)==list:nodes=[nodes] #cast to list for consistency
         rootNode=nodes[0]
         
-        #push args to object
+        #push args to object - means that any poseHandler.py file has access to them          
         self.relativePose=relativePose
         self.relativeRots=relativeRots
         self.relativeTrans=relativeTrans
         self.filepath=filepath
+        self.useFilter=useFilter
         
-        if self.hasFolderOverload() and useFilter:
-            nodesToLoad=self.getNodesFromFolderConfig(rootNode,mode='load')
+        if self.metaPose:
+            self.setMetaRig(rootNode)
+                
+        if self.hasFolderOverload():# and useFilter:
+            nodesToLoad=self.getNodesFromFolderConfig(nodes,mode='load')
         else:
-            nodesToLoad=self.getNodes(nodes, useFilter)
+            nodesToLoad=self.getNodes(nodes)
         if not nodesToLoad:
             raise StandardError('Nothing selected or returned by the filter to load the pose onto')
            
         self._readPose(filepath)
 
         if self.metaPose:
-            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']) and self.setMetaRig(rootNode):
+            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']) and self.metaRig:
                 self.matchMethod='metaData'
             else:
                 log.debug('Warning, trying to load a NON metaPose to a MRig - switching to NameMatching')  
@@ -620,7 +638,7 @@ class PoseCompare(object):
     compare.compare() #>> bool, True = same
     compare.fails['failedAttrs']
     '''
-    def __init__(self, currentPose, referencePose, angularTolerance=0.001, linearTolerance=0.01, compareDict='poseDict'):
+    def __init__(self, currentPose, referencePose, angularTolerance=0.01, linearTolerance=0.01, compareDict='poseDict'):
         '''
         make sure we have 2 PoseData objects to compare
         @param currentPose: either a PoseData object or a valid pose file
@@ -670,7 +688,6 @@ class PoseCompare(object):
         Compare the 2 PoseData objects via their internal [key][attrs] blocks
         return a bool. After processing self.fails is a dict holding all the fails
         for processing later if required
-        TODO: still need better Eular flip handling. 
         '''
         self.fails={}
         logprint='PoseCompare returns : ========================================\n'
@@ -734,7 +751,7 @@ class PoseCompare(object):
 
          
 
-def batchPatchPoses(posedir, config, poseroot, patchfunc=None, resave=True,\
+def batchPatchPoses(posedir, config, poseroot, load=True, save=True, patchfunc=None,\
                     relativePose=False, relativeRots=False, relativeTrans=False):
     '''
     whats this?? a fast method to run through all the poses in a given dictionary and update
@@ -745,6 +762,8 @@ def batchPatchPoses(posedir, config, poseroot, patchfunc=None, resave=True,\
     @param poseroot: root node to the filters - poseTab rootNode/MetaRig root
     @param patchfunc: optional function to run between the load and save call in processing, great for
             fixing issues on mass with poses. Note we now pass pose file back into this func as an arg
+    @param load: should the batch load the pose
+    @param save: should the batch resave the pose
     '''
 
     filterObj=r9Core.FilterNode_Settings()
@@ -755,10 +774,11 @@ def batchPatchPoses(posedir, config, poseroot, patchfunc=None, resave=True,\
     files.sort()
     for f in files:
         if f.lower().endswith('.pose'):
-            mPose.PoseLoad(poseroot, os.path.join(posedir,f), useFilter=True, relativePose=relativePose, relativeRots=relativeRots, relativeTrans=relativeTrans) 
+            if load:
+                mPose.PoseLoad(poseroot, os.path.join(posedir,f), useFilter=True, relativePose=relativePose, relativeRots=relativeRots, relativeTrans=relativeTrans) 
             if patchfunc:
                 patchfunc(f)
-            if resave:
+            if save:
                 mPose.PoseSave(poseroot, os.path.join(posedir,f), useFilter=True, storeThumbnail=False) 
             log.info('Processed Pose File :  %s' % f)
 

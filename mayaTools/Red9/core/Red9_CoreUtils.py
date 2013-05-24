@@ -139,19 +139,22 @@ def decodeString(val):
     log.debug('Decoded as type(string)')
     return val
 
-def floatIsEqual(a,b,tolerance=0.001,allowGimbal=True):
+def floatIsEqual(a,b,tolerance=0.01,allowGimbal=True):
     '''
     compare 2 floats with tolerance
     @param a: value 1
     @param b: value 2
     @param tolerance: compare with this tolerance default=0.001
     @param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips
+    TODO: still giving us issues, look into other ways to do this confirm for gimbal!
     '''
     if abs(a-b)<tolerance:
         return 1
     else:
         if allowGimbal:
             if abs(a-b)%180<tolerance:
+                return 1
+            if abs(a-b)%360<tolerance:
                 return 1
     return 0
 

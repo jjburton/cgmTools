@@ -32,10 +32,8 @@ the internal object on the fly if you need too.
 
 
 example:
-
-This is an example will work with the test MetaRig in Red9 test folder. 
-It's designed to modify a pose folder to store finger pose data just 
-to show what can be done here. The key is that you have to return a list 
+This is an example I use at work for our finger pose folder just to 
+show what can be done here. The key is that you have to return a list 
 of nodes that are then pushed into the poseData for processing.
 
 def getNodesOverload(poseObj,nodes,*args):
@@ -48,14 +46,14 @@ def getNodesOverload(poseObj,nodes,*args):
 	currentSelection=cmds.ls(sl=True,l=True)
 
 	#see if we have a left or right controller selected and switch to the
-	#appropriate subMetaSystem. Then filter for the correct child joints
+	#appropriate subMetaSystem
 	if cmds.getAttr('%s.mirrorSide' % currentSelection[0])==1:
 		filteredNodes=metaNode.L_ArmSystem.L_Fingers_System.getChildren()
-		[filteredNodes.append(node) for node in cmds.listRelatives(filteredNodes,type='joint',ad=True,f=True)]
+		[filtered.append(node) for node in cmds.listRelatives(filtered,type='joint',ad=True,f=True)]
 		
 	elif cmds.getAttr('%s.mirrorSide' % currentSelection[0])==2:
 		filteredNodes=metaNode.R_ArmSystem.R_Fingers_System.getChildren()
-		[filteredNodes.append(node) for node in cmds.listRelatives(filteredNodes,type='joint',ad=True,f=True)]
+		[filtered.append(node) for node in cmds.listRelatives(filtered,type='joint',ad=True,f=True)]
 		
 	#modify the actual PoseData object, changing the data to be matched on index
 	#rather than using the standard name or metaMap matching
@@ -75,17 +73,31 @@ import maya.cmds as cmds
 
 	
 def getNodesOverload(poseObj,nodes,*args):
-	'''
-	I'm just using this as a generic call for the two
-	main functions below. In this initial example I'm 
-	just calling the internal .getNodes() in the poseObj.
-	This ensures that even if this file is preset and you've 
-	done nothing to it, it will still run the default calls.
-	@param poseObj: the actual PoseClass object
-	@param nodes: original node list passed in from the UI
-	@return: list of nodes to store/load
-	'''
-	return poseObj.getNodes(nodes)
+
+	#NOTE: poseObj already has an attr 'metaRig' which is filled  
+	#automatically in the main buildInternalPoseData() call
+	metaNode=poseObj.metaRig
+
+	#catch the currently selected node
+	currentSelection=cmds.ls(sl=True,l=True)
+
+	#see if we have a left or right controller selected and switch to the
+	#appropriate subMetaSystem
+	if cmds.getAttr('%s.mirrorSide' % currentSelection[0])==1:
+		filteredNodes=metaNode.L_ArmSystem.L_Fingers_System.getChildren()
+		[filteredNodes.append(node) for node in cmds.listRelatives(filteredNodes,type='joint',ad=True,f=True)]
+		
+	elif cmds.getAttr('%s.mirrorSide' % currentSelection[0])==2:
+		filteredNodes=metaNode.R_ArmSystem.R_Fingers_System.getChildren()
+		[filteredNodes.append(node) for node in cmds.listRelatives(filteredNodes,type='joint',ad=True,f=True)]
+		
+	#modify the actual PoseData object, changing the data to be matched on index
+	#rather than using the standard name or metaMap matching
+	poseObj.metaPose=False
+	poseObj.matchMethod='index'
+	
+	return filteredNodes
+
 
 
 #=================================================
@@ -114,7 +126,6 @@ def poseGetNodesSave(poseObj,nodes,*args):
 	'''
 	return getNodesOverload(poseObj,nodes,*args)
 	
-
 def posePopupAdditions(parent):
 	'''
 	This run when the Pose PopUp menu is generated, allows us to add custom menu's to the 
@@ -123,3 +134,5 @@ def posePopupAdditions(parent):
 	cmds.menuItem(divider=True)
 	cmds.menuItem(parent=parent,label='Test Facial Menu 1!', command="print('Added Test Menu 1')")
 	cmds.menuItem(parent=parent,label='Test Facial Menu 2!', command="print('Added Test Menu 2')")
+
+

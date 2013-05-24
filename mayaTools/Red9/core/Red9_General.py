@@ -171,7 +171,7 @@ def Timer(func):
         except:
             log.debug('function class inspect failure')
         functionTrace+=func.__name__ 
-        log.info('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
+        log.debug('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
         #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper  
@@ -179,8 +179,8 @@ def Timer(func):
 
 def runProfile(func):
     '''
-    run the profiler - only ever used when debugging /optimizing function call speeds
-    using 'runsnakerun' to view the profiles and debug
+    run the profiler - only ever used when debugging /optimizing function call speeds.
+    visualize the data using 'runsnakerun' to view the profiles and debug
     '''
     import cProfile
     from time import gmtime, strftime
@@ -580,5 +580,46 @@ def os_OpenFile(filePath):
             raise OSError('unsupported xdg-open call??')
         
 
+class AudioHandlers():
+    '''
+    simple audio management tools, gradually being integrated into TraxEditor
+    '''
+    @staticmethod
+    def audioSelected():
+        return cmds.ls(sl=True,type='audio')
         
+    @staticmethod
+    def deleteSelected():
+        selectedAudio=cmds.ls(sl=True,type='audio')
+        if selectedAudio:
+            cmds.delete(selectedAudio)
+    @staticmethod       
+    def setActiveAudio():
+        audio=AudioHandlers.audioSelected()
+        if audio:
+            if len(audio)==1:
+                gPlayBackSlider=mel.eval("string $temp=$gPlayBackSlider")
+                cmds.timeControl(gPlayBackSlider, e=True, ds=1, sound=audio[0]) 
+            else:
+                raise StandardError("More than one audio trax selected, can't set multiple active at one time")
+    @staticmethod    
+    def setTimelineToAudio():
+        audio=AudioHandlers.audioSelected()
+        maxV=cmds.getAttr('%s.offset' % audio[0])   #initialize backwards
+        minV=cmds.getAttr('%s.endFrame' % audio[0]) #initialize backwards
+        if audio:
+            for a in audio:
+                audioOffset=cmds.getAttr('%s.offset' % a)
+                audioEnd=cmds.getAttr('%s.endFrame' % a)
+                if audioOffset<minV:minV=audioOffset
+                if audioEnd>maxV:maxV=audioEnd
+            cmds.playbackOptions(min=int(minV),max=int(maxV))        
+    @staticmethod 
+    def muteSelected(state=True):        
+        audio=AudioHandlers.audioSelected()
+        if audio:
+            for a in audio:
+                cmds.setAttr('%s.mute' % a, state)
+                
+  
         

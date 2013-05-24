@@ -457,3 +457,74 @@ global proc generateChannelMenu( string $parent, int $popupMenu )
 		enableDisableChannelMenu $parent;
 	}
 }
+
+
+
+
+
+//===================================================
+//HACKED FROM: scripts/other/ClipEdMenu.mel
+//===================================================
+
+global proc buildClipEditorMenu(string $editor, string $parent, 
+								string $collectionName)
+{
+	string $menu = `menu -label (uiRes("m_ClipEdMenu.kFileMenu"))  -tearOff true
+		-familyImage "menuIconEdit.png"
+		-allowOptionBoxes true`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorFileMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	string $menu = `menu -label (uiRes("m_ClipEdMenu.kEditMenu"))   -tearOff true
+		-familyImage "menuIconEdit.png"
+		-allowOptionBoxes true`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorEditMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	string $menu = `menu -label (uiRes("m_ClipEdMenu.kViewMenu"))   -tearOff true
+		-allowOptionBoxes true
+		-familyImage "menuIconEdit.png"`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorViewMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	string $menu = `menu -label (uiRes("m_ClipEdMenu.kModifyMenu"))   -tearOff true
+		-allowOptionBoxes true
+		-familyImage "menuIconEdit.png"`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorClipMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	string $menu = `menu -label (uiRes("m_ClipEdMenu.kCreateMenu"))   -tearOff true
+		-allowOptionBoxes true
+		-familyImage "menuIconEdit.png"`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorCreateMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	string $menu = `menu -label (uiRes("m_ClipEdMenu.kLibraryMenu"))   -tearOff true
+		-familyImage "menuIconEdit.png"
+		-allowOptionBoxes true`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorLibraryMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	string $menuItem = `menu -label (uiRes("m_ClipEdMenu.kListMenu"))  
+			-tearOff true
+			-familyImage "menuIconOptions.png"`;
+		defineListMenu "useCharacters" $editor $editor $menuItem "";
+	setParent -menu ..;
+		
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackTraxMenu $editor;
+	//HACK END ================================================================
+}
