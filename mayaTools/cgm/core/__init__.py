@@ -21,6 +21,7 @@ from Red9.core import (Red9_General,
                        Red9_PoseSaver) 
 import cgm_Meta
 import cgm_PuppetMeta
+import cgm_RigMeta
 import rigger.ModuleFactory
 import rigger.JointFactory
 import rigger.TemplateFactory
@@ -37,6 +38,7 @@ def _reload():
     Red9.core._reload()
     reload(cgm_Meta)
     reload(cgm_PuppetMeta)
+    reload(cgm_RigMeta)
     reload(rigger.ModuleFactory)
     reload(rigger.JointFactory)
     reload(rigger.TemplateFactory)
