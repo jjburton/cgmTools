@@ -4,6 +4,7 @@ import maya.mel as mel
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_RigMeta as cgmRigMeta
 
 from cgm.lib import guiFactory
 from cgm.lib import search
@@ -146,10 +147,10 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		if self.ml_objList:
 			for i_o in self.ml_objList:
 				if i_o.getMessage('dynParentGroup'):
-					i_dynParent = cgmMeta.validateObjArg(i_o.getMessage('dynParentGroup')[0],cgmMeta.cgmDynParentGroup,True)
+					i_dynParent = cgmMeta.validateObjArg(i_o.getMessage('dynParentGroup')[0],cgmRigMeta.cgmDynParentGroup,True)
 					if i_dynParent:
 						MelMenuItem(parent,l=">>%s<<"%i_o.getShortName())
-						for a in cgmMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
+						for a in cgmRigMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
 							if i_o.hasAttr(a):
 								tmpMenu = MelMenuItem( parent, l="Change %s"%a, subMenu=True)
 								v = mc.getAttr("%s.%s"%(i_o.mNode,a))
