@@ -298,7 +298,7 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     returnBuffer = []
     rotationOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5,'none':6}
     """return stuff to transfer"""
-    objTrans = mc.xform (obj, q=True, ws=True, sp=True)
+    objTrans = mc.xform (obj, q=True, ws=True, rp=True)
     objRot = mc.xform (obj, q=True, ws=True, ro=True)
 
     objRoo = mc.xform (obj, q=True, roo=True )
