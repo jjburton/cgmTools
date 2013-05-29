@@ -45,7 +45,106 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
-
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+# cgmDynamicSwitch
+#=========================================================================
+class cgmDynamicSwitch(cgmMeta.cgmObject):
+    def __init__(self,node = None, name = None, dynNull = None, dynSuffix = None, dynPrefix = None,
+                 dynSwitchTargets = None, dynSnapTargets = None, dynObject = None,
+                 dynMode = None, setClass = False,*args,**kws):
+        """
+        Dynamic Switch Setup. Controller class for cgmDynamicMatch setups. The idea is to register various switches that then are switched and set on call. 
+	For example, on the leg 1)ik>fk, 2) fk>ik no knee, 3)fk>ik knee setup
+	        
+        Keyword arguments:
+        dynSwitchTargets(list) -- list of match targets
+        mode(list) -- parent/follow/orient
+        """
+	l_plugBuffer = ['dynSwitchDriver']
+	if dynSuffix is not None:
+	    l_plugBuffer.append(str(dynSuffix))    
+	if dynPrefix is not None:
+	    l_plugBuffer.insert(0,str(dynPrefix))  
+	    
+	str_dynSwitchDriverPlug = '_'.join(l_plugBuffer)
+    
+	def _isNullValidForObject(obj,null):
+	    """
+	    To pass a null in the initialzation as the null, we need to check a few things
+	    """
+	    i_object = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=True)
+	    i_null = cgmMeta.validateObjArg(null,cgmDynamicSwitch,noneValid=True)
+	    if not i_object or not i_null:#1) We need args
+		return False
+	    if i_object.hasAttr(str_dynSwitchDriverPlug):#3) the object is already connected
+		if i_object.getMessageInstance(str_dynSwitchDriverPlug) != i_null:
+		    log.info("cgmDynamicSwitch.isNullValidForObject>> Object already has dynSwitchDriver: '%s'"%i_object.getMessage(str_dynSwitchDriverPlug))
+		    return False
+		else:
+		    return True
+	    return True	
+	
+        ### input check  
+        log.info("In cgmDynamicSwitch.__init__ node: %s"%node)
+	i_dynObject = cgmMeta.validateObjArg(dynObject,cgmMeta.cgmObject,noneValid=True)
+	i_argDynNull = cgmMeta.validateObjArg(dynNull,cgmDynamicSwitch,noneValid=True)
+	log.info("i_dynObject: %s"%i_dynObject)
+	__justMade__ = False
+	
+	#TODO allow to set dynNull
+	if i_dynObject:
+	    pBuffer = i_dynObject.getMessage(str_dynSwitchDriverPlug) or False
+	    log.info("pBuffer: %s"%pBuffer)
+	    if pBuffer:
+		node = pBuffer[0]
+	    elif _isNullValidForObject( i_dynObject,i_argDynNull):
+		log.info("cgmDynamicSwitch.__init__>>Null passed and valid")
+		node = i_argDynNull.mNode
+		__justMade__ = False		
+	    else:#we're gonna make a null
+		i_node = i_dynObject.doDuplicateTransform()
+		i_node.addAttr('mClass','cgmDynamicSwitch')
+		node = i_node.mNode
+		__justMade__ = True
+	
+	super(cgmDynamicSwitch, self).__init__(node = node,name = name,nodeType = 'transform') 
+	
+	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
+	self.UNMANAGED.extend(['arg_ml_dynSwitchTargets','_mi_dynObject','_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])
+	if i_dynObject:self._mi_dynObject = i_dynObject
+	else:self._mi_dynObject = False
+	    
+	if kws:log.info("kws: %s"%str(kws))
+	if args:log.info("args: %s"%str(args)) 	
+	doVerify = kws.get('doVerify') or False
+	self._str_dynSwitchDriverPlug = str_dynSwitchDriverPlug
+	
+	arg_ml_dynSwitchTargets = cgmMeta.validateObjListArg(dynSwitchTargets,cgmMeta.cgmObject,noneValid=True)
+	arg_ml_dynSnapTargets = cgmMeta.validateObjListArg(dynSnapTargets,cgmMeta.cgmObject,noneValid=True)
+	
+	log.info("arg_ml_dynSwitchTargets: %s"%arg_ml_dynSwitchTargets)
+	
+        if not self.isReferenced():
+	    if not self.__verify__(*args,**kws):
+		raise StandardError,"cgmDynamicSwitch.__init__>> failed to verify!"
+	    
+	for p in arg_ml_dynSwitchTargets:
+	    log.info("Adding dynSwitchTarget: %s"%p.mNode)
+	    self.addDynSwitchTarget(p)
+	log.info("cgmDynamicSwitch.__init__>> dynSwitchTargets: %s"%self.getMessage('dynSwitchTargets',False))
+	    
+	for p in arg_ml_dynSnapTargets:
+	    log.info("Adding dynSnapTarget: %s"%p.mNode)
+	    self.addDynSnapTarget(p)
+	log.info("cgmDynamicSwitch.__init__>> dynSnapTargets: %s"%self.getMessage('dynSnapTargets',False))
+		
+	if __justMade__ and i_dynObject:
+	    self.addDynObject(i_dynObject)
+	    #self.rebuild()
+	    
+	log.info("self._str_dynSwitchDriverPlug>> '%s'"%self._str_dynSwitchDriverPlug)
+	
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmDynamicMatch
 #=========================================================================
@@ -57,10 +156,11 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
         Dynamic Match Setup. Inspiration for this comes from Jason Schleifer's great AFR work. Retooling for our own purposes.
         The basic idea is a class based match setup for matching fk ik or whatever kind of matching that needs to happen.
 	
-	There are two kinds of match types: MatchTargets and SnapTargets.
-	A MatchTarget setup creates a match object from our dynObject to match to,
-	a SnapTarget is just a mappting to give an exisitng transform to snap to
-        
+	There are three kinds of match types: MatchTargets and SnapTargets.
+	1) MatchTarget setup creates a match object from our dynObject to match to,
+	2) SnapTarget is just a mappting to give an exisitng transform to snap to
+        3) iterTargets are a bit more complicated and involve changing the values of one thing, which moves thing two to match thing 3 and stops
+	
         Keyword arguments:
         dynMatchTargets(list) -- list of match targets
         mode(list) -- parent/follow/orient
@@ -295,12 +395,23 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	log.info("%s.getIterMatchList>>> Iter Match -- cnt: %s | lists: %s"%(self.getShortName(),len(l_iterMatch),l_iterMatch)) 	
 	return ml_iterMatch
     
-    def addDynIterTarget(self, drivenObject = None, matchObject = None, driverAttr = None,
+    def addDynIterTarget(self, drivenObject = None, matchObject = None, matchTarget = None, driverAttr = None, drivenAttr = None, matchAttr = None,
                          maxValue = None, minValue = None, iterations = 50, iterIndex = None):
 	"""
 	dynIterTargetSetup
 	
-	Validate the drivenObject, matchObject
+	@kws
+	drivenObject(str/inst) -- the object that is moved by the driverAttr
+	matchObject(str/inst) -- the object the driven object should match, if None, matchTarget is required which will make one
+	matchTarget(str/inst) -- the object under which the matchObject is parented
+	drivenAttr(str) -- attribute that is driven (must exist on driven object)
+	matchAttr(str) -- attribute that needs to match drivenAttr (must exist on match object)
+	driverAttr(str) -- the attribute which will be iterated
+	maxValue(float) -- max in value for iteration
+	minValue(float) -- min in value for the iteration
+	iterations(int) -- maximum iterations to find a good value
+	iterIndex(int) -- not implemented
+	
 	"""
 	#>>> Validate
 	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
@@ -310,6 +421,19 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	mPlug_driverAttr = cgmMeta.cgmAttr(i_dynObject,driverAttr)
 	i_drivenObject = cgmMeta.validateObjArg(drivenObject,cgmMeta.cgmObject,noneValid=True)
 	i_matchObject = cgmMeta.validateObjArg(matchObject,cgmMeta.cgmObject,noneValid=True)
+	i_matchTarget = cgmMeta.validateObjArg(matchTarget,cgmMeta.cgmObject,noneValid=True)
+	
+	if not i_matchObject and i_matchTarget:#see if we need to make a match object
+	    i_matchObject = i_drivenObject.doDuplicateTransform()
+	    i_matchObject.parent = i_matchTarget.mNode
+	    i_matchObject.doStore('cgmName',"%s_toMatch_%s"%(i_drivenObject.getNameAlias(),i_matchTarget.getNameAlias())) 
+	    i_matchObject.addAttr('cgmType','dynIterMatchObject')
+	    i_matchObject.addAttr('mClass','cgmMeta.cgmObject')	
+	    i_matchObject.doName()	    
+	    log.info("%s.addDynIterTarget>> match object created: %s"%(self.getShortName(),i_matchObject.getShortName()))
+	elif not i_matchObject:
+	    raise StandardError, "%s.addDynIterTarget>> if no match object is provided, a match target is necessary"%self.getShortName()
+	    
 	
 	#Get our iter driven stuff
 	ml_iterDriven = self.getIterDrivenList()#Get the list
@@ -366,11 +490,15 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	
 	#>>> Build our dict
 	d_buffer = {}
-	l_keyValues = [minValue,maxValue,iterations]
-	l_keyNames = ['minValue','maxValue','iterations']
+	l_keyValues = [minValue,maxValue,iterations,matchAttr,drivenAttr]
+	l_keyNames = ['minValue','maxValue','iterations','matchAttr','drivenAttr']
 	for i,key in enumerate(l_keyNames):
 	    if l_keyValues[i] is not None and type(l_keyValues[i]) in [float,int]:
 		d_buffer[key] = l_keyValues[i]
+	    elif i == 3 and l_keyValues[i] is not None and i_matchObject.hasAttr(l_keyValues[i]):
+		d_buffer['matchAttr'] = l_keyValues[i]
+	    elif i == 4 and l_keyValues[i] is not None and i_drivenObject.hasAttr(l_keyValues[i]):
+		d_buffer['drivenAttr'] = l_keyValues[i]
 	    elif l_keyValues[i] is not None:
 		log.info("cgmDynamicMatch.addDynIterTarget>> Bad value for '%s': %s"%(key,l_keyValues[i]))	    		
 	d_buffer['driven'] = index_iterDriven
@@ -385,43 +513,62 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
     def doIter(self):
 	"""
 	"""
-	#>>>Gather info
-	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
-	if not i_dynObject:raise StandardError, "cgmDynamicMatch.doIter>> Must have dynObject. None found"	    
-	
-	ml_iterDriven = self.getIterDrivenList()#Get the list
-	ml_iterMatch = self.getIterMatchList()#Get the list
-	
-	l_attrBuffer = self.dynIterAttrs or []#Check attrs
-	if not l_attrBuffer:raise StandardError, "cgmDynamicMatch.doIter>> Must have iter attrs. None found"	    
-	
-	self.setPrematchData()#set our prematches for proper matching
-	
-	for a in l_attrBuffer:
-	    if not i_dynObject.hasAttr(a):raise StandardError, "cgmDynamicMatch.doIter>> Missing iter attr: %s.%s "%(i_dynObject.getShortName(),a)#has attr    
-	    if not self.dynIterSettings.get(a):raise StandardError, "cgmDynamicMatch.doIter>> Missing iter setting for attr: %s.%s "%(i_dynObject.getShortName(),a)#has setting	    
-	    if 'driven' not in self.dynIterSettings[a].keys():raise StandardError, "%s.doIter>> Missing driven setting for attr: %s.%s "%(self.getShortName(),i_dynObject.getShortName(),a)#has setting	    
-	    if 'match' not in self.dynIterSettings[a].keys():raise StandardError, "%s.doIter>> Missing match setting for attr: %s.%s "%(self.getShortName(),i_dynObject.getShortName(),a)#has setting	    
+	try:
+	    #>>>Gather info
+	    i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
+	    if not i_dynObject:raise StandardError, "cgmDynamicMatch.doIter>> Must have dynObject. None found"	    
 	    
-	    if len(ml_iterDriven)< self.dynIterSettings[a]['driven']:raise StandardError, "%s.doIter>> Missing att's driven: attr: %s | index: %s "%(self.getShortName(),a,self.dynIterSettings[a]['driven'])#has setting	    
-	    if len(ml_iterMatch)< self.dynIterSettings[a]['match']:raise StandardError, "%s.doIter>> Missing att's match: attr: %s | index: %s "%(self.getShortName(),a,self.dynIterSettings[a]['match'])#has setting	    
-	
-	log.info("%s.doIter>> Looks good to go to iter"%(self.getShortName()))
-	
-	#per iter attr, go
-	for a in l_attrBuffer:
-	    mPlug_driverAttr = cgmMeta.cgmAttr(i_dynObject,a)
-	    log.info("%s.doIter>> iterating setup on : '%s.%s'"%(self.getShortName(),i_dynObject.getShortName(),a))
-	    i_drivenObject = ml_iterDriven[self.dynIterSettings[a]['driven']]
-	    i_matchObject = ml_iterMatch[self.dynIterSettings[a]['match']]
-	    log.info("%s.doIter>> driven: '%s'"%(self.getShortName(),i_drivenObject.getShortName()))
-	    log.info("%s.doIter>> match: '%s'"%(self.getShortName(),i_matchObject.getShortName()))
-	    minValue = self.dynIterSettings[a].get('minValue') or 0
-	    maxValue = self.dynIterSettings[a].get('maxValue') or 359
-	    iterations = self.dynIterSettings[a].get('iterations') or 50
+	    ml_iterDriven = self.getIterDrivenList()#Get the list
+	    ml_iterMatch = self.getIterMatchList()#Get the list
 	    
-	    rUtils.matchValue_iterator(i_matchObject,drivenObj=i_drivenObject,driverAttr=mPlug_driverAttr.p_combinedName,minIn=minValue,maxIn=maxValue,maxIterations=iterations)
-
+	    l_attrBuffer = self.dynIterAttrs or []#Check attrs
+	    if not l_attrBuffer:raise StandardError, "cgmDynamicMatch.doIter>> Must have iter attrs. None found"	    
+	    
+	    self.setPrematchData()#set our prematches for proper matching
+	    
+	    for a in l_attrBuffer:
+		if not i_dynObject.hasAttr(a):raise StandardError, "cgmDynamicMatch.doIter>> Missing iter attr: %s.%s "%(i_dynObject.getShortName(),a)#has attr    
+		if not self.dynIterSettings.get(a):raise StandardError, "cgmDynamicMatch.doIter>> Missing iter setting for attr: %s.%s "%(i_dynObject.getShortName(),a)#has setting	    
+		if 'driven' not in self.dynIterSettings[a].keys():raise StandardError, "%s.doIter>> Missing driven setting for attr: %s.%s "%(self.getShortName(),i_dynObject.getShortName(),a)#has setting	    
+		if 'match' not in self.dynIterSettings[a].keys():raise StandardError, "%s.doIter>> Missing match setting for attr: %s.%s "%(self.getShortName(),i_dynObject.getShortName(),a)#has setting	    
+		
+		if len(ml_iterDriven)< self.dynIterSettings[a]['driven']:raise StandardError, "%s.doIter>> Missing att's driven: attr: %s | index: %s "%(self.getShortName(),a,self.dynIterSettings[a]['driven'])#has setting	    
+		if len(ml_iterMatch)< self.dynIterSettings[a]['match']:raise StandardError, "%s.doIter>> Missing att's match: attr: %s | index: %s "%(self.getShortName(),a,self.dynIterSettings[a]['match'])#has setting	    
+	    
+	    log.info("%s.doIter>> Looks good to go to iter"%(self.getShortName()))
+	    
+	    #per iter attr, go
+	    for a in l_attrBuffer:
+		mPlug_driverAttr = cgmMeta.cgmAttr(i_dynObject,a)
+		log.info("%s.doIter>> iterating setup on : '%s.%s'"%(self.getShortName(),i_dynObject.getShortName(),a))
+		i_drivenObject = ml_iterDriven[self.dynIterSettings[a]['driven']]
+		i_matchObject = ml_iterMatch[self.dynIterSettings[a]['match']]
+		log.info("%s.doIter>> driven: '%s'"%(self.getShortName(),i_drivenObject.getShortName()))
+		log.info("%s.doIter>> match: '%s'"%(self.getShortName(),i_matchObject.getShortName()))
+		minValue = self.dynIterSettings[a].get('minValue') or 0
+		maxValue = self.dynIterSettings[a].get('maxValue') or 359
+		iterations = self.dynIterSettings[a].get('iterations') or 50
+		
+		if self.dynIterSettings[a].get('matchAttr') and self.dynIterSettings[a].get('drivenAttr'):
+		    log.info("%s.doIter>> iter attr match mode"%(self.getShortName()))
+		    matchValue = i_matchObject.getAttr( self.dynIterSettings[a].get('matchAttr') )
+		    mPlug_drivenAttr = cgmMeta.cgmAttr(i_drivenObject,self.dynIterSettings[a].get('drivenAttr'))
+		    log.info("%s.doIter>> value: %s"%(self.getShortName(),matchValue))
+		    log.info("%s.doIter>> drivenAttr: %s"%(self.getShortName(),mPlug_drivenAttr.p_combinedShortName))
+		    log.info("%s.doIter>>"%(self.getShortName()) + "="*60)
+		    
+		    rUtils.matchValue_iterator(driverAttr= mPlug_driverAttr.p_combinedName,
+			                       drivenAttr = mPlug_drivenAttr.p_combinedName, 
+			                       matchValue = matchValue,
+			                       minIn=minValue,maxIn=maxValue,
+			                       maxIterations=iterations)
+		    
+		else:
+		    rUtils.matchValue_iterator(i_matchObject,drivenObj=i_drivenObject,driverAttr=mPlug_driverAttr.p_combinedName,minIn=minValue,maxIn=maxValue,maxIterations=iterations)
+	except StandardError,error:
+	    log.error("%s.doIter>> Failure!"%(self.getShortName()))
+	    raise StandardError,error
+	    
 	
     #==============================================================================
     def addDynSnapTarget(self,arg = None, alias = None):
