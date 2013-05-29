@@ -31,6 +31,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
@@ -1625,6 +1626,7 @@ def build_rig(self):
     ml_rigJoints[0].parent = self._i_deformNull.mNode#hip
     ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
     #ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
+    #Need to grab knee and parent to deform Null
 
 
     #For each of our rig joints, find the closest constraint target joint
@@ -1669,6 +1671,72 @@ def build_rig(self):
     self._i_rigNull.version = str(__version__)
     return True 
 
+
+@r9General.Timer
+def build_matchSystem(self):
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("leg.build_deformationRig>>bad self!")
+	raise StandardError,error
+    
+    #Base info
+    mi_moduleParent = False
+    if self._i_module.getMessage('moduleParent'):
+	mi_moduleParent = self._i_module.moduleParent
+	
+    mi_controlIK = self._i_rigNull.controlIK
+    mi_controlMidIK = self._i_rigNull.midIK 
+    ml_controlsFK =  self._i_rigNull.controlsFK    
+    ml_rigJoints = self._i_rigNull.rigJoints
+    ml_blendJoints = self._i_rigNull.blendJoints
+    mi_settings = self._i_rigNull.settings
+
+    mi_controlIK = self._i_rigNull.controlIK
+    mi_controlMidIK = self._i_rigNull.midIK  
+    
+    ml_fkJoints = self._i_rigNull.fkJoints
+    ml_ikJoints = self._i_rigNull.ikJoints
+    
+    #>>> First IK to FK
+    i_ikFootMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
+                                               dynPrefix = "FKtoIK",
+                                               dynMatchTargets=ml_blendJoints[-2])
+    i_ikFootMatch.addPrematchData({'roll':0,'toeSpin':0,'lean':0,'bank':0})
+    #Toe iter
+    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikJoints[-1],
+                                    matchTarget = ml_blendJoints[-1],#Make a new one
+                                    minValue=-90,
+                                    maxValue=90,
+                                    driverAttr='toeWiggle')
+    
+    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikJoints[1],#knee
+                                   matchObject = ml_blendJoints[1],
+                                   drivenAttr='translateZ',
+                                   matchAttr = 'translateZ',
+                                   minValue=0,
+                                   maxValue=30,
+                                   driverAttr='lengthUpr')    
+    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikJoints[2],#ankle
+                                   matchObject= ml_blendJoints[2],#Make a new one
+                                   drivenAttr='translateZ',
+                                   matchAttr = 'translateZ',
+                                   minValue=0,
+                                   maxValue=30,
+                                   driverAttr='lengthLwr')  
+    
+    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikJoints[1],#knee
+                                    matchTarget = ml_blendJoints[1],#Make a new one
+                                    minValue=-90,
+                                    maxValue=90,
+                                    driverAttr='kneeSpin')    
+    #>> Foot
+    i_ikMidmatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlMidIK,
+                                              dynPrefix = "FKtoIK",
+                                              dynMatchTargets=ml_blendJoints[1])    
+    #>> Knee
 
 @r9General.Timer
 def __build__(self, buildTo='',*args,**kws): 
