@@ -17,6 +17,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
@@ -100,6 +101,9 @@ class go(object):
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
 	if not self._i_module.modulePuppet._verifyMasterControl():
 	    raise StandardError,"RigFactory.go.init masterControl failed to verify"
+	
+	#Verify a dynamic switch
+	self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull)
 	
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
