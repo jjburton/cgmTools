@@ -1554,7 +1554,7 @@ def create_distanceMeasure(start = None, end = None, baseName = None):
 
 @r9General.Timer
 def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, drivenAttr = None, driverAttr = None, 
-                        minIn = -180, maxIn = 180, maxIterations = 40, matchValue = None,):
+                        minIn = -180, maxIn = 180, maxIterations = 40, matchValue = None):
     """
     Modified version of Jason Schleifer's afr js_iterator
     """
@@ -1586,8 +1586,8 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 	__drivenMode__ = 'attr'
 	mPlug_driven = d_drivenAttr['mi_plug']
 	f_baseValue = mPlug_driven.value	
-	minValue = float(f_baseValue - 10)
-	maxValue = float(f_baseValue + 10)  
+	minRange = float(f_baseValue - 10)
+	maxRange = float(f_baseValue + 10)  
 	mPlug_driven
 	log.debug("matchValue_iterator>>> Attr mode. Attr: %s  | baseValue: %s "%(mPlug_driven.p_combinedShortName,f_baseValue))						
     else:
@@ -1606,8 +1606,8 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
     if b_autoFrameState:
 	mc.autoKeyframe(state = False)
     
-    #minValue = float(minIn)
-    #maxValue = float(maxIn)  
+    minValue = float(minIn)
+    maxValue = float(maxIn)  
     f_lastClosest = None
     f_lastValue = None
     cnt_sameValue = 0
@@ -1633,7 +1633,13 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 		f_half = ((maxValue-minValue)/2.0) + minValue#get half	
 		
 		#First find range
-		if f_minSetValue > matchValue or f_maxSetValue < matchValue:
+		if not cgmMath.isFloatEquivalent(matchValue,0) and not cgmMath.isFloatEquivalent(minValue,0) and not cgmMath.isFloatEquivalent(f_minSetValue,0):
+		    #if none of our values are 0, this is really fast
+		    minValue = (minValue * matchValue)/f_minSetValue
+		    log.info("matchValue_iterator>>> Equated: %s"%minValue)		    
+		    f_closest = f_minDist
+		    mPlug_driver.value = minValue#Set to min		    
+		elif f_minSetValue > matchValue or f_maxSetValue < matchValue:
 		    log.info("matchValue_iterator>>> Finding Range....")		    
 		    if matchValue < mPlug_driven.value:
 			#Need to shift our range down
@@ -1644,7 +1650,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 			f_closest = f_minDist			
 		    elif matchValue > mPlug_driven.value:
 			#Need to shift our range up
-			log.info("matchValue_iterator>>> Up range: minSetValue: %s"%f_maxSetValue)  
+			log.info("matchValue_iterator>>> Up range: maxSetValue: %s"%f_maxSetValue)  
 			f_baseValue = f_minDist		    
 			minValue = f_baseValue - f_maxDist
 			maxValue = f_baseValue + f_maxDist
@@ -1667,7 +1673,8 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 		if f_closest == f_lastClosest:
 		    cnt_sameValue +=1
 		    if cnt_sameValue >3:
-			raise StandardError,"matchValue_iterator>>> Value unchanged. Bad Driver. lastValue: %s | currentValue: %s"%(f_lastValue,mPlug_driven.value)		
+			log.error("matchValue_iterator>>> Value unchanged. Bad Driver. lastValue: %s | currentValue: %s"%(f_lastValue,mPlug_driven.value))		
+			break
 		else:
 		    cnt_sameValue = 0 
 		f_lastClosest = f_closest
@@ -1680,7 +1687,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 	    pos_match = mc.xform(mi_matchObj.mNode, q=True, ws=True, rp=True)
 	    pos_driven = mc.xform(mi_drivenObj.mNode, q=True, ws=True, rp=True)
 	    log.info("matchValue_iterator>>> min: %s | max: %s | pos_match: %s | pos_driven: %s"%(minValue,maxValue,pos_match,pos_driven))  						    
-	    if cgmMath.isVectorEquivalent(pos_match,pos_driven,3):
+	    if cgmMath.isVectorEquivalent(pos_match,pos_driven,2):
 		log.info("matchValue_iterator>>> Match found: %s <<pos>> %s | %s: %s | step: %s"%(mi_matchObj.getShortName(),mi_drivenObj.getShortName(),mPlug_driver.p_combinedShortName,minValue,i))  			    
 		b_matchFound = mPlug_driver.value
 		break
@@ -1692,23 +1699,28 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 	    
 	    mPlug_driver.value = maxValue#Set to max
 	    pos_max = mc.xform(mi_drivenObj.mNode, q=True, ws=True, rp=True)
-	    #f_maxDist = cgmMath.mag( cgmMath.list_subtract(pos_match,pos_max))#get Dif
 	    f_maxDist = distance.returnDistanceBetweenObjects(mi_drivenObj.mNode,mi_matchObj.mNode)
-	    #f_half = (len(range(maxValue,minValue))/2.0) + minValue#get half
 	    f_half = ((maxValue-minValue)/2.0) + minValue#get half	
 	    
 	    if f_minDist>f_maxDist:#if min dif greater, use half as new min
 		minValue = f_half
-		#log.debug("matchValue_iterator>>>Going up")
 		f_closest = f_minDist
-	    #elif f_minDist<f_maxDist:
 	    else:
 		maxValue = f_half
-		#log.debug("matchValue_iterator>>>Going down")  
-		f_closest = f_maxDist	  
-	    #elif f_minDist==f_maxDist:
-		#minValue = minValue + .1
+		f_closest = f_maxDist	
 		
+	    if f_minDist==f_maxDist:
+		minValue = minValue + .1
+		
+	    if f_closest == f_lastClosest:
+		cnt_sameValue +=1
+		if cnt_sameValue >3:
+		    log.error("matchValue_iterator>>> Value unchanged. Bad Driver. lastValue: %s | currentValue: %s"%(f_lastValue,mPlug_driver.value))		
+		    break
+	    else:
+		cnt_sameValue = 0 
+	    f_lastClosest = f_closest
+	    
 	    log.info("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
 	    log.info("#"+'-'*50)	    
 
@@ -1722,7 +1734,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 	
     if b_matchFound is not None:
 	return b_matchFound
-    log.warning("matchValue_iterator>>> Failed to find value for: %s"%mPlug_driven.p_combinedShortName)    
+    #log.warning("matchValue_iterator>>> Failed to find value for: %s"%mPlug_driven.p_combinedShortName)    
     return False
     
 @r9General.Timer
