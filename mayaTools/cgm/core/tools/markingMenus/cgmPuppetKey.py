@@ -4,10 +4,11 @@ import maya.mel as mel
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core import cgm_RigMeta as cgmRigMeta
 
 from cgm.lib import guiFactory
-from cgm.lib import search
+from cgm.lib import (lists,search)
 from cgm.tools.lib import animToolsLib
 from cgm.tools.lib import tdToolsLib
 from cgm.tools.lib import locinatorLib
@@ -101,7 +102,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		selected = mc.ls(sl=True) or []
 		self.ml_objList = cgmMeta.validateObjListArg(selected,cgmMeta.cgmObject,True)
 		log.debug("ml_objList: %s"%self.ml_objList)
-		
+		self.ml_modules = []
 		if selected:selCheck = True
 		else:selCheck = False
 		
@@ -117,8 +118,6 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 						self.i_target = self.ml_objList[0]
 						break
 					
-
-		
 		#ShsowMatch = search.matchObjectCheck()
 		
 
@@ -143,9 +142,9 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		            c = lambda *a:buttonAction(animToolsLib.ml_breakdownDraggerCall()),
 		            rp = 'S')
 		
-		#>>> Space switching
 		if self.ml_objList:
 			for i_o in self.ml_objList:
+				#>>> Space switching							
 				if i_o.getMessage('dynParentGroup'):
 					i_dynParent = cgmMeta.validateObjArg(i_o.getMessage('dynParentGroup')[0],cgmRigMeta.cgmDynParentGroup,True)
 					if i_dynParent:
@@ -160,6 +159,36 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 									MelMenuItem(tmpMenu,l = "%s"%o,en = b_enable,
 										        c = Callback(i_dynParent.doSwitchSpace,a,i))								
 						MelMenuItemDiv(parent)
+						
+				#>>> Module
+				buffer = i_o.getMessage('module')
+				try:
+					self.ml_modules.append(i_o.module.module)
+				except StandardError,error:
+					log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
+		
+		#>>> Module
+		if self.ml_modules:
+			self.ml_modules = lists.returnListNoDuplicates(self.ml_modules)
+			for i_module in self.ml_modules:
+				MelMenuItem(parent,l=">>%s<<"%i_module.getBaseName())
+				try:#To build dynswitch
+					i_switch = i_module.rigNull.dynSwitch
+					for a in i_switch.l_dynSwitchAlias:
+						MelMenuItem( parent, l="switch>> %s"%a,
+					                 c = Callback(i_switch.go,a))						
+				except StandardError,error:
+					log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
+				try:#module basic menu
+					if i_module.rigNull.getMessage('controlsAll'):
+						MelMenuItem( parent, l="Key",
+					                 c = Callback(i_module.animKey))
+						MelMenuItem( parent, l="Select",
+					                 c = Callback(i_module.animSelect))									
+				except StandardError,error:
+					log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
+			
+				MelMenuItemDiv(parent)						
 				
 		#>>> Keying Options
 		KeyMenu = MelMenuItem( parent, l='Key type', subMenu=True)
