@@ -446,7 +446,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    if mc.objExists("%s.%s"%(self.mNode,attr)):#Quick create check for initial value
 		initialCreate = False
 		if self.isReferenced():
-		    log.warning('This is a referenced node, cannot add attr')
+		    log.warning('This is a referenced node, cannot add attr: %s.%s'%(self.getShortName(),attr))
 		    return False		
 	    else:
 		initialCreate = True
@@ -1330,6 +1330,26 @@ class cgmControl(cgmObject):
 	if setClass:
 	    self.addAttr('mClass','cgmControl',lock=True)
 	    
+    #>>> Module stuff
+    #========================================================================
+    def _hasModule(self):
+	try:
+	    if self.getAttr('module'):
+		return True
+	    return False
+	except StandardError,error:
+	    log.error("%s._hasModule>> _hasModule fail | %s"%(self.getShortName(),error))	    
+	    return False
+	
+    def _hasSwitch(self):
+	try:
+	    if self.module.rigNull.dynSwitch:
+		return True
+	    return False
+	except StandardError,error:
+	    log.error("%s._hasSwitch>> _hasSwitch fail | %s"%(self.getShortName(),error))
+	    return False	
+    
     #>>> Aim stuff
     #========================================================================
     def _isAimable(self):
@@ -2054,8 +2074,10 @@ class cgmBufferNode(cgmNode):
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
 	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr'])
 	
-	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
-	
+        if not self.isReferenced():
+	    if not self.__verify__(*args,**kws):
+		raise StandardError,"cgmBufferNode.__init__>> failed to verify : '%s'!"%self.getShortName()
+	    
 	self.updateData()
 	
 	if value is not None:
@@ -2086,6 +2108,9 @@ class cgmBufferNode(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    def __verify__(self):
+	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
+	
     def returnNextAvailableCnt(self):
         """ Get's the next available item number """        
         return self.returnNextAvailableAttrCnt('item_')
