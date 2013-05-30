@@ -136,7 +136,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
         return True
     
-    #@r9General.Timer
+    @r9General.Timer
     def __verify__(self,name = None):
         """"""
         """ 
@@ -1228,7 +1228,8 @@ rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any m
                        'twist':'bool',
                        'gutsLock':'int',
                        'gutsVis':'int',                       
-                       'skinJoints':'message'}
+                       'skinJoints':'message',
+                       'dynSwitch':'messageSimple'}
 
 templateNullAttrs_toMake = {'version':'string',
                             'gutsLock':'int',
@@ -1641,8 +1642,32 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigDisconnect)
         """
-        return mFactory.rigDisconnect(self,**kws)   
+        return mFactory.rigDisconnect(self,**kws)  
     
+    #>>> Animation
+    #========================================================================
+    def animKey(self,**kws):
+	try:
+	    buffer = self.rigNull.getMessage('controlsAll')
+	    if buffer:
+		mc.select(buffer)
+		mc.setKeyframe(**kws)
+		return True
+	    return False
+	except StandardError,error:
+	    log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
+	    return False
+    def animSelect(self,**kws):
+	try:
+	    buffer = self.rigNull.getMessage('controlsAll')
+	    if buffer:
+		mc.select(buffer)
+		return True
+	    return False
+	except StandardError,error:
+	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
+	    return False
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
