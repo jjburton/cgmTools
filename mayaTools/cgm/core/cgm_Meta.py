@@ -170,8 +170,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	self.update()
         
     def __verify__(self):
-	""" For overload"""
-	pass
+	pass#For overload
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -233,8 +232,16 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	  
 	    
     def getMessage(self,attr,longNames = True):
+	"""
+	This maybe odd to some, but we treat traditional nodes as regular message connections. However, sometimes, you want a message like connection
+	to an attribute. To do this, we devised a method of creating a compaptble attr on the object to recieve the message, 
+	connecting the attribute you want to connect to that attribute and then when you call an attribute as getMessage, if it is not a message attr
+	it tries to trace back that connection to an attribute.
+	"""
 	if mc.objExists('%s.%s' % (self.mNode,attr)) and mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
 	    return attributes.returnMessageData(self.mNode,attr,longNames) or []
+	elif mc.objExists('%s.%s' % (self.mNode,attr)):
+	    return cgmAttr(self,attr).getMessage()
 	return []
     
     def getMessageInstance(self,attr):
@@ -575,7 +582,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	return nameTools.returnObjectGeneratedNameDict(self.mNode) or {}  
     
     def getNameAlias(self):
-	if self.getAttr('cgmAlias'):
+	if self.hasAttr('cgmAlias'):
 	    return self.cgmAlias
 	buffer =  nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
 	if buffer:return buffer
@@ -596,9 +603,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """ get the type of the object """
         return search.returnObjectType(self.getComponent())
     
-    def getAttr(self,attr,**kws):
+    def getMayaAttr(self,attr,**kws):
         """ get the type of the object """
-        return attributes.doGetAttr(self.mNode,attr,**kws)    
+        return attributes.doGetAttr(self.mNode,attr,**kws)  
+    
+    def getAttr(self,attr):
+        """ get the type of the object """
+        return self.__getattribute__(attr)    
     
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
@@ -3385,8 +3396,8 @@ class NameFactory(object):
         self.int_fastIterator = 0
         #If we have an assigned iterator, start with that
 	d_nameDict = i_node.getNameDict()	
-        if i_node.getAttr('cgmIterator') is not False:
-            return int(i_node.getAttr('cgmIterator'))
+        if i_node.getMayaAttr('cgmIterator') is not False:
+            return int(i_node.getMayaAttr('cgmIterator'))
 			      
 	self.d_nameCandidate = d_nameDict
 	self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)  
@@ -3717,7 +3728,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 		    raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)			    
 	    else:
 		log.debug("validateObjArg>>> class mType: '%s'"%mType)		
-		if issubclass(type(i_autoInstance),mType):#if it's a subclass ofour mType, good to go
+		if issubclass(type(i_autoInstance),mType):#if it's a subclass of our mType, good to go
 		    return i_autoInstance
 		#elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
 		    #raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)	
@@ -3766,9 +3777,12 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
 	    
 	if not mc.objExists(combined):
-	    log.debug("validateAttrArg>>> '%s'doesn't exist, creating attr (%s)!"%(combined,defaultType))
-	    if kws:log.debug("kws: %s"%kws)
-	    i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
+	    if noneValid:
+		return False
+	    else:
+		log.debug("validateAttrArg>>> '%s'doesn't exist, creating attr (%s)!"%(combined,defaultType))
+		if kws:log.debug("kws: %s"%kws)
+		i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
 	else:
 	    i_plug = cgmAttr(obj,attr,**kws)	    
 	
