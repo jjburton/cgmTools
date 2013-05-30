@@ -49,9 +49,9 @@ log.setLevel(logging.INFO)
 # cgmDynamicSwitch
 #=========================================================================
 class cgmDynamicSwitch(cgmMeta.cgmObject):
-    def __init__(self,node = None, name = None, dynNull = None, dynSuffix = None, dynPrefix = None,
-                 dynSwitchTargets = None, dynSnapTargets = None, dynObject = None,
-                 dynMode = None, setClass = False,*args,**kws):
+    def __init__(self,node = None, name = None, dynSuffix = None, dynPrefix = None,
+                 dynOwner = None, moduleInstance = None,
+                 *args,**kws):
         """
         Dynamic Switch Setup. Controller class for cgmDynamicMatch setups. The idea is to register various switches that then are switched and set on call. 
 	For example, on the leg 1)ik>fk, 2) fk>ik no knee, 3)fk>ik knee setup
@@ -65,85 +65,199 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	    l_plugBuffer.append(str(dynSuffix))    
 	if dynPrefix is not None:
 	    l_plugBuffer.insert(0,str(dynPrefix))  
-	    
 	str_dynSwitchDriverPlug = '_'.join(l_plugBuffer)
     
-	def _isNullValidForObject(obj,null):
-	    """
-	    To pass a null in the initialzation as the null, we need to check a few things
-	    """
-	    i_object = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=True)
-	    i_null = cgmMeta.validateObjArg(null,cgmDynamicSwitch,noneValid=True)
-	    if not i_object or not i_null:#1) We need args
-		return False
-	    if i_object.hasAttr(str_dynSwitchDriverPlug):#3) the object is already connected
-		if i_object.getMessageInstance(str_dynSwitchDriverPlug) != i_null:
-		    log.info("cgmDynamicSwitch.isNullValidForObject>> Object already has dynSwitchDriver: '%s'"%i_object.getMessage(str_dynSwitchDriverPlug))
-		    return False
-		else:
-		    return True
-	    return True	
-	
         ### input check  
         log.info("In cgmDynamicSwitch.__init__ node: %s"%node)
-	i_dynObject = cgmMeta.validateObjArg(dynObject,cgmMeta.cgmObject,noneValid=True)
-	i_argDynNull = cgmMeta.validateObjArg(dynNull,cgmDynamicSwitch,noneValid=True)
-	log.info("i_dynObject: %s"%i_dynObject)
+	i_dynOwner = cgmMeta.validateObjArg(dynOwner,cgmMeta.cgmObject,noneValid=True)
 	__justMade__ = False
-	
-	#TODO allow to set dynNull
-	if i_dynObject:
-	    pBuffer = i_dynObject.getMessage(str_dynSwitchDriverPlug) or False
-	    log.info("pBuffer: %s"%pBuffer)
-	    if pBuffer:
-		node = pBuffer[0]
-	    elif _isNullValidForObject( i_dynObject,i_argDynNull):
-		log.info("cgmDynamicSwitch.__init__>>Null passed and valid")
-		node = i_argDynNull.mNode
-		__justMade__ = False		
-	    else:#we're gonna make a null
-		i_node = i_dynObject.doDuplicateTransform()
-		i_node.addAttr('mClass','cgmDynamicSwitch')
-		node = i_node.mNode
-		__justMade__ = True
 	
 	super(cgmDynamicSwitch, self).__init__(node = node,name = name,nodeType = 'transform') 
 	
 	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
-	self.UNMANAGED.extend(['arg_ml_dynSwitchTargets','_mi_dynObject','_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])
-	if i_dynObject:self._mi_dynObject = i_dynObject
-	else:self._mi_dynObject = False
-	    
+	self.UNMANAGED.extend(['_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])
+		    
 	if kws:log.info("kws: %s"%str(kws))
 	if args:log.info("args: %s"%str(args)) 	
 	doVerify = kws.get('doVerify') or False
 	self._str_dynSwitchDriverPlug = str_dynSwitchDriverPlug
-	
-	arg_ml_dynSwitchTargets = cgmMeta.validateObjListArg(dynSwitchTargets,cgmMeta.cgmObject,noneValid=True)
-	arg_ml_dynSnapTargets = cgmMeta.validateObjListArg(dynSnapTargets,cgmMeta.cgmObject,noneValid=True)
-	
-	log.info("arg_ml_dynSwitchTargets: %s"%arg_ml_dynSwitchTargets)
-	
+		
         if not self.isReferenced():
 	    if not self.__verify__(*args,**kws):
 		raise StandardError,"cgmDynamicSwitch.__init__>> failed to verify!"
 	    
-	for p in arg_ml_dynSwitchTargets:
-	    log.info("Adding dynSwitchTarget: %s"%p.mNode)
-	    self.addDynSwitchTarget(p)
-	log.info("cgmDynamicSwitch.__init__>> dynSwitchTargets: %s"%self.getMessage('dynSwitchTargets',False))
-	    
-	for p in arg_ml_dynSnapTargets:
-	    log.info("Adding dynSnapTarget: %s"%p.mNode)
-	    self.addDynSnapTarget(p)
-	log.info("cgmDynamicSwitch.__init__>> dynSnapTargets: %s"%self.getMessage('dynSnapTargets',False))
-		
-	if __justMade__ and i_dynObject:
-	    self.addDynObject(i_dynObject)
-	    #self.rebuild()
+	if i_dynOwner:
+	    self.setDynOwner(i_dynOwner)
 	    
 	log.info("self._str_dynSwitchDriverPlug>> '%s'"%self._str_dynSwitchDriverPlug)
 	
+    def __verify__(self):
+	if self.hasAttr('mClass') and self.mClass!='cgmDynamicSwitch':
+	    raise StandardError, "cgmDynamicSwitch.__verify__>> This object has a another mClass and setClass is not set to True"
+
+	self.addAttr('mClass','cgmDynamicSwitch',lock=True)#We're gonna set the class because it's necessary for this to work
+	self.addAttr('cgmType','dynSwitchSystem',lock=True)#We're gonna set the class because it's necessary for this to work
+	
+        self.addAttr('dynOwner',attrType = 'messageSimple',lock=True)
+	self.addAttr('l_dynSwitchAlias',attrType = 'string',lock=True)
+	self.addAttr('d_dynSwitchSettings',attrType = 'string',lock=True)
+	
+	#Unlock all transform attriutes
+	for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+	    cgmMeta.cgmAttr(self,attr,lock=False)
+	self.doName()
+	return True
+    
+    def setSwitchAttr(self,attrArg):
+	"""
+	Uses the cgm method for connecting an attribute with a message like connection for tracking
+	"""
+	try:
+	    d_attrReturn = cgmMeta.validateAttrArg(attrArg,noneValid=True)
+	    if not d_attrReturn:
+		log.error("%s.setSwitchAttr>> Invalid attr arg: '%s'"%(self.getShortName(),attrArg))
+		return False
+	    mPlug_switchAttr = d_attrReturn['mi_plug']
+	    log.info("%s.setSwitchAttr>> Attr to register: '%s'"%(self.getShortName(),mPlug_switchAttr.p_combinedShortName))
+	    self.doStore('dynSwitchAttr',mPlug_switchAttr.p_combinedName)
+	except StandardError,error:
+	    raise StandardError, "%s.setSwitchAttr>> Failure: '%s'"%(self.getShortName(),error)
+	
+    def setDynOwner(self,arg):
+	i_object = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=False)
+	if i_object == self:
+	    raise StandardError, "cgmDynamicSwitch.setDynOwner>> Cannot add self as dynObject"
+	
+	if i_object.hasAttr(self._str_dynSwitchDriverPlug) and i_object.getAttr(self._str_dynSwitchDriverPlug) == self:
+	    log.info("cgmDynamicSwitch.setDynOwner>> dynOwner already connected: '%s'"%i_object.getShortName())
+	    return True
+	
+	log.info("cgmDynamicSwitch.setDynOwner>> Adding dynObject: '%s'"%i_object.getShortName())
+	self.connectChildNode(i_object,'dynOwner',self._str_dynSwitchDriverPlug)#Connect the nodes
+	self.doStore('cgmName',i_object.mNode)
+	self.doName()
+	
+	if not self.parent:#If we're not parented, parent to dynObject, otherwise, it doen't really matter where this is
+	    self.parent = i_object.mNode
+	    
+    #======================================================================		
+    #>>> Switch stuff
+    def getMatchSetsList(self,maxCheck = 75):
+	l_iterAttr = []
+	ml_iterAttr = []
+	for i in range(maxCheck):
+	    buffer = self.getMessage('ml_dynMatchSet_%s'%i,False)
+	    if i == maxCheck-1 or not buffer:
+		break
+	    else:
+		l_iterAttr.append(buffer)
+		ml_iterAttr.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	log.info("%s.getMatchSetsList>>> dynMatch sets -- cnt: %s | lists: %s"%(self.getShortName(),len(l_iterAttr),l_iterAttr)) 	
+	return ml_iterAttr
+    
+    def getSwitchAttrsList(self,maxCheck = 75):
+	l_iterAttr = []
+	ml_iterAttr = []
+	for i in range(maxCheck):
+	    buffer = self.getMessage('dynSwitchAttr_%s'%i,False)
+	    if i == maxCheck-1 or not buffer:
+		break
+	    else:
+		d_attrReturn = cgmMeta.validateAttrArg(buffer,noneValid=True)
+		if not d_attrReturn:
+		    log.error("%s.getSwitchAttrsList>> Invalid attr arg: '%s'"%(self.getShortName(),buffer))
+		    break
+		mPlug_switchAttr = d_attrReturn['mi_plug']		
+		l_iterAttr.append(mPlug_switchAttr.p_combinedName)
+		ml_iterAttr.append(mPlug_switchAttr)
+	log.info("%s.getSwitchAttrsList>>> switchAttrs sets -- cnt: %s | lists: %s"%(self.getShortName(),len(l_iterAttr),l_iterAttr)) 	
+	return l_iterAttr
+    
+    def addSwitch(self, alias = None, switchAttrArg = None, switchAttrValue = None, ml_dynMatchSet = None):
+	"""
+	
+	"""
+	#>>> Validate
+	ml_dynMatchSet = cgmMeta.validateObjListArg(ml_dynMatchSet,cgmDynamicMatch,noneValid=True) 
+	if not ml_dynMatchSet:raise StandardError, "%s.addDynIterTarget>> Must have ml_dynMatchSet. None found"%self.getShortName()	    
+	str_alias = str(alias)
+	
+	#======================================================================
+	#Switch attr
+	l_switchAttrs = self.getSwitchAttrsList()
+	d_attrReturn = cgmMeta.validateAttrArg(switchAttrArg,noneValid=True)
+	if not d_attrReturn:
+	    log.error("%s.addSwitch>> Invalid switchAttrArg arg: '%s'"%(self.getShortName(),switchAttrArg))
+	    return False
+	
+	mPlug_switchAttr = d_attrReturn['mi_plug']
+	if mPlug_switchAttr.p_combinedName in l_switchAttrs:
+	    log.info("%s.addSwitch>> SwitchAttr already connected: %s"%(self.getShortName(),mPlug_switchAttr.p_combinedShortName))
+	    index_switchAttr = l_switchAttrs.index(mPlug_switchAttr.p_combinedName)
+	    
+	else:#add it
+	    index =  self.returnNextAvailableAttrCnt("dynSwitchAttr_")
+	    log.info("%s.setSwitchAttr>> Attr to register: '%s'"%(self.getShortName(),mPlug_switchAttr.p_combinedShortName))
+	    self.doStore('dynSwitchAttr_%s'%index,mPlug_switchAttr.p_combinedName)	
+	    l_switchAttrs.append(mPlug_switchAttr.p_combinedName)
+	    
+	    index_switchAttr = l_switchAttrs.index(mPlug_switchAttr.p_combinedName)
+	    if index != index_switchAttr:
+		raise StandardError, "%s.addSwitch>> switch attr indexes do not match!"%self.getShortName()  
+	#======================================================================
+	#Get our match set stuff
+	ml_dynMatchSets = self.getMatchSetsList()
+	log.info("cgmDynamicMatch.addSwitch>> match set: %s"%[dynMatch.getShortName() for dynMatch in ml_dynMatchSet])
+	for i,mSet in enumerate(ml_dynMatchSets):
+	    log.info("cgmDynamicMatch.addSwitch>> match set %s: %s"%(i,[dynMatch.getShortName() for dynMatch in mSet]))
+	
+	if ml_dynMatchSet in ml_dynMatchSets:
+	    log.info("%s.addSwitch>> Set already connected: %s"%(self.getShortName(),[mSet.getShortName() for mSet in ml_dynMatchSet]))
+	    index_dynMatchSet = ml_dynMatchSets.index(ml_dynMatchSet)
+	
+	else:#add it
+	    index = self.returnNextAvailableAttrCnt("ml_dynMatchSet_")
+	    self.connectChildrenNodes(ml_dynMatchSet,'ml_dynMatchSet_%s'%index)
+	    ml_dynMatchSets.append(ml_dynMatchSet)
+	    
+	    index_dynMatchSet = ml_dynMatchSets.index(ml_dynMatchSet)
+	    if index != index_dynMatchSet:
+		raise StandardError, "%s.addSwitch>> match set indexes do not match!"%self.getShortName()  	    
+	#======================================================================	
+	
+	#>>Get our Attribute registered
+	d_dynSwitchSettings = self.d_dynSwitchSettings or {}
+	l_dynSwitchAliasBuffer = self.l_dynSwitchAlias or []
+	if str_alias in l_dynSwitchAliasBuffer:
+	    log.info("%s.addSwitch>> Attr already in, checking: '%s'"%(self.getShortName(),mPlug_switchAttr.p_combinedShortName))    
+	else:
+	    l_dynSwitchAliasBuffer.append(str_alias)
+	    
+	index_alias = l_dynSwitchAliasBuffer.index(str_alias)	
+	self.l_dynSwitchAlias = l_dynSwitchAliasBuffer#Push back to attr
+	
+	#>>> Build our dict
+	d_buffer = {}
+	l_keyValues = [switchAttrValue]
+	l_keyNames = ['atrV']
+	for i,key in enumerate(l_keyNames):
+	    if l_keyValues[i] is not None and type(l_keyValues[i]) in [float,int]:
+		d_buffer[key] = l_keyValues[i]
+	    elif l_keyValues[i] is not None:
+		log.info("%s.addSwitch>> Bad value for '%s': %s"%(self.getShortName(),key,l_keyValues[i]))	    		
+	d_buffer['setIdx'] = index_dynMatchSet
+	d_buffer['atrIdx'] = index_switchAttr
+	
+	#Store it
+	d_dynSwitchSettings[str_alias] = d_buffer
+	self.d_dynSwitchSettings = d_dynSwitchSettings
+	#======================================================================
+	
+	
+    def go(arg):
+	str_switchAttr = self.getMessage('dynSwitchAttr')
+	if not str_switchAttr:raise StandardError, "%s.go>> Must have dynSwitchAttr. None found"%self.getShortName()	    
+    
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmDynamicMatch
@@ -396,7 +510,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	return ml_iterMatch
     
     def addDynIterTarget(self, drivenObject = None, matchObject = None, matchTarget = None, driverAttr = None, drivenAttr = None, matchAttr = None,
-                         maxValue = None, minValue = None, iterations = 50, iterIndex = None):
+                         maxValue = None, minValue = None, maxIter = 50, iterIndex = None):
 	"""
 	dynIterTargetSetup
 	
@@ -409,7 +523,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	driverAttr(str) -- the attribute which will be iterated
 	maxValue(float) -- max in value for iteration
 	minValue(float) -- min in value for the iteration
-	iterations(int) -- maximum iterations to find a good value
+	maxIter(int) -- maximum iterations to find a good value
 	iterIndex(int) -- not implemented
 	
 	"""
@@ -490,8 +604,8 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	
 	#>>> Build our dict
 	d_buffer = {}
-	l_keyValues = [minValue,maxValue,iterations,matchAttr,drivenAttr]
-	l_keyNames = ['minValue','maxValue','iterations','matchAttr','drivenAttr']
+	l_keyValues = [minValue,maxValue,maxIter,matchAttr,drivenAttr]
+	l_keyNames = ['minValue','maxValue','maxIter','matchAttr','drivenAttr']
 	for i,key in enumerate(l_keyNames):
 	    if l_keyValues[i] is not None and type(l_keyValues[i]) in [float,int]:
 		d_buffer[key] = l_keyValues[i]
@@ -547,7 +661,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 		log.info("%s.doIter>> match: '%s'"%(self.getShortName(),i_matchObject.getShortName()))
 		minValue = self.dynIterSettings[a].get('minValue') or 0
 		maxValue = self.dynIterSettings[a].get('maxValue') or 359
-		iterations = self.dynIterSettings[a].get('iterations') or 50
+		maxIter = self.dynIterSettings[a].get('maxIter') or 50
 		
 		if self.dynIterSettings[a].get('matchAttr') and self.dynIterSettings[a].get('drivenAttr'):
 		    log.info("%s.doIter>> iter attr match mode"%(self.getShortName()))
@@ -561,10 +675,10 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 			                       drivenAttr = mPlug_drivenAttr.p_combinedName, 
 			                       matchValue = matchValue,
 			                       minIn=minValue,maxIn=maxValue,
-			                       maxIterations=iterations)
+			                       maxIterations=maxIter)
 		    
 		else:
-		    rUtils.matchValue_iterator(i_matchObject,drivenObj=i_drivenObject,driverAttr=mPlug_driverAttr.p_combinedName,minIn=minValue,maxIn=maxValue,maxIterations=iterations)
+		    rUtils.matchValue_iterator(i_matchObject,drivenObj=i_drivenObject,driverAttr=mPlug_driverAttr.p_combinedName,minIn=minValue,maxIn=maxValue,maxIterations=maxIter)
 	except StandardError,error:
 	    log.error("%s.doIter>> Failure!"%(self.getShortName()))
 	    raise StandardError,error
