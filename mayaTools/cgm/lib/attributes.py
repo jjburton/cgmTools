@@ -486,7 +486,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
                 if mc.objExists(obj+'.'+infoType):
                     objAttrType = mc.getAttr((obj+'.'+infoType),type=True)
                     if infoAttrType != objAttrType:
-                        convertAttrType((obj+'.'+infoType),infoAttrType)
+                        doConvertAttrType((obj+'.'+infoType),infoAttrType)
 
                 
                 doConnectAttr(info,attributeBuffer)
@@ -968,7 +968,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                     if targetLock:
                         mc.setAttr('%s.%s'%(toObject,toAttr),lock = False)
                         relockSource = True
-                    convertAttrType(('%s.%s'%(toObject,toAttr)),sourceType)
+                    doConvertAttrType(('%s.%s'%(toObject,toAttr)),sourceType)
                 else:
                     goodToGo = False
                 
