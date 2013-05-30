@@ -1702,20 +1702,23 @@ def build_matchSystem(self):
     ml_ikPVJoints = self._i_rigNull.ikPVJoints
     ml_ikNoFlipJoints = self._i_rigNull.ikNoFlipJoints
     
+    mi_dynSwitch = self._i_dynSwitch
+    
     #>>> First IK to FK
-    i_ikFootMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
+    i_ikFootMatch_noKnee = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
                                                dynPrefix = "FKtoIK",
                                                dynMatchTargets=ml_blendJoints[-2])
-    i_ikFootMatch.addPrematchData({'roll':0,'toeSpin':0,'lean':0,'bank':0})
+    i_ikFootMatch_noKnee.addPrematchData({'roll':0,'toeSpin':0,'lean':0,'bank':0})
+    
     #Toe iter
-    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikJoints[-1],
+    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[-1],
                                     matchTarget = ml_blendJoints[-1],#Make a new one
                                     minValue=-90,
                                     maxValue=90,
                                     maxIter=15,
                                     driverAttr='toeWiggle')
     
-    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikJoints[1],#knee
+    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[1],#knee
                                    matchObject = ml_blendJoints[1],
                                    drivenAttr='translateZ',
                                    matchAttr = 'translateZ',
@@ -1723,7 +1726,7 @@ def build_matchSystem(self):
                                    maxValue=30,
                                    maxIter=15,
                                    driverAttr='lengthUpr')    
-    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikJoints[2],#ankle
+    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[2],#ankle
                                    matchObject= ml_blendJoints[2],#Make a new one
                                    drivenAttr='translateZ',
                                    matchAttr = 'translateZ',
@@ -1732,14 +1735,14 @@ def build_matchSystem(self):
                                    maxIter=15,
                                    driverAttr='lengthLwr')  
     
-    i_ikFootMatch.addDynIterTarget(drivenObject =ml_ikNoFlipJoints[1],#knee
+    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikNoFlipJoints[1],#knee
                                    matchTarget = ml_blendJoints[1],#Make a new one
                                    minValue=-90,
                                    maxValue=90,
                                    maxIter=15,
                                    driverAttr='kneeSpin')    
     #>> Foot
-    i_ikMidmatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlMidIK,
+    i_ikMidMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlMidIK,
                                               dynPrefix = "FKtoIK",
                                               dynMatchTargets=ml_blendJoints[1])    
     #>>> FK to IK
@@ -1756,6 +1759,17 @@ def build_matchSystem(self):
                                               dynPrefix = "IKtoFK",
                                               dynMatchTargets=ml_blendJoints[3])    
 
+    #>>> Register the switches
+    mi_dynSwitch.addSwitch('snapToFk',[mi_settings.mNode,'blend_FKIK'],
+                           0,
+                           [i_fkHipMatch,i_fkKneeMatch,i_fkAnkleMatch,i_fkBallMatch])
+    
+    mi_dynSwitch.addSwitch('snapToIK',[mi_settings.mNode,'blend_FKIK'],
+                           1,
+                           [i_ikFootMatch_noKnee,i_ikMidMatch])
+    
+    
+    
 @r9General.Timer
 def __build__(self, buildTo='',*args,**kws): 
     """
