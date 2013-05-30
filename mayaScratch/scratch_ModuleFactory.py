@@ -27,7 +27,9 @@ objList = []
 #>>> Modules
 #=======================================================
 m1 = r9Meta.MetaClass('spine_part')
-m1.setState('skeleton')
+m1 = r9Meta.MetaClass('l_leg_part')
+m1.setState('skeleton',force=True)
+m1.setState('rig',force=True)
 m1.getPartNameBase()
 m1.rigNull.getMessage('rigJoints',False)
 len( m1.rigNull.getMessage('rigJoints',False) )

@@ -1,10 +1,13 @@
 import maya.cmds as mc
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_RigMeta as cgmRigMeta
+from Red9.core import Red9_General as r9General
+reload(cgmRigMeta)
 from cgm.core import cgm_PuppetMeta as cgmPM
 import Red9.core.Red9_Meta as r9Meta
 import cgm.core
 cgm.core._reload()
-
+reload(cgm.core)
 reload(cgmMeta)
 
 obj = mc.ls(sl=True)[0] or False
@@ -17,22 +20,49 @@ orientation[1]
 obj = 'hips_controlCurve'
 i_c = cgmMeta.cgmControl(obj,setClass=True)
 
+#>>> Dynamic Switch
+#=======================================================
+a = cgmRigMeta.cgmDynamicSwitch(name='test')
+a.setSwitchAttr(['left_leg_settings_anim','blend_FKIK'])
+a.setSwitchAttr(['left_leg_settings_anim','asfasdf'])
+a.setDynOwner('asdaf')
+a.addSwitch('FKtoIK',['left_leg_settings_anim','blend_FKIK'],1,['l_l_hip_fk_anim_dynMatchDriver'])
+a.getMessage('dynSwitchAttr')
+a=cgmRigMeta.cgmDynamicSwitch('test_dynSwitchSystem')
 #>>> Dynamic Match
+#=======================================================
 dynObject = 'nurbsSphere1'
 dynMatchTargets =  [u'pCube1', u'pCube2']
 dynSnapTargets = ['worldCenter_loc']
 dynNull = 'nurbsSphere1_dynMatchDriver'
-a = cgmMeta.cgmDynamicMatch(dynObject=dynObject,dynMatchTargets = dynMatchTargets)
-a = cgmMeta.cgmDynamicMatch(dynObject=dynObject,dynNull = dynNull)
 
-a = cgmMeta.cgmDynamicMatch(dynObject=dynObject,dynMatchTargets = dynMatchTargets, dynSnapTargets = dynSnapTargets, dynPrefix = 'fkik')
-a = cgmMeta.cgmDynamicMatch(dynObject=dynObject,dynNull = dynNull,dynSuffix = 'fkik')
+dynObject = 'drivenJoint'
+drivenObject = 'matchJoint'
+matchObject = 'matchJoint_loc'
+matchTarget = 'matchJoint_loc'
+
+a = cgmRigMeta.cgmDynamicMatch(dynObject=dynObject)
+a.addDynIterTarget(drivenObject = drivenObject, matchObject = matchObject, driverAttr = 'rz', maxValue = None, minValue = None, iterations = 50, iterIndex = None)
+
+a.addDynIterTarget(drivenObject = drivenObject, matchTarget = matchObject, driverAttr = 'rz', maxValue = None, minValue = None, iterations = 50, iterIndex = None)
+a.doIter()
+
+a = cgmRigMeta.cgmDynamicMatch(dynObject=dynObject,dynMatchTargets = dynMatchTargets)
+a = cgmRigMeta.cgmDynamicMatch(dynObject=dynObject,dynNull = dynNull)
+
+a = cgmRigMeta.cgmDynamicMatch(dynObject=dynObject,dynMatchTargets = dynMatchTargets, dynSnapTargets = dynSnapTargets, dynPrefix = 'fkik')
+a = cgmRigMeta.cgmDynamicMatch(dynObject=dynObject,dynNull = dynNull,dynSuffix = 'fkik')
 a.getMessage('dynDrivers',False)
 a.getMessage('dynTargets',False)
 a.doMatch(1)
 a.doMatch(0)
 cgmMeta.cgmNode('nurbsSphere1').dynMatchDriver_fkik.doMatch(0)
 cgmMeta.cgmNode('nurbsSphere1').dynMatchDriver_fkik.doMatch(1)
+a.dynDrivers[0].dynMatchAttrs = ['translate','rotate','scale']
+cgmMeta.cgmNode('nurbsSphere1').fkik_dynMatchDriver.doMatch(match = 0)
+cgmMeta.cgmNode('nurbsSphere1').fkik_dynMatchDriver.doMatch(match = 1)
+cgmMeta.cgmNode('nurbsSphere1').fkik_dynMatchDriver.doMatch(snap = 0)
+cgmMeta.cgmNode('nurbsSphere1').fkik_dynMatchDriver.doMatch(snap = 0)
 
 #>>> Dynamic group
 #=======================================================

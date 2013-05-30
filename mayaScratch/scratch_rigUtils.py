@@ -17,11 +17,28 @@ objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
 
+#>>>Iterator
+#=======================================================
+#Value match mode
+rUtils.matchValue_iterator(targetAttr = 'l_hip_ik_jnt.rz' , driverAttr = 'ikChain_ikH.twist', matchValue = 0)
+
+rUtils.matchValue_iterator(drivenAttr = 'l_knee_ik_jnt.tz' , driverAttr = 'l_ankle_ik_anim.lengthUpr', maxIterations=2,matchValue = 66.991, minIn=0.1,maxIn=30.0)
+
 #>>>ikHandle
 #=======================================================
+"""
+reload(rUtils)
+mc.ls(sl=True)
+handles = [u'l_hip', u'l_knee', u'l_ankle']
+rUtils.create_IKHandle(start,end,handles = ['l_knee_ik_jnt_loc'],stretch = 'translate')
+rUtils.create_IKHandle(start,end,handles = handles,stretch = 'translate')
+
+rUtils.create_distanceMeasure('l_knee_ik_jnt_loc','nurbsSphere1')
+"""
 start = 'l_hip_ik_jnt'
 end = 'l_ankle_ik_jnt'
-rUtils.create_IKHandle(start,end)
+rUtils.IKHandle_create(start,end,stretch = 'translate')
+rUtils.IKHandle_fixTwist('ikChain_ikH')
 
 #>>>Connect joint length
 #=======================================================
@@ -55,6 +72,7 @@ i_obj = cgmMeta.cgmObject('driverMid')
 
 r9Meta.isMetaNodeInherited(i_obj,'cgmObject')
 r9Meta.isMetaNode(i_obj,'cgmObject')
+
 #segment curve creation
 #=================================================================
 jointList = mc.ls(sl=True)
@@ -69,6 +87,12 @@ rUtils.addSquashAndStretchToControlSurfaceSetup(scaleBuffer, jointList ,moduleIn
 #=================================================================
 segmentCurve = 'testSegment_splineIKCurve'
 joints = 'driverMid'
+joints = 'l_hip_mid_0_influence_jnt'
+baseParent = 'l_hip_influence_jnt'
+endParent = 'l_knee_influence_jnt'
+midControls = 'l_hip_mid_0_ik_anim'
+controlOrientation = 'zyx'
+
 baseParent = 'driverBase'
 endParent = 'driverTop'
 midControls = ['mid_crv']
@@ -92,13 +116,37 @@ from cgm.core.rigger.lib import rig_Utils as rUtils
 jointList = [u'joint1', u'joint2', u'joint3', u'joint4', u'joint5', u'joint6']
 jointList = mc.ls(sl=True)
 influenceJoints = ['driverBase','driverTop']
+influenceJoints = ['l_knee_influence_jnt','l_ankle_influence_jnt']
+
 influenceJoints = mc.ls
 startControl = 'base_crv'
 endControl = 'top_crv'
-controlOrientation = 'yxz'
-t = rUtils.createCGMSegment(jointList,influenceJoints=influenceJoints, startControl=startControl,endControl=endControl,secondaryAxis = 'zdown',controlOrientation=controlOrientation)
+controlOrientation = 'yzx'
 
+influenceJoints = ['l_seg_0_hip_influence_jnt','l_seg_0_knee_influence_jnt']
+startControl = 'l_seg_0_hip_ik_anim'
+endControl = 'l_seg_0_knee_ik_anim'
+startControl = 'l_knee_segIKCurve'
+endControl = 'l_ankle_segIKCurve'
+controlOrientation = 'zyx'
 
+influenceJoints = ['l_seg_1_knee_influence_jnt','l_seg_1_ankle_influence_jnt']
+startControl = 'l_seg_0_hip_ik_anim'
+endControl = 'l_seg_0_knee_ik_anim'
+startControl = 'l_seg_1_knee_ik_anim'
+endControl = 'l_seg_1_ankle_ik_anim'
+controlOrientation = 'zyx'
+t = rUtils.createCGMSegment(jointList,influenceJoints=influenceJoints, startControl=startControl,endControl=endControl,secondaryAxis = 'zup',controlOrientation=controlOrientation)
+
+startControl = 'l_seg_0_hip_ik_anim'
+endControl = 'l_seg_0_knee_ik_anim'
+startControl = 'l_seg_1_knee_ik_anim'
+endControl = 'l_seg_1_ankle_ik_anim'
+controlOrientation = 'zyx'
+
+influenceJoints = ['influnece1','influnece2']
+startControl = 'influnece1'
+endControl = 'influnece2'
 #Squashrework
 #=================================================
 scaleBuffer = 'testSegment_distanceBuffer'

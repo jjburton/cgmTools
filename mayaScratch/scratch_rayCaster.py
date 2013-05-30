@@ -24,15 +24,17 @@ objList = []
 i_obj = cgmMeta.cgmObject(mc.ls(sl=True)[0])
 i_obj.getPosition()
 mesh = 'Morphy_Body_GEO'
+
 RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode)
 RayCast.findMeshMidPointFromObject(mesh,i_obj.mNode)
 info = RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,vector = [0,-1,0])
 RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,'z+',singleReturn=False)
 RayCast.findFurthestPointInRangeFromObject(mesh,i_obj.mNode,'z+')
+pos = RayCast.findMeshMidPointFromObject(mesh,i_obj.mNode, axisToCheck=['y'])
+locators.doLocPos(pos)
 
-l
-og.info(info)
-info = distance.findMeshIntersection(mesh,i_obj.getPosition(), vector)
+log.info(info)
+info = RayCast.findMeshIntersection(mesh,i_obj.getPosition(), vector)
 vector = [matrix[9],matrix[10],matrix[11]]
 vector = [matrix[8],matrix[9],matrix[10]]#Z
 vector = [-matrix[8],-matrix[9],-matrix[10]]#Z

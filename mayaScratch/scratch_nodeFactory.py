@@ -18,8 +18,11 @@ obj = ''
 objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
-#>>> 
+
+#>>> createAndConnectBlendColors
 #=======================================================
+NodeF.createAndConnectBlendColors('l_knee_seg_0_jnt_Transform_anchor','l_knee_seg_0_jnt_Transform_aim','l_knee_seg_0_jnt_Transform_attach','l_knee_ik_1_anim.followRoot','rotate')
+
 
 #>>> single blend
 #=======================================================
@@ -136,6 +139,17 @@ arg = "worldCenter_loc.setRangeResult = setRange(0,1,1,10,worldCenter_loc.tx)"
 arg = "worldCenter_loc.clampResult = clamp(0, 1, worldCenter_loc.tx)"#working
 arg = "worldCenter_loc.clamp2Result = clamp(worldCenter_loc.tx, 0, worldCenter_loc.tx)"#working
 arg = "worldCenter_loc.clamp1Result = clamp(0, worldCenter_loc.tx, worldCenter_loc.tx)"#working
+
+
+#Leg test arg
+Driven = 'left_leg_settings_anim.result_kneeSpinInfluence'
+Driver1 = 'left_leg_seg0_splineIKCurve_to_left_leg_seg0_splineIKCurve_twist_pma_to_left_leg_seg0_splineIKCurve_twist_1_pma.output1D'
+Driver2 = 'l_seg_0_hip_mid_0_ik_anim.rotateZ'
+mc.objExists(Driver2)
+NodeF.argsToNodes("%s = if %s > 1:0 else %s "%(Driven,
+                                               Driver1,
+                                               Driver2)).doBuild()    
+return
 
 #ToDo
 

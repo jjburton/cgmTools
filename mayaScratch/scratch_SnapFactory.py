@@ -45,10 +45,13 @@ Snap.go(i_obj.mNode,targets = q_object,move = False, orient = True,snapToSurface
 Snap.go(i_obj,targets = q_object,orient = False,snapToSurface=True)
 Snap.go(i_obj,targets = q_object,snapToSurface=True,posOffset=[0,0,10])
 Snap.go(i_obj,targets = q_object,orient = True, snapToSurface=True,posOffset=[0,0,1.5])
-Snap.go(i_obj, q_object,snapComponents=True,posOffset=[0,0,2.5])
+Snap.go(i_obj, q_object,snapComponents=True,)
 
 #Mid point snap
-Snap.go(i_obj, 'Morphy_Body_GEO1',midSurfacePos=True,upVector=[0,1,0])
+Snap.go(i_obj, geo,midSurfacePos=True,axisToDo = ['y','x'])
+Snap.go(i_obj, geo,midSurfacePos=True,axisToDo = ['x','y'])
+
+reload(Snap)
 
 q_object = mc.ls(sl=True)[0] or False
 q_object = 'Morphy_Body_GEO'

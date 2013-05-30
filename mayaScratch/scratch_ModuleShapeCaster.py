@@ -62,20 +62,21 @@ geo = 'Morphy_Body_GEO'
 mShapeCast.createWrapControlShape(l_targetObjects,geo,posOffset = posOffset,points=points,latheAxis=latheAxis,aimAxis=aimAxis,extendMode=extendMode)
 posOffset = [0,0,1]
 mShapeCast.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO',joinMode = True, extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
+mShapeCast.createWrapControlShape(l_targetObjects[0],'Morphy_Body_GEO',joinMode = True, extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
 
-extendMode = 'segment'
+extendMode = 'disc'
 curveDegree = 3
 posOffset = [0,0,2]
 points = 10
 rotateBank = 0
 closedCurve = True
-maxDistance = 20
+maxDistance = 50
 aimAxis = 'y-'
 latheAxis = 'z'
 closestInRange = True
 insetMult = .5
 joinMode = True
-l_specifiedRotates = None
+l_specifiedRotates = []
 l_specifiedRotates = [-30,-20,-10,-5,0,5,10,20,30]
 geo = 'Morphy_Body_GEO'
 l_specifiedRotates = [-40,-30,-20,-10,0,10,20,30,40]
@@ -134,11 +135,14 @@ points = 8
 extendMode = 'disc'
 joinMode = True
 insetMult = 0
-posOffset = [0,0,6]
-info = mShapeCast.createMeshSliceCurve('Morphy_Body_GEO1',l_targetObjects[0],curveDegree=3,posOffset = [0,0,2.5],points=8,returnDict = True,latheAxis='x',aimAxis='y+')
-info = mShapeCast.createMeshSliceCurve('Morphy_Body_GEO1',l_targetObjects[0],curveDegree=3,posOffset = [0,0,2.5],points=8,returnDict = True,latheAxis='x',aimAxis='y+')
+posOffset = [0,0,3]
+rootOffset = [0,0,-2]
 
-mShapeCast.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO1',extendMode=extendMode,curveDegree=degree,joinMode=joinMode,insetMult=insetMult,posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
+info = mShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],curveDegree=3,posOffset = [0,0,2.5],points=8,returnDict = True,latheAxis='z',aimAxis='y+')
+info = mShapeCast.createMeshSliceCurve('Morphy_Body_GEO1',l_targetObjects[0],curveDegree=3,posOffset = [0,0,2.5],points=8,returnDict = True,latheAxis='x',aimAxis='y+')
+info = mShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],axisToCheck = ['y'],midMeshCast=True,curveDegree=3,posOffset = [0,0,2.5],points=7,returnDict = True,latheAxis='z',aimAxis='x+')
+
+mShapeCast.createWrapControlShape(l_targetObjects,geo,extendMode=extendMode,midMeshCast=True,rootOffset=rootOffset,curveDegree=degree,joinMode=joinMode,insetMult=insetMult,posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
 
 l_targetObjects = mc.ls(sl=True)
 
