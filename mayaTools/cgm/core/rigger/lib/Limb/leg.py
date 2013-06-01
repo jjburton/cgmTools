@@ -239,7 +239,7 @@ def build_rigSkeleton(self):
 	raise StandardError,error   
     
     #==================================================================  
-    d_fkRotateOrders = {'hip':2,'ankle':0}
+    d_fkRotateOrders = {'hip':5,'ankle':0}
     try:#>>>Rotate Orders
 	for i_obj in ml_fkJoints:
 	    if i_obj.getAttr('cgmName') in d_fkRotateOrders.keys():
@@ -546,7 +546,6 @@ def build_foot(self):
     mPlug_lean = cgmMeta.cgmAttr(mi_controlIK,'lean',attrType='float',defaultValue = 0,keyable = True)
     mPlug_side = cgmMeta.cgmAttr(mi_controlIK,'bank',attrType='float',defaultValue = 0,keyable = True)
     mPlug_kneeSpin = cgmMeta.cgmAttr(mi_controlIK,'kneeSpin',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_lockMid = cgmMeta.cgmAttr(mi_controlIK,'lockMid',attrType='float',defaultValue = 0,keyable = True)
     mPlug_stretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch',attrType='float',defaultValue = 1,keyable = True)
     mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool',defaultValue = 0,keyable = False)
     mPlug_lengthUpr= cgmMeta.cgmAttr(mi_controlIK,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
@@ -728,6 +727,7 @@ def build_FKIK(self):
     
     mi_controlIK = self._i_rigNull.controlIK
     mi_controlMidIK = self._i_rigNull.midIK
+    mPlug_lockMid = cgmMeta.cgmAttr(mi_controlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
     
     for chain in [ml_ikJoints,ml_blendJoints,ml_ikNoFlipJoints,ml_ikPVJoints]:
 	chain[0].parent = self._i_constrainNull.mNode
@@ -760,6 +760,7 @@ def build_FKIK(self):
 	mi_ankleIKHandleNF = d_ankleNoFlipReturn['mi_handle']
 	ml_distHandlesNF = d_ankleNoFlipReturn['ml_distHandles']
 	mi_rpHandleNF = d_ankleNoFlipReturn['mi_rpHandle']
+	mPlug_lockMid = d_ankleNoFlipReturn['mPlug_lockMid']
 	
 	#No Flip RP handle
 	Snap.go(mi_rpHandleNF,i_tmpLoc.mNode,True)#Snape to foot control, then move it out...
@@ -805,7 +806,7 @@ def build_FKIK(self):
 	d_anklePVReturn = rUtils.IKHandle_create(ml_ikPVJoints[0].mNode,ml_ikPVJoints[-1].mNode,nameSuffix = 'PV',
 	                                         rpHandle=ml_distHandlesNF[1],controlObject=mi_controlIK,
 	                                         moduleInstance=self._i_module)
-	
+
 	mi_ankleIKHandlePV = d_anklePVReturn['mi_handle']
 	mi_rpHandlePV = d_anklePVReturn['mi_rpHandle']
 	
@@ -834,6 +835,20 @@ def build_FKIK(self):
 	mi_controlMidIK.tx = 0
 	mi_controlMidIK.ty = 0
 	mi_controlMidIK.tz = 0
+	
+	#Move the lock mid and add the toggle so it only works with show knee on
+	#=========================================================================================				
+	mPlug_lockMidResult = cgmMeta.cgmAttr(mi_controlMidIK,'result_lockMidInfluence',attrType='float',keyable = False,hidden=True)
+	mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee')
+	drivenPlugs = mPlug_lockMid.getDriven()
+	arg = "%s = %s * %s"%(mPlug_lockMidResult.p_combinedShortName,
+	                      mPlug_showKnee.p_combinedShortName,
+	                      mPlug_lockMid.p_combinedShortName)
+	NodeF.argsToNodes(arg).doBuild()
+	for plug in drivenPlugs:#Connect them back
+	    mPlug_lockMidResult.doConnectOut(plug)
+	    
+	mPlug_lockMid.doTransferTo(mi_controlMidIK.mNode)#move the lock mid	
 	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
