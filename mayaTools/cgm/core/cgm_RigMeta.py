@@ -446,7 +446,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 		attributes.doDeleteAttr(i_object.mNode,a)
 	if d_attrBuffers:log.info("d_attrBuffers: %s"%d_attrBuffers)
 	
-	l_parentShortNames = [cgmNode(o).getNameAlias() for o in self.getMessage('dynMatchTargets')]
+	l_parentShortNames = [cgmMeta.cgmNode(o).getNameAlias() for o in self.getMessage('dynMatchTargets')]
 	log.info("parentShortNames: %s"%l_parentShortNames)
 	
 	for a in d_DynMatchTargetNullModeAttrs[self.dynMode]:
@@ -1093,7 +1093,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 		attributes.doDeleteAttr(i_child.mNode,a)
 	if d_attrBuffers:log.debug("d_attrBuffers: %s"%d_attrBuffers)
 	
-	l_parentShortNames = [cgmNode(o).getNameAlias() for o in self.getMessage('dynParents')]
+	l_parentShortNames = [cgmMeta.cgmNode(o).getNameAlias() for o in self.getMessage('dynParents')]
 	log.debug("parentShortNames: %s"%l_parentShortNames)
 	
 	for a in d_DynParentGroupModeAttrs[self.dynMode]:
@@ -1211,18 +1211,18 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	    
 	    if self.dynMode == 0:#Parent
 		cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
-		i_dynConst = cgmNode(cBuffer)
+		i_dynConst = cgmMeta.cgmNode(cBuffer)
 	    if self.dynMode == 1:#Orient
 		cBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
-		i_dynConst = cgmNode(cBuffer)
+		i_dynConst = cgmMeta.cgmNode(cBuffer)
 	    if self.dynMode == 2:#Follow - needs an extra follow group
 		pBuffer = mc.pointConstraint(self.dynFollow.mNode,self.mNode,maintainOffset = True)[0]
 		cBuffer = mc.parentConstraint(l_dynDrivers,self.dynFollow.mNode,maintainOffset = True)[0]
 		oBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
 		
-		i_dynFollowConst = cgmNode(cBuffer)
-		i_dynPointConst = cgmNode(pBuffer)
-		i_dynConst = cgmNode(oBuffer)
+		i_dynFollowConst = cgmMeta.cgmNode(cBuffer)
+		i_dynPointConst = cgmMeta.cgmNode(pBuffer)
+		i_dynConst = cgmMeta.cgmNode(oBuffer)
 	except StandardError,error:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Build constraints fail! | %s"%(error))
 	try:#Name and store    
@@ -1243,7 +1243,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	ml_nodes = []
 	for i,i_p in enumerate(ml_dynParents):
 	    if self.dynMode == 2:#Follow
-		i_followCondNode = cgmNode(nodeType='condition')
+		i_followCondNode = cgmMeta.cgmNode(nodeType='condition')
 		i_followCondNode.operation = 0
 		mc.connectAttr("%s.follow"%i_dynChild.mNode,"%s.firstTerm"%i_followCondNode.mNode)
 		mc.setAttr("%s.secondTerm"%i_followCondNode.mNode,i)
@@ -1258,7 +1258,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 		
 		ml_nodes.append(i_followCondNode)
 		
-	    i_condNode = cgmNode(nodeType='condition')
+	    i_condNode = cgmMeta.cgmNode(nodeType='condition')
 	    i_condNode.operation = 0
 	    attr = d_DynParentGroupModeAttrs[self.dynMode][0]
 	    mc.connectAttr("%s.%s"%(i_dynChild.mNode,attr),"%s.firstTerm"%i_condNode.mNode)
