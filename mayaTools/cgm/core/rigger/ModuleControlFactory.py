@@ -22,6 +22,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
@@ -431,7 +432,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    if addDynParentGroup:
 		log.info("addDynParentGroup...")
 		i_dynGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
-		i_dynGroup = cgmMeta.cgmDynParentGroup(dynChild=i_control,dynGroup=i_dynGroup)
+		i_dynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=i_control,dynGroup=i_dynGroup)
 		i_dynGroup.doName()
 		log.info("dynParentGroup: '%s'"%i_dynGroup.getShortName())
 		
