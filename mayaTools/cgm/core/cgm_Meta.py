@@ -2072,16 +2072,18 @@ class cgmBufferNode(cgmNode):
         log.debug("In cgmBuffer.__init__ node is '%s'"%node)
 
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
-	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr'])
+	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr','_kw_overrideMessageCheck'])
+	self._kw_overrideMessageCheck = overideMessageCheck
 	
-        if not self.isReferenced():
-	    if not self.__verify__(*args,**kws):
-		raise StandardError,"cgmBufferNode.__init__>> failed to verify : '%s'!"%self.getShortName()
-	    
 	self.updateData()
 	
-	if value is not None:
-	    self.value = value
+        if not self.isReferenced():
+	    if value is not None:
+		self.value = value	    
+	    if not self.__verify__():
+		raise StandardError,"cgmBufferNode.__init__>> failed to verify : '%s'!"%self.getShortName()
+	
+
 	    	    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
@@ -2109,8 +2111,9 @@ class cgmBufferNode(cgmNode):
     # functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def __verify__(self):
-	self.addAttr('messageOverride',initialValue = overideMessageCheck,lock=True)
-	
+	self.addAttr('messageOverride',initialValue = self._kw_overrideMessageCheck,lock=True)
+	return True
+    
     def returnNextAvailableCnt(self):
         """ Get's the next available item number """        
         return self.returnNextAvailableAttrCnt('item_')
@@ -2968,6 +2971,7 @@ class cgmAttr(object):
     def isDynamic(self):
 	if self.attr in mc.listAttr(self.obj.mNode, userDefined = True):
 	    return True
+	log.error("%s.isDynamic: False"%self.p_combinedShortName)
 	return False
     def isNumeric(self):
 	if mc.getAttr(self.p_combinedName,type=True) in ['string','message','enum','bool']:
@@ -3291,10 +3295,10 @@ class cgmAttr(object):
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
-        assert self.obj.transform is not False,"'%s' Doesn't have a transform. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.obj.mNode        
+        assert self.obj.isTransform() is not False,"'%s' Doesn't have a transform. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.obj.mNode        
         assert mc.ls(target,long=True) != [self.obj.mNode], "Can't transfer to self!"
         assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
-        assert self.isDynamic() is True,"'%s' is not a dynamic attribute."%self.p_combinedName
+        assert self.isDynamic() is True,"'%s' is not a dynamic attribute."%self.p_combinedShortName
         
         #mc.copyAttr(self.obj.mNode,self.target.obj.mNode,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
         attributes.doCopyAttr(self.obj.mNode,
