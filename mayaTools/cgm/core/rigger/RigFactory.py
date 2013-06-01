@@ -103,8 +103,10 @@ class go(object):
 	    raise StandardError,"RigFactory.go.init masterControl failed to verify"
 	
 	#Verify a dynamic switch
-	self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull)
-	
+	if not self._i_module.rigNull.getMessage('dynSwitch'):
+	    self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull)
+	else:
+	    self._i_dynSwitch = self._i_module.rigNull.dynSwitch
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
 	self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup
