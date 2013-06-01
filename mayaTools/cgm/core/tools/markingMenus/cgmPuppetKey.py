@@ -163,7 +163,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				#>>> Module
 				buffer = i_o.getMessage('module')
 				try:
-					self.ml_modules.append(i_o.module.module)
+					self.ml_modules.append(i_o.rigNull.module)
 				except StandardError,error:
 					log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
 		
