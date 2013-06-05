@@ -2077,12 +2077,11 @@ class cgmBufferNode(cgmNode):
 	
 	self.updateData()
 	
-        if not self.isReferenced():
-	    if value is not None:
-		self.value = value	    
+        if not self.isReferenced():	    
 	    if not self.__verify__():
 		raise StandardError,"cgmBufferNode.__init__>> failed to verify : '%s'!"%self.getShortName()
-	
+	    if value is not None:
+		self.value = value	
 
 	    	    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
