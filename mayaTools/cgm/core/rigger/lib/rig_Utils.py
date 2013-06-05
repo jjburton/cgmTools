@@ -1612,6 +1612,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
     f_lastValue = None
     cnt_sameValue = 0
     b_matchFound = None
+    b_firstIter = True
     
     #Source type: value
     for i in range(maxIterations):
@@ -1639,6 +1640,11 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 		    log.info("matchValue_iterator>>> Equated: %s"%minValue)		    
 		    f_closest = f_minDist
 		    mPlug_driver.value = minValue#Set to min		    
+		elif b_firstIter:
+		    log.info("matchValue_iterator>>> first iter. Trying matchValue: %s"%minValue)		    		    
+		    b_firstIter = False
+		    minValue = matchValue
+		    f_closest = f_minDist		    
 		elif f_minSetValue > matchValue or f_maxSetValue < matchValue:
 		    log.info("matchValue_iterator>>> Finding Range....")		    
 		    if matchValue < mPlug_driven.value:
