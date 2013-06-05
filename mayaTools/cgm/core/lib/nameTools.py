@@ -229,7 +229,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
                 #log.info("shortening")
             namesDict[tag] = (tagInfo)
     """ remove tags up stream that we don't want if they don't exist on the actual object"""
-    if mc.objExists(obj+'.cgmTypeModifier') != True:
+    if not mc.objExists(obj+'.cgmTypeModifier'):
         if namesDict.get('cgmTypeModifier') != None:
             namesDict.pop('cgmTypeModifier')   
 
@@ -259,12 +259,13 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         return groupNamesDict
         """ see if there's a name tag"""
     elif nameObj != None or isType == 'shape':
-        """if there is, does it exist """
-        if mc.objExists(nameObj) == True:
+        #If we have a name object or shape
+        if mc.objExists(nameObj):
             """basic child object with cgmName tag """
             childNamesDict = {}
             childNamesDict['cgmName'] = namesDict.get('cgmName')
             childNamesDict['cgmType'] = namesDict.get('cgmType')
+            """
             if namesDict.get('cgmPosition') != None:
                 childNamesDict['cgmPosition'] = namesDict.get('cgmPosition')            
             if namesDict.get('cgmDirection') != None:
@@ -275,6 +276,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
                 childNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
             if namesDict.get('cgmTypeModifier') != None:
                 childNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
+            """
             return childNamesDict
         elif isType == 'shape' or 'Constraint' in isType:
             """if so, it's a child name object"""
