@@ -104,9 +104,11 @@ class go(object):
 	
 	#Verify a dynamic switch
 	if not self._i_module.rigNull.getMessage('dynSwitch'):
-	    self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull)
+	    self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull.mNode)
 	else:
 	    self._i_dynSwitch = self._i_module.rigNull.dynSwitch
+	log.info(self._i_dynSwitch)
+	
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
 	self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup
@@ -338,9 +340,12 @@ def bindJoints_connect(goInstance):
     self = goInstance#Link
     
     l_rigJoints = self._i_rigNull.getMessage('rigJoints') or False
-    l_skinJoints = self._i_rigNull.getMessage('skinJoints') or False
+    l_skinJoints = self._i_rigNull.getMessage('skinJoints',False) or False
+    log.info("%s.connect_ToBind>> skinJoints:  len: %s | joints: %s"%(self._i_module.getShortName(),len(l_skinJoints),l_skinJoints))
+    if not l_rigJoints:
+	raise StandardError,"connect_ToBind>> No Rig Joints: %s "%(self._i_module.getShortName())
     if len(l_skinJoints)!=len(l_rigJoints):
-	raise StandardError,"connect_ToBind>> Rig/Skin joint chain lengths don't match: %s"%self._i_module.getShortName()
+	raise StandardError,"connect_ToBind>> Rig/Skin joint chain lengths don't match: %s | len(skinJoints): %s | len(rigJoints): %s"%(self._i_module.getShortName(),len(l_skinJoints),len(l_rigJoints))
     
     for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
 	log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
