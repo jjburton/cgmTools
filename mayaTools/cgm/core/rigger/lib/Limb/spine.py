@@ -154,12 +154,12 @@ def build_rigSkeleton(self):
 	for i_jnt in ml_influenceJoints:
 	    i_jnt.parent = False		
 	#>>> Store em all to our instance
-	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','module')
-	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','module')	
-	self._i_rigNull.connectChildrenNodes(ml_anchors,'anchorJoints','module')
-	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','module')
-	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','module')
-	self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','module')
+	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','rigNull')
+	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','rigNull')	
+	self._i_rigNull.connectChildrenNodes(ml_anchors,'anchorJoints','rigNull')
+	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','rigNull')
+	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','rigNull')
+	self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','rigNull')
 	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints')#Restore our list since duplication extendes message attrs
 	
     except StandardError,error:
@@ -255,7 +255,7 @@ def build_controls(self):
 	                                           controlType='cog')
 	i_cog = d_buffer['instance']
 	l_controlsAll.append(i_cog)
-	self._i_rigNull.connectChildNode(i_cog,'cog','module')#Store
+	self._i_rigNull.connectChildNode(i_cog,'cog','rigNull')#Store
 	log.info(i_cog)
 	log.info(i_cog.masterGroup)
 	i_cog.masterGroup.parent = self._i_deformNull.mNode
@@ -282,7 +282,7 @@ def build_controls(self):
 	    else:
 		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',) 
 	    i_obj = d_buffer['instance']
-	self._i_rigNull.connectChildrenNodes(ml_segmentsFK,'controlsFK','module')
+	self._i_rigNull.connectChildrenNodes(ml_segmentsFK,'controlsFK','rigNull')
 	l_controlsAll.extend(ml_segmentsFK)	
     
     except StandardError,error:
@@ -298,7 +298,7 @@ def build_controls(self):
 		                                       setRotateOrder=2)       
 	    i_obj = d_buffer['instance']
 	    i_obj.masterGroup.parent = self._i_deformNull.mNode
-	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','module')
+	self._i_rigNull.connectChildrenNodes(ml_segmentsIK,'segmentHandles','rigNull')
 	l_controlsAll.extend(ml_segmentsIK)	
 	
 	
@@ -323,7 +323,7 @@ def build_controls(self):
 	#mc.parent(ml_segmentsIK[-1].getAllParents()[-1],i_IKEnd.mNode)
 	
 	i_loc.delete()#delete
-	self._i_rigNull.connectChildNode(i_IKEnd,'handleIK','module')#connect
+	self._i_rigNull.connectChildNode(i_IKEnd,'handleIK','rigNull')#connect
 	l_controlsAll.append(i_IKEnd)	
 
 	#Set aims
@@ -343,7 +343,7 @@ def build_controls(self):
 	
 	d_buffer =  mControlFactory.registerControl(i_hips,addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
 	                                            makeAimable = True,copyPivot=i_loc.mNode,setRotateOrder=5)
-	self._i_rigNull.connectChildNode(i_hips,'hips','module')
+	self._i_rigNull.connectChildNode(i_hips,'hips','rigNull')
 	i_hips = d_buffer['instance']
 	i_loc.delete()
 	l_controlsAll.append(i_hips)	
@@ -412,7 +412,7 @@ def build_deformation(self):
 	                                             moduleInstance=self._i_module)
 	
 	i_curve = curveSegmentReturn['mi_segmentCurve']
-	self._i_rigNull.connectChildrenNodes([i_curve],'segmentCurves','module')	
+	self._i_rigNull.connectChildrenNodes([i_curve],'segmentCurves','rigNull')	
 	i_curve.segmentGroup.parent = self._i_rigNull.mNode
 	"""
 	for o in  [ml_influenceJoints[1].mNode,
@@ -691,7 +691,9 @@ def __build__(self, buildTo='',*args,**kws):
 	build_rigSkeleton(self)  
     if buildTo.lower() == 'skeleton':return True
     build_controls(self)    
+    if buildTo.lower() == 'controls':return True    
     build_deformation(self)
+    if buildTo.lower() == 'deformation':return True    
     build_rig(self)    
             
     return True
