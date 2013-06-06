@@ -327,10 +327,10 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	    return False
 	mPlug_switchAttr = d_attrReturn['mi_plug']
 	
-	if mPlug_switchAttr.value == fl_value:
-	    log.info("%s.go>> Already in: %s'"%(self.getShortName(),str_aliasToDo))
-	    postSet(self,str_aliasToDo)	    
-	    return True
+	#if mPlug_switchAttr.value == fl_value:
+	    #log.info("%s.go>> Already in: %s'"%(self.getShortName(),str_aliasToDo))
+	    #postSet(self,str_aliasToDo)	    
+	    #return True
 	
 	log.info("%s.go>> alias: '%s'"%(self.getShortName(),str_aliasToDo))
 	log.info("%s.go>> set: %s"%(self.getShortName(),[mSet.getShortName() for mSet in ml_dynMatchSet]))
