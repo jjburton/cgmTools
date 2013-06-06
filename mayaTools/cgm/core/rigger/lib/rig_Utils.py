@@ -1968,6 +1968,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	mPlug_ikDistNormal = cgmMeta.cgmAttr(i_ik_handle.mNode,'result_ikDistNormal',value = 1.0, lock =True, hidden = True)	
 	mPlug_ikScale = cgmMeta.cgmAttr(i_ik_handle.mNode,'result_ikScale',value = 1.0, lock =True, hidden = True)
 	mPlug_ikClampScale = cgmMeta.cgmAttr(i_ik_handle.mNode,'result_ikClampScale',value = 1.0, lock =True, hidden = True)
+	mPlug_ikClampMax = cgmMeta.cgmAttr(i_ik_handle.mNode,'result_ikClampMax',value = 1.0, lock =True, hidden = True)
 	
 	#Normal base
 	arg = "%s = %s * %s"%(mPlug_baseDistNormal.p_combinedShortName,
@@ -1987,9 +1988,16 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	                      mPlug_baseDistNormal.p_combinedShortName)
 	NodeF.argsToNodes(arg).doBuild()	
 	
+	#ik max clamp
+	""" This is for maya 2013 (at least) which honors the max over the  min """
+	arg = "%s = if %s >= 1: %s else 1"%(mPlug_ikClampMax.p_combinedShortName,
+	                                   mPlug_ikScale.p_combinedShortName,
+	                                   mPlug_ikScale.p_combinedShortName)
+	NodeF.argsToNodes(arg).doBuild()
+	
 	#ik clamp scale
 	arg = "%s = clamp(1,%s,%s)"%(mPlug_ikClampScale.p_combinedShortName,
-	                             mPlug_ikScale.p_combinedShortName,
+	                             mPlug_ikClampMax.p_combinedShortName,
 	                             mPlug_ikScale.p_combinedShortName)
 	NodeF.argsToNodes(arg).doBuild()	
 	
