@@ -124,7 +124,7 @@ class AutoStartInstaller(object):
                 return True
 
         if melUserSetup is not None:
-            if self.isInstalledMel( melUserSetup ):
+            if self.isInstalledMel( melUserSetup ) == True:
                 return True
 
         print ('Not installed')
@@ -179,18 +179,34 @@ class AutoStartInstaller(object):
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )
     def isInstalledMel( self, melUserSetup ):
+	l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
+	l_found = []
+	l_missing = []
         with open( melUserSetup ) as f:
-            for line in f:
-                if 'import' in line and 'cgmToolbox' in line:
-                    return True
+	    for i,codeLine in enumerate(l_lines):
+		for line in f:
+		    if codeLine in line:
+			l_found.append(codeLine)
+			break
+		if codeLine not in l_found:
+		    l_missing.append(codeLine)
+	log.info("Found: %s"%l_found)
+	if l_missing:
+	    log.info("Failed to find: %s"%l_missing)
+	    return l_missing
+	return True
+		
+		
                 
     def installMel( self, melUserSetup ):
-        if self.isInstalledMel( melUserSetup ):
+	buffer = self.isInstalledMel( melUserSetup )
+        if buffer == True:
             return
 
         if melUserSetup.getWritable():
             with open( melUserSetup, 'a' ) as f:
-                f.write( '\n\npython( "import cgmToolbox" );\n' )
+		for l in buffer:
+		    f.write( '\n\npython( "%s" );\n'%l )
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % melUserSetup )
     
