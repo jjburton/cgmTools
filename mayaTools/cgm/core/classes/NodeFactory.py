@@ -1167,7 +1167,7 @@ class argsToNodes(object):
 		
 		if nodeType == 'condition':
 		    log.debug("d_arg: %s"%d_arg)
-		    if d_arg.get('True'):
+		    if d_arg.get('True') is not None:
 			d = verifyDriver(self,d_arg.get('True'))			
 			log.debug("True arg: %s"%d_arg.get('True'))
 			log.debug("True verified to: %s"%verifyDriver(self,d_arg.get('True')))
@@ -1177,7 +1177,7 @@ class argsToNodes(object):
 			    mc.setAttr("%s.colorIfTrueR"%(i_node.mNode),d)			
 			#i_node.colorIfTrueR = verifyDriver(self,d_arg.get('True'))
 		    else:i_node.colorIfTrueR = 1
-		    if d_arg.get('False'):
+		    if d_arg.get('False') is not None:
 			d = verifyDriver(self,d_arg.get('False'))
 			log.debug("False arg: %s"%d_arg.get('False'))
 			log.debug("False verified to: %s"%verifyDriver(self,d_arg.get('False')))	
