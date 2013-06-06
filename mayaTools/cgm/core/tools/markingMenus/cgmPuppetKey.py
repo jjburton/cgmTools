@@ -77,7 +77,13 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	guiFactory.appendOptionVarList(self,self.KeyModeOptionVar.name)	
 
 	self.mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
-
+	
+	self.BuildModuleOptionVar = cgmMeta.cgmOptionVar('cgmVar_PuppetKeyBuildModule', defaultValue = 1)
+	guiFactory.appendOptionVarList(self,self.BuildModuleOptionVar.name)	
+	
+	self.BuildPuppetOptionVar = cgmMeta.cgmOptionVar('cgmVar_PuppetKeyBuildPuppet', defaultValue = 1)
+	guiFactory.appendOptionVarList(self,self.BuildPuppetOptionVar.name)	
+	
 	self.ResetModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)		
 	guiFactory.appendOptionVarList(self,self.ResetModeOptionVar.name)
 	
@@ -99,7 +105,8 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
 		    if i_obj._isAimable():
 			i_obj.doAim(self.i_target)
-			
+		   
+	time_buildMenuStart =  time.clock()
 	self.setupVariables()#Setup our optionVars
 
 	IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked',value = 0)
@@ -182,7 +189,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
 
 	#>>> Module
-	if self.ml_modules:
+	if self.BuildModuleOptionVar.value and self.ml_modules:
 	    self.ml_modules = lists.returnListNoDuplicates(self.ml_modules)
 	    for i_module in self.ml_modules:
 		MelMenuItem(parent,l=">> %s<< "%i_module.getBaseName(),en = False)
@@ -206,8 +213,24 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 
 		MelMenuItemDiv(parent)						
 
-	#>>> Keying Options
-	MelMenuItem(parent,l = ">> Options <<",en = False)	
+
+	#>>> Options menus
+	#================================================================================
+	MelMenuItem(parent,l = ">> Options <<",en = False)
+	
+	#>>> Build Type
+	BuildMenu = MelMenuItem( parent, l='Build Menus', subMenu=True)
+	#BuildMenuCollection = MelRadioMenuCollection()
+	b_buildModule = self.BuildModuleOptionVar.value
+	MelMenuItem(BuildMenu,l=' Module ',
+	            c= Callback(self.toggleVarAndReset,self.BuildModuleOptionVar),
+	            cb= self.BuildModuleOptionVar.value )	
+	MelMenuItem(BuildMenu,l=' Puppet ',
+	            c= Callback(self.toggleVarAndReset,self.BuildPuppetOptionVar),
+	            cb= self.BuildPuppetOptionVar.value )		
+	
+	
+	#>>> Keying Options	
 	KeyMenu = MelMenuItem( parent, l='Key type', subMenu=True)
 	KeyMenuCollection = MelRadioMenuCollection()
 
@@ -284,13 +307,17 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	MelMenuItemDiv(parent)							
 	MelMenuItem(parent, l="Reset",
 	            c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars))
-
+	
+	f_time = time.clock()-time_buildMenuStart
+	log.info('build menu took: %0.3f seconds  ' % (f_time) + '<'*10)  
+	
     def toggleVarAndReset(self, optionVar):
 	try:
 	    self.mmActionOptionVar.value=1						
 	    optionVar.toggle()
-	    self.reload()
-	except:
+	    log.info("PuppetKey.toggleVarAndReset>>> %s : %s"%(optionVar.name,optionVar.value))
+	except StandardError,error:
+	    log.error(error)
 	    print "MM change var and reset failed!"
 
 
