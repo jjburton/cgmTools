@@ -447,7 +447,6 @@ def build_rigSkeleton(self):
 	self._i_rigNull.connectChildrenNodes(ml_ikNoFlipJoints,'ikNoFlipJoints',"rigNull")
 	self._i_rigNull.connectChildrenNodes(ml_ikPVJoints,'ikPVJoints',"rigNull")
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints',"rigNull")
-	##self._i_rigNull.connectChildrenNodes(ml_anchors,'anchorJoints',"rigNull")
 	for i,ml_chain in enumerate(ml_segmentChains):
 	    log.info("segment chain: %s"%[i_j.getShortName() for i_j in ml_chain])
 	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_Joints'%i,"rigNull")
@@ -759,6 +758,7 @@ def build_FKIK(self):
 	d_ankleNoFlipReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[0].mNode,ml_ikNoFlipJoints[-1].mNode, nameSuffix = 'noFlip',
 	                                             rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
 	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
+	
 	mi_ankleIKHandleNF = d_ankleNoFlipReturn['mi_handle']
 	ml_distHandlesNF = d_ankleNoFlipReturn['ml_distHandles']
 	mi_rpHandleNF = d_ankleNoFlipReturn['mi_rpHandle']
@@ -908,7 +908,8 @@ def build_FKIK(self):
 	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
-    
+    log.info("%s.build_FKIK complete!"%self._i_module.getShortName())
+    return True
     
 def build_controls(self):
     """
@@ -1774,7 +1775,6 @@ def build_rig(self):
     for ml_chain in ml_segmentHandleChains:
 	for i_obj in ml_chain:
 	    attributes.doSetLockHideKeyableAttr(i_obj.mNode,lock=True, visible=False, keyable=False, channels=['s%s'%orientation[1],'s%s'%orientation[2]])
-    
     #
     attributes.doSetLockHideKeyableAttr(mi_settings.mNode,lock=True, visible=False, keyable=False)
      
@@ -1938,7 +1938,16 @@ def __build__(self, buildTo='',*args,**kws):
     if buildTo.lower() == 'shapes':return True
     build_controls(self)
     if buildTo.lower() == 'controls':return True    
-    
+    build_foot(self)
+    if buildTo.lower() == 'foot':return True
+    build_FKIK(self)
+    if buildTo.lower() == 'fkik':return True 
+    build_deformation(self)
+    if buildTo.lower() == 'deformation':return True 
+    build_rig(self)
+    if buildTo.lower() == 'rig':return True 
+    build_matchSystem(self)
+    if buildTo.lower() == 'match':return True     
     #build_deformation(self)
     #build_rig(self)    
     
