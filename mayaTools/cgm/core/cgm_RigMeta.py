@@ -1466,7 +1466,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	if len(l_dynParents)<2:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
 	    return False
-	if self.dynMode == 2 and not self.dynFollow:
+	if self.dynMode == 2 and not self.getMessage('dynFollow'):
 	    raise StandardError, "cgmDynParentGroup.verifyConstraints>> must have follow driver for follow mode: '%s'"%self.getShortName()
 	try:#initialize parents
 	    ml_dynParents = cgmMeta.validateObjListArg(l_dynParents,cgmMeta.cgmObject,False)
@@ -1485,6 +1485,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 		if followConstraints:mc.delete(followConstraints)#Delete existing constraints		
 	except StandardError,error:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Delete constraints fail! | %s"%(error))
+	    raise StandardError
 	
 	children = self.getChildren()
 	ml_children = [cgmMeta.cgmObject(c) for c in children]
@@ -1512,6 +1513,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 		i_dynConst = cgmMeta.cgmNode(oBuffer)
 	except StandardError,error:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Build constraints fail! | %s"%(error))
+	    raise StandardError
 	try:#Name and store    
 	    for i_const in [i_dynParentConst,i_dynPointConst,i_dynOrientConst]:
 		if i_const:
@@ -1525,6 +1527,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	    if i_dynOrientConst:self.connectChildNode(i_dynOrientConst,'dynOrientConstraint','dynMaster')	
 	except StandardError,error:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Name and store fail! | %s"%(error))
+	    raise StandardError
 	
 	#Build nodes
 	ml_nodes = []
@@ -1605,7 +1608,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	i_driver.parent = i_dParent.mNode
 	i_driver.doStore('cgmName',"%s_driving_%s"%(i_dParent.getNameAlias(),i_dynChild.getNameAlias())) 
 	i_driver.addAttr('cgmType','dynDriver')
-	i_driver.addAttr('mClass','cgmMeta.cgmObject')	
+	i_driver.addAttr('mClass','cgmObject')	
 	i_driver.doName()
 
 	i_driver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
@@ -1639,7 +1642,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	i_driver.parent = i_dParent.mNode
 	i_driver.doStore('cgmName',i_dParent.mNode) 
 	i_driver.addAttr('cgmType','dynDriver')
-	i_driver.addAttr('mClass','cgmMeta.cgmObject')	
+	i_driver.addAttr('mClass','cgmObject')	
 	i_driver.doName()
 	
 	i_driver.rotateOrder = i_dParent.rotateOrder#Match rotate order
@@ -1660,7 +1663,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	    
 	i_followDriver.doStore('cgmName',i_dynChild.mNode) 
 	i_followDriver.addAttr('cgmType','dynFollow')
-	i_followDriver.addAttr('mClass','cgmMeta.cgmObject')		
+	i_followDriver.addAttr('mClass','cgmObject')		
 	i_followDriver.doName()
 	
 	i_followDriver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
