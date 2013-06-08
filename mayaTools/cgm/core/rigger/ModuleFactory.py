@@ -374,7 +374,7 @@ def isRigged(self):
     return True
 
 #@r9General.Timer   
-def deleteRig(self,*args,**kws):
+def rigDelete(self,*args,**kws):
     #1 zero out controls
     #2 see if connected, if so break connection
     #3 delete everything but the rig - rigNull, deform stuff
@@ -382,7 +382,7 @@ def deleteRig(self,*args,**kws):
     str_shortName = self.getShortName()
     
     #if not isRigged(self):
-        #raise StandardError,"moduleFactory.deleteRig('%s')>>>> Module not rigged"%(str_shortName)
+        #raise StandardError,"moduleFactory.rigDelete('%s')>>>> Module not rigged"%(str_shortName)
     
     if isRigConnected(self):
 	rigDisconnect(self)#Disconnect
@@ -754,12 +754,12 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     d_downStateFunctions = {'define':deleteSizeInfo,
                             'size':deleteTemplate,
                             'template':deleteSkeleton,
-                            'skeleton':deleteRig,
+                            'skeleton':rigDelete,
                             }
     d_deleteStateFunctions = {'size':deleteSizeInfo,
                               'template':deleteTemplate,#handle from factory now
                               'skeleton':deleteSkeleton,
-                              'rig':deleteRig,
+                              'rig':rigDelete,
                               }    
     log.debug(">>> In ModuleFactory.changeState")
     log.debug("stateArg: %s"%stateArg)
