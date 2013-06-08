@@ -888,7 +888,7 @@ class go(object):
 	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self._jointOrientation[0]+'+',pierceDepth=self._skinOffset*15) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get hit to measure first distance"
-	dist = distance.returnDistanceBetweenPoints(mi_ballLoc.getPosition(),d_return['hit']) *1.5
+	dist = distance.returnDistanceBetweenPoints(mi_ballLoc.getPosition(),d_return['hit']) *1.25
 	log.info("go.build_footShape>>front distance: %s"%dist)
 	
 	#Pivots
@@ -983,7 +983,6 @@ class go(object):
 	                                latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
 	str_frontCurve = d_return['curve']
 	
-	
 	#Heel cast
 
 	self.aimAxis = self._jointOrientation[0] + '-'	
@@ -1003,7 +1002,8 @@ class go(object):
 	    l_specifiedRotates = [-100,-80,-50]#foot front closest, closed false, closest in range true
 	    
 	else:
-	    l_specifiedRotates =  [-50,-80,-100]	
+	    l_specifiedRotates =  [100,80,50]
+	    
 	d_return = createMeshSliceCurve(self._targetMesh,mi_ballLoc.mNode,offsetMode='vector',maxDistance = 1000,l_specifiedRotates = l_specifiedRotates,
 	                                closedCurve = False,curveDegree=1,posOffset = self.posOffset,returnDict = True,
 	                                latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=True)
@@ -1023,6 +1023,7 @@ class go(object):
 
 	l_pos.append(l_pos[0])#append to close loop
 	l_basePos.append(l_basePos[0])#append to close loop
+	
 	mi_ballLoc.delete()
 	mi_heelLoc.delete()	
 		
