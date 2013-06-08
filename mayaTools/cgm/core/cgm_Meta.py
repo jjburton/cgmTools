@@ -227,7 +227,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    except:pass
 	try:r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
 	except StandardError,error:
-	    raise StandardError, "__setattr__: %s"%(error)
+	    raise StandardError, "%s.__setattr__: %s"%(self.getShortName(),error)
 	if lock is not None and not self.isReferenced():
 	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	  
 	    
@@ -608,8 +608,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         return attributes.doGetAttr(self.mNode,attr,**kws)  
     
     def getAttr(self,attr):
-        """ get the type of the object """
-        return self.__getattribute__(attr)    
+        """ Get the attribute. As an add on to Marks. I don't want errors if it doesn't have the attr, I just want None. """
+        try: return self.__getattribute__(attr)
+	except: return None    
     
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
@@ -2058,7 +2059,7 @@ class cgmOptionVar(object):
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
 class cgmBufferNode(cgmNode):
-    def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,*args,**kws):
+    def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,**kws):
         """ 
 	Replacement for a multimessage attribute when you want to be able to link to an attr
 	
@@ -2074,16 +2075,19 @@ class cgmBufferNode(cgmNode):
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
 	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr','_kw_overrideMessageCheck'])
 	self._kw_overrideMessageCheck = overideMessageCheck
-	
-	self.updateData()
-	
+	self.__verify__()
         if not self.isReferenced():	    
 	    if not self.__verify__():
 		raise StandardError,"cgmBufferNode.__init__>> failed to verify : '%s'!"%self.getShortName()
 	    if value is not None:
 		self.value = value	
-
-	    	    
+		
+	self.updateData()
+	    	
+    def __verify__(self,**kws):
+	log.debug("cgmBufferNode>>> in %s.__verify__()"%self.getShortName())
+	self.addAttr('messageOverride',initialValue = self._kw_overrideMessageCheck,attrType = 'bool',lock=True)
+	return True   
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -2108,11 +2112,7 @@ class cgmBufferNode(cgmNode):
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # functions
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    def __verify__(self):
-	self.addAttr('messageOverride',initialValue = self._kw_overrideMessageCheck,lock=True)
-	return True
-    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
     def returnNextAvailableCnt(self):
         """ Get's the next available item number """        
         return self.returnNextAvailableAttrCnt('item_')

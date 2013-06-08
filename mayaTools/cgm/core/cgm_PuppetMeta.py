@@ -1145,6 +1145,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
 	    if self.__justCreatedState__ or doVerify:	    
 		if not self.__verify__(**kws):
 		    raise StandardError,"Failed!"
+		
     #@r9General.Timer
     def __verify__(self,*args,**kws):
         """"""
@@ -1154,6 +1155,9 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         RETURNS:
         success(bool)
         """ 
+	log.debug("cgmModuleBufferNode>>> in %s.__verify__()"%self.getShortName())	
+	cgmMeta.cgmBufferNode.__verify__(self,**kws)
+	
         module = kws.get('module') or False
         bufferType = kws.get('bufferType') or ''
                
@@ -1643,6 +1647,13 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.rigDisconnect)
         """
         return mFactory.rigDisconnect(self,**kws)  
+    
+    def rigDelete(self,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.rigDisconnect)
+        """
+        return mFactory.rigDelete(self,**kws)      
     
     #>>> Animation
     #========================================================================
