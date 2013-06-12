@@ -743,31 +743,6 @@ class argsToNodes(object):
 		kws['defaultType'] = defaultAttrType
 		log.debug("KWS:   %s"%kws)
 		
-	if '-' in arg:#Looking for inverses
-	    if not originalArg:
-		raise StandardError,"argsToNodes.verify_attr>> original arg required with '-' mode!"	    				
-	    if not nodeType:
-		raise StandardError,"argsToNodes.verify_attr>> nodeType required with '-' mode!"	    		
-	    log.debug("argsToNodes.verify_attr>> '-' Mode!: %s"%arg)	    
-	    #We have to make a sub attr connection to inverse this value
-	    #First register the attr
-	    d_driver = cgmMeta.validateAttrArg(arg.split('-')[1],noneValid=True,**kws)
-	    
-	    if not d_driver:
-		raise StandardError,"argsToNodes.verify_attr>> '-' Mode fail!"	    
-	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
-		log.debug("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
-		self.l_attrs.append(d_driver['mi_plug'].p_combinedName)		
-		self.ml_attrs.append(d_driver['mi_plug'])
-		index = len(self.ml_attrs)-1
-	    else:
-		log.debug("argsToNodes.verify_attr>> Found. Returning index")		
-		index = self.l_attrs.index(d_driver['mi_plug'].p_combinedName)#return the index
-	    
-	    d_validSubArg = {'arg':self.cleanArg(arg),'callArg':originalArg,'drivers':[index,'-1'],'operation':1}
-	    self.d_networksToBuild['multiplyDivide'].append(d_validSubArg)#append to build
-	    return unicode(self.cleanArg(arg))#unicoding for easy type check on later call
-	
 	arg_isNumber = True#Simple check to see if this part of the arg is a number
 	try:float(arg)
 	except:arg_isNumber = False
@@ -778,6 +753,31 @@ class argsToNodes(object):
 		    log.debug("argsToNodes.verify_driver>> Valid string driver: %s"%arg)				    
 		    return self.cleanArg(arg)
 	else:
+	    if '-' in arg:#Looking for inverses
+		if not originalArg:
+		    raise StandardError,"argsToNodes.verify_attr>> original arg required with '-' mode!"	    				
+		if not nodeType:
+		    raise StandardError,"argsToNodes.verify_attr>> nodeType required with '-' mode!"	    		
+		log.debug("argsToNodes.verify_attr>> '-' Mode!: %s"%arg)	    
+		#We have to make a sub attr connection to inverse this value
+		#First register the attr
+		d_driver = cgmMeta.validateAttrArg(arg.split('-')[1],noneValid=True,**kws)
+		
+		if not d_driver:
+		    raise StandardError,"argsToNodes.verify_attr>> '-' Mode fail!"	    
+		if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
+		    log.debug("argsToNodes.verify_attr>> Adding: %s"%d_driver['combined'])
+		    self.l_attrs.append(d_driver['mi_plug'].p_combinedName)		
+		    self.ml_attrs.append(d_driver['mi_plug'])
+		    index = len(self.ml_attrs)-1
+		else:
+		    log.debug("argsToNodes.verify_attr>> Found. Returning index")		
+		    index = self.l_attrs.index(d_driver['mi_plug'].p_combinedName)#return the index
+		
+		d_validSubArg = {'arg':self.cleanArg(arg),'callArg':originalArg,'drivers':[index,'-1'],'operation':1}
+		self.d_networksToBuild['multiplyDivide'].append(d_validSubArg)#append to build
+		return unicode(self.cleanArg(arg))#unicoding for easy type check on later call	
+	    
 	    d_driver = cgmMeta.validateAttrArg(arg,noneValid=False,**kws)
 	    log.debug("verify_attr>> d_driver: %s"%d_driver)
 	    if d_driver['mi_plug'].p_combinedName not in self.l_attrs:
@@ -1414,6 +1414,7 @@ def test_argsToNodes(deleteObj = True):
 	except StandardError,error:
 	    log.error("test_argsToNodes>>arg fail! %s"%arg)
 	    raise StandardError,error  """
+    return True
 
 class build_conditionNetworkFromGroup(object):
     def __init__(self, group, chooseAttr = 'switcher', controlObject = None, connectTo = 'visibility',*args,**kws):
