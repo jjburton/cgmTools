@@ -58,3 +58,15 @@ Mod - Red9_PoseSaver - modified the poseHandler.py setup, now allows you to dire
 Mod - Red9_PoseSaver - modified the posePath handler, if either the 'local' or 'project' main folders contain no poses then the UI switches straight to the subFolder handler
 New - Red9_General - added 'Red9_Sound' menu and functions to the TraxEditor!
 
+<<<<<<< .mine
+1.32:
+------
+
+=======
+1.32:
+------
+Mod - Red9_Anim - Modifications to the way the posePopupAdditions() in any poseHandlers.py file are built, I now pass in the main AnimUI class object directly so you can grab things like the poseDir, or selected pose straight from the UI Object. See updated example file for more info
+Fix - Red9_Anim - AnimUI resize behaviour fixed so that the pose and UI resize correctly
+Fix - Red9_Core - FilterNode searches now strip whitespaces from the args prior to running the searches
+New - Red9_Anim - Added the ability to modify the pasteMethod used byt he copyKey calls directly in the UI
+MOD - Red9_Pose - renamed main procs to poseLaod and poseSave, also now allow both of these not to take a filepath so you can use it as a poseCache>>>>>>> .r649

@@ -35,6 +35,19 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+
+def getFolderPoseHandler(posePath):
+    '''
+    Check if the given directory contains a poseHandler.py file
+    if so return the filename
+    '''
+    poseHandler=None
+    poseHandlers=[py for py in os.listdir(posePath) if py.endswith('poseHandler.py')]
+    if poseHandlers:
+        poseHandler=poseHandlers[0]
+    return poseHandler
+
+
 class PoseData(object):
     '''
     Here's the plan, we build up a poseDict something like this:
@@ -53,6 +66,18 @@ class PoseData(object):
     
     Matching of nodes against this dict is via either the nodeName, node Index or
     the metaData block.
+    
+    new functionality allows you to use the main calls to cache a pose and reload it
+    from this class instance, wraps things up nicely for you:
+    
+        pose=r9Pose.PoseData()
+        pose.metaPose=True
+        
+        #cache the pose (just don't pass in a filePath)
+        pose.poseSave(cmds.ls(sl=True))
+        #reload the cache you just stored
+        pose.poseLoad(cmds.ls(sl=True))
+        
     '''
     
     def __init__(self, filterSettings=None):
@@ -69,7 +94,7 @@ class PoseData(object):
         self.mayaUpAxis=r9Setup.mayaUpAxis()
         self.thumbnailRes=[128,128]
         
-        self._metaPose=False
+        self.__metaPose=False
         self.metaRig=None # filled by the code as we process
         self.matchMethod='base' #method used to match nodes internally in the poseDict
         self.relativePose=False
@@ -81,21 +106,21 @@ class PoseData(object):
         if filterSettings:
             if issubclass(type(filterSettings), r9Core.FilterNode_Settings):
                 self.settings=filterSettings
-                self._metaPose=self.settings.metaRig
+                self.__metaPose=self.settings.metaRig
             else:
                 raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
         else:
             self.settings=r9Core.FilterNode_Settings()
-            self._metaPose=self.settings.metaRig
+            self.__metaPose=self.settings.metaRig
     
         self.settings.printSettings()
     
     #Property so we sync the settings metaRig bool to the class metaPose bool
     def __get_metaPose(self):
-        return self._metaPose
+        return self.__metaPose
     
     def __set_metaPose(self, val):
-        self._metaPose=val
+        self.__metaPose=val
         self.settings.metaRig=val          
           
     metaPose = property(__get_metaPose, __set_metaPose)
@@ -108,19 +133,26 @@ class PoseData(object):
             self.metaRig=r9Meta.getConnectedMetaSystemRoot(node)
         return self.metaRig
     
-    def hasFolderOverload(self):    
-        posedir=os.path.dirname(self.filepath)
-        return os.path.exists(os.path.join(posedir,'poseHandler.py'))
+    def hasFolderOverload(self): 
+        '''
+        modified so you can now prefix the poseHandler.py file
+        makes it easier to keep track of in a production environment
+        '''
+        self.poseHandler=None
+        if self.filepath:   
+            self.poseHandler = getFolderPoseHandler(os.path.dirname(self.filepath))
+        return self.poseHandler
     
-    def getNodesFromFolderConfig(self,rootNode,mode):
+    def getNodesFromFolderConfig(self, rootNode, mode):
         '''
         if the poseFolder has a poseHandler.py file use that to
         return the nodes to use for the pose instead
         '''
         import imp
         log.debug('getNodesFromFolderConfig - useFilter=True : custom poseHandler running')
-        posedir=os.path.dirname(self.filepath)      
-        tempPoseFuncs = imp.load_source('poseHandler', os.path.join(posedir,'poseHandler.py'))
+        posedir=os.path.dirname(self.filepath)   
+        print 'imp : ', self.poseHandler.split('.py')[0], '  :  ', os.path.join(posedir, self.poseHandler)
+        tempPoseFuncs = imp.load_source(self.poseHandler.split('.py')[0], os.path.join(posedir, self.poseHandler))
         
         if mode=='load':
             nodes=tempPoseFuncs.poseGetNodesLoad(self,rootNode)
@@ -236,12 +268,16 @@ class PoseData(object):
             else:
                 if cmds.attributeQuery('exportSkeletonRoot',node=rootNode,exists=True):
                     connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'exportSkeletonRoot'),destination=True,source=True)
-                    if connectedSkel:
+                    if connectedSkel and cmds.nodeType(connectedSkel)=='joint':
                         self.rootJnt=connectedSkel[0]
+                    elif cmds.nodeType(rootNode)=='joint':
+                        self.rootJnt=rootNode
                 if cmds.attributeQuery('animSkeletonRoot',node=rootNode,exists=True):
                     connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'animSkeletonRoot'),destination=True,source=True)
-                    if connectedSkel:
+                    if connectedSkel and cmds.nodeType(connectedSkel)=='joint':
                         self.rootJnt=connectedSkel[0]
+                    elif cmds.nodeType(rootNode)=='joint':
+                        self.rootJnt=rootNode
         else:
             if self.metaPose:
                 self.setMetaRig(rootNode)
@@ -355,22 +391,22 @@ class PoseData(object):
         from a given poseFile return or select the internal stored objects 
         '''
         InternalNodes=[]
-#        if not fromFilter:
+        if not fromFilter:
             #no filter, we just pass in the longName thats stored
-        for key in self.poseDict.keys():
-            if cmds.objExists(self.poseDict[key]['longName']):
-                InternalNodes.append(self.poseDict[key]['longName'])
-            elif cmds.objExists(key):
-                InternalNodes.append(key)
-#        else:
-#            #use the internal Poses filter and then Match against scene nodes
-#            if self.settings.filterIsActive():
-#                filterData=r9Core.FilterNode(nodes,self.settings).ProcessFilter()
-#                
-#                matchedPairs=r9Core.matchNodeLists([self.poseDict[key]['longName'] \
-#                                         for key in self.poseDict.keys()], filterData)
-#                if matchedPairs:
-#                    InternalNodes=filterData
+            for key in self.poseDict.keys():
+                if cmds.objExists(self.poseDict[key]['longName']):
+                    InternalNodes.append(self.poseDict[key]['longName'])
+                elif cmds.objExists(key):
+                    InternalNodes.append(key)
+                elif cmds.objExists(r9Core.nodeNameStrip(key)):
+                    InternalNodes.append(r9Core.nodeNameStrip(key))
+        else:
+            #use the internal Poses filter and then Match against scene nodes
+            if self.settings.filterIsActive():
+                filterData=r9Core.FilterNode(nodes,self.settings).ProcessFilter()
+                matchedPairs=self._matchNodesToPoseData(filterData)
+                if matchedPairs:
+                    InternalNodes=[node for _,node in matchedPairs]
         if not InternalNodes:
             raise StandardError('No Matching Nodes found!!')
         return InternalNodes
@@ -426,44 +462,46 @@ class PoseData(object):
     #Main Calls ----------------------------------------  
   
     @r9General.Timer              
-    def PoseSave(self, nodes, filepath, useFilter=True, storeThumbnail=True):
+    def poseSave(self, nodes, filepath=None, useFilter=True, storeThumbnail=True):
         '''
         Entry point for the generic PoseSave
         @param nodes: nodes to store the data against OR the rootNode if the filter is active
-        @param filepath: path to save the posefile too  
+        @param filepath: posefile to save - if not given the pose is cached on this class instance 
         @param useFilter: use the filterSettings or not
         '''   
-        log.debug('PosePath given : %s' % filepath)  
         #push args to object - means that any poseHandler.py file has access to them           
         self.filepath=filepath
         self.useFilter=useFilter
-        
+        if self.filepath:
+            log.debug('PosePath given : %s' % filepath)  
+            
         self.buildInternalPoseData(nodes)
-        self._writePose(filepath)
         
-        if storeThumbnail:
-            sel=cmds.ls(sl=True,l=True)
-            cmds.select(cl=True)
-            r9General.thumbNailScreen(filepath,self.thumbnailRes[0],self.thumbnailRes[1])    
-            if sel:
-                cmds.select(sel)
+        if self.filepath:
+            self._writePose(filepath)
+            
+            if storeThumbnail:
+                sel=cmds.ls(sl=True,l=True)
+                cmds.select(cl=True)
+                r9General.thumbNailScreen(filepath,self.thumbnailRes[0],self.thumbnailRes[1])    
+                if sel:
+                    cmds.select(sel)
         log.info('Pose Saved Successfully to : %s' % filepath)
         
         
     @r9General.Timer
-    def PoseLoad(self, nodes, filepath, useFilter=True, relativePose=False, relativeRots='projected',relativeTrans='projected'):
+    def poseLoad(self, nodes, filepath=None, useFilter=True, relativePose=False, relativeRots='projected',relativeTrans='projected'):
         '''
         Entry point for the generic PoseLoad
         @param nodes:  if given load the data to only these. If given and filter=True this is the rootNode for the filter
-        @param filepath: path to the posefile to load
+        @param filepath: posefile to load - if not given the pose is loaded from a cached instance on this class 
         @param useFilter: If the pose has an active Filter_Settings block and this 
                         is True then use the filter on the destination hierarchy
         @param relativePose: kick in the posePointCloud to align the loaded pose relatively to the selected node
         @param relativeRots: 'projected' or 'absolute' - how to calculate the offset
         @param relativeTrans: 'projected' or 'absolute' - how to calculate the offset
         '''
-        if not os.path.exists(filepath):
-            raise StandardError('Given Path does not Exist')
+
         if relativePose and not cmds.ls(sl=True):
             raise StandardError('Nothing selected to align Relative Pose too')
         if not type(nodes)==list:nodes=[nodes] #cast to list for consistency
@@ -476,21 +514,30 @@ class PoseData(object):
         self.filepath=filepath
         self.useFilter=useFilter
         
+        if self.filepath and not os.path.exists(self.filepath):
+            raise StandardError('Given Path does not Exist')
+        
         if self.metaPose:
             self.setMetaRig(rootNode)
                 
-        if self.hasFolderOverload():# and useFilter:
+        if self.filepath and self.hasFolderOverload():# and useFilter:
             nodesToLoad=self.getNodesFromFolderConfig(nodes,mode='load')
         else:
             nodesToLoad=self.getNodes(nodes)
         if not nodesToLoad:
             raise StandardError('Nothing selected or returned by the filter to load the pose onto')
-           
-        self._readPose(filepath)
+        
+        if self.filepath:
+            self._readPose(self.filepath)
 
         if self.metaPose:
-            if self.infoDict.has_key('metaPose') and eval(self.infoDict['metaPose']) and self.metaRig:
-                self.matchMethod='metaData'
+            if self.infoDict.has_key('metaPose') and self.metaRig:
+                #note, we eval as configPbj is string based
+                try:
+                    if eval(self.infoDict['metaPose']):
+                        self.matchMethod = 'metaData'
+                except:
+                    self.matchMethod = 'metaData'
             else:
                 log.debug('Warning, trying to load a NON metaPose to a MRig - switching to NameMatching')  
                  

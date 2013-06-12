@@ -153,7 +153,8 @@ class Test_FilterNode():
                                              '|World_Root|Spine_Ctrl|R_Wrist_Ctrl', 
                                              '|World_Root|Spine_Ctrl|L_Wrist_Ctrl', 
                                              '|World_Root|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl', 
-                                             '|World_Root|Spine_Ctrl']  
+                                             '|World_Root|Spine_Ctrl'] 
+        
         #test the 'NOT:' operator
         self.filterNode.settings.searchPattern=['Ctrl','NOT:Pole']
         assert self.filterNode.ProcessFilter()==['|World_Root|IK_Ctrl',
@@ -161,6 +162,14 @@ class Test_FilterNode():
                                              '|World_Root|Spine_Ctrl|L_Wrist_Ctrl',
                                              '|World_Root|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl',
                                              '|World_Root|Spine_Ctrl']
+        #test the whiteSpace handler
+        self.filterNode.settings.searchPattern=['Ctrl ',' NOT:Pole ']
+        assert self.filterNode.ProcessFilter()==['|World_Root|IK_Ctrl',
+                                             '|World_Root|Spine_Ctrl|R_Wrist_Ctrl',
+                                             '|World_Root|Spine_Ctrl|L_Wrist_Ctrl',
+                                             '|World_Root|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl',
+                                             '|World_Root|Spine_Ctrl']
+        
         #test just using NOT: as an excluder
         self.filterNode.settings.searchPattern=['NOT:Pole']
         assert self.filterNode.ProcessFilter()==['|World_Root|IK_Ctrl',
@@ -181,6 +190,13 @@ class Test_FilterNode():
                                              '|World_Root|pCube4_AttrMarked']
         #has attr with matching value (STR test)
         self.filterNode.settings.searchAttrs=['MarkerAttr=right']
+        assert self.filterNode.ProcessFilter()==['|World_Root|Spine_Ctrl|R_Wrist_Ctrl|R_Pole_AttrMarked_Ctrl', 
+                                                  '|World_Root|pCube4_AttrMarked'] 
+        #test whiteSpace Handler
+        self.filterNode.settings.searchAttrs=['MarkerAttr = right']
+        assert self.filterNode.ProcessFilter()==['|World_Root|Spine_Ctrl|R_Wrist_Ctrl|R_Pole_AttrMarked_Ctrl', 
+                                                  '|World_Root|pCube4_AttrMarked'] 
+        self.filterNode.settings.searchAttrs=[' MarkerAttr =right ']
         assert self.filterNode.ProcessFilter()==['|World_Root|Spine_Ctrl|R_Wrist_Ctrl|R_Pole_AttrMarked_Ctrl', 
                                                   '|World_Root|pCube4_AttrMarked'] 
         #has attr but exclude is attr if value equals
@@ -207,11 +223,11 @@ class Test_FilterNode():
         self.filterNode.settings.searchAttrs=['floatAttr']
         assert self.filterNode.ProcessFilter()==['|World_Root|Spine_Ctrl|R_Pole_Ctrl',
                                                  '|World_Root|Spine_Ctrl|L_Pole_Ctrl']
-        #has attr with matching Value (FLOAT test) tolerance internally is 0.001
+        #has attr with matching Value (FLOAT test) tolerance internally is 0.01
         self.filterNode.settings.searchAttrs=['floatAttr=2.533']
         assert self.filterNode.ProcessFilter()==['|World_Root|Spine_Ctrl|R_Pole_Ctrl']
         #has attr with matching Value (FLOAT test) out of tolerance
-        self.filterNode.settings.searchAttrs=['floatAttr=2.53']
+        self.filterNode.settings.searchAttrs=['floatAttr=2.5']
         assert not self.filterNode.ProcessFilter()
         
         self.filterNode.settings.searchAttrs=['NOT:floatAttr=2.533','floatAttr']

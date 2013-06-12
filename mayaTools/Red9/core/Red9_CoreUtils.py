@@ -879,7 +879,6 @@ class FilterNode(object):
         similarly 'NOT:myAttr=2.33' will exclude if the value is equal
         see the ..\Red9\tests\Red9_CoreUtilTests.py for live unittest examples
         
-        TODO: space removal in the args before it's split in case somebody's done 'myAttr = xx'
         TODO: current Implementation DOES NOT allow multiple attr tests as only 1 val per key 
         in the excludeAttrs and includeAttrs is currently supported!!!!!!
         '''
@@ -898,8 +897,8 @@ class FilterNode(object):
         excludeAttrs={}
         for pattern in searchAttrs:
             val=[None,None] # why?? so that a value of False or 0 is still a value and not ignored!
+            pattern=pattern.replace(" ","")  #strip whiteSpaces
             attr=pattern
-            #print 'pattern : ',pattern
             if '=' in pattern:
                 #print 'pattern has ='
                 val=[True,decodeString(pattern.split('=')[-1])]
@@ -1021,6 +1020,7 @@ class FilterNode(object):
         
         #Build the Regex funcs
         for pattern in searchPattern:
+            pattern=pattern.replace(" ","") #strip whiteSpaces
             if 'NOT:' in pattern:
                 exclude.append(pattern.split(':')[-1])
             else:

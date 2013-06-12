@@ -244,20 +244,20 @@ class AnimationUI(object):
         
         #take generic filterSettings Object
         self.filterSettings = r9Core.FilterNode_Settings()
-        self.filterSettings.transformClamp=True
+        self.filterSettings.transformClamp = True
         self.presetDir = os.path.join(r9Setup.red9ModulePath(), 'presets')
         
         #Pose Management variables
-        self.posePath=None #working variable
-        self.posePathLocal='Local Pose Path not yet set' 
-        self.posePathProject='Project Pose Path not yet set'
-        self.posePathMode='localPoseMode' # or 'project' : mode of the PosePath field and UI
-        self.poseSelected=None 
-        self.poseGridMode='thumb'  # or text
-        self.poseRootMode='RootNode' # or MetaRig
+        self.posePath = None #working variable
+        self.posePathLocal = 'Local Pose Path not yet set' 
+        self.posePathProject = 'Project Pose Path not yet set'
+        self.posePathMode = 'localPoseMode' # or 'project' : mode of the PosePath field and UI
+        self.poseSelected = None 
+        self.poseGridMode = 'thumb'  # or text
+        self.poseRootMode = 'RootNode' # or MetaRig
         self.poses=None
-        self.poseButtonBGC=[0.27,0.3,0.3]        
-        self.poseButtonHighLight=[0.7,0.95,0.75]  
+        self.poseButtonBGC = [0.27,0.3,0.3]        
+        self.poseButtonHighLight = [0.7,0.95,0.75]  
         
         #Internal config file setup for the UI state
         if self.internalConfigPath:
@@ -281,10 +281,11 @@ class AnimationUI(object):
             if cmds.dockControl(self.dockCnt, exists=True):
                 cmds.deleteUI(self.dockCnt, control=True)  
         except:
-            pass
+            self.dock=False
         
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        animwindow = cmds.window(self.win , title=self.label)#, widthHeight=(325, 420))
+        animwindow=cmds.window(self.win , title=self.label)#, widthHeight=(325, 420))
+        #cmds.columnLayout()
         cmds.menuBarLayout()
         cmds.menu(l="VimeoHelp")
         cmds.menuItem(l="Open Vimeo > WalkThrough",\
@@ -296,11 +297,13 @@ class AnimationUI(object):
         cmds.menuItem(l="Open Vimeo > CopyKeys & TimeOffsets",\
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/33440348')") 
         cmds.menuItem(l="Open Vimeo > MirrorSetups",\
-                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/57882801')")         
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/57882801')")
+        cmds.menuItem(l="Open Vimeo > PoseSaver - Advanced Topics",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/66269033')")          
         cmds.menuItem(divider=True) 
         cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))
-        self.MainLayout = cmds.columnLayout(adjustableColumn=True)
-        
+
+        self.MainLayout = cmds.scrollLayout('red9MainScroller',rc=lambda *x:self.__uiCB_resizeMainScroller())
         self.form = cmds.formLayout()
         self.tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5)
         cmds.formLayout(self.form, edit=True, attachForm=((self.tabs, 'top', 0), 
@@ -362,8 +365,19 @@ class AnimationUI(object):
                                             #onc="cmds.checkBox('uicbCKeyHierarchy', e=True, v=False)")  
         self.uicbCKeyChnAttrs = cmds.checkBox(ann='Copy only those channels selected in the channelBox', 
                                             l='ChBox Attrs', al='left', v=False)   
+
+        cmds.setParent('..')
+        cmds.separator(h=2, style='none')  
+        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 70), (3, 130)], columnSpacing=[(1, 10), (2, 10)])
         self.uicbCKeyRange = cmds.checkBox(ann='ONLY Copy Keys over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)', 
-                                            l='TimeRange', al='left', v=False)   
+                                            l='TimeRange', al='left', v=False)
+        cmds.text(l='Paste by ' , align='right') 
+        cmds.optionMenu('om_PasteMethod',
+                        ann='Default = "replace", paste method used by the copy code internally',
+                        cc=partial(self.__uiCB_setCopyKeyPasteMethod))                                               
+        for preset in ["insert", "replace", "replaceCompletely", "merge", "scaleInsert", "scaleReplace", "scaleMerge", "fitInsert", "fitReplace", "fitMerge"]: 
+            cmds.menuItem(l=preset)
+        cmds.optionMenu('om_PasteMethod', e=True, v='replace')   
         cmds.setParent(self.AnimLayout)
 
 
@@ -384,11 +398,14 @@ class AnimationUI(object):
         self.uicbSnapRange = cmds.checkBox(ann='Snap Nodes over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)', 
                                             l='TimeRange', al='left', v=False, 
                                             cc=partial(self.__uiCB_manageSnapTime))  
-        self.uicbSnapPreCopyKeys = cmds.checkBox(ann='Copy all animation data for all channels prior to running the Snap over Time', 
-                                            l='PreCopyKeys', al='left', en=False, v=True)               
+        self.uicbSnapPreCopyKeys = cmds.checkBox(l='PreCopyKeys', al='left', 
+                                                 ann='Copy all animation data for all channels prior to running the Snap over Time',
+                                                 en=False, v=True)               
         self.uiifgSnapStep = cmds.intFieldGrp('uiifgSnapStep', l='FrmStep', en=False, value1=1, cw2=(50, 40), 
                                            ann='Frames to advance the timeline after each Process Run')
-
+        cmds.separator(h=2, style='none')
+        cmds.separator(h=2, style='none')
+        cmds.separator(h=2, style='none')
         self.uicbSnapHierarchy = cmds.checkBox(ann='Filter Hierarchies with given args - then Snap Transforms for matched nodes', 
                                             l='Hierarchy', al='left', v=False, 
                                             cc=partial(self.__uiCB_manageSnapHierachy)) 
@@ -396,8 +413,7 @@ class AnimationUI(object):
                                             l='PreCopyAttrs', al='left', en=False, v=True) 
         self.uiifSnapIterations = cmds.intFieldGrp('uiifSnapIterations', l='Iterations', en=False, value1=1, cw2=(50, 40), 
                                            ann='This is the number of iterations over each hierarchy node during processing, if you get issues during snap then increase this')
-        cmds.setParent('..')
-        cmds.separator(h=5, style='none')
+        cmds.setParent(self.AnimLayout)  
 
 
         #====================
@@ -446,7 +462,7 @@ class AnimationUI(object):
                                             ann='ON:Scene Level Processing: OFF:SelectedNode Processing - Offsets Animation, Sound and Clip data as appropriate', 
                                             al='left', v=False, en=False)        
         cmds.setParent('..')   
-        cmds.separator(h=5, style='none')
+        cmds.separator(h=2, style='none')
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
         self.uicbTimeOffsetFlocking = cmds.checkBox('uicbTimeOffsetFlocking', 
                                             l='Flocking', al='left', en=True, v=False, 
@@ -462,6 +478,7 @@ class AnimationUI(object):
                      If processing on selected it will deal with each node type as it finds', 
                      command=partial(self.__uiCall, 'TimeOffset'))  
         cmds.setParent(self.AnimLayout) 
+        
         
         #====================
         # Mirror Controls
@@ -571,6 +588,13 @@ class AnimationUI(object):
                                             l='Include Roots', 
                                             al='left', v=True,
                                             cc=lambda x:self.__uiCache_storeUIElements())   
+        
+#        cmds.optionMenuGrp('uiomMatchMethod',label='MatchMethod:',
+#                        ann='Default = "replace", paste method used by the copy code internally',
+#                        cc=partial(self.__uiCB_setCopyKeyPasteMethod))                                               
+#        for preset in ["base","stripPrefix","index"]: 
+#            cmds.menuItem(l=preset)
+#        cmds.optionMenu('om_PasteMethod', e=True, v='replace')   
             
         self.uicbMatchMethod = cmds.checkBox('uicbMatchMethod',
                                             ann='Match method allow prefix stripping?', 
@@ -735,8 +759,8 @@ class AnimationUI(object):
         #====================
         cmds.setParent(self.MainLayout)
         cmds.separator(h=10, style='none')
-        cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp', 
-                             c=lambda * args:(r9Setup.red9ContactInfo()), h=22, w=200)
+        self.r9strap=cmds.iconTextButton('r9strap', style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp', 
+                             c=lambda * args:(r9Setup.red9ContactInfo()), h=22, w=340)
         
         #needed for 2009
         cmds.scrollLayout('uiglPoseScroll',e=True,h=330)
@@ -748,11 +772,16 @@ class AnimationUI(object):
             try:
                 #Maya2011 QT docking
                 allowedAreas = ['right', 'left']
-                cmds.dockControl(self.dockCnt, area='right', label=self.label, content=animwindow, floating=False, allowedArea=allowedAreas, width=325)
+                cmds.dockControl(self.dockCnt, area='right', label=self.label, 
+                                 content=animwindow, 
+                                 floating=False, 
+                                 allowedArea=allowedAreas, 
+                                 width=350)
             except:
                 #Dock failed, opening standard Window
                 cmds.showWindow(animwindow)
-                cmds.window(self.win, edit=True, widthHeight=(355, 600))
+                cmds.window(self.win, edit=True, widthHeight=(355, 720))
+                self.dock = False
         else:
             cmds.showWindow(animwindow)
             cmds.window(self.win, edit=True, widthHeight=(355, 720))
@@ -818,7 +847,27 @@ class AnimationUI(object):
             nodeTypes.append(nodeType)
         cmds.textFieldGrp('uitfgSpecificNodeTypes', e=True, text=','.join(nodeTypes))
  
-
+    def __uiCB_resizeMainScroller(self,*args):
+        if self.dock:
+            width=cmds.dockControl(self.dockCnt, q=True, w=True)
+            height=cmds.dockControl(self.dockCnt, q=True, h=True)
+        else:
+            newSize=cmds.window(self.win, q=True, wh=True)
+            width=newSize[0]
+            height=newSize[1]
+        if width>350:
+            cmds.formLayout(self.form, edit=True, w=width-10)
+            #cmds.iconTextButton(self.r9strap, e=True, w=width-10)
+        else:
+            cmds.scrollLayout(self.MainLayout,e=True,w=350)
+        if height>440:
+            cmds.scrollLayout('uiglPoseScroll',e=True,h=height-430)
+            
+    def __uiCB_setCopyKeyPasteMethod(self, *args):
+        self.ANIM_UI_OPTVARS['AnimationUI']['keyPasteMethod'] = cmds.optionMenu('om_PasteMethod', q=True, v=True)
+        self.__uiCache_storeUIElements()
+        
+    
     # Preset FilterSettings Object Management
     #------------------------------------------------------------------------------    
     
@@ -1029,7 +1078,7 @@ class AnimationUI(object):
         @param mode: 'local' or 'project', in project the poses are load only, save=disabled
         '''
         if mode=='local':
-            self.posePath=os.path.join(self.posePathLocal,self.__uiCB_getsubFolderFromUI())
+            self.posePath=os.path.join(self.posePathLocal,self.getPoseSubFolder())
             if not os.path.exists(self.posePath):
                 log.warning('No Matching Local SubFolder path found - Reverting to Root')
                 self.__uiCB_clearSubFolders()
@@ -1039,7 +1088,7 @@ class AnimationUI(object):
             cmds.button('savePoseButton',edit=True,en=True,bgc=r9Setup.red9ButtonBGC(1))
             cmds.textFieldButtonGrp('uitfgPosePath',edit=True,text=self.posePathLocal)
         elif mode=='project':
-            self.posePath=os.path.join(self.posePathProject,self.__uiCB_getsubFolderFromUI())
+            self.posePath=os.path.join(self.posePathProject,self.getPoseSubFolder())
             if not os.path.exists(self.posePath):
                 log.warning('No Matching Project SubFolder path found - Reverting to Root')
                 self.__uiCB_clearSubFolders()
@@ -1091,7 +1140,7 @@ class AnimationUI(object):
     
         #fill the cache up for the ini file
         self.ANIM_UI_OPTVARS['AnimationUI']['posePath']=self.posePath
-        self.ANIM_UI_OPTVARS['AnimationUI']['poseSubPath']=self.__uiCB_getsubFolderFromUI()
+        self.ANIM_UI_OPTVARS['AnimationUI']['poseSubPath']=self.getPoseSubFolder()
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathLocal']=self.posePathLocal
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathProject']=self.posePathProject
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode
@@ -1137,36 +1186,38 @@ class AnimationUI(object):
         cmds.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)
         self.__uiCB_setPosePath()
                
-    def __uiCB_getsubFolderFromUI(self):
+         
+
+    #------------------------------------------------------------------------------
+    #Build Pose UI calls  -------------------------------------------------------     
+     
+    def getPoseSubFolder(self):
         '''
-        why??? means we can modify the folder display name without worries.
+        Return the given pose subFolder if set
         '''
         try:
             return cmds.textFieldButtonGrp('uitfgPoseSubPath',q=True,text=True)
         except:
-            return ""          
-
-    #------------------------------------------------------------------------------
-    #Build Pose UI calls  -------------------------------------------------------     
-             
-    def __uiCB_getPoseDir(self):
+            return "" 
+                
+    def getPoseDir(self):
         '''
         Return the poseDir including subPath
         '''
-        return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),\
-                            self.__uiCB_getsubFolderFromUI()) 
+        return os.path.join(cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True),
+                            self.getPoseSubFolder()) 
         
-    def __uiCB_getPosePath(self):
+    def getPosePath(self):
         '''
         Return the full posePath for loading
         '''
-        return os.path.join(self.__uiCB_getPoseDir(), '%s.pose' % self.getPoseSelected())
+        return os.path.join(self.getPoseDir(), '%s.pose' % self.getPoseSelected())
         
-    def __uiCB_getIconPath(self):
+    def getIconPath(self):
         '''
         Return the full posePath for loading
         '''
-        return os.path.join(self.__uiCB_getPoseDir(), '%s.bmp' % self.getPoseSelected())   
+        return os.path.join(self.getPoseDir(), '%s.bmp' % self.getPoseSelected())   
                            
     def __uiCB_fillPoses(self, rebuildFileList=False, searchFilter=None, *args):
         '''
@@ -1181,8 +1232,9 @@ class AnimationUI(object):
         if rebuildFileList:
             self.buildPoseList()
             log.debug('Rebuilt Pose internal Lists') 
-            if not self.poses:
-                log.warning('no poses found in root directory, switching to subFolder pickers')
+            #Project mode and folder contains NO poses so switch to subFolders
+            if not self.poses and self.posePathMode =='projectPoseMode':
+                log.warning('no poses found in root project directory, switching to subFolder pickers')
                 self.__uiCB_switchSubFolders()
                 return
         log.debug( 'searchFilter  : %s : rebuildFileList : %s' %(searchFilter, rebuildFileList))
@@ -1284,29 +1336,23 @@ class AnimationUI(object):
             cmds.menuItem(label='Grid Size: Medium', command=partial(self.__uiCB_setPoseGrid,'medium'))
             cmds.menuItem(label='Grid Size: Large', command=partial(self.__uiCB_setPoseGrid,'large'))
 
-        if self.hasFolderOverload():
-            print 'Adding to menus From PoseHandler File!!!!'
-            self.addPopupMenusFromFolderConfig(self.posePopup)
+        self.addPopupMenusFromFolderConfig(self.posePopup)
                                     
-
-    def hasFolderOverload(self):    
-        '''
-        current folder has a poseHandler.py file
-        '''
-        return os.path.exists(os.path.join(self.__uiCB_getPoseDir(),'poseHandler.py'))
-    
-    def addPopupMenusFromFolderConfig(self,parentPopup):
+    def addPopupMenusFromFolderConfig(self, parentPopup):
         '''
         if the poseFolder has a poseHandler.py file see if it has the 'posePopupAdditions' func
         and if so, use that to extend the standard menu's
         '''
-        import imp,inspect
-        tempPoseFuncs = imp.load_source('poseHandler', os.path.join(self.__uiCB_getPoseDir(),'poseHandler.py'))
-        if [func for name,func in inspect.getmembers(tempPoseFuncs, inspect.isfunction) if name=='posePopupAdditions']:
-            tempPoseFuncs.posePopupAdditions(parentPopup)
-        del(tempPoseFuncs)
+        poseHandler=r9Pose.getFolderPoseHandler(self.getPoseDir())
+        if poseHandler:
+            import imp,inspect
+            print 'Adding to menus From PoseHandler File!!!!'
+            tempPoseFuncs = imp.load_source(poseHandler.split('.py')[0], os.path.join(self.getPoseDir(), poseHandler))
+            if [func for name,func in inspect.getmembers(tempPoseFuncs, inspect.isfunction) if name=='posePopupAdditions']:
+                #NOTE we pass in self so the new additions have the same access as everything else!
+                tempPoseFuncs.posePopupAdditions(parentPopup, self)
+            del(tempPoseFuncs)
 
-    
     def __uiCB_setPoseGrid(self,size,*args):
         '''
         Set size of the Thumnails used in the PoseGrid Layout
@@ -1373,7 +1419,7 @@ class AnimationUI(object):
             name=cmds.promptDialog(query=True, text=True)
             try:
                 if r9Core.validateString(name):
-                    return os.path.join(self.__uiCB_getPoseDir(), '%s.pose' % name)
+                    return os.path.join(self.getPoseDir(), '%s.pose' % name)
             except ValueError,error:
                 raise ValueError(error)
    
@@ -1458,11 +1504,11 @@ class AnimationUI(object):
                 dismissString='Cancel')
         if result == 'Yes':
             try:
-                os.remove(self.__uiCB_getPosePath())
+                os.remove(self.getPosePath())
             except:
                 log.info('Failed to Delete PoseFile')
             try:
-                os.remove(self.__uiCB_getIconPath())
+                os.remove(self.getIconPath())
             except:
                 log.info('Failed to Delete PoseIcon')
             self.__uiCB_fillPoses(rebuildFileList=True)
@@ -1473,8 +1519,8 @@ class AnimationUI(object):
         except ValueError,error:
             raise ValueError(error)
         try:
-            os.rename(self.__uiCB_getPosePath(), newName)
-            os.rename(self.__uiCB_getIconPath(), '%s.bmp' % newName.split('.pose')[0])
+            os.rename(self.getPosePath(), newName)
+            os.rename(self.getIconPath(), '%s.bmp' % newName.split('.pose')[0])
         except:
             log.info('Failed to Rename Pose')
         self.__uiCB_fillPoses(rebuildFileList=True)  
@@ -1483,12 +1529,12 @@ class AnimationUI(object):
         
     def __uiPoseOpenFile(self,*args):
         import subprocess
-        path=os.path.normpath(self.__uiCB_getPosePath())
+        path=os.path.normpath(self.getPosePath())
         subprocess.Popen('notepad "%s"' % path)
         
     def __uiPoseOpenDir(self,*args):
         import subprocess
-        path=os.path.normpath(self.__uiCB_getPoseDir())
+        path=os.path.normpath(self.getPoseDir())
         subprocess.Popen('explorer "%s"' % path)
      
     def __uiPoseUpdate(self, storeThumbnail, *args):
@@ -1503,16 +1549,16 @@ class AnimationUI(object):
         if result=='OK':
             if storeThumbnail:
                 try:
-                    os.remove(self.__uiCB_getIconPath())
+                    os.remove(self.getIconPath())
                 except:
                     log.debug('unable to delete the Pose Icon file')
-            self.__PoseSave(self.__uiCB_getPosePath(),storeThumbnail)
+            self.__PoseSave(self.getPosePath(),storeThumbnail)
             self.__uiCB_selectPose(self.poseSelected)   
     
     def __uiPoseUpdateThumb(self,*args):
         sel=cmds.ls(sl=True,l=True)
         cmds.select(cl=True)
-        thumbPath=self.__uiCB_getIconPath()
+        thumbPath=self.getIconPath()
         if os.path.exists(thumbPath):
             try:
                 os.remove(thumbPath)
@@ -1529,7 +1575,7 @@ class AnimationUI(object):
         mPoseA=r9Pose.PoseData()
         mPoseA.metaPose=True
         mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
-        compare=r9Pose.PoseCompare(mPoseA,self.__uiCB_getPosePath(),compareDict='skeletonDict')
+        compare=r9Pose.PoseCompare(mPoseA,self.getPosePath(),compareDict='skeletonDict')
         
         if not compare.compare():
             info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
@@ -1550,7 +1596,7 @@ class AnimationUI(object):
         if rootNode and cmds.objExists(rootNode):  
             self.__uiPresetFillFilter() #fill the filterSettings Object
             pose=r9Pose.PoseData(self.filterSettings)
-            pose._readPose(self.__uiCB_getPosePath())
+            pose._readPose(self.getPosePath())
             nodes=pose.matchInternalPoseObjects(rootNode)
             if nodes:
                 cmds.select(cl=True)
@@ -1590,7 +1636,7 @@ class AnimationUI(object):
         if not os.path.exists(self.posePathProject):
             raise StandardError('Project Pose Path is inValid or not yet set')
         if syncSubFolder:
-            subFolder=self.__uiCB_getsubFolderFromUI()
+            subFolder=self.getPoseSubFolder()
             projectPath=os.path.join(projectPath,subFolder)
             
             if not os.path.exists(projectPath):
@@ -1614,8 +1660,8 @@ class AnimationUI(object):
             
         log.info('Copying Local Pose: %s >> %s' % (self.poseSelected,projectPath))
         try:
-            shutil.copy2(self.__uiCB_getPosePath(),projectPath)
-            shutil.copy2(self.__uiCB_getIconPath(),projectPath)
+            shutil.copy2(self.getPosePath(),projectPath)
+            shutil.copy2(self.getIconPath(),projectPath)
         except:
             raise StandardError('Unable to copy pose : %s > to Project dirctory' % self.poseSelected)
                      
@@ -1688,6 +1734,9 @@ class AnimationUI(object):
                 cmds.textScrollList(self.uitslPresets, e=True, si=AnimationUI['filterNode_preset'])
                 self.__uiPresetSelection(Read=True)   ###not sure on this yet????
                 
+            if AnimationUI.has_key('keyPasteMethod') and AnimationUI['keyPasteMethod']:
+                cmds.optionMenu('om_PasteMethod', e=True, v=AnimationUI['keyPasteMethod'])
+            
             if AnimationUI.has_key('poseMode') and AnimationUI['poseMode']:
                 self.poseGridMode=AnimationUI['poseMode']
                 
@@ -1769,6 +1818,7 @@ class AnimationUI(object):
         Internal UI call for CopyKeys call
         '''
         self.kws['toMany'] = cmds.checkBox(self.uicbCKeyToMany, q=True, v=True)
+        self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
         if cmds.checkBox(self.uicbCKeyRange, q=True, v=True):
             self.kws['time'] = timeLineRangeGet()
         if cmds.checkBox(self.uicbCKeyChnAttrs, q=True, v=True):
@@ -1791,7 +1841,8 @@ class AnimationUI(object):
         self.kws['preCopyAttrs'] = False
         self.kws['iterations'] = cmds.intFieldGrp('uiifSnapIterations', q=True, v=True)[0]
         self.kws['step'] = cmds.intFieldGrp('uiifgSnapStep', q=True, v=True)[0]
-       
+        self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
+        
         if cmds.checkBox(self.uicbSnapRange, q=True, v=True):
             self.kws['time'] = timeLineRangeGet()
         if cmds.checkBox(self.uicbSnapPreCopyKeys, q=True, v=True):
@@ -1858,7 +1909,7 @@ class AnimationUI(object):
                 raise ValueError(error)
         poseHierarchy=cmds.checkBox('uicbPoseHierarchy',q=True,v=True)
         
-        r9Pose.PoseData(self.filterSettings).PoseSave(self.__uiCB_getPoseInputNodes(), 
+        r9Pose.PoseData(self.filterSettings).poseSave(self.__uiCB_getPoseInputNodes(), 
                                                       path,
                                                       useFilter=poseHierarchy,
                                                       storeThumbnail=storeThumbnail)
@@ -1877,9 +1928,9 @@ class AnimationUI(object):
         if not tranRelMethod=='tranProjected':
             relativeTrans='absolute'
             
-        path=self.__uiCB_getPosePath()
+        path=self.getPosePath()
         log.info('PosePath : %s' % path)
-        r9Pose.PoseData(self.filterSettings).PoseLoad(self.__uiCB_getPoseInputNodes(), 
+        r9Pose.PoseData(self.filterSettings).poseLoad(self.__uiCB_getPoseInputNodes(), 
                                                       path,
                                                       useFilter=poseHierarchy,
                                                       relativePose=poseRelative,
@@ -1927,7 +1978,8 @@ class AnimationUI(object):
         '''
         Internal UI call for Mirror Animation / Pose
         '''
-        mirror=MirrorHierarchy(nodes=cmds.ls(sl=True, l=True), filterSettings=self.filterSettings)
+        self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
+        mirror=MirrorHierarchy(nodes=cmds.ls(sl=True, l=True), filterSettings=self.filterSettings, **self.kws)
         mirrorMode='Anim'
         if func=='MirrorPose':
             mirrorMode='Pose' 
@@ -2699,7 +2751,7 @@ class MirrorHierarchy(object):
     TODO: We need to do a UI for managing these marker attrs and the Index lists
     '''
     
-    def __init__(self, nodes=[], filterSettings=None):
+    def __init__(self, nodes=[], filterSettings=None, **kws):
         '''
         @param nodes: initial nodes to process
         @param filterSettings: filterSettings object to process hierarchies
@@ -2717,6 +2769,8 @@ class MirrorHierarchy(object):
         self.mirrorIndex='mirrorIndex'
         self.mirrorAxis='mirrorAxis'
         self.mirrorDict={'Centre':{},'Left':{},'Right':{}}
+        self.kws=kws #allows us to pass kws into the copyKey and copyAttr call if needed
+        print 'kws in Mirror call : ',self.kws
         
         # make sure we have a settings object
         if filterSettings:
@@ -2731,7 +2785,7 @@ class MirrorHierarchy(object):
         #returned are part of the Mirror system
         self.settings.searchAttrs.append(self.mirrorSide)
     
-    def _validateMirrorEnum(self,side):
+    def _validateMirrorEnum(self, side):
         '''
         validate the given side to make sure it's formatted correctly before setting the data
         '''
@@ -2777,7 +2831,7 @@ class MirrorHierarchy(object):
                 mClass.__setattr__(self.mirrorAxis,axis) 
         del(mClass) #cleanup
         
-    def deleteMirrorIDs(self,node):
+    def deleteMirrorIDs(self, node):
         '''
         Remove the given node from the MirrorSystems
         '''
@@ -2802,20 +2856,20 @@ class MirrorHierarchy(object):
         '''
         return r9Core.FilterNode(self.nodes,filterSettings=self.settings).ProcessFilter()
      
-    def getMirrorSide(self,node):
+    def getMirrorSide(self, node):
         '''
         This is an enum Attr to denote the Side of the controller in the Mirror system
         '''
         return cmds.getAttr('%s.%s' % (node,self.mirrorSide),asString=True)
 
-    def getMirrorIndex(self,node):
+    def getMirrorIndex(self, node):
         '''
         get the mirrorIndex, these slots are used to denote matching pairs
         such that Left and Right Controllers to switch will have the same index
         '''
         return int(cmds.getAttr('%s.%s' % (node,self.mirrorIndex)))
    
-    def getMirrorAxis(self,node):
+    def getMirrorAxis(self, node):
         '''
         get any custom attributes set at node level to inverse, if none found
         return the default axis setup in the __init__
@@ -2832,7 +2886,7 @@ class MirrorHierarchy(object):
         else:
             return self.defaultMirrorAxis
         
-    def getMirrorSets(self,nodes=None):
+    def getMirrorSets(self, nodes=None):
         '''
         Filter the given nodes into the mirrorDict
         such that {'Centre':{id:node,},'Left':{id:node,},'Right':{id:node,}}
@@ -2863,33 +2917,33 @@ class MirrorHierarchy(object):
                 log.debug(error)
                 log.info('Failed to add Node to Mirror System : %s' % r9Core.nodeNameStrip(node))
     
-    def printMirrorDict(self,short=True):
+    def printMirrorDict(self, short=True):
         '''
         Pretty print the Mirror Dict 
         '''
         self.getMirrorSets()
         if not short:
             print '\nCenter MirrorLists ====================================================='
-            for i,data in sorted(self.mirrorDict['Centre'].items()): 
-                print '%s > %s' % (i,data['node'])
+            for i in r9Core.sortNumerically(self.mirrorDict['Centre'].keys()): 
+                print '%s > %s' % (i, self.mirrorDict['Centre'][i]['node'])
             print '\nRight MirrorLists ======================================================'
-            for i,data in sorted(self.mirrorDict['Right'].items()): 
-                print '%s > %s' % (i,data['node'])
+            for i in r9Core.sortNumerically(self.mirrorDict['Right'].keys()): 
+                print '%s > %s' % (i, self.mirrorDict['Right'][i]['node'])
             print '\nLeft MirrorLists ======================================================='
-            for i,data in sorted(self.mirrorDict['Left'].items()): 
-                print '%s > %s' % (i,data['node'])
+            for i in r9Core.sortNumerically(self.mirrorDict['Left'].keys()): 
+                print '%s > %s' % (i, self.mirrorDict['Left'][i]['node'])
         else:
             print '\nCenter MirrorLists ====================================================='
-            for i,data in sorted(self.mirrorDict['Centre'].items()): 
-                print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
+            for i in r9Core.sortNumerically(self.mirrorDict['Centre'].keys()):
+                print '%s > %s' % (i,r9Core.nodeNameStrip(self.mirrorDict['Centre'][i]['node']))
             print '\nRight MirrorLists ======================================================'
-            for i,data in sorted(self.mirrorDict['Right'].items()): 
-                print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
+            for i in r9Core.sortNumerically(self.mirrorDict['Right'].keys()): 
+                print '%s > %s' % (i, r9Core.nodeNameStrip(self.mirrorDict['Right'][i]['node']))
             print '\nLeft MirrorLists ======================================================='
-            for i,data in sorted(self.mirrorDict['Left'].items()): 
-                print '%s > %s' % (i,r9Core.nodeNameStrip(data['node']))
+            for i in r9Core.sortNumerically(self.mirrorDict['Left'].keys()): 
+                print '%s > %s' % (i, r9Core.nodeNameStrip(self.mirrorDict['Left'][i]['node']))
                           
-    def switchPairData(self,objA,objB,mode='Anim'):
+    def switchPairData(self, objA, objB, mode='Anim'):
         '''
         take the left and right matched pairs and exchange the animData
         or poseData across between them
@@ -2909,14 +2963,14 @@ class MirrorHierarchy(object):
         cmds.duplicate(name='DELETE_ME_TEMP')
         temp=cmds.ls(sl=True,l=True)[0]
         log.debug('temp %s:' % temp)
-        transferCall([objA,temp])
-        transferCall([objB,objA])
-        transferCall([temp,objB])
+        transferCall([objA,temp], **self.kws)
+        transferCall([objB,objA], **self.kws)
+        transferCall([temp,objB], **self.kws)
         cmds.delete(temp)
         
         if objs:cmds.select(objs)
     
-    def makeSymmetrical(self,nodes=None,mode='Anim',primeAxis='Left'):
+    def makeSymmetrical(self, nodes=None, mode='Anim', primeAxis='Left'):
         '''
         similar to the mirrorData except this is designed to take the data from an object in
         one side of the mirrorDict and pass that data to the opposite matching node, thus 
@@ -2946,7 +3000,7 @@ class MirrorHierarchy(object):
                 slaveData=self.mirrorDict[slaveAxis][index]
                 log.debug('SymmetricalPairs : %s >> %s' % (r9Core.nodeNameStrip(masterSide['node']),\
                                      r9Core.nodeNameStrip(slaveData['node'])))
-                transferCall([masterSide['node'],slaveData['node']])
+                transferCall([masterSide['node'],slaveData['node']], **self.kws)
                 
                 log.debug('Symmetrical Axis Inversion: %s' % ','.join(slaveData['axis'])) 
                 if slaveData['axis']:
@@ -2987,7 +3041,7 @@ class MirrorHierarchy(object):
         for data in self.mirrorDict['Centre'].values():
             inverseCall(data['node'], data['axis'])
      
-    def saveMirrorSetups(self,filepath):
+    def saveMirrorSetups(self, filepath):
         '''
         Store the mirrorSetups out to file
         '''

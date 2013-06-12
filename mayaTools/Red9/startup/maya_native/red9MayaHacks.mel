@@ -71,22 +71,22 @@ global proc red9HackTraxMenu(string $parent)
      menu -label "Red9_Sound" -tearOff true -allowOptionBoxes true "redNineTraxRoot";
  	 menuItem -label ("Delete Selected Audio") 
 		-p "redNineTraxRoot"
-		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandlers.deleteSelected()\")" red9TraxDeleteItem;
+		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandler().deleteSelected()\")" red9TraxDeleteItem;
 	 menuItem -d true;
 	 menuItem -label ("Activate Selected Audio") 
 		-p "redNineTraxRoot"
-		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandlers.setActiveAudio()\")" red9TraxActiveItem;
+		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandler().setActiveAudio()\")" red9TraxActiveItem;
 	 menuItem -label ("Set Timeline to Selected") 
 		-p "redNineTraxRoot"
-		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandlers.setTimelineToAudio()\")" red9TraxTimelineItem;		
+		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandler().setTimelineToAudio()\")" red9TraxTimelineItem;		
 	 menuItem -label ("Mute Selected") 
 		-p "redNineTraxRoot"
-		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandlers.muteSelected(True)\")" red9TraxMuteSelectedItem;
+		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandler().muteSelected(True)\")" red9TraxMuteSelectedItem;
 	 menuItem -label ("UnMute Selected") 
 		-p "redNineTraxRoot"
-		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandlers.muteSelected(False)\")" red9TraxUnmuteSelectedItem;
+		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandler().muteSelected(False)\")" red9TraxUnmuteSelectedItem;
 	 menuItem -label ("Open Audio Path") 
 		-p "redNineTraxRoot"
-		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandlers.openAudioPath()\")" red9TraxOpenPathItem;
+		-c "python(\"import Red9.core.Red9_General as r9General;r9General.AudioHandler().openAudioPath()\")" red9TraxOpenPathItem;
 
 }

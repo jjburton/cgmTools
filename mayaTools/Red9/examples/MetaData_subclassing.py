@@ -8,16 +8,29 @@ class MyMetaExportBase(r9Meta.MetaClass):
     def __init__(self,*args,**kws):
         super(MyMetaExportBase, self).__init__(*args,**kws) 
         self.lockState=True
+        self.exportRoot=None
         
     def __bindData__(self):
         self.addAttr('version',attrType='float',min=0,max=3)
-        self.addAttr('exportPath',attrType='string')
+        self.addAttr('exportPath', attrType='string')
         
     def getExportPath(self):
         self.exportPath=cmds.file(q=True,sn=True)
 
     def getNodes(self):
-        pass
+        return self.exportRoot
+
+class MyMetaExport_Character(MyMetaExportBase):
+    def __init__(self,*args,**kws):
+        super(MyMetaExportBase, self).__init__(*args,**kws) 
+        self.lockState=True
+        
+    def getNodes(self):
+        '''
+        overloaded get method for character skeleton for example
+        '''
+        return cmds.ls(cmds.listRelatives(self.exportRoot,type='joint',ad=True),l=True)
+
 
 
 
@@ -31,7 +44,8 @@ class MyMetaCharacter(r9Meta.MetaRig):
         
     def __bindData__(self):
         self.addAttr('myRigType','')
-
+        self.addAttr('myFloat', attrType='float', min=0, max=5)
+        self.addAttr('myEnum', enumName='A:B:D:E:F', attrType='enum')
 
     def getChildren(self, walk=False, mAttrs=None, cAttrs=None):
         '''
@@ -56,4 +70,4 @@ class MyMetaCharacter(r9Meta.MetaRig):
 # picks up all inherited subclasses when Red9.core is imported
 #========================================================================   
 r9Meta.registerMClassInheritanceMapping()
-r9Meta.registerMClassNodeMapping()
+#r9Meta.registerMClassNodeMapping(nodes='myNewNodeType')

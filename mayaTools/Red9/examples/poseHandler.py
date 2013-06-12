@@ -115,11 +115,24 @@ def poseGetNodesSave(poseObj,nodes,*args):
 	return getNodesOverload(poseObj,nodes,*args)
 	
 
-def posePopupAdditions(parent):
+def posePopupAdditions(parent,poseUIObj=None):
 	'''
 	This run when the Pose PopUp menu is generated, allows us to add custom menu's to the 
 	popUp and extend it's functionality as we need at a folder level!
 	'''
 	cmds.menuItem(divider=True)
-	cmds.menuItem(parent=parent,label='Test Facial Menu 1!', command="print('Added Test Menu 1')")
+	cmds.menuItem(parent=parent,label='Test PrintData Menu!', command=lambda x:grabUIData(poseUIObj))
 	cmds.menuItem(parent=parent,label='Test Facial Menu 2!', command="print('Added Test Menu 2')")
+	
+def grabUIData(poseUIObj):
+	'''
+	example of the new functionality, note that poseUIObj is the UI Class 
+	itself which gives you access to the main exposed functions
+	'''
+	print 'poseName : ' , poseUIObj.getPoseSelected()
+	print 'poseDir : '  , poseUIObj.getPoseDir()
+	print 'posePath : ' , poseUIObj.getPosePath()
+	print 'poseIcon : ' , poseUIObj.getIconPath()
+	print 'subFolder : ', poseUIObj.getPoseSubFolder()
+
+

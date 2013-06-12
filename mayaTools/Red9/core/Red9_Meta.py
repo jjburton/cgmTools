@@ -292,7 +292,7 @@ def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInst
                 if cmds.getAttr(plug,type=True)=='message':
                     if not node in connections:
                         connections.append(node)
-                        print node
+                        log.debug( node )
     if not connections:
         return mNodes
     
@@ -844,7 +844,7 @@ class MetaClass(object):
                     elif attrType=='doubleArray':
                         cmds.setAttr(attrString,value,type='doubleArray')
                         
-                    #elif attrType=='TdataCompound': #ie blendShape weights = multi data
+                    #elif attrType=='TdataCompound': #ie blendShape weights = multi data or joint.minRotLimitEnable
                     #    pass
                     else:
                         try:
@@ -962,7 +962,7 @@ class MetaClass(object):
         return cmds.getAttr('%s.%s' % (self.mNode,attr),l=True)
     
     @nodeLockManager    
-    def attrSetLocked(self,attr,state):
+    def attrSetLocked(self, attr, state):
         try:
             if not self.isReferenced():
                 cmds.setAttr('%s.%s' % (self.mNode,attr),l=state)
@@ -1466,7 +1466,22 @@ class MetaClass(object):
         mNodes=getConnectedMetaNodes(self.mNode,source=True,destination=False, **kws)
         if mNodes:
             return mNodes[0]
-                               
+    
+#    def __getChildren__(self, mNode, mAttrs=None, cAttrs=[]):    
+#        log.debug('MetaNode : %s' % mNode)
+#        attrs=cmds.listAttr(mNode,ud=True,st=cAttrs)
+#        children=[]
+#        if attrs:
+#            for attr in attrs:
+#                if cmds.getAttr('%s.%s' % (mNode,attr),type=True)=='message':
+#                    msgLinked=cmds.listConnections('%s.%s' % (mNode,attr),destination=True,source=False)             
+#                    if msgLinked:
+#                        msgLinked=cmds.ls(msgLinked,l=True) #cast to longNames!
+#                        children.extend(msgLinked)      
+#        else:
+#            log.debug('no matching attrs : %s found on node %s' % (cAttrs,mNode)) 
+#        return children
+        
     def getChildren(self, walk=True, mAttrs=None, cAttrs=[]):
         '''
         This finds all UserDefined attrs of type message and returns all connected nodes
@@ -1485,6 +1500,7 @@ class MetaClass(object):
         if walk:
             childMetaNodes.extend([node for node in self.getChildMetaNodes(walk=True, mAttrs=mAttrs)])
         for node in childMetaNodes:
+            #children.extend(self.__getChildren__(node))
             log.debug('MetaNode : %s' % node.mNode)
             attrs=cmds.listAttr(node.mNode,ud=True,st=cAttrs)
             if attrs:
@@ -1529,6 +1545,15 @@ class MetaClass(object):
                 mNodes['metaNodeID']=node.split(':')[-1].split('|')[-1]
         return mNodes          
 
+    def getNodeConnetionAttr(self, node):
+        '''
+        really light wrapper, designed to return the attr via which a node
+        is connected to this metaNode
+        @param node: node to test connection attr for
+        '''
+        for con in cmds.listConnections(node,s=True,d=False,p=True):
+            if self.mNode in con.split('.')[0]:
+                return con.split('.')[1]
         
 
 def deleteEntireMetaRigStructure(searchNode=None):
@@ -1763,7 +1788,46 @@ class MetaRig(MetaClass):
         if not os.path.exists(mirrorMap):
             raise IOError('Given MirrorMap file not found : %s' % mirrorMap)
         r9Anim.MirrorHierarchy(self.getChildren()).loadMirrorSetups(mirrorMap)
-                  
+    
+    @nodeLockManager              
+    def poseCacheStore(self, attr=None):
+        '''
+        intended as a cached pose for this mRig, if an attr is given then
+        the cached pose is stored internally on the node so it can be loaded 
+        back from the mNode internally. If not given then the pose is cached
+        on this object instance only.
+        @param attr: attr to store the cached pose to
+        '''
+        import Red9.core.Red9_PoseSaver as r9Pose
+        self.poseCache=r9Pose.PoseData()
+        self.poseCache.metaPose=True
+        self.poseCache.poseSave(self.mNode, filepath=None, useFilter=True)
+        if attr:
+            if not self.hasAttr(attr):
+                self.addAttr(attr, value=self.poseCache.poseDict, hidden=True)
+            else:
+                setattr(self, attr, self.poseCache.poseDict)
+            self.attrSetLocked(attr,True)
+        
+    def poseCacheLoad(self, nodes=None, attr=None):
+        '''
+        load a cached pose back to this mRig. If attr is given then its assumed
+        that that attr is a cached poseDict on the node. If not given then it
+        will load the cached pose from this objects instance, if there is one stored.
+        @param nodes: if given load only the cached pose to the given nodes
+        @param attr: attr in which a pose has been stored internally on the mRig
+        '''
+        import Red9.core.Red9_PoseSaver as r9Pose
+        if attr:
+            self.poseCache=r9Pose.PoseData()
+            self.poseCache.metaPose=True
+            self.poseCache.poseDict=getattr(self,attr)
+        if self.poseCache:
+            if not nodes:
+                self.poseCache.poseLoad(self.mNode, filepath=None, useFilter=True)
+            else:
+                self.poseCache.poseLoad(nodes, filepath=None, useFilter=False)
+            
     
 class MetaRigSubSystem(MetaRig):
     '''

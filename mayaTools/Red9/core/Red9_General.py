@@ -580,46 +580,56 @@ def os_OpenFile(filePath):
             raise OSError('unsupported xdg-open call??')
         
 
-class AudioHandlers():
+class AudioHandler():
     '''
-    simple audio management tools, gradually being integrated into TraxEditor
+    simple audio management object, gradually being integrated into TraxEditor
     '''
-    @staticmethod
-    def audioSelected():
+    def __init__(self, audioNodes=None):
+        self.audioNodes = audioNodes
+        if not self.audioNodes:
+            self.audioNodes=self.audioSelected()
+        if not type(self.audioNodes)==list:self.audioNodes=[self.audioNodes]
+    
+    def __repr__(self): 
+        if self.audioNodes:
+            return "%s(AudioHandler InternalAudioNodes: '%s')"  % (self.__class__, ','.join([self.audioNodes]))
+        else:
+            return "%s(AudioHandler NO AudioNodes: )"  % self.__class__
+                
+    def audioSelected(self):
         return cmds.ls(sl=True,type='audio')
-        
-    @staticmethod
-    def deleteSelected():
-        selectedAudio=cmds.ls(sl=True,type='audio')
-        if selectedAudio:
-            cmds.delete(selectedAudio)
-    @staticmethod       
-    def setActiveAudio():
-        audio=AudioHandlers.audioSelected()
-        if audio:
-            if len(audio)==1:
-                gPlayBackSlider=mel.eval("string $temp=$gPlayBackSlider")
-                cmds.timeControl(gPlayBackSlider, e=True, ds=1, sound=audio[0]) 
-            else:
-                raise StandardError("More than one audio trax selected, can't set multiple active at one time")
-    @staticmethod    
-    def setTimelineToAudio():
-        audio=AudioHandlers.audioSelected()
-        maxV=cmds.getAttr('%s.offset' % audio[0])   #initialize backwards
-        minV=cmds.getAttr('%s.endFrame' % audio[0]) #initialize backwards
-        if audio:
-            for a in audio:
+    
+    def deleteSelected(self):
+        if self.audioNodes:
+            cmds.delete(self.audioNodes)
+                  
+    def setActiveAudio(self):
+        if self.audioNodes:
+            gPlayBackSlider=mel.eval("string $temp=$gPlayBackSlider")
+            cmds.timeControl(gPlayBackSlider, e=True, ds=1, sound=self.audioNodes[0]) 
+
+    def setTimelineToAudio(self):
+        maxV=cmds.getAttr('%s.offset' % self.audioNodes[0])   #initialize backwards
+        minV=cmds.getAttr('%s.endFrame' % self.audioNodes[0]) #initialize backwards
+        if self.audioNodes:
+            for a in self.audioNodes:
                 audioOffset=cmds.getAttr('%s.offset' % a)
-                audioEnd=cmds.getAttr('%s.endFrame' % a)
+                audioEnd=cmds.getAttr('%s.endFrame' % a)  #why the hell does this always come back 1 frame over??
                 if audioOffset<minV:minV=audioOffset
                 if audioEnd>maxV:maxV=audioEnd
             cmds.playbackOptions(min=int(minV),max=int(maxV))        
-    @staticmethod 
-    def muteSelected(state=True):        
-        audio=AudioHandlers.audioSelected()
-        if audio:
-            for a in audio:
+
+    def muteSelected(self, state=True):        
+        if self.audioNodes:
+            for a in self.audioNodes:
                 cmds.setAttr('%s.mute' % a, state)
+
+    def openAudioPath(self):
+        if self.audioNodes:
+            wav=self.audioNodes[0]
+            path=cmds.getAttr('%s.filename' % wav)
+            if path and os.path.exists(path):
+                os_OpenFileDirectory(path)
                 
   
         
