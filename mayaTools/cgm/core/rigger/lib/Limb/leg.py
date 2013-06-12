@@ -57,9 +57,6 @@ from cgm.lib import (attributes,
 reload(joints)
 #>>> Shapes
 #===================================================================
-__d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','foot'],
-                 'pivot':['toe','heel','ball','inner','outer']}
-
 def build_shapes(self):
     """
     """ 
@@ -77,35 +74,6 @@ def build_shapes(self):
     if not self.isRigSkeletonized():
 	raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
     
-    """    
-    #>>> Get our pivots
-    #=============================================================
-    for pivot in __d_controlShapes__['pivot']:
-	l_buffer = self._i_templateNull.getMessage("pivot_%s"%pivot,False)
-	if not l_buffer:
-	    raise StandardError, "%s.build_shapes>>> Template null missing pivot: '%s'"%(self._strShortName,pivot)
-	log.info("pivot (%s) from template: %s"%(pivot,l_buffer))
-	#Duplicate and store the nulls
-	i_pivot = cgmMeta.validateObjArg(l_buffer)
-	i_trans = i_pivot.doDuplicateTransform(True)
-	i_trans.parent = False
-	self._i_rigNull.connectChildNode(i_trans,"pivot_%s"%pivot,"rigNull")
-	
-    #Ball Joint pivot
-    i_ballJointPivot = self._i_module.rigNull.skinJoints[-1].doDuplicateTransform(True)#dup ball in place
-    i_ballJointPivot.parent = False
-    i_ballJointPivot.cgmName = 'ballJoint'
-    i_ballJointPivot.addAttr('cgmTypeModifier','pivot')
-    i_ballJointPivot.doName()
-    self._i_rigNull.connectChildNode(i_ballJointPivot,"pivot_ballJoint","rigNull")
-    
-    #Ball wiggle pivot
-    i_ballWigglePivot = i_ballJointPivot.doDuplicate(True)#dup ball in place
-    i_ballWigglePivot.parent = False
-    i_ballWigglePivot.cgmName = 'ballWiggle'
-    i_ballWigglePivot.doName()
-    self._i_rigNull.connectChildNode(i_ballWigglePivot,"pivot_ballWiggle","rigNull")    
-	""" 
     #>>> Get our segment influence joints
     #=============================================================    
     l_influenceChains = []
@@ -154,7 +122,8 @@ def build_shapes(self):
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
 __d_preferredAngles__ = {'hip':[0,0,-10],'knee':[0,0,10]}#In terms of aim up out for orientation relative values
-
+__d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','foot'],
+                       'pivot':['toe','heel','ball','inner','outer']}
 @r9General.Timer
 def build_rigSkeleton(self):
     
@@ -179,6 +148,8 @@ def build_rigSkeleton(self):
 	i_pivot = cgmMeta.validateObjArg(l_buffer)
 	i_trans = i_pivot.doDuplicateTransform(True)
 	i_trans.parent = False
+	if pivot in ['inner','outer'] and self._direction == 'right':#if right, rotate the pivots
+	    mc.rotate(0,180,0,i_trans.mNode,relative = True, os = True)
 	self._i_rigNull.connectChildNode(i_trans,"pivot_%s"%pivot,"rigNull")
 	
     #Ball Joint pivot
@@ -642,12 +613,10 @@ def build_foot(self):
 	mPlug_outerResult = cgmMeta.cgmAttr(mi_controlIK,'result_clamp_outerBank',attrType='float',keyable = False,hidden=True)
 	mPlug_innerResult = cgmMeta.cgmAttr(mi_controlIK,'result_clamp_innerBank',attrType='float',keyable = False,hidden=True)
 	
-	arg1 = "%s = clamp(%s,0,%s)"%(mPlug_outerResult.p_combinedShortName,
-	                              mPlug_side.p_combinedShortName,                                      
-	                              mPlug_side.p_combinedShortName)
-	arg2 = "%s = clamp(0,%s,%s)"%(mPlug_innerResult.p_combinedShortName,
-	                              mPlug_side.p_combinedShortName,                                      
-	                              mPlug_side.p_combinedShortName)
+	arg1 = "%s = clamp(-180,0,%s)"%(mPlug_outerResult.p_combinedShortName,                                  
+	                                mPlug_side.p_combinedShortName)
+	arg2 = "%s = clamp(0,180,%s)"%(mPlug_innerResult.p_combinedShortName,
+	                               mPlug_side.p_combinedShortName)
 	for arg in [arg1,arg2]:
 	    NodeF.argsToNodes(arg).doBuild()   
 	  
@@ -752,8 +721,11 @@ def build_FKIK(self):
     try:#>>>IK No Flip Chain
 	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')    
 	i_tmpLoc = ml_ikNoFlipJoints[-1].doLoc()
-	mc.move(outVector[0]*100,outVector[1]*100,outVector[2]*100,i_tmpLoc.mNode,r=True, rpr = True, os = True, wd = True)	
-	
+	if self._direction == 'left':#if right, rotate the pivots
+	    mc.move(outVector[0]*100,outVector[1]*100,outVector[2]*100,i_tmpLoc.mNode,r=True, rpr = True, os = True, wd = True)	
+	else:
+	    mc.move(-outVector[0]*100,outVector[1]*100,outVector[2]*100,i_tmpLoc.mNode,r=True, rpr = True, os = True, wd = True)	
+	    
 	#Create no flip leg IK
 	d_ankleNoFlipReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[0].mNode,ml_ikNoFlipJoints[-1].mNode, nameSuffix = 'noFlip',
 	                                             rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
@@ -829,7 +801,7 @@ def build_FKIK(self):
 	#Mid fix
 	#=========================================================================================			
 	mc.move(0,0,25,mi_controlMidIK.mNode,r=True, rpr = True, ws = True, wd = True)#move out the midControl to fix the twist from
-	
+
 	#>>> Fix our ik_handle twist at the end of all of the parenting
 	rUtils.IKHandle_fixTwist(mi_ankleIKHandlePV)#Fix the twist
 	
@@ -1915,7 +1887,7 @@ def build_matchSystem(self):
     
     mi_dynSwitch.setPostmatchAliasAttr('snapToIK_noKnee',[mi_controlIK.mNode,'showKnee'],0)
     mi_dynSwitch.setPostmatchAliasAttr('snapToIK_knee',[mi_controlIK.mNode,'showKnee'],1)
-    
+    return True
     
 @r9General.Timer
 def __build__(self, buildTo='',*args,**kws): 
