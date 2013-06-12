@@ -39,14 +39,14 @@ cgmMeta.cgmNode('nurbsSphere1').dynMatchDriver_fkik.doMatch(1)
 parents = mc.ls(sl=True)
 dParents = [u'parent1', u'parent2', u'parent3']
 dynMode = 'follow'
-a = cgmMeta.cgmDynParentGroup(dynChild = 'dynChild',dynParents = dParents,dynMode = dynMode)
+a = cgmRigMeta.cgmDynParentGroup(dynChild = 'dynChild',dynParents = dParents,dynMode = dynMode)
 a.rebuild()
 #Hips
 dynParents = [ u'cog_anim',u'worldCenter_loc']#hips
 dynGroup = 'hips_anim_grp'
 dynChild = 'dynChild'
 
-a = cgmMeta.cgmDynParentGroup(dynChild = dynChild,dynParents = dynParents, dynGroup = dynGroup,dynMode = dynMode)
+a = cgmRigMeta.cgmDynParentGroup(dynChild = dynChild,dynParents = dynParents, dynGroup = dynGroup,dynMode = dynMode)
 #Shoulders
 c1 = r9Meta.MetaClass('shoulders_ik_anim')
 c1.dynParentGroup

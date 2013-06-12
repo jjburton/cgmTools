@@ -121,6 +121,7 @@ arg = "worldCenter_loc.sumResult = worldCenter_loc.ty + 3 + worldCenter_loc.tx"#
 arg = "worldCenter_loc.result2 = if worldCenter_loc.ty < 3"#Working
 arg = "worldCenter_loc.result23, worldCenter_loc.result2 = if worldCenter_loc.ty < 2:5 "#Working
 arg = "worldCenter_loc.directConnect, worldCenter_loc.directConnectY = worldCenter_loc.ty"#Working
+arg = "worldCenter_loc.simpleMathResult = 4 - -2 "#Working
 
 cgm.core._reload()
 

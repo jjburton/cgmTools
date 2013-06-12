@@ -23,6 +23,12 @@ i_c = cgmMeta.cgmControl(obj,setClass=True)
 #>>> Dynamic Switch
 #=======================================================
 a = cgmRigMeta.cgmDynamicSwitch(name='test')
+a = cgmRigMeta.cgmDynamicSwitch(dynOwner = 'l_leg_rigNull')
+a=cgmRigMeta.cgmDynamicSwitch('l_l_leg_rigNull_dynSwitchSystem')
+a=cgmRigMeta.cgmDynamicSwitch('l_leg_rigNull_dynSwitchSystem')
+a.addSwitch('FKtoIK',['left_leg_settings_anim','blend_FKIK'],1,['l_l_ankle_ik_anim_dynMatchDriver','l_l_knee_ik_anim_dynMatchDriver'])
+a.addSwitch('IKtoFK',['left_leg_settings_anim','blend_FKIK'],0,['l_l_hip_fk_anim_dynMatchDriver','l_l_knee_fk_anim_dynMatchDriver','l_l_ankle_fk_anim_dynMatchDriver','l_l_ball_fk_anim_dynMatchDriver'])
+
 a.setSwitchAttr(['left_leg_settings_anim','blend_FKIK'])
 a.setSwitchAttr(['left_leg_settings_anim','asfasdf'])
 a.setDynOwner('asdaf')
@@ -69,14 +75,14 @@ cgmMeta.cgmNode('nurbsSphere1').fkik_dynMatchDriver.doMatch(snap = 0)
 parents = mc.ls(sl=True)
 dParents = [u'parent1', u'parent2', u'parent3']
 dynMode = 'follow'
-a = cgmMeta.cgmDynParentGroup(dynChild = 'dynChild',dynParents = dParents,dynMode = dynMode)
+a = cgmRigMeta.cgmDynParentGroup(dynChild = 'dynChild',dynParents = dParents,dynMode = dynMode)
 a.rebuild()
 #Hips
 dynParents = [ u'cog_anim',u'worldCenter_loc']#hips
 dynGroup = 'hips_anim_grp'
 dynChild = 'dynChild'
 
-a = cgmMeta.cgmDynParentGroup(dynChild = dynChild,dynParents = dynParents, dynGroup = dynGroup,dynMode = dynMode)
+a = cgmRigMeta.cgmDynParentGroup(dynChild = dynChild,dynParents = dynParents, dynGroup = dynGroup,dynMode = dynMode)
 #Shoulders
 c1 = r9Meta.MetaClass('shoulders_ik_anim')
 c1.dynParentGroup
