@@ -144,10 +144,11 @@ class go(object):
 	    if forceNew and self._i_module.isRigged():
 		self._i_module.deleteRig()
 	    log.info("RigFactory.go>>> '%s' rig version up to date !"%(self._partType))	
-
-        self._direction = None
-        if self._i_module.hasAttr('cgmDirection'):
-            self._direction = self._i_module.cgmDirection or None
+	
+	self._direction = self._i_module.getAttr('cgmDirection')
+        #self._direction = None
+        #if self._i_module.hasAttr('cgmDirection'):
+            #self._direction = self._i_module.cgmDirection or None
                
         #>>> Instances and joint stuff
         self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
