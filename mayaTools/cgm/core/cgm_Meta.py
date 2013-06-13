@@ -886,7 +886,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		if worldSpace:return mc.xform(self.mNode, q=True, ws=True, rp=True)    
 		return mc.xform(self.mNode, q=True, os=True, t=True) 
 	except StandardError,error:
-	    log.error("cgmNode.getPosition: %s"%error)	
+	    log.error("%s.getPosition>>>isComponent: %s | error: %s"%(self.getShortName(),self.isComponent(),error))	
 	    return False
 	
     def doLoc(self,forceBBCenter = False,nameLink = False):
