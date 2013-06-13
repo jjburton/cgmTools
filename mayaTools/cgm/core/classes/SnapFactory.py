@@ -137,7 +137,7 @@ class go(object):
     #======================================================================    
     @r9General.Timer    
     def doMove(self,**kws):
-	if kws:log.info("Snap.doMove>>> kws: %s"%kws)
+	if kws:log.debug("Snap.doMove>>> kws: %s"%kws)
 	if len(self.l_targets) == 1:
 	    #>>> Check our target	    
 	    i_target = cgmMeta.cgmNode( self.l_targets[0] )
@@ -188,7 +188,7 @@ class go(object):
 			i_locObj.delete()
 			i_locTarget.delete()
 		elif self.b_midSurfacePos:
-		    log.info("Snap.move>>> midSurfacePos mode!")
+		    log.debug("Snap.move>>> midSurfacePos mode!")
 		    if targetType not in ['mesh','nurbsCurve','nurbsSurface']:
 			log.warning("Can't do midSurfacPos on targetType: '%s'"%targetType)
 			return False
@@ -205,12 +205,12 @@ class go(object):
 			if not axisToCheck:
 			    raise StandardError,"SnapFactory>>> couldn't find any axis to do"
 		    #i_locObj = self.i_obj.doLoc()#Get our position loc		
-		    #log.info(axisToCheck)
+		    #log.debug(axisToCheck)
 		    pos = RayCast.findMeshMidPointFromObject(i_target.mNode, self.i_obj.mNode, axisToCheck=axisToCheck,**kws)
 		    #i_locObj.delete()
 		    
 		else:
-		    pos = cgmMeta.cgmNode(i_target.mNode).getPosition(True)	    
+		    pos = i_target.getPosition(True)	    
 		if pos:
 		    if self.i_obj.isComponent():
 			if self.b_softSelection:#Only need to do this if soft select is on
