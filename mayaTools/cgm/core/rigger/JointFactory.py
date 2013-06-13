@@ -283,9 +283,6 @@ def doSkeletonize(self):
     #jointSize*.2
     attributes.doMultiSetAttr(l_limbJoints,'radi',3)
     
-    #Connect to parent
-    if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
-        connectToParentModule(self.m)    
     return True 
 
 #@r9General.Timer
@@ -300,7 +297,7 @@ def doOrientSegment(self):
     assert mc.objExists(self.m.mNode),"module no longer exists"
     
     #self.i_rigNull = self.m.rigNull#refresh
-    
+        
     #>>> orientation vectors
     #=======================    
     orientationVectors = search.returnAimUpOutVectorsFromOrientation(self.jointOrientation)
@@ -341,8 +338,9 @@ def doOrientSegment(self):
                 l_cull.remove(obj)
             
         #>>> un parenting the chain
-        for i_jnt in self.i_rigNull.skinJoints:
-            i_jnt.parent = False
+        for i,i_jnt in enumerate(self.i_rigNull.skinJoints):
+	    if i != 0:
+		i_jnt.parent = False
             i_jnt.displayLocalAxis = 1#tmp
 	    #Reset the jointRotate before orientating
 	    ##i_jnt.jointOrient = [0,0,0]	    
@@ -358,6 +356,7 @@ def doOrientSegment(self):
         cnt = 0
 	log.info("Segment Index sets: %s"%self.l_jointSegmentIndexSets)
         for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
+	    log.info("On segment: %s"%segment)	    
 	    lastCnt = len(self.l_jointSegmentIndexSets)-1
             segmentHelper = self.i_templateNull.controlObjects[cnt].getMessage('helper')[0]
             helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True)
@@ -377,16 +376,17 @@ def doOrientSegment(self):
 		for index in segment:
 		    if index != 0:
 			ml_skinJoints[index].parent = ml_skinJoints[index-1].mNode
-			ml_skinJoints[index].rotate  = [0,0,0]			
-			ml_skinJoints[index].jointOrient  = [0,0,0]
-
-		    log.debug("%s aim to %s"%(ml_skinJoints[index].mNode,ml_skinJoints[index+1].mNode))
+		    ml_skinJoints[index].rotate  = [0,0,0]			
+		    ml_skinJoints[index].jointOrient  = [0,0,0]	
+		    
+		    log.info("%s aim to %s"%(ml_skinJoints[index].mNode,ml_skinJoints[index+1].mNode))
 		    constraintBuffer = mc.aimConstraint(ml_skinJoints[index+1].mNode,ml_skinJoints[index].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
 		    mc.delete(constraintBuffer[0])
 		    
 		    #Push rotate to jointOrient
-		    ml_skinJoints[index].jointOrient = ml_skinJoints[index].rotate
-		    ml_skinJoints[index].rotate = [0,0,0]
+		    #ml_skinJoints[index].jointOrient = ml_skinJoints[index].rotate
+		    #ml_skinJoints[index].rotate = [0,0,0]
+		    
 		mc.delete(upLoc)
                 """for index in segment[-1:]:
 		    log.debug("%s orient to %s"%(ml_skinJoints[index].mNode,ml_skinJoints[index-1].mNode))		    
@@ -395,10 +395,11 @@ def doOrientSegment(self):
                 #>>>  Increment and delete the up loc """
             else:
                 #>>> Make an aim object and move it """
-		i_jnt = self.i_rigNull.skinJoints[segment[0]]
-		i_jnt.parent = self.i_rigNull.skinJoints[segment[0]-1].mNode
+		i_jnt = self.i_rigNull.skinJoints[segment[-1]]
+		log.info(i_jnt.getShortName())
+		i_jnt.parent = self.i_rigNull.skinJoints[segment[-1]-1].mNode
 		i_jnt.jointOrient  = [0,0,0]
-		ml_skinJoints[index].rotate  = [0,0,0]					
+		#ml_skinJoints[index].rotate  = [0,0,0]					
 
                 aimLoc = locators.locMeObject(segmentHelper)
                 aimLocGroup = rigging.groupMeObject(aimLoc)
@@ -408,7 +409,7 @@ def doOrientSegment(self):
                 mc.delete(aimLocGroup)
                 mc.delete(upLoc)
 		#>>>Push the first joints orient to 		
-		i_jnt.jointOrient = i_jnt.rotate
+		#i_jnt.jointOrient = i_jnt.rotate
 		i_jnt.rotate = [0,0,0]		
                	
         #>>>Reconnect the joints
@@ -432,10 +433,14 @@ def doOrientSegment(self):
 		self.i_rigNull.skinJoints[1].jointOrient = self.i_rigNull.skinJoints[1].rotate
 		self.i_rigNull.skinJoints[1].rotate = [0,0,0]        
     
-    """ Freeze the rotations """
     #Copy 
-    metaFreezeJointOrientation(self.i_rigNull.skinJoints,self.jointOrientation)   
+    """ Freeze the rotations """
+    metaFreezeJointOrientation(self.i_rigNull.skinJoints)   
     
+    #Connect to parent
+    if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+	connectToParentModule(self.m)    
+	
     for i,i_jnt in enumerate(self.i_rigNull.skinJoints):
 	log.info(i_jnt.getAttr('cgmName'))
 	if i_jnt.getAttr('cgmName') in ['ankle']:
@@ -610,7 +615,7 @@ def storeTemplateRootParent(moduleNull):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
 #>>> Tools    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def metaFreezeJointOrientation(targetJoints,orientation):
+def metaFreezeJointOrientation(targetJoints):
     """
     Copies joint orietnations from one joint to others
     """
@@ -635,27 +640,42 @@ def metaFreezeJointOrientation(targetJoints,orientation):
             i_c.parent = False
 	    
     #Orient
-    for i_jnt in ml_targetJoints:
-	buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the 
+    for i,i_jnt in enumerate(ml_targetJoints):
+	"""
+	So....jointOrient is always in xyz rotate order
+	dup,rotate order
+	Unparent, add rotate & joint rotate, push value, zero rotate, parent back, done
+	"""
+	buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the joint
 	i_dup = cgmMeta.cgmObject(buffer)
-        mc.delete(mc.orientConstraint(buffer, i_jnt.mNode, w=1, o=(0,0,0)))        
+	i_dup.rotateOrder = 0
+        mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, o=(0,0,0)))
 	
-        l_rValue = i_dup.rotate
+	i_dup.parent = False
+	
+	l_rValue = i_dup.rotate
 	l_joValue = i_dup.jointOrient
-        l_added = cgmMath.list_add(l_rValue,l_joValue)
-	i_jnt.jointOrientX = l_added[0]
-	i_jnt.jointOrientY = l_added[1]
-	i_jnt.jointOrientZ = l_added[2]
+	l_added = cgmMath.list_add(l_rValue,l_joValue)	
+	
+	i_dup.jointOrientX = l_added[0]
+	i_dup.jointOrientY = l_added[1]
+	i_dup.jointOrientZ = l_added[2]	
+	i_dup.rotate = [0,0,0]
+	
+	i_dup.parent = i_jnt.parent
+	
 	i_jnt.rotate = [0,0,0]
+	i_jnt.jointOrient = i_dup.jointOrient	
         i_dup.delete()
 	
-    
     #reparent
     for i_jnt in ml_targetJoints:
         for i_c in d_children[i_jnt]:
             log.info("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
             i_c.parent = i_jnt.mNode 
 	    cgmMeta.cgmAttr(i_c,"inverseScale").doConnectIn("%s.scale"%i_jnt.mNode )
+	    
+    return True
 
 
 
@@ -713,11 +733,11 @@ def orientSegment(l_limbJoints,posTemplateObjects,orientation):
     #>>>per segment stuff
     cnt = 0
     for segment in jointSegmentsList:
+	log.info("On segment: %s"%segment)
         if len(segment) > 1:
             """ creat our up object from from the helper object """
             helperObjectCurvesShapes =  mc.listRelatives(helperObjects[cnt],shapes=True)
             upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)
-            print upLoc
             """ make a pair list"""
             pairList = lists.parseListToPairs(segment)
             for pair in pairList:
