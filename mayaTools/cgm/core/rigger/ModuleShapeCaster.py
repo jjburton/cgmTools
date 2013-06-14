@@ -61,6 +61,8 @@ class go(object):
 	                                'midIK':self.build_midIKHandle,
 	                                'footPivots':self.build_footPivots,
 	                                'foot':self.build_footShape,
+	                                'hand':self.build_handShape,
+	                                'clavicle':self.build_clavicle,
 	                                'settings':self.build_settings}
         # Get our base info
         #==============	        
@@ -190,7 +192,7 @@ class go(object):
 	    mi_loc = cgmMeta.cgmNode(tmplRoot).doLoc()#make loc for sizing
 	    mi_loc.doGroup()#group to zero
 	    sizeReturn = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
-	    l_size = [sizeReturn['x']+(self._skinOffset*2),sizeReturn['y']+(self._skinOffset*2)]
+	    l_size = sizeReturn.get('average')
 	    mc.delete(mi_loc.parent)#delete loc
 	    
 	    size = max(l_size)/2.5
@@ -237,33 +239,6 @@ class go(object):
 	    self.md_ReturnControls['cog'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_cog','owner')
 	    
-	except StandardError,error:
-		log.error("build_cog fail! | %s"%error) 
-		return False
-    
-    @r9General.Timer    
-    def build_cog2(self):
-	try:
-	    multiplier = 1.1
-	    tmplRoot = self.mi_templateNull.root.mNode
-	    mi_loc = cgmMeta.cgmNode(tmplRoot).doLoc()#make loc for sizing
-	    mi_loc.doGroup()#group to zero
-	    sizeReturn = returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
-	    l_size = [sizeReturn['x']+(self._skinOffset*2),sizeReturn['y']+(self._skinOffset*2)]
-	    mc.delete(mi_loc.parent)#delete loc
-	    
-	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('circleArrow',direction = 'y+',size = max(l_size),absoluteSize=False))
-	    Snap.go(mi_crv, tmplRoot) #Snap it
-	    
-	    #>>Copy tags and name
-	    mi_crv.addAttr('cgmName',attrType='string',value = 'cog',lock=True)        
-	    mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
-	    mi_crv.doName()        
-    
-	    #>>> Color
-	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
-	    self.d_returnControls['cog'] = mi_crv.mNode
-	    self.md_ReturnControls['cog'] = mi_crv
 	except StandardError,error:
 		log.error("build_cog fail! | %s"%error) 
 		return False
@@ -395,7 +370,20 @@ class go(object):
 		if self._direction == 'left':
 		    self.aimAxis = 'x+'
 		else:self.aimAxis = 'x-'
+	    elif 'arm' in self._partType:
+		d_kws = {'default':{'closedCurve':True,
+	                            'latheAxis':'z',
+	                            'l_specifiedRotates':[],
+	                            'rootOffset':[],
+	                            'rootRotate':None},
+	                 0:{}}	
+		d_kws[0]['l_specifiedRotates'] = [-110,-90,-60,-30,0,30,60,90,110]
+		d_kws[0]['closedCurve'] = False
 		
+		self.posOffset = [0,0,self._skinOffset*2]
+		if self._direction == 'left':
+		    self.aimAxis = 'x+'
+		else:self.aimAxis = 'x-'		
 		
 	    log.info("Snap Objects: %s"%self.l_controlSnapObjects)
 	    for i,obj in enumerate(self.l_controlSnapObjects):			
@@ -447,6 +435,113 @@ class go(object):
 	except StandardError,error:
 		log.error("build_segmentFKLoliHandles fail! | %s"%error) 
 		return False
+	    
+    @r9General.Timer    
+    def build_clavicle(self):
+	"""
+	build foot shape and pivot locs at the same time
+	"""
+	l_segmentControls = []
+	ml_SegmentControls = []
+	mi_startObj = False
+	mi_endObj = False
+	
+	#Our controls
+	#============================================================================	
+	#find the foot. 1) Build search dict	
+	ml_controlSnapObjects = []
+	for mi_obj in self._mi_module.templateNull.controlObjects:
+	    ml_controlSnapObjects.append(mi_obj.helper)  
+	log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
+	if len(ml_controlSnapObjects) > 2:
+	    raise StandardError,"go.build_clavicle>>> Must have only 2 control objects. Found: %s"%(len(ml_controlSnapObjects))
+
+	mi_startObj = ml_controlSnapObjects[0]
+	mi_endObj = ml_controlSnapObjects[1]
+	
+	#Get our helper objects
+	#============================================================================
+	mi_startLoc = mi_startObj.doLoc()
+	mi_endLoc = mi_endObj.doLoc()
+
+	#Get our distance for our casts
+	if self._direction == 'left':
+	    self.aimAxis = self._jointOrientation[2] + '-'
+	    axis_distanceDirectionCast = self._jointOrientation[2] + '+'
+	    l_specifiedRotates = [-15,-30,-90,-120,-180]
+	    rootRotate = -30
+	else:
+	    self.aimAxis = self._jointOrientation[2] + '+'
+	    axis_distanceDirectionCast = self._jointOrientation[2] + '-'	    
+	    l_specifiedRotates = [15,30,90,120,180]
+	    rootRotate = 30	    
+
+	dist_inset = distance.returnDistanceBetweenPoints(mi_endLoc.getPosition(),mi_startLoc.getPosition()) *.3
+	
+	#Move our cast locs
+	mi_startLoc.doGroup()#zero
+	mi_endLoc.doGroup()#zero
+	mi_startLoc.__setattr__('t%s'%self._jointOrientation[0],dist_inset)
+	mi_endLoc.__setattr__('t%s'%self._jointOrientation[0],-dist_inset/2)	
+	mi_startLoc.__setattr__('r%s'%self._jointOrientation[1],rootRotate)
+	mi_endLoc.__setattr__('r%s'%self._jointOrientation[1],rootRotate)
+	
+	mi_castLoc = mi_startLoc.doDuplicate()
+
+	Snap.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self._jointOrientation[2]])
+	
+	#Distance stuff    
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_startLoc.mNode,axis_distanceDirectionCast,pierceDepth=self._skinOffset*15) or {}
+	if not d_return.get('hit'):
+	    raise StandardError,"go.build_clavicle>>failed to get hit to measure first distance"
+	dist_cast = distance.returnDistanceBetweenPoints(mi_endLoc.getPosition(),d_return['hit']) * 1.25
+	
+	log.info("go.build_clavicle>>cast distance: %s"%dist_cast)
+	log.info("go.build_clavicle>>inset distance: %s"%dist_inset)
+	
+	#Cast our stuff
+	#============================================================================
+	self.posOffset = [0,0,self._skinOffset*3]
+	self.latheAxis = self._jointOrientation[0]
+	log.info("aim: %s"%self.aimAxis)
+	log.info("lathe: %s"%self.latheAxis)
+	
+	d_startReturn = createMeshSliceCurve(self._targetMesh,mi_startLoc.mNode,offsetMode='vector',maxDistance = dist_cast,l_specifiedRotates = l_specifiedRotates,
+	                                closedCurve = False,curveDegree=3,midMeshCast=True,axisToCheck=['x'],posOffset = self.posOffset,returnDict = True,
+	                                latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
+	
+	d_endReturn = createMeshSliceCurve(self._targetMesh,mi_endLoc.mNode,offsetMode='vector',maxDistance = dist_cast,l_specifiedRotates = l_specifiedRotates,
+	                                closedCurve = False,curveDegree=3,midMeshCast=True,axisToCheck=['x'],posOffset = self.posOffset,returnDict = True,
+	                                latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
+	
+	
+	#Let's collect the points to join
+    
+	l_curvesToCombine = [d_startReturn['curve'],d_endReturn['curve']]	
+	
+	joinReturn = joinCurves(l_curvesToCombine)
+	
+	l_curvesToCombine.extend(joinReturn)
+	
+	mc.delete([mi_startLoc.parent,mi_endLoc.parent])
+	
+	#Combine and finale
+	#============================================================================
+	newCurve = curves.combineCurves(l_curvesToCombine) 
+	mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_startObj.mNode,False) )
+	curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
+	mc.delete(newCurve)
+	
+	#>>> Color
+	curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
+	mi_crv.doCopyNameTagsFromObject(mi_startObj.mNode,ignore = ['cgmType'])
+	mi_crv.addAttr('cgmType',attrType='string',value = 'clavicle',lock=True)	    
+	mi_crv.doName()
+	    
+	self.d_returnControls['clavicle'] = mi_crv.mNode 		
+	self.md_ReturnControls['clavicle'] = mi_crv	
+	self.mi_rigNull.connectChildNode(mi_crv,'shape_clavicle','owner')
+	
 	    
     @r9General.Timer	
     def build_midIKHandle(self):
@@ -512,7 +607,7 @@ class go(object):
 
 	    for i,i_target in enumerate(self.ml_targetObjects):	
 		d_size = returnBaseControlSize(i_target,self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])#Get size			
-		l_size = [d_size[self._jointOrientation[1]],d_size[self._jointOrientation[2]]]
+		l_size = d_size.get('average')
 		size = sum(l_size)/1.5
 		
 		log.debug("loli size return: %s"%d_size)
@@ -632,21 +727,36 @@ class go(object):
 	self.aimAxis = self._jointOrientation[1] + '-'
 	self.outAxis = self._jointOrientation[2]
 	self.posOffset = [0,0,self._skinOffset*6]
+	self.settingsVector = [0,1,0]	    	
 	self.gearVector = [0,0,-1]
+	_moveMultiplier = 1.5
+	_direction = self.outAxis+'+'
+	index = -1
+	index_size = index
 	if self._partType == 'leg':
 	    index = -2
-	    self.settingsVector = [0,0,-1]	    
-	else:
-	    index = -1
+	    index_size = -2
+	    self.settingsVector = [0,0,-1]
+	elif self._partType == 'arm':
+	    index_size = 1
+	    index = 0    
+	    _direction = self.aimAxis	    
+	    #self.settingsVector = [0,1,0]	    	
+	    self.settingsVector = [0,1,0]
+	    _moveMultiplier = 1.5
 	
 	i_target = cgmMeta.cgmObject( self.l_controlSnapObjects[index] )
+	i_sizeTarget = cgmMeta.cgmObject( self.l_controlSnapObjects[index_size] )
+
 	mi_rootLoc = i_target.doLoc()
-	
-	d_size = returnBaseControlSize(mi_rootLoc,self._targetMesh,axis=[self.outAxis])#Get size
-	baseSize = d_size.get(d_size.keys()[0])*.75
+	mi_sizeLoc = i_sizeTarget.doLoc()
+
+	    
+	d_size = returnBaseControlSize(mi_sizeLoc,self._targetMesh,axis=[self.outAxis])#Get size
+	baseSize = d_size.get(d_size.keys()[0])
 	log.info("build_settings>>> baseSize: %s"%baseSize)
 		
-	i_gear = cgmMeta.cgmObject(curves.createControlCurve('gear',size = baseSize,direction=self.outAxis+'+'))	
+	i_gear = cgmMeta.cgmObject(curves.createControlCurve('gear',size = baseSize,direction=_direction))	
 	
 	#Move stuff
 	Snap.go(i_gear.mNode,mi_rootLoc.mNode,True, False)#Snap to main object
@@ -659,9 +769,10 @@ class go(object):
 	mc.move(d_return['hit'][0],d_return['hit'][1],d_return['hit'][2],i_gear.mNode,absolute = True,ws=True)
 	Snap.go(i_gear.mNode,mi_rootLoc.mNode,move = False, orient = False, aim=True, aimVector=[0,0,-1])
 	
-	mc.move(self.posOffset[0]*1.5,self.posOffset[1]*1.5,self.posOffset[2]*1.5, [i_gear.mNode], r = True, rpr = True, os = True, wd = True)
+	mc.move(self.posOffset[0]*_moveMultiplier,self.posOffset[1]*_moveMultiplier,self.posOffset[2]*_moveMultiplier, [i_gear.mNode], r = True, rpr = True, os = True, wd = True)
     
 	mi_rootLoc.delete()
+	mi_sizeLoc.delete()
 	
 	#Combine and finale
 	#============================================================================
@@ -1046,6 +1157,132 @@ class go(object):
 	self.md_ReturnControls['foot'] = mi_crv	
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_foot','owner')
 	
+    def build_handShape(self):
+	"""
+	build hand shape and pivot locs at the same time
+	"""
+	log.info("in build_handShape")
+	l_segmentControls = []
+	ml_SegmentControls = []
+	mi_handModule = False
+	mi_palm = False
+	mi_wrist = False
+	
+	#Find our hand
+	#============================================================================	
+	if self._partType == 'hand':
+	    raise NotImplementedError,"haven't implemented hand"
+	elif self._partType == 'armSimple':
+	    raise NotImplementedError,"haven't implemented hand"
+	
+	    """
+	    #find the hand. 1) Build search dict
+	    d_search = {'moduleType':'hand'}
+	    for key in ['cgmDirection','cgmPosition']:
+		buffer = self._mi_module.getAttr(key)
+		if buffer:
+		    d_search[key] = buffer
+	    #Find it
+	    mi_handModule = self._mi_module.modulePuppet.getModuleFromDict(d_search)
+	    ml_children = self._mi_module.moduleChildren
+	    if mi_handModule in ml_children:log.info("found match modules: %s"%mi_handModule)
+	    
+	    ml_controlSnapObjects = []
+	    for mi_obj in mi_handModule.templateNull.controlObjects:
+		ml_controlSnapObjects.append(mi_obj.helper)  
+	    log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
+	    if ml_controlSnapObjects[1].cgmName != 'palm':
+		raise StandardError,"go.build_handShape>>> Expected second snap object to be 'palm'. Found: %s"%ml_controlSnapObjects[1].mNode
+	    mi_palm = ml_controlSnapObjects[1]
+	    mi_wrist = ml_controlSnapObjects[0]"""
+	    
+	elif self._partType == 'arm':
+	    for obj in self.l_controlSnapObjects:
+		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'wrist':
+		    mi_wrist = cgmMeta.cgmObject(obj)
+		    break
+	    for obj in self.l_controlSnapObjects:
+		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'palm':
+		    mi_palm = cgmMeta.cgmObject(obj)
+		    break
+		
+	if not mi_wrist:
+	    raise StandardError,"go.build_handShape>>> Haven't found a wrist to build from"
+	
+	#Get our helper objects
+	#============================================================================
+	mi_wristLoc = mi_wrist.doLoc()
+	d_wristSize = returnBaseControlSize(mi_wristLoc.mNode,self._targetMesh,[self._jointOrientation[1],self._jointOrientation[2]])
+	#Average the wrist size
+	dist_wristSize = d_wristSize.get('average')
+	log.info("dist_wristSize: %s"%dist_wristSize)	
+	
+	if mi_palm:
+	    mi_palmLoc = mi_palm.doLoc()
+	else:
+	    mi_palmLoc = mi_wristLoc.doDuplicate()
+	    mi_palmLoc.doGroup()
+	    mi_palmLoc.__setattr__('t%s'%self._jointOrientation[0],dist_wristSize/2)
+	    
+	mi_wristLoc.doGroup()
+	mi_wristLoc.__setattr__('t%s'%self._jointOrientation[0],-dist_wristSize/2)
+
+	#Get our distance for our casts
+	if self._direction == 'left':
+	    self.aimAxis = self._jointOrientation[2] + '-'
+	    axis_distanceDirectionCast = self._jointOrientation[2] + '+'
+	    rootRotate = -30
+	else:
+	    self.aimAxis = self._jointOrientation[2] + '+'
+	    axis_distanceDirectionCast = self._jointOrientation[2] + '-'	    
+	    rootRotate = 30	   
+
+	#Distance stuff    
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_palmLoc.mNode,axis_distanceDirectionCast,pierceDepth=self._skinOffset*15) or {}
+	if not d_return.get('hit'):
+	    raise StandardError,"go.build_clavicle>>failed to get hit to measure first distance"
+	dist_cast = distance.returnDistanceBetweenPoints(mi_palmLoc.getPosition(),d_return['hit']) * 3
+	
+	#Cast our stuff
+	#============================================================================
+	self.posOffset = [0,0,self._skinOffset*3]
+	self.latheAxis = self._jointOrientation[0]
+	log.info("aim: %s"%self.aimAxis)
+	log.info("lathe: %s"%self.latheAxis)
+	
+	d_startReturn = createMeshSliceCurve(self._targetMesh,mi_wristLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
+	                                     closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
+	                                     latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
+	
+	d_endReturn = createMeshSliceCurve(self._targetMesh,mi_palmLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
+	                                   closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
+	                                   latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
+	
+	
+	#Let's collect the points to join
+	l_curvesToCombine = [d_startReturn['curve'],d_endReturn['curve']]	
+	joinReturn = joinCurves(l_curvesToCombine)
+	
+	l_curvesToCombine.extend(joinReturn)
+	
+	mc.delete([mi_wristLoc.parent,mi_palmLoc.parent])
+	
+	#Combine and finale
+	#============================================================================
+	newCurve = curves.combineCurves(l_curvesToCombine) 
+	mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_wrist.mNode,False) )
+	curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
+	mc.delete(newCurve)
+	
+	#>>> Color
+	curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
+	mi_crv.doCopyNameTagsFromObject(mi_wrist.mNode,ignore = ['cgmType'])
+	mi_crv.addAttr('cgmType',attrType='string',value = 'hand',lock=True)	    
+	mi_crv.doName()
+	    
+	self.d_returnControls['hand'] = mi_crv.mNode 		
+	self.md_ReturnControls['hand'] = mi_crv	
+	self.mi_rigNull.connectChildNode(mi_crv,'shape_hand','owner')	
 	
     def build_segmentIKHandles(self):
 	l_segmentControls = []
@@ -1100,6 +1337,28 @@ class go(object):
 		self.aimAxis = 'x+'
 		d_kws['default']['aimAxis']= 'x+'
 		#d_kws[0]['l_specifiedRotates']=[-60,-30,0,30,60]
+		d_kws[0]['rotateBank'] = -10
+	    else:
+		self.aimAxis = 'x-'		
+		d_kws['default']['aimAxis']= 'x-'
+		#d_kws[0]['l_specifiedRotates']=[-60,-30,0,30,60]
+		d_kws[0]['rotateBank'] = 10
+		
+	elif self._partType == 'arm':
+	    self.posOffset = [0,0,self._skinOffset*2]
+	    self.points = 12
+	    d_kws = {'default':{'closedCurve':True,
+	                        'l_specifiedRotates':[],
+	                        'insetMult':.1,
+	                        'rootRotate':None,
+	                        'rootOffset':[],
+	                        'rotateBank':[]},
+	             0:{'rootOffset':[0,0,self._skinOffset*1]},
+	             -1:{'rootOffset':[0,0,-self._skinOffset*1]}}
+	    
+	    if self._direction == 'left':
+		self.aimAxis = 'x+'
+		d_kws['default']['aimAxis']= 'x+'
 		d_kws[0]['rotateBank'] = -10
 	    else:
 		self.aimAxis = 'x-'		
@@ -1185,7 +1444,7 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
     axis(list) -- what axis to check
     
     RETURNS:
-    axisDistances(list)
+    axisDistances(dict) -- axis distances, average
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """ 
     #if type(l_mesh) not in [list,tuple]:l_mesh = [l_mesh]
@@ -1201,8 +1460,7 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
 	except StandardError,error:
 		log.error("returnBaseControlSize Failed to initialize existing instance as mi_obj! | %s"%error) 
 		raise StandardError  
-	    
-   	   
+	       
     #>>>Figure out the axis to do
     d_axisToDo = {}
     if axis == True:
@@ -1239,9 +1497,54 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
             if info1 and info2:
                 d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['hit'],info2['hit'])                    
     log.debug(d_returnDistances) 
+    
+    #>>>Add the average
+    d_returnDistances['average'] = (sum([d_returnDistances.get(k) for k in d_returnDistances.keys()]))/len(d_returnDistances.keys())
+    
     return d_returnDistances
 
-  
+
+def joinCurves(targetObjects, mode = 'simple', curveDegree = 1):
+    try:
+	ml_targetObjects = cgmMeta.validateObjListArg(targetObjects)
+	d_objInfo = {}
+	for i_obj in ml_targetObjects:
+	    d_buffer = {}
+	    if i_obj.getMayaType() != 'nurbsCurve':
+		raise StandardError,"joinCurve>>> %s is not a 'nurbsCurve'. Type: %s"%(i_obj.getShortName(),i_obj.getMayaType())
+	    l_components = i_obj.getComponents('ep')
+	    l_componentIndices = []
+	    for c in l_components:
+		l_componentIndices.append( int(c.split('[')[-1].split(']')[0]) )	
+	    d_buffer['indices'] = l_componentIndices
+	    d_buffer['components'] = l_components	
+	    d_buffer['indexMid'] = int(len(l_componentIndices)/2)
+	    d_buffer['midComponent'] = l_components[ d_buffer['indexMid'] ]
+	    d_objInfo[i_obj] = d_buffer
+	    
+	
+	#components
+	l_created = []
+	l_toDo = []
+	l_nestedPos = []
+	if mode == 'simple':
+	    for ep in [0,'mid',-1]:
+		l_pos = []
+		for i_crv in ml_targetObjects:
+		    if ep == 'mid':ep = d_objInfo[i_crv]['indexMid']
+		    l_pos.append( cgmMeta.cgmNode(d_objInfo[i_crv]['components'][ep]).getPosition() )
+		l_created.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve
+	else:
+	    for idx in d_objInfo[d_objInfo.keys()[0]]['indices']:
+		l_pos = []
+		for i_crv in ml_targetObjects:
+		    l_pos.append( cgmMeta.cgmNode(d_objInfo[i_crv]['components'][idx]).getPosition() )
+		l_created.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve	
+	return l_created
+    
+    except StandardError,error:
+	raise StandardError,"joinCurve>>> Failure. targets: %s | error: %s"%(targetObjects,error)
+
 #@r9General.Timer    
 def createWrapControlShape(targetObjects,
                            targetGeo = None,
@@ -1312,8 +1615,7 @@ def createWrapControlShape(targetObjects,
 	mc.move(rootOffset[0],rootOffset[1],rootOffset[2], [mi_rootLoc.mNode], r=True, rpr = True, os = True, wd = True)
     if rootRotate is not None and len(rootRotate):
 	log.info("rootOffset: %s"%rootRotate)	
-	mc.rotate(rootRotate[0],rootRotate[1],rootRotate[2], [mi_rootLoc.mNode], os = True)
-    
+	mc.rotate(rootRotate[0],rootRotate[1],rootRotate[2], [mi_rootLoc.mNode], os = True,r=True)   
 	    
     #>>> Root
     mi_rootLoc.doGroup()#Group to zero    
@@ -1599,7 +1901,8 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	
     #midMeshCast
     if midMeshCast:
-	axisToCheck = kws.get('axisToCheck') or [a for a in ['x','y','z'] if a != latheAxis]
+	axisToCheck = axisToCheck or kws.get('axisToCheck') or [a for a in ['x','y','z'] if a != latheAxis]
+	log.info("createMeshSliceCurve>>> axisToCheck: %s"%axisToCheck)
 	Snap.go(mi_loc.parent,mesh,True,False,midSurfacePos=True, axisToCheck = axisToCheck)
     
     #Rotate obj 
