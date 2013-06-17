@@ -1693,7 +1693,7 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              'head':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'neckHead':{'handles':2,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'foot':{'handles':3,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
-             'hand':{'handles':0,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
+             'hand':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
              'thumb':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0}                          
              }
 
