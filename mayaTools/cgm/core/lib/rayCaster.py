@@ -47,19 +47,19 @@ log.setLevel(logging.INFO)
 def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
-    
+
     Return the closest point on a surface from a raySource and rayDir
-    
+
     Arguments
     mesh(string) -- currently poly surface only
     raySource(double3) -- point in world space
     rayDir(double3) -- world space vector
-    
+
     returns hitpoint(double3)
     """    
     if len(mc.ls(mesh))>1:
-	raise StandardError,"findMeshIntersection>>> More than one mesh named: %s"%mesh    
-    
+        raise StandardError,"findMeshIntersection>>> More than one mesh named: %s"%mesh    
+
     #Create an empty selection list.
     selectionList = om.MSelectionList()
 
@@ -85,7 +85,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
 
     #Create an empty MFloatPoint to receive the hit point from the call.
     hitPoint = om.MFloatPoint()
-    
+
     log.debug("maxDistance: %s"%maxDistance)
 
     #Set up a variable for each remaining parameter in the
@@ -112,7 +112,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
         noAccelerator,
         hitPoint,
         noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2)
-    
+
     #Return the intersection as a Pthon list.
     if gotHit:
         #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
@@ -124,7 +124,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
         uvSet = None
         closestPolygon=None
         uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
-        
+
         uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
         vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
         log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
@@ -134,22 +134,22 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
             return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':False}
     else:
         return None    
-        
+
 def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
-    
+
     Return the pierced points on a surface from a raySource and rayDir
-    
+
     Arguments
     mesh(string) -- currently poly surface only
     raySource(double3) -- point in world space
     rayDir(double3) -- world space vector
-    
+
     returns hitpoints(list) -- [pos1,pos2...]
     """    
     if len(mc.ls(mesh))>1:
-	raise StandardError,"findMeshIntersections>>> More than one mesh named: %s"%mesh       
+        raise StandardError,"findMeshIntersections>>> More than one mesh named: %s"%mesh       
     #Create an empty selection list.
     selectionList = om.MSelectionList()
 
@@ -214,7 +214,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
         uvList = []
         for i in range( hitPoints.length() ):
             hitList.append( [hitPoints[i].x, hitPoints[i].y,hitPoints[i].z])
-            
+
             #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
             hitMPoint = om.MPoint(hitPoints[i]) # Thank you Capper on Tech-artists.org          
             pArray = [0.0,0.0]
@@ -224,11 +224,11 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
             uvSet = None
             closestPolygon=None
             uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
-            
+
             uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
             vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
             uvList.append([uValue,vValue])
-        
+
         returnDict = {'hits':hitList,'source':[raySource.x,raySource.y,raySource.z],'uvs':uvList}
 
         return returnDict
@@ -240,13 +240,13 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
     Find mesh intersections for an object's axis
     """
     if len(mc.ls(mesh))>1:
-	raise StandardError,"findMeshIntersectionFromObjectAxis>>> More than one mesh named: %s"%mesh    
+        raise StandardError,"findMeshIntersectionFromObjectAxis>>> More than one mesh named: %s"%mesh    
     if not vector or type(vector) not in [list,tuple]:
         d_matrixVectorIndices = {'x':[0,1,2],
                                  'y': [4,5,6],
                                  'z' : [8,9,10]}
         matrix = mc.xform(obj, q=True,  matrix=True, worldSpace=True)
-        
+
         #>>> Figure out our vector
         if axis not in dictionary.stringToVectorDict.keys():
             log.error("findMeshIntersectionFromObjectAxis axis arg not valid: '%s'"%axis)
@@ -262,71 +262,72 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
         return findMeshIntersection(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
     else:
         return findMeshIntersections(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
-    
+
 def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
                                vector = False, maxDistance = 1000, maxIterations = 10,**kws):
-    #>>>Figure out the axis to do
-    if len(mc.ls(mesh))>1:
-	raise StandardError,"findMeshMidPointFromObject>>> More than one mesh named: %s"%mesh      
-    if type(axisToCheck) not in [list,tuple]:axisToCheck=[axisToCheck]
-    axis = ['x','y','z']
-    for a in axisToCheck:
-        if a not in axis:
-            raise StandardError,"findMeshMidPointFromObject>>> Not a valid axis : %s not in ['x','y','z']"%axisToCheck
-    l_lastPos = []
-    loc = locators.locMeObjectStandAlone(obj)
-    for i in range(maxIterations):
-	l_positions = []
-	for a in axisToCheck:
-	    log.debug("firing: %s"%a)
-	    d_posReturn = findMeshIntersectionFromObjectAxis(mesh, loc, axis = '%s+'%a,vector=vector,maxDistance = maxDistance)
-	    d_negReturn = findMeshIntersectionFromObjectAxis(mesh, loc, axis = '%s-'%a,vector=vector,maxDistance = maxDistance)
-	    
-	    if 'hit' in d_posReturn.keys() and d_negReturn.keys():
-		l_pos = [d_posReturn.get('hit'),d_negReturn.get('hit')]
-		pos = distance.returnAveragePointPosition(l_pos)          
-		l_positions.append(pos)
-	if len(l_positions) == 1:
-	    l_pos =  l_positions[0]
-	else:
-	    l_pos =  distance.returnAveragePointPosition(l_positions)
-	if l_lastPos:dif = cgmMath.mag( cgmMath.list_subtract(l_pos,l_lastPos) )
-	else:dif = 'No last'
-	log.info("findMeshMidPointFromObject>>> Step : %s | dif: %s | last: %s | pos: %s "%(i,dif,l_lastPos,l_pos)) 					
-	if l_lastPos and cgmMath.isVectorEquivalent(l_lastPos,l_pos,2):
-	    log.info("findMeshMidPointFromObject>>> Match found step: %s"%(i))
-	    mc.delete(loc)
-	    return l_pos
-	mc.move(l_pos[0],l_pos[1],l_pos[2],loc,ws=True)
-	l_lastPos = l_pos#If we get to here, add the current
-    mc.delete(loc)    
-    return l_pos
-	    
+    try:
+        if len(mc.ls(mesh))>1:
+            raise StandardError,"findMeshMidPointFromObject>>> More than one mesh named: %s"%mesh      
+        if type(axisToCheck) not in [list,tuple]:axisToCheck=[axisToCheck]
+        axis = ['x','y','z']
+        for a in axisToCheck:
+            if a not in axis:
+                raise StandardError,"findMeshMidPointFromObject>>> Not a valid axis : %s not in ['x','y','z']"%axisToCheck
+        l_lastPos = []
+        loc = locators.locMeObjectStandAlone(obj)
+        for i in range(maxIterations):
+            l_positions = []
+            for a in axisToCheck:
+                log.debug("firing: %s"%a)
+                d_posReturn = findMeshIntersectionFromObjectAxis(mesh, loc, axis = '%s+'%a,vector=vector,maxDistance = maxDistance)
+                d_negReturn = findMeshIntersectionFromObjectAxis(mesh, loc, axis = '%s-'%a,vector=vector,maxDistance = maxDistance)
+
+                if 'hit' in d_posReturn.keys() and d_negReturn.keys():
+                    l_pos = [d_posReturn.get('hit'),d_negReturn.get('hit')]
+                    pos = distance.returnAveragePointPosition(l_pos)          
+                    l_positions.append(pos)
+            if len(l_positions) == 1:
+                l_pos =  l_positions[0]
+            else:
+                l_pos =  distance.returnAveragePointPosition(l_positions)
+            if l_lastPos:dif = cgmMath.mag( cgmMath.list_subtract(l_pos,l_lastPos) )
+            else:dif = 'No last'
+            log.info("findMeshMidPointFromObject>>> Step : %s | dif: %s | last: %s | pos: %s "%(i,dif,l_lastPos,l_pos)) 					
+            if l_lastPos and cgmMath.isVectorEquivalent(l_lastPos,l_pos,2):
+                log.info("findMeshMidPointFromObject>>> Match found step: %s"%(i))
+                mc.delete(loc)
+                return l_pos
+            mc.move(l_pos[0],l_pos[1],l_pos[2],loc,ws=True)
+            l_lastPos = l_pos#If we get to here, add the current
+        mc.delete(loc)    
+        return l_pos
+    except StandardError,error:
+        raise StandardError, "findMeshMidPointFromObject >> error: %s"%error
+
 def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
                                        vector = False, maxDistance = 1000):
     """ Find the furthest point in range on an axis. Useful for getting to the outershell of a mesh """
     if len(mc.ls(mesh))>1:
-	raise StandardError,"findFurthestPointInRangeFromObject>>> More than one mesh named: %s"%mesh      
+        raise StandardError,"findFurthestPointInRangeFromObject>>> More than one mesh named: %s"%mesh      
     #>>>First cast to get our initial range
     d_firstcast = findMeshIntersectionFromObjectAxis(mesh, obj, axis = axis, vector=vector, maxDistance = maxDistance)
     if not d_firstcast.get('hit'):
-	    raise StandardError,"findFurthestPointInRangeFromObject>>> first cast failed to hit"
-    
+        raise StandardError,"findFurthestPointInRangeFromObject>>> first cast failed to hit"
+
     baseDistance = distance.returnDistanceBetweenPoints(distance.returnWorldSpacePosition(obj),d_firstcast['hit'])
     log.debug("findFurthestPointInRangeFromObject>>>baseDistance: %s"%baseDistance)
     castDistance = baseDistance + pierceDepth
     log.debug("findFurthestPointInRangeFromObject>>>castDistance: %s"%castDistance)
-    
+
     l_positions = []
 
     d_castReturn = findMeshIntersectionFromObjectAxis(mesh, obj, axis=axis, maxDistance = castDistance, singleReturn=False) or {}
     log.debug("2nd castReturn: %s"%d_castReturn)
     if d_castReturn.get('hits'):
-	    closestPoint = distance.returnFurthestPoint(distance.returnWorldSpacePosition(obj),d_castReturn.get('hits')) or False
-	    d_castReturn['hit'] = closestPoint
+        closestPoint = distance.returnFurthestPoint(distance.returnWorldSpacePosition(obj),d_castReturn.get('hits')) or False
+        d_castReturn['hit'] = closestPoint
     return d_castReturn
-                
-    
+
 
 
 
