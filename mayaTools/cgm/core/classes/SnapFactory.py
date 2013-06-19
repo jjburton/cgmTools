@@ -80,8 +80,8 @@ class go(object):
 	1) midSurfacePos
         """
 	#>>> Check our obj
-	log.debug("obj: %s"%obj)
-	log.debug("targets: %s"%targets)
+	log.info("obj: %s"%obj)
+	log.info("targets: %s"%targets)
 	if issubclass(type(obj),cgmMeta.cgmNode):
 	    self.i_obj = obj
 	else:
@@ -121,15 +121,15 @@ class go(object):
 	    #Should we save soft select info before changing?
 	    mc.softSelect(softSelectDistance = softSelectDistance)
 	    mc.softSelect(softSelectFalloff = 0)	    
-	log.debug("targetTypes: %s"%self.d_targetTypes)
+	log.info("targetTypes: %s"%self.d_targetTypes)
 	if move:
-	    log.debug("Moving")
+	    log.info("Moving")
 	    self.doMove(**kws)
 	if orient:
-	    log.debug("orienting")
+	    log.info("orienting")
 	    self.doOrient(**kws)
 	if aim:
-	    log.debug("orienting")
+	    log.info("orienting")
 	    self.doAim(**kws)	    
 	
     #======================================================================
@@ -137,11 +137,11 @@ class go(object):
     #======================================================================    
     @r9General.Timer    
     def doMove(self,**kws):
-	if kws:log.debug("Snap.doMove>>> kws: %s"%kws)
+	if kws:log.info("Snap.doMove>>> kws: %s"%kws)
 	if len(self.l_targets) == 1:
 	    #>>> Check our target	    
 	    i_target = cgmMeta.cgmNode( self.l_targets[0] )
-	    log.debug("i_target: %s"%i_target)
+	    log.info("i_target: %s"%i_target)
 	    targetType = i_target.getMayaType()	    
 
 	    if self.b_snapComponents:
@@ -188,7 +188,7 @@ class go(object):
 			i_locObj.delete()
 			i_locTarget.delete()
 		elif self.b_midSurfacePos:
-		    log.debug("Snap.move>>> midSurfacePos mode!")
+		    log.info("Snap.move>>> midSurfacePos mode!")
 		    if targetType not in ['mesh','nurbsCurve','nurbsSurface']:
 			log.warning("Can't do midSurfacPos on targetType: '%s'"%targetType)
 			return False
@@ -205,7 +205,7 @@ class go(object):
 			if not axisToCheck:
 			    raise StandardError,"SnapFactory>>> couldn't find any axis to do"
 		    #i_locObj = self.i_obj.doLoc()#Get our position loc		
-		    #log.debug(axisToCheck)
+		    #log.info(axisToCheck)
 		    pos = RayCast.findMeshMidPointFromObject(i_target.mNode, self.i_obj.mNode, axisToCheck=axisToCheck,**kws)
 		    #i_locObj.delete()
 		    
@@ -228,6 +228,8 @@ class go(object):
     def doOrient(self,**kws):
 	if len(self.l_targets) == 1:
 	    i_target = cgmMeta.cgmNode(self.l_targets[0])
+	    #if self.i_obj.rotateOrder != i_target.rotateOrder:
+		#raise StandardError, "Can't match different rotate orders yet"
 	    if i_target.isComponent():
 		if 'poly' in i_target.getMayaType():
 		    self.doOrientObjToSurface(i_target.mNode,self.i_obj.mNode)
@@ -237,8 +239,9 @@ class go(object):
 		self.doOrientObjToSurface(i_target.mNode,self.i_obj.mNode)		
 
 	    else:
-		objRot = mc.xform (i_target.mNode, q=True, ws=True, ro=True)		
-		mc.rotate (objRot[0], objRot[1], objRot[2], [self.i_obj.mNode], ws=True)    
+		mc.delete(mc.orientConstraint(i_target.mNode,self.i_obj.mNode,mo=False))
+		#objRot = mc.xform (i_target.mNode, q=True, ws=True, ro=True)		
+		#mc.rotate (objRot[0], objRot[1], objRot[2], [self.i_obj.mNode], ws=True)    
 	else:
 	    raise NotImplementedError,"Haven't set up: doOrient multi"	
 	
