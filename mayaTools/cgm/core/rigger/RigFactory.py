@@ -26,10 +26,7 @@ from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 reload(mShapeCast)
 from cgm.core.lib import nameTools
 
-from cgm.core.rigger.lib.Limb import (spine,neckHead,leg)
-reload(spine)
-reload(neckHead)
-reload(leg)
+from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -55,7 +52,11 @@ l_modulesDone  = ['torso','neckHead']
 d_moduleTypeToBuildModule = {'leg':leg,
                              'torso':spine,
                              'neckHead':neckHead,
+                             'clavicle':clavicle,
+                             'arm':arm,
                             } 
+for module in d_moduleTypeToBuildModule.keys():
+    reload(d_moduleTypeToBuildModule[module])
 #>>> Main class function
 #=====================================================================
 class go(object):
