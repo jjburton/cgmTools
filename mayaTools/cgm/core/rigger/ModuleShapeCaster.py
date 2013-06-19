@@ -618,7 +618,7 @@ class go(object):
 	Snap.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self._jointOrientation[2]])
 	
 	#Distance stuff    
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_startLoc.mNode,axis_distanceDirectionCast,pierceDepth=self._skinOffset*15) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh, mi_endLoc.mNode, axis_distanceDirectionCast, pierceDepth=self._skinOffset*2) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_clavicle>>failed to get hit to measure first distance"
 	dist_cast = distance.returnDistanceBetweenPoints(mi_endLoc.getPosition(),d_return['hit']) * 1.25
@@ -819,16 +819,18 @@ class go(object):
 		objects = self.l_controlSnapObjects[-2:]
 	    else:
 		objects = self.l_segments[-1]
+	    #"""l_specifiedRotates = [0,30,60,160,180,200,220,300,330]"""
 	    returnBuffer = ShapeCast.createWrapControlShape(self.l_segments[-1],self._targetMesh,
-	                                          points = 10,
+	                                          points = 12 ,
 	                                          curveDegree=3,
 	                                          insetMult = .05,
 	                                          posOffset = [0,0,self._skinOffset*3],
-	                                          joinHits = [0,2,4,6,8],	                                          
+	                                          joinHits = [0,6],	                                          
 	                                          joinMode=True,
-	                                          maxDistance=self._baseModuleDistance,
+	                                          maxDistance=self._baseModuleDistance*.6,
 	                                          extendMode='segment')
-	    mi_crv = returnBuffer['instance']	    
+	    mi_crv = returnBuffer['instance']
+	    
 	    #>>> Color
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
 	    mi_crv.doCopyNameTagsFromObject(self.l_controlSnapObjects[-1],ignore = ['cgmType'])
@@ -1463,12 +1465,10 @@ class go(object):
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
 		d_kws['default']['aimAxis']= 'x+'
-		#d_kws[0]['l_specifiedRotates']=[-60,-30,0,30,60]
 		d_kws[0]['rotateBank'] = -10
 	    else:
 		self.aimAxis = 'x-'		
 		d_kws['default']['aimAxis']= 'x-'
-		#d_kws[0]['l_specifiedRotates']=[-60,-30,0,30,60]
 		d_kws[0]['rotateBank'] = 10
 		
 	elif self._partType == 'arm':
@@ -1476,12 +1476,12 @@ class go(object):
 	    self.points = 12
 	    d_kws = {'default':{'closedCurve':True,
 	                        'l_specifiedRotates':[],
-	                        'insetMult':.1,
+	                        'insetMult':.15,
 	                        'rootRotate':None,
 	                        'rootOffset':[],
 	                        'rotateBank':[]},
-	             0:{'rootOffset':[0,0,self._skinOffset*1]},
-	             -1:{'rootOffset':[0,0,-self._skinOffset*1]}}
+	             0:{'rootOffset':[0,0,self._skinOffset*3]},
+	             -1:{'rootOffset':[0,0,-self._skinOffset*3]}}
 	    
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
@@ -1490,7 +1490,6 @@ class go(object):
 	    else:
 		self.aimAxis = 'x-'		
 		d_kws['default']['aimAxis']= 'x-'
-		#d_kws[0]['l_specifiedRotates']=[-60,-30,0,30,60]
 		d_kws[0]['rotateBank'] = 10
 		
 	if self.ml_targetObjects:
