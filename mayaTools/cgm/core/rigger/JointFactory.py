@@ -632,13 +632,16 @@ def metaFreezeJointOrientation(targetJoints):
 	
     #buffer parents and children of 
     d_children = {}
+    d_parent = {}
     for i_jnt in ml_targetJoints:
         d_children[i_jnt] = cgmMeta.validateObjListArg( mc.listRelatives(i_jnt.mNode, path=True, c=True),cgmMeta.cgmObject,True) or []
-        for i,i_c in enumerate(d_children[i_jnt]):
+	d_parent[i_jnt] = i_jnt.parent
+    for i_jnt in ml_targetJoints:
+	for i,i_c in enumerate(d_children[i_jnt]):
 	    log.info(i_c.getShortName())
-            log.info("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
-            i_c.parent = False
-	    
+	    log.info("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
+	    i_c.parent = False
+	
     #Orient
     for i,i_jnt in enumerate(ml_targetJoints):
 	"""
@@ -646,12 +649,13 @@ def metaFreezeJointOrientation(targetJoints):
 	dup,rotate order
 	Unparent, add rotate & joint rotate, push value, zero rotate, parent back, done
 	"""
+	i_jnt.parent = d_parent.get(i_jnt)#parent back first before duping
 	buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the joint
 	i_dup = cgmMeta.cgmObject(buffer)
 	i_dup.rotateOrder = 0
-        mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, o=(0,0,0)))
+        mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, maintainOffset = False))
 	
-	i_dup.parent = False
+	#i_dup.parent = False
 	
 	l_rValue = i_dup.rotate
 	l_joValue = i_dup.jointOrient
@@ -666,6 +670,7 @@ def metaFreezeJointOrientation(targetJoints):
 	
 	i_jnt.rotate = [0,0,0]
 	i_jnt.jointOrient = i_dup.jointOrient	
+	
         i_dup.delete()
 	
     #reparent
