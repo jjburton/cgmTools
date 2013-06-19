@@ -357,7 +357,7 @@ def build_rigSkeleton(self):
 	    
 	for i_j in ml_influenceJoints:
 	    log.info(i_j.getShortName())
-	    jFactory.metaFreezeJointOrientation(i_j.mNode,self._jointOrientation)	
+	    jFactory.metaFreezeJointOrientation(i_j.mNode)	
     
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build influence joints fail!")
@@ -402,7 +402,7 @@ def build_rigSkeleton(self):
 	#Sometimes last segement joints have off orientaions, we're gonna fix
 	joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
 	for segmentChain in ml_segmentChains:
-	    jFactory.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain],self._jointOrientation)
+	    jFactory.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
 	
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build segment joints fail!")
