@@ -350,12 +350,12 @@ class cgmPuppet(cgmMeta.cgmNode):
     def getUnifiedGeo(self):
         return pFactory.getUnifiedGeo(self)
     
-    def getModuleFromDict(self,checkDict):
+    def getModuleFromDict(self,*args,**kws):
 	"""
-	Pass a check dict of attrsibutes and arguments. If that module is found, it returns it.
+	Pass a check dict of attributes and arguments. If that module is found, it returns it.
 	checkDict = {'moduleType':'torso',etc}
 	"""
-	return pFactory.getModuleFromDict(self,checkDict)
+	return pFactory.getModuleFromDict(self,*args,**kws)
     
     def getModules(self):
 	"""

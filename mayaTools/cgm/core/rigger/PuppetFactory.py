@@ -65,23 +65,34 @@ def getModules(self):
     return self.i_modules
 
 @r9General.Timer   
-def getModuleFromDict(self,checkDict):
+def getModuleFromDict(self,*args,**kws):
     """
     Pass a check dict of attrsibutes and arguments. If that module is found, it returns it.
     
     checkDict = {'moduleType':'torso',etc}
     """
-    assert type(checkDict) is dict,"Arg must be dictionary"
-    for i_m in self.moduleChildren:
-        matchBuffer = 0
-        for key in checkDict.keys():
-            if i_m.hasAttr(key) and attributes.doGetAttr(i_m.mNode,key) == checkDict.get(key):
-                matchBuffer +=1
-        if matchBuffer == len(checkDict.keys()):
-            log.debug("Found Morpheus Module: '%s'"%i_m.getShortName())
-            return i_m
-    return False
-
+    try:       
+        if args:
+            checkDict = args[0]
+        elif 'checkDict' in kws.keys():
+            checkDict = kws.get('checkDict')
+        else:
+            checkDict = kws
+        assert type(checkDict) is dict,"Arg must be dictionary"
+        for i_m in self.moduleChildren:
+            matchBuffer = 0
+            for key in checkDict.keys():
+                if i_m.hasAttr(key) and attributes.doGetAttr(i_m.mNode,key) in checkDict.get(key):
+                    matchBuffer +=1
+                    log.debug("Match: %s"%i_m.getShortName())
+            if matchBuffer == len(checkDict.keys()):
+                log.debug("Found Morpheus Module: '%s'"%i_m.getShortName())
+                return i_m
+        return False
+    except StandardError,error:
+        log.error("kws: %s"%kws)
+        raise StandardError,"%s.getModuleFromDict>> error: %s"%error
+    
 @r9General.Timer  
 def getState(self):
     i_modules = self.moduleChildren
