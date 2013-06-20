@@ -350,6 +350,7 @@ def createWrapControlShape(targetObjects,
 	                                     aimAxis = 'z+',
 	                                     latheAxis = 'y',
 	                                     curveDegree=curveDegree,
+	                                     maxDistance=maxDistance,
 	                                     closedCurve=False,
 	                                     l_specifiedRotates=[-90,-60,-30,0,30,60,90],	                                      
 	                                     posOffset = posOffset)
@@ -359,6 +360,7 @@ def createWrapControlShape(targetObjects,
 	                                     aimAxis = 'z+',
 	                                     latheAxis = 'y',
 	                                     curveDegree=curveDegree,
+	                                     maxDistance=maxDistance,	                                     
 	                                     closedCurve=False,
 	                                     l_specifiedRotates=[-90,-60,-30,0,30,60,90],	                                      
 	                                     posOffset = posOffset)	
@@ -510,6 +512,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     d_returnDict = {}
     d_hitReturnFromValue = {}
     d_processedHitFromValue = {}
+    d_rawHitFromValue = {}
 
     for axis in ['x','y','z']:
 	if axis in latheAxis:latheAxis = axis
@@ -613,10 +616,13 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		    log.info("From %s: %s" %(rotateValue,d_castReturn))
 		
 	    hit = d_castReturn.get('hit') or False
+	    d_rawHitFromValue[rotateValue] = hit
 
 	except StandardError,error:
 		raise StandardError,"createMeshSliceCurve>>> error: %s"%error 
-	if hit:
+	log.debug("rotateValue %s | raw hit: %s"%(rotateValue,hit))
+	if hit and not cgmMath.isVectorEquivalent(hit,d_rawHitFromValue.get(l_rotateSettings[i-1])):
+	    log.debug("last raw: %s"%d_rawHitFromValue.get(l_rotateSettings[i-1]))
 	    if markHits or posOffset:
 		mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator(n='loc_%s'%i)[0])
 		mc.move (hit[0],hit[1],hit[2], mi_tmpLoc.mNode,ws=True)	
