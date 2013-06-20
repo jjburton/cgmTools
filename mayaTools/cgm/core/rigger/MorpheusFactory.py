@@ -35,8 +35,16 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-l_modulesToDoOrder = ['torso','neckHead','leg_left']
-"""l_modulesToDoOrder = ['torso',
+#l_modulesToDoOrder = ['torso','leg_right','leg_left']
+#l_modulesToDoOrder = ['torso','clavicle_left','clavicle_right','arm_left','arm_right']
+#l_modulesToDoOrder = ['torso','clavicle_left']
+
+l_modulesToDoOrder = ['torso',
+                      'clavicle_left','arm_left',
+                      'thumb_left','index_left','middle_left','ring_left','pinky_left',
+                      ]
+
+"""l_modulesToDoOrder = ['torso','neckHead',
                       'leg_left','leg_right']"""
 
 l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
@@ -59,11 +67,11 @@ d_moduleParents = {'torso':False,
                    'clavicle_left':'torso',
                    'arm_left':'clavicle_left',
                    'hand_left':'arm_left',
-                   'thumb_left':'hand_left',
-                   'index_left':'hand_left',
-                   'middle_left':'hand_left',
-                   'ring_left':'hand_left',
-                   'pinky_left':'hand_left',
+                   'thumb_left':'arm_left',
+                   'index_left':'arm_left',
+                   'middle_left':'arm_left',
+                   'ring_left':'arm_left',
+                   'pinky_left':'arm_left',
                    'clavicle_right':'torso',
                    'arm_right':'clavicle_right',                   }
 
@@ -92,8 +100,8 @@ d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}'
                             'foot':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'arm':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
                             'hand':{'handles':1,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
-                            'thumb':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
-                            'finger':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
+                            'thumb':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
+                            'finger':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'clavicle':{'handles':2,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             }                            
 
@@ -107,11 +115,11 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'foot_right':['r_ankle_bodyShaper','r_ball_loc','r_toes_bodyShaper'],                                        
                     'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_wristMeat_bodyShaper'],
                     'hand_left':['l_hand_bodyShaper'],
-                    'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper'],
-                    'index_left':['l_index_1_bodyShaper','l_index_mid_bodyShaper','l_index_2_bodyShaper'], 
-                    'middle_left':['l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper'], 
-                    'ring_left':['l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper'], 
-                    'pinky_left':['l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper'],                     
+                    'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper','Morphy_Body_GEO.vtx[1008]'],
+                    'index_left':['Morphy_Body_GEO.f[1863]','l_index_1_bodyShaper','l_index_mid_bodyShaper','l_index_2_bodyShaper','Morphy_Body_GEO.vtx[1297]'], 
+                    'middle_left':['Morphy_Body_GEO.f[1880]','l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper','Morphy_Body_GEO.vtx[1193]'], 
+                    'ring_left':['Morphy_Body_GEO.f[1878]','l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper','Morphy_Body_GEO.vtx[1090]'], 
+                    'pinky_left':['Morphy_Body_GEO.f[1881]','l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper','Morphy_Body_GEO.vtx[1841]'],                     
                     'clavicle_left':['Morphy_Body_GEO.f[1648]','l_upr_arm_bodyShaper'],
                     'clavicle_right':['Morphy_Body_GEO.f[4433]','r_upr_arm_bodyShaper'],
                     'arm_right':['r_upr_arm_bodyShaper','r_lwr_arm_bodyShaper','r_wristMeat_bodyShaper'],
@@ -121,7 +129,7 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
 #>>> Utilities
 #=====================================================================================
 @r9General.Timer
-def verify_customizationData(i_network, skinDepth = 2.5):
+def verify_customizationData(i_network, skinDepth = .75):
     """
     Gather info from customization asset
     
@@ -163,9 +171,12 @@ def verify_customizationData(i_network, skinDepth = 2.5):
                 log.info("Found: '%s'"%c)
                 i_c = cgmMeta.cgmNode(c)
                 if i_c.isComponent():#If it's a component
+                    log.info('Component mode')
                     i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#make a loc
                     Snap.go(i_loc.mNode,targets = c,move = True, orient = True)#Snap to the surface
-                    i_loc.tz -= skinDepth#Offset on z by skin depth
+                    if '.f' in i_c.getComponent():
+                        mc.move(0,0,-skinDepth,i_loc.mNode,r=True,os=True)
+                    #i_loc.tz -= skinDepth#Offset on z by skin depth
                     pos = i_loc.getPosition()#get position
                     i_loc.delete()
                 else:
