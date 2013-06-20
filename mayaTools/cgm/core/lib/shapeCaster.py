@@ -493,8 +493,8 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		log.error(error) 
 		return False
 
-    log.info("Casting: '%s"%mi_obj.mNode)
-    log.info("createMeshSliceCurve>>> midMeshCast: %s"%midMeshCast)    
+    log.debug("Casting: '%s"%mi_obj.mNode)
+    log.debug("createMeshSliceCurve>>> midMeshCast: %s"%midMeshCast)    
     if type(mesh) in [list,tuple]:
 	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
 	mesh = mesh[0]
@@ -514,26 +514,27 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     for axis in ['x','y','z']:
 	if axis in latheAxis:latheAxis = axis
 	
-    log.info("latheAxis: %s"%latheAxis)
+    log.debug("latheAxis: %s"%latheAxis)
     if rotateBank is not None:#we need a bank  axis
 	l_axisCull = ['x','y','z']
 	l_axisCull.remove(latheAxis)
-	log.info(latheAxis)
+	log.debug(latheAxis)
 	if len(aimAxis) == 2: aimCull = aimAxis[0].lower()
 	else: aimCull = aimAxis.lower()
 	l_axisCull.remove(aimCull)
-	log.info(aimCull)	
-	log.info("Bank rotate: %s"%l_axisCull)
+	log.debug(aimCull)	
+	log.debug("Bank rotate: %s"%l_axisCull)
 	bankAxis = l_axisCull[0]
 	
     #midMeshCast
     if midMeshCast:
 	axisToCheck = axisToCheck or kws.get('axisToCheck') or [a for a in ['x','y','z'] if a != latheAxis]
-	log.info("createMeshSliceCurve>>> axisToCheck: %s"%axisToCheck)
+	log.debug("createMeshSliceCurve>>> axisToCheck: %s"%axisToCheck)
 	try:
 	    Snap.go(mi_loc.parent,mesh,True,False,midSurfacePos=True, axisToCheck = axisToCheck)
 	except:
 	    log.error("createMeshSliceCurve >> failed to midMeshCast")
+	    
     #Rotate obj 
     mi_rotObj = mi_loc
     if rotateBank is not None and type(rotateBank) is not list:
@@ -550,7 +551,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	rotateCeiling = maxRotate
     else:
 	rotateCeiling = 360
-	
+    
     #>>>> Get our rotate info
     #================================================================
     l_rotateSettings = []
@@ -567,13 +568,14 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    #add a point if we don't have a full loop
 	    points = points+1	
 	rotateBaseValue = len(range(rotateFloor,rotateCeiling+1))/points
-	log.info("rotateBaseValue: %s"%rotateBaseValue)
+	log.debug("rotateBaseValue: %s"%rotateBaseValue)
 	    
 	#Build our rotate values
 	for i in range(points):
 	    l_rotateSettings.append( (rotateBaseValue*(i)) + initialRotate +rotateFloor)
     
     if not l_rotateSettings:raise StandardError, "Should have had some l_rotateSettings by now"
+    log.info("rotateSettings: %s"%l_rotateSettings)
     #>>>> Pew, pew !
     #================================================================
     for i,rotateValue in enumerate(l_rotateSettings):
@@ -581,16 +583,16 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	hit = False
 	
 	#shoot our ray, store the hit
-	log.info("Casting: %i>>%f"%(i,rotateValue))
+	log.debug("Casting: %i>>%f"%(i,rotateValue))
 	mc.setAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize()),rotateValue)
-	log.info(mc.getAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize())) )
-	#mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)	
+	log.debug(mc.getAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize())) )
+	#mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)
 	try:
-	    log.info("mesh: %s"%mesh)
-	    log.info("mi_loc.mNode: %s"%mi_loc.mNode)
-	    log.info("aimAxis: %s"%aimAxis)
-	    log.info("latheAxis: %s"%latheAxis)
-	    log.info("maxDistance: %s"%maxDistance)
+	    log.debug("mesh: %s"%mesh)
+	    log.debug("mi_loc.mNode: %s"%mi_loc.mNode)
+	    log.debug("aimAxis: %s"%aimAxis)
+	    log.debug("latheAxis: %s"%latheAxis)
+	    log.debug("maxDistance: %s"%maxDistance)
 	    
 	    if closestInRange:
 		try:
@@ -598,13 +600,13 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		except StandardError,error:
 		    log.error("createMeshSliceCurve >> closestInRange error : %s"%error)
 		    return False
-		log.info("closest in range castReturn: %s"%d_castReturn)		
+		log.debug("closest in range castReturn: %s"%d_castReturn)		
 		d_hitReturnFromValue[rotateValue] = d_castReturn	
-		log.info("From %s: %s" %(rotateValue,d_castReturn))
+		log.debug("From %s: %s" %(rotateValue,d_castReturn))
 		    
 	    else:
 		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, singleReturn=False) or {}
-		log.info("castReturn: %s"%d_castReturn)
+		log.debug("castReturn: %s"%d_castReturn)
 		if d_castReturn.get('hits'):
 		    closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
 		    d_castReturn['hit'] = closestPoint
@@ -616,8 +618,8 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		raise StandardError,"createMeshSliceCurve>>> error: %s"%error 
 	if hit:
 	    if markHits or posOffset:
-		mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator()[0])
-		mc.move (hit[0],hit[1],hit[2], mi_tmpLoc.mNode)	
+		mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator(n='loc_%s'%i)[0])
+		mc.move (hit[0],hit[1],hit[2], mi_tmpLoc.mNode,ws=True)	
 		if posOffset:
 		    if offsetMode =='vector':
 			constBuffer = mc.aimConstraint(mi_obj.mNode,mi_tmpLoc.mNode,
@@ -640,20 +642,33 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	else:#Gonna mark our max distance if no hit
 	    mi_dup = mi_loc.doDuplicate()#dup loc
 	    mi_dup.doGroup()#zero
-	    mi_dup.__setattr__("t%s"%aimAxis[0],maxDistance)#mve
-	    l_pos.append(mi_dup.getPosition())#append position
+	    if '-' == aimAxis[1]:
+		mi_dup.__setattr__("t%s"%aimAxis[0],-maxDistance)#mve		
+	    else:
+		mi_dup.__setattr__("t%s"%aimAxis[0],maxDistance)#mve
+	    pos = mi_dup.getPosition()
+	    l_pos.append(pos)#append position
+	    if markHits:
+		mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator(n='loc_%s'%i)[0])
+		mc.move (pos[0],pos[1],pos[2], mi_tmpLoc.mNode,ws=True)		    
+	    d_processedHitFromValue[rotateValue] = pos	    
 	    mc.delete(mi_dup.parent)#delete
-	
+	    log.info("%s : %s : max marked"%(i,rotateValue))
+	if markHits:mc.curve (d=1, ep = l_pos, os=True)#build curves as we go to see what's up
     mc.delete(mi_loc.getAllParents()[-1])#delete top group
-    log.info("pos list: %s"%l_pos)    
+    log.debug("pos list: %s"%l_pos)    
     if not l_pos:
 	log.warning("Cast return: %s"%d_castReturn)
 	raise StandardError,"createMeshSliceCurve>> Not hits found. Nothing to do"
     if len(l_pos)>=3:
 	if closedCurve:
-	    l_pos2 = l_pos[-2:] + l_pos + l_pos[:2]
+	    #l_pos2 = l_pos[-2:] + l_pos + l_pos[:2]
+	    l_pos2 = l_pos + [l_pos[0]]
+	    #l_pos2 = l_pos
 	    knot_len = len(l_pos2)+curveDegree-1
-	    curveBuffer = mc.curve (d=curveDegree, ep = l_pos2, k = [i for i in range(0,knot_len)],os=True)
+	    curveBuffer = mc.curve (d=curveDegree, ep = l_pos2, k = [i for i in range(0,knot_len)], os=True)
+	    #curveBuffer =  mc.curve (d=curveDegree, ep = l_pos, os=True)	    
+	    #mc.closeCurve(curveBuffer,replaceOriginal = True)
 	else:
 	    curveBuffer =  mc.curve (d=curveDegree, ep = l_pos, os=True)
   	    
