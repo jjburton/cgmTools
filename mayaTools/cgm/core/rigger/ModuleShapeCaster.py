@@ -165,18 +165,24 @@ class go(object):
 	if type(d_kws) is not dict:
 	    raise StandardError, "_pushKWsDict>> 'd_kws' arg not a dict: %s"%d_kws
 	try:
+	    log.info("_pushKWsDict >> " + "="*50)
 	    if d_kws:
 		#push d_kws
 		if d_kws.get(i):
 		    for k in d_kws[i].keys():
+			log.info("%s: %s"%(k,d_kws[i].get(k)))
 			self.__dict__[k] = d_kws[i].get(k)
 		elif i == len(self.l_controlSnapObjects)-1 and d_kws.get(-1):
 		    log.info('last mode')
 		    for k in d_kws[-1].keys():
+			log.info("%s: %s"%(k,d_kws[-1].get(k)))			
 			self.__dict__[k] = d_kws[-1].get(k)
 		else:
 		    for k in d_kws['default'].keys():
+			log.info("%s: %s"%(k,d_kws['default'].get(k)))			
 			self.__dict__[k] = d_kws['default'].get(k)
+	    log.info("_pushKWsDict << " + "="*50)
+	    
 	except StandardError,error:
 	    raise StandardError,"_pushKWsDict>> failed to push arg: %s | %s"%(d_kws,error)
 	return True
@@ -194,7 +200,8 @@ class go(object):
 	self.ml_specialLocs = []
 	
 	#Create end locs
-	if self._mi_module.moduleType.lower() in ['finger','thumb']:
+	#if self._mi_module.moduleType.lower() in ['finger','thumb']:
+	if self._mi_module.moduleType.lower() in ['asdf']:	
 	    mi_lastLoc = cgmMeta.cgmObject(self.l_controlSnapObjects[-1]).doLoc()	
 	    mi_lastLoc.doGroup()
 	    #Distance stuff    
@@ -445,10 +452,12 @@ class go(object):
 		d_kws = {'default':{'closedCurve':True,
 	                            'latheAxis':'z',
 	                            'l_specifiedRotates':[],
+		                    'maxDistance':self._baseModuleDistance,
 	                            'rootOffset':[],
 	                            'rootRotate':None},
 	                 0:{}}	
 		d_kws[0]['l_specifiedRotates'] = [-60,-30,0,30,60]
+		d_kws[0]['maxDistance'] = self._baseModuleDistance * 10	
 		d_kws[0]['closedCurve'] = False
 		self.posOffset = [0,0,self._skinOffset/2]
 		
@@ -456,18 +465,6 @@ class go(object):
 	    for i,obj in enumerate(self.l_controlSnapObjects):			
 		#make ball
 		self._pushKWsDict(d_kws,i)
-		"""
-		if d_kws:
-		    if d_kws.get(i):
-			for k in d_kws[i].keys():
-			    self.__dict__[k] = d_kws[i].get(k)
-		    elif i == len(self.l_controlSnapObjects)-1 and d_kws.get(-1):
-			log.info('last mode')
-			for k in d_kws[-1].keys():
-			    self.__dict__[k] = d_kws[-1].get(k)
-		    else:
-			for k in d_kws['default'].keys():
-			    self.__dict__[k] = d_kws['default'].get(k)"""
 			    
 		#Few more special cases
 		if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle']:
@@ -524,15 +521,21 @@ class go(object):
 	    self.aimAxis = self._jointOrientation[1] + '+'
 	    self.rotateBank = None	
 	    self.rootOffset = []
-	    self.rootRotate = None		
+	    self.rootRotate = None	
+	    _snapObject = self.l_controlSnapObjects[-1]
+	    self.maxDistance = self._baseModuleDistance
 	    if self._partType in ['index','middle','ring','pinky','thumb','finger']:
 		d_kws = {'default':{'rootOffset':[],
+		                    'maxDistance': self._baseModuleDistance * 1.5,
 		                    'posOffset':[0,0,self._skinOffset/2],
 	                            'rootRotate':None},
 	                 0:{}}	
+		_snapObject = self.l_controlSnapObjects[-2]
+		
 	    #>>>Cast
 	    self._pushKWsDict(d_kws)
-	    returnBuffer = ShapeCast.createWrapControlShape(self.l_controlSnapObjects[-1],self._targetMesh,
+	    log.info("snapObject: %s"%_snapObject)
+	    returnBuffer = ShapeCast.createWrapControlShape(_snapObject,self._targetMesh,
 	                                                    curveDegree=3,
 	                                                    insetMult = .2,
 	                                                    closedCurve= self.closedCurve,
@@ -542,10 +545,10 @@ class go(object):
 	                                                    posOffset = self.posOffset,
 	                                                    rootOffset = self.rootOffset,
 	                                                    rootRotate = self.rootRotate,
-	                                                    maxDistance=self._baseModuleDistance,
+	                                                    maxDistance=self.maxDistance,
 	                                                    extendMode='endCap')
 	    mi_newCurve = returnBuffer['instance']
-	    mi_newCurve.doCopyPivot(obj)
+	    mi_newCurve.doCopyPivot(_snapObject)
 	    
 	    #>>> Color
 	    curves.setCurveColorByName(mi_newCurve.mNode,self.l_moduleColors[0])                    
