@@ -1370,7 +1370,7 @@ class go(object):
 	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_palmLoc.mNode,axis_distanceDirectionCast,pierceDepth=self._skinOffset*15) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_clavicle>>failed to get hit to measure first distance"
-	dist_cast = distance.returnDistanceBetweenPoints(mi_palmLoc.getPosition(),d_return['hit']) * 3
+	dist_cast = distance.returnDistanceBetweenPoints(mi_palmLoc.getPosition(),d_return['hit']) * 4
 	
 	#Cast our stuff
 	#============================================================================
@@ -1378,14 +1378,15 @@ class go(object):
 	self.latheAxis = self._jointOrientation[0]
 	log.info("aim: %s"%self.aimAxis)
 	log.info("lathe: %s"%self.latheAxis)
+	log.info("dist: %s"%dist_cast)
 	
 	d_startReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_wristLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
-	                                     closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
-	                                     latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
+	                                               closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
+	                                               latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=True)
 	
 	d_endReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_palmLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
-	                                   closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
-	                                   latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
+	                                             closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
+	                                             latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=True)
 	
 	
 	#Let's collect the points to join
