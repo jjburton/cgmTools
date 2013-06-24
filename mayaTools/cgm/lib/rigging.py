@@ -311,10 +311,25 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     mc.xform (groupBuffer, cp=True)
     
     if maintainParent == True and oldParent:
+        #for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
         groupBuffer = doParentReturnName(groupBuffer,oldParent)
-    if parent == True:
+    if parent:
+        _wasLocked = []  
+        for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+            attrBuffer = '%s.%s'%(obj,attr)
+            if mc.getAttr(attrBuffer,lock=True):
+                _wasLocked.append(attr)
+                mc.setAttr(attrBuffer,lock=False)                
+            #attributes.doSetAttr(obj,attr,0)          
         obj = doParentReturnName(obj,groupBuffer)        
-    
+        #for attr in ['tx','ty','tz','rx','ry','rz']:
+            #if attributes.doGetAttr(obj,attr):
+                #attributes.doSetAttr(obj,attr,0)    
+        if _wasLocked:
+            for attr in _wasLocked:
+                attrBuffer = '%s.%s'%(obj,attr)
+                mc.setAttr(attrBuffer,lock=True)                
+                
     return NameFactory.doNameObject(groupBuffer,True)
 
 
