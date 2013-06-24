@@ -508,7 +508,7 @@ class go(object):
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
-
+	    log.info("self._targetMesh: %s"%self._targetMesh)
 	    #figure out our settings
 	    #================================================================
 	    #defaults first
@@ -524,14 +524,31 @@ class go(object):
 	    self.rootRotate = None	
 	    _snapObject = self.l_controlSnapObjects[-1]
 	    self.maxDistance = self._baseModuleDistance
+	    _lastCreated = False
 	    if self._partType in ['index','middle','ring','pinky','thumb','finger']:
 		d_kws = {'default':{'rootOffset':[],
 		                    'maxDistance': self._baseModuleDistance * 1.5,
 		                    'posOffset':[0,0,self._skinOffset/2],
 	                            'rootRotate':None},
 	                 0:{}}	
-		_snapObject = self.l_controlSnapObjects[-2]
-		
+	
+		mi_lastLoc = cgmMeta.cgmObject(self.l_controlSnapObjects[-2]).doLoc()	
+		mi_lastLoc.doGroup()
+		#Distance stuff    
+		d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,
+	                                                              mi_lastLoc.mNode,
+	                                                              self._jointOrientation[0]+'+',
+	                                                              pierceDepth=self._skinOffset*15) or {}
+		if not d_return.get('hit'):
+		    raise StandardError,"go._verifyCastObjects>>failed to get hit to measure first distance"
+		dist_cast = distance.returnDistanceBetweenPoints(mi_lastLoc.getPosition(),d_return['hit']) * 1.25
+		mi_lastLoc.__setattr__("t"+self._jointOrientation[0],dist_cast*.6)#Move
+		pBuffer = mi_lastLoc.parent
+		mi_lastLoc.parent = False
+		mc.delete(pBuffer)
+		self.ml_specialLocs.append(mi_lastLoc)
+		_snapObject = mi_lastLoc.mNode
+		    
 	    #>>>Cast
 	    self._pushKWsDict(d_kws)
 	    log.info("snapObject: %s"%_snapObject)
@@ -559,9 +576,9 @@ class go(object):
 	    l_segmentControls.append( mi_newCurve.mNode )
 	    ml_segmentControls.append( mi_newCurve )		
 		
-	    self.d_returnControls['moduleCap'] = l_segmentControls 
-	    self.md_ReturnControls['moduleCap'] = ml_segmentControls
-	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_moduleCap','owner')
+	    self.d_returnControls['moduleCap'] = mi_newCurve.mNode 
+	    self.md_ReturnControls['moduleCap'] = mi_newCurve
+	    self.mi_rigNull.connectChildNode(mi_newCurve,'shape_moduleCap','owner')
 	    
 	except StandardError,error:
 		log.error("build_moduleCap fail! | %s"%error) 
@@ -865,6 +882,8 @@ class go(object):
 	_direction = self.outAxis+'+'
 	index = -1
 	index_size = index
+	_castMode = 'vector'	
+	_sizeMultiplier = 1
 	if self._partType == 'leg':
 	    index = -2
 	    index_size = -2
@@ -876,16 +895,25 @@ class go(object):
 	    #self.settingsVector = [0,1,0]	    	
 	    self.settingsVector = [0,1,0]
 	    _moveMultiplier = 1.5
-	
+	elif self._mi_module.moduleType.lower() in ['finger','thumb']:
+	    index_size = -2
+	    index = 1
+	    _direction = self._jointOrientation[2] + '+'  
+	    self.settingsVector = [0,1,0]
+	    _castMode = 'axis'
+	    self.aimAxis = self._jointOrientation[1] + '+'	    
+	    _moveMultiplier = 2
+	    _sizeMultiplier = .75
 	i_target = cgmMeta.cgmObject( self.l_controlSnapObjects[index] )
 	i_sizeTarget = cgmMeta.cgmObject( self.l_controlSnapObjects[index_size] )
 
 	mi_rootLoc = i_target.doLoc()
 	mi_sizeLoc = i_sizeTarget.doLoc()
-
-	    
+	
+	#Size the settings control
 	d_size = ShapeCast.returnBaseControlSize(mi_sizeLoc,self._targetMesh,axis=[self.outAxis])#Get size
-	baseSize = d_size.get(d_size.keys()[0])
+	#baseSize = d_size.get(d_size.keys()[0])
+	baseSize = d_size.get('average') * _sizeMultiplier
 	log.info("build_settings>>> baseSize: %s"%baseSize)
 		
 	i_gear = cgmMeta.cgmObject(curves.createControlCurve('gear',size = baseSize,direction=_direction))	
@@ -894,18 +922,31 @@ class go(object):
 	Snap.go(i_gear.mNode,mi_rootLoc.mNode,True, False)#Snap to main object
 	
 	#Move the ball
-	d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_rootLoc.mNode,vector = self.settingsVector,singleReturn=True)
-	if not d_return.get('hit'):
-	    raise StandardError,"go.build_settings>>failed to get hit to measure distance"
+	if _castMode == 'vector':
+	    d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_rootLoc.mNode,vector = self.settingsVector,singleReturn=True)
+	    if not d_return.get('hit'):
+		raise StandardError,"go.build_settings>>failed to get hit to measure distance"
+	    
+	    mc.move(d_return['hit'][0],d_return['hit'][1],d_return['hit'][2],i_gear.mNode,absolute = True,ws=True)
+	    Snap.go(i_gear.mNode,mi_rootLoc.mNode,move = False, orient = False, aim=True, aimVector=[0,0,-1])
+	    
+	    mc.move(self.posOffset[0]*_moveMultiplier,self.posOffset[1]*_moveMultiplier,self.posOffset[2]*_moveMultiplier, [i_gear.mNode], r = True, rpr = True, os = True, wd = True)
+	    mi_rootLoc.delete()
+	    mi_sizeLoc.delete()
+	else:#Axis mode
+	    d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_rootLoc.mNode,axis = self.aimAxis,singleReturn=True)		    
+	    if not d_return.get('hit'):
+		raise StandardError,"go.build_settings>>failed to get hit to measure distance"	    
+	    dist_move = distance.returnDistanceBetweenPoints(mi_rootLoc.getPosition(),d_return['hit'])
+	    log.info("axis cast move: %s"%dist_move)
+	    grp = mi_rootLoc.doGroup(True)
+	    mi_rootLoc.__setattr__("t%s"%self._jointOrientation[1],dist_move*_moveMultiplier)
+	    
+	    Snap.go(i_gear.mNode,mi_rootLoc.mNode,move = True, orient = True)	    
+	    mc.delete(mi_rootLoc.parent)
+	    mi_sizeLoc.delete()	    
 	
-	mc.move(d_return['hit'][0],d_return['hit'][1],d_return['hit'][2],i_gear.mNode,absolute = True,ws=True)
-	Snap.go(i_gear.mNode,mi_rootLoc.mNode,move = False, orient = False, aim=True, aimVector=[0,0,-1])
-	
-	mc.move(self.posOffset[0]*_moveMultiplier,self.posOffset[1]*_moveMultiplier,self.posOffset[2]*_moveMultiplier, [i_gear.mNode], r = True, rpr = True, os = True, wd = True)
-    
-	mi_rootLoc.delete()
-	mi_sizeLoc.delete()
-	
+
 	#Combine and finale
 	#============================================================================
 	i_gear.doCopyPivot(i_target.mNode)
