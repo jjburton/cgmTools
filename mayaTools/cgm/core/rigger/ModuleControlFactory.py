@@ -398,18 +398,24 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     except StandardError,error:
 	log.error("ModuleControlFactory.registerControl>> '%s' make aimable fail"%str_shortName)
 	raise StandardError,error   
+    
     #>>>Rotate Order
-    #====================================================   
+    #==================================================== 
+    _rotateOrder = False
     if setRotateOrder is not None:
-	i_control.rotateOrder = setRotateOrder
+	_rotateOrder = setRotateOrder
     elif controlType in d_rotateOrderDefaults.keys():
-	i_control.rotateOrder = d_rotateOrderDefaults[controlType]
+	_rotateOrder = d_rotateOrderDefaults[controlType]
     elif i_control.getAttr('cgmName') in d_rotateOrderDefaults.keys():
-	i_control.rotateOrder = d_rotateOrderDefaults[i_control.getAttr('cgmName')]
+	_rotateOrder = d_rotateOrderDefaults[i_control.getAttr('cgmName')]
     else:
 	log.info("Need to set rotateOrder: '%s'"%str_shortName)
 	
-	
+    #set it
+    if _rotateOrder:
+	_rotateOrder = dictionary.validateRotateOrderString(_rotateOrder)
+	mc.xform(i_control.mNode, rotateOrder = _rotateOrder)
+    
     #>>>Freeze stuff 
     #====================================================  
     if freezeAll:
