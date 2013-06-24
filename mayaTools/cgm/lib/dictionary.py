@@ -172,8 +172,26 @@ def returnRotateOrderIndex(ro):
     if indexBuffer != None:
         return indexBuffer
     else:
-        return None
+        return False
     
+def validateRotateOrderString(ro):
+    if type(ro) is int:
+        for k in rotateOrderDictionary.keys():
+            if rotateOrderDictionary.get(k) == ro:
+                return k
+        return False
+    elif ro in rotateOrderDictionary.keys():
+        return ro
+    return False
+
+def validateRotateOrderInt(ro):
+    if type(ro) is int:
+        if ro <= 5:return ro
+        else:return False
+    elif ro in rotateOrderDictionary.keys():
+        return rotateOrderDictionary.get(ro)
+    return False
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Search stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
