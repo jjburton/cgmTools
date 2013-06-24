@@ -995,6 +995,12 @@ def build_FKIK(self):
 	""" 
 	mPlug_lockMid.doTransferTo(mi_controlMidIK.mNode)#move the lock mid	
 	
+	#Parent constain the ik wrist joint to the ik wrist
+	#=========================================================================================				
+	#mc.pointConstraint(mi_controlIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
+	mc.orientConstraint(mi_controlIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
+	
+	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> IK PV error: %s"%(self._strShortName,error)
     
@@ -1698,7 +1704,7 @@ def build_rig(self):
     #Parent and constrain joints
     #====================================================================================
     ml_rigJoints[0].parent = self._i_deformNull.mNode#shoulder
-    #ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
+    ml_rigJoints[-1].parent = self._i_deformNull.mNode#wrist
     #ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
     #Need to grab elbow and parent to deform Null
 
