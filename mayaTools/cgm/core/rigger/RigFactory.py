@@ -26,7 +26,7 @@ from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 reload(mShapeCast)
 from cgm.core.lib import nameTools
 
-from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm)
+from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -44,7 +44,7 @@ from cgm.lib import (cgmMath,
                      curves,
                      lists,
                      )
-
+reload(rigging)
 l_modulesDone  = ['torso','neckHead']
 
 #>>> Register rig functions
@@ -54,6 +54,8 @@ d_moduleTypeToBuildModule = {'leg':leg,
                              'neckHead':neckHead,
                              'clavicle':clavicle,
                              'arm':arm,
+                             'finger':finger,
+                             'thumb':finger,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
