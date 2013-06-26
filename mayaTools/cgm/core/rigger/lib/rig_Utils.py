@@ -1762,19 +1762,25 @@ def IKHandle_fixTwist(ikHandle):
     log.info("IKHandle_fixTwist>>> vector aim: %s | str aim: %s"%(v_localAim,str_localAim))  
     
     #Check rotation:
-    rotValue = mi_startJoint.getAttr('r%s'%str_localAimSingle)    
-    if not cgmMath.isFloatEquivalent(rotValue,0):#if we have a value, we need to fix it
+    rotAttr = cgmMeta.cgmAttr(mi_startJoint,'r%s'%str_localAimSingle)
+    #rotValue = mi_startJoint.getAttr('r%s'%str_localAimSingle)
+    #First we try our rotate value
+    mi_ikHandle.twist = 0
+    if not cgmMath.isFloatEquivalent(rotAttr.value,0,2):
+	mi_ikHandle.twist = -rotAttr.value#try inversed driven joint rotate value first
+    if not cgmMath.isFloatEquivalent(rotAttr.value,0,2):#if we have a value, we need to fix it
 	matchValue_iterator(drivenAttr="%s.r%s"%(mi_startJoint.mNode,str_localAimSingle),
 	                    driverAttr="%s.twist"%mi_ikHandle.mNode,
 	                    minIn = -180, maxIn = 180,
 	                    maxIterations = 75,
-	                    matchValue=0.0)
+	                    matchValue=0.0001)
+	log.debug("rUtils.matchValue_iterator(drivenAttr='%s.r%s',driverAttr='%s.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001)"%(mi_startJoint.getShortName(),str_localAimSingle,mi_ikHandle.getShortName()))
     return True
 
 
 
 @r9General.Timer
-def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = False, addLengthMulti = False,
+def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = False, lockMid = True, addLengthMulti = False,
                     stretch = False, globalScaleAttr = None, controlObject = None, baseName = 'ikChain', nameSuffix = None,
                     handles = [],#If one given, assumed to be mid, can't have more than length of joints
                     moduleInstance = None):
@@ -1787,6 +1793,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     baseName -- 
     nameSuffix -- add to nameBase
     rpHandle(bool/string) -- whether to have rphandle setup, object to use if string or MetaClass
+    lockMid(bool) --
     driver(attr arg) -- driver attr
     globalScaleAttr(string/cgmAttr) -- global scale attr to connect in
     addLengthMulti(bool) -- whether to setup lengthMultipliers
@@ -1843,7 +1850,6 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     mi_control = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=True)
     if mi_control:log.info("create_IKHandle>>> mi_control from arg: %s"%mi_control.getShortName())
     
-    
     #Figure out our aimaxis
     v_localAim = distance.returnLocalAimDirection(ml_jointChain[0].mNode,ml_jointChain[1].mNode)
     str_localAim = dictionary.returnVectorToString(v_localAim)
@@ -1869,7 +1875,6 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	    baseName = "%s_%s"%(baseName,nameSuffix)	
     #=============================================================================
     #Create IK handle
-    
     try:
 	buffer = mc.ikHandle( sj=mi_start.mNode, ee=mi_end.mNode,
 	                      solver = solverType, forceSolver = True,
@@ -1907,7 +1912,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     3)connect by 'translate' or 'scale'
     """
     if stretch:
-	mPlug_lockMid = cgmMeta.cgmAttr(mi_control,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
+	if lockMid:mPlug_lockMid = cgmMeta.cgmAttr(mi_control,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
 	mPlug_autoStretch = cgmMeta.cgmAttr(mi_control,'autoStretch',initialValue = 1, defaultValue = 1, keyable = True, attrType = 'float', minValue = 0, maxValue = 1)
 	if addLengthMulti:
 	    mPlug_lengthUpr= cgmMeta.cgmAttr(mi_control,'lengthUpr',attrType='float',value = 1, defaultValue = 1,minValue=0,keyable = True)
@@ -2070,8 +2075,9 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	    mi_blend = cgmMeta.cgmNode(nodeType= 'blendTwoAttr')
 	    mi_blend.addAttr('cgmName','%s_stretch_to_lockMid'%(i_jnt.getBaseName()),lock=True)
 	    mi_blend.doName()
-	    mPlug_lockMid.doConnectOut("%s.attributesBlender"%mi_blend.mNode)
-	    
+	    if lockMid:
+		mPlug_lockMid.doConnectOut("%s.attributesBlender"%mi_blend.mNode)
+	
 	    if stretch == 'translate':
 		#Base Normal, Dist Normal
 		mPlug_stretchNormalDist.doConnectOut("%s.input[0]"%mi_blend.mNode)
@@ -2137,10 +2143,11 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	    
     #>>> Return dict
     d_return = {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector}
+    if lockMid:
+	d_return['mPlug_lockMid'] = mPlug_lockMid	
+	d_return['ml_measureObjects']=ml_distanceObjects	
     if stretch:
-	d_return['mPlug_lockMid'] = mPlug_lockMid
 	d_return['mPlug_autoStretch'] = mPlug_autoStretch
-	d_return['ml_measureObjects']=ml_distanceObjects
 	d_return['ml_distHandles']=ml_handles
     if mi_rpHandle:
 	d_return['mi_rpHandle'] = mi_rpHandle
@@ -2150,6 +2157,75 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     if not _foundPrerred:log.error("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected")
 
     return d_return   
+
+def connectBlendChainByConstraint(l_jointChain1,l_jointChain2,l_blendChain, driver = None, l_constraints = ['point','orient']):
+    """
+    @kws
+    l_jointChain1(list) -- blend list 1
+    l_jointChain2(list) -- blend list 2
+    l_blendChain(list) -- result chain
+
+    driver(attr arg) -- driver attr
+    channels(list) -- channels to blend
+    
+    """
+    d_funcs = {'point':mc.pointConstraint,
+               'orient':mc.orientConstraint,
+               'scale':mc.scaleConstraint,
+               'parent':mc.scaleConstraint}
+    for c in l_constraints:
+	if c not in ['point','orient','scale','parent']:
+	    log.warning("Bad constraint arg: %s. Removing!"%c)
+	    l_constraints.remove(c)
+    if not l_constraints:
+	raise StandardError,"connectBlendChainByConstraint>>> Need valid constraints: %s"%l_constraints
+	
+    ml_jointChain1 = cgmMeta.validateObjListArg(l_jointChain1,cgmMeta.cgmObject,noneValid=False)
+    ml_jointChain2 = cgmMeta.validateObjListArg(l_jointChain2,cgmMeta.cgmObject,noneValid=False)
+    ml_blendChain = cgmMeta.validateObjListArg(l_blendChain,cgmMeta.cgmObject,noneValid=False)
+    d_driver = cgmMeta.validateAttrArg(driver,noneValid=True)
+    mi_driver = False
+    if d_driver:mi_driver = d_driver.get('mi_plug') or False
+    
+    if not len(ml_jointChain1) >= len(ml_blendChain) or not len(ml_jointChain2) >= len(ml_blendChain):
+	raise StandardError,"connectBlendChainByConstraint>>> Joint chains aren't equal lengths: l_jointChain1: %s | l_jointChain2: %s | l_blendChain: %s"%(len(l_jointChain1),len(l_jointChain2),len(l_blendChain))
+    """
+    for i,i_jnt in enumerate(ml_blendChain):
+	if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain1[i].getPosition() ):
+	    raise StandardError,"connectBlendChainByConstraint>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
+	if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain2[i].getPosition() ):
+	    raise StandardError,"connectBlendChainByConstraint>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
+    """
+    ml_nodes = []
+    
+    #>>> Actual meat
+    #===========================================================
+    for i,i_jnt in enumerate(ml_blendChain):
+	for constraint in l_constraints:
+	    log.info("connectBlendChainByConstraint>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
+	                                                                    ml_jointChain2[i].getShortName(),
+	                                                                    ml_blendChain[i].getShortName(),constraint))	    
+	    i_c = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
+	                                               ml_blendChain[i].getShortName(),maintainOffset = True)[0])
+	    
+	    
+	    targetWeights = d_funcs[constraint](i_c.mNode,q=True, weightAliasList=True)
+	    if len(targetWeights)>2:
+		raise StandardError,"connectBlendChainByConstraint>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
+	    
+	    if mi_driver:
+		d_blendReturn = NodeF.createSingleBlendNetwork(mi_driver,
+		                                               [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain1[i].getShortName())],
+		                                               [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain2[i].getShortName())],
+		                                               keyable=True)
+    
+		#Connect                                  
+		d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[0]))
+		d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[1]))
+			
+	    ml_nodes.append(i_c)
+	    
+    return ml_nodes
     
 def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
     """
@@ -2221,7 +2297,7 @@ def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation 
     d_driver = cgmMeta.validateAttrArg(attrArg,noneValid=True)
     mi_driver = False
     if d_driver:mi_driver = d_driver.get('mi_plug') or False
-    
+    log.info("attrArgDriver: %s"%d_driver)
     if not mi_driver:#If we still don't have one, make one
 	mi_driver = cgmMeta.cgmAttr(mi_joint,'length',attrType = 'float')
 	
