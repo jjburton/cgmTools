@@ -1556,7 +1556,7 @@ def create_distanceMeasure(start = None, end = None, baseName = None):
 def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, drivenAttr = None, driverAttr = None, 
                         minIn = -180, maxIn = 180, maxIterations = 40, matchValue = None):
     """
-    Modified version of Jason Schleifer's afr js_iterator
+    Started with Jason Schleifer's afr js_iterator and have 'tweaked'
     """
     if type(minIn) not in [float,int]:raise StandardError,"matchValue_iterator>>> bad minIn: %s"%minIn
     if type(maxIn) not in [float,int]:raise StandardError,"matchValue_iterator>>> bad maxIn: %s"%maxIn
@@ -1613,6 +1613,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
     cnt_sameValue = 0
     b_matchFound = None
     b_firstIter = True
+    d_valueToSetting = {}
     
     #Source type: value
     for i in range(maxIterations):
@@ -1623,7 +1624,43 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 		    log.info("matchValue_iterator>>> Match found: %s == %s | %s: %s | step: %s"%(mPlug_driven.p_combinedShortName,matchValue,mPlug_driver.p_combinedShortName,minValue,i))  			    
 		    b_matchFound = minValue
 		    break
+		f_currentDist = abs(matchValue-mPlug_driven.value)
+		mPlug_driver.value = minValue#Set to min
+		f_minDist = abs(matchValue-mPlug_driven.value)#get Dif
+		f_minSetValue = mPlug_driven.value
+		mPlug_driver.value = maxValue#Set to max
+		f_maxDist = abs(matchValue-mPlug_driven.value)#Get dif
+		f_maxSetValue = mPlug_driven.value
 		
+		f_half = ((maxValue-minValue)/2.0) + minValue#get half
+		#First find range
+		if f_minSetValue > matchValue or f_maxSetValue < matchValue:
+		    log.error("Bad range, alternate range find. minSetValue = %s > %s < maxSetValue = %s"%(f_minSetValue,matchValue,f_maxSetValue))
+
+		if not cgmMath.isFloatEquivalent(matchValue,0) and not cgmMath.isFloatEquivalent(minValue,0) and not cgmMath.isFloatEquivalent(f_minSetValue,0):
+		    #if none of our values are 0, this is really fast
+		    minValue = (minValue * matchValue)/f_minSetValue
+		    log.info("matchValue_iterator>>> Equated: %s"%minValue)		    
+		    f_closest = f_minDist
+		    mPlug_driver.value = minValue#Set to min			
+		else:	
+		    if f_minDist>f_maxDist:#if min dif greater, use half as new min
+			if f_half < minIn:
+			    raise StandardError, "half min less than minValue"
+			    f_half = minIn
+			minValue = f_half
+			#log.info("matchValue_iterator>>>Going up")
+			f_closest = f_minDist
+		    else:
+			if f_half > maxIn:
+			    raise StandardError, "half max less than maxValue"			    
+			    f_half = maxIn			
+			maxValue = f_half
+			#log.info("matchValue_iterator>>>Going down")  
+			f_closest = f_maxDist
+			
+		#Old method
+		"""
 		mPlug_driver.value = minValue#Set to min
 		f_minDist = abs(matchValue-mPlug_driven.value)#get Dif
 		f_minSetValue = mPlug_driven.value
@@ -1671,7 +1708,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 			if f_half > maxIn:f_half = maxIn			
 			maxValue = f_half
 			#log.info("matchValue_iterator>>>Going down")  
-			f_closest = f_maxDist
+			f_closest = f_maxDist"""
 		    
 		log.info("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
 		log.info("#"+'-'*50)
@@ -1765,15 +1802,17 @@ def IKHandle_fixTwist(ikHandle):
     rotAttr = cgmMeta.cgmAttr(mi_startJoint,'r%s'%str_localAimSingle)
     #rotValue = mi_startJoint.getAttr('r%s'%str_localAimSingle)
     #First we try our rotate value
-    mi_ikHandle.twist = 0
+    if not cgmMath.isFloatEquivalent(rotAttr.value,0,2):
+	mi_ikHandle.twist = 0
     if not cgmMath.isFloatEquivalent(rotAttr.value,0,2):
 	mi_ikHandle.twist = -rotAttr.value#try inversed driven joint rotate value first
+    
     if not cgmMath.isFloatEquivalent(rotAttr.value,0,2):#if we have a value, we need to fix it
 	matchValue_iterator(drivenAttr="%s.r%s"%(mi_startJoint.mNode,str_localAimSingle),
 	                    driverAttr="%s.twist"%mi_ikHandle.mNode,
-	                    minIn = -180, maxIn = 180,
-	                    maxIterations = 75,
-	                    matchValue=0.0001)
+	                    minIn = -170, maxIn = 180,
+	                    maxIterations = 30,
+	                    matchValue=0)
 	log.debug("rUtils.matchValue_iterator(drivenAttr='%s.r%s',driverAttr='%s.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001)"%(mi_startJoint.getShortName(),str_localAimSingle,mi_ikHandle.getShortName()))
     return True
 
