@@ -3790,22 +3790,36 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 
     """
     try:
-	if type(arg) in [list,tuple] and len(arg) == 2:
-	    obj = arg[0]
-	    attr = arg[1]
-	    combined = "%s.%s"%(arg[0],arg[1])
-	elif '.' in arg:
-	    obj = arg.split('.')[0]
-	    attr = '.'.join(arg.split('.')[1:])
-	    combined = arg
-	else:
-	    raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
+	try:
+	    combined = arg.p_combinedName
+	    obj = arg.obj.mNode
+	    attr = arg.attr
+	    return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':arg}
+	    
+	except:
+	    log.debug("cgmAttr call failed: %s"%arg)	    
+	    if type(arg) in [list,tuple] and len(arg) == 2:
+		try:
+		    log.info(arg[0].mNode)
+		    obj = arg[0].mNode
+		except:
+		    log.debug("mNode call fail")
+		    obj = arg[0]
+		attr = arg[1]
+		combined = "%s.%s"%(obj,attr)
+	    elif '.' in arg:
+		obj = arg.split('.')[0]
+		attr = '.'.join(arg.split('.')[1:])
+		combined = arg
+	    else:
+		raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
 	
 	if not mc.objExists(obj):
 	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
 	    
 	if not mc.objExists(combined):
 	    if noneValid:
+		log.debug("Not found: '%s'"%combined)
 		return False
 	    else:
 		log.debug("validateAttrArg>>> '%s'doesn't exist, creating attr (%s)!"%(combined,defaultType))
@@ -3816,11 +3830,10 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	
 	return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
     except StandardError,error:
+	log.error("validateAttrArg>>Failure! arg: %s"%arg)	
 	if noneValid:
 	    return False
-	else:
-	    log.error("validateAttrArg>>Failure! arg: %s"%arg)
-	    raise StandardError,error
+	raise StandardError,error
     
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
