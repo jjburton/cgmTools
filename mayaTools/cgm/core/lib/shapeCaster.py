@@ -589,6 +589,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	log.debug("Casting: %i>>%f"%(i,rotateValue))
 	mc.setAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize()),rotateValue)
 	log.debug(mc.getAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize())) )
+	
 	#mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)
 	try:
 	    log.debug("mesh: %s"%mesh)
@@ -613,7 +614,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		if d_castReturn.get('hits'):
 		    closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
 		    d_castReturn['hit'] = closestPoint
-		    log.info("From %s: %s" %(rotateValue,d_castReturn))
+		    log.debug("From %s: %s" %(rotateValue,d_castReturn))
 		
 	    hit = d_castReturn.get('hit') or False
 	    d_rawHitFromValue[rotateValue] = hit
