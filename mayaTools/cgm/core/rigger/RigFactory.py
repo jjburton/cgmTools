@@ -90,8 +90,8 @@ class go(object):
         assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
         assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
         
-        log.info(">>> RigFactory.go.__init__")
-        log.info(">>> forceNew: %s"%forceNew)	
+        log.debug(">>> RigFactory.go.__init__")
+        log.debug(">>> forceNew: %s"%forceNew)	
         self._i_module = moduleInstance# Link for shortness
 	self._i_module.__verify__()
 	self._cgmClass = 'RigFactory.go'
@@ -110,7 +110,7 @@ class go(object):
 	    self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull.mNode)
 	else:
 	    self._i_dynSwitch = self._i_module.rigNull.dynSwitch
-	log.info(self._i_dynSwitch)
+	log.debug("switch: '%s'"%self._i_dynSwitch.getShortName())
 	
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
@@ -130,7 +130,7 @@ class go(object):
         
         #>>> part name 
         self._partName = self._i_module.getPartNameBase()
-        self._partType = self._i_module.moduleType or False
+        self._partType = self._i_module.moduleType.lower() or False
         self._strShortName = self._i_module.getShortName() or False
 	
         #>>> See if we have a buildable module -- do we have a builder
@@ -142,11 +142,11 @@ class go(object):
 	self._outOfDate = False
 	if self._version != self._buildVersion:
 	    self._outOfDate = True	    
-	    log.warning("RigFactory.go>>> '%s' rig version out of date: %s != %s"%(self._partType,self._version,self._buildVersion))	
+	    log.warning("RigFactory.go>>> '%s'(%s) rig version out of date: %s != %s"%( self._strShortName,self._partType,self._version,self._buildVersion))	
 	else:
 	    if forceNew and self._i_module.isRigged():
 		self._i_module.deleteRig()
-	    log.info("RigFactory.go>>> '%s' rig version up to date !"%(self._partType))	
+	    log.info("RigFactory.go>>> '%s' rig version up to date !"%(self.buildModule.__name__))	
 	
 	self._direction = self._i_module.getAttr('cgmDirection')
         #self._direction = None
@@ -197,7 +197,7 @@ class go(object):
 	    else:
 		log.info("'%s' Up to date. No force."%self._strShortName)
 	else:
-	    log.warning("'%s' module type not in done list. No auto build"%self._partType)
+	    log.warning("'%s' module type not in done list. No auto build"%self.buildModule.__name__)
 
     def isShaped(self):
 	"""
