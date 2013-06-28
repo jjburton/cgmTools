@@ -1678,7 +1678,51 @@ class cgmModule(cgmMeta.cgmObject):
 	except StandardError,error:
 	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
 	    return False
-
+	
+    #>>> Module Children
+    #========================================================================
+    def animKey_children(self,**kws):
+	try:
+	    l_controls = self.rigNull.getMessage('controlsAll') or []
+	    for i_c in self.moduleChildren:
+		buffer = i_c.rigNull.getMessage('controlsAll')
+		if buffer:
+		    l_controls.extend(buffer)
+	    
+	    if l_controls:
+		mc.select(l_controls)
+		mc.setKeyframe(**kws)
+		return True
+	    return False
+	except StandardError,error:
+	    log.error("%s.animKey_children>> animKey fail | %s"%(self.getBaseName(),error))
+	    return False
+    def animSelect_children(self,**kws):
+	try:
+	    l_controls = self.rigNull.getMessage('controlsAll') or []
+	    for i_c in self.moduleChildren:
+		buffer = i_c.rigNull.getMessage('controlsAll')
+		if buffer:
+		    l_controls.extend(buffer)
+	    
+	    if l_controls:
+		mc.select(l_controls)
+		return True
+	    return False
+	except StandardError,error:
+	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
+	    return False   
+    def dynSwitch_children(self,arg):
+	try:
+	    for i_c in self.moduleChildren:
+		try:
+		    i_c.rigNull.dynSwitch.go(arg)
+		except StandardError,error:
+		    log.error("%s.dynSwitch_children>>  child: %s | %s"%(self.getBaseName(),i_c.getShortName(),error))
+		    
+	except StandardError,error:
+	    log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
+	    return False  
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
