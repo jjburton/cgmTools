@@ -99,7 +99,25 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    self.mmActionOptionVar.value=1			
 	    command
 	    killUI()	
-
+	    
+	def func_multiModuleSelect():
+	    """
+	    execute a command and let the menu know not do do the default button action but just kill the ui
+	    """		
+	    if self.ml_modules:
+		l_buffer = []
+		for i_m in self.ml_modules:
+		    l_buffer.extend( i_m.rigNull.getMessage('controlsAll') )
+		mc.select(l_buffer )
+	    killUI()	
+	def func_multiModuleKey():
+	    """
+	    execute a command and let the menu know not do do the default button action but just kill the ui
+	    """		
+	    func_multiModuleSelect()
+	    setKey()
+	    killUI()	
+	    
 	def aimObjects(self):
 	    for i_obj in self.ml_objList[1:]:
 		if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
@@ -169,7 +187,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		if i_o.getMessage('dynParentGroup'):
 		    i_dynParent = cgmMeta.validateObjArg(i_o.getMessage('dynParentGroup')[0],cgmRigMeta.cgmDynParentGroup,True)
 		    if i_dynParent:
-			MelMenuItem(parent,l=">> %s <<"%i_o.getShortName(),en = False)
+			MelMenuItem(parent,l="- %s -"%i_o.getShortName(),en = False)
 			for a in cgmRigMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
 			    if i_o.hasAttr(a):
 				tmpMenu = MelMenuItem( parent, l="Change %s"%a, subMenu=True)
@@ -191,23 +209,64 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	#>>> Module
 	if self.BuildModuleOptionVar.value and self.ml_modules:
 	    self.ml_modules = lists.returnListNoDuplicates(self.ml_modules)
+	    int_lenModules = len(self.ml_modules)
+	    if int_lenModules == 1:
+		use_parent = parent
+		state_multiModule = False
+	    else:
+		iSubM_modules = MelMenuItem(parent,l="Modules(%s)"%(int_lenModules),subMenu = True)
+		use_parent = iSubM_modules
+		state_multiModule = True
+		MelMenuItem( parent, l="Select",
+	                     c = Callback(func_multiModuleSelect))
+		MelMenuItem( parent, l="Key",
+	                     c = Callback(func_multiModuleKey))		
+		"""
+		MelMenuItem( parent, l="IKtoFK",
+	                     c = Callback(i_module.dynSwitch_children,0))	
+		MelMenuItem( parent, l="FKtoIK",
+	                     c = Callback(i_module.dynSwitch_children,1))				
+		MelMenuItem( parent, l="Key Below",
+	                     c = Callback(i_module.animKey_children))							
+		MelMenuItem( parent, l="Select Below",
+	                     c = Callback(i_module.animSelect_children))"""		
+		
 	    for i_module in self.ml_modules:
-		MelMenuItem(parent,l=">> %s<< "%i_module.getBaseName(),en = False)
+		if state_multiModule:
+		    iTmpModuleSub = MelMenuItem(iSubM_modules,l=" %s  "%i_module.getBaseName(),subMenu = True)
+		    use_parent = iTmpModuleSub
+			    
+		else:
+		    MelMenuItem(parent,l="-- %s --"%i_module.getBaseName(),en = False)
 		try:#To build dynswitch
 		    i_switch = i_module.rigNull.dynSwitch
 		    for a in i_switch.l_dynSwitchAlias:
-			MelMenuItem( parent, l="switch>> %s"%a,
+			MelMenuItem( use_parent, l="%s"%a,
 			             c = Callback(i_switch.go,a))						
 		except StandardError,error:
 		    log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
 		try:#module basic menu
 		    if i_module.rigNull.getMessage('controlsAll'):
-			MelMenuItem( parent, l="Key",
+			MelMenuItem( use_parent, l="Key",
 			             c = Callback(i_module.animKey))
 			#MelMenuItem( parent, l="Select",
 				#c = Callback(buttonAction(i_module.animSelect)))							
-			MelMenuItem( parent, l="Select",
+			MelMenuItem( use_parent, l="Select",
 			             c = Callback(i_module.animSelect))									
+		except StandardError,error:
+		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
+		try:#module children
+		    if i_module.getMessage('moduleChildren'):
+			iSubM_Children = MelMenuItem( use_parent, l="Children:",
+			                             subMenu = True)
+			MelMenuItem( iSubM_Children, l="IKtoFK",
+			             c = Callback(i_module.dynSwitch_children,0))	
+			MelMenuItem( iSubM_Children, l="FKtoIK",
+			             c = Callback(i_module.dynSwitch_children,1))				
+			MelMenuItem( iSubM_Children, l="Key Below",
+			             c = Callback(i_module.animKey_children))							
+			MelMenuItem( iSubM_Children, l="Select Below",
+			             c = Callback(i_module.animSelect_children))																
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 
@@ -216,7 +275,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 
 	#>>> Options menus
 	#================================================================================
-	MelMenuItem(parent,l = ">> Options <<",en = False)
+	MelMenuItem(parent,l = "{ Options }",en = False)
 	
 	#>>> Build Type
 	BuildMenu = MelMenuItem( parent, l='Build Menus', subMenu=True)
