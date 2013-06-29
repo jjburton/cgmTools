@@ -1672,7 +1672,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	self.connectChildNode(i_followDriver,'dynFollow','dynMaster')
 	self._mi_followDriver = i_followDriver
 	
-    def doSwitchSpace(self,attr,index,deleteLoc = True):
+    def doSwitchSpace(self,attr,arg,deleteLoc = True):
 	#Swich setting shile holding 
 	l_attrs = ['space','follow','orientTo']
 	if attr not in l_attrs:
@@ -1682,6 +1682,15 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	d_attr = cgmMeta.validateAttrArg([i_child.mNode,attr])
 	if not i_child and d_attr:
 	    raise StandardError,"cgmDynParentGroup.doSwitchSpace>> doSwitchSpace doesn't have enough info. Rebuild recommended"
+	
+	#Validate the arg
+	if type(arg) is int:
+	    index = arg
+	elif arg in d_attr['mi_plug'].p_enum:
+	    index = d_attr['mi_plug'].p_enum.index(arg)
+	else:
+	    raise StandardError,"%s.doSwitchSpace>> faile to find index from -- arg: %s | attr: %s"%(self.getShortName(),arg,attr)
+	    
 	if index == i_child.getAttr(attr):
 	    log.debug("cgmDynParentGroup.doSwitchSpace>> Already that mode")	    
 	    return True
