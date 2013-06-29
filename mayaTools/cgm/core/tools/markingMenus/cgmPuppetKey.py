@@ -110,6 +110,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    l_buffer.extend( i_m.rigNull.getMessage('controlsAll') )
 		mc.select(l_buffer )
 	    killUI()	
+	    
 	def func_multiModuleKey():
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
@@ -118,6 +119,34 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    setKey()
 	    killUI()	
 	    
+	def func_multiDynSwitch(arg):
+	    """
+	    execute a command and let the menu know not do do the default button action but just kill the ui
+	    """		
+	    if self.ml_modules:
+		for i_m in self.ml_modules:
+		    l_buffer.extend( i_m.rigNull.getMessage('controlsAll') )
+		mc.select(l_buffer )
+	    killUI()	
+	    
+	def func_multiChangeDynParent(attr,option):
+	    """
+	    execute a command and let the menu know not do do the default button action but just kill the ui
+	    """	
+	    l_objects = [i_o.getShortName() for i_o in self.d_objectsInfo.keys()]
+	    log.info("func_multiChangeDynParent>> attr: '%s' | option: '%s' | objects: %s"%(attr,option,l_objects))
+	    timeStart_tmp = time.clock()
+	    
+	    for i_o in self.d_objectsInfo.keys():
+		try:
+		    mi_dynParent = self.d_objectsInfo[i_o]['dynParent'].get('mi_dynParent')
+		    mi_dynParent.doSwitchSpace(attr,option)
+		except StandardError,error:
+		    log.error("func_multiChangeDynParent>> '%s' failed. | %s"%(i_o.getShortName(),error))    
+	    
+	    log.info(">"*10  + ' func_multiChangeDynParent =  %0.3f seconds  ' % (time.clock()-timeStart_tmp) + '<'*10)  
+	    mc.select(l_objects)
+		    
 	def aimObjects(self):
 	    for i_obj in self.ml_objList[1:]:
 		if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
@@ -137,6 +166,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	self.ml_objList = cgmMeta.validateObjListArg(selected,cgmMeta.cgmObject,True)
 	log.debug("ml_objList: %s"%self.ml_objList)
 	self.ml_modules = []
+	self.l_modules = []
 	if selected:selCheck = True
 	else:selCheck = False
 
@@ -145,12 +175,14 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	b_aimable = False
 	self.i_target = False
 	if len(self.ml_objList)>=2:
+	    time_aimStart = time.clock()	    
 	    for i_obj in self.ml_objList[1:]:
 		if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
 		    if i_obj._isAimable():
 			b_aimable = True
 			self.i_target = self.ml_objList[0]
 			break
+	    log.info(">"*10  + 'Aim check =  %0.3f seconds  ' % (time.clock()-time_aimStart) + '<'*10)  
 
 	#ShowMatch = search.matchObjectCheck()
 
@@ -180,34 +212,123 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	            l = 'deleteKey',
 	            c = lambda *a:deleteKey(),
 	            rp = 'SW')	
-
+	
+	timeStart_objectList = time.clock()
 	if self.ml_objList:
-	    for i_o in self.ml_objList:
-		#>>> Space switching							
+	    self.d_objectsInfo = {}
+	    #First we're gonna gather all of the data
+	    #=========================================================================================
+	    for i,i_o in enumerate(self.ml_objList):
+		int_maxObjects = 5
+		if i >= int_maxObjects:
+		    log.warning("More than %s objects select, only loading first %s for speed"%(int_maxObjects,int_maxObjects))
+		    break
+		d_buffer = {}
+		
+		#>>> Space switching ------------------------------------------------------------------							
 		if i_o.getMessage('dynParentGroup'):
 		    i_dynParent = cgmMeta.validateObjArg(i_o.getMessage('dynParentGroup')[0],cgmRigMeta.cgmDynParentGroup,True)
+		    d_buffer['dynParent'] = {'mi_dynParent':i_dynParent,'attrs':[],'attrOptions':{}}#Build our data gatherer					    
 		    if i_dynParent:
-			MelMenuItem(parent,l="- %s -"%i_o.getShortName(),en = False)
 			for a in cgmRigMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
 			    if i_o.hasAttr(a):
-				tmpMenu = MelMenuItem( parent, l="Change %s"%a, subMenu=True)
+				d_buffer['dynParent']['attrs'].append(a)
+				lBuffer_attrOptions = []
+				for i,o in enumerate(cgmMeta.cgmAttr(i_o.mNode,a).p_enum):
+				    lBuffer_attrOptions.append(o)
+				d_buffer['dynParent']['attrOptions'][a] = lBuffer_attrOptions
+		self.d_objectsInfo[i_o] = d_buffer
+		
+		#>>> Module --------------------------------------------------------------------------
+		if self.BuildModuleOptionVar.value:
+		    buffer = i_o.getMessage('module')
+		    try:
+			self.ml_modules.append(i_o.rigNull.module)
+		    except StandardError,error:
+			log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
+	    log.info(">"*10  + ' Object list build =  %0.3f seconds  ' % (time.clock()-timeStart_objectList) + '<'*10)  
+	    for k in self.d_objectsInfo.keys():
+		log.debug("%s: %s"%(k.getShortName(),self.d_objectsInfo.get(k)))
+		
+		
+	    #Build the menu
+	    #=========================================================================================
+	    #>> Find Common options ------------------------------------------------------------------
+	    timeStart_commonOptions = time.clock()	    
+	    l_commonAttrs = []
+	    d_commonOptions = {}
+	    bool_firstFound = False
+	    for i_o in self.d_objectsInfo.keys():
+		if 'dynParent' in self.d_objectsInfo[i_o].keys():
+		    attrs = self.d_objectsInfo[i_o]['dynParent'].get('attrs') or []
+		    attrOptions = self.d_objectsInfo[i_o]['dynParent'].get('attrOptions') or {}
+		    if self.d_objectsInfo[i_o].get('dynParent'):
+			if not l_commonAttrs and not bool_firstFound:
+			    log.debug('first found')
+			    l_commonAttrs = attrs
+			    state_firstFound = True
+			    d_commonOptions = attrOptions
+			elif attrs:
+			    log.debug(attrs)
+			    for a in attrs:
+				if a not in l_commonAttrs:
+				    l_commonAttrs.remove(a)
+				for option in d_commonOptions[a]:			
+				    if option not in attrOptions[a]:
+					d_commonOptions[a].remove(option)
+				    
+				
+	    log.debug("Common Attrs: %s"%l_commonAttrs)
+	    log.debug("Common Options: %s"%d_commonOptions)
+	    log.debug(">"*10  + ' Common options build =  %0.3f seconds  ' % (time.clock()-timeStart_commonOptions) + '<'*10)  
+	    
+	    #>> Build ------------------------------------------------------------------
+	    int_lenObjects = len(self.d_objectsInfo.keys())
+	    # Mutli
+	    if int_lenObjects == 1:
+		#MelMenuItem(parent,l="-- Object --",en = False)	    					
+		use_parent = parent
+		state_multiObject = False
+	    else:
+		#MelMenuItem(parent,l="-- Objects --",en = False)	    			
+		iSubM_objects = MelMenuItem(parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
+		use_parent = iSubM_objects
+		state_multiObject = True		
+		if l_commonAttrs and [d_commonOptions.get(a) for a in l_commonAttrs]:
+		    for atr in d_commonOptions.keys():
+			tmpMenu = MelMenuItem( parent, l="multi Change %s"%atr, subMenu=True)
+			for i,o in enumerate(d_commonOptions.get(atr)):
+			    MelMenuItem(tmpMenu,l = "%s"%o,
+			                c = Callback(func_multiChangeDynParent,atr,o))
+	    # Individual
+	    log.debug("%s"%[k.getShortName() for k in self.d_objectsInfo.keys()])
+	    for i_o in self.d_objectsInfo.keys():
+		d_buffer = self.d_objectsInfo.get(i_o) or False
+		if d_buffer:
+		    if state_multiObject:
+			iTmpObjectSub = MelMenuItem(use_parent,l=" %s  "%i_o.getBaseName(),subMenu = True)
+		    else:
+			MelMenuItem(parent,l="-- %s --"%i_o.getShortName(),en = False)
+			iTmpObjectSub = use_parent
+		    if d_buffer.get('dynParent'):
+			mi_dynParent = d_buffer['dynParent'].get('mi_dynParent')
+			d_attrOptions = d_buffer['dynParent'].get('attrOptions') or {}			
+			for a in d_attrOptions.keys():
+			    if i_o.hasAttr(a):
+				lBuffer_attrOptions = []
+				tmpMenu = MelMenuItem( iTmpObjectSub, l="Change %s"%a, subMenu=True)
 				v = mc.getAttr("%s.%s"%(i_o.mNode,a))
 				for i,o in enumerate(cgmMeta.cgmAttr(i_o.mNode,a).p_enum):
 				    if i == v:b_enable = False
 				    else:b_enable = True
 				    MelMenuItem(tmpMenu,l = "%s"%o,en = b_enable,
-				                c = Callback(i_dynParent.doSwitchSpace,a,i))								
-			MelMenuItemDiv(parent)
-
-		#>>> Module
-		buffer = i_o.getMessage('module')
-		try:
-		    self.ml_modules.append(i_o.rigNull.module)
-		except StandardError,error:
-		    log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
-
+					        c = Callback(mi_dynParent.doSwitchSpace,a,i))
+		    else:
+			log.debug("'%s':lacks dynParent"%i_o.getShortName())
+				
 	#>>> Module
 	if self.BuildModuleOptionVar.value and self.ml_modules:
+	    #MelMenuItem(parent,l="-- Modules --",en = False)	    
 	    self.ml_modules = lists.returnListNoDuplicates(self.ml_modules)
 	    int_lenModules = len(self.ml_modules)
 	    if int_lenModules == 1:
@@ -221,11 +342,11 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	                     c = Callback(func_multiModuleSelect))
 		MelMenuItem( parent, l="Key",
 	                     c = Callback(func_multiModuleKey))		
+		MelMenuItem( parent, l="toFK",
+	                     c = Callback(func_multiDynSwitch,0))	
+		MelMenuItem( parent, l="toIK",
+	                     c = Callback(func_multiDynSwitch,1))
 		"""
-		MelMenuItem( parent, l="IKtoFK",
-	                     c = Callback(i_module.dynSwitch_children,0))	
-		MelMenuItem( parent, l="FKtoIK",
-	                     c = Callback(i_module.dynSwitch_children,1))				
 		MelMenuItem( parent, l="Key Below",
 	                     c = Callback(i_module.animKey_children))							
 		MelMenuItem( parent, l="Select Below",
@@ -259,9 +380,9 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    if i_module.getMessage('moduleChildren'):
 			iSubM_Children = MelMenuItem( use_parent, l="Children:",
 			                             subMenu = True)
-			MelMenuItem( iSubM_Children, l="IKtoFK",
+			MelMenuItem( iSubM_Children, l="toFK",
 			             c = Callback(i_module.dynSwitch_children,0))	
-			MelMenuItem( iSubM_Children, l="FKtoIK",
+			MelMenuItem( iSubM_Children, l="toIK",
 			             c = Callback(i_module.dynSwitch_children,1))				
 			MelMenuItem( iSubM_Children, l="Key Below",
 			             c = Callback(i_module.animKey_children))							
@@ -271,7 +392,6 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 
 		MelMenuItemDiv(parent)						
-
 
 	#>>> Options menus
 	#================================================================================
@@ -287,7 +407,6 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	MelMenuItem(BuildMenu,l=' Puppet ',
 	            c= Callback(self.toggleVarAndReset,self.BuildPuppetOptionVar),
 	            cb= self.BuildPuppetOptionVar.value )		
-	
 	
 	#>>> Keying Options	
 	KeyMenu = MelMenuItem( parent, l='Key type', subMenu=True)
