@@ -16,7 +16,9 @@ obj = ''
 objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
-
+start = 'l_left_index_2_ik_jnt'
+end = 'l_left_index_4_ik_jnt'
+mc.ikHandle( sj=start, ee=end,solver = 'ikSpringSolver', forceSolver = True,snapHandleFlagToggle=True )  
 #>>>Iterator
 #=======================================================
 #Value match mode
@@ -39,6 +41,8 @@ start = 'l_hip_ik_jnt'
 end = 'l_ankle_ik_jnt'
 rUtils.IKHandle_create(start,end,stretch = 'translate')
 rUtils.IKHandle_fixTwist('ikChain_ikH')
+rUtils.IKHandle_fixTwist('ikHandle2')
+rUtils.IKHandle_fixTwist('left_pinky_noFlip_ikH')
 
 #>>>Connect joint length
 #=======================================================

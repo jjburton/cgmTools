@@ -24,6 +24,7 @@ objList = []
 i_obj = cgmMeta.cgmObject(mc.ls(sl=True)[0])
 i_obj.getPosition()
 mesh = 'Morphy_Body_GEO'
+mesh = 'polySurface2'
 
 RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode)
 RayCast.findMeshMidPointFromObject(mesh,i_obj.mNode)

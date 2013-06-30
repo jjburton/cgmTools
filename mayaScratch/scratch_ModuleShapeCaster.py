@@ -9,8 +9,11 @@ import Red9.core.Red9_Meta as r9Meta
 from cgm.core.classes import SnapFactory as Snap
 reload(Snap)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
+from cgm.core.lib import shapeCaster as ShapeCast
 reload(mShapeCast)
-
+reload(ShapeCast)
+from cgm.lib import rigging
+reload(rigging)
 #>>>Base control size
 caster = 'curve1'
 geo = 'Morphy_Body_GEO'
@@ -42,7 +45,7 @@ l_specifiedRotates = [-20,0,20]
 
 curveDegree = 3
 closedCurve = False
-mShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],closedCurve = closedCurve,l_specifiedRotates = l_specifiedRotates,curveDegree=curveDegree,posOffset = [0,0,1.5],points=8,returnDict = True,latheAxis='z',aimAxis='y+')
+ShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],closedCurve = closedCurve,l_specifiedRotates = l_specifiedRotates,curveDegree=curveDegree,posOffset = [0,0,1.5],points=8,returnDict = True,latheAxis='z',aimAxis='y+')
 l_pos = []
 for curve in mc.ls(sl=True):
     l_buffer = []
@@ -63,20 +66,54 @@ mShapeCast.createWrapControlShape(l_targetObjects,geo,posOffset = posOffset,poin
 posOffset = [0,0,1]
 mShapeCast.createWrapControlShape(l_targetObjects,'Morphy_Body_GEO',joinMode = True, extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
 mShapeCast.createWrapControlShape(l_targetObjects[0],'Morphy_Body_GEO',joinMode = True, extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
+mShapeCast.createWrapControlShape(l_targetObjects[0],geo,joinMode = True, extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis='z+',aimAxis='y-')
+#clavicle
+mShapeCast.createWrapControlShape(l_targetObjects,geo,joinMode = True, insetMult = insetMult, rootRotate=[0,-30,0],closedCurve = closedCurve,  l_specifiedRotates = l_specifiedRotates,extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis=latheAxis,aimAxis=aimAxis)
 
-extendMode = 'disc'
+#finger
+extendMode = 'loliwrap'
 curveDegree = 3
-posOffset = [0,0,2]
-points = 10
-rotateBank = 0
-closedCurve = True
+posOffset = [0,0,.75]
+closedCurve = False
 maxDistance = 50
-aimAxis = 'y-'
+aimAxis = 'y+'
+latheAxis = 'z'
+closestInRange = False
+joinMode = False
+l_specifiedRotates = [-40,-20,0,]
+ShapeCast.createWrapControlShape(l_targetObjects,geo,joinMode = True, insetMult = insetMult,closedCurve = closedCurve,  l_specifiedRotates = l_specifiedRotates,extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis=latheAxis,aimAxis=aimAxis)
+
+#capEnd
+extendMode = 'endCap'
+curveDegree = 3
+posOffset = [0,0,.5]
+closedCurve = True
+maxDistance = 5
+points = 12
+aimAxis = 'y+'
 latheAxis = 'z'
 closestInRange = True
-insetMult = .5
+joinMode = False
+l_specifiedRotates = []
+ShapeCast.createWrapControlShape(l_targetObjects,'polySurface2',joinMode = True, insetMult = insetMult,closedCurve = closedCurve,  l_specifiedRotates = l_specifiedRotates,extendMode = extendMode, curveDegree=3, maxDistance = maxDistance, posOffset = posOffset,points=points,latheAxis=latheAxis,aimAxis=aimAxis)
+
+extendMode = 'loliwrap'
+curveDegree = 3
+posOffset = [0,0,.75]
+points = 6
+rotateBank = 0
+closedCurve = True
+maxDistance = 2
+aimAxis = 'x-'
+latheAxis = 'z'
+closestInRange = True
+insetMult = .3
 joinMode = True
 l_specifiedRotates = []
+l_specifiedRotates = [-180,-120,-90,-30,0,30]
+l_specifiedRotates = [30,0,-30,-90,-120,-180]
+l_specifiedRotates = [0,5,10,40,90,120,170,175,180]
+
 l_specifiedRotates = [-30,-20,-10,-5,0,5,10,20,30]
 geo = 'Morphy_Body_GEO'
 l_specifiedRotates = [-40,-30,-20,-10,0,10,20,30,40]
@@ -86,9 +123,9 @@ l_specifiedRotates = [-40,-20,0,20,40,60,80,100]#foot front, closed false, close
 l_specifiedRotates = [-90,-60,-20,0,20,40,60,80,100,120]#foot back, closed false, closest in range false
 l_specifiedRotates = [-120,-100,-80,-50]#foot front closest, closed false, closest in range true
 
-mShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],maxDistance = maxDistance,closedCurve = closedCurve,curveDegree=curveDegree,posOffset = [0,0,1.5],points=8,returnDict = True,latheAxis=latheAxis,aimAxis=aimAxis,closestInRange=closestInRange)
-mShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],closedCurve = closedCurve,l_specifiedRotates = l_specifiedRotates,curveDegree=curveDegree,posOffset = [0,0,1.5],points=8,returnDict = True,latheAxis='z',aimAxis='y+')
-mShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],offsetMode='vector',maxDistance = maxDistance,l_specifiedRotates = l_specifiedRotates,closedCurve = closedCurve,curveDegree=curveDegree,posOffset = [0,0,1.5],points=8,returnDict = True,latheAxis=latheAxis,aimAxis=aimAxis,closestInRange=closestInRange)
+ShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],maxDistance = maxDistance,closedCurve = closedCurve,curveDegree=curveDegree,posOffset = [0,0,1.5],points=8,returnDict = True,latheAxis=latheAxis,aimAxis=aimAxis,closestInRange=closestInRange)
+ShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],closedCurve = closedCurve,closestInRange = closestInRange, maxDistance = maxDistance,midMeshCast=True,l_specifiedRotates = l_specifiedRotates,curveDegree=curveDegree,posOffset = [0,0,.75],points=points,returnDict = True,latheAxis='z',aimAxis='y+')
+ShapeCast.createMeshSliceCurve(geo,l_targetObjects[0],axisToCheck=['x'],offsetMode='vector',maxDistance = maxDistance,l_specifiedRotates = l_specifiedRotates,closedCurve = closedCurve,curveDegree=curveDegree,posOffset = [0,0,.75],points=points,returnDict = True,latheAxis=latheAxis,aimAxis=aimAxis,closestInRange=closestInRange,midMeshCast=True)
 
 extendMode = ''
 for o in l_targetObjects:
