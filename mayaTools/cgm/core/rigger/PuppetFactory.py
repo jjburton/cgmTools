@@ -12,7 +12,8 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.lib import (search,attributes)
-
+from cgm.core import cgm_General as cgmGeneral
+reload(cgmGeneral)
 #Shared Settings
 #========================= 
 geoTypes = 'nurbsSurface','mesh','poly','subdiv'
@@ -107,7 +108,7 @@ def getState(self):
     log.info("'%s' states: %s"%(self.getShortName(),l_states))
     return min(l_states)
     
-@r9General.Timer  
+@cgmGeneral.Timer  
 def getOrderedModules(self):
     """ 
     Returns ordered modules of a character
