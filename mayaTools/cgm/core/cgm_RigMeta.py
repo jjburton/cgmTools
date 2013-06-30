@@ -22,6 +22,7 @@ from Red9.core import Red9_General as r9General
 
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import rig_Utils as rUtils
 
@@ -283,7 +284,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	#======================================================================
 	if postSwitchArg is not None:
 	    self.setPostmatchAliasAttr(postSwitchArg)
-	
+    @r9General.Timer	
     def go(self,arg):
 	"""
 	The actual switcher
@@ -741,7 +742,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	self.dynIterSettings = d_iterSettings
 	#======================================================================
 	
-    @r9General.Timer
+    @cgmGeneral.Timer
     def doIter(self):
 	"""
 	"""
@@ -901,7 +902,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	self.d_dynMatchAttrSettings = d_dynMatchAttrSettings
 	#======================================================================
 	
-    @r9General.Timer
+    @cgmGeneral.Timer
     def isAttrMatch(self):
 	"""
 	See if our attrs match like they should
@@ -957,7 +958,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    log.error("%s.doAttrMatch>> Failure!"%(self.getShortName()))
 	    raise StandardError,error
 	
-    @r9General.Timer
+    @cgmGeneral.Timer
     def doAttrMatch(self):
 	"""
 	"""
@@ -1222,7 +1223,6 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 		log.debug("cgmDynamicMatch.doSnap>> match rotate! %s"%objRot)		    
 		mc.rotate (objRot[0], objRot[1], objRot[2], [i_object.mNode], ws=True)#Set rot			
 	    
-	
     def doPurge(self):
 	if self.isReferenced():
 	    log.warning('This function is not designed for referenced buffer nodes')
@@ -1671,7 +1671,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	
 	self.connectChildNode(i_followDriver,'dynFollow','dynMaster')
 	self._mi_followDriver = i_followDriver
-	
+    
+    @cgmGeneral.Timer
     def doSwitchSpace(self,attr,arg,deleteLoc = True):
 	#Swich setting shile holding 
 	l_attrs = ['space','follow','orientTo']
