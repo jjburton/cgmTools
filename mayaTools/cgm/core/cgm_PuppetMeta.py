@@ -30,6 +30,8 @@ log.setLevel(logging.INFO)
 
 # From cgm ==============================================================
 #from cgm.lib.classes import NameFactory
+from cgm.core import cgm_General as cgmGeneral
+
 from cgm.core.lib import nameTools
 reload(nameTools)
 from cgm.core.rigger import ModuleFactory as mFactory
@@ -361,7 +363,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	"""
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
-	return pFactory.getModuleFromDict(self)
+	return pFactory.getModules(self)
     
     def getState(self):
 	"""
@@ -1681,48 +1683,18 @@ class cgmModule(cgmMeta.cgmObject):
 	
     #>>> Module Children
     #========================================================================
+    def getAllModuleChildren(self):
+	return mFactory.getAllModuleChildren(self)
+		
     def animKey_children(self,**kws):
-	try:
-	    l_controls = self.rigNull.getMessage('controlsAll') or []
-	    for i_c in self.moduleChildren:
-		buffer = i_c.rigNull.getMessage('controlsAll')
-		if buffer:
-		    l_controls.extend(buffer)
-	    
-	    if l_controls:
-		mc.select(l_controls)
-		mc.setKeyframe(**kws)
-		return True
-	    return False
-	except StandardError,error:
-	    log.error("%s.animKey_children>> animKey fail | %s"%(self.getBaseName(),error))
-	    return False
+	mFactory.animKey_children(self,**kws)
+
     def animSelect_children(self,**kws):
-	try:
-	    l_controls = self.rigNull.getMessage('controlsAll') or []
-	    for i_c in self.moduleChildren:
-		buffer = i_c.rigNull.getMessage('controlsAll')
-		if buffer:
-		    l_controls.extend(buffer)
-	    
-	    if l_controls:
-		mc.select(l_controls)
-		return True
-	    return False
-	except StandardError,error:
-	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
-	    return False   
+	mFactory.animSelect_children(self,**kws)
+
     def dynSwitch_children(self,arg):
-	try:
-	    for i_c in self.moduleChildren:
-		try:
-		    i_c.rigNull.dynSwitch.go(arg)
-		except StandardError,error:
-		    log.error("%s.dynSwitch_children>>  child: %s | %s"%(self.getBaseName(),i_c.getShortName(),error))
-		    
-	except StandardError,error:
-	    log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
-	    return False  
+	mFactory.dynSwitch_children(self,arg)
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      

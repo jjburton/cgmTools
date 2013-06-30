@@ -18,6 +18,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 # From cgm ==============================================================
 from cgm.lib import (modules,curves,distance,attributes)
 from cgm.lib.ml import ml_resetChannels
+from cgm.core import cgm_General as cgmGeneral
 
 reload(attributes)
 from cgm.core.lib import nameTools
@@ -646,6 +647,7 @@ def returnExpectedJointCount(self):
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
+
 @r9General.Timer   
 def validateStateArg(stateArg):
     #>>> Validate argument
@@ -927,3 +929,91 @@ def readPose_templateSettings(self):
                 log.error(err)    
                 
     return True
+
+#=====================================================================================================
+#>>> Children functions
+#=====================================================================================================  
+@cgmGeneral.Timer
+def getAllModuleChildren(self):
+    """
+    Finds all module descendants of a module.
+    """       
+    if not isModule(self):return False
+    ml_children = []
+    ml_childrenCull = copy.copy(self.moduleChildren)
+                   
+    cnt = 0
+    #Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
+    while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
+        cnt+=1                        
+        if cnt == 99:
+            log.error('%s.getAllModuleChildren >> Max count')
+        for i_child in ml_childrenCull:
+	    log.debug("i_child: %s"%i_child.getShortName())
+	    if i_child not in ml_children:
+		ml_children.append(i_child)
+	    for i_subChild in i_child.moduleChildren:
+		ml_childrenCull.append(i_subChild)
+	    ml_childrenCull.remove(i_child) 
+                    
+    return ml_children
+
+@cgmGeneral.Timer
+def animKey_children(self,**kws):
+    """
+    Key module and all module children controls
+    """        
+    if not isModule(self):return False    
+    try:
+	l_controls = self.rigNull.getMessage('controlsAll') or []
+	for i_c in getAllModuleChildren(self):
+	    buffer = i_c.rigNull.getMessage('controlsAll')
+	    if buffer:
+		l_controls.extend(buffer)
+	
+	if l_controls:
+	    mc.select(l_controls)
+	    mc.setKeyframe(**kws)
+	    return True
+	return False
+    except StandardError,error:
+	log.error("%s.animKey_children>> animKey fail | %s"%(self.getBaseName(),error))
+	return False
+    
+@cgmGeneral.Timer
+def animSelect_children(self,**kws):
+    """
+    Select module and all module children controls
+    """     
+    if not isModule(self):return False    
+    try:
+	l_controls = self.rigNull.getMessage('controlsAll') or []
+	for i_c in getAllModuleChildren(self):
+	    buffer = i_c.rigNull.getMessage('controlsAll')
+	    if buffer:
+		l_controls.extend(buffer)
+	
+	if l_controls:
+	    mc.select(l_controls)
+	    return True
+	return False
+    except StandardError,error:
+	log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
+	return False   
+
+@cgmGeneral.Timer 
+def dynSwitch_children(self,arg):
+    """
+    Key module and all module children
+    """     
+    if not isModule(self):return False    
+    try:
+	for i_c in getAllModuleChildren(self):
+	    try:
+		i_c.rigNull.dynSwitch.go(arg)
+	    except StandardError,error:
+		log.error("%s.dynSwitch_children>>  child: %s | %s"%(self.getBaseName(),i_c.getShortName(),error))
+		
+    except StandardError,error:
+	log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
+	return False  
