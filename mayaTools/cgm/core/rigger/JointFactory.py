@@ -34,6 +34,15 @@ from cgm.lib import (cgmMath,
 reload(joints)
 reload(cgmMath)
 from cgm.core.lib import nameTools
+
+#>>> Register rig functions
+#=====================================================================
+from cgm.core.rigger.lib.Limb import (spine)
+d_moduleTypeToBuildModule = {'torso':spine,
+                            } 
+for module in d_moduleTypeToBuildModule.keys():
+    reload(d_moduleTypeToBuildModule[module])
+
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
@@ -59,7 +68,8 @@ class go(object):
         #assert ...
         log.debug(">>> JointFactory.go.__init__")
         self.cls = "JointFactory.go"
-        self.m = moduleInstance# Link for shortness
+	self._cgmClass = "JointFactory.go"
+        self._i_module = moduleInstance# Link for shortness
         
         if moduleInstance.isSkeletonized():
             if forceNew:
@@ -71,26 +81,30 @@ class go(object):
         #>>> store template settings
         if saveTemplatePose:
             log.debug("Saving template pose in JointFactory.go")
-            self.m.storeTemplatePose()
+            self._i_module.storeTemplatePose()
         
-        self.rigNull = self.m.getMessage('rigNull')[0] or False
-        self.i_rigNull = self.m.rigNull
-        self.moduleColors = self.m.getModuleColors()
-        self.l_coreNames = self.m.i_coreNames.value
+        self.rigNull = self._i_module.getMessage('rigNull')[0] or False
+        self.i_rigNull = self._i_module.rigNull
+        self.moduleColors = self._i_module.getModuleColors()
+        self.l_coreNames = self._i_module.i_coreNames.value
         self.foundDirections = False #Placeholder to see if we have it
                 
         #>>> part name 
-        self.partName = nameTools.returnRawGeneratedName(self.m.mNode, ignore = 'cgmType')
-        self.partType = self.m.moduleType or False
-        
+        self._partName = self._i_module.getPartNameBase()
+        self._partType = self._i_module.moduleType.lower() or False
+        self._strShortName = self._i_module.getShortName() or False
+	
         self.direction = None
-        if self.m.hasAttr('cgmDirection'):
-            self.direction = self.m.cgmDirection or None
+        if self._i_module.hasAttr('cgmDirection'):
+            self.direction = self._i_module.cgmDirection or None
         
         #>>> template null 
-        self.i_templateNull = self.m.templateNull
+        self.i_templateNull = self._i_module.templateNull
         self.curveDegree = self.i_templateNull.curveDegree
-        
+	
+        #>>> Gather info
+        #=========================================================	
+        self._l_coreNames = self._i_module.coreNames.value        
         #>>> Instances and joint stuff
         self.jointOrientation = modules.returnSettingsData('jointOrientation')
         self.i_root = self.i_templateNull.root
@@ -98,8 +112,8 @@ class go(object):
         self.i_curve = self.i_templateNull.curve
         self.i_controlObjects = self.i_templateNull.controlObjects
         
-        log.debug("Module: %s"%self.m.getShortName())
-        log.debug("partType: %s"%self.partType)
+        log.debug("Module: %s"%self._i_module.getShortName())
+        log.debug("partType: %s"%self._partType)
         log.debug("direction: %s"%self.direction) 
         log.debug("colors: %s"%self.moduleColors)
         log.debug("coreNames: %s"%self.l_coreNames)
@@ -108,13 +122,40 @@ class go(object):
         log.debug("orientRootHelper: %s"%self.i_orientRootHelper.getShortName())
         log.debug("rollJoints: %s"%self.i_templateNull.rollJoints)
         log.debug("jointOrientation: %s"%self.jointOrientation)
-        
-        if self.m.mClass == 'cgmLimb':
+        log.info("hasJointSetup: %s"%hasJointSetup(self))
+	
+        if self._i_module.mClass == 'cgmLimb':
             log.debug("mode: cgmLimb Skeletonize")
             doSkeletonize(self)
+	    self.build(self)    
         else:
-            raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
-        
+            raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self._i_module.mClass
+
+def hasJointSetup(goInstance):
+    if not issubclass(type(goInstance),go):
+	log.error("Not a JointFactory.go instance: '%s'"%goInstance)
+	raise StandardError
+    self = goInstance#Link
+    
+    if self._partType not in d_moduleTypeToBuildModule.keys():
+	log.info("%s.isBuildable>>> Not in d_moduleTypeToBuildModule"%(self._strShortName))	
+	return False
+    
+    try:#Version
+	self._buildVersion = d_moduleTypeToBuildModule[self._partType].__version__    
+    except:
+	log.error("%s.isBuildable>>> Missing version"%(self._strShortName))	
+	return False
+    
+    try:#Joints list
+	self.build = d_moduleTypeToBuildModule[self._partType].__bindSkeletonSetup__
+	self.buildModule = d_moduleTypeToBuildModule[self._partType]
+    except:
+	log.error("%s.isBuildable>>> Missing Joint Setup Function"%(self._strShortName))	
+	return False	
+    
+    return True    
+	
 #@r9General.Timer
 def doSkeletonize(self):
     """ 
@@ -132,9 +173,9 @@ def doSkeletonize(self):
     # Get our base info
     #==================	        
     assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
-    assert mc.objExists(self.m.mNode),"module no longer exists"
+    assert mc.objExists(self._i_module.mNode),"module no longer exists"
     curve = self.i_curve.mNode
-    partName = self.partName
+    partName = self._partName
     l_limbJoints = []
     
     #>>> Check roll joint args
@@ -151,9 +192,9 @@ def doSkeletonize(self):
     pos = distance.returnWorldSpacePosition( self.i_templateNull.getMessage('controlObjects')[0] )
     log.debug("pos: %s"%pos)
     #Get parent position, if we have one
-    if self.m.getMessage('moduleParent'):
+    if self._i_module.getMessage('moduleParent'):
         log.debug("Found moduleParent, checking joints...")
-        i_parentRigNull = self.m.moduleParent.rigNull
+        i_parentRigNull = self._i_module.moduleParent.rigNull
         parentJoints = i_parentRigNull.getMessage('skinJoints',False)
         log.debug(parentJoints)
         if parentJoints:
@@ -249,7 +290,7 @@ def doSkeletonize(self):
     #>>>If we stole our parents anchor joint, we need to to reconnect it
     log.debug("STOLEN>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s"%self.b_parentStole)
     if self.b_parentStole:
-	i_parentControl = self.m.moduleParent.templateNull.controlObjects[-1]
+	i_parentControl = self._i_module.moduleParent.templateNull.controlObjects[-1]
 	log.debug("parentControl: %s"%i_parentControl.getShortName())
         closestJoint = distance.returnClosestObject(i_parentControl.mNode,l_limbJoints)	
 	i_parentControl.connectChildNode(closestJoint,'handleJoint')
@@ -294,9 +335,9 @@ def doOrientSegment(self):
     # Get our base info
     #==================	        
     assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
-    assert mc.objExists(self.m.mNode),"module no longer exists"
+    assert mc.objExists(self._i_module.mNode),"module no longer exists"
     
-    #self.i_rigNull = self.m.rigNull#refresh
+    #self.i_rigNull = self._i_module.rigNull#refresh
         
     #>>> orientation vectors
     #=======================    
@@ -352,7 +393,7 @@ def doOrientSegment(self):
 		log.error("doOrientSegment>>rotate order set fail: %s"%i_jnt.getShortName())
     
         #>>>per segment stuff
-        assert len(self.l_jointSegmentIndexSets) == len(self.m.i_coreNames.value)#quick check to make sure we've got the stuff we need
+        assert len(self.l_jointSegmentIndexSets) == len(self._i_module.i_coreNames.value)#quick check to make sure we've got the stuff we need
         cnt = 0
 	log.info("Segment Index sets: %s"%self.l_jointSegmentIndexSets)
         for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
@@ -419,7 +460,7 @@ def doOrientSegment(self):
 	    #Verify inverse scale connection
 	    cgmMeta.cgmAttr(i_jnt,"inverseScale").doConnectIn("%s.scale"%i_p.mNode)
 
-    if self.m.moduleType in ['foot']:
+    if self._i_module.moduleType in ['foot']:
         log.debug("Special case orient")
         if len(self.i_rigNull.getMessage('skinJoints')) > 1:
             helper = self.i_templateNull.orientRootHelper.mNode
@@ -438,7 +479,7 @@ def doOrientSegment(self):
     metaFreezeJointOrientation(self.i_rigNull.skinJoints)   
     
     #Connect to parent
-    if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+    if self._i_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
 	connectToParentModule(self.m)    
 	
     for i,i_jnt in enumerate(self.i_rigNull.skinJoints):
