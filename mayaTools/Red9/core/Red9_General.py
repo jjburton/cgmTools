@@ -220,7 +220,20 @@ class AnimationContext(object):
         # If this was false, it would re-raise the exception when complete
         return True 
 
+class undoContext(object):
+    """
+    Simple Context Manager for restoring Animation settings
+    """        
+    def __enter__(self):
+        cmds.undoInfo(openChunk=True)
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        cmds.undoInfo(closeChunk=True)
+        if exc_type:
+            log.exception('%s : %s'%(exc_type, exc_value))
+        # If this was false, it would re-raise the exception when complete
+        return True 
+    
 class HIKContext(object):
     """
     Simple Context Manager for restoring HIK Animation settings and managing HIK callbacks

@@ -38,8 +38,8 @@ global proc red9HackChannelBox(string $parent)
 global proc red9HackGraphCurveMenu(string $parent)
 {
 	 //hack the GraphEditor 'curve' menu
-	 
-	 menuItem -label "Red9:AddNoise"
+	 menuItem -d true;
+	 menuItem -label "Red9: Randonizer"
 		-annotation "Add Noise to Curves"	
 		-p $parent			
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()\")"
@@ -51,6 +51,11 @@ global proc red9HackGraphCurveMenu(string $parent)
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
 		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
 		noiseOptionsItem;
+	menuItem -label "Red9: Interactive Simplify"
+		-annotation "Interactively simplify and filter animCurves"	
+		-p $parent			
+		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.FilterCurves.show()\")"
+		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.FilterCurves.show()\")";
 }
 
 
@@ -60,7 +65,7 @@ global proc red9HackScriptEditorPopup(string $parent)
 	 
 	 menuItem -radialPosition "SW" 
 		 -parent $parent 
-	 	 -label "Red9:InspectFunction"
+	 	 -label "Red9: InspectFunction"
 	 	 -command "handleScriptEditorAction \"copy\";red9_InspectCode";
 }
 

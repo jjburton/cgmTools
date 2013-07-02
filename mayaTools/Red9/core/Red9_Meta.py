@@ -1812,7 +1812,7 @@ class MetaRig(MetaClass):
     def poseCacheLoad(self, nodes=None, attr=None):
         '''
         load a cached pose back to this mRig. If attr is given then its assumed
-        that that attr is a cached poseDict on the node. If not given then it
+        that that attr is a cached poseDict on the mNode. If not given then it
         will load the cached pose from this objects instance, if there is one stored.
         @param nodes: if given load only the cached pose to the given nodes
         @param attr: attr in which a pose has been stored internally on the mRig
