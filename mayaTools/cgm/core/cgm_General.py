@@ -11,16 +11,16 @@ This is the Core of the MetaNode implementation of the systems.
 It is uses Mark Jackson (Red 9)'s as a base.
 ================================================================
 """
-
 import maya.cmds as mc
 import maya.mel as mel
 import copy
 import time
+import inspect
+import sys
 
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-
 
 # Shared Defaults ========================================================
 
@@ -30,7 +30,6 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
-
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
@@ -50,13 +49,20 @@ def Timer(func):
         try:
             #module if found
             mod = inspect.getmodule(args[0])
+            log.info("mod: %s"%mod)            
             functionTrace+='%s >>' % mod.__name__.split('.')[-1]
         except:
             log.debug('function module inspect failure')
         try:
             #class function is part of, if found
             cls = args[0].__class__
-            functionTrace+='%s.' % args[0].__class__.__name__
+            log.info("cls: %s"%cls)
+            log.info("arg[0]: %s"%args[0])
+            if type(arg[0]) in [str,unicode]:
+                str_first = arg[0]
+            else:
+                str_first = args[0].__class__.__name__               
+            functionTrace+='%s.' % str_first
         except:
             log.debug('function class inspect failure')
         functionTrace+=func.__name__ 
@@ -70,7 +76,6 @@ def TimerDebug(func):
     Variation,only outputs on debug
     -- Taken from red9 and modified. Orignal props to our pal Mark Jackson
     '''
-
     def wrapper( *args, **kws):
         t1 = time.time()
         res=func(*args,**kws) 
@@ -93,4 +98,4 @@ def TimerDebug(func):
         log.debug('TIMER : %s: %0.4f sec' % (functionTrace,(t2-t1)))
         #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
-    return wrapper  
+    return wrapper

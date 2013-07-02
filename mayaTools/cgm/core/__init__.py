@@ -19,6 +19,7 @@ from Red9.core import (Red9_General,
                        Red9_CoreUtils,
                        Red9_AnimationUtils,
                        Red9_PoseSaver) 
+import cgm_General
 import cgm_Meta
 import cgm_PuppetMeta
 import cgm_RigMeta
@@ -26,7 +27,6 @@ import rigger.ModuleFactory
 import rigger.JointFactory
 import rigger.TemplateFactory
 import rigger.PuppetFactory
-
 
 import os
 from cgm.lib.zoo.zooPy.path import Path
@@ -36,6 +36,7 @@ def _reload():
     reload carefully and re-register the RED9_META_REGISTRY
     '''
     Red9.core._reload()
+    reload(cgm_General)    
     reload(cgm_Meta)
     reload(cgm_PuppetMeta)
     reload(cgm_RigMeta)
