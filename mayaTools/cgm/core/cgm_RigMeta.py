@@ -20,10 +20,9 @@ import copy
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 
-
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
+#from cgm.core import cgm_General as cgmGeneral
 from cgm.core.rigger.lib import rig_Utils as rUtils
 
 from cgm.lib import (lists,
@@ -742,7 +741,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	self.dynIterSettings = d_iterSettings
 	#======================================================================
 	
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def doIter(self):
 	"""
 	"""
@@ -902,7 +901,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	self.d_dynMatchAttrSettings = d_dynMatchAttrSettings
 	#======================================================================
 	
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def isAttrMatch(self):
 	"""
 	See if our attrs match like they should
@@ -958,7 +957,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    log.error("%s.doAttrMatch>> Failure!"%(self.getShortName()))
 	    raise StandardError,error
 	
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def doAttrMatch(self):
 	"""
 	"""
@@ -1672,7 +1671,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	self.connectChildNode(i_followDriver,'dynFollow','dynMaster')
 	self._mi_followDriver = i_followDriver
     
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def doSwitchSpace(self,attr,arg,deleteLoc = True):
 	#Swich setting shile holding 
 	l_attrs = ['space','follow','orientTo']

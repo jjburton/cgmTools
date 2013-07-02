@@ -30,8 +30,8 @@ log.setLevel(logging.INFO)
 
 # From cgm ==============================================================
 #from cgm.lib.classes import NameFactory
-from cgm.core import cgm_General as cgmGeneral
-
+from cgm.core import cgm_Meta as cgmMeta
+reload(cgmMeta)
 from cgm.core.lib import nameTools
 reload(nameTools)
 from cgm.core.rigger import ModuleFactory as mFactory
@@ -40,9 +40,6 @@ from cgm.core.rigger import PuppetFactory as pFactory
 reload(pFactory)
 from cgm.core.rigger import MorpheusFactory as morphyF
 reload(morphyF)
-from cgm.core import cgm_Meta as cgmMeta
-reload(cgmMeta)
-from cgm.core import cgm_Meta as cgmMeta
 
 from cgm.core.classes import NodeFactory as nodeF
 reload(nodeF)
@@ -59,7 +56,7 @@ cgmModuleTypes = ['cgmModule','cgmLimb']
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
-    #@r9General.Timer
+    @r9General.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         log.debug(">>> cgmPuppet.__init__")
         if kws:log.debug("kws: %s"%str(kws))
@@ -138,7 +135,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
         return True
     
-    @r9General.Timer
+    #@r9General.Timer
     def __verify__(self,name = None):
         """"""
         """ 
@@ -374,7 +371,7 @@ class cgmPuppet(cgmMeta.cgmNode):
     def isCustomizable(self):
 	return False 
     
-    @r9General.Timer
+    #@r9General.Timer
     def _verifyMasterControl(self,**kws):
 	""" 
 	"""    
