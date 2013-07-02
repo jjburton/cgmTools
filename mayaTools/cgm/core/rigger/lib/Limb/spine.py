@@ -39,10 +39,11 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_General as cgmGeneral
+
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
@@ -68,7 +69,37 @@ from cgm.lib import (attributes,
 #===================================================================
 __l_jointAttrs__ = ['startAnchor','endAnchor','anchorJoints','rigJoints','influenceJoints','segmentJoints']   
 
-@r9General.Timer
+@cgmGeneral.Timer
+def __bindSkeletonSetup__(self):
+    """
+    TODO: Do I need to connect per joint overrides or will the final group setup get them?
+    """
+    try:
+	if not self._cgmClass == 'JointFactory.go':
+	    log.error("Not a JointFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("spine.__bindSkeletonSetup__>>bad self!")
+	raise StandardError,error
+    
+    #>>> Re parent joints
+    #=============================================================  
+    #ml_skinJoints = self._i_module.rigNull.skinJoints or []
+    if not self._i_module.isSkeletonized():
+	raise StandardError, "%s is not skeletonized yet."%self._strShortName
+    
+    try:#Reparent joints
+	ml_skinJoints = self._i_module.rigNull.skinJoints
+	
+	for i_jnt in ml_skinJoints[1:-1]:
+	    if i_jnt.hasAttr('cgmName') and i_jnt.cgmName in self._l_coreNames or not i_jnt.hasAttr('cgmName'):
+		i_jnt.parent = ml_skinJoints[0].mNode		
+
+    except StandardError,error:
+	log.error("build_spine>>__bindSkeletonSetup__ fail!")
+	raise StandardError,error   
+
+@cgmGeneral.Timer
 def build_rigSkeleton(self):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
@@ -180,7 +211,7 @@ def build_rigSkeleton(self):
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
-@r9General.Timer
+@cgmGeneral.Timer
 def build_shapes(self):
     """
     Rotate orders
@@ -674,7 +705,7 @@ def build_rig(self):
     self._i_rigNull.version = str(__version__)
     return True 
 
-@r9General.Timer
+@cgmGeneral.Timer
 def __build__(self, buildTo='',*args,**kws): 
     try:
 	if not self._cgmClass == 'RigFactory.go':
