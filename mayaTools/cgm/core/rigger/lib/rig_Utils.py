@@ -30,9 +30,9 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_General as cgmGeneral
+
 from cgm.core.classes import SnapFactory as Snap
-from cgm.core.classes import cgm_General as cgmGeneral
-reload(cgmGeneral)
 
 from cgm.core.lib import nameTools
 from cgm.core.classes import NodeFactory as NodeF
@@ -1001,9 +1001,377 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
 	    else:
 		mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s]"%(i_curve.mNode,cv)),
 		               tv = [influence,1-(i*blendFactor)])
-    
-@r9General.Timer
+
+   
+@cgmGeneral.Timer
 def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None, 
+                       baseName = None, connectBy = 'trans', moduleInstance = None):
+    """
+    Stored meta data on completed segment:
+    scaleBuffer
+    drivenJoints     
+    driverJoints 
+    """
+    if type(jointList) not in [list,tuple]:jointList = [jointList]
+
+    #Good way to verify an instance list?
+    #validate orientation
+    outChannel = orientation[2]
+    upChannel = '%sup'%orientation[1]
+    
+    i_module = False
+    i_rigNull = False
+    i_module = False
+    try:
+	if moduleInstance:
+	    if moduleInstance.isModule():
+		i_module = moduleInstance    
+		i_module = moduleInstance
+		i_rigNull = i_module.rigNull
+    except:
+	log.error("Not a module instance, ignoring: '%s'"%moduleInstance)
+
+    if i_module:
+	if baseName is None:
+	    baseName = i_module.getPartNameBase()#Get part base name	    
+	    log.info('baseName set to module: %s'%baseName)	    	    
+    if baseName is None:baseName = 'testSegmentCurve'
+    
+    #Create our group
+    i_grp = cgmMeta.cgmObject(name = 'newgroup')
+    i_grp.addAttr('cgmName', str(baseName), lock=True)
+    i_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
+    i_grp.doName()
+    
+    ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]#Initialize original joints
+
+    if not moduleInstance:#if it is, we can assume it's right
+	if secondaryAxis is None:
+	    raise StandardError,"createControlSurfaceSegment>>> Must have secondaryAxis arg if no moduleInstance is passed"
+	for i_jnt in ml_jointList:
+	    """
+	    Cannot iterate how important this step is. Lost a day trying to trouble shoot why one joint chain worked and another didn't.
+	    WILL NOT connect right without this.
+	    """
+    	    joints.orientJoint(i_jnt.mNode,orientation,secondaryAxis)
+	    
+
+    #Joints
+    #=========================================================================
+    #Create spline IK joints
+    #>>Surface chain    
+    l_driverJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
+    ml_driverJoints = []
+    for i,j in enumerate(l_driverJoints):
+	i_j = cgmMeta.cgmObject(j,setClass=True)
+	i_j.doCopyNameTagsFromObject(ml_jointList[i].mNode,ignore=['cgmTypeModifier','cgmType'])
+	#i_j.addAttr('cgmName',baseName,lock=True)
+	i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
+	i_j.doName()
+	l_driverJoints[i] = i_j.mNode
+	ml_driverJoints.append(i_j)
+
+    #Create Curve
+    i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver',setClass=True)
+    buffer = mc.ikHandle( sj=ml_driverJoints[0].mNode, ee=ml_driverJoints[-1].mNode,simplifyCurve=False,
+                          solver = i_splineSolver.mNode, ns = 4, rootOnCurve=True,forceSolver = True,
+                          createCurve = True,snapHandleFlagToggle=True )  
+    
+    i_segmentCurve = cgmMeta.cgmObject( buffer[2],setClass=True )
+    i_segmentCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
+    i_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
+    i_segmentCurve.doName()
+    
+    if i_module:#if we have a module, connect vis
+	i_segmentCurve.overrideEnabled = 1		
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
+	cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideDisplayType'))    
+        
+    i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
+    i_ikHandle.doName()
+    i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+    i_ikHandle.parent = i_grp.mNode
+    
+    i_segmentCurve.connectChildNode(i_grp,'segmentGroup','owner')
+    
+    #Joints
+    #=========================================================================
+    ml_ = []
+    ml_pointOnCurveInfos = []
+    ml_upGroups = []
+    
+    #First thing we're going to do is create our follicles
+    shape = mc.listRelatives(i_segmentCurve.mNode,shapes=True)[0]
+    for i,i_jnt in enumerate(ml_jointList):   
+        l_closestInfo = distance.returnNearestPointOnCurveInfo(i_jnt.mNode,i_segmentCurve.mNode)
+        log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
+        #>>> """Follicle""" =======================================================
+	i_closestPointNode = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+        mc.connectAttr ((shape+'.worldSpace'),(i_closestPointNode.mNode+'.inputCurve'))	
+	
+        #> Name
+        i_closestPointNode.doStore('cgmName',i_jnt.mNode)
+        i_closestPointNode.doName()
+        #>Set follicle value
+        i_closestPointNode.parameter = l_closestInfo['parameter']
+        
+        ml_pointOnCurveInfos.append(i_closestPointNode)
+		
+	
+	#>>> loc
+	#First part of full ribbon wist setup
+	if i_jnt != ml_jointList[-1]:
+	    i_upLoc = i_jnt.doLoc()#Make up Loc
+	    i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+	    i_locRotateGroup.parent = ml_driverJoints[i].mNode
+	    i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
+	    i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
+	    i_locRotateGroup.doName()
+	    
+	    #Store the rotate group to the joint
+	    i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
+	    i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+	    i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
+	    i_zeroGrp.doName()
+	    #connect some other data
+	    i_locRotateGroup.connectChildNode(i_locRotateGroup.parent,'zeroGroup')
+	    i_locRotateGroup.connectChildNode(i_upLoc,'upLoc')
+	    mc.makeIdentity(i_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
+	    
+	    i_upLoc.parent = i_locRotateGroup.mNode
+	    mc.move(0,10,0,i_upLoc.mNode,os=True)#TODO - make dependent on orientation	
+	    ml_upGroups.append(i_upLoc)
+	    
+	    
+	    if i_module:#if we have a module, connect vis
+		i_upLoc.overrideEnabled = 1		
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_upLoc.mNode,'overrideDisplayType'))    
+	    
+	
+    #Orient constrain our last joint to our splineIK Joint
+    mc.orientConstraint(ml_driverJoints[-1].mNode,ml_jointList[-1].mNode,maintainOffset = True)
+    
+    #>>>Create scale stuff
+    #>>>Create IK effectors,Create distance nodes
+    l_iIK_effectors = []
+    l_iIK_handles = []  
+    l_iDistanceObjects = []
+    i_distanceShapes = []  
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+        ik_buffer = mc.ikHandle (startJoint=i_jnt.mNode,
+                                 endEffector = ml_jointList[i+1].mNode,
+                                 setupForRPsolver = True, solver = 'ikRPsolver',
+                                 enableHandles=True )
+        #Handle
+        i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+        i_IK_Handle.parent = ml_driverJoints[i+1].mNode
+        i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Handle.doName()
+        
+        #Effector
+        i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
+        #i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Effector.doName()
+        
+        l_iIK_handles.append(i_IK_Handle)
+        l_iIK_effectors.append(i_IK_Effector)
+        
+        
+	if i_module:#if we have a module, connect vis
+	    i_IK_Handle.overrideEnabled = 1		
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_IK_Handle.mNode,'overrideDisplayType'))    
+        
+        #>> Distance nodes
+        i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+        i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
+        i_distanceObject.doStore('cgmName',i_jnt.mNode)
+        i_distanceObject.addAttr('cgmType','measureNode',lock=True)
+        i_distanceObject.doName(nameShapes = True)
+	i_distanceObject.parent = i_grp.mNode#parent it
+        i_distanceObject.overrideEnabled = 1
+        i_distanceObject.overrideVisibility = 1
+	
+        #Connect things
+        mc.connectAttr ((ml_pointOnCurveInfos[i].mNode+'.position'),(i_distanceShape.mNode+'.startPoint'))
+        mc.connectAttr ((ml_pointOnCurveInfos[i+1].mNode+'.position'),(i_distanceShape.mNode+'.endPoint'))
+        
+        l_iDistanceObjects.append(i_distanceObject)
+        i_distanceShapes.append(i_distanceShape)
+	
+	
+	if i_module:#Connect hides if we have a module instance:
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_distanceObject.mNode,'overrideDisplayType'))    
+	
+    #>> Second part for the full twist setup
+    aimChannel = orientation[0]  
+    fixOptions = [0,90,180,-90,-180]      
+
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	rotBuffer = mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)
+	log.debug("rotBuffer: %s"%rotBuffer)
+	#Create the poleVector
+	poleVector = mc.poleVectorConstraint (ml_upGroups[i].mNode,l_iIK_handles[i].mNode)  	
+	IKHandle_fixTwist(l_iIK_handles[i])
+	"""
+	optionCnt = 0
+	while not cgmMath.isFloatEquivalent((mc.getAttr(i_jnt.mNode+'.r'+aimChannel)),0):
+	    log.debug("%s.r%s: %s"%(i_jnt.getShortName(),aimChannel,mc.getAttr(i_jnt.mNode+'.r'+aimChannel)))
+	    log.debug ("Trying the following for '%s':%s" %(l_iIK_handles[i].getShortName(),fixOptions[optionCnt]))
+	    attributes.doSetAttr(l_iIK_handles[i].mNode,'twist',fixOptions[optionCnt])
+	    optionCnt += 1
+	    if optionCnt == 4:
+		raise StandardError,"failed to find a good twist value to zero out poleVector: %s"%(i_jnt.getShortName())
+	    """
+	if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
+	    log.debug("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
+    
+    #>>>Hook up scales
+    #==========================================================================
+    #Buffer
+    i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
+    i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
+    i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
+    i_jntScaleBufferNode.doName()
+    ml_distanceAttrs = []
+    ml_resultAttrs = []
+    
+    i_jntScaleBufferNode.connectParentNode(i_segmentCurve.mNode,'segmentCurve','scaleBuffer')
+    ml_mainMDs = []
+    for i,i_jnt in enumerate(ml_jointList[:-1]):
+	#Make some attrs
+	i_attrDist= cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)
+	i_attrNormalBaseDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedBaseDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)			
+	i_attrNormalDist = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"normalizedDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)		
+	i_attrResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
+	i_attrTransformedResult = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
+	
+	#i_attrResultTScale = cgmMeta.cgmAttr(i_jntScaleBufferNode.mNode,"scaleTResult_%s"%i,attrType = 'float',initialValue=0,lock=True)	
+	
+	#Store our distance base to our buffer
+        try:i_jntScaleBufferNode.store(i_distanceShapes[i].distance)#Store to our buffer
+	except StandardError,error:
+	    log.error(error)
+	    raise StandardError,"Failed to store joint distance: %s"%i_distanceShapes[i].mNode
+	
+	#Create the normalized base distance
+	i_mdNormalBaseDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdNormalBaseDist.operation = 1
+	i_mdNormalBaseDist.doStore('cgmName',i_jnt.mNode)
+	i_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
+	i_mdNormalBaseDist.doName()
+	
+	attributes.doConnectAttr('%s.masterScale'%(i_jntScaleBufferNode.mNode),#>>
+	                         '%s.%s'%(i_mdNormalBaseDist.mNode,'input1X'))
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	                         '%s.%s'%(i_mdNormalBaseDist.mNode,'input2X'))	
+	i_attrNormalBaseDist.doConnectIn('%s.%s'%(i_mdNormalBaseDist.mNode,'output.outputX'))
+	
+	
+	
+	#Create the normalized distance
+	i_mdNormalDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdNormalDist.operation = 1
+	i_mdNormalDist.doStore('cgmName',i_jnt.mNode)
+	i_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
+	i_mdNormalDist.doName()
+	
+	attributes.doConnectAttr('%s.masterScale'%(i_jntScaleBufferNode.mNode),#>>
+	                         '%s.%s'%(i_mdNormalDist.mNode,'input1X'))
+	i_attrDist.doConnectOut('%s.%s'%(i_mdNormalDist.mNode,'input2X'))	
+	i_attrNormalDist.doConnectIn('%s.%s'%(i_mdNormalDist.mNode,'output.outputX'))
+	
+	
+	
+	"""
+	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
+	                         '%s.%s'%(i_md.mNode,'input1X'))
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	                         '%s.%s'%(i_md.mNode,'input2X'))"""
+	
+	#Create the mdNode
+	i_mdSegmentScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdSegmentScale.operation = 2
+	i_mdSegmentScale.doStore('cgmName',i_jnt.mNode)
+	i_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
+	i_mdSegmentScale.doName()
+	i_attrDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input1X'))	
+	i_attrNormalBaseDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input2X'))
+	i_attrResult.doConnectIn('%s.%s'%(i_mdSegmentScale.mNode,'output.outputX'))
+	
+	#Create the trans scale mdNode
+	"""
+	i_mdTransScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+	i_mdTransScale.operation = 1
+	i_mdTransScale.doStore('cgmName',i_jnt.mNode)
+	i_mdTransScale.addAttr('cgmTypeModifier','transScale')
+	i_mdTransScale.doName()
+	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
+	                         '%s.%s'%(i_mdTransScale.mNode,'input1X'))
+	attributes.doConnectAttr(i_attrResult.p_combinedName,#>>
+	                         '%s.%s'%(i_mdTransScale.mNode,'input2X'))
+	
+	#TranslateScales
+	attributes.doConnectAttr('%s.%s'%(i_distanceShapes[i].mNode,'distance'),#>>
+	                         "%s.t%s"%(ml_jointList[i+1].mNode,orientation[0]))"""
+	
+	#Connect to the joint
+	ml_distanceAttrs.append(i_attrDist)
+	ml_resultAttrs.append(i_attrResult)
+	    
+	if connectBy == 'translate':
+	    #Still not liking the way this works with translate scale. looks fine till you add squash and stretch
+	    try:
+		i_attrDist.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))		        
+		i_attrNormalDist.doConnectOut('%s.t%s'%(ml_jointList[i+1].mNode,orientation[0]))
+		i_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,orientation[0]))    
+		    
+	    except StandardError,error:
+		log.error(error)
+		raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
+		
+	
+	else:
+	    try:
+		i_attrDist.doConnectIn('%s.%s'%(i_distanceShapes[i].mNode,'distance'))		        
+		i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
+		i_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
+
+	    except StandardError,error:
+		log.error(error)
+		raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
+	    
+	ml_mainMDs.append(i_mdSegmentScale)#store the md
+    
+	for axis in [orientation[1],orientation[2]]:
+	    attributes.doConnectAttr('%s.s%s'%(i_jnt.mNode,axis),#>>
+		                     '%s.s%s'%(ml_driverJoints[i].mNode,axis))	 	
+
+	
+    #Connect last joint scale to second to last
+    for axis in ['scaleX','scaleY','scaleZ']:
+	attributes.doConnectAttr('%s.%s'%(ml_jointList[-2].mNode,axis),#>>
+                                 '%s.%s'%(ml_jointList[-1].mNode,axis))	 
+	
+    mc.pointConstraint(ml_driverJoints[0].mNode,ml_jointList[0].mNode,maintainOffset = False)
+    
+    #Store info to the segment curve
+    
+    #>>> Store em all to our instance
+    i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
+    i_segmentCurve.connectChildrenNodes(ml_jointList,'drivenJoints','segmentCurve')       
+    i_segmentCurve.connectChildrenNodes(ml_driverJoints,'driverJoints','segmentCurve')   
+	
+    return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,'mi_ikHandle':i_ikHandle,'mi_segmentGroup':i_grp,
+            'l_driverJoints':[i_jnt.getShortName() for i_jnt in ml_driverJoints],'ml_driverJoints':ml_driverJoints,
+            'scaleBuffer':i_jntScaleBufferNode.mNode,'mi_scaleBuffer':i_jntScaleBufferNode,
+            'l_drivenJoints':jointList,'ml_drivenJoints':ml_jointList}
+
+
+@r9General.Timer
+def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None, 
                        baseName = None, connectBy = 'trans', moduleInstance = None):
     """
     Stored meta data on completed segment:
@@ -1780,7 +2148,55 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
     #log.warning("matchValue_iterator>>> Failed to find value for: %s"%mPlug_driven.p_combinedShortName)    
     return False
     
-@r9General.Timer
+@cgmGeneral.Timer
+def IKHandle_addSplineIKTwist(ikHandle,advanced = False):
+    #>>> Data gather and arg check    
+    mi_ikHandle = cgmMeta.validateObjArg(ikHandle,cgmMeta.cgmObject,noneValid=False)
+    if mi_ikHandle.getMayaType() != 'ikHandle':
+	raise StandardError,"IKHandle_fixTwist>>> '%s' object not 'ikHandle'. Found type: %s"%(mi_ikHandle.getShortName(),mi_ikHandle.getMayaType())
+    
+    mi_crv = cgmMeta.validateObjArg(attributes.returnDriverObject("%s.inCurve"%mi_ikHandle.mNode),cgmMeta.cgmObject,noneValid=False)
+    log.info(mi_crv.mNode)
+    
+    mPlug_start = cgmMeta.cgmAttr(mi_crv.mNode,'twistStart',attrType='float',keyable=True, hidden=False)
+    mPlug_end = cgmMeta.cgmAttr(mi_crv.mNode,'twistEnd',attrType='float',keyable=True, hidden=False)
+    mPlug_equalizedRoll = cgmMeta.cgmAttr(mi_ikHandle.mNode,'result_twistEqualized',attrType='float',keyable=True, hidden=False)
+    if not advanced:
+	mPlug_twist = cgmMeta.cgmAttr(mi_ikHandle,'twist',attrType='float',keyable=True, hidden=False)
+    else:
+	mi_ikHandle.dTwistControlEnable = True
+	mi_ikHandle.dTwistValueType = 2
+	mi_ikHandle.dWorldUpType = 7
+	mPlug_twist = cgmMeta.cgmAttr(mi_ikHandle,'dTwistRampMult')
+	mi_ramp = cgmMeta.cgmNode(nodeType= 'ramp')
+	mi_ramp.doStore('cgmName',mi_ikHandle.mNode)
+	mi_ramp.doName()
+	
+	#Fix Ramp
+	attributes.doConnectAttr("%s.outColor"%mi_ramp.mNode,"%s.dTwistRamp"%mi_ikHandle.mNode)
+    
+    mPlug_start.doConnectOut("%s.roll"%mi_ikHandle.mNode)
+ 
+    arg1 = "%s = %s - %s"%(mPlug_equalizedRoll.p_combinedShortName,mPlug_start.p_combinedShortName,mPlug_end.p_combinedShortName)
+    log.info("arg1: '%s'"%arg1)    
+    log.info( NodeF.argsToNodes(arg1).doBuild() )
+    arg2 = "%s =  %s - %s"%(mPlug_twist.p_combinedShortName,mPlug_end.p_combinedShortName,mPlug_equalizedRoll.p_combinedShortName)
+    log.info("arg2: '%s'"%arg2)    
+    log.info( NodeF.argsToNodes(arg2).doBuild() )        
+    
+    if advanced:
+	mc.select(mi_ramp.mNode)
+	log.info( mc.attributeInfo("%s.colorEntryList"%mi_ramp.mNode) )
+	for c in mc.ls("%s.colorEntryList[*]"%mi_ramp.mNode,flatten = True):
+	    log.info(c)
+	    log.info( mc.removeMultiInstance( c, b = True) )
+	mc.setAttr("%s.colorEntryList[0].color"%mi_ramp.mNode,0, 0, 0)
+	mc.setAttr("%s.colorEntryList[1].color"%mi_ramp.mNode,1, 1, 1)
+	mc.setAttr("%s.colorEntryList[1].position"%mi_ramp.mNode,1)
+	
+    return True
+	
+@cgmGeneral.Timer
 def IKHandle_fixTwist(ikHandle):
     #>>> Data gather and arg check    
     mi_ikHandle = cgmMeta.validateObjArg(ikHandle,cgmMeta.cgmObject,noneValid=False)
@@ -3396,11 +3812,17 @@ def addRibbonTwistToControlSetup(jointList,
         
     #Make our connections
     for i,driver in enumerate([startControlDriver,endControlDriver]):
-	log.debug(i)
-	log.debug(driver)
+	log.info(i)
+	log.info(driver)
 	attributes.doConnectAttr('%s.%s'%(driver[0],driver[1]),'%s.input1D[%s]'%(i_pma.mNode,i))
-	
-    #attributes.doConnectAttr('%s.output1D'%(i_pma.mNode),'%s.r%s'%(jointList[-1],orientation[0]))
+    
+    #Last joing arg
+    mPlug_finalRot = cgmMeta.cgmAttr(i_pma,"final_rotation",attrType='float')
+    log.info("startControlDriver: %s"%startControlDriver)
+    arg ="%s = %s.output1D - %s.%s"%(mPlug_finalRot.p_combinedShortName,i_pma.getShortName(), startControlDriver[0],startControlDriver[1])
+    NodeF.argsToNodes(arg).doBuild()
+    attributes.doConnectAttr('%s'%(mPlug_finalRot.p_combinedShortName),'%s.r%s'%(jointList[-1],orientation[0]))
+    
     return {'mi_pmaTwistSum':i_pma}
     
     """
