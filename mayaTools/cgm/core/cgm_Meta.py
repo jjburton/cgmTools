@@ -2998,7 +2998,8 @@ class cgmAttr(object):
 	return mc.addAttr(self.p_combinedName,q=True,usedAsColor=True) or False  
     
     def isUserDefined(self):
-	if self.p_nameLong in mc.listAttr(self.obj.mNode, userDefined = True):
+	l_userDefined = mc.listAttr(self.obj.mNode, userDefined = True) or []
+	if self.p_nameLong in l_userDefined:
 	    return True
 	return False
     
