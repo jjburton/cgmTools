@@ -412,6 +412,8 @@ def rigDelete(self,*args,**kws):
 	    
     if self.getMessage('deformNull'):
 	mc.delete(self.getMessage('deformNull'))
+	
+    mc.delete(self.rigNull.getChildren())
     
     i_rigNull.version = ''#clear the version
     
@@ -456,10 +458,8 @@ def rigConnect(self,*args,**kws):
     for i,i_jnt in enumerate(i_rigNull.skinJoints):
 	try:
 	    log.info("'%s'>>drives>>'%s'"%(i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
-	    #pntConstBuffer = mc.parentConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
 	    pntConstBuffer = mc.pointConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
-	    pntConstBuffer = mc.orientConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-	    
+	    orConstBuffer = mc.orientConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
 	    attributes.doConnectAttr((i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
 	except:
 	    raise StandardError,"moduleFactory.rigConnect('%s')>> Joint failed: %s"%i_jnt.getShortName()
