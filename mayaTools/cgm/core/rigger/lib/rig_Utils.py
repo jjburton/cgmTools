@@ -395,6 +395,10 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    raise StandardError,error 
 	
 	try:#>>>Add Twist -------------------------------------------------------------------------------------------
+	    mPlug_controlDriver = cgmMeta.cgmAttr(i_control.mNode,controlTwistAxis)	    
+	    mPlug_midTwist = cgmMeta.cgmAttr(i_segmentCurve,'twistMid')
+	    mPlug_midTwist.doConnectIn(mPlug_controlDriver.p_combinedShortName)
+	    
 	    if addTwist == 'asdasdfasdfasdfasdfasdf':
 		if not i_segmentCurve:
 		    raise StandardError,"addCGMSegmentSubControl>>Cannot add twist without a segmentCurve"
@@ -1014,7 +1018,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_startUpNull.addAttr('cgmType','up',attrType='string',lock=True)
 	i_startUpNull.doName()
 	ml_rigObjects.append(i_startUpNull)
-	attributes.doSetAttr(i_startUpNull.mNode,'t%s'%orientation[1],baseDist)
+	attributes.doSetAttr(i_startUpNull.mNode,'t%s'%orientation[2],baseDist)#We're gonna push these out
 	
 	#End
 	i_endUpNull = ml_jointList[-1].duplicateTransform()
@@ -1022,8 +1026,9 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_endUpNull.addAttr('cgmType','up',attrType='string',lock=True)
 	i_endUpNull.doName()
 	ml_rigObjects.append(i_endUpNull)
-	attributes.doSetAttr(i_endUpNull.mNode,'t%s'%orientation[1],baseDist)
+	attributes.doSetAttr(i_endUpNull.mNode,'t%s'%orientation[2],baseDist)#We're gonna push these out
 	
+	""""
 	#Make our endorient fix
 	i_endUpOrientNull = i_anchorEnd.doDuplicateTransform(True)
 	i_endUpOrientNull.parent = i_anchorEnd.mNode
@@ -1031,7 +1036,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	i_endUpOrientNull.doName()
 	i_endUpNull.parent = i_endUpOrientNull.mNode   
 	mc.orientConstraint(i_anchorStart.mNode,i_endUpOrientNull.mNode,maintainOffset = True, skip = [axis for axis in orientation[:-1]])
-	
+	"""
 	#Parent the influenceJoints
 	ml_influenceJoints[0].parent = i_attachStartNull.mNode
 	ml_influenceJoints[-1].parent = i_attachEndNull.mNode
