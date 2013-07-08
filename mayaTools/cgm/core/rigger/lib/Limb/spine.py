@@ -22,7 +22,7 @@ Necessary variables:
 3) __l_jointAttrs__
 ================================================================
 """
-__version__ = 0.04222013
+__version__ = 0.07062013
 
 # From Python =============================================================
 import copy
@@ -91,9 +91,15 @@ def __bindSkeletonSetup__(self):
     try:#Reparent joints
 	ml_skinJoints = self._i_module.rigNull.skinJoints
 	
-	for i_jnt in ml_skinJoints[1:-1]:
-	    if i_jnt.hasAttr('cgmName') and i_jnt.cgmName in self._l_coreNames or not i_jnt.hasAttr('cgmName'):
-		i_jnt.parent = ml_skinJoints[0].mNode		
+	for i,i_jnt in enumerate(ml_skinJoints[1:]):
+	    if i_jnt.hasAttr('cgmName'):
+		if i_jnt.cgmName == 'spine_1':
+		    i_jnt.parent = ml_skinJoints[0].mNode
+	
+	ml_skinJoints[-2].parent = ml_skinJoints[0].mNode
+	
+	"""if i_jnt.cgmName in self._l_coreNames:
+		i_jnt.parent = ml_skinJoints[0].mNode"""		
 
     except StandardError,error:
 	log.error("build_spine>>__bindSkeletonSetup__ fail!")
@@ -115,7 +121,8 @@ def build_rigSkeleton(self):
     #>>>Create joint chains
     #=============================================================    
     try:
-	#>>Segment chain    
+	#>>Segment chain
+	ml_skinJoints = self._ml_skinJoints
 	l_segmentJoints = mc.duplicate(self._l_skinJoints[1:-1],po=True,ic=True,rc=True)
 	ml_segmentJoints = []
 	for i,j in enumerate(l_segmentJoints):
@@ -124,7 +131,10 @@ def build_rigSkeleton(self):
 	    i_j.doName()
 	    l_segmentJoints[i] = i_j.mNode
 	    ml_segmentJoints.append(i_j)
-	ml_segmentJoints[0].parent = False#Parent to world
+	    if i == 0:
+		ml_segmentJoints[0].parent = False#Parent to world
+	    else:
+		ml_segmentJoints[i].parent = ml_segmentJoints[i-1].mNode#Parent to Last
 	
 	#>>Deformation chain    
 	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
@@ -208,6 +218,8 @@ def build_rigSkeleton(self):
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 
+    if self._ml_skinJoints != self._i_rigNull.skinJoints:
+	log.error("Stored skin joints don't equal buffered")
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
@@ -342,24 +354,21 @@ def build_controls(self):
 	i_IKEnd = mi_handleIKShape
 	i_IKEnd.parent = i_cog.mNode
 	i_loc = i_IKEnd.doLoc()#Make loc for a new transform
-	i_loc.rx = i_loc.rx + 90#offset   
+	#i_loc.rx = i_loc.rx + 90#offset   
 	mc.move (shouldersPivotPos[0],shouldersPivotPos[1],shouldersPivotPos[2], i_loc.mNode)
 	
-	d_buffer = mControlFactory.registerControl(i_IKEnd,copyTransform=i_loc.mNode,
-	                                           typeModifier='ik',addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
-	                                           makeAimable = True,setRotateOrder=3)
+	d_buffer = mControlFactory.registerControl(i_IKEnd,copyTransform = i_loc.mNode,
+	                                           typeModifier = 'ik',addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
+	                                           makeAimable = True,setRotateOrder=4)
 	i_IKEnd = d_buffer['instance']	
-	
-	#Parent last handle to IK Handle
-	#mc.parent(ml_segmentsIK[-1].getAllParents()[-1],i_IKEnd.mNode)
-	
+		
 	i_loc.delete()#delete
 	self._i_rigNull.connectChildNode(i_IKEnd,'handleIK','rigNull')#connect
 	l_controlsAll.append(i_IKEnd)	
 
 	#Set aims
-	#Default currently working
-	
+	i_IKEnd.axisAim = self._jointOrientation[1]+'-'
+	i_IKEnd.axisUp = self._jointOrientation[0]+'+'	
 	
     except StandardError,error:
 	log.error("build_spine>>Build ik handle fail!")
@@ -380,8 +389,8 @@ def build_controls(self):
 	l_controlsAll.append(i_hips)	
 	
 	#Set aims
-	i_hips.axisAim = 'y-'
-	i_hips.axisUp = 'z+'
+	i_hips.axisAim = self._jointOrientation[1]+'-'
+	i_hips.axisUp = self._jointOrientation[0]+'+'	
 	
     except StandardError,error:
 	log.error("build_spine>>Build hips fail!")
@@ -462,6 +471,7 @@ def build_deformation(self):
 	                                           endParent=ml_influenceJoints[-1],
 	                                           midControls=ml_segmentHandles[1],
 	                                           baseName=self._partName,
+	                                           controlTwistAxis =  'r'+self._jointOrientation[0],
 	                                           orientation=self._jointOrientation)
 	
 	for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
@@ -486,13 +496,12 @@ def build_deformation(self):
 	
 	drivers = ["%s.%s"%(curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistResult")]
 	drivers.append("%s.r%s"%(ml_segmentHandles[-1].mNode,self._jointOrientation[0]))
-	drivers.append("%s.ry"%(mi_handleIK.mNode))
+	drivers.append("%s.r%s"%(mi_handleIK.mNode,self._jointOrientation[0]))
 
 	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
 	
-	
-    
+
     except StandardError,error:
 	log.error("build_spine>>Top Twist driver fail")
 	raise StandardError,error
@@ -510,15 +519,22 @@ def build_deformation(self):
     except StandardError,error:
 	log.error("build_spine>>Bottom Twist driver fail")
 	raise StandardError,error
-        
-    #Push squash and stretch multipliers to cog
-    i_buffer = i_curve.scaleBuffer
     
-    for k in i_buffer.d_indexToAttr.keys():
-	attrName = 'spine_%s'%k
-	cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_cog.mNode,attrName,connectSourceToTarget = True)
-	cgmMeta.cgmAttr(mi_cog.mNode,attrName,defaultValue = 1)
-	cgmMeta.cgmAttr('cog_anim',attrName, keyable =True, lock = False)    
+    try:#Do a few attribute connections
+	#Push squash and stretch multipliers to cog
+	i_buffer = i_curve.scaleBuffer
+	
+	for k in i_buffer.d_indexToAttr.keys():
+	    attrName = 'spine_%s'%k
+	    cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_cog.mNode,attrName,connectSourceToTarget = True)
+	    cgmMeta.cgmAttr(mi_cog.mNode,attrName,defaultValue = 1)
+	    cgmMeta.cgmAttr('cog_anim',attrName, keyable =True, lock = False)    
+	
+	cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
+	cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
+    except StandardError,error:
+	log.error("build_spine>>Attribute connection fail")
+	raise StandardError,error
     
     return True
 
@@ -728,7 +744,6 @@ def __build__(self, buildTo='',*args,**kws):
     build_rig(self)    
             
     return True
-
 
 
 #===================================================================================
