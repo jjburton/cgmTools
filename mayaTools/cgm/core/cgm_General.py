@@ -49,15 +49,15 @@ def Timer(func):
         try:
             #module if found
             mod = inspect.getmodule(args[0])
-            log.info("mod: %s"%mod)            
+            log.debug("mod: %s"%mod)            
             functionTrace+='%s >>' % mod.__name__.split('.')[-1]
         except:
             log.debug('function module inspect failure')
         try:
             #class function is part of, if found
             cls = args[0].__class__
-            log.info("cls: %s"%cls)
-            log.info("arg[0]: %s"%args[0])
+            log.debug("cls: %s"%cls)
+            log.debug("arg[0]: %s"%args[0])
             if type(arg[0]) in [str,unicode]:
                 str_first = arg[0]
             else:
@@ -67,7 +67,7 @@ def Timer(func):
             log.debug('function class inspect failure')
         functionTrace+=func.__name__ 
         log.info('>'*10 + ' TIMER : %s: %0.4f sec ' % (functionTrace,(t2-t1))+ '<'*10)
-        #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
+        #log.debug('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper  
 
@@ -96,6 +96,6 @@ def TimerDebug(func):
             log.debug('function class inspect failure')
         functionTrace+=func.__name__ 
         log.debug('TIMER : %s: %0.4f sec' % (functionTrace,(t2-t1)))
-        #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
+        #log.debug('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper
