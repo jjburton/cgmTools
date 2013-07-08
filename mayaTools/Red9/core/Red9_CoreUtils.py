@@ -1194,7 +1194,6 @@ class FilterNode(object):
                                                nodes=self.intersectionData,
                                                incRoots=self.settings.incRoots,
                                                transformClamp=self.settings.transformClamp)
-
                 addToIntersection(nodes)
                 if not nodes: 
                     return

@@ -194,7 +194,26 @@ def timeLineRangeProcess(start, end, step, incEnds=True):
         rng.append(end)
     return rng
  
-    
+def toggleBufferCurves(showbuffer=True, toggle=False, forceBuffer=True, *args):
+    '''
+    Turns out this command doesn't work in Python correctly!!
+    '''
+    if toggle:
+        if cmds.animCurveEditor('graphEditor1GraphEd', q=True, showBufferCurves=True) == 'on':
+            showbuffer=False
+        else:
+            showbuffer=True
+    if showbuffer:
+        print 'toggle On'
+        if forceBuffer:
+            mel.eval('doBuffer snapshot;')
+            #cmds.bufferCurve(animation='keys', overwrite=True)
+        mel.eval('animCurveEditor -edit -showBufferCurves 1 -displayTangents false -displayActiveKeyTangents false graphEditor1GraphEd;')
+    else:
+        print 'toggleOff'
+        mel.eval('animCurveEditor -edit -showBufferCurves 0 -displayTangents false -displayActiveKeyTangents true graphEditor1GraphEd;')
+
+   
 #def timeLineRangeSet(time):
 #    '''
 #    Return the current PlaybackTimeline OR if a range is selected in the
@@ -2500,6 +2519,7 @@ class AnimFunctions(object):
         @param attributes: Only copy the given attributes[]
         @param bindMethod: method of binding the data
         @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
+        #TODO: expose this to the UI's!!!!
         '''
         
         if not matchMethod:matchMethod=self.matchMethod
@@ -2563,6 +2583,35 @@ class AnimFunctions(object):
                 log.debug('failed to inverse %s.%s attr' % (node,chan))
   
 
+class curveModifierContext(object):
+    """
+    Simple Context Manager to allow modifications to animCurves in the 
+    graphEditor interactively by simply managing the undo stack and making
+    sure that selections are maintained
+    NOTE that this is optimized to run with a floatSlider and used in both interactive
+    Randomizer and FilterCurves
+    """        
+    def __enter__(self):
+        if '<lambda>' in cmds.undoInfo(q=True,undoName=True):
+            #check that we're only undoing a Lambda function from the UI so we don't unselect any userInput!
+            cmds.undo()
+        cmds.undoInfo(openChunk=True)
+        
+        self.range=None
+        self.keysSelected=cmds.keyframe(q=True, n=True, sl=True)
+        
+        if self.keysSelected:
+            self.range=cmds.keyframe(q=True,sl=True, timeChange=True)
+            
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.keysSelected and self.range:
+            cmds.selectKey(self.keysSelected, t=(self.range[0],self.range[-1]))
+        cmds.undoInfo(closeChunk=True)
+        if exc_type:
+            log.exception('%s : %s'%(exc_type, exc_value))
+        # If this was false, it would re-raise the exception when complete
+        return True 
+    
 
 class RandomizeKeys(object):
     '''
@@ -2573,6 +2622,7 @@ class RandomizeKeys(object):
     '''
     def __init__(self):
         self.win='KeyRandomizerOptions' 
+        self.contextManager=curveModifierContext
         
     def noiseFunc(self,initialValue,randomRange,damp):
         '''
@@ -2587,15 +2637,22 @@ class RandomizeKeys(object):
     def _showUI(self):
                  
             if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-            window = cmds.window(self.win, title="KeyRandomizer", s=False, widthHeight=(260,300))
-            
+            cmds.window(self.win, title="KeyRandomizer", s=True, widthHeight=(320,280))
+            cmds.menuBarLayout()
+            cmds.menu(l="VimeoHelp")
+            #cmds.menuItem(l="Vimeo Help: MetaData-Part3",
+            #               ann='Part3 shows how to add metaRig to your systems, all the connectChild and addRigCtrl calls',
+            #              c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/64258996')")
+            #cmds.menuItem(divider=True) 
+            cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))
             cmds.columnLayout(adjustableColumn=True,columnAttach=('both',5))
             cmds.separator(h=15, style='none')
-
+            
             cmds.floatFieldGrp('ffg_rand_damping', label='strength : value', v1=1, precision=2)
             cmds.floatFieldGrp('ffg_rand_frmStep', label='frameStep', v1=1, en=False, precision=2)
-            cmds.separator(h=15, style='in')
-            cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,125),(2,125)])
+            cmds.separator(h=20, style='in')
+
+            cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,150),(2,150)])
             cmds.checkBox('cb_rand_current',
                           l='Current Keys Only',v=True,
                           ann='ONLY randomize selected keys, if OFF the core will add keys to the curve at the frameStep incremenet',
@@ -2608,24 +2665,74 @@ class RandomizeKeys(object):
             #              l='Ignore Start and End Keys', v=True,
             #              ann='Remove the first and last key from processing, maintaining any animation cycles') 
             cmds.setParent('..')
+            cmds.separator(h=15, style='in')          
+            cmds.checkBox('interactiveRand', value=False, label="Interactive Mode", 
+                          ann="Turn on the interactiveMode - ONLY supported in CurrentKeys mode",
+                          onc=lambda *x:self.__uicb_interactiveMode(True),
+                          ofc=lambda *x:self.__uicb_interactiveMode(False)) 
+            cmds.separator(h=10, style='none')     
+                
+            cmds.rowColumnLayout('interactiveLayout', numberOfColumns=3, columnWidth=[(1,220),(2,40),(3,30)])       
+            cmds.floatSliderGrp('fsg_randfloatValue',
+                                    field=True, 
+                                    minValue=0, 
+                                    maxValue=1.0,
+                                    pre=2,
+                                    value=0,\
+                                    columnWidth=[(1, 40),  (2, 100)],
+                                    #cc=lambda x:toggleBufferCurves(),
+                                    dc=lambda x:self.__uicb_interactiveWrapper())
+            cmds.floatField('ffg_rand_intMax', v=1, precision=2, cc=lambda *x:self.__uicb_setRanges()) 
+            cmds.text(label='max') 
+            cmds.setParent('..')
+
             cmds.separator(h=15,style='none')  
-            cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,125),(2,125)])
+            
+            cmds.rowColumnLayout(numberOfColumns=3,columnWidth=[(1,100),(2,100),(3,100)])
             cmds.button(label='Apply', bgc=r9Setup.red9ButtonBGC(1),
                          command=lambda *args:(RandomizeKeys().curveMenuFunc()))   
             cmds.button(label='SavePref', bgc=r9Setup.red9ButtonBGC(1),
                          command=lambda *args:(self.__storePrefs()))
+            cmds.button(label='ToggleBuffers', bgc=r9Setup.red9ButtonBGC(1),
+                         command=partial(toggleBufferCurves, toggle=True, forceBuffer=True))
             cmds.setParent('..')
+            
             cmds.separator(h=15,style='none')  
             cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
                                  c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
-            cmds.showWindow(window)
+            cmds.showWindow(self.win)
+            cmds.window('KeyRandomizerOptions', e=True, widthHeight=(320,280))
+            self.__uicb_interactiveMode(False)
             self.__loadPrefsToUI()
-    
-    def __uicb_currentKeysCallback(self):
-        if cmds.checkBox('cb_rand_current',q=True,v=True):
-            cmds.floatFieldGrp('ffg_rand_frmStep',e=True,en=False)
+            
+    def __uicb_setRanges(self):
+        cmds.floatSliderGrp('fsg_randfloatValue', e=True, maxValue=cmds.floatField('ffg_rand_intMax',q=True,v=True))
+        
+    def __uicb_interactiveWrapper(self, dense=False):
+        value=cmds.floatSliderGrp('fsg_randfloatValue',q=True,v=True)
+        percent=cmds.checkBox('cb_rand_percent',q=True,v=True)
+        with self.contextManager():
+            self.addNoise(cmds.keyframe(q=True, sl=True, n=True), time=(), step=1, currentKeys=True,damp=value, percent=percent)
+               
+    def __uicb_interactiveMode(self, mode):
+        if mode:
+            if not cmds.checkBox('cb_rand_current', q=True, v=True):
+                cmds.checkBox('interactiveRand', e=True, v=False)
+                log.warning('Interactive is ONLY supported in "CurrentKeys" Mode')
+                return
+            cmds.floatFieldGrp('ffg_rand_damping', e=True,en=False)
+            cmds.rowColumnLayout('interactiveLayout', e=True, en=True)
         else:
-            cmds.floatFieldGrp('ffg_rand_frmStep',e=True,en=True)
+            cmds.floatFieldGrp('ffg_rand_damping', e=True,en=True)
+            cmds.rowColumnLayout('interactiveLayout', e=True, en=False)
+            
+    def __uicb_currentKeysCallback(self):
+        if cmds.checkBox('cb_rand_current', q=True, v=True):
+            cmds.floatFieldGrp('ffg_rand_frmStep', e=True,en=False)
+        else:
+            cmds.floatFieldGrp('ffg_rand_frmStep', e=True,en=True)
+            cmds.checkBox('interactiveRand', e=True, v=False)
+            self.__uicb_interactiveMode(False)
 
     def __uicb_percentageCallback(self):
         if not cmds.checkBox('cb_rand_percent',q=True,v=True):
@@ -2650,7 +2757,7 @@ class RandomizeKeys(object):
             cmds.checkBox('cb_rand_percent',e=True,v=cmds.optionVar(q='red9_randomizer_percent'))
         if cmds.optionVar(exists='red9_randomizer_frmStep'):
             cmds.floatFieldGrp('ffg_rand_frmStep',e=True,v1=cmds.optionVar(q='red9_randomizer_frmStep'))
-        self.__uicb_currentKeysCallback()
+        self.__uicb_currentKeysCallback() 
         self.__uicb_percentageCallback()
     
     def __calcualteRangeValue(self,keyValues):
@@ -2686,7 +2793,7 @@ class RandomizeKeys(object):
                     if percent:
                         #figure the upper and lower value bounds
                         randomRange=self.__calcualteRangeValue(keyData[1::2])
-                        log.info('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
+                        log.debug('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
                     value=self.noiseFunc(v,randomRange,damp)
                     cmds.setKeyframe(curve, v=value,t=t)
         else:  #allow to ADD keys at 'step' frms
@@ -2698,7 +2805,7 @@ class RandomizeKeys(object):
                 if percent:    
                     #figure the upper and lower value bounds
                     randomRange=self.__calcualteRangeValue(cmds.keyframe(curve, q=True,vc=True,t=time))
-                    log.info('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
+                    log.debug('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0],randomRange[1],damp))
                 connection=cmds.listConnections(curve,source=False,d=True,p=True)[0]
                 for t in timeLineRangeProcess(time[0], time[1], step, incEnds=True):
                     value=self.noiseFunc(cmds.getAttr(connection,t=t),randomRange,damp)
@@ -2733,6 +2840,84 @@ class RandomizeKeys(object):
             raise StandardError('No Keys or Anim curves selected!')
         randomizer.addNoise(curves=selectedCurves,step=frmStep,damp=damping,currentKeys=currentKeys,percent=percent)  
                             
+
+ 
+class FilterCurves():
+    
+    def __init__(self):
+        self.win='interactiveCurveFilter' 
+        self.contextManager=curveModifierContext
+     
+    @classmethod
+    def show(cls):
+        cls()._showUI()
+    
+    def _showUI(self):  
+        if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
+        cmds.window(self.win , title=self.win, widthHeight=(300, 180))
+        cmds.menuBarLayout()
+        cmds.menu(l="VimeoHelp")
+        cmds.menuItem(l="Open Vimeo Help File",\
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/60960492')") 
+        cmds.menuItem(divider=True) 
+        cmds.menuItem(l="Contact Me",c=lambda *args:(r9Setup.red9ContactInfo()))    
+        cmds.columnLayout(adjustableColumn=True)
+        
+        cmds.text(label='Interactive Curve Simplfyer')
+        cmds.separator(h=10, style='none')
+        #cmds.checkBox('filterMethod', value=True, label="denseData", ann="Reset any Offset during bind, snapping the systems together")    
+        #cmds.floatFieldGrp('timeTolerance', label='timeTolerance', v1=1, precision=2) 
+        cmds.rowColumnLayout(numberOfColumns=2, cw=((1,250),(2,40)))
+        cmds.floatSliderGrp('fsg_filtertimeValue',
+                                label='time',
+                                field=True, 
+                                minValue=0.05, 
+                                maxValue=10.0,
+                                pre=2,
+                                value=0,
+                                columnWidth=[(1, 40),  (2, 50), (3,50)],
+                                dc=lambda x:self.__uicb_simplifyWrapper())
+        cmds.floatField('timeRange', v=10, pre=2,
+                        cc=lambda *x:self.__uicb_setMaxRanges(),
+                        dc=lambda *x:self.__uicb_setMaxRanges())
+        cmds.floatSliderGrp('fsg_filterfloatValue',
+                                label='value',
+                                field=True, 
+                                minValue=0, 
+                                maxValue=1.0,
+                                pre=2,
+                                value=0,
+                                columnWidth=[(1, 40),  (2, 50), (3,50)],
+                                dc=lambda x:self.__uicb_simplifyWrapper())
+        cmds.floatField('valueRange', v=1, pre=2,
+                        cc=lambda *x:self.__uicb_setMaxRanges(),
+                        dc=lambda *x:self.__uicb_setMaxRanges())
+        cmds.setParent('..')
+        cmds.separator (h=10, style="none") 
+        cmds.button(label='ToggleBuffers', bgc=r9Setup.red9ButtonBGC(1),
+                         command=partial(toggleBufferCurves, toggle=True, forceBuffer=True))
+        cmds.separator (h=20, style="none") 
+        cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
+                                 c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
+        cmds.showWindow(self.win)
+
+    def __uicb_setMaxRanges(self):
+        cmds.floatSliderGrp('fsg_filtertimeValue', e=True, maxValue=cmds.floatField("timeRange",q=True,v=True))
+        cmds.floatSliderGrp('fsg_filterfloatValue', e=True, maxValue=cmds.floatField("valueRange",q=True,v=True))
+
+    def __uicb_simplifyWrapper(self, dense=False):
+        with self.contextManager():
+            #dense=True
+            if not dense:       
+                cmds.simplify( animation='keysOrObjects', 
+                               #timeTolerance=cmds.floatFieldGrp('timeTolerance',q=True,v=True)[0], 
+                               timeTolerance=cmds.floatSliderGrp('fsg_filtertimeValue',q=True,v=True), 
+                               valueTolerance=cmds.floatSliderGrp('fsg_filterfloatValue',q=True,v=True))
+            else:
+                objs=cmds.ls(sl=True)
+                cmds.filterCurve(objs, f='simplify', 
+                                 timeTolerance=cmds.floatSliderGrp('fsg_filterfloatValue',q=True,v=True))
+                
         
         
 class MirrorHierarchy(object):
@@ -3421,3 +3606,6 @@ class CameraTracker():
     def __runTracker(self,*args):
         self.__storePrefs()  
         self.cameraTrackView(fixed=self.fixed)
+        
+        
+       

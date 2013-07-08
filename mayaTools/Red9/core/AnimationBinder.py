@@ -33,6 +33,8 @@
 import maya.mel as mel
 import maya.cmds as cmds
 import pymel.core as pm
+import Red9_AnimationUtils as r9Anim
+import Red9.startup.setup as r9Setup
 
 import logging
 logging.basicConfig()
@@ -412,7 +414,6 @@ class BindNodeAim(BindNodeBase):
 
 class AnimBinderUI(object):
     def __init__(self):
-        from functools import partial
         self.win = 'AnimBinder'
         self.settings = BindSettings()
     
@@ -434,7 +435,7 @@ class AnimBinderUI(object):
  
     def _UI(self):	
         if cmds.window(self.win, exists=True):cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title=self.win, menuBar=True, sizeable=True,width=250)
+        cmds.window(self.win, title=self.win, menuBar=True, sizeable=False, widthHeight=(300,360))
         
         cmds.menu(label='Help')
         cmds.menuItem(label='Watch MasterClass Video', c=lambda x:self._contactDetails(type='vimeo'))
@@ -445,26 +446,27 @@ class AnimBinderUI(object):
         cmds.columnLayout(adjustableColumn=True)	 
         cmds.text(fn="boldLabelFont", label="Advanced Bind Options")
         cmds.separator (h=15, style="none")      	 	 
-        cmds.rowColumnLayout(numberOfColumns=2)
-        cmds.checkBox(h=20, value=self.settings.BindRots, label="BindRots", ann="Bind only the Rotates of the given Controller", al="left", \
+        cmds.rowColumnLayout(numberOfColumns=2, cw=((1,150),(2,150)),cs=((1,10)))
+        cmds.checkBox(value=self.settings.BindRots, label="BindRots", ann="Bind only the Rotates of the given Controller", al="left", \
                       onc=lambda x:self.settings.__setattr__('BindRots', True), \
                       ofc=lambda x:self.settings.__setattr__('BindRots', False))		
-        cmds.checkBox(h=20, value=self.settings.BindTrans, label="BindTrans", ann="Bind only the Translates of the given Controller", al="left", \
+        cmds.checkBox(value=self.settings.BindTrans, label="BindTrans", ann="Bind only the Translates of the given Controller", al="left", \
                       onc=lambda x:self.settings.__setattr__('BindTrans', True), \
                       ofc=lambda x:self.settings.__setattr__('BindTrans', False))	
-        cmds.checkBox(h=20, value=1, label="AlignTrans CtrSpace", ann="Force the BindLocator to the position of the Controller", al="left", \
+        cmds.checkBox(value=1, label="AlignTrans CtrSpace", ann="Force the BindLocator to the position of the Controller", al="left", \
                       onc=lambda x:self.settings.__setattr__('AlignToControlTrans', True), \
                       ofc=lambda x:self.settings.__setattr__('AlignToSourceTrans', True))	
-        cmds.checkBox(h=20, value=1, label="AlignRots CtrSpace", ann="Force the BindLocator to the position of the Controller", al="left", \
+        cmds.checkBox(value=1, label="AlignRots CtrSpace", ann="Force the BindLocator to the position of the Controller", al="left", \
                       onc=lambda x:self.settings.__setattr__('AlignToControlRots', True), \
                       ofc=lambda x:self.settings.__setattr__('AlignToSourceRots', True))	
-        cmds.checkBox(h=20, value=self.settings.ResetTranslates, label="Reset Trans Offsets", ann="Reset any Offset during bind, snapping the systems together", al="left", \
+        cmds.checkBox(value=self.settings.ResetTranslates, label="Reset Trans Offsets", ann="Reset any Offset during bind, snapping the systems together", al="left", \
                       onc=lambda x:self.settings.__setattr__('ResetTranslates', True), \
                       ofc=lambda x:self.settings.__setattr__('ResetTranslates', False))    
-        cmds.checkBox(h=20, value=self.settings.ResetRotates, label="Reset Rots Offsets", ann="Reset any Offset during bind, snapping the systems together", al="left", \
+        cmds.checkBox(value=self.settings.ResetRotates, label="Reset Rots Offsets", ann="Reset any Offset during bind, snapping the systems together", al="left", \
                       onc=lambda x:self.settings.__setattr__('ResetRotates', True), \
                       ofc=lambda x:self.settings.__setattr__('ResetRotates', False))    
         cmds.setParent('..')
+        cmds.separator (h=10, style="none") 
         cmds.button(label="BasicBind", al="center",\
                     ann="Select the Joint on the driving Skeleton then the Controller to be driven", \
                     c=lambda x:BindNodeBase(pm.selected()[0], pm.selected()[1], settings=self.settings).AddBinderNode())
@@ -475,7 +477,7 @@ class AnimBinderUI(object):
                     ann="Select the Joint on the driving Skeleton to AIM at, then the Controller to be driven, finally a node on the driven skeleton to use as UpVector", \
                     c=lambda x:BindNodeAim(pm.selected()[0], pm.selected()[1], pm.selected()[2], settings=self.settings).AddBinderNode())
         cmds.separator (h=15, style="none") 
-        cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,120),(2,120)])
+        cmds.rowColumnLayout(numberOfColumns=2,columnWidth=[(1,147),(2,147)])
         cmds.button(label="Select BindNodes", al="center", \
                     ann="Select Top Group Node of the Source Binder", \
                     c=lambda x:pm.select(GetBindNodes(cmds.ls(sl=True,l=True))))
@@ -493,8 +495,12 @@ class AnimBinderUI(object):
         cmds.button(label="MakeStabilizer", al="center", \
                     ann="Select the nodes you want to extract the motion data from", \
                     c=lambda x:MakeStabilizedNode())
-        cmds.showWindow(self.win)
 
+        cmds.separator (h=20, style="none") 
+        cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
+                                 c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
+        cmds.showWindow(self.win)
+        
     @classmethod
     def Show(cls):
         cls()._UI()
