@@ -96,7 +96,8 @@ def __bindSkeletonSetup__(self):
 		if i_jnt.cgmName == 'spine_1':
 		    i_jnt.parent = ml_skinJoints[0].mNode
 	
-	ml_skinJoints[-2].parent = ml_skinJoints[0].mNode
+	ml_skinJoints[-2].parent = ml_skinJoints[0].mNode #Sternum to pelvis
+	ml_skinJoints[-1].parent = ml_skinJoints[0].mNode #Shoulders to pelvis
 	
 	"""if i_jnt.cgmName in self._l_coreNames:
 		i_jnt.parent = ml_skinJoints[0].mNode"""		
@@ -449,6 +450,8 @@ def build_deformation(self):
 	                                             endControl=ml_segmentHandles[-1],
 	                                             orientation=self._jointOrientation,
 	                                             baseName=self._partName,
+	                                             additiveScaleSetup=True,
+	                                             connectAdditiveScale=True,
 	                                             moduleInstance=self._i_module)
 	
 	i_curve = curveSegmentReturn['mi_segmentCurve']
@@ -532,6 +535,7 @@ def build_deformation(self):
 	
 	cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
 	cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
+	
     except StandardError,error:
 	log.error("build_spine>>Attribute connection fail")
 	raise StandardError,error
@@ -650,6 +654,7 @@ def build_rig(self):
     
     #method 1
     ml_rigJoints[-2].parent = ml_anchorJoints[-1].mNode
+    ml_rigJoints[-1].parent = mi_handleIK.mNode
     
     #mi_segmentAnchorStart.parent = ml_anchorJoints[1].mNode#Pelvis
     #mi_segmentAnchorEnd.parent = ml_anchorJoints[-1].mNode#Sternum
@@ -660,7 +665,6 @@ def build_rig(self):
     #ml_rigJoints[-2].parent = mi_cog.mNode
     #mc.parentConstraint(mi_handleIK.mNode,ml_rigJoints[-2].mNode,maintainOffset=True)
     #mc.scaleConstraint(mi_handleIK.mNode,ml_rigJoints[-2].mNode,maintainOffset=True)    
-    
     
     #Parent the influence joints
     ml_influenceJoints[0].parent = ml_segmentHandles[0].mNode
@@ -704,19 +708,32 @@ def build_rig(self):
     cgmMeta.cgmAttr( ml_controlsFK[0].mNode,'visibility').doConnectIn('%s.%s'%(mi_cog.mNode,'visFK'))    
     
     #Segment handles need to lock
-    for i_obj in ml_segmentHandles:
-	attributes.doSetLockHideKeyableAttr(i_obj.mNode,lock=True, visible=False, keyable=False, channels=['s%s'%orientation[1],'s%s'%orientation[2]])
+    #for i_obj in ml_segmentHandles:
+	#attributes.doSetLockHideKeyableAttr(i_obj.mNode,lock=True, visible=False, keyable=False, channels=['s%s'%orientation[1],'s%s'%orientation[2]])
     
     #Lock and hide hips and shoulders
     attributes.doSetLockHideKeyableAttr(mi_hips.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
     attributes.doSetLockHideKeyableAttr(mi_handleIK.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
      
-    #Setup a breath control
+    #Connect our last segment to the sternum
+    mc.connectAttr((ml_segmentHandles[-1].mNode+'.s%s'%self._jointOrientation[1]),(ml_rigJoints[-2].mNode+'.s%s'%self._jointOrientation[1]))    
+    mc.connectAttr((ml_segmentHandles[-1].mNode+'.s%s'%self._jointOrientation[2]),(ml_rigJoints[-2].mNode+'.s%s'%self._jointOrientation[2]))    
+    
+    #Set up some defaults
     #====================================================================================
-    mi_handleIK.addAttr('breathe', 1.0, defaultValue = 1,keyable = True)
-    for o in orientation[1:]:#for both out and up axis
-	cgmMeta.cgmAttr(ml_rigJoints[-2].mNode, "s%s"%o).doConnectIn("%s.breathe"%mi_handleIK.mNode)
-     
+    mPlug_segStart = cgmMeta.cgmAttr(ml_segmentHandles[0],'followRoot')
+    mPlug_segStart.p_defaultValue = .5
+    mPlug_segStart.value = .5
+    mPlug_segMid = cgmMeta.cgmAttr(ml_segmentHandles[1],'linearSplineFollow')
+    mPlug_segMid.p_defaultValue = 1
+    mPlug_segMid.value = 1
+    mPlug_segMidAim = cgmMeta.cgmAttr(ml_segmentHandles[1],'startEndAim')
+    mPlug_segMidAim.p_defaultValue = 1
+    mPlug_segMidAim.value = 1    
+    mPlug_segEnd = cgmMeta.cgmAttr(ml_segmentHandles[-1],'followRoot')
+    mPlug_segEnd.p_defaultValue = .5
+    mPlug_segEnd.value = .5
+    
     #Final stuff
     self._i_rigNull.version = str(__version__)
     return True 
