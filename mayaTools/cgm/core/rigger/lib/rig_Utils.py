@@ -371,10 +371,10 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 	    if len(targetWeights)>2:
 		raise StandardError,"addCGMSegmentSubControl>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
 	    
-	    d_midOrientBlendReturn = NodeF.createSingleBlendNetwork([i_control.mNode,'StartEndAim'],
-	                                                              [i_control.mNode,'resultEndAim'],
-	                                                              [i_control.mNode,'resultStartAim'],
-	                                                              keyable=True)
+	    d_midOrientBlendReturn = NodeF.createSingleBlendNetwork([i_control.mNode,'startEndAim'],
+	                                                            [i_control.mNode,'resultEndAim'],
+	                                                            [i_control.mNode,'resultStartAim'],
+	                                                            keyable=True)
 
 	    #Connect                                  
 	    d_midOrientBlendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_orientConstraint.mNode,targetWeights[0]))
@@ -527,6 +527,10 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 		    
 		mPlug_out_scaleUp.doConnectOut("%s.scaleMidUp"%i_segmentCurve.mNode)
 		mPlug_out_scaleOut.doConnectOut("%s.scaleMidOut"%i_segmentCurve.mNode)
+		
+		#Now let's connect scale of the start and end controls to a group so it's visually consistenent
+		mc.scaleConstraint([i_baseParent.mNode,i_endParent.mNode],i_orientGroup.mNode)
+		
 		
 	except StandardError,error:
 	    log.error("addCGMSegmentSubControl>>Mid scale connect fail! | curve: %s"%i_segmentCurve.getShortName())
@@ -824,7 +828,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
 	    if len(targetWeights)>2:
 		raise StandardError,"addCGMSegmentSubControl>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
 	    
-	    d_midOrientBlendReturn = NodeF.createSingleBlendNetwork([i_control.mNode,'StartEndAim'],
+	    d_midOrientBlendReturn = NodeF.createSingleBlendNetwork([i_control.mNode,'startEndAim'],
 	                                                              [i_control.mNode,'resultEndAim'],
 	                                                              [i_control.mNode,'resultStartAim'],
 	                                                              keyable=True)
@@ -976,6 +980,8 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 
     #Good way to verify an instance list? #validate orientation
     #Gather info
+    if controlOrientation is None:
+	controlOrientation = orientation    
     aimVector = dictionary.stringToVectorDict.get("%s+"%orientation[0])
     aimVectorNegative = dictionary.stringToVectorDict.get("%s-"%orientation[0])
     upVector = dictionary.stringToVectorDict.get("%s+"%orientation[1])    
@@ -1108,6 +1114,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	    mc.makeIdentity(i_startControl.mNode, apply=True,t=1,r=0,s=1,n=0)
 	    
 	    ml_influenceJoints[0].parent = i_startControl.mNode
+	    
 	if i_endControl and not i_endControl.parent:
 	    i_endControl.parent = i_attachEndNull.mNode
 	    i_endControl.doGroup(True)
