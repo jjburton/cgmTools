@@ -45,13 +45,13 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckHead']
+l_modulesDone  = ['torso','neckHead2']
 
 #>>> Register rig functions
 #=====================================================================
 d_moduleTypeToBuildModule = {'leg':leg,
                              'torso':spine,
-                             'neckHead':neckHead,
+                             'neckhead':neckHead,
                              'clavicle':clavicle,
                              'arm':arm,
                              'finger':finger,

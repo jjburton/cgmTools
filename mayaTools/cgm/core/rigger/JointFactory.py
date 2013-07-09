@@ -37,8 +37,9 @@ from cgm.core.lib import nameTools
 
 #>>> Register rig functions
 #=====================================================================
-from cgm.core.rigger.lib.Limb import (spine)
+from cgm.core.rigger.lib.Limb import (spine,neckHead)
 d_moduleTypeToBuildModule = {'torso':spine,
+                             'neckhead':neckHead,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
@@ -123,7 +124,8 @@ class go(object):
         log.debug("rollJoints: %s"%self.i_templateNull.rollJoints)
         log.debug("jointOrientation: %s"%self.jointOrientation)
         log.info("hasJointSetup: %s"%hasJointSetup(self))
-	
+	if not hasJointSetup(self):
+	    raise StandardError, "Need to add to build dict"
         if self._i_module.mClass == 'cgmLimb':
             log.debug("mode: cgmLimb Skeletonize")
             doSkeletonize(self)
@@ -475,12 +477,12 @@ def doOrientSegment(self):
 		self.i_rigNull.skinJoints[1].rotate = [0,0,0]        
     
     #Copy 
-    """ Freeze the rotations """
+    #""" Freeze the rotations """
     metaFreezeJointOrientation(self.i_rigNull.skinJoints)   
     
     #Connect to parent
     if self._i_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
-	connectToParentModule(self.m)    
+	connectToParentModule(self._i_module)    
 	
     for i,i_jnt in enumerate(self.i_rigNull.skinJoints):
 	log.info(i_jnt.getAttr('cgmName'))
