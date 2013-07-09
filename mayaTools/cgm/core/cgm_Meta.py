@@ -24,6 +24,7 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 #from cgm.lib.classes import NameFactory as OLD_Name
 #reload(OLD_Name)
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import nameTools
 reload(nameTools)
 from cgm.lib.ml import (ml_resetChannels)
@@ -3034,7 +3035,35 @@ class cgmAttr(object):
 	if obj:
 	    return attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or None	    
 	return attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or None
-	                              
+    
+    @cgmGeneral.Timer
+    def doCopySettingsTo(self,attrArg):
+        """ 
+        Copies settings from one attr to another
+	
+        Keyword arguments:
+        attrArg(validateAttrArg arg)        
+        """
+	try:
+	    d_targetReturn = validateAttrArg(attrArg,noneValid=False)
+	    mPlug_target = d_targetReturn['mi_plug']
+	    
+	    if self.isNumeric():
+		if not mPlug_target.isNumeric():
+		    raise StandardError, "doCopySettingsTo >> source is numeric: '%s' | target is not: '%s'"%(self.p_combinedShortName,mPlug_target.p_combinedShortName)
+		if self.p_defaultValue is not False:mPlug_target.p_defaultValue = self.p_defaultValue
+		if self.p_minValue is not False:mPlug_target.p_minValue = self.p_minValue
+		if self.p_maxValue is not False:mPlug_target.p_maxValue = self.p_maxValue
+		if self.p_softMax is not False:mPlug_target.p_softMax = self.p_softMax
+		if self.p_softMin is not False:mPlug_target.p_softMin = self.p_softMin
+		
+	    mPlug_target.p_hidden = self.p_hidden
+	    mPlug_target.p_locked = self.p_locked
+	    mPlug_target.p_keyable = self.p_keyable
+	    
+	    return True
+	except StandardError,error:raise StandardError,"%s.doCopySettingsTo() failure | error: %s"%(self.p_combinedShortName,attrArg,error)
+	
     def doConvert(self,attrType):
         """ 
         Converts an attribute type from one to another while preserving as much data as possible.
@@ -3232,7 +3261,7 @@ class cgmAttr(object):
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,long=True) != [self.obj.mNode], "Can't transfer to self!"
         functionName = 'doCopyTo'
-        
+        if targetAttrName is None: targetAttrName = self.attr
         convertToMatch = kw.pop('convertToMatch',True)
         values = kw.pop('values',True)
         incomingConnections = kw.pop('incomingConnections',False)
@@ -3284,7 +3313,10 @@ class cgmAttr(object):
                                   copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)                                                      
         #except:
         #    log.warning("'%s' failed to copy to '%s'!"%(target,self.p_combinedName))          
-            
+	self.doCopySettingsTo([target,targetAttrName])
+	
+	return True
+	
     def doTransferTo(self,target):
         """ 
         Transfer an instanced attribute to a target with all settings and connections intact
