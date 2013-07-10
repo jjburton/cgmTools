@@ -3020,8 +3020,13 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     2)Build per segment stretch setup
     3)connect by 'translate' or 'scale'
     """
+    mPlug_lockMid = False  
+    ml_distanceShapes = []
+    ml_distanceObjects = []   
+    
     if stretch:
 	if lockMid:mPlug_lockMid = cgmMeta.cgmAttr(mi_control,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
+	
 	mPlug_autoStretch = cgmMeta.cgmAttr(mi_control,'autoStretch',initialValue = 1, defaultValue = 1, keyable = True, attrType = 'float', minValue = 0, maxValue = 1)
 	if addLengthMulti:
 	    mPlug_lengthUpr= cgmMeta.cgmAttr(mi_control,'lengthUpr',attrType='float',value = 1, defaultValue = 1,minValue=0,keyable = True)
@@ -3126,8 +3131,6 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 	
 	#Make our distance objects per segment
 	#=========================================================================
-	ml_distanceShapes = []
-	ml_distanceObjects = []
 	l_segments = lists.parseListToPairs(ml_handles)
 	for i,seg in enumerate(l_segments):#Make our measure nodes
 	    buffer =  create_distanceMeasure(seg[0].mNode,seg[-1].mNode)
@@ -3263,7 +3266,7 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
     if addLengthMulti:
 	d_return['ml_lengthMultiPlugs'] = ml_multiPlugs
 	
-    if not _foundPrerred:log.error("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected")
+    if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
 
     return d_return   
 
