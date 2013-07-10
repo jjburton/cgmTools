@@ -241,6 +241,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     childrenObjects = search.returnChildrenObjects(obj)
     """first see if it's a group """
     if isType == 'group' and typeTag == False:
+        log.debug("group and no typeTag")
         """ if it's a transform group """
         groupNamesDict = {}
         if not nameObj:
@@ -248,20 +249,21 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         else:
             groupNamesDict['cgmName'] = nameObj
         groupNamesDict['cgmType'] = typesDictionary.get('transform')
-        if namesDict.get('cgmPosition') != None:
-            groupNamesDict['cgmPosition'] = namesDict.get('cgmPosition')        
-        if namesDict.get('cgmDirection') != None:
-            groupNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
-        if namesDict.get('cgmDirectionModifier') != None:
-            groupNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
+        #if namesDict.get('cgmPosition') != None:
+            #groupNamesDict['cgmPosition'] = namesDict.get('cgmPosition')        
+        #if namesDict.get('cgmDirection') != None:
+            #groupNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
+        #if namesDict.get('cgmDirectionModifier') != None:
+            #groupNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
         if namesDict.get('cgmTypeModifier') != None:
             groupNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
         return groupNamesDict
         """ see if there's a name tag"""
     elif nameObj != None or isType == 'shape':
         #If we have a name object or shape
+        log.debug("nameObj not None or isType is 'shape'")
         if mc.objExists(nameObj):
-            """basic child object with cgmName tag """
+            #Basic child object with cgmName tag
             childNamesDict = {}
             childNamesDict['cgmName'] = namesDict.get('cgmName')
             childNamesDict['cgmType'] = namesDict.get('cgmType')
@@ -270,13 +272,13 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
                 childNamesDict['cgmPosition'] = namesDict.get('cgmPosition')            
             if namesDict.get('cgmDirection') != None:
                 childNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
-            if namesDict.get('cgmNameModifier') != None:
-                childNamesDict['cgmNameModifier'] = namesDict.get('cgmNameModifier')
             if namesDict.get('cgmDirectionModifier') != None:
-                childNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
+                childNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')"""
+            if namesDict.get('cgmNameModifier') != None:
+                childNamesDict['cgmNameModifier'] = namesDict.get('cgmNameModifier')            
             if namesDict.get('cgmTypeModifier') != None:
                 childNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
-            """
+            
             return childNamesDict
         elif isType == 'shape' or 'Constraint' in isType:
             """if so, it's a child name object"""
