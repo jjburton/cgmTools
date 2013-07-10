@@ -41,20 +41,18 @@ import maya.cmds as mc
 from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
-from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_Meta as cgmMeta
 
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
-reload(mShapeCast)
-reload(mControlFactory)
+
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
+
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -220,7 +218,8 @@ def build_rigSkeleton(self):
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 
     if self._ml_skinJoints != self._i_rigNull.skinJoints:
-	log.error("Stored skin joints don't equal buffered")
+	raise StandardError,"%s.build_rigSkeleton>>> Stored skin joints don't equal buffered"%(self._strShortName)
+    
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}

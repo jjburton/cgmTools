@@ -28,22 +28,21 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
+#from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
+
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
-reload(mShapeCast)
-reload(mControlFactory)
+
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
+
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -91,7 +90,7 @@ def __bindSkeletonSetup__(self):
 	log.error("build_neckHead>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
     
-@r9General.Timer
+#@r9General.Timer
 def build_rigSkeleton(self):
     """
     """
@@ -222,7 +221,7 @@ def build_rigSkeleton(self):
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['segmentFKLoli','segmentIK']}
-@r9General.Timer
+#@r9General.Timer
 def build_shapes(self):
     """
     """ 
@@ -601,7 +600,7 @@ def build_rig(self):
     return True 
 
 
-@r9General.Timer
+#@r9General.Timer
 def __build__(self, buildTo='',*args,**kws): 
     try:
 	if not self._cgmClass == 'RigFactory.go':
