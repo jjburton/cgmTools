@@ -1557,8 +1557,9 @@ class go(object):
 		self.latheAxis = 'y'	 
 		
 	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['hip']:
-		self.l_specifiedRotates = [-40,-30,-15,0,15,30,40]
+		self.l_specifiedRotates = [-90,-60,-30,0,30,60,90]
 		self.closedCurve = False
+		
 	    returnBuffer = ShapeCast.createWrapControlShape(obj,self._targetMesh,
 	                                          points = 8,
 	                                          curveDegree=3,
