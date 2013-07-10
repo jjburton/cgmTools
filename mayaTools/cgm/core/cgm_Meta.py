@@ -2335,9 +2335,10 @@ class cgmAttr(object):
 	
         ### input check
         #>>> Initialization ==================   
-	if issubclass(type(objName),r9Meta.MetaClass):
+	try: 
+	    objName.mNode
 	    self.obj = objName
-	else:
+	except:
             assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
             self.obj = cgmNode(objName)	    
 	
@@ -2647,7 +2648,7 @@ class cgmAttr(object):
         assert type(arg) is bool, "doKeyable arg must be a bool!" 
 	
 	if self.attrType not in KeyableTypes:
-	    log.warning("'%s' not a keyable attrType"%self.attrType)
+	    log.debug("'%s' not a keyable attrType"%self.attrType)
 	    return False
 	
         if arg:
@@ -3036,7 +3037,7 @@ class cgmAttr(object):
 	    return attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or None	    
 	return attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or None
     
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def doCopySettingsTo(self,attrArg):
         """ 
         Copies settings from one attr to another
@@ -3059,8 +3060,7 @@ class cgmAttr(object):
 		
 	    mPlug_target.p_hidden = self.p_hidden
 	    mPlug_target.p_locked = self.p_locked
-	    mPlug_target.p_keyable = self.p_keyable
-	    
+	    if mPlug_target.attrType not in ['string','message']:mPlug_target.p_keyable = self.p_keyable
 	    return True
 	except StandardError,error:raise StandardError,"%s.doCopySettingsTo() failure | error: %s"%(self.p_combinedShortName,attrArg,error)
 	
@@ -3863,7 +3863,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	
 	return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
     except StandardError,error:
-	log.error("validateAttrArg>>Failure! arg: %s"%arg)	
+	log.debug("validateAttrArg>>Failure! arg: %s"%arg)	
 	if noneValid:
 	    return False
 	raise StandardError,error
