@@ -273,9 +273,9 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             if namesDict.get('cgmDirection') != None:
                 childNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
             if namesDict.get('cgmDirectionModifier') != None:
-                childNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')"""
+                childNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
             if namesDict.get('cgmNameModifier') != None:
-                childNamesDict['cgmNameModifier'] = namesDict.get('cgmNameModifier')            
+                childNamesDict['cgmNameModifier'] = namesDict.get('cgmNameModifier') """           
             if namesDict.get('cgmTypeModifier') != None:
                 childNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
             
