@@ -158,10 +158,13 @@ class go(object):
 	log.warning("_validateControlArg couldn't find: %s"%arg)
 	return False
     
-    def _pushKWsDict(self,d_kws = None,i=None):
+    def _pushKWsDict(self,d_kws = None,i=None, l_objectsToDo = None):
 	"""
 	Pushes specific kws dict during 
 	"""
+	if l_objectsToDo is None:
+	    l_objectsToDo = self.l_controlSnapObjects
+	    
 	if type(d_kws) is not dict:
 	    raise StandardError, "_pushKWsDict>> 'd_kws' arg not a dict: %s"%d_kws
 	try:
@@ -172,7 +175,7 @@ class go(object):
 		    for k in d_kws[i].keys():
 			log.info("%s: %s"%(k,d_kws[i].get(k)))
 			self.__dict__[k] = d_kws[i].get(k)
-		elif i == len(self.l_controlSnapObjects)-1 and d_kws.get(-1):
+		elif i == len(l_objectsToDo)-1 and d_kws.get(-1):
 		    log.info('last mode')
 		    for k in d_kws[-1].keys():
 			log.info("%s: %s"%(k,d_kws[-1].get(k)))			
@@ -1504,8 +1507,8 @@ class go(object):
 	                        'rootRotate':None,
 	                        'rootOffset':[],
 	                        'rotateBank':[]},
-	             0:{'rootOffset':[0,0,self._skinOffset*4]},
-	             -1:{'rootOffset':[0,0,-self._skinOffset*4]}}
+	             0:{'rootOffset':[0,0,self._skinOffset*6]},
+	             -1:{'rootOffset':[0,0,-self._skinOffset*6]}}
 	    
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
@@ -1544,7 +1547,7 @@ class go(object):
 	    
 	for i,obj in enumerate(l_objectsToDo):
 	    log.info(obj)
-	    self._pushKWsDict(d_kws,i)
+	    self._pushKWsDict(d_kws,i,l_objectsToDo)
 
 	    log.info(">>>>>>>>>>>aim: %s"%self.aimAxis)
 	    log.info(">>>>>>>>>> lathe: %s"%self.latheAxis)
