@@ -2774,7 +2774,7 @@ class cgmAttr(object):
 		return defaultValue[0]
 	    return False
 	except:
-	    log.error("'%s' failed to query default value" %self.p_combinedName)
+	    log.debug("'%s' failed to query default value" %self.p_combinedName)
 	    return False
     
     def doDefault(self,value = None):
@@ -2816,8 +2816,8 @@ class cgmAttr(object):
 		return minValue[0]
 	    return False
 	except StandardError,error:
-	    log.error(error)
-	    log.error("'%s' failed to query min value" %self.p_combinedName)
+	    log.debug(error)
+	    log.debug("'%s' failed to query min value" %self.p_combinedName)
 	    return False
 	
     def doMin(self,value = None):
@@ -2934,7 +2934,7 @@ class cgmAttr(object):
 		return maxValue[0]
 	    return False
 	except:
-	    log.error("'%s' failed to query max value" %self.p_combinedName)
+	    log.debug("'%s' failed to query max value" %self.p_combinedName)
 	    return False
 	
     def doMax(self,value = None):
