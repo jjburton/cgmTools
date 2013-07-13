@@ -19,7 +19,7 @@ import time
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
+#from Red9.core import Red9_General as r9General
 
 #========================================================================
 import logging
@@ -30,16 +30,12 @@ log.setLevel(logging.INFO)
 
 # From cgm ==============================================================
 #from cgm.lib.classes import NameFactory
-from cgm.core import cgm_Meta as cgmMeta
-reload(cgmMeta)
+#from cgm.core import cgm_Meta as cgmMeta
+import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
-reload(nameTools)
 from cgm.core.rigger import ModuleFactory as mFactory
-reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
-reload(pFactory)
 from cgm.core.rigger import MorpheusFactory as morphyF
-reload(morphyF)
 
 from cgm.core.classes import NodeFactory as nodeF
 reload(nodeF)
@@ -56,7 +52,7 @@ cgmModuleTypes = ['cgmModule','cgmLimb']
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
-    @r9General.Timer
+    #@r9General.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         log.debug(">>> cgmPuppet.__init__")
         if kws:log.debug("kws: %s"%str(kws))
@@ -135,7 +131,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
         return True
     
-    #@r9General.Timer
+    ##@r9General.Timer
     def __verify__(self,name = None):
         """"""
         """ 
@@ -285,7 +281,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.connectModule(tmpModule)
 	return tmpModule
 
-    #@r9General.Timer
+    ##@r9General.Timer
     def connectModule(self,module,force = True,**kws):
         """
         Connects a module to a puppet
@@ -371,7 +367,7 @@ class cgmPuppet(cgmMeta.cgmNode):
     def isCustomizable(self):
 	return False 
     
-    #@r9General.Timer
+    ##@r9General.Timer
     def _verifyMasterControl(self,**kws):
 	""" 
 	"""    
@@ -500,7 +496,7 @@ class cgmMorpheusPuppet(cgmPuppet):
 class cgmMasterNull(cgmMeta.cgmObject):
     """"""
     #----------------------------------------------------------------------
-    #@r9General.Timer    
+    ##@r9General.Timer    
     def __init__(self,node = None, name = 'Master',doVerify = False, *args,**kws):
         """Constructor"""
         #>>>Keyword args
@@ -516,7 +512,7 @@ class cgmMasterNull(cgmMeta.cgmObject):
 		if not self.__verify__(**kws):
 		    raise StandardError,"Failed!"
 
-    #@r9General.Timer    
+    ##@r9General.Timer    
     def __verify__(self,**kws):
         """"""
         """ 
@@ -584,7 +580,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
 		if not self.__verify__():
 		    raise StandardError,"Failed!"
 		
-    #@r9General.Timer
+    ##@r9General.Timer
     def __verify__(self):
         """"""
         """ 
@@ -625,7 +621,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 
     def __bindData__(self):
         pass
-    #@r9General.Timer
+    ##@r9General.Timer
     def __verify__(self):
         """ 
         """ 
@@ -906,7 +902,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
     def updateTemplate(self,**kws):
 	return morphyF.updateTemplate(self,saveTemplatePose = True,**kws)  
 	
-    #@r9General.Timer
+    ##@r9General.Timer
     def doUpdate_pickerGroups(self):
 	"""
 	Update the groups that are stored to self.autoPickerWatchGroups. By that, we mean
@@ -930,7 +926,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    n = nameTools.returnCombinedNameFromDict(d)
 	    nodeF.build_conditionNetworkFromGroup(shortName, chooseAttr = n, controlObject = settingsControl)
     
-    #@r9General.Timer
+    ##@r9General.Timer
     def doUpdateBlendshapeNode(self,blendshapeAttr):
 	""" 
 	Update a blendshape node by it checking it's source folder
@@ -978,7 +974,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
     """
     Make a master control curve
     """
-    #@r9General.Timer	    
+    ##@r9General.Timer	    
     def __init__(self,*args,**kws):
         """Constructor"""				
         #>>>Keyword args
@@ -994,7 +990,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 		if not self.__verify__(*args,**kws):
 		    raise StandardError,"Failed!"	
 	
-    #@r9General.Timer	
+    ##@r9General.Timer	
     def __verify__(self,*args,**kws):
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
@@ -1076,7 +1072,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	
 	return True
     
-    #@r9General.Timer
+    ##@r9General.Timer
     def rebuildControlCurve(self, size = None,font = None,**kws):
 	"""
 	Rebuild the master control curve
@@ -1123,7 +1119,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	
 class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     """"""
-    #@r9General.Timer    
+    ##@r9General.Timer    
     def __init__(self,node = None, name = None ,initializeOnly = False,*args,**kws):
 	#DO NOT PUT A DEFAULT NAME IN THE DEFINITION...RECURSIVE HELL
         log.debug(">>> cgmModuleBufferNode.__init__")
@@ -1145,7 +1141,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
 		if not self.__verify__(**kws):
 		    raise StandardError,"Failed!"
 		
-    #@r9General.Timer
+    ##@r9General.Timer
     def __verify__(self,*args,**kws):
         """"""
         """ 
@@ -1254,7 +1250,7 @@ templateNullAttrs_toMake = {'version':'string',
                             'controlObjectTemplatePose':'string'}
 
 class cgmModule(cgmMeta.cgmObject):
-    #@r9General.Timer
+    ##@r9General.Timer
     def __init__(self,*args,**kws):
         """ 
         Intializes an module master class handler
@@ -1335,7 +1331,7 @@ class cgmModule(cgmMeta.cgmObject):
 	"""
         log.debug("'%s' Checks out!"%self.getShortName())
 	
-    #@r9General.Timer
+    ##@r9General.Timer
     def initialize(self,**kws):
         """ 
         Initializes the various components a moduleNull for a character/asset.
@@ -1368,7 +1364,7 @@ class cgmModule(cgmMeta.cgmObject):
            	
         return True # Experimetning, Don't know that we need to check this stuff as it's for changing info, not to be used in process
 
-    #@r9General.Timer
+    ##@r9General.Timer
     def __verify__(self,**kws):
         """"""
         """ 
@@ -1652,7 +1648,21 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigDisconnect)
         """
-        return mFactory.rigDelete(self,**kws)      
+        return mFactory.rigDelete(self,**kws)     
+    
+    def rig_getReport(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.rig_getReport)
+        """
+        return mFactory.rig_getReport(self)  
+    
+    def rig_getHandleJoints(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.rig_getHandleJoints)
+        """
+        return mFactory.rig_getHandleJoints(self)   
     
     #>>> Animation
     #========================================================================

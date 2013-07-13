@@ -11,25 +11,22 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
+#from Red9.core import Red9_General as r9General
 from Red9.core import Red9_CoreUtils as r9Core
 from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
+from cgm.core.rigger import TemplateFactory as tFactory
+from cgm.core.rigger import JointFactory as jFactory
+from cgm.core.rigger import RigFactory as mRig
 from cgm.lib import (modules,curves,distance,attributes)
 from cgm.lib.ml import ml_resetChannels
-from cgm.core import cgm_General as cgmGeneral
 
 reload(attributes)
 from cgm.core.lib import nameTools
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
-from cgm.core.rigger import TemplateFactory as tFactory
-reload(tFactory)
-from cgm.core.rigger import JointFactory as jFactory
-reload(jFactory)
-from cgm.core.rigger import RigFactory as mRig
-reload(mRig)
 
 ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -40,7 +37,7 @@ l_modulesClasses = ['cgmModule','cgmLimb']
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-#@r9General.Timer   
+##@r9General.Timer   
 def isSized(self):
     """
     Return if a moudle is sized or not
@@ -193,7 +190,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
                        create = 'locator',
                        toCreate = namesToCreate)
     
-@r9General.Timer   
+#@r9General.Timer   
 def doSetParentModule(self,moduleParent,force = False):
     """
     Set a module parent of a module
@@ -260,7 +257,7 @@ def doSetParentModule(self,moduleParent,force = False):
     return True
 
 
-#@r9General.Timer   
+##@r9General.Timer   
 def getGeneratedCoreNames(self):
     """ 
     Generate core names for a module and return them
@@ -325,14 +322,14 @@ def getGeneratedCoreNames(self):
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
-
 def doRig(self,*args,**kws):
     if not isSkeletonized(self):
         log.warning("%s.doRig>>> Not not skeletonized"%self.getShortName())
         return False      
     if self.moduleParent and not isRigged(self.moduleParent):
 	log.warning("%s.doRig>>> Parent module is not rigged: '%s'"%(self.getShortName(),self.moduleParent.getShortName()))
-        return False    
+        return False 
+    
     mRig.go(self,*args,**kws)      
     if not isRigged(self):
 	log.warning("%s.doRig>>> Failed To Rig"%self.getShortName())
@@ -344,7 +341,7 @@ def doRig(self,*args,**kws):
     #except StandardError,error:
         #log.warning(error)    
 
-#@r9General.Timer   
+##@r9General.Timer   
 def isRigged(self):
     """
     Return if a module is rigged or not
@@ -374,7 +371,7 @@ def isRigged(self):
             
     return True
 
-#@r9General.Timer   
+##@r9General.Timer   
 def rigDelete(self,*args,**kws):
     #1 zero out controls
     #2 see if connected, if so break connection
@@ -419,7 +416,7 @@ def rigDelete(self,*args,**kws):
     
     return True
 
-#@r9General.Timer
+##@r9General.Timer
 def isRigConnected(self,*args,**kws):
     str_shortName = self.getShortName()
     if not isRigged(self):
@@ -440,7 +437,7 @@ def isRigConnected(self,*args,**kws):
 
     return True
 
-#@r9General.Timer
+##@r9General.Timer
 def rigConnect(self,*args,**kws):
     str_shortName = self.getShortName()
     if not isRigged(self):
@@ -458,7 +455,7 @@ def rigConnect(self,*args,**kws):
     for i,i_jnt in enumerate(i_rigNull.skinJoints):
 	try:
 	    log.info("'%s'>>drives>>'%s'"%(i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
-	    pntConstBuffer = mc.pointConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
+	    pntConstBuffer = mc.pointConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
 	    orConstBuffer = mc.orientConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
 	    attributes.doConnectAttr((i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
 	except:
@@ -495,10 +492,25 @@ def rigDisconnect(self,*args,**kws):
     mc.delete(l_constraints)
     return True
 
+def rig_getReport(self,*args,**kws):    
+    mRig.get_report(self,*args,**kws)      
+    return True
+    #except StandardError,error:
+        #log.warning(error)
+	
+def rig_getHandleJoints(self):
+    """
+    Find the module handle joints
+    """
+    try:
+	return mRig.get_handleJoints(self)
+    except StandardError,error:
+	raise StandardError,"%s.rig_getHandleJoints >> failed: %s"%(self.getShortName(),error)
+
 #=====================================================================================================
 #>>> Template
 #=====================================================================================================
-#@r9General.Timer   
+##@r9General.Timer   
 def isTemplated(self):
     """
     Return if a module is templated or not
@@ -533,7 +545,7 @@ def isTemplated(self):
     #self.moduleStates['templateState'] = True #Not working yet
     return True
 
-#@r9General.Timer   
+##@r9General.Timer   
 def doTemplate(self,*args,**kws):
     if not isSized(self):
         log.warning("Not sized: '%s'"%self.getShortName())
@@ -546,7 +558,7 @@ def doTemplate(self,*args,**kws):
     #except StandardError,error:
         #log.warning(error)    
     
-#@r9General.Timer   
+##@r9General.Timer   
 def deleteTemplate(self,*args,**kws):
     try:
         objList = returnTemplateObjects(self)
@@ -558,7 +570,7 @@ def deleteTemplate(self,*args,**kws):
     except StandardError,error:
         log.warning(error)
         
-#@r9General.Timer   
+##@r9General.Timer   
 def returnTemplateObjects(self):
     try:
         templateNull = self.templateNull.getShortName()
@@ -572,7 +584,7 @@ def returnTemplateObjects(self):
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
-#@r9General.Timer   
+##@r9General.Timer   
 def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
@@ -582,21 +594,21 @@ def isSkeletonized(self):
         log.debug("Not templated, can't be skeletonized yet")
         return False
     
-    l_skinJoints = self.rigNull.getMessage('skinJoints')
-    #iList_skinJoints = self.rigNull.skinJoints
-    if not l_skinJoints:
+    l_moduleJoints = self.rigNull.getMessage('moduleJoints')
+    #iList_moduleJoints = self.rigNull.moduleJoints
+    if not l_moduleJoints:
         log.debug("No skin joints found")
         return False  
     
     #>>> How many joints should we have 
     goodCount = returnExpectedJointCount(self)
-    currentCount = len(l_skinJoints)
+    currentCount = len(l_moduleJoints)
     if  currentCount < (goodCount-1):
         log.warning("Expected at least %s joints. %s found: '%s'"%(goodCount-1,currentCount,self.getShortName()))
         return False
     return True
 
-@r9General.Timer   
+#@r9General.Timer   
 def doSkeletonize(self,*args,**kws):
     try:
         if not isTemplated(self):
@@ -648,7 +660,7 @@ def returnExpectedJointCount(self):
 #>>> States
 #=====================================================================================================        
 
-@r9General.Timer   
+#@r9General.Timer   
 def validateStateArg(stateArg):
     #>>> Validate argument
     if type(stateArg) in [str,unicode]:
@@ -671,7 +683,7 @@ def validateStateArg(stateArg):
         return False
     return [stateIndex,stateName]
     
-#@r9General.Timer   
+##@r9General.Timer   
 def isModule(self):
     """
     Simple module check
@@ -685,7 +697,7 @@ def isModule(self):
     log.debug("Is a module: : '%s'"%self.getShortName())
     return True
 
-#@r9General.Timer   
+##@r9General.Timer   
 def getState(self):
     """ 
     Check module state ONLY from the state check attributes
@@ -719,7 +731,7 @@ def getState(self):
     log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
     return goodState
 
-@r9General.Timer   
+#@r9General.Timer   
 def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     """ 
     Set a module's state
@@ -740,7 +752,7 @@ def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     changeState(self, stateArg, *args,**kws)
         
     
-#@r9General.Timer   
+##@r9General.Timer   
 def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws):
     """ 
     Changes a module state
@@ -833,7 +845,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
             return True
         
     
-@r9General.Timer
+#@r9General.Timer
 def storePose_templateSettings(self):
     """
     Builds a template's data settings for reconstruction.
@@ -876,7 +888,7 @@ def storePose_templateSettings(self):
     i_templateNull.controlObjectTemplatePose = poseDict
     return poseDict
 
-@r9General.Timer
+#@r9General.Timer
 def readPose_templateSettings(self):
     """
     Builds a template's data settings for reconstruction.

@@ -16,6 +16,7 @@ from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
@@ -45,7 +46,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckHead2']
+l_modulesDone  = ['torso','neckhead']
 
 #>>> Register rig functions
 #=====================================================================
@@ -59,6 +60,7 @@ d_moduleTypeToBuildModule = {'leg':leg,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
+    
 #>>> Main class function
 #=====================================================================
 class go(object):
@@ -99,7 +101,11 @@ class go(object):
 	#First we want to see if we have a moduleParent to see if it's rigged yet
 	if self._i_module.getMessage('moduleParent'):
 	    if not self._i_module.moduleParent.isRigged():
-		raise StandardError,"RigFactory.go.init>>> '%s's module parent is not rigged yet: '%s'"%(self.getShortName(),self.moduleParent.getShortName())
+		raise StandardError,"RigFactory.go.init>>> '%s's module parent is not rigged yet: '%s'"%(self._i_module.getShortName(),self._i_module.moduleParent.getShortName())
+	
+	#First we want to see if we have a moduleParent to see if it's rigged yet
+	if self._i_module.isRigged() and forceNew is not True:
+	    raise StandardError,"RigFactory.go.init>>> '%s' already rigged and not forceNew"%(self._i_module.getShortName())
 	
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
 	if not self._i_module.modulePuppet._verifyMasterControl():
@@ -127,7 +133,9 @@ class go(object):
         #Joints
         self._l_skinJoints = self._i_rigNull.getMessage('skinJoints')
         self._ml_skinJoints = self._i_rigNull.skinJoints #We buffer this because when joints are duplicated, the multiAttrs extend with duplicates
-        
+        self._l_moduleJoints = self._i_rigNull.getMessage('moduleJoints')
+        self._ml_moduleJoints = self._i_rigNull.moduleJoints #We buffer this because when joints are duplicated, the multiAttrs extend with duplicates
+
         #>>> part name 
         self._partName = self._i_module.getPartNameBase()
         self._partType = self._i_module.moduleType.lower() or False
@@ -145,7 +153,7 @@ class go(object):
 	    log.warning("RigFactory.go>>> '%s'(%s) rig version out of date: %s != %s"%( self._strShortName,self._partType,self._version,self._buildVersion))	
 	else:
 	    if forceNew and self._i_module.isRigged():
-		self._i_module.deleteRig()
+		self._i_module.rigDelete()
 	    log.info("RigFactory.go>>> '%s' rig version up to date !"%(self.buildModule.__name__))	
 	
 	self._direction = self._i_module.getAttr('cgmDirection')
@@ -271,7 +279,74 @@ class go(object):
 		break
 	log.info("%s.getSegmentChains>>> Segment Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_segmentChains),l_segmentChains)) 
 	return ml_segmentChains
-
+        
+    def get_rigDeformationJoints(self):
+	#Get our joints that segment joints will connect to
+	try:
+	    if not self._i_rigNull.getMessage('rigJoints'):
+		log.error("%s.get_rigDeformationJoints >> no rig joints found"%self._strShortName)
+		return []	    
+	    ml_defJoints = []
+	    if not self._i_rigNull.getMessage('rigJoints'):raise StandardError,"%s.get_rigDeformationJoints >> no rig joints found"%self._strShortName	    
+	    ml_rigJoints = self._i_rigNull.rigJoints or []
+	    for i_jnt in ml_rigJoints:
+		if not i_jnt.getMessage('scaleJoint'):
+		    ml_defJoints.append(i_jnt)	    
+	    return ml_defJoints
+	
+	except StandardError,error:
+	    raise StandardError,"%s.get_rigDeformationJoints >> Failure: %s"%(self._strShortName,error)
+	
+    def get_handleJoints(self):
+	return get_rigHandleJoints(self._i_module)
+    
+    @cgmGeneral.Timer
+    def get_report(self):
+	ml_moduleJoints = self._i_rigNull.moduleJoints or []
+	ml_skinJoints = self._i_rigNull.skinJoints or []
+	ml_handleJoints = self.get_handleJoints() or []
+	l_rigJoints = self._i_rigNull.getMessage('rigJoints',False) or []
+	ml_rigHandleJoints = self.get_rigHandleJoints()
+	ml_rigDefJoints = self.get_rigDeformationJoints()
+	
+	log.info("%s.get_report >> "%self._strShortName + "="*50)
+	log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
+	log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))	
+	log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
+	log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
+	log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
+	log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
+	
+	log.info("="*75)	
+	
+    #>>> Joint chains
+    #=====================================================================    
+    def build_rigChain(self):
+	#Get our segment joints
+	l_rigJointsExist = self._i_rigNull.getMessage('rigJoints') or []
+	if l_rigJointsExist:
+	    log.error("Deleting existing rig chain")
+	    mc.delete(l_rigJointsExist)
+	
+	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
+	ml_rigJoints = []
+	for i,j in enumerate(l_rigJoints):
+	    i_j = cgmMeta.cgmObject(j)
+	    i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
+	    i_j.doName()
+	    l_rigJoints[i] = i_j.mNode
+	    ml_rigJoints.append(i_j)
+	    i_j.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
+	    if i_j.hasAttr('scaleJoint'):
+		if i_j.scaleJoint in self._ml_skinJoints:
+		    int_index = self._ml_skinJoints.index(i_j.scaleJoint)
+		    i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','rootJoint')#Connect
+	
+	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','rigNull')
+	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+	
+	return ml_rigJoints
 
 
 def isBuildable(goInstance):
@@ -386,6 +461,74 @@ def bindJoints_connectToBlend(goInstance):
     
     return True
 
+
+#>>> Module rig functions
+"""
+You should only pass modules into these 
+"""
+def get_rigHandleJoints(self):
+    #Get our segment joints
+    try:
+	if not self.rigNull.getMessage('rigJoints'):
+	    log.error("%s.get_rigHandleJoints >> no rig joints found"%self.getShortName())
+	    return []
+	ml_handleJoints = []
+	ml_rigJoints = self.rigNull.rigJoints or []
+	if not ml_rigJoints:raise StandardError,"%s.get_rigHandleJoints >> no rig joints found"%self.getShortName()
+	for i_jnt in ml_rigJoints:
+	    if i_jnt.d_jointFlags.get('isHandle'):ml_handleJoints.append(i_jnt) 
+	return ml_handleJoints
+    except StandardError,error:
+	raise StandardError,"get_rigHandleJoints >> self: %s | error: %s"%(self,error)
+    
+def get_rigDeformationJoints(self):
+    #Get our joints that segment joints will connect to
+    try:
+	if not self.rigNull.getMessage('rigJoints'):
+	    log.error("%s.get_rigDeformationJoints >> no rig joints found"%self.getShortName())
+	    return []	    
+	ml_defJoints = []
+	if not self.rigNull.getMessage('rigJoints'):raise StandardError,"%s.get_rigDeformationJoints >> no rig joints found"%self.getShortName()	    
+	ml_rigJoints = self.rigNull.rigJoints or []
+	for i_jnt in ml_rigJoints:
+	    if not i_jnt.getMessage('scaleJoint'):
+		ml_defJoints.append(i_jnt)	    
+	return ml_defJoints
+    
+    except StandardError,error:
+	raise StandardError,"get_rigDeformationJoints >> self: %s | error: %s"%(self,error)
+    
+def get_handleJoints(self):
+    #Get our segment joints
+    try:
+	ml_handleJoints = []
+	for i_obj in self.templateNull.controlObjects:
+	    ml_handleJoints.append( i_obj.handleJoint )
+	return ml_handleJoints
+    except StandardError,error:
+	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
+    
+@cgmGeneral.Timer
+def get_report(self):
+    try:
+	l_moduleJoints = self.rigNull.getMessage('moduleJoints',False) or []
+	l_skinJoints = self.rigNull.getMessage('skinJoints',False) or []
+	ml_handleJoints = get_handleJoints(self) or []
+	l_rigJoints = self.rigNull.getMessage('rigJoints',False) or []
+	ml_rigHandleJoints = get_rigHandleJoints(self)
+	ml_rigDefJoints = get_rigDeformationJoints(self)
+	
+	log.info("%s.get_report >> "%self.getShortName() + "="*50)
+	log.info("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
+	log.info("skinJoints: len - %s | %s"%(len(l_skinJoints),l_skinJoints))	
+	log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
+	log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
+	log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
+	log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
+	
+	log.info("="*75)	
+    except StandardError,error:
+	raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 """	
 @r9General.Timer
 def build_spine(goInstance, buildTo='',): 
