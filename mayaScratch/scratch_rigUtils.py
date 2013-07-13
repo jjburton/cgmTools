@@ -10,7 +10,8 @@ from cgm.lib import distance
 reload(distance)
 from cgm.core.rigger.lib import rig_Utils as rUtils
 reload(rUtils)
-
+from cgm.core.classes import NodeFactory as NodeF
+reload(NodeF)
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
@@ -19,6 +20,31 @@ cgmMeta.cgmObject(obj).createTransformFromObj()
 start = 'l_left_index_2_ik_jnt'
 end = 'l_left_index_4_ik_jnt'
 mc.ikHandle( sj=start, ee=end,solver = 'ikSpringSolver', forceSolver = True,snapHandleFlagToggle=True )  
+
+rUtils.IKHandle_addSplineIKTwist(handle,True)
+rUtils.IKHandle_addSplineIKTwist(handle,False)
+
+#>>> Playing with spline Ik twist setup
+#=======================================================
+#root twist mode off
+#Playing with a better spline IK twist setup, ramp multiplier works
+handle = 'ikHandle1'
+mPlug_start = cgmMeta.cgmAttr(handle,'twistStart',attrType='float',keyable=True, hidden=False)
+mPlug_end = cgmMeta.cgmAttr(handle,'twistEnd',attrType='float',keyable=True, hidden=False)
+mPlug_equalizedRoll = cgmMeta.cgmAttr(handle,'twistEqualized',attrType='float',keyable=True, hidden=False)
+mPlug_twist = cgmMeta.cgmAttr(handle,'twist',attrType='float',keyable=True, hidden=False)
+mPlug_start.doConnectOut("%s.roll"%handle)
+
+arg1 = "%s = %s - %s"%(mPlug_equalizedRoll.p_combinedShortName,mPlug_start.p_combinedShortName,mPlug_end.p_combinedShortName)
+log.info("arg1: %s"%arg1)
+NodeF.argsToNodes(arg1).doBuild()
+
+arg2 = "%s =  %s - %s"%(mPlug_twist.p_combinedShortName,mPlug_end.p_combinedShortName,mPlug_equalizedRoll.p_combinedShortName)
+log.info("arg2: %s"%arg2)
+NodeF.argsToNodes(arg2).doBuild()
+
+mPlug_twistRampMultiplier = cgmMeta.cgmAttr(handle,'twistRampMultiplier',attrType='float',keyable=True, hidden=False)
+mPlug_twistRampMultiplier.doConnectOut("%s.dTwistRampMult"%handle)
 #>>>Iterator
 #=======================================================
 #Value match mode
@@ -101,6 +127,7 @@ baseParent = 'driverBase'
 endParent = 'driverTop'
 midControls = ['mid_crv']
 controlOrientation = 'yxz'
+controlOrientation = 'yzx'
 rUtils.addCGMSegmentSubControl(joints,segmentCurve,baseParent, endParent,midControls=midControls,controlOrientation=controlOrientation)
 
 
@@ -117,7 +144,13 @@ rUtils.addCGMSegmentSubControl('spine_2_influenceJoint', segmentCurve = 'spine_s
 #Build segment stuff
 #==================================================================
 from cgm.core.rigger.lib import rig_Utils as rUtils
+reload(rUtils)
+"""
+testSegment_splineIKCurve.scaleEndUp = -1*(1-top_crv.scaleZ);
+testSegment_splineIKCurve.scaleEndOut = -1*(1-top_crv.scaleX);
+"""
 jointList = [u'joint1', u'joint2', u'joint3', u'joint4', u'joint5', u'joint6']
+jointList = [u'joint1', u'joint2', u'joint3', u'joint4', u'joint5']
 jointList = mc.ls(sl=True)
 influenceJoints = ['driverBase','driverTop']
 influenceJoints = ['l_knee_influence_jnt','l_ankle_influence_jnt']
@@ -126,13 +159,15 @@ influenceJoints = mc.ls
 startControl = 'base_crv'
 endControl = 'top_crv'
 controlOrientation = 'yzx'
-
+startControl = 'driverBase'
+endControl = 'driverTop'
 influenceJoints = ['l_seg_0_hip_influence_jnt','l_seg_0_knee_influence_jnt']
 startControl = 'l_seg_0_hip_ik_anim'
 endControl = 'l_seg_0_knee_ik_anim'
 startControl = 'l_knee_segIKCurve'
 endControl = 'l_ankle_segIKCurve'
 controlOrientation = 'zyx'
+controlOrientation = 'zxy'
 
 influenceJoints = ['l_seg_1_knee_influence_jnt','l_seg_1_ankle_influence_jnt']
 startControl = 'l_seg_0_hip_ik_anim'
