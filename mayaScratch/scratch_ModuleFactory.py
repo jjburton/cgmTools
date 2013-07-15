@@ -14,7 +14,7 @@ from cgm.core import cgm_PuppetMeta as cgmPM
 reload(mFactory)
 reload(tFactory)
 reload(jFactory)
-
+mFactory.get_rollJointCountList(leg)
 from cgm.core.classes import SnapFactory as Snap
 reload(Snap)
 from cgm.core.rigger import ModuleControlFactory as mControlFactory

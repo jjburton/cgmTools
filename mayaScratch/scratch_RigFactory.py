@@ -11,6 +11,7 @@ from cgm.core.rigger.lib.Limb import leg
 
 from cgm.core.rigger import RigFactory as Rig
 from cgm.core.rigger import JointFactory as jFactory
+from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.classes import  NodeFactory as nodeF
 reload(nodeF)
 reload(jFactory)
