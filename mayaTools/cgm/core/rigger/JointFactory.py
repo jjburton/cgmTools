@@ -243,7 +243,8 @@ def doSkeletonize(self):
             l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(i_obj.mNode,curve)['parameter'])
         l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
         #>>>Get div per span
-        l_spanDivs = []
+        l_spanDivs = self._i_module.get_rollJointCountList() or []
+	"""
         for segment in l_spanSegmentUPositions:
             l_spanDivs.append(rollJoints)
             
@@ -253,7 +254,7 @@ def doSkeletonize(self):
                     l_spanDivs[int(k)]#If the arg passes
                     l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
                 except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))
-        
+        """
         log.debug("l_spanSegmentUPositions: %s"%l_spanSegmentUPositions)
         log.debug("l_spanDivs: %s"%l_spanDivs)
         
