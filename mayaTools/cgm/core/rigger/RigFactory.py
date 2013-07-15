@@ -26,6 +26,7 @@ from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 reload(mShapeCast)
 from cgm.core.lib import nameTools
+from cgm.core.rigger.lib import joint_Utils as jntUtils
 
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
 
@@ -302,22 +303,8 @@ class go(object):
     
     @cgmGeneral.Timer
     def get_report(self):
-	ml_moduleJoints = self._i_rigNull.moduleJoints or []
-	ml_skinJoints = self._i_rigNull.skinJoints or []
-	ml_handleJoints = self.get_handleJoints() or []
-	l_rigJoints = self._i_rigNull.getMessage('rigJoints',False) or []
-	ml_rigHandleJoints = self.get_rigHandleJoints()
-	ml_rigDefJoints = self.get_rigDeformationJoints()
+	self._i_module.rig_getReport()
 	
-	log.info("%s.get_report >> "%self._strShortName + "="*50)
-	log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
-	log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))	
-	log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
-	log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
-	log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
-	log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
-	
-	log.info("="*75)	
 	
     #>>> Joint chains
     #=====================================================================    
@@ -341,14 +328,161 @@ class go(object):
 		if i_j.scaleJoint in self._ml_skinJoints:
 		    int_index = self._ml_skinJoints.index(i_j.scaleJoint)
 		    i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','rootJoint')#Connect
+		    
+	    if i_j.hasAttr('rigJoint'):i_j.doRemove('rigJoint')
 	
 	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','rigNull')
 	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
 	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
 	
 	return ml_rigJoints
+    
+    def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False):    
+	try:
+	    ml_handleJoints = self._i_module.rig_getHandleJoints()
+	    ml_handleChain = []
+	    
+	    for i,i_handle in enumerate(ml_handleJoints):
+		i_new = i_handle.doDuplicate()
+		if ml_handleChain:#if we have data, parent to last
+		    i_new.parent = ml_handleChain[-1]
+		else:i_new.parent = False
+		
+		i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+		i_new.doName()
+		
+		#i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
+		ml_handleChain.append(i_new)
+		
+	    self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+	    log.info("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
+	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
+		self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,connectNodesAs,'rigNull')#Push back		
+	    return ml_handleChain
 
+	except StandardError,error:
+	    raise StandardError,"%s.build_rigChain >> Failure: %s"%(self._strShortName,error)
 
+    def build_segmentChains(self, ml_segmentHandleJoints = None, connectNodes = True):
+	ml_segmentChains = []
+	if ml_segmentHandleJoints is None:
+	    ml_segmentHandleJoints = get_segmentHandleTargets(self._i_module)
+	    
+	if not ml_segmentHandleJoints:raise StandardError,"%s.build_segmentChains>> failed to get ml_segmentHandleJoints"%self._strShortName
+	
+	l_segPairs = lists.parseListToPairs(ml_segmentHandleJoints)
+	
+	for i,ml_pair in enumerate(l_segPairs):
+	    index_start = self._ml_moduleJoints.index(ml_pair[0])
+	    index_end = self._ml_moduleJoints.index(ml_pair[-1]) + 1
+	    buffer_segmentTargets = self._ml_moduleJoints[index_start:index_end]
+	    
+	    log.info("segment %s: %s"%(i,buffer_segmentTargets))
+	    
+	    ml_newChain = []
+	    for i2,j in enumerate(buffer_segmentTargets):
+		i_j = j.doDuplicate()
+		i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
+		i_j.doName()
+		if ml_newChain:
+		    i_j.parent = ml_newChain[-1].mNode
+		ml_newChain.append(i_j)
+		
+	    ml_newChain[0].parent = False#Parent to deformGroup
+	    ml_segmentChains.append(ml_newChain)
+	
+	#Sometimes last segement joints have off orientaions, we're gonna fix
+	joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
+	for segmentChain in ml_segmentChains:
+	    jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
+	    
+	#Connect stuff ============================================================================================    
+	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
+	if connectNodes:
+	    for i,ml_chain in enumerate(ml_segmentChains):
+		l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
+		log.info("segment chain %s: %s"%(i,l_chain))
+		self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_Joints'%i,"rigNull")
+		log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.getMessage('segment%s_Joints'%i,False)))
+		
+	return ml_segmentChains
+	
+    @cgmGeneral.Timer
+    def build_simpleInfluenceChains(self,addMidInfluence = True):
+	"""
+	
+	"""
+	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	ml_segmentHandleJoints = get_segmentHandleTargets(self._i_module)
+	
+	#>> Make influence joints ================================================================================
+	l_influencePairs = lists.parseListToPairs(ml_segmentHandleJoints)
+	ml_influenceJoints = []
+	ml_influenceChains = []
+	
+	for i,m_pair in enumerate(l_influencePairs):#For each pair
+	    str_nameModifier = 'seg_%s'%i	    
+	    l_tmpChain = []
+	    ml_midJoints = []	    
+	    for ii,i_jnt in enumerate(m_pair):
+		i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
+		i_new.parent = False
+		i_new.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)
+		i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
+		if l_tmpChain:
+		    i_new.parent = l_tmpChain[-1].mNode
+		i_new.doName()
+		i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations    
+		l_tmpChain.append(i_new)
+		
+	    if addMidInfluence:
+		log.info("%s.build_simpleInfuenceChains>>> Splitting influence segment: 2 |'%s' >> '%s'"%(self._i_module.getShortName(),m_pair[0].getShortName(),m_pair[1].getShortName()))
+		l_new_chain = joints.insertRollJointsSegment(l_tmpChain[0].mNode,l_tmpChain[1].mNode,1)
+		#Let's name our new joints
+		for ii,jnt in enumerate(l_new_chain):
+		    i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
+		    i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
+		    i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
+		    i_jnt.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)		
+		    i_jnt.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
+		    i_jnt.doName()
+		    ml_midJoints.append(i_jnt)
+		
+	    #Build the chain lists -------------------------------------------------------------------------------------------
+	    ml_segmentChain = [l_tmpChain[0]]
+	    if ml_midJoints:
+		ml_segmentChain.extend(ml_midJoints)
+	    ml_segmentChain.append(l_tmpChain[-1])
+	    for i_j in ml_segmentChain:ml_influenceJoints.append(i_j)
+	    ml_influenceChains.append(ml_segmentChain)#append to influence chains
+	    
+	    log.info("%s.buildHandleChain >> built handle chain %s: %s"%(self._strShortName,i,[i_j.getShortName() for i_j in ml_segmentChain]))
+	    
+	#Copy orientation of the very last joint to the second to last
+	joints.doCopyJointOrient(ml_influenceChains[-1][-2].mNode,ml_influenceChains[-1][-1].mNode)
+
+	#Figure out how we wanna store this, ml_influence joints 
+	for i_jnt in ml_influenceJoints:
+	    i_jnt.parent = False
+	    
+	for i_j in ml_influenceJoints:
+	    jntUtils.metaFreezeJointOrientation(i_j.mNode)#Freeze orientations
+	
+	#Connect stuff ============================================================================================    
+	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+	for i,ml_chain in enumerate(ml_influenceChains):
+	    l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
+	    log.info("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._i_module.getShortName(),l_chain))
+	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
+	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i,False)))
+	
+	return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
+
+#>>> Functions
+#=============================================================================================================
 def isBuildable(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
@@ -507,6 +641,30 @@ def get_handleJoints(self):
 	return ml_handleJoints
     except StandardError,error:
 	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
+
+def get_segmentHandleTargets(self):
+    """
+    Figure out which segment handle target joints
+    """
+    try:
+	ml_handleJoints = self.rig_getHandleJoints()
+	ml_segmentHandleJoints = []#To use later as well
+	
+	#>> Find our segment handle joints ======================================================================
+	#Get our count of roll joints
+	l_segmentRollCounts = self.get_rollJointCountList()
+	for i,int_i in enumerate(l_segmentRollCounts):
+	    if int_i > 0:
+		ml_segmentHandleJoints.extend([ml_handleJoints[i],ml_handleJoints[i+1]])
+		
+	ml_segmentHandleJoints = lists.returnListNoDuplicates(ml_segmentHandleJoints)
+	l_segmentHandleJoints = [i_jnt.getShortName() for i_jnt in ml_segmentHandleJoints]
+	log.info("%s.get_segmentHandleTargets >> segmentHandleJoints : %s"%(self.getShortName(),l_segmentHandleJoints))
+	
+	return ml_segmentHandleJoints    
+    
+    except StandardError,error:
+	raise StandardError,"get_segmentHandleTargets >> self: %s | error: %s"%(self,error)
     
 @cgmGeneral.Timer
 def get_report(self):
@@ -517,6 +675,7 @@ def get_report(self):
 	l_rigJoints = self.rigNull.getMessage('rigJoints',False) or []
 	ml_rigHandleJoints = get_rigHandleJoints(self)
 	ml_rigDefJoints = get_rigDeformationJoints(self)
+	ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
 	
 	log.info("%s.get_report >> "%self.getShortName() + "="*50)
 	log.info("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
@@ -525,8 +684,10 @@ def get_report(self):
 	log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
 	log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
 	log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
+	log.info("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
 	
-	log.info("="*75)	
+	log.info("="*75)
+	
     except StandardError,error:
 	raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 """	
