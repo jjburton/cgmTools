@@ -584,6 +584,25 @@ def returnTemplateObjects(self):
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
+def get_rollJointCountList(self):
+    try:
+	int_rollJoints = self.templateNull.rollJoints
+	d_rollJointOverride = self.templateNull.rollOverride
+	if type(d_rollJointOverride) is not dict:d_rollJointOverride = {}
+	
+	l_segmentRollCount = [int_rollJoints for i in range(self.templateNull.handles-1)]
+	    
+	if d_rollJointOverride:
+	    for k in d_rollJointOverride.keys():
+		try:
+		    l_segmentRollCount[int(k)]#If the arg passes
+		    l_segmentRollCount[int(k)] = d_rollJointOverride.get(k)#Override the roll value
+		except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))
+	log.info("%s.get_rollJointCountList >>  %s"%(self.getShortName(),l_segmentRollCount))
+	return l_segmentRollCount
+    except StandardError,error:
+	raise StandardError,"%s.get_rollJointCountList >> failed: %s"%(self.getShortName(),error)
+	
 ##@r9General.Timer   
 def isSkeletonized(self):
     """
