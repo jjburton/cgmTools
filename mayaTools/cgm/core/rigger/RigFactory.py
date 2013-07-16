@@ -240,66 +240,23 @@ class go(object):
 		self._i_rigNull.doRemove('%s_%s'%(key,subkey))
 	return True
     
-    def getInfluenceChains(self):
-	#>>>Influence Joints
-	l_influenceChains = []
-	ml_influenceChains = []
-	for i in range(100):
-	    buffer = self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i)
-	    if buffer:
-		l_influenceChains.append(buffer)
-		ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
-	    else:
-		break 
-	log.info("%s.getInfluenceChains>>> Segment Influence Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_influenceChains),l_influenceChains)) 		
-	return ml_influenceChains
+    def _get_influenceChains(self):
+	return get_influenceChains(self._i_module)	
 	
-    def getSegmentHandleChains(self):
-	l_segmentHandleChains = []
-	ml_segmentHandleChains = []
-	for i in range(50):
-	    buffer = self._i_rigNull.getMessage('segmentHandles_%s'%i,False)
-	    if buffer:
-		l_segmentHandleChains.append(buffer)
-		ml_segmentHandleChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
-	    else:
-		break
-	log.info("%s.getSegmentHandleChains>>> Segment Handle Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_segmentHandleChains),l_segmentHandleChains)) 	
-	return ml_segmentHandleChains
+    def _get_segmentHandleChains(self):
+	return get_segmentHandleChains(self._i_module)
 	
-    def getSegmentChains(self):
-	#Get our segment joints
-	l_segmentChains = []
-	ml_segmentChains = []
-	for i in range(50):
-	    buffer = self._i_rigNull.getMessage('segment%s_Joints'%i)
-	    if buffer:
-		l_segmentChains.append(buffer)
-		ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
-	    else:
-		break
-	log.info("%s.getSegmentChains>>> Segment Chains -- cnt: %s | lists: %s"%(self._strShortName,len(l_segmentChains),l_segmentChains)) 
-	return ml_segmentChains
+    def _get_segmentChains(self):
+	return get_segmentChains(self._i_module)
         
-    def get_rigDeformationJoints(self):
-	#Get our joints that segment joints will connect to
-	try:
-	    if not self._i_rigNull.getMessage('rigJoints'):
-		log.error("%s.get_rigDeformationJoints >> no rig joints found"%self._strShortName)
-		return []	    
-	    ml_defJoints = []
-	    if not self._i_rigNull.getMessage('rigJoints'):raise StandardError,"%s.get_rigDeformationJoints >> no rig joints found"%self._strShortName	    
-	    ml_rigJoints = self._i_rigNull.rigJoints or []
-	    for i_jnt in ml_rigJoints:
-		if not i_jnt.getMessage('scaleJoint'):
-		    ml_defJoints.append(i_jnt)	    
-	    return ml_defJoints
+    def _get_rigDeformationJoints(self):
+	return get_rigDeformationJoints(self._i_module)
 	
-	except StandardError,error:
-	    raise StandardError,"%s.get_rigDeformationJoints >> Failure: %s"%(self._strShortName,error)
-	
-    def get_handleJoints(self):
+    def _get_handleJoints(self):
 	return get_rigHandleJoints(self._i_module)
+    
+    def _get_simpleRigJointDriverDict(self):
+	return get_simpleRigJointDriverDict(self._i_module)
     
     @cgmGeneral.Timer
     def get_report(self):
@@ -665,6 +622,255 @@ def get_segmentHandleTargets(self):
     
     except StandardError,error:
 	raise StandardError,"get_segmentHandleTargets >> self: %s | error: %s"%(self,error)
+
+def get_influenceChains(self):
+    try:
+	#>>>Influence Joints
+	l_influenceChains = []
+	ml_influenceChains = []
+	for i in range(100):
+	    buffer = self.rigNull.getMessage('segment%s_InfluenceJoints'%i)
+	    if buffer:
+		l_influenceChains.append(buffer)
+		ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break 
+	log.info("%s._get_influenceChains>>> Segment Influence Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_influenceChains),l_influenceChains)) 		
+	return ml_influenceChains
+    except StandardError,error:
+	raise StandardError,"_get_influenceChains >> self: %s | error: %s"%(self,error)
+    
+def get_segmentHandleChains(self):
+    try:
+	l_segmentHandleChains = []
+	ml_segmentHandleChains = []
+	for i in range(50):
+	    buffer = self.rigNull.getMessage('segmentHandles_%s'%i,False)
+	    if buffer:
+		l_segmentHandleChains.append(buffer)
+		ml_segmentHandleChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break
+	log.info("%s._get_segmentHandleChains>>> Segment Handle Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_segmentHandleChains),l_segmentHandleChains)) 	
+	return ml_segmentHandleChains
+    except StandardError,error:
+	raise StandardError,"_get_segmentHandleChains >> self: %s | error: %s"%(self,error)
+    
+def get_segmentChains(self):
+    try:
+	#Get our segment joints
+	l_segmentChains = []
+	ml_segmentChains = []
+	for i in range(50):
+	    buffer = self.rigNull.getMessage('segment%s_Joints'%i,False)
+	    if buffer:
+		l_segmentChains.append(buffer)
+		ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break
+	log.info("%s.get_segmentChains>>> Segment Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_segmentChains),l_segmentChains)) 
+	return ml_segmentChains
+    except StandardError,error:
+	raise StandardError,"get_segmentChains >> self: %s | error: %s"%(self,error)
+    
+@cgmGeneral.Timer    
+def get_rigJointDriversDict(self,printReport = True):
+    """
+    Figure out what drives skin joints. BLend joints should have the priority, then segment joints
+    """
+    def __findDefJointFromRigJoint(i_jnt):	    
+	if i_jnt.getMessage('rigJoint'):
+	    i_rigJoint = cgmMeta.validateObjArg(i_jnt.rigJoint,cgmMeta.cgmObject)
+	    if i_rigJoint.hasAttr('scaleJoint'):
+		i_scaleJnt = cgmMeta.validateObjArg(i_jnt.scaleJoint,cgmMeta.cgmObject)
+		if i_scaleJnt.getShortName() in l_cullRigJoints:
+		    #log.info("Checking: %s | %s"%(i_jnt,i_rigJnt))
+		    d_rigIndexToDriverInstance[ml_rigJoints.index(i_scaleJnt)] = i_jnt	
+		    return
+		else:log.warning("%s no in cull list"%i_rigJnt.getShortName())	    	    
+		
+	    
+	    if i_rigJoint.getShortName() in l_cullRigJoints:
+		d_rigIndexToDriverInstance[ml_rigJoints.index(i_scaleJnt)] = i_jnt			
+		return
+	    else:log.warning("%s no in cull list"%i_rigJnt.getShortName())	    	    
+	return False
+	    
+    #>>>Initial checks
+    ml_blendJoints = []
+    mll_segmentChains = []
+    
+    try:
+	ml_rigJoints = cgmMeta.validateObjListArg(self.rigNull.rigJoints,cgmMeta.cgmObject,noneValid=False)
+    except:
+	log.error("%s.get_deformationRigDriversDict >> no rig joints found"%self.getShortName())
+	return {}
+    try:ml_blendJoints = cgmMeta.validateObjListArg(self.rigNull.blendJoints,cgmMeta.cgmObject,noneValid=True)
+    except:pass
+    
+    try:ml_blendJoints = cgmMeta.validateObjListArg(self.rigNull.blendJoints,cgmMeta.cgmObject,noneValid=True)
+    except:log.warning("%s.get_deformationRigDriversDict >> no blend joints found"%self.getShortName())
+	 
+    try:mll_segmentChains = get_segmentChains(self)
+    except StandardError,error:
+	log.error("%s.get_deformationRigDriversDict >> mll_segmentChains failure: %s"%(self.getShortName(),error))
+    
+    if not ml_blendJoints:log.warning("%s.get_deformationRigDriversDict >> no blend joints found"%self.getShortName())
+    if not mll_segmentChains:log.warning("%s.get_deformationRigDriversDict >> no segment found"%self.getShortName())
+    
+	    
+    #>>>Declare
+    l_cullRigJoints = [i_jnt.getShortName() for i_jnt in ml_rigJoints]	
+    d_rigIndexToDriverInstance = {}
+    ml_matchTargets = []
+    if mll_segmentChains:
+	l_matchTargets = []
+	for i,ml_chain in enumerate(mll_segmentChains):
+	    if i == len(mll_segmentChains)-1:
+		ml_matchTargets.extend([i_jnt for i_jnt in ml_chain])
+	    else:
+		ml_matchTargets.extend([i_jnt for i_jnt in ml_chain[:-1]])		
+		
+    
+    #First let's get our blend joints taken care of:
+    if ml_blendJoints:
+	for i,i_jnt in enumerate(ml_blendJoints):
+	    if i_jnt.getMessage('rigJoint'):
+		i_rigJnt = cgmMeta.validateObjArg(i_jnt.rigJoint,cgmMeta.cgmObject)
+		if i_rigJnt.getShortName() in l_cullRigJoints:
+		    #log.info("Checking: %s | %s"%(i_jnt,i_rigJnt))
+		    d_rigIndexToDriverInstance[ml_rigJoints.index(i_rigJnt)] = i_jnt
+		    try:l_cullRigJoints.remove(i_rigJnt.getShortName())
+		    except:log.error("%s failed to remove from cull list: %s"%(i_rigJnt.getShortName(),l_cullRigJoints))
+		else:
+		    log.warning("%s no in cull list"%i_rigJnt.getShortName())
+	
+		        
+    #If we have matchTargets, we're going to match them	
+    if ml_matchTargets:
+	for i,i_jnt in enumerate(ml_matchTargets):
+	    if i_jnt.getMessage('rigJoint'):
+		i_rigJnt = cgmMeta.validateObjArg(i_jnt.rigJoint,cgmMeta.cgmObject)
+		if i_rigJnt.getMessage('scaleJoint'):
+		    log.info("Scale joint found!")
+		    i_scaleJnt = cgmMeta.validateObjArg(i_rigJnt.scaleJoint,cgmMeta.cgmObject)
+		    if i_scaleJnt.getShortName() in l_cullRigJoints:
+			#log.info("Checking: %s | %s"%(i_jnt,i_rigJnt))
+			d_rigIndexToDriverInstance[ml_rigJoints.index(i_scaleJnt)] = i_jnt	
+			try:l_cullRigJoints.remove(i_scaleJnt.getShortName())
+			except:log.error("%s failed to remove from cull list: %s"%(i_scaleJnt.getShortName(),l_cullRigJoints))			
+		    else:log.warning("scale joint %s not in cull list"%i_rigJnt.getShortName())	   		    
+    
+		elif i_rigJnt.getShortName() in l_cullRigJoints:
+		    #log.info("Checking: %s | %s"%(i_jnt,i_rigJnt))
+		    d_rigIndexToDriverInstance[ml_rigJoints.index(i_rigJnt)] = i_jnt
+		    try:l_cullRigJoints.remove(i_rigJnt.getShortName())
+		    except:log.error("%s failed to remove from cull list: %s"%(i_rigJnt.getShortName(),l_cullRigJoints))	
+		else:
+		    log.warning("%s no in cull list"%i_rigJnt.getShortName())
+		    
+    #If we have any left, do a distance check
+    l_matchTargets = [i_jnt.mNode for i_jnt in ml_matchTargets]
+    for i,jnt in enumerate(l_cullRigJoints):
+	i_jnt = cgmMeta.cgmObject(jnt)
+	attachJoint = distance.returnClosestObject(jnt,l_matchTargets)
+	int_match = l_matchTargets.index(attachJoint)
+	d_rigIndexToDriverInstance[ml_rigJoints.index(i_jnt)] = ml_matchTargets[int_match]    
+	l_cullRigJoints.remove(jnt)
+
+    if printReport or l_cullRigJoints:
+	log.info("%s.get_rigJointDriversDict >> "%self.getShortName() + "="*50)
+	for i,i_jnt in enumerate(ml_rigJoints):
+	    if d_rigIndexToDriverInstance.has_key(i):
+		log.info("'%s'  << driven by << '%s'"%(i_jnt.getShortName(),d_rigIndexToDriverInstance[i].getShortName()))		    
+	    else:
+		log.info("%s  << HAS NO KEY STORED"%(i_jnt.getShortName()))	
+		
+	log.info("No matches found for %s | %s "%(len(l_cullRigJoints),l_cullRigJoints))	    
+	log.info("="*75)
+	    
+    if l_cullRigJoints:
+	raise StandardError,"%s to find matches for all rig joints: %s"%(i_scaleJnt.getShortName())
+    
+    return d_rigIndexToDriverInstance
+    
+    #except StandardError,error:
+	#raise StandardError,"get_rigJointDriversDict >> self: %s | error: %s"%(self,error)
+	
+@cgmGeneral.Timer    
+def get_simpleRigJointDriverDict(self,printReport = True):
+    """
+    Figure out what drives skin joints. BLend joints should have the priority, then segment joints
+    """
+    #>>>Initial checks
+    ml_blendJoints = []
+    mll_segmentChains = []
+    try:
+	ml_moduleJoints = cgmMeta.validateObjListArg(self.rigNull.moduleJoints,cgmMeta.cgmObject,noneValid=False)
+    except:
+	log.error("%s.get_simpleRigJointDriverDict >> no rig joints found"%self.getShortName())
+	return {}
+    
+    try:
+	ml_rigJoints = cgmMeta.validateObjListArg(self.rigNull.rigJoints,cgmMeta.cgmObject,noneValid=False)
+    except:
+	log.error("%s.get_simpleRigJointDriverDict >> no rig joints found"%self.getShortName())
+	return {}
+    
+    try:ml_blendJoints = cgmMeta.validateObjListArg(self.rigNull.blendJoints,cgmMeta.cgmObject,noneValid=True)
+    except:log.warning("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
+	 
+    try:mll_segmentChains = get_segmentChains(self)
+    except StandardError,error:
+	log.error("%s.get_simpleRigJointDriverDict >> mll_segmentChains failure: %s"%(self.getShortName(),error))
+    
+    if not ml_blendJoints:log.warning("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
+    if not mll_segmentChains:log.warning("%s.get_simpleRigJointDriverDict >> no segment found"%self.getShortName())
+    
+    #>>>Declare
+    d_rigJointDrivers = {}
+    
+    ml_moduleRigJoints = []#Build a list of our module rig joints
+    for i,i_j in enumerate(ml_moduleJoints):
+	ml_moduleRigJoints.append(i_j.rigJoint)
+	
+    l_cullRigJoints = [i_jnt.getShortName() for i_jnt in ml_moduleRigJoints]	
+    
+    ml_matchTargets = []
+    if mll_segmentChains:
+	l_matchTargets = []
+	for i,ml_chain in enumerate(mll_segmentChains):
+	    ml_matchTargets.extend([i_jnt for i_jnt in ml_chain[:-1]])	
+    ml_matchTargets.extend(ml_blendJoints)
+    
+    l_matchTargets = [i_jnt.getShortName() for i_jnt in ml_matchTargets]
+    for i,i_jnt in enumerate(ml_moduleRigJoints):
+	attachJoint = distance.returnClosestObject(i_jnt.mNode,l_matchTargets)
+	i_match = cgmMeta.cgmObject(attachJoint)
+	#d_rigJointDrivers[ml_moduleRigJoints.index(i_jnt)] = i_match
+	d_rigJointDrivers[i_jnt] = i_match
+	l_cullRigJoints.remove(i_jnt.getShortName())
+	ml_matchTargets.remove(i_match)
+	
+    if printReport or l_cullRigJoints:
+	log.info("%s.get_simpleRigJointDriverDict >> "%self.getShortName() + "="*50)
+	for i,i_jnt in enumerate(ml_moduleRigJoints):
+	    if d_rigJointDrivers.has_key(i_jnt):
+		log.info("'%s'  << driven by << '%s'"%(i_jnt.getShortName(),d_rigJointDrivers[i_jnt].getShortName()))		    
+	    else:
+		log.info("%s  << HAS NO KEY STORED"%(i_jnt.getShortName()))	
+		
+	log.info("No matches found for %s | %s "%(len(l_cullRigJoints),l_cullRigJoints))	    
+	log.info("="*75)
+	    
+    if l_cullRigJoints:
+	raise StandardError,"%s.get_simpleRigJointDriverDict >> failed to find matches for all rig joints: %s"%(i_scaleJnt.getShortName(),l_cullRigJoints)
+    
+    return d_rigJointDrivers
+    
+    #except StandardError,error:
+	#raise StandardError,"get_rigJointDriversDict >> self: %s | error: %s"%(self,error)
+    
     
 @cgmGeneral.Timer
 def get_report(self):
