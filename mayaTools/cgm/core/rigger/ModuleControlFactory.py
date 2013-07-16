@@ -18,7 +18,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
+#from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -47,7 +47,7 @@ from cgm.core.lib import nameTools
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
-    @r9General.Timer
+    #@r9General.Timer
     def __init__(self,moduleInstance,controlTypes = [],storageInstance = False,**kws): 
         """
 	Class factor generating module controls
@@ -159,7 +159,7 @@ class go(object):
 	log.warning("validateControlArg couldn't find: %s"%arg)
 	return False
     
-    @r9General.Timer    
+    #@r9General.Timer    
     def build_cog(self):
 	try:
 	    multiplier = 1.1
@@ -227,7 +227,7 @@ class go(object):
 		log.error("build_hips fail! | %s"%error) 
 		return False
     	    
-    @r9General.Timer    
+    #@r9General.Timer    
     def build_segmentFKHandles(self):
 	try:
 	    l_segmentControls = []
@@ -257,7 +257,7 @@ class go(object):
 		log.error("build_segmentIKHandles fail! | %s"%error) 
 		return False
 	    
-    @r9General.Timer	
+    #@r9General.Timer	
     def build_segmentIKHandles(self):
 	try:
 	    l_segmentControls = []
@@ -307,7 +307,7 @@ class go(object):
 		log.error("build_segmentIKHandles! | %s"%error) 
 		return False
 	    
-@r9General.Timer
+#@r9General.Timer
 def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,shapeParentTo = None,
                     setRotateOrder = None, autoLockNHide = True,
                     addDynParentGroup = False, addExtraGroups = False, addConstraintGroup = False, freezeAll = False,

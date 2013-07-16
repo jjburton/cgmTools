@@ -14,7 +14,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
+#from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -43,7 +43,7 @@ reload(mShapeCast)
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
-    @r9General.Timer
+    #@r9General.Timer
     def __init__(self,module,forceNew = True,loadTemplatePose = True,tryTemplateUpdate = False, geo = None, **kws): 
         """
         To do:
@@ -152,7 +152,7 @@ class go(object):
         #>>> store template settings
         if loadTemplatePose:self.m.loadTemplatePose()
 		
-@r9General.Timer
+#@r9General.Timer
 def verify_moduleTemplateToggles(goInstance):
     """
     Rotate orders
@@ -188,7 +188,7 @@ def verify_moduleTemplateToggles(goInstance):
 #==========================================================================================
 d_pivotAttrs = {'foot':['pivot_toe','pivot_heel','pivot_ball','pivot_inner','pivot_outer']}
 
-@r9General.Timer
+#@r9General.Timer
 def hasPivots(self):
     """
     If a module needs pivots and has them, returns them. Checks if a module has necessary pivots.
@@ -213,7 +213,7 @@ def hasPivots(self):
     log.error("%s.hasPivots>>> not a known module that needs pivots! |"%(self.getShortName()))
     return False  
 
-@r9General.Timer
+#@r9General.Timer
 def doCastPivots(self):
     assert self.isModule(),"%s.doCastPivots>>> not a module"%self.getShortName()
     l_coreNames = self.coreNames.value
@@ -232,7 +232,7 @@ def doCastPivots(self):
     log.error("%s.doCastPivots>>> not a known module that needs pivots! |"%(self.getShortName()))
     return False
 
-@r9General.Timer
+#@r9General.Timer
 def doTagChildren(self): 
     try:
         for obj in self.i_templateNull.getAllChildren():
@@ -241,7 +241,7 @@ def doTagChildren(self):
     except StandardError,error:
         log.warning(error) 
         
-@r9General.Timer
+#@r9General.Timer
 def returnModuleBaseSize(self):
     log.debug(">>> returnModuleSize")
     size = 12
@@ -290,7 +290,7 @@ def returnModuleBaseSize(self):
         pass
     return size 
 
-@r9General.Timer
+#@r9General.Timer
 def constrainToParentModule(self):
     """
     Pass a module class. Constrains template root to parent's closest template object
@@ -330,7 +330,7 @@ def constrainToParentModule(self):
             log.debug("Parent has not been templated...")           
             return False
 
-@r9General.Timer
+#@r9General.Timer
 def doMakeLimbTemplate(self):  
     """
     Self should be a TemplateFactory.go
@@ -481,7 +481,7 @@ def doMakeLimbTemplate(self):
         #constrainToParentModule(self.m)
     return True
 
-@r9General.Timer
+#@r9General.Timer
 def doCreateOrientationHelpers(self):
     """ 
     """
@@ -586,7 +586,7 @@ def doCreateOrientationHelpers(self):
 
     return True
 
-@r9General.Timer
+#@r9General.Timer
 def doParentControlObjects(self):
     """
     Needs instanced module
@@ -617,7 +617,7 @@ def doParentControlObjects(self):
          
     return
 
-@r9General.Timer
+#@r9General.Timer
 def updateTemplate(self,saveTemplatePose = False,**kws):
     """
     Function to update a skeleton if it's been resized
@@ -686,7 +686,7 @@ def getGoodCurveDegree(self):
         return doCurveDegree
     return False
 
-@r9General.Timer
+#@r9General.Timer
 def returnGeneralDirections(self,objList):
     """
     Get general direction of a list of objects in a module
