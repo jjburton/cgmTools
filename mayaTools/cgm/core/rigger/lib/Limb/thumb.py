@@ -60,7 +60,7 @@ reload(joints)
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints','fkJoints','ikJoints','blendJoints']   
-__d_preferredAngles__ = {'finger':[0,0,10],'thumb':[0,0,10]}#In terms of aim up out for orientation relative values
+__d_preferredAngles__ = {'thumb':[0,0,10]}#In terms of aim up out for orientation relative values
 __d_controlShapes__ = {'shape':['segmentFK','settings','cap']}
 @r9General.Timer
 def build_rigSkeleton(self):
@@ -72,7 +72,7 @@ def build_rigSkeleton(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("finger.build_deformationRig>>bad self!")
+	log.error("thumb.build_deformationRig>>bad self!")
 	raise StandardError,error
     	
     #>>>Create joint chains
@@ -355,7 +355,7 @@ def build_shapes(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("finger.build_rig>>bad self!")
+	log.error("thumb.build_rig>>bad self!")
 	raise StandardError,error
     
     if self._i_templateNull.handles not in range(4,6):
@@ -621,7 +621,7 @@ def build_FKIK(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("finger.build_FKIK>>bad self!")
+	log.error("thumb.build_FKIK>>bad self!")
 	raise StandardError,error
     
     #>>>Get data
@@ -649,53 +649,46 @@ def build_FKIK(self):
 	    log.info(axis)
 	    for i_j in chain[1:]:
 		attributes.doSetAttr(i_j.mNode,"jointType%s"%axis.upper(),1)
-	
+		
     #=============================================================    
     try:#>>>Finger Root Control and root follow
+	#we have to rebuild a little so that we can use our fk base control both for fk and ik
+	#Create a orient group that tracks the  module constrain null
+	buffer_fkGroup = ml_fkJoints[0].parent
+	i_orientGroup = cgmMeta.cgmObject( ml_fkJoints[1].doGroup(True),setClass=True )
+	i_orientGroup.addAttr('cgmTypeModifier','toOrient')
+	i_orientGroup.doName()
+	
+	#constrain it 
+	str_orConst = mc.orientConstraint(self._i_constrainNull.mNode,i_orientGroup.mNode,maintainOffset = True)[0]
+	attributes.doSetLockHideKeyableAttr(i_orientGroup.mNode)#lockNHide
+	self._i_constrainNull.connectChildNode(i_orientGroup,'fingerRoot','owner')#Connect
+	i_orientGroup.parent = self._i_constrainNull.mNode
+	
+	i_parentGroup = cgmMeta.cgmObject( i_orientGroup.doGroup(True),setClass=True )
+	i_parentGroup.addAttr('cgmTypeModifier','toParent')
+	i_parentGroup.doName()	
+	str_prntConst = mc.parentConstraint( ml_fkJoints[0].mNode,i_parentGroup.mNode,maintainOffset = True)[0]
+	i_parentGroup.parent = buffer_fkGroup
+	
 	for attr in ['tx','ty','tz']:#Unlock a few things
 	    i_attr = cgmMeta.cgmAttr(ml_fkJoints[0],attr)
 	    i_attr.p_keyable = True
-	    i_attr.p_locked = False	   	
-
-	#we have to rebuild a little so that we can use our fk base control both for fk and ik
-	#Create a orient group that tracks the  module constrain null
-	if self._partType == 'finger':
-	    buffer_fkGroup = ml_fkJoints[0].parent
-	    i_orientGroup = cgmMeta.cgmObject( ml_fkJoints[1].doGroup(True),setClass=True )
-	    i_orientGroup.addAttr('cgmTypeModifier','toOrient')
-	    i_orientGroup.doName()
-	    
-	    #constrain it 
-	    str_orConst = mc.orientConstraint(self._i_constrainNull.mNode,i_orientGroup.mNode,maintainOffset = True)[0]
-	    attributes.doSetLockHideKeyableAttr(i_orientGroup.mNode)#lockNHide
-	    self._i_constrainNull.connectChildNode(i_orientGroup,'fingerRoot','owner')#Connect
-	    i_orientGroup.parent = self._i_constrainNull.mNode
-	    
-	    i_parentGroup = cgmMeta.cgmObject( i_orientGroup.doGroup(True),setClass=True )
-	    i_parentGroup.addAttr('cgmTypeModifier','toParent')
-	    i_parentGroup.doName()	
-	    str_prntConst = mc.parentConstraint( ml_fkJoints[0].mNode,i_parentGroup.mNode,maintainOffset = True)[0]
-	    i_parentGroup.parent = buffer_fkGroup
-	    
- 
-	    #attributes.doSetLockHideKeyableAttr(ml_fkJoints[0].mNode,lock = False, visible=True, keyable=True, channels=['tx','ty','tz'])
-	    
-	    #Constrain ik base to fk base
-	    mc.orientConstraint(ml_fkJoints[0].mNode,ml_ikJoints[0].mNode,maintainOffset = True)
-	    ml_fkJoints[0].parent = self._i_constrainNull.mNode
+	    i_attr.p_locked = False	    
+	#attributes.doSetLockHideKeyableAttr(ml_fkJoints[0].mNode,lock = False, visible=True, keyable=True, channels=['tx','ty','tz'])
+	
+	#Constrain ik base to fk base
+	mc.orientConstraint(ml_fkJoints[0].mNode,ml_ikJoints[0].mNode,maintainOffset = True)
+	
+	ml_fkJoints[0].parent = self._i_constrainNull.mNode
 
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> Finger Root Control error: %s"%(self._strShortName,error)
     
+    return
     #=============================================================    
     try:#>>>FK Length connector
-	if self._partType == 'finger':
-	    ml_fkToDo = ml_fkJoints[1:-1]
-	else:#thumb
-	    ml_fkToDo = ml_fkJoints[:-1]
-	    log.info([i_jnt.getShortName() for i_jnt in ml_fkToDo])
-	    
-	for i,i_jnt in enumerate(ml_fkToDo):
+	for i,i_jnt in enumerate(ml_fkJoints[1:-1]):
 	    rUtils.addJointLengthAttr(i_jnt,orientation=self._jointOrientation)
 	
 	#IK
@@ -708,23 +701,11 @@ def build_FKIK(self):
     try:#>>>IK No Flip Chain
 	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
 	ml_ikNoFlipJoints = ml_ikJoints#Link
-	if self._partType == 'finger':
-	    mi_ikStart = ml_ikNoFlipJoints[1]
-	    mi_ikEnd = ml_ikNoFlipJoints[-2]
-	    mi_constraintGroup = self._i_constrainNull.fingerRoot
-	else:#thumb 
-	    mi_ikStart = ml_ikNoFlipJoints[0]
-	    mi_ikEnd = ml_ikNoFlipJoints[-2]
-	    mi_constraintGroup = self._i_constrainNull
-	
-	#i_tmpLoc = mi_ikStart.doLoc()#loc the first real
-	#i_tmpLoc.parent = mi_constraintGroup.mNode
-	#str_twistGroup = i_tmpLoc.doGroup(True)
-	i_tmpLoc = mi_ikEnd.doLoc()#loc the first real
-	i_tmpLoc.parent = mi_controlIK.mNode
+	i_tmpLoc = ml_ikNoFlipJoints[1].doLoc()#loc the first real 
+	i_tmpLoc.parent = self._i_constrainNull.fingerRoot.mNode
 	str_twistGroup = i_tmpLoc.doGroup(True)
 	
-	f_dist = distance.returnDistanceBetweenPoints(mi_ikStart.getPosition(),ml_ikNoFlipJoints[-1].getPosition()) #Measure first finger joint to end
+	f_dist = distance.returnDistanceBetweenPoints(ml_ikNoFlipJoints[1].getPosition(),ml_ikNoFlipJoints[-1].getPosition()) #Measure first finger joint to end
 	f_dist = f_dist * 1.5
 	if self._direction == 'left':#if right, rotate the pivots
 	    i_tmpLoc.__setattr__('t%s'%self._jointOrientation[2],-f_dist)
@@ -732,7 +713,7 @@ def build_FKIK(self):
 	    i_tmpLoc.__setattr__('t%s'%self._jointOrientation[2],f_dist)
 	
 	#Create no flip finger IK
-	d_ankleNoFlipReturn = rUtils.IKHandle_create(mi_ikStart.mNode,mi_ikEnd.mNode,lockMid=False,
+	d_ankleNoFlipReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[1].mNode,ml_ikNoFlipJoints[-2].mNode,lockMid=False,
 	                                             nameSuffix = 'noFlip',rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
 	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
 	
@@ -768,8 +749,8 @@ def build_FKIK(self):
 	#>>>Parent IK handles
 	mi_fingerIKHandleNF.parent = mi_controlIK.mNode#handle to control	
 	ml_distHandlesNF[-1].parent = mi_controlIK.mNode#handle to control
-	ml_distHandlesNF[0].parent = mi_constraintGroup.mNode#start to root
-	ml_distHandlesNF[1].parent = mi_constraintGroup.mNode#mid to root
+	ml_distHandlesNF[0].parent = self._i_constrainNull.fingerRoot.mNode#start to root
+	ml_distHandlesNF[1].parent = self._i_constrainNull.fingerRoot.mNode#mid to root
 	
 	#>>> Fix our ik_handle twist at the end of all of the parenting
 	#poleVector = mc.poleVectorConstraint (mi_rpHandleNF.mNode,mi_fingerIKHandleNF.mNode)  		
@@ -782,7 +763,7 @@ def build_FKIK(self):
     try:#>>>Constrain IK Finger
 	#Create hand IK
 	#ml_ikJoints[-2].parent = False
-	mc.orientConstraint(mi_controlIK.mNode,mi_ikEnd.mNode, maintainOffset = True)
+	mc.orientConstraint(mi_controlIK.mNode,ml_ikJoints[-2].mNode, maintainOffset = True)
 	#mc.pointConstraint(mi_controlIK.mNode,ml_ikJoints[-2].mNode, maintainOffset = True)
 
 	
@@ -824,7 +805,7 @@ def build_deformation(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("finger.build_deformationRig>>bad self!")
+	log.error("thumb.build_deformationRig>>bad self!")
 	raise StandardError,error
     
     #==========================================================================
@@ -836,7 +817,7 @@ def build_deformation(self):
 	#Get our segment joints
 	ml_segmentChains = self._get_segmentChains()
 	if len(ml_segmentChains)>2:
-	    raise StandardError, "%s.build_deformation>>> Too many segment chains, not a regular finger."%(self._strShortName)
+	    raise StandardError, "%s.build_deformation>>> Too many segment chains, not a regular thumb."%(self._strShortName)
 	
 	#>>>Influence Joints
 	ml_influenceChains = self._get_influenceChains()
@@ -1294,7 +1275,7 @@ def build_rig(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("finger.build_deformationRig>>bad self!")
+	log.error("thumb.build_deformationRig>>bad self!")
 	raise StandardError,error
     
     try:#>>>Get data
@@ -1333,7 +1314,7 @@ def build_rig(self):
 	if not l_constrainTargetJoints:
 	    l_constrainTargetJoints = [i_jnt.mNode for i_jnt in ml_blendJoints]
     except StandardError,error:
-	log.error("finger.build_rig>> Gather data fail!")
+	log.error("thumb.build_rig>> Gather data fail!")
 	raise StandardError,error
     
     #Constrain to pelvis
@@ -1382,7 +1363,7 @@ def build_rig(self):
 	i_dynGroup.rebuild()
 	
     except StandardError,error:
-	log.error("finger.build_rig>> finger ik dynamic parent setup fail!")
+	log.error("thumb.build_rig>> finger ik dynamic parent setup fail!")
 	raise StandardError,error
 
     #Make some connections
@@ -1468,7 +1449,7 @@ def build_matchSystem(self):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("finger.build_deformationRig>>bad self!")
+	log.error("thumb.build_deformationRig>>bad self!")
 	raise StandardError,error
     
     #Base info
@@ -1487,36 +1468,22 @@ def build_matchSystem(self):
     
     mi_dynSwitch = self._i_dynSwitch
     
-    #>>> Get the joints
-    if self._partType == 'finger':
-	ml_fkToDo = ml_fkJoints[1:]
-	ml_ikToDo = ml_ikJoints[1:]
-	ml_blendToDo = ml_blendJoints[1:]	
-	ml_fkControlsToDo = ml_controlsFK[1:]
-    else:#thumb
-	ml_fkToDo = ml_fkJoints
-	ml_ikToDo = ml_ikJoints
-	ml_fkControlsToDo = ml_controlsFK
-	ml_blendToDo = ml_blendJoints	
-	log.info([i_jnt.getShortName() for i_jnt in ml_fkToDo])
-
-    
     #>>> First IK to FK
     i_ikMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
                                            dynPrefix = "FKtoIK",
                                            dynMatchTargets=ml_blendJoints[-2])
     i_ikMatch.addPrematchData({'fingerSpin':0})
        
-    i_ikMatch.addDynIterTarget(drivenObject =ml_ikToDo[1],#seg 1
-                               matchObject = ml_blendToDo[1],
+    i_ikMatch.addDynIterTarget(drivenObject =ml_ikJoints[2],#seg 1
+                               matchObject = ml_blendJoints[2],
                                drivenAttr= 't%s'%self._jointOrientation[0],
                                matchAttr = 't%s'%self._jointOrientation[0],
                                minValue=0.001,
                                maxValue=30,
                                maxIter=15,
                                driverAttr='lengthUpr')    
-    i_ikMatch.addDynIterTarget(drivenObject =ml_ikToDo[2],#seg2
-                               matchObject= ml_blendToDo[2],#Make a new one
+    i_ikMatch.addDynIterTarget(drivenObject =ml_ikJoints[3],#seg2
+                               matchObject= ml_blendJoints[3],#Make a new one
                                drivenAttr='t%s'%self._jointOrientation[0],
                                matchAttr = 't%s'%self._jointOrientation[0],
                                minValue=0.001,
@@ -1524,8 +1491,8 @@ def build_matchSystem(self):
                                maxIter=15,
                                driverAttr='lengthLwr') 
     
-    i_ikMatch.addDynIterTarget(drivenObject =ml_ikToDo[3],#seg2
-                               matchObject= ml_blendToDo[3],#Make a new one
+    i_ikMatch.addDynIterTarget(drivenObject =ml_ikJoints[4],#seg2
+                               matchObject= ml_blendJoints[4],#Make a new one
                                drivenAttr='t%s'%self._jointOrientation[0],
                                matchAttr = 't%s'%self._jointOrientation[0],
                                minValue=0.001,
@@ -1533,8 +1500,8 @@ def build_matchSystem(self):
                                maxIter=15,
                                driverAttr='length') 
     
-    i_ikMatch.addDynIterTarget(drivenObject = ml_ikToDo[1],#knee
-                               matchTarget = ml_blendToDo[1],#Make a new one
+    i_ikMatch.addDynIterTarget(drivenObject = ml_ikJoints[2],#knee
+                               matchTarget = ml_blendJoints[2],#Make a new one
                                minValue=-179,
                                maxValue=179,
                                maxIter=75,
@@ -1547,11 +1514,11 @@ def build_matchSystem(self):
     
     #>>> FK to IK
     #============================================================================
-    i_fk_match1 = cgmRigMeta.cgmDynamicMatch(dynObject = ml_fkControlsToDo[0],
+    i_fk_match1 = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[1],
                                               dynPrefix = "IKtoFK",
-                                              dynMatchTargets=ml_blendToDo[0])
-    i_fk_match1.addDynIterTarget(drivenObject =ml_fkToDo[1],
-                                 matchObject = ml_blendToDo[1],
+                                              dynMatchTargets=ml_blendJoints[1])
+    i_fk_match1.addDynIterTarget(drivenObject =ml_fkJoints[2],
+                                 matchObject = ml_blendJoints[2],
                                  drivenAttr='t%s'%self._jointOrientation[0],
                                  matchAttr = 't%s'%self._jointOrientation[0],
                                  minValue=0.001,
@@ -1559,11 +1526,11 @@ def build_matchSystem(self):
                                  maxIter=15,
                                  driverAttr='length')  
     
-    i_fk_match2 = cgmRigMeta.cgmDynamicMatch(dynObject = ml_fkControlsToDo[1],
+    i_fk_match2 = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[2],
                                              dynPrefix = "IKtoFK",
-                                             dynMatchTargets=ml_blendToDo[1])
-    i_fk_match2.addDynIterTarget(drivenObject =ml_fkToDo[2],
-                                 matchObject = ml_blendToDo[2],                                   
+                                             dynMatchTargets=ml_blendJoints[2])
+    i_fk_match2.addDynIterTarget(drivenObject =ml_fkJoints[3],
+                                 matchObject = ml_blendJoints[3],                                   
                                  drivenAttr='t%s'%self._jointOrientation[0],
                                  matchAttr = 't%s'%self._jointOrientation[0],
                                  minValue=0.001,
@@ -1571,11 +1538,11 @@ def build_matchSystem(self):
                                  maxIter=15,
                                  driverAttr='length')  
     
-    i_fk_match3 = cgmRigMeta.cgmDynamicMatch(dynObject = ml_fkControlsToDo[2],
+    i_fk_match3 = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[3],
                                              dynPrefix = "IKtoFK",
-                                             dynMatchTargets=ml_blendToDo[2])
-    i_fk_match3.addDynIterTarget(drivenObject =ml_fkToDo[3],
-                                 matchObject = ml_blendToDo[3],                                   
+                                             dynMatchTargets=ml_blendJoints[3])
+    i_fk_match3.addDynIterTarget(drivenObject =ml_fkJoints[4],
+                                 matchObject = ml_blendJoints[4],                                   
                                  drivenAttr='t%s'%self._jointOrientation[0],
                                  matchAttr = 't%s'%self._jointOrientation[0],
                                  minValue=0.001,
@@ -1623,11 +1590,11 @@ def __build__(self, buildTo='',*args,**kws):
     if buildTo.lower() == 'shapes':return True
     build_controls(self)
     if buildTo.lower() == 'controls':return True    
-    build_FKIK(self)    
+    build_hand(self)
     if buildTo.lower() == 'fkik':return True 
-    #build_deformation(self)
+    build_deformation(self)
     #if buildTo.lower() == 'deformation':return True 
-    build_rig(self)
+    #build_rig(self)
     if buildTo.lower() == 'rig':return True 
     build_matchSystem(self)
     if buildTo.lower() == 'match':return True     

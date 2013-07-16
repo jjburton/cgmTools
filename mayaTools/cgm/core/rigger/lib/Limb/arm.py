@@ -1075,15 +1075,15 @@ def build_deformation(self):
     try:#Info gathering
 	#segmentHandles_%s
 	#Get our segment controls
-	ml_segmentHandleChains = self.getSegmentHandleChains()
+	ml_segmentHandleChains = self._get_segmentHandleChains()
 
 	#Get our segment joints
-	ml_segmentChains = self.getSegmentChains()
+	ml_segmentChains = self._get_segmentChains()
 	if len(ml_segmentChains)>2:
 	    raise StandardError, "%s.build_deformation>>> Too many segment chains, not a regular arm."%(self._strShortName)
 	
 	#>>>Influence Joints
-	ml_influenceChains = self.getInfluenceChains()
+	ml_influenceChains = self._get_influenceChains()
 	if len(ml_influenceChains)!=len(ml_segmentChains):
 	    raise StandardError, "%s.build_deformation>>> Segment chains don't equal segment influence chains"%(self._strShortName)
 	
@@ -1565,9 +1565,9 @@ def build_rig(self):
 	log.info("ml_rigJoints: %s"%[o.getShortName() for o in ml_rigJoints])
 	log.info("ml_blendJoints: %s"%[o.getShortName() for o in ml_blendJoints])
 	
-	ml_segmentHandleChains = self.getSegmentHandleChains()
-	ml_segmentChains = self.getSegmentChains()
-	ml_influenceChains = self.getInfluenceChains()	
+	ml_segmentHandleChains = self._get_segmentHandleChains()
+	ml_segmentChains = self._get_segmentChains()
+	ml_influenceChains = self._get_influenceChains()	
 	
 	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
 	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1]) 
