@@ -33,7 +33,6 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 
-
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 
@@ -1100,15 +1099,15 @@ def build_deformation(self):
     try:#Info gathering
 	#segmentHandles_%s
 	#Get our segment controls
-	ml_segmentHandleChains = self.getSegmentHandleChains()
+	ml_segmentHandleChains = self._get_segmentHandleChains()
 
 	#Get our segment joints
-	ml_segmentChains = self.getSegmentChains()
+	ml_segmentChains = self._get_segmentChains()
 	if len(ml_segmentChains)>2:
 	    raise StandardError, "%s.build_deformation>>> Too many segment chains, not a regular leg."%(self._strShortName)
 	
 	#>>>Influence Joints
-	ml_influenceChains = self.getInfluenceChains()
+	ml_influenceChains = self._get_influenceChains()
 	if len(ml_influenceChains)!=len(ml_segmentChains):
 	    raise StandardError, "%s.build_deformation>>> Segment chains don't equal segment influence chains"%(self._strShortName)
 	
@@ -1271,6 +1270,7 @@ def build_deformation(self):
 	log.debug("capAim: %s"%capAim)
 	for i,ml_segmentHandles in enumerate(ml_segmentHandleChains):
 	    i_startControl = ml_segmentHandles[0]
+	    i_midControl = ml_segmentHandles[1]
 	    i_endControl = ml_segmentHandles[-1]
 	    l_jointChain = [i_jnt.mNode for i_jnt in ml_segmentChains[i]]
 	    l_infuenceJoints = [ml_influenceChains[i][0].getShortName(),ml_influenceChains[i][-1].getShortName()]
@@ -1307,6 +1307,7 @@ def build_deformation(self):
 						       midControls = ml_segmentHandles[1].mNode,
 						       baseName = str_baseName,
 						       orientation = self._jointOrientation,
+	                                               controlTwistAxis =  'r'+self._jointOrientation[0],	                                               
 	                                               moduleInstance=self._i_module)
 	    
 	    for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
@@ -1314,9 +1315,10 @@ def build_deformation(self):
 		
 	    #Parent our joint chains
 	    i_curve.driverJoints[0].parent = self._i_constrainNull.mNode
-	    #ml_segmentChains[i][0].parent = self._i_deformNull.mNode
 	    ml_segmentChains[i][0].parent = self._i_constrainNull.mNode
 	    
+	    #>>> Attache stuff
+	    #==============================================================================================
 	    try:#We're gonna attach to the blend chain
 		mi_segmentAnchorStart = i_curve.anchorStart
 		mi_segmentAnchorEnd = i_curve.anchorEnd
@@ -1335,7 +1337,8 @@ def build_deformation(self):
 		mi_segmentAnchorEnd.parent =  self._i_constrainNull.mNode	
 		
 		#>>> parent constrain handle anchor
-		mc.parentConstraint( ml_blendJoints[i].mNode,mi_segmentAnchorStart.mNode,maintainOffset = True)
+		if i > 0:
+		    mc.parentConstraint( ml_blendJoints[i].mNode,mi_segmentAnchorStart.mNode,maintainOffset = True)
 		if i == 0:
 		    mc.parentConstraint( self._i_rigNull.mainSegmentHandle.mNode,mi_segmentAnchorEnd.mNode,maintainOffset = True)
 		else:	
@@ -1535,8 +1538,10 @@ def build_deformation(self):
 	    
 	    #Reconnect children nodes
 	    self._i_rigNull.connectChildrenNodes(ml_segmentChains[i],'segment%s_Joints'%i,"rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
-
-	    #>>>Connect master scale
+	    
+	    #>>> Attributes 
+	    #================================================================================================================
+	    #Connect master scale
 	    cgmMeta.cgmAttr(i_curve.scaleBuffer,'masterScale',lock=True).doConnectIn("%s.%s"%(self._i_masterControl.mNode,'scaleY'))    	    
 	    #Push squash and stretch multipliers to head
 	    i_buffer = i_curve.scaleBuffer	    
@@ -1546,6 +1551,14 @@ def build_deformation(self):
 		cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_settings.mNode,attrName,connectSourceToTarget = True)
 		cgmMeta.cgmAttr(mi_settings.mNode,attrName,defaultValue = 1,keyable=True)
 		
+		
+	    #Other attributes transfer
+	    cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
+	    cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
+	    #cgmMeta.cgmAttr(i_curve,'twistMid').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
+	    #cgmMeta.cgmAttr(i_curve,'scaleMidUp').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
+	    #cgmMeta.cgmAttr(i_curve,'scaleMidOut').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)	    
+
     except StandardError,error:
 	log.error("%s.build_deformation>>> Segment fail!"%(self._strShortName))
 	raise StandardError,error	
@@ -1592,18 +1605,20 @@ def build_rig(self):
 	log.debug("ml_rigJoints: %s"%[o.getShortName() for o in ml_rigJoints])
 	log.debug("ml_blendJoints: %s"%[o.getShortName() for o in ml_blendJoints])
 	
-	ml_segmentHandleChains = self.getSegmentHandleChains()
-	ml_segmentChains = self.getSegmentChains()
-	ml_influenceChains = self.getInfluenceChains()	
+	ml_segmentHandleChains = self._get_segmentHandleChains()
+	ml_segmentChains = self._get_segmentChains()
+	ml_influenceChains = self._get_influenceChains()	
 	
 	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
 	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1]) 
 	
 	#Build our contrain to pool
+	d_indexRigJointToDriver = self._get_simpleRigJointDriverDict()
+	"""
 	l_constrainTargetJoints = []
 	for ml_chain in ml_segmentChains:
 	    l_constrainTargetJoints.extend([i_jnt.mNode for i_jnt in ml_chain[:-1]])
-	l_constrainTargetJoints.extend([i_jnt.mNode for i_jnt in ml_blendJoints[-2:]])
+	l_constrainTargetJoints.extend([i_jnt.mNode for i_jnt in ml_blendJoints[-2:]])"""
 	
     except StandardError,error:
 	log.error("leg.build_rig>> Gather data fail!")
@@ -1670,6 +1685,7 @@ def build_rig(self):
 	i_dynGroup.rebuild()
 	
 	#i_dynGroup.dynFollow.parent = self._i_masterDeformGroup.mNode
+	
     except StandardError,error:
 	log.error("leg.build_rig>> knee dynamic parent setup fail!")
 	raise StandardError,error
@@ -1682,21 +1698,25 @@ def build_rig(self):
     #Parent and constrain joints
     #====================================================================================
     ml_rigJoints[0].parent = self._i_deformNull.mNode#hip
-    ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
+    #######################ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
     #ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
     #Need to grab knee and parent to deform Null
 
 
     #For each of our rig joints, find the closest constraint target joint
-    l_constrainTargetJoints
-    l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
-    for i,i_jnt in enumerate(ml_rigJoints):
+    #l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
+    
+    for i,i_jnt in enumerate(d_indexRigJointToDriver.keys()):
 	#Don't try scale constraints in here, they're not viable
-	attachJoint = distance.returnClosestObject(i_jnt.mNode,l_constrainTargetJoints)
-	log.info("'%s'>>drives>>'%s'"%(i_jnt.getShortName(),attachJoint))
+	#attachJoint = distance.returnClosestObject(i_jnt.mNode,l_constrainTargetJoints)
+	attachJoint = d_indexRigJointToDriver[i_jnt].getShortName()
+	log.info("'%s'>>drives>>'%s'"%(attachJoint,i_jnt.getShortName()))
 	pntConstBuffer = mc.pointConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
-	mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
+	if i_jnt.hasAttr('scaleJoint'):
+	    mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
+	else:
+	    mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
         
     #Setup foot Scaling
     #====================================================================================
