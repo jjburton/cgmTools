@@ -240,15 +240,6 @@ def build_rigSkeleton(self):
 	#>>Rig chain  
 	#=====================================================================	
 	ml_rigJoints = self.build_rigChain()
-	"""
-	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
-	ml_rigJoints = []
-	for i,j in enumerate(l_rigJoints):
-	    i_j = cgmMeta.cgmObject(j)
-	    i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-	    i_j.doName()
-	    l_rigJoints[i] = i_j.mNode
-	    ml_rigJoints.append(i_j)"""
 	
 	ml_rigJoints[0].parent = False#Parent to deformGroup
 		
@@ -345,50 +336,11 @@ def build_rigSkeleton(self):
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build influence joints fail!")
 	raise StandardError,error    
-    """
-    try:#>>Anchor chain
-	#=====================================================================	
-	ml_anchors = []
-	for i_jnt in ml_segmentHandleJoints:
-	    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
-	    i_new.addAttr('cgmTypeModifier','anchor',attrType='string',lock=True)
-	    i_new.parent = False
-	    i_new.doName()
 
-	    ml_anchors.append(i_new)	 
-    except StandardError,error:
-	log.error("build_rigSkeleton>>Build anchor joints fail!")
-	raise StandardError,error """
     
     try:#>>Segment chain  
 	#=====================================================================
 	ml_segmentChains = self.build_segmentChains(ml_segmentHandleJoints,True)
-	"""
-	for i,i_handle in enumerate(ml_segmentHandleJoints[:-1]):
-	    log.info(i_handle)
-	    index_start = self._ml_skinJoints.index(i_handle)
-	    index_end = self._ml_skinJoints.index(ml_segmentHandleJoints[i+1]) + 1
-	    buffer_segmentTargets = self._l_skinJoints[index_start:index_end]
-	    #buffer_segmentTargets = i_handle.getListPathTo(ml_segmentHandleJoints[i+1].mNode)	
-	    log.info("segment %s: %s"%(i,buffer_segmentTargets))
-	    #l_newChain = mc.duplicate(buffer_segmentTargets,po=True,ic=True)
-	    #log.info(l_newChain)
-	    ml_newChain = []
-	    for i2,j in enumerate(buffer_segmentTargets):
-		i_j = cgmMeta.cgmObject(j,setClass=True).doDuplicate()
-		i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
-		i_j.doName()
-		if ml_newChain:
-		    i_j.parent = ml_newChain[-1].mNode
-		ml_newChain.append(i_j)
-		
-	    ml_newChain[0].parent = False#Parent to deformGroup
-	    ml_segmentChains.append(ml_newChain)
-	
-	#Sometimes last segement joints have off orientaions, we're gonna fix
-	joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
-	for segmentChain in ml_segmentChains:
-	    jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])"""
 	
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build segment joints fail!")
@@ -396,8 +348,7 @@ def build_rigSkeleton(self):
 
     try:#>>> Store em all to our instance
 	#=====================================================================	
-	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints',"rigNull")#push back to reset
-	self._i_rigNull.connectChildrenNodes(self._l_moduleJoints,'moduleJoints',"rigNull")#push back to reset
+	self.connect_restoreJointLists()#Restore out lists
 	
 	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'fkJoints',"rigNull")
 	self._i_rigNull.connectChildrenNodes(ml_blendJoints,'blendJoints',"rigNull")
@@ -405,17 +356,7 @@ def build_rigSkeleton(self):
 	self._i_rigNull.connectChildrenNodes(ml_ikNoFlipJoints,'ikNoFlipJoints',"rigNull")
 	self._i_rigNull.connectChildrenNodes(ml_ikPVJoints,'ikPVJoints',"rigNull")
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints',"rigNull")
-	"""
-	for i,ml_chain in enumerate(ml_segmentChains):
-	    log.info("segment chain: %s"%[i_j.getShortName() for i_j in ml_chain])
-	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_Joints'%i,"rigNull")
-	    log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.getMessage('segment%s_Joints'%i,False)))
-	
-	for i,ml_chain in enumerate(ml_influenceChains):
-	    log.info("influence chain: %s"%[i_j.getShortName() for i_j in ml_chain])	    
-	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
-	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i,False)))
-	    """
+
 	##log.info("anchorJoints>> %s"%self._i_rigNull.getMessage('anchorJoints',False))
 	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
 	log.info("ikJoints>> %s"%self._i_rigNull.getMessage('ikJoints',False))
@@ -423,7 +364,7 @@ def build_rigSkeleton(self):
 	log.info("influenceJoints>> %s"%self._i_rigNull.getMessage('influenceJoints',False))
 	log.info("ikNoFlipJoints>> %s"%self._i_rigNull.getMessage('ikNoFlipJoints',False))
 	log.info("ikPVJoints>> %s"%self._i_rigNull.getMessage('ikPVJoints',False))
-   
+   	
     except StandardError,error:
 	log.error("build_leg>>StoreJoints fail!")
 	raise StandardError,error   
@@ -852,9 +793,12 @@ def build_FKIK(self):
 	
 	#>>> Main blend
 	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',lock=False,keyable=True)
-	
+	"""
 	rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,
-	                              driver = mPlug_FKIK.p_combinedName,channels=['translate','rotate'])
+	                              driver = mPlug_FKIK.p_combinedName,channels=['translate','rotate'])"""
+	rUtils.connectBlendChainByConstraint(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+	                                     driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])
+	
 	rUtils.connectBlendJointChain(ml_ikNoFlipJoints,ml_ikPVJoints,ml_ikJoints[:3],
 	                              driver = mPlug_showKnee.p_combinedName,channels=['translate','rotate'])	
 	
@@ -1132,43 +1076,25 @@ def build_deformation(self):
     #This is a bit of a complicated setup, pretty much we're gathering and splitting out potential drivers of the twist per segment
     str_twistOrientation = "r%s"%self._jointOrientation[0]   
     
-    ###mPlug_TestValue = cgmMeta.cgmAttr(mi_settings,"result_testValue" , attrType='float' , keyable = True)        
-    ###mPlug_InvertedHipBlend= cgmMeta.cgmAttr(mi_settings,"result_invertHipBlend" , attrType='float' , lock = True)    
-    ###mPlug_InvertedAnkle = cgmMeta.cgmAttr(mi_settings,"result_invertAnkle" , attrType='float' , lock = True)
-    ###mPlug_InvertedKneeSpin = cgmMeta.cgmAttr(mi_settings,"result_invertKneeSpin" , attrType='float' , lock = True)
+  
     mPlug_KneeSpinResult = cgmMeta.cgmAttr(mi_settings,"result_kneeSpinInfluence" , attrType='float' , lock = True)
-    ###mPlug_KneeAnkleNegate = cgmMeta.cgmAttr(mi_settings,"result_kneeAnkleNegate" , attrType='float' , lock = True)
-    ###mPlug_InvertedHipBlendInfluence= cgmMeta.cgmAttr(mi_settings,"result_invertHipBlendInfluence" , attrType='float' , lock = True)    
+    
     mPlug_MidIKSpaceFootInfluence = cgmMeta.cgmAttr(mi_settings,"result_midIKSpaceFootInfluence" , attrType='float' , lock = True)	    
     mPlug_FootInfluence = cgmMeta.cgmAttr(mi_settings,"result_footInfluence" , attrType='float' , lock = True)	    
-    mPlug_InvertedIKFoot = cgmMeta.cgmAttr(mi_settings,"result_invertIKFoot" , attrType='float' , lock = True)	    
-    ##mPlug_worldIKFootResult = cgmMeta.cgmAttr(mi_settings,"result_worldIKFoot" , attrType='float' , lock = True)	    
-    
+    mPlug_InvertedIKFoot = cgmMeta.cgmAttr(mi_settings,"result_invertIKFoot" , attrType='float' , lock = True)	        
     mPlug_ShowKneeMidTwist = cgmMeta.cgmAttr(mi_settings,"result_ShowKneeMidTwist" , attrType='float' , lock = True)
     
     #Existing
     mPlug_kneeSpin = cgmMeta.cgmAttr(mi_controlIK,'kneeSpin',attrType='float')
     mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool')
     
-    #Invert the knee spin
-    """
-    NodeF.argsToNodes("%s = -%s"%(mPlug_InvertedKneeSpin.p_combinedShortName,
-                                  mPlug_kneeSpin.p_combinedShortName)).doBuild() """ 
+
     #invert the foot
     NodeF.argsToNodes("%s = -%s"%(mPlug_InvertedIKFoot.p_combinedShortName,
                                   "%s.ry"%(mi_controlIK.getShortName()))).doBuild()
-    #invert the blend hip
-    """
-    NodeF.argsToNodes("%s = -%s.%s"%(mPlug_InvertedHipBlend.p_combinedShortName,
-                                     ml_blendJoints[0].getShortName(),
-                                     str_twistOrientation)).doBuild()"""
+
     
-    #Value to pull from when the knee is being shown
-    """
-    NodeF.argsToNodes("%s = %s * %s"%(mPlug_KneeAnkleNegate.p_combinedShortName,
-                                      mPlug_showKnee.p_combinedShortName,
-                                      "%s.ry"%(mi_controlIK.getShortName()))).doBuild()  """
-    
+
     #Show knee * blend joint 0's twist
     NodeF.argsToNodes("%s = %s * %s.%s"%(mPlug_ShowKneeMidTwist.p_combinedShortName,
                                          mPlug_showKnee.p_combinedShortName,
@@ -1180,41 +1106,7 @@ def build_deformation(self):
                                                      mPlug_showKnee.p_combinedShortName,
                                                      mPlug_kneeSpin.p_combinedShortName)).doBuild()
     
-    #Foot influence based on knee space
-    """
-    If the knee is visible AND knee in foot space, use blendJoint, else, use inverted foot
-    If the knee is not visible, use inverted foot
-    mPlug_FootInfluence
-    mPlug_MidIKSpaceFootInfluence
-    mi_controlMidIK space
-    mPlug_InvertedIKFoot
-    mPlug_MidIKSpace
-    mPlug_worldIKFootResult
-    """
-    """
-    mPlug_Blend0 = cgmMeta.cgmAttr(ml_blendJoints[0],str_twistOrientation)
-    mPlug_KneeSpaceHolder = cgmMeta.cgmAttr(mi_settings,"kneeSpace_in" , attrType='int' , lock = True)    
-    NodeF.argsToNodes("%s = if %s == 1:%s else %s"%(mPlug_FootInfluence.p_combinedShortName,#result
-                                                    mPlug_showKnee.p_combinedShortName,#driver
-                                                    mPlug_MidIKSpaceFootInfluence.p_combinedShortName,#option 1
-                                                    mPlug_InvertedIKFoot.p_combinedShortName)).doBuild()#option 2
-    
-    NodeF.argsToNodes("%s = if %s == 0:%s else %s"%(mPlug_MidIKSpaceFootInfluence.p_combinedShortName,#result
-                                                    mPlug_KneeSpaceHolder.p_combinedShortName,#driver
-                                                    mPlug_InvertedIKFoot.p_combinedShortName,#option 1
-                                                    mPlug_InvertedIKFoot.p_combinedShortName)).doBuild()#option 2
-    
-    NodeF.argsToNodes("%s = %s + %s"%(mPlug_worldIKFootResult.p_combinedShortName,#result
-                                      mPlug_InvertedIKFoot.p_combinedShortName,#option 1
-                                      mPlug_Blend0.p_combinedShortName)).doBuild()#option 2
-    
-    
-    #Mid IK
-    mPlug_midIKResult = cgmMeta.cgmAttr(mi_settings,'result_midIK',attrType='float',defaultValue = 0,keyable = True,hidden=False, lock = True)
-    NodeF.argsToNodes("%s = %s * %s"%(mPlug_midIKResult.p_combinedShortName,
-                                      mPlug_showKnee.p_combinedShortName,
-                                      "%s.%s"%(mi_controlMidIK.getShortName(),str_twistOrientation))).doBuild()        
-    """
+
     #New method for getting proper foot twist
     """
     The gist is that we create a loc of the last segment joint of seg 1, we orient constrain that to the ik control
@@ -1228,10 +1120,12 @@ def build_deformation(self):
     mPlug_ConstrainGroupTwist = cgmMeta.cgmAttr(self._i_constrainNull,str_twistOrientation)
     
     mPlug_KneeSpaceHolder = cgmMeta.cgmAttr(mi_settings,"kneeSpace_in" , attrType='int' , lock = True) #REMOVE THIS  
+    mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEndIn" , attrType='float' , lock = True)
+    mPlug_worldIKStartIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKStartIn" , attrType='float' , lock = True)
     
     mPlug_worldIKFootResultNew = cgmMeta.cgmAttr(mi_settings,"result_worldIKFoot" , attrType='float' , lock = True)	    
-    mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKIn" , attrType='float' , lock = True)
-    mPlug_worldIKEndInInverted = cgmMeta.cgmAttr(mi_settings,"result_worldIKInverted" , attrType='float' , lock = True)
+    mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEndIn" , attrType='float' , lock = True)
+    mPlug_worldIKEndInInverted = cgmMeta.cgmAttr(mi_settings,"result_worldIKEndInverted" , attrType='float' , lock = True)
     mPlug_worldIKEndUseValue = cgmMeta.cgmAttr(mi_settings,"result_worldIKEndUseValue" , attrType='float' , lock = True)
     
     mPlug_constrainInvert = cgmMeta.cgmAttr(mi_settings,"result_constrainInvert" , attrType='float' , lock = True)    
@@ -1317,7 +1211,7 @@ def build_deformation(self):
 	    i_curve.driverJoints[0].parent = self._i_constrainNull.mNode
 	    ml_segmentChains[i][0].parent = self._i_constrainNull.mNode
 	    
-	    #>>> Attache stuff
+	    #>>> Attach stuff
 	    #==============================================================================================
 	    try:#We're gonna attach to the blend chain
 		mi_segmentAnchorStart = i_curve.anchorStart
@@ -1400,77 +1294,19 @@ def build_deformation(self):
 	    l_ikEndDrivers = []	    
 	    for ii in range(i+2):
 		l_fkEndDrivers.append("%s.%s"%(ml_controlsFK[ii].getShortName(),str_twistOrientation))
-		"""
-		if ml_controlsFK[ii].getAttr('cgmName') == 'ankle':
-		    #We need to invert our fk ankle
-		    arg = "%s = -%s.%s"%(mPlug_InvertedAnkle.p_combinedShortName,ml_controlsFK[ii].getShortName(),"r%s"%self._jointOrientation[1])
-		    NodeF.argsToNodes(arg).doBuild()
-		    l_fkEndDrivers.append("%s"%mPlug_InvertedAnkle.p_combinedShortName)
-		    #l_fkEndDrivers.append("%s.%s"%(ml_controlsFK[ii].getShortName(),"r%s"%self._jointOrientation[1]))
-		else:
-		    l_fkEndDrivers.append("%s.%s"%(ml_controlsFK[ii].getShortName(),str_twistOrientation))"""
-	    
+
 	    if i == 0:#if seg 0
-		"""
-		ik -- no knee 
-		start = blendjoint 0
-		end = blendjoint 0
-		
-		ik -- show knee
-		start = blendjoint 0
-		end = blendjoint 0
-		"""
-		#l_ikStartDrivers.append(mPlug_InvertedHipBlendInfluence.p_combinedShortName)
-		l_ikStartDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
-		
-		#l_ikEndDrivers.append(mPlug_FootInfluence.p_combinedShortName)		
-		l_ikEndDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))		
-		
-		"""
+		#l_ikStartDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
+		l_ikStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)
 		l_ikEndDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))		
 
-		l_ikEndDrivers.append(mPlug_midIKResult.p_combinedShortName)
-		l_ikEndDrivers.append(mPlug_KneeSpinResult.p_combinedShortName)
-		l_ikEndDrivers.append(mPlug_InvertedIKFoot.p_combinedShortName)
-		l_ikEndDrivers.append(mPlug_KneeAnkleNegate.p_combinedShortName)
-		l_ikEndDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
-		
-		l_ikEndDrivers.append(mPlug_InvertedHipBlendInfluence.p_combinedShortName)
-		l_ikEndDrivers.append(mPlug_ShowKneeMidTwist.p_combinedShortName)
-		
-		l_ikEndDrivers.append(mPlug_TestValue.p_combinedShortName)
-		l_ikStartDrivers.append(mPlug_InvertedHipBlend.p_combinedShortName)
-		l_ikStartDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
-		"""
 		l_endDrivers.append("%s.%s"%(self._i_rigNull.mainSegmentHandle.getShortName(),str_twistOrientation))
-		#l_endDrivers.append(mPlug_midIKResult.p_combinedShortName)
 		
-		#
-	    if i == 1:#if seg 1
-		"""
-		ik -- no knee 
-		start = blendjoint 0
-		end = blendjoint 0
+		#We need to make our world driver start twist
+		#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<;laksdjf;alskjdf;lasjkdflaj
 		
-		ik -- show knee
-		start = blendjoint 0
-		end = blendjoint 0
-		"""	
+	    if i == 1:#if seg 1	
 		l_ikStartDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
-		#l_ikStartDrivers.append(mPlug_midIKResult.p_combinedShortName)
-		
-		#l_ikStartDrivers.append(mPlug_midIKResult.p_combinedShortName)
-		#l_ikStartDrivers.append(mPlug_KneeSpinResult.p_combinedShortName)
-		#l_ikStartDrivers.append(mPlug_InvertedIKFoot.p_combinedShortName)##	
-		#l_ikStartDrivers.append(mPlug_KneeAnkleNegate.p_combinedShortName)##pulls value out when knee is shown		
-		
-		###l_ikStartDrivers.append(mPlug_InvertedHipBlendInfluence.p_combinedShortName)
-		#l_ikStartDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
-		#l_ikEndDrivers.append(mPlug_FootInfluence.p_combinedShortName)##Tmp change
-		#l_ikEndDrivers.append(mPlug_KneeSpinResult.p_combinedShortName)
-		#l_ikEndDrivers.append(mPlug_InvertedIKFoot.p_combinedShortName)
-		
-		#l_ikEndDrivers.append(mPlug_worldIKFootResultNew.p_combinedShortName)
 		l_ikEndDrivers.append(mPlug_worldIKEndIn.p_combinedShortName)
 		
 		#We need to make our world driver for our main IKControl
@@ -1479,9 +1315,7 @@ def build_deformation(self):
 		mc.parentConstraint(mi_controlIK.mNode,i_endLoc.mNode,maintainOffset = True)#Contrain it
 		mPlug_worldIKEndIn.doConnectIn("%s.%s"%(i_endLoc.mNode,str_twistOrientation))#Connect our rotate in
 		
-		
-		#l_ikEndDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
-		
+				
 	    log.info("#>>> %s "%str_segCount+"="*70)
 	    log.info("startDrivers %s: %s"%(i,l_startDrivers))
 	    str_ArgStartDrivers_Result = "%s = %s"%(mPlug_TwistStartResult.p_combinedShortName," + ".join(l_startDrivers))
@@ -1608,7 +1442,7 @@ def build_rig(self):
 	ml_segmentHandleChains = self._get_segmentHandleChains()
 	ml_segmentChains = self._get_segmentChains()
 	ml_influenceChains = self._get_influenceChains()	
-	
+	ml_rigHandleJoints = self._get_handleJoints()
 	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
 	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1]) 
 	
@@ -1713,64 +1547,157 @@ def build_rig(self):
 	log.info("'%s'>>drives>>'%s'"%(attachJoint,i_jnt.getShortName()))
 	pntConstBuffer = mc.pointConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
-	if i_jnt.hasAttr('scaleJoint'):
+	if i_jnt.hasAttr('scaleJoint') and i_jnt.cgmName != 'ankle':
 	    mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
 	else:
 	    mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
-        
-    #Setup foot Scaling
-    #====================================================================================
-    ml_fkJoints = self._i_rigNull.fkJoints
-    ml_ikJoints = self._i_rigNull.ikJoints
-    ml_ikPVJoints = self._i_rigNull.ikPVJoints
-    ml_ikNoFlipJoints = self._i_rigNull.ikNoFlipJoints
+	    
+    if ml_rigHandleJoints[-2].getMessage('scaleJoint'):#If our ankle has a scale joint, we need to connect it to our last joint of our last segment
+	attributes.doConnectAttr((ml_segmentChains[-1][-1].mNode + '.s'),(ml_rigHandleJoints[-2].scaleJoint.mNode+'.s'))
     
-    #Ik Scale Object
-    mi_controlIK.scalePivotY = 0
-    vBuffer = mc.xform(mi_controlIK.mNode,q=True,sp=True,ws=True)	    
-    mc.xform(mi_controlIK.mNode,sp=(vBuffer[0],0,vBuffer[2]),ws=True)
-    for obj in ml_ikJoints[-3:-1]:
-	cgmMeta.cgmAttr(mi_controlIK,'scale').doConnectOut("%s.scale"%obj.mNode)
-    for attr in ['x','z']:
-	cgmMeta.cgmAttr(mi_controlIK,'sy').doConnectOut("%s.s%s"%(mi_controlIK.mNode,attr))
     
-    attributes.doSetLockHideKeyableAttr(mi_controlIK.mNode,lock=True,visible=False,keyable=False,channels=['sz','sx'])    
-    mPlug_ikFootScale = cgmMeta.cgmAttr(mi_controlIK,'sy')
-    mPlug_ikFootScale.p_nameAlias = 'ikScale'
-    mPlug_ikFootScale.p_keyable = True
-
-    #FK Scale
-    attributes.doSetLockHideKeyableAttr(ml_controlsFK[-2].mNode,lock=False,visible=True,keyable=True,channels=['s%s'%orientation[0]])
-    for attr in orientation[1:]:
-	cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0]).doConnectOut("%s.s%s"%(ml_controlsFK[-2].mNode,attr))
+    #Now we need to make an average for the extra knee that averages the seg0,1 knees
+    i_pma = cgmMeta.cgmNode(nodeType = 'plusMinusAverage')
+    i_pma.operation = 3#average
+    mc.connectAttr("%s.s"%ml_segmentChains[0][-1].mNode,"%s.%s"%(i_pma.mNode,'input3D[0]'))
+    mc.connectAttr("%s.s"%ml_segmentChains[-1][0].mNode,"%s.%s"%(i_pma.mNode,'input3D[1]'))
+    mc.connectAttr("%s.%s"%(i_pma.mNode,'output3D'),"%s.s"%(ml_rigHandleJoints[1].scaleJoint.mNode),force=True)
+    
+    try:#Setup foot Scaling
+	#====================================================================================
+	ml_fkJoints = self._i_rigNull.fkJoints
+	ml_ikJoints = self._i_rigNull.ikJoints
+	ml_ikPVJoints = self._i_rigNull.ikPVJoints
+	ml_ikNoFlipJoints = self._i_rigNull.ikNoFlipJoints
 	
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.scale"%ml_controlsFK[-1].mNode)
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.inverseScale"%ml_controlsFK[-1].mNode)
+	#Ik Scale Object
+	mi_controlIK.scalePivotY = 0
+	vBuffer = mc.xform(mi_controlIK.mNode,q=True,sp=True,ws=True)	    
+	mc.xform(mi_controlIK.mNode,sp=(vBuffer[0],0,vBuffer[2]),ws=True)
+	for obj in ml_ikJoints[-3:-1]:
+	    cgmMeta.cgmAttr(mi_controlIK,'scale').doConnectOut("%s.scale"%obj.mNode)
+	for attr in ['x','z']:
+	    cgmMeta.cgmAttr(mi_controlIK,'sy').doConnectOut("%s.s%s"%(mi_controlIK.mNode,attr))
+	
+	attributes.doSetLockHideKeyableAttr(mi_controlIK.mNode,lock=True,visible=False,keyable=False,channels=['sz','sx'])    
+	mPlug_ikFootScale = cgmMeta.cgmAttr(mi_controlIK,'sy')
+	mPlug_ikFootScale.p_nameAlias = 'ikScale'
+	mPlug_ikFootScale.p_keyable = True
     
-    mPlug_fkFootScale = cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0])
-    mPlug_fkFootScale.p_nameAlias = 'fkScale'
-    mPlug_fkFootScale.p_keyable = True
-    
-    #Blend the two
-    mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK')
-    rUtils.connectBlendJointChain(ml_fkJoints[-2:],ml_ikJoints[-3:-1],ml_blendJoints[-2:],
-                                  driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
-    
+	#FK Scale
+	attributes.doSetLockHideKeyableAttr(ml_controlsFK[-2].mNode,lock=False,visible=True,keyable=True,channels=['s%s'%orientation[0]])
+	for attr in orientation[1:]:
+	    cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0]).doConnectOut("%s.s%s"%(ml_controlsFK[-2].mNode,attr))
+	    
+	cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.scale"%ml_controlsFK[-1].mNode)
+	cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.inverseScale"%ml_controlsFK[-1].mNode)
+	
+	mPlug_fkFootScale = cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0])
+	mPlug_fkFootScale.p_nameAlias = 'fkScale'
+	mPlug_fkFootScale.p_keyable = True
+	
+	#Blend the two
+	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK')
+	rUtils.connectBlendJointChain(ml_fkJoints[-2:],ml_ikJoints[-3:-1],ml_blendJoints[-2:],
+	                              driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
+    except StandardError,error:
+	raise StandardError,"%s.build_rig >> failed to setup foot scale | %s"%(self._strShortName,error)	     
+     
     #Vis Network, lock and hide
     #====================================================================================
     #Segment handles need to lock
-    """
-    for ml_chain in ml_segmentHandleChains:
-	for i_obj in ml_chain:
-	    attributes.doSetLockHideKeyableAttr(i_obj.mNode,lock=True, visible=False, keyable=False, channels=['s%s'%orientation[1],'s%s'%orientation[2]])
-    """#
     attributes.doSetLockHideKeyableAttr(mi_settings.mNode,lock=True, visible=False, keyable=False)
+     
+     
+    try:#Set up some defaults
+	#====================================================================================
+	mPlug_autoStretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch')
+	mPlug_autoStretch.p_defaultValue = 1.0
+	mPlug_autoStretch.value =  1
+	
+	mPlug_seg0end = cgmMeta.cgmAttr(ml_segmentHandleChains[0][-1],'followRoot')
+	mPlug_seg0end.p_defaultValue = .5
+	mPlug_seg0end.value = .5
+	
+	mPlug_seg1end = cgmMeta.cgmAttr(ml_segmentHandleChains[1][-1],'followRoot')
+	mPlug_seg1end.p_defaultValue = .5
+	mPlug_seg1end.value = .5	
+
+    except StandardError,error:
+	raise StandardError,"%s.build_rig >> failed to setup defaults | %s"%(self._strShortName,error)	     
      
     #Final stuff
     self._i_rigNull.version = str(__version__)
     return True 
 
-
+def build_hipSpaceTwistDriver(self):
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("build_hipSpaceTwist>>bad self!")
+	raise StandardError,error
+    
+    try:
+	mi_settings = self._i_rigNull.settings	
+	mPlug_worldIKStartIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKStartIn" , attrType='float' , lock = True)
+    except StandardError,error:
+	raise StandardError,"%s.build_hipSpaceTwist >> failed to setup start attr | %s"%(self._strShortName,error)	
+    try:
+	mi_parentRigNull = self._i_module.moduleParent.rigNull
+	mi_hips = mi_parentRigNull.hips	
+    except StandardError,error:
+	raise StandardError,"%s.build_hipSpaceTwist >> failed to find hips | %s"%(self._strShortName,error)	
+    
+    outVector = self._vectorOut   
+    
+    #Create joints
+    #i_startAim = self.duplicate_moduleJoint(0,'startAim')
+    #i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
+    i_startAim = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+    i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)  
+    self.connect_restoreJointLists()#Restore out lists
+    
+    i_startEnd.parent = i_startAim.mNode
+    ml_twistObjects = [i_startAim,i_startEnd]
+    
+    if self._direction == 'left':#if right, rotate the pivots
+	mc.move(outVector[0]*50,outVector[1]*50,outVector[2]*50,i_startEnd.mNode,r=True, rpr = True, os = True, wd = True)	
+    else:
+	mc.move(-outVector[0]*50,outVector[1]*50,outVector[2]*50,i_startEnd.mNode,r=True, rpr = True, os = True, wd = True)	
+    
+    i_startAim.parent = self._i_constrainNull.mNode
+    
+    #=============================================================================
+    #Create IK handle
+    try:
+	buffer = mc.ikHandle( sj=i_startAim.mNode, ee=i_startEnd.mNode,
+	                      solver = 'ikSCsolver', forceSolver = True,
+	                      snapHandleFlagToggle=True )  
+	
+	#>>> Name
+	log.debug(buffer)
+	str_baseName = self._partName + "_startTwist"
+	i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+	i_ik_handle.addAttr('cgmName',str_baseName ,attrType='string',lock=True)    
+	i_ik_handle.doName()
+	i_ik_handle.parent = self._i_rigNull.mNode
+	    
+	i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+	i_ik_effector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
+	i_ik_effector.doName()
+	
+    except:
+	raise StandardError,"%s.build_hipSpaceTwist >> failed to create ik handle: %s"%(self._strShortName,error)
+       
+    #>>> Control	
+    mc.parentConstraint(self._ml_moduleJoints[0].parent,i_ik_handle.mNode,mo=True)
+    
+    #Connect in
+    cgmMeta.cgmAttr(self._i_module.rigNull.settings,'in_worldIKStartIn').doConnectIn("%s.r%s"%(i_startAim.mNode,self._jointOrientation[0]))
+    self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
+    
 @cgmGeneral.Timer
 def build_matchSystem(self):
     try:
@@ -1934,6 +1861,8 @@ def __build__(self, buildTo='',*args,**kws):
     if buildTo.lower() == 'deformation':return True 
     build_rig(self)
     if buildTo.lower() == 'rig':return True 
+    build_hipSpaceTwistDriver(self)
+    if buildTo.lower() == 'hipSpace':return True     
     build_matchSystem(self)
     if buildTo.lower() == 'match':return True     
     #build_deformation(self)
