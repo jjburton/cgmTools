@@ -615,7 +615,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
-        return buffer[0]
+        return buffer[0]    
     
     def getBaseName(self):
         buffer = self.mNode     
@@ -624,6 +624,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def getLongName(self):
         buffer = mc.ls(self.mNode,l=True)        
         return buffer[0]  
+    
+    #Some name properties
+    p_nameShort = property(getShortName)
+    p_nameLong = property(getLongName)
+    p_nameBase = property(getBaseName)
     
     def isTransform(self):
         buffer = mc.ls(self.mNode,type = 'transform',long = True)
