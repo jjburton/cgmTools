@@ -136,7 +136,11 @@ class go(object):
         self._ml_skinJoints = self._i_rigNull.skinJoints #We buffer this because when joints are duplicated, the multiAttrs extend with duplicates
         self._l_moduleJoints = self._i_rigNull.getMessage('moduleJoints')
         self._ml_moduleJoints = self._i_rigNull.moduleJoints #We buffer this because when joints are duplicated, the multiAttrs extend with duplicates
-
+	self._l_rigJoints = self._i_rigNull.getMessage('rigJoints') or []
+	self._ml_rigJoints = []
+	if self._l_rigJoints:
+	    self._ml_rigJoints = [cgmMeta.cgmObject(o) for o in self._l_rigJoints]
+	
         #>>> part name 
         self._partName = self._i_module.getPartNameBase()
         self._partType = self._i_module.moduleType.lower() or False
@@ -164,6 +168,9 @@ class go(object):
                
         #>>> Instances and joint stuff
         self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
+	self._vectorAim = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+	self._vectorUp = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+	self._vectorOut = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[2])
 	
 	#>>>Connect switches
 	try: verify_moduleRigToggles(self)
@@ -262,7 +269,28 @@ class go(object):
     def get_report(self):
 	self._i_module.rig_getReport()
 	
-	
+    #>> Connections
+    #=====================================================================
+    def connect_toRigGutsVis(self, ml_objects):
+	try:
+	    for i_obj in ml_objects:
+		i_obj.overrideEnabled = 1		
+		cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
+		cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
+	except StandardError,error:
+	    raise StandardError,"%s.connect_toRigGutsVis >> Failure: %s"%(self._strShortName,error)
+    
+    def connect_restoreJointLists(self):
+	try:
+	    if self._ml_rigJoints:
+		log.info("%s.connect_restoreJointLists >> Found rig joints to store back"%self._strShortName)
+		self._i_rigNull.connectChildrenNodes(self._ml_rigJoints,'rigJoints','rigNull')
+	    self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+	except StandardError,error:
+	    raise StandardError,"%s.connect_restoreJointLists >> Failure: %s"%(self._strShortName,error)
+    
+	    
     #>>> Joint chains
     #=====================================================================    
     def build_rigChain(self):
@@ -288,9 +316,9 @@ class go(object):
 		    
 	    if i_j.hasAttr('rigJoint'):i_j.doRemove('rigJoint')
 	
-	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','rigNull')
-	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+	self._ml_rigJoints = ml_rigJoints
+	self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
+	self.connect_restoreJointLists()#Push back
 	
 	return ml_rigJoints
     
@@ -320,7 +348,37 @@ class go(object):
 
 	except StandardError,error:
 	    raise StandardError,"%s.build_rigChain >> Failure: %s"%(self._strShortName,error)
+    
+    def duplicate_moduleJoint(self, index = None, typeModifier = 'duplicate', connectNodesAs = False):    
+	"""
+	This is only necessary because message connections are duplicated and make duplicating connected joints problematic
+	"""
+	try:
+	    if index is None:
+		raise StandardError, "%s.duplicate_moduleJoint >> No index specified"%(self._strShortName)
+	    if type(index) is not int:
+		raise StandardError, "%s.duplicate_moduleJoint >> index not int: %s | %s"%(self._strShortName,index,type(index))
+	    if index > len(self._ml_moduleJoints)+1:
+		raise StandardError, "%s.duplicate_moduleJoint >> index > len(moduleJoints): %s | %s"%(self._strShortName,index,(len(self._ml_moduleJoints)+1))
+	    
+	    i_target = self._ml_moduleJoints[index]
+	    buffer = mc.duplicate(i_target.mNode,po=True,ic=True)[0]
+	    i_new = cgmMeta.validateObjArg(buffer,cgmMeta.cgmObject)
+	    i_new.parent = False
+	    
+	    i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+	    i_new.doName()
+		
+	    #Push back our nodes
+	    self.connect_restoreJointLists()#Push back
+	    log.info("%s.duplicate_moduleJoint >> created: %s"%(self._strShortName,i_new.p_nameShort))
+	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
+		self._i_rigNull.connectChildNode(i_new,connectNodesAs,'rigNull')#Push back		
+	    return i_new
 
+	except StandardError,error:
+	    raise StandardError,"%s.build_rigChain >> Failure: %s"%(self._strShortName,error)
+	
     def build_segmentChains(self, ml_segmentHandleJoints = None, connectNodes = True):
 	ml_segmentChains = []
 	if ml_segmentHandleJoints is None:
@@ -841,22 +899,36 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 	l_matchTargets = []
 	for i,ml_chain in enumerate(mll_segmentChains):
 	    ml_matchTargets.extend([i_jnt for i_jnt in ml_chain[:-1]])	
-    ml_matchTargets.extend(ml_blendJoints)
     
+    #First time we just check segment chains
     l_matchTargets = [i_jnt.getShortName() for i_jnt in ml_matchTargets]
     for i,i_jnt in enumerate(ml_moduleRigJoints):
 	attachJoint = distance.returnClosestObject(i_jnt.mNode,l_matchTargets)
 	i_match = cgmMeta.cgmObject(attachJoint)
-	#d_rigJointDrivers[ml_moduleRigJoints.index(i_jnt)] = i_match
-	d_rigJointDrivers[i_jnt] = i_match
+	if cgmMath.isVectorEquivalent(i_match.getPosition(),i_jnt.getPosition()):
+	    d_rigJointDrivers[i_jnt.mNode] = i_match
+	    l_cullRigJoints.remove(i_jnt.getShortName())
+	    ml_matchTargets.remove(i_match)
+	else:
+	    log.debug("'%s' is not in same place as '%s'. Going to second match"%(i_match.getShortName(),i_jnt.getShortName()))
+    
+    #Now we add blend joints to search list and check again
+    ml_matchTargets.extend(ml_blendJoints)    
+    l_matchTargets = [i_jnt.getShortName() for i_jnt in ml_matchTargets]
+    ml_cullList = cgmMeta.validateObjListArg(l_cullRigJoints,cgmMeta.cgmObject)
+    for i,i_jnt in enumerate(ml_cullList):
+	attachJoint = distance.returnClosestObject(i_jnt.mNode,l_matchTargets)
+	i_match = cgmMeta.cgmObject(attachJoint)
+	log.info("Second match: '%s':'%s'"%(i_jnt.getShortName(),i_match.getShortName()))	
+	d_rigJointDrivers[i_jnt.mNode] = i_match
 	l_cullRigJoints.remove(i_jnt.getShortName())
 	ml_matchTargets.remove(i_match)
-	
+
     if printReport or l_cullRigJoints:
 	log.info("%s.get_simpleRigJointDriverDict >> "%self.getShortName() + "="*50)
 	for i,i_jnt in enumerate(ml_moduleRigJoints):
-	    if d_rigJointDrivers.has_key(i_jnt):
-		log.info("'%s'  << driven by << '%s'"%(i_jnt.getShortName(),d_rigJointDrivers[i_jnt].getShortName()))		    
+	    if d_rigJointDrivers.has_key(i_jnt.mNode):
+		log.info("'%s'  << driven by << '%s'"%(i_jnt.getShortName(),d_rigJointDrivers[i_jnt.mNode].getShortName()))		    
 	    else:
 		log.info("%s  << HAS NO KEY STORED"%(i_jnt.getShortName()))	
 		
@@ -864,9 +936,12 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 	log.info("="*75)
 	    
     if l_cullRigJoints:
-	raise StandardError,"%s.get_simpleRigJointDriverDict >> failed to find matches for all rig joints: %s"%(i_scaleJnt.getShortName(),l_cullRigJoints)
+	raise StandardError,"%s.get_simpleRigJointDriverDict >> failed to find matches for all rig joints: %s"%(self.getShortName(),l_cullRigJoints)
     
-    return d_rigJointDrivers
+    d_returnBuffer = {}
+    for str_mNode in d_rigJointDrivers.keys():
+	d_returnBuffer[cgmMeta.cgmObject(str_mNode)] = d_rigJointDrivers[str_mNode]
+    return d_returnBuffer
     
     #except StandardError,error:
 	#raise StandardError,"get_rigJointDriversDict >> self: %s | error: %s"%(self,error)
