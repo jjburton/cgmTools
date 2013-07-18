@@ -357,6 +357,9 @@ def isRigged(self):
         log.debug("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
 	i_rigNull.version = ''#clear the version	
         return False
+    """
+    if not i_rigNull.rigJoints[0].getConstraintsTo():
+	return False"""
         
     if len( l_skinJoints ) != len( l_rigJoints ):
         log.debug("moduleFactory.isRigged('%s')>>>> %s != %s. Joint lengths don't match"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
