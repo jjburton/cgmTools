@@ -271,11 +271,11 @@ class go(object):
 	
     #>> Connections
     #=====================================================================
-    def connect_toRigGutsVis(self, ml_objects):
+    def connect_toRigGutsVis(self, ml_objects,vis = True):
 	try:
 	    for i_obj in ml_objects:
 		i_obj.overrideEnabled = 1		
-		cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
+		if vis: cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
 		cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
 	except StandardError,error:
 	    raise StandardError,"%s.connect_toRigGutsVis >> Failure: %s"%(self._strShortName,error)
