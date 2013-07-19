@@ -285,7 +285,7 @@ class go(object):
 	    if self._ml_rigJoints:
 		log.info("%s.connect_restoreJointLists >> Found rig joints to store back"%self._strShortName)
 		self._i_rigNull.connectChildrenNodes(self._ml_rigJoints,'rigJoints','rigNull')
-	    self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	    self._i_rigNull.connectChildrenNodes(self._ml_skinJoints,'skinJoints','rigNull')#Push back
 	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
 	except StandardError,error:
 	    raise StandardError,"%s.connect_restoreJointLists >> Failure: %s"%(self._strShortName,error)
@@ -652,7 +652,11 @@ def get_handleJoints(self):
     try:
 	ml_handleJoints = []
 	for i_obj in self.templateNull.controlObjects:
-	    ml_handleJoints.append( i_obj.handleJoint )
+	    buffer = i_obj.handleJoint
+	    if not buffer:
+		log.error("%s.get_handleJoints >> '%s' missing handle joint"%(self.p_nameShort,i_obj.p_nameShort))
+		return False
+	    ml_handleJoints.append( buffer )
 	return ml_handleJoints
     except StandardError,error:
 	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
@@ -663,11 +667,16 @@ def get_segmentHandleTargets(self):
     """
     try:
 	ml_handleJoints = self.rig_getHandleJoints()
+	log.info(ml_handleJoints)
+	if not ml_handleJoints:
+	    log.error("%s.get_segmentHandleTargets >> failed to find any handle joints at all"%(self.p_nameShort))
+	    raise StandardError
 	ml_segmentHandleJoints = []#To use later as well
 	
 	#>> Find our segment handle joints ======================================================================
 	#Get our count of roll joints
 	l_segmentRollCounts = self.get_rollJointCountList()
+	log.info(l_segmentRollCounts)
 	for i,int_i in enumerate(l_segmentRollCounts):
 	    if int_i > 0:
 		ml_segmentHandleJoints.extend([ml_handleJoints[i],ml_handleJoints[i+1]])
@@ -949,28 +958,31 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     
 @cgmGeneral.Timer
 def get_report(self):
-    try:
-	l_moduleJoints = self.rigNull.getMessage('moduleJoints',False) or []
-	l_skinJoints = self.rigNull.getMessage('skinJoints',False) or []
-	ml_handleJoints = get_handleJoints(self) or []
-	l_rigJoints = self.rigNull.getMessage('rigJoints',False) or []
-	ml_rigHandleJoints = get_rigHandleJoints(self)
-	ml_rigDefJoints = get_rigDeformationJoints(self)
-	ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
+    #try:
+    if not self.isSkeletonized():
+	log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
+	return False
+    l_moduleJoints = self.rigNull.getMessage('moduleJoints',False) or []
+    l_skinJoints = self.rigNull.getMessage('skinJoints',False) or []
+    ml_handleJoints = get_handleJoints(self) or []
+    l_rigJoints = self.rigNull.getMessage('rigJoints',False) or []
+    ml_rigHandleJoints = get_rigHandleJoints(self)
+    ml_rigDefJoints = get_rigDeformationJoints(self)
+    ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
+    
+    log.info("%s.get_report >> "%self.getShortName() + "="*50)
+    log.info("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
+    log.info("skinJoints: len - %s | %s"%(len(l_skinJoints),l_skinJoints))	
+    log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
+    log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
+    log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
+    log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
+    log.info("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
+    
+    log.info("="*75)
 	
-	log.info("%s.get_report >> "%self.getShortName() + "="*50)
-	log.info("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
-	log.info("skinJoints: len - %s | %s"%(len(l_skinJoints),l_skinJoints))	
-	log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
-	log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
-	log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
-	log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
-	log.info("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
-	
-	log.info("="*75)
-	
-    except StandardError,error:
-	raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
+    #except StandardError,error:
+	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 """	
 @r9General.Timer
 def build_spine(goInstance, buildTo='',): 
