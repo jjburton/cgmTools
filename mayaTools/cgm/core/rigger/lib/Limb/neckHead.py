@@ -146,10 +146,14 @@ def build_rigSkeleton(self):
 	
 	ml_handleJoints[0].parent = False#Parent to world
 	ml_handleJoints[-1].parent = False#Parent to world
-	
+    except StandardError,error:
+	log.error("build_neckHead>>Build rig chain fail!")
+	raise StandardError,error   
+    try:
 	#>>Segment chain  
 	#=====================================================================
-	l_segmentJoints = mc.duplicate(self._l_moduleJoints,po=True,ic=True,rc=True)
+	l_toCopy = [i_j.p_nameShort for i_j in self._ml_moduleJoints]
+	l_segmentJoints = mc.duplicate(l_toCopy,po=True,ic=True,rc=True)
 	ml_segmentJoints = []
 	for i,j in enumerate(l_segmentJoints):
 	    i_j = cgmMeta.cgmObject(j)
@@ -159,20 +163,23 @@ def build_rigSkeleton(self):
 	    ml_segmentJoints.append(i_j)
 	ml_segmentJoints[0].parent = False#Parent to deformGroup	
 	ml_segmentJoints[-1].parent = ml_segmentJoints[-2].mNode#Parent to world
-	
-	#>>Anchor chain
+    except StandardError,error:
+	log.error("build_neckHead>>Build segment joints fail!")
+	raise StandardError,error  
+    
+    try:#>>Anchor chain
 	#=====================================================================	
 	ml_anchors = []
 	
 	#Start
-	i_startJnt = cgmMeta.cgmObject(mc.duplicate(self._l_moduleJoints[0],po=True,ic=True,rc=True)[0])
+	i_startJnt = cgmMeta.cgmObject(mc.duplicate((self._ml_moduleJoints[0].mNode),po=True,ic=True,rc=True)[0])
 	i_startJnt.addAttr('cgmType','anchor',attrType='string',lock=True)
 	i_startJnt.doName()
 	i_startJnt.parent = False
 	ml_anchors.append(i_startJnt)
 	
 	#End
-	l_endJoints = mc.duplicate(self._l_moduleJoints[-1],po=True,ic=True,rc=True)
+	l_endJoints = mc.duplicate((self._ml_moduleJoints[-1].mNode),po=True,ic=True,rc=True)
 	i_endJnt = cgmMeta.cgmObject(l_endJoints[0])
 	for j in l_endJoints:
 	    #for i_j in [i_endJnt]:
@@ -199,7 +206,11 @@ def build_rigSkeleton(self):
 		ml_influenceJoints.append(i_new)
 		
 	for i_jnt in ml_influenceJoints:
-	    i_jnt.parent = False		
+	    i_jnt.parent = False
+    except StandardError,error:
+	log.error("build_neckHead>>Build anchor fail!")
+	raise StandardError,error   
+    try:
 	#>>> Store em all to our instance
 	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','rigNull')
 	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','rigNull')	
@@ -207,9 +218,10 @@ def build_rigSkeleton(self):
 	self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','rigNull')	
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','rigNull')
 	
-	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','rigNull')#Push back
-	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back		
+	self.connect_restoreJointLists()
+	#self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','rigNull')#Push back
+	#self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	#self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back		
 	
 	"""
 	log.info("startAnchor>> %s"%i_startJnt.getShortName())
@@ -224,7 +236,7 @@ def build_rigSkeleton(self):
 
 	
     except StandardError,error:
-	log.error("build_neckHead>>Build rig joints fail!")
+	log.error("build_neckHead>>Connect rig joints fail!")
 	raise StandardError,error   
     
     ml_jointsToConnect = [i_startJnt,i_endJnt]
@@ -583,7 +595,7 @@ def build_rig(self):
     ml_anchorJoints[-1].parent = mi_handleIK.mNode
         
     
-    l_rigJoints = [i_jnt.getShortName() for i_jnt in self.get_rigDeformationJoints()]
+    l_rigJoints = [i_jnt.getShortName() for i_jnt in self._get_rigDeformationJoints()]
     for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
 	#Don't try scale constraints in here, they're not viable
 	attachJoint = distance.returnClosestObject(i_jnt.mNode,l_rigJoints)
