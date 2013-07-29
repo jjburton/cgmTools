@@ -1662,7 +1662,15 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getHandleJoints)
         """
-        return mFactory.rig_getHandleJoints(self)  
+        return mFactory.rig_getHandleJoints(self)
+    
+    def rig_getRigHandleJoints(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.rig_getRigHandleJoints)
+        """
+        return mFactory.rig_getRigHandleJoints(self)      
+    
     def get_rollJointCountList(self):
         """
         from cgm.core.rigger import ModuleFactory as mFactory

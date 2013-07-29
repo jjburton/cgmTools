@@ -214,7 +214,7 @@ class go(object):
 		log.info("'%s' Up to date. No force."%self._strShortName)
 	else:
 	    log.warning("'%s' module type not in done list. No auto build"%self.buildModule.__name__)
-
+	    
     def isShaped(self):
 	"""
 	Return if a module is shaped or not
@@ -269,6 +269,8 @@ class go(object):
     def get_report(self):
 	self._i_module.rig_getReport()
 	
+    def _set_versionToCurrent(self):
+	self._i_rigNull.version = str(self._buildVersion)	
     #>> Connections
     #=====================================================================
     def connect_toRigGutsVis(self, ml_objects,vis = True):
@@ -300,7 +302,7 @@ class go(object):
 	    log.error("Deleting existing rig chain")
 	    mc.delete(l_rigJointsExist)
 	
-	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
+	l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in self._ml_skinJoints],po=True,ic=True,rc=True)
 	ml_rigJoints = []
 	for i,j in enumerate(l_rigJoints):
 	    i_j = cgmMeta.cgmObject(j)

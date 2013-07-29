@@ -781,7 +781,7 @@ def build_rig(self):
     mPlug_segEnd.value = .5
     
     #Final stuff
-    self._i_rigNull.version = str(__version__)
+    self._set_versionToCurrent()
     return True 
 
 @cgmGeneral.Timer

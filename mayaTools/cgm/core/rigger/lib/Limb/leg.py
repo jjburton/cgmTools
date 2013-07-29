@@ -1617,7 +1617,7 @@ def build_rig(self):
 	raise StandardError,"%s.build_rig >> failed to setup defaults | %s"%(self._strShortName,error)	     
      
     #Final stuff
-    self._i_rigNull.version = str(__version__)
+    self._set_versionToCurrent()
     return True 
 #------------------------------------------------------------------------------------------------------------#    
 def build_twistDriver_hip(self):

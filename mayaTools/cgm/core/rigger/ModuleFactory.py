@@ -509,7 +509,16 @@ def rig_getHandleJoints(self):
 	return mRig.get_handleJoints(self)
     except StandardError,error:
 	raise StandardError,"%s.rig_getHandleJoints >> failed: %s"%(self.getShortName(),error)
-
+    
+def rig_getRigHandleJoints(self):
+    """
+    Find the module handle joints
+    """
+    try:
+	return mRig.get_rigHandleJoints(self)
+    except StandardError,error:
+	raise StandardError,"%s.rig_getRigHandleJoints >> failed: %s"%(self.getShortName(),error)
+    
 #=====================================================================================================
 #>>> Template
 #=====================================================================================================
@@ -523,6 +532,9 @@ def isTemplated(self):
     if not coreNamesValue:
         log.debug("No core names found")
         return False
+    if not self.getMessage('templateNull'):
+        log.debug("No template null")
+        return False       
     if not self.templateNull.getChildren():
         log.debug("No children found in template null")
         return False   

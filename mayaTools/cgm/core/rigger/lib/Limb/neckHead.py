@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 neckHead rig builder
 ================================================================
 """
-__version__ = 0.07122013
+__version__ = 0.0782013
 
 
 # From Python =============================================================
@@ -142,13 +142,13 @@ def build_rigSkeleton(self):
 	#=====================================================================	
 	ml_rigJoints = self.build_rigChain()
 	l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
-	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	ml_handleJoints = self._i_module.rig_getRigHandleJoints()
 	
 	ml_handleJoints[0].parent = False#Parent to world
 	ml_handleJoints[-1].parent = False#Parent to world
     except StandardError,error:
 	log.error("build_neckHead>>Build rig chain fail!")
-	raise StandardError,error   
+	raise StandardError,error  
     try:
 	#>>Segment chain  
 	#=====================================================================
@@ -517,7 +517,7 @@ def build_rig(self):
 	
 	ml_anchorJoints = self._i_rigNull.anchorJoints
 	ml_rigJoints = self._i_rigNull.rigJoints
-	ml_rigHandleJoints = self._i_module.rig_getHandleJoints()
+	ml_rigHandleJoints = self._i_module.rig_getRigHandleJoints()
 	
 	ml_segmentJoints = self._i_rigNull.segmentJoints	
 	ml_segmentHandles = self._i_rigNull.segmentHandles
@@ -641,7 +641,7 @@ def build_rig(self):
     mPlug_segLast.value = .5
 
     #Final stuff
-    self._i_rigNull.version = str(__version__)
+    self._set_versionToCurrent()
     
     return True 
 
