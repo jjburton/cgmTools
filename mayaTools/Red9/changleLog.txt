@@ -70,6 +70,8 @@ New - Red9_Meta - added a "poseCacheStore and "poseCacheLoad" to MetaRig which y
 New - Red9_Anim - Interactive FilterCurves added as new feature and RandomizeKeys also now has interactive mode - BIG DEAL for animators!
 
 
-
-
+1.33:
+------
+Mod - Red9_Anim - Extended the FilterCurves functionality and added an interactive resample to it. Also now cache the current state of the curve display so that the toggle returns your last settings for display tangents and buffers.
+Fix - Red9_Anim - MAJOR CRASH under Maya 2014 when using the poseSaver, this is now fixed, something's changed in the way Maya is managing popupMenu's!
 

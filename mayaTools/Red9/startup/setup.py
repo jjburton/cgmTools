@@ -15,7 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__=1.33
+__buildVersionID__=1.32
 
 import sys
 import os
@@ -205,7 +205,7 @@ def red9ButtonBGC(colour):
     if colour==2:
         return [0.5, 0.5, 0.5]
    
-def red9ContactInfo():
+def red9ContactInfo(*args):
     cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(), 
                        message=("Author: Mark Jackson\r\r"+
                                 "Technical Animation Director\r\r"+
@@ -232,7 +232,7 @@ def red9MayaNativePath():
     else:
         log.info('Red9MayaHacked Folder not found for this build of Maya : %s' % path)
   
-def red9_help():
+def red9_help(*args):
     '''
     open up the Red9 help docs
     '''
@@ -240,21 +240,21 @@ def red9_help():
     helpFile=os.path.join(red9ModulePath(),'docs',r'Red9-StudioTools Help.pdf')
     r9General.os_OpenFile(helpFile)
     
-def red9_blog():
+def red9_blog(*args):
     '''
     open up the Red9 Blog
     '''
     import Red9.core.Red9_General as r9General #lazy load
     r9General.os_OpenFile('http://red9-consultancy.blogspot.com/')
 
-def red9_facebook():
+def red9_facebook(*args):
     '''
     open up the Red9 Facebook Page
     '''
     import Red9.core.Red9_General as r9General #lazy load
     r9General.os_OpenFile('http://www.facebook.com/Red9StudioPack/')   
     
-def red9_vimeo():
+def red9_vimeo(*args):
     '''
     open up the Red9 Vimeo Channel
     '''

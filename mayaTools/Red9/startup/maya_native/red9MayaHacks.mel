@@ -39,11 +39,11 @@ global proc red9HackGraphCurveMenu(string $parent)
 {
 	 //hack the GraphEditor 'curve' menu
 	 menuItem -d true;
-	 menuItem -label "Red9: Randonizer"
+	 menuItem -label "Red9: Randomizer"
 		-annotation "Add Noise to Curves"	
 		-p $parent			
-		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()\")"
-		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.curveMenuFunc()\")"
+		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys().curveMenuFunc()\")"
+		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys().curveMenuFunc()\")"
 		noiseItem;
 	 menuItem -optionBox true
 		-annotation "Noise Settings" 
@@ -51,7 +51,7 @@ global proc red9HackGraphCurveMenu(string $parent)
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
 		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
 		noiseOptionsItem;
-	menuItem -label "Red9: Interactive Simplify"
+	 menuItem -label "Red9: Interactive Simplify"
 		-annotation "Interactively simplify and filter animCurves"	
 		-p $parent			
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.FilterCurves.show()\")"
