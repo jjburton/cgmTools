@@ -27,11 +27,11 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
@@ -59,8 +59,67 @@ reload(joints)
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints','fkJoints']   
+@cgmGeneral.Timer
+def __bindSkeletonSetup__(self):
+    """
+    TODO: Do I need to connect per joint overrides or will the final group setup get them?
+    """
+    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)            
+    try:
+	if not self._cgmClass == 'JointFactory.go':
+	    log.error("Not a JointFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("clavicle.__bindSkeletonSetup__>>bad self!")
+	raise StandardError,error
+    
+    #>>> Re parent joints
+    #=============================================================  
+    #ml_skinJoints = self._i_module.rigNull.skinJoints or []
+    if not self._i_module.isSkeletonized():
+	raise StandardError, "%s is not skeletonized yet."%self._strShortName
+    
+    try:#Reparent joints
+	"""
+	ml_moduleJoints = self._i_module.rigNull.moduleJoints #Get the module joints
+	ml_skinJoints = []
+	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	
+	for i,i_jnt in enumerate(ml_moduleJoints):
+	    ml_skinJoints.append(i_jnt)		
+	    if i_jnt.hasAttr('d_jointFlags') and i_jnt.getAttr('cgmName') not in ['ball']:
+		if i_jnt.d_jointFlags.get('isHandle'):
+		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
+		    i_dupJnt = i_jnt.doDuplicate()#Duplicate
+		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
+		    i_jnt.doName()#Rename
+		    i_dupJnt.doName()#Rename
+		    i_dupJnt.parent = i_jnt#Parent
+		    i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
+		    #Fix the isHandle Flag -------------------------------------
+		    d_buffer = i_dupJnt.d_jointFlags
+		    d_buffer.pop('isHandle')
+		    i_dupJnt.d_jointFlags = d_buffer
+		    #------------------------------------------------------------
+		    ml_skinJoints.append(i_dupJnt)#Append
+		    log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
+	
+	for i,i_jnt in enumerate(ml_handleJoints[1:]):
+	    i_jnt.parent = ml_handleJoints[i].mNode
+		    
+	#We have to connect back our lists because duplicated joints with message connections duplicate those connections
+	self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'moduleJoints','module')
+	self._i_rigNull.connectChildrenNodes(ml_skinJoints,'skinJoints','module')
+	"""
+	ml_moduleJoints = self._i_module.rigNull.moduleJoints
+	self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'skinJoints','module')	
+	self._i_module.rig_getReport()#report
 
-@r9General.Timer
+    except StandardError,error:
+	log.error("build_clavicle>>__bindSkeletonSetup__ fail!")
+	raise StandardError,error   
+    
+@cgmGeneral.Timer
 def build_rigSkeleton(self):
     """
     """
@@ -71,7 +130,7 @@ def build_rigSkeleton(self):
     except StandardError,error:
 	log.error("%s.build_rigSkeleton>>bad self!"%self._strShortName)
 	raise StandardError,error
-    
+    log.info(">>> %s.build_rigSkeleton >> "%self._strShortName + "="*75)    
     #>>>Create joint chains
     #=============================================================    
     try:
@@ -159,6 +218,7 @@ def build_shapes(self):
     
     if self._i_templateNull.handles > 2:
 	raise StandardError, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._strShortName)
+    log.info(">>> %s.build_shapes >> "%self._strShortName + "="*75)    
     
     if not self.isRigSkeletonized():
 	raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
@@ -187,6 +247,7 @@ def build_controls(self):
     except StandardError,error:
 	log.error("clavicle.build_rig>>bad self!")
 	raise StandardError,error
+    log.info(">>> %s.build_controls >> "%self._strShortName + "="*75)    
     
     if not self.isShaped():
 	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
@@ -238,14 +299,6 @@ def build_controls(self):
 	raise StandardError,error
     
     #==================================================================   
-    """
-    try:#>>>> Add all of our Attrs
-	#Add driving attrs
-	mPlug_roll = cgmMeta.cgmAttr(i_IKEnd,'roll',attrType='float',defaultValue = 0,keyable = True)
-
-    except StandardError,error:
-	log.error("%s.build_controls>>> Add Control Attrs Fail!"%self._strShortName)	
-    """
     #Connect all controls
     self._i_rigNull.connectChildrenNodes(l_controlsAll,'controlsAll')
     
@@ -261,6 +314,7 @@ def build_rig(self):
     except StandardError,error:
 	log.error("%s.build_deformationRig>>bad self!"%self._strShortName)
 	raise StandardError,error
+    log.info(">>> %s.build_rig >> "%self._strShortName + "="*75)    
     
     try:#>>>Get data
 	orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
@@ -296,11 +350,11 @@ def build_rig(self):
     mc.connectAttr((ml_controlsFK[0].mNode+'.s'),(ml_rigJoints[0].mNode+'.s'))   
     
     #Final stuff
-    self._i_rigNull.version = str(__version__)
+    self._set_versionToCurrent()
     return True 
 
     
-@r9General.Timer
+@cgmGeneral.Timer
 def __build__(self, buildTo='',*args,**kws): 
     """
     For the clavicle, build order is skeleton first as we need our mid segment handle joints created to cast from
@@ -310,7 +364,7 @@ def __build__(self, buildTo='',*args,**kws):
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
     except StandardError,error:
-	log.error("spine.build_deformationRig>>bad self!")
+	log.error("clavicle.build_deformationRig>>bad self!")
 	raise StandardError,error
     
     if not self.isRigSkeletonized():
