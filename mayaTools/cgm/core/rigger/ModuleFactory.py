@@ -22,6 +22,7 @@ from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import RigFactory as mRig
 from cgm.lib import (modules,curves,distance,attributes)
 from cgm.lib.ml import ml_resetChannels
+reload(jFactory)
 
 reload(attributes)
 from cgm.core.lib import nameTools
@@ -654,7 +655,7 @@ def doSkeletonize(self,*args,**kws):
             return False
         return True
     except StandardError,error:
-        log.warning(error) 
+	raise StandardError,"%s.doSkeletonize >> failed: %s"%(self.getShortName(),error)	
         
 def deleteSkeleton(self,*args,**kws):  
     if isSkeletonized(self):
