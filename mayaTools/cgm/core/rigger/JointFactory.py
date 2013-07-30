@@ -39,10 +39,11 @@ from cgm.core.lib import nameTools
 
 #>>> Register rig functions
 #=====================================================================
-from cgm.core.rigger.lib.Limb import (spine,neckHead,leg)
+from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle)
 d_moduleTypeToBuildModule = {'torso':spine,
                              'neckhead':neckHead,
                              'leg':leg,
+                             'clavicle':clavicle,
                              
                             } 
 for module in d_moduleTypeToBuildModule.keys():
@@ -538,7 +539,8 @@ def deleteSkeleton(i_module,*args,**kws):
                 except StandardError,error:
                     log.warning(error)     
     log.debug("l_strayChildren: %s"%l_strayChildren)
-    mc.delete(i_module.rigNull.getMessage('skinJoints'))
+    if i_module.rigNull.getMessage('skinJoints'):
+	mc.delete(i_module.rigNull.getMessage('skinJoints'))
     return True
 
 #@r9General.Timer
