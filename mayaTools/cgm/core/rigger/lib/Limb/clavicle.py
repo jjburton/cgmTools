@@ -201,6 +201,7 @@ def build_rigSkeleton(self):
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 	
+    self.connect_restoreJointLists()#restore lists
 	
 #>>> Shapes
 #===================================================================
