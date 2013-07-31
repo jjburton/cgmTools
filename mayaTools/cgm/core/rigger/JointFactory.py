@@ -39,10 +39,11 @@ from cgm.core.lib import nameTools
 
 #>>> Register rig functions
 #=====================================================================
-from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle)
+from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm)
 d_moduleTypeToBuildModule = {'torso':spine,
                              'neckhead':neckHead,
                              'leg':leg,
+                             'arm':arm,
                              'clavicle':clavicle,
                              
                             } 
@@ -188,6 +189,8 @@ def doSkeletonize(self):
     curve = self.i_curve.mNode
     partName = self._partName
     l_limbJoints = []
+    
+    log.info(">>> %s.doSkeletonize >> "%self._strShortName + "="*75)            
     
     #>>> Check roll joint args
     rollJoints = self.i_templateNull.rollJoints
@@ -355,13 +358,13 @@ def doOrientSegment(self):
     """ 
     Segement orienter. Must have a JointFactory Instance
     """ 
-    log.debug(">>> doOrientSegment")
     # Get our base info
     #==================	        
     assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
     assert mc.objExists(self._i_module.mNode),"module no longer exists"
     
     #self._i_rigNull = self._i_module.rigNull#refresh
+    log.info(">>> %s.doOrientSegment >> "%self._strShortName + "="*75)            
         
     #>>> orientation vectors
     #=======================    
@@ -524,6 +527,7 @@ def deleteSkeleton(i_module,*args,**kws):
     if not i_module.isSkeletonized():
         log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%i_module.getShortName())
         return False
+    log.info(">>> %s.deleteSkeleton >> "%i_module.p_nameShort + "="*75)            
     
     #We need to see if any of or moduleJoints have children
     l_strayChildren = []
@@ -548,7 +552,7 @@ def connectToParentModule(self):
     """
     Pass a module class. Constrains template root to parent's closest template object
     """
-    log.debug(">>> constrainToParentModule")
+    log.info(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)            
     if not self.isSkeletonized():
         log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
         return False
@@ -681,95 +685,3 @@ def storeTemplateRootParent(moduleNull):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
 #>>> Tools    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-def orientSegment(l_limbJoints,posTemplateObjects,orientation):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Basic limb skeletonizer
-    
-    ARGUMENTS:
-    l_limbJoints(list)
-    templeateObjects(list)
-    orientation(string) - ['xyz','yzx','zxy','xzy','yxz','zyx']
-    
-    RETURNS:
-    l_limbJoints(list)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """  
-    """ orientation vectors"""
-    orientationVectors = search.returnAimUpOutVectorsFromOrientation(orientation)
-    wantedAimVector = orientationVectors[0]
-    wantedUpVector = orientationVectors[1]    
-    
-    """put objects in order of closeness to root"""
-    l_limbJoints = distance.returnDistanceSortedList(l_limbJoints[0],l_limbJoints)
-    
-    #>>> Segment our joint list by names
-    jointSegmentsList = []
-    cullList = []
-    """ gonna be culling items from the list so need to rebuild it, just doing a list1 = list2 
-    somehow keeps the relationship....odd """
-    for obj in l_limbJoints:
-        cullList.append(obj)
-    
-    while len(cullList) > 0:
-        matchTerm = search.returnTagInfo(cullList[0],'cgmName')
-        objSet = search.returnMatchedTagsFromObjectList(cullList,'cgmName',matchTerm)
-        jointSegmentsList.append(objSet)
-        for obj in objSet:
-            cullList.remove(obj)
-            
-    #>>> get our orientation helpers
-    helperObjects = []
-    for obj in posTemplateObjects:
-        templateObj = attributes.returnMessageObject(obj,'cgmName')
-        helperObjects.append(attributes.returnMessageObject(templateObj,'orientHelper'))
-    
-    #>>> un parenting the chain
-    for joint in l_limbJoints[1:]:
-        mc.parent(joint,world=True)
-    
-    #>>>per segment stuff
-    cnt = 0
-    for segment in jointSegmentsList:
-	log.info("On segment: %s"%segment)
-        if len(segment) > 1:
-            """ creat our up object from from the helper object """
-            helperObjectCurvesShapes =  mc.listRelatives(helperObjects[cnt],shapes=True)
-            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)
-            """ make a pair list"""
-            pairList = lists.parseListToPairs(segment)
-            for pair in pairList:
-                """ set up constraints """
-                constraintBuffer = mc.aimConstraint(pair[1],pair[0],maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
-                mc.delete(constraintBuffer[0])
-            for obj in segment[-1:]:
-                constraintBuffer = mc.orientConstraint(segment[-2],obj,maintainOffset = False, weight = 1)
-                mc.delete(constraintBuffer[0])
-            """ increment and delete the up loc """
-            cnt+=1
-            mc.delete(upLoc)
-        else:
-            helperObjectCurvesShapes =  mc.listRelatives(helperObjects[cnt],shapes=True)
-            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)
-            """ make an aim object """
-            aimLoc = locators.locMeObject(helperObjects[cnt])
-            aimLocGroup = rigging.groupMeObject(aimLoc)
-            mc.move (10,0,0, aimLoc, localSpace=True)
-            constraintBuffer = mc.aimConstraint(aimLoc,segment[0],maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
-            mc.delete(constraintBuffer[0])
-            mc.delete(aimLocGroup)
-            mc.delete(upLoc)
-            cnt+=1
-    #>>>reconnect the joints
-    pairList = lists.parseListToPairs(l_limbJoints)
-    for pair in pairList:
-        mc.parent(pair[1],pair[0])
-        
-    """ Freeze the rotations """
-    mc.makeIdentity(l_limbJoints[0],apply=True,r=True)
-    return l_limbJoints
-
-
-
