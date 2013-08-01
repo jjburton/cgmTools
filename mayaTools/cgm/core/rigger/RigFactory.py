@@ -47,7 +47,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckhead']
+l_modulesDone  = ['torso','neckhead','leg','clavicle']
 
 #>>> Register rig functions
 #=====================================================================
@@ -345,7 +345,7 @@ class go(object):
 	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
 	    log.info("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
 	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-		self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,connectNodesAs,'rigNull')#Push back		
+		self._i_rigNull.connectChildrenNodes(ml_handleChain,connectNodesAs,'rigNull')#Push back		
 	    return ml_handleChain
 
 	except StandardError,error:
@@ -919,7 +919,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 	if cgmMath.isVectorEquivalent(i_match.getPosition(),i_jnt.getPosition()):
 	    d_rigJointDrivers[i_jnt.mNode] = i_match
 	    l_cullRigJoints.remove(i_jnt.getShortName())
-	    ml_matchTargets.remove(i_match)
+	    if i_match in ml_matchTargets:
+		ml_matchTargets.remove(i_match)
 	else:
 	    log.debug("'%s' is not in same place as '%s'. Going to second match"%(i_match.getShortName(),i_jnt.getShortName()))
     
