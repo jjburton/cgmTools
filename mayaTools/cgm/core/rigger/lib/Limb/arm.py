@@ -30,8 +30,9 @@ from Red9.core import Red9_Meta as r9Meta
 #from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
-from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
+
+from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
@@ -39,7 +40,6 @@ reload(NodeF)
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
-from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.lib import nameTools
 reload(mShapeCast)
 reload(mControlFactory)
@@ -305,7 +305,7 @@ def build_rigSkeleton(self):
 	self.connect_restoreJointLists()#Restore out lists
 	
 	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'fkJoints',"rigNull")
-	self._i_rigNull.connectChildrenNodes(ml_blendJoints,'blendJoints',"rigNull")
+	##self._i_rigNull.connectChildrenNodes(ml_blendJoints,'blendJoints',"rigNull")
 	self._i_rigNull.connectChildrenNodes(ml_ikJoints,'ikJoints',"rigNull")
 	#self._i_rigNull.connectChildrenNodes(ml_ikNoFlipJoints,'ikNoFlipJoints',"rigNull")
 	#self._i_rigNull.connectChildrenNodes(ml_ikPVJoints,'ikPVJoints',"rigNull")
@@ -313,7 +313,7 @@ def build_rigSkeleton(self):
 
 	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
 	log.info("ikJoints>> %s"%self._i_rigNull.getMessage('ikJoints',False))
-	log.info("blendJoints>> %s"%self._i_rigNull.getMessage('blendJoints',False))
+	#log.info("blendJoints>> %s"%self._i_rigNull.getMessage('blendJoints',False))
 	log.info("influenceJoints>> %s"%self._i_rigNull.getMessage('influenceJoints',False))
 	#log.info("ikNoFlipJoints>> %s"%self._i_rigNull.getMessage('ikNoFlipJoints',False))
 	#log.info("ikPVJoints>> %s"%self._i_rigNull.getMessage('ikPVJoints',False))
@@ -325,7 +325,7 @@ def build_rigSkeleton(self):
     ml_jointsToConnect = []
     ml_jointsToConnect.extend(ml_rigJoints)    
     ml_jointsToConnect.extend(ml_ikJoints)
-    ml_jointsToConnect.extend(ml_blendJoints)     
+    #ml_jointsToConnect.extend(ml_blendJoints)     
     ml_jointsToConnect.extend(ml_influenceJoints)    
     for ml_chain in ml_segmentChains + ml_influenceChains:
 	ml_jointsToConnect.extend(ml_chain)
@@ -967,8 +967,10 @@ def build_FKIK(self):
 	#>>> Main blend
 	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',lock=False,keyable=True)
 	
-	rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,
-	                              driver = mPlug_FKIK.p_combinedName,channels=['translate','rotate'])
+	rUtils.connectBlendChainByConstraint(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+	                                     driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])	
+	"""rUtils.connectBlendJointChain(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+	                              driver = mPlug_FKIK.p_combinedName,channels=['translate','rotate'])"""
 	#rUtils.connectBlendJointChain(ml_ikNoFlipJoints,ml_ikPVJoints,ml_ikJoints[:3],
 	                              #driver = mPlug_showElbow.p_combinedName,channels=['translate','rotate'])	
 	
@@ -1199,14 +1201,7 @@ def build_deformation(self):
 	    if i == 0:#if seg 0
 		l_ikStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)
 		l_fkStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)		
-		l_endDrivers.append("%s.%s"%(self._i_rigNull.mainSegmentHandle.getShortName(),str_twistOrientation))
-		
-		#If it's our first one we wann
-		
-		
-		#We need to make our world driver start twist
-		#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<;laksdjf;alskjdf;lasjkdflaj
-		
+		####l_endDrivers.append("%s.%s"%(self._i_rigNull.mainSegmentHandle.getShortName(),str_twistOrientation))		
 	    if i == 1:#if seg 1	
 		#l_ikStartDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
 		l_ikEndDrivers.append(mPlug_worldIKEndOut.p_combinedShortName)
@@ -1275,7 +1270,6 @@ def build_deformation(self):
 	    #Push squash and stretch multipliers to head
 	    i_buffer = i_curve.scaleBuffer	    
 	    for ii,k in enumerate(i_buffer.d_indexToAttr.keys()):
-		#attrName = 'leg_%s'%k
 		attrName = "seg_%s_%s_mult"%(i,ii)
 		cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_settings.mNode,attrName,connectSourceToTarget = True)
 		cgmMeta.cgmAttr(mi_settings.mNode,attrName,defaultValue = 1,keyable=True)
@@ -1283,9 +1277,6 @@ def build_deformation(self):
 	    #Other attributes transfer
 	    cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
 	    cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
-	    #cgmMeta.cgmAttr(i_curve,'twistMid').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
-	    #cgmMeta.cgmAttr(i_curve,'scaleMidUp').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
-	    #cgmMeta.cgmAttr(i_curve,'scaleMidOut').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)	    
 
     except StandardError,error:
 	log.error("%s.build_deformation>>> Segment fail!"%(self._strShortName))
@@ -1333,6 +1324,7 @@ def build_rig(self):
 	log.info("ml_rigJoints: %s"%[o.getShortName() for o in ml_rigJoints])
 	log.info("ml_blendJoints: %s"%[o.getShortName() for o in ml_blendJoints])
 	
+	ml_rigHandleJoints = self._get_handleJoints()
 	ml_segmentHandleChains = self._get_segmentHandleChains()
 	ml_segmentChains = self._get_segmentChains()
 	ml_influenceChains = self._get_influenceChains()	
@@ -1480,7 +1472,8 @@ def build_rig(self):
 	pntConstBuffer = mc.pointConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	if i_jnt.hasAttr('scaleJoint') and i_jnt.cgmName != 'wrist':
-	    mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
+	    try:mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
+	    except:log.warning("Failed to connect: %s >> %s"%(attachJoint,i_jnt.getMessage('scaleJoint')[0]))
 	else:
 	    mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
 	    
@@ -1488,7 +1481,7 @@ def build_rig(self):
 	attributes.doConnectAttr((ml_segmentChains[-1][-1].mNode + '.s'),(ml_rigHandleJoints[-1].scaleJoint.mNode+'.s'))
     
     
-    #Now we need to make an average for the extra knee that averages the seg0,1 knees
+    #Now we need to make an average for the extra elbow that averages the seg0,1 knees
     i_pma = cgmMeta.cgmNode(nodeType = 'plusMinusAverage')
     i_pma.operation = 3#average
     mc.connectAttr("%s.s"%ml_segmentChains[0][-1].mNode,"%s.%s"%(i_pma.mNode,'input3D[0]'))
@@ -1496,45 +1489,42 @@ def build_rig(self):
     mc.connectAttr("%s.%s"%(i_pma.mNode,'output3D'),"%s.s"%(ml_rigHandleJoints[1].scaleJoint.mNode),force=True)
     
      
-    """   
+       
     #Setup hand Scaling
     #====================================================================================
     ml_fkJoints = self._i_rigNull.fkJoints
     ml_ikJoints = self._i_rigNull.ikJoints
-    ml_ikPVJoints = self._i_rigNull.ikPVJoints
-    ml_ikNoFlipJoints = self._i_rigNull.ikNoFlipJoints
     
     #Ik Scale Object
-    mi_controlIK.scalePivotY = 0
-    vBuffer = mc.xform(mi_controlIK.mNode,q=True,sp=True,ws=True)	    
-    mc.xform(mi_controlIK.mNode,sp=(vBuffer[0],0,vBuffer[2]),ws=True)
-    for obj in ml_ikJoints[-3:-1]:
+    #vBuffer = mc.xform(mi_controlIK.mNode,q=True,sp=True,ws=True)	    
+    #mc.xform(mi_controlIK.mNode,sp=(vBuffer[0],0,vBuffer[2]),ws=True)
+    for obj in ml_ikJoints[2:]:
 	cgmMeta.cgmAttr(mi_controlIK,'scale').doConnectOut("%s.scale"%obj.mNode)
     for attr in ['x','z']:
-	cgmMeta.cgmAttr(mi_controlIK,'sy').doConnectOut("%s.s%s"%(mi_controlIK.mNode,attr))
+	cgmMeta.cgmAttr(mi_controlIK,'s%s'%orientation[1]).doConnectOut("%s.s%s"%(mi_controlIK.mNode,attr))
     
     attributes.doSetLockHideKeyableAttr(mi_controlIK.mNode,lock=True,visible=False,keyable=False,channels=['sz','sx'])    
-    mPlug_ikHandScale = cgmMeta.cgmAttr(mi_controlIK,'sy')
+    mPlug_ikHandScale = cgmMeta.cgmAttr(mi_controlIK,'s%s'%orientation[1])
     mPlug_ikHandScale.p_nameAlias = 'ikScale'
     mPlug_ikHandScale.p_keyable = True
 
     #FK Scale
-    attributes.doSetLockHideKeyableAttr(ml_controlsFK[-2].mNode,lock=False,visible=True,keyable=True,channels=['s%s'%orientation[0]])
+    attributes.doSetLockHideKeyableAttr(ml_controlsFK[-1].mNode,lock=False,visible=True,keyable=True,channels=['s%s'%orientation[0]])
     for attr in orientation[1:]:
-	cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0]).doConnectOut("%s.s%s"%(ml_controlsFK[-2].mNode,attr))
+	cgmMeta.cgmAttr(ml_controlsFK[-1],'s%s'%orientation[0]).doConnectOut("%s.s%s"%(ml_controlsFK[-1].mNode,attr))
 	
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.scale"%ml_controlsFK[-1].mNode)
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.inverseScale"%ml_controlsFK[-1].mNode)
+    #cgmMeta.cgmAttr(ml_controlsFK[-1],'scale').doConnectOut("%s.scale"%ml_controlsFK[-1].mNode)
+    #cgmMeta.cgmAttr(ml_controlsFK[-1],'scale').doConnectOut("%s.inverseScale"%ml_controlsFK[-1].mNode)
     
-    mPlug_fkHandScale = cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0])
+    mPlug_fkHandScale = cgmMeta.cgmAttr(ml_controlsFK[-1],'s%s'%orientation[0])
     mPlug_fkHandScale.p_nameAlias = 'fkScale'
     mPlug_fkHandScale.p_keyable = True
     
     #Blend the two
     mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK')
-    rUtils.connectBlendJointChain(ml_fkJoints[-2:],ml_ikJoints[-3:-1],ml_blendJoints[-2:],
+    rUtils.connectBlendJointChain(ml_fkJoints[-1],ml_ikJoints[2:],ml_blendJoints[2:],
                                   driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
-    """
+    
     #Vis Network, lock and hide
     #====================================================================================
     #Segment handles need to lock
@@ -1550,12 +1540,12 @@ def build_rig(self):
 	mPlug_autoStretch.value =  1
 	
 	mPlug_seg0end = cgmMeta.cgmAttr(ml_segmentHandleChains[0][-1],'followRoot')
-	mPlug_seg0end.p_defaultValue = .5
-	mPlug_seg0end.value = .5
+	mPlug_seg0end.p_defaultValue = 0
+	mPlug_seg0end.value = 0
 	
 	mPlug_seg1end = cgmMeta.cgmAttr(ml_segmentHandleChains[1][-1],'followRoot')
-	mPlug_seg1end.p_defaultValue = .5
-	mPlug_seg1end.value = .5	
+	mPlug_seg1end.p_defaultValue = 0
+	mPlug_seg1end.value = 0	
 	
 	#mid segment handles
 	mPlug_seg0mid = cgmMeta.cgmAttr(ml_segmentHandleChains[0][1],'twistExtendToEnd')
@@ -1573,7 +1563,238 @@ def build_rig(self):
     self._set_versionToCurrent()
     return True 
 
+#------------------------------------------------------------------------------------------------------------#    
+def build_twistDriver_shoulder(self):
+    log.info(">>> %s.build_twistDriver_shoulder >> "%self._strShortName + "="*75)
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("build_twistDriver_shoulder>>bad self!")
+	raise StandardError,error
+    
+    try:
+	mi_settings = self._i_rigNull.settings	
+	mPlug_worldIKStartIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKStart" , attrType='float' , lock = True)
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_shoulder >> failed to setup start attr | %s"%(self._strShortName,error)	
+    try:
+	mi_parentRigNull = self._i_module.moduleParent.rigNull
+	i_target = mi_parentRigNull.moduleJoints[-1]	
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_shoulder >> failed to find target | %s"%(self._strShortName,error)	
+    
+    try:
+	outVector = self._vectorOut
+	upVector = self._vectorUp      
+	ml_blendJoints = self._i_rigNull.blendJoints
+	
 
+	#Create joints
+	#i_startAim = self.duplicate_moduleJoint(0,'startAim')
+	#i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
+	i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+	i_startRoot.addAttr('cgmName',self._partName)	
+	i_startRoot.addAttr('cgmTypeModifier','twistDriver')
+	i_startRoot.doName()
+	i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+	i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
+	i_startEnd.doName()    
+	
+	i_upLoc = i_startRoot.doLoc()	
+	i_upLoc.parent = self._i_constrainNull.mNode#parent
+	
+	self.connect_restoreJointLists()#Restore out lists
+	
+	i_startEnd.parent = i_startRoot.mNode
+	ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc]
+	fl_dist = 25
+	if self._direction == 'left':#if right, rotate the pivots
+	    i_upLoc.__setattr__('t%s'%self._jointOrientation[2],fl_dist)	
+	else:
+	    i_upLoc.__setattr__('t%s'%self._jointOrientation[2],-fl_dist)		
+	
+	#Move up
+	i_startEnd.__setattr__('t%s'%self._jointOrientation[0],(fl_dist))
+	
+	i_startRoot.parent = ml_blendJoints[0].mNode
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_shoulder >> Failed joint creation,positioning | %s"%(self._strShortName,error)	    
+    
+    #=============================================================================
+    try:#setup stable shoulder rotate group  
+	i_rotGroup = self._i_constrainNull.doDuplicateTransform(False)
+	i_rotGroup.addAttr('cgmType','stableShoulderTwistRotGroup')
+	i_rotGroup.doName()
+	ml_twistObjects.append(i_rotGroup)
+	i_upLoc.parent = i_rotGroup.mNode
+	
+	i_rotGroup.parent = self._i_constrainNull.mNode
+		
+	NodeF.argsToNodes("%s.ry = -%s.ry + %s.ry"%(i_rotGroup.p_nameShort,
+	                                            self._i_constrainNull.p_nameShort,
+	                                            ml_blendJoints[0].p_nameShort)).doBuild()	
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_shoulder >> failed to create stable rotate group: %s"%(self._strShortName,error)
+    
+    #=============================================================================
+    #Create IK handle
+    try:
+	buffer = mc.ikHandle( sj=i_startRoot.mNode, ee=i_startEnd.mNode,
+	                      solver = 'ikRPsolver', forceSolver = True,
+	                      snapHandleFlagToggle=True )  
+	
+	#>>> Name
+	str_baseName = self._partName + "_startTwistDriver"
+	i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+	i_ik_handle.addAttr('cgmName',str_baseName ,attrType='string',lock=True)    
+	i_ik_handle.doName()
+	i_ik_handle.parent = self._i_rigNull.mNode
+	mc.pointConstraint(ml_blendJoints[1].mNode,i_ik_handle.mNode)
+	
+	ml_twistObjects.append(i_ik_handle)
+	
+	i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+	i_ik_effector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
+	i_ik_effector.doName()
+	
+	cBuffer = mc.poleVectorConstraint(i_upLoc.mNode,i_ik_handle.mNode)#Polevector	
+	rUtils.IKHandle_fixTwist(i_ik_handle.mNode)#Fix the wist
+	
+    except:
+	raise StandardError,"%s.build_twistDriver_shoulder >> failed to create ik handle: %s"%(self._strShortName,error)
+       
+    #>>> Control	
+    try:
+	#>>> Connect in
+	cgmMeta.cgmAttr(self._i_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._jointOrientation[0]))
+	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_shoulder >> finish failed| %s"%(self._strShortName,error)
+    
+#------------------------------------------------------------------------------------------------------------#    
+def build_twistDriver_wrist(self):
+    log.info(">>> %s.build_twistDriver_wrist >> "%self._strShortName + "="*75)
+    try:
+	if not self._cgmClass == 'RigFactory.go':
+	    log.error("Not a RigFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("build_twistDriver_wrist>>bad self!")
+	raise StandardError,error
+    
+    try:
+	mi_controlIK = self._i_rigNull.controlIK	
+	mi_settings = self._i_rigNull.settings	
+	mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEnd" , attrType='float' , lock = True)
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_wrist >> failed to setup start attr | %s"%(self._strShortName,error)	
+    """
+    try:
+	mi_parentRigNull = self._i_module.moduleParent.rigNull
+	i_target = mi_parentRigNull.moduleJoints[-1]	
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_wrist >> failed to find target | %s"%(self._strShortName,error)	
+    """
+    try:
+	outVector = self._vectorOut
+	upVector = self._vectorUp      
+	ml_blendJoints = self._i_rigNull.blendJoints
+	ml_ikJoints = self._i_rigNull.ikJoints	
+	
+	ml_rigHandleJoints = self._get_handleJoints()	
+	i_targetJoint = ml_rigHandleJoints[2]#This should be the wrist
+	i_blendWrist = ml_blendJoints[2]
+	if i_targetJoint.cgmName != 'wrist':
+	    raise StandardError,"%s.build_twistDriver_wrist >> target not wrist? | %s"%(self._strShortName,i_targetJoint.p_nameShort)	
+	if i_blendWrist.cgmName != 'wrist':
+	    raise StandardError,"%s.build_twistDriver_wrist >> target not wrist? | %s"%(self._strShortName,i_blendWrist.p_nameShort)	
+	
+	#Create joints
+	i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False)
+	i_startRoot.addAttr('cgmName',self._partName)	
+	i_startRoot.addAttr('cgmTypeModifier','endtwistDriver')
+	i_startRoot.doName()
+	i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False)
+	i_startEnd.addAttr('cgmTypeModifier','endtwistDriverEnd')
+	i_startEnd.doName()    
+	
+	i_upLoc = i_startRoot.doLoc()	
+	i_upLoc.parent = self._i_constrainNull.mNode#parent
+	
+	self.connect_restoreJointLists()#Restore out lists
+	
+	i_startEnd.parent = i_startRoot.mNode
+	ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc]
+	fl_dist = 10
+	if self._direction == 'left':#if right, rotate the pivots
+	    i_upLoc.__setattr__('t%s'%self._jointOrientation[2],fl_dist)	
+	else:
+	    i_upLoc.__setattr__('t%s'%self._jointOrientation[2],-fl_dist)
+	    
+	i_startEnd.__setattr__('t%s'%self._jointOrientation[0],-(fl_dist))
+	
+	i_startRoot.parent = ml_ikJoints[1].mNode
+	i_startRoot.rotateOrder = 0 #xyz
+	mc.pointConstraint(i_blendWrist.mNode,i_startRoot.mNode,mo=True)#constrain
+	
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_wrist >> Failed joint creation,positioning | %s"%(self._strShortName,error)	    
+    
+    #=============================================================================
+    try:#setup stable wrist rotate group  
+	i_rotGroup = mi_controlIK.doDuplicateTransform(False)
+	i_rotGroup.addAttr('cgmType','stableShoulderTwistRotGroup')
+	i_rotGroup.doName()
+	ml_twistObjects.append(i_rotGroup)
+	i_upLoc.parent = i_rotGroup.mNode
+	
+	NodeF.argsToNodes("%s.ry = -%s.ry"%(i_rotGroup.p_nameShort,
+	                                    mi_controlIK.p_nameShort)).doBuild()	
+	NodeF.argsToNodes("%s.rx = -%s.rx"%(i_rotGroup.p_nameShort,
+	                                    mi_controlIK.p_nameShort)).doBuild()	
+	i_rotGroup.parent = mi_controlIK.mNode
+	
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_wrist >> failed to create stable rotate group: %s"%(self._strShortName,error)
+    
+    #=============================================================================
+    #Create IK handle
+    try:
+	buffer = mc.ikHandle( sj=i_startRoot.mNode, ee=i_startEnd.mNode,
+	                      solver = 'ikRPsolver', forceSolver = True,
+	                      snapHandleFlagToggle=True )  
+	
+	#>>> Name
+	str_baseName = self._partName + "_endTwistDriver"
+	i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+	i_ik_handle.addAttr('cgmName',str_baseName ,attrType='string',lock=True)    
+	i_ik_handle.doName()
+	i_ik_handle.parent = self._i_rigNull.mNode
+	mc.pointConstraint(ml_blendJoints[1].mNode,i_ik_handle.mNode)
+	
+	ml_twistObjects.append(i_ik_handle)
+	
+	i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+	i_ik_effector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
+	i_ik_effector.doName()
+	
+	cBuffer = mc.poleVectorConstraint(i_upLoc.mNode,i_ik_handle.mNode)#Polevector	
+	rUtils.IKHandle_fixTwist(i_ik_handle.mNode)#Fix the wist
+	
+    except:
+	raise StandardError,"%s.build_twistDriver_wrist >> failed to create ik handle: %s"%(self._strShortName,error)
+       
+    #>>> Control	
+    try:
+	#>>> Connect in
+	cgmMeta.cgmAttr(self._i_module.rigNull.settings,'in_worldIKEnd').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._jointOrientation[0]))
+	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
+    except StandardError,error:
+	raise StandardError,"%s.build_twistDriver_wrist >> finish failed| %s"%(self._strShortName,error)
+    
+    
 @cgmGeneral.Timer
 def build_matchSystem(self):
     try:
