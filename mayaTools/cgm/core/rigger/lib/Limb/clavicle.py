@@ -29,16 +29,15 @@ import maya.cmds as mc
 from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
-from cgm.core import cgm_General as cgmGeneral
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
-from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.lib import nameTools
 reload(mShapeCast)
 reload(mControlFactory)
