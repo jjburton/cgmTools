@@ -243,8 +243,7 @@ def build_rigSkeleton(self):
 	#>>Rig chain  
 	#=====================================================================	
 	ml_rigJoints = self.build_rigChain()
-	
-	ml_rigJoints[0].parent = False#Parent to deformGroup
+	ml_rigJoints[0].parent = False#Parent to world
 		
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build rig joints fail!")
@@ -360,7 +359,6 @@ def build_rigSkeleton(self):
 	self._i_rigNull.connectChildrenNodes(ml_ikPVJoints,'ikPVJoints',"rigNull")
 	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints',"rigNull")
 
-	##log.info("anchorJoints>> %s"%self._i_rigNull.getMessage('anchorJoints',False))
 	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
 	log.info("ikJoints>> %s"%self._i_rigNull.getMessage('ikJoints',False))
 	log.info("blendJoints>> %s"%self._i_rigNull.getMessage('blendJoints',False))
@@ -1107,10 +1105,6 @@ def build_deformation(self):
     mPlug_worldIKEndOut = cgmMeta.cgmAttr(mi_settings,"out_worldIKEnd" , attrType='float' , lock = True) 
     
     mPlug_worldIKEndIn.doConnectOut(mPlug_worldIKEndOut.p_combinedShortName)
-    """
-    NodeF.argsToNodes("%s = %s"%(mPlug_worldIKEndOut.p_combinedShortName,#result
-                                 mPlug_worldIKEndIn.p_combinedShortName,
-                                 )).doBuild()#     """  
     
     #=========================================================================================
     
@@ -1169,8 +1163,6 @@ def build_deformation(self):
 		i_grp.parent = self._i_constrainNull.mNode
 		
 	    #Parent our joint chains
-	    #i_curve.driverJoints[0].parent = self._i_constrainNull.mNode
-	    #ml_segmentChains[i][0].parent = self._i_constrainNull.mNode
 	    i_curve.driverJoints[0].parent = ml_blendJoints[i].mNode
 	    ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode    
 	    
@@ -1199,16 +1191,7 @@ def build_deformation(self):
 		    mi_segmentAnchorEnd.parent = self._i_rigNull.mainSegmentHandle.mNode			    
 		else:
 		    mi_segmentAnchorEnd.parent = ml_blendJoints[i+1].mNode	
-		'''
-		if i > 0:
-		    mi_segmentAnchorStart.parent = ml_blendJoints[i].mNode
-		    #mc.parentConstraint( ml_blendJoints[i].mNode,mi_segmentAnchorStart.mNode,maintainOffset = True)
-		if i == 0:
-		    mi_segmentAnchorStart.parent = ml_blendJoints[i].mNode		    
-		    #mc.parentConstraint( self._i_rigNull.mainSegmentHandle.mNode,mi_segmentAnchorEnd.mNode,maintainOffset = True)
-		else:	
-		    #mc.parentConstraint( ml_blendJoints[i+1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset = True)
-		'''
+
 		#segment handles to influence parents
 		i_startControl.masterGroup.parent = ml_influenceChains[i][0].parent
 		i_endControl.masterGroup.parent = ml_influenceChains[i][-1].parent
@@ -1285,15 +1268,7 @@ def build_deformation(self):
 	    if i == 1:#if seg 1	
 		#l_ikStartDrivers.append("%s.%s"%(ml_blendJoints[0].getShortName(),str_twistOrientation))
 		l_ikEndDrivers.append(mPlug_worldIKEndOut.p_combinedShortName)
-		
-		#We need to make our world driver for our main IKControl
-		"""
-		i_endLoc = ml_segmentChains[i][-1].doLoc()#Make our loc
-		i_endLoc.parent = self._i_constrainNull#Parent it
-		mc.parentConstraint(mi_controlIK.mNode,i_endLoc.mNode,maintainOffset = True)#Contrain it
-		mPlug_worldIKEndIn.doConnectIn("%s.%s"%(i_endLoc.mNode,str_twistOrientation))#Connect our rotate in
-		"""
-				
+						
 	    log.info("#>>> %s "%str_segCount+"="*70)
 	    log.info("startDrivers %s: %s"%(i,l_startDrivers))
 	    str_ArgStartDrivers_Result = "%s = %s"%(mPlug_TwistStartResult.p_combinedShortName," + ".join(l_startDrivers))
@@ -1426,11 +1401,6 @@ def build_rig(self):
 	
 	#Build our contrain to pool
 	d_indexRigJointToDriver = self._get_simpleRigJointDriverDict()
-	"""
-	l_constrainTargetJoints = []
-	for ml_chain in ml_segmentChains:
-	    l_constrainTargetJoints.extend([i_jnt.mNode for i_jnt in ml_chain[:-1]])
-	l_constrainTargetJoints.extend([i_jnt.mNode for i_jnt in ml_blendJoints[-2:]])"""
 	
     except StandardError,error:
 	log.error("leg.build_rig>> Gather data fail!")
@@ -1438,7 +1408,7 @@ def build_rig(self):
     
     #Constrain to pelvis
     if mi_moduleParent:
-	mc.parentConstraint(mi_moduleParent.rigNull.skinJoints[0].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+	mc.parentConstraint(mi_moduleParent.rigNull.moduleJoints[0].mNode,self._i_constrainNull.mNode,maintainOffset = True)
     
     #Dynamic parent groups
     #====================================================================================
@@ -1510,17 +1480,9 @@ def build_rig(self):
     #Parent and constrain joints
     #====================================================================================
     ml_rigJoints[0].parent = self._i_deformNull.mNode#hip
-    #######################ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
-    #ml_rigJoints[-2].parent = self._i_deformNull.mNode#ankle
-    #Need to grab knee and parent to deform Null
-
-
-    #For each of our rig joints, find the closest constraint target joint
-    #l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
     
     for i,i_jnt in enumerate(d_indexRigJointToDriver.keys()):
 	#Don't try scale constraints in here, they're not viable
-	#attachJoint = distance.returnClosestObject(i_jnt.mNode,l_constrainTargetJoints)
 	attachJoint = d_indexRigJointToDriver[i_jnt].getShortName()
 	log.info("'%s'>>drives>>'%s'"%(attachJoint,i_jnt.getShortName()))
 	pntConstBuffer = mc.pointConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
