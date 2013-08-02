@@ -22,8 +22,6 @@ from Red9.core import Red9_General as r9General
 
 
 # From cgm ==============================================================
-#from cgm.lib.classes import NameFactory as OLD_Name
-#reload(OLD_Name)
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import nameTools
 reload(nameTools)
@@ -918,12 +916,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	i_loc.doName()
 	return i_loc
     
-    def doDuplicate(self,parentOnly = True, incomingConnections = True):
+    def doDuplicate(self,parentOnly = True, incomingConnections = True, breakMessagePlugsOut = True):
         """
         Return a duplicated object instance
 
-        Keyword arguments:
+        @Keyword arguments:
         incomingConnections(bool) -- whether to do incoming connections (default True)
+	breakMessagePlugsOut(bool) -- whether to break the outgoing message connections because Maya duplicates regardless of duplicate flags
         """
 	if self.isComponent():
 	    log.warning("doDuplicate fail. Cannot duplicate components")
@@ -933,8 +932,39 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	log.debug("doDuplicate>> buffer: %s"%buffer)
 	i_obj = r9Meta.MetaClass(buffer)
 	mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
-	log.debug("doDuplicate>> i_obj: %s"%i_obj)	
+	log.debug("doDuplicate>> i_obj: %s"%i_obj)
+	
+	if breakMessagePlugsOut:
+	    b_sourceLock = False
+	    b_drivenLock = False
+	    _str_messageCombined = '%s.msg'%i_obj.mNode
+	    
+            if mc.getAttr(_str_messageCombined,lock=True):
+                b_drivenLock = True
+                mc.setAttr(_str_messageCombined,lock=False)
+
+	    for plug in mc.listConnections(_str_messageCombined,plugs =True):
+		b_sourceLock = False
+		if '[' in plug:
+		    str_plug = plug.split('[')[0]
+		else:str_plug = plug
+		    
+		if mc.getAttr(str_plug,lock=True):#if locked, unlock
+		    b_sourceLock = True
+		    mc.setAttr(str_plug,lock=False)	
+		    
+		try: mc.setAttr(str_plug,lock=False)
+		except:raise StandardError, "%s.doDuplicate >> can't unlock '%s'"%(self.p_nameShort,str_plug)
+
+		mc.disconnectAttr(_str_messageCombined,plug)
+		if b_sourceLock:
+		    mc.setAttr(str_plug,lock=False)
+	    if b_drivenLock:
+		mc.setAttr(_str_messageCombined,lock=False)
+		
+		
 	return i_obj
+    
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
@@ -3747,8 +3777,8 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 #=========================================================================      
 # Argument validation
 #=========================================================================  
-#@r9General.Timer
-def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode):
+@cgmGeneral.Timer
+def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     """
     validate an objArg to be able to get instance of the object
     
@@ -3778,8 +3808,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	elif not mc.objExists(arg):
 	    if noneValid: return False
 	    else:
-		raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg	
-	    
+		raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg   
 	elif mType is not None:
 	    log.debug("validateObjArg>>> mType arg: '%s'"%mType)
 	    if i_arg:
@@ -3789,13 +3818,13 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	    if type(mType) in [unicode,str]:
 		log.debug("validateObjArg>>> string mType: '%s'"%mType)
 		if i_autoInstance.getAttr('mClass') == mType:
-		    return i_autoInstance
+		    i_arg = i_autoInstance
 		else:
-		    raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)			    
+		    raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.p_nameShort,type(i_autoInstance),mType)			    
 	    else:
 		log.debug("validateObjArg>>> class mType: '%s'"%mType)		
 		if issubclass(type(i_autoInstance),mType):#if it's a subclass of our mType, good to go
-		    return i_autoInstance
+		    i_arg = i_autoInstance
 		#elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
 		    #raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)	
 	    log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
@@ -3803,18 +3832,27 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	else:
 	    log.debug("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
 	    i_arg = default_mType(arg)
-	
+	    
+	if mayaType is not None and len(mayaType):
+	    str_type = search.returnObjectType(i_arg.getComponent())
+	    if str_type != mayaType:
+		if noneValid:
+		    log.warning("validateObjArg>>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(i_arg.p_nameShort,str_type,mayaType))
+		    return False
+		raise StandardError,"validateObjArg>>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(i_arg.p_nameShort,str_type,mayaType)			    	
 	return i_arg
+    
     except StandardError,error:
 	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
-	raise StandardError,error    
+	raise StandardError,error  
     
-def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode):
+@cgmGeneral.Timer    
+def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     try:
 	if type(l_args) not in [list,tuple]:l_args = [l_args]
 	returnList = []
 	for arg in l_args:
-	    buffer = validateObjArg(arg,mType,noneValid,default_mType)
+	    buffer = validateObjArg(arg,mType,noneValid,default_mType,mayaType)
 	    if buffer:returnList.append(buffer)
 	return returnList
     except StandardError,error:
@@ -3875,6 +3913,5 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
     
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
-#=========================================================================      
+#=========================================================================    
 r9Meta.registerMClassInheritanceMapping()#Pushes our classes in
-#r9Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for
