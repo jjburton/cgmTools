@@ -27,9 +27,9 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
@@ -38,7 +38,6 @@ reload(NodeF)
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
-from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.lib import nameTools
 reload(mShapeCast)
 reload(mControlFactory)
@@ -62,7 +61,77 @@ reload(joints)
 __l_jointAttrs__ = ['rigJoints','fkJoints','ikJoints','blendJoints']   
 __d_preferredAngles__ = {'finger':[0,0,10],'thumb':[0,0,10]}#In terms of aim up out for orientation relative values
 __d_controlShapes__ = {'shape':['segmentFK','settings','cap']}
-@r9General.Timer
+
+@cgmGeneral.Timer
+def __bindSkeletonSetup__(self):
+    """
+    TODO: Do I need to connect per joint overrides or will the final group setup get them?
+    """
+    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)            
+    try:
+	if not self._cgmClass == 'JointFactory.go':
+	    log.error("Not a JointFactory.go instance: '%s'"%self)
+	    raise StandardError
+    except StandardError,error:
+	log.error("f.__bindSkeletonSetup__>>bad self!")
+	raise StandardError,error
+    
+    #>>> Re parent joints
+    #=============================================================  
+    #ml_skinJoints = self._i_module.rigNull.skinJoints or []
+    if not self._i_module.isSkeletonized():
+	raise StandardError, "%s is not skeletonized yet."%self._strShortName
+    
+    try:#Reparent joints
+	"""
+	ml_skinJoints = self._i_module.rigNull.skinJoints
+	last_i_jnt = False
+	for i,i_jnt in enumerate(ml_skinJoints):
+	    if i_jnt.hasAttr('cgmName'):
+		if last_i_jnt:i_jnt.parent = last_i_jnt.mNode
+		last_i_jnt = i_jnt"""
+		
+	ml_moduleJoints = self._i_module.rigNull.moduleJoints #Get the module joints
+	ml_skinJoints = []
+	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	"""
+	for i,i_jnt in enumerate(ml_moduleJoints):
+	    ml_skinJoints.append(i_jnt)		
+	    if i_jnt.hasAttr('d_jointFlags'):
+		if i_jnt.d_jointFlags.get('isHandle'):
+		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
+		    i_dupJnt = i_jnt.doDuplicate()#Duplicate
+		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
+		    i_jnt.doName()#Rename
+		    i_dupJnt.doName()#Rename
+		    i_dupJnt.parent = i_jnt#Parent
+		    i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
+		    #Fix the isHandle Flag -------------------------------------
+		    d_buffer = i_dupJnt.d_jointFlags
+		    d_buffer.pop('isHandle')
+		    i_dupJnt.d_jointFlags = d_buffer
+		    #------------------------------------------------------------
+		    ml_skinJoints.append(i_dupJnt)#Append
+		    log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
+	
+	for i,i_jnt in enumerate(ml_handleJoints[1:]):
+	    i_jnt.parent = ml_handleJoints[i].mNode
+		    
+	#We have to connect back our lists because duplicated joints with message connections duplicate those connections
+	self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'moduleJoints','module')
+	self._i_rigNull.connectChildrenNodes(ml_skinJoints,'skinJoints','module')
+	
+	self._i_module.rig_getReport()#report
+	"""
+	ml_moduleJoints = self._i_module.rigNull.moduleJoints
+	self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'skinJoints','module')	
+	self._i_module.rig_getReport()#report
+	
+    except StandardError,error:
+	log.error("build_arm>>__bindSkeletonSetup__ fail!")
+	raise StandardError,error   
+    
+@cgmGeneral.Timer
 def build_rigSkeleton(self):
     
     """
@@ -496,7 +565,7 @@ def build_controls(self):
     try:#>>>> IK Handle
 	i_IKEnd = mi_cap
 	i_IKEnd.parent = False
-	d_buffer = mControlFactory.registerControl(i_IKEnd,copyPivot=ml_fkJoints[-1].mNode,setRotateOrder=3,
+	d_buffer = mControlFactory.registerControl(i_IKEnd,copyPivot=ml_fkJoints[-2].mNode,setRotateOrder=3,
 	                                           typeModifier='ik',addSpacePivots = 1, addDynParentGroup = True,
 	                                           addConstraintGroup=True,
 	                                           makeAimable = True)
@@ -612,7 +681,7 @@ def build_controls(self):
     
 
     
-@r9General.Timer
+@cgmGeneral.Timer
 def build_FKIK(self):
     """
     """
@@ -1461,7 +1530,7 @@ def build_rig(self):
     return True 
 
 
-@r9General.Timer
+@cgmGeneral.Timer
 def build_matchSystem(self):
     try:
 	if not self._cgmClass == 'RigFactory.go':
@@ -1602,7 +1671,7 @@ def build_matchSystem(self):
     
     return True
     
-@r9General.Timer
+@cgmGeneral.Timer
 def __build__(self, buildTo='',*args,**kws): 
     """
     For the finger, build order is skeleton first as we need our mid segment handle joints created to cast from
