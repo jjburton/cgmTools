@@ -916,7 +916,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	i_loc.doName()
 	return i_loc
     
-    def doDuplicate(self,parentOnly = True, incomingConnections = True, breakMessagePlugsOut = True):
+    def doDuplicate(self,parentOnly = True, incomingConnections = True, breakMessagePlugsOut = False):
         """
         Return a duplicated object instance
 
@@ -3777,7 +3777,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 #=========================================================================      
 # Argument validation
 #=========================================================================  
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     """
     validate an objArg to be able to get instance of the object
@@ -3846,7 +3846,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
 	raise StandardError,error  
     
-@cgmGeneral.Timer    
+#@cgmGeneral.Timer    
 def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     try:
 	if type(l_args) not in [list,tuple]:l_args = [l_args]
