@@ -42,6 +42,8 @@ from cgm.core.lib import nameTools
 reload(mShapeCast)
 reload(mControlFactory)
 from cgm.core.rigger.lib import rig_Utils as rUtils
+from cgm.core.rigger.lib import joint_Utils as jUtils
+
 reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
@@ -94,6 +96,13 @@ def __bindSkeletonSetup__(self):
 	ml_moduleJoints = self._i_module.rigNull.moduleJoints #Get the module joints
 	ml_skinJoints = []
 	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	ml_pairs = lists.parseListToPairs(ml_moduleJoints)
+	
+	jUtils.add_defHelpJoint(ml_pairs[1][0],ml_pairs[1][1],helperType = 'childRootHold',orientation=self.jointOrientation)
+	
+	for ml_pair in ml_pairs[1:]:
+	    jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',orientation=self.jointOrientation)
+	    
 	"""
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    ml_skinJoints.append(i_jnt)		
