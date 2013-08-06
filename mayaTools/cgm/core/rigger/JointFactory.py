@@ -39,13 +39,14 @@ from cgm.core.lib import nameTools
 
 #>>> Register rig functions
 #=====================================================================
-from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm)
+from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger,thumb)
 d_moduleTypeToBuildModule = {'torso':spine,
                              'neckhead':neckHead,
                              'leg':leg,
                              'arm':arm,
                              'clavicle':clavicle,
-                             
+                             'thumb':thumb,
+                             'finger':finger,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
@@ -150,7 +151,7 @@ def hasJointSetup(goInstance):
     self = goInstance#Link
     
     if self._partType not in d_moduleTypeToBuildModule.keys():
-	log.info("%s.isBuildable>>> Not in d_moduleTypeToBuildModule"%(self._strShortName))	
+	log.info("%s.isBuildable>>> '%s' Not in d_moduleTypeToBuildModule"%(self._strShortName,self._partType))	
 	return False
     
     try:#Version
