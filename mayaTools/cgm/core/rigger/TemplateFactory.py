@@ -18,6 +18,7 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core.classes import SnapFactory as Snap
 from cgm.lib import (modules,
                      cgmMath,
                      curves,
@@ -100,7 +101,8 @@ class go(object):
         self.partName = self.m.getPartNameBase()
         self.partType = self.m.moduleType or False
         self._partName = self.m.getPartNameBase()
-        
+        self._strShortName = self._i_module.getShortName() or False    
+	
         self.direction = None
         if self.m.hasAttr('cgmDirection'):
             self.direction = self.m.cgmDirection or None
@@ -479,8 +481,18 @@ def doMakeLimbTemplate(self):
 
     #if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
         #constrainToParentModule(self.m)
+	
+    doOrientTemplateObjectsToMaster(self.m)
+    
     return True
 
+def doOrientTemplateObjectsToMaster(self):
+    log.info(">>> %s.doOrientTemplateObjectsToMaster >> "%self.p_nameShort + "="*75)            	
+    i_rootOrient = self.templateNull.orientRootHelper
+    for i_obj in self.templateNull.controlObjects:
+	#orient the group above
+	Snap.go(i_obj.parent,i_obj.helper.mNode,move=False,orient=True)
+    
 #@r9General.Timer
 def doCreateOrientationHelpers(self):
     """ 
