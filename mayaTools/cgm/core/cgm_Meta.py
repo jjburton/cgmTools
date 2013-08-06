@@ -3221,6 +3221,20 @@ class cgmAttr(object):
         target(string) - object or attribute to connect to
         *a, **kw
         """ 
+	try:
+	    d_target = validateAttrArg(target,noneValid=True)
+	    mPlug_target = d_target['mi_plug']
+	    if d_target:
+		attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
+		log.info(">>> %s.doConnectOut --->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
+	    else:
+		log.warning(">>> %s.doConnectOut >> target failed to validate: %s"%(self.p_combinedShortName,target) + "="*75)            			    
+		return False
+	except StandardError,error:
+	    log.warning(">>> %s.doConnectOut >> target failed to validate: %s"%(self.p_combinedShortName,target) + "="*75)            			    
+	    raise StandardError,">>> %s.doConnectOut >> FAILED: %s"%(self.p_combinedShortName,error)
+	
+	"""
         assert mc.objExists(target),"'%s' doesn't exist"%target
         
         if '.' in target:           
@@ -3240,7 +3254,7 @@ class cgmAttr(object):
                     log.warning("'%s' failed to connect to '%s'!"%(self.p_combinedName,target))
             else:
                 print "Target object doesn't have this particular attribute"
-
+		"""
  
                 
     def doConnectIn(self,source,childIndex = False,*a, **kw):
@@ -3251,6 +3265,20 @@ class cgmAttr(object):
         source(string) - object or attribute to connect to
         *a, **kw
         """ 
+	try:
+	    d_source = validateAttrArg(source,noneValid=True)
+	    mPlug_source = d_source['mi_plug']
+	    if d_source:
+		attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
+		log.info(">>> %s.doConnectIn <<---  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            				
+	    else:
+		log.warning(">>> %s.doConnectIn >> source failed to validate: %s"%(self.p_combinedShortName,source) + "="*75)            			    
+		return False
+	except StandardError,error:
+	    log.warning(">>> %s.doConnectIn >> source failed to validate: %s"%(self.p_combinedShortName,source) + "="*75)            			    
+	    raise StandardError,">>> %s.doConnectIn >> FAILED: %s"%(self.p_combinedShortName,error)
+	
+	"""
         assert mc.objExists(source),"'%s' doesn't exist"%source
                
         if '.' in source:           
@@ -3270,6 +3298,7 @@ class cgmAttr(object):
                     log.warning("'%s' failed to connect to '%s'!"%(source,self.p_combinedName))
             else:
                 print "Source object doesn't have this particular attribute"
+	"""
                 
     def doCopyTo(self,target, targetAttrName = None, *a,**kw):
         """                                     
@@ -3911,6 +3940,27 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    return False
 	raise StandardError,error
     
+#@cgmGeneral.Timer    
+def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
+    try:
+	log.info(">>> validateAttrListArg >> " + "="*75)            	
+	if type(l_args) not in [list,tuple]:l_args = [l_args]
+	l_mPlugs = []
+	l_combined = []
+	l_raw = []
+	for arg in l_args:
+	    buffer = validateAttrArg(arg,defaultType,noneValid,**kws)
+	    if buffer and buffer['combined'] not in l_combined:
+		l_mPlugs.append(buffer['mi_plug'])
+		l_combined.append(buffer['combined'])
+		l_raw.append(buffer)
+	    else:
+		log.warning("validateAttrListArg>> Failed to validate: %s"%arg)		
+	log.info("validateAttrListArg>> validated: %s"%l_combined)
+	return {'ml_plugs':l_mPlugs,'combined':l_combined,'raw':l_raw}
+    except StandardError,error:
+	log.error("validateAttrListArg>>Failure! l_args: %s | defaultType: %s"%(l_args,defaultType))
+	raise StandardError,error    
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================    
