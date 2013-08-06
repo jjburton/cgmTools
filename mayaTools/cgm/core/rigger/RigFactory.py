@@ -271,6 +271,7 @@ class go(object):
 	
     def _set_versionToCurrent(self):
 	self._i_rigNull.version = str(self._buildVersion)	
+	
     #>> Connections
     #=====================================================================
     def connect_toRigGutsVis(self, ml_objects,vis = True):
@@ -292,7 +293,21 @@ class go(object):
 	except StandardError,error:
 	    raise StandardError,"%s.connect_restoreJointLists >> Failure: %s"%(self._strShortName,error)
     
-	    
+    #>> Attributes
+    #=====================================================================
+    def _verify_moduleMasterScale(self):
+	log.info(">>> %s._verify_compoundScale >> "%self._strShortName + "="*75)            	
+	mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
+	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
+	
+    def _get_masterScalePlug(self):
+	log.info(">>> %s._get_masterScalePlug >> "%self._strShortName + "="*75)
+	if self._i_rigNull.hasAttr('masterScale'):
+	    return cgmMeta.cgmAttr(self._i_rigNull,'masterScale')
+	return cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	
+			    
     #>>> Joint chains
     #=====================================================================    
     def build_rigChain(self):
@@ -330,7 +345,7 @@ class go(object):
 	    ml_handleChain = []
 	    
 	    for i,i_handle in enumerate(ml_handleJoints):
-		i_new = i_handle.doDuplicate()
+		i_new = i_handle.doDuplicate(breakMessagePlugsOut = True)
 		if ml_handleChain:#if we have data, parent to last
 		    i_new.parent = ml_handleChain[-1]
 		else:i_new.parent = False
@@ -399,7 +414,7 @@ class go(object):
 	    
 	    ml_newChain = []
 	    for i2,j in enumerate(buffer_segmentTargets):
-		i_j = j.doDuplicate()
+		i_j = j.doDuplicate(breakMessagePlugsOut = True)
 		i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
 		i_j.doName()
 		if ml_newChain:
