@@ -135,13 +135,12 @@ def build_rigSkeleton(self):
     try:
 	#>>Rig chain  
 	#=====================================================================	
-	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
+	#l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
 	ml_rigJoints = []
-	for i,j in enumerate(l_rigJoints):
-	    i_j = cgmMeta.cgmObject(j)
+	for i,j in enumerate(self._ml_skinJoints):
+	    i_j = j.doDuplicate(breakMessagePlugsOut = True)
 	    i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
 	    i_j.doName()
-	    l_rigJoints[i] = i_j.mNode
 	    ml_rigJoints.append(i_j)
 	ml_rigJoints[0].parent = False
 	
@@ -156,7 +155,7 @@ def build_rigSkeleton(self):
 	for i,i_ctrl in enumerate(self._i_templateNull.controlObjects):
 	    if not i_ctrl.getMessage('handleJoint'):
 		raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
-	    i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
+	    i_new = cgmMeta.cgmObject((i_ctrl.getMessage('handleJoint')[0])).doDuplicate(breakMessagePlugsOut = True)
 	    i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
 	    i_new.doName()
 	    if ml_fkJoints:#if we have data, parent to last

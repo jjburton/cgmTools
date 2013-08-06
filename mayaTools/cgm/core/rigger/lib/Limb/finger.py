@@ -413,7 +413,6 @@ def build_rigSkeleton(self):
     ml_jointsToConnect = []
     ml_jointsToConnect.extend(ml_rigJoints)    
     ml_jointsToConnect.extend(ml_ikJoints)
-    ml_jointsToConnect.extend(ml_blendJoints)       
     ##ml_jointsToConnect.extend(ml_anchors)  
     #for ml_chain in ml_segmentChains + ml_influenceChains:
 	#ml_jointsToConnect.extend(ml_chain)
@@ -784,7 +783,13 @@ def build_FKIK(self):
     
     #=============================================================  
     try:#>>>IK No Flip Chain
-	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	self._verify_moduleMasterScale()
+	mPlug_masterScale = self._get_masterScalePlug()
+	
+	#mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
+	#mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	#mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
+	
 	ml_ikNoFlipJoints = ml_ikJoints#Link
 	if self._partType == 'finger':
 	    mi_ikStart = ml_ikNoFlipJoints[1]
@@ -812,7 +817,7 @@ def build_FKIK(self):
 	#Create no flip finger IK
 	d_ankleNoFlipReturn = rUtils.IKHandle_create(mi_ikStart.mNode,mi_ikEnd.mNode,lockMid=False,
 	                                             nameSuffix = 'noFlip',rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
-	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
+	                                             globalScaleAttr=mPlug_masterScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
 	
 	mi_fingerIKHandleNF = d_ankleNoFlipReturn['mi_handle']
 	ml_distHandlesNF = d_ankleNoFlipReturn['ml_distHandles']
@@ -859,11 +864,8 @@ def build_FKIK(self):
     #=============================================================   
     try:#>>>Constrain IK Finger
 	#Create hand IK
-	#ml_ikJoints[-2].parent = False
 	mc.orientConstraint(mi_controlIK.mNode,mi_ikEnd.mNode, maintainOffset = True)
-	#mc.pointConstraint(mi_controlIK.mNode,ml_ikJoints[-2].mNode, maintainOffset = True)
 
-	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
     
@@ -876,7 +878,9 @@ def build_FKIK(self):
 	                                     driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])
 	
 	#>>> Settings - constrain
-	mc.parentConstraint(ml_blendJoints[0].mNode, mi_settings.masterGroup.mNode, maintainOffset = True)
+	ml_blendJoints[0].parent = mi_settings.masterGroup.mNode
+	#mc.pointConstraint(ml_blendJoints[0].mNode, mi_settings.masterGroup.mNode, maintainOffset = True)
+	#mc.orientConstraint(ml_blendJoints[0].mNode, mi_settings.masterGroup.mNode, maintainOffset = True)
 	
 	#>>> Setup a vis blend result
 	mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=False)	
@@ -1430,9 +1434,10 @@ def build_rig(self):
 	4)world
 	"""
 	if mi_moduleParent:
+	    mi_blendEndJoint = mi_moduleParent.rigNull.blendJoints[-1]	    
 	    mi_parentRigNull = mi_moduleParent.rigNull
-	    if mi_parentRigNull.getMessage('skinJoints'):
-		ml_fingerDynParents.append( mi_parentRigNull.skinJoints[-1])	
+	    if mi_parentRigNull.getMessage('moduleJoints'):
+		ml_fingerDynParents.append( mi_parentRigNull.moduleJoints[-1])	
 		
 	ml_fingerDynParents.append( ml_controlsFK[0])	
 		
@@ -1483,59 +1488,46 @@ def build_rig(self):
 	orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
      
-    """   
-    #Setup hand Scaling
-    #====================================================================================
-    ml_fkJoints = self._i_rigNull.fkJoints
-    ml_ikJoints = self._i_rigNull.ikJoints
-    ml_ikPVJoints = self._i_rigNull.ikPVJoints
-    ml_ikNoFlipJoints = self._i_rigNull.ikNoFlipJoints
+    #Setup finger scaling
+    #==================================================================================== 
+    #Parent deform Null to last blend parent
+    if mi_moduleParent:
+	mi_blendEndJoint = mi_moduleParent.rigNull.blendJoints[-1]
+	mi_parentBlendPlug = cgmMeta.cgmAttr(mi_blendEndJoint,'scale')
+	self._i_deformNull.parent = mi_blendEndJoint.mNode
     
-    #Ik Scale Object
-    mi_controlIK.scalePivotY = 0
-    vBuffer = mc.xform(mi_controlIK.mNode,q=True,sp=True,ws=True)	    
-    mc.xform(mi_controlIK.mNode,sp=(vBuffer[0],0,vBuffer[2]),ws=True)
-    for obj in ml_ikJoints[-3:-1]:
-	cgmMeta.cgmAttr(mi_controlIK,'scale').doConnectOut("%s.scale"%obj.mNode)
-    for attr in ['x','z']:
-	cgmMeta.cgmAttr(mi_controlIK,'sy').doConnectOut("%s.s%s"%(mi_controlIK.mNode,attr))
+	#connect blend joint scale to the finger blend joints
+	for i_jnt in ml_blendJoints:
+	    mi_parentBlendPlug.doConnectOut("%s.scale"%i_jnt.mNode)
+	    
+	#intercept world scale on finger IK and add in the blend wrist scale
+	mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
+	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
+	NodeF.argsToNodes("%s = %s * %s.sy"%(mPlug_moduleMasterScale.p_combinedShortName,
+	                                     mPlug_globalScale.p_combinedShortName,
+	                                     mi_blendEndJoint.p_nameShort)).doBuild()
     
-    attributes.doSetLockHideKeyableAttr(mi_controlIK.mNode,lock=True,visible=False,keyable=False,channels=['sz','sx'])    
-    mPlug_ikHandScale = cgmMeta.cgmAttr(mi_controlIK,'sy')
-    mPlug_ikHandScale.p_nameAlias = 'ikScale'
-    mPlug_ikHandScale.p_keyable = True
-
-    #FK Scale
-    attributes.doSetLockHideKeyableAttr(ml_controlsFK[-2].mNode,lock=False,visible=True,keyable=True,channels=['s%s'%orientation[0]])
-    for attr in orientation[1:]:
-	cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0]).doConnectOut("%s.s%s"%(ml_controlsFK[-2].mNode,attr))
-	
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.scale"%ml_controlsFK[-1].mNode)
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.inverseScale"%ml_controlsFK[-1].mNode)
-    
-    mPlug_fkHandScale = cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0])
-    mPlug_fkHandScale.p_nameAlias = 'fkScale'
-    mPlug_fkHandScale.p_keyable = True
-    
-    #Blend the two
-    mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK')
-    rUtils.connectBlendJointChain(ml_fkJoints[-2:],ml_ikJoints[-3:-1],ml_blendJoints[-2:],
-                                  driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
-    """
     #Vis Network, lock and hide
     #====================================================================================
     #Segment handles need to lock
     for ml_chain in ml_segmentHandleChains:
 	for i_obj in ml_chain:
 	    attributes.doSetLockHideKeyableAttr(i_obj.mNode,lock=True, visible=False, keyable=False, channels=['s%s'%orientation[1],'s%s'%orientation[2]])
-    #
+	    
     attributes.doSetLockHideKeyableAttr(mi_settings.mNode,lock=True, visible=False, keyable=False)
+    
+    try:#Set up some defaults
+	#====================================================================================
+	mPlug_autoStretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch')
+	mPlug_autoStretch.p_defaultValue = 1.0
+	mPlug_autoStretch.value =  1
+   
+    except StandardError,error:
+	raise StandardError,"%s.build_rig >> failed to setup defaults | %s"%(self._strShortName,error)	     
      
     #Final stuff
-    log.error("FIX ARM SKIN JOINTS AND WHAT NOT")
-    mc.parentConstraint('l_wrist_jnt', self._i_constrainNull.mNode,maintainOffset = True)
-    #mc.parentConstraint(mi_moduleParent.rigNull.skinJoints[-1].mNode, self._i_constrainNull.mNode,maintainOffset = True)
-    self._i_rigNull.version = str(__version__)
+    self._set_versionToCurrent()
     return True 
 
 
@@ -1588,7 +1580,6 @@ def build_matchSystem(self):
     i_ikMatch.addDynIterTarget(drivenObject =ml_ikToDo[1],#seg 1
                                matchObject = ml_blendToDo[1],
                                drivenAttr= 't%s'%self._jointOrientation[0],
-                               matchAttr = 't%s'%self._jointOrientation[0],
                                minValue=0.001,
                                maxValue=30,
                                maxIter=15,
@@ -1596,7 +1587,6 @@ def build_matchSystem(self):
     i_ikMatch.addDynIterTarget(drivenObject =ml_ikToDo[2],#seg2
                                matchObject= ml_blendToDo[2],#Make a new one
                                drivenAttr='t%s'%self._jointOrientation[0],
-                               matchAttr = 't%s'%self._jointOrientation[0],
                                minValue=0.001,
                                maxValue=30,
                                maxIter=15,
@@ -1605,7 +1595,6 @@ def build_matchSystem(self):
     i_ikMatch.addDynIterTarget(drivenObject =ml_ikToDo[3],#seg2
                                matchObject= ml_blendToDo[3],#Make a new one
                                drivenAttr='t%s'%self._jointOrientation[0],
-                               matchAttr = 't%s'%self._jointOrientation[0],
                                minValue=0.001,
                                maxValue=30,
                                maxIter=15,
@@ -1631,7 +1620,6 @@ def build_matchSystem(self):
     i_fk_match1.addDynIterTarget(drivenObject =ml_fkToDo[1],
                                  matchObject = ml_blendToDo[1],
                                  drivenAttr='t%s'%self._jointOrientation[0],
-                                 matchAttr = 't%s'%self._jointOrientation[0],
                                  minValue=0.001,
                                  maxValue=30,
                                  maxIter=15,
@@ -1643,7 +1631,6 @@ def build_matchSystem(self):
     i_fk_match2.addDynIterTarget(drivenObject =ml_fkToDo[2],
                                  matchObject = ml_blendToDo[2],                                   
                                  drivenAttr='t%s'%self._jointOrientation[0],
-                                 matchAttr = 't%s'%self._jointOrientation[0],
                                  minValue=0.001,
                                  maxValue=30,
                                  maxIter=15,

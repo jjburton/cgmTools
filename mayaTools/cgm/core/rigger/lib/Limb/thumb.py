@@ -404,7 +404,6 @@ def build_rigSkeleton(self):
     ml_jointsToConnect = []
     ml_jointsToConnect.extend(ml_rigJoints)    
     ml_jointsToConnect.extend(ml_ikJoints)
-    ml_jointsToConnect.extend(ml_blendJoints)       
     ##ml_jointsToConnect.extend(ml_anchors)  
     #for ml_chain in ml_segmentChains + ml_influenceChains:
 	#ml_jointsToConnect.extend(ml_chain)
@@ -848,7 +847,8 @@ def build_FKIK(self):
 	                                     driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])
 	
 	#>>> Settings - constrain
-	mc.parentConstraint(ml_blendJoints[0].mNode, mi_settings.masterGroup.mNode, maintainOffset = True)
+	ml_blendJoints[0].parent = mi_settings.masterGroup.mNode	
+	#mc.parentConstraint(ml_blendJoints[0].mNode, mi_settings.masterGroup.mNode, maintainOffset = True)
 	
 	#>>> Setup a vis blend result
 	mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=False)	
@@ -1403,8 +1403,8 @@ def build_rig(self):
 	"""
 	if mi_moduleParent:
 	    mi_parentRigNull = mi_moduleParent.rigNull
-	    if mi_parentRigNull.getMessage('skinJoints'):
-		ml_fingerDynParents.append( mi_parentRigNull.skinJoints[-1])	
+	    if mi_parentRigNull.getMessage('moduleJoints'):
+		ml_fingerDynParents.append( mi_parentRigNull.moduleJoints[-1])	
 		
 	ml_fingerDynParents.append( ml_controlsFK[0])	
 		
@@ -1455,45 +1455,6 @@ def build_rig(self):
 	orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
      
-    """   
-    #Setup hand Scaling
-    #====================================================================================
-    ml_fkJoints = self._i_rigNull.fkJoints
-    ml_ikJoints = self._i_rigNull.ikJoints
-    ml_ikPVJoints = self._i_rigNull.ikPVJoints
-    ml_ikNoFlipJoints = self._i_rigNull.ikNoFlipJoints
-    
-    #Ik Scale Object
-    mi_controlIK.scalePivotY = 0
-    vBuffer = mc.xform(mi_controlIK.mNode,q=True,sp=True,ws=True)	    
-    mc.xform(mi_controlIK.mNode,sp=(vBuffer[0],0,vBuffer[2]),ws=True)
-    for obj in ml_ikJoints[-3:-1]:
-	cgmMeta.cgmAttr(mi_controlIK,'scale').doConnectOut("%s.scale"%obj.mNode)
-    for attr in ['x','z']:
-	cgmMeta.cgmAttr(mi_controlIK,'sy').doConnectOut("%s.s%s"%(mi_controlIK.mNode,attr))
-    
-    attributes.doSetLockHideKeyableAttr(mi_controlIK.mNode,lock=True,visible=False,keyable=False,channels=['sz','sx'])    
-    mPlug_ikHandScale = cgmMeta.cgmAttr(mi_controlIK,'sy')
-    mPlug_ikHandScale.p_nameAlias = 'ikScale'
-    mPlug_ikHandScale.p_keyable = True
-
-    #FK Scale
-    attributes.doSetLockHideKeyableAttr(ml_controlsFK[-2].mNode,lock=False,visible=True,keyable=True,channels=['s%s'%orientation[0]])
-    for attr in orientation[1:]:
-	cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0]).doConnectOut("%s.s%s"%(ml_controlsFK[-2].mNode,attr))
-	
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.scale"%ml_controlsFK[-1].mNode)
-    cgmMeta.cgmAttr(ml_controlsFK[-2],'scale').doConnectOut("%s.inverseScale"%ml_controlsFK[-1].mNode)
-    
-    mPlug_fkHandScale = cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0])
-    mPlug_fkHandScale.p_nameAlias = 'fkScale'
-    mPlug_fkHandScale.p_keyable = True
-    
-    #Blend the two
-    mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK')
-    rUtils.connectBlendJointChain(ml_fkJoints[-2:],ml_ikJoints[-3:-1],ml_blendJoints[-2:],
-                                  driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
-    """
     #Vis Network, lock and hide
     #====================================================================================
     #Segment handles need to lock

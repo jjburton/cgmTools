@@ -163,7 +163,7 @@ def __bindSkeletonSetup__(self):
 	    if i_jnt.hasAttr('d_jointFlags') and i_jnt.getAttr('cgmName') not in ['ball']:
 		if i_jnt.d_jointFlags.get('isHandle'):
 		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
-		    i_dupJnt = i_jnt.doDuplicate()#Duplicate
+		    i_dupJnt = i_jnt.doDuplicate(breakMessagePlugsOut = True)#Duplicate
 		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
 		    i_jnt.doName()#Rename
 		    i_dupJnt.doName()#Rename
@@ -227,7 +227,7 @@ def build_rigSkeleton(self):
     self._i_rigNull.connectChildNode(i_ballJointPivot,"pivot_ballJoint","rigNull")
     
     #Ball wiggle pivot
-    i_ballWigglePivot = i_ballJointPivot.doDuplicate(True)#dup ball in place
+    i_ballWigglePivot = i_ballJointPivot.doDuplicate(True,breakMessagePlugsOut = True)#dup ball in place
     i_ballWigglePivot.parent = False
     i_ballWigglePivot.cgmName = 'ballWiggle'
     i_ballWigglePivot.doName()
@@ -311,7 +311,7 @@ def build_rigSkeleton(self):
 	    ml_ikNoFlipJoints.append(i_new)	
 	
 	#Do the toe
-	i_toeJoint = ml_ikJoints[-1].doDuplicate()
+	i_toeJoint = ml_ikJoints[-1].doDuplicate(breakMessagePlugsOut = True)
 	Snap.go(i_toeJoint, mi_toePivot.mNode,True,False)
 	joints.doCopyJointOrient(ml_ikJoints[-1].mNode,i_toeJoint.mNode)
 	i_toeJoint.addAttr('cgmName','toe',attrType='string',lock=True)	
@@ -1612,11 +1612,11 @@ def build_twistDriver_hip(self):
 	#Create joints
 	#i_startAim = self.duplicate_moduleJoint(0,'startAim')
 	#i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
-	i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+	i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startRoot.addAttr('cgmName',self._partName)	
 	i_startRoot.addAttr('cgmTypeModifier','twistDriver')
 	i_startRoot.doName()
-	i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+	i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
 	i_startEnd.doName()    
 	
@@ -1727,11 +1727,11 @@ def build_twistDriver_ankle(self):
 	#Create joints
 	#i_startAim = self.duplicate_moduleJoint(0,'startAim')
 	#i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
-	i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False)
+	i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startRoot.addAttr('cgmName',str_baseName)
 	i_startRoot.addAttr('cgmTypeModifier','twistDriver')
 	i_startRoot.doName()
-	i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False)
+	i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
 	i_startEnd.doName()    
 	

@@ -103,7 +103,7 @@ def __bindSkeletonSetup__(self):
 	    if i_jnt.hasAttr('d_jointFlags'):
 		if i_jnt.d_jointFlags.get('isHandle'):
 		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
-		    i_dupJnt = i_jnt.doDuplicate()#Duplicate
+		    i_dupJnt = i_jnt.doDuplicate(breakMessagePlugsOut = True)#Duplicate
 		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
 		    i_jnt.doName()#Rename
 		    i_dupJnt.doName()#Rename
@@ -1472,7 +1472,8 @@ def build_rig(self):
 	pntConstBuffer = mc.pointConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
 	if i_jnt.hasAttr('scaleJoint') and i_jnt.cgmName != 'wrist':
-	    try:mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
+	    try:attributes.doConnectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))
+		#mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
 	    except:log.warning("Failed to connect: %s >> %s"%(attachJoint,i_jnt.getMessage('scaleJoint')[0]))
 	else:
 	    mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
@@ -1581,7 +1582,7 @@ def build_twistDriver_shoulder(self):
 	raise StandardError,"%s.build_twistDriver_shoulder >> failed to setup start attr | %s"%(self._strShortName,error)	
     try:
 	mi_parentRigNull = self._i_module.moduleParent.rigNull
-	i_target = mi_parentRigNull.moduleJoints[-1]	
+	i_target = mi_parentRigNull.moduleJoints[0]	
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_shoulder >> failed to find target | %s"%(self._strShortName,error)	
     
@@ -1594,11 +1595,11 @@ def build_twistDriver_shoulder(self):
 	#Create joints
 	#i_startAim = self.duplicate_moduleJoint(0,'startAim')
 	#i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
-	i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+	i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startRoot.addAttr('cgmName',self._partName)	
 	i_startRoot.addAttr('cgmTypeModifier','twistDriver')
 	i_startRoot.doName()
-	i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+	i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
 	i_startEnd.doName()    
 	
@@ -1631,7 +1632,7 @@ def build_twistDriver_shoulder(self):
 	i_upLoc.parent = i_rotGroup.mNode
 	
 	i_rotGroup.parent = self._i_constrainNull.mNode
-		
+	mc.parentConstraint(i_target.mNode,i_upLoc.mNode,maintainOffset = True)
 	NodeF.argsToNodes("%s.ry = -%s.ry + %s.ry"%(i_rotGroup.p_nameShort,
 	                                            self._i_constrainNull.p_nameShort,
 	                                            ml_blendJoints[0].p_nameShort)).doBuild()	
@@ -1712,11 +1713,11 @@ def build_twistDriver_wrist(self):
 	    raise StandardError,"%s.build_twistDriver_wrist >> target not wrist? | %s"%(self._strShortName,i_blendWrist.p_nameShort)	
 	
 	#Create joints
-	i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False)
+	i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startRoot.addAttr('cgmName',self._partName)	
 	i_startRoot.addAttr('cgmTypeModifier','endtwistDriver')
 	i_startRoot.doName()
-	i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False)
+	i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
 	i_startEnd.addAttr('cgmTypeModifier','endtwistDriverEnd')
 	i_startEnd.doName()    
 	
@@ -1750,12 +1751,13 @@ def build_twistDriver_wrist(self):
 	ml_twistObjects.append(i_rotGroup)
 	i_upLoc.parent = i_rotGroup.mNode
 	
+	"""
 	NodeF.argsToNodes("%s.ry = -%s.ry"%(i_rotGroup.p_nameShort,
 	                                    mi_controlIK.p_nameShort)).doBuild()	
 	NodeF.argsToNodes("%s.rx = -%s.rx"%(i_rotGroup.p_nameShort,
-	                                    mi_controlIK.p_nameShort)).doBuild()	
-	i_rotGroup.parent = mi_controlIK.mNode
-	
+	                                    mi_controlIK.p_nameShort)).doBuild()	"""
+	i_rotGroup.parent = i_blendWrist.mNode
+	mc.orientConstraint(mi_controlIK.mNode,i_rotGroup.mNode,skip = ["%s"%r for r in self._jointOrientation[1:]])
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_wrist >> failed to create stable rotate group: %s"%(self._strShortName,error)
     
