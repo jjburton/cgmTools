@@ -11,7 +11,6 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-#from Red9.core import Red9_General as r9General
 from Red9.core import Red9_CoreUtils as r9Core
 from Red9.core import Red9_AnimationUtils as r9Anim
 
@@ -22,7 +21,6 @@ from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import RigFactory as mRig
 from cgm.lib import (modules,curves,distance,attributes)
 from cgm.lib.ml import ml_resetChannels
-reload(jFactory)
 
 reload(attributes)
 from cgm.core.lib import nameTools
@@ -358,12 +356,13 @@ def isRigged(self):
         log.debug("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
 	i_rigNull.version = ''#clear the version	
         return False
-    """
+    
+    #Not a fan of this test
     if not i_rigNull.rigJoints[0].getConstraintsTo():
-	return False"""
+	return False
         
-    if len( l_skinJoints ) != len( l_rigJoints ):
-        log.debug("moduleFactory.isRigged('%s')>>>> %s != %s. Joint lengths don't match"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
+    if len( l_skinJoints ) < len( l_rigJoints ):
+        log.warning("moduleFactory.isRigged('%s')>>>> %s != %s. Not enough rig joints"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
 	i_rigNull.version = ''#clear the version        
         return False
     
