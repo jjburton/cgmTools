@@ -47,7 +47,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckhead','leg','clavicle']
+l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb']
 
 #>>> Register rig functions
 #=====================================================================
@@ -65,7 +65,7 @@ for module in d_moduleTypeToBuildModule.keys():
 #>>> Main class function
 #=====================================================================
 class go(object):
-    def __init__(self,moduleInstance,forceNew = True,**kws): 
+    def __init__(self,moduleInstance,forceNew = True,noAutobuild = False, **kws): 
         """
         To do:
         Add rotation order settting
@@ -208,7 +208,7 @@ class go(object):
         #Make our stuff
 	self._md_controlShapes = {}
 	if self._partType in l_modulesDone:
-	    if self._outOfDate:
+	    if self._outOfDate and not noAutobuild:
 		self.build(self,**kws)
 	    else:
 		log.info("'%s' Up to date. No force."%self._strShortName)
