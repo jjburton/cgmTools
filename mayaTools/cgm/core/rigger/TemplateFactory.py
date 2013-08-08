@@ -19,6 +19,8 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import SnapFactory as Snap
+from cgm.core.classes import GuiFactory as gui
+
 from cgm.lib import (modules,
                      cgmMath,
                      curves,
@@ -132,27 +134,39 @@ class go(object):
 	try: verify_moduleTemplateToggles(self)
 	except StandardError,error:
 	    raise StandardError,"init.verify_moduleTemplateToggles>> fail: %s"%error	
+	
+	self.l_strSteps = ['Start','template objects','curve','root control','helpers']
+	self.str_progressBar = gui.doStartMayaProgressBar(len(self.l_strSteps))
         
-        if self.m.mClass == 'cgmLimb':
-            log.debug("mode: cgmLimb Template")
-            doMakeLimbTemplate(self)
-	    
-	    if 'ball' in self.l_coreNames and 'ankle' in self.l_coreNames:
-		doCastPivots(self._i_module)
+        try:
+	    if self.m.mClass == 'cgmLimb':
+		log.debug("mode: cgmLimb Template")
+		mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[0]), progress=0)    					    
+		doMakeLimbTemplate(self)
 		
-            doTagChildren(self)
-	    
-        else:
-            raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
-        
+		if 'ball' in self.l_coreNames and 'ankle' in self.l_coreNames:
+		    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,'Cast Pivots'), progress=1)    					    		    
+		    doCastPivots(self._i_module)
+		    
+		doTagChildren(self)
+		
+	    else:
+		raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
+
+	    #>>> store template settings
+	    if loadTemplatePose:self.m.loadTemplatePose()	
+
+	except StandardError,error:
+	    raise StandardError,"%s.go >> build failed! | %s"%(self._strShortName,error)
+	
+	gui.doEndMayaProgressBar(self.str_progressBar)#Close out this progress bar   	    
         """
 	self._i_templateNull.overrideEnabled = 1		
 	cgmMeta.cgmAttr(self._i_masterSettings.mNode,'templateVis',lock=False).doConnectOut("%s.%s"%(self._i_templateNull.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_masterSettings.mNode,'templateLock',lock=False).doConnectOut("%s.%s"%(self._i_templateNull.mNode,'overrideDisplayType'))    
 	"""
         
-        #>>> store template settings
-        if loadTemplatePose:self.m.loadTemplatePose()
+
 		
 #@r9General.Timer
 def verify_moduleTemplateToggles(goInstance):
@@ -358,6 +372,8 @@ def doMakeLimbTemplate(self):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Making the template objects
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[1]), progress=1)    					    
+    
     templHandleList = []
     self.i_controlObjects = []
     self.i_locs = []
@@ -406,7 +422,8 @@ def doMakeLimbTemplate(self):
         self.i_controlObjects.append(i_obj)
         
     #>> Make the curve
-    #=============================     
+    #============================= 
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[2]), progress=2)    					        
     i_crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
     i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
     
@@ -429,6 +446,8 @@ def doMakeLimbTemplate(self):
     
     #>> Create root control
     #=============================  
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[3]), progress=3)    					        
+    
     rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0],True)*1.25)    
     i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
     i_rootControl.addAttr('mClass','cgmObject',lock=True)
@@ -475,6 +494,7 @@ def doMakeLimbTemplate(self):
 
     #>> Orientation helpers
     #=============================      
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[3]), progress=3)    					            
     """ Make our Orientation Helpers """
     doCreateOrientationHelpers(self)
     doParentControlObjects(self.m)

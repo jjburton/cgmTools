@@ -19,6 +19,7 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
+from cgm.core.classes import GuiFactory as gui
 
 from cgm.lib import (cgmMath,
                      joints,
@@ -134,16 +135,27 @@ class go(object):
         log.info("hasJointSetup: %s"%hasJointSetup(self))
 	if not hasJointSetup(self):
 	    raise StandardError, "Need to add to build dict"
-        if self._i_module.mClass == 'cgmLimb':
-            log.debug("mode: cgmLimb Skeletonize")
-            doSkeletonize(self)
-	    self.build(self)
-	    #Only going to tag our handleJoints at the very end because of message connection duplication
-	    for i_obj in self.i_controlObjects:
-		i_obj.connectChildNode(self._d_handleToHandleJoints[i_obj],'handleJoint')	    
-        else:
-            raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self._i_module.mClass
-
+	
+	#Skeletonize
+	self.str_progressBar = gui.doStartMayaProgressBar(4)
+	try:
+	    if self._i_module.mClass == 'cgmLimb':
+		log.debug("mode: cgmLimb Skeletonize")
+		mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Skeletonize'), progress=0)    		
+		doSkeletonize(self)
+		
+		mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Special Joints'), progress=4)    				
+		self.build(self)
+		#Only going to tag our handleJoints at the very end because of message connection duplication
+		for i_obj in self.i_controlObjects:
+		    i_obj.connectChildNode(self._d_handleToHandleJoints[i_obj],'handleJoint')	    
+	    else:
+		raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self._i_module.mClass
+	except StandardError,error:
+	    
+	    raise StandardError,"%s.go >> build failed! | %s"%(self._strShortName,error)
+	gui.doEndMayaProgressBar(self.str_progressBar)#Close out this progress bar        
+	
 def hasJointSetup(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a JointFactory.go instance: '%s'"%goInstance)
@@ -222,6 +234,7 @@ def doSkeletonize(self):
             
     #>>> Make if our segment only has one handle
     #==========================================	
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Parent Check...'), progress=1)    				    
     self.b_parentStole = False
     if len(self.i_controlObjects) == 1:
         if i_parentJointToUse:
@@ -241,7 +254,8 @@ def doSkeletonize(self):
 	    self.b_parentStole = True
             
         #>>> Make the limb segment
-        #==========================	 
+        #==========================	
+	mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Making segment joints...'), progress=1)    				    	
         l_spanUPositions = []
         #>>> Divide stuff
         for i_obj in self.i_controlObjects:#These are our base span u positions on the curve
@@ -293,6 +307,7 @@ def doSkeletonize(self):
     copy over a cgmNameModifier tag from the module first
     """
     #attributes.copyUserAttrs(moduleNull,l_limbJoints[0],attrsToCopy=['cgmNameModifier'])
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Naming...'), progress=2)    				    
     
     #>>>First we need to find our matches
     log.debug("Finding matches from module controlObjects")
@@ -330,6 +345,7 @@ def doSkeletonize(self):
     
     #>>> Orientation    
     #=============== 
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Orienting...'), progress=3)    				        
     try:
 	if not doOrientSegment(self):
 	    raise StandardError, "Orient failed"
