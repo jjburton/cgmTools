@@ -734,6 +734,7 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
                     beginProgress=True,
                     isInterruptable=interruptableState,
                     status=statusMessage,
+                    minValue = 0,
                     maxValue= stepMaxValue )
     return mayaMainProgressBar
 
