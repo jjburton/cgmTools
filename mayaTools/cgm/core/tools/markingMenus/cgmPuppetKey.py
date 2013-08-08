@@ -271,11 +271,10 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			elif attrs:
 			    log.debug(attrs)
 			    for a in attrs:
-				if a not in l_commonAttrs:
-				    l_commonAttrs.remove(a)
-				for option in d_commonOptions[a]:			
-				    if option not in attrOptions[a]:
-					d_commonOptions[a].remove(option)
+				if a  in l_commonAttrs:
+				    for option in d_commonOptions[a]:			
+					if option not in attrOptions[a]:
+					    d_commonOptions[a].remove(option)
 				    
 				
 	    log.debug("Common Attrs: %s"%l_commonAttrs)
