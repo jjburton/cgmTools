@@ -19,6 +19,7 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
+from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
@@ -65,7 +66,7 @@ for module in d_moduleTypeToBuildModule.keys():
 #>>> Main class function
 #=====================================================================
 class go(object):
-    def __init__(self,moduleInstance,forceNew = True,noAutobuild = False, **kws): 
+    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, **kws): 
         """
         To do:
         Add rotation order settting
@@ -208,12 +209,40 @@ class go(object):
         #Make our stuff
 	self._md_controlShapes = {}
 	if self._partType in l_modulesDone:
-	    if self._outOfDate and not noAutobuild:
-		self.build(self,**kws)
+	    if self._outOfDate and autoBuild:
+		self.doBuild(**kws)
 	    else:
-		log.info("'%s' Up to date. No force."%self._strShortName)
+		log.info("'%s' Up to date. No autobuild."%self._strShortName)
 	else:
 	    log.warning("'%s' module type not in done list. No auto build"%self.buildModule.__name__)
+    
+    @cgmGeneral.Timer
+    def doBuild(self,buildTo = '',**kws):
+	"""
+	Return if a module is shaped or not
+	"""
+	d_build = self.buildModule.__d_buildOrder__
+	int_keys = d_build.keys()
+	
+	#Build our progress Bar
+	mayaMainProgressBar = gui.doStartMayaProgressBar(len(int_keys))
+	#mc.progressBar(mayaMainProgressBar, edit=True, progress=0) 
+	for k in int_keys:
+	    try:
+		str_name = d_build[k].get('name') or 'noName'
+		func_current = d_build[k].get('function')
+    
+		mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k)    
+		func_current(self)
+    
+		if buildTo.lower() == str_name:
+		    log.info("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
+		    break
+	    except StandardError,error:
+		raise StandardError,"%s.doBuild >> Step %s failed! | %s"%(self._strShortName,str_name,error)
+	    
+	gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        
+	
 	    
     def isShaped(self):
 	"""
@@ -540,12 +569,18 @@ def isBuildable(goInstance):
     except:
 	log.error("%s.isBuildable>>> Missing joint attr list in module"%(self._strShortName))	
 	return False
-    try:#Joints list
-	self.build = d_moduleTypeToBuildModule[self._partType].__build__
+    try:#Build Module
+	#self.build = d_moduleTypeToBuildModule[self._partType].__build__
 	self.buildModule = d_moduleTypeToBuildModule[self._partType]
     except:
-	log.error("%s.isBuildable>>> Missing Build Function"%(self._strShortName))	
-	return False	
+	log.error("%s.isBuildable>>> Missing Build Module"%(self._strShortName))	
+	return False	    
+    try:#Build Dict
+	d_moduleTypeToBuildModule[self._partType].__d_buildOrder__
+    except:
+	log.error("%s.isBuildable>>> Missing Build Function Dictionary"%(self._strShortName))	
+	return False	    
+
     
     return True
     
