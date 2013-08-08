@@ -2011,8 +2011,7 @@ def returnUserAttrsToDict(obj):
             attrType = attrTypes.get(attr)
             if messageQuery == True:
                 query = returnMessageData(obj,attr)
-                if query:
-                    attrDict[attr] = (query)
+		attrDict[attr] = (query)
             elif attrType == 'double3':
                 childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
                 dataBuffer = []
