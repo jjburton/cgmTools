@@ -1188,7 +1188,9 @@ def build_deformation(self):
 		#>>> parent handle anchors
 		mi_segmentAnchorStart.parent = ml_blendJoints[i].mNode
 		if i == 0:
-		    mi_segmentAnchorEnd.parent = self._i_rigNull.mainSegmentHandle.mNode			    
+		    #mi_segmentAnchorEnd.parent = self._i_rigNull.mainSegmentHandle.mNode
+		    mi_segmentAnchorEnd.parent = ml_blendJoints[i].mNode
+		    mc.pointConstraint(self._i_rigNull.mainSegmentHandle.mNode,mi_segmentAnchorEnd.mNode)
 		else:
 		    mi_segmentAnchorEnd.parent = ml_blendJoints[i+1].mNode	
 

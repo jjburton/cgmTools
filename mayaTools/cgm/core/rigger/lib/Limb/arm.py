@@ -61,7 +61,7 @@ reload(joints)
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
-__d_preferredAngles__ = {'shoulder':[0,-10,10],'elbow':[0,-10,0]}#In terms of aim up out for orientation relative values
+__d_preferredAngles__ = {'shoulder':[0,-10,10],'elbow':[0,-10,0]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 __d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','hand']}
 
 
@@ -207,8 +207,12 @@ def build_rigSkeleton(self):
 	for i_jnt in ml_ikJoints:
 	    if i_jnt.cgmName in __d_preferredAngles__.keys():
 		log.info("preferred angles(%s)>>> %s"%(i_jnt.cgmName,__d_preferredAngles__.get(i_jnt.cgmName)))
-		for i,v in enumerate(__d_preferredAngles__.get(i_jnt.cgmName)):	  
-		    i_jnt.__setattr__('preferredAngle%s'%self._jointOrientation[i].upper(),v)	    
+		for i,v in enumerate(__d_preferredAngles__.get(i_jnt.cgmName)):	
+		    if self._direction.lower() == 'right':#negative value
+			i_jnt.__setattr__('preferredAngle%s'%self._jointOrientation[i].upper(),-v)				
+		    else:
+			i_jnt.__setattr__('preferredAngle%s'%self._jointOrientation[i].upper(),v)	
+		    
 	
     except StandardError,error:
 	log.error("build_rigSkeleton>>Build ik joints fail!")
@@ -583,7 +587,7 @@ def build_controls(self):
     #==================================================================    
     try:#>>>> Add all of our Attrs
 	#Add driving attrs
-	mPlug_elbowSpin = cgmMeta.cgmAttr(i_IKEnd,'elbowSpin',attrType='float',defaultValue = 0,keyable = True)
+	#mPlug_elbowSpin = cgmMeta.cgmAttr(i_IKEnd,'elbowSpin',attrType='float',defaultValue = 0,keyable = True)
 	mPlug_stretch = cgmMeta.cgmAttr(i_IKEnd,'autoStretch',attrType='float',defaultValue = 1,keyable = True)
 	mPlug_showElbow = cgmMeta.cgmAttr(i_IKEnd,'showElbow',attrType='bool',defaultValue = 0,keyable = False)
 	mPlug_lengthUpr= cgmMeta.cgmAttr(i_IKEnd,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
@@ -661,7 +665,7 @@ def build_hand(self):
     mPlug_toeSpin = cgmMeta.cgmAttr(mi_controlIK,'toeSpin',attrType='float',defaultValue = 0,keyable = True)
     mPlug_lean = cgmMeta.cgmAttr(mi_controlIK,'lean',attrType='float',defaultValue = 0,keyable = True)
     mPlug_side = cgmMeta.cgmAttr(mi_controlIK,'bank',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_elbowSpin = cgmMeta.cgmAttr(mi_controlIK,'elbowSpin',attrType='float',defaultValue = 0,keyable = True)
+    #mPlug_elbowSpin = cgmMeta.cgmAttr(mi_controlIK,'elbowSpin',attrType='float',defaultValue = 0,keyable = True)
     mPlug_stretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch',attrType='float',defaultValue = 1,keyable = True)
     mPlug_showElbow = cgmMeta.cgmAttr(mi_controlIK,'showElbow',attrType='bool',defaultValue = 0,keyable = False)
     mPlug_lengthUpr= cgmMeta.cgmAttr(mi_controlIK,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
@@ -929,7 +933,7 @@ def build_FKIK(self):
 	#Parent constain the ik wrist joint to the ik wrist
 	#=========================================================================================				
 	#mc.pointConstraint(mi_controlIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
-	mc.orientConstraint(mi_controlIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
+	mc.orientConstraint(mi_controlIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = False)
 	
 	
     except StandardError,error:
@@ -1107,8 +1111,8 @@ def build_deformation(self):
 		i_grp.parent = self._i_constrainNull.mNode
 		
 	    #Parent our joint chains
-	    i_curve.driverJoints[0].parent = ml_blendJoints[i].mNode
-	    ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode    
+	    i_curve.driverJoints[0].parent = ml_blendJoints[i].mNode#driver chain
+	    ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode#segment chain    
 	    
 	    #>>> Attach stuff
 	    #==============================================================================================
@@ -1132,7 +1136,9 @@ def build_deformation(self):
 		#>>> parent handle anchors
 		mi_segmentAnchorStart.parent = ml_blendJoints[i].mNode
 		if i == 0:
-		    mi_segmentAnchorEnd.parent = self._i_rigNull.mainSegmentHandle.mNode			    
+		    #mi_segmentAnchorEnd.parent = self._i_rigNull.mainSegmentHandle.mNode
+		    mi_segmentAnchorEnd.parent = ml_blendJoints[i].mNode		
+		    mc.pointConstraint(self._i_rigNull.mainSegmentHandle.mNode,mi_segmentAnchorEnd.mNode)
 		else:
 		    mi_segmentAnchorEnd.parent = ml_blendJoints[i+1].mNode	
 
@@ -1348,7 +1354,8 @@ def build_rig(self):
     #Constrain Parent
     #====================================================================================    
     if mi_moduleParent:
-	mc.parentConstraint(mi_moduleParent.rigNull.moduleJoints[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+	#With the clav, it only has one skin joint
+	mc.parentConstraint(mi_moduleParent.rigNull.moduleJoints[0].mNode,self._i_constrainNull.mNode,maintainOffset = True)
 
     #Dynamic parent groups
     #====================================================================================
@@ -1366,7 +1373,7 @@ def build_rig(self):
 	if mi_moduleParent:
 	    mi_parentRigNull = mi_moduleParent.rigNull
 	    if mi_parentRigNull.getMessage('skinJoints'):
-		ml_handDynParents.append( mi_parentRigNull.skinJoints[-1])	    
+		ml_handDynParents.append( mi_parentRigNull.skinJoints[0])	    
 	    
 	ml_handDynParents.append(self._i_masterControl)
 	if mi_controlIK.getMessage('spacePivots'):
@@ -1389,7 +1396,7 @@ def build_rig(self):
     #====================================================================================
     try:#>>>> elbow
 	#Build our dynamic groups
-	ml_elbowDynParents = [mi_controlIK]
+	ml_elbowDynParents = []
 	
 	if mi_spine:
 	    ml_elbowDynParents.append( mi_spineRigNull.handleIK )	    
@@ -1399,8 +1406,9 @@ def build_rig(self):
 	if mi_moduleParent:
 	    mi_parentRigNull = mi_moduleParent.rigNull
 	    if mi_parentRigNull.getMessage('skinJoints'):
-		ml_elbowDynParents.append( mi_parentRigNull.skinJoints[-1])
-	
+		ml_elbowDynParents.append( mi_parentRigNull.skinJoints[0])
+		
+	ml_elbowDynParents.insert(1,mi_controlIK)
 	ml_elbowDynParents.append(self._i_masterControl)
 		
 	if mi_controlIK.getMessage('spacePivots'):
@@ -1554,8 +1562,8 @@ def build_rig(self):
 	mPlug_seg0mid.value = 1	
 	
 	mPlug_seg1mid = cgmMeta.cgmAttr(ml_segmentHandleChains[1][1],'twistExtendToEnd')
-	mPlug_seg1mid.p_defaultValue = 1
-	mPlug_seg1mid.value = 1		
+	mPlug_seg1mid.p_defaultValue = 0
+	mPlug_seg1mid.value = 0		
    
     except StandardError,error:
 	raise StandardError,"%s.build_rig >> failed to setup defaults | %s"%(self._strShortName,error)	     
@@ -1633,9 +1641,10 @@ def build_twistDriver_shoulder(self):
 	
 	i_rotGroup.parent = self._i_constrainNull.mNode
 	mc.parentConstraint(i_target.mNode,i_upLoc.mNode,maintainOffset = True)
+	"""
 	NodeF.argsToNodes("%s.ry = -%s.ry + %s.ry"%(i_rotGroup.p_nameShort,
 	                                            self._i_constrainNull.p_nameShort,
-	                                            ml_blendJoints[0].p_nameShort)).doBuild()	
+	                                            ml_blendJoints[0].p_nameShort)).doBuild()"""	
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_shoulder >> failed to create stable rotate group: %s"%(self._strShortName,error)
     
@@ -1864,7 +1873,6 @@ def build_matchSystem(self):
                                         matchAttrArg= [ml_blendJoints[-2].mNode,'s%s'%self._jointOrientation[0]],
                                         )"""
     #>> Hand
-    
     i_ikMidMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlMidIK,
                                               dynPrefix = "FKtoIK",
                                               dynMatchTargets=ml_blendJoints[1])
@@ -1941,8 +1949,8 @@ def __build__(self, buildTo='',*args,**kws):
     if buildTo.lower() == 'shapes':return True
     build_controls(self)
     if buildTo.lower() == 'controls':return True    
-    build_hand(self)
-    if buildTo.lower() == 'hand':return True
+    #build_hand(self)
+    #if buildTo.lower() == 'hand':return True
     build_FKIK(self)
     if buildTo.lower() == 'fkik':return True 
     build_deformation(self)
@@ -1950,7 +1958,9 @@ def __build__(self, buildTo='',*args,**kws):
     build_rig(self)
     if buildTo.lower() == 'rig':return True 
     build_matchSystem(self)
-    if buildTo.lower() == 'match':return True     
+    if buildTo.lower() == 'match':return True  
+    build_twistDriver_shoulder(self)
+    build_twistDriver_wrist(self)
     #build_deformation(self)
     #build_rig(self)    
     

@@ -42,6 +42,7 @@ from cgm.core.lib import nameTools
 reload(mShapeCast)
 reload(mControlFactory)
 from cgm.core.rigger.lib import rig_Utils as rUtils
+from cgm.core.rigger.lib import joint_Utils as jUtils
 reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
@@ -63,7 +64,7 @@ __d_preferredAngles__ = {'thumb':[0,0,10]}#In terms of aim up out for orientatio
 __d_controlShapes__ = {'shape':['segmentFK','settings','cap']}
 
 @cgmGeneral.Timer
-def __bindSkeletonSetup__(self):
+def __bindSkeletonSetup__(self,addHelpers = True):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
@@ -94,6 +95,14 @@ def __bindSkeletonSetup__(self):
 	ml_moduleJoints = self._i_module.rigNull.moduleJoints #Get the module joints
 	ml_skinJoints = []
 	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	
+	if addHelpers:
+	    ml_pairs = lists.parseListToPairs(ml_moduleJoints)
+	    
+	    jUtils.add_defHelpJoint(ml_pairs[0][0],ml_pairs[0][1],helperType = 'childRootHold',orientation=self.jointOrientation)
+	    for ml_pair in ml_pairs:
+		jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',orientation=self.jointOrientation)
+		
 	"""
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    ml_skinJoints.append(i_jnt)		
@@ -1387,8 +1396,8 @@ def build_rig(self):
 	raise StandardError,error
     
     #Constrain to pelvis
-    if mi_moduleParent:
-	mc.parentConstraint(mi_moduleParent.rigNull.skinJoints[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+    #if mi_moduleParent:
+	#mc.parentConstraint(mi_moduleParent.rigNull.skinJoints[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
     
     #Dynamic parent groups
     #====================================================================================
@@ -1463,9 +1472,9 @@ def build_rig(self):
 	    attributes.doSetLockHideKeyableAttr(i_obj.mNode,lock=True, visible=False, keyable=False, channels=['s%s'%orientation[1],'s%s'%orientation[2]])
     #
     attributes.doSetLockHideKeyableAttr(mi_settings.mNode,lock=True, visible=False, keyable=False)
+    attributes.doSetLockHideKeyableAttr(ml_blendJoints[0].mNode,lock=True, visible=True, keyable=False)
      
     #Final stuff
-    log.error("FIX ARM SKIN JOINTS AND WHAT NOT")
     mc.parentConstraint('l_wrist_jnt', self._i_constrainNull.mNode,maintainOffset = True)
     #mc.parentConstraint(mi_moduleParent.rigNull.skinJoints[-1].mNode, self._i_constrainNull.mNode,maintainOffset = True)
     self._i_rigNull.version = str(__version__)
