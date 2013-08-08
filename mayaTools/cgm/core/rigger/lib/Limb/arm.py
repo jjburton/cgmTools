@@ -329,7 +329,6 @@ def build_rigSkeleton(self):
     ml_jointsToConnect = []
     ml_jointsToConnect.extend(ml_rigJoints)    
     ml_jointsToConnect.extend(ml_ikJoints)
-    #ml_jointsToConnect.extend(ml_blendJoints)     
     ml_jointsToConnect.extend(ml_influenceJoints)    
     for ml_chain in ml_segmentChains + ml_influenceChains:
 	ml_jointsToConnect.extend(ml_chain)
