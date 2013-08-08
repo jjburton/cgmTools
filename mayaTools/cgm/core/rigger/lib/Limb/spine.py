@@ -145,6 +145,7 @@ def build_rigSkeleton(self):
 	ml_handleJoints = []
 	ml_segmentHandleJoints = []
 	
+	
 	l_segmentJoints = mc.duplicate(self._l_moduleJoints[1:-1],po=True,ic=True,rc=True)
 	ml_segmentJoints = []
 	for i,j in enumerate(l_segmentJoints):
@@ -157,6 +158,19 @@ def build_rigSkeleton(self):
 		ml_segmentJoints[0].parent = False#Parent to world
 	    else:
 		ml_segmentJoints[i].parent = ml_segmentJoints[i-1].mNode#Parent to Last
+	"""
+	l_segmentJoints = []
+	ml_segmentJoints = []
+	for i,j in enumerate(self._ml_moduleJoints[1:-1]):
+	    i_j = j.doDuplicate(breakMessagePlugsOut = True)
+	    i_j.addAttr('cgmTypeModifier','segment',attrType='string')
+	    i_j.doName()
+	    if i == 0:
+		i_j.parent = False#Parent to world
+	    else:
+		i_j.parent = ml_segmentJoints[-1].mNode#Parent to Last	
+	    l_segmentJoints.append(i_j.mNode)
+	    ml_segmentJoints.append(i_j)	"""    
 	
 	#>>Rig chain -----------------------------------------------------------    
 	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
@@ -225,6 +239,7 @@ def build_rigSkeleton(self):
 	for i_jnt in ml_influenceJoints:
 	    i_jnt.parent = False
 	    
+	self.connect_restoreJointLists()    
 	#>>> Store em all to our instance
 	self._i_rigNull.connectChildNode(i_startJnt,'startAnchor','rigNull')
 	self._i_rigNull.connectChildNode(i_endJnt,'endAnchor','rigNull')	
@@ -249,8 +264,6 @@ def build_rigSkeleton(self):
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 
     #We have to connect back our lists because duplicated joints with message connections duplicate those connections
-    self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'moduleJoints','module')
-    self._i_rigNull.connectChildrenNodes(ml_skinJoints,'skinJoints','module')
     self._i_rigNull.connectChildrenNodes(ml_handleJoints,'handleJoints','module')
 
     log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
@@ -784,6 +797,17 @@ def build_rig(self):
     self._set_versionToCurrent()
     return True 
 
+#----------------------------------------------------------------------------------------------
+# Important info ==============================================================================
+__d_buildOrder__ = {0:{'name':'shapes','function':build_shapes},
+                    1:{'name':'skeleton','function':build_rigSkeleton},
+                    2:{'name':'controls','function':build_controls},
+                    3:{'name':'deformation','function':build_deformation},
+                    4:{'name':'rig','function':build_rig},
+                    } 
+#===============================================================================================
+#----------------------------------------------------------------------------------------------
+"""
 @cgmGeneral.Timer
 def __build__(self, buildTo='',*args,**kws): 
     try:
@@ -807,7 +831,7 @@ def __build__(self, buildTo='',*args,**kws):
     build_rig(self)    
             
     return True
-
+"""
 
 #===================================================================================
 #===================================================================================

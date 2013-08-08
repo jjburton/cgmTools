@@ -646,6 +646,7 @@ def build_rig(self):
     return True 
 
 
+"""
 #@r9General.Timer
 def __build__(self, buildTo='',*args,**kws): 
     try:
@@ -666,4 +667,15 @@ def __build__(self, buildTo='',*args,**kws):
     build_deformation(self)
     build_rig(self)    
     
-    return True
+    return True"""
+
+#----------------------------------------------------------------------------------------------
+# Important info ==============================================================================
+__d_buildOrder__ = {0:{'name':'shapes','function':build_shapes},
+                    1:{'name':'skeleton','function':build_rigSkeleton},
+                    2:{'name':'controls','function':build_controls},
+                    3:{'name':'deformation','function':build_deformation},
+                    4:{'name':'rig','function':build_rig},
+                    } 
+#===============================================================================================
+#----------------------------------------------------------------------------------------------
