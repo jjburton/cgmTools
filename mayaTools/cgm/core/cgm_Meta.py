@@ -439,8 +439,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("connectChildrenNodes: %s"%error)
 		
     #msgList Functions =====================================================================
-    @cgmGeneral.Timer
-    def msgList_connect(self, nodes, attr, connectBack = None):
+    #@cgmGeneral.Timer
+    def msgList_connect(self, nodes, attr = None, connectBack = None):
         """
         Because multimessage data can't be counted on for important sequential connections we have
 	implemented this.
@@ -450,14 +450,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         @param connectBack: attr name to connect back to self
         @param purge: Whether to purge before build
 	
-	Usage Example:
-        from cgm.core import cgm_Meta as cgmMeta
-	cgmO = cgmObject()
-	cgm02 = cgmObject()
-	cgmO.connectChildNode(cgm02.mNode,'childNode','parentNode')
         """	
 	try:
-	    log.info(">>> %s.connect_msgList >> "%self.p_nameShort + "="*75) 
+	    log.info(">>> %s.connect_msgList( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 
 	    self.msgList_purge(attr)#purge first
 	    
 	    ml_nodes = validateObjListArg(nodes,noneValid=True)
@@ -470,9 +465,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
     
-    @cgmGeneral.Timer
-    def msgList_get(self,attr = None, asMeta = True):
+    #@cgmGeneral.Timer
+    def msgList_get(self,attr = None, asMeta = True, cull = True):
 	"""
+        @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
+        @param asMeta: Returns a MetaClass object list
+        @param cull: Whether to remove empty entries in the returned list
 	"""
 	try:
 	    log.debug(">>> %s.get_msgList(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
@@ -480,14 +478,19 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    l_return = []
 	    ml_return = []
 	    for i,k in enumerate(d_attrs.keys()):
-		buffer = self.getMessage(d_attrs[i])
-		if buffer:buffer = buffer[0]
-		l_return.append(buffer)
+		str_msgBuffer = self.getMessage(d_attrs[i],False)
+		if str_msgBuffer:str_msgBuffer = str_msgBuffer[0]
+		
+		l_return.append(str_msgBuffer)
 		if asMeta:
-		    ml_return.append( validateObjArg(buffer,noneValid=True) )
-		    log.debug("index: %s | msg: '%s' | mNode: %s"%(i,buffer,ml_return[i]))
-		else:log.debug("index: %s | msg: '%s' "%(i,buffer))
-	    
+		    ml_return.append( validateObjArg(str_msgBuffer,noneValid=True) )
+		    log.debug("index: %s | msg: '%s' | mNode: %s"%(i,str_msgBuffer,ml_return[i]))
+		else:log.debug("index: %s | msg: '%s' "%(i,str_msgBuffer))
+		
+	    if cull:
+		l_return = [o for o in l_return if o]
+		if asMeta: ml_return = [o for o in ml_return if o]
+		
 	    log.debug("-"*100)  
 	    if asMeta:return ml_return
 	    return l_return
@@ -510,6 +513,35 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return True   
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_purge >>[Error]<< : %s"(self.p_nameShort,error)
+	
+    def msgList_clean(self,attr,connectBack = None):
+	"""
+	Removes empty entries and pushes back
+	"""
+	try:
+	    log.debug(">>> %s.msgList_clean(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+	    l_attrs = self.msgList_get(attr,False,True)
+	    self.msgList_connect(l_attrs,attr,connectBack)
+	    log.debug("-"*100)            	               	
+	    return True   
+	except StandardError,error:
+	    raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
+    @cgmGeneral.Timer
+    def msgList_exists(self,attr):
+	"""
+	Fast check to see if we have data on this attr chain
+	"""
+	try:
+	    log.debug(">>> %s.msgList_exists(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+	    d_attrs = self.get_sequentialAttrDict(attr)
+	    for i,k in enumerate(d_attrs.keys()):
+		str_attr = d_attrs[i]
+		if self.getMessage(d_attrs[i]):
+		    return True
+	    log.debug("-"*100)            	               	
+	    return False   
+	except StandardError,error:
+	    raise StandardError, "%s.msgList_exists >>[Error]<< : %s"(self.p_nameShort,error)
 	
     def get_sequentialAttrDict(self,attr = None):
 	"""
@@ -3334,7 +3366,7 @@ class cgmAttr(object):
 	    mPlug_target = d_target['mi_plug']
 	    if d_target:
 		attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
-		log.info(">>> %s.doConnectOut --->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
+		log.info(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
 	    else:
 		log.warning(">>> %s.doConnectOut >> target failed to validate: %s"%(self.p_combinedShortName,target) + "="*75)            			    
 		return False
@@ -3378,7 +3410,7 @@ class cgmAttr(object):
 	    mPlug_source = d_source['mi_plug']
 	    if d_source:
 		attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
-		log.info(">>> %s.doConnectIn <<---  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            				
+		log.info(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            				
 	    else:
 		log.warning(">>> %s.doConnectIn >> source failed to validate: %s"%(self.p_combinedShortName,source) + "="*75)            			    
 		return False
