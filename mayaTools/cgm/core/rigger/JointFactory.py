@@ -17,6 +17,7 @@ from Red9.core import Red9_Meta as r9Meta
 #from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.classes import GuiFactory as gui
@@ -59,7 +60,7 @@ settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictio
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
-    #@r9General.Timer
+    @cgmGeneral.Timer
     def __init__(self,moduleInstance,forceNew = True,saveTemplatePose = True,**kws): 
         """
         To do:
@@ -156,14 +157,15 @@ class go(object):
 	    raise StandardError,"%s.go >> build failed! | %s"%(self._strShortName,error)
 	gui.doEndMayaProgressBar(self.str_progressBar)#Close out this progress bar        
 	
-def hasJointSetup(goInstance):
-    if not issubclass(type(goInstance),go):
-	log.error("Not a JointFactory.go instance: '%s'"%goInstance)
+def hasJointSetup(self):
+    if not issubclass(type(self),go):
+	log.error("Not a JointFactory.go instance: '%s'"%self)
 	raise StandardError
-    self = goInstance#Link
+    self = self#Link
+    log.info(">>> %s.hasJointSetup >> "%(self._strShortName) + "="*75)      
     
     if self._partType not in d_moduleTypeToBuildModule.keys():
-	log.info("%s.isBuildable>>> '%s' Not in d_moduleTypeToBuildModule"%(self._strShortName,self._partType))	
+	log.debug("%s.isBuildable>>> '%s' Not in d_moduleTypeToBuildModule"%(self._strShortName,self._partType))	
 	return False
     
     try:#Version
@@ -194,7 +196,6 @@ def doSkeletonize(self):
     RETURNS:
     l_limbJoints(list)
     """
-    log.debug(">>> doSkeletonize")
     # Get our base info
     #==================	        
     assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
@@ -203,7 +204,7 @@ def doSkeletonize(self):
     partName = self._partName
     l_limbJoints = []
     
-    log.info(">>> %s.doSkeletonize >> "%self._strShortName + "="*75)            
+    log.debug(">>> %s.doSkeletonize >> "%self._strShortName + "="*75)            
     
     #>>> Check roll joint args
     rollJoints = self.i_templateNull.rollJoints
@@ -241,7 +242,7 @@ def doSkeletonize(self):
             log.debug("Single joint: moduleParent mode")
             #Need to grab the last joint for this module
             l_limbJoints = [parentJoints[-1]]
-            i_parentRigNull.connectChildrenNodes(parentJoints[:-1],'moduleJoints','module')
+            i_parentRigNull.msgList_connect(parentJoints[:-1],'moduleJoints','rigNull')
 	    self.b_parentStole = True	    
         else:
             log.debug("Single joint: no parent mode")
@@ -249,7 +250,7 @@ def doSkeletonize(self):
     else:
         if i_parentJointToUse:
             #We're going to reconnect all but the last joint back to the parent module and delete the last parent joint which we're replacing
-            i_parentRigNull.connectChildrenNodes(parentJoints[:-1],'moduleJoints','module')
+            i_parentRigNull.msgList_connect(parentJoints[:-1],'moduleJoints','rigNull')
             mc.delete(i_parentJointToUse.mNode)
 	    self.b_parentStole = True
             
@@ -329,10 +330,9 @@ def doSkeletonize(self):
     
     #>>>Store it
     #self._i_rigNull.connectChildren(l_limbJoints,'moduleJoints','module')
-    self._i_rigNull.connectChildrenNodes(l_limbJoints,'moduleJoints','module')
-    #self._i_rigNull.connectChildrenNodes(l_limbJoints,'baseJoints','module')
-    
-    log.debug(self._i_rigNull.moduleJoints)       
+    self._i_rigNull.msgList_connect(l_limbJoints,'moduleJoints','rigNull')
+    #self._i_rigNull.msgList_connect(l_limbJoints,'baseJoints','module')
+  
 
     #>>>Store these joints and rename the heirarchy
     log.debug("Metaclassing our objects") 
@@ -341,7 +341,9 @@ def doSkeletonize(self):
         i_o.addAttr('mClass','cgmObject',lock=True) 
         i_o.addAttr('d_jointFlags', '{}',attrType = 'string', lock=True, hidden=True) 
 	
-    self._i_rigNull.moduleJoints[0].doName(nameChildren=True,fastIterate=False)
+    ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True)    
+    ml_moduleJoints[0].doName(nameChildren=True,fastIterate=False)#name
+    l_moduleJoints = [i_j.p_nameShort for i_j in ml_moduleJoints]#store
     
     #>>> Orientation    
     #=============== 
@@ -353,21 +355,24 @@ def doSkeletonize(self):
         raise StandardError,"Segment orientation failed: %s"%error    
     
     #>>> Set its radius and toggle axis visbility on
-    #averageDistance = distance.returnAverageDistanceBetweenObjects (l_limbJoints)
-    l_limbJoints = self._i_rigNull.getMessage('moduleJoints')
-    jointSize = (distance.returnDistanceBetweenObjects (l_limbJoints[0],l_limbJoints[-1])/6)
+    jointSize = (distance.returnDistanceBetweenObjects (l_moduleJoints[0],l_moduleJoints[-1])/6)
     reload(attributes)
     #jointSize*.2
-    attributes.doMultiSetAttr(l_limbJoints,'radi',3)
+    attributes.doMultiSetAttr(l_moduleJoints,'radi',3)
     
     #>>> Flag our handle joints
     #===========================
-    l_handleJoints = []
+    ml_handles = []
+    ml_handleJoints = []
     for i_obj in self.i_controlObjects:
 	if i_obj.hasAttr('handleJoint'):
-	    d_buffer = i_obj.handleJoint.d_jointFlags
-	    d_buffer['isHandle'] = True
-	    i_obj.handleJoint.d_jointFlags = d_buffer
+	    #d_buffer = i_obj.handleJoint.d_jointFlags
+	    #d_buffer['isHandle'] = True
+	    #i_obj.handleJoint.d_jointFlags = d_buffer
+	    ml_handleJoints.append(i_obj.handleJoint)
+    
+    self._i_rigNull.msgList_connect(ml_handleJoints,'handleJoints','rigNull')
+	    
     return True 
 
 #@r9General.Timer
@@ -380,8 +385,11 @@ def doOrientSegment(self):
     assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
     assert mc.objExists(self._i_module.mNode),"module no longer exists"
     
+    ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True)
+    l_moduleJoints = [i_j.p_nameShort for i_j in ml_moduleJoints]    
+    
     #self._i_rigNull = self._i_module.rigNull#refresh
-    log.info(">>> %s.doOrientSegment >> "%self._strShortName + "="*75)            
+    log.debug(">>> %s.doOrientSegment >> "%self._strShortName + "="*75)            
         
     #>>> orientation vectors
     #=======================    
@@ -395,8 +403,7 @@ def doOrientSegment(self):
     #l_limbJoints = distance.returnDistanceSortedList(l_limbJoints[0],l_limbJoints)
     
     #>>> Segment our joint list by cgmName, prolly a better way to optimize this
-    l_cull = copy.copy(self._i_rigNull.getMessage('moduleJoints'))
-    #joints.orientJointChain(l_cull,self.jointOrientation,'zup')
+    l_cull = copy.copy(l_moduleJoints)
     if len(l_cull)==1:
         log.debug('Single joint orient mode')
         helper = self.i_templateNull.orientRootHelper.mNode
@@ -417,13 +424,13 @@ def doOrientSegment(self):
             buffer = []
             objSet = search.returnMatchedTagsFromObjectList(l_cull,'cgmName',matchTerm)
             for o in objSet:
-                buffer.append(self._i_rigNull.getMessage('moduleJoints').index(o))
+                buffer.append(l_moduleJoints.index(o))
             self.l_jointSegmentIndexSets.append(buffer)
             for obj in objSet:
                 l_cull.remove(obj)
             
         #>>> un parenting the chain
-        for i,i_jnt in enumerate(self._i_rigNull.moduleJoints):
+        for i,i_jnt in enumerate(ml_moduleJoints):
 	    if i != 0:
 		i_jnt.parent = False
             i_jnt.displayLocalAxis = 1#tmp
@@ -439,16 +446,15 @@ def doOrientSegment(self):
         #>>>per segment stuff
         assert len(self.l_jointSegmentIndexSets) == len(self._i_module.i_coreNames.value)#quick check to make sure we've got the stuff we need
         cnt = 0
-	log.info("Segment Index sets: %s"%self.l_jointSegmentIndexSets)
+	log.debug("Segment Index sets: %s"%self.l_jointSegmentIndexSets)
         for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
-	    log.info("On segment: %s"%segment)	    
+	    log.debug("On segment: %s"%segment)	    
 	    lastCnt = len(self.l_jointSegmentIndexSets)-1
             segmentHelper = self.i_templateNull.controlObjects[cnt].getMessage('helper')[0]
             helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True)
             upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)        
             if not mc.objExists(segmentHelper) and search.returnObjectType(segmentHelper) != 'nurbsCurve':
                 raise StandardError,"doOrientSegment>>> No helper found"
-	    ml_moduleJoints = self._i_rigNull.moduleJoints
 	    
             if cnt != lastCnt:
 		log.debug(cnt)
@@ -456,7 +462,7 @@ def doOrientSegment(self):
                 #>>> make a pair list
                 #pairList = lists.parseListToPairs(segment)
                 """for pair in pairList:
-                    constraintBuffer = mc.aimConstraint(self._i_rigNull.moduleJoints[pair[1]].mNode,self._i_rigNull.moduleJoints[pair[0]].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+                    constraintBuffer = mc.aimConstraint(ml_moduleJoints[pair[1]].mNode,ml_moduleJoints[pair[0]].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
                     mc.delete(constraintBuffer[0])"""
 		for index in segment:
 		    if index != 0:
@@ -464,7 +470,7 @@ def doOrientSegment(self):
 		    ml_moduleJoints[index].rotate  = [0,0,0]			
 		    ml_moduleJoints[index].jointOrient  = [0,0,0]	
 		    
-		    log.info("%s aim to %s"%(ml_moduleJoints[index].mNode,ml_moduleJoints[index+1].mNode))
+		    log.debug("%s aim to %s"%(ml_moduleJoints[index].mNode,ml_moduleJoints[index+1].mNode))
 		    constraintBuffer = mc.aimConstraint(ml_moduleJoints[index+1].mNode,ml_moduleJoints[index].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
 		    mc.delete(constraintBuffer[0])
 		    
@@ -481,9 +487,9 @@ def doOrientSegment(self):
             else:
 		log.debug(">>> Last count")
                 #>>> Make an aim object and move it """
-		i_jnt = self._i_rigNull.moduleJoints[segment[-1]]
+		i_jnt = ml_moduleJoints[segment[-1]]
 		log.debug(i_jnt.getShortName())
-		i_jnt.parent = self._i_rigNull.moduleJoints[segment[-1]-1].mNode
+		i_jnt.parent = ml_moduleJoints[segment[-1]-1].mNode
 		i_jnt.jointOrient  = [0,0,0]
 		#ml_moduleJoints[index].rotate  = [0,0,0]					
 
@@ -498,38 +504,38 @@ def doOrientSegment(self):
 		#i_jnt.jointOrient = i_jnt.rotate
 		#i_jnt.rotate = [0,0,0]	
         #>>>Reconnect the joints
-        for cnt,i_jnt in enumerate(self._i_rigNull.moduleJoints[1:]):#parent each to the one before it
-            i_jnt.parent = self._i_rigNull.moduleJoints[cnt].mNode
+        for cnt,i_jnt in enumerate(ml_moduleJoints[1:]):#parent each to the one before it
+            i_jnt.parent = ml_moduleJoints[cnt].mNode
 	    i_p = cgmMeta.cgmObject(i_jnt.parent)
 	    #Verify inverse scale connection
 	    cgmMeta.cgmAttr(i_jnt,"inverseScale").doConnectIn("%s.scale"%i_p.mNode)
 
     if self._i_module.moduleType in ['foot']:
         log.debug("Special case orient")
-        if len(self._i_rigNull.getMessage('moduleJoints')) > 1:
+        if len(l_moduleJoints) > 1:
             helper = self.i_templateNull.orientRootHelper.mNode
             if helper:
                 log.debug("Root joint fix...")                
-                rootJoint = self._i_rigNull.getMessage('moduleJoints')[0]
-                self._i_rigNull.moduleJoints[1].parent = False #unparent the first child
+                rootJoint = l_moduleJoints[0]
+                ml_moduleJoints[1].parent = False #unparent the first child
                 constBuffer = mc.orientConstraint( helper,rootJoint,maintainOffset = False)
                 mc.delete (constBuffer[0])   
-                self._i_rigNull.moduleJoints[1].parent = rootJoint
-		self._i_rigNull.moduleJoints[1].jointOrient = self._i_rigNull.moduleJoints[1].rotate
-		self._i_rigNull.moduleJoints[1].rotate = [0,0,0]        
+                ml_moduleJoints[1].parent = rootJoint
+		ml_moduleJoints[1].jointOrient = ml_moduleJoints[1].rotate
+		ml_moduleJoints[1].rotate = [0,0,0]        
     
     #Copy 
     #""" Freeze the rotations """
-    jntUtils.metaFreezeJointOrientation(self._i_rigNull.moduleJoints)   
+    jntUtils.metaFreezeJointOrientation(ml_moduleJoints)   
     
     #Connect to parent
     if self._i_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
 	connectToParentModule(self._i_module)    
 	
-    for i,i_jnt in enumerate(self._i_rigNull.moduleJoints):
-	log.info(i_jnt.getAttr('cgmName'))
+    for i,i_jnt in enumerate(ml_moduleJoints):
+	log.debug(i_jnt.getAttr('cgmName'))
 	if i_jnt.getAttr('cgmName') in ['ankle']:
-	    log.info("Copy orient from parent mode: %s"%i_jnt.getShortName())
+	    log.debug("Copy orient from parent mode: %s"%i_jnt.getShortName())
 	    joints.doCopyJointOrient(i_jnt.parent,i_jnt.mNode)    
     return True
 
@@ -540,16 +546,19 @@ def doOrientSegment(self):
 # Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 #@r9General.Timer
-def deleteSkeleton(i_module,*args,**kws):  
-    if not i_module.isSkeletonized():
-        log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%i_module.getShortName())
+def deleteSkeleton(self,*args,**kws):  
+    #MUST BE A MODULE
+    if not self.isSkeletonized():
+        log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%self.getShortName())
         return False
-    log.info(">>> %s.deleteSkeleton >> "%i_module.p_nameShort + "="*75)            
+    log.debug(">>> %s.deleteSkeleton >> "%self.p_nameShort + "="*75)            
+    
+    ml_skinJoints = self.rigNull.msgList_get('skinJoints',asMeta = True)
+    l_skinJoints = [i_j.p_nameLong for i_j in ml_skinJoints if i_j ]  
     
     #We need to see if any of or moduleJoints have children
     l_strayChildren = []
-    l_skinJoints = i_module.rigNull.getMessage('skinJoints',longNames = True)
-    for i_jnt in i_module.rigNull.skinJoints:
+    for i_jnt in ml_skinJoints:
         buffer = i_jnt.getChildren(True)
         for c in buffer:
             if c not in l_skinJoints:
@@ -560,8 +569,15 @@ def deleteSkeleton(i_module,*args,**kws):
                 except StandardError,error:
                     log.warning(error)     
     log.debug("l_strayChildren: %s"%l_strayChildren)
-    if i_module.rigNull.getMessage('skinJoints'):
-	mc.delete(i_module.rigNull.getMessage('skinJoints'))
+    l_moduleJoints = self.rigNull.msgList_get('skinJoints',asMeta = False)
+    if l_moduleJoints:
+	mc.delete(l_moduleJoints)
+    else:return False
+	
+    self.msgList_purge('skinJoints')
+    self.msgList_purge('moduleJoints')
+    self.msgList_purge('handleJoints')
+    
     return True
 
 #@r9General.Timer
@@ -569,10 +585,12 @@ def connectToParentModule(self):
     """
     Pass a module class. Constrains template root to parent's closest template object
     """
-    log.info(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)            
+    log.debug(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)            
     if not self.isSkeletonized():
         log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
         return False
+    
+    ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True)
     if not self.getMessage('moduleParent'):
         return False
     else:
@@ -584,7 +602,7 @@ def connectToParentModule(self):
             #>> If we have another anchor
             parentSkinJoints = i_parent.rigNull.getMessage('moduleJoints')
             closestObj = distance.returnClosestObject(i_rigNull.getMessage('moduleJoints')[0],parentSkinJoints)
-            i_rigNull.moduleJoints[0].parent = closestObj
+            ml_moduleJoints[0].parent = closestObj
             
         else:
             log.debug("Parent has not been skeletonized...")           

@@ -1110,7 +1110,7 @@ def build_deformation(self):
 		i_grp.parent = self._i_constrainNull.mNode
 		
 	    #Parent our joint chains
-	    i_curve.driverJoints[0].parent = ml_blendJoints[i].mNode#driver chain
+	    i_curve.msgList_get('driverJoints',asMeta = True)[0].parent = ml_blendJoints[i].mNode#driver chain
 	    ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode#segment chain    
 	    
 	    #>>> Attach stuff
@@ -1376,7 +1376,7 @@ def build_rig(self):
 	    
 	ml_handDynParents.append(self._i_masterControl)
 	if mi_controlIK.getMessage('spacePivots'):
-	    ml_handDynParents.extend(mi_controlIK.spacePivots)	
+	    ml_handDynParents.extend(mi_controlIK.msgList_get('spacePivots',asMeta = True))	
 	log.info("%s.build_rig>>> Dynamic parents to add: %s"%(self._strShortName,[i_obj.getShortName() for i_obj in ml_handDynParents]))
     
 	#Add our parents
@@ -1411,7 +1411,7 @@ def build_rig(self):
 	ml_elbowDynParents.append(self._i_masterControl)
 		
 	if mi_controlIK.getMessage('spacePivots'):
-	    ml_elbowDynParents.extend(mi_controlIK.spacePivots)
+	    ml_elbowDynParents.extend(mi_controlIK.msgList_get('spacePivots',asMeta = True))
 	    
 	log.info("%s.build_rig>>> Dynamic parents to add: %s"%(self._strShortName,[i_obj.getShortName() for i_obj in ml_elbowDynParents]))
 	

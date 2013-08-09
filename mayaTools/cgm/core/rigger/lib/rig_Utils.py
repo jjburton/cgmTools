@@ -406,7 +406,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
 		if not i_segmentCurve.getMessage('drivenJoints'):
 		    raise StandardError,"addCGMSegmentSubControl>>Cannot add twist stored bind joint info on segmentCurve: %s"%i_segmentCurve.getShortName()		    
 		
-		ml_drivenJoints = i_segmentCurve.drivenJoints
+		ml_drivenJoints = i_segmentCurve.msgList_get('drivenJoints',asMeta = True)
 		
 		closestJoint = distance.returnClosestObject(i_obj.mNode,[i_jnt.mNode for i_jnt in ml_drivenJoints])
 		closestIndex = [i_jnt.mNode for i_jnt in ml_drivenJoints].index(closestJoint)
@@ -859,7 +859,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
 		if not i_segmentCurve.getMessage('drivenJoints'):
 		    raise StandardError,"addCGMSegmentSubControl>>Cannot add twist stored bind joint info on segmentCurve: %s"%i_segmentCurve.getShortName()		    
 		
-		ml_drivenJoints = i_segmentCurve.drivenJoints
+		ml_drivenJoints = i_segmentCurve.msgList_get('drivenJoints',asMeta = True)
 		
 		closestJoint = distance.returnClosestObject(i_obj.mNode,[i_jnt.mNode for i_jnt in ml_drivenJoints])
 		upLoc = cgmMeta.cgmObject(closestJoint).rotateUpGroup.upLoc.mNode
@@ -2001,8 +2001,8 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     
     #>>> Store em all to our instance
     i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    i_segmentCurve.connectChildrenNodes(ml_jointList,'drivenJoints','segmentCurve')       
-    i_segmentCurve.connectChildrenNodes(ml_driverJoints,'driverJoints','segmentCurve')   
+    i_segmentCurve.msgList_connect(ml_jointList,'drivenJoints','segmentCurve')       
+    i_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')   
 	
     d_return = {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,'mi_ikHandle':i_ikHandle,'mi_segmentGroup':i_grp,
                 'l_driverJoints':[i_jnt.getShortName() for i_jnt in ml_driverJoints],'ml_driverJoints':ml_driverJoints,
@@ -2369,8 +2369,8 @@ def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None,
     
     #>>> Store em all to our instance
     i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    i_segmentCurve.connectChildrenNodes(ml_jointList,'drivenJoints','segmentCurve')       
-    i_segmentCurve.connectChildrenNodes(ml_driverJoints,'driverJoints','segmentCurve')   
+    i_segmentCurve.msgList_connect(ml_jointList,'drivenJoints','segmentCurve')       
+    i_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')   
 	
     return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,'mi_ikHandle':i_ikHandle,'mi_segmentGroup':i_grp,
             'l_driverJoints':[i_jnt.getShortName() for i_jnt in ml_driverJoints],'ml_driverJoints':ml_driverJoints,
@@ -2451,8 +2451,8 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     if i_control.getLongName() not in i_obj.getMessage('spacePivots',True):
 	buffer = i_obj.getMessage('spacePivots',True)
 	buffer.append(i_control.mNode)
-	i_obj.connectChildrenNodes(buffer,'spacePivots','controlTarget')
-    log.debug("spacePivots: %s"%i_obj.spacePivots)
+	i_obj.msgList_connect(buffer,'spacePivots','controlTarget')
+    log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
     
     
     if i_parent:
@@ -4731,7 +4731,7 @@ def addAdditiveScaleToSegmentCurveSetup(segmentCurve, orientation = 'zyx', modul
     """
     #>>> Validate info
     mi_segmentCurve = cgmMeta.validateObjArg(segmentCurve,cgmMeta.cgmObject,False)
-    try:ml_drivenJoints = cgmMeta.validateObjListArg( mi_segmentCurve.drivenJoints[:-1],cgmMeta.cgmObject,False)
+    try:ml_drivenJoints = cgmMeta.validateObjListArg( mi_segmentCurve.msgList_get('drivenJoints',asMeta = True)[:-1],cgmMeta.cgmObject,False)
     except StandardError,error:
 	log.error("addAdditiveScaleToSegmentCurveSetup >> '%s' lacks driven joints"%mi_segmentCurve.getShortName())
 	raise StandardError,error
@@ -5334,8 +5334,8 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
     
     #>>> Store em all to our instance
     i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    i_segmentCurve.connectChildrenNodes(ml_jointList,'bindJoints','segmentCurve')       
-    i_segmentCurve.connectChildrenNodes(ml_splineIKJoints,'splineIKJoints','segmentCurve')   
+    i_segmentCurve.msgList_connect(ml_jointList,'bindJoints','segmentCurve')       
+    i_segmentCurve.msgList_connect(ml_splineIKJoints,'splineIKJoints','segmentCurve')   
 	
     return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,
             'l_splineIKJoints':[i_jnt.getShortName() for i_jnt in ml_splineIKJoints],'ml_splineIKJoints':ml_splineIKJoints,

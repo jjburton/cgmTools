@@ -513,7 +513,7 @@ def build_rig(self):
 	log.info("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
 	
 	ml_influenceJoints = self._i_rigNull.influenceJoints
-	ml_segmentSplineJoints = mi_segmentCurve.driverJoints
+	ml_segmentSplineJoints = mi_segmentCurve.msgList_get('driverJoints',asMeta = True)
 	
 	ml_anchorJoints = self._i_rigNull.anchorJoints
 	ml_rigJoints = self._i_rigNull.rigJoints
@@ -541,7 +541,7 @@ def build_rig(self):
 		ml_headDynParents.append( mi_parentRigNull.handleIK )	    
 	    if mi_parentRigNull.getMessage('cog'):
 		ml_headDynParents.append( mi_parentRigNull.cog )
-	ml_headDynParents.extend(mi_handleIK.spacePivots)
+	ml_headDynParents.extend(mi_handleIK.msgList_get('spacePivots',asMeta = True))
 	ml_headDynParents.append(self._i_masterControl)
 	log.info(ml_headDynParents)
 	log.info([i_obj.getShortName() for i_obj in ml_headDynParents])

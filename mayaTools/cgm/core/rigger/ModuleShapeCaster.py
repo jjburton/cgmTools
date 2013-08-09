@@ -387,7 +387,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentFK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK'] = ml_segmentControls
-	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_segmentFK','owner')
+	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFK','owner')
 	    
 	except StandardError,error:
 		log.error("build_segmentFKHandles fail! | %s"%error) 
@@ -499,7 +499,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
-	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_segmentFKLoli','owner')
+	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFKLoli','owner')
 	    
 	except StandardError,error:
 		log.error("build_segmentFKLoliHandles fail! | %s"%error) 
@@ -836,7 +836,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentIK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentIK'] = ml_segmentControls
-	    self.mi_rigNull.connectChildrenNodes(ml_segmentControls,'shape_segmentIK','owner')
+	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentIK','owner')
 	    
 	    if len(self.l_segments)>2:
 		objects = self.l_controlSnapObjects[-2:]
@@ -1592,7 +1592,7 @@ class go(object):
 	    
 	self.d_returnControls['segmentIK'] = l_segmentControls 
 	self.md_ReturnControls['segmentIK'] = ml_SegmentControls
-	self.mi_rigNull.connectChildrenNodes(ml_SegmentControls,'shape_segmentIK','owner')
+	self.mi_rigNull.msgList_connect(ml_SegmentControls,'shape_segmentIK','owner')
 	    
 	#except StandardError,error:
 	#	log.error("build_segmentIKHandles! | %s"%error) 

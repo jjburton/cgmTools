@@ -49,7 +49,7 @@ from cgm.lib import (cgmMath,
                      )
 reload(rigging)
 l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb']
-
+#l_modulesDone = []
 #>>> Register rig functions
 #=====================================================================
 d_moduleTypeToBuildModule = {'leg':leg,
@@ -63,6 +63,9 @@ d_moduleTypeToBuildModule = {'leg':leg,
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
     
+__l_moduleJointSingleHooks__ = ['scaleJoint']
+__l_moduleJointMsgListHooks__ = ['helperJoints']
+
 #>>> Main class function
 #=====================================================================
 class go(object):
@@ -132,15 +135,17 @@ class go(object):
 	self._i_rigNull = self._i_module.rigNull#speed link
         self._bodyGeo = self._i_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
         self._version = self._i_rigNull.version
+	
         #Joints
-        self._l_skinJoints = self._i_rigNull.getMessage('skinJoints')
-        self._ml_skinJoints = self._i_rigNull.skinJoints #We buffer this because when joints are duplicated, the multiAttrs extend with duplicates
-        self._l_moduleJoints = self._i_rigNull.getMessage('moduleJoints')
-        self._ml_moduleJoints = self._i_rigNull.moduleJoints #We buffer this because when joints are duplicated, the multiAttrs extend with duplicates
-	self._l_rigJoints = self._i_rigNull.getMessage('rigJoints') or []
-	self._ml_rigJoints = []
-	if self._l_rigJoints:
-	    self._ml_rigJoints = [cgmMeta.cgmObject(o) for o in self._l_rigJoints]
+        self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
+	if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
+        self._l_moduleJoints = [j.p_nameShort for j in self._ml_moduleJoints]
+        self._ml_skinJoints = get_skinJoints(self._i_module,asMeta=True)
+	if not self._ml_moduleJoints:raise StandardError, "No module joints found!"        
+        self._l_skinJoints = [j.p_nameShort for j in self._ml_skinJoints]
+	
+        #self._ml_rigJoints = self._i_rigNull.msgList_get('rigJoints',asMeta = True,cull = True)	
+	#self._l_rigJoints = [j.p_nameShort for j in self._ml_rigJoints]
 	
         #>>> part name 
         self._partName = self._i_module.getPartNameBase()
@@ -256,8 +261,9 @@ class go(object):
 	for key in checkShapes.keys():
 	    for subkey in checkShapes[key]:
 		if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
-		    log.debug("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
-		    return False		
+		    if not self._i_rigNull.msgList_get('%s_%s'%(key,subkey),False):
+			log.warning("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
+			return False		
 	return True
     
     def isRigSkeletonized(self):
@@ -303,7 +309,7 @@ class go(object):
 	
     #>> Connections
     #=====================================================================
-    def connect_toRigGutsVis(self, ml_objects,vis = True):
+    def connect_toRigGutsVis(self, ml_objects, vis = True):
 	try:
 	    for i_obj in ml_objects:
 		i_obj.overrideEnabled = 1		
@@ -313,6 +319,7 @@ class go(object):
 	    raise StandardError,"%s.connect_toRigGutsVis >> Failure: %s"%(self._strShortName,error)
     
     def connect_restoreJointLists(self):
+	raise DeprecationWarning, "Please remove this instance of 'connect_restoreJointLists'"
 	try:
 	    if self._ml_rigJoints:
 		log.info("%s.connect_restoreJointLists >> Found rig joints to store back"%self._strShortName)
@@ -341,11 +348,11 @@ class go(object):
     #=====================================================================    
     def build_rigChain(self):
 	#Get our segment joints
-	l_rigJointsExist = self._i_rigNull.getMessage('rigJoints') or []
+	l_rigJointsExist = self._i_rigNull.msgList_get('rigJoints',asMeta = False, cull = True)
 	if l_rigJointsExist:
 	    log.error("Deleting existing rig chain")
 	    mc.delete(l_rigJointsExist)
-	
+	    
 	l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in self._ml_skinJoints],po=True,ic=True,rc=True)
 	ml_rigJoints = []
 	for i,j in enumerate(l_rigJoints):
@@ -358,14 +365,13 @@ class go(object):
 	    if i_j.hasAttr('scaleJoint'):
 		if i_j.scaleJoint in self._ml_skinJoints:
 		    int_index = self._ml_skinJoints.index(i_j.scaleJoint)
-		    i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','rootJoint')#Connect
+		    i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
 		    
 	    if i_j.hasAttr('rigJoint'):i_j.doRemove('rigJoint')
 	
 	self._ml_rigJoints = ml_rigJoints
 	self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
-	self.connect_restoreJointLists()#Push back
-	
+	self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
 	return ml_rigJoints
     
     def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False):    
@@ -374,9 +380,8 @@ class go(object):
 	    ml_handleChain = []
 	    
 	    for i,i_handle in enumerate(ml_handleJoints):
-		i_new = i_handle.doDuplicate(breakMessagePlugsOut = True)
-		if ml_handleChain:#if we have data, parent to last
-		    i_new.parent = ml_handleChain[-1]
+		i_new = i_handle.doDuplicate()
+		if ml_handleChain:i_new.parent = ml_handleChain[-1]#if we have data, parent to last
 		else:i_new.parent = False
 		
 		i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
@@ -389,7 +394,7 @@ class go(object):
 	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
 	    log.info("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
 	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-		self._i_rigNull.connectChildrenNodes(ml_handleChain,connectNodesAs,'rigNull')#Push back		
+		self._i_rigNull.msgList_connect(ml_handleChain,connectNodesAs,'rigNull')#Push back		
 	    return ml_handleChain
 
 	except StandardError,error:
@@ -619,8 +624,8 @@ def bindJoints_connect(goInstance):
 	raise StandardError
     self = goInstance#Link
     
-    l_rigJoints = self._i_rigNull.getMessage('rigJoints') or False
-    l_skinJoints = self._i_rigNull.getMessage('skinJoints',False) or False
+    l_rigJoints = self._i_rigNull.msgList_get('rigJoints',False) or False
+    l_skinJoints = self._i_rigNull.msgList_get('skinJoints',False) or False
     log.info("%s.connect_ToBind>> skinJoints:  len: %s | joints: %s"%(self._i_module.getShortName(),len(l_skinJoints),l_skinJoints))
     if not l_rigJoints:
 	raise StandardError,"connect_ToBind>> No Rig Joints: %s "%(self._i_module.getShortName())
@@ -645,8 +650,8 @@ def bindJoints_connectToBlend(goInstance):
 	raise StandardError
     self = goInstance#Link
     
-    l_rigJoints = self._i_rigNull.getMessage('blendJoints') or False
-    l_skinJoints = self._i_rigNull.getMessage('skinJoints') or False
+    l_rigJoints = self._i_rigNull.msgList_get('blendJoints',False) or False
+    l_skinJoints = self._i_rigNull.msgList_get('skinJoints',False) or False
     if len(l_skinJoints)!=len(l_rigJoints):
 	raise StandardError,"bindJoints_connectToBlend>> Blend/Skin joint chain lengths don't match: %s"%self._i_module.getShortName()
     
@@ -667,41 +672,72 @@ def bindJoints_connectToBlend(goInstance):
 """
 You should only pass modules into these 
 """
-def get_rigHandleJoints(self):
-    #Get our segment joints
+def get_skinJoints(self, asMeta = True):
     try:
-	if not self.rigNull.getMessage('rigJoints'):
-	    log.error("%s.get_rigHandleJoints >> no rig joints found"%self.getShortName())
-	    return []
-	ml_handleJoints = []
-	ml_rigJoints = self.rigNull.rigJoints or []
-	if not ml_rigJoints:raise StandardError,"%s.get_rigHandleJoints >> no rig joints found"%self.getShortName()
-	for i_jnt in ml_rigJoints:
-	    if i_jnt.d_jointFlags.get('isHandle'):ml_handleJoints.append(i_jnt) 
-	return ml_handleJoints
+	log.info(">>> %s.get_skinJoints() >> "%(self.p_nameShort) + "="*75) 
+	if not self.isSkeletonized():
+	    raise StandardError,"%s.get_skinJoints >> not skeletonized."%(self.p_nameShort)
+	ml_skinJoints = []
+	ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
+	for i,i_j in enumerate(ml_moduleJoints):
+	    ml_skinJoints.append(i_j)
+	    for attr in __l_moduleJointSingleHooks__:
+		str_attrBuffer = i_j.getMessage(attr)
+		if str_attrBuffer:ml_skinJoints.append( cgmMeta.validateObjArg(str_attrBuffer) )
+	    for attr in __l_moduleJointMsgListHooks__:
+		l_buffer = i_j.msgList_get(attr,asMeta = asMeta,cull = True)
+		
+	if asMeta:return ml_skinJoints
+	if ml_skinJoints:
+	    return [obj.p_nameShort for obj in ml_skinJoints]
+    except StandardError,error:
+	raise StandardError, "%s.get_skinJoints >>[Error]<< : %s"(self.p_nameShort,error)	
+    
+def get_rigHandleJoints(self, asMeta = True):
+    #Get our rig handle joints
+    try:
+	log.info(">>> %s.get_rigHandleJoints() >> "%(self.p_nameShort) + "="*75) 
+	if not self.isSkeletonized():
+	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)	
+	#ml_rigJoints = self.rigNull.msgList_get('rigJoints')
+	#if not ml_rigJoints:
+	    #log.error("%s.get_rigHandleJoints >> no rig joints found"%self.getShortName())
+	    #return []	
+	l_rigHandleJoints = []
+	for i_j in self.rigNull.msgList_get('handleJoints'):
+	    str_attrBuffer = i_j.getMessage('rigJoint')
+	    if str_attrBuffer:
+		l_rigHandleJoints.append(str_attrBuffer)
+		
+	if asMeta:return cgmMeta.validateObjListArg(l_rigHandleJoints,noneValid=True)	    
+	return l_rigHandleJoints
     except StandardError,error:
 	raise StandardError,"get_rigHandleJoints >> self: %s | error: %s"%(self,error)
     
-def get_rigDeformationJoints(self):
+def get_rigDeformationJoints(self,asMeta = True):
     #Get our joints that segment joints will connect to
     try:
-	if not self.rigNull.getMessage('rigJoints'):
+	ml_rigJoints = self.rigNull.msgList_get('rigJoints')
+	if not ml_rigJoints:
 	    log.error("%s.get_rigDeformationJoints >> no rig joints found"%self.getShortName())
 	    return []	    
 	ml_defJoints = []
-	if not self.rigNull.getMessage('rigJoints'):raise StandardError,"%s.get_rigDeformationJoints >> no rig joints found"%self.getShortName()	    
-	ml_rigJoints = self.rigNull.rigJoints or []
 	for i_jnt in ml_rigJoints:
 	    if not i_jnt.getMessage('scaleJoint'):
 		ml_defJoints.append(i_jnt)	    
-	return ml_defJoints
+	if asMeta:return ml_defJoints
+	elif ml_defJoints:return [j.p_nameShort for j in ml_defJoints]
+	return []
     
     except StandardError,error:
 	raise StandardError,"get_rigDeformationJoints >> self: %s | error: %s"%(self,error)
     
-def get_handleJoints(self):
+def get_handleJoints(self,asMeta = True):
     #Get our segment joints
     try:
+	log.info(">>> %s.get_handleJoints() >> "%(self.p_nameShort) + "="*75) 	
+	return self.rigNull.msgList_get('handleJoints',asMeta = asMeta, cull = True)
+	"""
 	ml_handleJoints = []
 	for i_obj in self.templateNull.controlObjects:
 	    buffer = i_obj.handleJoint
@@ -709,7 +745,7 @@ def get_handleJoints(self):
 		log.error("%s.get_handleJoints >> '%s' missing handle joint"%(self.p_nameShort,i_obj.p_nameShort))
 		return False
 	    ml_handleJoints.append( buffer )
-	return ml_handleJoints
+	return ml_handleJoints"""
     except StandardError,error:
 	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
 
@@ -718,6 +754,7 @@ def get_segmentHandleTargets(self):
     Figure out which segment handle target joints
     """
     try:
+	log.info(">>> %s.get_segmentHandleTargets() >> "%(self.p_nameShort) + "="*75) 		
 	ml_handleJoints = self.rig_getHandleJoints()
 	log.info(ml_handleJoints)
 	if not ml_handleJoints:
@@ -745,6 +782,8 @@ def get_segmentHandleTargets(self):
 def get_influenceChains(self):
     try:
 	#>>>Influence Joints
+	log.info(">>> %s.get_influenceChains() >> "%(self.p_nameShort) + "="*75) 		
+	
 	l_influenceChains = []
 	ml_influenceChains = []
 	for i in range(100):
@@ -761,6 +800,7 @@ def get_influenceChains(self):
     
 def get_segmentHandleChains(self):
     try:
+	log.info(">>> %s.get_segmentHandleChains() >> "%(self.p_nameShort) + "="*75) 			
 	l_segmentHandleChains = []
 	ml_segmentHandleChains = []
 	for i in range(50):
@@ -778,6 +818,7 @@ def get_segmentHandleChains(self):
 def get_segmentChains(self):
     try:
 	#Get our segment joints
+	log.info(">>> %s.get_segmentChains() >> "%(self.p_nameShort) + "="*75) 				
 	l_segmentChains = []
 	ml_segmentChains = []
 	for i in range(50):
@@ -797,6 +838,8 @@ def get_rigJointDriversDict(self,printReport = True):
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
+    log.info(">>> %s.get_rigJointDriversDict() >> "%(self.p_nameShort) + "="*75) 				
+    
     def __findDefJointFromRigJoint(i_jnt):	    
 	if i_jnt.getMessage('rigJoint'):
 	    i_rigJoint = cgmMeta.validateObjArg(i_jnt.rigJoint,cgmMeta.cgmObject)
@@ -820,14 +863,12 @@ def get_rigJointDriversDict(self,printReport = True):
     mll_segmentChains = []
     
     try:
-	ml_rigJoints = cgmMeta.validateObjListArg(self.rigNull.rigJoints,cgmMeta.cgmObject,noneValid=False)
+	ml_rigJoints = self.rigNull.msgList_get('rigJoints')
     except:
 	log.error("%s.get_deformationRigDriversDict >> no rig joints found"%self.getShortName())
 	return {}
-    try:ml_blendJoints = cgmMeta.validateObjListArg(self.rigNull.blendJoints,cgmMeta.cgmObject,noneValid=True)
-    except:pass
     
-    try:ml_blendJoints = cgmMeta.validateObjListArg(self.rigNull.blendJoints,cgmMeta.cgmObject,noneValid=True)
+    try:ml_blendJoints = self.rigNull.msgList_get('rigJoints')
     except:log.warning("%s.get_deformationRigDriversDict >> no blend joints found"%self.getShortName())
 	 
     try:mll_segmentChains = get_segmentChains(self)
@@ -837,7 +878,6 @@ def get_rigJointDriversDict(self,printReport = True):
     if not ml_blendJoints:log.warning("%s.get_deformationRigDriversDict >> no blend joints found"%self.getShortName())
     if not mll_segmentChains:log.warning("%s.get_deformationRigDriversDict >> no segment found"%self.getShortName())
     
-	    
     #>>>Declare
     l_cullRigJoints = [i_jnt.getShortName() for i_jnt in ml_rigJoints]	
     d_rigIndexToDriverInstance = {}
@@ -918,6 +958,7 @@ def get_rigJointDriversDict(self,printReport = True):
 	
 @cgmGeneral.Timer    
 def get_simpleRigJointDriverDict(self,printReport = True):
+    log.info(">>> %s.get_simpleRigJointDriverDict() >> "%(self.p_nameShort) + "="*75) 				    
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
@@ -925,18 +966,19 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     ml_blendJoints = []
     mll_segmentChains = []
     try:
-	ml_moduleJoints = cgmMeta.validateObjListArg(self.rigNull.moduleJoints,cgmMeta.cgmObject,noneValid=False)
+	ml_moduleJoints = self.rigNull.msgList_get('moduleJoints')
+	#ml_moduleJoints = cgmMeta.validateObjListArg(self.rigNull.moduleJoints,cgmMeta.cgmObject,noneValid=False)
+    except:
+	log.error("%s.get_simpleRigJointDriverDict >> no rig joints found"%self.getShortName())
+	return {}
+    try:
+	ml_rigJoints = self.rigNull.msgList_get('rigJoints')
     except:
 	log.error("%s.get_simpleRigJointDriverDict >> no rig joints found"%self.getShortName())
 	return {}
     
     try:
-	ml_rigJoints = cgmMeta.validateObjListArg(self.rigNull.rigJoints,cgmMeta.cgmObject,noneValid=False)
-    except:
-	log.error("%s.get_simpleRigJointDriverDict >> no rig joints found"%self.getShortName())
-	return {}
-    
-    try:ml_blendJoints = cgmMeta.validateObjListArg(self.rigNull.blendJoints,cgmMeta.cgmObject,noneValid=True)
+	ml_blendJoints = self.rigNull.msgList_get('blendJoints')
     except:log.warning("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
 	 
     try:mll_segmentChains = get_segmentChains(self)
@@ -945,7 +987,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     
     if not ml_blendJoints:log.warning("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
     if not mll_segmentChains:log.warning("%s.get_simpleRigJointDriverDict >> no segment found"%self.getShortName())
-    
+    if not ml_blendJoints or mll_segmentChains:
+	return False
     #>>>Declare
     d_rigJointDrivers = {}
     
@@ -1015,10 +1058,10 @@ def get_report(self):
     if not self.isSkeletonized():
 	log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
 	return False
-    l_moduleJoints = self.rigNull.getMessage('moduleJoints',False) or []
-    l_skinJoints = self.rigNull.getMessage('skinJoints',False) or []
+    l_moduleJoints = self.rigNull.msgList_get('moduleJoints',False) or []
+    l_skinJoints = get_skinJoints(self,False)
     ml_handleJoints = get_handleJoints(self) or []
-    l_rigJoints = self.rigNull.getMessage('rigJoints',False) or []
+    l_rigJoints = self.rigNull.msgList_get('rigJoints',False) or []
     ml_rigHandleJoints = get_rigHandleJoints(self)
     ml_rigDefJoints = get_rigDeformationJoints(self)
     ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
@@ -1036,54 +1079,5 @@ def get_report(self):
 	
     #except StandardError,error:
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
-"""	
-@r9General.Timer
-def build_spine(goInstance, buildTo='',): 
-    if not issubclass(type(goInstance),go):
-        log.error("Not a RigFactory.go instance: '%s'"%goInstance)
-        raise StandardError
-    self = goInstance#Link
-    
-    spine.build_shapes(self)
-    if buildTo.lower() == 'shapes':return
-    spine.build_rigSkeleton(self)  
-    if buildTo.lower() == 'skeleton':return
-    return 'pickle'
-    spine.build_controls(self)    
-    spine.build_deformation(self)
-    spine.build_rig(self)    
-        
-    return 
 
-@r9General.Timer
-def build_neckHead(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False): 
-    if not issubclass(type(goInstance),go):
-        log.error("Not a RigFactory.go instance: '%s'"%goInstance)
-        raise StandardError
-    self = goInstance#Link
-    
-    if buildShapes: neckHead.build_shapes(self)
-    if buildSkeleton: neckHead.build_rigSkeleton(self)    
-    if buildControls: neckHead.build_controls(self)    
-    if buildDeformation: neckHead.build_deformation(self)
-    if buildRig: neckHead.build_rig(self)    
-        
-    return 
-
-@r9General.Timer
-def build_leg(goInstance,buildShapes = False, buildControls = False,buildSkeleton = False, buildDeformation = False, buildRig= False):
-    Rotate orders
-    hips = 3
-    if not issubclass(type(goInstance),go):
-        log.error("Not a RigFactory.go instance: '%s'"%goInstance)
-        raise StandardError
-    self = goInstance#Link
-    
-    if buildShapes: leg.build_shapes(self)
-    if buildSkeleton: leg.build_rigSkeleton(self)    
-    if buildControls: leg.build_controls(self)    
-    if buildDeformation: leg.build_deformation(self)
-    if buildRig: leg.build_rig(self)    
-        
-    return """
 

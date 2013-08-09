@@ -322,6 +322,7 @@ def getGeneratedCoreNames(self):
 #>>> Rig
 #=====================================================================================================
 def doRig(self,*args,**kws):
+    log.info(">>> %s.doRig() >> "%(self.p_nameShort) + "="*75) 		            
     if not isSkeletonized(self):
         log.warning("%s.doRig>>> Not not skeletonized"%self.getShortName())
         return False      
@@ -345,20 +346,22 @@ def isRigged(self):
     """
     Return if a module is rigged or not
     """
-    log.debug(">>> isRigged")
+    log.info(">>> %s.isRigged() >> "%(self.p_nameShort) + "="*75) 		        
     coreNamesValue = self.i_coreNames.value
     i_rigNull = self.rigNull
     str_shortName = self.getShortName()
     
-    l_skinJoints = i_rigNull.getMessage('skinJoints',False)
-    l_rigJoints = i_rigNull.getMessage('rigJoints',False)
-    if not l_rigJoints:
+    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+    l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints]
+    l_skinJoints = mRig.get_skinJoints(self,asMeta=False)
+    
+    if not ml_rigJoints:
         log.debug("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
 	i_rigNull.version = ''#clear the version	
         return False
     
     #Not a fan of this test
-    if not i_rigNull.rigJoints[0].getConstraintsTo():
+    if not ml_rigJoints[0].getConstraintsTo():
 	return False
         
     if len( l_skinJoints ) < len( l_rigJoints ):
@@ -367,7 +370,7 @@ def isRigged(self):
         return False
     
     for attr in ['controlsFK','controlsAll']:
-        if not i_rigNull.getMessage(attr):
+        if not i_rigNull.msgList_get(attr,asMeta = False):
             log.debug("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
 	    i_rigNull.version = ''#clear the version            
             return False    
@@ -384,6 +387,7 @@ def rigDelete(self,*args,**kws):
     
     #if not isRigged(self):
         #raise StandardError,"moduleFactory.rigDelete('%s')>>>> Module not rigged"%(str_shortName)
+    log.info(">>> %s.rigDelete() >> "%(self.p_nameShort) + "="*75) 		            
     
     if isRigConnected(self):
 	rigDisconnect(self)#Disconnect
@@ -421,18 +425,19 @@ def rigDelete(self,*args,**kws):
 
 ##@r9General.Timer
 def isRigConnected(self,*args,**kws):
+    log.info(">>> %s.isRigConnected() >> "%(self.p_nameShort) + "="*75) 		                
     str_shortName = self.getShortName()
     if not isRigged(self):
         log.info("moduleFactory.isRigConnected('%s')>>>> Module not rigged"%(str_shortName))
 	return False
     i_rigNull = self.rigNull
-    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
-    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+    ml_skinJoints = mRig.get_skinJoints(self,asMeta=True)
     
-    for i,i_jnt in enumerate(i_rigNull.skinJoints):
+    for i,i_jnt in enumerate(ml_skinJoints):
 	try:
-	    if not i_jnt.isConstrainedBy(i_rigNull.rigJoints[i].mNode):
-		log.info("'%s'>>not constraining>>'%s'"%(i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
+	    if not i_jnt.isConstrainedBy(ml_rigJoints[i].mNode):
+		log.info("'%s'>>not constraining>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))
 		return False
 	except StandardError,error:
 	    log.error(error)
@@ -442,6 +447,7 @@ def isRigConnected(self,*args,**kws):
 
 ##@r9General.Timer
 def rigConnect(self,*args,**kws):
+    log.info(">>> %s.rigConnect() >> "%(self.p_nameShort) + "="*75) 		                    
     str_shortName = self.getShortName()
     if not isRigged(self):
         raise StandardError,"moduleFactory.rigConnect('%s')>>>> Module not rigged"%(str_shortName)
@@ -449,18 +455,18 @@ def rigConnect(self,*args,**kws):
         raise StandardError,"moduleFactory.rigConnect('%s')>>>> Module already connected"%(str_shortName)
     
     i_rigNull = self.rigNull
-    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
-    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+    ml_skinJoints = mRig.get_skinJoints(self,asMeta=True)
 
-    if len(l_skinJoints)!=len(l_rigJoints):
+    if len(ml_skinJoints)!=len(ml_rigJoints):
 	raise StandardError,"moduleFactory.rigConnect('%s')>> Rig/Skin joint chain lengths don't match"%self.getShortName()
     
-    for i,i_jnt in enumerate(i_rigNull.skinJoints):
+    for i,i_jnt in enumerate(ml_skinJoints):
 	try:
-	    log.info("'%s'>>drives>>'%s'"%(i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
-	    pntConstBuffer = mc.pointConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-	    orConstBuffer = mc.orientConstraint(i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-	    attributes.doConnectAttr((i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+	    log.info("'%s'>>drives>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))
+	    pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+	    orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+	    attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
 	except:
 	    raise StandardError,"moduleFactory.rigConnect('%s')>> Joint failed: %s"%i_jnt.getShortName()
 
@@ -470,6 +476,7 @@ def rigDisconnect(self,*args,**kws):
     """
     See if rigged and connected. Zero. Gather constraints, delete, break connections
     """
+    log.info(">>> %s.rigDisconnect() >> "%(self.p_nameShort) + "="*75) 		                        
     str_shortName = self.getShortName()
     if not isRigged(self):
         raise StandardError,"moduleFactory.rigDisconnect('%s')>>>> Module not rigged"%(str_shortName)
@@ -501,21 +508,24 @@ def rig_getReport(self,*args,**kws):
     #except StandardError,error:
         #log.warning(error)
 	
-def rig_getHandleJoints(self):
+def rig_getSkinJoints(self,asMeta = True):    
+    return mRig.get_skinJoints(self,asMeta)      
+	
+def rig_getHandleJoints(self,asMeta = True):
     """
     Find the module handle joints
     """
     try:
-	return mRig.get_handleJoints(self)
+	return mRig.get_handleJoints(self,asMeta)
     except StandardError,error:
 	raise StandardError,"%s.rig_getHandleJoints >> failed: %s"%(self.getShortName(),error)
     
-def rig_getRigHandleJoints(self):
+def rig_getRigHandleJoints(self,asMeta = True):
     """
     Find the module handle joints
     """
     try:
-	return mRig.get_rigHandleJoints(self)
+	return mRig.get_rigHandleJoints(self,asMeta)
     except StandardError,error:
 	raise StandardError,"%s.rig_getRigHandleJoints >> failed: %s"%(self.getShortName(),error)
     
@@ -527,7 +537,7 @@ def isTemplated(self):
     """
     Return if a module is templated or not
     """
-    log.debug(">>> isTemplated")
+    log.info(">>> %s.isTemplated() >> "%(self.p_nameShort) + "="*75) 		                        
     coreNamesValue = self.i_coreNames.value
     if not coreNamesValue:
         log.debug("No core names found")
@@ -562,6 +572,8 @@ def isTemplated(self):
 
 ##@r9General.Timer   
 def doTemplate(self,*args,**kws):
+    log.info(">>> %s.doTemplate() >> "%(self.p_nameShort) + "="*75) 		                        
+    
     if not isSized(self):
         log.warning("Not sized: '%s'"%self.getShortName())
         return False      
@@ -575,6 +587,7 @@ def doTemplate(self,*args,**kws):
     
 ##@r9General.Timer   
 def deleteTemplate(self,*args,**kws):
+    log.info(">>> %s.deleteTemplate() >> "%(self.p_nameShort) + "="*75) 		                            
     try:
         objList = returnTemplateObjects(self)
         if objList:
@@ -587,6 +600,7 @@ def deleteTemplate(self,*args,**kws):
         
 ##@r9General.Timer   
 def returnTemplateObjects(self):
+    log.info(">>> %s.returnTemplateObjects() >> "%(self.p_nameShort) + "="*75) 		                                
     try:
         templateNull = self.templateNull.getShortName()
         returnList = []
@@ -601,6 +615,7 @@ def returnTemplateObjects(self):
 #=====================================================================================================
 def get_rollJointCountList(self):
     try:
+	log.info(">>> %s.get_rollJointCountList() >> "%(self.p_nameShort) + "="*75) 		                                	
 	int_rollJoints = self.templateNull.rollJoints
 	d_rollJointOverride = self.templateNull.rollOverride
 	if type(d_rollJointOverride) is not dict:d_rollJointOverride = {}
@@ -623,13 +638,12 @@ def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
     """
-    log.debug(">>> isSkeletonized")
+    log.info(">>> %s.isSkeletonized() >> "%(self.p_nameShort) + "="*75) 		                                	
     if not isTemplated(self):
         log.debug("Not templated, can't be skeletonized yet")
         return False
     
-    l_moduleJoints = self.rigNull.getMessage('moduleJoints')
-    #iList_moduleJoints = self.rigNull.moduleJoints
+    l_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta=False)
     if not l_moduleJoints:
         log.debug("No skin joints found")
         return False  
@@ -644,6 +658,7 @@ def isSkeletonized(self):
 
 #@r9General.Timer   
 def doSkeletonize(self,*args,**kws):
+    log.info(">>> %s.doSkeletonize() >> "%(self.p_nameShort) + "="*75) 		                                	    
     try:
         if not isTemplated(self):
             log.warning("Not templated, can't skeletonize: '%s'"%self.getShortName())
@@ -656,7 +671,8 @@ def doSkeletonize(self,*args,**kws):
     except StandardError,error:
 	raise StandardError,"%s.doSkeletonize >> failed: %s"%(self.getShortName(),error)	
         
-def deleteSkeleton(self,*args,**kws):  
+def deleteSkeleton(self,*args,**kws): 
+    log.info(">>> %s.deleteSkeleton() >> "%(self.p_nameShort) + "="*75) 		                                	        
     if isSkeletonized(self):
         jFactory.deleteSkeleton(self,*args,**kws)
     return True
@@ -665,6 +681,7 @@ def returnExpectedJointCount(self):
     """
     Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
     """
+    log.info(">>> %s.returnExpectedJointCount() >> "%(self.p_nameShort) + "="*75) 		                                	            
     handles = self.templateNull.handles
     if handles == 0:
         log.warning("Can't count expected joints. 0 handles: '%s'"%self.getShortName())
@@ -693,7 +710,6 @@ def returnExpectedJointCount(self):
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
-
 #@r9General.Timer   
 def validateStateArg(stateArg):
     #>>> Validate argument

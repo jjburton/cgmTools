@@ -1605,6 +1605,12 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.doSkeletonized)
         """
         return mFactory.doSkeletonized(self)
+    def skeletonDelete(self):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.deleteSkeleton)
+        """
+        return mFactory.deleteSkeleton(self)
     
     #>>> Rig
     #===========================================================
@@ -1657,19 +1663,26 @@ class cgmModule(cgmMeta.cgmObject):
         """
         return mFactory.rig_getReport(self)  
     
-    def rig_getHandleJoints(self):
+    def rig_getSkinJoints(self,asMeta = True):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.rig_getSkinJoints)
+        """
+        return mFactory.rig_getSkinJoints(self,asMeta)  
+    
+    def rig_getHandleJoints(self,asMeta = True):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getHandleJoints)
         """
-        return mFactory.rig_getHandleJoints(self)
+        return mFactory.rig_getHandleJoints(self,asMeta)
     
-    def rig_getRigHandleJoints(self):
+    def rig_getRigHandleJoints(self,asMeta = True):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getRigHandleJoints)
         """
-        return mFactory.rig_getRigHandleJoints(self)      
+        return mFactory.rig_getRigHandleJoints(self,asMeta)      
     
     def get_rollJointCountList(self):
         """
