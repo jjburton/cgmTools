@@ -330,6 +330,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("getComponents: %s"%error)	
 		return False
 	    
+    #Connection stuff =========================================================================
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
         Fast method of connecting a node to the mNode via a message attr link. This call
@@ -429,12 +430,112 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("connectChildrenNodes can't add: '%s'"%node)
 		
 	attributes.storeObjectsToMessage(nodesToDo,self.mNode,attr)
-	for node in nodesToDo:
+	
+	for i,node in enumerate(nodesToDo):
+	    #attributes.storeObjectToMessage(node,self.mNode,"%s_%s"%(attr,i))
 	    try:
 		if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
 	    except StandardError,error:
 		log.warning("connectChildrenNodes: %s"%error)
+		
+    #msgList Functions =====================================================================
+    @cgmGeneral.Timer
+    def msgList_connect(self, nodes, attr, connectBack = None):
+        """
+        Because multimessage data can't be counted on for important sequential connections we have
+	implemented this.
+        
+        @param node: Maya node to connect to this mNode
+        @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
+        @param connectBack: attr name to connect back to self
+        @param purge: Whether to purge before build
+	
+	Usage Example:
+        from cgm.core import cgm_Meta as cgmMeta
+	cgmO = cgmObject()
+	cgm02 = cgmObject()
+	cgmO.connectChildNode(cgm02.mNode,'childNode','parentNode')
+        """	
+	try:
+	    log.info(">>> %s.connect_msgList >> "%self.p_nameShort + "="*75) 
+	    self.msgList_purge(attr)#purge first
 	    
+	    ml_nodes = validateObjListArg(nodes,noneValid=True)
+	    for i,mi_node in enumerate(ml_nodes):
+		str_attr = "%s_%i"%(attr,i)
+		self.connectChildNode(mi_node,str_attr,connectBack)
+		log.info("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
+	    log.info("-"*100)            	
+	    return True
+	except StandardError,error:
+	    raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
+    
+    @cgmGeneral.Timer
+    def msgList_get(self,attr = None, asMeta = True):
+	"""
+	"""
+	try:
+	    log.debug(">>> %s.get_msgList(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+	    d_attrs = self.get_sequentialAttrDict(attr)
+	    l_return = []
+	    ml_return = []
+	    for i,k in enumerate(d_attrs.keys()):
+		buffer = self.getMessage(d_attrs[i])
+		if buffer:buffer = buffer[0]
+		l_return.append(buffer)
+		if asMeta:
+		    ml_return.append( validateObjArg(buffer,noneValid=True) )
+		    log.debug("index: %s | msg: '%s' | mNode: %s"%(i,buffer,ml_return[i]))
+		else:log.debug("index: %s | msg: '%s' "%(i,buffer))
+	    
+	    log.debug("-"*100)  
+	    if asMeta:return ml_return
+	    return l_return
+	except StandardError,error:
+	    raise StandardError, "%s.get_msgList >>[Error]<< : %s"(self.p_nameShort,error)
+	
+    def msgList_purge(self,attr):
+	"""
+	Purge all the attributes of a msgList
+	"""
+	try:
+	    log.debug(">>> %s.get_msgList(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+	    d_attrs = self.get_sequentialAttrDict(attr)
+	    for i,k in enumerate(d_attrs.keys()):
+		str_attr = d_attrs[i]
+		self.doRemove(str_attr)
+		log.debug("Removed: '%s'"%str_attr)
+		
+	    log.debug("-"*100)            	               	
+	    return True   
+	except StandardError,error:
+	    raise StandardError, "%s.msgList_purge >>[Error]<< : %s"(self.p_nameShort,error)
+	
+    def get_sequentialAttrDict(self,attr = None):
+	"""
+	Get a sequential attr dict. Our attr should be listed without the tail '_'
+	ex: {0: u'back_to_back_0', 1: u'back_to_back_1'}
+	"""
+	log.debug(">>> %s.get_sequentialAttrDict(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)            		
+	userAttrs = self.getUserAttrsAsDict()
+	d_attrList = {}
+	for key in userAttrs.keys():
+	    if '_' in key:
+		_split = key.split('_')
+		_int_ = _split[-1]
+		_str_ = ('_').join(_split[:-1])
+		if "%s"%attr == _str_:
+		    try:
+			d_attrList[int(_int_)] = key
+			log.debug("match: '%s'"%key)
+		    except:log.warning("%s failed to int | int: %s"%(key,_int_))
+		    
+	log.debug("-"*100)            	               	
+	return d_attrList	
+	    
+	    
+	    
+    #Attr stuff =========================================================================
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
 	    #enum special handling
@@ -532,6 +633,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     #=========================================================================      
     # Get Info
     #========================================================================= 
+    def get_nextSequentialAttr(self,attr = None):
+	if attr in [None,False,True]:
+	    log.warning("cgmNode.get_nextAvailableAttr>>> bad attr arg: '%s'"%attr)
+	    return False
+	cnt = self.returnNextAvailableAttrCnt(attr)
+	return "%s%s"%(attr,cnt)
+	
     def returnNextAvailableAttrCnt(self,attr = None):
 	if attr in [None,False,True]:
 	    log.warning("cgmNode.returnNextAvailableAttrCnt>>> bad attr arg: '%s'"%attr)
@@ -916,7 +1024,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	i_loc.doName()
 	return i_loc
     
-    def doDuplicate(self,parentOnly = True, incomingConnections = True, breakMessagePlugsOut = False):
+    def doDuplicate(self,parentOnly = True, incomingConnections = True, breakMessagePlugsOut = False,**kws):
         """
         Return a duplicated object instance
 
@@ -3822,6 +3930,8 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	if argType in [list,tuple]:#make sure it's not a list
 	    if len(arg) ==1:
 		arg = arg[0]
+	    elif arg == []:
+		arg = None
 	    else:
 		raise StandardError,"validateObjArg>>> arg cannot be list or tuple: %s"%arg	
 	if not noneValid:
