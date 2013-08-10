@@ -1337,27 +1337,29 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
     # functions
     #======================================================================
     def __verify__(self,*args,**kws):
-	log.info(">>> %s.__verify__() >> "%(self.p_nameShort) + "="*75) 		        	
 	if self.hasAttr('mClass') and self.mClass!='cgmDynParentGroup':
 	    raise StandardError, "cgmDynParentGroup.__verify__>> This object has a another mClass and setClass is not set to True"
-	#Check our attrs
-	if self._mi_dynChild:
-	    self.addDynChild(self._mi_dynChild)
-	    #self.doStore('cgmName',self._mi_dynChild.mNode)
-	self.addAttr('mClass','cgmDynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
-	self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
-	
-	self.addAttr('dynMode',attrType = 'enum', enumName= 'space:orient:follow', keyable = False, hidden=True)
-        self.addAttr('dynChild',attrType = 'messageSimple',lock=True)
-        #self.addAttr('dynParents',attrType = 'message',lock=True)
-	#self.addAttr('dynDrivers',attrType = 'message',lock=True)
-	self.addAttr('dynFollow',attrType = 'messageSimple',lock=True)				
-	
-	#Unlock all transform attriutes
-	for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
-	    cgmMeta.cgmAttr(self,attr,lock=False)
-	self.doName()
-	return True
+	log.info(">>> %s.__verify__() >> "%(self.p_nameShort) + "="*75) 
+	try:
+	    #Check our attrs
+	    if self._mi_dynChild:
+		self.addDynChild(self._mi_dynChild)
+		#self.doStore('cgmName',self._mi_dynChild.mNode)
+	    self.addAttr('mClass','cgmDynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
+	    self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
+	    
+	    self.addAttr('dynMode',attrType = 'enum', enumName= 'space:orient:follow', keyable = False, hidden=True)
+	    self.addAttr('dynChild',attrType = 'messageSimple',lock=True)
+	    self.addAttr('dynFollow',attrType = 'messageSimple',lock=True)				
+	    
+	    #Unlock all transform attriutes
+	    for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+		cgmMeta.cgmAttr(self,attr,lock=False)
+	    self.doName()
+	    return True
+	except StandardError,error:
+	    raise StandardError, ">>> %s.__verify__() Fail! >> %s"%(self.p_nameShort,error)
+    
     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 

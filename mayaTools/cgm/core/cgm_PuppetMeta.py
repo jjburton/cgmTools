@@ -1695,7 +1695,7 @@ class cgmModule(cgmMeta.cgmObject):
     #========================================================================
     def animKey(self,**kws):
 	try:
-	    buffer = self.rigNull.getMessage('controlsAll')
+	    buffer = self.rigNull.msgList_getMessage('controlsAll')
 	    if buffer:
 		mc.select(buffer)
 		mc.setKeyframe(**kws)
@@ -1706,7 +1706,7 @@ class cgmModule(cgmMeta.cgmObject):
 	    return False
     def animSelect(self,**kws):
 	try:
-	    buffer = self.rigNull.getMessage('controlsAll')
+	    buffer = self.rigNull.msgList_getMessage('controlsAll')
 	    if buffer:
 		mc.select(buffer)
 		return True

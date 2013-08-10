@@ -98,7 +98,8 @@ class go(object):
         self.mi_templateNull = self._mi_module.templateNull#speed link
 	self.mi_rigNull = self._mi_module.rigNull#speed link
         self._targetMesh = self._mi_module.modulePuppet.getUnifiedGeo() or self._mi_module.modulePuppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
-	self.ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
+	self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
+	self._ml_controlObjects = self.mi_templateNull.msgList_get('controlObjects')
         #>>> part name 
         self._partName = self._mi_module.getPartNameBase()
         self._partType = self._mi_module.moduleType or False
@@ -137,6 +138,7 @@ class go(object):
 	    #if key not in self.d_returnControls:
 		#log.warning("Necessary control shape(s) was not built: '%s'"%key)
 		#raise StandardError,"Did not get all necessary controls built"
+		
 	if storageInstance:
 	    try:
 		storageInstance._d_controlShapes = self.d_returnControls
@@ -196,7 +198,7 @@ class go(object):
 	This makes sure we have the ones we need and pushes them to the segment stuff
 	"""
 	self.l_controlSnapObjects = []
-	for mi_obj in self.mi_templateNull.controlObjects:
+	for mi_obj in self._ml_controlObjects:
 	    self.l_controlSnapObjects.append(mi_obj.helper.mNode)  
 	self.l_segmentControls = []
 	self.l_segmentHandles = []
@@ -600,7 +602,7 @@ class go(object):
 	#============================================================================	
 	#find the foot. 1) Build search dict	
 	ml_controlSnapObjects = []
-	for mi_obj in self._mi_module.templateNull.controlObjects:
+	for mi_obj in self._ml_controlObjects:
 	    ml_controlSnapObjects.append(mi_obj.helper)  
 	log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
 	if len(ml_controlSnapObjects) > 2:
@@ -749,13 +751,13 @@ class go(object):
     @r9General.Timer	
     def build_loliHandles(self):
 	#Target objects expected
-	if not self.ml_targetObjects:raise StandardError,"build_loliHandles requires target objects"
+	if not self._ml_targetObjects:raise StandardError,"build_loliHandles requires target objects"
 	
 	try:
 	    l_controls = []
 	    ml_controls = []
 
-	    for i,i_target in enumerate(self.ml_targetObjects):	
+	    for i,i_target in enumerate(self._ml_targetObjects):	
 		d_size = ShapeCast.returnBaseControlSize(i_target,self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])#Get size			
 		l_size = d_size.get('average')
 		size = sum(l_size)/1.5
@@ -989,7 +991,7 @@ class go(object):
 	    if mi_footModule in ml_children:log.debug("found match modules: %s"%mi_footModule)
 	    
 	    ml_controlSnapObjects = []
-	    for mi_obj in mi_footModule.templateNull.controlObjects:
+	    for mi_obj in mi_footModule.templateNull.msgList_get('controlObjects'):
 		ml_controlSnapObjects.append(mi_obj.helper)  
 	    log.debug("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
 	    if ml_controlSnapObjects[1].cgmName != 'ball':
@@ -1142,7 +1144,7 @@ class go(object):
 	    if mi_footModule in ml_children:log.info("found match modules: %s"%mi_footModule)
 	    
 	    ml_controlSnapObjects = []
-	    for mi_obj in mi_footModule.templateNull.controlObjects:
+	    for mi_obj in mi_footModule.templateNull.msgList_get('controlObjects'):
 		ml_controlSnapObjects.append(mi_obj.helper)  
 	    log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
 	    if ml_controlSnapObjects[1].cgmName != 'ball':
@@ -1540,8 +1542,8 @@ class go(object):
 		d_kws['default']['aimAxis']= 'x-'
 		d_kws[0]['rotateBank'] = 10
 		
-	if self.ml_targetObjects:
-	    l_objectsToDo = [i_o.mNode for i_o in self.ml_targetObjects]
+	if self._ml_targetObjects:
+	    l_objectsToDo = [i_o.mNode for i_o in self._ml_targetObjects]
 	elif not l_objectsToDo:
 	    l_objectsToDo = self.l_controlSnapObjects
 	    
@@ -1554,7 +1556,7 @@ class go(object):
 	    log.info(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
 	    log.info(">>>>>>>>>> distance: %s"%self.maxDistance)
 	    #Few more special cases
-	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle'] and not self.ml_targetObjects:
+	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle'] and not self._ml_targetObjects:
 		log.info('Special rotate mode')
 		self.rootRotate = [0,0,0]
 		self.latheAxis = 'y'	 

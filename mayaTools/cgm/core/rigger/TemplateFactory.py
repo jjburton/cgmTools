@@ -275,10 +275,10 @@ def returnModuleBaseSize(self):
         if i_parent.isTemplated():#If the parent has been templated, it makes things easy
             log.debug("Parent has been templated...")
             nameCount = len(self.coreNames.value) or 1
-            parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
-            log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
+            l_parentTemplateObjects = i_parent.templateNull.msgList_get('controlObjects',asMeta = False)
+            log.debug("l_parentTemplateObjects: %s"%l_parentTemplateObjects)
             log.debug("firstPos: %s"%i_templateNull.templateStarterData[0])
-            closestObj = distance.returnClosestObjectFromPos(i_templateNull.templateStarterData[0],parentTemplateObjects)
+            closestObj = distance.returnClosestObjectFromPos(i_templateNull.templateStarterData[0],l_parentTemplateObjects)
             #Find the closest object from the parent's template object
             log.debug("closestObj: %s"%closestObj)
             
@@ -325,11 +325,11 @@ def constrainToParentModule(self):
         parentState = i_parent.getState()
         if i_parent.isTemplated():#If the parent has been templated, it makes things easy
             log.debug("Parent has been templated...")
-            parentTemplateObjects = i_parent.templateNull.getMessage('controlObjects')
-            log.debug("parentTemplateObjects: %s"%parentTemplateObjects)
-            closestObj = distance.returnClosestObject(i_templateNull.getMessage('root')[0],parentTemplateObjects)
+            l_parentTemplateObjects = i_parent.templateNull.msgList_getMessage('controlObjects')
+            log.debug("l_parentTemplateObjects: %s"%l_parentTemplateObjects)
+            closestObj = distance.returnClosestObject(i_templateNull.getMessage('root')[0],l_parentTemplateObjects)
             log.debug("closestObj: %s"%closestObj)
-            if parentTemplateObjects.index(closestObj) == 0:#if it's the first object, connect to the root
+            if l_parentTemplateObjects.index(closestObj) == 0:#if it's the first object, connect to the root
                 log.info('Use root for parent object')
                 closestObj = i_parent.templateNull.root.mNode
                 
@@ -375,7 +375,7 @@ def doMakeLimbTemplate(self):
     mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[1]), progress=1)    					    
     
     templHandleList = []
-    self.i_controlObjects = []
+    self.ml_controlObjects = []
     self.i_locs = []
     for i,pos in enumerate(self.corePosList):# Don't like this sizing method but it is what it is for now
         #>> Make each of our base handles
@@ -419,7 +419,7 @@ def doMakeLimbTemplate(self):
         mc.pointConstraint(i_obj.mNode,i_loc.mNode,maintainOffset = False)#Point contraint loc to the object
                     
         templHandleList.append (i_obj.mNode)
-        self.i_controlObjects.append(i_obj)
+        self.ml_controlObjects.append(i_obj)
         
     #>> Make the curve
     #============================= 
@@ -437,7 +437,7 @@ def doMakeLimbTemplate(self):
     i_crv.doName()
     i_crv.setDrawingOverrideSettings({'overrideEnabled':1,'overrideDisplayType':2},True)
         
-    for i,i_obj in enumerate(self.i_controlObjects):#Connect each of our handles ot the cv's of the curve we just made
+    for i,i_obj in enumerate(self.ml_controlObjects):#Connect each of our handles ot the cv's of the curve we just made
         mc.connectAttr ( (i_obj.curveLoc.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
         
     
@@ -473,8 +473,8 @@ def doMakeLimbTemplate(self):
             constBuffer = mc.aimConstraint(templHandleList[-1],i_rootControl.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.worldUpVector, worldUpType = 'vector' )
             mc.delete (constBuffer[0])    
         elif self.m.getMessage('moduleParent'):
-            #parentTemplateObjects =  self.m.moduleParent.templateNull.getMessage('controlObjects')
-            helper = self.m.moduleParent.templateNull.controlObjects[-1].helper.mNode
+            #l_parentTemplateObjects =  self.m.moduleParent.templateNull.getMessage('controlObjects')
+            helper = self.m.moduleParent.templateNull.msgList_get('controlObjects',asMeta = True)[-1].helper.mNode
             if helper:
                 log.info("helper: %s"%helper)
                 constBuffer = mc.orientConstraint( helper,i_rootControl.mNode,maintainOffset = False)
@@ -488,7 +488,7 @@ def doMakeLimbTemplate(self):
     #=============================      
     self.i_templateNull.curve = i_crv.mNode
     self.i_templateNull.root = i_rootControl.mNode
-    self.i_templateNull.controlObjects = templHandleList
+    self.i_templateNull.msgList_connect(templHandleList,'controlObjects')
     
     self.i_rootControl = i_rootControl#link to carry
 
@@ -509,7 +509,7 @@ def doMakeLimbTemplate(self):
 def doOrientTemplateObjectsToMaster(self):
     log.info(">>> %s.doOrientTemplateObjectsToMaster >> "%self.p_nameShort + "="*75)            	
     i_rootOrient = self.templateNull.orientRootHelper
-    for i_obj in self.templateNull.controlObjects:
+    for i_obj in self.templateNull.msgList_get('controlObjects',asMeta = True):
 	#orient the group above
 	Snap.go(i_obj.parent,i_obj.helper.mNode,move=False,orient=True)
     
@@ -529,7 +529,7 @@ def doCreateOrientationHelpers(self):
     helperObjectGroups = []
     returnBuffer = []
     root = self.i_templateNull.getMessage('root')[0]
-    objects =  self.i_templateNull.getMessage('controlObjects')
+    objects =  self.i_templateNull.msgList_get('controlObjects',asMeta = False)
     log.debug(root)
     log.debug(objects)
     log.debug(self.foundDirections)
@@ -611,10 +611,10 @@ def doCreateOrientationHelpers(self):
     bufferList = []
     for o in self.i_orientHelpers:
         bufferList.append(o.mNode)
-    self.i_templateNull.orientHelpers = bufferList
+    self.i_templateNull.msgList_connect(bufferList,'orientHelpers')
     self.i_orientRootHelper = i_orientRootControl
     log.debug("orientRootHelper: [%s]"%self.i_templateNull.orientRootHelper.getShortName())   
-    log.debug("orientHelpers: %s"%self.i_templateNull.getMessage('orientHelpers'))
+    log.debug("orientHelpers: %s"%self.i_templateNull.msgList_getMessage('orientHelpers'))
 
     return True
 
@@ -626,23 +626,23 @@ def doParentControlObjects(self):
     log.info(">>> doParentControlObjects")
     i_templateNull = self.templateNull#link for speed
     i_root = i_templateNull.root
-    i_controlObjects = i_templateNull.controlObjects
+    ml_controlObjects = i_templateNull.msgList_get('controlObjects',asMeta = True)
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #>> Parent objects
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    for i_obj in i_controlObjects:
+    for i_obj in ml_controlObjects:
         i_obj.parent = i_root.mNode
         
-    #i_controlObjects[0].doGroup(maintain=True)#Group to zero out
-    #i_controlObjects[-1].doGroup(maintain=True)  
+    #ml_controlObjects[0].doGroup(maintain=True)#Group to zero out
+    #ml_controlObjects[-1].doGroup(maintain=True)  
     
-    log.debug(i_templateNull.getMessage('controlObjects',False))
+    log.debug(i_templateNull.msgList_getMessage('controlObjects',False))
     """
     if self.moduleType not in ['foot']:
-        constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.getMessage('controlObjects',False))    
+        constraintGroups = constraints.doLimbSegmentListParentConstraint(i_templateNull.msgList_getMessage('controlObjects',False))    
 	"""
-    for i_obj in i_controlObjects:
+    for i_obj in ml_controlObjects:
 	pBuffer = i_obj.doGroup(maintain=True)
 	i_parent = cgmMeta.cgmObject(i_obj.parent,setClass=True)
 	i_obj.addAttr('owner',i_parent.mNode,attrType = 'messageSimple',lock=True)
@@ -666,16 +666,16 @@ def updateTemplate(self,saveTemplatePose = False,**kws):
     i_templateNull = self.templateNull#link for speed
     corePosList = i_templateNull.templateStarterData
     i_root = i_templateNull.root
-    i_controlObjects = i_templateNull.controlObjects
+    ml_controlObjects = i_templateNull.msgList_get('controlObjects',asMeta = True)
     
     #if not cgmMath.isVectorEquivalent(i_templateNull.controlObjects[0].translate,[0,0,0]):
         #raise StandardError,"updateTemplate: doesn't currently support having a moved first template object"
         #return False
     
     mc.xform(i_root.parent, translation = corePosList[0],worldSpace = True)
-    mc.xform(i_controlObjects[0].parent, translation = corePosList[0],worldSpace = True)
+    mc.xform(ml_controlObjects[0].parent, translation = corePosList[0],worldSpace = True)
     
-    for i,i_obj in enumerate(i_controlObjects[1:]):
+    for i,i_obj in enumerate(ml_controlObjects[1:]):
         log.info(i_obj.getShortName())
         #objConstraints = constraints.returnObjectConstraints(i_obj.parent)
         #if objConstraints:mc.delete(objConstraints) 
@@ -684,8 +684,8 @@ def updateTemplate(self,saveTemplatePose = False,**kws):
         #if buffer:mc.delete(buffer)
         mc.xform(i_obj.mNode, translation = corePosList[1:][i],worldSpace = True) 
         
-    buffer = search.returnParentsFromObjectToParent(i_controlObjects[0].mNode,i_root.mNode)
-    i_controlObjects[0].parent = False
+    buffer = search.returnParentsFromObjectToParent(ml_controlObjects[0].mNode,i_root.mNode)
+    ml_controlObjects[0].parent = False
     if buffer:mc.delete(buffer)
     
     doParentControlObjects(self)

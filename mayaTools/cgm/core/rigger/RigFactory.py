@@ -19,6 +19,7 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
+reload(cgmRigMeta)
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
