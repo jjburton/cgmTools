@@ -107,7 +107,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    if self.ml_modules:
 		l_buffer = []
 		for i_m in self.ml_modules:
-		    l_buffer.extend( i_m.rigNull.getMessage('controlsAll') )
+		    l_buffer.extend( i_m.rigNull.msgList_getMessage('controlsAll') )
 		mc.select(l_buffer )
 	    killUI()	
 	    
@@ -125,7 +125,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    """		
 	    if self.ml_modules:
 		for i_m in self.ml_modules:
-		    l_buffer.extend( i_m.rigNull.getMessage('controlsAll') )
+		    l_buffer.extend( i_m.rigNull.msgList_getMessage('controlsAll') )
 		mc.select(l_buffer )
 	    killUI()	
 	    
@@ -366,7 +366,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		except StandardError,error:
 		    log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
 		try:#module basic menu
-		    if i_module.rigNull.getMessage('controlsAll'):
+		    if i_module.rigNull.msgList_exists('controlsAll'):
 			MelMenuItem( use_parent, l="Key",
 			             c = Callback(i_module.animKey))
 			#MelMenuItem( parent, l="Select",
