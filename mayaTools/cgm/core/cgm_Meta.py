@@ -496,7 +496,49 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return l_return
 	except StandardError,error:
 	    raise StandardError, "%s.get_msgList >>[Error]<< : %s"(self.p_nameShort,error)
+    
+    def msgList_append(self, node, attr = None, connectBack = None):
+	"""
+	Append node to msgList
+	"""
+	#try:
+	i_node = validateObjArg(node,noneValid=True)
+	if not i_node:
+	    raise StandardError, " %s.msgList_append >> invalid node: %s"%(self.p_nameShort,node)
+	#if not self.msgList_exists(attr):
+	    #raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
 	
+	log.info(">>> %s.msgList_append(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
+	
+	ml_nodes = self.msgList_get(attr,asMeta=True)
+	if i_node in ml_nodes:
+	    log.info(">>> %s.msgList_append >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
+	    return True
+	else:
+	    log.info("%s"%i_node.p_nameShort)
+	    ml_nodes.append(i_node)
+	    self.msgList_connect(ml_nodes,attr,connectBack)
+	log.debug("-"*100)            	               	
+	return True 
+    
+    def msgList_index(self, node, attr = None):
+	"""
+	Return the index of a node if it's in a msgList
+	"""
+	i_node = validateObjArg(node,noneValid=True)
+	if not i_node:
+	    raise StandardError, " %s.msgList_index >> invalid node: %s"%(self.p_nameShort,node)
+	if not self.msgList_exists(attr):
+	    raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
+	log.info(">>> %s.msgList_index(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
+	ml_nodes = self.msgList_get(attr,asMeta=True)	
+	if i_node in ml_nodes:
+	    log.info(">>> %s.msgList_index >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
+	    return ml_nodes.index(i_node)
+	
+	log.debug("-"*100)            	               	
+	return False
+
     def msgList_purge(self,attr):
 	"""
 	Purge all the attributes of a msgList
@@ -526,6 +568,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return True   
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
+    
     @cgmGeneral.Timer
     def msgList_exists(self,attr):
 	"""
