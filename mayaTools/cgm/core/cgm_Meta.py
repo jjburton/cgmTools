@@ -226,7 +226,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    except:pass
 	try:r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
 	except StandardError,error:
-	    raise StandardError, "%s.__setattr__: %s"%(self.getShortName(),error)
+	    raise StandardError, "%s.__setattr__(attr  = %s,value= %s) | error: %s"%(self.getShortName(),attr,value,error)
+	
 	if lock is not None and not self.isReferenced():
 	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	  
 	    
@@ -452,10 +453,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
         """	
 	try:
-	    log.info(">>> %s.connect_msgList( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 
-	    self.msgList_purge(attr)#purge first
-	    
+	    log.info(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
 	    ml_nodes = validateObjListArg(nodes,noneValid=True)
+	    if ml_nodes:self.msgList_purge(attr)#purge first
+
 	    for i,mi_node in enumerate(ml_nodes):
 		str_attr = "%s_%i"%(attr,i)
 		self.connectChildNode(mi_node,str_attr,connectBack)
@@ -497,6 +498,29 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    raise StandardError, "%s.get_msgList >>[Error]<< : %s"(self.p_nameShort,error)
     
+    def msgList_getMessage(self,attr = None, longNames = True, cull = True):
+	"""
+	msgList equivalent to regular getMessage call
+	@param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
+	@param longNames: Returns a MetaClass object list
+	@param cull: Whether to remove empty entries in the returned list
+	"""
+	try:
+	    log.debug(">>> %s.msgList_getMessage(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+	    d_attrs = self.get_sequentialAttrDict(attr)
+	    l_return = []
+	    for i,k in enumerate(d_attrs.keys()):
+		str_msgBuffer = self.getMessage(d_attrs[i],longNames = longNames)
+		if str_msgBuffer:str_msgBuffer = str_msgBuffer[0]
+		l_return.append(str_msgBuffer)
+		log.debug("index: %s | msg: '%s' "%(i,str_msgBuffer))
+	    if cull:
+		l_return = [o for o in l_return if o]
+	    log.debug("-"*100)  
+	    return l_return
+	except StandardError,error:
+	    raise StandardError, "%s.msgList_getMessage >>[Error]<< : %s"(self.p_nameShort,error)
+
     def msgList_append(self, node, attr = None, connectBack = None):
 	"""
 	Append node to msgList
@@ -535,10 +559,30 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if i_node in ml_nodes:
 	    log.info(">>> %s.msgList_index >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
 	    return ml_nodes.index(i_node)
-	
 	log.debug("-"*100)            	               	
 	return False
-
+    
+    def msgList_remove(self, nodes, attr = None):
+	"""
+	Return the index of a node if it's in a msgList
+	"""
+	ml_nodesToRemove = validateObjListArg(nodes,noneValid=True)
+	if not ml_nodesToRemove:
+	    raise StandardError, " %s.msgList_index >> invalid nodes: %s"%(self.p_nameShort,nodes)
+	if not self.msgList_exists(attr):
+	    raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
+	log.info(">>> %s.msgList_remove(nodes = %s, attr = '%s') >> "%(self.p_nameShort,nodes,attr) + "="*75)  
+	ml_nodes = self.msgList_get(attr,asMeta=True)
+	b_removedSomething = False
+	for i_n in ml_nodesToRemove:
+	    if i_n in ml_nodes:
+		ml_nodes.remove(i_n)
+		log.info(">>> %s.msgList_remove >> Node removed: %s "%(self.p_nameShort,i_n.p_nameShort) + "="*75)  				
+		b_removedSomething = True
+	if b_removedSomething:self.msgList_connect(ml_nodes,attr)
+	log.debug("-"*100)            	               	
+	return False
+    
     def msgList_purge(self,attr):
 	"""
 	Purge all the attributes of a msgList
