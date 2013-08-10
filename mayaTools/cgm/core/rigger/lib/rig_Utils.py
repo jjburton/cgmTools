@@ -2451,7 +2451,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     if i_control.getLongName() not in i_obj.getMessage('spacePivots',True):
 	buffer = i_obj.getMessage('spacePivots',True)
 	buffer.append(i_control.mNode)
-	i_obj.msgList_connect(buffer,'spacePivots','controlTarget')
+	i_obj.msgList_append(buffer,'spacePivots','controlTarget')
     log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
     
     
