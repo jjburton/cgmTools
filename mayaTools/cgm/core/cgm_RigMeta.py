@@ -462,12 +462,12 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	for p in arg_ml_dynMatchTargets:
 	    log.debug("Adding dynMatchTarget: %s"%p.mNode)
 	    self.addDynMatchTarget(p)
-	log.debug("cgmDynamicMatch.__init__>> dynMatchTargets: %s"%self.getMessage('dynMatchTargets',False))
+	log.debug("cgmDynamicMatch.__init__>> dynMatchTargets: %s"%self.msgList_getMessage('dynMatchTargets',False))
 	    
 	for p in arg_ml_dynSnapTargets:
 	    log.debug("Adding dynSnapTarget: %s"%p.mNode)
 	    self.addDynSnapTarget(p)
-	log.debug("cgmDynamicMatch.__init__>> dynSnapTargets: %s"%self.getMessage('dynSnapTargets',False))
+	log.debug("cgmDynamicMatch.__init__>> dynSnapTargets: %s"%self.msgList_getMessage('dynSnapTargets',False))
 		
 	if __justMade__ and i_dynObject:
 	    self.addDynObject(i_dynObject)
@@ -525,7 +525,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 		attributes.doDeleteAttr(i_object.mNode,a)
 	if d_attrBuffers:log.debug("d_attrBuffers: %s"%d_attrBuffers)
 	
-	l_parentShortNames = [cgmMeta.cgmNode(o).getNameAlias() for o in self.getMessage('dynMatchTargets')]
+	l_parentShortNames = [cgmMeta.cgmNode(o).getNameAlias() for o in self.msgList_getMessage('dynMatchTargets')]
 	log.debug("parentShortNames: %s"%l_parentShortNames)
 	
 	for a in d_DynMatchTargetNullModeAttrs[self.dynMode]:
@@ -540,7 +540,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    mc.delete(self.getMessage('dynFollow'))
 	
 	#Verify our parent drivers:
-	for i_p in [cgmMeta.cgmObject(o) for o in self.getMessage('dynMatchTargets')]:
+	for i_p in [cgmMeta.cgmObject(o) for o in self.msgList_getMessage('dynMatchTargets')]:
 	    log.debug("verifyMatchTargetDriver: %s"%i_p.getShortName())
 	    self.verifyMatchTargetDriver(i_p)
 	
@@ -1091,10 +1091,10 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	if not i_dMatchTarget:
 	    raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> arg fail: %s"%arg
 	log.debug(self.dynMatchTargets)
-	if i_dMatchTarget.getLongName() not in self.getMessage('dynMatchTargets',True):
+	if i_dMatchTarget.getLongName() not in self.msgList_getMessage('dynMatchTargets',True):
 	    raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> not a dynMatchTarget: %s"%i_dMatchTarget.getShortName()
 	
-	index = self.getMessage('dynMatchTargets',True).index(i_dMatchTarget.getLongName())
+	index = self.msgList_getMessage('dynMatchTargets',True).index(i_dMatchTarget.getLongName())
 	log.debug("cgmDynamicMatch.verifyMatchTargetDriver>> dynMatchTargets index: %s"%index)
 	ml_dynDrivers = self.msgList_get('dynDrivers',asMeta=True)
 	l_dynDrivers = [obj.p_nameLong for obj in ml_dynDrivers]
@@ -1157,9 +1157,9 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	index = False
 	if match is not None and type(match) is int:
 	    if match > len(self.dynMatchTargets)-1:
-		raise StandardError,"cgmDynamicMatch.doMatch>> Match Index(%s) greater than targets: %s"%(match,self.getMessage('dynMatchTargets',False))
+		raise StandardError,"cgmDynamicMatch.doMatch>> Match Index(%s) greater than targets: %s"%(match,self.msgList_getMessage('dynMatchTargets',False))
 	    if match > len(self.dynDrivers)-1:
-		raise StandardError,"cgmDynamicMatch.doMatch>> Match Index(%s) greater than drivers: %s"%(match,self.getMessage('dynDrivers',False))	
+		raise StandardError,"cgmDynamicMatch.doMatch>> Match Index(%s) greater than drivers: %s"%(match,self.msgList_getMessage('dynDrivers',False))	
 	    index = match		    
 	elif len(self.dynMatchTargets)>0:#use the first
 	    index = 0		    
@@ -1201,7 +1201,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	index = False
 	if snap is not None and type(snap) is int:
 	    if snap > len(self.dynSnapTargets):
-		raise StandardError,"cgmDynamicMatch.doSnap>> Snap Index(%s) greater than targets: %s"%(snap,self.getMessage('dynSnapTargets',False))	
+		raise StandardError,"cgmDynamicMatch.doSnap>> Snap Index(%s) greater than targets: %s"%(snap,self.msgList_getMessage('dynSnapTargets',False))	
 	    index = snap	
 	    i_driver = cgmMeta.validateObjArg(self.dynSnapTargets[index],cgmMeta.cgmObject)
 	else:
@@ -1318,7 +1318,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	    if not self.__verify__(*args,**kws):
 		raise StandardError,"cgmDynParentGroup.__init__>> failed to verify!"
 	    
-	log.debug("cgmDynParentGroup.__init__>> dynParents: %s"%self.getMessage('dynParents',False))
+	log.debug("cgmDynParentGroup.__init__>> dynParents: %s"%self.msgList_getMessage('dynParents',False))
 	for p in arg_ml_dynParents:
 	    log.debug("Adding dynParent: %s"%p.mNode)
 	    self.addDynParent(p)
