@@ -292,9 +292,9 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
                 l_pos =  distance.returnAveragePointPosition(l_positions)
             if l_lastPos:dif = cgmMath.mag( cgmMath.list_subtract(l_pos,l_lastPos) )
             else:dif = 'No last'
-            log.info("findMeshMidPointFromObject>>> Step : %s | dif: %s | last: %s | pos: %s "%(i,dif,l_lastPos,l_pos)) 					
+            log.debug("findMeshMidPointFromObject>>> Step : %s | dif: %s | last: %s | pos: %s "%(i,dif,l_lastPos,l_pos)) 					
             if l_lastPos and cgmMath.isVectorEquivalent(l_lastPos,l_pos,2):
-                log.info("findMeshMidPointFromObject>>> Match found step: %s"%(i))
+                log.debug("findMeshMidPointFromObject>>> Match found step: %s"%(i))
                 mc.delete(loc)
                 return l_pos
             mc.move(l_pos[0],l_pos[1],l_pos[2],loc,ws=True)
@@ -303,7 +303,7 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
         return l_pos
     except StandardError,error:
         for kw in [mesh,obj,axisToCheck,vector,maxDistance,maxIterations]:
-            log.info("%s"%kw)        
+            log.debug("%s"%kw)        
         raise StandardError, "findMeshMidPointFromObject >> error: %s"%error
 
 def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
@@ -332,7 +332,7 @@ def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
         return d_castReturn
     except StandardError,error:
         for kw in [mesh,obj,axis,pierceDepth,vector,maxDistance]:
-            log.info("%s"%kw)
+            log.debug("%s"%kw)
         raise StandardError, "findFurthestPointInRangeFromObject >> error: %s"%error
 
 

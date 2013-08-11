@@ -195,7 +195,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	log.debug("%s.getMatchSetsList>>> dynMatch sets -- cnt: %s | lists: %s"%(self.getShortName(),len(l_iterAttr),l_iterAttr)) 	
 	return ml_iterAttr
     
-    def getStoredAttrsList(self,maxCheck = 75):
+    def getStoredAttrsList(self,maxCheck = 75,asMeta = False):
 	l_iterAttr = []
 	ml_iterAttr = []
 	for i in range(maxCheck):
@@ -211,6 +211,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 		l_iterAttr.append(mPlug_switchAttr.p_combinedName)
 		ml_iterAttr.append(mPlug_switchAttr)
 	log.debug("%s.getStoredAttrsList>>> switchAttrs sets -- cnt: %s | lists: %s"%(self.getShortName(),len(l_iterAttr),l_iterAttr)) 	
+	if asMeta:return ml_iterAttr
 	return l_iterAttr
     
     def addSwitch(self, alias = None, switchAttrArg = None, switchAttrValue = None, ml_dynMatchSet = None, postSwitchArg = None):
@@ -230,7 +231,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	#======================================================================
 	#Switch attr
 	index_switchAttr = self.verifyStoredAttr(switchAttrArg)
-
+	
 	#======================================================================
 	#Get our match set stuff
 	ml_dynMatchSets = self.getMatchSetsList()
@@ -243,20 +244,18 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	    index_dynMatchSet = ml_dynMatchSets.index(ml_dynMatchSet)
 	
 	else:#add it
-	    index = self.returnNextAvailableAttrCnt("ml_dynMatchSet_")
-	    self.msgList_connect(ml_dynMatchSet,'ml_dynMatchSet_%s'%index)
 	    ml_dynMatchSets.append(ml_dynMatchSet)
-	    
 	    index_dynMatchSet = ml_dynMatchSets.index(ml_dynMatchSet)
-	    if index != index_dynMatchSet:
-		raise StandardError, "%s.addSwitch>> match set indexes do not match!"%self.getShortName()  	    
+	    self.msgList_connect(ml_dynMatchSet,'ml_dynMatchSet_%s'%index_dynMatchSet)	    
+	    #if index != index_dynMatchSet:
+		#raise StandardError, "%s.addSwitch>> match set indexes do not match!"%self.getShortName()  	    
 	#======================================================================	
 	
 	#>>Get our Attribute registered
 	d_dynSwitchSettings = self.d_dynSwitchSettings or {}
 	l_dynSwitchAliasBuffer = self.l_dynSwitchAlias or []
 	if str_alias in l_dynSwitchAliasBuffer:
-	    log.debug("%s.addSwitch>> Attr already in, checking: '%s'"%(self.getShortName(),mPlug_switchAttr.p_combinedShortName))    
+	    log.debug("%s.addSwitch>> Attr already in, checking: '%s'"%(self.getShortName(),switchAttrArg))    
 	else:
 	    l_dynSwitchAliasBuffer.append(str_alias)
 	    
@@ -329,7 +328,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	    
 	log.debug("%s.go>> str_aliasToDo: %s"%(self.getShortName(),str_aliasToDo))
 	d_buffer = self.d_dynSwitchSettings
-	ml_dynMatchSet = self.getAttr("ml_dynMatchSet_%s"%d_buffer[str_aliasToDo]['setIdx'])
+	ml_dynMatchSet = self.msgList_get("ml_dynMatchSet_%s"%d_buffer[str_aliasToDo]['setIdx'])
 	fl_value = d_buffer[str_aliasToDo].get('atrV')
 	
 	#>>> Attr2
@@ -479,7 +478,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
     # functions
     #======================================================================
     def __verify__(self,*args,**kws):
-	log.debug("In %s.__verify__ "%self.getShortName())		
+	log.debug(">>> %s.__verify__() >> "%(self.p_nameShort) + "="*75)  
 	if self.hasAttr('mClass') and self.mClass!='cgmDynamicMatch':
 	    raise StandardError, "cgmDynamicMatch.__verify__>> This object has a another mClass and setClass is not set to True"
 	#Check our attrs
@@ -490,8 +489,8 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	
         self.addAttr('dynObject',attrType = 'messageSimple',lock=True)
 	self.addAttr('dynHiddenSwitch',attrType = 'bool')	
-        self.addAttr('dynMatchTargets',attrType = 'message',lock=True)
-	self.addAttr('dynDrivers',attrType = 'message',lock=True)
+        #self.addAttr('dynMatchTargets',attrType = 'message',lock=True)
+	#self.addAttr('dynDrivers',attrType = 'message',lock=True)
 	self.addAttr('dynPrematchAttrs',attrType = 'string',lock=True)
 	self.addAttr('dynIterAttrs',attrType = 'string',lock=True)
 	self.addAttr('dynIterSettings',attrType = 'string',lock=True)
@@ -507,9 +506,10 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
-	log.debug("rebuild>>>")
+	log.debug(">>> %s.rebuild() >> "%(self.p_nameShort) + "="*75)  
 	#Must have at least 2 targets
-	if len(self.dynMatchTargets)<2:
+	l_dynMatchTargets.msgList_getMessage('dynMatchTargets')
+	if len(l_dynMatchTargets)<2:
 	    log.error("cgmDynamicMatch.rebuild>> Need at least two dynMatchTargets. Build failed: '%s'"%self.getShortName())
 	    return False
 	i_object = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=False)
@@ -569,6 +569,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    self.parent = i_object.mNode
 	    
     def addPrematchData(self,d_arg):
+	log.debug(">>> %s.addPrematchData(d_arg = %s) >> "%(self.p_nameShort,d_arg) + "="*75)  	
 	#>>Get our Attribute registered
 	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
 	if not i_dynObject:raise StandardError, "cgmDynamicMatch.addDynIterTarget>> Must have dynObject. None found"	    
@@ -587,7 +588,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	self.dynPrematchAttrs = d_prematchAttrs
 	
     def setPrematchData(self):
-	log.debug("In %s.setPrematchData "%self.getShortName())		
+	log.debug(">>> %s.setPrematchData() >> "%(self.p_nameShort) + "-"*75)  
 	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
 	if not i_dynObject:raise StandardError, "%s.setPrematchData>> Must have dynObject. None found"%self.getShortName()    
 	
@@ -603,6 +604,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
     #>>> Iter match stuff
     #======================================================================
     def getIterDrivenList(self):
+	log.debug(">>> %s.getIterDrivenList() >> "%(self.p_nameShort) + "-"*75)  	
 	l_iterDriven = []
 	ml_iterDriven = []
 	for i in range(75):
@@ -615,6 +617,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	return ml_iterDriven
     
     def getIterMatchList(self):
+	log.debug(">>> %s.getIterMatchList() >> "%(self.p_nameShort) + "-"*75)  		
 	l_iterMatch = []
 	ml_iterMatch = []
 	for i in range(75):
@@ -644,6 +647,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	iterIndex(int) -- not implemented
 	
 	"""
+	log.debug(">>> %s.addDynIterTarget() >> "%(self.p_nameShort) + "-"*75)  			
 	#>>> Validate
 	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
 	if not i_dynObject:raise StandardError, "cgmDynamicMatch.addDynIterTarget>> Must have dynObject. None found"	    
@@ -678,11 +682,8 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    log.debug("cgmDynamicMatch.addDynIterTarget>> Object already connected: %s"%i_drivenObject.getShortName())
 	    index_iterDriven = ml_iterDriven.index(i_drivenObject)
 	else:#add it
-	    index = self.returnNextAvailableAttrCnt("iterDriven_")
-	    log.debug(index)
-	    self.connectChildNode(i_drivenObject,'iterDriven_%s'%index)	    
+	    index = self.msgList_append(i_drivenObject,'iterDriven')	    
 	    ml_iterDriven.append(i_drivenObject)
-	    log.debug(ml_iterDriven)
 	    index_iterDriven = ml_iterDriven.index(i_drivenObject)
 	    if index != index_iterDriven:
 		raise StandardError, "cgmDynamicMatch.addDynIterTarget>> Iter driven indexes do not match!"
@@ -701,10 +702,8 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    index_iterMatch = ml_iterMatch.index(i_matchObject)
 	
 	else:#add it
-	    index = self.returnNextAvailableAttrCnt("iterMatch_")
-	    self.connectChildNode(i_matchObject,'iterMatch_%s'%index)
+	    index = self.msgList_append(i_matchObject,'iterMatch')
 	    ml_iterMatch.append(i_matchObject)
-	    
 	    index_iterMatch = ml_iterMatch.index(i_matchObject)
 	    if index != index_iterMatch:
 		raise StandardError, "cgmDynamicMatch.addDynIterTarget>> Iter match indexes do not match!"	    
@@ -745,6 +744,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	"""
 	"""
 	try:
+	    log.debug(">>> %s.doIter() >> "%(self.p_nameShort) + "-"*75)  				    
 	    #>>>Gather info
 	    i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
 	    if not i_dynObject:raise StandardError, "cgmDynamicMatch.doIter>> Must have dynObject. None found"	    
@@ -805,6 +805,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
     #======================================================================		
     #>>> Attr match stuff    
     def getAttrMatchList(self,maxCheck = 75):
+	log.debug(">>> %s.getAttrMatchList() >> "%(self.p_nameShort) + "-"*75)  				    	
 	l_matchAttr = []
 	ml_matchAttr = []
 	for i in range(maxCheck):
@@ -830,6 +831,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	dynObjectAttr(str) -- attribute that set (must exist on i_dynObject)
 	matchAttrArg(arg) -- attr arg (cgmMeta.validateAttrArg())
 	"""
+	log.debug(">>> %s.addDynAttrMatchTarget() >> "%(self.p_nameShort) + "-"*75)  				    		
 	#>>> Validate
 	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
 	if not i_dynObject:raise StandardError, "cgmDynamicMatch.addDynAttrMatchTarget>> Must have dynObject. None found"	    
@@ -861,31 +863,12 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    if index != index_matchAttr:
 		raise StandardError, "%s.addDynAttrMatchTarget>> match attr indexes do not match!"%self.getShortName()  	
 	
-	"""
-	#Get our iter driven stuff
-	ml_attrMatchObj = self.getAttrMatchObjList()#Get the list
-	
-	log.info("%s.addDynAttrMatchTarget>> driven obj: %s"%(self.getShortName(),i_drivenObject))
-	
-	if i_matchObject in ml_attrMatchObj:
-	    log.info("%s.addDynAttrMatchTarget>> Object already connected: %s"%(self.getShortName(),i_drivenObject.getShortName()))
-	    index_attrMatchObj = ml_attrMatchObj.index(i_matchObject)
-	else:#add it
-	    index = self.returnNextAvailableAttrCnt("attrMatchObj_")
-	    log.info(index)
-	    self.connectChildNode(i_matchObject,'attrMatchObj_%s'%index)	    
-	    ml_attrMatchObj.append(i_matchObject)
-	    log.info(ml_attrMatchObj)
-	    index_attrMatchObj = ml_iterDriven.index(i_matchObject)
-	    if index != index_attrMatchObj:
-		raise StandardError, "%s.addDynAttrMatchTarget>> attr match obj indexes do not match!"%self.getShortName()
-		"""
 	#======================================================================		
 	#>>Get our Attribute registered
 	d_dynMatchAttrSettings = self.d_dynMatchAttrSettings or {}
 	l_dynMatchAttrs = self.l_dynMatchAttrs or []
 	if mPlug_dynObj.attr in l_dynMatchAttrs:
-	    log.debug("%s.addDynAttrMatchTarget>> Attr already in, checking: '%s'"%(self.getShortName((),mPlug_dynObj.p_combinedShortName)))
+	    log.debug("%s.addDynAttrMatchTarget>> Attr already in, checking: '%s'"%(self.getShortName(),mPlug_dynObj.p_combinedShortName))
 	else:
 	    l_dynMatchAttrs.append(mPlug_dynObj.attr)
 	index_selfAttr = l_dynMatchAttrs.index(mPlug_dynObj.attr)	
@@ -905,6 +888,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	"""
 	See if our attrs match like they should
 	"""
+	log.debug(">>> %s.isAttrMatch() >> "%(self.p_nameShort) + "-"*75)  				    			
 	try:
 	    #>>>Gather info
 	    i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
@@ -960,6 +944,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
     def doAttrMatch(self):
 	"""
 	"""
+	log.debug(">>> %s.doAttrMatch() >> "%(self.p_nameShort) + "-"*75)  				    				
 	try:
 	    #>>>Gather info
 	    i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
@@ -1014,6 +999,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	"""
 	
 	"""
+	log.debug(">>> %s.addDynSnapTarget() >> "%(self.p_nameShort) + "-"*75)  				    					
 	#>>> Validate
 	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
 	if not i_dynObject:raise StandardError, "cgmDynamicMatch.addDynSnapTarget>> Must have dynObject. None found"	    
@@ -1021,7 +1007,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	i_dSnapTarget = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
 	if not i_dSnapTarget:
 	    i_dSnapTarget = i_dynObject.doLoc()
-	    log.info("cgmDynamicMatch.addDynSnapTarget>> Added snap loc: %s"%i_dSnapTarget.getShortName())
+	    log.debug("cgmDynamicMatch.addDynSnapTarget>> Added snap loc: %s"%i_dSnapTarget.getShortName())
 	if self == i_dSnapTarget:
 	    raise StandardError, "cgmDynamicMatch.addDynSnapTarget>> Cannot add self as target"
 	if not i_dSnapTarget.isTransform():
@@ -1029,27 +1015,27 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	if i_dSnapTarget.rotateOrder != i_dynObject.rotateOrder:
 	    raise StandardError, "cgmDynamicMatch.addDynSnapTarget>> Rotate Order of target doesn't match dynChild: child: '%s' | snapTarget: '%s"%(i_dynObject.getShortName(),i_dSnapTarget.getShortName())	    
 	
-	ml_dynSnapTargets = [cgmMeta.cgmObject(o) for o in self.msgList_get('dynSnapTargets',asMeta=False)]
+	ml_dynSnapTargets = [cgmMeta.cgmObject(o) for o in self.msgList_getMessage('dynSnapTargets')]
 	
-	log.debug(">>>>>>>>>>>>> Start add %s"%self.msgList_get('dynSnapTargets',False))
+	log.debug(">>>>>>>>>>>>> Start add %s"%self.msgList_getMessage('dynSnapTargets',False))
 	if i_dSnapTarget in ml_dynSnapTargets:
 	    log.debug("cgmDynamicMatch.addDynSnapTarget>> Object already connected: %s"%i_dSnapTarget.getShortName())
 	    return True
 	
+	#>>> Connect it
+	log.debug("cgmDynamicMatch.addDynSnapTarget>> Adding target: '%s'"%i_dSnapTarget.getShortName())	
+	self.msgList_append(i_dynSnapTarget,'dynSnapTargets')#Connect the nodes
+	
 	if alias is not None:
 	    i_dynSnapTarget.addAttr('cgmAlias', str(alias),lock = True)
 	
-	#>>> Connect it
-	log.debug("cgmDynamicMatch.addDynSnapTarget>> Adding target: '%s'"%i_dSnapTarget.getShortName())
-	ml_dynSnapTargets.append(i_dSnapTarget)	
-	log.debug(">>>>>>>>>>>>> data add %s"%ml_dynSnapTargets)	
-	self.msgList_connect(ml_dynSnapTargets,'dynSnapTargets')#Connect the nodes
-	log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynSnapTargets',False))
+	log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_getMessage('dynSnapTargets',False))
 	
     def addDynMatchTarget(self,arg, alias = None, l_matchAttrs = None):
 	"""
 	
 	"""
+	log.debug(">>> %s.addDynMatchTarget() >> "%(self.p_nameShort) + "-"*75)  				    						
 	#>>> Validate
 	i_dMatchTarget = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
 	if not i_dMatchTarget:raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> Failed to cgmMeta.validate: %s"%arg	    
@@ -1085,16 +1071,18 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	2) check it's driver
 	3) Make if necesary
 	"""	
+	log.debug(">>> %s.verifyMatchTargetDriver() >> "%(self.p_nameShort) + "-"*75)  				    							
 	i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
 	if not i_dynObject:raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> Must have dynObject. None found"	    
 	i_dMatchTarget = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
 	if not i_dMatchTarget:
 	    raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> arg fail: %s"%arg
-	log.debug(self.dynMatchTargets)
-	if i_dMatchTarget.getLongName() not in self.msgList_getMessage('dynMatchTargets',True):
+	l_dynMatchTargets = self.msgList_getMessage('dynMatchTargets',True)
+	log.debug(l_dynMatchTargets)
+	if i_dMatchTarget.getLongName() not in l_dynMatchTargets:
 	    raise StandardError, "cgmDynamicMatch.verifyMatchTargetDriver>> not a dynMatchTarget: %s"%i_dMatchTarget.getShortName()
 	
-	index = self.msgList_getMessage('dynMatchTargets',True).index(i_dMatchTarget.getLongName())
+	index = l_dynMatchTargets.index(i_dMatchTarget.getLongName())
 	log.debug("cgmDynamicMatch.verifyMatchTargetDriver>> dynMatchTargets index: %s"%index)
 	ml_dynDrivers = self.msgList_get('dynDrivers',asMeta=True)
 	l_dynDrivers = [obj.p_nameLong for obj in ml_dynDrivers]
@@ -1149,25 +1137,28 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	snap -- index of snap object
 	match -- index of match object
 	"""
+	log.debug(">>> %s.doMatch() >> "%(self.p_nameShort) + "-"*75)  				    								
 	#>>>Initial info
 	i_object = self.getMessageInstance('dynObject')
 	log.debug("cgmDynamicMatch.doMatch>> Object : %s"%i_object.getShortName())
+	l_dynMatchTargets = self.msgList_getMessage('dynMatchTargets')
+	l_dynDrivers= self.msgList_getMessage('dynDrivers')
 	
 	#>>>Figure out our match object
 	index = False
 	if match is not None and type(match) is int:
-	    if match > len(self.dynMatchTargets)-1:
+	    if match > len(l_dynMatchTargets)-1:
 		raise StandardError,"cgmDynamicMatch.doMatch>> Match Index(%s) greater than targets: %s"%(match,self.msgList_getMessage('dynMatchTargets',False))
-	    if match > len(self.dynDrivers)-1:
+	    if match > len(l_dynDrivers)-1:
 		raise StandardError,"cgmDynamicMatch.doMatch>> Match Index(%s) greater than drivers: %s"%(match,self.msgList_getMessage('dynDrivers',False))	
 	    index = match		    
-	elif len(self.dynMatchTargets)>0:#use the first
+	elif len(l_dynMatchTargets)>0:#use the first
 	    index = 0		    
 	else:
 	    raise StandardError,"cgmDynamicMatch.doMatch>> No valid arg:  match: %s"%(match)	
 
-	i_driver = cgmMeta.validateObjArg(self.dynDrivers[index],cgmMeta.cgmObject)
-	i_target = cgmMeta.validateObjArg(self.dynMatchTargets[index],cgmMeta.cgmObject)	    
+	i_driver = cgmMeta.validateObjArg(l_dynDrivers[index],cgmMeta.cgmObject)
+	i_target = cgmMeta.validateObjArg(l_dynMatchTargets[index],cgmMeta.cgmObject)	    
 	log.debug("cgmDynamicMatch.doMatch>> Driver on : %s"%i_driver.getShortName())
 	
 	#>>>Prematch attr set
@@ -1193,19 +1184,20 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	@kws
 	snap -- index of snap object
 	"""
+	log.debug(">>> %s.doSnap() >> "%(self.p_nameShort) + "-"*75)  				    									
 	#>>>Initial info
 	i_object = self.getMessageInstance('dynObject')
-	log.debug("cgmDynamicMatch.doSnap>> Object : %s"%i_object.getShortName())
+	l_dynDrivers= self.msgList_getMessage('dynSnapTargets')
 	
 	#>>>Figure out our match object
 	index = False
 	if snap is not None and type(snap) is int:
-	    if snap > len(self.dynSnapTargets):
-		raise StandardError,"cgmDynamicMatch.doSnap>> Snap Index(%s) greater than targets: %s"%(snap,self.msgList_getMessage('dynSnapTargets',False))	
+	    if snap > len(l_dynDrivers):
+		raise StandardError,"cgmDynamicMatch.doSnap>> Snap Index(%s) greater than targets: %s"%(snap,l_dynDrivers)	
 	    index = snap	
-	    i_driver = cgmMeta.validateObjArg(self.dynSnapTargets[index],cgmMeta.cgmObject)
+	    i_driver = cgmMeta.validateObjArg(l_dynDrivers[index],cgmMeta.cgmObject)
 	else:
-	    raise StandardError,"cgmDynamicMatch.doSnap>> No valid arg: snap: %s | match: %s"%(snap,match)	
+	    raise StandardError,"cgmDynamicMatch.doSnap>> No valid arg: snap: %s | snapMode: %s"%(snap,snapMode)	
 
 
 	log.debug("cgmDynamicMatch.doSnap>> Driver on : %s"%i_driver.getShortName())
@@ -1222,8 +1214,9 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 		mc.rotate (objRot[0], objRot[1], objRot[2], [i_object.mNode], ws=True)#Set rot			
 	    
     def doPurge(self):
+	log.debug(">>> %s.doPurge() >> "%(self.p_nameShort) + "-"*75)  				    										
 	if self.isReferenced():
-	    log.warning('This function is not designed for referenced buffer nodes')
+	    log.warning('This function is not designed for referenced nodes')
 	    return False
 	
 	l_dynDrivers = self.msgList_get('dynDrivers',asMeta=False) or []
@@ -1339,7 +1332,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
     def __verify__(self,*args,**kws):
 	if self.hasAttr('mClass') and self.mClass!='cgmDynParentGroup':
 	    raise StandardError, "cgmDynParentGroup.__verify__>> This object has a another mClass and setClass is not set to True"
-	log.info(">>> %s.__verify__() >> "%(self.p_nameShort) + "="*75) 
+	log.debug(">>> %s.__verify__() >> "%(self.p_nameShort) + "="*75) 
 	try:
 	    #Check our attrs
 	    if self._mi_dynChild:
@@ -1363,9 +1356,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
     
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
-	log.info(">>> %s.rebuild() >> "%(self.p_nameShort) + "="*75) 		        	
+	log.debug(">>> %s.rebuild() >> "%(self.p_nameShort) + "="*75) 		        	
 	#Must have at least 2 targets
-	l_dynParents = self.msgList_get('dynParents',asMeta=False)
+	l_dynParents = self.msgList_getMessage('dynParents',False)
 	if len(l_dynParents)<2:
 	    log.error("cgmDynParentGroup.rebuild>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
 	    return False
@@ -1410,7 +1403,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	#Check constraint
 
     def addDynChild(self,arg):
-	log.info(">>> %s.addDynChild(arg = %s) >> "%(self.p_nameShort,arg) + "="*75) 		        		
+	log.debug(">>> %s.addDynChild(arg = %s) >> "%(self.p_nameShort,arg) + "="*75) 		        		
 	i_child = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
 	if i_child == self:
 	    raise StandardError, "cgmDynParentGroup.addDynChild>> Cannot add self as dynChild"
@@ -1434,7 +1427,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	#if we make changes, we have to veriy
 	
     def addDynParent(self,arg,index = None, alias = None):
-	log.info(">>> %s.addDynParent(arg = %s, index = %s, alias = %s) >> "%(self.p_nameShort,arg,index,alias) + "="*75) 		        		
+	log.debug(">>> %s.addDynParent(arg = %s, index = %s, alias = %s) >> "%(self.p_nameShort,arg,index,alias) + "="*75) 		        		
 	i_dParent = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
 	if not i_dParent:
 	    raise StandardError, "cgmDynParentGroup.addDynParent>> Failed to cgmMeta.validate: %s"%arg	    
@@ -1443,9 +1436,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	if not i_dParent.isTransform():
 	    raise StandardError, "cgmDynParentGroup.addDynParent>> Target has no transform: '%s'"%i_dParent.getShortName()
 	log.debug("cgmDynParentGroup.addDynParent>> '%s'"%i_dParent.getShortName())
-
-	ml_dynParents = [cgmMeta.cgmObject(o) for o in self.msgList_get('dynParents',asMeta=False)]
-	log.debug(">>>>>>>>>>>>> Start add %s"%self.msgList_get('dynParents',False))
+	l_dynParents = self.msgList_getMessage('dynParents')
+	ml_dynParents = [cgmMeta.cgmObject(o) for o in l_dynParents]
+	log.debug(">>>>>>>>>>>>> Start add %s"%l_dynParents)
 	
 	if i_dParent in ml_dynParents:
 	    log.debug("cgmDynParentGroup.addDynParent>> Child already connected: %s"%i_dParent.getShortName())
@@ -1456,8 +1449,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	
 	log.debug("cgmDynParentGroup.addDynParent>> Adding target: '%s'"%i_dParent.getShortName())
 	ml_dynParents.append(i_dParent)	
-	self.msgList_connect(ml_dynParents,'dynParents')#Connect the nodes
-	log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynParents',asMeta=False))
+	self.msgList_append(i_dParent,'dynParents')#Connect the nodes
+	log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_getMessage('dynParents'))
 	
     def verifyConstraints(self):
 	"""
@@ -1465,8 +1458,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	2) are constraints correct - right type, right targets...it's probably faster just to rebuild...
 	3) 
 	"""
-	log.info(">>> %s.verifyConstraints() >> "%(self.p_nameShort) + "="*75) 		        			
-	l_dynParents = self.msgList_get('dynParents',asMeta=False)
+	log.debug(">>> %s.verifyConstraints() >> "%(self.p_nameShort) + "="*75) 		        			
+	l_dynParents = self.msgList_getMessage('dynParents')
 	if len(l_dynParents)<2:
 	    log.error("cgmDynParentGroup.verifyConstraints>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
 	    return False
@@ -1475,7 +1468,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	try:#initialize parents
 	    ml_dynParents = cgmMeta.validateObjListArg(l_dynParents,cgmMeta.cgmObject,False)
 	    #l_dynDrivers = [i_obj.getMessage('dynDriver')[0] for i_obj in ml_dynParents]
-	    l_dynDrivers = self.msgList_get('dynDrivers',asMeta=False)
+	    l_dynDrivers = self.msgList_getMessage('dynDrivers')
 	    i_dynChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,False)	    
 	except StandardError,error:
 	    raise StandardError,"cgmDynParentGroup.verifyConstraints>> dynParent/dynChild initialization failed! | %s"%(error)
@@ -1577,7 +1570,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	2) check it's driver
 	3) Make if necesary
 	"""
-	log.info(">>> %s.verifyParentDriver(arg = %s) >> "%(self.p_nameShort,arg) + "="*75) 		        		
+	log.debug(">>> %s.verifyParentDriver(arg = %s) >> "%(self.p_nameShort,arg) + "="*75) 		        		
 	i_dynChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,noneValid=True) 
 	if not i_dynChild:
 	    raise StandardError, "cgmDynParentGroup.verifyParentDriver>> Must have dynChild. None found"	    
@@ -1624,7 +1617,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	i_driver.connectChildNode(i_dynChild,'dynTarget')	
 		
     def verifyFollowDriver(self):
-	log.info(">>> %s.verifyFollowDriver() >> "%(self.p_nameShort) + "="*75) 		        			
+	log.debug(">>> %s.verifyFollowDriver() >> "%(self.p_nameShort) + "="*75) 		        			
 	i_dynChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,True)
 	if not i_dynChild:
 	    raise StandardError, "cgmDynParentGroup.verifyFollowDriver>> no dynChild found"
@@ -1648,7 +1641,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
     
     #@cgmGeneral.Timer
     def doSwitchSpace(self,attr,arg,deleteLoc = True):
-	log.info(">>> %s.doSwitchSpace(attr = %s, arg = %s, deleteLoc = %s) >> "%(self.p_nameShort,attr,arg,deleteLoc) + "="*75) 		        			
+	log.debug(">>> %s.doSwitchSpace(attr = %s, arg = %s, deleteLoc = %s) >> "%(self.p_nameShort,attr,arg,deleteLoc) + "="*75) 		        			
 	#Swich setting shile holding 
 	l_attrs = ['space','follow','orientTo']
 	if attr not in l_attrs:
@@ -1685,13 +1678,13 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	if deleteLoc:i_loc.delete()
 	
     def doPurge(self):
-	log.info(">>> %s.doPurge() >> "%(self.p_nameShort) + "="*75) 		        			
+	log.debug(">>> %s.doPurge() >> "%(self.p_nameShort) + "="*75) 		        			
 	if self.isReferenced():
 	    log.warning('This function is not designed for referenced buffer nodes')
 	    return False
 	nodes = self.msgList_get('dynNodes',asMeta=False)
 	if nodes:mc.delete(nodes)
-	l_dynParents = self.msgList_get('dynParents',asMeta=False)
+	l_dynParents = self.msgList_getMessage('dynParents')
 	for d in l_dynParents:
 	    try:
 		i_driver = cgmMeta.cgmObject( cgmMeta.cgmObject(d).getMessage('dynDriver')[0] )

@@ -119,7 +119,7 @@ class go(object):
 	self.md_fkControls = {}
 	self.md_segmentHandles = {}
 	self._baseModuleDistance = self._returnBaseThickness()
-	log.info("_baseModuleDistance: %s"%self._baseModuleDistance)
+	log.debug("_baseModuleDistance: %s"%self._baseModuleDistance)
         #>>> We need to figure out which control to make
 	#===================================================================================
 	self.l_controlsToMakeArg = []	
@@ -132,7 +132,7 @@ class go(object):
 	    
 	#self.d_controlShapes = mControlFactory.limbControlMaker(self.m,self.l_controlsToMakeArg)
 	if not self.l_controlsToMakeArg:
-	    log.info("No arguments for shapes to cast.Initializing only.")
+	    log.debug("No arguments for shapes to cast.Initializing only.")
 	for key in self.l_controlsToMakeArg:
 	    self.d_controlBuildFunctions[key]()#Run it
 	    #if key not in self.d_returnControls:
@@ -170,23 +170,23 @@ class go(object):
 	if type(d_kws) is not dict:
 	    raise StandardError, "_pushKWsDict>> 'd_kws' arg not a dict: %s"%d_kws
 	try:
-	    log.info("_pushKWsDict >> " + "="*50)
+	    log.debug("_pushKWsDict >> " + "="*50)
 	    if d_kws:
 		#push d_kws
 		if d_kws.get(i):
 		    for k in d_kws[i].keys():
-			log.info("%s: %s"%(k,d_kws[i].get(k)))
+			log.debug("%s: %s"%(k,d_kws[i].get(k)))
 			self.__dict__[k] = d_kws[i].get(k)
 		elif i == len(l_objectsToDo)-1 and d_kws.get(-1):
-		    log.info('last mode')
+		    log.debug('last mode')
 		    for k in d_kws[-1].keys():
-			log.info("%s: %s"%(k,d_kws[-1].get(k)))			
+			log.debug("%s: %s"%(k,d_kws[-1].get(k)))			
 			self.__dict__[k] = d_kws[-1].get(k)
 		else:
 		    for k in d_kws['default'].keys():
-			log.info("%s: %s"%(k,d_kws['default'].get(k)))			
+			log.debug("%s: %s"%(k,d_kws['default'].get(k)))			
 			self.__dict__[k] = d_kws['default'].get(k)
-	    log.info("_pushKWsDict << " + "="*50)
+	    log.debug("_pushKWsDict << " + "="*50)
 	    
 	except StandardError,error:
 	    raise StandardError,"_pushKWsDict>> failed to push arg: %s | %s"%(d_kws,error)
@@ -257,7 +257,7 @@ class go(object):
 	    i_grp = cgmMeta.cgmObject( mi_crvBase.doGroup() )
 	    
 	    for i,rot in enumerate([0,90,90,90]):
-		log.info(rot)
+		log.debug(rot)
 		#rot, shoot, move, dup
 		log.debug("curve: %s | rot int: %s | grp: %s"%(mi_crvBase.mNode,i, i_grp.mNode))
 		i_grp.rotateY = i_grp.rotateY + rot
@@ -352,7 +352,7 @@ class go(object):
 		l_segmentsToDo = self.l_segments[1:-1]
 	    else:
 		l_segmentsToDo = self.l_segments
-	    log.info("segments: %s"%l_segmentsToDo)
+	    log.debug("segments: %s"%l_segmentsToDo)
 	    self.l_specifiedRotates = None
 	    d_kws = False
 	    self.posOffset = [0,0,self._skinOffset*3]
@@ -466,14 +466,14 @@ class go(object):
 		d_kws[0]['closedCurve'] = False
 		self.posOffset = [0,0,self._skinOffset/2]
 		
-	    log.info("Snap Objects: %s"%self.l_controlSnapObjects)
+	    log.debug("Snap Objects: %s"%self.l_controlSnapObjects)
 	    for i,obj in enumerate(self.l_controlSnapObjects):			
 		#make ball
 		self._pushKWsDict(d_kws,i)
 			    
 		#Few more special cases
 		if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle']:
-		    log.info('Special rotate mode')
+		    log.debug('Special rotate mode')
 		    self.rootRotate = [0,0,0]
 		    self.latheAxis = 'y'
 		returnBuffer = ShapeCast.createWrapControlShape(obj,self._targetMesh,
@@ -513,7 +513,7 @@ class go(object):
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
-	    log.info("self._targetMesh: %s"%self._targetMesh)
+	    log.debug("self._targetMesh: %s"%self._targetMesh)
 	    #figure out our settings
 	    #================================================================
 	    #defaults first
@@ -556,7 +556,7 @@ class go(object):
 		    
 	    #>>>Cast
 	    self._pushKWsDict(d_kws)
-	    log.info("snapObject: %s"%_snapObject)
+	    log.debug("snapObject: %s"%_snapObject)
 	    returnBuffer = ShapeCast.createWrapControlShape(_snapObject,self._targetMesh,
 	                                                    curveDegree=3,
 	                                                    insetMult = .2,
@@ -604,7 +604,7 @@ class go(object):
 	ml_controlSnapObjects = []
 	for mi_obj in self._ml_controlObjects:
 	    ml_controlSnapObjects.append(mi_obj.helper)  
-	log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
+	log.debug("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
 	if len(ml_controlSnapObjects) > 2:
 	    raise StandardError,"go.build_clavicle>>> Must have only 2 control objects. Found: %s"%(len(ml_controlSnapObjects))
 
@@ -648,15 +648,15 @@ class go(object):
 	    raise StandardError,"go.build_clavicle>>failed to get hit to measure first distance"
 	dist_cast = distance.returnDistanceBetweenPoints(mi_endLoc.getPosition(),d_return['hit']) * 1.25
 	
-	log.info("go.build_clavicle>>cast distance: %s"%dist_cast)
-	log.info("go.build_clavicle>>inset distance: %s"%dist_inset)
+	log.debug("go.build_clavicle>>cast distance: %s"%dist_cast)
+	log.debug("go.build_clavicle>>inset distance: %s"%dist_inset)
 	
 	#Cast our stuff
 	#============================================================================
 	self.posOffset = [0,0,self._skinOffset*3]
 	self.latheAxis = self._jointOrientation[0]
-	log.info("aim: %s"%self.aimAxis)
-	log.info("lathe: %s"%self.latheAxis)
+	log.debug("aim: %s"%self.aimAxis)
+	log.debug("lathe: %s"%self.latheAxis)
 	
 	d_startReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_startLoc.mNode,offsetMode='vector',maxDistance = dist_cast,l_specifiedRotates = l_specifiedRotates,
 	                                closedCurve = False,curveDegree=3,midMeshCast=True,axisToCheck=['x'],posOffset = self.posOffset,returnDict = True,
@@ -919,7 +919,7 @@ class go(object):
 	d_size = ShapeCast.returnBaseControlSize(mi_sizeLoc,self._targetMesh,axis=[self.outAxis])#Get size
 	#baseSize = d_size.get(d_size.keys()[0])
 	baseSize = d_size.get('average') * _sizeMultiplier
-	log.info("build_settings>>> baseSize: %s"%baseSize)
+	log.debug("build_settings>>> baseSize: %s"%baseSize)
 		
 	i_gear = cgmMeta.cgmObject(curves.createControlCurve('gear',size = baseSize,direction=_direction))	
 	
@@ -943,7 +943,7 @@ class go(object):
 	    if not d_return.get('hit'):
 		raise StandardError,"go.build_settings>>failed to get hit to measure distance"	    
 	    dist_move = distance.returnDistanceBetweenPoints(mi_rootLoc.getPosition(),d_return['hit'])
-	    log.info("axis cast move: %s"%dist_move)
+	    log.debug("axis cast move: %s"%dist_move)
 	    grp = mi_rootLoc.doGroup(True)
 	    mi_rootLoc.__setattr__("t%s"%self._jointOrientation[1],dist_move*_moveMultiplier)
 	    
@@ -1141,12 +1141,12 @@ class go(object):
 	    #Find it
 	    mi_footModule = self._mi_module.modulePuppet.getModuleFromDict(d_search)
 	    ml_children = self._mi_module.moduleChildren
-	    if mi_footModule in ml_children:log.info("found match modules: %s"%mi_footModule)
+	    if mi_footModule in ml_children:log.debug("found match modules: %s"%mi_footModule)
 	    
 	    ml_controlSnapObjects = []
 	    for mi_obj in mi_footModule.templateNull.msgList_get('controlObjects'):
 		ml_controlSnapObjects.append(mi_obj.helper)  
-	    log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
+	    log.debug("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
 	    if ml_controlSnapObjects[1].cgmName != 'ball':
 		raise StandardError,"go.build_footShape>>> Expected second snap object to be 'ball'. Found: %s"%ml_controlSnapObjects[1].mNode
 	    mi_ball = ml_controlSnapObjects[1]
@@ -1178,7 +1178,7 @@ class go(object):
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get hit to measure first distance"
 	dist = distance.returnDistanceBetweenPoints(mi_ballLoc.getPosition(),d_return['hit']) *1.25
-	log.info("go.build_footShape>>front distance: %s"%dist)
+	log.debug("go.build_footShape>>front distance: %s"%dist)
 	
 	#Pivots
 	#===================================================================================
@@ -1302,7 +1302,7 @@ class go(object):
 	l_pos = []
 	l_basePos = []
 	ballY = distance.returnWorldSpacePosition(mi_ballLoc.mNode)[1]/2
-	log.info("ballY: %s"%ballY)
+	log.debug("ballY: %s"%ballY)
 	for crv in [str_frontCurve,str_backCurve,str_sideCurve]:
 	    for ep in cgmMeta.cgmNode(crv).getComponents('ep'):
 		buffer = distance.returnWorldSpacePosition(ep)
@@ -1339,7 +1339,7 @@ class go(object):
 	"""
 	build hand shape and pivot locs at the same time
 	"""
-	log.info("in build_handShape")
+	log.debug("in build_handShape")
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_handModule = False
@@ -1393,7 +1393,7 @@ class go(object):
 	d_wristSize = ShapeCast.returnBaseControlSize(mi_wristLoc.mNode,self._targetMesh,[self._jointOrientation[1],self._jointOrientation[2]])
 	#Average the wrist size
 	dist_wristSize = d_wristSize.get('average')
-	log.info("dist_wristSize: %s"%dist_wristSize)	
+	log.debug("dist_wristSize: %s"%dist_wristSize)	
 	
 	if mi_palm:
 	    mi_palmLoc = mi_palm.doLoc()
@@ -1425,9 +1425,9 @@ class go(object):
 	#============================================================================
 	self.posOffset = [0,0,self._skinOffset*3]
 	self.latheAxis = self._jointOrientation[0]
-	log.info("aim: %s"%self.aimAxis)
-	log.info("lathe: %s"%self.latheAxis)
-	log.info("dist: %s"%dist_cast)
+	log.debug("aim: %s"%self.aimAxis)
+	log.debug("lathe: %s"%self.latheAxis)
+	log.debug("dist: %s"%dist_cast)
 	
 	d_startReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_wristLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
 	                                               closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
@@ -1548,16 +1548,16 @@ class go(object):
 	    l_objectsToDo = self.l_controlSnapObjects
 	    
 	for i,obj in enumerate(l_objectsToDo):
-	    log.info(obj)
+	    log.debug(obj)
 	    self._pushKWsDict(d_kws,i,l_objectsToDo)
 
-	    log.info(">>>>>>>>>>>aim: %s"%self.aimAxis)
-	    log.info(">>>>>>>>>> lathe: %s"%self.latheAxis)
-	    log.info(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
-	    log.info(">>>>>>>>>> distance: %s"%self.maxDistance)
+	    log.debug(">>>>>>>>>>>aim: %s"%self.aimAxis)
+	    log.debug(">>>>>>>>>> lathe: %s"%self.latheAxis)
+	    log.debug(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
+	    log.debug(">>>>>>>>>> distance: %s"%self.maxDistance)
 	    #Few more special cases
 	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle'] and not self._ml_targetObjects:
-		log.info('Special rotate mode')
+		log.debug('Special rotate mode')
 		self.rootRotate = [0,0,0]
 		self.latheAxis = 'y'	 
 		

@@ -69,7 +69,7 @@ __l_moduleJointMsgListHooks__ = ['helperJoints']
 #>>> Main class function
 #=====================================================================
 class go(object):
-    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, **kws): 
+    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, ignoreRigCheck = False, **kws): 
         """
         To do:
         Add rotation order settting
@@ -109,7 +109,8 @@ class go(object):
 		raise StandardError,"RigFactory.go.init>>> '%s's module parent is not rigged yet: '%s'"%(self._i_module.getShortName(),self._i_module.moduleParent.getShortName())
 	
 	#First we want to see if we have a moduleParent to see if it's rigged yet
-	if self._i_module.isRigged() and forceNew is not True:
+	b_rigged = self._i_module.isRigged()
+	if b_rigged and forceNew is not True and ignoreRigCheck is not True:
 	    raise StandardError,"RigFactory.go.init>>> '%s' already rigged and not forceNew"%(self._i_module.getShortName())
 	
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
@@ -237,7 +238,7 @@ class go(object):
 		str_name = d_build[k].get('name') or 'noName'
 		func_current = d_build[k].get('function')
     
-		mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k)    
+		mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k+1)    
 		func_current(self)
     
 		if buildTo.lower() == str_name:
@@ -984,10 +985,11 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     except StandardError,error:
 	log.error("%s.get_simpleRigJointDriverDict >> mll_segmentChains failure: %s"%(self.getShortName(),error))
     
-    if not ml_blendJoints:log.warning("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
-    if not mll_segmentChains:log.warning("%s.get_simpleRigJointDriverDict >> no segment found"%self.getShortName())
-    if not ml_blendJoints or mll_segmentChains:
+    if not ml_blendJoints:log.error("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
+    if not mll_segmentChains:log.error("%s.get_simpleRigJointDriverDict >> no segment found"%self.getShortName())
+    if not ml_blendJoints or not mll_segmentChains:
 	return False
+    
     #>>>Declare
     d_rigJointDrivers = {}
     

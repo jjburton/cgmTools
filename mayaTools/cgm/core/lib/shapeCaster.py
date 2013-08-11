@@ -201,12 +201,12 @@ def createWrapControlShape(targetObjects,
     for axis in ['x','y','z']:
 	if axis in latheAxis.lower():latheAxis = axis
     
-    log.info("targetObjects: %s"%targetObjects)
+    log.debug("targetObjects: %s"%targetObjects)
     
     if len(aimAxis) == 2:single_aimAxis = aimAxis[0]
     else:single_aimAxis = aimAxis
-    log.info("Single aim: %s"%single_aimAxis)
-    log.info("createWrapControlShape>>> midMeshCast: %s"%midMeshCast)
+    log.debug("Single aim: %s"%single_aimAxis)
+    log.debug("createWrapControlShape>>> midMeshCast: %s"%midMeshCast)
         
     #>>> Info
     l_groupsBuffer = []
@@ -217,26 +217,26 @@ def createWrapControlShape(targetObjects,
     #>>> Build curves
     #=================================================================
     #> Root curve #
-    log.info("RootRotate: %s"%rootRotate)
+    log.debug("RootRotate: %s"%rootRotate)
     mi_rootLoc = cgmMeta.cgmNode(targetObjects[0]).doLoc()
     if rootOffset:
-	log.info("rootOffset: %s"%rootOffset)
+	log.debug("rootOffset: %s"%rootOffset)
 	mc.move(rootOffset[0],rootOffset[1],rootOffset[2], [mi_rootLoc.mNode], r=True, rpr = True, os = True, wd = True)
     if rootRotate is not None and len(rootRotate):
-	log.info("rootOffset: %s"%rootRotate)	
+	log.debug("rootRotate: %s"%rootRotate)	
 	mc.rotate(rootRotate[0],rootRotate[1],rootRotate[2], [mi_rootLoc.mNode], os = True,r=True)   
 	    
     #>>> Root
     mi_rootLoc.doGroup()#Group to zero    
     if extendMode == 'segment':
-	log.info("segment mode. Target len: %s"%len(targetObjects[1:]))	
+	log.debug("segment mode. Target len: %s"%len(targetObjects[1:]))	
 	try:
 	    if len(targetObjects) < 2:
 		log.warning("Segment build mode only works with two objects or more")    
 	    else:
 		if insetMult is not None:
 		    rootDistanceToMove = distance.returnDistanceBetweenObjects(targetObjects[0],targetObjects[1])
-		    log.info("rootDistanceToMove: %s"%rootDistanceToMove)
+		    log.debug("rootDistanceToMove: %s"%rootDistanceToMove)
 		    mi_rootLoc.__setattr__('t%s'%latheAxis,rootDistanceToMove*insetMult)
 		    #mi_rootLoc.tz = (rootDistanceToMove*insetMult)#Offset it
 		
@@ -244,29 +244,29 @@ def createWrapControlShape(targetObjects,
 		#mi_upLoc = cgmMeta.cgmNode(targetObjects[0]).doLoc()
 		#mi_upLoc.doGroup()#To zero
 		objectUpVector = dictionary.returnStringToVectors(objectUp)
-		log.info("objectUpVector: %s"%objectUpVector)		    
+		log.debug("objectUpVector: %s"%objectUpVector)		    
 		#mi_uploc
 		
 		for i,obj in enumerate(targetObjects[1:]):
-		    log.info("i: %s"%i)
+		    log.debug("i: %s"%i)
 		    #> End Curve
 		    mi_endLoc = cgmMeta.cgmNode(obj).doLoc()
 		    aimVector = dictionary.returnStringToVectors(latheAxis+'-')
-		    log.info("segment aimback: %s"%aimVector)		    
+		    log.debug("segment aimback: %s"%aimVector)		    
 		    #Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,aim=True,aimVector=aimVector,upVector=objectUpVector)
 		    Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,orient=True)		    
 		    mi_endLoc.doGroup()
 		    
 		    if i == len(targetObjects[1:])-1:
 			if insetMult is not None:
-			    log.info("segment insetMult: %s"%insetMult)			    
+			    log.debug("segment insetMult: %s"%insetMult)			    
 			    distanceToMove = distance.returnDistanceBetweenObjects(targetObjects[-1],targetObjects[0])
-			    log.info("distanceToMove: %s"%distanceToMove)
+			    log.debug("distanceToMove: %s"%distanceToMove)
 			    #mi_endLoc.tz = -(distanceToMove*insetMult)#Offset it  
 			    mi_endLoc.__setattr__('t%s'%latheAxis,-(distanceToMove*insetMult))
-		    log.info("segment lathe: %s"%latheAxis)
-		    log.info("segment aim: %s"%aimAxis)
-		    log.info("segment rotateBank: %s"%rotateBank)		    
+		    log.debug("segment lathe: %s"%latheAxis)
+		    log.debug("segment aim: %s"%aimAxis)
+		    log.debug("segment rotateBank: %s"%rotateBank)		    
 		    d_endCastInfo = createMeshSliceCurve(targetGeo,mi_endLoc,midMeshCast=midMeshCast,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  	
 		    l_sliceReturns.append(d_endCastInfo)
 		    mi_end = cgmMeta.cgmObject(d_endCastInfo['curve'])
@@ -283,7 +283,7 @@ def createWrapControlShape(targetObjects,
 	    il_curvesToCombine.append(mi_buffer)    
 	       
     elif extendMode == 'disc':
-	log.info("disc mode")
+	log.debug("disc mode")
 	d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
 	#discOffset = d_size[ d_size.keys()[0]]*insetMult
 	size = False
@@ -291,12 +291,12 @@ def createWrapControlShape(targetObjects,
 	if l_absSize:size = max(l_absSize) 
 	if not size:
 	    d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
-	    log.info("d_size: %s"%d_size)
+	    log.debug("d_size: %s"%d_size)
 	    size = d_size[ d_size.keys()[0]]*insetMult	
 	    
 	discOffset = size
-	log.info("d_size: %s"%d_size)
-	log.info("discOffset is: %s"%discOffset)
+	log.debug("d_size: %s"%d_size)
+	log.debug("discOffset is: %s"%discOffset)
 	
 	mi_rootLoc.__setattr__('t%s'%latheAxis,discOffset)
 	if posOffset:
@@ -315,11 +315,11 @@ def createWrapControlShape(targetObjects,
 	mi_rootLoc.tz = 0
 	
     elif extendMode == 'cylinder':
-	log.info("cylinder mode")
+	log.debug("cylinder mode")
 	d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
 	discOffset = d_size[ d_size.keys()[0]]*insetMult
-	log.info("d_size: %s"%d_size)
-	log.info("discOffset is: %s"%discOffset)
+	log.debug("d_size: %s"%d_size)
+	log.debug("discOffset is: %s"%discOffset)
 	
 	mi_rootLoc.__setattr__('t%s'%latheAxis,discOffset)
 	d_handleInnerUp = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,midMeshCast=midMeshCast,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
@@ -330,22 +330,22 @@ def createWrapControlShape(targetObjects,
 	mi_rootLoc.__setattr__('t%s'%latheAxis,0)
 	
     elif extendMode == 'loliwrap':
-	log.info("lolipop mode")
+	log.debug("lolipop mode")
 	l_absSize = [abs(i) for i in posOffset]
 	size = False
 	if l_absSize:
-	    log.info("l_absSize: %s"%l_absSize)
+	    log.debug("l_absSize: %s"%l_absSize)
 	    size = max(l_absSize)*1.25
 	if not size:
 	    d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
-	    log.info("d_size: %s"%d_size)
+	    log.debug("d_size: %s"%d_size)
 	    l_size = d_size[single_aimAxis]
 	    size = l_size#/1.5
-	log.info("loli size: %s"%size)
+	log.debug("loli size: %s"%size)
 	i_ball = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = size))
 	
     elif extendMode == 'endCap':
-	log.info("endCap mode!")
+	log.debug("endCap mode!")
 	returnBuffer1 = createMeshSliceCurve(targetGeo,mi_rootLoc.mNode,
 	                                     aimAxis = 'z+',
 	                                     latheAxis = 'y',
@@ -383,7 +383,7 @@ def createWrapControlShape(targetObjects,
     if extendMode == 'loliwrap':
 	Snap.go(i_ball.mNode,mi_rootLoc.mNode,True, True)#Snap to main object
 	 
-	log.info("hitReturns: %s"%d_rootCastInfo['hitReturns'])
+	log.debug("hitReturns: %s"%d_rootCastInfo['hitReturns'])
 	mi_crv = cgmMeta.cgmObject( d_rootCastInfo['curve'] )
 	
 	#Pos data
@@ -393,7 +393,7 @@ def createWrapControlShape(targetObjects,
 	    distM = -dist
 	else:
 	    distM = dist
-	log.info("distM: %s"%distM)
+	log.debug("distM: %s"%distM)
 	
 	#Move the ball
 	pBuffer = i_ball.doGroup()
@@ -418,7 +418,7 @@ def createWrapControlShape(targetObjects,
     mc.delete(mi_rootLoc.parent)#delete the loc
     
     l_curvesToCombine = [mi_obj.mNode for mi_obj in il_curvesToCombine]#Build our combine list before adding connectors         
-    log.info(d_rootCastInfo['processedHits'])
+    log.debug(d_rootCastInfo['processedHits'])
     if joinMode and extendMode not in ['loliwrap','endCap'] and len(l_sliceReturns)>1:
 	if joinHits:
 	    keys = d_rootCastInfo['processedHits'].keys()
@@ -428,8 +428,8 @@ def createWrapControlShape(targetObjects,
 		#if i in joinHits:
 		#goodDegrees.append(key)
 	    goodDegrees = [key for i,key in enumerate(keys) if i in joinHits]
-	    log.info("joinHits: %s"%joinHits)
-	    log.info("goodDegrees: %s"%goodDegrees)	    
+	    log.debug("joinHits: %s"%joinHits)
+	    log.debug("goodDegrees: %s"%goodDegrees)	    
 	else:
 	    goodDegrees = [key for key in d_rootCastInfo['processedHits'].keys()]
 	#> Side Curves
@@ -439,12 +439,12 @@ def createWrapControlShape(targetObjects,
 		l_pos.append( d['processedHits'].get(degree) or False )
 	    while False in l_pos:
 		l_pos.remove(False)
-	    log.info("l_pos: %s"%l_pos)
+	    log.debug("l_pos: %s"%l_pos)
 	    if len(l_pos)>=2:
 		try:
 		    l_curvesToCombine.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve
 		except:
-		    log.info("createWrapControlShape>>>> skipping curve fail: %s"%(degree))
+		    log.debug("createWrapControlShape>>>> skipping curve fail: %s"%(degree))
 		    
     #>>>Combine the curves
     newCurve = curves.combineCurves(l_curvesToCombine) 
@@ -578,7 +578,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    l_rotateSettings.append( (rotateBaseValue*(i)) + initialRotate +rotateFloor)
     
     if not l_rotateSettings:raise StandardError, "Should have had some l_rotateSettings by now"
-    log.info("rotateSettings: %s"%l_rotateSettings)
+    log.debug("rotateSettings: %s"%l_rotateSettings)
     #>>>> Pew, pew !
     #================================================================
     for i,rotateValue in enumerate(l_rotateSettings):
@@ -660,7 +660,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		mc.move (pos[0],pos[1],pos[2], mi_tmpLoc.mNode,ws=True)		    
 	    d_processedHitFromValue[rotateValue] = pos	    
 	    mc.delete(mi_dup.parent)#delete
-	    log.info("%s : %s : max marked"%(i,rotateValue))
+	    log.debug("%s : %s : max marked"%(i,rotateValue))
 	if markHits:mc.curve (d=1, ep = l_pos, os=True)#build curves as we go to see what's up
     mc.delete(mi_loc.getAllParents()[-1])#delete top group
     log.debug("pos list: %s"%l_pos)    

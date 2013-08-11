@@ -116,7 +116,7 @@ def build_shapes(self):
     except StandardError,error:
 	log.error("build_leg>>Build shapes fail!")
 	raise StandardError,error   
-    
+    return True
 
 #>>> Skeleton
 #=========================================================================================================
@@ -161,23 +161,18 @@ def __bindSkeletonSetup__(self):
 	
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    ml_skinJoints.append(i_jnt)		
-	    if i_jnt.hasAttr('d_jointFlags') and i_jnt.getAttr('cgmName') not in ['ball']:
-		if i_jnt.d_jointFlags.get('isHandle'):
-		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
-		    i_dupJnt = i_jnt.doDuplicate()#Duplicate
-		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
-		    i_jnt.doName()#Rename
-		    i_dupJnt.doName()#Rename
-		    i_dupJnt.parent = i_jnt#Parent
-		    i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
-		    #Fix the isHandle Flag -------------------------------------
-		    d_buffer = i_dupJnt.d_jointFlags
-		    d_buffer.pop('isHandle')
-		    i_dupJnt.d_jointFlags = d_buffer
-		    #------------------------------------------------------------
-		    ml_skinJoints.append(i_dupJnt)#Append
-		    log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
-	
+	    if i_jnt in ml_handleJoints and i_jnt.getAttr('cgmName') not in ['ball']:
+		if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
+		i_dupJnt = i_jnt.doDuplicate()#Duplicate
+		i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
+		i_jnt.doName()#Rename
+		i_dupJnt.doName()#Rename
+		i_dupJnt.parent = i_jnt#Parent
+		i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
+		#------------------------------------------------------------
+		ml_skinJoints.append(i_dupJnt)#Append
+		log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
+    
 	for i,i_jnt in enumerate(ml_handleJoints[1:]):
 	    i_jnt.parent = ml_handleJoints[i].mNode
 		    
@@ -619,7 +614,7 @@ def build_FKIK(self):
     ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
     ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
     ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
-    if len(ml_ikJoints) != 4:raise StandardError,"Length of ikJoints is wrong. %s != 4"%(len(ml_ikJoints))
+    if len(ml_ikJoints) != 5:raise StandardError,"Length of ikJoints is wrong. %s != 4"%(len(ml_ikJoints))
     ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
     ml_ikNoFlipJoints = self._i_rigNull.msgList_get('ikNoFlipJoints')
     
@@ -1410,7 +1405,7 @@ def build_rig(self):
     
     #Constrain to pelvis
     if mi_moduleParent:
-	mc.parentConstraint(mi_moduleParent.rigNull.moduleJoints[0].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+	mc.parentConstraint(mi_moduleParent.rigNull.msgList_getMessage('moduleJoints')[0],self._i_constrainNull.mNode,maintainOffset = True)
     
     #Dynamic parent groups
     #====================================================================================
@@ -1476,7 +1471,7 @@ def build_rig(self):
     
     #Make some connections
     #=
-    cgmMeta.cgmAttr(mi_settings,"kneeSpace_in").doConnectIn("%s.space"%mi_controlMidIK.mNode)#This connects to one of our twist fixes from the deformation setup
+    #cgmMeta.cgmAttr(mi_settings,"kneeSpace_in").doConnectIn("%s.space"%mi_controlMidIK.mNode)#This connects to one of our twist fixes from the deformation setup
     
 
     #Parent and constrain joints
@@ -1690,7 +1685,7 @@ def build_twistDriver_hip(self):
 	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_hip >> finish failed| %s"%(self._strShortName,error)
-
+    return True
 #------------------------------------------------------------------------------------------------------------#    
 def build_twistDriver_ankle(self):
     log.info(">>> %s.build_ankleTwistDriver >> "%self._strShortName + "="*75)
@@ -1801,6 +1796,7 @@ def build_twistDriver_ankle(self):
 	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
     except StandardError,error:
 	raise StandardError,"%s.build_ankleTwistDriver >> finish failed| %s"%(self._strShortName,error)	
+    return True
     
 @cgmGeneral.Timer
 def build_matchSystem(self):

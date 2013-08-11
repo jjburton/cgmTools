@@ -80,8 +80,8 @@ class go(object):
 	1) midSurfacePos
         """
 	#>>> Check our obj
-	log.info("obj: %s"%obj)
-	log.info("targets: %s"%targets)
+	log.debug("obj: %s"%obj)
+	log.debug("targets: %s"%targets)
 	if issubclass(type(obj),cgmMeta.cgmNode):
 	    self.i_obj = obj
 	else:
@@ -121,15 +121,15 @@ class go(object):
 	    #Should we save soft select info before changing?
 	    mc.softSelect(softSelectDistance = softSelectDistance)
 	    mc.softSelect(softSelectFalloff = 0)	    
-	log.info("targetTypes: %s"%self.d_targetTypes)
+	log.debug("targetTypes: %s"%self.d_targetTypes)
 	if move:
-	    log.info("Moving")
+	    log.debug("Moving")
 	    self.doMove(**kws)
 	if orient:
-	    log.info("orienting")
+	    log.debug("orienting")
 	    self.doOrient(**kws)
 	if aim:
-	    log.info("orienting")
+	    log.debug("orienting")
 	    self.doAim(**kws)	    
 	
     #======================================================================
@@ -137,11 +137,11 @@ class go(object):
     #======================================================================    
     @r9General.Timer    
     def doMove(self,**kws):
-	if kws:log.info("Snap.doMove>>> kws: %s"%kws)
+	if kws:log.debug("Snap.doMove>>> kws: %s"%kws)
 	if len(self.l_targets) == 1:
 	    #>>> Check our target	    
 	    i_target = cgmMeta.cgmNode( self.l_targets[0] )
-	    log.info("i_target: %s"%i_target)
+	    log.debug("i_target: %s"%i_target)
 	    targetType = i_target.getMayaType()	    
 
 	    if self.b_snapComponents:
@@ -188,7 +188,7 @@ class go(object):
 			i_locObj.delete()
 			i_locTarget.delete()
 		elif self.b_midSurfacePos:
-		    log.info("Snap.move>>> midSurfacePos mode!")
+		    log.debug("Snap.move>>> midSurfacePos mode!")
 		    if targetType not in ['mesh','nurbsCurve','nurbsSurface']:
 			log.warning("Can't do midSurfacPos on targetType: '%s'"%targetType)
 			return False
@@ -205,7 +205,7 @@ class go(object):
 			if not axisToCheck:
 			    raise StandardError,"SnapFactory>>> couldn't find any axis to do"
 		    #i_locObj = self.i_obj.doLoc()#Get our position loc		
-		    #log.info(axisToCheck)
+		    #log.debug(axisToCheck)
 		    pos = RayCast.findMeshMidPointFromObject(i_target.mNode, self.i_obj.mNode, axisToCheck=axisToCheck,**kws)
 		    #i_locObj.delete()
 		    

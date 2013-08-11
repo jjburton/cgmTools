@@ -329,7 +329,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     i_obj = cgmMeta.validateObjArg(controlObject,cgmMeta.cgmObject,noneValid=False)
     i_obj.addAttr('mClass','cgmControl',lock=True)
     i_control = cgmMeta.cgmControl(i_obj.mNode,setClass=True)
-    log.info(i_control)
+    log.debug(i_control)
     
     ml_groups = []#Holder for groups
     ml_constraintGroups = []
@@ -409,7 +409,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     elif i_control.getAttr('cgmName') in d_rotateOrderDefaults.keys():
 	_rotateOrder = d_rotateOrderDefaults[i_control.getAttr('cgmName')]
     else:
-	log.info("Need to set rotateOrder: '%s'"%str_shortName)
+	log.warning("rotateOrder not set on: '%s'"%str_shortName)
 	
     #set it
     if _rotateOrder:
@@ -433,39 +433,39 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
 	    i_masterGroup.doName()
 	    i_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
-	    log.info("masterGroup: '%s'"%i_masterGroup.getShortName())
+	    log.debug("masterGroup: '%s'"%i_masterGroup.getShortName())
 	    
 	    if addDynParentGroup:
-		log.info("addDynParentGroup...")
+		log.debug("addDynParentGroup...")
 		i_dynGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
 		i_dynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=i_control,dynGroup=i_dynGroup)
 		i_dynGroup.doName()
-		log.info("dynParentGroup: '%s'"%i_dynGroup.getShortName())
+		log.debug("dynParentGroup: '%s'"%i_dynGroup.getShortName())
 		
 		i_zeroGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
 		i_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
 		i_zeroGroup.doName()
 		i_control.connectChildNode(i_masterGroup,'zeroGroup','groupChild')
-		log.info("zeroGroup: '%s'"%i_zeroGroup.getShortName())	    
+		log.debug("zeroGroup: '%s'"%i_zeroGroup.getShortName())	    
 	    
 	    if addExtraGroups:
-		log.info("addExtraGroups...")	    
+		log.debug("addExtraGroups...")	    
 		for i in range(addExtraGroups):
 		    i_group = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
 		    if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
 			i_group.addAttr('cgmIterator',str(i+1),lock=True)
 			i_group.doName()
 		    ml_groups.append(i_group)
-		    log.info("group %s: '%s'"%(i,i_group.getShortName()))
+		    log.debug("group %s: '%s'"%(i,i_group.getShortName()))
 		
 	    if addConstraintGroup:#ConstraintGroups
-		log.info("addConstraintGroup...")	    
+		log.debug("addConstraintGroup...")	    
 		i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
 		i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
 		i_constraintGroup.doName()
 		ml_constraintGroups.append(i_constraintGroup)
 		i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	    
-		log.info("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
+		log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
 		
     except StandardError,error:
 	log.error("ModuleControlFactory.registerControl>>grouping fail: '%s'"%i_control.getShortName())

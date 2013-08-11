@@ -453,15 +453,14 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	
         """	
 	try:
-	    log.info(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
+	    log.debug(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
 	    ml_nodes = validateObjListArg(nodes,noneValid=True)
 	    if ml_nodes:self.msgList_purge(attr)#purge first
-
 	    for i,mi_node in enumerate(ml_nodes):
 		str_attr = "%s_%i"%(attr,i)
 		self.connectChildNode(mi_node,str_attr,connectBack)
-		log.info("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
-	    log.info("-"*100)            	
+		log.debug("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
+	    log.debug("-"*100)            	
 	    return True
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
@@ -524,6 +523,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def msgList_append(self, node, attr = None, connectBack = None):
 	"""
 	Append node to msgList
+	
+	Returns index
 	"""
 	#try:
 	i_node = validateObjArg(node,noneValid=True)
@@ -532,16 +533,19 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	#if not self.msgList_exists(attr):
 	    #raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
 	
-	log.info(">>> %s.msgList_append(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
+	log.debug(">>> %s.msgList_append(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
 	
 	ml_nodes = self.msgList_get(attr,asMeta=True)
 	if i_node in ml_nodes:
-	    log.info(">>> %s.msgList_append >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
-	    return True
+	    log.debug(">>> %s.msgList_append >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75) 
+	    idx = ml_nodes.index(i_node)	    
+	    return idx
 	else:
-	    log.info("%s"%i_node.p_nameShort)
+	    log.debug("%s"%i_node.p_nameShort)
 	    ml_nodes.append(i_node)
+	    idx = ml_nodes.index(i_node)
 	    self.msgList_connect(ml_nodes,attr,connectBack)
+	    return idx
 	log.debug("-"*100)            	               	
 	return True 
     
@@ -554,10 +558,10 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    raise StandardError, " %s.msgList_index >> invalid node: %s"%(self.p_nameShort,node)
 	if not self.msgList_exists(attr):
 	    raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
-	log.info(">>> %s.msgList_index(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
+	log.debug(">>> %s.msgList_index(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
 	ml_nodes = self.msgList_get(attr,asMeta=True)	
 	if i_node in ml_nodes:
-	    log.info(">>> %s.msgList_index >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
+	    log.debug(">>> %s.msgList_index >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
 	    return ml_nodes.index(i_node)
 	log.debug("-"*100)            	               	
 	return False
@@ -571,18 +575,19 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    raise StandardError, " %s.msgList_index >> invalid nodes: %s"%(self.p_nameShort,nodes)
 	if not self.msgList_exists(attr):
 	    raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
-	log.info(">>> %s.msgList_remove(nodes = %s, attr = '%s') >> "%(self.p_nameShort,nodes,attr) + "="*75)  
+	log.debug(">>> %s.msgList_remove(nodes = %s, attr = '%s') >> "%(self.p_nameShort,nodes,attr) + "="*75)  
 	ml_nodes = self.msgList_get(attr,asMeta=True)
 	b_removedSomething = False
 	for i_n in ml_nodesToRemove:
 	    if i_n in ml_nodes:
 		ml_nodes.remove(i_n)
-		log.info(">>> %s.msgList_remove >> Node removed: %s "%(self.p_nameShort,i_n.p_nameShort) + "="*75)  				
+		log.debug(">>> %s.msgList_remove >> Node removed: %s "%(self.p_nameShort,i_n.p_nameShort) + "="*75)  				
 		b_removedSomething = True
 	if b_removedSomething:self.msgList_connect(ml_nodes,attr)
 	log.debug("-"*100)            	               	
 	return False
     
+    @cgmGeneral.Timer
     def msgList_purge(self,attr):
 	"""
 	Purge all the attributes of a msgList
@@ -656,6 +661,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    
     #Attr stuff =========================================================================
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
+	log.debug(">>> %s.addAttr(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)            		        
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':
 	    #enum special handling
 	    #valueCarry = None #Special handling for enum and value at the same time
@@ -1343,7 +1349,7 @@ class cgmObject(cgmNode):
 		self_index = l_parents.index(self.mNode)
 		l_parents = l_parents[:self_index+1]
 		l_parents.reverse()
-		log.info(l_parents)
+		log.debug(l_parents)
 		#l_path.append(self.getShortName())
 		for o in l_parents:
 		    i_o = cgmObject(o)
@@ -3453,7 +3459,7 @@ class cgmAttr(object):
 	    mPlug_target = d_target['mi_plug']
 	    if d_target:
 		attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
-		log.info(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
+		log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
 	    else:
 		log.warning(">>> %s.doConnectOut >> target failed to validate: %s"%(self.p_combinedShortName,target) + "="*75)            			    
 		return False
@@ -3497,7 +3503,7 @@ class cgmAttr(object):
 	    mPlug_source = d_source['mi_plug']
 	    if d_source:
 		attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
-		log.info(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            				
+		log.debug(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            				
 	    else:
 		log.warning(">>> %s.doConnectIn >> source failed to validate: %s"%(self.p_combinedShortName,source) + "="*75)            			    
 		return False
@@ -4134,7 +4140,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    log.debug("cgmAttr call failed: %s"%arg)	    
 	    if type(arg) in [list,tuple] and len(arg) == 2:
 		try:
-		    log.info(arg[0].mNode)
+		    log.debug(arg[0].mNode)
 		    obj = arg[0].mNode
 		except:
 		    log.debug("mNode call fail")
@@ -4172,7 +4178,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 #@cgmGeneral.Timer    
 def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
     try:
-	log.info(">>> validateAttrListArg >> " + "="*75)            	
+	log.debug(">>> validateAttrListArg >> " + "="*75)            	
 	if type(l_args) not in [list,tuple]:l_args = [l_args]
 	l_mPlugs = []
 	l_combined = []
@@ -4185,7 +4191,7 @@ def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**
 		l_raw.append(buffer)
 	    else:
 		log.warning("validateAttrListArg>> Failed to validate: %s"%arg)		
-	log.info("validateAttrListArg>> validated: %s"%l_combined)
+	log.debug("validateAttrListArg>> validated: %s"%l_combined)
 	return {'ml_plugs':l_mPlugs,'combined':l_combined,'raw':l_raw}
     except StandardError,error:
 	log.error("validateAttrListArg>>Failure! l_args: %s | defaultType: %s"%(l_args,defaultType))
