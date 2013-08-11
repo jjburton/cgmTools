@@ -19,7 +19,6 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
-reload(cgmRigMeta)
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
@@ -218,7 +217,7 @@ class go(object):
 	    if self._outOfDate and autoBuild:
 		self.doBuild(**kws)
 	    else:
-		log.info("'%s' Up to date. No autobuild."%self._strShortName)
+		log.info("'%s' No autobuild."%self._strShortName)
 	else:
 	    log.warning("'%s' module type not in done list. No auto build"%self.buildModule.__name__)
     
@@ -272,8 +271,8 @@ class go(object):
 	Return if a module is rig skeletonized or not
 	"""
 	for key in self._l_jointAttrs:
-	    if not self._i_rigNull.getMessage('%s'%(key)):
-		log.debug("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
+	    if not self._i_rigNull.getMessage('%s'%(key)) and not self._i_rigNull.msgList_getMessage('%s'%(key)):
+		log.error("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
 		return False		
 	return True
     
@@ -384,15 +383,14 @@ class go(object):
 		i_new = i_handle.doDuplicate()
 		if ml_handleChain:i_new.parent = ml_handleChain[-1]#if we have data, parent to last
 		else:i_new.parent = False
-		
 		i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
 		i_new.doName()
 		
 		#i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
 		ml_handleChain.append(i_new)
 		
-	    self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+	    #self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	    #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
 	    log.info("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
 	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
 		self._i_rigNull.msgList_connect(ml_handleChain,connectNodesAs,'rigNull')#Push back		
@@ -449,7 +447,7 @@ class go(object):
 	    
 	    ml_newChain = []
 	    for i2,j in enumerate(buffer_segmentTargets):
-		i_j = j.doDuplicate(breakMessagePlugsOut = True)
+		i_j = j.doDuplicate()
 		i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
 		i_j.doName()
 		if ml_newChain:
@@ -465,14 +463,14 @@ class go(object):
 	    jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
 	    
 	#Connect stuff ============================================================================================    
-	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
+	#self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	#self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
 	if connectNodes:
 	    for i,ml_chain in enumerate(ml_segmentChains):
 		l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
 		log.info("segment chain %s: %s"%(i,l_chain))
-		self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_Joints'%i,"rigNull")
-		log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.getMessage('segment%s_Joints'%i,False)))
+		self._i_rigNull.msgList_connect(ml_chain,'segment%s_Joints'%i,"rigNull")
+		log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_Joints'%i,False)))
 		
 	return ml_segmentChains
 	
@@ -538,13 +536,11 @@ class go(object):
 	    jntUtils.metaFreezeJointOrientation(i_j.mNode)#Freeze orientations
 	
 	#Connect stuff ============================================================================================    
-	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
 	for i,ml_chain in enumerate(ml_influenceChains):
 	    l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
 	    log.info("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._i_module.getShortName(),l_chain))
-	    self._i_rigNull.connectChildrenNodes(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
-	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i,False)))
+	    self._i_rigNull.msgList_connect(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
+	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i,False)))
 	
 	return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
 
@@ -788,7 +784,9 @@ def get_influenceChains(self):
 	l_influenceChains = []
 	ml_influenceChains = []
 	for i in range(100):
-	    buffer = self.rigNull.getMessage('segment%s_InfluenceJoints'%i)
+	    str_check = 'segment%s_InfluenceJoints'%i
+	    buffer = self.rigNull.msgList_getMessage(str_check)
+	    log.debug("Checking %s: %s"%(str_check,buffer))
 	    if buffer:
 		l_influenceChains.append(buffer)
 		ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -805,7 +803,7 @@ def get_segmentHandleChains(self):
 	l_segmentHandleChains = []
 	ml_segmentHandleChains = []
 	for i in range(50):
-	    buffer = self.rigNull.getMessage('segmentHandles_%s'%i,False)
+	    buffer = self.rigNull.msgList_getMessage('segmentHandles_%s'%i,False)
 	    if buffer:
 		l_segmentHandleChains.append(buffer)
 		ml_segmentHandleChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -823,7 +821,7 @@ def get_segmentChains(self):
 	l_segmentChains = []
 	ml_segmentChains = []
 	for i in range(50):
-	    buffer = self.rigNull.getMessage('segment%s_Joints'%i,False)
+	    buffer = self.rigNull.msgList_getMessage('segment%s_Joints'%i,False)
 	    if buffer:
 		l_segmentChains.append(buffer)
 		ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
