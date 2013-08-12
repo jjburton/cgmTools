@@ -46,27 +46,36 @@ def Timer(func):
         t2 = time.time()
 
         functionTrace=''
+        str_arg = False
         try:
             #module if found
             mod = inspect.getmodule(args[0])
-            log.debug("mod: %s"%mod)            
-            functionTrace+='%s >>' % mod.__name__.split('.')[-1]
+            #log.debug("mod: %s"%mod)            
+            functionTrace+='%s >> ' % mod.__name__.split('.')[-1]
         except:
             log.debug('function module inspect failure')
         try:
             #class function is part of, if found
             cls = args[0].__class__
-            log.debug("cls: %s"%cls)
-            log.debug("arg[0]: %s"%args[0])
-            if type(arg[0]) in [str,unicode]:
-                str_first = arg[0]
+            #log.debug("cls: %s"%cls)
+            #log.debug("arg[0]: %s"%args[0])
+            if type(args[0]) in [str,unicode]:
+                str_first = args[0]
             else:
-                str_first = args[0].__class__.__name__               
+                str_first = args[0].__class__.__name__  
+                
+            try:
+                log.debug("args]0] : %s"%args[0])                
+                if args[0].p_nameShort:
+                    str_arg = args[0].p_nameShort
+            except:
+                log.debug("arg[0] failed to call: %s"%args[0])
             functionTrace+='%s.' % str_first
-        except:
-            log.debug('function class inspect failure')
+        except StandardError,error:
+            log.debug('function class inspect failure: %s'%error)
         functionTrace+=func.__name__ 
-        log.info('>'*10 + ' TIMER : %s: %0.4f sec ' % (functionTrace,(t2-t1))+ '<'*10)
+        if str_arg:functionTrace+='(%s)'%str_arg      
+        log.info('>'*5 + ' TIMER : %s: %0.4f sec ' % (functionTrace,(t2-t1))+ '<'*5)
         #log.debug('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper  
