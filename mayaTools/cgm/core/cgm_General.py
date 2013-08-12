@@ -108,3 +108,41 @@ def TimerDebug(func):
         #log.debug('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper
+
+
+def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Tools to do a maya progress bar. This function and doEndMayaProgressBar are a part of a set. Example
+    usage:
+
+    mayaMainProgressBar = guiFactory.doStartMayaProgressBar(int(number))
+    for n in range(int(number)):
+    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+    break
+    mc.progressBar(mayaMainProgressBar, edit=True, status = (n), step=1)
+
+    guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
+
+    ARGUMENTS:
+    stepMaxValue(int) - max number of steps (defualt -  100)
+    statusMessage(string) - starting status message
+    interruptableState(bool) - is it interuptible or not (default - True)
+
+    RETURNS:
+    mayaMainProgressBar(string)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
+    mc.progressBar( mayaMainProgressBar,
+                    edit=True,
+                    beginProgress=True,
+                    isInterruptable=interruptableState,
+                    status=statusMessage,
+                    minValue = 0,
+                    maxValue= stepMaxValue )
+    return mayaMainProgressBar
+
+def doEndMayaProgressBar(mayaMainProgressBar):
+    mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
