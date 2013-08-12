@@ -191,15 +191,12 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	longnames currently only for my overload.
 	"""
 	try:
-	    mNode=object.__getattribute__(self, "_mNode")
+	    mNode=object.__getattribute__(self, "mNode")
 	    if mc.objExists(mNode):
-		if mc.attributeQuery(attr, exists=True, node=mNode):
-		    if mc.getAttr('%s.%s' % (mNode,attr),type=True)  == 'message' and not ignoreOverload:
-			return attributes.returnMessageData(self.mNode,attr,longNames)
-		    else:
-			return r9Meta.MetaClass.__getattribute__(self,attr)
+		if self.msgList_exists(attr):
+		    return self.msgList_get(attr)
 		else:
-		    return object.__getattribute__(self, attr)
+		    return r9Meta.MetaClass.__getattribute__(self,attr)
 	    return object.__getattribute__(self, attr)
 	except StandardError,error:
 	    raise StandardError(error)
@@ -459,7 +456,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    for i,mi_node in enumerate(ml_nodes):
 		str_attr = "%s_%i"%(attr,i)
 		self.connectChildNode(mi_node,str_attr,connectBack)
-		log.debug("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
+		log.info("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
 	    log.debug("-"*100)            	
 	    return True
 	except StandardError,error:
@@ -587,7 +584,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	log.debug("-"*100)            	               	
 	return False
     
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def msgList_purge(self,attr):
 	"""
 	Purge all the attributes of a msgList
@@ -2764,7 +2761,7 @@ class cgmAttr(object):
 	    else:
 		return attributes.doGetAttr(self.obj.mNode,self.attr)
         except:
-            log.error("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
+            log.debug("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
 	    
     def doDelete(self):
         """ 
