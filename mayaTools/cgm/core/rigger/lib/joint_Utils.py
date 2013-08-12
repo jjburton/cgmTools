@@ -48,6 +48,7 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
+@cgmGeneral.Timer
 def metaFreezeJointOrientation(targetJoints):
     """
     Copies joint orietnations from one joint to others
@@ -71,8 +72,8 @@ def metaFreezeJointOrientation(targetJoints):
 	d_parent[i_jnt] = i_jnt.parent
     for i_jnt in ml_targetJoints:
 	for i,i_c in enumerate(d_children[i_jnt]):
-	    log.info(i_c.getShortName())
-	    log.info("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
+	    log.debug(i_c.getShortName())
+	    log.debug("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
 	    i_c.parent = False
 	
     #Orient
@@ -109,7 +110,7 @@ def metaFreezeJointOrientation(targetJoints):
     #reparent
     for i_jnt in ml_targetJoints:
         for i_c in d_children[i_jnt]:
-            log.info("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
+            log.debug("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
             i_c.parent = i_jnt.mNode 
 	    cgmMeta.cgmAttr(i_c,"inverseScale").doConnectIn("%s.scale"%i_jnt.mNode )
 	    
@@ -155,12 +156,12 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	raise NotImplementedError, "add_defHelpJoints >> only currently can do orienation of 'zyx'"
     #Validate base info
     mi_targetJoint = cgmMeta.validateObjArg(targetJoint,cgmMeta.cgmObject,mayaType='joint')
-    log.info(">>> %s.add_defHelpJoint >> "%mi_targetJoint.p_nameShort + "="*75)            
+    log.debug(">>> %s.add_defHelpJoint >> "%mi_targetJoint.p_nameShort + "="*75)            
     
     #>>Child joint
     #TODO -- implement child guessing
     mi_childJoint = cgmMeta.validateObjArg(childJoint,cgmMeta.cgmObject,mayaType='joint',noneValid=True)
-    log.info("%s.add_defHelpJoints >> Child joint : '%s'"%(mi_targetJoint.p_nameShort,mi_childJoint))
+    log.debug("%s.add_defHelpJoints >> Child joint : '%s'"%(mi_targetJoint.p_nameShort,mi_childJoint))
         
     str_plugHook = 'defHelp_joints'
     
@@ -178,20 +179,20 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
     ml_dynDefHelpJoints = cgmMeta.validateObjListArg(mi_targetJoint.getMessage(str_plugHook),cgmMeta.cgmObject,noneValid=True)
     i_matchJnt = False
     for i_jnt in ml_dynDefHelpJoints:
-	log.info(i_jnt.p_nameShort)
+	log.debug(i_jnt.p_nameShort)
 	if i_jnt.getAttr('defHelpType') == helperType and i_jnt.getMessage('defHelp_target') == [mi_targetJoint.p_nameLong]:
 	    i_matchJnt = i_jnt
-	    log.info("%s.add_defHelpJoints >> Found match: '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    	    
+	    log.debug("%s.add_defHelpJoints >> Found match: '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    	    
 	    break
 	
     if i_matchJnt:#if we have a match
 	if forceNew:
-	    log.info("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    	    
+	    log.debug("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    	    
 	    ml_dynDefHelpJoints.remove(i_matchJnt)	    
 	    mc.delete(i_matchJnt.mNode)
 	    
 	else:
-	    log.info("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    
+	    log.debug("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    
 	    
     if not i_matchJnt:
 	i_dupJnt = mi_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut=True)#Duplicate
@@ -206,7 +207,7 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
     else:
 	i_dupJnt = i_matchJnt
     #------------------------------------------------------------
-    log.info("%s.add_defHelpJoints >> Created helper joint : '%s'"%(mi_targetJoint.p_nameShort,i_dupJnt.p_nameShort))
+    log.debug("%s.add_defHelpJoints >> Created helper joint : '%s'"%(mi_targetJoint.p_nameShort,i_dupJnt.p_nameShort))
     
     if doSetup:
 	try:setup_defHelpJoint(i_dupJnt,orientation)
@@ -243,7 +244,7 @@ def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
 	log.warning("%s.setup_defHelpJoint >> '%s' not a valid helperType: %s"%(mi_helperJoint.p_nameShort,str_helperType,__l_helperTypes__))	    
 	return False
     
-    log.info(">>> %s.setup_defHelpJoint >> "%mi_helperJoint.p_nameShort + "="*75)            
+    log.debug(">>> %s.setup_defHelpJoint >> "%mi_helperJoint.p_nameShort + "="*75)            
     #>Setup
     #---------------------------------------------------------------- 
     if str_helperType == 'halfHold':
