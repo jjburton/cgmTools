@@ -195,7 +195,7 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	    log.debug("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    
 	    
     if not i_matchJnt:
-	i_dupJnt = mi_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut=True)#Duplicate
+	i_dupJnt = mi_targetJoint.doDuplicate(incomingConnections = False)#Duplicate
 	i_dupJnt.addAttr('cgmTypeModifier',helperType)#Tag
 	i_dupJnt.addAttr('defHelpType',helperType,lock=True)#Tag    
 	i_dupJnt.doName()#Rename
@@ -203,7 +203,7 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	ml_dynDefHelpJoints.append(i_dupJnt)#append to help joint list
 	
 	i_dupJnt.connectChildNode(mi_childJoint,"defHelp_childTarget")#Connect Child target
-	mi_targetJoint.connectChildrenNodes(ml_dynDefHelpJoints,str_plugHook,'defHelp_target')#Connect
+	mi_targetJoint.msgList_connect(ml_dynDefHelpJoints,str_plugHook,'defHelp_target')#Connect
     else:
 	i_dupJnt = i_matchJnt
     #------------------------------------------------------------
