@@ -162,12 +162,18 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 
 	#>>>> Sel check
 	#====================================================================
-	selected = mc.ls(sl=True) or []
-	self.ml_objList = cgmMeta.validateObjListArg(selected,cgmMeta.cgmObject,True)
-	log.debug("ml_objList: %s"%self.ml_objList)
+	int_maxObjects = 5	
+	
+	l_selected = mc.ls(sl=True) or []
+	if len(l_selected) <= int_maxObjects:self._l_selected = l_selected
+	else:self._l_selected = l_selected[:5]
+	
+	self.ml_objList = cgmMeta.validateObjListArg(self._l_selected,cgmMeta.cgmObject,True)
+	log.debug("ml_objList: %s"%self.ml_objList)	    	
+
 	self.ml_modules = []
 	self.l_modules = []
-	if selected:selCheck = True
+	if l_selected:selCheck = True
 	else:selCheck = False
 
 	#>>>> Aim check
@@ -216,10 +222,10 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	timeStart_objectList = time.clock()
 	if self.ml_objList:
 	    self.d_objectsInfo = {}
+	    #first we validate
 	    #First we're gonna gather all of the data
 	    #=========================================================================================
 	    for i,i_o in enumerate(self.ml_objList):
-		int_maxObjects = 5
 		if i >= int_maxObjects:
 		    log.warning("More than %s objects select, only loading first %s for speed"%(int_maxObjects,int_maxObjects))
 		    break
@@ -254,7 +260,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    #Build the menu
 	    #=========================================================================================
 	    #>> Find Common options ------------------------------------------------------------------
-	    timeStart_commonOptions = time.clock()	    
+	    timeStart_commonOptions = time.clock()    
 	    l_commonAttrs = []
 	    d_commonOptions = {}
 	    bool_firstFound = False
@@ -279,7 +285,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				
 	    log.debug("Common Attrs: %s"%l_commonAttrs)
 	    log.debug("Common Options: %s"%d_commonOptions)
-	    log.debug(">"*10  + ' Common options build =  %0.3f seconds  ' % (time.clock()-timeStart_commonOptions) + '<'*10)  
+	    log.info(">"*10  + ' Common options build =  %0.3f seconds  ' % (time.clock()-timeStart_commonOptions) + '<'*10)  
 	    
 	    #>> Build ------------------------------------------------------------------
 	    int_lenObjects = len(self.d_objectsInfo.keys())
@@ -321,11 +327,12 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				    if i == v:b_enable = False
 				    else:b_enable = True
 				    MelMenuItem(tmpMenu,l = "%s"%o,en = b_enable,
-					        c = Callback(mi_dynParent.doSwitchSpace,a,i))
+				                c = Callback(mi_dynParent.doSwitchSpace,a,i))
 		    else:
 			log.debug("'%s':lacks dynParent"%i_o.getShortName())
 				
 	#>>> Module
+	timeStart_ModuleStuff = time.clock()  	    
 	if self.BuildModuleOptionVar.value and self.ml_modules:
 	    #MelMenuItem(parent,l="-- Modules --",en = False)	    
 	    self.ml_modules = lists.returnListNoDuplicates(self.ml_modules)
@@ -347,9 +354,9 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	                     c = Callback(func_multiDynSwitch,1))
 		"""
 		MelMenuItem( parent, l="Key Below",
-	                     c = Callback(i_module.animKey_children))							
+			     c = Callback(i_module.animKey_children))							
 		MelMenuItem( parent, l="Select Below",
-	                     c = Callback(i_module.animSelect_children))"""		
+			     c = Callback(i_module.animSelect_children))"""		
 		
 	    for i_module in self.ml_modules:
 		if state_multiModule:
@@ -362,36 +369,37 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    i_switch = i_module.rigNull.dynSwitch
 		    for a in i_switch.l_dynSwitchAlias:
 			MelMenuItem( use_parent, l="%s"%a,
-			             c = Callback(i_switch.go,a))						
+		                     c = Callback(i_switch.go,a))						
 		except StandardError,error:
 		    log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
 		try:#module basic menu
 		    if i_module.rigNull.msgList_exists('controlsAll'):
 			MelMenuItem( use_parent, l="Key",
-			             c = Callback(i_module.animKey))
+		                     c = Callback(i_module.animKey))
 			#MelMenuItem( parent, l="Select",
 				#c = Callback(buttonAction(i_module.animSelect)))							
 			MelMenuItem( use_parent, l="Select",
-			             c = Callback(i_module.animSelect))									
+		                     c = Callback(i_module.animSelect))									
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module children
 		    if i_module.getMessage('moduleChildren'):
 			iSubM_Children = MelMenuItem( use_parent, l="Children:",
-			                             subMenu = True)
+		                                     subMenu = True)
 			MelMenuItem( iSubM_Children, l="toFK",
-			             c = Callback(i_module.dynSwitch_children,0))	
+		                     c = Callback(i_module.dynSwitch_children,0))	
 			MelMenuItem( iSubM_Children, l="toIK",
-			             c = Callback(i_module.dynSwitch_children,1))				
+		                     c = Callback(i_module.dynSwitch_children,1))				
 			MelMenuItem( iSubM_Children, l="Key Below",
-			             c = Callback(i_module.animKey_children))							
+		                     c = Callback(i_module.animKey_children))							
 			MelMenuItem( iSubM_Children, l="Select Below",
-			             c = Callback(i_module.animSelect_children))																
+		                     c = Callback(i_module.animSelect_children))																
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 
 		MelMenuItemDiv(parent)						
-
+	log.info(">"*10  + ' Module options build =  %0.3f seconds  ' % (time.clock()-timeStart_ModuleStuff) + '<'*10)  
+		
 	#>>> Options menus
 	#================================================================================
 	MelMenuItem(parent,l = "{ Options }",en = False)
@@ -523,7 +531,7 @@ def setKey():
     if not KeyModeOptionVar.value:#This is default maya keying mode
 	selection = mc.ls(sl=True) or []
 	if not selection:
-	    return log.warning('cgmPuppetKey.setKey>>> Nothing selected!')
+	    return log.warning('cgmPuppetKey.setKey>>> Nothing l_selected!')
 
 	if not KeyTypeOptionVar.value:
 	    mc.setKeyframe(selection)
@@ -534,7 +542,7 @@ def setKey():
 	if not selection:
 	    selection = mc.ls(sl=True) or []
 	    if not selection:
-		return log.warning('cgmPuppetKey.setKey>>> Nothing selected!')
+		return log.warning('cgmPuppetKey.setKey>>> Nothing l_selected!')
 
 	if not KeyTypeOptionVar.value:
 	    mc.setKeyframe(selection)
@@ -548,7 +556,7 @@ def deleteKey():
     if not KeyModeOptionVar.value:#This is default maya keying mode
 	selection = mc.ls(sl=True) or []
 	if not selection:
-	    return log.warning('cgmPuppetKey.deleteKey>>> Nothing selected!')
+	    return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
 
 	if not KeyTypeOptionVar.value:
 	    mc.cutKey(selection)	    
@@ -559,7 +567,7 @@ def deleteKey():
 	if not selection:
 	    selection = mc.ls(sl=True) or []
 	    if not selection:
-		return log.warning('cgmPuppetKey.deleteKey>>> Nothing selected!')
+		return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
 
 	if not KeyTypeOptionVar.value:
 	    mc.cutKey(selection)	    
