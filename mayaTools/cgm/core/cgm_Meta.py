@@ -163,10 +163,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	self.__dict__['__justCreatedState__'] = createdState
 	self.__dict__['__componentMode__'] = componentMode
 	self.__dict__['__component__'] = component
-	if setClass:
-	    self.addAttr('mClass','cgmNode',lock=True)
-	
-	self.update()
+	if not self.isReferenced():
+	    if setClass:
+		self.addAttr('mClass','cgmNode',lock=True)
+	    
+	    self.update()
         
     def __verify__(self):
 	pass#For overload
@@ -2341,8 +2342,8 @@ class cgmBufferNode(cgmNode):
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
 	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr','_kw_overrideMessageCheck'])
 	self._kw_overrideMessageCheck = overideMessageCheck
-	self.__verify__()
-        if not self.isReferenced():	    
+        if not self.isReferenced():
+	    self.__verify__()	    
 	    if not self.__verify__():
 		raise StandardError,"cgmBufferNode.__init__>> failed to verify : '%s'!"%self.getShortName()
 	    if value is not None:
@@ -4046,6 +4047,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
     noneValid -- whether none is a valid arg
     default_mType -- type to intialize as for default
     """
+    log.debug(">>> validateObjListArg >> arg = %s"%arg + "="*75)            	            
     try:
 	i_arg = False
 	argType = type(arg)
@@ -4109,6 +4111,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
     
 #@cgmGeneral.Timer    
 def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
+    log.debug(">>> validateObjListArg >> l_args = %s"%l_args + "="*75)            	        
     try:
 	if type(l_args) not in [list,tuple]:l_args = [l_args]
 	returnList = []
@@ -4120,12 +4123,14 @@ def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mT
 	log.error("validateObjListArg>>Failure! l_args: %s | mType: %s"%(l_args,mType))
 	raise StandardError,error    
 
+#@cgmGeneral.Timer    
 def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
     """
     Validate an attr arg to usable info
     Arg should be sting 'obj.attr' or ['obj','attr'] format.
 
     """
+    log.debug(">>> validateAttrArg >> arg = %s"%arg + "="*75)            	    
     try:
 	try:
 	    combined = arg.p_combinedName
@@ -4175,7 +4180,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 #@cgmGeneral.Timer    
 def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
     try:
-	log.debug(">>> validateAttrListArg >> " + "="*75)            	
+	log.debug(">>> validateAttrListArg >> l_args = %s"%l_args + "="*75)            	
 	if type(l_args) not in [list,tuple]:l_args = [l_args]
 	l_mPlugs = []
 	l_combined = []
