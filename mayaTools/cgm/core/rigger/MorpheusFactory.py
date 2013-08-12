@@ -35,27 +35,36 @@ reload(constraints)
 # Processing factory
 #======================================================================
 #This is the main key for data tracking. It is also the processing order
-#l_modulesToDoOrder = ['torso','leg_right','leg_left']
+#l_modulesToDoOrder = ['torso','neckHead','leg_left']
 #l_modulesToDoOrder = ['torso','clavicle_left','clavicle_right','arm_left','arm_right']
 #l_modulesToDoOrder = ['torso','clavicle_left']
+#l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
+l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
+                      'clavicle_left','arm_left',
+                      'thumb_left','index_left','middle_left','ring_left','pinky_left',                   
+                      'clavicle_right','arm_right',
+                      'thumb_right','index_right','middle_right','ring_right','pinky_right',
+                      ]
+"""
+l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
 
+l_modulesToDoOrder = ['torso',
+                      'clavicle_left','arm_left',
+                      'thumb_left','index_left','middle_left','ring_left','pinky_left'
+                      ]
 l_modulesToDoOrder = ['torso',
                       'clavicle_left','arm_left',
                       'thumb_left','index_left','middle_left','ring_left','pinky_left',
                       ]
 
-"""l_modulesToDoOrder = ['torso','neckHead',
-                      'leg_left','leg_right']"""
-
-l_modulesToDoOrderBAK2 = ['torso','clavicle_left','arm_left',
-                          'clavicle_right','arm_right',
-                          ]
-l_modulesToDoOrderBAK = ['torso',
-                         'neckHead',
-                         'leg_left','foot_left',
-                         'leg_right',
-                         'clavicle_left','arm_left','hand_left',
-                         'thumb_left','index_left','middle_left','ring_left','pinky_left']
+l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
+                      'clavicle_left','arm_left',
+                      'thumb_left','index_left','middle_left','ring_left','pinky_left'                      
+                      'clavicle_right','arm_right',
+                      'thumb_right','index_right','middle_right','ring_right','pinky_right'
+                      
+                      ]
+"""
 
 #This is the parent info for each module
 d_moduleParents = {'torso':False,
@@ -66,14 +75,18 @@ d_moduleParents = {'torso':False,
                    'foot_right':'leg_right',                   
                    'clavicle_left':'torso',
                    'arm_left':'clavicle_left',
-                   'hand_left':'arm_left',
                    'thumb_left':'arm_left',
                    'index_left':'arm_left',
                    'middle_left':'arm_left',
                    'ring_left':'arm_left',
                    'pinky_left':'arm_left',
                    'clavicle_right':'torso',
-                   'arm_right':'clavicle_right',                   }
+                   'arm_right':'clavicle_right',
+                   'thumb_right':'arm_right',
+                   'index_right':'arm_right',
+                   'middle_right':'arm_right',
+                   'ring_right':'arm_right',
+                   'pinky_right':'arm_right',                   }
 
 d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
                  'neckHead':{'moduleType':'neckHead','cgmName':'neck'},
@@ -91,6 +104,11 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
                  'pinky_left':{'moduleType':'finger','cgmDirection':'left','cgmName':'pinky'},
                  'arm_right':{'moduleType':'arm','cgmDirection':'right'},
                  'clavicle_right':{'moduleType':'clavicle','cgmDirection':'right'},
+                 'thumb_right':{'moduleType':'thumb','cgmDirection':'right'},
+                 'index_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'index'}, 
+                 'middle_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'middle'}, 
+                 'ring_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'ring'}, 
+                 'pinky_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'pinky'},                 
                  }
 
 #This is the template settings info
@@ -113,16 +131,21 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper','r_ball_loc'],                    
                     'foot_left':['l_ankle_bodyShaper','l_ball_loc','l_toes_bodyShaper'],                    
                     'foot_right':['r_ankle_bodyShaper','r_ball_loc','r_toes_bodyShaper'],                                        
-                    'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_wristMeat_bodyShaper'],
+                    'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_hand_bodyShaper'],
                     'hand_left':['l_hand_bodyShaper'],
-                    'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper','Morphy_Body_GEO.vtx[1008]'],
-                    'index_left':['Morphy_Body_GEO.f[1863]','l_index_1_bodyShaper','l_index_mid_bodyShaper','l_index_2_bodyShaper','Morphy_Body_GEO.vtx[1297]'], 
-                    'middle_left':['Morphy_Body_GEO.f[1880]','l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper','Morphy_Body_GEO.vtx[1193]'], 
-                    'ring_left':['Morphy_Body_GEO.f[1878]','l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper','Morphy_Body_GEO.vtx[1090]'], 
-                    'pinky_left':['Morphy_Body_GEO.f[1881]','l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper','Morphy_Body_GEO.vtx[1841]'],                     
-                    'clavicle_left':['Morphy_Body_GEO.f[1648]','l_upr_arm_bodyShaper'],
-                    'clavicle_right':['Morphy_Body_GEO.f[4433]','r_upr_arm_bodyShaper'],
+                    'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper','Morphy_Body_GEO.vtx[3]'],
+                    'index_left':['Morphy_Body_GEO.f[688]','l_index_1_bodyShaper','l_index_mid_bodyShaper','l_index_2_bodyShaper','Morphy_Body_GEO.vtx[292]'], 
+                    'middle_left':['Morphy_Body_GEO.f[705]','l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper','Morphy_Body_GEO.vtx[188]'], 
+                    'ring_left':['Morphy_Body_GEO.f[703]','l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper','Morphy_Body_GEO.vtx[85]'], 
+                    'pinky_left':['Morphy_Body_GEO.f[706]','l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper','Morphy_Body_GEO.vtx[492]'],                     
+                    'clavicle_left':['Morphy_Body_GEO.f[2055]','l_upr_arm_bodyShaper'],
+                    'clavicle_right':['Morphy_Body_GEO.f[4840]','r_upr_arm_bodyShaper'],
                     'arm_right':['r_upr_arm_bodyShaper','r_lwr_arm_bodyShaper','r_wristMeat_bodyShaper'],
+                    'thumb_right':['r_thumb_1_bodyShaper','r_thumb_mid_bodyShaper','r_thumb_2_bodyShaper','Morphy_Body_GEO.vtx[2853]'],
+                    'index_right':['Morphy_Body_GEO.f[3473]','r_index_1_bodyShaper','r_index_mid_bodyShaper','r_index_2_bodyShaper','Morphy_Body_GEO.vtx[3080]'], 
+                    'middle_right':['Morphy_Body_GEO.f[3490]','r_middle_1_bodyShaper','r_middle_mid_bodyShaper','r_middle_2_bodyShaper','Morphy_Body_GEO.vtx[3006]'], 
+                    'ring_right':['Morphy_Body_GEO.f[3488]','r_ring_1_bodyShaper','r_ring_mid_bodyShaper','r_ring_2_bodyShaper','Morphy_Body_GEO.vtx[2933]'], 
+                    'pinky_right':['Morphy_Body_GEO.f[3491]','r_pinky_1_bodyShaper','r_pinky_mid_bodyShaper','r_pinky_2_bodyShaper','Morphy_Body_GEO.vtx[3299]'],                         
                     }
 
 #=====================================================================================
