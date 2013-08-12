@@ -60,7 +60,7 @@ reload(joints)
 def build_shapes(self):
     """
     """ 
-    log.info(">>> %s.build_shapes >> "%self._strShortName + "="*75)        
+    log.info(">>> %s.build_shapes >> "%self._strShortName + "-"*75)        
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -130,7 +130,7 @@ def __bindSkeletonSetup__(self):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
-    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)            
+    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
@@ -147,7 +147,7 @@ def __bindSkeletonSetup__(self):
     
     try:#Reparent joints
 	"""
-	ml_skinJoints = self._i_module.rigNull.skinJoints
+	ml_skinJoints = self.rig_getSkinJoints()
 	last_i_jnt = False
 	for i,i_jnt in enumerate(ml_skinJoints):
 	    if i_jnt.hasAttr('cgmName'):
@@ -190,7 +190,7 @@ def __bindSkeletonSetup__(self):
 def build_rigSkeleton(self):
     """
     """
-    log.info(">>> %s.build_rigSkeleton >> "%self._strShortName + "="*75)                
+    log.info(">>> %s.build_rigSkeleton >> "%self._strShortName + "-"*75)                
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -385,7 +385,7 @@ def build_rigSkeleton(self):
 def build_foot(self):
     """
     """
-    log.info(">>> %s.build_foot >> "%self._strShortName + "="*75)                        
+    log.info(">>> %s.build_foot >> "%self._strShortName + "-"*75)                        
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -599,7 +599,7 @@ def build_foot(self):
 def build_FKIK(self):
     """
     """
-    log.info(">>> %s.build_FKIK >> "%self._strShortName + "="*75)                    
+    log.info(">>> %s.build_FKIK >> "%self._strShortName + "-"*75)                    
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -837,7 +837,7 @@ def build_FKIK(self):
 def build_controls(self):
     """
     """    
-    log.info(">>> %s.build_controls >> "%self._strShortName + "="*75)            
+    log.info(">>> %s.build_controls >> "%self._strShortName + "-"*75)            
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -854,7 +854,7 @@ def build_controls(self):
     __d_controlShapes__ = {'shape':['controlsFK','midIK','settings','foot'],
 	             'pivot':['toe','heel','ball','inner','outer
     for shape in __d_controlShapes__['shape']:
-	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_%s'%shape),noneValid=False)
+	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.msgList_getMessage('shape_%s'%shape),noneValid=False)
 	log.info(self.__dict__['mi_%s'%shape] )"""
     ml_controlsFK = self._i_rigNull.msgList_get('shape_controlsFK')
     ml_segmentIK = self._i_rigNull.msgList_get('shape_segmentIK')
@@ -1047,7 +1047,7 @@ def build_deformation(self):
     Rotate orders
     hips = 3
     """  
-    log.info(">>> %s.build_deformation >> "%self._strShortName + "="*75)                
+    log.info(">>> %s.build_deformation >> "%self._strShortName + "-"*75)                
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1356,7 +1356,7 @@ def build_rig(self):
     Rotate orders
     hips = 3
     """   
-    log.info(">>> { %s.build_rig } >> "%self._strShortName + "="*75)        
+    log.info(">>> { %s.build_rig } >> "%self._strShortName + "-"*75)        
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1580,7 +1580,7 @@ def build_rig(self):
     return True 
 #------------------------------------------------------------------------------------------------------------#    
 def build_twistDriver_hip(self):
-    log.info(">>> %s.build_twistDriver_hip >> "%self._strShortName + "="*75)
+    log.info(">>> %s.build_twistDriver_hip >> "%self._strShortName + "-"*75)
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1688,7 +1688,7 @@ def build_twistDriver_hip(self):
     return True
 #------------------------------------------------------------------------------------------------------------#    
 def build_twistDriver_ankle(self):
-    log.info(">>> %s.build_ankleTwistDriver >> "%self._strShortName + "="*75)
+    log.info(">>> %s.build_ankleTwistDriver >> "%self._strShortName + "-"*75)
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1807,7 +1807,7 @@ def build_matchSystem(self):
     except StandardError,error:
 	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
-    log.info(">>> %s.build_matchSystem >> "%self._strShortName + "="*75)    
+    log.info(">>> %s.build_matchSystem >> "%self._strShortName + "-"*75)    
     #Base info
     mi_moduleParent = False
     if self._i_module.getMessage('moduleParent'):
