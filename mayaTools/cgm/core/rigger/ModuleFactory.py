@@ -411,7 +411,7 @@ def rigDelete(self,*args,**kws):
     rigNullStuff = i_rigNull.getAllChildren()
     #Build a control master group List
     l_masterGroups = []
-    for i_obj in i_rigNull.controlsAll:
+    for i_obj in i_rigNull.msgList_get('controlsAll'):
 	if i_obj.hasAttr('masterGroup'):
 	    l_masterGroups.append(i_obj.getMessage('masterGroup',False)[0])
 	    
@@ -490,7 +490,7 @@ def rigDisconnect(self,*args,**kws):
         raise StandardError,"moduleFactory.rigDisconnect('%s')>>>> Module not connected"%(str_shortName)
     
     mc.select(cl=True)
-    mc.select(self.rigNull.getMessage('controlsAll'))
+    mc.select(self.rigNull.msgList_getMessage('controlsAll'))
     ml_resetChannels.main(transformsOnly = False)
     
     i_rigNull = self.rigNull
@@ -1050,12 +1050,19 @@ def animKey_children(self,**kws):
     log.debug(">>> %s.animKey_children() >> "%(self.p_nameShort) + "="*75) 		                                	                    
     if not isModule(self):return False    
     try:
-	l_controls = self.rigNull.getMessage('controlsAll') or []
-	for i_c in getAllModuleChildren(self):
-	    buffer = i_c.rigNull.getMessage('controlsAll')
+	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
+	ml_children = getAllModuleChildren(self)
+	if ml_children:mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children)) 
+	for i,i_c in enumerate(ml_children):
+	    mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.animKey_children>> gathering controls:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        				    
+	    buffer = i_c.rigNull.msgList_getMessage('controlsAll')
 	    if buffer:
 		l_controls.extend(buffer)
-	
+		
+	if ml_children:
+	    try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+	    except:pass	   
+	    
 	if l_controls:
 	    mc.select(l_controls)
 	    mc.setKeyframe(**kws)
@@ -1073,11 +1080,18 @@ def animSelect_children(self,**kws):
     log.debug(">>> %s.animSelect_children() >> "%(self.p_nameShort) + "="*75) 		                                	                        
     if not isModule(self):return False    
     try:
-	l_controls = self.rigNull.getMessage('controlsAll') or []
-	for i_c in getAllModuleChildren(self):
-	    buffer = i_c.rigNull.getMessage('controlsAll')
+	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
+	ml_children = getAllModuleChildren(self)
+	if ml_children:mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children)) 
+	for i,i_c in enumerate(ml_children):
+	    mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.animSelect_children>> gathering controls:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        				    
+	    buffer = i_c.rigNull.msgList_getMessage('controlsAll')
 	    if buffer:
 		l_controls.extend(buffer)
+		
+	if ml_children:
+	    try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+	    except:pass	   
 	
 	if l_controls:
 	    mc.select(l_controls)
@@ -1093,14 +1107,21 @@ def dynSwitch_children(self,arg):
     Key module and all module children
     """  
     log.debug(">>> %s.dynSwitch_children() >> "%(self.p_nameShort) + "="*75) 		                                	                        
-    if not isModule(self):return False    
+    if not isModule(self):return False  
+    
+    
     try:
-	for i_c in getAllModuleChildren(self):
+	ml_children = getAllModuleChildren(self)
+	mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children))    
+	for i,i_c in enumerate(ml_children):
 	    try:
+		mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        			
 		i_c.rigNull.dynSwitch.go(arg)
 	    except StandardError,error:
 		log.error("%s.dynSwitch_children>>  child: %s | %s"%(self.getBaseName(),i_c.getShortName(),error))
-		
+	cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
     except StandardError,error:
+	try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+	except:pass
 	log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
 	return False  
