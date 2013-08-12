@@ -322,8 +322,7 @@ def doSkeletonize(self):
     #>>>If we stole our parents anchor joint, we need to to reconnect it
     log.debug("STOLEN>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s"%self.b_parentStole)
     if self.b_parentStole:
-	raise StandardError, "DO WE NEED THIS PARENT STOLE METHOD? Look at msgLIST stuff if sO :)"
-	i_parentControl = self._i_module.moduleParent.templateNull.controlObjects[-1]
+	i_parentControl = self._i_module.moduleParent.templateNull.msgList_get('controlObjects')[-1]
 	log.debug("parentControl: %s"%i_parentControl.getShortName())
         closestJoint = distance.returnClosestObject(i_parentControl.mNode,l_limbJoints)	
 	i_parentControl.connectChildNode(closestJoint,'handleJoint')

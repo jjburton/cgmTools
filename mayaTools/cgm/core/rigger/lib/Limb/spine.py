@@ -82,7 +82,7 @@ def __bindSkeletonSetup__(self):
     
     #>>> Re parent joints
     #=============================================================  
-    #ml_moduleJoints = self._i_module.rigNull.moduleJoints or []
+    #ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints') or []
     if not self._i_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     
@@ -131,7 +131,7 @@ def build_rigSkeleton(self):
 	log.error("spine.build_deformationRig>>bad self!")
 	raise StandardError,error
     
-    log.info(">>> %s.build_rigSkeleton() >> "%(self._strShortName) + "="*75) 		    
+    log.info(">>> %s.build_rigSkeleton() >> "%(self._strShortName) + "-"*75) 		    
     #>>>Create joint chains
     #=============================================================    
     try:
@@ -226,10 +226,10 @@ def build_rigSkeleton(self):
 	self._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints','rigNull')
 	self._i_rigNull.msgList_connect(ml_segmentJoints,'segmentJoints','rigNull')
 	
-	#self._i_rigNull.connectChildrenNodes(ml_anchors,'anchorJoints','rigNull')
-	#self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints','rigNull')
-	#self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints','rigNull')
-	#self._i_rigNull.connectChildrenNodes(ml_segmentJoints,'segmentJoints','rigNull')
+	#self._i_rigNull.msgList_connect(ml_anchors,'anchorJoints','rigNull')
+	#self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')
+	#self._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints','rigNull')
+	#self._i_rigNull.msgList_connect(ml_segmentJoints,'segmentJoints','rigNull')
 	
     except StandardError,error:
 	log.error("build_spine>>Build rig joints fail!")
@@ -268,14 +268,15 @@ def build_shapes(self):
     except StandardError,error:
 	log.error("spine.build_rig>>bad self!")
 	raise StandardError,error
-    log.info(">>> %s.build_shapes() >> "%(self._strShortName) + "="*75) 		    
+    log.info(">>> %s.build_shapes() >> "%(self._strShortName) + "-"*75) 		    
     
     #>>>Build our Shapes
     #=============================================================
     mShapeCast.go(self._i_module,['cog','hips','torsoIK','segmentFK'],storageInstance=self)#This will store controls to a dict called    
     log.debug(self._md_controlShapes)
     return True
-  
+
+@cgmGeneral.Timer
 def build_controls(self):
     """
     Rotate orders
@@ -289,7 +290,7 @@ def build_controls(self):
     except StandardError,error:
 	log.error("spine.build_rig>>bad self!")
 	raise StandardError,error
-    log.info(">>> %s.build_controls() >> "%(self._strShortName) + "="*75) 		    
+    log.info(">>> %s.build_controls() >> "%(self._strShortName) + "-"*75) 		    
     
     if not self.isShaped():	
 	raise StandardError,"%s.build_controls>>> No shapes found connected"%(self._strShortName)
@@ -424,11 +425,11 @@ def build_controls(self):
 	raise StandardError,error
     
     #Connect all controls
-    self._i_rigNull.connectChildrenNodes(l_controlsAll,'controlsAll')
+    self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
     self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')    
     return True
 
-
+@cgmGeneral.Timer
 def build_deformation(self):
     """
     Rotate orders
@@ -442,7 +443,7 @@ def build_deformation(self):
 	log.error("spine.build_deformationRig>>bad self!")
 	raise StandardError,error
     
-    log.info(">>> %s.build_deformation() >> "%(self._strShortName) + "="*75) 		        
+    log.info(">>> %s.build_deformation() >> "%(self._strShortName) + "-"*75) 		        
     #>>>Get data
     ml_influenceJoints = self._i_rigNull.msgList_get('influenceJoints')
     ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
@@ -568,6 +569,7 @@ def build_deformation(self):
     
     return True
 
+@cgmGeneral.Timer
 def build_rig(self):
     """
     Rotate orders
@@ -580,7 +582,7 @@ def build_rig(self):
     except StandardError,error:
 	log.error("spine.build_deformationRig>>bad self!")
 	raise StandardError,error
-    log.info(">>> %s.build_rig() >> "%(self._strShortName) + "="*75) 		        
+    log.info(">>> %s.build_rig() >> "%(self._strShortName) + "-"*75) 		        
     
     try:#>>>Get data
 	orientation = modules.returnSettingsData('jointOrientation')
@@ -830,16 +832,16 @@ def build_rigOLDSurface(self):
 	raise StandardError,error
     
     #>>>Get data
-    ml_influenceJoints = self._i_rigNull.influenceJoints
-    ml_segmentJoints = self._i_rigNull.segmentJoints
-    ml_anchorJoints = self._i_rigNull.anchorJoints
-    ml_rigJoints = self._i_rigNull.rigJoints
-    ml_segmentHandles = self._i_rigNull.segmentHandles
+    ml_influenceJoints = self._i_rigNull.msgList_get('influenceJoints')
+    ml_segmentJoints = self._i_rigNull.msgList_get('segmentJoints')
+    ml_anchorJoints = self._i_rigNull.msgList_get('anchorJoints')
+    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+    ml_segmentHandles = self._i_rigNull.msgList_get('segmentHandles')
     aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
     upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
     mi_hips = self._i_rigNull.hips
     mi_handleIK = self._i_rigNull.handleIK
-    ml_controlsFK =  self._i_rigNull.controlsFK    
+    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
     
     #Mid follow Setup
     #====================================================================================  
@@ -910,7 +912,7 @@ def build_rigOLDSurface(self):
     
 
     #Create an point/aim group
-    i_midFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[1].doGroup(True),setClass=True)
+    i_midFollowGrp = cgmMeta.cgmObject( self._i_rigNull.msgList_get('segmentHandles')[1].doGroup(True),setClass=True)
     i_midFollowGrp.addAttr('cgmTypeModifier','follow')
     i_midFollowGrp.doName()
     i_midFollowGrp.rotateOrder = 0
@@ -961,7 +963,7 @@ def build_rigOLDSurface(self):
                              
     #Create the add node
     i_pmaAdd = NodeF.createAverageNode([driverNodeAttr,
-                                       "%s.r%s"%(self._i_rigNull.segmentHandles[1].mNode,#mid handle
+                                       "%s.r%s"%(self._i_rigNull.msgList_get('segmentHandles')[1].mNode,#mid handle
                                                  self._jointOrientation[0])],
                                        [i_midUpGroup.mNode,#ml_influenceJoints[1].mNode
                                         'r%s'%self._jointOrientation[0]],operation=1)
@@ -986,7 +988,7 @@ def build_rigOLDSurface(self):
     """
     
     #Create an point/aim group
-    i_baseFollowGrp = cgmMeta.cgmObject( self._i_rigNull.segmentHandles[0].doGroup(True),setClass=True)
+    i_baseFollowGrp = cgmMeta.cgmObject( self._i_rigNull.msgList_get('segmentHandles')[0].doGroup(True),setClass=True)
     i_baseFollowGrp.addAttr('cgmTypeModifier','follow')
     i_baseFollowGrp.doName()
     i_baseFollowGrp.rotateOrder = 0
@@ -1020,13 +1022,13 @@ def build_rigOLDSurface(self):
     for i_jnt in ml_influenceJoints:#unparent influence joints
 	i_jnt.parent = False
     ml_rigJoints[-2].parent = False
-    mc.parentConstraint(self._i_rigNull.segmentHandles[0].mNode,
+    mc.parentConstraint(self._i_rigNull.msgList_get('segmentHandles')[0].mNode,
                         ml_influenceJoints[0].mNode,skipRotate = 'z',
                         maintainOffset = True)        
-    mc.parentConstraint(self._i_rigNull.segmentHandles[-1].mNode,
+    mc.parentConstraint(self._i_rigNull.msgList_get('segmentHandles')[-1].mNode,
                         ml_influenceJoints[-1].mNode,skipRotate = 'z',
                         maintainOffset = True) 
-    mc.parentConstraint(self._i_rigNull.segmentHandles[1].mNode,
+    mc.parentConstraint(self._i_rigNull.msgList_get('segmentHandles')[1].mNode,
                         ml_influenceJoints[1].mNode,skipRotate = 'z',
                         maintainOffset = True)     
     #constrain Anchors
@@ -1081,12 +1083,12 @@ def build_deformationOLDSurface(self):
 	raise StandardError,error
     
     #>>>Get data
-    ml_influenceJoints = self._i_rigNull.influenceJoints
-    ml_controlsFK =  self._i_rigNull.controlsFK    
-    ml_segmentJoints = self._i_rigNull.segmentJoints
-    ml_anchorJoints = self._i_rigNull.anchorJoints
-    ml_rigJoints = self._i_rigNull.rigJoints
-    ml_segmentHandles = self._i_rigNull.segmentHandles
+    ml_influenceJoints = self._i_rigNull.msgList_get('influenceJoints')
+    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+    ml_segmentJoints = self._i_rigNull.msgList_get('segmentJoints')
+    ml_anchorJoints = self._i_rigNull.msgList_get('anchorJoints')
+    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+    ml_segmentHandles = self._i_rigNull.msgList_get('segmentHandles')
     aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
     upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
     mi_hips = self._i_rigNull.hips

@@ -220,11 +220,11 @@ def build_rigSkeleton(self):
 	"""
 	log.info("startAnchor>> %s"%i_startJnt.getShortName())
 	log.info("endAnchor>> %s"%i_endJnt.getShortName())
-	log.info("anchorJoints>> %s"%self._i_rigNull.getMessage('anchorJoints',False))
-	log.info("rigJoints>> %s"%self._i_rigNull.getMessage('rigJoints',False))
-	log.info("segmentJoints>> %s"%self._i_rigNull.getMessage('segmentJoints',False))
-	log.info("influenceJoints>> %s"%self._i_rigNull.getMessage('influenceJoints',False))
-	log.info("skinJoints>> %s"%self._i_rigNull.getMessage('skinJoints',False))
+	log.info("anchorJoints>> %s"%self._i_rigNull.msgList_getMessage('anchorJoints',False))
+	log.info("rigJoints>> %s"%self._i_rigNull.msgList_getMessage('rigJoints',False))
+	log.info("segmentJoints>> %s"%self._i_rigNull.msgList_getMessage('segmentJoints',False))
+	log.info("influenceJoints>> %s"%self._i_rigNull.msgList_getMessage('influenceJoints',False))
+	log.info("skinJoints>> %s"%self._i_rigNull.msgList_getMessage('skinJoints',False))
 	"""
 	self.get_report()
 

@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 clavicle rig builder
 ================================================================
 """
-__version__ = 0.06172013
+__version__ = 0.08112013
 
 # From Python =============================================================
 import copy
@@ -63,7 +63,7 @@ def __bindSkeletonSetup__(self):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
-    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)            
+    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
@@ -74,46 +74,10 @@ def __bindSkeletonSetup__(self):
     
     #>>> Re parent joints
     #=============================================================  
-    #ml_skinJoints = self._i_module.rigNull.skinJoints or []
+    #ml_skinJoints = self.rig_getSkinJoints() or []
     if not self._i_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
-    
-    try:#Reparent joints
-	"""
-	ml_moduleJoints = self._i_module.rigNull.moduleJoints #Get the module joints
-	ml_skinJoints = []
-	ml_handleJoints = self._i_module.rig_getHandleJoints()
-	
-	for i,i_jnt in enumerate(ml_moduleJoints):
-	    ml_skinJoints.append(i_jnt)		
-	    if i_jnt.hasAttr('d_jointFlags') and i_jnt.getAttr('cgmName') not in ['ball']:
-		if i_jnt.d_jointFlags.get('isHandle'):
-		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
-		    i_dupJnt = i_jnt.doDuplicate()#Duplicate
-		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
-		    i_jnt.doName()#Rename
-		    i_dupJnt.doName()#Rename
-		    i_dupJnt.parent = i_jnt#Parent
-		    i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
-		    #Fix the isHandle Flag -------------------------------------
-		    d_buffer = i_dupJnt.d_jointFlags
-		    d_buffer.pop('isHandle')
-		    i_dupJnt.d_jointFlags = d_buffer
-		    #------------------------------------------------------------
-		    ml_skinJoints.append(i_dupJnt)#Append
-		    log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
-	
-	for i,i_jnt in enumerate(ml_handleJoints[1:]):
-	    i_jnt.parent = ml_handleJoints[i].mNode
-		    
-	#We have to connect back our lists because duplicated joints with message connections duplicate those connections
-	self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'moduleJoints','module')
-	self._i_rigNull.connectChildrenNodes(ml_skinJoints,'skinJoints','module')
-	"""
-	ml_moduleJoints = self._i_module.rigNull.moduleJoints
-	self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'skinJoints','module')	
-	self._i_module.rig_getReport()#report
-
+    try:pass
     except StandardError,error:
 	log.error("build_clavicle>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
@@ -129,33 +93,34 @@ def build_rigSkeleton(self):
     except StandardError,error:
 	log.error("%s.build_rigSkeleton>>bad self!"%self._strShortName)
 	raise StandardError,error
-    log.info(">>> %s.build_rigSkeleton >> "%self._strShortName + "="*75)    
+    log.info(">>> %s.build_rigSkeleton >> "%self._strShortName + "-"*75)    
     #>>>Create joint chains
     #=============================================================    
     try:
 	#>>Rig chain  
 	#=====================================================================	
-	#l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
 	ml_rigJoints = []
 	for i,j in enumerate(self._ml_skinJoints):
-	    i_j = j.doDuplicate(breakMessagePlugsOut = True)
+	    i_j = j.doDuplicate()
 	    i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
 	    i_j.doName()
 	    ml_rigJoints.append(i_j)
-	ml_rigJoints[0].parent = False
+	#ml_rigJoints[-1].addAttr('cgmName','clavicleEnd')
+	#ml_rigJoints[-1].doName()
+	ml_rigJoints[0].parent = False#Parent to world		
+	self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
 	
-	self._i_rigNull.connectChildrenNodes(ml_rigJoints,'rigJoints',"rigNull")
     except StandardError,error:
 	log.error("%s.build_rigSkeleton>>Build rig joints fail!"%self._strShortName)
 	raise StandardError,error   
     
     try:#>>FK chain
-	#=====================================================================		
+	#=====================================================================	
 	ml_fkJoints = []
-	for i,i_ctrl in enumerate(self._i_templateNull.controlObjects):
+	for i,i_ctrl in enumerate(self._i_templateNull.msgList_get('controlObjects')):
 	    if not i_ctrl.getMessage('handleJoint'):
 		raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
-	    i_new = cgmMeta.cgmObject((i_ctrl.getMessage('handleJoint')[0])).doDuplicate(breakMessagePlugsOut = True)
+	    i_new = cgmMeta.cgmObject((i_ctrl.getMessage('handleJoint')[0])).doDuplicate()
 	    i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
 	    i_new.doName()
 	    if ml_fkJoints:#if we have data, parent to last
@@ -163,6 +128,11 @@ def build_rigSkeleton(self):
 	    else:i_new.parent = False
 	    i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
 	    ml_fkJoints.append(i_new)	
+	    
+	ml_fkJoints[-1].addAttr('cgmName','clavicleEnd')
+	ml_fkJoints[-1].doName()
+	self._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
+	
     except StandardError,error:
 	log.error("%s.build_rigSkeleton>>Build fk joints fail!"%self._strShortName)
 	raise StandardError,error   
@@ -181,29 +151,24 @@ def build_rigSkeleton(self):
 
     try:#>>> Store em all to our instance
 	#=====================================================================	
-	self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints',"rigNull")#push back to reset
-	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'fkJoints',"rigNull")
-
-	##log.info("anchorJoints>> %s"%self._i_rigNull.getMessage('anchorJoints',False))
-	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
-   
+	ml_jointsToConnect = []
+	ml_jointsToConnect.extend(ml_rigJoints)    
+	
+	for i_jnt in ml_jointsToConnect:
+	    i_jnt.overrideEnabled = 1		
+	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
+	    
     except StandardError,error:
 	log.error("%s.build_clavicle>>StoreJoints fail!"%self._strShortName)
 	raise StandardError,error   
 
-    ml_jointsToConnect = []
-    ml_jointsToConnect.extend(ml_rigJoints)    
-    
-    for i_jnt in ml_jointsToConnect:
-	i_jnt.overrideEnabled = 1		
-	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
-	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
-	
-    self.connect_restoreJointLists()#restore lists
+    return True
 	
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['clavicle']}
+@cgmGeneral.Timer
 def build_shapes(self):
     """
     """ 
@@ -217,7 +182,7 @@ def build_shapes(self):
     
     if self._i_templateNull.handles > 2:
 	raise StandardError, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._strShortName)
-    log.info(">>> %s.build_shapes >> "%self._strShortName + "="*75)    
+    log.info(">>> %s.build_shapes >> "%self._strShortName + "-"*75)    
     
     if not self.isRigSkeletonized():
 	raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
@@ -233,9 +198,11 @@ def build_shapes(self):
     except StandardError,error:
 	log.error("build_clavicle>>Build shapes fail!")
 	raise StandardError,error 
+    return True
     
 #>>> Controls
 #===================================================================
+@cgmGeneral.Timer
 def build_controls(self):
     """
     """    
@@ -246,7 +213,7 @@ def build_controls(self):
     except StandardError,error:
 	log.error("clavicle.build_rig>>bad self!")
 	raise StandardError,error
-    log.info(">>> %s.build_controls >> "%self._strShortName + "="*75)    
+    log.info(">>> %s.build_controls >> "%self._strShortName + "-"*75)    
     
     if not self.isShaped():
 	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
@@ -254,7 +221,7 @@ def build_controls(self):
 	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
 
     ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_clavicle'),cgmMeta.cgmObject) 
-    ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('fkJoints'),cgmMeta.cgmObject)
+    ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('fkJoints'),cgmMeta.cgmObject)
     
     #>>>Make a few extra groups for storing controls and what not to in the deform group
     for grp in ['controlsFK']:
@@ -264,10 +231,7 @@ def build_controls(self):
 	i_dup.doName()
 	
 	self._i_constrainNull.connectChildNode(i_dup,grp,'owner')
-    
-    log.info(ml_controlsFK)
-    log.info(ml_fkJoints)    
-    
+        
     l_controlsAll = []
     #==================================================================
     try:#>>>> FK Segments
@@ -290,7 +254,7 @@ def build_controls(self):
 	for i_obj in ml_controlsFK:
 	    i_obj.delete()
 	    
-	self._i_rigNull.connectChildrenNodes([ml_fkJoints[0]],'controlsFK',"rigNull")
+	self._i_rigNull.msgList_connect([ml_fkJoints[0]],'controlsFK',"rigNull")
 	l_controlsAll.extend([ml_fkJoints[0]])	
     
     except StandardError,error:	
@@ -299,10 +263,11 @@ def build_controls(self):
     
     #==================================================================   
     #Connect all controls
-    self._i_rigNull.connectChildrenNodes(l_controlsAll,'controlsAll')
+    self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
     
     return True
 
+@cgmGeneral.Timer
 def build_rig(self):
     """
     """    
@@ -313,7 +278,7 @@ def build_rig(self):
     except StandardError,error:
 	log.error("%s.build_deformationRig>>bad self!"%self._strShortName)
 	raise StandardError,error
-    log.info(">>> %s.build_rig >> "%self._strShortName + "="*75)    
+    log.info(">>> %s.build_rig >> "%self._strShortName + "-"*75)    
     
     try:#>>>Get data
 	orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
@@ -321,8 +286,8 @@ def build_rig(self):
 	if self._i_module.getMessage('moduleParent'):
 	    mi_moduleParent = self._i_module.moduleParent
 	    
-	ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('controlsFK'),cgmMeta.cgmObject)	
-	ml_rigJoints = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('rigJoints'),cgmMeta.cgmObject)
+	ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('controlsFK'),cgmMeta.cgmObject)	
+	ml_rigJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('rigJoints'),cgmMeta.cgmObject)
 	
 	log.info("ml_controlsFK: %s"%[o.getShortName() for o in ml_controlsFK])	
 	log.info("ml_rigJoints: %s"%[o.getShortName() for o in ml_rigJoints])
@@ -336,7 +301,7 @@ def build_rig(self):
     
     #Constrain to pelvis
     if mi_moduleParent:
-	mc.parentConstraint(mi_moduleParent.rigNull.skinJoints[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+	mc.parentConstraint(mi_moduleParent.rig_getSkinJoints()[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
     
 
     #Parent and constrain joints
@@ -378,3 +343,13 @@ def __build__(self, buildTo='',*args,**kws):
     if buildTo.lower() == 'rig':return True    
     
     return True
+
+#----------------------------------------------------------------------------------------------
+# Important info ==============================================================================
+__d_buildOrder__ = {0:{'name':'skeleton','function':build_rigSkeleton},
+                    1:{'name':'shapes','function':build_shapes},
+                    2:{'name':'controls','function':build_controls},
+                    3:{'name':'rig','function':build_rig},
+                    } 
+#===============================================================================================
+#----------------------------------------------------------------------------------------------

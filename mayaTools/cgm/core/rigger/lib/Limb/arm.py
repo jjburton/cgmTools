@@ -81,48 +81,43 @@ def __bindSkeletonSetup__(self):
     
     #>>> Re parent joints
     #=============================================================  
-    #ml_skinJoints = self._i_module.rigNull.skinJoints or []
+    #ml_skinJoints = self.rig_getSkinJoints() or []
     if not self._i_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     
     try:#Reparent joints
 	"""
-	ml_skinJoints = self._i_module.rigNull.skinJoints
+	ml_skinJoints = self.rig_getSkinJoints()
 	last_i_jnt = False
 	for i,i_jnt in enumerate(ml_skinJoints):
 	    if i_jnt.hasAttr('cgmName'):
 		if last_i_jnt:i_jnt.parent = last_i_jnt.mNode
 		last_i_jnt = i_jnt"""
 		
-	ml_moduleJoints = self._i_module.rigNull.moduleJoints #Get the module joints
+	ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints') #Get the module joints
 	ml_skinJoints = []
 	ml_handleJoints = self._i_module.rig_getHandleJoints()
 	
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    ml_skinJoints.append(i_jnt)		
-	    if i_jnt.hasAttr('d_jointFlags'):
-		if i_jnt.d_jointFlags.get('isHandle'):
-		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
-		    i_dupJnt = i_jnt.doDuplicate(breakMessagePlugsOut = True)#Duplicate
-		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
-		    i_jnt.doName()#Rename
-		    i_dupJnt.doName()#Rename
-		    i_dupJnt.parent = i_jnt#Parent
-		    i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
-		    #Fix the isHandle Flag -------------------------------------
-		    d_buffer = i_dupJnt.d_jointFlags
-		    d_buffer.pop('isHandle')
-		    i_dupJnt.d_jointFlags = d_buffer
-		    #------------------------------------------------------------
-		    ml_skinJoints.append(i_dupJnt)#Append
-		    log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
-	
+	    if i_jnt in ml_handleJoints and i_jnt.getAttr('cgmName') not in ['ball']:
+		if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
+		i_dupJnt = i_jnt.doDuplicate()#Duplicate
+		i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
+		i_jnt.doName()#Rename
+		i_dupJnt.doName()#Rename
+		i_dupJnt.parent = i_jnt#Parent
+		i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
+		#------------------------------------------------------------
+		ml_skinJoints.append(i_dupJnt)#Append
+		log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
+    
 	for i,i_jnt in enumerate(ml_handleJoints[1:]):
 	    i_jnt.parent = ml_handleJoints[i].mNode
 		    
 	#We have to connect back our lists because duplicated joints with message connections duplicate those connections
-	self._i_rigNull.connectChildrenNodes(ml_moduleJoints,'moduleJoints','module')
-	self._i_rigNull.connectChildrenNodes(ml_skinJoints,'skinJoints','module')
+	#self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','module')
+	#self._i_rigNull.msgList_connect(ml_skinJoints,'skinJoints','module')
 	
 	self._i_module.rig_getReport()#report
 
@@ -162,7 +157,7 @@ def build_rigSkeleton(self):
 			
 	"""
 	ml_fkJoints = []
-	for i,i_ctrl in enumerate(self._i_templateNull.controlObjects):
+	for i,i_ctrl in enumerate(self._i_templateNull.msgList_get('controlObjects')):
 	    if not i_ctrl.getMessage('handleJoint'):
 		raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
 	    i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
@@ -230,7 +225,7 @@ def build_rigSkeleton(self):
 	
 	"""
 	ml_segmentHandleJoints = []#To use later as well
-	for i_ctrl in self._i_templateNull.controlObjects:
+	for i_ctrl in self._i_templateNull.msgList_get('controlObjects'):
 	    if i_ctrl.getAttr('cgmName') in ['shoulder','elbow','wrist']:
 		if not i_ctrl.getMessage('handleJoint'):
 		    raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
@@ -306,21 +301,21 @@ def build_rigSkeleton(self):
 
     try:#>>> Store em all to our instance
 	#=====================================================================	
-	self.connect_restoreJointLists()#Restore out lists
+	#Restore out lists
 	
-	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'fkJoints',"rigNull")
-	##self._i_rigNull.connectChildrenNodes(ml_blendJoints,'blendJoints',"rigNull")
-	self._i_rigNull.connectChildrenNodes(ml_ikJoints,'ikJoints',"rigNull")
-	#self._i_rigNull.connectChildrenNodes(ml_ikNoFlipJoints,'ikNoFlipJoints',"rigNull")
-	#self._i_rigNull.connectChildrenNodes(ml_ikPVJoints,'ikPVJoints',"rigNull")
-	self._i_rigNull.connectChildrenNodes(ml_influenceJoints,'influenceJoints',"rigNull")
+	self._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
+	##self._i_rigNull.msgList_connect(ml_blendJoints,'blendJoints',"rigNull")
+	self._i_rigNull.msgList_connect(ml_ikJoints,'ikJoints',"rigNull")
+	#self._i_rigNull.msgList_connect(ml_ikNoFlipJoints,'ikNoFlipJoints',"rigNull")
+	#self._i_rigNull.msgList_connect(ml_ikPVJoints,'ikPVJoints',"rigNull")
+	self._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints',"rigNull")
 
-	log.info("fkJoints>> %s"%self._i_rigNull.getMessage('fkJoints',False))
-	log.info("ikJoints>> %s"%self._i_rigNull.getMessage('ikJoints',False))
-	#log.info("blendJoints>> %s"%self._i_rigNull.getMessage('blendJoints',False))
-	log.info("influenceJoints>> %s"%self._i_rigNull.getMessage('influenceJoints',False))
-	#log.info("ikNoFlipJoints>> %s"%self._i_rigNull.getMessage('ikNoFlipJoints',False))
-	#log.info("ikPVJoints>> %s"%self._i_rigNull.getMessage('ikPVJoints',False))
+	log.info("fkJoints>> %s"%self._i_rigNull.msgList_getMessage('fkJoints',False))
+	log.info("ikJoints>> %s"%self._i_rigNull.msgList_getMessage('ikJoints',False))
+	#log.info("blendJoints>> %s"%self._i_rigNull.msgList_getMessage('blendJoints',False))
+	log.info("influenceJoints>> %s"%self._i_rigNull.msgList_getMessage('influenceJoints',False))
+	#log.info("ikNoFlipJoints>> %s"%self._i_rigNull.msgList_getMessage('ikNoFlipJoints',False))
+	#log.info("ikPVJoints>> %s"%self._i_rigNull.msgList_getMessage('ikPVJoints',False))
    	
     except StandardError,error:
 	log.error("build_arm>>StoreJoints fail!")
@@ -362,7 +357,7 @@ def build_shapes(self):
     l_influenceChains = []
     ml_influenceChains = []
     for i in range(50):
-	buffer = self._i_rigNull.getMessage('segment%s_InfluenceJoints'%i)
+	buffer = self._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i)
 	if buffer:
 	    l_influenceChains.append(buffer)
 	    ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -381,16 +376,16 @@ def build_shapes(self):
 	    log.info("%s.build_shapes>>> segmentIK chain %s: %s"%(self._strShortName,i,self._md_controlShapes))
 	    ml_segmentIKShapes.extend(self._md_controlShapes['segmentIK'])
 	    
-	    self._i_rigNull.connectChildrenNodes(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
+	    self._i_rigNull.msgList_connect(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
 	
-	self._i_rigNull.connectChildrenNodes(ml_segmentIKShapes,'shape_segmentIK',"rigNull")		
+	self._i_rigNull.msgList_connect(ml_segmentIKShapes,'shape_segmentIK',"rigNull")		
 	
 	#Rest of it
 	l_toBuild = ['segmentFK_Loli','settings','midIK','hand']
 	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
 	log.info(self._md_controlShapes)
 	log.info(self._md_controlPivots)
-	self._i_rigNull.connectChildrenNodes(self._md_controlShapes['segmentFK_Loli'],'shape_controlsFK',"rigNull")	
+	self._i_rigNull.msgList_connect(self._md_controlShapes['segmentFK_Loli'],'shape_controlsFK',"rigNull")	
 	self._i_rigNull.connectChildNode(self._md_controlShapes['midIK'],'shape_midIK',"rigNull")
 	self._i_rigNull.connectChildNode(self._md_controlShapes['settings'],'shape_settings',"rigNull")		
 	self._i_rigNull.connectChildNode(self._md_controlShapes['hand'],'shape_hand',"rigNull")
@@ -421,15 +416,15 @@ def build_controls(self):
     __d_controlShapes__ = {'shape':['controlsFK','midIK','settings','hand'],
 	             'pivot':['toe','heel','ball','inner','outer
     for shape in __d_controlShapes__['shape']:
-	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_%s'%shape),noneValid=False)
+	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.msgList_getMessage('shape_%s'%shape),noneValid=False)
 	log.info(self.__dict__['mi_%s'%shape] )"""
-    ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_controlsFK'),cgmMeta.cgmObject)
-    ml_segmentIK = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('shape_segmentIK'),cgmMeta.cgmObject)
-    #self._i_rigNull.connectChildrenNodes(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
+    ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('shape_controlsFK'),cgmMeta.cgmObject)
+    ml_segmentIK = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('shape_segmentIK'),cgmMeta.cgmObject)
+    #self._i_rigNull.msgList_connect(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
     l_segmentIKChains = []
     ml_segmentIKChains = []
     for i in range(50):
-	buffer = self._i_rigNull.getMessage('shape_segmentIK_%s'%i)
+	buffer = self._i_rigNull.msgList_getMessage('shape_segmentIK_%s'%i)
 	if buffer:
 	    l_segmentIKChains.append(buffer)
 	    ml_segmentIKChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -439,7 +434,7 @@ def build_controls(self):
     mi_midIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
     mi_settings= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
     mi_hand = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_hand'),cgmMeta.cgmObject)
-    ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.getMessage('fkJoints'),cgmMeta.cgmObject)
+    ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('fkJoints'),cgmMeta.cgmObject)
     
     log.info("mi_midIK: '%s'"%mi_midIK.getShortName())
     log.info("mi_settings: '%s'"%mi_settings.getShortName())
@@ -480,7 +475,7 @@ def build_controls(self):
 	    i_obj.delete()
 	    
 	#ml_controlsFK[0].masterGroup.parent = self._i_constrainNull.mNode
-	self._i_rigNull.connectChildrenNodes(ml_fkJoints,'controlsFK',"rigNull")
+	self._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")
 	l_controlsAll.extend(ml_fkJoints)	
     
     except StandardError,error:	
@@ -571,7 +566,7 @@ def build_controls(self):
 		ml_controlChain.append(i_obj)
 		
 		mPlug_result_moduleSubDriver.doConnectOut("%s.visibility"%i_obj.mNode)
-	    self._i_rigNull.connectChildrenNodes(ml_controlChain,'segmentHandles_%s'%i,"rigNull")
+	    self._i_rigNull.msgList_connect(ml_controlChain,'segmentHandles_%s'%i,"rigNull")
 	    l_controlsAll.extend(ml_controlChain)	
 	    if i == 1:
 		#Need to do a few special things for our main segment handle
@@ -597,7 +592,7 @@ def build_controls(self):
 	log.error("%s.build_controls>>> Add Control Attrs Fail!"%self._strShortName)	
 	
     #Connect all controls
-    self._i_rigNull.connectChildrenNodes(l_controlsAll,'controlsAll')
+    self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
     
     return True
     
@@ -616,11 +611,11 @@ def build_hand(self):
     raise NotImplementedError,"%s.build_hand>> not implemented"%self._strShortName
 
     #>>>Get data
-    ml_controlsFK =  self._i_rigNull.controlsFK    
-    ml_rigJoints = self._i_rigNull.rigJoints
-    ml_blendJoints = self._i_rigNull.blendJoints
-    ml_fkJoints = self._i_rigNull.fkJoints
-    ml_ikJoints = self._i_rigNull.ikJoints
+    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+    ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
+    ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
+    ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
     ml_ikPVJoints = self._i_rigNull.ikPVJoints
     ml_ikNoFlipJoints = self._i_rigNull.ikNoFlipJoints
     
@@ -821,11 +816,11 @@ def build_FKIK(self):
     log.info(">>> %s.build_FKIK >> "%self._strShortName + "="*75)                        
     
     #>>>Get data
-    ml_controlsFK =  self._i_rigNull.controlsFK   
-    ml_rigJoints = self._i_rigNull.rigJoints
-    ml_blendJoints = self._i_rigNull.blendJoints
-    ml_fkJoints = self._i_rigNull.fkJoints
-    ml_ikJoints = self._i_rigNull.ikJoints
+    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')   
+    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+    ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
+    ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
+    ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
     
     mi_settings = self._i_rigNull.settings
         
@@ -1025,9 +1020,9 @@ def build_deformation(self):
 	    raise StandardError, "%s.build_deformation>>> Segment chains don't equal segment influence chains"%(self._strShortName)
 	
 	#>>>Get data
-	ml_controlsFK =  self._i_rigNull.controlsFK    
-	ml_rigJoints = self._i_rigNull.rigJoints
-	ml_blendJoints = self._i_rigNull.blendJoints
+	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
 	mi_settings = self._i_rigNull.settings
     
 	mi_controlIK = self._i_rigNull.controlIK
@@ -1265,7 +1260,7 @@ def build_deformation(self):
 	    mPlug_TwistEndResult.doConnectOut("%s.twistEnd"%i_curve.mNode)
 	    
 	    #Reconnect children nodes
-	    self._i_rigNull.connectChildrenNodes(ml_segmentChains[i],'segment%s_Joints'%i,"rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
+	    self._i_rigNull.msgList_connect(ml_segmentChains[i],'segment%s_Joints'%i,"rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
 	    
 	    #>>> Attributes 
 	    #================================================================================================================
@@ -1288,7 +1283,7 @@ def build_deformation(self):
 	raise StandardError,error	
     
     #TODO	
-    self._i_rigNull.connectChildrenNodes(ml_segmentCurves,'segmentCurves',"rigNull")
+    self._i_rigNull.msgList_connect(ml_segmentCurves,'segmentCurves',"rigNull")
     
     return True
 
@@ -1313,9 +1308,9 @@ def build_rig(self):
 	    
 	mi_controlIK = self._i_rigNull.controlIK
 	mi_controlMidIK = self._i_rigNull.midIK 
-	ml_controlsFK =  self._i_rigNull.controlsFK    
-	ml_rigJoints = self._i_rigNull.rigJoints
-	ml_blendJoints = self._i_rigNull.blendJoints
+	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
 	mi_settings = self._i_rigNull.settings
     
 	mi_controlIK = self._i_rigNull.controlIK
@@ -1354,7 +1349,7 @@ def build_rig(self):
     #====================================================================================    
     if mi_moduleParent:
 	#With the clav, it only has one skin joint
-	mc.parentConstraint(mi_moduleParent.rigNull.moduleJoints[0].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+	mc.parentConstraint(mi_moduleParent.rigNull.msgList_get('moduleJoints')[0].mNode,self._i_constrainNull.mNode,maintainOffset = True)
 
     #Dynamic parent groups
     #====================================================================================
@@ -1500,8 +1495,8 @@ def build_rig(self):
        
     #Setup hand Scaling
     #====================================================================================
-    ml_fkJoints = self._i_rigNull.fkJoints
-    ml_ikJoints = self._i_rigNull.ikJoints
+    ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
+    ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
     
     #Ik Scale Object
     #vBuffer = mc.xform(mi_controlIK.mNode,q=True,sp=True,ws=True)	    
@@ -1589,31 +1584,31 @@ def build_twistDriver_shoulder(self):
 	raise StandardError,"%s.build_twistDriver_shoulder >> failed to setup start attr | %s"%(self._strShortName,error)	
     try:
 	mi_parentRigNull = self._i_module.moduleParent.rigNull
-	i_target = mi_parentRigNull.moduleJoints[0]	
+	i_target = mi_parentRigNull.msgList_get('moduleJoints')[0]	
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_shoulder >> failed to find target | %s"%(self._strShortName,error)	
     
     try:
 	outVector = self._vectorOut
 	upVector = self._vectorUp      
-	ml_blendJoints = self._i_rigNull.blendJoints
+	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
 	
 
 	#Create joints
 	#i_startAim = self.duplicate_moduleJoint(0,'startAim')
 	#i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
-	i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
+	i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
 	i_startRoot.addAttr('cgmName',self._partName)	
 	i_startRoot.addAttr('cgmTypeModifier','twistDriver')
 	i_startRoot.doName()
-	i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
+	i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
 	i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
 	i_startEnd.doName()    
 	
 	i_upLoc = i_startRoot.doLoc()	
 	i_upLoc.parent = self._i_constrainNull.mNode#parent
 	
-	self.connect_restoreJointLists()#Restore out lists
+	#Restore out lists
 	
 	i_startEnd.parent = i_startRoot.mNode
 	ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc]
@@ -1681,6 +1676,7 @@ def build_twistDriver_shoulder(self):
 	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_shoulder >> finish failed| %s"%(self._strShortName,error)
+    return True
     
 #------------------------------------------------------------------------------------------------------------#    
 def build_twistDriver_wrist(self):
@@ -1702,15 +1698,15 @@ def build_twistDriver_wrist(self):
     """
     try:
 	mi_parentRigNull = self._i_module.moduleParent.rigNull
-	i_target = mi_parentRigNull.moduleJoints[-1]	
+	i_target = mi_parentRigNull.msgList_get('moduleJoints')[-1]	
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_wrist >> failed to find target | %s"%(self._strShortName,error)	
     """
     try:
 	outVector = self._vectorOut
 	upVector = self._vectorUp      
-	ml_blendJoints = self._i_rigNull.blendJoints
-	ml_ikJoints = self._i_rigNull.ikJoints	
+	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
+	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')	
 	
 	ml_rigHandleJoints = self._get_handleJoints()	
 	i_targetJoint = ml_rigHandleJoints[2]#This should be the wrist
@@ -1721,18 +1717,18 @@ def build_twistDriver_wrist(self):
 	    raise StandardError,"%s.build_twistDriver_wrist >> target not wrist? | %s"%(self._strShortName,i_blendWrist.p_nameShort)	
 	
 	#Create joints
-	i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
+	i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False)
 	i_startRoot.addAttr('cgmName',self._partName)	
 	i_startRoot.addAttr('cgmTypeModifier','endtwistDriver')
 	i_startRoot.doName()
-	i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False,breakMessagePlugsOut = True)
+	i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False)
 	i_startEnd.addAttr('cgmTypeModifier','endtwistDriverEnd')
 	i_startEnd.doName()    
 	
 	i_upLoc = i_startRoot.doLoc()	
 	i_upLoc.parent = self._i_constrainNull.mNode#parent
 	
-	self.connect_restoreJointLists()#Restore out lists
+	#Restore out lists
 	
 	i_startEnd.parent = i_startRoot.mNode
 	ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc]
@@ -1803,6 +1799,7 @@ def build_twistDriver_wrist(self):
 	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
     except StandardError,error:
 	raise StandardError,"%s.build_twistDriver_wrist >> finish failed| %s"%(self._strShortName,error)
+    return True
     
     
 @cgmGeneral.Timer
@@ -1822,16 +1819,16 @@ def build_matchSystem(self):
 	
     mi_controlIK = self._i_rigNull.controlIK
     mi_controlMidIK = self._i_rigNull.midIK 
-    ml_controlsFK =  self._i_rigNull.controlsFK    
-    ml_rigJoints = self._i_rigNull.rigJoints
-    ml_blendJoints = self._i_rigNull.blendJoints
+    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+    ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
     mi_settings = self._i_rigNull.settings
 
     mi_controlIK = self._i_rigNull.controlIK
     mi_controlMidIK = self._i_rigNull.midIK  
     
-    ml_fkJoints = self._i_rigNull.fkJoints
-    ml_ikJoints = self._i_rigNull.ikJoints
+    ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
+    ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
     
     mi_dynSwitch = self._i_dynSwitch
     
@@ -1964,3 +1961,18 @@ def __build__(self, buildTo='',*args,**kws):
     #build_rig(self)    
     
     return True
+
+#----------------------------------------------------------------------------------------------
+# Important info ==============================================================================
+__d_buildOrder__ = {0:{'name':'skeleton','function':build_rigSkeleton},
+                    1:{'name':'shapes','function':build_shapes},
+                    2:{'name':'controls','function':build_controls},
+                    3:{'name':'fkik','function':build_FKIK},
+                    4:{'name':'deformation','function':build_deformation},
+                    5:{'name':'rig','function':build_rig},
+                    6:{'name':'match','function':build_matchSystem},
+                    7:{'name':'shoulderDriver','function':build_twistDriver_shoulder},
+                    8:{'name':'wristDriver','function':build_twistDriver_wrist},                    
+                    } 
+#===============================================================================================
+#----------------------------------------------------------------------------------------------

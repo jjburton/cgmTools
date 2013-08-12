@@ -17,6 +17,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
+reload(cgmGeneral)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import GuiFactory as gui
@@ -28,7 +29,7 @@ from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 reload(mShapeCast)
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
-
+reload(jntUtils)
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
 
 from cgm.lib import (cgmMath,
@@ -547,6 +548,7 @@ class go(object):
 
 #>>> Functions
 #=============================================================================================================
+@cgmGeneral.Timer
 def isBuildable(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
@@ -587,7 +589,7 @@ def isBuildable(goInstance):
     
     return True
     
-#@r9General.Timer
+@cgmGeneral.Timer
 def verify_moduleRigToggles(goInstance):
     """
     Rotate orders
@@ -616,6 +618,7 @@ def verify_moduleRigToggles(goInstance):
 
     return True
 
+@cgmGeneral.Timer
 def bindJoints_connect(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
@@ -642,6 +645,7 @@ def bindJoints_connect(goInstance):
     
     return True
 
+@cgmGeneral.Timer
 def bindJoints_connectToBlend(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
@@ -670,9 +674,10 @@ def bindJoints_connectToBlend(goInstance):
 """
 You should only pass modules into these 
 """
+@cgmGeneral.Timer
 def get_skinJoints(self, asMeta = True):
     try:
-	log.info(">>> %s.get_skinJoints() >> "%(self.p_nameShort) + "="*75) 
+	log.debug(">>> %s.get_skinJoints() >> "%(self.p_nameShort) + "="*75) 
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_skinJoints >> not skeletonized."%(self.p_nameShort)
 	ml_skinJoints = []
@@ -690,11 +695,11 @@ def get_skinJoints(self, asMeta = True):
 	    return [obj.p_nameShort for obj in ml_skinJoints]
     except StandardError,error:
 	raise StandardError, "%s.get_skinJoints >>[Error]<< : %s"(self.p_nameShort,error)	
-    
+@cgmGeneral.Timer    
 def get_rigHandleJoints(self, asMeta = True):
     #Get our rig handle joints
     try:
-	log.info(">>> %s.get_rigHandleJoints() >> "%(self.p_nameShort) + "="*75) 
+	log.debug(">>> %s.get_rigHandleJoints() >> "%(self.p_nameShort) + "="*75) 
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)	
 	#ml_rigJoints = self.rigNull.msgList_get('rigJoints')
@@ -711,7 +716,7 @@ def get_rigHandleJoints(self, asMeta = True):
 	return l_rigHandleJoints
     except StandardError,error:
 	raise StandardError,"get_rigHandleJoints >> self: %s | error: %s"%(self,error)
-    
+@cgmGeneral.Timer    
 def get_rigDeformationJoints(self,asMeta = True):
     #Get our joints that segment joints will connect to
     try:
@@ -729,11 +734,11 @@ def get_rigDeformationJoints(self,asMeta = True):
     
     except StandardError,error:
 	raise StandardError,"get_rigDeformationJoints >> self: %s | error: %s"%(self,error)
-    
+@cgmGeneral.Timer    
 def get_handleJoints(self,asMeta = True):
     #Get our segment joints
     try:
-	log.info(">>> %s.get_handleJoints() >> "%(self.p_nameShort) + "="*75) 	
+	log.debug(">>> %s.get_handleJoints() >> "%(self.p_nameShort) + "="*75) 	
 	return self.rigNull.msgList_get('handleJoints',asMeta = asMeta, cull = True)
 	"""
 	ml_handleJoints = []
@@ -746,13 +751,13 @@ def get_handleJoints(self,asMeta = True):
 	return ml_handleJoints"""
     except StandardError,error:
 	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
-
+@cgmGeneral.Timer
 def get_segmentHandleTargets(self):
     """
     Figure out which segment handle target joints
     """
     try:
-	log.info(">>> %s.get_segmentHandleTargets() >> "%(self.p_nameShort) + "="*75) 		
+	log.debug(">>> %s.get_segmentHandleTargets() >> "%(self.p_nameShort) + "="*75) 		
 	ml_handleJoints = self.rig_getHandleJoints()
 	log.info(ml_handleJoints)
 	if not ml_handleJoints:
@@ -776,11 +781,11 @@ def get_segmentHandleTargets(self):
     
     except StandardError,error:
 	raise StandardError,"get_segmentHandleTargets >> self: %s | error: %s"%(self,error)
-
+@cgmGeneral.Timer
 def get_influenceChains(self):
     try:
 	#>>>Influence Joints
-	log.info(">>> %s.get_influenceChains() >> "%(self.p_nameShort) + "="*75) 		
+	log.debug(">>> %s.get_influenceChains() >> "%(self.p_nameShort) + "="*75) 		
 	
 	l_influenceChains = []
 	ml_influenceChains = []
@@ -797,10 +802,10 @@ def get_influenceChains(self):
 	return ml_influenceChains
     except StandardError,error:
 	raise StandardError,"_get_influenceChains >> self: %s | error: %s"%(self,error)
-    
+@cgmGeneral.Timer    
 def get_segmentHandleChains(self):
     try:
-	log.info(">>> %s.get_segmentHandleChains() >> "%(self.p_nameShort) + "="*75) 			
+	log.debug(">>> %s.get_segmentHandleChains() >> "%(self.p_nameShort) + "="*75) 			
 	l_segmentHandleChains = []
 	ml_segmentHandleChains = []
 	for i in range(50):
@@ -814,11 +819,11 @@ def get_segmentHandleChains(self):
 	return ml_segmentHandleChains
     except StandardError,error:
 	raise StandardError,"_get_segmentHandleChains >> self: %s | error: %s"%(self,error)
-    
+@cgmGeneral.Timer    
 def get_segmentChains(self):
     try:
 	#Get our segment joints
-	log.info(">>> %s.get_segmentChains() >> "%(self.p_nameShort) + "="*75) 				
+	log.debug(">>> %s.get_segmentChains() >> "%(self.p_nameShort) + "="*75) 				
 	l_segmentChains = []
 	ml_segmentChains = []
 	for i in range(50):
@@ -838,7 +843,7 @@ def get_rigJointDriversDict(self,printReport = True):
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
-    log.info(">>> %s.get_rigJointDriversDict() >> "%(self.p_nameShort) + "="*75) 				
+    log.debug(">>> %s.get_rigJointDriversDict() >> "%(self.p_nameShort) + "="*75) 				
     
     def __findDefJointFromRigJoint(i_jnt):	    
 	if i_jnt.getMessage('rigJoint'):
@@ -958,7 +963,7 @@ def get_rigJointDriversDict(self,printReport = True):
 	
 @cgmGeneral.Timer    
 def get_simpleRigJointDriverDict(self,printReport = True):
-    log.info(">>> %s.get_simpleRigJointDriverDict() >> "%(self.p_nameShort) + "="*75) 				    
+    log.debug(">>> %s.get_simpleRigJointDriverDict() >> "%(self.p_nameShort) + "="*75) 				    
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
