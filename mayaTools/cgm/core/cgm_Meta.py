@@ -127,13 +127,14 @@ class cgmMetaFactory(object):
             
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmNode - subclass to Red9.MetaClass
-#=========================================================================    
+#========================================================================= 
 class cgmNode(r9Meta.MetaClass):#Should we do this? 
     def __bind__(self):
 	"""
 	Setup before maya object initialization
 	"""
 	self.referencePrefix = False
+    #@cgmGeneral.Timer
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
@@ -1200,7 +1201,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
 #=========================================================================        
-class cgmObject(cgmNode):                  
+class cgmObject(cgmNode):  
+    #@cgmGeneral.Timer    
     def __init__(self,node = None, name = 'null',setClass = False,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 

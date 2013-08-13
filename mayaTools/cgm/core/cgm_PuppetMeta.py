@@ -19,7 +19,7 @@ import time
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-#from Red9.core import Red9_General as r9General
+from cgm.core import cgm_General as cgmGeneral
 
 #========================================================================
 import logging
@@ -52,7 +52,7 @@ cgmModuleTypes = ['cgmModule','cgmLimb']
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
-    #@r9General.Timer
+    @cgmGeneral.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         log.debug(">>> cgmPuppet.__init__")
         if kws:log.debug("kws: %s"%str(kws))
@@ -116,6 +116,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 raise StandardError,"'%s' failed to verify!"%name
 
     #====================================================================================
+    @cgmGeneral.Timer    
     def initialize(self):
         """ 
         Initializes the various components a masterNull for a character/asset.
@@ -131,7 +132,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
         return True
     
-    ##@r9General.Timer
+    @cgmGeneral.Timer
     def __verify__(self,name = None):
         """"""
         """ 
@@ -1749,6 +1750,7 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              }
 
 class cgmLimb(cgmModule):
+    #@cgmGeneral.Timer    
     def __init__(self,*args,**kws):
         """ 
         Intializes an module master class handler
