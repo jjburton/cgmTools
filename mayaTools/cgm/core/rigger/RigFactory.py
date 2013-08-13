@@ -274,7 +274,7 @@ class go(object):
 	"""
 	for key in self._l_jointAttrs:
 	    if not self._i_rigNull.getMessage('%s'%(key)) and not self._i_rigNull.msgList_getMessage('%s'%(key)):
-		log.error("%s.isSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
+		log.error("%s.isRigSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
 		return False		
 	return True
     
@@ -678,8 +678,9 @@ You should only pass modules into these
 def get_skinJoints(self, asMeta = True):
     try:
 	log.debug(">>> %s.get_skinJoints() >> "%(self.p_nameShort) + "="*75) 
+	"""
 	if not self.isSkeletonized():
-	    raise StandardError,"%s.get_skinJoints >> not skeletonized."%(self.p_nameShort)
+	    raise StandardError,"%s.get_skinJoints >> not skeletonized."%(self.p_nameShort)"""
 	ml_skinJoints = []
 	ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
 	for i,i_j in enumerate(ml_moduleJoints):
@@ -699,9 +700,10 @@ def get_skinJoints(self, asMeta = True):
 def get_rigHandleJoints(self, asMeta = True):
     #Get our rig handle joints
     try:
-	log.debug(">>> %s.get_rigHandleJoints() >> "%(self.p_nameShort) + "="*75) 
+	log.debug(">>> %s.get_rigHandleJoints() >> "%(self.p_nameShort) + "="*75)
+	"""
 	if not self.isSkeletonized():
-	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)	
+	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)"""	
 	#ml_rigJoints = self.rigNull.msgList_get('rigJoints')
 	#if not ml_rigJoints:
 	    #log.error("%s.get_rigHandleJoints >> no rig joints found"%self.getShortName())
@@ -715,7 +717,7 @@ def get_rigHandleJoints(self, asMeta = True):
 	if asMeta:return cgmMeta.validateObjListArg(l_rigHandleJoints,noneValid=True)	    
 	return l_rigHandleJoints
     except StandardError,error:
-	raise StandardError,"get_rigHandleJoints >> self: %s | error: %s"%(self,error)
+	raise StandardError,"get_rigHandleJoints >> Probably isn't skeletonized. self: %s | error: %s"%(self,error)
 @cgmGeneral.Timer    
 def get_rigDeformationJoints(self,asMeta = True):
     #Get our joints that segment joints will connect to

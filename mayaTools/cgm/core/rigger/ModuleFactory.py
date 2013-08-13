@@ -36,7 +36,7 @@ l_modulesClasses = ['cgmModule','cgmLimb']
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-##@r9General.Timer   
+@cgmGeneral.Timer
 def isSized(self):
     """
     Return if a moudle is sized or not
@@ -67,7 +67,7 @@ def isSized(self):
 def deleteSizeInfo(self,*args,**kws):
     log.debug(">>> %s.deleteSizeInfo() >> "%(self.p_nameShort) + "="*75) 		                                	                            
     self.templateNull.__setattr__('templateStarterData','',lock=True)
-    
+@cgmGeneral.Timer    
 def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     """
     Size a module
@@ -189,7 +189,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
                        create = 'locator',
                        toCreate = namesToCreate)
     
-#@r9General.Timer   
+@cgmGeneral.Timer
 def doSetParentModule(self,moduleParent,force = False):
     """
     Set a module parent of a module
@@ -256,7 +256,7 @@ def doSetParentModule(self,moduleParent,force = False):
     return True
 
 
-##@r9General.Timer   
+@cgmGeneral.Timer
 def getGeneratedCoreNames(self):
     """ 
     Generate core names for a module and return them
@@ -321,6 +321,7 @@ def getGeneratedCoreNames(self):
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
+@cgmGeneral.Timer
 def doRig(self,*args,**kws):
     log.debug(">>> %s.doRig() >> "%(self.p_nameShort) + "="*75) 		            
     if not isSkeletonized(self):
@@ -341,15 +342,16 @@ def doRig(self,*args,**kws):
     #except StandardError,error:
         #log.warning(error)    
 
-##@r9General.Timer   
+@cgmGeneral.Timer
 def isRigged(self):
     """
     Return if a module is rigged or not
     """
     log.debug(">>> %s.isRigged() >> "%(self.p_nameShort) + "="*75) 
+    """
     if not isSkeletonized(self):
         log.warning("%s.isRigged>>> Not skeletonized"%self.getShortName())
-        return False   
+        return False   """
     
     coreNamesValue = self.i_coreNames.value
     i_rigNull = self.rigNull
@@ -381,7 +383,7 @@ def isRigged(self):
             
     return True
 
-##@r9General.Timer   
+@cgmGeneral.Timer
 def rigDelete(self,*args,**kws):
     #1 zero out controls
     #2 see if connected, if so break connection
@@ -429,7 +431,7 @@ def rigDelete(self,*args,**kws):
     
     return True
 
-##@r9General.Timer
+@cgmGeneral.Timer
 def isRigConnected(self,*args,**kws):
     log.debug(">>> %s.isRigConnected() >> "%(self.p_nameShort) + "="*75) 		                
     str_shortName = self.getShortName()
@@ -451,7 +453,7 @@ def isRigConnected(self,*args,**kws):
 
     return True
 
-##@r9General.Timer
+@cgmGeneral.Timer
 def rigConnect(self,*args,**kws):
     log.debug(">>> %s.rigConnect() >> "%(self.p_nameShort) + "="*75) 		                    
     str_shortName = self.getShortName()
@@ -478,6 +480,7 @@ def rigConnect(self,*args,**kws):
 
     return True
 
+@cgmGeneral.Timer
 def rigDisconnect(self,*args,**kws):
     """
     See if rigged and connected. Zero. Gather constraints, delete, break connections
@@ -515,9 +518,10 @@ def rig_getReport(self,*args,**kws):
         #log.warning(error)
 	
 def rig_getSkinJoints(self,asMeta = True): 
+    """
     if not isSkeletonized(self):
         log.warning("%s.rig_getSkinJoints>>> Not skeletonized"%self.getShortName())
-        return False       
+        return False    """   
     return mRig.get_skinJoints(self,asMeta)      
 	
 def rig_getHandleJoints(self,asMeta = True):
@@ -541,7 +545,7 @@ def rig_getRigHandleJoints(self,asMeta = True):
 #=====================================================================================================
 #>>> Template
 #=====================================================================================================
-##@r9General.Timer   
+@cgmGeneral.Timer
 def isTemplated(self):
     """
     Return if a module is templated or not
@@ -588,7 +592,7 @@ def isTemplated(self):
     #self.moduleStates['templateState'] = True #Not working yet
     return True
 
-##@r9General.Timer   
+@cgmGeneral.Timer
 def doTemplate(self,*args,**kws):
     log.debug(">>> %s.doTemplate() >> "%(self.p_nameShort) + "="*75) 		                        
     
@@ -603,7 +607,7 @@ def doTemplate(self,*args,**kws):
     #except StandardError,error:
         #log.warning(error)    
     
-##@r9General.Timer   
+@cgmGeneral.Timer
 def deleteTemplate(self,*args,**kws):
     log.debug(">>> %s.deleteTemplate() >> "%(self.p_nameShort) + "="*75) 		                            
     try:
@@ -616,7 +620,7 @@ def deleteTemplate(self,*args,**kws):
     except StandardError,error:
         log.warning(error)
         
-##@r9General.Timer   
+@cgmGeneral.Timer
 def returnTemplateObjects(self):
     log.debug(">>> %s.returnTemplateObjects() >> "%(self.p_nameShort) + "="*75) 		                                
     try:
@@ -631,6 +635,7 @@ def returnTemplateObjects(self):
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
+@cgmGeneral.Timer
 def get_rollJointCountList(self):
     try:
 	log.debug(">>> %s.get_rollJointCountList() >> "%(self.p_nameShort) + "="*75) 		                                	
@@ -651,15 +656,16 @@ def get_rollJointCountList(self):
     except StandardError,error:
 	raise StandardError,"%s.get_rollJointCountList >> failed: %s"%(self.getShortName(),error)
 	
-##@r9General.Timer   
+@cgmGeneral.Timer
 def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
     """
-    log.debug(">>> %s.isSkeletonized() >> "%(self.p_nameShort) + "="*75) 		                                	
+    log.debug(">>> %s.isSkeletonized() >> "%(self.p_nameShort) + "="*75) 
+    """
     if not isTemplated(self):
         log.debug("Not templated, can't be skeletonized yet")
-        return False
+        return False"""
     
     l_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta=False)
     if not l_moduleJoints:
@@ -674,7 +680,7 @@ def isSkeletonized(self):
         return False
     return True
 
-#@r9General.Timer   
+@cgmGeneral.Timer
 def doSkeletonize(self,*args,**kws):
     log.debug(">>> %s.doSkeletonize() >> "%(self.p_nameShort) + "="*75) 		                                	    
     try:
@@ -688,13 +694,15 @@ def doSkeletonize(self,*args,**kws):
         return True
     except StandardError,error:
 	raise StandardError,"%s.doSkeletonize >> failed: %s"%(self.getShortName(),error)	
-        
+
+@cgmGeneral.Timer       
 def deleteSkeleton(self,*args,**kws): 
     log.debug(">>> %s.deleteSkeleton() >> "%(self.p_nameShort) + "="*75) 		                                	        
     if isSkeletonized(self):
         jFactory.deleteSkeleton(self,*args,**kws)
     return True
 
+@cgmGeneral.Timer
 def returnExpectedJointCount(self):
     """
     Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
@@ -728,7 +736,7 @@ def returnExpectedJointCount(self):
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
-#@r9General.Timer   
+@cgmGeneral.Timer
 def validateStateArg(stateArg):
     #>>> Validate argument
     if type(stateArg) in [str,unicode]:
@@ -751,7 +759,7 @@ def validateStateArg(stateArg):
         return False
     return [stateIndex,stateName]
     
-##@r9General.Timer   
+@cgmGeneral.Timer
 def isModule(self):
     """
     Simple module check
@@ -765,7 +773,7 @@ def isModule(self):
     log.debug("Is a module: : '%s'"%self.getShortName())
     return True
 
-##@r9General.Timer   
+@cgmGeneral.Timer
 def getState(self):
     """ 
     Check module state ONLY from the state check attributes
@@ -782,7 +790,6 @@ def getState(self):
     """
     if not isModule(self):
         return False
-    
     d_CheckList = {'size':isSized,
                    'template':isTemplated,
                    'skeleton':isSkeletonized,
@@ -799,7 +806,7 @@ def getState(self):
     log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
     return goodState
 
-#@r9General.Timer   
+@cgmGeneral.Timer
 def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     """ 
     Set a module's state
@@ -820,7 +827,7 @@ def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     changeState(self, stateArg, *args,**kws)
         
     
-##@r9General.Timer   
+@cgmGeneral.Timer
 def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws):
     """ 
     Changes a module state
@@ -914,7 +921,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
             return True
         
     
-#@r9General.Timer
+@cgmGeneral.Timer
 def storePose_templateSettings(self):
     """
     Builds a template's data settings for reconstruction.
@@ -958,7 +965,7 @@ def storePose_templateSettings(self):
     i_templateNull.controlObjectTemplatePose = poseDict
     return poseDict
 
-#@r9General.Timer
+@cgmGeneral.Timer
 def readPose_templateSettings(self):
     """
     Builds a template's data settings for reconstruction.

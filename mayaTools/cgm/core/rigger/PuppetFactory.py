@@ -21,6 +21,7 @@ geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+@cgmGeneral.Timer
 def simplePuppetReturn():
     catch = mc.ls(type='network')
     returnList = []
