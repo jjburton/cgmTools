@@ -1,0 +1,8 @@
+global proc cgmPuppetKeyMM() {
+	python("from cgm.core.tools.markingMenus import cgmPuppetKey;reload(cgmPuppetKey);cgmPuppetKey.run()");
+	}
+
+
+global proc cgmPuppetKeyMMKillUI () {
+	python("cgmPuppetKey.killUI();");
+	}
