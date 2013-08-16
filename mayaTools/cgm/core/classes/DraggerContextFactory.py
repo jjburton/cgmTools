@@ -25,6 +25,8 @@ import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
 from cgm.lib.classes import NameFactory
+from cgm.core import cgm_Meta as cgmMeta
+from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import rayCaster as RayCast
 from cgm.lib import (locators,
                      geo,
@@ -68,7 +70,7 @@ class ContextualPick(object):
         self.dragOption = kws.pop('drag',False)
         
         self.name = name
-        self.returnList = []
+        self.l_return = []
         
         self.build(*a,**kws )
         self.setTool()
@@ -139,7 +141,7 @@ class clickMesh(ContextualPick):
     Find positional data from clicking on a surface from a ContextualPick instance.
     And other things...:)
     
-    Arguments
+    @Parameters
     mesh(list) -- currently poly surfaces only
     mode(string) -- options:('surface' is default)
                     'surface' -- surface hit per mesh piece
@@ -158,9 +160,12 @@ class clickMesh(ContextualPick):
     clampIntersections(False/int) -- clamp number of interactions
     dragStore(bool) -- whether to force store data during drag
     toCreate(list) -- list of items names to make, sets's max as well
+    posOffset(vector) -- how much ot offset 
+    offsetMode(bool) -- 'vector','normal' (default -- 'vector')
+    orientSnap(bool) -- orient the created object to surface
     
     Stores
-    self.posList(list) -- points on the surface selected in world space
+    self.l_pos(list) -- points on the surface selected in world space
     
     TODO:
     Add depth option
@@ -173,33 +178,40 @@ class clickMesh(ContextualPick):
                  clampIntersections = False,
                  dragStore = False,
                  maxStore = False,
+                 posOffset = None,
+                 offsetMode = 'normal',
+                 orientSnap = True,
                  toCreate = [],
                  *a,**kws):
-        # Set our attributes  
-        self.createModes = ['locator','joint','jointChain','curve','follicle','group',False]
-        self.modes = ['surface','intersections','midPoint']
-        self.meshList = []
-        self.meshPosDict = {} #creating this pretty much just for follicle mode so we can attache to a specific mesh
-        self.meshUVDict = {}
-        self.meshArea = 1
+	
+	#>>> Store our info ====================================================================
+        self._createModes = ['locator','joint','jointChain','curve','follicle','group',False]
+        self.l_modes = ['surface','intersections','midPoint']
+        self.l_mesh = []
+        self.d_meshPos = {} #creating this pretty much just for follicle mode so we can attache to a specific mesh
+        self.d_meshUV = {}
+        self.f_meshArea = 1
         
-        self.createMode = create
-        self.getUV = False
+        self._createMode = create
+        self._getUV = False
         
-        if self.createMode == 'follicle':#Only get uv intersection for follicles
-            self.getUV = True
+        if self._createMode == 'follicle':#Only get uv intersection for follicles
+            self._getUV = True
             
-        self.closestOnly = closestOnly
-        self.createdList = []
-        self.clampSetting = clampIntersections
-        self.dragStoreMode = dragStore
-        self.returnList = []
-        self.posBuffer = False
-        self.createModeBuffer = False
-        self.maxStore = maxStore
-        self.toCreate = toCreate
+        self.b_closestOnly = closestOnly
+        self.l_created = []
+        self.b_clampSetting = clampIntersections
+        self.b_dragStoreMode = dragStore
+        self.l_return = []
+        self._posBuffer = False
+        self.v_posOffset = posOffset or False    
+	self.str_offsetMode = offsetMode
+	self.b_orientSnap = orientSnap
+        self._createModeBuffer = False
+        self.int_maxStore = maxStore
+        self.l_toCreate = toCreate
         if toCreate:
-            self.maxStore = len(toCreate)
+            self.int_maxStore = len(toCreate)
         
         self.setMode(mode)
                
@@ -215,13 +227,13 @@ class clickMesh(ContextualPick):
         """
         Updates the mesh area of the added meshes (for sizing purposes)
         """
-        self.meshArea = 1
+        self.f_meshArea = 1
         buffer = []
-        for m in self.meshList:
+        for m in self.l_mesh:
             buffer.append(distance.returnObjectSize(m))
         
         if buffer:
-            self.meshArea = sum(buffer)/len(buffer)
+            self.f_meshArea = sum(buffer)/len(buffer)
             
     def addTargetMesh(self,mesh):
         """
@@ -231,10 +243,10 @@ class clickMesh(ContextualPick):
             log.warning("'%s' doesn't exist. Ignoring..."%mesh)
             return False
 
-        if mesh not in self.meshList:
+        if mesh not in self.l_mesh:
             buffer = search.returnObjectType(mesh)
             if buffer == 'mesh':
-                self.meshList.append(mesh)
+                self.l_mesh.append(mesh)
                 self.updateMeshArea()
                 return True
             else:
@@ -246,8 +258,8 @@ class clickMesh(ContextualPick):
         """
         Remove target mesh to the tool
         """
-        if mesh in self.meshList:
-            self.meshList.remove(mesh) 
+        if mesh in self.l_mesh:
+            self.l_mesh.remove(mesh) 
             log.info("'%s' removed from '%s'"%(mesh,self.name))
         
     def setMode(self,mode):
@@ -262,31 +274,31 @@ class clickMesh(ContextualPick):
         Set clamp setting
         """
         assert type(setting) is int or setting is False,"'%s' is not a valid setting"%setting 
-        self.clampSetting = setting
+        self.b_clampSetting = setting
         
     def setCreate(self,create):
         """
         Set tool mode
         """
-        assert create in self.createModes,"'%s' is not a valid create mode"%create    
-        self.createMode = create
-        if self.createMode == 'follicle':#Only get uv intersection for follicles
-            self.getUV = True            
+        assert create in self._createModes,"'%s' is not a valid create mode"%create    
+        self._createMode = create
+        if self._createMode == 'follicle':#Only get uv intersection for follicles
+            self._getUV = True            
         
     def setDragStoreMode(self,mode):
         """
         Set drag update mode
         """
         assert bool(mode) in [True,False],"'%s' should be a bool"%mode                 
-        self.dragStoreMode = mode
+        self.b_dragStoreMode = mode
         log.warning("Drag store is %s!"%mode)
         
     def reset(self):
         """
         Reset data
         """
-        self.createdList = []
-        self.returnList = []
+        self.l_created = []
+        self.l_return = []
         
         log.warning("'%s' reset."%self.name)
         
@@ -302,7 +314,7 @@ class clickMesh(ContextualPick):
         Press action. Clears buffers.
         """
         ContextualPick.press(self)
-        self.createModeBuffer = []
+        self._createModeBuffer = []
         self.updatePos()
         
     def finalize(self):
@@ -310,25 +322,25 @@ class clickMesh(ContextualPick):
         Press action. Clears buffers.
         """
         #Clean our lists...
-        self.createdList = lists.returnListNoDuplicates(self.createdList)
-        self.returnList = lists.returnListNoDuplicates(self.returnList)
+        self.l_created = lists.returnListNoDuplicates(self.l_created)
+        self.l_return = lists.returnListNoDuplicates(self.l_return)
         
-        if self.createMode in ['curve','jointChain','group','follicle'] and self.returnList:
-            if self.createMode == 'group':
+        if self._createMode in ['curve','jointChain','group','follicle'] and self.l_return:
+            if self._createMode == 'group':
                 bufferList = []
-                for i,o in enumerate(self.createdList):
+                for i,o in enumerate(self.l_created):
                     buffer = rigging.groupMeObject(o,False)
                     bufferList.append(buffer)                    
                     try:mc.delete(o)
                     except:pass
-                self.createdList = bufferList
+                self.l_created = bufferList
                 
-            elif self.createMode =='follicle':
+            elif self._createMode =='follicle':
                 if self.mode == 'midPoint':
                     log.warning("Mid point mode doesn't work with follicles")
                     return
                 bufferList = []
-                for o in self.createdList:
+                for o in self.l_created:
                     mesh = attributes.doGetAttr(o,'cgmHitTarget')
                     if mc.objExists(mesh):
                         uv = distance.returnClosestUVToPos(mesh,distance.returnWorldSpacePosition(o))
@@ -338,21 +350,20 @@ class clickMesh(ContextualPick):
                         try:mc.delete(o)
                         except:pass                        
             else:
-                for o in self.createdList:
+                for o in self.l_created:
                     try:mc.delete(o)
                     except:pass
-                if self.createMode == 'curve' and len(self.returnList)>1:
-                    if len(self.returnList) > 1:
-                        self.createdList = [curves.curveFromPosList(self.returnList)]
+                if self._createMode == 'curve' and len(self.l_return)>1:
+                    if len(self.l_return) > 1:
+                        self.l_created = [curves.curveFromPosList(self.l_return)]
                     else:
                         log.warning("Need at least 2 points for a curve")                        
-                elif self.createMode == 'jointChain':
-                    self.createdList = []
+                elif self._createMode == 'jointChain':
+                    self.l_created = []
                     mc.select(cl=True)
-                    for pos in self.returnList:                             
-                        self.createdList.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = 1) )
-                                
-        log.debug( self.createdList)
+                    for pos in self.l_return:                             
+                        self.l_created.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = 1) ) 
+        log.debug( self.l_created)
         self.reset()        
         
     def release(self):
@@ -360,19 +371,21 @@ class clickMesh(ContextualPick):
         Store current data to return buffers
         """                
         #Only store return values on release
-        if self.posBuffer:
-            for p in self.posBuffer:
-                self.returnList.append(p)            
-        if self.createModeBuffer:
-            self.createdList.extend(self.createModeBuffer)
+        if self._posBuffer:
+            for p in self._posBuffer:
+                self.l_return.append(p)            
+        if self._createModeBuffer:
+            self.l_created.extend(self._createModeBuffer)
             
-        if self.posBuffer:
-            log.debug("Position data : %s "%(self.returnList))
-        if self.createModeBuffer:
-            log.debug("Created : %s "%(self.createModeBuffer))
+        if self._posBuffer:
+            log.debug("Position data : %s "%(self.l_return))
+        if self._createModeBuffer:
+            log.debug("Created : %s "%(self._createModeBuffer))
             mc.select(cl=True)
-        
-        if self.maxStore and len(self.returnList) == self.maxStore:
+	    if 'joint' in self._createMode:
+		jntUtils.metaFreezeJointOrientation(self._createModeBuffer)	
+		
+        if self.int_maxStore and len(self.l_return) == self.int_maxStore:
             log.debug("Max hit, finalizing")
             self.dropTool()
     
@@ -383,8 +396,8 @@ class clickMesh(ContextualPick):
         ContextualPick.drag(self)
         self.updatePos()
         
-        if self.createModeBuffer:
-            self.createdList.extend(self.createModeBuffer)          
+        if self._createModeBuffer:
+            self.l_created.extend(self._createModeBuffer)          
             
     def getDistanceToCheck(self,m):
         assert mc.objExists(m), "'%s' doesn't exist. Couldn't check distance!"%m
@@ -404,106 +417,132 @@ class clickMesh(ContextualPick):
         """
         Get updated position data via shooting rays
         """
-        if not self.meshList:
+        if not self.l_mesh:
             return log.warning("No mesh objects have been added to '%s'"%(self.name))
         
         buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
                 
         self.clickPos = buffer[0] #Our world space click point
         self.clickVector = buffer[1] #Camera vector
-        self.posBuffer = []#Clear our pos buffer
+        self._posBuffer = []#Clear our pos buffer
         
-        for m in self.meshList:#Get positions per mesh piece
+        for m in self.l_mesh:#Get positions per mesh piece
             #First get the distance to try to check
             checkDistance = self.getDistanceToCheck(m)
             #print ("Checking distance of %s"%checkDistance)
-            if m not in self.meshPosDict.keys():
-                self.meshPosDict[m] = []
-                self.meshUVDict[m] = []
+            if m not in self.d_meshPos.keys():
+                self.d_meshPos[m] = []
+                self.d_meshUV[m] = []
                 
             if mc.objExists(m):
                 if self.mode == 'surface':
-                    buffer =RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance)                
+                    buffer = RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance)                
                     if buffer is not None:
                         hit = self.convertPosToLocalSpace( buffer['hit'] )
-                        self.posBuffer.append(hit)  
+                        self._posBuffer.append(hit)  
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
-                        self.meshPosDict[m].append(hit)
-                        self.meshUVDict[m].append(buffer['uv'])
+                        self.d_meshPos[m].append(hit)
+                        self.d_meshUV[m].append(buffer['uv'])
+			
                 else:
-                    buffer =RayCast.findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)                                    
+                    buffer = RayCast.findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)                                    
                     if buffer:
                         conversionBuffer = []
                         #Need to convert to local space
                         for hit in buffer['hits']:
                             conversionBuffer.append(self.convertPosToLocalSpace( hit ))
                              
-                        self.posBuffer.extend(conversionBuffer)
+                        self._posBuffer.extend(conversionBuffer)
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
                         
-                        self.meshPosDict[m].extend(conversionBuffer)
-                        self.meshUVDict[m].extend(buffer['uvs'])
-                        
-                        
-        if not self.posBuffer:
+                        self.d_meshPos[m].extend(conversionBuffer)
+                        self.d_meshUV[m].extend(buffer['uvs'])
+			
+        if not self._posBuffer:
             log.warning('No hits detected!')
             return
         
-        if self.clampSetting and self.clampSetting < len(self.posBuffer):
+        if self.b_clampSetting and self.b_clampSetting < len(self._posBuffer):
             log.warning("Position buffer was clamped. Check settings if this was not desired.")
-            self.posBuffer = distance.returnPositionDataDistanceSortedList(self.startPoint,self.posBuffer)
-            self.posBuffer = self.posBuffer[:self.clampSetting]
+            self._posBuffer = distance.returnPositionDataDistanceSortedList(self.startPoint,self._posBuffer)
+            self._posBuffer = self._posBuffer[:self.b_clampSetting]
             
         if self.mode == 'midPoint':                
-            self.posBuffer = [distance.returnAveragePointPosition(self.posBuffer)]
+            self._posBuffer = [distance.returnAveragePointPosition(self._posBuffer)]
 
-        if self.posBuffer: #Check for closest and just for hits
-            if self.closestOnly and self.mode != 'intersections':
-                buffer = distance.returnClosestPoint(self.startPoint,self.posBuffer)
-                self.posBuffer = [buffer]               
+        if self._posBuffer: #Check for closest and just for hits
+            if self.b_closestOnly and self.mode != 'intersections':
+                buffer = distance.returnClosestPoint(self.startPoint,self._posBuffer)
+                self._posBuffer = [buffer]                 
         else:pass
             #log.warning("No hits detected")
             
-        if self.createMode and self.posBuffer: # Make our stuff
+        #>>> Make our stuff ======================================================
+        if self._createMode and self._posBuffer: # Make our stuff
             #Delete the old stuff
-            if self.createModeBuffer and not self.dragStoreMode:
-                for o in self.createModeBuffer:
+            if self._createModeBuffer and not self.b_dragStoreMode:
+                for o in self._createModeBuffer:
                     try:mc.delete(o)
                     except:pass
-                self.createModeBuffer = []
+                self._createModeBuffer = []
             
-            for pos in self.posBuffer:
+            for i,pos in enumerate(self._posBuffer):
+		#Let's make our stuff
                 if len(pos) == 3:
                     baseScale = distance.returnMayaSpaceFromWorldSpace(10)
-                    if self.createMode == 'joint':
+                    if self._createMode == 'joint':
                         nameBuffer = mc.joint(radius = 1)
                         #attributes.doSetAttr(nameBuffer,'radius',1)
-                        
                         mc.select(cl=True)
                     else:
                         nameBuffer = mc.spaceLocator()[0]
-                        for m in self.meshPosDict.keys():#check each mesh dictionary to see where it came from
-                            if pos in self.meshPosDict[m]:#if the mesh has a match
-                                attributes.storeInfo(nameBuffer,'cgmHitTarget',m)
-                                
-                                attributes.doSetAttr(nameBuffer,'localScaleX',(self.meshArea*.025))
-                                attributes.doSetAttr(nameBuffer,'localScaleY',(self.meshArea*.025))
-                                attributes.doSetAttr(nameBuffer,'localScaleZ',(self.meshArea*.025))
-                                break                              
-                        
-                    mc.move (pos[0],pos[1],pos[2], nameBuffer)
+			
+		    mc.move (pos[0],pos[1],pos[2], nameBuffer)
+		    
+		    for m in self.d_meshPos.keys():#check each mesh dictionary to see where it came from
+			if pos in self.d_meshPos[m]:#if the mesh has a match
+			    attributes.storeInfo(nameBuffer,'cgmHitTarget',m)
+			    
+			    #attributes.doSetAttr(nameBuffer,'localScaleX',(self.f_meshArea*.025))
+			    #attributes.doSetAttr(nameBuffer,'localScaleY',(self.f_meshArea*.025))
+			    #attributes.doSetAttr(nameBuffer,'localScaleZ',(self.f_meshArea*.025))
+			    
+			    if self.v_posOffset is not None and self.str_offsetMode:
+				mi_obj = cgmMeta.cgmObject(nameBuffer)
+				mc.move (pos[0],pos[1],pos[2], mi_obj.mNode,ws=True)	
+				if self.str_offsetMode =='vector':
+				    mi_hitLoc = cgmMeta.cgmObject(mc.spaceLocator(n='hitLoc')[0])
+				    mc.move (self.startPoint[0],self.startPoint[1],self.startPoint[2], mi_hitLoc.mNode,ws=True)				
+				    constBuffer = mc.aimConstraint(mi_hitLoc.mNode,mi_obj.mNode,
+				                                   aimVector=[0,0,1],
+				                                   upVector=[0,1,0],
+				                                   worldUpType = 'scene')
+				    mi_hitLoc.delete()
+				else:
+				    constBuffer = mc.normalConstraint(m,mi_obj.mNode,
+				                                      aimVector=[0,0,1],
+				                                      upVector=[0,1,0],
+				                                      worldUpType = 'scene')
+				try:mc.delete(constBuffer)
+				except:pass
+				mc.move(self.v_posOffset[0],self.v_posOffset[1],self.v_posOffset[2], [mi_obj.mNode], r=True, rpr = True, os = True, wd = True)
+				self._posBuffer[i] = mi_obj.getPosition()  
+				#mi_tmpLoc.delete()			    
+			    
+			    break                              
+                                            
+                    if self.l_toCreate:#Name it
+                        nameBuffer = mc.rename(nameBuffer,self.l_toCreate[len(self.l_return)])
                     
-                    if self.toCreate:#Name it
-                        nameBuffer = mc.rename(nameBuffer,self.toCreate[len(self.returnList)])
-                    
-                    self.createModeBuffer.append(nameBuffer)
+                    self._createModeBuffer.append(nameBuffer)
                 else:
-                    log.warning("'%s' isn't a valid position"%pos)
-        
-        if self.dragStoreMode:
-            if self.posBuffer:
-                for p in self.posBuffer:
-                    self.returnList.append(p)  
+		    
+                    log.warning("'%s' isn't a valid position"%pos)      
+		    
+        if self.b_dragStoreMode:
+            if self._posBuffer:
+                for p in self._posBuffer:
+                    self.l_return.append(p)  
                
         mc.refresh()#Update maya to make it interactive!
 
