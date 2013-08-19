@@ -179,14 +179,17 @@ class clickMesh(ContextualPick):
                  dragStore = False,
                  maxStore = False,
                  posOffset = None,
+                 clampValues = [None,None,None],
                  offsetMode = 'normal',
                  orientSnap = True,
+                 tagAndName = {},
                  toCreate = [],
                  *a,**kws):
 	
+	log.debug(">>> clickMesh >> __init__ " + "="*75)            	            			
 	#>>> Store our info ====================================================================
         self._createModes = ['locator','joint','jointChain','curve','follicle','group',False]
-        self.l_modes = ['surface','intersections','midPoint']
+        self._l_modes = ['surface','intersections','midPoint']
         self.l_mesh = []
         self.d_meshPos = {} #creating this pretty much just for follicle mode so we can attache to a specific mesh
         self.d_meshUV = {}
@@ -203,6 +206,7 @@ class clickMesh(ContextualPick):
         self.b_clampSetting = clampIntersections
         self.b_dragStoreMode = dragStore
         self.l_return = []
+	self.d_tagAndName = tagAndName
         self._posBuffer = False
         self.v_posOffset = posOffset or False    
 	self.str_offsetMode = offsetMode
@@ -210,6 +214,7 @@ class clickMesh(ContextualPick):
         self._createModeBuffer = False
         self.int_maxStore = maxStore
         self.l_toCreate = toCreate
+	self.v_clampValues = clampValues
         if toCreate:
             self.int_maxStore = len(toCreate)
         
@@ -364,6 +369,16 @@ class clickMesh(ContextualPick):
                     for pos in self.l_return:                             
                         self.l_created.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = 1) ) 
         log.debug( self.l_created)
+	if self.d_tagAndName:
+	    for o in self.l_created:
+		try:
+		    i_o = cgmMeta.cgmNode(o)
+		    for tag in self.d_tagAndName.keys():
+			i_o.doStore(tag,self.d_tagAndName[tag])
+			i_o.doName()
+		except StandardError,error:
+		    log.error(">>> clickMesh >> Failed to tag and name: %s | error: %s"%(i_o.p_nameShort,error))            	            		
+        
         self.reset()        
         
     def release(self):
@@ -487,6 +502,9 @@ class clickMesh(ContextualPick):
                 self._createModeBuffer = []
             
             for i,pos in enumerate(self._posBuffer):
+		for i2,v in enumerate(self.v_clampValues):
+		    if v is not None:
+			pos[i2] = v
 		#Let's make our stuff
                 if len(pos) == 3:
                     baseScale = distance.returnMayaSpaceFromWorldSpace(10)
@@ -507,7 +525,7 @@ class clickMesh(ContextualPick):
 			    #attributes.doSetAttr(nameBuffer,'localScaleY',(self.f_meshArea*.025))
 			    #attributes.doSetAttr(nameBuffer,'localScaleZ',(self.f_meshArea*.025))
 			    
-			    if self.v_posOffset is not None and self.str_offsetMode:
+			    if self.v_posOffset is not None and self.str_offsetMode and self._createMode not in ['follicle']:
 				mi_obj = cgmMeta.cgmObject(nameBuffer)
 				mc.move (pos[0],pos[1],pos[2], mi_obj.mNode,ws=True)	
 				if self.str_offsetMode =='vector':
@@ -527,6 +545,8 @@ class clickMesh(ContextualPick):
 				except:pass
 				mc.move(self.v_posOffset[0],self.v_posOffset[1],self.v_posOffset[2], [mi_obj.mNode], r=True, rpr = True, os = True, wd = True)
 				self._posBuffer[i] = mi_obj.getPosition()  
+				if not self.b_orientSnap:
+				    mi_obj.rotate = [0,0,0]
 				#mi_tmpLoc.delete()			    
 			    
 			    break                              
