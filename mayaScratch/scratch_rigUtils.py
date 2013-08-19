@@ -7,16 +7,38 @@ import maya.cmds as mc
 from cgm.lib import curves
 from cgm.lib import locators
 from cgm.lib import distance
+from cgm.lib import joints
 reload(distance)
 from cgm.core.rigger.lib import rig_Utils as rUtils
+from cgm.core.rigger.lib import joint_Utils as jUtils
+for i_jnt in cgmMeta.validateObjListArg(mc.ls(sl=True),cgmMeta.cgmObject,mayaType = 'joint'):
+    jUtils.metaFreezeJointOrientation(i_jnt)
+                               
 reload(rUtils)
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
+
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
+
+#>>> Stretch IK
+#=======================================================
+jointList = mc.ls(sl=True)
+joints.orientJointChain(jointList,'zyx','zdown')
+rUtils.IKHandle_create(jointList[0],jointList[-1],lockMid=False, nameSuffix = 'noFlip',rpHandle=True,controlObject='joint3_loc',addLengthMulti=True,globalScaleAttr='null1.sy', stretch='translate')
+   
+
+
+
+
+
+
+rUtils.createCGMSegment(jointList)
+
+
 start = 'l_left_index_2_ik_jnt'
 end = 'l_left_index_4_ik_jnt'
 mc.ikHandle( sj=start, ee=end,solver = 'ikSpringSolver', forceSolver = True,snapHandleFlagToggle=True )  

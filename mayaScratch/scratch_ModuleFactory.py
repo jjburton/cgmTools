@@ -4,6 +4,7 @@ import maya.cmds as mc
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
+from cgm.core import cgm_RigMeta as cgmRigMeta
 import Red9.core.Red9_Meta as r9Meta
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import TemplateFactory as tFactory
@@ -27,10 +28,14 @@ objList = []
 #>>> Modules
 #=======================================================
 m1 = r9Meta.MetaClass('spine_part')
+m1 = r9Meta.MetaClass('neck_part')
+
 m1 = r9Meta.MetaClass('l_leg_part')
 m1.setState('skeleton',force=True)
 m1.setState('rig',force=True)
 m1.getPartNameBase()
+mFactory.isSkeletonized(m1)
+mFactory.isTemplated(m1)
 m1.rigNull.getMessage('rigJoints',False)
 len( m1.rigNull.getMessage('rigJoints',False) )
 len( m1.rigNull.getMessage('skinJoints',False) )

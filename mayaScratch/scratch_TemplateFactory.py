@@ -11,6 +11,7 @@ from cgm.core.rigger import TemplateFactory as TemplateF
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.classes import  NodeFactory as nodeF
 reload(TemplateF)
+TemplateF.doOrientTemplateObjectsToMaster(m1)
 reload(jFactory)
 reload(Rig)
 nodeF.validateAttrArg(['spine_1_anchorJoint','rz'

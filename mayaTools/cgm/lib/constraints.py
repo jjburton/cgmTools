@@ -128,7 +128,7 @@ def returnObjectConstraints(object):
     buffer = mc.listRelatives(object,type='constraint',fullPath=True) or []
     if buffer:return lists.returnListNoDuplicates(buffer)
     else:
-        log.warning('%s has no constraints' %object)
+        log.debug('%s has no constraints' %object)
         return []
     
 def returnObjectDrivenConstraints(obj):

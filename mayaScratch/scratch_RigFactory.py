@@ -9,6 +9,11 @@ from cgm.core.classes import SnapFactory as Snap
 reload(Snap)
 from cgm.core.rigger.lib.Limb import leg
 
+m1 = r9Meta.MetaClass('r_index_part')
+m1 = r9Meta.MetaClass('r_middle_part')
+m1 = r9Meta.MetaClass('r_ring_part')
+m1 = r9Meta.MetaClass('r_thumb_part')
+m1 = r9Meta.MetaClass('r_pinky_part')
 from cgm.core.rigger import RigFactory as Rig
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import ModuleFactory as mFactory
@@ -16,7 +21,6 @@ from cgm.core.classes import  NodeFactory as nodeF
 reload(nodeF)
 reload(jFactory)
 reload(Rig)
-nodeF.validateAttrArg(['spine_1_anchorJoint','rz'
 assert 1==2
 from cgm.lib import curves
 from cgm.lib import distance

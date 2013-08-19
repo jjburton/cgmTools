@@ -32,6 +32,8 @@ import cgm.core
 cgm.core._reload()
 
 #>>> Generate Morpheus asset Template
+m1 = cgmMeta.cgmNode('Morphy_customizationNetwork')
+m1.connectChildNode('Morphy_Body_GEO','baseBodyGeo')
 CustomF.go('Morphy_customizationNetwork')
 p = cgmPM.cgmMorpheusMakerNetwork(name = customizationNode)
 p.jointList
