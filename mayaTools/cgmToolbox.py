@@ -136,7 +136,7 @@ class AutoStartInstaller(object):
         if pyUserSetup is None and melUserSetup is None:
             print 'No py or mel user setup files found.Creating py'
             if not self.createPyUserSetup():#if we can't make a user file, break
-                return
+                return False
 
         success = False
         errors = []
