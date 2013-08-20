@@ -50,6 +50,47 @@ from cgm.lib import (distance,
                      joints,
                      cgmMath)
 reload(distance)
+
+#>>> Eyeball
+#===================================================================
+def createEyeballRig(eyeballObject = None, ballJoint = None,
+                     buildFK = False, buildIK = False, buildJoystick = False,
+                     doControls = False):
+    """
+    Create an eyeball setup given a sphere template object
+    """
+    #>>> Check our args
+    #====================================================================
+    _str_func_ = 'createEyeballRig'
+    log.info(">>> %s >> "%_str_func_ + "="*75)            	                
+    mi_ball = cgmMeta.validateObjArg(eyeballObject,cgmMeta.cgmObject,noneValid=True,mayaType=['nurbsSurface','mesh'])
+    if not mi_ball:raise StandardError,"bad eyeball object: %s"%eyeballObject
+        
+    #> Bools ------------------------------------------------------------
+    _b_doControls = cgmGeneral.validateBool(doControls,calledFrom = _str_func_)
+    _b_doFK = cgmGeneral.validateBool(buildFK,calledFrom = _str_func_)
+    _b_doIK = cgmGeneral.validateBool(buildIK,calledFrom = _str_func_)
+    _b_doJoystick = cgmGeneral.validateBool(buildJoystick,calledFrom = _str_func_)
+    
+    #>>> Joints
+    #==================================================================== 
+    mi_ballJoint = cgmMeta.validateObjArg(ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])
+    if not mi_ballJoint:
+	log.info("Need to created ball joint")
+	l_pos = mi_ball.getPosition()
+	str_ballJoint = mc.joint (p=(l_pos[0],l_pos[1],l_pos[2]))
+	mi_ballJoint = cgmMeta.validateObjArg(str_ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])	
+	mi_ballJoint.parent = False
+	
+	
+    #>>> Setup transforms
+    #==================================================================== 
+    if _b_doFK:
+	log.info("%s >> building fk"%_str_func_)
+	
+    if _b_doIK:
+	log.info("%s >> building ik"%_str_func_)
+
 #>>> Utilities
 #===================================================================
 def addCGMDynamicGroup(target = None, parentTargets = None,
