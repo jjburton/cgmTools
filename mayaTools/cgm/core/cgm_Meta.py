@@ -1293,7 +1293,7 @@ class cgmObject(cgmNode):
         return search.returnAllChildrenObjects(self.mNode,fullPath) or []    
     
     def getShapes(self):
-        return mc.listRelatives(self.mNode,shapes=True) or []
+        return mc.listRelatives(self.mNode,shapes=True,fullPath=True) or []
     
     def isChildOf(self,obj):
 	try:
@@ -4099,12 +4099,14 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	    i_arg = default_mType(arg)
 	    
 	if mayaType is not None and len(mayaType):
+	    if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
+	    else: l_mayaTypes = mayaType
 	    str_type = search.returnObjectType(i_arg.getComponent())
-	    if str_type != mayaType:
+	    if str_type not in l_mayaTypes:
 		if noneValid:
-		    log.warning("validateObjArg>>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(i_arg.p_nameShort,str_type,mayaType))
+		    log.warning("validateObjArg>>> '%s' mayaType: '%s' not in: '%s'"%(i_arg.p_nameShort,str_type,l_mayaTypes))
 		    return False
-		raise StandardError,"validateObjArg>>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(i_arg.p_nameShort,str_type,mayaType)			    	
+		raise StandardError,"validateObjArg>>> '%s' mayaType: '%s' not in: '%s'"%(i_arg.p_nameShort,str_type,l_mayaTypes)			    	
 	return i_arg
     
     except StandardError,error:
