@@ -203,8 +203,8 @@ def uiClickMeshToolLaunch(self):
                                                           dragStore=False,
                                                           clampIntersections = self.ClickMeshClampOptionVar.value)
     
-    self.ClickMeshTool.setMode(self.ClickMeshTool.modes[self.ClickMeshModeOptionVar.value])
-    self.ClickMeshTool.setCreate(self.ClickMeshTool.createModes[self.ClickMeshBuildOptionVar.value])  
+    self.ClickMeshTool.setMode(self.ClickMeshTool._l_modes[self.ClickMeshModeOptionVar.value])
+    self.ClickMeshTool.setCreate(self.ClickMeshTool._createModes[self.ClickMeshBuildOptionVar.value])  
     self.ClickMeshTool.setDragStoreMode(self.ClickMeshDragStoreOptionVar.value)
     
     guiFactory.warning("ClickMesh initialized")
@@ -231,7 +231,7 @@ def uiClickMesh_changeMode(self,i):
     self.ClickMeshModeOptionVar.set(i)
     
     if self.ClickMeshTool:
-	self.ClickMeshTool.setMode(self.ClickMeshTool.modes[self.ClickMeshModeOptionVar.value])
+	self.ClickMeshTool.setMode(self.ClickMeshTool._l_modes[self.ClickMeshModeOptionVar.value])
 
 def uiClickMesh_changeCreateMode(self,i):
     """ 
@@ -243,7 +243,7 @@ def uiClickMesh_changeCreateMode(self,i):
     self.ClickMeshBuildOptionVar.set(i)
     
     if self.ClickMeshTool:
-	self.ClickMeshTool.setCreate(self.ClickMeshTool.createModes[self.ClickMeshBuildOptionVar.value])
+	self.ClickMeshTool.setCreate(self.ClickMeshTool._createModes[self.ClickMeshBuildOptionVar.value])
 
 def uiClickMesh_setClamp(self):
     """ 
