@@ -32,7 +32,7 @@ reload(dragFactory)
 # Shared libraries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 l_moduleStates = ['define','size','template','skeleton','rig']
-l_modulesClasses = ['cgmModule','cgmLimb']
+l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball']
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -67,6 +67,7 @@ def isSized(self):
 def deleteSizeInfo(self,*args,**kws):
     log.debug(">>> %s.deleteSizeInfo() >> "%(self.p_nameShort) + "="*75) 		                                	                            
     self.templateNull.__setattr__('templateStarterData','',lock=True)
+    
 @cgmGeneral.Timer    
 def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     """
@@ -98,7 +99,6 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     else:
         log.warning("Not enough names. Generating")
         names = getGeneratedCoreNames(self)
-    
     if not geo:
         geo = self.modulePuppet.getGeo()
     log.debug("Handles: %s"%handles)
@@ -128,7 +128,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
         return True
             
     elif sizeMode == 'normal':
-        if names > 1:
+        if len(names) > 1:
             namesToCreate = names[0],names[-1]
         else:
             namesToCreate = names
@@ -141,44 +141,45 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
         """Sublass to get the functs we need in there"""
         def __init__(self,i_module = i_module,**kws):
             log.debug(">>> moduleSizer.__init__")    
-            if kws:log.debug("kws: %s"%str(kws))
+            if kws:log.info("kws: %s"%str(kws))
             
             super(moduleSizer, self).__init__(**kws)
             self.i_module = i_module
-            log.debug("Please place '%s'"%self.toCreate[0])
+	    self.toCreate = namesToCreate
+            log.info("Please place '%s'"%self.toCreate[0])
             
         def release(self):
-            if len(self.returnList)< len(self.toCreate)-1:#If we have a prompt left
-                log.info("Please place '%s'"%self.toCreate[len(self.returnList)+1])            
+            if len(self.l_return)< len(self.toCreate)-1:#If we have a prompt left
+                log.info("Please place '%s'"%self.toCreate[len(self.l_return)+1])            
             dragFactory.clickMesh.release(self)
 
             
         def finalize(self):
-            log.debug("returnList: %s"% self.returnList)
-            log.debug("createdList: %s"% self.createdList)   
+            log.debug("returnList: %s"% self.l_return)
+            log.debug("createdList: %s"% self.l_created)   
             buffer = [] #self.i_module.templateNull.templateStarterData
             log.debug("starting data: %s"% buffer)
             
             #Make sure we have enough points
             #==============  
             handles = self.i_module.templateNull.handles
-            if len(self.returnList) < handles:
+            if len(self.l_return) < handles:
                 log.warning("Creating curve to get enough points")                
-                curve = curves.curveFromPosList(self.returnList)
+                curve = curves.curveFromPosList(self.l_return)
                 mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
-                self.returnList = curves.returnCVsPosList(curve)#Get the pos of the cv's
+                self.l_return = curves.returnCVsPosList(curve)#Get the pos of the cv's
                 mc.delete(curve)
 
             #Store info
             #==============                  
-            for i,p in enumerate(self.returnList):
+            for i,p in enumerate(self.l_return):
                 buffer.append(p)#need to ensure it's storing properly
                 #log.info('[%s,%s]'%(buffer[i],p))
                 
             #Store locs
             #==============  
             log.debug("finish data: %s"% buffer)
-            self.templateNull.__setattr__('templateStarterData',buffer,lock=True)
+            self.i_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
             #self.i_module.templateNull.templateStarterData = buffer#store it
             log.info("'%s' sized!"%self.i_module.getShortName())
             dragFactory.clickMesh.finalize(self)
@@ -281,11 +282,14 @@ def getGeneratedCoreNames(self):
 
     ### if there are no names settings, genearate them from name of the limb module###
     generatedNames = []
-    if settingsCoreNames == False:   
-        cnt = 1
-        for handle in range(handles):
-            generatedNames.append('%s%s%i' % (partName,'_',cnt))
-            cnt+=1
+    if settingsCoreNames == False: 
+	if self.moduleType.lower() == 'eyeball':
+	    generatedNames.append('%s' % (partName))	    
+	else:
+	    cnt = 1
+	    for handle in range(handles):
+		generatedNames.append('%s%s%i' % (partName,'_',cnt))
+		cnt+=1
     elif int(self.templateNull.handles) > (len(settingsCoreNames)):
         log.debug(" We need to make sure that there are enough core names for handles")       
         cntNeeded = self.templateNull.handles  - len(settingsCoreNames) +1

@@ -47,7 +47,7 @@ from cgm.lib import (modules,
                      search,
                      curves)
 
-cgmModuleTypes = ['cgmModule','cgmLimb']
+cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball']
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
@@ -385,7 +385,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    if self.getGeo():
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
 		log.debug("averageBBSize: %s"%averageBBSize)
-		kws['size'] = 100 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TODO - replace when we have full character
+		kws['size'] = averageBBSize * 1.5 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TODO - replace when we have full character
 	    elif 'size' not in kws.keys():kws['size'] = 50
 	    log.debug("kws['size']: %s"%kws['size'])
 	    i_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
@@ -1079,22 +1079,22 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	Rebuild the master control curve
 	"""
 	log.debug('>>> rebuildControlCurve')
-	shapes = self.getShapes()
+	ml_shapes = cgmMeta.validateObjListArg( self.getShapes(),noneValid=True )
 	self.color =  modules.returnSettingsData('colorMaster',True)
 	
 	#>>> Figure out the control size 	
 	if size == None:#
-	    if shapes:
+	    if ml_shapes:
 		absSize =  distance.returnAbsoluteSizeCurve(self.mNode)
-		size = max(absSize)		
+		size = max(absSize)
 	    else:size = 125
 	#>>> Figure out font	
 	if font == None:#
 	    if kws and 'font' in kws.keys():font = kws.get('font')		
 	    else:font = 'arial'
 	#>>> Delete shapes
-	if shapes:
-	    for s in shapes:mc.delete(s)	
+	if ml_shapes:
+	    for s in ml_shapes:s.delete()	
 		
 	#>>> Build the new
 	i_o = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',size))#Create and initialize
@@ -1223,6 +1223,24 @@ moduleBuffers_toMake = ['coreNames']
 rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
                        'fk':'bool',
                        'ik':'bool',
+                       'gutsLock':'int',
+                       'gutsVis':'int',                       
+                       'skinJoints':'message',
+                       'dynSwitch':'messageSimple'}
+
+templateNullAttrs_toMake = {'version':'string',
+                            'gutsLock':'int',
+                            'gutsVis':'int',
+                            'controlsVis':'int',
+                            'controlsLock':'int',
+                            'root':'messageSimple',#The module root                            
+                            'handles':'int',                            
+                            'templateStarterData':'string',#this will be a json dict
+                            'controlObjectTemplatePose':'string'}
+"""
+rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
+                       'fk':'bool',
+                       'ik':'bool',
                        'stretchy':'bool',
                        'bendy':'bool',
                        'twist':'bool',
@@ -1249,6 +1267,7 @@ templateNullAttrs_toMake = {'version':'string',
                             'orientRootHelper':'messageSimple',#Root orienation helper
                             'templateStarterData':'string',#this will be a json dict
                             'controlObjectTemplatePose':'string'}
+			    """
 
 class cgmModule(cgmMeta.cgmObject):
     ##@r9General.Timer
@@ -1315,21 +1334,6 @@ class cgmModule(cgmMeta.cgmObject):
 	if not self.initialize():
 	    log.critical("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.mNode)
 	    raise StandardError,"'%s' failed to initialize!"%self.mNode
-    
-	
-	
-	"""#Old>>>
-        if self.isReferenced() or self.kw_initializeOnly:
-            log.debug("'%s' Initializing only..."%self.mNode)
-            if not self.initialize():
-                log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.mNode)
-                return          
-        else:
-	    if self.__justCreatedState__ or doVerify:	    
-		if not self.__verify__(**kws):
-		    log.critical("'%s' failed to verify!"%self.kw_name)
-		    raise StandardError,"'%s' failed to verify!"%self.kw_name  
-	"""
         log.debug("'%s' Checks out!"%self.getShortName())
 	
     ##@r9General.Timer
@@ -1467,6 +1471,10 @@ class cgmModule(cgmMeta.cgmObject):
 	    
         #Attrbute checking
         #=================
+	self.__verifyAttributesOn__(self.i_rigNull,rigNullAttrs_toMake)
+	self.__verifyAttributesOn__(self.i_templateNull,templateNullAttrs_toMake)
+	
+	"""
         for attr in sorted(rigNullAttrs_toMake.keys()):#See table just above cgmModule
             log.debug("Checking '%s' on rig Null"%attr)
             self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
@@ -1488,12 +1496,45 @@ class cgmModule(cgmMeta.cgmObject):
                 self.i_templateNull.addAttr(attr,initialValue = '{}', attrType = templateNullAttrs_toMake[attr],lock = True )                                
             else:
                 self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
-
+		"""
 	#Set Module Parent if we have that kw
 	#=================		
 	if self.kw_moduleParent:
 	    self.doSetParentModule(self.kw_moduleParent)
         return True
+    
+    @cgmGeneral.Timer
+    def __verifyAttributesOn__(self,null,dictToUse):
+        #Attrbute checking
+        #=================
+	log.info(">>> %s.__verifyAttributesOn__ >> "%(self.p_nameShort) + "="*75)            	        	
+	if type(dictToUse) is not dict:
+	    raise StandardError,"Not a dict: %s"%null
+	i_null = cgmMeta.validateObjArg(null)
+	if not i_null:
+	    raise StandardError,"Not a valid object: %s"%dictToUse	
+	
+        for attr in sorted(dictToUse.keys()):#See table just above cgmModule
+	    try:
+		log.debug("Checking '%s' on template Null"%attr)	
+		if attr == 'rollJoints':
+		    log.debug(self.kw_rollJoints)
+		    if self.kw_rollJoints == 0:
+			i_null.addAttr(attr,initialValue = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                
+		    else:
+			i_null.addAttr(attr,value = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                		    	    
+		elif attr == 'handles':
+		    if self.kw_handles == 1:
+			i_null.addAttr(attr,initialValue = self.kw_handles, attrType = dictToUse[attr],lock = True,min = 1 )                
+		    else:
+			i_null.addAttr(attr,value = self.kw_handles, attrType = dictToUse[attr],lock = True,min = 1 )                
+		elif attr == 'rollOverride':
+		    i_null.addAttr(attr,initialValue = '{}', attrType = dictToUse[attr],lock = True )                                
+		else:
+		    i_null.addAttr(attr,attrType = dictToUse[attr],lock = True )   
+	    except StandardError,error:
+		log.error(">>> %s.%s >> failed: %s"%(self.p_nameShort,attr,error))            	        	
+	
     
     def getModuleColors(self):
         direction = search.returnTagInfo(self.mNode,'cgmDirection')
@@ -1733,6 +1774,20 @@ class cgmModule(cgmMeta.cgmObject):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
+d_limb_rigNullAttrs_toMake = {'stretchy':'bool',
+                              'bendy':'bool',
+                              'twist':'bool'}
+
+d_limb_templateNullAttrs_toMake = {'rollJoints':'int',#How many splits per segement
+                                   'rollOverride':'string',#Override
+                                   'curveDegree':'int',#Degree of the template curve, 0 for purely point to point curve
+                                   'posObjects':'message',#Not 100% on this one
+                                   'controlObjects':'message',#Controls for setting the template
+                                   'curve':'messageSimple',#Module curve
+                                   'orientHelpers':'messageSimple',#Orientation helper controls
+                                   'orientRootHelper':'messageSimple',#Root orienation helper
+                                   }
+
 limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoints':3},
              'finger':{'handles':5,'rollOverride':'{"0":1}','curveDegree':0,'rollJoints':0},
              'clavicle':{'handles':1,'rollOverride':'{}','curveDegree':0,'rollJoints':0},
@@ -1803,19 +1858,71 @@ class cgmLimb(cgmModule):
         if self.moduleType != moduleType:
             log.debug("Changing type to '%s' type"%moduleType)
             self.moduleType = moduleType
-            settings = limbTypes[moduleType]
-            if settings:
-                for attr in settings.keys():
-                    self.templateNull.addAttr(attr, value = settings[attr],lock = True) 
-                    
-        else:
-            self.moduleType = moduleType
-            settings = limbTypes[moduleType] 
-            if settings:
-                for attr in settings.keys():
-                    self.templateNull.addAttr(attr, initialValue = settings[attr],lock = True)             
+	    
+	#>>> Attributes ...
+	self.__verifyAttributesOn__(self.i_rigNull,d_limb_rigNullAttrs_toMake)
+	self.__verifyAttributesOn__(self.i_templateNull,d_limb_templateNullAttrs_toMake)
+	    
+	settings = limbTypes[moduleType]
+	if settings:
+	    for attr in settings.keys():
+		self.templateNull.addAttr(attr, value = settings[attr],lock = True) 
+                                
         return True
+    
+#>>> Eyeball =====================================================================================================
+d_eyeball_rigNullAttrs_toMake = {'irisControl':'bool',#Whether we should have a iris setup
+                                 'pupilControl':'bool',#Whether we should have a pupil control
+                                 }
 
+d_eyeball_templateNullAttrs_toMake = {}
+
+class cgmEyeball(cgmModule):
+    #@cgmGeneral.Timer    
+    def __init__(self,*args,**kws):
+        """ 
+        Intializes an eyeball master class handler
+        Args:
+        node = existing module in scene
+        name = treated as a base name
+
+        Keyword arguments:
+        moduleName(string) -- either base name or the name of an existing module in scene
+        moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
+        
+        mType(string) -- must be in cgm_PuppetMeta.limbTypes.keys()
+        Naming and template tags. All Default to False
+        position(string) -- position tag
+        direction(string) -- direction
+        directionModifier(string)
+        nameModifier(string)
+        forceNew(bool) --whether to force the creation of another if the object exists
+        """
+        log.debug(">>> cgmEyeball.__init__")
+        if kws:log.debug("kws: %s"%str(kws))         
+        if args:log.debug("args: %s"%str(args))  
+               
+        if 'name' not in kws.keys() and 'mType' in kws.keys():
+            kws['name'] = kws['mType']
+        super(cgmEyeball, self).__init__(*args,**kws) 
+
+    def __verify__(self,**kws):
+        cgmModule.__verify__(self,**kws)
+	moduleType = kws.pop('mType','eyeball')	
+
+        if self.moduleType != moduleType:
+            log.debug("Changing type to '%s' type"%moduleType)
+	self.moduleType = moduleType
+	
+	#>>> Attributes ...
+	self.__verifyAttributesOn__(self.i_rigNull,d_eyeball_rigNullAttrs_toMake)
+	self.__verifyAttributesOn__(self.i_templateNull,d_eyeball_templateNullAttrs_toMake)
+	
+	settings = {'handles': 1}
+	if settings:
+	    for attr in settings.keys():
+		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
+        return True
 
 
 #=========================================================================      

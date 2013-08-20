@@ -17,6 +17,7 @@ from Red9.core import Red9_Meta as r9Meta
 #from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
@@ -58,14 +59,18 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data 
-        log.debug(">>> TemplateFactory.go.__init__")        
         assert module.isModule(),"Not a module"
+        self.m = module# Link for shortness	
+	log.debug(">>> %s.go >> "%self.m.p_nameShort + "="*75)            	    
 	
+	#Geo -------------------------------------------------------------------------------------------
 	if geo is None:
-	    if not module.modulePuppet.getUnifiedGeo():raise StandardError, "go>>> Module puppet missing geo"
-	    else:geo = module.modulePuppet.getUnifiedGeo()[0]
+	    try:
+		if not module.modulePuppet.getUnifiedGeo():raise StandardError, "go>>> Module puppet missing geo"
+		else:geo = module.modulePuppet.getUnifiedGeo()[0]
+	    except StandardError,error:log.warning(">>> %s.go >> geo failed to find: %s"%(self.m.p_nameShort,error) + "="*75)  
+	cgmGeneral.validateObjArg(geo,noneValid=True)
 	    
-        self.m = module# Link for shortness
         log.info("loadTemplatePose: %s"%loadTemplatePose)     
 	self._i_module = self.m
         if tryTemplateUpdate:
@@ -111,7 +116,7 @@ class go(object):
 	    
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
 	if not self._i_module.modulePuppet._verifyMasterControl():
-	    raise StandardError,"RigFactory.go.init masterControl failed to verify"
+	    raise StandardError,"TemplateFactory.go.__init__ >>> masterControl failed to verify"
 	
 	self._i_masterControl = self._i_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
@@ -119,8 +124,6 @@ class go(object):
 
         #>>> template null 
         self.templateNullData = attributes.returnUserAttrsToDict(self.templateNull)
-        self.curveDegree = self.i_templateNull.curveDegree
-        self.rollOverride = self.i_templateNull.rollOverride
         
         log.debug("Module: %s"%self.m.getShortName())
         log.debug("moduleNullData: %s"%self.moduleNullData)
@@ -137,27 +140,31 @@ class go(object):
 	
 	self.l_strSteps = ['Start','template objects','curve','root control','helpers']
 	self.str_progressBar = gui.doStartMayaProgressBar(len(self.l_strSteps))
-        
         try:
 	    if self.m.mClass == 'cgmLimb':
 		log.debug("mode: cgmLimb Template")
+		
 		mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[0]), progress=0)    					    
-		doMakeLimbTemplate(self)
+		doMakeLimbTemplate(self)	
 		
 		if 'ball' in self.l_coreNames and 'ankle' in self.l_coreNames:
 		    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,'Cast Pivots'), progress=1)    					    		    
 		    doCastPivots(self._i_module)
 		    
-		doTagChildren(self)
+	    elif self.m.mClass == 'cgmEyeball':
+		log.info("mode: cgmEyeball")
+		doMakeEyeballTemplate(self)
 		
 	    else:
 		raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
+	   
+	    doTagChildren(self)
 
 	    #>>> store template settings
 	    if loadTemplatePose:self.m.loadTemplatePose()	
 
 	except StandardError,error:
-	    raise StandardError,"%s.go >> build failed! | %s"%(self._strShortName,error)
+	    log.error("%s.go >> build failed! | %s"%(self._strShortName,error))
 	
 	gui.doEndMayaProgressBar(self.str_progressBar)#Close out this progress bar   	    
         """
@@ -345,8 +352,168 @@ def constrainToParentModule(self):
         else:
             log.debug("Parent has not been templated...")           
             return False
+	
+#>>> Template makers ============================================================================================	
+@cgmGeneral.Timer
+def doMakeEyeballTemplate(self):  
+    """
+    Self should be a TemplateFactory.go
+    """
+    """
+    returnList = []
+    templObjNameList = []
+    templHandleList = []
+    """
+    log.debug(">>> doMakeLimbTemplate")
+    assert self.cls == 'TemplateFactory.go',"Not a TemlateFactory.go instance!"
+    
+    #Gather limb specific data and check
+    #==============
+    b_irisControl = self.m.irisControl
+    b_pupilControl = self.m.pupilControl
 
-#@r9General.Timer
+    #>>>Scale stuff
+    size = returnModuleBaseSize(self.m)
+    lastCountSizeMatch = len(self.corePosList) -1
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Making the template objects
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[1]), progress=1)    					    
+    
+    templHandleList = []
+    self.ml_controlObjects = []
+    self.i_locs = []
+    for i,pos in enumerate(self.corePosList):# Don't like this sizing method but it is what it is for now
+        #>> Make each of our base handles
+        #=============================        
+        if i == 0:
+            sizeMultiplier = 1
+        elif i == lastCountSizeMatch:
+            sizeMultiplier = .8
+        else:
+            sizeMultiplier = .75
+        
+        #>>> Create and set attributes on the object
+        i_obj = cgmMeta.cgmObject( curves.createControlCurve('sphere',(size * sizeMultiplier)) )
+        i_obj.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+        
+        curves.setCurveColorByName(i_obj.mNode,self.moduleColors[0])
+	
+	i_obj.doStore('cgmName','%s.%s'%(self.m.coreNames.mNode,self.d_coreNamesAttrs[i]))        
+        #i_obj.addAttr('cgmName',value = str(self.l_coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+        if self.direction != None:
+            i_obj.addAttr('cgmDirection',value = self.direction,attrType = 'string',lock=True)  
+        i_obj.addAttr('cgmType',value = 'templateObject', attrType = 'string',lock=True) 
+        i_obj.doName()#Name it
+        
+        mc.move (pos[0], pos[1], pos[2], [i_obj.mNode], a=True)
+        i_obj.parent = self.templateNull
+        
+        #>>> Loc it and store the loc
+        #i_loc = cgmMeta.cgmObject( i_obj.doLoc() )
+        i_loc =  i_obj.doLoc()
+        i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+        i_loc.addAttr('cgmName',value = self.m.getShortName(), attrType = 'string', lock=True) #Add name tag
+        i_loc.addAttr('cgmType',value = 'templateCurveLoc', attrType = 'string', lock=True) #Add Type
+        i_loc.v = False # Turn off visibility
+        i_loc.doName()
+        
+        self.i_locs.append(i_loc)
+        i_obj.connectChildNode(i_loc.mNode,'curveLoc','owner')
+        i_loc.parent = self.templateNull#parent to the templateNull
+        
+        mc.pointConstraint(i_obj.mNode,i_loc.mNode,maintainOffset = False)#Point contraint loc to the object
+                    
+        templHandleList.append (i_obj.mNode)
+        self.ml_controlObjects.append(i_obj)
+        
+    #>> Make the curve
+    #============================= 
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[2]), progress=2)    					        
+    i_crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
+    i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+    
+    i_crv.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+    if self.direction != None:
+        i_crv.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+
+    i_crv.addAttr('cgmType',value = 'templateCurve', attrType = 'string', lock=True)
+    curves.setCurveColorByName(i_crv.mNode,self.moduleColors[0])
+    i_crv.parent = self.templateNull    
+    i_crv.doName()
+    i_crv.setDrawingOverrideSettings({'overrideEnabled':1,'overrideDisplayType':2},True)
+        
+    for i,i_obj in enumerate(self.ml_controlObjects):#Connect each of our handles ot the cv's of the curve we just made
+        mc.connectAttr ( (i_obj.curveLoc.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
+        
+    
+    self.foundDirections = returnGeneralDirections(self,templHandleList)
+    log.debug("directions: %s"%self.foundDirections )
+    
+    #>> Create root control
+    #=============================  
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[3]), progress=3)    					        
+    
+    rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0],True)*1.25)    
+    i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
+    i_rootControl.addAttr('mClass','cgmObject',lock=True)
+    
+    curves.setCurveColorByName(i_rootControl.mNode,self.moduleColors[0])
+    i_rootControl.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
+    i_rootControl.addAttr('cgmType',value = 'templateRoot', attrType = 'string', lock=True)
+    if self.direction != None:
+        i_rootControl.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
+    i_rootControl.doName()
+
+    #>>> Position it
+    if self.m.moduleType in ['clavicle']:
+        position.movePointSnap(i_rootControl.mNode,templHandleList[0])
+    else:
+        position.movePointSnap(i_rootControl.mNode,templHandleList[0])
+    
+    #See if there's a better way to do this
+    log.debug("templHandleList: %s"%templHandleList)
+    if self.m.moduleType not in ['foot']:
+        if len(templHandleList)>1:
+            log.info("setting up constraints...")        
+            constBuffer = mc.aimConstraint(templHandleList[-1],i_rootControl.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.worldUpVector, worldUpType = 'vector' )
+            mc.delete (constBuffer[0])    
+        elif self.m.getMessage('moduleParent'):
+            #l_parentTemplateObjects =  self.m.moduleParent.templateNull.getMessage('controlObjects')
+            helper = self.m.moduleParent.templateNull.msgList_get('controlObjects',asMeta = True)[-1].helper.mNode
+            if helper:
+                log.info("helper: %s"%helper)
+                constBuffer = mc.orientConstraint( helper,i_rootControl.mNode,maintainOffset = False)
+                mc.delete (constBuffer[0])    
+    
+    i_rootControl.parent = self.templateNull
+    i_rootControl.doGroup(maintain=True)
+    
+    
+    #>> Store objects
+    #=============================      
+    self.i_templateNull.curve = i_crv.mNode
+    self.i_templateNull.root = i_rootControl.mNode
+    self.i_templateNull.msgList_connect(templHandleList,'controlObjects')
+    
+    self.i_rootControl = i_rootControl#link to carry
+
+    #>> Orientation helpers
+    #=============================      
+    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[3]), progress=3)    					            
+    """ Make our Orientation Helpers """
+    doCreateOrientationHelpers(self)
+    doParentControlObjects(self.m)
+
+    #if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+        #constrainToParentModule(self.m)
+	
+    doOrientTemplateObjectsToMaster(self.m)
+    
+    return True
+
+@cgmGeneral.Timer
 def doMakeLimbTemplate(self):  
     """
     Self should be a TemplateFactory.go
@@ -361,6 +528,9 @@ def doMakeLimbTemplate(self):
     
     #Gather limb specific data and check
     #==============
+    self.curveDegree = self.i_templateNull.curveDegree
+    self.rollOverride = self.i_templateNull.rollOverride
+    
     doCurveDegree = getGoodCurveDegree(self)
     if not doCurveDegree:raise ValueError,"Curve degree didn't query"
     
