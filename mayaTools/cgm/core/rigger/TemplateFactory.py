@@ -61,7 +61,17 @@ class go(object):
         #>>> module null data 
         assert module.isModule(),"Not a module"
         self.m = module# Link for shortness	
-	log.debug(">>> %s.go >> "%self.m.p_nameShort + "="*75)            	    
+	_str_funcName = "go.__init__(%s)"%self.m.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+	#Before something can be templated, we need to see if it has a puppet yet
+	if not self.m.getMessage('modulePuppet') and not self.m.getMessage('moduleParent'):
+	    log.info(">>> %s >>> Has no modulePuppet or moduleParent. Need to create"%_str_funcName)
+	    if self.m.getMessage("helper"):
+		self.m.__buildSimplePuppet__()
+	    else:
+		log.error(">>> %s >>> Has no modulePuppet or moduleParent and no helper"%_str_funcName)		
+		return False
 	
 	#Geo -------------------------------------------------------------------------------------------
 	if geo is None:
@@ -97,7 +107,7 @@ class go(object):
         self.rigNull = self.m.getMessage('rigNull')[0] or False
         self.moduleParent = self.moduleNullData.get('moduleParent')
         self.moduleColors = self.m.getModuleColors()
-        self.l_coreNames = self.m.i_coreNames.value
+        self.l_coreNames = self.m.coreNames.value
 	self.d_coreNamesAttrs = self.m.coreNames.d_indexToAttr
         self.corePosList = self.i_templateNull.templateStarterData
         self.foundDirections = False #Placeholder to see if we have it
@@ -369,147 +379,15 @@ def doMakeEyeballTemplate(self):
     
     #Gather limb specific data and check
     #==============
-    b_irisControl = self.m.irisControl
-    b_pupilControl = self.m.pupilControl
-
-    #>>>Scale stuff
-    size = returnModuleBaseSize(self.m)
-    lastCountSizeMatch = len(self.corePosList) -1
+    mi_helper = self.m.helper
+    if not mi_helper:
+	raise StandardError,"No helper found!"
     
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Making the template objects
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[1]), progress=1)    					    
+    b_irisControl = mi_helper.mi_irisHelper
+    b_pupilControl = mi_helper.mi_pupilHelper
     
-    templHandleList = []
-    self.ml_controlObjects = []
-    self.i_locs = []
-    for i,pos in enumerate(self.corePosList):# Don't like this sizing method but it is what it is for now
-        #>> Make each of our base handles
-        #=============================        
-        if i == 0:
-            sizeMultiplier = 1
-        elif i == lastCountSizeMatch:
-            sizeMultiplier = .8
-        else:
-            sizeMultiplier = .75
-        
-        #>>> Create and set attributes on the object
-        i_obj = cgmMeta.cgmObject( curves.createControlCurve('sphere',(size * sizeMultiplier)) )
-        i_obj.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
-        
-        curves.setCurveColorByName(i_obj.mNode,self.moduleColors[0])
-	
-	i_obj.doStore('cgmName','%s.%s'%(self.m.coreNames.mNode,self.d_coreNamesAttrs[i]))        
-        #i_obj.addAttr('cgmName',value = str(self.l_coreNames[i]), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
-        if self.direction != None:
-            i_obj.addAttr('cgmDirection',value = self.direction,attrType = 'string',lock=True)  
-        i_obj.addAttr('cgmType',value = 'templateObject', attrType = 'string',lock=True) 
-        i_obj.doName()#Name it
-        
-        mc.move (pos[0], pos[1], pos[2], [i_obj.mNode], a=True)
-        i_obj.parent = self.templateNull
-        
-        #>>> Loc it and store the loc
-        #i_loc = cgmMeta.cgmObject( i_obj.doLoc() )
-        i_loc =  i_obj.doLoc()
-        i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
-        i_loc.addAttr('cgmName',value = self.m.getShortName(), attrType = 'string', lock=True) #Add name tag
-        i_loc.addAttr('cgmType',value = 'templateCurveLoc', attrType = 'string', lock=True) #Add Type
-        i_loc.v = False # Turn off visibility
-        i_loc.doName()
-        
-        self.i_locs.append(i_loc)
-        i_obj.connectChildNode(i_loc.mNode,'curveLoc','owner')
-        i_loc.parent = self.templateNull#parent to the templateNull
-        
-        mc.pointConstraint(i_obj.mNode,i_loc.mNode,maintainOffset = False)#Point contraint loc to the object
-                    
-        templHandleList.append (i_obj.mNode)
-        self.ml_controlObjects.append(i_obj)
-        
-    #>> Make the curve
-    #============================= 
-    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[2]), progress=2)    					        
-    i_crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
-    i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+    mi_helper.parent = self.m.templateNull
     
-    i_crv.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
-    if self.direction != None:
-        i_crv.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
-
-    i_crv.addAttr('cgmType',value = 'templateCurve', attrType = 'string', lock=True)
-    curves.setCurveColorByName(i_crv.mNode,self.moduleColors[0])
-    i_crv.parent = self.templateNull    
-    i_crv.doName()
-    i_crv.setDrawingOverrideSettings({'overrideEnabled':1,'overrideDisplayType':2},True)
-        
-    for i,i_obj in enumerate(self.ml_controlObjects):#Connect each of our handles ot the cv's of the curve we just made
-        mc.connectAttr ( (i_obj.curveLoc.mNode+'.translate') , ('%s%s%i%s' % (i_crv.mNode, '.controlPoints[', i, ']')), f=True )
-        
-    
-    self.foundDirections = returnGeneralDirections(self,templHandleList)
-    log.debug("directions: %s"%self.foundDirections )
-    
-    #>> Create root control
-    #=============================  
-    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[3]), progress=3)    					        
-    
-    rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0],True)*1.25)    
-    i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
-    i_rootControl.addAttr('mClass','cgmObject',lock=True)
-    
-    curves.setCurveColorByName(i_rootControl.mNode,self.moduleColors[0])
-    i_rootControl.addAttr('cgmName',value = str(self.m.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
-    i_rootControl.addAttr('cgmType',value = 'templateRoot', attrType = 'string', lock=True)
-    if self.direction != None:
-        i_rootControl.addAttr('cgmDirection',value = self.direction, attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
-    i_rootControl.doName()
-
-    #>>> Position it
-    if self.m.moduleType in ['clavicle']:
-        position.movePointSnap(i_rootControl.mNode,templHandleList[0])
-    else:
-        position.movePointSnap(i_rootControl.mNode,templHandleList[0])
-    
-    #See if there's a better way to do this
-    log.debug("templHandleList: %s"%templHandleList)
-    if self.m.moduleType not in ['foot']:
-        if len(templHandleList)>1:
-            log.info("setting up constraints...")        
-            constBuffer = mc.aimConstraint(templHandleList[-1],i_rootControl.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = self.worldUpVector, worldUpType = 'vector' )
-            mc.delete (constBuffer[0])    
-        elif self.m.getMessage('moduleParent'):
-            #l_parentTemplateObjects =  self.m.moduleParent.templateNull.getMessage('controlObjects')
-            helper = self.m.moduleParent.templateNull.msgList_get('controlObjects',asMeta = True)[-1].helper.mNode
-            if helper:
-                log.info("helper: %s"%helper)
-                constBuffer = mc.orientConstraint( helper,i_rootControl.mNode,maintainOffset = False)
-                mc.delete (constBuffer[0])    
-    
-    i_rootControl.parent = self.templateNull
-    i_rootControl.doGroup(maintain=True)
-    
-    
-    #>> Store objects
-    #=============================      
-    self.i_templateNull.curve = i_crv.mNode
-    self.i_templateNull.root = i_rootControl.mNode
-    self.i_templateNull.msgList_connect(templHandleList,'controlObjects')
-    
-    self.i_rootControl = i_rootControl#link to carry
-
-    #>> Orientation helpers
-    #=============================      
-    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[3]), progress=3)    					            
-    """ Make our Orientation Helpers """
-    doCreateOrientationHelpers(self)
-    doParentControlObjects(self.m)
-
-    #if self.m.getMessage('moduleParent'):#If we have a moduleParent, constrain it
-        #constrainToParentModule(self.m)
-	
-    doOrientTemplateObjectsToMaster(self.m)
     
     return True
 

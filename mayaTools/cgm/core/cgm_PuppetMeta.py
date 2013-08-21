@@ -34,6 +34,7 @@ log.setLevel(logging.INFO)
 import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
+reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
 from cgm.core.rigger import MorpheusFactory as morphyF
 
@@ -371,7 +372,9 @@ class cgmPuppet(cgmMeta.cgmNode):
     ##@r9General.Timer
     def _verifyMasterControl(self,**kws):
 	""" 
-	"""    
+	"""
+	_str_funcName = "cgmPuppet._verifyMasterControl(%s)"%self.p_nameShort    
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	# Master Curve
 	#==================================================================
 	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
@@ -385,7 +388,11 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    if self.getGeo():
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
 		log.debug("averageBBSize: %s"%averageBBSize)
-		kws['size'] = averageBBSize * 1.5 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TODO - replace when we have full character
+		kws['size'] = averageBBSize * 1.5
+	    elif len(self.moduleChildren) == 1 and self.moduleChildren[0].getMessage('helper'):
+		log.info(">>> %s : Helper found.Sizing that."%_str_funcName)
+		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.moduleChildren[0].getMessage('helper'))		
+		kws['size'] = averageBBSize * 1.5
 	    elif 'size' not in kws.keys():kws['size'] = 50
 	    log.debug("kws['size']: %s"%kws['size'])
 	    i_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
@@ -1151,7 +1158,9 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         RETURNS:
         success(bool)
         """ 
-	log.debug("cgmModuleBufferNode>>> in %s.__verify__()"%self.getShortName())	
+	_str_funcName = "cgmModuleBufferNode.__verify__(%s)"%(self.p_nameShort)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
+	
 	cgmMeta.cgmBufferNode.__verify__(self,**kws)
 	
         module = kws.get('module') or False
@@ -1166,7 +1175,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
                 
         #>>> Attr check    
         self.addAttr('cgmName', attrType = 'string', initialValue = '',lock=True)
-        self.addAttr('cgmTypeModifier',initialValue = bufferType,lock=True)
+        #self.addAttr('cgmTypeModifier',initialValue = bufferType,lock=True)
         self.addAttr('cgmType','cgmBuffer',lock=True)
         self.addAttr('module',attrType = 'messageSimple')
 
@@ -1312,6 +1321,8 @@ class cgmModule(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """  
+	_str_funcName = "cgmModule.initialize(%s)"%(self.p_nameShort)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
         #Puppet Network Node
         #==============
 	if not issubclass(type(self),cgmModule):
@@ -1323,6 +1334,7 @@ class cgmModule(cgmMeta.cgmObject):
             Attr = 'i_' + attr#Get a better attribute store string   
 	    obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
 	    if not obj:return False
+	    """
 	    try: 		
 		i_buffer = r9Meta.MetaClass(obj)
 	    except StandardError,error:
@@ -1333,7 +1345,7 @@ class cgmModule(cgmMeta.cgmObject):
 		return False	
 	    #If we get here, link it
 	    
-	    self.__dict__[Attr] = i_buffer
+	    self.__dict__[Attr] = i_buffer"""
            	
         return True # Experimetning, Don't know that we need to check this stuff as it's for changing info, not to be used in process
 
@@ -1346,6 +1358,8 @@ class cgmModule(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """
+	_str_funcName = "cgmModule.__verify__(%s)"%(self.p_nameShort)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
         #>>> Module Null ==================                   
         self.addAttr('mClass', initialValue='cgmModule',lock=True) 
         self.addAttr('cgmType',value = 'module',lock=True)
@@ -1363,14 +1377,14 @@ class cgmModule(cgmMeta.cgmObject):
         #==============  
         for k in self.kw_callNameTags.keys():
             if self.kw_callNameTags.get(k):
-                log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
+                log.info(k + " : " + str(self.kw_callNameTags.get(k)))                
                 self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-                log.debug(str(self.getNameDict()))
-                log.debug(self.__dict__[k])
+                log.info(str(self.getNameDict()))
+                log.info(self.__dict__[k])
             #elif k in self.parentTagDict.keys():
                 #   self.store(k,'%s.%s'%(self.msgModuleParent.value,k))
-        self.doName()        
-
+	self.doName()  
+	
         #Attributes
         #==============  
         self.addAttr('moduleType',initialValue = 'segment',lock=True)
@@ -1388,7 +1402,6 @@ class cgmModule(cgmMeta.cgmObject):
         self.addAttr('coreNames',attrType='messageSimple',lock=True)
 
         log.debug("Module null good...")
-
         #>>> Rig/Template Nulls ==================   
 
         #Initialization
@@ -1469,9 +1482,10 @@ class cgmModule(cgmMeta.cgmObject):
 	#=================		
 	if self.kw_moduleParent:
 	    self.doSetParentModule(self.kw_moduleParent)
+	    	
         return True
     
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def __verifyAttributesOn__(self,null,dictToUse):
         #Attrbute checking
         #=================
@@ -1867,8 +1881,8 @@ class cgmEyeball(cgmModule):
         forceNew(bool) --whether to force the creation of another if the object exists
         """
         log.debug(">>> cgmEyeball.__init__")
-        if kws:log.debug("kws: %s"%str(kws))         
-        if args:log.debug("args: %s"%str(args))  
+        if kws:log.info("kws: %s"%str(kws))         
+        if args:log.info("args: %s"%str(args))  
                
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
@@ -1900,13 +1914,15 @@ d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for an
                           'autoMirror':'bool',
                           'direction':'left:right:center',
                           'position':'none:front:back:upper:lower:forward',
+                          'mi_module':'messageSimple',
                           'mi_mirrorBlock':'messageSimple'}
 
 class cgmRigBlock(cgmMeta.cgmObject):
     ##@r9General.Timer
     def __init__(self,*args,**kws):
 	""" 
-	Rig  .... are a transform. Usuaully with a shape that has handy bits for creating modules from
+	The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
+	our modular rigger.
 	
 	Args:
 	node = existing module in scene
@@ -1989,10 +2005,80 @@ class cgmRigBlock(cgmMeta.cgmObject):
 		try:self.__setattr__(d_enumToCGMTag.get(k),self.kw_callNameTags.get(k))
 		except StandardError,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
 	
-	self.doName()        
+	self.doName()   
 	
 	return True
     
+    def __verifyModule__(self):
+	""" 
+	Verify
+	"""
+	_str_funcName = "cgmRigBlock.__verifyModule__"    
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+	#First see if we have a module
+	if not self.getMessage('mi_module'):
+	    log.info(">>> %s >>> No module found. Building... "%(_str_funcName))
+	    self.__buildModule__()
+	return True
+	    
+    def __buildModule__(self):
+	"""
+	General Module build before expected pass to individual blocks for specialization
+	"""
+	_str_funcName = "cgmRigBlock.__buildModule__(%s)"%self.p_nameShort   
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+	#>>> Gather basic info for module build
+	d_kws = {}
+	d_kws['name'] = self.cgmName
+	#Direction
+	str_direction = self.getEnumValueString('direction')
+	if str_direction in ['left','right']:
+	    d_kws['direction'] = str_direction
+	#Position
+	str_position = self.getEnumValueString('position')	    
+	if str_position != 'none':
+	    d_kws['position'] = str_position
+	    
+	log.info(">>> %s >>> kws..."%(_str_funcName)) 
+	for k in d_kws.keys():
+	    log.info("%s : %s"%(k,d_kws.get(k)))
+	self._d_buildKWS = d_kws    
+	
+	#>>>Initial module build in 
+	log.info(">>> %s >>> passing..."%(_str_funcName))
+    
+    @cgmGeneral.Timer
+    def __buildSimplePuppet__(self):
+	"""
+	Build a simple puppet for itself
+	"""
+	_str_funcName = "cgmRigBlock.__buildSimplePuppet__(%s)"%self.p_nameShort   
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	mi_module = self.mi_module
+	if not mi_module:
+	    try:
+		log.info(">>> %s >>> Has no module, creating")
+		mi_module = self.__buildModule__()
+	    except StandardError,error:
+		raise StandardError, ">>> %s>>> module build failed. error: %s"%(_str_funcName,error)
+	if mi_module.getMessage('modulePuppet'):
+	    log.info(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
+	    return False
+	
+	log.info(">>> %s >>> Building puppet...")
+	mi_puppet = cgmPuppet(name = mi_module.getNameAlias())
+	mi_puppet.connectModule(mi_module)	
+	
+	return mi_puppet
+	
+	
+	    
+	    
+    def __updateSizeData__(self):
+	"""For overload"""
+	pass
 
 class cgmEyeballBlock(cgmRigBlock):
     d_attrsToMake = {'buildIris':'bool',
@@ -2000,7 +2086,9 @@ class cgmEyeballBlock(cgmRigBlock):
                      'mi_irisHelper':'messageSimple',
                      'mi_pupilHelper':'messageSimple'} 
     d_defaultSettings = {'buildIris':True,'buildPupil':True}
-    
+    d_helperSettings = {'iris':{'plug':'mi_irisHelper','check':'buildIris'},
+                        'pupil':{'plug':'mi_pupilHelper','check':'buildIris'}}
+
     #@cgmGeneral.Timer    
     def __init__(self,*args,**kws):
         """ 
@@ -2012,11 +2100,10 @@ class cgmEyeballBlock(cgmRigBlock):
         if args:log.debug("args: %s"%str(args))  
                
         if 'name' not in kws.keys():
-            kws['name'] = 'eye'
-            
+            kws['name'] = 'eye'  
         super(cgmEyeballBlock, self).__init__(*args,**kws) 
 
-
+    @cgmGeneral.Timer
     def __verify__(self,**kws):
 	_str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -2037,7 +2124,9 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	self.doName()        
         return True
+
     
+    @cgmGeneral.Timer
     def __rebuildShapes__(self,size = None):
 	_str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -2089,17 +2178,72 @@ class cgmEyeballBlock(cgmRigBlock):
 	    if ml_curves:
 		mi_obj.doCopyPivot(ml_curves[0])
 		mi_obj.parent = ml_curves[0]
+		curves.setCurveColorByName(mi_obj.mNode,self.color[1])#Set the color	    			
 	    else:
 		mc.xform(mi_obj.mNode, cp=True)#center pivot
-		mi_obj.parent = self.mNode#parent to inherit names		
+		mi_obj.parent = self.mNode#parent to inherit names
+		curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
 	    ml_curves.append(mi_obj)#append
 	    
 	    mi_obj.doName()#Name	 
 	    
 	    self.connectChildNode(mi_obj,'mi_%sHelper'%k,'mi_block')#Connect
 	    attributes.doSetLockHideKeyableAttr(mi_obj.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sy','v'])
-	    curves.setCurveColorByName(mi_obj.mNode,self.color[1])#Set the color	    	
-	    
+    
+    def __buildModule__(self):
+	cgmRigBlock.__buildModule__(self)
+	_str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+	bfr_name = self._d_buildKWS.get('name') or None
+	bfr_position = self._d_buildKWS.get('position') or None
+	bfr_direction = self._d_buildKWS.get('direction') or None
+	
+	i_module = cgmEyeball(name = bfr_name,
+	                       position = bfr_position,
+	                       direction = bfr_direction)
+	
+	self.connectChildNode(i_module,"mi_module","helper")
+	
+	#Store our names
+	l_names= ['eyeball']
+	if self.buildIris:l_names.append('iris')
+	if self.buildPupil:l_names.append('pupil')
+	i_module.coreNames.value = l_names
+	
+	#Size it
+	self.__updateSizeData__()
+	
+	#>>>Let's do our manual sizing
+	return i_module
+    
+    def __updateSizeData__(self):
+	"""For overload"""
+	_str_funcName = "cgmEyeballBlock.__updateSizeData__(%s)"%self.p_nameShort   
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	if not self.getMessage('mi_module'):
+	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
+	
+	i_module = self.mi_module#Lilnk
+	l_pos = [self.getPosition()]
+	d_helpercheck = cgmEyeballBlock.d_helperSettings#Link
+	for k in d_helpercheck.keys():
+	    try:
+		if self.getAttr(d_helpercheck[k].get('check')) and self.getMessage(d_helpercheck[k].get('plug')):
+		    l_pos.append(self.getMessageInstance(d_helpercheck[k].get('plug')).getPosition())
+	    except StandardError,error:
+		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_funcName,k,error))		
+	
+	#Push handles
+	i_module.templateNull.handles = len(l_pos)
+	
+	i_module.doSize(sizeMode = 'manual',
+	                 posList = l_pos)
+	
+	return True
+	
+		
+	
 	    
 #Minor Utilities
 def getSettingsColors(arg = None):

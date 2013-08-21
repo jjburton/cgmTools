@@ -43,25 +43,25 @@ def isSized(self):
     """
     log.debug(">>> %s.isSized() >> "%(self.p_nameShort) + "="*75) 		                                	                        
     handles = self.templateNull.handles
-    if len(self.i_coreNames.value) < handles:
+    i_coreNames = self.coreNames
+    if len(i_coreNames.value) < handles:
         log.debug("%s.isSized>>> Not enough names for handles"%self.getShortName())
         return False
-    if len(self.i_coreNames.value) > handles:
+    if len(i_coreNames.value) > handles:
         log.debug("%s.isSized>>> Not enough handles for names"%self.getShortName())	
         return False
-    
     if self.templateNull.templateStarterData:
-        if len(self.templateNull.templateStarterData) == handles:
-            for i,pos in enumerate(self.templateNull.templateStarterData):
-                if not pos:
+	if len(self.templateNull.templateStarterData) == handles:
+	    for i,pos in enumerate(self.templateNull.templateStarterData):
+		if not pos:
 		    log.debug("%s.isSized>>> [%s] has no data"%(self.getShortName(),i))			    
-                    return False
-            return True
-        else:
+		    return False
+	    return True
+	else:
 	    log.debug("%s.isSized>>> %i is not == %i handles necessary"%(self.getShortName(),len(self.templateNull.templateStarterData),handles))			    	    
-            return False
+	    return False
     else:
-        log.debug("%s.isSized>>> No template starter data found"%self.getShortName())	
+	log.debug("%s.isSized>>> No template starter data found"%self.getShortName())	
     return False
     
 def deleteSizeInfo(self,*args,**kws):
@@ -90,16 +90,16 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     """
     log.debug(">>> %s.doSize(sizeMode = %s, geo = %s, posList = %s) >> "%(self.p_nameShort,sizeMode,geo,posList) + "="*75) 		                                	                                    
     clickMode = {"heel":"surface"}    
-    
+    i_coreNames = self.coreNames
     #Gather info
     #==============      
     handles = self.templateNull.handles
-    if len(self.i_coreNames.value) == handles:
-        names = self.i_coreNames.value
+    if len(i_coreNames.value) == handles:
+        names = i_coreNames.value
     else:
         log.warning("Not enough names. Generating")
         names = getGeneratedCoreNames(self)
-    if not geo:
+    if not geo and not self.getMessage('helper'):
         geo = self.modulePuppet.getGeo()
     log.debug("Handles: %s"%handles)
     log.debug("Names: %s"%names)
@@ -272,6 +272,7 @@ def getGeneratedCoreNames(self):
     """
     log.debug(">>> %s.getGeneratedCoreNames() >> "%(self.p_nameShort) + "="*75) 		                                	                            
     log.debug("Generating core names via ModuleFactory - '%s'"%self.getShortName())
+    i_coreNames = self.coreNames
 
     ### check the settings first ###
     partType = self.moduleType
@@ -309,7 +310,7 @@ def getGeneratedCoreNames(self):
         generatedNames = settingsCoreNames[:self.templateNull.handles]
 
     #figure out what to do with the names
-    self.i_coreNames.value = generatedNames
+    i_coreNames.value = generatedNames
     """
     if not self.templateNull.templateStarterData:
         buffer = []
@@ -356,8 +357,8 @@ def isRigged(self):
     if not isSkeletonized(self):
         log.warning("%s.isRigged>>> Not skeletonized"%self.getShortName())
         return False   """
-    
-    coreNamesValue = self.i_coreNames.value
+    i_coreNames = self.coreNames    
+    coreNamesValue = i_coreNames.value
     i_rigNull = self.rigNull
     str_shortName = self.getShortName()
     
@@ -565,36 +566,45 @@ def isTemplated(self):
     if not self.templateNull.getChildren():
         log.debug("No children found in template null")
         return False   
-    
-    #Check our msgList attrs
-    #=====================================================================================
-    ml_controlObjects = self.templateNull.msgList_get('controlObjects')
-    for attr in 'controlObjects','orientHelpers':
-        if not self.templateNull.msgList_getMessage(attr):
-	    log.warning("No data found on '%s'"%attr)
-	    return False        
-    
-    #Check the others
-    for attr in 'root','curve','orientRootHelper':
-        if not self.templateNull.getMessage(attr):
-            if attr == 'orientHelpers' and len(controlObjects)==1:
-                pass
-            else:
-                log.warning("No data found on '%s'"%attr)
-                return False    
-        
-    if len(coreNamesValue) != len(ml_controlObjects):
-        log.debug("Not enough handles.")
-        return False    
-        
-    if len(ml_controlObjects)>1:
-        for i_obj in ml_controlObjects:#check for helpers
-            if not i_obj.getMessage('helper'):
-                log.debug("'%s' missing it's helper"%i_obj.getShortName())
-                return False
-    
-    #self.moduleStates['templateState'] = True #Not working yet
-    return True
+    if not self.getMessage('modulePuppet'):
+        log.debug("No modulePuppet found")
+        return False   	
+    if not self.modulePuppet.getMessage('masterControl'):
+        log.debug("No masterControl")
+	return False
+	
+    if self.mClass in ['cgmModule','cgmLimb']:
+	#Check our msgList attrs
+	#=====================================================================================
+	ml_controlObjects = self.templateNull.msgList_get('controlObjects')
+	for attr in 'controlObjects','orientHelpers':
+	    if not self.templateNull.msgList_getMessage(attr):
+		log.warning("No data found on '%s'"%attr)
+		return False        
+	
+	#Check the others
+	for attr in 'root','curve','orientRootHelper':
+	    if not self.templateNull.getMessage(attr):
+		if attr == 'orientHelpers' and len(controlObjects)==1:
+		    pass
+		else:
+		    log.warning("No data found on '%s'"%attr)
+		    return False    
+	    
+	if len(coreNamesValue) != len(ml_controlObjects):
+	    log.debug("Not enough handles.")
+	    return False    
+	    
+	if len(ml_controlObjects)>1:
+	    for i_obj in ml_controlObjects:#check for helpers
+		if not i_obj.getMessage('helper'):
+		    log.debug("'%s' missing it's helper"%i_obj.getShortName())
+		    return False
+	
+	#self.moduleStates['templateState'] = True #Not working yet
+	return True
+    elif self.mClass == 'cgmEyeball':
+	return True
 
 @cgmGeneral.Timer
 def doTemplate(self,*args,**kws):
