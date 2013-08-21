@@ -900,12 +900,26 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if self.isReferenced():
 	    log.error("'%s' is referenced. Cannot change name"%self.mNode)
 	    return False	
-	
 	#Name it
 	NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)
 	log.debug("Named: '%s'"%self.getShortName())
-		
 	
+    def doTagAndName(self,d_tags,overideMessageCheck = False, **kws):
+	"""
+	Add tags and name in one fell swoop
+	"""
+	if type(d_tags)is not dict:
+	    raise StandardError, "%s.doTagAndName >> d_tags not dict : %s"(self.p_nameShort,d_tags)		    
+	try:
+	    for tag in d_tags.keys():
+		self.doStore(tag,d_tags[tag],overideMessageCheck=overideMessageCheck)
+	    self.doName()
+	except StandardError,error:
+	    log.info("#>>>Tags:")
+	    for tag in d_tags.keys():
+		log.info("    %s : %s"%(tag,d_tags.get(tag)))
+	    raise StandardError, "%s.doTagAndName >>[Error]<< : %s"(self.p_nameShort,error)	
+
     def doNameOLD(self,sceneUnique=False,nameChildren=False,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
@@ -1013,7 +1027,23 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    log.error(error)	
             log.warning("'%s.%s' not found"%(self.mNode,attr))	    
 	    return False
-	    
+	
+    def verifyAttrDict(self,d_attrs,**kws):
+	log.info(">>> %s.verifyAttrDict >> "%(self.p_nameShort) + "="*75)            	        	
+	if type(d_attrs) is not dict:
+	    raise StandardError,"Not a dict: %s"%self.p_nameShort
+	
+        for attr in sorted(d_attrs.keys()):#See table just above cgmModule
+	    try:	
+		buffer = d_attrs.get(attr)
+		if ':' in buffer:
+		    self.addAttr(attr,attrType = 'enum', enumName= buffer,**kws)		    
+		else:
+		    self.addAttr(attr,attrType = buffer,**kws)
+	    except StandardError,error:
+		log.error("%s.verifyAttrDict >>> Failed to add attr: %s | data: %s | error: %s"%(self.p_nameShort,attr,d_attrs.get(attr),error))
+	return True
+    
     def doChangeNameTag(self,tag,value = False,sceneUnique=False,nameChildren=False,**kw):
 	"""
 	For changing a tag and renaming in one go
