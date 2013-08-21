@@ -203,6 +203,9 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     namesDict(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    _str_funcName = "returnObjectGeneratedNameDict(%s,ignore = %s)"%(obj,ignore)
+    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)    
+		
     if type(ignore) is not list:ignore = [ignore]    
     typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
     namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
@@ -224,11 +227,9 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     for tag in order:
         tagInfo = search.findRawTagInfo(obj,tag)
         if tagInfo is not False:
-            #if mc.objExists(tagInfo):
-                #tagInfo = mc.ls(tagInfo,sn=True)[0]
-                #log.info("shortening")
             namesDict[tag] = (tagInfo)
-    """ remove tags up stream that we don't want if they don't exist on the actual object"""
+            
+    # remove tags up stream that we don't want if they don't exist on the actual object"""
     if not mc.objExists(obj+'.cgmTypeModifier'):
         if namesDict.get('cgmTypeModifier') != None:
             namesDict.pop('cgmTypeModifier')   
@@ -249,12 +250,6 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         else:
             groupNamesDict['cgmName'] = nameObj
         groupNamesDict['cgmType'] = typesDictionary.get('transform')
-        #if namesDict.get('cgmPosition') != None:
-            #groupNamesDict['cgmPosition'] = namesDict.get('cgmPosition')        
-        #if namesDict.get('cgmDirection') != None:
-            #groupNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
-        #if namesDict.get('cgmDirectionModifier') != None:
-            #groupNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
         if namesDict.get('cgmTypeModifier') != None:
             groupNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
         return groupNamesDict
@@ -262,20 +257,12 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     elif nameObj != None or isType == 'shape':
         #If we have a name object or shape
         log.debug("nameObj not None or isType is 'shape'")
-        if mc.objExists(nameObj):
+        if mc.objExists(nameObj) and mc.attributeQuery ('cgmName',node=obj,msg=True):
+            log.debug("nameObj exists: '%s'"%nameObj)
             #Basic child object with cgmName tag
             childNamesDict = {}
             childNamesDict['cgmName'] = namesDict.get('cgmName')
             childNamesDict['cgmType'] = namesDict.get('cgmType')
-            """
-            if namesDict.get('cgmPosition') != None:
-                childNamesDict['cgmPosition'] = namesDict.get('cgmPosition')            
-            if namesDict.get('cgmDirection') != None:
-                childNamesDict['cgmDirection'] = namesDict.get('cgmDirection')
-            if namesDict.get('cgmDirectionModifier') != None:
-                childNamesDict['cgmDirectionModifier'] = namesDict.get('cgmDirectionModifier')
-            if namesDict.get('cgmNameModifier') != None:
-                childNamesDict['cgmNameModifier'] = namesDict.get('cgmNameModifier') """           
             if namesDict.get('cgmTypeModifier') != None:
                 childNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
             
