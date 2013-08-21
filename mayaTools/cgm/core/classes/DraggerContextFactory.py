@@ -375,7 +375,7 @@ class clickMesh(ContextualPick):
 		    i_o = cgmMeta.cgmNode(o)
 		    for tag in self.d_tagAndName.keys():
 			i_o.doStore(tag,self.d_tagAndName[tag])
-			i_o.doName()
+		    i_o.doName()
 		except StandardError,error:
 		    log.error(">>> clickMesh >> Failed to tag and name: %s | error: %s"%(i_o.p_nameShort,error))            	            		
         
