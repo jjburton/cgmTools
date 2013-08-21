@@ -841,7 +841,14 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def getAttr(self,attr):
         """ Get the attribute. As an add on to Marks. I don't want errors if it doesn't have the attr, I just want None. """
         try: return self.__getattribute__(attr)
-	except: return None    
+	except: return None
+	
+    def getEnumValueString(self,attr):
+	"""
+	For when a int value just won't do
+	"""
+	enums=mc.attributeQuery(attr, node=self.mNode, listEnum=True)[0].split(':')
+	return enums[self.getAttr(attr)]
     
     def getShortName(self):
         buffer = mc.ls(self.mNode,shortNames=True)        
@@ -3677,12 +3684,18 @@ class NameFactory(object):
     def __init__(self,node,doName = False):
         """ 
         """
+	try:
+	    self.i_node = validateObjArg(node,cgmNode,noneValid=False)
+	except:
+            raise StandardError,"NameFactory.go >> node doesn't exist: '%s'"%node	    
+	"""    
         if issubclass(type(node),cgmNode):
             self.i_node = node
         elif mc.objExists(node):
             self.i_node = cgmNode(node)
         else:
             raise StandardError,"NameFactory.go >> node doesn't exist: '%s'"%node
+        """
         log.debug("self.i_node: '%s'"%self.i_node)
         #Initial Data        
 	self.i_nameParents = []
