@@ -10,7 +10,7 @@ from cgm.core.lib import nameTools
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
-
+from cgm.lib import search
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
@@ -28,6 +28,34 @@ r9Meta.getMetaNodes(mAttrs = 'mClass', mTypes=mTypes,dataType = '')
 a = cgmMeta.getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMorpheusMakerNetwork'],dataType='')
 a = r9Meta.getMetaNodes(mTypes=['cgmMorpheusMakerNetwork','cgmPuppet','cgmMorpheusPuppet'],dataType = 'mClass',initializeOnly = True)
 log.info(a)
+from cgm.core.lib import nameTools
+
+#>>> Rig Block - eye
+#=======================================================
+nameTools.log.setLevel(nameTools.logging.INFO)
+nameTools.log.setLevel(nameTools.logging.DEBUG)
+cgmPM.log.setLevel(cgmPM.logging.INFO)
+cgmPM.log.setLevel(cgmPM.logging.DEBUG)
+import cgm.core
+cgm.core._reload()
+from cgm.core import cgm_PuppetMeta as cgmPM
+a = cgmPM.cgmEyeballBlock(direction = 'left')
+a = r9Meta.MetaClass('l_eye_rigHelper')
+a.__verifyModule__()
+a.__updateSizeData__()
+a.__buildSimplePuppet__()
+cgmPM.getSettingsColors('')
+a.__rebuildShapes__()
+a.doName(nameChildren=True)
+b = cgmPM.cgmEyeball(name = 'eye',direction = 'left')
+cgmPM.cgmModule(name = 'eye',direction = 'left')
+m1 = cgmPM.cgmModule('l_eye_part')
+m1.getNameAlias()
+m1.isSized()
+m1.doTemplate()
+p = cgmPM.cgmPuppet(name = 'left_eye')
+p._verifyMasterControl(size = 1)
+
 #>>> Modules
 #=======================================================
 import cgm.core

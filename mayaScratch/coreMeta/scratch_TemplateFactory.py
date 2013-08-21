@@ -21,6 +21,10 @@ assert 1==2
 #=======================================================
 part = 'l_leg_part'
 m1 = r9Meta.MetaClass(part)
+m1 = cgmPM.cgmModule('l_eye_part')
+m1.doTemplate()
+m1.getState()
+m1.isTemplated()
 TemplateF.go(m1,True)
 
 TemplateF.hasPivots(m1)

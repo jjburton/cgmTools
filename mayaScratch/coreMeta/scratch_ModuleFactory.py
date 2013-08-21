@@ -24,11 +24,13 @@ from cgm.lib import search
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
-
+mFactory.log.setLevel(mFactory.logging.INFO)
+mFactory.log.setLevel(mFactory.logging.DEBUG)
 #>>> Modules
 #=======================================================
 m1 = cgmPM.cgmEyeball(name = 'eye')
-m1 = cgmMeta.cgmNode('eye_part')
+m1 = cgmMeta.cgmNode('l_eye_part')
+m1.getState()
 m1.__verify__()
 m1 = r9Meta.MetaClass('spine_part')
 m1 = r9Meta.MetaClass('neck_part')
