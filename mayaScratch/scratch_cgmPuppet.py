@@ -32,7 +32,7 @@ log.info(a)
 #=======================================================
 import cgm.core
 cgm.core._reload()
-a = cgmPM.cgmPuppet(name = 'Morphy')
+a = cgmPM.cgmPuppet(name = 'MorphyEye')
 a.getGeo()
 a.masterControl.controlSettings.mNode
 a.masterControl.controlSettings.addAttr('skeleton',enumName = 'off:referenced:on', attrType = 'enum', defaultValue = 2, keyable = False,hidden = False)

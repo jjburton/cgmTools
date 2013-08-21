@@ -13,6 +13,11 @@ objList = []
 orientation = ['xyz']
 orientation[1]
 
+#>>> verifyAttrDict
+d_test = {'string':'string','messageSimple':'messageSimple','bool':'bool','enum':'left:right:center','float':'float'}
+cgmMeta.cgmNode(name = 'test').verifyAttrDict(d_test,lock = True)
+cgmMeta.cgmNode(name = 'test').verifyAttrDict(d_test,hidden = False,keyable= False)
+
 #>>>cgmControl
 obj = 'hips_controlCurve'
 i_c = cgmMeta.cgmControl(obj,setClass=True)

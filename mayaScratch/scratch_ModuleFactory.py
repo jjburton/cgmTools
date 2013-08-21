@@ -27,15 +27,29 @@ objList = []
 
 #>>> Modules
 #=======================================================
+m1 = cgmPM.cgmEyeball(name = 'eye')
+m1 = cgmMeta.cgmNode('eye_part')
+m1.__verify__()
 m1 = r9Meta.MetaClass('spine_part')
 m1 = r9Meta.MetaClass('neck_part')
-
+a = cgmPM.cgmPuppet(name = 'MorphyEye')
+a.connectModule(m1)
 m1 = r9Meta.MetaClass('l_leg_part')
 m1.setState('skeleton',force=True)
 m1.setState('rig',force=True)
 m1.getPartNameBase()
 mFactory.isSkeletonized(m1)
 mFactory.isTemplated(m1)
+mFactory.doSize(m1,geo = ['pSphere1'])
+mFactory.isSized(m1)
+mFactory.doTemplate(m1)
+mFactory.isModule(m1)
+a._verifyMasterControl()
+a.getGeo()
+m1.coreNames.value
+m1.templateNull.handles
+
+mFactory.getGeneratedCoreNames(m1)
 m1.rigNull.getMessage('rigJoints',False)
 len( m1.rigNull.getMessage('rigJoints',False) )
 len( m1.rigNull.getMessage('skinJoints',False) )
