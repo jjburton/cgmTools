@@ -96,7 +96,7 @@ class go(object):
         self.rigNull = self._i_module.getMessage('rigNull')[0] or False
         self._i_rigNull = self._i_module.rigNull
         self.moduleColors = self._i_module.getModuleColors()
-        self.l_coreNames = self._i_module.i_coreNames.value
+        self.l_coreNames = self._i_module.coreNames.value
         self.foundDirections = False #Placeholder to see if we have it
                 
         #>>> part name 
@@ -443,7 +443,7 @@ def doOrientSegment(self):
 		log.error("doOrientSegment>>rotate order set fail: %s"%i_jnt.getShortName())
     
         #>>>per segment stuff
-        assert len(self.l_jointSegmentIndexSets) == len(self._i_module.i_coreNames.value)#quick check to make sure we've got the stuff we need
+        assert len(self.l_jointSegmentIndexSets) == len(self._i_module.coreNames.value)#quick check to make sure we've got the stuff we need
         cnt = 0
 	log.debug("Segment Index sets: %s"%self.l_jointSegmentIndexSets)
         for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
