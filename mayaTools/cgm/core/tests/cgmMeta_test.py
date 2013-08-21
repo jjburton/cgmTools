@@ -1136,8 +1136,6 @@ class cgmMeta_Test():
         assert Module1.i_rigNull.cgmType == 'rigNull','%s'%Module1.i_rigNull.cgmType
         assert Module1.i_rigNull.ik == False
         assert Module1.i_rigNull.fk == False
-        assert Module1.i_rigNull.bendy == False
-        assert Module1.i_rigNull.stretchy == False
 
         assert Module1.i_rigNull.mNode == Module1.rigNull.mNode
 
