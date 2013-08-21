@@ -23,7 +23,7 @@ import cgm_Meta
 import cgm_PuppetMeta
 
 import os
-from cgm.lib.zoo.zooPy.path import Path
+from cgm.core.lib.zoo import Path
 
 def _reload():
     '''

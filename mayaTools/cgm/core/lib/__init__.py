@@ -1,5 +1,5 @@
 import os
-from cgm.lib.zoo.zooPy.path import Path
+from cgm.core.lib.zoo import Path
 
 """ From http://stackoverflow.com/questions/1057431/loading-all-modules-in-a-folder-in-python"""
 

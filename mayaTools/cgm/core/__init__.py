@@ -24,12 +24,12 @@ import cgm_Meta
 import cgm_PuppetMeta
 import cgm_RigMeta
 import rigger.ModuleFactory
-import rigger.JointFactory
 import rigger.TemplateFactory
+import rigger.JointFactory
 import rigger.PuppetFactory
 
 import os
-from cgm.lib.zoo.zooPy.path import Path
+from cgm.core.lib.zoo import Path
 
 def _reload():
     '''
