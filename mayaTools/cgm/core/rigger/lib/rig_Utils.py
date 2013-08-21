@@ -32,6 +32,8 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
 reload(cgmGeneral)
+from cgm.core.lib import validateArgs as ValidArgs
+reload(ValidArgs)
 from cgm.core.classes import SnapFactory as Snap
 
 from cgm.core.lib import nameTools
@@ -53,43 +55,125 @@ reload(distance)
 
 #>>> Eyeball
 #===================================================================
-def createEyeballRig(eyeballObject = None, ballJoint = None,
-                     buildFK = False, buildIK = False, buildJoystick = False,
+def createEyeballRig(eyeballObject = None, ballJoint = None,driverAttr = None,
+                     orientation = 'zyx',aimAxis = 'z+',upAxis = 'y+',
+                     buildIK = False, buildJoystick = False,
+                     d_nameTags = {'cgmDirection':'left','cgmName':'eye'},
                      doControls = False):
     """
     Create an eyeball setup given a sphere template object
     """
     #>>> Check our args
     #====================================================================
-    _str_func_ = 'createEyeballRig'
-    log.info(">>> %s >> "%_str_func_ + "="*75)            	                
+    str_func_ = 'createEyeballRig'
+    log.info(">>> %s >> "%str_func_ + "="*75)          
+    #> Ball ------------------------------------------------------------
     mi_ball = cgmMeta.validateObjArg(eyeballObject,cgmMeta.cgmObject,noneValid=True,mayaType=['nurbsSurface','mesh'])
+    f_averageSize = distance.returnBoundingBoxSizeToAverage(mi_ball.mNode)
+    log.info("f_averageSize: %s"%f_averageSize)
     if not mi_ball:raise StandardError,"bad eyeball object: %s"%eyeballObject
-        
+            
     #> Bools ------------------------------------------------------------
-    _b_doControls = cgmGeneral.validateBool(doControls,calledFrom = _str_func_)
-    _b_doFK = cgmGeneral.validateBool(buildFK,calledFrom = _str_func_)
-    _b_doIK = cgmGeneral.validateBool(buildIK,calledFrom = _str_func_)
-    _b_doJoystick = cgmGeneral.validateBool(buildJoystick,calledFrom = _str_func_)
+    b_doControls = ValidArgs.boolArg(doControls,calledFrom = str_func_)
+    b_doIK = ValidArgs.boolArg(buildIK,calledFrom = str_func_)
+    b_doJoystick = ValidArgs.boolArg(buildJoystick,calledFrom = str_func_)
+    if b_doJoystick:
+	raise NotImplementedError,"joystick setup not in yet"
+    
+    #> Driver -----------------------------------------------------------
+    d_attrCheckReturn = cgmMeta.validateAttrArg(driverAttr,noneValid=True) or {}
+    miPlug_driver = d_attrCheckReturn.get('mi_plug') or False
+    
+    #> axis -------------------------------------------------------------
+    axis_aim = ValidArgs.simpleAxis(aimAxis)
+    axis_up = ValidArgs.simpleAxis(upAxis)
+        
+    #Figure out what to build by making list which we will store back the locs to
+    l_toBuild = []
+    l_toBuild.append('fk')
+    if b_doIK:
+	l_toBuild.append('ik')
+	l_toBuild.append('aimTarget')
+	l_toBuild.append('upTarget')
+    if len(l_toBuild) > 1:
+	l_toBuild.insert(0,'blend')    
+    if not l_toBuild:raise StandardError,"createEyeballRig >>> No options set to build anything. Aborting!"
     
     #>>> Joints
     #==================================================================== 
     mi_ballJoint = cgmMeta.validateObjArg(ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])
+    """
     if not mi_ballJoint:
 	log.info("Need to created ball joint")
 	l_pos = mi_ball.getPosition()
 	str_ballJoint = mc.joint (p=(l_pos[0],l_pos[1],l_pos[2]))
 	mi_ballJoint = cgmMeta.validateObjArg(str_ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])	
-	mi_ballJoint.parent = False
-	
+	mi_ballJoint.parent = False"""
 	
     #>>> Setup transforms
     #==================================================================== 
-    if _b_doFK:
-	log.info("%s >> building fk"%_str_func_)
+    #What is our target
+    if mi_ballJoint:mi_target = mi_ballJoint
+    else:mi_target = mi_ball
+    
+    #> Build our group ---------------------------------------------------
+    mi_group = mi_target.doDuplicateTransform(copyAttrs = True)
+    if d_nameTags: mi_group.doTagAndName(d_nameTags)
+    
+    #> driver -------------------------------------------------------------
+    if not miPlug_driver:
+	miPlug_driver = cgmMeta.cgmAttr(mi_group, 'blend', 'float', keyable=True, maxValue= 1)
+    
+    #Build our locs
+    d_locs = {}#Storage dict
+    
+    for s in l_toBuild:
+	try:
+	    log.info("%s >> building %s"%(str_func_,s))
+	    mi_loc = mi_target.doLoc() #Create it
+	    #Naming ----------------------------------
+	    if d_nameTags:
+		d_tmpNameTags = d_nameTags
+		d_tmpNameTags['cgmTypeModifier'] = s	    
+	    else:
+		d_tmpNameTags = {'cgmTypeModifier':s}
+	    mi_loc.doTagAndName(d_tmpNameTags)#Name it
+	    
+	    d_locs[s] = mi_loc #Store it to our dict
+	    mi_loc.parent = mi_group #Parent to group
+	except StandardError,error:
+	    raise StandardError, "createEyeballRig >>> Failed to create '%s' loc | error: %s"%(s,error)
 	
-    if _b_doIK:
-	log.info("%s >> building ik"%_str_func_)
+    if b_doIK:#Build our ik one
+	#First let's move our aimers and ups
+	mi_aimLoc = d_locs['aimTarget']
+	mi_upLoc = d_locs['upTarget']
+	mi_ikLoc = d_locs['ik']
+	
+	mi_upLoc.__setattr__('t%s'%orientation[1],f_averageSize*1.5)
+	mi_aimLoc.__setattr__('t%s'%orientation[0],f_averageSize*5)
+	
+	constBuffer = mc.aimConstraint(mi_aimLoc.mNode,mi_ikLoc.mNode,
+	                               aimVector  = axis_aim.p_vector,
+	                               upVector = axis_up.p_vector,
+	                               worldUpObject = mi_upLoc.mNode,
+	                               worldUpType = 'object')
+	
+    mi_blendLoc = d_locs.get('blend') or False
+    if mi_blendLoc:
+	mi_fkLoc = d_locs['fk']
+	mi_ikLoc = d_locs['ik']
+	connectBlendChainByConstraint(mi_fkLoc,mi_ikLoc,mi_blendLoc,driver = miPlug_driver, l_constraints=['point','orient'])
+	
+	#Increase the size of the loc to make it visible
+	l_shapes = mi_blendLoc.getShapes()
+	mi_shape = cgmMeta.cgmNode(l_shapes[0])
+	mi_shape.localScaleX = f_averageSize
+	mi_shape.localScaleY = f_averageSize
+	mi_shape.localScaleZ = f_averageSize	
+
+	
+
 
 #>>> Utilities
 #===================================================================
