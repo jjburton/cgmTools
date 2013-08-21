@@ -1213,7 +1213,6 @@ initStores = ['ModuleNull','refState']
 initNones = ['refPrefix','moduleClass']
 
 defaultSettings = {'partType':'none'}
-
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -1237,37 +1236,6 @@ templateNullAttrs_toMake = {'version':'string',
                             'handles':'int',                            
                             'templateStarterData':'string',#this will be a json dict
                             'controlObjectTemplatePose':'string'}
-"""
-rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
-                       'fk':'bool',
-                       'ik':'bool',
-                       'stretchy':'bool',
-                       'bendy':'bool',
-                       'twist':'bool',
-                       'gutsLock':'int',
-                       'gutsVis':'int',                       
-                       'skinJoints':'message',
-                       'dynSwitch':'messageSimple'}
-
-templateNullAttrs_toMake = {'version':'string',
-                            'gutsLock':'int',
-                            'gutsVis':'int',
-                            'controlsVis':'int',
-                            'controlsLock':'int',
-                            'handles':'int',                            
-                            'rollJoints':'int',#How many splits per segement
-                            'rollOverride':'string',#Override
-                            #'stiffIndex':'int',#Stiff index has to do with which segments to not split, maybe make it an argument
-                            'curveDegree':'int',#Degree of the template curve, 0 for purely point to point curve
-                            'posObjects':'message',#Not 100% on this one
-                            'controlObjects':'message',#Controls for setting the template
-                            'root':'messageSimple',#The module root
-                            'curve':'messageSimple',#Module curve
-                            'orientHelpers':'messageSimple',#Orientation helper controls
-                            'orientRootHelper':'messageSimple',#Root orienation helper
-                            'templateStarterData':'string',#this will be a json dict
-                            'controlObjectTemplatePose':'string'}
-			    """
 
 class cgmModule(cgmMeta.cgmObject):
     ##@r9General.Timer
@@ -1924,7 +1892,223 @@ class cgmEyeball(cgmModule):
 		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
         return True
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Rig Blocks
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
+                          'buildAs':'string',
+                          'autoMirror':'bool',
+                          'direction':'left:right:center',
+                          'position':'none:front:back:upper:lower:forward',
+                          'mi_mirrorBlock':'messageSimple'}
 
+class cgmRigBlock(cgmMeta.cgmObject):
+    ##@r9General.Timer
+    def __init__(self,*args,**kws):
+	""" 
+	Rig  .... are a transform. Usuaully with a shape that has handy bits for creating modules from
+	
+	Args:
+	node = existing module in scene
+	name = treated as a base name
+
+	"""
+	log.debug(">>> cgmModule.__init__")
+	if kws:log.debug("kws: %s"%str(kws))         
+	if args:log.debug("args: %s"%str(args)) 
+	
+	_str_funcName = "cgmRigBlock.__init__"    
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+	#>>Verify or Initialize
+	super(cgmRigBlock, self).__init__(*args,**kws) 
+
+	#Keywords - need to set after the super call
+	#==============         
+	__doVerify__ = kws.get('doVerify') or False
+	
+	
+	self.kw_name= kws.get('name') or False        
+	self.kw_moduleParent = kws.get('moduleParent') or False
+	self.kw_forceNew = kws.get('forceNew') or False
+	self.kw_initializeOnly = kws.get('initializeOnly') or False  
+	self.kw_callNameTags = {'cgmPosition':kws.get('position') or False, 
+                                'cgmDirection':kws.get('direction') or False, 
+                                'cgmDirectionModifier':kws.get('directionModifier') or False,
+                                'cgmNameModifier':kws.get('nameModifier') or False}
+	
+	#>>> Initialization Procedure ================== 
+	if not self.isReferenced():
+	    if self.__justCreatedState__ or __doVerify__:	    
+		if not self.__verify__(**kws):
+		    log.critical("'%s' failed to verify!"%self.mNode)
+		    raise StandardError,"'%s' failed to verify!"%self.mNode 
+		return
+	log.debug("'%s' Checks out!"%self.getShortName())
+	
+    ##@r9General.Timer
+    def __verify__(self,**kws):
+	""""""
+	""" 
+	Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
+
+	RETURNS:
+	success(bool)
+	"""
+	_str_funcName = "cgmRigBlock.__verify__"    
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	
+	#>>> Block transform ==================                   
+	self.addAttr('mClass', initialValue='cgmRigBlock',lock=True) 
+	self.addAttr('cgmType',value = 'rigHelper',lock=True)	
+	
+	if self.kw_name:#If we have a name, store it
+	    self.addAttr('cgmName',self.kw_name,attrType='string',lock=True)
+	elif 'buildAs' in kws.keys():
+	    self.addAttr('cgmName',kws['buildAs'],attrType='string',lock=True)	    
+
+	#Store tags from init call
+	#==============  
+	for k in self.kw_callNameTags.keys():
+	    if self.kw_callNameTags.get(k):
+		log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
+		self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
+		log.debug(str(self.getNameDict()))
+		log.debug(self.__dict__[k])
+
+
+	#Attrbute checking
+	#=================
+	self.verifyAttrDict(d_rigBlockAttrs_toMake,keyable = False, hidden = False)
+	log.info("%s.__verify__ >>> kw_callNameTags: %s"%(self.p_nameShort,self.kw_callNameTags))	    	
+	d_enumToCGMTag = {'cgmDirection':'direction','cgmPosition':'position'}
+	for k in d_enumToCGMTag.keys():
+	    log.info("%s.__verify__ >>> trying to set key: %s"%(self.p_nameShort,k))	    
+	    if k in self.kw_callNameTags.keys():
+		log.info("%s.__verify__ >>> trying to set key: %s | data: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k)))
+		try:self.__setattr__(d_enumToCGMTag.get(k),self.kw_callNameTags.get(k))
+		except StandardError,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
+	
+	self.doName()        
+	
+	return True
+    
+
+class cgmEyeballBlock(cgmRigBlock):
+    d_attrsToMake = {'buildIris':'bool',
+                     'buildPupil':'bool',
+                     'mi_irisHelper':'messageSimple',
+                     'mi_pupilHelper':'messageSimple'} 
+    d_defaultSettings = {'buildIris':True,'buildPupil':True}
+    
+    #@cgmGeneral.Timer    
+    def __init__(self,*args,**kws):
+        """ 
+        """
+	_str_funcName = "cgmEyeballBlock.__init__"  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+        if kws:log.debug("kws: %s"%str(kws))         
+        if args:log.debug("args: %s"%str(args))  
+               
+        if 'name' not in kws.keys():
+            kws['name'] = 'eye'
+            
+        super(cgmEyeballBlock, self).__init__(*args,**kws) 
+
+
+    def __verify__(self,**kws):
+	_str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+        cgmRigBlock.__verify__(self,**kws)
+	
+	if self.isReferenced():
+	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+
+	#>>> Attributes ..
+	self.addAttr('buildAs','cgmEyeball',lock=True)
+	self.verifyAttrDict(cgmEyeballBlock.d_attrsToMake,keyable = False, hidden = False)
+	for attr in cgmEyeballBlock.d_defaultSettings.keys():
+	    try:self.addAttr(attr, value = cgmEyeballBlock.d_defaultSettings[attr], defaultValue = cgmEyeballBlock.d_defaultSettings[attr])
+	    except StandardError,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmEyeballBlock.d_defaultSettings[attr],error)
+	
+	if not self.getShapes():
+	    self.__rebuildShapes__()
+	    
+	self.doName()        
+        return True
+    
+    def __rebuildShapes__(self,size = None):
+	_str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	if self.isReferenced():
+	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+	
+	l_shapes = self.getShapes()
+	if l_shapes:
+	    mc.delete(l_shapes)
+	    
+	ml_shapes = cgmMeta.validateObjListArg( self.getShapes(),noneValid=True )
+	self.color = getSettingsColors( self.getAttr('cgmDirection') )
+	
+	#>>> Figure out the control size 	
+	if size is None:#
+	    if l_shapes:
+		absSize =  distance.returnAbsoluteSizeCurve(self.mNode)
+		size = max(absSize)
+	    else:size = 10
+	    
+	#>>> Delete shapes
+	if l_shapes:
+	    log.info("%s >>> deleting: %s"%(_str_funcName,l_shapes))	    
+	    mc.delete(ml_shapes)
+	
+	#>>> Build the eyeorb
+	l_curveShapes = []
+	l_curveShapes.append(mc.curve( d = 3,p = [[-1.9562614856650922e-17, 0.27234375536457955, 0.42078583109797302], [3.6231144545942155e-17, 0.44419562780377575, 0.2927550836423139], [1.2335702099837762e-16, 0.55293025498339243, -0.0036181380792718819], [1.4968222251671369e-16, 0.38920758821246809, -0.39338278937226923], [8.8443099225711831e-17, -0.0024142895734145229, -0.55331090087007562], [-2.4468224144040798e-17, -0.39262563725601413, -0.38997137672626969], [-1.2297164287833005e-16, -0.55294077490394233, 0.0012071651865769651], [-1.6080353342952326e-16, -0.44037303463385957, 0.29661659753593533], [-1.3886669551328167e-16, -0.27181045164087791, 0.42314656824251157]],k = (1.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0)))
+	l_curveShapes.append(mc.curve( d = 3,p = [[0.27234375536457939, 1.734683000445787e-16, 0.42078583109797307], [0.44419562780377558, 1.2740478502632556e-16, 0.29275508364231401], [0.55293025498339232, -1.3852290198695529e-18, -0.0036181380792717592], [0.38920758821246809, -1.5060930340872423e-16, -0.39338278937226911], [-0.0024142895734143997, -2.1183887958462436e-16, -0.55331090087007562], [-0.3926256372560139, -1.4930322064116459e-16, -0.3899713767262698], [-0.55294077490394222, 4.6217148477624099e-19, 0.0012071651865768424], [-0.44037303463385952, 1.2888319214868455e-16, 0.29661659753593522], [-0.27117872614283267, 1.7437212447837615e-16, 0.42314656824251151]],k = (1.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0)))
+	l_curveShapes.append(mc.curve( d = 3,p = [[9.7144514654701197e-17, -0.27151128700632393, 0.4226944232293004], [0.071575100224478827, -0.27101472617476752, 0.42269442322930045], [0.21517305056594385, -0.2111533666759117, 0.4226944232293004], [0.30072197725858107, 0.00196779544506197, 0.42269442322930029], [0.21167818985563105, 0.21394895499628236, 0.42269442322930018], [-0.0013130587947546969, 0.30092899899893094, 0.42269442322930012], [-0.21353716294939432, 0.21209359123764582, 0.42269442322930018], [-0.30072769872395522, -0.0006565404922469105, 0.42269442322930029], [-0.21332222008560683, -0.2130230418667757, 0.4226944232293004], [-0.069207355235434434, -0.27162900941733881, 0.42269442322930045], [1.1410775855283418e-16, -0.27151128700632399, 0.4226944232293004]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)))
+	l_curveShapes.append(mc.curve( d = 3,p = [[0.0, -0.49825526937946768, 2.2126978888235788e-16], [0.131348759885549, -0.49734402162391972, 3.0084413217208814e-16], [0.39486795357586341, -0.38749135902787507, 2.3439409455508664e-16], [0.55186033493999953, 0.0036111369820883686, -2.1843820862340872e-18], [0.38845447152927703, 0.39262159367483379, -2.3749738105919298e-16], [-0.002409617923089843, 0.552240244276892, -3.3405093821679339e-16], [-0.39186590664792353, 0.38921678211230448, -2.3543780552354256e-16], [-0.55187083450450314, -0.0012048293219408162, 7.2880303374564086e-19], [-0.39147146111426462, -0.39092243375831293, 2.3646955671973833e-16], [-0.12700366826764278, -0.49847130390333205, 3.0152602688544059e-16], [3.1129555427347658e-17, -0.49825526937946774, 2.2126978888235788e-16]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)))
+	str_orb = curves.combineCurves(l_curveShapes)	
+	
+	curves.parentShapeInPlace(self.mNode,str_orb)#parent shape in place
+	curves.setCurveColorByName(self.mNode,self.color[0])#Set the color	    	
+	mc.delete(str_orb)	
+	
+	#>>>Build the Iris and pupil
+	d_buildCurves = {'iris':mc.curve( d = 3,p = [[9.7144514654701222e-17, -0.21353970054237428, 0.49949904537594259], [0.056292781183235517, -0.21314916262978589, 0.49949904537594264], [0.1692304923646531, -0.16606906911917113, 0.49949904537594259], [0.23651348597088864, 0.0015476426586177752, 0.49949904537594247], [0.16648183495985017, 0.16826775890239862, 0.49949904537594236], [-0.0010327017521739809, 0.23667630557565536, 0.49949904537594231], [-0.16794389041299704, 0.16680854213912943, 0.49949904537594236], [-0.23651798582065964, -0.00051635960204138103, 0.49949904537594247], [-0.16777484095920459, -0.16753954161691045, 0.49949904537594259], [-0.054430583992481213, -0.21363228751609611, 0.49949904537594264], [1.1048586065241e-16, -0.21353970054237428, 0.49949904537594259]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
+	                 'pupil':mc.curve( d = 3,p = [[9.7144514654701197e-17, -0.10492677879290249, 0.49949904537594242], [0.027660524875928346, -0.10473488058821118, 0.49949904537594242], [0.083154609621812883, -0.081601184395932544, 0.49949904537594242], [0.11621538365453113, 0.00076046355070656798, 0.49949904537594236], [0.081804004714347456, 0.082681552289738752, 0.49949904537594231], [-0.00050743757734121847, 0.11629538815303482, 0.49949904537594225], [-0.082522413369626221, 0.081964538478529164, 0.49949904537594231], [-0.11621759474099563, -0.00025372307633358179, 0.49949904537594236], [-0.082439347716737846, -0.082323728925588854, 0.49949904537594242], [-0.026745498994526547, -0.10497227315711741, 0.49949904537594242], [1.0370003785130407e-16, -0.10492677879290251, 0.49949904537594242]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
+	                 }
+	ml_curves = []
+	for k in d_buildCurves.keys():
+	    str_return = d_buildCurves.get(k)
+	    mi_obj = cgmMeta.cgmObject(str_return,cgmMeta.cgmObject)#instance
+	    mi_obj.addAttr('cgmName',k)#tag
+	    mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)		    
+	    #Pivot
+	    if ml_curves:
+		mi_obj.doCopyPivot(ml_curves[0])
+		mi_obj.parent = ml_curves[0]
+	    else:
+		mc.xform(mi_obj.mNode, cp=True)#center pivot
+		mi_obj.parent = self.mNode#parent to inherit names		
+	    ml_curves.append(mi_obj)#append
+	    
+	    mi_obj.doName()#Name	 
+	    
+	    self.connectChildNode(mi_obj,'mi_%sHelper'%k,'mi_block')#Connect
+	    attributes.doSetLockHideKeyableAttr(mi_obj.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sy','v'])
+	    curves.setCurveColorByName(mi_obj.mNode,self.color[1])#Set the color	    	
+	    
+	    
+#Minor Utilities
+def getSettingsColors(arg = None):
+    try:
+	return modules.returnSettingsData(('color'+arg.capitalize()),True)
+    except:
+	return modules.returnSettingsData('colorCenter',True)
+
+	
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================      
