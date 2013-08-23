@@ -1504,12 +1504,12 @@ class cgmModule(cgmMeta.cgmObject):
 		    if self.kw_rollJoints == 0:
 			i_null.addAttr(attr,initialValue = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                
 		    else:
-			i_null.addAttr(attr,value = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                		    	    
+			i_null.addAttr(attr,initialValue = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                		    	    
 		elif attr == 'handles':
 		    if self.kw_handles == 1:
 			i_null.addAttr(attr,initialValue = self.kw_handles, attrType = dictToUse[attr],lock = True,min = 1 )                
 		    else:
-			i_null.addAttr(attr,value = self.kw_handles, attrType = dictToUse[attr],lock = True,min = 1 )                
+			i_null.addAttr(attr,initialValue = self.kw_handles, attrType = dictToUse[attr],lock = True,min = 1 )                
 		elif attr == 'rollOverride':
 		    i_null.addAttr(attr,initialValue = '{}', attrType = dictToUse[attr],lock = True )                                
 		else:
@@ -1623,12 +1623,12 @@ class cgmModule(cgmMeta.cgmObject):
         """
         return mFactory.isSkeletonized(self)
     
-    def doSkeletonized(self):
+    def doSkeletonize(self):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
-        help(mFactory.doSkeletonized)
+        help(mFactory.doSkeletonize)
         """
-        return mFactory.doSkeletonized(self)
+        return mFactory.doSkeletonize(self)
     def skeletonDelete(self):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -1880,9 +1880,10 @@ class cgmEyeball(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        log.debug(">>> cgmEyeball.__init__")
-        if kws:log.info("kws: %s"%str(kws))         
-        if args:log.info("args: %s"%str(args))  
+	_str_funcName = "cgmEyeball.__init__"    
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
                
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
@@ -1929,13 +1930,11 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	name = treated as a base name
 
 	"""
-	log.debug(">>> cgmModule.__init__")
-	if kws:log.debug("kws: %s"%str(kws))         
-	if args:log.debug("args: %s"%str(args)) 
-	
 	_str_funcName = "cgmRigBlock.__init__"    
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
-	
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args)))    
+		
 	#>>Verify or Initialize
 	super(cgmRigBlock, self).__init__(*args,**kws) 
 
@@ -2082,9 +2081,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 
 class cgmEyeballBlock(cgmRigBlock):
     d_attrsToMake = {'buildIris':'bool',
-                     'buildPupil':'bool',
-                     'mi_irisHelper':'messageSimple',
-                     'mi_pupilHelper':'messageSimple'} 
+                     'buildPupil':'bool'} 
     d_defaultSettings = {'buildIris':True,'buildPupil':True}
     d_helperSettings = {'iris':{'plug':'mi_irisHelper','check':'buildIris'},
                         'pupil':{'plug':'mi_pupilHelper','check':'buildIris'}}
@@ -2094,8 +2091,7 @@ class cgmEyeballBlock(cgmRigBlock):
         """ 
         """
 	_str_funcName = "cgmEyeballBlock.__init__"  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
-	
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
         if kws:log.debug("kws: %s"%str(kws))         
         if args:log.debug("args: %s"%str(args))  
                
@@ -2165,11 +2161,12 @@ class cgmEyeballBlock(cgmRigBlock):
 	mc.delete(str_orb)	
 	
 	#>>>Build the Iris and pupil
-	d_buildCurves = {'iris':mc.curve( d = 3,p = [[9.7144514654701222e-17, -0.21353970054237428, 0.49949904537594259], [0.056292781183235517, -0.21314916262978589, 0.49949904537594264], [0.1692304923646531, -0.16606906911917113, 0.49949904537594259], [0.23651348597088864, 0.0015476426586177752, 0.49949904537594247], [0.16648183495985017, 0.16826775890239862, 0.49949904537594236], [-0.0010327017521739809, 0.23667630557565536, 0.49949904537594231], [-0.16794389041299704, 0.16680854213912943, 0.49949904537594236], [-0.23651798582065964, -0.00051635960204138103, 0.49949904537594247], [-0.16777484095920459, -0.16753954161691045, 0.49949904537594259], [-0.054430583992481213, -0.21363228751609611, 0.49949904537594264], [1.1048586065241e-16, -0.21353970054237428, 0.49949904537594259]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
-	                 'pupil':mc.curve( d = 3,p = [[9.7144514654701197e-17, -0.10492677879290249, 0.49949904537594242], [0.027660524875928346, -0.10473488058821118, 0.49949904537594242], [0.083154609621812883, -0.081601184395932544, 0.49949904537594242], [0.11621538365453113, 0.00076046355070656798, 0.49949904537594236], [0.081804004714347456, 0.082681552289738752, 0.49949904537594231], [-0.00050743757734121847, 0.11629538815303482, 0.49949904537594225], [-0.082522413369626221, 0.081964538478529164, 0.49949904537594231], [-0.11621759474099563, -0.00025372307633358179, 0.49949904537594236], [-0.082439347716737846, -0.082323728925588854, 0.49949904537594242], [-0.026745498994526547, -0.10497227315711741, 0.49949904537594242], [1.0370003785130407e-16, -0.10492677879290251, 0.49949904537594242]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
+	l_buildOrder = ['pupil','iris']
+	d_buildCurves = {'pupil':mc.curve( d = 3,p = [[9.7144514654701197e-17, -0.10492677879290249, 0.49949904537594242], [0.027660524875928346, -0.10473488058821118, 0.49949904537594242], [0.083154609621812883, -0.081601184395932544, 0.49949904537594242], [0.11621538365453113, 0.00076046355070656798, 0.49949904537594236], [0.081804004714347456, 0.082681552289738752, 0.49949904537594231], [-0.00050743757734121847, 0.11629538815303482, 0.49949904537594225], [-0.082522413369626221, 0.081964538478529164, 0.49949904537594231], [-0.11621759474099563, -0.00025372307633358179, 0.49949904537594236], [-0.082439347716737846, -0.082323728925588854, 0.49949904537594242], [-0.026745498994526547, -0.10497227315711741, 0.49949904537594242], [1.0370003785130407e-16, -0.10492677879290251, 0.49949904537594242]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
+	                 'iris':mc.curve( d = 3,p = [[9.7144514654701222e-17, -0.21353970054237428, 0.49949904537594259], [0.056292781183235517, -0.21314916262978589, 0.49949904537594264], [0.1692304923646531, -0.16606906911917113, 0.49949904537594259], [0.23651348597088864, 0.0015476426586177752, 0.49949904537594247], [0.16648183495985017, 0.16826775890239862, 0.49949904537594236], [-0.0010327017521739809, 0.23667630557565536, 0.49949904537594231], [-0.16794389041299704, 0.16680854213912943, 0.49949904537594236], [-0.23651798582065964, -0.00051635960204138103, 0.49949904537594247], [-0.16777484095920459, -0.16753954161691045, 0.49949904537594259], [-0.054430583992481213, -0.21363228751609611, 0.49949904537594264], [1.1048586065241e-16, -0.21353970054237428, 0.49949904537594259]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
 	                 }
 	ml_curves = []
-	for k in d_buildCurves.keys():
+	for k in l_buildOrder:
 	    str_return = d_buildCurves.get(k)
 	    mi_obj = cgmMeta.cgmObject(str_return,cgmMeta.cgmObject)#instance
 	    mi_obj.addAttr('cgmName',k)#tag
@@ -2178,7 +2175,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	    if ml_curves:
 		mi_obj.doCopyPivot(ml_curves[0])
 		mi_obj.parent = ml_curves[0]
-		curves.setCurveColorByName(mi_obj.mNode,self.color[1])#Set the color	    			
+		curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
 	    else:
 		mc.xform(mi_obj.mNode, cp=True)#center pivot
 		mi_obj.parent = self.mNode#parent to inherit names
@@ -2187,9 +2184,11 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	    mi_obj.doName()#Name	 
 	    
-	    self.connectChildNode(mi_obj,'mi_%sHelper'%k,'mi_block')#Connect
+	    #self.connectChildNode(mi_obj,'mi_%sHelper'%k,'mi_block')#Connect
 	    attributes.doSetLockHideKeyableAttr(mi_obj.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sy','v'])
-    
+	
+	self.msgList_connect(ml_curves,'ml_helpers','mi_block')
+	
     def __buildModule__(self):
 	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
@@ -2205,17 +2204,25 @@ class cgmEyeballBlock(cgmRigBlock):
 	
 	self.connectChildNode(i_module,"mi_module","helper")
 	
-	#Store our names
-	l_names= ['eyeball']
-	if self.buildIris:l_names.append('iris')
-	if self.buildPupil:l_names.append('pupil')
-	i_module.coreNames.value = l_names
+	self.__storeNames__()
 	
 	#Size it
 	self.__updateSizeData__()
 	
 	#>>>Let's do our manual sizing
 	return i_module
+    
+    def __storeNames__(self):
+	#Store our names
+	_str_funcName = "cgmEyeballBlock.__storeNames__(%s)"%self.p_nameShort   	
+	if not self.getMessage("mi_module"):
+	    raise StandardError," %s >>> No Module!"%(_str_funcName)
+	
+	l_names= ['eyeball']
+	if self.buildIris:l_names.append('iris')
+	if self.buildPupil:l_names.append('pupil')
+	self.mi_module.coreNames.value = l_names
+	return True
     
     def __updateSizeData__(self):
 	"""For overload"""
@@ -2227,13 +2234,26 @@ class cgmEyeballBlock(cgmRigBlock):
 	i_module = self.mi_module#Lilnk
 	l_pos = [self.getPosition()]
 	d_helpercheck = cgmEyeballBlock.d_helperSettings#Link
+	
+	"""
 	for k in d_helpercheck.keys():
 	    try:
 		if self.getAttr(d_helpercheck[k].get('check')) and self.getMessage(d_helpercheck[k].get('plug')):
 		    l_pos.append(self.getMessageInstance(d_helpercheck[k].get('plug')).getPosition())
 	    except StandardError,error:
-		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_funcName,k,error))		
+		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_funcName,k,error))	
+	"""
+	ml_helpers = self.msgList_get('ml_helpers')#Get our helpers
+	if self.buildPupil:
+	    if not ml_helpers:
+		raise StandardError,"%s >>> Missing pupil helper"%(_str_funcName)
+	    l_pos.append(ml_helpers[0].getPosition())
+	if self.buildIris:
+	    try:l_pos.append(ml_helpers[1].getPosition())
+	    except StandardError,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_funcName,error)
 	
+	log.info("%s >>> l_pos: %s"%(_str_funcName,l_pos))		
+
 	#Push handles
 	i_module.templateNull.handles = len(l_pos)
 	
