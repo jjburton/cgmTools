@@ -14,7 +14,7 @@ reload(TemplateF)
 TemplateF.doOrientTemplateObjectsToMaster(m1)
 reload(jFactory)
 reload(Rig)
-nodeF.validateAttrArg(['spine_1_anchorJoint','rz'
+nodeF.validateAttrArg(['spine_1_anchorJoint','rz'])
 assert 1==2
 
 #Get our module
@@ -29,4 +29,17 @@ TemplateF.go(m1,True)
 
 TemplateF.hasPivots(m1)
 TemplateF.doCastPivots(m1)
+
+cgm.core._reload()
+m1.doSkeletonize()
+m1.storeTemplatePose()
+mFactory.isModule(m1)
+jFactory.go(m1)
+m1.isSkeletonized()
+m1.rigNull.msgList_get('skinJoints',False)
+m1.templateNull.handles
+m1.helper.msgList_get('ml_helpers',False)
+m1.helper.__rebuildShapes__()
+mFactory.log.setLevel(mFactory.logging.INFO)
+mFactory.log.setLevel(mFactory.logging.DEBUG)
 

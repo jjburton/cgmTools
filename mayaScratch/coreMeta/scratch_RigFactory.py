@@ -8,7 +8,7 @@ cgm.core._reload()
 from cgm.core.classes import SnapFactory as Snap
 reload(Snap)
 from cgm.core.rigger.lib.Limb import leg
-
+m1.modulePuppet.masterNull.deformGroup
 m1 = r9Meta.MetaClass('r_index_part')
 m1 = r9Meta.MetaClass('r_middle_part')
 m1 = r9Meta.MetaClass('r_ring_part')
