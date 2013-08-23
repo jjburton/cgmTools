@@ -18,12 +18,12 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 reload(cgmGeneral)
+from cgm.core.lib import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 reload(mShapeCast)
@@ -31,6 +31,7 @@ from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 reload(jntUtils)
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
+from cgm.core.rigger.lib.Face import (eyeball)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -60,6 +61,7 @@ d_moduleTypeToBuildModule = {'leg':leg,
                              'arm':arm,
                              'finger':finger,
                              'thumb':finger,
+                             'eyeball':eyeball,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
@@ -87,6 +89,7 @@ class go(object):
 	    log.error("RigFactory.go.__init__>>module instance isn't working!")
 	    raise StandardError,error    
 	"""
+	#>>> Intial stuff
 	try:
 	    if moduleInstance.isModule():
 		i_module = moduleInstance
@@ -95,10 +98,13 @@ class go(object):
 	if not i_module:
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
 	
+	_str_funcName = "go.__init__(%s)"%i_module.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+	#Some basic assertions
         assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
         assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
         
-        log.debug(">>> RigFactory.go.__init__")
         log.debug(">>> forceNew: %s"%forceNew)	
         self._i_module = moduleInstance# Link for shortness
 	self._i_module.__verify__()
@@ -107,111 +113,117 @@ class go(object):
 	#First we want to see if we have a moduleParent to see if it's rigged yet
 	if self._i_module.getMessage('moduleParent'):
 	    if not self._i_module.moduleParent.isRigged():
-		raise StandardError,"RigFactory.go.init>>> '%s's module parent is not rigged yet: '%s'"%(self._i_module.getShortName(),self._i_module.moduleParent.getShortName())
+		raise StandardError,"%s >> '%s's module parent is not rigged yet: '%s'"%(_str_funcName,self._i_module.getShortName(),self._i_module.moduleParent.getShortName())
 	
-	#First we want to see if we have a moduleParent to see if it's rigged yet
+	#Then we want to see if we have a moduleParent to see if it's rigged yet
 	b_rigged = self._i_module.isRigged()
 	if b_rigged and forceNew is not True and ignoreRigCheck is not True:
-	    raise StandardError,"RigFactory.go.init>>> '%s' already rigged and not forceNew"%(self._i_module.getShortName())
+	    raise StandardError,"%s >>> '%s' already rigged and not forceNew"%(_str_funcName,self._i_module.getShortName())
 	
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
+	if not self._i_module.modulePuppet.__verify__():
+	    raise StandardError,"%s >>> modulePuppet failed to verify"%_str_funcName	
 	if not self._i_module.modulePuppet._verifyMasterControl():
-	    raise StandardError,"RigFactory.go.init masterControl failed to verify"
+	    raise StandardError,"%s >>> masterControl failed to verify"%_str_funcName
 	
 	#Verify a dynamic switch
-	if not self._i_module.rigNull.getMessage('dynSwitch'):
-	    self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull.mNode)
-	else:
-	    self._i_dynSwitch = self._i_module.rigNull.dynSwitch
-	log.debug("switch: '%s'"%self._i_dynSwitch.getShortName())
-	
-	self._i_masterControl = self._i_module.modulePuppet.masterControl
-	self._i_masterSettings = self._i_masterControl.controlSettings
-	self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup
-	
-        #>>> Gather info
-        #=========================================================	
-        self._l_moduleColors = self._i_module.getModuleColors()
-        self._l_coreNames = self._i_module.coreNames.value
-        self._i_templateNull = self._i_module.templateNull#speed link
-	self._i_rigNull = self._i_module.rigNull#speed link
-        self._bodyGeo = self._i_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
-        self._version = self._i_rigNull.version
-	
-        #Joints
-        self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
-	if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
-        self._l_moduleJoints = [j.p_nameShort for j in self._ml_moduleJoints]
-        self._ml_skinJoints = get_skinJoints(self._i_module,asMeta=True)
-	if not self._ml_moduleJoints:raise StandardError, "No module joints found!"        
-        self._l_skinJoints = [j.p_nameShort for j in self._ml_skinJoints]
-	
-        #self._ml_rigJoints = self._i_rigNull.msgList_get('rigJoints',asMeta = True,cull = True)	
-	#self._l_rigJoints = [j.p_nameShort for j in self._ml_rigJoints]
-	
-        #>>> part name 
-        self._partName = self._i_module.getPartNameBase()
-        self._partType = self._i_module.moduleType.lower() or False
-        self._strShortName = self._i_module.getShortName() or False
-	
+	try:
+	    if not self._i_module.rigNull.getMessage('dynSwitch'):
+		self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_module.rigNull.mNode)
+	    else:
+		self._i_dynSwitch = self._i_module.rigNull.dynSwitch
+	    log.debug("switch: '%s'"%self._i_dynSwitch.getShortName())
+	except StandardError,error:
+	    raise StandardError,"%s >> Dynamic switch build failed! | %s"%(self._strShortName,error)
+				
+	try:#>>> Gather info =========================================================================
+	    #Master control ---------------------------------------------------------
+	    self._i_masterControl = self._i_module.modulePuppet.masterControl
+	    self._i_masterSettings = self._i_masterControl.controlSettings
+	    self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup	    
+	    self._l_moduleColors = self._i_module.getModuleColors()
+	    
+	    #Module stuff ------------------------------------------------------------
+	    self._l_coreNames = self._i_module.coreNames.value
+	    self._i_templateNull = self._i_module.templateNull#speed link
+	    self._i_rigNull = self._i_module.rigNull#speed link
+	    self._bodyGeo = self._i_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
+	    self._version = self._i_rigNull.version
+	    self._direction = self._i_module.getAttr('cgmDirection')    
+	    
+	    #Joints ------------------------------------------------------------------
+	    self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
+	    if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
+	    self._l_moduleJoints = [j.p_nameShort for j in self._ml_moduleJoints]
+	    self._ml_skinJoints = get_skinJoints(self._i_module,asMeta=True)
+	    if not self._ml_skinJoints:raise StandardError,"No Skin joints found"
+	    if not self._ml_moduleJoints:raise StandardError, "No module joints found!"        
+	    self._l_skinJoints = [j.p_nameShort for j in self._ml_skinJoints]
+
+	    #>>> part name -----------------------------------------------------------------
+	    self._partName = self._i_module.getPartNameBase()
+	    self._partType = self._i_module.moduleType.lower() or False
+	    self._strShortName = self._i_module.getShortName() or False
+	    
+	    #>>> Instances and joint stuff ----------------------------------------------------
+	    self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
+	    self._vectorAim = cgmValid.simpleAxis("%s+"%self._jointOrientation[0]).p_vector
+	    self._vectorUp = cgmValid.simpleAxis("%s+"%self._jointOrientation[1]).p_vector
+	    self._vectorOut = cgmValid.simpleAxis("%s+"%self._jointOrientation[2]).p_vector	    
+
+	except StandardError,error:
+	    raise StandardError,"%s >> Module data gather fail! | %s"%(self._strShortName,error)
+	    
         #>>> See if we have a buildable module -- do we have a builder
 	if not isBuildable(self):
 	    raise StandardError,"The builder for module type '%s' is not ready"%self._partType
 	
-        #>>>Version Check
-	#TO DO: move to moduleFactory
-	self._outOfDate = False
-	if self._version != self._buildVersion:
-	    self._outOfDate = True	    
-	    log.warning("RigFactory.go>>> '%s'(%s) rig version out of date: %s != %s"%( self._strShortName,self._partType,self._version,self._buildVersion))	
-	else:
-	    if forceNew and self._i_module.isRigged():
-		self._i_module.rigDelete()
-	    log.info("RigFactory.go>>> '%s' rig version up to date !"%(self.buildModule.__name__))	
-	
-	self._direction = self._i_module.getAttr('cgmDirection')
-        #self._direction = None
-        #if self._i_module.hasAttr('cgmDirection'):
-            #self._direction = self._i_module.cgmDirection or None
-               
-        #>>> Instances and joint stuff
-        self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
-	self._vectorAim = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
-	self._vectorUp = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
-	self._vectorOut = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[2])
-	
+	try:#>>>Version Check ========================================================================
+	    self._outOfDate = False
+	    if self._version != self._buildVersion:
+		self._outOfDate = True	    
+		log.warning("%s >> '%s'(%s) rig version out of date: %s != %s"%(_str_funcName, self._strShortName,self._partType,self._version,self._buildVersion))	
+	    else:
+		if forceNew and self._i_module.isRigged():
+		    self._i_module.rigDelete()
+		log.info("%s >>> '%s' rig version up to date !"%(_str_funcName,self.buildModule.__name__))	
+	except StandardError,error:
+	    raise StandardError,"%s  >> Version check fail | %s"%(self._strShortName,error)
+
 	#>>>Connect switches
 	try: verify_moduleRigToggles(self)
 	except StandardError,error:
-	    raise StandardError,"init.verify_moduleRigToggles>> fail: %s"%error	
+	    raise StandardError,"%s  >> Module data gather fail! | %s"%(self._strShortName,error)
 	
-	#>>> Deform group for the module
-	#=========================================================	
-	if not self._i_module.getMessage('deformNull'):
-	    #Make it and link it
-	    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
-	    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-	    i_grp.addAttr('cgmName',self._partName,lock=True)
-	    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
-	    i_grp.doName()
-	    i_grp.parent = self._i_masterDeformGroup.mNode
-	    self._i_module.connectChildNode(i_grp,'deformNull','module')
-	    
-	self._i_deformNull = self._i_module.deformNull
+	try:#>>> Deform group for the module =====================================================
+	    if not self._i_module.getMessage('deformNull'):
+		#Make it and link it
+		buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+		i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+		i_grp.addAttr('cgmName',self._partName,lock=True)
+		i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+		i_grp.doName()
+		i_grp.parent = self._i_masterDeformGroup.mNode
+		self._i_module.connectChildNode(i_grp,'deformNull','module')
+		
+	    self._i_deformNull = self._i_module.deformNull
+	except StandardError,error:
+	    raise StandardError,"%s  >> Deform Null fail! | %s"%(self._strShortName,error)	
 	
-	#>>> Constrain Deform group for the module
-	#=========================================================	
-	if not self._i_module.getMessage('constrainNull'):
-	    #Make it and link it
-	    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
-	    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-	    i_grp.addAttr('cgmName',self._partName,lock=True)
-	    i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
-	    i_grp.doName()
-	    i_grp.parent = self._i_deformNull.mNode
-	    self._i_module.connectChildNode(i_grp,'constrainNull','module')
-	    
-	self._i_constrainNull = self._i_module.constrainNull
+	try:#>>> Constrain Deform group for the module ==========================================
+	    if not self._i_module.getMessage('constrainNull'):
+		#Make it and link it
+		buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+		i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+		i_grp.addAttr('cgmName',self._partName,lock=True)
+		i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
+		i_grp.doName()
+		i_grp.parent = self._i_deformNull.mNode
+		self._i_module.connectChildNode(i_grp,'constrainNull','module')
+		
+	    self._i_constrainNull = self._i_module.constrainNull
+	except StandardError,error:
+	    raise StandardError,"%s  >> Constrain Null fail! | %s"%(self._strShortName,error)	
 	
         #Make our stuff
 	self._md_controlShapes = {}
@@ -619,11 +631,14 @@ def verify_moduleRigToggles(goInstance):
     return True
 
 @cgmGeneral.Timer
-def bindJoints_connect(goInstance):
+def bindJoints_connect(goInstance):   
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
 	raise StandardError
     self = goInstance#Link
+    
+    _str_funcName = "bindJoints_connect(%s)"%self._strShortName  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)      
     
     l_rigJoints = self._i_rigNull.msgList_get('rigJoints',False) or False
     l_skinJoints = self._i_rigNull.msgList_get('skinJoints',False) or False
@@ -677,7 +692,8 @@ You should only pass modules into these
 @cgmGeneral.Timer
 def get_skinJoints(self, asMeta = True):
     try:
-	log.debug(">>> %s.get_skinJoints() >> "%(self.p_nameShort) + "="*75) 
+	_str_funcName = "get_skinJoints(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
 	"""
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_skinJoints >> not skeletonized."%(self.p_nameShort)"""
@@ -695,12 +711,14 @@ def get_skinJoints(self, asMeta = True):
 	if ml_skinJoints:
 	    return [obj.p_nameShort for obj in ml_skinJoints]
     except StandardError,error:
-	raise StandardError, "%s.get_skinJoints >>[Error]<< : %s"(self.p_nameShort,error)	
+	raise StandardError, "%s >> error : %s"(_str_funcName,error)	
+    
 @cgmGeneral.Timer    
 def get_rigHandleJoints(self, asMeta = True):
     #Get our rig handle joints
     try:
-	log.debug(">>> %s.get_rigHandleJoints() >> "%(self.p_nameShort) + "="*75)
+	_str_funcName = "get_rigHandleJoints(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
 	"""
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)"""	
@@ -717,11 +735,14 @@ def get_rigHandleJoints(self, asMeta = True):
 	if asMeta:return cgmMeta.validateObjListArg(l_rigHandleJoints,noneValid=True)	    
 	return l_rigHandleJoints
     except StandardError,error:
-	raise StandardError,"get_rigHandleJoints >> Probably isn't skeletonized. self: %s | error: %s"%(self,error)
+	raise StandardError,"%s >> Probably isn't skeletonized | error: %s"%(_str_funcName,error)
+    
 @cgmGeneral.Timer    
 def get_rigDeformationJoints(self,asMeta = True):
     #Get our joints that segment joints will connect to
     try:
+	_str_funcName = "get_rigHandleJoints(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	ml_rigJoints = self.rigNull.msgList_get('rigJoints')
 	if not ml_rigJoints:
 	    log.error("%s.get_rigDeformationJoints >> no rig joints found"%self.getShortName())
@@ -736,11 +757,13 @@ def get_rigDeformationJoints(self,asMeta = True):
     
     except StandardError,error:
 	raise StandardError,"get_rigDeformationJoints >> self: %s | error: %s"%(self,error)
+    
 @cgmGeneral.Timer    
 def get_handleJoints(self,asMeta = True):
     #Get our segment joints
     try:
-	log.debug(">>> %s.get_handleJoints() >> "%(self.p_nameShort) + "="*75) 	
+	_str_funcName = "get_handleJoints(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
 	return self.rigNull.msgList_get('handleJoints',asMeta = asMeta, cull = True)
 	"""
 	ml_handleJoints = []
@@ -753,13 +776,16 @@ def get_handleJoints(self,asMeta = True):
 	return ml_handleJoints"""
     except StandardError,error:
 	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
+    
 @cgmGeneral.Timer
 def get_segmentHandleTargets(self):
     """
     Figure out which segment handle target joints
     """
     try:
-	log.debug(">>> %s.get_segmentHandleTargets() >> "%(self.p_nameShort) + "="*75) 		
+	_str_funcName = "get_segmentHandleTargets(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	
 	ml_handleJoints = self.rig_getHandleJoints()
 	log.info(ml_handleJoints)
 	if not ml_handleJoints:
@@ -782,13 +808,15 @@ def get_segmentHandleTargets(self):
 	return ml_segmentHandleJoints    
     
     except StandardError,error:
-	raise StandardError,"get_segmentHandleTargets >> self: %s | error: %s"%(self,error)
+	log.error("get_segmentHandleTargets >> self: %s | error: %s"%(self,error))
+	return False
+    
 @cgmGeneral.Timer
 def get_influenceChains(self):
     try:
 	#>>>Influence Joints
-	log.debug(">>> %s.get_influenceChains() >> "%(self.p_nameShort) + "="*75) 		
-	
+	_str_funcName = "get_influenceChains(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	l_influenceChains = []
 	ml_influenceChains = []
 	for i in range(100):
@@ -807,7 +835,8 @@ def get_influenceChains(self):
 @cgmGeneral.Timer    
 def get_segmentHandleChains(self):
     try:
-	log.debug(">>> %s.get_segmentHandleChains() >> "%(self.p_nameShort) + "="*75) 			
+	_str_funcName = "get_segmentHandleChains(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	l_segmentHandleChains = []
 	ml_segmentHandleChains = []
 	for i in range(50):
@@ -825,7 +854,8 @@ def get_segmentHandleChains(self):
 def get_segmentChains(self):
     try:
 	#Get our segment joints
-	log.debug(">>> %s.get_segmentChains() >> "%(self.p_nameShort) + "="*75) 				
+	_str_funcName = "get_segmentChains(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
 	l_segmentChains = []
 	ml_segmentChains = []
 	for i in range(50):
@@ -845,8 +875,8 @@ def get_rigJointDriversDict(self,printReport = True):
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
-    log.debug(">>> %s.get_rigJointDriversDict() >> "%(self.p_nameShort) + "="*75) 				
-    
+    _str_funcName = "get_rigJointDriversDict(%s)"%self.p_nameShort  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)     
     def __findDefJointFromRigJoint(i_jnt):	    
 	if i_jnt.getMessage('rigJoint'):
 	    i_rigJoint = cgmMeta.validateObjArg(i_jnt.rigJoint,cgmMeta.cgmObject)
@@ -969,6 +999,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
+    _str_funcName = "get_simpleRigJointDriverDict(%s)"%self.p_nameShort  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)      
     #>>>Initial checks
     ml_blendJoints = []
     mll_segmentChains = []
@@ -1063,6 +1095,9 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 @cgmGeneral.Timer
 def get_report(self):
     #try:
+    _str_funcName = "get_report(%s)"%self.p_nameShort  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+    
     if not self.isSkeletonized():
 	log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
 	return False
@@ -1070,8 +1105,8 @@ def get_report(self):
     l_skinJoints = get_skinJoints(self,False)
     ml_handleJoints = get_handleJoints(self) or []
     l_rigJoints = self.rigNull.msgList_get('rigJoints',False) or []
-    ml_rigHandleJoints = get_rigHandleJoints(self)
-    ml_rigDefJoints = get_rigDeformationJoints(self)
+    ml_rigHandleJoints = get_rigHandleJoints(self) or []
+    ml_rigDefJoints = get_rigDeformationJoints(self) or []
     ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
     
     log.info("%s.get_report >> "%self.getShortName() + "="*50)

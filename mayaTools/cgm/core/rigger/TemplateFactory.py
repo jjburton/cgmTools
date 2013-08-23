@@ -163,9 +163,11 @@ class go(object):
 		    
 	    elif self.m.mClass == 'cgmEyeball':
 		log.info("mode: cgmEyeball")
-		doMakeEyeballTemplate(self)
+		try:doMakeEyeballTemplate(self)
+		except StandardError,error:log.warning(">>> %s.go >> build failed: %s"%(self.m.p_nameShort,error))  
 		
 	    else:
+		log.info(self.m.mClass)
 		raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self.m.mClass
 	   
 	    doTagChildren(self)

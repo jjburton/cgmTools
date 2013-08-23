@@ -727,26 +727,29 @@ def returnExpectedJointCount(self):
         log.warning("Can't count expected joints. 0 handles: '%s'"%self.getShortName())
         return False
     
-    rollJoints = self.templateNull.rollJoints 
-    d_rollJointOverride = self.templateNull.rollOverride 
+    if self.templateNull.hasAttr('rollJoints'):
+	rollJoints = self.templateNull.rollJoints 
+	d_rollJointOverride = self.templateNull.rollOverride 
+	
+	l_spanDivs = []
+	for i in range(0,handles-1):
+	    l_spanDivs.append(rollJoints)    
     
-    l_spanDivs = []
-    for i in range(0,handles-1):
-        l_spanDivs.append(rollJoints)    
-
-    if type(d_rollJointOverride) is dict:
-        for k in d_rollJointOverride.keys():
-            try:
-                l_spanDivs[int(k)]#If the arg passes
-                l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
-            except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))    
-    
-    int_count = 0
-    for i,n in enumerate(l_spanDivs):
-        int_count +=1
-        int_count +=n
-    int_count+=1#add the last handle back
-    return int_count
+	if type(d_rollJointOverride) is dict:
+	    for k in d_rollJointOverride.keys():
+		try:
+		    l_spanDivs[int(k)]#If the arg passes
+		    l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
+		except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))    
+	
+	int_count = 0
+	for i,n in enumerate(l_spanDivs):
+	    int_count +=1
+	    int_count +=n
+	int_count+=1#add the last handle back
+	return int_count
+    else:
+	return self.templateNull.handles
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
@@ -942,8 +945,13 @@ def storePose_templateSettings(self):
     
     exampleDict = {'root':{'test':[0,1,0]},
                 'controlObjects':{0:[1,1,1]}}
-    """    
-    log.debug(">>> %s.storePose_templateSettings() >> "%(self.p_nameShort) + "="*75) 		                                	            
+    """  
+    _str_funcName = "storePose_templateSettings(%s)"%self.p_nameShort  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)   
+    
+    if self.getMessage('helper'):
+	log.warning(">>> %s | Error: Cannot currently store pose with rigBlocks"%_str_funcName)
+	return False
     def buildDict_AnimAttrsOfObject(node,ignore = ['visibility']):
         attrDict = {}
         attrs = r9Anim.getSettableChannels(node,incStatics=True)

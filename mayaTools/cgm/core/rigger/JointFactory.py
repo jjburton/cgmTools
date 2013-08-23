@@ -18,9 +18,11 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
+from cgm.core.lib import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.classes import GuiFactory as gui
+from cgm.core.classes import SnapFactory as Snap
 
 from cgm.lib import (cgmMath,
                      joints,
@@ -42,6 +44,7 @@ from cgm.core.lib import nameTools
 #>>> Register rig functions
 #=====================================================================
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger,thumb)
+from cgm.core.rigger.lib.Face import (eyeball)
 d_moduleTypeToBuildModule = {'torso':spine,
                              'neckhead':neckHead,
                              'leg':leg,
@@ -49,6 +52,7 @@ d_moduleTypeToBuildModule = {'torso':spine,
                              'clavicle':clavicle,
                              'thumb':thumb,
                              'finger':finger,
+                             'eyeball':eyeball,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
@@ -72,15 +76,16 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data 
-        assert moduleInstance.mClass in ['cgmModule','cgmLimb'],"Not a module"
+        #assert moduleInstance.mClass in ['cgmModule','cgmLimb'],"Not a module"
         assert moduleInstance.isTemplated(),"Module is not templated"
         #assert object is templated
-        #assert ...
-        log.debug(">>> JointFactory.go.__init__")
-        self.cls = "JointFactory.go"
+        #assert ...	
+	self.cls = "JointFactory.go"
 	self._cgmClass = "JointFactory.go"
         self._i_module = moduleInstance# Link for shortness
-        
+	_str_funcName = "go.__init__(%s)"%self._i_module.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
         if moduleInstance.isSkeletonized():
             if forceNew:
                 deleteSkeleton(moduleInstance)
@@ -89,7 +94,7 @@ class go(object):
                 return        
         
         #>>> store template settings
-        if saveTemplatePose:
+        if saveTemplatePose and not self._i_module.getMessage('helper'):
             log.debug("Saving template pose in JointFactory.go")
             self._i_module.storeTemplatePose()
         
@@ -110,30 +115,14 @@ class go(object):
         
         #>>> template null 
         self.i_templateNull = self._i_module.templateNull
-        self.curveDegree = self.i_templateNull.curveDegree
 	
         #>>> Gather info
         #=========================================================	
-        self._l_coreNames = self._i_module.coreNames.value        
-        #>>> Instances and joint stuff
+        self._l_coreNames = self._i_module.coreNames.value  
         self.jointOrientation = modules.returnSettingsData('jointOrientation')
-        self.i_root = self.i_templateNull.root
-        self.i_orientRootHelper = self.i_templateNull.orientRootHelper
-        self.i_curve = self.i_templateNull.curve
-        self._ml_controlObjects = self.i_templateNull.msgList_get('controlObjects')
         self._d_handleToHandleJoints = {}
 	
-        log.debug("Module: %s"%self._i_module.getShortName())
-        log.debug("partType: %s"%self._partType)
-        log.debug("direction: %s"%self.direction) 
-        log.debug("colors: %s"%self.moduleColors)
-        log.debug("coreNames: %s"%self.l_coreNames)
-        log.debug("root: %s"%self.i_root.getShortName())
-        log.debug("curve: %s"%self.i_curve.getShortName())
-        log.debug("orientRootHelper: %s"%self.i_orientRootHelper.getShortName())
-        log.debug("rollJoints: %s"%self.i_templateNull.rollJoints)
-        log.debug("jointOrientation: %s"%self.jointOrientation)
-        log.debug("hasJointSetup: %s"%hasJointSetup(self))
+
 	if not hasJointSetup(self):
 	    raise StandardError, "Need to add to build dict"
 	
@@ -141,20 +130,46 @@ class go(object):
 	self.str_progressBar = gui.doStartMayaProgressBar(4)
 	try:
 	    if self._i_module.mClass == 'cgmLimb':
+		#Gather specific data for Limb
+		#>>> Instances and joint stuff
+		self.curveDegree = self.i_templateNull.curveDegree	
+		self.i_root = self.i_templateNull.root
+		self.i_orientRootHelper = self.i_templateNull.orientRootHelper
+		self.i_curve = self.i_templateNull.curve
+		self._ml_controlObjects = self.i_templateNull.msgList_get('controlObjects')
+		
+		log.debug("Module: %s"%self._i_module.getShortName())
+		log.debug("partType: %s"%self._partType)
+		log.debug("direction: %s"%self.direction) 
+		log.debug("colors: %s"%self.moduleColors)
+		log.debug("coreNames: %s"%self.l_coreNames)
+		log.debug("root: %s"%self.i_root.getShortName())
+		log.debug("curve: %s"%self.i_curve.getShortName())
+		log.debug("orientRootHelper: %s"%self.i_orientRootHelper.getShortName())
+		log.debug("rollJoints: %s"%self.i_templateNull.rollJoints)
+		log.debug("jointOrientation: %s"%self.jointOrientation)
+		log.debug("hasJointSetup: %s"%hasJointSetup(self))		
+		
 		log.debug("mode: cgmLimb Skeletonize")
 		mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Skeletonize'), progress=0)    		
-		doSkeletonize(self)
+		doSkeletonizeLimb(self)
 		
 		mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Special Joints'), progress=4)    				
 		self.build(self)
+		
 		#Only going to tag our handleJoints at the very end because of message connection duplication
 		for i_obj in self._ml_controlObjects:
 		    i_obj.connectChildNode(self._d_handleToHandleJoints[i_obj],'handleJoint')	    
+	    elif self._i_module.mClass == 'cgmEyeball':
+		log.info(">>> %s.go >> eyeball mode!"%(self._i_module.p_nameShort))
+		try:doSkeletonizeEyeball(self)
+		except StandardError,error:log.warning(">>> %s.go >> build failed: %s"%(self._i_module.p_nameShort,error))  
 	    else:
 		raise NotImplementedError,"haven't implemented '%s' templatizing yet"%self._i_module.mClass
 	except StandardError,error:
-	    raise StandardError,"%s.go >> build failed! | %s"%(self._strShortName,error)
+	    log.error("%s.go >> build failed! | %s"%(self._strShortName,error))
 	gui.doEndMayaProgressBar(self.str_progressBar)#Close out this progress bar        
+	log.info("%s.go >> build completed!"%(self._strShortName) + "-"*75)
 	
 def hasJointSetup(self):
     if not issubclass(type(self),go):
@@ -180,10 +195,116 @@ def hasJointSetup(self):
 	log.error("%s.isBuildable>>> Missing Joint Setup Function"%(self._strShortName))	
 	return False	
     
-    return True    
+    return True  
+
+def doSkeletonizeEyeball(self):
+    """     
+    """
+    #>>> Get our base info =========================================================================
+    _str_funcName = "doSkeletonizeEyeball(%s)"%self._i_module.p_nameShort  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)   
+    
+    assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
+    assert mc.objExists(self._i_module.mNode),"Module no longer exists"
+    assert self._i_module.mClass == 'cgmEyeball',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(_str_funcName,self._i_module.mClass)
+    ml_moduleJoints = []
+    ml_buildObjects = []
+    _str_orientation = self.jointOrientation #Link
+    
+    #>>> Build ====================================================================================
+    #Find our helper
+    mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
+    if not mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+    ml_buildObjects.append(mi_helper)
+    log.info("%s >>> helper: '%s'"%(_str_funcName,mi_helper.p_nameShort))
+    
+    #Pupil and Iris
+    ml_helpers = mi_helper.msgList_get('ml_helpers')#Get our helpers
+    if mi_helper.buildPupil:
+	if not ml_helpers:
+	    raise StandardError,"%s >>> Missing pupil helper"%(_str_funcName)
+	ml_buildObjects.append(ml_helpers[0])
+    if mi_helper.buildIris:
+	try:ml_buildObjects.append(ml_helpers[1])
+	except StandardError,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_funcName,error)
+    
+    log.info("%s >>> buildObjects: %s"%(_str_funcName,[o.p_nameShort for o in ml_buildObjects]))
+    str_partName = self._partName
+    
+    #Joint build
+    l_initialJoints = []
+    for o in ml_buildObjects:
+	l_initialJoints.append( mc.joint(p = o.getPosition()) )
+    
+    #Parent, tag
+    for i,j in enumerate(l_initialJoints):
+	i_j = cgmMeta.cgmObject(j,setClass=True)
+	i_j.doCopyNameTagsFromObject( ml_buildObjects[i].mNode,ignore=['cgmTypeModifier','cgmType'] )#copy Tags
+	i_j.doName()
+	i_j.parent = False
 	
+	#Snap.go(i_j,move=False,orient=True)
+	#if ml_moduleJoints: i_j.parent = ml_moduleJoints[0]#parent
+	ml_moduleJoints.append(i_j)
+    
+    #>>> Orient -------------------------------------------------------------
+    #Make our up loc
+    try:
+	_str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)   
+	mi_upLoc = cgmMeta.cgmObject(_str_upLoc)
+	mi_aimLoc = ml_helpers[1].doLoc()
+	v_aim = cgmValid.simpleAxis(_str_orientation[0]).p_vector
+	v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector
+	
+	constraintBuffer = mc.aimConstraint(mi_aimLoc.mNode,ml_moduleJoints[0].mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+	mc.delete(constraintBuffer[0])    
+	for o in [mi_aimLoc,mi_upLoc]:
+	    o.delete()    
+	#Copy eyeball orient to children
+	if len(ml_moduleJoints)>1:
+	    for o in ml_moduleJoints[1:]:
+		o.parent = ml_moduleJoints[0]#Parent back	
+	    joints.doCopyJointOrient(ml_moduleJoints[0].mNode,[jnt.mNode for jnt in ml_moduleJoints[1:]])
+	#joints.orientJointChain([o.mNode for o in ml_moduleJoints],_str_orientation,_str_orientation[1]+'up')
+	    
+	#Connect back
+	self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','rigNull')
+	log.info("%s >>> built the following joints: %s"%(_str_funcName,[o.p_nameShort for o in ml_moduleJoints]))
+    except StandardError,error:
+	raise StandardError, "%s >>> Orient fail | Error: %s"%(_str_funcName,error)
+    
+    #>>> Flag our handle joints
+    #===========================
+    """
+    ml_handles = []
+    ml_handleJoints = []
+    for i_obj in self._ml_controlObjects:
+	if i_obj.hasAttr('handleJoint'):
+	    #d_buffer = i_obj.handleJoint.d_jointFlags
+	    #d_buffer['isHandle'] = True
+	    #i_obj.handleJoint.d_jointFlags = d_buffer
+	    ml_handleJoints.append(i_obj.handleJoint)"""
+    try:
+	self._i_rigNull.msgList_connect(ml_moduleJoints,'handleJoints') 
+	self._i_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
+	
+    except StandardError,error:
+	raise StandardError, "%s >>> Skin/Handle connect fail | Error: %s"%(_str_funcName,error)
+    
+    #Connect to parent =========================================================
+    try:
+	if self._i_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+	    connectToParentModule(self._i_module)    
+    except StandardError,error:
+	raise StandardError, "%s >>> Failed parent connect | Error: %s"%(_str_funcName,error)
+    
+    return True
+	
+    
+
+    
 #@r9General.Timer
-def doSkeletonize(self):
+def doSkeletonizeLimb(self):
     """ 
     DESCRIPTION:
     Basic limb skeletonizer
@@ -203,7 +324,7 @@ def doSkeletonize(self):
     partName = self._partName
     l_limbJoints = []
     
-    log.debug(">>> %s.doSkeletonize >> "%self._strShortName + "="*75)            
+    log.debug(">>> %s.doSkeletonizeLimb >> "%self._strShortName + "="*75)            
     
     #>>> Check roll joint args
     rollJoints = self.i_templateNull.rollJoints
@@ -524,16 +645,16 @@ def doOrientSegment(self):
 		ml_moduleJoints[1].rotate = [0,0,0]        
     
     #Copy 
-    #""" Freeze the rotations """
-    jntUtils.metaFreezeJointOrientation(ml_moduleJoints)   
-    
+
     #Connect to parent
     try:
 	if self._i_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
 	    connectToParentModule(self._i_module)    
     except:
 	raise StandardError, "Failed to connect to module parent"
-	
+    
+    #""" Freeze the rotations """
+    jntUtils.metaFreezeJointOrientation(ml_moduleJoints)   
     try:
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    log.debug(i_jnt.getAttr('cgmName'))

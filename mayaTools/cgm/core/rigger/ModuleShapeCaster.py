@@ -46,7 +46,7 @@ from cgm.core.lib import nameTools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
     @r9General.Timer
-    def __init__(self,moduleInstance,controlTypes = [],targetObjects = [],storageInstance = False,midSplits = None,**kws): 
+    def __init__(self,moduleInstance,controlTypes = [],targetObjects = [],storageInstance = False,b_midSplits = None,**kws): 
         """
 	Class factor generating module controls
 	
@@ -66,6 +66,8 @@ class go(object):
 	                                'cap':self.build_moduleCap,
 	                                'hand':self.build_handShape,
 	                                'clavicle':self.build_clavicle,
+	                                'eyeballFK':self.build_eyeballFK,
+	                                'eyeballIK':self.build_eyeballIK,	                                
 	                                'settings':self.build_settings}
         # Get our base info
         #==============	        
@@ -77,49 +79,53 @@ class go(object):
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
 	
 	if type(controlTypes) is not list:controlTypes = [controlTypes]
-        assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
-        #assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
         
-        log.debug(">>> ModuleControlFactory.go.__init__")
-        self._mi_module = moduleInstance# Link for shortness	
-        """
-        if moduleInstance.hasControls():
-            if forceNew:
-                deleteControls(moduleInstance)
-            else:
-                log.warning("'%s' has already been skeletonized"%moduleInstance.getShortName())
-                return        
-        """
+        self._strShortName = moduleInstance.p_nameShort  
+	_str_funcName = "go.__init__(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+        assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        	
+	self._mi_module = moduleInstance# Link for shortness	
+	
         #>>> Gather info
         #=========================================================
-	self._midSplits = midSplits
-        self.l_moduleColors = self._mi_module.getModuleColors()
-        self.l_coreNames = self._mi_module.coreNames.value
-        self.mi_templateNull = self._mi_module.templateNull#speed link
-	self.mi_rigNull = self._mi_module.rigNull#speed link
-        self._targetMesh = self._mi_module.modulePuppet.getUnifiedGeo() or self._mi_module.modulePuppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
-	self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
-	self._ml_controlObjects = self.mi_templateNull.msgList_get('controlObjects')
-        #>>> part name 
-        self._partName = self._mi_module.getPartNameBase()
-        self._partType = self._mi_module.moduleType or False
+	try:
+	    self._b_midSplits = b_midSplits
+	    self.l_moduleColors = self._mi_module.getModuleColors()
+	    self._mi_puppet = self._mi_module.modulePuppet
+	    self.l_coreNames = self._mi_module.coreNames.value
+	    self.mi_templateNull = self._mi_module.templateNull#speed link
+	    self.mi_rigNull = self._mi_module.rigNull#speed link
+	    self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+	    self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
+	    self._ml_controlObjects = self.mi_templateNull.msgList_get('controlObjects')
+	    
+	    #>>> part name 
+	    self._partName = self._mi_module.getPartNameBase()
+	    self._partType = self._mi_module.moduleType or False
+	    
+	    self._direction = None
+	    if self._mi_module.hasAttr('cgmDirection'):
+		self._direction = self._mi_module.cgmDirection or None
+		   
+	    #>>> Instances and joint stuff
+	    self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
+	    self._skinOffset = self._mi_puppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
+	    self._verifyCastObjects()#verify cast objects
+	    self.d_returnControls = {}	
+	    self.md_ReturnControls = {}	
+	    self.d_returnPivots = {}		
+	    self.md_returnPivots = {}   
+	    self.md_fkControls = {}
+	    self.md_segmentHandles = {}
+	    try:
+		self._baseModuleDistance = self._returnBaseThickness()
+		log.debug("%s >>> _baseModuleDistance: %s"%(_str_funcName,self._baseModuleDistance))
+	    except StandardError,error: raise StandardError,"base sizing fail. error: %s"%error
+	    
+	except StandardError,error:
+	    raise StandardError,"%s >> Module data gather fail! | %s"%(self._strShortName,error)	
 	
-        self._direction = None
-        if self._mi_module.hasAttr('cgmDirection'):
-            self._direction = self._mi_module.cgmDirection or None
-               
-        #>>> Instances and joint stuff
-        self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
-	self._skinOffset = self._mi_module.modulePuppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
-	self._verifyCastObjects()#verify cast objects
-	self.d_returnControls = {}	
-	self.md_ReturnControls = {}	
-	self.d_returnPivots = {}		
-	self.md_returnPivots = {}   
-	self.md_fkControls = {}
-	self.md_segmentHandles = {}
-	self._baseModuleDistance = self._returnBaseThickness()
-	log.debug("_baseModuleDistance: %s"%self._baseModuleDistance)
         #>>> We need to figure out which control to make
 	#===================================================================================
 	self.l_controlsToMakeArg = []	
@@ -231,12 +237,101 @@ class go(object):
     def _returnBaseThickness(self):
 	#We're going to cast from the middle of our limb segment to reduce the chance of firing to nowhere
 	#Start by casting along template up and out
-	midIndex = int(len(self.l_controlSnapObjects)/2)
-	d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])
-	l_lengths = [d_return[k] for k in d_return.keys()]
-	average = (sum(l_lengths))/len(l_lengths)
+	_str_funcName = "go._returnBaseThickness(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
 	
-	return average *1.25
+	if self.l_controlSnapObjects and self._targetMesh:
+	    midIndex = int(len(self.l_controlSnapObjects)/2)
+	    d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])
+	    l_lengths = [d_return[k] for k in d_return.keys()]
+	    average = (sum(l_lengths))/len(l_lengths)
+	    
+	    return average *1.25
+	elif self._mi_module.getMessage('helper'):
+	    return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
+	else:
+	    raise StandardError, "%s >> Not enough info to figure out"%_str_funcName
+	
+    @r9General.Timer    
+    def build_eyeballFK(self):
+	_str_funcName = "go.build_eyeballFK(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	try:
+	    mi_helper = self._mi_module.helper
+	    mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('arrowsOnBall',
+	                                                              direction = 'z+',
+	                                                              size = self._baseModuleDistance/2,
+	                                                              absoluteSize=False),
+	                                    setClass=True)
+	    Snap.go(mi_crvBase,mi_helper.mNode)
+	    mi_tmpGroup = cgmMeta.cgmObject( mi_crvBase.doGroup())
+	    mi_crvBase.__setattr__('t%s'%self._jointOrientation[0],self._baseModuleDistance * 2)
+	    mi_crvBase.parent = False
+	    mi_tmpGroup.delete()
+	    
+	    #Make a trace curve
+	    _str_trace = mc.curve (d=1, ep = [mi_helper.getPosition(),mi_crvBase.getPosition()], os=True)#build curves as we go to see what's up
+	    log.info(_str_trace)
+	    l_curvesToCombine = [_str_trace,mi_crvBase.mNode]
+	    
+	    #>>>Combine the curves
+	    try:newCurve = curves.combineCurves(l_curvesToCombine) 
+	    except StandardError,error:raise StandardError,"Failed to combine | error: %s"%error
+	    
+	    mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_helper.mNode,False) )
+	    
+	    try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
+	    except StandardError,error:raise StandardError,"Parent shape in place fail | error: %s"%error
+	    
+	    mc.delete(_str_trace)
+	    
+	    #>>Copy tags and name
+	    mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+	    mi_crv.addAttr('cgmType',attrType='string',value = 'eyeball_FK',lock=True)
+	    mi_crv.doName()          	    
+
+	    #Color
+	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+	    self.d_returnControls['eyeballFK'] = mi_crv.mNode
+	    self.md_ReturnControls['eyeballFK'] = mi_crv
+	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballFK','owner')
+	    
+	except StandardError,error:
+	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
+	    return False
+	
+    @r9General.Timer    
+    def build_eyeballIK(self):
+	_str_funcName = "go.build_eyeballFK(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	try:
+	    mi_helper = self._mi_module.helper
+	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('circle',
+	                                                          direction = 'z+',
+	                                                          size = self._baseModuleDistance/2,
+	                                                          absoluteSize=False),
+	                                    setClass=True)
+	    Snap.go(mi_crv,mi_helper.mNode)
+	    mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
+	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],self._baseModuleDistance * 3)
+	    mi_crv.parent = False
+	    mi_tmpGroup.delete()
+	    	    	    
+	    
+	    #>>Copy tags and name
+	    mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+	    mi_crv.addAttr('cgmType',attrType='string',value = 'eyeball_IK',lock=True)
+	    mi_crv.doName()          	    
+
+	    #Color
+	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+	    self.d_returnControls['eyeballFK'] = mi_crv.mNode
+	    self.md_ReturnControls['eyeballFK'] = mi_crv
+	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballIK','owner')
+	    
+	except StandardError,error:
+	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
+	    return False
 	
     @r9General.Timer    
     def build_cog(self):
@@ -986,7 +1081,7 @@ class go(object):
 		if buffer:
 		    d_search[key] = buffer
 	    #Find it
-	    mi_footModule = self._mi_module.modulePuppet.getModuleFromDict(d_search)
+	    mi_footModule = self._mi_puppet.getModuleFromDict(d_search)
 	    ml_children = self._mi_module.moduleChildren
 	    if mi_footModule in ml_children:log.debug("found match modules: %s"%mi_footModule)
 	    
@@ -1139,7 +1234,7 @@ class go(object):
 		if buffer:
 		    d_search[key] = buffer
 	    #Find it
-	    mi_footModule = self._mi_module.modulePuppet.getModuleFromDict(d_search)
+	    mi_footModule = self._mi_puppet.getModuleFromDict(d_search)
 	    ml_children = self._mi_module.moduleChildren
 	    if mi_footModule in ml_children:log.debug("found match modules: %s"%mi_footModule)
 	    
@@ -1361,7 +1456,7 @@ class go(object):
 		if buffer:
 		    d_search[key] = buffer
 	    #Find it
-	    mi_handModule = self._mi_module.modulePuppet.getModuleFromDict(d_search)
+	    mi_handModule = self._mi_puppet.getModuleFromDict(d_search)
 	    ml_children = self._mi_module.moduleChildren
 	    if mi_handModule in ml_children:log.info("found match modules: %s"%mi_handModule)
 	    
