@@ -32,8 +32,8 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
 reload(cgmGeneral)
-from cgm.core.lib import validateArgs as ValidArgs
-reload(ValidArgs)
+from cgm.core.lib import validateArgs as cgmValid
+reload(cgmValid)
 from cgm.core.classes import SnapFactory as Snap
 
 from cgm.core.lib import nameTools
@@ -55,28 +55,36 @@ reload(distance)
 
 #>>> Eyeball
 #===================================================================
-def createEyeballRig(eyeballObject = None, ballJoint = None,driverAttr = None,
+def createEyeballRig(eyeballObject = None, ballJoint = None,aimTargetObject = None,
+                     driverAttr = None,
                      orientation = 'zyx',aimAxis = 'z+',upAxis = 'y+',
                      buildIK = False, buildJoystick = False,
                      d_nameTags = {'cgmDirection':'left','cgmName':'eye'},
                      doControls = False):
     """
     Create an eyeball setup given a sphere template object
+    
+    @ Paramaters
+    eyeballObject -- eyeball object that is the base object
+    ballJoint -- the joint to constrain
+    aimTargetObject -- aim target
+    driverAttr(attr) -- what you want to drive the blend
     """
     #>>> Check our args
     #====================================================================
     str_func_ = 'createEyeballRig'
     log.info(">>> %s >> "%str_func_ + "="*75)          
     #> Ball ------------------------------------------------------------
-    mi_ball = cgmMeta.validateObjArg(eyeballObject,cgmMeta.cgmObject,noneValid=True,mayaType=['nurbsSurface','mesh'])
+    mi_ball = cgmMeta.validateObjArg(eyeballObject,cgmMeta.cgmObject,noneValid=True,mayaType=['nurbsSurface','mesh','nurbsCurve'])
+    if not mi_ball:raise StandardError,"bad eyeball object: %s"%eyeballObject
+    
     f_averageSize = distance.returnBoundingBoxSizeToAverage(mi_ball.mNode)
     log.info("f_averageSize: %s"%f_averageSize)
-    if not mi_ball:raise StandardError,"bad eyeball object: %s"%eyeballObject
             
     #> Bools ------------------------------------------------------------
-    b_doControls = ValidArgs.boolArg(doControls,calledFrom = str_func_)
-    b_doIK = ValidArgs.boolArg(buildIK,calledFrom = str_func_)
-    b_doJoystick = ValidArgs.boolArg(buildJoystick,calledFrom = str_func_)
+    b_doControls = cgmValid.boolArg(doControls,calledFrom = str_func_)
+    b_doIK = cgmValid.boolArg(buildIK,calledFrom = str_func_)
+    b_doJoystick = cgmValid.boolArg(buildJoystick,calledFrom = str_func_)
     if b_doJoystick:
 	raise NotImplementedError,"joystick setup not in yet"
     
@@ -85,8 +93,8 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,driverAttr = None,
     miPlug_driver = d_attrCheckReturn.get('mi_plug') or False
     
     #> axis -------------------------------------------------------------
-    axis_aim = ValidArgs.simpleAxis(aimAxis)
-    axis_up = ValidArgs.simpleAxis(upAxis)
+    axis_aim = cgmValid.simpleAxis(aimAxis)
+    axis_up = cgmValid.simpleAxis(upAxis)
         
     #Figure out what to build by making list which we will store back the locs to
     l_toBuild = []
@@ -117,7 +125,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,driverAttr = None,
     else:mi_target = mi_ball
     
     #> Build our group ---------------------------------------------------
-    mi_group = mi_target.doDuplicateTransform(copyAttrs = True)
+    mi_group = mi_target.doDuplicateTransform(copyAttrs = False)
     if d_nameTags: mi_group.doTagAndName(d_nameTags)
     
     #> driver -------------------------------------------------------------
@@ -151,7 +159,14 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,driverAttr = None,
 	mi_ikLoc = d_locs['ik']
 	
 	mi_upLoc.__setattr__('t%s'%orientation[1],f_averageSize*1.5)
-	mi_aimLoc.__setattr__('t%s'%orientation[0],f_averageSize*5)
+	
+	#See if we have an aim target
+	mi_aimTarget = cgmMeta.validateObjArg(aimTargetObject,cgmMeta.cgmObject,noneValid=True)
+	if not mi_aimTarget:
+	    mi_aimLoc.__setattr__('t%s'%orientation[0],f_averageSize*5)
+	else:
+	    Snap.go(mi_aimLoc,mi_aimTarget.mNode)
+	
 	
 	constBuffer = mc.aimConstraint(mi_aimLoc.mNode,mi_ikLoc.mNode,
 	                               aimVector  = axis_aim.p_vector,
@@ -170,7 +185,8 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,driverAttr = None,
 	mi_shape = cgmMeta.cgmNode(l_shapes[0])
 	mi_shape.localScaleX = f_averageSize
 	mi_shape.localScaleY = f_averageSize
-	mi_shape.localScaleZ = f_averageSize	
+	mi_shape.localScaleZ = f_averageSize
+	
 
 	
 
