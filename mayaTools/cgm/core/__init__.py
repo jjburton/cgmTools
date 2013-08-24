@@ -29,7 +29,12 @@ import rigger.JointFactory
 import rigger.PuppetFactory
 
 import os
-from cgm.core.lib.zoo import Path
+from cgm.core.lib.zoo.path import Path
+
+#>>>>> Bridge to get our sub zoo stuff working
+from cgm import cgmInitialize
+reload(cgmInitialize)
+cgmInitialize.setupContributorPaths()
 
 def _reload():
     '''
