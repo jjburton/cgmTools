@@ -55,11 +55,14 @@ reload(distance)
 
 #>>> Eyeball
 #===================================================================
-def createEyeballRig(eyeballObject = None, ballJoint = None,aimTargetObject = None,
+def createEyeballRig(eyeballObject = None, ballJoint = None,
+                     ikControl = None, fkControl = None,
                      driverAttr = None,
                      orientation = 'zyx',aimAxis = 'z+',upAxis = 'y+',
                      buildIK = False, buildJoystick = False,
+                     moduleInstance = None,
                      d_nameTags = {'cgmDirection':'left','cgmName':'eye'},
+                     setupVisBlend = False,
                      doControls = False):
     """
     Create an eyeball setup given a sphere template object
@@ -67,125 +70,205 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,aimTargetObject = No
     @ Paramaters
     eyeballObject -- eyeball object that is the base object
     ballJoint -- the joint to constrain
-    aimTargetObject -- aim target
+    ikControl -- aim target
     driverAttr(attr) -- what you want to drive the blend
     """
     #>>> Check our args
     #====================================================================
-    str_func_ = 'createEyeballRig'
-    log.info(">>> %s >> "%str_func_ + "="*75)          
-    #> Ball ------------------------------------------------------------
-    mi_ball = cgmMeta.validateObjArg(eyeballObject,cgmMeta.cgmObject,noneValid=True,mayaType=['nurbsSurface','mesh','nurbsCurve'])
-    if not mi_ball:raise StandardError,"bad eyeball object: %s"%eyeballObject
-    
-    f_averageSize = distance.returnBoundingBoxSizeToAverage(mi_ball.mNode)
-    log.info("f_averageSize: %s"%f_averageSize)
-            
-    #> Bools ------------------------------------------------------------
-    b_doControls = cgmValid.boolArg(doControls,calledFrom = str_func_)
-    b_doIK = cgmValid.boolArg(buildIK,calledFrom = str_func_)
-    b_doJoystick = cgmValid.boolArg(buildJoystick,calledFrom = str_func_)
-    if b_doJoystick:
-	raise NotImplementedError,"joystick setup not in yet"
-    
-    #> Driver -----------------------------------------------------------
-    d_attrCheckReturn = cgmMeta.validateAttrArg(driverAttr,noneValid=True) or {}
-    miPlug_driver = d_attrCheckReturn.get('mi_plug') or False
-    
-    #> axis -------------------------------------------------------------
-    axis_aim = cgmValid.simpleAxis(aimAxis)
-    axis_up = cgmValid.simpleAxis(upAxis)
-        
-    #Figure out what to build by making list which we will store back the locs to
-    l_toBuild = []
-    l_toBuild.append('fk')
-    if b_doIK:
-	l_toBuild.append('ik')
-	l_toBuild.append('aimTarget')
-	l_toBuild.append('upTarget')
-    if len(l_toBuild) > 1:
-	l_toBuild.insert(0,'blend')    
-    if not l_toBuild:raise StandardError,"createEyeballRig >>> No options set to build anything. Aborting!"
-    
-    #>>> Joints
-    #==================================================================== 
-    mi_ballJoint = cgmMeta.validateObjArg(ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])
-    """
-    if not mi_ballJoint:
-	log.info("Need to created ball joint")
-	l_pos = mi_ball.getPosition()
-	str_ballJoint = mc.joint (p=(l_pos[0],l_pos[1],l_pos[2]))
-	mi_ballJoint = cgmMeta.validateObjArg(str_ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])	
-	mi_ballJoint.parent = False"""
+    _str_funcName = 'createEyeballRig'
+    log.info(">>> %s >> "%_str_funcName + "="*75)   
+    d_blendSetupReturn = {}
+    l_toBuild = []    
+    d_return = {}
+    try:
+	#> Ball ------------------------------------------------------------
+	mi_ball = cgmMeta.validateObjArg(eyeballObject,cgmMeta.cgmObject,noneValid=True,mayaType=['nurbsSurface','mesh','nurbsCurve'])
+	if not mi_ball:raise StandardError,"bad eyeball object: %s"%eyeballObject
 	
-    #>>> Setup transforms
-    #==================================================================== 
-    #What is our target
-    if mi_ballJoint:mi_target = mi_ballJoint
-    else:mi_target = mi_ball
-    
-    #> Build our group ---------------------------------------------------
-    mi_group = mi_target.doDuplicateTransform(copyAttrs = False)
-    if d_nameTags: mi_group.doTagAndName(d_nameTags)
-    
-    #> driver -------------------------------------------------------------
-    if not miPlug_driver:
-	miPlug_driver = cgmMeta.cgmAttr(mi_group, 'blend', 'float', keyable=True, maxValue= 1)
-    
-    #Build our locs
-    d_locs = {}#Storage dict
-    
-    for s in l_toBuild:
-	try:
-	    log.info("%s >> building %s"%(str_func_,s))
-	    mi_loc = mi_target.doLoc() #Create it
-	    #Naming ----------------------------------
-	    if d_nameTags:
-		d_tmpNameTags = d_nameTags
-		d_tmpNameTags['cgmTypeModifier'] = s	    
-	    else:
-		d_tmpNameTags = {'cgmTypeModifier':s}
-	    mi_loc.doTagAndName(d_tmpNameTags)#Name it
+	f_averageSize = distance.returnBoundingBoxSizeToAverage(mi_ball.mNode)
+	log.info("f_averageSize: %s"%f_averageSize)
+		
+	#> Bools ------------------------------------------------------------
+	b_doControls = cgmValid.boolArg(doControls,calledFrom = _str_funcName)
+	b_doIK = cgmValid.boolArg(buildIK,calledFrom = _str_funcName)
+	b_doJoystick = cgmValid.boolArg(buildJoystick,calledFrom = _str_funcName)
+	if b_doJoystick:
+	    raise NotImplementedError,"joystick setup not in yet"
+	b_doVisBlend = cgmValid.boolArg(setupVisBlend,calledFrom = _str_funcName)
+	
+	#> Driver -----------------------------------------------------------
+	d_attrCheckReturn = cgmMeta.validateAttrArg(driverAttr,noneValid=True) or {}
+	miPlug_driver = d_attrCheckReturn.get('mi_plug') or False
+	
+	#>Controls ----------------------------------------------------------
+	mi_aimTarget = cgmMeta.validateObjArg(ikControl,cgmMeta.cgmObject,noneValid=True)
+	mi_fkControl = cgmMeta.validateObjArg(fkControl,cgmMeta.cgmObject,noneValid=True)
+	
+	#> axis -------------------------------------------------------------
+	axis_aim = cgmValid.simpleAxis(aimAxis)
+	axis_up = cgmValid.simpleAxis(upAxis)
 	    
-	    d_locs[s] = mi_loc #Store it to our dict
-	    mi_loc.parent = mi_group #Parent to group
-	except StandardError,error:
-	    raise StandardError, "createEyeballRig >>> Failed to create '%s' loc | error: %s"%(s,error)
+	#Figure out what to build by making list which we will store back the locs to
+	l_toBuild.append('fk')
+	if b_doIK:
+	    l_toBuild.append('ik')
+	    l_toBuild.append('aimTarget')
+	    l_toBuild.append('upTarget')
+	if len(l_toBuild) > 1:
+	    l_toBuild.insert(0,'blend')    
+	if not l_toBuild:raise StandardError,"createEyeballRig >>> No options set to build anything. Aborting!"
+    except StandardError,error:
+	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)
+    
+    try:#>>> Module instance
+	i_module = False
+	try:
+	    if moduleInstance is not None and moduleInstance.isModule():
+		i_module = moduleInstance    
+		log.info("%s >> module instance found: %s"%(_str_funcName,i_module.p_nameShort))		
+	except:pass
+	if i_module and not d_nameTags:#get some name tags from the module if we don't have them  assigned
+	    d_nameTags = i_module.getNameDict(ignore = 'cgmType')
+    except StandardError,error:
+	raise StandardError,"%s >> Module check fail! | error: %s"%(_str_funcName,error)
+    
+    try:#>>> Joints
+	#==================================================================== 
+	mi_ballJoint = cgmMeta.validateObjArg(ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])
+	if not mi_ballJoint:
+	    raise NotImplementedError,"%s >>Need to implement joint creation"%(_str_funcName)
+	    log.info("Need to created ball joint")
+	    l_pos = mi_ball.getPosition()
+	    str_ballJoint = mc.joint (p=(l_pos[0],l_pos[1],l_pos[2]))
+	    mi_ballJoint = cgmMeta.validateObjArg(str_ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])	
+	    mi_ballJoint.parent = False
+    except StandardError,error:
+	raise StandardError,"%s >> Setup joints fail! | error: %s"%(_str_funcName,error)
+    
 	
-    if b_doIK:#Build our ik one
-	#First let's move our aimers and ups
-	mi_aimLoc = d_locs['aimTarget']
-	mi_upLoc = d_locs['upTarget']
-	mi_ikLoc = d_locs['ik']
+    try:#>>> Setup transforms
+	#==================================================================== 
+	#What is our target
+	if mi_ballJoint:mi_target = mi_ballJoint
+	else:mi_target = mi_ball
 	
-	mi_upLoc.__setattr__('t%s'%orientation[1],f_averageSize*1.5)
+	#> Build our group ---------------------------------------------------
+	mi_group = mi_target.doDuplicateTransform(copyAttrs = False)
+	if d_nameTags: mi_group.doTagAndName(d_nameTags)
+	d_return['mi_rigGroup'] = mi_group #store to return dict
 	
-	#See if we have an aim target
-	mi_aimTarget = cgmMeta.validateObjArg(aimTargetObject,cgmMeta.cgmObject,noneValid=True)
-	if not mi_aimTarget:
-	    mi_aimLoc.__setattr__('t%s'%orientation[0],f_averageSize*5)
-	else:
-	    Snap.go(mi_aimLoc,mi_aimTarget.mNode)
+	#> driver -------------------------------------------------------------
+	if not miPlug_driver:
+	    miPlug_driver = cgmMeta.cgmAttr(mi_group, 'blend', 'float', keyable=True, minValue=0, maxValue= 1)
 	
+	#Build our locs
+	md_locs = {}#Storage dict
 	
-	constBuffer = mc.aimConstraint(mi_aimLoc.mNode,mi_ikLoc.mNode,
-	                               aimVector  = axis_aim.p_vector,
-	                               upVector = axis_up.p_vector,
-	                               worldUpObject = mi_upLoc.mNode,
-	                               worldUpType = 'object')
+	for s in l_toBuild:
+	    try:
+		log.info("%s >> building %s"%(_str_funcName,s))
+		mi_loc = mi_target.doLoc() #Create it
+		#Naming ----------------------------------
+		if d_nameTags:
+		    d_tmpNameTags = d_nameTags
+		    d_tmpNameTags['cgmTypeModifier'] = s	    
+		else:
+		    d_tmpNameTags = {'cgmTypeModifier':s}
+		mi_loc.doTagAndName(d_tmpNameTags)#Name it
+		
+		md_locs[s] = mi_loc #Store it to our dict
+		mi_loc.parent = mi_group #Parent to group
+	    except StandardError,error:
+		raise StandardError, "createEyeballRig >>> Failed to create '%s' loc | error: %s"%(s,error)
+	d_return['md_locs']=md_locs#store to return dict
 	
-    mi_blendLoc = d_locs.get('blend') or False
-    if mi_blendLoc:
-	mi_fkLoc = d_locs['fk']
-	mi_ikLoc = d_locs['ik']
-	connectBlendChainByConstraint(mi_fkLoc,mi_ikLoc,mi_blendLoc,driver = miPlug_driver, l_constraints=['point','orient'])
+    except StandardError,error:
+	raise StandardError,"%s >> Setup transform fail! | error: %s"%(_str_funcName,error)
+    
+    try:#Build our ik one ------------------------------------------
+	if b_doIK:
+	    #First let's move our aimers and ups
+	    mi_aimLoc = md_locs['aimTarget']
+	    mi_upLoc = md_locs['upTarget']
+	    mi_ikLoc = md_locs['ik']
+	    
+	    mi_upLoc.__setattr__('t%s'%orientation[1],f_averageSize*1.5)
+	    
+	    #See if we have an aim target
+	    if mi_aimTarget:
+		Snap.go(mi_aimLoc,mi_aimTarget.mNode)#Snap to the target
+		mi_aimLoc.parent = mi_aimTarget#Parent it
+	    else:
+		mi_aimLoc.__setattr__('t%s'%orientation[0],f_averageSize*5)
+		
+	    constBuffer = mc.aimConstraint(mi_aimLoc.mNode,mi_ikLoc.mNode,
+		                           aimVector  = axis_aim.p_vector,
+		                           upVector = axis_up.p_vector,
+		                           worldUpObject = mi_upLoc.mNode,
+		                           worldUpType = 'object')
+    except StandardError,error:
+	raise StandardError,"%s >> ik setup fail! | error: %s"%(_str_funcName,error)
+    
+    try:#Build blend loc --------------------------------------------------------------
+	mi_blendLoc = md_locs.get('blend') or False
+	if mi_blendLoc:
+	    mi_fkLoc = md_locs['fk']
+	    mi_ikLoc = md_locs['ik']
+	    d_blendSetupReturn = connectBlendChainByConstraint(mi_fkLoc,mi_ikLoc,mi_blendLoc,driver = miPlug_driver, l_constraints=['point','orient'])
+	    
+	    #Increase the size of the loc to make it visible
+	    l_shapes = mi_blendLoc.getShapes()
+	    mi_shape = cgmMeta.cgmNode(l_shapes[0])
+	    mi_shape.localScaleX = f_averageSize
+	    mi_shape.localScaleY = f_averageSize
+	    mi_shape.localScaleZ = f_averageSize
+	    
+    except StandardError,error:
+	raise StandardError,"%s >> blend loc setup fail! | error: %s"%(_str_funcName,error)
+    
+    try:#Vis blend
+	#==============================================================
+	if mi_blendLoc and d_blendSetupReturn and b_doVisBlend and miPlug_driver:
+	    log.info("%s >>Setting up vis blend"%(_str_funcName))
+	    #>>> Setup a vis blend result
+	    d_blendReturn = NodeF.createSingleBlendNetwork(miPlug_driver,
+	                                                   [miPlug_driver.obj.mNode,'result_ikOn'],
+	                                                   [miPlug_driver.obj.mNode,'result_fkOn'],
+	                                                   keyable=False,hidden=False)	    
+	    mPlug_IKon = d_blendReturn['d_result1']['mi_plug']
+	    mPlug_FKon = d_blendReturn['d_result2']['mi_plug']
+	    d_return['mPlug_fkVis'] = mPlug_FKon
+	    d_return['mPlug_ikVis'] = mPlug_IKon	    
+			
+    except StandardError,error:
+	raise StandardError,"%s >> Vis blend setup failed! | error: %s"%(_str_funcName,error)
+
+    try:#Module stuff --------------------------------------------------------------
+	if i_module:#if we have a module, connect vis
+	    for l in md_locs.keys():
+		log.info("%s >> connecting to module: %s"%(_str_funcName,s))		
+		i_loc = md_locs[l]
+		i_loc.overrideEnabled = 1		
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_loc.mNode,'overrideVisibility'))    
+		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_loc.mNode,'overrideDisplayType'))    
+    except StandardError,error:
+	raise StandardError,"%s >> blend loc setup fail! | error: %s"%(_str_funcName,error)
+
+    try:#Setup contstraints for the joint
+	if mi_ballJoint:
+	    if md_locs.get('blend'):mi_orientTarget = md_locs.get('blend')
+	    else:mi_orientTarget = md_locs.get('fk')
+	    log.info("%s >> joint orient target: '%s'"%(_str_funcName,mi_orientTarget.p_nameShort))		
+	    mc.orientConstraint(mi_orientTarget.mNode,mi_ballJoint.mNode,maintainOffset= True)
 	
-	#Increase the size of the loc to make it visible
-	l_shapes = mi_blendLoc.getShapes()
-	mi_shape = cgmMeta.cgmNode(l_shapes[0])
-	mi_shape.localScaleX = f_averageSize
-	mi_shape.localScaleY = f_averageSize
-	mi_shape.localScaleZ = f_averageSize
+	if mi_fkControl:
+	    log.info("%s >> FK constraining. target: '%s' | control: '%s'"%(_str_funcName,mi_fkLoc.p_nameShort,mi_fkControl.p_nameShort))		
+	    mc.orientConstraint(mi_fkControl.mNode,mi_fkLoc.mNode,maintainOffset= True)
+	    
+    except StandardError,error:
+	raise StandardError,"%s >> joint constraint setup fail! | error: %s"%(_str_funcName,error)
+    
+    return d_return
 	
 
 	
@@ -3422,63 +3505,70 @@ def connectBlendChainByConstraint(l_jointChain1,l_jointChain2,l_blendChain, driv
     channels(list) -- channels to blend
     
     """
-    d_funcs = {'point':mc.pointConstraint,
-               'orient':mc.orientConstraint,
-               'scale':mc.scaleConstraint,
-               'parent':mc.scaleConstraint}
-    for c in l_constraints:
-	if c not in ['point','orient','scale','parent']:
-	    log.warning("Bad constraint arg: %s. Removing!"%c)
-	    l_constraints.remove(c)
-    if not l_constraints:
-	raise StandardError,"connectBlendChainByConstraint>>> Need valid constraints: %s"%l_constraints
+    _str_funcName = 'connectBlendChainByConstraint'
+    log.info(">>> %s >> "%_str_funcName + "="*75)   
+    try:
+	d_funcs = {'point':mc.pointConstraint,
+	           'orient':mc.orientConstraint,
+	           'scale':mc.scaleConstraint,
+	           'parent':mc.scaleConstraint}
+	for c in l_constraints:
+	    if c not in ['point','orient','scale','parent']:
+		log.warning("Bad constraint arg: %s. Removing!"%c)
+		l_constraints.remove(c)
+	if not l_constraints:
+	    raise StandardError,"connectBlendChainByConstraint>>> Need valid constraints: %s"%l_constraints
+	    
+	ml_jointChain1 = cgmMeta.validateObjListArg(l_jointChain1,cgmMeta.cgmObject,noneValid=False)
+	ml_jointChain2 = cgmMeta.validateObjListArg(l_jointChain2,cgmMeta.cgmObject,noneValid=False)
+	ml_blendChain = cgmMeta.validateObjListArg(l_blendChain,cgmMeta.cgmObject,noneValid=False)
+	d_driver = cgmMeta.validateAttrArg(driver,noneValid=True)
+	mi_driver = False
+	if d_driver:mi_driver = d_driver.get('mi_plug') or False
 	
-    ml_jointChain1 = cgmMeta.validateObjListArg(l_jointChain1,cgmMeta.cgmObject,noneValid=False)
-    ml_jointChain2 = cgmMeta.validateObjListArg(l_jointChain2,cgmMeta.cgmObject,noneValid=False)
-    ml_blendChain = cgmMeta.validateObjListArg(l_blendChain,cgmMeta.cgmObject,noneValid=False)
-    d_driver = cgmMeta.validateAttrArg(driver,noneValid=True)
-    mi_driver = False
-    if d_driver:mi_driver = d_driver.get('mi_plug') or False
-    
-    if not len(ml_jointChain1) >= len(ml_blendChain) or not len(ml_jointChain2) >= len(ml_blendChain):
-	raise StandardError,"connectBlendChainByConstraint>>> Joint chains aren't equal lengths: l_jointChain1: %s | l_jointChain2: %s | l_blendChain: %s"%(len(l_jointChain1),len(l_jointChain2),len(l_blendChain))
-    """
-    for i,i_jnt in enumerate(ml_blendChain):
-	if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain1[i].getPosition() ):
-	    raise StandardError,"connectBlendChainByConstraint>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
-	if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain2[i].getPosition() ):
-	    raise StandardError,"connectBlendChainByConstraint>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
-    """
-    ml_nodes = []
-    
-    #>>> Actual meat
-    #===========================================================
-    for i,i_jnt in enumerate(ml_blendChain):
-	for constraint in l_constraints:
-	    log.debug("connectBlendChainByConstraint>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
-	                                                                    ml_jointChain2[i].getShortName(),
-	                                                                    ml_blendChain[i].getShortName(),constraint))	    
-	    i_c = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
-	                                               ml_blendChain[i].getShortName(),maintainOffset = True)[0])
-	    
-	    
-	    targetWeights = d_funcs[constraint](i_c.mNode,q=True, weightAliasList=True)
-	    if len(targetWeights)>2:
-		raise StandardError,"connectBlendChainByConstraint>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
-	    
-	    if mi_driver:
-		d_blendReturn = NodeF.createSingleBlendNetwork(mi_driver,
-		                                               [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain1[i].getShortName())],
-		                                               [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain2[i].getShortName())],
-		                                               keyable=True)
-    
-		#Connect                                  
-		d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[0]))
-		d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[1]))
-			
-	    ml_nodes.append(i_c)
-	    
-    return ml_nodes
+	if not len(ml_jointChain1) >= len(ml_blendChain) or not len(ml_jointChain2) >= len(ml_blendChain):
+	    raise StandardError,"connectBlendChainByConstraint>>> Joint chains aren't equal lengths: l_jointChain1: %s | l_jointChain2: %s | l_blendChain: %s"%(len(l_jointChain1),len(l_jointChain2),len(l_blendChain))
+	"""
+	for i,i_jnt in enumerate(ml_blendChain):
+	    if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain1[i].getPosition() ):
+		raise StandardError,"connectBlendChainByConstraint>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
+	    if not cgmMath.isVectorEquivalent( i_jnt.getPosition(),ml_jointChain2[i].getPosition() ):
+		raise StandardError,"connectBlendChainByConstraint>>> joints not equivalent: %s |%s"%(i_jnt.getShortName(),ml_jointChain1[i].getShortName())
+	"""
+	ml_nodes = []
+	
+	#>>> Actual meat
+	#===========================================================
+	for i,i_jnt in enumerate(ml_blendChain):
+	    for constraint in l_constraints:
+		log.debug("connectBlendChainByConstraint>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
+		                                                                ml_jointChain2[i].getShortName(),
+		                                                                ml_blendChain[i].getShortName(),constraint))	    
+		i_c = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
+		                                           ml_blendChain[i].getShortName(),maintainOffset = True)[0])
+		
+		
+		targetWeights = d_funcs[constraint](i_c.mNode,q=True, weightAliasList=True)
+		if len(targetWeights)>2:
+		    raise StandardError,"connectBlendChainByConstraint>>Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
+		
+		if mi_driver:
+		    d_blendReturn = NodeF.createSingleBlendNetwork(mi_driver,
+			                                           [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain1[i].getShortName())],
+			                                           [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain2[i].getShortName())],
+			                                           keyable=True)
+	
+		    #Connect                                  
+		    d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[0]))
+		    d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[1]))
+			    
+		ml_nodes.append(i_c)
+		
+	d_blendReturn['ml_nodes'] = ml_nodes
+	
+	return d_blendReturn
+    except StandardError,error:
+	raise StandardError,"%s >>  error: %s"%(_str_funcName,error)   
     
 def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
     """
