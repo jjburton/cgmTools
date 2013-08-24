@@ -49,6 +49,7 @@ from cgm.lib import (modules,
                      curves)
 
 cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball']
+l_faceModuleTypes = ['eyeball']
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
@@ -1527,7 +1528,26 @@ class cgmModule(cgmMeta.cgmObject):
     
     def getPartNameBase(self):
 	return nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
-	
+    
+    def getSettingsControl(self):
+	"""
+	Call to figure out a module's settings control
+	"""
+	_str_funcName = "getSettingsControl(%s)"%self.p_nameShort
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+	mi_rigNull = self.rigNull#Link
+	try:
+	    return mi_rigNull.settings#fastest check
+	except:log.info("%s >>> No settings connected. Probably not rigged, so let's check ..."%_str_funcName)
+	if self.moduleType in l_faceModuleTypes:
+	    log.info("%s >>> Face module..."%_str_funcName)
+	    try:return self.moduleParent.rigNull.settings#fastest check
+	    except:log.info("%s >>> No moduleParent settings connected..."%_str_funcName)	    
+	    try:return self.modulePuppet.masterControl.controlSettings#fastest check
+	    except:log.info("%s >>> No masterControl settings found..."%_str_funcName)	    
+	    
+	log.error("%s >>> Unable to find settings control."%(_str_funcName))
+	return False
     
     def doSetParentModule(self,moduleParent,force = False):
         """
