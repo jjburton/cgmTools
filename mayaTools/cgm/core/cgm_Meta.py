@@ -4187,15 +4187,21 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    
 	except:
 	    log.debug("cgmAttr call failed: %s"%arg)	    
-	    if type(arg) in [list,tuple] and len(arg) == 2:
-		try:
-		    log.debug(arg[0].mNode)
-		    obj = arg[0].mNode
-		except:
-		    log.debug("mNode call fail")
-		    obj = arg[0]
-		attr = arg[1]
-		combined = "%s.%s"%(obj,attr)
+	    if type(arg) in [list,tuple]:
+		if  len(arg) == 2:
+		    try:
+			log.debug(arg[0].mNode)
+			obj = arg[0].mNode
+		    except:
+			log.debug("mNode call fail")
+			obj = arg[0]
+		    attr = arg[1]
+		    combined = "%s.%s"%(obj,attr)
+		elif len(arg) == 1:
+		    arg = arg[0]
+		    obj = arg.split('.')[0]
+		    attr = '.'.join(arg.split('.')[1:])
+		    combined = arg		    
 	    elif '.' in arg:
 		obj = arg.split('.')[0]
 		attr = '.'.join(arg.split('.')[1:])
