@@ -302,7 +302,7 @@ class go(object):
 	
     @r9General.Timer    
     def build_eyeballIK(self):
-	_str_funcName = "go.build_eyeballFK(%s)"%self._strShortName
+	_str_funcName = "go.build_eyeballIK(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    mi_helper = self._mi_module.helper
