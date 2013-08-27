@@ -48,7 +48,7 @@ from cgm.lib import (modules,
                      search,
                      curves)
 
-cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball']
+cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids']
 l_faceModuleTypes = ['eyeball']
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
@@ -360,7 +360,11 @@ class cgmPuppet(cgmMeta.cgmNode):
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
 	return pFactory.getModules(self)
-    
+    def gatherModules(self):
+	"""
+	Gathers all connected module children to the puppet
+	"""
+	return pFactory.gatherModules(self)
     def getState(self):
 	"""
 	Returns puppet state. That is the minimum state of it's modules
@@ -1927,6 +1931,58 @@ class cgmEyeball(cgmModule):
 		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
         return True
 
+#>>> Eyelids =====================================================================================================
+d_eyelids_rigNullAttrs_toMake = {}
+d_eyelids_templateNullAttrs_toMake = {}
+
+class cgmEyelids(cgmModule):
+    #@cgmGeneral.Timer    
+    def __init__(self,*args,**kws):
+	""" 
+	Intializes an eyelids master class handler
+	Args:
+	node = existing module in scene
+	name = treated as a base name
+
+	Keyword arguments:
+	moduleName(string) -- either base name or the name of an existing module in scene
+	moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
+	
+	mType(string) -- must be in cgm_PuppetMeta.limbTypes.keys()
+	Naming and template tags. All Default to False
+	position(string) -- position tag
+	direction(string) -- direction
+	directionModifier(string)
+	nameModifier(string)
+	forceNew(bool) --whether to force the creation of another if the object exists
+	"""
+	_str_funcName = "cgmEyelids.__init__"    
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+	       
+	if 'name' not in kws.keys() and 'mType' in kws.keys():
+	    kws['name'] = kws['mType']
+	super(cgmEyelids, self).__init__(*args,**kws) 
+
+    def __verify__(self,**kws):
+	cgmModule.__verify__(self,**kws)
+	moduleType = kws.pop('mType','eyelids')	
+
+	if self.moduleType != moduleType:
+	    log.debug("Changing type to '%s' type"%moduleType)
+	self.moduleType = moduleType
+	
+	#>>> Attributes ...
+	self.__verifyAttributesOn__(self.i_rigNull,d_eyelids_rigNullAttrs_toMake)
+	self.__verifyAttributesOn__(self.i_templateNull,d_eyelids_templateNullAttrs_toMake)
+	
+	settings = {'handles': 5}
+	if settings:
+	    for attr in settings.keys():
+		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
+	return True
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Rig Blocks
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -2086,10 +2142,10 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	    log.info(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
 	    return False
 	
-	log.info(">>> %s >>> Building puppet...")
+	log.info(">>> %s >>> Building puppet..."%(_str_funcName))
 	mi_puppet = cgmPuppet(name = mi_module.getNameAlias())
 	mi_puppet.connectModule(mi_module)	
-	
+	mi_puppet.gatherModules()#Gather any modules in the chain
 	return mi_puppet
 	
 	
@@ -2101,10 +2157,19 @@ class cgmRigBlock(cgmMeta.cgmObject):
 
 class cgmEyeballBlock(cgmRigBlock):
     d_attrsToMake = {'buildIris':'bool',
-                     'buildPupil':'bool'} 
-    d_defaultSettings = {'buildIris':True,'buildPupil':True}
-    d_helperSettings = {'iris':{'plug':'mi_irisHelper','check':'buildIris'},
-                        'pupil':{'plug':'mi_pupilHelper','check':'buildIris'}}
+                     'buildPupil':'bool',
+                     'buildLids':'bool',
+                     'uprLidJoints':'int',
+                     'lwrLidJoints':'int',
+                     'pupilHelper':'messageSimple',
+                     'irisHelper':'messageSimple',
+                     'uprLidHelper':'messageSimple',
+                     'lwrLidHelper':'messageSimple',
+                     'moduleEyelids':'messageSimple'} 
+    d_defaultSettings = {'buildIris':True,'buildPupil':True,'buildLids':True,
+                         'uprLidJoints':5,'lwrLidJoints':5}
+    d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
+                        'pupil':{'plug':'pupilHelper','check':'buildIris'}}
 
     #@cgmGeneral.Timer    
     def __init__(self,*args,**kws):
@@ -2134,7 +2199,6 @@ class cgmEyeballBlock(cgmRigBlock):
 	for attr in cgmEyeballBlock.d_defaultSettings.keys():
 	    try:self.addAttr(attr, value = cgmEyeballBlock.d_defaultSettings[attr], defaultValue = cgmEyeballBlock.d_defaultSettings[attr])
 	    except StandardError,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmEyeballBlock.d_defaultSettings[attr],error)
-	
 	if not self.getShapes():
 	    self.__rebuildShapes__()
 	    
@@ -2181,56 +2245,88 @@ class cgmEyeballBlock(cgmRigBlock):
 	mc.delete(str_orb)	
 	
 	#>>>Build the Iris and pupil
-	l_buildOrder = ['pupil','iris']
-	d_buildCurves = {'pupil':mc.curve( d = 3,p = [[9.7144514654701197e-17, -0.10492677879290249, 0.49949904537594242], [0.027660524875928346, -0.10473488058821118, 0.49949904537594242], [0.083154609621812883, -0.081601184395932544, 0.49949904537594242], [0.11621538365453113, 0.00076046355070656798, 0.49949904537594236], [0.081804004714347456, 0.082681552289738752, 0.49949904537594231], [-0.00050743757734121847, 0.11629538815303482, 0.49949904537594225], [-0.082522413369626221, 0.081964538478529164, 0.49949904537594231], [-0.11621759474099563, -0.00025372307633358179, 0.49949904537594236], [-0.082439347716737846, -0.082323728925588854, 0.49949904537594242], [-0.026745498994526547, -0.10497227315711741, 0.49949904537594242], [1.0370003785130407e-16, -0.10492677879290251, 0.49949904537594242]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
-	                 'iris':mc.curve( d = 3,p = [[9.7144514654701222e-17, -0.21353970054237428, 0.49949904537594259], [0.056292781183235517, -0.21314916262978589, 0.49949904537594264], [0.1692304923646531, -0.16606906911917113, 0.49949904537594259], [0.23651348597088864, 0.0015476426586177752, 0.49949904537594247], [0.16648183495985017, 0.16826775890239862, 0.49949904537594236], [-0.0010327017521739809, 0.23667630557565536, 0.49949904537594231], [-0.16794389041299704, 0.16680854213912943, 0.49949904537594236], [-0.23651798582065964, -0.00051635960204138103, 0.49949904537594247], [-0.16777484095920459, -0.16753954161691045, 0.49949904537594259], [-0.054430583992481213, -0.21363228751609611, 0.49949904537594264], [1.1048586065241e-16, -0.21353970054237428, 0.49949904537594259]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)),
+	l_buildOrder = ['pupil','iris','uprLid','lwrLid']
+	d_buildCurves = {'pupil':mc.circle(normalZ = 1,radius = .09)[0],
+	                 'iris':mc.circle(normalZ = 1,radius = .18)[0],
+	                 'uprLid': mc.curve( d = 7,p = [[-0.44983530883670614, -0.071322594849904483, 0.36447022867017792], [-0.41829822121153859, -0.076896548997831424, 0.36029350648460373], [-0.37965007473058976, -0.068979541432776223, 0.38851433033177529], [-0.30723268320699781, 0.069290384212930434, 0.47810854649572376], [-0.17722744036745491, 0.18746372246544851, 0.59390774699001958], [0.10824468618298072, 0.21321584685485462, 0.584725411742131], [0.3298348785746214, 0.15455892134311355, 0.47446094679578343], [0.45662395681608442, 0.0061289393759054178, 0.32035084692498095], [0.45876148344130957, -0.081023121388213326, 0.25124022530758361]],k = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0)),
+	                 'lwrLid':mc.curve( d = 7,p = [[-0.45053674825700091, -0.073162071798690526, 0.36480978291355348], [-0.42304044071766306, -0.067231612899713564, 0.3610575914584816], [-0.39997680161862192, -0.077368790745462476, 0.38742660957006148], [-0.27603943705561623, -0.19069469101646774, 0.4998691161966955], [-0.14516156462612845, -0.2266921348862958, 0.57038517412610701], [0.10764440316710838, -0.24084200820627188, 0.55850510170499423], [0.32024605633174202, -0.20780685290092293, 0.4559870301884088], [0.43357025439741831, -0.10483423978152118, 0.28188913131160498], [0.46005845201487922, -0.083167671103495877, 0.24918293340572251]],k = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0)),
 	                 }
 	ml_curves = []
+	md_curves = {}
 	for k in l_buildOrder:
 	    str_return = d_buildCurves.get(k)
-	    mi_obj = cgmMeta.cgmObject(str_return,cgmMeta.cgmObject)#instance
+	    mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
 	    mi_obj.addAttr('cgmName',k)#tag
 	    mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)		    
-	    #Pivot
-	    if ml_curves:
-		mi_obj.doCopyPivot(ml_curves[0])
-		mi_obj.parent = ml_curves[0]
-		curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
-	    else:
-		mc.xform(mi_obj.mNode, cp=True)#center pivot
-		mi_obj.parent = self.mNode#parent to inherit names
-		curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
+	    curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
 	    ml_curves.append(mi_obj)#append
+	    md_curves[k] = mi_obj
+	    mi_obj.doName()#Name	
 	    
-	    mi_obj.doName()#Name	 
-	    
+	    if k in ['uprLid','lwrLid']:
+		mi_obj.doCopyPivot(self)
+		
 	    #self.connectChildNode(mi_obj,'mi_%sHelper'%k,'mi_block')#Connect
-	    attributes.doSetLockHideKeyableAttr(mi_obj.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sy','v'])
+	    self.connectChildNode(mi_obj,'%sHelper'%k,'mi_block')
+	        
+	#Second pass on doing parenting and some lock work
+	for k in md_curves.keys():
+	    mi_obj = md_curves.get(k)
+	    if k == 'pupil':
+		mi_obj.parent = md_curves.get('iris')		
+	    else:
+		mi_obj.parent = self.mNode#parent to inherit names
+	    if k in ['iris','pupil']:
+		mi_obj.tz = .46
+		mc.makeIdentity(mi_obj.mNode,apply=True,t=1,r=1,s=1,n=0)
+		
+	    cgmMeta.cgmAttr(mi_obj,'sx').doConnectIn("%s.scaleY"%mi_obj.mNode)
+	    attributes.doSetLockHideKeyableAttr(mi_obj.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sz','v'])
+		 
+	#self.msgList_connect(ml_curves,'ml_helpers')
 	
-	self.msgList_connect(ml_curves,'ml_helpers','mi_block')
+	#Connect in our scales so we're scaling the eye one one channel
+	cgmMeta.cgmAttr(self,'sx').doConnectIn("%s.scaleY"%self.mNode)
+	cgmMeta.cgmAttr(self,'sz').doConnectIn("%s.scaleY"%self.mNode)
+	for a in ['sx','sz','rotate','v']:
+	    cgmMeta.cgmAttr(self,a,keyable=False,lock=True,hidden=True)
+	
+	#attributes.doSetLockHideKeyableAttr(self.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sz','v'])
+	
 	
     def __buildModule__(self):
 	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
-	
-	bfr_name = self._d_buildKWS.get('name') or None
-	bfr_position = self._d_buildKWS.get('position') or None
-	bfr_direction = self._d_buildKWS.get('direction') or None
-	
-	i_module = cgmEyeball(name = bfr_name,
-	                       position = bfr_position,
-	                       direction = bfr_direction)
-	
-	self.connectChildNode(i_module,"mi_module","helper")
-	
-	self.__storeNames__()
-	
-	#Size it
-	self.__updateSizeData__()
-	
-	#>>>Let's do our manual sizing
-	return i_module
+	try:
+	    bfr_name = self._d_buildKWS.get('name') or None
+	    bfr_position = self._d_buildKWS.get('position') or None
+	    bfr_direction = self._d_buildKWS.get('direction') or None
+	    
+	    try:#Eyeball module
+		#===================================================================
+		i_module = cgmEyeball(name = bfr_name,
+		                      position = bfr_position,
+		                      direction = bfr_direction)
+		self.connectChildNode(i_module,"mi_module","helper")
+	    except StandardError,error:raise StandardError,"Failed to build eyeball module | error: %s "%(error)
+	    try:#Eyelids module
+		#===================================================================
+		i_eyelidsModule = cgmEyelids(name = 'eyelids',
+		                           position = bfr_position,
+		                           direction = bfr_direction)
+		i_eyelidsModule.doSetParentModule(i_module)
+		self.connectChildNode(i_eyelidsModule,"moduleEyelids","helper")
+		
+	    except StandardError,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
+	    self.__storeNames__()
+	    
+	    #Size it
+	    self.__updateSizeData__()
+	    
+	    #>>>Let's do our manual sizing
+	    return i_module
+	except StandardError,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
     
     def __storeNames__(self):
 	#Store our names
@@ -2263,13 +2359,13 @@ class cgmEyeballBlock(cgmRigBlock):
 	    except StandardError,error:
 		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_funcName,k,error))	
 	"""
-	ml_helpers = self.msgList_get('ml_helpers')#Get our helpers
+	##ml_helpers = self.msgList_get('ml_helpers')#Get our helpers
+	"""
 	if self.buildPupil:
-	    if not ml_helpers:
-		raise StandardError,"%s >>> Missing pupil helper"%(_str_funcName)
-	    l_pos.append(ml_helpers[0].getPosition())
+	    try:l_pos.append(self.pupilHelper.getPosition())
+	    except StandardError,error:raise StandardError,"%s >>> Missing Pupil helper | error: %s "%(_str_funcName,error)
 	if self.buildIris:
-	    try:l_pos.append(ml_helpers[1].getPosition())
+	    try:l_pos.append(self.irisHelper.getPosition())
 	    except StandardError,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_funcName,error)
 	
 	log.info("%s >>> l_pos: %s"%(_str_funcName,l_pos))		
@@ -2279,7 +2375,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	
 	i_module.doSize(sizeMode = 'manual',
 	                 posList = l_pos)
-	
+	"""
 	return True
 	
 		
