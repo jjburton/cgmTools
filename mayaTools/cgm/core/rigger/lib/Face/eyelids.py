@@ -35,7 +35,8 @@ from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import validateArgs as cgmValid
-
+from cgm.core.rigger.lib import joint_Utils as jntUtils
+from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
@@ -45,6 +46,7 @@ from cgm.core.rigger.lib import rig_Utils as rUtils
 from cgm.lib import (attributes,
                      joints,
                      skinning,
+                     locators,
                      lists,
                      dictionary,
                      distance,
@@ -53,7 +55,7 @@ from cgm.lib import (attributes,
                      curves,
                      )
 reload(joints)
-
+reload(lists)
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints']   
@@ -93,20 +95,124 @@ def build_rigSkeleton(self):
     except StandardError,error:
 	log.error("%s.build_rigSkeleton>>bad self!"%self._strShortName)
 	raise StandardError,error
+    
     _str_funcName = "build_rigSkeleton(%s)"%self._strShortName
     log.info(">>> %s >>> "%(_str_funcName) + "="*75)
     
+    try:#>>Info gather =====================================================================
+	_str_orientation = self._jointOrientation #Link	
+	mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
+	if not mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)    
+	
+	try:mi_uprLidBase = cgmMeta.validateObjArg(mi_helper.getMessage('uprLidHelper'),noneValid=False)
+	except StandardError,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)
+	try:mi_lwrLidBase = cgmMeta.validateObjArg(mi_helper.getMessage('lwrLidHelper'),noneValid=False)
+	except StandardError,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)    
+	int_handles = cgmValid.valueArg(self._i_templateNull.handles)
+	d_buildCurves = {'upr':{'crv':mi_uprLidBase,'count':int_handles},
+	                 'lwr':{'crv':mi_lwrLidBase,'count':int_handles}}
+	
+	#Orient info
+	_str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)   
+	v_aim = cgmValid.simpleAxis(_str_orientation[0]+"-").p_vector
+	v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector	
+	
+    except StandardError,error:
+	raise StandardError,"%s>>Gather Data fail! | error: %s"%(_str_funcName,error)   
+    
+    try:#>>Handle joints =====================================================================
+	for k in d_buildCurves.keys():
+	    mi_upLoc = cgmMeta.cgmObject(_str_upLoc)  
+	    mi_crv = d_buildCurves[k].get('crv')#get instance
+	    int_count = d_buildCurves[k].get('count')#get int
+	    log.info("%s >>> building joints for %s curve | count: %s"%(_str_funcName,k, int_count))
+	    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
+	    except StandardError,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(_str_funcName,error)       
+	    if k == 'lwr':l_pos = l_pos[1:-1]#remove start and end for lwr	    
+	    int_last = len(l_pos) -1 #last count
+	    int_mid = int(len(l_pos)/2)#mid count	 
+	    d_buildCurves[k]['l_pos'] = l_pos#Store it
+	    log.info("%s >>> '%s' pos list: %s"%(_str_funcName,k, l_pos))
+	    ml_handles = []
+	    for i,pos in enumerate(l_pos):
+		try:#Create and name
+		    mc.select(cl=True)
+		    mi_end = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+		    mi_end.parent = False
+		    ml_buffer = [mi_end]
+		    mi_end.doCopyNameTagsFromObject( self._i_module.mNode,ignore=['cgmTypeModifier','cgmType','cgmIterator'] )#copy Tags
+		    mi_end.addAttr('cgmName',"%s_lid"%(k),lock=True)		    		    
+		    mi_end.addAttr('cgmType','handleJoint',lock=True)
+		    ml_handles.append(mi_end)
+		    log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(_str_funcName,k,i,[o.p_nameShort for o in ml_handles]))
+		except StandardError,error:
+		    raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error)       
+		try:#aim constraint
+		    constraintBuffer = mc.aimConstraint(mi_helper.mNode,mi_end.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+		    mc.delete(constraintBuffer[0])  		
+		except StandardError,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)
+		try:jntUtils.metaFreezeJointOrientation(mi_end)
+		except StandardError,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
+	    try:#Naming loop =======================================================================
+		#First we need to split our list
+		mi_mid = ml_handles[int_mid]
+		mi_mid.addAttr('cgmTypeModifier',"main",lock=True)
+		mi_mid.doName()
+		
+		#Split the lists down for inner/outer
+		l_buffer = lists.returnSplitList(ml_handles,popMid=True)
+		ml_start = l_buffer[0]
+		ml_end = l_buffer[-1]
+		ml_end.reverse()
+		for i,l in enumerate([ml_start,ml_end]):
+		    if len(l) > 1:
+			b_iterate = True
+		    else:b_iterate = False
+		    for ii,mObj in enumerate(l):
+			if i == 0:mObj.addAttr('cgmDirectionModifier',"inner",lock=True)
+			else:mObj.addAttr('cgmDirectionModifier',"outer",lock=True)
+			if b_iterate and ii > 0:
+			    mObj.addAttr('cgmTypeModifier','sub',lock=True)			    
+			    mObj.addAttr('cgmIterator',ii-1,lock=True)
+			    mObj.addAttr('isSubControl',True,lock=True)			    
+			mObj.doName()
+				
+	    except StandardError,error:raise StandardError,"Naming fail | error: %s "%(error)       
+	    
+	    self._i_rigNull.msgList_connect(ml_handles,'handleJoints_%s'%k,'rigNull')
+	mi_upLoc.delete()
+    except StandardError,error:
+	raise StandardError,"%s>>Build handle joints fail! | error: %s"%(_str_funcName,error)   
+   
     
     #>>>Create joint chains
     try:#>>Rig chain =====================================================================
 	ml_rigJoints = self.build_rigChain()	
     except StandardError,error:
 	raise StandardError,"%s>>Build rig joints fail! | error: %s"%(_str_funcName,error)   
-
+    
+    try:#>>Root joints =====================================================================
+	ml_rootJoints = []
+	for mObj in ml_rigJoints:
+	    mc.select(cl=True)#clear so joints to parent to one another
+	    mi_root = cgmMeta.cgmObject( mc.joint(p = mi_helper.getPosition()),setClass=True )
+	    mi_root.doCopyNameTagsFromObject(mObj.mNode)#copy tags
+	    mi_root.addAttr('cgmTypeModifier','rigRoot',lock=True)#Tag as root
+	    joints.doCopyJointOrient(mObj.mNode,mi_root.mNode)
+	    mObj.parent = mi_root
+	    mi_root.doName()
+	    jntUtils.metaFreezeJointOrientation([mi_root])
+	    mObj.connectChildNode(mi_root,'root')#Connect
+	    ml_rootJoints.append(mi_root)
+	    
+    except StandardError,error:
+	raise StandardError,"%s>>Build rig joints fail! | error: %s"%(_str_funcName,error)   
+    
     try:#>>> Store em all to our instance
 	#=====================================================================	
 	ml_jointsToConnect = []
 	ml_jointsToConnect.extend(ml_rigJoints)    
+	ml_jointsToConnect.extend(ml_rootJoints)    	
 	for i_jnt in ml_jointsToConnect:
 	    i_jnt.overrideEnabled = 1		
 	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
