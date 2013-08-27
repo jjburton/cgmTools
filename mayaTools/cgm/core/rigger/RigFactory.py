@@ -31,7 +31,7 @@ from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 reload(jntUtils)
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
-from cgm.core.rigger.lib.Face import (eyeball)
+from cgm.core.rigger.lib.Face import (eyeball,eyelids)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -62,6 +62,7 @@ d_moduleTypeToBuildModule = {'leg':leg,
                              'finger':finger,
                              'thumb':finger,
                              'eyeball':eyeball,
+                             'eyelids':eyelids,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
