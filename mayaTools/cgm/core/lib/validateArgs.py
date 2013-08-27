@@ -22,6 +22,7 @@ import sys
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
+from cgm.lib import cgmMath
 from cgm.lib import search
 # Shared Defaults ========================================================
 
@@ -131,6 +132,60 @@ def objStringList(l_args = None, mayaType = None, noneValid = False,calledFrom =
 	return returnList
     except StandardError,error:
 	log.error("%s >>Failure! l_args: %s | mayaType: %s"%(_str_funcName,l_args,mayaType))
+	raise StandardError,error 
+
+def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = None, isValue = None, isEquivalent = None, autoClamp = False,
+             calledFrom = None):
+    """
+    @Parameters
+    numberTocheck -- main number arg
+    inRange -- provide a range list to check
+    minValue -- 
+    maxValue --
+    isValue -- 
+    isEquivalent
+    autoClamp -- try to return a number
+    """
+    log.debug(">>> valueArg >> numberToCheck = %s"%numberToCheck + "="*75) 
+    calledFrom = stringArg(calledFrom,noneValid=True)    
+    if calledFrom: _str_funcName = "%s.valueArg"%(calledFrom)
+    else:_str_funcName = "valueArg"    
+    try:
+	if numberToCheck is None:raise StandardError,"numberToCheck cannot be none."
+	if type(numberToCheck) not in [float,int]:
+	    raise StandardError,"%s not a number. Type: %s"%(numberToCheck,type(numberToCheck))
+	if inRange is not None:
+	    try:#Range check
+		if numberToCheck < min(inRange) or numberToCheck > max(inRange):
+		    return False
+	    except StandardError,error:raise StandardError,"Range arg failed. error: %s"%(inRange,error)
+	if type(minValue) in [float,int]:
+	    try:#Min check
+		if not numberToCheck > minValue:
+		    if autoClamp:
+			return minValue		    
+		    return False
+	    except StandardError,error:raise StandardError,"min value check fail. error: %s"%(error)
+	if type(maxValue) in [float,int]:
+	    try:#Max check
+		if not numberToCheck < maxValue:
+		    if autoClamp:
+			return maxValue
+		    return False
+	    except StandardError,error:raise StandardError,"max value check fail. error: %s"%(error)		
+	if type(isEquivalent) in [float,int]:
+	    try:#Equivalent check
+		if not cgmMath.isFloatEquivalent(isEquivalent,numberToCheck):
+		    return False
+	    except StandardError,error:raise StandardError,"isEquivalent check fail. error: %s"%(error)	    
+	if type(isValue) in [float,int]:
+	    try:#isValue check
+		if numberToCheck != isValue:
+		    return False
+	    except StandardError,error:raise StandardError,"isValue check fail. error: %s"%(error)	 
+	return numberToCheck
+    except StandardError,error:
+	log.error("%s >>Failure! int: %s | range: %s | min: %s | max: %s | isValue: %s"%(_str_funcName,numberToCheck,inRange,minValue,maxValue,isValue))
 	raise StandardError,error 
     
 #>>> Simple Axis ==========================================================================
