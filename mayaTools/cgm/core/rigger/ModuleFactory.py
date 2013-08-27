@@ -32,7 +32,7 @@ reload(dragFactory)
 # Shared libraries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 l_moduleStates = ['define','size','template','skeleton','rig']
-l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball']
+l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids']
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -41,7 +41,12 @@ def isSized(self):
     """
     Return if a moudle is sized or not
     """
-    log.debug(">>> %s.isSized() >> "%(self.p_nameShort) + "="*75) 		                                	                        
+    _str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+    if self.mClass in ['cgmEyelids','cgmEyeball']:
+	if self.getMessage('helper'):
+	    log.debug("%s.isSized>>> has size helper, good to go."%self.getShortName())	    
+	    return True
     handles = self.templateNull.handles
     i_coreNames = self.coreNames
     if len(i_coreNames.value) < handles:
@@ -221,7 +226,7 @@ def doSetParentModule(self,moduleParent,force = False):
         log.warning("'%s' lacks an mClass attr"%module.mNode)	    
         return False
 
-    if moduleParent.mClass not in ['cgmModule','cgmLimb']:
+    if moduleParent.mClass not in l_modulesClasses:
         log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
         return False
 
@@ -555,7 +560,12 @@ def isTemplated(self):
     """
     Return if a module is templated or not
     """
-    log.debug(">>> %s.isTemplated() >> "%(self.p_nameShort) + "="*75) 		                        
+    log.debug(">>> %s.isTemplated() >> "%(self.p_nameShort) + "="*75) 
+    if self.mClass in ['cgmEyelids','cgmEyeball']:
+	if self.getMessage('helper'):
+	    log.debug("%s.isTemplated>>> has size helper, good to go."%self.getShortName())	    
+	    return True
+	
     coreNamesValue = self.coreNames.value
     if not coreNamesValue:
         log.debug("No core names found")
