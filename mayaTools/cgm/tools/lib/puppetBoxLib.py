@@ -18,12 +18,12 @@ from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.SetFactory import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
-from cgm.lib.classes import NameFactory
+from cgm.lib.classes import NameFactory as NameFactoryOld
 from cgm.rigger import PuppetFactory
 from cgm.lib.classes import AttrFactory
 from cgm.rigger.lib import functions
 reload(AttrFactory)
-reload(NameFactory)
+reload(NameFactoryOld)
 reload(PuppetFactory)
 
 from cgm.rigger.PuppetFactory import *
@@ -794,7 +794,7 @@ def doUpdateSetName(self,setTextField,nameIndex):
     if setName and newName:
         #Name it
         attributes.storeInfo(setName,'cgmName',newName)
-        buffer = NameFactory.doNameObject(setName)
+        buffer = NameFactoryOld.doNameObject(setName)
         #Update...field
         mc.textField(setTextField,e = True,text = buffer)
         #...dict...

@@ -25,7 +25,6 @@ from cgm.lib.cgmBaseMelUI import *
 from cgm.lib.classes.SetFactory import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
-from cgm.lib.classes import NameFactory
 
 from cgm.lib import (search,guiFactory,lists)
 reload(search)

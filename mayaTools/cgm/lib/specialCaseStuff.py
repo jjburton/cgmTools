@@ -36,7 +36,6 @@ import maya.mel as mel
 from cgm.lib import guiFactory
 from cgm.lib import distance
 from cgm.lib import attributes
-from cgm.lib.classes import NameFactory
 from cgm.lib import constraints
 from cgm.lib import rigging
 from cgm.lib import position

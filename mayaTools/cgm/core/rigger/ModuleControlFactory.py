@@ -41,7 +41,6 @@ from cgm.lib import (attributes,
                      lists,
                      )
 
-from cgm.lib.classes import NameFactory
 from cgm.core.lib import nameTools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules

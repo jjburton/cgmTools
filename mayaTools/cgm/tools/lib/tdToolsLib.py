@@ -37,7 +37,7 @@ from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes.ControlFactory import *
 from cgm.lib.classes.DraggerContextFactory import *
 
-from cgm.lib.classes import NameFactory 
+from cgm.lib.classes import NameFactory as NameFactoryOld 
 
 
 from cgm.lib import (guiFactory,
@@ -64,7 +64,7 @@ from cgm.tools.lib import locinatorLib,namingToolsLib
 reload(curves)
 reload(position)
 reload(attributes)
-reload(NameFactory)
+reload(NameFactoryOld)
 reload(guiFactory)
 reload(modules)
 reload(controlBuilder)
@@ -1370,7 +1370,7 @@ def TextCurveObjectdoUpdate(self):
                     
                     if self.renameObjectOnUpdate:
                         attributes.storeInfo(obj,'cgmName',self.textObjectText)
-                        obj = NameFactory.doNameObject(obj)                    
+                        obj = NameFactoryOld.doNameObject(obj)                    
                  
                 if self.changeFontOnUpdate:
                     attributes.storeInfo(obj,'cgmObjectFont',self.textObjectFont) 
@@ -1406,7 +1406,7 @@ def TextCurveObjectdoUpdate(self):
 
             if self.renameObjectOnUpdate:
                 attributes.storeInfo(textCurveObject,'cgmName',self.textObjectText)
-                textCurveObject = NameFactory.doNameObject(textCurveObject)
+                textCurveObject = NameFactoryOld.doNameObject(textCurveObject)
 
             # Put our updated object info
             mc.textField(self.textCurrentObjectField,edit=True,ut = 'cgmUILockedTemplate', text = textCurveObject,editable = False )
@@ -1438,7 +1438,7 @@ def doCreateOneOfEachCurve(self):
 	
 	buffer = curves.createControlCurve(option,creationSize,self.uiCurveAxis )
 	attributes.storeInfo(buffer,'cgmName',option)	
-	buffer = NameFactory.doNameObject(buffer)
+	buffer = NameFactoryOld.doNameObject(buffer)
 	curves.setColorByIndex(buffer,colorChoice)
 	bufferList.append(buffer)
 	
@@ -1498,7 +1498,7 @@ def curveControlCreate(self):
 		print "buffer is '%s'"%buffer
                 attributes.storeInfo(buffer,'cgmName',item)
 		attributes.storeInfo(buffer,'cgmSource',item)
-                buffer = NameFactory.doNameObject(buffer)
+                buffer = NameFactoryOld.doNameObject(buffer)
                 if self.forceBoundingBoxState == True:
 		    guiFactory.warning("Forced Bounding box on")
                     locBuffer = locators.locMeObject(item, self.forceBoundingBoxState)
@@ -1521,7 +1521,7 @@ def curveControlCreate(self):
                 attributes.storeInfo(buffer,'cgmName',self.uiCurveName)
             else:
                 attributes.storeInfo(buffer,'cgmName',shapeOption)
-            buffer = NameFactory.doNameObject(buffer)
+            buffer = NameFactoryOld.doNameObject(buffer)
             curves.setColorByIndex(buffer,colorChoice)
 	    bufferList.append(buffer)
 	    
@@ -1653,7 +1653,7 @@ def curveControlConnect(self):
 			mc.connectAttr(obj.RotateOrderControl.nameCombined,(ConstraintGroup.nameLong+'.rotateOrder'))
 			
 		if ExtraGroupState:	
-		    NameFactory.doNameObject(ConstraintGroup.nameLong)
+		    NameFactoryOld.doNameObject(ConstraintGroup.nameLong)
 		    obj.update(obj.nameBase)
 				
 		if ConstraintMode == 'parent':

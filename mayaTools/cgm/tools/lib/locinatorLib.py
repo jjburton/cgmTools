@@ -30,7 +30,6 @@ import maya.cmds as mc
 import maya.mel as mel
 import subprocess
 
-from cgm.lib.classes import NameFactory
 from cgm.lib.classes import ObjectFactory
 reload(ObjectFactory)
 from cgm.lib.classes import OptionVarFactory
@@ -55,7 +54,6 @@ reload(lists)
 reload(batch)
 reload(rigging)
 reload(search)
-reload(NameFactory)
 reload(guiFactory)
 reload(modules)
 reload(locators)

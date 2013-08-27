@@ -24,7 +24,6 @@ import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
-from cgm.lib.classes import NameFactory
 
 from cgm.lib import (locators,
                      dictionary,
