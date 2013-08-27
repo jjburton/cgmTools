@@ -186,7 +186,8 @@ class clickMesh(ContextualPick):
                  toCreate = [],
                  *a,**kws):
 	
-	log.debug(">>> clickMesh >> __init__ " + "="*75)            	            			
+	_str_funcName = 'clickMesh.__init__'
+	log.info(">>> %s >> "%_str_funcName + "="*75)     	
 	#>>> Store our info ====================================================================
         self._createModes = ['locator','joint','jointChain','curve','follicle','group',False]
         self._l_modes = ['surface','intersections','midPoint']
@@ -432,6 +433,8 @@ class clickMesh(ContextualPick):
         """
         Get updated position data via shooting rays
         """
+	_str_funcName = 'clickMesh.updatePos'
+	log.debug(">>> %s >> "%_str_funcName + "="*75)     	
         if not self.l_mesh:
             return log.warning("No mesh objects have been added to '%s'"%(self.name))
         
@@ -451,7 +454,10 @@ class clickMesh(ContextualPick):
                 
             if mc.objExists(m):
                 if self.mode == 'surface':
-                    buffer = RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance)                
+		    try:buffer = RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance)   
+		    except StandardError,error:
+			buffer = None
+			log.error("%s >>> cast fail. More than likely, the offending face lacks uv's. Error: %s"%(_str_funcName,error))
                     if buffer is not None:
                         hit = self.convertPosToLocalSpace( buffer['hit'] )
                         self._posBuffer.append(hit)  
@@ -525,7 +531,7 @@ class clickMesh(ContextualPick):
 			    #attributes.doSetAttr(nameBuffer,'localScaleY',(self.f_meshArea*.025))
 			    #attributes.doSetAttr(nameBuffer,'localScaleZ',(self.f_meshArea*.025))
 			    
-			    if self.v_posOffset is not None and self.str_offsetMode and self._createMode not in ['follicle']:
+			    if self.v_posOffset is not None and self.v_posOffset and nameBuffer and self.str_offsetMode and self._createMode not in ['follicle']:
 				mi_obj = cgmMeta.cgmObject(nameBuffer)
 				mc.move (pos[0],pos[1],pos[2], mi_obj.mNode,ws=True)	
 				if self.str_offsetMode =='vector':
@@ -543,7 +549,8 @@ class clickMesh(ContextualPick):
 				                                      worldUpType = 'scene')
 				try:mc.delete(constBuffer)
 				except:pass
-				mc.move(self.v_posOffset[0],self.v_posOffset[1],self.v_posOffset[2], [mi_obj.mNode], r=True, rpr = True, os = True, wd = True)
+				try:mc.move(self.v_posOffset[0],self.v_posOffset[1],self.v_posOffset[2], [mi_obj.mNode], r=True, rpr = True, os = True, wd = True)
+				except StandardError,error:log.error("%s >>> Failed to move! | self.v_posOffset: %s | mi_obj: %s | error: %s"%(_str_funcName,self.v_posOffset,mi_obj,error))				
 				self._posBuffer[i] = mi_obj.getPosition()  
 				if not self.b_orientSnap:
 				    mi_obj.rotate = [0,0,0]
