@@ -21,6 +21,11 @@
 
 import maya.cmds as mc
 import copy
+import logging
+
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 def returnListChunks(l, n):
     """ 
@@ -83,7 +88,7 @@ def reorderListInPlace(l, subL, direction = 0):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Simplifying
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnSplitList(listToSplit, mode=0):
+def returnSplitList(listToSplit, mode=0, popMid = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -95,11 +100,16 @@ def returnSplitList(listToSplit, mode=0):
                                [1,2,3],[3,4,5,6]
                            1 - favors the rear
                                [1,2,3,4],[4,5,6]
+    popMid(bool) -- whether to pull the mddle option
     
     RETURNS:
     splitList
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    _str_funcName = 'returnSplitList'
+    log.info(">>> %s >> "%_str_funcName + "="*75) 
+    if not len(listToSplit)>=3:
+	raise StandardError,"%s >>> list length must be 3 or greater. len : %s | list: %s"%(_str_funcName,len(listToSplit),listToSplit)
     # if even...
     if len(listToSplit)%2==0:
         if mode == 0:
@@ -114,6 +124,14 @@ def returnSplitList(listToSplit, mode=0):
     else:
         halfA = listToSplit[:len(listToSplit)/2+ 1]
         halfB = listToSplit[len(listToSplit)/2:]
+    if popMid:
+        if len(listToSplit) == 2:
+            if len(halfA)>1:halfA.pop(-1)
+            if len(halfB)>1:halfB.pop(0)
+        else:
+            mid = listToSplit[int(len(listToSplit)/2.0)]
+            halfA.remove(mid)
+            halfB.remove(mid)
     splitList=[]
     splitList.append(halfA)
     splitList.append(halfB)
