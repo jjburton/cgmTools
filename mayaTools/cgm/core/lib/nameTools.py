@@ -157,6 +157,10 @@ def returnCombinedNameFromDict(nameDict):
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    _str_funcName = "returnCombinedNameFromDict(%s)"%nameDict
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    if type(nameDict) is not dict:raise StandardError,"%s >>> nameDict is not type dict. type: %s"%(_str_funcName,type(nameDict))
+    
     divider = returnCGMDivider()
     order = returnCGMOrder()
 
@@ -164,16 +168,16 @@ def returnCombinedNameFromDict(nameDict):
     #>>> Dictionary driven order
     for item in order:
         buffer = nameDict.get(item)
-        buffer = search.returnTagInfoShortName(buffer,item)
-        if buffer > 0 and buffer != 'ignore':
-            #if '|' or '[' or ']' in buffer:
-            bufferList = list(buffer)
+        buffer = str(search.returnTagInfoShortName(buffer,item))
+        if buffer not in ['False','None','ignore']:
+            bufferList = list(str(buffer))
             #log.info("buffer: %s"%buffer)
             returnList = []
+            """
             try:
                 if int(bufferList[0]) == 0:
                     bufferList.insert(0,'_')
-            except:pass
+            except:pass"""
             for i,n in enumerate(bufferList):
                 if n == '.':
                     returnList.append('_')
@@ -203,8 +207,9 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     namesDict(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    _str_funcName = "returnObjectGeneratedNameDict(%s,ignore = %s)"%(obj,ignore)
+    _str_funcName = "returnObjectGeneratedNameDict"
     log.debug(">>> %s >>> "%(_str_funcName) + "="*75)    
+    #_str_funcName = "returnObjectGeneratedNameDict(%s,ignore = %s)"%(obj,ignore)
 		
     if type(ignore) is not list:ignore = [ignore]    
     typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
@@ -234,6 +239,8 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         if namesDict.get('cgmTypeModifier') != None:
             namesDict.pop('cgmTypeModifier')   
 
+    log.debug("%s >>> initial nameDict: %s "%(_str_funcName,namesDict))    
+    
     #>>> checks if the names exist as objects or it's a shape node
     ChildNameObj = False
     nameObj = search.returnTagInfo(obj,'cgmName')
@@ -242,7 +249,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     childrenObjects = search.returnChildrenObjects(obj)
     """first see if it's a group """
     if isType == 'group' and typeTag == False:
-        log.debug("group and no typeTag")
+        log.debug("%s >>> group and no typeTag..."%(_str_funcName))            
         """ if it's a transform group """
         groupNamesDict = {}
         if not nameObj:
@@ -256,9 +263,10 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         """ see if there's a name tag"""
     elif nameObj != None or isType == 'shape':
         #If we have a name object or shape
-        log.debug("nameObj not None or isType is 'shape'")
+        log.debug("%s >>> nameObj not None or isType is 'shape'..."%(_str_funcName))            
+        
         if mc.objExists(nameObj) and mc.attributeQuery ('cgmName',node=obj,msg=True):
-            log.debug("nameObj exists: '%s'"%nameObj)
+            log.debug("%s >>> nameObj exists: '%s'..."%(_str_funcName,nameObj))                        
             #Basic child object with cgmName tag
             childNamesDict = {}
             childNamesDict['cgmName'] = namesDict.get('cgmName')
@@ -269,12 +277,13 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             return childNamesDict
         elif isType == 'shape' or 'Constraint' in isType:
             """if so, it's a child name object"""
+            log.debug("%s >>> child name object..."%(_str_funcName))                                    
             childNamesDict = {}
             childNamesDict['cgmName'] = search.returnParentObject(obj,False)
             childNamesDict['cgmType'] = namesDict.get('cgmType')
             return childNamesDict
         elif typeTag == 'infoNull':
-            """if so, it's a special case"""
+            log.debug("%s >>> special case..."%(_str_funcName))                                    
             moduleObj = search.returnMatchedTagObjectUp(obj,'cgmType','module')
             masterObj = search.returnMatchedTagObjectUp(obj,'cgmType','master')
             if moduleObj != False:
@@ -292,6 +301,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             else:
                 return namesDict
         else:
+            log.debug("%s >>> No special case found. %s"%(_str_funcName,namesDict))                                                
             return namesDict
     else:
         return namesDict
