@@ -54,7 +54,7 @@ l_faceModuleTypes = ['eyeball']
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         log.debug(">>> cgmPuppet.__init__")
         if kws:log.debug("kws: %s"%str(kws))
@@ -118,7 +118,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 raise StandardError,"'%s' failed to verify!"%name
 
     #====================================================================================
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def initialize(self):
         """ 
         Initializes the various components a masterNull for a character/asset.
@@ -134,7 +134,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
         return True
     
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def __verify__(self,name = None):
         """"""
         """ 
@@ -2124,7 +2124,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	#>>>Initial module build in 
 	log.debug(">>> %s >>> passing..."%(_str_funcName))
     
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def __buildSimplePuppet__(self):
 	"""
 	Build a simple puppet for itself
@@ -2171,7 +2171,7 @@ class cgmEyeballBlock(cgmRigBlock):
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
 
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def __init__(self,*args,**kws):
         """ 
         """
@@ -2184,7 +2184,7 @@ class cgmEyeballBlock(cgmRigBlock):
             kws['name'] = 'eye'  
         super(cgmEyeballBlock, self).__init__(*args,**kws) 
 
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def __verify__(self,**kws):
 	_str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
 	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -2206,7 +2206,7 @@ class cgmEyeballBlock(cgmRigBlock):
         return True
 
     
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def __rebuildShapes__(self,size = None):
 	_str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
 	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
