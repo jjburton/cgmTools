@@ -21,6 +21,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
+from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 
@@ -315,86 +316,102 @@ def doSkeletonizeEyelids(self):
     assert self._i_module.mClass == 'cgmEyelids',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(_str_funcName,self._i_module.mClass)
     ml_moduleJoints = []
     _str_orientation = self.jointOrientation #Link
-    
-    #>>> Build ====================================================================================
-    #Find our helper
-    mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
-    if not mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
-    try:mi_uprLidBase = cgmMeta.validateObjArg(mi_helper.getMessage('uprLidHelper'),noneValid=False)
-    except StandardError,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)
-    try:mi_lwrLidBase = cgmMeta.validateObjArg(mi_helper.getMessage('lwrLidHelper'),noneValid=False)
-    except StandardError,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)
-    d_buildCurves = {'upr':mi_uprLidBase,'lwr':mi_lwrLidBase}
-    log.info("%s >>> helper: '%s'"%(_str_funcName,mi_helper.p_nameShort))
-    log.info("%s >>> mi_uprLidBase: '%s'"%(_str_funcName,mi_uprLidBase.p_nameShort))
-    log.info("%s >>> mi_lwrLidBase: '%s'"%(_str_funcName,mi_lwrLidBase.p_nameShort))
-    
-    #Pupil and Iris
-    if not mi_helper.buildLids:
-	raise StandardError,"%s >>> %s.buildLids is off "%(_str_funcName,mi_helper.p_nameShort)
-    str_partName = self._partName
-    
-    for k in d_buildCurves.keys():
-	log.info("%s >>> building joints for %s curve"%(_str_funcName,k))
+    try:#>>> Get info ====================================================================================
+	#Find our helper
+	mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
+	if not mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+	if not mi_helper.buildLids:
+	    raise StandardError,"%s >>> %s.buildLids is off "%(_str_funcName,mi_helper.p_nameShort)
 	
-    
-    return
-    #Joint build
-    l_initialJoints = []
-    for o in ml_buildObjects:
-	l_initialJoints.append( mc.joint(p = o.getPosition()) )
-    
-    #Parent, tag
-    for i,j in enumerate(l_initialJoints):
-	i_j = cgmMeta.cgmObject(j,setClass=True)
-	i_j.doCopyNameTagsFromObject( ml_buildObjects[i].mNode,ignore=['cgmTypeModifier','cgmType'] )#copy Tags
-	i_j.doName()
-	i_j.parent = False
+	try:mi_uprLidBase = cgmMeta.validateObjArg(mi_helper.getMessage('uprLidHelper'),noneValid=False)
+	except StandardError,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)
+	try:mi_lwrLidBase = cgmMeta.validateObjArg(mi_helper.getMessage('lwrLidHelper'),noneValid=False)
+	except StandardError,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)
+	try:int_lwrLidJoints = mi_helper.getAttr('lwrLidJoints')
+	except StandardError,error:raise StandardError,"%s >>> Missing lwrLid joint count | error: %s "%(_str_funcName,error)
+	try:int_uprLidJoints = mi_helper.getAttr('uprLidJoints')
+	except StandardError,error:raise StandardError,"%s >>> Missing uprLid joint count | error: %s "%(_str_funcName,error)       
+	log.info("%s >>> helper: '%s'"%(_str_funcName,mi_helper.p_nameShort))
+	log.info("%s >>> mi_uprLidBase: '%s'"%(_str_funcName,mi_uprLidBase.p_nameShort))
+	log.info("%s >>> mi_lwrLidBase: '%s'"%(_str_funcName,mi_lwrLidBase.p_nameShort))
+	log.info("%s >>> uprCount : %s"%(_str_funcName,int_uprLidJoints))
+	log.info("%s >>> lwrCount : %s"%(_str_funcName,int_lwrLidJoints))
 	
-	#Snap.go(i_j,move=False,orient=True)
-	#if ml_moduleJoints: i_j.parent = ml_moduleJoints[0]#parent
-	ml_moduleJoints.append(i_j)
-    
-    #>>> Orient -------------------------------------------------------------
-    #Make our up loc
-    try:
+	#Pupil and Iris
+	str_partName = self._partName	
+	d_buildCurves = {'upr':{'crv':mi_uprLidBase,'count':int_uprLidJoints},
+	                 'lwr':{'crv':mi_lwrLidBase,'count':int_lwrLidJoints}}
+	
+	#Orient info
 	_str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)   
 	mi_upLoc = cgmMeta.cgmObject(_str_upLoc)
-	mi_aimLoc = mi_helper.pupilHelper.doLoc()
-	v_aim = cgmValid.simpleAxis(_str_orientation[0]).p_vector
-	v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector
-	
-	constraintBuffer = mc.aimConstraint(mi_aimLoc.mNode,ml_moduleJoints[0].mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
-	mc.delete(constraintBuffer[0])    
-	for o in [mi_aimLoc,mi_upLoc]:
-	    o.delete()    
-	#Copy eyeball orient to children
-	if len(ml_moduleJoints)>1:
-	    for o in ml_moduleJoints[1:]:
-		o.parent = ml_moduleJoints[0]#Parent back	
-	    joints.doCopyJointOrient(ml_moduleJoints[0].mNode,[jnt.mNode for jnt in ml_moduleJoints[1:]])
-	#joints.orientJointChain([o.mNode for o in ml_moduleJoints],_str_orientation,_str_orientation[1]+'up')
-	    
-	#Connect back
-	self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','rigNull')
-	log.info("%s >>> built the following joints: %s"%(_str_funcName,[o.p_nameShort for o in ml_moduleJoints]))
-    except StandardError,error:
-	raise StandardError, "%s >>> Orient fail | Error: %s"%(_str_funcName,error)
+	v_aim = cgmValid.simpleAxis(_str_orientation[0]+"-").p_vector
+	v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector	
     
-    #>>> Flag our handle joints
-    #===========================
-    """
-    ml_handles = []
-    ml_handleJoints = []
-    for i_obj in self._ml_controlObjects:
-	if i_obj.hasAttr('handleJoint'):
-	    #d_buffer = i_obj.handleJoint.d_jointFlags
-	    #d_buffer['isHandle'] = True
-	    #i_obj.handleJoint.d_jointFlags = d_buffer
-	    ml_handleJoints.append(i_obj.handleJoint)"""
+    except StandardError,error:
+	raise StandardError,"Data gather fail! | error: %s "%(error)       
+    
     try:
-	self._i_rigNull.msgList_connect(ml_moduleJoints,'handleJoints') 
+	#mi_root = cgmMeta.cgmObject( mc.joint(p = mi_helper.getPosition()),setClass=True )
+	for k in d_buildCurves.keys():
+	    mi_crv = d_buildCurves[k].get('crv')#get instance
+	    int_count = d_buildCurves[k].get('count')#get int
+	    log.info("%s >>> building joints for %s curve | count: %s"%(_str_funcName,k, int_count))
+	    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
+	    except StandardError,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(_str_funcName,error)       
+	    d_buildCurves[k]['l_pos'] = l_pos#Store it
+	    log.info("%s >>> '%s' pos list: %s"%(_str_funcName,k, l_pos))
+	    l_jointBuffer = []
+	    ml_endJoints = []
+	    if k == 'lwr':l_pos = l_pos[1:-1]
+	    for i,pos in enumerate(l_pos):
+		try:#Create and name
+		    int_last = len(l_pos)
+		    mc.select(cl=True)
+		    #mi_root = cgmMeta.cgmObject( mc.joint(p = mi_helper.getPosition()),setClass=True )
+		    mi_end = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+		    mi_end.parent = False
+		    ml_buffer = [mi_end]
+		    mi_end.doCopyNameTagsFromObject( self._i_module.mNode,ignore=['cgmTypeModifier','cgmType'] )#copy Tags
+		    mi_end.addAttr('cgmName',"%sLid"%(k),lock=True)		    
+		    mi_end.addAttr('cgmIterator',i,lock=True,hidden=True)
+		    #mi_end.addAttr('cgmNameModifier','inner',lock=True)	
+		    #if i == int_last:mi_end.addAttr('cgmNameModifier','outer',lock=True)			
+		    mi_end.doName()
+		    l_jointBuffer.append(mi_end)
+		    ml_moduleJoints.append(mi_end)
+		    ml_endJoints.append(mi_end)
+		    log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(_str_funcName,k,i,[o.p_nameShort for o in ml_buffer]))
+		except StandardError,error:
+		    raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error)       
+		try:#aim constraint
+		    constraintBuffer = mc.aimConstraint(mi_helper.mNode,mi_end.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+		    mc.delete(constraintBuffer[0])  		
+		    #mi_end.parent = mi_root
+		except StandardError,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
+		try:#copy orient
+		    pass
+		    #joints.doCopyJointOrient(mi_root.mNode,mi_end.mNode)		
+		except StandardError,error:raise StandardError,"curve: %s | pos count: %s | Copy orient fail | error: %s "%(k,i,error)       		
+		try:#freeze
+		    jntUtils.metaFreezeJointOrientation(mi_end)
+		except StandardError,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
+	    #d_buildCurves[k]['nestedml_joints'] = l_jointBuffer #nested list
+	    d_buildCurves[k]['ml_endJoints'] = ml_endJoints #nested list
+	    self._i_rigNull.msgList_connect(ml_endJoints,'moduleJoints_%s'%k,'rigNull')
+	    
+    except StandardError,error:
+	raise StandardError,"%s >> Joint build fail! | error: %s "%(_str_funcName,error)       
+       
+    for o in [mi_upLoc]:
+	o.delete()      
+    
+    #>>> Connections
+    #===========================
+    try:
+	#self._i_rigNull.msgList_connect(ml_moduleJoints,'handleJoints') 
 	self._i_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
+	self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints') 
 	
     except StandardError,error:
 	raise StandardError, "%s >>> Skin/Handle connect fail | Error: %s"%(_str_funcName,error)
@@ -402,7 +419,8 @@ def doSkeletonizeEyelids(self):
     #Connect to parent =========================================================
     try:
 	if self._i_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
-	    connectToParentModule(self._i_module)    
+	    log.info("%s >>> Need to implement Module parent connect"%(_str_funcName))
+	    #connectToParentModule(self._i_module)    
     except StandardError,error:
 	raise StandardError, "%s >>> Failed parent connect | Error: %s"%(_str_funcName,error)
     
