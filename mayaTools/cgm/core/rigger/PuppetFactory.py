@@ -54,7 +54,7 @@ def getGeo(self):
             geo.append(buff[0])
     return geo
 
-@r9General.Timer   
+@cgmGeneral.Timer   
 def getModules(self):
     """
     Get the modules of a puppet in a usable format:
@@ -62,9 +62,32 @@ def getModules(self):
     i_modules(dict){indexed to name}
     
     """
+    _str_funcName = "getModules"  
+    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
+    ml_modules = False
     #Get connected Modules
-    self.i_modules = self.getChildMetaNodes(mAttrs = ['moduleChildren'])
+    #self.i_modules = self.getChildMetaNodes(mAttrs = ['moduleChildren'])
+    try:ml_initialModules = self.moduleChildren
+    except:ml_initialModules = []
+    ml_allModules = copy.copy(ml_initialModules)
+    for m in ml_initialModules:
+        for m in m.getAllModuleChildren():
+            if m not in ml_allModules:
+                ml_allModules.append(m)
+    self.i_modules = ml_allModules
     return self.i_modules
+
+def gatherModules(self):
+    """
+    Connect all children modules
+    """
+    _str_funcName = "gatherModules"  
+    try:
+        log.debug(">>> %s >>> "%(_str_funcName) + "="*75)      
+        for m in getModules(self):
+            self.connectModule(m)
+    except StandardError,error:
+		raise StandardError,"%s >>> error: %s"%(_str_funcName,error)
 
 @r9General.Timer   
 def getModuleFromDict(self,*args,**kws):
