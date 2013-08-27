@@ -2962,7 +2962,7 @@ class cgmAttr(object):
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.p_keyable:
-                        mc.setAttr(cInstance.nameCombined,e=True,keyable = True) 
+                        mc.setAttr(cInstance.p_combinedName,e=True,keyable = True) 
                         log.debug("'%s.%s' keyable!"%(cInstance.obj.mNode,cInstance.attr))
                         cInstance.p_hidden = False
                 
@@ -2980,7 +2980,7 @@ class cgmAttr(object):
                     if cInstance.p_keyable:
                         mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,keyable = False) 
                         log.debug("'%s.%s' unkeyable!"%(cInstance.obj.mNode,cInstance.attr))
-                        if not mc.getAttr(cInstance.nameCombined,channelBox=True):
+                        if not mc.getAttr(cInstance.p_combinedName,channelBox=True):
                             cInstance.doHidden(False)                
                 
             elif self.p_keyable:
@@ -3098,7 +3098,7 @@ class cgmAttr(object):
                         try:
                             mc.addAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,defaultValue = value)
                         except:
-                            log.warning("'%s' failed to set a default value"%cInstance.nameCombined)                
+                            log.warning("'%s' failed to set a default value"%cInstance.p_combinedName)                
                 
                 else:     
                     try:
