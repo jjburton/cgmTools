@@ -730,6 +730,7 @@ class argsToNodes(object):
 		    raise StandardError,"argsToNodes.validateArg>> Found nothing to do! | %s"%a
 	except StandardError,error:
 	    raise StandardError,"argsToNodes.validateArg>> arg get error | %s"%error
+	
     def verify_attr(self,arg,nodeType = False,originalArg = False):
 	"""
 	Check an arg, return an index to the i_attr list after registering
@@ -750,7 +751,7 @@ class argsToNodes(object):
 	if arg_isNumber:
 	    for i in range(9):
 		if str(i) in arg:
-		    log.debug("argsToNodes.verify_driver>> Valid string driver: %s"%arg)				    
+		    log.debug("argsToNodes.verify_driver>> Valid string number driver: %s"%arg)				    
 		    return self.cleanArg(arg)
 	else:
 	    if '-' in arg:#Looking for inverses
