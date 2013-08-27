@@ -392,7 +392,7 @@ def returnTagInfo(obj,tag):
 	    return returnBuffer[0]
         else:
             infoBuffer = mc.getAttr('%s.%s' % (obj,tag))
-            if infoBuffer and len(list(str(infoBuffer))) > 0:
+            if infoBuffer is not None and len(list(str(infoBuffer))) > 0:
                 return infoBuffer
             else:
                 return False
@@ -457,7 +457,7 @@ def findRawTagInfo(obj,tag):
     """
     """ first check the object for the tags """
     selfTagInfo = returnTagInfo(obj,tag)
-    if selfTagInfo:
+    if selfTagInfo is not False:
         return selfTagInfo
     else:
         """if it doesn't have one, we're gonna go find em """
