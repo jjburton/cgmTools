@@ -15,6 +15,7 @@ m1.modulePuppet.__verify__()
 m1.getState()
 m1 = cgmPM.cgmModule('l_eye_part')
 m1.__verify__()
+
 m1.modulePuppet._verifyMasterControl()
 m1.helper.__storeNames__()
 
@@ -25,6 +26,8 @@ i_rig = Rig.go(m1,forceNew=False,autoBuild = False)#call to do general rig
 
 i_rig = Rig.go(m1,forceNew=False)#call to do general rig
 m1.templateNull.handles
+
+rUtils.createEyeballRig('l_eye_rigHelper',aimTargetObject = 'l_eye_ik_anim', buildIK=True)
 
 i_rig.build(i_rig,buildTo = 'controls')
 i_rig.buildModule.build_rigSkeleton(i_rig)

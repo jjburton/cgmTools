@@ -40,9 +40,14 @@ geo= [u'|Morpheus|noTransform_grp|geo_grp|Morphy_GRP|Morphy_Body_GEO', u'|Morphe
 geo = ['headWrapDriver']
 geo = ['cage_v01']
 geo = ['pSphere1']
+geo = ['segment:polySurface3']
 a = dragFactory.clickMesh(mode = 'midPoint',
                            mesh = geo,
                            create = 'locator',
+                           )
+a = dragFactory.clickMesh(mode = 'surface',
+                           mesh = geo,
+                           create = 'curve',
                            )
 
 a = dragFactory.clickMesh(mode = 'surface',
