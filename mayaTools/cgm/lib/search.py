@@ -392,7 +392,7 @@ def returnTagInfo(obj,tag):
 	    return returnBuffer[0]
         else:
             infoBuffer = mc.getAttr('%s.%s' % (obj,tag))
-            if infoBuffer and len(list(infoBuffer)) > 0:
+            if infoBuffer and len(list(str(infoBuffer))) > 0:
                 return infoBuffer
             else:
                 return False
