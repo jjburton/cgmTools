@@ -379,7 +379,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	""" 
 	"""
 	_str_funcName = "cgmPuppet._verifyMasterControl(%s)"%self.p_nameShort    
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	# Master Curve
 	#==================================================================
 	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
@@ -395,7 +395,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 		log.debug("averageBBSize: %s"%averageBBSize)
 		kws['size'] = averageBBSize * 1.5
 	    elif len(self.moduleChildren) == 1 and self.moduleChildren[0].getMessage('helper'):
-		log.info(">>> %s : Helper found.Sizing that."%_str_funcName)
+		log.debug(">>> %s : Helper found.Sizing that."%_str_funcName)
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.moduleChildren[0].getMessage('helper'))		
 		kws['size'] = averageBBSize * 1.5
 	    elif 'size' not in kws.keys():kws['size'] = 50
@@ -1382,10 +1382,10 @@ class cgmModule(cgmMeta.cgmObject):
         #==============  
         for k in self.kw_callNameTags.keys():
             if self.kw_callNameTags.get(k):
-                log.info(k + " : " + str(self.kw_callNameTags.get(k)))                
+                log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
                 self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-                log.info(str(self.getNameDict()))
-                log.info(self.__dict__[k])
+                log.debug(str(self.getNameDict()))
+                log.debug(self.__dict__[k])
             #elif k in self.parentTagDict.keys():
                 #   self.store(k,'%s.%s'%(self.msgModuleParent.value,k))
 	self.doName()  
@@ -1494,7 +1494,7 @@ class cgmModule(cgmMeta.cgmObject):
     def __verifyAttributesOn__(self,null,dictToUse):
         #Attrbute checking
         #=================
-	log.info(">>> %s.__verifyAttributesOn__ >> "%(self.p_nameShort) + "="*75)            	        	
+	log.debug(">>> %s.__verifyAttributesOn__ >> "%(self.p_nameShort) + "="*75)            	        	
 	if type(dictToUse) is not dict:
 	    raise StandardError,"Not a dict: %s"%null
 	i_null = cgmMeta.validateObjArg(null)
@@ -1538,17 +1538,17 @@ class cgmModule(cgmMeta.cgmObject):
 	Call to figure out a module's settings control
 	"""
 	_str_funcName = "getSettingsControl(%s)"%self.p_nameShort
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
 	mi_rigNull = self.rigNull#Link
 	try:
 	    return mi_rigNull.settings#fastest check
-	except:log.info("%s >>> No settings connected. Probably not rigged, so let's check ..."%_str_funcName)
+	except:log.debug("%s >>> No settings connected. Probably not rigged, so let's check ..."%_str_funcName)
 	if self.moduleType in l_faceModuleTypes:
-	    log.info("%s >>> Face module..."%_str_funcName)
+	    log.debug("%s >>> Face module..."%_str_funcName)
 	    try:return self.moduleParent.rigNull.settings#fastest check
-	    except:log.info("%s >>> No moduleParent settings connected..."%_str_funcName)	    
+	    except:log.debug("%s >>> No moduleParent settings connected..."%_str_funcName)	    
 	    try:return self.modulePuppet.masterControl.controlSettings#fastest check
-	    except:log.info("%s >>> No masterControl settings found..."%_str_funcName)	    
+	    except:log.debug("%s >>> No masterControl settings found..."%_str_funcName)	    
 	    
 	log.error("%s >>> Unable to find settings control."%(_str_funcName))
 	return False
@@ -2047,7 +2047,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	success(bool)
 	"""
 	_str_funcName = "cgmRigBlock.__verify__"    
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	
 	#>>> Block transform ==================                   
 	self.addAttr('mClass', initialValue='cgmRigBlock',lock=True) 
@@ -2071,12 +2071,12 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	#Attrbute checking
 	#=================
 	self.verifyAttrDict(d_rigBlockAttrs_toMake,keyable = False, hidden = False)
-	log.info("%s.__verify__ >>> kw_callNameTags: %s"%(self.p_nameShort,self.kw_callNameTags))	    	
+	log.debug("%s.__verify__ >>> kw_callNameTags: %s"%(self.p_nameShort,self.kw_callNameTags))	    	
 	d_enumToCGMTag = {'cgmDirection':'direction','cgmPosition':'position'}
 	for k in d_enumToCGMTag.keys():
-	    log.info("%s.__verify__ >>> trying to set key: %s"%(self.p_nameShort,k))	    
+	    log.debug("%s.__verify__ >>> trying to set key: %s"%(self.p_nameShort,k))	    
 	    if k in self.kw_callNameTags.keys():
-		log.info("%s.__verify__ >>> trying to set key: %s | data: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k)))
+		log.debug("%s.__verify__ >>> trying to set key: %s | data: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k)))
 		try:self.__setattr__(d_enumToCGMTag.get(k),self.kw_callNameTags.get(k))
 		except StandardError,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
 	
@@ -2089,11 +2089,11 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	Verify
 	"""
 	_str_funcName = "cgmRigBlock.__verifyModule__"    
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	
 	#First see if we have a module
 	if not self.getMessage('mi_module'):
-	    log.info(">>> %s >>> No module found. Building... "%(_str_funcName))
+	    log.debug(">>> %s >>> No module found. Building... "%(_str_funcName))
 	    self.__buildModule__()
 	return True
 	    
@@ -2102,7 +2102,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	General Module build before expected pass to individual blocks for specialization
 	"""
 	_str_funcName = "cgmRigBlock.__buildModule__(%s)"%self.p_nameShort   
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	
 	#>>> Gather basic info for module build
 	d_kws = {}
@@ -2116,13 +2116,13 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	if str_position != 'none':
 	    d_kws['position'] = str_position
 	    
-	log.info(">>> %s >>> kws..."%(_str_funcName)) 
+	log.debug(">>> %s >>> kws..."%(_str_funcName)) 
 	for k in d_kws.keys():
-	    log.info("%s : %s"%(k,d_kws.get(k)))
+	    log.debug("%s : %s"%(k,d_kws.get(k)))
 	self._d_buildKWS = d_kws    
 	
 	#>>>Initial module build in 
-	log.info(">>> %s >>> passing..."%(_str_funcName))
+	log.debug(">>> %s >>> passing..."%(_str_funcName))
     
     @cgmGeneral.Timer
     def __buildSimplePuppet__(self):
@@ -2130,19 +2130,19 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	Build a simple puppet for itself
 	"""
 	_str_funcName = "cgmRigBlock.__buildSimplePuppet__(%s)"%self.p_nameShort   
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	mi_module = self.mi_module
 	if not mi_module:
 	    try:
-		log.info(">>> %s >>> Has no module, creating")
+		log.debug(">>> %s >>> Has no module, creating")
 		mi_module = self.__buildModule__()
 	    except StandardError,error:
 		raise StandardError, ">>> %s>>> module build failed. error: %s"%(_str_funcName,error)
 	if mi_module.getMessage('modulePuppet'):
-	    log.info(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
+	    log.debug(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
 	    return False
 	
-	log.info(">>> %s >>> Building puppet..."%(_str_funcName))
+	log.debug(">>> %s >>> Building puppet..."%(_str_funcName))
 	mi_puppet = cgmPuppet(name = mi_module.getNameAlias())
 	mi_puppet.connectModule(mi_module)	
 	mi_puppet.gatherModules()#Gather any modules in the chain
@@ -2154,7 +2154,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
     def __updateSizeData__(self):
 	"""For overload"""
 	pass
-
+    
 class cgmEyeballBlock(cgmRigBlock):
     d_attrsToMake = {'buildIris':'bool',
                      'buildPupil':'bool',
@@ -2171,7 +2171,7 @@ class cgmEyeballBlock(cgmRigBlock):
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
 
-    #@cgmGeneral.Timer    
+    @cgmGeneral.Timer    
     def __init__(self,*args,**kws):
         """ 
         """
@@ -2187,7 +2187,7 @@ class cgmEyeballBlock(cgmRigBlock):
     @cgmGeneral.Timer
     def __verify__(self,**kws):
 	_str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
         cgmRigBlock.__verify__(self,**kws)
 	
 	if self.isReferenced():
@@ -2209,7 +2209,7 @@ class cgmEyeballBlock(cgmRigBlock):
     @cgmGeneral.Timer
     def __rebuildShapes__(self,size = None):
 	_str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	if self.isReferenced():
 	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
 	
@@ -2229,7 +2229,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	#>>> Delete shapes
 	if l_shapes:
-	    log.info("%s >>> deleting: %s"%(_str_funcName,l_shapes))	    
+	    log.debug("%s >>> deleting: %s"%(_str_funcName,l_shapes))	    
 	    mc.delete(ml_shapes)
 	
 	#>>> Build the eyeorb
@@ -2297,7 +2297,7 @@ class cgmEyeballBlock(cgmRigBlock):
     def __buildModule__(self):
 	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	try:
 	    bfr_name = self._d_buildKWS.get('name') or None
 	    bfr_position = self._d_buildKWS.get('position') or None
@@ -2343,7 +2343,7 @@ class cgmEyeballBlock(cgmRigBlock):
     def __updateSizeData__(self):
 	"""For overload"""
 	_str_funcName = "cgmEyeballBlock.__updateSizeData__(%s)"%self.p_nameShort   
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	if not self.getMessage('mi_module'):
 	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
 	
