@@ -20,7 +20,6 @@ import copy
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 
-
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import nameTools
@@ -922,9 +921,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		self.doStore(tag,d_tags[tag],overideMessageCheck=overideMessageCheck)
 	    self.doName()
 	except StandardError,error:
-	    log.info("#>>>Tags:")
+	    log.debug("#>>>Tags:")
 	    for tag in d_tags.keys():
-		log.info("    %s : %s"%(tag,d_tags.get(tag)))
+		log.debug("    %s : %s"%(tag,d_tags.get(tag)))
 	    raise StandardError, "%s.doTagAndName >>[Error]<< : %s"(self.p_nameShort,error)	
 
     def doNameOLD(self,sceneUnique=False,nameChildren=False,**kws):
@@ -1036,7 +1035,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return False
 	
     def verifyAttrDict(self,d_attrs,**kws):
-	log.info(">>> %s.verifyAttrDict >> "%(self.p_nameShort) + "="*75)            	        	
+	log.debug(">>> %s.verifyAttrDict >> "%(self.p_nameShort) + "="*75)            	        	
 	if type(d_attrs) is not dict:
 	    raise StandardError,"Not a dict: %s"%self.p_nameShort
 	
@@ -2141,13 +2140,13 @@ class cgmOptionVar(object):
 		    mc.optionVar(fv = (self.name,float(value)))
 		    
 		except:
-		    log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+		    log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
 		
 	    elif self.varType == 'string':
 		try:
 		    mc.optionVar(sv = (self.name,str(value)))
 		except:
-		    log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+		    log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
 	object.__setattr__(self, self.name, value)
 	
 	    
@@ -2178,7 +2177,7 @@ class cgmOptionVar(object):
 	    if varType is not None:
 		requestVarType = self.returnVarTypeFromCall(varType)             
 	    else:
-		log.info("Not sure what '%s' is, making as int"%varType)
+		log.warning("Not sure what '%s' is, making as int"%varType)
 		requestVarType = 'int'
 		
 	    if requestVarType:
@@ -2281,10 +2280,10 @@ class cgmOptionVar(object):
         elif self.varType == 'float':
             try:
                 mc.optionVar(fva = (self.name,float(value)))
-                log.info("'%s' added to '%s'"%(value,self.name))
+                log.debug("'%s' added to '%s'"%(value,self.name))
                 
             except:
-                log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+                log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
             
         elif self.varType == 'string':
             try:
@@ -2293,10 +2292,10 @@ class cgmOptionVar(object):
                     if i in self.value:
                         self.remove(i)
 
-                log.info("'%s' added to '%s'"%(value,self.name))           
+                log.debug("'%s' added to '%s'"%(value,self.name))           
                 
             except:
-                log.info("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+                log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
 
     def remove(self,value):
         if value in self.value:
@@ -2304,11 +2303,11 @@ class cgmOptionVar(object):
                 i = self.value.index(value)
                 mc.optionVar(removeFromArray = (self.name,i))
                 self.update(self.form)
-                log.info("'%s' removed from '%s'"%(value,self.name))
+                log.debug("'%s' removed from '%s'"%(value,self.name))
             except:
-                log.info("'%s' failed to remove '%s'"%(value,self.name))
+                log.debug("'%s' failed to remove '%s'"%(value,self.name))
         else:
-            log.info("'%s' wasn't found in '%s'"%(value,self.name))
+            log.debug("'%s' wasn't found in '%s'"%(value,self.name))
             
                             
     def extend(self,valuesList):
@@ -2841,7 +2840,7 @@ class cgmAttr(object):
             if self.attrType == 'enum':
                 if self.p_enum != enumCommand:
                     mc.addAttr ((self.obj.mNode+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
-                    log.info("'%s.%s' has been updated!"%(self.obj.mNode,self.attr))
+                    log.debug("'%s.%s' has been updated!"%(self.obj.mNode,self.attr))
                 
             else:
                 log.warning("'%s.%s' is not an enum. Invalid call"%(self.obj.mNode,self.attr))
@@ -3058,7 +3057,7 @@ class cgmAttr(object):
                     attributes.doRenameAttr(self.obj.mNode,self.p_nameLong,arg)
                     self.attr = arg                    
                 else:
-                    log.info("'%s.%s' already has that nice name!"%(self.obj.mNode,self.attr,arg))
+                    log.debug("'%s.%s' already has that nice name!"%(self.obj.mNode,self.attr,arg))
                     
             except:
                 log.error("'%s.%s' failed to rename name of '%s'!"%(self.obj.mNode,self.attr,arg))
@@ -3413,7 +3412,7 @@ class cgmAttr(object):
                 self.doDefault(default)
         
         self.attrType = mc.getAttr(self.p_combinedName,type=True)    
-        log.info("'%s.%s' converted to '%s'"%(self.obj.mNode,self.attr,attrType))
+        log.debug("'%s.%s' converted to '%s'"%(self.obj.mNode,self.attr,attrType))
                         
     def isMulti(self):
 	return mc.addAttr("%s.%s"%(self.obj.mNode,self.attr),q=True,m=True)
@@ -3696,258 +3695,289 @@ class NameFactory(object):
         else:
             raise StandardError,"NameFactory.go >> node doesn't exist: '%s'"%node
         """
-        log.debug("self.i_node: '%s'"%self.i_node)
-        #Initial Data        
+	_str_funcName = "NameFactory.__init__"  
+	log.debug(">>> %s >>> node: %s | doName: %s"%(_str_funcName,node,doName) + "="*75)
+	#Initial Data        
 	self.i_nameParents = []
 	self.i_nameChildren = []
 	self.i_nameSiblings = []
         
-    def isNameLinked(self,node = None):   
-	if node is None:
-	    i_node = self.i_node
-	elif issubclass(type(node),cgmNode):
-	    i_node = node
-	elif mc.objExists(node):
-	    i_node = cgmNode(node)
-	else:
-	    raise StandardError,"NameFactory.isNameLinked >> node doesn't exist: '%s'"%node
-	
-        if i_node.hasAttr('cgmName') and i_node.getMessage('cgmName'):
-            return True
-        return False
-    
+    def isNameLinked(self,node = None):  
+	_str_funcName = "NameFactory.isNameLinked"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    if node is None:
+		i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):
+		i_node = node
+	    elif mc.objExists(node):
+		i_node = cgmNode(node)
+	    else:
+		raise StandardError,"NameFactory.isNameLinked >> node doesn't exist: '%s'"%node
+	    
+	    if i_node.hasAttr('cgmName') and i_node.getMessage('cgmName'):
+		return True
+	    return False
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
+	    
     #@r9General.Timer
     def getMatchedParents(self, node = None):  
-	if node is None:
-	    i_node = self.i_node
-	elif issubclass(type(node),cgmNode):
-	    i_node = node
-	elif mc.objExists(node):
-	    i_node = cgmNode(node)
-	else:
-	    raise StandardError,"NameFactory.getMatchedParents >> node doesn't exist: '%s'"%node
-	
-        parents = search.returnAllParents(i_node.mNode)
-        self.i_nameParents = []
-        if parents:
-            #parents.reverse()
-            d_nameDict = i_node.getNameDict()
-            for p in parents :
-                i_p = cgmNode(p)
-                if i_p.getNameDict() == d_nameDict:
-                    self.i_nameParents.append(i_p)
-                    log.debug("Name parent found: '%s'"%i_p.mNode)
-		else:break
-        return self.i_nameParents
-    
+	_str_funcName = "NameFactory.getMatchedParents"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    if node is None:
+		i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):
+		i_node = node
+	    elif mc.objExists(node):
+		i_node = cgmNode(node)
+	    else:
+		raise StandardError,"NameFactory.getMatchedParents >> node doesn't exist: '%s'"%node
+	    
+	    parents = search.returnAllParents(i_node.mNode)
+	    self.i_nameParents = []
+	    if parents:
+		#parents.reverse()
+		d_nameDict = i_node.getNameDict()
+		for p in parents :
+		    i_p = cgmNode(p)
+		    if i_p.getNameDict() == d_nameDict:
+			self.i_nameParents.append(i_p)
+			log.debug("Name parent found: '%s'"%i_p.mNode)
+		    else:break
+	    return self.i_nameParents
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
+	    
     def getMatchedChildren(self, node = None):  
-	if node is None:
-	    i_node = self.i_node
-	elif issubclass(type(node),cgmNode):
-	    i_node = node
-	elif mc.objExists(node):
-	    i_node = cgmNode(node)
-	else:
-	    raise StandardError,"NameFactory.getMatchedChildren >> node doesn't exist: '%s'"%node
-	
-        #>>> Count our matched name children range
-        children = mc.listRelatives (i_node.mNode, allDescendents=True,type='transform',fullPath=True)
-        self.i_nameChildren = []        
-        if children:
-            #children.reverse()
-            d_nameDict = i_node.getNameDict()            
-            for c in children :
-                i_c = cgmNode(c)
-                if i_c.getNameDict() == d_nameDict:
-                    self.i_nameChildren.append(i_c)
-                    log.debug("Name child found: '%s'"%i_c.mNode)
-		else:break
-        return self.i_nameChildren
-    
+	_str_funcName = "NameFactory.getMatchedChildren"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:	
+	    if node is None:
+		i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):
+		i_node = node
+	    elif mc.objExists(node):
+		i_node = cgmNode(node)
+	    else:
+		raise StandardError,"NameFactory.getMatchedChildren >> node doesn't exist: '%s'"%node
+	    
+	    #>>> Count our matched name children range
+	    children = mc.listRelatives (i_node.mNode, allDescendents=True,type='transform',fullPath=True)
+	    self.i_nameChildren = []        
+	    if children:
+		#children.reverse()
+		d_nameDict = i_node.getNameDict()            
+		for c in children :
+		    i_c = cgmNode(c)
+		    if i_c.getNameDict() == d_nameDict:
+			self.i_nameChildren.append(i_c)
+			log.debug("Name child found: '%s'"%i_c.mNode)
+		    else:break
+	    return self.i_nameChildren
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
+	    
     def getMatchedSiblings(self, node = None):
-	if node is None:
-	    i_node = self.i_node
-	elif issubclass(type(node),cgmNode):
-	    i_node = node
-	elif mc.objExists(node):
-	    i_node = cgmNode(node)
-	else:
-	    raise StandardError,"NameFactory.getMatchedSiblings >> node doesn't exist: '%s'"%node
-	
-        self.i_nameSiblings = []
-        d_nameDict = i_node.getNameDict()        
-        for s in i_node.getSiblings():                    
-            i_c = cgmNode(s)
-            if i_c.getNameDict() == d_nameDict and i_c.mNode != i_node.mNode:
-                self.i_nameSiblings.append(i_c)
-                log.debug("Name sibling found: '%s'"%i_c.mNode)                
-
-        return self.i_nameSiblings
+	_str_funcName = "NameFactory.getMatchedSiblings"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:		
+	    if node is None:
+		i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):
+		i_node = node
+	    elif mc.objExists(node):
+		i_node = cgmNode(node)
+	    else:
+		raise StandardError,"NameFactory.getMatchedSiblings >> node doesn't exist: '%s'"%node
+	    
+	    self.i_nameSiblings = []
+	    d_nameDict = i_node.getNameDict()        
+	    for s in i_node.getSiblings():                    
+		i_c = cgmNode(s)
+		if i_c.getNameDict() == d_nameDict and i_c.mNode != i_node.mNode:
+		    self.i_nameSiblings.append(i_c)
+		    log.debug("Name sibling found: '%s'"%i_c.mNode)                
     
+	    return self.i_nameSiblings
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
+	    
     #@r9General.Timer    
     def getFastIterator(self, node = None):
 	"""
 	Fast iterate finder
 	"""
-	if node is None:i_node = self.i_node
-	elif issubclass(type(node),cgmNode):i_node = node
-	elif mc.objExists(node):i_node = cgmNode(node)
-	else:raise StandardError,"NameFactory.getBaseIterator >> node doesn't exist: '%s'"%node
-		
-        self.int_fastIterator = 0
-        #If we have an assigned iterator, start with that
-	d_nameDict = i_node.getNameDict()	
-        if i_node.getMayaAttr('cgmIterator') is not False:
-            return int(i_node.getMayaAttr('cgmIterator'))
-			      
-	self.d_nameCandidate = d_nameDict
-	self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)  
-	
-	#Now that we have a start, we're gonna see if that name is taken by a sibling or not
-	def getNewNameCandidate(self):
-	    self.int_fastIterator+=1#add one
-	    log.debug("Counting in getBaseIterator: %s"%self.int_fastIterator)				
-	    self.d_nameCandidate['cgmIterator'] = str(self.int_fastIterator)
-	    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
-	    log.debug("Checking: '%s'"%self.bufferName)
-	    return self.bufferName
-	
-	mc.rename(i_node.mNode,self.bufferName)#Name it
-	log.debug("Checking: '%s'"%self.bufferName)
-	if self.bufferName != i_node.getShortName():
-	    self.int_fastIterator = 1
-	    self.d_nameCandidate['cgmIterator'] = str(self.int_fastIterator)
-	    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
-	    mc.rename(i_node.mNode,self.bufferName)#Name it
-	    while self.bufferName != i_node.getShortName() and self.int_fastIterator <100:
-		getNewNameCandidate(self)	
-		mc.rename(i_node.mNode,self.bufferName)#Name it
-	
-	log.debug("fastIterator: %s"%self.int_fastIterator)
-        return self.int_fastIterator
-    
-    #@r9General.Timer    
-    def getBaseIterator(self, node = None):
-	if node is None:
-	    i_node = self.i_node
-	elif issubclass(type(node),cgmNode):
-	    i_node = node
-	elif mc.objExists(node):
-	    i_node = cgmNode(node)
-	else:
-	    raise StandardError,"NameFactory.getBaseIterator >> node doesn't exist: '%s'"%node
-	
-        self.int_baseIterator = 0
-        #If we have an assigned iterator, start with that
-	d_nameDict = i_node.getNameDict()
-        if 'cgmIterator' in d_nameDict.keys():
-            return int(d_nameDict.get('cgmIterator'))
+	_str_funcName = "NameFactory.getFastIterator"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    if node is None:i_node = self.i_node
+	    else:i_node = validateObjArg(node,noneValid=False)
+	    log.debug("%s >> node : '%s'"%(_str_funcName,i_node.p_nameShort))               
+	    self.int_fastIterator = 0
 	    
-	#Gather info
-	i_nameParents = self.getMatchedParents(i_node)
-	i_nameChildren = self.getMatchedChildren(i_node)
-	i_nameSiblings = self.getMatchedSiblings(i_node)
-	
-        if i_nameParents:#If we have parents 
-            self.int_baseIterator =  len(i_nameParents) + 1
-        elif i_nameChildren or i_nameSiblings:#If we have children, we can't be 0
-            self.int_baseIterator = 1
+	    #If we have an assigned iterator, start with that
+	    d_nameDict = i_node.getNameDict()		
+	    if 'cgmIterator' in d_nameDict.keys():
+		log.debug("%s >> Found cgmIterator : %s"%(_str_funcName,d_nameDict.get('cgmIterator')))               	
+		return int(d_nameDict.get('cgmIterator'))
 	    
-	#Now that we have a start, we're gonna see if that name is taken by a sibling or not
-        if i_nameSiblings:#check siblings
+	    self.d_nameCandidate = d_nameDict
+	    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)  
+	    
+	    #Now that we have a start, we're gonna see if that name is taken by a sibling or not
 	    def getNewNameCandidate(self):
-		self.int_baseIterator+=1#add one
-		log.debug("Counting in getBaseIterator: %s"%self.int_baseIterator)				
-		self.d_nameCandidate['cgmIterator'] = str(self.int_baseIterator)
+		self.int_fastIterator+=1#add one
+		log.debug("Counting in getBaseIterator: %s"%self.int_fastIterator)				
+		self.d_nameCandidate['cgmIterator'] = str(self.int_fastIterator)
 		self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
 		log.debug("Checking: '%s'"%self.bufferName)
-		return self.bufferName	    
+		return self.bufferName
 	    
-	    self.d_nameCandidate = i_node.getNameDict()
-	    if self.int_baseIterator:
-		self.d_nameCandidate['cgmIterator'] = str(self.int_baseIterator)
-	    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+	    mc.rename(i_node.mNode,self.bufferName)#Name it
+	    log.debug("Checking: '%s'"%self.bufferName)
+	    if self.bufferName != i_node.getShortName():
+		self.int_fastIterator = 1
+		self.d_nameCandidate['cgmIterator'] = str(self.int_fastIterator)
+		self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+		mc.rename(i_node.mNode,self.bufferName)#Name it
+		while self.bufferName != i_node.getShortName() and self.int_fastIterator <100:
+		    getNewNameCandidate(self)	
+		    mc.rename(i_node.mNode,self.bufferName)#Name it
 	    
-            l_siblingShortNames = [i_s.getBaseName() for i_s in i_nameSiblings]
-            log.debug("Checking sibblings: %s"%l_siblingShortNames)
-	    log.debug("Checking: '%s'"%self.bufferName)	    
-            while self.bufferName in l_siblingShortNames and self.int_baseIterator <100:
-                getNewNameCandidate(self)	
-	
-	log.debug("baseIterator: %s"%self.int_baseIterator)
-        return self.int_baseIterator
+	    log.debug("fastIterator: %s"%self.int_fastIterator)
+	    return self.int_fastIterator
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,i_node.p_nameShort,error)
+	    
+    #@r9General.Timer    
+    def getBaseIterator(self, node = None):
+	_str_funcName = "NameFactory.getBaseIterator"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:		
+	    if node is None:
+		i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):
+		i_node = node
+	    elif mc.objExists(node):
+		i_node = cgmNode(node)
+	    else:
+		raise StandardError,"NameFactory.getBaseIterator >> node doesn't exist: '%s'"%node
+	    
+	    self.int_baseIterator = 0
+	    #If we have an assigned iterator, start with that
+	    d_nameDict = i_node.getNameDict()
+	    if 'cgmIterator' in d_nameDict.keys():
+		return int(d_nameDict.get('cgmIterator'))
+		
+	    #Gather info
+	    i_nameParents = self.getMatchedParents(i_node)
+	    i_nameChildren = self.getMatchedChildren(i_node)
+	    i_nameSiblings = self.getMatchedSiblings(i_node)
+	    
+	    if i_nameParents:#If we have parents 
+		self.int_baseIterator =  len(i_nameParents) + 1
+	    elif i_nameChildren or i_nameSiblings:#If we have children, we can't be 0
+		self.int_baseIterator = 1
+		
+	    #Now that we have a start, we're gonna see if that name is taken by a sibling or not
+	    if i_nameSiblings:#check siblings
+		def getNewNameCandidate(self):
+		    self.int_baseIterator+=1#add one
+		    log.debug("Counting in getBaseIterator: %s"%self.int_baseIterator)				
+		    self.d_nameCandidate['cgmIterator'] = str(self.int_baseIterator)
+		    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+		    log.debug("Checking: '%s'"%self.bufferName)
+		    return self.bufferName	    
+		
+		self.d_nameCandidate = i_node.getNameDict()
+		if self.int_baseIterator:
+		    self.d_nameCandidate['cgmIterator'] = str(self.int_baseIterator)
+		self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+		
+		l_siblingShortNames = [i_s.getBaseName() for i_s in i_nameSiblings]
+		log.debug("Checking sibblings: %s"%l_siblingShortNames)
+		log.debug("Checking: '%s'"%self.bufferName)	    
+		while self.bufferName in l_siblingShortNames and self.int_baseIterator <100:
+		    getNewNameCandidate(self)	
+	    
+	    log.debug("baseIterator: %s"%self.int_baseIterator)
+	    return self.int_baseIterator
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
     
     #@r9General.Timer    
     def getIterator(self,node = None):
         """
         """
-	if node is None:
-	    i_node = self.i_node
-	elif issubclass(type(node),cgmNode):
-	    i_node = node
-	elif mc.objExists(node):
-	    i_node = cgmNode(node)
-	else:
-	    raise StandardError,"NameFactory.getIterator >> node doesn't exist: '%s'"%node
+	_str_funcName = "NameFactory.getIterator"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    if node is None:i_node = self.i_node
+	    else:i_node = validateObjArg(node,noneValid=False)
 	    
-        self.int_iterator = 0
-        
-        def getNewNameCandidate(self):
-            self.int_iterator+=1#add one
-	    log.debug("Counting in getIterator: %s"%self.int_iterator)	    
-            self.d_nameCandidate['cgmIterator'] = str(self.int_iterator)
-            self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
-            return self.bufferName
-            
-        if 'cgmIterator' in i_node.getNameDict().keys():
-            return int(self.objGeneratedNameDict.get('cgmIterator'))
-        
-        #Gather info
-        i_nameParents = self.getMatchedParents(node = i_node)
-        i_nameChildren = self.getMatchedChildren(node = i_node)
-        i_nameSiblings = self.getMatchedSiblings(node = i_node)
-        
-        if i_nameParents:#If we have parents 
-            self.int_iterator = self.getBaseIterator(i_nameParents[-1]) + len(i_nameParents)
-	else:
-	    self.int_iterator = self.getBaseIterator(node = i_node)
-            
-        #Now that we have a start, we're gonna see if that name is taken by a sibling or not
-        self.d_nameCandidate = i_node.getNameDict()
-        if self.int_iterator:
-            self.d_nameCandidate['cgmIterator'] = str(self.int_iterator)
-        self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
-        
-        log.debug("bufferName: '%s'"%self.bufferName)
-        if not mc.objExists(self.bufferName):
-            log.debug('Good name candidate')
-            return self.int_iterator
-        else:#if there is only one
-            for obj in mc.ls(self.bufferName):
-                i_bufferName = cgmNode(obj)
-                if i_node.mNode == i_bufferName.mNode:
-                    log.debug("I'm me! : %s"%self.int_iterator)
-                    return self.int_iterator
-                
-        if i_nameSiblings:#check siblings
-            l_siblingShortNames = [i_s.getBaseName() for i_s in i_nameSiblings]
-            log.debug("Checking sibblings: %s"%l_siblingShortNames)
-            while self.bufferName in l_siblingShortNames and self.int_iterator <100:
-                getNewNameCandidate(self)
-            """
-            for i_s in i_nameSiblings:
-                if i_node.getShortName() == self.bufferName:
-                    log.debug("I'm me! : %s"%self.int_iterator)
-                    return self.int_iterator                    
-                elif i_s.getShortName() == self.bufferName:
-                    log.debug("Sibling has this")
-                    getNewNameCandidate(self)
-                else:
-                    getNewNameCandidate(self)                    
-            """
-        log.debug("getIterator: %s"%self.int_iterator)
-        return self.int_iterator
-    
+	    self.int_iterator = 0
+	    
+	    def getNewNameCandidate(self):
+		self.int_iterator+=1#add one
+		log.debug("Counting in getIterator: %s"%self.int_iterator)	    
+		self.d_nameCandidate['cgmIterator'] = str(self.int_iterator)
+		self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+		return self.bufferName
+	    
+	    d_nameDict = i_node.getNameDict()
+	    if 'cgmIterator' in d_nameDict.keys():
+		return int(d_nameDict.get('cgmIterator'))
+	    
+	    #Gather info
+	    i_nameParents = self.getMatchedParents(node = i_node)
+	    i_nameChildren = self.getMatchedChildren(node = i_node)
+	    i_nameSiblings = self.getMatchedSiblings(node = i_node)
+	    
+	    if i_nameParents:#If we have parents 
+		self.int_iterator = self.getBaseIterator(i_nameParents[-1]) + len(i_nameParents)
+	    else:
+		self.int_iterator = self.getBaseIterator(node = i_node)
+		
+	    #Now that we have a start, we're gonna see if that name is taken by a sibling or not
+	    self.d_nameCandidate = i_node.getNameDict()
+	    if self.int_iterator:
+		self.d_nameCandidate['cgmIterator'] = str(self.int_iterator)
+	    self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
+	    
+	    log.debug("bufferName: '%s'"%self.bufferName)
+	    if not mc.objExists(self.bufferName):
+		log.debug('Good name candidate')
+		return self.int_iterator
+	    else:#if there is only one
+		for obj in mc.ls(self.bufferName):
+		    i_bufferName = cgmNode(obj)
+		    if i_node.mNode == i_bufferName.mNode:
+			log.debug("I'm me! : %s"%self.int_iterator)
+			return self.int_iterator
+		    
+	    if i_nameSiblings:#check siblings
+		l_siblingShortNames = [i_s.getBaseName() for i_s in i_nameSiblings]
+		log.debug("Checking sibblings: %s"%l_siblingShortNames)
+		while self.bufferName in l_siblingShortNames and self.int_iterator <100:
+		    getNewNameCandidate(self)
+		"""
+		for i_s in i_nameSiblings:
+		    if i_node.getShortName() == self.bufferName:
+			log.debug("I'm me! : %s"%self.int_iterator)
+			return self.int_iterator                    
+		    elif i_s.getShortName() == self.bufferName:
+			log.debug("Sibling has this")
+			getNewNameCandidate(self)
+		    else:
+			getNewNameCandidate(self)                    
+		"""
+	    log.debug("getIterator: %s"%self.int_iterator)
+	    return self.int_iterator
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
+
     #@r9General.Timer
     def returnUniqueGeneratedName(self, ignore='none',node = None,fastIterate = True, **kws):
         """ 
@@ -3963,92 +3993,107 @@ class NameFactory(object):
         name(string)
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         """
-	if node is None:i_node = self.i_node
-	elif issubclass(type(node),cgmNode):i_node = node
-	elif mc.objExists(node):i_node = cgmNode(node)
-	else:raise StandardError,"NameFactory.getIterator >> node doesn't exist: '%s'"%node
+	_str_funcName = "NameFactory.returnUniqueGeneratedName"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:	
+	    if node is None:i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):i_node = node
+	    elif mc.objExists(node):i_node = cgmNode(node)
+	    else:raise StandardError,"NameFactory.getIterator >> node doesn't exist: '%s'"%node
+	    
+	    if type(ignore) is not list:ignore = [ignore]
+	    log.debug("ignore: %s"%ignore)
+	    
+	    #>>> Dictionary driven order first build
+	    d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
+	    
+	    if 'cgmName' not in d_updatedNamesDict.keys() and search.returnObjectType(i_node.mNode) !='group' and 'cgmName' not in ignore:
+		i_node.addAttr('cgmName',i_node.getShortName(),attrType = 'string',lock = True)
+		#d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
+		d_updatedNamesDict['cgmName'] = i_node.getShortName()
+		
+	    if fastIterate:  
+		iterator = self.getFastIterator(node = i_node)
+	    else:
+		iterator = self.getIterator(node = i_node)  
+		
+	    if iterator:
+		d_updatedNamesDict['cgmIterator'] = str(iterator)
+		    
+	    log.debug(nameTools.returnCombinedNameFromDict(d_updatedNamesDict))
+	    return nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
 	
-        if type(ignore) is not list:ignore = [ignore]
-        log.debug("ignore: %s"%ignore)
-        
-        #>>> Dictionary driven order first build
-        d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
-        
-        if 'cgmName' not in d_updatedNamesDict.keys() and search.returnObjectType(i_node.mNode) !='group' and 'cgmName' not in ignore:
-            i_node.addAttr('cgmName',i_node.getShortName(),attrType = 'string',lock = True)
-            #d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
-	    d_updatedNamesDict['cgmName'] = i_node.getShortName()
-	    
-        if fastIterate:  
-	    iterator = self.getFastIterator(node = i_node)
-	else:
-	    iterator = self.getIterator(node = i_node)  
-	    
-	if iterator:
-	    d_updatedNamesDict['cgmIterator'] = str(iterator)
-                
-        log.debug(nameTools.returnCombinedNameFromDict(d_updatedNamesDict))
-        return nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
-    
     #@r9General.Timer
     def doNameObject(self,node = None,fastIterate = True, **kws):
-	if node is None:i_node = self.i_node
-	elif issubclass(type(node),cgmNode):i_node = node
-	elif mc.objExists(node):i_node = cgmNode(node)
-	else:raise StandardError,"NameFactory.doNameObject >> node doesn't exist: '%s'"%node
-	log.debug("Naming: '%s'"%i_node.getShortName())
-        nameCandidate = self.returnUniqueGeneratedName(node = i_node, fastIterate=fastIterate,**kws)
-	log.debug("nameCandidate: %s"%nameCandidate)
-	mc.rename(i_node.mNode,nameCandidate)
-        #i_node.rename(nameCandidate)
+	_str_funcName = "NameFactory.doNameObject"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:	
+	    if node is None:i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):i_node = node
+	    elif mc.objExists(node):i_node = cgmNode(node)
+	    else:raise StandardError,"NameFactory.doNameObject >> node doesn't exist: '%s'"%node
+	    log.debug("Naming: '%s'"%i_node.getShortName())
+	    nameCandidate = self.returnUniqueGeneratedName(node = i_node, fastIterate=fastIterate,**kws)
+	    log.debug("nameCandidate: %s"%nameCandidate)
+	    mc.rename(i_node.mNode,nameCandidate)
+	    #i_node.rename(nameCandidate)
+	    
+	    str_baseName = i_node.getBaseName()
+	    if  str_baseName != nameCandidate:
+		log.warning("'%s' not named to: '%s'"%(str_baseName,nameCandidate))
+		
+	    return str_baseName
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
 	
-        str_baseName = i_node.getBaseName()
-        if  str_baseName != nameCandidate:
-            log.warning("'%s' not named to: '%s'"%(str_baseName,nameCandidate))
-            
-        return str_baseName
-    
     #@r9General.Timer    
     def doName(self,fastIterate = True,nameChildren=False,nameShapes = False,node = None,**kws):
-	if node is None:i_node = self.i_node
-	elif issubclass(type(node),cgmNode):i_node = node
-	elif mc.objExists(node):i_node = cgmNode(node)
-	else:raise StandardError,"NameFactory.doName >> node doesn't exist: '%s'"%node
-	
-	#Try naming object
-	try:self.doNameObject(node = i_node,fastIterate=fastIterate,**kws)
-	except StandardError,error:
-	    raise StandardError,"NameFactory.doName.doNameObject failed: '%s'|%s"%(i_node.mNode,error)
-	
-	i_rootObject = i_node
-	
-	if nameShapes:
-	    shapes = mc.listRelatives(i_rootObject.mNode,shapes=True,fullPath=True) or []
-	    if shapes:
-		l_iShapes = []
-		for s in shapes:
-		    if not mc.referenceQuery(s, isNodeReferenced=True):
-			l_iShapes.append(cgmNode(s))
-		for i_s in l_iShapes:
-		    log.debug("on shape: '%s'"%i_s.mNode)
-		    try:self.doNameObject(node = i_s, fastIterate=fastIterate,**kws)
-		    except StandardError,error:
-			raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
-			
-	#Then the children
-	if nameChildren:#Initialize them all so we don't lose them
-	    l_iChildren = []
-	    for o in mc.listRelatives(i_rootObject.mNode, allDescendents = True,type='transform',fullPath=True) or []:
-		l_iChildren.append(cgmNode(o))
+	_str_funcName = "NameFactory.doName"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:		
+	    if node is None:i_node = self.i_node
+	    elif issubclass(type(node),cgmNode):i_node = node
+	    elif mc.objExists(node):i_node = cgmNode(node)
+	    else:raise StandardError,"NameFactory.doName >> node doesn't exist: '%s'"%node
 	    
-	    if l_iChildren:
-		l_iChildren.reverse()
-		for i_c in l_iChildren:
-		    log.debug("on child: '%s'"%i_c.mNode)		    
-		    try:self.doNameObject(node = i_c,fastIterate=fastIterate,**kws)
-		    except StandardError,error:
-			raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
-
+	    #Try naming object
+	    try:self.doNameObject(node = i_node,fastIterate=fastIterate,**kws)
+	    except StandardError,error:
+		raise StandardError,"NameFactory.doName.doNameObject failed: '%s'|%s"%(i_node.mNode,error)
+	    
+	    i_rootObject = i_node
+	    
+	    if nameShapes:
+		shapes = mc.listRelatives(i_rootObject.mNode,shapes=True,fullPath=True) or []
+		if shapes:
+		    l_iShapes = []
+		    for s in shapes:
+			if not mc.referenceQuery(s, isNodeReferenced=True):
+			    l_iShapes.append(cgmNode(s))
+		    for i_s in l_iShapes:
+			log.debug("on shape: '%s'"%i_s.mNode)
+			try:self.doNameObject(node = i_s, fastIterate=fastIterate,**kws)
+			except StandardError,error:
+			    raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
+			    
+	    #Then the children
+	    if nameChildren:#Initialize them all so we don't lose them
+		l_iChildren = []
+		for o in mc.listRelatives(i_rootObject.mNode, allDescendents = True,type='transform',fullPath=True) or []:
+		    l_iChildren.append(cgmNode(o))
+		
+		if l_iChildren:
+		    l_iChildren.reverse()
+		    for i_c in l_iChildren:
+			log.debug("on child: '%s'"%i_c.mNode)		    
+			try:self.doNameObject(node = i_c,fastIterate=fastIterate,**kws)
+			except StandardError,error:
+			    raise StandardError,"NameFactory.doName.doNameObject child ('%s') failed: %s"%i_node.getShortName(),error
+	except StandardError,error:
+	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
+	
 
 
 
