@@ -18,6 +18,7 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
+from cgm.core.lib import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
@@ -72,15 +73,21 @@ class go(object):
 	    else:
 		log.error(">>> %s >>> Has no modulePuppet or moduleParent and no helper"%_str_funcName)		
 		return False
-	
-	#Geo -------------------------------------------------------------------------------------------
-	if geo is None:
-	    try:
-		if not module.modulePuppet.getUnifiedGeo():raise StandardError, "go>>> Module puppet missing geo"
-		else:geo = module.modulePuppet.getUnifiedGeo()[0]
-	    except StandardError,error:log.warning(">>> %s.go >> geo failed to find: %s"%(self.m.p_nameShort,error) + "="*75)  
-	cgmGeneral.validateObjArg(geo,noneValid=True)
 	    
+	if self.m.mClass in ['cgmEyelids','cgmEyeball']:#Some special objects don't need no stinkin templating!
+	    if self.m.getMessage('helper'):
+		log.info("%s >>> Helper object found. No templating necessary"%_str_funcName)	    
+		return 
+	
+	try:#Geo -------------------------------------------------------------------------------------------
+	    if geo is None:
+		try:
+		    if not module.modulePuppet.getUnifiedGeo():raise StandardError, "go>>> Module puppet missing geo"
+		    else:geo = module.modulePuppet.getUnifiedGeo()[0]
+		except StandardError,error:log.warning("geo failed to find: %s"%(error) + "="*75)  
+	    cgmValid.objString(geo,noneValid=True)
+	except StandardError,error:log.warning(">>> %s.go >> geo failed : %s"%(self.m.p_nameShort,error))  
+	
         log.info("loadTemplatePose: %s"%loadTemplatePose)     
 	self._i_module = self.m
         if tryTemplateUpdate:
@@ -385,8 +392,8 @@ def doMakeEyeballTemplate(self):
     if not mi_helper:
 	raise StandardError,"No helper found!"
     
-    b_irisControl = mi_helper.mi_irisHelper
-    b_pupilControl = mi_helper.mi_pupilHelper
+    b_irisControl = mi_helper.irisHelper
+    b_pupilControl = mi_helper.pupilHelper
     
     mi_helper.parent = self.m.templateNull
     
