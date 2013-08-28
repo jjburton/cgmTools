@@ -171,20 +171,19 @@ def build_rigSkeleton(self):
 		    for ii,mObj in enumerate(l):
 			if i == 0:mObj.addAttr('cgmDirectionModifier',"inner",lock=True)
 			else:mObj.addAttr('cgmDirectionModifier',"outer",lock=True)
+			if k == 'lwr':mObj.addAttr('isSubControl',True,lock=True)
 			if b_iterate and ii > 0:
 			    mObj.addAttr('cgmTypeModifier','sub',lock=True)			    
 			    mObj.addAttr('cgmIterator',ii-1,lock=True)
-			    mObj.addAttr('isSubControl',True,lock=True)			    
+			    mObj.addAttr('isSubControl',True,lock=True)
 			mObj.doName()
 				
 	    except StandardError,error:raise StandardError,"Naming fail | error: %s "%(error)       
-	    
 	    self._i_rigNull.msgList_connect(ml_handles,'handleJoints_%s'%k,'rigNull')
 	mi_upLoc.delete()
     except StandardError,error:
 	raise StandardError,"%s>>Build handle joints fail! | error: %s"%(_str_funcName,error)   
    
-    
     #>>>Create joint chains
     try:#>>Rig chain =====================================================================
 	ml_rigJoints = self.build_rigChain()	
@@ -236,12 +235,11 @@ def build_shapes(self):
     except StandardError,error:
 	log.error("eyelids.build_rig>>bad self!")
 	raise StandardError,error
-    
     _str_funcName = "build_shapes(%s)"%self._strShortName
     log.info(">>> %s >>> "%(_str_funcName) + "="*75)   
     
-    if self._i_templateNull.handles > 3:
-	raise StandardError, "%s >>> Too many handles. don't know how to rig"%(_str_funcName)    
+    if self._i_templateNull.handles != 5:
+	raise StandardError, "%s >>> Expecting 5 handles. don't know how to rig"%(_str_funcName)    
     
     if not self.isRigSkeletonized():
 	raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
