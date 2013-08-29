@@ -17,7 +17,6 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
 from cgm.core.lib import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
@@ -26,12 +25,10 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
-reload(mShapeCast)
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
-reload(jntUtils)
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
-from cgm.core.rigger.lib.Face import (eyeball)
+from cgm.core.rigger.lib.Face import (eyeball,eyelids)
 
 from cgm.lib import (cgmMath,
                      attributes,
