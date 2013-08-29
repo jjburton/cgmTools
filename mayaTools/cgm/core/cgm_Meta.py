@@ -22,6 +22,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
+from cgm.core.lib import validateArgs as cgmValid
 from cgm.core.lib import nameTools
 reload(nameTools)
 from cgm.lib.ml import (ml_resetChannels)
@@ -330,6 +331,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		return False
 	    
     #Connection stuff =========================================================================
+    #@cgmGeneral.Timer
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
         Fast method of connecting a node to the mNode via a message attr link. This call
@@ -378,8 +380,16 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		"""
             #if not self.isChildNode(node, attr, srcAttr): 
 	    #mc.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=force)
-	    attributes.storeObjectToMessage(node,self.mNode,attr)
-	    if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
+	    try:cgmAttr(self,attr,attrType='message').doConnectIn("%s.msg"%node)
+	    except StandardError,error:raise StandardError,"connect Fail | %s"%error
+	    
+	    if connectBack is not None:
+		#attributes.storeObjectToMessage(self.mNode,node,connectBack)
+		try:cgmAttr(node,connectBack,attrType='message').doConnectIn("%s.msg"%self.mNode)
+		except StandardError,error:raise StandardError,"connectBack Fail | %s"%error
+	    
+	    #attributes.storeObjectToMessage(node,self.mNode,attr)
+	    #if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
         except StandardError,error:
             log.warning("connectChildNode: %s"%error)
 	    raise StandardError,error
@@ -405,7 +415,14 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
                 #add to parent node
                 #mc.addAttr(node,longName=connectBack, at='message', m=False)
 	    attributes.storeObjectToMessage(node,self.mNode,attr)
-	    if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)
+	    #try:cgmAttr(node,connectBack,attrType='message').doConnectIn("%s.msg"%self.mNode)	    
+	    #except StandardError,error:raise StandardError,"connect Fail | %s"%error
+	    
+	    if connectBack is not None:
+		attributes.storeObjectToMessage(self.mNode,node,connectBack)
+		#try:cgmAttr(self,attr,attrType='message').doConnectIn("%s.msg"%node)
+		#except StandardError,error:raise StandardError,"connectBack Fail | %s"%error
+		
 	    #attributes.storeObjectToMessage(node,self.mNode,attr)
 	    
 	    #if srcAttr:attributes.storeObjectToMessage(node,self.mNode,srcAttr)
@@ -452,12 +469,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         """	
 	try:
 	    log.debug(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
+	    #ml_nodes = cgmValid.objStringList(nodes,noneValid=True)	    
 	    ml_nodes = validateObjListArg(nodes,noneValid=True)
 	    if ml_nodes:self.msgList_purge(attr)#purge first
 	    for i,mi_node in enumerate(ml_nodes):
 		str_attr = "%s_%i"%(attr,i)
 		self.connectChildNode(mi_node,str_attr,connectBack)
-		log.info("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
+		log.debug("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
 	    log.debug("-"*100)            	
 	    return True
 	except StandardError,error:
