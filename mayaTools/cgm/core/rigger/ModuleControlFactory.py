@@ -408,7 +408,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     elif i_control.getAttr('cgmName') in d_rotateOrderDefaults.keys():
 	_rotateOrder = d_rotateOrderDefaults[i_control.getAttr('cgmName')]
     else:
-	log.warning("rotateOrder not set on: '%s'"%str_shortName)
+	log.debug("rotateOrder not set on: '%s'"%str_shortName)
 	
     #set it
     if _rotateOrder:
