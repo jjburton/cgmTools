@@ -64,7 +64,7 @@ def boolArg(arg = None, calledFrom = None):
 	return bool(arg)
     else: raise StandardError, ">>> %s >> Arg failed"%(_str_funcName)
 	
-def objString(arg = None, mayaType = None, noneValid = False, calledFrom = None):
+def objString(arg = None, mayaType = None, noneValid = False, isTransform = None, calledFrom = None):
     """
     validate an objString. Use cgmMeta version for instances
     
@@ -111,13 +111,19 @@ def objString(arg = None, mayaType = None, noneValid = False, calledFrom = None)
 		    log.warning("%s >>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(_str_funcName,arg,str_type,l_mayaTypes))
 		    return False
 		raise StandardError,"%s >>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(_str_funcName,arg,str_type,l_mayaTypes)			    	
+	if isTransform is not None:
+	    if isTransform and not mc.ls(arg,type='transform'):
+		if noneValid:
+		    log.warning("%s >>> '%s' has no transform"%(_str_funcName,arg))		    
+		    return False
+		raise StandardError,"%s >>> '%s' has no transform"%(_str_funcName,arg)	    	
 	return arg
     
     except StandardError,error:
 	log.error("%s >>Failure! arg: %s | mayaType: %s"%(_str_funcName,arg,mayaType))
 	raise StandardError,error  
     
-def objStringList(l_args = None, mayaType = None, noneValid = False,calledFrom = None):
+def objStringList(l_args = None, mayaType = None, noneValid = False,isTransform = None, calledFrom = None):
     log.debug(">>> objStringList >> l_args = %s"%l_args + "="*75) 
     calledFrom = stringArg(calledFrom,noneValid=True)    
     if calledFrom: _str_funcName = "%s.objStringList"%(calledFrom)
@@ -126,7 +132,7 @@ def objStringList(l_args = None, mayaType = None, noneValid = False,calledFrom =
 	if type(l_args) not in [list,tuple]:l_args = [l_args]
 	returnList = []
 	for arg in l_args:
-	    buffer = validateObjArg(arg,mayaType,noneValid,calledFrom)
+	    buffer = objString(arg,mayaType,noneValid,isTransform,calledFrom)
 	    if buffer:returnList.append(buffer)
 	    else:log.warning("%s >> failed: '%s'"%(_str_funcName,arg))
 	return returnList
