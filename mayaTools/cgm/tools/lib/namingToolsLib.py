@@ -28,6 +28,7 @@ import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
+from cgm.lib.classes import NameFactory as NameFactoryOld
 from cgm.lib import *
 from cgm.lib import (guiFactory,
                      dictionary,
