@@ -37,6 +37,7 @@ from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import validateArgs as cgmValid
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import curve_Utils as crvUtils
+reload(crvUtils)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
@@ -44,6 +45,7 @@ from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import rig_Utils as rUtils
 
 from cgm.lib import (attributes,
+                     deformers,
                      joints,
                      skinning,
                      locators,
@@ -158,6 +160,7 @@ def build_rigSkeleton(self):
 		mi_mid = ml_handles[int_mid]
 		mi_mid.addAttr('cgmTypeModifier',"main",lock=True)
 		mi_mid.doName()
+		if k == 'upr':mi_mid.addAttr('isMain',True)#Flag this for later
 		
 		#Split the lists down for inner/outer
 		l_buffer = lists.returnSplitList(ml_handles,popMid=True)
@@ -282,30 +285,72 @@ def build_controls(self):
 	except StandardError,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
 	log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
 	log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
-	ml_curveHandles = self._i_rigNull.msgList_get('handleCurves')
+	#ml_curveHandles = self._i_rigNull.msgList_get('handleCurves')
 	#Check our cumulative len
+	"""
 	if len(ml_curveHandles) != (len(ml_lwrLidHandles) + len(ml_uprLidHandles)):
 	    raise StandardError,"len(curveHandles) %s != len of lwr (%s) +  len of upwr (%s)"%(len(ml_curveHandles),
 	                                                                                       len(ml_lwrLidHandles),
 	                                                                                       len(ml_uprLidHandles))
+											   """    
     except StandardError,error:	
 	raise StandardError,"%s >>> Data gather fail! | error: %s"%(_str_funcName,error)
     
     try:#>>>> Handles 
 	#==================================================================	
 	ml_controlsAll = []
-	for i,mi_handle in enumerate(ml_uprLidHandles + ml_lwrLidHandles):
-	    mi_crv = ml_curveHandles[i]
-	    log.info("On %s | '%s' >> '%s'"%(i,mi_handle.p_nameShort,mi_crv.p_nameShort))
-	    mi_crv.parent = self._i_constrainNull#Parent to constrainNull
-	    d_buffer = mControlFactory.registerControl(mi_crv) 	    
-	    ml_controlsAll.append(mi_crv)    
-	    
+	md_controls = {'upr':[],'lwr':[]}	
+	md_subControls = {'upr':[],'lwr':[]}
+	for i,ml in enumerate([ml_uprLidHandles,ml_lwrLidHandles]):
+	    if not i:_str_key = 'upr'
+	    else:_str_key = 'lwr'
+	    for ii,mi_handle in enumerate(ml):
+		try:
+		    mi_crv = mi_handle.controlCurve
+		    log.debug("On %s | '%s' >> '%s'"%(ii,mi_handle.p_nameShort,mi_crv.p_nameShort))
+		    mi_crv.parent = self._i_constrainNull#Parent to constrainNull
+		    try:
+			if mi_handle.getAttr('isSubControl'):
+			    md_subControls[_str_key].append(mi_crv)
+			    d_buffer = mControlFactory.registerControl(mi_crv,addConstraintGroup=True)
+			else:
+			    d_buffer = mControlFactory.registerControl(mi_crv)	
+		    except StandardError,error:raise StandardError,"register fail build : %s"%error
+		    md_controls[_str_key].append(mi_crv)#append
+		    if mi_handle.getAttr('isMain'):
+			log.info(">>> Settings found: %s"%(mi_crv.p_nameShort))
+			self._i_rigNull.connectChildNode(mi_crv,'settings')
+			mi_handle.doRemove('isMain')
+		    ml_controlsAll.append(mi_crv)
+		except StandardError,error:raise StandardError," %s : %s | error: %s"%(ii,mi_handle.p_nameShort,error)
 	#Purge our shapes list
-	self._i_rigNull.msgList_purge('handleCurves')
+	#self._i_rigNull.msgList_purge('handleCurves')
 	    
     except StandardError,error:	
-	raise StandardError,"%s >>> Build ik fail! | error: %s"%(_str_funcName,error)    
+	raise StandardError,"%s >>> Build controls fail! | error: %s"%(_str_funcName,error)    
+   
+    try:#>>>> Parent constrain sub controls 
+	#==================================================================	
+	log.info(">>> Setting up sub constraints")
+	for k in md_subControls.keys():
+	    log.debug(">>> md_subControls: %s | '%s'"%(k,[mi_obj.p_nameShort for mi_obj in md_subControls.get(k)]))		
+	ml_uprCullList = md_controls['upr']
+	try:ml_lwrCullList = [ml_uprCullList[0]] + md_controls['lwr'] + [ml_uprCullList[-1]]
+	except StandardError,error:raise StandardError,"lwr cull list build : %s"%error
+	md_cullLists = {'upr':ml_uprCullList,'lwr':ml_lwrCullList}
+	for k in md_subControls.keys():
+	    for i_ctrl in md_subControls[k]:
+		log.info(">>> On %s : %s"%(k,i_ctrl.p_nameShort))		
+		ml_cull = md_cullLists[k]#get our list
+		int_idx = ml_cull.index(i_ctrl)#get our index
+		ml_targets = [ml_cull[int_idx-1],ml_cull[int_idx+1]]#get the one before and after
+		try:mc.parentConstraint([mi_obj.mNode for mi_obj in ml_targets],i_ctrl.getMessage('constraintGroup')[0],maintainOffset = True)
+		except StandardError,error:raise StandardError,"constraint fail | sub: %s | targets: %s"%(i_ctrl.p_nameShort,[mi_obj.p_nameShort for mi_obj in ml_targets],error)
+    
+    except StandardError,error:	
+	raise StandardError,"%s >>> constrain sub fail! | error: %s"%(_str_funcName,error)    
+   
+   
    
     #==================================================================   
     #Connect all controls
@@ -386,47 +431,71 @@ def build_rig(self):
     except StandardError,error:
 	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)
 
-
-    
-    #Setup Lids
-    #====================================================================================
-    try:#Build our Curves -----------------------------------------------------------------
+    #>>> Setup Lids
+    try:#Build our Curves ===================================================================
+	ml_curves = []
 	try:#Upr driven curve
-	    _str_uprDrivenCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_rigUprLidJoints],os =True)
-	    mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve)
+	    _str_uprDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_rigUprLidJoints],os =True)
+	    mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve,setClass=True)
 	    mi_uprDrivenCrv.doCopyNameTagsFromObject(self._i_module.mNode,ignore=['cgmType'])
 	    mi_uprDrivenCrv.addAttr('cgmName','uprLid',lock=True)
 	    mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
 	    mi_uprDrivenCrv.doName()
+	    ml_curves.append(mi_uprDrivenCrv)
+	    
+	    mi_uprBlinkCrv = mi_uprDrivenCrv.doDuplicate(False)
+	    mi_uprBlinkCrv.addAttr('cgmTypeModifier','blink',lock=True)
+	    mi_uprBlinkCrv.doName()
+	    ml_curves.append(mi_uprBlinkCrv)
 	except StandardError,error:raise StandardError,"upper driven curve : %s"%(error)  	    
 	
 	try:#Upper driver curve
-	    _str_uprDriverCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_uprLidHandles],os =True)
-	    mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve)
+	    _str_uprDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_uprLidHandles],os =True)
+	    mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve,setClass=True)
 	    mi_uprDriverCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode,ignore=['cgmTypeModifier'])
 	    mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
 	    mi_uprDriverCrv.doName()
+	    ml_curves.append(mi_uprDriverCrv)	    
 	except StandardError,error:raise StandardError,"upper driver curve : %s"%(error)  	    
 	
 	try:#Lwr driven curve
-	    _str_lwrDrivenCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_rigUprLidJoints[0]] + ml_rigLwrLidJoints + [ml_rigUprLidJoints[-1]]],os =True)
-	    mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve)
+	    _str_lwrDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in [ml_rigUprLidJoints[0]] + ml_rigLwrLidJoints + [ml_rigUprLidJoints[-1]]],os =True)
+	    mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve,setClass=True)
 	    mi_lwrDrivenCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode)
 	    mi_lwrDrivenCrv.addAttr('cgmName','lwrLid',lock=True)	    
 	    mi_lwrDrivenCrv.doName()
+	    ml_curves.append(mi_lwrDrivenCrv)	
+	    
+	    mi_lwrBlinkCrv = mi_lwrDrivenCrv.doDuplicate(False)
+	    mi_lwrBlinkCrv.addAttr('cgmTypeModifier','blink',lock=True)
+	    mi_lwrBlinkCrv.doName()
+	    ml_curves.append(mi_lwrBlinkCrv)
 	except StandardError,error:raise StandardError,"upper driven curve : %s"%(error)  	    
 	
 	try:#Lwr driver curve
-	    _str_lwrDriverCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
-	    mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve)
+	    _str_lwrDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
+	    mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve,setClass=True)
 	    mi_lwrDriverCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
 	    mi_lwrDriverCrv.addAttr('cgmName','lwrLid',lock=True)	    
 	    mi_lwrDriverCrv.doName()
+	    ml_curves.append(mi_lwrDriverCrv)	    	    	    
 	except StandardError,error:raise StandardError,"upper driver curve : %s"%(error)  	    
 	
+	try:#SmartBlink curve
+	    _str_smartBlinkCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
+	    mi_smartBlinkCrv = cgmMeta.cgmObject(_str_smartBlinkCurve,setClass=True)
+	    mi_smartBlinkCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
+	    mi_smartBlinkCrv.addAttr('cgmName','smartBlink',lock=True)	    
+	    mi_smartBlinkCrv.doName()
+	    ml_curves.append(mi_smartBlinkCrv)	    	    	    
+	except StandardError,error:raise StandardError,"smartBlink curve : %s"%(error)  	
+	
+	for mi_crv in ml_curves:#Parent to rig null
+	    mi_crv.parent = self._i_rigNull
+	    
     except StandardError,error:raise StandardError,"%s >> Curve creation fail! | error: %s"%(_str_funcName,error)   
-   
-    try:#Let's make our locs and set up some aims --------------------------------------
+    
+    try:#Locators and aiming ================================================================
 	try:#Create up loc -------------------------------------------------------------
 	    _str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)  
 	    mi_upLoc = cgmMeta.cgmObject(_str_upLoc)
@@ -436,6 +505,13 @@ def build_rig(self):
 	    mi_locShape.localScaleZ = __baseDistance	
 	    mi_upLoc.parent = self._i_constrainNull.mNode
 	except StandardError,error:raise StandardError,"up loc : %s"%(error)  	    
+	
+	#Make a loc group
+	mi_locGroup = cgmMeta.cgmObject(mc.group(em=True))
+	mi_locGroup.parent = self._i_constrainNull
+	mi_locGroup.addAttr('cgmTypeModifier','locGroup')
+	mi_locGroup.doName()
+	mi_locGroup.parent = self._i_rigNull
 	
 	ml_locs = []
 	for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
@@ -447,9 +523,12 @@ def build_rig(self):
 		    mi_locShape.localScaleX = __baseDistance
 		    mi_locShape.localScaleY = __baseDistance
 		    mi_locShape.localScaleZ = __baseDistance
+		    mi_loc.parent = mi_locGroup
 		except StandardError,error:raise StandardError,"loc creation : %s"%(error)  	    
 		#> Aim constraint
-		try:mc.aimConstraint(mi_loc.mNode,mi_obj.root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+		mi_root = mi_obj.root
+		mi_root.parent = self._i_constrainNull
+		try:mc.aimConstraint(mi_loc.mNode,mi_root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
 		except StandardError,error:raise StandardError,"aim constraint : %s"%(error)  	    
 		#Attach to curve
 		if i < len(ml_rigUprLidJoints):mi_crv = mi_uprDrivenCrv
@@ -460,7 +539,109 @@ def build_rig(self):
 
 	
     except StandardError,error:
+	raise StandardError,"%s >> locator/aim setup fail! | error: %s"%(_str_funcName,error)   
+    
+    try:#Lid setup ===================================================================
+	try:#Wire deformers -------------------------------------------------------------
+	    _l_return = mc.wire(mi_uprDrivenCrv.mNode, w = mi_uprDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+	    mi_uprWire = cgmMeta.cgmNode(_l_return[0])
+	    mi_uprWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
+	    mi_uprWire.doName()
+	    _l_return = mc.wire(mi_lwrDrivenCrv.mNode, w = mi_lwrDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+	    mi_lwrWire = cgmMeta.cgmNode(_l_return[0])
+	    mi_lwrWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
+	    mi_lwrWire.doName()
+
+	except StandardError,error:raise StandardError,">> wire deformer : %s"%(error)  	    
+	
+	try:#Skin driver curve ---------------------------------------------------------
+	    ml_uprSkinJoints = ml_uprLidHandles
+	    ml_lwrSkinJoints = [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]
+	    md_skinSetup = {'upr':{'ml_joints':ml_uprSkinJoints,'mi_crv':mi_uprDriverCrv},
+	                    'lwr':{'ml_joints':ml_lwrSkinJoints,'mi_crv':mi_lwrDriverCrv}}
+	    for k in md_skinSetup.keys():
+		d_crv = md_skinSetup[k]
+		str_crv = d_crv['mi_crv'].p_nameShort
+		l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
+		log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
+		try:
+		    mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
+		                                                  d_crv['mi_crv'].mNode,
+		                                                  tsb=True,
+		                                                  maximumInfluences = 3,
+		                                                  normalizeWeights = 1,dropoffRate=2.5)[0])
+		except StandardError,error:raise StandardError,"skinCluster : %s"%(error)  	    
+		d_crv['mi_skinNode'] = mi_skinNode
+	except StandardError,error:raise StandardError,"skinning driver : %s"%(error)  	    
+	
+	try:#Blendshape the smart blink curve ---------------------------------------------
+	    _str_bsNode = mc.blendShape([mi_uprDriverCrv.mNode,mi_lwrDriverCrv.mNode],mi_smartBlinkCrv.mNode)[0]
+	    mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+	    mi_bsNode.doStore('cgmName',mi_smartBlinkCrv.mNode)
+	    mi_bsNode.doName()
+	    
+	    mi_settings = self._i_rigNull.settings#grab our settings
+	    mPlug_height = cgmMeta.cgmAttr(mi_settings,'blinkHeight',attrType = 'float', defaultValue=.1, minValue = 0, maxValue = 1)
+	    l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
+	    log.info(l_bsAttrs)
+	    d_return = NodeF.createSingleBlendNetwork([mi_settings.mNode,'blinkHeight'],
+	                                              [mi_settings.mNode,'blinkHeight_upr'],
+	                                              [mi_settings.mNode,'blinkHeight_lwr'],
+	                                              keyable=True)	
+	    #Connect                                  
+	    d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
+	    d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[1]))
+	except StandardError,error:raise StandardError,"smartBlink bsNode : %s"%(error)  	
+	
+	try:#Wire deform the uper and lwr blink lids ---------------------------------------------------------
+	    #Build our blink match wire deformers
+	    mPlug_height.value = 0	    
+	    _l_return = mc.wire(mi_lwrBlinkCrv.mNode, w = mi_smartBlinkCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+	    mi_lwrBlinkWire = cgmMeta.cgmNode(_l_return[0])
+	    mi_lwrBlinkWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
+	    mi_lwrBlinkWire.addAttr('cgmTypeModifier','blink')	    
+	    mi_lwrBlinkWire.doName()
+	    mc.setAttr("%s.scale[0]"%mi_lwrBlinkWire.mNode,0)
+	    
+	    mPlug_height.value = 1
+	    _l_return = mc.wire(mi_uprBlinkCrv.mNode, w = mi_smartBlinkCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+	    mi_uprBlinkWire = cgmMeta.cgmNode(_l_return[0])
+	    mi_uprBlinkWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
+	    mi_uprBlinkWire.addAttr('cgmTypeModifier','blink')	    
+	    mi_uprBlinkWire.doName()
+	    mc.setAttr("%s.scale[0]"%mi_uprBlinkWire.mNode,0)
+	    
+	    mPlug_height.value = .1#back to default
+	except StandardError,error:raise StandardError,"blink target wires : %s"%(error)  	
+
+	try:#Blendshape the upr and lwr curves to smart blink targets------------------------------------
+	    mPlug_blink = cgmMeta.cgmAttr(mi_settings,'blink',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0)
+	    d_blendshapeBlink = {'upr':{'mi_target':mi_uprBlinkCrv,'mi_driven':mi_uprDrivenCrv},
+	                         'lwr':{'mi_target':mi_lwrBlinkCrv,'mi_driven':mi_lwrDrivenCrv}}
+	    for k in d_blendshapeBlink.keys():
+		d_buffer = d_blendshapeBlink[k]
+		mi_target = d_buffer['mi_target']
+		mi_driven = d_buffer['mi_driven']
+		_str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
+		mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+		mi_bsNode.doStore('cgmName',mi_uprDrivenCrv.mNode)
+		mi_bsNode.doName()
+		l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
+		mPlug_blink.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
+	except StandardError,error:raise StandardError,"blink setup : %s"%(error)  	
+
+    except StandardError,error:
 	raise StandardError,"%s >> Lids setup fail! | error: %s"%(_str_funcName,error)   
+    
+    try:#Control setup ===================================================================
+	for i,mi_handle in enumerate(ml_uprLidHandles + ml_lwrLidHandles):
+	    mi_crv = mi_handle.controlCurve
+	    log.info("On %s | '%s' >> '%s'"%(i,mi_handle.p_nameShort,mi_crv.p_nameShort))
+	    try:mc.parentConstraint([mi_crv.mNode],mi_handle.mNode,maintainOffset = True)
+	    except StandardError,error:raise StandardError,"constraint | ctrl: '%s' | target: '%s' | %s"%(mi_crv.p_nameShort,mi_handle.p_nameShort,error)
+    except StandardError,error:
+	raise StandardError,"%s >>control setup fail! | error: %s"%(_str_funcName,error)   
+    
     return
     try:#Connect vis blend between fk/ik
 	#>>> Setup a vis blend result
