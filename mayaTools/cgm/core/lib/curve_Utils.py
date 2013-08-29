@@ -23,6 +23,7 @@ log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
+from maya import OpenMaya
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -31,6 +32,7 @@ from Red9.core import Red9_Meta as r9Meta
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import validateArgs as cgmValid
+reload(cgmValid)
 from cgm.lib import (distance,
                      attributes,
                      curves,
@@ -120,3 +122,60 @@ def returnSplitCurveList(curve = None,points = 3, markPoints = False,
 		return l_spanUPositions
 	except StandardError,error:
 		raise StandardError,"%s >>> error : %s"%(_str_funcName,error)
+
+@cgmGeneral.Timer
+def attachObjToCurve(obj = None, crv = None):
+	"""
+	@Parameters
+	obj -- obj string
+	crv -- crv string to attach to
+
+	returns param
+	"""
+	_str_funcName = 'attachObjToCurve'
+	log.info(">>> %s >> "%_str_funcName + "="*75)
+	try:
+		obj = cgmValid.objString(obj,isTransform=True)
+		crv = cgmValid.objString(crv,mayaType='nurbsCurve')	
+		d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
+		mi_poci = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+		mc.connectAttr("%s.worldSpace"%d_returnBuff['shape'],"%s.inputCurve"%mi_poci.mNode)
+		mi_poci.parameter = d_returnBuff['parameter']
+		mc.connectAttr("%s.position"%mi_poci.mNode,"%s.t"%obj)
+		
+	except StandardError,error:
+		raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	
+
+@cgmGeneral.Timer
+def getUParamOnCurve(obj = None, crv = None):
+	"""
+	Props to Marco Giordano for this method. Oddly, the distance method is faster....
+
+	@Parameters
+	curve -- must be a curve instance or obj string
+	points -- number of points you want on the curve
+
+	returns param
+	"""
+	_str_funcName = 'getUParamOnCurve'
+	log.info(">>> %s >> "%_str_funcName + "="*75)
+	mi_obj = cgmValid.objString(obj)
+	mi_crv = cgmValid.objString(crv,mayaType='nurbsCurve')
+	mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True)[0],mayaType='shape')
+	pos = mc.xform(mi_obj,q=True, t=True, ws=True)
+	point = OpenMaya.MPoint(pos[0],pos[1],pos[2])
+	#object.__getattribute__(self, "_MObject")
+	curveFN = OpenMaya.MFnNurbsCurve(mi_shape.__getattribute__("_MObject"))
+	paramUtil = OpenMaya.MScriptUtil()
+	paramPtr = paramUtil.asDoublePtr()
+	isOnCurve = curveFN.isPointOnCurve(point)
+	if isOnCurve:
+		curveFN.getParamAtPoint(point,paramPtr,0.001,OpenMaya.MSpace.kObject)
+	else:
+		point = curveFN.closestPoint(point,paramPtr,0.001,OpenMaya.MSpace.kObject)
+		curveFN.getParamAtPoint(point,paramPtr,0.001,OpenMaya.MSpace.kObject)
+		
+	buffer = paramPtr
+	del(paramPtr)
+	return paramUtil.getDouble(buffer)
+	
