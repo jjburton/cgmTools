@@ -22,6 +22,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.lib import shapeCaster as ShapeCast
@@ -252,76 +253,57 @@ class go(object):
 	else:
 	    raise StandardError, "%s >> Not enough info to figure out"%_str_funcName
     
-    @r9General.Timer    
+    @cgmGeneral.Timer    
     def build_eyelids(self):
 	_str_funcName = "go.build_eyelids(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    try:#>>Info gather =====================================================================
 		mi_helper = cgmMeta.validateObjArg(self._mi_module.getMessage('helper'),noneValid=True)
-		if not mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)    
+		if not mi_helper:raise StandardError,"No suitable helper found"    
 		
 		try:ml_uprLidHandles = cgmMeta.validateObjListArg(self.mi_rigNull.msgList_getMessage('handleJoints_upr'),noneValid=False)
-		except StandardError,error:raise StandardError,"%s >>> Missing uprlid handleJoints | error: %s "%(_str_funcName,error)
+		except StandardError,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
 		try:ml_lwrLidHandles = cgmMeta.validateObjListArg(self.mi_rigNull.msgList_getMessage('handleJoints_lwr'),noneValid=False)
-		except StandardError,error:raise StandardError,"%s >>> Missing lwrlid handleJoints | error: %s "%(_str_funcName,error)  
+		except StandardError,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
 		log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
 		log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
 		
 		__baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_uprLidHandles]) /2 
 		log.info("%s >>> baseDistance : %s"%(_str_funcName,__baseDistance))				
 	    except StandardError,error:
-		raise StandardError,"%s>>Gather Data fail! | error: %s"%(_str_funcName,error)  
+		raise StandardError,"Gather Data fail! | error: %s"%(error)  
 	    
-	    
+	    ml_handleCrvs = []
 	    for mObj in ml_uprLidHandles + ml_lwrLidHandles:
-		log.info(mObj.p_nameShort)
-		if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
-		    _size = __baseDistance * .6
-		else:_size = __baseDistance
-		mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self._jointOrientation[0]+'+'),setClass=True)	
-		Snap.go(mi_crv,mObj.mNode,move=True,orient=False)
-		str_grp = mi_crv.doGroup()
-		mi_crv.__setattr__("t%s"%self._jointOrientation[0],__baseDistance)
-		mi_crv.parent = False
-		mc.delete(str_grp)
-		if mObj.getAttr('isSubControl'):
-		    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])  
-		else:curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])  
-	    return
-	    
-	    Snap.go(mi_crvBase,mi_helper.mNode)
-	    mi_tmpGroup = cgmMeta.cgmObject( mi_crvBase.doGroup())
-	    mi_crvBase.__setattr__('t%s'%self._jointOrientation[0],self._baseModuleDistance * 1.25)
-	    mi_crvBase.parent = False
-	    mi_tmpGroup.delete()
-	    
-	    #Make a trace curve
-	    _str_trace = mc.curve (d=1, ep = [mi_helper.getPosition(),mi_crvBase.getPosition()], os=True)#build curves as we go to see what's up
-	    log.info(_str_trace)
-	    l_curvesToCombine = [_str_trace,mi_crvBase.mNode]
-	    
-	    #>>>Combine the curves
-	    try:newCurve = curves.combineCurves(l_curvesToCombine) 
-	    except StandardError,error:raise StandardError,"Failed to combine | error: %s"%error
-	    
-	    mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_helper.mNode,False) )
-	    
-	    try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
-	    except StandardError,error:raise StandardError,"Parent shape in place fail | error: %s"%error
-	    
-	    mc.delete(_str_trace)
-	    
-	    #>>Copy tags and name
-	    mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
-	    mi_crv.addAttr('cgmType',attrType='string',value = 'eyeball_FK',lock=True)
-	    mi_crv.doName()          	    
-
-	    #Color
-	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
-	    self.d_returnControls['eyeballFK'] = mi_crv.mNode
-	    self.md_ReturnControls['eyeballFK'] = mi_crv
-	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballFK','owner')
+		try:
+		    if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
+			_size = __baseDistance * .6
+		    else:_size = __baseDistance
+		    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self._jointOrientation[0]+'+'),setClass=True)	
+		    Snap.go(mi_crv,mObj.mNode,move=True,orient=False)
+		    str_grp = mi_crv.doGroup()
+		    mi_crv.__setattr__("t%s"%self._jointOrientation[0],__baseDistance)
+		    mi_crv.parent = False
+		    mc.delete(str_grp)
+		    #>>Color curve		    		    
+		    if mObj.getAttr('isSubControl'):
+			curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])  
+		    else:curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])  
+		    #>>Copy tags and name		    
+		    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+		    mi_crv.doName()
+		    mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
+		    ml_handleCrvs.append(mi_crv)
+		    #>>Copy pivot
+		    mi_crv.doCopyPivot(mObj.mNode)
+		    
+		except StandardError,error:
+		    raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
+		
+	    self.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
+	    self.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
+	    self.mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
 	    
 	except StandardError,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
