@@ -34,12 +34,10 @@ log.setLevel(logging.INFO)
 import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
-reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
 from cgm.core.rigger import MorpheusFactory as morphyF
 
 from cgm.core.classes import NodeFactory as nodeF
-reload(nodeF)
 from cgm.lib import (modules,
                      distance,
                      deformers,
