@@ -16,6 +16,22 @@ obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
 
+cgmMeta.log.setLevel(cgmMeta.logging.debug)
+nameTools.log.setLevel(nameTools.logging.info)
+nameTools.log.setLevel(nameTools.logging.debug)
+
+#>>>name tools
+cgmMeta.NameFactory('l_lwr_eyelid_jnt').doName()
+cgmMeta.cgmNode('l_lwr_eyelid_jnt').getNameDict()
+cgmMeta.NameFactory('l_lwr_eyelid_jnt').doName()
+
+from cgm.core.lib import nameTools
+reload(nameTools)
+nameTools.returnObjectGeneratedNameDict('l_lwr_eyelid_0_jnt')
+nameTools.returnObjectGeneratedNameDict('l_lwr_eyelid_0_jnt',ignore = ['cgmIterator'])
+nameTools.returnObjectGeneratedNameDict('l_lwr_eyelid_0_jnt',ignore = ['cgmName'])
+
+nameTools.returnCombinedNameFromDict(d)
 #>>> Modules
 #=======================================================
 #>>>> OLD

@@ -15,9 +15,6 @@ m1.modulePuppet.__verify__()
 m1.getState()
 @cgmGeneral.Timer
 
-b = cgmPM.cgmEyeball(name = 'eye',direction = 'left')
-cgmPM.cgmModule(name = 'eye',direction = 'left')
-m1 = cgmPM.cgmModule('l_eye_part')
 m1 = cgmPM.cgmModule('l_eyelids_part')
 m1.getNameAlias()
 m1.getAllModuleChildren()
@@ -25,10 +22,6 @@ m1.isSized()
 m1.doTemplate()
 m1.isTemplated()
 m1.doSkeletonize()
-
-
-
-m1 = cgmPM.cgmModule('l_eye_part')
 m1.__verify__()
 
 m1.modulePuppet._verifyMasterControl()
@@ -51,9 +44,7 @@ i_rig.buildModule.build_controls(i_rig)
 i_rig.buildModule.build_FKIK(i_rig)
 i_rig.buildModule.build_deformation(i_rig)
 i_rig.buildModule.build_rig(i_rig)
-i_rig.buildModule.build_matchSystem(i_rig)
-
-i_rig.doBuild()
+i_rig.buildModule.__build__(i_rig)
 from cgm.lib import distance
 l_constrainTargetJoints = [u'l_left_index_1_blend_jnt', u'l_left_index_2_blend_jnt', u'l_left_index_3_blend_jnt', u'l_left_index_4_blend_jnt', u'l_left_index_5_blend_jnt']
 distance.returnClosestObject('l_left_index_1_rig_jnt',l_constrainTargetJoints)
