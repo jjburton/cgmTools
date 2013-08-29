@@ -37,6 +37,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+from cgm.core import cgm_General as cgmGeneral
 from cgm.lib import (nodes,
                      rigging,
                      lists,
@@ -1150,6 +1151,7 @@ def returnClosestUV (targetObject,surface):
     mc.delete (tmpObj)
     return UVs
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+@cgmGeneral.Timer
 def returnClosestUPosition (targetObject,curve):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1199,7 +1201,8 @@ def returnClosestUPosition (targetObject,curve):
 
     return positions[matchIndex]
 
-def returnNearestPointOnCurveInfo(targetObject,curve):
+@cgmGeneral.Timer
+def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1208,51 +1211,63 @@ def returnNearestPointOnCurveInfo(targetObject,curve):
     ARGUMENTS:
     targetObject(string)
     surface(string)
+    deleteNode(bool)
 
     RETURNS:
     {'position':(list),'parameter':(float},'shape':(string),'object':(string)}
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    """ pass target object and surface into it and return the closest UV coordinates"""
-    position = []
-    if search.returnObjectType(curve) == 'shape':
-        shapes = []
-        shapes.append(curve)
-    else:
-        shapes = mc.listRelatives (curve, shapes=True)
-    """ to account for target objects in heirarchies """
-    tmpObj = rigging.locMeObjectStandAlone(targetObject)
-    l_positions = []
-    l_uValues = []
-    l_shapes = []
-    l_objects = []
-    for shape in shapes:
-        tmpNode = mc.createNode ('nearestPointOnCurve')
-        position = []
-        distances = []
-        mc.connectAttr ((tmpObj+'.translate'),(tmpNode+'.inPosition'))
-        mc.connectAttr ((shape+'.worldSpace'),(tmpNode+'.inputCurve'))
-        position.append (mc.getAttr (tmpNode+'.positionX'))
-        position.append (mc.getAttr (tmpNode+'.positionY'))
-        position.append (mc.getAttr (tmpNode+'.positionZ'))
-        l_positions.append(position)
-	l_shapes.append(shape)
-	l_uValues.append(mc.getAttr (tmpNode+'.parameter'))
-	l_objects.append("%s.u[%f]"%(shape,mc.getAttr (tmpNode+'.parameter')))
-        mc.delete (tmpNode)
-
-    distances = []
-    """ measure distances """
-    locPos = returnWorldSpacePosition (tmpObj)
-    mc.delete (tmpObj)
-    for position in l_positions:
-        distances.append(returnDistanceBetweenPoints(locPos,position))
-
-    """ find the closest to our object """
-    closestPosition = min(distances)
-    matchIndex = distances.index(closestPosition)
-    return {'position':l_positions[matchIndex],'parameter':l_uValues[matchIndex],'shape':l_shapes[matchIndex],'object':l_objects[matchIndex]}
-
+    _str_funcName = 'returnNearestPointOnCurveInfo'
+    log.info(">>> %s >> "%_str_funcName + "="*75) 
+    try:
+	position = []
+	if search.returnObjectType(curve) == 'shape':
+	    shapes = []
+	    shapes.append(curve)
+	else:
+	    shapes = mc.listRelatives (curve, shapes=True)
+	#to account for target objects in heirarchies """
+	tmpObj = rigging.locMeObjectStandAlone(targetObject)
+	l_positions = []
+	l_uValues = []
+	l_shapes = []
+	l_objects = []
+	l_nodes = []
+	for shape in shapes:
+	    tmpNode = mc.createNode ('nearestPointOnCurve',n='%s_npoc'%shape)
+	    position = []
+	    distances = []
+	    mc.connectAttr ((tmpObj+'.translate'),(tmpNode+'.inPosition'))
+	    mc.connectAttr ((shape+'.worldSpace'),(tmpNode+'.inputCurve'))
+	    position.append (mc.getAttr (tmpNode+'.positionX'))
+	    position.append (mc.getAttr (tmpNode+'.positionY'))
+	    position.append (mc.getAttr (tmpNode+'.positionZ'))
+	    l_positions.append(position)
+	    l_shapes.append(shape)
+	    l_uValues.append(mc.getAttr (tmpNode+'.parameter'))
+	    l_objects.append("%s.u[%f]"%(shape,mc.getAttr (tmpNode+'.parameter')))
+	    l_nodes.append(tmpNode)
+    
+	distances = []
+	""" measure distances """
+	locPos = returnWorldSpacePosition (tmpObj)
+	mc.delete (tmpObj)
+	for position in l_positions:
+	    distances.append(returnDistanceBetweenPoints(locPos,position))
+    
+	""" find the closest to our object """
+	closestPosition = min(distances)
+	matchIndex = distances.index(closestPosition)
+	d_return = {'position':l_positions[matchIndex],'parameter':l_uValues[matchIndex],'shape':l_shapes[matchIndex],'object':l_objects[matchIndex]}
+	if not deleteNode:
+	    d_return['node'] = l_nodes[matchIndex]
+	    l_nodes.remove(l_nodes[matchIndex])	
+	if l_nodes:mc.delete(l_nodes)
+	
+	return d_return
+    except StandardError,error:
+	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	    
+	    
 def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
