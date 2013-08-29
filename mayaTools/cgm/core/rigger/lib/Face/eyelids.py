@@ -115,8 +115,8 @@ def build_rigSkeleton(self):
 	#Orient info
 	_str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)   
 	v_aim = cgmValid.simpleAxis(_str_orientation[0]+"-").p_vector
-	v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector	
-	
+	v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector
+		
     except StandardError,error:
 	raise StandardError,"%s>>Gather Data fail! | error: %s"%(_str_funcName,error)   
     
@@ -223,7 +223,7 @@ def build_rigSkeleton(self):
 	
 #>>> Shapes
 #===================================================================
-__d_controlShapes__ = {'shape':['eyelidsFK','eyelidsIK']}
+__d_controlShapes__ = {'shape':['handleCurves']}
 @cgmGeneral.Timer
 def build_shapes(self):
     """
@@ -240,7 +240,6 @@ def build_shapes(self):
     
     if self._i_templateNull.handles != 5:
 	raise StandardError, "%s >>> Expecting 5 handles. don't know how to rig"%(_str_funcName)    
-    
     if not self.isRigSkeletonized():
 	raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
     
@@ -248,9 +247,7 @@ def build_shapes(self):
     #=============================================================
     try:
 	#Rest of it
-	l_toBuild = ['eyelidsIK','eyelidsFK']
-	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
-	#self._i_rigNull.connectChildNode(self._md_controlShapes['eyelids'],'shape_eyelids',"rigNull")
+	mShapeCast.go(self._i_module,['eyelids'], storageInstance=self)#This will store controls to a dict called    
 	
     except StandardError,error:
 	log.error("build_eyelids>>Build shapes fail!")
@@ -278,80 +275,41 @@ def build_controls(self):
 	raise StandardError,"%s >>> needs shapes to build controls"%_str_funcName
     if not self.isRigSkeletonized():
 	raise StandardError,"%s >>> needs shapes to build controls"%_str_funcName
-
-    mi_fkShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_eyelidsFK'),cgmMeta.cgmObject) 
-    mi_ikShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_eyelidsIK'),cgmMeta.cgmObject) 
-    ml_rigJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('rigJoints'),cgmMeta.cgmObject)
-    l_controlsAll = []
-    
-    try:#Group setup
-	#>>>Make a few extra groups for storing controls and what not to in the deform group
-	for grp in ['controlsFK','controlsIK']:
-	    i_dup = self._i_constrainNull.doDuplicateTransform(True)
-	    i_dup.parent = self._i_constrainNull.mNode
-	    i_dup.addAttr('cgmTypeModifier',grp,lock=True)
-	    i_dup.doName()
-	    self._i_constrainNull.connectChildNode(i_dup,grp,'owner')
+    try:#>>> Data gather ================================================================================================
+	try:ml_uprLidHandles = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('handleJoints_upr'),noneValid=False)
+	except StandardError,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
+	try:ml_lwrLidHandles = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('handleJoints_lwr'),noneValid=False)
+	except StandardError,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
+	log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
+	log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
+	ml_curveHandles = self._i_rigNull.msgList_get('handleCurves')
+	#Check our cumulative len
+	if len(ml_curveHandles) != (len(ml_lwrLidHandles) + len(ml_uprLidHandles)):
+	    raise StandardError,"len(curveHandles) %s != len of lwr (%s) +  len of upwr (%s)"%(len(ml_curveHandles),
+	                                                                                       len(ml_lwrLidHandles),
+	                                                                                       len(ml_uprLidHandles))
     except StandardError,error:	
-	raise StandardError,"%s >>> Build groups fail! | error: %s"%(_str_funcName,error)
+	raise StandardError,"%s >>> Data gather fail! | error: %s"%(_str_funcName,error)
     
-    try:#>>>> FK 
+    try:#>>>> Handles 
 	#==================================================================	
-	if not mi_fkShape:
-	    raise StandardError,"%s >>> Must have at least one fk control"%_str_funcName    
-	
-	mi_fkShape.parent = self._i_constrainNull.controlsFK.mNode
-	i_obj = mi_fkShape
-	
-	d_buffer = mControlFactory.registerControl(i_obj,copyTransform = ml_rigJoints[0],
-                                                   makeAimable=True,typeModifier='fk',) 	    
-	i_obj = d_buffer['instance']
-	i_obj.axisAim = "%s+"%self._jointOrientation[0]
-	i_obj.axisUp= "%s+"%self._jointOrientation[1]	
-	i_obj.axisOut= "%s+"%self._jointOrientation[2]
-	
-	#We're gonna lock the aim rot
-	cgmMeta.cgmAttr(i_obj,'r%s'%self._jointOrientation[0], keyable = False, lock=True,hidden=True)
-	
+	ml_controlsAll = []
+	for i,mi_handle in enumerate(ml_uprLidHandles + ml_lwrLidHandles):
+	    mi_crv = ml_curveHandles[i]
+	    log.info("On %s | '%s' >> '%s'"%(i,mi_handle.p_nameShort,mi_crv.p_nameShort))
+	    mi_crv.parent = self._i_constrainNull#Parent to constrainNull
+	    d_buffer = mControlFactory.registerControl(mi_crv) 	    
+	    ml_controlsAll.append(mi_crv)    
 	    
-	self._i_rigNull.msgList_connect(i_obj,'controlsFK',"rigNull")
-	l_controlsAll.extend([i_obj])	
-    
-    except StandardError,error:	
-	raise StandardError,"%s >>> Build fk fail! | error: %s"%(_str_funcName,error)
-    
-    try:#>>>> IK 
-	#==================================================================	
-	if not mi_ikShape:
-	    raise StandardError,"%s >>> Must have at least one ik control"%_str_funcName    
-	
-	mi_ikShape.parent = self._i_constrainNull.controlsIK.mNode
-	i_obj = mi_ikShape
-	
-	d_buffer = mControlFactory.registerControl(i_obj,makeAimable=False,typeModifier='ik',
-	                                           addDynParentGroup=True) 	    
-	i_obj = d_buffer['instance']	
+	#Purge our shapes list
+	self._i_rigNull.msgList_purge('handleCurves')
 	    
-	self._i_rigNull.connectChildNode(i_obj,'controlIK',"rigNull")
-	l_controlsAll.extend([i_obj])	
-    
     except StandardError,error:	
 	raise StandardError,"%s >>> Build ik fail! | error: %s"%(_str_funcName,error)    
    
-    try:#>>>> Settings
-	#==================================================================	
-	mi_settings = self._i_module.getSettingsControl()
-	if not mi_settings:raise StandardError,"No settings found"
-	self._i_rigNull.connectChildNode(mi_settings,'settings')#No connect back in case we're using another module's
-	
-	l_controlsAll.append(mi_settings)
-    
-    except StandardError,error:	
-	raise StandardError,"%s >>> Build settings! | error: %s"%(_str_funcName,error)    
-
     #==================================================================   
     #Connect all controls
-    self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
+    self._i_rigNull.msgList_connect(ml_controlsAll,'controlsAll','rigNull')
     
     return True
 
@@ -370,61 +328,140 @@ def build_rig(self):
     _str_funcName = "build_rig(%s)"%self._strShortName
     log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
     
-    try:#>>>Get data
+    try:#>>>Get data ==============================================================================================
 	_str_orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
+	v_aim = cgmValid.simpleAxis("%s+"%_str_orientation[0]).p_vector
+	v_up = cgmValid.simpleAxis("%s+"%_str_orientation[1]).p_vector
+	
 	mi_moduleParent = False
 	if self._i_module.getMessage('moduleParent'):
 	    mi_moduleParent = self._i_module.moduleParent
 	    
-	try:mi_controlIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('controlIK'),cgmMeta.cgmObject)
-	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
+	mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
+	if not mi_helper:raise StandardError,"No suitable helper found"    
+	    
+	try:ml_moduleUprLidJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('moduleJoints_upr'),noneValid=False)
+	except StandardError,error:raise StandardError,"Missing uprlid moduleJoints | error: %s "%(error)
+	try:ml_moduleLwrLidJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('moduleJoints_lwr'),noneValid=False)
+	except StandardError,error:raise StandardError,"Missing lwrlid moduleJoints | error: %s "%(error)  	    
+	log.info("%s >>> ml_moduleUprLidJoints : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_moduleUprLidJoints]))	
+	log.info("%s >>> ml_moduleLwrLidJoints : %s"%(_str_funcName,[mObj.p_nameShort for mObj in ml_moduleLwrLidJoints]))	
+
 	
-	try:ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('controlsFK'),cgmMeta.cgmObject)	
-	except StandardError,error:raise StandardError,"controlFK fail! | %s"%(error)
+	try:#Need to get our rig joints from the module joints -------------------------------------------
+	    ml_rigUprLidJoints = []
+	    for i,mi_jnt in enumerate(ml_moduleUprLidJoints):
+		try:ml_rigUprLidJoints.append( cgmMeta.validateObjArg(mi_jnt.getMessage('rigJoint'),cgmMeta.cgmObject) )
+		except StandardError,error:raise StandardError,"'%s' failed to find rigJoint | error: %s"%(mi_jnt.p_nameShort,error)
+	    log.info("%s >>> ml_rigUprLidJoints : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_rigUprLidJoints]))	
+	    ml_rigLwrLidJoints = []
+	    for i,mi_jnt in enumerate(ml_moduleLwrLidJoints):
+		try:ml_rigLwrLidJoints.append( cgmMeta.validateObjArg(mi_jnt.getMessage('rigJoint'),cgmMeta.cgmObject) )
+		except StandardError,error:raise StandardError,"'%s' failed to find rigJoint | error: %s"%(mi_jnt.p_nameShort,error)
+	    log.info("%s >>> ml_rigLwrLidJoints : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_rigLwrLidJoints]))	
+	except StandardError,error:raise StandardError,"Find rig joint fail | error: %s"%(error)
+	try:ml_uprLidHandles = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('handleJoints_upr'),noneValid=False)
+	except StandardError,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
+	try:ml_lwrLidHandles = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('handleJoints_lwr'),noneValid=False)
+	except StandardError,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
+	log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_uprLidHandles]))	
+	log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.p_nameShort for mObj in ml_lwrLidHandles]))		
 	
-	try:ml_rigJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('rigJoints'),cgmMeta.cgmObject)
-	except StandardError,error:raise StandardError,"rigJoints fail! | %s"%(error)
+	try:#Need to get our curves from our handle joints
+	    ml_uprLidControls = []
+	    for i,mi_jnt in enumerate(ml_uprLidHandles):
+		try:ml_uprLidControls.append( cgmMeta.validateObjArg(mi_jnt.getMessage('controlCurve'),cgmMeta.cgmObject) )
+		except StandardError,error:raise StandardError,"'%s' failed to find handleJoint | error: %s"%(mi_jnt.p_nameShort,error)
+	    log.info("%s >>> ml_uprLidControls : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_uprLidControls]))	
+	    ml_lwrLidControls = []
+	    for i,mi_jnt in enumerate(ml_lwrLidHandles):
+		try:ml_lwrLidControls.append( cgmMeta.validateObjArg(mi_jnt.getMessage('controlCurve'),cgmMeta.cgmObject) )
+		except StandardError,error:raise StandardError,"'%s' failed to find handleJoint | error: %s"%(mi_jnt.p_nameShort,error)
+	    log.info("%s >>> ml_lwrLidControls : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_lwrLidControls]))	
+	except StandardError,error:raise StandardError,"Find control curve fail | error: %s"%(error)
 	
-	try:mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),cgmMeta.cgmObject)
-	except StandardError,error:raise StandardError,"helper fail! | %s"%(error)
-	
-	log.info("ml_controlsFK: %s"%[o.getShortName() for o in ml_controlsFK])	
-	log.info("mi_controlIK: %s"%mi_controlIK.p_nameShort)		
-	log.info("ml_rigJoints: %s"%[o.getShortName() for o in ml_rigJoints])
-	log.info("mi_helper: %s"%mi_helper)		
-		
-	v_aim = cgmValid.simpleAxis("%s+"%self._jointOrientation[0]).p_vector
-	v_up = cgmValid.simpleAxis("%s+"%self._jointOrientation[1]).p_vector
-	#aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
-	#upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1]) 
-	
-	#Settings
-	mi_settings = self._i_module.getSettingsControl()
-	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',attrType='float',lock=False,keyable=True)
-	
+	#Size info
+	__baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_rigUprLidJoints]) /2 
+
     except StandardError,error:
 	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)
+
+
     
-    #Setup eye rig
+    #Setup Lids
     #====================================================================================
-    try:#Base eye setup
-	d_return = rUtils.createEyeballRig(mi_helper,ballJoint = ml_rigJoints[0],
-	                                   ikControl = mi_controlIK,fkControl = ml_controlsFK[0],
-	                                   buildIK=True, driverAttr=mPlug_FKIK,
-	                                   setupVisBlend = True,
-	                                   moduleInstance = self._i_module)
-	d_return['mi_rigGroup'].parent = self._i_constrainNull.mNode#parent rig group to constrain null
-	mi_fkLoc = d_return['md_locs']['fk']#Grab the fk loc
-	self._i_rigNull.connectChildNode(mi_fkLoc,'mi_locFK','rigNull')
-	log.info("%s >> fkLoc: %s "%(_str_funcName,mi_fkLoc.p_nameShort)) 
+    try:#Build our Curves -----------------------------------------------------------------
+	try:#Upr driven curve
+	    _str_uprDrivenCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_rigUprLidJoints],os =True)
+	    mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve)
+	    mi_uprDrivenCrv.doCopyNameTagsFromObject(self._i_module.mNode,ignore=['cgmType'])
+	    mi_uprDrivenCrv.addAttr('cgmName','uprLid',lock=True)
+	    mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
+	    mi_uprDrivenCrv.doName()
+	except StandardError,error:raise StandardError,"upper driven curve : %s"%(error)  	    
 	
-	mi_blendLoc = d_return['md_locs']['blend']#Grab the blend loc	
-	self._i_rigNull.connectChildNode(mi_blendLoc,'mi_locBlend','rigNull')
-	log.info("%s >> blendLoc: %s "%(_str_funcName,mi_blendLoc.p_nameShort)) 
+	try:#Upper driver curve
+	    _str_uprDriverCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_uprLidHandles],os =True)
+	    mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve)
+	    mi_uprDriverCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode,ignore=['cgmTypeModifier'])
+	    mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
+	    mi_uprDriverCrv.doName()
+	except StandardError,error:raise StandardError,"upper driver curve : %s"%(error)  	    
+	
+	try:#Lwr driven curve
+	    _str_lwrDrivenCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_rigUprLidJoints[0]] + ml_rigLwrLidJoints + [ml_rigUprLidJoints[-1]]],os =True)
+	    mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve)
+	    mi_lwrDrivenCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode)
+	    mi_lwrDrivenCrv.addAttr('cgmName','lwrLid',lock=True)	    
+	    mi_lwrDrivenCrv.doName()
+	except StandardError,error:raise StandardError,"upper driven curve : %s"%(error)  	    
+	
+	try:#Lwr driver curve
+	    _str_lwrDriverCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
+	    mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve)
+	    mi_lwrDriverCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
+	    mi_lwrDriverCrv.addAttr('cgmName','lwrLid',lock=True)	    
+	    mi_lwrDriverCrv.doName()
+	except StandardError,error:raise StandardError,"upper driver curve : %s"%(error)  	    
+	
+    except StandardError,error:raise StandardError,"%s >> Curve creation fail! | error: %s"%(_str_funcName,error)   
+   
+    try:#Let's make our locs and set up some aims --------------------------------------
+	try:#Create up loc -------------------------------------------------------------
+	    _str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)  
+	    mi_upLoc = cgmMeta.cgmObject(_str_upLoc)
+	    mi_locShape = cgmMeta.cgmNode(mi_upLoc.getShapes()[0])
+	    mi_locShape.localScaleX = __baseDistance
+	    mi_locShape.localScaleY = __baseDistance
+	    mi_locShape.localScaleZ = __baseDistance	
+	    mi_upLoc.parent = self._i_constrainNull.mNode
+	except StandardError,error:raise StandardError,"up loc : %s"%(error)  	    
+	
+	ml_locs = []
+	for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
+	    try:
+		try:#Loc creation -----------------------------------------------------------
+		    mi_loc = mi_obj.doLoc()
+		    ml_locs.append(mi_loc)
+		    mi_locShape = cgmMeta.cgmNode(mi_loc.getShapes()[0])
+		    mi_locShape.localScaleX = __baseDistance
+		    mi_locShape.localScaleY = __baseDistance
+		    mi_locShape.localScaleZ = __baseDistance
+		except StandardError,error:raise StandardError,"loc creation : %s"%(error)  	    
+		#> Aim constraint
+		try:mc.aimConstraint(mi_loc.mNode,mi_obj.root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+		except StandardError,error:raise StandardError,"aim constraint : %s"%(error)  	    
+		#Attach to curve
+		if i < len(ml_rigUprLidJoints):mi_crv = mi_uprDrivenCrv
+		else:mi_crv = mi_lwrDrivenCrv
+		crvUtils.attachObjToCurve(mi_loc.mNode,mi_crv.mNode)
+	    except StandardError,error:raise StandardError,"%s | '%s' failed | error: %s "%(i,mi_obj.p_nameShort,error)  	    
+	    
+
 	
     except StandardError,error:
-	raise StandardError,"%s >> base rig setup fail! | error: %s"%(_str_funcName,error)   
-    
+	raise StandardError,"%s >> Lids setup fail! | error: %s"%(_str_funcName,error)   
+    return
     try:#Connect vis blend between fk/ik
 	#>>> Setup a vis blend result
 	mPlug_FKon = d_return['mPlug_fkVis']
