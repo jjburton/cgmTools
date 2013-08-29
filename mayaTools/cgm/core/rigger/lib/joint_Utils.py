@@ -48,20 +48,17 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def metaFreezeJointOrientation(targetJoints):
     """
     Copies joint orietnations from one joint to others
     """
     if type(targetJoints) not in [list,tuple]:targetJoints=[targetJoints]
 
-    ml_targetJoints = cgmMeta.validateObjListArg(targetJoints,cgmMeta.cgmObject)
+    ml_targetJoints = cgmMeta.validateObjListArg(targetJoints,cgmMeta.cgmObject,mayaType='joint')
     for i_jnt in ml_targetJoints:
 	if i_jnt.getConstraintsTo():
             log.warning("freezeJointOrientation>> target joint has constraints. Can't change orientation. Culling from targets: '%s'"%i_jnt.getShortName())
-	    return False
-	if i_jnt.getMayaType() != 'joint':
-            log.warning("freezeJointOrientation>> target joint is not a joint. Can't change orientation. Culling from targets: '%s'"%i_jnt.getShortName())
 	    return False
 	
     #buffer parents and children of 
