@@ -31,7 +31,7 @@ from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 reload(jntUtils)
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
-from cgm.core.rigger.lib.Face import (eyeball,eyelids)
+from cgm.core.rigger.lib.Face import (eyeball)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -276,9 +276,10 @@ class go(object):
 	for key in checkShapes.keys():
 	    for subkey in checkShapes[key]:
 		if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
-		    if not self._i_rigNull.msgList_get('%s_%s'%(key,subkey),False):
-			log.warning("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
-			return False		
+		    if not self._i_rigNull.msgList_getMessage('%s_%s'%(key,subkey)):
+			if not self._i_rigNull.msgList_get('%s'%(subkey),False):
+			    log.warning("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
+			    return False		
 	return True
     
     def isRigSkeletonized(self):
