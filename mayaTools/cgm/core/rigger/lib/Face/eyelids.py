@@ -377,6 +377,7 @@ def build_rig(self):
 	_str_orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
 	v_aim = cgmValid.simpleAxis("%s+"%_str_orientation[0]).p_vector
 	v_up = cgmValid.simpleAxis("%s+"%_str_orientation[1]).p_vector
+	ml_toVisConnect = []
 	
 	mi_moduleParent = False
 	if self._i_module.getMessage('moduleParent'):
@@ -492,7 +493,8 @@ def build_rig(self):
 	
 	for mi_crv in ml_curves:#Parent to rig null
 	    mi_crv.parent = self._i_rigNull
-	    
+	
+	ml_toVisConnect.extend(ml_curves)
     except StandardError,error:raise StandardError,"%s >> Curve creation fail! | error: %s"%(_str_funcName,error)   
     
     try:#Locators and aiming ================================================================
@@ -504,6 +506,7 @@ def build_rig(self):
 	    mi_locShape.localScaleY = __baseDistance
 	    mi_locShape.localScaleZ = __baseDistance	
 	    mi_upLoc.parent = self._i_constrainNull.mNode
+	    ml_toVisConnect.append(mi_upLoc)
 	except StandardError,error:raise StandardError,"up loc : %s"%(error)  	    
 	
 	#Make a loc group
@@ -512,6 +515,7 @@ def build_rig(self):
 	mi_locGroup.addAttr('cgmTypeModifier','locGroup')
 	mi_locGroup.doName()
 	mi_locGroup.parent = self._i_rigNull
+	ml_toVisConnect.append(mi_locGroup)
 	
 	ml_locs = []
 	for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
@@ -536,8 +540,6 @@ def build_rig(self):
 		crvUtils.attachObjToCurve(mi_loc.mNode,mi_crv.mNode)
 	    except StandardError,error:raise StandardError,"%s | '%s' failed | error: %s "%(i,mi_obj.p_nameShort,error)  	    
 	    
-
-	
     except StandardError,error:
 	raise StandardError,"%s >> locator/aim setup fail! | error: %s"%(_str_funcName,error)   
     
@@ -643,92 +645,16 @@ def build_rig(self):
 	raise StandardError,"%s >>control setup fail! | error: %s"%(_str_funcName,error)   
     
     return
-    try:#Connect vis blend between fk/ik
-	#>>> Setup a vis blend result
-	mPlug_FKon = d_return['mPlug_fkVis']
-	mPlug_IKon = d_return['mPlug_ikVis']
-	log.info("%s >> mPlug_FKon: %s "%(_str_funcName,mPlug_FKon.p_combinedShortName)) 
-	log.info("%s >> mPlug_IKon: %s "%(_str_funcName,mPlug_IKon.p_combinedShortName)) 
-	
-	mPlug_FKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsFK.mNode)
-	mPlug_IKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsIK.mNode)
-	
-    except StandardError,error:
-	raise StandardError,"%s >> fk/ik blend setup fail! | error: %s"%(_str_funcName,error)       
-    
-    #Setup pupil and iris
-    #=====================================================================================
-    #The gist of what we'll do is setup identical attributes on both fk and ik controls
-    #and then blend between the two to drive what is actually influencing the joints
-    #scale = (fk_result * fk_pupil) + (ik_result *ik_pupil)
-    try:#pupil   mPlug_FKIK
-	l_extraSetups = ['pupil','iris']
-	for i,n in enumerate(l_extraSetups):
-	    if len(ml_rigJoints)> i+1:#We need to set up a pupil
-		log.info("%s >> Seting up %s"%(_str_funcName,n)) 
-		mi_tmpJoint = ml_rigJoints[i+1]
-		mPlug_FK_in = cgmMeta.cgmAttr(ml_controlsFK[0],'%s'%n,attrType='float',initialValue=1,keyable=True, defaultValue=1)
-		mPlug_FK_out = cgmMeta.cgmAttr(ml_controlsFK[0],'%s_fkResult'%n,attrType='float',hidden=False,lock=True)	    
-		mPlug_IK_in = cgmMeta.cgmAttr(mi_controlIK,'%s'%n,attrType='float',initialValue=1,keyable=True,defaultValue=1)
-		mPlug_IK_out = cgmMeta.cgmAttr(mi_controlIK,'%s_ikResult'%n,attrType='float',hidden=False,lock=True)	    
-		mPlug_Blend_out = cgmMeta.cgmAttr(mi_tmpJoint,'%s_blendResult'%n,attrType='float',hidden=False,lock=True)	    
-		NodeF.argsToNodes("%s = %s * %s"%(mPlug_FK_out.p_combinedShortName,
-		                                  mPlug_FKon.p_combinedShortName,
-		                                  mPlug_FK_in.p_combinedShortName)).doBuild()
-		NodeF.argsToNodes("%s = %s * %s"%(mPlug_IK_out.p_combinedShortName,
-		                                  mPlug_IKon.p_combinedShortName,
-		                                  mPlug_IK_in.p_combinedShortName)).doBuild()	 
-		NodeF.argsToNodes("%s = %s + %s"%(mPlug_Blend_out.p_combinedShortName,
-		                                  mPlug_FK_out.p_combinedShortName,
-		                                  mPlug_IK_out.p_combinedShortName)).doBuild()	
-		for a in self._jointOrientation[1:]:
-		    mPlug_Blend_out.doConnectOut("%s.s%s"%(mi_tmpJoint.mNode,a))
-	    
-    except StandardError,error:
-	raise StandardError,"%s >> pupil setup fail! | error: %s"%(_str_funcName,error)   
-
-    #Dynamic parent groups
-    #====================================================================================
-    try:#>>>> eye
-	ml_eyeDynParents = []
-	"""
-	#Build our dynamic groups
-	mi_spine = self._i_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
-	log.info("spine found: %s"%mi_spine)
-	if mi_spine:
-	    mi_spineRigNull = mi_spine.rigNull
-	    ml_eyeDynParents.append( mi_spineRigNull.eyeleIK )	    
-	    ml_eyeDynParents.append( mi_spineRigNull.cog )
-	    ml_eyeDynParents.append( mi_spineRigNull.hips )	
-	
-	if mi_moduleParent:
-	    mi_parentRigNull = mi_moduleParent.rigNull
-	    if mi_parentRigNull.getMessage('skinJoints'):
-		ml_eyeDynParents.append( mi_parentRigNull.skinJoints[0])	    
-	    
-	ml_eyeDynParents.append(self._i_masterControl)
-	if mi_controlIK.getMessage('spacePivots'):
-	    ml_eyeDynParents.extend(mi_controlIK.msgList_get('spacePivots',asMeta = True))	
-	log.info("%s.build_rig>>> Dynamic parents to add: %s"%(self._strShortName,[i_obj.getShortName() for i_obj in ml_eyeDynParents]))
-	"""
-	#Add our parents
-	i_dynGroup = mi_controlIK.dynParentGroup
-	log.info("Dyn group at setup: %s"%i_dynGroup)
-	i_dynGroup.dynMode = 0
-	
-	for o in ml_eyeDynParents:
-	    i_dynGroup.addDynParent(o)
-	i_dynGroup.rebuild()
-	
-    except StandardError,error:
-	raise StandardError,"%s >> ik dynamic parent setup fail! | error: %s"%(_str_funcName,error)   
-
     #Parent and constraining bits
     #====================================================================================
     try:#Constrain to parent module
-	ml_rigJoints[0].parent = self._i_constrainNull.mNode
-	if mi_moduleParent:
-	    mc.parentConstraint(mi_moduleParent.rig_getSkinJoints()[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+	for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
+	    mi_skinJoint = mi_obj.skinJoint
+	    log.info(" '%s' >> '%s'"%(mi_obj.p_nameShort,mi_skinJoint.p_nameShort))
+	    mc.pointConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
+	    mc.orientConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
+	    
+	
     except StandardError,error:
 	raise StandardError,"%s >> Connect to parent fail! | error: %s"%(_str_funcName,error)
 
