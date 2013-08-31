@@ -312,9 +312,7 @@ def build_controls(self):
 		    try:
 			if mi_handle.getAttr('isSubControl'):
 			    md_subControls[_str_key].append(mi_crv)
-			    d_buffer = mControlFactory.registerControl(mi_crv,addConstraintGroup=True)
-			else:
-			    d_buffer = mControlFactory.registerControl(mi_crv)	
+			d_buffer = mControlFactory.registerControl(mi_crv,addConstraintGroup=True)
 		    except StandardError,error:raise StandardError,"register fail build : %s"%error
 		    md_controls[_str_key].append(mi_crv)#append
 		    if mi_handle.getAttr('isMain'):
@@ -344,7 +342,11 @@ def build_controls(self):
 		ml_cull = md_cullLists[k]#get our list
 		int_idx = ml_cull.index(i_ctrl)#get our index
 		ml_targets = [ml_cull[int_idx-1],ml_cull[int_idx+1]]#get the one before and after
-		try:mc.parentConstraint([mi_obj.mNode for mi_obj in ml_targets],i_ctrl.getMessage('constraintGroup')[0],maintainOffset = True)
+		try:
+		    _str_const = mc.parentConstraint([mi_obj.mNode for mi_obj in ml_targets],i_ctrl.getMessage('constraintGroup')[0],maintainOffset = True)[0]
+		    l_weightTargets = mc.parentConstraint(_str_const,q=True,weightAliasList = True)
+		    for t in l_weightTargets:
+			if 'main' not in t:attributes.doSetAttr(_str_const,t,.5)
 		except StandardError,error:raise StandardError,"constraint fail | sub: %s | targets: %s"%(i_ctrl.p_nameShort,[mi_obj.p_nameShort for mi_obj in ml_targets],error)
     
     except StandardError,error:	
@@ -644,7 +646,7 @@ def build_rig(self):
     except StandardError,error:
 	raise StandardError,"%s >>control setup fail! | error: %s"%(_str_funcName,error)   
     
-    return
+    """
     #Parent and constraining bits
     #====================================================================================
     try:#Constrain to parent module
@@ -653,11 +655,7 @@ def build_rig(self):
 	    log.info(" '%s' >> '%s'"%(mi_obj.p_nameShort,mi_skinJoint.p_nameShort))
 	    mc.pointConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
 	    mc.orientConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
-	    
-	
-    except StandardError,error:
-	raise StandardError,"%s >> Connect to parent fail! | error: %s"%(_str_funcName,error)
-
+    """    
     #Final stuff
     self._set_versionToCurrent()
     return True 

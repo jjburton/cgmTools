@@ -68,3 +68,70 @@ m1.isSized()
 m1.setState('skeleton',forceNew=True)
 m1.skeletonDelete()
 m1.doRig()
+
+#>>> Need to figure out a eyelid follow =============================================================================
+from cgm.core.classes import NodeFactory as NodeF
+"""
+need some attributes
+max rotUp
+min rotUp
+max rotOut
+max rotOut
+driver rotup
+driver rotout
+"""
+mc.createNode('clamp')
+mi_remapUp.select()
+mi_resultLoc = cgmMeta.cgmObject('worldCenter_loc')
+mi_clampUpr = cgmMeta.cgmNode('clamp1')
+mi_controlObject = mi_resultLoc
+orientation = 'zyx'
+d_settings = {'upr':{''}}
+mPlug_autoFollow = cgmMeta.cgmAttr("l_upr_lid_main_anim","autoFollow",attrType = 'float', value = 1.0, hidden = False,keyable=True,maxValue=1.0,minValue=0)
+
+#Upr lid up
+mPlug_driverUp = cgmMeta.cgmAttr('l_eye_blend_loc',"r%s"%orientation[2])
+mPlug_uprUpLimit = cgmMeta.cgmAttr(mi_controlObject,"uprUpLimit",attrType='float',value=-60,keyable=False,hidden=False)
+mPlug_uprDnLimit = cgmMeta.cgmAttr(mi_controlObject,"uprDnLimit",attrType='float',value=50,keyable=False,hidden=False)
+mPlug_driverUp.doConnectOut("%s.inputR"%mi_clampUpr.mNode)
+mPlug_uprDnLimit.doConnectOut("%s.maxR"%mi_clampUpr.mNode)
+mPlug_uprUpLimit.doConnectOut("%s.minR"%mi_clampUpr.mNode)
+mc.connectAttr("%s.outputR"%mi_clampUpr.mNode,"%s.r%s"%(mi_resultLoc.mNode,orientation[2]))
+
+#Upr Lid side
+mPlug_driverSide = cgmMeta.cgmAttr('l_eye_blend_loc',"r%s"%orientation[1])
+mPlug_leftLimit = cgmMeta.cgmAttr(mi_controlObject,"uprLeftLimit",value=15,attrType='float',keyable=False,hidden=False)
+mPlug_rightLimit = cgmMeta.cgmAttr(mi_controlObject,"uprRightLimit",value=-15,attrType='float',keyable=False,hidden=False)
+mPlug_driverSide.doConnectOut("%s.inputG"%mi_clampUpr.mNode)
+mPlug_leftLimit.doConnectOut("%s.maxG"%mi_clampUpr.mNode)
+mPlug_rightLimit.doConnectOut("%s.minG"%mi_clampUpr.mNode)
+mc.connectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_resultLoc.mNode,orientation[1]))
+from cgm.lib import attributes
+#Lwr lid
+"""
+Need
+Only want a value greater than the lwrDnStart should start to push things down
+"""
+mc.createNode('clamp')
+mc.createNode('setRange')
+mc.createNode('remapValue')
+mi_clampLwr = cgmMeta.cgmNode('clamp2')
+mi_remapLwr = cgmMeta.cgmNode('remapValue1')
+mi_remapLwr.outValue
+mi_lwrResultLoc = cgmMeta.cgmObject('lwrLid_result')
+mi_controlObject = mi_lwrResultLoc
+mPlug_lwrUpLimit = cgmMeta.cgmAttr(mi_controlObject,"lwrUpLimit",attrType='float',value=-26,keyable=False,hidden=False)
+mPlug_lwrDnLimit = cgmMeta.cgmAttr(mi_controlObject,"lwrDnLimit",attrType='float',value=35,keyable=False,hidden=False)
+mPlug_lwrDnStart = cgmMeta.cgmAttr(mi_controlObject,"lwrDnStart",attrType='float',value=5,keyable=False,hidden=False)
+mPlug_driverUp.doConnectOut("%s.inputValue"%mi_remapLwr.mNode)
+mPlug_lwrDnStart.doConnectOut("%s.inputMin"%mi_remapLwr.mNode)
+mi_remapLwr.inputLimit = 50
+mPlug_lwrDnLimit.doConnectOut("%s.outputLimit"%mi_remapLwr.mNode)
+attributes.doConnectAttr("%s.outValue"%mi_remapLwr.mNode,"%s.r%s"%(mi_lwrResultLoc.mNode,orientation[2]))
+
+mPlug_driverUp.doConnectOut("%s.inputR"%mi_clampLwr.mNode)
+mPlug_lwrDnLimit.doConnectOut("%s.maxR"%mi_clampLwr.mNode)
+mPlug_lwrUpLimit.doConnectOut("%s.minR"%mi_clampLwr.mNode)
+mc.connectAttr("%s.outputR"%mi_clampLwr.mNode,"%s.r%s"%(mi_lwrResultLoc.mNode,orientation[2]))
+
+mc.connectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_lwrResultLoc.mNode,orientation[1]))
