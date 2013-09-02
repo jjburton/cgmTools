@@ -80,6 +80,7 @@ class go(object):
         #>>> module null data 
         #assert moduleInstance.mClass in ['cgmModule','cgmLimb'],"Not a module"
         assert moduleInstance.isTemplated(),"Module is not templated"
+	mc.select(cl=1)#Clear our selection because we're gonna be making joints
         #assert object is templated
         #assert ...	
 	self.cls = "JointFactory.go"
@@ -225,7 +226,6 @@ def doSkeletonizeEyeball(self):
     log.info("%s >>> helper: '%s'"%(_str_funcName,mi_helper.p_nameShort))
     
     #Pupil and Iris
-    #ml_helpers = mi_helper.msgList_get('ml_helpers')#Get our helpers
     if mi_helper.buildPupil:
 	try:ml_buildObjects.append(mi_helper.pupilHelper)
 	except StandardError,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_funcName,error)
@@ -247,10 +247,8 @@ def doSkeletonizeEyeball(self):
 	i_j.doCopyNameTagsFromObject( ml_buildObjects[i].mNode,ignore=['cgmTypeModifier','cgmType'] )#copy Tags
 	i_j.doName()
 	i_j.parent = False
-	
-	#Snap.go(i_j,move=False,orient=True)
-	#if ml_moduleJoints: i_j.parent = ml_moduleJoints[0]#parent
 	ml_moduleJoints.append(i_j)
+	self._i_rigNull.connectChildNode(i_j,'%sJoint'%i_j.cgmName)
     
     #>>> Orient -------------------------------------------------------------
     #Make our up loc
@@ -270,7 +268,15 @@ def doSkeletonizeEyeball(self):
 	    for o in ml_moduleJoints[1:]:
 		o.parent = ml_moduleJoints[0]#Parent back	
 	    joints.doCopyJointOrient(ml_moduleJoints[0].mNode,[jnt.mNode for jnt in ml_moduleJoints[1:]])
-	#joints.orientJointChain([o.mNode for o in ml_moduleJoints],_str_orientation,_str_orientation[1]+'up')
+	    
+	try:#Create eye orb joint
+	    i_dupJnt = ml_moduleJoints[0].doDuplicate()#Duplicate
+	    i_dupJnt.addAttr('cgmName','eyeOrb')#Tag
+	    i_dupJnt.doName()#Rename
+	    ml_moduleJoints[0].parent = i_dupJnt#Parent
+	    ml_moduleJoints.insert(0,i_dupJnt)
+	except:
+	    raise StandardError, "eye orb fail! | %s"%(_str_funcName,error)
 	    
 	#Connect back
 	self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','rigNull')
@@ -280,19 +286,9 @@ def doSkeletonizeEyeball(self):
     
     #>>> Flag our handle joints
     #===========================
-    """
-    ml_handles = []
-    ml_handleJoints = []
-    for i_obj in self._ml_controlObjects:
-	if i_obj.hasAttr('handleJoint'):
-	    #d_buffer = i_obj.handleJoint.d_jointFlags
-	    #d_buffer['isHandle'] = True
-	    #i_obj.handleJoint.d_jointFlags = d_buffer
-	    ml_handleJoints.append(i_obj.handleJoint)"""
     try:
 	self._i_rigNull.msgList_connect(ml_moduleJoints,'handleJoints') 
 	self._i_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
-	
     except StandardError,error:
 	raise StandardError, "%s >>> Skin/Handle connect fail | Error: %s"%(_str_funcName,error)
     
