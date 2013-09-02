@@ -330,32 +330,37 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     i_control = cgmMeta.cgmControl(i_obj.mNode,setClass=True)
     log.debug(i_control)
     
+    _str_funcName = "registerControl(%s)"%i_obj.p_nameShort  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+    
     ml_groups = []#Holder for groups
     ml_constraintGroups = []
     
-    #>>>Copy Transform
-    #====================================================    
-    if copyTransform is not None:
-	if issubclass(type(copyTransform),cgmMeta.cgmNode):
-	    i_target = copyTransform
-	elif mc.objExists(copyTransform):
-	    i_target = cgmMeta.cgmObject(copyTransform)
-	else:
-	    raise StandardError,"Failed to find suitable copyTransform object: '%s"%copyTransform
-	
-	#Need to move this to default cgmNode stuff
-	mBuffer = i_control
-	i_newTransform = cgmMeta.cgmObject( rigging.groupMeObject(i_target.mNode,False) )
-	for a in mc.listAttr(i_control.mNode, userDefined = True):
-	    attributes.doCopyAttr(i_control.mNode,a,i_newTransform.mNode)
-	#i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
-	curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
-	i_newTransform.parent = i_control.parent#Copy parent
-	i_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
-	mc.delete(mBuffer.mNode)
-	
-    #====================================================  
-    try:#>>>Shape Parent
+    
+    try:#>>>Copy Transform ====================================================
+	if copyTransform is not None:
+	    if issubclass(type(copyTransform),cgmMeta.cgmNode):
+		i_target = copyTransform
+	    elif mc.objExists(copyTransform):
+		i_target = cgmMeta.cgmObject(copyTransform)
+	    else:
+		raise StandardError,"Failed to find suitable copyTransform object: '%s"%copyTransform
+	    
+	    #Need to move this to default cgmNode stuff
+	    mBuffer = i_control
+	    i_newTransform = cgmMeta.cgmObject( rigging.groupMeObject(i_target.mNode,False) )
+	    for a in mc.listAttr(i_control.mNode, userDefined = True):
+		attributes.doCopyAttr(i_control.mNode,a,i_newTransform.mNode)
+	    #i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
+	    curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
+	    i_newTransform.parent = i_control.parent#Copy parent
+	    i_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
+	    mc.delete(mBuffer.mNode)
+	    
+    except StandardError,error:
+	raise StandardError,"%s >> copy transform | %s"%(str_shortName,error)  
+    
+    try:#>>>Shape Parent #====================================================
 	if shapeParentTo:
 	    i_target = cgmMeta.validateObjArg(shapeParentTo,cgmMeta.cgmObject)
 	    curves.parentShapeInPlace(i_target.mNode,i_control.mNode)
@@ -365,63 +370,67 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    i_control = i_target#replace the control with the joint
 	    
     except StandardError,error:
-	log.error("ModuleControlFactory.registerControl>> '%s' shapeParent fail"%str_shortName)
-	raise StandardError,error   
-	
-    #>>>Copy Pivot
-    #====================================================    
-    if copyPivot is not None:
-	if issubclass(type(copyPivot),cgmMeta.cgmNode):
-	    i_target = copyPivot
-	elif mc.objExists(copyPivot):
-	    i_target = cgmMeta.cgmObject(copyPivot)
-	else:
-	    raise StandardError,"Failed to find suitable copyTransform object: '%s"%copyPivot
-	
-	#Need to move this to default cgmNode stuff
-	i_control.doCopyPivot(i_target.mNode)
-
-    #>>>Name stuff
-    #====================================================
-    i_control.addAttr('cgmType','controlAnim',lock=True)    
-    if typeModifier is not None:
-	i_control.addAttr('cgmTypeModifier',str(typeModifier),lock=True)
-    i_control.doName(nameShapes=True)
-    str_shortName = i_control.getShortName()
-    	
-    #>>>Add aiming info
-    #====================================================
-    try:
+	raise StandardError,"%s >> shapeParent | %s"%(_str_funcName,error)   
+      
+    try:#>>>Copy Pivot #====================================================
+	if copyPivot is not None:
+	    if issubclass(type(copyPivot),cgmMeta.cgmNode):
+		i_target = copyPivot
+	    elif mc.objExists(copyPivot):
+		i_target = cgmMeta.cgmObject(copyPivot)
+	    else:
+		raise StandardError,"Failed to find suitable copyTransform object: '%s"%copyPivot
+	    
+	    #Need to move this to default cgmNode stuff
+	    i_control.doCopyPivot(i_target.mNode)
+    except StandardError,error:
+	raise StandardError,"%s >> copy pivot | %s"%(_str_funcName,error)   
+    
+    try:#>>>Name stuff #====================================================
+	i_control.addAttr('cgmType','controlAnim',lock=True)    
+	if typeModifier is not None:
+	    i_control.addAttr('cgmTypeModifier',str(typeModifier),lock=True)
+	i_control.doName(nameShapes=True)
+	str_shortName = i_control.getShortName()
+    except StandardError,error:
+	raise StandardError,"%s >> naming | %s"%(_str_funcName,error)   
+    
+    try:#>>>Add aiming info #====================================================
 	if aim is not None or up is not None or makeAimable:
 	    i_control._verifyAimable()
     except StandardError,error:
-	log.error("ModuleControlFactory.registerControl>> '%s' make aimable fail"%str_shortName)
-	raise StandardError,error   
+	raise StandardError,"%s >> aiming | %s"%(_str_funcName,error)   
     
-    #>>>Rotate Order
-    #==================================================== 
-    _rotateOrder = False
-    if setRotateOrder is not None:
-	_rotateOrder = setRotateOrder
-    elif controlType in d_rotateOrderDefaults.keys():
-	_rotateOrder = d_rotateOrderDefaults[controlType]
-    elif i_control.getAttr('cgmName') in d_rotateOrderDefaults.keys():
-	_rotateOrder = d_rotateOrderDefaults[i_control.getAttr('cgmName')]
-    else:
-	log.debug("rotateOrder not set on: '%s'"%str_shortName)
-	
-    #set it
-    if _rotateOrder:
-	_rotateOrder = dictionary.validateRotateOrderString(_rotateOrder)
-	mc.xform(i_control.mNode, rotateOrder = _rotateOrder)
+    try:#>>>Rotate Order #====================================================
+	_rotateOrder = False
+	if setRotateOrder is not None:
+	    _rotateOrder = setRotateOrder
+	elif controlType in d_rotateOrderDefaults.keys():
+	    _rotateOrder = d_rotateOrderDefaults[controlType]
+	elif i_control.getAttr('cgmName') in d_rotateOrderDefaults.keys():
+	    _rotateOrder = d_rotateOrderDefaults[i_control.getAttr('cgmName')]
+	else:
+	    log.debug("rotateOrder not set on: '%s'"%str_shortName)
+	    
+	#set it
+	if _rotateOrder:
+	    _rotateOrder = dictionary.validateRotateOrderString(_rotateOrder)
+	    mc.xform(i_control.mNode, rotateOrder = _rotateOrder)
+    except StandardError,error:
+	raise StandardError,"%s >> rotate order | %s"%(_str_funcName,error)   
     
     #>>>Freeze stuff 
     #====================================================  
-    if freezeAll:
-	mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)		
-	
-    if addDynParentGroup or addSpacePivots or i_control.cgmName.lower() == 'cog':
-	i_control.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+    try:
+	if freezeAll:
+	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)		
+    except StandardError,error:
+	raise StandardError,"%s >> freeze | %s"%(_str_funcName,error)   
+    try:
+	if addDynParentGroup or addSpacePivots or i_control.cgmName.lower() == 'cog':
+	    i_control.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+    except StandardError,error:
+	raise StandardError,"%s >> spacer | %s"%(_str_funcName,error)       
 	
     #==================================================== 
     """ All controls have a master group to zero them """
@@ -467,21 +476,21 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
 		
     except StandardError,error:
-	log.error("ModuleControlFactory.registerControl>>grouping fail: '%s'"%i_control.getShortName())
-	raise StandardError,error
+	raise StandardError,"%s >> grouping | %s"%(_str_funcName,error)       
     
-    #====================================================  
-    #try:#>>>Space Pivots
+    #try:#>>>Space Pivots #====================================================  
     if addSpacePivots:
 	ml_spaceLocators = []
 	parent = i_control.getMessage('masterGroup')[0]
-	for i in range(addSpacePivots):
-	    i_pivot = rUtils.create_spaceLocatorForObject(i_control,parent)
-	    ml_spaceLocators.append(i_pivot)
-   
+	for i in range(int(addSpacePivots)):
+	    try:
+		log.info("%s >> %s | obj: %s | parent: %s"%(_str_funcName,i,i_control.p_nameShort,parent))
+		i_pivot = rUtils.create_spaceLocatorForObject(i_control,parent)
+		ml_spaceLocators.append(i_pivot)
+	    except StandardError,error:
+		raise StandardError,"space pivot %s | %s"%(i,error)
     
-    #====================================================  
-    try:#>>>Freeze stuff 
+    try:#>>>Freeze stuff  #====================================================
 	if not shapeParentTo:
 	    if not freezeAll:
 		if i_control.getAttr('cgmName') == 'cog' or controlType in l_fullFreezeTypes:
@@ -495,15 +504,17 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	log.error("ModuleControlFactory.registerControl>>freeze fail: '%s'"%str_shortName)
 	raise StandardError,error 
     
-    #>>>Lock and hide
-    #====================================================  
-    if autoLockNHide:
-	if i_control.hasAttr('cgmTypeModifier'):
-	    if i_control.cgmTypeModifier.lower() == 'fk':
-		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['tx','ty','tz','sx','sy','sz'])
-	if i_control.cgmName.lower() == 'cog':
-	    attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['sx','sy','sz'])
-	cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
+    try:#>>>Lock and hide #====================================================
+	if autoLockNHide:
+	    if i_control.hasAttr('cgmTypeModifier'):
+		if i_control.cgmTypeModifier.lower() == 'fk':
+		    attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['tx','ty','tz','sx','sy','sz'])
+	    if i_control.cgmName.lower() == 'cog':
+		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['sx','sy','sz'])
+	    cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
+    except StandardError,error:
+	raise StandardError,"%s >> lockNHide | %s"%(_str_funcName,error)  
+    
     return {'instance':i_control,'mi_groups':ml_groups,'mi_constraintGroups':ml_constraintGroups}
 
     
