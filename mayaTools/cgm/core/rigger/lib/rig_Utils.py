@@ -2603,90 +2603,104 @@ def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None,
 
 @r9General.Timer
 def create_spaceLocatorForObject(obj,parentTo = False):
-    #Get size
-    i_obj = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=False)    
-    i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)    
-    bbSize = distance.returnBoundingBoxSize(i_obj.mNode,True)
-    size = max(bbSize)
+    try:#Get size
+        i_obj = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=False)    
+        i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)    
+        bbSize = distance.returnBoundingBoxSize(i_obj.mNode,True)
+        size = max(bbSize)
+    except StandardError,error:raise StandardError,"%s >> get info | %s"%(str_shortName,error)  
+    
+    _str_funcName = "create_spaceLocatorForObject(%s)"%i_obj.p_nameShort  
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+    
+    try:#>>>Create #====================================================
+        i_control = cgmMeta.cgmObject(curves.createControlCurve('pivotLocator',size),setClass=True)
+        try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
+        except StandardError,error:raise StandardError,"color | %s"%(error)          
+        log.debug("l_color: %s"%l_color)
+        curves.setColorByIndex(i_control.mNode,l_color[0])
+    except StandardError,error:raise StandardError,"%s >> create | %s"%(_str_funcName,error)  
 
-    #>>>Create
-    #====================================================
-    i_control = cgmMeta.cgmObject(curves.createControlCurve('pivotLocator',size),setClass=True)
-    l_color = curves.returnColorsFromCurve(i_obj.mNode)
-    log.debug("l_color: %s"%l_color)
-    curves.setColorByIndex(i_control.mNode,l_color[0])
+    try:#>>>Snap and Lock
+        #====================================================	
+        Snap.go(i_control,i_obj.mNode,move=True, orient = True)
+    except StandardError,error:raise StandardError,"%s >> snapNLock | %s"%(_str_funcName,error)  
 
-    #>>>Snap and Lock
-    #====================================================	
-    Snap.go(i_control,i_obj.mNode,move=True, orient = True)
+    try:#>>>Copy Transform
+        #====================================================   
+        i_newTransform = i_obj.doDuplicateTransform()
+    
+        #Need to move this to default cgmNode stuff
+        mBuffer = i_control
+        i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
+        curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
+        i_newTransform.parent = i_control.parent#Copy parent
+        i_control = i_newTransform
+        mc.delete(mBuffer.mNode)
+    except StandardError,error:raise StandardError,"%s >> copy transform | %s"%(_str_funcName,error)  
 
-    #>>>Copy Transform
-    #====================================================   
-    i_newTransform = i_obj.doDuplicateTransform()
+    try:#>>>Register
+        #====================================================    
+        #Attr
+        i = i_obj.returnNextAvailableAttrCnt('pivot_')
+        str_pivotAttr = str("pivot_%s"%i)
+        str_objName = str(i_obj.getShortName())
+        str_pivotName = str(i_control.getShortName())
+    except StandardError,error:raise StandardError,"%s >> register | %s"%(_str_funcName,error)  
 
-    #Need to move this to default cgmNode stuff
-    mBuffer = i_control
-    i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
-    curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
-    i_newTransform.parent = i_control.parent#Copy parent
-    i_control = i_newTransform
-    mc.delete(mBuffer.mNode)
+    try:#Build the network
+        i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
+        i_control.overrideEnabled = 1
+        d_ret = NodeF.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
+        log.debug(d_ret)
+        d_ret = NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
+        log.debug(d_ret)
+    except StandardError,error:raise StandardError,"%s >> network | %s"%(_str_funcName,error)  
+    
+    try:
+        for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
+            log.debug(shape)
+            mc.connectAttr("%s.overrideVisibility"%i_control.mNode,"%s.overrideVisibility"%shape,force=True)
+            mc.connectAttr("%s.overrideDisplayType"%i_control.mNode,"%s.overrideDisplayType"%shape,force=True)
+    except StandardError,error:raise StandardError,"%s >> shape connect | %s"%(_str_funcName,error)  
 
-    #>>>Register
-    #====================================================    
-    #Attr
-    i = i_obj.returnNextAvailableAttrCnt('pivot_')
-    str_pivotAttr = str("pivot_%s"%i)
-    str_objName = str(i_obj.getShortName())
-    str_pivotName = str(i_control.getShortName())
+    try:#Vis 
+        #>>>Name stuff
+        #====================================================
+        cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
+    
+        i_control.doStore('cgmName',i_obj.mNode)
+        i_control.addAttr('mClass','cgmControl',lock=True)
+        i_control.addAttr('cgmType','controlAnim',lock=True)    
+        i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
+        i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)
+    
+        i_control.doName(nameShapes=True)
+    
+        i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_pivot_%s'%i),lock=True)
+    except StandardError,error:raise StandardError,"%s >> vis | %s"%(_str_funcName,error)  
 
-    #Build the network
-    i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
-    i_control.overrideEnabled = 1
-    d_ret = NodeF.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
-    log.debug(d_ret)
-    d_ret = NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
-    log.debug(d_ret)
-
-    for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
-        log.debug(shape)
-        mc.connectAttr("%s.overrideVisibility"%i_control.mNode,"%s.overrideVisibility"%shape,force=True)
-        mc.connectAttr("%s.overrideDisplayType"%i_control.mNode,"%s.overrideDisplayType"%shape,force=True)
-
-    #Vis 
-    #>>>Name stuff
-    #====================================================
-    cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
-
-    i_control.doStore('cgmName',i_obj.mNode)
-    i_control.addAttr('mClass','cgmControl',lock=True)
-    i_control.addAttr('cgmType','controlAnim',lock=True)    
-    i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
-    i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)
-
-    i_control.doName(nameShapes=True)
-
-    i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_pivot_%s'%i),lock=True)
-
-    #Store on object
-    #====================================================    
-    i_obj.addAttr("spacePivots", attrType = 'message',lock=True)
-    if i_control.getLongName() not in i_obj.getMessage('spacePivots',True):
-        buffer = i_obj.getMessage('spacePivots',True)
-        buffer.append(i_control.mNode)
-        i_obj.msgList_append(buffer,'spacePivots','controlTarget')
-    log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
-
-
-    if i_parent:
-        i_control.parent = i_parent.mNode
-        i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
-        i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
-        i_constraintGroup.doName()
-        i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
-
-        log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())		
-
+    try:#Store on object
+        #====================================================    
+        i_obj.addAttr("spacePivots", attrType = 'message',lock=True)
+        if i_control.getLongName() not in i_obj.getMessage('spacePivots',True):
+            buffer = i_obj.getMessage('spacePivots',True)
+            buffer.append(i_control.mNode)
+            i_obj.msgList_append(buffer,'spacePivots','controlTarget')
+        log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
+    except StandardError,error:raise StandardError,"%s >> store | %s"%(_str_funcName,error)  
+    
+    try:#parent
+        if i_parent:
+            i_control.parent = i_parent.mNode
+            i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
+            i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
+            i_constraintGroup.doName()
+            i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
+    
+            log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())		
+    except StandardError,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error)  
+    
     return i_control
 
 
