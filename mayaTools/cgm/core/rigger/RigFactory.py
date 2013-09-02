@@ -25,6 +25,8 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
+from cgm.core.rigger import ModuleControlFactory as mControlFactory
+reload(mControlFactory)
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
@@ -324,6 +326,7 @@ class go(object):
     #=====================================================================
     def connect_toRigGutsVis(self, ml_objects, vis = True):
 	try:
+	    if type(ml_objects) not in [list,tuple]:ml_objects = [ml_objects]
 	    for i_obj in ml_objects:
 		i_obj.overrideEnabled = 1		
 		if vis: cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
@@ -1122,4 +1125,45 @@ def get_report(self):
     #except StandardError,error:
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 
-
+@cgmGeneral.Timer    
+def verify_eyeLook(self):
+    try:
+	self.isModule()
+    except StandardError,error:
+	raise StandardError,"verify_eyeLook >> self: %s | error: %s"%(self,error)
+    
+    try:#Get our segment joints
+	_str_funcName = "verify_eyeLook(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	
+	try:#Gather data
+	    #We need a module type, find a head etc
+	    if self.moduleType != 'eyeball':
+		raise StandardError, "Don't know how to build from non eyeball type yet"
+	    else:
+		mi_buildModule = self
+		mi_rigNull = self.rigNull
+	    #First see if we have one connected
+	    
+	except StandardError,error:
+	    raise StandardError,"Gather data | %s"%(error)
+	
+	try:#Build ====================================================================
+	    try:mShapeCast.go(mi_buildModule,['eyeLook'])
+	    except StandardError,error:raise StandardError,"shapeCast | %s"%(error)	    
+	    try:mi_eyeLookShape = mi_rigNull.shape_eyeLook
+	    except StandardError,error:raise StandardError,"grabShape | %s"%(error)	    
+	    mi_rigNull.doRemove('shape_eyeLook')
+	    try:d_buffer = mControlFactory.registerControl(mi_eyeLookShape.mNode,addDynParentGroup=True,
+	                                                   addSpacePivots=True)
+	    except StandardError,error:raise StandardError,"register Control | %s"%(error)	    	    
+	    
+	    
+	    	    
+	except StandardError,error:
+	    raise StandardError,"Build | %s"%(error)	
+	
+	
+    except StandardError,error:
+	raise StandardError,"%s >>> failed | error: %s"%(_str_funcName,error)
+    
