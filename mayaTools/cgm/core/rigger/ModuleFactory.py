@@ -41,7 +41,7 @@ def isSized(self):
     """
     Return if a moudle is sized or not
     """
-    _str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
+    _str_funcName = "isSized(%s)"%self.p_nameShort   
     log.info(">>> %s >>> "%(_str_funcName) + "="*75)
     if self.mClass in ['cgmEyelids','cgmEyeball']:
 	if self.getMessage('helper'):
