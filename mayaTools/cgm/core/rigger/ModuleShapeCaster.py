@@ -69,6 +69,8 @@ class go(object):
 	                                'eyeballFK':self.build_eyeballFK,
 	                                'eyeballIK':self.build_eyeballIK,
 	                                'eyelids':self.build_eyelids,
+	                                'eyeLook':self.build_eyeLook,
+	                                'eyeballSettings':self.build_eyeballSettings,
 	                                'settings':self.build_settings}
         # Get our base info
         #==============	        
@@ -246,7 +248,6 @@ class go(object):
 	    d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])
 	    l_lengths = [d_return[k] for k in d_return.keys()]
 	    average = (sum(l_lengths))/len(l_lengths)
-	    
 	    return average *1.25
 	elif self._mi_module.getMessage('helper'):
 	    return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
@@ -297,7 +298,6 @@ class go(object):
 		    ml_handleCrvs.append(mi_crv)
 		    #>>Copy pivot
 		    mi_crv.doCopyPivot(mObj.mNode)
-		    
 		except StandardError,error:
 		    raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
 		
@@ -309,20 +309,53 @@ class go(object):
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @r9General.Timer    
+    @cgmGeneral.Timer    
+    def build_eyeballSettings(self):
+	_str_funcName = "go.build_eyeballSettings(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	try:
+	    mi_helper = self._mi_module.helper
+	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)
+	    
+	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('gear',
+	                                                          direction = 'z+',
+	                                                          size = _baseDistance*.5,
+	                                                          absoluteSize=False),setClass=True)
+	    Snap.go(mi_crv,mi_helper.mNode)
+	    mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
+	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 2)
+	    mi_crv.parent = False
+	    mi_tmpGroup.delete()
+	    	    	    
+	    #>>Copy tags and name
+	    mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+	    mi_crv.addAttr('cgmType',attrType='string',value = 'settings',lock=True)
+	    mi_crv.doName()          	    
+
+	    #Color
+	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])    
+	    self.d_returnControls['settings'] = mi_crv.mNode
+	    self.md_ReturnControls['settings'] = mi_crv
+	    self.mi_rigNull.connectChildNode(mi_crv,'shape_settings','owner')
+	    
+	except StandardError,error:
+	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
+	    return False
+	
+    @cgmGeneral.Timer    
     def build_eyeballFK(self):
 	_str_funcName = "go.build_eyeballFK(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    mi_helper = self._mi_module.helper
-	    mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('arrowsOnBall',
+	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    
+	    mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('circle',
 	                                                              direction = 'z+',
-	                                                              size = self._baseModuleDistance/2,
-	                                                              absoluteSize=False),
-	                                    setClass=True)
+	                                                              size = _baseDistance * .75,
+	                                                              absoluteSize=False),setClass=True)
 	    Snap.go(mi_crvBase,mi_helper.mNode)
 	    mi_tmpGroup = cgmMeta.cgmObject( mi_crvBase.doGroup())
-	    mi_crvBase.__setattr__('t%s'%self._jointOrientation[0],self._baseModuleDistance * 2)
+	    mi_crvBase.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 2)
 	    mi_crvBase.parent = False
 	    mi_tmpGroup.delete()
 	    
@@ -357,24 +390,24 @@ class go(object):
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @r9General.Timer    
+    @cgmGeneral.Timer    
     def build_eyeballIK(self):
 	_str_funcName = "go.build_eyeballIK(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    mi_helper = self._mi_module.helper
-	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('circle',
+	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    	    
+	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('fatCross',
 	                                                          direction = 'z+',
-	                                                          size = self._baseModuleDistance/2,
+	                                                          size = _baseDistance*.75,
 	                                                          absoluteSize=False),
 	                                    setClass=True)
 	    Snap.go(mi_crv,mi_helper.mNode)
 	    mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
-	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],self._baseModuleDistance * 3)
+	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 6)
 	    mi_crv.parent = False
 	    mi_tmpGroup.delete()
 	    	    	    
-	    
 	    #>>Copy tags and name
 	    mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
 	    mi_crv.addAttr('cgmType',attrType='string',value = 'eyeball_IK',lock=True)
@@ -385,6 +418,49 @@ class go(object):
 	    self.d_returnControls['eyeballFK'] = mi_crv.mNode
 	    self.md_ReturnControls['eyeballFK'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballIK','owner')
+	    
+	except StandardError,error:
+	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
+	    return False
+	
+    @cgmGeneral.Timer    
+    def build_eyeLook(self):
+	_str_funcName = "go.build_eyeLook(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	try:#we need to find an eye module/head module
+	    mi_helper = self._mi_module.helper
+	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    	    
+	    mi_crv = cgmMeta.cgmObject( curves.createControlCurve('arrow4Fat',
+	                                                          direction = 'z+',
+	                                                          size = _baseDistance * 1.5,
+	                                                          absoluteSize=False),setClass=True)	    
+	    Snap.go(mi_crv,mi_helper.mNode)
+	    mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
+	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 6)
+	    
+	    mi_crv.parent = False
+	    mi_tmpGroup.delete()
+	    
+	    #if self._partType == "eyeball":
+	    mi_crv.__setattr__('t%s'%self._jointOrientation[2],0)
+
+	except StandardError,error:
+	    log.error("%s >>> Find info | %s"%(_str_funcName,error) )
+	    
+	try:    
+	    #>>Copy tags and name
+	    #mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+	    mi_crv.addAttr('cgmName',attrType='string',value = self._mi_puppet.cgmName,lock=True)	    	    
+	    mi_crv.addAttr('cgmTypeModifier',attrType='string',value = 'eyeLook',lock=True)
+	    mi_crv.doName()          	    
+
+	    #Color
+	    l_color = modules.returnSettingsData('colorCenter',True)
+	    curves.setCurveColorByName(mi_crv.mNode,l_color[0])    
+	    self.d_returnControls['eyeLook'] = mi_crv.mNode
+	    self.md_ReturnControls['eyeLook'] = mi_crv
+	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeLook','owner')
+	    	    
 	    
 	except StandardError,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
@@ -431,6 +507,7 @@ class go(object):
 	    i_grp.delete()
 	    mi_crv = cgmMeta.cgmObject( curves.combineCurves([i_obj.mNode for i_obj in ml_curvesToCombine]) )
 	    log.debug("mi_crv: %s"%mi_crv.mNode)
+	    
 	    #>>Copy tags and name
 	    mi_crv.addAttr('cgmName',attrType='string',value = 'cog',lock=True)        
 	    mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
