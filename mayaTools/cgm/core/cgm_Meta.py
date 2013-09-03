@@ -1673,7 +1673,25 @@ class cgmControl(cgmObject):
 	except StandardError,error:
 	    log.error("%s._hasSwitch>> _hasSwitch fail | %s"%(self.getShortName(),error))
 	    return False	
-    
+	
+    #>>> Lock stuff
+    #========================================================================    
+    def _setControlGroupLocks(self,lock = True):
+	_str_funcName = "_setGroupLocks(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	try:
+	    l_groups = ['masterGroup','zeroGroup']
+	    l_attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']
+	    for g in l_groups:
+		try:
+		    if self.getMessage(g):
+			mi_group = self.getMessageInstance(g)
+			log.debug("%s >>> found %s | %s"%(_str_funcName,g,mi_group.p_nameShort))						
+			for a in l_attrs:
+			    cgmAttr(mi_group,a,lock=lock)
+		except StandardError,error:raise StandardError,"%s >>> | %s"%(g,error)			    
+	except StandardError,error:
+	    raise StandardError,"%s >>> Fail | %s"%(_str_funcName,error)
     #>>> Aim stuff
     #========================================================================
     def _isAimable(self):
@@ -3702,9 +3720,11 @@ class NameFactory(object):
         """ 
         """
 	try:
-	    self.i_node = validateObjArg(node,cgmNode,noneValid=False)
+	    self.mNode
+	    self.i_node = self
 	except:
-            raise StandardError,"NameFactory.go >> node doesn't exist: '%s'"%node	    
+	    self.i_node = validateObjArg(node,cgmNode,noneValid=False)
+	    
 	"""    
         if issubclass(type(node),cgmNode):
             self.i_node = node
