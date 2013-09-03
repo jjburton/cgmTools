@@ -36,7 +36,7 @@ from cgm.lib.classes.OptionVarFactory import *
 
 import maya.mel as mel
 import maya.cmds as mc
-
+import cgm.core
 from cgm.tools.lib import locinatorLib
 reload(locinatorLib)
 from cgm.lib import (search,guiFactory)
