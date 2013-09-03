@@ -336,9 +336,7 @@ def returnColorsFromCurve(curve):
             volmesBuffer = 0
             for shape in shapes:
                 if (mc.getAttr(shape+'.overrideColor')) == color:
-                    absSize = distance.returnAbsoluteSizeCurve(shape)
-                    volume = cgmMath.multiplyList(absSize)
-                    volmesBuffer = volmesBuffer + volume
+                    volmesBuffer = volmesBuffer + mc.arclen(shape)
             colorVolumes[color] = volmesBuffer
     
         orderedDictList = dictionary.returnDictionarySortedToList (colorVolumes,True)
