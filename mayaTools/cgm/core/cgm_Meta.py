@@ -1676,11 +1676,12 @@ class cgmControl(cgmObject):
 	
     #>>> Lock stuff
     #========================================================================    
-    def _setControlGroupLocks(self,lock = True):
+    def _setControlGroupLocks(self,lock = True, constraintGroup = False):
 	_str_funcName = "_setGroupLocks(%s)"%self.p_nameShort  
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
 	try:
 	    l_groups = ['masterGroup','zeroGroup']
+	    if constraintGroup: l_groups.append('constraintGroup')
 	    l_attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']
 	    for g in l_groups:
 		try:
@@ -2902,7 +2903,7 @@ class cgmAttr(object):
         assert type(arg) is bool, "doLocked arg must be a bool!"
         if arg:
             if self.getChildren():
-                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.p_locked:
@@ -2915,7 +2916,7 @@ class cgmAttr(object):
                 
         else:
             if self.getChildren():
-                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.p_locked:
@@ -2944,7 +2945,7 @@ class cgmAttr(object):
         assert type(arg) is bool, "doHidden arg must be a bool!"        
         if arg:
             if self.getChildren():
-                log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.p_hidden:
@@ -2961,7 +2962,7 @@ class cgmAttr(object):
    
         else:
             if self.getChildren():
-                log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.p_hidden:
@@ -2993,7 +2994,7 @@ class cgmAttr(object):
 	
         if arg:
             if self.getChildren():
-                log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if not cInstance.p_keyable:
@@ -3009,7 +3010,7 @@ class cgmAttr(object):
                 
         else:
             if self.getChildren():
-                log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
                 for c in self.getChildren():
                     cInstance = cgmAttr(self.obj.mNode,c)                                            
                     if cInstance.p_keyable:
@@ -3127,7 +3128,7 @@ class cgmAttr(object):
         if self.isNumeric(): 
             if value is not None:
                 if self.getChildren():
-                    log.warning("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+                    log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
                     for c in self.getChildren():
                         cInstance = cgmAttr(self.obj.mNode,c)                        
                         try:
@@ -3526,18 +3527,17 @@ class cgmAttr(object):
         target(string) - object or attribute to connect to
         *a, **kw
         """ 
+	_str_funcName = "doConnectOut(%s)"%self.p_combinedShortName
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	try:
-	    d_target = validateAttrArg(target,noneValid=True)
-	    mPlug_target = d_target['mi_plug']
-	    if d_target:
-		attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
-		log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
-	    else:
-		log.warning(">>> %s.doConnectOut >> target failed to validate: %s"%(self.p_combinedShortName,target) + "="*75)            			    
-		return False
+	    try:d_target = validateAttrArg(target,noneValid=False)
+	    except StandardError,error:raise StandardError,"%s failed to validate: %s"%(target,error)
+	    mPlug_target = d_target.get('mi_plug')
+	    try:attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
+	    except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
+	    log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
 	except StandardError,error:
-	    log.warning(">>> %s.doConnectOut >> target failed to validate: %s"%(self.p_combinedShortName,target) + "="*75)            			    
-	    raise StandardError,">>> %s.doConnectOut >> FAILED: %s"%(self.p_combinedShortName,error)
+	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
 	
 	"""
         assert mc.objExists(target),"'%s' doesn't exist"%target
@@ -3570,18 +3570,21 @@ class cgmAttr(object):
         source(string) - object or attribute to connect to
         *a, **kw
         """ 
+	_str_funcName = "doConnectIn(%s)"%self.p_combinedShortName
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	try:
-	    d_source = validateAttrArg(source,noneValid=True)
-	    mPlug_source = d_source['mi_plug']
-	    if d_source:
-		attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
-		log.debug(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            				
+	    try:d_source = validateAttrArg(source,noneValid=False)
+	    except StandardError,error:raise StandardError,"%s failed to validate: %s"%(source,error)
+	    mPlug_source = d_source.get('mi_plug')
+	    if mPlug_source:
+		try:attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
+		except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
+		log.debug(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            						
 	    else:
 		log.warning(">>> %s.doConnectIn >> source failed to validate: %s"%(self.p_combinedShortName,source) + "="*75)            			    
 		return False
 	except StandardError,error:
-	    log.warning(">>> %s.doConnectIn >> source failed to validate: %s"%(self.p_combinedShortName,source) + "="*75)            			    
-	    raise StandardError,">>> %s.doConnectIn >> FAILED: %s"%(self.p_combinedShortName,error)
+	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
 	
 	"""
         assert mc.objExists(source),"'%s' doesn't exist"%source
