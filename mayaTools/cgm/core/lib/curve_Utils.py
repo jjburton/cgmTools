@@ -142,6 +142,8 @@ def attachObjToCurve(obj = None, crv = None):
 		mc.connectAttr("%s.worldSpace"%d_returnBuff['shape'],"%s.inputCurve"%mi_poci.mNode)
 		mi_poci.parameter = d_returnBuff['parameter']
 		mc.connectAttr("%s.position"%mi_poci.mNode,"%s.t"%obj)
+		mi_poci.doStore('cgmName',obj)
+		mi_poci.doName()
 		
 	except StandardError,error:
 		raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	
