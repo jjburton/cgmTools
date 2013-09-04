@@ -47,7 +47,7 @@ from cgm.lib import (modules,
                      curves)
 
 cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids']
-l_faceModuleTypes = ['eyeball']
+l_faceModuleTypes = ['eyeball','eyelids']
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
@@ -1989,8 +1989,8 @@ d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for an
                           'autoMirror':'bool',
                           'direction':'left:right:center',
                           'position':'none:front:back:upper:lower:forward',
-                          'mi_module':'messageSimple',
-                          'mi_mirrorBlock':'messageSimple'}
+                          'moduleTarget':'messageSimple',
+                          'blockMirror':'messageSimple'}
 
 class cgmRigBlock(cgmMeta.cgmObject):
     ##@r9General.Timer
@@ -2129,7 +2129,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	"""
 	_str_funcName = "cgmRigBlock.__buildSimplePuppet__(%s)"%self.p_nameShort   
 	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
-	mi_module = self.mi_module
+	mi_module = self.moduleTarget
 	if not mi_module:
 	    try:
 		log.debug(">>> %s >>> Has no module, creating")
@@ -2143,6 +2143,8 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	log.debug(">>> %s >>> Building puppet..."%(_str_funcName))
 	mi_puppet = cgmPuppet(name = mi_module.getNameAlias())
 	mi_puppet.connectModule(mi_module)	
+	if mi_module.getMessage('moduleMirror'):
+	    mi_puppet.connectModule(mi_module.moduleMirror)
 	mi_puppet.gatherModules()#Gather any modules in the chain
 	return mi_puppet
 	
@@ -2203,7 +2205,6 @@ class cgmEyeballBlock(cgmRigBlock):
 	self.doName()        
         return True
 
-    
     #@cgmGeneral.Timer
     def __rebuildShapes__(self,size = None):
 	_str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
@@ -2238,7 +2239,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	l_curveShapes.append(mc.curve( d = 3,p = [[0.0, -0.49825526937946768, 2.2126978888235788e-16], [0.131348759885549, -0.49734402162391972, 3.0084413217208814e-16], [0.39486795357586341, -0.38749135902787507, 2.3439409455508664e-16], [0.55186033493999953, 0.0036111369820883686, -2.1843820862340872e-18], [0.38845447152927703, 0.39262159367483379, -2.3749738105919298e-16], [-0.002409617923089843, 0.552240244276892, -3.3405093821679339e-16], [-0.39186590664792353, 0.38921678211230448, -2.3543780552354256e-16], [-0.55187083450450314, -0.0012048293219408162, 7.2880303374564086e-19], [-0.39147146111426462, -0.39092243375831293, 2.3646955671973833e-16], [-0.12700366826764278, -0.49847130390333205, 3.0152602688544059e-16], [3.1129555427347658e-17, -0.49825526937946774, 2.2126978888235788e-16]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)))
 	str_orb = curves.combineCurves(l_curveShapes)	
 	
-	curves.parentShapeInPlace(self.mNode,str_orb)#parent shape in place
+	curves.parentShapeInPlace(self.mNode,str_orb)#parent shape in place	
 	curves.setCurveColorByName(self.mNode,self.color[0])#Set the color	    	
 	mc.delete(str_orb)	
 	
@@ -2260,11 +2261,10 @@ class cgmEyeballBlock(cgmRigBlock):
 	    ml_curves.append(mi_obj)#append
 	    md_curves[k] = mi_obj
 	    mi_obj.doName()#Name	
-	    
+
 	    if k in ['uprLid','lwrLid']:
 		mi_obj.doCopyPivot(self)
 		
-	    #self.connectChildNode(mi_obj,'mi_%sHelper'%k,'mi_block')#Connect
 	    self.connectChildNode(mi_obj,'%sHelper'%k,'mi_block')
 	        
 	#Second pass on doing parenting and some lock work
@@ -2280,9 +2280,7 @@ class cgmEyeballBlock(cgmRigBlock):
 		
 	    cgmMeta.cgmAttr(mi_obj,'sx').doConnectIn("%s.scaleY"%mi_obj.mNode)
 	    attributes.doSetLockHideKeyableAttr(mi_obj.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sz','v'])
-		 
-	#self.msgList_connect(ml_curves,'ml_helpers')
-	
+		 	
 	#Connect in our scales so we're scaling the eye one one channel
 	cgmMeta.cgmAttr(self,'sx').doConnectIn("%s.scaleY"%self.mNode)
 	cgmMeta.cgmAttr(self,'sz').doConnectIn("%s.scaleY"%self.mNode)
@@ -2290,7 +2288,61 @@ class cgmEyeballBlock(cgmRigBlock):
 	    cgmMeta.cgmAttr(self,a,keyable=False,lock=True,hidden=True)
 	
 	#attributes.doSetLockHideKeyableAttr(self.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sz','v'])
+    def __mirrorBuild__(self):
+	cgmRigBlock.__buildModule__(self)
+	_str_funcName = "cgmEyeballBlock.__buildMirror__(%s)"%self.p_nameShort   
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	try:
+	    try:#Mirror curves =====================================================================
+		if not self.getMessage('blockMirror'):
+		    mi_dup = self.doDuplicate(False)
+		    l_pivot = mc.xform(self.mNode,q=True, sp = True,ws=True)
+		    for a in ['lwrLid','uprLid']:
+			mc.scale( -1,1,1,self.getMessageInstance("%sHelper"%a).getComponents('cv'),pivot = l_pivot ,  r=True)
+		self.connectChildNode(mi_dup,"blockMirror","blockMirror")
+		
+		mi_dup.direction = not self.direction
+		mi_dup.cgmDirection = mi_dup.getEnumValueString('direction')
+		mi_dup.doName()
+			
+	    except StandardError,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
+	    try:#Find our shapes =====================================================================
+		l_shapes = ['iris','pupil','uprLid','lwrLid']
+		ml_crvs = [mi_dup]
+		l_children = mi_dup.getAllChildren(True)
+		for c in l_children:
+		    i_c = cgmMeta.cgmNode(c)
+		    for shape in l_shapes:
+			if i_c.getAttr('cgmName') == shape:
+			    mi_dup.connectChildNode(i_c,'%sHelper'%shape,'mi_block')
+			    ml_crvs.append(i_c)
+	    except StandardError,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
+	    try:#Color =====================================================================
+		__color = getSettingsColors( mi_dup.getAttr('cgmDirection') )
+		for mCrv in ml_crvs:
+		    curves.setCurveColorByName(mCrv.mNode,__color[0])#Set the color	    
+	    except StandardError,error:raise StandardError,"Color mirror| error: %s "%(error)
+	    
+	    self.__mirrorPush__()
+	    return mi_dup
+	except StandardError,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
 	
+    def __mirrorPush__(self):
+	cgmRigBlock.__buildModule__(self)
+	_str_funcName = "cgmEyeballBlock.__pushToMirror__(%s)"%self.p_nameShort   
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    if not self.getMessage('blockMirror'):
+		log.warning("%s >> no blockMirror found"%_str_funcName)
+		return False
+	    mi_mirror = self.blockMirror
+	    
+	    mi_mirror.tx = -self.tx
+	    mi_mirror.ty = self.ty
+	    mi_mirror.sy = self.sy
+	    
+	except StandardError,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
+ 
 	
     def __buildModule__(self):
 	cgmRigBlock.__buildModule__(self)
@@ -2306,7 +2358,7 @@ class cgmEyeballBlock(cgmRigBlock):
 		i_module = cgmEyeball(name = bfr_name,
 		                      position = bfr_position,
 		                      direction = bfr_direction)
-		self.connectChildNode(i_module,"mi_module","helper")
+		self.connectChildNode(i_module,"moduleTarget","helper")
 	    except StandardError,error:raise StandardError,"Failed to build eyeball module | error: %s "%(error)
 	    try:#Eyelids module
 		#===================================================================
@@ -2317,6 +2369,33 @@ class cgmEyeballBlock(cgmRigBlock):
 		self.connectChildNode(i_eyelidsModule,"moduleEyelids","helper")
 		
 	    except StandardError,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
+	    try:#Mirror ============================================================
+		if self.autoMirror:
+		    log.info("%s >> mirror mode"%(_str_funcName))
+		    if not self.getMessage('blockMirror'):
+			mi_mirror = self.__mirrorBuild__()
+		    else:
+			mi_mirror = self.blockMirror
+			bfr_mirrorDirection = mi_mirror.cgmDirection
+		    
+		    try:#Eyeball module
+			#===================================================================
+			i_moduleMirror = cgmEyeball(name = bfr_name,
+			                            position = bfr_position,
+			                            direction = bfr_mirrorDirection)
+			i_module.connectChildNode(i_moduleMirror,"moduleMirror","moduleMirror")
+			mi_mirror.connectChildNode(i_moduleMirror,"moduleTarget","helper")		    
+		    except StandardError,error:raise StandardError,"Failed to mirror eyeball module | error: %s "%(error)
+		    try:#Eyelids module
+			#===================================================================
+			i_eyelidsModuleMirror = cgmEyelids(name = 'eyelids',
+			                                   position = bfr_position,
+			                                   direction = bfr_mirrorDirection)
+			i_eyelidsModuleMirror.doSetParentModule(i_moduleMirror)
+			mi_mirror.connectChildNode(i_eyelidsModuleMirror,"moduleEyelids","helper")
+		    except StandardError,error:raise StandardError,"Failed to mirror eyelids module | error: %s "%(error)
+	    except StandardError,error:raise StandardError,"failed to mirror | error: %s "%(error)
+	    
 	    self.__storeNames__()
 	    
 	    #Size it
@@ -2329,20 +2408,25 @@ class cgmEyeballBlock(cgmRigBlock):
     def __storeNames__(self):
 	#Store our names
 	_str_funcName = "cgmEyeballBlock.__storeNames__(%s)"%self.p_nameShort   	
-	if not self.getMessage("mi_module"):
+	if not self.getMessage("moduleTarget"):
 	    raise StandardError," %s >>> No Module!"%(_str_funcName)
 	
 	l_names= ['eyeball']
 	if self.buildIris:l_names.append('iris')
 	if self.buildPupil:l_names.append('pupil')
-	self.mi_module.coreNames.value = l_names
+	self.moduleTarget.coreNames.value = l_names
+	try:#Mirror ============================================================
+	    if self.autoMirror:
+		self.moduleTarget.moduleMirror.coreNames.value = l_names
+	except StandardError,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
+
 	return True
     
     def __updateSizeData__(self):
 	"""For overload"""
 	_str_funcName = "cgmEyeballBlock.__updateSizeData__(%s)"%self.p_nameShort   
 	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
-	if not self.getMessage('mi_module'):
+	if not self.getMessage('moduleTarget'):
 	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
 	
 	i_module = self.mi_module#Lilnk
