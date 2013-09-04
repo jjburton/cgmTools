@@ -270,10 +270,9 @@ def build_rig(self):
     
     try:#>>>Get data
 	_str_orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
-	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
-	    
+	
+	try:mi_eyeLook = self._get_eyeLook()
+	except StandardError,error:raise StandardError,"eyeLook fail! | %s"%(error)	    
 	try:mi_controlIK = self._i_rigNull.controlIK
 	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
 	try:mi_controlFK = self._i_rigNull.controlFK
@@ -284,7 +283,6 @@ def build_rig(self):
 	except StandardError,error:raise StandardError,"helper fail! | %s"%(error)
 	try:mi_settings = self._i_rigNull.settings
 	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
-	
 	log.info("ml_controlsFK: %s"%mi_controlFK.p_nameShort)
 	log.info("mi_controlIK: %s"%mi_controlIK.p_nameShort)		
 	log.info("ml_rigJoints: %s"%[o.getShortName() for o in ml_rigJoints])
@@ -384,27 +382,11 @@ def build_rig(self):
     #Dynamic parent groups
     #====================================================================================
     try:#>>>> eye
-	ml_eyeDynParents = []
-	"""
-	#Build our dynamic groups
-	mi_spine = self._i_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
-	log.info("spine found: %s"%mi_spine)
-	if mi_spine:
-	    mi_spineRigNull = mi_spine.rigNull
-	    ml_eyeDynParents.append( mi_spineRigNull.eyeleIK )	    
-	    ml_eyeDynParents.append( mi_spineRigNull.cog )
-	    ml_eyeDynParents.append( mi_spineRigNull.hips )	
-	
-	if mi_moduleParent:
-	    mi_parentRigNull = mi_moduleParent.rigNull
-	    if mi_parentRigNull.getMessage('skinJoints'):
-		ml_eyeDynParents.append( mi_parentRigNull.skinJoints[0])	    
-	    
+	ml_eyeDynParents = [mi_eyeLook]
+	if self._mi_moduleParent:
+	    ml_eyeDynParents.append(self._mi_moduleParent.rigNull.rigJoints[0])	    
 	ml_eyeDynParents.append(self._i_masterControl)
-	if mi_controlIK.getMessage('spacePivots'):
-	    ml_eyeDynParents.extend(mi_controlIK.msgList_get('spacePivots',asMeta = True))	
-	log.info("%s.build_rig>>> Dynamic parents to add: %s"%(self._strShortName,[i_obj.getShortName() for i_obj in ml_eyeDynParents]))
-	"""
+		
 	#Add our parents
 	i_dynGroup = mi_controlIK.dynParentGroup
 	log.info("Dyn group at setup: %s"%i_dynGroup)
@@ -421,11 +403,17 @@ def build_rig(self):
     #====================================================================================
     try:#Constrain to parent module
 	ml_rigJoints[0].parent = self._i_constrainNull.mNode
-	if mi_moduleParent:
-	    mc.parentConstraint(mi_moduleParent.rig_getSkinJoints()[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
+	if self._mi_moduleParent:
+	    mc.parentConstraint(self._mi_moduleParent.rig_getSkinJoints()[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
     except StandardError,error:
 	raise StandardError,"%s >> Connect to parent fail! | error: %s"%(_str_funcName,error)
-
+    
+    try:#Lock Groups ======================================================================
+	for mi_ctrl in [mi_controlFK,mi_controlIK,mi_settings]:
+	    mi_ctrl._setControlGroupLocks(True)
+    except StandardError,error:
+	raise StandardError,"%s >> lock groups fail! | error: %s"%(_str_funcName,error)
+    
     #Final stuff
     self._set_versionToCurrent()
     return True 
@@ -442,11 +430,12 @@ def build_matchSystem(self):
     _str_funcName = "build_rig(%s)"%self._strShortName
     log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
     
-    try:#Gather Data
-	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
-	    
+    try:#Gather Data    
+	try:
+	    mi_eyeLook = self._get_eyeLook()
+	    mi_eyeLookDynSwitch = mi_eyeLook.dynSwitch
+	except StandardError,error:raise StandardError,"eyeLook fail! | %s"%(error)	
+	
 	try:mi_controlIK = self._i_rigNull.controlIK
 	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
 	
@@ -496,6 +485,13 @@ def build_matchSystem(self):
 	mi_dynSwitch.addSwitch('snapToIK',[mi_settings.mNode,'blend_FKIK'],
 	                       1,
 	                       [i_ikMatch])
+	
+	mi_eyeLookDynSwitch.addSwitch('snapToFK',[mi_settings.mNode,'blend_FKIK'],
+	                              0,
+	                              [i_fkMatch])
+	mi_eyeLookDynSwitch.addSwitch('snapToIK',[mi_settings.mNode,'blend_FKIK'],
+	                              1,
+	                              [i_ikMatch])	
     except StandardError,error:
 	raise StandardError,"%s >> switch setup fail! | error: %s"%(_str_funcName,error)   
     return True
