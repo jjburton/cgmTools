@@ -177,7 +177,7 @@ def build_rigSkeleton(self):
 			if k == 'lwr':mObj.addAttr('isSubControl',True,lock=True)
 			if b_iterate and ii > 0:
 			    mObj.addAttr('cgmTypeModifier','sub',lock=True)			    
-			    mObj.addAttr('cgmIterator',ii-1,lock=True)
+			    mObj.addAttr('cgmIterator',ii-1,lock=True,hidden = True)
 			    mObj.addAttr('isSubControl',True,lock=True)
 			mObj.doName()
 				
@@ -315,7 +315,7 @@ def build_controls(self):
 			d_buffer = mControlFactory.registerControl(mi_crv,addConstraintGroup=True)
 		    except StandardError,error:raise StandardError,"register fail build : %s"%error
 		    md_controls[_str_key].append(mi_crv)#append
-		    if mi_handle.getAttr('isMain'):
+		    if mi_handle.getAttr('cgmTypeModifier') == 'main':
 			self._i_rigNull.connectChildNode(mi_crv,'%sMain'%_str_key)
 			#mi_handle.doRemove('isMain')
 		    ml_controlsAll.append(mi_crv)
@@ -438,7 +438,7 @@ def build_rig(self):
 
     except StandardError,error:
 	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)
-
+            
     #>>> Setup Lids
     try:#Build our Curves ===================================================================
 	ml_curves = []
@@ -648,39 +648,31 @@ def build_rig(self):
 	    mi_zeroLoc = mi_blendLoc.doLoc()
 	    mi_zeroLoc.addAttr('cgmName','zero')
 	    mi_zeroLoc.doName()
-	    
-	    mi_resultUprLoc = mi_blendLoc.doLoc()
-	    mi_resultUprLoc.addAttr('cgmName','uprResult')
-	    mi_resultUprLoc.doName()
-	    
-	    mi_resultLwrLoc = mi_blendLoc.doLoc()
-	    mi_resultLwrLoc.addAttr('cgmName','lwrResult')
-	    mi_resultLwrLoc.doName()
-	    
+	    	    
 	    mi_drivenUprLoc = mi_blendLoc.doLoc()
 	    mi_drivenUprLoc.addAttr('cgmName','uprDriven')
 	    mi_drivenUprLoc.doName()
 	    
 	    mi_drivenLwrLoc = mi_blendLoc.doLoc()
 	    mi_drivenLwrLoc.addAttr('cgmName','lwrDriven')
-	    mi_resultLwrLoc.doName()	    
-	    #for mLoc in [mi_resultLwrLoc,mi_resultUprLoc]:
-		#mLoc.parent = self._i_constrainNull
+	    mi_drivenLwrLoc.doName()	    
+	    for mLoc in [mi_zeroLoc,mi_drivenUprLoc,mi_drivenLwrLoc]:
+		mLoc.parent = self._i_constrainNull
 	    
-	    ml_toVisConnect.extend([mi_resultLwrLoc,mi_resultUprLoc,mi_drivenLwrLoc,mi_drivenUprLoc,mi_zeroLoc])
+	    ml_toVisConnect.extend([mi_drivenLwrLoc,mi_drivenUprLoc,mi_zeroLoc])
 	    
 	    mi_clampUpr = cgmMeta.cgmNode(nodeType='clamp')
-	    mi_clampUpr.doStore('cgmName',self)
+	    mi_clampUpr.doStore('cgmName',self._i_module.mNode)
 	    mi_clampUpr.addAttr('cgmTypeModifier','upr')
 	    mi_clampUpr.doName()
 	    
 	    mi_clampLwr = cgmMeta.cgmNode(nodeType='clamp')
-	    mi_clampLwr.doStore('cgmName',self)
+	    mi_clampLwr.doStore('cgmName',self._i_module.mNode)
 	    mi_clampLwr.addAttr('cgmTypeModifier','lwr')	    
 	    mi_clampLwr.doName()
 	    
 	    mi_remapLwr = cgmMeta.cgmNode(nodeType='remapValue')
-	    mi_remapLwr.doStore('cgmName',self)
+	    mi_remapLwr.doStore('cgmName',self._i_module.mNode)
 	    mi_remapLwr.addAttr('cgmTypeModifier','lwr')	    
 	    mi_remapLwr.doName()	    
 	except StandardError,error:raise StandardError,"initial setup : %s"%(error) 
@@ -702,34 +694,49 @@ def build_rig(self):
 	    mPlug_rightLimit.doConnectOut("%s.minG"%mi_clampUpr.mNode)
 	    mc.connectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[1]))
 	except StandardError,error:raise StandardError,"uprLid out | %s"%(error) 		
-	try:#lwrLid -----------------------------------------------------------------------
-	    pass
-	    """
+	try:#lwrLid -----------------------------------------------------------------------    
 	    mPlug_lwrUpLimit = cgmMeta.cgmAttr(mi_settings,"lwrUpLimit",attrType='float',value=-26,keyable=False,hidden=False)
 	    mPlug_lwrDnLimit = cgmMeta.cgmAttr(mi_settings,"lwrDnLimit",attrType='float',value=35,keyable=False,hidden=False)
-	    mPlug_lwrDnStart = cgmMeta.cgmAttr(mi_settings,"lwrDnStart",attrType='float',value=5,keyable=False,hidden=False)
+	    mPlug_lwrDnStart = cgmMeta.cgmAttr(mi_settings,"lwrDnStart",attrType='float',value=5,keyable=False,hidden=False)    
 	    mPlug_driverUp.doConnectOut("%s.inputValue"%mi_remapLwr.mNode)
 	    mPlug_lwrDnStart.doConnectOut("%s.inputMin"%mi_remapLwr.mNode)
-	    mi_remapLwr.inputLimit = 50
-	    mPlug_lwrDnLimit.doConnectOut("%s.outputLimit"%mi_remapLwr.mNode)
-	    attributes.doConnectAttr("%s.outValue"%mi_remapLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,orientation[2]))
 	    
-	    mPlug_driverUp.doConnectOut("%s.inputR"%mi_clampLwr.mNode)
+	    mi_remapLwr.inputMax = 50
+	    mPlug_lwrDnLimit.doConnectOut("%s.outputLimit"%mi_remapLwr.mNode)
+	    mPlug_lwrDnLimit.doConnectOut("%s.inputMax"%mi_remapLwr.mNode)
+	    mPlug_lwrDnLimit.doConnectOut("%s.outputMax"%mi_remapLwr.mNode)
+	    
+	    attributes.doConnectAttr("%s.outValue"%mi_remapLwr.mNode,"%s.inputR"%mi_clampLwr.mNode)
+	    
 	    mPlug_lwrDnLimit.doConnectOut("%s.maxR"%mi_clampLwr.mNode)
 	    mPlug_lwrUpLimit.doConnectOut("%s.minR"%mi_clampLwr.mNode)
-	    mc.connectAttr("%s.outputR"%mi_clampLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,orientation[2]))
-	    mc.connectAttr("%s.outputG"%mi_clampLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,orientation[1]))"""
+	    attributes.doConnectAttr("%s.outputR"%mi_clampLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,_str_orientation[2]))
+	    attributes.doConnectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,_str_orientation[1]))
+	    
 	except StandardError,error:raise StandardError,"lwr lid | %s"%(error) 		
-	try:#Parent constraint -----------------------------------------------------------
-	    #mc.orientConstraint([mi_zeroLoc.mNode,mi_drivenUprLoc.mNode],mi_resultUprLoc.mNode)
-	    #mc.orientConstraint([mi_zeroLoc.mNode,mi_drivenLwrLoc.mNode],mi_resultLwrLoc.mNode)
-	    mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenUprLoc.mNode],mi_mainUprCtrl.constraintGroup.mNode, maintainOffset = True)
-	    mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenLwrLoc.mNode],mi_mainLwrCtrl.constraintGroup.mNode, maintainOffset = True)
+	try:#Constraint and autolid follow on /off -----------------------------------------------------------
+	    _str_constUpr = mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenUprLoc.mNode],mi_mainUprCtrl.constraintGroup.mNode, maintainOffset = True)[0]
+	    _str_constLwr = mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenLwrLoc.mNode],mi_mainLwrCtrl.constraintGroup.mNode, maintainOffset = True)[0]
+            
+            d_autolidBlend = NodeF.createSingleBlendNetwork(mPlug_autoFollow,
+	                                                    [mi_settings.mNode,'resultAutoFollowOff'],
+	                                                    [mi_settings.mNode,'resultAutoFollowOn'],
+	                                                    hidden = True,keyable=False)
+
+            #Connect                                  
+
+	    for sConst in [_str_constLwr,_str_constUpr]:
+		l_weightTargets = mc.parentConstraint(sConst,q=True,weightAliasList = True)
+		d_autolidBlend['d_result1']['mi_plug'].doConnectOut('%s.%s' % (sConst,l_weightTargets[1]))
+		d_autolidBlend['d_result2']['mi_plug'].doConnectOut('%s.%s' % (sConst,l_weightTargets[0]))
+	
+	    
 	    
 	except StandardError,error:raise StandardError,"constraints | %s"%(error) 		
 	    
     except StandardError,error:
-	raise StandardError,"%s >>Lid Follow fail! | error: %s"%(_str_funcName,error)   
+	raise StandardError,"%s >>Lid Follow fail! | error: %s"%(_str_funcName,error)  
+    
     try:#Control setup ===================================================================
 	for i,mi_handle in enumerate(ml_uprLidHandles + ml_lwrLidHandles):
 	    mi_crv = mi_handle.controlCurve
@@ -740,97 +747,69 @@ def build_rig(self):
     except StandardError,error:
 	raise StandardError,"%s >>control setup fail! | error: %s"%(_str_funcName,error)   
     
-    """
-    #Parent and constraining bits
-    #====================================================================================
-    try:#Constrain to parent module
+    self.connect_toRigGutsVis(ml_toVisConnect)
+    
+    try:#Settings vis sub setup ============================================================
+	#Add our attrs
+	mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 0, defaultValue = 0, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+	mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = True,lock=True)
+	
+	#Get one of the drivers
+	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['left','right']:
+	    str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
+                                                        self._i_module.cgmDirection)
+	else:
+	    str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
+
+	iVis = self._i_masterControl.controlVis
+	visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode,mPlug_result_moduleSubDriver.attr],
+                   'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
+	NodeF.build_mdNetwork(visArg)	
+	
+    except StandardError,error:
+	raise StandardError,"%s >> vis sub setup! | error: %s"%(_str_funcName,error)    
+    
+    try:#Parent and constraining bits ============================================================
+	for mi_obj in (ml_uprLidHandles + ml_lwrLidHandles):
+	    mi_obj.parent = self._i_constrainNull
+	    
 	for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
 	    mi_skinJoint = mi_obj.skinJoint
 	    log.info(" '%s' >> '%s'"%(mi_obj.p_nameShort,mi_skinJoint.p_nameShort))
 	    mc.pointConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
 	    mc.orientConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
-    """    
+    except StandardError,error:
+	raise StandardError,"%s >>constrain skin joints | error: %s"%(_str_funcName,error) 
+    
+    #sub vis,control groups
+    #====================================================================================
+    try:#Constrain to parent module
+	for mCtrl in (ml_lwrLidControls + ml_uprLidControls):
+	    l_attrLockMap = ['scale']
+	    mCtrl._setControlGroupLocks(constraintGroup = True)	    
+	    if mCtrl.handleJoint.getAttr('isSubControl'):
+		mPlug_result_moduleSubDriver.doConnectOut([mCtrl,'v'])
+		l_attrLockMap.append('rotate')
+	    for a in l_attrLockMap:
+		cgmMeta.cgmAttr(mCtrl,a,lock=True,hidden=True,keyable=False)
+    except StandardError,error:
+	raise StandardError,"%s >>sub vis/lock control groups | error: %s"%(_str_funcName,error)   
+    try:#attr hides
+	for attr in ['result_ikOn','result_fkOn',mPlug_height.attr,'blinkHeight_upr','blinkHeight_lwr']:
+	    cgmMeta.cgmAttr(mi_settings,attr,hidden=True)
+    except StandardError,error:
+	raise StandardError,"%s >> attr hides | error: %s"%(_str_funcName,error)  
+    
     #Final stuff
     self._set_versionToCurrent()
     return True 
-    
-@cgmGeneral.Timer
-def build_matchSystem(self):
-    try:
-	if not self._cgmClass == 'RigFactory.go':
-	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
-	log.error("eye.build_deformationRig>>bad self!")
-	raise StandardError,error
-    _str_funcName = "build_rig(%s)"%self._strShortName
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
-    
-    try:#Gather Data
-	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
-	    
-	try:mi_controlIK = self._i_rigNull.controlIK
-	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
-		
-	try:ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')   
-	except StandardError,error:raise StandardError,"controlFK fail! | %s"%(error)
-	
-	try:ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
-	except StandardError,error:raise StandardError,"rigJoints fail! | %s"%(error)
-	
-	try:mi_settings = self._i_module.getSettingsControl()
-	except StandardError,error:raise StandardError,"settings fail! | %s"%(error)
-	
-	try:mi_locBlend= self._i_rigNull.mi_locBlend
-	except StandardError,error:raise StandardError,"mi_locBlend fail! | %s"%(error)
-	
-	try:mi_locFK= self._i_rigNull.mi_locFK
-	except StandardError,error:raise StandardError,"mi_locFK fail! | %s"%(error)	
-	
-	ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
-	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
-	
-	try:mi_dynSwitch = self._i_dynSwitch
-	except StandardError,error:raise StandardError,"dynSwitch fail! | %s"%(error)
-	
-    except StandardError,error:
-	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)        
-    try:#>>> First IK to FK
-	i_ikMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
-	                                       dynPrefix = "FKtoIK",
-	                                       dynMatchTargets=mi_locBlend)
-    except StandardError,error:
-	raise StandardError,"%s >> ik to fk fail! | error: %s"%(_str_funcName,error)       
-    try:#>>> FK to IK
-	#============================================================================
-	i_fkMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[0],
-	                                       dynPrefix = "IKtoFK",
-	                                       dynMatchTargets=mi_locBlend)
-    except StandardError,error:
-	raise StandardError,"%s >> fk to ik fail! | error: %s"%(_str_funcName,error)   
         
-    #>>> Register the switches
-    try:
-	mi_dynSwitch.addSwitch('snapToFK',[mi_settings.mNode,'blend_FKIK'],
-	                       0,
-	                       [i_fkMatch])
-    
-	mi_dynSwitch.addSwitch('snapToIK',[mi_settings.mNode,'blend_FKIK'],
-	                       1,
-	                       [i_ikMatch])
-    except StandardError,error:
-	raise StandardError,"%s >> switch setup fail! | error: %s"%(_str_funcName,error)   
-    return True
-    
 #----------------------------------------------------------------------------------------------
 # Important info ==============================================================================
 __d_buildOrder__ = {0:{'name':'skeleton','function':build_rigSkeleton},
                     1:{'name':'shapes','function':build_shapes},
                     2:{'name':'controls','function':build_controls},
                     3:{'name':'rig','function':build_rig},
-                    4:{'name':'match','function':build_matchSystem},
                     } 
 #===============================================================================================
 #----------------------------------------------------------------------------------------------
