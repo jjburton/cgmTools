@@ -385,7 +385,7 @@ def isRigged(self):
 	i_rigNull.version = ''#clear the version        
         return False
     
-    for attr in ['controlsFK','controlsAll']:
+    for attr in ['controlsAll']:
         if not i_rigNull.msgList_get(attr,asMeta = False):
             log.debug("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
 	    i_rigNull.version = ''#clear the version            
