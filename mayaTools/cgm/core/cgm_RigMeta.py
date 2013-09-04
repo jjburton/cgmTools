@@ -1365,7 +1365,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	i_child = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,noneValid=False)
 	
 	#TODO First scrub nodes and what not
-	
+	self._setLocks(False)
 	#Check our attrs
 	d_attrBuffers = {}
 	for a in self.l_dynAttrs:
@@ -1398,7 +1398,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 	
 	#Verify constraints    
 	self.verifyConstraints()
-	
+	self._setLocks(True)	
 	return 'Done'    
 	#Check constraint
 
@@ -1707,6 +1707,15 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 		    attributes.doDeleteAttr(i_child.mNode,a)
 	    if i_child.hasAttr('dynParentGroup'):
 		attributes.doDeleteAttr(i_child.mNode,'dynParentGroup')
+    def _setLocks(self,lock=True):
+	_str_funcName = "_setLocks(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	try:
+	    l_attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']					
+	    for a in l_attrs:
+		cgmMeta.cgmAttr(self,a,lock=lock)
+	except StandardError,error:
+	    raise StandardError,"%s >>> Fail | %s"%(_str_funcName,error)	
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
