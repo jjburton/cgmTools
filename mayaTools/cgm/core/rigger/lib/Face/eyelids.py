@@ -316,9 +316,8 @@ def build_controls(self):
 		    except StandardError,error:raise StandardError,"register fail build : %s"%error
 		    md_controls[_str_key].append(mi_crv)#append
 		    if mi_handle.getAttr('isMain'):
-			log.info(">>> Settings found: %s"%(mi_crv.p_nameShort))
-			self._i_rigNull.connectChildNode(mi_crv,'settings')
-			mi_handle.doRemove('isMain')
+			self._i_rigNull.connectChildNode(mi_crv,'%sMain'%_str_key)
+			#mi_handle.doRemove('isMain')
 		    ml_controlsAll.append(mi_crv)
 		except StandardError,error:raise StandardError," %s : %s | error: %s"%(ii,mi_handle.p_nameShort,error)
 	#Purge our shapes list
@@ -387,14 +386,20 @@ def build_rig(self):
 	    
 	mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
 	if not mi_helper:raise StandardError,"No suitable helper found"    
-	    
+	mi_settings = self._i_module.getSettingsControl()
+	
 	try:ml_moduleUprLidJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('moduleJoints_upr'),noneValid=False)
 	except StandardError,error:raise StandardError,"Missing uprlid moduleJoints | error: %s "%(error)
 	try:ml_moduleLwrLidJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('moduleJoints_lwr'),noneValid=False)
 	except StandardError,error:raise StandardError,"Missing lwrlid moduleJoints | error: %s "%(error)  	    
 	log.info("%s >>> ml_moduleUprLidJoints : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_moduleUprLidJoints]))	
-	log.info("%s >>> ml_moduleLwrLidJoints : %s"%(_str_funcName,[mObj.p_nameShort for mObj in ml_moduleLwrLidJoints]))	
-
+	log.info("%s >>> ml_moduleLwrLidJoints : %s"%(_str_funcName,[mObj.p_nameShort for mObj in ml_moduleLwrLidJoints]))
+	
+	try:mi_mainUprCtrl = self._i_rigNull.uprMain
+	except StandardError,error:raise StandardError,"mi_mainUprCtrl | %s"%(error)	
+	
+	try:mi_mainLwrCtrl = self._i_rigNull.lwrMain
+	except StandardError,error:raise StandardError,"mi_mainLwrCtrl | %s"%(error)	
 	
 	try:#Need to get our rig joints from the module joints -------------------------------------------
 	    ml_rigUprLidJoints = []
@@ -584,7 +589,6 @@ def build_rig(self):
 	    mi_bsNode.doStore('cgmName',mi_smartBlinkCrv.mNode)
 	    mi_bsNode.doName()
 	    
-	    mi_settings = self._i_rigNull.settings#grab our settings
 	    mPlug_height = cgmMeta.cgmAttr(mi_settings,'blinkHeight',attrType = 'float', defaultValue=.1, minValue = 0, maxValue = 1)
 	    l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
 	    log.info(l_bsAttrs)
@@ -636,13 +640,103 @@ def build_rig(self):
 
     except StandardError,error:
 	raise StandardError,"%s >> Lids setup fail! | error: %s"%(_str_funcName,error)   
-    
+    try:#Lid follow ======================================================================
+	try:#Initial setup----------------------------------------------------------------
+	    mPlug_autoFollow = cgmMeta.cgmAttr(mi_settings,"autoFollow",attrType = 'float', value = 1.0, hidden = False,keyable=True,maxValue=1.0,minValue=0)	    
+	    mi_blendLoc = self._mi_moduleParent.rigNull.locBlend
+	    
+	    mi_zeroLoc = mi_blendLoc.doLoc()
+	    mi_zeroLoc.addAttr('cgmName','zero')
+	    mi_zeroLoc.doName()
+	    
+	    mi_resultUprLoc = mi_blendLoc.doLoc()
+	    mi_resultUprLoc.addAttr('cgmName','uprResult')
+	    mi_resultUprLoc.doName()
+	    
+	    mi_resultLwrLoc = mi_blendLoc.doLoc()
+	    mi_resultLwrLoc.addAttr('cgmName','lwrResult')
+	    mi_resultLwrLoc.doName()
+	    
+	    mi_drivenUprLoc = mi_blendLoc.doLoc()
+	    mi_drivenUprLoc.addAttr('cgmName','uprDriven')
+	    mi_drivenUprLoc.doName()
+	    
+	    mi_drivenLwrLoc = mi_blendLoc.doLoc()
+	    mi_drivenLwrLoc.addAttr('cgmName','lwrDriven')
+	    mi_resultLwrLoc.doName()	    
+	    #for mLoc in [mi_resultLwrLoc,mi_resultUprLoc]:
+		#mLoc.parent = self._i_constrainNull
+	    
+	    ml_toVisConnect.extend([mi_resultLwrLoc,mi_resultUprLoc,mi_drivenLwrLoc,mi_drivenUprLoc,mi_zeroLoc])
+	    
+	    mi_clampUpr = cgmMeta.cgmNode(nodeType='clamp')
+	    mi_clampUpr.doStore('cgmName',self)
+	    mi_clampUpr.addAttr('cgmTypeModifier','upr')
+	    mi_clampUpr.doName()
+	    
+	    mi_clampLwr = cgmMeta.cgmNode(nodeType='clamp')
+	    mi_clampLwr.doStore('cgmName',self)
+	    mi_clampLwr.addAttr('cgmTypeModifier','lwr')	    
+	    mi_clampLwr.doName()
+	    
+	    mi_remapLwr = cgmMeta.cgmNode(nodeType='remapValue')
+	    mi_remapLwr.doStore('cgmName',self)
+	    mi_remapLwr.addAttr('cgmTypeModifier','lwr')	    
+	    mi_remapLwr.doName()	    
+	except StandardError,error:raise StandardError,"initial setup : %s"%(error) 
+	try:#uprLid up -------------------------------------------------------------------
+	    mPlug_driverUp = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[2])
+	    mPlug_uprUpLimit = cgmMeta.cgmAttr(mi_settings,"uprUpLimit",attrType='float',value=-60,keyable=False,hidden=False)
+	    mPlug_uprDnLimit = cgmMeta.cgmAttr(mi_settings,"uprDnLimit",attrType='float',value=50,keyable=False,hidden=False)
+	    mPlug_driverUp.doConnectOut("%s.inputR"%mi_clampUpr.mNode)
+	    mPlug_uprDnLimit.doConnectOut("%s.maxR"%mi_clampUpr.mNode)
+	    mPlug_uprUpLimit.doConnectOut("%s.minR"%mi_clampUpr.mNode)
+	    mc.connectAttr("%s.outputR"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[2]))
+	except StandardError,error:raise StandardError,"uprLid up | %s"%(error) 	
+	try:#uprLid out -------------------------------------------------------------------
+	    mPlug_driverSide = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[1])
+	    mPlug_leftLimit = cgmMeta.cgmAttr(mi_settings,"uprLeftLimit",value=15,attrType='float',keyable=False,hidden=False)
+	    mPlug_rightLimit = cgmMeta.cgmAttr(mi_settings,"uprRightLimit",value=-15,attrType='float',keyable=False,hidden=False)
+	    mPlug_driverSide.doConnectOut("%s.inputG"%mi_clampUpr.mNode)
+	    mPlug_leftLimit.doConnectOut("%s.maxG"%mi_clampUpr.mNode)
+	    mPlug_rightLimit.doConnectOut("%s.minG"%mi_clampUpr.mNode)
+	    mc.connectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[1]))
+	except StandardError,error:raise StandardError,"uprLid out | %s"%(error) 		
+	try:#lwrLid -----------------------------------------------------------------------
+	    pass
+	    """
+	    mPlug_lwrUpLimit = cgmMeta.cgmAttr(mi_settings,"lwrUpLimit",attrType='float',value=-26,keyable=False,hidden=False)
+	    mPlug_lwrDnLimit = cgmMeta.cgmAttr(mi_settings,"lwrDnLimit",attrType='float',value=35,keyable=False,hidden=False)
+	    mPlug_lwrDnStart = cgmMeta.cgmAttr(mi_settings,"lwrDnStart",attrType='float',value=5,keyable=False,hidden=False)
+	    mPlug_driverUp.doConnectOut("%s.inputValue"%mi_remapLwr.mNode)
+	    mPlug_lwrDnStart.doConnectOut("%s.inputMin"%mi_remapLwr.mNode)
+	    mi_remapLwr.inputLimit = 50
+	    mPlug_lwrDnLimit.doConnectOut("%s.outputLimit"%mi_remapLwr.mNode)
+	    attributes.doConnectAttr("%s.outValue"%mi_remapLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,orientation[2]))
+	    
+	    mPlug_driverUp.doConnectOut("%s.inputR"%mi_clampLwr.mNode)
+	    mPlug_lwrDnLimit.doConnectOut("%s.maxR"%mi_clampLwr.mNode)
+	    mPlug_lwrUpLimit.doConnectOut("%s.minR"%mi_clampLwr.mNode)
+	    mc.connectAttr("%s.outputR"%mi_clampLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,orientation[2]))
+	    mc.connectAttr("%s.outputG"%mi_clampLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,orientation[1]))"""
+	except StandardError,error:raise StandardError,"lwr lid | %s"%(error) 		
+	try:#Parent constraint -----------------------------------------------------------
+	    #mc.orientConstraint([mi_zeroLoc.mNode,mi_drivenUprLoc.mNode],mi_resultUprLoc.mNode)
+	    #mc.orientConstraint([mi_zeroLoc.mNode,mi_drivenLwrLoc.mNode],mi_resultLwrLoc.mNode)
+	    mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenUprLoc.mNode],mi_mainUprCtrl.constraintGroup.mNode, maintainOffset = True)
+	    mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenLwrLoc.mNode],mi_mainLwrCtrl.constraintGroup.mNode, maintainOffset = True)
+	    
+	except StandardError,error:raise StandardError,"constraints | %s"%(error) 		
+	    
+    except StandardError,error:
+	raise StandardError,"%s >>Lid Follow fail! | error: %s"%(_str_funcName,error)   
     try:#Control setup ===================================================================
 	for i,mi_handle in enumerate(ml_uprLidHandles + ml_lwrLidHandles):
 	    mi_crv = mi_handle.controlCurve
 	    log.info("On %s | '%s' >> '%s'"%(i,mi_handle.p_nameShort,mi_crv.p_nameShort))
 	    try:mc.parentConstraint([mi_crv.mNode],mi_handle.mNode,maintainOffset = True)
 	    except StandardError,error:raise StandardError,"constraint | ctrl: '%s' | target: '%s' | %s"%(mi_crv.p_nameShort,mi_handle.p_nameShort,error)
+	self.connect_toRigGutsVis(ml_toVisConnect)#visConnect
     except StandardError,error:
 	raise StandardError,"%s >>control setup fail! | error: %s"%(_str_funcName,error)   
     
@@ -679,14 +773,14 @@ def build_matchSystem(self):
 	    
 	try:mi_controlIK = self._i_rigNull.controlIK
 	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
-	
+		
 	try:ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')   
 	except StandardError,error:raise StandardError,"controlFK fail! | %s"%(error)
 	
 	try:ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
 	except StandardError,error:raise StandardError,"rigJoints fail! | %s"%(error)
 	
-	try:mi_settings = self._i_rigNull.settings
+	try:mi_settings = self._i_module.getSettingsControl()
 	except StandardError,error:raise StandardError,"settings fail! | %s"%(error)
 	
 	try:mi_locBlend= self._i_rigNull.mi_locBlend
