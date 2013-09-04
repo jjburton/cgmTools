@@ -62,7 +62,7 @@ m1.doTemplate()
 m1.isTemplated()
 m1.doSkeletonize()
 p = cgmPM.cgmPuppet(name = 'left_eye')
-p._verifyMasterControl(size = 1)
+p._verifyMasterControl()
 p.getModules()
 p.gatherModules()
 #>>> Modules

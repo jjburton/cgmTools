@@ -22,7 +22,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.lib import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import nameTools
 reload(nameTools)
 from cgm.lib.ml import (ml_resetChannels)
@@ -3538,30 +3538,7 @@ class cgmAttr(object):
 	    log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
 	except StandardError,error:
 	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
-	
-	"""
-        assert mc.objExists(target),"'%s' doesn't exist"%target
-        
-        if '.' in target:           
-            try:
-                attributes.doConnectAttr(self.p_combinedName,target)
-            except:
-                log.warning("'%s' failed to connect to '%s'!"%(self.p_combinedName,target))  
-                
-        else:
-            #If the object has a transform
-            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.mNode,target,[self.p_nameLong]) or []
-            if matchAttr:
-                #If it has a matching attribute
-                try:
-                    attributes.doConnectAttr(self.p_combinedName,('%s.%s'%(target,matchAttr.get(self.p_nameLong))))
-                except:
-                    log.warning("'%s' failed to connect to '%s'!"%(self.p_combinedName,target))
-            else:
-                print "Target object doesn't have this particular attribute"
-		"""
- 
-                
+	                
     def doConnectIn(self,source,childIndex = False,*a, **kw):
         """ 
         Attempts to make a connection from a source to our instanced attribute
@@ -3585,28 +3562,6 @@ class cgmAttr(object):
 		return False
 	except StandardError,error:
 	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
-	
-	"""
-        assert mc.objExists(source),"'%s' doesn't exist"%source
-               
-        if '.' in source:           
-            try:
-                attributes.doConnectAttr(source,self.p_combinedName)
-            except:
-                log.warning("'%s' failed to connect to '%s'!"%(source,self.p_combinedName))  
-                
-        else:
-            #If the object has a transform
-            matchAttr = attributes.returnMatchNameAttrsDict(self.obj.mNode,source,[self.p_nameLong]) or []
-            if matchAttr:
-                #If it has a matching attribute
-                try:
-                    attributes.doConnectAttr(('%s.%s'%(source,matchAttr.get(self.p_nameLong))),self.p_combinedName)
-                except:
-                    log.warning("'%s' failed to connect to '%s'!"%(source,self.p_combinedName))
-            else:
-                print "Source object doesn't have this particular attribute"
-	"""
                 
     def doCopyTo(self,target, targetAttrName = None, *a,**kw):
         """                                     
@@ -3962,7 +3917,7 @@ class NameFactory(object):
 	    
 	    def getNewNameCandidate(self):
 		self.int_iterator+=1#add one
-		log.debug("Counting in getIterator: %s"%self.int_iterator)	    
+		log.debug("%s >> Counting in getIterator: %s"%(_str_funcName,self.int_iterator)	 )   
 		self.d_nameCandidate['cgmIterator'] = str(self.int_iterator)
 		self.bufferName = nameTools.returnCombinedNameFromDict(self.d_nameCandidate)
 		return self.bufferName
@@ -4057,12 +4012,11 @@ class NameFactory(object):
 		iterator = self.getFastIterator(node = i_node)
 	    else:
 		iterator = self.getIterator(node = i_node)  
-		
 	    if iterator:
-		d_updatedNamesDict['cgmIterator'] = str(iterator)
-		    
+		d_updatedNamesDict['cgmIterator'] = str(iterator)    
 	    log.debug(nameTools.returnCombinedNameFromDict(d_updatedNamesDict))
-	    return nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
+	    _str_nameCandidate =  nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
+	    return _str_nameCandidate
 	except StandardError,error:
 	    raise StandardError,"%s >>> node: %s |error : %s"%(_str_funcName,node,error)
 	
@@ -4078,7 +4032,8 @@ class NameFactory(object):
 	    log.debug("Naming: '%s'"%i_node.getShortName())
 	    nameCandidate = self.returnUniqueGeneratedName(node = i_node, fastIterate=fastIterate,**kws)
 	    log.debug("nameCandidate: %s"%nameCandidate)
-	    mc.rename(i_node.mNode,nameCandidate)
+	    try:mc.rename(i_node.mNode,nameCandidate)
+	    except StandardError,error:log.error("%s >> %s"%(_str_funcName,error))
 	    #i_node.rename(nameCandidate)
 	    
 	    str_baseName = i_node.getBaseName()
@@ -4168,7 +4123,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 #=========================================================================      
 # Argument validation
 #=========================================================================  
-#@cgmGeneral.Timer
+@cgmGeneral.TimerDebug
 def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     """
     validate an objArg to be able to get instance of the object
@@ -4178,7 +4133,8 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
     noneValid -- whether none is a valid arg
     default_mType -- type to intialize as for default
     """
-    log.debug(">>> validateObjListArg >> arg = %s"%arg + "="*75)            	            
+    _str_funcName = 'validateObjArg'
+    log.debug(">>> %s >> "%_str_funcName + "="*75)
     try:
 	i_arg = False
 	argType = type(arg)
@@ -4187,28 +4143,24 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 		arg = arg[0]
 	    elif arg == []:
 		arg = None
-	    else:
-		raise StandardError,"validateObjArg>>> arg cannot be list or tuple: %s"%arg	
+	    else:raise StandardError,"validateObjArg>>> arg cannot be list or tuple: %s"%arg	
 	if not noneValid:
-	    if arg in [None,False]:
-		raise StandardError,"validateObjArg>>> arg cannot be None"
+	    if arg in [None,False]:raise StandardError,"validateObjArg>>> arg cannot be None"
 	else:
 	    if arg in [None,False]:
 		if arg not in [None,False]:log.warning("validateObjArg>>> arg fail: %s"%arg)
 		return False
 	log.debug("validateObjArg>>> arg: %s"%arg)
+	
 	if issubclass(argType,r9Meta.MetaClass):#we have an instance already
 	    i_arg = arg
 	elif not mc.objExists(arg):
 	    if noneValid: return False
-	    else:
-		raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg   
+	    else:raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg   
 	elif mType is not None:
 	    log.debug("validateObjArg>>> mType arg: '%s'"%mType)
-	    if i_arg:
-		i_autoInstance = i_arg
-	    else:
-		i_autoInstance = r9Meta.MetaClass(arg)
+	    if i_arg: i_autoInstance = i_arg
+	    else: i_autoInstance = r9Meta.MetaClass(arg)
 	    if type(mType) in [unicode,str]:
 		log.debug("validateObjArg>>> string mType: '%s'"%mType)
 		if i_autoInstance.getAttr('mClass') == mType:
@@ -4219,8 +4171,6 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 		log.debug("validateObjArg>>> class mType: '%s'"%mType)		
 		if issubclass(type(i_autoInstance),mType):#if it's a subclass of our mType, good to go
 		    i_arg = i_autoInstance
-		#elif i_autoInstance.hasAttr('mClass') and i_autoInstance.mClass != str(mType).split('.')[-1]:
-		    #raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.mNode,type(i_autoInstance),mType)	
 	    log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
 	    i_arg =  mType(arg)
 	else:
@@ -4242,7 +4192,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
 	raise StandardError,error  
     
-#@cgmGeneral.Timer    
+@cgmGeneral.TimerDebug    
 def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     log.debug(">>> validateObjListArg >> l_args = %s"%l_args + "="*75)            	        
     try:
@@ -4256,19 +4206,22 @@ def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mT
 	log.error("validateObjListArg>>Failure! l_args: %s | mType: %s"%(l_args,mType))
 	raise StandardError,error    
 
-#@cgmGeneral.Timer    
+@cgmGeneral.TimerDebug    
 def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
     """
     Validate an attr arg to usable info
     Arg should be sting 'obj.attr' or ['obj','attr'] format.
 
     """
-    log.debug(">>> validateAttrArg >> arg = %s"%arg + "="*75)            	    
+    _str_funcName = 'validateAttrArg'
+    log.debug(">>> %s >> "%_str_funcName + "="*75)
+    mi_obj = False
     try:
 	try:
 	    combined = arg.p_combinedName
 	    obj = arg.obj.mNode
 	    attr = arg.attr
+	    mi_obj = arg
 	    return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':arg}
 	    
 	except:
@@ -4278,6 +4231,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 		    try:
 			log.debug(arg[0].mNode)
 			obj = arg[0].mNode
+			mi_obj = arg[0]
 		    except:
 			log.debug("mNode call fail")
 			obj = arg[0]
@@ -4292,12 +4246,9 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 		obj = arg.split('.')[0]
 		attr = '.'.join(arg.split('.')[1:])
 		combined = arg
-	    else:
-		raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
-	
+	    else:raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
 	if not mc.objExists(obj):
 	    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
-	    
 	if not mc.objExists(combined):
 	    if noneValid:
 		log.debug("Not found: '%s'"%combined)
@@ -4305,18 +4256,18 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    else:
 		log.debug("validateAttrArg>>> '%s'doesn't exist, creating attr (%s)!"%(combined,defaultType))
 		if kws:log.debug("kws: %s"%kws)
-		i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
-	else:
-	    i_plug = cgmAttr(obj,attr,**kws)	    
-	
+		if mi_obj: i_plug = cgmAttr(mi_obj,attr,attrType=defaultType,**kws)  
+		else: i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
+	elif mi_obj:i_plug = cgmAttr(mi_obj,attr,**kws)	
+	else:i_plug = cgmAttr(obj,attr,**kws)
 	return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
     except StandardError,error:
 	log.debug("validateAttrArg>>Failure! arg: %s"%arg)	
 	if noneValid:
 	    return False
-	raise StandardError,error
+	raise StandardError,"%s >> arg: %s | defaultType: %s | noneValid: %s | %s"%(_str_funcName,defaultType,noneValid,error)
     
-#@cgmGeneral.Timer    
+@cgmGeneral.TimerDebug    
 def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
     try:
 	log.debug(">>> validateAttrListArg >> l_args = %s"%l_args + "="*75)            	

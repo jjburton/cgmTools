@@ -32,7 +32,7 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
 reload(cgmGeneral)
-from cgm.core.lib import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as cgmValid
 reload(cgmValid)
 from cgm.core.classes import SnapFactory as Snap
 

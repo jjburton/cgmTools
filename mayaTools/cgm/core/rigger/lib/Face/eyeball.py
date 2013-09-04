@@ -34,7 +34,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-from cgm.core.lib import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as cgmValid
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory

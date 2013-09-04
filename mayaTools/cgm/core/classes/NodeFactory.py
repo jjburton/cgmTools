@@ -26,6 +26,7 @@ import maya.cmds as mc
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
+from cgm.core.cgmPy import str_Utils as strUtils
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -1135,33 +1136,10 @@ class argsToNodes(object):
 		#Name it  
 		#if d_arg.get('callArg'):key = d_arg.get('callArg')
 		buffer = d_arg['arg']
-		#buffer = "_to_".join(l_driverNames)
-		l_buffer = []
-		for k in d_functionStringSwaps.keys():
-		    if k in buffer:
-			for i,n in enumerate(buffer.split(' ')):
-			    for k in d_functionStringSwaps.keys():
-				if n == k:n = d_functionStringSwaps[k]
-			    if '.' in n:
-				n = '_'.join(n.split('.'))
-			    if ',' in n:
-				n = '_'.join(n.split(','))
-			    if '-' in n:
-				b = list(n)
-				for p,k in enumerate(b):
-				    if k == '-':
-					b[p]='_inv'				    
-				n = ''.join(b)
-			    l_buffer.append(n)
-			
-			break
-		log.debug(l_buffer)
-		if not l_buffer:l_buffer = buffer
 		try:
-		    if int(l_buffer[0]) in range(10):
-			l_buffer.insert(0,'_')
-		except:pass
-		i_node.doStore('cgmName',"%s"%("".join(l_buffer)))
+		    str_buffer = strUtils.stripInvalidChars(buffer)
+		except StandardError,error:raise StandardError,"strip invalid issue %s"%(error)
+		i_node.doStore('cgmName',str_buffer)
 		i_node.doStore('creationArg',"%s"%d_arg['arg'])		
 		i_node.doName()
 		

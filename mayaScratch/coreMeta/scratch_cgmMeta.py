@@ -2,16 +2,33 @@ import maya.cmds as mc
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 import Red9.core.Red9_Meta as r9Meta
+from cgm.core import cgm_General as cgmGeneral
+
 import cgm.core
 cgm.core._reload()
-
-reload(cgmMeta)
 
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
 orientation = ['xyz']
 orientation[1]
+cgmMeta.cgmObject(mc.ls(sl=True)[0]).doName()
+
+mi_obj = cgmMeta.cgmObject(obj)
+cgmMeta.validateObjArg(mi_obj,cgmMeta.cgmObject)
+cgmMeta.validateObjArg(mi_obj)
+
+cgmMeta.validateAttrArg([mi_obj,'tx'])
+cgmMeta.validateAttrArg([obj,'tx'])
+cgmMeta.validateAttrArg("%s.tx"%obj)
+
+@cgmGeneral.Timer
+def check(arg):
+    issubclass(arg,cgmMeta.cgmNode):
+        return True
+    
+
+cgmMeta.validateObjArg(obj)
 
 #>>> verifyAttrDict
 d_test = {'string':'string','messageSimple':'messageSimple','bool':'bool','enum':'left:right:center','float':'float'}
@@ -72,3 +89,31 @@ dynParents = [ u'spine_2_fk_anim',u'cog_anim','hips_anim',u'worldCenter_loc']#Sh
 dynGroup = 'shoulders_ik_anim_grp'
 dynChild = 'shoulders_ik_anim'
 dynMode = 'follow'
+
+#>>>
+#================================================================
+nf = cgmMeta.NameFactory
+
+i_net1 = cgmMeta.cgmNode(name = 'net',nodeType = 'network')        
+i_net1.addAttr('cgmName','net', attrType = 'string')
+assert nf(i_net1).getBaseIterator() == 0,"baseIterator: %s"%nf(i_net1).getBaseIterator()
+
+i_net2 = cgmMeta.cgmNode( mc.duplicate(i_net1.mNode)[0] )
+assert nf(i_net1).getMatchedSiblings() == [i_net2],"%s"%nf(i_net1).getMatchedSiblings()
+assert nf(i_net2).getMatchedSiblings() == [i_net1],"%s"%nf(i_net2).getMatchedSiblings()
+assert nf(i_net1).getBaseIterator() == 1,"%s"%"baseIterator: %s"%nf(i_net1).getBaseIterator()
+assert i_net1.getNameDict() == i_net2.getNameDict(),"Name dicts not equal"
+assert nf(i_net1).getIterator() == 1
+i_net1.doName(fastIterate = False)
+assert nf(i_net2).getIterator() == 2
+nf(i_net2).getIterator()
+i_net1.getNameDict()
+i_net2.getNameDict()
+cgmMeta.log.setLevel(cgmMeta.logging.INFO)
+cgmMeta.log.setLevel(cgmMeta.logging.DEBUG)
+cgm.core._reload()
+
+nf(i_net1).getFastIterator()
+nf(i_net1).getIterator()
+
+cgmMeta.cgmNode(mc.ls(sl=1)[0]).doName()

@@ -17,7 +17,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.lib import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import GuiFactory as gui

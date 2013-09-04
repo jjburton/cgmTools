@@ -25,6 +25,7 @@ m1.isSized()
 m1.doTemplate()
 m1.isTemplated()
 m1.doSkeletonize()
+m1.modulePuppet._verifyMasterControl()
 
 
 
@@ -77,3 +78,40 @@ m1.isSized()
 m1.setState('skeleton',forceNew=True)
 m1.skeletonDelete()
 m1.doRig()
+
+
+#>>> Rig Block - eye
+#=======================================================
+nameTools.log.setLevel(nameTools.logging.INFO)
+nameTools.log.setLevel(nameTools.logging.DEBUG)
+cgmPM.log.setLevel(cgmPM.logging.INFO)
+cgmPM.log.setLevel(cgmPM.logging.DEBUG)
+mFactory.log.setLevel(mFactory.logging.DEBUG)
+import cgm.core
+cgm.core._reload()
+from cgm.core import cgm_PuppetMeta as cgmPM
+a = cgmPM.cgmEyeballBlock(direction = 'left')
+a = r9Meta.MetaClass('l_eye_rigHelper')
+a.mNode
+a.pupilHelper
+a.__verifyModule__()
+a.__updateSizeData__()
+p=a.__buildSimplePuppet__()
+cgmPM.getSettingsColors('')
+p.getModules()
+a.__rebuildShapes__()
+a.doName(nameChildren=True)
+b = cgmPM.cgmEyeball(name = 'eye',direction = 'left')
+cgmPM.cgmModule(name = 'eye',direction = 'left')
+m1 = cgmPM.cgmModule('l_eye_part')
+m1 = cgmPM.cgmModule('l_eyelid_part')
+m1.getNameAlias()
+m1.getAllModuleChildren()
+m1.isSized()
+m1.doTemplate()
+m1.isTemplated()
+m1.doSkeletonize()
+p = cgmPM.cgmPuppet(name = 'left_eye')
+p._verifyMasterControl(size = 1)
+p.getModules()
+p.gatherModules()

@@ -31,7 +31,7 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.lib import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as cgmValid
 reload(cgmValid)
 from cgm.lib import (distance,
                      attributes,

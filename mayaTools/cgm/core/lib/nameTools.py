@@ -24,7 +24,8 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_General as r9General
-
+from cgm.core.cgmPy import str_Utils as strUtils
+reload(strUtils)
 # From cgm ==============================================================
 from cgm.lib import (lists,
                      search,
@@ -142,7 +143,7 @@ def returnRawGeneratedName(obj,ignore=[False]):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
-def returnCombinedNameFromDict(nameDict):
+def returnCombinedNameFromDict(nameDict, stripInvalid = True):
     """  
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -170,26 +171,10 @@ def returnCombinedNameFromDict(nameDict):
         buffer = nameDict.get(item)
         buffer = str(search.returnTagInfoShortName(buffer,item))
         if buffer not in ['False','None','ignore']:
-            bufferList = list(str(buffer))
-            #log.info("buffer: %s"%buffer)
-            returnList = []
-            """
-            try:
-                if int(bufferList[0]) == 0:
-                    bufferList.insert(0,'_')
-            except:pass"""
-            for i,n in enumerate(bufferList):
-                if n == '.':
-                    returnList.append('_')
-                elif n in [';',':']:
-                    returnList.append('to')
-                elif n not in ['[',']','|',',']:
-                    returnList.append(str(n))
-                else:
-                    log.debug("nameTools.returnCombinedNameFromDict>> Not sure what to do with: %s"%n)                
-            nameBuilder.append(''.join(returnList))
-    
-    return divider.join(nameBuilder)
+            nameBuilder.append(buffer)
+    _str = divider.join(nameBuilder)
+    if stripInvalid: _str = strUtils.stripInvalidChars(_str)
+    return _str
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnObjectGeneratedNameDict(obj,ignore=[False]):

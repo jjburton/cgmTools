@@ -34,7 +34,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-from cgm.core.lib import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import curve_Utils as crvUtils
 reload(crvUtils)
