@@ -453,7 +453,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		i_zeroGroup = (cgmMeta.cgmObject(i_control.doGroup(True)))
 		i_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
 		i_zeroGroup.doName()
-		i_control.connectChildNode(i_masterGroup,'zeroGroup','groupChild')
+		i_control.connectChildNode(i_zeroGroup,'zeroGroup','groupChild')
 		log.debug("zeroGroup: '%s'"%i_zeroGroup.getShortName())	    
 	    
 	    if addExtraGroups:
