@@ -49,7 +49,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb']
+l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball']
 #l_modulesDone = []
 #>>> Register rig functions
 #=====================================================================
@@ -142,7 +142,9 @@ class go(object):
 	    self._i_masterSettings = self._i_masterControl.controlSettings
 	    self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup	    
 	    self._l_moduleColors = self._i_module.getModuleColors()
-	    
+	    self._mi_moduleParent = False
+	    if self._i_module.getMessage('moduleParent'):
+		self._mi_moduleParent = self._i_module.moduleParent	    
 	    #Module stuff ------------------------------------------------------------
 	    self._l_coreNames = self._i_module.coreNames.value
 	    self._i_templateNull = self._i_module.templateNull#speed link
@@ -314,7 +316,10 @@ class go(object):
     
     def _get_simpleRigJointDriverDict(self):
 	return get_simpleRigJointDriverDict(self._i_module)
-    
+    def _get_eyeLook(self):
+	return get_eyeLook(self._i_module)
+    def _verify_eyeLook(self):
+	return verify_eyeLook(self._i_module)   
     @cgmGeneral.Timer
     def get_report(self):
 	self._i_module.rig_getReport()
@@ -1126,6 +1131,40 @@ def get_report(self):
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 
 @cgmGeneral.Timer    
+def get_eyeLook(self):
+    try:
+	self.isModule()
+    except StandardError,error:
+	raise StandardError,"get_eyeLook >> self: %s | error: %s"%(self,error)
+    
+    try:#Get our segment joints
+	_str_funcName = "verify_eyeLook(%s)"%self.p_nameShort  
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	
+	#We need a module type, find a head etc
+	if self.moduleType != 'eyeball':
+	    raise StandardError, "Don't know how to build from non eyeball type yet"
+	else:
+	    mi_module = self
+	    mi_rigNull = self.rigNull
+	    mi_puppet = self.modulePuppet
+	    
+	    try:
+		buffer = mi_module.eyeLook
+		if buffer:return buffer
+	    except:pass
+	    
+	    ml_puppetEyelooks = mi_puppet.msgList_get('eyeLook')
+	    if ml_puppetEyelooks:
+		if len(ml_puppetEyelooks) == 1 and ml_puppetEyelooks[0]:
+		    return ml_puppetEyelooks[0]
+		else:
+		    raise StandardError,"More than one puppet eye look"
+	    raise StandardError,"The end."
+    except StandardError,error:
+	raise StandardError,"%s >>> Failed to find eyeLook! | error: %s"%(_str_funcName,error)
+    
+@cgmGeneral.Timer    
 def verify_eyeLook(self):
     try:
 	self.isModule()
@@ -1143,6 +1182,7 @@ def verify_eyeLook(self):
 	    else:
 		mi_buildModule = self
 		mi_rigNull = self.rigNull
+		mi_puppet = self.modulePuppet
 	    #First see if we have one connected
 	    
 	except StandardError,error:
@@ -1155,11 +1195,39 @@ def verify_eyeLook(self):
 	    except StandardError,error:raise StandardError,"grabShape | %s"%(error)	    
 	    mi_rigNull.doRemove('shape_eyeLook')
 	    try:d_buffer = mControlFactory.registerControl(mi_eyeLookShape.mNode,addDynParentGroup=True,
-	                                                   addSpacePivots=True)
-	    except StandardError,error:raise StandardError,"register Control | %s"%(error)	    	    
+	                                                   addSpacePivots=2)
+	    except StandardError,error:raise StandardError,"register Control | %s"%(error)
+	    mi_eyeLookShape = d_buffer['instance']
+	    mi_eyeLookShape.masterGroup.parent = mi_puppet.masterControl
 	    
+	    try:#Setup dynamic parent -------------------------------------------
+		ml_dynParentsToAdd = []
+		ml_dynParentsToAdd.append(mi_puppet.masterControl)
+		if mi_eyeLookShape.msgList_getMessage('spacePivots'):
+		    ml_dynParentsToAdd.extend(mi_eyeLookShape.msgList_get('spacePivots',asMeta = True))	
+		
+		log.info("%s >>> Dynamic parents to add: %s"%(_str_funcName,[i_obj.getShortName() for i_obj in ml_dynParentsToAdd]))
+		#Add our parents
+		mi_dynGroup = mi_eyeLookShape.dynParentGroup
+		mi_dynGroup.dynMode = 0
+		
+		for o in ml_dynParentsToAdd:
+		    mi_dynGroup.addDynParent(o)
+		mi_dynGroup.rebuild()	    
+	    except StandardError,error:raise StandardError,"dynParent setup | %s"%(error)	
 	    
-	    	    
+	    try:#Setup dynamic parent -------------------------------------------
+		mi_puppet.msgList_append(mi_eyeLookShape,'eyeLook','puppet')
+		mi_buildModule.connectChildNode(mi_eyeLookShape,'eyeLook')
+		#need to add connection to face or whatever
+	    except StandardError,error:raise StandardError,"connect | %s"%(error)	
+	    
+	    try:#DynSwitch ------------------------------------------------------
+		mi_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=mi_eyeLookShape.mNode)
+	    except StandardError,error:raise StandardError,"dynSwitch | %s"%(error)	
+		
+	    mi_eyeLookShape._setControlGroupLocks(True)
+	
 	except StandardError,error:
 	    raise StandardError,"Build | %s"%(error)	
 	
