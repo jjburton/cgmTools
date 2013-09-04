@@ -222,6 +222,10 @@ def doSkeletonizeEyeball(self):
     #Find our helper
     mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
     if not mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+    
+    #See if we need to mirror the shapes stuff
+    mi_helperMirror = False
+    
     ml_buildObjects.append(mi_helper)
     log.info("%s >>> helper: '%s'"%(_str_funcName,mi_helper.p_nameShort))
     
@@ -416,7 +420,7 @@ def doSkeletonizeEyelids(self):
     try:
 	if self._i_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
 	    log.info("%s >>> Need to implement Module parent connect"%(_str_funcName))
-	    #connectToParentModule(self._i_module)    
+	    connectToParentModule(self._i_module)    
     except StandardError,error:
 	raise StandardError, "%s >>> Failed parent connect | Error: %s"%(_str_funcName,error)
     
@@ -849,9 +853,14 @@ def connectToParentModule(self):
         parentState = i_parent.getState() 
         if i_parent.isSkeletonized():#>> If we have a module parent
             #>> If we have another anchor
-            l_parentSkinJoints = i_parent.rigNull.msgList_getMessage('moduleJoints')
-            closestObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
-            ml_moduleJoints[0].parent = closestObj
+	    if self.moduleType == 'eyelids':
+		str_targetObj = i_parent.rigNull.msgList_getMessage('moduleJoints')[0]
+		for mJoint in ml_moduleJoints:
+		    mJoint.parent = str_targetObj
+	    else:
+		l_parentSkinJoints = i_parent.rigNull.msgList_getMessage('moduleJoints')
+		str_targetObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
+		ml_moduleJoints[0].parent = str_targetObj
             
         else:
             log.error("Parent has not been skeletonized...")           
