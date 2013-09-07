@@ -199,14 +199,19 @@ class go(object):
 	
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
-		#Make it and link it
-		buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
-		i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-		i_grp.addAttr('cgmName',self._partName,lock=True)
-		i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
-		i_grp.doName()
-		i_grp.parent = self._i_masterDeformGroup.mNode
-		self._i_module.connectChildNode(i_grp,'deformNull','module')
+		if self._partType == 'eyelids':
+		    if not self._mi_moduleParent:
+			raise StandardError,"Must have a module parent"
+		    self._i_module.connectChildNode(self._mi_moduleParent.deformNull,'deformNull','module')		
+		else:
+		    #Make it and link it
+		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+		    i_grp.addAttr('cgmName',self._partName,lock=True)
+		    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+		    i_grp.doName()
+		    i_grp.parent = self._i_masterDeformGroup.mNode
+		    self._i_module.connectChildNode(i_grp,'deformNull','module')
 		
 	    self._i_deformNull = self._i_module.deformNull
 	except StandardError,error:
@@ -214,14 +219,19 @@ class go(object):
 	
 	try:#>>> Constrain Deform group for the module ==========================================
 	    if not self._i_module.getMessage('constrainNull'):
-		#Make it and link it
-		buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
-		i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-		i_grp.addAttr('cgmName',self._partName,lock=True)
-		i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
-		i_grp.doName()
-		i_grp.parent = self._i_deformNull.mNode
-		self._i_module.connectChildNode(i_grp,'constrainNull','module')
+		if self._partType == 'eyelids':
+		    if not self._mi_moduleParent:
+			raise StandardError,"Must have a module parent"
+		    self._i_module.connectChildNode(self._mi_moduleParent.constrainNull,'constrainNull','module')
+		else:
+		    #Make it and link it
+		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+		    i_grp.addAttr('cgmName',self._partName,lock=True)
+		    i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
+		    i_grp.doName()
+		    i_grp.parent = self._i_deformNull.mNode
+		    self._i_module.connectChildNode(i_grp,'constrainNull','module')
 		
 	    self._i_constrainNull = self._i_module.constrainNull
 	except StandardError,error:
