@@ -357,7 +357,7 @@ def doSkeletonizeEyelids(self):
 	    mi_crv = d_buildCurves[k].get('crv')#get instance
 	    int_count = d_buildCurves[k].get('count')#get int
 	    log.info("%s >>> building joints for %s curve | count: %s"%(_str_funcName,k, int_count))
-	    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
+	    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10,startSplitFactor=.05)
 	    except StandardError,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(_str_funcName,error)       
 	    d_buildCurves[k]['l_pos'] = l_pos#Store it
 	    log.info("%s >>> '%s' pos list: %s"%(_str_funcName,k, l_pos))
