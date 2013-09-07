@@ -50,7 +50,7 @@ reload(distance)
 #>>> Utilities
 #===================================================================
 @cgmGeneral.Timer
-def returnSplitCurveList(curve = None,points = 3, markPoints = False,
+def returnSplitCurveList(curve = None,points = 3, markPoints = False, startSplitFactor = None, insetSplitFactor = None,
                          rebuildForSplit = True,rebuildSpans = 10):
 	"""
 	Splits a curve given a number of points and returns those world space positions.
@@ -69,6 +69,9 @@ def returnSplitCurveList(curve = None,points = 3, markPoints = False,
 	try:
 		mi_crv = cgmMeta.validateObjArg(curve,cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
 		int_points = cgmValid.valueArg(points,minValue=3,calledFrom=_str_funcName)
+		f_insetSplitFactor = cgmValid.valueArg(insetSplitFactor,calledFrom=_str_funcName)	
+		f_startSplitFactor = cgmValid.valueArg(startSplitFactor,calledFrom=_str_funcName)		
+		
 		f_points = float(int_points)
 		int_spans = int(cgmValid.valueArg(points,minValue=5,autoClamp=True,calledFrom=_str_funcName))
 		b_rebuild = cgmValid.boolArg(rebuildForSplit,calledFrom=_str_funcName)
@@ -86,16 +89,51 @@ def returnSplitCurveList(curve = None,points = 3, markPoints = False,
 		str_bufferU = mc.ls("%s.u[*]"%useCurve)[0]
 		log.info("%s >> u list : %s"%(_str_funcName,str_bufferU))       
 		f_maxU = float(str_bufferU.split(':')[-1].split(']')[0])
-	
-		#Figure out our u's
 		l_uValues = [0]
-		f_factor = f_maxU/(f_points-1)
-		log.info("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
-		log.info("%s >> f_factor : %s"%(_str_funcName,f_factor))               
-		for i in range(1,int_points-1):
-			l_uValues.append(i*f_factor)
-		l_uValues.append(f_maxU)
-		log.info("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  
+		
+		if f_startSplitFactor is not False:
+			if points < 5:
+				raise StandardError,"%s >> Need at least 5 points for startSplitFactor. Points : %s"%(_str_funcName,points)
+			log.info("%s >> f_startSplitFactor : %s"%(_str_funcName,f_startSplitFactor))  
+			#Figure out our u's
+			f_base = f_startSplitFactor * f_maxU 
+			l_uValues.append( f_base )
+			f_len = f_maxU - (f_base *2)	
+			int_toMake = f_points-4
+			f_factor = f_len/(int_toMake+1)
+			log.info("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+			log.info("%s >> f_len : %s"%(_str_funcName,f_len)) 	
+			log.info("%s >> int_toMake : %s"%(_str_funcName,int_toMake)) 						
+			log.info("%s >> f_base : %s"%(_str_funcName,f_base)) 			
+			log.info("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+			for i in range(1,int_points-3):
+				l_uValues.append(((i*f_factor + f_base)))
+			l_uValues.append(f_maxU - f_base)
+			l_uValues.append(f_maxU)
+			log.info("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+		elif f_insetSplitFactor is not False:
+			log.info("%s >> f_insetSplitFactor : %s"%(_str_funcName,f_insetSplitFactor))  
+			#Figure out our u's
+			f_base = f_insetSplitFactor * f_maxU 
+			f_len = f_maxU - (f_base *2)	
+			f_factor = f_len/(f_points-1)
+			log.info("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+			log.info("%s >> f_len : %s"%(_str_funcName,f_len)) 			
+			log.info("%s >> f_base : %s"%(_str_funcName,f_base)) 			
+			log.info("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+			for i in range(1,int_points-1):
+				l_uValues.append((i*f_factor))
+			l_uValues.append(f_maxU)
+			log.info("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+		else:
+			#Figure out our u's
+			f_factor = f_maxU/(f_points-1)
+			log.info("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+			log.info("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+			for i in range(1,int_points-1):
+				l_uValues.append(i*f_factor)
+			l_uValues.append(f_maxU)
+			log.info("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  
 	
 		for u in l_uValues:
 			try:l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
