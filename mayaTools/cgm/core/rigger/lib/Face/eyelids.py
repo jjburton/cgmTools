@@ -795,7 +795,7 @@ def build_rig(self):
     except StandardError,error:
 	raise StandardError,"%s >>sub vis/lock control groups | error: %s"%(_str_funcName,error)   
     try:#attr hides
-	for attr in ['result_ikOn','result_fkOn',mPlug_height.attr,'blinkHeight_upr','blinkHeight_lwr']:
+	for attr in ['result_ikOn','result_fkOn','blinkHeight_upr','blinkHeight_lwr']:
 	    cgmMeta.cgmAttr(mi_settings,attr,hidden=True)
     except StandardError,error:
 	raise StandardError,"%s >> attr hides | error: %s"%(_str_funcName,error)  
