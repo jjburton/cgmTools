@@ -202,7 +202,7 @@ def build_controls(self):
 	i_obj = mi_fkShape
 	
 	d_buffer = mControlFactory.registerControl(i_obj,copyTransform = ml_rigJoints[0],
-                                                   makeAimable=True,typeModifier='fk',) 	    
+                                                   makeAimable=True,setRotateOrder ='zxy',typeModifier='fk',) 	    
 	mi_controlFK = d_buffer['instance']
 	mi_controlFK.axisAim = "%s+"%self._jointOrientation[0]
 	mi_controlFK.axisUp= "%s+"%self._jointOrientation[1]	
@@ -299,7 +299,7 @@ def build_rig(self):
     #Setup eye rig
     #====================================================================================
     try:#Base eye setup
-	d_return = rUtils.createEyeballRig(mi_helper,ballJoint = ml_rigJoints[0],
+	d_return = rUtils.createEyeballRig(mi_helper,ballJoint = ml_rigJoints[1],
 	                                   ikControl = mi_controlIK,fkControl = mi_controlFK,
 	                                   buildIK=True, driverAttr=mPlug_FKIK,
 	                                   setupVisBlend = True,
