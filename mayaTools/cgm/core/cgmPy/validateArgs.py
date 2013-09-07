@@ -142,8 +142,8 @@ def objStringList(l_args = None, mayaType = None, noneValid = False,isTransform 
 	log.error("%s >>Failure! l_args: %s | mayaType: %s"%(_str_funcName,l_args,mayaType))
 	raise StandardError,error 
 
-def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = None, isValue = None, isEquivalent = None, autoClamp = False,
-             calledFrom = None):
+def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = None, isValue = None,
+             noneValid = True, isEquivalent = None, autoClamp = False, calledFrom = None):
     """
     @Parameters
     numberTocheck -- main number arg
@@ -193,6 +193,8 @@ def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = No
 	    except StandardError,error:raise StandardError,"isValue check fail. error: %s"%(error)	 
 	return numberToCheck
     except StandardError,error:
+	if noneValid:
+	    return False
 	log.error("%s >>Failure! int: %s | range: %s | min: %s | max: %s | isValue: %s"%(_str_funcName,numberToCheck,inRange,minValue,maxValue,isValue))
 	raise StandardError,error 
     
