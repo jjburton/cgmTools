@@ -687,8 +687,8 @@ def build_rig(self):
 	except StandardError,error:raise StandardError,"uprLid up | %s"%(error) 	
 	try:#uprLid out -------------------------------------------------------------------
 	    mPlug_driverSide = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[1])
-	    mPlug_leftLimit = cgmMeta.cgmAttr(mi_settings,"uprLeftLimit",value=15,attrType='float',keyable=False,hidden=False)
-	    mPlug_rightLimit = cgmMeta.cgmAttr(mi_settings,"uprRightLimit",value=-15,attrType='float',keyable=False,hidden=False)
+	    mPlug_leftLimit = cgmMeta.cgmAttr(mi_settings,"uprLeftLimit",value=20,attrType='float',keyable=False,hidden=False)
+	    mPlug_rightLimit = cgmMeta.cgmAttr(mi_settings,"uprRightLimit",value=-20,attrType='float',keyable=False,hidden=False)
 	    mPlug_driverSide.doConnectOut("%s.inputG"%mi_clampUpr.mNode)
 	    mPlug_leftLimit.doConnectOut("%s.maxG"%mi_clampUpr.mNode)
 	    mPlug_rightLimit.doConnectOut("%s.minG"%mi_clampUpr.mNode)
