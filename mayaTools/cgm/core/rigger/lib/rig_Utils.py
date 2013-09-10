@@ -2611,7 +2611,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     except StandardError,error:raise StandardError,"%s >> get info | %s"%(str_shortName,error)  
     
     _str_funcName = "create_spaceLocatorForObject(%s)"%i_obj.p_nameShort  
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
     
     try:#>>>Create #====================================================
         i_control = cgmMeta.cgmObject(curves.createControlCurve('pivotLocator',size),setClass=True)

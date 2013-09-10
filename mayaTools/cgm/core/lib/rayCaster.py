@@ -58,7 +58,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     """    
     try:
         _str_funcName = 'findMeshIntersection'
-        log.info(">>> %s >> "%_str_funcName + "="*75)           
+        log.debug(">>> %s >> "%_str_funcName + "="*75)           
         if len(mc.ls(mesh))>1:
             raise StandardError,"findMeshIntersection>>> More than one mesh named: %s"%mesh    
     
@@ -155,7 +155,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
     """    
     try:
         _str_funcName = 'findMeshIntersections'
-        log.info(">>> %s >> "%_str_funcName + "="*75)       
+        log.debug(">>> %s >> "%_str_funcName + "="*75)       
         if len(mc.ls(mesh))>1:
             raise StandardError,"findMeshIntersections>>> More than one mesh named: %s"%mesh       
         #Create an empty selection list.
@@ -252,7 +252,7 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
     """
     try:
         _str_funcName = 'findMeshIntersectionFromObjectAxis'
-        log.info(">>> %s >> "%_str_funcName + "="*75)     
+        log.debug(">>> %s >> "%_str_funcName + "="*75)     
         if len(mc.ls(mesh))>1:
             raise StandardError,"findMeshIntersectionFromObjectAxis>>> More than one mesh named: %s"%mesh    
         if not vector or type(vector) not in [list,tuple]:
@@ -284,7 +284,7 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
                                vector = False, maxDistance = 1000, maxIterations = 10,**kws):
     try:#findMeshMidPointFromObject
         _str_funcName = 'findMeshMidPointFromObject'
-        log.info(">>> %s >> "%_str_funcName + "="*75)             
+        log.debug(">>> %s >> "%_str_funcName + "="*75)             
         if len(mc.ls(mesh))>1:
             raise StandardError,"findMeshMidPointFromObject>>> More than one mesh named: %s"%mesh      
         if type(axisToCheck) not in [list,tuple]:axisToCheck=[axisToCheck]
@@ -330,7 +330,7 @@ def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
     """ Find the furthest point in range on an axis. Useful for getting to the outershell of a mesh """
     try:
         _str_funcName = 'findFurthestPointInRangeFromObject'
-        log.info(">>> %s >> "%_str_funcName + "="*75)             
+        log.debug(">>> %s >> "%_str_funcName + "="*75)             
         if len(mc.ls(mesh))>1:
             raise StandardError,"findFurthestPointInRangeFromObject>>> More than one mesh named: %s"%mesh      
         #>>>First cast to get our initial range

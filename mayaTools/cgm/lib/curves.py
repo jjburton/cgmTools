@@ -325,7 +325,7 @@ def returnColorsFromCurve(curve):
     """
     """ first get the shapes """
     _str_funcName = "returnColorsFromCurve(%s)"%curve 
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)      
+    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)      
     try:
         shapes = mc.listRelatives(curve,shapes=True,fullPath=True)
         colorsCatcher = []
