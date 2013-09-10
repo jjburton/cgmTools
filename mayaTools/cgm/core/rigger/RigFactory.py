@@ -151,7 +151,12 @@ class go(object):
 	    self._i_rigNull = self._i_module.rigNull#speed link
 	    self._bodyGeo = self._i_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
 	    self._version = self._i_rigNull.version
-	    self._direction = self._i_module.getAttr('cgmDirection')    
+	    self._direction = self._i_module.getAttr('cgmDirection')
+	    
+	    if self._direction is not None and self._direction.lower() in ['right','left']:
+		self._str_mirrorDirection = self._direction.capitalize()
+	    else:
+		self._str_mirrorDirection = 'Centre'
 	    
 	    #Joints ------------------------------------------------------------------
 	    self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
@@ -174,7 +179,7 @@ class go(object):
 	    self._vectorOut = cgmValid.simpleAxis("%s+"%self._jointOrientation[2]).p_vector	    
 
 	except StandardError,error:
-	    raise StandardError,"%s >> Module data gather fail! | %s"%(self._strShortName,error)
+	    raise StandardError,"%s >> Module data gather fail! | %s"%(_str_funcName,error)
 	    
         #>>> See if we have a buildable module -- do we have a builder
 	if not isBuildable(self):
@@ -196,6 +201,11 @@ class go(object):
 	try: verify_moduleRigToggles(self)
 	except StandardError,error:
 	    raise StandardError,"%s  >> Module data gather fail! | %s"%(self._strShortName,error)
+	
+	#>>> Object Set
+	try: self._i_module.__verifyObjectSet__()
+	except StandardError,error:
+	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 
 	
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
@@ -330,10 +340,8 @@ class go(object):
 	return get_eyeLook(self._i_module)
     def _verify_eyeLook(self):
 	return verify_eyeLook(self._i_module)   
-    @cgmGeneral.Timer
     def get_report(self):
 	self._i_module.rig_getReport()
-	
     def _set_versionToCurrent(self):
 	self._i_rigNull.version = str(self._buildVersion)	
 	
@@ -361,7 +369,7 @@ class go(object):
 	    raise StandardError,"%s.connect_restoreJointLists >> Failure: %s"%(self._strShortName,error)
     
     #>> Attributes
-    #=====================================================================
+    #=====================================================================	
     def _verify_moduleMasterScale(self):
 	log.info(">>> %s._verify_compoundScale >> "%self._strShortName + "="*75)            	
 	mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
