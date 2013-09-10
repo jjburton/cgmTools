@@ -552,7 +552,8 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             #Connect                                  
             d_midPointBlendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_pointConstraint.mNode,targetWeights[0]))
             d_midPointBlendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_pointConstraint.mNode,targetWeights[1]))
-
+            d_midPointBlendReturn['d_result1']['mi_plug'].p_hidden = True
+            d_midPointBlendReturn['d_result2']['mi_plug'].p_hidden = True
 
 
         except StandardError,error:
@@ -602,7 +603,8 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             #Connect                                  
             d_midOrientBlendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_orientConstraint.mNode,targetWeights[0]))
             d_midOrientBlendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_orientConstraint.mNode,targetWeights[1]))
-
+            d_midOrientBlendReturn['d_result1']['mi_plug'].p_hidden = True
+            d_midOrientBlendReturn['d_result2']['mi_plug'].p_hidden = True
 
 
         except StandardError,error:
@@ -1172,54 +1174,73 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     moduleInstance(arg) -- 
 
     """
+    _str_funcName = 'createCGMSegment'
+    log.info(">>> %s >> "%_str_funcName + "="*75)   
+    
     if segmentType != 'curve':
         raise NotImplementedError,"createCGMSegment>>>Haven't implemented segmentType: %s"%segmentType
-
-    i_startControl = cgmMeta.validateObjArg(startControl,cgmMeta.cgmObject,noneValid=True)
-    i_endControl = cgmMeta.validateObjArg(endControl,cgmMeta.cgmObject,noneValid=True)
-
-    if type(jointList) not in [list,tuple]:jointList = [jointList]
-    if len(jointList)<3:
-        raise StandardError,"createCGMSegment>>> needs at least three joints"
-
-    i_module = False
-    try:
-        if moduleInstance:
-            if moduleInstance.isModule():
-                i_module = moduleInstance  
-    except:pass
-
-    if i_module:
-        if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
-    if baseName is None:baseName = 'testSegment'
-
-    ml_influenceJoints = cgmMeta.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False)
-
-    log.debug('i_startControl: %s'%i_startControl)
-    log.debug('i_endControl: %s'%i_endControl)
-    log.debug('ml_influenceJoints: %s'%ml_influenceJoints)
-    log.debug('i_module: %s'%i_module)
-    log.debug("baseName: %s"%baseName)
-
-    #Good way to verify an instance list? #validate orientation
-    #Gather info
-    if controlOrientation is None:
-        controlOrientation = orientation    
-    aimVector = dictionary.stringToVectorDict.get("%s+"%orientation[0])
-    aimVectorNegative = dictionary.stringToVectorDict.get("%s-"%orientation[0])
-    upVector = dictionary.stringToVectorDict.get("%s+"%orientation[1])    
-    outChannel = orientation[2]
-    upChannel = '%sup'%orientation[1]
-
-    try:ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)
+    try:#Gather data =====================================================================================
+        #> start/end control -------------------------------------------------------------        
+        i_startControl = cgmMeta.validateObjArg(startControl,cgmMeta.cgmObject,noneValid=True)
+        i_endControl = cgmMeta.validateObjArg(endControl,cgmMeta.cgmObject,noneValid=True)
+        
+        #> joints -------------------------------------------------------------
+        if type(jointList) not in [list,tuple]:jointList = [jointList]
+        if len(jointList)<3:
+            raise StandardError,"createCGMSegment>>> needs at least three joints"
+        
+        ml_influenceJoints = cgmMeta.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False,mayaType=['joint'])
+        
+        try:ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False,mayaType=['joint'])
+        except StandardError,error:
+            raise StandardError,"%s >>Joint metaclassing | error : %s"%(_str_funcName,error)
+        
+        #> module -------------------------------------------------------------
+        i_module = False
+        if i_module:
+            if baseName is None: baseName = i_module.getPartNameBase()#Get part base name	    
+        if baseName is None:baseName = 'testSegment'
+    
+        log.debug('i_startControl: %s'%i_startControl)
+        log.debug('i_endControl: %s'%i_endControl)
+        log.debug('ml_influenceJoints: %s'%ml_influenceJoints)
+        log.debug('i_module: %s'%i_module)
+        log.debug("baseName: %s"%baseName)  
+        
+        #Good way to verify an instance list? #validate orientation
+        #Gather info
+        if controlOrientation is None:
+            controlOrientation = orientation   
+             
+        #> axis -------------------------------------------------------------
+        axis_aim = cgmValid.simpleAxis("%s+"%orientation[0])
+        axis_aimNeg = cgmValid.simpleAxis("%s-"%orientation[0])
+        axis_up = cgmValid.simpleAxis("%s+"%orientation[0])
+        
+        aimVector = axis_aim.p_vector
+        aimVectorNegative = axis_aimNeg.p_vector
+        upVector = axis_up.p_vector   
+        
+        outChannel = orientation[2]
+        upChannel = '%sup'%orientation[1]
+        
+        #> baseDistance -------------------------------------------------------------
+        baseDist = distance.returnDistanceBetweenObjects(ml_jointList[0].mNode,ml_jointList[-1].mNode)/2        
+        
     except StandardError,error:
-        log.error("createCGMSegment>>Joint metaclassing failed!")
-        raise StandardError,error 
+        raise StandardError,"%s >> data gather | error: %s"%(_str_funcName,error)  
+    
+    try:#>>> Module instance =====================================================================================
+        i_module = False
+        try:
+            if moduleInstance is not None and moduleInstance.isModule():
+                i_module = moduleInstance    
+                log.info("%s >> module instance found: %s"%(_str_funcName,i_module.p_nameShort))		
+        except:pass
+    except StandardError,error:
+        raise StandardError,"%s >> Module check fail! | error: %s"%(_str_funcName,error)    
 
-    baseDist = distance.returnDistanceBetweenObjects(ml_jointList[0].mNode,ml_jointList[-1].mNode)/2
-
-    #=======================================================================================
-    try:#Build Transforms
+    try:#Build Transforms =====================================================================================
         #Start Anchor
         i_anchorStart = ml_jointList[0].duplicateTransform()
         i_anchorStart.addAttr('cgmType','anchor',attrType='string',lock=True)
@@ -1355,9 +1376,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         log.error("createCGMSegment>>Joint anchor and loc build fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
 
-
-    #======================================================================================= 
-    try:#Constrain Nulls
+    try:#Constrain Nulls =====================================================================================
         cBuffer = mc.orientConstraint([i_anchorStart.mNode,i_aimStartNull.mNode],
                                       i_attachStartNull.mNode,
                                       maintainOffset = True, weight = 1)[0]
@@ -1375,8 +1394,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         log.error("createCGMSegment>>Constrain locs build fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
 
-    #======================================================================================= 
-    try:#Build constraint blend
+    try:#Build constraint blend =====================================================================================
         #If we don't have our controls by this point, we'll use the joints
         if not i_startControl:
             i_startControl = ml_influenceJoints[0]
@@ -1392,7 +1410,9 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         #Connect                                  
         d_startFollowBlendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_startOrientConstraint.mNode,targetWeights[0]))
         d_startFollowBlendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_startOrientConstraint.mNode,targetWeights[1]))
-
+        d_startFollowBlendReturn['d_result1']['mi_plug'].p_hidden = True
+        d_startFollowBlendReturn['d_result2']['mi_plug'].p_hidden = True
+        
         #EndBlend
         d_endFollowBlendReturn = NodeF.createSingleBlendNetwork([i_endControl.mNode,'followRoot'],
                                                                 [i_endControl.mNode,'resultRootFollow'],
@@ -1402,13 +1422,14 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         #Connect                                  
         d_endFollowBlendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_endOrientConstraint.mNode,targetWeights[0]))
         d_endFollowBlendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_endOrientConstraint.mNode,targetWeights[1]))
-
+        d_endFollowBlendReturn['d_result1']['mi_plug'].p_hidden = True
+        d_endFollowBlendReturn['d_result2']['mi_plug'].p_hidden = True
+        
     except StandardError,error:
         log.error("createCGMSegment>>Constrain locs build fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
 
-    #======================================================================================= 
-    try:#Build segment
+    try:#Build segment =====================================================================================
         d_segmentBuild = createSegmentCurve(jointList,orientation,secondaryAxis, baseName,
                                             addMidTwist=True, advancedTwistSetup = advancedTwistSetup, moduleInstance = moduleInstance)
 
@@ -1486,8 +1507,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         log.error("createCGMSegment>>Build segment fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error     
 
-    #=======================================================================================     
-    try:#Skin curve   
+    try:#Skin curve =====================================================================================    
         if ml_influenceJoints:#if we have influence joints, we're gonna skin our curve
             #Surface influence joints cluster#
             i_controlSurfaceCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in ml_influenceJoints],
@@ -1508,9 +1528,8 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     except StandardError,error:
         log.error("createCGMSegment>>Build segment fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
-
-    #=======================================================================================  
-    try:#Mid influence objects    
+  
+    try:#Mid influence objects =====================================================================================   
         ml_midObjects = ml_influenceJoints[1:-1] or []
         if len(ml_midObjects)>1:
             raise NotImplementedError,"createCGMSegment>>Haven't implemented having more than one mid influence object in a single chain yet!"
@@ -1532,9 +1551,9 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 
     except StandardError,error:
         log.error("createCGMSegment>>Extra Influence Object Setup Fail! %s"%[i_obj.getShortName() for i_obj in ml_influenceJoints])
-        raise StandardError,error     
-    #=======================================================================================  
-    try:#Aim constraints
+        raise StandardError,error  
+    
+    try:#Aim constraints =====================================================================================
         #startAimTarget = i_aimStartTargetNull.mNode
         #endAimTarget = i_aimEndTargetNull.mNode
         startAimTarget = i_anchorEnd.mNode
@@ -1561,8 +1580,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         log.error("createCGMSegment>>Build aim constraints! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error   
 
-    #=======================================================================================  
-    try:#Store some necessary info to the segment curve
+    try:#Store some necessary info to the segment curve =====================================================================================
         mi_segmentCurve.connectChildNode(i_anchorStart,'anchorStart','segmentCurve')
         mi_segmentCurve.connectChildNode(i_anchorEnd,'anchorEnd','segmentCurve')
         mi_segmentCurve.connectChildNode(i_attachStartNull,'attachStart','segmentCurve')
@@ -1760,6 +1778,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     extendTwistToEnd(bool) -- whether this should be on or not???
     The basics of a cgmSegment curve are a base spline IK segment which has twist controlled via twist start and end. 
     """
+    
     #>>> Arg checks
     if type(jointList) not in [list,tuple]:jointList = [jointList]
     if addMidTwist and len(jointList) <4:
@@ -2634,7 +2653,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         mBuffer = i_control
         i_newTransform.doCopyNameTagsFromObject(i_control.mNode)
         curves.parentShapeInPlace(i_newTransform.mNode,i_control.mNode)#Parent shape
-        i_newTransform.parent = i_control.parent#Copy parent
+        i_newTransform.parent = mBuffer.parent#Copy parent
         i_control = i_newTransform
         mc.delete(mBuffer.mNode)
     except StandardError,error:raise StandardError,"%s >> copy transform | %s"%(_str_funcName,error)  
