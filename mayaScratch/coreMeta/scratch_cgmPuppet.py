@@ -51,8 +51,10 @@ cgmPM.getSettingsColors('')
 p.getModules()
 a.__rebuildShapes__()
 a.doName(nameChildren=True)
+a.connectModule(m1)
 b = cgmPM.cgmEyeball(name = 'eye',direction = 'left')
-cgmPM.cgmModule(name = 'eye',direction = 'left')
+m1 = cgmPM.cgmModule(name = 'eye',direction = 'left')
+m1.__verifySelectionSet__()
 m1 = cgmPM.cgmModule('l_eye_part')
 m1 = cgmPM.cgmModule('l_eyelid_part')
 m1.getNameAlias()
@@ -79,13 +81,18 @@ reload(search)
 search.returnObjectType('Morphy_Body_GEO')
 for o in a.masterNull.geoGroup.getAllChildren():
     search.returnObjectType(o)
-
+    
+cgmMeta.cgmObjectSet(setType='anim',qssState=True)
 a._verifyMasterControl()
 a = cgmPM.cgmPuppet(name = 'Kermit',initializeOnly=True)
 a = cgmPM.cgmPuppet(name = 'Morphy')
+a.__verify__()
+a.cgmName
 a._verifyMasterControl()
 b = cgmPM.cgmMorpheusMakerNetwork('Morphy_customizationNetwork')
 a.__verify__()
+a.getMessage('asdf')
+a.puppetSet.value = []
 b.mNode
 a = cgmPM.cgmPuppet('Kermit_puppetNetwork')
 a.masterNull.mNode
