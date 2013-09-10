@@ -184,6 +184,9 @@ def createWrapControlShape(targetObjects,
     TODO:
     Change offsets to use lathe axis rather than 
     """
+    _str_funcName = "createWrapControlShape"
+    log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+    
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
     if not targetGeo:
 	raise NotImplementedError, "Must have geo for now"
@@ -485,9 +488,10 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     maxDistance(float) -- max distance to cast rays
     closestInRange(bool) -- True by default. If True, takes first hit. Else take the furthest away hit in range.
     """
-    if issubclass(type(mi_obj),cgmMeta.cgmObject):
+    try:
+	mi_obj.mNode
         mi_obj = mi_obj
-    else:
+    except:
         try:
 	    mi_obj = cgmMeta.cgmObject(mi_obj)
 	except StandardError,error:

@@ -384,7 +384,8 @@ class go(object):
 	
 			    
     #>>> Joint chains
-    #=====================================================================    
+    #=====================================================================
+    @cgmGeneral.Timer    
     def build_rigChain(self):
 	#Get our segment joints
 	l_rigJointsExist = self._i_rigNull.msgList_get('rigJoints',asMeta = False, cull = True)
@@ -413,6 +414,7 @@ class go(object):
 	self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
 	return ml_rigJoints
     
+    @cgmGeneral.Timer
     def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False):    
 	try:
 	    ml_handleJoints = self._i_module.rig_getHandleJoints()
@@ -438,6 +440,7 @@ class go(object):
 	except StandardError,error:
 	    raise StandardError,"%s.build_rigChain >> Failure: %s"%(self._strShortName,error)
     
+    @cgmGeneral.Timer
     def duplicate_moduleJoint(self, index = None, typeModifier = 'duplicate', connectNodesAs = False):    
 	"""
 	This is only necessary because message connections are duplicated and make duplicating connected joints problematic

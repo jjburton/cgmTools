@@ -260,12 +260,12 @@ class go(object):
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    try:#>>Info gather =====================================================================
-		mi_helper = cgmMeta.validateObjArg(self._mi_module.getMessage('helper'),noneValid=True)
+		mi_helper = self._mi_module.helper
 		if not mi_helper:raise StandardError,"No suitable helper found"    
 		
-		try:ml_uprLidHandles = cgmMeta.validateObjListArg(self.mi_rigNull.msgList_getMessage('handleJoints_upr'),noneValid=False)
+		try:ml_uprLidHandles = self.mi_rigNull.msgList_get('handleJoints_upr')
 		except StandardError,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
-		try:ml_lwrLidHandles = cgmMeta.validateObjListArg(self.mi_rigNull.msgList_getMessage('handleJoints_lwr'),noneValid=False)
+		try:ml_lwrLidHandles = self.mi_rigNull.msgList_getMessage('handleJoints_lwr')
 		except StandardError,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
 		log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
 		log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
@@ -466,8 +466,10 @@ class go(object):
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @r9General.Timer    
+    @cgmGeneral.Timer    
     def build_cog(self):
+	_str_funcName = "go.build_cog(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    multiplier = 1.1
 	    tmplRoot = self.mi_templateNull.root.mNode
@@ -525,8 +527,12 @@ class go(object):
 	except StandardError,error:
 		log.error("build_cog fail! | %s"%error) 
 		return False
-	
+	    
+    @cgmGeneral.Timer
     def build_hips(self):
+	_str_funcName = "go.build_hips(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	
 	distanceMult = .5	    
 	orientHelper = self.l_controlSnapObjects[1]
 	log.debug(orientHelper)
@@ -572,8 +578,10 @@ class go(object):
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_hips','owner')
 	
     	    
-    @r9General.Timer    
+    @cgmGeneral.Timer    
     def build_segmentFKHandles(self):
+	_str_funcName = "go.build_segmentFKHandles(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -624,8 +632,10 @@ class go(object):
 		log.error("build_segmentFKHandles fail! | %s"%error) 
 		return False
 	    
-    @r9General.Timer    
+    @cgmGeneral.Timer    
     def build_segmentFKLoliHandles(self):
+	_str_funcName = "go.build_segmentFKLoliHandles(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -737,9 +747,11 @@ class go(object):
 		return False
 	    
 	    
-    @r9General.Timer    
+    @cgmGeneral.Timer    
     def build_moduleCap(self):
 	try:
+	    _str_funcName = "go.build_moduleCap(%s)"%self._strShortName
+	    log.info(">>> %s >>> "%(_str_funcName) + "="*75)		    
 	    l_segmentControls = []
 	    ml_segmentControls = []
 	    log.debug("self._targetMesh: %s"%self._targetMesh)
@@ -817,11 +829,13 @@ class go(object):
 	except StandardError,error:
 		log.error("build_moduleCap fail! | %s"%error) 
 		return False
-    @r9General.Timer    
+    @cgmGeneral.Timer    
     def build_clavicle(self):
 	"""
 	build foot shape and pivot locs at the same time
 	"""
+	_str_funcName = "go.build_clavicle(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)		
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_startObj = False
@@ -924,8 +938,10 @@ class go(object):
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_clavicle','owner')
 	
 	    
-    @r9General.Timer	
+    @cgmGeneral.Timer	
     def build_midIKHandle(self):
+	_str_funcName = "go.build_midIKHandle(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -977,8 +993,10 @@ class go(object):
 		log.error("build_midIKHandle fail! | %s"%error) 
 		return False
 	    
-    @r9General.Timer	
+    @cgmGeneral.Timer	
     def build_loliHandles(self):
+	_str_funcName = "go.build_loliHandles(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	#Target objects expected
 	if not self._ml_targetObjects:raise StandardError,"build_loliHandles requires target objects"
 	
@@ -1038,8 +1056,10 @@ class go(object):
 		log.error("build_loliHandles! | %s"%error) 
 		return False
 	     
-    @r9General.Timer	
+    @cgmGeneral.Timer	
     def build_torsoIKHandles(self):
+	_str_funcName = "go.build_torsoIKHandles(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -1100,6 +1120,8 @@ class go(object):
 		return False
 	    
     def build_settings(self):
+	_str_funcName = "go.build_settings(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_footModule = False
@@ -1195,10 +1217,14 @@ class go(object):
 	self.md_ReturnControls['settings'] = i_gear		
 	self.mi_rigNull.connectChildNode(i_gear,'shape_settings','owner')
 	
+    @cgmGeneral.Timer
     def build_footPivots(self):
 	"""
 	build foot pivot locs 
 	"""
+	_str_funcName = "go.build_footPivots(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
 	mi_footModule = False
 	mi_ball = False
 	mi_ankle = False
@@ -1345,11 +1371,15 @@ class go(object):
 	#Parent
 	for p in mi_toePivot,mi_heelPivot,mi_ballPivot,mi_innerPivot,mi_outerPivot:
 	    p.parent = self.mi_templateNull.mNode	
-		
+	
+    @cgmGeneral.Timer
     def build_footShape(self):
 	"""
 	build foot shape and pivot locs at the same time
 	"""
+	_str_funcName = "go.build_footShape(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_footModule = False
@@ -1563,12 +1593,14 @@ class go(object):
 	self.d_returnControls['foot'] = mi_crv.mNode 		
 	self.md_ReturnControls['foot'] = mi_crv	
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_foot','owner')
-	
+
+    @cgmGeneral.Timer
     def build_handShape(self):
 	"""
 	build hand shape and pivot locs at the same time
 	"""
-	log.debug("in build_handShape")
+	_str_funcName = "go.build_handShape(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_handModule = False
@@ -1691,8 +1723,10 @@ class go(object):
 	self.d_returnControls['hand'] = mi_crv.mNode 		
 	self.md_ReturnControls['hand'] = mi_crv	
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_hand','owner')	
-	
+    @cgmGeneral.Timer
     def build_segmentIKHandles(self):
+	_str_funcName = "go.build_segmentIKHandles(%s)"%self._strShortName
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	l_segmentControls = []
 	ml_SegmentControls = []
 	
