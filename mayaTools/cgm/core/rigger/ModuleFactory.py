@@ -362,13 +362,12 @@ def isRigged(self):
     if not isSkeletonized(self):
         log.warning("%s.isRigged>>> Not skeletonized"%self.getShortName())
         return False   """
-    i_coreNames = self.coreNames    
-    coreNamesValue = i_coreNames.value
+    
     i_rigNull = self.rigNull
     str_shortName = self.getShortName()
     
     ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
-    l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints]
+    l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
     l_skinJoints = mRig.get_skinJoints(self,asMeta=False)
     
     if not ml_rigJoints:
@@ -376,11 +375,16 @@ def isRigged(self):
 	i_rigNull.version = ''#clear the version	
         return False
     
-    #Not a fan of this test
-    if not ml_rigJoints[0].getConstraintsTo():
-	return False
+    #See if we can find any constraints on the rig Joints
+    b_foundConstraint = False
+    for i,mJoint in enumerate(ml_rigJoints):
+	if mJoint.getConstraintsTo():
+	    b_foundConstraint = True
+	elif i == (len(ml_rigJoints) - 1) and not b_foundConstraint:
+	    log.warning("moduleFactory.isRigged('%s')>>>> No rig joints are constrained"%(str_shortName))	    
+	    return False
         
-    if len( l_skinJoints ) < len( l_rigJoints ):
+    if len( l_skinJoints ) < len( ml_rigJoints ):
         log.warning("moduleFactory.isRigged('%s')>>>> %s != %s. Not enough rig joints"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
 	i_rigNull.version = ''#clear the version        
         return False
