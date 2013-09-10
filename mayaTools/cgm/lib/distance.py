@@ -1201,7 +1201,7 @@ def returnClosestUPosition (targetObject,curve):
 
     return positions[matchIndex]
 
-@cgmGeneral.Timer
+@cgmGeneral.TimerDebug
 def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1218,7 +1218,7 @@ def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     _str_funcName = 'returnNearestPointOnCurveInfo'
-    log.info(">>> %s >> "%_str_funcName + "="*75) 
+    log.debug(">>> %s >> "%_str_funcName + "="*75) 
     try:
 	position = []
 	if search.returnObjectType(curve) == 'shape':
