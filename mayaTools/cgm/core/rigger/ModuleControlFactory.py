@@ -16,13 +16,11 @@ log.setLevel(logging.INFO)
 # From Maya =============================================================
 import maya.cmds as mc
 
-# From Red9 =============================================================
-from Red9.core import Red9_Meta as r9Meta
-#from Red9.core import Red9_General as r9General
-
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
@@ -45,6 +43,7 @@ from cgm.core.lib import nameTools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+'''
 class go(object):
     #@r9General.Timer
     def __init__(self,moduleInstance,controlTypes = [],storageInstance = False,**kws): 
@@ -305,10 +304,10 @@ class go(object):
 	except StandardError,error:
 		log.error("build_segmentIKHandles! | %s"%error) 
 		return False
-	    
-#@r9General.Timer
+'''	    
+@cgmGeneral.Timer
 def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,shapeParentTo = None,
-                    setRotateOrder = None, autoLockNHide = True,
+                    setRotateOrder = None, autoLockNHide = True, mirrorAxis = None, mirrorSide = None, makeMirrorable = True,
                     addDynParentGroup = False, addExtraGroups = False, addConstraintGroup = False, freezeAll = False,
                     addSpacePivots = False, controlType = None, aim = None, up = None, out = None, makeAimable = False):
     """
@@ -335,6 +334,10 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     
     ml_groups = []#Holder for groups
     ml_constraintGroups = []
+    
+    str_mirrorAxis = cgmValid.stringArg(mirrorAxis,calledFrom =_str_funcName)
+    str_mirrorSide = cgmValid.stringArg(mirrorSide,calledFrom =_str_funcName)
+    b_makeMirrorable = cgmValid.boolArg(makeMirrorable,calledFrom =_str_funcName)
     
     
     try:#>>>Copy Transform ====================================================
@@ -398,6 +401,19 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     try:#>>>Add aiming info #====================================================
 	if aim is not None or up is not None or makeAimable:
 	    i_control._verifyAimable()
+    except StandardError,error:
+	raise StandardError,"%s >> aiming | %s"%(_str_funcName,error)  
+    
+    try:#>>>Add mirror info #====================================================
+	if str_mirrorSide is not None or b_makeMirrorable:
+	    i_control._verifyMirrorable()
+	    
+	    if str_mirrorSide in cgmMeta.cgmAttr(i_control,'mirrorSide').p_enum:
+		i_control.mirrorSide = str_mirrorSide
+		
+	    if str_mirrorAxis:
+		i_control.mirrorAxis = str_mirrorAxis
+		
     except StandardError,error:
 	raise StandardError,"%s >> aiming | %s"%(_str_funcName,error)   
     
