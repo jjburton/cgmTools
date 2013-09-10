@@ -31,7 +31,8 @@ def run():
 
 class puppetKeyMarkingMenu(BaseMelWindow):
     _DEFAULT_MENU_PARENT = 'viewPanes'
-
+    _str_funcName = "puppetKeyMarkingMenu"
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  
     def __init__(self):	
 	"""
 	Initializes the pop up menu class call
@@ -148,11 +149,24 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    mc.select(l_objects)
 		    
 	def aimObjects(self):
+	    _str_funcName = "%s.aimObjects"%puppetKeyMarkingMenu._str_funcName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)  	    
 	    for i_obj in self.ml_objList[1:]:
-		if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
-		    if i_obj._isAimable():
-			i_obj.doAim(self.i_target)
-		   
+		try:
+		    if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
+			if i_obj._isAimable():
+			    i_obj.doAim(self.i_target)
+		except StandardError,error:
+		    log.error("%s >> obj: %s | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
+		
+	def mirrorObjects(self):
+	    _str_funcName = "%s.mirrorObjects"%puppetKeyMarkingMenu._str_funcName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)  	    
+	    for i_obj in self.ml_objList:
+		try:i_obj.doMirrorMe()
+		except StandardError,error:
+		    log.error("%s >> obj: %s | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
+		    
 	time_buildMenuStart =  time.clock()
 	self.setupVariables()#Setup our optionVars
 
@@ -205,8 +219,14 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	            en = b_aimable,
 	            l = 'Aim',
 	            c = lambda *a:buttonAction(aimObjects(self)),
-	            rp = 'E')     		
-
+	            rp = 'E')   
+	
+	MelMenuItem(parent,
+	            en = selCheck,
+	            l = 'Mirror selected',
+	            c = lambda *a:buttonAction(mirrorObjects(self)),
+	            rp = 'SE')    
+	
 	MelMenuItem(parent,
 	            en = selCheck,
 	            l = 'dragBreakdown',
@@ -375,11 +395,13 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		try:#module basic menu
 		    if i_module.rigNull.msgList_exists('controlsAll'):
 			MelMenuItem( use_parent, l="Key",
-		                     c = Callback(i_module.animKey))
-			#MelMenuItem( parent, l="Select",
-				#c = Callback(buttonAction(i_module.animSelect)))							
+		                     c = Callback(i_module.animKey))							
 			MelMenuItem( use_parent, l="Select",
-		                     c = Callback(i_module.animSelect))									
+		                     c = Callback(i_module.animSelect))	
+			MelMenuItem( use_parent, l="Reset",
+		                     c = Callback(i_module.animReset))
+			MelMenuItem( use_parent, l="Mirror",
+		                     c = Callback(i_module.mirrorMe))				
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module children

@@ -19,6 +19,7 @@ import time
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_General as cgmGeneral
 
 #========================================================================
@@ -1774,7 +1775,7 @@ class cgmModule(cgmMeta.cgmObject):
     #========================================================================
     def animKey(self,**kws):
 	try:
-	    buffer = self.rigNull.msgList_getMessage('controlsAll')
+	    buffer = self.rigNull.moduleSet.getList()
 	    if buffer:
 		mc.select(buffer)
 		mc.setKeyframe(**kws)
@@ -1783,9 +1784,10 @@ class cgmModule(cgmMeta.cgmObject):
 	except StandardError,error:
 	    log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
 	    return False
+	
     def animSelect(self,**kws):
 	try:
-	    buffer = self.rigNull.msgList_getMessage('controlsAll')
+	    buffer = self.rigNull.moduleSet.getList()
 	    if buffer:
 		mc.select(buffer)
 		return True
@@ -1794,6 +1796,11 @@ class cgmModule(cgmMeta.cgmObject):
 	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
 	    return False
 	
+    def animReset(self,transformsOnly = True):
+	return mFactory.animReset(self,transformsOnly = transformsOnly)
+    def mirrorMe(self,**kws):
+	return mFactory.mirrorMe(self,**kws)
+    
     #>>> Module Children
     #========================================================================
     def getAllModuleChildren(self):
@@ -1807,6 +1814,9 @@ class cgmModule(cgmMeta.cgmObject):
 
     def dynSwitch_children(self,arg):
 	mFactory.dynSwitch_children(self,arg)
+	
+    #>>> Module Siblings
+    #========================================================================    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff

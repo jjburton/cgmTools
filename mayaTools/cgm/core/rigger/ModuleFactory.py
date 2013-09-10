@@ -27,6 +27,9 @@ from cgm.core.lib import nameTools
 from cgm.core.classes import DraggerContextFactory as dragFactory
 reload(dragFactory)
 
+from cgm.lib.ml import (ml_breakdownDragger,
+                        ml_resetChannels)
+
 ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Shared libraries
@@ -1056,6 +1059,36 @@ def readPose_templateSettings(self):
                 
     return True
 
+#=====================================================================================================
+#>>> Anim functions functions
+#=====================================================================================================
+def animReset(self,transformsOnly = True):
+    _str_funcName = "%s.animReset()"%self.p_nameShort  
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  		
+    try:
+	self.rigNull.moduleSet.select()
+	if buffer:
+	    ml_resetChannels.main(transformsOnly = transformsOnly)
+	    return True
+	return False
+    except StandardError,error:
+	log.error("%s >> error: %s"%(_str_funcName,error))
+	return False
+    
+def mirrorMe(self,**kws):
+    _str_funcName = "%s.mirrorModule()"%self.p_nameShort  
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  	
+    try:
+	l_buffer = self.rigNull.moduleSet.getList()
+	if l_buffer:
+	    r9Anim.MirrorHierarchy(l_buffer).mirrorData(mode = '')
+	    mc.select(l_buffer)
+	    return True
+	return False
+    except StandardError,error:
+	log.error("%s >> error: %s"%(_str_funcName,error))
+	return False
+    
 #=====================================================================================================
 #>>> Children functions
 #=====================================================================================================  
