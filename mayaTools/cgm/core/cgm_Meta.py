@@ -135,7 +135,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	Setup before maya object initialization
 	"""
 	self.referencePrefix = False
-    #@cgmGeneral.Timer
+    @cgmGeneral.TimerDebug
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
@@ -332,7 +332,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		return False
 	    
     #Connection stuff =========================================================================
-    #@cgmGeneral.Timer
+    @cgmGeneral.Timer
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
         Fast method of connecting a node to the mNode via a message attr link. This call
@@ -364,8 +364,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         #self.addAttr(attr, attrType='messageSimple')
         try:
 	    if issubclass(type(node), r9Meta.MetaClass):
-		#if not srcAttr:
-		    #srcAttr=node.message
 		node=node.mNode    	    
             if not srcAttr:          
                 srcAttr=self.message  #attr on the nodes source side for the child connection         
@@ -380,13 +378,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
                 mc.addAttr(node,longName=srcAttr, at='message', m=False)  
 		"""
             #if not self.isChildNode(node, attr, srcAttr): 
-	    #mc.connectAttr('%s.%s' % (self.mNode,attr),'%s.%s' % (node,srcAttr), f=force)
-	    try:cgmAttr(self,attr,attrType='message').doConnectIn("%s.msg"%node)
+	    try:attributes.storeObjectToMessage(node,self.mNode,attr)
+	    #try:cgmAttr(self,attr,attrType='message').doConnectIn("%s.msg"%node)
 	    except StandardError,error:raise StandardError,"connect Fail | %s"%error
 	    
 	    if connectBack is not None:
-		#attributes.storeObjectToMessage(self.mNode,node,connectBack)
-		try:cgmAttr(node,connectBack,attrType='message').doConnectIn("%s.msg"%self.mNode)
+		try:attributes.storeObjectToMessage(self.mNode,node,connectBack)
+		#try:cgmAttr(node,connectBack,attrType='message').doConnectIn("%s.msg"%self.mNode)
 		except StandardError,error:raise StandardError,"connectBack Fail | %s"%error
 	    
 	    #attributes.storeObjectToMessage(node,self.mNode,attr)
@@ -456,7 +454,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("connectChildrenNodes: %s"%error)
 		
     #msgList Functions =====================================================================
-    #@cgmGeneral.Timer
+    @cgmGeneral.Timer
     def msgList_connect(self, nodes, attr = None, connectBack = None):
         """
         Because multimessage data can't be counted on for important sequential connections we have
@@ -468,21 +466,26 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         @param purge: Whether to purge before build
 	
         """	
+	_str_funcName = "%s.msgList_connect()"%self.p_nameShort  
+	log.debug(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
 	try:
-	    log.debug(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
 	    #ml_nodes = cgmValid.objStringList(nodes,noneValid=True)	    
 	    ml_nodes = validateObjListArg(nodes,noneValid=True)
 	    if ml_nodes:self.msgList_purge(attr)#purge first
 	    for i,mi_node in enumerate(ml_nodes):
 		str_attr = "%s_%i"%(attr,i)
-		self.connectChildNode(mi_node,str_attr,connectBack)
+		try:attributes.storeObjectToMessage(mi_node.mNode,self.mNode,str_attr)
+		except StandardError,error:log.error("%s >> i : %s | node: %s | attr : %s | connect back error: %s"%(_str_funcName,str(i),mi_node.p_nameShort,str_attr,error))
+		if connectBack is not None:
+		    try:attributes.storeObjectToMessage(self.mNode,mi_node.mNode,connectBack)
+		    except StandardError,error:log.error("%s >> i : %s | node: %s | connectBack : %s | connect back error: %s"%(_str_funcName,str(i),mi_node.p_nameShort,connectBack,error))
 		log.debug("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
 	    log.debug("-"*100)            	
 	    return True
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
     
-    #@cgmGeneral.Timer
+    @cgmGeneral.TimerDebug
     def msgList_get(self,attr = None, asMeta = True, cull = True):
 	"""
         @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
@@ -604,7 +607,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	log.debug("-"*100)            	               	
 	return False
     
-    #@cgmGeneral.Timer
+    @cgmGeneral.TimerDebug
     def msgList_purge(self,attr):
 	"""
 	Purge all the attributes of a msgList
@@ -635,7 +638,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
     
-    @cgmGeneral.Timer
+    @cgmGeneral.TimerDebug
     def msgList_exists(self,attr):
 	"""
 	Fast check to see if we have data on this attr chain
@@ -1257,7 +1260,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 # cgmObject - sublass to cgmNode
 #=========================================================================        
 class cgmObject(cgmNode):  
-    #@cgmGeneral.Timer    
+    @cgmGeneral.TimerDebug  
     def __init__(self,node = None, name = 'null',setClass = False,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
@@ -1779,8 +1782,6 @@ class cgmControl(cgmObject):
 	    if not self.isMirrorable():
 		return False
 	    r9Anim.MirrorHierarchy([self.mNode]).mirrorData(mode = mode)
-	    #r9Anim.MirrorHierarchy(self.mNode).mirrorData([self.mNode])
-	    #i_mirror.mirrorPairData(self.mNode,self.mirrorObject,'')
 	except StandardError,error:
 	    raise StandardError,"%s >>> error: %s"%(_str_funcName,error) 
     """
@@ -3479,7 +3480,7 @@ class cgmAttr(object):
 	    return attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or None	    
 	return attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or None
     
-    #@cgmGeneral.Timer
+    @cgmGeneral.TimerDebug
     def doCopySettingsTo(self,attrArg):
         """ 
         Copies settings from one attr to another
@@ -3639,7 +3640,7 @@ class cgmAttr(object):
 	    log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
 	except StandardError,error:
 	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
-	                
+    @cgmGeneral.TimerDebug
     def doConnectIn(self,source,childIndex = False,*a, **kw):
         """ 
         Attempts to make a connection from a source to our instanced attribute
@@ -4295,7 +4296,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
 	raise StandardError,error  
     
-@cgmGeneral.TimerDebug    
+@cgmGeneral.TimerDebug   
 def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     log.debug(">>> validateObjListArg >> l_args = %s"%l_args + "="*75)            	        
     try:
