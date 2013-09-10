@@ -19,6 +19,7 @@ import copy
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
+from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
@@ -1741,6 +1742,84 @@ class cgmControl(cgmObject):
 	    mc.delete(aimConstraintBuffer)
 	except StandardError,error:
 	    raise StandardError, "%s.doAim fail! | %s"%(self.getShortName(),error)
+	
+    #>>> Mirror stuff
+    #========================================================================
+    def _verifyMirrorable(self):
+	_str_funcName = "%s._verifyMirrorable()"%self.p_nameShort
+	log.debug(">>> %s "%(_str_funcName) + "="*75)    	
+	try:
+	    self.addAttr('mirrorSide',attrType = 'enum', enumName = 'Centre:Left:Right', value = 2,keyable = False, hidden = True, lock =True)
+	    self.addAttr('mirrorIndex',attrType = 'int',keyable = False, hidden = True, lock = True)
+	    self.addAttr('mirrorAxis',initialValue = '',attrType = 'string',lock=True)
+	    return True
+	except StandardError,error:
+	    raise StandardError,"%s >>> error: %s"%(_str_funcName,error) 
+	
+    def isMirrorable(self):
+	_str_funcName = "%s.isMirrorable()"%self.p_nameShort
+	log.debug(">>> %s "%(_str_funcName) + "="*75)    	
+	attrs = ['mirrorSide','mirrorIndex','mirrorAxis']
+	try:
+	    for a in attrs:
+		if not self.hasAttr(a):
+		    log.error("%s >> lacks attr: '%s'"%(_str_funcName,a))
+		    return False
+	    """if not self.getMessage('cgmMirrorMatch'):
+		log.error("%s >> lacks mirrorMatch: '%s'"%(_str_funcName,a))
+		return False"""
+	    return True
+	except StandardError,error:
+	    raise StandardError,"%s >>> error: %s"%(_str_funcName,error) 
+	
+    def doMirrorMe(self,mode = ''):
+	_str_funcName = "%s.doMirrorMe()"%self .p_nameShort
+	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
+	try:
+	    if not self.isMirrorable():
+		return False
+	    r9Anim.MirrorHierarchy([self.mNode]).mirrorData(mode = mode)
+	    #r9Anim.MirrorHierarchy(self.mNode).mirrorData([self.mNode])
+	    #i_mirror.mirrorPairData(self.mNode,self.mirrorObject,'')
+	except StandardError,error:
+	    raise StandardError,"%s >>> error: %s"%(_str_funcName,error) 
+    """
+    def doPushToMirrorObject2(self,method='Anim'):
+        if not self.isMirrorable():
+            return False
+        log.info(self.i_object.mNode)
+        log.info(self.mirrorObject)
+	
+        i_mirrorSystem = r9Anim.MirrorHierarchy([self.i_object.mNode,self.mirrorObject])
+	#i_mirrorSystem=r9Anim.MirrorHierarchy()
+	i_mirrorSystem.makeSymmetrical(self.i_object.mNode,self.mirrorObject)
+        """
+
+    def doPushToMirrorObject(self,method='Anim'):
+	_str_funcName = "%s.doMirrorMe()"%self.p_nameShort
+	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
+	try:
+	    if not self.getMessage('mirrorMatch'):
+		return False
+	    
+	    i_mirrorSystem = r9Anim.MirrorHierarchy([self.i_object.mNode,self.mirrorObject])
+	    i_mirrorObject = cgmObject(self.getMessage('mirrorMatch')[0])
+	    
+	    if method=='Anim':
+		transferCall = r9Anim.AnimFunctions().copyKeys
+		inverseCall = r9Anim.AnimFunctions.inverseAnimChannels
+	    else:
+		transferCall= r9Anim.AnimFunctions().copyAttributes
+		inverseCall = r9Anim.AnimFunctions.inverseAttributes
+	    
+	    transferCall([self.i_object.mNode,i_mirrorObject])
+	    #inverse the values
+	    inverseCall(i_mirrorObject,i_mirrorSystem.getMirrorAxis(i_mirrorObject))
+    
+	    i_mirrorSystem.objs = [self.i_object.mNode,i_mirrorObject]#Overload as it was erroring out
+ 	except StandardError,error:
+	    raise StandardError,"%s >>> error: %s"%(_str_funcName,error) 
+    
 	    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
@@ -1927,7 +2006,29 @@ class cgmObjectSet(cgmNode):
         
         """
         return mc.listSets(o=self.mNode) or False
-                                  
+    def extend(self,*args):
+        """ 
+        New store method
+        """	
+	_str_funcName = "cgmObjectSet -- %s.extend()"%self.p_nameShort
+	log.info(">>> %s "%(_str_funcName) + "="*75) 	
+	if type(args) not in [list,tuple]:
+	    args = [args]
+	elif len(args) == 1:
+	    args = args[0]
+	    
+	try:
+	    for o in args:
+		try:o.mNode
+		except: o = cgmNode(o)
+		
+		if o.mNode not in self.getList():
+		    try: mc.sets(o.mNode,add = self.mNode)
+		    except StandardError,error:
+			raise StandardError," add: %s | error : %s"%(o.p_nameShort,error) 
+		else:log.debug("%s >> already contain : %s"%(_str_funcName,o.p_nameShort))
+	except StandardError,error:
+	    raise StandardError,"%s >>  error : %s"%(_str_funcName,error) 
     def addObj(self,info,*a,**kw):
         """ 
         Store information to a set in maya via case specific attribute.
@@ -3625,7 +3726,8 @@ class cgmAttr(object):
                                       convertToMatch = convertToMatch,
                                       values=values, incomingConnections = incomingConnections,
                                       outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
-                                      copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)               
+                                      copyAttrSettings = copyAttrSettings, 
+		                      connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)               
 
             else:
                 log.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
@@ -3637,7 +3739,8 @@ class cgmAttr(object):
                                   convertToMatch = convertToMatch,
                                   values=values, incomingConnections = incomingConnections,
                                   outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
-                                  copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)                                                      
+                                  copyAttrSettings = copyAttrSettings, 
+	                          connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)                                                      
         #except:
         #    log.warning("'%s' failed to copy to '%s'!"%(target,self.p_combinedName))          
 	self.doCopySettingsTo([target,targetAttrName])
