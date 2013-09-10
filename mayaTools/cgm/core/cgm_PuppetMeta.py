@@ -111,9 +111,12 @@ class cgmPuppet(cgmMeta.cgmNode):
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
 	elif self.__justCreatedState__ or doVerify:
 	    log.debug("Verifying...")
-            if not self.__verify__(name,**kws):
-                #log.critical("'%s' failed to __verify__!"%name)
-                raise StandardError,"'%s' failed to verify!"%name
+	    try:
+		if not self.__verify__(name,**kws):
+		    #log.critical("'%s' failed to __verify__!"%name)
+		    raise StandardError,"'%s' failed to verify!"%name
+	    except StandardError,error:
+		raise StandardError,"%s >>> verify fail | error : %s"%(_str_funcName,error) 
 
     #====================================================================================
     #@cgmGeneral.Timer    
@@ -141,85 +144,98 @@ class cgmPuppet(cgmMeta.cgmNode):
         RETURNS:
         success(bool)
         """             
-        #Puppet Network Node
+	_str_funcName = "cgmPuppet.__verify__(%s)"%self.p_nameShort
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	
         #============== 
-	log.debug(1)
-        self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
-        if name is not None and name:
-	    self.addAttr('cgmName',name, attrType='string', lock = True)
-        
-        self.addAttr('cgmType','puppetNetwork')
-        self.addAttr('version',initialValue = 1.0, lock=True)  
-        self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
-        self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
-        self.addAttr('moduleChildren',attrType = 'message',lock=True) 
-        self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
+	try:#Puppet Network Node ================================================================
+	    log.debug(1)
+	    self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
+	    if name is not None and name:
+		self.addAttr('cgmName',name, attrType='string', lock = True)
+	    self.addAttr('cgmType','puppetNetwork')
+	    self.addAttr('version',initialValue = 1.0, lock=True)  
+	    self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
+	    self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
+	    self.addAttr('moduleChildren',attrType = 'message',lock=True) 
+	    self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
+	except StandardError,error:
+	    raise StandardError,"%s >>> Puppet network |error : %s"%(_str_funcName,error)
 	
-	#Settings
-	#==============
-	log.debug(2)	
-	defaultFont = modules.returnSettingsData('defaultTextFont')
-	self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
-	self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
-	self.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
-	self.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
-	self.addAttr('skinDepth',attrType = 'float',initialValue=.75,lock=True)   
-	
-        self.doName()
-        log.debug("Network good...")
-
-        #MasterNull
-        #==============   
-	log.debug(3)	
-        if not mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
-            self.i_masterNull = cgmMasterNull(puppet = self)
-            log.debug('Master created.')
-        else:
-            log.debug('Master null exists. linking....')            
-            self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
-	    log.debug('self.i_masterNull: %s'%self.i_masterNull)
-	    self.i_masterNull.__verify__()
-	    #self.masterNull.__verify__()
-        if self.i_masterNull.getShortName() != self.cgmName:
-            self.masterNull.doName()
-            if self.i_masterNull.getShortName() != self.cgmName:
-                log.warning("Master Null name still doesn't match what it should be.")
-                return False
-        attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
-        log.debug("Master Null good...")
-	        
+	try:#Settings ============================================================================
+	    log.debug(2)	
+	    defaultFont = modules.returnSettingsData('defaultTextFont')
+	    self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
+	    self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
+	    self.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
+	    self.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
+	    self.addAttr('skinDepth',attrType = 'float',initialValue=.75,lock=True)   
+	    
+	    self.doName()
+	    log.debug("Network good...")
+	except StandardError,error:
+	    raise StandardError,"%s >>> Settings |error : %s"%(_str_funcName,error)
+		
+        try:#MasterNull ===========================================================================
+	    log.debug(4)	
+	    if not self.getMessage('masterNull'):#If we don't have a masterNull, make one
+		self.i_masterNull = cgmMasterNull(puppet = self)
+		log.debug('Master created.')
+	    else:
+		log.debug('Master null exists. linking....')            
+		self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
+		log.debug('self.i_masterNull: %s'%self.i_masterNull)
+		self.i_masterNull.__verify__()
+	    if self.i_masterNull.getShortName() != self.cgmName:
+		self.masterNull.doName()
+		if self.i_masterNull.getShortName() != self.cgmName:
+		    log.warning("Master Null name still doesn't match what it should be.")
+		    return False
+	    attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+	    log.debug("Master Null good...")
+	except StandardError,error:
+	    raise StandardError,"%s >>> MasterNull | error : %s"%(_str_funcName,error)	
+	    
+	try:#Quick select sets ================================================================
+	    if not self.getMessage('puppetSet'):#
+		i_selectSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+		i_selectSet.connectParentNode(self.mNode,'puppet','puppetSet')
+	    
+	    i_selectSet = self.puppetSet
+	    cgmMeta.cgmAttr(self,'cgmName').doCopyTo(i_selectSet.mNode,connectTargetToSource =True)
+	    i_selectSet.doName()	    
+	    
+	except StandardError,error:
+	    raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-	log.debug(4)
-        for attr in 'deform','noTransform','geo','parts':
-            grp = attributes.returnMessageObject(self.i_masterNull.mNode,attr+'Group')# Find the group
-            Attr = 'i_' + attr+'Group'#Get a better attribute store string           
-            if mc.objExists( grp ):
-                #If exists, initialize it
-                #self.__dict__[Attr]  = self.i_masterNull.__dict__[attr+'Group']#link it, can't link it
-                self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
-                log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
-                #except:
-                    #log.error("'%s' group failed. Please __verify__ puppet."%attr)                    
-                    #return False   
-
-            else:#Make it
-                log.debug('Creating %s'%attr)                                    
-                self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
-                self.__dict__[Attr].doName()
-                #self.i_masterNull.connectChildNode(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
-		self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
-                log.debug("Initialized as 'self.%s'"%(Attr))                    
-		self.__dict__[Attr].__verify__()
-            # Few Case things
-            #==============            
-            if attr == 'geo':
-                self.__dict__[Attr].doParent(self.i_noTransformGroup)
-            else:    
-                self.__dict__[Attr].doParent(self.i_masterNull)
-
-            attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
+	try:
+	    log.debug(5)
+	    for attr in 'deform','noTransform','geo','parts':
+		grp = attributes.returnMessageObject(self.i_masterNull.mNode,attr+'Group')# Find the group
+		Attr = 'i_' + attr+'Group'#Get a better attribute store string           
+		if mc.objExists( grp ):
+		    self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
+		    log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
+		else:#Make it
+		    log.debug('Creating %s'%attr)                                    
+		    self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
+		    self.__dict__[Attr].doName()
+		    self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
+		    log.debug("Initialized as 'self.%s'"%(Attr))                    
+		    self.__dict__[Attr].__verify__()
+		    
+		# Few Case things
+		#==============            
+		if attr == 'geo':
+		    self.__dict__[Attr].doParent(self.i_noTransformGroup)
+		else:    
+		    self.__dict__[Attr].doParent(self.i_masterNull)
+		attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
+	except StandardError,error:
+	    raise StandardError,"%s >>> groups |error : %s"%(_str_funcName,error)	
+	    
         return True
 
     def changeName(self,name = ''):
@@ -1518,8 +1534,25 @@ class cgmModule(cgmMeta.cgmObject):
 		else:
 		    i_null.addAttr(attr,attrType = dictToUse[attr],lock = True )   
 	    except StandardError,error:
-		log.error(">>> %s.%s >> failed: %s"%(self.p_nameShort,attr,error))            	        	
-	
+		log.error(">>> %s.%s >> failed: %s"%(self.p_nameShort,attr,error))     
+		
+    def __verifyObjectSet__(self):
+	_str_funcName = "__verifyObjectSet__(%s)"%self.p_nameShort
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)		
+	try:#Quick select sets ================================================================
+	    if not self.rigNull.getMessage('moduleSet'):#
+		i_selectSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+		i_selectSet.connectParentNode(self.rigNull.mNode,'rigNull','moduleSet')
+	    
+	    i_selectSet = self.rigNull.moduleSet
+	    i_selectSet.doStore('cgmName',self.mNode)
+	    i_selectSet.doName()
+	    
+	    if self.getMessage('modulePuppet'):
+		self.modulePuppet.puppetSet.addObj(i_selectSet.mNode)
+	    
+	except StandardError,error:
+	    raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
     
     def getModuleColors(self):
         direction = search.returnTagInfo(self.mNode,'cgmDirection')
