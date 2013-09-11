@@ -525,7 +525,7 @@ def rigDisconnect(self,*args,**kws):
 	    log.error(error)
 	    raise StandardError,"moduleFactory.rigDisconnect('%s')>> Joint failed: %s"%(str_shortName,i_jnt.getShortName())
     log.debug("moduleFactory.rigDisconnect('%s')>> constraints found: %s"%(str_shortName,l_constraints))
-    mc.delete(l_constraints)
+    if l_constraints:mc.delete(l_constraints)
     return True
 
 def rig_getReport(self,*args,**kws):    

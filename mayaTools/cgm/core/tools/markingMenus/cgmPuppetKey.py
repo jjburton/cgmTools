@@ -157,7 +157,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			if i_obj._isAimable():
 			    i_obj.doAim(self.i_target)
 		except StandardError,error:
-		    log.error("%s >> obj: %s | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
+		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
 		
 	def mirrorObjects(self):
 	    _str_funcName = "%s.mirrorObjects"%puppetKeyMarkingMenu._str_funcName
@@ -165,7 +165,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    for i_obj in self.ml_objList:
 		try:i_obj.doMirrorMe()
 		except StandardError,error:
-		    log.error("%s >> obj: %s | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
+		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
 		    
 	time_buildMenuStart =  time.clock()
 	self.setupVariables()#Setup our optionVars
@@ -194,6 +194,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	#====================================================================
 	b_aimable = False
 	self.i_target = False
+	log.info("ml_objList: %s"%self.ml_objList)
 	if len(self.ml_objList)>=2:
 	    time_aimStart = time.clock()	    
 	    for i_obj in self.ml_objList[1:]:

@@ -332,7 +332,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		return False
 	    
     #Connection stuff =========================================================================
-    @cgmGeneral.Timer
+    @cgmGeneral.TimerDebug
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
         Fast method of connecting a node to the mNode via a message attr link. This call
