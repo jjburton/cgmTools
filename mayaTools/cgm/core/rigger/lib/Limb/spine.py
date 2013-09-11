@@ -355,14 +355,14 @@ def build_controls(self):
 		i_loc = ml_segmentsFK[i].doLoc()
 		mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)		
 		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,
-		                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,translateY,rotateY,rotateZ",
+		                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 		                                           setRotateOrder=5,
 		                                           copyPivot=i_loc.mNode,typeModifier='fk') 
 		i_loc.delete()
 		
 	    else:
 		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',
-		                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,translateY,rotateY,rotateZ",) 
+		                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",) 
 	    i_obj = d_buffer['instance']
 	self._i_rigNull.msgList_connect(ml_segmentsFK,'controlsFK','rigNull')
 	l_controlsAll.extend(ml_segmentsFK)	
@@ -376,7 +376,7 @@ def build_controls(self):
 	
 	for i_obj in ml_segmentsIK:
 	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,
-	                                               mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,translateY,rotateY,rotateZ",
+	                                               mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 	                                               typeModifier='segIK',
 		                                       setRotateOrder=2)       
 	    i_obj = d_buffer['instance']
@@ -397,7 +397,7 @@ def build_controls(self):
 	mc.move (shouldersPivotPos[0],shouldersPivotPos[1],shouldersPivotPos[2], i_loc.mNode)
 	
 	d_buffer = mControlFactory.registerControl(i_IKEnd,copyTransform = i_loc.mNode,
-	                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,translateY,rotateY,rotateZ",
+	                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 	                                           typeModifier = 'ik',addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
 	                                           makeAimable = True,setRotateOrder=4)
 	i_IKEnd = d_buffer['instance']	
@@ -421,7 +421,7 @@ def build_controls(self):
 	mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)
 	
 	d_buffer =  mControlFactory.registerControl(i_hips,addSpacePivots = 2, addDynParentGroup = True, mirrorSide=self._str_mirrorDirection,
-	                                            mirrorAxis="translateX,translateY,rotateY,rotateZ",
+	                                            mirrorAxis="translateX,rotateY,rotateZ",
 	                                            addConstraintGroup=True, makeAimable = True,copyPivot=i_loc.mNode,setRotateOrder=5)
 	self._i_rigNull.connectChildNode(i_hips,'hips','rigNull')
 	i_hips = d_buffer['instance']
