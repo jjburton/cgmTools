@@ -338,11 +338,17 @@ def build_controls(self):
 	i_cog = d_buffer['instance']
 	l_controlsAll.append(i_cog)
 	self._i_rigNull.connectChildNode(i_cog,'cog','rigNull')#Store
+	self._i_rigNull.connectChildNode(i_cog,'settings','rigNull')#Store as settings
 	i_cog.masterGroup.parent = self._i_deformNull.mNode
 	#Set aims
 	
     except StandardError,error:
-	raise StandardError,"%s >>> cog | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >>> cog | %s"%(_str_funcName,error) 
+    
+    try:
+	mPlug_result_moduleSubDriver = self.build_subVis()	
+    except StandardError,error:
+	raise StandardError,"%s >>> buildVis | %s"%(_str_funcName,error)   
     
     #==================================================================
     try:#>>>> FK Segments
@@ -378,8 +384,10 @@ def build_controls(self):
 	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,
 	                                               mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 	                                               typeModifier='segIK',
-		                                       setRotateOrder=2)       
+		                                       setRotateOrder=2) 
+	    
 	    i_obj = d_buffer['instance']
+	    mPlug_result_moduleSubDriver.doConnectOut("%s.visibility"%i_obj.mNode)	    
 	    i_obj.masterGroup.parent = self._i_deformNull.mNode
 	self._i_rigNull.msgList_connect(ml_segmentsIK,'segmentHandles','rigNull')
 	l_controlsAll.extend(ml_segmentsIK)	
@@ -567,6 +575,11 @@ def build_deformation(self):
 	log.error("build_spine>>Bottom Twist driver fail")
 	raise StandardError,error
     
+    try:#>>>Connect segment scale
+	mi_distanceBuffer = i_curve.scaleBuffer	
+	cgmMeta.cgmAttr(mi_distanceBuffer,'segmentScale').doTransferTo(mi_cog.mNode)    
+    except StandardError,error:
+	raise StandardError,"%s >> segmentScale transfer | error: %s"%(_str_funcName,error)  
     
     try:#Do a few attribute connections
 	#Push squash and stretch multipliers to cog
@@ -738,8 +751,8 @@ def build_rig(self):
     try:#>>>Connect master scale
 	cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn("%s.%s"%(self._i_masterControl.mNode,'scaleY'))    
     except StandardError,error:
-	raise StandardError,"%s >> master scale| error: %s"%(_str_funcName,error)       
-
+	raise StandardError,"%s >> master scale| error: %s"%(_str_funcName,error)    
+    
     #Vis Network, lock and hide
     #====================================================================================   
     try:#Setup Cog vis control for fk controls
@@ -778,8 +791,8 @@ def build_rig(self):
 	mPlug_segMid.p_defaultValue = 1
 	mPlug_segMid.value = 1
 	mPlug_segMidAim = cgmMeta.cgmAttr(ml_segmentHandles[1],'startEndAim')
-	mPlug_segMidAim.p_defaultValue = 1
-	mPlug_segMidAim.value = 1    
+	mPlug_segMidAim.p_defaultValue = .5
+	mPlug_segMidAim.value = .5   
 	mPlug_segEnd = cgmMeta.cgmAttr(ml_segmentHandles[-1],'followRoot')
 	mPlug_segEnd.p_defaultValue = .5
 	mPlug_segEnd.value = .5
