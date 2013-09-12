@@ -381,8 +381,33 @@ class go(object):
 	if self._i_rigNull.hasAttr('masterScale'):
 	    return cgmMeta.cgmAttr(self._i_rigNull,'masterScale')
 	return cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+    
+    @cgmGeneral.Timer
+    def build_subVis(self):
+	_str_funcName = "build_subVis(%s)"%self._strShortName
+	log.info(">>> %s >> "%_str_funcName + "="*75)
+	try:
+	    mi_settings = self._i_rigNull.settings
+	    #Add our attrs
+	    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+	    mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
+	    
+	    #Get one of the drivers
+	    if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['left','right']:
+		str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
+		                                            self._i_module.cgmDirection)
+	    else:
+		str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
 	
-			    
+	    iVis = self._i_masterControl.controlVis
+	    visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode,mPlug_result_moduleSubDriver.attr],
+		       'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
+	    NodeF.build_mdNetwork(visArg)
+	    
+	    return mPlug_result_moduleSubDriver
+	    
+	except StandardError,error:
+	      raise StandardError,"%s >>> cog | error : %s"%(_str_funcName,error) 	
     #>>> Joint chains
     #=====================================================================
     @cgmGeneral.Timer    
