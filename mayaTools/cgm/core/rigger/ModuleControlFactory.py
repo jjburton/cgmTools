@@ -305,7 +305,7 @@ class go(object):
 		log.error("build_segmentIKHandles! | %s"%error) 
 		return False
 '''	    
-@cgmGeneral.Timer
+#@cgmGeneral.TimerDebug
 def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,shapeParentTo = None,
                     setRotateOrder = None, autoLockNHide = True, mirrorAxis = None, mirrorSide = None, makeMirrorable = True,
                     addDynParentGroup = False, addExtraGroups = False, addConstraintGroup = False, freezeAll = False,
@@ -390,6 +390,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	raise StandardError,"%s >> copy pivot | %s"%(_str_funcName,error)   
     
     try:#>>>Name stuff #====================================================
+	log.debug(">>> Naming..." + "-"*75)                		
 	i_control.addAttr('cgmType','controlAnim',lock=True)    
 	if typeModifier is not None:
 	    i_control.addAttr('cgmTypeModifier',str(typeModifier),lock=True)
@@ -399,12 +400,14 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	raise StandardError,"%s >> naming | %s"%(_str_funcName,error)   
     
     try:#>>>Add aiming info #====================================================
+	log.debug(">>> Aiming..." + "-"*75)                			
 	if aim is not None or up is not None or makeAimable:
 	    i_control._verifyAimable()
     except StandardError,error:
 	raise StandardError,"%s >> aiming | %s"%(_str_funcName,error)  
     
     try:#>>>Add mirror info #====================================================
+	log.debug(">>> M..." + "-"*75)                			
 	if str_mirrorSide is not None or b_makeMirrorable:
 	    i_control._verifyMirrorable()
 	    
@@ -418,6 +421,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	raise StandardError,"%s >> aiming | %s"%(_str_funcName,error)   
     
     try:#>>>Rotate Order #====================================================
+	log.debug(">>> Rotate Order..." + "-"*75)            	
 	_rotateOrder = False
 	if setRotateOrder is not None:
 	    _rotateOrder = setRotateOrder
@@ -438,6 +442,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     #>>>Freeze stuff 
     #====================================================  
     try:
+	log.debug(">>> Freezing..." + "-"*75)                	
 	if freezeAll:
 	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)		
     except StandardError,error:
@@ -450,6 +455,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	
     #==================================================== 
     """ All controls have a master group to zero them """
+    log.debug(">>> Grouping..." + "-"*75)            
     try:#>>>Grouping
 	if not shapeParentTo:
 	    #First our master group:
@@ -495,18 +501,20 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	raise StandardError,"%s >> grouping | %s"%(_str_funcName,error)       
     
     #try:#>>>Space Pivots #====================================================  
+    log.debug(">>> Space Pivots..." + "-"*75)        
     if addSpacePivots:
 	ml_spaceLocators = []
 	parent = i_control.getMessage('masterGroup')[0]
 	for i in range(int(addSpacePivots)):
 	    try:
 		log.info("%s >> %s | obj: %s | parent: %s"%(_str_funcName,i,i_control.p_nameShort,parent))
-		i_pivot = rUtils.create_spaceLocatorForObject(i_control,parent)
+		i_pivot = rUtils.create_spaceLocatorForObject(i_control.mNode,parent)
 		ml_spaceLocators.append(i_pivot)
 	    except StandardError,error:
 		raise StandardError,"space pivot %s | %s"%(i,error)
     
     try:#>>>Freeze stuff  #====================================================
+	log.debug(">>> freezing..." + "-"*75)
 	if not shapeParentTo:
 	    if not freezeAll:
 		if i_control.getAttr('cgmName') == 'cog' or controlType in l_fullFreezeTypes:
@@ -521,6 +529,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	raise StandardError,error 
     
     try:#>>>Lock and hide #====================================================
+	log.debug(">>> lockNHide..." + "-"*75)	
 	if autoLockNHide:
 	    if i_control.hasAttr('cgmTypeModifier'):
 		if i_control.cgmTypeModifier.lower() == 'fk':
@@ -530,7 +539,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
     except StandardError,error:
 	raise StandardError,"%s >> lockNHide | %s"%(_str_funcName,error)  
-    
-    return {'instance':i_control,'mi_groups':ml_groups,'mi_constraintGroups':ml_constraintGroups}
+    log.debug(">>> Returning..." + "-"*75)    
+    return {'instance':i_control,'ml_groups':ml_groups,'ml_constraintGroups':ml_constraintGroups}
 
     
