@@ -627,7 +627,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                 
             cBuffer = mc.aimConstraint(i_baseParent.mNode,
                                        i_aimStartNull.mNode,
-                                       maintainOffset = True, weight = 1,
+                                       maintainOffset = 0, weight = 1,
                                        aimVector = aimVectorNegative,
                                        upVector = upVector,
                                        worldUpType = 'vector' )[0]
@@ -2230,7 +2230,9 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         #Buffer
         i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
         i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
-        i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
+        i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')    
+        #i_jntScaleBufferNode.addAttr('segmentScale',value = 1.0, attrType='float',minValue = 0.0) 
+        
         i_jntScaleBufferNode.doName()
         ml_distanceAttrs = []
         ml_resultAttrs = []
@@ -2294,6 +2296,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
             i_attrDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input1X'))	
             i_attrNormalBaseDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input2X'))
             i_attrResult.doConnectIn('%s.%s'%(i_mdSegmentScale.mNode,'output.outputX'))
+                
     
             #Create the trans scale mdNode
             """
@@ -5026,6 +5029,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
 
     #attributeHolder
     i_holder = cgmMeta.validateObjArg(attributeHolder,cgmMeta.cgmBufferNode,noneValid=False)   
+    mPlug_segmentScale = cgmMeta.cgmAttr(i_holder,"segmentScale",attrType = 'float',initialValue=1.0,minValue = 0.0001,keyable=True)	
 
     #Initialize joint list
     ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)   
@@ -5046,7 +5050,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
         log.debug(mainDriver)
 
         #Create the sqrtNode
-        i_sqrtScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+        i_sqrtScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_sqrtScale.operation = 3#set to power
         i_sqrtScale.doStore('cgmName',i_jnt.mNode)
         i_sqrtScale.addAttr('cgmTypeModifier','sqrtScale')
@@ -5057,7 +5061,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
             mc.setAttr("%s.input2"%(i_sqrtScale.mNode)+channel,.5)
 
         #Create the invScale
-        i_invScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+        i_invScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_invScale.operation = 2
         i_invScale.doStore('cgmName',i_jnt.mNode)
         i_invScale.addAttr('cgmTypeModifier','invScale')
@@ -5068,7 +5072,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
                                      '%s.input2%s'%(i_invScale.mNode,channel))
 
         #Create the powScale
-        i_powScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+        i_powScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_powScale.operation = 3
         i_powScale.doStore('cgmName',i_jnt.mNode)
         i_powScale.addAttr('cgmTypeModifier','powScale')
@@ -5079,6 +5083,18 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
             attributes.doConnectAttr('%s'%(i_attr.p_combinedName),#>>
                                      '%s.input2%s'%(i_powScale.mNode,channel))
 
+        #Create the mdNode
+        i_mdSegmentScaleMult = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
+        i_mdSegmentScaleMult.operation = 1
+        i_mdSegmentScaleMult.doStore('cgmName',i_jnt.mNode)
+        i_mdSegmentScaleMult.addAttr('cgmTypeModifier','segmentScaleMult')
+        i_mdSegmentScaleMult.doName()            
+        for channel in [outChannel,upChannel]:
+            attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,channel),#>>
+                                     '%s.input1%s'%(i_mdSegmentScaleMult.mNode,channel))
+            attributes.doConnectAttr('%s'%(mPlug_segmentScale.p_combinedName),#>>
+                                     '%s.input2%s'%(i_mdSegmentScaleMult.mNode,channel))        
+        
         """
 	#Create the worldScale multiplier node
 	i_worldScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
@@ -5098,9 +5114,9 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
                                  '%s.input2%s'%(i_worldScale.mNode,upChannel))""" 
 
         #Connect to joint
-        attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,outChannel),#>>
+        attributes.doConnectAttr('%s.output%s'%(i_mdSegmentScaleMult.mNode,outChannel),#>>
                                  '%s.scale%s'%(i_jnt.mNode,outChannel))  
-        attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,upChannel),#>>
+        attributes.doConnectAttr('%s.output%s'%(i_mdSegmentScaleMult.mNode,upChannel),#>>
                                  '%s.scale%s'%(i_jnt.mNode,upChannel)) 	
 
         ml_attrs.append(i_attr)
@@ -5660,7 +5676,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
     #Buffer
     i_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = str(baseName),overideMessageCheck=True)
     i_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
-    i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float')        
+    i_jntScaleBufferNode.addAttr('masterScale',value = 1.0, attrType='float',minValue = 0.0)        
     i_jntScaleBufferNode.doName()
 
     i_jntScaleBufferNode.connectParentNode(i_segmentCurve.mNode,'segmentCurve','scaleBuffer')
