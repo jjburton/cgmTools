@@ -454,7 +454,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("connectChildrenNodes: %s"%error)
 		
     #msgList Functions =====================================================================
-    @cgmGeneral.Timer
+    @cgmGeneral.TimerDebug
     def msgList_connect(self, nodes, attr = None, connectBack = None):
         """
         Because multimessage data can't be counted on for important sequential connections we have
@@ -3758,7 +3758,7 @@ class cgmAttr(object):
         """ 
         assert mc.objExists(target),"'%s' doesn't exist"%target
         assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
-        assert self.obj.isTransform() is not False,"'%s' Doesn't have a transform. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.obj.mNode        
+        assert self.isUserDefined() is not False,"'%s' isn't user defined. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.p_combinedShortName        
         assert mc.ls(target,long=True) != [self.obj.mNode], "Can't transfer to self!"
         assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
         assert self.isDynamic() is True,"'%s' is not a dynamic attribute."%self.p_combinedShortName
