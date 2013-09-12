@@ -475,7 +475,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         ml_pointOnCurveInfos = []
         splineShape = mc.listRelatives(i_constraintSplineCurve.mNode,shapes=True)[0]
         linearShape = mc.listRelatives(i_constraintLinearCurve.mNode,shapes=True)[0] 
-        
+        """
         baseDist = distance.returnDistanceBetweenObjects(i_baseParent.mNode,i_endParent.mNode)/4
         #Start up
         i_upStart = i_baseParent.duplicateTransform()
@@ -491,7 +491,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         i_upEnd.parent = False    
         i_upEnd.parent = i_endParent.mNode  
         attributes.doSetAttr(i_upEnd.mNode,'t%s'%orientation[1],baseDist)
-
+        """
     except StandardError,error:
         raise StandardError,"%s >> up transforms | error: %s"%(_str_funcName,error)   
     
@@ -610,26 +610,41 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             raise StandardError,"%s >> Translate constrain setup | error: %s"%(_str_funcName,error)   
 
         try:#>>>Aim constraint and blend
+            try:#Create our decomposeMatrix attrs
+                #Start up
+                i_upStart = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
+                i_upStart.addAttr('cgmName',baseName,attrType='string',lock=True)                
+                i_upStart.addAttr('cgmType','midStartAimUp',attrType='string',lock=True)
+                i_upStart.doName()
+                
+                #Start up
+                i_upEnd = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
+                i_upEnd.addAttr('cgmName',baseName,attrType='string',lock=True)                
+                i_upEnd.addAttr('cgmType','midEndAimUp',attrType='string',lock=True)
+                i_upEnd.doName()                
+            except StandardError,error:
+                raise StandardError,"decomposeMatrix | error: %s"%(_str_funcName,error)                   
+                
             cBuffer = mc.aimConstraint(i_baseParent.mNode,
                                        i_aimStartNull.mNode,
                                        maintainOffset = True, weight = 1,
                                        aimVector = aimVectorNegative,
                                        upVector = upVector,
-                                       worldUpObject = i_upStart.mNode,
-                                       worldUpType = 'object' )[0]
+                                       worldUpType = 'vector' )[0]
 
+            
             i_startAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+            #attributes.doConnectAttr(i_upStart.mNode,'inputMatrix')
 
+            
             cBuffer = mc.aimConstraint(i_endParent.mNode,
                                        i_aimEndNull.mNode,
-                                       maintainOffset = True, weight = 1,
+                                       maintainOffset = 0, weight = 1,
                                        aimVector = aimVector,
                                        upVector = upVector,
-                                       worldUpObject = i_upEnd.mNode,
-                                       worldUpType = 'object' )[0]
+                                       worldUpType = 'vector' )[0]
 
-            i_endAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
-
+            i_endAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)            
             cBuffer = mc.orientConstraint([i_aimEndNull.mNode,i_aimStartNull.mNode],
                                           i_orientGroup.mNode,
                                           maintainOffset = False, weight = 1)[0]
@@ -821,6 +836,15 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             i_constraintSplineCurve.parent = i_segmentGroup.mNode
             i_linearFollowNull.parent = i_segmentGroup.mNode	
             i_splineFollowNull.parent = i_segmentGroup.mNode
+            
+            attributes.doConnectAttr("%s.worldMatrix"%(i_baseParent.mNode),"%s.%s"%(i_upStart.mNode,'inputMatrix'))
+            attributes.doConnectAttr("%s.%s"%(i_upStart.mNode,"outputRotate"),"%s.%s"%(i_startAimConstraint.mNode,"upVector"))            
+            attributes.doConnectAttr("%s.worldMatrix"%(i_endParent.mNode),"%s.%s"%(i_upEnd.mNode,'inputMatrix'))
+            attributes.doConnectAttr("%s.%s"%(i_upEnd.mNode,"outputRotate"),"%s.%s"%(i_endAimConstraint.mNode,"upVector"))  
+            
+            for mi_const in [i_startAimConstraint,i_endAimConstraint]:
+                mi_const.worldUpVector = [0,0,0]
+            
         except StandardError,error:
             raise StandardError,"%s >> parent end | error: %s"%(_str_funcName,error)   
 
