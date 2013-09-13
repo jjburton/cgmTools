@@ -1,6 +1,7 @@
 # From Python =============================================================
 import copy
 import re
+import time
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -99,7 +100,7 @@ class go(object):
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
 	
 	_str_funcName = "go.__init__(%s)"%i_module.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	log.info(">>> %s "%(_str_funcName) + "="*75)
 	
 	#Some basic assertions
         assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
@@ -262,6 +263,10 @@ class go(object):
 	"""
 	Return if a module is shaped or not
 	"""
+	_str_funcName = "go.doBuild(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()
+	
 	d_build = self.buildModule.__d_buildOrder__
 	int_keys = d_build.keys()
 	
@@ -289,24 +294,35 @@ class go(object):
 	"""
 	Return if a module is shaped or not
 	"""
-	if self._partType in d_moduleTypeToBuildModule.keys():
-	    checkShapes = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__
-	else:
-	    log.debug("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
+	_str_funcName = "go.isShaped(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()	
+	b_return = True
+	try:
+	    if self._partType in d_moduleTypeToBuildModule.keys():
+		checkShapes = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__
+	    else:
+		log.debug("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
+		return True
+	    for key in checkShapes.keys():
+		for subkey in checkShapes[key]:
+		    if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
+			if not self._i_rigNull.msgList_getMessage('%s_%s'%(key,subkey)):
+			    if not self._i_rigNull.msgList_get('%s'%(subkey),False):
+				log.warning("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
+				b_return =  False
+				break
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return True
-	for key in checkShapes.keys():
-	    for subkey in checkShapes[key]:
-		if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
-		    if not self._i_rigNull.msgList_getMessage('%s_%s'%(key,subkey)):
-			if not self._i_rigNull.msgList_get('%s'%(subkey),False):
-			    log.warning("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
-			    return False		
-	return True
-    
+	except StandardError,error:
+	    raise StandardError,"%s >>  %s"%(_str_funcName,error)  
+	
     def isRigSkeletonized(self):
 	"""
 	Return if a module is rig skeletonized or not
 	"""
+	_str_funcName = "go.isRigSkeletonized(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	for key in self._l_jointAttrs:
 	    if not self._i_rigNull.getMessage('%s'%(key)) and not self._i_rigNull.msgList_getMessage('%s'%(key)):
 		log.error("%s.isRigSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
@@ -349,13 +365,20 @@ class go(object):
     #=====================================================================
     def connect_toRigGutsVis(self, ml_objects, vis = True):
 	try:
+	    _str_funcName = "go.connect_toRigGutsVis(%s)"%self._i_module.p_nameShort  
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()	
+	    
 	    if type(ml_objects) not in [list,tuple]:ml_objects = [ml_objects]
 	    for i_obj in ml_objects:
 		i_obj.overrideEnabled = 1		
 		if vis: cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
 		cgmMeta.cgmAttr(self._i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
+	    
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+	
 	except StandardError,error:
-	    raise StandardError,"%s.connect_toRigGutsVis >> Failure: %s"%(self._strShortName,error)
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)
     
     def connect_restoreJointLists(self):
 	raise DeprecationWarning, "Please remove this instance of 'connect_restoreJointLists'"
@@ -371,21 +394,33 @@ class go(object):
     #>> Attributes
     #=====================================================================	
     def _verify_moduleMasterScale(self):
-	log.info(">>> %s._verify_compoundScale >> "%self._strShortName + "="*75)            	
-	mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
-	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
-	mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
+	_str_funcName = "go._verify_moduleMasterScale(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()	
+	try:
+	    mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
+	    mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	    mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+	except StandardError,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)
+	
 	
     def _get_masterScalePlug(self):
-	log.info(">>> %s._get_masterScalePlug >> "%self._strShortName + "="*75)
-	if self._i_rigNull.hasAttr('masterScale'):
-	    return cgmMeta.cgmAttr(self._i_rigNull,'masterScale')
-	return cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
-    
+	_str_funcName = "go._verify_moduleMasterScale(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	try:
+	    if self._i_rigNull.hasAttr('masterScale'):
+		return cgmMeta.cgmAttr(self._i_rigNull,'masterScale')
+	    return cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	except StandardError,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)   
+	
     @cgmGeneral.Timer
     def build_subVis(self):
 	_str_funcName = "build_subVis(%s)"%self._strShortName
-	log.info(">>> %s >> "%_str_funcName + "="*75)
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()	
 	try:
 	    mi_settings = self._i_rigNull.settings
 	    #Add our attrs
@@ -404,43 +439,54 @@ class go(object):
 		       'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
 	    NodeF.build_mdNetwork(visArg)
 	    
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
 	    return mPlug_result_moduleSubDriver
 	    
 	except StandardError,error:
-	      raise StandardError,"%s >>> cog | error : %s"%(_str_funcName,error) 	
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)   
     #>>> Joint chains
     #=====================================================================
     @cgmGeneral.Timer    
     def build_rigChain(self):
-	#Get our segment joints
-	l_rigJointsExist = self._i_rigNull.msgList_get('rigJoints',asMeta = False, cull = True)
-	if l_rigJointsExist:
-	    log.error("Deleting existing rig chain")
-	    mc.delete(l_rigJointsExist)
+	_str_funcName = "build_rigChain(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()	
+	try:
+	    #Get our segment joints
+	    l_rigJointsExist = self._i_rigNull.msgList_get('rigJoints',asMeta = False, cull = True)
+	    if l_rigJointsExist:
+		log.error("Deleting existing rig chain")
+		mc.delete(l_rigJointsExist)
+		
+	    l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in self._ml_skinJoints],po=True,ic=True,rc=True)
+	    ml_rigJoints = []
+	    for i,j in enumerate(l_rigJoints):
+		i_j = cgmMeta.cgmObject(j)
+		i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
+		i_j.doName()
+		l_rigJoints[i] = i_j.mNode
+		ml_rigJoints.append(i_j)
+		i_j.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
+		if i_j.hasAttr('scaleJoint'):
+		    if i_j.scaleJoint in self._ml_skinJoints:
+			int_index = self._ml_skinJoints.index(i_j.scaleJoint)
+			i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
+			
+		if i_j.hasAttr('rigJoint'):i_j.doRemove('rigJoint')
 	    
-	l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in self._ml_skinJoints],po=True,ic=True,rc=True)
-	ml_rigJoints = []
-	for i,j in enumerate(l_rigJoints):
-	    i_j = cgmMeta.cgmObject(j)
-	    i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-	    i_j.doName()
-	    l_rigJoints[i] = i_j.mNode
-	    ml_rigJoints.append(i_j)
-	    i_j.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
-	    if i_j.hasAttr('scaleJoint'):
-		if i_j.scaleJoint in self._ml_skinJoints:
-		    int_index = self._ml_skinJoints.index(i_j.scaleJoint)
-		    i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
-		    
-	    if i_j.hasAttr('rigJoint'):i_j.doRemove('rigJoint')
+	    self._ml_rigJoints = ml_rigJoints
+	    self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
+	    self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+	    return ml_rigJoints
+	except StandardError,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
-	self._ml_rigJoints = ml_rigJoints
-	self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
-	self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
-	return ml_rigJoints
-    
     @cgmGeneral.Timer
-    def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False):    
+    def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False): 
+	_str_funcName = "build_handleChain(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()		
 	try:
 	    ml_handleJoints = self._i_module.rig_getHandleJoints()
 	    ml_handleChain = []
@@ -459,17 +505,22 @@ class go(object):
 	    #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
 	    log.info("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
 	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-		self._i_rigNull.msgList_connect(ml_handleChain,connectNodesAs,'rigNull')#Push back		
+		self._i_rigNull.msgList_connect(ml_handleChain,connectNodesAs,'rigNull')#Push back
+	    
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return ml_handleChain
 
 	except StandardError,error:
-	    raise StandardError,"%s.build_rigChain >> Failure: %s"%(self._strShortName,error)
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
     
     @cgmGeneral.Timer
     def duplicate_moduleJoint(self, index = None, typeModifier = 'duplicate', connectNodesAs = False):    
 	"""
 	This is only necessary because message connections are duplicated and make duplicating connected joints problematic
 	"""
+	_str_funcName = "duplicate_moduleJoint(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()		
 	try:
 	    if index is None:
 		raise StandardError, "%s.duplicate_moduleJoint >> No index specified"%(self._strShortName)
@@ -490,169 +541,191 @@ class go(object):
 	    self.connect_restoreJointLists()#Push back
 	    log.info("%s.duplicate_moduleJoint >> created: %s"%(self._strShortName,i_new.p_nameShort))
 	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-		self._i_rigNull.connectChildNode(i_new,connectNodesAs,'rigNull')#Push back		
+		self._i_rigNull.connectChildNode(i_new,connectNodesAs,'rigNull')#Push back
+		
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return i_new
 
 	except StandardError,error:
-	    raise StandardError,"%s.build_rigChain >> Failure: %s"%(self._strShortName,error)
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
     def build_segmentChains(self, ml_segmentHandleJoints = None, connectNodes = True):
-	ml_segmentChains = []
-	if ml_segmentHandleJoints is None:
-	    ml_segmentHandleJoints = get_segmentHandleTargets(self._i_module)
-	    
-	if not ml_segmentHandleJoints:raise StandardError,"%s.build_segmentChains>> failed to get ml_segmentHandleJoints"%self._strShortName
-	
-	l_segPairs = lists.parseListToPairs(ml_segmentHandleJoints)
-	
-	for i,ml_pair in enumerate(l_segPairs):
-	    index_start = self._ml_moduleJoints.index(ml_pair[0])
-	    index_end = self._ml_moduleJoints.index(ml_pair[-1]) + 1
-	    buffer_segmentTargets = self._ml_moduleJoints[index_start:index_end]
-	    
-	    log.info("segment %s: %s"%(i,buffer_segmentTargets))
-	    
-	    ml_newChain = []
-	    for i2,j in enumerate(buffer_segmentTargets):
-		i_j = j.doDuplicate()
-		i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
-		i_j.doName()
-		if ml_newChain:
-		    i_j.parent = ml_newChain[-1].mNode
-		ml_newChain.append(i_j)
+	_str_funcName = "build_segmentChains(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()
+	try:
+	    ml_segmentChains = []
+	    if ml_segmentHandleJoints is None:
+		ml_segmentHandleJoints = get_segmentHandleTargets(self._i_module)
 		
-	    ml_newChain[0].parent = False#Parent to deformGroup
-	    ml_segmentChains.append(ml_newChain)
-	
-	#Sometimes last segement joints have off orientaions, we're gonna fix
-	joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
-	for segmentChain in ml_segmentChains:
-	    jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
+	    if not ml_segmentHandleJoints:raise StandardError,"%s.build_segmentChains>> failed to get ml_segmentHandleJoints"%self._strShortName
 	    
-	#Connect stuff ============================================================================================    
-	#self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	#self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
-	if connectNodes:
-	    for i,ml_chain in enumerate(ml_segmentChains):
-		l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
-		log.info("segment chain %s: %s"%(i,l_chain))
-		self._i_rigNull.msgList_connect(ml_chain,'segment%s_Joints'%i,"rigNull")
-		log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_Joints'%i,False)))
+	    l_segPairs = lists.parseListToPairs(ml_segmentHandleJoints)
+	    
+	    for i,ml_pair in enumerate(l_segPairs):
+		index_start = self._ml_moduleJoints.index(ml_pair[0])
+		index_end = self._ml_moduleJoints.index(ml_pair[-1]) + 1
+		buffer_segmentTargets = self._ml_moduleJoints[index_start:index_end]
 		
-	return ml_segmentChains
+		log.info("segment %s: %s"%(i,buffer_segmentTargets))
+		
+		ml_newChain = []
+		for i2,j in enumerate(buffer_segmentTargets):
+		    i_j = j.doDuplicate()
+		    i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
+		    i_j.doName()
+		    if ml_newChain:
+			i_j.parent = ml_newChain[-1].mNode
+		    ml_newChain.append(i_j)
+		    
+		ml_newChain[0].parent = False#Parent to deformGroup
+		ml_segmentChains.append(ml_newChain)
+	    
+	    #Sometimes last segement joints have off orientaions, we're gonna fix
+	    joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
+	    for segmentChain in ml_segmentChains:
+		jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
+		
+	    #Connect stuff ============================================================================================    
+	    #self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+	    #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
+	    if connectNodes:
+		for i,ml_chain in enumerate(ml_segmentChains):
+		    l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
+		    log.info("segment chain %s: %s"%(i,l_chain))
+		    self._i_rigNull.msgList_connect(ml_chain,'segment%s_Joints'%i,"rigNull")
+		    log.info("segment%s_Joints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_Joints'%i,False)))
+	    
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+	    return ml_segmentChains
+	except StandardError,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
     @cgmGeneral.Timer
     def build_simpleInfluenceChains(self,addMidInfluence = True):
 	"""
 	
 	"""
-	ml_handleJoints = self._i_module.rig_getHandleJoints()
-	ml_segmentHandleJoints = get_segmentHandleTargets(self._i_module)
-	
-	#>> Make influence joints ================================================================================
-	l_influencePairs = lists.parseListToPairs(ml_segmentHandleJoints)
-	ml_influenceJoints = []
-	ml_influenceChains = []
-	
-	for i,m_pair in enumerate(l_influencePairs):#For each pair
-	    str_nameModifier = 'seg_%s'%i	    
-	    l_tmpChain = []
-	    ml_midJoints = []	    
-	    for ii,i_jnt in enumerate(m_pair):
-		i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
-		i_new.parent = False
-		i_new.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)
-		i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
-		if l_tmpChain:
-		    i_new.parent = l_tmpChain[-1].mNode
-		i_new.doName()
-		i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations    
-		l_tmpChain.append(i_new)
+	_str_funcName = "build_simpleInfluenceChains(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()
+	try:
+	    ml_handleJoints = self._i_module.rig_getHandleJoints()
+	    ml_segmentHandleJoints = get_segmentHandleTargets(self._i_module)
+	    
+	    #>> Make influence joints ================================================================================
+	    l_influencePairs = lists.parseListToPairs(ml_segmentHandleJoints)
+	    ml_influenceJoints = []
+	    ml_influenceChains = []
+	    
+	    for i,m_pair in enumerate(l_influencePairs):#For each pair
+		str_nameModifier = 'seg_%s'%i	    
+		l_tmpChain = []
+		ml_midJoints = []	    
+		for ii,i_jnt in enumerate(m_pair):
+		    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
+		    i_new.parent = False
+		    i_new.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)
+		    i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
+		    if l_tmpChain:
+			i_new.parent = l_tmpChain[-1].mNode
+		    i_new.doName()
+		    i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations    
+		    l_tmpChain.append(i_new)
+		    
+		if addMidInfluence:
+		    log.info("%s.build_simpleInfuenceChains>>> Splitting influence segment: 2 |'%s' >> '%s'"%(self._i_module.getShortName(),m_pair[0].getShortName(),m_pair[1].getShortName()))
+		    l_new_chain = joints.insertRollJointsSegment(l_tmpChain[0].mNode,l_tmpChain[1].mNode,1)
+		    #Let's name our new joints
+		    for ii,jnt in enumerate(l_new_chain):
+			i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
+			i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
+			i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
+			i_jnt.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)		
+			i_jnt.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
+			i_jnt.doName()
+			ml_midJoints.append(i_jnt)
+		    
+		#Build the chain lists -------------------------------------------------------------------------------------------
+		ml_segmentChain = [l_tmpChain[0]]
+		if ml_midJoints:
+		    ml_segmentChain.extend(ml_midJoints)
+		ml_segmentChain.append(l_tmpChain[-1])
+		for i_j in ml_segmentChain:ml_influenceJoints.append(i_j)
+		ml_influenceChains.append(ml_segmentChain)#append to influence chains
 		
-	    if addMidInfluence:
-		log.info("%s.build_simpleInfuenceChains>>> Splitting influence segment: 2 |'%s' >> '%s'"%(self._i_module.getShortName(),m_pair[0].getShortName(),m_pair[1].getShortName()))
-		l_new_chain = joints.insertRollJointsSegment(l_tmpChain[0].mNode,l_tmpChain[1].mNode,1)
-		#Let's name our new joints
-		for ii,jnt in enumerate(l_new_chain):
-		    i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
-		    i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
-		    i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
-		    i_jnt.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)		
-		    i_jnt.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
-		    i_jnt.doName()
-		    ml_midJoints.append(i_jnt)
+		log.info("%s.buildHandleChain >> built handle chain %s: %s"%(self._strShortName,i,[i_j.getShortName() for i_j in ml_segmentChain]))
 		
-	    #Build the chain lists -------------------------------------------------------------------------------------------
-	    ml_segmentChain = [l_tmpChain[0]]
-	    if ml_midJoints:
-		ml_segmentChain.extend(ml_midJoints)
-	    ml_segmentChain.append(l_tmpChain[-1])
-	    for i_j in ml_segmentChain:ml_influenceJoints.append(i_j)
-	    ml_influenceChains.append(ml_segmentChain)#append to influence chains
+	    #Copy orientation of the very last joint to the second to last
+	    joints.doCopyJointOrient(ml_influenceChains[-1][-2].mNode,ml_influenceChains[-1][-1].mNode)
+    
+	    #Figure out how we wanna store this, ml_influence joints 
+	    for i_jnt in ml_influenceJoints:
+		i_jnt.parent = False
+		
+	    for i_j in ml_influenceJoints:
+		jntUtils.metaFreezeJointOrientation(i_j.mNode)#Freeze orientations
 	    
-	    log.info("%s.buildHandleChain >> built handle chain %s: %s"%(self._strShortName,i,[i_j.getShortName() for i_j in ml_segmentChain]))
+	    #Connect stuff ============================================================================================    
+	    for i,ml_chain in enumerate(ml_influenceChains):
+		l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
+		log.info("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._i_module.getShortName(),l_chain))
+		self._i_rigNull.msgList_connect(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
+		log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i,False)))
 	    
-	#Copy orientation of the very last joint to the second to last
-	joints.doCopyJointOrient(ml_influenceChains[-1][-2].mNode,ml_influenceChains[-1][-1].mNode)
-
-	#Figure out how we wanna store this, ml_influence joints 
-	for i_jnt in ml_influenceJoints:
-	    i_jnt.parent = False
-	    
-	for i_j in ml_influenceJoints:
-	    jntUtils.metaFreezeJointOrientation(i_j.mNode)#Freeze orientations
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+	    return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
+	except StandardError,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
-	#Connect stuff ============================================================================================    
-	for i,ml_chain in enumerate(ml_influenceChains):
-	    l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
-	    log.info("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._i_module.getShortName(),l_chain))
-	    self._i_rigNull.msgList_connect(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
-	    log.info("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i,False)))
-	
-	return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
-
 #>>> Functions
 #=============================================================================================================
 @cgmGeneral.Timer
 def isBuildable(goInstance):
-    if not issubclass(type(goInstance),go):
-	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
-	raise StandardError
-    self = goInstance#Link
+    self = goInstance
+    _str_funcName = "isBuildable(%s)"%self._strShortName
+    log.debug(">>> %s "%(_str_funcName) + "="*75)    
+    try:
+	if not issubclass(type(goInstance),go):
+	    log.error("Not a RigFactory.go instance: '%s'"%goInstance)
+	    raise StandardError
+	self = goInstance#Link
+	
+	if self._partType not in d_moduleTypeToBuildModule.keys():
+	    log.error("%s.isBuildable>>> Not in d_moduleTypeToBuildModule"%(self._strShortName))	
+	    return False
+	
+	try:#Version
+	    self._buildVersion = d_moduleTypeToBuildModule[self._partType].__version__    
+	except:
+	    log.error("%s.isBuildable>>> Missing version"%(self._strShortName))	
+	    return False	
+	try:#Shapes dict
+	    self._shapesDict = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__    
+	except:
+	    log.error("%s.isBuildable>>> Missing shape dict in module"%(self._strShortName))	
+	    return False	
+	try:#Joints list
+	    self._l_jointAttrs = d_moduleTypeToBuildModule[self._partType].__l_jointAttrs__    
+	except:
+	    log.error("%s.isBuildable>>> Missing joint attr list in module"%(self._strShortName))	
+	    return False
+	try:#Build Module
+	    #self.build = d_moduleTypeToBuildModule[self._partType].__build__
+	    self.buildModule = d_moduleTypeToBuildModule[self._partType]
+	except:
+	    log.error("%s.isBuildable>>> Missing Build Module"%(self._strShortName))	
+	    return False	    
+	try:#Build Dict
+	    d_moduleTypeToBuildModule[self._partType].__d_buildOrder__
+	except:
+	    log.error("%s.isBuildable>>> Missing Build Function Dictionary"%(self._strShortName))	
+	    return False	    
     
-    if self._partType not in d_moduleTypeToBuildModule.keys():
-	log.error("%s.isBuildable>>> Not in d_moduleTypeToBuildModule"%(self._strShortName))	
-	return False
-    
-    try:#Version
-	self._buildVersion = d_moduleTypeToBuildModule[self._partType].__version__    
-    except:
-	log.error("%s.isBuildable>>> Missing version"%(self._strShortName))	
-	return False	
-    try:#Shapes dict
-	self._shapesDict = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__    
-    except:
-	log.error("%s.isBuildable>>> Missing shape dict in module"%(self._strShortName))	
-	return False	
-    try:#Joints list
-	self._l_jointAttrs = d_moduleTypeToBuildModule[self._partType].__l_jointAttrs__    
-    except:
-	log.error("%s.isBuildable>>> Missing joint attr list in module"%(self._strShortName))	
-	return False
-    try:#Build Module
-	#self.build = d_moduleTypeToBuildModule[self._partType].__build__
-	self.buildModule = d_moduleTypeToBuildModule[self._partType]
-    except:
-	log.error("%s.isBuildable>>> Missing Build Module"%(self._strShortName))	
-	return False	    
-    try:#Build Dict
-	d_moduleTypeToBuildModule[self._partType].__d_buildOrder__
-    except:
-	log.error("%s.isBuildable>>> Missing Build Function Dictionary"%(self._strShortName))	
-	return False	    
-
-    
-    return True
+	
+	return True
+    except StandardError,error:
+	raise StandardError,"%s >> %s"%(_str_funcName,error)
     
 @cgmGeneral.Timer
 def verify_moduleRigToggles(goInstance):
@@ -663,80 +736,98 @@ def verify_moduleRigToggles(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
 	raise StandardError
-    self = goInstance#Link
     
-    str_settings = str(self._i_masterSettings.getShortName())
-    str_partBase = str(self._partName + '_rig')
-    str_moduleRigNull = str(self._i_rigNull.getShortName())
+    self = goInstance
+    _str_funcName = "verify_moduleRigToggles(%s)"%self._strShortName
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    start = time.clock()    
+    try:
+	str_settings = str(self._i_masterSettings.getShortName())
+	str_partBase = str(self._partName + '_rig')
+	str_moduleRigNull = str(self._i_rigNull.getShortName())
+	
+	self._i_masterSettings.addAttr(str_partBase,enumName = 'off:lock:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+	try:NodeF.argsToNodes("%s.gutsVis = if %s.%s > 0"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
+	except StandardError,error:
+	    raise StandardError,"verify_moduleRigToggles>> vis arg fail: %s"%error
+	try:NodeF.argsToNodes("%s.gutsLock = if %s.%s == 2:0 else 2"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
+	except StandardError,error:
+	    raise StandardError,"verify_moduleRigToggles>> lock arg fail: %s"%error
     
-    self._i_masterSettings.addAttr(str_partBase,enumName = 'off:lock:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
-    try:NodeF.argsToNodes("%s.gutsVis = if %s.%s > 0"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
+	self._i_rigNull.overrideEnabled = 1		
+	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideDisplayType'))    
+	
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+    
+	return True
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> vis arg fail: %s"%error
-    try:NodeF.argsToNodes("%s.gutsLock = if %s.%s == 2:0 else 2"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
-    except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> lock arg fail: %s"%error
-
-    self._i_rigNull.overrideEnabled = 1		
-    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideVisibility'))
-    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideDisplayType'))    
-
-    return True
-
+	raise StandardError,"%s >> %s"%(_str_funcName,error)
+    
 @cgmGeneral.Timer
 def bindJoints_connect(goInstance):   
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
 	raise StandardError
-    self = goInstance#Link
+    self = goInstance
+    _str_funcName = "verify_moduleRigToggles(%s)"%self._strShortName
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    start = time.clock()    
+    try:
+	_str_funcName = "bindJoints_connect(%s)"%self._strShortName  
+	log.info(">>> %s "%(_str_funcName) + "="*75)      
+	
+	l_rigJoints = self._i_rigNull.msgList_get('rigJoints',False) or False
+	l_skinJoints = self._i_rigNull.msgList_get('skinJoints',False) or False
+	log.info("%s.connect_ToBind>> skinJoints:  len: %s | joints: %s"%(self._i_module.getShortName(),len(l_skinJoints),l_skinJoints))
+	if not l_rigJoints:
+	    raise StandardError,"connect_ToBind>> No Rig Joints: %s "%(self._i_module.getShortName())
+	if len(l_skinJoints)!=len(l_rigJoints):
+	    raise StandardError,"connect_ToBind>> Rig/Skin joint chain lengths don't match: %s | len(skinJoints): %s | len(rigJoints): %s"%(self._i_module.getShortName(),len(l_skinJoints),len(l_rigJoints))
+	
+	for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
+	    log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
+	    pntConstBuffer = mc.parentConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+	    #pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
+	    #orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
+	    
+	    attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+	    #scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
+	    #Scale constraint connect doesn't work
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+	
+	return True
+    except StandardError,error:
+	raise StandardError,"%s >> %s"%(_str_funcName,error)
     
-    _str_funcName = "bindJoints_connect(%s)"%self._strShortName  
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)      
-    
-    l_rigJoints = self._i_rigNull.msgList_get('rigJoints',False) or False
-    l_skinJoints = self._i_rigNull.msgList_get('skinJoints',False) or False
-    log.info("%s.connect_ToBind>> skinJoints:  len: %s | joints: %s"%(self._i_module.getShortName(),len(l_skinJoints),l_skinJoints))
-    if not l_rigJoints:
-	raise StandardError,"connect_ToBind>> No Rig Joints: %s "%(self._i_module.getShortName())
-    if len(l_skinJoints)!=len(l_rigJoints):
-	raise StandardError,"connect_ToBind>> Rig/Skin joint chain lengths don't match: %s | len(skinJoints): %s | len(rigJoints): %s"%(self._i_module.getShortName(),len(l_skinJoints),len(l_rigJoints))
-    
-    for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
-	log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.rigJoints[i].getShortName(),i_jnt.getShortName()))
-	pntConstBuffer = mc.parentConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-	#pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
-	#orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
-        
-        attributes.doConnectAttr((self._i_rigNull.rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
-	#scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
-        #Scale constraint connect doesn't work
-    
-    return True
-
 @cgmGeneral.Timer
 def bindJoints_connectToBlend(goInstance):
     if not issubclass(type(goInstance),go):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
 	raise StandardError
-    self = goInstance#Link
-    
-    l_rigJoints = self._i_rigNull.msgList_get('blendJoints',False) or False
-    l_skinJoints = self._i_rigNull.msgList_get('skinJoints',False) or False
-    if len(l_skinJoints)!=len(l_rigJoints):
-	raise StandardError,"bindJoints_connectToBlend>> Blend/Skin joint chain lengths don't match: %s"%self._i_module.getShortName()
-    
-    for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
-	log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.blendJoints[i].getShortName(),i_jnt.getShortName()))
-	pntConstBuffer = mc.parentConstraint(self._i_rigNull.blendJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-	#pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
-	#orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
-        
-        attributes.doConnectAttr((self._i_rigNull.blendJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
-	#scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
-        #Scale constraint connect doesn't work
-    
-    return True
-
+    self = goInstance
+    _str_funcName = "verify_moduleRigToggles(%s)"%self._strShortName
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    start = time.clock()        
+    try:
+	l_rigJoints = self._i_rigNull.msgList_get('blendJoints',False) or False
+	l_skinJoints = self._i_rigNull.msgList_get('skinJoints',False) or False
+	if len(l_skinJoints)!=len(l_rigJoints):
+	    raise StandardError,"bindJoints_connectToBlend>> Blend/Skin joint chain lengths don't match: %s"%self._i_module.getShortName()
+	
+	for i,i_jnt in enumerate(self._i_rigNull.skinJoints):
+	    log.info("'%s'>>drives>>'%s'"%(self._i_rigNull.blendJoints[i].getShortName(),i_jnt.getShortName()))
+	    pntConstBuffer = mc.parentConstraint(self._i_rigNull.blendJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+	    #pntConstBuffer = mc.pointConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)
+	    #orConstBuffer = mc.orientConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=False,weight=1)        
+	    
+	    attributes.doConnectAttr((self._i_rigNull.blendJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+	    #scConstBuffer = mc.scaleConstraint(self._i_rigNull.rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                
+	    #Scale constraint connect doesn't work
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
+	return True
+    except StandardError,error:
+	raise StandardError,"%s >> %s"%(_str_funcName,error)
 
 #>>> Module rig functions
 """
@@ -746,7 +837,8 @@ You should only pass modules into these
 def get_skinJoints(self, asMeta = True):
     try:
 	_str_funcName = "get_skinJoints(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	log.info(">>> %s "%(_str_funcName) + "="*75) 
+	start = time.clock()        	
 	"""
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_skinJoints >> not skeletonized."%(self.p_nameShort)"""
@@ -760,18 +852,20 @@ def get_skinJoints(self, asMeta = True):
 	    for attr in __l_moduleJointMsgListHooks__:
 		l_buffer = i_j.msgList_get(attr,asMeta = asMeta,cull = True)
 		
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
 	if asMeta:return ml_skinJoints
 	if ml_skinJoints:
 	    return [obj.p_nameShort for obj in ml_skinJoints]
     except StandardError,error:
-	raise StandardError, "%s >> error : %s"(_str_funcName,error)	
+	raise StandardError, "%s >> %s"(_str_funcName,error)	
     
 @cgmGeneral.Timer    
 def get_rigHandleJoints(self, asMeta = True):
     #Get our rig handle joints
     try:
 	_str_funcName = "get_rigHandleJoints(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	log.info(">>> %s "%(_str_funcName) + "="*75) 
+	start = time.clock()        		
 	"""
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)"""	
@@ -784,7 +878,7 @@ def get_rigHandleJoints(self, asMeta = True):
 	    str_attrBuffer = i_j.getMessage('rigJoint')
 	    if str_attrBuffer:
 		l_rigHandleJoints.append(str_attrBuffer)
-		
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
 	if asMeta:return cgmMeta.validateObjListArg(l_rigHandleJoints,noneValid=True)	    
 	return l_rigHandleJoints
     except StandardError,error:
@@ -795,7 +889,9 @@ def get_rigDeformationJoints(self,asMeta = True):
     #Get our joints that segment joints will connect to
     try:
 	_str_funcName = "get_rigHandleJoints(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 	
+	log.info(">>> %s "%(_str_funcName) + "="*75) 	
+	start = time.clock()        		
+	
 	ml_rigJoints = self.rigNull.msgList_get('rigJoints')
 	if not ml_rigJoints:
 	    log.error("%s.get_rigDeformationJoints >> no rig joints found"%self.getShortName())
@@ -803,7 +899,10 @@ def get_rigDeformationJoints(self,asMeta = True):
 	ml_defJoints = []
 	for i_jnt in ml_rigJoints:
 	    if not i_jnt.getMessage('scaleJoint'):
-		ml_defJoints.append(i_jnt)	    
+		ml_defJoints.append(i_jnt)
+		
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
+	    
 	if asMeta:return ml_defJoints
 	elif ml_defJoints:return [j.p_nameShort for j in ml_defJoints]
 	return []
@@ -816,7 +915,7 @@ def get_handleJoints(self,asMeta = True):
     #Get our segment joints
     try:
 	_str_funcName = "get_handleJoints(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	log.info(">>> %s "%(_str_funcName) + "="*75) 
 	return self.rigNull.msgList_get('handleJoints',asMeta = asMeta, cull = True)
 	"""
 	ml_handleJoints = []
@@ -837,7 +936,8 @@ def get_segmentHandleTargets(self):
     """
     try:
 	_str_funcName = "get_segmentHandleTargets(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	log.info(">>> %s "%(_str_funcName) + "="*75) 
+	start = time.clock()        		
 	
 	ml_handleJoints = self.rig_getHandleJoints()
 	log.info(ml_handleJoints)
@@ -858,6 +958,8 @@ def get_segmentHandleTargets(self):
 	l_segmentHandleJoints = [i_jnt.getShortName() for i_jnt in ml_segmentHandleJoints]
 	log.info("%s.get_segmentHandleTargets >> segmentHandleJoints : %s"%(self.getShortName(),l_segmentHandleJoints))
 	
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
+	
 	return ml_segmentHandleJoints    
     
     except StandardError,error:
@@ -869,7 +971,9 @@ def get_influenceChains(self):
     try:
 	#>>>Influence Joints
 	_str_funcName = "get_influenceChains(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 	
+	log.info(">>> %s "%(_str_funcName) + "="*75) 	
+	start = time.clock()        		
+	
 	l_influenceChains = []
 	ml_influenceChains = []
 	for i in range(100):
@@ -882,6 +986,7 @@ def get_influenceChains(self):
 	    else:
 		break 
 	log.info("%s._get_influenceChains>>> Segment Influence Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_influenceChains),l_influenceChains)) 		
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
 	return ml_influenceChains
     except StandardError,error:
 	raise StandardError,"_get_influenceChains >> self: %s | error: %s"%(self,error)
@@ -889,7 +994,9 @@ def get_influenceChains(self):
 def get_segmentHandleChains(self):
     try:
 	_str_funcName = "get_segmentHandleChains(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 	
+	log.info(">>> %s "%(_str_funcName) + "="*75) 	
+	start = time.clock()        		
+	
 	l_segmentHandleChains = []
 	ml_segmentHandleChains = []
 	for i in range(50):
@@ -900,6 +1007,7 @@ def get_segmentHandleChains(self):
 	    else:
 		break
 	log.info("%s._get_segmentHandleChains>>> Segment Handle Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_segmentHandleChains),l_segmentHandleChains)) 	
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
 	return ml_segmentHandleChains
     except StandardError,error:
 	raise StandardError,"_get_segmentHandleChains >> self: %s | error: %s"%(self,error)
@@ -908,7 +1016,9 @@ def get_segmentChains(self):
     try:
 	#Get our segment joints
 	_str_funcName = "get_segmentChains(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	log.info(">>> %s "%(_str_funcName) + "="*75) 
+	start = time.clock()        		
+	
 	l_segmentChains = []
 	ml_segmentChains = []
 	for i in range(50):
@@ -919,6 +1029,7 @@ def get_segmentChains(self):
 	    else:
 		break
 	log.info("%s.get_segmentChains>>> Segment Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_segmentChains),l_segmentChains)) 
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)			
 	return ml_segmentChains
     except StandardError,error:
 	raise StandardError,"get_segmentChains >> self: %s | error: %s"%(self,error)
@@ -929,7 +1040,9 @@ def get_rigJointDriversDict(self,printReport = True):
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
     _str_funcName = "get_rigJointDriversDict(%s)"%self.p_nameShort  
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)     
+    log.info(">>> %s "%(_str_funcName) + "="*75)   
+    start = time.clock()        		
+    
     def __findDefJointFromRigJoint(i_jnt):	    
 	if i_jnt.getMessage('rigJoint'):
 	    i_rigJoint = cgmMeta.validateObjArg(i_jnt.rigJoint,cgmMeta.cgmObject)
@@ -1041,6 +1154,7 @@ def get_rigJointDriversDict(self,printReport = True):
     if l_cullRigJoints:
 	raise StandardError,"%s to find matches for all rig joints: %s"%(i_scaleJnt.getShortName())
     
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		    
     return d_rigIndexToDriverInstance
     
     #except StandardError,error:
@@ -1053,7 +1167,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
     _str_funcName = "get_simpleRigJointDriverDict(%s)"%self.p_nameShort  
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)      
+    log.info(">>> %s "%(_str_funcName) + "="*75)    
+    start = time.clock()        		    
     #>>>Initial checks
     ml_blendJoints = []
     mll_segmentChains = []
@@ -1139,6 +1254,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     d_returnBuffer = {}
     for str_mNode in d_rigJointDrivers.keys():
 	d_returnBuffer[cgmMeta.cgmObject(str_mNode)] = d_rigJointDrivers[str_mNode]
+	
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
     return d_returnBuffer
     
     #except StandardError,error:
@@ -1149,8 +1266,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 def get_report(self):
     #try:
     _str_funcName = "get_report(%s)"%self.p_nameShort  
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
-    
+    log.info(">>> %s "%(_str_funcName) + "="*75)  
+    start = time.clock()        		    
     if not self.isSkeletonized():
 	log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
 	return False
@@ -1172,7 +1289,7 @@ def get_report(self):
     log.info("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
     
     log.info("="*75)
-	
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
     #except StandardError,error:
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 
@@ -1185,8 +1302,7 @@ def get_eyeLook(self):
     
     try:#Get our segment joints
 	_str_funcName = "verify_eyeLook(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
-	
+	log.info(">>> %s "%(_str_funcName) + "="*75) 	
 	#We need a module type, find a head etc
 	if self.moduleType != 'eyeball':
 	    raise StandardError, "Don't know how to build from non eyeball type yet"
@@ -1219,7 +1335,8 @@ def verify_eyeLook(self):
     
     try:#Get our segment joints
 	_str_funcName = "verify_eyeLook(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	log.info(">>> %s "%(_str_funcName) + "="*75) 
+	start = time.clock()        		
 	
 	try:#Gather data
 	    #We need a module type, find a head etc
@@ -1277,6 +1394,7 @@ def verify_eyeLook(self):
 	except StandardError,error:
 	    raise StandardError,"Build | %s"%(error)	
 	
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
 	
     except StandardError,error:
 	raise StandardError,"%s >>> failed | error: %s"%(_str_funcName,error)

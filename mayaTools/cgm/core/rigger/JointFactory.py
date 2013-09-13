@@ -460,7 +460,7 @@ def doSkeletonizeLimb(self):
 	if type(d_rollJointOverride) is not dict:
 	    d_rollJointOverride = False
 	    
-	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*75)
     except StandardError,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     

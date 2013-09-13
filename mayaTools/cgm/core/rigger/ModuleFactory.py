@@ -793,7 +793,7 @@ def returnExpectedJointCount(self):
 #=====================================================================================================        
 @cgmGeneral.Timer
 def validateStateArg(stateArg):
-    _str_funcName = "validateStateArg(%s)"%self.p_nameShort   
+    _str_funcName = "validateStateArg(%s)"%stateArg 
     log.debug(">>> %s "%(_str_funcName) + "="*75)       
     #>>> Validate argument
     if type(stateArg) in [str,unicode]:

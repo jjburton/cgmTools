@@ -5,7 +5,7 @@ Module for building controls for cgmModules
 # From Python =============================================================
 import copy
 import re
-
+import time
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging
@@ -315,6 +315,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     toDo: rotate order set?
     
     """
+    start = time.clock()    
     assert type(addExtraGroups) in [int,bool]
     assert type(addSpacePivots) in [int,bool]
     
@@ -341,6 +342,8 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     
     
     try:#>>>Copy Transform ====================================================
+	_str_subFunc = "Copy Transform"
+	time_sub = time.clock()  
 	if copyTransform is not None:
 	    if issubclass(type(copyTransform),cgmMeta.cgmNode):
 		i_target = copyTransform
@@ -359,23 +362,27 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    i_newTransform.parent = i_control.parent#Copy parent
 	    i_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
 	    mc.delete(mBuffer.mNode)
-	    
+	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> copy transform | %s"%(str_shortName,error)  
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Shape Parent #====================================================
+	_str_subFunc = "Shape Parent "
+	time_sub = time.clock()  	
 	if shapeParentTo:
 	    i_target = cgmMeta.validateObjArg(shapeParentTo,cgmMeta.cgmObject)
 	    curves.parentShapeInPlace(i_target.mNode,i_control.mNode)
 	    i_target.addAttr('mClass','cgmControl',lock=True)
 	    i_target = cgmMeta.cgmControl(i_target.mNode)
 	    #i_control.delete()
-	    i_control = i_target#replace the control with the joint
-	    
+	    i_control = i_target#replace the control with the joint    
+	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> shapeParent | %s"%(_str_funcName,error)   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
       
     try:#>>>Copy Pivot #====================================================
+	_str_subFunc = "Copy Pivot"
+	time_sub = time.clock()  	
 	if copyPivot is not None:
 	    if issubclass(type(copyPivot),cgmMeta.cgmNode):
 		i_target = copyPivot
@@ -386,28 +393,37 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    
 	    #Need to move this to default cgmNode stuff
 	    i_control.doCopyPivot(i_target.mNode)
+	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> copy pivot | %s"%(_str_funcName,error)   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Name stuff #====================================================
-	log.debug(">>> Naming..." + "-"*75)                		
+	_str_subFunc = "Naming"
+	time_sub = time.clock()  	
+	log.debug(">>> %s..."%_str_subFunc)                		
 	i_control.addAttr('cgmType','controlAnim',lock=True)    
 	if typeModifier is not None:
 	    i_control.addAttr('cgmTypeModifier',str(typeModifier),lock=True)
-	i_control.doName(nameShapes=True)
+	i_control.doName()#i_control.doName(nameShapes=True)
 	str_shortName = i_control.getShortName()
+	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> naming | %s"%(_str_funcName,error)   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Add aiming info #====================================================
-	log.debug(">>> Aiming..." + "-"*75)                			
+	_str_subFunc = "Aiming"
+	time_sub = time.clock()  	
+	log.debug(">>> %s..."%_str_subFunc)               			
 	if aim is not None or up is not None or makeAimable:
 	    i_control._verifyAimable()
+	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> aiming | %s"%(_str_funcName,error)  
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Add mirror info #====================================================
-	log.debug(">>> M..." + "-"*75)                			
+	_str_subFunc = "Mirror"
+	time_sub = time.clock()  	
+	log.debug(">>> %s..."%_str_subFunc)                			
 	if str_mirrorSide is not None or b_makeMirrorable:
 	    i_control._verifyMirrorable()
 	    
@@ -417,11 +433,14 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    if str_mirrorAxis:
 		i_control.mirrorAxis = str_mirrorAxis
 		
+	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> aiming | %s"%(_str_funcName,error)   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Rotate Order #====================================================
-	log.debug(">>> Rotate Order..." + "-"*75)            	
+	_str_subFunc = "Rotate Order"
+	time_sub = time.clock()  	
+	log.debug(">>> %s..."%_str_subFunc)            	
 	_rotateOrder = False
 	if setRotateOrder is not None:
 	    _rotateOrder = setRotateOrder
@@ -436,17 +455,22 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if _rotateOrder:
 	    _rotateOrder = dictionary.validateRotateOrderString(_rotateOrder)
 	    mc.xform(i_control.mNode, rotateOrder = _rotateOrder)
+	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> rotate order | %s"%(_str_funcName,error)   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #>>>Freeze stuff 
     #====================================================  
     try:
-	log.debug(">>> Freezing..." + "-"*75)                	
+	_str_subFunc = "Freezing"
+	time_sub = time.clock()  	
+	log.debug(">>> %s..."%_str_subFunc)              	
 	if freezeAll:
-	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)		
+	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)
+	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> freeze | %s"%(_str_funcName,error)   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
     try:
 	if addDynParentGroup or addSpacePivots or i_control.cgmName.lower() == 'cog':
 	    i_control.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
@@ -455,7 +479,9 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	
     #==================================================== 
     """ All controls have a master group to zero them """
-    log.debug(">>> Grouping..." + "-"*75)            
+    _str_subFunc = "Grouping"
+    time_sub = time.clock()  	
+    log.debug(">>> %s..."%_str_subFunc)            
     try:#>>>Grouping
 	if not shapeParentTo:
 	    #First our master group:
@@ -487,6 +513,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 			i_group.doName()
 		    ml_groups.append(i_group)
 		    log.debug("group %s: '%s'"%(i,i_group.getShortName()))
+		i_control.msgList_connect(ml_groups,"extraGroups",'groupChild')
 		
 	    if addConstraintGroup:#ConstraintGroups
 		log.debug("addConstraintGroup...")	    
@@ -497,24 +524,33 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	    
 		log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
 		
+	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> grouping | %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)    
     
     #try:#>>>Space Pivots #====================================================  
-    log.debug(">>> Space Pivots..." + "-"*75)        
-    if addSpacePivots:
-	ml_spaceLocators = []
-	parent = i_control.getMessage('masterGroup')[0]
-	for i in range(int(addSpacePivots)):
-	    try:
-		log.info("%s >> %s | obj: %s | parent: %s"%(_str_funcName,i,i_control.p_nameShort,parent))
-		i_pivot = rUtils.create_spaceLocatorForObject(i_control.mNode,parent)
-		ml_spaceLocators.append(i_pivot)
-	    except StandardError,error:
-		raise StandardError,"space pivot %s | %s"%(i,error)
+    _str_subFunc = "Space Pivots"
+    time_sub = time.clock()  	
+    log.debug(">>> %s..."%_str_subFunc)   
+    try:
+	if addSpacePivots:
+	    ml_spaceLocators = []
+	    parent = i_control.getMessage('masterGroup')[0]
+	    for i in range(int(addSpacePivots)):
+		try:
+		    log.info("%s >> %s | obj: %s | parent: %s"%(_str_funcName,i,i_control.p_nameShort,parent))
+		    i_pivot = rUtils.create_spaceLocatorForObject(i_control.mNode,parent)
+		    ml_spaceLocators.append(i_pivot)
+		except StandardError,error:
+		    raise StandardError,"space pivot %s | %s"%(i,error)
+	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)   
     
     try:#>>>Freeze stuff  #====================================================
-	log.debug(">>> freezing..." + "-"*75)
+	_str_subFunc = "Freezing"
+	time_sub = time.clock()  	
+	log.debug(">>> %s..."%_str_subFunc)   
 	if not shapeParentTo:
 	    if not freezeAll:
 		if i_control.getAttr('cgmName') == 'cog' or controlType in l_fullFreezeTypes:
@@ -524,12 +560,14 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    else:
 		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
 	    
+	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("ModuleControlFactory.registerControl>>freeze fail: '%s'"%str_shortName)
-	raise StandardError,error 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)  
     
     try:#>>>Lock and hide #====================================================
-	log.debug(">>> lockNHide..." + "-"*75)	
+	_str_subFunc = "lockNHide"
+	time_sub = time.clock()  	
+	log.debug(">>> %s..."%_str_subFunc)   	
 	if autoLockNHide:
 	    if i_control.hasAttr('cgmTypeModifier'):
 		if i_control.cgmTypeModifier.lower() == 'fk':
@@ -537,9 +575,10 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    if i_control.cgmName.lower() == 'cog':
 		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['sx','sy','sz'])
 	    cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
+	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> lockNHide | %s"%(_str_funcName,error)  
-    log.debug(">>> Returning..." + "-"*75)    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)  
+    
     return {'instance':i_control,'ml_groups':ml_groups,'ml_constraintGroups':ml_constraintGroups}
 
     
