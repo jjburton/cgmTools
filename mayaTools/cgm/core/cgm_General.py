@@ -66,8 +66,7 @@ def Timer(func):
                 
             try:
                 log.debug("args]0] : %s"%args[0])                
-                if args[0].p_nameShort:
-                    str_arg = args[0].p_nameShort
+                str_arg = args[0].p_nameShort
             except:
                 log.debug("arg[0] failed to call: %s"%args[0])
             functionTrace+='%s.' % str_first
