@@ -209,7 +209,7 @@ def verify_moduleTemplateToggles(goInstance):
     str_partBase = str(self._partName + '_tmpl')
     str_moduleTemplateNull = str(self._i_templateNull.getShortName())
     
-    self._i_masterSettings.addAttr(str_partBase, defaultValue = 0, value = 1, attrType = 'bool',keyable = False,hidden = False)
+    self._i_masterSettings.addAttr(str_partBase, defaultValue = 0, value = 1, attrType = 'int',minValue = 0, maxValue = 1, keyable = False,hidden = False)
     try:NodeF.argsToNodes("%s.tmplVis = if %s.%s > 0"%(str_moduleTemplateNull,str_settings,str_partBase)).doBuild()
     except StandardError,error:
 	raise StandardError,"verify_moduleTemplateToggles>> vis arg fail: %s"%error
