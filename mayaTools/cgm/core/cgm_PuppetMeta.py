@@ -1520,7 +1520,7 @@ class cgmModule(cgmMeta.cgmObject):
 	    try:
 		log.debug("Checking '%s' on template Null"%attr)	
 		if attr == 'rollJoints':
-		    log.info("rollJoints: %s"%self.kw_rollJoints)
+		    log.debug("rollJoints: %s"%self.kw_rollJoints)
 		    if self.kw_rollJoints == 0:
 			i_null.addAttr(attr,initialValue = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                
 		    else:
@@ -2414,7 +2414,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	    except StandardError,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
 	    try:#Mirror ============================================================
 		if self.autoMirror:
-		    log.info("%s >> mirror mode"%(_str_funcName))
+		    log.debug("%s >> mirror mode"%(_str_funcName))
 		    if not self.getMessage('blockMirror'):
 			mi_mirror = self.__mirrorBuild__()
 		    else:

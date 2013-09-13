@@ -21,7 +21,7 @@ geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-@cgmGeneral.Timer
+ 
 def simplePuppetReturn():
     catch = mc.ls(type='network')
     returnList = []
@@ -32,7 +32,7 @@ def simplePuppetReturn():
     return returnList
 
 
-@r9General.Timer   
+
 def getUnifiedGeo(self):
     """
     Returns geo in a puppets geo folder, ALL geo to be used by a puppet should be in there
@@ -42,7 +42,7 @@ def getUnifiedGeo(self):
         return buffer[0]
     return False
 
-@r9General.Timer   
+ 
 def getGeo(self):
     """
     Returns geo in a puppets geo folder, ALL geo to be used by a puppet should be in there
@@ -54,7 +54,7 @@ def getGeo(self):
             geo.append(buff[0])
     return geo
 
-@cgmGeneral.Timer   
+   
 def getModules(self):
     """
     Get the modules of a puppet in a usable format:
@@ -89,7 +89,7 @@ def gatherModules(self):
     except StandardError,error:
 		raise StandardError,"%s >>> error: %s"%(_str_funcName,error)
 
-@r9General.Timer   
+  
 def getModuleFromDict(self,*args,**kws):
     """
     Pass a check dict of attrsibutes and arguments. If that module is found, it returns it.
@@ -118,7 +118,7 @@ def getModuleFromDict(self,*args,**kws):
         log.error("kws: %s"%kws)
         raise StandardError,"%s.getModuleFromDict>> error: %s"%error
     
-@r9General.Timer  
+ 
 def getState(self):
     i_modules = self.moduleChildren
     if not i_modules:
@@ -132,7 +132,7 @@ def getState(self):
     log.info("'%s' states: %s"%(self.getShortName(),l_states))
     return min(l_states)
     
-@cgmGeneral.Timer  
+ 
 def getOrderedModules(self):
     """ 
     Returns ordered modules of a character
@@ -186,7 +186,7 @@ def getOrderedModules(self):
                     
     return l_orderedParentModules
 
-@r9General.Timer  
+ 
 def getOrderedParentModules(self):
     """ 
     Returns ordered list of parent modules of a character

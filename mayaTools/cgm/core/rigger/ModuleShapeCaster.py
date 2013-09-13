@@ -5,7 +5,7 @@ Module for building controls for cgmModules
 # From Python =============================================================
 import copy
 import re
-
+import time
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging
@@ -254,10 +254,11 @@ class go(object):
 	else:
 	    raise StandardError, "%s >> Not enough info to figure out"%_str_funcName
     
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_eyelids(self):
 	_str_funcName = "go.build_eyelids(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 	
 	try:
 	    try:#>>Info gather =====================================================================
 		mi_helper = self._mi_module.helper
@@ -304,15 +305,16 @@ class go(object):
 	    self.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
 	    self.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
 	    self.mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
-	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	except StandardError,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_eyeballSettings(self):
 	_str_funcName = "go.build_eyeballSettings(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	try:
 	    mi_helper = self._mi_module.helper
 	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)
@@ -337,15 +339,17 @@ class go(object):
 	    self.d_returnControls['settings'] = mi_crv.mNode
 	    self.md_ReturnControls['settings'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_settings','owner')
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
 	except StandardError,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_eyeballFK(self):
 	_str_funcName = "go.build_eyeballFK(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	time_func = time.clock() 		
 	try:
 	    mi_helper = self._mi_module.helper
 	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    
@@ -386,14 +390,17 @@ class go(object):
 	    self.md_ReturnControls['eyeballFK'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballFK','owner')
 	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	    
 	except StandardError,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_eyeballIK(self):
 	_str_funcName = "go.build_eyeballIK(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	try:
 	    mi_helper = self._mi_module.helper
 	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    	    
@@ -419,14 +426,17 @@ class go(object):
 	    self.md_ReturnControls['eyeballFK'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballIK','owner')
 	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	    
 	except StandardError,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_eyeLook(self):
 	_str_funcName = "go.build_eyeLook(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	time_func = time.clock() 		
 	try:#we need to find an eye module/head module
 	    mi_helper = self._mi_module.helper
 	    _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    	    
@@ -461,15 +471,17 @@ class go(object):
 	    self.md_ReturnControls['eyeLook'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeLook','owner')
 	    	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
 	except StandardError,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_cog(self):
 	_str_funcName = "go.build_cog(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	time_func = time.clock() 		
 	try:
 	    multiplier = 1.1
 	    tmplRoot = self.mi_templateNull.root.mNode
@@ -524,14 +536,17 @@ class go(object):
 	    self.md_ReturnControls['cog'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_cog','owner')
 	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	    
 	except StandardError,error:
 		log.error("build_cog fail! | %s"%error) 
 		return False
 	    
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def build_hips(self):
 	_str_funcName = "go.build_hips(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	time_func = time.clock() 	
 	
 	distanceMult = .5	    
 	orientHelper = self.l_controlSnapObjects[1]
@@ -577,11 +592,14 @@ class go(object):
 	self.md_ReturnControls['hips'] = mi_crv
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_hips','owner')
 	
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	
     	    
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_segmentFKHandles(self):
 	_str_funcName = "go.build_segmentFKHandles(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -627,15 +645,17 @@ class go(object):
 	    self.d_returnControls['segmentFK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK'] = ml_segmentControls
 	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFK','owner')
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
 	except StandardError,error:
 		log.error("build_segmentFKHandles fail! | %s"%error) 
 		return False
 	    
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_segmentFKLoliHandles(self):
 	_str_funcName = "go.build_segmentFKLoliHandles(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -741,17 +761,18 @@ class go(object):
 	    self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
 	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFKLoli','owner')
-	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         	    
 	except StandardError,error:
 		log.error("build_segmentFKLoliHandles fail! | %s"%error) 
 		return False
 	    
 	    
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_moduleCap(self):
 	try:
 	    _str_funcName = "go.build_moduleCap(%s)"%self._strShortName
-	    log.info(">>> %s >>> "%(_str_funcName) + "="*75)		    
+	    log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	    time_func = time.clock() 		    
 	    l_segmentControls = []
 	    ml_segmentControls = []
 	    log.debug("self._targetMesh: %s"%self._targetMesh)
@@ -826,16 +847,19 @@ class go(object):
 	    self.md_ReturnControls['moduleCap'] = mi_newCurve
 	    self.mi_rigNull.connectChildNode(mi_newCurve,'shape_moduleCap','owner')
 	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	    
 	except StandardError,error:
 		log.error("build_moduleCap fail! | %s"%error) 
 		return False
-    @cgmGeneral.Timer    
+    #@cgmGeneral.Timer    
     def build_clavicle(self):
 	"""
 	build foot shape and pivot locs at the same time
 	"""
 	_str_funcName = "go.build_clavicle(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)		
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_startObj = False
@@ -937,11 +961,14 @@ class go(object):
 	self.md_ReturnControls['clavicle'] = mi_crv	
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_clavicle','owner')
 	
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	
 	    
-    @cgmGeneral.Timer	
+    #@cgmGeneral.Timer	
     def build_midIKHandle(self):
 	_str_funcName = "go.build_midIKHandle(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -989,14 +1016,17 @@ class go(object):
 	    self.md_ReturnControls['midIK'] = mi_newCurve
 	    self.mi_rigNull.connectChildNode(mi_newCurve,'shape_midIK','owner')
 	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	    
 	except StandardError,error:
 		log.error("build_midIKHandle fail! | %s"%error) 
 		return False
 	    
-    @cgmGeneral.Timer	
+    #@cgmGeneral.Timer	
     def build_loliHandles(self):
 	_str_funcName = "go.build_loliHandles(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	#Target objects expected
 	if not self._ml_targetObjects:raise StandardError,"build_loliHandles requires target objects"
 	
@@ -1051,15 +1081,17 @@ class go(object):
 		
 	    self.d_returnControls['loliHandles'] = l_controls 
 	    self.md_ReturnControls['loliHandles'] = ml_controls
-		
+	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         		
 	except StandardError,error:
 		log.error("build_loliHandles! | %s"%error) 
 		return False
 	     
-    @cgmGeneral.Timer	
+    #@cgmGeneral.Timer	
     def build_torsoIKHandles(self):
 	_str_funcName = "go.build_torsoIKHandles(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	time_func = time.clock() 		
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
@@ -1114,6 +1146,8 @@ class go(object):
 	    self.d_returnControls['segmentIKEnd'] = mi_crv.mNode 		
 	    self.md_ReturnControls['segmentIKEnd'] = mi_crv
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_handleIK','owner')
+	    
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 		
 	except StandardError,error:
 		log.error("build_torsoIKHandles! | %s"%error) 
@@ -1121,7 +1155,8 @@ class go(object):
 	    
     def build_settings(self):
 	_str_funcName = "go.build_settings(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_footModule = False
@@ -1216,15 +1251,16 @@ class go(object):
 	self.d_returnControls['settings'] = i_gear.mNode 		
 	self.md_ReturnControls['settings'] = i_gear		
 	self.mi_rigNull.connectChildNode(i_gear,'shape_settings','owner')
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def build_footPivots(self):
 	"""
 	build foot pivot locs 
 	"""
 	_str_funcName = "go.build_footPivots(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
-	
+	time_func = time.clock() 		
 	mi_footModule = False
 	mi_ball = False
 	mi_ankle = False
@@ -1371,15 +1407,16 @@ class go(object):
 	#Parent
 	for p in mi_toePivot,mi_heelPivot,mi_ballPivot,mi_innerPivot,mi_outerPivot:
 	    p.parent = self.mi_templateNull.mNode	
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def build_footShape(self):
 	"""
 	build foot shape and pivot locs at the same time
 	"""
 	_str_funcName = "go.build_footShape(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
-	
+	time_func = time.clock() 		
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_footModule = False
@@ -1593,14 +1630,17 @@ class go(object):
 	self.d_returnControls['foot'] = mi_crv.mNode 		
 	self.md_ReturnControls['foot'] = mi_crv	
 	self.mi_rigNull.connectChildNode(mi_crv,'shape_foot','owner')
+	
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
-    @cgmGeneral.Timer
+    #@cgmGeneral.Timer
     def build_handShape(self):
 	"""
 	build hand shape and pivot locs at the same time
 	"""
 	_str_funcName = "go.build_handShape(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	l_segmentControls = []
 	ml_SegmentControls = []
 	mi_handModule = False
@@ -1722,11 +1762,15 @@ class go(object):
 	    
 	self.d_returnControls['hand'] = mi_crv.mNode 		
 	self.md_ReturnControls['hand'] = mi_crv	
-	self.mi_rigNull.connectChildNode(mi_crv,'shape_hand','owner')	
-    @cgmGeneral.Timer
+	self.mi_rigNull.connectChildNode(mi_crv,'shape_hand','owner')
+	
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	
+    #@cgmGeneral.Timer
     def build_segmentIKHandles(self):
 	_str_funcName = "go.build_segmentIKHandles(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	time_func = time.clock() 		
 	l_segmentControls = []
 	ml_SegmentControls = []
 	
@@ -1858,6 +1902,7 @@ class go(object):
 	self.d_returnControls['segmentIK'] = l_segmentControls 
 	self.md_ReturnControls['segmentIK'] = ml_SegmentControls
 	self.mi_rigNull.msgList_connect(ml_SegmentControls,'shape_segmentIK','owner')
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
 	#except StandardError,error:
 	#	log.error("build_segmentIKHandles! | %s"%error) 

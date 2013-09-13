@@ -315,7 +315,7 @@ def addCGMDynamicGroup(target = None, parentTargets = None,
     log.debug('i_segmentCurve: %s'%i_segmentCurve)
     log.debug('i_module: %s'%i_module)
 
-@cgmGeneral.Timer    
+#@cgmGeneral.Timer    
 def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, endParent = None,
                             midControls = None, orientation = 'zyx',controlOrientation = None, controlTwistAxis = 'rotateY',
                             addTwist = True, baseName = None, rotateGroupAxis = 'rotateZ', blendLength = None, connectMidScale = True,
@@ -1218,7 +1218,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
         return {'ml_followGroups':[i_followGroup]}
 
 
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True, addTwist = True,
                      startControl = None, endControl = None, segmentType = 'curve',
                      rotateGroupAxis = 'rotateZ',secondaryAxis = None,
@@ -1838,7 +1838,7 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
                                tv = [influence,1-(i*blendFactor)])
 
 
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None, 
                        baseName = None, connectBy = 'trans',
                        advancedTwistSetup = False,
@@ -3172,7 +3172,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
     #log.warning("matchValue_iterator>>> Failed to find value for: %s"%mPlug_driven.p_combinedShortName)    
     return False
 
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def IKHandle_addSplineIKTwist(ikHandle,advancedTwistSetup = False):
     """
     ikHandle(arg)
@@ -3233,7 +3233,7 @@ def IKHandle_addSplineIKTwist(ikHandle,advancedTwistSetup = False):
         mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
     return d_return
 
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def IKHandle_fixTwist(ikHandle):
     #>>> Data gather and arg check    
     mi_ikHandle = cgmMeta.validateObjArg(ikHandle,cgmMeta.cgmObject,noneValid=False)
@@ -5126,7 +5126,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
 
         ml_attrs.append(i_attr)
 
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def addAdditiveScaleToSegmentCurveSetup(segmentCurve, orientation = 'zyx', moduleInstance = None):
     """
     Method for additive scale setup to a cgmSegment. Drivers for out/up should be setup as:

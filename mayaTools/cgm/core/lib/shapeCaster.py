@@ -185,7 +185,7 @@ def createWrapControlShape(targetObjects,
     Change offsets to use lathe axis rather than 
     """
     _str_funcName = "createWrapControlShape"
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)  
+    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
     
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
     if not targetGeo:

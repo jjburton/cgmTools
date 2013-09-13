@@ -27,7 +27,7 @@ __version__ = 01.09122013
 # From Python =============================================================
 import copy
 import re
-
+import time
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
@@ -67,7 +67,6 @@ from cgm.lib import (attributes,
 #===================================================================
 __l_jointAttrs__ = ['startAnchor','endAnchor','anchorJoints','rigJoints','influenceJoints','segmentJoints']   
 
-@cgmGeneral.Timer
 def __bindSkeletonSetup__(self):
     """
     The idea at the end of this is that we have create our skin joints from our module joints
@@ -81,7 +80,8 @@ def __bindSkeletonSetup__(self):
 	raise StandardError,error
     
     _str_funcName = "__bindSkeletonSetup__(%s)"%self._strShortName
-    log.info(">>> %s "%(_str_funcName) + "="*75)
+    log.debug(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()
     
     #>>> Re parent joints
     #=============================================================  
@@ -109,15 +109,15 @@ def __bindSkeletonSetup__(self):
 			d_buffer.pop('isHandle')
 			i_dupJnt.d_jointFlags = d_buffer
 		    ml_skinJoints.append(i_dupJnt)#Append
-		    log.info("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
+		    log.debug("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
 	
 	self._i_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
-	log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
-	log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))	
+	log.debug("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
+	log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))	
     except StandardError,error:
 	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)
 
-@cgmGeneral.Timer
+
 def build_rigSkeleton(self):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
@@ -131,11 +131,16 @@ def build_rigSkeleton(self):
 	raise StandardError,error
     
     _str_funcName = "build_rigSkeleton(%s)"%self._strShortName
-    log.info(">>> %s "%(_str_funcName) + "="*75)
+    log.debug(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()
+    
     #>>>Create joint chains
     #=============================================================    
-    try:
-	#>>Segment chain -----------------------------------------------------------
+    try:#>>Segment chain -----------------------------------------------------------
+	_str_subFunc = "Segment chain"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc)                		
+	
 	ml_skinJoints = self._ml_skinJoints
 	ml_moduleJoints = self._ml_moduleJoints
 	ml_handleJoints = []
@@ -153,10 +158,15 @@ def build_rigSkeleton(self):
 		ml_segmentJoints[0].parent = False#Parent to world
 	    else:
 		ml_segmentJoints[i].parent = ml_segmentJoints[i-1].mNode#Parent to Last
+		
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> segment chain | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
 
-    try:#>>Rig chain -----------------------------------------------------------  
+    try:#>>Rig chain -----------------------------------------------------------
+	_str_subFunc = "Rig chain"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc)    	
 	ml_rigJoints = self.build_rigChain()
 	"""
 	l_rigJoints = mc.duplicate(self._l_skinJoints,po=True,ic=True,rc=True)
@@ -173,9 +183,13 @@ def build_rigSkeleton(self):
 		    i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
 			"""	
 	ml_rigJoints[0].parent = self._i_deformNull.mNode#Parent to deformGroup
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> rig chain | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     try:#>>Anchor chain -----------------------------------------------------------
+	_str_subFunc = "Anchor chain"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc)   	
 	ml_anchors = []
 	ml_handleJoints = self._get_handleJoints()
 	i_rootJnt = cgmMeta.cgmObject(mc.duplicate(ml_handleJoints[0].mNode,po=True,ic=True,rc=True)[0])
@@ -204,10 +218,15 @@ def build_rigSkeleton(self):
 	ml_anchors.append(i_endJnt)
 	for i_obj in ml_anchors:
 	    i_obj.rotateOrder = 2#<<<<<<<<<<<<<<<<This would have to change for other orientations
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> anchor chain | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#Influence chain for influencing the surface -----------------------------------------------------------
+	_str_subFunc = "Influence chain"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc)   
+	
 	ml_influenceJoints = []
 	for i_jnt in ml_handleJoints[1:-1]:
 	    if i_jnt.hasAttr('cgmName') and i_jnt.cgmName in self._l_coreNames:
@@ -235,10 +254,14 @@ def build_rigSkeleton(self):
 	#self._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints','rigNull')
 	#self._i_rigNull.msgList_connect(ml_segmentJoints,'segmentJoints','rigNull')
 	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> influence chain | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#connections
+	_str_subFunc = "Connections"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc)   	
 	ml_jointsToConnect = [i_startJnt,i_endJnt]
 	ml_jointsToConnect.extend(ml_anchors)
 	ml_jointsToConnect.extend(ml_rigJoints)
@@ -250,18 +273,21 @@ def build_rigSkeleton(self):
 	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
     
-	log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
-	log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))	
-	log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
+	log.debug("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
+	log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))	
+	log.debug("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
+	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> Connections | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
     return True
 
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
-@cgmGeneral.Timer
+
 def build_shapes(self):
     """
     Rotate orders
@@ -275,16 +301,19 @@ def build_shapes(self):
 	log.error("spine.build_rig>>bad self!")
 	raise StandardError,error
     _str_funcName = "build_shapes(%s)"%self._strShortName
-    log.info(">>> %s "%(_str_funcName) + "="*75) 
+    log.debug(">>> %s "%(_str_funcName) + "="*75) 
+    start = time.clock()
     
     try:#>>>Build our Shapes =============================================================
 	mShapeCast.go(self._i_module,['cog','hips','torsoIK','segmentFK'],storageInstance=self)#This will store controls to a dict called    
 	log.debug(self._md_controlShapes)
     except StandardError,error:
-	raise StandardError,"%s >>> build shapes | error : %s"%(_str_funcName,error) 	
+	raise StandardError,"%s >>> build shapes | error : %s"%(_str_funcName,error) 
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)         
     return True
 
-@cgmGeneral.Timer
+
 def build_controls(self):
     """
     """ 
@@ -296,12 +325,16 @@ def build_controls(self):
 	log.error("spine.build_rig>>bad self!")
 	raise StandardError,error
     _str_funcName = "build_controls(%s)"%self._strShortName
-    log.info(">>> %s "%(_str_funcName) + "="*75)    
+    log.debug(">>> %s "%(_str_funcName) + "="*75)    
+    start = time.clock()
     
     if not self.isShaped():	
 	raise StandardError,"%s.build_controls>>> No shapes found connected"%(self._strShortName)
 	
     try:#>>> Get some special pivot xforms
+	_str_subFunc = "Special Pivot"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc)   	
 	ml_segmentJoints = self._i_rigNull.msgList_get('segmentJoints',asMeta=True,cull=True) 
 	l_segmentJoints  = [i_jnt.mNode for i_jnt in ml_segmentJoints] 
 	tmpCurve = curves.curveFromObjList(l_segmentJoints)
@@ -310,11 +343,15 @@ def build_controls(self):
 	log.debug("hipPivotPos : %s"%hipPivotPos)
 	log.debug("shouldersPivotPos : %s"%shouldersPivotPos)   
 	mc.delete(tmpCurve)
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> Special pivots | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>> Get our shapes
 	#__d_controlShapes__ = {'shape':['cog','hips','segmentFK','segmentIK','handleIK']}
+	_str_subFunc = "Gather shapes"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc)   
 	
 	mi_cogShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_cog'),cgmMeta.cgmObject)
 	mi_hipsShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_hips'),cgmMeta.cgmObject)
@@ -323,13 +360,17 @@ def build_controls(self):
 	mi_handleIKShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_handleIK'),cgmMeta.cgmObject)
 	
 	l_controlsAll = []#we'll append to this list and connect them all at the end 
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> Info gather | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #>>>Build our controls
     #=============================================================
     #>>>Set up structure
     try:#>>>> Cog
+	_str_subFunc = "Cog"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	i_cog = mi_cogShape
 	d_buffer = mControlFactory.registerControl(i_cog.mNode,addExtraGroups = True,addConstraintGroup=True,
 	                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,translateZ,rotateY,rotateZ",
@@ -342,16 +383,23 @@ def build_controls(self):
 	i_cog.masterGroup.parent = self._i_deformNull.mNode
 	#Set aims
 	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> cog | %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:
+	_str_subFunc = "subVis"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	mPlug_result_moduleSubDriver = self.build_subVis()	
     except StandardError,error:
 	raise StandardError,"%s >>> buildVis | %s"%(_str_funcName,error)   
     
     #==================================================================
     try:#>>>> FK Segments
+	_str_subFunc = "FK Segments"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	ml_segmentsFK = ml_segmentFKShapes
 	for i,i_obj in enumerate(ml_segmentsFK[1:]):#parent
 	    i_obj.parent = ml_segmentsFK[i].mNode
@@ -373,11 +421,15 @@ def build_controls(self):
 	self._i_rigNull.msgList_connect(ml_segmentsFK,'controlsFK','rigNull')
 	l_controlsAll.extend(ml_segmentsFK)	
     
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> fk | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
         
     #==================================================================    
     try:#>>>> IK Segments
+	_str_subFunc = "IK Segments"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	ml_segmentsIK = ml_segmentIKShapes
 	
 	for i_obj in ml_segmentsIK:
@@ -393,11 +445,15 @@ def build_controls(self):
 	l_controlsAll.extend(ml_segmentsIK)	
 	
 	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> segmentIK | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #==================================================================
     try:#>>>> IK Handle
+	_str_subFunc = "IK Handle"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	i_IKEnd = mi_handleIKShape
 	i_IKEnd.parent = i_cog.mNode
 	i_loc = i_IKEnd.doLoc()#Make loc for a new transform
@@ -418,11 +474,15 @@ def build_controls(self):
 	i_IKEnd.axisAim = self._jointOrientation[1]+'-'
 	i_IKEnd.axisUp = self._jointOrientation[0]+'+'	
 	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> ik handle | error : %s"%(_str_funcName,error)  
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
       
     #==================================================================
     try:#>>>> Hips
+	_str_subFunc = "Hips"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	i_hips = mi_hipsShape
 	i_hips.parent = i_cog.mNode#parent
 	i_loc = i_hips.doLoc()
@@ -444,16 +504,22 @@ def build_controls(self):
 	raise StandardError,"%s >>> hips | error : %s"%(_str_funcName,error) 
     
     try:#Connect all controls
+	_str_subFunc = "Connection"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	for i,mCtrl in enumerate(l_controlsAll):
 	    mCtrl.mirrorIndex = i
 	    
 	self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
 	self._i_rigNull.moduleSet.extend(l_controlsAll)
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>> connect controls | error : %s"%(_str_funcName,error) 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)         
     return True
 
-@cgmGeneral.Timer
+
 def build_deformation(self):
     """
     Rotate orders
@@ -467,20 +533,29 @@ def build_deformation(self):
 	log.error("spine.build_deformationRig>>bad self!")
 	raise StandardError,error
     _str_funcName = "build_deformation(%s)"%self._strShortName
-    log.info(">>> %s "%(_str_funcName) + "="*75)       
+    log.debug(">>> %s "%(_str_funcName) + "="*75)       
+    start = time.clock()
     
-    #>>>Get data
-    ml_influenceJoints = self._i_rigNull.msgList_get('influenceJoints')
-    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
-    ml_segmentJoints = self._i_rigNull.msgList_get('segmentJoints')
-    ml_anchorJoints = self._i_rigNull.msgList_get('anchorJoints')
-    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
-    ml_segmentHandles = self._i_rigNull.msgList_get('segmentHandles')
-    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
-    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
-    mi_hips = self._i_rigNull.hips
-    mi_handleIK = self._i_rigNull.handleIK
-    mi_cog = self._i_rigNull.cog
+    try:#>>>Get data
+	_str_subFunc = "Data"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 
+	
+	ml_influenceJoints = self._i_rigNull.msgList_get('influenceJoints')
+	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+	ml_segmentJoints = self._i_rigNull.msgList_get('segmentJoints')
+	ml_anchorJoints = self._i_rigNull.msgList_get('anchorJoints')
+	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+	ml_segmentHandles = self._i_rigNull.msgList_get('segmentHandles')
+	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+	mi_hips = self._i_rigNull.hips
+	mi_handleIK = self._i_rigNull.handleIK
+	mi_cog = self._i_rigNull.cog
+	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #>>>Create a constraint surface for the influence joints
     #====================================================================================    
@@ -488,6 +563,10 @@ def build_deformation(self):
     #Control Segment
     #====================================================================================
     try:#Control Segment
+	_str_subFunc = "Control Segment"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 
+	
 	log.debug(self._jointOrientation)
 	capAim = self._jointOrientation[0].capitalize()
 	log.debug("capAim: %s"%capAim)
@@ -529,11 +608,15 @@ def build_deformation(self):
 	                                           orientation=self._jointOrientation)
 	for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
 	    i_grp.parent = mi_cog.mNode
+	    
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_spine>>Control Segment build fail")
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#Setup top twist driver
+	_str_subFunc = "Top twist"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	#Create an fk additive attributes
 	str_curve = curveSegmentReturn['mi_segmentCurve'].getShortName()
 	fk_drivers = ["%s.r%s"%(i_obj.mNode,self._jointOrientation[0]) for i_obj in ml_controlsFK]
@@ -552,12 +635,14 @@ def build_deformation(self):
 	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
 	
-
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_spine>>Top Twist driver fail")
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#Setup bottom twist driver
+	_str_subFunc = "Bottom Twist"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	log.debug("%s.r%s"%(ml_segmentHandles[0].getShortName(),self._jointOrientation[0]))
 	log.debug("%s.r%s"%(mi_hips.getShortName(),self._jointOrientation[0]))
 	drivers = ["%s.r%s"%(ml_segmentHandles[0].mNode,self._jointOrientation[0])]
@@ -567,18 +652,26 @@ def build_deformation(self):
 	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistStart"],1)
     
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_spine>>Bottom Twist driver fail")
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Connect segment scale
+	_str_subFunc = "Segment Scale transfer"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	mi_distanceBuffer = i_curve.scaleBuffer	
 	cgmMeta.cgmAttr(mi_distanceBuffer,'segmentScale').doTransferTo(mi_cog.mNode)    
+	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> segmentScale transfer | error: %s"%(_str_funcName,error)  
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#Do a few attribute connections
 	#Push squash and stretch multipliers to cog
+	_str_subFunc = "Attributes Connection"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	i_buffer = i_curve.scaleBuffer
 	
 	for k in i_buffer.d_indexToAttr.keys():
@@ -590,13 +683,14 @@ def build_deformation(self):
 	cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
 	cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
 	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_spine>>Attribute connection fail")
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)         
     return True
 
-@cgmGeneral.Timer
+
 def build_rig(self):
     """
     Rotate orders
@@ -610,8 +704,14 @@ def build_rig(self):
 	log.error("spine.build_deformationRig>>bad self!")
 	raise StandardError,error
     _str_funcName = "build_rig(%s)"%self._strShortName
-    log.info(">>> %s "%(_str_funcName) + "="*75)         
+    log.debug(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()
+    
     try:#>>>Get data
+	_str_subFunc = "Data"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 
+	
 	orientation = modules.returnSettingsData('jointOrientation')
 	
 	mi_segmentCurve = self._i_rigNull.msgList_get('segmentCurves',asMeta = True)[0]
@@ -643,12 +743,16 @@ def build_rig(self):
 	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK',asMeta = True)  
 	mi_cog = self._i_rigNull.cog
 	
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> gather data | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)     
 
     #Dynamic parent groups
     #====================================================================================
     try:#>>>> Shoulder dynamicParent
+	_str_subFunc = "Shoulder dynParent"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	#Build our dynamic groups
 	ml_shoulderDynParents = [ml_controlsFK[-1], mi_cog,]
 	ml_shoulderDynParents.extend(mi_handleIK.msgList_get('spacePivots',asMeta = True))
@@ -661,11 +765,15 @@ def build_rig(self):
 	for o in ml_shoulderDynParents:
 	    i_dynGroup.addDynParent(o)
 	i_dynGroup.rebuild()
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> shoulder dynamic parent | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)    
 
     
     try:#>>>> Hips dynamicParent
+	_str_subFunc = "Hips dynParent"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	ml_hipsDynParents = [mi_cog]
 	ml_hipsDynParents.extend(mi_hips.msgList_get('spacePivots',asMeta = True))
 	ml_hipsDynParents.append(self._i_masterControl)
@@ -677,25 +785,33 @@ def build_rig(self):
 	for o in ml_hipsDynParents:
 	    i_dynGroup.addDynParent(o)
 	i_dynGroup.rebuild()    
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> hips dynamic parent | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)     
 
     
     #FK influence on twist from the space it's in
     try:
+	_str_subFunc = "FK space switch"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	str_curve = mi_segmentCurve.getShortName()
 	NodeF.argsToNodes("%s.fkTwistInfluence = if %s.space == 0:1 else 0"%(str_curve,mi_handleIK.getShortName())).doBuild()
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> fkTwistInfluencecond node arg | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)     
     
     try:#Parent and constrain joints
 	#====================================================================================
+	_str_subFunc = "Parent and constrain"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	ml_segmentJoints[0].parent = mi_cog.mNode#Segment to cog
 	ml_segmentSplineJoints[0].parent = mi_cog.mNode#Spline Segment to cog
 	
 	#Put the start and end controls in the heirarchy
-	mc.parent(ml_segmentHandles[0].parent,mi_segmentAttachStart.mNode)
-	mc.parent(ml_segmentHandles[-1].parent,mi_segmentAttachEnd.mNode)
+	ml_segmentHandles[0].masterGroup.parent = mi_segmentAttachStart.mNode
+	ml_segmentHandles[-1].masterGroup.parent = mi_segmentAttachEnd.mNode
 	
 	mi_segmentAnchorStart.parent = mi_cog.mNode#Segment anchor start to cog
 	mc.parentConstraint(ml_rigJoints[0].mNode,mi_segmentAnchorStart.mNode,maintainOffset=True)#constrain
@@ -739,28 +855,40 @@ def build_rig(self):
 	mc.pointConstraint(ml_anchorJoints[-1].mNode,ml_handleJoints[-2].mNode,maintainOffset=False)
 	mc.orientConstraint(ml_anchorJoints[-1].mNode,ml_handleJoints[-2].mNode,maintainOffset=False)
 	mc.connectAttr((ml_anchorJoints[-1].mNode+'.s'),(ml_handleJoints[-2].mNode+'.s'))
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> parent/constraining | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)      
 	
     #Set up heirarchy, connect master scale
     #====================================================================================
     try:#>>>Connect master scale
+	_str_subFunc = "Master Scale"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn("%s.%s"%(self._i_masterControl.mNode,'scaleY'))    
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> master scale| error: %s"%(_str_funcName,error)    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)  
     
     #Vis Network, lock and hide
     #====================================================================================   
     try:#Setup Cog vis control for fk controls
+	_str_subFunc = "Cog/fk vis"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	mi_cog.addAttr('visFK', defaultValue = 1, attrType = 'bool',keyable = False,hidden = False, initialValue = 1)
 	cgmMeta.cgmAttr( ml_controlsFK[0].mNode,'visibility').doConnectIn('%s.%s'%(mi_cog.mNode,'visFK'))    
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> fk controls vis on cog | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)      
 
     #Lock and hide hips and shoulders    
     try:#Set up Scale joints
 	#====================================================================================     
 	#Connect our last segment to the sternum if we have a scale joint
+	_str_subFunc = "Scale joints"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	if ml_handleJoints[-2].getMessage('scaleJoint'):
 	    i_scaleJoint = ml_handleJoints[-2].scaleJoint
 	    mc.connectAttr((ml_segmentHandles[-1].mNode+'.s%s'%self._jointOrientation[1]),(i_scaleJoint.mNode+'.s%s'%self._jointOrientation[1]))    
@@ -775,11 +903,15 @@ def build_rig(self):
 		mc.parentConstraint(mi_hips.mNode,i_jnt.mNode,maintainOffset=True)	    
 	else:
 	    attributes.doSetLockHideKeyableAttr(mi_hips.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> scale joints | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)     
 	
     try:#Set up some defaults
 	#====================================================================================
+	_str_subFunc = "Attributes Defaults"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
 	mPlug_segStart = cgmMeta.cgmAttr(ml_segmentHandles[0],'followRoot')
 	mPlug_segStart.p_defaultValue = .5
 	mPlug_segStart.value = .5
@@ -792,24 +924,30 @@ def build_rig(self):
 	mPlug_segEnd = cgmMeta.cgmAttr(ml_segmentHandles[-1],'followRoot')
 	mPlug_segEnd.p_defaultValue = .5
 	mPlug_segEnd.value = .5
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >> defaults | error: %s"%(_str_funcName,error)  
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #sub vis,control groups
     #====================================================================================
     try:#Vis/locks
+	_str_subFunc = "sub vis/lock control groups"
+	time_sub = time.clock() 
+	log.debug(">>> %s..."%_str_subFunc) 	
         attributes.doSetLockHideKeyableAttr(mi_handleIK.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
 	for mCtrl in (ml_controlsFK + [mi_cog,mi_hips,mi_handleIK] + ml_segmentHandles):
 	    mCtrl._setControlGroupLocks()	
 	    
 	for mCtrl in ml_segmentHandles:
 	    cgmMeta.cgmAttr(mCtrl,"s%s"%orientation[0],lock=True,hidden=True,keyable=False)
+	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s >>vis/lock control groups | error: %s"%(_str_funcName,error)       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)     
     
     #Final stuff
     self._set_versionToCurrent()
     
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)         
     return True 
 
 #----------------------------------------------------------------------------------------------
@@ -824,7 +962,7 @@ __d_buildOrder__ = {0:{'name':'shapes','function':build_shapes},
 #----------------------------------------------------------------------------------------------
 
 """
-@cgmGeneral.Timer
+
 def __build__(self, buildTo='',*args,**kws): 
     try:
 	if not self._cgmClass == 'RigFactory.go':

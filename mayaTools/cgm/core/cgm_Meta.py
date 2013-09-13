@@ -135,7 +135,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	Setup before maya object initialization
 	"""
 	self.referencePrefix = False
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
@@ -332,7 +332,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		return False
 	    
     #Connection stuff =========================================================================
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
         Fast method of connecting a node to the mNode via a message attr link. This call
@@ -454,7 +454,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("connectChildrenNodes: %s"%error)
 		
     #msgList Functions =====================================================================
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def msgList_connect(self, nodes, attr = None, connectBack = None):
         """
         Because multimessage data can't be counted on for important sequential connections we have
@@ -485,7 +485,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
     
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def msgList_get(self,attr = None, asMeta = True, cull = True):
 	"""
         @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
@@ -607,7 +607,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	log.debug("-"*100)            	               	
 	return False
     
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def msgList_purge(self,attr):
 	"""
 	Purge all the attributes of a msgList
@@ -638,7 +638,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
     
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def msgList_exists(self,attr):
 	"""
 	Fast check to see if we have data on this attr chain
@@ -1260,7 +1260,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 # cgmObject - sublass to cgmNode
 #=========================================================================        
 class cgmObject(cgmNode):  
-    @cgmGeneral.TimerDebug  
+    #@cgmGeneral.TimerDebug  
     def __init__(self,node = None, name = 'null',setClass = False,*args,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
@@ -1682,7 +1682,7 @@ class cgmControl(cgmObject):
     #========================================================================    
     def _setControlGroupLocks(self,lock = True, constraintGroup = False):
 	_str_funcName = "_setGroupLocks(%s)"%self.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75) 
 	try:
 	    l_groups = ['masterGroup','zeroGroup']
 	    if constraintGroup: l_groups.append('constraintGroup')
@@ -2540,7 +2540,7 @@ class cgmBufferNode(cgmNode):
     def getValue(self):
 	return self.l_buffer
     
-    @r9General.Timer   
+    #@cgmGeneral.TimerDebug   
     def setValue(self,value):
 	if self.isReferenced():
 	    log.warning('This function is not designed for referenced buffer nodes')
@@ -3480,7 +3480,7 @@ class cgmAttr(object):
 	    return attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or None	    
 	return attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or None
     
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def doCopySettingsTo(self,attrArg):
         """ 
         Copies settings from one attr to another
@@ -3640,7 +3640,7 @@ class cgmAttr(object):
 	    log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
 	except StandardError,error:
 	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
-    @cgmGeneral.TimerDebug
+    #@cgmGeneral.TimerDebug
     def doConnectIn(self,source,childIndex = False,*a, **kw):
         """ 
         Attempts to make a connection from a source to our instanced attribute
@@ -4227,7 +4227,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 #=========================================================================      
 # Argument validation
 #=========================================================================  
-@cgmGeneral.TimerDebug
+#@cgmGeneral.TimerDebug
 def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     """
     validate an objArg to be able to get instance of the object
@@ -4296,7 +4296,7 @@ def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = c
 	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
 	raise StandardError,error  
     
-@cgmGeneral.TimerDebug   
+#@cgmGeneral.TimerDebug   
 def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
     log.debug(">>> validateObjListArg >> l_args = %s"%l_args + "="*75)            	        
     try:
@@ -4310,7 +4310,7 @@ def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mT
 	log.error("validateObjListArg>>Failure! l_args: %s | mType: %s"%(l_args,mType))
 	raise StandardError,error    
 
-@cgmGeneral.TimerDebug    
+#@cgmGeneral.TimerDebug    
 def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
     """
     Validate an attr arg to usable info
@@ -4371,7 +4371,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    return False
 	raise StandardError,"%s >> arg: %s | defaultType: %s | noneValid: %s | %s"%(_str_funcName,defaultType,noneValid,error)
     
-@cgmGeneral.TimerDebug    
+#@cgmGeneral.TimerDebug    
 def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
     try:
 	log.debug(">>> validateAttrListArg >> l_args = %s"%l_args + "="*75)            	

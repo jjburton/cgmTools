@@ -39,7 +39,7 @@ l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids']
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-@cgmGeneral.Timer
+
 def isSized(self):
     """
     Return if a moudle is sized or not
@@ -76,7 +76,7 @@ def deleteSizeInfo(self,*args,**kws):
     log.debug(">>> %s.deleteSizeInfo() >> "%(self.p_nameShort) + "="*75) 		                                	                            
     self.templateNull.__setattr__('templateStarterData','',lock=True)
     
-@cgmGeneral.Timer    
+    
 def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     """
     Size a module
@@ -199,7 +199,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
                        create = 'locator',
                        toCreate = namesToCreate)
     
-@cgmGeneral.Timer
+
 def doSetParentModule(self,moduleParent,force = False):
     """
     Set a module parent of a module
@@ -267,7 +267,7 @@ def doSetParentModule(self,moduleParent,force = False):
     return True
 
 
-@cgmGeneral.Timer
+
 def getGeneratedCoreNames(self):
     """ 
     Generate core names for a module and return them
@@ -336,7 +336,7 @@ def getGeneratedCoreNames(self):
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
-@cgmGeneral.Timer
+
 def doRig(self,*args,**kws):
     _str_funcName = "getGeneratedCoreNames(%s)"%self.p_nameShort   
     log.info(">>> %s "%(_str_funcName) + "="*75)        
@@ -358,7 +358,7 @@ def doRig(self,*args,**kws):
     #except StandardError,error:
         #log.warning(error)    
 
-@cgmGeneral.Timer
+
 def isRigged(self):
     """
     Return if a module is rigged or not
@@ -405,7 +405,7 @@ def isRigged(self):
             
     return True
 
-@cgmGeneral.Timer
+
 def rigDelete(self,*args,**kws):
     #1 zero out controls
     #2 see if connected, if so break connection
@@ -453,7 +453,7 @@ def rigDelete(self,*args,**kws):
     
     return True
 
-@cgmGeneral.Timer
+
 def isRigConnected(self,*args,**kws):
     _str_funcName = "isRigConnected(%s)"%self.p_nameShort   
     log.info(">>> %s "%(_str_funcName) + "="*75)    
@@ -476,7 +476,7 @@ def isRigConnected(self,*args,**kws):
 
     return True
 
-@cgmGeneral.Timer
+
 def rigConnect(self,*args,**kws):
     _str_funcName = "rigConnect(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)  	                    
@@ -504,7 +504,7 @@ def rigConnect(self,*args,**kws):
 
     return True
 
-@cgmGeneral.Timer
+
 def rigDisconnect(self,*args,**kws):
     """
     See if rigged and connected. Zero. Gather constraints, delete, break connections
@@ -572,7 +572,7 @@ def rig_getRigHandleJoints(self,asMeta = True):
 #=====================================================================================================
 #>>> Template
 #=====================================================================================================
-@cgmGeneral.Timer
+
 def isTemplated(self):
     """
     Return if a module is templated or not
@@ -635,7 +635,7 @@ def isTemplated(self):
     elif self.mClass == 'cgmEyeball':
 	return True
 
-@cgmGeneral.Timer
+
 def doTemplate(self,*args,**kws):
     _str_funcName = "doTemplate(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)       
@@ -650,7 +650,7 @@ def doTemplate(self,*args,**kws):
     #except StandardError,error:
         #log.warning(error)    
     
-@cgmGeneral.Timer
+
 def deleteTemplate(self,*args,**kws):
     _str_funcName = "deleteTemplate(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)    
@@ -664,7 +664,7 @@ def deleteTemplate(self,*args,**kws):
     except StandardError,error:
         log.warning(error)
         
-@cgmGeneral.Timer
+
 def returnTemplateObjects(self):
     _str_funcName = "returnTemplateObjects(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)        
@@ -680,7 +680,7 @@ def returnTemplateObjects(self):
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
-@cgmGeneral.Timer
+
 def get_rollJointCountList(self):
     try:
 	_str_funcName = "get_rollJointCountList(%s)"%self.p_nameShort   
@@ -702,7 +702,7 @@ def get_rollJointCountList(self):
     except StandardError,error:
 	raise StandardError,"%s.get_rollJointCountList >> failed: %s"%(self.getShortName(),error)
 	
-@cgmGeneral.Timer
+
 def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
@@ -727,7 +727,7 @@ def isSkeletonized(self):
         return False
     return True
 
-@cgmGeneral.Timer
+
 def doSkeletonize(self,*args,**kws):
     _str_funcName = "doSkeletonize(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)        
@@ -743,7 +743,7 @@ def doSkeletonize(self,*args,**kws):
     except StandardError,error:
 	raise StandardError,"%s >> failed: %s"%(_str_funcName,error)	
 
-@cgmGeneral.Timer       
+       
 def deleteSkeleton(self,*args,**kws): 
     _str_funcName = "deleteSkeleton(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)       
@@ -751,7 +751,7 @@ def deleteSkeleton(self,*args,**kws):
         jFactory.deleteSkeleton(self,*args,**kws)
     return True
 
-@cgmGeneral.Timer
+
 def returnExpectedJointCount(self):
     """
     Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
@@ -791,7 +791,7 @@ def returnExpectedJointCount(self):
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
-@cgmGeneral.Timer
+
 def validateStateArg(stateArg):
     _str_funcName = "validateStateArg(%s)"%stateArg 
     log.debug(">>> %s "%(_str_funcName) + "="*75)       
@@ -816,7 +816,7 @@ def validateStateArg(stateArg):
         return False
     return [stateIndex,stateName]
     
-@cgmGeneral.Timer
+
 def isModule(self):
     """
     Simple module check
@@ -832,7 +832,7 @@ def isModule(self):
     log.debug("Is a module: : '%s'"%self.getShortName())
     return True
 
-@cgmGeneral.Timer
+
 def getState(self):
     """ 
     Check module state ONLY from the state check attributes
@@ -872,7 +872,7 @@ def getState(self):
     except StandardError,error:
 	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
     
-@cgmGeneral.Timer
+
 def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     """ 
     Set a module's state
@@ -894,7 +894,7 @@ def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     changeState(self, stateArg, *args,**kws)
         
     
-@cgmGeneral.Timer
+
 def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws):
     """ 
     Changes a module state
@@ -989,7 +989,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     except StandardError,error:
 	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
     
-@cgmGeneral.Timer
+
 def storePose_templateSettings(self):
     """
     Builds a template's data settings for reconstruction.
@@ -1038,7 +1038,7 @@ def storePose_templateSettings(self):
     except StandardError,error:
 	raise StandardError,"%s >> error: %s"%(_str_funcName,error)    
 
-@cgmGeneral.Timer
+
 def readPose_templateSettings(self):
     """
     Builds a template's data settings for reconstruction.
@@ -1127,7 +1127,7 @@ def mirrorMe(self,**kws):
 #=====================================================================================================
 #>>> Children functions
 #=====================================================================================================  
-@cgmGeneral.Timer
+
 def getAllModuleChildren(self):
     """
     Finds all module descendants of a module.
@@ -1156,7 +1156,7 @@ def getAllModuleChildren(self):
     except StandardError,error:
 	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
     
-@cgmGeneral.Timer
+
 def animKey_children(self,**kws):
     """
     Key module and all module children controls
@@ -1185,7 +1185,7 @@ def animKey_children(self,**kws):
     except StandardError,error:
 	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
     
-@cgmGeneral.Timer
+
 def animSelect_children(self,**kws):
     """
     Select module and all module children controls
@@ -1213,7 +1213,7 @@ def animSelect_children(self,**kws):
     except StandardError,error:
 	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
 
-@cgmGeneral.Timer 
+ 
 def dynSwitch_children(self,arg):
     """
     Key module and all module children

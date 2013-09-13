@@ -225,7 +225,6 @@ d_shortAxisToLong = {'x':'x+','y':'y+','z':'z+'}
 class simpleAxis():
     """ 
     """
-    @cgmGeneral.Timer
     def __init__(self,arg):
 	_str_funcName = "simpleAxis"    
 	log.debug(">>> %s(arg = %s)"%(_str_funcName,arg) + "="*75)
