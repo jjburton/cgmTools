@@ -45,7 +45,7 @@ def isSized(self):
     Return if a moudle is sized or not
     """
     _str_funcName = "isSized(%s)"%self.p_nameShort   
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+    log.info(">>> %s "%(_str_funcName) + "="*75)
     if self.mClass in ['cgmEyelids','cgmEyeball']:
 	if self.getMessage('helper'):
 	    log.debug("%s.isSized>>> has size helper, good to go."%self.getShortName())	    
@@ -96,6 +96,7 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
     Add clamp on value
     Add a way to pull size info from a mirror module
     """
+    _str_funcName = "doSize(%s)"%self.p_nameShort   
     log.debug(">>> %s.doSize(sizeMode = %s, geo = %s, posList = %s) >> "%(self.p_nameShort,sizeMode,geo,posList) + "="*75) 		                                	                                    
     clickMode = {"heel":"surface"}    
     i_coreNames = self.coreNames
@@ -211,6 +212,7 @@ def doSetParentModule(self,moduleParent,force = False):
     #>>Check existance
         #==============	
     #Get our instance
+    _str_funcName = "doSetParentModule(%s)"%self.p_nameShort   
     log.debug(">>> %s.doSetParentModule(moduleParent = %s, force = %s) >> "%(self.p_nameShort,moduleParent,force) + "="*75) 		                                	                            
     
     try:
@@ -278,8 +280,8 @@ def getGeneratedCoreNames(self):
     TODO:
     Where to store names?
     """
-    log.debug(">>> %s.getGeneratedCoreNames() >> "%(self.p_nameShort) + "="*75) 		                                	                            
-    log.debug("Generating core names via ModuleFactory - '%s'"%self.getShortName())
+    _str_funcName = "getGeneratedCoreNames(%s)"%self.p_nameShort   
+    log.info(">>> %s "%(_str_funcName) + "="*75)        
     i_coreNames = self.coreNames
 
     ### check the settings first ###
@@ -336,7 +338,8 @@ def getGeneratedCoreNames(self):
 #=====================================================================================================
 @cgmGeneral.Timer
 def doRig(self,*args,**kws):
-    log.debug(">>> %s.doRig() >> "%(self.p_nameShort) + "="*75) 		            
+    _str_funcName = "getGeneratedCoreNames(%s)"%self.p_nameShort   
+    log.info(">>> %s "%(_str_funcName) + "="*75)        
     if not isSkeletonized(self):
         log.warning("%s.doRig>>> Not skeletonized"%self.getShortName())
         return False      
@@ -365,6 +368,8 @@ def isRigged(self):
     if not isSkeletonized(self):
         log.warning("%s.isRigged>>> Not skeletonized"%self.getShortName())
         return False   """
+    _str_funcName = "isRigged(%s)"%self.p_nameShort   
+    log.info(">>> %s "%(_str_funcName) + "="*75)   
     
     i_rigNull = self.rigNull
     str_shortName = self.getShortName()
@@ -406,8 +411,8 @@ def rigDelete(self,*args,**kws):
     #2 see if connected, if so break connection
     #3 delete everything but the rig - rigNull, deform stuff
     #Data get
-    log.debug(">>> %s.rigDelete() >> "%(self.p_nameShort) + "="*75) 		                                	                            
-    
+    _str_funcName = "rigDelete(%s)"%self.p_nameShort   
+    log.info(">>> %s "%(_str_funcName) + "="*75)       
     str_shortName = self.getShortName()
     
     #if not isRigged(self):
@@ -450,7 +455,8 @@ def rigDelete(self,*args,**kws):
 
 @cgmGeneral.Timer
 def isRigConnected(self,*args,**kws):
-    log.debug(">>> %s.isRigConnected() >> "%(self.p_nameShort) + "="*75) 		                
+    _str_funcName = "isRigConnected(%s)"%self.p_nameShort   
+    log.info(">>> %s "%(_str_funcName) + "="*75)    
     str_shortName = self.getShortName()
     if not isRigged(self):
         log.debug("moduleFactory.isRigConnected('%s')>>>> Module not rigged"%(str_shortName))
@@ -472,7 +478,8 @@ def isRigConnected(self,*args,**kws):
 
 @cgmGeneral.Timer
 def rigConnect(self,*args,**kws):
-    log.debug(">>> %s.rigConnect() >> "%(self.p_nameShort) + "="*75) 		                    
+    _str_funcName = "rigConnect(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  	                    
     str_shortName = self.getShortName()
     if not isRigged(self):
         raise StandardError,"moduleFactory.rigConnect('%s')>>>> Module not rigged"%(str_shortName)
@@ -502,7 +509,8 @@ def rigDisconnect(self,*args,**kws):
     """
     See if rigged and connected. Zero. Gather constraints, delete, break connections
     """
-    log.debug(">>> %s.rigDisconnect() >> "%(self.p_nameShort) + "="*75) 		                        
+    _str_funcName = "rigDisconnect(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  		                        
     str_shortName = self.getShortName()
     if not isRigged(self):
         raise StandardError,"moduleFactory.rigDisconnect('%s')>>>> Module not rigged"%(str_shortName)
@@ -545,10 +553,12 @@ def rig_getHandleJoints(self,asMeta = True):
     """
     Find the module handle joints
     """
+    _str_funcName = "rig_getHandleJoints(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  	    
     try:
 	return mRig.get_handleJoints(self,asMeta)
     except StandardError,error:
-	raise StandardError,"%s.rig_getHandleJoints >> failed: %s"%(self.getShortName(),error)
+	raise StandardError,"%s >> %s"%(_str_funcName,error)
     
 def rig_getRigHandleJoints(self,asMeta = True):
     """
@@ -567,7 +577,9 @@ def isTemplated(self):
     """
     Return if a module is templated or not
     """
-    log.debug(">>> %s.isTemplated() >> "%(self.p_nameShort) + "="*75) 
+    _str_funcName = "isTemplated(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)    
+    
     if self.mClass in ['cgmEyelids','cgmEyeball']:
 	if self.getMessage('helper'):
 	    log.debug("%s.isTemplated>>> has size helper, good to go."%self.getShortName())	    
@@ -625,8 +637,8 @@ def isTemplated(self):
 
 @cgmGeneral.Timer
 def doTemplate(self,*args,**kws):
-    log.debug(">>> %s.doTemplate() >> "%(self.p_nameShort) + "="*75) 		                        
-    
+    _str_funcName = "doTemplate(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)       
     if not isSized(self):
         log.warning("Not sized: '%s'"%self.getShortName())
         return False      
@@ -640,7 +652,8 @@ def doTemplate(self,*args,**kws):
     
 @cgmGeneral.Timer
 def deleteTemplate(self,*args,**kws):
-    log.debug(">>> %s.deleteTemplate() >> "%(self.p_nameShort) + "="*75) 		                            
+    _str_funcName = "deleteTemplate(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)    
     try:
         objList = returnTemplateObjects(self)
         if objList:
@@ -653,7 +666,8 @@ def deleteTemplate(self,*args,**kws):
         
 @cgmGeneral.Timer
 def returnTemplateObjects(self):
-    log.debug(">>> %s.returnTemplateObjects() >> "%(self.p_nameShort) + "="*75) 		                                
+    _str_funcName = "returnTemplateObjects(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)        
     try:
         templateNull = self.templateNull.getShortName()
         returnList = []
@@ -669,7 +683,8 @@ def returnTemplateObjects(self):
 @cgmGeneral.Timer
 def get_rollJointCountList(self):
     try:
-	log.debug(">>> %s.get_rollJointCountList() >> "%(self.p_nameShort) + "="*75) 		                                	
+	_str_funcName = "get_rollJointCountList(%s)"%self.p_nameShort   
+	log.debug(">>> %s "%(_str_funcName) + "="*75)  	
 	int_rollJoints = self.templateNull.rollJoints
 	d_rollJointOverride = self.templateNull.rollOverride
 	if type(d_rollJointOverride) is not dict:d_rollJointOverride = {}
@@ -692,7 +707,8 @@ def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
     """
-    log.debug(">>> %s.isSkeletonized() >> "%(self.p_nameShort) + "="*75) 
+    _str_funcName = "isSkeletonized(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)      
     """
     if not isTemplated(self):
         log.debug("Not templated, can't be skeletonized yet")
@@ -713,7 +729,8 @@ def isSkeletonized(self):
 
 @cgmGeneral.Timer
 def doSkeletonize(self,*args,**kws):
-    log.debug(">>> %s.doSkeletonize() >> "%(self.p_nameShort) + "="*75) 		                                	    
+    _str_funcName = "doSkeletonize(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)        
     try:
         if not isTemplated(self):
             log.warning("Not templated, can't skeletonize: '%s'"%self.getShortName())
@@ -724,11 +741,12 @@ def doSkeletonize(self,*args,**kws):
             return False
         return True
     except StandardError,error:
-	raise StandardError,"%s.doSkeletonize >> failed: %s"%(self.getShortName(),error)	
+	raise StandardError,"%s >> failed: %s"%(_str_funcName,error)	
 
 @cgmGeneral.Timer       
 def deleteSkeleton(self,*args,**kws): 
-    log.debug(">>> %s.deleteSkeleton() >> "%(self.p_nameShort) + "="*75) 		                                	        
+    _str_funcName = "deleteSkeleton(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)       
     if isSkeletonized(self):
         jFactory.deleteSkeleton(self,*args,**kws)
     return True
@@ -738,19 +756,22 @@ def returnExpectedJointCount(self):
     """
     Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
     """
-    log.debug(">>> %s.returnExpectedJointCount() >> "%(self.p_nameShort) + "="*75) 		                                	            
+    _str_funcName = "returnExpectedJointCount(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)
+    
     handles = self.templateNull.handles
     if handles == 0:
         log.warning("Can't count expected joints. 0 handles: '%s'"%self.getShortName())
         return False
     
-    if self.templateNull.hasAttr('rollJoints'):
+    if self.templateNull.getAttr('rollJoints'):
 	rollJoints = self.templateNull.rollJoints 
 	d_rollJointOverride = self.templateNull.rollOverride 
 	
 	l_spanDivs = []
 	for i in range(0,handles-1):
 	    l_spanDivs.append(rollJoints)    
+	log.debug("l_spanDivs before append: %s"%l_spanDivs)
     
 	if type(d_rollJointOverride) is dict:
 	    for k in d_rollJointOverride.keys():
@@ -758,7 +779,7 @@ def returnExpectedJointCount(self):
 		    l_spanDivs[int(k)]#If the arg passes
 		    l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
 		except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))    
-	
+	log.debug("l_spanDivs: %s"%l_spanDivs)
 	int_count = 0
 	for i,n in enumerate(l_spanDivs):
 	    int_count +=1
@@ -772,6 +793,8 @@ def returnExpectedJointCount(self):
 #=====================================================================================================        
 @cgmGeneral.Timer
 def validateStateArg(stateArg):
+    _str_funcName = "validateStateArg(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)       
     #>>> Validate argument
     if type(stateArg) in [str,unicode]:
         stateArg = stateArg.lower()
@@ -798,6 +821,8 @@ def isModule(self):
     """
     Simple module check
     """
+    _str_funcName = "isModule(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)        
     if not self.hasAttr('mClass'):
         log.warning("Has no 'mClass', not a module: '%s'"%self.getShortName())
         return False
@@ -822,24 +847,31 @@ def getState(self):
     skeletonized
     rigged
     """
-    if not isModule(self):
-        return False
-    d_CheckList = {'size':isSized,
-                   'template':isTemplated,
-                   'skeleton':isSkeletonized,
-                   'rig':isRigged,
-                   }
-    goodState = 0
-    for i,state in enumerate(l_moduleStates):
-        if state in d_CheckList.keys():
-            if d_CheckList[state](self):
-                goodState = i
-            else:break
-        elif i != 0:
-            log.warning("Need test for: '%s'"%state)
-    log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
-    return goodState
-
+    _str_funcName = "getState(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)       
+    try:
+	d_CheckList = {'size':isSized,
+	               'template':isTemplated,
+	               'skeleton':isSkeletonized,
+	               'rig':isRigged,
+	               }
+	goodState = 0
+	l_moduleStatesReverse = copy.copy(l_moduleStates)
+	l_moduleStatesReverse.reverse()
+	for i,state in enumerate(l_moduleStatesReverse):
+	    log.debug("Checking: %s"%state)	
+	    if state in d_CheckList.keys():
+		if d_CheckList[state](self):
+		    log.debug("good: %s"%state)
+		    goodState = l_moduleStates.index(state)
+		    break
+	    else:
+		log.warning("Need test for: '%s'"%state)
+	log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
+	return goodState
+    except StandardError,error:
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
+    
 @cgmGeneral.Timer
 def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     """ 
@@ -849,6 +881,7 @@ def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     TODO:
     Make template info be stored when leaving
     """
+    _str_funcName = "setState(%s)"%self.p_nameShort   
     log.debug(">>> %s.setState( stateArg = %s , rebuildFrom = %s) >> "%(self.p_nameShort,stateArg,rebuildFrom) + "="*75) 		                                	        
     log.debug("stateArg: %s"%stateArg)
     
@@ -872,6 +905,7 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     
     
     """
+    _str_funcName = "changeState(%s)"%self.p_nameShort   
     log.debug(">>> %s.changeState( stateArg = %s , rebuildFrom = %s, forceNew = %s) >> "%(self.p_nameShort,stateArg,rebuildFrom,forceNew) + "="*75) 		                                	            
     d_upStateFunctions = {'size':doSize,
                            'template':doTemplate,
@@ -893,67 +927,67 @@ def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws
     log.debug("rebuildFrom: %s"%rebuildFrom)
     log.debug("forceNew: %s"%forceNew)
     
-    if not isModule(self):
-        return False
-    
-    stateArgs = validateStateArg(stateArg)
-    if not stateArgs:
-        log.warning("Bad stateArg from changeState: %s"%stateArg)
-        return False
-    
-    stateIndex = stateArgs[0]
-    stateName = stateArgs[1]
-    
-    log.debug("stateIndex: %s | stateName: '%s'"%(stateIndex,stateName))
-    
-    #>>> Meat
-    #========================================================================
-    currentState = getState(self) 
-    if currentState == stateIndex and rebuildFrom is None and not forceNew:
-        if not forceNew:log.warning("'%s' already has state: %s"%(self.getShortName(),stateName))
-        return True
-    #If we're here, we're going to move through the set states till we get to our spot
-    log.debug("Changing states now...")
-    if stateIndex > currentState:
-        startState = currentState+1        
-        log.debug(' up stating...')        
-        log.debug("Starting doState: '%s'"%l_moduleStates[startState])
-        doStates = l_moduleStates[startState:stateIndex+1]
-        log.debug("doStates: %s"%doStates)        
-        for doState in doStates:
-            if doState in d_upStateFunctions.keys():
-                if not d_upStateFunctions[doState](self,*args,**kws):return False
-                else:
-                    log.debug("'%s' completed: %s"%(self.getShortName(),doState))
-            else:
-                log.warning("No up state function for: %s"%doState)
-    elif stateIndex < currentState:#Going down
-        log.debug('down stating...')        
-        l_reverseModuleStates = copy.copy(l_moduleStates)
-        l_reverseModuleStates.reverse()
-        startState = currentState      
-        log.debug(' up stating...')     
-        log.debug("l_reverseModuleStates: %s"%l_reverseModuleStates)
-        log.debug("Starting downState: '%s'"%l_moduleStates[startState])
-        rev_start = l_reverseModuleStates.index( l_moduleStates[startState] )+1
-        rev_end = l_reverseModuleStates.index( l_moduleStates[stateIndex] )+1
-        doStates = l_reverseModuleStates[rev_start:rev_end]
-        log.debug("toDo: %s"%doStates)
-        
-        for doState in doStates:
-            log.debug("doState: %s"%doState)
-            if doState in d_downStateFunctions.keys():
-                if not d_downStateFunctions[doState](self,*args,**kws):return False
-                else:log.debug("'%s': %s"%(self.getShortName(),doState))
-            else:
-                log.warning("No down state function for: %s"%doState)  
-    else:
-        log.debug('Forcing recreate')
-        if stateName in d_upStateFunctions.keys():
-            #d_deleteStateFunctions[stateName](self)
-            if not d_upStateFunctions[stateName](self,*args,**kws):return False
-            return True
-        
+    try:
+	stateArgs = validateStateArg(stateArg)
+	if not stateArgs:
+	    log.warning("Bad stateArg from changeState: %s"%stateArg)
+	    return False
+	
+	stateIndex = stateArgs[0]
+	stateName = stateArgs[1]
+	
+	log.debug("stateIndex: %s | stateName: '%s'"%(stateIndex,stateName))
+	
+	#>>> Meat
+	#========================================================================
+	currentState = getState(self) 
+	if currentState == stateIndex and rebuildFrom is None and not forceNew:
+	    if not forceNew:log.warning("'%s' already has state: %s"%(self.getShortName(),stateName))
+	    return True
+	#If we're here, we're going to move through the set states till we get to our spot
+	log.debug("Changing states now...")
+	if stateIndex > currentState:
+	    startState = currentState+1        
+	    log.debug(' up stating...')        
+	    log.debug("Starting doState: '%s'"%l_moduleStates[startState])
+	    doStates = l_moduleStates[startState:stateIndex+1]
+	    log.debug("doStates: %s"%doStates)        
+	    for doState in doStates:
+		if doState in d_upStateFunctions.keys():
+		    if not d_upStateFunctions[doState](self,*args,**kws):return False
+		    else:
+			log.debug("'%s' completed: %s"%(self.getShortName(),doState))
+		else:
+		    log.warning("No up state function for: %s"%doState)
+	elif stateIndex < currentState:#Going down
+	    log.debug('down stating...')        
+	    l_reverseModuleStates = copy.copy(l_moduleStates)
+	    l_reverseModuleStates.reverse()
+	    startState = currentState      
+	    log.debug(' up stating...')     
+	    log.debug("l_reverseModuleStates: %s"%l_reverseModuleStates)
+	    log.debug("Starting downState: '%s'"%l_moduleStates[startState])
+	    rev_start = l_reverseModuleStates.index( l_moduleStates[startState] )+1
+	    rev_end = l_reverseModuleStates.index( l_moduleStates[stateIndex] )+1
+	    doStates = l_reverseModuleStates[rev_start:rev_end]
+	    log.debug("toDo: %s"%doStates)
+	    
+	    for doState in doStates:
+		log.debug("doState: %s"%doState)
+		if doState in d_downStateFunctions.keys():
+		    if not d_downStateFunctions[doState](self,*args,**kws):return False
+		    else:log.debug("'%s': %s"%(self.getShortName(),doState))
+		else:
+		    log.warning("No down state function for: %s"%doState)  
+	else:
+	    log.debug('Forcing recreate')
+	    if stateName in d_upStateFunctions.keys():
+		#d_deleteStateFunctions[stateName](self)
+		if not d_upStateFunctions[stateName](self,*args,**kws):return False
+		return True
+	    
+    except StandardError,error:
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
     
 @cgmGeneral.Timer
 def storePose_templateSettings(self):
@@ -964,7 +998,7 @@ def storePose_templateSettings(self):
                 'controlObjects':{0:[1,1,1]}}
     """  
     _str_funcName = "storePose_templateSettings(%s)"%self.p_nameShort  
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)   
+    log.info(">>> %s "%(_str_funcName) + "="*75)   
     
     if self.getMessage('helper'):
 	log.warning(">>> %s | Error: Cannot currently store pose with rigBlocks"%_str_funcName)
@@ -983,26 +1017,26 @@ def storePose_templateSettings(self):
                    'orientRootHelper':{'test':[0,1,0]},
                    'controlObjects':{0:[1,1,1]},
                    'helperObjects':{0:[]}}    
-    if not isModule(self):return False
-    if not isTemplated(self):return False
-    
-    poseDict = {}
-    i_templateNull = self.templateNull
-    i_templateNull.addAttr('controlObjectTemplatePose',attrType = 'string')#make sure attr exists
-    #>>> Get the root
-    poseDict['root'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('root')[0])
-    poseDict['orientRootHelper'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('orientRootHelper')[0])
-    poseDict['controlObjects'] = {}
-    poseDict['helperObjects'] = {}
-    
-    for i,i_node in enumerate(i_templateNull.controlObjects):
-        poseDict['controlObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.mNode)
-        if i_node.getMessage('helper'):
-            poseDict['helperObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.helper.mNode)
-    
-    #Store it        
-    i_templateNull.controlObjectTemplatePose = poseDict
-    return poseDict
+    try:
+	poseDict = {}
+	i_templateNull = self.templateNull
+	i_templateNull.addAttr('controlObjectTemplatePose',attrType = 'string')#make sure attr exists
+	#>>> Get the root
+	poseDict['root'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('root')[0])
+	poseDict['orientRootHelper'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('orientRootHelper')[0])
+	poseDict['controlObjects'] = {}
+	poseDict['helperObjects'] = {}
+	
+	for i,i_node in enumerate(i_templateNull.controlObjects):
+	    poseDict['controlObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.mNode)
+	    if i_node.getMessage('helper'):
+		poseDict['helperObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.helper.mNode)
+	
+	#Store it        
+	i_templateNull.controlObjectTemplatePose = poseDict
+	return poseDict
+    except StandardError,error:
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)    
 
 @cgmGeneral.Timer
 def readPose_templateSettings(self):
@@ -1012,53 +1046,54 @@ def readPose_templateSettings(self):
     exampleDict = {'root':{'test':[0,1,0]},
                 'controlObjects':{0:[1,1,1]}}
     """   
-    log.debug(">>> %s.readPose_templateSettings() >> "%(self.p_nameShort) + "="*75) 		                                	                
-    if not isModule(self):return False
-    if not isTemplated(self):return False
+    _str_funcName = "getState(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)       
+    try:
+	i_templateNull = self.templateNull    
+	poseDict = i_templateNull.controlObjectTemplatePose
+	if type(poseDict) is not dict:
+	    return False
+	
+	#>>> Get the root
+	for key in ['root','orientRootHelper']:
+	    if poseDict[key]:
+		for attr, val in poseDict[key].items():
+		    try:
+			val=eval(val)
+		    except:pass      
+		    try:
+			mc.setAttr('%s.%s' % (i_templateNull.getMessage(key)[0],attr), val)
+		    except StandardError,err:
+			log.error(err)   
+			
+	for key in poseDict['controlObjects']:
+	    for attr, val in poseDict['controlObjects'][key].items():
+		try:
+		    val=eval(val)
+		except:pass      
+	    
+		try:
+		    mc.setAttr('%s.%s' % (i_templateNull.getMessage('controlObjects')[int(key)], attr), val)
+		except StandardError,err:
+		    log.error(err) 
+		    
+	for key in poseDict['helperObjects']:
+	    for attr, val in poseDict['helperObjects'][key].items():
+		try:
+		    val=eval(val)
+		except:pass      
+	    
+		try:
+		    if i_templateNull.controlObjects[int(key)].getMessage('helper'):
+			log.debug(i_templateNull.controlObjects[int(key)].getMessage('helper')[0])
+			mc.setAttr('%s.%s' % (i_templateNull.controlObjects[int(key)].getMessage('helper')[0], attr), val)
+		except StandardError,err:
+		    log.error(err)    
+		    
+	return True
+    except StandardError,error:
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
     
-    i_templateNull = self.templateNull    
-    poseDict = i_templateNull.controlObjectTemplatePose
-    if type(poseDict) is not dict:
-        return False
-    
-    #>>> Get the root
-    for key in ['root','orientRootHelper']:
-        if poseDict[key]:
-            for attr, val in poseDict[key].items():
-                try:
-                    val=eval(val)
-                except:pass      
-                try:
-                    mc.setAttr('%s.%s' % (i_templateNull.getMessage(key)[0],attr), val)
-                except StandardError,err:
-                    log.error(err)   
-                    
-    for key in poseDict['controlObjects']:
-        for attr, val in poseDict['controlObjects'][key].items():
-            try:
-                val=eval(val)
-            except:pass      
-        
-            try:
-                mc.setAttr('%s.%s' % (i_templateNull.getMessage('controlObjects')[int(key)], attr), val)
-            except StandardError,err:
-                log.error(err) 
-                
-    for key in poseDict['helperObjects']:
-        for attr, val in poseDict['helperObjects'][key].items():
-            try:
-                val=eval(val)
-            except:pass      
-        
-            try:
-                if i_templateNull.controlObjects[int(key)].getMessage('helper'):
-                    log.debug(i_templateNull.controlObjects[int(key)].getMessage('helper')[0])
-                    mc.setAttr('%s.%s' % (i_templateNull.controlObjects[int(key)].getMessage('helper')[0], attr), val)
-            except StandardError,err:
-                log.error(err)    
-                
-    return True
-
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
@@ -1097,34 +1132,37 @@ def getAllModuleChildren(self):
     """
     Finds all module descendants of a module.
     """   
-    log.debug(">>> %s.getAllModuleChildren() >> "%(self.p_nameShort) + "="*75) 		                                	                    
-    if not isModule(self):return False
-    ml_children = []
-    ml_childrenCull = copy.copy(self.moduleChildren)
-                   
-    cnt = 0
-    #Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
-    while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
-        cnt+=1                        
-        if cnt == 99:
-            log.error('%s.getAllModuleChildren >> Max count')
-        for i_child in ml_childrenCull:
-	    log.debug("i_child: %s"%i_child.getShortName())
-	    if i_child not in ml_children:
-		ml_children.append(i_child)
-	    for i_subChild in i_child.moduleChildren:
-		ml_childrenCull.append(i_subChild)
-	    ml_childrenCull.remove(i_child) 
-                    
-    return ml_children
-
+    _str_funcName = "getAllModuleChildren(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+    try:
+	ml_children = []
+	ml_childrenCull = copy.copy(self.moduleChildren)
+		       
+	cnt = 0
+	#Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
+	while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
+	    cnt+=1                        
+	    if cnt == 99:
+		log.error('%s.getAllModuleChildren >> Max count')
+	    for i_child in ml_childrenCull:
+		log.debug("i_child: %s"%i_child.getShortName())
+		if i_child not in ml_children:
+		    ml_children.append(i_child)
+		for i_subChild in i_child.moduleChildren:
+		    ml_childrenCull.append(i_subChild)
+		ml_childrenCull.remove(i_child) 
+			
+	return ml_children
+    except StandardError,error:
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
+    
 @cgmGeneral.Timer
 def animKey_children(self,**kws):
     """
     Key module and all module children controls
     """   
-    log.debug(">>> %s.animKey_children() >> "%(self.p_nameShort) + "="*75) 		                                	                    
-    if not isModule(self):return False    
+    _str_funcName = "animKey_children(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)         
     try:
 	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
 	ml_children = getAllModuleChildren(self)
@@ -1145,16 +1183,15 @@ def animKey_children(self,**kws):
 	    return True
 	return False
     except StandardError,error:
-	log.error("%s.animKey_children>> animKey fail | %s"%(self.getBaseName(),error))
-	return False
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
     
 @cgmGeneral.Timer
 def animSelect_children(self,**kws):
     """
     Select module and all module children controls
     """     
-    log.debug(">>> %s.animSelect_children() >> "%(self.p_nameShort) + "="*75) 		                                	                        
-    if not isModule(self):return False    
+    _str_funcName = "animSelect_children(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)        
     try:
 	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
 	ml_children = getAllModuleChildren(self)
@@ -1174,30 +1211,30 @@ def animSelect_children(self,**kws):
 	    return True
 	return False
     except StandardError,error:
-	log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
-	return False   
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
 
 @cgmGeneral.Timer 
 def dynSwitch_children(self,arg):
     """
     Key module and all module children
     """  
-    log.debug(">>> %s.dynSwitch_children() >> "%(self.p_nameShort) + "="*75) 		                                	                        
-    if not isModule(self):return False  
-    
-    
+    _str_funcName = "dynSwitch_children(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
     try:
-	ml_children = getAllModuleChildren(self)
-	mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children))    
-	for i,i_c in enumerate(ml_children):
-	    try:
-		mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        			
-		i_c.rigNull.dynSwitch.go(arg)
-	    except StandardError,error:
-		log.error("%s.dynSwitch_children>>  child: %s | %s"%(self.getBaseName(),i_c.getShortName(),error))
-	cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+	try:
+	    ml_children = getAllModuleChildren(self)
+	    mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children))    
+	    for i,i_c in enumerate(ml_children):
+		try:
+		    mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        			
+		    i_c.rigNull.dynSwitch.go(arg)
+		except StandardError,error:
+		    log.error("%s.dynSwitch_children>>  child: %s | %s"%(self.getBaseName(),i_c.getShortName(),error))
+	    cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+	except StandardError,error:
+	    try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+	    except:pass
+	    log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
+	    return False  
     except StandardError,error:
-	try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-	except:pass
-	log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
-	return False  
+	raise StandardError,"%s >> error: %s"%(_str_funcName,error)
