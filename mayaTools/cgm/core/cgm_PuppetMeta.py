@@ -1450,7 +1450,7 @@ class cgmModule(cgmMeta.cgmObject):
             self.__dict__[Attr].doName()
 
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
-
+	    
         for attr in moduleBuffers_toMake:
             log.debug(attr)
             obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
@@ -1520,7 +1520,7 @@ class cgmModule(cgmMeta.cgmObject):
 	    try:
 		log.debug("Checking '%s' on template Null"%attr)	
 		if attr == 'rollJoints':
-		    log.debug(self.kw_rollJoints)
+		    log.info("rollJoints: %s"%self.kw_rollJoints)
 		    if self.kw_rollJoints == 0:
 			i_null.addAttr(attr,initialValue = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                
 		    else:
@@ -1913,7 +1913,7 @@ class cgmLimb(cgmModule):
 	settings = limbTypes[moduleType]
 	if settings:
 	    for attr in settings.keys():
-		self.templateNull.addAttr(attr, value = settings[attr],lock = True) 
+		self.templateNull.addAttr(attr, initialValue = settings[attr],lock = True) 
                                 
         return True
     
