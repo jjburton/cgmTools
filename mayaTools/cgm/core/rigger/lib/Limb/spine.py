@@ -360,7 +360,7 @@ def build_controls(self):
 	    if i == 0:
 		i_loc = ml_segmentsFK[i].doLoc()
 		mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)		
-		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,
+		d_buffer = mControlFactory.registerControl(i_obj,addConstraintGroup=1,
 		                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 		                                           setRotateOrder=5,
 		                                           copyPivot=i_loc.mNode,typeModifier='fk') 
@@ -381,7 +381,7 @@ def build_controls(self):
 	ml_segmentsIK = ml_segmentIKShapes
 	
 	for i_obj in ml_segmentsIK:
-	    d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,
+	    d_buffer = mControlFactory.registerControl(i_obj,addConstraintGroup=1,
 	                                               mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 	                                               typeModifier='segIK',
 		                                       setRotateOrder=2) 
